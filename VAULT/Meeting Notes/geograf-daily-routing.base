@@ -1,0 +1,31 @@
+filters:
+  and:
+    - 'file.path == "VAULT/Meeting Notes/geograf-ops-obsidian.md"'
+
+formulas:
+  start_city_set: 'if(start_city, "yes", "no")'
+
+properties:
+  file.name:
+    displayName: "Note"
+  agent_id:
+    displayName: "Agent"
+  visit_date:
+    displayName: "Date"
+  start_city:
+    displayName: "Start City"
+  sql_source:
+    displayName: "Source"
+  formula.start_city_set:
+    displayName: "Start City Set"
+
+views:
+  - type: table
+    name: "Geograf Daily Routing"
+    order:
+      - file.name
+      - agent_id
+      - visit_date
+      - start_city
+      - formula.start_city_set
+      - sql_source
