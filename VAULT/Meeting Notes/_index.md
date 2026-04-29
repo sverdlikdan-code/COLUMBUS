@@ -1,21 +1,21 @@
-# Meeting Notes — Index
+# Meeting Notes — Индекс
 
-תיקייה זו מכילה topic files לכל קוד, ארכיטקטורה, והחלטות בפרויקט THE 5 AGENTS.
+Эта папка содержит topic files для каждого кода, архитектуры и решений в проекте COLUMBUS.
 
-## Topics
+## Темы
 
-- [[skills-folder-architecture]] — מבנה תיקיית SKILLS/ וה-convention לכתיבת skills
-- [[skill-obsidian-bases]] — Skill ליצירת קבצי Obsidian Bases (.base)
-- [[skill-obsidian-markdown]] — Skill ליצירת Obsidian Flavored Markdown
-- [[skill-obsidian-vault-workflow]] — פרוטוקול ניהול vault כזיכרון לטווח ארוך
-- [[claude-md]] — קובץ CLAUDE.md — guidance לClaude Code
-- [[claude-settings]] — קובץ .claude/settings.local.json — permissions מקומיות
-- [[agents-folder]] — תיקיית AGENTS/ — עתידית לאגנטים עצמאיים
-- [[vault-structure]] — מבנה תיקיית VAULT/ עצמה
-- [[ceo-agent-prd]] — PRD לסוכן המנכ"ל — הסוכן הראשי שמנתב לכל הסוכנים
-- [[skill-nano-banana-2]] — Skill ליצירת תמונות עם Google Nano Banana 2 דרך MCP
-- [[agent-yuval]] — סוכן קריאייטיב יובל — יצירת תמונות עקביות עם reference
-- [[agent-yael]] — סוכנת כתיבת תוכן יעל — שכתוב מאמרים + שילוב תמונות מיובל
-- [[agent-reuven]] — סוכן תיאום ראובן — מנהל pipeline שלם: חן → יעל → יובל → גיא → Output
-- [[agent-guy]] — סוכן QA גיא — בודק תוצרים, סוגר הלולאה, הסוכן ה-5 והאחרון
-- [[agent-chen]] — סוכנת חיפוש רשת חן — מוצאת מאמרים, שומרת ב-Content/, מתעדת ב-Memory/
+- [[skills-folder-architecture]] — Структура папки SKILLS/ и конвенция написания навыков
+- [[skill-obsidian-bases]] — Навык для создания файлов Obsidian Bases (.base)
+- [[skill-obsidian-markdown]] — Навык для создания Obsidian Flavored Markdown
+- [[skill-obsidian-vault-workflow]] — Протокол управления vault как долгосрочной памятью
+- [[claude-md]] — Файл CLAUDE.md — инструкции для Claude Code
+- [[claude-settings]] — Файл .claude/settings.local.json — локальные разрешения
+- [[agents-folder]] — Папка AGENTS/ — для самостоятельных агентов
+- [[vault-structure]] — Структура папки VAULT/ самой себя
+- [[ceo-agent-prd]] — PRD для агента-CEO — главного агента, маршрутизирующего ко всем агентам
+- [[skill-nano-banana-2]] — Навык создания изображений с Google Nano Banana 2 через MCP
+- [[agent-yuval]] — Агент-креатив Юваль — создание согласованных изображений с reference
+- [[agent-yael]] — Агент-копирайтер Яэль — переписывание статей + интеграция изображений от Юваль
+- [[agent-reuven]] — Агент-координатор Реувен — управляет полным pipeline: Хен → Яэль → Юваль → Гай → Output
+- [[agent-chen]] — Агент веб-поиска Хен — находит статьи, сохраняет в Content/, документирует в Memory/
+- [[agent-guy]] — QA-агент Гай — проверяет результаты, закрывает цикл, 5-й и последний агент
