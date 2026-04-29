@@ -22,3 +22,4 @@
 - [[agent-geograf]] — Агент Geograf — SQL Server маршрутизация клиентов и расчет סדר ביקור по агенту/дню
 - [[skill-geograf-israel-routing]] — Навык маршрутизации визитов в Израиле с SQL, иврит-адресами и benchmark ASCOMY
 - [[geograf-ops-obsidian]] — Obsidian-заметка и операционный чеклист для daily маршрутизации Geograf
+- [[agent-designer]] — Агент Designer — мониторинг конкурентов и правила UI/UX стиля, кнопок и интеракций

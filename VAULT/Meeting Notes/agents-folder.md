@@ -1,7 +1,7 @@
 # Agents Folder
 
 ## Overview
-התיקייה `.claude/AGENTS/` מכילה אגנטים עצמאיים — מקבילה ל-`.claude/SKILLS/`. כל אגנט שמור בתיקייה נפרדת עם קובץ `AGENT.md`. Convention הוגדר: frontmatter (`name`, `description`, `role`) + סקשנים Role, Always Active, Sub-Agent Registry, Routing Logic, Workflow, Anti-Patterns. הסוכן הראשון שהוגדר הוא CEO Agent (המנכ"ל) — הסוכן הראשי שמנתב לכל שאר הסוכנים. ה-PRD המלא נמצא ב-`PRD/ceo-agent-prd.md`.
+התיקייה `.claude/AGENTS/` מכילה אגנטים עצמאיים — מקבילה ל-`.claude/SKILLS/`. כל אגנט שמור בתיקייה נפרדת עם קובץ `AGENT.md`. Convention הוגדר: frontmatter (`name`, `description`, `role`) + סקשנים Role, Always Active, Sub-Agent Registry, Routing Logic, Workflow, Anti-Patterns. הסוכן הראשון שהוגדר הוא CEO Agent (המנכ"ל) — הסוכן הראשי שמנתב לכל שאר הסוכנים. נכון לעכשיו נוספו גם Geograf ו-Designer כסוכנים מתמחים פעילים במצב זמני.
 
 ## Open Questions
 - none
@@ -19,3 +19,9 @@
 - **Decisions:** AGENT.md עוקב אחרי מבנה SKILL.md עם תוספת שדה `role` (orchestrator/specialist). המנכ"ל מוגדר כ-orchestrator שמנתב ל-Content Agent, Research Agent, ו-2 סוכנים TBD.
 - **Notes / Caveats:** CLAUDE.md עדיין לא עודכן לטעון את ceo-agent AGENT.md — זה על המפתח.
 - **Related:** [[claude-md]], [[skills-folder-architecture]]
+
+### 2026-04-29 — Добавлены Geograf и Designer [wip]
+- **What was done:** Созданы `.claude/AGENTS/geograf/AGENT.md` и `.claude/AGENTS/designer/AGENT.md`; обновлена маршрутизация CEO.
+- **Decisions:** Во временном режиме активны только Geograf и Designer; остальные специализированные агенты отключены.
+- **Notes / Caveats:** Это операционное ограничение, а не удаление агентов.
+- **Related:** [[agent-geograf]], [[agent-designer]], [[ceo-agent-prd]]

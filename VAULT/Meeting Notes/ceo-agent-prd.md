@@ -1,7 +1,7 @@
 # CEO Agent PRD
 
 ## Overview
-מסמך ה-PRD לסוכן המנכ"ל נמצא ב-`PRD/ceo-agent-prd.md`. הסוכן הוא הנקודה המרכזית של מערכת THE 5 AGENTS — מקבל כל פקודת משתמש, מנתח intent, ומנתב ל-4 סוכנים מתמחים. מוגדר דרך CLAUDE.md ו-AGENT.md בלבד (אין קוד). ה-AGENT.md נמצא ב-`.claude/AGENTS/ceo-agent/AGENT.md`. נכון לעכשיו הופעל מצב זמני `CEO + Geograf`: ניתוב מותר רק ל-Geograf, ושאר סוכני המשנה נשארים כבויים עד הוראה מפורשת.
+מסמך ה-PRD לסוכן המנכ"ל נמצא ב-`PRD/ceo-agent-prd.md`. הסוכן הוא הנקודה המרכזית של מערכת THE 5 AGENTS — מקבל כל פקודת משתמש, מנתח intent, ומנתב לסוכנים מתמחים. מוגדר דרך CLAUDE.md ו-AGENT.md בלבד (אין קוד). ה-AGENT.md נמצא ב-`.claude/AGENTS/ceo-agent/AGENT.md`. נכון לעכשיו הופעל מצב זמני `CEO + Geograf + Designer`: ניתוב מותר רק ל-Geograf ול-Designer, ושאר סוכני המשנה נשארים כבויים עד הוראה מפורשת.
 
 ## Open Questions
 - Content Agent ו-Research Agent עדיין לא הוגדרו — נדרש AGENT.md לכל אחד
@@ -25,3 +25,9 @@
 - **Decisions:** Новый временный режим `CEO + Geograf`: разрешена маршрутизация только геомаршрутизационных задач к Geograf.
 - **Notes / Caveats:** Любые задачи, требующие Reuven/Yael/Chen/Yuval/Guy, пока не маршрутизируются.
 - **Related:** [[agent-geograf]], [[claude-md]], [[agents-folder]]
+
+### 2026-04-29 — Включение Designer в ограниченном режиме [wip]
+- **What was done:** Обновлены `CLAUDE.md` и `.claude/AGENTS/ceo-agent/AGENT.md` для активации Designer как второго доступного суб-агента.
+- **Decisions:** Новый временный режим `CEO + Geograf + Designer`: Geograf отвечает за геомаршрутизацию, Designer — за UI/UX стиль, кнопки, интеракции и конкурентный дизайн-анализ.
+- **Notes / Caveats:** Reuven/Yael/Chen/Yuval/Guy по-прежнему отключены и не используются в маршрутизации.
+- **Related:** [[agent-designer]], [[agent-geograf]], [[claude-md]]
