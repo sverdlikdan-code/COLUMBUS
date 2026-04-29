@@ -1,0 +1,220 @@
+{
+  "main": {
+    "id": "69d13bdad6c49afd",
+    "type": "split",
+    "children": [
+      {
+        "id": "22313e2d9b3e87a5",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "7c4a7598c94303c7",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Graph view"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "35ac3bc838388c8c",
+    "type": "split",
+    "children": [
+      {
+        "id": "fbfa75c049877ec0",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "13d79a8f38c4d4b4",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "bff8bb769967db98",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "76d8f8af032a2e9a",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "e44b53800d010807",
+    "type": "split",
+    "children": [
+      {
+        "id": "3d99209f7cc202da",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "88a9be4b1dfd5562",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks"
+            }
+          },
+          {
+            "id": "57f8685497bf15ef",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links"
+            }
+          },
+          {
+            "id": "b945bc3defe2a36f",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "c32828d11218c2ec",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "5fc3d967fef04242",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "7c4a7598c94303c7",
+  "lastOpenFiles": [
+    "VAULT/Meeting Notes/agent-guy.md",
+    "VAULT/Meeting Notes/_index.md.tmp.15076.1777302755962",
+    "VAULT/Meeting Notes/agent-reuven.md",
+    "VAULT/Meeting Notes/agent-chen.md",
+    "VAULT/Meeting Notes/agent-yael.md",
+    "Output",
+    "Content/Ready",
+    "Content",
+    "outputs/yukki-plombir-skyfi-20260427-1733.png",
+    "outputs/yukki-skyfi-pilot-20260427-1726.png",
+    "outputs/santa-bremor-glass-skyfi-20260427-1723.png",
+    "outputs/santa-bremor-skyfi-20260427-1717.png",
+    "outputs/santa-bremor-fantasy-20260427-1712.png",
+    "VAULT/Meeting Notes/agent-yuval.md",
+    "VAULT/Meeting Notes/skill-nano-banana-2.md",
+    "outputs",
+    "reference",
+    "VAULT/Meeting Notes/ceo-agent-prd.md",
+    "PRD/ceo-agent-prd.md",
+    "PRD",
+    "CLAUDE.md.tmp.15076.1777294180902",
+    "VAULT/Brand Guidelines/_index.md",
+    "VAULT/Publishing Log/_index.md",
+    "VAULT/Content Briefs/_index.md",
+    "VAULT/Meeting Notes/_index.md",
+    "VAULT/Meeting Notes/vault-structure.md",
+    "VAULT/Meeting Notes/agents-folder.md",
+    "VAULT/Meeting Notes/claude-settings.md",
+    "VAULT/Meeting Notes/claude-md.md",
+    "VAULT/Meeting Notes/skill-obsidian-vault-workflow.md",
+    "VAULT/Meeting Notes/skill-obsidian-markdown.md",
+    "VAULT/Meeting Notes/skill-obsidian-bases.md",
+    "VAULT/Meeting Notes/skills-folder-architecture.md",
+    "VAULT/Brand Guidelines",
+    "VAULT/Publishing Log",
+    "SKILLS/obsidian/obsidian-vault-workflow/SKILL.md",
+    "SKILLS/obsidian/obsidian-markdown/SKILL.md",
+    "SKILLS/obsidian/obsidian-bases/SKILL.md"
+  ]
+}

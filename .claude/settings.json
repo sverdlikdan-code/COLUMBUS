@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($env:PATH += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd \"c:\\\\Users\\\\d.sverdlik\\\\Desktop\\\\WORKSPACE\\\\THE 5 AGENTS\"; git add CLAUDE.md; git commit -m \"Wire CEO agent into CLAUDE.md — load on every session\"; git push)"
+    ]
+  },
+  "mcpServers": {
+    "mcp-image": {
+      "command": "npx",
+      "args": ["-y", "mcp-image"],
+      "env": {
+        "GEMINI_API_KEY": "${GEMINI_API_KEY}",
+        "IMAGE_OUTPUT_DIR": "C:\\Users\\d.sverdlik\\Desktop\\WORKSPACE\\THE 5 AGENTS\\outputs"
+      }
+    }
+  }
+}
