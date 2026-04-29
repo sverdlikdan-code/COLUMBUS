@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($path = \"c:\\\\Users\\\\d.sverdlik\\\\Desktop\\\\WORKSPACE\\\\THE 5 AGENTS\"; if \\(Test-Path $path\\) { \\(Get-ChildItem -Path $path -Force -ErrorAction SilentlyContinue\\).Count } else { \"Path does not exist\" })",
+      "PowerShell(\\(Get-ChildItem -Path \"c:\\\\Users\\\\d.sverdlik\\\\Desktop\\\\WORKSPACE\\\\THE 5 AGENTS\" -Force\\) | ForEach-Object { [PSCustomObject]@{Name=$_.Name; IsDir=$_.PSIsContainer; Mode=$_.Mode} } | Format-Table -AutoSize)",
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\d.sverdlik\\\\Desktop\\\\WORKSPACE\" -Force | ForEach-Object { $_.FullName })",
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\d.sverdlik\\\\Desktop\\\\WORKSPACE\\\\THE 5 AGENTS\" -Force | ForEach-Object { $_.FullName })",
+      "PowerShell(New-Item -Path \"c:\\\\Users\\\\d.sverdlik\\\\Desktop\\\\WORKSPACE\\\\THE 5 AGENTS\\\\SKILLS\" -ItemType Directory)",
+      "PowerShell(New-Item -Path \"c:\\\\Users\\\\d.sverdlik\\\\Desktop\\\\WORKSPACE\\\\THE 5 AGENTS\\\\AGENTS\" -ItemType Directory)",
+      "PowerShell($url = \"https://github.com/git-for-windows/git/releases/download/v2.44.0.windows.1/Git-2.44.0-64-bit.exe\"; $out = \"$env:TEMP\\\\git-installer.exe\"; Invoke-WebRequest -Uri $url -OutFile $out; Write-Host \"Downloaded\")",
+      "PowerShell(Start-Process -FilePath \"$env:TEMP\\\\git-installer.exe\" -ArgumentList \"/VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /COMPONENTS=icons,ext\\\\reg\\\\shellhere,assoc,assoc_sh\" -Wait; Write-Host \"Install complete\")",
+      "PowerShell($env:PATH += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd \"c:\\\\Users\\\\d.sverdlik\\\\Desktop\\\\WORKSPACE\\\\THE 5 AGENTS\"; git init; git add .; git commit -m \"Initial commit - CLAUDE.md, SKILLS and AGENTS folders\")",
+      "PowerShell($env:PATH += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd \"c:\\\\Users\\\\d.sverdlik\\\\Desktop\\\\WORKSPACE\\\\THE 5 AGENTS\"; git remote add origin https://github.com/sverdlikdan-code/5-AGENT.git; git branch -M main; git push -u origin main)",
+      "PowerShell($env:PATH += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd \"c:\\\\Users\\\\d.sverdlik\\\\Desktop\\\\WORKSPACE\\\\THE 5 AGENTS\"; git status)"
+    ]
+  }
+}
