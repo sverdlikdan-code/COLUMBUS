@@ -11,6 +11,7 @@ import { totalRouteKm, haversineMeters } from '../utils/haversine';
 import { fetchCustomers, geocodeAddressAPI } from '../api/client';
 import { exportToExcel } from '../utils/exportExcel';
 import { removeCityFromName } from '../utils/nameUtils';
+import { saveRoute, loadRoute, mergeWithSaved } from '../utils/routeStorage';
 import KmPanel from '../components/KmPanel';
 import ClientCard from '../components/ClientCard';
 import MapLeaflet from '../components/MapLeaflet';
@@ -81,13 +82,22 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
 
   useEffect(() => { loadData(); }, [currentDay]);
 
+  // Auto-save on every clients change (debounced)
+  useEffect(() => {
+    if (clients.length === 0 || isDemo) return;
+    const t = setTimeout(() => saveRoute(agentCode, currentDay, clients), 600);
+    return () => clearTimeout(t);
+  }, [clients]);
+
   async function loadData() {
     setLoading(true);
     try {
       const data: Client[] = await fetchCustomers(agentCode, currentDay);
-      const sorted = [...data].sort((a, b) => (a.priorityOrder || 0) - (b.priorityOrder || 0));
-      setClients(sorted);
-      setOriginalClients(sorted.map(c => ({ ...c })));
+      const fromServer = [...data].sort((a, b) => (a.priorityOrder || 0) - (b.priorityOrder || 0));
+      const saved = await loadRoute(agentCode, currentDay);
+      const merged = saved ? mergeWithSaved(fromServer, saved) : fromServer;
+      setClients(merged);
+      setOriginalClients(fromServer.map(c => ({ ...c })));
       setAiClients(nearestNeighborSort(data));
     } catch (e: any) {
       const demo = DEMO_CLIENTS.map(c => ({ ...c, agentCode, agentName, dayNum: selectedDay }));
@@ -182,11 +192,11 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
     if (!hasChanges()) { onBack(); return; }
     Alert.alert(
       'יש שינויים',
-      'בוצעו שינויים במסלול. מה לעשות לפני היציאה?',
+      'בוצעו שינויים במסלול — נשמרו אוטומטית במכשיר.',
       [
         { text: 'ביטול', style: 'cancel' },
-        { text: 'יציאה ללא שמירה', style: 'destructive', onPress: onBack },
-        { text: '📊 שמור וייצא Excel', onPress: async () => { await doExport(); onBack(); } },
+        { text: 'יציאה', onPress: onBack },
+        { text: '📊 ייצא Excel ויציאה', onPress: async () => { await doExport(); onBack(); } },
       ],
       { cancelable: true }
     );
