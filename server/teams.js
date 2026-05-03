@@ -15,12 +15,12 @@ function loadTeams() {
   managersMap = {};
 
   for (const row of rows) {
-    const manager = row[1];
-    const agentCode = row[2];
-    const agentName = row[4]; // שם סוכן (FORM column)
+    const manager   = row[0]; // קבוצה — manager group
+    const agentCode = row[1]; // N סוכן — agent number
+    const agentName = row[3]; // שם סוכן — agent display name
 
     if (!manager || !agentCode || !agentName) continue;
-    if (manager === 'קבוצה' || manager === 'N סוכן') continue;
+    if (manager === 'קבוצה' || agentCode === 'N סוכן') continue;
 
     const code = String(agentCode).trim();
     const mgr = String(manager).trim();
