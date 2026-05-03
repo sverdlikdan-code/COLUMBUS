@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, TextInput, useWindowDimensions
+  View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, TextInput, ScrollView, useWindowDimensions
 } from 'react-native';
 import * as Location from 'expo-location';
 import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
@@ -10,6 +10,7 @@ import { Client, nearestNeighborSort } from '../utils/nearestNeighbor';
 import { totalRouteKm, haversineMeters } from '../utils/haversine';
 import { fetchCustomers, geocodeAddressAPI } from '../api/client';
 import { exportToExcel } from '../utils/exportExcel';
+import { removeCityFromName } from '../utils/nameUtils';
 import KmPanel from '../components/KmPanel';
 import ClientCard from '../components/ClientCard';
 import MapLeaflet from '../components/MapLeaflet';
@@ -47,8 +48,24 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
   const [addressModalClientId, setAddressModalClientId] = useState<string | null>(null);
   const [addressInput, setAddressInput] = useState('');
   const [locationLoading, setLocationLoading] = useState(false);
+  const [selectedCities, setSelectedCities] = useState<string[]>([]);
 
-  const displayClients = sortMode === 'ai' ? aiClients : clients;
+  const uniqueCities = useMemo(() =>
+    [...new Set(clients.map(c => c.city).filter(Boolean))].sort() as string[],
+    [clients]
+  );
+
+  const displayClients = useMemo(() => {
+    const base = sortMode === 'ai' ? aiClients : clients;
+    if (selectedCities.length === 0) return base;
+    return base.filter(c => selectedCities.includes(c.city));
+  }, [sortMode, aiClients, clients, selectedCities]);
+
+  function toggleCity(city: string) {
+    setSelectedCities(prev =>
+      prev.includes(city) ? prev.filter(c => c !== city) : [...prev, city]
+    );
+  }
 
   const firstDivergingId = useMemo(() => {
     for (let i = 0; i < Math.min(clients.length, aiClients.length); i++) {
@@ -230,24 +247,46 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
         </View>
       </View>
 
-      {/* Day selector row */}
+      {/* Day selector + city filter */}
       <View style={styles.dayRow}>
-        {[1,2,3,4,5].map(d => (
-          <TouchableOpacity
-            key={d}
-            style={[styles.dayBtn, currentDay === d && styles.dayBtnActive]}
-            onPress={() => { setCurrentDay(d); setSelectedId(null); }}
-          >
-            <Text style={[styles.dayBtnText, currentDay === d && styles.dayBtnTextActive]}>
-              {DAY_LABELS[d]}
-            </Text>
-          </TouchableOpacity>
-        ))}
-        {startCity ? (
-          <View style={styles.cityBtn}>
-            <Text style={styles.cityBtnText} numberOfLines={1}>{startCity}</Text>
-          </View>
-        ) : null}
+        {/* Days row */}
+        <View style={styles.daysLine}>
+          {[1,2,3,4,5].map(d => (
+            <TouchableOpacity
+              key={d}
+              style={[styles.dayBtn, currentDay === d && styles.dayBtnActive]}
+              onPress={() => { setCurrentDay(d); setSelectedId(null); }}
+            >
+              <Text style={[styles.dayBtnText, currentDay === d && styles.dayBtnTextActive]}>
+                {DAY_LABELS[d]}
+              </Text>
+            </TouchableOpacity>
+          ))}
+          {startCity ? (
+            <View style={styles.startCityTag}>
+              <Text style={styles.startCityTagText} numberOfLines={1}>{startCity}</Text>
+            </View>
+          ) : null}
+        </View>
+        {/* City filter chips */}
+        {uniqueCities.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.citiesLine} contentContainerStyle={styles.citiesContent}>
+            {uniqueCities.map(city => {
+              const active = selectedCities.includes(city);
+              return (
+                <TouchableOpacity
+                  key={city}
+                  style={[styles.cityChip, active && styles.cityChipActive]}
+                  onPress={() => toggleCity(city)}
+                >
+                  <Text style={[styles.cityChipText, active && styles.cityChipTextActive]} numberOfLines={1}>
+                    {city}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        )}
       </View>
 
       {/* KM panel horizontal full width */}
@@ -319,7 +358,7 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
                               <Text style={styles.shortenText}>אדיף שינוי מסלול</Text>
                             </View>
                           )}
-                          <Text style={styles.panelTitle}>{selected.custName}</Text>
+                          <Text style={styles.panelTitle}>{removeCityFromName(selected.custName, selected.city)}</Text>
                           <PanelRow label="סדר ביקור" value={`#${pIdx}`} />
                           <PanelRow label="סדר AI"     value={`#${aIdx}`} />
                           <PanelRow label="כתובת"      value={selected.fullAddress} />
@@ -371,7 +410,7 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
                     <TouchableOpacity style={styles.panelClose} onPress={() => setSelectedId(null)}>
                       <Text style={styles.panelCloseText}>✕</Text>
                     </TouchableOpacity>
-                    <Text style={styles.panelTitle}>{selected.custName}</Text>
+                    <Text style={styles.panelTitle}>{removeCityFromName(selected.custName, selected.city)}</Text>
                     <PanelRow label="כתובת"    value={selected.fullAddress} />
                     <PanelRow label="עיר"      value={selected.city} />
                     <PanelRow label="מס. לקוח" value={selected.custId} />
@@ -556,26 +595,42 @@ const styles = StyleSheet.create({
   agentName: { color: '#fff', fontSize: 15, fontWeight: '800' },
   headerSub: { color: 'rgba(255,255,255,0.65)', fontSize: 11, marginTop: 1 },
   dayRow: {
-    flexDirection: 'row', backgroundColor: '#0F2044',
-    paddingHorizontal: 8, paddingBottom: 6, paddingTop: 4, gap: 5,
-    alignItems: 'center',
+    flexDirection: 'column', backgroundColor: '#0F2044',
+    paddingHorizontal: 8, paddingBottom: 5, paddingTop: 4, gap: 4,
+  },
+  daysLine: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
   },
   dayBtn: {
-    flex: 1, height: 26, borderRadius: 6,
+    flex: 1, height: 22, borderRadius: 5,
     backgroundColor: 'rgba(255,255,255,0.1)',
     justifyContent: 'center', alignItems: 'center',
   },
   dayBtnActive: { backgroundColor: theme.colors.gold },
-  dayBtnText: { color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: '900' },
+  dayBtnText: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '900' },
   dayBtnTextActive: { color: '#0F2044' },
-  cityBtn: {
-    height: 26, borderRadius: 6, paddingHorizontal: 8,
+  startCityTag: {
+    height: 22, borderRadius: 5, paddingHorizontal: 7,
     backgroundColor: 'rgba(201,168,76,0.18)',
     justifyContent: 'center', alignItems: 'center',
     borderWidth: 1, borderColor: 'rgba(201,168,76,0.4)',
     maxWidth: 90,
   },
-  cityBtnText: { color: '#C9A84C', fontSize: 11, fontWeight: '700' },
+  startCityTagText: { color: '#C9A84C', fontSize: 10, fontWeight: '700' },
+  citiesLine: { maxHeight: 26 },
+  citiesContent: { flexDirection: 'row', gap: 5, alignItems: 'center' },
+  cityChip: {
+    height: 22, paddingHorizontal: 8, borderRadius: 11,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+  },
+  cityChipActive: {
+    backgroundColor: '#C9A84C',
+    borderColor: '#C9A84C',
+  },
+  cityChipText: { color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: '700' },
+  cityChipTextActive: { color: '#0F2044' },
   goldLine:  { height: 3, backgroundColor: theme.colors.gold },
   clientCount: { flex: 1, textAlign: 'right', fontSize: 13, color: '#999', paddingRight: 4 },
   tabBar:    { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#ddd' },
