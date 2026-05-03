@@ -1,5 +1,12 @@
 import { haversineKm } from './haversine';
 
+// Israel bounding box — coordinates outside this are invalid
+const IL = { minLat: 29.3, maxLat: 33.5, minLng: 34.2, maxLng: 35.9 };
+export function isValidIsraelGps(lat: number | null | undefined, lng: number | null | undefined): boolean {
+  if (!lat || !lng) return false;
+  return lat >= IL.minLat && lat <= IL.maxLat && lng >= IL.minLng && lng <= IL.maxLng;
+}
+
 export interface Client {
   custId: string;
   custName: string;
@@ -21,8 +28,8 @@ export interface Client {
 }
 
 export function nearestNeighborSort(clients: Client[], startCity?: { lat: number; lng: number }): Client[] {
-  const withCoords = clients.filter(c => c.lat && c.lng);
-  const noCoords = clients.filter(c => !c.lat || !c.lng);
+  const withCoords = clients.filter(c => isValidIsraelGps(c.lat, c.lng));
+  const noCoords = clients.filter(c => !isValidIsraelGps(c.lat, c.lng));
 
   if (withCoords.length === 0) return clients;
 

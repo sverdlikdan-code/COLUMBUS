@@ -23,5 +23,5 @@ export function totalRouteKm(clients: { lat: number; lng: number }[]): number {
       total += haversineKm(a.lat, a.lng, b.lat, b.lng);
     }
   }
-  return Math.round(total * 10) / 10;
+  return Math.round(total);
 }
