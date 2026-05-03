@@ -1,14 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Client, isValidIsraelGps } from '../utils/nearestNeighbor';
-
-function removeCityFromName(name: string, city: string): string {
-  if (!city || !name) return name;
-  const normalized = city.trim();
-  if (!normalized) return name;
-  const escaped = normalized.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return name.replace(new RegExp(escaped, 'gi'), '').replace(/\s{2,}/g, ' ').trim();
-}
+import { removeCityFromName } from '../utils/nameUtils';
 
 const DAY_LABELS: Record<number, string> = { 1:'א', 2:'ב', 3:'ג', 4:'ד', 5:'ה' };
 
