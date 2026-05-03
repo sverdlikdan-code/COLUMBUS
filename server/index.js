@@ -18,8 +18,36 @@ function isValidIL(lat, lng) {
 // In-memory geocode cache: address string → { lat, lng } | null
 const geocodeCache = new Map();
 
+const VENUE_PATTERNS = [
+  /מרכז מסחרי[^,]*/gi,
+  /מרכז עסקים[^,]*/gi,
+  /מרכז קניות[^,]*/gi,
+  /קניון[^,]*/gi,
+  /מתחם[^,]*/gi,
+  /פארק תעשיי?ה[^,]*/gi,
+  /אזור תעשיי?ה[^,]*/gi,
+  /בית קפה[^,]*/gi,
+  /מסעדה[^,]*/gi,
+  /סופרמרקט[^,]*/gi,
+  /קומה\s*\d+/gi,
+  /דירה\s*\d+/gi,
+  /כניסה\s*[א-ת\d]+/gi,
+  /בניין\s*[א-ת\d]*/gi,
+  /\(.*?\)/g,
+];
+
+function cleanAddressForGeocoding(address) {
+  if (!address) return address;
+  let clean = address;
+  for (const pattern of VENUE_PATTERNS) {
+    clean = clean.replace(pattern, '');
+  }
+  return clean.replace(/[,\s]+$/, '').replace(/\s{2,}/g, ' ').trim();
+}
+
 async function geocodeAddress(address, city) {
-  const query = [address, city, 'ישראל'].filter(Boolean).join(', ');
+  const cleanAddr = cleanAddressForGeocoding(address);
+  const query = [cleanAddr, city, 'ישראל'].filter(Boolean).join(', ');
   if (geocodeCache.has(query)) return geocodeCache.get(query);
 
   try {
@@ -50,6 +78,14 @@ async function geocodeBatch(clients) {
   }
   return clients;
 }
+
+// GET /geocode?address=&city= — geocode a single address
+app.get('/geocode', async (req, res) => {
+  const { address, city } = req.query;
+  if (!address) return res.status(400).json({ error: 'address required' });
+  const result = await geocodeAddress(address, city || '');
+  res.json(result || {});
+});
 
 // GET /managers — unique manager groups from Fabric
 app.get('/managers', async (req, res) => {
