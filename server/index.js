@@ -9,6 +9,48 @@ app.use(express.json());
 
 const DAY_LABELS = { 1: 'א', 2: 'ב', 3: 'ג', 4: 'ד', 5: 'ה' };
 
+// Israel bounding box
+const IL = { minLat: 29.3, maxLat: 33.5, minLng: 34.2, maxLng: 35.9 };
+function isValidIL(lat, lng) {
+  return lat && lng && lat >= IL.minLat && lat <= IL.maxLat && lng >= IL.minLng && lng <= IL.maxLng;
+}
+
+// In-memory geocode cache: address string → { lat, lng } | null
+const geocodeCache = new Map();
+
+async function geocodeAddress(address, city) {
+  const query = [address, city, 'ישראל'].filter(Boolean).join(', ');
+  if (geocodeCache.has(query)) return geocodeCache.get(query);
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=il`;
+    const resp = await fetch(url, {
+      headers: { 'User-Agent': 'ColumbusDillerApp/1.1' },
+      signal: AbortSignal.timeout(4000),
+    });
+    const data = await resp.json();
+    if (data.length > 0) {
+      const result = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+      geocodeCache.set(query, result);
+      return result;
+    }
+  } catch (_) {}
+
+  geocodeCache.set(query, null);
+  return null;
+}
+
+// Geocode a batch — max 1 req/sec (Nominatim rate limit)
+async function geocodeBatch(clients) {
+  const needsGeocode = clients.filter(c => !isValidIL(c.lat, c.lng) && (c.address || c.city));
+  for (const c of needsGeocode) {
+    const result = await geocodeAddress(c.address, c.city);
+    if (result) { c.lat = result.lat; c.lng = result.lng; }
+    await new Promise(r => setTimeout(r, 1100)); // Nominatim: 1 req/sec
+  }
+  return clients;
+}
+
 // GET /managers — unique manager groups from Fabric
 app.get('/managers', async (req, res) => {
   try {
@@ -135,6 +177,7 @@ ORDER BY 'משטח עם כפולות'[סדר ביקור] ASC
         lastSaleDate:    r['[lastSaleDate]'] ? r['[lastSaleDate]'].split('T')[0] : null,
       };
     });
+    await geocodeBatch(clients);
     res.json(clients);
   } catch (err) {
     res.status(500).json({ error: err.message });
