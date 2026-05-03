@@ -89,6 +89,16 @@ ADDCOLUMNS(
         && YEAR('ALL_PARTS'[תאריך]) = YEAR(TODAY())
         && MONTH('ALL_PARTS'[תאריך]) = MONTH(TODAY())
       )
+    ),
+  "totalSales",
+    CALCULATE(
+      [TOTAL SALES (ללא זיכויים מרכזים)],
+      FILTER('ALL_PARTS', 'ALL_PARTS'[מספר לקוח] = EARLIER('משטח עם כפולות'[מס.לקוח]))
+    ),
+  "lastSaleDate",
+    CALCULATE(
+      MAX('ALL_PARTS'[תאריך]),
+      FILTER('ALL_PARTS', 'ALL_PARTS'[מספר לקוח] = EARLIER('משטח עם כפולות'[מס.לקוח]))
     )
 )
 ORDER BY 'משטח עם כפולות'[סדר ביקור] ASC
@@ -121,6 +131,8 @@ ORDER BY 'משטח עם כפולות'[סדר ביקור] ASC
         priorityOrder:   r['משטח עם כפולות[סדר ביקור]'] || 0,
         lastOrderDate:   r['[הזמנה אחרונה]'] ? r['[הזמנה אחרונה]'].split('T')[0] : null,
         monthlySales:    r['[מכירות חודש]'] || 0,
+        totalSales:      r['[totalSales]'] || 0,
+        lastSaleDate:    r['[lastSaleDate]'] ? r['[lastSaleDate]'].split('T')[0] : null,
       };
     });
     res.json(clients);
