@@ -49,7 +49,7 @@ export default function ClientCard({ client, index, total, onMoveUp, onMoveDown,
   const location = [client.city, client.address].filter(Boolean).join(' · ');
   const orderDays = daysSince(client.lastOrderDate);
   const orderAlert = orderDays !== null && orderDays > 13;
-  const doneToday = orderDays === 0;
+  const doneToday = orderDays === 0 && (client.totalSales ?? 0) > 0;
   const inWalkGroup = walkableWithNext || walkableWithPrev;
 
   const cardStyle = [
