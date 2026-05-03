@@ -37,6 +37,19 @@ function daysSince(dateStr: string | null | undefined): number | null {
   return Math.floor(diff / (1000 * 60 * 60 * 24));
 }
 
+function formatSales(amount: number | undefined): string {
+  if (!amount) return '';
+  if (amount >= 1_000_000) return `₪${(amount / 1_000_000).toFixed(1)}m`;
+  if (amount >= 1_000) return `₪${Math.round(amount / 1_000)}k`;
+  return `₪${Math.round(amount)}`;
+}
+
+function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return `${d.getDate()}/${d.getMonth() + 1}`;
+}
+
 export default function ClientCard({ client, index, total, onMoveUp, onMoveDown, onPress, onChangeDayPress, isSelected, drag, walkableWithNext, walkableWithPrev }: Props) {
   const hasNoGps = !isValidIsraelGps(client.lat, client.lng);
   const displayName = removeCityFromName(client.custName, client.city);
@@ -66,9 +79,14 @@ export default function ClientCard({ client, index, total, onMoveUp, onMoveDown,
         <Text style={styles.dragIcon}>⠿</Text>
       </TouchableOpacity>
 
-      {/* Order badge */}
-      <View style={[styles.orderBadge, inWalkGroup && styles.orderBadgeWalk]}>
-        <Text style={styles.orderText}>{index + 1}</Text>
+      {/* Order badge + walk icon */}
+      <View style={styles.orderWrap}>
+        <View style={[styles.orderBadge, inWalkGroup && styles.orderBadgeWalk]}>
+          <Text style={styles.orderText}>{index + 1}</Text>
+        </View>
+        {walkableWithNext && !walkableWithPrev && (
+          <Text style={styles.walkIconInline}>🚶</Text>
+        )}
       </View>
 
       {/* Name + address stacked */}
@@ -84,21 +102,27 @@ export default function ClientCard({ client, index, total, onMoveUp, onMoveDown,
         <Text style={[styles.address, hasNoGps && styles.addressNoGps]} numberOfLines={1}>
           {location || (hasNoGps ? client.city || '—' : '')}
         </Text>
-        {orderDays !== null && (
-          <View style={[styles.orderDateRow, orderAlert && styles.orderDateAlert]}>
-            <Text style={[styles.orderDateText, orderAlert && styles.orderDateTextAlert]}>
-              {orderAlert ? `⚠ ${orderDays}d` : `✓ ${orderDays}d`}
-            </Text>
-          </View>
-        )}
+        <View style={styles.statsRow}>
+          {orderDays !== null && (
+            <View style={[styles.orderDateRow, orderAlert && styles.orderDateAlert]}>
+              <Text style={[styles.orderDateText, orderAlert && styles.orderDateTextAlert]}>
+                {orderAlert ? `⚠ ${orderDays}d` : `✓ ${orderDays}d`}
+              </Text>
+            </View>
+          )}
+          {client.totalSales ? (
+            <View style={styles.salesBadge}>
+              <Text style={styles.salesText}>{formatSales(client.totalSales)}</Text>
+            </View>
+          ) : null}
+          {client.lastSaleDate ? (
+            <View style={styles.dateBadge}>
+              <Text style={styles.dateText}>{formatDate(client.lastSaleDate)}</Text>
+            </View>
+          ) : null}
+        </View>
       </View>
 
-      {/* Walk icon — shown on top card of walkable pair */}
-      {walkableWithNext && !walkableWithPrev && (
-        <View style={styles.walkBadge}>
-          <Text style={styles.walkIcon}>🚶</Text>
-        </View>
-      )}
 
       {/* Day button — right side, separate from arrows */}
       <TouchableOpacity onPress={onChangeDayPress} style={styles.dayBtn}>
@@ -145,6 +169,11 @@ const styles = StyleSheet.create({
     marginRight: 3,
   },
   dragIcon: { fontSize: 12, color: '#C4CDD6' },
+  orderWrap: {
+    alignItems: 'center',
+    marginRight: 8,
+    flexShrink: 0,
+  },
   orderBadge: {
     width: 26,
     height: 26,
@@ -152,8 +181,10 @@ const styles = StyleSheet.create({
     backgroundColor: NAVY,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
-    flexShrink: 0,
+  },
+  walkIconInline: {
+    fontSize: 10,
+    marginTop: 1,
   },
   orderText: { color: '#fff', fontWeight: '700', fontSize: 12 },
   info: { flex: 1, flexDirection: 'column', justifyContent: 'center' },
@@ -261,5 +292,35 @@ const styles = StyleSheet.create({
   },
   orderDateTextAlert: {
     color: '#E65100',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 3,
+    marginTop: 2,
+    justifyContent: 'flex-end',
+  },
+  salesBadge: {
+    backgroundColor: 'rgba(15,32,68,0.08)',
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  salesText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: NAVY,
+  },
+  dateBadge: {
+    backgroundColor: 'rgba(15,32,68,0.06)',
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  dateText: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: '#9AA5B4',
   },
 });
