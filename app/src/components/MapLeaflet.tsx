@@ -6,12 +6,22 @@ interface Props {
   clients: Client[];
 }
 
+function cleanName(name: string, city: string): string {
+  if (!city || !name) return name;
+  const escaped = city.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return name.replace(new RegExp(escaped, 'gi'), '').replace(/\s{2,}/g, ' ').trim() || name;
+}
+
 function buildHtml(clients: Client[]): string {
   const withGps = clients.filter(c => c.lat && c.lng);
-  const markers = withGps.map((c, i) =>
-    `L.marker([${c.lat},${c.lng}],{icon:makeIcon(${i+1},${i===0},'${c.custName.replace(/'/g, "\\'").replace(/"/g, '\\"')}')})` +
-    `.bindPopup('<b>${i+1}. ${c.custName.replace(/'/g, "\\'")}</b><br/>${(c.city || '').replace(/'/g, "\\'")}').addTo(map);`
-  ).join('\n');
+  const markers = withGps.map((c, i) => {
+    const n = cleanName(c.custName, c.city || '');
+    const label = n.replace(/'/g, "\\'").replace(/"/g, '\\"');
+    const city  = (c.city || '').replace(/'/g, "\\'");
+    const addr  = (c.address || '').replace(/'/g, "\\'");
+    const popup = `<div style='min-width:130px;direction:rtl;text-align:right;'><b style='font-size:13px'>${i+1}. ${label}</b>${city ? `<br/><span style='color:#666;font-size:11px'>${city}</span>` : ''}${addr ? `<br/><span style='color:#999;font-size:10px'>${addr}</span>` : ''}</div>`;
+    return `L.marker([${c.lat},${c.lng}],{icon:makeIcon(${i+1},${i===0},'${label}')}).bindPopup('${popup.replace(/'/g, "\\'")}').addTo(map);`;
+  }).join('\n');
 
   const center = withGps.length > 0
     ? `[${withGps[0].lat},${withGps[0].lng}]`
@@ -40,13 +50,15 @@ function buildHtml(clients: Client[]): string {
     position:relative;
   }
   .pin-label{
-    position:absolute;top:24px;left:50%;transform:translateX(-50%);
-    background:rgba(15,32,68,0.85);color:#fff;
-    font-size:9px;font-weight:700;white-space:nowrap;
-    padding:2px 5px;border-radius:4px;pointer-events:none;
+    position:absolute;top:26px;left:50%;transform:translateX(-50%);
+    background:rgba(15,32,68,0.88);color:#fff;
+    font-size:10px;font-weight:700;white-space:nowrap;
+    padding:3px 7px;border-radius:5px;pointer-events:none;
+    box-shadow:0 1px 4px rgba(0,0,0,0.3);
   }
   .pin-label-current{
-    top:34px;background:rgba(201,168,76,0.95);color:#0F2044;
+    top:36px;background:rgba(201,168,76,0.97);color:#0F2044;
+    font-size:11px;
   }
   .pulse-ring{
     position:absolute;width:32px;height:32px;border-radius:50%;
@@ -115,10 +127,12 @@ export default function MapLeaflet({ clients }: Props) {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { WebView } = require('react-native-webview');
   const html = buildHtml(clients);
+  const mapKey = clients.map(c => c.custId).join(',');
 
   return (
     <View style={styles.container}>
       <WebView
+        key={mapKey}
         source={{ html }}
         style={styles.webview}
         originWhitelist={['*']}
