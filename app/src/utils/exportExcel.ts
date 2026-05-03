@@ -79,16 +79,20 @@ export async function exportToExcel({ clients, agentName, managerName, originalC
   }
 
   const wbout = write(wb, { type: 'base64', bookType: 'xlsx' });
-  const filepath = `${FileSystem.documentDirectory}${filename}`;
+  const filepath = `${FileSystem.cacheDirectory}${filename}`;
 
   await FileSystem.writeAsStringAsync(filepath, wbout, {
     encoding: FileSystem.EncodingType.Base64,
   });
 
-  if (await Sharing.isAvailableAsync()) {
+  const available = await Sharing.isAvailableAsync();
+  if (available) {
     await Sharing.shareAsync(filepath, {
       mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       dialogTitle: `מסלול ${agentName}`,
+      UTI: 'com.microsoft.excel.xlsx',
     });
+  } else {
+    throw new Error('Sharing is not available on this device');
   }
 }

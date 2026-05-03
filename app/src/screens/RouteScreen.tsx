@@ -126,7 +126,7 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
     const prev = index > 0 ? displayClients[index - 1] : null;
     const next = index < displayClients.length - 1 ? displayClients[index + 1] : null;
     const walkableWithPrev = !!(prev && prev.lat && prev.lng && item.lat && item.lng &&
-      haversineMeters(prev.lat, prev.lng, item.lat, item.lng) <= 200);
+      haversineMeters(prev.lat, prev.lng, item.lat, item.lng) <= 400);
     const walkableWithNext = !!(next && next.lat && next.lng && item.lat && item.lng &&
       haversineMeters(item.lat, item.lng, next.lat, next.lng) <= 200);
     return (
@@ -173,6 +173,11 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
             </Text>
           </TouchableOpacity>
         ))}
+        {startCity ? (
+          <View style={styles.cityBtn}>
+            <Text style={styles.cityBtnText} numberOfLines={1}>{startCity}</Text>
+          </View>
+        ) : null}
       </View>
 
       {/* KM panel horizontal full width */}
@@ -264,7 +269,7 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
                   </View>
                 </View>
                 <View style={styles.wideMap}>
-                  <MapLeaflet clients={clients} />
+                  <MapLeaflet clients={displayClients} />
                 </View>
               </View>
             ) : tab === 'list' ? (
@@ -305,7 +310,7 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
               </View>
             ) : (
               /* NARROW — MAP VIEW */
-              <MapLeaflet clients={clients} />
+              <MapLeaflet clients={displayClients} />
             )}
           </View>
 
@@ -431,16 +436,25 @@ const styles = StyleSheet.create({
   headerSub: { color: 'rgba(255,255,255,0.65)', fontSize: 11, marginTop: 1 },
   dayRow: {
     flexDirection: 'row', backgroundColor: '#0F2044',
-    paddingHorizontal: 8, paddingBottom: 10, gap: 6,
+    paddingHorizontal: 8, paddingBottom: 6, paddingTop: 4, gap: 5,
+    alignItems: 'center',
   },
   dayBtn: {
-    flex: 1, height: 52, borderRadius: 10,
+    flex: 1, height: 26, borderRadius: 6,
     backgroundColor: 'rgba(255,255,255,0.1)',
     justifyContent: 'center', alignItems: 'center',
   },
   dayBtnActive: { backgroundColor: theme.colors.gold },
-  dayBtnText: { color: 'rgba(255,255,255,0.7)', fontSize: 22, fontWeight: '900' },
+  dayBtnText: { color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: '900' },
   dayBtnTextActive: { color: '#0F2044' },
+  cityBtn: {
+    height: 26, borderRadius: 6, paddingHorizontal: 8,
+    backgroundColor: 'rgba(201,168,76,0.18)',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(201,168,76,0.4)',
+    maxWidth: 90,
+  },
+  cityBtnText: { color: '#C9A84C', fontSize: 11, fontWeight: '700' },
   goldLine:  { height: 3, backgroundColor: theme.colors.gold },
   clientCount: { flex: 1, textAlign: 'right', fontSize: 13, color: '#999', paddingRight: 4 },
   tabBar:    { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#ddd' },
