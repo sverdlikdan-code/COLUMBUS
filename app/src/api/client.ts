@@ -15,3 +15,6 @@ export const fetchCustomers = (agentCode: string, day?: number) => {
   if (day != null) params.set('day', String(day));
   return get(`/customers?${params}`);
 };
+
+export const geocodeAddressAPI = (address: string, city: string): Promise<{ lat: number; lng: number } | null> =>
+  get(`/geocode?address=${encodeURIComponent(address)}&city=${encodeURIComponent(city)}`).catch(() => null);
