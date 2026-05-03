@@ -67,6 +67,11 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
     );
   }
 
+  const mapClients = useMemo(() =>
+    selectedId ? displayClients.filter(c => c.custId === selectedId) : displayClients,
+    [selectedId, displayClients]
+  );
+
   const firstDivergingId = useMemo(() => {
     for (let i = 0; i < Math.min(clients.length, aiClients.length); i++) {
       if (clients[i].custId !== aiClients[i].custId) return clients[i].custId;
@@ -387,7 +392,7 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
                   </View>
                 </View>
                 <View style={styles.wideMap}>
-                  <MapLeaflet clients={displayClients} />
+                  <MapLeaflet clients={mapClients} />
                 </View>
               </View>
             ) : tab === 'list' ? (
