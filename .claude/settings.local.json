@@ -11,7 +11,11 @@
       "PowerShell(Start-Process -FilePath \"$env:TEMP\\\\git-installer.exe\" -ArgumentList \"/VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /COMPONENTS=icons,ext\\\\reg\\\\shellhere,assoc,assoc_sh\" -Wait; Write-Host \"Install complete\")",
       "PowerShell($env:PATH += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd \"c:\\\\Users\\\\d.sverdlik\\\\Desktop\\\\WORKSPACE\\\\THE 5 AGENTS\"; git init; git add .; git commit -m \"Initial commit - CLAUDE.md, SKILLS and AGENTS folders\")",
       "PowerShell($env:PATH += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd \"c:\\\\Users\\\\d.sverdlik\\\\Desktop\\\\WORKSPACE\\\\THE 5 AGENTS\"; git remote add origin https://github.com/sverdlikdan-code/5-AGENT.git; git branch -M main; git push -u origin main)",
-      "PowerShell($env:PATH += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd \"c:\\\\Users\\\\d.sverdlik\\\\Desktop\\\\WORKSPACE\\\\THE 5 AGENTS\"; git status)"
+      "PowerShell($env:PATH += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd \"c:\\\\Users\\\\d.sverdlik\\\\Desktop\\\\WORKSPACE\\\\THE 5 AGENTS\"; git status)",
+      "PowerShell(netstat -ano)",
+      "Bash(curl -s http://localhost:3000/pbi-tables)",
+      "Bash(curl -s \"http://localhost:3000/pbi-tables\")",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
