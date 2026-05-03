@@ -1,4 +1,4 @@
-const BASE_URL = 'http://192.168.100.246:3000';
+const BASE_URL = 'https://api.sverdlik-apps.site';
 
 async function get(path: string) {
   const res = await fetch(`${BASE_URL}${path}`);

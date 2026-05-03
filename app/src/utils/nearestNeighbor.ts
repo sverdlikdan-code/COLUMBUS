@@ -16,6 +16,8 @@ export interface Client {
   param7: string;
   dayNum: number;
   dayLabel: string;
+  lastOrderDate?: string | null;
+  monthlySales?: number;
 }
 
 export function nearestNeighborSort(clients: Client[], startCity?: { lat: number; lng: number }): Client[] {

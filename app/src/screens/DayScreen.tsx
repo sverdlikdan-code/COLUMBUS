@@ -25,7 +25,7 @@ export default function DayScreen({ agentName, startCity, onSelect, onBack }: Pr
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.appName}>DILLER FORMULA</Text>
+          <Text style={styles.appName}>DILER FORMULA</Text>
           <Text style={styles.subtitle}>{agentName} · {startCity}</Text>
         </View>
       </View>

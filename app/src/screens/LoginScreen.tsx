@@ -77,7 +77,7 @@ export default function LoginScreen({ onSelect }: Props) {
         )}
 
         <View style={styles.headerCenter}>
-          <Text style={styles.appName}>DILLER FORMULA</Text>
+          <Text style={styles.appName}>DILER FORMULA</Text>
           <Text style={styles.subtitle}>
             {step === 'manager' ? 'בחר מנהל' : `${selectedManager} — בחר סוכן`}
           </Text>
@@ -90,14 +90,14 @@ export default function LoginScreen({ onSelect }: Props) {
       {/* Gold separator line */}
       <View style={styles.goldLine} />
 
-      {/* Grid */}
-      <ScrollView contentContainerStyle={styles.grid} style={{ backgroundColor: theme.colors.cream }}>
+      {/* List */}
+      <ScrollView contentContainerStyle={styles.list} style={{ backgroundColor: theme.colors.cream }}>
         {step === 'manager' && DEMO_MANAGERS.map(mgr => {
           const color = theme.managers[mgr as keyof typeof theme.managers] ?? theme.colors.primary;
           return (
             <TouchableOpacity
               key={mgr}
-              style={[styles.card, { borderTopColor: color, borderTopWidth: 4 }]}
+              style={[styles.card, { borderLeftColor: color, borderLeftWidth: 5 }]}
               onPress={() => selectManager(mgr)}
             >
               <View style={[styles.avatar, { backgroundColor: color }]}>
@@ -111,7 +111,7 @@ export default function LoginScreen({ onSelect }: Props) {
         {step === 'agent' && agents.map(a => (
           <TouchableOpacity
             key={a.agentCode}
-            style={[styles.card, { borderTopColor: mgrColor, borderTopWidth: 4 }]}
+            style={[styles.card, { borderLeftColor: mgrColor, borderLeftWidth: 5 }]}
             onPress={() => onSelect(a.agentCode, a.agentName)}
           >
             <View style={[styles.avatar, { backgroundColor: mgrColor }]}>
@@ -137,9 +137,9 @@ const styles = StyleSheet.create({
   headerCenter: { flex: 1, alignItems: 'center' },
   appName: {
     fontSize: 30, fontWeight: '800', color: '#fff',
-    letterSpacing: 5,
+    letterSpacing: 5, textAlign: 'center',
   },
-  subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 4 },
+  subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 4, textAlign: 'center' },
   demoTag: {
     fontSize: 9, color: theme.colors.gold,
     backgroundColor: 'rgba(0,0,0,0.25)',
@@ -147,26 +147,28 @@ const styles = StyleSheet.create({
     borderRadius: 10, letterSpacing: 1, marginTop: 6,
   },
   goldLine: { height: 3, backgroundColor: theme.colors.gold },
-  grid: {
-    flexDirection: 'row', flexWrap: 'wrap',
-    padding: 20, gap: 14, justifyContent: 'center',
+  list: {
+    padding: 16, gap: 12,
   },
   card: {
-    width: 150, height: 110,
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: theme.colors.white,
-    borderRadius: 12,
-    justifyContent: 'center', alignItems: 'center',
-    elevation: 3,
-    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8,
-    gap: 8,
+    borderRadius: 16,
+    paddingVertical: 18, paddingHorizontal: 20,
+    gap: 16,
+    elevation: 6,
+    shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12,
+    shadowOffset: { width: 0, height: 3 },
   },
   avatar: {
-    width: 48, height: 48, borderRadius: 24,
+    width: 56, height: 56, borderRadius: 28,
     justifyContent: 'center', alignItems: 'center',
+    flexShrink: 0,
   },
-  avatarText: { fontSize: 22, fontWeight: '800', color: '#fff' },
+  avatarText: { fontSize: 24, fontWeight: '900', color: '#fff' },
   cardName: {
-    fontSize: 12, fontWeight: '700', color: theme.colors.textDark,
-    textAlign: 'center', paddingHorizontal: 8,
+    fontSize: 16, fontWeight: '800', color: theme.colors.textDark,
+    flex: 1, textAlign: 'right',
   },
 });

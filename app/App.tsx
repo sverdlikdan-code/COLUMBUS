@@ -17,6 +17,7 @@ export default function App() {
   return (
     <>
       <StatusBar style="light" />
+
       {session ? (
         <RouteScreen
           agentCode={session.agentCode}

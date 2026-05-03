@@ -1,12 +1,12 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal
+  View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, useWindowDimensions
 } from 'react-native';
 import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { Client, nearestNeighborSort } from '../utils/nearestNeighbor';
-import { totalRouteKm } from '../utils/haversine';
+import { totalRouteKm, haversineMeters } from '../utils/haversine';
 import { fetchCustomers } from '../api/client';
 import { exportToExcel } from '../utils/exportExcel';
 import KmPanel from '../components/KmPanel';
@@ -28,6 +28,10 @@ interface Props {
 type Tab = 'list' | 'map';
 
 export default function RouteScreen({ agentCode, agentName, managerName, startCity, selectedDay, onBack }: Props) {
+  const { width } = useWindowDimensions();
+  const isWide = width >= 768;
+
+  const [currentDay, setCurrentDay] = useState(selectedDay);
   const [clients, setClients] = useState<Client[]>([]);
   const [originalClients, setOriginalClients] = useState<Client[]>([]);
   const [aiClients, setAiClients] = useState<Client[]>([]);
@@ -42,12 +46,19 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
 
   const displayClients = sortMode === 'ai' ? aiClients : clients;
 
-  useEffect(() => { loadData(); }, []);
+  const firstDivergingId = useMemo(() => {
+    for (let i = 0; i < Math.min(clients.length, aiClients.length); i++) {
+      if (clients[i].custId !== aiClients[i].custId) return clients[i].custId;
+    }
+    return null;
+  }, [clients, aiClients]);
+
+  useEffect(() => { loadData(); }, [currentDay]);
 
   async function loadData() {
     setLoading(true);
     try {
-      const data: Client[] = await fetchCustomers(agentCode, selectedDay);
+      const data: Client[] = await fetchCustomers(agentCode, currentDay);
       const sorted = [...data].sort((a, b) => (a.priorityOrder || 0) - (b.priorityOrder || 0));
       setClients(sorted);
       setOriginalClients(sorted.map(c => ({ ...c })));
@@ -89,10 +100,13 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
     );
   }
 
-  function recalcKm() {
-    setPriorityKm(totalRouteKm(clients));
-    setAiKm(totalRouteKm(aiClients));
-  }
+  useEffect(() => {
+    if (clients.length > 0) setPriorityKm(totalRouteKm(clients));
+  }, [clients]);
+
+  useEffect(() => {
+    if (aiClients.length > 0) setAiKm(totalRouteKm(aiClients));
+  }, [aiClients]);
 
   function changeClientDay(custId: string, newDay: number) {
     setClients(prev => prev.map(c => c.custId === custId ? { ...c, dayNum: newDay } : c));
@@ -105,12 +119,16 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
     if (to < 0 || to >= list.length) return;
     [list[index], list[to]] = [list[to], list[index]];
     setClients(list);
-    setPriorityKm(null);
-    setAiKm(null);
   }
 
   const renderItem = useCallback(({ item, getIndex, drag }: RenderItemParams<Client>) => {
     const index = getIndex() ?? 0;
+    const prev = index > 0 ? displayClients[index - 1] : null;
+    const next = index < displayClients.length - 1 ? displayClients[index + 1] : null;
+    const walkableWithPrev = !!(prev && prev.lat && prev.lng && item.lat && item.lng &&
+      haversineMeters(prev.lat, prev.lng, item.lat, item.lng) <= 200);
+    const walkableWithNext = !!(next && next.lat && next.lng && item.lat && item.lng &&
+      haversineMeters(item.lat, item.lng, next.lat, next.lng) <= 200);
     return (
       <ClientCard
         client={item} index={index} total={displayClients.length}
@@ -120,6 +138,8 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
         onChangeDayPress={() => setDayPickerClient(item.custId)}
         isSelected={item.custId === selectedId}
         drag={drag}
+        walkableWithPrev={walkableWithPrev}
+        walkableWithNext={walkableWithNext}
       />
     );
   }, [displayClients, selectedId, sortMode]);
@@ -136,15 +156,27 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
         </TouchableOpacity>
         <View style={styles.headerInfo}>
           <Text style={styles.agentName}>{agentName}</Text>
-          <Text style={styles.headerSub}>{startCity}{clients.length > 0 ? ` · ${clients.length} לקוחות` : ''}</Text>
-        </View>
-        <View style={styles.dayBadge}>
-          <Text style={styles.dayLetter}>{DAY_LABELS[selectedDay]}</Text>
-          <Text style={styles.dayWord}>יום</Text>
+          <Text style={styles.headerSub}>{clients.length > 0 ? `${clients.length} לקוחות` : ''}</Text>
         </View>
       </View>
 
-      <View style={styles.goldLine} />
+      {/* Day selector row */}
+      <View style={styles.dayRow}>
+        {[1,2,3,4,5].map(d => (
+          <TouchableOpacity
+            key={d}
+            style={[styles.dayBtn, currentDay === d && styles.dayBtnActive]}
+            onPress={() => { setCurrentDay(d); setSelectedId(null); }}
+          >
+            <Text style={[styles.dayBtnText, currentDay === d && styles.dayBtnTextActive]}>
+              {DAY_LABELS[d]}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* KM panel horizontal full width */}
+      <KmPanel priorityKm={priorityKm} aiKm={aiKm} onExport={doExport} />
 
       {/* Demo mode banner */}
       {isDemo && (
@@ -154,21 +186,23 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
       )}
 
 
-      {/* Tab bar */}
-      <View style={styles.tabBar}>
-        <TouchableOpacity
-          style={[styles.tab, tab === 'list' && styles.tabActive]}
-          onPress={() => setTab('list')}
-        >
-          <Text style={[styles.tabText, tab === 'list' && styles.tabTextActive]}>📋 רשימה</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, tab === 'map' && styles.tabActive]}
-          onPress={() => setTab('map')}
-        >
-          <Text style={[styles.tabText, tab === 'map' && styles.tabTextActive]}>🗺️ מפה</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Tab bar — only on narrow screens */}
+      {!isWide && (
+        <View style={styles.tabBar}>
+          <TouchableOpacity
+            style={[styles.tab, tab === 'list' && styles.tabActive]}
+            onPress={() => setTab('list')}
+          >
+            <Text style={[styles.tabText, tab === 'list' && styles.tabTextActive]}>📋 רשימה</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, tab === 'map' && styles.tabActive]}
+            onPress={() => setTab('map')}
+          >
+            <Text style={[styles.tabText, tab === 'map' && styles.tabTextActive]}>🗺️ מפה</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {loading ? (
         <View style={styles.center}>
@@ -179,8 +213,64 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
 
           {/* Main content area */}
           <View style={styles.bodyMain}>
-            {tab === 'list' ? (
-              /* LIST VIEW */
+            {isWide ? (
+              /* WIDE LAYOUT — list left, map right */
+              <View style={styles.wideLayout}>
+                <View style={styles.wideList}>
+                  <SortToggle sortMode={sortMode} onToggle={() => setSortMode(m => m === 'priority' ? 'ai' : 'priority')} />
+                  <View style={styles.body}>
+                    <View style={[styles.listCol, !selected && styles.listColFull]}>
+                      <DraggableFlatList
+                        data={displayClients}
+                        keyExtractor={item => item.custId}
+                        renderItem={renderItem}
+                        onDragEnd={({ data }) => {
+                          if (sortMode === 'priority') { setClients(data); }
+                        }}
+                      />
+                    </View>
+                    {selected && (() => {
+                      const pIdx = clients.findIndex(c => c.custId === selected.custId) + 1;
+                      const aIdx = aiClients.findIndex(c => c.custId === selected.custId) + 1;
+                      const canShorten = selected.custId === firstDivergingId;
+                      return (
+                        <View style={styles.panel}>
+                          <TouchableOpacity style={styles.panelClose} onPress={() => setSelectedId(null)}>
+                            <Text style={styles.panelCloseText}>✕</Text>
+                          </TouchableOpacity>
+                          {canShorten && (
+                            <View style={styles.shortenBadge}>
+                              <Text style={styles.shortenIcon}>↻</Text>
+                              <Text style={styles.shortenText}>אדיף שינוי מסלול</Text>
+                            </View>
+                          )}
+                          <Text style={styles.panelTitle}>{selected.custName}</Text>
+                          <PanelRow label="סדר ביקור" value={`#${pIdx}`} />
+                          <PanelRow label="סדר AI"     value={`#${aIdx}`} />
+                          <PanelRow label="כתובת"      value={selected.fullAddress} />
+                          <PanelRow label="עיר"        value={selected.city} />
+                          <PanelRow label="מס. לקוח"   value={selected.custId} />
+                          <PanelRow label="סטטוס"      value={selected.status} />
+                          <PanelRow label="כשרות"      value={selected.kosher} />
+                          <PanelRow
+                            label="GPS"
+                            value={selected.lat && selected.lng
+                              ? `${selected.lat?.toFixed(5)}, ${selected.lng?.toFixed(5)}`
+                              : 'אין קואורדינטות'}
+                          />
+                        </View>
+                      );
+                    })()}
+                  </View>
+                </View>
+                <View style={styles.wideMap}>
+                  <MapLeaflet clients={clients} />
+                </View>
+              </View>
+            ) : tab === 'list' ? (
+              /* NARROW — LIST VIEW */
+              <View style={styles.narrowList}>
+                <SortToggle sortMode={sortMode} onToggle={() => setSortMode(m => m === 'priority' ? 'ai' : 'priority')} />
               <View style={styles.body}>
                 <View style={[styles.listCol, !selected && styles.listColFull]}>
                   <DraggableFlatList
@@ -188,12 +278,10 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
                     keyExtractor={item => item.custId}
                     renderItem={renderItem}
                     onDragEnd={({ data }) => {
-                      if (sortMode === 'priority') { setClients(data); setPriorityKm(null); setAiKm(null); }
+                      if (sortMode === 'priority') { setClients(data); }
                     }}
                   />
                 </View>
-
-                {/* Detail panel — white field to the right, only when client selected */}
                 {selected && (
                   <View style={styles.panel}>
                     <TouchableOpacity style={styles.panelClose} onPress={() => setSelectedId(null)}>
@@ -214,18 +302,13 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
                   </View>
                 )}
               </View>
+              </View>
             ) : (
-              /* MAP VIEW — real Leaflet */
+              /* NARROW — MAP VIEW */
               <MapLeaflet clients={clients} />
             )}
           </View>
 
-          {/* KM panel — vertical right sidebar */}
-          <KmPanel
-            priorityKm={priorityKm} aiKm={aiKm} vertical
-            sortMode={sortMode} onToggleSort={() => setSortMode(m => m === 'priority' ? 'ai' : 'priority')}
-            onRecalc={recalcKm} onExport={doExport}
-          />
 
         </View>
       )}
@@ -261,6 +344,25 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
 }
 
 
+function SortToggle({ sortMode, onToggle }: { sortMode: 'priority' | 'ai'; onToggle: () => void }) {
+  return (
+    <View style={toggleStyles.wrap}>
+      <TouchableOpacity
+        style={[toggleStyles.btn, sortMode !== 'ai' && toggleStyles.btnActive]}
+        onPress={() => sortMode === 'ai' && onToggle()}
+      >
+        <Text style={[toggleStyles.text, sortMode !== 'ai' && toggleStyles.textActive]}>סדר ביקור</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[toggleStyles.btn, sortMode === 'ai' && toggleStyles.btnActiveAi]}
+        onPress={() => sortMode !== 'ai' && onToggle()}
+      >
+        <Text style={[toggleStyles.text, sortMode === 'ai' && toggleStyles.textActive]}>AI סדר</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 function PanelRow({ label, value }: { label: string; value?: string }) {
   return (
     <View style={rowStyles.row}>
@@ -286,6 +388,28 @@ const DEMO_CLIENTS: Client[] = [
   { custId: 'D12', custName: 'חנות חדשה ללא GPS',    city: 'נתניה',   address: '',                    fullAddress: 'נתניה',                           lat: 0,       lng: 0,       status: 'פעיל', kosher: '',     agentCode: '', agentName: '', priorityOrder: 0,  param7: '', dayNum: 1, dayLabel: 'א' },
 ];
 
+const toggleStyles = StyleSheet.create({
+  wrap: {
+    flexDirection: 'row',
+    marginHorizontal: 6,
+    marginVertical: 5,
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: '#0F2044',
+  },
+  btn: {
+    flex: 1,
+    paddingVertical: 7,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  btnActive:   { backgroundColor: '#0F2044' },
+  btnActiveAi: { backgroundColor: '#C9A84C' },
+  text:        { fontSize: 12, fontWeight: '800', color: '#0F2044' },
+  textActive:  { color: '#fff' },
+});
+
 const rowStyles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
   label: { fontSize: 12, color: '#999', flex: 1 },
@@ -305,9 +429,18 @@ const styles = StyleSheet.create({
   headerInfo: { flex: 1 },
   agentName: { color: '#fff', fontSize: 15, fontWeight: '800' },
   headerSub: { color: 'rgba(255,255,255,0.65)', fontSize: 11, marginTop: 1 },
-  dayBadge: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 8, paddingVertical: 5, paddingHorizontal: 8, minWidth: 40 },
-  dayLetter: { color: '#fff', fontSize: 22, fontWeight: '900', lineHeight: 24 },
-  dayWord:   { color: 'rgba(255,255,255,0.65)', fontSize: 9 },
+  dayRow: {
+    flexDirection: 'row', backgroundColor: '#0F2044',
+    paddingHorizontal: 8, paddingBottom: 10, gap: 6,
+  },
+  dayBtn: {
+    flex: 1, height: 52, borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  dayBtnActive: { backgroundColor: theme.colors.gold },
+  dayBtnText: { color: 'rgba(255,255,255,0.7)', fontSize: 22, fontWeight: '900' },
+  dayBtnTextActive: { color: '#0F2044' },
   goldLine:  { height: 3, backgroundColor: theme.colors.gold },
   clientCount: { flex: 1, textAlign: 'right', fontSize: 13, color: '#999', paddingRight: 4 },
   tabBar:    { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#ddd' },
@@ -315,8 +448,12 @@ const styles = StyleSheet.create({
   tabActive: { borderBottomWidth: 3, borderBottomColor: theme.colors.primary },
   tabText:   { fontSize: 14, color: '#999', fontWeight: '600' },
   tabTextActive: { color: theme.colors.primary },
-  bodyOuter:    { flex: 1, flexDirection: 'row' },
+  bodyOuter:    { flex: 1 },
   bodyMain:     { flex: 1 },
+  wideLayout:   { flex: 1, flexDirection: 'row' },
+  wideList:     { width: 420, borderRightWidth: 1, borderRightColor: '#E8EDF2', flexDirection: 'column' },
+  wideMap:      { flex: 1 },
+  narrowList:   { flex: 1, flexDirection: 'column' },
   body:         { flex: 1, flexDirection: 'row' },
   listCol:      { flex: 3 },
   listColFull:  { flex: 1 },
@@ -340,4 +477,20 @@ const styles = StyleSheet.create({
   demoBanner: { backgroundColor: '#FFF3E0', paddingVertical: 6, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: '#FFB74D' },
   demoText: { fontSize: 11, color: '#E65100', textAlign: 'center', fontWeight: '600' },
 
+  // Shorten badge
+  shortenBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(201,168,76,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(201,168,76,0.4)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginBottom: 8,
+  },
+  shortenIcon: { fontSize: 13, color: '#C9A84C' },
+  shortenText: { fontSize: 11, fontWeight: '700', color: '#C9A84C' },
 });
