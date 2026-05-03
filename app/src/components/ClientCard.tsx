@@ -84,7 +84,7 @@ export default function ClientCard({ client, index, total, onMoveUp, onMoveDown,
         <View style={[styles.orderBadge, inWalkGroup && styles.orderBadgeWalk]}>
           <Text style={styles.orderText}>{index + 1}</Text>
         </View>
-        {walkableWithNext && !walkableWithPrev && (
+        {inWalkGroup && (
           <Text style={styles.walkIconInline}>🚶</Text>
         )}
       </View>
