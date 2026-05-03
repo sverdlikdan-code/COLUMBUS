@@ -1,13 +1,41 @@
 {
   "permissions": {
     "allow": [
-      "PowerShell($env:PATH += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd \"c:\\\\Users\\\\d.sverdlik\\\\Desktop\\\\WORKSPACE\\\\THE 5 AGENTS\"; git add CLAUDE.md; git commit -m \"Wire CEO agent into CLAUDE.md — load on every session\"; git push)"
+      "PowerShell($env:PATH += \";C:\\\\Program Files\\\\Git\\\\cmd\"; cd \"c:\\\\Users\\\\d.sverdlik\\\\Desktop\\\\WORKSPACE\\\\THE 5 AGENTS\"; git add CLAUDE.md; git commit -m \"Wire CEO agent into CLAUDE.md — load on every session\"; git push)",
+      "PowerShell(& \"C:\\\\Users\\\\d.sverdlik\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python314\\\\python.exe\" -m pip install pyodbc --quiet 2>&1)",
+      "PowerShell(& \"C:\\\\Users\\\\d.sverdlik\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python314\\\\python.exe\" -c \"import pyodbc; print\\('ok'\\)\" 2>&1)",
+      "PowerShell(& \"C:\\\\Users\\\\d.sverdlik\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python314\\\\python.exe\" \"C:\\\\Users\\\\d.sverdlik\\\\Desktop\\\\WORKSPACE\\\\COLUMBUS\\\\explore_db.py\" 2>&1)",
+      "Bash(curl -s http://localhost:8082)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(eas --version)",
+      "Bash(eas whoami *)",
+      "Bash(eas login *)",
+      "Bash(npx -y mcp-image --help)",
+      "Bash(node -e ' *)",
+      "Bash(printenv GEMINI_API_KEY)",
+      "Bash(reg query *)",
+      "PowerShell([System.Environment]::GetEnvironmentVariable\\(\"GEMINI_API_KEY\", \"User\"\\))",
+      "PowerShell([System.Environment]::GetEnvironmentVariable\\(\"GEMINI_API_KEY\", \"Machine\"\\))",
+      "Bash(\"C:/Users/d.sverdlik/AppData/Local/Programs/Python/Python314/python.exe\" -c \"import PIL; print\\(PIL.__version__\\)\")",
+      "Bash(\"C:/Users/d.sverdlik/AppData/Local/Programs/Python/Python314/python.exe\" -m pip install Pillow --quiet)",
+      "Bash(C:/Users/d.sverdlik/AppData/Local/Programs/Python/Python314/python.exe -c ' *)",
+      "Bash(\"C:\\\\Users\\\\d.sverdlik\\\\Desktop\\\\cloudflared.exe\" tunnel *)",
+      "Bash(curl -s https://api.sverdlik-apps.site/managers)",
+      "Bash(nslookup api.sverdlik-apps.site 8.8.8.8)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\d.sverdlik\\.claude\\projects\\c--Users-d-sverdlik-Desktop-WORKSPACE-COLUMBUS\\memory",
+      "c:\\Users\\d.sverdlik\\.claude\\projects\\c--Users-d-sverdlik-Desktop-WORKSPACE-COLUMBUS"
     ]
   },
   "mcpServers": {
     "mcp-image": {
       "command": "npx",
-      "args": ["-y", "mcp-image"],
+      "args": [
+        "-y",
+        "mcp-image"
+      ],
       "env": {
         "GEMINI_API_KEY": "${GEMINI_API_KEY}",
         "IMAGE_OUTPUT_DIR": "C:\\Users\\d.sverdlik\\Desktop\\WORKSPACE\\THE 5 AGENTS\\outputs"
