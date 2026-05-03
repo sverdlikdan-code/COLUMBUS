@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, useWindowDimensions
+  View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, TextInput, useWindowDimensions
 } from 'react-native';
+import * as Location from 'expo-location';
 import DraggableFlatList, { RenderItemParams } from 'react-native-draggable-flatlist';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { Client, nearestNeighborSort } from '../utils/nearestNeighbor';
 import { totalRouteKm, haversineMeters } from '../utils/haversine';
-import { fetchCustomers } from '../api/client';
+import { fetchCustomers, geocodeAddressAPI } from '../api/client';
 import { exportToExcel } from '../utils/exportExcel';
 import KmPanel from '../components/KmPanel';
 import ClientCard from '../components/ClientCard';
@@ -43,6 +44,9 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
   const [sortMode, setSortMode] = useState<'priority' | 'ai'>('priority');
   const [isDemo, setIsDemo] = useState(false);
   const [dayPickerClient, setDayPickerClient] = useState<string | null>(null);
+  const [addressModalClientId, setAddressModalClientId] = useState<string | null>(null);
+  const [addressInput, setAddressInput] = useState('');
+  const [locationLoading, setLocationLoading] = useState(false);
 
   const displayClients = sortMode === 'ai' ? aiClients : clients;
 
@@ -84,6 +88,72 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
 
   async function doExport() {
     await exportToExcel({ clients, agentName, managerName, originalClients });
+  }
+
+  function handleExport() {
+    Alert.alert(
+      'ייצוא Excel',
+      hasChanges() ? 'ישנם שינויים שלא נשמרו. לייצא את המסלול הנוכחי?' : 'לייצא את המסלול ל-Excel?',
+      [
+        { text: 'ביטול', style: 'cancel' },
+        { text: 'ייצא', onPress: doExport },
+      ]
+    );
+  }
+
+  function handleClarifyAddress(client: Client) {
+    Alert.alert(
+      'עדכן כתובת',
+      client.custName,
+      [
+        { text: 'ביטול', style: 'cancel' },
+        {
+          text: 'הזן כתובת ידנית',
+          onPress: () => { setAddressInput(client.address || ''); setAddressModalClientId(client.custId); },
+        },
+        {
+          text: 'קבע מיקום נוכחי',
+          onPress: () => handleSetCurrentLocation(client),
+        },
+      ]
+    );
+  }
+
+  async function handleSetCurrentLocation(client: Client) {
+    setLocationLoading(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('נדרשת הרשאת מיקום', 'אשר גישה למיקום בהגדרות המכשיר');
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      setClients(prev => prev.map(c =>
+        c.custId === client.custId
+          ? { ...c, lat: loc.coords.latitude, lng: loc.coords.longitude }
+          : c
+      ));
+    } catch {
+      Alert.alert('שגיאה', 'לא ניתן לקבל מיקום');
+    } finally {
+      setLocationLoading(false);
+    }
+  }
+
+  async function handleAddressSubmit() {
+    const client = clients.find(c => c.custId === addressModalClientId);
+    if (!client || !addressInput.trim()) { setAddressModalClientId(null); return; }
+    setAddressModalClientId(null);
+    const geo = await geocodeAddressAPI(addressInput.trim(), client.city || '');
+    if (geo && geo.lat && geo.lng) {
+      setClients(prev => prev.map(c =>
+        c.custId === client.custId
+          ? { ...c, address: addressInput.trim(), lat: geo.lat, lng: geo.lng }
+          : c
+      ));
+    } else {
+      Alert.alert('לא נמצאו קואורדינטות', 'נסה כתובת מדויקת יותר (רחוב + מספר)');
+    }
   }
 
   function handleBack() {
@@ -181,7 +251,7 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
       </View>
 
       {/* KM panel horizontal full width */}
-      <KmPanel priorityKm={priorityKm} aiKm={aiKm} onExport={doExport} />
+      <KmPanel priorityKm={priorityKm} aiKm={aiKm} onExport={handleExport} />
 
       {/* Demo mode banner */}
       {isDemo && (
@@ -255,14 +325,23 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
                           <PanelRow label="כתובת"      value={selected.fullAddress} />
                           <PanelRow label="עיר"        value={selected.city} />
                           <PanelRow label="מס. לקוח"   value={selected.custId} />
-                          <PanelRow label="סטטוס"      value={selected.status} />
-                          <PanelRow label="כשרות"      value={selected.kosher} />
+                          <PanelRow label="מכירות כולל" value={selected.totalSales ? `₪${Math.round(selected.totalSales).toLocaleString()}` : undefined} />
+                          <PanelRow label="מכירות חודש" value={selected.monthlySales ? `₪${Math.round(selected.monthlySales).toLocaleString()}` : undefined} />
+                          <PanelRow label="הזמנה אחרונה" value={selected.lastSaleDate ?? undefined} />
                           <PanelRow
                             label="GPS"
                             value={selected.lat && selected.lng
                               ? `${selected.lat?.toFixed(5)}, ${selected.lng?.toFixed(5)}`
                               : 'אין קואורדינטות'}
                           />
+                          <TouchableOpacity
+                            style={styles.clarifyBtn}
+                            onPress={() => handleClarifyAddress(selected)}
+                          >
+                            <Text style={styles.clarifyBtnText}>
+                              {locationLoading ? '...' : '📍 עדכן כתובת'}
+                            </Text>
+                          </TouchableOpacity>
                         </View>
                       );
                     })()}
@@ -296,14 +375,23 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
                     <PanelRow label="כתובת"    value={selected.fullAddress} />
                     <PanelRow label="עיר"      value={selected.city} />
                     <PanelRow label="מס. לקוח" value={selected.custId} />
-                    <PanelRow label="סטטוס"    value={selected.status} />
-                    <PanelRow label="כשרות"    value={selected.kosher} />
+                    <PanelRow label="מכירות כולל" value={selected.totalSales ? `₪${Math.round(selected.totalSales).toLocaleString()}` : undefined} />
+                    <PanelRow label="מכירות חודש" value={selected.monthlySales ? `₪${Math.round(selected.monthlySales).toLocaleString()}` : undefined} />
+                    <PanelRow label="הזמנה אחרונה" value={selected.lastSaleDate ?? undefined} />
                     <PanelRow
                       label="GPS"
                       value={selected.lat && selected.lng
                         ? `${selected.lat?.toFixed(5)}, ${selected.lng?.toFixed(5)}`
                         : 'אין קואורדינטות'}
                     />
+                    <TouchableOpacity
+                      style={styles.clarifyBtn}
+                      onPress={() => handleClarifyAddress(selected)}
+                    >
+                      <Text style={styles.clarifyBtnText}>
+                        {locationLoading ? '...' : '📍 עדכן כתובת'}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 )}
               </View>
@@ -339,6 +427,39 @@ export default function RouteScreen({ agentCode, agentName, managerName, startCi
                   </Text>
                 </TouchableOpacity>
               ))}
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Address input modal */}
+      <Modal
+        visible={!!addressModalClientId}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAddressModalClientId(null)}
+      >
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setAddressModalClientId(null)}>
+          <View style={styles.addressModal} onStartShouldSetResponder={() => true}>
+            <Text style={styles.addressModalTitle}>הזן כתובת חדשה</Text>
+            <Text style={styles.addressModalSub}>רחוב + מספר בית</Text>
+            <TextInput
+              style={styles.addressInput}
+              value={addressInput}
+              onChangeText={setAddressInput}
+              placeholder="לדוגמה: הרצל 12"
+              placeholderTextColor="#aaa"
+              textAlign="right"
+              autoFocus
+              onSubmitEditing={handleAddressSubmit}
+            />
+            <View style={styles.addressModalBtns}>
+              <TouchableOpacity onPress={() => setAddressModalClientId(null)} style={styles.addressModalCancel}>
+                <Text style={styles.addressModalCancelText}>ביטול</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleAddressSubmit} style={styles.addressModalOk}>
+                <Text style={styles.addressModalOkText}>עדכן</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </TouchableOpacity>
@@ -507,4 +628,41 @@ const styles = StyleSheet.create({
   },
   shortenIcon: { fontSize: 13, color: '#C9A84C' },
   shortenText: { fontSize: 11, fontWeight: '700', color: '#C9A84C' },
+
+  // Clarify address button
+  clarifyBtn: {
+    marginTop: 12,
+    backgroundColor: '#0F2044',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  clarifyBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+
+  // Address input modal
+  addressModal: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    width: 300,
+    elevation: 8,
+  },
+  addressModalTitle: { fontSize: 15, fontWeight: '800', color: '#0F2044', textAlign: 'center', marginBottom: 4 },
+  addressModalSub: { fontSize: 11, color: '#999', textAlign: 'center', marginBottom: 14 },
+  addressInput: {
+    borderWidth: 1.5,
+    borderColor: '#C9A84C',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#0F2044',
+    backgroundColor: '#FAFAFA',
+    marginBottom: 16,
+  },
+  addressModalBtns: { flexDirection: 'row', gap: 10 },
+  addressModalCancel: { flex: 1, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#ddd', alignItems: 'center' },
+  addressModalCancelText: { fontSize: 13, color: '#666', fontWeight: '600' },
+  addressModalOk: { flex: 1, paddingVertical: 10, borderRadius: 8, backgroundColor: '#0F2044', alignItems: 'center' },
+  addressModalOkText: { fontSize: 13, color: '#fff', fontWeight: '700' },
 });

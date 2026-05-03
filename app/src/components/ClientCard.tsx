@@ -56,6 +56,7 @@ export default function ClientCard({ client, index, total, onMoveUp, onMoveDown,
   const location = [client.city, client.address].filter(Boolean).join(' · ');
   const orderDays = daysSince(client.lastOrderDate);
   const orderAlert = orderDays !== null && orderDays > 13;
+  const doneToday = orderDays === 0;
   const inWalkGroup = walkableWithNext || walkableWithPrev;
 
   const cardStyle = [
@@ -64,6 +65,7 @@ export default function ClientCard({ client, index, total, onMoveUp, onMoveDown,
     walkableWithNext && !walkableWithPrev && styles.walkTop,
     walkableWithPrev && !walkableWithNext && styles.walkBottom,
     walkableWithNext && walkableWithPrev && styles.walkMiddle,
+    doneToday && styles.doneTodayCard,
     isSelected && styles.selected,
   ];
 
@@ -102,27 +104,22 @@ export default function ClientCard({ client, index, total, onMoveUp, onMoveDown,
         <Text style={[styles.address, hasNoGps && styles.addressNoGps]} numberOfLines={1}>
           {location || (hasNoGps ? client.city || '—' : '')}
         </Text>
-        <View style={styles.statsRow}>
-          {orderDays !== null && (
-            <View style={[styles.orderDateRow, orderAlert && styles.orderDateAlert]}>
-              <Text style={[styles.orderDateText, orderAlert && styles.orderDateTextAlert]}>
-                {orderAlert ? `⚠ ${orderDays}d` : `✓ ${orderDays}d`}
-              </Text>
-            </View>
-          )}
-          {client.totalSales ? (
-            <View style={styles.salesBadge}>
-              <Text style={styles.salesText}>{formatSales(client.totalSales)}</Text>
-            </View>
-          ) : null}
-          {client.lastSaleDate ? (
-            <View style={styles.dateBadge}>
-              <Text style={styles.dateText}>{formatDate(client.lastSaleDate)}</Text>
-            </View>
-          ) : null}
-        </View>
+        {orderDays !== null && !doneToday && (
+          <View style={[styles.orderDateRow, orderAlert && styles.orderDateAlert]}>
+            <Text style={[styles.orderDateText, orderAlert && styles.orderDateTextAlert]}>
+              {orderAlert ? `⚠ ${orderDays}d` : `✓ ${orderDays}d`}
+            </Text>
+          </View>
+        )}
       </View>
 
+      {/* Done-today checkmark */}
+      {doneToday && (
+        <View style={styles.doneTodayBadge}>
+          <Text style={styles.doneTodayCheck}>✅</Text>
+          <Text style={styles.doneTodayLabel}>היום</Text>
+        </View>
+      )}
 
       {/* Day button — right side, separate from arrows */}
       <TouchableOpacity onPress={onChangeDayPress} style={styles.dayBtn}>
@@ -284,6 +281,26 @@ const styles = StyleSheet.create({
   },
   orderDateAlert: {
     backgroundColor: 'rgba(230,81,0,0.12)',
+  },
+  doneTodayCard: {
+    backgroundColor: 'rgba(27,94,32,0.07)',
+    borderLeftWidth: 3,
+    borderLeftColor: '#1B5E20',
+  },
+  doneTodayBadge: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 6,
+    minWidth: 34,
+  },
+  doneTodayCheck: {
+    fontSize: 22,
+  },
+  doneTodayLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#1B5E20',
+    marginTop: -2,
   },
   orderDateText: {
     fontSize: 9,
