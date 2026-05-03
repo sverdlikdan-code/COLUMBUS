@@ -98,8 +98,8 @@ function makeIcon(n,isCurrent,name){
 ${markers}
 
 var pts=[${withGps.map(c => `[${c.lat},${c.lng}]`).join(',')}];
-if(pts.length>1){map.fitBounds(pts,{padding:[16,16]});}
-else if(pts.length===1){map.setView(pts[0],14);}
+if(pts.length>1){map.fitBounds(pts,{padding:[40,40]});}
+else if(pts.length===1){map.setView(pts[0],17);}
 else{map.setView(${center},8);}
 </script>
 </body>
