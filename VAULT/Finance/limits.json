@@ -1,0 +1,24 @@
+{
+  "daily_budget_usd": 5.00,
+  "per_agent_daily_usd": {
+    "ceo-agent": 2.00,
+    "yael": 1.50,
+    "chen": 0.50,
+    "analytics": 0.30,
+    "designer": 0.30,
+    "geograf": 0.20,
+    "guy": 0.20
+  },
+  "models": {
+    "ceo-agent": "claude-sonnet-4-6",
+    "chen": "claude-haiku-4-5-20251001",
+    "yael": "claude-sonnet-4-6",
+    "analytics": "claude-haiku-4-5-20251001",
+    "designer": "claude-sonnet-4-6",
+    "geograf": "claude-haiku-4-5-20251001",
+    "guy": "claude-haiku-4-5-20251001"
+  },
+  "alert_threshold_pct": 80,
+  "hard_stop_pct": 100,
+  "reset_hour_utc": 0
+}
