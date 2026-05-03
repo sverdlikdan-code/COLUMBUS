@@ -1,6 +1,14 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Client } from '../utils/nearestNeighbor';
+import { Client, isValidIsraelGps } from '../utils/nearestNeighbor';
+
+function removeCityFromName(name: string, city: string): string {
+  if (!city || !name) return name;
+  const normalized = city.trim();
+  if (!normalized) return name;
+  const escaped = normalized.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return name.replace(new RegExp(escaped, 'gi'), '').replace(/\s{2,}/g, ' ').trim();
+}
 
 const DAY_LABELS: Record<number, string> = { 1:'א', 2:'ב', 3:'ג', 4:'ד', 5:'ה' };
 
@@ -30,7 +38,8 @@ function daysSince(dateStr: string | null | undefined): number | null {
 }
 
 export default function ClientCard({ client, index, total, onMoveUp, onMoveDown, onPress, onChangeDayPress, isSelected, drag, walkableWithNext, walkableWithPrev }: Props) {
-  const hasNoGps = !client.lat || !client.lng;
+  const hasNoGps = !isValidIsraelGps(client.lat, client.lng);
+  const displayName = removeCityFromName(client.custName, client.city);
   const location = [client.city, client.address].filter(Boolean).join(' · ');
   const orderDays = daysSince(client.lastOrderDate);
   const orderAlert = orderDays !== null && orderDays > 13;
@@ -70,7 +79,7 @@ export default function ClientCard({ client, index, total, onMoveUp, onMoveDown,
               <Text style={styles.noGpsText}>NEW</Text>
             </View>
           )}
-          <Text style={[styles.name, hasNoGps && styles.nameNoGps]} numberOfLines={1}>{client.custName}</Text>
+          <Text style={[styles.name, hasNoGps && styles.nameNoGps]} numberOfLines={1}>{displayName}</Text>
         </View>
         <Text style={[styles.address, hasNoGps && styles.addressNoGps]} numberOfLines={1}>
           {location || (hasNoGps ? client.city || '—' : '')}
