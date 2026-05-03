@@ -114,7 +114,7 @@ export default function SetupScreen({ onStart }: Props) {
             </View>
           </View>
           <View style={styles.divider} />
-          <Text style={styles.appName}>DILLER FORMULA</Text>
+          <Text style={styles.appName}>DILER FORMULA</Text>
           <Text style={styles.appSub}>AGENT APP</Text>
         </View>
 
@@ -127,16 +127,24 @@ export default function SetupScreen({ onStart }: Props) {
         {/* 1. Manager */}
         <Section label="בחר מנהל" done={!!manager}>
           {loading ? <ActivityIndicator color={theme.colors.primary} /> : (
-            <View style={styles.chipRow}>
-              {managers.map(mgr => (
-                <TouchableOpacity
-                  key={mgr}
-                  style={[styles.chip, manager === mgr && styles.chipActive]}
-                  onPress={() => pickManager(mgr)}
-                >
-                  <Text style={[styles.chipText, manager === mgr && styles.chipTextActive]}>{mgr}</Text>
-                </TouchableOpacity>
-              ))}
+            <View style={styles.cardList}>
+              {managers.map(mgr => {
+                const color = theme.managers[mgr as keyof typeof theme.managers] ?? NAVY;
+                const isActive = manager === mgr;
+                return (
+                  <TouchableOpacity
+                    key={mgr}
+                    style={[styles.card, { borderLeftColor: color }, isActive && styles.cardActive]}
+                    onPress={() => pickManager(mgr)}
+                  >
+                    <View style={[styles.avatar, { backgroundColor: color }]}>
+                      <Text style={styles.avatarText}>{mgr.charAt(0)}</Text>
+                    </View>
+                    <Text style={[styles.cardName, isActive && styles.cardNameActive]}>{mgr}</Text>
+                    {isActive && <Text style={styles.cardCheck}>✓</Text>}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           )}
         </Section>
@@ -144,18 +152,24 @@ export default function SetupScreen({ onStart }: Props) {
         {/* 2. Agent */}
         {manager && (
           <Section label="בחר סוכן" done={!!agent}>
-            <View style={styles.chipRow}>
-              {agents.map(a => (
-                <TouchableOpacity
-                  key={a.agentCode}
-                  style={[styles.agentChip, agent?.agentCode === a.agentCode && styles.chipActive]}
-                  onPress={() => setAgent(a)}
-                >
-                  <Text style={[styles.agentChipText, agent?.agentCode === a.agentCode && styles.chipTextActive]}>
-                    {a.agentName}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+            <View style={styles.cardList}>
+              {agents.map(a => {
+                const color = manager ? (theme.managers[manager as keyof typeof theme.managers] ?? NAVY) : NAVY;
+                const isActive = agent?.agentCode === a.agentCode;
+                return (
+                  <TouchableOpacity
+                    key={a.agentCode}
+                    style={[styles.card, { borderLeftColor: color }, isActive && styles.cardActive]}
+                    onPress={() => setAgent(a)}
+                  >
+                    <View style={[styles.avatar, { backgroundColor: color }]}>
+                      <Text style={styles.avatarText}>{a.agentName.charAt(0)}</Text>
+                    </View>
+                    <Text style={[styles.cardName, isActive && styles.cardNameActive]}>{a.agentName}</Text>
+                    {isActive && <Text style={styles.cardCheck}>✓</Text>}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </Section>
         )}
@@ -335,19 +349,30 @@ const styles = StyleSheet.create({
   goldLine: { height: 2, backgroundColor: GOLD },
   scroll:   { padding: 14 },
 
-  /* Chips (managers, cities) */
+  /* Full-width cards */
+  cardList: { gap: 8 },
+  card: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#fff', borderRadius: 14,
+    paddingVertical: 14, paddingHorizontal: 16, gap: 14,
+    borderLeftWidth: 5,
+    elevation: 3,
+    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 2 },
+  },
+  cardActive: { backgroundColor: '#F0F4FF' },
+  avatar: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  avatarText: { fontSize: 20, fontWeight: '900', color: '#fff' },
+  cardName: { flex: 1, fontSize: 15, fontWeight: '700', color: NAVY, textAlign: 'right' },
+  cardNameActive: { color: NAVY, fontWeight: '900' },
+  cardCheck: { fontSize: 18, color: GOLD, fontWeight: '900' },
+
+  /* keep chip styles for city suggestions */
   chipRow:      { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   chip:         { paddingHorizontal: 13, paddingVertical: 7, borderRadius: 18, borderWidth: 1.5, borderColor: NAVY, backgroundColor: '#fff' },
   chipActive:   { backgroundColor: NAVY },
   chipText:     { fontWeight: '700', fontSize: 12, color: NAVY },
   chipTextActive: { color: '#fff' },
-
-  /* Agent chips */
-  agentChip: {
-    paddingHorizontal: 14, paddingVertical: 10,
-    borderRadius: 18, borderWidth: 1.5, borderColor: NAVY,
-    backgroundColor: '#fff', minHeight: 40,
-  },
+  agentChip:    { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18, borderWidth: 1.5, borderColor: NAVY, backgroundColor: '#fff' },
   agentChipText: { fontWeight: '700', fontSize: 13, color: NAVY },
 
   /* City input */

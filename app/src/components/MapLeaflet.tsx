@@ -9,7 +9,7 @@ interface Props {
 function buildHtml(clients: Client[]): string {
   const withGps = clients.filter(c => c.lat && c.lng);
   const markers = withGps.map((c, i) =>
-    `L.marker([${c.lat},${c.lng}],{icon:makeIcon(${i+1})})` +
+    `L.marker([${c.lat},${c.lng}],{icon:makeIcon(${i+1},${i===0},'${c.custName.replace(/'/g, "\\'").replace(/"/g, '\\"')}')})` +
     `.bindPopup('<b>${i+1}. ${c.custName.replace(/'/g, "\\'")}</b><br/>${(c.city || '').replace(/'/g, "\\'")}').addTo(map);`
   ).join('\n');
 
@@ -32,6 +32,33 @@ function buildHtml(clients: Client[]): string {
     justify-content:center;font-size:10px;font-weight:800;
     border:2px solid #C9A84C;box-sizing:border-box;
   }
+  .custom-pin-current{
+    background:#C9A84C;color:#0F2044;border-radius:50%;
+    width:32px;height:32px;display:flex;align-items:center;
+    justify-content:center;font-size:13px;font-weight:900;
+    border:2px solid #fff;box-sizing:border-box;
+    position:relative;
+  }
+  .pin-label{
+    position:absolute;top:24px;left:50%;transform:translateX(-50%);
+    background:rgba(15,32,68,0.85);color:#fff;
+    font-size:9px;font-weight:700;white-space:nowrap;
+    padding:2px 5px;border-radius:4px;pointer-events:none;
+  }
+  .pin-label-current{
+    top:34px;background:rgba(201,168,76,0.95);color:#0F2044;
+  }
+  .pulse-ring{
+    position:absolute;width:32px;height:32px;border-radius:50%;
+    border:2px solid #C9A84C;
+    animation:pulseAnim 2s ease-out infinite;
+    top:0;left:0;pointer-events:none;
+  }
+  @keyframes pulseAnim{
+    0%{transform:scale(1);opacity:0.9;}
+    70%{transform:scale(2.2);opacity:0;}
+    100%{transform:scale(2.2);opacity:0;}
+  }
 </style>
 </head>
 <body>
@@ -42,9 +69,16 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
   attribution:'© OSM',maxZoom:18
 }).addTo(map);
 
-function makeIcon(n){
+function makeIcon(n,isCurrent,name){
+  var short=name.length>12?name.substring(0,12)+'…':name;
+  if(isCurrent){
+    return L.divIcon({
+      html:'<div style="position:relative;width:32px;height:32px;"><div class="pulse-ring"></div><div class="custom-pin-current">'+n+'</div><div class="pin-label pin-label-current">'+short+'</div></div>',
+      className:'',iconSize:[32,32],iconAnchor:[16,16],popupAnchor:[0,-18]
+    });
+  }
   return L.divIcon({
-    html:'<div class="custom-pin">'+n+'</div>',
+    html:'<div style="position:relative;width:22px;height:22px;"><div class="custom-pin">'+n+'</div><div class="pin-label">'+short+'</div></div>',
     className:'',iconSize:[22,22],iconAnchor:[11,11],popupAnchor:[0,-12]
   });
 }

@@ -14,20 +14,42 @@ interface Props {
   onChangeDayPress: () => void;
   isSelected: boolean;
   drag: () => void;
+  walkableWithNext?: boolean;
+  walkableWithPrev?: boolean;
 }
 
 const NAVY = '#0F2044';
 const GOLD = '#C9A84C';
 
-export default function ClientCard({ client, index, total, onMoveUp, onMoveDown, onPress, onChangeDayPress, isSelected, drag }: Props) {
+const WALK_COLOR = '#2E7D32';
+
+function daysSince(dateStr: string | null | undefined): number | null {
+  if (!dateStr) return null;
+  const diff = Date.now() - new Date(dateStr).getTime();
+  return Math.floor(diff / (1000 * 60 * 60 * 24));
+}
+
+export default function ClientCard({ client, index, total, onMoveUp, onMoveDown, onPress, onChangeDayPress, isSelected, drag, walkableWithNext, walkableWithPrev }: Props) {
   const hasNoGps = !client.lat || !client.lng;
   const location = [client.city, client.address].filter(Boolean).join(' · ');
+  const orderDays = daysSince(client.lastOrderDate);
+  const orderAlert = orderDays !== null && orderDays > 13;
+  const inWalkGroup = walkableWithNext || walkableWithPrev;
+
+  const cardStyle = [
+    styles.card,
+    inWalkGroup && styles.walkCard,
+    walkableWithNext && !walkableWithPrev && styles.walkTop,
+    walkableWithPrev && !walkableWithNext && styles.walkBottom,
+    walkableWithNext && walkableWithPrev && styles.walkMiddle,
+    isSelected && styles.selected,
+  ];
 
   return (
     <TouchableOpacity
       onLongPress={drag}
       onPress={onPress}
-      style={[styles.card, isSelected && styles.selected]}
+      style={cardStyle}
       activeOpacity={0.75}
     >
       {/* Drag handle */}
@@ -36,26 +58,38 @@ export default function ClientCard({ client, index, total, onMoveUp, onMoveDown,
       </TouchableOpacity>
 
       {/* Order badge */}
-      <View style={styles.orderBadge}>
+      <View style={[styles.orderBadge, inWalkGroup && styles.orderBadgeWalk]}>
         <Text style={styles.orderText}>{index + 1}</Text>
       </View>
 
-      {/* Address (left) + Name (right) in one row */}
+      {/* Name + address stacked */}
       <View style={styles.info}>
-        {location ? (
-          <Text style={styles.address} numberOfLines={1}>{location}</Text>
-        ) : (
-          <View style={styles.flex1} />
-        )}
         <View style={styles.nameRow}>
           {hasNoGps && (
             <View style={styles.noGpsBadge}>
               <Text style={styles.noGpsText}>NEW</Text>
             </View>
           )}
-          <Text style={styles.name} numberOfLines={1}>{client.custName}</Text>
+          <Text style={[styles.name, hasNoGps && styles.nameNoGps]} numberOfLines={1}>{client.custName}</Text>
         </View>
+        <Text style={[styles.address, hasNoGps && styles.addressNoGps]} numberOfLines={1}>
+          {location || (hasNoGps ? client.city || '—' : '')}
+        </Text>
+        {orderDays !== null && (
+          <View style={[styles.orderDateRow, orderAlert && styles.orderDateAlert]}>
+            <Text style={[styles.orderDateText, orderAlert && styles.orderDateTextAlert]}>
+              {orderAlert ? `⚠ ${orderDays}d` : `✓ ${orderDays}d`}
+            </Text>
+          </View>
+        )}
       </View>
+
+      {/* Walk icon — shown on top card of walkable pair */}
+      {walkableWithNext && !walkableWithPrev && (
+        <View style={styles.walkBadge}>
+          <Text style={styles.walkIcon}>🚶</Text>
+        </View>
+      )}
 
       {/* Day button — right side, separate from arrows */}
       <TouchableOpacity onPress={onChangeDayPress} style={styles.dayBtn}>
@@ -113,19 +147,19 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   orderText: { color: '#fff', fontWeight: '700', fontSize: 12 },
-  info: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  info: { flex: 1, flexDirection: 'column', justifyContent: 'center' },
   flex1: { flex: 1 },
   address: {
-    flex: 1,
     fontSize: 10,
     color: '#9AA5B4',
-    textAlign: 'left',
+    textAlign: 'right',
+    marginTop: 1,
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-end',
     gap: 4,
-    flexShrink: 1,
   },
   name: {
     fontSize: 13,
@@ -141,6 +175,8 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
   },
   noGpsText: { color: '#fff', fontSize: 8, fontWeight: '800', letterSpacing: 0.5 },
+  nameNoGps: { color: '#E65100', fontWeight: '800' },
+  addressNoGps: { color: '#E65100', fontSize: 11, opacity: 0.8 },
   dayBtn: {
     width: 26,
     height: 26,
@@ -163,4 +199,58 @@ const styles = StyleSheet.create({
   },
   arrowText: { fontSize: 10, color: NAVY },
   arrowDisabled: { color: '#C4CDD6' },
+
+  // Walkable group styles
+  walkCard: {
+    backgroundColor: 'rgba(46,125,50,0.05)',
+    borderLeftWidth: 3,
+    borderLeftColor: WALK_COLOR,
+  },
+  walkTop: {
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    marginBottom: 0,
+  },
+  walkBottom: {
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    marginTop: 0,
+  },
+  walkMiddle: {
+    borderRadius: 0,
+    marginTop: 0,
+    marginBottom: 0,
+  },
+  orderBadgeWalk: {
+    backgroundColor: WALK_COLOR,
+  },
+  walkBadge: {
+    position: 'absolute',
+    top: -6,
+    right: 60,
+    backgroundColor: WALK_COLOR,
+    borderRadius: 8,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  walkIcon: { fontSize: 12 },
+  orderDateRow: {
+    alignSelf: 'flex-end',
+    backgroundColor: 'rgba(46,125,50,0.1)',
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    marginTop: 2,
+  },
+  orderDateAlert: {
+    backgroundColor: 'rgba(230,81,0,0.12)',
+  },
+  orderDateText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#2E7D32',
+  },
+  orderDateTextAlert: {
+    color: '#E65100',
+  },
 });

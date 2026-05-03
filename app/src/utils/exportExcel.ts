@@ -1,6 +1,7 @@
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { utils, write } from 'xlsx';
+import { Platform } from 'react-native';
 import { Client } from './nearestNeighbor';
 
 const DAY_LABELS: Record<number, string> = { 1:'א', 2:'ב', 3:'ג', 4:'ד', 5:'ה' };
@@ -61,16 +62,31 @@ export async function exportToExcel({ clients, agentName, managerName, originalC
   const wb = utils.book_new();
   utils.book_append_sheet(wb, ws, 'מסלול');
 
-  const wbout = write(wb, { type: 'base64', bookType: 'xlsx' });
   const date = new Date().toISOString().slice(0, 10);
-  const filename = `${FileSystem.documentDirectory}route_${agentName}_${date}.xlsx`;
+  const safeName = agentName.replace(/[^a-zA-Z0-9֐-׿]/g, '_');
+  const filename = `route_${safeName}_${date}.xlsx`;
 
-  await FileSystem.writeAsStringAsync(filename, wbout, {
+  if (Platform.OS === 'web') {
+    const wbout = write(wb, { type: 'array', bookType: 'xlsx' });
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    return;
+  }
+
+  const wbout = write(wb, { type: 'base64', bookType: 'xlsx' });
+  const filepath = `${FileSystem.documentDirectory}${filename}`;
+
+  await FileSystem.writeAsStringAsync(filepath, wbout, {
     encoding: FileSystem.EncodingType.Base64,
   });
 
   if (await Sharing.isAvailableAsync()) {
-    await Sharing.shareAsync(filename, {
+    await Sharing.shareAsync(filepath, {
       mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       dialogTitle: `מסלול ${agentName}`,
     });
