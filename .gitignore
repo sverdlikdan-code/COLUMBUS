@@ -1,2 +1,11 @@
 .env
 outputs/
+node_modules/
+server/node_modules/
+*.lock
+server/gps-batch-*.xlsx
+server/gps-complete-*.xlsx
+server/gps-final-*.xlsx
+server/gps-*.log
+server/gps-*-rerun.js
+server/gps-batch-run.log

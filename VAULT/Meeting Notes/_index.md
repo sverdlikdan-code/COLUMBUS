@@ -23,3 +23,4 @@
 - [[skill-geograf-israel-routing]] — Навык маршрутизации визитов в Израиле с SQL, иврит-адресами и benchmark ASCOMY
 - [[geograf-ops-obsidian]] — Obsidian-заметка и операционный чеклист для daily маршрутизации Geograf
 - [[agent-designer]] — Агент Designer — мониторинг конкурентов и правила UI/UX стиля, кнопок и интеракций
+- [[prd-status]] — Живой трекер PRD покрытия агентов системы COLUMBUS (CEO проверяет при старте)
