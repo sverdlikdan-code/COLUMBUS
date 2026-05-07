@@ -108,6 +108,75 @@ Match or exceed these capabilities:
 
 Reference: `ascomy-benchmark.md` in this skill folder.
 
+## On-the-fly Geocoding (клиенты без GPS)
+
+Когда клиент в SQL не имеет координат — Географ геокодирует **на месте** перед построением маршрута.
+
+### Модуль
+
+```js
+require('dotenv').config({ path: '../.env' });
+const { resolveClient, sleep } = require('./geocoder');
+```
+
+### Один клиент
+
+```js
+const result = await resolveClient({
+  custId:      row.client_id,
+  address:     row.address_text,
+  city:        row.city,
+  existingLat: row.latitude,
+  existingLng: row.longitude,
+});
+// result = { lat, lng, source: 'existing'|'azure', cityMatch: true/false }
+// result = null → клиент не геокодирован, ставить в конец маршрута
+```
+
+### Пакетная обработка всех клиентов дня
+
+```js
+const geocoder = require('./geocoder');
+
+async function resolveAllClients(clients) {
+  const resolved = [];
+  for (const c of clients) {
+    const geo = await geocoder.resolveClient({
+      custId:      c.client_id,
+      address:     c.address_text,
+      city:        c.city,
+      existingLat: c.latitude,
+      existingLng: c.longitude,
+    });
+    resolved.push({
+      ...c,
+      lat:        geo?.lat || null,
+      lng:        geo?.lng || null,
+      geoSource:  geo?.source || 'failed',
+      geoValid:   !!geo,
+    });
+    if (!c.latitude) await geocoder.sleep(150); // rate limit только для новых
+  }
+  return resolved;
+}
+```
+
+### Правила
+
+- Клиенты с `geoValid: false` → включить в маршрут последними + добавить в warnings
+- `source: 'existing'` → доверять, не перезаписывать в SQL
+- `source: 'azure'` + `cityMatch: true` → можно записать в SQL как кэш (опционально)
+- `source: 'azure'` + `cityMatch: false` → использовать для маршрута но НЕ записывать в SQL
+
+### Конфигурация
+
+Переменная в `.env` (уже есть в COLUMBUS):
+```
+AZURE_MAPS_KEY=...
+```
+
+Модуль: `server/geocoder.js` — единый для всей системы COLUMBUS.
+
 ## Common Mistakes
 
 - Starting optimization without start city
