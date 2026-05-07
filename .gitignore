@@ -9,3 +9,6 @@ server/gps-final-*.xlsx
 server/gps-*.log
 server/gps-*-rerun.js
 server/gps-batch-run.log
+*.pbix
+*.xlsx
+!EXEL COORDINATES.xlsx
