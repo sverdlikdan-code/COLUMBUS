@@ -115,6 +115,54 @@ Skill Creator завершил:
 
 ---
 
+---
+
+## Мониторинг рынка скиллов (периодический)
+
+Запускается по расписанию. Результат передаётся CEO → CEO отчитывается пользователю.
+
+### Агенты под мониторингом (только решающие задачи)
+
+| Агент | Домены для поиска |
+|-------|-----------------|
+| **geograf** | Azure Maps API updates, routing algorithms Israel, GPS geocoding tools, HERE / Google Maps новинки |
+| **mahsan** | Warehouse management systems, planogram software, cold storage optimization, WMS tools |
+| **designer** | React Native UI patterns 2025-2026, mobile field sales UX, конкуренты: Bringg / BeatRoute / RouteOptima / PepUpSales |
+| **analytics** | Power BI / Fabric releases, DAX новинки, data visualization tools |
+| **fin-agent** | Claude API pricing changes, token optimization, LLM cost monitoring tools |
+| **skill-creator** | Claude Code new skills/features, prompt engineering patterns, agent orchestration |
+
+### Что искать
+
+- Новые инструменты/библиотеки, которые могут стать скиллом
+- Обновления API или сервисов, на которых завязаны существующие скиллы
+- Конкурентные решения, превосходящие текущий подход агента
+- Best practices, которых нет в текущих SKILL.md
+
+### Формат отчёта для CEO
+
+```text
+📡 SKILL MARKET REPORT — <дата>
+
+По агенту geograf:
+  🆕 [находка] — почему важно
+  ⚠️  [риск для существующего скилла]
+
+По агенту mahsan:
+  ...
+
+ИТОГО: <N> новых возможностей, <M> рисков устаревания
+Рекомендация: [создать скилл X / обновить Y / без изменений]
+```
+
+### Правила
+
+- Искать только по **активным** task-solving агентам (не резервным)
+- Не создавать скиллы автоматически — только предлагать CEO
+- Если находок нет — сообщить "нет значимых изменений" (не молчать)
+
+---
+
 ## Антипаттерны
 
 - ❌ Писать `description:` длиннее одной строки
@@ -122,3 +170,4 @@ Skill Creator завершил:
 - ❌ Дублировать скилл который уже существует — сначала проверить список
 - ❌ Не делать git commit после создания/изменения
 - ❌ Не обновлять Vault после добавления нового скилла
+- ❌ Мониторить резервных агентов (chen, guy, yael, yuval, reuven)
