@@ -22,11 +22,27 @@
       "Bash(C:/Users/d.sverdlik/AppData/Local/Programs/Python/Python314/python.exe -c ' *)",
       "Bash(\"C:\\\\Users\\\\d.sverdlik\\\\Desktop\\\\cloudflared.exe\" tunnel *)",
       "Bash(curl -s https://api.sverdlik-apps.site/managers)",
-      "Bash(nslookup api.sverdlik-apps.site 8.8.8.8)"
+      "Bash(nslookup api.sverdlik-apps.site 8.8.8.8)",
+      "Bash(git stash *)",
+      "Bash(git reflog *)",
+      "Bash(git gc *)",
+      "Bash(git push *)",
+      "Bash(node -e \"require\\('./planogram-gen.js'\\)\")",
+      "Bash(node planogram-gen.js)",
+      "Bash(node \"../../../PLANOGRAM MAHSAN FORMULA/planogram-gen.js\")",
+      "Bash(node \"C:/Users/d.sverdlik/Desktop/WORKSPACE/PLANOGRAM MAHSAN FORMULA/planogram-gen.js\")",
+      "WebSearch",
+      "Edit(/.claude/skills/warehouse-floor-plan/**)",
+      "Bash(mkdir \"C:\\\\Users\\\\d.sverdlik\\\\Desktop\\\\WORKSPACE\\\\COLUMBUS\\\\.claude\\\\AGENTS\\\\mahsan\" 2>&1; echo \"done\")",
+      "Skill(schedule)",
+      "Skill(schedule:*)",
+      "Bash(mkdir \"C:\\\\Users\\\\d.sverdlik\\\\Desktop\\\\WORKSPACE\\\\COLUMBUS\\\\.claude\\\\AGENTS\\\\fin-agent\" 2>&1; echo \"done\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\d.sverdlik\\.claude\\projects\\c--Users-d-sverdlik-Desktop-WORKSPACE-COLUMBUS\\memory",
-      "c:\\Users\\d.sverdlik\\.claude\\projects\\c--Users-d-sverdlik-Desktop-WORKSPACE-COLUMBUS"
+      "c:\\Users\\d.sverdlik\\.claude\\projects\\c--Users-d-sverdlik-Desktop-WORKSPACE-COLUMBUS",
+      "C:\\Users\\d.sverdlik\\Desktop\\WORKSPACE\\PLANOGRAM MAHSAN FORMULA",
+      "C:\\Users\\d.sverdlik\\Desktop\\WORKSPACE\\COLUMBUS\\.claude\\AGENTS"
     ]
   },
   "mcpServers": {
