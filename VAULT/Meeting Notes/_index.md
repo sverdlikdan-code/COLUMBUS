@@ -25,3 +25,4 @@
 - [[agent-designer]] — Агент Designer — мониторинг конкурентов и правила UI/UX стиля, кнопок и интеракций
 - [[prd-status]] — Живой трекер PRD покрытия агентов системы COLUMBUS (CEO проверяет при старте)
 - [[agent-mahsan]] — Агент Mahsan — планограмма холодного склада FORMULA, bay allocation, warehouse-plan.html
+- [[agent-skill-creator]] — Агент Skill Creator — создание, редактирование и оптимизация SKILL.md в системе COLUMBUS
