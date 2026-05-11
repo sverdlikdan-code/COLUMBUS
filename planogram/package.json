@@ -1,0 +1,11 @@
+{
+  "name": "mahsan-planogram",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node build-planogram.js"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0"
+  }
+}
