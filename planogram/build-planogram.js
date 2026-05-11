@@ -3,7 +3,7 @@
  * Клонирует MAHSAN 8.xlsx (3 листа), заменяет числа-пики на данные товара.
  * Сохраняет точную компоновку оригинала.
  */
-const ExcelJS = require('exceljs');
+const ExcelJS = require('C:/Users/d.sverdlik/Desktop/WORKSPACE/COLUMBUS/server/node_modules/exceljs');
 const { fetchKapuaFromBI, fetchLastRefresh } = require('./pbi-kapua');
 const { fetchExtraSheets }   = require('./pbi-extra-sheets');
 
@@ -76,7 +76,11 @@ function fillCell(cell, pick, makat, fam, dayAvg, daySales, ss, stock, weight, d
   const base = { size:8, name:'Arial' };
   const rt   = [];
 
-  // Line 1: pick number
+  // Line 1: START indicator for pick #1
+  if(pick === 1) {
+    rt.push({ text: `← START\n`, font: { bold:true, size:10, name:'Arial', color:{ argb:'FF003399' } } });
+  }
+  // Pick number
   rt.push({ text: `#${pick}\n`, font: base });
 
   // Line 2 (optional): stars + heavy icon
@@ -125,6 +129,11 @@ function fillCell(cell, pick, makat, fam, dayAvg, daySales, ss, stock, weight, d
     rt.push({ text: `╚══════════════╝\n`, font: { size:7, name:'Courier New', color:{ argb:'FFCC0000' } } });
   }
 
+  // ── separator before expiry dates ────────────────────────────────────────
+  if(pakuot && pakuot.length > 0) {
+    rt.push({ text: `────────────────────\n`, font: { size:6, name:'Arial', color:{ argb:'FF9999BB' } } });
+  }
+
   // ── פק"ע lines: each batch on its own line, RED if danger ─────────────────
   if(pakuot && pakuot.length > 0) {
     for(const pak of pakuot) {
@@ -157,24 +166,27 @@ function fillCell(cell, pick, makat, fam, dayAvg, daySales, ss, stock, weight, d
 function emptyCell(cell, pick) {
   cell.value = `#${pick}\nפנוי`;
   cell.alignment = { wrapText:true, vertical:'middle', horizontal:'center' };
-  cell.font = { size:8, color:{argb:'FFAAAAAA'} };
+  cell.font = { size:10, bold:true, color:{argb:'FFCCCCCC'} };
+  cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFAFAFA' } };
+  cell.border = { top:{style:'thin',color:{argb:'FFE0E0E0'}}, bottom:{style:'thin',color:{argb:'FFE0E0E0'}}, left:{style:'thin',color:{argb:'FFE0E0E0'}}, right:{style:'thin',color:{argb:'FFE0E0E0'}} };
 }
 
 // Zero-stock cell: product is assigned here but out of stock → red indicator, no data
 function zeroStockCell(cell, pick, makat, desc, fam) {
   const name = desc ? fixVisualRTL(String(desc).replace(/[​-‏‪-‮﻿]/g,'').trim()) : '';
   cell.value = { richText: [
-    { text: `#${pick}\n`, font: { size:8, name:'Arial' } },
-    { text: `⛔ אפס מלאי\n`, font: { bold:true, size:10, name:'Arial', color:{ argb:'FFCC0000' } } },
-    { text: `${makat}\n`, font: { size:8, name:'Arial' } },
-    { text: name,         font: { bold:true, size:9, name:'Arial', color:{ argb:'FF880000' } } },
+    { text: `#${pick}\n`,        font: { size:8, name:'Arial', color:{ argb:'FF888888' } } },
+    { text: `⛔\n`,              font: { size:22, name:'Segoe UI Emoji' } },
+    { text: `אפס מלאי\n`,       font: { bold:true, size:14, name:'Arial', color:{ argb:'FFCC0000' } } },
+    { text: `${makat}\n`,        font: { size:9, name:'Arial', color:{ argb:'FF666666' } } },
+    { text: name,                font: { bold:true, size:9, name:'Arial', color:{ argb:'FF880000' } } },
   ]};
-  cell.alignment = { wrapText:true, vertical:'top', horizontal:'right', readingOrder:2 };
+  cell.alignment = { wrapText:true, vertical:'middle', horizontal:'center', readingOrder:2 };
   cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFDDDD' } };
   cell.border = {
-    top:    { style:'thin' },
-    right:  { style:'thin' },
-    bottom: { style:'thin' },
+    top:    { style:'medium', color:{ argb:'FFCC0000' } },
+    right:  { style:'medium', color:{ argb:'FFCC0000' } },
+    bottom: { style:'medium', color:{ argb:'FFCC0000' } },
     left:   { style:'medium', color:{ argb:'FFCC0000' } },
   };
 }
@@ -302,7 +314,7 @@ function applyToSheet(ws, pickMap, prodsByPick, weightThresh, dayThreshHigh, day
     if(p) {
       const isZero = p.stock != null && p.stock <= 0;
       if(isZero) {
-        // Zero stock: skip planogram cell, only in table below
+        zeroStockCell(cell, pick, p.makat, p.desc, p.fam);
         zeroStock.push(p);
       } else {
         const kratnost = usePallets ? (palletMap && palletMap[String(p.makat)] || 0) : 0;
@@ -311,6 +323,10 @@ function applyToSheet(ws, pickMap, prodsByPick, weightThresh, dayThreshHigh, day
       }
       rowsToResize.add(pos.row);
       colsToResize.add(pos.col);
+    } else {
+      emptyCell(cell, pick);
+      colsToResize.add(pos.col);
+      rowsToResize.add(pos.row);
     }
   }
   for(const r of rowsToResize) ws.getRow(r).height = 160;
@@ -321,48 +337,53 @@ function applyToSheet(ws, pickMap, prodsByPick, weightThresh, dayThreshHigh, day
   return zeroStock;
 }
 
-// ─── Family navigation bar (row 2, after summary header) ─────────────────
-// Inserts 1 row at position 2 with colored hyperlink "buttons" per family.
-// Each button jumps to the first cell of that family in the planogram.
+// ─── Family legend bar (row 2, after summary header) ─────────────────────
+// Each label sits above the first planogram column of its family.
+// Style: white bg + thick colored bottom border (professional tab look).
 function addFamilyNavBar(ws, pickCells, prodsByPick, refreshLabel) {
-  // Collect family → first occurrence {row, col} in pick order
-  const famOrder = [];
-  const seenFam  = new Set();
+  // Build family → first column (col is stable across spliceRows)
+  const famFirstCol = {};
+  const famOrder    = [];
+  const seenFam     = new Set();
   for(const pick of Object.keys(pickCells).map(Number).sort((a,b)=>a-b)) {
-    const pos = pickCells[pick];
-    const p   = prodsByPick[pick];
-    if(!p || !p.fam || seenFam.has(p.fam)) continue;
-    seenFam.add(p.fam);
-    famOrder.push({ fam: p.fam, row: pos.row, col: pos.col });
+    const p = prodsByPick[pick];
+    if(!p || !p.fam) continue;
+    if(!seenFam.has(p.fam)) {
+      seenFam.add(p.fam);
+      famOrder.push(p.fam);
+      famFirstCol[p.fam] = Math.max(1, pickCells[pick].col - 1);
+    }
   }
   if(!famOrder.length) return;
 
-  // Insert 1 row at position 2 (after summary header row 1)
   ws.spliceRows(2, 0, []);
   const navRow  = ws.getRow(2);
-  navRow.height = 22;
+  navRow.height = 30;
 
-  const shName = ws.name.replace(/'/g, "''");   // escape single quotes in sheet name
-
-  famOrder.forEach((item, i) => {
-    const c = ws.getCell(2, i + 1);
-    // Insertion shifted original rows ≥ 2 by +1 → use row+1 for hyperlink target
-    const targetAddr = ws.getCell(item.row + 1, item.col).address;
-    c.value     = { formula: `HYPERLINK("#'${shName}'!${targetAddr}","${item.fam}")` };
-    c.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb: famColor(item.fam) } };
-    c.font      = { bold:true, size:8, name:'Arial' };
-    c.alignment = { horizontal:'center', vertical:'middle' };
-    c.border    = { top:{style:'thin'}, bottom:{style:'medium'},
-                    left:{style:'thin'}, right:{style:'thin'} };
+  famOrder.forEach((fam) => {
+    const col = famFirstCol[fam];
+    const c   = ws.getCell(2, col);
+    const fc  = famColor(fam);
+    c.value     = fam;
+    c.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFFFFF' } };
+    c.font      = { bold:true, size:9, name:'Arial', color:{ argb:'FF222222' } };
+    c.alignment = { horizontal:'center', vertical:'middle', wrapText:false, shrinkToFit:true };
+    c.border    = {
+      top:    { style:'thin',   color:{ argb:'FFE0E0E0' } },
+      left:   { style:'thin',   color:{ argb:'FFE0E0E0' } },
+      right:  { style:'thin',   color:{ argb:'FFE0E0E0' } },
+      bottom: { style:'medium', color:{ argb: fc } },
+    };
   });
 
-  // Refresh timestamp — placed after all family buttons, right side
+  // Refresh timestamp — after last family column
   if(refreshLabel) {
-    const tsCell = ws.getCell(2, famOrder.length + 2);
+    const maxCol = Math.max(...Object.values(famFirstCol));
+    const tsCell = ws.getCell(2, maxCol + 2);
     tsCell.value     = refreshLabel;
     tsCell.font      = { bold:true, size:10, name:'Arial', color:{ argb:'FF333333' } };
     tsCell.alignment = { horizontal:'right', vertical:'middle' };
-    tsCell.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFF5F5F5' } };
+    tsCell.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFFFFF' } };
   }
 
   // Update frozen view: row 1 = summary, row 2 = nav → freeze after row 2
@@ -665,26 +686,28 @@ async function main() {
   // ── SHEET: MAHSAN חלבי ─────────────────────────────────────────────────
   const shHalavi = wb.getWorksheet('MAHSAN חלבי');
   {
-    // First pass: count picks to size prodMap
+    // Compact fill: zero-stock products skip slots (same rule as קפוא)
+    const halaviZeroList = halaviProds.filter(p => p.stock != null && p.stock <= 0);
+    const halaviInStock  = halaviProds.filter(p => !(p.stock != null && p.stock <= 0));
+
     const picksCountScan = Object.keys(collectPickCells(shHalavi)).length;
-    const assigned = assignByLogic(halaviProds, picksCountScan);
+    const assigned = assignByLogic(halaviInStock, picksCountScan);
+
     const prodMapH = {};
     Object.keys(collectPickCells(shHalavi)).map(Number).sort((a,b)=>a-b)
       .forEach((pick,i) => { if(assigned[i]) prodMapH[pick] = assigned[i]; });
 
     const halaviTotalOrd = Object.values(prodMapH).reduce((s,p)=>s+(p.dayAvg||0),0);
-    const halaviZero     = Object.values(prodMapH).filter(p=>p.stock!=null&&p.stock<=0).length;
-    const halaviActive   = Object.values(prodMapH).length - halaviZero;
-    addSummaryHeader(shHalavi, 'חלבי', halaviTotalOrd, 0, halaviActive, halaviZero, grandTotalOrd);
+    addSummaryHeader(shHalavi, 'חלבי', halaviTotalOrd, 0, halaviInStock.length, halaviZeroList.length, grandTotalOrd);
     shHalavi.views = [{...((shHalavi.views||[])[0]||{}), state:'frozen', ySplit:1, topLeftCell:'A2'}];
     // rescan after insert
     const pickCells = collectPickCells(shHalavi);
     const picks     = Object.keys(pickCells).map(Number).sort((a,b)=>a-b);
     const prodMap   = {};
     picks.forEach((pick,i) => { if(assigned[i]) prodMap[pick] = assigned[i]; });
-    console.log(`חלבי picks found: ${picks.length} | total ORD: ${Math.round(halaviTotalOrd)}`);
-    const zeroHalavi = applyToSheet(shHalavi, pickCells, prodMap, weightThresh, dayThreshHigh, dayThreshMid, null, false, halaviTotalOrd);
-    addZeroStockTable(shHalavi, zeroHalavi);
+    console.log(`חלבי picks found: ${picks.length} | in-stock: ${halaviInStock.length} | zero: ${halaviZeroList.length} | total ORD: ${Math.round(halaviTotalOrd)}`);
+    applyToSheet(shHalavi, pickCells, prodMap, weightThresh, dayThreshHigh, dayThreshMid, palletMap, true, halaviTotalOrd);
+    addZeroStockTable(shHalavi, halaviZeroList);
     addFamilyNavBar(shHalavi, pickCells, prodMap, refreshLabel);
     addSeqSheet(wb, 'סדר חלבי', prodMap, 'FFD5F5D5');
   }
@@ -726,10 +749,13 @@ async function main() {
     const BACK    = new Set([59,60,61,62,63,64,65,66,67,68,69,70,71,72]);                                      // R9 (14 slots)
     const DOCK    = new Set([1,2,3,4,5,6,7,8,9]);                                                              // R5 (9 slots)
 
-    // Split by family, sort by weight desc within each
-    const nordPortMatz = dagimProds.filter(p=>p.fam==='NORD PORT מצונן')   .sort((a,b)=>(b.weight||0)-(a.weight||0));
-    const nordPort     = dagimProds.filter(p=>p.fam==='NORD PORT')          .sort((a,b)=>(b.weight||0)-(a.weight||0));
-    const santaBremor  = dagimProds.filter(p=>p.fam==='SANTA BREMOR Fish')  .sort((a,b)=>(b.weight||0)-(a.weight||0));
+    // Split by family, filter zero-stock (compact fill — same rule as קפוא/חלבי),
+    // sort by weight desc within each
+    const inStock = p => !(p.stock != null && p.stock <= 0);
+    const nordPortMatz = dagimProds.filter(p=>p.fam==='NORD PORT מצונן' && inStock(p)).sort((a,b)=>(b.weight||0)-(a.weight||0));
+    const nordPort     = dagimProds.filter(p=>p.fam==='NORD PORT'         && inStock(p)).sort((a,b)=>(b.weight||0)-(a.weight||0));
+    const santaBremor  = dagimProds.filter(p=>p.fam==='SANTA BREMOR Fish' && inStock(p)).sort((a,b)=>(b.weight||0)-(a.weight||0));
+    const dagimZeroList = dagimProds.filter(p=>p.stock!=null&&p.stock<=0);
 
     console.log(`  NORD PORT מצונן: ${nordPortMatz.length} | NORD PORT: ${nordPort.length} | SANTA BREMOR: ${santaBremor.length}`);
     console.log(`  DOCK(R5): ${[...DOCK].length} slots (NP מצונן) | Face A(R6): ${[...FACE_A].length} slots (SB) | FaceB+Back: ${[...FACE_B].length+[...BACK].length} slots (NP)`);
@@ -751,9 +777,9 @@ async function main() {
     ];
     npSlots.forEach((pick,i) => { if(nordPort[i]) prodMap[pick] = nordPort[i]; });
 
-    console.log(`דגים total ORD/day: ${dagimTotalOrd.toFixed(0)}`);
-    const zeroDagim = applyToSheet(shDagim, pickCells, prodMap, weightThresh, dayThreshHigh, dayThreshMid, palletMap, true, dagimTotalOrd);
-    addZeroStockTable(shDagim, zeroDagim);
+    console.log(`דגים total ORD/day: ${dagimTotalOrd.toFixed(0)} | zero: ${dagimZeroList.length}`);
+    applyToSheet(shDagim, pickCells, prodMap, weightThresh, dayThreshHigh, dayThreshMid, palletMap, true, dagimTotalOrd);
+    addZeroStockTable(shDagim, dagimZeroList);
     addFamilyNavBar(shDagim, pickCells, prodMap, refreshLabel);
     addSeqSheet(wb, 'סדר דגים', prodMap, 'FFFFF0CC');
   }
@@ -799,7 +825,7 @@ async function main() {
 
   // Sheet: מחסן צפון Zafn danger — items with days < 3, sorted by urgency
   {
-    const sh = wb.addWorksheet('מחסן צפון Zafn');
+    const sh = wb.addWorksheet('צפון מלאי פחות מ3DAYS SALES');
     sh.views = [{ state:'frozen', ySplit:1, topLeftCell:'A2' }];
     sh.columns = [
       { header:"מקט",           key:'makat',    width:12 },
@@ -899,7 +925,7 @@ async function main() {
   }
 
   // Write output
-  const out = 'MAHSAN PLANOGRAM.xlsx';
+  const out = 'MAHSAN PLANOGRAM v41.xlsx';
   await wb.xlsx.writeFile(out);
   console.log('\n✅ Written:', out);
 }
