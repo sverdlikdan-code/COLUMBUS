@@ -1,35 +1,35 @@
-﻿/**
+/**
  * MAHSAN PLANOGRAM BUILDER
- * ׀׀»׀¾׀½׀¸ׁ€ׁƒ׀µׁ‚ MAHSAN 8.xlsx (3 ׀»׀¸ׁׁ‚׀°), ׀·׀°׀¼׀µ׀½ׁ׀µׁ‚ ׁ‡׀¸ׁ׀»׀°-׀¿׀¸׀÷׀¸ ׀½׀° ׀´׀°׀½׀½ׁ‹׀µ ׁ‚׀¾׀²׀°ׁ€׀°.
- * ׀¡׀¾ׁ…ׁ€׀°׀½ׁ׀µׁ‚ ׁ‚׀¾ׁ‡׀½ׁƒׁ ׀÷׀¾׀¼׀¿׀¾׀½׀¾׀²׀÷ׁƒ ׀¾ׁ€׀¸׀³׀¸׀½׀°׀»׀°.
+ * Клонирует MAHSAN 8.xlsx (3 листа), заменяет числа-пики на данные товара.
+ * Сохраняет точную компоновку оригинала.
  */
 const ExcelJS = require('exceljs');
 const { fetchKapuaFromBI, fetchLastRefresh } = require('./pbi-kapua');
 const { fetchExtraSheets }   = require('./pbi-extra-sheets');
 
-// ג”€ג”€ג”€ Family colors (ARGB) ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ─── Family colors (ARGB) ─────────────────────────────────────────────────
 const FAM_COLORS = {
-  '׳—׳׳׳” FERMA':       'FFFFFAD5',
-  '׳—׳׳׳” ׳¨׳•׳©׳':        'FFFFFCC0',
-  '׳׳׳¨׳—׳™ ׳—׳׳׳”':       'FFFFFAB0',
-  '׳‘׳׳™׳ ׳¦׳¡':           'FFD4E8FF',
-  '׳›׳™׳¡׳•׳ ׳™׳':          'FFE8D5F5',
-  '׳‘׳¦׳§':              'FFFFF0CC',
-  '׳¢׳׳™ ׳‘׳׳™׳ ׳¦׳¡':       'FFD5F0D5',
+  'חמאה FERMA':       'FFFFFAD5',
+  'חמאה רושן':        'FFFFFCC0',
+  'ממרחי חמאה':       'FFFFFAB0',
+  'בלינצס':           'FFD4E8FF',
+  'כיסונים':          'FFE8D5F5',
+  'בצק':              'FFFFF0CC',
+  'עלי בלינצס':       'FFD5F0D5',
   'SANTA BREMOR':     'FFD5EAF5',
-  '׳—׳˜׳™׳£ ׳’׳‘׳™׳ ׳”':       'FFFFFF9A',
-  '׳¢׳•׳’׳•׳× ׳¨׳•׳©׳':       'FFFFD5D5',
-  '׳¢׳•׳’׳•׳× ׳׳•׳–׳™׳§׳”':     'FFD5FFD5',
-  '׳׳•׳¡׳“׳™':            'FFFFDEA0',
+  'חטיף גבינה':       'FFFFFF9A',
+  'עוגות רושן':       'FFFFD5D5',
+  'עוגות מוזיקה':     'FFD5FFD5',
+  'מוסדי':            'FFFFDEA0',
   'VALESTA':          'FFC8C8FF',
-  'SANTA BREMOR ׳“׳’׳™׳':'FFD0F0FF',
+  'SANTA BREMOR דגים':'FFD0F0FF',
   'PRESIDENT':        'FFFCE4EC',
-  'SVALIA ׳×׳ ׳׳©':      'FFE3F2FD',
-  'SVALIA ׳’׳•׳¨׳•׳‘׳˜':    'FFF3E5F5',
-  'SVALIA ׳×׳•׳¡׳•׳¨׳₪':    'FFF1F8E9',
-  'SVALIA ׳”׳ ׳™׳‘׳’':     'FFFFF8E1',
+  'SVALIA תנמש':      'FFE3F2FD',
+  'SVALIA גורובט':    'FFF3E5F5',
+  'SVALIA תוסורפ':    'FFF1F8E9',
+  'SVALIA הניבג':     'FFFFF8E1',
   'NORD PORT':        'FFE0F7FA',
-  'NORD PORT ׳׳¦׳•׳ ׳': 'FFB2DFEE',
+  'NORD PORT מצונן': 'FFB2DFEE',
   'SANTA BREMOR Fish':'FFFFE0B2',
   'EMPTY':            'FFF5F5F5',
 };
@@ -40,30 +40,30 @@ function famColor(fam) {
   return 'FFE0E0E0';
 }
 
-// ג”€ג”€ג”€ Visual-order ג†’ logical Unicode for Hebrew (legacy DB encoding) ג”€ג”€ג”€ג”€ג”€ג”€
+// ─── Visual-order → logical Unicode for Hebrew (legacy DB encoding) ──────
 // Source stores Hebrew in visual RTL order (first byte = leftmost visual char).
-// Fix: reverse entire string ג†’ Hebrew words become logical; then reverse back
+// Fix: reverse entire string → Hebrew words become logical; then reverse back
 // any ASCII-only runs so numbers/parens are not corrupted (180 not 081).
 function fixVisualRTL(s) {
   const full = s.split('').reverse().join('');
   return full.replace(/[\x20-\x7E]+/g, m => m.split('').reverse().join(''));
 }
 
-// ג”€ג”€ג”€ Percentile threshold helper ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
-// pct=0.7 ג†’ top 30% (above 70th pct) | pct=0.5 ג†’ top 50% (above median)
+// ─── Percentile threshold helper ─────────────────────────────────────────
+// pct=0.7 → top 30% (above 70th pct) | pct=0.5 → top 50% (above median)
 function percentileThreshold(values, pct) {
   const sorted = values.filter(v => v != null && v > 0).sort((a,b) => a-b);
   if(!sorted.length) return Infinity;
   return sorted[Math.floor(sorted.length * pct)];
 }
 
-// ג”€ג”€ג”€ Apply product info to a cell ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ─── Apply product info to a cell ────────────────────────────────────────
 // kratnost: cartons/pallet | daySales: avg daily cartons from BI
-// dayThreshHigh: top-30% threshold (ג˜…) | dayThreshMid: top-50% threshold (ג˜†)
+// dayThreshHigh: top-30% threshold (★) | dayThreshMid: top-50% threshold (☆)
 // pakuot: [{date, daysLeft, cartons}]
 function fillCell(cell, pick, makat, fam, dayAvg, daySales, ss, stock, weight, desc, weightThresh, dayThreshHigh, dayThreshMid, kratnost, pctOfTotal, pakuot) {
-  const kg   = weight != null ? (+weight).toFixed(2) : 'ג€”';
-  const name = desc ? fixVisualRTL(String(desc).replace(/[ג€‹-ג€ג€×-ג€®ן»¿]/g,'').trim()) : '';
+  const kg   = weight != null ? (+weight).toFixed(2) : '—';
+  const name = desc ? fixVisualRTL(String(desc).replace(/[​-‏‪-‮﻿]/g,'').trim()) : '';
 
   // Stars based on daySales PAL/d (BI live data); fallback to dayAvg if no daySales
   const palDay      = (daySales != null && kratnost > 0) ? daySales / kratnost
@@ -81,64 +81,64 @@ function fillCell(cell, pick, makat, fam, dayAvg, daySales, ss, stock, weight, d
 
   // Line 2 (optional): stars + heavy icon
   if(isTopStar || isMidStar || isHeavy) {
-    if(isTopStar) rt.push({ text: 'נ… ', font: { size:14, name:'Segoe UI Emoji' } });
-    if(isMidStar) rt.push({ text: 'ג­ ', font: { size:12, name:'Segoe UI Emoji' } });
-    if(isHeavy)   rt.push({ text: 'נ‹ן¸ ', font: { size:12, name:'Segoe UI Emoji' } });
+    if(isTopStar) rt.push({ text: '🏅 ', font: { size:14, name:'Segoe UI Emoji' } });
+    if(isMidStar) rt.push({ text: '⭐ ', font: { size:12, name:'Segoe UI Emoji' } });
+    if(isHeavy)   rt.push({ text: '🏋️ ', font: { size:12, name:'Segoe UI Emoji' } });
     rt.push({ text: '\n', font: base });
   }
 
   // makat
   rt.push({ text: `${makat}\n`, font: base });
-  // product name ג€” bigger + bold
+  // product name — bigger + bold
   rt.push({ text: `${name}\n`, font: { size:10, bold:true, name:'Arial' } });
-  // ג”€ג”€ separator after product name ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
-  rt.push({ text: `ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€\n`, font: { size:6, name:'Arial', color:{ argb:'FFBBBBBB' } } });
+  // ── separator after product name ──────────────────────────────────────────
+  rt.push({ text: `────────────────────\n`, font: { size:6, name:'Arial', color:{ argb:'FFBBBBBB' } } });
 
   // AVG/d line: average daily cartons + pallets
   if(daySales != null) {
     const kartStr = daySales.toFixed(1);
     if(kratnost > 0) {
-      rt.push({ text: `AVG/d: ${kartStr} ׳§׳¨׳˜ | ${(daySales/kratnost).toFixed(1)} PAL\n`, font: { ...base, bold:true } });
+      rt.push({ text: `AVG/d: ${kartStr} קרט | ${(daySales/kratnost).toFixed(1)} PAL\n`, font: { ...base, bold:true } });
     } else {
-      rt.push({ text: `AVG/d: ${kartStr} ׳§׳¨׳˜\n`, font: { ...base, bold:true, color:{ argb:'FF884400' } } });
+      rt.push({ text: `AVG/d: ${kartStr} קרט\n`, font: { ...base, bold:true, color:{ argb:'FF884400' } } });
     }
   }
 
   // KG line
   rt.push({ text: `KG: ${kg}\n`, font: base });
 
-  // ג”€ג”€ ׳׳׳׳™ in frame ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+  // ── מלאי in frame ─────────────────────────────────────────────────────────
   if(stock != null && kratnost > 0) {
     const palVal = Math.round(stock / kratnost);
     if(palVal === 0) {
-      rt.push({ text: `ג•”ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•—\n`, font: { size:7, name:'Courier New', color:{ argb:'FFCC0000' } } });
-      rt.push({ text: `  ׳׳׳׳™: 0 PAL  \n`, font: { size:10, bold:true, name:'Arial', color:{ argb:'FFCC0000' } } });
-      rt.push({ text: `ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•\n`, font: { size:7, name:'Courier New', color:{ argb:'FFCC0000' } } });
+      rt.push({ text: `╔══════════════╗\n`, font: { size:7, name:'Courier New', color:{ argb:'FFCC0000' } } });
+      rt.push({ text: `  מלאי: 0 PAL  \n`, font: { size:10, bold:true, name:'Arial', color:{ argb:'FFCC0000' } } });
+      rt.push({ text: `╚══════════════╝\n`, font: { size:7, name:'Courier New', color:{ argb:'FFCC0000' } } });
     } else {
-      rt.push({ text: `ג•”ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•—\n`, font: { size:7, name:'Courier New', color:{ argb:'FF003399' } } });
-      rt.push({ text: `  ׳׳׳׳™: ${palVal} PAL  \n`, font: { size:10, bold:true, name:'Arial', color:{ argb:'FF003399' } } });
-      rt.push({ text: `ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•\n`, font: { size:7, name:'Courier New', color:{ argb:'FF003399' } } });
+      rt.push({ text: `╔══════════════╗\n`, font: { size:7, name:'Courier New', color:{ argb:'FF003399' } } });
+      rt.push({ text: `  מלאי: ${palVal} PAL  \n`, font: { size:10, bold:true, name:'Arial', color:{ argb:'FF003399' } } });
+      rt.push({ text: `╚══════════════╝\n`, font: { size:7, name:'Courier New', color:{ argb:'FF003399' } } });
     }
   } else if(stock != null) {
-    rt.push({ text: `ג•”ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•—\n`, font: { size:7, name:'Courier New', color:{ argb:'FFCC0000' } } });
-    rt.push({ text: `  ׳׳׳׳™: ${Math.round(stock)} ׳§׳¨׳˜  \n`, font: { size:10, bold:true, name:'Arial', color:{ argb:'FFCC0000' } } });
-    rt.push({ text: `ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•\n`, font: { size:7, name:'Courier New', color:{ argb:'FFCC0000' } } });
+    rt.push({ text: `╔══════════════╗\n`, font: { size:7, name:'Courier New', color:{ argb:'FFCC0000' } } });
+    rt.push({ text: `  מלאי: ${Math.round(stock)} קרט  \n`, font: { size:10, bold:true, name:'Arial', color:{ argb:'FFCC0000' } } });
+    rt.push({ text: `╚══════════════╝\n`, font: { size:7, name:'Courier New', color:{ argb:'FFCC0000' } } });
   }
 
-  // ג”€ג”€ ׳₪׳§"׳¢ lines: each batch on its own line, RED if danger ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+  // ── פק"ע lines: each batch on its own line, RED if danger ─────────────────
   if(pakuot && pakuot.length > 0) {
     for(const pak of pakuot) {
       const dateStr = pak.date
         ? `${pak.date.getDate().toString().padStart(2,'0')}/${(pak.date.getMonth()+1).toString().padStart(2,'0')}/${String(pak.date.getFullYear()).slice(-2)}`
-        : 'ג€”';
+        : '—';
       const dStr    = pak.daysLeft != null ? `${pak.daysLeft}d` : '?';
       const sellDays = (daySales && daySales > 0 && pak.cartons > 0) ? pak.cartons / daySales : Infinity;
       const isDanger = pak.daysLeft != null && pak.daysLeft < sellDays;
       if(isDanger) {
-        rt.push({ text: `ג¡ DANGER  `, font: { bold:true, size:8, name:'Segoe UI Emoji', color:{ argb:'FFCC0000' } } });
-        rt.push({ text: `׳₪׳§"׳¢ ${dateStr} (${dStr}) ${Math.round(pak.cartons)}׳§׳¨׳˜\n`, font: { ...base, color:{ argb:'FFCC0000' }, bold:true } });
+        rt.push({ text: `⚡ DANGER  `, font: { bold:true, size:8, name:'Segoe UI Emoji', color:{ argb:'FFCC0000' } } });
+        rt.push({ text: `פק"ע ${dateStr} (${dStr}) ${Math.round(pak.cartons)}קרט\n`, font: { ...base, color:{ argb:'FFCC0000' }, bold:true } });
       } else {
-        rt.push({ text: `׳₪׳§"׳¢ ${dateStr} (${dStr}) ${Math.round(pak.cartons)}׳§׳¨׳˜\n`, font: { ...base, color:{ argb:'FF006600' } } });
+        rt.push({ text: `פק"ע ${dateStr} (${dStr}) ${Math.round(pak.cartons)}קרט\n`, font: { ...base, color:{ argb:'FF006600' } } });
       }
     }
   }
@@ -155,17 +155,17 @@ function fillCell(cell, pick, makat, fam, dayAvg, daySales, ss, stock, weight, d
 }
 
 function emptyCell(cell, pick) {
-  cell.value = `#${pick}\n׳₪׳ ׳•׳™`;
+  cell.value = `#${pick}\nפנוי`;
   cell.alignment = { wrapText:true, vertical:'middle', horizontal:'center' };
   cell.font = { size:8, color:{argb:'FFAAAAAA'} };
 }
 
-// Zero-stock cell: product is assigned here but out of stock ג†’ red indicator, no data
+// Zero-stock cell: product is assigned here but out of stock → red indicator, no data
 function zeroStockCell(cell, pick, makat, desc, fam) {
-  const name = desc ? fixVisualRTL(String(desc).replace(/[ג€‹-ג€ג€×-ג€®ן»¿]/g,'').trim()) : '';
+  const name = desc ? fixVisualRTL(String(desc).replace(/[​-‏‪-‮﻿]/g,'').trim()) : '';
   cell.value = { richText: [
     { text: `#${pick}\n`, font: { size:8, name:'Arial' } },
-    { text: `ג›” ׳׳₪׳¡ ׳׳׳׳™\n`, font: { bold:true, size:10, name:'Arial', color:{ argb:'FFCC0000' } } },
+    { text: `⛔ אפס מלאי\n`, font: { bold:true, size:10, name:'Arial', color:{ argb:'FFCC0000' } } },
     { text: `${makat}\n`, font: { size:8, name:'Arial' } },
     { text: name,         font: { bold:true, size:9, name:'Arial', color:{ argb:'FF880000' } } },
   ]};
@@ -179,7 +179,7 @@ function zeroStockCell(cell, pick, makat, desc, fam) {
   };
 }
 
-// ג”€ג”€ג”€ Sort products: families by total dayAvg desc, within family by weight desc ג”€
+// ─── Sort products: families by total dayAvg desc, within family by weight desc ─
 function assignByLogic(products, nSlots) {
   const fams = {};
   for(const p of products) {
@@ -198,7 +198,7 @@ function assignByLogic(products, nSlots) {
   return out;
 }
 
-// ג”€ג”€ג”€ Read source Excel (׳—׳׳‘׳™ / ׳“׳’׳™׳) ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ─── Read source Excel (חלבי / דגים) ─────────────────────────────────────
 async function readProducts(wb, famMapper) {
   const sh = wb.worksheets[0];
   const items = [];
@@ -223,9 +223,9 @@ async function readProducts(wb, famMapper) {
   return items;
 }
 
-// ג”€ג”€ג”€ Scan sheet: collect all cells whose value is a pick number ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ─── Scan sheet: collect all cells whose value is a pick number ───────────
 function collectPickCells(ws) {
-  const map = {}; // pickNum ג†’ {row,col}
+  const map = {}; // pickNum → {row,col}
   ws.eachRow((row,r)=>{
     row.eachCell({includeEmpty:false},(cell,c)=>{
       const v = cell.value;
@@ -236,12 +236,12 @@ function collectPickCells(ws) {
   return map;
 }
 
-// ג”€ג”€ג”€ Add sequence review sheet ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ─── Add sequence review sheet ───────────────────────────────────────────
 function addSeqSheet(wb, sheetName, prodsByPick, headerColor) {
   const ws = wb.addWorksheet(sheetName);
   ws.views = [{ rightToLeft: true }];
 
-  const headers = ['#', '׳׳§׳˜', '׳©׳ ׳׳•׳¦׳¨', '׳׳©׳₪׳—׳”', 'KG', '׳׳׳׳™'];
+  const headers = ['#', 'מקט', 'שם מוצר', 'משפחה', 'KG', 'מלאי'];
   const colWidths = [6, 10, 40, 22, 8, 12];
   headers.forEach((h, i) => {
     ws.getColumn(i + 1).width = colWidths[i];
@@ -261,7 +261,7 @@ function addSeqSheet(wb, sheetName, prodsByPick, headerColor) {
     const p = prodsByPick[pick];
     if (!p) return;
     const name = p.desc
-      ? fixVisualRTL(String(p.desc).replace(/[ג€‹-ג€ג€×-ג€®ן»¿]/g, '').trim())
+      ? fixVisualRTL(String(p.desc).replace(/[​-‏‪-‮﻿]/g, '').trim())
       : '';
     const fam = p.fam || '';
     const isZeroStock = p.stock != null && p.stock <= 0;
@@ -270,8 +270,8 @@ function addSeqSheet(wb, sheetName, prodsByPick, headerColor) {
       p.makat,
       name,
       fam,
-      p.weight != null ? (+p.weight).toFixed(2) : 'ג€”',
-      isZeroStock ? '׳׳₪׳¡ ׳׳׳׳™' : '',
+      p.weight != null ? (+p.weight).toFixed(2) : '—',
+      isZeroStock ? 'אפס מלאי' : '',
     ]);
     row.font = { size: 9, name: 'Arial' };
     row.alignment = { horizontal: 'right', readingOrder: 2 };
@@ -287,7 +287,7 @@ function addSeqSheet(wb, sheetName, prodsByPick, headerColor) {
   ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: headers.length } };
 }
 
-// ג”€ג”€ג”€ Apply products to a sheet ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ─── Apply products to a sheet ───────────────────────────────────────────
 // totalDayAvg: sum of dayAvg for all products in this section (for % display)
 // Returns array of zero-stock products (stock=0) that were skipped.
 function applyToSheet(ws, pickMap, prodsByPick, weightThresh, dayThreshHigh, dayThreshMid, palletMap, usePallets, totalDayAvg) {
@@ -321,11 +321,11 @@ function applyToSheet(ws, pickMap, prodsByPick, weightThresh, dayThreshHigh, day
   return zeroStock;
 }
 
-// ג”€ג”€ג”€ Family navigation bar (row 2, after summary header) ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ─── Family navigation bar (row 2, after summary header) ─────────────────
 // Inserts 1 row at position 2 with colored hyperlink "buttons" per family.
 // Each button jumps to the first cell of that family in the planogram.
 function addFamilyNavBar(ws, pickCells, prodsByPick, refreshLabel) {
-  // Collect family ג†’ first occurrence {row, col} in pick order
+  // Collect family → first occurrence {row, col} in pick order
   const famOrder = [];
   const seenFam  = new Set();
   for(const pick of Object.keys(pickCells).map(Number).sort((a,b)=>a-b)) {
@@ -346,7 +346,7 @@ function addFamilyNavBar(ws, pickCells, prodsByPick, refreshLabel) {
 
   famOrder.forEach((item, i) => {
     const c = ws.getCell(2, i + 1);
-    // Insertion shifted original rows ג‰¥ 2 by +1 ג†’ use row+1 for hyperlink target
+    // Insertion shifted original rows ≥ 2 by +1 → use row+1 for hyperlink target
     const targetAddr = ws.getCell(item.row + 1, item.col).address;
     c.value     = { formula: `HYPERLINK("#'${shName}'!${targetAddr}","${item.fam}")` };
     c.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb: famColor(item.fam) } };
@@ -356,7 +356,7 @@ function addFamilyNavBar(ws, pickCells, prodsByPick, refreshLabel) {
                     left:{style:'thin'}, right:{style:'thin'} };
   });
 
-  // Refresh timestamp ג€” placed after all family buttons, right side
+  // Refresh timestamp — placed after all family buttons, right side
   if(refreshLabel) {
     const tsCell = ws.getCell(2, famOrder.length + 2);
     tsCell.value     = refreshLabel;
@@ -365,24 +365,24 @@ function addFamilyNavBar(ws, pickCells, prodsByPick, refreshLabel) {
     tsCell.fill      = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFF5F5F5' } };
   }
 
-  // Update frozen view: row 1 = summary, row 2 = nav ג†’ freeze after row 2
+  // Update frozen view: row 1 = summary, row 2 = nav → freeze after row 2
   if(ws.views && ws.views[0]) {
     ws.views[0].ySplit       = 2;
     ws.views[0].topLeftCell  = ws.getCell(3, 1).address;
   }
 }
 
-// ג”€ג”€ג”€ Add summary header row above planogram ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ─── Add summary header row above planogram ──────────────────────────────
 function addSummaryHeader(ws, label, totalOrd, totalPalDay, activeCount, zeroCount, grandTotalOrd) {
-  ws.spliceRows(1, 0, []);   // insert 1 blank row at top ג†’ shifts planogram down
+  ws.spliceRows(1, 0, []);   // insert 1 blank row at top → shifts planogram down
 
   const r = ws.getRow(1);
   r.height = 26;
 
-  const palStr  = totalPalDay > 0 ? ` | ׳׳›׳¨: ${totalPalDay.toFixed(1)} PAL/d` : '';
-  const zeroStr = zeroCount  > 0  ? ` | ׳׳₪׳¡ ׳׳׳׳™: ${zeroCount}` : '';
-  const grandStr = grandTotalOrd > 0 ? `   ג•‘   ׳›׳ ׳”׳׳—׳¡׳ ׳™׳: ${Math.round(grandTotalOrd)} ׳”׳–׳׳ ׳•׳×/d` : '';
-  const txt = `${label}  ֲ·  ׳”׳–׳׳ ׳•׳×/d: ${Math.round(totalOrd)}${palStr}  ֲ·  ׳₪׳¢׳™׳: ${activeCount}${zeroStr}${grandStr}`;
+  const palStr  = totalPalDay > 0 ? ` | מכר: ${totalPalDay.toFixed(1)} PAL/d` : '';
+  const zeroStr = zeroCount  > 0  ? ` | אפס מלאי: ${zeroCount}` : '';
+  const grandStr = grandTotalOrd > 0 ? `   ║   כל המחסנים: ${Math.round(grandTotalOrd)} הזמנות/d` : '';
+  const txt = `${label}  ·  הזמנות/d: ${Math.round(totalOrd)}${palStr}  ·  פעיל: ${activeCount}${zeroStr}${grandStr}`;
 
   // Fill cells 1-20 with blue background + text in cell 1
   for(let c = 1; c <= 20; c++) {
@@ -396,7 +396,7 @@ function addSummaryHeader(ws, label, totalOrd, totalPalDay, activeCount, zeroCou
   try { ws.mergeCells(1, 1, 1, 20); } catch(e) {}
 }
 
-// ג”€ג”€ג”€ Add ׳׳₪׳¡ ׳׳׳׳™ table below planogram ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ─── Add אפס מלאי table below planogram ──────────────────────────────────
 function addZeroStockTable(ws, zeroItems) {
   if(!zeroItems.length) return;
 
@@ -404,13 +404,13 @@ function addZeroStockTable(ws, zeroItems) {
 
   // Title
   const titleCell = ws.getCell(startRow, 1);
-  titleCell.value = '׳׳₪׳¡ ׳׳׳׳™';
+  titleCell.value = 'אפס מלאי';
   titleCell.font = { bold: true, size: 13, name: 'Arial', color: { argb: 'FFCC0000' } };
   titleCell.alignment = { horizontal: 'right', readingOrder: 2 };
 
   // Header row
   const hRow = ws.getRow(startRow + 1);
-  ['׳׳§׳˜', '׳©׳ ׳׳•׳¦׳¨', '׳׳©׳₪׳—׳”', '׳׳׳׳™'].forEach((h, i) => {
+  ['מקט', 'שם מוצר', 'משפחה', 'מלאי'].forEach((h, i) => {
     const c = hRow.getCell(i + 1);
     c.value = h;
     c.font = { bold: true, size: 9, name: 'Arial' };
@@ -422,12 +422,12 @@ function addZeroStockTable(ws, zeroItems) {
 
   // Data rows
   zeroItems.forEach((p, i) => {
-    const name = p.desc ? fixVisualRTL(String(p.desc).replace(/[ג€‹-ג€ג€×-ג€®ן»¿]/g, '').trim()) : '';
+    const name = p.desc ? fixVisualRTL(String(p.desc).replace(/[​-‏‪-‮﻿]/g, '').trim()) : '';
     const row = ws.getRow(startRow + 2 + i);
     row.getCell(1).value = p.makat;
     row.getCell(2).value = name;
     row.getCell(3).value = p.fam || '';
-    row.getCell(4).value = p.stock  != null ? Math.round(p.stock)  : 'ג€”';
+    row.getCell(4).value = p.stock  != null ? Math.round(p.stock)  : '—';
     row.font = { size: 9, name: 'Arial' };
     row.alignment = { horizontal: 'right', readingOrder: 2 };
     row.height = 15;
@@ -442,44 +442,44 @@ function addZeroStockTable(ws, zeroItems) {
     if(!col.width || col.width < w) col.width = w;
   });
 
-  console.log(`  ׳׳₪׳¡ ׳׳׳׳™: ${zeroItems.length} products ג†’ row ${startRow}`);
+  console.log(`  אפס מלאי: ${zeroItems.length} products → row ${startRow}`);
 }
 
-// ג”€ג”€ג”€ Build pickNumג†’product maps ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ─── Build pickNum→product maps ──────────────────────────────────────────
 
-// ׳§׳₪׳•׳ ג€” new order: butter first ג†’ ׳›׳™׳¡׳•׳ ׳™׳ ג†’ ׳¢׳•׳’׳•׳× ג†’ SB ג†’ ׳—׳˜׳™׳£ ג†’ SB ׳“׳’׳™׳ ג†’ ׳׳•׳¡׳“׳™ ג†’ VALESTA last
+// קפוא — new order: butter first → כיסונים → עוגות → SB → חטיף → SB דגים → מוסדי → VALESTA last
 const KAPUA_PICKS = {
-  // ג”€ג”€ ׳—׳׳׳” + ׳׳׳¨׳—׳™ ׳—׳׳׳” (heavy ג†’ dock-side logic) ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
-  1: {makat:'732',   fam:'׳—׳׳׳” FERMA',   weight:4.00,dayAvg:88, ss:null},
-  2: {makat:'800',   fam:'׳—׳׳׳” ׳¨׳•׳©׳',    weight:4.80,dayAvg:35, ss:null},
-  3: {makat:'604',   fam:'׳—׳׳׳” ׳¨׳•׳©׳',    weight:4.80,dayAvg:33, ss:null},
-  4: {makat:'736',   fam:'׳׳׳¨׳—׳™ ׳—׳׳׳”',   weight:4.00,dayAvg:11, ss:null},
-  5: {makat:'803',   fam:'׳׳׳¨׳—׳™ ׳—׳׳׳”',   weight:4.00,dayAvg:8,  ss:null},
-  6: {makat:'802',   fam:'׳׳׳¨׳—׳™ ׳—׳׳׳”',   weight:4.00,dayAvg:6,  ss:null},
-  7: {makat:'739',   fam:'׳׳׳¨׳—׳™ ׳—׳׳׳”',   weight:4.00,dayAvg:7,  ss:null},
-  8: {makat:'740',   fam:'׳׳׳¨׳—׳™ ׳—׳׳׳”',   weight:8.00,dayAvg:7,  ss:null},
-  // ג”€ג”€ ׳›׳™׳¡׳•׳ ׳™׳ ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
-  // ג”€ג”€ ׳‘׳׳™׳ ׳¦׳¡ (blintzes ג€” sorted by ORD desc) ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
-  9: {makat:'1192',fam:'׳‘׳׳™׳ ׳¦׳¡',     weight:2.16,dayAvg:26, ss:null},
-  10:{makat:'1191',fam:'׳‘׳׳™׳ ׳¦׳¡',     weight:2.16,dayAvg:20, ss:null},
-  11:{makat:'1190',fam:'׳‘׳׳™׳ ׳¦׳¡',     weight:2.52,dayAvg:13, ss:null},
-  12:{makat:'1193',fam:'׳‘׳׳™׳ ׳¦׳¡',     weight:2.16,dayAvg:12, ss:null},
-  13:{makat:'1198',fam:'׳‘׳׳™׳ ׳¦׳¡',     weight:2.16,dayAvg:12, ss:null},
-  // ג”€ג”€ ׳›׳™׳¡׳•׳ ׳™׳ (dumplings/vareniki) ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
-  14:{makat:'1182',fam:'׳›׳™׳¡׳•׳ ׳™׳',    weight:2.70,dayAvg:18, ss:null},
-  15:{makat:'1185',fam:'׳›׳™׳¡׳•׳ ׳™׳',    weight:2.70,dayAvg:14, ss:null},
-  16:{makat:'1187',fam:'׳›׳™׳¡׳•׳ ׳™׳',    weight:2.70,dayAvg:14, ss:null},
-  17:{makat:'1180',fam:'׳›׳™׳¡׳•׳ ׳™׳',    weight:2.70,dayAvg:13, ss:null},
-  18:{makat:'1184',fam:'׳›׳™׳¡׳•׳ ׳™׳',    weight:2.70,dayAvg:12, ss:null},
-  // ג”€ג”€ ׳‘׳¦׳§ + ׳¢׳׳™ ׳‘׳׳™׳ ׳¦׳¡ (dough + wrappers) ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
-  19:{makat:'1196',fam:'׳‘׳¦׳§',        weight:3.15,dayAvg:17, ss:null},
-  20:{makat:'1195',fam:'׳‘׳¦׳§',        weight:3.15,dayAvg:15, ss:null},
-  21:{makat:'1197',fam:'׳‘׳¦׳§',        weight:3.15,dayAvg:14, ss:null},
-  22:{makat:'1194',fam:'׳¢׳׳™ ׳‘׳׳™׳ ׳¦׳¡', weight:3.20,dayAvg:12, ss:null},
-  // ג”€ג”€ ׳¡׳•׳¨׳™׳׳™ (SANTA BREMOR ׳“׳’׳™׳) ג€” ׀¿׀¾ׁ׀»׀µ ׳›׳™׳¡׳•׳ ׳™׳ ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
-  23:{makat:'1045',  fam:'SANTA BREMOR ׳“׳’׳™׳',weight:6.00,dayAvg:22,ss:706},
-  24:{makat:'1046',  fam:'SANTA BREMOR ׳“׳’׳™׳',weight:6.00,dayAvg:14,ss:453},
-  // ג”€ג”€ SANTA BREMOR 4.5 ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+  // ── חמאה + ממרחי חמאה (heavy → dock-side logic) ──────────────────────
+  1: {makat:'732',   fam:'חמאה FERMA',   weight:4.00,dayAvg:88, ss:null},
+  2: {makat:'800',   fam:'חמאה רושן',    weight:4.80,dayAvg:35, ss:null},
+  3: {makat:'604',   fam:'חמאה רושן',    weight:4.80,dayAvg:33, ss:null},
+  4: {makat:'736',   fam:'ממרחי חמאה',   weight:4.00,dayAvg:11, ss:null},
+  5: {makat:'803',   fam:'ממרחי חמאה',   weight:4.00,dayAvg:8,  ss:null},
+  6: {makat:'802',   fam:'ממרחי חמאה',   weight:4.00,dayAvg:6,  ss:null},
+  7: {makat:'739',   fam:'ממרחי חמאה',   weight:4.00,dayAvg:7,  ss:null},
+  8: {makat:'740',   fam:'ממרחי חמאה',   weight:8.00,dayAvg:7,  ss:null},
+  // ── כיסונים ────────────────────────────────────────────────────────────
+  // ── בלינצס (blintzes — sorted by ORD desc) ─────────────────────────────
+  9: {makat:'1192',fam:'בלינצס',     weight:2.16,dayAvg:26, ss:null},
+  10:{makat:'1191',fam:'בלינצס',     weight:2.16,dayAvg:20, ss:null},
+  11:{makat:'1190',fam:'בלינצס',     weight:2.52,dayAvg:13, ss:null},
+  12:{makat:'1193',fam:'בלינצס',     weight:2.16,dayAvg:12, ss:null},
+  13:{makat:'1198',fam:'בלינצס',     weight:2.16,dayAvg:12, ss:null},
+  // ── כיסונים (dumplings/vareniki) ───────────────────────────────────────
+  14:{makat:'1182',fam:'כיסונים',    weight:2.70,dayAvg:18, ss:null},
+  15:{makat:'1185',fam:'כיסונים',    weight:2.70,dayAvg:14, ss:null},
+  16:{makat:'1187',fam:'כיסונים',    weight:2.70,dayAvg:14, ss:null},
+  17:{makat:'1180',fam:'כיסונים',    weight:2.70,dayAvg:13, ss:null},
+  18:{makat:'1184',fam:'כיסונים',    weight:2.70,dayAvg:12, ss:null},
+  // ── בצק + עלי בלינצס (dough + wrappers) ────────────────────────────────
+  19:{makat:'1196',fam:'בצק',        weight:3.15,dayAvg:17, ss:null},
+  20:{makat:'1195',fam:'בצק',        weight:3.15,dayAvg:15, ss:null},
+  21:{makat:'1197',fam:'בצק',        weight:3.15,dayAvg:14, ss:null},
+  22:{makat:'1194',fam:'עלי בלינצס', weight:3.20,dayAvg:12, ss:null},
+  // ── סורימי (SANTA BREMOR דגים) — после כיסונים ──────────────────────────
+  23:{makat:'1045',  fam:'SANTA BREMOR דגים',weight:6.00,dayAvg:22,ss:706},
+  24:{makat:'1046',  fam:'SANTA BREMOR דגים',weight:6.00,dayAvg:14,ss:453},
+  // ── SANTA BREMOR 4.5 ─────────────────────────────────────────────────────
   25:{makat:'1030',  fam:'SANTA BREMOR',weight:1.00,dayAvg:16, ss:null},
   26:{makat:'1031',  fam:'SANTA BREMOR',weight:1.00,dayAvg:11, ss:null},
   27:{makat:'1034',  fam:'SANTA BREMOR',weight:1.20,dayAvg:10, ss:null},
@@ -488,74 +488,74 @@ const KAPUA_PICKS = {
   30:{makat:'1033',  fam:'SANTA BREMOR',weight:1.00,dayAvg:2,  ss:null},
   31:{makat:'1032',  fam:'SANTA BREMOR',weight:1.00,dayAvg:1,  ss:null},
   32:{makat:'1037',  fam:'SANTA BREMOR',weight:1.20,dayAvg:null,ss:null},
-  // ג”€ג”€ ׳¢׳•׳’׳•׳× ׳¨׳•׳©׳ ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
-  33:{makat:'420004',fam:'׳¢׳•׳’׳•׳× ׳¨׳•׳©׳', weight:5.10,dayAvg:10, ss:321},
-  34:{makat:'420003',fam:'׳¢׳•׳’׳•׳× ׳¨׳•׳©׳', weight:5.10,dayAvg:4,  ss:116},
-  35:{makat:'420008',fam:'׳¢׳•׳’׳•׳× ׳¨׳•׳©׳', weight:3.12,dayAvg:4,  ss:136},
-  36:{makat:'420007',fam:'׳¢׳•׳’׳•׳× ׳¨׳•׳©׳', weight:3.00,dayAvg:4,  ss:121},
-  37:{makat:'420005',fam:'׳¢׳•׳’׳•׳× ׳¨׳•׳©׳', weight:2.70,dayAvg:19, ss:624},
-  38:{makat:'420006',fam:'׳¢׳•׳’׳•׳× ׳¨׳•׳©׳', weight:2.70,dayAvg:5,  ss:164},
-  // ג”€ג”€ ׳¢׳•׳’׳•׳× ׳׳•׳–׳™׳§׳” ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
-  39:{makat:'420001',fam:'׳¢׳•׳’׳•׳× ׳׳•׳–׳™׳§׳”',weight:4.00,dayAvg:17, ss:539},
-  40:{makat:'420002',fam:'׳¢׳•׳’׳•׳× ׳׳•׳–׳™׳§׳”',weight:4.00,dayAvg:12, ss:377},
-  // ג”€ג”€ ׳—׳˜׳™׳£ ׳’׳‘׳™׳ ׳” ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
-  41:{makat:'818',   fam:'׳—׳˜׳™׳£ ׳’׳‘׳™׳ ׳”',  weight:0.81,dayAvg:233,ss:7475},
-  42:{makat:'815',   fam:'׳—׳˜׳™׳£ ׳’׳‘׳™׳ ׳”',  weight:0.81,dayAvg:131,ss:4214},
-  43:{makat:'816',   fam:'׳—׳˜׳™׳£ ׳’׳‘׳™׳ ׳”',  weight:0.81,dayAvg:111,ss:3552},
-  44:{makat:'817',   fam:'׳—׳˜׳™׳£ ׳’׳‘׳™׳ ׳”',  weight:0.81,dayAvg:109,ss:3517},
-  // ג”€ג”€ SANTA BREMOR ׳“׳’׳™׳ (1051 only here ג€” 1045/1046 moved to 23-24) ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
-  45:{makat:'1051',  fam:'SANTA BREMOR ׳“׳’׳™׳',weight:4.50,dayAvg:24,ss:759},
-  // ג”€ג”€ VALESTA (4 bays before ׳׳•׳¡׳“׳™) ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+  // ── עוגות רושן ─────────────────────────────────────────────────────────
+  33:{makat:'420004',fam:'עוגות רושן', weight:5.10,dayAvg:10, ss:321},
+  34:{makat:'420003',fam:'עוגות רושן', weight:5.10,dayAvg:4,  ss:116},
+  35:{makat:'420008',fam:'עוגות רושן', weight:3.12,dayAvg:4,  ss:136},
+  36:{makat:'420007',fam:'עוגות רושן', weight:3.00,dayAvg:4,  ss:121},
+  37:{makat:'420005',fam:'עוגות רושן', weight:2.70,dayAvg:19, ss:624},
+  38:{makat:'420006',fam:'עוגות רושן', weight:2.70,dayAvg:5,  ss:164},
+  // ── עוגות מוזיקה ───────────────────────────────────────────────────────
+  39:{makat:'420001',fam:'עוגות מוזיקה',weight:4.00,dayAvg:17, ss:539},
+  40:{makat:'420002',fam:'עוגות מוזיקה',weight:4.00,dayAvg:12, ss:377},
+  // ── חטיף גבינה ─────────────────────────────────────────────────────────
+  41:{makat:'818',   fam:'חטיף גבינה',  weight:0.81,dayAvg:233,ss:7475},
+  42:{makat:'815',   fam:'חטיף גבינה',  weight:0.81,dayAvg:131,ss:4214},
+  43:{makat:'816',   fam:'חטיף גבינה',  weight:0.81,dayAvg:111,ss:3552},
+  44:{makat:'817',   fam:'חטיף גבינה',  weight:0.81,dayAvg:109,ss:3517},
+  // ── SANTA BREMOR דגים (1051 only here — 1045/1046 moved to 23-24) ────────
+  45:{makat:'1051',  fam:'SANTA BREMOR דגים',weight:4.50,dayAvg:24,ss:759},
+  // ── VALESTA (4 bays before מוסדי) ─────────────────────────────────────
   46:{makat:'1213',  fam:'VALESTA',      weight:null,dayAvg:null,ss:null},
   47:{makat:'1214',  fam:'VALESTA',      weight:null,dayAvg:null,ss:null},
   48:{makat:'1215',  fam:'VALESTA',      weight:null,dayAvg:null,ss:null},
   49:{makat:'1216',  fam:'VALESTA',      weight:null,dayAvg:null,ss:null},
-  // ג”€ג”€ ׳׳•׳¡׳“׳™ (last ג€” picks 50-54) ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
-  50:{makat:'1211',  fam:'׳׳•׳¡׳“׳™',        weight:7.00,dayAvg:165,ss:5304},
-  51:{makat:'1209',  fam:'׳׳•׳¡׳“׳™',        weight:7.00,dayAvg:17, ss:554},
-  52:{makat:'1208',  fam:'׳׳•׳¡׳“׳™',        weight:7.00,dayAvg:9,  ss:292},
+  // ── מוסדי (last — picks 50-54) ────────────────────────────────────────
+  50:{makat:'1211',  fam:'מוסדי',        weight:7.00,dayAvg:165,ss:5304},
+  51:{makat:'1209',  fam:'מוסדי',        weight:7.00,dayAvg:17, ss:554},
+  52:{makat:'1208',  fam:'מוסדי',        weight:7.00,dayAvg:9,  ss:292},
   53:{makat:'1217',  fam:'VALESTA',      weight:3.96,dayAvg:null,ss:null},
   54:{makat:'1218',  fam:'VALESTA',      weight:null,dayAvg:null,ss:null},
 };
 
-// Family name cleaner for ׳—׳׳‘׳™ / ׳“׳’׳™׳ source files
+// Family name cleaner for חלבי / דגים source files
 function cleanFam(s) {
-  s = s.replace(/[ג€ג€]/g,'').trim();
+  s = s.replace(/[‏‎]/g,'').trim();
   if(s.includes('PRESIDENT'))                                    return 'PRESIDENT';
-  if(s.includes('SVALIA') && /׳×׳ ׳׳©|׳˜׳¨׳•׳’׳•׳™|׳”׳¡׳™׳™׳“|׳¨׳™׳₪׳§/.test(s)) return 'SVALIA ׳×׳ ׳׳©';
-  if(s.includes('SVALIA') && /׳’׳•׳¨׳•׳‘׳˜|׳§׳•׳˜׳’|׳”׳—׳™׳¨׳׳/.test(s))      return 'SVALIA ׳’׳•׳¨׳•׳‘׳˜';
-  if(s.includes('SVALIA') && s.includes('׳×׳•׳¡׳•׳¨׳₪'))              return 'SVALIA ׳×׳•׳¡׳•׳¨׳₪';
-  if(s.includes('SVALIA') && s.includes('׳”׳ ׳™׳‘׳’'))               return 'SVALIA ׳”׳ ׳™׳‘׳’';
-  if(s.includes('SVALIA'))                                       return 'SVALIA ׳×׳ ׳׳©';
-  if(s.includes('NORD PORT') && (s.includes('׳׳¦׳•׳') || s.includes('׳׳•׳¦׳') || s.includes('׳¡׳׳׳•׳') || s.includes('׳׳•׳׳׳¡'))) return 'NORD PORT ׳׳¦׳•׳ ׳';
+  if(s.includes('SVALIA') && /תנמש|טרוגוי|הסייד|ריפק/.test(s)) return 'SVALIA תנמש';
+  if(s.includes('SVALIA') && /גורובט|קוטג|החירמל/.test(s))      return 'SVALIA גורובט';
+  if(s.includes('SVALIA') && s.includes('תוסורפ'))              return 'SVALIA תוסורפ';
+  if(s.includes('SVALIA') && s.includes('הניבג'))               return 'SVALIA הניבג';
+  if(s.includes('SVALIA'))                                       return 'SVALIA תנמש';
+  if(s.includes('NORD PORT') && (s.includes('מצון') || s.includes('ןוצמ') || s.includes('סלמון') || s.includes('ןומלס'))) return 'NORD PORT מצונן';
   if(s.includes('NORD PORT'))                                    return 'NORD PORT';
   if(s.includes('SANTA BREMOR'))                                 return 'SANTA BREMOR Fish';
   return s;
 }
 
-// ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
+// ═══════════════════════════════════════════════════════════════════════════
 // MAIN
-// ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•ג•
+// ═══════════════════════════════════════════════════════════════════════════
 async function main() {
-  // Load ׳§׳₪׳•׳ data from Power BI (replaces ׳§׳₪׳•׳.xlsx)
-  // stock = cartons at ׳׳©׳“׳•׳“ only (׳׳—׳¡׳ Main, no ׳¦׳₪׳•׳)
+  // Load קפוא data from Power BI (replaces קפוא.xlsx)
+  // stock = cartons at אשדוד only (מחסן Main, no צפון)
   const allMakatim = Object.values(KAPUA_PICKS).map(p => p.makat);
   const [kapuaData, lastRefreshISO] = await Promise.all([
     fetchKapuaFromBI(allMakatim),
     fetchLastRefresh(),
   ]);
 
-  // Format refresh time: "׳¢׳•׳“׳›׳: 11/05 09:30" (Israel local time)
+  // Format refresh time: "עודכן: 11/05 09:30" (Israel local time)
   let refreshLabel = '';
   if(lastRefreshISO) {
     const d = new Date(lastRefreshISO);
-    // Convert UTC ג†’ Asia/Jerusalem (+3 in winter / +3 in summer = UTC+2/+3)
+    // Convert UTC → Asia/Jerusalem (+3 in winter / +3 in summer = UTC+2/+3)
     const ilTime = new Intl.DateTimeFormat('he-IL', {
       timeZone: 'Asia/Jerusalem',
       day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false
     }).format(d);
-    refreshLabel = `BI ׳¢׳•׳“׳›׳: ${ilTime}`;
-    console.log(`Dataset last refresh: ${lastRefreshISO} ג†’ ${ilTime}`);
+    refreshLabel = `BI עודכן: ${ilTime}`;
+    console.log(`Dataset last refresh: ${lastRefreshISO} → ${ilTime}`);
   }
 
   for(const pick of Object.keys(KAPUA_PICKS)) {
@@ -564,47 +564,47 @@ async function main() {
     if(src) {
       if(!p.desc && src.desc)   p.desc     = src.desc;
       if(src.daySales != null)  p.daySales = src.daySales;
-      p.stock  = src.stock;  // always from BI (0 = zero stock at ׳׳©׳“׳•׳“)
+      p.stock  = src.stock;  // always from BI (0 = zero stock at אשדוד)
       p.pakuot = src.pakuot || [];
       // ss, weight: stay from KAPUA_PICKS (no BI source)
     }
   }
 
-  // All 54 ׳§׳₪׳•׳ picks are statically assigned ג€” no auto-fill needed
+  // All 54 קפוא picks are statically assigned — no auto-fill needed
 
   // Load source product files
   const wbHalavi = new ExcelJS.Workbook();
-  await wbHalavi.xlsx.readFile('MAHSAN ׳—׳׳‘׳™/׳—׳׳‘׳™.xlsx');
+  await wbHalavi.xlsx.readFile('MAHSAN חלבי/חלבי.xlsx');
   const halaviProds = await readProducts(wbHalavi, cleanFam);
 
   const wbDagim = new ExcelJS.Workbook();
-  await wbDagim.xlsx.readFile('MAHSAN ׳“׳’׳™׳/׳“׳’׳™׳.xlsx');
+  await wbDagim.xlsx.readFile('MAHSAN דגים/דגים.xlsx');
   const dagimProds = await readProducts(wbDagim, cleanFam);
 
-  console.log(`׳—׳׳‘׳™: ${halaviProds.length} active | ׳“׳’׳™׳: ${dagimProds.length} active`);
+  console.log(`חלבי: ${halaviProds.length} active | דגים: ${dagimProds.length} active`);
 
   // Grand total ORD/day across all three sections
   const kapuaOrdForGrand  = Object.values(KAPUA_PICKS).reduce((s,p)=>s+(p.dayAvg||0),0);
   const halaviOrdForGrand = halaviProds.reduce((s,p)=>s+(p.dayAvg||0),0);
   const dagimOrdForGrand  = dagimProds.reduce((s,p)=>s+(p.dayAvg||0),0);
   const grandTotalOrd = kapuaOrdForGrand + halaviOrdForGrand + dagimOrdForGrand;
-  console.log(`Grand total ORD/day: ׳§׳₪׳•׳ ${Math.round(kapuaOrdForGrand)} + ׳—׳׳‘׳™ ${Math.round(halaviOrdForGrand)} + ׳“׳’׳™׳ ${Math.round(dagimOrdForGrand)} = ${Math.round(grandTotalOrd)}`);
+  console.log(`Grand total ORD/day: קפוא ${Math.round(kapuaOrdForGrand)} + חלבי ${Math.round(halaviOrdForGrand)} + דגים ${Math.round(dagimOrdForGrand)} = ${Math.round(grandTotalOrd)}`);
 
-  // ג”€ג”€ Global top-30% thresholds (all three sheets combined) ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+  // ── Global top-30% thresholds (all three sheets combined) ──────────────
   const kapuaList = Object.values(KAPUA_PICKS);
   const allProds  = [...kapuaList, ...halaviProds, ...dagimProds];
   const weightThresh = percentileThreshold(allProds.map(p => p.weight), 0.7);
-  // Star thresholds based on daySales PAL/d (BI live); fallback dayAvg for ׳—׳׳‘׳™/׳“׳’׳™׳
+  // Star thresholds based on daySales PAL/d (BI live); fallback dayAvg for חלבי/דגים
   const palDayVals   = allProds.map(p => {
     const s = p.daySales || p.dayAvg;
     const k = p.makat ? (Object.values(KAPUA_PICKS).find(q => q.makat === p.makat) || {}) : {};
-    return s; // use raw carton/day ג€” kratnost varies per product, compare on common base
+    return s; // use raw carton/day — kratnost varies per product, compare on common base
   }).filter(Boolean);
-  const dayThreshHigh = percentileThreshold(palDayVals, 0.7);  // נ… top 30%
-  const dayThreshMid  = percentileThreshold(palDayVals, 0.5);  // ג­ next 20%
-  console.log(`Star thresholds ג†’ נ… top-30%: ג‰¥${dayThreshHigh.toFixed(1)} ׳§׳¨׳˜/d | ג­ top-50%: ג‰¥${dayThreshMid.toFixed(1)} ׳§׳¨׳˜/d | weight נ‹ן¸: ג‰¥${weightThresh.toFixed(2)} kg`);
+  const dayThreshHigh = percentileThreshold(palDayVals, 0.7);  // 🏅 top 30%
+  const dayThreshMid  = percentileThreshold(palDayVals, 0.5);  // ⭐ next 20%
+  console.log(`Star thresholds → 🏅 top-30%: ≥${dayThreshHigh.toFixed(1)} קרט/d | ⭐ top-50%: ≥${dayThreshMid.toFixed(1)} קרט/d | weight 🏋️: ≥${weightThresh.toFixed(2)} kg`);
 
-  // Load pallet kratnost map (cartons per pallet per ׳׳§׳˜)
+  // Load pallet kratnost map (cartons per pallet per מקט)
   const palletMap = {};
   {
     const wbPal = new ExcelJS.Workbook();
@@ -618,11 +618,11 @@ async function main() {
     console.log(`Pallet map loaded: ${Object.keys(palletMap).length} products`);
   }
 
-  // Load the template (MAHSAN 8.xlsx ג€” 3 sheets)
+  // Load the template (MAHSAN 8.xlsx — 3 sheets)
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.readFile('MAHSAN 8.xlsx');
 
-  // ג”€ג”€ SHEET: MAHSAN 8 (׳§׳₪׳•׳) ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+  // ── SHEET: MAHSAN 8 (קפוא) ─────────────────────────────────────────────
   const shKapua = wb.getWorksheet('MAHSAN 8');
   {
     const kapuaTotalOrd = Object.values(KAPUA_PICKS).reduce((s,p)=>s+(p.dayAvg||0),0);
@@ -632,12 +632,12 @@ async function main() {
     }, 0);
     const kapuaZero   = Object.values(KAPUA_PICKS).filter(p=>p.stock!=null&&p.stock<=0).length;
     const kapuaActive = Object.values(KAPUA_PICKS).length - kapuaZero;
-    addSummaryHeader(shKapua, '׳§׳₪׳•׳', kapuaTotalOrd, kapuaTotalPal, kapuaActive, kapuaZero, grandTotalOrd);
+    addSummaryHeader(shKapua, 'קפוא', kapuaTotalOrd, kapuaTotalPal, kapuaActive, kapuaZero, grandTotalOrd);
     shKapua.views = [{...((shKapua.views||[])[0]||{}), state:'frozen', ySplit:1, topLeftCell:'A2'}];
     // rescan after row insert (positions shifted +1)
     const pickCells = collectPickCells(shKapua);
     const picks = Object.keys(pickCells).map(Number).sort((a,b)=>a-b);
-    // Compact: picks 46-54 are PINNED (VALESTA + ׳׳•׳¡׳“׳™), picks 1-45 get compact fill
+    // Compact: picks 46-54 are PINNED (VALESTA + מוסדי), picks 1-45 get compact fill
     const PINNED = new Set([46,47,48,49,50,51,52,53,54]);
     const regularKeys = Object.keys(KAPUA_PICKS).map(Number).sort((a,b)=>a-b).filter(k=>!PINNED.has(k));
     const pinnedKeys  = Object.keys(KAPUA_PICKS).map(Number).sort((a,b)=>a-b).filter(k=>PINNED.has(k));
@@ -654,16 +654,16 @@ async function main() {
       const p=KAPUA_PICKS[k];
       if(p.stock!=null&&p.stock<=0){ kapuaZeroList.push(p); } else { compactedKapua[k]=p; }
     });
-    console.log(`\n׳§׳₪׳•׳ picks found: ${picks.length} (${picks[0]}..${picks[picks.length-1]}) | total ORD: ${Math.round(kapuaTotalOrd)} | PAL/d: ${kapuaTotalPal.toFixed(1)}`);
+    console.log(`\nקפוא picks found: ${picks.length} (${picks[0]}..${picks[picks.length-1]}) | total ORD: ${Math.round(kapuaTotalOrd)} | PAL/d: ${kapuaTotalPal.toFixed(1)}`);
     applyToSheet(shKapua, pickCells, compactedKapua, weightThresh, dayThreshHigh, dayThreshMid, palletMap, true, kapuaTotalOrd);
     addZeroStockTable(shKapua, kapuaZeroList);
     addFamilyNavBar(shKapua, pickCells, compactedKapua, refreshLabel);
-    shKapua.name = 'MAHSAN 8 ׳§׳₪׳•׳';
-    addSeqSheet(wb, '׳¡׳“׳¨ ׳§׳₪׳•׳', KAPUA_PICKS, 'FFCCE5FF');
+    shKapua.name = 'MAHSAN 8 קפוא';
+    addSeqSheet(wb, 'סדר קפוא', KAPUA_PICKS, 'FFCCE5FF');
   }
 
-  // ג”€ג”€ SHEET: MAHSAN ׳—׳׳‘׳™ ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
-  const shHalavi = wb.getWorksheet('MAHSAN ׳—׳׳‘׳™');
+  // ── SHEET: MAHSAN חלבי ─────────────────────────────────────────────────
+  const shHalavi = wb.getWorksheet('MAHSAN חלבי');
   {
     // First pass: count picks to size prodMap
     const picksCountScan = Object.keys(collectPickCells(shHalavi)).length;
@@ -675,23 +675,23 @@ async function main() {
     const halaviTotalOrd = Object.values(prodMapH).reduce((s,p)=>s+(p.dayAvg||0),0);
     const halaviZero     = Object.values(prodMapH).filter(p=>p.stock!=null&&p.stock<=0).length;
     const halaviActive   = Object.values(prodMapH).length - halaviZero;
-    addSummaryHeader(shHalavi, '׳—׳׳‘׳™', halaviTotalOrd, 0, halaviActive, halaviZero, grandTotalOrd);
+    addSummaryHeader(shHalavi, 'חלבי', halaviTotalOrd, 0, halaviActive, halaviZero, grandTotalOrd);
     shHalavi.views = [{...((shHalavi.views||[])[0]||{}), state:'frozen', ySplit:1, topLeftCell:'A2'}];
     // rescan after insert
     const pickCells = collectPickCells(shHalavi);
     const picks     = Object.keys(pickCells).map(Number).sort((a,b)=>a-b);
     const prodMap   = {};
     picks.forEach((pick,i) => { if(assigned[i]) prodMap[pick] = assigned[i]; });
-    console.log(`׳—׳׳‘׳™ picks found: ${picks.length} | total ORD: ${Math.round(halaviTotalOrd)}`);
+    console.log(`חלבי picks found: ${picks.length} | total ORD: ${Math.round(halaviTotalOrd)}`);
     const zeroHalavi = applyToSheet(shHalavi, pickCells, prodMap, weightThresh, dayThreshHigh, dayThreshMid, null, false, halaviTotalOrd);
     addZeroStockTable(shHalavi, zeroHalavi);
     addFamilyNavBar(shHalavi, pickCells, prodMap, refreshLabel);
-    addSeqSheet(wb, '׳¡׳“׳¨ ׳—׳׳‘׳™', prodMap, 'FFD5F5D5');
+    addSeqSheet(wb, 'סדר חלבי', prodMap, 'FFD5F5D5');
   }
 
-  // ג”€ג”€ SHEET: MAHSAN ׳“׳’׳™׳ ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
-  // NORD PORT ג†’ R6 (one face), SANTA BREMOR ג†’ dock(R5) + R8 + R9 (other face)
-  const shDagim = wb.getWorksheet('MAHSAN ׳“׳’׳™׳');
+  // ── SHEET: MAHSAN דגים ─────────────────────────────────────────────────
+  // NORD PORT → R6 (one face), SANTA BREMOR → dock(R5) + R8 + R9 (other face)
+  const shDagim = wb.getWorksheet('MAHSAN דגים');
   {
     // Build prodMap first (need it for stats before header insert)
     const preScanPicks = Object.keys(collectPickCells(shDagim)).map(Number).sort((a,b)=>a-b);
@@ -699,7 +699,7 @@ async function main() {
     const FACE_B_pre = new Set([11,13,15,17,19,21,23,25,27,32,34,36,38,40,42,44,46,48,50,52,54,56,58]);
     const BACK_pre   = new Set([59,60,61,62,63,64,65,66,67,68,69,70,71,72]);
     const DOCK_pre   = new Set([1,2,3,4,5,6,7,8,9]);
-    const nordPortMatzPre = dagimProds.filter(p=>p.fam==='NORD PORT ׳׳¦׳•׳ ׳').sort((a,b)=>(b.weight||0)-(a.weight||0));
+    const nordPortMatzPre = dagimProds.filter(p=>p.fam==='NORD PORT מצונן').sort((a,b)=>(b.weight||0)-(a.weight||0));
     const santaBremorPre  = dagimProds.filter(p=>p.fam==='SANTA BREMOR Fish').sort((a,b)=>(b.weight||0)-(a.weight||0));
     const nordPortPre     = dagimProds.filter(p=>p.fam==='NORD PORT').sort((a,b)=>(b.weight||0)-(a.weight||0));
     const preProdMap = {};
@@ -713,12 +713,12 @@ async function main() {
     }, 0);
     const dagimZero   = Object.values(preProdMap).filter(p=>p.stock!=null&&p.stock<=0).length;
     const dagimActive = Object.values(preProdMap).length - dagimZero;
-    addSummaryHeader(shDagim, '׳“׳’׳™׳', dagimTotalOrd, dagimTotalPal, dagimActive, dagimZero, grandTotalOrd);
+    addSummaryHeader(shDagim, 'דגים', dagimTotalOrd, dagimTotalPal, dagimActive, dagimZero, grandTotalOrd);
     shDagim.views = [{...((shDagim.views||[])[0]||{}), state:'frozen', ySplit:1, topLeftCell:'A2'}];
 
     const pickCells = collectPickCells(shDagim);
     const allPicks  = Object.keys(pickCells).map(Number).sort((a,b)=>a-b);
-    console.log(`׳“׳’׳™׳ picks found: ${allPicks.length} (${allPicks[0]}..${allPicks[allPicks.length-1]})`);
+    console.log(`דגים picks found: ${allPicks.length} (${allPicks[0]}..${allPicks[allPicks.length-1]})`);
 
     // Physical faces from the sheet layout (full 29-col map)
     const FACE_A  = new Set([10,12,14,16,18,20,22,24,26,28,29,30,31,33,35,37,39,41,43,45,47,49,51,53,55,57]); // R6 (26 slots)
@@ -727,49 +727,49 @@ async function main() {
     const DOCK    = new Set([1,2,3,4,5,6,7,8,9]);                                                              // R5 (9 slots)
 
     // Split by family, sort by weight desc within each
-    const nordPortMatz = dagimProds.filter(p=>p.fam==='NORD PORT ׳׳¦׳•׳ ׳')   .sort((a,b)=>(b.weight||0)-(a.weight||0));
+    const nordPortMatz = dagimProds.filter(p=>p.fam==='NORD PORT מצונן')   .sort((a,b)=>(b.weight||0)-(a.weight||0));
     const nordPort     = dagimProds.filter(p=>p.fam==='NORD PORT')          .sort((a,b)=>(b.weight||0)-(a.weight||0));
     const santaBremor  = dagimProds.filter(p=>p.fam==='SANTA BREMOR Fish')  .sort((a,b)=>(b.weight||0)-(a.weight||0));
 
-    console.log(`  NORD PORT ׳׳¦׳•׳ ׳: ${nordPortMatz.length} | NORD PORT: ${nordPort.length} | SANTA BREMOR: ${santaBremor.length}`);
-    console.log(`  DOCK(R5): ${[...DOCK].length} slots (NP ׳׳¦׳•׳ ׳) | Face A(R6): ${[...FACE_A].length} slots (SB) | FaceB+Back: ${[...FACE_B].length+[...BACK].length} slots (NP)`);
+    console.log(`  NORD PORT מצונן: ${nordPortMatz.length} | NORD PORT: ${nordPort.length} | SANTA BREMOR: ${santaBremor.length}`);
+    console.log(`  DOCK(R5): ${[...DOCK].length} slots (NP מצונן) | Face A(R6): ${[...FACE_A].length} slots (SB) | FaceB+Back: ${[...FACE_B].length+[...BACK].length} slots (NP)`);
 
     const prodMap = {};
 
-    // NORD PORT ׳׳¦׳•׳ ׳ ג†’ DOCK (R5, picks 1-9)
+    // NORD PORT מצונן → DOCK (R5, picks 1-9)
     allPicks.filter(p=>DOCK.has(p))
       .forEach((pick,i) => { if(nordPortMatz[i]) prodMap[pick] = nordPortMatz[i]; });
 
-    // SANTA BREMOR ג†’ Face A (R6)
+    // SANTA BREMOR → Face A (R6)
     allPicks.filter(p=>FACE_A.has(p))
       .forEach((pick,i) => { if(santaBremor[i]) prodMap[pick] = santaBremor[i]; });
 
-    // NORD PORT ג†’ Face B (R8) + Back (R9)
+    // NORD PORT → Face B (R8) + Back (R9)
     const npSlots = [
       ...allPicks.filter(p=>FACE_B.has(p)),
       ...allPicks.filter(p=>BACK.has(p)),
     ];
     npSlots.forEach((pick,i) => { if(nordPort[i]) prodMap[pick] = nordPort[i]; });
 
-    console.log(`׳“׳’׳™׳ total ORD/day: ${dagimTotalOrd.toFixed(0)}`);
+    console.log(`דגים total ORD/day: ${dagimTotalOrd.toFixed(0)}`);
     const zeroDagim = applyToSheet(shDagim, pickCells, prodMap, weightThresh, dayThreshHigh, dayThreshMid, palletMap, true, dagimTotalOrd);
     addZeroStockTable(shDagim, zeroDagim);
     addFamilyNavBar(shDagim, pickCells, prodMap, refreshLabel);
-    addSeqSheet(wb, '׳¡׳“׳¨ ׳“׳’׳™׳', prodMap, 'FFFFF0CC');
+    addSeqSheet(wb, 'סדר דגים', prodMap, 'FFFFF0CC');
   }
 
-  // ג”€ג”€ EXTRA SHEETS: Trn (transit/blocked) + Zafn danger < 3 days ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+  // ── EXTRA SHEETS: Trn (transit/blocked) + Zafn danger < 3 days ───────────
   const { trn, zafn } = await fetchExtraSheets();
 
-  // Sheet: ׳׳—׳¡׳ ׳׳¢׳‘׳¨ (Trn) ג€” stock list, sorted by stock desc
+  // Sheet: מחסן מעבר (Trn) — stock list, sorted by stock desc
   {
-    const sh = wb.addWorksheet('׳׳—׳¡׳ ׳׳¢׳‘׳¨ Trn');
+    const sh = wb.addWorksheet('מחסן מעבר Trn');
     sh.views = [{ state:'frozen', ySplit:1, topLeftCell:'A2' }];
     sh.columns = [
-      { header:"׳׳§׳˜",         key:'makat',   width:12 },
-      { header:"׳©׳ ׳׳•׳¦׳¨",     key:'desc',    width:42 },
-      { header:"׳׳©׳₪׳—׳”",       key:'fam',     width:10 },
-      { header:"׳׳׳׳™ (׳§׳¨׳˜׳•׳)", key:'stock',  width:16 },
+      { header:"מקט",         key:'makat',   width:12 },
+      { header:"שם מוצר",     key:'desc',    width:42 },
+      { header:"משפחה",       key:'fam',     width:10 },
+      { header:"מלאי (קרטון)", key:'stock',  width:16 },
     ];
     const hdr = sh.getRow(1);
     hdr.font = { bold:true, size:10, name:'Arial' };
@@ -787,26 +787,26 @@ async function main() {
     });
 
     // Total row
-    const totalRow = sh.addRow({ makat:'', desc:'׳¡׳”"׳›', fam:'', stock: trn.reduce((s,r)=>s+r.stock,0) });
+    const totalRow = sh.addRow({ makat:'', desc:'סה"כ', fam:'', stock: trn.reduce((s,r)=>s+r.stock,0) });
     totalRow.font = { bold:true };
     totalRow.getCell('stock').numFmt = '#,##0';
     totalRow.getCell('stock').fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF2E4057' } };
     totalRow.getCell('stock').font = { bold:true, color:{ argb:'FFFFFFFF' } };
 
     sh.autoFilter = { from:'A1', to:`D1` };
-    console.log(`׳׳—׳¡׳ ׳׳¢׳‘׳¨ sheet: ${trn.length} rows`);
+    console.log(`מחסן מעבר sheet: ${trn.length} rows`);
   }
 
-  // Sheet: ׳׳—׳¡׳ ׳¦׳₪׳•׳ Zafn danger ג€” items with days < 3, sorted by urgency
+  // Sheet: מחסן צפון Zafn danger — items with days < 3, sorted by urgency
   {
-    const sh = wb.addWorksheet('׳׳—׳¡׳ ׳¦׳₪׳•׳ Zafn');
+    const sh = wb.addWorksheet('מחסן צפון Zafn');
     sh.views = [{ state:'frozen', ySplit:1, topLeftCell:'A2' }];
     sh.columns = [
-      { header:"׳׳§׳˜",           key:'makat',    width:12 },
-      { header:"׳©׳ ׳׳•׳¦׳¨",       key:'desc',     width:42 },
-      { header:"׳׳׳׳™ ׳¦׳₪׳•׳ (׳§׳¨׳˜)", key:'stock',  width:18 },
-      { header:"׳§׳¨׳˜/׳™׳•׳",        key:'daySales',width:12 },
-      { header:"׳™׳׳™׳ ׳ ׳•׳×׳¨׳™׳",    key:'days',    width:14 },
+      { header:"מקט",           key:'makat',    width:12 },
+      { header:"שם מוצר",       key:'desc',     width:42 },
+      { header:"מלאי צפון (קרט)", key:'stock',  width:18 },
+      { header:"קרט/יום",        key:'daySales',width:12 },
+      { header:"ימים נותרים",    key:'days',    width:14 },
     ];
     const hdr = sh.getRow(1);
     hdr.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFCC0000' } };
@@ -814,7 +814,7 @@ async function main() {
     hdr.alignment = { horizontal:'center' };
     hdr.height = 18;
 
-    // ג”€ג”€ Table 1: items with < 3 days stock cover ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+    // ── Table 1: items with < 3 days stock cover ──────────────────────────────
     zafn.under3.forEach(item => {
       const row = sh.addRow({
         makat   : item.makat,
@@ -833,7 +833,7 @@ async function main() {
 
     sh.autoFilter = { from:'A1', to:`E1` };
 
-    // ג”€ג”€ Helper: render a ׳¡׳›׳ ׳× ׳”׳©׳׳“׳” section ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+    // ── Helper: render a סכנת השמדה section ───────────────────────────────────
     function renderSakanaSection(sh, items, sectionTitle) {
       if(!items.length) return;
       const sepRow = sh.addRow({}); sepRow.height = 8;
@@ -843,16 +843,16 @@ async function main() {
       hdrRow.getCell(1).fill  = { type:'pattern', pattern:'solid', fgColor:{argb:'FF8B0000'} };
       hdrRow.height = 18;
       const sub = sh.addRow({});
-      ['׳׳§׳˜','׳©׳ ׳׳•׳¦׳¨','׳׳׳׳™ (׳§׳¨׳˜)','׳§׳¨׳˜/׳™׳•׳','׳₪׳§"׳¢ | ׳×׳•׳§׳£ | ׳™׳׳™׳'].forEach((t,i) => {
+      ['מקט','שם מוצר','מלאי (קרט)','קרט/יום','פק"ע | תוקף | ימים'].forEach((t,i) => {
         sub.getCell(i+1).value = t;
         sub.getCell(i+1).font  = { bold:true, size:9, name:'Arial' };
         sub.getCell(i+1).fill  = { type:'pattern', pattern:'solid', fgColor:{argb:'FFFFDDDD'} };
       });
       for(const p of items) {
-        const desc = p.desc ? fixVisualRTL(String(p.desc).replace(/[ג€‹-ג€ג€×-ג€®ן»¿]/g,'').trim()) : (p.makat||'');
+        const desc = p.desc ? fixVisualRTL(String(p.desc).replace(/[​-‏‪-‮﻿]/g,'').trim()) : (p.makat||'');
         const paks = (p.pakuot||[]).map(pak => {
           const ds = pak.date ? `${pak.date.getDate().toString().padStart(2,'0')}/${(pak.date.getMonth()+1).toString().padStart(2,'0')}/${String(pak.date.getFullYear()).slice(-2)}` : '?';
-          return `${ds} (${pak.daysLeft??'?'}d) ${Math.round(pak.cartons)}׳§׳¨׳˜`;
+          return `${ds} (${pak.daysLeft??'?'}d) ${Math.round(pak.cartons)}קרט`;
         }).join(' | ');
         const row = sh.addRow({});
         row.getCell(1).value = p.makat;
@@ -867,10 +867,10 @@ async function main() {
       }
     }
 
-    // ג”€ג”€ Table 2: ׳¡׳›׳ ׳× ׳”׳©׳׳“׳” ג€” Zafn (׳₪׳§"׳¢ expires before sold at Zafn rate) ג”€ג”€ג”€
-    renderSakanaSection(sh, zafn.sakana, '׳¡׳›׳ ׳× ׳”׳©׳׳“׳” ג€” ׳¦׳₪׳•׳  (׳₪׳§"׳¢ ׳₪׳’׳” ׳׳₪׳ ׳™ ׳׳›׳™׳¨׳”)');
+    // ── Table 2: סכנת השמדה — Zafn (פק"ע expires before sold at Zafn rate) ───
+    renderSakanaSection(sh, zafn.sakana, 'סכנת השמדה — צפון  (פק"ע פגה לפני מכירה)');
 
-    // ג”€ג”€ Table 3: ׳¡׳›׳ ׳× ׳”׳©׳׳“׳” ג€” Main (KAPUA planogram picks) ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+    // ── Table 3: סכנת השמדה — Main (KAPUA planogram picks) ───────────────────
     const dangerPicks = Object.values(KAPUA_PICKS).filter(p => {
       if(!p.pakuot || !p.pakuot.length) return false;
       return p.pakuot.some(pak => {
@@ -893,16 +893,15 @@ async function main() {
       const minB = Math.min(...b.pakuot.map(pk => pk.daysLeft??9999));
       return minA - minB;
     });
-    renderSakanaSection(sh, dangerPicks, '׳¡׳›׳ ׳× ׳”׳©׳׳“׳” ג€” Main  (׳₪׳§"׳¢ ׳₪׳’׳” ׳׳₪׳ ׳™ ׳׳›׳™׳¨׳”)');
+    renderSakanaSection(sh, dangerPicks, 'סכנת השמדה — Main  (פק"ע פגה לפני מכירה)');
 
-    console.log(`׳׳—׳¡׳ ׳¦׳₪׳•׳ sheet: under3=${zafn.under3.length} | ׳¡׳›׳ ׳” Zafn=${zafn.sakana.length} | ׳¡׳›׳ ׳” Main=${dangerPicks.length}`);
+    console.log(`מחסן צפון sheet: under3=${zafn.under3.length} | סכנה Zafn=${zafn.sakana.length} | סכנה Main=${dangerPicks.length}`);
   }
 
   // Write output
   const out = 'MAHSAN PLANOGRAM.xlsx';
   await wb.xlsx.writeFile(out);
-  console.log('\nג… Written:', out);
+  console.log('\n✅ Written:', out);
 }
 
 main().catch(e => { console.error(e); process.exit(1); });
-
