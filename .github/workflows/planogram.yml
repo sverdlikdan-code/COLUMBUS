@@ -1,0 +1,52 @@
+name: Planogram Builder
+
+on:
+  schedule:
+    - cron: '0 5 * * 0-4'   # 08:00 Israel time (UTC+3 summer) Sun–Thu
+  workflow_dispatch:          # manual trigger — the "Refresh" button
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: planogram/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: planogram
+
+      - name: Build planogram
+        run: node build-planogram.js
+        working-directory: planogram
+        env:
+          PBI_TENANT:    ${{ secrets.PBI_TENANT }}
+          PBI_CLIENT:    ${{ secrets.PBI_CLIENT }}
+          PBI_SECRET:    ${{ secrets.PBI_SECRET }}
+          PBI_DATASET:   ${{ secrets.PBI_DATASET }}
+          PBI_WORKSPACE: ${{ secrets.PBI_WORKSPACE }}
+
+      - name: Copy output to docs/
+        run: |
+          cp planogram/"MAHSAN PLANOGRAM.xlsx" docs/planogram.xlsx
+          BUILD_DATE=$(TZ='Asia/Jerusalem' date '+%d.%m.%Y %H:%M')
+          echo "{\"updated\":\"$BUILD_DATE\",\"trigger\":\"${{ github.event_name }}\"}" > docs/status.json
+
+      - name: Commit and push
+        run: |
+          git config user.name  "Planogram Bot"
+          git config user.email "planogram@formula.co.il"
+          git add docs/planogram.xlsx docs/status.json
+          git diff --cached --quiet && echo "No changes" || git commit -m "Planogram update $(TZ='Asia/Jerusalem' date '+%Y-%m-%d %H:%M')"
+          git push
