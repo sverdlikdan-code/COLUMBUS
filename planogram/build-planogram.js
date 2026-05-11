@@ -806,7 +806,7 @@ async function main() {
       { header:"שם מוצר",       key:'desc',     width:42 },
       { header:"מלאי צפון (קרט)", key:'stock',  width:18 },
       { header:"קרט/יום",        key:'daySales',width:12 },
-      { header:"ימים נותרים",    key:'days',    width:14 },
+      { header:"יספיק ל (ימים)", key:'days',    width:16 },
     ];
     const hdr = sh.getRow(1);
     hdr.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFCC0000' } };
