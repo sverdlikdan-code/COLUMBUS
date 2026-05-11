@@ -1,18 +1,18 @@
-﻿/**
- * Fetch ׳§׳₪׳•׳ live data from Power BI / Fabric (replaces ׳§׳₪׳•׳.xlsx)
+/**
+ * Fetch קפוא live data from Power BI / Fabric (replaces קפוא.xlsx)
  * Returns: Map<makat, { desc, stock, daySales }>
  *
- * stock    = cartons at ׳׳©׳“׳•׳“ (׳׳—׳¡׳ Main), 0 if not found
- * daySales = [TOTAL ׳׳›׳¨ ׳‘׳§׳¨׳˜׳•׳ ׳™׳ ׳׳׳•׳¦׳¢ ׳‘׳™׳•׳] official BI measure, last 90d, Main only
- * desc     = product name from ׳׳׳׳™-׳×׳•׳§׳£ (visual RTL ג€” fixVisualRTL applied in build script)
+ * stock    = cartons at אשדוד (מחסן Main), 0 if not found
+ * daySales = [TOTAL מכר בקרטונים ממוצע ביום] official BI measure, last 90d, Main only
+ * desc     = product name from מלאי-תוקף (visual RTL — fixVisualRTL applied in build script)
  *
- * Family filter (MLAY[׳׳©׳₪׳—׳× ׳׳•׳¦׳¨] codes) ג€” new products in these families auto-discovered:
- *   029=׳—׳׳׳” FERMA  004=׳—׳׳׳” ׳¨׳•׳©׳  022=׳׳׳¨׳—׳™ ׳—׳׳׳”  019=׳›׳™׳¡׳•׳ ׳™׳/׳¡׳™׳¨׳ ׳™׳§׳™
- *   035=SANTA BREMOR ׳¡׳׳׳•׳/׳₪׳•׳¨׳
- *   421=׳¢׳•׳’׳•׳× ׳¨׳•׳©׳  420=׳¢׳•׳’׳•׳× ׳׳•׳–׳™׳§׳”  046=׳—׳˜׳™׳£ ׳’׳‘׳™׳ ׳”
- *   0191=׳׳•׳¡׳“׳™  0190=Valesto ׳׳׳₪׳”
+ * Family filter (MLAY[משפחת מוצר] codes) — new products in these families auto-discovered:
+ *   029=חמאה FERMA  004=חמאה רושן  022=ממרחי חמאה  019=כיסונים/סירניקי
+ *   035=SANTA BREMOR סלמון/פורל
+ *   421=עוגות רושן  420=עוגות מוזיקה  046=חטיף גבינה
+ *   0191=מוסדי  0190=Valesto מאפה
  *
- * NOTE: family 030 (SANTA BREMOR ׳“׳’׳™׳) is excluded ג€” it contains chilled (׳׳¦׳•׳ ׳) products
+ * NOTE: family 030 (SANTA BREMOR דגים) is excluded — it contains chilled (מצונן) products
  * not relevant to the frozen planogram. Products 1045/1046/1051 (surimi/frozen) are
  * passed via the explicit makatim list and fetched through UNION with famMakatim.
  */
@@ -23,8 +23,8 @@ const SECRET    = process.env.PBI_SECRET;
 const DATASET   = process.env.PBI_DATASET;
 const WORKSPACE = process.env.PBI_WORKSPACE;
 
-// Family codes from MLAY[׳׳©׳₪׳—׳× ׳׳•׳¦׳¨] covering frozen ׳§׳₪׳•׳ sections
-// 030 (SANTA BREMOR ׳“׳’׳™׳) excluded ג€” those are chilled (׳׳¦׳•׳ ׳), not frozen
+// Family codes from MLAY[משפחת מוצר] covering frozen קפוא sections
+// 030 (SANTA BREMOR דגים) excluded — those are chilled (מצונן), not frozen
 // Products 1045/1046/1051 from family 030 are frozen surimi and handled via explicit makat UNION
 const KAPUA_FAM_CODES = ['029','004','022','019','035','421','420','046','0191','0190'];
 
@@ -63,119 +63,119 @@ async function fetchKapuaFromBI(makatim) {
   const famMakatim = `
     UNION(
       SELECTCOLUMNS(
-        FILTER(MLAY, CONTAINSROW({${famCodes}}, MLAY[׳׳©׳₪׳—׳× ׳׳•׳¦׳¨])),
-        "mk", MLAY[׳׳§'׳˜]
+        FILTER(MLAY, CONTAINSROW({${famCodes}}, MLAY[משפחת מוצר])),
+        "mk", MLAY[מק'ט]
       ),
       SELECTCOLUMNS({${explicitMks}}, "mk", [Value])
     )`;
 
-  // ג”€ג”€ 1. Stock: products of our families at Main (Ashdod) ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+  // ── 1. Stock: products of our families at Main (Ashdod) ───────────────────
   const stockRows = await dax(t, `
     EVALUATE
     SUMMARIZECOLUMNS(
-      '׳׳׳׳™-׳×׳•׳§׳£'[׳׳§"׳˜],
+      'מלאי-תוקף'[מק"ט],
       FILTER(
-        '׳׳׳׳™-׳×׳•׳§׳£',
-        '׳׳׳׳™-׳×׳•׳§׳£'[׳׳—׳¡׳] = "Main" &&
-        CONTAINSROW(${famMakatim}, '׳׳׳׳™-׳×׳•׳§׳£'[׳׳§"׳˜])
+        'מלאי-תוקף',
+        'מלאי-תוקף'[מחסן] = "Main" &&
+        CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
       ),
-      "stock", SUM('׳׳׳׳™-׳×׳•׳§׳£'[׳§׳¨׳˜׳•׳ ׳׳׳׳™ ׳×׳•׳§׳£])
+      "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
     )
   `);
 
-  // ג”€ג”€ 2. Sales: [TOTAL ׳׳›׳¨ ׳‘׳§׳¨׳˜׳•׳ ׳™׳ ׳׳׳•׳¦׳¢ ׳‘׳™׳•׳], FORMULA+Main, last 90d, our families
+  // ── 2. Sales: [TOTAL מכר בקרטונים ממוצע ביום], FORMULA+Main, last 90d, our families
   const salesRows = await dax(t, `
     EVALUATE
     CALCULATETABLE(
       ADDCOLUMNS(
-        SUMMARIZE('ALL_PARTS', 'ALL_PARTS'[׳׳§'׳˜]),
-        "daySales", [TOTAL ׳׳›׳¨ ׳‘׳§׳¨׳˜׳•׳ ׳™׳ ׳׳׳•׳¦׳¢ ׳‘׳™׳•׳]
+        SUMMARIZE('ALL_PARTS', 'ALL_PARTS'[מק'ט]),
+        "daySales", [TOTAL מכר בקרטונים ממוצע ביום]
       ),
-      'ALL_PARTS'[׳—׳‘׳¨׳”] = "FORMULA",
-      'ALL_PARTS'[׳׳—׳¡׳] = "Main",
-      FILTER('ALL_PARTS', 'ALL_PARTS'[׳×׳׳¨׳™׳] >= TODAY() - 90),
-      TREATAS(${famMakatim}, 'ALL_PARTS'[׳׳§'׳˜])
+      'ALL_PARTS'[חברה] = "FORMULA",
+      'ALL_PARTS'[מחסן] = "Main",
+      FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 90),
+      TREATAS(${famMakatim}, 'ALL_PARTS'[מק'ט])
     )
   `);
 
-  // ג”€ג”€ 3. Desc: product name per ׳׳§׳˜ from ׳׳׳׳™-׳×׳•׳§׳£ Main ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+  // ── 3. Desc: product name per מקט from מלאי-תוקף Main ────────────────────
   const descRows = await dax(t, `
     EVALUATE
     SUMMARIZECOLUMNS(
-      '׳׳׳׳™-׳×׳•׳§׳£'[׳׳§"׳˜],
-      '׳׳׳׳™-׳×׳•׳§׳£'[׳×׳׳•׳¨ ׳׳•׳¦׳¨],
+      'מלאי-תוקף'[מק"ט],
+      'מלאי-תוקף'[תאור מוצר],
       FILTER(
-        '׳׳׳׳™-׳×׳•׳§׳£',
-        '׳׳׳׳™-׳×׳•׳§׳£'[׳׳—׳¡׳] = "Main" &&
-        CONTAINSROW(${famMakatim}, '׳׳׳׳™-׳×׳•׳§׳£'[׳׳§"׳˜])
+        'מלאי-תוקף',
+        'מלאי-תוקף'[מחסן] = "Main" &&
+        CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
       )
     )
   `);
 
-  // ג”€ג”€ 4. Desc fallback from MLAY master catalog (for products absent from ׳׳׳׳™-׳×׳•׳§׳£ Main) ג”€ג”€
+  // ── 4. Desc fallback from MLAY master catalog (for products absent from מלאי-תוקף Main) ──
   const mlayDescRows = await dax(t, `
     EVALUATE
     SUMMARIZECOLUMNS(
-      MLAY[׳׳§'׳˜],
-      MLAY[׳×׳׳•׳¨ ׳׳•׳¦׳¨],
-      FILTER(MLAY, CONTAINSROW(${famMakatim}, MLAY[׳׳§'׳˜]))
+      MLAY[מק'ט],
+      MLAY[תאור מוצר],
+      FILTER(MLAY, CONTAINSROW(${famMakatim}, MLAY[מק'ט]))
     )
   `);
 
-  // ג”€ג”€ 5. ׳₪׳§"׳¢ per ׳׳§׳˜ at Main: expiry date + cartons per batch ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+  // ── 5. פק"ע per מקט at Main: expiry date + cartons per batch ─────────────
   const pakuaRows = await dax(t, `
     EVALUATE
     SUMMARIZECOLUMNS(
-      '׳׳׳׳™-׳×׳•׳§׳£'[׳׳§"׳˜],
-      '׳׳׳׳™-׳×׳•׳§׳£'[׳×. ׳×׳₪׳•׳’׳× ׳×׳•׳§׳£],
+      'מלאי-תוקף'[מק"ט],
+      'מלאי-תוקף'[ת. תפוגת תוקף],
       FILTER(
-        '׳׳׳׳™-׳×׳•׳§׳£',
-        '׳׳׳׳™-׳×׳•׳§׳£'[׳׳—׳¡׳] = "Main" &&
-        CONTAINSROW(${famMakatim}, '׳׳׳׳™-׳×׳•׳§׳£'[׳׳§"׳˜])
+        'מלאי-תוקף',
+        'מלאי-תוקף'[מחסן] = "Main" &&
+        CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
       ),
-      "cartons", SUM('׳׳׳׳™-׳×׳•׳§׳£'[׳§׳¨׳˜׳•׳ ׳׳׳׳™ ׳×׳•׳§׳£])
+      "cartons", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
     )
-    ORDER BY '׳׳׳׳™-׳×׳•׳§׳£'[׳׳§"׳˜], '׳׳׳׳™-׳×׳•׳§׳£'[׳×. ׳×׳₪׳•׳’׳× ׳×׳•׳§׳£]
+    ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
   `);
 
-  // ג”€ג”€ Build result map ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+  // ── Build result map ──────────────────────────────────────────────────────
   const result = {};
   for (const mk of makatim) result[mk] = { desc: null, stock: 0, daySales: null, pakuot: [] };
 
   for (const r of stockRows) {
-    const mk = r['׳׳׳׳™-׳×׳•׳§׳£[׳׳§"׳˜]'];
+    const mk = r['מלאי-תוקף[מק"ט]'];
     if (mk && result[mk] !== undefined) result[mk].stock = r['[stock]'] || 0;
   }
 
   for (const r of salesRows) {
-    const mk = r["ALL_PARTS[׳׳§'׳˜]"];
+    const mk = r["ALL_PARTS[מק'ט]"];
     if (mk && result[mk] !== undefined) result[mk].daySales = r['[daySales]'] || null;
   }
 
   const descSeen = new Set();
   for (const r of descRows) {
-    const mk = r['׳׳׳׳™-׳×׳•׳§׳£[׳׳§"׳˜]'];
+    const mk = r['מלאי-תוקף[מק"ט]'];
     if (mk && result[mk] !== undefined && !descSeen.has(mk)) {
-      result[mk].desc = r['׳׳׳׳™-׳×׳•׳§׳£[׳×׳׳•׳¨ ׳׳•׳¦׳¨]'] || null;
+      result[mk].desc = r['מלאי-תוקף[תאור מוצר]'] || null;
       descSeen.add(mk);
     }
   }
-  // Fallback: products with 0 stock at Main won't be in ׳׳׳׳™-׳×׳•׳§׳£ ג†’ use MLAY catalog
+  // Fallback: products with 0 stock at Main won't be in מלאי-תוקף → use MLAY catalog
   for (const r of mlayDescRows) {
-    const mk = r["MLAY[׳׳§'׳˜]"];
+    const mk = r["MLAY[מק'ט]"];
     if (mk && result[mk] !== undefined && !result[mk].desc) {
-      result[mk].desc = r["MLAY[׳×׳׳•׳¨ ׳׳•׳¦׳¨]"] || null;
+      result[mk].desc = r["MLAY[תאור מוצר]"] || null;
     }
   }
 
-  // Parse pakuaRows into per-׳׳§׳˜ array, sorted by expiry date
+  // Parse pakuaRows into per-מקט array, sorted by expiry date
   const today = new Date(); today.setHours(0,0,0,0);
   for (const r of pakuaRows) {
-    const mk      = r['׳׳׳׳™-׳×׳•׳§׳£[׳׳§"׳˜]'];
+    const mk      = r['מלאי-תוקף[מק"ט]'];
     const cartons = r['[cartons]'] || 0;
     if (!mk || cartons <= 0) continue;
     if (result[mk] === undefined) continue;
-    const rawDate = r["׳׳׳׳™-׳×׳•׳§׳£[׳×. ׳×׳₪׳•׳’׳× ׳×׳•׳§׳£]"];
+    const rawDate = r["מלאי-תוקף[ת. תפוגת תוקף]"];
     let expDate = null;
     let daysLeft = null;
     if (rawDate) {
@@ -192,19 +192,19 @@ async function fetchKapuaFromBI(makatim) {
 
   // Log new makatim found in families but not yet in KAPUA_PICKS
   const allFamMks = new Set([
-    ...stockRows.map(r => r['׳׳׳׳™-׳×׳•׳§׳£[׳׳§"׳˜]']),
-    ...salesRows.map(r => r["ALL_PARTS[׳׳§'׳˜]"]),
+    ...stockRows.map(r => r['מלאי-תוקף[מק"ט]']),
+    ...salesRows.map(r => r["ALL_PARTS[מק'ט]"]),
   ].filter(Boolean));
   const newMks = [...allFamMks].filter(mk => result[mk] === undefined);
-  if (newMks.length) console.log(`ג  New makatim in families (not in KAPUA_PICKS): ${newMks.join(', ')}`);
+  if (newMks.length) console.log(`⚠ New makatim in families (not in KAPUA_PICKS): ${newMks.join(', ')}`);
 
   const noStk    = makatim.filter(m => result[m].stock === 0).length;
   const withSales = makatim.filter(m => result[m].daySales != null).length;
-  console.log(`Power BI ׳§׳₪׳•׳: ${allFamMks.size} in families | ${noStk} zero-stock in picks | ${withSales} picks with sales`);
+  console.log(`Power BI קפוא: ${allFamMks.size} in families | ${noStk} zero-stock in picks | ${withSales} picks with sales`);
   return result;
 }
 
-// ג”€ג”€ Last dataset refresh time (from Power BI refresh history API) ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€ג”€
+// ── Last dataset refresh time (from Power BI refresh history API) ─────────────
 // Returns ISO string of endTime of the most recent successful refresh, or null.
 async function fetchLastRefresh() {
   try {
@@ -223,4 +223,3 @@ async function fetchLastRefresh() {
 }
 
 module.exports = { fetchKapuaFromBI, fetchLastRefresh };
-
