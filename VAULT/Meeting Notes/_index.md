@@ -28,3 +28,4 @@
 - [[agent-skill-creator]] — Агент Skill Creator — создание, редактирование и оптимизация SKILL.md в системе COLUMBUS
 - [[agent-fin-agent]] — Агент Fin-Agent — мониторинг токенов Claude API, сравнение моделей, рекомендации по экономии
 - [[session-2026-05-10]] — Сессия 2026-05-10: mahsan, skill-creator, fin-agent, CEO dispute mode, weekly market scan routine
+- [[mahsan-planogram]] — MAHSAN PLANOGRAM build system: ExcelJS, Power BI, GitHub Actions CI/CD, cell format rules
