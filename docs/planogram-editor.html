@@ -341,12 +341,23 @@ let DAGIM_BASE  = {};
 // מקטים whose photos are hidden by user (forces text mode)
 let hiddenPhotos = new Set(JSON.parse(localStorage.getItem('mahsan_no_photo') || '[]'));
 
+function offUrl(ean) {
+  // Open Food Facts image: split 13-digit EAN into 3/3/3/rest
+  const s = String(ean).replace(/\D/g,'');
+  if (s.length >= 9) {
+    const a = s.slice(0,3), b = s.slice(3,6), c = s.slice(6,9), d = s.slice(9);
+    return `https://images.openfoodfacts.org/images/products/${a}/${b}/${c}/${d}/front_en.display.jpg`;
+  }
+  return `https://images.openfoodfacts.org/images/products/${s}/front_en.display.jpg`;
+}
+
 function getPhotoUrl(makat) {
   if (hiddenPhotos.has(String(makat))) return null;
   const ean = makatEan[String(makat)];
   if (!ean) return null;
   const entry = photoMap[String(ean)];
-  return entry ? entry.url : null;
+  // Our photo DB first; fallback to Open Food Facts
+  return entry ? entry.url : offUrl(ean);
 }
 
 window.hidePhoto = function(makat, pick, section) {
