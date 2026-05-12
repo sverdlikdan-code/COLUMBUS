@@ -497,6 +497,37 @@ function addSummaryHeader(ws, label, totalOrd, totalPalDay, activeCount, zeroCou
   try { ws.mergeCells(1, 1, 1, 20); } catch(e) {}
 }
 
+// ─── Add new-family products section below planogram (overflow) ──────────
+// prods: [{pick, makat, fam, desc, stock, daySales, dayAvg, pakuot, ...}]
+function addOverflowSection(ws, prods, palletMap, weightThresh, dayThreshHigh, dayThreshMid) {
+  const COLS     = 9;
+  const startRow = (ws.lastRow ? ws.lastRow.number : 50) + 3;
+
+  const titleCell = ws.getCell(startRow, 1);
+  titleCell.value = `🆕 מוצרים חדשים מהמשפחות — סטטוס פעיל (${prods.length})`;
+  titleCell.font  = { bold:true, size:12, name:'Arial', color:{ argb:'FF1565C0' } };
+  titleCell.alignment = { horizontal:'right', readingOrder:2 };
+  ws.getRow(startRow).height = 22;
+
+  prods.forEach((p, i) => {
+    const r   = startRow + 1 + Math.floor(i / COLS);
+    const c   = (i % COLS) + 1;
+    const cell = ws.getCell(r, c);
+    const kratnost = palletMap[String(p.makat)] || 0;
+    if (p.stock > 0) {
+      fillCell(cell, p.pick, p.makat, p.fam, p.dayAvg, p.daySales, p.ss,
+               p.stock, p.weight, p.desc,
+               weightThresh, dayThreshHigh, dayThreshMid, kratnost, null, p.pakuot || []);
+    } else {
+      zeroStockCell(cell, p.pick, p.makat, p.desc, p.fam);
+    }
+    ws.getRow(r).height = 160;
+    const col = ws.getColumn(c);
+    if (!col.width || col.width < 32) col.width = 32;
+  });
+  console.log(`  Overflow: ${prods.length} new products added (rows ${startRow+1}–${startRow+1+Math.floor((prods.length-1)/COLS)})`);
+}
+
 // ─── Add אפס מלאי table below planogram ──────────────────────────────────
 function addZeroStockTable(ws, zeroItems) {
   if(!zeroItems.length) return;
@@ -671,7 +702,27 @@ async function main() {
     }
   }
 
-  // All 54 קפוא picks are statically assigned — no auto-fill needed
+  // ── New products from PBI families (פעיל, not in KAPUA_PICKS) ──────────────
+  let newKapuaProds = Object.entries(kapuaData)
+    .filter(([, d]) => d.isNew)
+    .map(([mk, d]) => ({
+      makat: mk, fam: d.fam || 'קפוא', desc: d.desc,
+      stock: d.stock, daySales: d.daySales, daySalesAll: d.daySalesAll,
+      pakuot: d.pakuot || [], pakuotAll: d.pakuotAll || [],
+      dayAvg: d.daySales || null, weight: null, ss: null,
+    }));
+  // Sort: with sales first (daySales desc), then no-sales at end
+  newKapuaProds.sort((a, b) => {
+    const aS = a.daySales != null && a.daySales > 0;
+    const bS = b.daySales != null && b.daySales > 0;
+    if (aS && !bS) return -1;
+    if (!aS && bS) return 1;
+    return (b.daySales || 0) - (a.daySales || 0);
+  });
+  const maxKapuaPick = Math.max(...Object.keys(KAPUA_PICKS).map(Number));
+  newKapuaProds.forEach((p, i) => { p.pick = maxKapuaPick + 1 + i; });
+  if (newKapuaProds.length)
+    console.log(`🆕 New קפוא products: ${newKapuaProds.length} (picks ${maxKapuaPick+1}–${maxKapuaPick+newKapuaProds.length})`);
 
   // Load source product files
   const wbHalavi = new ExcelJS.Workbook();
@@ -779,6 +830,8 @@ async function main() {
     console.log(`\nקפוא picks found: ${picks.length} (${picks[0]}..${picks[picks.length-1]}) | total ORD: ${Math.round(kapuaTotalOrd)} | PAL/d: ${kapuaTotalPal.toFixed(1)}`);
     applyToSheet(shKapua, pickCells, compactedKapua, weightThresh, dayThreshHigh, dayThreshMid, palletMap, true, kapuaTotalOrd);
     addZeroStockTable(shKapua, kapuaZeroList);
+    if (newKapuaProds.length)
+      addOverflowSection(shKapua, newKapuaProds, palletMap, weightThresh, dayThreshHigh, dayThreshMid);
     addFamilyNavBar(shKapua, pickCells, compactedKapua, refreshLabel);
     shKapua.name = 'MAHSAN 8 קפוא';
     addSeqSheet(wb, 'סדר קפוא', KAPUA_PICKS, 'FFCCE5FF');
@@ -1023,6 +1076,7 @@ async function main() {
     };
     const allMainProds = [
       ...Object.values(KAPUA_PICKS),
+      ...newKapuaProds,
       ...halaviProds,
       ...dagimProds,
     ];
@@ -1051,24 +1105,33 @@ async function main() {
     if(HIDDEN_SHEETS.length) console.log(`Hidden: ${HIDDEN_SHEETS.join(', ')}`);
   }
 
-  // ── Export product-data.json for planogram editor ─────────────────────
-  // Includes stock (מחסן אשדוד only) + kratnost per מקט
+  // ── Export product-data.json + kapua-base.json for planogram editor ──────
   {
     const fs   = require('fs');
     const path = require('path');
+
+    // ── product-data.json ────────────────────────────────────────────────
     const prodData = {};
-    // קפוא picks
-    for (const [pick, p] of Object.entries(KAPUA_PICKS)) {
+    for (const [, p] of Object.entries(KAPUA_PICKS)) {
       if (!p.makat) continue;
       const krat = palletMap[String(p.makat)] || 0;
       prodData[String(p.makat)] = {
-        stock:     p.stock  != null ? Math.round(p.stock)  : null,
-        daySales:  p.daySales != null ? +p.daySales.toFixed(1) : null,
-        kratnost:  krat,
-        palStock:  (krat > 0 && p.stock > 0) ? +(p.stock / krat).toFixed(1) : null,
+        stock:    p.stock    != null ? Math.round(p.stock)    : null,
+        daySales: p.daySales != null ? +p.daySales.toFixed(1) : null,
+        kratnost: krat,
+        palStock: (krat > 0 && p.stock > 0) ? +(p.stock / krat).toFixed(1) : null,
       };
     }
-    // חלבי + דגים
+    for (const p of newKapuaProds) {
+      if (!p.makat) continue;
+      const krat = palletMap[String(p.makat)] || 0;
+      prodData[String(p.makat)] = {
+        stock:    p.stock    != null ? Math.round(p.stock)    : null,
+        daySales: p.daySales != null ? +p.daySales.toFixed(1) : null,
+        kratnost: krat,
+        palStock: (krat > 0 && p.stock > 0) ? +(p.stock / krat).toFixed(1) : null,
+      };
+    }
     for (const p of [...halaviProds, ...dagimProds]) {
       if (!p.makat) continue;
       const krat = palletMap[String(p.makat)] || 0;
@@ -1079,9 +1142,52 @@ async function main() {
         palStock: (krat > 0 && p.stock > 0) ? +(p.stock / krat).toFixed(1) : null,
       };
     }
-    const outPath = path.join(__dirname, '..', 'docs', 'product-data.json');
-    fs.writeFileSync(outPath, JSON.stringify(prodData, null, 2), 'utf8');
-    console.log(`product-data.json: ${Object.keys(prodData).length} מקטים → ${outPath}`);
+    fs.writeFileSync(path.join(__dirname,'..','docs','product-data.json'),
+      JSON.stringify(prodData, null, 2), 'utf8');
+    console.log(`product-data.json: ${Object.keys(prodData).length} מקטים`);
+
+    // ── kapua-base.json — all קפוא picks + layout for the HTML editor ────
+    const EDITOR_COLS          = 18;
+    const EDITOR_OVERFLOW_ROW  = 10; // new products start at row 10
+    const editorLayout = {
+       1:{r:1,c:1},  2:{r:1,c:2},  3:{r:1,c:3},  4:{r:1,c:4},  5:{r:1,c:5},
+       6:{r:1,c:6},  7:{r:1,c:7},  8:{r:1,c:8},  9:{r:1,c:9}, 10:{r:1,c:10},
+      11:{r:1,c:11},12:{r:1,c:12},13:{r:1,c:13},14:{r:1,c:14},15:{r:1,c:15},
+      16:{r:1,c:16},17:{r:1,c:17},
+      18:{r:2,c:18},19:{r:3,c:18},20:{r:4,c:18},21:{r:5,c:18},
+      22:{r:6,c:17},23:{r:6,c:16},24:{r:6,c:15},25:{r:6,c:14},
+      26:{r:6,c:13},27:{r:6,c:12},28:{r:6,c:11},29:{r:6,c:10},
+      30:{r:6,c:9}, 31:{r:6,c:8}, 32:{r:6,c:7}, 33:{r:6,c:6},
+      34:{r:6,c:5}, 35:{r:6,c:4},
+      36:{r:7,c:4}, 37:{r:7,c:5}, 38:{r:7,c:6}, 39:{r:7,c:7},
+      40:{r:7,c:8}, 41:{r:7,c:9}, 42:{r:7,c:10},43:{r:7,c:11},
+      44:{r:7,c:12},45:{r:7,c:13},46:{r:7,c:14},47:{r:7,c:15},
+      48:{r:7,c:16},49:{r:7,c:17},
+      50:{r:9,c:5}, 51:{r:9,c:4}, 52:{r:9,c:3}, 53:{r:9,c:2}, 54:{r:9,c:1},
+    };
+    let editorMaxRows = 9;
+
+    const kapuaPicks = {};
+    for (const [pickStr, p] of Object.entries(KAPUA_PICKS)) {
+      const name = p.desc
+        ? fixVisualRTL(String(p.desc).replace(/[​-‏‪-‮﻿]/g,'').replace(/\s*\([^)]*\)/g,'').trim())
+        : (p.fam || '');
+      kapuaPicks[pickStr] = { makat: p.makat, fam: p.fam, name };
+    }
+    newKapuaProds.forEach((p, i) => {
+      const row = EDITOR_OVERFLOW_ROW + Math.floor(i / EDITOR_COLS);
+      const col = (i % EDITOR_COLS) + 1;
+      if (row > editorMaxRows) editorMaxRows = row;
+      const name = p.desc
+        ? fixVisualRTL(String(p.desc).replace(/[​-‏‪-‮﻿]/g,'').replace(/\s*\([^)]*\)/g,'').trim())
+        : (p.fam || p.makat);
+      kapuaPicks[String(p.pick)] = { makat: p.makat, fam: p.fam || 'קפוא', name, isNew: true };
+      editorLayout[p.pick] = { r: row, c: col };
+    });
+
+    fs.writeFileSync(path.join(__dirname,'..','docs','kapua-base.json'),
+      JSON.stringify({ picks: kapuaPicks, layout: editorLayout, maxCols: EDITOR_COLS, maxRows: editorMaxRows }), 'utf8');
+    console.log(`kapua-base.json: ${Object.keys(kapuaPicks).length} picks, maxRows=${editorMaxRows}`);
   }
 
   // Write output
