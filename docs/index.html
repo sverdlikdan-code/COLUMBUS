@@ -55,6 +55,18 @@
     .msg.ok  { color: #1a8a1a; }
     .msg.err { color: #cc0000; }
     .schedule-note { margin-top: 22px; font-size: 12px; color: #aaa; }
+    .setup-area { margin-top: 28px; padding-top: 16px; border-top: 1px solid #eee; }
+    .setup-area input {
+      width: 100%; padding: 8px 10px; border: 1px solid #ccc;
+      border-radius: 6px; font-size: 13px; margin-bottom: 8px;
+      direction: ltr;
+    }
+    .btn-setup {
+      width: 100%; padding: 8px; background: #f0f0f0; color: #555;
+      border: 1px solid #ccc; border-radius: 6px; font-size: 13px;
+      cursor: pointer;
+    }
+    .btn-setup:hover { background: #e0e0e0; }
   </style>
 </head>
 <body>
@@ -78,12 +90,34 @@
   <div class="msg" id="msg"></div>
 
   <div class="schedule-note">מתעדכן אוטומטית כל יום ראשון–חמישי בשעה 08:00</div>
+
+  <div class="setup-area" id="setupArea" style="display:none">
+    <input type="password" id="tokenInput" placeholder="GitHub Token (ghp_...)" />
+    <button class="btn-setup" onclick="saveToken()">שמור טוקן</button>
+  </div>
 </div>
 
 <script>
-  const REPO  = 'sverdlikdan-code/COLUMBUS';
-  const WF    = 'planogram.yml';
-  const T     = atob('__TOKEN_B64__');
+  const REPO = 'sverdlikdan-code/COLUMBUS';
+  const WF   = 'planogram.yml';
+
+  // Show setup area on triple-click of schedule note (hidden admin access)
+  let clickCount = 0;
+  document.querySelector('.schedule-note').addEventListener('click', () => {
+    clickCount++;
+    if (clickCount >= 3) { clickCount = 0; document.getElementById('setupArea').style.display = 'block'; }
+  });
+
+  function saveToken() {
+    const val = document.getElementById('tokenInput').value.trim();
+    if (val) {
+      localStorage.setItem('_plt', val);
+      document.getElementById('setupArea').style.display = 'none';
+      document.getElementById('tokenInput').value = '';
+      document.getElementById('msg').className = 'msg ok';
+      document.getElementById('msg').textContent = '✅ טוקן נשמר';
+    }
+  }
 
   fetch('status.json?t=' + Date.now())
     .then(r => r.json())
@@ -91,6 +125,12 @@
     .catch(() => { document.getElementById('updated').textContent = '—'; });
 
   function triggerRefresh() {
+    const T = localStorage.getItem('_plt') || '';
+    if (!T) {
+      document.getElementById('msg').className = 'msg err';
+      document.getElementById('msg').textContent = '❌ טוקן לא הוגדר — לחץ 3 פעמים על שורת לוח הזמנים';
+      return;
+    }
     const btn = document.getElementById('refreshBtn');
     const msg = document.getElementById('msg');
     btn.disabled = true;
