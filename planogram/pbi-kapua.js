@@ -222,4 +222,42 @@ async function fetchLastRefresh() {
   }
 }
 
-module.exports = { fetchKapuaFromBI, fetchLastRefresh };
+// ── Fetch pakuot (expiry batches at Main) for any list of מקטים ────────────
+// Used for חלבי / דגים products whose stock+sales already come from Excel.
+async function fetchPakuotForMakats(makatim) {
+  if(!makatim || !makatim.length) return {};
+  const t = await getToken();
+  const mkSet = '{' + makatim.map(m => `"${m}"`).join(',') + '}';
+  const pakuaRows = await dax(t, `
+    EVALUATE
+    SUMMARIZECOLUMNS(
+      'מלאי-תוקף'[מק"ט],
+      'מלאי-תוקף'[ת. תפוגת תוקף],
+      FILTER(
+        'מלאי-תוקף',
+        'מלאי-תוקף'[מחסן] = "Main" &&
+        CONTAINSROW(${mkSet}, 'מלאי-תוקף'[מק"ט])
+      ),
+      "cartons", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+    )
+    ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
+  `);
+
+  const result = {};
+  const today = new Date(); today.setHours(0,0,0,0);
+  for(const r of pakuaRows) {
+    const mk = String(r['מלאי-תוקף[מק"ט]'] || '');
+    if(!mk) continue;
+    if(!result[mk]) result[mk] = [];
+    const rawDate = r['מלאי-תוקף[ת. תפוגת תוקף]'];
+    let expDate = null, daysLeft = null;
+    if(rawDate) { expDate = new Date(rawDate); daysLeft = Math.round((expDate - today) / 86400000); }
+    const cartons = r['[cartons]'] || 0;
+    if(cartons > 0) result[mk].push({ date: expDate, daysLeft, cartons });
+  }
+  for(const mk of Object.keys(result)) result[mk].sort((a,b) => (a.date||0) - (b.date||0));
+  console.log(`פק"ע fetched for ${Object.keys(result).length} חלבי/דגים products`);
+  return result;
+}
+
+module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchPakuotForMakats };
