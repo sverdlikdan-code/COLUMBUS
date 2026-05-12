@@ -528,7 +528,6 @@ function makeSlot(pick, p) {
 function textModeHTML(pick, p) {
   return `<span class="s-pick">#${pick}</span>
           <span class="s-makat">${p.makat}</span>
-          <span class="s-name">${p.name || ''}</span>
           <span class="s-fam">${p.fam || ''}</span>`;
 }
 
@@ -659,11 +658,11 @@ function switchTab(name, tabEl) {
 // ══════════════════════════════════════════════════════════════════════════
 function exportCSV() {
   const sec  = window._currentSection || 'kapua';
-  const rows = ['﻿' + 'פיק,מקט,שם מוצר,משפחה'];
+  const rows = ['﻿' + 'פיק,מקט,משפחה'];
   for (const [pick, p] of Object.entries(state[sec]).sort((a,b) => +a[0] - +b[0])) {
     rows.push(p
-      ? `${pick},${p.makat},"${(p.name||'').replace(/"/g,'""')}","${(p.fam||'').replace(/"/g,'""')}"`
-      : `${pick},,,`
+      ? `${pick},${p.makat},"${(p.fam||'').replace(/"/g,'""')}"`
+      : `${pick},,`
     );
   }
   const a = Object.assign(document.createElement('a'), {
