@@ -334,21 +334,42 @@ let dyBase      = {};   // pick → { makat, fam, name }  — דג יבש base d
 let HALAVI_BASE = {};
 let DAGIM_BASE  = {};
 
+// מקטים whose photos are hidden by user (forces text mode)
+let hiddenPhotos = new Set(JSON.parse(localStorage.getItem('mahsan_no_photo') || '[]'));
+
 function getPhotoUrl(makat) {
+  if (hiddenPhotos.has(String(makat))) return null;
   const ean = makatEan[String(makat)];
   if (!ean) return null;
   const entry = photoMap[String(ean)];
   return entry ? entry.url : null;
 }
 
+window.hidePhoto = function(makat, pick, section) {
+  hiddenPhotos.add(String(makat));
+  localStorage.setItem('mahsan_no_photo', JSON.stringify([...hiddenPhotos]));
+  const container = document.getElementById('grid-' + section);
+  const el = container ? [...container.children].find(e => +e.dataset.pick === pick) : null;
+  if (el) refreshSlot(el, pick, section || window._currentSection || 'kapua');
+};
+
+window.showPhoto = function(makat, pick, section) {
+  hiddenPhotos.delete(String(makat));
+  localStorage.setItem('mahsan_no_photo', JSON.stringify([...hiddenPhotos]));
+  const container = document.getElementById('grid-' + section);
+  const el = container ? [...container.children].find(e => +e.dataset.pick === pick) : null;
+  if (el) refreshSlot(el, pick, section || window._currentSection || 'kapua');
+};
+
 function stockHTML(makat) {
   const d = productData[String(makat)];
   if (!d) return '';
   if (d.stock === 0) return `<div class="slot-stock"><span class="s-zero">אפס מלאי</span></div>`;
-  const kartLine = d.stock  != null ? `<span class="s-kart">${d.stock}קרט</span>` : '';
-  const palLine  = d.palStock != null ? ` <span class="s-pal">${Math.round(d.palStock)}PAL</span>` : '';
-  const kratLine = d.kratnost > 0   ? `<span class="s-krat">PAL=${d.kratnost}</span>` : '';
-  return `<div class="slot-stock">${kartLine}${palLine}<br>${kratLine}</div>`;
+  const kartLine = d.stock    != null ? `<span class="s-kart">${d.stock}קרט</span>` : '';
+  const palLine  = d.palStock != null && d.palStock > 0
+    ? `<span class="s-pal" style="font-size:12px; display:block; text-align:center; margin:1px 0;">${Math.round(d.palStock)} PAL</span>` : '';
+  const kratLine = d.kratnost > 0 ? `<span class="s-krat">/${d.kratnost}</span>` : '';
+  return `<div class="slot-stock">${palLine}${kartLine}${kratLine}</div>`;
 }
 
 async function loadMaps() {
@@ -441,21 +462,29 @@ function makeSlot(pick, p) {
     el.innerHTML = `<span>#${pick}<br>פנוי</span>`;
     return el;
   }
+  const sec = window._currentSection || 'kapua';
   const photoUrl = getPhotoUrl(p.makat);
   if (photoUrl) {
     el.className = 'slot has-photo';
     el.innerHTML = `
       <img class="slot-img" src="${photoUrl}" alt="${p.makat}"
            onerror="this.closest('.slot').classList.remove('has-photo'); this.closest('.slot').classList.add('text-mode'); renderTextMode(this.closest('.slot'), ${pick});">
+      <button onclick="hidePhoto('${p.makat}',${pick},'${sec}')" title="הסר תמונה"
+        style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.45);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">✕</button>
       <div class="slot-id">
         <span class="slot-pick-badge">#${pick}</span>
         <span class="slot-makat-badge">${p.makat}</span>
       </div>
       ${stockHTML(p.makat)}`;
   } else {
+    const hasRealPhoto = !!makatEan[String(p.makat)] && !!photoMap[makatEan[String(p.makat)]];
+    const restoreBtn  = hiddenPhotos.has(String(p.makat)) && hasRealPhoto
+      ? `<button onclick="showPhoto('${p.makat}',${pick},'${sec}')" title="שחזר תמונה"
+           style="position:absolute;top:2px;left:2px;background:rgba(26,110,245,0.7);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">📷</button>`
+      : '';
     el.className = 'slot text-mode';
     el.style.background = famColor(p.fam);
-    el.innerHTML = textModeHTML(pick, p) + stockHTML(p.makat);
+    el.innerHTML = restoreBtn + textModeHTML(pick, p) + stockHTML(p.makat);
   }
   return el;
 }
@@ -493,15 +522,22 @@ function refreshSlot(el, pick, section) {
     el.innerHTML = `
       <img class="slot-img" src="${photoUrl}" alt="${p.makat}"
            onerror="this.closest('.slot').classList.remove('has-photo'); this.closest('.slot').classList.add('text-mode'); renderTextMode(this.closest('.slot'), ${pick});">
+      <button onclick="hidePhoto('${p.makat}',${pick},'${section}')" title="הסר תמונה"
+        style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.45);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">✕</button>
       <div class="slot-id">
         <span class="slot-pick-badge">#${pick}</span>
         <span class="slot-makat-badge">${p.makat}</span>
       </div>
       ${stockHTML(p.makat)}`;
   } else {
+    const hasRealPhoto = !!makatEan[String(p.makat)] && !!photoMap[makatEan[String(p.makat)]];
+    const restoreBtn  = hiddenPhotos.has(String(p.makat)) && hasRealPhoto
+      ? `<button onclick="showPhoto('${p.makat}',${pick},'${section}')" title="שחזר תמונה"
+           style="position:absolute;top:2px;left:2px;background:rgba(26,110,245,0.7);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">📷</button>`
+      : '';
     el.className = 'slot text-mode';
     el.style.background = famColor(p.fam);
-    el.innerHTML = textModeHTML(pick, p) + stockHTML(p.makat);
+    el.innerHTML = restoreBtn + textModeHTML(pick, p) + stockHTML(p.makat);
   }
 }
 
