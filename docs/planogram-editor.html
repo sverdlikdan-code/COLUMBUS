@@ -137,6 +137,7 @@
   <button class="tab active" onclick="switchTab('kapua',this)">קפוא ❄️</button>
   <button class="tab"        onclick="switchTab('halavi',this)">חלבי 🥛</button>
   <button class="tab"        onclick="switchTab('dagim',this)">דגים 🐟</button>
+  <button class="tab"        onclick="switchTab('yavesh',this)">דג יבש 🧂</button>
 </div>
 
 <div class="toolbar">
@@ -149,6 +150,7 @@
 <div id="sec-kapua"  class="section active"><div id="grid-kapua"  class="warehouse-grid"></div></div>
 <div id="sec-halavi" class="section">       <div id="grid-halavi" class="warehouse-grid"></div></div>
 <div id="sec-dagim"  class="section">       <div id="grid-dagim"  class="warehouse-grid"></div></div>
+<div id="sec-yavesh" class="section">       <div id="grid-yavesh" class="warehouse-grid"></div></div>
 
 <div class="legend" id="legend"></div>
 
@@ -166,6 +168,8 @@ const FAM_COLORS = {
   'SANTA BREMOR דגים':'#D0F0FF','PRESIDENT':'#FCE4EC','SVALIA תנמש':'#E3F2FD',
   'SVALIA גורובט':'#F3E5F5','SVALIA תוסורפ':'#F1F8E9','SVALIA הניבג':'#FFF8E1',
   'NORD PORT':'#E0F7FA','NORD PORT מצונן':'#B2DFEE','SANTA BREMOR Fish':'#FFE0B2',
+  'דגים KAZAHSTAN':'#FFF3CD','דגים RUSSIA':'#FFE4B5','דגים פודסטוק':'#FFDAB9',
+  'דגים RUSSIAN SEA':'#FFD8A8',
 };
 function famColor(fam) {
   if (!fam) return '#F5F5F5';
@@ -296,6 +300,7 @@ const DAGIM_MAX = { cols:26, rows:3 };
 let photoMap    = {};   // EAN  → { id, url }
 let makatEan    = {};   // מקט  → EAN
 let productData = {};   // מקט  → { stock, daySales, kratnost, palStock }
+let dyBase      = {};   // pick → { makat, fam, name }  — דג יבש base data
 
 function getPhotoUrl(makat) {
   const ean = makatEan[String(makat)];
@@ -317,16 +322,18 @@ function stockHTML(makat) {
 async function loadMaps() {
   const base = './';
   try {
-    const [pm, me, pd] = await Promise.all([
-      fetch(base + 'photo-map.json?t='    + Date.now()).then(r => r.ok ? r.json() : {}),
-      fetch(base + 'makat-ean.json?t='    + Date.now()).then(r => r.ok ? r.json() : {}),
-      fetch(base + 'product-data.json?t=' + Date.now()).then(r => r.ok ? r.json() : {}),
+    const [pm, me, pd, dy] = await Promise.all([
+      fetch(base + 'photo-map.json?t='          + Date.now()).then(r => r.ok ? r.json() : {}),
+      fetch(base + 'makat-ean.json?t='          + Date.now()).then(r => r.ok ? r.json() : {}),
+      fetch(base + 'product-data.json?t='       + Date.now()).then(r => r.ok ? r.json() : {}),
+      fetch(base + 'dagim-yavesh-base.json?t='  + Date.now()).then(r => r.ok ? r.json() : {}),
     ]);
     photoMap    = pm;
     makatEan    = me;
     productData = pd;
+    dyBase      = dy;
     const cnt = Object.keys(photoMap).length;
-    console.log(`Photos: ${cnt} EANs | Stock: ${Object.keys(pd).length} מקטים`);
+    console.log(`Photos: ${cnt} EANs | Stock: ${Object.keys(pd).length} | DY: ${Object.keys(dy).length}`);
     return cnt;
   } catch(e) {
     console.warn('Maps not available:', e.message);
@@ -343,6 +350,7 @@ let state = {
   kapua:  deepClone(KAPUA_BASE),
   halavi: {},
   dagim:  {},
+  yavesh: {},
 };
 try {
   const saved = JSON.parse(localStorage.getItem('mahsan_editor') || 'null');
@@ -464,7 +472,15 @@ function renderGrid(section, layoutMap, maxCols, maxRows) {
 // ══════════════════════════════════════════════════════════════════════════
 // TABS
 // ══════════════════════════════════════════════════════════════════════════
-const rendered = { kapua:false, halavi:false, dagim:false };
+const rendered = { kapua:false, halavi:false, dagim:false, yavesh:false };
+
+// Build sequential grid layout: cols wide, row per cols items
+function makeSeqLayout(count, cols) {
+  const layout = {};
+  for (let i = 1; i <= count; i++)
+    layout[i] = { r: Math.ceil(i / cols), c: ((i - 1) % cols) + 1 };
+  return layout;
+}
 
 function switchTab(name, tabEl) {
   window._currentSection = name;
@@ -477,6 +493,15 @@ function switchTab(name, tabEl) {
     if (name === 'kapua')  renderGrid('kapua',  KAPUA_LAYOUT,  KAPUA_MAX.cols,  KAPUA_MAX.rows);
     if (name === 'halavi') renderGrid('halavi', HALAVI_LAYOUT, HALAVI_MAX.cols, HALAVI_MAX.rows);
     if (name === 'dagim')  renderGrid('dagim',  DAGIM_LAYOUT,  DAGIM_MAX.cols,  DAGIM_MAX.rows);
+    if (name === 'yavesh') {
+      // Populate state from base data if not yet loaded from localStorage
+      if (!Object.keys(state.yavesh).length)
+        Object.assign(state.yavesh, deepClone(dyBase));
+      const count = Object.keys(state.yavesh).length;
+      const COLS  = 10;
+      const lay   = makeSeqLayout(count, COLS);
+      renderGrid('yavesh', lay, COLS, Math.ceil(count / COLS));
+    }
   }
   setStatus('מוכן לעריכה');
 }
@@ -509,13 +534,20 @@ function saveState() {
 function resetSection() {
   const sec = window._currentSection || 'kapua';
   if (!confirm(`לאפס את ${sec}?`)) return;
-  if (sec === 'kapua') { state.kapua = deepClone(KAPUA_BASE); }
+  if (sec === 'kapua')       { state.kapua  = deepClone(KAPUA_BASE); }
   else if (sec === 'halavi') { state.halavi = {}; }
   else if (sec === 'dagim')  { state.dagim  = {}; }
+  else if (sec === 'yavesh') { state.yavesh = deepClone(dyBase); }
   rendered[sec] = true;
-  const layouts = {kapua:[KAPUA_LAYOUT,KAPUA_MAX],halavi:[HALAVI_LAYOUT,HALAVI_MAX],dagim:[DAGIM_LAYOUT,DAGIM_MAX]};
-  const [lay, mx] = layouts[sec];
-  renderGrid(sec, lay, mx.cols, mx.rows);
+  if (sec === 'yavesh') {
+    const count = Object.keys(state.yavesh).length;
+    const COLS  = 10;
+    renderGrid('yavesh', makeSeqLayout(count, COLS), COLS, Math.ceil(count / COLS));
+  } else {
+    const layouts = {kapua:[KAPUA_LAYOUT,KAPUA_MAX],halavi:[HALAVI_LAYOUT,HALAVI_MAX],dagim:[DAGIM_LAYOUT,DAGIM_MAX]};
+    const [lay, mx] = layouts[sec];
+    renderGrid(sec, lay, mx.cols, mx.rows);
+  }
 }
 
 function setStatus(msg) { document.getElementById('status').textContent = msg; }
