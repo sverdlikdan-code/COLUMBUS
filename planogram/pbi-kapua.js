@@ -260,4 +260,4 @@ async function fetchPakuotForMakats(makatim) {
   return result;
 }
 
-module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchPakuotForMakats };
+module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchPakuotForMakats, getToken };

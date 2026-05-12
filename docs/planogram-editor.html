@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MAHSAN EDITOR — FORMULA</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #eef2f7; min-height: 100vh; }
+
+    /* Header */
+    .header {
+      background: #1a1a2e; color: #fff;
+      padding: 10px 16px; display: flex; align-items: center; gap: 12px;
+      position: sticky; top: 0; z-index: 200;
+    }
+    .header h1 { font-size: 16px; letter-spacing: 1px; }
+    .badge { background: #1a6ef5; padding: 3px 10px; border-radius: 12px; font-size: 11px; }
+
+    /* Tabs */
+    .tabs {
+      display: flex; gap: 2px; padding: 10px 16px 0;
+      background: #fff; border-bottom: 2px solid #dde0e8;
+    }
+    .tab {
+      padding: 8px 20px; border: none; border-radius: 6px 6px 0 0;
+      font-size: 13px; font-weight: bold; cursor: pointer;
+      background: #e8eaf0; color: #666;
+    }
+    .tab.active { background: #1a6ef5; color: #fff; }
+
+    /* Toolbar */
+    .toolbar {
+      display: flex; gap: 8px; padding: 10px 16px;
+      background: #fff; border-bottom: 1px solid #eee; flex-wrap: wrap;
+      align-items: center;
+    }
+    .btn { padding: 7px 14px; border-radius: 6px; border: none; font-size: 12px; font-weight: bold; cursor: pointer; }
+    .btn-export { background: #1a6ef5; color: #fff; }
+    .btn-save   { background: #1a8a1a; color: #fff; }
+    .btn-reset  { background: #fff; color: #888; border: 1px solid #ccc; }
+    .status { font-size: 11px; color: #888; flex: 1; direction: ltr; text-align: left; }
+
+    /* Sections */
+    .section { display: none; padding: 16px; overflow-x: auto; }
+    .section.active { display: block; }
+
+    /* Grid */
+    .warehouse-grid { display: grid; gap: 6px; width: max-content; min-width: 100%; }
+
+    /* ── Slot card ── */
+    .slot {
+      border-radius: 8px;
+      width: 100px;
+      min-height: 120px;
+      cursor: grab;
+      user-select: none;
+      touch-action: none;
+      border: 2px solid rgba(0,0,0,0.08);
+      display: flex; flex-direction: column; align-items: stretch;
+      overflow: hidden;
+      transition: box-shadow 0.12s, transform 0.1s;
+      background: #f0f0f0;
+      position: relative;
+    }
+    .slot:active { cursor: grabbing; }
+
+    /* Photo mode */
+    .slot.has-photo { background: #fff; border-color: rgba(0,0,0,0.10); }
+    .slot.has-photo .slot-img {
+      width: 100%; height: 68px; object-fit: cover;
+      display: block; border-radius: 6px 6px 0 0; flex-shrink: 0;
+    }
+    .slot.has-photo .slot-id {
+      padding: 2px 5px; display: flex; align-items: center; gap: 4px;
+      background: rgba(0,0,0,0.035); flex-shrink: 0;
+    }
+    .slot-pick-badge  { font-size: 9px; color: #888; }
+    .slot-makat-badge { font-size: 10px; font-weight: bold; color: #222; }
+
+    /* Text mode */
+    .slot.text-mode { padding: 5px 6px; flex-direction: column; }
+    .slot.text-mode .s-pick  { font-size: 10px; color: #777; font-weight: bold; }
+    .slot.text-mode .s-makat { font-size: 11px; color: #333; margin: 1px 0; }
+    .slot.text-mode .s-name  {
+      font-size: 9px; color: #111; font-weight: bold; line-height: 1.3;
+      flex: 1; word-break: break-word;
+    }
+
+    /* Stock info bar — shown in both modes */
+    .slot-stock {
+      font-size: 9px; padding: 3px 5px; margin-top: auto; flex-shrink: 0;
+      border-top: 1px solid rgba(0,0,0,0.07);
+      background: rgba(255,255,255,0.5);
+      line-height: 1.5;
+    }
+    .slot-stock .s-kart  { color: #333; }
+    .slot-stock .s-pal   { color: #1a6ef5; font-weight: bold; }
+    .slot-stock .s-krat  { color: #888; }
+    .slot-stock .s-zero  { color: #cc0000; font-weight: bold; }
+
+    /* Empty slot */
+    .slot.slot-empty {
+      background: #f7f7f7 !important; border: 2px dashed #ddd !important;
+      opacity: 0.4; cursor: default;
+      justify-content: center; align-items: center;
+    }
+    .slot.slot-empty span { font-size: 10px; color: #bbb; text-align: center; }
+
+    /* Drag states */
+    .sortable-ghost  { opacity: 0.2; }
+    .sortable-chosen { box-shadow: 0 6px 20px rgba(0,0,0,0.25); transform: scale(1.05); z-index: 999; }
+    .sortable-swap   { outline: 3px dashed #1a6ef5; outline-offset: 2px; border-radius: 8px; }
+
+    /* Legend */
+    .legend {
+      display: flex; flex-wrap: wrap; gap: 5px;
+      padding: 10px 16px 16px; background: #fff; border-top: 1px solid #eee;
+    }
+    .leg { display: flex; align-items: center; gap: 3px; font-size: 9px; color: #444; }
+    .leg-dot { width: 10px; height: 10px; border-radius: 2px; border: 1px solid rgba(0,0,0,0.08); }
+
+    @media (max-width: 600px) {
+      .slot { width: 84px; min-height: 108px; }
+      .slot.has-photo .slot-img { height: 56px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>MAHSAN EDITOR</h1>
+  <span class="badge">FORMULA ❄️</span>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('kapua',this)">קפוא ❄️</button>
+  <button class="tab"        onclick="switchTab('halavi',this)">חלבי 🥛</button>
+  <button class="tab"        onclick="switchTab('dagim',this)">דגים 🐟</button>
+</div>
+
+<div class="toolbar">
+  <button class="btn btn-export" onclick="exportCSV()">⬇ CSV</button>
+  <button class="btn btn-save"   onclick="saveState()">💾 שמור</button>
+  <button class="btn btn-reset"  onclick="resetSection()">↩ אפס</button>
+  <span class="status" id="status">טוען...</span>
+</div>
+
+<div id="sec-kapua"  class="section active"><div id="grid-kapua"  class="warehouse-grid"></div></div>
+<div id="sec-halavi" class="section">       <div id="grid-halavi" class="warehouse-grid"></div></div>
+<div id="sec-dagim"  class="section">       <div id="grid-dagim"  class="warehouse-grid"></div></div>
+
+<div class="legend" id="legend"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+<script>
+
+// ══════════════════════════════════════════════════════════════════════════
+// FAMILY COLORS
+// ══════════════════════════════════════════════════════════════════════════
+const FAM_COLORS = {
+  'חמאה FERMA':'#FFF9D5','חמאה רושן':'#FFFCC0','ממרחי חמאה':'#FFFAB0',
+  'בלינצס':'#D4E8FF','כיסונים':'#E8D5F5','בצק':'#FFF0CC','עלי בלינצס':'#D5F0D5',
+  'SANTA BREMOR':'#D5EAF5','חטיף גבינה':'#FFFF9A','עוגות רושן':'#FFD5D5',
+  'עוגות מוזיקה':'#D5FFD5','מוסדי':'#FFDEA0','VALESTA':'#C8C8FF',
+  'SANTA BREMOR דגים':'#D0F0FF','PRESIDENT':'#FCE4EC','SVALIA תנמש':'#E3F2FD',
+  'SVALIA גורובט':'#F3E5F5','SVALIA תוסורפ':'#F1F8E9','SVALIA הניבג':'#FFF8E1',
+  'NORD PORT':'#E0F7FA','NORD PORT מצונן':'#B2DFEE','SANTA BREMOR Fish':'#FFE0B2',
+};
+function famColor(fam) {
+  if (!fam) return '#F5F5F5';
+  for (const k of Object.keys(FAM_COLORS)) if (fam.includes(k)) return FAM_COLORS[k];
+  return '#E8E8E8';
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// KAPUA BASE DATA
+// ══════════════════════════════════════════════════════════════════════════
+const KAPUA_BASE = {
+   1:{makat:'732',   fam:'חמאה FERMA',       name:'חמאה FERMA 82%'},
+   2:{makat:'800',   fam:'חמאה רושן',         name:'חמאה רושן 82%'},
+   3:{makat:'604',   fam:'חמאה רושן',         name:'חמאה רושן 72%'},
+   4:{makat:'736',   fam:'ממרחי חמאה',        name:'ממרח 1'},
+   5:{makat:'803',   fam:'ממרחי חמאה',        name:'ממרח 2'},
+   6:{makat:'802',   fam:'ממרחי חמאה',        name:'ממרח 3'},
+   7:{makat:'739',   fam:'ממרחי חמאה',        name:'ממרח 4'},
+   8:{makat:'740',   fam:'ממרחי חמאה',        name:'ממרח 5'},
+   9:{makat:'1192',  fam:'בלינצס',            name:'בלינצס גבינה'},
+  10:{makat:'1191',  fam:'בלינצס',            name:'בלינצס בשר'},
+  11:{makat:'1190',  fam:'בלינצס',            name:'בלינצס תפוח'},
+  12:{makat:'1193',  fam:'בלינצס',            name:'בלינצס תרד'},
+  13:{makat:'1198',  fam:'בלינצס',            name:'בלינצס פטריות'},
+  14:{makat:'1182',  fam:'כיסונים',           name:'כיסון גבינה'},
+  15:{makat:'1185',  fam:'כיסונים',           name:'כיסון בשר'},
+  16:{makat:'1187',  fam:'כיסונים',           name:'כיסון תפוח'},
+  17:{makat:'1180',  fam:'כיסונים',           name:'כיסון תרד'},
+  18:{makat:'1184',  fam:'כיסונים',           name:'כיסון פטריות'},
+  19:{makat:'1196',  fam:'בצק',               name:'בצק עלים'},
+  20:{makat:'1195',  fam:'בצק',               name:'בצק פשטידה'},
+  21:{makat:'1197',  fam:'בצק',               name:'בצק לחם'},
+  22:{makat:'1194',  fam:'עלי בלינצס',        name:'עלי בלינצס'},
+  23:{makat:'1045',  fam:'SANTA BREMOR דגים', name:'סורימי מקל'},
+  24:{makat:'1046',  fam:'SANTA BREMOR דגים', name:'סורימי לחמניה'},
+  25:{makat:'1030',  fam:'SANTA BREMOR',      name:'SB גבינה'},
+  26:{makat:'1031',  fam:'SANTA BREMOR',      name:'SB שמנת'},
+  27:{makat:'1034',  fam:'SANTA BREMOR',      name:'SB ירקות'},
+  28:{makat:'1036',  fam:'SANTA BREMOR',      name:'SB מוצרלה'},
+  29:{makat:'1035',  fam:'SANTA BREMOR',      name:'SB עגבניות'},
+  30:{makat:'1033',  fam:'SANTA BREMOR',      name:'SB שיפון'},
+  31:{makat:'1032',  fam:'SANTA BREMOR',      name:'SB חסה'},
+  32:{makat:'1037',  fam:'SANTA BREMOR',      name:'SB פלפל'},
+  33:{makat:'420004',fam:'עוגות רושן',        name:'עוגת גבינה'},
+  34:{makat:'420003',fam:'עוגות רושן',        name:'עוגת תפוחים'},
+  35:{makat:'420008',fam:'עוגות רושן',        name:'עוגת פאי'},
+  36:{makat:'420007',fam:'עוגות רושן',        name:'עוגת שוקולד'},
+  37:{makat:'420005',fam:'עוגות רושן',        name:'עוגת גזר'},
+  38:{makat:'420006',fam:'עוגות רושן',        name:'עוגת לימון'},
+  39:{makat:'420001',fam:'עוגות מוזיקה',      name:'מוזיקה 1'},
+  40:{makat:'420002',fam:'עוגות מוזיקה',      name:'מוזיקה 2'},
+  41:{makat:'818',   fam:'חטיף גבינה',        name:'חטיף א'},
+  42:{makat:'815',   fam:'חטיף גבינה',        name:'חטיף ב'},
+  43:{makat:'816',   fam:'חטיף גבינה',        name:'חטיף ג'},
+  44:{makat:'817',   fam:'חטיף גבינה',        name:'חטיף ד'},
+  45:{makat:'1051',  fam:'SANTA BREMOR דגים', name:'סורימי סטיק'},
+  46:{makat:'1213',  fam:'VALESTA',           name:'VALESTA 1'},
+  47:{makat:'1214',  fam:'VALESTA',           name:'VALESTA 2'},
+  48:{makat:'1215',  fam:'VALESTA',           name:'VALESTA 3'},
+  49:{makat:'1216',  fam:'VALESTA',           name:'VALESTA 4'},
+  50:{makat:'1211',  fam:'מוסדי',             name:'מוסדי א'},
+  51:{makat:'1209',  fam:'מוסדי',             name:'מוסדי ב'},
+  52:{makat:'1208',  fam:'מוסדי',             name:'מוסדי ג'},
+  53:{makat:'1217',  fam:'VALESTA',           name:'VALESTA 5'},
+  54:{makat:'1218',  fam:'VALESTA',           name:'VALESTA 6'},
+};
+
+// ══════════════════════════════════════════════════════════════════════════
+// GRID LAYOUTS  (pick → {r, c})  — from MAHSAN 8.xlsx
+// ══════════════════════════════════════════════════════════════════════════
+const KAPUA_LAYOUT = {
+   1:{r:1,c:1},  2:{r:1,c:2},  3:{r:1,c:3},  4:{r:1,c:4},  5:{r:1,c:5},
+   6:{r:1,c:6},  7:{r:1,c:7},  8:{r:1,c:8},  9:{r:1,c:9}, 10:{r:1,c:10},
+  11:{r:1,c:11},12:{r:1,c:12},13:{r:1,c:13},14:{r:1,c:14},15:{r:1,c:15},
+  16:{r:1,c:16},17:{r:1,c:17},
+  18:{r:2,c:18},19:{r:3,c:18},20:{r:4,c:18},21:{r:5,c:18},
+  22:{r:6,c:17},23:{r:6,c:16},24:{r:6,c:15},25:{r:6,c:14},
+  26:{r:6,c:13},27:{r:6,c:12},28:{r:6,c:11},29:{r:6,c:10},
+  30:{r:6,c:9}, 31:{r:6,c:8}, 32:{r:6,c:7}, 33:{r:6,c:6},
+  34:{r:6,c:5}, 35:{r:6,c:4},
+  36:{r:7,c:4}, 37:{r:7,c:5}, 38:{r:7,c:6}, 39:{r:7,c:7},
+  40:{r:7,c:8}, 41:{r:7,c:9}, 42:{r:7,c:10},43:{r:7,c:11},
+  44:{r:7,c:12},45:{r:7,c:13},46:{r:7,c:14},47:{r:7,c:15},
+  48:{r:7,c:16},49:{r:7,c:17},
+  50:{r:9,c:5}, 51:{r:9,c:4}, 52:{r:9,c:3}, 53:{r:9,c:2}, 54:{r:9,c:1},
+};
+const KAPUA_MAX = { cols:18, rows:9 };
+
+const HALAVI_LAYOUT = {
+   1:{r:4,c:1},  2:{r:4,c:2},  3:{r:4,c:3},  4:{r:4,c:4},
+   5:{r:4,c:5},  6:{r:4,c:6},  7:{r:4,c:7},  8:{r:4,c:8},
+   9:{r:4,c:9}, 10:{r:4,c:10},11:{r:4,c:11},12:{r:4,c:12},
+  13:{r:3,c:12},14:{r:3,c:11},15:{r:3,c:10},16:{r:3,c:9},
+  17:{r:3,c:8}, 18:{r:3,c:7}, 19:{r:3,c:6}, 20:{r:3,c:5},
+  21:{r:3,c:4}, 22:{r:3,c:3}, 23:{r:3,c:2}, 24:{r:3,c:1},
+  25:{r:2,c:1}, 26:{r:2,c:2}, 27:{r:2,c:3}, 28:{r:2,c:4},
+  29:{r:2,c:5}, 30:{r:2,c:6}, 31:{r:2,c:7}, 32:{r:2,c:8},
+  33:{r:2,c:9}, 34:{r:2,c:10},35:{r:2,c:11},36:{r:2,c:12},
+  37:{r:1,c:12},38:{r:1,c:11},39:{r:1,c:10},40:{r:1,c:9},
+  41:{r:1,c:8}, 42:{r:1,c:7}, 43:{r:1,c:6}, 44:{r:1,c:5},
+  45:{r:1,c:4}, 46:{r:1,c:3}, 47:{r:1,c:2}, 48:{r:1,c:1},
+};
+const HALAVI_MAX = { cols:12, rows:4 };
+
+const DAGIM_LAYOUT = {
+   1:{r:1,c:25}, 2:{r:1,c:24}, 3:{r:1,c:23}, 4:{r:1,c:22},
+   5:{r:1,c:21}, 6:{r:1,c:20}, 7:{r:1,c:19}, 8:{r:1,c:18},
+  15:{r:2,c:25},16:{r:2,c:24},17:{r:2,c:23},18:{r:2,c:22},
+  19:{r:2,c:21},20:{r:2,c:20},24:{r:2,c:19},25:{r:2,c:18},
+  26:{r:2,c:17},27:{r:2,c:16},31:{r:2,c:15},32:{r:2,c:14},
+  33:{r:2,c:13},34:{r:2,c:12},35:{r:2,c:11},36:{r:2,c:10},
+  45:{r:2,c:9}, 46:{r:2,c:8}, 47:{r:2,c:7}, 48:{r:2,c:6},
+  49:{r:2,c:5}, 50:{r:2,c:4}, 54:{r:2,c:3}, 55:{r:2,c:2},
+   9:{r:3,c:26},10:{r:3,c:25},11:{r:3,c:24},12:{r:3,c:23},
+  13:{r:3,c:22},14:{r:3,c:21},21:{r:3,c:20},22:{r:3,c:19},
+  23:{r:3,c:18},28:{r:3,c:17},29:{r:3,c:16},30:{r:3,c:15},
+  37:{r:3,c:13},38:{r:3,c:12},39:{r:3,c:11},40:{r:3,c:10},
+  41:{r:3,c:9}, 42:{r:3,c:8}, 43:{r:3,c:7}, 44:{r:3,c:6},
+  51:{r:3,c:5}, 52:{r:3,c:4}, 53:{r:3,c:3}, 56:{r:3,c:2}, 57:{r:3,c:1},
+};
+const DAGIM_MAX = { cols:26, rows:3 };
+
+// ══════════════════════════════════════════════════════════════════════════
+// PHOTO MAPS  — loaded from static JSON files generated by build scripts
+// photo-map.json:  { "4810168045623": { id, url } }
+// makat-ean.json:  { "732": "4810168045623" }
+// ══════════════════════════════════════════════════════════════════════════
+let photoMap    = {};   // EAN  → { id, url }
+let makatEan    = {};   // מקט  → EAN
+let productData = {};   // מקט  → { stock, daySales, kratnost, palStock }
+
+function getPhotoUrl(makat) {
+  const ean = makatEan[String(makat)];
+  if (!ean) return null;
+  const entry = photoMap[String(ean)];
+  return entry ? entry.url : null;
+}
+
+function stockHTML(makat) {
+  const d = productData[String(makat)];
+  if (!d) return '';
+  if (d.stock === 0) return `<div class="slot-stock"><span class="s-zero">אפס מלאי</span></div>`;
+  const kartLine = d.stock  != null ? `<span class="s-kart">${d.stock}קרט</span>` : '';
+  const palLine  = d.palStock != null ? ` <span class="s-pal">${d.palStock}PAL</span>` : '';
+  const kratLine = d.kratnost > 0   ? `<span class="s-krat">PAL=${d.kratnost}</span>` : '';
+  return `<div class="slot-stock">${kartLine}${palLine}<br>${kratLine}</div>`;
+}
+
+async function loadMaps() {
+  const base = './';
+  try {
+    const [pm, me, pd] = await Promise.all([
+      fetch(base + 'photo-map.json?t='    + Date.now()).then(r => r.ok ? r.json() : {}),
+      fetch(base + 'makat-ean.json?t='    + Date.now()).then(r => r.ok ? r.json() : {}),
+      fetch(base + 'product-data.json?t=' + Date.now()).then(r => r.ok ? r.json() : {}),
+    ]);
+    photoMap    = pm;
+    makatEan    = me;
+    productData = pd;
+    const cnt = Object.keys(photoMap).length;
+    console.log(`Photos: ${cnt} EANs | Stock: ${Object.keys(pd).length} מקטים`);
+    return cnt;
+  } catch(e) {
+    console.warn('Maps not available:', e.message);
+    return 0;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════════════════
+function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
+
+let state = {
+  kapua:  deepClone(KAPUA_BASE),
+  halavi: {},
+  dagim:  {},
+};
+try {
+  const saved = JSON.parse(localStorage.getItem('mahsan_editor') || 'null');
+  if (saved) { Object.assign(state, saved); }
+} catch(e) {}
+
+// ══════════════════════════════════════════════════════════════════════════
+// SLOT RENDERING
+// ══════════════════════════════════════════════════════════════════════════
+function makeSlot(pick, p) {
+  const el = document.createElement('div');
+  el.dataset.pick = pick;
+  if (!p) {
+    el.className = 'slot slot-empty';
+    el.innerHTML = `<span>#${pick}<br>פנוי</span>`;
+    return el;
+  }
+  const photoUrl = getPhotoUrl(p.makat);
+  if (photoUrl) {
+    el.className = 'slot has-photo';
+    el.innerHTML = `
+      <img class="slot-img" src="${photoUrl}" alt="${p.makat}"
+           onerror="this.closest('.slot').classList.remove('has-photo'); this.closest('.slot').classList.add('text-mode'); renderTextMode(this.closest('.slot'), ${pick});">
+      <div class="slot-id">
+        <span class="slot-pick-badge">#${pick}</span>
+        <span class="slot-makat-badge">${p.makat}</span>
+      </div>
+      ${stockHTML(p.makat)}`;
+  } else {
+    el.className = 'slot text-mode';
+    el.style.background = famColor(p.fam);
+    el.innerHTML = textModeHTML(pick, p) + stockHTML(p.makat);
+  }
+  return el;
+}
+
+function textModeHTML(pick, p) {
+  return `<span class="s-pick">#${pick}</span>
+          <span class="s-makat">${p.makat}</span>
+          <span class="s-name">${p.name || ''}</span>
+          <span class="s-fam">${p.fam || ''}</span>`;
+}
+
+// Called from onerror handler when image fails to load
+window.renderTextMode = function(el, pick) {
+  const section = window._currentSection || 'kapua';
+  const p = state[section][pick];
+  if (p) {
+    el.style.background = famColor(p.fam);
+    el.innerHTML = textModeHTML(pick, p) + stockHTML(p.makat);
+  }
+};
+
+function refreshSlot(el, pick, section) {
+  const p = state[section][pick];
+  el.dataset.pick = pick;
+  if (!p) {
+    el.className = 'slot slot-empty';
+    el.style.background = '';
+    el.innerHTML = `<span>#${pick}<br>פנוי</span>`;
+    return;
+  }
+  const photoUrl = getPhotoUrl(p.makat);
+  if (photoUrl) {
+    el.className = 'slot has-photo';
+    el.style.background = '';
+    el.innerHTML = `
+      <img class="slot-img" src="${photoUrl}" alt="${p.makat}"
+           onerror="this.closest('.slot').classList.remove('has-photo'); this.closest('.slot').classList.add('text-mode'); renderTextMode(this.closest('.slot'), ${pick});">
+      <div class="slot-id">
+        <span class="slot-pick-badge">#${pick}</span>
+        <span class="slot-makat-badge">${p.makat}</span>
+      </div>
+      ${stockHTML(p.makat)}`;
+  } else {
+    el.className = 'slot text-mode';
+    el.style.background = famColor(p.fam);
+    el.innerHTML = textModeHTML(pick, p) + stockHTML(p.makat);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// RENDER GRID
+// ══════════════════════════════════════════════════════════════════════════
+const sortables = {};
+
+function renderGrid(section, layoutMap, maxCols, maxRows) {
+  const container = document.getElementById('grid-' + section);
+  container.style.gridTemplateColumns = `repeat(${maxCols}, 96px)`;
+  container.style.gridTemplateRows    = `repeat(${maxRows}, auto)`;
+  container.innerHTML = '';
+
+  for (const [pickStr, pos] of Object.entries(layoutMap)) {
+    const el = makeSlot(parseInt(pickStr), state[section][parseInt(pickStr)]);
+    el.style.gridColumn = pos.c;
+    el.style.gridRow    = pos.r;
+    container.appendChild(el);
+  }
+
+  if (sortables[section]) sortables[section].destroy();
+  sortables[section] = Sortable.create(container, {
+    swap: true, swapThreshold: 0.6, animation: 120,
+    ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen', swapClass: 'sortable-swap',
+    onEnd(evt) {
+      const fromPick = parseInt(evt.item.dataset.pick);
+      if (!evt.swapItem) return;
+      const toPick = parseInt(evt.swapItem.dataset.pick);
+      if (fromPick === toPick) return;
+      const tmp = state[section][fromPick] ? {...state[section][fromPick]} : null;
+      state[section][fromPick] = state[section][toPick] ? {...state[section][toPick]} : null;
+      state[section][toPick]   = tmp;
+      refreshSlot(evt.item,     fromPick, section);
+      refreshSlot(evt.swapItem, toPick,   section);
+      setStatus(`✅ #${fromPick} ↔ #${toPick}`);
+    }
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════════════════════════════
+const rendered = { kapua:false, halavi:false, dagim:false };
+
+function switchTab(name, tabEl) {
+  window._currentSection = name;
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  tabEl.classList.add('active');
+  if (!rendered[name]) {
+    rendered[name] = true;
+    if (name === 'kapua')  renderGrid('kapua',  KAPUA_LAYOUT,  KAPUA_MAX.cols,  KAPUA_MAX.rows);
+    if (name === 'halavi') renderGrid('halavi', HALAVI_LAYOUT, HALAVI_MAX.cols, HALAVI_MAX.rows);
+    if (name === 'dagim')  renderGrid('dagim',  DAGIM_LAYOUT,  DAGIM_MAX.cols,  DAGIM_MAX.rows);
+  }
+  setStatus('מוכן לעריכה');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// EXPORT / SAVE / RESET
+// ══════════════════════════════════════════════════════════════════════════
+function exportCSV() {
+  const sec  = window._currentSection || 'kapua';
+  const rows = ['﻿' + 'פיק,מקט,שם מוצר,משפחה'];
+  for (const [pick, p] of Object.entries(state[sec]).sort((a,b) => +a[0] - +b[0])) {
+    rows.push(p
+      ? `${pick},${p.makat},"${(p.name||'').replace(/"/g,'""')}","${(p.fam||'').replace(/"/g,'""')}"`
+      : `${pick},,,`
+    );
+  }
+  const a = Object.assign(document.createElement('a'), {
+    href:     URL.createObjectURL(new Blob([rows.join('\n')], {type:'text/csv;charset=utf-8'})),
+    download: `planogram-${sec}-${new Date().toISOString().slice(0,10)}.csv`,
+  });
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function saveState() {
+  localStorage.setItem('mahsan_editor', JSON.stringify(state));
+  setStatus('✅ נשמר בדפדפן');
+  setTimeout(() => setStatus('מוכן לעריכה'), 2000);
+}
+
+function resetSection() {
+  const sec = window._currentSection || 'kapua';
+  if (!confirm(`לאפס את ${sec}?`)) return;
+  if (sec === 'kapua') { state.kapua = deepClone(KAPUA_BASE); }
+  else if (sec === 'halavi') { state.halavi = {}; }
+  else if (sec === 'dagim')  { state.dagim  = {}; }
+  rendered[sec] = true;
+  const layouts = {kapua:[KAPUA_LAYOUT,KAPUA_MAX],halavi:[HALAVI_LAYOUT,HALAVI_MAX],dagim:[DAGIM_LAYOUT,DAGIM_MAX]};
+  const [lay, mx] = layouts[sec];
+  renderGrid(sec, lay, mx.cols, mx.rows);
+}
+
+function setStatus(msg) { document.getElementById('status').textContent = msg; }
+
+// ══════════════════════════════════════════════════════════════════════════
+// LEGEND
+// ══════════════════════════════════════════════════════════════════════════
+function buildLegend() {
+  const el = document.getElementById('legend');
+  for (const [fam, color] of Object.entries(FAM_COLORS)) {
+    el.insertAdjacentHTML('beforeend',
+      `<div class="leg"><div class="leg-dot" style="background:${color}"></div><span>${fam}</span></div>`);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// INIT — load maps first, then render
+// ══════════════════════════════════════════════════════════════════════════
+window._currentSection = 'kapua';
+
+(async () => {
+  setStatus('טוען מפת תמונות...');
+  const cnt = await loadMaps();
+  setStatus(cnt > 0 ? `${cnt} תמונות נטענו — מוכן לעריכה` : 'מוכן לעריכה (ללא תמונות)');
+  renderGrid('kapua', KAPUA_LAYOUT, KAPUA_MAX.cols, KAPUA_MAX.rows);
+  rendered.kapua = true;
+  buildLegend();
+})();
+</script>
+</body>
+</html>
