@@ -675,7 +675,7 @@ async function main() {
   // Load קפוא data from Power BI (replaces קפוא.xlsx)
   // stock = cartons at אשדוד only (מחסן Main, no צפון)
   const allMakatim = Object.values(KAPUA_PICKS).map(p => p.makat);
-  const [kapuaData, lastRefreshISO] = await Promise.all([
+  const [{ kapuaData, nameEnMap }, lastRefreshISO] = await Promise.all([
     fetchKapuaFromBI(allMakatim),
     fetchLastRefresh(),
   ]);
@@ -698,6 +698,7 @@ async function main() {
     const src = kapuaData[String(p.makat)];
     if(src) {
       if(!p.desc && src.desc)   p.desc     = src.desc;
+      if(src.nameEn)            p.nameEn   = src.nameEn;
       if(src.daySales != null)  p.daySales = src.daySales;
       p.stock  = src.stock;  // always from BI (0 = zero stock at אשדוד)
       p.pakuot = src.pakuot || [];
@@ -709,7 +710,7 @@ async function main() {
   let newKapuaProds = Object.entries(kapuaData)
     .filter(([, d]) => d.isNew)
     .map(([mk, d]) => ({
-      makat: mk, fam: d.fam || 'קפוא', desc: d.desc,
+      makat: mk, fam: d.fam || 'קפוא', desc: d.desc, nameEn: d.nameEn || null,
       stock: d.stock, daySales: d.daySales, daySalesAll: d.daySalesAll,
       pakuot: d.pakuot || [], pakuotAll: d.pakuotAll || [],
       dayAvg: d.daySales || null, weight: null, ss: null,
@@ -1218,19 +1219,15 @@ async function main() {
 
     const kapuaPicks = {};
     for (const [pickStr, p] of Object.entries(KAPUA_PICKS)) {
-      const name = p.desc
-        ? fixVisualRTL(String(p.desc).replace(/[​-‏‪-‮﻿]/g,'').replace(/\s*\([^)]*\)/g,'').trim())
-        : (p.fam || '');
-      kapuaPicks[pickStr] = { makat: p.makat, fam: p.fam, name };
+      const nameEn = nameEnMap[String(p.makat)] || null;
+      kapuaPicks[pickStr] = { makat: p.makat, fam: p.fam, name: nameEn };
     }
     newKapuaProds.forEach((p, i) => {
       const row = EDITOR_OVERFLOW_ROW + Math.floor(i / EDITOR_COLS);
       const col = (i % EDITOR_COLS) + 1;
       if (row > editorMaxRows) editorMaxRows = row;
-      const name = p.desc
-        ? fixVisualRTL(String(p.desc).replace(/[​-‏‪-‮﻿]/g,'').replace(/\s*\([^)]*\)/g,'').trim())
-        : (p.fam || p.makat);
-      kapuaPicks[String(p.pick)] = { makat: p.makat, fam: p.fam || 'קפוא', name, isNew: true };
+      const nameEn = nameEnMap[String(p.makat)] || null;
+      kapuaPicks[String(p.pick)] = { makat: p.makat, fam: p.fam || 'קפוא', name: nameEn, isNew: true };
       editorLayout[p.pick] = { r: row, c: col };
     });
 
@@ -1253,10 +1250,8 @@ async function main() {
     {
       const hPicks = {};
       for (const [pickStr, p] of Object.entries(halaviProdMapForJSON)) {
-        const name = p.desc
-          ? fixVisualRTL(String(p.desc).replace(/[​-‏‪-‮﻿]/g,'').replace(/\s*\([^)]*\)/g,'').trim())
-          : (p.fam || '');
-        hPicks[pickStr] = { makat: p.makat, fam: p.fam || '', name };
+        const nameEn = nameEnMap[String(p.makat)] || null;
+        hPicks[pickStr] = { makat: p.makat, fam: p.fam || '', name: nameEn };
       }
       fs.writeFileSync(path.join(__dirname,'..','docs','halavi-base.json'),
         JSON.stringify({ picks: hPicks, layout: HALAVI_LAYOUT, maxCols:12, maxRows:4 }), 'utf8');
@@ -1282,10 +1277,8 @@ async function main() {
     {
       const dPicks = {};
       for (const [pickStr, p] of Object.entries(dagimProdMapForJSON)) {
-        const name = p.desc
-          ? fixVisualRTL(String(p.desc).replace(/[​-‏‪-‮﻿]/g,'').replace(/\s*\([^)]*\)/g,'').trim())
-          : (p.fam || '');
-        dPicks[pickStr] = { makat: p.makat, fam: p.fam || '', name };
+        const nameEn = nameEnMap[String(p.makat)] || null;
+        dPicks[pickStr] = { makat: p.makat, fam: p.fam || '', name: nameEn };
       }
       fs.writeFileSync(path.join(__dirname,'..','docs','dagim-base.json'),
         JSON.stringify({ picks: dPicks, layout: DAGIM_LAYOUT, maxCols:26, maxRows:3 }), 'utf8');
