@@ -67,7 +67,7 @@ function percentileThreshold(values, pct) {
 // pakuot: [{date, daysLeft, cartons}]
 function fillCell(cell, pick, makat, fam, dayAvg, daySales, ss, stock, weight, desc, weightThresh, dayThreshHigh, dayThreshMid, kratnost, pctOfTotal, pakuot) {
   const kg   = weight != null ? (+weight).toFixed(2) : '—';
-  const name = desc ? fixVisualRTL(String(desc).replace(/[​-‏‪-‮﻿]/g,'').trim()) : '';
+  const name = desc ? fixVisualRTL(String(desc).replace(/[​-‏‪-‮﻿]/g,'').replace(/\s*\([^)]*\)/g,'').trim()) : '';
 
   // Stars based on קרט/d directly — same unit as threshold (do NOT divide by kratnost)
   const salesForStar = daySales != null ? daySales : dayAvg;
@@ -182,7 +182,7 @@ function emptyCell(cell, pick) {
 
 // Zero-stock cell: product is assigned here but out of stock → red indicator, no data
 function zeroStockCell(cell, pick, makat, desc, fam) {
-  const name = desc ? fixVisualRTL(String(desc).replace(/[​-‏‪-‮﻿]/g,'').trim()) : '';
+  const name = desc ? fixVisualRTL(String(desc).replace(/[​-‏‪-‮﻿]/g,'').replace(/\s*\([^)]*\)/g,'').trim()) : '';
   cell.value = { richText: [
     { text: `#${pick}\n`,        font: { size:8, name:'Arial', color:{ argb:'FF888888' } } },
     { text: `⛔\n`,              font: { size:22, name:'Segoe UI Emoji' } },
