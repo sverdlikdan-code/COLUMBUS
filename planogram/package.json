@@ -6,6 +6,10 @@
     "build": "node build-planogram.js"
   },
   "dependencies": {
+    "dotenv": "^17.4.2",
     "exceljs": "^4.4.0"
+  },
+  "devDependencies": {
+    "sharp": "^0.34.5"
   }
 }
