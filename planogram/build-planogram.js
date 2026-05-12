@@ -3,6 +3,14 @@
  * Клонирует MAHSAN 8.xlsx (3 листа), заменяет числа-пики на данные товара.
  * Сохраняет точную компоновку оригинала.
  */
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
+if (!process.env.PBI_TENANT && process.env.AZURE_TENANT_ID) {
+  process.env.PBI_TENANT    = process.env.AZURE_TENANT_ID;
+  process.env.PBI_CLIENT    = process.env.AZURE_CLIENT_ID;
+  process.env.PBI_SECRET    = process.env.AZURE_CLIENT_SECRET;
+  process.env.PBI_DATASET   = process.env.POWERBI_DATASET_ID;
+  process.env.PBI_WORKSPACE = process.env.POWERBI_WORKSPACE_ID;
+}
 const ExcelJS = require('exceljs');
 const { fetchKapuaFromBI, fetchLastRefresh, fetchPakuotForMakats } = require('./pbi-kapua');
 const { fetchExtraSheets }   = require('./pbi-extra-sheets');
@@ -106,7 +114,7 @@ function fillCell(cell, pick, makat, fam, dayAvg, daySales, ss, stock, weight, d
     if(kratnost > 0) {
       rt.push({ text: `AVG/d: ${kartStr} | ${(daySales/kratnost).toFixed(1)} PAL\n`, font: { ...base, bold:true } });
     } else {
-      rt.push({ text: `AVG/d: ${kartStr}\n`, font: { ...base, bold:true, color:{ argb:'FF884400' } } });
+      rt.push({ text: `AVG/d: ${kartStr}\n`, font: { ...base, bold:true, color:{ argb:'FFCC0000' } } });
     }
   }
 
@@ -161,9 +169,14 @@ function fillCell(cell, pick, makat, fam, dayAvg, daySales, ss, stock, weight, d
     }
   }
 
+  if(kratnost > 0) {
+    rt.push({ text: `PAL Ashdod=${kratnost}ct\n`, font: { ...base, color:{ argb:'FF6688AA' } } });
+  }
+
   cell.value = { richText: rt };
   cell.alignment = { wrapText:true, vertical:'top', horizontal:'right', readingOrder:2 };
   const fc = {argb: famColor(fam)};
+  cell.fill = { type:'pattern', pattern:'solid', fgColor: fc };
   cell.border = {
     top:    {style:'thin'},
     right:  {style:'thin'},
@@ -180,23 +193,22 @@ function emptyCell(cell, pick) {
   cell.border = { top:{style:'thin',color:{argb:'FFE0E0E0'}}, bottom:{style:'thin',color:{argb:'FFE0E0E0'}}, left:{style:'thin',color:{argb:'FFE0E0E0'}}, right:{style:'thin',color:{argb:'FFE0E0E0'}} };
 }
 
-// Zero-stock cell: product is assigned here but out of stock → red indicator, no data
+// Zero-stock cell: reserved slot — gray fill, product name visible
 function zeroStockCell(cell, pick, makat, desc, fam) {
   const name = desc ? fixVisualRTL(String(desc).replace(/[​-‏‪-‮﻿]/g,'').replace(/\s*\([^)]*\)/g,'').trim()) : '';
   cell.value = { richText: [
-    { text: `#${pick}\n`,        font: { size:8, name:'Arial', color:{ argb:'FF888888' } } },
-    { text: `⛔\n`,              font: { size:22, name:'Segoe UI Emoji' } },
-    { text: `אפס מלאי\n`,       font: { bold:true, size:14, name:'Arial', color:{ argb:'FFCC0000' } } },
-    { text: `${makat}\n`,        font: { size:9, name:'Arial', color:{ argb:'FF666666' } } },
-    { text: name,                font: { bold:true, size:9, name:'Arial', color:{ argb:'FF880000' } } },
+    { text: `#${pick}\n`,  font: { size:8, name:'Arial', color:{ argb:'FFAAAAAA' } } },
+    { text: `${makat}\n`,  font: { size:8, name:'Arial', color:{ argb:'FFAAAAAA' } } },
+    { text: `${name}\n`,   font: { bold:true, size:9, name:'Arial', color:{ argb:'FF999999' } } },
+    { text: `אפס מלאי`,   font: { size:9, name:'Arial', color:{ argb:'FF999999' } } },
   ]};
   cell.alignment = { wrapText:true, vertical:'middle', horizontal:'center', readingOrder:2 };
-  cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFDDDD' } };
+  cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFE0E0E0' } };
   cell.border = {
-    top:    { style:'medium', color:{ argb:'FFCC0000' } },
-    right:  { style:'medium', color:{ argb:'FFCC0000' } },
-    bottom: { style:'medium', color:{ argb:'FFCC0000' } },
-    left:   { style:'medium', color:{ argb:'FFCC0000' } },
+    top:    { style:'thin', color:{ argb:'FFCCCCCC' } },
+    right:  { style:'thin', color:{ argb:'FFCCCCCC' } },
+    bottom: { style:'thin', color:{ argb:'FFCCCCCC' } },
+    left:   { style:'thin', color:{ argb:'FFCCCCCC' } },
   };
 }
 
@@ -209,7 +221,10 @@ function assignByLogic(products, nSlots) {
   }
   for(const k of Object.keys(fams))
     fams[k].sort((a,b)=>(b.weight||0)-(a.weight||0));
+  const isValesta = k => /VALEST/i.test(k);
   const order = Object.keys(fams).sort((a,b)=>{
+    if(isValesta(a) && !isValesta(b)) return 1;
+    if(!isValesta(a) && isValesta(b)) return -1;
     const sA = fams[a].reduce((s,p)=>s+(p.dayAvg||0),0);
     const sB = fams[b].reduce((s,p)=>s+(p.dayAvg||0),0);
     return sB-sA;
@@ -306,6 +321,62 @@ function addSeqSheet(wb, sheetName, prodsByPick, headerColor) {
   });
 
   ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: headers.length } };
+}
+
+// ─── Simplified cell: name + מקט + מלאי קרט + מלאי PAL + kratnost ────────
+function fillCellSimple(cell, pick, makat, desc, fam, stock, kratnost) {
+  const name    = desc ? fixVisualRTL(String(desc).replace(/[​-‏‪-‮﻿]/g,'').replace(/\s*\([^)]*\)/g,'').trim()) : '';
+  const palStock = (kratnost > 0 && stock > 0) ? (stock / kratnost).toFixed(1) : null;
+  const rt = [
+    { text: `#${pick}\n`,  font: { size:8, name:'Arial', color:{argb:'FF888888'} } },
+    { text: `${makat}\n`,  font: { size:8, name:'Arial', color:{argb:'FF444444'} } },
+    { text: `${name}\n`,   font: { size:10, bold:true, name:'Arial' } },
+  ];
+  if(stock > 0) {
+    rt.push({ text: `מלאי: ${Math.round(stock)} קרט\n`, font: { size:9, name:'Arial' } });
+    if(palStock) {
+      rt.push({ text: `מלאי: ${palStock} PAL\n`, font: { size:11, bold:true, name:'Arial', color:{argb:'FF1565C0'} } });
+    }
+    if(kratnost > 0) {
+      rt.push({ text: `PAL Ashdod=${kratnost}ct\n`, font: { size:8, name:'Arial', color:{argb:'FF888888'} } });
+    } else {
+      rt.push({ text: `אין נתון PAL\n`, font: { size:8, name:'Arial', color:{argb:'FFCC0000'} } });
+    }
+  } else {
+    rt.push({ text: `אפס מלאי\n`, font: { size:11, bold:true, name:'Arial', color:{argb:'FFCC0000'} } });
+  }
+  cell.value = { richText: rt };
+  cell.alignment = { wrapText:true, vertical:'top', horizontal:'right', readingOrder:2 };
+  const fc = famColor(fam);
+  cell.fill   = { type:'pattern', pattern:'solid', fgColor:{argb: fc} };
+  cell.border = { top:{style:'thin'}, right:{style:'thin'}, bottom:{style:'thin'}, left:{style:'medium', color:{argb: fc}} };
+}
+
+// ─── Apply simplified view to a blank sheet ───────────────────────────────
+function applySimpleSheet(ws, pickMap, prodsByPick, palletMap) {
+  const cols = new Set(); const rows = new Set();
+  for(const [pickStr, pos] of Object.entries(pickMap)) {
+    const pick = parseInt(pickStr);
+    const cell = ws.getCell(pos.row, pos.col);
+    const p = prodsByPick[pick];
+    if(p && p.stock > 0) {
+      const kratnost = palletMap && palletMap[String(p.makat)] || 0;
+      fillCellSimple(cell, pick, p.makat, p.desc, p.fam, p.stock, kratnost);
+    } else if(p) {
+      cell.value = `#${pick}\nאפס מלאי`;
+      cell.alignment = { wrapText:true, vertical:'middle', horizontal:'center' };
+      cell.font  = { size:9, bold:true, color:{argb:'FFCC0000'} };
+      cell.fill  = { type:'pattern', pattern:'solid', fgColor:{argb:'FFFFEEEE'} };
+    } else {
+      cell.value = `#${pick}\nפנוי`;
+      cell.alignment = { wrapText:true, vertical:'middle', horizontal:'center' };
+      cell.font  = { size:9, color:{argb:'FFCCCCCC'} };
+      cell.fill  = { type:'pattern', pattern:'solid', fgColor:{argb:'FFFAFAFA'} };
+    }
+    cols.add(pos.col); rows.add(pos.row);
+  }
+  for(const r of rows) ws.getRow(r).height = 110;
+  for(const c of cols) { const col = ws.getColumn(c); if(!col.width || col.width < 22) col.width = 22; }
 }
 
 // ─── Apply products to a sheet ───────────────────────────────────────────
@@ -691,25 +762,24 @@ async function main() {
     const PINNED = new Set([46,47,48,49,50,51,52,53,54]);
     const regularKeys = Object.keys(KAPUA_PICKS).map(Number).sort((a,b)=>a-b).filter(k=>!PINNED.has(k));
     const pinnedKeys  = Object.keys(KAPUA_PICKS).map(Number).sort((a,b)=>a-b).filter(k=>PINNED.has(k));
-    const kapuaZeroList = [];
-    // Regular: compact fill (skip zero-stock, shift others forward)
-    const regularInStock = regularKeys.map(k=>KAPUA_PICKS[k]).filter(p=>{
-      if(p.stock!=null&&p.stock<=0){ kapuaZeroList.push(p); return false; } return true;
-    });
+    // All products stay in place — zero-stock shown gray, not compacted out
+    const regularAll     = regularKeys.map(k=>KAPUA_PICKS[k]);
     const regularPickNums = picks.filter(p=>!PINNED.has(p));
     const compactedKapua = {};
-    regularPickNums.forEach((pick,i)=>{ if(regularInStock[i]) compactedKapua[pick]=regularInStock[i]; });
-    // Pinned: always at their designated physical position
-    pinnedKeys.forEach(k=>{
-      const p=KAPUA_PICKS[k];
-      if(p.stock!=null&&p.stock<=0){ kapuaZeroList.push(p); } else { compactedKapua[k]=p; }
-    });
+    regularPickNums.forEach((pick,i)=>{ if(regularAll[i]) compactedKapua[pick]=regularAll[i]; });
+    // Pinned: always at their designated physical position (VALESTA + מוסדי)
+    pinnedKeys.forEach(k=>{ compactedKapua[k]=KAPUA_PICKS[k]; });
+    const kapuaZeroList = Object.values(compactedKapua).filter(p=>p.stock!=null&&p.stock<=0);
     console.log(`\nקפוא picks found: ${picks.length} (${picks[0]}..${picks[picks.length-1]}) | total ORD: ${Math.round(kapuaTotalOrd)} | PAL/d: ${kapuaTotalPal.toFixed(1)}`);
     applyToSheet(shKapua, pickCells, compactedKapua, weightThresh, dayThreshHigh, dayThreshMid, palletMap, true, kapuaTotalOrd);
     addZeroStockTable(shKapua, kapuaZeroList);
     addFamilyNavBar(shKapua, pickCells, compactedKapua, refreshLabel);
     shKapua.name = 'MAHSAN 8 קפוא';
     addSeqSheet(wb, 'סדר קפוא', KAPUA_PICKS, 'FFCCE5FF');
+
+    // ── Simplified קפוא sheet ──────────────────────────────────────────────
+    const shSimple = wb.addWorksheet('קפוא מינימלי', { views:[{rightToLeft:true}] });
+    applySimpleSheet(shSimple, pickCells, compactedKapua, palletMap);
   }
 
   // ── SHEET: MAHSAN חלבי ─────────────────────────────────────────────────
@@ -717,24 +787,23 @@ async function main() {
   {
     // Compact fill: zero-stock products skip slots (same rule as קפוא)
     const halaviZeroList = halaviProds.filter(p => p.stock != null && p.stock <= 0);
-    const halaviInStock  = halaviProds.filter(p => !(p.stock != null && p.stock <= 0));
 
     const picksCountScan = Object.keys(collectPickCells(shHalavi)).length;
-    const assigned = assignByLogic(halaviInStock, picksCountScan);
+    const assigned = assignByLogic(halaviProds, picksCountScan);
 
     const prodMapH = {};
     Object.keys(collectPickCells(shHalavi)).map(Number).sort((a,b)=>a-b)
       .forEach((pick,i) => { if(assigned[i]) prodMapH[pick] = assigned[i]; });
 
     const halaviTotalOrd = Object.values(prodMapH).reduce((s,p)=>s+(p.dayAvg||0),0);
-    addSummaryHeader(shHalavi, 'חלבי', halaviTotalOrd, 0, halaviInStock.length, halaviZeroList.length, grandTotalOrd);
+    addSummaryHeader(shHalavi, 'חלבי', halaviTotalOrd, 0, halaviProds.length - halaviZeroList.length, halaviZeroList.length, grandTotalOrd);
     shHalavi.views = [{...((shHalavi.views||[])[0]||{}), state:'frozen', ySplit:1, topLeftCell:'A2'}];
     // rescan after insert
     const pickCells = collectPickCells(shHalavi);
     const picks     = Object.keys(pickCells).map(Number).sort((a,b)=>a-b);
     const prodMap   = {};
     picks.forEach((pick,i) => { if(assigned[i]) prodMap[pick] = assigned[i]; });
-    console.log(`חלבי picks found: ${picks.length} | in-stock: ${halaviInStock.length} | zero: ${halaviZeroList.length} | total ORD: ${Math.round(halaviTotalOrd)}`);
+    console.log(`חלבי picks found: ${picks.length} | in-stock: ${halaviProds.length - halaviZeroList.length} | zero: ${halaviZeroList.length} | total ORD: ${Math.round(halaviTotalOrd)}`);
     applyToSheet(shHalavi, pickCells, prodMap, weightThresh, dayThreshHigh, dayThreshMid, palletMap, true, halaviTotalOrd);
     addZeroStockTable(shHalavi, halaviZeroList);
     addFamilyNavBar(shHalavi, pickCells, prodMap, refreshLabel);
@@ -781,9 +850,9 @@ async function main() {
     // Split by family, filter zero-stock (compact fill — same rule as קפוא/חלבי),
     // sort by weight desc within each
     const inStock = p => !(p.stock != null && p.stock <= 0);
-    const nordPortMatz = dagimProds.filter(p=>p.fam==='NORD PORT מצונן' && inStock(p)).sort((a,b)=>(b.weight||0)-(a.weight||0));
-    const nordPort     = dagimProds.filter(p=>p.fam==='NORD PORT'         && inStock(p)).sort((a,b)=>(b.weight||0)-(a.weight||0));
-    const santaBremor  = dagimProds.filter(p=>p.fam==='SANTA BREMOR Fish' && inStock(p)).sort((a,b)=>(b.weight||0)-(a.weight||0));
+    const nordPortMatz = dagimProds.filter(p=>p.fam==='NORD PORT מצונן').sort((a,b)=>(b.weight||0)-(a.weight||0));
+    const nordPort     = dagimProds.filter(p=>p.fam==='NORD PORT'        ).sort((a,b)=>(b.weight||0)-(a.weight||0));
+    const santaBremor  = dagimProds.filter(p=>p.fam==='SANTA BREMOR Fish').sort((a,b)=>(b.weight||0)-(a.weight||0));
     const dagimZeroList = dagimProds.filter(p=>p.stock!=null&&p.stock<=0);
 
     console.log(`  NORD PORT מצונן: ${nordPortMatz.length} | NORD PORT: ${nordPort.length} | SANTA BREMOR: ${santaBremor.length}`);
@@ -968,6 +1037,39 @@ async function main() {
   if(HIDDEN_SHEETS.length) {
     wb.worksheets.forEach(ws => { if(HIDDEN_SHEETS.includes(ws.name)) ws.state = 'hidden'; });
     if(HIDDEN_SHEETS.length) console.log(`Hidden: ${HIDDEN_SHEETS.join(', ')}`);
+  }
+
+  // ── Export product-data.json for planogram editor ─────────────────────
+  // Includes stock (מחסן אשדוד only) + kratnost per מקט
+  {
+    const fs   = require('fs');
+    const path = require('path');
+    const prodData = {};
+    // קפוא picks
+    for (const [pick, p] of Object.entries(KAPUA_PICKS)) {
+      if (!p.makat) continue;
+      const krat = palletMap[String(p.makat)] || 0;
+      prodData[String(p.makat)] = {
+        stock:     p.stock  != null ? Math.round(p.stock)  : null,
+        daySales:  p.daySales != null ? +p.daySales.toFixed(1) : null,
+        kratnost:  krat,
+        palStock:  (krat > 0 && p.stock > 0) ? +(p.stock / krat).toFixed(1) : null,
+      };
+    }
+    // חלבי + דגים
+    for (const p of [...halaviProds, ...dagimProds]) {
+      if (!p.makat) continue;
+      const krat = palletMap[String(p.makat)] || 0;
+      prodData[String(p.makat)] = {
+        stock:    p.stock    != null ? Math.round(p.stock)    : null,
+        daySales: p.daySales != null ? +p.daySales.toFixed(1) : null,
+        kratnost: krat,
+        palStock: (krat > 0 && p.stock > 0) ? +(p.stock / krat).toFixed(1) : null,
+      };
+    }
+    const outPath = path.join(__dirname, '..', 'docs', 'product-data.json');
+    fs.writeFileSync(outPath, JSON.stringify(prodData, null, 2), 'utf8');
+    console.log(`product-data.json: ${Object.keys(prodData).length} מקטים → ${outPath}`);
   }
 
   // Write output
