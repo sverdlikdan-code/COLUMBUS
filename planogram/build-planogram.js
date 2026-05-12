@@ -104,9 +104,9 @@ function fillCell(cell, pick, makat, fam, dayAvg, daySales, ss, stock, weight, d
   if(daySales != null) {
     const kartStr = daySales.toFixed(1);
     if(kratnost > 0) {
-      rt.push({ text: `AVG/d: ${kartStr} קרט | ${(daySales/kratnost).toFixed(1)} PAL\n`, font: { ...base, bold:true } });
+      rt.push({ text: `AVG/d: ${kartStr} | ${(daySales/kratnost).toFixed(1)} PAL\n`, font: { ...base, bold:true } });
     } else {
-      rt.push({ text: `AVG/d: ${kartStr} קרט\n`, font: { ...base, bold:true, color:{ argb:'FF884400' } } });
+      rt.push({ text: `AVG/d: ${kartStr}\n`, font: { ...base, bold:true, color:{ argb:'FF884400' } } });
     }
   }
 
