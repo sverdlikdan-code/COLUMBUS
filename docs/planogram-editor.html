@@ -131,6 +131,7 @@
 <div class="header">
   <h1>MAHSAN EDITOR</h1>
   <span class="badge">FORMULA ❄️</span>
+  <span id="refresh-badge" style="margin-right:auto; font-size:13px; font-weight:bold; color:#7dd3fc; letter-spacing:0.5px;"></span>
 </div>
 
 <div class="tabs">
@@ -375,7 +376,7 @@ function stockHTML(makat) {
 async function loadMaps() {
   const base = './';
   try {
-    const [pm, me, pd, dy, kb, hb, db] = await Promise.all([
+    const [pm, me, pd, dy, kb, hb, db, ri] = await Promise.all([
       fetch(base + 'photo-map.json?t='         + Date.now()).then(r => r.ok ? r.json() : {}),
       fetch(base + 'makat-ean.json?t='         + Date.now()).then(r => r.ok ? r.json() : {}),
       fetch(base + 'product-data.json?t='      + Date.now()).then(r => r.ok ? r.json() : {}),
@@ -383,6 +384,7 @@ async function loadMaps() {
       fetch(base + 'kapua-base.json?t='        + Date.now()).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(base + 'halavi-base.json?t='       + Date.now()).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(base + 'dagim-base.json?t='        + Date.now()).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(base + 'refresh-info.json?t='      + Date.now()).then(r => r.ok ? r.json() : null).catch(() => null),
     ]);
     photoMap    = pm;
     makatEan    = me;
@@ -424,6 +426,10 @@ async function loadMaps() {
         if (!(pick in state.dagim)) state.dagim[pick] = { ...p };
       }
       console.log(`dagim-base.json: ${Object.keys(db.picks).length} picks`);
+    }
+
+    if (ri && ri.label) {
+      document.getElementById('refresh-badge').textContent = '🔄 ' + ri.label;
     }
 
     const cnt = Object.keys(photoMap).length;

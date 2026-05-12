@@ -1116,6 +1116,18 @@ async function main() {
     const fs   = require('fs');
     const path = require('path');
 
+    // ── refresh-info.json ────────────────────────────────────────────────
+    if (lastRefreshISO) {
+      const d = new Date(lastRefreshISO);
+      const ilFormatted = new Intl.DateTimeFormat('he-IL', {
+        timeZone: 'Asia/Jerusalem',
+        day:'2-digit', month:'2-digit', year:'numeric',
+        hour:'2-digit', minute:'2-digit', hour12:false
+      }).format(d);
+      fs.writeFileSync(path.join(__dirname,'..','docs','refresh-info.json'),
+        JSON.stringify({ iso: lastRefreshISO, label: ilFormatted }), 'utf8');
+    }
+
     // ── product-data.json ────────────────────────────────────────────────
     const prodData = {};
     for (const [, p] of Object.entries(KAPUA_PICKS)) {
