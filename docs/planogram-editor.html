@@ -320,6 +320,10 @@ let makatEan    = {};   // מקט  → EAN
 let productData = {};   // מקט  → { stock, daySales, kratnost, palStock }
 let dyBase      = {};   // pick → { makat, fam, name }  — דג יבש base data
 
+// Base data populated from JSON (used for reset)
+let HALAVI_BASE = {};
+let DAGIM_BASE  = {};
+
 function getPhotoUrl(makat) {
   const ean = makatEan[String(makat)];
   if (!ean) return null;
@@ -340,12 +344,14 @@ function stockHTML(makat) {
 async function loadMaps() {
   const base = './';
   try {
-    const [pm, me, pd, dy, kb] = await Promise.all([
+    const [pm, me, pd, dy, kb, hb, db] = await Promise.all([
       fetch(base + 'photo-map.json?t='         + Date.now()).then(r => r.ok ? r.json() : {}),
       fetch(base + 'makat-ean.json?t='         + Date.now()).then(r => r.ok ? r.json() : {}),
       fetch(base + 'product-data.json?t='      + Date.now()).then(r => r.ok ? r.json() : {}),
       fetch(base + 'dagim-yavesh-base.json?t=' + Date.now()).then(r => r.ok ? r.json() : {}),
       fetch(base + 'kapua-base.json?t='        + Date.now()).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(base + 'halavi-base.json?t='       + Date.now()).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(base + 'dagim-base.json?t='        + Date.now()).then(r => r.ok ? r.json() : null).catch(() => null),
     ]);
     photoMap    = pm;
     makatEan    = me;
@@ -363,6 +369,30 @@ async function loadMaps() {
         if (!(pick in state.kapua)) state.kapua[pick] = { ...p };
       }
       console.log(`kapua-base.json: ${Object.keys(kb.picks).length} picks, maxRows=${kb.maxRows}`);
+    }
+
+    // Apply fresh halavi-base.json
+    if (hb && hb.picks) {
+      Object.assign(HALAVI_BASE,   hb.picks);
+      Object.assign(HALAVI_LAYOUT, hb.layout || {});
+      if (hb.maxCols) HALAVI_MAX.cols = hb.maxCols;
+      if (hb.maxRows) HALAVI_MAX.rows = hb.maxRows;
+      for (const [pick, p] of Object.entries(hb.picks)) {
+        if (!(pick in state.halavi)) state.halavi[pick] = { ...p };
+      }
+      console.log(`halavi-base.json: ${Object.keys(hb.picks).length} picks`);
+    }
+
+    // Apply fresh dagim-base.json
+    if (db && db.picks) {
+      Object.assign(DAGIM_BASE,   db.picks);
+      Object.assign(DAGIM_LAYOUT, db.layout || {});
+      if (db.maxCols) DAGIM_MAX.cols = db.maxCols;
+      if (db.maxRows) DAGIM_MAX.rows = db.maxRows;
+      for (const [pick, p] of Object.entries(db.picks)) {
+        if (!(pick in state.dagim)) state.dagim[pick] = { ...p };
+      }
+      console.log(`dagim-base.json: ${Object.keys(db.picks).length} picks`);
     }
 
     const cnt = Object.keys(photoMap).length;
@@ -570,8 +600,8 @@ function resetSection() {
   const sec = window._currentSection || 'kapua';
   if (!confirm(`לאפס את ${sec}?`)) return;
   if (sec === 'kapua')       { state.kapua  = deepClone(KAPUA_BASE); }
-  else if (sec === 'halavi') { state.halavi = {}; }
-  else if (sec === 'dagim')  { state.dagim  = {}; }
+  else if (sec === 'halavi') { state.halavi = deepClone(HALAVI_BASE); }
+  else if (sec === 'dagim')  { state.dagim  = deepClone(DAGIM_BASE); }
   else if (sec === 'yavesh') { state.yavesh = deepClone(dyBase); }
   rendered[sec] = true;
   if (sec === 'yavesh') {
