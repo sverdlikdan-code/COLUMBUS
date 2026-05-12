@@ -309,7 +309,7 @@ function stockHTML(makat) {
   if (!d) return '';
   if (d.stock === 0) return `<div class="slot-stock"><span class="s-zero">אפס מלאי</span></div>`;
   const kartLine = d.stock  != null ? `<span class="s-kart">${d.stock}קרט</span>` : '';
-  const palLine  = d.palStock != null ? ` <span class="s-pal">${d.palStock}PAL</span>` : '';
+  const palLine  = d.palStock != null ? ` <span class="s-pal">${Math.round(d.palStock)}PAL</span>` : '';
   const kratLine = d.kratnost > 0   ? `<span class="s-krat">PAL=${d.kratnost}</span>` : '';
   return `<div class="slot-stock">${kartLine}${palLine}<br>${kratLine}</div>`;
 }
