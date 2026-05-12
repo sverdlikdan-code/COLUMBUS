@@ -46,7 +46,7 @@
     .section.active { display: block; }
 
     /* Grid */
-    .warehouse-grid { display: grid; gap: 6px; width: max-content; min-width: 100%; }
+    .warehouse-grid { display: grid; gap: 10px; width: max-content; min-width: 100%; }
 
     /* ── Slot card ── */
     .slot {
@@ -209,6 +209,10 @@ function famColor(fam) {
   if (!fam) return '#F5F5F5';
   for (const k of Object.keys(FAM_COLORS)) if (fam.includes(k)) return FAM_COLORS[k];
   return '#E8E8E8';
+}
+function cardBg(makat, fam) {
+  const d = productData[String(makat)];
+  return (d && d.daySales == null) ? '#FFF9C4' : famColor(fam);
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -508,7 +512,7 @@ function makeSlot(pick, p) {
            style="position:absolute;top:2px;left:2px;background:rgba(26,110,245,0.7);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">📷</button>`
       : '';
     el.className = 'slot text-mode';
-    el.style.background = famColor(p.fam);
+    el.style.background = cardBg(p.makat, p.fam);
     el.innerHTML = restoreBtn + textModeHTML(pick, p) + stockHTML(p.makat);
   }
   return el;
@@ -526,7 +530,7 @@ window.renderTextMode = function(el, pick) {
   const section = window._currentSection || 'kapua';
   const p = state[section][pick];
   if (p) {
-    el.style.background = famColor(p.fam);
+    el.style.background = cardBg(p.makat, p.fam);
     el.innerHTML = textModeHTML(pick, p) + stockHTML(p.makat);
   }
 };
@@ -561,7 +565,7 @@ function refreshSlot(el, pick, section) {
            style="position:absolute;top:2px;left:2px;background:rgba(26,110,245,0.7);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">📷</button>`
       : '';
     el.className = 'slot text-mode';
-    el.style.background = famColor(p.fam);
+    el.style.background = cardBg(p.makat, p.fam);
     el.innerHTML = restoreBtn + textModeHTML(pick, p) + stockHTML(p.makat);
   }
 }
