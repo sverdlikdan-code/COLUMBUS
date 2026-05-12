@@ -397,7 +397,7 @@ function stockHTML(makat) {
   const kartLine = d.stock != null ? `<span class="s-kart">${d.stock}קרט</span>` : '';
   const kratLine = d.kratnost > 0 ? `<span class="s-krat"> [${d.kratnost}]</span>` : '';
   const wtLine   = d.weight   != null ? `<span class="s-meta">${d.weight}kg</span>` : '';
-  const daysLine = (d.daysStockAll != null && d.daysStockAll <= 90) ? `<span class="s-meta">${d.daysStockAll}ימ'</span>` : '';
+  const daysLine = d.daysStockAll != null ? `<span class="s-meta">${d.daysStockAll}ימ'</span>` : '';
   const metaLine = (wtLine || daysLine) ? `<div class="slot-meta">${wtLine}${daysLine ? ' · ' + daysLine : ''}</div>` : '';
   const stockLine = (kartLine || kratLine) ? `<div class="slot-kart-line">${kartLine}${kratLine}</div>` : '';
   return `<div class="slot-stock">${palLine}${stockLine}</div>${metaLine}`;
