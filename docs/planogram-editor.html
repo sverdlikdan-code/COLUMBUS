@@ -98,6 +98,8 @@
     .slot-stock .s-pal   { color: #1a6ef5; font-weight: bold; }
     .slot-stock .s-krat  { color: #888; }
     .slot-stock .s-zero  { color: #cc0000; font-weight: bold; }
+    .slot-meta  { font-size: 8px; color: #999; padding: 0 5px 2px; line-height: 1.3; }
+    .slot-meta .s-meta { color: #aaa; }
 
     /* Empty slot */
     .slot.slot-empty {
@@ -384,7 +386,10 @@ function stockHTML(makat) {
   const palLine  = d.palStock != null && d.palStock > 0
     ? `<span class="s-pal">${Math.round(d.palStock)}PAL </span>` : '';
   const kratLine = d.kratnost > 0 ? `<span class="s-krat">/${d.kratnost}</span>` : '';
-  return `<div class="slot-stock">${palLine}${kartLine}${kratLine}</div>`;
+  const wtLine   = d.weight   != null ? `<span class="s-meta">${d.weight}kg</span>` : '';
+  const daysLine = d.daysStockAll != null ? `<span class="s-meta">${d.daysStockAll}d</span>` : '';
+  const metaLine = (wtLine || daysLine) ? `<div class="slot-meta">${wtLine}${daysLine ? ' · ' + daysLine : ''}</div>` : '';
+  return `<div class="slot-stock">${palLine}${kartLine}${kratLine}</div>${metaLine}`;
 }
 
 async function loadMaps() {
