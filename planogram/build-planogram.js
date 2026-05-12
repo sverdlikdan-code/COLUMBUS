@@ -788,6 +788,19 @@ async function main() {
     console.log(`Pallet map loaded: ${Object.keys(palletMap).length} products`);
   }
 
+  // Weight per unit (kg) from FORMULA PALLETS col8
+  const weightMap = {};
+  {
+    const wbPal = new ExcelJS.Workbook();
+    await wbPal.xlsx.readFile('FORMULA PALLETS.xlsx');
+    wbPal.worksheets[0].eachRow((row,r)=>{
+      if(r===1) return;
+      const makat = String(row.getCell(1).value||'');
+      const wt    = parseFloat(row.getCell(8).value||0);
+      if(makat && wt > 0) weightMap[makat] = wt;
+    });
+  }
+
   // Load the template (MAHSAN 8.xlsx — 3 sheets)
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.readFile('MAHSAN 8.xlsx');
@@ -1136,31 +1149,43 @@ async function main() {
     for (const [, p] of Object.entries(KAPUA_PICKS)) {
       if (!p.makat) continue;
       const krat = palletMap[String(p.makat)] || 0;
+      const wt   = weightMap[String(p.makat)] || null;
+      const dsa  = p.daySalesAll != null ? p.daySalesAll : p.daySales;
       prodData[String(p.makat)] = {
-        stock:    p.stock    != null ? Math.round(p.stock)    : null,
-        daySales: p.daySales != null ? +p.daySales.toFixed(1) : null,
-        kratnost: krat,
-        palStock: (krat > 0 && p.stock > 0) ? +(p.stock / krat).toFixed(1) : null,
+        stock:       p.stock    != null ? Math.round(p.stock)    : null,
+        daySales:    p.daySales != null ? +p.daySales.toFixed(1) : null,
+        kratnost:    krat,
+        palStock:    (krat > 0 && p.stock > 0) ? +(p.stock / krat).toFixed(1) : null,
+        weight:      wt != null ? +wt.toFixed(3) : null,
+        daysStockAll: (dsa > 0 && p.stock > 0) ? Math.round(p.stock / dsa) : null,
       };
     }
     for (const p of newKapuaProds) {
       if (!p.makat) continue;
       const krat = palletMap[String(p.makat)] || 0;
+      const wt   = weightMap[String(p.makat)] || null;
+      const dsa  = p.daySalesAll != null ? p.daySalesAll : p.daySales;
       prodData[String(p.makat)] = {
-        stock:    p.stock    != null ? Math.round(p.stock)    : null,
-        daySales: p.daySales != null ? +p.daySales.toFixed(1) : null,
-        kratnost: krat,
-        palStock: (krat > 0 && p.stock > 0) ? +(p.stock / krat).toFixed(1) : null,
+        stock:       p.stock    != null ? Math.round(p.stock)    : null,
+        daySales:    p.daySales != null ? +p.daySales.toFixed(1) : null,
+        kratnost:    krat,
+        palStock:    (krat > 0 && p.stock > 0) ? +(p.stock / krat).toFixed(1) : null,
+        weight:      wt != null ? +wt.toFixed(3) : null,
+        daysStockAll: (dsa > 0 && p.stock > 0) ? Math.round(p.stock / dsa) : null,
       };
     }
     for (const p of [...halaviProds, ...dagimProds]) {
       if (!p.makat) continue;
       const krat = palletMap[String(p.makat)] || 0;
+      const wt   = weightMap[String(p.makat)] || null;
+      const dsa  = p.daySalesAll != null ? p.daySalesAll : p.daySales;
       prodData[String(p.makat)] = {
-        stock:    p.stock    != null ? Math.round(p.stock)    : null,
-        daySales: p.daySales != null ? +p.daySales.toFixed(1) : null,
-        kratnost: krat,
-        palStock: (krat > 0 && p.stock > 0) ? +(p.stock / krat).toFixed(1) : null,
+        stock:       p.stock    != null ? Math.round(p.stock)    : null,
+        daySales:    p.daySales != null ? +p.daySales.toFixed(1) : null,
+        kratnost:    krat,
+        palStock:    (krat > 0 && p.stock > 0) ? +(p.stock / krat).toFixed(1) : null,
+        weight:      wt != null ? +wt.toFixed(3) : null,
+        daysStockAll: (dsa > 0 && p.stock > 0) ? Math.round(p.stock / dsa) : null,
       };
     }
     fs.writeFileSync(path.join(__dirname,'..','docs','product-data.json'),
