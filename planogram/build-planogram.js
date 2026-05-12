@@ -776,11 +776,14 @@ async function main() {
   {
     const wbPal = new ExcelJS.Workbook();
     await wbPal.xlsx.readFile('FORMULA PALLETS.xlsx');
+    // חטיף גבינה: FORMULA PALLETS col10 = cartons/layer; pallet = 9 layers → ×9
+    const PAL_FACTOR_9 = new Set(['815','816','817','818','819','820','821','822','825','826']);
     wbPal.worksheets[0].eachRow((row,r)=>{
       if(r===1) return;
       const makat = String(row.getCell(1).value||'');
       const krat  = parseFloat(row.getCell(10).value||0);
-      if(makat && krat > 0) palletMap[makat] = krat;
+      if(makat && krat > 0)
+        palletMap[makat] = PAL_FACTOR_9.has(makat) ? krat * 9 : krat;
     });
     console.log(`Pallet map loaded: ${Object.keys(palletMap).length} products`);
   }
