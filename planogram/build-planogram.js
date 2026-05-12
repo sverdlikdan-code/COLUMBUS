@@ -12,7 +12,7 @@ if (!process.env.PBI_TENANT && process.env.AZURE_TENANT_ID) {
   process.env.PBI_WORKSPACE = process.env.POWERBI_WORKSPACE_ID;
 }
 const ExcelJS = require('exceljs');
-const { fetchKapuaFromBI, fetchLastRefresh, fetchPakuotForMakats } = require('./pbi-kapua');
+const { fetchKapuaFromBI, fetchLastRefresh, fetchPakuotForMakats, fetchPakuotAllForMakats } = require('./pbi-kapua');
 const { fetchExtraSheets }   = require('./pbi-extra-sheets');
 
 // ─── Sheets to hide in output (set [] when all ready to publish) ──────────
@@ -684,12 +684,18 @@ async function main() {
 
   console.log(`חלבי: ${halaviProds.length} active | דגים: ${dagimProds.length} active`);
 
-  // Fetch pakuot (expiry batches) from BI for חלבי + דגים — same data as קפוא
+  // Fetch pakuot for חלבי + דגים: Main (display) + All warehouses (סכנה)
   {
     const nonKapuaMakats = [...halaviProds, ...dagimProds].map(p => p.makat);
-    const pakuotMap = await fetchPakuotForMakats(nonKapuaMakats);
+    const [pakuotMap, pakuotAllMap] = await Promise.all([
+      fetchPakuotForMakats(nonKapuaMakats),
+      fetchPakuotAllForMakats(nonKapuaMakats),
+    ]);
     for(const p of [...halaviProds, ...dagimProds]) {
-      p.pakuot = pakuotMap[p.makat] || [];
+      p.pakuot    = pakuotMap[p.makat]    || [];
+      p.pakuotAll = pakuotAllMap[p.makat] || [];
+      // daySalesAll for חלבי/דגים = daySales (already company-wide in pbi-extra-sheets)
+      p.daySalesAll = p.daySales;
     }
   }
 
@@ -995,20 +1001,26 @@ async function main() {
     // ── Table 2: סכנת השמדה — Zafn (פק"ע expires before sold at Zafn rate) ───
     renderSakanaSection(sh, zafn.sakana, 'סכנת השמדה — צפון  (פק"ע פגה לפני מכירה)');
 
-    // ── Table 3: סכנת השמדה — Main (all 3 warehouses: קפוא + חלבי + דגים) ────
+    // ── Table 3: סכנת השמדה — all warehouses (pakuotAll + daySalesAll) ────────
+    // Uses all-warehouse stock and all-warehouse sales: "סכנה לכול פקא" logic
     const isDangerProduct = p => {
-      if(!p.pakuot || !p.pakuot.length) return false;
-      return p.pakuot.some(pak => {
+      const paks = p.pakuotAll && p.pakuotAll.length ? p.pakuotAll : (p.pakuot || []);
+      const sales = p.daySalesAll || p.daySales;
+      return paks.some(pak => {
         if(pak.daysLeft == null || pak.cartons <= 0) return false;
-        const sellDays = (p.daySales && p.daySales > 0) ? pak.cartons / p.daySales : Infinity;
+        const sellDays = (sales && sales > 0) ? pak.cartons / sales : Infinity;
         return pak.daysLeft < sellDays;
       });
     };
-    const dangerBatches = p => p.pakuot.filter(pak => {
-      if(pak.daysLeft == null || pak.cartons <= 0) return false;
-      const sellDays = (p.daySales && p.daySales > 0) ? pak.cartons / p.daySales : Infinity;
-      return pak.daysLeft < sellDays;
-    });
+    const dangerBatches = p => {
+      const paks = p.pakuotAll && p.pakuotAll.length ? p.pakuotAll : (p.pakuot || []);
+      const sales = p.daySalesAll || p.daySales;
+      return paks.filter(pak => {
+        if(pak.daysLeft == null || pak.cartons <= 0) return false;
+        const sellDays = (sales && sales > 0) ? pak.cartons / sales : Infinity;
+        return pak.daysLeft < sellDays;
+      });
+    };
     const allMainProds = [
       ...Object.values(KAPUA_PICKS),
       ...halaviProds,
