@@ -28,6 +28,14 @@ const WORKSPACE = process.env.PBI_WORKSPACE;
 // Products 1045/1046/1051 from family 030 are frozen surimi and handled via explicit makat UNION
 const KAPUA_FAM_CODES = ['029','004','026','022','019','035','421','420','046','0191','0190'];
 
+// Family code → display name (for auto-discovered products)
+const KAPUA_FAM_NAMES = {
+  '029':'חמאה FERMA', '004':'חמאה רושן',   '026':'חמאה SVALIA',
+  '022':'ממרחי חמאה', '019':'כיסונים',     '035':'SANTA BREMOR',
+  '421':'עוגות רושן', '420':'עוגות מוזיקה','046':'חטיף גבינה',
+  '0191':'מוסדי',     '0190':'VALESTA',
+};
+
 async function getToken() {
   const res = await fetch(
     `https://login.microsoftonline.com/${TENANT}/oauth2/v2.0/token`,
@@ -60,10 +68,15 @@ async function fetchKapuaFromBI(makatim) {
   // Explicit list adds products whose family (030=chilled) is excluded but specific SKUs are frozen.
   const famCodes    = KAPUA_FAM_CODES.map(c => `"${c}"`).join(',');
   const explicitMks = makatim.map(m => `"${m}"`).join(',');
+  // MLAY[סטטוס] = "פעיל" — exclude discontinued products from auto-discovery.
+  // Explicit makatim (KAPUA_PICKS) bypass this filter intentionally.
   const famMakatim = `
     UNION(
       SELECTCOLUMNS(
-        FILTER(MLAY, CONTAINSROW({${famCodes}}, MLAY[משפחת מוצר])),
+        FILTER(MLAY,
+          CONTAINSROW({${famCodes}}, MLAY[משפחת מוצר]) &&
+          MLAY[סטטוס] = "פעיל"
+        ),
         "mk", MLAY[מק'ט]
       ),
       SELECTCOLUMNS({${explicitMks}}, "mk", [Value])
@@ -113,12 +126,13 @@ async function fetchKapuaFromBI(makatim) {
       )
     `),
 
-    // 4. Desc fallback from MLAY master catalog
+    // 4. Desc fallback from MLAY master catalog (also fetches family code for new products)
     dax(t, `
       EVALUATE
       SUMMARIZECOLUMNS(
         MLAY[מק'ט],
         MLAY[תאור מוצר],
+        MLAY[משפחת מוצר],
         FILTER(MLAY, CONTAINSROW(${famMakatim}, MLAY[מק'ט]))
       )
     `),
@@ -166,32 +180,47 @@ async function fetchKapuaFromBI(makatim) {
   ]);
 
   // ── Build result map ──────────────────────────────────────────────────────
+  // Includes ALL makatim found in family queries, not just the passed (known) ones.
   const result = {};
-  for (const mk of makatim) result[mk] = { desc: null, stock: 0, daySales: null, pakuot: [], daySalesAll: null, pakuotAll: [] };
+  for (const mk of makatim) {
+    result[mk] = { desc: null, stock: 0, daySales: null, pakuot: [], daySalesAll: null, pakuotAll: [], isNew: false };
+  }
+  // ensure: lazily add makatim discovered in family queries (not in KAPUA_PICKS)
+  function ensure(mk) {
+    if (!result[mk]) result[mk] = { desc: null, stock: 0, daySales: null, pakuot: [], daySalesAll: null, pakuotAll: [], isNew: true };
+  }
 
   for (const r of stockRows) {
     const mk = r['מלאי-תוקף[מק"ט]'];
-    if (mk && result[mk] !== undefined) result[mk].stock = r['[stock]'] || 0;
+    if (!mk) continue;
+    ensure(mk);
+    result[mk].stock = r['[stock]'] || 0;
   }
 
   for (const r of salesRows) {
     const mk = r["ALL_PARTS[מק'ט]"];
-    if (mk && result[mk] !== undefined) result[mk].daySales = r['[daySales]'] || null;
+    if (!mk) continue;
+    ensure(mk);
+    result[mk].daySales = r['[daySales]'] || null;
   }
 
   const descSeen = new Set();
   for (const r of descRows) {
     const mk = r['מלאי-תוקף[מק"ט]'];
-    if (mk && result[mk] !== undefined && !descSeen.has(mk)) {
-      result[mk].desc = r['מלאי-תוקף[תאור מוצר]'] || null;
-      descSeen.add(mk);
-    }
+    if (!mk) continue;
+    ensure(mk);
+    if (!descSeen.has(mk)) { result[mk].desc = r['מלאי-תוקף[תאור מוצר]'] || null; descSeen.add(mk); }
   }
   // Fallback: products with 0 stock at Main won't be in מלאי-תוקף → use MLAY catalog
+  // Also captures family name for newly discovered products
   for (const r of mlayDescRows) {
     const mk = r["MLAY[מק'ט]"];
-    if (mk && result[mk] !== undefined && !result[mk].desc) {
-      result[mk].desc = r["MLAY[תאור מוצר]"] || null;
+    if (!mk) continue;
+    ensure(mk);
+    if (!result[mk].desc) result[mk].desc = r["MLAY[תאור מוצר]"] || null;
+    if (!result[mk].fam) {
+      const fc = r["MLAY[משפחת מוצר]"];
+      result[mk].fam = (fc && KAPUA_FAM_NAMES[fc]) || fc || null;
     }
   }
 
@@ -201,26 +230,22 @@ async function fetchKapuaFromBI(makatim) {
     const mk      = r['מלאי-תוקף[מק"ט]'];
     const cartons = r['[cartons]'] || 0;
     if (!mk || cartons <= 0) continue;
-    if (result[mk] === undefined) continue;
+    ensure(mk);
     const rawDate = r["מלאי-תוקף[ת. תפוגת תוקף]"];
-    let expDate = null;
-    let daysLeft = null;
-    if (rawDate) {
-      expDate = new Date(rawDate);
-      daysLeft = Math.round((expDate - today) / 86400000);
-    }
+    let expDate = null, daysLeft = null;
+    if (rawDate) { expDate = new Date(rawDate); daysLeft = Math.round((expDate - today) / 86400000); }
     result[mk].pakuot.push({ date: expDate, daysLeft, cartons });
   }
-  // Sort each product's Main batches by expiry date ascending
-  for (const mk of makatim) {
-    if (result[mk] && result[mk].pakuot.length > 1)
-      result[mk].pakuot.sort((a, b) => (a.date||0) - (b.date||0));
+  for (const mk of Object.keys(result)) {
+    if (result[mk].pakuot.length > 1) result[mk].pakuot.sort((a, b) => (a.date||0) - (b.date||0));
   }
 
   // ── daySalesAll: all-warehouse sales (for סכנה calculation) ──────────────
   for (const r of salesAllRows) {
     const mk = r["ALL_PARTS[מק'ט]"];
-    if (mk && result[mk] !== undefined) result[mk].daySalesAll = r['[daySalesAll]'] || null;
+    if (!mk) continue;
+    ensure(mk);
+    result[mk].daySalesAll = r['[daySalesAll]'] || null;
   }
 
   // ── pakuotAll: all-warehouse expiry batches (for סכנה calculation) ────────
@@ -228,28 +253,21 @@ async function fetchKapuaFromBI(makatim) {
     const mk      = r['מלאי-תוקף[מק"ט]'];
     const cartons = r['[cartons]'] || 0;
     if (!mk || cartons <= 0) continue;
-    if (result[mk] === undefined) continue;
+    ensure(mk);
     const rawDate = r["מלאי-תוקף[ת. תפוגת תוקף]"];
     let expDate = null, daysLeft = null;
     if (rawDate) { expDate = new Date(rawDate); daysLeft = Math.round((expDate - today) / 86400000); }
     result[mk].pakuotAll.push({ date: expDate, daysLeft, cartons });
   }
-  for (const mk of makatim) {
-    if (result[mk] && result[mk].pakuotAll.length > 1)
-      result[mk].pakuotAll.sort((a, b) => (a.date||0) - (b.date||0));
+  for (const mk of Object.keys(result)) {
+    if (result[mk].pakuotAll.length > 1) result[mk].pakuotAll.sort((a, b) => (a.date||0) - (b.date||0));
   }
 
-  // Log new makatim found in families but not yet in KAPUA_PICKS
-  const allFamMks = new Set([
-    ...stockRows.map(r => r['מלאי-תוקף[מק"ט]']),
-    ...salesRows.map(r => r["ALL_PARTS[מק'ט]"]),
-  ].filter(Boolean));
-  const newMks = [...allFamMks].filter(mk => result[mk] === undefined);
-  if (newMks.length) console.log(`⚠ New makatim in families (not in KAPUA_PICKS): ${newMks.join(', ')}`);
-
-  const noStk    = makatim.filter(m => result[m].stock === 0).length;
-  const withSales = makatim.filter(m => result[m].daySales != null).length;
-  console.log(`Power BI קפוא: ${allFamMks.size} in families | ${noStk} zero-stock in picks | ${withSales} picks with sales`);
+  const newMks   = Object.keys(result).filter(mk => result[mk].isNew);
+  const noStk    = makatim.filter(m => !result[m] || result[m].stock === 0).length;
+  const withSales = Object.keys(result).filter(m => result[m].daySales != null).length;
+  if (newMks.length) console.log(`🆕 פעיל new makatim in families: ${newMks.join(', ')}`);
+  console.log(`Power BI קפוא: ${Object.keys(result).length} total (${newMks.length} new) | ${noStk} zero-stock | ${withSales} with sales`);
   return result;
 }
 
