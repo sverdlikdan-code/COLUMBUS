@@ -84,7 +84,7 @@
     ⬇️ הורד פלנוגרמה (Excel)
   </a>
 
-  <button class="btn-refresh" id="refreshBtn" onclick="triggerRefresh()">
+  <button class="btn-refresh" id="refreshBtn" onclick="triggerRefresh()" style="display:none">
     🔄 עדכן עכשיו
   </button>
   <div class="msg" id="msg"></div>
@@ -114,10 +114,13 @@
       localStorage.setItem('_plt', val);
       document.getElementById('setupArea').style.display = 'none';
       document.getElementById('tokenInput').value = '';
+      document.getElementById('refreshBtn').style.display = 'block';
       document.getElementById('msg').className = 'msg ok';
       document.getElementById('msg').textContent = '✅ טוקן נשמר';
     }
   }
+
+  if (localStorage.getItem('_plt')) document.getElementById('refreshBtn').style.display = 'block';
 
   fetch('status.json?t=' + Date.now())
     .then(r => r.json())
