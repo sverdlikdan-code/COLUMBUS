@@ -841,6 +841,10 @@ async function main() {
     applySimpleSheet(shSimple, pickCells, compactedKapua, palletMap);
   }
 
+  // Hoisted: saved for JSON export at the end
+  let halaviProdMapForJSON = {};
+  let dagimProdMapForJSON  = {};
+
   // ── SHEET: MAHSAN חלבי ─────────────────────────────────────────────────
   const shHalavi = wb.getWorksheet('MAHSAN חלבי');
   {
@@ -863,6 +867,7 @@ async function main() {
     const prodMap   = {};
     picks.forEach((pick,i) => { if(assigned[i]) prodMap[pick] = assigned[i]; });
     console.log(`חלבי picks found: ${picks.length} | in-stock: ${halaviProds.length - halaviZeroList.length} | zero: ${halaviZeroList.length} | total ORD: ${Math.round(halaviTotalOrd)}`);
+    halaviProdMapForJSON = prodMap; // save for JSON export
     applyToSheet(shHalavi, pickCells, prodMap, weightThresh, dayThreshHigh, dayThreshMid, palletMap, true, halaviTotalOrd);
     addZeroStockTable(shHalavi, halaviZeroList);
     addFamilyNavBar(shHalavi, pickCells, prodMap, refreshLabel);
@@ -935,6 +940,7 @@ async function main() {
     ];
     npSlots.forEach((pick,i) => { if(nordPort[i]) prodMap[pick] = nordPort[i]; });
 
+    dagimProdMapForJSON = prodMap; // save for JSON export
     console.log(`דגים total ORD/day: ${dagimTotalOrd.toFixed(0)} | zero: ${dagimZeroList.length}`);
     applyToSheet(shDagim, pickCells, prodMap, weightThresh, dayThreshHigh, dayThreshMid, palletMap, true, dagimTotalOrd);
     addZeroStockTable(shDagim, dagimZeroList);
@@ -1188,6 +1194,60 @@ async function main() {
     fs.writeFileSync(path.join(__dirname,'..','docs','kapua-base.json'),
       JSON.stringify({ picks: kapuaPicks, layout: editorLayout, maxCols: EDITOR_COLS, maxRows: editorMaxRows }), 'utf8');
     console.log(`kapua-base.json: ${Object.keys(kapuaPicks).length} picks, maxRows=${editorMaxRows}`);
+
+    // ── halavi-base.json ──────────────────────────────────────────────────
+    // Snake layout: rows 4→3→2→1, 12 cols, matches MAHSAN חלבי physical planogram
+    const HALAVI_LAYOUT = {
+       1:{r:4,c:1}, 2:{r:4,c:2}, 3:{r:4,c:3}, 4:{r:4,c:4}, 5:{r:4,c:5}, 6:{r:4,c:6},
+       7:{r:4,c:7}, 8:{r:4,c:8}, 9:{r:4,c:9},10:{r:4,c:10},11:{r:4,c:11},12:{r:4,c:12},
+      13:{r:3,c:12},14:{r:3,c:11},15:{r:3,c:10},16:{r:3,c:9},17:{r:3,c:8},18:{r:3,c:7},
+      19:{r:3,c:6},20:{r:3,c:5},21:{r:3,c:4},22:{r:3,c:3},23:{r:3,c:2},24:{r:3,c:1},
+      25:{r:2,c:1},26:{r:2,c:2},27:{r:2,c:3},28:{r:2,c:4},29:{r:2,c:5},30:{r:2,c:6},
+      31:{r:2,c:7},32:{r:2,c:8},33:{r:2,c:9},34:{r:2,c:10},35:{r:2,c:11},36:{r:2,c:12},
+      37:{r:1,c:12},38:{r:1,c:11},39:{r:1,c:10},40:{r:1,c:9},41:{r:1,c:8},42:{r:1,c:7},
+      43:{r:1,c:6},44:{r:1,c:5},45:{r:1,c:4},46:{r:1,c:3},47:{r:1,c:2},48:{r:1,c:1},
+    };
+    {
+      const hPicks = {};
+      for (const [pickStr, p] of Object.entries(halaviProdMapForJSON)) {
+        const name = p.desc
+          ? fixVisualRTL(String(p.desc).replace(/[​-‏‪-‮﻿]/g,'').replace(/\s*\([^)]*\)/g,'').trim())
+          : (p.fam || '');
+        hPicks[pickStr] = { makat: p.makat, fam: p.fam || '', name };
+      }
+      fs.writeFileSync(path.join(__dirname,'..','docs','halavi-base.json'),
+        JSON.stringify({ picks: hPicks, layout: HALAVI_LAYOUT, maxCols:12, maxRows:4 }), 'utf8');
+      console.log(`halavi-base.json: ${Object.keys(hPicks).length} picks`);
+    }
+
+    // ── dagim-base.json ───────────────────────────────────────────────────
+    // Layout from MAHSAN דגים physical planogram (3 rows × 26 cols, non-sequential picks)
+    const DAGIM_LAYOUT = {
+       1:{r:1,c:25}, 2:{r:1,c:24}, 3:{r:1,c:23}, 4:{r:1,c:22}, 5:{r:1,c:21},
+       6:{r:1,c:20}, 7:{r:1,c:19}, 8:{r:1,c:18},
+      15:{r:2,c:25},16:{r:2,c:24},17:{r:2,c:23},18:{r:2,c:22},19:{r:2,c:21},
+      20:{r:2,c:20},24:{r:2,c:19},25:{r:2,c:18},26:{r:2,c:17},27:{r:2,c:16},
+      31:{r:2,c:15},32:{r:2,c:14},33:{r:2,c:13},34:{r:2,c:12},35:{r:2,c:11},
+      36:{r:2,c:10},45:{r:2,c:9}, 46:{r:2,c:8}, 47:{r:2,c:7}, 48:{r:2,c:6},
+      49:{r:2,c:5}, 50:{r:2,c:4}, 54:{r:2,c:3}, 55:{r:2,c:2},
+       9:{r:3,c:26},10:{r:3,c:25},11:{r:3,c:24},12:{r:3,c:23},13:{r:3,c:22},
+      14:{r:3,c:21},21:{r:3,c:20},22:{r:3,c:19},23:{r:3,c:18},28:{r:3,c:17},
+      29:{r:3,c:16},30:{r:3,c:15},37:{r:3,c:13},38:{r:3,c:12},39:{r:3,c:11},
+      40:{r:3,c:10},41:{r:3,c:9}, 42:{r:3,c:8}, 43:{r:3,c:7}, 44:{r:3,c:6},
+      51:{r:3,c:5}, 52:{r:3,c:4}, 53:{r:3,c:3}, 56:{r:3,c:2}, 57:{r:3,c:1},
+    };
+    {
+      const dPicks = {};
+      for (const [pickStr, p] of Object.entries(dagimProdMapForJSON)) {
+        const name = p.desc
+          ? fixVisualRTL(String(p.desc).replace(/[​-‏‪-‮﻿]/g,'').replace(/\s*\([^)]*\)/g,'').trim())
+          : (p.fam || '');
+        dPicks[pickStr] = { makat: p.makat, fam: p.fam || '', name };
+      }
+      fs.writeFileSync(path.join(__dirname,'..','docs','dagim-base.json'),
+        JSON.stringify({ picks: dPicks, layout: DAGIM_LAYOUT, maxCols:26, maxRows:3 }), 'utf8');
+      console.log(`dagim-base.json: ${Object.keys(dPicks).length} picks`);
+    }
   }
 
   // Write output
