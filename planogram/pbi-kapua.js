@@ -68,11 +68,16 @@ async function fetchKapuaFromBI(makatim) {
   // Explicit list adds products whose family (030=chilled) is excluded but specific SKUs are frozen.
   const famCodes    = KAPUA_FAM_CODES.map(c => `"${c}"`).join(',');
   const explicitMks = makatim.map(m => `"${m}"`).join(',');
+  // Only include products with סטטוס="פעיל" in KARTIS PARIT (excludes discontinued items).
+  // Explicit makatim (KAPUA_PICKS hardcoded) bypass the status filter via UNION.
   const famMakatim = `
     UNION(
-      SELECTCOLUMNS(
-        FILTER(MLAY, CONTAINSROW({${famCodes}}, MLAY[משפחת מוצר])),
-        "mk", MLAY[מק'ט]
+      INTERSECT(
+        SELECTCOLUMNS(
+          FILTER(MLAY, CONTAINSROW({${famCodes}}, MLAY[משפחת מוצר])),
+          "mk", MLAY[מק'ט]
+        ),
+        CALCULATETABLE(VALUES('KARTIS PARIT'[מק"ט]), 'KARTIS PARIT'[סטטוס]="פעיל")
       ),
       SELECTCOLUMNS({${explicitMks}}, "mk", [Value])
     )`;
