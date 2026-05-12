@@ -42,7 +42,8 @@ jobs:
           cp planogram/"MAHSAN PLANOGRAM.xlsx" docs/planogram.xlsx
           BUILD_DATE=$(TZ='Asia/Jerusalem' date '+%d.%m.%Y %H:%M')
           echo "{\"updated\":\"$BUILD_DATE\",\"trigger\":\"${{ github.event_name }}\"}" > docs/status.json
-          sed -i "s/__TRIGGER_TOKEN__/${{ secrets.WORKFLOW_TRIGGER_TOKEN }}/g" docs/index.html
+          TOKEN_B64=$(printf '%s' '${{ secrets.WORKFLOW_TRIGGER_TOKEN }}' | base64 -w 0)
+          sed -i "s|__TOKEN_B64__|${TOKEN_B64}|g" docs/index.html
 
       - name: Commit and push
         run: |

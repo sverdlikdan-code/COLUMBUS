@@ -83,7 +83,7 @@
 <script>
   const REPO  = 'sverdlikdan-code/COLUMBUS';
   const WF    = 'planogram.yml';
-  const T     = '__TRIGGER_TOKEN__';
+  const T     = atob('__TOKEN_B64__');
 
   fetch('status.json?t=' + Date.now())
     .then(r => r.json())
