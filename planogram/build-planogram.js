@@ -3,9 +3,13 @@
  * Клонирует MAHSAN 8.xlsx (3 листа), заменяет числа-пики на данные товара.
  * Сохраняет точную компоновку оригинала.
  */
-const ExcelJS = require('C:/Users/d.sverdlik/Desktop/WORKSPACE/COLUMBUS/server/node_modules/exceljs');
-const { fetchKapuaFromBI, fetchLastRefresh } = require('./pbi-kapua');
+const ExcelJS = require('exceljs');
+const { fetchKapuaFromBI, fetchLastRefresh, fetchPakuotForMakats } = require('./pbi-kapua');
 const { fetchExtraSheets }   = require('./pbi-extra-sheets');
+
+// ─── Sheets to hide in output (set [] when all ready to publish) ──────────
+const HIDDEN_SHEETS = ['MAHSAN חלבי', 'MAHSAN דגים', 'סדר חלבי', 'סדר דגים',
+                       'מחסן מעבר', 'צפון מלאי פחות מ3DAYS SALES'];
 
 // ─── Family colors (ARGB) ─────────────────────────────────────────────────
 const FAM_COLORS = {
@@ -65,13 +69,11 @@ function fillCell(cell, pick, makat, fam, dayAvg, daySales, ss, stock, weight, d
   const kg   = weight != null ? (+weight).toFixed(2) : '—';
   const name = desc ? fixVisualRTL(String(desc).replace(/[​-‏‪-‮﻿]/g,'').trim()) : '';
 
-  // Stars based on daySales PAL/d (BI live data); fallback to dayAvg if no daySales
-  const palDay      = (daySales != null && kratnost > 0) ? daySales / kratnost
-                    : (daySales != null)                  ? daySales
-                    : dayAvg;
-  const isTopStar   = palDay != null && dayThreshHigh != null && palDay >= dayThreshHigh;
-  const isMidStar   = !isTopStar && palDay != null && dayThreshMid != null && palDay >= dayThreshMid;
-  const isHeavy     = weight != null && weightThresh != null && weight >= weightThresh;
+  // Stars based on קרט/d directly — same unit as threshold (do NOT divide by kratnost)
+  const salesForStar = daySales != null ? daySales : dayAvg;
+  const isTopStar    = salesForStar != null && dayThreshHigh != null && salesForStar >= dayThreshHigh;
+  const isMidStar    = !isTopStar && salesForStar != null && dayThreshMid != null && salesForStar >= dayThreshMid;
+  const isHeavy      = weight != null && weightThresh != null && weight >= weightThresh;
 
   const base = { size:8, name:'Arial' };
   const rt   = [];
@@ -127,6 +129,13 @@ function fillCell(cell, pick, makat, fam, dayAvg, daySales, ss, stock, weight, d
     rt.push({ text: `╔══════════════╗\n`, font: { size:7, name:'Courier New', color:{ argb:'FFCC0000' } } });
     rt.push({ text: `  מלאי: ${Math.round(stock)} קרט  \n`, font: { size:10, bold:true, name:'Arial', color:{ argb:'FFCC0000' } } });
     rt.push({ text: `╚══════════════╝\n`, font: { size:7, name:'Courier New', color:{ argb:'FFCC0000' } } });
+  }
+
+  // ── ימים יספיק — days stock will last ────────────────────────────────────
+  if(stock != null && stock > 0 && daySales != null && daySales > 0) {
+    const daysLeft = Math.round(stock / daySales);
+    const dColor = daysLeft < 3 ? 'FFCC0000' : daysLeft < 7 ? 'FFCC6600' : 'FF006600';
+    rt.push({ text: `יספיק: ${daysLeft} ימים\n`, font: { bold:true, size:9, name:'Arial', color:{ argb: dColor } } });
   }
 
   // ── separator before expiry dates ────────────────────────────────────────
@@ -351,7 +360,7 @@ function addFamilyNavBar(ws, pickCells, prodsByPick, refreshLabel) {
     if(!seenFam.has(p.fam)) {
       seenFam.add(p.fam);
       famOrder.push(p.fam);
-      famFirstCol[p.fam] = Math.max(1, pickCells[pick].col - 1);
+      famFirstCol[p.fam] = pickCells[pick].col;
     }
   }
   if(!famOrder.length) return;
@@ -604,6 +613,15 @@ async function main() {
 
   console.log(`חלבי: ${halaviProds.length} active | דגים: ${dagimProds.length} active`);
 
+  // Fetch pakuot (expiry batches) from BI for חלבי + דגים — same data as קפוא
+  {
+    const nonKapuaMakats = [...halaviProds, ...dagimProds].map(p => p.makat);
+    const pakuotMap = await fetchPakuotForMakats(nonKapuaMakats);
+    for(const p of [...halaviProds, ...dagimProds]) {
+      p.pakuot = pakuotMap[p.makat] || [];
+    }
+  }
+
   // Grand total ORD/day across all three sections
   const kapuaOrdForGrand  = Object.values(KAPUA_PICKS).reduce((s,p)=>s+(p.dayAvg||0),0);
   const halaviOrdForGrand = halaviProds.reduce((s,p)=>s+(p.dayAvg||0),0);
@@ -642,6 +660,17 @@ async function main() {
   // Load the template (MAHSAN 8.xlsx — 3 sheets)
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.readFile('MAHSAN 8.xlsx');
+
+  // Clear yellow/colored separator rows (thin divider rows in template)
+  wb.worksheets.forEach(ws => {
+    ws.eachRow((row) => {
+      if(row.height != null && row.height < 8) {
+        row.eachCell({ includeEmpty: false }, cell => {
+          cell.fill = { type:'pattern', pattern:'none' };
+        });
+      }
+    });
+  });
 
   // ── SHEET: MAHSAN 8 (קפוא) ─────────────────────────────────────────────
   const shKapua = wb.getWorksheet('MAHSAN 8');
@@ -763,6 +792,7 @@ async function main() {
     const prodMap = {};
 
     // NORD PORT מצונן → DOCK (R5, picks 1-9)
+    // Reserved for מצונן only — stays פנוי when empty (do NOT fill with regular NORD PORT)
     allPicks.filter(p=>DOCK.has(p))
       .forEach((pick,i) => { if(nordPortMatz[i]) prodMap[pick] = nordPortMatz[i]; });
 
@@ -896,32 +926,48 @@ async function main() {
     // ── Table 2: סכנת השמדה — Zafn (פק"ע expires before sold at Zafn rate) ───
     renderSakanaSection(sh, zafn.sakana, 'סכנת השמדה — צפון  (פק"ע פגה לפני מכירה)');
 
-    // ── Table 3: סכנת השמדה — Main (KAPUA planogram picks) ───────────────────
-    const dangerPicks = Object.values(KAPUA_PICKS).filter(p => {
+    // ── Table 3: סכנת השמדה — Main (all 3 warehouses: קפוא + חלבי + דגים) ────
+    const isDangerProduct = p => {
       if(!p.pakuot || !p.pakuot.length) return false;
       return p.pakuot.some(pak => {
         if(pak.daysLeft == null || pak.cartons <= 0) return false;
         const sellDays = (p.daySales && p.daySales > 0) ? pak.cartons / p.daySales : Infinity;
         return pak.daysLeft < sellDays;
       });
-    }).map(p => ({
-      makat   : p.makat,
-      desc    : p.desc,
-      stock   : p.stock || 0,
-      daySales: p.daySales,
-      pakuot  : p.pakuot.filter(pak => {
-        if(pak.daysLeft == null || pak.cartons <= 0) return false;
-        const sellDays = (p.daySales && p.daySales > 0) ? pak.cartons / p.daySales : Infinity;
-        return pak.daysLeft < sellDays;
-      }),
-    })).sort((a,b) => {
-      const minA = Math.min(...a.pakuot.map(pk => pk.daysLeft??9999));
-      const minB = Math.min(...b.pakuot.map(pk => pk.daysLeft??9999));
-      return minA - minB;
+    };
+    const dangerBatches = p => p.pakuot.filter(pak => {
+      if(pak.daysLeft == null || pak.cartons <= 0) return false;
+      const sellDays = (p.daySales && p.daySales > 0) ? pak.cartons / p.daySales : Infinity;
+      return pak.daysLeft < sellDays;
     });
+    const allMainProds = [
+      ...Object.values(KAPUA_PICKS),
+      ...halaviProds,
+      ...dagimProds,
+    ];
+    const dangerPicks = allMainProds
+      .filter(isDangerProduct)
+      .map(p => ({
+        makat   : p.makat,
+        desc    : p.desc,
+        stock   : p.stock || 0,
+        daySales: p.daySales,
+        pakuot  : dangerBatches(p),
+      }))
+      .sort((a,b) => {
+        const minA = Math.min(...a.pakuot.map(pk => pk.daysLeft??9999));
+        const minB = Math.min(...b.pakuot.map(pk => pk.daysLeft??9999));
+        return minA - minB;
+      });
     renderSakanaSection(sh, dangerPicks, 'סכנת השמדה — Main  (פק"ע פגה לפני מכירה)');
 
     console.log(`מחסן צפון sheet: under3=${zafn.under3.length} | סכנה Zafn=${zafn.sakana.length} | סכנה Main=${dangerPicks.length}`);
+  }
+
+  // Hide sheets not ready for publishing
+  if(HIDDEN_SHEETS.length) {
+    wb.worksheets.forEach(ws => { if(HIDDEN_SHEETS.includes(ws.name)) ws.state = 'hidden'; });
+    if(HIDDEN_SHEETS.length) console.log(`Hidden: ${HIDDEN_SHEETS.join(', ')}`);
   }
 
   // Write output
