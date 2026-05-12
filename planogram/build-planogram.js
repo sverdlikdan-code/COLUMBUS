@@ -175,13 +175,16 @@ function fillCell(cell, pick, makat, fam, dayAvg, daySales, ss, stock, weight, d
 
   cell.value = { richText: rt };
   cell.alignment = { wrapText:true, vertical:'top', horizontal:'right', readingOrder:2 };
-  const fc = {argb: famColor(fam)};
+  // Yellow background for products with no 90-day average daily sales (מכר ממוצע ביום)
+  const noSales = daySales == null;
+  const fc = noSales ? { argb: 'FFFFF2CC' } : { argb: famColor(fam) };
+  const borderLeft = noSales ? { argb: 'FFFFCC00' } : fc;
   cell.fill = { type:'pattern', pattern:'solid', fgColor: fc };
   cell.border = {
     top:    {style:'thin'},
     right:  {style:'thin'},
     bottom: {style:'thin'},
-    left:   {style:'medium', color: fc},
+    left:   {style:'medium', color: borderLeft},
   };
 }
 
