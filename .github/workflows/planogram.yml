@@ -42,13 +42,11 @@ jobs:
           cp planogram/"MAHSAN PLANOGRAM v41.xlsx" docs/planogram.xlsx
           BUILD_DATE=$(TZ='Asia/Jerusalem' date '+%d.%m.%Y %H:%M')
           echo "{\"updated\":\"$BUILD_DATE\",\"trigger\":\"${{ github.event_name }}\"}" > docs/status.json
-          TOKEN_B64=$(printf '%s' '${{ secrets.WORKFLOW_TRIGGER_TOKEN }}' | base64 -w 0)
-          sed -i "s|__TOKEN_B64__|${TOKEN_B64}|g" docs/index.html
 
       - name: Commit and push
         run: |
           git config user.name  "Planogram Bot"
           git config user.email "planogram@formula.co.il"
-          git add docs/planogram.xlsx docs/status.json docs/index.html
+          git add docs/planogram.xlsx docs/status.json
           git diff --cached --quiet && echo "No changes" || git commit -m "Planogram update $(TZ='Asia/Jerusalem' date '+%Y-%m-%d %H:%M')"
           git push
