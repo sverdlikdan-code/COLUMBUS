@@ -26,7 +26,7 @@ const WORKSPACE = process.env.PBI_WORKSPACE;
 // Family codes from MLAY[משפחת מוצר] covering frozen קפוא sections
 // 030 (SANTA BREMOR דגים) excluded — those are chilled (מצונן), not frozen
 // Products 1045/1046/1051 from family 030 are frozen surimi and handled via explicit makat UNION
-const KAPUA_FAM_CODES = ['029','004','022','019','035','421','420','046','0191','0190'];
+const KAPUA_FAM_CODES = ['029','004','026','022','019','035','421','420','046','0191','0190'];
 
 async function getToken() {
   const res = await fetch(
@@ -69,78 +69,105 @@ async function fetchKapuaFromBI(makatim) {
       SELECTCOLUMNS({${explicitMks}}, "mk", [Value])
     )`;
 
-  // ── 1. Stock: products of our families at Main (Ashdod) ───────────────────
-  const stockRows = await dax(t, `
-    EVALUATE
-    SUMMARIZECOLUMNS(
-      'מלאי-תוקף'[מק"ט],
-      FILTER(
-        'מלאי-תוקף',
-        'מלאי-תוקף'[מחסן] = "Main" &&
-        CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
-      ),
-      "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
-    )
-  `);
+  // Run all 7 queries in parallel
+  const [stockRows, salesRows, descRows, mlayDescRows, pakuaRows, salesAllRows, pakuaAllRows] = await Promise.all([
 
-  // ── 2. Sales: [TOTAL מכר בקרטונים ממוצע ביום], FORMULA+Main, last 90d, our families
-  const salesRows = await dax(t, `
-    EVALUATE
-    CALCULATETABLE(
-      ADDCOLUMNS(
-        SUMMARIZE('ALL_PARTS', 'ALL_PARTS'[מק'ט]),
-        "daySales", [TOTAL מכר בקרטונים ממוצע ביום]
-      ),
-      'ALL_PARTS'[חברה] = "FORMULA",
-      'ALL_PARTS'[מחסן] = "Main",
-      FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 90),
-      TREATAS(${famMakatim}, 'ALL_PARTS'[מק'ט])
-    )
-  `);
-
-  // ── 3. Desc: product name per מקט from מלאי-תוקף Main ────────────────────
-  const descRows = await dax(t, `
-    EVALUATE
-    SUMMARIZECOLUMNS(
-      'מלאי-תוקף'[מק"ט],
-      'מלאי-תוקף'[תאור מוצר],
-      FILTER(
-        'מלאי-תוקף',
-        'מלאי-תוקף'[מחסן] = "Main" &&
-        CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
+    // 1. Stock at Main (Ashdod)
+    dax(t, `
+      EVALUATE
+      SUMMARIZECOLUMNS(
+        'מלאי-תוקף'[מק"ט],
+        FILTER('מלאי-תוקף',
+          'מלאי-תוקף'[מחסן] = "Main" &&
+          CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
+        ),
+        "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
       )
-    )
-  `);
+    `),
 
-  // ── 4. Desc fallback from MLAY master catalog (for products absent from מלאי-תוקף Main) ──
-  const mlayDescRows = await dax(t, `
-    EVALUATE
-    SUMMARIZECOLUMNS(
-      MLAY[מק'ט],
-      MLAY[תאור מוצר],
-      FILTER(MLAY, CONTAINSROW(${famMakatim}, MLAY[מק'ט]))
-    )
-  `);
+    // 2. Sales Main only — for planogram display
+    dax(t, `
+      EVALUATE
+      CALCULATETABLE(
+        ADDCOLUMNS(
+          SUMMARIZE('ALL_PARTS', 'ALL_PARTS'[מק'ט]),
+          "daySales", [TOTAL מכר בקרטונים ממוצע ביום]
+        ),
+        'ALL_PARTS'[חברה] = "FORMULA",
+        'ALL_PARTS'[מחסן] = "Main",
+        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 90),
+        TREATAS(${famMakatim}, 'ALL_PARTS'[מק'ט])
+      )
+    `),
 
-  // ── 5. פק"ע per מקט at Main: expiry date + cartons per batch ─────────────
-  const pakuaRows = await dax(t, `
-    EVALUATE
-    SUMMARIZECOLUMNS(
-      'מלאי-תוקף'[מק"ט],
-      'מלאי-תוקף'[ת. תפוגת תוקף],
-      FILTER(
-        'מלאי-תוקף',
-        'מלאי-תוקף'[מחסן] = "Main" &&
-        CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
-      ),
-      "cartons", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
-    )
-    ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
-  `);
+    // 3. Desc from מלאי-תוקף Main
+    dax(t, `
+      EVALUATE
+      SUMMARIZECOLUMNS(
+        'מלאי-תוקף'[מק"ט],
+        'מלאי-תוקף'[תאור מוצר],
+        FILTER('מלאי-תוקף',
+          'מלאי-תוקף'[מחסן] = "Main" &&
+          CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
+        )
+      )
+    `),
+
+    // 4. Desc fallback from MLAY master catalog
+    dax(t, `
+      EVALUATE
+      SUMMARIZECOLUMNS(
+        MLAY[מק'ט],
+        MLAY[תאור מוצר],
+        FILTER(MLAY, CONTAINSROW(${famMakatim}, MLAY[מק'ט]))
+      )
+    `),
+
+    // 5. פק"ע batches at Main — for planogram display
+    dax(t, `
+      EVALUATE
+      SUMMARIZECOLUMNS(
+        'מלאי-תוקף'[מק"ט],
+        'מלאי-תוקף'[ת. תפוגת תוקף],
+        FILTER('מלאי-תוקף',
+          'מלאי-תוקף'[מחסן] = "Main" &&
+          CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
+        ),
+        "cartons", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+      )
+      ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
+    `),
+
+    // 6. Sales ALL warehouses — for סכנה calculation (no מחסן filter)
+    dax(t, `
+      EVALUATE
+      CALCULATETABLE(
+        ADDCOLUMNS(
+          SUMMARIZE('ALL_PARTS', 'ALL_PARTS'[מק'ט]),
+          "daySalesAll", [TOTAL מכר בקרטונים ממוצע ביום]
+        ),
+        'ALL_PARTS'[חברה] = "FORMULA",
+        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 90),
+        TREATAS(${famMakatim}, 'ALL_PARTS'[מק'ט])
+      )
+    `),
+
+    // 7. פק"ע batches ALL warehouses — for סכנה calculation (no מחסן filter)
+    dax(t, `
+      EVALUATE
+      SUMMARIZECOLUMNS(
+        'מלאי-תוקף'[מק"ט],
+        'מלאי-תוקף'[ת. תפוגת תוקף],
+        FILTER('מלאי-תוקף', CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])),
+        "cartons", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+      )
+      ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
+    `),
+  ]);
 
   // ── Build result map ──────────────────────────────────────────────────────
   const result = {};
-  for (const mk of makatim) result[mk] = { desc: null, stock: 0, daySales: null, pakuot: [] };
+  for (const mk of makatim) result[mk] = { desc: null, stock: 0, daySales: null, pakuot: [], daySalesAll: null, pakuotAll: [] };
 
   for (const r of stockRows) {
     const mk = r['מלאי-תוקף[מק"ט]'];
@@ -184,10 +211,32 @@ async function fetchKapuaFromBI(makatim) {
     }
     result[mk].pakuot.push({ date: expDate, daysLeft, cartons });
   }
-  // Sort each product's batches by expiry date ascending
+  // Sort each product's Main batches by expiry date ascending
   for (const mk of makatim) {
     if (result[mk] && result[mk].pakuot.length > 1)
       result[mk].pakuot.sort((a, b) => (a.date||0) - (b.date||0));
+  }
+
+  // ── daySalesAll: all-warehouse sales (for סכנה calculation) ──────────────
+  for (const r of salesAllRows) {
+    const mk = r["ALL_PARTS[מק'ט]"];
+    if (mk && result[mk] !== undefined) result[mk].daySalesAll = r['[daySalesAll]'] || null;
+  }
+
+  // ── pakuotAll: all-warehouse expiry batches (for סכנה calculation) ────────
+  for (const r of pakuaAllRows) {
+    const mk      = r['מלאי-תוקף[מק"ט]'];
+    const cartons = r['[cartons]'] || 0;
+    if (!mk || cartons <= 0) continue;
+    if (result[mk] === undefined) continue;
+    const rawDate = r["מלאי-תוקף[ת. תפוגת תוקף]"];
+    let expDate = null, daysLeft = null;
+    if (rawDate) { expDate = new Date(rawDate); daysLeft = Math.round((expDate - today) / 86400000); }
+    result[mk].pakuotAll.push({ date: expDate, daysLeft, cartons });
+  }
+  for (const mk of makatim) {
+    if (result[mk] && result[mk].pakuotAll.length > 1)
+      result[mk].pakuotAll.sort((a, b) => (a.date||0) - (b.date||0));
   }
 
   // Log new makatim found in families but not yet in KAPUA_PICKS
@@ -260,4 +309,35 @@ async function fetchPakuotForMakats(makatim) {
   return result;
 }
 
-module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchPakuotForMakats, getToken };
+// ── Fetch pakuot ALL warehouses — for סכנה calculation (חלבי/דגים) ──────────
+async function fetchPakuotAllForMakats(makatim) {
+  if(!makatim || !makatim.length) return {};
+  const t = await getToken();
+  const mkSet = '{' + makatim.map(m => `"${m}"`).join(',') + '}';
+  const rows = await dax(t, `
+    EVALUATE
+    SUMMARIZECOLUMNS(
+      'מלאי-תוקף'[מק"ט],
+      'מלאי-תוקף'[ת. תפוגת תוקף],
+      FILTER('מלאי-תוקף', CONTAINSROW(${mkSet}, 'מלאי-תוקף'[מק"ט])),
+      "cartons", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+    )
+    ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
+  `);
+  const result = {};
+  const today = new Date(); today.setHours(0,0,0,0);
+  for(const r of rows) {
+    const mk = String(r['מלאי-תוקף[מק"ט]'] || '');
+    if(!mk) continue;
+    if(!result[mk]) result[mk] = [];
+    const rawDate = r['מלאי-תוקף[ת. תפוגת תוקף]'];
+    let expDate = null, daysLeft = null;
+    if(rawDate) { expDate = new Date(rawDate); daysLeft = Math.round((expDate - today) / 86400000); }
+    const cartons = r['[cartons]'] || 0;
+    if(cartons > 0) result[mk].push({ date: expDate, daysLeft, cartons });
+  }
+  for(const mk of Object.keys(result)) result[mk].sort((a,b) => (a.date||0) - (b.date||0));
+  return result;
+}
+
+module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchPakuotForMakats, fetchPakuotAllForMakats, getToken };
