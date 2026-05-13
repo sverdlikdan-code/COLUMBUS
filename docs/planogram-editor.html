@@ -226,6 +226,8 @@
 <div id="print-header">MAHSAN PLANOGRAM — FORMULA</div>
 
 <div class="toolbar">
+  <button class="btn no-print" id="btn-refresh" onclick="refreshData()"
+    style="background:#0ea5e9;color:#fff;border:1px solid #0284c7;font-weight:bold;">🔄 רענן</button>
   <button class="btn btn-export no-print" onclick="exportCSV()">⬇ CSV</button>
   <button class="btn btn-save no-print"   onclick="saveState()">💾 שמור</button>
   <div style="position:relative; display:inline-block;" class="no-print">
@@ -384,7 +386,9 @@ const KAPUA_LAYOUT = {
    83:{r:14,c:18},  84:{r:14,c:17},  85:{r:14,c:16},  86:{r:14,c:15},  87:{r:14,c:14},  88:{r:14,c:13},  89:{r:14,c:12},
 };
 const KAPUA_MAX = { cols:18, rows:14 };
-let   KAPUA_RESERVE_START = 0;
+let   KAPUA_RESERVE_START  = 0;
+let   HALAVI_RESERVE_START = 0;
+let   DAGIM_RESERVE_START  = 0;
 
 const HALAVI_LAYOUT = {
    1:{r:4,c:1},  2:{r:4,c:2},  3:{r:4,c:3},  4:{r:4,c:4},
@@ -480,11 +484,12 @@ function stockHTML(makat) {
     ? `<div class="s-pal-big">${Math.round(d.palStock)} <span class="s-pal-unit">PAL</span></div>` : '';
   const kartLine = d.stock != null ? `<span class="s-kart">${d.stock}קרט</span>` : '';
   const kratLine = d.kratnost > 0 ? `<span class="s-krat"> [${d.kratnost}]</span>` : '';
-  const wtLine   = d.weight   != null ? `<span class="s-meta">${d.weight}kg</span>` : '';
+  const wtLine   = d.weight != null && d.weight > 0
+    ? `<span class="s-weight">${d.weight} kg/קרט</span>` : '';
   const daysLine = d.daysStockAll != null ? `<span class="s-meta">${d.daysStockAll}ימ'</span>` : '';
-  const metaLine = (wtLine || daysLine) ? `<div class="slot-meta">${wtLine}${daysLine ? ' · ' + daysLine : ''}</div>` : '';
+  const metaLine = daysLine ? `<div class="slot-meta">${daysLine}</div>` : '';
   const stockLine = (kartLine || kratLine) ? `<div class="slot-kart-line">${kartLine}${kratLine}</div>` : '';
-  return `<div class="slot-stock">${palLine}${stockLine}</div>${metaLine}`;
+  return `<div class="slot-stock">${palLine}${stockLine}${wtLine}</div>${metaLine}`;
 }
 
 async function loadMaps() {
@@ -532,24 +537,26 @@ async function loadMaps() {
     if (hb && hb.picks) {
       Object.assign(HALAVI_BASE,   hb.picks);
       Object.assign(HALAVI_LAYOUT, hb.layout || {});
-      if (hb.maxCols) HALAVI_MAX.cols = hb.maxCols;
-      if (hb.maxRows) HALAVI_MAX.rows = hb.maxRows;
+      if (hb.maxCols)     HALAVI_MAX.cols       = hb.maxCols;
+      if (hb.maxRows)     HALAVI_MAX.rows       = hb.maxRows;
+      if (hb.reserveStart) HALAVI_RESERVE_START = hb.reserveStart;
       for (const [pick, p] of Object.entries(hb.picks)) {
-        if (!(pick in state.halavi)) state.halavi[pick] = { ...p };
+        if (!(pick in state.halavi)) state.halavi[pick] = p ? { ...p } : null;
       }
-      console.log(`halavi-base.json: ${Object.keys(hb.picks).length} picks`);
+      console.log(`halavi-base.json: ${Object.keys(hb.picks).length} picks, reserveStart=${hb.reserveStart}`);
     }
 
     // Apply fresh dagim-base.json
     if (db && db.picks) {
       Object.assign(DAGIM_BASE,   db.picks);
       Object.assign(DAGIM_LAYOUT, db.layout || {});
-      if (db.maxCols) DAGIM_MAX.cols = db.maxCols;
-      if (db.maxRows) DAGIM_MAX.rows = db.maxRows;
+      if (db.maxCols)     DAGIM_MAX.cols       = db.maxCols;
+      if (db.maxRows)     DAGIM_MAX.rows       = db.maxRows;
+      if (db.reserveStart) DAGIM_RESERVE_START = db.reserveStart;
       for (const [pick, p] of Object.entries(db.picks)) {
-        if (!(pick in state.dagim)) state.dagim[pick] = { ...p };
+        if (!(pick in state.dagim)) state.dagim[pick] = p ? { ...p } : null;
       }
-      console.log(`dagim-base.json: ${Object.keys(db.picks).length} picks`);
+      console.log(`dagim-base.json: ${Object.keys(db.picks).length} picks, reserveStart=${db.reserveStart}`);
     }
 
     if (ri && ri.label) {
@@ -764,6 +771,29 @@ function makeSeqLayout(count, cols) {
   return layout;
 }
 
+async function refreshData() {
+  const btn = document.getElementById('btn-refresh');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ ...'; }
+  setStatus('מרענן נתונים...');
+  try {
+    await loadMaps();
+    // Force re-render of all sections
+    Object.keys(rendered).forEach(k => rendered[k] = false);
+    const cur = window._currentSection || 'kapua';
+    rendered[cur] = true;
+    if (cur === 'kapua')  renderGrid('kapua',  KAPUA_LAYOUT,  KAPUA_MAX.cols,  KAPUA_MAX.rows,  KAPUA_RESERVE_START);
+    if (cur === 'halavi') renderGrid('halavi', HALAVI_LAYOUT, HALAVI_MAX.cols, HALAVI_MAX.rows, HALAVI_RESERVE_START);
+    if (cur === 'dagim')  renderGrid('dagim',  DAGIM_LAYOUT,  DAGIM_MAX.cols,  DAGIM_MAX.rows,  DAGIM_RESERVE_START);
+    if (cur === 'yavesh') { const count = Object.keys(state.yavesh).length; const COLS = 10; renderGrid('yavesh', makeSeqLayout(count, COLS), COLS, Math.ceil(count / COLS)); }
+    buildLegend(); updateTabPalTotals();
+    setStatus('✅ נתונים עודכנו');
+  } catch(e) {
+    setStatus('❌ שגיאה: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 רענן'; }
+  }
+}
+
 function switchTab(name, tabEl) {
   window._currentSection = name;
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -773,8 +803,8 @@ function switchTab(name, tabEl) {
   if (!rendered[name]) {
     rendered[name] = true;
     if (name === 'kapua')  renderGrid('kapua',  KAPUA_LAYOUT,  KAPUA_MAX.cols,  KAPUA_MAX.rows,  KAPUA_RESERVE_START);
-    if (name === 'halavi') renderGrid('halavi', HALAVI_LAYOUT, HALAVI_MAX.cols, HALAVI_MAX.rows);
-    if (name === 'dagim')  renderGrid('dagim',  DAGIM_LAYOUT,  DAGIM_MAX.cols,  DAGIM_MAX.rows);
+    if (name === 'halavi') renderGrid('halavi', HALAVI_LAYOUT, HALAVI_MAX.cols, HALAVI_MAX.rows, HALAVI_RESERVE_START);
+    if (name === 'dagim')  renderGrid('dagim',  DAGIM_LAYOUT,  DAGIM_MAX.cols,  DAGIM_MAX.rows,  DAGIM_RESERVE_START);
     if (name === 'yavesh') {
       // Populate state from base data if not yet loaded from localStorage
       if (!Object.keys(state.yavesh).length)
