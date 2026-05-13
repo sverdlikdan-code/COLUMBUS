@@ -233,7 +233,7 @@
       style="background:#fff3cd;color:#7a5c00;border:1px solid #e0c040;">🕐 היסטוריה</button>
     <div class="history-dropdown" id="history-dropdown"></div>
   </div>
-  <button class="btn no-print" onclick="printPlanogram()"
+  <button class="btn no-print" id="btn-pdf" onclick="printPlanogram()"
     style="background:#f0f0f0;color:#333;border:1px solid #ccc;">🖨️ PDF</button>
   <button class="btn btn-reset no-print"  onclick="resetSection()">↩ אפס</button>
   <button class="btn no-print" id="btn-table" onclick="toggleTable()" style="background:#f0f4ff;color:#1565C0;border:1px solid #1565C0;">📊 מיקום</button>
@@ -278,6 +278,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -890,14 +892,52 @@ function restoreVersion(index) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// PRINT TO PDF
+// SAVE TO PDF  (html2canvas + jsPDF — direct download, no dialog)
 // ══════════════════════════════════════════════════════════════════════════
-function printPlanogram() {
-  const sec = window._currentSection || 'kapua';
+async function printPlanogram() {
+  const sec     = window._currentSection || 'kapua';
   const secNames = { kapua:'קפוא ❄️', halavi:'חלבי 🥛', dagim:'דגים 🐟', yavesh:'דג יבש 🧂' };
-  const ph = document.getElementById('print-header');
-  ph.textContent = `MAHSAN PLANOGRAM — FORMULA  |  ${secNames[sec] || sec}  |  ${new Date().toLocaleDateString('he-IL')}`;
-  window.print();
+  const btn = document.getElementById('btn-pdf');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+  setStatus('מייצא PDF...');
+  try {
+    const grid = document.getElementById('grid-' + sec);
+    // Temporarily remove transform (zoom) for clean capture
+    const oldTransform = grid.style.transform;
+    grid.style.transform = 'none';
+    const canvas = await html2canvas(grid, {
+      scale: 1.2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#eef2f7',
+      scrollX: 0, scrollY: 0,
+      logging: false,
+    });
+    grid.style.transform = oldTransform;
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    // Title row
+    pdf.setFontSize(11);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(`MAHSAN PLANOGRAM  |  ${secNames[sec]}  |  ${new Date().toLocaleDateString('he-IL')}`, pageW / 2, 9, { align: 'center' });
+    // Scale image to fit page
+    const titleH = 14;
+    const availH = pageH - titleH;
+    const ratio   = canvas.width / canvas.height;
+    let imgW = pageW, imgH = imgW / ratio;
+    if (imgH > availH) { imgH = availH; imgW = imgH * ratio; }
+    const x = (pageW - imgW) / 2;
+    pdf.addImage(canvas.toDataURL('image/jpeg', 0.88), 'JPEG', x, titleH, imgW, imgH);
+    pdf.save(`planogram-${sec}-${new Date().toISOString().slice(0,10)}.pdf`);
+    setStatus('✅ PDF הורד');
+  } catch(e) {
+    console.error('PDF error:', e);
+    setStatus('שגיאה — נסה שוב');
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '🖨️ PDF'; }
+  setTimeout(() => setStatus('מוכן לעריכה'), 3000);
 }
 
 async function saveState() {
