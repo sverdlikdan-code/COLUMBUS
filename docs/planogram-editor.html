@@ -117,6 +117,26 @@
     }
     .slot.slot-empty span { font-size: 10px; color: #bbb; text-align: center; }
 
+    /* Reserve empty slot */
+    .slot.slot-reserve-empty {
+      background: repeating-linear-gradient(
+        45deg, #f4f4f4 0, #f4f4f4 8px, #e8e8e8 8px, #e8e8e8 16px
+      ) !important;
+      border: 2px dashed #bbb !important;
+      opacity: 0.85; cursor: grab;
+      justify-content: center; align-items: center;
+    }
+    .slot.slot-reserve-empty span { font-size: 9px; color: #aaa; text-align: center; letter-spacing: 0.5px; }
+
+    /* Reserve banner spanning full row */
+    .reserve-banner {
+      display: flex; align-items: center; justify-content: center;
+      background: #1a1a2e; color: #7dd3fc;
+      font-size: 14px; font-weight: bold; letter-spacing: 4px;
+      border-radius: 6px; border: 2px solid #3a5a9e;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
     /* Drag states */
     .sortable-ghost  { opacity: 0.2; }
     .sortable-chosen { box-shadow: 0 6px 20px rgba(0,0,0,0.25); transform: scale(1.05); z-index: 999; }
@@ -303,6 +323,7 @@ const KAPUA_LAYOUT = {
   50:{r:9,c:5}, 51:{r:9,c:4}, 52:{r:9,c:3}, 53:{r:9,c:2}, 54:{r:9,c:1},
 };
 const KAPUA_MAX = { cols:18, rows:9 };
+let   KAPUA_RESERVE_START = 0;
 
 const HALAVI_LAYOUT = {
    1:{r:4,c:1},  2:{r:4,c:2},  3:{r:4,c:3},  4:{r:4,c:4},
@@ -429,6 +450,7 @@ async function loadMaps() {
       Object.assign(KAPUA_LAYOUT, kb.layout || {});
       if (kb.maxCols) KAPUA_MAX.cols = kb.maxCols;
       if (kb.maxRows) KAPUA_MAX.rows = kb.maxRows;
+      if (kb.reserveStart) KAPUA_RESERVE_START = kb.reserveStart;
       // Add new picks to state without overwriting user's drag changes
       for (const [pick, p] of Object.entries(kb.picks)) {
         if (!(pick in state.kapua)) state.kapua[pick] = { ...p };
@@ -492,12 +514,18 @@ try {
 // ══════════════════════════════════════════════════════════════════════════
 // SLOT RENDERING
 // ══════════════════════════════════════════════════════════════════════════
-function makeSlot(pick, p) {
+function makeSlot(pick, p, reserveStart = 0) {
   const el = document.createElement('div');
   el.dataset.pick = pick;
+  const isReserve = reserveStart > 0 && pick >= reserveStart;
   if (!p) {
-    el.className = 'slot slot-empty';
-    el.innerHTML = `<span>#${pick}<br>פנוי</span>`;
+    if (isReserve) {
+      el.className = 'slot slot-reserve-empty';
+      el.innerHTML = `<span>◈<br>РЕЗЕРВ</span>`;
+    } else {
+      el.className = 'slot slot-empty';
+      el.innerHTML = `<span>#${pick}<br>פנוי</span>`;
+    }
     return el;
   }
   const sec = window._currentSection || 'kapua';
@@ -510,7 +538,7 @@ function makeSlot(pick, p) {
       <button onclick="hidePhoto('${p.makat}',${pick},'${sec}')" title="הסר תמונה"
         style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.45);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">✕</button>
       <div class="slot-id">
-        <span class="slot-pick-badge">#${pick}</span>
+        ${isReserve ? '' : `<span class="slot-pick-badge">#${pick}</span>`}
         <span class="slot-makat-badge">${p.makat}</span>
       </div>
       ${stockHTML(p.makat)}`;
@@ -528,7 +556,8 @@ function makeSlot(pick, p) {
 }
 
 function textModeHTML(pick, p) {
-  return `<span class="s-pick">#${pick}</span>
+  const isReserve = KAPUA_RESERVE_START > 0 && pick >= KAPUA_RESERVE_START;
+  return `${isReserve ? '' : `<span class="s-pick">#${pick}</span>`}
           <span class="s-makat">${p.makat}</span>
           ${p.name ? `<span class="s-name">${p.name}</span>` : ''}
           <span class="s-fam">${p.fam || ''}</span>`;
@@ -547,10 +576,17 @@ window.renderTextMode = function(el, pick) {
 function refreshSlot(el, pick, section) {
   const p = state[section][pick];
   el.dataset.pick = pick;
+  const isReserve = KAPUA_RESERVE_START > 0 && pick >= KAPUA_RESERVE_START;
   if (!p) {
-    el.className = 'slot slot-empty';
-    el.style.background = '';
-    el.innerHTML = `<span>#${pick}<br>פנוי</span>`;
+    if (isReserve) {
+      el.className = 'slot slot-reserve-empty';
+      el.style.background = '';
+      el.innerHTML = `<span>◈<br>РЕЗЕРВ</span>`;
+    } else {
+      el.className = 'slot slot-empty';
+      el.style.background = '';
+      el.innerHTML = `<span>#${pick}<br>פנוי</span>`;
+    }
     return;
   }
   const photoUrl = getPhotoUrl(p.makat);
@@ -584,17 +620,45 @@ function refreshSlot(el, pick, section) {
 // ══════════════════════════════════════════════════════════════════════════
 const sortables = {};
 
-function renderGrid(section, layoutMap, maxCols, maxRows) {
+function renderGrid(section, layoutMap, maxCols, maxRows, reserveStart = 0) {
   const container = document.getElementById('grid-' + section);
-  container.style.gridTemplateColumns = `repeat(${maxCols}, 96px)`;
-  container.style.gridTemplateRows    = `repeat(${maxRows}, auto)`;
+  container.style.gridTemplateColumns = `repeat(${maxCols}, 140px)`;
+  // Empty rows = corridors (מעבר) — render as 80px so they're visible
+  const occupiedRows = new Set(Object.values(layoutMap).map(p => p.r));
+  const rowTpl = Array.from({length: maxRows}, (_, i) =>
+    occupiedRows.has(i + 1) ? 'auto' : '80px'
+  ).join(' ');
+  container.style.gridTemplateRows = rowTpl;
   container.innerHTML = '';
 
+  // Find reserve separator row (corridor just before reserve picks)
+  let reserveBannerRow = 0;
+  if (reserveStart > 0) {
+    const reserveRows = Object.entries(layoutMap)
+      .filter(([p]) => parseInt(p) >= reserveStart)
+      .map(([,pos]) => pos.r);
+    if (reserveRows.length) {
+      const firstReserveRow = Math.min(...reserveRows);
+      // The corridor row just before the reserve section
+      reserveBannerRow = firstReserveRow - 1;
+    }
+  }
+
   for (const [pickStr, pos] of Object.entries(layoutMap)) {
-    const el = makeSlot(parseInt(pickStr), state[section][parseInt(pickStr)]);
+    const el = makeSlot(parseInt(pickStr), state[section][parseInt(pickStr)], reserveStart);
     el.style.gridColumn = pos.c;
     el.style.gridRow    = pos.r;
     container.appendChild(el);
+  }
+
+  // Add reserve banner in the corridor row before reserve picks
+  if (reserveBannerRow > 0) {
+    const banner = document.createElement('div');
+    banner.className = 'reserve-banner';
+    banner.style.gridColumn = `1 / span ${maxCols}`;
+    banner.style.gridRow    = reserveBannerRow;
+    banner.textContent = '◈  РЕЗЕРВ  ◈';
+    container.appendChild(banner);
   }
 
   if (sortables[section]) sortables[section].destroy();
@@ -638,7 +702,7 @@ function switchTab(name, tabEl) {
   tabEl.classList.add('active');
   if (!rendered[name]) {
     rendered[name] = true;
-    if (name === 'kapua')  renderGrid('kapua',  KAPUA_LAYOUT,  KAPUA_MAX.cols,  KAPUA_MAX.rows);
+    if (name === 'kapua')  renderGrid('kapua',  KAPUA_LAYOUT,  KAPUA_MAX.cols,  KAPUA_MAX.rows,  KAPUA_RESERVE_START);
     if (name === 'halavi') renderGrid('halavi', HALAVI_LAYOUT, HALAVI_MAX.cols, HALAVI_MAX.rows);
     if (name === 'dagim')  renderGrid('dagim',  DAGIM_LAYOUT,  DAGIM_MAX.cols,  DAGIM_MAX.rows);
     if (name === 'yavesh') {
