@@ -451,11 +451,19 @@ async function loadMaps() {
       if (kb.maxCols) KAPUA_MAX.cols = kb.maxCols;
       if (kb.maxRows) KAPUA_MAX.rows = kb.maxRows;
       if (kb.reserveStart) KAPUA_RESERVE_START = kb.reserveStart;
-      // Add new picks to state without overwriting user's drag changes
-      for (const [pick, p] of Object.entries(kb.picks)) {
-        if (!(pick in state.kapua)) state.kapua[pick] = { ...p };
+      // If base version changed → reset state from fresh JSON (clears stale localStorage order)
+      const savedVer = localStorage.getItem('kapua_base_v');
+      const freshVer = kb.v || '';
+      if (freshVer && savedVer !== freshVer) {
+        state.kapua = deepClone(kb.picks);
+        localStorage.setItem('kapua_base_v', freshVer);
+        console.log(`kapua-base.json: version changed ${savedVer} → ${freshVer}, state reset`);
+      } else {
+        for (const [pick, p] of Object.entries(kb.picks)) {
+          if (!(pick in state.kapua)) state.kapua[pick] = { ...p };
+        }
       }
-      console.log(`kapua-base.json: ${Object.keys(kb.picks).length} picks, maxRows=${kb.maxRows}`);
+      console.log(`kapua-base.json: ${Object.keys(kb.picks).length} picks, maxRows=${kb.maxRows}, v=${freshVer}`);
     }
 
     // Apply fresh halavi-base.json
