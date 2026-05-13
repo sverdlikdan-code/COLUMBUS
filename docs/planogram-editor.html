@@ -484,9 +484,11 @@ function stockHTML(makat) {
     ? `<div class="s-pal-big">${Math.round(d.palStock)} <span class="s-pal-unit">PAL</span></div>` : '';
   const kartLine = d.stock != null ? `<span class="s-kart">${d.stock}קרט</span>` : '';
   const kratLine = d.kratnost > 0 ? `<span class="s-krat"> [${d.kratnost}]</span>` : '';
-  const wtLine   = d.weight != null && d.weight > 0
-    ? `<span class="s-weight">${d.weight} kg/קרט</span>` : '';
-  const daysLine = d.daysStockAll != null ? `<span class="s-meta">${d.daysStockAll}ימ'</span>` : '';
+  const wCarton  = d.weightCarton != null && d.weightCarton > 0 ? d.weightCarton
+                 : (d.weight != null && d.weight > 0 && d.packFactor > 0 ? +(d.weight * d.packFactor).toFixed(1) : null);
+  const wtLine   = wCarton != null
+    ? `<span class="s-weight">${wCarton} kg/קרט</span>` : '';
+  const daysLine = d.daysStockAll != null ? `<span class="s-meta" title="days for saleout">${d.daysStockAll}<span style="font-size:9px;opacity:0.7"> days</span></span>` : '';
   const metaLine = daysLine ? `<div class="slot-meta">${daysLine}</div>` : '';
   const stockLine = (kartLine || kratLine) ? `<div class="slot-kart-line">${kartLine}${kratLine}</div>` : '';
   return `<div class="slot-stock">${palLine}${stockLine}${wtLine}</div>${metaLine}`;
@@ -627,17 +629,24 @@ function makeSlot(pick, p, reserveStart = 0) {
       : '';
     el.className = 'slot text-mode';
     el.style.background = cardBg(p.makat, p.fam);
-    el.innerHTML = restoreBtn + textModeHTML(pick, p) + stockHTML(p.makat);
+    el.innerHTML = restoreBtn + textModeHTML(pick, p, reserveStart) + stockHTML(p.makat);
   }
   return el;
 }
 
-function textModeHTML(pick, p) {
-  const isReserve = KAPUA_RESERVE_START > 0 && pick >= KAPUA_RESERVE_START;
+function textModeHTML(pick, p, reserveStart = 0) {
+  const isReserve = reserveStart > 0 && pick >= reserveStart;
+  const displayName = p.name || productData[String(p.makat)]?.desc || '';
   return `${isReserve ? '' : `<span class="s-pick">#${pick}</span>`}
           <span class="s-makat">${p.makat}</span>
-          ${p.name ? `<span class="s-name">${p.name}</span>` : ''}
+          ${displayName ? `<span class="s-name">${displayName}</span>` : ''}
           <span class="s-fam">${p.fam || ''}</span>`;
+}
+
+function sectionReserveStart(section) {
+  if (section === 'halavi') return HALAVI_RESERVE_START;
+  if (section === 'dagim')  return DAGIM_RESERVE_START;
+  return KAPUA_RESERVE_START;
 }
 
 // Called from onerror handler when image fails to load
@@ -646,14 +655,15 @@ window.renderTextMode = function(el, pick) {
   const p = state[section][pick];
   if (p) {
     el.style.background = cardBg(p.makat, p.fam);
-    el.innerHTML = textModeHTML(pick, p) + stockHTML(p.makat);
+    el.innerHTML = textModeHTML(pick, p, sectionReserveStart(section)) + stockHTML(p.makat);
   }
 };
 
 function refreshSlot(el, pick, section) {
   const p = state[section][pick];
   el.dataset.pick = pick;
-  const isReserve = KAPUA_RESERVE_START > 0 && pick >= KAPUA_RESERVE_START;
+  const rs = sectionReserveStart(section);
+  const isReserve = rs > 0 && pick >= rs;
   if (!p) {
     if (isReserve) {
       el.className = 'slot slot-reserve-empty';
@@ -676,7 +686,7 @@ function refreshSlot(el, pick, section) {
       <button onclick="hidePhoto('${p.makat}',${pick},'${section}')" title="הסר תמונה"
         style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.45);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">✕</button>
       <div class="slot-id">
-        <span class="slot-pick-badge">#${pick}</span>
+        ${isReserve ? '' : `<span class="slot-pick-badge">#${pick}</span>`}
         <span class="slot-makat-badge">${p.makat}</span>
       </div>
       ${stockHTML(p.makat)}`;
@@ -688,7 +698,7 @@ function refreshSlot(el, pick, section) {
       : '';
     el.className = 'slot text-mode';
     el.style.background = cardBg(p.makat, p.fam);
-    el.innerHTML = restoreBtn + textModeHTML(pick, p) + stockHTML(p.makat);
+    el.innerHTML = restoreBtn + textModeHTML(pick, p, rs) + stockHTML(p.makat);
   }
 }
 
