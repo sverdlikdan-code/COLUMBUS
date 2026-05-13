@@ -1162,6 +1162,7 @@ async function main() {
         palStock:    (krat > 0 && p.stock > 0) ? +(p.stock / krat).toFixed(1) : null,
         weight:      wt != null ? +wt.toFixed(3) : null,
         daysStockAll: (dsa > 0 && p.stock > 0) ? Math.round(p.stock / dsa) : null,
+        nameEn:      nameEnMap[String(p.makat)] || null,
       };
     }
     for (const p of newKapuaProds) {
@@ -1176,6 +1177,7 @@ async function main() {
         palStock:    (krat > 0 && p.stock > 0) ? +(p.stock / krat).toFixed(1) : null,
         weight:      wt != null ? +wt.toFixed(3) : null,
         daysStockAll: (dsa > 0 && p.stock > 0) ? Math.round(p.stock / dsa) : null,
+        nameEn:      nameEnMap[String(p.makat)] || null,
       };
     }
     for (const p of [...halaviProds, ...dagimProds]) {
@@ -1190,6 +1192,7 @@ async function main() {
         palStock:    (krat > 0 && p.stock > 0) ? +(p.stock / krat).toFixed(1) : null,
         weight:      wt != null ? +wt.toFixed(3) : null,
         daysStockAll: (dsa > 0 && p.stock > 0) ? Math.round(p.stock / dsa) : null,
+        nameEn:      nameEnMap[String(p.makat)] || null,
       };
     }
     fs.writeFileSync(path.join(__dirname,'..','docs','product-data.json'),
