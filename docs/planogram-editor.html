@@ -792,6 +792,12 @@ window._currentSection = 'kapua';
   document.getElementById('zoom-label').textContent = ZOOM_STEPS[zoomIdx] + '%';
   applyZoomToSection();
   buildLegend();
+  // Open position table by default
+  const panel = document.getElementById('position-table');
+  panel.style.display = 'block';
+  document.getElementById('btn-table').style.background = '#1565C0';
+  document.getElementById('btn-table').style.color      = '#fff';
+  updateTable();
 })();
 </script>
 </body>
