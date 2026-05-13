@@ -21,15 +21,52 @@
     .tabs {
       display: flex; gap: 6px; padding: 10px 20px 0;
       background: #fff; border-bottom: 2px solid #dde0e8;
+      justify-content: center;
     }
     .tab {
-      padding: 10px 26px; border: none; border-radius: 6px 6px 0 0;
+      padding: 10px 36px; border: none; border-radius: 6px 6px 0 0;
       font-size: 13px; font-weight: bold; cursor: pointer;
       background: #e8eaf0; color: #666; line-height: 1.4;
       display: flex; flex-direction: column; align-items: center; gap: 1px;
+      flex: 1; max-width: 220px;
     }
     .tab.active { background: #1a6ef5; color: #fff; }
     .tab-pal { font-size: 10px; font-weight: normal; opacity: 0.8; }
+
+    /* Version history dropdown */
+    .history-dropdown {
+      display: none; position: absolute; top: 100%; right: 0;
+      background: #fff; border: 1px solid #ddd; border-radius: 8px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.15); z-index: 1000;
+      min-width: 260px; overflow: hidden;
+    }
+    .history-dropdown.open { display: block; }
+    .history-item {
+      padding: 10px 14px; cursor: pointer; font-size: 12px;
+      border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;
+    }
+    .history-item:hover { background: #f0f4ff; }
+    .history-item:last-child { border-bottom: none; }
+    .history-item .h-ts { color: #555; }
+    .history-item .h-restore { color: #1a6ef5; font-weight: bold; font-size: 11px; }
+    .history-empty { padding: 14px; text-align: center; color: #aaa; font-size: 12px; }
+
+    /* Print styles */
+    @media print {
+      .header, .tabs, .toolbar, #position-table, #legend, .no-print { display: none !important; }
+      body { background: #fff; }
+      .section { display: block !important; padding: 0; overflow: visible; }
+      .section:not(.active) { display: none !important; }
+      .warehouse-grid { transform: none !important; }
+      .slot { break-inside: avoid; }
+      .slot.has-photo:hover { transform: none !important; }
+      #print-header { display: block !important; }
+    }
+    #print-header {
+      display: none;
+      font-size: 16px; font-weight: bold; text-align: center;
+      margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #333;
+    }
 
     /* Toolbar */
     .toolbar {
@@ -177,14 +214,23 @@
   <button class="tab"        data-sec="yavesh" onclick="switchTab('yavesh',this)"><span>דג יבש 🧂</span><span class="tab-pal" id="tab-pal-yavesh"></span></button>
 </div>
 
+<div id="print-header">MAHSAN PLANOGRAM — FORMULA</div>
+
 <div class="toolbar">
-  <button class="btn btn-export" onclick="exportCSV()">⬇ CSV</button>
-  <button class="btn btn-save"   onclick="saveState()">💾 שמור</button>
-  <button class="btn btn-reset"  onclick="resetSection()">↩ אפס</button>
-  <button class="btn" id="btn-table" onclick="toggleTable()" style="background:#f0f4ff;color:#1565C0;border:1px solid #1565C0;">📊 מיקום</button>
-  <button class="btn" onclick="changeZoom(-1)" style="background:#f5f5f5;color:#333;border:1px solid #ccc;padding:7px 10px;">−</button>
+  <button class="btn btn-export no-print" onclick="exportCSV()">⬇ CSV</button>
+  <button class="btn btn-save no-print"   onclick="saveState()">💾 שמור</button>
+  <div style="position:relative; display:inline-block;" class="no-print">
+    <button class="btn" id="btn-history" onclick="toggleHistory()"
+      style="background:#fff3cd;color:#7a5c00;border:1px solid #e0c040;">🕐 היסטוריה</button>
+    <div class="history-dropdown" id="history-dropdown"></div>
+  </div>
+  <button class="btn no-print" onclick="printPlanogram()"
+    style="background:#f0f0f0;color:#333;border:1px solid #ccc;">🖨️ PDF</button>
+  <button class="btn btn-reset no-print"  onclick="resetSection()">↩ אפס</button>
+  <button class="btn no-print" id="btn-table" onclick="toggleTable()" style="background:#f0f4ff;color:#1565C0;border:1px solid #1565C0;">📊 מיקום</button>
+  <button class="btn no-print" onclick="changeZoom(-1)" style="background:#f5f5f5;color:#333;border:1px solid #ccc;padding:7px 10px;">−</button>
   <span id="zoom-label" style="font-size:11px;color:#555;min-width:32px;text-align:center;">100%</span>
-  <button class="btn" onclick="changeZoom(+1)" style="background:#f5f5f5;color:#333;border:1px solid #ccc;padding:7px 10px;">+</button>
+  <button class="btn no-print" onclick="changeZoom(+1)" style="background:#f5f5f5;color:#333;border:1px solid #ccc;padding:7px 10px;">+</button>
   <span class="status" id="status">טוען...</span>
 </div>
 
@@ -766,7 +812,87 @@ function exportCSV() {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// VERSION HISTORY  (localStorage, 5 versions per section)
+// ══════════════════════════════════════════════════════════════════════════
+function saveVersion() {
+  const sec = window._currentSection || 'kapua';
+  const key = 'mahsan_versions_' + sec;
+  const versions = JSON.parse(localStorage.getItem(key) || '[]');
+  const now = new Date();
+  const ts = now.toLocaleDateString('he-IL') + ' ' +
+             now.toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' });
+  versions.unshift({ ts, state: deepClone(state[sec]) });
+  if (versions.length > 5) versions.length = 5;
+  localStorage.setItem(key, JSON.stringify(versions));
+}
+
+function toggleHistory() {
+  const dd = document.getElementById('history-dropdown');
+  const open = dd.classList.toggle('open');
+  if (open) renderHistoryDropdown();
+  if (open) {
+    setTimeout(() => document.addEventListener('click', closeHistoryOutside, { once: true }), 10);
+  }
+}
+
+function closeHistoryOutside(e) {
+  const dd = document.getElementById('history-dropdown');
+  if (!dd.contains(e.target) && e.target.id !== 'btn-history') {
+    dd.classList.remove('open');
+  }
+}
+
+function renderHistoryDropdown() {
+  const sec = window._currentSection || 'kapua';
+  const key = 'mahsan_versions_' + sec;
+  const versions = JSON.parse(localStorage.getItem(key) || '[]');
+  const dd = document.getElementById('history-dropdown');
+  if (!versions.length) {
+    dd.innerHTML = `<div class="history-empty">אין גרסאות שמורות ל-${sec}</div>`;
+    return;
+  }
+  dd.innerHTML = versions.map((v, i) =>
+    `<div class="history-item" onclick="restoreVersion(${i})">
+       <span class="h-ts">${v.ts}</span>
+       <span class="h-restore">שחזר ↩</span>
+     </div>`
+  ).join('');
+}
+
+function restoreVersion(index) {
+  const sec = window._currentSection || 'kapua';
+  const key = 'mahsan_versions_' + sec;
+  const versions = JSON.parse(localStorage.getItem(key) || '[]');
+  if (!versions[index]) return;
+  if (!confirm(`לשחזר גרסה מ-${versions[index].ts}?`)) return;
+  state[sec] = deepClone(versions[index].state);
+  document.getElementById('history-dropdown').classList.remove('open');
+  const layouts = { kapua:[KAPUA_LAYOUT,KAPUA_MAX], halavi:[HALAVI_LAYOUT,HALAVI_MAX], dagim:[DAGIM_LAYOUT,DAGIM_MAX] };
+  if (sec === 'yavesh') {
+    const count = Object.keys(state.yavesh).length;
+    renderGrid('yavesh', makeSeqLayout(count, 10), 10, Math.ceil(count / 10));
+  } else {
+    const [lay, mx] = layouts[sec];
+    renderGrid(sec, lay, mx.cols, mx.rows, sec === 'kapua' ? KAPUA_RESERVE_START : 0);
+  }
+  setStatus(`✅ שוחזר: ${versions[index].ts}`);
+  setTimeout(() => setStatus('מוכן לעריכה'), 2500);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// PRINT TO PDF
+// ══════════════════════════════════════════════════════════════════════════
+function printPlanogram() {
+  const sec = window._currentSection || 'kapua';
+  const secNames = { kapua:'קפוא ❄️', halavi:'חלבי 🥛', dagim:'דגים 🐟', yavesh:'דג יבש 🧂' };
+  const ph = document.getElementById('print-header');
+  ph.textContent = `MAHSAN PLANOGRAM — FORMULA  |  ${secNames[sec] || sec}  |  ${new Date().toLocaleDateString('he-IL')}`;
+  window.print();
+}
+
 async function saveState() {
+  saveVersion();
   localStorage.setItem('mahsan_editor', JSON.stringify(state));
 
   // Build updated kapua-base.json payload and save to server
