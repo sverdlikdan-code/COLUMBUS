@@ -455,6 +455,7 @@ async function loadMaps() {
       if (kb.maxCols) KAPUA_MAX.cols = kb.maxCols;
       if (kb.maxRows) KAPUA_MAX.rows = kb.maxRows;
       if (kb.reserveStart) KAPUA_RESERVE_START = kb.reserveStart;
+      window._kapuaVer = kb.v || '';
       // If base version changed → reset state from fresh JSON (clears stale localStorage order)
       const savedVer = localStorage.getItem('kapua_base_v');
       const freshVer = kb.v || '';
@@ -765,10 +766,33 @@ function exportCSV() {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
-function saveState() {
+async function saveState() {
   localStorage.setItem('mahsan_editor', JSON.stringify(state));
-  setStatus('✅ נשמר בדפדפן');
-  setTimeout(() => setStatus('מוכן לעריכה'), 2000);
+
+  // Build updated kapua-base.json payload and save to server
+  try {
+    const payload = {
+      picks:        state.kapua,
+      layout:       KAPUA_LAYOUT,
+      maxCols:      KAPUA_MAX.cols,
+      maxRows:      KAPUA_MAX.rows,
+      reserveStart: KAPUA_RESERVE_START,
+      v:            (window._kapuaVer || '') + '-saved',
+    };
+    const resp = await fetch('http://localhost:3000/save-kapua', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload),
+    });
+    if (resp.ok) {
+      setStatus('✅ נשמר בקובץ kapua-base.json');
+    } else {
+      setStatus('✅ נשמר בדפדפן (שרת לא פעיל)');
+    }
+  } catch {
+    setStatus('✅ נשמר בדפדפן (שרת לא פעיל)');
+  }
+  setTimeout(() => setStatus('מוכן לעריכה'), 3000);
 }
 
 function resetSection() {
