@@ -54,10 +54,19 @@
     /* Print styles */
     @media print {
       .header, .tabs, .toolbar, #position-table, #legend, .no-print { display: none !important; }
-      body { background: #fff; }
-      .section { display: block !important; padding: 0; overflow: visible; }
+      body { background: #fff; margin: 0; }
+      .section {
+        display: block !important; padding: 0;
+        overflow: visible !important;
+        height: auto !important; max-height: none !important;
+      }
       .section:not(.active) { display: none !important; }
-      .warehouse-grid { transform: none !important; }
+      .warehouse-grid {
+        transform: none !important;
+        width: auto !important;
+        overflow: visible !important;
+      }
+      @page { size: landscape; margin: 10mm; }
       .slot { break-inside: avoid; }
       .slot.has-photo:hover { transform: none !important; }
       #print-header { display: block !important; }
