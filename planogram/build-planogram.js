@@ -1263,7 +1263,7 @@ async function main() {
     }
 
     // ── dagim-base.json ───────────────────────────────────────────────────
-    // Layout from MAHSAN דגים physical planogram (3 rows × 26 cols, non-sequential picks)
+    // Layout: row1=top bay, row2=upper bay, row3=PASSAGE, row4=lower bay, row5=PASSAGE, rows6-7=reserve
     const DAGIM_LAYOUT = {
        1:{r:1,c:25}, 2:{r:1,c:24}, 3:{r:1,c:23}, 4:{r:1,c:22}, 5:{r:1,c:21},
        6:{r:1,c:20}, 7:{r:1,c:19}, 8:{r:1,c:18},
@@ -1272,11 +1272,11 @@ async function main() {
       31:{r:2,c:15},32:{r:2,c:14},33:{r:2,c:13},34:{r:2,c:12},35:{r:2,c:11},
       36:{r:2,c:10},45:{r:2,c:9}, 46:{r:2,c:8}, 47:{r:2,c:7}, 48:{r:2,c:6},
       49:{r:2,c:5}, 50:{r:2,c:4}, 54:{r:2,c:3}, 55:{r:2,c:2},
-       9:{r:3,c:26},10:{r:3,c:25},11:{r:3,c:24},12:{r:3,c:23},13:{r:3,c:22},
-      14:{r:3,c:21},21:{r:3,c:20},22:{r:3,c:19},23:{r:3,c:18},28:{r:3,c:17},
-      29:{r:3,c:16},30:{r:3,c:15},37:{r:3,c:13},38:{r:3,c:12},39:{r:3,c:11},
-      40:{r:3,c:10},41:{r:3,c:9}, 42:{r:3,c:8}, 43:{r:3,c:7}, 44:{r:3,c:6},
-      51:{r:3,c:5}, 52:{r:3,c:4}, 53:{r:3,c:3}, 56:{r:3,c:2}, 57:{r:3,c:1},
+       9:{r:4,c:26},10:{r:4,c:25},11:{r:4,c:24},12:{r:4,c:23},13:{r:4,c:22},
+      14:{r:4,c:21},21:{r:4,c:20},22:{r:4,c:19},23:{r:4,c:18},28:{r:4,c:17},
+      29:{r:4,c:16},30:{r:4,c:15},37:{r:4,c:13},38:{r:4,c:12},39:{r:4,c:11},
+      40:{r:4,c:10},41:{r:4,c:9}, 42:{r:4,c:8}, 43:{r:4,c:7}, 44:{r:4,c:6},
+      51:{r:4,c:5}, 52:{r:4,c:4}, 53:{r:4,c:3}, 56:{r:4,c:2}, 57:{r:4,c:1},
     };
     {
       const dPicks = {};
@@ -1285,7 +1285,7 @@ async function main() {
         dPicks[pickStr] = { makat: p.makat, fam: p.fam || '', name: nameEn };
       }
       fs.writeFileSync(path.join(__dirname,'..','docs','dagim-base.json'),
-        JSON.stringify({ picks: dPicks, layout: DAGIM_LAYOUT, maxCols:26, maxRows:3 }), 'utf8');
+        JSON.stringify({ picks: dPicks, layout: DAGIM_LAYOUT, maxCols:26, maxRows:7, reserveStart:58 }), 'utf8');
       console.log(`dagim-base.json: ${Object.keys(dPicks).length} picks`);
     }
   }
