@@ -636,7 +636,7 @@ function makeSlot(pick, p, reserveStart = 0) {
 
 function textModeHTML(pick, p, reserveStart = 0) {
   const isReserve = reserveStart > 0 && pick >= reserveStart;
-  const displayName = p.name || productData[String(p.makat)]?.desc || '';
+  const displayName = p.name || '';
   return `${isReserve ? '' : `<span class="s-pick">#${pick}</span>`}
           <span class="s-makat">${p.makat}</span>
           ${displayName ? `<span class="s-name">${displayName}</span>` : ''}
