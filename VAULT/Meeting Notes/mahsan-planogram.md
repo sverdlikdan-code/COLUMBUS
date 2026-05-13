@@ -49,3 +49,16 @@ Fixed legend row overflow (FERMA napolzaet): navRow.height 20→30, medium top b
 Added PAL delimiter: thin separator line before פק"ע dates section.
 Fixed empty cells: added to resize sets + border/fill.
 Build output: ✅ v41.xlsx, all 3 sheets, 16 zero קפוא / 4 zero חלבי / 15 zero דגים.
+
+### 2026-05-13 #session-end ✅
+Planogram editor (docs/planogram-editor.html) — серия фиксов:
+- **Вес коробки**: stockHTML показывает `weightCarton` (кг/коробка) вместо веса единицы.
+  enrich-product-data.js добавляет `packFactor` (из паттерна "(N)" в desc) + `weightCarton = weight×packFactor` в product-data.json.
+  197 продуктов обогащено, 157 с weightCarton.
+- **Days label**: `ימ'` → `${days} days`.
+- **DESC на карточках**: временно появился (desc из FORMULA PALLETS слишком длинный) — убрали.
+- **SANTA BREMOR в חלבי**: localStorage загружал старый state. При Hard Refresh исчезло.
+- **nameEn от KARTIS PARIT везде**: build-planogram.js теперь пишет `nameEn` в product-data.json для всех секций (kapua/halavi/dagim). pbi-kapua KARTIS PARIT query уже без фильтра семейства → содержит все продукты. planogram-editor.html: textModeHTML использует `p.name || productData[makat]?.nameEn`. Активируется после следующего scheduled build.
+- **Reserve-start fix**: sectionReserveStart() helper — halavi/dagim используют свои переменные, не KAPUA_RESERVE_START.
+
+Pending: scheduled build запишет nameEn → карточки получат имена из KARTIS PARIT.
