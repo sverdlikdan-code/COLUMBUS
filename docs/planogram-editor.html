@@ -141,6 +141,8 @@
       font-size: 9px; color: #111; font-weight: bold; line-height: 1.3;
       flex: 1; word-break: break-word;
     }
+    .s-badges { font-size: 14px; line-height: 1; display: block; margin-bottom: 1px; }
+    .slot-id .s-badges { font-size: 13px; display: inline; margin-right: 3px; }
 
     /* Stock info bar — shown in both modes */
     .slot-stock {
@@ -441,6 +443,43 @@ let DAGIM_BASE  = {};
 // מקטים whose photos are hidden by user (forces text mode)
 let hiddenPhotos = new Set(JSON.parse(localStorage.getItem('mahsan_no_photo') || '[]'));
 
+// ── Medals + dumbbell ────────────────────────────────────────────────────
+let heavyThresh = null;
+const medalMap  = {};  // key: "section:makat" → "🥇"|"🥈"|"🥉"
+
+function computeHeavyThresh() {
+  const vals = Object.values(productData)
+    .map(p => p.weightCarton).filter(v => v != null && v > 0).sort((a,b) => a-b);
+  return vals.length ? vals[Math.floor(vals.length * 0.7)] : null;
+}
+
+function computeSectionMedals(section, picks) {
+  const ranked = Object.values(picks)
+    .filter(p => p && productData[String(p.makat)]?.daySales > 0)
+    .sort((a,b) => (productData[String(b.makat)]?.daySales||0) - (productData[String(a.makat)]?.daySales||0));
+  const medals = ['🥇','🥈','🥉'];
+  const seen = new Set(); let rank = 0;
+  for (const p of ranked) {
+    const mk = String(p.makat);
+    if (seen.has(mk)) continue;
+    seen.add(mk);
+    medalMap[`${section}:${mk}`] = medals[rank++];
+    if (rank >= 3) break;
+  }
+}
+
+function getMedal(section, makat) {
+  return medalMap[`${section}:${String(makat)}`] || '';
+}
+function isHeavyProduct(makat) {
+  return heavyThresh != null && (productData[String(makat)]?.weightCarton || 0) >= heavyThresh;
+}
+function slotBadges(section, makat) {
+  const medal = getMedal(section, makat);
+  const heavy = isHeavyProduct(makat) ? '🏋️' : '';
+  return medal || heavy ? `<span class="s-badges">${medal}${heavy ? ' ' + heavy : ''}</span>` : '';
+}
+
 function offUrl(ean) {
   // Open Food Facts image: split 13-digit EAN into 3/3/3/rest
   const s = String(ean).replace(/\D/g,'');
@@ -565,6 +604,13 @@ async function loadMaps() {
       document.getElementById('refresh-badge').textContent = '🔄 ' + ri.label;
     }
 
+    // Compute medals + heavy threshold after all data loaded
+    heavyThresh = computeHeavyThresh();
+    computeSectionMedals('kapua',  KAPUA_BASE);
+    computeSectionMedals('halavi', HALAVI_BASE);
+    computeSectionMedals('dagim',  DAGIM_BASE);
+    console.log(`Heavy thresh: ${heavyThresh?.toFixed(1)} kg/קרט | Medals computed`);
+
     const cnt = Object.keys(photoMap).length;
     console.log(`Photos: ${cnt} EANs | Stock: ${Object.keys(pd).length} | DY: ${Object.keys(dy).length}`);
     return cnt;
@@ -619,6 +665,7 @@ function makeSlot(pick, p, reserveStart = 0) {
       <div class="slot-id">
         ${isReserve ? '' : `<span class="slot-pick-badge">#${pick}</span>`}
         <span class="slot-makat-badge">${p.makat}</span>
+        ${isReserve ? '' : slotBadges(sec, p.makat)}
       </div>
       ${stockHTML(p.makat)}`;
   } else {
@@ -637,7 +684,10 @@ function makeSlot(pick, p, reserveStart = 0) {
 function textModeHTML(pick, p, reserveStart = 0) {
   const isReserve = reserveStart > 0 && pick >= reserveStart;
   const displayName = p.name || productData[String(p.makat)]?.nameEn || '';
+  const sec = window._currentSection || 'kapua';
+  const badges = isReserve ? '' : slotBadges(sec, p.makat);
   return `${isReserve ? '' : `<span class="s-pick">#${pick}</span>`}
+          ${badges}
           <span class="s-makat">${p.makat}</span>
           ${displayName ? `<span class="s-name">${displayName}</span>` : ''}
           <span class="s-fam">${p.fam || ''}</span>`;
@@ -688,6 +738,7 @@ function refreshSlot(el, pick, section) {
       <div class="slot-id">
         ${isReserve ? '' : `<span class="slot-pick-badge">#${pick}</span>`}
         <span class="slot-makat-badge">${p.makat}</span>
+        ${isReserve ? '' : slotBadges(section, p.makat)}
       </div>
       ${stockHTML(p.makat)}`;
   } else {
