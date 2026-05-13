@@ -220,5 +220,20 @@ ORDER BY 'משטח עם כפולות'[סדר ביקור] ASC
   }
 });
 
+// Save planogram base JSON back to docs/
+app.post('/save-kapua', (req, res) => {
+  try {
+    const path = require('path');
+    const fs   = require('fs');
+    const data = req.body;
+    if (!data || !data.picks) return res.status(400).json({ error: 'invalid payload' });
+    const dest = path.join(__dirname, '..', 'docs', 'kapua-base.json');
+    fs.writeFileSync(dest, JSON.stringify(data, null, 2), 'utf8');
+    res.json({ ok: true, v: data.v });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Columbus server running on port ${PORT}`));
