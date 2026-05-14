@@ -87,10 +87,13 @@ const EXCEL_ROW_TO_GRID = { 3:1, 7:3, 8:4, 10:6, 11:7, 13:9 };
     else         noSales.push({ makat, fam });
   });
 
-  // Sort both groups by makat number
-  const sortByMakat = (a, b) => Number(a.makat) - Number(b.makat);
-  hasSales.sort(sortByMakat);
-  noSales.sort(sortByMakat);
+  // hasSales: sort by makat ascending
+  hasSales.sort((a, b) => Number(a.makat) - Number(b.makat));
+  // noSales: sort by family then makat ascending
+  noSales.sort((a, b) => {
+    const fc = a.fam.localeCompare(b.fam, 'he');
+    return fc !== 0 ? fc : Number(a.makat) - Number(b.makat);
+  });
 
   console.log(`Products with sales: ${hasSales.length} | without: ${noSales.length}`);
 
