@@ -452,6 +452,21 @@ let DAGIM_BASE  = {};
 // מקטים whose photos are hidden by user (forces text mode)
 let hiddenPhotos = new Set(JSON.parse(localStorage.getItem('mahsan_no_photo') || '[]'));
 
+// Picks cleared by user per section: { kapua: Set, halavi: Set, dagim: Set }
+const _clearedRaw = JSON.parse(localStorage.getItem('mahsan_cleared_picks') || '{}');
+const clearedPicks = {
+  kapua:  new Set((_clearedRaw.kapua  || []).map(String)),
+  halavi: new Set((_clearedRaw.halavi || []).map(String)),
+  dagim:  new Set((_clearedRaw.dagim  || []).map(String)),
+};
+function _saveClearedPicks() {
+  localStorage.setItem('mahsan_cleared_picks', JSON.stringify({
+    kapua:  [...clearedPicks.kapua],
+    halavi: [...clearedPicks.halavi],
+    dagim:  [...clearedPicks.dagim],
+  }));
+}
+
 // ── Medals + dumbbell ────────────────────────────────────────────────────
 let heavyThresh = null;
 const medalMap  = {};  // key: "section:makat" → "🥇"|"🥈"|"🥉"
@@ -523,6 +538,30 @@ window.showPhoto = function(makat, pick, section) {
   const container = document.getElementById('grid-' + section);
   const el = container ? [...container.children].find(e => +e.dataset.pick === pick) : null;
   if (el) refreshSlot(el, pick, section || window._currentSection || 'kapua');
+};
+
+window.clearPick = function(pick, section) {
+  const sec = section || window._currentSection || 'kapua';
+  const p = state[sec] && state[sec][pick];
+  if (p && p.makat) {
+    hiddenPhotos.delete(String(p.makat));
+    localStorage.setItem('mahsan_no_photo', JSON.stringify([...hiddenPhotos]));
+  }
+  clearedPicks[sec] = clearedPicks[sec] || new Set();
+  clearedPicks[sec].add(String(pick));
+  _saveClearedPicks();
+  const container = document.getElementById('grid-' + sec);
+  const el = container ? [...container.children].find(e => +e.dataset.pick === +pick) : null;
+  if (el) refreshSlot(el, pick, sec);
+};
+
+window.restorePick = function(pick, section) {
+  const sec = section || window._currentSection || 'kapua';
+  clearedPicks[sec] && clearedPicks[sec].delete(String(pick));
+  _saveClearedPicks();
+  const container = document.getElementById('grid-' + sec);
+  const el = container ? [...container.children].find(e => +e.dataset.pick === +pick) : null;
+  if (el) refreshSlot(el, pick, sec);
 };
 
 function stockHTML(makat) {
@@ -671,7 +710,7 @@ function makeSlot(pick, p, reserveStart = 0) {
     el.innerHTML = `
       <img class="slot-img" src="${photoUrl}" alt="${p.makat}"
            onerror="this.closest('.slot').classList.remove('has-photo'); this.closest('.slot').classList.add('text-mode'); renderTextMode(this.closest('.slot'), ${pick});">
-      <button onclick="hidePhoto('${p.makat}',${pick},'${sec}')" title="הסר תמונה"
+      <button onclick="clearPick(${pick},'${sec}')" title="הסר מוצר"
         style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.45);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">✕</button>
       <div class="slot-id">
         ${isReserve ? '' : `<span class="slot-pick-badge">#${pick}</span>`}
@@ -724,6 +763,17 @@ function refreshSlot(el, pick, section) {
   el.dataset.pick = pick;
   const rs = sectionReserveStart(section);
   const isReserve = rs > 0 && pick >= rs;
+
+  // Pick manually cleared by user — show as empty with restore button
+  if (clearedPicks[section] && clearedPicks[section].has(String(pick))) {
+    el.className = 'slot slot-empty';
+    el.style.background = '';
+    el.innerHTML = `<span style="color:#aaa;font-size:9px;">#${pick}</span>
+      <button onclick="restorePick(${pick},'${section}')" title="שחזר מוצר"
+        style="position:absolute;bottom:3px;left:50%;transform:translateX(-50%);background:rgba(26,110,245,0.7);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 5px;z-index:10;">↩</button>`;
+    return;
+  }
+
   if (!p) {
     if (isReserve) {
       el.className = 'slot slot-reserve-empty';
@@ -1103,6 +1153,8 @@ async function saveState() {
 function resetSection() {
   const sec = window._currentSection || 'kapua';
   if (!confirm(`לאפס את ${sec}?`)) return;
+  // Clear user-cleared picks for this section
+  if (clearedPicks[sec]) { clearedPicks[sec].clear(); _saveClearedPicks(); }
   if (sec === 'kapua')       { state.kapua  = deepClone(KAPUA_BASE); }
   else if (sec === 'halavi') { state.halavi = deepClone(HALAVI_BASE); }
   else if (sec === 'dagim')  { state.dagim  = deepClone(DAGIM_BASE); }
