@@ -313,8 +313,79 @@ async function fetchLastRefresh() {
   }
 }
 
+// ── Fetch stock + sales at Main only for חלבי / דגים makatim ────────────────
+async function fetchStockMain(makatim) {
+  if (!makatim || !makatim.length) return {};
+  const t = await getToken();
+  const mkSet = '{' + makatim.map(m => `"${m}"`).join(',') + '}`;
+
+  const [stockRows, salesRows, salesAllRows] = await Promise.all([
+    dax(t, `
+      EVALUATE
+      SUMMARIZECOLUMNS(
+        'מלאי-תוקף'[מק"ט],
+        FILTER('מלאי-תוקף',
+          'מלאי-תוקף'[מחסן] = "Main" &&
+          CONTAINSROW(${mkSet}, 'מלאי-תוקף'[מק"ט])
+        ),
+        "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+      )
+    `),
+    dax(t, `
+      EVALUATE
+      CALCULATETABLE(
+        ADDCOLUMNS(
+          SUMMARIZE('ALL_PARTS', 'ALL_PARTS'[מק'ט]),
+          "daySales", [TOTAL מכר בקרטונים ממוצע ביום]
+        ),
+        'ALL_PARTS'[חברה] = "FORMULA",
+        'ALL_PARTS'[מחסן] = "Main",
+        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 90),
+        TREATAS(${mkSet}, 'ALL_PARTS'[מק'ט])
+      )
+    `),
+    dax(t, `
+      EVALUATE
+      CALCULATETABLE(
+        ADDCOLUMNS(
+          SUMMARIZE('ALL_PARTS', 'ALL_PARTS'[מק'ט]),
+          "daySalesAll", [TOTAL מכר בקרטונים ממוצע ביום]
+        ),
+        'ALL_PARTS'[חברה] = "FORMULA",
+        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 90),
+        TREATAS(${mkSet}, 'ALL_PARTS'[מק'ט])
+      )
+    `),
+  ]);
+
+  const result = {};
+  for (const mk of makatim) result[mk] = { stock: 0, daySales: null, daySalesAll: null };
+
+  for (const r of stockRows) {
+    const mk = r['מלאי-תוקף[מק"ט]'];
+    if (!mk) continue;
+    if (!result[mk]) result[mk] = { stock: 0, daySales: null, daySalesAll: null };
+    result[mk].stock = r['[stock]'] || 0;
+  }
+  for (const r of salesRows) {
+    const mk = r["ALL_PARTS[מק'ט]"];
+    if (!mk) continue;
+    if (!result[mk]) result[mk] = { stock: 0, daySales: null, daySalesAll: null };
+    result[mk].daySales = r['[daySales]'] || null;
+  }
+  for (const r of salesAllRows) {
+    const mk = r["ALL_PARTS[מק'ט]"];
+    if (!mk) continue;
+    if (!result[mk]) result[mk] = { stock: 0, daySales: null, daySalesAll: null };
+    result[mk].daySalesAll = r['[daySalesAll]'] || null;
+  }
+
+  console.log(`Stock/sales Main: ${Object.values(result).filter(v=>v.stock>0).length}/${makatim.length} with stock`);
+  return result;
+}
+
 // ── Fetch pakuot (expiry batches at Main) for any list of מקטים ────────────
-// Used for חלבי / דגים products whose stock+sales already come from Excel.
+// Used for חלבי / דגים products whose pakuot comes from Fabric.
 async function fetchPakuotForMakats(makatim) {
   if(!makatim || !makatim.length) return {};
   const t = await getToken();
@@ -382,4 +453,4 @@ async function fetchPakuotAllForMakats(makatim) {
   return result;
 }
 
-module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchPakuotForMakats, fetchPakuotAllForMakats, getToken };
+module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchPakuotForMakats, fetchPakuotAllForMakats, getToken };

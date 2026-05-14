@@ -12,7 +12,7 @@ if (!process.env.PBI_TENANT && process.env.AZURE_TENANT_ID) {
   process.env.PBI_WORKSPACE = process.env.POWERBI_WORKSPACE_ID;
 }
 const ExcelJS = require('exceljs');
-const { fetchKapuaFromBI, fetchLastRefresh, fetchPakuotForMakats, fetchPakuotAllForMakats } = require('./pbi-kapua');
+const { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchPakuotForMakats, fetchPakuotAllForMakats } = require('./pbi-kapua');
 const { fetchExtraSheets }   = require('./pbi-extra-sheets');
 
 // ─── Sheets to hide in output (set [] when all ready to publish) ──────────
@@ -746,18 +746,23 @@ async function main() {
 
   console.log(`חלבי: ${halaviProds.length} active | דגים: ${dagimProds.length} active`);
 
-  // Fetch pakuot for חלבי + דגים: Main (display) + All warehouses (סכנה)
+  // Fetch stock/sales (Main only) + pakuot for חלבי + דגים from Fabric
   {
     const nonKapuaMakats = [...halaviProds, ...dagimProds].map(p => p.makat);
-    const [pakuotMap, pakuotAllMap] = await Promise.all([
+    const [stockMap, pakuotMap, pakuotAllMap] = await Promise.all([
+      fetchStockMain(nonKapuaMakats),
       fetchPakuotForMakats(nonKapuaMakats),
       fetchPakuotAllForMakats(nonKapuaMakats),
     ]);
     for(const p of [...halaviProds, ...dagimProds]) {
+      const fm = stockMap[p.makat];
+      if (fm) {
+        p.stock       = fm.stock;
+        p.daySales    = fm.daySales;
+        p.daySalesAll = fm.daySalesAll;
+      }
       p.pakuot    = pakuotMap[p.makat]    || [];
       p.pakuotAll = pakuotAllMap[p.makat] || [];
-      // daySalesAll for חלבי/דגים = daySales (already company-wide in pbi-extra-sheets)
-      p.daySalesAll = p.daySales;
     }
   }
 
