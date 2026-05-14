@@ -603,6 +603,10 @@ async function loadMaps() {
     photoMap    = pm;
     makatEan    = me;
     productData = pd;
+    // Strip PBI directional marks from stored Hebrew names
+    for (const v of Object.values(productData)) {
+      if (v && v.nameEn) v.nameEn = v.nameEn.replace(/[‎‏‪-‮]/g, '').trim();
+    }
     dyBase      = dy;
 
     // Apply fresh kapua-base.json (includes new PBI products + updated names)
