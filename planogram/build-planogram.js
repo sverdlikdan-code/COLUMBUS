@@ -14,7 +14,7 @@ if (!process.env.PBI_TENANT && process.env.AZURE_TENANT_ID) {
 const fs      = require('fs');
 const path    = require('path');
 const ExcelJS = require('exceljs');
-const { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchPakuotForMakats, fetchPakuotAllForMakats } = require('./pbi-kapua');
+const { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchPakuotForMakats, fetchPakuotAllForMakats, fetchPackFactors } = require('./pbi-kapua');
 const { fetchExtraSheets }   = require('./pbi-extra-sheets');
 
 // ─── Sheets to hide in output (set [] when all ready to publish) ──────────
@@ -680,9 +680,10 @@ async function main() {
   // Load קפוא data from Power BI (replaces קפוא.xlsx)
   // stock = cartons at אשדוד only (מחסן Main, no צפון)
   const allMakatim = Object.values(KAPUA_PICKS).map(p => p.makat);
-  const [{ kapuaData, nameEnMap }, lastRefreshRaw] = await Promise.all([
+  const [{ kapuaData, nameEnMap }, lastRefreshRaw, packFactorMap] = await Promise.all([
     fetchKapuaFromBI(allMakatim),
     fetchLastRefresh(),
+    fetchPackFactors().catch(e => { console.warn('⚠ Pack factors unavailable:', e.message); return {}; }),
   ]);
 
   // Fabric returns Israel local time as-is — parse string directly, no timezone conversion
@@ -1169,10 +1170,9 @@ async function main() {
       const krat = palletMap[mk] || 0;
       const wt   = weightMap[mk] || null;
       const dsa  = p.daySalesAll != null ? p.daySalesAll : p.daySales;
-      const kd   = kapuaData[mk]; // may be undefined for halavi/dagim
-      // packFactor/weightCarton: prefer fresh Fabric data, fall back to previous file value
-      const pf   = kd?.packFactor   || prevPackFactor[mk]   || null;
-      const wc   = kd?.weightCarton || prevWeightCarton[mk] || (wt && pf ? +(wt * pf).toFixed(2) : null);
+      // packFactor from SQL mmdint.dbo.PARTPACK, fallback to previous file value
+      const pf   = packFactorMap[mk] || prevPackFactor[mk]   || null;
+      const wc   = prevWeightCarton[mk] || (wt && pf ? +(wt * pf).toFixed(2) : null);
       return {
         stock:               p.stock    != null ? Math.round(p.stock)    : null,
         daySales:            p.daySales != null ? +p.daySales.toFixed(1) : null,
