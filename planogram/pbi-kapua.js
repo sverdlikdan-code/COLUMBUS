@@ -178,12 +178,11 @@ async function fetchKapuaFromBI(makatim) {
       ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
     `),
 
-    // 8. Product names from KARTIS PARIT — לועזי (English) with שם מוצר fallback
+    // 8. Product names from KARTIS PARIT
     dax(t, `
       EVALUATE
       SUMMARIZECOLUMNS(
         'KARTIS PARIT'[מק"ט],
-        'KARTIS PARIT'[שם מוצר לועזי],
         'KARTIS PARIT'[שם מוצר],
         FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] = "פעיל")
       )
@@ -274,27 +273,24 @@ async function fetchKapuaFromBI(makatim) {
     if (result[mk].pakuotAll.length > 1) result[mk].pakuotAll.sort((a, b) => (a.date||0) - (b.date||0));
   }
 
-  // ── nameEn: לועזי first, fallback to שם מוצר from KARTIS PARIT ──────────────
+  // ── nameEn: שם מוצר from KARTIS PARIT ───────────────────────────────────────
   for (const r of nameEnRows) {
     const mk = r['KARTIS PARIT[מק"ט]'];
     if (!mk) continue;
     ensure(mk);
-    const lou = r['KARTIS PARIT[שם מוצר לועזי]'];
     const heb = r['KARTIS PARIT[שם מוצר]'];
-    result[mk].nameEn = (lou && lou.trim()) || (heb && heb.trim()) || null;
+    result[mk].nameEn = (heb && heb.trim()) || null;
   }
 
   const newMks   = Object.keys(result).filter(mk => result[mk].isNew);
   const noStk    = makatim.filter(m => !result[m] || result[m].stock === 0).length;
   const withSales = Object.keys(result).filter(m => result[m].daySales != null).length;
   if (newMks.length) console.log(`🆕 פעיל new makatim in families: ${newMks.join(', ')}`);
-  // Build global nameEn map (makat → name) for use across all sheets
   const nameEnMap = {};
   for (const r of nameEnRows) {
     const mk  = r['KARTIS PARIT[מק"ט]'];
-    const lou = r['KARTIS PARIT[שם מוצר לועזי]'];
     const heb = r['KARTIS PARIT[שם מוצר]'];
-    if (mk) nameEnMap[String(mk)] = (lou && lou.trim()) || (heb && heb.trim()) || null;
+    if (mk) nameEnMap[String(mk)] = (heb && heb.trim()) || null;
   }
 
   console.log(`Power BI קפוא: ${Object.keys(result).length} total (${newMks.length} new) | ${noStk} zero-stock | ${withSales} with sales`);
