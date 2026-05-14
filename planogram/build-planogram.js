@@ -21,6 +21,9 @@ const { fetchExtraSheets }   = require('./pbi-extra-sheets');
 const HIDDEN_SHEETS = ['MAHSAN חלבי', 'MAHSAN דגים', 'סדר חלבי', 'סדר דגים',
                        'מחסן מעבר', 'צפון מלאי פחות מ3DAYS SALES'];
 
+// Products permanently excluded from all sections
+const GLOBAL_BLACKLIST = new Set(['1130', '1131']);
+
 // ─── Family colors (ARGB) ─────────────────────────────────────────────────
 const FAM_COLORS = {
   'חמאה FERMA':       'FFFFFAD5',
@@ -717,7 +720,7 @@ async function main() {
     ...Object.values(_halaviBase.picks).filter(Boolean).map(p => String(p.makat)),
   ]);
   let newKapuaProds = Object.entries(kapuaData)
-    .filter(([mk, d]) => d.isNew && !_otherMakats.has(String(mk)))
+    .filter(([mk, d]) => d.isNew && !_otherMakats.has(String(mk)) && !GLOBAL_BLACKLIST.has(String(mk)) && d.daySales > 0)
     .map(([mk, d]) => ({
       makat: mk, fam: d.fam || 'קפוא', desc: d.desc, nameEn: d.nameEn || null,
       stock: d.stock, daySales: d.daySales, daySalesAll: d.daySalesAll,
