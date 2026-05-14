@@ -296,20 +296,19 @@ async function fetchKapuaFromBI(makatim) {
   return { kapuaData: result, nameEnMap };
 }
 
-// ── Last dataset refresh time (from Power BI refresh history API) ─────────────
-// Returns ISO string of endTime of the most recent successful refresh, or null.
+// ── Last data update time (from SERVER DATE TIME table in Fabric dataset) ─────
+// The table is built from MAX(ORDERS.UDATE) → actual SQL Server last-order time.
 async function fetchLastRefresh() {
   try {
     const t = await getToken();
-    const res = await fetch(
-      `https://api.powerbi.com/v1.0/myorg/groups/${WORKSPACE}/datasets/${DATASET}/refreshes?$top=5`,
-      { headers: { 'Authorization': 'Bearer ' + t } }
-    );
-    const j = await res.json();
-    const completed = (j.value || []).find(r => r.status === 'Completed' && r.endTime);
-    return completed ? completed.endTime : null;
+    const rows = await dax(t, `EVALUATE 'SERVER DATE TIME'`);
+    if (rows && rows.length) {
+      const raw = rows[0]['SERVER DATE TIME[תאריך עדכון]'];
+      if (raw) return new Date(raw).toISOString();
+    }
+    return null;
   } catch(e) {
-    console.warn('Could not fetch refresh time:', e.message);
+    console.warn('Could not fetch SERVER DATE TIME:', e.message);
     return null;
   }
 }
