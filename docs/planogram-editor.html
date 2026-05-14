@@ -1155,6 +1155,15 @@ function resetSection() {
   if (!confirm(`לאפס את ${sec}?`)) return;
   // Clear user-cleared picks for this section
   if (clearedPicks[sec]) { clearedPicks[sec].clear(); _saveClearedPicks(); }
+  // Restore hidden photos for all makats in this section
+  const baseMap = {kapua: KAPUA_BASE, halavi: HALAVI_BASE, dagim: DAGIM_BASE};
+  const base = baseMap[sec];
+  if (base) {
+    for (const p of Object.values(base)) {
+      if (p && p.makat) hiddenPhotos.delete(String(p.makat));
+    }
+    localStorage.setItem('mahsan_no_photo', JSON.stringify([...hiddenPhotos]));
+  }
   if (sec === 'kapua')       { state.kapua  = deepClone(KAPUA_BASE); }
   else if (sec === 'halavi') { state.halavi = deepClone(HALAVI_BASE); }
   else if (sec === 'dagim')  { state.dagim  = deepClone(DAGIM_BASE); }
