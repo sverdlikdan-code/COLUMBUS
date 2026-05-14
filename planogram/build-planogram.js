@@ -707,8 +707,15 @@ async function main() {
   }
 
   // ── New products from PBI families (פעיל, not in KAPUA_PICKS) ──────────────
+  // Exclude makats already assigned to dagim/halavi sections (they share some PBI families)
+  const _dagimBase  = JSON.parse(fs.readFileSync(path.join(__dirname,'..','docs','dagim-base.json'),  'utf8'));
+  const _halaviBase = JSON.parse(fs.readFileSync(path.join(__dirname,'..','docs','halavi-base.json'), 'utf8'));
+  const _otherMakats = new Set([
+    ...Object.values(_dagimBase.picks).filter(Boolean).map(p => String(p.makat)),
+    ...Object.values(_halaviBase.picks).filter(Boolean).map(p => String(p.makat)),
+  ]);
   let newKapuaProds = Object.entries(kapuaData)
-    .filter(([, d]) => d.isNew)
+    .filter(([mk, d]) => d.isNew && !_otherMakats.has(String(mk)))
     .map(([mk, d]) => ({
       makat: mk, fam: d.fam || 'קפוא', desc: d.desc, nameEn: d.nameEn || null,
       stock: d.stock, daySales: d.daySales, daySalesAll: d.daySalesAll,
@@ -1198,7 +1205,7 @@ async function main() {
 
     // ── kapua-base.json — all קפוא picks + layout for the HTML editor ────
     const EDITOR_COLS          = 19;
-    const EDITOR_OVERFLOW_ROW  = 10; // new products start at row 10
+    const EDITOR_OVERFLOW_ROW  = 11; // new products start at row 11 (row 10 = gap/corridor)
     const editorLayout = {
        1:{r:1,c:1},  2:{r:1,c:2},  3:{r:1,c:3},  4:{r:1,c:4},  5:{r:1,c:5},
        6:{r:1,c:6},  7:{r:1,c:7},  8:{r:1,c:8},  9:{r:1,c:9}, 10:{r:1,c:10},
@@ -1233,7 +1240,7 @@ async function main() {
     });
 
     fs.writeFileSync(path.join(__dirname,'..','docs','kapua-base.json'),
-      JSON.stringify({ picks: kapuaPicks, layout: editorLayout, maxCols: EDITOR_COLS, maxRows: editorMaxRows }), 'utf8');
+      JSON.stringify({ picks: kapuaPicks, layout: editorLayout, maxCols: EDITOR_COLS, maxRows: editorMaxRows, reserveStart: 55 }), 'utf8');
     console.log(`kapua-base.json: ${Object.keys(kapuaPicks).length} picks, maxRows=${editorMaxRows}`);
 
     // ── halavi-base.json ──────────────────────────────────────────────────
