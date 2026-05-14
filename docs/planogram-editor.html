@@ -788,15 +788,18 @@ function renderGrid(section, layoutMap, maxCols, maxRows, reserveStart = 0) {
   container.style.gridTemplateRows = rowTpl;
   container.innerHTML = '';
 
-  // Find reserve separator row (corridor just before reserve picks)
-  let reserveBannerRow = 0;
+  // Find all corridor rows adjacent to reserve (works for top+bottom reserve like dagim)
+  const reserveBannerRows = new Set();
   if (!hideReserve && reserveStart > 0) {
-    const reserveRows = Object.entries(layoutMap)
-      .filter(([p]) => parseInt(p) >= reserveStart)
-      .map(([,pos]) => pos.r);
-    if (reserveRows.length) {
-      const firstReserveRow = Math.min(...reserveRows);
-      reserveBannerRow = firstReserveRow - 1;
+    const allPickRows   = new Set(Object.values(layoutMap).map(p => p.r));
+    const reservePickRows = new Set(
+      Object.entries(layoutMap)
+        .filter(([p]) => parseInt(p) >= reserveStart)
+        .map(([,pos]) => pos.r)
+    );
+    for (const rr of reservePickRows) {
+      if (rr - 1 >= 1 && !allPickRows.has(rr - 1)) reserveBannerRows.add(rr - 1);
+      if (rr + 1 <= maxRows && !allPickRows.has(rr + 1)) reserveBannerRows.add(rr + 1);
     }
   }
 
@@ -808,12 +811,12 @@ function renderGrid(section, layoutMap, maxCols, maxRows, reserveStart = 0) {
     container.appendChild(el);
   }
 
-  // Add reserve banner in the corridor row before reserve picks
-  if (reserveBannerRow > 0) {
+  // Add reserve banner in each corridor row adjacent to reserve
+  for (const bannerRow of reserveBannerRows) {
     const banner = document.createElement('div');
     banner.className = 'reserve-banner';
     banner.style.gridColumn = `1 / span ${maxCols}`;
-    banner.style.gridRow    = reserveBannerRow;
+    banner.style.gridRow    = bannerRow;
     banner.textContent = '◈  РЕЗЕРВ  ◈';
     container.appendChild(banner);
   }
