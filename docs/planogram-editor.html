@@ -529,8 +529,8 @@ function stockHTML(makat) {
     ? `<div class="s-pal-big">${Math.round(d.palStock)} <span class="s-pal-unit">PAL</span></div>` : '';
   const ashdodPal = d.ashdodPalletCartons != null && d.ashdodPalletCartons > 0;
   const kartLine = ashdodPal
-    ? `<span style="font-size:15px;font-weight:bold;color:#1a1a2e;">[${d.ashdodPalletCartons}]</span>`
-    : `<span style="font-size:11px;font-weight:bold;color:#e53935;">[NO DATA]</span>`;
+    ? `<span class="s-kart">${d.ashdodPalletCartons} קרט/פל</span>`
+    : `<span style="font-weight:bold;color:#e53935;">NO DATA</span>`;
   const kratLine = d.kratnost > 0 ? `<span class="s-krat"> [${d.kratnost}]</span>` : '';
   const wCarton  = d.weightCarton != null && d.weightCarton > 0 ? d.weightCarton
                  : (d.weight != null && d.weight > 0 && d.packFactor > 0 ? +(d.weight * d.packFactor).toFixed(1) : null);
