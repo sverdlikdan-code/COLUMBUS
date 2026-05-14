@@ -1153,51 +1153,45 @@ async function main() {
     }
 
     // ── product-data.json ────────────────────────────────────────────────
+    // Preserve ashdodPalletCartons from existing file (added by enrich-product-data.js locally)
+    const existingProdDataPath = path.join(__dirname,'..','docs','product-data.json');
+    let prevAshdod = {};
+    try {
+      const prev = JSON.parse(fs.readFileSync(existingProdDataPath, 'utf8'));
+      for (const [mk, v] of Object.entries(prev)) {
+        if (v && v.ashdodPalletCartons != null) prevAshdod[mk] = v.ashdodPalletCartons;
+      }
+    } catch {}
+
+    const mkEntry = (p) => {
+      const mk  = String(p.makat);
+      const krat = palletMap[mk] || 0;
+      const wt   = weightMap[mk] || null;
+      const dsa  = p.daySalesAll != null ? p.daySalesAll : p.daySales;
+      return {
+        stock:               p.stock    != null ? Math.round(p.stock)    : null,
+        daySales:            p.daySales != null ? +p.daySales.toFixed(1) : null,
+        kratnost:            krat,
+        palStock:            (krat > 0 && p.stock > 0) ? +(p.stock / krat).toFixed(1) : null,
+        weight:              wt != null ? +wt.toFixed(3) : null,
+        daysStockAll:        (dsa > 0 && p.stock > 0) ? Math.round(p.stock / dsa) : null,
+        nameEn:              nameEnMap[mk] || null,
+        ashdodPalletCartons: prevAshdod[mk] ?? null,
+      };
+    };
+
     const prodData = {};
     for (const [, p] of Object.entries(KAPUA_PICKS)) {
       if (!p.makat) continue;
-      const krat = palletMap[String(p.makat)] || 0;
-      const wt   = weightMap[String(p.makat)] || null;
-      const dsa  = p.daySalesAll != null ? p.daySalesAll : p.daySales;
-      prodData[String(p.makat)] = {
-        stock:       p.stock    != null ? Math.round(p.stock)    : null,
-        daySales:    p.daySales != null ? +p.daySales.toFixed(1) : null,
-        kratnost:    krat,
-        palStock:    (krat > 0 && p.stock > 0) ? +(p.stock / krat).toFixed(1) : null,
-        weight:      wt != null ? +wt.toFixed(3) : null,
-        daysStockAll: (dsa > 0 && p.stock > 0) ? Math.round(p.stock / dsa) : null,
-        nameEn:      nameEnMap[String(p.makat)] || null,
-      };
+      prodData[String(p.makat)] = mkEntry(p);
     }
     for (const p of newKapuaProds) {
       if (!p.makat) continue;
-      const krat = palletMap[String(p.makat)] || 0;
-      const wt   = weightMap[String(p.makat)] || null;
-      const dsa  = p.daySalesAll != null ? p.daySalesAll : p.daySales;
-      prodData[String(p.makat)] = {
-        stock:       p.stock    != null ? Math.round(p.stock)    : null,
-        daySales:    p.daySales != null ? +p.daySales.toFixed(1) : null,
-        kratnost:    krat,
-        palStock:    (krat > 0 && p.stock > 0) ? +(p.stock / krat).toFixed(1) : null,
-        weight:      wt != null ? +wt.toFixed(3) : null,
-        daysStockAll: (dsa > 0 && p.stock > 0) ? Math.round(p.stock / dsa) : null,
-        nameEn:      nameEnMap[String(p.makat)] || null,
-      };
+      prodData[String(p.makat)] = mkEntry(p);
     }
     for (const p of [...halaviProds, ...dagimProds]) {
       if (!p.makat) continue;
-      const krat = palletMap[String(p.makat)] || 0;
-      const wt   = weightMap[String(p.makat)] || null;
-      const dsa  = p.daySalesAll != null ? p.daySalesAll : p.daySales;
-      prodData[String(p.makat)] = {
-        stock:       p.stock    != null ? Math.round(p.stock)    : null,
-        daySales:    p.daySales != null ? +p.daySales.toFixed(1) : null,
-        kratnost:    krat,
-        palStock:    (krat > 0 && p.stock > 0) ? +(p.stock / krat).toFixed(1) : null,
-        weight:      wt != null ? +wt.toFixed(3) : null,
-        daysStockAll: (dsa > 0 && p.stock > 0) ? Math.round(p.stock / dsa) : null,
-        nameEn:      nameEnMap[String(p.makat)] || null,
-      };
+      prodData[String(p.makat)] = mkEntry(p);
     }
     fs.writeFileSync(path.join(__dirname,'..','docs','product-data.json'),
       JSON.stringify(prodData, null, 2), 'utf8');
