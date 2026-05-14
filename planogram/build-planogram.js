@@ -1167,12 +1167,17 @@ async function main() {
       const krat = palletMap[mk] || 0;
       const wt   = weightMap[mk] || null;
       const dsa  = p.daySalesAll != null ? p.daySalesAll : p.daySales;
+      const kd   = kapuaData[mk]; // may be undefined for halavi/dagim
+      const pf   = kd?.packFactor  || null;
+      const wc   = kd?.weightCarton || (wt && pf ? +(wt * pf).toFixed(2) : null);
       return {
         stock:               p.stock    != null ? Math.round(p.stock)    : null,
         daySales:            p.daySales != null ? +p.daySales.toFixed(1) : null,
         kratnost:            krat,
         palStock:            (krat > 0 && p.stock > 0) ? +(p.stock / krat).toFixed(1) : null,
         weight:              wt != null ? +wt.toFixed(3) : null,
+        packFactor:          pf,
+        weightCarton:        wc,
         daysStockAll:        (dsa > 0 && p.stock > 0) ? Math.round(p.stock / dsa) : null,
         nameEn:              nameEnMap[mk] || null,
         ashdodPalletCartons: prevAshdod[mk] ?? null,
