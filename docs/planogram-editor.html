@@ -523,11 +523,14 @@ window.showPhoto = function(makat, pick, section) {
 function stockHTML(makat) {
   const d = productData[String(makat)];
   if (!d) return `<div class="slot-stock"><span style="font-size:11px;font-weight:bold;color:#e53935;">[NO DATA]</span></div>`;
+
   if (d.stock === 0) return `<div class="slot-stock s-zero-bar"><span class="s-zero">אפס מלאי</span></div>`;
   const palLine  = d.palStock != null && d.palStock > 0
     ? `<div class="s-pal-big">${Math.round(d.palStock)} <span class="s-pal-unit">PAL</span></div>` : '';
-  const kartLine = d.stock != null
-    ? `<span style="font-size:15px;font-weight:bold;color:#1a1a2e;">[${d.stock}]</span>` : '';
+  const ashdodPal = d.ashdodPalletCartons != null && d.ashdodPalletCartons > 0;
+  const kartLine = ashdodPal
+    ? `<span style="font-size:15px;font-weight:bold;color:#1a1a2e;">[${d.ashdodPalletCartons}]</span>`
+    : `<span style="font-size:11px;font-weight:bold;color:#e53935;">[NO DATA]</span>`;
   const kratLine = d.kratnost > 0 ? `<span class="s-krat"> [${d.kratnost}]</span>` : '';
   const wCarton  = d.weightCarton != null && d.weightCarton > 0 ? d.weightCarton
                  : (d.weight != null && d.weight > 0 && d.packFactor > 0 ? +(d.weight * d.packFactor).toFixed(1) : null);
