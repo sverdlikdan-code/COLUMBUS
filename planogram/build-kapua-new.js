@@ -11,6 +11,9 @@ const ExcelJS = require(path.join(__dirname, '..', 'server', 'node_modules', 'ex
 const PLANOGRAM_DIR = 'C:/Users/d.sverdlik/Desktop/WORKSPACE/PLANOGRAM MAHSAN FORMULA';
 const OUT_PATH      = path.join(__dirname, '..', 'docs', 'kapua-base.json');
 
+// Products permanently excluded from קפוא (wrong section / no longer carried)
+const BLACKLIST = new Set(['1130', '1131']);
+
 // Excel col (1-based) → grid col (1-based, RTL: high c = screen-left)
 const excelToGrid = c => c - 1;
 
@@ -65,6 +68,7 @@ const RESERVE_START = 62;
     const mkr     = parseFloat(mkrRaw || 0);
 
     if (!makat || !active) return;
+    if (BLACKLIST.has(makat)) return;
     if (mkrRaw === null || mkrRaw === undefined || mkrRaw === '') return; // no data for 365 days → skip
 
     const fam = famRaw.replace(/[‎‏‪-‮]/g, '').trim();
