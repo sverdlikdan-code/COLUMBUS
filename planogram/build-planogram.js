@@ -900,9 +900,9 @@ async function main() {
   {
     // Build prodMap first (need it for stats before header insert)
     const preScanPicks = Object.keys(collectPickCells(shDagim)).map(Number).sort((a,b)=>a-b);
-    const FACE_A_pre = new Set([10,12,14,16,18,20,22,24,26,28,29,30,31,33,35,37,39,41,43,45,47,49,51,53,55,57]);
-    const FACE_B_pre = new Set([11,13,15,17,19,21,23,25,27,32,34,36,38,40,42,44,46,48,50,52,54,56,58]);
-    const BACK_pre   = new Set([59,60,61,62,63,64,65,66,67,68,69,70,71,72]);
+    const FACE_A_pre = new Set([10,12,14,16,18,20,22,24,26,28,29,30,31,33,35,37,39,41,43,45,47,49,51,53,55]); // SB (25 slots)
+    const FACE_B_pre = new Set([11,13,15,17,19,21,23,25,27,32,34,36,38,40,42,44,46,48,50,52,54,56,57,58]); // NP (24 slots, 57+58=IKRA)
+    const BACK_pre   = new Set(); // picks 59-94 = reserve slots, not NP overflow
     const DOCK_pre   = new Set([1,2,3,4,5,6,7,8,9]);
     const nordPortMatzPre = dagimProds.filter(p=>p.fam==='NORD PORT מצונן').sort((a,b)=>(b.weight||0)-(a.weight||0));
     const santaBremorPre  = dagimProds.filter(p=>p.fam==='SANTA BREMOR Fish').sort((a,b)=>(b.weight||0)-(a.weight||0));
@@ -926,10 +926,10 @@ async function main() {
     console.log(`דגים picks found: ${allPicks.length} (${allPicks[0]}..${allPicks[allPicks.length-1]})`);
 
     // Physical faces from the sheet layout (full 29-col map)
-    const FACE_A  = new Set([10,12,14,16,18,20,22,24,26,28,29,30,31,33,35,37,39,41,43,45,47,49,51,53,55,57]); // R6 (26 slots)
-    const FACE_B  = new Set([11,13,15,17,19,21,23,25,27,32,34,36,38,40,42,44,46,48,50,52,54,56,58]);          // R8 (23 slots)
-    const BACK    = new Set([59,60,61,62,63,64,65,66,67,68,69,70,71,72]);                                      // R9 (14 slots)
-    const DOCK    = new Set([1,2,3,4,5,6,7,8,9]);                                                              // R5 (9 slots)
+    const FACE_A  = new Set([10,12,14,16,18,20,22,24,26,28,29,30,31,33,35,37,39,41,43,45,47,49,51,53,55]); // SB row6 (25 slots)
+    const FACE_B  = new Set([11,13,15,17,19,21,23,25,27,32,34,36,38,40,42,44,46,48,50,52,54,56,57,58]);   // NP row4 (24 slots, 57+58=IKRA)
+    const BACK    = new Set();                                                                               // empty — picks 59-94 = reserve
+    const DOCK    = new Set([1,2,3,4,5,6,7,8,9]);                                                          // מצונן row3
 
     // Split by family, filter zero-stock (compact fill — same rule as קפוא/חלבי),
     // sort by weight desc within each
@@ -953,11 +953,8 @@ async function main() {
     allPicks.filter(p=>FACE_A.has(p))
       .forEach((pick,i) => { if(santaBremor[i]) prodMap[pick] = santaBremor[i]; });
 
-    // NORD PORT → Face B (R8) + Back (R9)
-    const npSlots = [
-      ...allPicks.filter(p=>FACE_B.has(p)),
-      ...allPicks.filter(p=>BACK.has(p)),
-    ];
+    // NORD PORT → Face B only (picks 59-94 are reserve, not overflow)
+    const npSlots = [...allPicks.filter(p=>FACE_B.has(p))];
     npSlots.forEach((pick,i) => { if(nordPort[i]) prodMap[pick] = nordPort[i]; });
 
     dagimProdMapForJSON = prodMap; // save for JSON export
@@ -1257,37 +1254,15 @@ async function main() {
         const nameEn = nameEnMap[String(p.makat)] || null;
         hPicks[pickStr] = { makat: p.makat, fam: p.fam || '', name: nameEn };
       }
-      fs.writeFileSync(path.join(__dirname,'..','docs','halavi-base.json'),
-        JSON.stringify({ picks: hPicks, layout: HALAVI_LAYOUT, maxCols:12, maxRows:4 }), 'utf8');
-      console.log(`halavi-base.json: ${Object.keys(hPicks).length} picks`);
+      // halavi-base.json NOT written by build — maintained manually (120 picks, 12-row layout)
+      console.log(`halavi-base.json: maintained manually, ${Object.keys(hPicks).length} halavi products processed for product-data.json`);
     }
 
     // ── dagim-base.json ───────────────────────────────────────────────────
-    // Layout: row1=top bay, row2=upper bay, row3=PASSAGE, row4=lower bay, row5=PASSAGE, rows6-7=reserve
-    const DAGIM_LAYOUT = {
-       1:{r:1,c:25}, 2:{r:1,c:24}, 3:{r:1,c:23}, 4:{r:1,c:22}, 5:{r:1,c:21},
-       6:{r:1,c:20}, 7:{r:1,c:19}, 8:{r:1,c:18},
-      15:{r:2,c:25},16:{r:2,c:24},17:{r:2,c:23},18:{r:2,c:22},19:{r:2,c:21},
-      20:{r:2,c:20},24:{r:2,c:19},25:{r:2,c:18},26:{r:2,c:17},27:{r:2,c:16},
-      31:{r:2,c:15},32:{r:2,c:14},33:{r:2,c:13},34:{r:2,c:12},35:{r:2,c:11},
-      36:{r:2,c:10},45:{r:2,c:9}, 46:{r:2,c:8}, 47:{r:2,c:7}, 48:{r:2,c:6},
-      49:{r:2,c:5}, 50:{r:2,c:4}, 54:{r:2,c:3}, 55:{r:2,c:2},
-       9:{r:4,c:26},10:{r:4,c:25},11:{r:4,c:24},12:{r:4,c:23},13:{r:4,c:22},
-      14:{r:4,c:21},21:{r:4,c:20},22:{r:4,c:19},23:{r:4,c:18},28:{r:4,c:17},
-      29:{r:4,c:16},30:{r:4,c:15},37:{r:4,c:13},38:{r:4,c:12},39:{r:4,c:11},
-      40:{r:4,c:10},41:{r:4,c:9}, 42:{r:4,c:8}, 43:{r:4,c:7}, 44:{r:4,c:6},
-      51:{r:4,c:5}, 52:{r:4,c:4}, 53:{r:4,c:3}, 56:{r:4,c:2}, 57:{r:4,c:1},
-    };
-    {
-      const dPicks = {};
-      for (const [pickStr, p] of Object.entries(dagimProdMapForJSON)) {
-        const nameEn = nameEnMap[String(p.makat)] || null;
-        dPicks[pickStr] = { makat: p.makat, fam: p.fam || '', name: nameEn };
-      }
-      fs.writeFileSync(path.join(__dirname,'..','docs','dagim-base.json'),
-        JSON.stringify({ picks: dPicks, layout: DAGIM_LAYOUT, maxCols:26, maxRows:7, reserveStart:58 }), 'utf8');
-      console.log(`dagim-base.json: ${Object.keys(dPicks).length} picks`);
-    }
+    // NOT written by build — maintained manually as dagim-base.json (dagim-8)
+    // Layout: r1=מצונן, r2=NP(+57=1122,58=1123 IKRA), r3=pass, r4=SB, r5=pass,
+    //         r6=TOP RESERVE(c:15-26,12bays), r7=pass, r8=BOTTOM LEFT(c:15-26)+RIGHT(c:0-11) same row
+    // To update stock data only — product-data.json is written by pbi-kapua/halavi/dagim scripts.
   }
 
   // Write output
