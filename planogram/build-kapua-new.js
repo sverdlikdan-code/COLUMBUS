@@ -18,10 +18,10 @@ const excelToGrid = c => c - 1;
 // R2→1, R3-R6→2-5 (vertical col), R7→6, R8→7, corridor@8, R12→9, corridor@10, R15→11
 const EXCEL_ROW_TO_GRID = { 2:1, 3:2, 4:3, 5:4, 6:5, 7:6, 8:7, 12:9, 15:11 };
 
-// Working bays: picks 1-56 | Reserve: picks 57-61
-const WORKING_SLOTS = 56;
-const RESERVE_SLOTS = 5;
-const RESERVE_START = 57;
+// All 61 picks are working — no reserve zone in MAHSAN 8
+const WORKING_SLOTS = 61;
+const RESERVE_SLOTS = 0;
+const RESERVE_START = 0;
 
 (async () => {
   // ── Step 1: Extract pick → {r, c} positions from MAHSAN 8 sheet ─────────
@@ -75,24 +75,17 @@ const RESERVE_START = 57;
   hasSales.sort(sortByMakat);
   noSales.sort(sortByMakat);
 
-  console.log(`Products with sales: ${hasSales.length} | without: ${noSales.length}`);
-  if (hasSales.length > WORKING_SLOTS) console.warn(`⚠ ${hasSales.length - WORKING_SLOTS} sales products won't fit in working zone!`);
-  if (noSales.length  > RESERVE_SLOTS) console.warn(`⚠ ${noSales.length  - RESERVE_SLOTS} no-sales products won't fit in reserve!`);
+  // All products: hasSales first, then noSales
+  const allProds = [...hasSales, ...noSales];
+  console.log(`Products with sales: ${hasSales.length} | without: ${noSales.length} | total: ${allProds.length}`);
+  if (allProds.length > WORKING_SLOTS) console.warn(`⚠ ${allProds.length - WORKING_SLOTS} products won't fit in 61 slots!`);
 
   // ── Step 3: Assign products to picks ────────────────────────────────────
   const picks = {};
-
   for (let i = 1; i <= WORKING_SLOTS; i++) {
     const idx = i - 1;
-    picks[String(i)] = idx < hasSales.length
-      ? { makat: hasSales[idx].makat, fam: hasSales[idx].fam, name: null }
-      : null;
-  }
-
-  for (let i = 0; i < RESERVE_SLOTS; i++) {
-    const pick = RESERVE_START + i;
-    picks[String(pick)] = i < noSales.length
-      ? { makat: noSales[i].makat, fam: noSales[i].fam, name: null }
+    picks[String(i)] = idx < allProds.length
+      ? { makat: allProds[idx].makat, fam: allProds[idx].fam, name: null }
       : null;
   }
 
@@ -102,7 +95,7 @@ const RESERVE_START = 57;
     layout,
     maxCols: 18,
     maxRows: 11,
-    reserveStart: RESERVE_START,
+    reserveStart: 0,
     v: `2026-05-14-kapua-new`
   };
 
