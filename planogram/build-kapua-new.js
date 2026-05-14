@@ -18,10 +18,10 @@ const excelToGrid = c => c - 1;
 // R2→1, R3-R6→2-5 (vertical col), R7→6, R8→7, corridor@8, R12+R15→9 (same row, different cols)
 const EXCEL_ROW_TO_GRID = { 2:1, 3:2, 4:3, 5:4, 6:5, 7:6, 8:7, 12:9, 15:9 };
 
-// All 61 picks are working — no reserve zone in MAHSAN 8
+// Working: all 61 physical bays | Reserve: virtual row below (products without sales that don't fit)
 const WORKING_SLOTS = 61;
-const RESERVE_SLOTS = 0;
-const RESERVE_START = 0;
+const RESERVE_SLOTS = 18; // virtual reserve row at r:11, cols 1-18
+const RESERVE_START = 62;
 
 (async () => {
   // ── Step 1: Extract pick → {r, c} positions from MAHSAN 8 sheet ─────────
@@ -75,12 +75,11 @@ const RESERVE_START = 0;
   hasSales.sort(sortByMakat);
   noSales.sort(sortByMakat);
 
-  // All products: hasSales first, then noSales
-  const allProds = [...hasSales, ...noSales];
-  console.log(`Products with sales: ${hasSales.length} | without: ${noSales.length} | total: ${allProds.length}`);
-  if (allProds.length > WORKING_SLOTS) console.warn(`⚠ ${allProds.length - WORKING_SLOTS} products won't fit in 61 slots!`);
+  console.log(`Products with sales: ${hasSales.length} | without: ${noSales.length}`);
 
   // ── Step 3: Assign products to picks ────────────────────────────────────
+  // Working slots 1-61: hasSales first (sorted), then noSales to fill remaining
+  const allProds = [...hasSales, ...noSales];
   const picks = {};
   for (let i = 1; i <= WORKING_SLOTS; i++) {
     const idx = i - 1;
@@ -89,13 +88,24 @@ const RESERVE_START = 0;
       : null;
   }
 
+  // Reserve slots 62-79: remaining noSales products that didn't fit in working
+  const reserveProds = noSales.slice(WORKING_SLOTS - hasSales.length);
+  for (let i = 0; i < RESERVE_SLOTS; i++) {
+    const pick = RESERVE_START + i;
+    picks[String(pick)] = i < reserveProds.length
+      ? { makat: reserveProds[i].makat, fam: reserveProds[i].fam, name: null }
+      : null;
+    layout[String(pick)] = { r: 11, c: i + 1 };
+  }
+  console.log(`Reserve overflow: ${Math.min(reserveProds.length, RESERVE_SLOTS)}/${RESERVE_SLOTS} slots used`);
+
   // ── Step 4: Write kapua-base.json ────────────────────────────────────────
   const result = {
     picks,
     layout,
     maxCols: 18,
-    maxRows: 9,
-    reserveStart: 0,
+    maxRows: 11,
+    reserveStart: RESERVE_START,
     v: `2026-05-14-kapua-new`
   };
 
