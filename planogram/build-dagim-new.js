@@ -74,9 +74,11 @@ const EXCEL_ROW_TO_GRID = { 3:1, 7:3, 8:4, 10:6, 11:7, 13:9 };
     const makat   = String(row.getCell(3).value || '').trim();
     const famRaw  = String(row.getCell(2).value || '').trim();
     const active  = row.getCell(6).value;
-    const mkr     = parseFloat(row.getCell(8).value || 0); // מכר ממוצע ביום
+    const mkrRaw  = row.getCell(8).value;                  // מכר ממוצע ביום
+    const mkr     = parseFloat(mkrRaw || 0);
 
     if (!makat || !active) return;
+    if (mkrRaw === null || mkrRaw === undefined || mkrRaw === '') return; // no data for 365 days → skip
 
     // Clean RTL marks from family name
     const fam = famRaw.replace(/[‎‏‪-‮]/g, '').trim();
