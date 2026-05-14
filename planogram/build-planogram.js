@@ -867,7 +867,6 @@ async function main() {
     addZeroStockTable(shKapua, kapuaZeroList);
     if (newKapuaProds.length)
       addOverflowSection(shKapua, newKapuaProds, palletMap, weightThresh, dayThreshHigh, dayThreshMid);
-    addFamilyNavBar(shKapua, pickCells, compactedKapua, refreshLabel);
     shKapua.name = 'MAHSAN 8 קפוא';
     addSeqSheet(wb, 'סדר קפוא', KAPUA_PICKS, 'FFCCE5FF');
 
@@ -905,7 +904,6 @@ async function main() {
     halaviProdMapForJSON = prodMap; // save for JSON export
     applyToSheet(shHalavi, pickCells, prodMap, weightThresh, dayThreshHigh, dayThreshMid, palletMap, true, halaviTotalOrd);
     addZeroStockTable(shHalavi, halaviZeroList);
-    addFamilyNavBar(shHalavi, pickCells, prodMap, refreshLabel);
     addSeqSheet(wb, 'סדר חלבי', prodMap, 'FFD5F5D5');
   }
 
@@ -976,7 +974,6 @@ async function main() {
     console.log(`דגים total ORD/day: ${dagimTotalOrd.toFixed(0)} | zero: ${dagimZeroList.length}`);
     applyToSheet(shDagim, pickCells, prodMap, weightThresh, dayThreshHigh, dayThreshMid, palletMap, true, dagimTotalOrd);
     addZeroStockTable(shDagim, dagimZeroList);
-    addFamilyNavBar(shDagim, pickCells, prodMap, refreshLabel);
     addSeqSheet(wb, 'סדר דגים', prodMap, 'FFFFF0CC');
   }
 
