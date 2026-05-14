@@ -115,7 +115,7 @@ const RESERVE_START = 62;
     maxCols: 18,
     maxRows: 11,
     reserveStart: RESERVE_START,
-    v: `2026-05-14-kapua-new`
+    v: `2026-05-14-kapua-v3`
   };
 
   fs.writeFileSync(OUT_PATH, JSON.stringify(result, null, 2), 'utf8');
