@@ -37,16 +37,10 @@ jobs:
           PBI_DATASET:   ${{ secrets.PBI_DATASET }}
           PBI_WORKSPACE: ${{ secrets.PBI_WORKSPACE }}
 
-      - name: Copy output to docs/
-        run: |
-          cp planogram/"MAHSAN PLANOGRAM v41.xlsx" docs/planogram.xlsx
-          BUILD_DATE=$(TZ='Asia/Jerusalem' date '+%d.%m.%Y %H:%M')
-          echo "{\"updated\":\"$BUILD_DATE\",\"trigger\":\"${{ github.event_name }}\"}" > docs/status.json
-
       - name: Commit and push
         run: |
           git config user.name  "Planogram Bot"
           git config user.email "planogram@formula.co.il"
-          git add docs/planogram.xlsx docs/status.json
+          git add docs/product-data.json docs/kapua-base.json docs/refresh-info.json
           git diff --cached --quiet && echo "No changes" || git commit -m "Planogram update $(TZ='Asia/Jerusalem' date '+%Y-%m-%d %H:%M')"
           git push
