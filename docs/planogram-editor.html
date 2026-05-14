@@ -238,7 +238,7 @@
     <div class="history-dropdown" id="history-dropdown"></div>
   </div>
   <button class="btn no-print" id="btn-hide-reserve" onclick="toggleHideReserve()"
-    style="background:#fff8e1;color:#7a5c00;border:1px solid #e0c040;">🗄 רזרב</button>
+    style="background:#fff8e1;color:#7a5c00;border:1px solid #e0c040;">Plan Only</button>
   <button class="btn no-print" id="btn-pdf" onclick="printPlanogram()"
     style="background:#f0f0f0;color:#333;border:1px solid #ccc;">🖨️ PDF</button>
   <button class="btn btn-reset no-print"  onclick="resetSection()">↩ אפס</button>
@@ -1132,11 +1132,11 @@ function toggleHideReserve() {
   if (hideReserve) {
     btn.style.background = '#7a5c00';
     btn.style.color      = '#fff';
-    btn.textContent      = '🗄 הצג רזרב';
+    btn.textContent      = 'Plan Only ✓';
   } else {
     btn.style.background = '#fff8e1';
     btn.style.color      = '#7a5c00';
-    btn.textContent      = '🗄 רזרב';
+    btn.textContent      = 'Plan Only';
   }
   const cur = window._currentSection || 'kapua';
   if (cur === 'kapua')  renderGrid('kapua',  KAPUA_LAYOUT,  KAPUA_MAX.cols,  KAPUA_MAX.rows,  KAPUA_RESERVE_START);
