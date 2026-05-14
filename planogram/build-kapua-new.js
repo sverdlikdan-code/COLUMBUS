@@ -69,13 +69,9 @@ const RESERVE_START = 62;
 
     if (!makat || !active) return;
     if (BLACKLIST.has(makat)) return;
+    if (mkrRaw === null || mkrRaw === undefined || mkrRaw === '') return; // no data for 365 days → skip
 
     const fam = famRaw.replace(/[‎‏‪-‮]/g, '').trim();
-
-    if (mkrRaw === null || mkrRaw === undefined || mkrRaw === '') {
-      noSales.push({ makat, fam }); // new/inactive product — no 365-day data → reserve candidate
-      return;
-    }
 
     if (mkr > 0) hasSales.push({ makat, fam });
     else         noSales.push({ makat, fam });
