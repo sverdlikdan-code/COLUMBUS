@@ -177,12 +177,14 @@ async function fetchKapuaFromBI(makatim) {
       ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
     `),
 
-    // 8. Product names from KARTIS PARIT
+    // 8. Product names + unit weight + pack factor from KARTIS PARIT
     dax(t, `
       EVALUATE
       SUMMARIZECOLUMNS(
         'KARTIS PARIT'[מק"ט],
         'KARTIS PARIT'[תאור],
+        'KARTIS PARIT'[משקל יחידה בק"ג],
+        'KARTIS PARIT'[גורם אירוז],
         FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] = "פעיל")
       )
     `),
@@ -279,6 +281,10 @@ async function fetchKapuaFromBI(makatim) {
     ensure(mk);
     const name = r['KARTIS PARIT[תאור]'];
     result[mk].nameEn = (name && name.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim()) || null;
+    const uw = parseFloat(r['KARTIS PARIT[משקל יחידה בק"ג]'] || 0) || null;
+    const pf = parseFloat(r['KARTIS PARIT[גורם אירוז]'] || 0) || null;
+    if (pf) result[mk].packFactor = pf;
+    if (uw && pf) result[mk].weightCarton = +(uw * pf).toFixed(2);
   }
 
   const newMks   = Object.keys(result).filter(mk => result[mk].isNew);
