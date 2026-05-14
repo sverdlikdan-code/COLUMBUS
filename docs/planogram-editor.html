@@ -900,6 +900,9 @@ function renderGrid(section, layoutMap, maxCols, maxRows, reserveStart = 0) {
   sortables[section] = Sortable.create(container, {
     swap: true, swapThreshold: 0.6, animation: 120,
     ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen', swapClass: 'sortable-swap',
+    onMove(evt) {
+      return !!(evt.related && evt.related.dataset && evt.related.dataset.pick);
+    },
     onEnd(evt) {
       const fromPick = parseInt(evt.item.dataset.pick);
       if (!evt.swapItem) return;
