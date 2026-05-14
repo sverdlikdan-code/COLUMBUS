@@ -522,25 +522,21 @@ window.showPhoto = function(makat, pick, section) {
 
 function stockHTML(makat) {
   const d = productData[String(makat)];
-  if (!d) return `<div class="slot-stock"><span style="font-size:11px;font-weight:bold;color:#e53935;">[NO DATA]</span></div>`;
-
+  if (!d) return '';
   if (d.stock === 0) return `<div class="slot-stock s-zero-bar"><span class="s-zero">אפס מלאי</span></div>`;
   const palLine  = d.palStock != null && d.palStock > 0
     ? `<div class="s-pal-big">${Math.round(d.palStock)} <span class="s-pal-unit">PAL</span></div>` : '';
-  const ashdodPal = d.ashdodPalletCartons != null && d.ashdodPalletCartons > 0;
-  const kartLine = ashdodPal
-    ? `<span class="s-kart">${d.ashdodPalletCartons} קרט/פל</span>`
-    : `<span style="font-weight:bold;color:#e53935;">NO DATA</span>`;
+  const kartLine = d.stock != null ? `<span class="s-kart">${d.stock}קרט</span>` : '';
   const kratLine = d.kratnost > 0 ? `<span class="s-krat"> [${d.kratnost}]</span>` : '';
+  const noDataLine = !(d.ashdodPalletCartons > 0)
+    ? `<div style="font-weight:bold;color:#e53935;font-size:10px;line-height:1.2;">NO DATA</div>` : '';
   const wCarton  = d.weightCarton != null && d.weightCarton > 0 ? d.weightCarton
                  : (d.weight != null && d.weight > 0 && d.packFactor > 0 ? +(d.weight * d.packFactor).toFixed(1) : null);
-  const wtLine   = wCarton != null
-    ? `<span class="s-weight">${wCarton} kg/קרט</span>` : '';
-  const daysLine = d.daysStockAll != null
-    ? `<span class="s-meta" title="days for saleout">${d.daysStockAll}<span style="font-size:9px;opacity:0.7;text-transform:none;"> days for saleout</span></span>` : '';
+  const wtLine   = wCarton != null ? `<span class="s-weight">${wCarton} kg/קרט</span>` : '';
+  const daysLine = d.daysStockAll != null ? `<span class="s-meta" title="days for saleout">${d.daysStockAll}<span style="font-size:9px;opacity:0.7"> days</span></span>` : '';
   const metaLine = daysLine ? `<div class="slot-meta">${daysLine}</div>` : '';
   const stockLine = (kartLine || kratLine) ? `<div class="slot-kart-line">${kartLine}${kratLine}</div>` : '';
-  return `<div class="slot-stock">${palLine}${stockLine}${wtLine}</div>${metaLine}`;
+  return `<div class="slot-stock">${palLine}${stockLine}${noDataLine}${wtLine}</div>${metaLine}`;
 }
 
 async function loadMaps() {
