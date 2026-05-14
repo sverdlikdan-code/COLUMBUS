@@ -304,7 +304,7 @@ async function fetchLastRefresh() {
     const rows = await dax(t, `EVALUATE 'SERVER DATE TIME'`);
     if (rows && rows.length) {
       const raw = rows[0]['SERVER DATE TIME[תאריך עדכון]'];
-      if (raw) return new Date(raw).toISOString();
+      if (raw) return String(raw); // Fabric returns Israel local time — return as-is, no UTC conversion
     }
     return null;
   } catch(e) {

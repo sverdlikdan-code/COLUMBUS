@@ -680,15 +680,21 @@ async function main() {
   // Load קפוא data from Power BI (replaces קפוא.xlsx)
   // stock = cartons at אשדוד only (מחסן Main, no צפון)
   const allMakatim = Object.values(KAPUA_PICKS).map(p => p.makat);
-  const { kapuaData, nameEnMap } = await fetchKapuaFromBI(allMakatim);
+  const [{ kapuaData, nameEnMap }, lastRefreshRaw] = await Promise.all([
+    fetchKapuaFromBI(allMakatim),
+    fetchLastRefresh(),
+  ]);
 
-  // Refresh time = workflow run time (UTC → Israel)
-  const runTime = new Intl.DateTimeFormat('he-IL', {
-    timeZone: 'Asia/Jerusalem',
-    day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false
-  }).format(new Date());
-  const refreshLabel = `עודכן: ${runTime}`;
-  console.log(`Workflow run time (Israel): ${runTime}`);
+  // Fabric returns Israel local time as-is — parse string directly, no timezone conversion
+  let refreshLabel = '';
+  if (lastRefreshRaw) {
+    // raw format: "2026-05-14T19:59:00" or similar
+    const m = String(lastRefreshRaw).match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if (m) {
+      refreshLabel = `עודכן: ${m[3]}.${m[2]}, ${m[4]}:${m[5]}`;
+      console.log(`SERVER DATE TIME (local): ${lastRefreshRaw} → ${refreshLabel}`);
+    }
+  }
 
   for(const pick of Object.keys(KAPUA_PICKS)) {
     const p   = KAPUA_PICKS[pick];
@@ -1141,15 +1147,11 @@ async function main() {
   {
 
     // ── refresh-info.json ────────────────────────────────────────────────
-    {
-      const now = new Date();
-      const ilFormatted = new Intl.DateTimeFormat('he-IL', {
-        timeZone: 'Asia/Jerusalem',
-        day:'2-digit', month:'2-digit', year:'numeric',
-        hour:'2-digit', minute:'2-digit', hour12:false
-      }).format(now);
+    if (lastRefreshRaw) {
+      const m = String(lastRefreshRaw).match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+      const label = m ? `${m[3]}.${m[2]}.${m[1]}, ${m[4]}:${m[5]}` : String(lastRefreshRaw);
       fs.writeFileSync(path.join(__dirname,'..','docs','refresh-info.json'),
-        JSON.stringify({ iso: now.toISOString(), label: ilFormatted }), 'utf8');
+        JSON.stringify({ iso: lastRefreshRaw, label }), 'utf8');
     }
 
     // ── product-data.json ────────────────────────────────────────────────
