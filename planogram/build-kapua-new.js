@@ -71,9 +71,7 @@ const RESERVE_START = 62;
     else         noSales.push({ makat, fam });
   });
 
-  const sortByMakat = (a, b) => Number(a.makat) - Number(b.makat);
-  hasSales.sort(sortByMakat);
-  noSales.sort(sortByMakat);
+  // Preserve Excel file order (families already grouped correctly in קפוא.xlsx)
 
   console.log(`Products with sales: ${hasSales.length} | without: ${noSales.length}`);
 
