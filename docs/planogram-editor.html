@@ -826,7 +826,7 @@ function refreshSlot(el, pick, section) {
     el.innerHTML = `
       <img class="slot-img" src="${photoUrl}" alt="${p.makat}"
            onerror="this.closest('.slot').classList.remove('has-photo'); this.closest('.slot').classList.add('text-mode'); renderTextMode(this.closest('.slot'), ${pick});">
-      <button onclick="hidePhoto('${p.makat}',${pick},'${section}')" title="הסר תמונה"
+      <button class="edit-btn" onclick="clearPick(${pick},'${section}')" title="הסר מוצר"
         style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.45);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">✕</button>
       <div class="slot-id">
         ${isReserve ? '' : `<span class="slot-pick-badge">#${pick}</span>`}
@@ -842,7 +842,9 @@ function refreshSlot(el, pick, section) {
       : '';
     el.className = 'slot text-mode';
     el.style.background = cardBg(p.makat, p.fam);
-    el.innerHTML = restoreBtn + textModeHTML(pick, p, rs) + stockHTML(p.makat);
+    const clearBtnR = `<button class="edit-btn" onclick="clearPick(${pick},'${section}')" title="הסר מוצר"
+      style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.35);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">✕</button>`;
+    el.innerHTML = clearBtnR + restoreBtn + textModeHTML(pick, p, rs) + stockHTML(p.makat);
   }
 }
 
