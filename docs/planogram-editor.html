@@ -683,7 +683,7 @@ function makeSlot(pick, p, reserveStart = 0) {
 
 function textModeHTML(pick, p, reserveStart = 0) {
   const isReserve = reserveStart > 0 && pick >= reserveStart;
-  const displayName = p.name || productData[String(p.makat)]?.nameEn || '';
+  const displayName = p.name || productData[String(p.makat)]?.nameEn || productData[String(p.makat)]?.desc || '';
   const sec = window._currentSection || 'kapua';
   const badges = isReserve ? '' : slotBadges(sec, p.makat);
   return `${isReserve ? '' : `<span class="s-pick">#${pick}</span>`}
