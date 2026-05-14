@@ -69,9 +69,13 @@ const RESERVE_START = 62;
 
     if (!makat || !active) return;
     if (BLACKLIST.has(makat)) return;
-    if (mkrRaw === null || mkrRaw === undefined || mkrRaw === '') return; // no data for 365 days → skip
 
     const fam = famRaw.replace(/[‎‏‪-‮]/g, '').trim();
+
+    if (mkrRaw === null || mkrRaw === undefined || mkrRaw === '') {
+      noSales.push({ makat, fam }); // new/inactive product — no 365-day data → reserve candidate
+      return;
+    }
 
     if (mkr > 0) hasSales.push({ makat, fam });
     else         noSales.push({ makat, fam });
@@ -98,13 +102,14 @@ const RESERVE_START = 62;
   }
 
   // Reserve slots 62-79: remaining noSales products that didn't fit in working
-  const reserveProds = noSales.slice(WORKING_SLOTS - hasSales.length);
+  const reserveProds = noSales.slice(Math.max(0, WORKING_SLOTS - hasSales.length));
   for (let i = 0; i < RESERVE_SLOTS; i++) {
     const pick = RESERVE_START + i;
-    picks[String(pick)] = i < reserveProds.length
+    const prod = i < reserveProds.length
       ? { makat: reserveProds[i].makat, fam: reserveProds[i].fam, name: null }
       : null;
-    layout[String(pick)] = { r: 11, c: i + 1 };
+    picks[String(pick)] = prod;
+    if (prod) layout[String(pick)] = { r: 11, c: i + 1 }; // no layout for empty reserve slots
   }
   console.log(`Reserve overflow: ${Math.min(reserveProds.length, RESERVE_SLOTS)}/${RESERVE_SLOTS} slots used`);
 
