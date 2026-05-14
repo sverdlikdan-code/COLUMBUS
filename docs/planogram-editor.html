@@ -498,9 +498,8 @@ function getPhotoUrl(makat) {
   const ean = makatEan[String(makat)];
   if (ean) {
     const entry = photoMap[String(ean)];
-    return entry ? entry.url : offUrl(ean);
+    if (entry) return entry.url;
   }
-  // Fallback: direct makat-named photo (e.g. 660.png / 660.jpg)
   return './' + makat + '.png';
 }
 
@@ -695,8 +694,7 @@ function textModeHTML(pick, p, reserveStart = 0) {
   return `${isReserve ? '' : `<span class="s-pick">#${pick}</span>`}
           ${badges}
           <span class="s-makat">${p.makat}</span>
-          ${displayName ? `<span class="s-name">${displayName}</span>` : ''}
-          <span class="s-fam">${p.fam || ''}</span>`;
+          ${displayName ? `<span class="s-name">${displayName}</span>` : `<span class="s-fam">${p.fam || ''}</span>`}`;
 }
 
 function sectionReserveStart(section) {
