@@ -249,6 +249,8 @@
     style="background:#f0f0f0;color:#333;border:1px solid #ccc;">🖨️ PDF</button>
   <button class="btn btn-reset no-print"  onclick="resetSection()">↩ אפס</button>
   <button class="btn no-print" id="btn-table" onclick="toggleTable()" style="background:#f0f4ff;color:#1565C0;border:1px solid #1565C0;">📊 מיקום</button>
+  <button class="btn no-print" id="btn-fs" onclick="toggleFullscreen()" title="מסך מלא"
+    style="background:#f5f5f5;color:#333;border:1px solid #ccc;padding:7px 10px;">⛶</button>
   <button class="btn no-print" onclick="changeZoom(-1)" style="background:#f5f5f5;color:#333;border:1px solid #ccc;padding:7px 10px;">−</button>
   <span id="zoom-label" style="font-size:11px;color:#555;min-width:32px;text-align:center;">100%</span>
   <button class="btn no-print" onclick="changeZoom(+1)" style="background:#f5f5f5;color:#333;border:1px solid #ccc;padding:7px 10px;">+</button>
@@ -1181,6 +1183,23 @@ function resetSection() {
 }
 
 function setStatus(msg) { document.getElementById('status').textContent = msg; }
+
+function toggleFullscreen() {
+  const btn = document.getElementById('btn-fs');
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+    btn.textContent = '✕';
+    btn.title = 'יציאה ממסך מלא';
+  } else {
+    document.exitFullscreen().catch(() => {});
+    btn.textContent = '⛶';
+    btn.title = 'מסך מלא';
+  }
+}
+document.addEventListener('fullscreenchange', () => {
+  const btn = document.getElementById('btn-fs');
+  if (btn) btn.textContent = document.fullscreenElement ? '✕' : '⛶';
+});
 
 // ══════════════════════════════════════════════════════════════════════════
 // ZOOM
