@@ -237,6 +237,8 @@
       style="background:#fff3cd;color:#7a5c00;border:1px solid #e0c040;">🕐 היסטוריה</button>
     <div class="history-dropdown" id="history-dropdown"></div>
   </div>
+  <button class="btn no-print" id="btn-hide-reserve" onclick="toggleHideReserve()"
+    style="background:#fff8e1;color:#7a5c00;border:1px solid #e0c040;">🗄 רזרב</button>
   <button class="btn no-print" id="btn-pdf" onclick="printPlanogram()"
     style="background:#f0f0f0;color:#333;border:1px solid #ccc;">🖨️ PDF</button>
   <button class="btn btn-reset no-print"  onclick="resetSection()">↩ אפס</button>
@@ -391,6 +393,7 @@ const KAPUA_MAX = { cols:18, rows:14 };
 let   KAPUA_RESERVE_START  = 0;
 let   HALAVI_RESERVE_START = 0;
 let   DAGIM_RESERVE_START  = 0;
+let   hideReserve = false;
 
 const HALAVI_LAYOUT = {
    1:{r:4,c:1},  2:{r:4,c:2},  3:{r:4,c:3},  4:{r:4,c:4},
@@ -493,10 +496,12 @@ function offUrl(ean) {
 function getPhotoUrl(makat) {
   if (hiddenPhotos.has(String(makat))) return null;
   const ean = makatEan[String(makat)];
-  if (!ean) return null;
-  const entry = photoMap[String(ean)];
-  // Our photo DB first; fallback to Open Food Facts
-  return entry ? entry.url : offUrl(ean);
+  if (ean) {
+    const entry = photoMap[String(ean)];
+    return entry ? entry.url : offUrl(ean);
+  }
+  // Fallback: direct makat-named photo (e.g. 660.png / 660.jpg)
+  return './' + makat + '.png';
 }
 
 window.hidePhoto = function(makat, pick, section) {
@@ -760,10 +765,25 @@ const sortables = {};
 
 function renderGrid(section, layoutMap, maxCols, maxRows, reserveStart = 0) {
   const container = document.getElementById('grid-' + section);
+
+  // When hideReserve is on, filter layout to working picks only
+  const effectiveLayout = (hideReserve && reserveStart > 0)
+    ? Object.fromEntries(Object.entries(layoutMap).filter(([p]) => parseInt(p) < reserveStart))
+    : layoutMap;
+
+  // Re-number rows compactly when reserve is hidden (remove reserve rows from grid)
+  let rowMap = null; // original row → compact row
+  let effectiveMaxRows = maxRows;
+  if (hideReserve && reserveStart > 0) {
+    const usedRows = [...new Set(Object.values(effectiveLayout).map(p => p.r))].sort((a,b)=>a-b);
+    rowMap = {};
+    usedRows.forEach((r, i) => { rowMap[r] = i + 1; });
+    effectiveMaxRows = usedRows.length;
+  }
+
   container.style.gridTemplateColumns = `repeat(${maxCols}, 140px)`;
-  // Empty rows = corridors (מעבר) — render as 80px so they're visible
-  const occupiedRows = new Set(Object.values(layoutMap).map(p => p.r));
-  const rowTpl = Array.from({length: maxRows}, (_, i) =>
+  const occupiedRows = new Set(Object.values(effectiveLayout).map(p => rowMap ? rowMap[p.r] : p.r));
+  const rowTpl = Array.from({length: effectiveMaxRows}, (_, i) =>
     occupiedRows.has(i + 1) ? 'auto' : '80px'
   ).join(' ');
   container.style.gridTemplateRows = rowTpl;
@@ -771,21 +791,21 @@ function renderGrid(section, layoutMap, maxCols, maxRows, reserveStart = 0) {
 
   // Find reserve separator row (corridor just before reserve picks)
   let reserveBannerRow = 0;
-  if (reserveStart > 0) {
+  if (!hideReserve && reserveStart > 0) {
     const reserveRows = Object.entries(layoutMap)
       .filter(([p]) => parseInt(p) >= reserveStart)
       .map(([,pos]) => pos.r);
     if (reserveRows.length) {
       const firstReserveRow = Math.min(...reserveRows);
-      // The corridor row just before the reserve section
       reserveBannerRow = firstReserveRow - 1;
     }
   }
 
-  for (const [pickStr, pos] of Object.entries(layoutMap)) {
+  for (const [pickStr, pos] of Object.entries(effectiveLayout)) {
     const el = makeSlot(parseInt(pickStr), state[section][parseInt(pickStr)], reserveStart);
+    const gridRow = rowMap ? rowMap[pos.r] : pos.r;
     el.style.gridColumn = pos.c;
-    el.style.gridRow    = pos.r;
+    el.style.gridRow    = gridRow;
     container.appendChild(el);
   }
 
@@ -1104,6 +1124,24 @@ function applyZoomToSection() {
 // ══════════════════════════════════════════════════════════════════════════
 // POSITION TABLE — live view of pick → מקט mapping
 // ══════════════════════════════════════════════════════════════════════════
+function toggleHideReserve() {
+  hideReserve = !hideReserve;
+  const btn = document.getElementById('btn-hide-reserve');
+  if (hideReserve) {
+    btn.style.background = '#7a5c00';
+    btn.style.color      = '#fff';
+    btn.textContent      = '🗄 הצג רזרב';
+  } else {
+    btn.style.background = '#fff8e1';
+    btn.style.color      = '#7a5c00';
+    btn.textContent      = '🗄 רזרב';
+  }
+  const cur = window._currentSection || 'kapua';
+  if (cur === 'kapua')  renderGrid('kapua',  KAPUA_LAYOUT,  KAPUA_MAX.cols,  KAPUA_MAX.rows,  KAPUA_RESERVE_START);
+  if (cur === 'halavi') renderGrid('halavi', HALAVI_LAYOUT, HALAVI_MAX.cols, HALAVI_MAX.rows, HALAVI_RESERVE_START);
+  if (cur === 'dagim')  renderGrid('dagim',  DAGIM_LAYOUT,  DAGIM_MAX.cols,  DAGIM_MAX.rows,  DAGIM_RESERVE_START);
+}
+
 function toggleTable() {
   const panel = document.getElementById('position-table');
   const open  = panel.style.display === 'none';
