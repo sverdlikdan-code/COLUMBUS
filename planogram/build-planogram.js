@@ -1152,13 +1152,15 @@ async function main() {
     }
 
     // ── product-data.json ────────────────────────────────────────────────
-    // Preserve ashdodPalletCartons from existing file (added by enrich-product-data.js locally)
+    // Preserve stable fields from existing file — survives workflow errors/missing Fabric data
     const existingProdDataPath = path.join(__dirname,'..','docs','product-data.json');
-    let prevAshdod = {};
+    let prevAshdod = {}, prevPackFactor = {}, prevWeightCarton = {};
     try {
       const prev = JSON.parse(fs.readFileSync(existingProdDataPath, 'utf8'));
       for (const [mk, v] of Object.entries(prev)) {
-        if (v && v.ashdodPalletCartons != null) prevAshdod[mk] = v.ashdodPalletCartons;
+        if (v && v.ashdodPalletCartons != null) prevAshdod[mk]     = v.ashdodPalletCartons;
+        if (v && v.packFactor          != null) prevPackFactor[mk] = v.packFactor;
+        if (v && v.weightCarton        != null) prevWeightCarton[mk] = v.weightCarton;
       }
     } catch {}
 
@@ -1168,8 +1170,9 @@ async function main() {
       const wt   = weightMap[mk] || null;
       const dsa  = p.daySalesAll != null ? p.daySalesAll : p.daySales;
       const kd   = kapuaData[mk]; // may be undefined for halavi/dagim
-      const pf   = kd?.packFactor  || null;
-      const wc   = kd?.weightCarton || (wt && pf ? +(wt * pf).toFixed(2) : null);
+      // packFactor/weightCarton: prefer fresh Fabric data, fall back to previous file value
+      const pf   = kd?.packFactor   || prevPackFactor[mk]   || null;
+      const wc   = kd?.weightCarton || prevWeightCarton[mk] || (wt && pf ? +(wt * pf).toFixed(2) : null);
       return {
         stock:               p.stock    != null ? Math.round(p.stock)    : null,
         daySales:            p.daySales != null ? +p.daySales.toFixed(1) : null,
