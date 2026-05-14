@@ -20,17 +20,20 @@ const DOCS = path.join(__dirname, '..', 'docs');
   await wb.xlsx.readFile(path.join(__dirname, 'FORMULA PALLETS.xlsx'));
   const ws = wb.worksheets[0];
 
-  // col1=makat, col3=desc, col8=weight/unit
+  // col1=makat, col3=desc, col8=weight/unit, col10=קרטונים ב ASHDOD PALETT
+  // Read all rows — only update makats that exist in product-data.json (our project)
   const palletDesc = {};
   ws.eachRow((row, r) => {
     if (r === 1) return;
-    const makat = String(row.getCell(1).value || '').trim();
-    const desc  = String(row.getCell(3).value || '').trim();
-    const wt    = parseFloat(row.getCell(8).value || 0);
-    if (makat && desc) palletDesc[makat] = { desc, wt: wt > 0 ? wt : null };
+    const makat     = String(row.getCell(1).value || '').trim();
+    const desc      = String(row.getCell(3).value || '').trim();
+    const wt        = parseFloat(row.getCell(8).value || 0);
+    const ashdodQty = parseFloat(row.getCell(10).value || 0);
+    if (!makat || !desc) return;
+    palletDesc[makat] = { desc, wt: wt > 0 ? wt : null, ashdodPalletCartons: ashdodQty > 0 ? ashdodQty : null };
   });
 
-  console.log(`FORMULA PALLETS: ${Object.keys(palletDesc).length} products`);
+  console.log(`FORMULA PALLETS: ${Object.keys(palletDesc).length} rows read`);
 
   // Parse packFactor from "(N)" pattern in desc
   function parsePackFactor(desc) {
@@ -48,6 +51,7 @@ const DOCS = path.join(__dirname, '..', 'docs');
   for (const [makat, entry] of Object.entries(palletDesc)) {
     if (!pd[makat]) continue;
     pd[makat].desc = entry.desc;
+    pd[makat].ashdodPalletCartons = entry.ashdodPalletCartons;
     enriched++;
     const pf = parsePackFactor(entry.desc);
     if (pf) {
