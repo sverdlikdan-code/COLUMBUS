@@ -183,7 +183,13 @@
     }
     .slot.slot-reserve-empty span { font-size: 9px; color: #aaa; text-align: center; letter-spacing: 0.5px; }
 
-    /* Reserve separator — thick line only, no text */
+    /* Corridor row — dark passage between zones */
+    .corridor-row {
+      background: rgba(0,0,0,0.13);
+      border-radius: 4px;
+    }
+
+    /* Reserve separator — thick red line over the corridor */
     .reserve-banner {
       background: linear-gradient(90deg, #e53e3e 0%, #c53030 40%, transparent 100%);
       border-radius: 2px;
@@ -811,13 +817,24 @@ function renderGrid(section, layoutMap, maxCols, maxRows, reserveStart = 0) {
     container.appendChild(el);
   }
 
-  // Add reserve banner in each corridor row adjacent to reserve
+  // Dark background for ALL corridor rows (empty rows between zones)
+  const allPickRowsSet = new Set(Object.values(effectiveLayout).map(p => rowMap ? rowMap[p.r] : p.r));
+  for (let r = 1; r <= effectiveMaxRows; r++) {
+    if (!allPickRowsSet.has(r)) {
+      const corridor = document.createElement('div');
+      corridor.className = 'corridor-row';
+      corridor.style.gridColumn = `1 / span ${maxCols}`;
+      corridor.style.gridRow    = r;
+      container.appendChild(corridor);
+    }
+  }
+
+  // Red reserve banner on top of corridor rows adjacent to reserve
   for (const bannerRow of reserveBannerRows) {
     const banner = document.createElement('div');
     banner.className = 'reserve-banner';
     banner.style.gridColumn = `1 / span ${maxCols}`;
     banner.style.gridRow    = bannerRow;
-    banner.textContent = '◈  РЕЗЕРВ  ◈';
     container.appendChild(banner);
   }
 
