@@ -317,7 +317,7 @@ async function fetchLastRefresh() {
 async function fetchStockMain(makatim) {
   if (!makatim || !makatim.length) return {};
   const t = await getToken();
-  const mkSet = '{' + makatim.map(m => `"${m}"`).join(',') + '}`;
+  const mkSet = '{' + makatim.map(m => `"${m}"`).join(',') + '}';
 
   const [stockRows, salesRows, salesAllRows] = await Promise.all([
     dax(t, `
