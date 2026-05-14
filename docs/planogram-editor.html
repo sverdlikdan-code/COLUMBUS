@@ -172,16 +172,31 @@
     }
     .slot.slot-empty span { font-size: 10px; color: #bbb; text-align: center; }
 
-    /* Reserve empty slot */
+    /* Reserve empty slot — compact indicator, not full card */
     .slot.slot-reserve-empty {
       background: repeating-linear-gradient(
         45deg, #f4f4f4 0, #f4f4f4 8px, #e8e8e8 8px, #e8e8e8 16px
       ) !important;
       border: 2px dashed #bbb !important;
-      opacity: 0.85; cursor: grab;
+      opacity: 0.6; cursor: grab;
       justify-content: center; align-items: center;
+      width: 56px !important; min-height: 56px !important;
     }
-    .slot.slot-reserve-empty span { font-size: 9px; color: #aaa; text-align: center; letter-spacing: 0.5px; }
+    .slot.slot-reserve-empty span { font-size: 8px; color: #bbb; text-align: center; }
+
+    /* No-photo mark — ✕ overlay on cards with no image in system */
+    .slot.no-photo-mark::after {
+      content: '✕';
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 26px; color: rgba(0,0,0,0.12);
+      pointer-events: none; line-height: 1;
+    }
+
+    /* Side-column slots (single pick per row) — constrained to compact row height */
+    .slot.side-col-slot { min-height: 0 !important; height: 63px; overflow: hidden; }
+    .slot.side-col-slot .slot-img { max-height: 30px !important; min-height: 20px; }
+    .slot.side-col-slot .slot-stock { font-size: 8px; padding: 1px 3px; }
 
     /* Corridor row — dark passage between zones */
     .corridor-row {
@@ -201,6 +216,10 @@
     .sortable-ghost  { opacity: 0.2; }
     .sortable-chosen { box-shadow: 0 6px 20px rgba(0,0,0,0.25); transform: scale(1.05); z-index: 999; }
     .sortable-swap   { outline: 3px dashed #1a6ef5; outline-offset: 2px; border-radius: 8px; }
+
+    /* Edit mode toggle — hide action buttons in view mode */
+    .edit-btn { display: none !important; }
+    body.edit-mode .edit-btn { display: inline !important; }
 
     /* Legend */
     .legend {
@@ -247,7 +266,9 @@
     style="background:#fff8e1;color:#7a5c00;border:1px solid #e0c040;">Plan Only</button>
   <button class="btn no-print" id="btn-pdf" onclick="printPlanogram()"
     style="background:#f0f0f0;color:#333;border:1px solid #ccc;">🖨️ PDF</button>
-  <button class="btn btn-reset no-print"  onclick="resetSection()">↩ אפס</button>
+  <button class="btn no-print" id="btn-edit" onclick="toggleEditMode()"
+    style="background:#f0f0f0;color:#555;border:2px solid #ccc;font-weight:bold;font-size:16px;padding:10px 22px;min-width:110px;">✏ עריכה</button>
+  <button class="btn btn-reset no-print edit-btn" onclick="resetSection()">↩ אפס</button>
   <button class="btn no-print" id="btn-table" onclick="toggleTable()" style="background:#f0f4ff;color:#1565C0;border:1px solid #1565C0;">📊 מיקום</button>
   <button class="btn no-print" id="btn-fs" onclick="toggleFullscreen()" title="מסך מלא"
     style="background:#f5f5f5;color:#333;border:1px solid #ccc;padding:7px 10px;">⛶</button>
@@ -444,6 +465,8 @@ const DAGIM_MAX = { cols:26, rows:3 };
 // photo-map.json:  { "4810168045623": { id, url } }
 // makat-ean.json:  { "732": "4810168045623" }
 // ══════════════════════════════════════════════════════════════════════════
+let editMode    = false; // view mode by default — drag+edit buttons disabled
+
 let photoMap    = {};   // EAN  → { id, url }
 let makatEan    = {};   // מקט  → EAN
 let productData = {};   // מקט  → { stock, daySales, kratnost, palStock }
@@ -718,7 +741,7 @@ function makeSlot(pick, p, reserveStart = 0) {
     el.innerHTML = `
       <img class="slot-img" src="${photoUrl}" alt="${p.makat}"
            onerror="this.closest('.slot').classList.remove('has-photo'); this.closest('.slot').classList.add('text-mode'); renderTextMode(this.closest('.slot'), ${pick});">
-      <button onclick="clearPick(${pick},'${sec}')" title="הסר מוצר"
+      <button class="edit-btn" onclick="clearPick(${pick},'${sec}')" title="הסר מוצר"
         style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.45);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">✕</button>
       <div class="slot-id">
         ${isReserve ? '' : `<span class="slot-pick-badge">#${pick}</span>`}
@@ -732,7 +755,7 @@ function makeSlot(pick, p, reserveStart = 0) {
       ? `<button onclick="showPhoto('${p.makat}',${pick},'${sec}')" title="שחזר תמונה"
            style="position:absolute;top:2px;left:2px;background:rgba(26,110,245,0.7);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">📷</button>`
       : '';
-    el.className = 'slot text-mode';
+    el.className = 'slot text-mode' + (!hasRealPhoto && !hiddenPhotos.has(String(p.makat)) ? ' no-photo-mark' : '');
     el.style.background = cardBg(p.makat, p.fam);
     el.innerHTML = restoreBtn + textModeHTML(pick, p, reserveStart) + stockHTML(p.makat);
   }
@@ -777,7 +800,7 @@ function refreshSlot(el, pick, section) {
     el.className = 'slot slot-empty';
     el.style.background = '';
     el.innerHTML = `<span style="color:#aaa;font-size:9px;">#${pick}</span>
-      <button onclick="restorePick(${pick},'${section}')" title="שחזר מוצר"
+      <button class="edit-btn" onclick="restorePick(${pick},'${section}')" title="שחזר מוצר"
         style="position:absolute;bottom:3px;left:50%;transform:translateX(-50%);background:rgba(26,110,245,0.7);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 5px;z-index:10;">↩</button>`;
     return;
   }
@@ -846,9 +869,17 @@ function renderGrid(section, layoutMap, maxCols, maxRows, reserveStart = 0) {
 
   container.style.gridTemplateColumns = `repeat(${maxCols}, 140px)`;
   const occupiedRows = new Set(Object.values(effectiveLayout).map(p => rowMap ? rowMap[p.r] : p.r));
-  const rowTpl = Array.from({length: effectiveMaxRows}, (_, i) =>
-    occupiedRows.has(i + 1) ? 'auto' : '80px'
-  ).join(' ');
+  // Count picks per grid-row to detect side-column-only rows (single pick)
+  const rowPickCount = {};
+  for (const pos of Object.values(effectiveLayout)) {
+    const gr = rowMap ? rowMap[pos.r] : pos.r;
+    rowPickCount[gr] = (rowPickCount[gr] || 0) + 1;
+  }
+  const rowTpl = Array.from({length: effectiveMaxRows}, (_, i) => {
+    const r = i + 1;
+    if (!occupiedRows.has(r)) return '40px'; // corridor — halved from 80px
+    return rowPickCount[r] === 1 ? '65px' : 'auto'; // side-column rows compact
+  }).join(' ');
   container.style.gridTemplateRows = rowTpl;
   container.innerHTML = '';
 
@@ -872,6 +903,7 @@ function renderGrid(section, layoutMap, maxCols, maxRows, reserveStart = 0) {
     const gridRow = rowMap ? rowMap[pos.r] : pos.r;
     el.style.gridColumn = pos.c;
     el.style.gridRow    = gridRow;
+    if (rowPickCount[gridRow] === 1) el.classList.add('side-col-slot');
     container.appendChild(el);
   }
 
@@ -898,6 +930,7 @@ function renderGrid(section, layoutMap, maxCols, maxRows, reserveStart = 0) {
 
   if (sortables[section]) sortables[section].destroy();
   sortables[section] = Sortable.create(container, {
+    disabled: !editMode,
     swap: true, swapThreshold: 0.6, animation: 120,
     ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen', swapClass: 'sortable-swap',
     onMove(evt) {
@@ -1192,6 +1225,25 @@ function resetSection() {
 }
 
 function setStatus(msg) { document.getElementById('status').textContent = msg; }
+
+function toggleEditMode() {
+  editMode = !editMode;
+  const btn = document.getElementById('btn-edit');
+  if (editMode) {
+    document.body.classList.add('edit-mode');
+    btn.style.background = '#1a6ef5';
+    btn.style.color = '#fff';
+    btn.style.border = '1px solid #1456c8';
+  } else {
+    document.body.classList.remove('edit-mode');
+    btn.style.background = '#f0f0f0';
+    btn.style.color = '#555';
+    btn.style.border = '1px solid #ccc';
+  }
+  for (const [sec, s] of Object.entries(sortables)) {
+    if (s) s.option('disabled', !editMode);
+  }
+}
 
 function toggleFullscreen() {
   const btn = document.getElementById('btn-fs');
