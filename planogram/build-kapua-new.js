@@ -60,10 +60,12 @@ const RESERVE_START = 62;
     if (r === 1) return;
     const makat  = String(row.getCell(3).value || '').trim();  // col C
     const famRaw = String(row.getCell(2).value || '').trim();  // col B
-    const active = row.getCell(6).value;                        // col F
-    const mkr    = parseFloat(row.getCell(8).value || 0);      // col H מכר
+    const active  = row.getCell(6).value;                       // col F
+    const mkrRaw  = row.getCell(8).value;                       // col H מכר
+    const mkr     = parseFloat(mkrRaw || 0);
 
     if (!makat || !active) return;
+    if (mkrRaw === null || mkrRaw === undefined || mkrRaw === '') return; // no data for 365 days → skip
 
     const fam = famRaw.replace(/[‎‏‪-‮]/g, '').trim();
 
