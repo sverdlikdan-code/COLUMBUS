@@ -11,6 +11,8 @@ if (!process.env.PBI_TENANT && process.env.AZURE_TENANT_ID) {
   process.env.PBI_DATASET   = process.env.POWERBI_DATASET_ID;
   process.env.PBI_WORKSPACE = process.env.POWERBI_WORKSPACE_ID;
 }
+const fs      = require('fs');
+const path    = require('path');
 const ExcelJS = require('exceljs');
 const { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchPakuotForMakats, fetchPakuotAllForMakats } = require('./pbi-kapua');
 const { fetchExtraSheets }   = require('./pbi-extra-sheets');
@@ -1142,8 +1144,6 @@ async function main() {
 
   // ── Export product-data.json + kapua-base.json for planogram editor ──────
   {
-    const fs   = require('fs');
-    const path = require('path');
 
     // ── refresh-info.json ────────────────────────────────────────────────
     if (lastRefreshISO) {
