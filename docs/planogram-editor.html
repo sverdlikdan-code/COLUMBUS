@@ -992,7 +992,7 @@ function exportCSV() {
   const rows = ['﻿' + 'פיק,מקט,שם,משפחה'];
   for (const [pick, p] of Object.entries(state[sec]).sort((a,b) => +a[0] - +b[0])) {
     rows.push(p
-      ? `${pick},${p.makat},"${(p.name||'').replace(/"/g,'""')}","${(p.fam||'').replace(/"/g,'""')}"`
+      ? `${pick},${p.makat},"${(p.name || productData[String(p.makat)]?.desc || productData[String(p.makat)]?.nameEn || '').replace(/"/g,'""')}","${(p.fam||'').replace(/"/g,'""')}"`
       : `${pick},,,`
     );
   }
@@ -1245,7 +1245,7 @@ function updateTable() {
     return `<tr style="background:${bg}; border-left:3px solid ${fl};">
       <td style="padding:4px 10px; text-align:center; font-weight:bold; color:#1565C0;">${pick}</td>
       <td style="padding:4px 10px;">${p.makat}</td>
-      <td style="padding:4px 10px; font-weight:bold;">${p.name || ''}</td>
+      <td style="padding:4px 10px; font-weight:bold;">${p.name || productData[String(p.makat)]?.desc || productData[String(p.makat)]?.nameEn || ''}</td>
       <td style="padding:4px 10px; font-size:10px; color:#555;">${p.fam || ''}</td>
     </tr>`;
   }).join('');
