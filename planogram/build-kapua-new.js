@@ -69,45 +69,28 @@ const RESERVE_START = 62;
 
     if (!makat || !active) return;
     if (BLACKLIST.has(makat)) return;
-    if (mkrRaw === null || mkrRaw === undefined || mkrRaw === '') return; // no data for 365 days → skip
+    if (mkrRaw === null || mkrRaw === undefined || mkrRaw === '') return; // no 365-day history → skip
+    if (mkr <= 0) return; // zero sales in 365 days → skip
 
     const fam = famRaw.replace(/[‎‏‪-‮]/g, '').trim();
-
-    if (mkr > 0) hasSales.push({ makat, fam });
-    else         noSales.push({ makat, fam });
+    hasSales.push({ makat, fam });
   });
 
   // hasSales: preserve Excel file order (families already grouped in קפוא.xlsx)
-  // noSales: sort by family then makat ascending
-  noSales.sort((a, b) => {
-    const fc = a.fam.localeCompare(b.fam, 'he');
-    return fc !== 0 ? fc : Number(a.makat) - Number(b.makat);
-  });
-
-  console.log(`Products with sales: ${hasSales.length} | without: ${noSales.length}`);
+  console.log(`Products with sales (מכר > 0): ${hasSales.length}`);
 
   // ── Step 3: Assign products to picks ────────────────────────────────────
-  // Working slots 1-61: hasSales first (sorted), then noSales to fill remaining
-  const allProds = [...hasSales, ...noSales];
+  // Working slots 1-61: only products with sales (mkr > 0)
   const picks = {};
   for (let i = 1; i <= WORKING_SLOTS; i++) {
-    const idx = i - 1;
-    picks[String(i)] = idx < allProds.length
-      ? { makat: allProds[idx].makat, fam: allProds[idx].fam, name: null }
-      : null;
+    const prod = hasSales[i - 1];
+    picks[String(i)] = prod ? { makat: prod.makat, fam: prod.fam, name: null } : null;
   }
 
-  // Reserve slots 62-79: remaining noSales products that didn't fit in working
-  const reserveProds = noSales.slice(Math.max(0, WORKING_SLOTS - hasSales.length));
+  // Reserve slots 62-79: empty (no zero-sales products assigned)
   for (let i = 0; i < RESERVE_SLOTS; i++) {
-    const pick = RESERVE_START + i;
-    const prod = i < reserveProds.length
-      ? { makat: reserveProds[i].makat, fam: reserveProds[i].fam, name: null }
-      : null;
-    picks[String(pick)] = prod;
-    if (prod) layout[String(pick)] = { r: 11, c: i + 1 }; // no layout for empty reserve slots
+    picks[String(RESERVE_START + i)] = null;
   }
-  console.log(`Reserve overflow: ${Math.min(reserveProds.length, RESERVE_SLOTS)}/${RESERVE_SLOTS} slots used`);
 
   // ── Step 4: Write kapua-base.json ────────────────────────────────────────
   const result = {
