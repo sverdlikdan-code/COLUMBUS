@@ -82,7 +82,7 @@ async function fetchKapuaFromBI(makatim) {
       SELECTCOLUMNS({${explicitMks}}, "mk", [Value])
     )`;
 
-  const [stockRows, salesRows, descRows, mlayDescRows, pakuaRows, salesAllRows, pakuaAllRows, nameEnRows] = await Promise.all([
+  const [stockRows, salesRows, descRows, mlayDescRows, pakuaRows, salesAllRows, pakuaAllRows, nameEnRows, packFactorRows] = await Promise.all([
 
     // 1. Stock at Main (Ashdod)
     dax(t, `
@@ -177,7 +177,7 @@ async function fetchKapuaFromBI(makatim) {
       ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
     `),
 
-    // 8. Product names + unit weight from KARTIS PARIT (pack factor is in SQL mmdint.dbo.PARTPACK)
+    // 8. Product names + unit weight from KARTIS PARIT
     dax(t, `
       EVALUATE
       SUMMARIZECOLUMNS(
@@ -185,6 +185,16 @@ async function fetchKapuaFromBI(makatim) {
         'KARTIS PARIT'[תאור],
         'KARTIS PARIT'[משקל ליחידה],
         FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] = "פעיל")
+      )
+    `),
+
+    // 9. Pack factor (units per carton) from גורם אירוז lookup table
+    dax(t, `
+      EVALUATE
+      SELECTCOLUMNS(
+        FILTER('גורם אירוז', CONTAINSROW(${famMakatim}, 'גורם אירוז'[מק"ט])),
+        "mk", 'גורם אירוז'[מק"ט],
+        "packFactor", 'גורם אירוז'[תכולת האריזה למוצר]
       )
     `),
 
@@ -280,6 +290,14 @@ async function fetchKapuaFromBI(makatim) {
     ensure(mk);
     const name = r['KARTIS PARIT[תאור]'];
     result[mk].nameEn = (name && name.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim()) || null;
+  }
+
+  for (const r of packFactorRows) {
+    const mk = r['[mk]'];
+    if (!mk) continue;
+    ensure(mk);
+    const pf = r['[packFactor]'];
+    if (pf) result[mk].packFactor = pf;
   }
 
   const newMks   = Object.keys(result).filter(mk => result[mk].isNew);
@@ -454,32 +472,4 @@ async function fetchPakuotAllForMakats(makatim) {
   return result;
 }
 
-// ── Fetch pack factors from SQL Server mmdint.dbo.PARTPACK ───────────────────
-// Returns Map<makat, packFactor> where packFactor = units per carton (PACKQUANT/1000)
-async function fetchPackFactors() {
-  const sql  = require(require('path').join(__dirname, '..', 'server', 'node_modules', 'mssql'));
-  const pool = await sql.connect({
-    server:   process.env.DB_SERVER || '192.168.100.246',
-    port:     Number(process.env.DB_PORT || 1433),
-    user:     process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: 'mmdint',
-    options:  { trustServerCertificate: true, encrypt: false },
-    requestTimeout: 15000, connectionTimeout: 10000,
-  });
-  const res = await pool.request().query(`
-    SELECT p.PARTNAME AS makat, pp.PACKQUANT / 1000.0 AS packFactor
-    FROM dbo.PARTPACK pp
-    INNER JOIN dbo.PART p ON p.PART = pp.PART
-    WHERE pp.PACKQUANT > 0
-  `);
-  await pool.close();
-  const map = {};
-  for (const r of res.recordset) {
-    if (r.makat && r.packFactor > 0) map[String(r.makat)] = r.packFactor;
-  }
-  console.log(`Pack factors loaded from SQL: ${Object.keys(map).length} products`);
-  return map;
-}
-
-module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchPakuotForMakats, fetchPakuotAllForMakats, fetchPackFactors, getToken };
+module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchPakuotForMakats, fetchPakuotAllForMakats, getToken };
