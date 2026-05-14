@@ -1015,6 +1015,7 @@ function switchTab(name, tabEl) {
   }
   setStatus('מוכן לעריכה');
   applyZoomToSection();
+  buildLegend();
   if (document.getElementById('position-table').style.display !== 'none') updateTable();
   updateTabPalTotals();
 }
@@ -1372,7 +1373,12 @@ function updateTable() {
 // ══════════════════════════════════════════════════════════════════════════
 function buildLegend() {
   const el = document.getElementById('legend');
+  el.innerHTML = '';
+  const sec = window._currentSection || 'kapua';
+  const secState = state[sec] || {};
+  const usedFams = new Set(Object.values(secState).filter(Boolean).map(p => p.fam).filter(Boolean));
   for (const [fam, color] of Object.entries(FAM_COLORS)) {
+    if (!usedFams.has(fam)) continue;
     el.insertAdjacentHTML('beforeend',
       `<div class="leg"><div class="leg-dot" style="background:${color}"></div><span>${fam}</span></div>`);
   }
