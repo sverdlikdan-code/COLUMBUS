@@ -278,7 +278,7 @@ async function fetchKapuaFromBI(makatim) {
     if (!mk) continue;
     ensure(mk);
     const name = r['KARTIS PARIT[תאור]'];
-    result[mk].nameEn = (name && name.trim()) || null;
+    result[mk].nameEn = (name && name.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim()) || null;
   }
 
   const newMks   = Object.keys(result).filter(mk => result[mk].isNew);
@@ -289,7 +289,7 @@ async function fetchKapuaFromBI(makatim) {
   for (const r of nameEnRows) {
     const mk   = r['KARTIS PARIT[מק"ט]'];
     const name = r['KARTIS PARIT[תאור]'];
-    if (mk) nameEnMap[String(mk)] = (name && name.trim()) || null;
+    if (mk) nameEnMap[String(mk)] = (name && name.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim()) || null;
   }
 
   console.log(`Power BI קפוא: ${Object.keys(result).length} total (${newMks.length} new) | ${noStk} zero-stock | ${withSales} with sales`);
