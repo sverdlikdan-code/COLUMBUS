@@ -189,8 +189,8 @@
       content: '✕';
       position: absolute; top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      font-size: 26px; color: rgba(0,0,0,0.12);
-      pointer-events: none; line-height: 1;
+      font-size: 28px; color: rgba(0,0,0,0.22);
+      pointer-events: none; line-height: 1; font-weight: 300;
     }
 
     /* Side-column slots (single pick per row) — constrained to compact row height */
@@ -757,7 +757,9 @@ function makeSlot(pick, p, reserveStart = 0) {
       : '';
     el.className = 'slot text-mode' + (!hasRealPhoto && !hiddenPhotos.has(String(p.makat)) ? ' no-photo-mark' : '');
     el.style.background = cardBg(p.makat, p.fam);
-    el.innerHTML = restoreBtn + textModeHTML(pick, p, reserveStart) + stockHTML(p.makat);
+    const clearBtn = `<button class="edit-btn" onclick="clearPick(${pick},'${sec}')" title="הסר מוצר"
+      style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.35);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">✕</button>`;
+    el.innerHTML = clearBtn + restoreBtn + textModeHTML(pick, p, reserveStart) + stockHTML(p.makat);
   }
   return el;
 }
@@ -1244,6 +1246,26 @@ function toggleEditMode() {
     if (s) s.option('disabled', !editMode);
   }
 }
+
+// ── Mouse drag-to-scroll on planogram sections ────────────────────────────
+(function() {
+  function attachDragScroll(el) {
+    let down = false, startX, scrollLeft;
+    el.addEventListener('mousedown', e => {
+      if (e.target.closest('button,img,.slot')) return; // don't intercept clicks on cards
+      down = true; startX = e.pageX - el.offsetLeft; scrollLeft = el.scrollLeft;
+      el.style.cursor = 'grabbing'; e.preventDefault();
+    });
+    el.addEventListener('mouseleave', () => { down = false; el.style.cursor = ''; });
+    el.addEventListener('mouseup',    () => { down = false; el.style.cursor = ''; });
+    el.addEventListener('mousemove',  e => {
+      if (!down) return;
+      const x = e.pageX - el.offsetLeft;
+      el.scrollLeft = scrollLeft - (x - startX);
+    });
+  }
+  document.querySelectorAll('.section').forEach(attachDragScroll);
+})();
 
 function toggleFullscreen() {
   const btn = document.getElementById('btn-fs');
