@@ -73,7 +73,12 @@ const RESERVE_START = 62;
     else         noSales.push({ makat, fam });
   });
 
-  // Preserve Excel file order (families already grouped correctly in קפוא.xlsx)
+  // hasSales: preserve Excel file order (families already grouped in קפוא.xlsx)
+  // noSales: sort by family then makat ascending
+  noSales.sort((a, b) => {
+    const fc = a.fam.localeCompare(b.fam, 'he');
+    return fc !== 0 ? fc : Number(a.makat) - Number(b.makat);
+  });
 
   console.log(`Products with sales: ${hasSales.length} | without: ${noSales.length}`);
 
