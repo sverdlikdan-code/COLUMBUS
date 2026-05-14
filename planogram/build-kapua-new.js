@@ -15,8 +15,8 @@ const OUT_PATH      = path.join(__dirname, '..', 'docs', 'kapua-base.json');
 const excelToGrid = c => c - 1;
 
 // Excel row → planogram grid row (gaps become corridor rows)
-// R2→1, R3-R6→2-5 (vertical col), R7→6, R8→7, corridor@8, R12→9, corridor@10, R15→11
-const EXCEL_ROW_TO_GRID = { 2:1, 3:2, 4:3, 5:4, 6:5, 7:6, 8:7, 12:9, 15:11 };
+// R2→1, R3-R6→2-5 (vertical col), R7→6, R8→7, corridor@8, R12+R15→9 (same row, different cols)
+const EXCEL_ROW_TO_GRID = { 2:1, 3:2, 4:3, 5:4, 6:5, 7:6, 8:7, 12:9, 15:9 };
 
 // All 61 picks are working — no reserve zone in MAHSAN 8
 const WORKING_SLOTS = 61;
@@ -94,7 +94,7 @@ const RESERVE_START = 0;
     picks,
     layout,
     maxCols: 18,
-    maxRows: 11,
+    maxRows: 9,
     reserveStart: 0,
     v: `2026-05-14-kapua-new`
   };
