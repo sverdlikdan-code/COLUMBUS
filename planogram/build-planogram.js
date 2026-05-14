@@ -1239,9 +1239,8 @@ async function main() {
       editorLayout[p.pick] = { r: row, c: col };
     });
 
-    fs.writeFileSync(path.join(__dirname,'..','docs','kapua-base.json'),
-      JSON.stringify({ picks: kapuaPicks, layout: editorLayout, maxCols: EDITOR_COLS, maxRows: editorMaxRows, reserveStart: 55 }), 'utf8');
-    console.log(`kapua-base.json: ${Object.keys(kapuaPicks).length} picks, maxRows=${editorMaxRows}`);
+    // kapua-base.json: structure maintained manually (like halavi). Workflow does NOT overwrite it.
+    console.log(`kapua-base.json: NOT overwritten by workflow (manually maintained, ${Object.keys(kapuaPicks).length} picks in PBI)`);
 
     // ── halavi-base.json ──────────────────────────────────────────────────
     // Snake layout: rows 4→3→2→1, 12 cols, matches MAHSAN חלבי physical planogram
