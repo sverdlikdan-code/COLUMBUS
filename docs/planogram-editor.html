@@ -32,6 +32,8 @@
     }
     .tab.active { background: #1a6ef5; color: #fff; }
     .tab-pal { font-size: 10px; font-weight: normal; opacity: 0.8; }
+    .wh-btn { background:#f0f4ff;color:#1565C0;border:1px solid #90caf9;font-size:11px;padding:4px 9px;font-weight:600; }
+    .wh-btn.wh-active { background:#1565C0;color:#fff;border-color:#0d47a1; }
 
     /* Version history dropdown */
     .history-dropdown {
@@ -272,6 +274,10 @@
     style="background:#f0f0f0;color:#555;border:2px solid #ccc;font-weight:bold;font-size:16px;padding:10px 22px;min-width:110px;">✏ עריכה</button>
   <button class="btn btn-reset no-print edit-btn" onclick="resetSection()">↩ אפס</button>
   <button class="btn no-print" id="btn-table" onclick="toggleTable()" style="background:#f0f4ff;color:#1565C0;border:1px solid #1565C0;">📊 מיקום</button>
+  <span class="no-print" style="margin-right:6px;border-right:1px solid #ccc;padding-right:8px;display:inline-flex;align-items:center;gap:3px;">
+    <button id="wh-main" class="btn wh-btn wh-active" onclick="setWarehouse('Main')">אשדוד</button>
+    <button id="wh-zafn" class="btn wh-btn"           onclick="setWarehouse('Zafn')">צפון</button>
+  </span>
   <button class="btn no-print" id="btn-fs" onclick="toggleFullscreen()" title="מסך מלא"
     style="background:#f5f5f5;color:#333;border:1px solid #ccc;padding:7px 10px;">⛶</button>
   <button class="btn no-print" onclick="fitToScreen()" title="כל הדף במסך"
@@ -593,20 +599,41 @@ window.restorePick = function(pick, section) {
   if (el) refreshSlot(el, pick, sec);
 };
 
+window._activeWarehouse = 'Main';
+function setWarehouse(wh) {
+  window._activeWarehouse = wh;
+  document.querySelectorAll('.wh-btn').forEach(b => b.classList.remove('wh-active'));
+  const id = wh === 'Main' ? 'wh-main' : wh === 'Zafn' ? 'wh-zafn' : 'wh-trnz';
+  document.getElementById(id)?.classList.add('wh-active');
+  // Re-render all visible slots in active section
+  const sec = window._currentSection || 'kapua';
+  const grid = document.getElementById('grid-' + sec);
+  if (grid) grid.querySelectorAll('.slot[data-pick]').forEach(el => {
+    const pick = el.dataset.pick;
+    refreshSlot(el, pick, sec);
+  });
+}
+
 function stockHTML(makat) {
   const d = productData[String(makat)];
   if (!d) return '';
-  if (d.stock === 0) return `<div class="slot-stock s-zero-bar"><span class="s-zero">אפס מלאי</span></div>`;
-  const palLine  = d.palStock != null && d.palStock > 0
-    ? `<div class="s-pal-big">${Math.round(d.palStock)} <span class="s-pal-unit">PAL</span></div>` : '';
-  const kartLine = d.stock != null ? `<span class="s-kart">${d.stock}קרט</span>` : '';
+  const wh = window._activeWarehouse || 'Main';
+  const stock    = wh === 'Zafn' ? (d.stockZafn    ?? d.stock)    : wh === 'Trnz' ? (d.stockTrnz    ?? d.stock)    : d.stock;
+  const palStock = wh === 'Zafn' ? (d.palStockZafn ?? d.palStock) : wh === 'Trnz' ? (d.palStockTrnz ?? d.palStock) : d.palStock;
+  const daySales = wh === 'Zafn' ? (d.daySalesZafn ?? d.daySales) : wh === 'Trnz' ? (d.daySalesTrnz ?? d.daySales) : d.daySales;
+  if (stock === 0) return `<div class="slot-stock s-zero-bar"><span class="s-zero">אפס מלאי</span></div>`;
+  const palLine  = palStock != null && palStock > 0
+    ? `<div class="s-pal-big">${Math.round(palStock)} <span class="s-pal-unit">PAL</span></div>` : '';
+  const kartLine = stock != null ? `<span class="s-kart">${stock}קרט</span>` : '';
   const kratLine = d.kratnost > 0 ? `<span class="s-krat"> [${d.kratnost}]</span>` : '';
-  const noDataLine = !(d.ashdodPalletCartons > 0)
+  const noDataLine = wh === 'Main' && !(d.ashdodPalletCartons > 0)
     ? `<div style="font-weight:bold;color:#e53935;font-size:10px;line-height:1.2;">NO DATA</div>` : '';
   const wCarton  = d.weightCarton != null && d.weightCarton > 0 ? d.weightCarton
                  : (d.weight != null && d.weight > 0 && d.packFactor > 0 ? +(d.weight * d.packFactor).toFixed(1) : null);
   const wtLine   = wCarton != null ? `<span class="s-weight">${wCarton} kg/קרט</span>` : '';
-  const daysLine = d.daysStockAll != null ? `<span class="s-meta" title="days for saleout">${d.daysStockAll}<span style="font-size:9px;opacity:0.7"> days</span></span>` : '';
+  const dsa      = daySales;
+  const daysLeft = (dsa > 0 && stock > 0) ? Math.round(stock / dsa) : (wh === 'Main' ? d.daysStockAll : null);
+  const daysLine = daysLeft != null ? `<span class="s-meta" title="days for saleout">${daysLeft}<span style="font-size:9px;opacity:0.7"> days</span></span>` : '';
   const metaLine = daysLine ? `<div class="slot-meta">${daysLine}</div>` : '';
   const stockLine = (kartLine || kratLine) ? `<div class="slot-kart-line">${kartLine}${kratLine}</div>` : '';
   return `<div class="slot-stock">${palLine}${stockLine}${noDataLine}${wtLine}</div>${metaLine}`;

@@ -82,7 +82,7 @@ async function fetchKapuaFromBI(makatim) {
       SELECTCOLUMNS({${explicitMks}}, "mk", [Value])
     )`;
 
-  const [stockRows, salesRows, descRows, mlayDescRows, pakuaRows, salesAllRows, pakuaAllRows, nameEnRows, packFactorRows] = await Promise.all([
+  const [stockRows, salesRows, descRows, mlayDescRows, pakuaRows, salesAllRows, pakuaAllRows, nameEnRows, packFactorRows, stockZafnRows, stockTrnzRows, salesZafnRows, salesTrnzRows] = await Promise.all([
 
     // 1. Stock at Main (Ashdod)
     dax(t, `
@@ -198,6 +198,62 @@ async function fetchKapuaFromBI(makatim) {
       )
     `),
 
+    // 10. Stock at Zafn (North warehouse)
+    dax(t, `
+      EVALUATE
+      SUMMARIZECOLUMNS(
+        'מלאי-תוקף'[מק"ט],
+        FILTER('מלאי-תוקף',
+          'מלאי-תוקף'[מחסן] = "Zafn" &&
+          CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
+        ),
+        "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+      )
+    `),
+
+    // 11. Stock at Trnz (transit warehouse)
+    dax(t, `
+      EVALUATE
+      SUMMARIZECOLUMNS(
+        'מלאי-תוקף'[מק"ט],
+        FILTER('מלאי-תוקף',
+          'מלאי-תוקף'[מחסן] = "Trnz" &&
+          CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
+        ),
+        "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+      )
+    `),
+
+    // 12. Sales Zafn — avg day cartons
+    dax(t, `
+      EVALUATE
+      CALCULATETABLE(
+        ADDCOLUMNS(
+          SUMMARIZE('ALL_PARTS', 'ALL_PARTS'[מק'ט]),
+          "daySalesZafn", [TOTAL מכר בקרטונים ממוצע ביום]
+        ),
+        'ALL_PARTS'[חברה] = "FORMULA",
+        'ALL_PARTS'[מחסן] = "Zafn",
+        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 90),
+        TREATAS(${famMakatim}, 'ALL_PARTS'[מק'ט])
+      )
+    `),
+
+    // 13. Sales Trnz — avg day cartons
+    dax(t, `
+      EVALUATE
+      CALCULATETABLE(
+        ADDCOLUMNS(
+          SUMMARIZE('ALL_PARTS', 'ALL_PARTS'[מק'ט]),
+          "daySalesTrnz", [TOTAL מכר בקרטונים ממוצע ביום]
+        ),
+        'ALL_PARTS'[חברה] = "FORMULA",
+        'ALL_PARTS'[מחסן] = "Trnz",
+        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 90),
+        TREATAS(${famMakatim}, 'ALL_PARTS'[מק'ט])
+      )
+    `),
+
   ]);
 
   // ── Build result map ──────────────────────────────────────────────────────
@@ -300,6 +356,34 @@ async function fetchKapuaFromBI(makatim) {
     if (pf) result[mk].packFactor = pf;
   }
 
+  for (const r of stockZafnRows) {
+    const mk = r['מלאי-תוקף[מק"ט]'];
+    if (!mk) continue;
+    ensure(mk);
+    result[mk].stockZafn = r['[stock]'] || 0;
+  }
+
+  for (const r of stockTrnzRows) {
+    const mk = r['מלאי-תוקף[מק"ט]'];
+    if (!mk) continue;
+    ensure(mk);
+    result[mk].stockTrnz = r['[stock]'] || 0;
+  }
+
+  for (const r of salesZafnRows) {
+    const mk = r["ALL_PARTS[מק'ט]"];
+    if (!mk) continue;
+    ensure(mk);
+    result[mk].daySalesZafn = r['[daySalesZafn]'] || null;
+  }
+
+  for (const r of salesTrnzRows) {
+    const mk = r["ALL_PARTS[מק'ט]"];
+    if (!mk) continue;
+    ensure(mk);
+    result[mk].daySalesTrnz = r['[daySalesTrnz]'] || null;
+  }
+
   const newMks   = Object.keys(result).filter(mk => result[mk].isNew);
   const noStk    = makatim.filter(m => !result[m] || result[m].stock === 0).length;
   const withSales = Object.keys(result).filter(m => result[m].daySales != null).length;
@@ -338,7 +422,7 @@ async function fetchStockMain(makatim) {
   const t = await getToken();
   const mkSet = '{' + makatim.map(m => `"${m}"`).join(',') + '}';
 
-  const [stockRows, salesRows, salesAllRows] = await Promise.all([
+  const [stockRows, salesRows, salesAllRows, stockZafnRows, stockTrnzRows, salesZafnRows, salesTrnzRows] = await Promise.all([
     dax(t, `
       EVALUATE
       SUMMARIZECOLUMNS(
@@ -375,28 +459,100 @@ async function fetchStockMain(makatim) {
         TREATAS(${mkSet}, 'ALL_PARTS'[מק'ט])
       )
     `),
+    dax(t, `
+      EVALUATE
+      SUMMARIZECOLUMNS(
+        'מלאי-תוקף'[מק"ט],
+        FILTER('מלאי-תוקף',
+          'מלאי-תוקף'[מחסן] = "Zafn" &&
+          CONTAINSROW(${mkSet}, 'מלאי-תוקף'[מק"ט])
+        ),
+        "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+      )
+    `),
+    dax(t, `
+      EVALUATE
+      SUMMARIZECOLUMNS(
+        'מלאי-תוקף'[מק"ט],
+        FILTER('מלאי-תוקף',
+          'מלאי-תוקף'[מחסן] = "Trnz" &&
+          CONTAINSROW(${mkSet}, 'מלאי-תוקף'[מק"ט])
+        ),
+        "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+      )
+    `),
+    dax(t, `
+      EVALUATE
+      CALCULATETABLE(
+        ADDCOLUMNS(
+          SUMMARIZE('ALL_PARTS', 'ALL_PARTS'[מק'ט]),
+          "daySalesZafn", [TOTAL מכר בקרטונים ממוצע ביום]
+        ),
+        'ALL_PARTS'[חברה] = "FORMULA",
+        'ALL_PARTS'[מחסן] = "Zafn",
+        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 90),
+        TREATAS(${mkSet}, 'ALL_PARTS'[מק'ט])
+      )
+    `),
+    dax(t, `
+      EVALUATE
+      CALCULATETABLE(
+        ADDCOLUMNS(
+          SUMMARIZE('ALL_PARTS', 'ALL_PARTS'[מק'ט]),
+          "daySalesTrnz", [TOTAL מכר בקרטונים ממוצע ביום]
+        ),
+        'ALL_PARTS'[חברה] = "FORMULA",
+        'ALL_PARTS'[מחסן] = "Trnz",
+        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 90),
+        TREATAS(${mkSet}, 'ALL_PARTS'[מק'ט])
+      )
+    `),
   ]);
 
   const result = {};
-  for (const mk of makatim) result[mk] = { stock: 0, daySales: null, daySalesAll: null };
+  for (const mk of makatim) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0, daySalesZafn: null, daySalesTrnz: null };
 
   for (const r of stockRows) {
     const mk = r['מלאי-תוקף[מק"ט]'];
     if (!mk) continue;
-    if (!result[mk]) result[mk] = { stock: 0, daySales: null, daySalesAll: null };
+    if (!result[mk]) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0 };
     result[mk].stock = r['[stock]'] || 0;
   }
   for (const r of salesRows) {
     const mk = r["ALL_PARTS[מק'ט]"];
     if (!mk) continue;
-    if (!result[mk]) result[mk] = { stock: 0, daySales: null, daySalesAll: null };
+    if (!result[mk]) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0 };
     result[mk].daySales = r['[daySales]'] || null;
   }
   for (const r of salesAllRows) {
     const mk = r["ALL_PARTS[מק'ט]"];
     if (!mk) continue;
-    if (!result[mk]) result[mk] = { stock: 0, daySales: null, daySalesAll: null };
+    if (!result[mk]) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0 };
     result[mk].daySalesAll = r['[daySalesAll]'] || null;
+  }
+  for (const r of stockZafnRows) {
+    const mk = r['מלאי-תוקף[מק"ט]'];
+    if (!mk) continue;
+    if (!result[mk]) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0 };
+    result[mk].stockZafn = r['[stock]'] || 0;
+  }
+  for (const r of stockTrnzRows) {
+    const mk = r['מלאי-תוקף[מק"ט]'];
+    if (!mk) continue;
+    if (!result[mk]) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0, daySalesZafn: null, daySalesTrnz: null };
+    result[mk].stockTrnz = r['[stock]'] || 0;
+  }
+  for (const r of salesZafnRows) {
+    const mk = r["ALL_PARTS[מק'ט]"];
+    if (!mk) continue;
+    if (!result[mk]) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0, daySalesZafn: null, daySalesTrnz: null };
+    result[mk].daySalesZafn = r['[daySalesZafn]'] || null;
+  }
+  for (const r of salesTrnzRows) {
+    const mk = r["ALL_PARTS[מק'ט]"];
+    if (!mk) continue;
+    if (!result[mk]) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0, daySalesZafn: null, daySalesTrnz: null };
+    result[mk].daySalesTrnz = r['[daySalesTrnz]'] || null;
   }
 
   console.log(`Stock/sales Main: ${Object.values(result).filter(v=>v.stock>0).length}/${makatim.length} with stock`);
