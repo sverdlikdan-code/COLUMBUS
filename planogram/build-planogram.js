@@ -1213,6 +1213,16 @@ async function main() {
       if (!p.makat) continue;
       prodData[String(p.makat)] = mkEntry(p);
     }
+    // Add any kapua-base.json picks not in hardcoded KAPUA_PICKS (e.g. 819-826 חטיף גבינה)
+    try {
+      const kbJson = JSON.parse(fs.readFileSync(path.join(__dirname,'..','docs','kapua-base.json'), 'utf8'));
+      for (const [, p] of Object.entries(kbJson.picks || {})) {
+        if (!p || !p.makat || prodData[String(p.makat)]) continue;
+        const kd = kapuaData[String(p.makat)] || {};
+        prodData[String(p.makat)] = mkEntry({ ...p, stock: kd.stock ?? 0, daySales: kd.daySales ?? null, daySalesAll: kd.daySalesAll ?? null, stockZafn: kd.stockZafn ?? null, daySalesZafn: kd.daySalesZafn ?? null, stockTrnz: kd.stockTrnz ?? null, daySalesTrnz: kd.daySalesTrnz ?? null, pakuot: kd.pakuot || [], pakuotAll: kd.pakuotAll || [] });
+      }
+    } catch(e) { console.warn('kapua-base.json extra picks skipped:', e.message); }
+
     for (const p of [...halaviProds, ...dagimProds]) {
       if (!p.makat) continue;
       prodData[String(p.makat)] = mkEntry(p);
