@@ -29,15 +29,19 @@ const RESERVE_START = 62;
 const BLACKLIST = new Set(['1130', '1131']);
 
 // Family codes in planogram order (approved by user)
-const FAM_CODES = ['029','004','026','022','019','035','421','420','046','0191','0190'];
+const FAM_CODES = ['029','004','026','022','019','035','421','420','046','030','0191','0190'];
 const FAM_NAMES = {
   '029':'חמאה FERMA', '004':'חמאה רושן',   '026':'חמאה SVALIA',
   '022':'ממרחי חמאה', '019':'כיסונים',     '035':'SANTA BREMOR',
   '421':'עוגות רושן', '420':'עוגות מוזיקה','046':'חטיף גבינה',
+  '030':'SANTA BREMOR דגים',
   '0191':'מוסדי',     '0190':'VALESTA',
 };
 const FAM_ORDER = {};
 FAM_CODES.forEach((c, i) => { FAM_ORDER[c] = i; });
+
+// Surimi products from excluded family 030 — only these 3 crossed to קפוא
+const EXPLICIT_MAKATIM = ['1045', '1046', '1051'];
 
 async function dax(token, query) {
   const res = await fetch(
@@ -59,16 +63,21 @@ async function dax(token, query) {
 
   // ── Step 2: Fetch products + 365-day sales from Fabric ────────────────────
   const t        = await getToken();
-  const famCodes = FAM_CODES.map(c => `"${c}"`).join(',');
+  // Exclude family 030 from INTERSECT (it has chilled products) — use explicit list instead
+  const famCodes   = FAM_CODES.filter(c => c !== '030').map(c => `"${c}"`).join(',');
+  const explicitList = EXPLICIT_MAKATIM.map(m => `"${m}"`).join(',');
 
-  // Active products in target families (status=פעיל in KARTIS PARIT)
+  // Family makatim = active products in target families UNION explicit surimi makatim
   const famMakatim = `
-    INTERSECT(
-      SELECTCOLUMNS(
-        FILTER(MLAY, CONTAINSROW({${famCodes}}, MLAY[משפחת מוצר])),
-        "mk", MLAY[מק'ט]
+    UNION(
+      INTERSECT(
+        SELECTCOLUMNS(
+          FILTER(MLAY, CONTAINSROW({${famCodes}}, MLAY[משפחת מוצר])),
+          "mk", MLAY[מק'ט]
+        ),
+        CALCULATETABLE(VALUES('KARTIS PARIT'[מק"ט]), 'KARTIS PARIT'[סטטוס]="פעיל")
       ),
-      CALCULATETABLE(VALUES('KARTIS PARIT'[מק"ט]), 'KARTIS PARIT'[סטטוס]="פעיל")
+      SELECTCOLUMNS({${explicitList}}, "mk", [Value])
     )`;
 
   const [mlayRows, salesRows] = await Promise.all([
