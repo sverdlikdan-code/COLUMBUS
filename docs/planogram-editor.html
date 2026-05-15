@@ -629,9 +629,18 @@ function stockHTML(makat) {
   const d = productData[String(makat)];
   if (!d) return '';
   const wh = window._activeWarehouse || 'Main';
-  const stock    = wh === 'Zafn' ? (d.stockZafn    ?? d.stock)    : wh === 'Trnz' ? (d.stockTrnz    ?? d.stock)    : d.stock;
-  const palStock = wh === 'Zafn' ? (d.palStockZafn ?? d.palStock) : wh === 'Trnz' ? (d.palStockTrnz ?? d.palStock) : d.palStock;
-  const daySales = wh === 'Zafn' ? (d.daySalesZafn ?? d.daySales) : wh === 'Trnz' ? (d.daySalesTrnz ?? d.daySales) : d.daySales;
+  if (wh === 'Trnz') {
+    const trnzStock = d.stockTrnz;
+    if (!trnzStock || trnzStock <= 0) return '';
+    const palTrnz = d.palStockTrnz;
+    const palLine = palTrnz > 0 ? `<div class="s-pal-big">${Math.round(palTrnz)} <span class="s-pal-unit">PAL</span></div>` : '';
+    const kartLine = `<span class="s-kart">${trnzStock}קרט</span>`;
+    const kratLine = d.kratnost > 0 ? `<span class="s-krat"> [${d.kratnost}]</span>` : '';
+    return `<div class="slot-stock">${palLine}<div class="slot-kart-line">${kartLine}${kratLine}</div></div>`;
+  }
+  const stock    = wh === 'Zafn' ? (d.stockZafn    ?? d.stock)    : d.stock;
+  const palStock = wh === 'Zafn' ? (d.palStockZafn ?? d.palStock) : d.palStock;
+  const daySales = wh === 'Zafn' ? (d.daySalesZafn ?? d.daySales) : d.daySales;
   if (stock === 0) return `<div class="slot-stock s-zero-bar"><span class="s-zero">אפס מלאי</span></div>`;
   const palLine  = palStock != null && palStock > 0
     ? `<div class="s-pal-big">${Math.round(palStock)} <span class="s-pal-unit">PAL</span></div>` : '';
@@ -642,8 +651,8 @@ function stockHTML(makat) {
   const wCarton  = d.weightCarton != null && d.weightCarton > 0 ? d.weightCarton
                  : (d.weight != null && d.weight > 0 && d.packFactor > 0 ? +(d.weight * d.packFactor).toFixed(1) : null);
   const wtLine   = wCarton != null ? `<span class="s-weight">${wCarton} kg/קרט</span>` : '';
-  const dsa      = wh === 'Trnz' ? null : daySales; // TRZ has no sales
-  const daysLeft = wh === 'Trnz' ? null : ((dsa > 0 && stock > 0) ? Math.round(stock / dsa) : (wh === 'Main' ? d.daysStockAll : null));
+  const dsa      = daySales;
+  const daysLeft = (dsa > 0 && stock > 0) ? Math.round(stock / dsa) : (wh === 'Main' ? d.daysStockAll : null);
   const daysLine = daysLeft != null ? `<span class="s-meta" title="days for saleout">${daysLeft}<span style="font-size:9px;opacity:0.7"> days</span></span>` : '';
   const metaLine = daysLine ? `<div class="slot-meta">${daysLine}</div>` : '';
   const stockLine = (kartLine || kratLine) ? `<div class="slot-kart-line">${kartLine}${kratLine}</div>` : '';
