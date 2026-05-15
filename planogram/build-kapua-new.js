@@ -152,7 +152,7 @@ async function dax(token, query) {
 
   // ── Step 4: Write kapua-base.json ─────────────────────────────────────────
   const today = new Date().toISOString().slice(0, 10);
-  const result = { picks, layout, maxCols, maxRows, reserveStart: RESERVE_START, v: `${today}-kapua-v4` };
+  const result = { picks, layout, maxCols, maxRows, reserveStart: RESERVE_START, v: `${today}-kapua-v5` };
   fs.writeFileSync(OUT_PATH, JSON.stringify(result, null, 2), 'utf8');
   console.log(`\n✅ Written: ${OUT_PATH}`);
 
