@@ -616,13 +616,14 @@ function setWarehouse(wh) {
   const id = wh === 'Main' ? 'wh-main' : wh === 'Zafn' ? 'wh-zafn' : 'wh-trnz';
   document.getElementById(id)?.classList.add('wh-active');
   updateSectionStats();
-  // Re-render all visible slots in active section
-  const sec = window._currentSection || 'kapua';
-  const grid = document.getElementById('grid-' + sec);
-  if (grid) grid.querySelectorAll('.slot[data-pick]').forEach(el => {
-    const pick = el.dataset.pick;
-    refreshSlot(el, pick, sec);
-  });
+  // Re-render all already-rendered sections so warehouse change applies everywhere
+  for (const sec of _SECTIONS) {
+    if (!rendered[sec]) continue;
+    const grid = document.getElementById('grid-' + sec);
+    if (grid) grid.querySelectorAll('.slot[data-pick]').forEach(el => {
+      refreshSlot(el, +el.dataset.pick, sec);
+    });
+  }
 }
 
 function stockHTML(makat) {
@@ -1057,7 +1058,7 @@ function updateSectionStats() {
     active++;
     const d = productData[String(p.makat)];
     if (!d) continue;
-    const stk = wh === 'Zafn' ? (d.stockZafn ?? d.stock) : wh === 'Trnz' ? (d.stockTrnz ?? d.stock) : d.stock;
+    const stk = wh === 'Zafn' ? (d.stockZafn ?? d.stock) : wh === 'Trnz' ? (d.stockTrnz ?? 0) : d.stock;
     if (stk > 0) inStock++;
   }
   document.getElementById('stat-active').textContent  = active;
