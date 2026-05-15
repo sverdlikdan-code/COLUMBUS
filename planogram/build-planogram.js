@@ -1172,11 +1172,19 @@ async function main() {
       const kd   = kapuaData[mk];
       const pf   = kd?.packFactor || prevPackFactor[mk]   || null;
       const wc   = prevWeightCarton[mk] || (wt && pf ? +(wt * pf).toFixed(2) : null);
+      const szafn = p.stockZafn != null ? Math.round(p.stockZafn) : null;
+      const strnz = p.stockTrnz != null ? Math.round(p.stockTrnz) : null;
       return {
         stock:               p.stock    != null ? Math.round(p.stock)    : null,
         daySales:            p.daySales != null ? +p.daySales.toFixed(1) : null,
         kratnost:            krat,
         palStock:            (krat > 0 && p.stock > 0) ? +(p.stock / krat).toFixed(1) : null,
+        stockZafn:           szafn,
+        palStockZafn:        (krat > 0 && szafn > 0)   ? +(szafn / krat).toFixed(1) : null,
+        daySalesZafn:        p.daySalesZafn != null ? +p.daySalesZafn.toFixed(1) : null,
+        stockTrnz:           strnz,
+        palStockTrnz:        (krat > 0 && strnz > 0)   ? +(strnz / krat).toFixed(1) : null,
+        daySalesTrnz:        p.daySalesTrnz != null ? +p.daySalesTrnz.toFixed(1) : null,
         weight:              wt != null ? +wt.toFixed(3) : null,
         packFactor:          pf,
         weightCarton:        wc,
