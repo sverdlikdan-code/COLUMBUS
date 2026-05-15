@@ -289,6 +289,15 @@
   <span class="status" id="status">טוען...</span>
 </div>
 
+<div id="section-stats" class="no-print" style="
+  display:flex;justify-content:center;gap:24px;padding:6px 0 2px;
+  font-size:12px;font-weight:600;color:#444;background:#f7f9ff;
+  border-bottom:1px solid #e0e4f0;">
+  <span>מקטים פעילים: <b id="stat-active" style="color:#1565C0">—</b></span>
+  <span style="color:#ccc">|</span>
+  <span>במלאי היום: <b id="stat-instock" style="color:#2e7d32">—</b></span>
+</div>
+
 <div id="sec-kapua"  class="section active"><div id="grid-kapua"  class="warehouse-grid"></div></div>
 <div id="sec-halavi" class="section">       <div id="grid-halavi" class="warehouse-grid"></div></div>
 <div id="sec-dagim"  class="section">       <div id="grid-dagim"  class="warehouse-grid"></div></div>
@@ -606,6 +615,7 @@ function setWarehouse(wh) {
   document.querySelectorAll('.wh-btn').forEach(b => b.classList.remove('wh-active'));
   const id = wh === 'Main' ? 'wh-main' : wh === 'Zafn' ? 'wh-zafn' : 'wh-trnz';
   document.getElementById(id)?.classList.add('wh-active');
+  updateSectionStats();
   // Re-render all visible slots in active section
   const sec = window._currentSection || 'kapua';
   const grid = document.getElementById('grid-' + sec);
@@ -1022,6 +1032,23 @@ async function refreshData() {
   }
 }
 
+function updateSectionStats() {
+  const sec = window._currentSection || 'kapua';
+  const wh  = window._activeWarehouse || 'Main';
+  const picks = state[sec] || {};
+  let active = 0, inStock = 0;
+  for (const p of Object.values(picks)) {
+    if (!p || !p.makat) continue;
+    active++;
+    const d = productData[String(p.makat)];
+    if (!d) continue;
+    const stk = wh === 'Zafn' ? (d.stockZafn ?? d.stock) : wh === 'Trnz' ? (d.stockTrnz ?? d.stock) : d.stock;
+    if (stk > 0) inStock++;
+  }
+  document.getElementById('stat-active').textContent  = active;
+  document.getElementById('stat-instock').textContent = inStock;
+}
+
 const _SECTIONS = ['kapua','halavi','dagim','yavesh'];
 function switchSectionBy(delta) {
   const cur = _SECTIONS.indexOf(window._currentSection || 'kapua');
@@ -1053,6 +1080,7 @@ function switchTab(name, tabEl) {
   setStatus('מוכן לעריכה');
   applyZoomToSection();
   buildLegend();
+  updateSectionStats();
   if (document.getElementById('position-table').style.display !== 'none') updateTable();
   updateTabPalTotals();
 }
@@ -1436,6 +1464,7 @@ window._currentSection = 'kapua';
   applyZoomToSection();
   buildLegend();
   updateTabPalTotals();
+  updateSectionStats();
 })();
 </script>
 </body>
