@@ -277,6 +277,7 @@
   <span class="no-print" style="margin-right:6px;border-right:1px solid #ccc;padding-right:8px;display:inline-flex;align-items:center;gap:3px;">
     <button id="wh-main" class="btn wh-btn wh-active" onclick="setWarehouse('Main')">אשדוד</button>
     <button id="wh-zafn" class="btn wh-btn"           onclick="setWarehouse('Zafn')">צפון</button>
+    <button id="wh-trnz" class="btn wh-btn"           onclick="setWarehouse('Trnz')">TRZ</button>
   </span>
   <button class="btn no-print" id="btn-fs" onclick="toggleFullscreen()" title="מסך מלא"
     style="background:#f5f5f5;color:#333;border:1px solid #ccc;padding:7px 10px;">⛶</button>
@@ -631,8 +632,8 @@ function stockHTML(makat) {
   const wCarton  = d.weightCarton != null && d.weightCarton > 0 ? d.weightCarton
                  : (d.weight != null && d.weight > 0 && d.packFactor > 0 ? +(d.weight * d.packFactor).toFixed(1) : null);
   const wtLine   = wCarton != null ? `<span class="s-weight">${wCarton} kg/קרט</span>` : '';
-  const dsa      = daySales;
-  const daysLeft = (dsa > 0 && stock > 0) ? Math.round(stock / dsa) : (wh === 'Main' ? d.daysStockAll : null);
+  const dsa      = wh === 'Trnz' ? null : daySales; // TRZ has no sales
+  const daysLeft = wh === 'Trnz' ? null : ((dsa > 0 && stock > 0) ? Math.round(stock / dsa) : (wh === 'Main' ? d.daysStockAll : null));
   const daysLine = daysLeft != null ? `<span class="s-meta" title="days for saleout">${daysLeft}<span style="font-size:9px;opacity:0.7"> days</span></span>` : '';
   const metaLine = daysLine ? `<div class="slot-meta">${daysLine}</div>` : '';
   const stockLine = (kartLine || kratLine) ? `<div class="slot-kart-line">${kartLine}${kratLine}</div>` : '';
