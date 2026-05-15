@@ -700,12 +700,16 @@ async function main() {
     const p   = KAPUA_PICKS[pick];
     const src = kapuaData[String(p.makat)];
     if(src) {
-      if(!p.desc && src.desc)   p.desc     = src.desc;
-      if(src.nameEn)            p.nameEn   = src.nameEn;
-      if(src.daySales != null)  p.daySales = src.daySales;
-      p.stock  = src.stock;  // always from BI (0 = zero stock at אשדוד)
-      p.pakuot = src.pakuot || [];
-      // ss, weight: stay from KAPUA_PICKS (no BI source)
+      if(!p.desc && src.desc)   p.desc        = src.desc;
+      if(src.nameEn)            p.nameEn      = src.nameEn;
+      if(src.daySales != null)  p.daySales    = src.daySales;
+      p.stock       = src.stock;
+      p.stockZafn   = src.stockZafn   ?? null;
+      p.daySalesZafn= src.daySalesZafn ?? null;
+      p.stockTrnz   = src.stockTrnz   ?? null;
+      p.daySalesTrnz= src.daySalesTrnz ?? null;
+      p.daySalesAll = src.daySalesAll  ?? null;
+      p.pakuot      = src.pakuot || [];
     }
   }
 
@@ -722,6 +726,8 @@ async function main() {
     .map(([mk, d]) => ({
       makat: mk, fam: d.fam || 'קפוא', desc: d.desc, nameEn: d.nameEn || null,
       stock: d.stock, daySales: d.daySales, daySalesAll: d.daySalesAll,
+      stockZafn: d.stockZafn ?? null, daySalesZafn: d.daySalesZafn ?? null,
+      stockTrnz: d.stockTrnz ?? null, daySalesTrnz: d.daySalesTrnz ?? null,
       pakuot: d.pakuot || [], pakuotAll: d.pakuotAll || [],
       dayAvg: d.daySales || null, weight: null, ss: null,
     }));
