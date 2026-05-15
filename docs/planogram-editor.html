@@ -271,7 +271,7 @@
   <button class="btn no-print" id="btn-pdf" onclick="printPlanogram()"
     style="background:#f0f0f0;color:#333;border:1px solid #ccc;">🖨️ PDF</button>
   <button class="btn no-print" id="btn-edit" onclick="toggleEditMode()"
-    style="background:#f0f0f0;color:#555;border:2px solid #ccc;font-weight:bold;font-size:16px;padding:10px 22px;min-width:110px;">✏ עריכה</button>
+    style="background:#fff3e0;color:#e65100;border:2px solid #ff8f00;font-weight:bold;font-size:16px;padding:10px 22px;min-width:110px;">✏ עריכה</button>
   <button class="btn btn-reset no-print edit-btn" onclick="resetSection()">↩ אפס</button>
   <button class="btn no-print" id="btn-table" onclick="toggleTable()" style="background:#f0f4ff;color:#1565C0;border:1px solid #1565C0;">📊 מיקום</button>
   <span class="no-print" style="margin-right:6px;border-right:1px solid #ccc;padding-right:8px;display:inline-flex;align-items:center;gap:3px;">
@@ -1306,9 +1306,9 @@ function toggleEditMode() {
     btn.style.border = '1px solid #1456c8';
   } else {
     document.body.classList.remove('edit-mode');
-    btn.style.background = '#f0f0f0';
-    btn.style.color = '#555';
-    btn.style.border = '1px solid #ccc';
+    btn.style.background = '#fff3e0';
+    btn.style.color = '#e65100';
+    btn.style.border = '2px solid #ff8f00';
   }
   for (const [sec, s] of Object.entries(sortables)) {
     if (s) s.option('disabled', !editMode);
