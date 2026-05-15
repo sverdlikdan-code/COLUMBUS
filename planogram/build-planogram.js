@@ -1217,6 +1217,38 @@ async function main() {
       if (!p.makat) continue;
       prodData[String(p.makat)] = mkEntry(p);
     }
+
+    // ── דג יבש — fetch stock/sales from Fabric and add to prodData ──────────
+    {
+      const dagyaveshBase = JSON.parse(fs.readFileSync(
+        path.join(__dirname, '..', 'docs', 'dagim-yavesh-base.json'), 'utf8'));
+      const dagyaveshMakatim = [...new Set(
+        Object.values(dagyaveshBase).map(v => String(v.makat)).filter(Boolean)
+      )];
+      if (dagyaveshMakatim.length) {
+        const dyStockMap = await fetchStockMain(dagyaveshMakatim);
+        for (const [, item] of Object.entries(dagyaveshBase)) {
+          const mk = String(item.makat);
+          if (!mk) continue;
+          if (prodData[mk]) continue; // already in another section
+          const fm = dyStockMap[mk] || {};
+          const p = {
+            makat: mk, fam: item.fam, name: item.name,
+            stock:        fm.stock        ?? 0,
+            daySales:     fm.daySales     ?? null,
+            daySalesAll:  fm.daySalesAll  ?? null,
+            stockZafn:    fm.stockZafn    ?? null,
+            daySalesZafn: fm.daySalesZafn ?? null,
+            stockTrnz:    fm.stockTrnz    ?? null,
+            daySalesTrnz: fm.daySalesTrnz ?? null,
+            pakuot: [], pakuotAll: [],
+          };
+          prodData[mk] = mkEntry(p);
+        }
+        console.log(`דג יבש: ${dagyaveshMakatim.length} מקטים → product-data.json`);
+      }
+    }
+
     fs.writeFileSync(path.join(__dirname,'..','docs','product-data.json'),
       JSON.stringify(prodData, null, 2), 'utf8');
     console.log(`product-data.json: ${Object.keys(prodData).length} מקטים`);
