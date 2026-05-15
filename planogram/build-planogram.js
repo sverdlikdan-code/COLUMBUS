@@ -766,9 +766,13 @@ async function main() {
     for(const p of [...halaviProds, ...dagimProds]) {
       const fm = stockMap[p.makat];
       if (fm) {
-        p.stock       = fm.stock;
-        p.daySales    = fm.daySales;
-        p.daySalesAll = fm.daySalesAll;
+        p.stock         = fm.stock;
+        p.daySales      = fm.daySales;
+        p.daySalesAll   = fm.daySalesAll;
+        p.stockZafn     = fm.stockZafn     ?? null;
+        p.daySalesZafn  = fm.daySalesZafn  ?? null;
+        p.stockTrnz     = fm.stockTrnz     ?? null;
+        p.daySalesTrnz  = fm.daySalesTrnz  ?? null;
       }
       p.pakuot    = pakuotMap[p.makat]    || [];
       p.pakuotAll = pakuotAllMap[p.makat] || [];
