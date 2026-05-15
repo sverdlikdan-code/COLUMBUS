@@ -1306,7 +1306,8 @@ function resetSection() {
   } else {
     const layouts = {kapua:[KAPUA_LAYOUT,KAPUA_MAX],halavi:[HALAVI_LAYOUT,HALAVI_MAX],dagim:[DAGIM_LAYOUT,DAGIM_MAX]};
     const [lay, mx] = layouts[sec];
-    renderGrid(sec, lay, mx.cols, mx.rows);
+    const rsrv = sec === 'kapua' ? KAPUA_RESERVE_START : sec === 'halavi' ? HALAVI_RESERVE_START : DAGIM_RESERVE_START;
+    renderGrid(sec, lay, mx.cols, mx.rows, rsrv);
   }
 }
 
