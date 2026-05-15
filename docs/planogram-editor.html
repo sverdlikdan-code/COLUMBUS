@@ -689,7 +689,11 @@ async function loadMaps() {
         console.log(`kapua-base.json: version changed ${savedVer} → ${freshVer}, state reset`);
       } else {
         for (const [pick, p] of Object.entries(kb.picks)) {
-          if (!(pick in state.kapua)) state.kapua[pick] = { ...p };
+          if (!p) {
+            state.kapua[pick] = null; // product removed from base → clear from state too
+          } else if (!(pick in state.kapua)) {
+            state.kapua[pick] = { ...p };
+          }
         }
       }
       console.log(`kapua-base.json: ${Object.keys(kb.picks).length} picks, maxRows=${kb.maxRows}, v=${freshVer}`);
