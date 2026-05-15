@@ -831,7 +831,9 @@ window.renderTextMode = function(el, pick) {
   const p = state[section][pick];
   if (p) {
     el.style.background = cardBg(p.makat, p.fam);
-    el.innerHTML = textModeHTML(pick, p, sectionReserveStart(section)) + stockHTML(p.makat);
+    const clearBtn = `<button class="edit-btn" onclick="clearPick(${pick},'${section}')" title="הסר מוצר"
+      style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.35);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">✕</button>`;
+    el.innerHTML = clearBtn + textModeHTML(pick, p, sectionReserveStart(section)) + stockHTML(p.makat);
   }
 };
 
