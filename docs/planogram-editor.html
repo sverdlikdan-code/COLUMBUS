@@ -277,7 +277,6 @@
   <span class="no-print" style="margin-right:6px;border-right:1px solid #ccc;padding-right:8px;display:inline-flex;align-items:center;gap:3px;">
     <button id="wh-main" class="btn wh-btn wh-active" onclick="setWarehouse('Main')">אשדוד</button>
     <button id="wh-zafn" class="btn wh-btn"           onclick="setWarehouse('Zafn')">צפון</button>
-    <button id="wh-trnz" class="btn wh-btn"           onclick="setWarehouse('Trnz')">TRZ</button>
   </span>
   <button class="btn no-print" id="btn-fs" onclick="toggleFullscreen()" title="מסך מלא"
     style="background:#f5f5f5;color:#333;border:1px solid #ccc;padding:7px 10px;">⛶</button>
@@ -676,9 +675,15 @@ async function loadMaps() {
     photoMap    = pm;
     makatEan    = me;
     productData = pd;
-    // Strip PBI directional marks from stored Hebrew names
+    // Clean PBI product names: strip directional marks, remove parenthesized content
     for (const v of Object.values(productData)) {
-      if (v && v.nameEn) v.nameEn = v.nameEn.replace(/[‎‏‪-‮]/g, '').trim();
+      if (v && v.nameEn) {
+        v.nameEn = v.nameEn
+          .replace(/[‎‏‪-‮⁦-⁩]/g, '')
+          .replace(/\([^)]*\)/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
     }
     dyBase      = dy;
 
@@ -1444,7 +1449,7 @@ function updateTable() {
     return `<tr style="background:${bg}; border-left:3px solid ${fl};">
       <td style="padding:4px 10px; text-align:center; font-weight:bold; color:#1565C0;">${pick}</td>
       <td style="padding:4px 10px;">${p.makat}</td>
-      <td style="padding:4px 10px; font-weight:bold;">${p.name || productData[String(p.makat)]?.desc || productData[String(p.makat)]?.nameEn || ''}</td>
+      <td style="padding:4px 10px; font-weight:bold; unicode-bidi:bidi-override; direction:rtl;">${p.name || productData[String(p.makat)]?.desc || productData[String(p.makat)]?.nameEn || ''}</td>
       <td style="padding:4px 10px; font-size:10px; color:#555;">${p.fam || ''}</td>
     </tr>`;
   }).join('');
