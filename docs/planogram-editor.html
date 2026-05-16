@@ -1150,6 +1150,7 @@ function switchTab(name, tabEl) {
   buildLegend();
   updateSectionStats();
   if (document.getElementById('position-table').style.display !== 'none') updateTable();
+  if (document.getElementById('expiry-page').style.display !== 'none') buildExpiryPage();
   updateTabPalTotals();
 }
 
