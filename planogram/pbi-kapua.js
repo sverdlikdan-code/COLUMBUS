@@ -340,11 +340,12 @@ async function fetchKapuaFromBI(makatim) {
     if (result[mk].pakuotAll.length > 1) result[mk].pakuotAll.sort((a, b) => (a.date||0) - (b.date||0));
   }
 
-  for (const r of nameEnRows) {
-    const mk = r['KARTIS PARIT[מק"ט]'];
+  // nameEn from MLAY[תאור מוצר] — richer names than KARTIS PARIT[תאור]
+  for (const r of mlayDescRows) {
+    const mk = r["MLAY[מק'ט]"];
     if (!mk) continue;
     ensure(mk);
-    const name = r['KARTIS PARIT[תאור]'];
+    const name = r["MLAY[תאור מוצר]"];
     result[mk].nameEn = (name && name.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim()) || null;
   }
 
@@ -389,9 +390,9 @@ async function fetchKapuaFromBI(makatim) {
   const withSales = Object.keys(result).filter(m => result[m].daySales != null).length;
   if (newMks.length) console.log(`🆕 פעיל new makatim in families: ${newMks.join(', ')}`);
   const nameEnMap = {};
-  for (const r of nameEnRows) {
-    const mk   = r['KARTIS PARIT[מק"ט]'];
-    const name = r['KARTIS PARIT[תאור]'];
+  for (const r of mlayDescRows) {
+    const mk   = r["MLAY[מק'ט]"];
+    const name = r["MLAY[תאור מוצר]"];
     if (mk) nameEnMap[String(mk)] = (name && name.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim()) || null;
   }
 
