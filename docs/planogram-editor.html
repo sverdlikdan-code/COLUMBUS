@@ -1545,17 +1545,17 @@ function buildExpiryPage() {
   const batchCell = (pak, daySales) => {
     if (!pak) return '<span style="color:#ccc;">—</span>';
     const sk = batchSakana(pak, daySales);
-    const dateColor = sk?.isSakana ? '#c62828' : (pak.daysLeft <= 30 ? '#e65100' : '#222');
-    const sakanaTag = sk?.isSakana
-      ? `<span style="display:inline-block;background:#c62828;color:#fff;font-size:8px;font-weight:bold;border-radius:3px;padding:0 3px;margin-right:2px;">⚠ סכנה</span>`
+    const isSakana   = sk?.isSakana;
+    const dateColor  = isSakana ? '#c62828' : (pak.daysLeft != null && pak.daysLeft <= 30 ? '#e65100' : '#1a6b1a');
+    const daysColor  = isSakana ? '#c62828' : '#555';
+    const sakanaTag  = isSakana
+      ? `<span style="display:inline-block;background:#c62828;color:#fff;font-size:8px;font-weight:bold;border-radius:3px;padding:1px 4px;margin-right:3px;">⚠ סכנה</span>`
       : '';
-    const sellLine = sk?.sellDays != null
-      ? `<span style="font-size:9px;color:#888;"> מכר:${sk.sellDays}d</span>`
-      : '';
-    return `${sakanaTag}<span style="color:${dateColor};font-weight:bold;">${fmt(pak.date)}</span>`
-         + `<span style="color:#555;font-size:9px;"> ${pak.daysLeft??'?'}d</span>`
-         + ` <span style="color:#1565C0;font-weight:bold;">${Math.round(pak.cartons)}קרט</span>`
-         + sellLine;
+    return `<div style="line-height:1.8;">`
+         + `<div>${sakanaTag}<span style="font-weight:bold;color:${dateColor};">תוקף: ${fmt(pak.date)}</span>`
+         + ` <span style="font-size:9px;color:${daysColor};">(${pak.daysLeft??'?'} ימים)</span></div>`
+         + `<div style="color:#1565C0;font-weight:bold;">כמות: ${Math.round(pak.cartons)} קרט</div>`
+         + `</div>`;
   };
 
   grid.innerHTML = order.map((pick, idx) => {
