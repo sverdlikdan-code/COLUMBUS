@@ -642,10 +642,11 @@ function stockHTML(makat) {
     const kratLine = d.kratnost > 0 ? `<span class="s-krat"> [${d.kratnost}]</span>` : '';
     return `<div class="slot-stock">${palLine}<div class="slot-kart-line">${kartLine}${kratLine}</div></div>`;
   }
-  const stock    = wh === 'Zafn' ? (d.stockZafn    ?? d.stock)    : d.stock;
-  const palStock = wh === 'Zafn' ? (d.palStockZafn ?? d.palStock) : d.palStock;
-  const daySales = wh === 'Zafn' ? (d.daySalesZafn ?? d.daySales) : d.daySales;
-  if (stock === 0) return `<div class="slot-stock s-zero-bar"><span class="s-zero">אפס מלאי</span></div>`;
+  const stock    = wh === 'Zafn' ? d.stockZafn    : d.stock;
+  const palStock = wh === 'Zafn' ? d.palStockZafn : d.palStock;
+  const daySales = wh === 'Zafn' ? d.daySalesZafn : d.daySales;
+  if (stock == null && wh === 'Zafn') return '';
+  if (!stock || stock <= 0) return `<div class="slot-stock s-zero-bar"><span class="s-zero">אפס מלאי</span></div>`;
   const palLine  = palStock != null && palStock > 0
     ? `<div class="s-pal-big">${Math.round(palStock)} <span class="s-pal-unit">PAL</span></div>` : '';
   const kartLine = stock != null ? `<span class="s-kart">${stock}קרט</span>` : '';
