@@ -82,7 +82,7 @@ async function fetchKapuaFromBI(makatim) {
       SELECTCOLUMNS({${explicitMks}}, "mk", [Value])
     )`;
 
-  const [stockRows, salesRows, descRows, mlayDescRows, pakuaRows, salesAllRows, pakuaAllRows, nameEnRows, packFactorRows, stockZafnRows, stockTrnzRows, salesZafnRows, salesTrnzRows] = await Promise.all([
+  const [stockRows, salesRows, descRows, mlayDescRows, pakuaRows, salesAllRows, pakuaAllRows, nameEnRows, packFactorRows, stockZafnRows, stockTrnzRows, salesZafnRows, salesTrnzRows, pakuaZafnRows] = await Promise.all([
 
     // 1. Stock at Main (Ashdod)
     dax(t, `
@@ -254,6 +254,21 @@ async function fetchKapuaFromBI(makatim) {
       )
     `),
 
+    // 14. פק"ע batches at Zafn (North) — for two-warehouse expiry report
+    dax(t, `
+      EVALUATE
+      SUMMARIZECOLUMNS(
+        'מלאי-תוקף'[מק"ט],
+        'מלאי-תוקף'[ת. תפוגת תוקף],
+        FILTER('מלאי-תוקף',
+          'מלאי-תוקף'[מחסן] = "Zafn" &&
+          CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
+        ),
+        "cartons", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+      )
+      ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
+    `),
+
   ]);
 
   // ── Build result map ──────────────────────────────────────────────────────
@@ -338,6 +353,23 @@ async function fetchKapuaFromBI(makatim) {
   }
   for (const mk of Object.keys(result)) {
     if (result[mk].pakuotAll.length > 1) result[mk].pakuotAll.sort((a, b) => (a.date||0) - (b.date||0));
+  }
+
+  // ── pakuotZafn: Zafn (North) expiry batches ───────────────────────────────
+  for (const mk of Object.keys(result)) { result[mk].pakuotZafn = []; }
+  for (const r of pakuaZafnRows) {
+    const mk      = r['מלאי-תוקף[מק"ט]'];
+    const cartons = r['[cartons]'] || 0;
+    if (!mk || cartons <= 0) continue;
+    ensure(mk);
+    if (!result[mk].pakuotZafn) result[mk].pakuotZafn = [];
+    const rawDate = r["מלאי-תוקף[ת. תפוגת תוקף]"];
+    let expDate = null, daysLeft = null;
+    if (rawDate) { expDate = new Date(rawDate); daysLeft = Math.round((expDate - today) / 86400000); }
+    result[mk].pakuotZafn.push({ date: expDate, daysLeft, cartons });
+  }
+  for (const mk of Object.keys(result)) {
+    if (result[mk].pakuotZafn?.length > 1) result[mk].pakuotZafn.sort((a, b) => (a.date||0) - (b.date||0));
   }
 
   // nameEn from MLAY[תאור מוצר] — richer names than KARTIS PARIT[תאור]
