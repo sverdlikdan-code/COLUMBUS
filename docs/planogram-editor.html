@@ -1544,6 +1544,7 @@ function buildExpiryPage() {
     if (!p) return '';
     const mk   = String(p.makat);
     const d    = productData[mk] || {};
+    if (!(d.stock > 0) && !(d.stockZafn > 0)) return '';
     const name = p.name || d.nameEn || d.desc || p.fam || mk;
     const photoUrl = getPhotoUrl(mk);
     const imgHtml  = photoUrl
