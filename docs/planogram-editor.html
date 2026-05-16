@@ -274,6 +274,7 @@
     style="background:#fff3e0;color:#e65100;border:2px solid #ff8f00;font-weight:bold;font-size:16px;padding:10px 22px;min-width:110px;">✏ עריכה</button>
   <button class="btn btn-reset no-print edit-btn" onclick="resetSection()">↩ אפס</button>
   <button class="btn no-print" id="btn-table" onclick="toggleTable()" style="background:#f0f4ff;color:#1565C0;border:1px solid #1565C0;">📊 מיקום</button>
+  <button class="btn no-print" id="btn-expiry" onclick="toggleExpiryPage()" style="background:#f0f4ff;color:#c62828;border:1px solid #ef9a9a;">📦 תוקף</button>
   <span class="no-print" style="margin-right:6px;border-right:1px solid #ccc;padding-right:8px;display:inline-flex;align-items:center;gap:3px;">
     <button id="wh-main" class="btn wh-btn wh-active" onclick="setWarehouse('Main')">אשדוד</button>
     <button id="wh-zafn" class="btn wh-btn"           onclick="setWarehouse('Zafn')">צפון</button>
@@ -303,6 +304,19 @@
 <div id="sec-yavesh" class="section">       <div id="grid-yavesh" class="warehouse-grid"></div></div>
 
 <div class="legend" id="legend"></div>
+
+<!-- Expiry report page — full-screen overlay -->
+<div id="expiry-page" style="
+  display:none; position:fixed; inset:0; z-index:600;
+  background:#f4f6fb; overflow-y:auto; direction:rtl;
+">
+  <div style="display:flex;align-items:center;gap:10px;padding:10px 18px;background:#c62828;position:sticky;top:0;z-index:10;">
+    <span style="font-weight:bold;font-size:13px;color:#fff;flex:1;" id="expiry-title">דוח תוקף</span>
+    <button onclick="window.print()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;cursor:pointer;border-radius:4px;padding:4px 12px;">🖨 הדפס</button>
+    <button onclick="toggleExpiryPage()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:16px;cursor:pointer;border-radius:4px;padding:2px 8px;">✕</button>
+  </div>
+  <div id="expiry-grid" style="padding:12px 16px; display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-start;"></div>
+</div>
 
 <!-- Summary position table — fixed overlay panel -->
 <div id="position-table" style="
@@ -1491,6 +1505,98 @@ function updateTable() {
       <td style="padding:4px 10px; font-weight:bold;">${p.name || productData[String(p.makat)]?.nameEn || productData[String(p.makat)]?.desc || ''}</td>
       <td style="padding:4px 10px; font-size:10px; color:#555;">${p.fam || ''}</td>
     </tr>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// EXPIRY REPORT PAGE
+// ══════════════════════════════════════════════════════════════════════════
+function toggleExpiryPage() {
+  const page = document.getElementById('expiry-page');
+  const open = page.style.display === 'none';
+  page.style.display = open ? 'block' : 'none';
+  const btn = document.getElementById('btn-expiry');
+  btn.style.background = open ? '#c62828' : '#f0f4ff';
+  btn.style.color      = open ? '#fff'    : '#c62828';
+  if (open) buildExpiryPage();
+}
+
+function buildExpiryPage() {
+  const sec   = window._currentSection || 'kapua';
+  const order = _getPrintOrder(sec);
+  document.getElementById('expiry-title').textContent = `דוח תוקף — ${sec} (${order.length} מוצרים)`;
+  const grid  = document.getElementById('expiry-grid');
+
+  const fmt = (isoDate) => {
+    if (!isoDate) return '—';
+    const [y, m, d] = isoDate.split('-');
+    return `${d}/${m}/${y.slice(2)}`;
+  };
+  const dangerStyle = (daysLeft) => {
+    if (daysLeft == null) return '';
+    if (daysLeft <= 14)  return 'color:#c62828;font-weight:bold;';
+    if (daysLeft <= 30)  return 'color:#e65100;font-weight:bold;';
+    return '';
+  };
+
+  grid.innerHTML = order.map((pick, idx) => {
+    const p = state[sec][pick];
+    if (!p) return '';
+    const mk   = String(p.makat);
+    const d    = productData[mk] || {};
+    const name = p.name || d.nameEn || d.desc || p.fam || mk;
+    const photoUrl = getPhotoUrl(mk);
+    const imgHtml  = photoUrl
+      ? `<img src="${photoUrl}" style="width:72px;height:72px;object-fit:contain;border-radius:6px;border:1px solid #e0e0e0;" onerror="this.style.display='none'">`
+      : `<div style="width:72px;height:72px;background:#f5f5f5;border-radius:6px;border:1px solid #e0e0e0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#aaa;">📷</div>`;
+
+    const batches = { main: d.pakuot || [], zafn: d.pakuotZafn || [] };
+    const maxRows = Math.max(batches.main.length, batches.zafn.length, 1);
+
+    const batchRows = Array.from({length: maxRows}, (_, i) => {
+      const bm = batches.main[i];
+      const bz = batches.zafn[i];
+      const cellMain = bm
+        ? `<span style="${dangerStyle(bm.daysLeft)}">${fmt(bm.date)}</span> <span style="color:#1565C0;font-weight:bold;">${bm.cartons}</span>`
+        : '<span style="color:#ccc;">—</span>';
+      const cellZafn = bz
+        ? `<span style="${dangerStyle(bz.daysLeft)}">${fmt(bz.date)}</span> <span style="color:#1565C0;font-weight:bold;">${bz.cartons}</span>`
+        : '<span style="color:#ccc;">—</span>';
+      return `<tr>
+        <td style="padding:2px 8px;border-bottom:1px solid #f0f0f0;font-size:11px;text-align:center;">${cellMain}</td>
+        <td style="padding:2px 8px;border-bottom:1px solid #f0f0f0;font-size:11px;text-align:center;border-right:2px solid #e0e0e0;">${cellZafn}</td>
+      </tr>`;
+    }).join('');
+
+    return `<div style="
+      background:#fff; border-radius:8px; border:1px solid #dde0e8;
+      box-shadow:0 1px 4px rgba(0,0,0,0.06); padding:8px;
+      width:320px; flex-shrink:0; display:flex; gap:8px; align-items:flex-start;
+    ">
+      <div style="flex-shrink:0; text-align:center;">
+        ${imgHtml}
+        <div style="font-size:9px;color:#888;margin-top:2px;">#${pick}</div>
+        <div style="font-size:9px;color:#1565C0;font-weight:bold;">${mk}</div>
+      </div>
+      <div style="flex:1; min-width:0;">
+        <div style="font-size:10px;font-weight:bold;color:#222;margin-bottom:4px;line-height:1.3;">${name}</div>
+        <table style="width:100%;border-collapse:collapse;font-size:10px;">
+          <thead>
+            <tr>
+              <th style="padding:2px 8px;background:#fce4e4;font-size:9px;color:#c62828;text-align:center;">אשדוד</th>
+              <th style="padding:2px 8px;background:#e3f2fd;font-size:9px;color:#1565C0;text-align:center;border-right:2px solid #e0e0e0;">צפון</th>
+            </tr>
+          </thead>
+          <tbody>${batchRows}</tbody>
+        </table>
+        ${(d.stock > 0 || d.stockZafn > 0) ? `<div style="margin-top:4px;font-size:9px;color:#555;">
+          <span style="color:#c62828;">אשד: <b>${d.stock || 0}</b></span>
+          &nbsp;|&nbsp;
+          <span style="color:#1565C0;">צפון: <b>${d.stockZafn || 0}</b></span>
+          קרט
+        </div>` : ''}
+      </div>
+    </div>`;
   }).join('');
 }
 

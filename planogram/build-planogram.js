@@ -1201,6 +1201,8 @@ async function main() {
         daysStockAll:        (dsa > 0 && p.stock > 0) ? Math.round(p.stock / dsa) : null,
         nameEn:              nameEnMap[mk] ? fixVisualRTL(nameEnMap[mk].replace(/\s*\([^)]*\)/g, '').trim()) : null,
         ashdodPalletCartons: prevAshdod[mk] ?? null,
+        pakuot:              (p.pakuot || kd?.pakuot || []).map(b => ({ date: b.date ? new Date(b.date).toISOString().slice(0,10) : null, daysLeft: b.daysLeft, cartons: b.cartons })),
+        pakuotZafn:          (p.pakuotZafn || kd?.pakuotZafn || []).map(b => ({ date: b.date ? new Date(b.date).toISOString().slice(0,10) : null, daysLeft: b.daysLeft, cartons: b.cartons })),
       };
     };
 
