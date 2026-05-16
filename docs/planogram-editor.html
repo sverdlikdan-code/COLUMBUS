@@ -320,6 +320,7 @@
     <table id="pos-tbl" style="border-collapse:collapse; font-size:11px; min-width:400px; width:100%;">
       <thead>
         <tr style="background:#e8f0fe; color:#1565C0; position:sticky; top:42px;">
+          <th style="padding:5px 10px; text-align:center; min-width:55px;">סדר הדפסה</th>
           <th style="padding:5px 10px; text-align:center; min-width:40px;">ביי</th>
           <th style="padding:5px 10px; text-align:right; min-width:60px;">מקט</th>
           <th style="padding:5px 10px; text-align:right; min-width:160px;">שם מוצר</th>
@@ -513,6 +514,36 @@ function _saveClearedPicks() {
     halavi: [...clearedPicks.halavi],
     dagim:  [...clearedPicks.dagim],
   }));
+}
+
+// Print order per section — array of pick strings; independent of bay position
+const printOrder = {
+  kapua:  JSON.parse(localStorage.getItem('mahsan_print_order_kapua')  || 'null'),
+  halavi: JSON.parse(localStorage.getItem('mahsan_print_order_halavi') || 'null'),
+  dagim:  JSON.parse(localStorage.getItem('mahsan_print_order_dagim')  || 'null'),
+  yavesh: JSON.parse(localStorage.getItem('mahsan_print_order_yavesh') || 'null'),
+};
+function _getPrintOrder(sec) {
+  const activePicks = Object.keys(state[sec] || {}).filter(k => state[sec][k]).sort((a,b)=>+a-+b);
+  const saved = printOrder[sec];
+  if (!saved) return activePicks;
+  // Keep saved order, add any new picks at end, remove stale
+  const activeSet = new Set(activePicks);
+  const filtered = saved.filter(p => activeSet.has(p));
+  activePicks.forEach(p => { if (!filtered.includes(p)) filtered.push(p); });
+  return filtered;
+}
+function _savePrintOrder(sec, order) {
+  printOrder[sec] = order;
+  localStorage.setItem('mahsan_print_order_' + sec, JSON.stringify(order));
+}
+function movePrintOrder(sec, idx, dir) {
+  const order = _getPrintOrder(sec);
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= order.length) return;
+  [order[idx], order[newIdx]] = [order[newIdx], order[idx]];
+  _savePrintOrder(sec, order);
+  updateTable();
 }
 
 // ── Medals + dumbbell ────────────────────────────────────────────────────
@@ -1125,14 +1156,16 @@ function updateTabPalTotals() {
 // EXPORT / SAVE / RESET
 // ══════════════════════════════════════════════════════════════════════════
 function exportCSV() {
-  const sec  = window._currentSection || 'kapua';
-  const rows = ['﻿' + 'פיק,מקט,שם,משפחה'];
-  for (const [pick, p] of Object.entries(state[sec]).sort((a,b) => +a[0] - +b[0])) {
+  const sec   = window._currentSection || 'kapua';
+  const order = _getPrintOrder(sec);
+  const rows  = ['﻿' + 'סדר הדפסה,ביי,מקט,שם,משפחה'];
+  order.forEach((pick, i) => {
+    const p = state[sec][pick];
     rows.push(p
-      ? `${pick},${p.makat},"${(p.name || productData[String(p.makat)]?.desc || productData[String(p.makat)]?.nameEn || '').replace(/"/g,'""')}","${(p.fam||'').replace(/"/g,'""')}"`
-      : `${pick},,,`
+      ? `${i+1},${pick},${p.makat},"${(p.name || productData[String(p.makat)]?.nameEn || productData[String(p.makat)]?.desc || '').replace(/"/g,'""')}","${(p.fam||'').replace(/"/g,'""')}"`
+      : `${i+1},${pick},,,`
     );
-  }
+  });
   const a = Object.assign(document.createElement('a'), {
     href:     URL.createObjectURL(new Blob([rows.join('\n')], {type:'text/csv;charset=utf-8'})),
     download: `planogram-${sec}-${new Date().toISOString().slice(0,10)}.csv`,
@@ -1438,17 +1471,21 @@ function toggleTable() {
 }
 
 function updateTable() {
-  const sec  = window._currentSection || 'kapua';
-  const body = document.getElementById('pos-tbl-body');
+  const sec   = window._currentSection || 'kapua';
+  const body  = document.getElementById('pos-tbl-body');
   const title = document.getElementById('pos-tbl-title');
   title.textContent = `טבלת מיקום — ${sec} (${Object.keys(state[sec]).filter(k => state[sec][k]).length} מוצרים)`;
-  const rows = Object.entries(state[sec])
-    .filter(([, p]) => p)
-    .sort((a, b) => +a[0] - +b[0]);
-  body.innerHTML = rows.map(([pick, p], i) => {
-    const bg  = i % 2 === 0 ? '#fff' : '#f5f7ff';
-    const fl  = famColor(p.fam);
+  const order = _getPrintOrder(sec);
+  const btnStyle = 'background:none;border:none;cursor:pointer;font-size:13px;padding:0 2px;line-height:1;color:#1565C0;';
+  body.innerHTML = order.map((pick, i) => {
+    const p  = state[sec][pick];
+    if (!p) return '';
+    const bg = i % 2 === 0 ? '#fff' : '#f5f7ff';
+    const fl = famColor(p.fam);
+    const up   = i > 0              ? `<button style="${btnStyle}" onclick="movePrintOrder('${sec}',${i},-1)" title="הזז למעלה">▲</button>` : '<span style="width:18px;display:inline-block"></span>';
+    const down = i < order.length-1 ? `<button style="${btnStyle}" onclick="movePrintOrder('${sec}',${i},1)"  title="הזז למטה">▼</button>`  : '<span style="width:18px;display:inline-block"></span>';
     return `<tr style="background:${bg}; border-left:3px solid ${fl};">
+      <td style="padding:4px 6px; text-align:center; white-space:nowrap;">${up}${down}<span style="margin-right:4px;font-weight:bold;color:#888;font-size:10px;">${i+1}</span></td>
       <td style="padding:4px 10px; text-align:center; font-weight:bold; color:#1565C0;">${pick}</td>
       <td style="padding:4px 10px;">${p.makat}</td>
       <td style="padding:4px 10px; font-weight:bold;">${p.name || productData[String(p.makat)]?.nameEn || productData[String(p.makat)]?.desc || ''}</td>
