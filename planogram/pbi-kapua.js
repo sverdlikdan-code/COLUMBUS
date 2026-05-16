@@ -630,6 +630,43 @@ async function fetchPakuotForMakats(makatim) {
   return result;
 }
 
+// ── Fetch pakuotZafn (expiry batches at Zafn) for any list of מקטים ─────────
+async function fetchPakuotZafnForMakats(makatim) {
+  if(!makatim || !makatim.length) return {};
+  const t = await getToken();
+  const mkSet = '{' + makatim.map(m => `"${m}"`).join(',') + '}';
+  const rows = await dax(t, `
+    EVALUATE
+    SUMMARIZECOLUMNS(
+      'מלאי-תוקף'[מק"ט],
+      'מלאי-תוקף'[ת. תפוגת תוקף],
+      FILTER(
+        'מלאי-תוקף',
+        'מלאי-תוקף'[מחסן] = "Zafn" &&
+        CONTAINSROW(${mkSet}, 'מלאי-תוקף'[מק"ט])
+      ),
+      "cartons", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+    )
+    ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
+  `);
+
+  const result = {};
+  const today = new Date(); today.setHours(0,0,0,0);
+  for(const r of rows) {
+    const mk = String(r['מלאי-תוקף[מק"ט]'] || '');
+    if(!mk) continue;
+    if(!result[mk]) result[mk] = [];
+    const rawDate = r['מלאי-תוקף[ת. תפוגת תוקף]'];
+    let expDate = null, daysLeft = null;
+    if(rawDate) { expDate = new Date(rawDate); daysLeft = Math.round((expDate - today) / 86400000); }
+    const cartons = r['[cartons]'] || 0;
+    if(cartons > 0) result[mk].push({ date: expDate, daysLeft, cartons });
+  }
+  for(const mk of Object.keys(result)) result[mk].sort((a,b) => (a.date||0) - (b.date||0));
+  console.log(`פק"ע Zafn fetched for ${Object.keys(result).length} חלבי/דגים products`);
+  return result;
+}
+
 // ── Fetch pakuot ALL warehouses — for סכנה calculation (חלבי/דגים) ──────────
 async function fetchPakuotAllForMakats(makatim) {
   if(!makatim || !makatim.length) return {};
@@ -661,4 +698,4 @@ async function fetchPakuotAllForMakats(makatim) {
   return result;
 }
 
-module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchPakuotForMakats, fetchPakuotAllForMakats, getToken };
+module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, getToken };
