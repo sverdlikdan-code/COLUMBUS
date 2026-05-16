@@ -1199,7 +1199,7 @@ async function main() {
         packFactor:          pf,
         weightCarton:        wc,
         daysStockAll:        (dsa > 0 && p.stock > 0) ? Math.round(p.stock / dsa) : null,
-        nameEn:              nameEnMap[mk] || null,
+        nameEn:              nameEnMap[mk] ? fixVisualRTL(nameEnMap[mk].replace(/\s*\([^)]*\)/g, '').trim()) : null,
         ashdodPalletCartons: prevAshdod[mk] ?? null,
       };
     };
