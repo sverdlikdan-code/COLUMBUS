@@ -14,7 +14,7 @@ if (!process.env.PBI_TENANT && process.env.AZURE_TENANT_ID) {
 const fs      = require('fs');
 const path    = require('path');
 const ExcelJS = require('exceljs');
-const { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchPakuotForMakats, fetchPakuotAllForMakats } = require('./pbi-kapua');
+const { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats } = require('./pbi-kapua');
 const { fetchExtraSheets }   = require('./pbi-extra-sheets');
 
 // ─── Sheets to hide in output (set [] when all ready to publish) ──────────
@@ -758,9 +758,10 @@ async function main() {
   // Fetch stock/sales (Main only) + pakuot for חלבי + דגים from Fabric
   {
     const nonKapuaMakats = [...halaviProds, ...dagimProds].map(p => p.makat);
-    const [stockMap, pakuotMap, pakuotAllMap] = await Promise.all([
+    const [stockMap, pakuotMap, pakuotZafnMap, pakuotAllMap] = await Promise.all([
       fetchStockMain(nonKapuaMakats),
       fetchPakuotForMakats(nonKapuaMakats),
+      fetchPakuotZafnForMakats(nonKapuaMakats),
       fetchPakuotAllForMakats(nonKapuaMakats),
     ]);
     for(const p of [...halaviProds, ...dagimProds]) {
@@ -774,8 +775,9 @@ async function main() {
         p.stockTrnz     = fm.stockTrnz     ?? null;
         p.daySalesTrnz  = fm.daySalesTrnz  ?? null;
       }
-      p.pakuot    = pakuotMap[p.makat]    || [];
-      p.pakuotAll = pakuotAllMap[p.makat] || [];
+      p.pakuot     = pakuotMap[p.makat]     || [];
+      p.pakuotZafn = pakuotZafnMap[p.makat] || [];
+      p.pakuotAll  = pakuotAllMap[p.makat]  || [];
     }
   }
 
