@@ -350,6 +350,10 @@ const FAM_COLORS = {
   'דגים KAZAHSTAN':'#FFF3CD','דגים RUSSIA':'#FFE4B5','דגים פודסטוק':'#FFDAB9',
   'דגים RUSSIAN SEA':'#FFD8A8',
 };
+function fixVisualRTL(s) {
+  const full = s.split('').reverse().join('');
+  return full.replace(/[\x20-\x7E]+/g, m => m.split('').reverse().join(''));
+}
 function famColor(fam) {
   if (!fam) return '#F5F5F5';
   for (const k of Object.keys(FAM_COLORS)) if (fam.includes(k)) return FAM_COLORS[k];
@@ -675,14 +679,11 @@ async function loadMaps() {
     photoMap    = pm;
     makatEan    = me;
     productData = pd;
-    // Clean PBI product names: strip directional marks, remove parenthesized content
+    // Fix PBI product names: strip bidi marks, remove parens, fix visual RTL order
     for (const v of Object.values(productData)) {
       if (v && v.nameEn) {
-        v.nameEn = v.nameEn
-          .replace(/[‎‏‪-‮⁦-⁩]/g, '')
-          .replace(/\([^)]*\)/g, '')
-          .replace(/\s+/g, ' ')
-          .trim();
+        const stripped = v.nameEn.replace(/[‎‏‪-‮⁦-⁩]/g, '').replace(/\s*\([^)]*\)/g, '').trim();
+        v.nameEn = fixVisualRTL(stripped).replace(/\s+/g, ' ').trim();
       }
     }
     dyBase      = dy;
@@ -1449,7 +1450,7 @@ function updateTable() {
     return `<tr style="background:${bg}; border-left:3px solid ${fl};">
       <td style="padding:4px 10px; text-align:center; font-weight:bold; color:#1565C0;">${pick}</td>
       <td style="padding:4px 10px;">${p.makat}</td>
-      <td style="padding:4px 10px; font-weight:bold; unicode-bidi:bidi-override; direction:rtl;">${p.name || productData[String(p.makat)]?.desc || productData[String(p.makat)]?.nameEn || ''}</td>
+      <td style="padding:4px 10px; font-weight:bold;">${p.name || productData[String(p.makat)]?.nameEn || productData[String(p.makat)]?.desc || ''}</td>
       <td style="padding:4px 10px; font-size:10px; color:#555;">${p.fam || ''}</td>
     </tr>`;
   }).join('');
