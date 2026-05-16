@@ -1532,11 +1532,29 @@ function buildExpiryPage() {
     const [y, m, d] = isoDate.split('-');
     return `${d}/${m}/${y.slice(2)}`;
   };
-  const dangerStyle = (daysLeft) => {
-    if (daysLeft == null) return '';
-    if (daysLeft <= 14)  return 'color:#c62828;font-weight:bold;';
-    if (daysLeft <= 30)  return 'color:#e65100;font-weight:bold;';
-    return '';
+
+  // סכנה per batch: batch won't sell before expiry → daysLeft < cartons/daySales
+  const batchSakana = (pak, daySales) => {
+    if (pak.daysLeft == null || !(pak.cartons > 0)) return null;
+    const sellDays = (daySales > 0) ? pak.cartons / daySales : Infinity;
+    const isSakana = pak.daysLeft < sellDays;
+    return { isSakana, sellDays: isFinite(sellDays) ? Math.ceil(sellDays) : null };
+  };
+
+  const batchCell = (pak, daySales) => {
+    if (!pak) return '<span style="color:#ccc;">—</span>';
+    const sk = batchSakana(pak, daySales);
+    const dateColor = sk?.isSakana ? '#c62828' : (pak.daysLeft <= 30 ? '#e65100' : '#222');
+    const sakanaTag = sk?.isSakana
+      ? `<span style="display:inline-block;background:#c62828;color:#fff;font-size:8px;font-weight:bold;border-radius:3px;padding:0 3px;margin-right:2px;">⚠ סכנה</span>`
+      : '';
+    const sellLine = sk?.sellDays != null
+      ? `<span style="font-size:9px;color:#888;"> מכר:${sk.sellDays}d</span>`
+      : '';
+    return `${sakanaTag}<span style="color:${dateColor};font-weight:bold;">${fmt(pak.date)}</span>`
+         + `<span style="color:#555;font-size:9px;"> ${pak.daysLeft??'?'}d</span>`
+         + ` <span style="color:#1565C0;font-weight:bold;">${Math.round(pak.cartons)}קרט</span>`
+         + sellLine;
   };
 
   grid.innerHTML = order.map((pick, idx) => {
@@ -1551,28 +1569,29 @@ function buildExpiryPage() {
       ? `<img src="${photoUrl}" style="width:72px;height:72px;object-fit:contain;border-radius:6px;border:1px solid #e0e0e0;" onerror="this.style.display='none'">`
       : `<div style="width:72px;height:72px;background:#f5f5f5;border-radius:6px;border:1px solid #e0e0e0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#aaa;">📷</div>`;
 
-    const batches = { main: d.pakuot || [], zafn: d.pakuotZafn || [] };
-    const maxRows = Math.max(batches.main.length, batches.zafn.length, 1);
+    const salesMain = d.daySales || 0;
+    const salesZafn = d.daySalesZafn || d.daySales || 0;
+    const batches   = { main: d.pakuot || [], zafn: d.pakuotZafn || [] };
+    const maxRows   = Math.max(batches.main.length, batches.zafn.length, 1);
+
+    // card border = red if ANY batch has סכנה
+    const hasAnySakana = [...batches.main, ...batches.zafn].some(b =>
+      batchSakana(b, b === batches.zafn[batches.zafn.indexOf(b)] ? salesZafn : salesMain)?.isSakana
+    );
+    const cardBorder = hasAnySakana ? '2px solid #c62828' : '1px solid #dde0e8';
 
     const batchRows = Array.from({length: maxRows}, (_, i) => {
-      const bm = batches.main[i];
-      const bz = batches.zafn[i];
-      const cellMain = bm
-        ? `<span style="${dangerStyle(bm.daysLeft)}">${fmt(bm.date)}</span> <span style="color:#1565C0;font-weight:bold;">${bm.cartons}</span>`
-        : '<span style="color:#ccc;">—</span>';
-      const cellZafn = bz
-        ? `<span style="${dangerStyle(bz.daysLeft)}">${fmt(bz.date)}</span> <span style="color:#1565C0;font-weight:bold;">${bz.cartons}</span>`
-        : '<span style="color:#ccc;">—</span>';
       return `<tr>
-        <td style="padding:2px 8px;border-bottom:1px solid #f0f0f0;font-size:11px;text-align:center;">${cellMain}</td>
-        <td style="padding:2px 8px;border-bottom:1px solid #f0f0f0;font-size:11px;text-align:center;border-right:2px solid #e0e0e0;">${cellZafn}</td>
+        <td style="padding:2px 6px;border-bottom:1px solid #f0f0f0;font-size:10px;">${batchCell(batches.main[i], salesMain)}</td>
+        <td style="padding:2px 6px;border-bottom:1px solid #f0f0f0;font-size:10px;border-right:2px solid #e0e0e0;">${batchCell(batches.zafn[i], salesZafn)}</td>
       </tr>`;
     }).join('');
 
+
     return `<div style="
-      background:#fff; border-radius:8px; border:1px solid #dde0e8;
+      background:#fff; border-radius:8px; border:${cardBorder};
       box-shadow:0 1px 4px rgba(0,0,0,0.06); padding:8px;
-      width:320px; flex-shrink:0; display:flex; gap:8px; align-items:flex-start;
+      width:340px; flex-shrink:0; display:flex; gap:8px; align-items:flex-start;
     ">
       <div style="flex-shrink:0; text-align:center;">
         ${imgHtml}
@@ -1580,22 +1599,21 @@ function buildExpiryPage() {
         <div style="font-size:9px;color:#1565C0;font-weight:bold;">${mk}</div>
       </div>
       <div style="flex:1; min-width:0;">
-        <div style="font-size:10px;font-weight:bold;color:#222;margin-bottom:4px;line-height:1.3;">${name}</div>
+        <div style="font-size:10px;font-weight:bold;color:#222;margin-bottom:3px;line-height:1.3;">${name}</div>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;flex-wrap:wrap;">
+          <span style="background:#fce4e4;color:#c62828;font-size:10px;font-weight:bold;padding:1px 7px;border-radius:4px;">אשד: ${d.stock || 0} קרט</span>
+          <span style="background:#e3f2fd;color:#1565C0;font-size:10px;font-weight:bold;padding:1px 7px;border-radius:4px;">צפון: ${d.stockZafn || 0} קרט</span>
+          ${salesMain > 0 ? `<span style="font-size:9px;color:#888;">קרט/יום: <b>${salesMain.toFixed(1)}</b></span>` : ''}
+        </div>
         <table style="width:100%;border-collapse:collapse;font-size:10px;">
           <thead>
             <tr>
-              <th style="padding:2px 8px;background:#fce4e4;font-size:9px;color:#c62828;text-align:center;">אשדוד</th>
-              <th style="padding:2px 8px;background:#e3f2fd;font-size:9px;color:#1565C0;text-align:center;border-right:2px solid #e0e0e0;">צפון</th>
+              <th style="padding:2px 6px;background:#fce4e4;font-size:9px;color:#c62828;text-align:right;">אשדוד — פק"ע</th>
+              <th style="padding:2px 6px;background:#e3f2fd;font-size:9px;color:#1565C0;text-align:right;border-right:2px solid #e0e0e0;">צפון — פק"ע</th>
             </tr>
           </thead>
           <tbody>${batchRows}</tbody>
         </table>
-        ${(d.stock > 0 || d.stockZafn > 0) ? `<div style="margin-top:4px;font-size:9px;color:#555;">
-          <span style="color:#c62828;">אשד: <b>${d.stock || 0}</b></span>
-          &nbsp;|&nbsp;
-          <span style="color:#1565C0;">צפון: <b>${d.stockZafn || 0}</b></span>
-          קרט
-        </div>` : ''}
       </div>
     </div>`;
   }).join('');
