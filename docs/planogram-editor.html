@@ -1574,11 +1574,19 @@ function buildExpiryPage() {
     const batches   = { main: d.pakuot || [], zafn: d.pakuotZafn || [] };
     const maxRows   = Math.max(batches.main.length, batches.zafn.length, 1);
 
-    // card border = red if ANY batch has סכנה
-    const hasAnySakana = [...batches.main, ...batches.zafn].some(b =>
-      batchSakana(b, b === batches.zafn[batches.zafn.indexOf(b)] ? salesZafn : salesMain)?.isSakana
-    );
-    const cardBorder = hasAnySakana ? '2px solid #c62828' : '1px solid #dde0e8';
+    const sakanaMain = batches.main.some(b => batchSakana(b, salesMain)?.isSakana);
+    const sakanaZafn = batches.zafn.some(b => batchSakana(b, salesZafn)?.isSakana);
+    const cardBorder = (sakanaMain || sakanaZafn) ? '2px solid #c62828' : '1px solid #dde0e8';
+
+    const thMain = sakanaMain
+      ? 'padding:2px 6px;background:#c62828;font-size:9px;color:#fff;text-align:right;font-weight:bold;'
+      : 'padding:2px 6px;background:#f5f5f5;font-size:9px;color:#555;text-align:right;';
+    const thZafn = sakanaZafn
+      ? 'padding:2px 6px;background:#1565C0;font-size:9px;color:#fff;text-align:right;border-right:2px solid #e0e0e0;font-weight:bold;'
+      : 'padding:2px 6px;background:#f5f5f5;font-size:9px;color:#555;text-align:right;border-right:2px solid #e0e0e0;';
+
+    const stockMainBg = sakanaMain ? 'background:#c62828;color:#fff;' : 'background:#f0f0f0;color:#333;';
+    const stockZafnBg = sakanaZafn ? 'background:#1565C0;color:#fff;' : 'background:#e3f2fd;color:#1565C0;';
 
     const batchRows = Array.from({length: maxRows}, (_, i) => {
       return `<tr>
@@ -1586,7 +1594,6 @@ function buildExpiryPage() {
         <td style="padding:2px 6px;border-bottom:1px solid #f0f0f0;font-size:10px;border-right:2px solid #e0e0e0;">${batchCell(batches.zafn[i], salesZafn)}</td>
       </tr>`;
     }).join('');
-
 
     return `<div style="
       background:#fff; border-radius:8px; border:${cardBorder};
@@ -1601,15 +1608,15 @@ function buildExpiryPage() {
       <div style="flex:1; min-width:0;">
         <div style="font-size:10px;font-weight:bold;color:#222;margin-bottom:3px;line-height:1.3;">${name}</div>
         <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;flex-wrap:wrap;">
-          <span style="background:#fce4e4;color:#c62828;font-size:10px;font-weight:bold;padding:1px 7px;border-radius:4px;">אשד: ${d.stock || 0} קרט</span>
-          <span style="background:#e3f2fd;color:#1565C0;font-size:10px;font-weight:bold;padding:1px 7px;border-radius:4px;">צפון: ${d.stockZafn || 0} קרט</span>
+          <span style="font-size:10px;font-weight:bold;padding:1px 7px;border-radius:4px;${stockMainBg}">אשד: ${d.stock || 0} קרט</span>
+          <span style="font-size:10px;font-weight:bold;padding:1px 7px;border-radius:4px;${stockZafnBg}">צפון: ${d.stockZafn || 0} קרט</span>
           ${salesMain > 0 ? `<span style="font-size:9px;color:#888;">קרט/יום: <b>${salesMain.toFixed(1)}</b></span>` : ''}
         </div>
         <table style="width:100%;border-collapse:collapse;font-size:10px;">
           <thead>
             <tr>
-              <th style="padding:2px 6px;background:#fce4e4;font-size:9px;color:#c62828;text-align:right;">אשדוד — פק"ע</th>
-              <th style="padding:2px 6px;background:#e3f2fd;font-size:9px;color:#1565C0;text-align:right;border-right:2px solid #e0e0e0;">צפון — פק"ע</th>
+              <th style="${thMain}">אשדוד — פק"ע</th>
+              <th style="${thZafn}">צפון — פק"ע</th>
             </tr>
           </thead>
           <tbody>${batchRows}</tbody>
