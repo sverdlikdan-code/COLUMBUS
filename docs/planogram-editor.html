@@ -1571,7 +1571,7 @@ function buildExpiryPage() {
       : `<div style="width:72px;height:72px;background:#f5f5f5;border-radius:6px;border:1px solid #e0e0e0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#aaa;">📷</div>`;
 
     const salesMain = d.daySales || 0;
-    const salesZafn = d.daySalesZafn || d.daySales || 0;
+    const salesZafn = d.daySalesZafn || 0;
     const batches   = { main: d.pakuot || [], zafn: d.pakuotZafn || [] };
     const maxRows   = Math.max(batches.main.length, batches.zafn.length, 1);
 
@@ -1611,7 +1611,6 @@ function buildExpiryPage() {
         <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;flex-wrap:wrap;">
           <span style="font-size:10px;font-weight:bold;padding:1px 7px;border-radius:4px;${stockMainBg}">אשד: ${d.stock || 0} קרט</span>
           <span style="font-size:10px;font-weight:bold;padding:1px 7px;border-radius:4px;${stockZafnBg}">צפון: ${d.stockZafn || 0} קרט</span>
-          ${salesMain > 0 ? `<span style="font-size:9px;color:#888;">קרט/יום: <b>${salesMain.toFixed(1)}</b></span>` : ''}
         </div>
         <table style="width:100%;border-collapse:collapse;font-size:10px;">
           <thead>
@@ -1621,6 +1620,20 @@ function buildExpiryPage() {
             </tr>
           </thead>
           <tbody>${batchRows}</tbody>
+          <tfoot><tr>
+            <td style="padding:4px 6px;border-top:2px solid #e0e0e0;background:#f5f7fa;line-height:1.7;">${
+              salesMain > 0
+                ? `<div style="font-size:9px;color:#666;">ממוצע מכירה: <b style="color:#222;">${salesMain.toFixed(1)} קרט/יום</b></div>
+                   <div style="font-size:9px;color:#666;">יספיק עוד: <b style="color:${d.stock > 0 && Math.round(d.stock/salesMain) < 7 ? '#c62828' : '#1a6b1a'};">${d.stock > 0 ? Math.round(d.stock / salesMain) + ' ימים' : '—'}</b></div>`
+                : '<div style="font-size:9px;color:#bbb;">אין נתוני מכירה</div>'
+            }</td>
+            <td style="padding:4px 6px;border-top:2px solid #e0e0e0;border-right:2px solid #e0e0e0;background:#f5f7fa;line-height:1.7;">${
+              salesZafn > 0
+                ? `<div style="font-size:9px;color:#666;">ממוצע מכירה: <b style="color:#222;">${salesZafn.toFixed(1)} קרט/יום</b></div>
+                   <div style="font-size:9px;color:#666;">יספיק עוד: <b style="color:${d.stockZafn > 0 && Math.round(d.stockZafn/salesZafn) < 7 ? '#c62828' : '#1a6b1a'};">${d.stockZafn > 0 ? Math.round(d.stockZafn / salesZafn) + ' ימים' : '—'}</b></div>`
+                : '<div style="font-size:9px;color:#bbb;">אין נתוני מכירה</div>'
+            }</td>
+          </tr></tfoot>
         </table>
       </div>
     </div>`;
