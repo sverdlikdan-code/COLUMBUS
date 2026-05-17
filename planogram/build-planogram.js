@@ -710,7 +710,8 @@ async function main() {
       p.stockTrnz   = src.stockTrnz   ?? null;
       p.daySalesTrnz= src.daySalesTrnz ?? null;
       p.daySalesAll = src.daySalesAll  ?? null;
-      p.pakuot      = src.pakuot || [];
+      p.pakuot      = src.pakuot     || [];
+      p.pakuotZafn  = src.pakuotZafn || [];
     }
   }
 
