@@ -58,7 +58,7 @@ async function dax(token, query) {
 (async () => {
   // ── Step 1: Load physical layout from existing kapua-base.json ────────────
   const existing = JSON.parse(fs.readFileSync(OUT_PATH, 'utf8'));
-  const { layout, maxCols = 18, maxRows = 11 } = existing;
+  const { layout = {}, maxCols = 18, maxRows = 11 } = existing;
   console.log(`Layout: ${Object.keys(layout).length} positions (from kapua-base.json)`);
 
   // ── Step 2: Fetch products + 365-day sales from Fabric ────────────────────
