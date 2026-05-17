@@ -146,7 +146,8 @@ async function fetchKapuaFromBI(makatim) {
           'מלאי-תוקף'[מחסן] = "Main" &&
           CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
         ),
-        "cartons", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+        "cartons",  SUM('מלאי-תוקף'[קרטון מלאי תוקף]),
+        "daysLeft", MAX('מלאי-תוקף'[כמה ימים נשארו])
       )
       ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
     `),
@@ -172,7 +173,8 @@ async function fetchKapuaFromBI(makatim) {
         'מלאי-תוקף'[מק"ט],
         'מלאי-תוקף'[ת. תפוגת תוקף],
         FILTER('מלאי-תוקף', CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])),
-        "cartons", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+        "cartons",  SUM('מלאי-תוקף'[קרטון מלאי תוקף]),
+        "daysLeft", MAX('מלאי-תוקף'[כמה ימים נשארו])
       )
       ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
     `),
@@ -265,7 +267,8 @@ async function fetchKapuaFromBI(makatim) {
           'מלאי-תוקף'[מחסן] = "מחסן צפון" &&
           CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
         ),
-        "cartons", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+        "cartons",  SUM('מלאי-תוקף'[קרטון מלאי תוקף]),
+        "daysLeft", MAX('מלאי-תוקף'[כמה ימים נשארו])
       )
       ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
     `),
@@ -317,16 +320,15 @@ async function fetchKapuaFromBI(makatim) {
     }
   }
 
-  // Parse pakuaRows into per-מקט array, sorted by expiry date
-  const today = new Date(); today.setHours(0,0,0,0);
+  // Parse pakuaRows into per-מקט array — daysLeft from PBI column (same source as PBI visual)
   for (const r of pakuaRows) {
     const mk      = r['מלאי-תוקף[מק"ט]'];
     const cartons = r['[cartons]'] || 0;
     if (!mk || cartons <= 0) continue;
     ensure(mk);
     const rawDate = r["מלאי-תוקף[ת. תפוגת תוקף]"];
-    let expDate = null, daysLeft = null;
-    if (rawDate) { expDate = new Date(rawDate); daysLeft = Math.round((expDate - today) / 86400000); }
+    const expDate = rawDate ? new Date(rawDate) : null;
+    const daysLeft = r['[daysLeft]'] ?? null;
     result[mk].pakuot.push({ date: expDate, daysLeft, cartons });
   }
   for (const mk of Object.keys(result)) {
@@ -348,8 +350,8 @@ async function fetchKapuaFromBI(makatim) {
     if (!mk || cartons <= 0) continue;
     ensure(mk);
     const rawDate = r["מלאי-תוקף[ת. תפוגת תוקף]"];
-    let expDate = null, daysLeft = null;
-    if (rawDate) { expDate = new Date(rawDate); daysLeft = Math.round((expDate - today) / 86400000); }
+    const expDate = rawDate ? new Date(rawDate) : null;
+    const daysLeft = r['[daysLeft]'] ?? null;
     result[mk].pakuotAll.push({ date: expDate, daysLeft, cartons });
   }
   for (const mk of Object.keys(result)) {
@@ -365,8 +367,8 @@ async function fetchKapuaFromBI(makatim) {
     ensure(mk);
     if (!result[mk].pakuotZafn) result[mk].pakuotZafn = [];
     const rawDate = r["מלאי-תוקף[ת. תפוגת תוקף]"];
-    let expDate = null, daysLeft = null;
-    if (rawDate) { expDate = new Date(rawDate); daysLeft = Math.round((expDate - today) / 86400000); }
+    const expDate = rawDate ? new Date(rawDate) : null;
+    const daysLeft = r['[daysLeft]'] ?? null;
     result[mk].pakuotZafn.push({ date: expDate, daysLeft, cartons });
   }
   for (const mk of Object.keys(result)) {
@@ -617,21 +619,21 @@ async function fetchPakuotForMakats(makatim) {
         'מלאי-תוקף'[מחסן] = "Main" &&
         CONTAINSROW(${mkSet}, 'מלאי-תוקף'[מק"ט])
       ),
-      "cartons", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+      "cartons",  SUM('מלאי-תוקף'[קרטון מלאי תוקף]),
+      "daysLeft", MAX('מלאי-תוקף'[כמה ימים נשארו])
     )
     ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
   `);
 
   const result = {};
-  const today = new Date(); today.setHours(0,0,0,0);
   for(const r of pakuaRows) {
     const mk = String(r['מלאי-תוקף[מק"ט]'] || '');
     if(!mk) continue;
     if(!result[mk]) result[mk] = [];
     const rawDate = r['מלאי-תוקף[ת. תפוגת תוקף]'];
-    let expDate = null, daysLeft = null;
-    if(rawDate) { expDate = new Date(rawDate); daysLeft = Math.round((expDate - today) / 86400000); }
+    const expDate = rawDate ? new Date(rawDate) : null;
     const cartons = r['[cartons]'] || 0;
+    const daysLeft = r['[daysLeft]'] ?? null;
     if(cartons > 0) result[mk].push({ date: expDate, daysLeft, cartons });
   }
   for(const mk of Object.keys(result)) result[mk].sort((a,b) => (a.date||0) - (b.date||0));
@@ -676,21 +678,21 @@ async function fetchPakuotZafnForMakats(makatim) {
         'מלאי-תוקף'[מחסן] = "מחסן צפון" &&
         CONTAINSROW(${mkSet}, 'מלאי-תוקף'[מק"ט])
       ),
-      "cartons", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+      "cartons",  SUM('מלאי-תוקף'[קרטון מלאי תוקף]),
+      "daysLeft", MAX('מלאי-תוקף'[כמה ימים נשארו])
     )
     ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
   `);
 
   const result = {};
-  const today = new Date(); today.setHours(0,0,0,0);
   for(const r of rows) {
     const mk = String(r['מלאי-תוקף[מק"ט]'] || '');
     if(!mk) continue;
     if(!result[mk]) result[mk] = [];
     const rawDate = r['מלאי-תוקף[ת. תפוגת תוקף]'];
-    let expDate = null, daysLeft = null;
-    if(rawDate) { expDate = new Date(rawDate); daysLeft = Math.round((expDate - today) / 86400000); }
+    const expDate = rawDate ? new Date(rawDate) : null;
     const cartons = r['[cartons]'] || 0;
+    const daysLeft = r['[daysLeft]'] ?? null;
     if(cartons > 0) result[mk].push({ date: expDate, daysLeft, cartons });
   }
   for(const mk of Object.keys(result)) result[mk].sort((a,b) => (a.date||0) - (b.date||0));
@@ -709,20 +711,20 @@ async function fetchPakuotAllForMakats(makatim) {
       'מלאי-תוקף'[מק"ט],
       'מלאי-תוקף'[ת. תפוגת תוקף],
       FILTER('מלאי-תוקף', CONTAINSROW(${mkSet}, 'מלאי-תוקף'[מק"ט])),
-      "cartons", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+      "cartons",  SUM('מלאי-תוקף'[קרטון מלאי תוקף]),
+      "daysLeft", MAX('מלאי-תוקף'[כמה ימים נשארו])
     )
     ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
   `);
   const result = {};
-  const today = new Date(); today.setHours(0,0,0,0);
   for(const r of rows) {
     const mk = String(r['מלאי-תוקף[מק"ט]'] || '');
     if(!mk) continue;
     if(!result[mk]) result[mk] = [];
     const rawDate = r['מלאי-תוקף[ת. תפוגת תוקף]'];
-    let expDate = null, daysLeft = null;
-    if(rawDate) { expDate = new Date(rawDate); daysLeft = Math.round((expDate - today) / 86400000); }
+    const expDate = rawDate ? new Date(rawDate) : null;
     const cartons = r['[cartons]'] || 0;
+    const daysLeft = r['[daysLeft]'] ?? null;
     if(cartons > 0) result[mk].push({ date: expDate, daysLeft, cartons });
   }
   for(const mk of Object.keys(result)) result[mk].sort((a,b) => (a.date||0) - (b.date||0));
