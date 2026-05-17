@@ -1594,15 +1594,20 @@ function buildExpiryPage() {
     if (!pak) return '<span style="color:#ccc;">—</span>';
     const sk = batchSakana(pak, daySales, shelfLife);
     const isSakana   = sk?.isSakana;
+    const sellDays   = sk?.sellDays;
     const dateColor  = isSakana ? '#c62828' : (pak.daysLeft != null && pak.daysLeft <= 30 ? '#e65100' : '#1a6b1a');
     const daysColor  = isSakana ? '#c62828' : '#555';
     const sakanaTag  = isSakana
       ? `<span style="display:inline-block;background:#c62828;color:#fff;font-size:8px;font-weight:bold;border-radius:3px;padding:1px 4px;margin-right:3px;">⚠ סכנה</span>`
       : '';
-    return `<div style="line-height:1.8;">`
+    const sellLine = sellDays != null
+      ? `<div style="font-size:9px;color:#666;">days needed for sellout: <b style="color:${isSakana ? '#c62828' : '#2e7d32'};">${sellDays}</b></div>`
+      : '';
+    return `<div style="line-height:1.6;padding:4px 0;border-bottom:1px solid #e8e8e8;">`
          + `<div>${sakanaTag}<span style="font-weight:bold;color:${dateColor};">תוקף: ${fmt(pak.date)}</span>`
          + ` <span style="font-size:9px;color:${daysColor};">(${pak.daysLeft??'?'} ימים)</span></div>`
          + `<div style="color:#1565C0;font-weight:bold;">כמות: ${Math.round(pak.cartons)} קרט</div>`
+         + sellLine
          + `</div>`;
   };
 
@@ -1671,16 +1676,12 @@ function buildExpiryPage() {
           <tfoot><tr>
             <td style="padding:4px 6px;border-top:2px solid #e0e0e0;background:#f5f7fa;line-height:1.7;">${
               salesMain > 0
-                ? (() => { const dM = d.stock > 0 ? Math.round(d.stock / salesMain * 1.4) : null;
-                    return `<div style="font-size:9px;color:#666;">ממוצע מכירה: <b style="color:#222;">${salesMain.toFixed(1)} קרט/יום</b></div>
-                   <div style="font-size:9px;color:#666;">יספיק עוד: <b style="color:${dM != null && dM < 7 ? '#c62828' : '#1a6b1a'};">${dM != null ? dM + ' ימים' : '—'}</b></div>`; })()
+                ? `<div style="font-size:9px;color:#666;">ממוצע מכירה: <b style="color:#222;">${salesMain.toFixed(1)} קרט/יום</b></div>`
                 : '<div style="font-size:9px;color:#bbb;">אין נתוני מכירה</div>'
             }</td>
             <td style="padding:4px 6px;border-top:2px solid #e0e0e0;border-right:2px solid #e0e0e0;background:#f5f7fa;line-height:1.7;">${
               salesZafn > 0
-                ? (() => { const dZ = d.stockZafn > 0 ? Math.round(d.stockZafn / salesZafn * 1.4) : null;
-                    return `<div style="font-size:9px;color:#666;">ממוצע מכירה: <b style="color:#222;">${salesZafn.toFixed(1)} קרט/יום</b></div>
-                   <div style="font-size:9px;color:#666;">יספיק עוד: <b style="color:${dZ != null && dZ < 7 ? '#c62828' : '#1a6b1a'};">${dZ != null ? dZ + ' ימים' : '—'}</b></div>`; })()
+                ? `<div style="font-size:9px;color:#666;">ממוצע מכירה: <b style="color:#222;">${salesZafn.toFixed(1)} קרט/יום</b></div>`
                 : '<div style="font-size:9px;color:#bbb;">אין נתוני מכירה</div>'
             }</td>
           </tr></tfoot>
