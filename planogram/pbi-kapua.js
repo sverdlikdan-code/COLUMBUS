@@ -830,6 +830,97 @@ async function fetchHalaviFromBI() {
   return result;
 }
 
+// ── דגים (wet fish) family codes — KARTIS PARIT[משפחת מוצר] column
+// Source: משפחת מוצר לפי מחסן.xlsx col "משפחת מוצר N" (section = "דגים")
+const DAGIM_FAM_CODES = ['030', '0301', '036'];
+
+// Frozen surimi in family 030 that belong to KAPUA, not the dagim shelf
+const DAGIM_EXCLUDE_MAKATS = ['1045', '1046', '1051'];
+
+// Family code → display fam name matching MAHSAN דגים sheet filtering
+const DAGIM_FAM_DISPLAY = {
+  '036':  'NORD PORT מצונן',
+  '0301': 'NORD PORT',
+  '030':  'SANTA BREMOR Fish',
+};
+
+// ── Fetch all active דגים (wet fish) products from KARTIS PARIT + live stock/sales/pakuot ──
+async function fetchDagimFromBI() {
+  const t = await getToken();
+  const famCodes    = DAGIM_FAM_CODES.map(c => `"${c}"`).join(',');
+  const excludeMkts = DAGIM_EXCLUDE_MAKATS.map(m => `"${m}"`).join(',');
+
+  const kpRows = await dax(t, `
+    EVALUATE
+    SELECTCOLUMNS(
+      FILTER('KARTIS PARIT',
+        'KARTIS PARIT'[סטטוס] = "פעיל" &&
+        CONTAINSROW({${famCodes}}, 'KARTIS PARIT'[משפחת מוצר]) &&
+        NOT CONTAINSROW({${excludeMkts}}, 'KARTIS PARIT'[מק"ט])
+      ),
+      "makat",    'KARTIS PARIT'[מק"ט],
+      "name",     'KARTIS PARIT'[תאור],
+      "famCode",  'KARTIS PARIT'[משפחת מוצר],
+      "weight",   'KARTIS PARIT'[משקל ליחידה],
+      "shelfLife",'KARTIS PARIT'[חיי מדף]
+    )
+  `);
+
+  const result = {};
+  const makatim = [];
+  for (const r of kpRows) {
+    const mk = String(r['[makat]'] || '');
+    if (!mk) continue;
+    const famCode = String(r['[famCode]'] || '');
+    const raw = r['[name]'] || '';
+    result[mk] = {
+      makat:     mk,
+      desc:      raw.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim() || null,
+      fam:       DAGIM_FAM_DISPLAY[famCode] || famCode,
+      weight:    r['[weight]'] ?? null,
+      shelfLife: r['[shelfLife]'] ?? null,
+      dayAvg:    null, ss: null,
+      stock: 0, daySales: null, daySalesAll: null,
+      stockZafn: 0, daySalesZafn: null,
+      stockTrnz: 0, daySalesTrnz: null,
+      pakuot: [], pakuotZafn: [], pakuotAll: [],
+    };
+    makatim.push(mk);
+  }
+
+  if (!makatim.length) {
+    console.warn('fetchDagimFromBI: no products found — check DAGIM_FAM_CODES vs KARTIS PARIT[משפחת מוצר]');
+    return result;
+  }
+
+  const [stockMap, pakuotMap, pakuotZafnMap, pakuotAllMap] = await Promise.all([
+    fetchStockMain(makatim),
+    fetchPakuotForMakats(makatim),
+    fetchPakuotZafnForMakats(makatim),
+    fetchPakuotAllForMakats(makatim),
+  ]);
+
+  for (const mk of makatim) {
+    const fm = stockMap[mk] || {};
+    Object.assign(result[mk], {
+      stock:        fm.stock        ?? 0,
+      daySales:     fm.daySales     ?? null,
+      daySalesAll:  fm.daySalesAll  ?? null,
+      stockZafn:    fm.stockZafn    ?? 0,
+      daySalesZafn: fm.daySalesZafn ?? null,
+      stockTrnz:    fm.stockTrnz    ?? 0,
+      daySalesTrnz: fm.daySalesTrnz ?? null,
+      pakuot:       pakuotMap[mk]     || [],
+      pakuotZafn:   pakuotZafnMap[mk] || [],
+      pakuotAll:    pakuotAllMap[mk]  || [],
+    });
+    result[mk].dayAvg = result[mk].daySales;
+  }
+
+  console.log(`fetchDagimFromBI: ${makatim.length} active דגים products from KARTIS PARIT`);
+  return result;
+}
+
 // ── Fetch חיי מדף (required shelf life) per product from KARTIS PARIT ──
 async function fetchShelfLifeForMakats(makatim) {
   if (!makatim || !makatim.length) return {};
@@ -855,4 +946,4 @@ async function fetchShelfLifeForMakats(makatim) {
   return result;
 }
 
-module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchHalaviFromBI, getToken };
+module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchHalaviFromBI, fetchDagimFromBI, getToken };
