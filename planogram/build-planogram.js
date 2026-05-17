@@ -14,7 +14,7 @@ if (!process.env.PBI_TENANT && process.env.AZURE_TENANT_ID) {
 const fs      = require('fs');
 const path    = require('path');
 const ExcelJS = require('exceljs');
-const { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchHalaviFromBI } = require('./pbi-kapua');
+const { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchHalaviFromBI, fetchDagimFromBI } = require('./pbi-kapua');
 const { fetchExtraSheets }   = require('./pbi-extra-sheets');
 
 // ─── Sheets to hide in output (set [] when all ready to publish) ──────────
@@ -751,42 +751,14 @@ async function main() {
     if (p.desc) nameEnMap[mk] = p.desc;
   }
 
-  // דגים — still from Excel
-  const wbDagim = new ExcelJS.Workbook();
-  await wbDagim.xlsx.readFile('MAHSAN דגים/דגים.xlsx');
-  const dagimProds = await readProducts(wbDagim, cleanFam);
-
-  console.log(`חלבי: ${halaviProds.length} active (from PBI) | דגים: ${dagimProds.length} active`);
-
-  // Fetch stock/sales + pakuot for דגים only (חלבי already fetched inside fetchHalaviFromBI)
-  {
-    const dagimMakats = dagimProds.map(p => p.makat);
-    const [stockMap, namesMap, pakuotMap, pakuotZafnMap, pakuotAllMap, shelfLifeMap] = await Promise.all([
-      fetchStockMain(dagimMakats),
-      fetchNamesForMakats(dagimMakats),
-      fetchPakuotForMakats(dagimMakats),
-      fetchPakuotZafnForMakats(dagimMakats),
-      fetchPakuotAllForMakats(dagimMakats),
-      fetchShelfLifeForMakats(dagimMakats),
-    ]);
-    Object.assign(nameEnMap, namesMap);
-    for (const p of dagimProds) {
-      const fm = stockMap[p.makat];
-      if (fm) {
-        p.stock        = fm.stock;
-        p.daySales     = fm.daySales;
-        p.daySalesAll  = fm.daySalesAll;
-        p.stockZafn    = fm.stockZafn    ?? null;
-        p.daySalesZafn = fm.daySalesZafn ?? null;
-        p.stockTrnz    = fm.stockTrnz    ?? null;
-        p.daySalesTrnz = fm.daySalesTrnz ?? null;
-      }
-      p.pakuot     = pakuotMap[p.makat]     || [];
-      p.pakuotZafn = pakuotZafnMap[p.makat] || [];
-      p.pakuotAll  = pakuotAllMap[p.makat]  || [];
-      p.shelfLife  = shelfLifeMap[p.makat]  ?? null;
-    }
+  // דגים — from PBI / KARTIS PARIT (replaces MAHSAN דגים/דגים.xlsx)
+  const dagimData = await fetchDagimFromBI();
+  const dagimProds = Object.values(dagimData);
+  for (const [mk, p] of Object.entries(dagimData)) {
+    if (p.desc) nameEnMap[mk] = p.desc;
   }
+
+  console.log(`חלבי: ${halaviProds.length} active (from PBI) | דגים: ${dagimProds.length} active (from PBI)`);
 
   // Grand total ORD/day across all three sections
   const kapuaOrdForGrand  = Object.values(KAPUA_PICKS).reduce((s,p)=>s+(p.dayAvg||0),0);
