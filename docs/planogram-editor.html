@@ -1609,7 +1609,7 @@ function buildExpiryPage() {
       const canSell       = effectiveDays * daySales;
       const throwAway     = Math.ceil(Math.max(0, pak.cartons - canSell));
       if (throwAway > 0) {
-        throwLine = `<div style="font-size:9px;font-weight:bold;color:#c62828;margin-top:2px;">~${throwAway} קרט לזריקה</div>`;
+        throwLine = `<div style="display:inline-block;font-size:9px;font-weight:bold;color:#c62828;margin-top:3px;border:1.5px solid #222;border-radius:3px;padding:1px 6px;">צפי ~${throwAway} קרט לזריקה</div>`;
       }
     }
     return `<div style="line-height:1.6;padding:4px 0;border-bottom:1px solid #e8e8e8;">`
