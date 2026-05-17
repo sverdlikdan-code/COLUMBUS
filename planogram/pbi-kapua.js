@@ -177,14 +177,15 @@ async function fetchKapuaFromBI(makatim) {
       ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
     `),
 
-    // 8. Product names + unit weight from KARTIS PARIT
+    // 8. Product names + unit weight + shelf life from KARTIS PARIT
     dax(t, `
       EVALUATE
       SUMMARIZECOLUMNS(
         'KARTIS PARIT'[מק"ט],
         'KARTIS PARIT'[תאור],
         'KARTIS PARIT'[משקל ליחידה],
-        FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] = "פעיל")
+        FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] = "פעיל"),
+        "shelfLife", [חיי מדף נדרשים]
       )
     `),
 
@@ -275,11 +276,11 @@ async function fetchKapuaFromBI(makatim) {
   // Includes ALL makatim found in family queries, not just the passed (known) ones.
   const result = {};
   for (const mk of makatim) {
-    result[mk] = { desc: null, stock: 0, daySales: null, pakuot: [], daySalesAll: null, pakuotAll: [], isNew: false };
+    result[mk] = { desc: null, stock: 0, daySales: null, pakuot: [], daySalesAll: null, pakuotAll: [], shelfLife: null, isNew: false };
   }
   // ensure: lazily add makatim discovered in family queries (not in KAPUA_PICKS)
   function ensure(mk) {
-    if (!result[mk]) result[mk] = { desc: null, stock: 0, daySales: null, pakuot: [], daySalesAll: null, pakuotAll: [], isNew: true };
+    if (!result[mk]) result[mk] = { desc: null, stock: 0, daySales: null, pakuot: [], daySalesAll: null, pakuotAll: [], shelfLife: null, isNew: true };
   }
 
   for (const r of stockRows) {
@@ -370,6 +371,14 @@ async function fetchKapuaFromBI(makatim) {
   }
   for (const mk of Object.keys(result)) {
     if (result[mk].pakuotZafn?.length > 1) result[mk].pakuotZafn.sort((a, b) => (a.date||0) - (b.date||0));
+  }
+
+  // shelfLife from KARTIS PARIT[חיי מדף נדרשים]
+  for (const r of nameEnRows) {
+    const mk = String(r['KARTIS PARIT[מק"ט]'] || '');
+    if (!mk) continue;
+    ensure(mk);
+    result[mk].shelfLife = r['[shelfLife]'] ?? null;
   }
 
   // nameEn from MLAY[תאור מוצר] — richer names than KARTIS PARIT[תאור]
@@ -720,4 +729,29 @@ async function fetchPakuotAllForMakats(makatim) {
   return result;
 }
 
-module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, getToken };
+// ── Fetch חיי מדף נדרשים (required shelf life) per product from KARTIS PARIT ──
+async function fetchShelfLifeForMakats(makatim) {
+  if (!makatim || !makatim.length) return {};
+  const t = await getToken();
+  const mkSet = '{' + makatim.map(m => `"${m}"`).join(',') + '}';
+  const rows = await dax(t, `
+    EVALUATE
+    SUMMARIZECOLUMNS(
+      'KARTIS PARIT'[מק"ט],
+      FILTER('KARTIS PARIT',
+        CONTAINSROW(${mkSet}, 'KARTIS PARIT'[מק"ט]) &&
+        'KARTIS PARIT'[סטטוס] = "פעיל"
+      ),
+      "shelfLife", [חיי מדף נדרשים]
+    )
+  `);
+  const result = {};
+  for (const r of rows) {
+    const mk = String(r['KARTIS PARIT[מק"ט]'] || '');
+    if (!mk) continue;
+    result[mk] = r['[shelfLife]'] ?? null;
+  }
+  return result;
+}
+
+module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, getToken };
