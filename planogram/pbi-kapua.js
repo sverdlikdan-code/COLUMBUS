@@ -185,7 +185,7 @@ async function fetchKapuaFromBI(makatim) {
         'KARTIS PARIT'[תאור],
         'KARTIS PARIT'[משקל ליחידה],
         FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] = "פעיל"),
-        "shelfLife", [חיי מדף נדרשים]
+        "shelfLife", MAX('KARTIS PARIT'[חיי מדף נדרשים])
       )
     `),
 
@@ -742,7 +742,7 @@ async function fetchShelfLifeForMakats(makatim) {
         CONTAINSROW(${mkSet}, 'KARTIS PARIT'[מק"ט]) &&
         'KARTIS PARIT'[סטטוס] = "פעיל"
       ),
-      "shelfLife", [חיי מדף נדרשים]
+      "shelfLife", MAX('KARTIS PARIT'[חיי מדף נדרשים])
     )
   `);
   const result = {};
