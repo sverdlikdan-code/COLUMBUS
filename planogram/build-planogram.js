@@ -1336,11 +1336,37 @@ async function main() {
       }
     }
 
-    // ── dagim-base.json ───────────────────────────────────────────────────
-    // NOT written by build — maintained manually as dagim-base.json (dagim-8)
-    // Layout: r1=מצונן, r2=NP(+57=1122,58=1123 IKRA), r3=pass, r4=SB, r5=pass,
-    //         r6=TOP RESERVE(c:15-26,12bays), r7=pass, r8=BOTTOM LEFT(c:15-26)+RIGHT(c:0-11) same row
-    // To update stock data only — product-data.json is written by pbi-kapua/halavi/dagim scripts.
+    // ── dagim-base.json: auto-sync new products into reserve slots ────────────
+    {
+      const dbPath = path.join(__dirname, '..', 'docs', 'dagim-base.json');
+      const db = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+
+      const dbMakatSet = new Set(
+        Object.values(db.picks).filter(Boolean).map(p => String(p.makat))
+      );
+
+      const emptySlots = Object.keys(db.layout || {})
+        .map(Number)
+        .sort((a, b) => a - b)
+        .filter(pk => !db.picks[pk] || db.picks[pk] === null);
+
+      let slotIdx = 0;
+      const added = [];
+      for (const p of dagimProds) {
+        if (dbMakatSet.has(String(p.makat))) continue;
+        if (slotIdx >= emptySlots.length) break;
+        const pk = String(emptySlots[slotIdx++]);
+        db.picks[pk] = { makat: p.makat, fam: p.fam || '', name: nameEnMap[String(p.makat)] || null };
+        added.push(`${p.makat}→pick${pk}`);
+      }
+
+      if (added.length) {
+        fs.writeFileSync(dbPath, JSON.stringify(db, null, 2), 'utf8');
+        console.log(`dagim-base.json: auto-added ${added.length} new products: ${added.join(', ')}`);
+      } else {
+        console.log(`dagim-base.json: all ${dagimProds.length} dagim products already mapped`);
+      }
+    }
   }
 
   // Write output
