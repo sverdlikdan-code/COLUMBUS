@@ -205,7 +205,7 @@ async function fetchKapuaFromBI(makatim) {
       SUMMARIZECOLUMNS(
         'מלאי-תוקף'[מק"ט],
         FILTER('מלאי-תוקף',
-          'מלאי-תוקף'[מחסן] = "Zafn" &&
+          'מלאי-תוקף'[מחסן] = "מחסן צפון" &&
           CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
         ),
         "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
@@ -262,7 +262,7 @@ async function fetchKapuaFromBI(makatim) {
         'מלאי-תוקף'[מק"ט],
         'מלאי-תוקף'[ת. תפוגת תוקף],
         FILTER('מלאי-תוקף',
-          'מלאי-תוקף'[מחסן] = "Zafn" &&
+          'מלאי-תוקף'[מחסן] = "מחסן צפון" &&
           CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
         ),
         "cartons", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
@@ -506,7 +506,7 @@ async function fetchStockMain(makatim) {
       SUMMARIZECOLUMNS(
         'מלאי-תוקף'[מק"ט],
         FILTER('מלאי-תוקף',
-          'מלאי-תוקף'[מחסן] = "Zafn" &&
+          'מלאי-תוקף'[מחסן] = "מחסן צפון" &&
           CONTAINSROW(${mkSet}, 'מלאי-תוקף'[מק"ט])
         ),
         "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
@@ -673,7 +673,7 @@ async function fetchPakuotZafnForMakats(makatim) {
       'מלאי-תוקף'[ת. תפוגת תוקף],
       FILTER(
         'מלאי-תוקף',
-        'מלאי-תוקף'[מחסן] = "Zafn" &&
+        'מלאי-תוקף'[מחסן] = "מחסן צפון" &&
         CONTAINSROW(${mkSet}, 'מלאי-תוקף'[מק"ט])
       ),
       "cartons", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
