@@ -756,8 +756,16 @@ async function loadMaps() {
       if (hb.maxCols)     HALAVI_MAX.cols       = hb.maxCols;
       if (hb.maxRows)     HALAVI_MAX.rows       = hb.maxRows;
       if (hb.reserveStart) HALAVI_RESERVE_START = hb.reserveStart;
-      for (const [pick, p] of Object.entries(hb.picks)) {
-        if (!(pick in state.halavi)) state.halavi[pick] = p ? { ...p } : null;
+      const savedHalaviV = localStorage.getItem('halavi_base_v');
+      const freshHalaviV = hb.v || '';
+      if (freshHalaviV && savedHalaviV !== freshHalaviV) {
+        state.halavi = deepClone(hb.picks);
+        localStorage.setItem('halavi_base_v', freshHalaviV);
+        console.log(`halavi-base.json: version changed ${savedHalaviV} → ${freshHalaviV}, state reset`);
+      } else {
+        for (const [pick, p] of Object.entries(hb.picks)) {
+          if (!(pick in state.halavi)) state.halavi[pick] = p ? { ...p } : null;
+        }
       }
       console.log(`halavi-base.json: ${Object.keys(hb.picks).length} picks, reserveStart=${hb.reserveStart}`);
     }
@@ -769,8 +777,16 @@ async function loadMaps() {
       if (db.maxCols)     DAGIM_MAX.cols       = db.maxCols;
       if (db.maxRows)     DAGIM_MAX.rows       = db.maxRows;
       if (db.reserveStart) DAGIM_RESERVE_START = db.reserveStart;
-      for (const [pick, p] of Object.entries(db.picks)) {
-        if (!(pick in state.dagim)) state.dagim[pick] = p ? { ...p } : null;
+      const savedDagimV = localStorage.getItem('dagim_base_v');
+      const freshDagimV = db.v || '';
+      if (freshDagimV && savedDagimV !== freshDagimV) {
+        state.dagim = deepClone(db.picks);
+        localStorage.setItem('dagim_base_v', freshDagimV);
+        console.log(`dagim-base.json: version changed ${savedDagimV} → ${freshDagimV}, state reset`);
+      } else {
+        for (const [pick, p] of Object.entries(db.picks)) {
+          if (!(pick in state.dagim)) state.dagim[pick] = p ? { ...p } : null;
+        }
       }
       console.log(`dagim-base.json: ${Object.keys(db.picks).length} picks, reserveStart=${db.reserveStart}`);
     }
