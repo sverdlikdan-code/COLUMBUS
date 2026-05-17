@@ -148,8 +148,8 @@ async function fetchKapuaFromBI(makatim) {
         ),
         "cartons",  SUM('מלאי-תוקף'[קרטון מלאי תוקף]),
         "daysLeft", MAX('מלאי-תוקף'[כמה ימים נשארו]),
-        "sellDays", [לכמה ימים המלאי לכול פק"א בנפרד],
-        "sakana",   IF([סכנת השמדה לכול פק"א] = "סכנה", 1, 0)
+        "sellDays", IFERROR([לכמה ימים המלאי לכול פק"א בנפרד], BLANK()),
+        "sakana",   IFERROR(IF([סכנת השמדה לכול פק"א] = "סכנה", 1, 0), 0)
       )
       ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
     `),
@@ -177,8 +177,8 @@ async function fetchKapuaFromBI(makatim) {
         FILTER('מלאי-תוקף', CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])),
         "cartons",  SUM('מלאי-תוקף'[קרטון מלאי תוקף]),
         "daysLeft", MAX('מלאי-תוקף'[כמה ימים נשארו]),
-        "sellDays", [לכמה ימים המלאי לכול פק"א בנפרד],
-        "sakana",   IF([סכנת השמדה לכול פק"א] = "סכנה", 1, 0)
+        "sellDays", IFERROR([לכמה ימים המלאי לכול פק"א בנפרד], BLANK()),
+        "sakana",   IFERROR(IF([סכנת השמדה לכול פק"א] = "סכנה", 1, 0), 0)
       )
       ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
     `),
@@ -273,8 +273,8 @@ async function fetchKapuaFromBI(makatim) {
         ),
         "cartons",  SUM('מלאי-תוקף'[קרטון מלאי תוקף]),
         "daysLeft", MAX('מלאי-תוקף'[כמה ימים נשארו]),
-        "sellDays", [לכמה ימים המלאי לכול פק"א בנפרד],
-        "sakana",   IF([סכנת השמדה לכול פק"א] = "סכנה", 1, 0)
+        "sellDays", IFERROR([לכמה ימים המלאי לכול פק"א בנפרד], BLANK()),
+        "sakana",   IFERROR(IF([סכנת השמדה לכול פק"א] = "סכנה", 1, 0), 0)
       )
       ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
     `),
@@ -633,8 +633,8 @@ async function fetchPakuotForMakats(makatim) {
       ),
       "cartons",  SUM('מלאי-תוקף'[קרטון מלאי תוקף]),
       "daysLeft", MAX('מלאי-תוקף'[כמה ימים נשארו]),
-      "sellDays", [לכמה ימים המלאי לכול פק"א בנפרד],
-      "sakana",   IF([סכנת השמדה לכול פק"א] = "סכנה", 1, 0)
+      "sellDays", IFERROR([לכמה ימים המלאי לכול פק"א בנפרד], BLANK()),
+      "sakana",   IFERROR(IF([סכנת השמדה לכול פק"א] = "סכנה", 1, 0), 0)
     )
     ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
   `);
@@ -696,8 +696,8 @@ async function fetchPakuotZafnForMakats(makatim) {
       ),
       "cartons",  SUM('מלאי-תוקף'[קרטון מלאי תוקף]),
       "daysLeft", MAX('מלאי-תוקף'[כמה ימים נשארו]),
-      "sellDays", [לכמה ימים המלאי לכול פק"א בנפרד],
-      "sakana",   IF([סכנת השמדה לכול פק"א] = "סכנה", 1, 0)
+      "sellDays", IFERROR([לכמה ימים המלאי לכול פק"א בנפרד], BLANK()),
+      "sakana",   IFERROR(IF([סכנת השמדה לכול פק"א] = "סכנה", 1, 0), 0)
     )
     ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
   `);
@@ -733,8 +733,8 @@ async function fetchPakuotAllForMakats(makatim) {
       FILTER('מלאי-תוקף', CONTAINSROW(${mkSet}, 'מלאי-תוקף'[מק"ט])),
       "cartons",  SUM('מלאי-תוקף'[קרטון מלאי תוקף]),
       "daysLeft", MAX('מלאי-תוקף'[כמה ימים נשארו]),
-      "sellDays", [לכמה ימים המלאי לכול פק"א בנפרד],
-      "sakana",   IF([סכנת השמדה לכול פק"א] = "סכנה", 1, 0)
+      "sellDays", IFERROR([לכמה ימים המלאי לכול פק"א בנפרד], BLANK()),
+      "sakana",   IFERROR(IF([סכנת השמדה לכול פק"א] = "סכנה", 1, 0), 0)
     )
     ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
   `);
