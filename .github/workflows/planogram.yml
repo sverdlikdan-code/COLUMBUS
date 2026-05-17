@@ -27,17 +27,6 @@ jobs:
         run: npm install
         working-directory: planogram
 
-      - name: Discover halavi families (one-time log — remove after reading output)
-        run: node discover-halavi-families.js
-        working-directory: planogram
-        env:
-          PBI_TENANT:    ${{ secrets.PBI_TENANT }}
-          PBI_CLIENT:    ${{ secrets.PBI_CLIENT }}
-          PBI_SECRET:    ${{ secrets.PBI_SECRET }}
-          PBI_DATASET:   ${{ secrets.PBI_DATASET }}
-          PBI_WORKSPACE: ${{ secrets.PBI_WORKSPACE }}
-        continue-on-error: true
-
       - name: Build kapua-base (products from Fabric)
         run: node build-kapua-new.js
         working-directory: planogram
