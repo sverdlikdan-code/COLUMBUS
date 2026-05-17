@@ -177,15 +177,14 @@ async function fetchKapuaFromBI(makatim) {
       ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
     `),
 
-    // 8. Product names + unit weight + shelf life from KARTIS PARIT
+    // 8. Product names + unit weight from KARTIS PARIT
     dax(t, `
       EVALUATE
       SUMMARIZECOLUMNS(
         'KARTIS PARIT'[מק"ט],
         'KARTIS PARIT'[תאור],
         'KARTIS PARIT'[משקל ליחידה],
-        FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] = "פעיל"),
-        "shelfLife", MAX('KARTIS PARIT'[חיי מדף נדרשים])
+        FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] = "פעיל")
       )
     `),
 
@@ -371,14 +370,6 @@ async function fetchKapuaFromBI(makatim) {
   }
   for (const mk of Object.keys(result)) {
     if (result[mk].pakuotZafn?.length > 1) result[mk].pakuotZafn.sort((a, b) => (a.date||0) - (b.date||0));
-  }
-
-  // shelfLife from KARTIS PARIT[חיי מדף נדרשים]
-  for (const r of nameEnRows) {
-    const mk = String(r['KARTIS PARIT[מק"ט]'] || '');
-    if (!mk) continue;
-    ensure(mk);
-    result[mk].shelfLife = r['[shelfLife]'] ?? null;
   }
 
   // nameEn from MLAY[תאור מוצר] — richer names than KARTIS PARIT[תאור]
@@ -640,11 +631,14 @@ async function fetchPakuotForMakats(makatim) {
 }
 
 // ── Fetch MLAY names for any list of מקטים ───────────────────────────────────
+// Falls back to KARTIS PARIT[תאור] for products not found in MLAY (e.g. dagim 403xxx)
 async function fetchNamesForMakats(makatim) {
   if (!makatim || !makatim.length) return {};
   const t = await getToken();
   const mkSet = '{' + makatim.map(m => `"${m}"`).join(',') + '}';
-  const rows = await dax(t, `
+
+  // Primary: MLAY (richer Hebrew names)
+  const mlayRows = await dax(t, `
     EVALUATE
     FILTER(
       SELECTCOLUMNS(MLAY, "mk", MLAY[מק'ט], "name", MLAY[תאור מוצר]),
@@ -652,12 +646,33 @@ async function fetchNamesForMakats(makatim) {
     )
   `);
   const result = {};
-  for (const r of rows) {
+  for (const r of mlayRows) {
     const mk   = String(r['[mk]'] || '');
     const name = r['[name]'];
     if (mk && name) result[mk] = name.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim();
   }
-  console.log(`Names fetched for ${Object.keys(result).length} חלבי/דגים products`);
+
+  // Fallback: KARTIS PARIT[תאור] for products missing from MLAY
+  const missing = makatim.filter(m => !result[m]);
+  if (missing.length) {
+    const missingSet = '{' + missing.map(m => `"${m}"`).join(',') + '}';
+    try {
+      const kpRows = await dax(t, `
+        EVALUATE
+        FILTER(
+          SELECTCOLUMNS('KARTIS PARIT', "mk", 'KARTIS PARIT'[מק"ט], "name", 'KARTIS PARIT'[תאור]),
+          CONTAINSROW(${missingSet}, [mk])
+        )
+      `);
+      for (const r of kpRows) {
+        const mk   = String(r['[mk]'] || '');
+        const name = r['[name]'];
+        if (mk && name && !result[mk]) result[mk] = name.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim();
+      }
+    } catch(e) { console.warn('KARTIS PARIT name fallback failed:', e.message); }
+  }
+
+  console.log(`Names fetched for ${Object.keys(result).length}/${makatim.length} חלבי/דגים products`);
   return result;
 }
 
@@ -730,28 +745,59 @@ async function fetchPakuotAllForMakats(makatim) {
 }
 
 // ── Fetch חיי מדף נדרשים (required shelf life) per product from KARTIS PARIT ──
+// NOTE: exact column name must be discovered from the actual Fabric dataset.
+// On failure: logs a warning and returns {} so the build continues without shelf life data.
 async function fetchShelfLifeForMakats(makatim) {
   if (!makatim || !makatim.length) return {};
   const t = await getToken();
+
+  // Discover KARTIS PARIT columns containing "מדף" on first call
+  try {
+    const sample = await dax(t, `EVALUATE TOPN(1, 'KARTIS PARIT')`);
+    if (sample.length) {
+      const cols = Object.keys(sample[0]).filter(c => c.includes('מדף') || c.includes('shelf') || c.includes('Shelf'));
+      if (cols.length) console.log('KARTIS PARIT columns with מדף/shelf:', cols.join(', '));
+      else console.warn('KARTIS PARIT: no מדף/shelf columns found. All cols:', Object.keys(sample[0]).join(', '));
+    }
+  } catch(e) { console.warn('KARTIS PARIT discovery failed:', e.message); }
+
+  // Try known column name variants
+  const colCandidates = [
+    `MAX('KARTIS PARIT'[חיי מדף נדרשים])`,
+    `MAX('KARTIS PARIT'[ימי מדף])`,
+    `MAX('KARTIS PARIT'[חיי מדף])`,
+    `MAX('KARTIS PARIT'[מדף ימים])`,
+  ];
+
   const mkSet = '{' + makatim.map(m => `"${m}"`).join(',') + '}';
-  const rows = await dax(t, `
-    EVALUATE
-    SUMMARIZECOLUMNS(
-      'KARTIS PARIT'[מק"ט],
-      FILTER('KARTIS PARIT',
-        CONTAINSROW(${mkSet}, 'KARTIS PARIT'[מק"ט]) &&
-        'KARTIS PARIT'[סטטוס] = "פעיל"
-      ),
-      "shelfLife", MAX('KARTIS PARIT'[חיי מדף נדרשים])
-    )
-  `);
-  const result = {};
-  for (const r of rows) {
-    const mk = String(r['KARTIS PARIT[מק"ט]'] || '');
-    if (!mk) continue;
-    result[mk] = r['[shelfLife]'] ?? null;
+  for (const col of colCandidates) {
+    try {
+      const rows = await dax(t, `
+        EVALUATE
+        SUMMARIZECOLUMNS(
+          'KARTIS PARIT'[מק"ט],
+          FILTER('KARTIS PARIT',
+            CONTAINSROW(${mkSet}, 'KARTIS PARIT'[מק"ט]) &&
+            'KARTIS PARIT'[סטטוס] = "פעיל"
+          ),
+          "shelfLife", ${col}
+        )
+      `);
+      console.log(`shelfLife column found: ${col} — ${rows.length} rows`);
+      const result = {};
+      for (const r of rows) {
+        const mk = String(r['KARTIS PARIT[מק"ט]'] || '');
+        if (!mk) continue;
+        result[mk] = r['[shelfLife]'] ?? null;
+      }
+      return result;
+    } catch(e) {
+      console.warn(`shelfLife col ${col} failed: ${e.message.substring(0, 120)}`);
+    }
   }
-  return result;
+
+  console.warn('fetchShelfLifeForMakats: all column candidates failed, returning {}');
+  return {};
 }
 
 module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, getToken };
