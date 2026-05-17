@@ -207,7 +207,7 @@ async function fetchKapuaFromBI(makatim) {
       SUMMARIZECOLUMNS(
         'מלאי-תוקף'[מק"ט],
         FILTER('מלאי-תוקף',
-          'מלאי-תוקף'[מחסן] = "מחסן צפון" &&
+          'מלאי-תוקף'[מחסן] = "Zafn" &&
           CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
         ),
         "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
@@ -264,7 +264,7 @@ async function fetchKapuaFromBI(makatim) {
         'מלאי-תוקף'[מק"ט],
         'מלאי-תוקף'[ת. תפוגת תוקף],
         FILTER('מלאי-תוקף',
-          'מלאי-תוקף'[מחסן] = "מחסן צפון" &&
+          'מלאי-תוקף'[מחסן] = "Zafn" &&
           CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
         ),
         "cartons",  SUM('מלאי-תוקף'[קרטון מלאי תוקף]),
@@ -515,7 +515,7 @@ async function fetchStockMain(makatim) {
       SUMMARIZECOLUMNS(
         'מלאי-תוקף'[מק"ט],
         FILTER('מלאי-תוקף',
-          'מלאי-תוקף'[מחסן] = "מחסן צפון" &&
+          'מלאי-תוקף'[מחסן] = "Zafn" &&
           CONTAINSROW(${mkSet}, 'מלאי-תוקף'[מק"ט])
         ),
         "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
@@ -684,7 +684,7 @@ async function fetchPakuotZafnForMakats(makatim) {
       'מלאי-תוקף'[ת. תפוגת תוקף],
       FILTER(
         'מלאי-תוקף',
-        'מלאי-תוקף'[מחסן] = "מחסן צפון" &&
+        'מלאי-תוקף'[מחסן] = "Zafn" &&
         CONTAINSROW(${mkSet}, 'מלאי-תוקף'[מק"ט])
       ),
       "cartons",  SUM('מלאי-תוקף'[קרטון מלאי תוקף]),
@@ -825,7 +825,7 @@ async function fetchHalaviFromBI() {
 
 // ── דגים (wet fish) family codes — KARTIS PARIT[משפחת מוצר] column
 // Source: משפחת מוצר לפי מחסן.xlsx col "משפחת מוצר N" (section = "דגים")
-const DAGIM_FAM_CODES = ['030', '0301', '036'];
+const DAGIM_FAM_CODES = ['030', '031', '0301', '036'];
 
 // Frozen surimi in family 030 that belong to KAPUA, not the dagim shelf
 const DAGIM_EXCLUDE_MAKATS = ['1045', '1046', '1051'];
@@ -835,6 +835,7 @@ const DAGIM_FAM_DISPLAY = {
   '036':  'NORD PORT מצונן',
   '0301': 'NORD PORT',
   '030':  'SANTA BREMOR Fish',
+  '031':  'RUSSIAN SEA דגים',
 };
 
 // ── Fetch all active דגים (wet fish) products from KARTIS PARIT + live stock/sales/pakuot ──
