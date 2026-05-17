@@ -454,14 +454,22 @@ async function fetchKapuaFromBI(makatim) {
 async function fetchLastRefresh() {
   try {
     const t = await getToken();
-    const rows = await dax(t, `EVALUATE 'SERVER DATE TIME'`);
-    if (rows && rows.length) {
-      const raw = rows[0]['SERVER DATE TIME[תאריך עדכון]'];
-      if (raw) return String(raw); // Fabric returns Israel local time — return as-is, no UTC conversion
+    const res = await fetch(
+      `https://api.powerbi.com/v1.0/myorg/groups/${WORKSPACE}/datasets/${DATASET}/refreshes?$top=1`,
+      { headers: { 'Authorization': 'Bearer ' + t } }
+    );
+    const j = await res.json();
+    const last = j?.value?.[0];
+    if (last?.endTime) {
+      // endTime is UTC ISO — convert to Israel time (UTC+3 summer)
+      const d = new Date(last.endTime);
+      const il = new Date(d.getTime() + 3 * 60 * 60 * 1000);
+      const pad = n => String(n).padStart(2, '0');
+      return `${il.getUTCFullYear()}-${pad(il.getUTCMonth()+1)}-${pad(il.getUTCDate())}T${pad(il.getUTCHours())}:${pad(il.getUTCMinutes())}:00`;
     }
     return null;
   } catch(e) {
-    console.warn('Could not fetch SERVER DATE TIME:', e.message);
+    console.warn('Could not fetch dataset refresh history:', e.message);
     return null;
   }
 }
