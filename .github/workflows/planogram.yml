@@ -2,7 +2,7 @@ name: Planogram Builder
 
 on:
   schedule:
-    - cron: '0 5-17 * * 0-4'  # 08:00–20:00 Israel time (UTC+3 summer) Sun–Thu, every hour
+    - cron: '0 5-17 * * 0-5'  # 08:00–20:00 Israel time (UTC+3 summer) Sun–Fri, every hour
   workflow_dispatch:          # manual trigger — the "Refresh" button
 
 permissions:
