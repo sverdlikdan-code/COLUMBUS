@@ -1,6 +1,6 @@
-// Discover MLAY family codes for all חלבי products
+// Discover: KARTIS PARIT columns and family/section groupings for חלבי products
 // Run in GitHub Actions: node discover-halavi-families.js
-// Output: family codes + product counts → use these as HALAVI_FAM_CODES in pbi-kapua.js
+// Goal: find which column in KARTIS PARIT maps products to חלבי/קפוא/דגים sections
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const { getToken } = require('./pbi-kapua');
 
@@ -19,82 +19,62 @@ async function dax(t, query) {
 async function main() {
   const t = await getToken();
 
-  // Known חלבי makats from MAHSAN חלבי/חלבי.xlsx — sample across all subfamilies
-  const KNOWN_HALAVI = [
-    // PRESIDENT
-    '410000','410001','410002','410003','410004',
-    '411000','411001','411500',
-    '412200','412201','412202','412500','412501','412502',
-    '413000','413001','413002','413200','413201','413202',
-    '413500','413501','413502',
-    // SVALIA חמאה
-    '600','601','602',
-    // SVALIA גורובט/תכתומ
-    '615','616','617','628','643','644','645','646','655','656','657','658','659',
-    // SVALIA גבינה/פרוסות
-    '649','650','651','652','654','660','661','662','663','664','665','667','668',
-    '669','670','671','672','673','674','675','677','678',
-    // SVALIA סמטנה/קפיר/יוגורט
-    '624','625','626','627','630','631',
-    '1050','1052','1053','1060','1061','1062','1063','1064','1075','1076','1077',
-    // SVALIA ברינזה
-    '759','760',
-    // ןילופ גבינה
-    '680','681','683','684','685',
-  ];
+  // 1. All columns of KARTIS PARIT — sample row for known חלבי makat 665
+  console.log('=== KARTIS PARIT — all columns for makat 665 (חלבי) ===');
+  const sample = await dax(t, `EVALUATE FILTER(TOPN(1, 'KARTIS PARIT'), 'KARTIS PARIT'[מק"ט] = "665")`);
+  if (sample.length) {
+    Object.entries(sample[0]).forEach(([k, v]) => console.log(`  ${k} = ${v}`));
+  } else {
+    console.log('  makat 665 not found — trying TOPN(1)');
+    const any = await dax(t, `EVALUATE TOPN(1, 'KARTIS PARIT')`);
+    if (any.length) Object.entries(any[0]).forEach(([k, v]) => console.log(`  ${k} = ${v}`));
+  }
 
-  const mkSet = '{' + KNOWN_HALAVI.map(m => `"${m}"`).join(',') + '}';
+  // 2. Known חלבי makats — sample for comparison
+  console.log('\n=== KARTIS PARIT — makat 601 (SVALIA חמאה, קפוא) ===');
+  const sampleKapua = await dax(t, `EVALUATE FILTER(TOPN(1, 'KARTIS PARIT'), 'KARTIS PARIT'[מק"ט] = "601")`);
+  if (sampleKapua.length) {
+    Object.entries(sampleKapua[0]).forEach(([k, v]) => console.log(`  ${k} = ${v}`));
+  }
 
-  console.log('=== MLAY family codes for חלבי products ===');
-  const rows = await dax(t, `
-    EVALUATE
-    SUMMARIZECOLUMNS(
-      MLAY[משפחת מוצר],
-      MLAY[תאור משפחה],
-      FILTER(MLAY, CONTAINSROW(${mkSet}, MLAY[מק'ט])),
-      "cnt", COUNTROWS(MLAY)
-    )
-    ORDER BY [cnt] DESC
-  `);
+  // 3. Try common grouping columns: קבוצה, ענף, מחסן, קטגוריה, תחום, מדור
+  const candidates = ['קבוצה', 'ענף', 'מחסן', 'קטגוריה', 'תחום', 'מדור', 'סוג', 'מחלקה'];
+  for (const col of candidates) {
+    try {
+      const rows = await dax(t, `
+        EVALUATE
+        TOPN(3, SUMMARIZECOLUMNS('KARTIS PARIT'[${col}]), 'KARTIS PARIT'[${col}], ASC)
+      `);
+      if (rows.length) {
+        console.log(`\n✅ Column [${col}] EXISTS — sample values:`, rows.map(r => r[`KARTIS PARIT[${col}]`]).join(', '));
+      }
+    } catch {}
+  }
 
-  rows.forEach(r => {
-    const code = r["MLAY[משפחת מוצר]"];
-    const desc = r["MLAY[תאור משפחה]"];
-    const cnt  = r["[cnt]"];
-    console.log(`  '${code}':  // ${desc}  (${cnt} products)`);
-  });
+  // 4. Group known חלבי makats by all string columns to find the section discriminator
+  const HALAVI_MAKATS = ['600','601','602','615','616','649','650','660','661','665','680','759'];
+  const KAPUA_MAKATS  = ['029', '026']; // family codes — skip, use makats from KAPUA section
+  const mkSet = '{' + HALAVI_MAKATS.map(m => `"${m}"`).join(',') + '}';
 
-  console.log('\n=== All active חלבי products in these families ===');
-  const famCodes = rows.map(r => `"${r["MLAY[משפחת מוצר]"]}"`).join(',');
-  if (!famCodes) { console.log('No families found'); return; }
+  console.log('\n=== Unique column values for known חלבי makats (looking for section discriminator) ===');
+  // Try columns discovered in step 1
+  const firstRow = sample[0] || sampleKapua[0] || {};
+  const colNames = Object.keys(firstRow).map(k => k.replace(/^[^[]+\[/, '').replace(/\]$/, ''));
 
-  const allRows = await dax(t, `
-    EVALUATE
-    FILTER(
-      SUMMARIZECOLUMNS(
-        MLAY[מק'ט],
-        MLAY[תאור מוצר],
-        MLAY[משפחת מוצר],
-        MLAY[תאור משפחה],
-        CALCULATETABLE(VALUES('KARTIS PARIT'[מק"ט]), 'KARTIS PARIT'[סטטוס]="פעיל")
-      ),
-      CONTAINSROW({${famCodes}}, MLAY[משפחת מוצר])
-    )
-    ORDER BY MLAY[משפחת מוצר], MLAY[מק'ט]
-  `);
-
-  const byFam = {};
-  allRows.forEach(r => {
-    const fam = r["MLAY[משפחת מוצר]"] + ' / ' + r["MLAY[תאור משפחה]"];
-    if (!byFam[fam]) byFam[fam] = [];
-    byFam[fam].push(r["MLAY[מק'ט]"] + ' ' + r["MLAY[תאור מוצר]"]);
-  });
-  Object.entries(byFam).forEach(([fam, prods]) => {
-    console.log(`\n[${fam}] — ${prods.length} products`);
-    prods.forEach(p => console.log('  ' + p));
-  });
-
-  console.log(`\nTotal active חלבי products in PBI: ${allRows.length}`);
+  for (const col of colNames) {
+    try {
+      const rows = await dax(t, `
+        EVALUATE
+        SUMMARIZECOLUMNS(
+          'KARTIS PARIT'[${col}],
+          FILTER('KARTIS PARIT', CONTAINSROW(${mkSet}, 'KARTIS PARIT'[מק"ט])),
+          "cnt", COUNTROWS('KARTIS PARIT')
+        )
+      `);
+      const vals = rows.map(r => `"${r[`KARTIS PARIT[${col}]`]}"(${r['[cnt]']})`).join(', ');
+      if (rows.length <= 5) console.log(`  [${col}]: ${vals}`);
+    } catch {}
+  }
 }
 
-main().catch(e => { console.error(e); process.exit(1); });
+main().catch(e => { console.error('ERROR:', e.message); process.exit(1); });
