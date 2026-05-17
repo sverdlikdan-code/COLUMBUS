@@ -1,6 +1,5 @@
-// Discover: KARTIS PARIT columns and family/section groupings for חלבי products
-// Run in GitHub Actions: node discover-halavi-families.js
-// Goal: find which column in KARTIS PARIT maps products to חלבי/קפוא/דגים sections
+// Discover: exact [תאור משפחה] values in KARTIS PARIT for all sections
+// Run in GitHub Actions — output used to build HALAVI_FAM_NAMES filter
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const { getToken } = require('./pbi-kapua');
 
@@ -19,62 +18,45 @@ async function dax(t, query) {
 async function main() {
   const t = await getToken();
 
-  // 1. All columns of KARTIS PARIT — sample row for known חלבי makat 665
-  console.log('=== KARTIS PARIT — all columns for makat 665 (חלבי) ===');
-  const sample = await dax(t, `EVALUATE FILTER(TOPN(1, 'KARTIS PARIT'), 'KARTIS PARIT'[מק"ט] = "665")`);
-  if (sample.length) {
-    Object.entries(sample[0]).forEach(([k, v]) => console.log(`  ${k} = ${v}`));
-  } else {
-    console.log('  makat 665 not found — trying TOPN(1)');
-    const any = await dax(t, `EVALUATE TOPN(1, 'KARTIS PARIT')`);
-    if (any.length) Object.entries(any[0]).forEach(([k, v]) => console.log(`  ${k} = ${v}`));
-  }
+  // All unique [תאור משפחה] values in KARTIS PARIT — with count of active products
+  console.log('=== All [תאור משפחה] values in KARTIS PARIT (פעיל only) ===');
+  const rows = await dax(t, `
+    EVALUATE
+    SUMMARIZECOLUMNS(
+      'KARTIS PARIT'[תאור משפחה],
+      FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] = "פעיל"),
+      "cnt", COUNTROWS('KARTIS PARIT')
+    )
+    ORDER BY [cnt] DESC
+  `);
+  rows.forEach(r => {
+    const fam = r["KARTIS PARIT[תאור משפחה]"];
+    const cnt = r["[cnt]"];
+    console.log(`  "${fam}"  (${cnt})`);
+  });
 
-  // 2. Known חלבי makats — sample for comparison
-  console.log('\n=== KARTIS PARIT — makat 601 (SVALIA חמאה, קפוא) ===');
-  const sampleKapua = await dax(t, `EVALUATE FILTER(TOPN(1, 'KARTIS PARIT'), 'KARTIS PARIT'[מק"ט] = "601")`);
-  if (sampleKapua.length) {
-    Object.entries(sampleKapua[0]).forEach(([k, v]) => console.log(`  ${k} = ${v}`));
-  }
+  // Cross-check: known חלבי makats → show their [תאור משפחה]
+  const KNOWN_HALAVI = ['600','601','602','615','616','617','624','625','626','627','628',
+    '630','631','643','644','645','646','649','650','651','652','654','655','656','657',
+    '658','659','660','661','662','663','664','665','667','668','669','670','671','672',
+    '673','674','675','677','678','680','681','683','684','685','759','760',
+    '1050','1052','1053','1060','1061','1062','1063','1064','1075','1076','1077'];
+  const mkSet = '{' + KNOWN_HALAVI.map(m => `"${m}"`).join(',') + '}';
 
-  // 3. Try common grouping columns: קבוצה, ענף, מחסן, קטגוריה, תחום, מדור
-  const candidates = ['קבוצה', 'ענף', 'מחסן', 'קטגוריה', 'תחום', 'מדור', 'סוג', 'מחלקה'];
-  for (const col of candidates) {
-    try {
-      const rows = await dax(t, `
-        EVALUATE
-        TOPN(3, SUMMARIZECOLUMNS('KARTIS PARIT'[${col}]), 'KARTIS PARIT'[${col}], ASC)
-      `);
-      if (rows.length) {
-        console.log(`\n✅ Column [${col}] EXISTS — sample values:`, rows.map(r => r[`KARTIS PARIT[${col}]`]).join(', '));
-      }
-    } catch {}
-  }
-
-  // 4. Group known חלבי makats by all string columns to find the section discriminator
-  const HALAVI_MAKATS = ['600','601','602','615','616','649','650','660','661','665','680','759'];
-  const KAPUA_MAKATS  = ['029', '026']; // family codes — skip, use makats from KAPUA section
-  const mkSet = '{' + HALAVI_MAKATS.map(m => `"${m}"`).join(',') + '}';
-
-  console.log('\n=== Unique column values for known חלבי makats (looking for section discriminator) ===');
-  // Try columns discovered in step 1
-  const firstRow = sample[0] || sampleKapua[0] || {};
-  const colNames = Object.keys(firstRow).map(k => k.replace(/^[^[]+\[/, '').replace(/\]$/, ''));
-
-  for (const col of colNames) {
-    try {
-      const rows = await dax(t, `
-        EVALUATE
-        SUMMARIZECOLUMNS(
-          'KARTIS PARIT'[${col}],
-          FILTER('KARTIS PARIT', CONTAINSROW(${mkSet}, 'KARTIS PARIT'[מק"ט])),
-          "cnt", COUNTROWS('KARTIS PARIT')
-        )
-      `);
-      const vals = rows.map(r => `"${r[`KARTIS PARIT[${col}]`]}"(${r['[cnt]']})`).join(', ');
-      if (rows.length <= 5) console.log(`  [${col}]: ${vals}`);
-    } catch {}
-  }
+  console.log('\n=== [תאור משפחה] for known חלבי makats ===');
+  const hRows = await dax(t, `
+    EVALUATE
+    SUMMARIZECOLUMNS(
+      'KARTIS PARIT'[תאור משפחה],
+      FILTER('KARTIS PARIT', CONTAINSROW(${mkSet}, 'KARTIS PARIT'[מק"ט])),
+      "cnt", COUNTROWS('KARTIS PARIT'),
+      "sample", FIRSTNONBLANK('KARTIS PARIT'[מק"ט], 1)
+    )
+    ORDER BY 'KARTIS PARIT'[תאור משפחה]
+  `);
+  hRows.forEach(r => {
+    console.log(`  "${r["KARTIS PARIT[תאור משפחה]"]}"  cnt=${r["[cnt]"]}  e.g. ${r["[sample]"]}`);
+  });
 }
 
 main().catch(e => { console.error('ERROR:', e.message); process.exit(1); });
