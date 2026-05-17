@@ -27,8 +27,8 @@ jobs:
         run: npm install
         working-directory: planogram
 
-      - name: Discover halavi families (one-time log — remove after reading output)
-        run: node discover-halavi-families.js
+      - name: Discover warehouse names in מלאי-תוקף (one-time log — remove after reading output)
+        run: node discover-mahsanot.js
         working-directory: planogram
         env:
           PBI_TENANT:    ${{ secrets.PBI_TENANT }}
