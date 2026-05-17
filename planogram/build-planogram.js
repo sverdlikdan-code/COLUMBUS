@@ -1327,14 +1327,38 @@ async function main() {
       37:{r:1,c:12},38:{r:1,c:11},39:{r:1,c:10},40:{r:1,c:9},41:{r:1,c:8},42:{r:1,c:7},
       43:{r:1,c:6},44:{r:1,c:5},45:{r:1,c:4},46:{r:1,c:3},47:{r:1,c:2},48:{r:1,c:1},
     };
+    // ── halavi-base.json: auto-sync new products into reserve slots ──────────
     {
-      const hPicks = {};
-      for (const [pickStr, p] of Object.entries(halaviProdMapForJSON)) {
-        const nameEn = nameEnMap[String(p.makat)] || null;
-        hPicks[pickStr] = { makat: p.makat, fam: p.fam || '', name: nameEn };
+      const hbPath = path.join(__dirname, '..', 'docs', 'halavi-base.json');
+      const hb = JSON.parse(fs.readFileSync(hbPath, 'utf8'));
+
+      // Makatim already assigned in halavi-base.json
+      const hbMakatSet = new Set(
+        Object.values(hb.picks).filter(Boolean).map(p => String(p.makat))
+      );
+
+      // Find empty reserve pick slots (pick has null value but layout position exists)
+      const emptySlots = Object.keys(hb.layout)
+        .map(Number)
+        .sort((a, b) => a - b)
+        .filter(pk => !hb.picks[pk] || hb.picks[pk] === null);
+
+      let slotIdx = 0;
+      const added = [];
+      for (const p of halaviProds) {
+        if (hbMakatSet.has(String(p.makat))) continue;
+        if (slotIdx >= emptySlots.length) break;
+        const pk = String(emptySlots[slotIdx++]);
+        hb.picks[pk] = { makat: p.makat, fam: p.fam || '', name: nameEnMap[String(p.makat)] || null };
+        added.push(`${p.makat}→pick${pk}`);
       }
-      // halavi-base.json NOT written by build — maintained manually (120 picks, 12-row layout)
-      console.log(`halavi-base.json: maintained manually, ${Object.keys(hPicks).length} halavi products processed for product-data.json`);
+
+      if (added.length) {
+        fs.writeFileSync(hbPath, JSON.stringify(hb, null, 2), 'utf8');
+        console.log(`halavi-base.json: auto-added ${added.length} new products: ${added.join(', ')}`);
+      } else {
+        console.log(`halavi-base.json: all ${halaviProds.length} halavi products already mapped`);
+      }
     }
 
     // ── dagim-base.json ───────────────────────────────────────────────────
