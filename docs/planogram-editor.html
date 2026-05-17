@@ -1564,17 +1564,18 @@ function buildExpiryPage() {
   };
 
   // סכנה per batch: batch won't sell before expiry → daysLeft < cartons/daySales
-  const batchSakana = (pak, daySales) => {
+  const batchSakana = (pak, daySales, shelfLife) => {
     if (pak.daysLeft == null || !(pak.cartons > 0)) return null;
     // daySales is working-day rate → ×1.4 converts to calendar days
     const sellDays = (daySales > 0) ? (pak.cartons / daySales) * 1.4 : Infinity;
-    const isSakana = pak.daysLeft < sellDays;
+    // סכנה: days remaining after selling batch < required shelf life
+    const isSakana = isFinite(sellDays) && (pak.daysLeft - sellDays) < (shelfLife ?? 0);
     return { isSakana, sellDays: isFinite(sellDays) ? Math.ceil(sellDays) : null };
   };
 
-  const batchCell = (pak, daySales) => {
+  const batchCell = (pak, daySales, shelfLife) => {
     if (!pak) return '<span style="color:#ccc;">—</span>';
-    const sk = batchSakana(pak, daySales);
+    const sk = batchSakana(pak, daySales, shelfLife);
     const isSakana   = sk?.isSakana;
     const dateColor  = isSakana ? '#c62828' : (pak.daysLeft != null && pak.daysLeft <= 30 ? '#e65100' : '#1a6b1a');
     const daysColor  = isSakana ? '#c62828' : '#555';
@@ -1605,8 +1606,9 @@ function buildExpiryPage() {
     const batches   = { main: d.pakuot || [], zafn: d.pakuotZafn || [] };
     const maxRows   = Math.max(batches.main.length, batches.zafn.length, 1);
 
-    const sakanaMain = batches.main.some(b => batchSakana(b, salesMain)?.isSakana);
-    const sakanaZafn = batches.zafn.some(b => batchSakana(b, salesZafn)?.isSakana);
+    const shelfLife  = d.shelfLife ?? 0;
+    const sakanaMain = batches.main.some(b => batchSakana(b, salesMain, shelfLife)?.isSakana);
+    const sakanaZafn = batches.zafn.some(b => batchSakana(b, salesZafn, shelfLife)?.isSakana);
     const cardBorder = (sakanaMain || sakanaZafn) ? '2px solid #c62828' : '1px solid #dde0e8';
 
     const thMain = sakanaMain
@@ -1621,8 +1623,8 @@ function buildExpiryPage() {
 
     const batchRows = Array.from({length: maxRows}, (_, i) => {
       return `<tr>
-        <td style="padding:2px 6px;border-bottom:1px solid #f0f0f0;font-size:10px;">${batchCell(batches.main[i], salesMain)}</td>
-        <td style="padding:2px 6px;border-bottom:1px solid #f0f0f0;font-size:10px;border-right:2px solid #e0e0e0;">${batchCell(batches.zafn[i], salesZafn)}</td>
+        <td style="padding:2px 6px;border-bottom:1px solid #f0f0f0;font-size:10px;">${batchCell(batches.main[i], salesMain, shelfLife)}</td>
+        <td style="padding:2px 6px;border-bottom:1px solid #f0f0f0;font-size:10px;border-right:2px solid #e0e0e0;">${batchCell(batches.zafn[i], salesZafn, shelfLife)}</td>
       </tr>`;
     }).join('');
 

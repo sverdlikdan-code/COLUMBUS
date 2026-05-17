@@ -14,7 +14,7 @@ if (!process.env.PBI_TENANT && process.env.AZURE_TENANT_ID) {
 const fs      = require('fs');
 const path    = require('path');
 const ExcelJS = require('exceljs');
-const { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats } = require('./pbi-kapua');
+const { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats } = require('./pbi-kapua');
 const { fetchExtraSheets }   = require('./pbi-extra-sheets');
 
 // ─── Sheets to hide in output (set [] when all ready to publish) ──────────
@@ -758,12 +758,13 @@ async function main() {
   // Fetch stock/sales (Main only) + pakuot for חלבי + דגים from Fabric
   {
     const nonKapuaMakats = [...halaviProds, ...dagimProds].map(p => p.makat);
-    const [stockMap, namesMap, pakuotMap, pakuotZafnMap, pakuotAllMap] = await Promise.all([
+    const [stockMap, namesMap, pakuotMap, pakuotZafnMap, pakuotAllMap, shelfLifeMap] = await Promise.all([
       fetchStockMain(nonKapuaMakats),
       fetchNamesForMakats(nonKapuaMakats),
       fetchPakuotForMakats(nonKapuaMakats),
       fetchPakuotZafnForMakats(nonKapuaMakats),
       fetchPakuotAllForMakats(nonKapuaMakats),
+      fetchShelfLifeForMakats(nonKapuaMakats),
     ]);
     Object.assign(nameEnMap, namesMap);
     for(const p of [...halaviProds, ...dagimProds]) {
@@ -780,6 +781,7 @@ async function main() {
       p.pakuot     = pakuotMap[p.makat]     || [];
       p.pakuotZafn = pakuotZafnMap[p.makat] || [];
       p.pakuotAll  = pakuotAllMap[p.makat]  || [];
+      p.shelfLife  = shelfLifeMap[p.makat]  ?? null;
     }
   }
 
@@ -1207,6 +1209,7 @@ async function main() {
         ashdodPalletCartons: prevAshdod[mk] ?? null,
         pakuot:              (p.pakuot || kd?.pakuot || []).map(b => ({ date: b.date ? new Date(b.date).toISOString().slice(0,10) : null, daysLeft: b.daysLeft, cartons: b.cartons })),
         pakuotZafn:          (p.pakuotZafn || kd?.pakuotZafn || []).map(b => ({ date: b.date ? new Date(b.date).toISOString().slice(0,10) : null, daysLeft: b.daysLeft, cartons: b.cartons })),
+        shelfLife:           p.shelfLife ?? kd?.shelfLife ?? null,
       };
     };
 
@@ -1242,7 +1245,10 @@ async function main() {
         Object.values(dagyaveshBase).map(v => String(v.makat)).filter(Boolean)
       )];
       if (dagyaveshMakatim.length) {
-        const dyStockMap = await fetchStockMain(dagyaveshMakatim);
+        const [dyStockMap, dyShelfLifeMap] = await Promise.all([
+          fetchStockMain(dagyaveshMakatim),
+          fetchShelfLifeForMakats(dagyaveshMakatim),
+        ]);
         for (const [, item] of Object.entries(dagyaveshBase)) {
           const mk = String(item.makat);
           if (!mk) continue;
@@ -1258,6 +1264,7 @@ async function main() {
             stockTrnz:    fm.stockTrnz    ?? null,
             daySalesTrnz: fm.daySalesTrnz ?? null,
             pakuot: [], pakuotAll: [],
+            shelfLife:    dyShelfLifeMap[mk] ?? null,
           };
           prodData[mk] = mkEntry(p);
         }
