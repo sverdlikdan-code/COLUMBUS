@@ -304,8 +304,9 @@ function addSeqSheet(wb, sheetName, prodsByPick, headerColor) {
   picks.forEach((pick, idx) => {
     const p = prodsByPick[pick];
     if (!p) return;
-    const name = p.desc
-      ? fixVisualRTL(String(p.desc).replace(/[​-‏‪-‮﻿]/g, '').trim())
+    const rawName = p.nameEn || p.desc;
+    const name = rawName
+      ? fixVisualRTL(String(rawName).replace(/[​-‏‪-‮﻿]/g, '').trim())
       : '';
     const fam = p.fam || '';
     const isZeroStock = p.stock != null && p.stock <= 0;
@@ -369,7 +370,7 @@ function applySimpleSheet(ws, pickMap, prodsByPick, palletMap) {
     const p = prodsByPick[pick];
     if(p && p.stock > 0) {
       const kratnost = palletMap && palletMap[String(p.makat)] || 0;
-      fillCellSimple(cell, pick, p.makat, p.desc, p.fam, p.stock, kratnost);
+      fillCellSimple(cell, pick, p.makat, p.nameEn || p.desc, p.fam, p.stock, kratnost);
     } else if(p) {
       cell.value = `#${pick}\nאפס מלאי`;
       cell.alignment = { wrapText:true, vertical:'middle', horizontal:'center' };
@@ -407,7 +408,7 @@ function applyToSheet(ws, pickMap, prodsByPick, weightThresh, dayThreshHigh, day
       } else {
         const kratnost = usePallets ? (palletMap && palletMap[String(p.makat)] || 0) : 0;
         const pct = (totalDayAvg > 0 && p.dayAvg != null) ? (p.dayAvg / totalDayAvg * 100) : null;
-        fillCell(cell, pick, p.makat, p.fam, p.dayAvg, p.daySales||null, p.ss, p.stock, p.weight, p.desc, weightThresh, dayThreshHigh, dayThreshMid, kratnost, pct, p.pakuot||[]);
+        fillCell(cell, pick, p.makat, p.fam, p.dayAvg, p.daySales||null, p.ss, p.stock, p.weight, p.nameEn || p.desc, weightThresh, dayThreshHigh, dayThreshMid, kratnost, pct, p.pakuot||[]);
       }
       rowsToResize.add(pos.row);
       colsToResize.add(pos.col);
@@ -524,10 +525,10 @@ function addOverflowSection(ws, prods, palletMap, weightThresh, dayThreshHigh, d
     const kratnost = palletMap[String(p.makat)] || 0;
     if (p.stock > 0) {
       fillCell(cell, p.pick, p.makat, p.fam, p.dayAvg, p.daySales, p.ss,
-               p.stock, p.weight, p.desc,
+               p.stock, p.weight, p.nameEn || p.desc,
                weightThresh, dayThreshHigh, dayThreshMid, kratnost, null, p.pakuot || []);
     } else {
-      zeroStockCell(cell, p.pick, p.makat, p.desc, p.fam);
+      zeroStockCell(cell, p.pick, p.makat, p.nameEn || p.desc, p.fam);
     }
     ws.getRow(r).height = 160;
     const col = ws.getColumn(c);
