@@ -1499,14 +1499,55 @@ function updateTable() {
     const fl = famColor(p.fam);
     const up   = i > 0              ? `<button style="${btnStyle}" onclick="movePrintOrder('${sec}',${i},-1)" title="הזז למעלה">▲</button>` : '<span style="width:18px;display:inline-block"></span>';
     const down = i < order.length-1 ? `<button style="${btnStyle}" onclick="movePrintOrder('${sec}',${i},1)"  title="הזז למטה">▼</button>`  : '<span style="width:18px;display:inline-block"></span>';
-    return `<tr style="background:${bg}; border-left:3px solid ${fl};">
-      <td style="padding:4px 6px; text-align:center; white-space:nowrap;">${up}${down}<span style="margin-right:4px;font-weight:bold;color:#888;font-size:10px;">${i+1}</span></td>
+    return `<tr draggable="true" data-pick="${pick}" data-idx="${i}" data-sec="${sec}" style="background:${bg}; border-left:3px solid ${fl}; cursor:grab;">
+      <td style="padding:4px 6px; text-align:center; white-space:nowrap;">
+        <span style="color:#ccc;font-size:14px;margin-left:2px;cursor:grab;" title="גרור לשינוי סדר">⠿</span>${up}${down}<span style="margin-right:4px;font-weight:bold;color:#888;font-size:10px;">${i+1}</span>
+      </td>
       <td style="padding:4px 10px; text-align:center; font-weight:bold; color:#1565C0;">${pick}</td>
       <td style="padding:4px 10px;">${p.makat}</td>
       <td style="padding:4px 10px; font-weight:bold;">${p.name || productData[String(p.makat)]?.nameEn || productData[String(p.makat)]?.desc || ''}</td>
       <td style="padding:4px 10px; font-size:10px; color:#555;">${p.fam || ''}</td>
     </tr>`;
   }).join('');
+  _initTableDrag(body);
+}
+
+function _initTableDrag(tbody) {
+  let dragSrc = null;
+  tbody.addEventListener('dragstart', e => {
+    const row = e.target.closest('tr[draggable]');
+    if (!row) return;
+    dragSrc = row;
+    e.dataTransfer.effectAllowed = 'move';
+    setTimeout(() => { if (dragSrc) dragSrc.style.opacity = '0.35'; }, 0);
+  });
+  tbody.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const row = e.target.closest('tr[draggable]');
+    tbody.querySelectorAll('tr').forEach(r => r.style.boxShadow = '');
+    if (row && row !== dragSrc) row.style.boxShadow = 'inset 0 2px 0 #1565C0';
+  });
+  tbody.addEventListener('dragleave', e => {
+    if (!tbody.contains(e.relatedTarget)) tbody.querySelectorAll('tr').forEach(r => r.style.boxShadow = '');
+  });
+  tbody.addEventListener('drop', e => {
+    e.preventDefault();
+    const row = e.target.closest('tr[draggable]');
+    if (!row || !dragSrc || row === dragSrc) return;
+    const sec     = dragSrc.dataset.sec;
+    const fromIdx = parseInt(dragSrc.dataset.idx);
+    const toIdx   = parseInt(row.dataset.idx);
+    const order   = _getPrintOrder(sec);
+    const [item]  = order.splice(fromIdx, 1);
+    order.splice(toIdx, 0, item);
+    _savePrintOrder(sec, order);
+    updateTable();
+  });
+  tbody.addEventListener('dragend', () => {
+    tbody.querySelectorAll('tr').forEach(r => { r.style.opacity = ''; r.style.boxShadow = ''; });
+    dragSrc = null;
+  });
 }
 
 // ══════════════════════════════════════════════════════════════════════════
