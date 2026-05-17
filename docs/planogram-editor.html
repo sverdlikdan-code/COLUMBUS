@@ -1564,12 +1564,12 @@ function buildExpiryPage() {
     return `${d}/${m}/${y.slice(2)}`;
   };
 
-  // סכנה per batch: batch won't sell before expiry → daysLeft < cartons/daySales
   const batchSakana = (pak, daySales, shelfLife) => {
     if (pak.daysLeft == null || !(pak.cartons > 0)) return null;
-    // daySales is working-day rate → ×1.4 converts to calendar days
+    if (pak.sellDays != null) {
+      return { isSakana: pak.sakana === true, sellDays: Math.ceil(pak.sellDays) };
+    }
     const sellDays = (daySales > 0) ? (pak.cartons / daySales) * 1.4 : Infinity;
-    // סכנה: days remaining after selling batch < required shelf life
     const isSakana = isFinite(sellDays) && (pak.daysLeft - sellDays) < (shelfLife ?? 0);
     return { isSakana, sellDays: isFinite(sellDays) ? Math.ceil(sellDays) : null };
   };
