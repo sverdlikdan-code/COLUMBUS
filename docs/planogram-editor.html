@@ -1603,11 +1603,22 @@ function buildExpiryPage() {
     const sellLine = sellDays != null
       ? `<div style="font-size:9px;color:#666;">days needed for sellout: <b style="color:${isSakana ? '#c62828' : '#2e7d32'};">${sellDays}</b></div>`
       : '';
+    let throwLine = '';
+    if (isSakana && pak.cartons > 0 && daySales > 0 && pak.daysLeft != null) {
+      const effectiveDays = Math.max(0, pak.daysLeft - (shelfLife ?? 0));
+      const canSell       = effectiveDays * daySales;
+      const throwAway     = Math.ceil(Math.max(0, pak.cartons - canSell));
+      if (throwAway > 0) {
+        throwLine = `<div style="font-size:9px;font-weight:bold;color:#c62828;margin-top:2px;">~${throwAway} קרט לזריקה</div>`;
+      }
+    }
     return `<div style="line-height:1.6;padding:4px 0;border-bottom:1px solid #e8e8e8;">`
          + `<div>${sakanaTag}<span style="font-weight:bold;color:${dateColor};">תוקף: ${fmt(pak.date)}</span>`
          + ` <span style="font-size:9px;color:${daysColor};">(${pak.daysLeft??'?'} ימים)</span></div>`
+         + `<div style="height:4px;"></div>`
          + `<div style="color:#1565C0;font-weight:bold;">כמות: ${Math.round(pak.cartons)} קרט</div>`
          + sellLine
+         + throwLine
          + `</div>`;
   };
 
