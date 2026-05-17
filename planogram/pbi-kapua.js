@@ -630,6 +630,28 @@ async function fetchPakuotForMakats(makatim) {
   return result;
 }
 
+// ── Fetch MLAY names for any list of מקטים ───────────────────────────────────
+async function fetchNamesForMakats(makatim) {
+  if (!makatim || !makatim.length) return {};
+  const t = await getToken();
+  const mkSet = '{' + makatim.map(m => `"${m}"`).join(',') + '}';
+  const rows = await dax(t, `
+    EVALUATE
+    FILTER(
+      SELECTCOLUMNS(MLAY, "mk", MLAY[מק'ט], "name", MLAY[תאור מוצר]),
+      CONTAINSROW(${mkSet}, [mk])
+    )
+  `);
+  const result = {};
+  for (const r of rows) {
+    const mk   = String(r['[mk]'] || '');
+    const name = r['[name]'];
+    if (mk && name) result[mk] = name.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim();
+  }
+  console.log(`Names fetched for ${Object.keys(result).length} חלבי/דגים products`);
+  return result;
+}
+
 // ── Fetch pakuotZafn (expiry batches at Zafn) for any list of מקטים ─────────
 async function fetchPakuotZafnForMakats(makatim) {
   if(!makatim || !makatim.length) return {};
@@ -698,4 +720,4 @@ async function fetchPakuotAllForMakats(makatim) {
   return result;
 }
 
-module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, getToken };
+module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, getToken };
