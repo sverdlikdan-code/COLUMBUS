@@ -381,21 +381,14 @@ async function fetchKapuaFromBI(makatim) {
     if (result[mk].pakuotZafn?.length > 1) result[mk].pakuotZafn.sort((a, b) => (a.date||0) - (b.date||0));
   }
 
-  // nameEn from MLAY[תאור מוצר] — richer names than KARTIS PARIT[תאור]
-  for (const r of mlayDescRows) {
-    const mk = r["MLAY[מק'ט]"];
-    if (!mk) continue;
-    ensure(mk);
-    const name = r["MLAY[תאור מוצר]"];
-    result[mk].nameEn = (name && name.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim()) || null;
-  }
-
-  // shelfLife from KARTIS PARIT[חיי מדף] (Query 8)
+  // nameEn + shelfLife from KARTIS PARIT (Query 8) — authoritative product catalog
   for (const r of nameEnRows) {
     const mk = String(r['KARTIS PARIT[מק"ט]'] || '');
     if (!mk) continue;
     ensure(mk);
     result[mk].shelfLife = r['[shelfLife]'] ?? null;
+    const kpName = r['KARTIS PARIT[תאור]'];
+    if (kpName) result[mk].nameEn = kpName.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim() || null;
   }
 
   for (const r of packFactorRows) {
