@@ -177,14 +177,15 @@ async function fetchKapuaFromBI(makatim) {
       ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
     `),
 
-    // 8. Product names + unit weight from KARTIS PARIT
+    // 8. Product names + unit weight + shelf life from KARTIS PARIT
     dax(t, `
       EVALUATE
       SUMMARIZECOLUMNS(
         'KARTIS PARIT'[מק"ט],
         'KARTIS PARIT'[תאור],
         'KARTIS PARIT'[משקל ליחידה],
-        FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] = "פעיל")
+        FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] = "פעיל"),
+        "shelfLife", MAX('KARTIS PARIT'[חיי מדף])
       )
     `),
 
@@ -379,6 +380,14 @@ async function fetchKapuaFromBI(makatim) {
     ensure(mk);
     const name = r["MLAY[תאור מוצר]"];
     result[mk].nameEn = (name && name.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim()) || null;
+  }
+
+  // shelfLife from KARTIS PARIT[חיי מדף] (Query 8)
+  for (const r of nameEnRows) {
+    const mk = String(r['KARTIS PARIT[מק"ט]'] || '');
+    if (!mk) continue;
+    ensure(mk);
+    result[mk].shelfLife = r['[shelfLife]'] ?? null;
   }
 
   for (const r of packFactorRows) {
@@ -744,60 +753,29 @@ async function fetchPakuotAllForMakats(makatim) {
   return result;
 }
 
-// ── Fetch חיי מדף נדרשים (required shelf life) per product from KARTIS PARIT ──
-// NOTE: exact column name must be discovered from the actual Fabric dataset.
-// On failure: logs a warning and returns {} so the build continues without shelf life data.
+// ── Fetch חיי מדף (required shelf life) per product from KARTIS PARIT ──
 async function fetchShelfLifeForMakats(makatim) {
   if (!makatim || !makatim.length) return {};
   const t = await getToken();
-
-  // Discover KARTIS PARIT columns containing "מדף" on first call
-  try {
-    const sample = await dax(t, `EVALUATE TOPN(1, 'KARTIS PARIT')`);
-    if (sample.length) {
-      const cols = Object.keys(sample[0]).filter(c => c.includes('מדף') || c.includes('shelf') || c.includes('Shelf'));
-      if (cols.length) console.log('KARTIS PARIT columns with מדף/shelf:', cols.join(', '));
-      else console.warn('KARTIS PARIT: no מדף/shelf columns found. All cols:', Object.keys(sample[0]).join(', '));
-    }
-  } catch(e) { console.warn('KARTIS PARIT discovery failed:', e.message); }
-
-  // Try known column name variants
-  const colCandidates = [
-    `MAX('KARTIS PARIT'[חיי מדף נדרשים])`,
-    `MAX('KARTIS PARIT'[ימי מדף])`,
-    `MAX('KARTIS PARIT'[חיי מדף])`,
-    `MAX('KARTIS PARIT'[מדף ימים])`,
-  ];
-
   const mkSet = '{' + makatim.map(m => `"${m}"`).join(',') + '}';
-  for (const col of colCandidates) {
-    try {
-      const rows = await dax(t, `
-        EVALUATE
-        SUMMARIZECOLUMNS(
-          'KARTIS PARIT'[מק"ט],
-          FILTER('KARTIS PARIT',
-            CONTAINSROW(${mkSet}, 'KARTIS PARIT'[מק"ט]) &&
-            'KARTIS PARIT'[סטטוס] = "פעיל"
-          ),
-          "shelfLife", ${col}
-        )
-      `);
-      console.log(`shelfLife column found: ${col} — ${rows.length} rows`);
-      const result = {};
-      for (const r of rows) {
-        const mk = String(r['KARTIS PARIT[מק"ט]'] || '');
-        if (!mk) continue;
-        result[mk] = r['[shelfLife]'] ?? null;
-      }
-      return result;
-    } catch(e) {
-      console.warn(`shelfLife col ${col} failed: ${e.message.substring(0, 120)}`);
-    }
+  const rows = await dax(t, `
+    EVALUATE
+    SUMMARIZECOLUMNS(
+      'KARTIS PARIT'[מק"ט],
+      FILTER('KARTIS PARIT',
+        CONTAINSROW(${mkSet}, 'KARTIS PARIT'[מק"ט]) &&
+        'KARTIS PARIT'[סטטוס] = "פעיל"
+      ),
+      "shelfLife", MAX('KARTIS PARIT'[חיי מדף])
+    )
+  `);
+  const result = {};
+  for (const r of rows) {
+    const mk = String(r['KARTIS PARIT[מק"ט]'] || '');
+    if (!mk) continue;
+    result[mk] = r['[shelfLife]'] ?? null;
   }
-
-  console.warn('fetchShelfLifeForMakats: all column candidates failed, returning {}');
-  return {};
+  return result;
 }
 
 module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, getToken };
