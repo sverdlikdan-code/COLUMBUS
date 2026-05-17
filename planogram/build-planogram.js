@@ -14,7 +14,7 @@ if (!process.env.PBI_TENANT && process.env.AZURE_TENANT_ID) {
 const fs      = require('fs');
 const path    = require('path');
 const ExcelJS = require('exceljs');
-const { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats } = require('./pbi-kapua');
+const { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchHalaviFromBI } = require('./pbi-kapua');
 const { fetchExtraSheets }   = require('./pbi-extra-sheets');
 
 // ─── Sheets to hide in output (set [] when all ready to publish) ──────────
@@ -744,39 +744,42 @@ async function main() {
   if (newKapuaProds.length)
     console.log(`🆕 New קפוא products: ${newKapuaProds.length} (picks ${maxKapuaPick+1}–${maxKapuaPick+newKapuaProds.length})`);
 
-  // Load source product files
-  const wbHalavi = new ExcelJS.Workbook();
-  await wbHalavi.xlsx.readFile('MAHSAN חלבי/חלבי.xlsx');
-  const halaviProds = await readProducts(wbHalavi, cleanFam);
+  // חלבי — from PBI / KARTIS PARIT (replaces MAHSAN חלבי/חלבי.xlsx)
+  const halaviData = await fetchHalaviFromBI();
+  const halaviProds = Object.values(halaviData);
+  for (const [mk, p] of Object.entries(halaviData)) {
+    if (p.desc) nameEnMap[mk] = p.desc;
+  }
 
+  // דגים — still from Excel
   const wbDagim = new ExcelJS.Workbook();
   await wbDagim.xlsx.readFile('MAHSAN דגים/דגים.xlsx');
   const dagimProds = await readProducts(wbDagim, cleanFam);
 
-  console.log(`חלבי: ${halaviProds.length} active | דגים: ${dagimProds.length} active`);
+  console.log(`חלבי: ${halaviProds.length} active (from PBI) | דגים: ${dagimProds.length} active`);
 
-  // Fetch stock/sales (Main only) + pakuot for חלבי + דגים from Fabric
+  // Fetch stock/sales + pakuot for דגים only (חלבי already fetched inside fetchHalaviFromBI)
   {
-    const nonKapuaMakats = [...halaviProds, ...dagimProds].map(p => p.makat);
+    const dagimMakats = dagimProds.map(p => p.makat);
     const [stockMap, namesMap, pakuotMap, pakuotZafnMap, pakuotAllMap, shelfLifeMap] = await Promise.all([
-      fetchStockMain(nonKapuaMakats),
-      fetchNamesForMakats(nonKapuaMakats),
-      fetchPakuotForMakats(nonKapuaMakats),
-      fetchPakuotZafnForMakats(nonKapuaMakats),
-      fetchPakuotAllForMakats(nonKapuaMakats),
-      fetchShelfLifeForMakats(nonKapuaMakats),
+      fetchStockMain(dagimMakats),
+      fetchNamesForMakats(dagimMakats),
+      fetchPakuotForMakats(dagimMakats),
+      fetchPakuotZafnForMakats(dagimMakats),
+      fetchPakuotAllForMakats(dagimMakats),
+      fetchShelfLifeForMakats(dagimMakats),
     ]);
     Object.assign(nameEnMap, namesMap);
-    for(const p of [...halaviProds, ...dagimProds]) {
+    for (const p of dagimProds) {
       const fm = stockMap[p.makat];
       if (fm) {
-        p.stock         = fm.stock;
-        p.daySales      = fm.daySales;
-        p.daySalesAll   = fm.daySalesAll;
-        p.stockZafn     = fm.stockZafn     ?? null;
-        p.daySalesZafn  = fm.daySalesZafn  ?? null;
-        p.stockTrnz     = fm.stockTrnz     ?? null;
-        p.daySalesTrnz  = fm.daySalesTrnz  ?? null;
+        p.stock        = fm.stock;
+        p.daySales     = fm.daySales;
+        p.daySalesAll  = fm.daySalesAll;
+        p.stockZafn    = fm.stockZafn    ?? null;
+        p.daySalesZafn = fm.daySalesZafn ?? null;
+        p.stockTrnz    = fm.stockTrnz    ?? null;
+        p.daySalesTrnz = fm.daySalesTrnz ?? null;
       }
       p.pakuot     = pakuotMap[p.makat]     || [];
       p.pakuotZafn = pakuotZafnMap[p.makat] || [];

@@ -755,6 +755,92 @@ async function fetchPakuotAllForMakats(makatim) {
   return result;
 }
 
+// ── חלבי family names — source: משפחת מוצר לפי מחסן.xlsx (section = "חלבי") ──────────────
+// Update this list when families are added/removed in the reference Excel.
+const HALAVI_FAM_NAMES = [
+  'גבינה SVALIA',
+  'גבינה פרוסות SVALIA',
+  'גבינות PRESIDENT',
+  'דייסה /יוגורט/שמנת SVALIA',
+  "טבורוג/קוטג'/גבינה למריחה SVALIA",
+];
+
+// ── Fetch all active חלבי products from KARTIS PARIT + live stock/sales/pakuot ──
+// Replaces reading MAHSAN חלבי/חלבי.xlsx — single source of truth is KARTIS PARIT.
+async function fetchHalaviFromBI(famNames) {
+  famNames = famNames || HALAVI_FAM_NAMES;
+  const t = await getToken();
+  const famFilter = '{' + famNames.map(f => `"${f}"`).join(',') + '}';
+
+  const kpRows = await dax(t, `
+    EVALUATE
+    SELECTCOLUMNS(
+      FILTER('KARTIS PARIT',
+        'KARTIS PARIT'[סטטוס] = "פעיל" &&
+        CONTAINSROW(${famFilter}, 'KARTIS PARIT'[תאור משפחה])
+      ),
+      "makat",     'KARTIS PARIT'[מק"ט],
+      "name",      'KARTIS PARIT'[תאור],
+      "fam",       'KARTIS PARIT'[תאור משפחה],
+      "weight",    'KARTIS PARIT'[משקל ליחידה],
+      "shelfLife", 'KARTIS PARIT'[חיי מדף]
+    )
+  `);
+
+  const result = {};
+  const makatim = [];
+  for (const r of kpRows) {
+    const mk = String(r['[makat]'] || '');
+    if (!mk) continue;
+    const raw = r['[name]'] || '';
+    result[mk] = {
+      makat:     mk,
+      desc:      raw.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim() || null,
+      fam:       r['[fam]'] || null,
+      weight:    r['[weight]'] ?? null,
+      shelfLife: r['[shelfLife]'] ?? null,
+      dayAvg:    null, ss: null,
+      stock: 0, daySales: null, daySalesAll: null,
+      stockZafn: 0, daySalesZafn: null,
+      stockTrnz: 0, daySalesTrnz: null,
+      pakuot: [], pakuotZafn: [], pakuotAll: [],
+    };
+    makatim.push(mk);
+  }
+
+  if (!makatim.length) {
+    console.warn('fetchHalaviFromBI: no products found — check HALAVI_FAM_NAMES vs KARTIS PARIT[תאור משפחה]');
+    return result;
+  }
+
+  const [stockMap, pakuotMap, pakuotZafnMap, pakuotAllMap] = await Promise.all([
+    fetchStockMain(makatim),
+    fetchPakuotForMakats(makatim),
+    fetchPakuotZafnForMakats(makatim),
+    fetchPakuotAllForMakats(makatim),
+  ]);
+
+  for (const mk of makatim) {
+    const fm = stockMap[mk] || {};
+    Object.assign(result[mk], {
+      stock:        fm.stock        ?? 0,
+      daySales:     fm.daySales     ?? null,
+      daySalesAll:  fm.daySalesAll  ?? null,
+      stockZafn:    fm.stockZafn    ?? 0,
+      daySalesZafn: fm.daySalesZafn ?? null,
+      stockTrnz:    fm.stockTrnz    ?? 0,
+      daySalesTrnz: fm.daySalesTrnz ?? null,
+      pakuot:       pakuotMap[mk]     || [],
+      pakuotZafn:   pakuotZafnMap[mk] || [],
+      pakuotAll:    pakuotAllMap[mk]  || [],
+    });
+    result[mk].dayAvg = result[mk].daySales;
+  }
+
+  console.log(`fetchHalaviFromBI: ${makatim.length} active חלבי products from KARTIS PARIT`);
+  return result;
+}
+
 // ── Fetch חיי מדף (required shelf life) per product from KARTIS PARIT ──
 async function fetchShelfLifeForMakats(makatim) {
   if (!makatim || !makatim.length) return {};
@@ -780,4 +866,4 @@ async function fetchShelfLifeForMakats(makatim) {
   return result;
 }
 
-module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, getToken };
+module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchHalaviFromBI, getToken };
