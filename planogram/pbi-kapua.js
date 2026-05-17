@@ -431,10 +431,10 @@ async function fetchKapuaFromBI(makatim) {
   const withSales = Object.keys(result).filter(m => result[m].daySales != null).length;
   if (newMks.length) console.log(`🆕 פעיל new makatim in families: ${newMks.join(', ')}`);
   const nameEnMap = {};
-  for (const r of mlayDescRows) {
-    const mk   = r["MLAY[מק'ט]"];
-    const name = r["MLAY[תאור מוצר]"];
-    if (mk) nameEnMap[String(mk)] = (name && name.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim()) || null;
+  for (const r of nameEnRows) {
+    const mk   = String(r['KARTIS PARIT[מק"ט]'] || '');
+    const name = r['KARTIS PARIT[תאור]'];
+    if (mk) nameEnMap[mk] = (name && name.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim()) || null;
   }
 
   console.log(`Power BI קפוא: ${Object.keys(result).length} total (${newMks.length} new) | ${noStk} zero-stock | ${withSales} with sales`);
@@ -639,48 +639,24 @@ async function fetchPakuotForMakats(makatim) {
   return result;
 }
 
-// ── Fetch MLAY names for any list of מקטים ───────────────────────────────────
-// Falls back to KARTIS PARIT[תאור] for products not found in MLAY (e.g. dagim 403xxx)
+// ── Fetch product names from KARTIS PARIT[תאור] for any list of מקטים ────────
 async function fetchNamesForMakats(makatim) {
   if (!makatim || !makatim.length) return {};
   const t = await getToken();
   const mkSet = '{' + makatim.map(m => `"${m}"`).join(',') + '}';
-
-  // Primary: MLAY (richer Hebrew names)
-  const mlayRows = await dax(t, `
+  const rows = await dax(t, `
     EVALUATE
     FILTER(
-      SELECTCOLUMNS(MLAY, "mk", MLAY[מק'ט], "name", MLAY[תאור מוצר]),
+      SELECTCOLUMNS('KARTIS PARIT', "mk", 'KARTIS PARIT'[מק"ט], "name", 'KARTIS PARIT'[תאור]),
       CONTAINSROW(${mkSet}, [mk])
     )
   `);
   const result = {};
-  for (const r of mlayRows) {
+  for (const r of rows) {
     const mk   = String(r['[mk]'] || '');
     const name = r['[name]'];
     if (mk && name) result[mk] = name.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim();
   }
-
-  // Fallback: KARTIS PARIT[תאור] for products missing from MLAY
-  const missing = makatim.filter(m => !result[m]);
-  if (missing.length) {
-    const missingSet = '{' + missing.map(m => `"${m}"`).join(',') + '}';
-    try {
-      const kpRows = await dax(t, `
-        EVALUATE
-        FILTER(
-          SELECTCOLUMNS('KARTIS PARIT', "mk", 'KARTIS PARIT'[מק"ט], "name", 'KARTIS PARIT'[תאור]),
-          CONTAINSROW(${missingSet}, [mk])
-        )
-      `);
-      for (const r of kpRows) {
-        const mk   = String(r['[mk]'] || '');
-        const name = r['[name]'];
-        if (mk && name && !result[mk]) result[mk] = name.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim();
-      }
-    } catch(e) { console.warn('KARTIS PARIT name fallback failed:', e.message); }
-  }
-
   console.log(`Names fetched for ${Object.keys(result).length}/${makatim.length} חלבי/דגים products`);
   return result;
 }
