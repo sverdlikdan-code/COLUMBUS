@@ -751,34 +751,22 @@ async function fetchPakuotAllForMakats(makatim) {
   return result;
 }
 
-// ── חלבי MLAY family codes — source: משפחת מוצר לפי מחסן.xlsx col "משפחת מוצר N"
-// Same pattern as KAPUA_FAM_CODES — use MLAY codes to discover makats,
-// intersect with active KARTIS PARIT, get product details from KARTIS PARIT.
+// ── חלבי family codes — KARTIS PARIT[משפחת מוצר] column
+// Source: משפחת מוצר לפי מחסן.xlsx col "משפחת מוצר N" (section = "חלבי")
 const HALAVI_FAM_CODES = ['025', '028', '018', '021', '020'];
 
 // ── Fetch all active חלבי products from KARTIS PARIT + live stock/sales/pakuot ──
-// Uses MLAY codes to discover product list (same as fetchKapuaFromBI).
-// Product details (name, weight, shelfLife) come from KARTIS PARIT.
+// Filters KARTIS PARIT directly by [משפחת מוצר] code — no MLAY dependency.
 async function fetchHalaviFromBI() {
   const t = await getToken();
   const famCodes = HALAVI_FAM_CODES.map(c => `"${c}"`).join(',');
-
-  // Active חלבי makats: MLAY family codes ∩ active KARTIS PARIT
-  const halaviMakatim = `
-    INTERSECT(
-      SELECTCOLUMNS(
-        FILTER(MLAY, CONTAINSROW({${famCodes}}, MLAY[משפחת מוצר])),
-        "mk", MLAY[מק'ט]
-      ),
-      CALCULATETABLE(VALUES('KARTIS PARIT'[מק"ט]), 'KARTIS PARIT'[סטטוס]="פעיל")
-    )`;
 
   const kpRows = await dax(t, `
     EVALUATE
     SELECTCOLUMNS(
       FILTER('KARTIS PARIT',
         'KARTIS PARIT'[סטטוס] = "פעיל" &&
-        CONTAINSROW(${halaviMakatim}, 'KARTIS PARIT'[מק"ט])
+        CONTAINSROW({${famCodes}}, 'KARTIS PARIT'[משפחת מוצר])
       ),
       "makat",     'KARTIS PARIT'[מק"ט],
       "name",      'KARTIS PARIT'[תאור],
