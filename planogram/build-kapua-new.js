@@ -140,21 +140,51 @@ async function dax(token, query) {
     console.warn(`⚠ ${products.length - WORKING_SLOTS} products overflow ${WORKING_SLOTS} working slots`);
   }
 
-  // ── Step 3: Assign products to picks ────────────────────────────────────
-  const picks = {};
-  for (let i = 1; i <= WORKING_SLOTS; i++) {
-    const prod = products[i - 1];
-    picks[String(i)] = prod ? { makat: prod.makat, fam: prod.fam, name: null } : null;
+  // ── Step 3: Preserve ברירת מחדל, add new products to reserve slots ──────────
+  // Existing picks (ברירת מחדל) are kept as-is.
+  // New products (not yet in any pick) are placed into empty reserve slots.
+  const existingPicks = existing.picks || {};
+  const existingMakatSet = new Set(
+    Object.values(existingPicks).filter(Boolean).map(p => String(p.makat))
+  );
+
+  // Empty reserve slots: layout positions >= RESERVE_START with no product assigned
+  const emptyReserveSlots = Object.keys(layout)
+    .map(Number)
+    .sort((a, b) => a - b)
+    .filter(pk => pk >= RESERVE_START && (!existingPicks[String(pk)] || existingPicks[String(pk)] === null));
+
+  const picks = { ...existingPicks };
+
+  // Ensure all reserve layout positions exist as null (so editor shows them)
+  for (const pk of Object.keys(layout).filter(k => Number(k) >= RESERVE_START)) {
+    if (!(pk in picks)) picks[pk] = null;
   }
-  for (let i = 0; i < RESERVE_SLOTS; i++) {
-    picks[String(RESERVE_START + i)] = null;
+
+  // New products → reserve slots, sorted by sales desc
+  const newProducts = products.filter(p => !existingMakatSet.has(String(p.makat)));
+  let slotIdx = 0;
+  const added = [];
+  for (const prod of newProducts) {
+    if (slotIdx >= emptyReserveSlots.length) { console.warn(`⚠ No reserve slot for new product ${prod.makat}`); break; }
+    const pk = String(emptyReserveSlots[slotIdx++]);
+    picks[pk] = { makat: prod.makat, fam: prod.fam, name: null };
+    added.push(`${prod.makat}(${prod.fam})→pick${pk}`);
   }
 
   // ── Step 4: Write kapua-base.json ─────────────────────────────────────────
+  // Change v only when new products appear — triggers state reset in editor.
   const today = new Date().toISOString().slice(0, 10);
-  const result = { picks, layout, maxCols, maxRows, reserveStart: RESERVE_START, v: `${today}-kapua-v5` };
+  const newV  = added.length > 0 ? `${today}-kapua-new` : (existing.v || `${today}-kapua-v5`);
+  const result = { picks, layout, maxCols, maxRows, reserveStart: RESERVE_START, v: newV };
   fs.writeFileSync(OUT_PATH, JSON.stringify(result, null, 2), 'utf8');
-  console.log(`\n✅ Written: ${OUT_PATH}`);
+
+  if (added.length) {
+    console.log(`\n✅ Written: ${OUT_PATH} — ${added.length} new products added to reserve:`);
+    added.forEach(s => console.log(`  ${s}`));
+  } else {
+    console.log(`\n✅ Written: ${OUT_PATH} — ברירת מחדל preserved, ${products.length} products known, 0 new`);
+  }
 
   // Summary by family
   const famCounts = {};
