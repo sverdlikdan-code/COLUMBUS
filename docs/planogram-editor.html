@@ -1078,7 +1078,11 @@ async function refreshData() {
     if (cur === 'kapua')  renderGrid('kapua',  KAPUA_LAYOUT,  KAPUA_MAX.cols,  KAPUA_MAX.rows,  KAPUA_RESERVE_START);
     if (cur === 'halavi') renderGrid('halavi', HALAVI_LAYOUT, HALAVI_MAX.cols, HALAVI_MAX.rows, HALAVI_RESERVE_START);
     if (cur === 'dagim')  renderGrid('dagim',  DAGIM_LAYOUT,  DAGIM_MAX.cols,  DAGIM_MAX.rows,  DAGIM_RESERVE_START);
-    if (cur === 'yavesh') { const count = Object.keys(state.yavesh).length; const COLS = 10; renderGrid('yavesh', makeSeqLayout(count, COLS), COLS, Math.ceil(count / COLS)); }
+    if (cur === 'yavesh') {
+      if (!Object.keys(state.yavesh).length) Object.assign(state.yavesh, deepClone(dyBase.picks || dyBase));
+      const lay = dyBase.layout || makeSeqLayout(Object.keys(state.yavesh).length, dyBase.maxCols || 10);
+      renderGrid('yavesh', lay, dyBase.maxCols || 10, dyBase.maxRows || 4, dyBase.reserveStart);
+    }
     buildLegend(); updateTabPalTotals();
     setStatus('✅ נתונים עודכנו');
   } catch(e) {
@@ -1124,13 +1128,10 @@ function switchTab(name, tabEl) {
     if (name === 'halavi') renderGrid('halavi', HALAVI_LAYOUT, HALAVI_MAX.cols, HALAVI_MAX.rows, HALAVI_RESERVE_START);
     if (name === 'dagim')  renderGrid('dagim',  DAGIM_LAYOUT,  DAGIM_MAX.cols,  DAGIM_MAX.rows,  DAGIM_RESERVE_START);
     if (name === 'yavesh') {
-      // Populate state from base data if not yet loaded from localStorage
       if (!Object.keys(state.yavesh).length)
-        Object.assign(state.yavesh, deepClone(dyBase));
-      const count = Object.keys(state.yavesh).length;
-      const COLS  = 10;
-      const lay   = makeSeqLayout(count, COLS);
-      renderGrid('yavesh', lay, COLS, Math.ceil(count / COLS));
+        Object.assign(state.yavesh, deepClone(dyBase.picks || dyBase));
+      const lay  = dyBase.layout || makeSeqLayout(Object.keys(state.yavesh).length, dyBase.maxCols || 10);
+      renderGrid('yavesh', lay, dyBase.maxCols || 10, dyBase.maxRows || 4, dyBase.reserveStart);
     }
   }
   setStatus('מוכן לעריכה');
