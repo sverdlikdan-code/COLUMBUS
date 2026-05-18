@@ -1352,16 +1352,18 @@ async function main() {
         Object.values(hb.picks).filter(Boolean).map(p => String(p.makat))
       );
 
-      // Find empty reserve pick slots (pick has null value but layout position exists)
+      // Find empty RESERVE pick slots only (>= reserveStart)
       const emptySlots = Object.keys(hb.layout)
         .map(Number)
         .sort((a, b) => a - b)
-        .filter(pk => !hb.picks[pk] || hb.picks[pk] === null);
+        .filter(pk => pk >= (hb.reserveStart || 61) && (!hb.picks[String(pk)] || hb.picks[String(pk)] === null));
 
       let slotIdx = 0;
       const added = [];
-      for (const p of halaviProds) {
-        if (hbMakatSet.has(String(p.makat))) continue;
+      const newHalaviProds = halaviProds
+        .filter(p => !hbMakatSet.has(String(p.makat)) && p.daySales > 0)
+        .sort((a, b) => (b.daySales || 0) - (a.daySales || 0));
+      for (const p of newHalaviProds) {
         if (slotIdx >= emptySlots.length) break;
         const pk = String(emptySlots[slotIdx++]);
         hb.picks[pk] = { makat: p.makat, fam: p.fam || '', name: nameEnMap[String(p.makat)] || null };
@@ -1388,12 +1390,14 @@ async function main() {
       const emptySlots = Object.keys(db.layout || {})
         .map(Number)
         .sort((a, b) => a - b)
-        .filter(pk => !db.picks[pk] || db.picks[pk] === null);
+        .filter(pk => pk >= (db.reserveStart || 59) && (!db.picks[String(pk)] || db.picks[String(pk)] === null));
 
       let slotIdx = 0;
       const added = [];
-      for (const p of dagimProds) {
-        if (dbMakatSet.has(String(p.makat))) continue;
+      const newDagimProds = dagimProds
+        .filter(p => !dbMakatSet.has(String(p.makat)) && p.daySales > 0)
+        .sort((a, b) => (b.daySales || 0) - (a.daySales || 0));
+      for (const p of newDagimProds) {
         if (slotIdx >= emptySlots.length) break;
         const pk = String(emptySlots[slotIdx++]);
         db.picks[pk] = { makat: p.makat, fam: p.fam || '', name: nameEnMap[String(p.makat)] || null };
