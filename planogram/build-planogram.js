@@ -1352,7 +1352,20 @@ async function main() {
         Object.values(hb.picks).filter(Boolean).map(p => String(p.makat))
       );
 
-      // Find empty RESERVE pick slots only (>= reserveStart)
+      // Clean reserve slots first: null products with zero stock AND zero 90-day sales
+      const halaviProdMap = {};
+      for (const p of halaviProds) halaviProdMap[String(p.makat)] = p;
+      let hCleaned = 0;
+      for (const [bay, pick] of Object.entries(hb.picks)) {
+        if (!pick || Number(bay) < (hb.reserveStart || 61)) continue;
+        const prod = halaviProdMap[String(pick.makat)];
+        if (!prod || ((prod.stock || 0) <= 0 && (prod.daySales90 || 0) <= 0)) {
+          hb.picks[bay] = null;
+          hCleaned++;
+        }
+      }
+
+      // Find empty RESERVE pick slots after cleanup
       const emptySlots = Object.keys(hb.layout)
         .map(Number)
         .sort((a, b) => a - b)
@@ -1370,11 +1383,11 @@ async function main() {
         added.push(`${p.makat}→pick${pk}`);
       }
 
-      if (added.length) {
+      if (added.length || hCleaned > 0) {
         fs.writeFileSync(hbPath, JSON.stringify(hb, null, 2), 'utf8');
-        console.log(`halavi-base.json: auto-added ${added.length} new products: ${added.join(', ')}`);
+        console.log(`halavi-base.json: +${added.length} added, -${hCleaned} cleaned from reserve`);
       } else {
-        console.log(`halavi-base.json: all ${halaviProds.length} halavi products already mapped`);
+        console.log(`halavi-base.json: all ${halaviProds.length} halavi products mapped, reserve clean`);
       }
     }
 
@@ -1386,6 +1399,19 @@ async function main() {
       const dbMakatSet = new Set(
         Object.values(db.picks).filter(Boolean).map(p => String(p.makat))
       );
+
+      // Clean reserve slots first: null products with zero stock AND zero 90-day sales
+      const dagimProdMap = {};
+      for (const p of dagimProds) dagimProdMap[String(p.makat)] = p;
+      let dCleaned = 0;
+      for (const [bay, pick] of Object.entries(db.picks)) {
+        if (!pick || Number(bay) < (db.reserveStart || 59)) continue;
+        const prod = dagimProdMap[String(pick.makat)];
+        if (!prod || ((prod.stock || 0) <= 0 && (prod.daySales90 || 0) <= 0)) {
+          db.picks[bay] = null;
+          dCleaned++;
+        }
+      }
 
       const emptySlots = Object.keys(db.layout || {})
         .map(Number)
@@ -1404,11 +1430,11 @@ async function main() {
         added.push(`${p.makat}→pick${pk}`);
       }
 
-      if (added.length) {
+      if (added.length || dCleaned > 0) {
         fs.writeFileSync(dbPath, JSON.stringify(db, null, 2), 'utf8');
-        console.log(`dagim-base.json: auto-added ${added.length} new products: ${added.join(', ')}`);
+        console.log(`dagim-base.json: +${added.length} added, -${dCleaned} cleaned from reserve`);
       } else {
-        console.log(`dagim-base.json: all ${dagimProds.length} dagim products already mapped`);
+        console.log(`dagim-base.json: all ${dagimProds.length} dagim products mapped, reserve clean`);
       }
     }
   }
