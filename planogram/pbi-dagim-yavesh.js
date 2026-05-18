@@ -169,8 +169,9 @@ async function fetchDagimYaveshFromBI() {
       EVALUATE
       SUMMARIZECOLUMNS(
         'KARTIS PARIT'[מק"ט],
-        'KARTIS PARIT'[שם מוצר לועזי],
-        'KARTIS PARIT'[שם מוצר],
+        'KARTIS PARIT'[תאור לועזי],
+        'KARTIS PARIT'[תאור],
+        'KARTIS PARIT'[חיי מדף],
         FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] = "פעיל")
       )
     `),
@@ -178,7 +179,7 @@ async function fetchDagimYaveshFromBI() {
 
   const result = {};
   function ensure(mk) {
-    if (!result[mk]) result[mk] = { desc: null, stock: 0, daySales: null, pakuot: [], daySalesAll: null, pakuotAll: [], fam: null, nameEn: null };
+    if (!result[mk]) result[mk] = { desc: null, stock: 0, daySales: null, pakuot: [], daySalesAll: null, pakuotAll: [], fam: null, nameEn: null, shelfLife: null };
   }
 
   for (const r of stockRows) {
@@ -250,12 +251,15 @@ async function fetchDagimYaveshFromBI() {
   const nameEnMap = {};
   for (const r of nameEnRows) {
     const mk  = r['KARTIS PARIT[מק"ט]'];
-    const lou = r['KARTIS PARIT[שם מוצר לועזי]'];
-    const heb = r['KARTIS PARIT[שם מוצר]'];
+    const lou = r['KARTIS PARIT[תאור לועזי]'];
+    const heb = r['KARTIS PARIT[תאור]'];
     if (!mk) continue;
     const name = (lou && lou.trim()) || (heb && heb.trim()) || null;
     nameEnMap[String(mk)] = name;
-    if (result[mk]) result[mk].nameEn = name;
+    if (result[mk]) {
+      result[mk].nameEn    = name;
+      result[mk].shelfLife = r['KARTIS PARIT[חיי מדף]'] ?? null;
+    }
   }
 
   const total     = Object.keys(result).length;

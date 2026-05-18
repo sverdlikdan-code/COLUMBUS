@@ -16,6 +16,7 @@ const path    = require('path');
 const ExcelJS = require('exceljs');
 const { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchHalaviFromBI, fetchDagimFromBI, fetchPhotoUrls } = require('./pbi-kapua');
 const { fetchExtraSheets }   = require('./pbi-extra-sheets');
+const { fetchDagimYaveshFromBI } = require('./pbi-dagim-yavesh');
 
 // ─── Sheets to hide in output (set [] when all ready to publish) ──────────
 const HIDDEN_SHEETS = ['MAHSAN חלבי', 'MAHSAN דגים', 'סדר חלבי', 'סדר דגים',
@@ -1247,6 +1248,30 @@ async function main() {
         }
         console.log(`דג יבש: ${dagyaveshMakatim.length} מקטים → product-data.json`);
       }
+    }
+
+    // ── דג יבש — merge into product-data.json (cartons only, no pallets) ─────
+    {
+      const { dagimYaveshData } = await fetchDagimYaveshFromBI();
+      let yaveshAdded = 0;
+      for (const [mk, d] of Object.entries(dagimYaveshData)) {
+        if (d.stock <= 0 && !d.daySales) continue;
+        const stockAll = d.pakuotAll.reduce((s, p) => s + (p.cartons || 0), 0);
+        prodData[mk] = {
+          stock:        d.stock        || 0,
+          daySales:     d.daySales     || null,
+          pakuot:       d.pakuot       || [],
+          pakuotAll:    d.pakuotAll    || [],
+          daySalesAll:  d.daySalesAll  || null,
+          daysStockAll: (d.daySalesAll > 0 && stockAll > 0) ? Math.round(stockAll / d.daySalesAll) : null,
+          nameEn:       d.nameEn ? fixVisualRTL(d.nameEn) : (d.desc ? fixVisualRTL(d.desc) : null),
+          desc:         d.desc  ? fixVisualRTL(d.desc)  : null,
+          shelfLife:    d.shelfLife    ?? null,
+          yavesh:       true,
+        };
+        yaveshAdded++;
+      }
+      console.log(`דג יבש: ${yaveshAdded} מקטים → product-data.json`);
     }
 
     fs.writeFileSync(path.join(__dirname,'..','docs','product-data.json'),
