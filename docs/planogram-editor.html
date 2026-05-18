@@ -730,6 +730,22 @@ async function loadMaps() {
     productPhotos = pp;
     dyBase        = dy;
 
+    // Apply fresh dagim-yavesh-base.json — version check resets stale localStorage picks
+    if (dy && dy.picks) {
+      const savedYaveshV = localStorage.getItem('yavesh_base_v');
+      const freshYaveshV = dy.v != null ? String(dy.v) : '';
+      if (freshYaveshV && savedYaveshV !== freshYaveshV) {
+        state.yavesh = deepClone(dy.picks);
+        localStorage.setItem('yavesh_base_v', freshYaveshV);
+        console.log(`dagim-yavesh-base.json: version changed ${savedYaveshV} → ${freshYaveshV}, state reset`);
+      } else {
+        for (const [pick, p] of Object.entries(dy.picks)) {
+          if (!(pick in state.yavesh)) state.yavesh[pick] = p ? { ...p } : null;
+        }
+      }
+      console.log(`dagim-yavesh-base.json: ${Object.keys(dy.picks).length} picks, v=${freshYaveshV}`);
+    }
+
     // Apply fresh kapua-base.json (includes new PBI products + updated names)
     if (kb && kb.picks) {
       Object.assign(KAPUA_BASE,   kb.picks);
