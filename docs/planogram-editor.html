@@ -126,9 +126,11 @@
     .slot.has-photo { transition: transform 0.18s ease, box-shadow 0.18s ease, z-index 0s; }
     .slot.has-photo:hover {
       transform: scale(2.2);
+      transform-origin: center top;
       z-index: 9999;
       box-shadow: 0 8px 28px rgba(0,0,0,0.55);
     }
+    .slot.has-photo:hover .edit-btn { display: inline !important; }
     .slot.has-photo .slot-id {
       padding: 2px 5px; display: flex; align-items: center; gap: 4px;
       background: rgba(0,0,0,0.035); flex-shrink: 0;
@@ -137,7 +139,14 @@
     .slot-makat-badge { font-size: 10px; font-weight: bold; color: #222; }
 
     /* Text mode */
-    .slot.text-mode { padding: 5px 6px; flex-direction: column; }
+    .slot.text-mode { padding: 5px 6px; flex-direction: column; transition: transform 0.18s ease, box-shadow 0.18s ease; }
+    .slot.text-mode:hover {
+      transform: scale(2.2);
+      transform-origin: center top;
+      z-index: 9999;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.55);
+    }
+    .slot.text-mode:hover .edit-btn { display: inline !important; }
     .slot.text-mode .s-pick  { font-size: 10px; color: #777; font-weight: bold; }
     .slot.text-mode .s-makat { font-size: 11px; color: #333; margin: 1px 0; }
     .slot.text-mode .s-name  {
