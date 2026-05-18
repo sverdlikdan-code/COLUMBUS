@@ -1279,6 +1279,14 @@ async function main() {
         yaveshAdded++;
       }
       console.log(`דג יבש: ${yaveshAdded} מקטים → product-data.json`);
+
+      // Force yavesh:true on all base picks — some Russia makats are also in dagim section
+      // and get overwritten without the flag; this ensures they render as יבש cards
+      for (const [, item] of Object.entries(dagyaveshPicks)) {
+        if (!item) continue;
+        const mk = String(item.makat);
+        if (prodData[mk]) prodData[mk].yavesh = true;
+      }
     }
 
     fs.writeFileSync(path.join(__dirname,'..','docs','product-data.json'),
