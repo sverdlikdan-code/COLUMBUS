@@ -96,7 +96,7 @@ async function fetchHalaviFromBI() {
         ),
         'ALL_PARTS'[חברה] = "FORMULA",
         'ALL_PARTS'[מחסן] = "Main",
-        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 90),
+        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 45),
         TREATAS(${famMakatim}, 'ALL_PARTS'[מק'ט])
       )
     `),
@@ -149,7 +149,7 @@ async function fetchHalaviFromBI() {
           "daySalesAll", [TOTAL מכר בקרטונים ממוצע ביום]
         ),
         'ALL_PARTS'[חברה] = "FORMULA",
-        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 90),
+        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 45),
         TREATAS(${famMakatim}, 'ALL_PARTS'[מק'ט])
       )
     `),

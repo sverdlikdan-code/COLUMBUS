@@ -29,7 +29,7 @@ async function main() {
       ),
       'ALL_PARTS'[חברה] = "FORMULA",
       'ALL_PARTS'[מחסן] = "Main",
-      FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 90),
+      FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 45),
       TREATAS(${famMakatim}, 'ALL_PARTS'[מק'ט])
     )
   `);
@@ -49,7 +49,7 @@ async function main() {
       ),
       'ALL_PARTS'[חברה] = "FORMULA",
       KEEPFILTERS('ALL_PARTS'[מחסן] = "Main"),
-      FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 90),
+      FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 45),
       TREATAS(${famMakatim}, 'ALL_PARTS'[מק'ט])
     )
   `);
