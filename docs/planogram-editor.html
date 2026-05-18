@@ -697,7 +697,7 @@ function stockHTML(makat) {
     ? `<div class="s-pal-big">${Math.round(palStock)} <span class="s-pal-unit">PAL</span></div>` : '';
   const kartLine = stock != null ? `<span class="s-kart">${stock}קרט</span>` : '';
   const kratLine = d.kratnost > 0 ? `<span class="s-krat"> [${d.kratnost}]</span>` : '';
-  const noDataLine = wh === 'Main' && !(d.kratnost > 0)
+  const noDataLine = wh === 'Main' && !(d.kratnost > 0) && !d.yavesh
     ? `<div style="font-weight:bold;color:#e53935;font-size:10px;line-height:1.2;">NO DATA</div>` : '';
   const wCarton  = d.weightCarton != null && d.weightCarton > 0 ? d.weightCarton
                  : (d.weight != null && d.weight > 0 && d.packFactor > 0 ? +(d.weight * d.packFactor).toFixed(1) : null);
