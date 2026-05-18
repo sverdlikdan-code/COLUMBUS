@@ -95,7 +95,7 @@ async function fetchDagimYaveshFromBI() {
         ),
         'ALL_PARTS'[חברה] = "FORMULA",
         'ALL_PARTS'[מחסן] = "Main",
-        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 90),
+        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 45),
         TREATAS(${famMakatim}, 'ALL_PARTS'[מק'ט])
       )
     `),
@@ -148,7 +148,7 @@ async function fetchDagimYaveshFromBI() {
           "daySalesAll", [TOTAL מכר בקרטונים ממוצע ביום]
         ),
         'ALL_PARTS'[חברה] = "FORMULA",
-        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 90),
+        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 45),
         TREATAS(${famMakatim}, 'ALL_PARTS'[מק'ט])
       )
     `),
@@ -200,7 +200,7 @@ async function fetchDagimYaveshFromBI() {
         ),
         'ALL_PARTS'[חברה] = "FORMULA",
         'ALL_PARTS'[מחסן] = "Zafn",
-        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 90),
+        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 45),
         TREATAS(${famMakatim}, 'ALL_PARTS'[מק'ט])
       )
     `),
