@@ -307,6 +307,8 @@
 ">
   <div style="display:flex;align-items:center;gap:10px;padding:10px 18px;background:#c62828;position:sticky;top:0;z-index:10;">
     <span style="font-weight:bold;font-size:13px;color:#fff;flex:1;" id="expiry-title">דוח תוקף</span>
+    <button id="btn-sakana-filter"  onclick="toggleSakanaFilter()"  style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.5);color:#fff;font-size:11px;font-weight:bold;cursor:pointer;border-radius:4px;padding:4px 12px;">⚠ סכנה בלבד</button>
+    <button id="btn-zafn-low-filter" onclick="toggleZafnLowFilter()" style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.5);color:#fff;font-size:11px;font-weight:bold;cursor:pointer;border-radius:4px;padding:4px 12px;">📦 צפון &lt;3 ימים</button>
     <button onclick="window.print()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;cursor:pointer;border-radius:4px;padding:4px 12px;">🖨 הדפס</button>
     <button onclick="toggleExpiryPage()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:16px;cursor:pointer;border-radius:4px;padding:2px 8px;">✕</button>
   </div>
@@ -1568,10 +1570,30 @@ function toggleExpiryPage() {
   if (open) buildExpiryPage();
 }
 
+window._expiryOnlySakana  = false;
+window._expiryZafnLow    = false;
+function toggleSakanaFilter() {
+  window._expiryOnlySakana = !window._expiryOnlySakana;
+  const btn = document.getElementById('btn-sakana-filter');
+  if (btn) {
+    btn.style.background = window._expiryOnlySakana ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)';
+    btn.style.color      = window._expiryOnlySakana ? '#c62828'               : '#fff';
+  }
+  buildExpiryPage();
+}
+function toggleZafnLowFilter() {
+  window._expiryZafnLow = !window._expiryZafnLow;
+  const btn = document.getElementById('btn-zafn-low-filter');
+  if (btn) {
+    btn.style.background = window._expiryZafnLow ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)';
+    btn.style.color      = window._expiryZafnLow ? '#c62828'               : '#fff';
+  }
+  buildExpiryPage();
+}
+
 function buildExpiryPage() {
   const sec   = window._currentSection || 'kapua';
   const order = _getPrintOrder(sec);
-  document.getElementById('expiry-title').textContent = `דוח תוקף — ${sec} (${order.length} מוצרים)`;
   const grid  = document.getElementById('expiry-grid');
 
   const fmt = (isoDate) => {
@@ -1622,26 +1644,38 @@ function buildExpiryPage() {
          + `</div>`;
   };
 
-  grid.innerHTML = order.map((pick, idx) => {
+  const cards = order.map((pick) => {
     const p = state[sec][pick];
-    if (!p) return '';
-    const mk   = String(p.makat);
-    const d    = productData[mk] || {};
-    if (!(d.stock > 0) && !(d.stockZafn > 0)) return '';
+    if (!p) return null;
+    const mk = String(p.makat);
+    const d  = productData[mk] || {};
+    if (!(d.stock > 0) && !(d.stockZafn > 0)) return null;
+    const salesMain = d.daySales || 0;
+    const salesZafn = d.daySalesZafn || 0;
+    const shelfLife = d.shelfLife ?? 0;
+    const batches   = { main: d.pakuot || [], zafn: d.pakuotZafn || [] };
+    const sakanaMain = batches.main.some(b => batchSakana(b, salesMain, shelfLife)?.isSakana);
+    const sakanaZafn = batches.zafn.some(b => batchSakana(b, salesZafn, shelfLife)?.isSakana);
+    if (window._expiryOnlySakana && !(sakanaMain || sakanaZafn)) return null;
+    const zafnDays = (salesZafn > 0 && d.stockZafn > 0) ? d.stockZafn / salesZafn : null;
+    if (window._expiryZafnLow && !(zafnDays != null && zafnDays < 3)) return null;
+    return { pick, p, mk, d, salesMain, salesZafn, shelfLife, batches, sakanaMain, sakanaZafn, zafnDays };
+  }).filter(Boolean);
+
+  const totalWithStock = order.filter(pk => { const d = productData[String(state[sec][pk]?.makat)] || {}; return (d.stock > 0) || (d.stockZafn > 0); }).length;
+  const filtered = window._expiryOnlySakana || window._expiryZafnLow;
+  document.getElementById('expiry-title').textContent = filtered
+    ? `דוח תוקף — ${sec} (${cards.length} / ${totalWithStock} מוצרים)`
+    : `דוח תוקף — ${sec} (${totalWithStock} מוצרים)`;
+
+  grid.innerHTML = cards.map(({ pick, p, mk, d, salesMain, salesZafn, shelfLife, batches, sakanaMain, sakanaZafn }) => {
     const name = p.name || d.nameEn || d.desc || p.fam || mk;
     const photoUrl = getPhotoUrl(mk);
     const imgHtml  = photoUrl
       ? `<img src="${photoUrl}" style="width:72px;height:72px;object-fit:contain;border-radius:6px;border:1px solid #e0e0e0;" onerror="this.style.display='none'">`
       : `<div style="width:72px;height:72px;background:#f5f5f5;border-radius:6px;border:1px solid #e0e0e0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#aaa;">📷</div>`;
 
-    const salesMain = d.daySales || 0;
-    const salesZafn = d.daySalesZafn || 0;
-    const batches   = { main: d.pakuot || [], zafn: d.pakuotZafn || [] };
-    const maxRows   = Math.max(batches.main.length, batches.zafn.length, 1);
-
-    const shelfLife  = d.shelfLife ?? 0;
-    const sakanaMain = batches.main.some(b => batchSakana(b, salesMain, shelfLife)?.isSakana);
-    const sakanaZafn = batches.zafn.some(b => batchSakana(b, salesZafn, shelfLife)?.isSakana);
+    const maxRows    = Math.max(batches.main.length, batches.zafn.length, 1);
     const cardBorder = (sakanaMain || sakanaZafn) ? '2px solid #c62828' : '1px solid #dde0e8';
 
     const thMain = sakanaMain
