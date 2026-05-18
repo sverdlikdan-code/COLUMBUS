@@ -473,7 +473,7 @@ async function fetchStockMain(makatim) {
   const t = await getToken();
   const mkSet = '{' + makatim.map(m => `"${m}"`).join(',') + '}';
 
-  const [stockRows, salesRows, salesAllRows, stockZafnRows, stockTrnzRows, salesZafnRows, salesTrnzRows] = await Promise.all([
+  const [stockRows, salesRows, salesAllRows, stockZafnRows, stockTrnzRows, salesZafnRows, salesTrnzRows, sales90Rows] = await Promise.all([
     dax(t, `
       EVALUATE
       SUMMARIZECOLUMNS(
@@ -558,10 +558,23 @@ async function fetchStockMain(makatim) {
         TREATAS(${mkSet}, 'ALL_PARTS'[מק'ט])
       )
     `),
+    // 90-day eligibility check (all warehouses) — used only for reserve-slot filter, not displayed
+    dax(t, `
+      EVALUATE
+      CALCULATETABLE(
+        ADDCOLUMNS(
+          SUMMARIZE('ALL_PARTS', 'ALL_PARTS'[מק'ט]),
+          "daySales90", [TOTAL מכר בקרטונים ממוצע ביום]
+        ),
+        'ALL_PARTS'[חברה] = "FORMULA",
+        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 90),
+        TREATAS(${mkSet}, 'ALL_PARTS'[מק'ט])
+      )
+    `),
   ]);
 
   const result = {};
-  for (const mk of makatim) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0, daySalesZafn: null, daySalesTrnz: null };
+  for (const mk of makatim) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0, daySalesZafn: null, daySalesTrnz: null, daySales90: null };
 
   for (const r of stockRows) {
     const mk = r['מלאי-תוקף[מק"ט]'];
@@ -604,6 +617,13 @@ async function fetchStockMain(makatim) {
     if (!mk) continue;
     if (!result[mk]) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0, daySalesZafn: null, daySalesTrnz: null };
     result[mk].daySalesTrnz = r['[daySalesTrnz]'] || null;
+  }
+
+  for (const r of sales90Rows) {
+    const mk = r["ALL_PARTS[מק'ט]"];
+    if (!mk) continue;
+    if (!result[mk]) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0, daySalesZafn: null, daySalesTrnz: null, daySales90: null };
+    result[mk].daySales90 = r['[daySales90]'] || null;
   }
 
   console.log(`Stock/sales Main: ${Object.values(result).filter(v=>v.stock>0).length}/${makatim.length} with stock`);
@@ -808,6 +828,7 @@ async function fetchHalaviFromBI() {
       stock:        fm.stock        ?? 0,
       daySales:     fm.daySales     ?? null,
       daySalesAll:  fm.daySalesAll  ?? null,
+      daySales90:   fm.daySales90   ?? null,
       stockZafn:    fm.stockZafn    ?? 0,
       daySalesZafn: fm.daySalesZafn ?? null,
       stockTrnz:    fm.stockTrnz    ?? 0,
@@ -900,6 +921,7 @@ async function fetchDagimFromBI() {
       stock:        fm.stock        ?? 0,
       daySales:     fm.daySales     ?? null,
       daySalesAll:  fm.daySalesAll  ?? null,
+      daySales90:   fm.daySales90   ?? null,
       stockZafn:    fm.stockZafn    ?? 0,
       daySalesZafn: fm.daySalesZafn ?? null,
       stockTrnz:    fm.stockTrnz    ?? 0,
