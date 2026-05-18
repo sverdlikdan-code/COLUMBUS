@@ -1219,15 +1219,17 @@ async function main() {
     {
       const dagyaveshBase = JSON.parse(fs.readFileSync(
         path.join(__dirname, '..', 'docs', 'dagim-yavesh-base.json'), 'utf8'));
+      const dagyaveshPicks = dagyaveshBase.picks || dagyaveshBase;
       const dagyaveshMakatim = [...new Set(
-        Object.values(dagyaveshBase).map(v => String(v.makat)).filter(Boolean)
+        Object.values(dagyaveshPicks).filter(Boolean).map(v => String(v.makat)).filter(Boolean)
       )];
       if (dagyaveshMakatim.length) {
         const [dyStockMap, dyShelfLifeMap] = await Promise.all([
           fetchStockMain(dagyaveshMakatim),
           fetchShelfLifeForMakats(dagyaveshMakatim),
         ]);
-        for (const [, item] of Object.entries(dagyaveshBase)) {
+        for (const [, item] of Object.entries(dagyaveshPicks)) {
+          if (!item) continue;
           const mk = String(item.makat);
           if (!mk) continue;
           if (prodData[mk]) continue; // already in another section
@@ -1244,9 +1246,11 @@ async function main() {
             pakuot: [], pakuotAll: [],
             shelfLife:    dyShelfLifeMap[mk] ?? null,
           };
-          prodData[mk] = mkEntry(p);
+          const entry = mkEntry(p);
+          entry.yavesh = true;
+          prodData[mk] = entry;
         }
-        console.log(`דג יבש: ${dagyaveshMakatim.length} מקטים → product-data.json`);
+        console.log(`דג יבש (base): ${dagyaveshMakatim.length} מקטים → product-data.json`);
       }
     }
 
