@@ -51,6 +51,6 @@ jobs:
         run: |
           git config user.name  "Planogram Bot"
           git config user.email "planogram@formula.co.il"
-          git add docs/product-data.json docs/kapua-base.json docs/refresh-info.json docs/halavi-base.json docs/dagim-base.json
+          git add docs/product-data.json docs/kapua-base.json docs/refresh-info.json docs/halavi-base.json docs/dagim-base.json docs/product-photos.json
           git diff --cached --quiet && echo "No changes" || git commit -m "Planogram update $(TZ='Asia/Jerusalem' date '+%Y-%m-%d %H:%M')"
           git push

@@ -940,4 +940,27 @@ async function fetchShelfLifeForMakats(makatim) {
   return result;
 }
 
-module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchHalaviFromBI, fetchDagimFromBI, getToken };
+async function fetchPhotoUrls() {
+  const t = await getToken();
+  const rows = await dax(t, `
+    EVALUATE
+    FILTER(
+      SUMMARIZECOLUMNS(
+        'KARTIS PARIT'[מק"ט],
+        'KARTIS PARIT'[URL תמונה],
+        FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] = "פעיל")
+      ),
+      NOT ISBLANK('KARTIS PARIT'[URL תמונה]) && 'KARTIS PARIT'[URL תמונה] <> ""
+    )
+  `);
+  const result = {};
+  for (const r of rows) {
+    const mk  = String(r['KARTIS PARIT[מק"ט]'] || '').trim();
+    const url = String(r['KARTIS PARIT[URL תמונה]'] || '').trim();
+    if (mk && url) result[mk] = url;
+  }
+  console.log(`Photo URLs fetched: ${Object.keys(result).length}`);
+  return result;
+}
+
+module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchHalaviFromBI, fetchDagimFromBI, fetchPhotoUrls, getToken };
