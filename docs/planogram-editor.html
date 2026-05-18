@@ -751,7 +751,8 @@ async function loadMaps() {
         console.log(`dagim-yavesh-base.json: version changed ${savedYaveshV} → ${freshYaveshV}, state reset`);
       } else {
         for (const [pick, p] of Object.entries(dy.picks)) {
-          if (!(pick in state.yavesh)) state.yavesh[pick] = p ? { ...p } : null;
+          if (!p) { state.yavesh[pick] = null; }
+          else if (!(pick in state.yavesh)) state.yavesh[pick] = { ...p };
         }
       }
       console.log(`dagim-yavesh-base.json: ${Object.keys(dy.picks).length} picks, v=${freshYaveshV}`);
@@ -801,7 +802,8 @@ async function loadMaps() {
         console.log(`halavi-base.json: version changed ${savedHalaviV} → ${freshHalaviV}, state reset`);
       } else {
         for (const [pick, p] of Object.entries(hb.picks)) {
-          if (!(pick in state.halavi)) state.halavi[pick] = p ? { ...p } : null;
+          if (!p) { state.halavi[pick] = null; }
+          else if (!(pick in state.halavi)) state.halavi[pick] = { ...p };
         }
       }
       console.log(`halavi-base.json: ${Object.keys(hb.picks).length} picks, reserveStart=${hb.reserveStart}`);
@@ -823,7 +825,8 @@ async function loadMaps() {
         console.log(`dagim-base.json: version changed ${savedDagimV} → ${freshDagimV}, state reset`);
       } else {
         for (const [pick, p] of Object.entries(db.picks)) {
-          if (!(pick in state.dagim)) state.dagim[pick] = p ? { ...p } : null;
+          if (!p) { state.dagim[pick] = null; }
+          else if (!(pick in state.dagim)) state.dagim[pick] = { ...p };
         }
       }
       console.log(`dagim-base.json: ${Object.keys(db.picks).length} picks, reserveStart=${db.reserveStart}`);
