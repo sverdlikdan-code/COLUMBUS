@@ -14,7 +14,7 @@ if (!process.env.PBI_TENANT && process.env.AZURE_TENANT_ID) {
 const fs      = require('fs');
 const path    = require('path');
 const ExcelJS = require('exceljs');
-const { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchHalaviFromBI, fetchDagimFromBI } = require('./pbi-kapua');
+const { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchHalaviFromBI, fetchDagimFromBI, fetchPhotoUrls } = require('./pbi-kapua');
 const { fetchExtraSheets }   = require('./pbi-extra-sheets');
 
 // ─── Sheets to hide in output (set [] when all ready to publish) ──────────
@@ -1252,6 +1252,12 @@ async function main() {
     fs.writeFileSync(path.join(__dirname,'..','docs','product-data.json'),
       JSON.stringify(prodData, null, 2), 'utf8');
     console.log(`product-data.json: ${Object.keys(prodData).length} מקטים`);
+
+    // ── product-photos.json — makat → Priority photo URL ────────────────
+    const photoUrls = await fetchPhotoUrls();
+    fs.writeFileSync(path.join(__dirname,'..','docs','product-photos.json'),
+      JSON.stringify(photoUrls, null, 2), 'utf8');
+    console.log(`product-photos.json: ${Object.keys(photoUrls).length} URLs`);
 
     // ── kapua-base.json — all קפוא picks + layout for the HTML editor ────
     const EDITOR_COLS          = 19;
