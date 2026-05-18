@@ -47,7 +47,7 @@ async function main() {
       ),
       'ALL_PARTS'[חברה] = "FORMULA",
       'ALL_PARTS'[מק'ט] = "732",
-      FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 90)
+      FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 45)
     )
     ORDER BY 'ALL_PARTS'[מחסן]
   `);

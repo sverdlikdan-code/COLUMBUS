@@ -91,7 +91,7 @@ async function fetchZafnDanger(token) {
       ),
       'ALL_PARTS'[חברה] = "FORMULA",
       'ALL_PARTS'[מחסן] = "Zafn",
-      FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 90)
+      FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 45)
     )
   `);
 
