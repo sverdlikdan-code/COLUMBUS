@@ -740,12 +740,14 @@ async function loadMaps() {
     dyBase        = dy;
 
     // Apply fresh dagim-yavesh-base.json — version check resets stale localStorage picks
+    let _anyVersionReset = false;
     if (dy && dy.picks) {
       const savedYaveshV = localStorage.getItem('yavesh_base_v');
       const freshYaveshV = dy.v != null ? String(dy.v) : '';
       if (freshYaveshV && savedYaveshV !== freshYaveshV) {
         state.yavesh = deepClone(dy.picks);
         localStorage.setItem('yavesh_base_v', freshYaveshV);
+        _anyVersionReset = true;
         console.log(`dagim-yavesh-base.json: version changed ${savedYaveshV} → ${freshYaveshV}, state reset`);
       } else {
         for (const [pick, p] of Object.entries(dy.picks)) {
@@ -769,6 +771,7 @@ async function loadMaps() {
       if (freshVer && savedVer !== freshVer) {
         state.kapua = deepClone(kb.picks);
         localStorage.setItem('kapua_base_v', freshVer);
+        _anyVersionReset = true;
         console.log(`kapua-base.json: version changed ${savedVer} → ${freshVer}, state reset`);
       } else {
         for (const [pick, p] of Object.entries(kb.picks)) {
@@ -794,6 +797,7 @@ async function loadMaps() {
       if (freshHalaviV && savedHalaviV !== freshHalaviV) {
         state.halavi = deepClone(hb.picks);
         localStorage.setItem('halavi_base_v', freshHalaviV);
+        _anyVersionReset = true;
         console.log(`halavi-base.json: version changed ${savedHalaviV} → ${freshHalaviV}, state reset`);
       } else {
         for (const [pick, p] of Object.entries(hb.picks)) {
@@ -815,6 +819,7 @@ async function loadMaps() {
       if (freshDagimV && savedDagimV !== freshDagimV) {
         state.dagim = deepClone(db.picks);
         localStorage.setItem('dagim_base_v', freshDagimV);
+        _anyVersionReset = true;
         console.log(`dagim-base.json: version changed ${savedDagimV} → ${freshDagimV}, state reset`);
       } else {
         for (const [pick, p] of Object.entries(db.picks)) {
@@ -826,6 +831,12 @@ async function loadMaps() {
 
     if (ri && ri.label) {
       document.getElementById('refresh-badge').textContent = '🔄 ' + ri.label;
+    }
+
+    // Persist reset state so ALL users see fresh layout without manual איפוס
+    if (_anyVersionReset) {
+      localStorage.setItem('mahsan_editor', JSON.stringify(state));
+      console.log('State persisted after version reset — all users will see fresh layout');
     }
 
     // Compute medals + heavy threshold after all data loaded
