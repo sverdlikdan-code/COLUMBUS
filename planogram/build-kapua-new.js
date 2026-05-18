@@ -148,18 +148,30 @@ async function dax(token, query) {
     Object.values(existingPicks).filter(Boolean).map(p => String(p.makat))
   );
 
-  // Empty reserve slots: layout positions >= RESERVE_START with no product assigned
-  const emptyReserveSlots = Object.keys(layout)
-    .map(Number)
-    .sort((a, b) => a - b)
-    .filter(pk => pk >= RESERVE_START && (!existingPicks[String(pk)] || existingPicks[String(pk)] === null));
-
   const picks = { ...existingPicks };
 
   // Ensure all reserve layout positions exist as null (so editor shows them)
   for (const pk of Object.keys(layout).filter(k => Number(k) >= RESERVE_START)) {
     if (!(pk in picks)) picks[pk] = null;
   }
+
+  // Clean reserve slots: null products with zero 365-day sales (not in active products list)
+  const activeKapuaSet = new Set(products.map(p => String(p.makat)));
+  let kCleaned = 0;
+  for (const pk of Object.keys(picks)) {
+    if (Number(pk) < RESERVE_START || !picks[pk]) continue;
+    if (!activeKapuaSet.has(String(picks[pk].makat))) {
+      picks[pk] = null;
+      kCleaned++;
+    }
+  }
+  if (kCleaned > 0) console.log(`kapua-base.json: cleaned ${kCleaned} reserve slots (zero 365d sales / inactive)`);
+
+  // Empty reserve slots after cleanup
+  const emptyReserveSlots = Object.keys(layout)
+    .map(Number)
+    .sort((a, b) => a - b)
+    .filter(pk => pk >= RESERVE_START && (!picks[String(pk)] || picks[String(pk)] === null));
 
   // New products → reserve slots, sorted by sales desc
   const newProducts = products.filter(p => !existingMakatSet.has(String(p.makat)));
