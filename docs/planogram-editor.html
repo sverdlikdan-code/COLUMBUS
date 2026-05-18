@@ -1573,22 +1573,24 @@ function toggleExpiryPage() {
 window._expiryOnlySakana  = false;
 window._expiryZafnLow    = false;
 function toggleSakanaFilter() {
-  window._expiryOnlySakana = !window._expiryOnlySakana;
-  const btn = document.getElementById('btn-sakana-filter');
-  if (btn) {
-    btn.style.background = window._expiryOnlySakana ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)';
-    btn.style.color      = window._expiryOnlySakana ? '#c62828'               : '#fff';
-  }
+  const wasOn = window._expiryOnlySakana;
+  window._expiryZafnLow    = false;
+  window._expiryOnlySakana = !wasOn;
+  _syncFilterBtns();
   buildExpiryPage();
 }
 function toggleZafnLowFilter() {
-  window._expiryZafnLow = !window._expiryZafnLow;
-  const btn = document.getElementById('btn-zafn-low-filter');
-  if (btn) {
-    btn.style.background = window._expiryZafnLow ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)';
-    btn.style.color      = window._expiryZafnLow ? '#c62828'               : '#fff';
-  }
+  const wasOn = window._expiryZafnLow;
+  window._expiryOnlySakana = false;
+  window._expiryZafnLow    = !wasOn;
+  _syncFilterBtns();
   buildExpiryPage();
+}
+function _syncFilterBtns() {
+  const bs = document.getElementById('btn-sakana-filter');
+  const bz = document.getElementById('btn-zafn-low-filter');
+  if (bs) { bs.style.background = window._expiryOnlySakana ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)'; bs.style.color = window._expiryOnlySakana ? '#c62828' : '#fff'; }
+  if (bz) { bz.style.background = window._expiryZafnLow    ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)'; bz.style.color = window._expiryZafnLow    ? '#c62828' : '#fff'; }
 }
 
 function buildExpiryPage() {
@@ -1634,10 +1636,9 @@ function buildExpiryPage() {
         throwLine = `<div style="display:inline-block;font-size:9px;font-weight:bold;color:#c62828;margin-top:3px;border:1.5px solid #222;border-radius:3px;padding:1px 6px;">צפי ~${throwAway} קרט לזריקה</div>`;
       }
     }
-    return `<div style="line-height:1.6;padding:4px 0;border-bottom:1px solid #e8e8e8;">`
-         + `<div>${sakanaTag}<span style="font-weight:bold;color:${dateColor};">תוקף: ${fmt(pak.date)}</span>`
-         + ` <span style="font-size:9px;color:${daysColor};">(${pak.daysLeft??'?'} ימים)</span></div>`
-         + `<div style="height:4px;"></div>`
+    return `<div style="padding:5px 0;border-bottom:1px solid #e8e8e8;">`
+         + `<div>${sakanaTag}<span style="font-weight:bold;color:${dateColor};">תוקף: ${fmt(pak.date)}</span></div>`
+         + `<div style="font-size:9px;color:${daysColor};margin-bottom:4px;">(${pak.daysLeft??'?'} ימים)</div>`
          + `<div style="color:#1565C0;font-weight:bold;">כמות: ${Math.round(pak.cartons)} קרט</div>`
          + sellLine
          + throwLine
