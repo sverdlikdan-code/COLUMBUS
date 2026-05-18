@@ -503,6 +503,7 @@ let editMode    = false; // view mode by default — drag+edit buttons disabled
 let photoMap    = {};   // EAN  → { id, url }
 let makatEan    = {};   // מקט  → EAN
 let productData = {};   // מקט  → { stock, daySales, kratnost, palStock }
+let productPhotos = {}; // מקט  → Priority URL (from KARTIS PARIT[URL תמונה])
 let dyBase      = {};   // pick → { makat, fam, name }  — דג יבש base data
 
 // Base data populated from JSON (used for reset)
@@ -606,6 +607,9 @@ function offUrl(ean) {
 
 function getPhotoUrl(makat) {
   if (hiddenPhotos.has(String(makat))) return null;
+  // Priority: 1) KARTIS PARIT URL, 2) local EAN photo, 3) local makat PNG
+  const priorityUrl = productPhotos[String(makat)];
+  if (priorityUrl) return priorityUrl;
   const ean = makatEan[String(makat)];
   if (ean) {
     const entry = photoMap[String(ean)];
@@ -709,20 +713,22 @@ function stockHTML(makat) {
 async function loadMaps() {
   const base = './';
   try {
-    const [pm, me, pd, dy, kb, hb, db, ri] = await Promise.all([
+    const [pm, me, pd, pp, dy, kb, hb, db, ri] = await Promise.all([
       fetch(base + 'photo-map.json?t='         + Date.now()).then(r => r.ok ? r.json() : {}),
       fetch(base + 'makat-ean.json?t='         + Date.now()).then(r => r.ok ? r.json() : {}),
       fetch(base + 'product-data.json?t='      + Date.now()).then(r => r.ok ? r.json() : {}),
+      fetch(base + 'product-photos.json?t='    + Date.now()).then(r => r.ok ? r.json() : {}).catch(() => ({})),
       fetch(base + 'dagim-yavesh-base.json?t=' + Date.now()).then(r => r.ok ? r.json() : {}),
       fetch(base + 'kapua-base.json?t='        + Date.now()).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(base + 'halavi-base.json?t='       + Date.now()).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(base + 'dagim-base.json?t='        + Date.now()).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(base + 'refresh-info.json?t='      + Date.now()).then(r => r.ok ? r.json() : null).catch(() => null),
     ]);
-    photoMap    = pm;
-    makatEan    = me;
-    productData = pd;
-    dyBase      = dy;
+    photoMap      = pm;
+    makatEan      = me;
+    productData   = pd;
+    productPhotos = pp;
+    dyBase        = dy;
 
     // Apply fresh kapua-base.json (includes new PBI products + updated names)
     if (kb && kb.picks) {
