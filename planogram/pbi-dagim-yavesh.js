@@ -69,7 +69,8 @@ async function fetchDagimYaveshFromBI() {
       CALCULATETABLE(VALUES('KARTIS PARIT'[מק"ט]), 'KARTIS PARIT'[סטטוס]="פעיל")
     )`;
 
-  const [stockRows, salesRows, descRows, mlayDescRows, pakuaRows, salesAllRows, pakuaAllRows, nameEnRows] = await Promise.all([
+  const [stockRows, salesRows, descRows, mlayDescRows, pakuaRows, salesAllRows, pakuaAllRows, nameEnRows,
+         stockZafnRows, salesZafnRows, pakuaZafnRows] = await Promise.all([
 
     // 1. Stock at Main (Ashdod)
     dax(t, `
@@ -164,7 +165,7 @@ async function fetchDagimYaveshFromBI() {
       ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
     `),
 
-    // 8. Product names from KARTIS PARIT — לועזי first, fallback to שם מוצר
+    // 8. Product names from KARTIS PARIT
     dax(t, `
       EVALUATE
       SUMMARIZECOLUMNS(
@@ -175,11 +176,54 @@ async function fetchDagimYaveshFromBI() {
         FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] = "פעיל")
       )
     `),
+
+    // 9. Stock at Zafn (North)
+    dax(t, `
+      EVALUATE
+      SUMMARIZECOLUMNS(
+        'מלאי-תוקף'[מק"ט],
+        FILTER('מלאי-תוקף',
+          'מלאי-תוקף'[מחסן] = "Zafn" &&
+          CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
+        ),
+        "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+      )
+    `),
+
+    // 10. Sales Zafn only
+    dax(t, `
+      EVALUATE
+      CALCULATETABLE(
+        ADDCOLUMNS(
+          SUMMARIZE('ALL_PARTS', 'ALL_PARTS'[מק'ט]),
+          "daySalesZafn", [TOTAL מכר בקרטונים ממוצע ביום]
+        ),
+        'ALL_PARTS'[חברה] = "FORMULA",
+        'ALL_PARTS'[מחסן] = "Zafn",
+        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 90),
+        TREATAS(${famMakatim}, 'ALL_PARTS'[מק'ט])
+      )
+    `),
+
+    // 11. פק"ע batches at Zafn
+    dax(t, `
+      EVALUATE
+      SUMMARIZECOLUMNS(
+        'מלאי-תוקף'[מק"ט],
+        'מלאי-תוקף'[ת. תפוגת תוקף],
+        FILTER('מלאי-תוקף',
+          'מלאי-תוקף'[מחסן] = "Zafn" &&
+          CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
+        ),
+        "cartons", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+      )
+      ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
+    `),
   ]);
 
   const result = {};
   function ensure(mk) {
-    if (!result[mk]) result[mk] = { desc: null, stock: 0, daySales: null, pakuot: [], daySalesAll: null, pakuotAll: [], fam: null, nameEn: null, shelfLife: null };
+    if (!result[mk]) result[mk] = { desc: null, stock: 0, daySales: null, pakuot: [], daySalesAll: null, pakuotAll: [], fam: null, nameEn: null, shelfLife: null, stockZafn: 0, daySalesZafn: null, pakuotZafn: [] };
   }
 
   for (const r of stockRows) {
@@ -246,6 +290,34 @@ async function fetchDagimYaveshFromBI() {
   }
   for (const mk of Object.keys(result)) {
     if (result[mk].pakuotAll.length > 1) result[mk].pakuotAll.sort((a, b) => (a.date||0) - (b.date||0));
+  }
+
+  for (const r of stockZafnRows) {
+    const mk = r['מלאי-תוקף[מק"ט]'];
+    if (!mk) continue;
+    ensure(mk);
+    result[mk].stockZafn = r['[stock]'] || 0;
+  }
+
+  for (const r of salesZafnRows) {
+    const mk = r["ALL_PARTS[מק'ט]"];
+    if (!mk) continue;
+    ensure(mk);
+    result[mk].daySalesZafn = r['[daySalesZafn]'] || null;
+  }
+
+  for (const r of pakuaZafnRows) {
+    const mk = r['מלאי-תוקף[מק"ט]'];
+    const cartons = r['[cartons]'] || 0;
+    if (!mk || cartons <= 0) continue;
+    ensure(mk);
+    const rawDate = r["מלאי-תוקף[ת. תפוגת תוקף]"];
+    let expDate = null, daysLeft = null;
+    if (rawDate) { expDate = new Date(rawDate); daysLeft = Math.round((expDate - today) / 86400000); }
+    result[mk].pakuotZafn.push({ date: expDate, daysLeft, cartons });
+  }
+  for (const mk of Object.keys(result)) {
+    if (result[mk].pakuotZafn.length > 1) result[mk].pakuotZafn.sort((a, b) => (a.date||0) - (b.date||0));
   }
 
   const nameEnMap = {};
