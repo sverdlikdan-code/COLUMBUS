@@ -1374,7 +1374,7 @@ async function main() {
       }
 
       // Find empty RESERVE pick slots after cleanup
-      const emptySlots = Object.keys(hb.layout)
+      const emptySlots = Object.keys(hb.layout || hb.picks)
         .map(Number)
         .sort((a, b) => a - b)
         .filter(pk => pk >= (hb.reserveStart || 61) && (!hb.picks[String(pk)] || hb.picks[String(pk)] === null));
