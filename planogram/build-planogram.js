@@ -1361,8 +1361,8 @@ async function main() {
       let slotIdx = 0;
       const added = [];
       const newHalaviProds = halaviProds
-        .filter(p => !hbMakatSet.has(String(p.makat)) && p.daySales > 0)
-        .sort((a, b) => (b.daySales || 0) - (a.daySales || 0));
+        .filter(p => !hbMakatSet.has(String(p.makat)) && (p.daySales90 || 0) > 0)
+        .sort((a, b) => (b.daySales90 || 0) - (a.daySales90 || 0));
       for (const p of newHalaviProds) {
         if (slotIdx >= emptySlots.length) break;
         const pk = String(emptySlots[slotIdx++]);
@@ -1395,8 +1395,8 @@ async function main() {
       let slotIdx = 0;
       const added = [];
       const newDagimProds = dagimProds
-        .filter(p => !dbMakatSet.has(String(p.makat)) && p.daySales > 0)
-        .sort((a, b) => (b.daySales || 0) - (a.daySales || 0));
+        .filter(p => !dbMakatSet.has(String(p.makat)) && (p.daySales90 || 0) > 0)
+        .sort((a, b) => (b.daySales90 || 0) - (a.daySales90 || 0));
       for (const p of newDagimProds) {
         if (slotIdx >= emptySlots.length) break;
         const pk = String(emptySlots[slotIdx++]);
