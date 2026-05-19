@@ -62,7 +62,7 @@ async function fetchKapuaFromBI(makatim) {
       SELECTCOLUMNS(
         FILTER('KARTIS PARIT',
           'KARTIS PARIT'[סטטוס] = "פעיל" &&
-          'KARTIS PARIT'[שם מחסן אשדוד] = "קפוא"
+          'KARTIS PARIT'[שם מחסן אשדוד] = "קפוא ❄"
         ),
         "mk", 'KARTIS PARIT'[מק"ט]
       ),
@@ -119,6 +119,7 @@ async function fetchKapuaFromBI(makatim) {
         MLAY[מק'ט],
         MLAY[תאור מוצר],
         MLAY[משפחת מוצר],
+        MLAY[תאור משפחה],
         FILTER(MLAY, CONTAINSROW(${famMakatim}, MLAY[מק'ט]))
       )
     `),
@@ -302,8 +303,7 @@ async function fetchKapuaFromBI(makatim) {
     ensure(mk);
     if (!result[mk].desc) result[mk].desc = r["MLAY[תאור מוצר]"] || null;
     if (!result[mk].fam) {
-      const fc = r["MLAY[משפחת מוצר]"];
-      result[mk].fam = (fc && KAPUA_FAM_NAMES[fc]) || fc || null;
+      result[mk].fam = r["MLAY[תאור משפחה]"] || r["MLAY[משפחת מוצר]"] || null;
     }
   }
 
@@ -762,7 +762,7 @@ async function fetchHalaviFromBI() {
     SELECTCOLUMNS(
       FILTER('KARTIS PARIT',
         'KARTIS PARIT'[סטטוס] = "פעיל" &&
-        'KARTIS PARIT'[שם מחסן אשדוד] = "חלבי"
+        'KARTIS PARIT'[שם מחסן אשדוד] = "חלבי 🥛"
       ),
       "makat",     'KARTIS PARIT'[מק"ט],
       "name",      'KARTIS PARIT'[תאור],
@@ -836,7 +836,7 @@ async function fetchDagimFromBI() {
     SELECTCOLUMNS(
       FILTER('KARTIS PARIT',
         'KARTIS PARIT'[סטטוס] = "פעיל" &&
-        'KARTIS PARIT'[שם מחסן אשדוד] = "דגים"
+        'KARTIS PARIT'[שם מחסן אשדוד] = "דגים 🐟"
       ),
       "makat",    'KARTIS PARIT'[מק"ט],
       "name",     'KARTIS PARIT'[תאור],
