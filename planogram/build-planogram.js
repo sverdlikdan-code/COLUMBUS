@@ -788,7 +788,7 @@ async function main() {
   const palletMap = {};
   {
     const wbPal = new ExcelJS.Workbook();
-    await wbPal.xlsx.readFile('FORMULA PALLETS.xlsx');
+    await wbPal.xlsx.readFile(path.join(__dirname, 'FORMULA PALLETS.xlsx'));
     // חטיף גבינה: FORMULA PALLETS col10 = cartons/layer; pallet = 9 layers → ×9
     const PAL_FACTOR_9 = new Set(['815','816','817','818','819','820','821','822','825','826']);
     wbPal.worksheets[0].eachRow((row,r)=>{
@@ -805,7 +805,7 @@ async function main() {
   const weightMap = {};
   {
     const wbPal = new ExcelJS.Workbook();
-    await wbPal.xlsx.readFile('FORMULA PALLETS.xlsx');
+    await wbPal.xlsx.readFile(path.join(__dirname, 'FORMULA PALLETS.xlsx'));
     wbPal.worksheets[0].eachRow((row,r)=>{
       if(r===1) return;
       const makat = String(row.getCell(1).value||'');
@@ -816,7 +816,7 @@ async function main() {
 
   // Load the template (MAHSAN 8.xlsx — 3 sheets)
   const wb = new ExcelJS.Workbook();
-  await wb.xlsx.readFile('MAHSAN 8.xlsx');
+  await wb.xlsx.readFile(path.join(__dirname, 'MAHSAN 8.xlsx'));
 
   // Clear yellow/colored separator rows (thin divider rows in template)
   wb.worksheets.forEach(ws => {
