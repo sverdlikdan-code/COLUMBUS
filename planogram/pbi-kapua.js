@@ -545,23 +545,23 @@ async function fetchStockMain(makatim) {
         TREATAS(${mkSet}, 'ALL_PARTS'[מק'ט])
       )
     `),
-    // 90-day eligibility check (all warehouses) — used only for reserve-slot filter, not displayed
+    // 180-day eligibility check (all warehouses) — used only for reserve-slot filter, not displayed
     dax(t, `
       EVALUATE
       CALCULATETABLE(
         ADDCOLUMNS(
           SUMMARIZE('ALL_PARTS', 'ALL_PARTS'[מק'ט]),
-          "daySales90", [TOTAL מכר בקרטונים ממוצע ביום]
+          "daySales180", [TOTAL מכר בקרטונים ממוצע ביום]
         ),
         'ALL_PARTS'[חברה] = "FORMULA",
-        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 90),
+        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 180),
         TREATAS(${mkSet}, 'ALL_PARTS'[מק'ט])
       )
     `),
   ]);
 
   const result = {};
-  for (const mk of makatim) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0, daySalesZafn: null, daySalesTrnz: null, daySales90: null };
+  for (const mk of makatim) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0, daySalesZafn: null, daySalesTrnz: null, daySales180: null };
 
   for (const r of stockRows) {
     const mk = r['מלאי-תוקף[מק"ט]'];
@@ -609,8 +609,8 @@ async function fetchStockMain(makatim) {
   for (const r of sales90Rows) {
     const mk = r["ALL_PARTS[מק'ט]"];
     if (!mk) continue;
-    if (!result[mk]) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0, daySalesZafn: null, daySalesTrnz: null, daySales90: null };
-    result[mk].daySales90 = r['[daySales90]'] || null;
+    if (!result[mk]) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0, daySalesZafn: null, daySalesTrnz: null, daySales180: null };
+    result[mk].daySales180 = r['[daySales180]'] || null;
   }
 
   console.log(`Stock/sales Main: ${Object.values(result).filter(v=>v.stock>0).length}/${makatim.length} with stock`);
@@ -811,7 +811,7 @@ async function fetchHalaviFromBI() {
       stock:        fm.stock        ?? 0,
       daySales:     fm.daySales     ?? null,
       daySalesAll:  fm.daySalesAll  ?? null,
-      daySales90:   fm.daySales90   ?? null,
+      daySales180:   fm.daySales180   ?? null,
       stockZafn:    fm.stockZafn    ?? 0,
       daySalesZafn: fm.daySalesZafn ?? null,
       stockTrnz:    fm.stockTrnz    ?? 0,
@@ -885,7 +885,7 @@ async function fetchDagimFromBI() {
       stock:        fm.stock        ?? 0,
       daySales:     fm.daySales     ?? null,
       daySalesAll:  fm.daySalesAll  ?? null,
-      daySales90:   fm.daySales90   ?? null,
+      daySales180:   fm.daySales180   ?? null,
       stockZafn:    fm.stockZafn    ?? 0,
       daySalesZafn: fm.daySalesZafn ?? null,
       stockTrnz:    fm.stockTrnz    ?? 0,
