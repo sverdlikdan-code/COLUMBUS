@@ -269,7 +269,7 @@
 <div id="print-header">MAHSAN PLANOGRAM — FORMULA</div>
 
 <div class="toolbar">
-  <button class="btn no-print" id="btn-refresh" onclick="refreshData()"
+  <button class="btn no-print" id="btn-refresh" onclick="location.reload(true)"
     style="background:#0ea5e9;color:#fff;border:1px solid #0284c7;font-weight:bold;">🔄 רענן</button>
   <button class="btn btn-export no-print" onclick="exportCSV()">⬇ CSV</button>
   <button class="btn btn-save no-print"   onclick="saveState()">💾 שמור</button>
@@ -285,7 +285,7 @@
   <button class="btn no-print" id="btn-edit" onclick="toggleEditMode()"
     style="background:#fff3e0;color:#e65100;border:2px solid #ff8f00;font-weight:bold;font-size:16px;padding:10px 22px;min-width:110px;">✏ עריכה</button>
   <button class="btn btn-reset no-print edit-btn" onclick="resetSection()">↩ אפס</button>
-  <button class="btn no-print" onclick="location.reload(true)" style="background:#f0f4ff;color:#2e7d32;border:1px solid #81c784;">🔄 רענון</button>
+
   <button class="btn no-print" id="btn-table" onclick="toggleTable()" style="background:#f0f4ff;color:#1565C0;border:1px solid #1565C0;">📊 מיקום</button>
   <button class="btn no-print" id="btn-expiry" onclick="toggleExpiryPage()" style="background:#f0f4ff;color:#c62828;border:1px solid #ef9a9a;">📦 תוקף</button>
   <span class="no-print" style="margin-right:6px;border-right:1px solid #ccc;padding-right:8px;display:inline-flex;align-items:center;gap:3px;">
