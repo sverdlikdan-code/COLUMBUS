@@ -1225,15 +1225,19 @@ function updateTabPalTotals() {
 // EXPORT / SAVE / RESET
 // ══════════════════════════════════════════════════════════════════════════
 function exportCSV() {
-  const sec   = window._currentSection || 'kapua';
-  const order = _getPrintOrder(sec);
+  const sec         = window._currentSection || 'kapua';
+  const reserveStart = sectionReserveStart(sec);
+  const order = _getPrintOrder(sec).filter(pick => +pick < reserveStart);
   const rows  = ['﻿' + 'סדר הדפסה,ביי,מקט,שם,משפחה'];
-  order.forEach((pick, i) => {
+  const seenMakat = new Set();
+  let printIdx = 0;
+  order.forEach(pick => {
     const p = state[sec][pick];
-    rows.push(p
-      ? `${i+1},${pick},${p.makat},"${(p.name || productData[String(p.makat)]?.nameEn || productData[String(p.makat)]?.desc || '').replace(/"/g,'""')}","${(p.fam||'').replace(/"/g,'""')}"`
-      : `${i+1},${pick},,,`
-    );
+    if (!p) return;
+    if (seenMakat.has(String(p.makat))) return;
+    seenMakat.add(String(p.makat));
+    printIdx++;
+    rows.push(`${printIdx},${pick},${p.makat},"${(p.name || productData[String(p.makat)]?.nameEn || productData[String(p.makat)]?.desc || '').replace(/"/g,'""')}","${(p.fam||'').replace(/"/g,'""')}"`);
   });
   const a = Object.assign(document.createElement('a'), {
     href:     URL.createObjectURL(new Blob([rows.join('\n')], {type:'text/csv;charset=utf-8'})),
