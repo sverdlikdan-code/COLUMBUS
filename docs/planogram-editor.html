@@ -809,6 +809,9 @@ async function loadMaps() {
           if (!p) { state.halavi[pick] = null; }
           else if (!(pick in state.halavi)) state.halavi[pick] = { ...p };
         }
+        for (const pick of Object.keys(state.halavi)) {
+          if (!(pick in hb.picks)) state.halavi[pick] = null;
+        }
       }
       console.log(`halavi-base.json: ${Object.keys(hb.picks).length} picks, reserveStart=${hb.reserveStart}`);
     }
@@ -831,6 +834,9 @@ async function loadMaps() {
         for (const [pick, p] of Object.entries(db.picks)) {
           if (!p) { state.dagim[pick] = null; }
           else if (!(pick in state.dagim)) state.dagim[pick] = { ...p };
+        }
+        for (const pick of Object.keys(state.dagim)) {
+          if (!(pick in db.picks)) state.dagim[pick] = null;
         }
       }
       console.log(`dagim-base.json: ${Object.keys(db.picks).length} picks, reserveStart=${db.reserveStart}`);
