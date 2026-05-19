@@ -25,33 +25,33 @@ async function main() {
     return j?.results?.[0]?.tables?.[0]?.rows || [];
   }
 
-  const famCodes = '"03","031","032","034"';
-
   // Makatim + descriptions
   const mkRows = await dax(`
     EVALUATE
-    SUMMARIZECOLUMNS(
-      MLAY[מק'ט],
-      MLAY[תאור מוצר],
-      MLAY[משפחת מוצר],
-      MLAY[תאור משפחה],
-      FILTER(MLAY, CONTAINSROW({${famCodes}}, MLAY[משפחת מוצר]))
+    SELECTCOLUMNS(
+      FILTER('KARTIS PARIT',
+        'KARTIS PARIT'[סטטוס] = "פעיל" &&
+        'KARTIS PARIT'[שם מחסן אשדוד] = "דג יבש"
+      ),
+      "makat",  'KARTIS PARIT'[מק"ט],
+      "name",   'KARTIS PARIT'[תאור],
+      "famCode",'KARTIS PARIT'[משפחת מוצר],
+      "fam",    'KARTIS PARIT'[תאור משפחה]
     )
-    ORDER BY MLAY[משפחת מוצר], MLAY[מק'ט]
+    ORDER BY 'KARTIS PARIT'[משפחת מוצר], 'KARTIS PARIT'[מק"ט]
   `);
 
+  const yaveshMkats = mkRows.map(r => `"${r['[makat]']}"`).join(',');
+
   // Stock at Main
-  const stockRows = await dax(`
+  const stockRows = !yaveshMkats.length ? [] : await dax(`
     EVALUATE
     SUMMARIZECOLUMNS(
       'מלאי-תוקף'[מק"ט],
       FILTER(
         'מלאי-תוקף',
         'מלאי-תוקף'[מחסן] = "Main" &&
-        CONTAINSROW(
-          SELECTCOLUMNS(FILTER(MLAY, CONTAINSROW({${famCodes}}, MLAY[משפחת מוצר])), "mk", MLAY[מק'ט]),
-          'מלאי-תוקף'[מק"ט]
-        )
+        CONTAINSROW({${yaveshMkats}}, 'מלאי-תוקף'[מק"ט])
       ),
       "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
     )
@@ -68,12 +68,12 @@ async function main() {
 
   const byFam = {};
   for (const r of mkRows) {
-    const mk   = String(r["MLAY[מק'ט]"] || '');
-    const desc = r["MLAY[תאור מוצר]"] || '';
-    const fam  = r["MLAY[משפחת מוצר]"] || '';
-    const famName = r["MLAY[תאור משפחה]"] || '';
-    if (!byFam[fam]) byFam[fam] = { name: famName, items: [] };
-    byFam[fam].items.push({ mk, desc, stock: stockMap[mk] ?? null });
+    const mk      = String(r['[makat]'] || '');
+    const desc    = r['[name]'] || '';
+    const famCode = r['[famCode]'] || '';
+    const famName = r['[fam]'] || '';
+    if (!byFam[famCode]) byFam[famCode] = { name: famName, items: [] };
+    byFam[famCode].items.push({ mk, desc, stock: stockMap[mk] ?? null });
   }
 
   for (const [fam, data] of Object.entries(byFam)) {
