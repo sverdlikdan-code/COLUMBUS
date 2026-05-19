@@ -781,8 +781,8 @@ async function loadMaps() {
       } else {
         for (const [pick, p] of Object.entries(kb.picks)) {
           if (!p) {
-            state.kapua[pick] = null; // product removed from base → clear from state too
-          } else if (!(pick in state.kapua)) {
+            state.kapua[pick] = null;
+          } else if (!(pick in state.kapua) || state.kapua[pick] === null) {
             state.kapua[pick] = { ...p };
           }
         }
@@ -807,7 +807,7 @@ async function loadMaps() {
       } else {
         for (const [pick, p] of Object.entries(hb.picks)) {
           if (!p) { state.halavi[pick] = null; }
-          else if (!(pick in state.halavi)) state.halavi[pick] = { ...p };
+          else if (!(pick in state.halavi) || state.halavi[pick] === null) state.halavi[pick] = { ...p };
         }
         for (const pick of Object.keys(state.halavi)) {
           if (!(pick in hb.picks)) state.halavi[pick] = null;
@@ -833,7 +833,7 @@ async function loadMaps() {
       } else {
         for (const [pick, p] of Object.entries(db.picks)) {
           if (!p) { state.dagim[pick] = null; }
-          else if (!(pick in state.dagim)) state.dagim[pick] = { ...p };
+          else if (!(pick in state.dagim) || state.dagim[pick] === null) state.dagim[pick] = { ...p };
         }
         for (const pick of Object.keys(state.dagim)) {
           if (!(pick in db.picks)) state.dagim[pick] = null;
