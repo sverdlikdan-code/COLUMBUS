@@ -1360,14 +1360,14 @@ async function main() {
         Object.values(hb.picks).filter(Boolean).map(p => String(p.makat))
       );
 
-      // Clean reserve slots first: null products with zero stock AND zero 90-day sales
+      // Clean reserve slots first: null products with zero stock AND zero 180-day sales
       const halaviProdMap = {};
       for (const p of halaviProds) halaviProdMap[String(p.makat)] = p;
       let hCleaned = 0;
       for (const [bay, pick] of Object.entries(hb.picks)) {
         if (!pick || Number(bay) < (hb.reserveStart || 61)) continue;
         const prod = halaviProdMap[String(pick.makat)];
-        if (!prod || ((prod.stock || 0) <= 0 && (prod.daySales90 || 0) <= 0)) {
+        if (!prod || ((prod.stock || 0) <= 0 && (prod.daySales180 || 0) <= 0)) {
           hb.picks[bay] = null;
           hCleaned++;
         }
@@ -1382,8 +1382,8 @@ async function main() {
       let slotIdx = 0;
       const added = [];
       const newHalaviProds = halaviProds
-        .filter(p => !hbMakatSet.has(String(p.makat)) && (p.daySales90 || 0) > 0)
-        .sort((a, b) => (b.daySales90 || 0) - (a.daySales90 || 0));
+        .filter(p => !hbMakatSet.has(String(p.makat)) && (p.daySales180 || 0) > 0)
+        .sort((a, b) => (b.daySales180 || 0) - (a.daySales180 || 0));
       for (const p of newHalaviProds) {
         if (slotIdx >= emptySlots.length) break;
         const pk = String(emptySlots[slotIdx++]);
@@ -1408,14 +1408,14 @@ async function main() {
         Object.values(db.picks).filter(Boolean).map(p => String(p.makat))
       );
 
-      // Clean reserve slots first: null products with zero stock AND zero 90-day sales
+      // Clean reserve slots first: null products with zero stock AND zero 180-day sales
       const dagimProdMap = {};
       for (const p of dagimProds) dagimProdMap[String(p.makat)] = p;
       let dCleaned = 0;
       for (const [bay, pick] of Object.entries(db.picks)) {
         if (!pick || Number(bay) < (db.reserveStart || 59)) continue;
         const prod = dagimProdMap[String(pick.makat)];
-        if (!prod || ((prod.stock || 0) <= 0 && (prod.daySales90 || 0) <= 0)) {
+        if (!prod || ((prod.stock || 0) <= 0 && (prod.daySales180 || 0) <= 0)) {
           db.picks[bay] = null;
           dCleaned++;
         }
@@ -1429,8 +1429,8 @@ async function main() {
       let slotIdx = 0;
       const added = [];
       const newDagimProds = dagimProds
-        .filter(p => !dbMakatSet.has(String(p.makat)) && (p.daySales90 || 0) > 0)
-        .sort((a, b) => (b.daySales90 || 0) - (a.daySales90 || 0));
+        .filter(p => !dbMakatSet.has(String(p.makat)) && (p.daySales180 || 0) > 0)
+        .sort((a, b) => (b.daySales180 || 0) - (a.daySales180 || 0));
       for (const p of newDagimProds) {
         if (slotIdx >= emptySlots.length) break;
         const pk = String(emptySlots[slotIdx++]);
