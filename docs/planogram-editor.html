@@ -1020,14 +1020,12 @@ function renderGrid(section, layoutMap, maxCols, maxRows, reserveStart = 0) {
     ? Object.fromEntries(Object.entries(layoutMap).filter(([p]) => parseInt(p) < reserveStart))
     : layoutMap;
 
-  // Re-number rows compactly when reserve is hidden (remove reserve rows from grid)
-  let rowMap = null; // original row → compact row
+  // When reserve is hidden, trim grid to max working row — corridors are kept as physical aisles
+  let rowMap = null;
   let effectiveMaxRows = maxRows;
   if (hideReserve && reserveStart > 0) {
-    const usedRows = [...new Set(Object.values(effectiveLayout).map(p => p.r))].sort((a,b)=>a-b);
-    rowMap = {};
-    usedRows.forEach((r, i) => { rowMap[r] = i + 1; });
-    effectiveMaxRows = usedRows.length;
+    const rows = Object.values(effectiveLayout).map(p => p.r);
+    effectiveMaxRows = rows.length > 0 ? Math.max(...rows) : maxRows;
   }
 
   container.style.gridTemplateColumns = `repeat(${maxCols}, 140px)`;
