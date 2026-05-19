@@ -1288,6 +1288,26 @@ async function main() {
         const mk = String(item.makat);
         if (prodData[mk]) prodData[mk].yavesh = true;
       }
+
+      // Clean base picks: null bays where stock=0 AND no sales in any warehouse
+      {
+        let dyActiveCleaned = 0;
+        const dyPath = path.join(__dirname, '..', 'docs', 'dagim-yavesh-base.json');
+        for (const [bay, pick] of Object.entries(dagyaveshPicks)) {
+          if (!pick) continue;
+          const mk = String(pick.makat);
+          const prod = dagimYaveshData[mk];
+          if (!prod || ((prod.stock || 0) <= 0 && !(prod.daySalesAll))) {
+            console.log(`  dagyavesh bay ${bay} מקט ${mk} — stock=0 daySales=0 → null`);
+            dagyaveshPicks[bay] = null;
+            dyActiveCleaned++;
+          }
+        }
+        if (dyActiveCleaned > 0) {
+          fs.writeFileSync(dyPath, JSON.stringify(dagyaveshBase, null, 2), 'utf8');
+          console.log(`dagim-yavesh-base.json: -${dyActiveCleaned} cleaned`);
+        }
+      }
     }
 
     fs.writeFileSync(path.join(__dirname,'..','docs','product-data.json'),
