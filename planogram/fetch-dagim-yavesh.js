@@ -31,7 +31,7 @@ async function main() {
     SELECTCOLUMNS(
       FILTER('KARTIS PARIT',
         'KARTIS PARIT'[סטטוס] = "פעיל" &&
-        'KARTIS PARIT'[שם מחסן אשדוד] = "דג יבש"
+        'KARTIS PARIT'[שם מחסן אשדוד] = "דג יבש 🐠"
       ),
       "makat",  'KARTIS PARIT'[מק"ט],
       "name",   'KARTIS PARIT'[תאור],

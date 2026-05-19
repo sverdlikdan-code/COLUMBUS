@@ -241,76 +241,13 @@
     "shelfLife": 21,
     "yavesh": true
   },
-  "600": {
-    "stock": 0,
-    "daySales": null,
-    "kratnost": 0,
-    "palStock": null,
-    "stockZafn": null,
-    "palStockZafn": null,
-    "daySalesZafn": null,
-    "stockTrnz": null,
-    "palStockTrnz": null,
-    "daySalesTrnz": null,
-    "weight": null,
-    "packFactor": 20,
-    "weightCarton": null,
-    "daysStockAll": null,
-    "nameEn": "חמאה200 גSVALIA '",
-    "ashdodPalletCartons": null,
-    "pakuot": [],
-    "pakuotZafn": [],
-    "shelfLife": 21
-  },
-  "601": {
-    "stock": 0,
-    "daySales": null,
-    "kratnost": 0,
-    "palStock": null,
-    "stockZafn": null,
-    "palStockZafn": null,
-    "daySalesZafn": null,
-    "stockTrnz": null,
-    "palStockTrnz": null,
-    "daySalesTrnz": null,
-    "weight": null,
-    "packFactor": 20,
-    "weightCarton": null,
-    "daysStockAll": null,
-    "nameEn": "חמאה חמוצה200 גSVALIA '",
-    "ashdodPalletCartons": null,
-    "pakuot": [],
-    "pakuotZafn": [],
-    "shelfLife": 21
-  },
-  "602": {
-    "stock": 0,
-    "daySales": null,
-    "kratnost": 0,
-    "palStock": null,
-    "stockZafn": null,
-    "palStockZafn": null,
-    "daySalesZafn": null,
-    "stockTrnz": null,
-    "palStockTrnz": null,
-    "daySalesTrnz": null,
-    "weight": null,
-    "packFactor": 20,
-    "weightCarton": null,
-    "daysStockAll": null,
-    "nameEn": "חמאה מלוחה200 גSVALIA '",
-    "ashdodPalletCartons": null,
-    "pakuot": [],
-    "pakuotZafn": [],
-    "shelfLife": 21
-  },
   "604": {
-    "stock": 0,
+    "stock": 3960,
     "daySales": -0.9,
     "kratnost": 180,
-    "palStock": null,
-    "stockZafn": null,
-    "palStockZafn": null,
+    "palStock": 22,
+    "stockZafn": 180,
+    "palStockZafn": 1,
     "daySalesZafn": -2,
     "stockTrnz": null,
     "palStockTrnz": null,
@@ -321,9 +258,21 @@
     "daysStockAll": null,
     "nameEn": "חמאה200 ROSHEN 82.5% ג'",
     "ashdodPalletCartons": 180,
-    "pakuot": [],
-    "pakuotZafn": [],
-    "shelfLife": 21
+    "pakuot": [
+      {
+        "date": "2027-04-23",
+        "daysLeft": 340,
+        "cartons": 3960
+      }
+    ],
+    "pakuotZafn": [
+      {
+        "date": "2027-04-23",
+        "daysLeft": 340,
+        "cartons": 180
+      }
+    ],
+    "shelfLife": 45
   },
   "615": {
     "stock": 0,
@@ -723,14 +672,9 @@
     ],
     "pakuotZafn": [
       {
-        "date": "2025-10-04",
-        "daysLeft": -226,
-        "cartons": 1
-      },
-      {
         "date": "2026-06-13",
         "daysLeft": 26,
-        "cartons": 127
+        "cartons": 128
       }
     ],
     "shelfLife": 7
@@ -1742,14 +1686,14 @@
         "cartons": 200
       }
     ],
-    "daySalesAll": null,
-    "daysStockAll": null,
+    "daySalesAll": 1.9493006993006992,
+    "daysStockAll": 103,
     "stockZafn": null,
-    "daySalesZafn": null,
+    "daySalesZafn": 1.141025641025641,
     "pakuotZafn": [],
     "nameEn": "‬דג ברקודה מלוח מיובש100 (199)ג(52)'‭",
     "desc": "‬דג ברקודה מלוח מיובש100 (199)ג(52)'‭",
-    "shelfLife": null,
+    "shelfLife": 21,
     "yavesh": true
   },
   "704": {
@@ -1785,20 +1729,26 @@
         "cartons": 150
       }
     ],
-    "daySalesAll": null,
-    "daysStockAll": null,
+    "daySalesAll": 0.9123931623931624,
+    "daysStockAll": 164,
     "stockZafn": null,
-    "daySalesZafn": null,
+    "daySalesZafn": 0.8846153846153846,
     "pakuotZafn": [],
     "nameEn": "‬דג צנינון הכתם מלוח מיובש100 (734)ג(52)'‭",
     "desc": "‬דג צנינון הכתם מלוח מיובש100 (734)ג(52)'‭",
-    "shelfLife": null,
+    "shelfLife": 21,
     "yavesh": true
   },
   "712": {
-    "stock": 0,
+    "stock": 1,
     "daySales": 1.7679045092838197,
-    "pakuot": [],
+    "pakuot": [
+      {
+        "date": "2027-04-13T21:00:00.000Z",
+        "daysLeft": 330,
+        "cartons": 1
+      }
+    ],
     "pakuotAll": [
       {
         "date": "2027-04-13T21:00:00.000Z",
@@ -1811,14 +1761,20 @@
         "cartons": 250
       }
     ],
-    "daySalesAll": null,
-    "daysStockAll": null,
-    "stockZafn": null,
-    "daySalesZafn": null,
-    "pakuotZafn": [],
+    "daySalesAll": 3.420424403183024,
+    "daysStockAll": 74,
+    "stockZafn": 1,
+    "daySalesZafn": 1.7115384615384615,
+    "pakuotZafn": [
+      {
+        "date": "2027-04-13T21:00:00.000Z",
+        "daysLeft": 330,
+        "cartons": 1
+      }
+    ],
     "nameEn": "‬דג צנינון הכתם מלוח מיובש100 (697)ג(52)'‭",
     "desc": "‬דג צנינון הכתם מלוח מיובש100 (697)ג(52)'‭",
-    "shelfLife": null,
+    "shelfLife": 21,
     "yavesh": true
   },
   "713": {
@@ -1832,14 +1788,14 @@
         "cartons": 200
       }
     ],
-    "daySalesAll": null,
-    "daysStockAll": null,
+    "daySalesAll": 1.3076923076923077,
+    "daysStockAll": 153,
     "stockZafn": null,
-    "daySalesZafn": null,
+    "daySalesZafn": 1.1538461538461537,
     "pakuotZafn": [],
     "nameEn": "‬דג ברקודה עם צ'ילי מלוח מיובש100 (727)ג(52)'‭",
     "desc": "‬דג ברקודה עם צ'ילי מלוח מיובש100 (727)ג(52)'‭",
-    "shelfLife": null,
+    "shelfLife": 21,
     "yavesh": true
   },
   "714": {
@@ -2147,13 +2103,13 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "732": {
-    "stock": 808,
+    "stock": 5808,
     "daySales": 275.7,
     "kratnost": 220,
-    "palStock": 3.7,
+    "palStock": 26.4,
     "stockZafn": 433,
     "palStockZafn": 2,
     "daySalesZafn": 195.4,
@@ -2163,7 +2119,7 @@
     "weight": 0.2,
     "packFactor": 20,
     "weightCarton": 4,
-    "daysStockAll": 2,
+    "daysStockAll": 13,
     "nameEn": "חמאה200 FERMA 82.5% ג'",
     "ashdodPalletCartons": 220,
     "pakuot": [
@@ -2171,6 +2127,11 @@
         "date": "2027-03-29",
         "daysLeft": 315,
         "cartons": 808
+      },
+      {
+        "date": "2027-04-21",
+        "daysLeft": 338,
+        "cartons": 5000
       }
     ],
     "pakuotZafn": [
@@ -2180,7 +2141,7 @@
         "cartons": 433
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "736": {
     "stock": 1254,
@@ -2223,7 +2184,7 @@
         "cartons": 240
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "739": {
     "stock": 939,
@@ -2256,7 +2217,7 @@
         "cartons": 197
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "740": {
     "stock": 627,
@@ -2289,7 +2250,7 @@
         "cartons": 142
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "755": {
     "stock": 1197,
@@ -2375,7 +2336,7 @@
         "cartons": 337
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "802": {
     "stock": 635,
@@ -2418,7 +2379,7 @@
         "cartons": 120
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "803": {
     "stock": 205,
@@ -2451,7 +2412,7 @@
         "cartons": 88
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "815": {
     "stock": 1671,
@@ -2484,7 +2445,7 @@
         "cartons": 687
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "816": {
     "stock": 1662,
@@ -2517,7 +2478,7 @@
         "cartons": 595
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "817": {
     "stock": 1618,
@@ -2550,7 +2511,7 @@
         "cartons": 598
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "818": {
     "stock": 4866,
@@ -2583,7 +2544,7 @@
         "cartons": 571
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1000": {
     "stock": 109,
@@ -3477,7 +3438,7 @@
     "ashdodPalletCartons": 256,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1031": {
     "stock": 0,
@@ -3498,7 +3459,7 @@
     "ashdodPalletCartons": 256,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1032": {
     "stock": 0,
@@ -3519,7 +3480,7 @@
     "ashdodPalletCartons": 256,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1033": {
     "stock": 0,
@@ -3540,7 +3501,7 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1034": {
     "stock": 0,
@@ -3561,7 +3522,7 @@
     "ashdodPalletCartons": 220,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1035": {
     "stock": 0,
@@ -3582,7 +3543,7 @@
     "ashdodPalletCartons": 220,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1036": {
     "stock": 0,
@@ -3603,7 +3564,7 @@
     "ashdodPalletCartons": 220,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1037": {
     "stock": 0,
@@ -3624,7 +3585,7 @@
     "ashdodPalletCartons": 220,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1042": {
     "stock": 0,
@@ -4564,14 +4525,14 @@
         "cartons": 150
       }
     ],
-    "daySalesAll": null,
-    "daysStockAll": null,
+    "daySalesAll": 1.5597165991902835,
+    "daysStockAll": 96,
     "stockZafn": null,
-    "daySalesZafn": null,
+    "daySalesZafn": 1.1703296703296702,
     "pakuotZafn": [],
     "nameEn": "‬ 218)BALICHOK)דג צנינון הכתם מיובש100 ג(52)'אפור‭",
     "desc": "‬ 218)BALICHOK)דג צנינון הכתם מיובש100 ג(52)'אפור‭",
-    "shelfLife": null,
+    "shelfLife": 21,
     "yavesh": true
   },
   "1101": {
@@ -4585,14 +4546,14 @@
         "cartons": 170
       }
     ],
-    "daySalesAll": null,
-    "daysStockAll": null,
+    "daySalesAll": 2.430161943319838,
+    "daysStockAll": 70,
     "stockZafn": null,
-    "daySalesZafn": null,
+    "daySalesZafn": 1.4867788461538463,
     "pakuotZafn": [],
     "nameEn": "‬ 232)POLOSATIK)דג צנינון הכתם מיובש100 ג(52)'סגול‭",
     "desc": "‬ 232)POLOSATIK)דג צנינון הכתם מיובש100 ג(52)'סגול‭",
-    "shelfLife": null,
+    "shelfLife": 21,
     "yavesh": true
   },
   "1102": {
@@ -4606,14 +4567,14 @@
         "cartons": 170
       }
     ],
-    "daySalesAll": null,
-    "daysStockAll": null,
+    "daySalesAll": 1.4188034188034186,
+    "daysStockAll": 120,
     "stockZafn": null,
-    "daySalesZafn": null,
+    "daySalesZafn": 0.6706730769230769,
     "pakuotZafn": [],
     "nameEn": "‬ 256)IMPERATOR)דג צנינית צהובה פסים מלוח100 ג(52)'תכלת‭",
     "desc": "‬ 256)IMPERATOR)דג צנינית צהובה פסים מלוח100 ג(52)'תכלת‭",
-    "shelfLife": null,
+    "shelfLife": 21,
     "yavesh": true
   },
   "1103": {
@@ -4649,14 +4610,14 @@
         "cartons": 200
       }
     ],
-    "daySalesAll": null,
-    "daysStockAll": null,
+    "daySalesAll": 2.4278846153846154,
+    "daysStockAll": 82,
     "stockZafn": null,
-    "daySalesZafn": null,
+    "daySalesZafn": 1.1329431438127089,
     "pakuotZafn": [],
     "nameEn": "‬ 270)BARAKUDA)דג ברקודה  מיובש100 ג(52)'כתום‭",
     "desc": "‬ 270)BARAKUDA)דג ברקודה  מיובש100 ג(52)'כתום‭",
-    "shelfLife": null,
+    "shelfLife": 21,
     "yavesh": true
   },
   "1105": {
@@ -4670,14 +4631,14 @@
         "cartons": 150
       }
     ],
-    "daySalesAll": null,
-    "daysStockAll": null,
+    "daySalesAll": 0.2371794871794872,
+    "daysStockAll": 632,
     "stockZafn": null,
-    "daySalesZafn": null,
+    "daySalesZafn": 0.15384615384615385,
     "pakuotZafn": [],
     "nameEn": "‬ (287)BAR CHILIדג ברקודה צ'ילי מלוח100 ג(52)'חום‭",
     "desc": "‬ (287)BAR CHILIדג ברקודה צ'ילי מלוח100 ג(52)'חום‭",
-    "shelfLife": null,
+    "shelfLife": 21,
     "yavesh": true
   },
   "1106": {
@@ -4863,14 +4824,14 @@
         "cartons": 97
       }
     ],
-    "daySalesAll": null,
-    "daysStockAll": null,
+    "daySalesAll": 4.507272727272728,
+    "daysStockAll": 22,
     "stockZafn": null,
-    "daySalesZafn": null,
+    "daySalesZafn": 2.555,
     "pakuotZafn": [],
     "nameEn": "‬שבבי דיונון בטעם סרטן מבושל,מיובש ומומלח90 ג(50)'‭",
     "desc": "‬שבבי דיונון בטעם סרטן מבושל,מיובש ומומלח90 ג(50)'‭",
-    "shelfLife": null,
+    "shelfLife": 21,
     "yavesh": true
   },
   "1113": {
@@ -4884,14 +4845,14 @@
         "cartons": 248
       }
     ],
-    "daySalesAll": null,
-    "daysStockAll": null,
+    "daySalesAll": 4.871851851851852,
+    "daysStockAll": 51,
     "stockZafn": null,
-    "daySalesZafn": null,
+    "daySalesZafn": 2.5408333333333335,
     "pakuotZafn": [],
     "nameEn": "‬שבבי קלמר מיובש ומומלח90 ג(50)'‭",
     "desc": "‬שבבי קלמר מיובש ומומלח90 ג(50)'‭",
-    "shelfLife": null,
+    "shelfLife": 21,
     "yavesh": true
   },
   "1114": {
@@ -4905,14 +4866,14 @@
         "cartons": 220
       }
     ],
-    "daySalesAll": null,
-    "daysStockAll": null,
+    "daySalesAll": 4.2043478260869565,
+    "daysStockAll": 52,
     "stockZafn": null,
-    "daySalesZafn": null,
+    "daySalesZafn": 2.296842105263158,
     "pakuotZafn": [],
     "nameEn": "‬רצועות קלמר מיובש ומומלח בטעם סרטן90 ג(50)'‭",
     "desc": "‬רצועות קלמר מיובש ומומלח בטעם סרטן90 ג(50)'‭",
-    "shelfLife": null,
+    "shelfLife": 21,
     "yavesh": true
   },
   "1115": {
@@ -4926,14 +4887,14 @@
         "cartons": 218
       }
     ],
-    "daySalesAll": null,
-    "daysStockAll": null,
+    "daySalesAll": 4.218095238095238,
+    "daysStockAll": 52,
     "stockZafn": null,
-    "daySalesZafn": null,
+    "daySalesZafn": 2.4633333333333334,
     "pakuotZafn": [],
     "nameEn": "‬רצועות קלמר מעושן מיובש ומומלח90 ג(50)'‭",
     "desc": "‬רצועות קלמר מעושן מיובש ומומלח90 ג(50)'‭",
-    "shelfLife": null,
+    "shelfLife": 21,
     "yavesh": true
   },
   "1116": {
@@ -4947,14 +4908,14 @@
         "cartons": 87
       }
     ],
-    "daySalesAll": null,
-    "daysStockAll": null,
+    "daySalesAll": 1.1440000000000001,
+    "daysStockAll": 76,
     "stockZafn": null,
-    "daySalesZafn": null,
+    "daySalesZafn": 0.31,
     "pakuotZafn": [],
     "nameEn": "‬רצועות קלמר מיובש ומומלח עם פלפל צ'ילי90 ג(50)'‭",
     "desc": "‬רצועות קלמר מיובש ומומלח עם פלפל צ'ילי90 ג(50)'‭",
-    "shelfLife": null,
+    "shelfLife": 21,
     "yavesh": true
   },
   "1117": {
@@ -4968,14 +4929,14 @@
         "cartons": 200
       }
     ],
-    "daySalesAll": null,
-    "daysStockAll": null,
+    "daySalesAll": 2.5525925925925925,
+    "daysStockAll": 78,
     "stockZafn": null,
-    "daySalesZafn": null,
+    "daySalesZafn": 1.6230000000000002,
     "pakuotZafn": [],
     "nameEn": "‬פרוסות דג שיבוט אלבין מיובש ומומלח100 ג(50)'‭",
     "desc": "‬פרוסות דג שיבוט אלבין מיובש ומומלח100 ג(50)'‭",
-    "shelfLife": null,
+    "shelfLife": 21,
     "yavesh": true
   },
   "1118": {
@@ -4989,20 +4950,26 @@
         "cartons": 110
       }
     ],
-    "daySalesAll": null,
-    "daysStockAll": null,
+    "daySalesAll": 2.325,
+    "daysStockAll": 47,
     "stockZafn": null,
-    "daySalesZafn": null,
+    "daySalesZafn": 1.3333333333333335,
     "pakuotZafn": [],
     "nameEn": "‬פרוסות דג שיבוט אלבין מיובש עם צ'ילי100 ג(50)'‭",
     "desc": "‬פרוסות דג שיבוט אלבין מיובש עם צ'ילי100 ג(50)'‭",
-    "shelfLife": null,
+    "shelfLife": 21,
     "yavesh": true
   },
   "1119": {
-    "stock": 0,
+    "stock": 6,
     "daySales": 1.946896551724138,
-    "pakuot": [],
+    "pakuot": [
+      {
+        "date": "2026-11-27T22:00:00.000Z",
+        "daysLeft": 193,
+        "cartons": 6
+      }
+    ],
     "pakuotAll": [
       {
         "date": "2026-11-27T22:00:00.000Z",
@@ -5015,14 +4982,20 @@
         "cartons": 150
       }
     ],
-    "daySalesAll": null,
-    "daysStockAll": null,
-    "stockZafn": null,
-    "daySalesZafn": null,
-    "pakuotZafn": [],
+    "daySalesAll": 3.5468965517241378,
+    "daysStockAll": 45,
+    "stockZafn": 3,
+    "daySalesZafn": 1.7185185185185186,
+    "pakuotZafn": [
+      {
+        "date": "2026-11-27T22:00:00.000Z",
+        "daysLeft": 193,
+        "cartons": 3
+      }
+    ],
     "nameEn": "‬פרוסות דג שיבוט אלבין מיובש ומומלח ללא עור90 ג(50)'‭",
     "desc": "‬פרוסות דג שיבוט אלבין מיובש ומומלח ללא עור90 ג(50)'‭",
-    "shelfLife": null,
+    "shelfLife": 21,
     "yavesh": true
   },
   "1120": {
@@ -5926,7 +5899,7 @@
         "cartons": 100
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1181": {
     "stock": 0,
@@ -5947,7 +5920,7 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1182": {
     "stock": 897,
@@ -5990,7 +5963,7 @@
         "cartons": 138
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1183": {
     "stock": 0,
@@ -6011,7 +5984,7 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1184": {
     "stock": 1158,
@@ -6059,7 +6032,7 @@
         "cartons": 140
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1185": {
     "stock": 1442,
@@ -6112,28 +6085,7 @@
         "cartons": 140
       }
     ],
-    "shelfLife": 21
-  },
-  "1186": {
-    "stock": 0,
-    "daySales": null,
-    "kratnost": 140,
-    "palStock": null,
-    "stockZafn": null,
-    "palStockZafn": null,
-    "daySalesZafn": null,
-    "stockTrnz": null,
-    "palStockTrnz": null,
-    "daySalesTrnz": null,
-    "weight": 0.45,
-    "packFactor": 6,
-    "weightCarton": 2.7,
-    "daysStockAll": null,
-    "nameEn": "כיסונים במילוי כרוב ופטריות מוקפאים450 ג'",
-    "ashdodPalletCartons": null,
-    "pakuot": [],
-    "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1187": {
     "stock": 921,
@@ -6181,7 +6133,7 @@
         "cartons": 140
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1190": {
     "stock": 1253,
@@ -6224,7 +6176,7 @@
         "cartons": 261
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1191": {
     "stock": 1538,
@@ -6267,7 +6219,7 @@
         "cartons": 141
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1192": {
     "stock": 1598,
@@ -6305,7 +6257,7 @@
         "cartons": 158
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1193": {
     "stock": 803,
@@ -6353,7 +6305,7 @@
         "cartons": 140
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1194": {
     "stock": 766,
@@ -6386,7 +6338,7 @@
         "cartons": 201
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1195": {
     "stock": 1163,
@@ -6429,7 +6381,7 @@
         "cartons": 162
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1196": {
     "stock": 1421,
@@ -6472,7 +6424,7 @@
         "cartons": 108
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1197": {
     "stock": 1165,
@@ -6515,7 +6467,7 @@
         "cartons": 178
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1198": {
     "stock": 342,
@@ -6558,28 +6510,7 @@
         "cartons": 100
       }
     ],
-    "shelfLife": 21
-  },
-  "1201": {
-    "stock": 0,
-    "daySales": null,
-    "kratnost": 0,
-    "palStock": null,
-    "stockZafn": null,
-    "palStockZafn": null,
-    "daySalesZafn": null,
-    "stockTrnz": null,
-    "palStockTrnz": null,
-    "daySalesTrnz": null,
-    "weight": 1,
-    "packFactor": 6,
-    "weightCarton": 6,
-    "daysStockAll": null,
-    "nameEn": "כיסונים במילוי אוכמניות כחולות מוקפאים6 ק\"ג",
-    "ashdodPalletCartons": null,
-    "pakuot": [],
-    "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1202": {
     "stock": 0,
@@ -6600,49 +6531,7 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
-  },
-  "1204": {
-    "stock": 0,
-    "daySales": null,
-    "kratnost": 0,
-    "palStock": null,
-    "stockZafn": null,
-    "palStockZafn": null,
-    "daySalesZafn": null,
-    "stockTrnz": null,
-    "palStockTrnz": null,
-    "daySalesTrnz": null,
-    "weight": 1,
-    "packFactor": 6,
-    "weightCarton": 6,
-    "daysStockAll": null,
-    "nameEn": "כיסונים במילוי תפו\"א ובצל מוקפאים6 ק\"ג",
-    "ashdodPalletCartons": null,
-    "pakuot": [],
-    "pakuotZafn": [],
-    "shelfLife": 21
-  },
-  "1205": {
-    "stock": 0,
-    "daySales": null,
-    "kratnost": 0,
-    "palStock": null,
-    "stockZafn": null,
-    "palStockZafn": null,
-    "daySalesZafn": null,
-    "stockTrnz": null,
-    "palStockTrnz": null,
-    "daySalesTrnz": null,
-    "weight": 1,
-    "packFactor": 6,
-    "weightCarton": 6,
-    "daysStockAll": null,
-    "nameEn": "כיסונים במילוי גבינת טבורוג מוקפאים6 ק\"ג",
-    "ashdodPalletCartons": null,
-    "pakuot": [],
-    "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1208": {
     "stock": 241,
@@ -6674,7 +6563,7 @@
       }
     ],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1209": {
     "stock": 259,
@@ -6711,7 +6600,7 @@
       }
     ],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1210": {
     "stock": 0,
@@ -6732,7 +6621,7 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1211": {
     "stock": 188,
@@ -6764,7 +6653,7 @@
       }
     ],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1212": {
     "stock": 0,
@@ -6785,7 +6674,7 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1213": {
     "stock": 0,
@@ -6806,7 +6695,7 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1214": {
     "stock": 0,
@@ -6827,7 +6716,7 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1215": {
     "stock": 0,
@@ -6848,7 +6737,7 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1216": {
     "stock": 0,
@@ -6869,7 +6758,7 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1217": {
     "stock": 0,
@@ -6890,7 +6779,7 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1218": {
     "stock": 0,
@@ -6911,7 +6800,7 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "1219": {
     "stock": 0,
@@ -6932,7 +6821,7 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "400001": {
     "stock": 0,
@@ -7225,12 +7114,12 @@
     "shelfLife": 7
   },
   "403007": {
-    "stock": 49,
+    "stock": 59,
     "daySales": 57.1,
     "kratnost": 245,
     "palStock": 0.2,
-    "stockZafn": 43,
-    "palStockZafn": 0.2,
+    "stockZafn": 33,
+    "palStockZafn": 0.1,
     "daySalesZafn": 31.2,
     "stockTrnz": 0,
     "palStockTrnz": null,
@@ -7245,25 +7134,25 @@
       {
         "date": "2026-06-09",
         "daysLeft": 22,
-        "cartons": 49
+        "cartons": 59
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-06-09",
         "daysLeft": 22,
-        "cartons": 43
+        "cartons": 33
       }
     ],
     "shelfLife": 7
   },
   "403008": {
-    "stock": 28,
+    "stock": 40,
     "daySales": 23.8,
     "kratnost": 245,
-    "palStock": 0.1,
-    "stockZafn": 41,
-    "palStockZafn": 0.2,
+    "palStock": 0.2,
+    "stockZafn": 29,
+    "palStockZafn": 0.1,
     "daySalesZafn": 11.2,
     "stockTrnz": 0,
     "palStockTrnz": null,
@@ -7278,14 +7167,14 @@
       {
         "date": "2026-06-09",
         "daysLeft": 22,
-        "cartons": 28
+        "cartons": 40
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-06-09",
         "daysLeft": 22,
-        "cartons": 41
+        "cartons": 29
       }
     ],
     "shelfLife": 7
@@ -7610,7 +7499,7 @@
   },
   "412202": {
     "stock": 186,
-    "daySales": 40.6,
+    "daySales": 36.1,
     "kratnost": 256,
     "palStock": 0.7,
     "stockZafn": 95,
@@ -8062,7 +7951,7 @@
     "ashdodPalletCartons": 144,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "420002": {
     "stock": 157,
@@ -8095,7 +7984,7 @@
         "cartons": 72
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "420003": {
     "stock": 95,
@@ -8128,7 +8017,7 @@
         "cartons": 23
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "420004": {
     "stock": 156,
@@ -8161,7 +8050,7 @@
         "cartons": 52
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "420005": {
     "stock": 2322,
@@ -8209,7 +8098,7 @@
         "cartons": 60
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "420006": {
     "stock": 494,
@@ -8257,7 +8146,7 @@
         "cartons": 60
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "420007": {
     "stock": 472,
@@ -8310,7 +8199,7 @@
         "cartons": 60
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   },
   "420008": {
     "stock": 443,
@@ -8353,6 +8242,6 @@
         "cartons": 39
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 45
   }
 }
