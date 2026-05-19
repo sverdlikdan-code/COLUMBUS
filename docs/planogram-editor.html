@@ -275,7 +275,7 @@
     <div class="history-dropdown" id="history-dropdown"></div>
   </div>
   <button class="btn no-print" id="btn-hide-reserve" onclick="toggleHideReserve()"
-    style="background:#fff8e1;color:#7a5c00;border:1px solid #e0c040;">Plan Only</button>
+    style="background:#7a5c00;color:#fff;border:1px solid #e0c040;">Plan Only ✓</button>
   <button class="btn no-print" id="btn-pdf" onclick="printPlanogram()"
     style="background:#f0f0f0;color:#333;border:1px solid #ccc;">🖨️ PDF</button>
   <button class="btn no-print" id="btn-edit" onclick="toggleEditMode()"
@@ -466,7 +466,7 @@ const KAPUA_MAX = { cols:18, rows:14 };
 let   KAPUA_RESERVE_START  = 0;
 let   HALAVI_RESERVE_START = 0;
 let   DAGIM_RESERVE_START  = 0;
-let   hideReserve = false;
+let   hideReserve = true;
 
 const HALAVI_LAYOUT = {
    1:{r:4,c:1},  2:{r:4,c:2},  3:{r:4,c:3},  4:{r:4,c:4},
