@@ -1361,14 +1361,14 @@ async function main() {
         Object.values(hb.picks).filter(Boolean).map(p => String(p.makat))
       );
 
-      // Clean reserve: remove if stock=0 (no מלאי → no place in reserve)
+      // Clean reserve: remove only if BOTH stock=0 AND daySales180=0
       const halaviProdMap = {};
       for (const p of halaviProds) halaviProdMap[String(p.makat)] = p;
       let hCleaned = 0;
       for (const [bay, pick] of Object.entries(hb.picks)) {
         if (!pick || Number(bay) < (hb.reserveStart || 61)) continue;
         const prod = halaviProdMap[String(pick.makat)];
-        if (!prod || (prod.stock || 0) <= 0) {
+        if (!prod || ((prod.stock || 0) <= 0 && (prod.daySales180 || 0) <= 0)) {
           hb.picks[bay] = null;
           hCleaned++;
         }
@@ -1409,14 +1409,14 @@ async function main() {
         Object.values(db.picks).filter(Boolean).map(p => String(p.makat))
       );
 
-      // Clean reserve: remove if stock=0 (no מלאי → no place in reserve)
+      // Clean reserve: remove only if BOTH stock=0 AND daySales180=0
       const dagimProdMap = {};
       for (const p of dagimProds) dagimProdMap[String(p.makat)] = p;
       let dCleaned = 0;
       for (const [bay, pick] of Object.entries(db.picks)) {
         if (!pick || Number(bay) < (db.reserveStart || 59)) continue;
         const prod = dagimProdMap[String(pick.makat)];
-        if (!prod || (prod.stock || 0) <= 0) {
+        if (!prod || ((prod.stock || 0) <= 0 && (prod.daySales180 || 0) <= 0)) {
           db.picks[bay] = null;
           dCleaned++;
         }
