@@ -26,15 +26,6 @@ const WORKSPACE = process.env.PBI_WORKSPACE;
 // Family codes from MLAY[משפחת מוצר] covering frozen קפוא sections
 // 030 (SANTA BREMOR דגים) excluded — those are chilled (מצונן), not frozen
 // Products 1045/1046/1051 from family 030 are frozen surimi and handled via explicit makat UNION
-const KAPUA_FAM_CODES = ['029','004','026','022','019','035','421','420','046','0191','0190'];
-
-// Family code → display name (for auto-discovered products)
-const KAPUA_FAM_NAMES = {
-  '029':'חמאה FERMA', '004':'חמאה רושן',   '026':'חמאה SVALIA',
-  '022':'ממרחי חמאה', '019':'כיסונים',     '035':'SANTA BREMOR',
-  '421':'עוגות רושן', '420':'עוגות מוזיקה','046':'חטיף גבינה',
-  '0191':'מוסדי',     '0190':'VALESTA',
-};
 
 async function getToken() {
   const res = await fetch(
@@ -63,21 +54,17 @@ async function dax(token, query) {
 async function fetchKapuaFromBI(makatim) {
   const t = await getToken();
 
-  // DAX sub-expression: family makatim UNION explicit makatim list
-  // Family codes auto-discover new products in those families.
-  // Explicit list adds products whose family (030=chilled) is excluded but specific SKUs are frozen.
-  const famCodes    = KAPUA_FAM_CODES.map(c => `"${c}"`).join(',');
+  // Active קפוא products from KARTIS PARIT by warehouse column UNION explicit makatim.
+  // Explicit list (KAPUA_PICKS hardcoded) bypasses status filter for edge-case SKUs.
   const explicitMks = makatim.map(m => `"${m}"`).join(',');
-  // Only include products with סטטוס="פעיל" in KARTIS PARIT (excludes discontinued items).
-  // Explicit makatim (KAPUA_PICKS hardcoded) bypass the status filter via UNION.
   const famMakatim = `
     UNION(
-      INTERSECT(
-        SELECTCOLUMNS(
-          FILTER(MLAY, CONTAINSROW({${famCodes}}, MLAY[משפחת מוצר])),
-          "mk", MLAY[מק'ט]
+      SELECTCOLUMNS(
+        FILTER('KARTIS PARIT',
+          'KARTIS PARIT'[סטטוס] = "פעיל" &&
+          'KARTIS PARIT'[שם מחסן אשדוד] = "קפוא"
         ),
-        CALCULATETABLE(VALUES('KARTIS PARIT'[מק"ט]), 'KARTIS PARIT'[סטטוס]="פעיל")
+        "mk", 'KARTIS PARIT'[מק"ט]
       ),
       SELECTCOLUMNS({${explicitMks}}, "mk", [Value])
     )`;
@@ -766,20 +753,16 @@ async function fetchPakuotAllForMakats(makatim) {
 
 // ── חלבי family codes — KARTIS PARIT[משפחת מוצר] column
 // Source: משפחת מוצר לפי מחסן.xlsx col "משפחת מוצר N" (section = "חלבי")
-const HALAVI_FAM_CODES = ['025', '028', '018', '021', '020'];
-
 // ── Fetch all active חלבי products from KARTIS PARIT + live stock/sales/pakuot ──
-// Filters KARTIS PARIT directly by [משפחת מוצר] code — no MLAY dependency.
 async function fetchHalaviFromBI() {
   const t = await getToken();
-  const famCodes = HALAVI_FAM_CODES.map(c => `"${c}"`).join(',');
 
   const kpRows = await dax(t, `
     EVALUATE
     SELECTCOLUMNS(
       FILTER('KARTIS PARIT',
         'KARTIS PARIT'[סטטוס] = "פעיל" &&
-        CONTAINSROW({${famCodes}}, 'KARTIS PARIT'[משפחת מוצר])
+        'KARTIS PARIT'[שם מחסן אשדוד] = "חלבי"
       ),
       "makat",     'KARTIS PARIT'[מק"ט],
       "name",      'KARTIS PARIT'[תאור],
@@ -844,38 +827,20 @@ async function fetchHalaviFromBI() {
   return result;
 }
 
-// ── דגים (wet fish) family codes — KARTIS PARIT[משפחת מוצר] column
-// Source: משפחת מוצר לפי מחסן.xlsx col "משפחת מוצר N" (section = "דגים")
-const DAGIM_FAM_CODES = ['030', '031', '0301', '036'];
-
-// Frozen surimi in family 030 that belong to KAPUA, not the dagim shelf
-const DAGIM_EXCLUDE_MAKATS = ['1045', '1046', '1051'];
-
-// Family code → display fam name matching MAHSAN דגים sheet filtering
-const DAGIM_FAM_DISPLAY = {
-  '036':  'NORD PORT מצונן',
-  '0301': 'NORD PORT',
-  '030':  'SANTA BREMOR Fish',
-  '031':  'RUSSIAN SEA דגים',
-};
-
 // ── Fetch all active דגים (wet fish) products from KARTIS PARIT + live stock/sales/pakuot ──
 async function fetchDagimFromBI() {
   const t = await getToken();
-  const famCodes    = DAGIM_FAM_CODES.map(c => `"${c}"`).join(',');
-  const excludeMkts = DAGIM_EXCLUDE_MAKATS.map(m => `"${m}"`).join(',');
 
   const kpRows = await dax(t, `
     EVALUATE
     SELECTCOLUMNS(
       FILTER('KARTIS PARIT',
         'KARTIS PARIT'[סטטוס] = "פעיל" &&
-        CONTAINSROW({${famCodes}}, 'KARTIS PARIT'[משפחת מוצר]) &&
-        NOT CONTAINSROW({${excludeMkts}}, 'KARTIS PARIT'[מק"ט])
+        'KARTIS PARIT'[שם מחסן אשדוד] = "דגים"
       ),
       "makat",    'KARTIS PARIT'[מק"ט],
       "name",     'KARTIS PARIT'[תאור],
-      "famCode",  'KARTIS PARIT'[משפחת מוצר],
+      "fam",      'KARTIS PARIT'[תאור משפחה],
       "weight",   'KARTIS PARIT'[משקל ליחידה],
       "shelfLife",'KARTIS PARIT'[חיי מדף]
     )
@@ -886,12 +851,11 @@ async function fetchDagimFromBI() {
   for (const r of kpRows) {
     const mk = String(r['[makat]'] || '');
     if (!mk) continue;
-    const famCode = String(r['[famCode]'] || '');
     const raw = r['[name]'] || '';
     result[mk] = {
       makat:     mk,
       desc:      raw.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim() || null,
-      fam:       DAGIM_FAM_DISPLAY[famCode] || famCode,
+      fam:       r['[fam]'] || null,
       weight:    r['[weight]'] ?? null,
       shelfLife: r['[shelfLife]'] ?? null,
       dayAvg:    null, ss: null,
@@ -904,7 +868,7 @@ async function fetchDagimFromBI() {
   }
 
   if (!makatim.length) {
-    console.warn('fetchDagimFromBI: no products found — check DAGIM_FAM_CODES vs KARTIS PARIT[משפחת מוצר]');
+    console.warn('fetchDagimFromBI: no products found — check שם מחסן אשדוד = "דגים" in KARTIS PARIT');
     return result;
   }
 
