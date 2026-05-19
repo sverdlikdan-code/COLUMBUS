@@ -167,15 +167,18 @@ async function fetchKapuaFromBI(makatim) {
       ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
     `),
 
-    // 8. Product names + unit weight + shelf life from KARTIS PARIT
+    // 8. Product names + unit weight + shelf life + stop sale from KARTIS PARIT
     dax(t, `
       EVALUATE
-      SUMMARIZECOLUMNS(
-        'KARTIS PARIT'[מק"ט],
-        'KARTIS PARIT'[תאור],
-        'KARTIS PARIT'[משקל ליחידה],
-        FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] = "פעיל"),
-        "shelfLife", MAX('KARTIS PARIT'[חיי מדף])
+      ADDCOLUMNS(
+        SUMMARIZECOLUMNS(
+          'KARTIS PARIT'[מק"ט],
+          'KARTIS PARIT'[תאור],
+          'KARTIS PARIT'[משקל ליחידה],
+          FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] = "פעיל"),
+          "shelfLife", MAX('KARTIS PARIT'[חיי מדף])
+        ),
+        "stopSale", [STOP SALE ⛔]
       )
     `),
 
@@ -374,6 +377,7 @@ async function fetchKapuaFromBI(makatim) {
     if (!mk) continue;
     ensure(mk);
     result[mk].shelfLife = r['[shelfLife]'] ?? null;
+    result[mk].stopSale  = r['[stopSale]'] === 'STOP ⛔';
     const kpName = r['KARTIS PARIT[תאור]'];
     if (kpName) result[mk].nameEn = kpName.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim() || null;
   }
@@ -784,6 +788,7 @@ async function fetchHalaviFromBI() {
       fam:       r['[fam]'] || null,
       weight:    r['[weight]'] ?? null,
       shelfLife: r['[shelfLife]'] ?? null,
+      stopSale:  false,
       dayAvg:    null, ss: null,
       stock: 0, daySales: null, daySalesAll: null,
       stockZafn: 0, daySalesZafn: null,
@@ -798,11 +803,12 @@ async function fetchHalaviFromBI() {
     return result;
   }
 
-  const [stockMap, pakuotMap, pakuotZafnMap, pakuotAllMap] = await Promise.all([
+  const [stockMap, pakuotMap, pakuotZafnMap, pakuotAllMap, stopSaleMap] = await Promise.all([
     fetchStockMain(makatim),
     fetchPakuotForMakats(makatim),
     fetchPakuotZafnForMakats(makatim),
     fetchPakuotAllForMakats(makatim),
+    fetchStopSale(t, makatim),
   ]);
 
   for (const mk of makatim) {
@@ -819,6 +825,7 @@ async function fetchHalaviFromBI() {
       pakuot:       pakuotMap[mk]     || [],
       pakuotZafn:   pakuotZafnMap[mk] || [],
       pakuotAll:    pakuotAllMap[mk]  || [],
+      stopSale:     stopSaleMap[mk]   || false,
     });
     result[mk].dayAvg = result[mk].daySales;
   }
@@ -858,6 +865,7 @@ async function fetchDagimFromBI() {
       fam:       r['[fam]'] || null,
       weight:    r['[weight]'] ?? null,
       shelfLife: r['[shelfLife]'] ?? null,
+      stopSale:  false,
       dayAvg:    null, ss: null,
       stock: 0, daySales: null, daySalesAll: null,
       stockZafn: 0, daySalesZafn: null,
@@ -872,11 +880,12 @@ async function fetchDagimFromBI() {
     return result;
   }
 
-  const [stockMap, pakuotMap, pakuotZafnMap, pakuotAllMap] = await Promise.all([
+  const [stockMap, pakuotMap, pakuotZafnMap, pakuotAllMap, stopSaleMap] = await Promise.all([
     fetchStockMain(makatim),
     fetchPakuotForMakats(makatim),
     fetchPakuotZafnForMakats(makatim),
     fetchPakuotAllForMakats(makatim),
+    fetchStopSale(t, makatim),
   ]);
 
   for (const mk of makatim) {
@@ -893,6 +902,7 @@ async function fetchDagimFromBI() {
       pakuot:       pakuotMap[mk]     || [],
       pakuotZafn:   pakuotZafnMap[mk] || [],
       pakuotAll:    pakuotAllMap[mk]  || [],
+      stopSale:     stopSaleMap[mk]   || false,
     });
     result[mk].dayAvg = result[mk].daySales;
   }
@@ -926,6 +936,28 @@ async function fetchShelfLifeForMakats(makatim) {
   return result;
 }
 
+// ── Fetch STOP SALE ⛔ flag per product from KARTIS PARIT ──────────────────────
+async function fetchStopSale(t, makatim) {
+  if (!makatim || !makatim.length) return {};
+  const mkSet = '{' + makatim.map(m => `"${m}"`).join(',') + '}';
+  const rows = await dax(t, `
+    EVALUATE
+    CALCULATETABLE(
+      ADDCOLUMNS(
+        SUMMARIZE('KARTIS PARIT', 'KARTIS PARIT'[מק"ט]),
+        "stopSale", [STOP SALE ⛔]
+      ),
+      CONTAINSROW(${mkSet}, 'KARTIS PARIT'[מק"ט])
+    )
+  `);
+  const result = {};
+  for (const r of rows) {
+    const mk = String(r['KARTIS PARIT[מק"ט]'] || '');
+    if (mk) result[mk] = r['[stopSale]'] === 'STOP ⛔';
+  }
+  return result;
+}
+
 async function fetchPhotoUrls() {
   const t = await getToken();
   const rows = await dax(t, `
@@ -949,4 +981,4 @@ async function fetchPhotoUrls() {
   return result;
 }
 
-module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchHalaviFromBI, fetchDagimFromBI, fetchPhotoUrls, getToken };
+module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchStopSale, fetchHalaviFromBI, fetchDagimFromBI, fetchPhotoUrls, getToken };
