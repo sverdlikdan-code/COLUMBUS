@@ -97,7 +97,7 @@
     .section.active { display: block; }
 
     /* Grid */
-    .warehouse-grid { display: grid; gap: 10px; width: max-content; min-width: 100%; }
+    .warehouse-grid { display: grid; gap: 10px; width: max-content; min-width: 100%; padding-right: 160px; }
 
     /* ── Slot card ── */
     .slot {
@@ -129,6 +129,7 @@
       transform-origin: center top;
       z-index: 9999;
       box-shadow: 0 8px 28px rgba(0,0,0,0.55);
+      overflow: visible;
     }
     .slot.has-photo:hover .edit-btn { display: inline !important; }
     .slot.has-photo .slot-id {
@@ -145,6 +146,7 @@
       transform-origin: center top;
       z-index: 9999;
       box-shadow: 0 8px 28px rgba(0,0,0,0.55);
+      overflow: visible;
     }
     .slot.text-mode:hover .edit-btn { display: inline !important; }
     .slot.text-mode .s-pick  { font-size: 10px; color: #777; font-weight: bold; }
