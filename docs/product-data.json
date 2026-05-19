@@ -19,6 +19,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": true,
     "yavesh": true
   },
   "238": {
@@ -41,6 +42,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": true,
     "yavesh": true
   },
   "239": {
@@ -63,6 +65,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": true,
     "yavesh": true
   },
   "240": {
@@ -85,6 +88,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": true,
     "yavesh": true
   },
   "241": {
@@ -107,6 +111,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": true,
     "yavesh": true
   },
   "242": {
@@ -129,6 +134,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": true,
     "yavesh": true
   },
   "243": {
@@ -151,6 +157,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": true,
     "yavesh": true
   },
   "244": {
@@ -173,6 +180,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": true,
     "yavesh": true
   },
   "245": {
@@ -195,6 +203,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": true,
     "yavesh": true
   },
   "246": {
@@ -217,6 +226,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": true,
     "yavesh": true
   },
   "247": {
@@ -239,70 +249,8 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": true,
     "yavesh": true
-  },
-  "600": {
-    "stock": 0,
-    "daySales": null,
-    "kratnost": 0,
-    "palStock": null,
-    "stockZafn": null,
-    "palStockZafn": null,
-    "daySalesZafn": null,
-    "stockTrnz": null,
-    "palStockTrnz": null,
-    "daySalesTrnz": null,
-    "weight": null,
-    "packFactor": 20,
-    "weightCarton": null,
-    "daysStockAll": null,
-    "nameEn": "חמאה200 גSVALIA '",
-    "ashdodPalletCartons": null,
-    "pakuot": [],
-    "pakuotZafn": [],
-    "shelfLife": 45
-  },
-  "601": {
-    "stock": 0,
-    "daySales": null,
-    "kratnost": 0,
-    "palStock": null,
-    "stockZafn": null,
-    "palStockZafn": null,
-    "daySalesZafn": null,
-    "stockTrnz": null,
-    "palStockTrnz": null,
-    "daySalesTrnz": null,
-    "weight": null,
-    "packFactor": 20,
-    "weightCarton": null,
-    "daysStockAll": null,
-    "nameEn": "חמאה חמוצה200 גSVALIA '",
-    "ashdodPalletCartons": null,
-    "pakuot": [],
-    "pakuotZafn": [],
-    "shelfLife": 45
-  },
-  "602": {
-    "stock": 0,
-    "daySales": null,
-    "kratnost": 0,
-    "palStock": null,
-    "stockZafn": null,
-    "palStockZafn": null,
-    "daySalesZafn": null,
-    "stockTrnz": null,
-    "palStockTrnz": null,
-    "daySalesTrnz": null,
-    "weight": null,
-    "packFactor": 20,
-    "weightCarton": null,
-    "daysStockAll": null,
-    "nameEn": "חמאה מלוחה200 גSVALIA '",
-    "ashdodPalletCartons": null,
-    "pakuot": [],
-    "pakuotZafn": [],
-    "shelfLife": 45
   },
   "604": {
     "stock": 3960,
@@ -323,19 +271,20 @@
     "ashdodPalletCartons": 180,
     "pakuot": [
       {
-        "date": "2027-04-23",
+        "date": "2027-04-24",
         "daysLeft": 340,
         "cartons": 3960
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-04-23",
+        "date": "2027-04-24",
         "daysLeft": 340,
         "cartons": 180
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "615": {
     "stock": 0,
@@ -356,7 +305,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": true
   },
   "616": {
     "stock": 0,
@@ -377,7 +327,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": true
   },
   "617": {
     "stock": 0,
@@ -398,7 +349,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": true
   },
   "624": {
     "stock": 144,
@@ -419,19 +371,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-06-08",
+        "date": "2026-06-09",
         "daysLeft": 21,
         "cartons": 144
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-06-08",
+        "date": "2026-06-09",
         "daysLeft": 21,
         "cartons": 63
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "625": {
     "stock": 0,
@@ -452,7 +405,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": true
   },
   "626": {
     "stock": 0,
@@ -473,7 +427,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": true
   },
   "627": {
     "stock": 0,
@@ -494,7 +449,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": true
   },
   "628": {
     "stock": 99,
@@ -515,19 +471,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-06-08",
+        "date": "2026-06-09",
         "daysLeft": 21,
         "cartons": 99
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-06-08",
+        "date": "2026-06-09",
         "daysLeft": 21,
         "cartons": 76
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "630": {
     "stock": 247,
@@ -548,19 +505,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-06-08",
+        "date": "2026-06-09",
         "daysLeft": 21,
         "cartons": 249
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-06-08",
+        "date": "2026-06-09",
         "daysLeft": 21,
         "cartons": 118
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "631": {
     "stock": 1457,
@@ -581,29 +539,30 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-05-30",
+        "date": "2026-05-31",
         "daysLeft": 12,
         "cartons": 449
       },
       {
-        "date": "2026-06-13",
+        "date": "2026-06-14",
         "daysLeft": 26,
         "cartons": 1008
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-05-30",
+        "date": "2026-05-31",
         "daysLeft": 12,
         "cartons": 277
       },
       {
-        "date": "2026-06-13",
+        "date": "2026-06-14",
         "daysLeft": 26,
         "cartons": 252
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "643": {
     "stock": 24,
@@ -624,19 +583,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-06-13",
+        "date": "2026-06-14",
         "daysLeft": 26,
         "cartons": 24
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-06-13",
+        "date": "2026-06-14",
         "daysLeft": 26,
         "cartons": 14
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "644": {
     "stock": 129,
@@ -657,19 +617,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-06-13",
+        "date": "2026-06-14",
         "daysLeft": 26,
         "cartons": 129
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-06-13",
+        "date": "2026-06-14",
         "daysLeft": 26,
         "cartons": 87
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "645": {
     "stock": 1448,
@@ -690,24 +651,25 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-05-30",
+        "date": "2026-05-31",
         "daysLeft": 12,
         "cartons": 473
       },
       {
-        "date": "2026-06-13",
+        "date": "2026-06-14",
         "daysLeft": 26,
         "cartons": 975
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-05-30",
+        "date": "2026-05-31",
         "daysLeft": 12,
         "cartons": 214
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "646": {
     "stock": 317,
@@ -728,19 +690,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-06-13",
+        "date": "2026-06-14",
         "daysLeft": 26,
         "cartons": 317
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-06-13",
+        "date": "2026-06-14",
         "daysLeft": 26,
         "cartons": 128
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "649": {
     "stock": 262,
@@ -761,24 +724,25 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-07-06",
+        "date": "2026-07-07",
         "daysLeft": 49,
         "cartons": 70
       },
       {
-        "date": "2026-09-07",
+        "date": "2026-09-08",
         "daysLeft": 112,
         "cartons": 192
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-07-06",
+        "date": "2026-07-07",
         "daysLeft": 49,
         "cartons": 38
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "650": {
     "stock": 145,
@@ -799,29 +763,30 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-07-06",
+        "date": "2026-07-07",
         "daysLeft": 49,
         "cartons": 17
       },
       {
-        "date": "2026-09-07",
+        "date": "2026-09-08",
         "daysLeft": 112,
         "cartons": 128
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-07-06",
+        "date": "2026-07-07",
         "daysLeft": 49,
         "cartons": 8
       },
       {
-        "date": "2026-09-07",
+        "date": "2026-09-08",
         "daysLeft": 112,
         "cartons": 64
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "651": {
     "stock": 0,
@@ -842,7 +807,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "652": {
     "stock": 0,
@@ -863,7 +829,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "653": {
     "stock": 0,
@@ -884,7 +851,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "654": {
     "stock": 0,
@@ -905,7 +873,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "655": {
     "stock": 0,
@@ -926,7 +895,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": true
   },
   "656": {
     "stock": 0,
@@ -947,7 +917,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": true
   },
   "657": {
     "stock": 0,
@@ -968,7 +939,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": true
   },
   "658": {
     "stock": 0,
@@ -989,7 +961,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": true
   },
   "659": {
     "stock": 1510,
@@ -1010,24 +983,25 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-09-28",
+        "date": "2026-09-29",
         "daysLeft": 133,
         "cartons": 450
       },
       {
-        "date": "2026-10-11",
+        "date": "2026-10-12",
         "daysLeft": 146,
         "cartons": 1060
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-09-28",
+        "date": "2026-09-29",
         "daysLeft": 133,
         "cartons": 285
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "660": {
     "stock": 418,
@@ -1048,34 +1022,35 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-08-05",
+        "date": "2026-08-06",
         "daysLeft": 79,
         "cartons": 47
       },
       {
-        "date": "2026-09-23",
+        "date": "2026-09-24",
         "daysLeft": 128,
         "cartons": 147
       },
       {
-        "date": "2026-10-21",
+        "date": "2026-10-22",
         "daysLeft": 156,
         "cartons": 224
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-05",
+        "date": "2026-08-06",
         "daysLeft": 79,
         "cartons": 39
       },
       {
-        "date": "2026-09-23",
+        "date": "2026-09-24",
         "daysLeft": 128,
         "cartons": 77
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "661": {
     "stock": 253,
@@ -1096,29 +1071,30 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-06-24",
+        "date": "2026-06-25",
         "daysLeft": 37,
         "cartons": 100
       },
       {
-        "date": "2026-07-22",
+        "date": "2026-07-23",
         "daysLeft": 65,
         "cartons": 153
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-06-24",
+        "date": "2026-06-25",
         "daysLeft": 37,
         "cartons": 50
       },
       {
-        "date": "2026-07-22",
+        "date": "2026-07-23",
         "daysLeft": 65,
         "cartons": 81
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "662": {
     "stock": 574,
@@ -1139,34 +1115,35 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-09-23",
+        "date": "2026-09-24",
         "daysLeft": 128,
         "cartons": 105
       },
       {
-        "date": "2026-09-30",
+        "date": "2026-10-01",
         "daysLeft": 135,
         "cartons": 235
       },
       {
-        "date": "2026-10-21",
+        "date": "2026-10-22",
         "daysLeft": 156,
         "cartons": 234
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-26",
+        "date": "2026-08-27",
         "daysLeft": 100,
         "cartons": 7
       },
       {
-        "date": "2026-09-23",
+        "date": "2026-09-24",
         "daysLeft": 128,
         "cartons": 68
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "663": {
     "stock": 0,
@@ -1187,7 +1164,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "664": {
     "stock": 356,
@@ -1208,34 +1186,35 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-08-05",
+        "date": "2026-08-06",
         "daysLeft": 79,
         "cartons": 58
       },
       {
-        "date": "2026-09-23",
+        "date": "2026-09-24",
         "daysLeft": 128,
         "cartons": 118
       },
       {
-        "date": "2026-10-21",
+        "date": "2026-10-22",
         "daysLeft": 156,
         "cartons": 180
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-05",
+        "date": "2026-08-06",
         "daysLeft": 79,
         "cartons": 34
       },
       {
-        "date": "2026-09-23",
+        "date": "2026-09-24",
         "daysLeft": 128,
         "cartons": 60
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "665": {
     "stock": 186,
@@ -1256,19 +1235,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-09-07",
+        "date": "2026-09-08",
         "daysLeft": 112,
         "cartons": 186
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-09-07",
+        "date": "2026-09-08",
         "daysLeft": 112,
         "cartons": 104
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "666": {
     "stock": 0,
@@ -1289,7 +1269,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "667": {
     "stock": 1507,
@@ -1310,39 +1291,40 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-08-24",
+        "date": "2026-08-25",
         "daysLeft": 98,
         "cartons": 99
       },
       {
-        "date": "2026-08-31",
+        "date": "2026-09-01",
         "daysLeft": 105,
         "cartons": 256
       },
       {
-        "date": "2026-09-07",
+        "date": "2026-09-08",
         "daysLeft": 112,
         "cartons": 576
       },
       {
-        "date": "2026-09-21",
+        "date": "2026-09-22",
         "daysLeft": 126,
         "cartons": 576
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-24",
+        "date": "2026-08-25",
         "daysLeft": 98,
         "cartons": 55
       },
       {
-        "date": "2026-08-31",
+        "date": "2026-09-01",
         "daysLeft": 105,
         "cartons": 128
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "668": {
     "stock": 577,
@@ -1363,39 +1345,40 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-07-06",
+        "date": "2026-07-07",
         "daysLeft": 49,
         "cartons": 70
       },
       {
-        "date": "2026-08-10",
+        "date": "2026-08-11",
         "daysLeft": 84,
         "cartons": 123
       },
       {
-        "date": "2026-08-24",
+        "date": "2026-08-25",
         "daysLeft": 98,
         "cartons": 192
       },
       {
-        "date": "2026-09-21",
+        "date": "2026-09-22",
         "daysLeft": 126,
         "cartons": 192
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-07-06",
+        "date": "2026-07-07",
         "daysLeft": 49,
         "cartons": 33
       },
       {
-        "date": "2026-08-10",
+        "date": "2026-08-11",
         "daysLeft": 84,
         "cartons": 64
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "669": {
     "stock": 988,
@@ -1416,44 +1399,45 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-08-10",
+        "date": "2026-08-11",
         "daysLeft": 84,
         "cartons": 28
       },
       {
-        "date": "2026-08-24",
+        "date": "2026-08-25",
         "daysLeft": 98,
         "cartons": 128
       },
       {
-        "date": "2026-09-07",
+        "date": "2026-09-08",
         "daysLeft": 112,
         "cartons": 448
       },
       {
-        "date": "2026-09-21",
+        "date": "2026-09-22",
         "daysLeft": 126,
         "cartons": 384
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-10",
+        "date": "2026-08-11",
         "daysLeft": 84,
         "cartons": 9
       },
       {
-        "date": "2026-08-24",
+        "date": "2026-08-25",
         "daysLeft": 98,
         "cartons": 64
       },
       {
-        "date": "2026-09-07",
+        "date": "2026-09-08",
         "daysLeft": 112,
         "cartons": 128
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "670": {
     "stock": 110,
@@ -1474,24 +1458,25 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-08-24",
+        "date": "2026-08-25",
         "daysLeft": 98,
         "cartons": 38
       },
       {
-        "date": "2026-09-14",
+        "date": "2026-09-15",
         "daysLeft": 119,
         "cartons": 72
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-24",
+        "date": "2026-08-25",
         "daysLeft": 98,
         "cartons": 28
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "671": {
     "stock": 0,
@@ -1512,7 +1497,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "672": {
     "stock": 103,
@@ -1533,24 +1519,25 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-08-24",
+        "date": "2026-08-25",
         "daysLeft": 98,
         "cartons": 31
       },
       {
-        "date": "2026-09-14",
+        "date": "2026-09-15",
         "daysLeft": 119,
         "cartons": 72
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-24",
+        "date": "2026-08-25",
         "daysLeft": 98,
         "cartons": 23
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "673": {
     "stock": 170,
@@ -1571,24 +1558,25 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-09-23",
+        "date": "2026-09-24",
         "daysLeft": 128,
         "cartons": 26
       },
       {
-        "date": "2026-10-14",
+        "date": "2026-10-15",
         "daysLeft": 149,
         "cartons": 144
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-09-23",
+        "date": "2026-09-24",
         "daysLeft": 128,
         "cartons": 21
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "674": {
     "stock": 0,
@@ -1609,7 +1597,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "675": {
     "stock": 0,
@@ -1630,7 +1619,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "676": {
     "stock": 0,
@@ -1651,7 +1641,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "677": {
     "stock": 1455,
@@ -1672,29 +1663,30 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-10-07",
+        "date": "2026-10-08",
         "daysLeft": 142,
         "cartons": 303
       },
       {
-        "date": "2026-10-14",
+        "date": "2026-10-15",
         "daysLeft": 149,
         "cartons": 384
       },
       {
-        "date": "2026-10-21",
+        "date": "2026-10-22",
         "daysLeft": 156,
         "cartons": 768
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-10-07",
+        "date": "2026-10-08",
         "daysLeft": 142,
         "cartons": 136
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "678": {
     "stock": 0,
@@ -1715,7 +1707,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "679": {
     "stock": 0,
@@ -1736,7 +1729,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "701": {
     "stock": 0,
@@ -1744,7 +1738,7 @@
     "pakuot": [],
     "pakuotAll": [
       {
-        "date": "2027-08-18T21:00:00.000Z",
+        "date": "2027-08-19T00:00:00.000Z",
         "daysLeft": 457,
         "cartons": 200
       }
@@ -1779,6 +1773,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": true,
     "yavesh": true
   },
   "711": {
@@ -1787,7 +1782,7 @@
     "pakuot": [],
     "pakuotAll": [
       {
-        "date": "2027-08-22T21:00:00.000Z",
+        "date": "2027-08-23T00:00:00.000Z",
         "daysLeft": 461,
         "cartons": 150
       }
@@ -1807,19 +1802,19 @@
     "daySales": 1.7679045092838197,
     "pakuot": [
       {
-        "date": "2027-04-13T21:00:00.000Z",
+        "date": "2027-04-14T00:00:00.000Z",
         "daysLeft": 330,
         "cartons": 1
       }
     ],
     "pakuotAll": [
       {
-        "date": "2027-04-13T21:00:00.000Z",
+        "date": "2027-04-14T00:00:00.000Z",
         "daysLeft": 330,
         "cartons": 2
       },
       {
-        "date": "2027-08-23T21:00:00.000Z",
+        "date": "2027-08-24T00:00:00.000Z",
         "daysLeft": 462,
         "cartons": 250
       }
@@ -1830,7 +1825,7 @@
     "daySalesZafn": 1.7115384615384615,
     "pakuotZafn": [
       {
-        "date": "2027-04-13T21:00:00.000Z",
+        "date": "2027-04-14T00:00:00.000Z",
         "daysLeft": 330,
         "cartons": 1
       }
@@ -1846,7 +1841,7 @@
     "pakuot": [],
     "pakuotAll": [
       {
-        "date": "2027-08-17T21:00:00.000Z",
+        "date": "2027-08-18T00:00:00.000Z",
         "daysLeft": 456,
         "cartons": 200
       }
@@ -1881,6 +1876,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": false,
     "yavesh": true
   },
   "715": {
@@ -1903,6 +1899,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": true,
     "yavesh": true
   },
   "716": {
@@ -1925,6 +1922,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": true,
     "yavesh": true
   },
   "717": {
@@ -1947,6 +1945,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": false,
     "yavesh": true
   },
   "719": {
@@ -1969,6 +1968,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": false,
     "yavesh": true
   },
   "720": {
@@ -1991,6 +1991,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": true,
     "yavesh": true
   },
   "721": {
@@ -2013,6 +2014,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": false,
     "yavesh": true
   },
   "722": {
@@ -2035,6 +2037,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": true,
     "yavesh": true
   },
   "724": {
@@ -2057,6 +2060,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": false,
     "yavesh": true
   },
   "725": {
@@ -2079,6 +2083,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": false,
     "yavesh": true
   },
   "726": {
@@ -2101,6 +2106,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": false,
     "yavesh": true
   },
   "727": {
@@ -2123,6 +2129,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": false,
     "yavesh": true
   },
   "728": {
@@ -2145,6 +2152,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": false,
     "yavesh": true
   },
   "731": {
@@ -2166,7 +2174,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": true
   },
   "732": {
     "stock": 5808,
@@ -2187,24 +2196,25 @@
     "ashdodPalletCartons": 220,
     "pakuot": [
       {
-        "date": "2027-03-29",
+        "date": "2027-03-30",
         "daysLeft": 315,
         "cartons": 808
       },
       {
-        "date": "2027-04-21",
+        "date": "2027-04-22",
         "daysLeft": 338,
         "cartons": 5000
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-03-29",
+        "date": "2027-03-30",
         "daysLeft": 315,
         "cartons": 432
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "736": {
     "stock": 1254,
@@ -2225,29 +2235,30 @@
     "ashdodPalletCartons": 240,
     "pakuot": [
       {
-        "date": "2026-10-01",
+        "date": "2026-10-02",
         "daysLeft": 136,
         "cartons": 294
       },
       {
-        "date": "2027-03-11",
+        "date": "2027-03-12",
         "daysLeft": 297,
         "cartons": 960
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-10-01",
+        "date": "2026-10-02",
         "daysLeft": 136,
         "cartons": 88
       },
       {
-        "date": "2027-03-11",
+        "date": "2027-03-12",
         "daysLeft": 297,
         "cartons": 240
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "739": {
     "stock": 939,
@@ -2268,19 +2279,20 @@
     "ashdodPalletCartons": 240,
     "pakuot": [
       {
-        "date": "2027-03-11",
+        "date": "2027-03-12",
         "daysLeft": 297,
         "cartons": 939
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-03-11",
+        "date": "2027-03-12",
         "daysLeft": 297,
         "cartons": 197
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "740": {
     "stock": 627,
@@ -2301,19 +2313,20 @@
     "ashdodPalletCartons": 112,
     "pakuot": [
       {
-        "date": "2027-03-11",
+        "date": "2027-03-12",
         "daysLeft": 297,
         "cartons": 627
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-03-11",
+        "date": "2027-03-12",
         "daysLeft": 297,
         "cartons": 142
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "755": {
     "stock": 1197,
@@ -2334,39 +2347,40 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-08-31",
+        "date": "2026-09-01",
         "daysLeft": 105,
         "cartons": 117
       },
       {
-        "date": "2026-09-28",
+        "date": "2026-09-29",
         "daysLeft": 133,
         "cartons": 360
       },
       {
-        "date": "2026-10-11",
+        "date": "2026-10-12",
         "daysLeft": 146,
         "cartons": 360
       },
       {
-        "date": "2026-10-25",
+        "date": "2026-10-26",
         "daysLeft": 160,
         "cartons": 360
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-31",
+        "date": "2026-09-01",
         "daysLeft": 105,
         "cartons": 48
       },
       {
-        "date": "2026-09-28",
+        "date": "2026-09-29",
         "daysLeft": 133,
         "cartons": 180
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "800": {
     "stock": 2793,
@@ -2387,19 +2401,20 @@
     "ashdodPalletCartons": 180,
     "pakuot": [
       {
-        "date": "2027-08-16",
+        "date": "2027-08-17",
         "daysLeft": 455,
         "cartons": 2793
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-08-16",
+        "date": "2027-08-17",
         "daysLeft": 455,
         "cartons": 337
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "802": {
     "stock": 635,
@@ -2420,29 +2435,30 @@
     "ashdodPalletCartons": 240,
     "pakuot": [
       {
-        "date": "2026-07-19",
+        "date": "2026-07-20",
         "daysLeft": 62,
         "cartons": 275
       },
       {
-        "date": "2027-03-11",
+        "date": "2027-03-12",
         "daysLeft": 297,
         "cartons": 360
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-07-19",
+        "date": "2026-07-20",
         "daysLeft": 62,
         "cartons": 136
       },
       {
-        "date": "2027-03-11",
+        "date": "2027-03-12",
         "daysLeft": 297,
         "cartons": 120
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "803": {
     "stock": 205,
@@ -2463,19 +2479,20 @@
     "ashdodPalletCartons": 240,
     "pakuot": [
       {
-        "date": "2027-03-11",
+        "date": "2027-03-12",
         "daysLeft": 297,
         "cartons": 205
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-03-11",
+        "date": "2027-03-12",
         "daysLeft": 297,
         "cartons": 88
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "815": {
     "stock": 1671,
@@ -2496,19 +2513,20 @@
     "ashdodPalletCartons": 81,
     "pakuot": [
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 1671
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 687
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "816": {
     "stock": 1662,
@@ -2529,19 +2547,20 @@
     "ashdodPalletCartons": 81,
     "pakuot": [
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 1662
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 595
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "817": {
     "stock": 1618,
@@ -2562,19 +2581,20 @@
     "ashdodPalletCartons": 81,
     "pakuot": [
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 1618
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 598
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "818": {
     "stock": 4866,
@@ -2595,19 +2615,20 @@
     "ashdodPalletCartons": 81,
     "pakuot": [
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 4866
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 571
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "1000": {
     "stock": 109,
@@ -2628,19 +2649,20 @@
     "ashdodPalletCartons": 192,
     "pakuot": [
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 109
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 71
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1001": {
     "stock": 0,
@@ -2661,7 +2683,8 @@
     "ashdodPalletCartons": 192,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1002": {
     "stock": 38,
@@ -2682,19 +2705,20 @@
     "ashdodPalletCartons": 192,
     "pakuot": [
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 38
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 31
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1003": {
     "stock": 0,
@@ -2715,7 +2739,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1004": {
     "stock": 30,
@@ -2736,19 +2761,20 @@
     "ashdodPalletCartons": 192,
     "pakuot": [
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 30
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 7
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1005": {
     "stock": 1648,
@@ -2769,34 +2795,35 @@
     "ashdodPalletCartons": 200,
     "pakuot": [
       {
-        "date": "2026-07-30",
+        "date": "2026-07-31",
         "daysLeft": 73,
         "cartons": 50
       },
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 799
       },
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 799
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-07-30",
+        "date": "2026-07-31",
         "daysLeft": 73,
         "cartons": 7
       },
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 200
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1006": {
     "stock": 677,
@@ -2817,24 +2844,25 @@
     "ashdodPalletCartons": 192,
     "pakuot": [
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 232
       },
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 445
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 162
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1007": {
     "stock": 0,
@@ -2855,7 +2883,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1008": {
     "stock": 0,
@@ -2876,7 +2905,8 @@
     "ashdodPalletCartons": 224,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1009": {
     "stock": 0,
@@ -2897,7 +2927,8 @@
     "ashdodPalletCartons": 200,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1010": {
     "stock": 0,
@@ -2918,7 +2949,8 @@
     "ashdodPalletCartons": 200,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1011": {
     "stock": 467,
@@ -2939,29 +2971,30 @@
     "ashdodPalletCartons": 224,
     "pakuot": [
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 20
       },
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 447
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 19
       },
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 224
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1012": {
     "stock": 645,
@@ -2982,29 +3015,30 @@
     "ashdodPalletCartons": 240,
     "pakuot": [
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 166
       },
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 479
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 89
       },
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 240
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1013": {
     "stock": 758,
@@ -3025,34 +3059,35 @@
     "ashdodPalletCartons": 240,
     "pakuot": [
       {
-        "date": "2026-07-30",
+        "date": "2026-07-31",
         "daysLeft": 73,
         "cartons": 196
       },
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 323
       },
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 239
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-07-30",
+        "date": "2026-07-31",
         "daysLeft": 73,
         "cartons": 93
       },
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 156
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1014": {
     "stock": 408,
@@ -3073,19 +3108,20 @@
     "ashdodPalletCartons": 240,
     "pakuot": [
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 408
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 249
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1015": {
     "stock": 865,
@@ -3106,29 +3142,30 @@
     "ashdodPalletCartons": 357,
     "pakuot": [
       {
-        "date": "2026-09-25",
+        "date": "2026-09-26",
         "daysLeft": 130,
         "cartons": 123
       },
       {
-        "date": "2026-10-23",
+        "date": "2026-10-24",
         "daysLeft": 158,
         "cartons": 742
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-09-25",
+        "date": "2026-09-26",
         "daysLeft": 130,
         "cartons": 59
       },
       {
-        "date": "2026-10-23",
+        "date": "2026-10-24",
         "daysLeft": 158,
         "cartons": 357
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1016": {
     "stock": 0,
@@ -3149,7 +3186,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1017": {
     "stock": 1341,
@@ -3170,19 +3208,20 @@
     "ashdodPalletCartons": 357,
     "pakuot": [
       {
-        "date": "2026-10-23",
+        "date": "2026-10-24",
         "daysLeft": 158,
         "cartons": 1341
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-10-23",
+        "date": "2026-10-24",
         "daysLeft": 158,
         "cartons": 599
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1018": {
     "stock": 1421,
@@ -3203,19 +3242,20 @@
     "ashdodPalletCartons": 357,
     "pakuot": [
       {
-        "date": "2026-10-23",
+        "date": "2026-10-24",
         "daysLeft": 158,
         "cartons": 1421
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-10-23",
+        "date": "2026-10-24",
         "daysLeft": 158,
         "cartons": 340
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1019": {
     "stock": 1758,
@@ -3236,29 +3276,30 @@
     "ashdodPalletCartons": 336,
     "pakuot": [
       {
-        "date": "2026-07-26",
+        "date": "2026-07-27",
         "daysLeft": 69,
         "cartons": 89
       },
       {
-        "date": "2026-08-24",
+        "date": "2026-08-25",
         "daysLeft": 98,
         "cartons": 1669
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-07-26",
+        "date": "2026-07-27",
         "daysLeft": 69,
         "cartons": 56
       },
       {
-        "date": "2026-08-24",
+        "date": "2026-08-25",
         "daysLeft": 98,
         "cartons": 336
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1020": {
     "stock": 648,
@@ -3279,19 +3320,20 @@
     "ashdodPalletCartons": 336,
     "pakuot": [
       {
-        "date": "2026-08-23",
+        "date": "2026-08-24",
         "daysLeft": 97,
         "cartons": 651
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-23",
+        "date": "2026-08-24",
         "daysLeft": 97,
         "cartons": 311
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1021": {
     "stock": 0,
@@ -3312,7 +3354,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1022": {
     "stock": 0,
@@ -3333,7 +3376,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1023": {
     "stock": 0,
@@ -3354,7 +3398,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1024": {
     "stock": 0,
@@ -3375,7 +3420,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1025": {
     "stock": 0,
@@ -3396,7 +3442,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1026": {
     "stock": 0,
@@ -3417,7 +3464,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1027": {
     "stock": 0,
@@ -3438,7 +3486,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1028": {
     "stock": 0,
@@ -3459,7 +3508,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1029": {
     "stock": 0,
@@ -3480,7 +3530,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1030": {
     "stock": 0,
@@ -3501,7 +3552,8 @@
     "ashdodPalletCartons": 256,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": true
   },
   "1031": {
     "stock": 0,
@@ -3522,7 +3574,8 @@
     "ashdodPalletCartons": 256,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": true
   },
   "1032": {
     "stock": 0,
@@ -3543,7 +3596,8 @@
     "ashdodPalletCartons": 256,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": true
   },
   "1033": {
     "stock": 0,
@@ -3564,7 +3618,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": true
   },
   "1034": {
     "stock": 0,
@@ -3585,7 +3640,8 @@
     "ashdodPalletCartons": 220,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": true
   },
   "1035": {
     "stock": 0,
@@ -3606,7 +3662,8 @@
     "ashdodPalletCartons": 220,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": true
   },
   "1036": {
     "stock": 0,
@@ -3627,7 +3684,8 @@
     "ashdodPalletCartons": 220,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": true
   },
   "1037": {
     "stock": 0,
@@ -3648,7 +3706,8 @@
     "ashdodPalletCartons": 220,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": true
   },
   "1042": {
     "stock": 0,
@@ -3669,7 +3728,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1043": {
     "stock": 0,
@@ -3690,7 +3750,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1044": {
     "stock": 0,
@@ -3711,7 +3772,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1045": {
     "stock": 829,
@@ -3732,19 +3794,20 @@
     "ashdodPalletCartons": 108,
     "pakuot": [
       {
-        "date": "2027-07-31",
+        "date": "2027-08-01",
         "daysLeft": 439,
         "cartons": 829
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-07-31",
+        "date": "2027-08-01",
         "daysLeft": 439,
         "cartons": 154
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1046": {
     "stock": 1066,
@@ -3765,24 +3828,25 @@
     "ashdodPalletCartons": 90,
     "pakuot": [
       {
-        "date": "2027-04-17",
+        "date": "2027-04-18",
         "daysLeft": 334,
         "cartons": 256
       },
       {
-        "date": "2027-08-01",
+        "date": "2027-08-02",
         "daysLeft": 440,
         "cartons": 810
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-04-17",
+        "date": "2027-04-18",
         "daysLeft": 334,
         "cartons": 146
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1047": {
     "stock": 704,
@@ -3803,34 +3867,35 @@
     "ashdodPalletCartons": 200,
     "pakuot": [
       {
-        "date": "2026-06-12",
+        "date": "2026-06-13",
         "daysLeft": 25,
         "cartons": 56
       },
       {
-        "date": "2026-07-06",
+        "date": "2026-07-07",
         "daysLeft": 49,
         "cartons": 249
       },
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 399
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-06-12",
+        "date": "2026-06-13",
         "daysLeft": 25,
         "cartons": 31
       },
       {
-        "date": "2026-07-06",
+        "date": "2026-07-07",
         "daysLeft": 49,
         "cartons": 140
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1048": {
     "stock": 1014,
@@ -3851,34 +3916,35 @@
     "ashdodPalletCartons": 200,
     "pakuot": [
       {
-        "date": "2026-07-16",
+        "date": "2026-07-17",
         "daysLeft": 59,
         "cartons": 220
       },
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 395
       },
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 399
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-07-16",
+        "date": "2026-07-17",
         "daysLeft": 59,
         "cartons": 76
       },
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 200
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1049": {
     "stock": 669,
@@ -3899,19 +3965,20 @@
     "ashdodPalletCartons": 240,
     "pakuot": [
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 669
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 301
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1050": {
     "stock": 271,
@@ -3932,29 +3999,30 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-05-30",
+        "date": "2026-05-31",
         "daysLeft": 12,
         "cartons": 16
       },
       {
-        "date": "2026-06-13",
+        "date": "2026-06-14",
         "daysLeft": 26,
         "cartons": 255
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-05-30",
+        "date": "2026-05-31",
         "daysLeft": 12,
         "cartons": 20
       },
       {
-        "date": "2026-06-13",
+        "date": "2026-06-14",
         "daysLeft": 26,
         "cartons": 120
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "1051": {
     "stock": 0,
@@ -3975,7 +4043,8 @@
     "ashdodPalletCartons": 108,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1052": {
     "stock": 122,
@@ -3996,19 +4065,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-06-13",
+        "date": "2026-06-14",
         "daysLeft": 26,
         "cartons": 122
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-06-13",
+        "date": "2026-06-14",
         "daysLeft": 26,
         "cartons": 83
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "1053": {
     "stock": 336,
@@ -4029,29 +4099,30 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-05-30",
+        "date": "2026-05-31",
         "daysLeft": 12,
         "cartons": 81
       },
       {
-        "date": "2026-06-13",
+        "date": "2026-06-14",
         "daysLeft": 26,
         "cartons": 255
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-05-30",
+        "date": "2026-05-31",
         "daysLeft": 12,
         "cartons": 59
       },
       {
-        "date": "2026-06-13",
+        "date": "2026-06-14",
         "daysLeft": 26,
         "cartons": 118
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "1055": {
     "stock": 42,
@@ -4072,19 +4143,20 @@
     "ashdodPalletCartons": 168,
     "pakuot": [
       {
-        "date": "2026-08-10",
+        "date": "2026-08-11",
         "daysLeft": 84,
         "cartons": 42
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-10",
+        "date": "2026-08-11",
         "daysLeft": 84,
         "cartons": 25
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1056": {
     "stock": 59,
@@ -4105,19 +4177,20 @@
     "ashdodPalletCartons": 168,
     "pakuot": [
       {
-        "date": "2026-08-10",
+        "date": "2026-08-11",
         "daysLeft": 84,
         "cartons": 59
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-10",
+        "date": "2026-08-11",
         "daysLeft": 84,
         "cartons": 36
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1057": {
     "stock": 39,
@@ -4138,19 +4211,20 @@
     "ashdodPalletCartons": 168,
     "pakuot": [
       {
-        "date": "2026-05-31",
+        "date": "2026-06-01",
         "daysLeft": 13,
         "cartons": 39
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-05-31",
+        "date": "2026-06-01",
         "daysLeft": 13,
         "cartons": 23
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1060": {
     "stock": 0,
@@ -4171,7 +4245,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "1061": {
     "stock": 0,
@@ -4192,7 +4267,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": true
   },
   "1062": {
     "stock": 0,
@@ -4213,7 +4289,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "1063": {
     "stock": 0,
@@ -4234,7 +4311,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": true
   },
   "1064": {
     "stock": 0,
@@ -4255,7 +4333,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": true
   },
   "1066": {
     "stock": 0,
@@ -4276,7 +4355,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": true
   },
   "1067": {
     "stock": 0,
@@ -4297,7 +4377,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": true
   },
   "1068": {
     "stock": 0,
@@ -4318,7 +4399,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": true
   },
   "1069": {
     "stock": 0,
@@ -4339,7 +4421,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": true
   },
   "1070": {
     "stock": 0,
@@ -4360,7 +4443,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": true
   },
   "1071": {
     "stock": 0,
@@ -4381,7 +4465,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": true
   },
   "1072": {
     "stock": 0,
@@ -4402,7 +4487,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": true
   },
   "1073": {
     "stock": 0,
@@ -4423,7 +4509,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": true
   },
   "1074": {
     "stock": 0,
@@ -4444,7 +4531,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": true
   },
   "1075": {
     "stock": 0,
@@ -4465,7 +4553,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": true
   },
   "1076": {
     "stock": 752,
@@ -4486,19 +4575,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-06-04",
+        "date": "2026-06-05",
         "daysLeft": 17,
         "cartons": 752
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-06-04",
+        "date": "2026-06-05",
         "daysLeft": 17,
         "cartons": 312
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "1077": {
     "stock": 864,
@@ -4519,19 +4609,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-06-04",
+        "date": "2026-06-05",
         "daysLeft": 17,
         "cartons": 867
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-06-04",
+        "date": "2026-06-05",
         "daysLeft": 17,
         "cartons": 128
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "1098": {
     "stock": 0,
@@ -4553,6 +4644,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": true,
     "yavesh": true
   },
   "1099": {
@@ -4575,6 +4667,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": true,
     "yavesh": true
   },
   "1100": {
@@ -4583,7 +4676,7 @@
     "pakuot": [],
     "pakuotAll": [
       {
-        "date": "2027-08-20T21:00:00.000Z",
+        "date": "2027-08-21T00:00:00.000Z",
         "daysLeft": 459,
         "cartons": 150
       }
@@ -4604,7 +4697,7 @@
     "pakuot": [],
     "pakuotAll": [
       {
-        "date": "2027-08-21T21:00:00.000Z",
+        "date": "2027-08-22T00:00:00.000Z",
         "daysLeft": 460,
         "cartons": 170
       }
@@ -4625,7 +4718,7 @@
     "pakuot": [],
     "pakuotAll": [
       {
-        "date": "2027-08-19T21:00:00.000Z",
+        "date": "2027-08-20T00:00:00.000Z",
         "daysLeft": 458,
         "cartons": 170
       }
@@ -4660,6 +4753,7 @@
     "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
+    "stopSale": true,
     "yavesh": true
   },
   "1104": {
@@ -4668,7 +4762,7 @@
     "pakuot": [],
     "pakuotAll": [
       {
-        "date": "2027-08-16T21:00:00.000Z",
+        "date": "2027-08-17T00:00:00.000Z",
         "daysLeft": 455,
         "cartons": 200
       }
@@ -4689,7 +4783,7 @@
     "pakuot": [],
     "pakuotAll": [
       {
-        "date": "2027-08-15T21:00:00.000Z",
+        "date": "2027-08-16T00:00:00.000Z",
         "daysLeft": 454,
         "cartons": 150
       }
@@ -4723,19 +4817,20 @@
     "ashdodPalletCartons": 276,
     "pakuot": [
       {
-        "date": "2026-12-08",
+        "date": "2026-12-09",
         "daysLeft": 204,
         "cartons": 2870
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-12-08",
+        "date": "2026-12-09",
         "daysLeft": 204,
         "cartons": 725
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1107": {
     "stock": 1365,
@@ -4756,29 +4851,30 @@
     "ashdodPalletCartons": 276,
     "pakuot": [
       {
-        "date": "2026-10-13",
+        "date": "2026-10-14",
         "daysLeft": 148,
         "cartons": 88
       },
       {
-        "date": "2026-11-03",
+        "date": "2026-11-04",
         "daysLeft": 169,
         "cartons": 1277
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-10-13",
+        "date": "2026-10-14",
         "daysLeft": 148,
         "cartons": 51
       },
       {
-        "date": "2026-11-03",
+        "date": "2026-11-04",
         "daysLeft": 169,
         "cartons": 276
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1108": {
     "stock": 675,
@@ -4799,19 +4895,20 @@
     "ashdodPalletCartons": 408,
     "pakuot": [
       {
-        "date": "2026-08-10",
+        "date": "2026-08-11",
         "daysLeft": 84,
         "cartons": 675
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-10",
+        "date": "2026-08-11",
         "daysLeft": 84,
         "cartons": 379
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1109": {
     "stock": 0,
@@ -4832,7 +4929,8 @@
     "ashdodPalletCartons": 357,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1110": {
     "stock": 0,
@@ -4853,7 +4951,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1111": {
     "stock": 0,
@@ -4874,7 +4973,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1112": {
     "stock": 0,
@@ -4882,7 +4982,7 @@
     "pakuot": [],
     "pakuotAll": [
       {
-        "date": "2027-02-05T22:00:00.000Z",
+        "date": "2027-02-06T00:00:00.000Z",
         "daysLeft": 263,
         "cartons": 97
       }
@@ -4903,7 +5003,7 @@
     "pakuot": [],
     "pakuotAll": [
       {
-        "date": "2027-02-05T22:00:00.000Z",
+        "date": "2027-02-06T00:00:00.000Z",
         "daysLeft": 263,
         "cartons": 248
       }
@@ -4924,7 +5024,7 @@
     "pakuot": [],
     "pakuotAll": [
       {
-        "date": "2027-02-05T22:00:00.000Z",
+        "date": "2027-02-06T00:00:00.000Z",
         "daysLeft": 263,
         "cartons": 220
       }
@@ -4945,7 +5045,7 @@
     "pakuot": [],
     "pakuotAll": [
       {
-        "date": "2027-02-05T22:00:00.000Z",
+        "date": "2027-02-06T00:00:00.000Z",
         "daysLeft": 263,
         "cartons": 218
       }
@@ -4966,7 +5066,7 @@
     "pakuot": [],
     "pakuotAll": [
       {
-        "date": "2027-02-05T22:00:00.000Z",
+        "date": "2027-02-06T00:00:00.000Z",
         "daysLeft": 263,
         "cartons": 87
       }
@@ -4987,7 +5087,7 @@
     "pakuot": [],
     "pakuotAll": [
       {
-        "date": "2027-02-05T22:00:00.000Z",
+        "date": "2027-02-06T00:00:00.000Z",
         "daysLeft": 263,
         "cartons": 200
       }
@@ -5008,7 +5108,7 @@
     "pakuot": [],
     "pakuotAll": [
       {
-        "date": "2027-02-05T22:00:00.000Z",
+        "date": "2027-02-06T00:00:00.000Z",
         "daysLeft": 263,
         "cartons": 110
       }
@@ -5028,19 +5128,19 @@
     "daySales": 1.946896551724138,
     "pakuot": [
       {
-        "date": "2026-11-27T22:00:00.000Z",
+        "date": "2026-11-28T00:00:00.000Z",
         "daysLeft": 193,
         "cartons": 6
       }
     ],
     "pakuotAll": [
       {
-        "date": "2026-11-27T22:00:00.000Z",
+        "date": "2026-11-28T00:00:00.000Z",
         "daysLeft": 193,
         "cartons": 9
       },
       {
-        "date": "2027-02-05T22:00:00.000Z",
+        "date": "2027-02-06T00:00:00.000Z",
         "daysLeft": 263,
         "cartons": 150
       }
@@ -5051,7 +5151,7 @@
     "daySalesZafn": 1.7185185185185186,
     "pakuotZafn": [
       {
-        "date": "2026-11-27T22:00:00.000Z",
+        "date": "2026-11-28T00:00:00.000Z",
         "daysLeft": 193,
         "cartons": 3
       }
@@ -5080,19 +5180,20 @@
     "ashdodPalletCartons": 224,
     "pakuot": [
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 404
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 205
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1122": {
     "stock": 133,
@@ -5113,19 +5214,20 @@
     "ashdodPalletCartons": 357,
     "pakuot": [
       {
-        "date": "2026-09-04",
+        "date": "2026-09-05",
         "daysLeft": 109,
         "cartons": 133
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-09-04",
+        "date": "2026-09-05",
         "daysLeft": 109,
         "cartons": 96
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1123": {
     "stock": 103,
@@ -5146,19 +5248,20 @@
     "ashdodPalletCartons": 357,
     "pakuot": [
       {
-        "date": "2026-09-25",
+        "date": "2026-09-26",
         "daysLeft": 130,
         "cartons": 103
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-09-25",
+        "date": "2026-09-26",
         "daysLeft": 130,
         "cartons": 70
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1124": {
     "stock": 476,
@@ -5179,19 +5282,20 @@
     "ashdodPalletCartons": 357,
     "pakuot": [
       {
-        "date": "2026-09-25",
+        "date": "2026-09-26",
         "daysLeft": 130,
         "cartons": 476
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-09-25",
+        "date": "2026-09-26",
         "daysLeft": 130,
         "cartons": 224
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1125": {
     "stock": 0,
@@ -5212,7 +5316,8 @@
     "ashdodPalletCartons": 48,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1126": {
     "stock": 34,
@@ -5233,19 +5338,20 @@
     "ashdodPalletCartons": 48,
     "pakuot": [
       {
-        "date": "2026-09-04",
+        "date": "2026-09-05",
         "daysLeft": 109,
         "cartons": 34
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-09-04",
+        "date": "2026-09-05",
         "daysLeft": 109,
         "cartons": 18
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1127": {
     "stock": 50,
@@ -5266,19 +5372,20 @@
     "ashdodPalletCartons": 48,
     "pakuot": [
       {
-        "date": "2026-09-04",
+        "date": "2026-09-05",
         "daysLeft": 109,
         "cartons": 50
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-09-04",
+        "date": "2026-09-05",
         "daysLeft": 109,
         "cartons": 36
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1154": {
     "stock": 0,
@@ -5299,7 +5406,8 @@
     "ashdodPalletCartons": 224,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1157": {
     "stock": 1202,
@@ -5320,29 +5428,30 @@
     "ashdodPalletCartons": 273,
     "pakuot": [
       {
-        "date": "2026-07-30",
+        "date": "2026-07-31",
         "daysLeft": 73,
         "cartons": 12
       },
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 456
       },
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 734
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 262
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1163": {
     "stock": 412,
@@ -5363,19 +5472,20 @@
     "ashdodPalletCartons": 350,
     "pakuot": [
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 412
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 194
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1164": {
     "stock": 1154,
@@ -5396,34 +5506,35 @@
     "ashdodPalletCartons": 350,
     "pakuot": [
       {
-        "date": "2026-07-06",
+        "date": "2026-07-07",
         "daysLeft": 49,
         "cartons": 21
       },
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 434
       },
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 699
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-07-06",
+        "date": "2026-07-07",
         "daysLeft": 49,
         "cartons": 32
       },
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 245
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1165": {
     "stock": 1939,
@@ -5444,29 +5555,30 @@
     "ashdodPalletCartons": 273,
     "pakuot": [
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 295
       },
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 1644
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 78
       },
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 315
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1166": {
     "stock": 2979,
@@ -5487,39 +5599,40 @@
     "ashdodPalletCartons": 200,
     "pakuot": [
       {
-        "date": "2026-07-16",
+        "date": "2026-07-17",
         "daysLeft": 59,
         "cartons": 385
       },
       {
-        "date": "2026-07-30",
+        "date": "2026-07-31",
         "daysLeft": 73,
         "cartons": 796
       },
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 799
       },
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 999
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-07-16",
+        "date": "2026-07-17",
         "daysLeft": 59,
         "cartons": 161
       },
       {
-        "date": "2026-07-30",
+        "date": "2026-07-31",
         "daysLeft": 73,
         "cartons": 198
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1167": {
     "stock": 2810,
@@ -5540,39 +5653,40 @@
     "ashdodPalletCartons": 200,
     "pakuot": [
       {
-        "date": "2026-07-16",
+        "date": "2026-07-17",
         "daysLeft": 59,
         "cartons": 413
       },
       {
-        "date": "2026-07-30",
+        "date": "2026-07-31",
         "daysLeft": 73,
         "cartons": 599
       },
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 799
       },
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 999
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-07-16",
+        "date": "2026-07-17",
         "daysLeft": 59,
         "cartons": 181
       },
       {
-        "date": "2026-07-30",
+        "date": "2026-07-31",
         "daysLeft": 73,
         "cartons": 200
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1168": {
     "stock": 1272,
@@ -5593,34 +5707,35 @@
     "ashdodPalletCartons": 200,
     "pakuot": [
       {
-        "date": "2026-07-16",
+        "date": "2026-07-17",
         "daysLeft": 59,
         "cartons": 79
       },
       {
-        "date": "2026-07-30",
+        "date": "2026-07-31",
         "daysLeft": 73,
         "cartons": 394
       },
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 799
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-07-16",
+        "date": "2026-07-17",
         "daysLeft": 59,
         "cartons": 46
       },
       {
-        "date": "2026-07-30",
+        "date": "2026-07-31",
         "daysLeft": 73,
         "cartons": 200
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1169": {
     "stock": 0,
@@ -5641,7 +5756,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1170": {
     "stock": 668,
@@ -5662,24 +5778,25 @@
     "ashdodPalletCartons": 255,
     "pakuot": [
       {
-        "date": "2026-07-30",
+        "date": "2026-07-31",
         "daysLeft": 73,
         "cartons": 189
       },
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 479
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-07-30",
+        "date": "2026-07-31",
         "daysLeft": 73,
         "cartons": 115
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1171": {
     "stock": 623,
@@ -5700,29 +5817,30 @@
     "ashdodPalletCartons": 255,
     "pakuot": [
       {
-        "date": "2026-07-30",
+        "date": "2026-07-31",
         "daysLeft": 73,
         "cartons": 108
       },
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 515
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-07-30",
+        "date": "2026-07-31",
         "daysLeft": 73,
         "cartons": 72
       },
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 204
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1172": {
     "stock": 0,
@@ -5743,7 +5861,8 @@
     "ashdodPalletCartons": 255,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1173": {
     "stock": 389,
@@ -5764,29 +5883,30 @@
     "ashdodPalletCartons": 255,
     "pakuot": [
       {
-        "date": "2026-06-12",
+        "date": "2026-06-13",
         "daysLeft": 25,
         "cartons": 119
       },
       {
-        "date": "2026-07-16",
+        "date": "2026-07-17",
         "daysLeft": 59,
         "cartons": 270
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-06-12",
+        "date": "2026-06-13",
         "daysLeft": 25,
         "cartons": 55
       },
       {
-        "date": "2026-07-16",
+        "date": "2026-07-17",
         "daysLeft": 59,
         "cartons": 108
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1174": {
     "stock": 843,
@@ -5807,29 +5927,30 @@
     "ashdodPalletCartons": 300,
     "pakuot": [
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 244
       },
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 599
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 190
       },
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 300
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1175": {
     "stock": 225,
@@ -5850,29 +5971,30 @@
     "ashdodPalletCartons": 192,
     "pakuot": [
       {
-        "date": "2026-07-16",
+        "date": "2026-07-17",
         "daysLeft": 59,
         "cartons": 73
       },
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 152
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-07-16",
+        "date": "2026-07-17",
         "daysLeft": 59,
         "cartons": 39
       },
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 64
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "1176": {
     "stock": 0,
@@ -5893,7 +6015,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1177": {
     "stock": 0,
@@ -5914,7 +6037,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": true
   },
   "1180": {
     "stock": 812,
@@ -5935,34 +6059,35 @@
     "ashdodPalletCartons": 140,
     "pakuot": [
       {
-        "date": "2027-01-17",
+        "date": "2027-01-18",
         "daysLeft": 244,
         "cartons": 72
       },
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 180
       },
       {
-        "date": "2027-03-28",
+        "date": "2027-03-29",
         "daysLeft": 314,
         "cartons": 560
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-01-17",
+        "date": "2027-01-18",
         "daysLeft": 244,
         "cartons": 65
       },
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 100
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "1181": {
     "stock": 0,
@@ -5983,7 +6108,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": true
   },
   "1182": {
     "stock": 897,
@@ -6004,29 +6130,30 @@
     "ashdodPalletCartons": 140,
     "pakuot": [
       {
-        "date": "2027-01-17",
+        "date": "2027-01-18",
         "daysLeft": 244,
         "cartons": 10
       },
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 280
       },
       {
-        "date": "2027-03-28",
+        "date": "2027-03-29",
         "daysLeft": 314,
         "cartons": 607
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 138
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "1183": {
     "stock": 0,
@@ -6047,7 +6174,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": true
   },
   "1184": {
     "stock": 1158,
@@ -6068,34 +6196,35 @@
     "ashdodPalletCartons": 140,
     "pakuot": [
       {
-        "date": "2027-01-17",
+        "date": "2027-01-18",
         "daysLeft": 244,
         "cartons": 38
       },
       {
-        "date": "2027-02-01",
+        "date": "2027-02-02",
         "daysLeft": 259,
         "cartons": 560
       },
       {
-        "date": "2027-03-28",
+        "date": "2027-03-29",
         "daysLeft": 314,
         "cartons": 560
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-01-17",
+        "date": "2027-01-18",
         "daysLeft": 244,
         "cartons": 29
       },
       {
-        "date": "2027-02-01",
+        "date": "2027-02-02",
         "daysLeft": 259,
         "cartons": 140
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "1185": {
     "stock": 1442,
@@ -6116,60 +6245,40 @@
     "ashdodPalletCartons": 140,
     "pakuot": [
       {
-        "date": "2027-01-17",
+        "date": "2027-01-18",
         "daysLeft": 244,
         "cartons": 42
       },
       {
-        "date": "2027-02-01",
+        "date": "2027-02-02",
         "daysLeft": 259,
         "cartons": 420
       },
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 420
       },
       {
-        "date": "2027-03-28",
+        "date": "2027-03-29",
         "daysLeft": 314,
         "cartons": 560
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-01-17",
+        "date": "2027-01-18",
         "daysLeft": 244,
         "cartons": 43
       },
       {
-        "date": "2027-02-01",
+        "date": "2027-02-02",
         "daysLeft": 259,
         "cartons": 140
       }
     ],
-    "shelfLife": 45
-  },
-  "1186": {
-    "stock": 0,
-    "daySales": null,
-    "kratnost": 140,
-    "palStock": null,
-    "stockZafn": null,
-    "palStockZafn": null,
-    "daySalesZafn": null,
-    "stockTrnz": null,
-    "palStockTrnz": null,
-    "daySalesTrnz": null,
-    "weight": 0.45,
-    "packFactor": 6,
-    "weightCarton": 2.7,
-    "daysStockAll": null,
-    "nameEn": "כיסונים במילוי כרוב ופטריות מוקפאים450 ג'",
-    "ashdodPalletCartons": null,
-    "pakuot": [],
-    "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "1187": {
     "stock": 921,
@@ -6190,34 +6299,35 @@
     "ashdodPalletCartons": 140,
     "pakuot": [
       {
-        "date": "2027-02-01",
+        "date": "2027-02-02",
         "daysLeft": 259,
         "cartons": 81
       },
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 280
       },
       {
-        "date": "2027-03-28",
+        "date": "2027-03-29",
         "daysLeft": 314,
         "cartons": 560
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-02-01",
+        "date": "2027-02-02",
         "daysLeft": 259,
         "cartons": 66
       },
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 140
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "1190": {
     "stock": 1253,
@@ -6238,29 +6348,30 @@
     "ashdodPalletCartons": 140,
     "pakuot": [
       {
-        "date": "2027-02-01",
+        "date": "2027-02-02",
         "daysLeft": 259,
         "cartons": 352
       },
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 285
       },
       {
-        "date": "2027-03-28",
+        "date": "2027-03-29",
         "daysLeft": 314,
         "cartons": 616
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-02-01",
+        "date": "2027-02-02",
         "daysLeft": 259,
         "cartons": 261
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "1191": {
     "stock": 1538,
@@ -6281,29 +6392,30 @@
     "ashdodPalletCartons": 140,
     "pakuot": [
       {
-        "date": "2027-02-01",
+        "date": "2027-02-02",
         "daysLeft": 259,
         "cartons": 254
       },
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 560
       },
       {
-        "date": "2027-03-28",
+        "date": "2027-03-29",
         "daysLeft": 314,
         "cartons": 724
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-02-01",
+        "date": "2027-02-02",
         "daysLeft": 259,
         "cartons": 141
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "1192": {
     "stock": 1598,
@@ -6324,24 +6436,25 @@
     "ashdodPalletCartons": 140,
     "pakuot": [
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 758
       },
       {
-        "date": "2027-03-28",
+        "date": "2027-03-29",
         "daysLeft": 314,
         "cartons": 840
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 158
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "1193": {
     "stock": 803,
@@ -6362,34 +6475,35 @@
     "ashdodPalletCartons": 140,
     "pakuot": [
       {
-        "date": "2027-02-01",
+        "date": "2027-02-02",
         "daysLeft": 259,
         "cartons": 111
       },
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 280
       },
       {
-        "date": "2027-03-28",
+        "date": "2027-03-29",
         "daysLeft": 314,
         "cartons": 412
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-02-01",
+        "date": "2027-02-02",
         "daysLeft": 259,
         "cartons": 87
       },
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 140
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "1194": {
     "stock": 766,
@@ -6410,19 +6524,20 @@
     "ashdodPalletCartons": 120,
     "pakuot": [
       {
-        "date": "2026-12-06",
+        "date": "2026-12-07",
         "daysLeft": 202,
         "cartons": 766
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-12-06",
+        "date": "2026-12-07",
         "daysLeft": 202,
         "cartons": 201
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "1195": {
     "stock": 1163,
@@ -6443,29 +6558,30 @@
     "ashdodPalletCartons": 228,
     "pakuot": [
       {
-        "date": "2027-02-01",
+        "date": "2027-02-02",
         "daysLeft": 259,
         "cartons": 299
       },
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 432
       },
       {
-        "date": "2027-03-28",
+        "date": "2027-03-29",
         "daysLeft": 314,
         "cartons": 432
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-02-01",
+        "date": "2027-02-02",
         "daysLeft": 259,
         "cartons": 162
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "1196": {
     "stock": 1421,
@@ -6486,29 +6602,30 @@
     "ashdodPalletCartons": 228,
     "pakuot": [
       {
-        "date": "2027-02-01",
+        "date": "2027-02-02",
         "daysLeft": 259,
         "cartons": 341
       },
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 432
       },
       {
-        "date": "2027-03-28",
+        "date": "2027-03-29",
         "daysLeft": 314,
         "cartons": 648
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-02-01",
+        "date": "2027-02-02",
         "daysLeft": 259,
         "cartons": 108
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "1197": {
     "stock": 1165,
@@ -6529,29 +6646,30 @@
     "ashdodPalletCartons": 228,
     "pakuot": [
       {
-        "date": "2027-02-01",
+        "date": "2027-02-02",
         "daysLeft": 259,
         "cartons": 301
       },
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 216
       },
       {
-        "date": "2027-03-28",
+        "date": "2027-03-29",
         "daysLeft": 314,
         "cartons": 648
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-02-01",
+        "date": "2027-02-02",
         "daysLeft": 259,
         "cartons": 178
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "1198": {
     "stock": 342,
@@ -6572,50 +6690,30 @@
     "ashdodPalletCartons": 140,
     "pakuot": [
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 162
       },
       {
-        "date": "2027-03-28",
+        "date": "2027-03-29",
         "daysLeft": 314,
         "cartons": 180
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 108
       },
       {
-        "date": "2027-03-28",
+        "date": "2027-03-29",
         "daysLeft": 314,
         "cartons": 100
       }
     ],
-    "shelfLife": 45
-  },
-  "1201": {
-    "stock": 0,
-    "daySales": null,
-    "kratnost": 0,
-    "palStock": null,
-    "stockZafn": null,
-    "palStockZafn": null,
-    "daySalesZafn": null,
-    "stockTrnz": null,
-    "palStockTrnz": null,
-    "daySalesTrnz": null,
-    "weight": 1,
-    "packFactor": 6,
-    "weightCarton": 6,
-    "daysStockAll": null,
-    "nameEn": "כיסונים במילוי אוכמניות כחולות מוקפאים6 ק\"ג",
-    "ashdodPalletCartons": null,
-    "pakuot": [],
-    "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "1202": {
     "stock": 0,
@@ -6636,49 +6734,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 45
-  },
-  "1204": {
-    "stock": 0,
-    "daySales": null,
-    "kratnost": 0,
-    "palStock": null,
-    "stockZafn": null,
-    "palStockZafn": null,
-    "daySalesZafn": null,
-    "stockTrnz": null,
-    "palStockTrnz": null,
-    "daySalesTrnz": null,
-    "weight": 1,
-    "packFactor": 6,
-    "weightCarton": 6,
-    "daysStockAll": null,
-    "nameEn": "כיסונים במילוי תפו\"א ובצל מוקפאים6 ק\"ג",
-    "ashdodPalletCartons": null,
-    "pakuot": [],
-    "pakuotZafn": [],
-    "shelfLife": 45
-  },
-  "1205": {
-    "stock": 0,
-    "daySales": null,
-    "kratnost": 0,
-    "palStock": null,
-    "stockZafn": null,
-    "palStockZafn": null,
-    "daySalesZafn": null,
-    "stockTrnz": null,
-    "palStockTrnz": null,
-    "daySalesTrnz": null,
-    "weight": 1,
-    "packFactor": 6,
-    "weightCarton": 6,
-    "daysStockAll": null,
-    "nameEn": "כיסונים במילוי גבינת טבורוג מוקפאים6 ק\"ג",
-    "ashdodPalletCartons": null,
-    "pakuot": [],
-    "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": true
   },
   "1208": {
     "stock": 241,
@@ -6699,18 +6756,19 @@
     "ashdodPalletCartons": 70,
     "pakuot": [
       {
-        "date": "2026-12-06",
+        "date": "2026-12-07",
         "daysLeft": 202,
         "cartons": 115
       },
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 126
       }
     ],
     "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "1209": {
     "stock": 259,
@@ -6731,23 +6789,24 @@
     "ashdodPalletCartons": 70,
     "pakuot": [
       {
-        "date": "2027-01-17",
+        "date": "2027-01-18",
         "daysLeft": 244,
         "cartons": 19
       },
       {
-        "date": "2027-02-01",
+        "date": "2027-02-02",
         "daysLeft": 259,
         "cartons": 60
       },
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 180
       }
     ],
     "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "1210": {
     "stock": 0,
@@ -6768,7 +6827,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": true
   },
   "1211": {
     "stock": 188,
@@ -6789,18 +6849,19 @@
     "ashdodPalletCartons": 70,
     "pakuot": [
       {
-        "date": "2027-02-01",
+        "date": "2027-02-02",
         "daysLeft": 259,
         "cartons": 44
       },
       {
-        "date": "2027-02-28",
+        "date": "2027-03-01",
         "daysLeft": 286,
         "cartons": 144
       }
     ],
     "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "1212": {
     "stock": 0,
@@ -6821,7 +6882,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": true
   },
   "1213": {
     "stock": 0,
@@ -6842,7 +6904,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": true
   },
   "1214": {
     "stock": 0,
@@ -6863,7 +6926,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": true
   },
   "1215": {
     "stock": 0,
@@ -6884,7 +6948,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": true
   },
   "1216": {
     "stock": 0,
@@ -6905,7 +6970,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": true
   },
   "1217": {
     "stock": 0,
@@ -6926,7 +6992,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": true
   },
   "1218": {
     "stock": 0,
@@ -6947,7 +7014,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": true
   },
   "1219": {
     "stock": 0,
@@ -6968,7 +7036,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": true
   },
   "400001": {
     "stock": 0,
@@ -6989,7 +7058,8 @@
     "ashdodPalletCartons": 200,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "400002": {
     "stock": 556,
@@ -7010,24 +7080,25 @@
     "ashdodPalletCartons": 200,
     "pakuot": [
       {
-        "date": "2026-07-06",
+        "date": "2026-07-07",
         "daysLeft": 49,
         "cartons": 157
       },
       {
-        "date": "2026-07-16",
+        "date": "2026-07-17",
         "daysLeft": 59,
         "cartons": 399
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-07-06",
+        "date": "2026-07-07",
         "daysLeft": 49,
         "cartons": 104
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "400003": {
     "stock": 393,
@@ -7048,19 +7119,20 @@
     "ashdodPalletCartons": 200,
     "pakuot": [
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 393
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-13",
+        "date": "2026-08-14",
         "daysLeft": 87,
         "cartons": 184
       }
     ],
-    "shelfLife": 21
+    "shelfLife": 21,
+    "stopSale": false
   },
   "403001": {
     "stock": 619,
@@ -7081,19 +7153,20 @@
     "ashdodPalletCartons": 360,
     "pakuot": [
       {
-        "date": "2026-06-19",
+        "date": "2026-06-20",
         "daysLeft": 32,
         "cartons": 619
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-06-19",
+        "date": "2026-06-20",
         "daysLeft": 32,
         "cartons": 343
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "403002": {
     "stock": 193,
@@ -7114,19 +7187,20 @@
     "ashdodPalletCartons": 360,
     "pakuot": [
       {
-        "date": "2026-06-18",
+        "date": "2026-06-19",
         "daysLeft": 31,
         "cartons": 193
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-06-18",
+        "date": "2026-06-19",
         "daysLeft": 31,
         "cartons": 103
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "403003": {
     "stock": 100,
@@ -7147,19 +7221,20 @@
     "ashdodPalletCartons": 180,
     "pakuot": [
       {
-        "date": "2026-06-19",
+        "date": "2026-06-20",
         "daysLeft": 32,
         "cartons": 100
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-06-19",
+        "date": "2026-06-20",
         "daysLeft": 32,
         "cartons": 50
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "403004": {
     "stock": 84,
@@ -7180,19 +7255,20 @@
     "ashdodPalletCartons": 180,
     "pakuot": [
       {
-        "date": "2026-06-18",
+        "date": "2026-06-19",
         "daysLeft": 31,
         "cartons": 84
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-06-18",
+        "date": "2026-06-19",
         "daysLeft": 31,
         "cartons": 43
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "403005": {
     "stock": 12,
@@ -7213,19 +7289,20 @@
     "ashdodPalletCartons": 320,
     "pakuot": [
       {
-        "date": "2026-06-19",
+        "date": "2026-06-20",
         "daysLeft": 32,
         "cartons": 12
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-06-19",
+        "date": "2026-06-20",
         "daysLeft": 32,
         "cartons": 11
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "403006": {
     "stock": 92,
@@ -7246,19 +7323,20 @@
     "ashdodPalletCartons": 320,
     "pakuot": [
       {
-        "date": "2026-06-20",
+        "date": "2026-06-21",
         "daysLeft": 33,
         "cartons": 92
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-06-20",
+        "date": "2026-06-21",
         "daysLeft": 33,
         "cartons": 67
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "403007": {
     "stock": 59,
@@ -7279,19 +7357,20 @@
     "ashdodPalletCartons": 245,
     "pakuot": [
       {
-        "date": "2026-06-09",
+        "date": "2026-06-10",
         "daysLeft": 22,
         "cartons": 59
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-06-09",
+        "date": "2026-06-10",
         "daysLeft": 22,
         "cartons": 33
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "403008": {
     "stock": 40,
@@ -7312,19 +7391,20 @@
     "ashdodPalletCartons": 245,
     "pakuot": [
       {
-        "date": "2026-06-09",
+        "date": "2026-06-10",
         "daysLeft": 22,
         "cartons": 40
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-06-09",
+        "date": "2026-06-10",
         "daysLeft": 22,
         "cartons": 29
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "410000": {
     "stock": 79,
@@ -7345,19 +7425,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-05-26",
+        "date": "2026-05-27",
         "daysLeft": 8,
         "cartons": 79
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-05-26",
+        "date": "2026-05-27",
         "daysLeft": 8,
         "cartons": 55
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "410001": {
     "stock": 60,
@@ -7378,19 +7459,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-05-26",
+        "date": "2026-05-27",
         "daysLeft": 8,
         "cartons": 60
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-05-26",
+        "date": "2026-05-27",
         "daysLeft": 8,
         "cartons": 29
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "410002": {
     "stock": 194,
@@ -7411,19 +7493,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-05-26",
+        "date": "2026-05-27",
         "daysLeft": 8,
         "cartons": 194
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-05-26",
+        "date": "2026-05-27",
         "daysLeft": 8,
         "cartons": 112
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "410003": {
     "stock": 94,
@@ -7444,19 +7527,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-05-26",
+        "date": "2026-05-27",
         "daysLeft": 8,
         "cartons": 94
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-05-26",
+        "date": "2026-05-27",
         "daysLeft": 8,
         "cartons": 46
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "410004": {
     "stock": 4,
@@ -7477,13 +7561,14 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-05-26",
+        "date": "2026-05-27",
         "daysLeft": 8,
         "cartons": 4
       }
     ],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "411000": {
     "stock": 119,
@@ -7504,19 +7589,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-06-06",
+        "date": "2026-06-07",
         "daysLeft": 19,
         "cartons": 119
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-06-06",
+        "date": "2026-06-07",
         "daysLeft": 19,
         "cartons": 77
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "411001": {
     "stock": 4,
@@ -7537,13 +7623,14 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-06-01",
+        "date": "2026-06-02",
         "daysLeft": 14,
         "cartons": 4
       }
     ],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "411500": {
     "stock": 672,
@@ -7564,19 +7651,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-07-14",
+        "date": "2026-07-15",
         "daysLeft": 57,
         "cartons": 672
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-07-14",
+        "date": "2026-07-15",
         "daysLeft": 57,
         "cartons": 137
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "412200": {
     "stock": 151,
@@ -7597,19 +7685,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-08-07",
+        "date": "2026-08-08",
         "daysLeft": 81,
         "cartons": 151
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-07",
+        "date": "2026-08-08",
         "daysLeft": 81,
         "cartons": 92
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "412201": {
     "stock": 185,
@@ -7630,19 +7719,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-08-07",
+        "date": "2026-08-08",
         "daysLeft": 81,
         "cartons": 185
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-07",
+        "date": "2026-08-08",
         "daysLeft": 81,
         "cartons": 97
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "412202": {
     "stock": 186,
@@ -7663,19 +7753,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-08-07",
+        "date": "2026-08-08",
         "daysLeft": 81,
         "cartons": 186
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-07",
+        "date": "2026-08-08",
         "daysLeft": 81,
         "cartons": 95
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "412500": {
     "stock": 1,
@@ -7696,13 +7787,14 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 1
       }
     ],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "412501": {
     "stock": 0,
@@ -7723,7 +7815,8 @@
     "ashdodPalletCartons": null,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": true
   },
   "412502": {
     "stock": 1,
@@ -7744,13 +7837,14 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-08-28",
+        "date": "2026-08-29",
         "daysLeft": 102,
         "cartons": 1
       }
     ],
     "pakuotZafn": [],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "413000": {
     "stock": 53,
@@ -7771,19 +7865,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-10-03",
+        "date": "2026-10-04",
         "daysLeft": 138,
         "cartons": 53
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-10-03",
+        "date": "2026-10-04",
         "daysLeft": 138,
         "cartons": 21
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "413001": {
     "stock": 53,
@@ -7804,19 +7899,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-10-03",
+        "date": "2026-10-04",
         "daysLeft": 138,
         "cartons": 53
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-10-03",
+        "date": "2026-10-04",
         "daysLeft": 138,
         "cartons": 22
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "413002": {
     "stock": 59,
@@ -7837,19 +7933,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-10-03",
+        "date": "2026-10-04",
         "daysLeft": 138,
         "cartons": 59
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-10-03",
+        "date": "2026-10-04",
         "daysLeft": 138,
         "cartons": 23
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "413200": {
     "stock": 6,
@@ -7870,19 +7967,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-08-29",
+        "date": "2026-08-30",
         "daysLeft": 103,
         "cartons": 6
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-29",
+        "date": "2026-08-30",
         "daysLeft": 103,
         "cartons": 12
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "413201": {
     "stock": 45,
@@ -7903,19 +8001,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-08-29",
+        "date": "2026-08-30",
         "daysLeft": 103,
         "cartons": 45
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-29",
+        "date": "2026-08-30",
         "daysLeft": 103,
         "cartons": 35
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "413202": {
     "stock": 100,
@@ -7936,19 +8035,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-08-24",
+        "date": "2026-08-25",
         "daysLeft": 98,
         "cartons": 100
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-24",
+        "date": "2026-08-25",
         "daysLeft": 98,
         "cartons": 54
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "413500": {
     "stock": 141,
@@ -7969,19 +8069,20 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-09-03",
+        "date": "2026-09-04",
         "daysLeft": 108,
         "cartons": 141
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-25",
+        "date": "2026-08-26",
         "daysLeft": 99,
         "cartons": 87
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "413501": {
     "stock": 430,
@@ -8002,34 +8103,35 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-08-26",
+        "date": "2026-08-27",
         "daysLeft": 100,
         "cartons": 182
       },
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 16
       },
       {
-        "date": "2026-09-02",
+        "date": "2026-09-03",
         "daysLeft": 107,
         "cartons": 232
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-26",
+        "date": "2026-08-27",
         "daysLeft": 100,
         "cartons": 73
       },
       {
-        "date": "2026-08-27",
+        "date": "2026-08-28",
         "daysLeft": 101,
         "cartons": 40
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "413502": {
     "stock": 300,
@@ -8050,34 +8152,35 @@
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-08-26",
+        "date": "2026-08-27",
         "daysLeft": 100,
         "cartons": 145
       },
       {
-        "date": "2026-09-02",
+        "date": "2026-09-03",
         "daysLeft": 107,
         "cartons": 155
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-26",
+        "date": "2026-08-27",
         "daysLeft": 100,
         "cartons": 53
       },
       {
-        "date": "2026-09-02",
+        "date": "2026-09-03",
         "daysLeft": 107,
         "cartons": 63
       },
       {
-        "date": "2026-09-03",
+        "date": "2026-09-04",
         "daysLeft": 108,
         "cartons": 53
       }
     ],
-    "shelfLife": 7
+    "shelfLife": 7,
+    "stopSale": false
   },
   "420001": {
     "stock": 0,
@@ -8098,7 +8201,8 @@
     "ashdodPalletCartons": 144,
     "pakuot": [],
     "pakuotZafn": [],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": true
   },
   "420002": {
     "stock": 157,
@@ -8119,19 +8223,20 @@
     "ashdodPalletCartons": 144,
     "pakuot": [
       {
-        "date": "2027-12-07",
+        "date": "2027-12-08",
         "daysLeft": 568,
         "cartons": 157
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-12-07",
+        "date": "2027-12-08",
         "daysLeft": 568,
         "cartons": 72
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "420003": {
     "stock": 95,
@@ -8152,19 +8257,20 @@
     "ashdodPalletCartons": 36,
     "pakuot": [
       {
-        "date": "2027-01-26",
+        "date": "2027-01-27",
         "daysLeft": 253,
         "cartons": 95
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-01-26",
+        "date": "2027-01-27",
         "daysLeft": 253,
         "cartons": 23
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "420004": {
     "stock": 156,
@@ -8185,19 +8291,20 @@
     "ashdodPalletCartons": 36,
     "pakuot": [
       {
-        "date": "2027-01-26",
+        "date": "2027-01-27",
         "daysLeft": 253,
         "cartons": 156
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2027-01-26",
+        "date": "2027-01-27",
         "daysLeft": 253,
         "cartons": 52
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "420005": {
     "stock": 2322,
@@ -8218,34 +8325,35 @@
     "ashdodPalletCartons": 60,
     "pakuot": [
       {
-        "date": "2026-11-17",
+        "date": "2026-11-18",
         "daysLeft": 183,
         "cartons": 112
       },
       {
-        "date": "2026-12-01",
+        "date": "2026-12-02",
         "daysLeft": 197,
         "cartons": 1120
       },
       {
-        "date": "2026-12-10",
+        "date": "2026-12-11",
         "daysLeft": 206,
         "cartons": 1090
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-11-17",
+        "date": "2026-11-18",
         "daysLeft": 183,
         "cartons": 36
       },
       {
-        "date": "2026-12-01",
+        "date": "2026-12-02",
         "daysLeft": 197,
         "cartons": 60
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "420006": {
     "stock": 494,
@@ -8266,34 +8374,35 @@
     "ashdodPalletCartons": 60,
     "pakuot": [
       {
-        "date": "2026-12-02",
+        "date": "2026-12-03",
         "daysLeft": 198,
         "cartons": 34
       },
       {
-        "date": "2026-12-10",
+        "date": "2026-12-11",
         "daysLeft": 206,
         "cartons": 140
       },
       {
-        "date": "2027-01-26",
+        "date": "2027-01-27",
         "daysLeft": 253,
         "cartons": 320
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-12-02",
+        "date": "2026-12-03",
         "daysLeft": 198,
         "cartons": 8
       },
       {
-        "date": "2026-12-10",
+        "date": "2026-12-11",
         "daysLeft": 206,
         "cartons": 60
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "420007": {
     "stock": 472,
@@ -8314,39 +8423,40 @@
     "ashdodPalletCartons": 60,
     "pakuot": [
       {
-        "date": "2026-11-18",
+        "date": "2026-11-19",
         "daysLeft": 184,
         "cartons": 5
       },
       {
-        "date": "2026-12-01",
+        "date": "2026-12-02",
         "daysLeft": 197,
         "cartons": 127
       },
       {
-        "date": "2026-12-10",
+        "date": "2026-12-11",
         "daysLeft": 206,
         "cartons": 140
       },
       {
-        "date": "2027-01-27",
+        "date": "2027-01-28",
         "daysLeft": 254,
         "cartons": 200
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-12-01",
+        "date": "2026-12-02",
         "daysLeft": 197,
         "cartons": 10
       },
       {
-        "date": "2026-12-10",
+        "date": "2026-12-11",
         "daysLeft": 206,
         "cartons": 60
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   },
   "420008": {
     "stock": 443,
@@ -8367,28 +8477,29 @@
     "ashdodPalletCartons": 60,
     "pakuot": [
       {
-        "date": "2026-12-01",
+        "date": "2026-12-02",
         "daysLeft": 197,
         "cartons": 13
       },
       {
-        "date": "2026-12-10",
+        "date": "2026-12-11",
         "daysLeft": 206,
         "cartons": 110
       },
       {
-        "date": "2027-01-27",
+        "date": "2027-01-28",
         "daysLeft": 254,
         "cartons": 320
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-12-10",
+        "date": "2026-12-11",
         "daysLeft": 206,
         "cartons": 39
       }
     ],
-    "shelfLife": 45
+    "shelfLife": 45,
+    "stopSale": false
   }
 }
