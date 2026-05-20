@@ -30,17 +30,17 @@ jobs:
 
       - name: Create .env
         run: |
-          echo "AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}"       >> .env
-          echo "AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}"       >> .env
-          echo "AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}" >> .env
-          echo "POWERBI_DATASET_ID=${{ secrets.POWERBI_DATASET_ID }}" >> .env
-          echo "POWERBI_WORKSPACE_ID=${{ secrets.POWERBI_WORKSPACE_ID }}" >> .env
-          echo "TOKEN=${{ secrets.PLANOGRAM_TOKEN }}"                 >> .env
-          echo "PBI_TENANT=${{ secrets.AZURE_TENANT_ID }}"            >> .env
-          echo "PBI_CLIENT=${{ secrets.AZURE_CLIENT_ID }}"            >> .env
-          echo "PBI_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}"        >> .env
-          echo "PBI_DATASET=${{ secrets.POWERBI_DATASET_ID }}"        >> .env
-          echo "PBI_WORKSPACE=${{ secrets.POWERBI_WORKSPACE_ID }}"    >> .env
+          echo "PBI_TENANT=${{ secrets.PBI_TENANT }}"       >> .env
+          echo "PBI_CLIENT=${{ secrets.PBI_CLIENT }}"       >> .env
+          echo "PBI_SECRET=${{ secrets.PBI_SECRET }}"       >> .env
+          echo "PBI_DATASET=${{ secrets.PBI_DATASET }}"     >> .env
+          echo "PBI_WORKSPACE=${{ secrets.PBI_WORKSPACE }}" >> .env
+          echo "TOKEN=${{ secrets.WORKFLOW_TRIGGER_TOKEN }}" >> .env
+          echo "AZURE_TENANT_ID=${{ secrets.PBI_TENANT }}"  >> .env
+          echo "AZURE_CLIENT_ID=${{ secrets.PBI_CLIENT }}"  >> .env
+          echo "AZURE_CLIENT_SECRET=${{ secrets.PBI_SECRET }}" >> .env
+          echo "POWERBI_DATASET_ID=${{ secrets.PBI_DATASET }}" >> .env
+          echo "POWERBI_WORKSPACE_ID=${{ secrets.PBI_WORKSPACE }}" >> .env
 
       - name: Run build-planogram
         run: node planogram/build-planogram.js
