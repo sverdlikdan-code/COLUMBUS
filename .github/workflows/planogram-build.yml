@@ -64,4 +64,4 @@ jobs:
           git diff --cached --quiet && echo "No changes." || \
             git commit -m "chore: auto planogram build $(date -u +'%Y-%m-%d %H:%M UTC')"
           git push origin master || \
-            (git pull origin master --strategy-option=ours && git push origin master)
+            (git pull --no-rebase -X ours origin master && git push origin master)
