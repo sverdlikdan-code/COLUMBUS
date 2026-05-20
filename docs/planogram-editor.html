@@ -1658,7 +1658,8 @@ function buildExpiryPage() {
 
   const fmt = (isoDate) => {
     if (!isoDate) return '—';
-    const [y, m, d] = isoDate.split('-');
+    const dateStr = String(isoDate).split('T')[0];
+    const [y, m, d] = dateStr.split('-');
     return `${d}/${m}/${y.slice(2)}`;
   };
 
@@ -1683,7 +1684,7 @@ function buildExpiryPage() {
       ? `<span style="display:inline-block;background:#c62828;color:#fff;font-size:8px;font-weight:bold;border-radius:3px;padding:1px 4px;margin-right:3px;">⚠ סכנה</span>`
       : '';
     const sellLine = sellDays != null
-      ? `<div style="font-size:9px;color:#666;">days needed for sellout: <b style="color:${isSakana ? '#c62828' : '#2e7d32'};">${sellDays}</b></div>`
+      ? `<div style="font-size:9px;color:#666;">ימים למכירה מלאה: <b style="color:${isSakana ? '#c62828' : '#2e7d32'};">${sellDays}</b></div>`
       : '';
     let throwLine = '';
     if (isSakana && pak.cartons > 0 && pak.daysLeft != null) {
