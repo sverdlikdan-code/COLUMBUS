@@ -1,0 +1,67 @@
+name: COLUMBUS Planogram Build
+
+on:
+  schedule:
+    # 06:00 Israel (UTC+3) = 03:00 UTC — утреннее обновление
+    - cron: '0 3 * * *'
+    # 16:00–23:00 Israel = 13:00–20:00 UTC — каждый час вечером
+    - cron: '0 13,14,15,16,17,18,19,20 * * *'
+  workflow_dispatch:  # ручной запуск из GitHub UI
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: planogram
+
+      - name: Create .env
+        run: |
+          echo "AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}"       >> .env
+          echo "AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}"       >> .env
+          echo "AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}" >> .env
+          echo "POWERBI_DATASET_ID=${{ secrets.POWERBI_DATASET_ID }}" >> .env
+          echo "POWERBI_WORKSPACE_ID=${{ secrets.POWERBI_WORKSPACE_ID }}" >> .env
+          echo "TOKEN=${{ secrets.PLANOGRAM_TOKEN }}"                 >> .env
+          echo "PBI_TENANT=${{ secrets.AZURE_TENANT_ID }}"            >> .env
+          echo "PBI_CLIENT=${{ secrets.AZURE_CLIENT_ID }}"            >> .env
+          echo "PBI_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}"        >> .env
+          echo "PBI_DATASET=${{ secrets.POWERBI_DATASET_ID }}"        >> .env
+          echo "PBI_WORKSPACE=${{ secrets.POWERBI_WORKSPACE_ID }}"    >> .env
+
+      - name: Run build-planogram
+        run: node planogram/build-planogram.js
+
+      - name: Run workflow-doctor
+        run: node planogram/workflow-doctor.js
+        continue-on-error: true
+
+      - name: Commit and push
+        run: |
+          git config user.email "columbus-bot@diler.co.il"
+          git config user.name "COLUMBUS Bot"
+          git add docs/kapua-base.json \
+                  docs/halavi-base.json \
+                  docs/dagim-base.json \
+                  docs/dagim-yavesh-base.json \
+                  docs/product-data.json \
+                  docs/refresh-info.json \
+                  docs/product-photos.json \
+                  docs/health-report.json
+          git diff --cached --quiet && echo "No changes." || \
+            git commit -m "chore: auto planogram build $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git pull --rebase origin master
+          git push origin master
