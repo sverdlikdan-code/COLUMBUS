@@ -1432,17 +1432,9 @@ async function main() {
         }
       }
 
-      // Clean active bays: null products with BOTH stock=0 AND daySales180=0
+      // NOTE: dagim active-bay cleanup disabled — same reason as dagim-yavesh.
+      // PBI can return stock=0/daySales=0 temporarily; cleanup was wiping real products.
       let dActiveCleaned = 0;
-      for (const [bay, pick] of Object.entries(db.picks)) {
-        if (!pick || Number(bay) >= (db.reserveStart || 59)) continue;
-        const prod = dagimProdMap[String(pick.makat)];
-        if (!prod || ((prod.stock || 0) <= 0 && (prod.daySales180 || 0) <= 0)) {
-          console.log(`  dagim active bay ${bay} מקט ${pick.makat} — stock=0 daySales180=0 → null`);
-          db.picks[bay] = null;
-          dActiveCleaned++;
-        }
-      }
 
       const emptySlots = Object.keys(db.layout || {})
         .map(Number)
