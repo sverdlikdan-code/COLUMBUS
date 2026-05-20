@@ -1,8 +1,8 @@
 name: Planogram Builder
 
 on:
-  schedule:
-    - cron: '0 5-17 * * 0-5'  # 08:00–20:00 Israel time (UTC+3 summer) Sun–Fri, every hour
+  # Schedule disabled — planogram-build.yml handles all automated runs (06:00 + 16:00–23:00 Israel)
+  # Kept here for emergency manual dispatch only
   workflow_dispatch:          # manual trigger — the "Refresh" button
 
 permissions:
