@@ -302,6 +302,8 @@
     style="background:#7a5c00;color:#fff;border:1px solid #e0c040;">Plan Only ✓</button>
   <button class="btn no-print" id="btn-pdf" onclick="printPlanogram()"
     style="background:#f0f0f0;color:#333;border:1px solid #ccc;">🖨️ PDF</button>
+  <button class="btn no-print" id="btn-screenshot" onclick="saveScreenshot()"
+    style="background:#e8f5e9;color:#1b5e20;border:1px solid #81c784;">📷 Screenshot</button>
   <button class="btn no-print" id="btn-edit" onclick="toggleEditMode()"
     style="background:#fff3e0;color:#e65100;border:2px solid #ff8f00;font-weight:bold;font-size:16px;padding:10px 22px;min-width:110px;">✏ עריכה</button>
   <button class="btn btn-reset no-print edit-btn" onclick="resetSection()">↩ אפס</button>
@@ -348,6 +350,7 @@
     <span style="width:1px;height:20px;background:rgba(255,255,255,0.3);margin:0 4px;"></span>
     <button id="btn-sakana-filter"  onclick="toggleSakanaFilter()"  style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);color:#fff;font-size:12px;font-weight:bold;cursor:pointer;border-radius:5px;padding:4px 12px;">⚠ סכנה בלבד</button>
     <button id="btn-zafn-low-filter" onclick="toggleZafnLowFilter()" style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);color:#fff;font-size:12px;font-weight:bold;cursor:pointer;border-radius:5px;padding:4px 12px;">📦 צפון &lt;3 ימים</button>
+    <button id="btn-expiry-screenshot" onclick="saveScreenshot(document.getElementById('expiry-page'))" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;cursor:pointer;border-radius:4px;padding:4px 12px;">📷 Screenshot</button>
     <button onclick="window.print()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;cursor:pointer;border-radius:4px;padding:4px 12px;">🖨 הדפס</button>
     <button onclick="toggleExpiryPage()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:16px;cursor:pointer;border-radius:4px;padding:2px 8px;">✕</button>
   </div>
@@ -1398,6 +1401,72 @@ async function printPlanogram() {
     setStatus('שגיאה — נסה שוב');
   }
   if (btn) { btn.disabled = false; btn.textContent = '🖨️ PDF'; }
+  setTimeout(() => setStatus('מוכן לעריכה'), 3000);
+}
+
+async function saveScreenshot(targetEl) {
+  const btn = document.getElementById('btn-screenshot');
+  const expBtn = document.getElementById('btn-expiry-screenshot');
+  const activeBtn = btn?.disabled === false ? btn : expBtn;
+  if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+  if (expBtn) { expBtn.disabled = true; expBtn.textContent = '⏳...'; }
+
+  const isExpiry = !!targetEl;
+  const el = targetEl || (() => {
+    const sec = window._currentSection || 'kapua';
+    const grid = document.getElementById('grid-' + sec);
+    const oldTransform = grid.style.transform;
+    grid.style.transform = 'none';
+    return { el: grid, restore: () => { grid.style.transform = oldTransform; } };
+  })();
+
+  try {
+    let captureEl, restoreFn = () => {};
+    if (isExpiry) {
+      captureEl = targetEl;
+    } else {
+      const sec = window._currentSection || 'kapua';
+      const grid = document.getElementById('grid-' + sec);
+      const oldTransform = grid.style.transform;
+      grid.style.transform = 'none';
+      captureEl = grid;
+      restoreFn = () => { grid.style.transform = oldTransform; };
+    }
+    setStatus('מצלם...');
+    const canvas = await html2canvas(captureEl, {
+      scale: 1.5,
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: '#eef2f7',
+      scrollX: 0, scrollY: isExpiry ? -captureEl.scrollTop : 0,
+      logging: false,
+      imageTimeout: 0,
+      height: isExpiry ? captureEl.scrollHeight : undefined,
+      windowHeight: isExpiry ? captureEl.scrollHeight : undefined,
+      onclone: (clonedDoc) => {
+        clonedDoc.querySelectorAll('img').forEach(img => img.setAttribute('crossorigin', 'anonymous'));
+        if (isExpiry) {
+          const ep = clonedDoc.getElementById('expiry-page');
+          if (ep) { ep.style.position = 'static'; ep.style.overflow = 'visible'; ep.style.height = 'auto'; }
+          const hdr = ep?.querySelector('div:first-child');
+          if (hdr) hdr.style.display = 'none';
+        }
+      },
+    });
+    restoreFn();
+    const sec = window._currentSection || 'kapua';
+    const name = isExpiry ? `expiry-${new Date().toISOString().slice(0,10)}` : `planogram-${sec}-${new Date().toISOString().slice(0,10)}`;
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = `${name}.png`;
+    a.click();
+    setStatus('✅ Screenshot הורד');
+  } catch(e) {
+    console.error('Screenshot error:', e);
+    setStatus('שגיאה — נסה שוב');
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '📷 Screenshot'; }
+  if (expBtn) { expBtn.disabled = false; expBtn.textContent = '📷 Screenshot'; }
   setTimeout(() => setStatus('מוכן לעריכה'), 3000);
 }
 
