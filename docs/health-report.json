@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-20T16:00:11.148Z",
+  "generatedAt": "2026-05-20T19:42:28.542Z",
   "date": "2026-05-20",
   "totalSessions": 2,
   "last7days": [
@@ -27,13 +27,23 @@
       "done": false,
       "pushed": false,
       "noChanges": false,
-      "errorCount": 0,
-      "errors": [],
-      "findings": []
+      "errorCount": 1,
+      "errors": [
+        "pull failed: unstaged changes"
+      ],
+      "findings": [
+        {
+          "level": "warning",
+          "code": "PULL_UNSTAGED",
+          "msg": "Pull завалился: были unstaged изменения",
+          "fix": "Исправлено в bat — теперь сначала commit, потом pull."
+        }
+      ]
     }
   ],
   "patterns": {
-    "PUSH_REJECTED": 1
+    "PUSH_REJECTED": 1,
+    "PULL_UNSTAGED": 1
   },
   "recentIssues": [
     {
@@ -43,5 +53,12 @@
       "code": "NO_RUN_TODAY"
     }
   ],
-  "status": "warning"
+  "status": "warning",
+  "githubActions": {
+    "lastActionsCommit": "2026-05-20T19:30:28.000Z",
+    "lastActionsAuthor": "Planogram Bot",
+    "hoursSinceLastActions": 0.2,
+    "status": "ok",
+    "warning": null
+  }
 }
