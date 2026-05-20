@@ -1630,7 +1630,23 @@ function toggleExpiryPage() {
   const btn = document.getElementById('btn-expiry');
   btn.style.background = open ? '#c62828' : '#f0f4ff';
   btn.style.color      = open ? '#fff'    : '#c62828';
-  if (open) buildExpiryPage();
+  if (open) {
+    buildExpiryPage();
+    if (!page._dragScrollInit) {
+      page._dragScrollInit = true;
+      let isDown = false, startY, scrollTop;
+      page.addEventListener('mousedown', e => {
+        if (e.target.tagName === 'BUTTON') return;
+        isDown = true; startY = e.clientY; scrollTop = page.scrollTop;
+        page.style.cursor = 'grabbing'; e.preventDefault();
+      });
+      window.addEventListener('mouseup',   () => { isDown = false; page.style.cursor = ''; });
+      window.addEventListener('mousemove', e => {
+        if (!isDown) return;
+        page.scrollTop = scrollTop - (e.clientY - startY);
+      });
+    }
+  }
 }
 
 window._expiryOnlySakana  = false;
@@ -1731,7 +1747,7 @@ function buildExpiryPage() {
     if (!p) return null;
     const mk = String(p.makat);
     const d  = productData[mk] || {};
-    if (!(d.stock > 0) && !(d.stockZafn > 0)) return null;
+    if (!(d.stock > 0) && !(d.stockZafn > 0) && !(d.stockTrnz > 0)) return null;
     const salesMain = d.daySales || 0;
     const salesZafn = d.daySalesZafn || 0;
     const shelfLife = d.shelfLife ?? 0;
