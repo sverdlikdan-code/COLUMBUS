@@ -1363,10 +1363,16 @@ async function printPlanogram() {
     const canvas = await html2canvas(grid, {
       scale: 1.2,
       useCORS: true,
-      allowTaint: true,
+      allowTaint: false,
       backgroundColor: '#eef2f7',
       scrollX: 0, scrollY: 0,
       logging: false,
+      imageTimeout: 0,
+      onclone: (clonedDoc) => {
+        clonedDoc.querySelectorAll('img').forEach(img => {
+          img.setAttribute('crossorigin', 'anonymous');
+        });
+      },
     });
     grid.style.transform = oldTransform;
     const { jsPDF } = window.jspdf;
