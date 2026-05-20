@@ -39,13 +39,11 @@ if errorlevel 1 (
   goto DONE
 )
 
-:: 5. pull --rebase to sync with remote (working tree is clean after commit)
+:: 5. pull to sync with remote (no-rebase to avoid unstaged-changes error)
 echo [%DATE% %TIME%] pulling... >> %LOG%
-git pull --rebase origin master >> %LOG% 2>&1
+git pull --no-rebase -X ours origin master >> %LOG% 2>&1
 if errorlevel 1 (
-  echo [%DATE% %TIME%] WARNING: pull failed, trying merge... >> %LOG%
-  git rebase --abort >> %LOG% 2>&1
-  git pull origin master --strategy-option=ours >> %LOG% 2>&1
+  echo [%DATE% %TIME%] WARNING: pull failed, skipping... >> %LOG%
 )
 
 :: 6. push with retry
