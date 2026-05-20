@@ -29,3 +29,6 @@
 - [[agent-fin-agent]] — Агент Fin-Agent — мониторинг токенов Claude API, сравнение моделей, рекомендации по экономии
 - [[session-2026-05-10]] — Сессия 2026-05-10: mahsan, skill-creator, fin-agent, CEO dispute mode, weekly market scan routine
 - [[mahsan-planogram]] — MAHSAN PLANOGRAM build system + planogram-editor עמוד תוקף, per-warehouse sales/days, סכנה logic
+- [[agent-bug-agent]] — Агент Bug Agent — workflow-doctor, watchdog, GitHub Actions мониторинг
+- [[agent-biz-analyst]] — Агент Biz Analyst — коммерческая оценка COLUMBUS, Excel delivery docs, ROI
+- [[session-2026-05-20]] — Сессия 2026-05-20: GitHub Actions fix, workflow conflict, doctor upgrade, PRD closure

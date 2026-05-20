@@ -1,10 +1,11 @@
 /**
  * COLUMBUS Workflow Doctor — zero-cost log analysis + diagnostics
- * Reads workflow.log → detects patterns → writes docs/health-report.json
+ * Reads workflow.log → detects patterns → checks GitHub Actions commits → writes docs/health-report.json
  * Run: node planogram/workflow-doctor.js
  */
-const fs   = require('fs');
-const path = require('path');
+const fs    = require('fs');
+const path  = require('path');
+const { execSync } = require('child_process');
 
 const LOG_FILE    = path.join(__dirname, '..', 'workflow.log');
 const REPORT_FILE = path.join(__dirname, '..', 'docs', 'health-report.json');
@@ -93,6 +94,52 @@ const KNOWN_PATTERNS = [
   },
 ];
 
+// ── GitHub Actions health check via git log ───────────────────────────────
+function checkGitActionsHealth() {
+  const result = { lastActionsCommit: null, lastActionsAuthor: null, hoursSinceLastActions: null, status: 'unknown', warning: null };
+  try {
+    const ROOT = path.join(__dirname, '..');
+    // Try both bot authors
+    const authors = ['COLUMBUS Bot', 'Planogram Bot'];
+    let latestTs = 0;
+    let latestAuthor = null;
+    for (const author of authors) {
+      try {
+        const out = execSync(`git log --author="${author}" -1 --format=%cI`, { cwd: ROOT, timeout: 5000 }).toString().trim();
+        if (out) {
+          const ts = new Date(out).getTime();
+          if (ts > latestTs) { latestTs = ts; latestAuthor = author; }
+        }
+      } catch(_) {}
+    }
+    if (latestTs > 0) {
+      result.lastActionsCommit = new Date(latestTs).toISOString();
+      result.lastActionsAuthor = latestAuthor;
+      const hoursAgo = (Date.now() - latestTs) / 3600000;
+      result.hoursSinceLastActions = Math.round(hoursAgo * 10) / 10;
+      // Active hours: 16:00–23:00 Israel = 13:00–20:00 UTC
+      const nowUtcHour = new Date().getUTCHours();
+      const inActiveWindow = nowUtcHour >= 13 && nowUtcHour <= 21;
+      if (inActiveWindow && hoursAgo > 3) {
+        result.status = 'warning';
+        result.warning = `GitHub Actions не коммитил ${result.hoursSinceLastActions}ч — последний: ${latestAuthor} в ${result.lastActionsCommit}`;
+      } else if (!inActiveWindow && hoursAgo > 14) {
+        result.status = 'warning';
+        result.warning = `GitHub Actions не коммитил более 14ч (${result.hoursSinceLastActions}ч)`;
+      } else {
+        result.status = 'ok';
+      }
+    } else {
+      result.status = 'warning';
+      result.warning = 'Не найдено ни одного коммита от GitHub Actions ботов';
+    }
+  } catch(e) {
+    result.status = 'unknown';
+    result.warning = `git log failed: ${e.message}`;
+  }
+  return result;
+}
+
 if (!fs.existsSync(LOG_FILE)) {
   console.log('workflow.log not found — nothing to analyze');
   process.exit(0);
@@ -100,6 +147,8 @@ if (!fs.existsSync(LOG_FILE)) {
 
 const logText  = fs.readFileSync(LOG_FILE, 'utf8');
 const sessions = parseSessions(logText);
+
+const gitActions = checkGitActionsHealth();
 
 const report = {
   generatedAt: new Date().toISOString(),
@@ -109,6 +158,7 @@ const report = {
   patterns: {},
   recentIssues: [],
   status: 'ok',
+  githubActions: gitActions,
 };
 
 // Last 7 sessions analysis
@@ -130,11 +180,16 @@ for (const s of recent) {
   }
 }
 
-// Overall status
+// Overall status — merge local log + GitHub Actions health
 const criticals = report.last7days.filter(d => d.findings.some(f => f.level === 'critical'));
 const warnings  = report.last7days.filter(d => d.findings.some(f => f.level === 'warning'));
 if (criticals.length > 0) report.status = 'critical';
 else if (warnings.length > 0) report.status = 'warning';
+
+if (gitActions.status === 'warning') {
+  report.recentIssues.push({ level: 'warning', msg: gitActions.warning, fix: 'Проверь GitHub Actions: https://github.com/sverdlikdan-code/COLUMBUS/actions — ищи failed runs', code: 'ACTIONS_STALE' });
+  if (report.status === 'ok') report.status = 'warning';
+}
 
 // Recurring patterns — flag if same error 3+ times in last 14 sessions
 for (const [code, count] of Object.entries(report.patterns)) {
@@ -178,4 +233,12 @@ if (report.recentIssues.length > 0) {
 }
 if (Object.keys(report.patterns).length > 0) {
   console.log('   Паттерны ошибок:', JSON.stringify(report.patterns));
+}
+// GitHub Actions summary
+const ga = report.githubActions;
+if (ga.lastActionsCommit) {
+  const icon = ga.status === 'ok' ? '✅' : '⚠️ ';
+  console.log(`\n🤖 GitHub Actions: ${icon} последний коммит ${ga.hoursSinceLastActions}ч назад (${ga.lastActionsAuthor})`);
+} else {
+  console.log('\n🤖 GitHub Actions: ❓ нет коммитов от ботов');
 }
