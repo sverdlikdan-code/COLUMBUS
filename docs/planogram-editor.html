@@ -1713,7 +1713,6 @@ function buildExpiryPage() {
     if (!p) return null;
     const mk = String(p.makat);
     const d  = productData[mk] || {};
-    if (!(d.stock > 0) && !(d.stockZafn > 0)) return null;
     const salesMain = d.daySales || 0;
     const salesZafn = d.daySalesZafn || 0;
     const shelfLife = d.shelfLife ?? 0;
@@ -1726,11 +1725,11 @@ function buildExpiryPage() {
     return { pick, p, mk, d, salesMain, salesZafn, shelfLife, batches, sakanaMain, sakanaZafn, zafnDays };
   }).filter(Boolean);
 
-  const totalWithStock = order.filter(pk => { const d = productData[String(state[sec][pk]?.makat)] || {}; return (d.stock > 0) || (d.stockZafn > 0); }).length;
+  const totalAll = order.filter(pk => state[sec][pk]).length;
   const filtered = window._expiryOnlySakana || window._expiryZafnLow;
   document.getElementById('expiry-title').textContent = filtered
-    ? `דוח תוקף — ${sec} (${cards.length} / ${totalWithStock} מוצרים)`
-    : `דוח תוקף — ${sec} (${totalWithStock} מוצרים)`;
+    ? `דוח תוקף — ${sec} (${cards.length} / ${totalAll} מוצרים)`
+    : `דוח תוקף — ${sec} (${totalAll} מוצרים)`;
 
   grid.innerHTML = cards.map(({ pick, p, mk, d, salesMain, salesZafn, shelfLife, batches, sakanaMain, sakanaZafn }) => {
     const name = p.name || d.nameEn || d.desc || p.fam || mk;
