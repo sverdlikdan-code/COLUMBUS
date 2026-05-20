@@ -68,10 +68,30 @@
         width: auto !important;
         overflow: visible !important;
       }
-      @page { size: landscape; margin: 10mm; }
+      @page { size: landscape; margin: 8mm; }
       .slot { break-inside: avoid; }
       .slot.has-photo:hover { transform: none !important; }
       #print-header { display: block !important; }
+
+      /* ── Expiry page print (active only when expiry is open) ── */
+      body.printing-expiry > *:not(#expiry-page) { display: none !important; }
+      body.printing-expiry #expiry-page {
+        display: block !important;
+        position: static !important;
+        overflow: visible !important;
+        height: auto !important;
+        background: #fff !important;
+        z-index: auto !important;
+      }
+      body.printing-expiry #expiry-page > div:first-child { display: none !important; }
+      body.printing-expiry #expiry-grid {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+        padding: 4px !important;
+        overflow: visible !important;
+      }
+      body.printing-expiry #expiry-grid > div { break-inside: avoid; }
     }
     #print-header {
       display: none;
@@ -1873,6 +1893,19 @@ function buildLegend() {
 // INIT — load maps first, then render
 // ══════════════════════════════════════════════════════════════════════════
 window._currentSection = 'kapua';
+
+// Print / Save PDF: set class on body so @media print knows what to show
+window.addEventListener('beforeprint', () => {
+  const ep = document.getElementById('expiry-page');
+  if (ep && ep.style.display !== 'none') {
+    document.body.classList.add('printing-expiry');
+    document.title = 'דוח תוקף — FORMULA';
+  }
+});
+window.addEventListener('afterprint', () => {
+  document.body.classList.remove('printing-expiry');
+  document.title = 'MAHSAN FORMULA';
+});
 
 (async () => {
   setStatus('טוען מפת תמונות...');
