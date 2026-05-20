@@ -1803,6 +1803,10 @@ function _syncFilterBtns() {
   }
 }
 
+function _expiryImgErr(img) {
+  img.outerHTML = '<div style="width:72px;height:72px;background:#f0f0f0;border-radius:6px;border:1px solid #e0e0e0;display:flex;align-items:center;justify-content:center;font-size:20px;">📷</div>';
+}
+
 function buildExpiryPage() {
   const grid  = document.getElementById('expiry-grid');
   const SEC_NAMES = { kapua: 'קפוא', halavi: 'חלבי', dagim: 'דגים', yavesh: 'דג יבש' };
@@ -1902,8 +1906,8 @@ function buildExpiryPage() {
     const isStop       = (mainHasStock || zafnHasStock) && mainAllStop && zafnAllStop;
     const photoUrl = getPhotoUrl(mk);
     const imgHtml  = photoUrl
-      ? `<img src="${photoUrl}" style="width:72px;height:72px;object-fit:contain;border-radius:6px;border:1px solid #e0e0e0;" onerror="this.style.display='none'">`
-      : `<div style="width:72px;height:72px;background:#f5f5f5;border-radius:6px;border:1px solid #e0e0e0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#aaa;">📷</div>`;
+      ? `<img src="${photoUrl}" style="width:72px;height:72px;object-fit:contain;border-radius:6px;border:1px solid #ddd;background:#f5f5f5;" onerror="_expiryImgErr(this)">`
+      : `<div style="width:72px;height:72px;background:#f0f0f0;border-radius:6px;border:1px solid #e0e0e0;display:flex;align-items:center;justify-content:center;font-size:20px;">📷</div>`;
 
     const maxRows    = Math.max(batches.main.length, batches.zafn.length, 1);
     const cardBorder = isStop ? '2.5px solid #6a1b9a' : (sakanaMain || sakanaZafn) ? '2px solid #c62828' : '1px solid #dde0e8';
