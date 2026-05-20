@@ -1138,11 +1138,18 @@ async function main() {
   {
 
     // ── refresh-info.json ────────────────────────────────────────────────
-    if (lastRefreshRaw) {
-      const m = String(lastRefreshRaw).match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-      const label = m ? `${m[3]}.${m[2]}.${m[1]}, ${m[4]}:${m[5]}` : String(lastRefreshRaw);
+    {
+      const buildNow = new Date();
+      const pad = n => String(n).padStart(2,'0');
+      const buildLabel = `${pad(buildNow.getDate())}.${pad(buildNow.getMonth()+1)}.${buildNow.getFullYear()}, ${pad(buildNow.getHours())}:${pad(buildNow.getMinutes())}`;
+      let pbiLabel = null;
+      if (lastRefreshRaw) {
+        const m = String(lastRefreshRaw).match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+        pbiLabel = m ? `${m[3]}.${m[2]}.${m[1]}, ${m[4]}:${m[5]}` : String(lastRefreshRaw);
+      }
       fs.writeFileSync(path.join(__dirname,'..','docs','refresh-info.json'),
-        JSON.stringify({ iso: lastRefreshRaw, label }), 'utf8');
+        JSON.stringify({ iso: lastRefreshRaw, label: pbiLabel, buildAt: buildNow.toISOString(), buildLabel }), 'utf8');
+      console.log(`SERVER DATE TIME (local): ${buildNow.toISOString()} → עודכן: ${buildLabel}`);
     }
 
     // ── product-data.json ────────────────────────────────────────────────
