@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-05-20T15:14:35.900Z",
+  "date": "2026-05-20",
+  "totalSessions": 1,
+  "last7days": [
+    {
+      "date": "2026-19-05",
+      "done": true,
+      "pushed": true,
+      "noChanges": false,
+      "errorCount": 3,
+      "errors": [
+        "push rejected: remote ahead",
+        "failed to push"
+      ],
+      "findings": [
+        {
+          "level": "warning",
+          "code": "PUSH_REJECTED",
+          "msg": "Push rejected — remote had newer commits",
+          "fix": "run-workflow.bat теперь делает auto-retry. Если повторяется — кто-то пушит вручную пока workflow работает."
+        }
+      ]
+    }
+  ],
+  "patterns": {
+    "PUSH_REJECTED": 1
+  },
+  "recentIssues": [
+    {
+      "level": "warning",
+      "msg": "Сегодня workflow не запускался",
+      "fix": "Проверь scheduled task COLUMBUS-Daily-06 или запусти run-workflow.bat вручную",
+      "code": "NO_RUN_TODAY"
+    }
+  ],
+  "status": "warning"
+}
