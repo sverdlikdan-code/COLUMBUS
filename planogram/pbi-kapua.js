@@ -433,11 +433,30 @@ async function fetchKapuaFromBI(makatim) {
   return { kapuaData: result, nameEnMap };
 }
 
-// ── Last data update time (from SERVER DATE TIME table in Fabric dataset) ─────
-// The table is built from MAX(ORDERS.UDATE) → actual SQL Server last-order time.
+// ── Last data update time — from SERVER DATE TIME table (MAX ORDERS.UDATE from SQL Server)
+// This is the actual source-data timestamp that PBI reports show.
+// Fallback: PBI dataset refresh API (= when PBI pulled data, often stale).
 async function fetchLastRefresh() {
+  const pad = n => String(n).padStart(2, '0');
   try {
     const t = await getToken();
+    // Primary: query SERVER DATE TIME table directly
+    try {
+      const rows = await dax(t, `EVALUATE 'SERVER DATE TIME'`);
+      if (rows && rows.length > 0) {
+        const val = Object.values(rows[0])[0];
+        if (val) {
+          const d = new Date(val);
+          if (!isNaN(d.getTime())) {
+            // Value comes from SQL Server UDATE — already Israel local time (no UTC offset needed)
+            return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+          }
+        }
+      }
+    } catch(e2) {
+      console.warn('SERVER DATE TIME DAX failed, falling back to refresh API:', e2.message);
+    }
+    // Fallback: PBI refresh history API (endTime is UTC → convert to Israel)
     const res = await fetch(
       `https://api.powerbi.com/v1.0/myorg/groups/${WORKSPACE}/datasets/${DATASET}/refreshes?$top=1`,
       { headers: { 'Authorization': 'Bearer ' + t } }
@@ -445,10 +464,8 @@ async function fetchLastRefresh() {
     const j = await res.json();
     const last = j?.value?.[0];
     if (last?.endTime) {
-      // endTime is UTC ISO — convert to Israel time (UTC+3 summer)
       const d = new Date(last.endTime);
       const il = new Date(d.getTime() + 3 * 60 * 60 * 1000);
-      const pad = n => String(n).padStart(2, '0');
       return `${il.getUTCFullYear()}-${pad(il.getUTCMonth()+1)}-${pad(il.getUTCDate())}T${pad(il.getUTCHours())}:${pad(il.getUTCMinutes())}:00`;
     }
     return null;
