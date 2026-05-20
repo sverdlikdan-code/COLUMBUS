@@ -276,7 +276,7 @@
   <span class="badge">FORMULA ❄️</span>
   <span id="refresh-badge" style="margin-right:auto; font-size:13px; font-weight:bold; color:#7dd3fc; letter-spacing:0.5px;"></span>
   <img src="logo-diler-bmd.png" alt="DILER BMD" class="no-print"
-       style="height:32px; opacity:0.85; filter:brightness(0) invert(1);">
+       style="height:52px; opacity:1; filter:brightness(0) invert(1);">
 </div>
 
 <div class="tabs">
@@ -300,11 +300,7 @@
   </div>
   <button class="btn no-print" id="btn-hide-reserve" onclick="toggleHideReserve()"
     style="background:#7a5c00;color:#fff;border:1px solid #e0c040;">Plan Only ✓</button>
-  <button class="btn no-print" id="btn-pdf" onclick="printPlanogram()"
-    style="background:#f0f0f0;color:#333;border:1px solid #ccc;">🖨️ PDF</button>
-  <button class="btn no-print" id="btn-screenshot" onclick="saveScreenshot()"
-    style="background:#e8f5e9;color:#1b5e20;border:1px solid #81c784;">📷 Screenshot</button>
-  <button class="btn no-print" id="btn-edit" onclick="toggleEditMode()"
+<button class="btn no-print" id="btn-edit" onclick="toggleEditMode()"
     style="background:#fff3e0;color:#e65100;border:2px solid #ff8f00;font-weight:bold;font-size:16px;padding:10px 22px;min-width:110px;">✏ עריכה</button>
   <button class="btn btn-reset no-print edit-btn" onclick="resetSection()">↩ אפס</button>
 
@@ -1439,12 +1435,15 @@ async function saveScreenshot(targetEl) {
   if (isExpiry) {
     captureEl = targetEl;
   } else {
-    const sec  = window._currentSection || 'kapua';
-    const grid = document.getElementById('grid-' + sec);
-    const old  = grid.style.transform;
-    grid.style.transform = 'none';
-    captureEl = grid;
-    restoreFn = () => { grid.style.transform = old; };
+    const sec     = window._currentSection || 'kapua';
+    const section = document.querySelector('.section.active') || document.getElementById('grid-' + sec);
+    const grid    = document.getElementById('grid-' + sec);
+    const oldT    = grid.style.transform;
+    const oldO    = section.style.overflow;
+    grid.style.transform   = 'none';
+    section.style.overflow = 'visible';
+    captureEl = section;
+    restoreFn = () => { grid.style.transform = oldT; section.style.overflow = oldO; };
   }
 
   try {
