@@ -321,8 +321,13 @@
 ">
   <div style="display:flex;align-items:center;gap:10px;padding:10px 18px;background:#c62828;position:sticky;top:0;z-index:10;">
     <span style="font-weight:bold;font-size:13px;color:#fff;flex:1;" id="expiry-title">דוח תוקף</span>
-    <button id="btn-sakana-filter"  onclick="toggleSakanaFilter()"  style="background:#e8e8e8;border:1.5px solid #bdbdbd;color:#c62828;font-size:13px;font-weight:bold;cursor:pointer;border-radius:5px;padding:6px 20px;">⚠ סכנה בלבד</button>
-    <button id="btn-zafn-low-filter" onclick="toggleZafnLowFilter()" style="background:#e8e8e8;border:1.5px solid #bdbdbd;color:#c62828;font-size:13px;font-weight:bold;cursor:pointer;border-radius:5px;padding:6px 20px;">📦 צפון &lt;3 ימים</button>
+    <button id="btn-sec-kapua"  onclick="toggleSecFilter('kapua')"  style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:#fff;font-size:12px;font-weight:bold;cursor:pointer;border-radius:4px;padding:4px 10px;">קפוא</button>
+    <button id="btn-sec-halavi" onclick="toggleSecFilter('halavi')" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:#fff;font-size:12px;font-weight:bold;cursor:pointer;border-radius:4px;padding:4px 10px;">חלבי</button>
+    <button id="btn-sec-dagim"  onclick="toggleSecFilter('dagim')"  style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:#fff;font-size:12px;font-weight:bold;cursor:pointer;border-radius:4px;padding:4px 10px;">דגים</button>
+    <button id="btn-sec-yavesh" onclick="toggleSecFilter('yavesh')" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:#fff;font-size:12px;font-weight:bold;cursor:pointer;border-radius:4px;padding:4px 10px;">דג יבש</button>
+    <span style="width:1px;height:20px;background:rgba(255,255,255,0.3);margin:0 4px;"></span>
+    <button id="btn-sakana-filter"  onclick="toggleSakanaFilter()"  style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);color:#fff;font-size:12px;font-weight:bold;cursor:pointer;border-radius:5px;padding:4px 12px;">⚠ סכנה בלבד</button>
+    <button id="btn-zafn-low-filter" onclick="toggleZafnLowFilter()" style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);color:#fff;font-size:12px;font-weight:bold;cursor:pointer;border-radius:5px;padding:4px 12px;">📦 צפון &lt;3 ימים</button>
     <button onclick="window.print()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;cursor:pointer;border-radius:4px;padding:4px 12px;">🖨 הדפס</button>
     <button onclick="toggleExpiryPage()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:16px;cursor:pointer;border-radius:4px;padding:2px 8px;">✕</button>
   </div>
@@ -1630,6 +1635,12 @@ function toggleExpiryPage() {
 
 window._expiryOnlySakana  = false;
 window._expiryZafnLow    = false;
+window._expirySecFilter  = null;
+function toggleSecFilter(sec) {
+  window._expirySecFilter = (window._expirySecFilter === sec) ? null : sec;
+  _syncFilterBtns();
+  buildExpiryPage();
+}
 function toggleSakanaFilter() {
   const wasOn = window._expiryOnlySakana;
   window._expiryZafnLow    = false;
@@ -1649,12 +1660,19 @@ function _syncFilterBtns() {
   const bz = document.getElementById('btn-zafn-low-filter');
   if (bs) { bs.style.background = window._expiryOnlySakana ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)'; bs.style.color = window._expiryOnlySakana ? '#c62828' : '#fff'; }
   if (bz) { bz.style.background = window._expiryZafnLow    ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)'; bz.style.color = window._expiryZafnLow    ? '#c62828' : '#fff'; }
+  for (const sec of ['kapua','halavi','dagim','yavesh']) {
+    const b = document.getElementById('btn-sec-' + sec);
+    if (b) { b.style.background = (window._expirySecFilter === sec) ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)'; b.style.color = (window._expirySecFilter === sec) ? '#c62828' : '#fff'; }
+  }
 }
 
 function buildExpiryPage() {
-  const sec   = window._currentSection || 'kapua';
-  const order = _getPrintOrder(sec);
   const grid  = document.getElementById('expiry-grid');
+  const SEC_NAMES = { kapua: 'קפוא', halavi: 'חלבי', dagim: 'דגים', yavesh: 'דג יבש' };
+  let _totalAll = 0, _totalShown = 0, _allHtml = '';
+  for (const sec of _SECTIONS) {
+  if (window._expirySecFilter && window._expirySecFilter !== sec) continue;
+  const order = _getPrintOrder(sec);
 
   const fmt = (isoDate) => {
     if (!isoDate) return '—';
@@ -1713,6 +1731,7 @@ function buildExpiryPage() {
     if (!p) return null;
     const mk = String(p.makat);
     const d  = productData[mk] || {};
+    if (!(d.stock > 0) && !(d.stockZafn > 0)) return null;
     const salesMain = d.daySales || 0;
     const salesZafn = d.daySalesZafn || 0;
     const shelfLife = d.shelfLife ?? 0;
@@ -1725,13 +1744,12 @@ function buildExpiryPage() {
     return { pick, p, mk, d, salesMain, salesZafn, shelfLife, batches, sakanaMain, sakanaZafn, zafnDays };
   }).filter(Boolean);
 
-  const totalAll = order.filter(pk => state[sec][pk]).length;
-  const filtered = window._expiryOnlySakana || window._expiryZafnLow;
-  document.getElementById('expiry-title').textContent = filtered
-    ? `דוח תוקף — ${sec} (${cards.length} / ${totalAll} מוצרים)`
-    : `דוח תוקף — ${sec} (${totalAll} מוצרים)`;
-
-  grid.innerHTML = cards.map(({ pick, p, mk, d, salesMain, salesZafn, shelfLife, batches, sakanaMain, sakanaZafn }) => {
+  _totalAll   += order.filter(pk => state[sec][pk]).length;
+  _totalShown += cards.length;
+  if (cards.length > 0) {
+    const secLabel = SEC_NAMES[sec] || sec;
+    _allHtml += `<div style="width:100%;flex-basis:100%;padding:6px 14px;margin:10px 0 6px;background:#1a237e;color:#fff;font-size:13px;font-weight:bold;border-radius:6px;letter-spacing:0.3px;">${secLabel} — ${cards.length} מוצרים</div>`;
+    _allHtml += cards.map(({ pick, p, mk, d, salesMain, salesZafn, shelfLife, batches, sakanaMain, sakanaZafn }) => {
     const name = p.name || d.nameEn || d.desc || p.fam || mk;
     // Product-level STOP SALE: ALL batches with stock are fully blocked (per PBI formula /1.4)
     const isBatchStop = (b, sales) => {
@@ -1809,7 +1827,14 @@ function buildExpiryPage() {
         </table>
       </div>
     </div>`;
-  }).join('');
+    }).join('');
+  }
+  } // end for _SECTIONS
+  const filtered = window._expiryOnlySakana || window._expiryZafnLow;
+  document.getElementById('expiry-title').textContent = filtered
+    ? `דוח תוקף (${_totalShown} / ${_totalAll} מוצרים)`
+    : `דוח תוקף (${_totalAll} מוצרים)`;
+  grid.innerHTML = _allHtml || '<div style="padding:20px;color:#aaa;text-align:center;">אין מוצרים עם מלאי</div>';
 }
 
 // ══════════════════════════════════════════════════════════════════════════
