@@ -1351,7 +1351,7 @@ function restoreVersion(index) {
 // ══════════════════════════════════════════════════════════════════════════
 async function printPlanogram() {
   const sec     = window._currentSection || 'kapua';
-  const secNames = { kapua:'קפוא ❄️', halavi:'חלבי 🥛', dagim:'דגים 🐟', yavesh:'דג יבש 🧂' };
+  const secNames = { kapua:'KAPUA (Frozen)', halavi:'HALAVI (Dairy)', dagim:'DAGIM (Fish)', yavesh:'YAVESH (Dry Fish)' };
   const btn = document.getElementById('btn-pdf');
   if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
   setStatus('מייצא PDF...');
@@ -1376,7 +1376,7 @@ async function printPlanogram() {
     // Title row
     pdf.setFontSize(11);
     pdf.setFont('helvetica', 'bold');
-    pdf.text(`MAHSAN PLANOGRAM  |  ${secNames[sec]}  |  ${new Date().toLocaleDateString('he-IL')}`, pageW / 2, 9, { align: 'center' });
+    pdf.text(`MAHSAN PLANOGRAM  |  ${secNames[sec]}  |  ${new Date().toISOString().slice(0,10)}`, pageW / 2, 9, { align: 'center' });
     // Scale image to fit page
     const titleH = 14;
     const availH = pageH - titleH;
