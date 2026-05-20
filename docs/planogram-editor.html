@@ -1404,47 +1404,70 @@ async function printPlanogram() {
   setTimeout(() => setStatus('מוכן לעריכה'), 3000);
 }
 
+async function _preloadImagesAsCors(container) {
+  const imgEls = Array.from(container.querySelectorAll('img'));
+  const dataMap = new Map();
+  await Promise.allSettled(imgEls.map(img => new Promise(resolve => {
+    const src = img.src;
+    if (!src || src.startsWith('data:') || dataMap.has(src)) { resolve(); return; }
+    const tmp = new Image();
+    tmp.crossOrigin = 'anonymous';
+    tmp.onload = () => {
+      try {
+        const c = document.createElement('canvas');
+        c.width = tmp.naturalWidth; c.height = tmp.naturalHeight;
+        c.getContext('2d').drawImage(tmp, 0, 0);
+        dataMap.set(src, c.toDataURL('image/jpeg', 0.9));
+      } catch {}
+      resolve();
+    };
+    tmp.onerror = resolve;
+    tmp.src = src + (src.includes('?') ? '&' : '?') + '_c=1';
+  })));
+  return dataMap;
+}
+
 async function saveScreenshot(targetEl) {
-  const btn = document.getElementById('btn-screenshot');
+  const btn    = document.getElementById('btn-screenshot');
   const expBtn = document.getElementById('btn-expiry-screenshot');
-  const activeBtn = btn?.disabled === false ? btn : expBtn;
-  if (btn) { btn.disabled = true; btn.textContent = '⏳...'; }
+  if (btn)    { btn.disabled    = true; btn.textContent    = '⏳...'; }
   if (expBtn) { expBtn.disabled = true; expBtn.textContent = '⏳...'; }
 
   const isExpiry = !!targetEl;
-  const el = targetEl || (() => {
-    const sec = window._currentSection || 'kapua';
+  let captureEl, restoreFn = () => {};
+
+  if (isExpiry) {
+    captureEl = targetEl;
+  } else {
+    const sec  = window._currentSection || 'kapua';
     const grid = document.getElementById('grid-' + sec);
-    const oldTransform = grid.style.transform;
+    const old  = grid.style.transform;
     grid.style.transform = 'none';
-    return { el: grid, restore: () => { grid.style.transform = oldTransform; } };
-  })();
+    captureEl = grid;
+    restoreFn = () => { grid.style.transform = old; };
+  }
 
   try {
-    let captureEl, restoreFn = () => {};
-    if (isExpiry) {
-      captureEl = targetEl;
-    } else {
-      const sec = window._currentSection || 'kapua';
-      const grid = document.getElementById('grid-' + sec);
-      const oldTransform = grid.style.transform;
-      grid.style.transform = 'none';
-      captureEl = grid;
-      restoreFn = () => { grid.style.transform = oldTransform; };
-    }
+    setStatus('טוען תמונות...');
+    const dataMap = await _preloadImagesAsCors(captureEl);
     setStatus('מצלם...');
+
     const canvas = await html2canvas(captureEl, {
-      scale: 1.5,
+      scale: 2,
       useCORS: true,
       allowTaint: false,
       backgroundColor: '#eef2f7',
-      scrollX: 0, scrollY: isExpiry ? -captureEl.scrollTop : 0,
+      scrollX: 0, scrollY: 0,
       logging: false,
       imageTimeout: 0,
-      height: isExpiry ? captureEl.scrollHeight : undefined,
+      height:       isExpiry ? captureEl.scrollHeight : undefined,
       windowHeight: isExpiry ? captureEl.scrollHeight : undefined,
       onclone: (clonedDoc) => {
-        clonedDoc.querySelectorAll('img').forEach(img => img.setAttribute('crossorigin', 'anonymous'));
+        clonedDoc.querySelectorAll('img').forEach(img => {
+          const d = dataMap.get(img.src) || dataMap.get(img.src.replace(/[?&]_c=1/, ''));
+          if (d) img.src = d;
+          img.setAttribute('crossorigin', 'anonymous');
+        });
         if (isExpiry) {
           const ep = clonedDoc.getElementById('expiry-page');
           if (ep) { ep.style.position = 'static'; ep.style.overflow = 'visible'; ep.style.height = 'auto'; }
@@ -1454,18 +1477,22 @@ async function saveScreenshot(targetEl) {
       },
     });
     restoreFn();
-    const sec = window._currentSection || 'kapua';
-    const name = isExpiry ? `expiry-${new Date().toISOString().slice(0,10)}` : `planogram-${sec}-${new Date().toISOString().slice(0,10)}`;
+
+    const sec  = window._currentSection || 'kapua';
+    const name = isExpiry
+      ? `expiry-${new Date().toISOString().slice(0,10)}`
+      : `planogram-${sec}-${new Date().toISOString().slice(0,10)}`;
     const a = document.createElement('a');
     a.href = canvas.toDataURL('image/png');
     a.download = `${name}.png`;
     a.click();
     setStatus('✅ Screenshot הורד');
   } catch(e) {
+    restoreFn();
     console.error('Screenshot error:', e);
     setStatus('שגיאה — נסה שוב');
   }
-  if (btn) { btn.disabled = false; btn.textContent = '📷 Screenshot'; }
+  if (btn)    { btn.disabled    = false; btn.textContent    = '📷 Screenshot'; }
   if (expBtn) { expBtn.disabled = false; expBtn.textContent = '📷 Screenshot'; }
   setTimeout(() => setStatus('מוכן לעריכה'), 3000);
 }
