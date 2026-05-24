@@ -63,31 +63,49 @@ function inBBox(lat, lng, bbox) {
   return lat >= bbox.minLat-P && lat <= bbox.maxLat+P && lng >= bbox.minLng-P && lng <= bbox.maxLng+P;
 }
 
-async function geocodeOne(address, city) {
-  const key = [cleanAddr(address), city, 'ישראל'].filter(Boolean).join(', ');
-  if (geocodeCache.has(key)) return geocodeCache.get(key);
+// extract "שם רחוב 12" pattern from noisy address
+function extractStreetNum(address) {
+  if (!address) return null;
+  const m = (address || '').match(/[א-ת"'\-\s]{2,}\s+\d+/);
+  return m ? m[0].trim() : null;
+}
+
+async function nominatimQuery(q) {
   try {
     const data = await nominatim(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(key)}&format=json&limit=1&countrycodes=il`
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&countrycodes=il`
     );
-    if (data.length) {
-      const result = { lat: +data[0].lat, lng: +data[0].lon };
-      geocodeCache.set(key, result);
-      return result;
-    }
+    if (data.length) return { lat: +data[0].lat, lng: +data[0].lon };
   } catch (_) {}
-  geocodeCache.set(key, null);
+  return null;
+}
+
+async function geocodeOne(address, city) {
+  const cleaned = cleanAddr(address);
+  const attempts = [];
+  if (cleaned) attempts.push([cleaned, city, 'ישראל'].filter(Boolean).join(', '));
+  const street = extractStreetNum(cleaned || address);
+  if (street && street !== cleaned) attempts.push([street, city, 'ישראל'].filter(Boolean).join(', '));
+
+  for (let i = 0; i < attempts.length; i++) {
+    const key = attempts[i];
+    if (geocodeCache.has(key)) { const r = geocodeCache.get(key); if (r) return r; continue; }
+    if (i > 0) await sleep(1100);
+    const r = await nominatimQuery(key);
+    geocodeCache.set(key, r);
+    if (r) return r;
+  }
   return null;
 }
 
 async function geocodeBatch(clients) {
-  // fetch bboxes for ALL cities (including clients that already have GPS)
+  // fetch bboxes for ALL cities (needed for bbox validation)
   const allCities = [...new Set(clients.map(c => c.city).filter(Boolean))];
   for (const city of allCities) {
     if (!cityBBoxCache.has(city)) { await getCityBBox(city); await sleep(1100); }
   }
 
-  // validate existing IL coords against city bbox — null out if outside
+  // validate existing IL coords against city bbox — null out only if outside
   for (const c of clients) {
     if (isValidIL(c.lat, c.lng)) {
       const bbox = cityBBoxCache.get(c.city) ?? null;
@@ -95,7 +113,7 @@ async function geocodeBatch(clients) {
     }
   }
 
-  // geocode all clients still missing valid coords
+  // cascade-geocode clients still missing valid coords
   const need = clients.filter(c => !isValidIL(c.lat, c.lng) && (c.address || c.city));
   for (const c of need) {
     const r = await geocodeOne(c.address, c.city);
