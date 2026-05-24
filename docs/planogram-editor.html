@@ -299,7 +299,7 @@
     <div class="history-dropdown" id="history-dropdown"></div>
   </div>
   <button class="btn no-print" id="btn-hide-reserve" onclick="toggleHideReserve()"
-    style="background:#7a5c00;color:#fff;border:1px solid #e0c040;">Plan Only ✓</button>
+    style="background:#fff8e1;color:#7a5c00;border:1px solid #e0c040;">Plan Only</button>
 <button class="btn no-print" id="btn-edit" onclick="toggleEditMode()"
     style="background:#fff3e0;color:#e65100;border:2px solid #ff8f00;font-weight:bold;font-size:16px;padding:10px 22px;min-width:110px;">✏ עריכה</button>
   <button class="btn btn-reset no-print edit-btn" onclick="resetSection()">↩ אפס</button>
@@ -494,7 +494,7 @@ const KAPUA_MAX = { cols:18, rows:14 };
 let   KAPUA_RESERVE_START  = 0;
 let   HALAVI_RESERVE_START = 0;
 let   DAGIM_RESERVE_START  = 0;
-let   hideReserve = true;
+let   hideReserve = false;
 
 const HALAVI_LAYOUT = {
    1:{r:4,c:1},  2:{r:4,c:2},  3:{r:4,c:3},  4:{r:4,c:4},
@@ -1230,7 +1230,7 @@ function switchTab(name, tabEl) {
     }
   }
   setStatus('מוכן לעריכה');
-  applyZoomToSection();
+  fitToScreen();
   buildLegend();
   updateSectionStats();
   if (document.getElementById('position-table').style.display !== 'none') updateTable();

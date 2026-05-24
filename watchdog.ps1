@@ -3,7 +3,7 @@
 
 $LOG = "c:\Users\d.sverdlik\Desktop\WORKSPACE\COLUMBUS\workflow.log"
 $REPO = "c:\Users\d.sverdlik\Desktop\WORKSPACE\COLUMBUS"
-$today = (Get-Date).ToString("dd/MM/yyyy")
+$today = (Get-Date).ToString("MM/dd/yyyy")
 $reportLine = "[$(Get-Date -Format 'ddd MM/dd/yyyy HH:mm:ss')] [WATCHDOG]"
 
 function Log($msg) {
@@ -36,14 +36,14 @@ if (-not $didStart) {
   if ($LASTEXITCODE -eq 0) {
     Log "Push retry: SUCCESS"
   } else {
-    Log "Push retry: FAILED — manual intervention needed"
+    Log "Push retry: FAILED -- manual intervention needed"
   }
 
 } elseif ($didPushed) {
-  Log "OK — workflow completed and pushed successfully."
+  Log "OK -- workflow completed and pushed successfully."
 
 } else {
-  Log "OK — no changes today, nothing to push."
+  Log "OK -- no changes today, nothing to push."
 }
 
 # Run doctor — analyze log patterns and update health-report.json
