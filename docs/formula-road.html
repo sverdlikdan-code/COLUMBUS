@@ -746,7 +746,7 @@ function renderClientList(html){
       const old=days>14;
       return `<span style="${old?'color:var(--red);font-weight:700':''}">הזמנה: ${label}${old?` (${days}d)`:''}</span>`;
     })();
-    const sales=c.monthlySales?`<span style="color:var(--sky);font-weight:800;font-size:12px;">₪${Math.round(c.monthlySales).toLocaleString()}</span> <span style="font-size:10px;color:var(--light)">החודש</span>`:'';
+    const sales=c.monthlySales?`<span style="color:var(--sky);font-weight:800;font-size:12px;">₪${Math.round(c.monthlySales).toLocaleString()}</span> <span style="font-size:10px;color:var(--light)">החודש</span>`:`<span title="אין מכירות החודש">😥</span>`;
     const yedPart=c.target?`<span style="font-size:10px;color:var(--mid)">יעד: </span><span style="font-size:10px;font-weight:800;color:var(--mid)">₪${Math.round(c.target).toLocaleString()}</span>`:'';
     const pctPart=(()=>{
       if(!c.target) return '';
