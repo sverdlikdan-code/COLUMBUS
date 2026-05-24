@@ -50,7 +50,9 @@ jobs:
         run: |
           git config user.email "columbus-bot@diler.co.il"
           git config user.name "COLUMBUS Bot"
-          git add --ignore-missing docs/formula-road-data.json docs/refresh-info.json
+          for f in docs/formula-road-data.json docs/refresh-info.json; do
+            [ -f "$f" ] && git add "$f" || true
+          done
           git diff --cached --quiet && echo "No changes." || \
             git commit -m "chore: formula-road build $(date -u +'%Y-%m-%d %H:%M UTC')"
           git push origin master || \
