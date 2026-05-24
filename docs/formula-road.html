@@ -763,8 +763,7 @@ function renderClientList(html){
       <div class="c-body">
         <div class="c-name">${c.custName||''}</div>
         <div class="c-sub"><span style="color:var(--blue);font-weight:800;">${c.custId||''}</span>${c.city||c.address?' · ':''}</span>${[c.city,c.address].filter(Boolean).join(' · ')}</div>
-        <div class="c-sub">${lastOrder}${sales?' · '+sales:''}</div>
-        ${targetLine?`<div class="c-sub">${targetLine}</div>`:''}
+        <div class="c-sub">${[lastOrder,sales,targetLine].filter(Boolean).join('<span style="color:var(--light)"> · </span>')}</div>
       </div>
       <span class="day-change-btn" onclick="openDayPopup(event,'${c.custId}')">📅</span>
       ${noGps
