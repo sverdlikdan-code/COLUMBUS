@@ -22,9 +22,21 @@ const VENUE_PATTERNS = [
   /קניון[^,]*/gi, /מתחם[^,]*/gi, /פארק תעשיי?ה[^,]*/gi,
   /אזור תעשיי?ה[^,]*/gi, /\(.*?\)/g,
 ];
+function fixPriorityAddr(address) {
+  if (!address) return address;
+  // trim decimal fractions from numbers (Priority stores "52.000" → "52")
+  let s = address.replace(/(\d+)\.\d+/g, '$1');
+  // if address looks reversed (no Hebrew vowel order — heuristic: starts with digits or ends with Hebrew)
+  const startsWithDigit = /^\s*\d/.test(s);
+  if (startsWithDigit) {
+    // reverse entire string, then re-reverse digit sequences so numbers stay correct
+    s = s.split('').reverse().join('').replace(/\d+/g, m => m.split('').reverse().join(''));
+  }
+  return s.trim();
+}
 function cleanAddr(address) {
   if (!address) return address;
-  let s = address;
+  let s = fixPriorityAddr(address);
   for (const p of VENUE_PATTERNS) s = s.replace(p, '');
   return s.replace(/[,\s]+$/, '').replace(/\s{2,}/g, ' ').trim();
 }
