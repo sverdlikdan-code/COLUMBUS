@@ -451,7 +451,7 @@ async function fetchStockMain(makatim) {
           CONTAINSROW(${mkSet}, 'מלאי-תוקף'[מק"ט])
         ),
         "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף]),
-        "daysStock", [לכמה ימים המלאי לכול פק"א בנפרד]
+        "daysStock", CALCULATE([לכמה ימים המלאי לכול פק"א בנפרד])
       )
     `),
     dax(t, `
@@ -488,7 +488,7 @@ async function fetchStockMain(makatim) {
           CONTAINSROW(${mkSet}, 'מלאי-תוקף'[מק"ט])
         ),
         "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף]),
-        "daysStock", [לכמה ימים המלאי לכול פק"א בנפרד]
+        "daysStock", CALCULATE([לכמה ימים המלאי לכול פק"א בנפרד])
       )
     `),
     dax(t, `
