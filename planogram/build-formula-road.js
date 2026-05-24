@@ -44,7 +44,7 @@ async function getCityBBox(city) {
   if (cityBBoxCache.has(city)) return cityBBoxCache.get(city);
   try {
     const data = await nominatim(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city+', ישראל')}&format=json&limit=1&countrycodes=il`
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city+', ישראל')}&format=json&limit=1&countrycodes=il,ps`
     );
     if (data.length && data[0].boundingbox) {
       const bb = data[0].boundingbox;
@@ -73,7 +73,7 @@ function extractStreetNum(address) {
 async function nominatimQuery(q) {
   try {
     const data = await nominatim(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&countrycodes=il`
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&countrycodes=il,ps`
     );
     if (data.length) return { lat: +data[0].lat, lng: +data[0].lon };
   } catch (_) {}
