@@ -595,8 +595,8 @@ async function fetchStockMain(makatim) {
   }
 
   for (const r of Object.values(result)) {
-    r.daysStock     = r.daySales     > 0 ? r.stock     / r.daySales     : null;
-    r.daysStockZafn = r.daySalesZafn > 0 ? r.stockZafn / r.daySalesZafn : null;
+    r.daysStock     = r.daySales     > 0 ? r.stock     / r.daySales     * 1.4 : null;
+    r.daysStockZafn = r.daySalesZafn > 0 ? r.stockZafn / r.daySalesZafn * 1.4 : null;
   }
 
   console.log(`Stock/sales Main: ${Object.values(result).filter(v=>v.stock>0).length}/${makatim.length} with stock`);
