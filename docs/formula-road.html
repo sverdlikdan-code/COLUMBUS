@@ -711,6 +711,7 @@ function toggleCity(city){
   renderCityFilters();
   renderClientList();
   updateKmBar();
+  if(window.innerWidth>=700||st.tab==='map') renderMap();
 }
 
 function haversineM(la1,lo1,la2,lo2){return haversineKm(la1,lo1,la2,lo2)*1000;}
