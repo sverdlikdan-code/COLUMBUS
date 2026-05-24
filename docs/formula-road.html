@@ -818,12 +818,11 @@ function setupSortable(){
 
 // ── MAP ────────────────────────────────────────────────────────────────────
 const MAP_STYLES=[
-  {id:'satellite',label:'🛰',tile:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',attr:'© Esri',opts:{maxZoom:19}},
-  {id:'light',    label:'🗺',tile:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',attr:'© CartoDB',opts:{subdomains:'abcd',maxZoom:19}},
-  {id:'osm',      label:'🌍',tile:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',attr:'© OSM',opts:{maxZoom:19}},
+  {id:'light',label:'🗺',tile:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',attr:'© CartoDB',opts:{subdomains:'abcd',maxZoom:19}},
+  {id:'osm',  label:'🌍',tile:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',attr:'© OSM',opts:{maxZoom:19}},
 ];
 let mapTileLayer=null;
-let mapStyleIdx=+( localStorage.getItem('fr_mapstyle')||1);
+let mapStyleIdx=+( localStorage.getItem('fr_mapstyle')||0);
 function cycleMapStyle(){
   mapStyleIdx=(mapStyleIdx+1)%MAP_STYLES.length;
   localStorage.setItem('fr_mapstyle',mapStyleIdx);
