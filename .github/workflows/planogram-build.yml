@@ -49,6 +49,14 @@ jobs:
         run: node planogram/workflow-doctor.js
         continue-on-error: true
 
+      - name: Install server dependencies
+        run: npm install
+        working-directory: server
+
+      - name: Build formula-road-data.json
+        run: node planogram/build-formula-road.js
+        continue-on-error: true
+
       - name: Commit and push
         run: |
           git config user.email "columbus-bot@diler.co.il"
@@ -60,7 +68,8 @@ jobs:
                   docs/product-data.json \
                   docs/refresh-info.json \
                   docs/product-photos.json \
-                  docs/health-report.json
+                  docs/health-report.json \
+                  docs/formula-road-data.json
           git diff --cached --quiet && echo "No changes." || \
             git commit -m "chore: auto planogram build $(date -u +'%Y-%m-%d %H:%M UTC')"
           git push origin master || \
