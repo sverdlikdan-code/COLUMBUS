@@ -1,17 +1,15 @@
-name: MAHSAN Planogram Build
+name: Formula Road Build
 
 on:
   schedule:
-    # 06:00 Israel (UTC+3) = 03:00 UTC
-    - cron: '0 3 * * *'
-    # 16:00–23:00 Israel = 13:00–20:00 UTC — каждый час вечером
-    - cron: '0 13,14,15,16,17,18,19,20 * * *'
+    # 06:30 Israel (UTC+3) = 03:30 UTC — после mahsan билда
+    - cron: '30 3 * * *'
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -24,9 +22,9 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install dependencies
+      - name: Install server dependencies
         run: npm install
-        working-directory: planogram
+        working-directory: server
 
       - name: Create .env
         run: |
@@ -35,34 +33,25 @@ jobs:
           echo "PBI_SECRET=${{ secrets.PBI_SECRET }}"       >> .env
           echo "PBI_DATASET=${{ secrets.PBI_DATASET }}"     >> .env
           echo "PBI_WORKSPACE=${{ secrets.PBI_WORKSPACE }}" >> .env
-          echo "TOKEN=${{ secrets.WORKFLOW_TRIGGER_TOKEN }}" >> .env
           echo "AZURE_TENANT_ID=${{ secrets.PBI_TENANT }}"  >> .env
           echo "AZURE_CLIENT_ID=${{ secrets.PBI_CLIENT }}"  >> .env
           echo "AZURE_CLIENT_SECRET=${{ secrets.PBI_SECRET }}" >> .env
           echo "POWERBI_DATASET_ID=${{ secrets.PBI_DATASET }}" >> .env
           echo "POWERBI_WORKSPACE_ID=${{ secrets.PBI_WORKSPACE }}" >> .env
 
-      - name: Run build-planogram
-        run: node planogram/build-planogram.js
+      - name: Install planogram dependencies
+        run: npm install
+        working-directory: planogram
 
-      - name: Run workflow-doctor
-        run: node planogram/workflow-doctor.js
-        continue-on-error: true
+      - name: Build formula-road-data.json
+        run: node planogram/build-formula-road.js
 
       - name: Commit and push
         run: |
           git config user.email "columbus-bot@diler.co.il"
           git config user.name "COLUMBUS Bot"
-          git add --ignore-missing \
-                  docs/kapua-base.json \
-                  docs/halavi-base.json \
-                  docs/dagim-base.json \
-                  docs/dagim-yavesh-base.json \
-                  docs/product-data.json \
-                  docs/refresh-info.json \
-                  docs/product-photos.json \
-                  docs/health-report.json
+          git add --ignore-missing docs/formula-road-data.json docs/refresh-info.json
           git diff --cached --quiet && echo "No changes." || \
-            git commit -m "chore: mahsan planogram build $(date -u +'%Y-%m-%d %H:%M UTC')"
+            git commit -m "chore: formula-road build $(date -u +'%Y-%m-%d %H:%M UTC')"
           git push origin master || \
             (git pull --no-rebase -X ours origin master && git push origin master)
