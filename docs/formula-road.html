@@ -776,7 +776,13 @@ function renderClientList(html){
 function selectClient(id){
   st.selectedId=st.selectedId===id?null:id;
   renderClientList();
-  if(st.tab==='map'||window.innerWidth>=700) renderMap();
+  if(st.tab==='map'||window.innerWidth>=700){
+    renderMap();
+    if(st.selectedId){
+      const c=st.clients.find(x=>x.custId===st.selectedId)||st.aiClients.find(x=>x.custId===st.selectedId);
+      if(c&&c.lat&&c.lng) setTimeout(()=>map.setView([c.lat,c.lng],17),50);
+    }
+  }
 }
 
 function setupDragScroll(el){
