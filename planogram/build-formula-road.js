@@ -44,7 +44,7 @@ async function getCityBBox(city) {
   if (cityBBoxCache.has(city)) return cityBBoxCache.get(city);
   try {
     const data = await nominatim(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city+', ישראל')}&format=json&limit=1&countrycodes=il`
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city+', ישראל')}&format=json&limit=1&countrycodes=il,ps`
     );
     if (data.length && data[0].boundingbox) {
       const bb = data[0].boundingbox;
@@ -73,7 +73,7 @@ function extractStreetNum(address) {
 async function nominatimQuery(q) {
   try {
     const data = await nominatim(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&countrycodes=il`
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&countrycodes=il,ps`
     );
     if (data.length) return { lat: +data[0].lat, lng: +data[0].lon };
   } catch (_) {}
@@ -113,8 +113,16 @@ async function geocodeBatch(clients) {
     }
   }
 
-  // cascade-geocode clients still missing valid coords
-  const need = clients.filter(c => !isValidIL(c.lat, c.lng) && (c.address || c.city));
+  // clients without street number → city center from bbox (0 API calls)
+  for (const c of clients) {
+    if (isValidIL(c.lat, c.lng)) continue;
+    if (extractStreetNum(c.address)) continue; // has number → will Nominatim below
+    const bbox = cityBBoxCache.get(c.city);
+    if (bbox) { c.lat = (bbox.minLat + bbox.maxLat) / 2; c.lng = (bbox.minLng + bbox.maxLng) / 2; }
+  }
+
+  // cascade-geocode clients with street number still missing valid coords
+  const need = clients.filter(c => !isValidIL(c.lat, c.lng) && extractStreetNum(c.address));
   for (const c of need) {
     const r = await geocodeOne(c.address, c.city);
     if (r && inBBox(r.lat, r.lng, cityBBoxCache.get(c.city) ?? null)) {
