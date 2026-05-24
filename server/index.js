@@ -255,7 +255,12 @@ ADDCOLUMNS(
     CALCULATE(
       MAX('ALL_PARTS'[תאריך]),
       FILTER('ALL_PARTS', 'ALL_PARTS'[מספר לקוח] = EARLIER('משטח עם כפולות'[מס.לקוח]))
-    )
+    ),
+  "יעד",
+    CALCULATE([יעד $],
+      FILTER('משטח',
+        'משטח'[מס. לקוח] = EARLIER('משטח עם כפולות'[מס.לקוח])
+        && 'משטח'[סטטוס] IN {"פעיל"}))
 )
 ORDER BY 'משטח עם כפולות'[סדר ביקור] ASC
   `;
@@ -289,6 +294,7 @@ ORDER BY 'משטח עם כפולות'[סדר ביקור] ASC
         monthlySales:    r['[מכירות חודש]'] || 0,
         totalSales:      r['[totalSales]'] || 0,
         lastSaleDate:    r['[lastSaleDate]'] ? r['[lastSaleDate]'].split('T')[0] : null,
+        target:          r['[יעד]'] || 0,
       };
     });
     await geocodeBatch(clients);
