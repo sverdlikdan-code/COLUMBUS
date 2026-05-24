@@ -18,6 +18,40 @@ function isValidIL(lat, lng) {
 // In-memory geocode cache: address string → { lat, lng } | null
 const geocodeCache = new Map();
 
+// City bounding-box cache: city name → { minLat, maxLat, minLng, maxLng } | null
+const cityBBoxCache = new Map();
+
+async function getCityBBox(city) {
+  if (!city) return null;
+  if (cityBBoxCache.has(city)) return cityBBoxCache.get(city);
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city + ', ישראל')}&format=json&limit=1&countrycodes=il`;
+    const resp = await fetch(url, {
+      headers: { 'User-Agent': 'ColumbusDillerApp/1.1' },
+      signal: AbortSignal.timeout(4000),
+    });
+    const data = await resp.json();
+    if (data.length > 0 && data[0].boundingbox) {
+      const bb = data[0].boundingbox; // [minLat, maxLat, minLng, maxLng]
+      const bbox = {
+        minLat: parseFloat(bb[0]), maxLat: parseFloat(bb[1]),
+        minLng: parseFloat(bb[2]), maxLng: parseFloat(bb[3]),
+      };
+      cityBBoxCache.set(city, bbox);
+      return bbox;
+    }
+  } catch (_) {}
+  cityBBoxCache.set(city, null);
+  return null;
+}
+
+function isWithinCityBBox(lat, lng, bbox) {
+  if (!bbox) return true; // can't validate → don't reject
+  const PAD = 0.018; // ~2 km tolerance on each side
+  return lat >= bbox.minLat - PAD && lat <= bbox.maxLat + PAD &&
+         lng >= bbox.minLng - PAD && lng <= bbox.maxLng + PAD;
+}
+
 const VENUE_PATTERNS = [
   /מרכז מסחרי[^,]*/gi,
   /מרכז עסקים[^,]*/gi,
@@ -71,10 +105,28 @@ async function geocodeAddress(address, city) {
 // Geocode a batch — max 1 req/sec (Nominatim rate limit)
 async function geocodeBatch(clients) {
   const needsGeocode = clients.filter(c => !isValidIL(c.lat, c.lng) && (c.address || c.city));
+  if (!needsGeocode.length) return clients;
+
+  // Pre-fetch bounding boxes for all unique cities (cached after first fetch)
+  const uniqueCities = [...new Set(needsGeocode.map(c => c.city).filter(Boolean))];
+  for (const city of uniqueCities) {
+    if (!cityBBoxCache.has(city)) {
+      await getCityBBox(city);
+      await new Promise(r => setTimeout(r, 1100));
+    }
+  }
+
+  // Geocode each address and validate against city bbox
   for (const c of needsGeocode) {
     const result = await geocodeAddress(c.address, c.city);
-    if (result) { c.lat = result.lat; c.lng = result.lng; }
-    await new Promise(r => setTimeout(r, 1100)); // Nominatim: 1 req/sec
+    if (result) {
+      const bbox = cityBBoxCache.get(c.city) ?? null;
+      if (isWithinCityBBox(result.lat, result.lng, bbox)) {
+        c.lat = result.lat; c.lng = result.lng;
+      }
+      // else: coordinates found but outside city → leave lat/lng null → NO GPS
+    }
+    await new Promise(r => setTimeout(r, 1100));
   }
   return clients;
 }

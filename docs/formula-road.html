@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>DILER FORMULA — מסלול</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --blue:#1565C0; --blue-dark:#0D47A1; --blue-deeper:#082D6E;
+  --sky:#29B6F6;  --sky-light:#E3F2FD; --sky-mid:#BBDEFB;
+  --bg:#F0F5FF;   --white:#fff;
+  --text:#0D2137; --mid:#546E7A; --light:#90A4AE;
+  --border:#BBDEFB; --green:#1B7B34; --red:#C62828; --orange:#E65100;
+}
+html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,sans-serif;direction:rtl;}
+#app{height:100%;display:flex;flex-direction:column;overflow:hidden;}
+
+/* SCREENS */
+.screen{display:none;flex:1;flex-direction:column;overflow:hidden;}
+.screen.active{display:flex;}
+
+/* HEADER */
+.hdr{background:linear-gradient(135deg,var(--blue-deeper) 0%,var(--blue-dark) 60%,var(--blue) 100%);color:#fff;padding:10px 14px;flex-shrink:0;display:flex;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(13,71,161,.35);}
+.hdr-logo{height:38px;filter:brightness(0) invert(1);opacity:.92;flex-shrink:0;}
+.hdr-back{background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.45);color:#fff;font-size:16px;font-weight:800;cursor:pointer;padding:6px 14px;border-radius:20px;line-height:1;display:flex;align-items:center;gap:5px;white-space:nowrap;letter-spacing:.3px;transition:background .15s;}
+.hdr-back:hover{background:rgba(255,255,255,.3);}
+.hdr-center{flex:1;text-align:center;}
+.hdr-title{font-size:13px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:#fff;}
+.hdr-sub{font-size:11px;color:rgba(255,255,255,.7);margin-top:1px;}
+.sky-line{height:3px;background:linear-gradient(90deg,var(--sky),var(--blue));flex-shrink:0;}
+.demo-tag{font-size:9px;background:rgba(41,182,246,.25);color:var(--sky);padding:2px 8px;border-radius:10px;letter-spacing:1px;border:1px solid rgba(41,182,246,.4);}
+
+/* SCROLL BODY */
+.scroll-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px;display:flex;flex-direction:column;gap:10px;}
+
+/* MANAGER / AGENT CARD */
+.card{background:#fff;border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px;box-shadow:0 2px 10px rgba(21,101,192,.10);cursor:pointer;border-right:5px solid var(--blue);transition:transform .12s,box-shadow .12s;}
+.card:active{transform:scale(.97);box-shadow:0 1px 5px rgba(0,0,0,.08);}
+.avatar{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#fff;flex-shrink:0;background:var(--blue);}
+.card-name{font-size:15px;font-weight:800;color:var(--text);}
+.card-sub{font-size:12px;color:var(--mid);margin-top:3px;}
+
+/* LOADING */
+.spinner{display:flex;align-items:center;justify-content:center;flex:1;flex-direction:column;gap:12px;color:var(--mid);}
+.spin{width:34px;height:34px;border:3px solid var(--sky-mid);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* START CITY */
+.city-body{flex:1;display:flex;flex-direction:column;align-items:center;padding:32px 20px 20px;gap:0;}
+.city-label{font-size:12px;color:var(--sky);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
+.city-title{font-size:26px;font-weight:900;color:var(--blue-dark);margin-bottom:4px;}
+.city-sub{font-size:14px;color:var(--mid);margin-bottom:22px;}
+.city-input{width:100%;max-width:420px;background:#fff;border-radius:12px;padding:13px 16px;font-size:16px;color:var(--text);border:2px solid var(--sky-mid);outline:none;text-align:right;direction:rtl;transition:border-color .2s;}
+.city-input:focus{border-color:var(--blue);}
+.suggestions{background:#fff;border-radius:10px;margin-top:4px;box-shadow:0 6px 20px rgba(21,101,192,.15);overflow:hidden;border:1px solid var(--sky-mid);}
+.sug-item{padding:11px 16px;border-bottom:1px solid var(--sky-light);cursor:pointer;font-size:15px;color:var(--text);text-align:right;}
+.sug-item:hover,.sug-item:active{background:var(--sky-light);}
+.city-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:18px;max-width:420px;}
+.gps-btn{margin-top:12px;background:#fff;border:2px solid var(--blue);border-radius:12px;padding:12px 0;width:100%;max-width:420px;color:var(--blue);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .15s;}
+.gps-btn:hover{background:var(--sky-light);}
+.gps-btn:disabled{border-color:var(--light);color:var(--light);cursor:default;}
+.confirm-btn{margin-top:14px;background:linear-gradient(135deg,var(--blue-dark),var(--blue));border-radius:12px;padding:14px 0;width:100%;max-width:420px;color:#fff;font-size:16px;font-weight:700;border:none;cursor:pointer;letter-spacing:.5px;box-shadow:0 4px 14px rgba(21,101,192,.35);}
+.confirm-btn:hover{background:linear-gradient(135deg,var(--blue-deeper),var(--blue-dark));}
+.confirm-btn:disabled{background:var(--light);box-shadow:none;cursor:default;}
+
+/* DAY PICKER */
+.day-body{flex:1;display:flex;flex-direction:column;padding:20px;}
+.day-title{font-size:28px;font-weight:900;color:var(--blue-dark);margin-bottom:20px;text-align:center;flex-shrink:0;}
+.days-grid{flex:1;display:grid;grid-template-columns:repeat(5,1fr);gap:16px;}
+.day-card{background:#fff;border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 20px rgba(21,101,192,.14);border-top:6px solid var(--sky);gap:10px;transition:transform .12s,box-shadow .12s;}
+.day-card:hover{transform:translateY(-5px);box-shadow:0 10px 32px rgba(21,101,192,.24);}
+.day-letter{font-size:clamp(40px,6vw,90px);font-weight:900;color:var(--blue-dark);line-height:1;}
+.day-name{font-size:clamp(13px,1.8vw,22px);color:var(--mid);font-weight:700;}
+
+/* ROUTE TOOLBAR */
+#route-hdr{flex-shrink:0;}
+.tab-bar{display:flex;background:var(--white);border-bottom:2px solid var(--sky-mid);flex-shrink:0;}
+.tab-btn{flex:1;padding:11px;text-align:center;font-size:14px;font-weight:700;color:var(--mid);cursor:pointer;background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;}
+.tab-btn.active{color:var(--blue);border-bottom-color:var(--blue);}
+.km-bar{display:flex;align-items:center;gap:10px;padding:8px 14px;background:#fff;border-bottom:1px solid var(--sky-mid);font-size:13px;color:var(--mid);flex-shrink:0;flex-wrap:wrap;}
+.km-info{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.km-lbl{font-size:11px;color:var(--light);font-weight:600;}
+.km-val{font-weight:900;color:var(--blue-dark);font-size:16px;}
+.km-unit{font-size:11px;color:var(--light);}
+.km-saving{background:#E8F5E9;color:var(--green);font-weight:800;font-size:12px;padding:3px 10px;border-radius:12px;border:1px solid #A5D6A7;}
+.sort-btns{display:flex;gap:6px;}
+.sort-btn{padding:7px 16px;border-radius:22px;font-size:13px;font-weight:800;cursor:pointer;border:2px solid var(--sky-mid);background:none;color:var(--mid);transition:all .15s;}
+.sort-btn.active-priority{color:var(--blue);border-color:var(--blue);background:var(--sky-light);box-shadow:0 2px 8px rgba(21,101,192,.18);}
+.sort-btn.active-ai{color:var(--green);border-color:var(--green);background:#E8F5E9;box-shadow:0 2px 8px rgba(27,123,52,.18);}
+.day-switch{display:flex;gap:6px;margin:0 auto;}
+.day-sw-btn{width:46px;height:46px;border-radius:14px;background:var(--sky-light);border:2px solid var(--sky-mid);font-size:18px;font-weight:900;color:var(--blue-dark);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;box-shadow:0 2px 6px rgba(21,101,192,.10);}
+.day-sw-btn:hover{background:var(--sky-mid);transform:translateY(-1px);}
+.day-sw-btn.active{background:var(--blue);color:#fff;border-color:var(--blue-dark);box-shadow:0 4px 12px rgba(21,101,192,.38),0 1px 0 rgba(255,255,255,.2) inset;}
+
+/* CLIENT LIST */
+#route-body{display:flex;flex:1;overflow:hidden;flex-direction:column;}
+#list-pane{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px;min-width:0;background:var(--bg);}
+.city-filters{display:flex;flex-wrap:wrap;gap:5px;padding:7px 10px 0;flex-shrink:0;background:#fff;border-bottom:1px solid var(--sky-mid);}
+.city-chip{padding:4px 11px;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--sky-mid);background:#fff;color:var(--mid);}
+.city-chip.on{background:var(--blue);color:#fff;border-color:var(--blue);}
+
+/* CLIENT CARD */
+.client-card{background:#fff;border-radius:12px;padding:11px 12px;margin-bottom:7px;display:flex;align-items:center;gap:9px;box-shadow:0 1px 5px rgba(21,101,192,.08);position:relative;cursor:pointer;border-right:4px solid var(--sky-mid);touch-action:pan-y;transition:box-shadow .12s;}
+.client-card:hover{box-shadow:0 3px 12px rgba(21,101,192,.14);}
+.client-card.no-gps{border-right-color:var(--orange);}
+.client-card.selected{border-right-color:var(--blue);background:var(--sky-light);}
+.client-card.ai-diff{border-right-color:var(--green);}
+.client-card.walk-card{border-right-color:var(--green);}
+.client-card.walk-top{margin-bottom:2px;border-radius:12px 12px 4px 4px;}
+.client-card.walk-mid{margin-bottom:2px;border-radius:4px;margin-top:0;}
+.client-card.walk-bottom{border-radius:4px 4px 12px 12px;margin-top:0;}
+.c-num-wrap{display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;}
+.walk-icon{font-size:13px;line-height:1;}
+.c-num{width:26px;height:26px;border-radius:50%;background:var(--sky-light);border:1.5px solid var(--sky-mid);font-size:12px;font-weight:800;color:var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.c-num-walk{background:#E8F5E9;border-color:var(--green);color:var(--green);}
+.selected .c-num{background:var(--blue);color:#fff;border-color:var(--blue);}
+.c-body{flex:1;min-width:0;}
+.c-name{font-size:14px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.c-sub{font-size:11px;color:var(--mid);margin-top:1px;}
+.c-drag{color:var(--light);font-size:20px;cursor:grab;padding:0 3px;flex-shrink:0;touch-action:none;user-select:none;}
+.no-gps-icon{display:none;}
+.no-gps-badge{font-size:10px;font-weight:900;color:#fff;background:var(--red);padding:3px 8px;border-radius:8px;flex-shrink:0;cursor:pointer;letter-spacing:.5px;white-space:nowrap;}
+
+/* MAP */
+#map-pane{flex:1;display:none;min-width:0;}
+#map-pane.active{display:block;}
+#map{height:100%;width:100%;}
+
+/* Wide: split view */
+@media(min-width:700px){
+  #route-body{flex-direction:row;}
+  .tab-bar{display:none;}
+  #list-pane{display:block!important;flex:0 0 42%;border-left:1px solid var(--sky-mid);}
+  #map-pane{display:block!important;flex:1;}
+}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(13,71,161,.45);z-index:1000;align-items:flex-end;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-width:500px;box-shadow:0 -4px 24px rgba(0,0,0,.18);}
+.modal-title{font-size:16px;font-weight:800;color:var(--text);margin-bottom:16px;}
+.modal-input{width:100%;border:2px solid var(--blue);border-radius:10px;padding:12px;font-size:16px;direction:rtl;text-align:right;outline:none;}
+.modal-btns{display:flex;gap:10px;margin-top:14px;}
+.modal-btn{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;border:none;}
+.modal-btn.cancel{background:var(--sky-light);color:var(--mid);}
+.modal-btn.confirm{background:var(--blue);color:#fff;}
+
+/* EXPORT BTN */
+.export-btn{background:var(--blue);color:#fff;border:none;border-radius:12px;padding:0 14px;height:46px;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(21,101,192,.3);display:none;align-items:center;gap:5px;white-space:nowrap;flex-shrink:0;}
+.export-btn.visible{display:flex;}
+.export-btn:hover{background:var(--blue-dark);}
+
+/* LOGIN HERO */
+.login-hero{background:linear-gradient(160deg,var(--blue-deeper) 0%,var(--blue-dark) 50%,var(--blue) 100%);padding:28px 20px 22px;display:flex;flex-direction:column;align-items:center;gap:10px;flex-shrink:0;}
+.login-logo{height:72px;filter:brightness(0) invert(1);opacity:.95;}
+.login-app-name{font-size:22px;font-weight:900;letter-spacing:4px;color:#fff;text-transform:uppercase;}
+.login-tagline{font-size:12px;color:rgba(255,255,255,.6);letter-spacing:1px;}
+.login-sky-bar{height:4px;background:linear-gradient(90deg,var(--sky),var(--blue));flex-shrink:0;}
+.login-section{padding:16px 14px 6px;font-size:11px;font-weight:800;color:var(--sky);letter-spacing:2px;text-transform:uppercase;}
+.mgr-grid{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:10px;padding:6px 14px 14px;flex:1;}
+.mgr-card{border-radius:18px;padding:22px 16px 20px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;color:#fff;
+  box-shadow:0 2px 0 rgba(0,0,0,.25) inset, 0 -3px 0 rgba(0,0,0,.2) inset, 0 8px 20px rgba(0,0,0,.22), 0 2px 4px rgba(0,0,0,.15);
+  transition:transform .1s,box-shadow .1s;position:relative;overflow:hidden;border-top:1px solid rgba(255,255,255,.35);}
+.mgr-card::after{content:'';position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(to bottom,rgba(255,255,255,.18),transparent);border-radius:18px 18px 0 0;pointer-events:none;}
+.mgr-card:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.25) inset,0 -1px 0 rgba(0,0,0,.2) inset,0 3px 8px rgba(0,0,0,.2);}
+.mgr-card:hover{transform:translateY(-2px);box-shadow:0 2px 0 rgba(0,0,0,.25) inset,0 -3px 0 rgba(0,0,0,.2) inset,0 14px 28px rgba(0,0,0,.25);}
+.mgr-name{font-size:17px;font-weight:900;letter-spacing:1px;text-shadow:0 1px 3px rgba(0,0,0,.25);}
+.mgr-count{font-size:11px;opacity:.75;min-height:14px;}
+
+/* AGENT CARDS (when manager selected) */
+.agent-grid{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:10px;padding:6px 14px 14px;flex:1;}
+.agent-card{background:#fff;border-radius:14px;padding:16px 14px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;box-shadow:0 2px 10px rgba(21,101,192,.10);transition:transform .12s,box-shadow .12s;border-top:4px solid;}
+.agent-card:active{transform:scale(.96);}
+.agent-card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(21,101,192,.18);}
+.agent-avatar{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#fff;}
+.agent-name{font-size:13px;font-weight:800;color:var(--text);text-align:center;}
+.agent-count{font-size:11px;color:var(--mid);min-height:16px;}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ── LOGIN ── -->
+<div class="screen active" id="s-login">
+  <div class="login-hero" id="login-hdr">
+    <img src="logo-diler-bmd.png" class="login-logo" alt="DILER BMD"/>
+    <div class="login-app-name">Formula Road</div>
+    <div class="login-tagline" id="login-sub">מערכת ניהול מסלולים</div>
+    <span class="demo-tag" id="demo-tag" style="display:none">DEMO</span>
+  </div>
+  <div class="login-sky-bar"></div>
+  <div id="login-body" style="flex:1;display:flex;flex-direction:column;overflow:hidden;"></div>
+</div>
+
+<!-- ── START CITY ── -->
+<div class="screen" id="s-city">
+  <div class="hdr">
+    <button class="hdr-back" onclick="goBack('s-city')">← חזור</button>
+    <img src="logo-diler-bmd.png" class="hdr-logo" alt="DILER"/>
+    <div class="hdr-center">
+      <div class="hdr-title">FORMULA ROAD</div>
+    </div>
+  </div>
+  <div class="sky-line"></div>
+  <div class="city-body">
+    <div class="city-label" id="city-agent-label"></div>
+    <div class="city-title">עיר מוצא</div>
+    <div class="city-sub">ממה מתחיל המסלול היום?</div>
+    <div style="width:100%;max-width:420px;position:relative;">
+      <input class="city-input" id="city-input" placeholder="הקלד עיר..." type="text" oninput="onCityInput()" onfocus="onCityInput()" autocomplete="off"/>
+      <div class="suggestions" id="city-suggestions" style="display:none;position:absolute;top:100%;right:0;left:0;z-index:100;max-height:220px;overflow-y:auto;"></div>
+    </div>
+    <button class="gps-btn" id="gps-btn" onclick="detectCity()">📍 זהה מיקום אוטומטית</button>
+    <button class="confirm-btn" id="city-confirm" onclick="confirmCity()" disabled>המשך לבניית מסלול ←</button>
+  </div>
+</div>
+
+<!-- ── DAY PICKER ── -->
+<div class="screen" id="s-day">
+  <div class="hdr">
+    <button class="hdr-back" onclick="goBack('s-day')">← חזור</button>
+    <img src="logo-diler-bmd.png" class="hdr-logo" alt="DILER"/>
+    <div class="hdr-center">
+      <div class="hdr-title">FORMULA ROAD</div>
+      <div class="hdr-sub" id="day-sub"></div>
+    </div>
+  </div>
+  <div class="sky-line"></div>
+  <div class="day-body">
+    <div class="day-title">בחר יום</div>
+    <div class="days-grid">
+      <div class="day-card" onclick="selectDay(1)"><div class="day-letter">א</div><div class="day-name">ראשון</div></div>
+      <div class="day-card" onclick="selectDay(2)"><div class="day-letter">ב</div><div class="day-name">שני</div></div>
+      <div class="day-card" onclick="selectDay(3)"><div class="day-letter">ג</div><div class="day-name">שלישי</div></div>
+      <div class="day-card" onclick="selectDay(4)"><div class="day-letter">ד</div><div class="day-name">רביעי</div></div>
+      <div class="day-card" onclick="selectDay(5)"><div class="day-letter">ה</div><div class="day-name">חמישי</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── ROUTE ── -->
+<div class="screen" id="s-route">
+  <div class="hdr" id="route-hdr">
+    <button class="hdr-back" onclick="goBack('s-route')">← חזור</button>
+    <img src="logo-diler-bmd.png" class="hdr-logo" alt="DILER"/>
+    <div class="hdr-center">
+      <div class="hdr-title" id="route-title">FORMULA ROAD</div>
+      <div class="hdr-sub" id="route-sub"></div>
+    </div>
+  </div>
+  <div class="sky-line"></div>
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-list" onclick="setTab('list')">📋 רשימה</button>
+    <button class="tab-btn" id="tab-map" onclick="setTab('map')">🗺 מפה</button>
+  </div>
+  <div class="km-bar" id="km-bar">
+    <div class="km-info">
+      <span class="km-lbl">סדר ביקור</span>
+      <span class="km-val" id="km-val">—</span>
+      <span class="km-unit">ק"מ</span>
+      <span style="color:var(--light);margin:0 2px">|</span>
+      <span class="km-lbl">סדר AI</span>
+      <span class="km-val" style="color:var(--green)" id="km-ai">—</span>
+      <span class="km-unit">ק"מ</span>
+      <span id="km-saving-wrap" style="display:none" class="km-saving">↓ <span id="km-saving">—</span> ק"מ</span>
+    </div>
+    <div class="day-switch" id="day-switch"></div>
+    <button class="export-btn" id="export-btn" onclick="exportCSV()">💾 שמור CSV</button>
+    <div class="sort-btns">
+      <button class="sort-btn active-priority" id="sort-btn-priority" onclick="setSort('priority')">↕ סדר ביקור</button>
+      <button class="sort-btn" id="sort-btn-ai" onclick="setSort('ai')">✦ סדר AI</button>
+    </div>
+  </div>
+  <div class="city-filters" id="city-filters"></div>
+  <div id="route-body">
+    <div id="list-pane">
+      <div id="client-list"></div>
+    </div>
+    <div id="map-pane"><div id="map"></div></div>
+  </div>
+</div>
+
+<!-- ── ADDRESS MODAL ── -->
+<div class="modal-bg" id="addr-modal">
+  <div class="modal">
+    <div class="modal-title" id="addr-modal-title">עדכן כתובת</div>
+    <input class="modal-input" id="addr-input" placeholder="רחוב + מספר..." type="text"/>
+    <button class="gps-btn" id="addr-gps-btn" onclick="detectAddrGps()" style="margin-bottom:10px">
+      📍 קבע מיקום נוכחי
+    </button>
+    <div id="addr-gps-status" style="font-size:12px;color:var(--mid);text-align:center;min-height:16px;margin-bottom:4px"></div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeAddrModal()">ביטול</button>
+      <button class="modal-btn confirm" onclick="submitAddress()">עדכן</button>
+    </div>
+  </div>
+</div>
+
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script>
+const API = 'https://api.sverdlik-apps.site';
+const DAY_LABELS = {1:'א',2:'ב',3:'ג',4:'ד',5:'ה'};
+const DAY_NAMES  = {1:'ראשון',2:'שני',3:'שלישי',4:'רביעי',5:'חמישי'};
+const CITIES = ['תל אביב','ירושלים','חיפה','באר שבע','נתניה','פתח תקווה','אשדוד','ראשון לציון','רמת גן','הרצליה','רחובות','אשקלון','בני ברק','חולון','כפר סבא','מודיעין','לוד','רמלה','עפולה','נצרת'];
+const MGR_COLORS = {VLAD:'#C41E3A',ALEXEY:'#1565C0',NATALYA:'#4A148C',SVETA:'#BF360C',ANATOL:'#E65100','SADRAN+':'#006064'};
+const DEMO_MANAGERS = ['VLAD','ALEXEY','NATALYA','SVETA','ANATOL','SADRAN+'];
+const DEMO_AGENTS = {
+  ANATOL: [{agentCode:'238',agentName:"וצ'סלב שולקין"},{agentCode:'112',agentName:'סרגיי שפונט'},{agentCode:'123',agentName:'קונסטנטין קפוסטינסקי'}],
+  ALEXEY: [{agentCode:'110',agentName:'אולג גלדקיך'},{agentCode:'258',agentName:'דוד גומרשטדט'},{agentCode:'149',agentName:'יבגני אפנסייב'}],
+  NATALYA:[{agentCode:'129',agentName:'אלכסיי סביצקי'},{agentCode:'136',agentName:'דמיטרי שפילמן'},{agentCode:'239',agentName:'דן אוחיון'}],
+  SVETA:  [{agentCode:'260',agentName:'אדלינה גולדפאיין'},{agentCode:'126',agentName:"אולג בלז'"},{agentCode:'215',agentName:'אלכסנדר סוסנוב'}],
+  VLAD:   [{agentCode:'62',agentName:"אוריאל חיימצ'אייב"},{agentCode:'138',agentName:'טוליק בסרייב'},{agentCode:'275',agentName:'עירית בלובה'}],
+  'SADRAN+':[{agentCode:'272',agentName:'אלכס שלפקוב'},{agentCode:'235',agentName:'אלכסיי נובוסלסקי'},{agentCode:'256',agentName:'יבגני בלקיטני'}],
+};
+
+const st = {
+  step:'manager', manager:null, agent:null,
+  startCity:'', startLat:null, startLng:null,
+  day:null, clients:[], aiClients:[],
+  sortMode:'priority', tab:'list',
+  selectedCities:[], selectedId:null,
+  addrClientId:null, isDemo:false,
+};
+
+let map=null, mapMarkers=[], mapPolylines=[], sortable=null;
+
+// ── Haversine ──────────────────────────────────────────────────────────────
+function haversineKm(la1,lo1,la2,lo2){
+  const R=6371, d2r=Math.PI/180;
+  const dLat=(la2-la1)*d2r, dLon=(lo2-lo1)*d2r;
+  const a=Math.sin(dLat/2)**2+Math.cos(la1*d2r)*Math.cos(la2*d2r)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+// ── Nearest Neighbor sort ──────────────────────────────────────────────────
+function nearestNeighbor(clients){
+  const withGps = clients.filter(c=>c.lat&&c.lng);
+  const noGps   = clients.filter(c=>!c.lat||!c.lng);
+  if(!withGps.length) return clients;
+  const startLat = st.startLat || withGps[0].lat;
+  const startLng = st.startLng || withGps[0].lng;
+  const remaining=[...withGps], result=[];
+  let curLat=startLat, curLng=startLng;
+  while(remaining.length){
+    let bi=-1, bDist=Infinity;
+    remaining.forEach((c,i)=>{
+      const d=haversineKm(curLat,curLng,c.lat,c.lng);
+      if(d<bDist){bDist=d;bi=i;}
+    });
+    const chosen=remaining.splice(bi,1)[0];
+    result.push(chosen);
+    curLat=chosen.lat; curLng=chosen.lng;
+  }
+  return [...result,...noGps];
+}
+
+function totalKm(clients){
+  const wg=clients.filter(c=>c.lat&&c.lng);
+  if(!wg.length)return null;
+  let km=0, la=st.startLat||wg[0].lat, lo=st.startLng||wg[0].lng;
+  for(const c of wg){km+=haversineKm(la,lo,c.lat,c.lng);la=c.lat;lo=c.lng;}
+  return km;
+}
+
+// ── Screen nav ──────────────────────────────────────────────────────────────
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function goBack(from){
+  if(from==='s-city'){st.step='manager';renderLogin();show('s-login');}
+  else if(from==='s-day'){show('s-city');}
+  else if(from==='s-route'){show('s-day');}
+}
+
+// ── LOGIN ──────────────────────────────────────────────────────────────────
+async function initLogin(){
+  renderLogin();
+  show('s-login');
+  try{
+    const r=await fetch(API+'/managers');
+    if(!r.ok)throw new Error();
+    const data=await r.json();
+    const list=data.map(m=>m.managerCode).filter(Boolean);
+    if(list.length){
+      DEMO_MANAGERS.length=0;
+      list.forEach(m=>DEMO_MANAGERS.push(m));
+      document.getElementById('demo-tag').style.display='none';
+    }else{
+      document.getElementById('demo-tag').style.display='';
+    }
+  }catch{
+    document.getElementById('demo-tag').style.display='';
+    st.isDemo=true;
+  }
+  renderLogin();
+}
+
+function renderLogin(){
+  const body=document.getElementById('login-body');
+  const sub=document.getElementById('login-sub');
+  if(st.step==='manager'){
+    sub.textContent='מערכת ניהול מסלולים';
+    body.innerHTML=`
+      <div style="flex:1;display:flex;flex-direction:column;">
+        <div class="login-section">בחר מנהל</div>
+        <div class="mgr-grid">${DEMO_MANAGERS.map(m=>{
+          const color=MGR_COLORS[m]||'#1565C0';
+          return `<div class="mgr-card" style="background:linear-gradient(160deg,${color}ee 0%,${color} 60%,${color}cc 100%)" onclick="selectManager('${m}')">
+            <div class="mgr-name">${m}</div>
+            <div class="mgr-count" id="mc-${m}"></div>
+          </div>`;
+        }).join('')}</div>
+      </div>`;
+  }else{
+    sub.textContent=`${st.manager}`;
+    const color=MGR_COLORS[st.manager]||'#1565C0';
+    const agents=st._agents||[];
+    body.innerHTML=`
+      <div style="flex:1;display:flex;flex-direction:column;">
+        <div style="padding:12px 14px 4px;display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <button onclick="goBack('s-city')" style="background:${color}18;border:1.5px solid ${color}55;color:${color};font-size:13px;font-weight:800;cursor:pointer;padding:6px 14px;border-radius:20px;display:flex;align-items:center;gap:4px;">← חזור</button>
+          <span style="font-size:13px;font-weight:900;color:${color};letter-spacing:1px;">בחר סוכן</span>
+        </div>
+        <div class="agent-grid">${agents.map(a=>`
+          <div class="agent-card" style="border-top-color:${color}" onclick="selectAgent('${a.agentCode}','${a.agentName.replace(/'/g,"\\'")}')">
+            <div class="agent-avatar" style="background:${color}">${a.agentName[0]}</div>
+            <div class="agent-name">${a.agentName}</div>
+            <div class="agent-count" id="cnt-${a.agentCode}">...</div>
+          </div>`).join('')}</div>
+      </div>`;
+    agents.forEach(a=>{
+      fetch(`${API}/customers?agent=${encodeURIComponent(a.agentCode)}`)
+        .then(r=>r.json()).then(d=>{
+          const el=document.getElementById('cnt-'+a.agentCode);
+          if(el) el.textContent=Array.isArray(d)?d.length+' לקוחות':'';
+        }).catch(()=>{const el=document.getElementById('cnt-'+a.agentCode);if(el)el.textContent='';});
+    });
+  }
+}
+
+async function selectManager(mgr){
+  st.manager=mgr; st.step='agent';
+  const body=document.getElementById('login-body');
+  body.innerHTML='<div class="spinner"><div class="spin"></div><span>טוען...</span></div>';
+  renderLogin();
+  try{
+    const r=await fetch(`${API}/manager-agents?manager=${encodeURIComponent(mgr)}`);
+    if(!r.ok)throw new Error();
+    const data=await r.json();
+    st._agents=data.length?data:(DEMO_AGENTS[mgr]||[]);
+  }catch{
+    st._agents=DEMO_AGENTS[mgr]||[];
+  }
+  renderLogin();
+}
+
+function selectAgent(code,name){
+  st.agent={code,name};
+  document.getElementById('city-agent-label').textContent=name;
+  buildCityChips();
+  show('s-city');
+}
+
+// ── START CITY ─────────────────────────────────────────────────────────────
+function buildCityChips(){}
+
+function onCityInput(){
+  const v=document.getElementById('city-input').value.trim();
+  document.getElementById('city-confirm').disabled=!v;
+  const sug=document.getElementById('city-suggestions');
+  const matches=v.length>0 ? CITIES.filter(c=>c.includes(v)) : CITIES;
+  sug.style.display=matches.length?'':'none';
+  sug.innerHTML=matches.map(c=>`<div class="sug-item" onmousedown="pickCity('${c}')">${c}</div>`).join('');
+}
+document.addEventListener('click',e=>{
+  const input=document.getElementById('city-input');
+  const sug=document.getElementById('city-suggestions');
+  if(sug&&input&&!input.contains(e.target)&&!sug.contains(e.target)) sug.style.display='none';
+});
+
+function pickCity(c){
+  document.getElementById('city-input').value=c;
+  document.getElementById('city-suggestions').style.display='none';
+  document.getElementById('city-confirm').disabled=false;
+}
+
+function detectCity(){
+  const btn=document.getElementById('gps-btn');
+  btn.disabled=true; btn.textContent='⏳ מאתר מיקום...';
+  if(!navigator.geolocation){btn.textContent='📍 GPS לא זמין';btn.disabled=false;return;}
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      st.startLat=pos.coords.latitude; st.startLng=pos.coords.longitude;
+      // Reverse geocode via server
+      fetch(`https://nominatim.openstreetmap.org/reverse?lat=${st.startLat}&lon=${st.startLng}&format=json&accept-language=he`)
+        .then(r=>r.json()).then(d=>{
+          const a=d?.address||{};
+          const city=a.city||a.town||a.village||a.suburb||a.county||'';
+          const street=a.road?` · ${a.road}${a.house_number?' '+a.house_number:''}` : '';
+          const label=city+(city&&street?street:'');
+          const display=label||`${st.startLat.toFixed(4)}, ${st.startLng.toFixed(4)}`;
+          document.getElementById('city-input').value=display;
+          document.getElementById('city-confirm').disabled=false;
+          btn.textContent='✅ '+display;
+        }).catch(()=>{
+          const label=`${st.startLat.toFixed(4)}, ${st.startLng.toFixed(4)}`;
+          document.getElementById('city-input').value=label;
+          document.getElementById('city-confirm').disabled=false;
+          btn.textContent='✅ מיקום נקלט';
+        });
+      btn.disabled=false;
+    },
+    ()=>{btn.textContent='❌ נדחה — הקלד ידנית';btn.disabled=false;}
+  );
+}
+
+async function confirmCity(){
+  const city=document.getElementById('city-input').value.trim();
+  if(!city)return;
+  st.startCity=city;
+  st.startLat=null; st.startLng=null;
+  // Try to geocode start city in background
+  fetch(`${API}/geocode?address=${encodeURIComponent(city)}&city=${encodeURIComponent(city)}`)
+    .then(r=>r.json()).then(d=>{if(d&&d.lat){st.startLat=d.lat;st.startLng=d.lng;}}).catch(()=>{});
+  document.getElementById('day-sub').textContent=`${st.agent.name} · ${city}`;
+  show('s-day');
+}
+
+// ── DAY ────────────────────────────────────────────────────────────────────
+async function selectDay(day){
+  st.day=day;
+  show('s-route');
+  initRoute();
+}
+
+// ── ROUTE ──────────────────────────────────────────────────────────────────
+async function initRoute(){
+  st.sortMode='ai'; st.selectedCities=[]; st.selectedId=null;
+  document.getElementById('route-title').textContent='DILER FORMULA';
+  document.getElementById('route-sub').textContent=`${st.agent.name} · יום ${DAY_LABELS[st.day]}`;
+  document.getElementById('export-btn').classList.remove('visible');
+  setTab('list');
+  buildDaySwitcher();
+  renderClientList('<div class="spinner"><div class="spin"></div><span>טוען לקוחות...</span></div>');
+  document.getElementById('km-val').textContent='—';
+
+  try{
+    const r=await fetch(`${API}/customers?agent=${st.agent.code}&day=${st.day}`);
+    if(!r.ok)throw new Error();
+    st.clients=await r.json();
+  }catch{
+    st.clients=getDemoClients();
+    st.isDemo=true;
+  }
+
+  // Merge with localStorage
+  const saved=loadSavedRoute(st.agent.code,st.day);
+  if(saved) st.clients=mergeWithSaved(st.clients,saved);
+
+  st.aiClients=nearestNeighbor([...st.clients]);
+  updateKmBar();
+  renderCityFilters();
+  renderClientList();
+  document.getElementById('export-btn').classList.add('visible');
+  setupSortable();
+  setupDragScroll(document.getElementById('list-pane'));
+  if(window.innerWidth>=700) setTimeout(()=>renderMap(),200);
+}
+
+function displayClients(){
+  const base=st.sortMode==='ai'?st.aiClients:st.clients;
+  if(!st.selectedCities.length)return base;
+  return base.filter(c=>st.selectedCities.includes(c.city));
+}
+
+function buildDaySwitcher(){
+  const el=document.getElementById('day-switch');
+  el.innerHTML=[1,2,3,4,5].map(d=>`<button class="day-sw-btn${d===st.day?' active':''}" onclick="switchDay(${d})">${DAY_LABELS[d]}</button>`).join('');
+}
+
+function switchDay(d){
+  if(d===st.day)return;
+  st.day=d;
+  document.getElementById('route-sub').textContent=`${st.agent.name} · יום ${DAY_LABELS[d]}`;
+  buildDaySwitcher();
+  initRoute();
+}
+
+function setTab(t){
+  st.tab=t;
+  document.getElementById('tab-list').classList.toggle('active',t==='list');
+  document.getElementById('tab-map').classList.toggle('active',t==='map');
+  if(window.innerWidth<700){
+    document.getElementById('list-pane').style.display=t==='list'?'block':'none';
+    document.getElementById('map-pane').classList.toggle('active',t==='map');
+  }
+  if(t==='map'||window.innerWidth>=700) renderMap();
+}
+
+function setSort(mode){
+  if(st.sortMode===mode)return;
+  st.sortMode=mode;
+  document.getElementById('sort-btn-priority').className='sort-btn'+(mode==='priority'?' active-priority':'');
+  document.getElementById('sort-btn-ai').className='sort-btn'+(mode==='ai'?' active-ai':'');
+  renderCityFilters();
+  renderClientList();
+  if(st.tab==='map'||window.innerWidth>=700) renderMap();
+}
+
+function updateKmBar(){
+  const priorityKm=totalKm(st.clients);
+  const aiKm=totalKm(st.aiClients);
+  document.getElementById('km-val').textContent=priorityKm!=null?priorityKm.toFixed(1):'—';
+  document.getElementById('km-ai').textContent=aiKm!=null?aiKm.toFixed(1):'—';
+  const savingWrap=document.getElementById('km-saving-wrap');
+  if(priorityKm!=null&&aiKm!=null&&priorityKm>aiKm+0.5){
+    document.getElementById('km-saving').textContent=(priorityKm-aiKm).toFixed(1);
+    savingWrap.style.display='';
+  }else{
+    savingWrap.style.display='none';
+  }
+}
+
+function renderCityFilters(){
+  const cities=[...new Set(st.clients.map(c=>c.city).filter(Boolean))].sort();
+  const el=document.getElementById('city-filters');
+  el.innerHTML=cities.map(c=>`<span class="city-chip${st.selectedCities.includes(c)?' on':''}" onclick="toggleCity('${c}')">${c}</span>`).join('');
+}
+
+function toggleCity(city){
+  if(st.selectedCities.includes(city)) st.selectedCities=st.selectedCities.filter(c=>c!==city);
+  else st.selectedCities.push(city);
+  renderCityFilters();
+  renderClientList();
+  updateKmBar();
+}
+
+function haversineM(la1,lo1,la2,lo2){return haversineKm(la1,lo1,la2,lo2)*1000;}
+
+function renderClientList(html){
+  const el=document.getElementById('client-list');
+  if(html){el.innerHTML=html;return;}
+  const list=displayClients();
+  if(!list.length){el.innerHTML='<div class="spinner" style="padding:40px"><span>אין לקוחות</span></div>';return;}
+  el.innerHTML=list.map((c,i)=>{
+    const noGps=!c.lat||!c.lng;
+    const isSel=st.selectedId===c.custId;
+    const isAiDiff=st.sortMode==='priority'&&st.aiClients[i]&&st.aiClients[i].custId!==c.custId;
+    const prev=i>0?list[i-1]:null;
+    const next=i<list.length-1?list[i+1]:null;
+    const walkPrev=!!(prev&&prev.lat&&prev.lng&&c.lat&&c.lng&&haversineM(prev.lat,prev.lng,c.lat,c.lng)<=400);
+    const walkNext=!!(next&&next.lat&&next.lng&&c.lat&&c.lng&&haversineM(c.lat,c.lng,next.lat,next.lng)<=200);
+    const inWalk=walkPrev||walkNext;
+    const walkTop=walkNext&&!walkPrev, walkBottom=walkPrev&&!walkNext, walkMid=walkPrev&&walkNext;
+    const cls=['client-card',
+      noGps?'no-gps':'',isSel?'selected':'',isAiDiff?'ai-diff':'',
+      inWalk?'walk-card':'',walkTop?'walk-top':'',walkBottom?'walk-bottom':'',walkMid?'walk-mid':''
+    ].filter(Boolean).join(' ');
+    const lastOrder=(()=>{
+      if(!c.lastOrderDate) return `<span style="color:var(--red);font-weight:700">לא הוזמן</span>`;
+      const d=new Date(c.lastOrderDate.slice(0,10));
+      const today=new Date(); today.setHours(0,0,0,0);
+      const days=Math.round((today-d)/86400000);
+      const dd=String(d.getDate()).padStart(2,'0');
+      const mm=String(d.getMonth()+1).padStart(2,'0');
+      const label=`${dd}.${mm}`;
+      const old=days>14;
+      return `<span style="${old?'color:var(--red);font-weight:700':''}">הזמנה: ${label}${old?` (${days}d)`:''}</span>`;
+    })();
+    const sales=c.monthlySales?`<span style="color:var(--sky);font-weight:800;font-size:13px;">₪${Math.round(c.monthlySales).toLocaleString()}</span>`+` <span style="font-size:10px;color:var(--light)">החודש</span>`:'';
+    return `<div class="${cls}" data-id="${c.custId}" onclick="selectClient('${c.custId}')">
+      <span class="c-drag">✋</span>
+      <div class="c-num-wrap">
+        <span class="c-num${inWalk?' c-num-walk':''}">${i+1}</span>
+        ${inWalk?`<span class="walk-icon">🚶</span>`:''}
+      </div>
+      <div class="c-body">
+        <div class="c-name">${c.custName||''}</div>
+        <div class="c-sub">${[c.city,c.address].filter(Boolean).join(' · ')}</div>
+        <div class="c-sub">${lastOrder}${sales?' · '+sales:''}</div>
+      </div>
+      ${noGps?`<span class="no-gps-badge" onclick="openAddrModal(event,'${c.custId}','${(c.custName||'').replace(/'/g,"\\'")}')">NO GPS</span>`:''}
+    </div>`;
+  }).join('');
+}
+
+function selectClient(id){
+  st.selectedId=st.selectedId===id?null:id;
+  renderClientList();
+  if(st.tab==='map'||window.innerWidth>=700) renderMap();
+}
+
+function setupDragScroll(el){
+  let y0=0,top0=0,dragging=false,moved=false;
+  el.addEventListener('mousedown',e=>{
+    if(e.target.closest('.c-drag,.c-btn,[onclick]'))return;
+    dragging=true;moved=false;y0=e.clientY;top0=el.scrollTop;
+    el.style.cursor='grabbing';el.style.userSelect='none';
+  });
+  window.addEventListener('mousemove',e=>{
+    if(!dragging)return;
+    const dy=e.clientY-y0;
+    if(Math.abs(dy)>4)moved=true;
+    el.scrollTop=top0-dy;
+  });
+  window.addEventListener('mouseup',e=>{
+    if(!dragging)return;
+    dragging=false;el.style.cursor='';el.style.userSelect='';
+    if(moved)e.stopPropagation();
+  },true);
+}
+
+function setupSortable(){
+  if(sortable){sortable.destroy();sortable=null;}
+  sortable=Sortable.create(document.getElementById('client-list'),{
+    handle:'.c-drag', animation:150,
+    onEnd(e){
+      if(e.oldIndex===e.newIndex)return;
+      const list=displayClients();
+      const moved=list.splice(e.oldIndex,1)[0];
+      list.splice(e.newIndex,0,moved);
+      if(st.sortMode==='ai') st.aiClients=[...list,...st.clients.filter(c=>!list.find(x=>x.custId===c.custId))];
+      else st.clients=[...list,...st.clients.filter(c=>!list.find(x=>x.custId===c.custId))];
+      saveRoute(st.agent.code,st.day,st.clients);
+      updateKmBar();
+      renderClientList();
+    }
+  });
+}
+
+// ── MAP ────────────────────────────────────────────────────────────────────
+function renderMap(){
+  if(!map){
+    map=L.map('map').setView([32.0,34.9],10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(map);
+  }
+  mapMarkers.forEach(m=>m.remove()); mapMarkers=[];
+  mapPolylines.forEach(p=>p.remove()); mapPolylines=[];
+  const list=displayClients().filter(c=>c.lat&&c.lng);
+  if(!list.length)return;
+  const bounds=[];
+  let prev=null;
+  list.forEach((c,i)=>{
+    const isSel=st.selectedId===c.custId;
+    const isFirst=i===0;
+    const flagColor=isSel?'#1565C0':isFirst?'#2E7D32':'#C9A84C';
+    const flagW=isSel||isFirst?34:28;
+    const flagLabel=isSel||isFirst
+      ?`<span style="transform:rotate(45deg);font-size:${isFirst&&!isSel?'9px':'13px'};font-weight:900">${isFirst&&!isSel?'START':i+1}</span>`
+      :`${i+1}`;
+    const icon=(isSel||isFirst)
+      ? L.divIcon({className:'',
+          html:`<div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 3px 6px rgba(0,0,0,.4))">
+            <div style="background:${flagColor};color:#fff;width:${flagW}px;height:${flagW}px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;border:2px solid #fff;">
+              ${flagLabel}
+            </div></div>`,
+          iconSize:[flagW,flagW+8], iconAnchor:[flagW/2,flagW+8]})
+      : L.divIcon({
+          className:'',
+          html:`<div style="background:#C9A84C;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)">${i+1}</div>`,
+          iconSize:[28,28], iconAnchor:[14,14],
+        });
+    const m=L.marker([c.lat,c.lng],{icon}).addTo(map);
+    m.bindPopup(`<b>${c.custName}</b><br>${c.city||''}`);
+    if(isSel) m.openPopup();
+    if(prev){const p=L.polyline([[prev.lat,prev.lng],[c.lat,c.lng]],{color:'#0F2044',weight:2,opacity:.5}).addTo(map);mapPolylines.push(p);}
+    prev=c; bounds.push([c.lat,c.lng]);
+    mapMarkers.push(m);
+  });
+  if(bounds.length) map.fitBounds(bounds,{padding:[24,24]});
+  setTimeout(()=>map.invalidateSize(),100);
+}
+
+// ── ADDRESS MODAL ──────────────────────────────────────────────────────────
+function openAddrModal(e,id,name){
+  e.stopPropagation();
+  st.addrClientId=id;
+  document.getElementById('addr-modal-title').textContent=name||'עדכן כתובת';
+  const c=st.clients.find(x=>x.custId===id);
+  document.getElementById('addr-input').value=c?.address||'';
+  document.getElementById('addr-modal').classList.add('open');
+}
+
+function closeAddrModal(){
+  document.getElementById('addr-modal').classList.remove('open');
+  document.getElementById('addr-gps-status').textContent='';
+  document.getElementById('addr-gps-btn').disabled=false;
+}
+
+function detectAddrGps(){
+  if(!navigator.geolocation){
+    document.getElementById('addr-gps-status').textContent='GPS לא זמין במכשיר';
+    return;
+  }
+  const btn=document.getElementById('addr-gps-btn');
+  const status=document.getElementById('addr-gps-status');
+  btn.disabled=true; status.textContent='מאתר מיקום...';
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const lat=pos.coords.latitude, lng=pos.coords.longitude;
+    status.textContent=`✅ ${lat.toFixed(5)}, ${lng.toFixed(5)} — שומר...`;
+    const id=st.addrClientId;
+    // reverse geocode to get address string
+    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=he`)
+      .then(r=>r.json()).then(d=>{
+        const a=d?.address||{};
+        const addr=[a.road,a.house_number].filter(Boolean).join(' ')||d.display_name||`${lat.toFixed(5)},${lng.toFixed(5)}`;
+        st.clients=st.clients.map(x=>x.custId===id?{...x,lat,lng,address:addr}:x);
+        st.aiClients=nearestNeighbor([...st.clients]);
+        saveRoute(st.agent.code,st.day,st.clients);
+        updateKmBar(); renderClientList();
+        if(window.innerWidth>=700||st.tab==='map') renderMap();
+        closeAddrModal();
+      }).catch(()=>{
+        st.clients=st.clients.map(x=>x.custId===id?{...x,lat,lng}:x);
+        st.aiClients=nearestNeighbor([...st.clients]);
+        saveRoute(st.agent.code,st.day,st.clients);
+        updateKmBar(); renderClientList();
+        if(window.innerWidth>=700||st.tab==='map') renderMap();
+        closeAddrModal();
+      });
+  },err=>{
+    btn.disabled=false;
+    status.textContent=err.code===1?'❌ GPS חסום — אפשר גישה למיקום':'❌ שגיאת GPS';
+  },{enableHighAccuracy:true,timeout:10000});
+}
+
+async function submitAddress(){
+  const addr=document.getElementById('addr-input').value.trim();
+  if(!addr){closeAddrModal();return;}
+  const c=st.clients.find(x=>x.custId===st.addrClientId);
+  closeAddrModal();
+  try{
+    const r=await fetch(`${API}/geocode?address=${encodeURIComponent(addr)}&city=${encodeURIComponent(c?.city||'')}`);
+    const d=await r.json();
+    if(d&&d.lat){
+      st.clients=st.clients.map(x=>x.custId===st.addrClientId?{...x,address:addr,lat:d.lat,lng:d.lng}:x);
+      st.aiClients=nearestNeighbor([...st.clients]);
+      updateKmBar(); renderClientList();
+    }
+  }catch{}
+}
+
+// ── LOCALSTORAGE ───────────────────────────────────────────────────────────
+function saveRoute(code,day,clients){
+  try{localStorage.setItem(`fr_${code}_${day}`,JSON.stringify(clients.map(c=>({custId:c.custId,lat:c.lat,lng:c.lng}))));}catch{}
+}
+function loadSavedRoute(code,day){
+  try{const s=localStorage.getItem(`fr_${code}_${day}`);return s?JSON.parse(s):null;}catch{return null;}
+}
+function mergeWithSaved(fromServer,saved){
+  const savedMap=Object.fromEntries(saved.map(s=>[s.custId,s]));
+  const savedIds=saved.map(s=>s.custId);
+  const ordered=[];
+  // Keep saved order, merge with server data
+  savedIds.forEach(id=>{
+    const s=fromServer.find(c=>c.custId===id);
+    if(s){const sv=savedMap[id];ordered.push({...s,lat:sv.lat||s.lat,lng:sv.lng||s.lng});}
+  });
+  // Add new from server
+  fromServer.forEach(c=>{if(!savedIds.includes(c.custId))ordered.push(c);});
+  return ordered.length?ordered:fromServer;
+}
+
+// ── EXPORT CSV ─────────────────────────────────────────────────────────────
+function exportCSV(){
+  const list=displayClients();
+  const today=new Date().toISOString().slice(0,10);
+  const agent=st.agent?.name||st.agent?.code||'';
+  const day=DAY_LABELS[st.day]||st.day;
+  const rows=[['סדר ביקור','מס. לקוח','שם לקוח','עיר','כתובת','קו רוחב','קו אורך','GPS']];
+  list.forEach((c,i)=>rows.push([
+    i+1,
+    c.custId||'',
+    c.custName||'',
+    c.city||'',
+    c.address||'',
+    c.lat||'',
+    c.lng||'',
+    c.lat&&c.lng?'✓':'חסר'
+  ]));
+  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);
+  a.download=`מסלול_${agent}_יום${day}_${today}.csv`;
+  a.click();
+}
+
+// ── DEMO DATA ──────────────────────────────────────────────────────────────
+function getDemoClients(){
+  return [
+    {custId:'1001',custName:'סופר פארם תל אביב',city:'תל אביב',address:'דיזנגוף 50',lat:32.079,lng:34.774,priorityOrder:1,lastOrderDate:'2026-05-20',monthlySales:4200},
+    {custId:'1002',custName:'מגה בול רמת גן',city:'רמת גן',address:'ביאליק 15',lat:32.069,lng:34.823,priorityOrder:2,lastOrderDate:'2026-05-18',monthlySales:3100},
+    {custId:'1003',custName:'שופרסל ראשון לציון',city:'ראשון לציון',address:'הרצל 80',lat:31.964,lng:34.804,priorityOrder:3,lastOrderDate:'2026-05-22',monthlySales:5500},
+    {custId:'1004',custName:'רמי לוי פתח תקווה',city:'פתח תקווה',address:'הרצל 1',lat:32.089,lng:34.888,priorityOrder:4,monthlySales:2800},
+    {custId:'1005',custName:'מחסני השוק חולון',city:'חולון',address:'סוקולוב 30',lat:32.011,lng:34.779,priorityOrder:5,lastOrderDate:'2026-05-19',monthlySales:1900},
+  ];
+}
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+initLogin();
+</script>
+</body>
+</html>
