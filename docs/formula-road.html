@@ -723,6 +723,14 @@ function renderClientList(html){
       return `<span style="${old?'color:var(--red);font-weight:700':''}">הזמנה: ${label}${old?` (${days}d)`:''}</span>`;
     })();
     const sales=c.monthlySales?`<span style="color:var(--sky);font-weight:800;font-size:13px;">₪${Math.round(c.monthlySales).toLocaleString()}</span>`+` <span style="font-size:10px;color:var(--light)">החודש</span>`:'';
+    const targetLine=(()=>{
+      if(!c.target) return '';
+      const pct=c.totalSales&&c.target?Math.round(c.totalSales/c.target*100):0;
+      const color=pct>=100?'var(--green)':pct>=70?'var(--sky)':'var(--red)';
+      return `<span style="font-size:11px;color:var(--mid);">יעד: </span><span style="font-size:11px;font-weight:800;color:var(--mid)">₪${Math.round(c.target).toLocaleString()}</span>`
+           + `<span style="font-size:11px;color:var(--light);"> · </span>`
+           + `<span style="font-size:12px;font-weight:900;color:${color}">${pct}%</span>`;
+    })();
     return `<div class="${cls}" data-id="${c.custId}" onclick="selectClient('${c.custId}')">
       <span class="c-drag">✋</span>
       <div class="c-num-wrap">
@@ -733,6 +741,7 @@ function renderClientList(html){
         <div class="c-name">${c.custName||''}</div>
         <div class="c-sub"><span style="color:var(--blue);font-weight:800;">${c.custId||''}</span>${c.city||c.address?' · ':''}</span>${[c.city,c.address].filter(Boolean).join(' · ')}</div>
         <div class="c-sub">${lastOrder}${sales?' · '+sales:''}</div>
+        ${targetLine?`<div class="c-sub">${targetLine}</div>`:''}
       </div>
       ${noGps
         ? `<span class="no-gps-badge" onclick="openAddrModal(event,'${c.custId}','${(c.custName||'').replace(/'/g,"\\'")}')">NO GPS</span>`
