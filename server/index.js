@@ -103,8 +103,29 @@ async function geocodeAddress(address, city) {
 }
 
 // Geocode a batch — max 1 req/sec (Nominatim rate limit)
+function extractStreetNum(address) {
+  if (!address) return null;
+  const m = (address || '').match(/[א-ת"'\-\s]{2,}\s+\d+/);
+  return m ? m[0].trim() : null;
+}
+
+async function geocodeAddressCascade(address, city) {
+  const cleaned = cleanAddressForGeocoding(address);
+  const attempts = [];
+  if (cleaned) attempts.push([cleaned, city, 'ישראל'].filter(Boolean).join(', '));
+  const street = extractStreetNum(cleaned || address);
+  if (street && street !== cleaned) attempts.push([street, city, 'ישראל'].filter(Boolean).join(', '));
+
+  for (let i = 0; i < attempts.length; i++) {
+    if (i > 0) await new Promise(r => setTimeout(r, 1100));
+    const result = await geocodeAddress(attempts[i], '');
+    if (result) return result;
+  }
+  return null;
+}
+
 async function geocodeBatch(clients) {
-  // fetch bboxes for ALL cities (including clients that already have GPS)
+  // fetch bboxes for ALL cities (needed for bbox validation)
   const allCities = [...new Set(clients.map(c => c.city).filter(Boolean))];
   for (const city of allCities) {
     if (!cityBBoxCache.has(city)) {
@@ -113,7 +134,7 @@ async function geocodeBatch(clients) {
     }
   }
 
-  // validate existing IL coords against city bbox — null out if outside
+  // validate existing IL coords against city bbox — null out only if outside
   for (const c of clients) {
     if (isValidIL(c.lat, c.lng)) {
       const bbox = cityBBoxCache.get(c.city) ?? null;
@@ -121,10 +142,10 @@ async function geocodeBatch(clients) {
     }
   }
 
-  // geocode all clients still missing valid coords
+  // cascade-geocode clients still missing valid coords
   const needsGeocode = clients.filter(c => !isValidIL(c.lat, c.lng) && (c.address || c.city));
   for (const c of needsGeocode) {
-    const result = await geocodeAddress(c.address, c.city);
+    const result = await geocodeAddressCascade(c.address, c.city);
     if (result) {
       const bbox = cityBBoxCache.get(c.city) ?? null;
       if (isWithinCityBBox(result.lat, result.lng, bbox)) {
