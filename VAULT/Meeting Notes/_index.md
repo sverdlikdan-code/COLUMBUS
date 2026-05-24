@@ -32,3 +32,4 @@
 - [[agent-bug-agent]] — Агент Bug Agent — workflow-doctor, watchdog, GitHub Actions мониторинг
 - [[agent-biz-analyst]] — Агент Biz Analyst — коммерческая оценка COLUMBUS, Excel delivery docs, ROI
 - [[session-2026-05-20]] — Сессия 2026-05-20: GitHub Actions fix, workflow conflict, doctor upgrade, PRD closure
+- [[session-2026-05-21]] — Сессия 2026-05-21: תוקף page complete — all warehouses, drag-scroll, print/PDF fix, PDF title fix
