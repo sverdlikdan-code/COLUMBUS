@@ -823,7 +823,7 @@ const MAP_STYLES=[
   {id:'osm',      label:'🌍',tile:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',attr:'© OSM',opts:{maxZoom:19}},
 ];
 let mapTileLayer=null;
-let mapStyleIdx=+( localStorage.getItem('fr_mapstyle')||0);
+let mapStyleIdx=+( localStorage.getItem('fr_mapstyle')||1);
 function cycleMapStyle(){
   mapStyleIdx=(mapStyleIdx+1)%MAP_STYLES.length;
   localStorage.setItem('fr_mapstyle',mapStyleIdx);
