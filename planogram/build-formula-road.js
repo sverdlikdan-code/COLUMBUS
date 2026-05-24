@@ -122,15 +122,11 @@ async function geocodeBatch(clients) {
   }
 
   // cascade-geocode clients with street number still missing valid coords
-  // fallback to city center if Nominatim fails or returns out-of-bbox result
   const need = clients.filter(c => !isValidIL(c.lat, c.lng) && extractStreetNum(c.address));
   for (const c of need) {
     const r = await geocodeOne(c.address, c.city);
     if (r && inBBox(r.lat, r.lng, cityBBoxCache.get(c.city) ?? null)) {
       c.lat = r.lat; c.lng = r.lng;
-    } else {
-      const bbox = cityBBoxCache.get(c.city);
-      if (bbox) { c.lat = (bbox.minLat + bbox.maxLat) / 2; c.lng = (bbox.minLng + bbox.maxLng) / 2; }
     }
     await sleep(1100);
   }
