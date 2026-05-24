@@ -133,7 +133,7 @@ async function geocodeBatch(clients) {
 
   // settlement addresses (מושב/קיבוץ etc.) without street number → force city center
   // PBI GPS for these is unreliable — the address IS the settlement name
-  const SETTLEMENT_RE = /\b(מושב|קיבוץ|כפר|ישוב|מוצא|נחלה)\b/i;
+  const SETTLEMENT_RE = /(מושב|קיבוץ|כפר|ישוב|מוצא|נחלה)/i;
   for (const c of clients) {
     if (!isValidIL(c.lat, c.lng)) continue;   // already no GPS, skip
     if (extractStreetNum(c.address)) continue; // has street+number, GPS may be valid
