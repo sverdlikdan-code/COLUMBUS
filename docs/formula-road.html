@@ -76,10 +76,9 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 
 /* ROUTE TOOLBAR */
 #route-hdr{flex-shrink:0;}
-.tab-bar{display:flex;background:var(--white);border-bottom:2px solid var(--sky-mid);flex-shrink:0;}
-.tab-btn{flex:1;padding:11px;text-align:center;font-size:14px;font-weight:700;color:var(--mid);cursor:pointer;background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;}
-.tab-btn.active{color:var(--blue);border-bottom-color:var(--blue);}
-.km-bar{display:flex;align-items:center;padding:6px 12px;background:#fff;border-bottom:1px solid var(--sky-mid);font-size:13px;color:var(--mid);flex-shrink:0;}
+.tab-bar{display:none !important;}
+.tab-btn{display:none;}
+.km-bar{display:flex;align-items:center;padding:5px 10px;background:#fff;border-bottom:1px solid var(--sky-mid);font-size:13px;color:var(--mid);flex-shrink:0;}
 .km-left{flex:1;display:flex;align-items:center;}
 .km-right{flex:1;display:flex;align-items:center;justify-content:flex-end;gap:8px;}
 .km-info{display:flex;align-items:center;gap:4px;flex-shrink:0;}
@@ -91,15 +90,18 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .sort-btn{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:800;cursor:pointer;border:2px solid var(--sky-mid);background:none;color:var(--mid);transition:all .15s;}
 .sort-btn.active-priority{color:var(--blue);border-color:var(--blue);background:var(--sky-light);box-shadow:0 2px 8px rgba(21,101,192,.18);}
 .sort-btn.active-ai{color:var(--green);border-color:var(--green);background:#E8F5E9;box-shadow:0 2px 8px rgba(27,123,52,.18);}
-.day-switch{display:flex;gap:6px;}
-.day-sw-btn{width:58px;height:58px;border-radius:16px;background:var(--sky-light);border:2px solid var(--sky-mid);font-size:22px;font-weight:900;color:var(--blue-dark);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;box-shadow:0 2px 6px rgba(21,101,192,.10);}
+.day-switch{display:flex;gap:4px;}
+.day-sw-btn{width:30px;height:30px;border-radius:8px;background:var(--sky-light);border:2px solid var(--sky-mid);font-size:13px;font-weight:900;color:var(--blue-dark);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;box-shadow:0 1px 4px rgba(21,101,192,.10);}
 .day-sw-btn:hover{background:var(--sky-mid);transform:translateY(-1px);}
-.day-sw-btn.active{background:var(--blue);color:#fff;border-color:var(--blue-dark);box-shadow:0 4px 12px rgba(21,101,192,.38),0 1px 0 rgba(255,255,255,.2) inset;}
+.day-sw-btn.active{background:var(--blue);color:#fff;border-color:var(--blue-dark);box-shadow:0 2px 8px rgba(21,101,192,.38);}
+.tab-inline{display:flex;gap:3px;}
+.tab-inline-btn{width:30px;height:30px;border-radius:8px;font-size:15px;cursor:pointer;background:none;border:1.5px solid var(--sky-mid);color:var(--mid);display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.tab-inline-btn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
 
 /* CLIENT LIST */
 #route-body{display:flex;flex:1;overflow:hidden;flex-direction:column;}
 #list-pane{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 10px 18px;min-width:0;background:var(--bg);}
-.city-filters{display:flex;flex-wrap:wrap;gap:5px;padding:7px 10px 0;flex-shrink:0;background:#fff;border-bottom:1px solid var(--sky-mid);}
+.city-filters{display:flex;flex-wrap:wrap;gap:4px;padding:4px 10px 3px;flex-shrink:0;background:#fff;border-bottom:1px solid var(--sky-mid);}
 .city-chip{padding:4px 11px;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--sky-mid);background:#fff;color:var(--mid);}
 .city-chip.on{background:var(--blue);color:#fff;border-color:var(--blue);}
 
@@ -141,7 +143,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 /* Wide: split view */
 @media(min-width:700px){
   #route-body{flex-direction:row;}
-  .tab-bar{display:none;}
+  .tab-inline{display:none;}
   #list-pane{display:block!important;flex:0 0 34%;border-left:1px solid var(--sky-mid);}
   #map-pane{display:block!important;flex:1;}
 }
@@ -284,6 +286,10 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
         <span class="km-val" style="color:var(--green)" id="km-ai">—</span>
         <span class="km-unit">ק"מ</span>
         <span id="km-saving-wrap" style="display:none" class="km-saving">↓<span id="km-saving">—</span></span>
+      </div>
+      <div class="tab-inline">
+        <button class="tab-inline-btn active" id="tab-inline-list" onclick="setTab('list')">📋</button>
+        <button class="tab-inline-btn" id="tab-inline-map" onclick="setTab('map')">🗺</button>
       </div>
       <button class="export-btn" id="export-btn" onclick="exportCSV()">💾</button>
     </div>
@@ -675,6 +681,10 @@ function setTab(t){
   st.tab=t;
   document.getElementById('tab-list').classList.toggle('active',t==='list');
   document.getElementById('tab-map').classList.toggle('active',t==='map');
+  const il=document.getElementById('tab-inline-list');
+  const im=document.getElementById('tab-inline-map');
+  if(il) il.classList.toggle('active',t==='list');
+  if(im) im.classList.toggle('active',t==='map');
   if(window.innerWidth<700){
     document.getElementById('list-pane').style.display=t==='list'?'block':'none';
     document.getElementById('map-pane').classList.toggle('active',t==='map');
