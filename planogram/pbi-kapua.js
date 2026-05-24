@@ -534,7 +534,7 @@ async function fetchStockMain(makatim) {
       SUMMARIZECOLUMNS(
         'מלאי-תוקף'[מק"ט],
         FILTER('מלאי-תוקף',
-          'מלאי-תוקף'[מחסן] = "Trnz" &&
+          'מלאי-תוקף'[מחסן] = "Trn" &&
           CONTAINSROW(${mkSet}, 'מלאי-תוקף'[מק"ט])
         ),
         "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
@@ -561,7 +561,7 @@ async function fetchStockMain(makatim) {
           "daySalesTrnz", [TOTAL מכר בקרטונים ממוצע ביום]
         ),
         'ALL_PARTS'[חברה] = "FORMULA",
-        'ALL_PARTS'[מחסן] = "Trnz",
+        'ALL_PARTS'[מחסן] = "Trn",
         FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 45),
         TREATAS(${mkSet}, 'ALL_PARTS'[מק'ט])
       )
