@@ -303,6 +303,14 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
 const API = 'https://api.sverdlik-apps.site';
+let STATIC_DATA = null; // loaded from formula-road-data.json if available
+
+async function loadStaticData(){
+  try{
+    const r=await fetch('./formula-road-data.json?_='+Date.now());
+    if(r.ok){ STATIC_DATA=await r.json(); console.log('✅ Static data loaded, updated:',STATIC_DATA.updatedAt); }
+  }catch(_){ console.log('ℹ️ No static data, using live API'); }
+}
 const DAY_LABELS = {1:'א',2:'ב',3:'ג',4:'ד',5:'ה'};
 const DAY_NAMES  = {1:'ראשון',2:'שני',3:'שלישי',4:'רביעי',5:'חמישי'};
 const CITIES = ['תל אביב','ירושלים','חיפה','באר שבע','נתניה','פתח תקווה','אשדוד','ראשון לציון','רמת גן','הרצליה','רחובות','אשקלון','בני ברק','חולון','כפר סבא','מודיעין','לוד','רמלה','עפולה','נצרת'];
@@ -380,23 +388,31 @@ function goBack(from){
 
 // ── LOGIN ──────────────────────────────────────────────────────────────────
 async function initLogin(){
+  await loadStaticData();
   renderLogin();
   show('s-login');
-  try{
-    const r=await fetch(API+'/managers');
-    if(!r.ok)throw new Error();
-    const data=await r.json();
-    const list=data.map(m=>m.managerCode).filter(Boolean);
-    if(list.length){
-      DEMO_MANAGERS.length=0;
-      list.forEach(m=>DEMO_MANAGERS.push(m));
-      document.getElementById('demo-tag').style.display='none';
-    }else{
+  if(STATIC_DATA){
+    // Use pre-built static data
+    DEMO_MANAGERS.length=0;
+    STATIC_DATA.managers.forEach(m=>DEMO_MANAGERS.push(m));
+    document.getElementById('demo-tag').style.display='none';
+  }else{
+    try{
+      const r=await fetch(API+'/managers');
+      if(!r.ok)throw new Error();
+      const data=await r.json();
+      const list=data.map(m=>m.managerCode).filter(Boolean);
+      if(list.length){
+        DEMO_MANAGERS.length=0;
+        list.forEach(m=>DEMO_MANAGERS.push(m));
+        document.getElementById('demo-tag').style.display='none';
+      }else{
+        document.getElementById('demo-tag').style.display='';
+      }
+    }catch{
       document.getElementById('demo-tag').style.display='';
+      st.isDemo=true;
     }
-  }catch{
-    document.getElementById('demo-tag').style.display='';
-    st.isDemo=true;
   }
   renderLogin();
 }
@@ -435,11 +451,18 @@ function renderLogin(){
           </div>`).join('')}</div>
       </div>`;
     agents.forEach(a=>{
-      fetch(`${API}/customers?agent=${encodeURIComponent(a.agentCode)}`)
-        .then(r=>r.json()).then(d=>{
-          const el=document.getElementById('cnt-'+a.agentCode);
-          if(el) el.textContent=Array.isArray(d)?d.length+' לקוחות':'';
-        }).catch(()=>{const el=document.getElementById('cnt-'+a.agentCode);if(el)el.textContent='';});
+      const el=document.getElementById('cnt-'+a.agentCode);
+      if(!el)return;
+      if(STATIC_DATA?.routes){
+        const total=[1,2,3,4,5].reduce((s,d)=>{
+          return s+(STATIC_DATA.routes[`${a.agentCode}_${d}`]?.length||0);
+        },0);
+        el.textContent=total?total+' לקוחות':'';
+      }else{
+        fetch(`${API}/customers?agent=${encodeURIComponent(a.agentCode)}`)
+          .then(r=>r.json()).then(d=>{if(el)el.textContent=Array.isArray(d)?d.length+' לקוחות':'';})
+          .catch(()=>{if(el)el.textContent='';});
+      }
     });
   }
 }
@@ -449,13 +472,17 @@ async function selectManager(mgr){
   const body=document.getElementById('login-body');
   body.innerHTML='<div class="spinner"><div class="spin"></div><span>טוען...</span></div>';
   renderLogin();
-  try{
-    const r=await fetch(`${API}/manager-agents?manager=${encodeURIComponent(mgr)}`);
-    if(!r.ok)throw new Error();
-    const data=await r.json();
-    st._agents=data.length?data:(DEMO_AGENTS[mgr]||[]);
-  }catch{
-    st._agents=DEMO_AGENTS[mgr]||[];
+  if(STATIC_DATA?.agentsByManager?.[mgr]){
+    st._agents=STATIC_DATA.agentsByManager[mgr];
+  }else{
+    try{
+      const r=await fetch(`${API}/manager-agents?manager=${encodeURIComponent(mgr)}`);
+      if(!r.ok)throw new Error();
+      const data=await r.json();
+      st._agents=data.length?data:(DEMO_AGENTS[mgr]||[]);
+    }catch{
+      st._agents=DEMO_AGENTS[mgr]||[];
+    }
   }
   renderLogin();
 }
@@ -550,13 +577,18 @@ async function initRoute(){
   renderClientList('<div class="spinner"><div class="spin"></div><span>טוען לקוחות...</span></div>');
   document.getElementById('km-val').textContent='—';
 
-  try{
-    const r=await fetch(`${API}/customers?agent=${st.agent.code}&day=${st.day}`);
-    if(!r.ok)throw new Error();
-    st.clients=await r.json();
-  }catch{
-    st.clients=getDemoClients();
-    st.isDemo=true;
+  const staticKey=`${st.agent.code}_${st.day}`;
+  if(STATIC_DATA?.routes?.[staticKey]){
+    st.clients=STATIC_DATA.routes[staticKey];
+  }else{
+    try{
+      const r=await fetch(`${API}/customers?agent=${st.agent.code}&day=${st.day}`);
+      if(!r.ok)throw new Error();
+      st.clients=await r.json();
+    }catch{
+      st.clients=getDemoClients();
+      st.isDemo=true;
+    }
   }
 
   // Merge with localStorage
