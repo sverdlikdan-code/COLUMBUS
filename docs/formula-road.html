@@ -269,8 +269,8 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
     <div class="day-switch" id="day-switch"></div>
     <button class="export-btn" id="export-btn" onclick="exportCSV()">💾 שמור CSV</button>
     <div class="sort-btns">
-      <button class="sort-btn active-priority" id="sort-btn-priority" onclick="setSort('priority')">↕ סדר ביקור</button>
-      <button class="sort-btn" id="sort-btn-ai" onclick="setSort('ai')">✦ סדר AI</button>
+      <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')">↕ סדר ביקור</button>
+      <button class="sort-btn active-ai" id="sort-btn-ai" onclick="setSort('ai')">✦ סדר AI</button>
     </div>
   </div>
   <div class="city-filters" id="city-filters"></div>
@@ -329,7 +329,7 @@ const st = {
   step:'manager', manager:null, agent:null,
   startCity:'', startLat:null, startLng:null,
   day:null, clients:[], aiClients:[],
-  sortMode:'priority', tab:'list',
+  sortMode:'ai', tab:'list',
   selectedCities:[], selectedId:null,
   addrClientId:null, isDemo:false,
 };
