@@ -450,7 +450,8 @@ async function fetchStockMain(makatim) {
           'מלאי-תוקף'[מחסן] = "Main" &&
           CONTAINSROW(${mkSet}, 'מלאי-תוקף'[מק"ט])
         ),
-        "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+        "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף]),
+        "daysStock", [לכמה ימים המלאי לכול פק"א בנפרד]
       )
     `),
     dax(t, `
@@ -486,7 +487,8 @@ async function fetchStockMain(makatim) {
           'מלאי-תוקף'[מחסן] = "Zafn" &&
           CONTAINSROW(${mkSet}, 'מלאי-תוקף'[מק"ט])
         ),
-        "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+        "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף]),
+        "daysStock", [לכמה ימים המלאי לכול פק"א בנפרד]
       )
     `),
     dax(t, `
@@ -548,7 +550,8 @@ async function fetchStockMain(makatim) {
     const mk = r['מלאי-תוקף[מק"ט]'];
     if (!mk) continue;
     if (!result[mk]) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0, daysStock: null, daysStockZafn: null };
-    result[mk].stock = r['[stock]'] || 0;
+    result[mk].stock     = r['[stock]']     || 0;
+    result[mk].daysStock = r['[daysStock]'] ?? null;
   }
   for (const r of salesRows) {
     const mk = r["ALL_PARTS[מק'ט]"];
@@ -566,7 +569,8 @@ async function fetchStockMain(makatim) {
     const mk = r['מלאי-תוקף[מק"ט]'];
     if (!mk) continue;
     if (!result[mk]) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0, daysStock: null, daysStockZafn: null };
-    result[mk].stockZafn = r['[stock]'] || 0;
+    result[mk].stockZafn     = r['[stock]']     || 0;
+    result[mk].daysStockZafn = r['[daysStock]'] ?? null;
   }
   for (const r of stockTrnzRows) {
     const mk = r['מלאי-תוקף[מק"ט]'];
@@ -592,12 +596,6 @@ async function fetchStockMain(makatim) {
     if (!mk) continue;
     if (!result[mk]) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0, daySalesZafn: null, daySalesTrnz: null, daySales180: null };
     result[mk].daySales180 = r['[daySales180]'] || null;
-  }
-
-  // compute daysStock from stock / daySales (replaces broken PBI measure)
-  for (const r of Object.values(result)) {
-    r.daysStock     = r.daySales     > 0 ? r.stock     / r.daySales     : null;
-    r.daysStockZafn = r.daySalesZafn > 0 ? r.stockZafn / r.daySalesZafn : null;
   }
 
   console.log(`Stock/sales Main: ${Object.values(result).filter(v=>v.stock>0).length}/${makatim.length} with stock`);

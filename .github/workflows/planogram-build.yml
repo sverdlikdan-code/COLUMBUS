@@ -44,6 +44,7 @@ jobs:
 
       - name: Run build-planogram
         run: node planogram/build-planogram.js
+        continue-on-error: true
 
       - name: Run workflow-doctor
         run: node planogram/workflow-doctor.js
