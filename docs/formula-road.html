@@ -160,13 +160,13 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .login-sky-bar{height:4px;background:linear-gradient(90deg,var(--sky),var(--blue));flex-shrink:0;}
 .login-section{padding:16px 14px 6px;font-size:11px;font-weight:800;color:var(--sky);letter-spacing:2px;text-transform:uppercase;}
 .mgr-grid{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:10px;padding:6px 14px 14px;flex:1;}
-.mgr-card{border-radius:18px;padding:22px 16px 20px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;color:#fff;
+.mgr-card{border-radius:18px;padding:22px 16px 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;color:#fff;
   box-shadow:0 2px 0 rgba(0,0,0,.25) inset, 0 -3px 0 rgba(0,0,0,.2) inset, 0 8px 20px rgba(0,0,0,.22), 0 2px 4px rgba(0,0,0,.15);
   transition:transform .1s,box-shadow .1s;position:relative;overflow:hidden;border-top:1px solid rgba(255,255,255,.35);}
 .mgr-card::after{content:'';position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(to bottom,rgba(255,255,255,.18),transparent);border-radius:18px 18px 0 0;pointer-events:none;}
 .mgr-card:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.25) inset,0 -1px 0 rgba(0,0,0,.2) inset,0 3px 8px rgba(0,0,0,.2);}
 .mgr-card:hover{transform:translateY(-2px);box-shadow:0 2px 0 rgba(0,0,0,.25) inset,0 -3px 0 rgba(0,0,0,.2) inset,0 14px 28px rgba(0,0,0,.25);}
-.mgr-name{font-size:17px;font-weight:900;letter-spacing:1px;text-shadow:0 1px 3px rgba(0,0,0,.25);}
+.mgr-name{font-size:clamp(26px,5vw,36px);font-weight:900;letter-spacing:1px;text-shadow:0 1px 3px rgba(0,0,0,.25);text-align:center;}
 .mgr-count{font-size:11px;opacity:.75;min-height:14px;}
 
 /* AGENT CARDS (when manager selected) */
@@ -314,7 +314,7 @@ async function loadStaticData(){
 const DAY_LABELS = {1:'א',2:'ב',3:'ג',4:'ד',5:'ה'};
 const DAY_NAMES  = {1:'ראשון',2:'שני',3:'שלישי',4:'רביעי',5:'חמישי'};
 const CITIES = ['תל אביב','ירושלים','חיפה','באר שבע','נתניה','פתח תקווה','אשדוד','ראשון לציון','רמת גן','הרצליה','רחובות','אשקלון','בני ברק','חולון','כפר סבא','מודיעין','לוד','רמלה','עפולה','נצרת'];
-const MGR_COLORS = {VLAD:'#C41E3A',ALEXEY:'#1565C0',NATALYA:'#4A148C',SVETA:'#BF360C',ANATOL:'#E65100','SADRAN+':'#006064'};
+const MGR_COLORS = {VLAD:'#8B3A4A',ALEXEY:'#2E6BAA',NATALYA:'#5E3A8A',SVETA:'#924A30',ANATOL:'#9E6428','SADRAN+':'#2A6E72'};
 const DEMO_MANAGERS = ['VLAD','ALEXEY','NATALYA','SVETA','ANATOL','SADRAN+'];
 const DEMO_AGENTS = {
   ANATOL: [{agentCode:'238',agentName:"וצ'סלב שולקין"},{agentCode:'112',agentName:'סרגיי שפונט'},{agentCode:'123',agentName:'קונסטנטין קפוסטינסקי'}],
