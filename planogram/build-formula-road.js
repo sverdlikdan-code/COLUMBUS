@@ -81,13 +81,22 @@ async function geocodeOne(address, city) {
 }
 
 async function geocodeBatch(clients) {
-  const need = clients.filter(c => !isValidIL(c.lat, c.lng) && (c.address || c.city));
-  if (!need.length) return;
-
-  const cities = [...new Set(need.map(c => c.city).filter(Boolean))];
-  for (const city of cities) {
+  // fetch bboxes for ALL cities (including clients that already have GPS)
+  const allCities = [...new Set(clients.map(c => c.city).filter(Boolean))];
+  for (const city of allCities) {
     if (!cityBBoxCache.has(city)) { await getCityBBox(city); await sleep(1100); }
   }
+
+  // validate existing IL coords against city bbox — null out if outside
+  for (const c of clients) {
+    if (isValidIL(c.lat, c.lng)) {
+      const bbox = cityBBoxCache.get(c.city) ?? null;
+      if (!inBBox(c.lat, c.lng, bbox)) { c.lat = null; c.lng = null; }
+    }
+  }
+
+  // geocode all clients still missing valid coords
+  const need = clients.filter(c => !isValidIL(c.lat, c.lng) && (c.address || c.city));
   for (const c of need) {
     const r = await geocodeOne(c.address, c.city);
     if (r && inBBox(r.lat, r.lng, cityBBoxCache.get(c.city) ?? null)) {
