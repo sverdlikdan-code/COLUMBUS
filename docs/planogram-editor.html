@@ -309,6 +309,7 @@
   <span class="no-print" style="margin-right:6px;border-right:1px solid #ccc;padding-right:8px;display:inline-flex;align-items:center;gap:3px;">
     <button id="wh-main" class="btn wh-btn wh-active" onclick="setWarehouse('Main')">אשדוד</button>
     <button id="wh-zafn" class="btn wh-btn"           onclick="setWarehouse('Zafn')">צפון</button>
+    <button id="wh-trnz" class="btn wh-btn"           onclick="setWarehouse('Trnz')" style="display:none;background:#fff3e0;color:#e65100;border-color:#ff8f00;">מעבר</button>
   </span>
   <button class="btn no-print" id="btn-fs" onclick="toggleFullscreen()" title="מסך מלא"
     style="background:#f5f5f5;color:#333;border:1px solid #ccc;padding:7px 10px;">⛶</button>
@@ -1227,6 +1228,16 @@ function switchTab(name, tabEl) {
         Object.assign(state.yavesh, deepClone(dyBase.picks || dyBase));
       const lay  = dyBase.layout || makeSeqLayout(Object.keys(state.yavesh).length, dyBase.maxCols || 10);
       renderGrid('yavesh', lay, dyBase.maxCols || 10, dyBase.maxRows || 4, dyBase.reserveStart);
+    }
+  }
+  // TRN button: only visible on dagim; reset to Main when leaving dagim
+  const trnBtn = document.getElementById('wh-trnz');
+  if (trnBtn) {
+    if (name === 'dagim') {
+      trnBtn.style.display = '';
+    } else {
+      trnBtn.style.display = 'none';
+      if (window._activeWarehouse === 'Trnz') setWarehouse('Main');
     }
   }
   setStatus('מוכן לעריכה');
