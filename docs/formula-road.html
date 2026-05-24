@@ -713,7 +713,7 @@ function renderClientList(html){
         ${inWalk?`<span class="walk-icon">🚶</span>`:''}
       </div>
       <div class="c-body">
-        <div class="c-name">${c.custName||''}</div>
+        <div class="c-name">${c.custName||''} <span style="font-size:10px;font-weight:600;opacity:.5;letter-spacing:.5px;">${c.custId||''}</span></div>
         <div class="c-sub">${[c.city,c.address].filter(Boolean).join(' · ')}</div>
         <div class="c-sub">${lastOrder}${sales?' · '+sales:''}</div>
       </div>
