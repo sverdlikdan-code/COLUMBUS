@@ -198,16 +198,21 @@ ADDCOLUMNS(
   "lng",      LOOKUPVALUE('משטח'[קו אורך], 'משטח'[מס. לקוח], 'משטח עם כפולות'[מס.לקוח]),
   "הזמנה אחרונה",
     CALCULATE(MAX('ALL_PARTS'[תאריך]),
-      FILTER('ALL_PARTS','ALL_PARTS'[מספר לקוח]=EARLIER('משטח עם כפולות'[מס.לקוח]))),
+      FILTER('ALL_PARTS',
+        'ALL_PARTS'[מספר לקוח]=EARLIER('משטח עם כפולות'[מס.לקוח])
+        && 'ALL_PARTS'[חברה]="FORMULA")),
   "מכירות חודש",
     CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)],
       FILTER('ALL_PARTS',
         'ALL_PARTS'[מספר לקוח]=EARLIER('משטח עם כפולות'[מס.לקוח])
+        && 'ALL_PARTS'[חברה]="FORMULA"
         && YEAR('ALL_PARTS'[תאריך])=YEAR(TODAY())
         && MONTH('ALL_PARTS'[תאריך])=MONTH(TODAY()))),
   "totalSales",
     CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)],
-      FILTER('ALL_PARTS','ALL_PARTS'[מספר לקוח]=EARLIER('משטח עם כפולות'[מס.לקוח]))),
+      FILTER('ALL_PARTS',
+        'ALL_PARTS'[מספר לקוח]=EARLIER('משטח עם כפולות'[מס.לקוח])
+        && 'ALL_PARTS'[חברה]="FORMULA")),
   "יעד",
     CALCULATE([יעד $],
       FILTER('משטח',
@@ -215,7 +220,9 @@ ADDCOLUMNS(
         && 'משטח'[סטטוס] IN {"פעיל"})),
   "% ביצוע",
     CALCULATE([% יעד כספי ביצוע],
-      FILTER('ALL_PARTS','ALL_PARTS'[מספר לקוח]=EARLIER('משטח עם כפולות'[מס.לקוח])),
+      FILTER('ALL_PARTS',
+        'ALL_PARTS'[מספר לקוח]=EARLIER('משטח עם כפולות'[מס.לקוח])
+        && 'ALL_PARTS'[חברה]="FORMULA"),
       FILTER('משטח','משטח'[מס. לקוח]=EARLIER('משטח עם כפולות'[מס.לקוח])))
 )
 ORDER BY 'משטח עם כפולות'[סדר ביקור] ASC`;
