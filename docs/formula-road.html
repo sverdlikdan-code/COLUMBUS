@@ -124,6 +124,12 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .no-gps-badge{font-size:10px;font-weight:900;color:#fff;background:var(--red);padding:3px 8px;border-radius:8px;flex-shrink:0;cursor:pointer;letter-spacing:.5px;white-space:nowrap;}
 .gps-edit-btn{font-size:16px;flex-shrink:0;cursor:pointer;opacity:.35;transition:opacity .15s;padding:2px;}
 .gps-edit-btn:hover{opacity:.8;}
+.day-change-btn{font-size:15px;flex-shrink:0;cursor:pointer;opacity:.3;transition:opacity .15s;padding:2px;margin-right:2px;}
+.day-change-btn:hover{opacity:.9;}
+#day-popup{position:fixed;background:#fff;border-radius:14px;box-shadow:0 6px 28px rgba(0,0,0,.18);padding:10px 12px;display:none;gap:7px;z-index:9999;align-items:center;}
+#day-popup.open{display:flex;}
+.day-pop-btn{width:42px;height:42px;border-radius:11px;background:var(--sky-light);border:2px solid var(--sky-mid);font-size:17px;font-weight:900;color:var(--blue-dark);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s;}
+.day-pop-btn:hover,.day-pop-btn.cur-day{background:var(--blue);color:#fff;border-color:var(--blue-dark);}
 
 /* MAP */
 #map-pane{flex:1;display:none;min-width:0;}
@@ -283,6 +289,9 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
     <div id="map-pane"><div id="map"></div></div>
   </div>
 </div>
+
+<!-- ── DAY POPUP ── -->
+<div id="day-popup"></div>
 
 <!-- ── ADDRESS MODAL ── -->
 <div class="modal-bg" id="addr-modal">
@@ -526,6 +535,8 @@ document.addEventListener('click',e=>{
   const input=document.getElementById('city-input');
   const sug=document.getElementById('city-suggestions');
   if(sug&&input&&!input.contains(e.target)&&!sug.contains(e.target)) sug.style.display='none';
+  const popup=document.getElementById('day-popup');
+  if(popup&&!popup.contains(e.target)&&!e.target.classList.contains('day-change-btn')) closeDayPopup();
 });
 
 function pickCity(c){
@@ -611,6 +622,18 @@ async function initRoute(){
   // Merge with localStorage
   const saved=loadSavedRoute(st.agent.code,st.day);
   if(saved) st.clients=mergeWithSaved(st.clients,saved);
+
+  // Apply day overrides — remove moved-away, add moved-here
+  const dayOv=getDayOverrides(st.agent.code);
+  st.clients=st.clients.filter(c=>dayOv[c.custId]===undefined||dayOv[c.custId]===st.day);
+  Object.entries(dayOv).filter(([,d])=>d===st.day).forEach(([id])=>{
+    if(st.clients.find(c=>c.custId===id))return;
+    for(let d=1;d<=5;d++){
+      if(d===st.day)continue;
+      const client=(STATIC_DATA?.routes?.[`${st.agent.code}_${d}`]||[]).find(c=>c.custId===id);
+      if(client){st.clients.push({...client,dayNum:st.day,dayLabel:DAY_LABELS[st.day]});break;}
+    }
+  });
 
   st.aiClients=nearestNeighbor([...st.clients]);
   updateKmBar();
@@ -743,6 +766,7 @@ function renderClientList(html){
         <div class="c-sub">${lastOrder}${sales?' · '+sales:''}</div>
         ${targetLine?`<div class="c-sub">${targetLine}</div>`:''}
       </div>
+      <span class="day-change-btn" onclick="openDayPopup(event,'${c.custId}')">📅</span>
       ${noGps
         ? `<span class="no-gps-badge" onclick="openAddrModal(event,'${c.custId}','${(c.custName||'').replace(/'/g,"\\'")}')">NO GPS</span>`
         : `<span class="gps-edit-btn" onclick="openAddrModal(event,'${c.custId}','${(c.custName||'').replace(/'/g,"\\'")}')">📍</span>`}
@@ -927,17 +951,50 @@ function mergeWithSaved(fromServer,saved){
   return ordered.length?ordered:fromServer;
 }
 
+// ── DAY OVERRIDES ──────────────────────────────────────────────────────────
+function getDayOverrides(code){
+  try{return JSON.parse(localStorage.getItem(`fr_dayov_${code}`)||'{}');}catch{return{};}
+}
+function setDayOverrides(code,ov){
+  try{localStorage.setItem(`fr_dayov_${code}`,JSON.stringify(ov));}catch{}
+}
+function openDayPopup(event,custId){
+  event.stopPropagation();
+  const popup=document.getElementById('day-popup');
+  popup.innerHTML=[1,2,3,4,5].map(d=>
+    `<button class="day-pop-btn${d===st.day?' cur-day':''}" onclick="changeClientDay('${custId}',${d})">${DAY_LABELS[d]}</button>`
+  ).join('');
+  const r=event.target.getBoundingClientRect();
+  popup.style.top=(r.bottom+6)+'px';
+  popup.style.left=Math.max(6,r.left-70)+'px';
+  popup.classList.add('open');
+}
+function closeDayPopup(){document.getElementById('day-popup').classList.remove('open');}
+function changeClientDay(custId,newDay){
+  closeDayPopup();
+  if(newDay===st.day)return;
+  const ov=getDayOverrides(st.agent.code);
+  ov[custId]=newDay;
+  setDayOverrides(st.agent.code,ov);
+  st.clients=st.clients.filter(c=>c.custId!==custId);
+  st.aiClients=nearestNeighbor([...st.clients]);
+  saveRoute(st.agent.code,st.day,st.clients);
+  updateKmBar(); renderClientList();
+  if(window.innerWidth>=700||st.tab==='map') renderMap();
+}
+
 // ── EXPORT CSV ─────────────────────────────────────────────────────────────
 function exportCSV(){
   const list=displayClients();
   const today=new Date().toISOString().slice(0,10);
   const agent=st.agent?.name||st.agent?.code||'';
   const day=DAY_LABELS[st.day]||st.day;
-  const rows=[['סדר ביקור','מס. לקוח','שם לקוח','עיר','כתובת','קו רוחב','קו אורך','GPS']];
+  const rows=[['סדר ביקור','מס. לקוח','שם לקוח','יום ביקור','עיר','כתובת','קו רוחב','קו אורך','GPS']];
   list.forEach((c,i)=>rows.push([
     i+1,
     c.custId||'',
     c.custName||'',
+    c.dayLabel||DAY_LABELS[c.dayNum]||'',
     c.city||'',
     c.address||'',
     c.lat||'',
