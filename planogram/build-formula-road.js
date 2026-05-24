@@ -149,7 +149,7 @@ function mapClient(r, dayNum) {
     monthlySales:  r['[מכירות חודש]']  || 0,
     totalSales:    r['[totalSales]']   || 0,
     target:        r['[יעד]']          || 0,
-    pct:           (() => { const m = r['[מכירות חודש]'] || 0; const t = r['[יעד]'] || 0; return t > 0 ? Math.round(m / t * 100) : 0; })(),
+    pct:           (() => { const m = r['[מכירות חודש]'] || 0; const t = r['[יעד]'] || 0; return t > 0 ? m / t : 0; })(),
   };
 }
 
