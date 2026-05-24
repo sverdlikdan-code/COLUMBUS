@@ -69,7 +69,7 @@ async function fetchKapuaFromBI(makatim) {
       SELECTCOLUMNS({${explicitMks}}, "mk", [Value])
     )`;
 
-  const [stockRows, salesRows, descRows, mlayDescRows, pakuaRows, salesAllRows, pakuaAllRows, nameEnRows, packFactorRows, stockZafnRows, stockTrnzRows, salesZafnRows, salesTrnzRows, pakuaZafnRows] = await Promise.all([
+  const [stockRows, salesRows, descRows, mlayDescRows, pakuaRows, salesAllRows, pakuaAllRows, nameEnRows, packFactorRows, stockZafnRows, salesZafnRows, pakuaZafnRows] = await Promise.all([
 
     // 1. Stock at Main (Ashdod)
     dax(t, `
@@ -205,20 +205,7 @@ async function fetchKapuaFromBI(makatim) {
       )
     `),
 
-    // 11. Stock at Trnz (transit warehouse)
-    dax(t, `
-      EVALUATE
-      SUMMARIZECOLUMNS(
-        'מלאי-תוקף'[מק"ט],
-        FILTER('מלאי-תוקף',
-          'מלאי-תוקף'[מחסן] = "Trnz" &&
-          CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
-        ),
-        "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
-      )
-    `),
-
-    // 12. Sales Zafn — avg day cartons
+    // 11. Sales Zafn — avg day cartons
     dax(t, `
       EVALUATE
       CALCULATETABLE(
@@ -233,22 +220,7 @@ async function fetchKapuaFromBI(makatim) {
       )
     `),
 
-    // 13. Sales Trnz — avg day cartons
-    dax(t, `
-      EVALUATE
-      CALCULATETABLE(
-        ADDCOLUMNS(
-          SUMMARIZE('ALL_PARTS', 'ALL_PARTS'[מק'ט]),
-          "daySalesTrnz", [TOTAL מכר בקרטונים ממוצע ביום]
-        ),
-        'ALL_PARTS'[חברה] = "FORMULA",
-        'ALL_PARTS'[מחסן] = "Trnz",
-        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 45),
-        TREATAS(${famMakatim}, 'ALL_PARTS'[מק'ט])
-      )
-    `),
-
-    // 14. פק"ע batches at Zafn (North) — for two-warehouse expiry report
+    // 13. פק"ע batches at Zafn (North) — for two-warehouse expiry report
     dax(t, `
       EVALUATE
       SUMMARIZECOLUMNS(
@@ -397,25 +369,11 @@ async function fetchKapuaFromBI(makatim) {
     result[mk].stockZafn = r['[stock]'] || 0;
   }
 
-  for (const r of stockTrnzRows) {
-    const mk = r['מלאי-תוקף[מק"ט]'];
-    if (!mk) continue;
-    ensure(mk);
-    result[mk].stockTrnz = r['[stock]'] || 0;
-  }
-
   for (const r of salesZafnRows) {
     const mk = r["ALL_PARTS[מק'ט]"];
     if (!mk) continue;
     ensure(mk);
     result[mk].daySalesZafn = r['[daySalesZafn]'] || null;
-  }
-
-  for (const r of salesTrnzRows) {
-    const mk = r["ALL_PARTS[מק'ט]"];
-    if (!mk) continue;
-    ensure(mk);
-    result[mk].daySalesTrnz = r['[daySalesTrnz]'] || null;
   }
 
   const newMks   = Object.keys(result).filter(mk => result[mk].isNew);
