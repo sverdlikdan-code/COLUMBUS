@@ -1218,6 +1218,35 @@ async function main() {
       }
     } catch(e) { console.warn('kapua-base.json extra picks skipped:', e.message); }
 
+    // ── Auto-rescue: KAPUA_PICKS products with stock/sales missing from kapua-base.json ──
+    try {
+      const kbPath = path.join(__dirname,'..','docs','kapua-base.json');
+      const kbData = JSON.parse(fs.readFileSync(kbPath, 'utf8'));
+      const kbMakats = new Set(Object.values(kbData.picks || {}).filter(Boolean).map(p => String(p.makat)));
+      const kbReserveStart = kbData.reserveStart || 9999;
+      let kbChanged = false;
+      for (const [, p] of Object.entries(KAPUA_PICKS)) {
+        const mk = String(p.makat);
+        if (kbMakats.has(mk)) continue;
+        const d = kapuaData[mk] || {};
+        if (!(d.stock > 0) && !(d.daySales > 0)) continue;
+        const reserveBays = Object.keys(kbData.picks).map(Number).filter(b => b >= kbReserveStart).sort((a,b)=>a-b);
+        const emptySlot = reserveBays.find(b => !kbData.picks[String(b)]);
+        if (emptySlot != null) {
+          kbData.picks[String(emptySlot)] = { makat: mk, fam: p.fam || 'קפוא', name: null };
+          kbMakats.add(mk);
+          kbChanged = true;
+          console.log(`🔧 Auto-rescue קפוא: מקט ${mk} (${p.fam}) → reserve slot ${emptySlot} (stock=${d.stock}, sales/day=${d.daySales})`);
+        } else {
+          console.warn(`⚠️ Auto-rescue: מקט ${mk} has stock but no empty reserve slot in kapua-base.json`);
+        }
+      }
+      if (kbChanged) {
+        kbData.v = new Date().toISOString().slice(0,10) + '-autorescue-kapua';
+        fs.writeFileSync(kbPath, JSON.stringify(kbData, null, 2), 'utf8');
+      }
+    } catch(e) { console.warn('Auto-rescue kapua skipped:', e.message); }
+
     for (const p of [...halaviProds, ...dagimProds]) {
       if (!p.makat) continue;
       prodData[String(p.makat)] = mkEntry(p);

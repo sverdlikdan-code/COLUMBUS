@@ -15,7 +15,8 @@
       "PowerShell(netstat -ano)",
       "Bash(curl -s http://localhost:3000/pbi-tables)",
       "Bash(curl -s \"http://localhost:3000/pbi-tables\")",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(node -e \"const d=require\\('./docs/product-data.json'\\); const keys=Object.keys\\(d\\); console.log\\('Продуктов в product-data:', keys.length\\); const withEan=keys.filter\\(k=>d[k].ean\\); console.log\\('С EAN:', withEan.length\\); console.log\\('Примеры:', withEan.slice\\(0,3\\).map\\(k=>k+' ean='+d[k].ean\\)\\);\")"
     ]
   }
 }
