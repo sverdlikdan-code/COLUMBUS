@@ -3,7 +3,7 @@
 // geocodes missing GPS, saves docs/formula-road-data.json
 // formula-road.html loads this file — no live server needed.
 
-require('dotenv').config({ path: '../.env' });
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const fs   = require('fs');
 const path = require('path');
 const { executeDax } = require('../server/powerbi');
