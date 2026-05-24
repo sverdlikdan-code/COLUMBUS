@@ -706,10 +706,12 @@ async function main() {
       if(src.nameEn)            p.nameEn      = src.nameEn;
       if(src.daySales != null)  p.daySales    = src.daySales;
       p.stock       = src.stock;
-      p.stockZafn   = src.stockZafn   ?? null;
-      p.daySalesZafn= src.daySalesZafn ?? null;
-      p.stockTrnz   = src.stockTrnz   ?? null;
-      p.daySalesTrnz= src.daySalesTrnz ?? null;
+      p.stockZafn    = src.stockZafn    ?? null;
+      p.daySalesZafn = src.daySalesZafn ?? null;
+      p.daysStock    = src.daysStock    ?? null;
+      p.daysStockZafn= src.daysStockZafn?? null;
+      p.stockTrnz    = src.stockTrnz    ?? null;
+      p.daySalesTrnz = src.daySalesTrnz ?? null;
       p.daySalesAll = src.daySalesAll  ?? null;
       p.pakuot      = src.pakuot     || [];
       p.pakuotZafn  = src.pakuotZafn || [];
@@ -730,6 +732,7 @@ async function main() {
       makat: mk, fam: d.fam || 'קפוא', desc: d.desc, nameEn: d.nameEn || null,
       stock: d.stock, daySales: d.daySales, daySalesAll: d.daySalesAll,
       stockZafn: d.stockZafn ?? null, daySalesZafn: d.daySalesZafn ?? null,
+      daysStock: d.daysStock ?? null, daysStockZafn: d.daysStockZafn ?? null,
       stockTrnz: d.stockTrnz ?? null, daySalesTrnz: d.daySalesTrnz ?? null,
       pakuot: d.pakuot || [], pakuotAll: d.pakuotAll || [],
       dayAvg: d.daySales || null, weight: null, ss: null,
@@ -1183,6 +1186,8 @@ async function main() {
         stockZafn:           szafn,
         palStockZafn:        (krat > 0 && szafn > 0)   ? +(szafn / krat).toFixed(1) : null,
         daySalesZafn:        p.daySalesZafn != null ? +p.daySalesZafn.toFixed(1) : null,
+        daysStock:           p.daysStock     != null ? Math.round(p.daysStock)     : null,
+        daysStockZafn:       p.daysStockZafn != null ? Math.round(p.daysStockZafn) : null,
         stockTrnz:           strnz,
         palStockTrnz:        (krat > 0 && strnz > 0)   ? +(strnz / krat).toFixed(1) : null,
         daySalesTrnz:        p.daySalesTrnz != null ? +p.daySalesTrnz.toFixed(1) : null,
@@ -1214,7 +1219,7 @@ async function main() {
       for (const [, p] of Object.entries(kbJson.picks || {})) {
         if (!p || !p.makat || prodData[String(p.makat)]) continue;
         const kd = kapuaData[String(p.makat)] || {};
-        prodData[String(p.makat)] = mkEntry({ ...p, stock: kd.stock ?? 0, daySales: kd.daySales ?? null, daySalesAll: kd.daySalesAll ?? null, stockZafn: kd.stockZafn ?? null, daySalesZafn: kd.daySalesZafn ?? null, stockTrnz: kd.stockTrnz ?? null, daySalesTrnz: kd.daySalesTrnz ?? null, pakuot: kd.pakuot || [], pakuotAll: kd.pakuotAll || [] });
+        prodData[String(p.makat)] = mkEntry({ ...p, stock: kd.stock ?? 0, daySales: kd.daySales ?? null, daySalesAll: kd.daySalesAll ?? null, stockZafn: kd.stockZafn ?? null, daySalesZafn: kd.daySalesZafn ?? null, daysStock: kd.daysStock ?? null, daysStockZafn: kd.daysStockZafn ?? null, stockTrnz: kd.stockTrnz ?? null, daySalesTrnz: kd.daySalesTrnz ?? null, pakuot: kd.pakuot || [], pakuotAll: kd.pakuotAll || [] });
       }
     } catch(e) { console.warn('kapua-base.json extra picks skipped:', e.message); }
 
@@ -1273,13 +1278,15 @@ async function main() {
           const fm = dyStockMap[mk] || {};
           const p = {
             makat: mk, fam: item.fam, name: item.name,
-            stock:        fm.stock        ?? 0,
-            daySales:     fm.daySales     ?? null,
-            daySalesAll:  fm.daySalesAll  ?? null,
-            stockZafn:    fm.stockZafn    ?? null,
-            daySalesZafn: fm.daySalesZafn ?? null,
-            stockTrnz:    fm.stockTrnz    ?? null,
-            daySalesTrnz: fm.daySalesTrnz ?? null,
+            stock:         fm.stock         ?? 0,
+            daySales:      fm.daySales      ?? null,
+            daySalesAll:   fm.daySalesAll   ?? null,
+            stockZafn:     fm.stockZafn     ?? null,
+            daySalesZafn:  fm.daySalesZafn  ?? null,
+            daysStock:     fm.daysStock     ?? null,
+            daysStockZafn: fm.daysStockZafn ?? null,
+            stockTrnz:     fm.stockTrnz     ?? null,
+            daySalesTrnz:  fm.daySalesTrnz  ?? null,
             pakuot: [], pakuotAll: [],
             shelfLife:    dyShelfLifeMap[mk] ?? null,
           };

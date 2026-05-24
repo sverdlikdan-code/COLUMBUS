@@ -253,7 +253,8 @@ async function fetchKapuaFromBI(makatim) {
     const mk = r['מלאי-תוקף[מק"ט]'];
     if (!mk) continue;
     ensure(mk);
-    result[mk].stock = r['[stock]'] || 0;
+    result[mk].stock     = r['[stock]']     || 0;
+    result[mk].daysStock = r['[daysStock]'] ?? null;
   }
 
   for (const r of salesRows) {
@@ -366,7 +367,8 @@ async function fetchKapuaFromBI(makatim) {
     const mk = r['מלאי-תוקף[מק"ט]'];
     if (!mk) continue;
     ensure(mk);
-    result[mk].stockZafn = r['[stock]'] || 0;
+    result[mk].stockZafn     = r['[stock]']     || 0;
+    result[mk].daysStockZafn = r['[daysStock]'] ?? null;
   }
 
   for (const r of salesZafnRows) {
@@ -448,7 +450,8 @@ async function fetchStockMain(makatim) {
           'מלאי-תוקף'[מחסן] = "Main" &&
           CONTAINSROW(${mkSet}, 'מלאי-תוקף'[מק"ט])
         ),
-        "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+        "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף]),
+        "daysStock", [לכמה ימים המלאי לכול פק"א בנפרד]
       )
     `),
     dax(t, `
@@ -484,7 +487,8 @@ async function fetchStockMain(makatim) {
           'מלאי-תוקף'[מחסן] = "Zafn" &&
           CONTAINSROW(${mkSet}, 'מלאי-תוקף'[מק"ט])
         ),
-        "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+        "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף]),
+        "daysStock", [לכמה ימים המלאי לכול פק"א בנפרד]
       )
     `),
     dax(t, `
@@ -540,13 +544,14 @@ async function fetchStockMain(makatim) {
   ]);
 
   const result = {};
-  for (const mk of makatim) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0, daySalesZafn: null, daySalesTrnz: null, daySales180: null };
+  for (const mk of makatim) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0, daySalesZafn: null, daySalesTrnz: null, daySales180: null, daysStock: null, daysStockZafn: null };
 
   for (const r of stockRows) {
     const mk = r['מלאי-תוקף[מק"ט]'];
     if (!mk) continue;
-    if (!result[mk]) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0 };
-    result[mk].stock = r['[stock]'] || 0;
+    if (!result[mk]) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0, daysStock: null, daysStockZafn: null };
+    result[mk].stock     = r['[stock]']     || 0;
+    result[mk].daysStock = r['[daysStock]'] ?? null;
   }
   for (const r of salesRows) {
     const mk = r["ALL_PARTS[מק'ט]"];
@@ -563,8 +568,9 @@ async function fetchStockMain(makatim) {
   for (const r of stockZafnRows) {
     const mk = r['מלאי-תוקף[מק"ט]'];
     if (!mk) continue;
-    if (!result[mk]) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0 };
-    result[mk].stockZafn = r['[stock]'] || 0;
+    if (!result[mk]) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0, daysStock: null, daysStockZafn: null };
+    result[mk].stockZafn     = r['[stock]']     || 0;
+    result[mk].daysStockZafn = r['[daysStock]'] ?? null;
   }
   for (const r of stockTrnzRows) {
     const mk = r['מלאי-תוקף[מק"ט]'];
@@ -793,14 +799,16 @@ async function fetchHalaviFromBI() {
       daySales:     fm.daySales     ?? null,
       daySalesAll:  fm.daySalesAll  ?? null,
       daySales180:   fm.daySales180   ?? null,
-      stockZafn:    fm.stockZafn    ?? 0,
-      daySalesZafn: fm.daySalesZafn ?? null,
-      stockTrnz:    fm.stockTrnz    ?? 0,
-      daySalesTrnz: fm.daySalesTrnz ?? null,
-      pakuot:       pakuotMap[mk]     || [],
-      pakuotZafn:   pakuotZafnMap[mk] || [],
-      pakuotAll:    pakuotAllMap[mk]  || [],
-      stopSale:     stopSaleMap[mk]   || false,
+      stockZafn:     fm.stockZafn     ?? 0,
+      daySalesZafn:  fm.daySalesZafn  ?? null,
+      daysStock:     fm.daysStock     ?? null,
+      daysStockZafn: fm.daysStockZafn ?? null,
+      stockTrnz:     fm.stockTrnz     ?? 0,
+      daySalesTrnz:  fm.daySalesTrnz  ?? null,
+      pakuot:        pakuotMap[mk]     || [],
+      pakuotZafn:    pakuotZafnMap[mk] || [],
+      pakuotAll:     pakuotAllMap[mk]  || [],
+      stopSale:      stopSaleMap[mk]   || false,
     });
     result[mk].dayAvg = result[mk].daySales;
   }
@@ -870,14 +878,16 @@ async function fetchDagimFromBI() {
       daySales:     fm.daySales     ?? null,
       daySalesAll:  fm.daySalesAll  ?? null,
       daySales180:   fm.daySales180   ?? null,
-      stockZafn:    fm.stockZafn    ?? 0,
-      daySalesZafn: fm.daySalesZafn ?? null,
-      stockTrnz:    fm.stockTrnz    ?? 0,
-      daySalesTrnz: fm.daySalesTrnz ?? null,
-      pakuot:       pakuotMap[mk]     || [],
-      pakuotZafn:   pakuotZafnMap[mk] || [],
-      pakuotAll:    pakuotAllMap[mk]  || [],
-      stopSale:     stopSaleMap[mk]   || false,
+      stockZafn:     fm.stockZafn     ?? 0,
+      daySalesZafn:  fm.daySalesZafn  ?? null,
+      daysStock:     fm.daysStock     ?? null,
+      daysStockZafn: fm.daysStockZafn ?? null,
+      stockTrnz:     fm.stockTrnz     ?? 0,
+      daySalesTrnz:  fm.daySalesTrnz  ?? null,
+      pakuot:        pakuotMap[mk]     || [],
+      pakuotZafn:    pakuotZafnMap[mk] || [],
+      pakuotAll:     pakuotAllMap[mk]  || [],
+      stopSale:      stopSaleMap[mk]   || false,
     });
     result[mk].dayAvg = result[mk].daySales;
   }
