@@ -13,6 +13,12 @@ const IL = { minLat:29.3, maxLat:33.5, minLng:34.2, maxLng:35.9 };
 const geocodeCache  = new Map();
 const cityBBoxCache = new Map();
 
+// Pre-verified GPS lookup (7132 clients from EXEL COORDINATES.xlsx)
+const GPS_LOOKUP_PATH = path.join(__dirname, '../docs/gps-lookup.json');
+const gpsLookup = fs.existsSync(GPS_LOOKUP_PATH)
+  ? JSON.parse(fs.readFileSync(GPS_LOOKUP_PATH, 'utf8'))
+  : {};
+
 function isValidIL(lat, lng) {
   return lat && lng && lat >= IL.minLat && lat <= IL.maxLat && lng >= IL.minLng && lng <= IL.maxLng;
 }
@@ -125,6 +131,15 @@ async function geocodeBatch(clients) {
     }
   }
 
+  // settlement addresses (מושב/קיבוץ etc.) without street number → force city center
+  // PBI GPS for these is unreliable — the address IS the settlement name
+  const SETTLEMENT_RE = /\b(מושב|קיבוץ|כפר|ישוב|מוצא|נחלה)\b/i;
+  for (const c of clients) {
+    if (!isValidIL(c.lat, c.lng)) continue;   // already no GPS, skip
+    if (extractStreetNum(c.address)) continue; // has street+number, GPS may be valid
+    if (SETTLEMENT_RE.test(c.address)) { c.lat = null; c.lng = null; }
+  }
+
   // clients without street number → city center from bbox (0 API calls)
   for (const c of clients) {
     if (isValidIL(c.lat, c.lng)) continue;
@@ -134,7 +149,8 @@ async function geocodeBatch(clients) {
   }
 
   // cascade-geocode clients with street number still missing valid coords
-  const need = clients.filter(c => !isValidIL(c.lat, c.lng) && extractStreetNum(c.address));
+  // (skip clients covered by gps-lookup — their coords are already verified)
+  const need = clients.filter(c => !isValidIL(c.lat, c.lng) && extractStreetNum(c.address) && !gpsLookup[String(c.custId)]);
   for (const c of need) {
     const r = await geocodeOne(c.address, c.city);
     if (r && inBBox(r.lat, r.lng, cityBBoxCache.get(c.city) ?? null)) {
@@ -145,13 +161,15 @@ async function geocodeBatch(clients) {
 }
 
 function mapClient(r, dayNum) {
+  const custId = r['משטח עם כפולות[מס.לקוח]'];
+  const lookup = custId ? gpsLookup[String(custId)] : null;
   return {
-    custId:        r['משטח עם כפולות[מס.לקוח]'],
+    custId,
     custName:      r['משטח עם כפולות[שם לקוח]'] || '',
     city:          r['[עיר]']    || '',
     address:       r['[כתובת]']  || '',
-    lat:           r['[lat]']    || null,
-    lng:           r['[lng]']    || null,
+    lat:           lookup ? lookup.lat : (r['[lat]']  || null),
+    lng:           lookup ? lookup.lng : (r['[lng]']  || null),
     agentCode:     r['משטח עם כפולות[סוכן]'],
     agentName:     r['משטח עם כפולות[שם סוכן]'] || '',
     dayNum,
