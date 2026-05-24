@@ -817,10 +817,36 @@ function setupSortable(){
 }
 
 // ── MAP ────────────────────────────────────────────────────────────────────
+const MAP_STYLES=[
+  {id:'satellite',label:'🛰',tile:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',attr:'© Esri',opts:{maxZoom:19}},
+  {id:'light',    label:'🗺',tile:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',attr:'© CartoDB',opts:{subdomains:'abcd',maxZoom:19}},
+  {id:'osm',      label:'🌍',tile:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',attr:'© OSM',opts:{maxZoom:19}},
+];
+let mapTileLayer=null;
+let mapStyleIdx=+( localStorage.getItem('fr_mapstyle')||0);
+function cycleMapStyle(){
+  mapStyleIdx=(mapStyleIdx+1)%MAP_STYLES.length;
+  localStorage.setItem('fr_mapstyle',mapStyleIdx);
+  const s=MAP_STYLES[mapStyleIdx];
+  if(mapTileLayer){mapTileLayer.remove();}
+  mapTileLayer=L.tileLayer(s.tile,{attribution:s.attr,...s.opts}).addTo(map);
+  document.getElementById('map-style-btn').textContent=MAP_STYLES[(mapStyleIdx+1)%MAP_STYLES.length].label;
+}
 function renderMap(){
   if(!map){
     map=L.map('map').setView([32.0,34.9],10);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(map);
+    const s=MAP_STYLES[mapStyleIdx];
+    mapTileLayer=L.tileLayer(s.tile,{attribution:s.attr,...s.opts}).addTo(map);
+    const btn=L.control({position:'topright'});
+    btn.onAdd=()=>{
+      const el=document.createElement('button');
+      el.id='map-style-btn';
+      el.textContent=MAP_STYLES[(mapStyleIdx+1)%MAP_STYLES.length].label;
+      el.style.cssText='font-size:20px;background:#fff;border:none;border-radius:8px;padding:4px 8px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2);';
+      el.onclick=cycleMapStyle;
+      return el;
+    };
+    btn.addTo(map);
   }
   mapMarkers.forEach(m=>m.remove()); mapMarkers=[];
   mapPolylines.forEach(p=>p.remove()); mapPolylines=[];
