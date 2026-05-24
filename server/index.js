@@ -104,19 +104,25 @@ async function geocodeAddress(address, city) {
 
 // Geocode a batch — max 1 req/sec (Nominatim rate limit)
 async function geocodeBatch(clients) {
-  const needsGeocode = clients.filter(c => !isValidIL(c.lat, c.lng) && (c.address || c.city));
-  if (!needsGeocode.length) return clients;
-
-  // Pre-fetch bounding boxes for all unique cities (cached after first fetch)
-  const uniqueCities = [...new Set(needsGeocode.map(c => c.city).filter(Boolean))];
-  for (const city of uniqueCities) {
+  // fetch bboxes for ALL cities (including clients that already have GPS)
+  const allCities = [...new Set(clients.map(c => c.city).filter(Boolean))];
+  for (const city of allCities) {
     if (!cityBBoxCache.has(city)) {
       await getCityBBox(city);
       await new Promise(r => setTimeout(r, 1100));
     }
   }
 
-  // Geocode each address and validate against city bbox
+  // validate existing IL coords against city bbox — null out if outside
+  for (const c of clients) {
+    if (isValidIL(c.lat, c.lng)) {
+      const bbox = cityBBoxCache.get(c.city) ?? null;
+      if (!isWithinCityBBox(c.lat, c.lng, bbox)) { c.lat = null; c.lng = null; }
+    }
+  }
+
+  // geocode all clients still missing valid coords
+  const needsGeocode = clients.filter(c => !isValidIL(c.lat, c.lng) && (c.address || c.city));
   for (const c of needsGeocode) {
     const result = await geocodeAddress(c.address, c.city);
     if (result) {
@@ -124,7 +130,6 @@ async function geocodeBatch(clients) {
       if (isWithinCityBBox(result.lat, result.lng, bbox)) {
         c.lat = result.lat; c.lng = result.lng;
       }
-      // else: coordinates found but outside city → leave lat/lng null → NO GPS
     }
     await new Promise(r => setTimeout(r, 1100));
   }
