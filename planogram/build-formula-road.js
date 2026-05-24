@@ -141,6 +141,7 @@ function mapClient(r, dayNum) {
     monthlySales:  r['[מכירות חודש]']  || 0,
     totalSales:    r['[totalSales]']   || 0,
     target:        r['[יעד]']          || 0,
+    pct:           r['[% ביצוע]']      || 0,
   };
 }
 
@@ -161,7 +162,7 @@ ADDCOLUMNS(
     CALCULATE(MAX('ALL_PARTS'[תאריך]),
       FILTER('ALL_PARTS','ALL_PARTS'[מספר לקוח]=EARLIER('משטח עם כפולות'[מס.לקוח]))),
   "מכירות חודש",
-    CALCULATE(SUM('ALL_PARTS'[סכום (ש'ח)]),
+    CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)],
       FILTER('ALL_PARTS',
         'ALL_PARTS'[מספר לקוח]=EARLIER('משטח עם כפולות'[מס.לקוח])
         && YEAR('ALL_PARTS'[תאריך])=YEAR(TODAY())
@@ -173,7 +174,11 @@ ADDCOLUMNS(
     CALCULATE([יעד $],
       FILTER('משטח',
         'משטח'[מס. לקוח] = EARLIER('משטח עם כפולות'[מס.לקוח])
-        && 'משטח'[סטטוס] IN {"פעיל"}))
+        && 'משטח'[סטטוס] IN {"פעיל"})),
+  "% ביצוע",
+    CALCULATE([% יעד כספי ביצוע],
+      FILTER('ALL_PARTS','ALL_PARTS'[מספר לקוח]=EARLIER('משטח עם כפולות'[מס.לקוח])),
+      FILTER('משטח','משטח'[מס. לקוח]=EARLIER('משטח עם כפולות'[מס.לקוח])))
 )
 ORDER BY 'משטח עם כפולות'[סדר ביקור] ASC`;
   const rows = await executeDax(dax);
