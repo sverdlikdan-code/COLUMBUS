@@ -764,10 +764,10 @@ function renderClientList(html){
         <div class="c-sub"><span style="color:var(--blue);font-weight:800;">${c.custId||''}</span>${c.city||c.address?' · ':''}</span>${[c.city,c.address].filter(Boolean).join(' · ')}</div>
         <div class="c-sub">${[lastOrder,yedPart,sales,pctPart].filter(Boolean).join('<span style="color:var(--light)"> · </span>')}</div>
       </div>
-      <span class="day-change-btn" onclick="openDayPopup(event,'${c.custId}')">📅</span>
+      <span class="day-change-btn" data-id="${c.custId}" onclick="openDayPopup(event,this.dataset.id)">📅</span>
       ${noGps
-        ? `<span class="no-gps-badge" onclick="openAddrModal(event,'${c.custId}','${(c.custName||'').replace(/'/g,"\\'")}')">NO GPS</span>`
-        : `<span class="gps-edit-btn" onclick="openAddrModal(event,'${c.custId}','${(c.custName||'').replace(/'/g,"\\'")}')">📍</span>`}
+        ? `<span class="no-gps-badge" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name)">NO GPS</span>`
+        : `<span class="gps-edit-btn"  data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name)">📍</span>`}
     </div>`;
   }).join('');
 }
