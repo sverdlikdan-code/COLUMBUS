@@ -140,6 +140,7 @@ function mapClient(r, dayNum) {
     lastOrderDate: r['[הזמנה אחרונה]'] ? r['[הזמנה אחרונה]'].split('T')[0] : null,
     monthlySales:  r['[מכירות חודש]']  || 0,
     totalSales:    r['[totalSales]']   || 0,
+    target:        r['[יעד]']          || 0,
   };
 }
 
@@ -167,7 +168,12 @@ ADDCOLUMNS(
         && MONTH('ALL_PARTS'[תאריך])=MONTH(TODAY()))),
   "totalSales",
     CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)],
-      FILTER('ALL_PARTS','ALL_PARTS'[מספר לקוח]=EARLIER('משטח עם כפולות'[מס.לקוח])))
+      FILTER('ALL_PARTS','ALL_PARTS'[מספר לקוח]=EARLIER('משטח עם כפולות'[מס.לקוח]))),
+  "יעד",
+    CALCULATE([יעד $],
+      FILTER('משטח',
+        'משטח'[מס. לקוח] = EARLIER('משטח עם כפולות'[מס.לקוח])
+        && 'משטח'[סטטוס] IN {"פעיל"}))
 )
 ORDER BY 'משטח עם כפולות'[סדר ביקור] ASC`;
   const rows = await executeDax(dax);
