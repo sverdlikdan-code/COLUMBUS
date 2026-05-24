@@ -239,7 +239,7 @@ ADDCOLUMNS(
     ),
   "מכירות חודש",
     CALCULATE(
-      SUM('ALL_PARTS'[סכום (ש'ח)]),
+      [TOTAL SALES (ללא זיכויים מרכזים)],
       FILTER('ALL_PARTS',
         'ALL_PARTS'[מספר לקוח] = EARLIER('משטח עם כפולות'[מס.לקוח])
         && YEAR('ALL_PARTS'[תאריך]) = YEAR(TODAY())
@@ -260,7 +260,11 @@ ADDCOLUMNS(
     CALCULATE([יעד $],
       FILTER('משטח',
         'משטח'[מס. לקוח] = EARLIER('משטח עם כפולות'[מס.לקוח])
-        && 'משטח'[סטטוס] IN {"פעיל"}))
+        && 'משטח'[סטטוס] IN {"פעיל"})),
+  "% ביצוע",
+    CALCULATE([% יעד כספי ביצוע],
+      FILTER('ALL_PARTS','ALL_PARTS'[מספר לקוח]=EARLIER('משטח עם כפולות'[מס.לקוח])),
+      FILTER('משטח','משטח'[מס. לקוח]=EARLIER('משטח עם כפולות'[מס.לקוח])))
 )
 ORDER BY 'משטח עם כפולות'[סדר ביקור] ASC
   `;
@@ -295,6 +299,7 @@ ORDER BY 'משטח עם כפולות'[סדר ביקור] ASC
         totalSales:      r['[totalSales]'] || 0,
         lastSaleDate:    r['[lastSaleDate]'] ? r['[lastSaleDate]'].split('T')[0] : null,
         target:          r['[יעד]'] || 0,
+        pct:             r['[% ביצוע]'] || 0,
       };
     });
     await geocodeBatch(clients);
