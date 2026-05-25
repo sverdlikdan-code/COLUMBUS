@@ -1078,7 +1078,8 @@ function renderMap(){
     const m=L.marker([c.lat,c.lng],{icon});
     m._rn=i+1;
     const corrMark = gpsCorrections[String(c.custId)] ? ' ✏️' : '';
-    const fixBtn = GH_TOKEN ? `<br><button onclick="startGpsCorrection('${c.custId}','${c.custName.replace(/'/g,"\\'")}')" style="margin-top:6px;background:#1565C0;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">📍 תקן מיקום</button>` : '';
+    const safeName = (c.custName||'').replace(/"/g,'&quot;');
+    const fixBtn = GH_TOKEN ? `<br><button data-id="${c.custId}" data-name="${safeName}" onclick="startGpsCorrection(this.dataset.id,this.dataset.name)" style="margin-top:6px;background:#1565C0;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">📍 תקן מיקום</button>` : '';
     m.bindPopup(`<b>${c.custName}${corrMark}</b><br>${c.city||''}${c.address?'<br><span style="font-size:11px;color:#555">'+c.address+'</span>':''}${fixBtn}`);
     if(isSel) m.openPopup();
     bounds.push([c.lat,c.lng]);
