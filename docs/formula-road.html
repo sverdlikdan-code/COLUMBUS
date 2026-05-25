@@ -765,6 +765,7 @@ async function initRoute(){
   document.getElementById('export-btn').classList.add('visible');
   setupSortable();
   setupDragScroll(document.getElementById('list-pane'));
+  setupCardDoubleTap(document.getElementById('list-pane'));
   if(window.innerWidth>=700) setTimeout(()=>renderMap(),200);
 }
 
@@ -905,7 +906,7 @@ function renderClientList(html){
       const color=pct>=100?'var(--green)':pct>=70?'var(--sky)':'var(--red)';
       return `<span style="font-size:11px;font-weight:900;color:${color}">${pct}%</span>`;
     })();
-    return `<div class="${cls}" data-id="${c.custId}" onclick="selectClient('${c.custId}')">
+    return `<div class="${cls}" data-id="${c.custId}" ondblclick="selectClient('${c.custId}')">
       <span class="c-drag">✋</span>
       <div class="c-num-wrap">
         <span class="c-num${inWalk?' c-num-walk':''}">${i+1}</span>
@@ -934,6 +935,32 @@ function selectClient(id){
       if(c&&c.lat&&c.lng) setTimeout(()=>map.setView([c.lat,c.lng],17),50);
     }
   }
+}
+
+// Double-tap to select card on mobile (single tap ignored — avoids accidental select while scrolling)
+let _dtapTime=0, _dtapId=null, _dtapStartY=0;
+function setupCardDoubleTap(listEl){
+  listEl.addEventListener('touchstart',e=>{
+    const card=e.target.closest('.client-card');
+    if(!card||e.target.closest('.day-change-btn,.no-gps-badge,.gps-edit-btn,.c-drag')) return;
+    _dtapStartY=e.touches[0].clientY;
+  },{passive:true});
+  listEl.addEventListener('touchend',e=>{
+    const card=e.target.closest('.client-card');
+    if(!card||e.target.closest('.day-change-btn,.no-gps-badge,.gps-edit-btn,.c-drag')) return;
+    if(Math.abs(e.changedTouches[0].clientY-_dtapStartY)>12) return; // was scrolling
+    const id=card.dataset.id;
+    const now=Date.now();
+    if(now-_dtapTime<400&&_dtapId===id){
+      selectClient(id);
+      _dtapTime=0; _dtapId=null;
+    } else {
+      // First tap — briefly flash card so user knows tap registered
+      card.style.background='var(--sky-light)';
+      setTimeout(()=>{ if(card.isConnected) card.style.background=''; },200);
+      _dtapTime=now; _dtapId=id;
+    }
+  });
 }
 
 function setupDragScroll(el){
