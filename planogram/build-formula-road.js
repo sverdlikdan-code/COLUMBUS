@@ -117,7 +117,7 @@ async function nominatimQuery(q) {
   return null;
 }
 
-async function azureMapsQuery(q) {
+async function azureMapsQuery(q, city) {
   if (!process.env.AZURE_MAPS_KEY) return null;
   if (q in azureCache) return azureCache[q];
   try {
@@ -127,6 +127,16 @@ async function azureMapsQuery(q) {
     const f = data?.features?.[0];
     if (f?.geometry?.coordinates) {
       const [lng, lat] = f.geometry.coordinates;
+      // if Azure returned a bbox and we don't have one for this city yet — store it
+      if (city && !cityBBoxCache.get(city)) {
+        const bb = f.properties?.boundingBox;
+        if (bb?.topLeftPoint && bb?.btmRightPoint) {
+          cityBBoxCache.set(city, {
+            minLat: bb.btmRightPoint.latitude,  maxLat: bb.topLeftPoint.latitude,
+            minLng: bb.topLeftPoint.longitude,  maxLng: bb.btmRightPoint.longitude,
+          });
+        }
+      }
       azureCache[q] = { lat, lng }; azureCacheDirty = true;
       return { lat, lng };
     }
@@ -197,8 +207,9 @@ async function geocodeBatch(clients) {
     } else {
       // 2nd try: Azure Maps
       const q = [cleanAddr(c.address), c.city].filter(Boolean).join(', ');
-      const az = await azureMapsQuery(q);
-      if (az && inBBox(az.lat, az.lng, bbox)) {
+      const az = await azureMapsQuery(q, c.city);
+      const azBbox = cityBBoxCache.get(c.city) ?? null;
+      if (az && inBBox(az.lat, az.lng, azBbox)) {
         c.lat = az.lat; c.lng = az.lng; c.gpsSource = 'azure';
       }
     }
@@ -208,8 +219,9 @@ async function geocodeBatch(clients) {
   // clients still without GPS after Nominatim+Azure — try Azure on city name alone (no bbox check)
   const stillMissing = clients.filter(c => !isValidIL(c.lat, c.lng) && !gpsLookup[String(c.custId)] && c.gpsSource !== 'city-center');
   for (const c of stillMissing) {
-    const az = await azureMapsQuery(c.city);
-    if (az && isValidIL(az.lat, az.lng)) {
+    const az = await azureMapsQuery(c.city, c.city);
+    const azBbox = cityBBoxCache.get(c.city) ?? null;
+    if (az && inBBox(az.lat, az.lng, azBbox)) {
       c.lat = az.lat; c.lng = az.lng; c.gpsSource = 'city-center';
     }
   }
