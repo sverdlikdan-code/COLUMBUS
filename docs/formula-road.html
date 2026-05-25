@@ -162,9 +162,10 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .modal-btn.confirm{background:var(--blue);color:#fff;}
 
 /* EXPORT BTN */
-.export-btn{background:var(--blue);color:#fff;border:none;border-radius:12px;padding:0 14px;height:46px;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(21,101,192,.3);display:none;align-items:center;gap:5px;white-space:nowrap;flex-shrink:0;}
+.export-btn{background:#1D6F42;color:#fff;border:none;border-radius:20px;padding:5px 13px;height:36px;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(29,111,66,.35);display:none;align-items:center;gap:5px;white-space:nowrap;flex-shrink:0;}
 .export-btn.visible{display:flex;}
-.export-btn:hover{background:var(--blue-dark);}
+.export-btn:hover{background:#155230;}
+.export-btn .xls-icon{width:18px;height:18px;background:#fff;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#1D6F42;line-height:1;}
 .map-rotate-ctrl{position:absolute;bottom:24px;left:10px;z-index:1000;display:flex;flex-direction:column;gap:4px;}
 .map-rotate-btn{width:34px;height:34px;border-radius:10px;background:#fff;border:2px solid var(--sky-mid);color:var(--blue-dark);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.18);transition:background .12s;}
 .map-rotate-btn:hover{background:var(--sky-light);}
@@ -281,6 +282,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
         <button class="sort-btn active-ai" id="sort-btn-ai" onclick="setSort('ai')">לפי AI</button>
         <button class="sort-btn" id="recalc-btn" onclick="recalcRoute()" style="border-color:var(--orange,#F57C00);color:var(--orange,#F57C00)">🔄</button>
         <button class="sort-btn" onclick="resetRoute()" title="איפוס יום" style="border-color:#b71c1c;color:#b71c1c">↩</button>
+        <button class="export-btn" id="export-btn" onclick="exportCSV()"><span class="xls-icon">XL</span>שמור</button>
       </div>
       <div class="km-cities" id="city-filters"></div>
     </div>
@@ -300,7 +302,6 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
         <button class="tab-inline-btn active" id="tab-inline-list" onclick="setTab('list')">📋</button>
         <button class="tab-inline-btn" id="tab-inline-map" onclick="setTab('map')">🗺</button>
       </div>
-      <button class="export-btn" id="export-btn" onclick="exportCSV()">💾</button>
     </div>
   </div>
   <div id="route-body">
