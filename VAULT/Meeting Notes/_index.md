@@ -34,4 +34,5 @@
 - [[session-2026-05-20]] — Сессия 2026-05-20: GitHub Actions fix, workflow conflict, doctor upgrade, PRD closure
 - [[session-2026-05-21]] — Сессия 2026-05-21: תוקף page complete — all warehouses, drag-scroll, print/PDF fix, PDF title fix
 - [[session-2026-05-24]] — Сессия 2026-05-24: watchdog fix, dagim TRN кнопка, капуа без Trnz, UI defaults
-- [[session-2026-05-26]] — Сессия 2026-05-26: daysStock через PBI measure, лейбл מכר ממוצע 45 יום
+- [[session-2026-05-25]] — Сессия 2026-05-25: Formula Road RTL fix, Azure Maps, duplicate jitter, pct fix, city detection
+- [[session-2026-05-26]] — Сессия 2026-05-26: daysStock через PBI measure, лейбל מכר ממוצע 45 יום
