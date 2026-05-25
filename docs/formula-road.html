@@ -279,6 +279,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
         <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')">↕ ביקור</button>
         <button class="sort-btn active-ai" id="sort-btn-ai" onclick="setSort('ai')">✦ AI</button>
         <button class="sort-btn" id="recalc-btn" onclick="recalcRoute()" style="border-color:var(--orange,#F57C00);color:var(--orange,#F57C00)">🔄</button>
+        <button class="sort-btn" onclick="resetRoute()" title="איפוס יום" style="border-color:#b71c1c;color:#b71c1c">↩</button>
       </div>
       <div class="km-cities" id="city-filters"></div>
     </div>
@@ -811,6 +812,14 @@ function setSort(mode){
   renderCityFilters();
   renderClientList();
   if(st.tab==='map'||window.innerWidth>=700) renderMap();
+}
+
+function resetRoute(){
+  const dayLabel=DAY_LABELS[st.day]||st.day;
+  if(!confirm(`לאפס יום ${dayLabel}?\nכל השינויים יימחקו והסדר המקורי של Priority יוחזר`)) return;
+  try{ localStorage.removeItem(`fr_${st.agent.code}_${st.day}`); }catch{}
+  try{ localStorage.removeItem(`fr_dayov_${st.agent.code}`); }catch{}
+  initRoute();
 }
 
 function recalcRoute(){
