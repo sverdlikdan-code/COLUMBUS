@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>DILER FORMULA — מסלול</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -338,6 +340,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
 <script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate-src.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
 const API = 'https://api.sverdlik-apps.site';
@@ -387,7 +390,7 @@ const st = {
   addrClientId:null, isDemo:false,
 };
 
-let map=null, mapMarkers=[], mapPolylines=[], sortable=null, mapBearing=0;
+let map=null, mapMarkers=[], mapPolylines=[], markerCluster=null, sortable=null, mapBearing=0;
 
 // ── Haversine ──────────────────────────────────────────────────────────────
 function haversineKm(la1,lo1,la2,lo2){
@@ -898,6 +901,18 @@ function renderMap(){
   }
   mapMarkers.forEach(m=>m.remove()); mapMarkers=[];
   mapPolylines.forEach(p=>p.remove()); mapPolylines=[];
+  if(markerCluster){markerCluster.clearLayers();map.removeLayer(markerCluster);}
+  markerCluster=L.markerClusterGroup({
+    maxClusterRadius:50,disableClusteringAtZoom:16,
+    iconCreateFunction(cluster){
+      const nums=cluster.getAllChildMarkers().map(m=>m._rn).join('/');
+      const n=cluster.getChildCount();
+      const sz=n<=2?42:48;
+      return L.divIcon({className:'',
+        html:`<div style="background:#C9A84C;color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${n<=2?12:11}px;font-weight:900;border:2.5px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.35)">${nums}</div>`,
+        iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
+    }
+  });
   const list=displayClients().filter(c=>c.lat&&c.lng);
   if(!list.length)return;
   const bounds=[];
@@ -922,7 +937,8 @@ function renderMap(){
           html:`<div style="background:#C9A84C;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)">${i+1}</div>`,
           iconSize:[28,28], iconAnchor:[14,14],
         });
-    const m=L.marker([c.lat,c.lng],{icon}).addTo(map);
+    const m=L.marker([c.lat,c.lng],{icon});
+    m._rn=i+1;
     m.bindPopup(`<b>${c.custName}</b><br>${c.city||''}`);
     if(isSel) m.openPopup();
     if(prev){
@@ -932,8 +948,10 @@ function renderMap(){
       mapPolylines.push(dec);
     }
     prev=c; bounds.push([c.lat,c.lng]);
+    markerCluster.addLayer(m);
     mapMarkers.push(m);
   });
+  map.addLayer(markerCluster);
   if(bounds.length) map.fitBounds(bounds,{padding:[24,24]});
   setTimeout(()=>map.invalidateSize(),100);
 }
