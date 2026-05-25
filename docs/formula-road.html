@@ -988,12 +988,11 @@ function renderMap(){
     iconCreateFunction(cluster){
       const rns=cluster.getAllChildMarkers().map(m=>m._rn).sort((a,b)=>a-b);
       const n=rns.length;
-      const range=n===1?`${rns[0]}`:`${rns[0]}–${rns[n-1]}`;
+      const label=n===1?`${rns[0]}`:`${rns[0]}–${rns[n-1]}`;
       const sz=44;
       return L.divIcon({className:'',
-        html:`<div style="background:#C9A84C;color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2.5px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.35);line-height:1">
-          <span style="font-size:18px;font-weight:900">${n}</span>
-          <span style="font-size:9px;font-weight:600;opacity:.85">${range}</span>
+        html:`<div style="background:#C9A84C;color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2.5px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.35)">
+          <span style="font-size:12px;font-weight:900;letter-spacing:-0.5px">${label}</span>
         </div>`,
         iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
     }
