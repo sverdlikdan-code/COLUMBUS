@@ -1164,7 +1164,8 @@ async function commitGpsCorrection(custId, custName, lat, lng){
     const existing = cur.content ? JSON.parse(atob(cur.content.replace(/\s/g,''))) : {};
     const sha = cur.sha;
     // 2. Add/update correction
-    existing[String(custId)] = {lat, lng, correctedAt: new Date().toISOString(), name: custName};
+    const cl = st.clients.find(x=>String(x.custId)===String(custId)) || {};
+    existing[String(custId)] = {lat, lng, correctedAt: new Date().toISOString(), name: custName, city: cl.city||'', address: cl.address||''};
     // 3. Commit
     const body = JSON.stringify({
       message: `fix(gps): correct ${custId} ${custName}`,
