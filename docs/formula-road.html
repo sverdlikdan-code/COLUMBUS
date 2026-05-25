@@ -1058,6 +1058,10 @@ function renderMap(){
   const list=displayClients().filter(c=>c.lat&&c.lng);
   if(!list.length)return;
   const bounds=[];
+  // build duplicate-coord map for jitter
+  const _coordCount={};
+  list.forEach(c=>{const k=`${c.lat},${c.lng}`;_coordCount[k]=(_coordCount[k]||0)+1;});
+  const _coordIdx={};
   list.forEach((c,i)=>{
     const isSel=st.selectedId===c.custId;
     const isFirst=i===0;
@@ -1086,8 +1090,11 @@ function renderMap(){
           iconSize:[28,28], iconAnchor:[14,14],
         });
     const id = parseInt(c.custId) || 0;
-    const mLat = isCityCenter ? c.lat + ((id*7+3)%17-8)*0.00015 : c.lat;
-    const mLng = isCityCenter ? c.lng + ((id*13+5)%19-9)*0.00015 : c.lng;
+    const _ck=`${c.lat},${c.lng}`;
+    const _hasDupe=_coordCount[_ck]>1;
+    const _di=_hasDupe?(_coordIdx[_ck]=(_coordIdx[_ck]||0)+1)-1:0;
+    const mLat = isCityCenter ? c.lat+((id*7+3)%17-8)*0.00015 : _hasDupe ? c.lat+((_di*7+3)%17-8)*0.00015 : c.lat;
+    const mLng = isCityCenter ? c.lng+((id*13+5)%19-9)*0.00015 : _hasDupe ? c.lng+((_di*13+5)%19-9)*0.00015 : c.lng;
     const m=L.marker([mLat,mLng],{icon});
     m._rn=i+1;
     const corrMark = gpsCorrections[String(c.custId)] ? ' ✏️' : '';
