@@ -172,14 +172,14 @@ function mapClient(r, dayNum) {
   const lookup = custId ? gpsLookup[String(custId)] : null;
   return {
     custId,
-    custName:      r['משטח עם כפולות[שם לקוח]'] || '',
+    custName:      r['[שם לקוח]'] || r['משטח עם כפולות[שם לקוח]'] || '',
     city:          r['[עיר]']    || '',
     address:       r['[כתובת]']  || '',
     lat:           corr ? corr.lat : lookup ? lookup.lat : (r['[lat]']  || null),
     lng:           corr ? corr.lng : lookup ? lookup.lng : (r['[lng]']  || null),
     gpsSource:     corr ? 'correction' : lookup ? 'lookup' : 'pbi',
     agentCode:     r['משטח עם כפולות[סוכן]'],
-    agentName:     r['משטח עם כפולות[שם סוכן]'] || '',
+    agentName:     r['[שם סוכן]'] || r['משטח עם כפולות[שם סוכן]'] || '',
     dayNum,
     dayLabel:      DAY_LABELS[dayNum] || r['משטח עם כפולות[יום]'],
     priorityOrder: r['משטח עם כפולות[סדר ביקור]'] || 0,
@@ -200,6 +200,8 @@ ADDCOLUMNS(
     'משטח עם כפולות'[סוכן] = "${agentCode}"
     && 'משטח עם כפולות'[יום] = "${dayLabel}"
   ),
+  "שם לקוח",  LOOKUPVALUE('משטח'[שם לקוח],  'משטח'[מס. לקוח], 'משטח עם כפולות'[מס.לקוח]),
+  "שם סוכן",  LOOKUPVALUE('משטח'[שם סוכן], 'משטח'[מס. לקוח], 'משטח עם כפולות'[מס.לקוח]),
   "כתובת",    LOOKUPVALUE('משטח'[כתובת],   'משטח'[מס. לקוח], 'משטח עם כפולות'[מס.לקוח]),
   "עיר",      LOOKUPVALUE('משטח'[עיר],     'משטח'[מס. לקוח], 'משטח עם כפולות'[מס.לקוח]),
   "lat",      LOOKUPVALUE('משטח'[קו רוחב], 'משטח'[מס. לקוח], 'משטח עם כפולות'[מס.לקוח]),
