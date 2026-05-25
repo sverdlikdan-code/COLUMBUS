@@ -325,8 +325,11 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
   <div class="modal">
     <div class="modal-title" id="addr-modal-title">עדכן כתובת</div>
     <input class="modal-input" id="addr-input" placeholder="רחוב + מספר..." type="text"/>
-    <button class="gps-btn" id="addr-gps-btn" onclick="detectAddrGps()" style="margin-bottom:10px">
+    <button class="gps-btn" id="addr-gps-btn" onclick="detectAddrGps()" style="margin-bottom:8px">
       📍 קבע מיקום נוכחי
+    </button>
+    <button class="gps-btn" onclick="placeOnMap()" style="margin-bottom:10px;border-color:var(--green);color:var(--green)">
+      🗺 מקם על המפה באצבע
     </button>
     <div id="addr-gps-status" style="font-size:12px;color:var(--mid);text-align:center;min-height:16px;margin-bottom:4px"></div>
     <div class="modal-btns">
@@ -1093,6 +1096,47 @@ function rotateMap(deg, reset){
 }
 
 // ── GPS CORRECTION ──────────────────────────────────────────────────────────
+function placeOnMap(){
+  const id = st.addrClientId;
+  const c  = st.clients.find(x=>x.custId===id);
+  if(!c){ closeAddrModal(); return; }
+  closeAddrModal();
+  setTab('map');
+  // Make sure map is rendered (may be empty if zero GPS clients)
+  if(!map || !document.getElementById('map-pane').offsetParent){
+    setTimeout(()=>{ renderMap(); _startMapPlace(id,c); }, 250);
+  } else {
+    renderMap();
+    _startMapPlace(id,c);
+  }
+}
+
+function _startMapPlace(id,c){
+  showToast('👆 הקש על המפה למיקום '+c.custName, 5000);
+  map.getContainer().style.cursor='crosshair';
+  map.once('click', async(e)=>{
+    map.getContainer().style.cursor='';
+    const {lat,lng}=e.latlng;
+    const IL={minLat:29.3,maxLat:33.5,minLng:34.2,maxLng:35.9};
+    if(lat<IL.minLat||lat>IL.maxLat||lng<IL.minLng||lng>IL.maxLng){
+      showToast('❌ מחוץ לגבולות ישראל'); return;
+    }
+    const la=+lat.toFixed(6), lo=+lng.toFixed(6);
+    // Save locally immediately
+    st.clients=st.clients.map(x=>x.custId===id?{...x,lat:la,lng:lo}:x);
+    st.aiClients=nearestNeighbor([...st.clients]);
+    st.roadKm=null; st.roadGeometry=null; triggerOsrm();
+    saveRoute(st.agent.code,st.day,st.clients);
+    updateKmBar(); renderClientList(); renderMap();
+    // Commit to GitHub if token available
+    if(GH_TOKEN){
+      await commitGpsCorrection(id, c.custName, la, lo);
+    } else {
+      showToast('✅ מיקום נשמר (מקומי)');
+    }
+  });
+}
+
 function startGpsCorrection(custId, custName){
   if(!GH_TOKEN){ showToast('❌ אין הרשאה לתיקון'); return; }
   corrEditState = { custId, custName };
