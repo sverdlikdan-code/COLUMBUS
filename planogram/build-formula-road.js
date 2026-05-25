@@ -13,10 +13,16 @@ const IL = { minLat:29.3, maxLat:33.5, minLng:34.2, maxLng:35.9 };
 const geocodeCache  = new Map();
 const cityBBoxCache = new Map();
 
-// Pre-verified GPS lookup (7132 clients from EXEL COORDINATES.xlsx)
+// Pre-verified GPS lookup (from EXEL COORDINATES.xlsx)
 const GPS_LOOKUP_PATH = path.join(__dirname, '../docs/gps-lookup.json');
 const gpsLookup = fs.existsSync(GPS_LOOKUP_PATH)
   ? JSON.parse(fs.readFileSync(GPS_LOOKUP_PATH, 'utf8'))
+  : {};
+
+// Agent-corrected GPS (highest priority — overrides everything)
+const GPS_CORRECTIONS_PATH = path.join(__dirname, '../docs/gps-corrections.json');
+const gpsCorrections = fs.existsSync(GPS_CORRECTIONS_PATH)
+  ? JSON.parse(fs.readFileSync(GPS_CORRECTIONS_PATH, 'utf8'))
   : {};
 
 function isValidIL(lat, lng) {
@@ -162,14 +168,16 @@ async function geocodeBatch(clients) {
 
 function mapClient(r, dayNum) {
   const custId = r['משטח עם כפולות[מס.לקוח]'];
+  const corr   = custId ? gpsCorrections[String(custId)] : null;
   const lookup = custId ? gpsLookup[String(custId)] : null;
   return {
     custId,
     custName:      r['משטח עם כפולות[שם לקוח]'] || '',
     city:          r['[עיר]']    || '',
     address:       r['[כתובת]']  || '',
-    lat:           lookup ? lookup.lat : (r['[lat]']  || null),
-    lng:           lookup ? lookup.lng : (r['[lng]']  || null),
+    lat:           corr ? corr.lat : lookup ? lookup.lat : (r['[lat]']  || null),
+    lng:           corr ? corr.lng : lookup ? lookup.lng : (r['[lng]']  || null),
+    gpsSource:     corr ? 'correction' : lookup ? 'lookup' : 'pbi',
     agentCode:     r['משטח עם כפולות[סוכן]'],
     agentName:     r['משטח עם כפולות[שם סוכן]'] || '',
     dayNum,
@@ -285,6 +293,19 @@ EVALUATE DISTINCT(SELECTCOLUMNS(
   const outPath = path.join(__dirname, '../docs/formula-road-data.json');
   fs.writeFileSync(outPath, JSON.stringify(out));
   console.log(`✅ Saved → docs/formula-road-data.json (${(fs.statSync(outPath).size/1024).toFixed(0)} KB)`);
+
+  // Generate CSV of all corrections for Priority ERP import
+  const corrIds = Object.keys(gpsCorrections);
+  if (corrIds.length > 0) {
+    const csvLines = ['מס. לקוח,קו רוחב,קו אורך,תאריך תיקון,הערה'];
+    for (const id of corrIds) {
+      const c = gpsCorrections[id];
+      csvLines.push(`${id},${c.lat},${c.lng},${c.correctedAt||''},${(c.note||'').replace(/,/g,' ')}`);
+    }
+    const csvPath = path.join(__dirname, '../docs/gps-corrections-export.csv');
+    fs.writeFileSync(csvPath, '﻿' + csvLines.join('\n'), 'utf8'); // BOM for Excel Hebrew
+    console.log(`✅ Priority CSV → docs/gps-corrections-export.csv (${corrIds.length} corrections)`);
+  }
 }
 
 main().catch(e => { console.error('FATAL:', e); process.exit(1); });
