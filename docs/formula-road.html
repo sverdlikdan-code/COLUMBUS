@@ -344,6 +344,26 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
 const API = 'https://api.sverdlik-apps.site';
+const GH_REPO = 'sverdlikdan-code/COLUMBUS';
+const GH_CORRECTIONS_PATH = 'docs/gps-corrections.json';
+let GH_TOKEN = null; // loaded from corrections-token.json (not in repo)
+let gpsCorrections = {}; // custId → {lat,lng}
+let corrEditState = null; // active correction session
+
+async function loadGhToken(){
+  try{
+    const r=await fetch('./corrections-token.json?_='+Date.now());
+    if(r.ok){ const d=await r.json(); GH_TOKEN=d.token; }
+  }catch(_){}
+}
+
+async function loadCorrections(){
+  try{
+    const r=await fetch('./gps-corrections.json?_='+Date.now());
+    if(r.ok) gpsCorrections=await r.json();
+  }catch(_){}
+}
+
 let STATIC_DATA = null; // loaded from formula-road-data.json if available
 
 async function loadStaticData(){
@@ -467,6 +487,8 @@ function goBack(from){
 // ── LOGIN ──────────────────────────────────────────────────────────────────
 async function initLogin(){
   await loadStaticData();
+  await loadCorrections();
+  loadGhToken();
   renderLogin();
   show('s-login');
   if(STATIC_DATA){
@@ -939,7 +961,8 @@ function renderMap(){
         });
     const m=L.marker([c.lat,c.lng],{icon});
     m._rn=i+1;
-    m.bindPopup(`<b>${c.custName}</b><br>${c.city||''}`);
+    const corrMark = gpsCorrections[String(c.custId)] ? ' ✏️' : '';
+    m.bindPopup(`<b>${c.custName}${corrMark}</b><br>${c.city||''}<br><button onclick="startGpsCorrection('${c.custId}','${c.custName.replace(/'/g,"\\'")}')" style="margin-top:6px;background:#1565C0;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">📍 תקן מיקום</button>`);
     if(isSel) m.openPopup();
     if(prev){
       const p=L.polyline([[prev.lat,prev.lng],[c.lat,c.lng]],{color:'#1565C0',weight:2.5,opacity:.55}).addTo(map);
@@ -960,6 +983,60 @@ function rotateMap(deg, reset){
   if(reset){ mapBearing=0; }
   else { mapBearing=(mapBearing+deg+360)%360; }
   if(map && map.setBearing) map.setBearing(mapBearing);
+}
+
+// ── GPS CORRECTION ──────────────────────────────────────────────────────────
+function startGpsCorrection(custId, custName){
+  if(!GH_TOKEN){ showToast('❌ אין הרשאה לתיקון'); return; }
+  corrEditState = { custId, custName };
+  showToast('📍 הקש על המפה כדי לקבוע מיקום חדש', 4000);
+  map.getContainer().style.cursor='crosshair';
+  map.once('click', async (e)=>{
+    map.getContainer().style.cursor='';
+    const {lat,lng} = e.latlng;
+    const IL={minLat:29.3,maxLat:33.5,minLng:34.2,maxLng:35.9};
+    if(lat<IL.minLat||lat>IL.maxLat||lng<IL.minLng||lng>IL.maxLng){
+      showToast('❌ מחוץ לגבולות ישראל'); corrEditState=null; return;
+    }
+    await commitGpsCorrection(custId, custName, +lat.toFixed(6), +lng.toFixed(6));
+    corrEditState=null;
+  });
+}
+
+async function commitGpsCorrection(custId, custName, lat, lng){
+  showToast('⏳ שומר תיקון...');
+  try{
+    // 1. Get current file + SHA
+    const ghUrl = `https://api.github.com/repos/${GH_REPO}/contents/${GH_CORRECTIONS_PATH}`;
+    const headers = {'Authorization':'token '+GH_TOKEN,'Content-Type':'application/json'};
+    const cur = await fetch(ghUrl,{headers}).then(r=>r.json());
+    const existing = cur.content ? JSON.parse(atob(cur.content.replace(/\s/g,''))) : {};
+    const sha = cur.sha;
+    // 2. Add/update correction
+    existing[String(custId)] = {lat, lng, correctedAt: new Date().toISOString(), name: custName};
+    // 3. Commit
+    const body = JSON.stringify({
+      message: `fix(gps): correct ${custId} ${custName}`,
+      content: btoa(unescape(encodeURIComponent(JSON.stringify(existing, null, 2)))),
+      sha
+    });
+    const res = await fetch(ghUrl,{method:'PUT',headers,body});
+    if(!res.ok) throw new Error(await res.text());
+    gpsCorrections[String(custId)] = {lat,lng};
+    showToast('✅ מיקום עודכן! יחול בבנייה הבאה');
+    renderMap();
+  }catch(e){
+    showToast('❌ שגיאה: '+e.message);
+  }
+}
+
+function showToast(msg, ms=2500){
+  let t=document.getElementById('toast');
+  if(!t){ t=document.createElement('div'); t.id='toast';
+    t.style='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1565C0;color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;font-weight:700;z-index:9999;pointer-events:none;transition:opacity .3s';
+    document.body.appendChild(t); }
+  t.textContent=msg; t.style.opacity='1';
+  clearTimeout(t._to); t._to=setTimeout(()=>t.style.opacity='0', ms);
 }
 
 // ── ADDRESS MODAL ──────────────────────────────────────────────────────────
