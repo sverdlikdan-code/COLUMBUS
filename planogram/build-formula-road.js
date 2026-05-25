@@ -44,8 +44,11 @@ function fixPriorityAddr(address) {
   if (!address) return address;
   // trim decimal fractions from numbers (Priority stores "52.000" → "52")
   let s = address.replace(/(\d+)\.\d+/g, '$1');
-  // strip Unicode directional marks if present (legacy export artifact)
-  s = s.replace(/[‎‏‪-‮]/g, '');
+  // Priority exports some fields in visual LTR order with directional marks — strip + reverse to logical order
+  if (/[‎‏‪-‮]/.test(s)) {
+    s = s.replace(/[‎‏‪-‮]/g, '');
+    s = s.split('').reverse().join('').replace(/\d+/g, m => m.split('').reverse().join(''));
+  }
   return s.trim();
 }
 function cleanAddr(address) {
