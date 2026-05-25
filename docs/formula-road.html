@@ -206,6 +206,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
     <img src="logo-diler-bmd.png" class="login-logo" alt="DILER BMD"/>
     <div class="login-app-name">Formula Road</div>
     <div class="login-tagline" id="login-sub">מערכת ניהול מסלולים</div>
+    <div id="data-time" style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px;letter-spacing:0.5px;"></div>
     <span class="demo-tag" id="demo-tag" style="display:none">DEMO</span>
   </div>
   <div class="login-sky-bar"></div>
@@ -349,11 +350,16 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 const API = 'https://api.sverdlik-apps.site';
 const GH_REPO = 'sverdlikdan-code/COLUMBUS';
 const GH_CORRECTIONS_PATH = 'docs/gps-corrections.json';
-let GH_TOKEN = null; // loaded from corrections-token.json (not in repo)
+const GH_DAY_CORRECTIONS_PATH = 'docs/day-corrections.json';
+let GH_TOKEN = null;
 let gpsCorrections = {}; // custId → {lat,lng}
 let corrEditState = null; // active correction session
 
 async function loadGhToken(){
+  const urlToken = new URLSearchParams(window.location.search).get('token');
+  if(urlToken){ localStorage.setItem('fr_gh_token', urlToken); GH_TOKEN=urlToken; return; }
+  const stored = localStorage.getItem('fr_gh_token');
+  if(stored){ GH_TOKEN=stored; return; }
   try{
     const r=await fetch('./corrections-token.json?_='+Date.now());
     if(r.ok){ const d=await r.json(); GH_TOKEN=d.token; }
@@ -372,7 +378,16 @@ let STATIC_DATA = null; // loaded from formula-road-data.json if available
 async function loadStaticData(){
   try{
     const r=await fetch('./formula-road-data.json?_='+Date.now());
-    if(r.ok){ STATIC_DATA=await r.json(); console.log('✅ Static data loaded, updated:',STATIC_DATA.updatedAt); }
+    if(r.ok){
+      STATIC_DATA=await r.json();
+      console.log('✅ Static data loaded, updated:',STATIC_DATA.updatedAt);
+      const dt=document.getElementById('data-time');
+      if(dt&&STATIC_DATA.updatedAt){
+        const d=new Date(STATIC_DATA.updatedAt);
+        const fmt=n=>String(n).padStart(2,'0');
+        dt.textContent=`עודכן: ${fmt(d.getDate())}/${fmt(d.getMonth()+1)}/${d.getFullYear()} ${fmt(d.getHours())}:${fmt(d.getMinutes())}`;
+      }
+    }
   }catch(_){ console.log('ℹ️ No static data, using live API'); }
 }
 const DAY_LABELS = {1:'א',2:'ב',3:'ג',4:'ד',5:'ה'};
@@ -532,7 +547,7 @@ function show(id){
 function goBack(from){
   if(from==='s-city'){st.step='manager';renderLogin();show('s-login');}
   else if(from==='s-day'){show('s-city');}
-  else if(from==='s-route'){show('s-day');}
+  else if(from==='s-route'){show('s-city');}
 }
 
 // ── LOGIN ──────────────────────────────────────────────────────────────────
@@ -708,8 +723,9 @@ async function confirmCity(){
   // Try to geocode start city in background
   fetch(`${API}/geocode?address=${encodeURIComponent(city)}&city=${encodeURIComponent(city)}`)
     .then(r=>r.json()).then(d=>{if(d&&d.lat){st.startLat=d.lat;st.startLng=d.lng;}}).catch(()=>{});
-  document.getElementById('day-sub').textContent=`${st.agent.name} · ${city}`;
-  show('s-day');
+  const wd = new Date().getDay(); // 0=Sun..6=Sat
+  const todayDay = wd === 0 ? 1 : wd <= 4 ? wd + 1 : 1;
+  selectDay(todayDay);
 }
 
 // ── DAY ────────────────────────────────────────────────────────────────────
@@ -1062,7 +1078,8 @@ function renderMap(){
     const m=L.marker([c.lat,c.lng],{icon});
     m._rn=i+1;
     const corrMark = gpsCorrections[String(c.custId)] ? ' ✏️' : '';
-    m.bindPopup(`<b>${c.custName}${corrMark}</b><br>${c.city||''}<br><button onclick="startGpsCorrection('${c.custId}','${c.custName.replace(/'/g,"\\'")}')" style="margin-top:6px;background:#1565C0;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">📍 תקן מיקום</button>`);
+    const fixBtn = GH_TOKEN ? `<br><button onclick="startGpsCorrection('${c.custId}','${c.custName.replace(/'/g,"\\'")}')" style="margin-top:6px;background:#1565C0;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">📍 תקן מיקום</button>` : '';
+    m.bindPopup(`<b>${c.custName}${corrMark}</b><br>${c.city||''}${c.address?'<br><span style="font-size:11px;color:#555">'+c.address+'</span>':''}${fixBtn}`);
     if(isSel) m.openPopup();
     bounds.push([c.lat,c.lng]);
     markerCluster.addLayer(m);
@@ -1224,18 +1241,22 @@ function detectAddrGps(){
       .then(r=>r.json()).then(d=>{
         const a=d?.address||{};
         const addr=[a.road,a.house_number].filter(Boolean).join(' ')||d.display_name||`${lat.toFixed(5)},${lng.toFixed(5)}`;
+        const cl=st.clients.find(x=>x.custId===id)||{};
         st.clients=st.clients.map(x=>x.custId===id?{...x,lat,lng,address:addr}:x);
         st.aiClients=nearestNeighbor([...st.clients]);
         st.roadKm=null; st.roadGeometry=null; triggerOsrm();
         saveRoute(st.agent.code,st.day,st.clients);
+        if(GH_TOKEN) commitGpsCorrection(id, cl.custName||'', +lat.toFixed(6), +lng.toFixed(6));
         updateKmBar(); renderClientList();
         if(window.innerWidth>=700||st.tab==='map') renderMap();
         closeAddrModal();
       }).catch(()=>{
+        const cl=st.clients.find(x=>x.custId===id)||{};
         st.clients=st.clients.map(x=>x.custId===id?{...x,lat,lng}:x);
         st.aiClients=nearestNeighbor([...st.clients]);
         st.roadKm=null; st.roadGeometry=null; triggerOsrm();
         saveRoute(st.agent.code,st.day,st.clients);
+        if(GH_TOKEN) commitGpsCorrection(id, cl.custName||'', +lat.toFixed(6), +lng.toFixed(6));
         updateKmBar(); renderClientList();
         if(window.innerWidth>=700||st.tab==='map') renderMap();
         closeAddrModal();
@@ -1315,6 +1336,38 @@ function changeClientDay(custId,newDay){
   saveRoute(st.agent.code,st.day,st.clients);
   updateKmBar(); renderClientList();
   if(window.innerWidth>=700||st.tab==='map') renderMap();
+  if(GH_TOKEN) commitDayCorrection(custId, newDay);
+}
+
+async function commitDayCorrection(custId, newDay){
+  try{
+    const ghUrl = `https://api.github.com/repos/${GH_REPO}/contents/${GH_DAY_CORRECTIONS_PATH}`;
+    const headers = {'Authorization':'token '+GH_TOKEN,'Content-Type':'application/json'};
+    const cur = await fetch(ghUrl,{headers}).then(r=>r.json());
+    const existing = cur.content ? JSON.parse(atob(cur.content.replace(/\s/g,''))) : {};
+    const sha = cur.sha;
+    const cl = [...(st.clients||[]), ...(st.aiClients||[])].find(x=>String(x.custId)===String(custId))
+             || Object.values(STATIC_DATA?.routes||{}).flat().find(x=>String(x.custId)===String(custId))
+             || {};
+    existing[String(custId)] = {
+      agentCode: st.agent.code,
+      agentName: st.agent.name||'',
+      dayNum: newDay,
+      dayLabel: DAY_LABELS[newDay],
+      custName: cl.custName||'',
+      city: cl.city||'',
+      correctedAt: new Date().toISOString(),
+    };
+    const body = JSON.stringify({
+      message: `fix(day): ${custId} → יום ${DAY_LABELS[newDay]}`,
+      content: btoa(unescape(encodeURIComponent(JSON.stringify(existing, null, 2)))),
+      sha
+    });
+    const res = await fetch(ghUrl,{method:'PUT',headers,body});
+    if(!res.ok) throw new Error(await res.text());
+  }catch(e){
+    console.warn('day-correction save failed:', e.message);
+  }
 }
 
 // ── EXPORT CSV ─────────────────────────────────────────────────────────────
