@@ -25,6 +25,12 @@ const gpsCorrections = fs.existsSync(GPS_CORRECTIONS_PATH)
   ? JSON.parse(fs.readFileSync(GPS_CORRECTIONS_PATH, 'utf8'))
   : {};
 
+// Manager-corrected visit days
+const DAY_CORRECTIONS_PATH = path.join(__dirname, '../docs/day-corrections.json');
+const dayCorrections = fs.existsSync(DAY_CORRECTIONS_PATH)
+  ? JSON.parse(fs.readFileSync(DAY_CORRECTIONS_PATH, 'utf8'))
+  : {};
+
 function isValidIL(lat, lng) {
   return lat && lng && lat >= IL.minLat && lat <= IL.maxLat && lng >= IL.minLng && lng <= IL.maxLng;
 }
@@ -49,6 +55,7 @@ function fixPriorityAddr(address) {
 function cleanAddr(address) {
   if (!address) return address;
   let s = fixPriorityAddr(address);
+  s = s.split(',')[0];
   for (const p of VENUE_PATTERNS) s = s.replace(p, '');
   return s.replace(/[,\s]+$/, '').replace(/\s{2,}/g, ' ').trim();
 }
@@ -320,6 +327,28 @@ EVALUATE DISTINCT(SELECTCOLUMNS(
     const csvPath = path.join(__dirname, '../docs/gps-corrections-export.csv');
     fs.writeFileSync(csvPath, '﻿' + csvLines.join('\n'), 'utf8'); // BOM for Excel Hebrew
     console.log(`✅ Priority CSV → docs/gps-corrections-export.csv (${corrIds.length} corrections)`);
+  }
+
+  // Generate CSV of all day corrections for Priority ERP import
+  const dayIds = Object.keys(dayCorrections);
+  if (dayIds.length > 0) {
+    const esc = s => `"${(s||'').replace(/"/g,'""')}"`;
+    const dayLines = ['מס. לקוח,שם לקוח,עיר,סוכן,יום ביקור,תאריך תיקון'];
+    for (const id of dayIds) {
+      const d   = dayCorrections[id];
+      const inf = clientLookup[id] || {};
+      dayLines.push([
+        id,
+        esc(d.custName || inf.custName),
+        esc(d.city    || inf.city),
+        esc(d.agentCode || ''),
+        esc(d.dayLabel || ''),
+        d.correctedAt || '',
+      ].join(','));
+    }
+    const dayPath = path.join(__dirname, '../docs/day-corrections-export.csv');
+    fs.writeFileSync(dayPath, '﻿' + dayLines.join('\n'), 'utf8');
+    console.log(`✅ Priority Day CSV → docs/day-corrections-export.csv (${dayIds.length} corrections)`);
   }
 }
 
