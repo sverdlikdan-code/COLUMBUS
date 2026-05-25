@@ -110,6 +110,21 @@ async function nominatimQuery(q) {
   return null;
 }
 
+async function azureMapsQuery(q) {
+  if (!process.env.AZURE_MAPS_KEY) return null;
+  try {
+    const url = `https://atlas.microsoft.com/geocode?api-version=2023-06-01&query=${encodeURIComponent(q)}&countrySet=IL,PS&subscription-key=${process.env.AZURE_MAPS_KEY}`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
+    const data = await r.json();
+    const f = data?.features?.[0];
+    if (f?.geometry?.coordinates) {
+      const [lng, lat] = f.geometry.coordinates;
+      return { lat, lng };
+    }
+  } catch (_) {}
+  return null;
+}
+
 async function geocodeOne(address, city) {
   const cleaned = cleanAddr(address);
   const attempts = [];
@@ -164,11 +179,29 @@ async function geocodeBatch(clients) {
   // (skip clients covered by gps-lookup — their coords are already verified)
   const need = clients.filter(c => !isValidIL(c.lat, c.lng) && extractStreetNum(c.address) && !gpsLookup[String(c.custId)]);
   for (const c of need) {
+    const bbox = cityBBoxCache.get(c.city) ?? null;
+    // 1st try: Nominatim
     const r = await geocodeOne(c.address, c.city);
-    if (r && inBBox(r.lat, r.lng, cityBBoxCache.get(c.city) ?? null)) {
-      c.lat = r.lat; c.lng = r.lng;
+    if (r && inBBox(r.lat, r.lng, bbox)) {
+      c.lat = r.lat; c.lng = r.lng; c.gpsSource = 'nominatim';
+    } else {
+      // 2nd try: Azure Maps
+      const q = [cleanAddr(c.address), c.city].filter(Boolean).join(', ');
+      const az = await azureMapsQuery(q);
+      if (az && inBBox(az.lat, az.lng, bbox)) {
+        c.lat = az.lat; c.lng = az.lng; c.gpsSource = 'azure';
+      }
     }
     await sleep(1100);
+  }
+
+  // clients still without GPS after Nominatim+Azure — try Azure on city name alone (no bbox check)
+  const stillMissing = clients.filter(c => !isValidIL(c.lat, c.lng) && !gpsLookup[String(c.custId)] && c.gpsSource !== 'city-center');
+  for (const c of stillMissing) {
+    const az = await azureMapsQuery(c.city);
+    if (az && isValidIL(az.lat, az.lng)) {
+      c.lat = az.lat; c.lng = az.lng; c.gpsSource = 'city-center';
+    }
   }
 }
 
@@ -264,8 +297,10 @@ EVALUATE DISTINCT(SELECTCOLUMNS(
           const clients = await fetchClients(agent.agentCode, day);
           await geocodeBatch(clients);
           routes[key] = clients;
-          const noGps = clients.filter(c => !isValidIL(c.lat, c.lng)).length;
-          console.log(`  ${key}: ${clients.length} clients, ${noGps} no-GPS`);
+          const noGps  = clients.filter(c => !isValidIL(c.lat, c.lng)).length;
+          const byAzure = clients.filter(c => c.gpsSource === 'azure').length;
+          const azureStr = byAzure ? `, ${byAzure} azure` : '';
+          console.log(`  ${key}: ${clients.length} clients, ${noGps} no-GPS${azureStr}`);
         } catch (e) {
           console.warn(`  ${key} FAILED: ${e.message}`);
           routes[key] = [];
