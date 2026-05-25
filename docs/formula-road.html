@@ -350,23 +350,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
 const API = 'https://api.sverdlik-apps.site';
-const GH_REPO = 'sverdlikdan-code/COLUMBUS';
-const GH_CORRECTIONS_PATH = 'docs/gps-corrections.json';
-const GH_DAY_CORRECTIONS_PATH = 'docs/day-corrections.json';
-let GH_TOKEN = null;
 let gpsCorrections = {}; // custId → {lat,lng}
-let corrEditState = null; // active correction session
-
-async function loadGhToken(){
-  const urlToken = new URLSearchParams(window.location.search).get('token');
-  if(urlToken){ localStorage.setItem('fr_gh_token', urlToken); GH_TOKEN=urlToken; return; }
-  const stored = localStorage.getItem('fr_gh_token');
-  if(stored){ GH_TOKEN=stored; return; }
-  try{
-    const r=await fetch('./corrections-token.json?_='+Date.now());
-    if(r.ok){ const d=await r.json(); GH_TOKEN=d.token; }
-  }catch(_){}
-}
 
 async function loadCorrections(){
   try{
@@ -559,7 +543,6 @@ function goBack(from){
 async function initLogin(){
   await loadStaticData();
   await loadCorrections();
-  loadGhToken();
   renderLogin();
   show('s-login');
   if(STATIC_DATA){
@@ -1104,8 +1087,7 @@ function renderMap(){
     const corrMark = gpsCorrections[String(c.custId)] ? ' ✏️' : '';
     const approxNote = isCityCenter ? '<br><span style="font-size:11px;color:#FF8C00">⚠ מיקום משוער — מרכז עיר</span>' : '';
     const safeName = (c.custName||'').replace(/"/g,'&quot;');
-    const fixBtn = GH_TOKEN ? `<br><button data-id="${c.custId}" data-name="${safeName}" onclick="startGpsCorrection(this.dataset.id,this.dataset.name)" style="margin-top:6px;background:#1565C0;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">📍 תקן מיקום</button>` : '';
-    m.bindPopup(`<b>${c.custName}${corrMark}</b><br>${c.city||''}${c.address?'<br><span style="font-size:11px;color:#555">'+c.address+'</span>':''}${approxNote}${fixBtn}`);
+    m.bindPopup(`<b>${c.custName}${corrMark}</b><br>${c.city||''}${c.address?'<br><span style="font-size:11px;color:#555">'+c.address+'</span>':''}${approxNote}`);
     if(isSel) m.openPopup();
     bounds.push([c.lat,c.lng]);
     markerCluster.addLayer(m);
@@ -1171,58 +1153,8 @@ function _startMapPlace(id,c){
     st.roadKm=null; st.roadGeometry=null; triggerOsrm();
     saveRoute(st.agent.code,st.day,st.clients);
     updateKmBar(); renderClientList(); renderMap();
-    // Commit to GitHub if token available
-    if(GH_TOKEN){
-      await commitGpsCorrection(id, c.custName, la, lo);
-    } else {
-      showToast('✅ מיקום נשמר (מקומי)');
-    }
+    showToast('✅ מיקום נשמר (מקומי)');
   });
-}
-
-function startGpsCorrection(custId, custName){
-  if(!GH_TOKEN){ showToast('❌ אין הרשאה לתיקון'); return; }
-  corrEditState = { custId, custName };
-  showToast('📍 הקש על המפה כדי לקבוע מיקום חדש', 4000);
-  map.getContainer().style.cursor='crosshair';
-  map.once('click', async (e)=>{
-    map.getContainer().style.cursor='';
-    const {lat,lng} = e.latlng;
-    const IL={minLat:29.3,maxLat:33.5,minLng:34.2,maxLng:35.9};
-    if(lat<IL.minLat||lat>IL.maxLat||lng<IL.minLng||lng>IL.maxLng){
-      showToast('❌ מחוץ לגבולות ישראל'); corrEditState=null; return;
-    }
-    await commitGpsCorrection(custId, custName, +lat.toFixed(6), +lng.toFixed(6));
-    corrEditState=null;
-  });
-}
-
-async function commitGpsCorrection(custId, custName, lat, lng){
-  showToast('⏳ שומר תיקון...');
-  try{
-    // 1. Get current file + SHA
-    const ghUrl = `https://api.github.com/repos/${GH_REPO}/contents/${GH_CORRECTIONS_PATH}`;
-    const headers = {'Authorization':'token '+GH_TOKEN,'Content-Type':'application/json'};
-    const cur = await fetch(ghUrl,{headers}).then(r=>r.json());
-    const existing = cur.content ? JSON.parse(atob(cur.content.replace(/\s/g,''))) : {};
-    const sha = cur.sha;
-    // 2. Add/update correction
-    const cl = st.clients.find(x=>String(x.custId)===String(custId)) || {};
-    existing[String(custId)] = {lat, lng, correctedAt: new Date().toISOString(), name: custName, city: cl.city||'', address: cl.address||''};
-    // 3. Commit
-    const body = JSON.stringify({
-      message: `fix(gps): correct ${custId} ${custName}`,
-      content: btoa(unescape(encodeURIComponent(JSON.stringify(existing, null, 2)))),
-      sha
-    });
-    const res = await fetch(ghUrl,{method:'PUT',headers,body});
-    if(!res.ok) throw new Error(await res.text());
-    gpsCorrections[String(custId)] = {lat,lng};
-    showToast('✅ מיקום עודכן! יחול בבנייה הבאה');
-    renderMap();
-  }catch(e){
-    showToast('❌ שגיאה: '+e.message);
-  }
 }
 
 function showToast(msg, ms=2500){
@@ -1272,7 +1204,6 @@ function detectAddrGps(){
         st.aiClients=nearestNeighbor([...st.clients]);
         st.roadKm=null; st.roadGeometry=null; triggerOsrm();
         saveRoute(st.agent.code,st.day,st.clients);
-        if(GH_TOKEN) commitGpsCorrection(id, cl.custName||'', +lat.toFixed(6), +lng.toFixed(6));
         updateKmBar(); renderClientList();
         if(window.innerWidth>=700||st.tab==='map') renderMap();
         closeAddrModal();
@@ -1282,7 +1213,6 @@ function detectAddrGps(){
         st.aiClients=nearestNeighbor([...st.clients]);
         st.roadKm=null; st.roadGeometry=null; triggerOsrm();
         saveRoute(st.agent.code,st.day,st.clients);
-        if(GH_TOKEN) commitGpsCorrection(id, cl.custName||'', +lat.toFixed(6), +lng.toFixed(6));
         updateKmBar(); renderClientList();
         if(window.innerWidth>=700||st.tab==='map') renderMap();
         closeAddrModal();
@@ -1362,38 +1292,6 @@ function changeClientDay(custId,newDay){
   saveRoute(st.agent.code,st.day,st.clients);
   updateKmBar(); renderClientList();
   if(window.innerWidth>=700||st.tab==='map') renderMap();
-  if(GH_TOKEN) commitDayCorrection(custId, newDay);
-}
-
-async function commitDayCorrection(custId, newDay){
-  try{
-    const ghUrl = `https://api.github.com/repos/${GH_REPO}/contents/${GH_DAY_CORRECTIONS_PATH}`;
-    const headers = {'Authorization':'token '+GH_TOKEN,'Content-Type':'application/json'};
-    const cur = await fetch(ghUrl,{headers}).then(r=>r.json());
-    const existing = cur.content ? JSON.parse(atob(cur.content.replace(/\s/g,''))) : {};
-    const sha = cur.sha;
-    const cl = [...(st.clients||[]), ...(st.aiClients||[])].find(x=>String(x.custId)===String(custId))
-             || Object.values(STATIC_DATA?.routes||{}).flat().find(x=>String(x.custId)===String(custId))
-             || {};
-    existing[String(custId)] = {
-      agentCode: st.agent.code,
-      agentName: st.agent.name||'',
-      dayNum: newDay,
-      dayLabel: DAY_LABELS[newDay],
-      custName: cl.custName||'',
-      city: cl.city||'',
-      correctedAt: new Date().toISOString(),
-    };
-    const body = JSON.stringify({
-      message: `fix(day): ${custId} → יום ${DAY_LABELS[newDay]}`,
-      content: btoa(unescape(encodeURIComponent(JSON.stringify(existing, null, 2)))),
-      sha
-    });
-    const res = await fetch(ghUrl,{method:'PUT',headers,body});
-    if(!res.ok) throw new Error(await res.text());
-  }catch(e){
-    console.warn('day-correction save failed:', e.message);
-  }
 }
 
 // ── EXPORT CSV ─────────────────────────────────────────────────────────────
