@@ -294,13 +294,37 @@ EVALUATE DISTINCT(SELECTCOLUMNS(
   fs.writeFileSync(outPath, JSON.stringify(out));
   console.log(`✅ Saved → docs/formula-road-data.json (${(fs.statSync(outPath).size/1024).toFixed(0)} KB)`);
 
+  // Build client lookup for CSV enrichment
+  const clientLookup = {};
+  for (const key of Object.keys(routes)) {
+    for (const cl of routes[key]) {
+      if (cl.custId && !clientLookup[String(cl.custId)]) {
+        clientLookup[String(cl.custId)] = {
+          custName: cl.custName || '',
+          city:     cl.city    || '',
+          address:  cl.address || '',
+        };
+      }
+    }
+  }
+
   // Generate CSV of all corrections for Priority ERP import
   const corrIds = Object.keys(gpsCorrections);
   if (corrIds.length > 0) {
-    const csvLines = ['מס. לקוח,קו רוחב,קו אורך,תאריך תיקון,הערה'];
+    const csvLines = ['מס. לקוח,שם לקוח,עיר,כתובת,קו רוחב,קו אורך,תאריך תיקון'];
     for (const id of corrIds) {
-      const c = gpsCorrections[id];
-      csvLines.push(`${id},${c.lat},${c.lng},${c.correctedAt||''},${(c.note||'').replace(/,/g,' ')}`);
+      const c   = gpsCorrections[id];
+      const inf = clientLookup[id] || {};
+      const esc = s => `"${(s||'').replace(/"/g,'""')}"`;
+      csvLines.push([
+        id,
+        esc(c.name || inf.custName),
+        esc(inf.city),
+        esc(inf.address),
+        c.lat,
+        c.lng,
+        c.correctedAt || '',
+      ].join(','));
     }
     const csvPath = path.join(__dirname, '../docs/gps-corrections-export.csv');
     fs.writeFileSync(csvPath, '﻿' + csvLines.join('\n'), 'utf8'); // BOM for Excel Hebrew
