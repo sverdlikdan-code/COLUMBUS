@@ -697,10 +697,11 @@ function detectCity(){
       fetch(`https://nominatim.openstreetmap.org/reverse?lat=${st.startLat}&lon=${st.startLng}&format=json&accept-language=he`)
         .then(r=>r.json()).then(d=>{
           const a=d?.address||{};
-          const city=a.city||a.town||a.village||a.suburb||a.county||'';
+          const city=a.city||a.town||a.village||a.suburb||a.neighbourhood||a.municipality||a.county||a.state_district||'';
           const street=a.road?` · ${a.road}${a.house_number?' '+a.house_number:''}` : '';
           const label=city+(city&&street?street:'');
-          const display=label||`${st.startLat.toFixed(4)}, ${st.startLng.toFixed(4)}`;
+          const display=label||d?.display_name?.split(',')[0]||`${st.startLat.toFixed(4)}, ${st.startLng.toFixed(4)}`;
+          st.startCityName=display;
           document.getElementById('city-input').value=display;
           document.getElementById('city-confirm').disabled=false;
           btn.textContent='✅ '+display;
@@ -720,10 +721,11 @@ async function confirmCity(){
   const city=document.getElementById('city-input').value.trim();
   if(!city)return;
   st.startCity=city;
-  st.startLat=null; st.startLng=null;
-  // Try to geocode start city in background
-  fetch(`${API}/geocode?address=${encodeURIComponent(city)}&city=${encodeURIComponent(city)}`)
-    .then(r=>r.json()).then(d=>{if(d&&d.lat){st.startLat=d.lat;st.startLng=d.lng;}}).catch(()=>{});
+  // Keep GPS coords if they were captured (detectCity) — only geocode if we don't have them
+  if(!st.startLat || !st.startLng) {
+    fetch(`${API}/geocode?address=${encodeURIComponent(city)}&city=${encodeURIComponent(city)}`)
+      .then(r=>r.json()).then(d=>{if(d&&d.lat){st.startLat=d.lat;st.startLng=d.lng;}}).catch(()=>{});
+  }
   const wd = new Date().getDay(); // 0=Sun..6=Sat
   const todayDay = wd === 0 ? 1 : wd <= 4 ? wd + 1 : 1;
   selectDay(todayDay);
