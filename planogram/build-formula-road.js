@@ -31,6 +31,13 @@ const dayCorrections = fs.existsSync(DAY_CORRECTIONS_PATH)
   ? JSON.parse(fs.readFileSync(DAY_CORRECTIONS_PATH, 'utf8'))
   : {};
 
+// Persistent Azure Maps geocode cache — survives between builds
+const AZURE_CACHE_PATH = path.join(__dirname, '../docs/azure-geocode-cache.json');
+const azureCache = fs.existsSync(AZURE_CACHE_PATH)
+  ? JSON.parse(fs.readFileSync(AZURE_CACHE_PATH, 'utf8'))
+  : {};
+let azureCacheDirty = false;
+
 function isValidIL(lat, lng) {
   return lat && lng && lat >= IL.minLat && lat <= IL.maxLat && lng >= IL.minLng && lng <= IL.maxLng;
 }
@@ -112,6 +119,7 @@ async function nominatimQuery(q) {
 
 async function azureMapsQuery(q) {
   if (!process.env.AZURE_MAPS_KEY) return null;
+  if (q in azureCache) return azureCache[q];
   try {
     const url = `https://atlas.microsoft.com/geocode?api-version=2023-06-01&query=${encodeURIComponent(q)}&countrySet=IL,PS&subscription-key=${process.env.AZURE_MAPS_KEY}`;
     const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
@@ -119,9 +127,11 @@ async function azureMapsQuery(q) {
     const f = data?.features?.[0];
     if (f?.geometry?.coordinates) {
       const [lng, lat] = f.geometry.coordinates;
+      azureCache[q] = { lat, lng }; azureCacheDirty = true;
       return { lat, lng };
     }
   } catch (_) {}
+  azureCache[q] = null; azureCacheDirty = true;
   return null;
 }
 
@@ -377,6 +387,11 @@ EVALUATE DISTINCT(SELECTCOLUMNS(
     const dayPath = path.join(__dirname, '../docs/day-corrections-export.csv');
     fs.writeFileSync(dayPath, '﻿' + dayLines.join('\n'), 'utf8');
     console.log(`✅ Priority Day CSV → docs/day-corrections-export.csv (${dayIds.length} corrections)`);
+  }
+
+  if (azureCacheDirty) {
+    fs.writeFileSync(AZURE_CACHE_PATH, JSON.stringify(azureCache, null, 2));
+    console.log(`✅ Azure cache → docs/azure-geocode-cache.json (${Object.keys(azureCache).length} entries)`);
   }
 }
 
