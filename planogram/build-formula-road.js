@@ -175,9 +175,9 @@ function mapClient(r, dayNum) {
   const lookup = custId ? gpsLookup[String(custId)] : null;
   return {
     custId,
-    custName:      r['משטח[שם לקוח]'] || '',
-    city:          r['משטח[עיר]']     || '',
-    address:       r['משטח[כתובת]']   || '',
+    custName:      fixPriorityAddr(r['משטח[שם לקוח]'] || ''),
+    city:          fixPriorityAddr(r['משטח[עיר]']     || ''),
+    address:       fixPriorityAddr(r['משטח[כתובת]']   || ''),
     lat:           corr ? corr.lat : lookup ? lookup.lat : (r['משטח[קו רוחב]'] || null),
     lng:           corr ? corr.lng : lookup ? lookup.lng : (r['משטח[קו אורך]'] || null),
     gpsSource:     corr ? 'correction' : lookup ? 'lookup' : 'pbi',
