@@ -22,11 +22,11 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .screen.active{display:flex;}
 
 /* HEADER */
-.hdr{background:linear-gradient(135deg,var(--blue-deeper) 0%,var(--blue-dark) 60%,var(--blue) 100%);color:#fff;padding:10px 14px;flex-shrink:0;display:flex;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(13,71,161,.35);}
+.hdr{background:linear-gradient(135deg,var(--blue-deeper) 0%,var(--blue-dark) 60%,var(--blue) 100%);color:#fff;padding:10px 14px;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(13,71,161,.35);}
 .hdr-logo{height:38px;filter:brightness(0) invert(1);opacity:.92;flex-shrink:0;}
 .hdr-back{background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.45);color:#fff;font-size:16px;font-weight:800;cursor:pointer;padding:6px 14px;border-radius:20px;line-height:1;display:flex;align-items:center;gap:5px;white-space:nowrap;letter-spacing:.3px;transition:background .15s;}
 .hdr-back:hover{background:rgba(255,255,255,.3);}
-.hdr-center{flex:1;text-align:center;}
+.hdr-center{position:absolute;left:0;right:0;text-align:center;pointer-events:none;}
 .hdr-title{font-size:13px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:#fff;}
 .hdr-sub{font-size:11px;color:rgba(255,255,255,.7);margin-top:1px;}
 .sky-line{height:3px;background:linear-gradient(90deg,var(--sky),var(--blue));flex-shrink:0;}
@@ -79,7 +79,9 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .tab-bar{display:none !important;}
 .tab-btn{display:none;}
 .km-bar{display:flex;align-items:center;padding:5px 10px;background:#fff;border-bottom:1px solid var(--sky-mid);font-size:13px;color:var(--mid);flex-shrink:0;}
-.km-left{flex:1;display:flex;align-items:center;}
+.km-left{flex:1;display:flex;align-items:center;gap:6px;overflow:hidden;min-width:0;}
+.km-cities{flex:1;display:flex;gap:4px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;min-width:0;}
+.km-cities::-webkit-scrollbar{display:none;}
 .km-right{flex:1;display:flex;align-items:center;justify-content:flex-end;gap:8px;}
 .km-info{display:flex;align-items:center;gap:4px;flex-shrink:0;}
 .km-lbl{font-size:10px;color:var(--light);font-weight:600;}
@@ -101,8 +103,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 /* CLIENT LIST */
 #route-body{display:flex;flex:1;overflow:hidden;flex-direction:column;}
 #list-pane{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 10px 18px;min-width:0;background:var(--bg);}
-.city-filters{display:flex;flex-wrap:wrap;gap:4px;padding:4px 10px 3px;flex-shrink:0;background:#fff;border-bottom:1px solid var(--sky-mid);}
-.city-chip{padding:4px 11px;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--sky-mid);background:#fff;color:var(--mid);}
+.city-chip{padding:3px 9px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--sky-mid);background:#fff;color:var(--mid);white-space:nowrap;flex-shrink:0;}
 .city-chip.on{background:var(--blue);color:#fff;border-color:var(--blue);}
 
 /* CLIENT CARD */
@@ -278,6 +279,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
         <button class="sort-btn active-ai" id="sort-btn-ai" onclick="setSort('ai')">✦ AI</button>
         <button class="sort-btn" id="recalc-btn" onclick="recalcRoute()" style="border-color:var(--orange,#F57C00);color:var(--orange,#F57C00)">🔄</button>
       </div>
+      <div class="km-cities" id="city-filters"></div>
     </div>
     <div class="day-switch" id="day-switch"></div>
     <div class="km-right">
@@ -298,7 +300,6 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
       <button class="export-btn" id="export-btn" onclick="exportCSV()">💾</button>
     </div>
   </div>
-  <div class="city-filters" id="city-filters"></div>
   <div id="route-body">
     <div id="list-pane">
       <div id="client-list"></div>
