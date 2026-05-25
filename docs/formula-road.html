@@ -163,6 +163,10 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .export-btn{background:var(--blue);color:#fff;border:none;border-radius:12px;padding:0 14px;height:46px;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(21,101,192,.3);display:none;align-items:center;gap:5px;white-space:nowrap;flex-shrink:0;}
 .export-btn.visible{display:flex;}
 .export-btn:hover{background:var(--blue-dark);}
+.map-rotate-ctrl{position:absolute;bottom:24px;left:10px;z-index:1000;display:flex;flex-direction:column;gap:4px;}
+.map-rotate-btn{width:34px;height:34px;border-radius:10px;background:#fff;border:2px solid var(--sky-mid);color:var(--blue-dark);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.18);transition:background .12s;}
+.map-rotate-btn:hover{background:var(--sky-light);}
+.map-reset-btn{width:34px;height:20px;border-radius:8px;background:#fff;border:2px solid var(--sky-mid);color:var(--mid);font-size:9px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.12);letter-spacing:.5px;}
 
 /* LOGIN HERO */
 .login-hero{background:linear-gradient(160deg,var(--blue-deeper) 0%,var(--blue-dark) 50%,var(--blue) 100%);padding:28px 20px 22px;display:flex;flex-direction:column;align-items:center;gap:10px;flex-shrink:0;}
@@ -299,7 +303,14 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
     <div id="list-pane">
       <div id="client-list"></div>
     </div>
-    <div id="map-pane"><div id="map"></div></div>
+    <div id="map-pane" style="position:relative">
+      <div id="map"></div>
+      <div class="map-rotate-ctrl">
+        <button class="map-rotate-btn" onclick="rotateMap(-45)" title="↺ поворот влево">↺</button>
+        <button class="map-rotate-btn" onclick="rotateMap(45)" title="↻ поворот вправо">↻</button>
+        <button class="map-reset-btn" onclick="rotateMap(0,true)" title="сброс">N↑</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -325,6 +336,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
+<script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate-src.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
 const API = 'https://api.sverdlik-apps.site';
@@ -374,7 +386,7 @@ const st = {
   addrClientId:null, isDemo:false,
 };
 
-let map=null, mapMarkers=[], mapPolylines=[], sortable=null;
+let map=null, mapMarkers=[], mapPolylines=[], sortable=null, mapBearing=0;
 
 // ── Haversine ──────────────────────────────────────────────────────────────
 function haversineKm(la1,lo1,la2,lo2){
@@ -858,7 +870,7 @@ function setupSortable(){
 // ── MAP ────────────────────────────────────────────────────────────────────
 function renderMap(){
   if(!map){
-    map=L.map('map').setView([32.0,34.9],10);
+    map=L.map('map',{rotate:true,bearing:0}).setView([32.0,34.9],10);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',{attribution:'© CartoDB',subdomains:'abcd',maxZoom:19}).addTo(map);
   }
   mapMarkers.forEach(m=>m.remove()); mapMarkers=[];
@@ -901,6 +913,12 @@ function renderMap(){
   });
   if(bounds.length) map.fitBounds(bounds,{padding:[24,24]});
   setTimeout(()=>map.invalidateSize(),100);
+}
+
+function rotateMap(deg, reset){
+  if(reset){ mapBearing=0; }
+  else { mapBearing=(mapBearing+deg+360)%360; }
+  if(map && map.setBearing) map.setBearing(mapBearing);
 }
 
 // ── ADDRESS MODAL ──────────────────────────────────────────────────────────
