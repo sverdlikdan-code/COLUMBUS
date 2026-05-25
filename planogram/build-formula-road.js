@@ -44,12 +44,8 @@ function fixPriorityAddr(address) {
   if (!address) return address;
   // trim decimal fractions from numbers (Priority stores "52.000" → "52")
   let s = address.replace(/(\d+)\.\d+/g, '$1');
-  // if address looks reversed (no Hebrew vowel order — heuristic: starts with digits or ends with Hebrew)
-  const startsWithDigit = /^\s*\d/.test(s);
-  if (startsWithDigit) {
-    // reverse entire string, then re-reverse digit sequences so numbers stay correct
-    s = s.split('').reverse().join('').replace(/\d+/g, m => m.split('').reverse().join(''));
-  }
+  // strip Unicode directional marks if present (legacy export artifact)
+  s = s.replace(/[‎‏‪-‮]/g, '');
   return s.trim();
 }
 function cleanAddr(address) {
@@ -75,7 +71,7 @@ async function getCityBBox(city) {
   if (cityBBoxCache.has(city)) return cityBBoxCache.get(city);
   try {
     const data = await nominatim(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city+', ישראל')}&format=json&limit=1&countrycodes=il,ps`
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1&countrycodes=il,ps`
     );
     if (data.length && data[0].boundingbox) {
       const bb = data[0].boundingbox;
@@ -114,9 +110,9 @@ async function nominatimQuery(q) {
 async function geocodeOne(address, city) {
   const cleaned = cleanAddr(address);
   const attempts = [];
-  if (cleaned) attempts.push([cleaned, city, 'ישראל'].filter(Boolean).join(', '));
+  if (cleaned) attempts.push([cleaned, city].filter(Boolean).join(', '));
   const street = extractStreetNum(cleaned || address);
-  if (street && street !== cleaned) attempts.push([street, city, 'ישראל'].filter(Boolean).join(', '));
+  if (street && street !== cleaned) attempts.push([street, city].filter(Boolean).join(', '));
 
   for (let i = 0; i < attempts.length; i++) {
     const key = attempts[i];
