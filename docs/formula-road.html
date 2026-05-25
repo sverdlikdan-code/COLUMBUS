@@ -283,6 +283,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
         <button class="sort-btn" id="recalc-btn" onclick="recalcRoute()" style="border-color:var(--orange,#F57C00);color:var(--orange,#F57C00)">🔄</button>
         <button class="sort-btn" onclick="resetRoute()" title="איפוס יום" style="border-color:#b71c1c;color:#b71c1c">↩</button>
         <button class="export-btn" id="export-btn" onclick="exportCSV()"><span class="xls-icon">XL</span>שמור</button>
+        <button id="export-corr-btn" onclick="exportCorrections()" style="display:none;background:#1565C0;color:#fff;border:none;border-radius:20px;padding:5px 13px;height:36px;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(21,101,192,.35);white-space:nowrap;flex-shrink:0;">📍 הורד תיקוני GPS</button>
       </div>
       <div class="km-cities" id="city-filters"></div>
     </div>
@@ -370,7 +371,10 @@ async function loadGhToken(){
 async function loadCorrections(){
   try{
     const r=await fetch('./gps-corrections.json?_='+Date.now());
-    if(r.ok) gpsCorrections=await r.json();
+    if(r.ok){
+      gpsCorrections=await r.json();
+      if(Object.keys(gpsCorrections).length>0) document.getElementById('export-corr-btn').style.display='flex';
+    }
   }catch(_){}
 }
 
@@ -1414,6 +1418,27 @@ function exportCSV(){
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);
   a.download=`מסלול_${agent}_יום${day}_${today}.csv`;
+  a.click();
+}
+
+function exportCorrections(){
+  const entries=Object.entries(gpsCorrections);
+  if(!entries.length){alert('אין תיקוני GPS');return;}
+  const today=new Date().toISOString().slice(0,10);
+  const rows=[['מס. לקוח','שם לקוח','עיר','כתובת','קו רוחב','קו אורך','תאריך תיקון']];
+  entries.forEach(([id,c])=>rows.push([
+    id,
+    c.name||'',
+    c.city||'',
+    c.address||'',
+    c.lat||'',
+    c.lng||'',
+    c.correctedAt?c.correctedAt.slice(0,10):''
+  ]));
+  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);
+  a.download=`תיקוני_GPS_${today}.csv`;
   a.click();
 }
 
