@@ -80,11 +80,10 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 #route-hdr{flex-shrink:0;}
 .tab-bar{display:none !important;}
 .tab-btn{display:none;}
-.km-bar{display:flex;align-items:center;padding:5px 10px;background:#fff;border-bottom:1px solid var(--sky-mid);font-size:13px;color:var(--mid);flex-shrink:0;}
-.km-left{flex:1;display:flex;align-items:center;gap:6px;overflow:hidden;min-width:0;}
-.km-cities{flex:1;display:flex;gap:4px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;min-width:0;}
-.km-cities::-webkit-scrollbar{display:none;}
-.km-right{flex:1;display:flex;align-items:center;justify-content:flex-end;gap:8px;}
+.km-bar{display:flex;align-items:flex-start;padding:5px 10px;background:#fff;border-bottom:1px solid var(--sky-mid);font-size:13px;color:var(--mid);flex-shrink:0;}
+.km-left{flex:1;display:flex;align-items:flex-start;gap:6px;min-width:0;}
+.km-cities{flex:1;display:flex;gap:4px;flex-wrap:wrap;min-width:0;}
+.km-right{flex:1;display:flex;align-items:flex-start;justify-content:flex-end;gap:8px;}
 .km-info{display:flex;align-items:center;gap:4px;flex-shrink:0;}
 .km-lbl{font-size:10px;color:var(--light);font-weight:600;}
 .km-val{font-weight:900;color:var(--blue-dark);font-size:15px;}
@@ -94,7 +93,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .sort-btn{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:800;cursor:pointer;border:2px solid var(--sky-mid);background:none;color:var(--mid);transition:all .15s;}
 .sort-btn.active-priority{color:var(--blue);border-color:var(--blue);background:var(--sky-light);box-shadow:0 2px 8px rgba(21,101,192,.18);}
 .sort-btn.active-ai{color:var(--green);border-color:var(--green);background:#E8F5E9;box-shadow:0 2px 8px rgba(27,123,52,.18);}
-.day-switch{display:flex;gap:4px;flex-shrink:0;padding:0 6px;}
+.day-switch{display:flex;gap:4px;flex-shrink:0;padding:0 6px;align-self:flex-start;}
 .day-sw-btn{width:46px;height:46px;border-radius:12px;background:var(--sky-light);border:2px solid var(--sky-mid);font-size:20px;font-weight:900;color:var(--blue-dark);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;box-shadow:0 1px 4px rgba(21,101,192,.10);}
 .day-sw-btn:hover{background:var(--sky-mid);transform:translateY(-1px);}
 .day-sw-btn.active{background:var(--blue);color:#fff;border-color:var(--blue-dark);box-shadow:0 2px 8px rgba(21,101,192,.38);}
@@ -987,11 +986,14 @@ function renderMap(){
   markerCluster=L.markerClusterGroup({
     maxClusterRadius:50,disableClusteringAtZoom:16,
     iconCreateFunction(cluster){
-      const nums=cluster.getAllChildMarkers().map(m=>m._rn).join('/');
-      const n=cluster.getChildCount();
-      const sz=n<=2?42:48;
+      const rns=cluster.getAllChildMarkers().map(m=>m._rn).sort((a,b)=>a-b);
+      const n=rns.length;
+      const label=n===1?`${rns[0]}`:`${rns[0]}–${rns[n-1]}`;
+      const sz=44;
       return L.divIcon({className:'',
-        html:`<div style="background:#C9A84C;color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${n<=2?12:11}px;font-weight:900;border:2.5px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.35)">${nums}</div>`,
+        html:`<div style="background:#C9A84C;color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2.5px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.35)">
+          <span style="font-size:12px;font-weight:900;letter-spacing:-0.5px">${label}</span>
+        </div>`,
         iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
     }
   });
