@@ -154,7 +154,7 @@ async function geocodeBatch(clients) {
     if (isValidIL(c.lat, c.lng)) continue;
     if (extractStreetNum(c.address)) continue; // has number → will Nominatim below
     const bbox = cityBBoxCache.get(c.city);
-    if (bbox) { c.lat = (bbox.minLat + bbox.maxLat) / 2; c.lng = (bbox.minLng + bbox.maxLng) / 2; }
+    if (bbox) { c.lat = (bbox.minLat + bbox.maxLat) / 2; c.lng = (bbox.minLng + bbox.maxLng) / 2; c.gpsSource = 'city-center'; }
   }
 
   // cascade-geocode clients with street number still missing valid coords
