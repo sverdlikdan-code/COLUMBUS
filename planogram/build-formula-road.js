@@ -222,11 +222,7 @@ ADDCOLUMNS(
       FILTER('ALL_PARTS',
         'ALL_PARTS'[מספר לקוח]=EARLIER('משטח'[מס. לקוח])
         && 'ALL_PARTS'[חברה]="FORMULA")),
-  "יעד",
-    CALCULATE([יעד $],
-      FILTER('משטח',
-        'משטח'[מס. לקוח] = EARLIER('משטח'[מס. לקוח])
-        && 'משטח'[סטטוס] IN {"פעיל"}))
+  "יעד", CALCULATE([יעד $], 'משטח'[סטטוס] IN {"פעיל"})
 )
 ORDER BY [סדר ביקור_k] ASC`;
   const rows = await executeDax(dax);
