@@ -930,7 +930,7 @@ function renderClientList(html){
     const yedPart=c.target?`<span style="font-size:10px;color:var(--mid)">יעד: </span><span style="font-size:10px;font-weight:800;color:var(--mid)">₪${Math.round(c.target).toLocaleString()}</span>`:'';
     const pctPart=(()=>{
       if(!c.target) return '';
-      const pct=c.pct?Math.round(c.pct*100):(c.totalSales&&c.target?Math.round(c.totalSales/c.target*100):0);
+      const pct=c.target?Math.round((c.monthlySales||0)/c.target*100):0;
       const color=pct>=100?'var(--green)':pct>=70?'var(--sky)':'var(--red)';
       return `<span style="font-size:11px;font-weight:900;color:${color}">${pct}%</span>`;
     })();
