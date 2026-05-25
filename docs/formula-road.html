@@ -416,7 +416,29 @@ function nearestNeighbor(clients){
     result.push(chosen);
     curLat=chosen.lat; curLng=chosen.lng;
   }
-  return [...result,...noGps];
+  return [...twoOpt(result),...noGps];
+}
+
+// ── 2-opt: eliminates crossing edges ───────────────────────────────────────
+function twoOpt(route){
+  if(route.length<4) return route;
+  let best=[...route], improved=true;
+  const dist=(a,b)=>haversineKm(a.lat,a.lng,b.lat,b.lng);
+  while(improved){
+    improved=false;
+    for(let i=0;i<best.length-1;i++){
+      for(let j=i+2;j<best.length;j++){
+        if(j===best.length-1&&i===0) continue;
+        const d1=dist(best[i],best[i+1])+dist(best[j],best[(j+1)%best.length]);
+        const d2=dist(best[i],best[j])+dist(best[i+1],best[(j+1)%best.length]);
+        if(d2<d1-0.001){
+          best=[...best.slice(0,i+1),...best.slice(i+1,j+1).reverse(),...best.slice(j+1)];
+          improved=true;
+        }
+      }
+    }
+  }
+  return best;
 }
 
 function totalKm(clients){
