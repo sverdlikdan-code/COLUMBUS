@@ -324,6 +324,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
 const API = 'https://api.sverdlik-apps.site';
@@ -889,7 +890,12 @@ function renderMap(){
     const m=L.marker([c.lat,c.lng],{icon}).addTo(map);
     m.bindPopup(`<b>${c.custName}</b><br>${c.city||''}`);
     if(isSel) m.openPopup();
-    if(prev){const p=L.polyline([[prev.lat,prev.lng],[c.lat,c.lng]],{color:'#0F2044',weight:2,opacity:.5}).addTo(map);mapPolylines.push(p);}
+    if(prev){
+      const p=L.polyline([[prev.lat,prev.lng],[c.lat,c.lng]],{color:'#1565C0',weight:2.5,opacity:.55}).addTo(map);
+      mapPolylines.push(p);
+      const dec=L.polylineDecorator(p,{patterns:[{offset:'50%',repeat:0,symbol:L.Symbol.arrowHead({pixelSize:11,polygon:false,pathOptions:{stroke:true,color:'#1565C0',weight:2.5,opacity:.85}})}]}).addTo(map);
+      mapPolylines.push(dec);
+    }
     prev=c; bounds.push([c.lat,c.lng]);
     mapMarkers.push(m);
   });
