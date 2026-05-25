@@ -167,22 +167,22 @@ async function geocodeBatch(clients) {
 }
 
 function mapClient(r, dayNum) {
-  const custId = r['משטח עם כפולות[מס.לקוח]'];
+  const custId = r['משטח[מס. לקוח]'];
   const corr   = custId ? gpsCorrections[String(custId)] : null;
   const lookup = custId ? gpsLookup[String(custId)] : null;
   return {
     custId,
-    custName:      r['[שם לקוח]'] || r['משטח עם כפולות[שם לקוח]'] || '',
-    city:          r['[עיר]']    || '',
-    address:       r['[כתובת]']  || '',
-    lat:           corr ? corr.lat : lookup ? lookup.lat : (r['[lat]']  || null),
-    lng:           corr ? corr.lng : lookup ? lookup.lng : (r['[lng]']  || null),
+    custName:      r['משטח[שם לקוח]'] || '',
+    city:          r['משטח[עיר]']     || '',
+    address:       r['משטח[כתובת]']   || '',
+    lat:           corr ? corr.lat : lookup ? lookup.lat : (r['משטח[קו רוחב]'] || null),
+    lng:           corr ? corr.lng : lookup ? lookup.lng : (r['משטח[קו אורך]'] || null),
     gpsSource:     corr ? 'correction' : lookup ? 'lookup' : 'pbi',
-    agentCode:     r['משטח עם כפולות[סוכן]'],
-    agentName:     r['[שם סוכן]'] || r['משטח עם כפולות[שם סוכן]'] || '',
+    agentCode:     r['משטח[סוכן]'],
+    agentName:     r['משטח[שם סוכן]'] || '',
     dayNum,
-    dayLabel:      DAY_LABELS[dayNum] || r['משטח עם כפולות[יום]'],
-    priorityOrder: r['משטח עם כפולות[סדר ביקור]'] || 0,
+    dayLabel:      DAY_LABELS[dayNum],
+    priorityOrder: r['[סדר ביקור_k]'] || 0,
     lastOrderDate: r['[הזמנה אחרונה]'] ? r['[הזמנה אחרונה]'].split('T')[0] : null,
     monthlySales:  r['[מכירות חודש]']  || 0,
     totalSales:    r['[totalSales]']   || 0,
@@ -196,41 +196,39 @@ async function fetchClients(agentCode, dayNum) {
   const dax = `
 EVALUATE
 ADDCOLUMNS(
-  FILTER('משטח עם כפולות',
-    'משטח עם כפולות'[סוכן] = "${agentCode}"
-    && 'משטח עם כפולות'[יום] = "${dayLabel}"
+  FILTER('משטח',
+    'משטח'[סוכן] = "${agentCode}"
+    && NOT(ISBLANK(LOOKUPVALUE('משטח עם כפולות'[מס.לקוח],
+         'משטח עם כפולות'[מס.לקוח], 'משטח'[מס. לקוח],
+         'משטח עם כפולות'[יום], "${dayLabel}")))
   ),
-  "שם לקוח",  LOOKUPVALUE('משטח'[שם לקוח],  'משטח'[מס. לקוח], 'משטח עם כפולות'[מס.לקוח]),
-  "שם סוכן",  LOOKUPVALUE('משטח'[שם סוכן], 'משטח'[מס. לקוח], 'משטח עם כפולות'[מס.לקוח]),
-  "כתובת",    LOOKUPVALUE('משטח'[כתובת],   'משטח'[מס. לקוח], 'משטח עם כפולות'[מס.לקוח]),
-  "עיר",      LOOKUPVALUE('משטח'[עיר],     'משטח'[מס. לקוח], 'משטח עם כפולות'[מס.לקוח]),
-  "lat",      LOOKUPVALUE('משטח'[קו רוחב], 'משטח'[מס. לקוח], 'משטח עם כפולות'[מס.לקוח]),
-  "lng",      LOOKUPVALUE('משטח'[קו אורך], 'משטח'[מס. לקוח], 'משטח עם כפולות'[מס.לקוח]),
+  "סדר ביקור_k", LOOKUPVALUE('משטח עם כפולות'[סדר ביקור],
+                    'משטח עם כפולות'[מס.לקוח], 'משטח'[מס. לקוח],
+                    'משטח עם כפולות'[יום], "${dayLabel}"),
   "הזמנה אחרונה",
     CALCULATE(MAX('ALL_PARTS'[תאריך]),
       FILTER('ALL_PARTS',
-        'ALL_PARTS'[מספר לקוח]=EARLIER('משטח עם כפולות'[מס.לקוח])
+        'ALL_PARTS'[מספר לקוח]=EARLIER('משטח'[מס. לקוח])
         && 'ALL_PARTS'[חברה]="FORMULA")),
   "מכירות חודש",
     CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)],
       FILTER('ALL_PARTS',
-        'ALL_PARTS'[מספר לקוח]=EARLIER('משטח עם כפולות'[מס.לקוח])
+        'ALL_PARTS'[מספר לקוח]=EARLIER('משטח'[מס. לקוח])
         && 'ALL_PARTS'[חברה]="FORMULA"
         && YEAR('ALL_PARTS'[תאריך])=YEAR(TODAY())
         && MONTH('ALL_PARTS'[תאריך])=MONTH(TODAY()))),
   "totalSales",
     CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)],
       FILTER('ALL_PARTS',
-        'ALL_PARTS'[מספר לקוח]=EARLIER('משטח עם כפולות'[מס.לקוח])
+        'ALL_PARTS'[מספר לקוח]=EARLIER('משטח'[מס. לקוח])
         && 'ALL_PARTS'[חברה]="FORMULA")),
   "יעד",
     CALCULATE([יעד $],
       FILTER('משטח',
-        'משטח'[מס. לקוח] = EARLIER('משטח עם כפולות'[מס.לקוח])
-        && 'משטח'[סטטוס] IN {"פעיל"})),
-  "% ביצוע", BLANK()
+        'משטח'[מס. לקוח] = EARLIER('משטח'[מס. לקוח])
+        && 'משטח'[סטטוס] IN {"פעיל"}))
 )
-ORDER BY 'משטח עם כפולות'[סדר ביקור] ASC`;
+ORDER BY [סדר ביקור_k] ASC`;
   const rows = await executeDax(dax);
   return rows.map(r => mapClient(r, dayNum));
 }
