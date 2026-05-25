@@ -188,7 +188,6 @@ function mapClient(r, dayNum) {
     priorityOrder: r['[סדר ביקור_k]'] || 0,
     lastOrderDate: r['[הזמנה אחרונה]'] ? r['[הזמנה אחרונה]'].split('T')[0] : null,
     monthlySales:  r['[מכירות חודש]']  || 0,
-    totalSales:    r['[totalSales]']   || 0,
     target:        r['[יעד]']          || 0,
     pct:           (() => { const m = r['[מכירות חודש]'] || 0; const t = r['[יעד]'] || 0; return t > 0 ? m / t : 0; })(),
   };
@@ -220,11 +219,6 @@ ADDCOLUMNS(
         && 'ALL_PARTS'[חברה]="FORMULA"
         && YEAR('ALL_PARTS'[תאריך])=YEAR(TODAY())
         && MONTH('ALL_PARTS'[תאריך])=MONTH(TODAY()))),
-  "totalSales",
-    CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)],
-      FILTER('ALL_PARTS',
-        'ALL_PARTS'[מספר לקוח]=EARLIER('משטח'[מס. לקוח])
-        && 'ALL_PARTS'[חברה]="FORMULA")),
   "יעד", CALCULATE([יעד $], 'משטח'[סטטוס] IN {"פעיל"})
 )
 ORDER BY [סדר ביקור_k] ASC`;
