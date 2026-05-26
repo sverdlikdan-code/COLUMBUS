@@ -197,16 +197,17 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .login-section{padding:16px 14px 6px;font-size:11px;font-weight:800;color:var(--sky);letter-spacing:2px;text-transform:uppercase;}
 /* MANAGER LIST — brand palette from logo */
 .mgr-wrap{display:flex;flex-direction:column;padding:10px 14px 16px;flex:1;}
-.mgr-label{font-size:11px;font-weight:700;color:#50A0D0;letter-spacing:1.2px;text-transform:uppercase;padding:0 2px 8px;text-align:right;}
-.mgr-list{display:flex;flex-direction:column;gap:0;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(26,63,124,.13);}
-.mgr-row{display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid #e8f4ff;cursor:pointer;transition:background .15s;background:#fdfdff;}
-.mgr-row:last-child{border-bottom:none;}
-.mgr-row:hover{background:#e8f9ff;}
-.mgr-row:active{background:#d0f0ff;}
-.mgr-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(145deg,#1A3F7C,#50A0D0);color:#fff;font-size:15px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;letter-spacing:.5px;box-shadow:0 2px 8px rgba(26,63,124,.25);}
-.mgr-row-name{flex:1;font-size:16px;font-weight:800;color:#1A3F7C;letter-spacing:.2px;}
-.mgr-badge{background:#C9A84C;color:#fff;font-size:10px;font-weight:900;padding:2px 8px;border-radius:20px;letter-spacing:.3px;white-space:nowrap;}
-.mgr-chevron{color:#009FFF;font-size:18px;line-height:1;opacity:.7;}
+.mgr-label{font-size:11px;font-weight:700;color:#50A0D0;letter-spacing:1.2px;text-transform:uppercase;padding:0 2px 10px;text-align:right;}
+.mgr-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.mgr-tile{background:linear-gradient(150deg,#1A3F7C 0%,#2E6FAD 100%);border-radius:18px;padding:18px 10px 14px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;transition:transform .12s,box-shadow .12s;box-shadow:0 3px 14px rgba(26,63,124,.22);position:relative;overflow:hidden;}
+.mgr-tile::before{content:'';position:absolute;top:-20px;right:-20px;width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,.06);}
+.mgr-tile:hover{transform:translateY(-2px);box-shadow:0 7px 22px rgba(26,63,124,.32);}
+.mgr-tile:active{transform:scale(.96);}
+.mgr-tile-av{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);color:#fff;font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:center;letter-spacing:.5px;}
+.mgr-tile-name{font-size:15px;font-weight:900;color:#fff;letter-spacing:.3px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+.mgr-tile-stats{display:flex;flex-direction:column;align-items:center;gap:1px;margin-top:2px;}
+.mgr-tile-s1{font-size:11px;font-weight:800;color:#C9A84C;letter-spacing:.2px;}
+.mgr-tile-s2{font-size:10px;font-weight:700;color:rgba(255,255,255,.65);}
 
 /* AGENT LIST */
 .agent-wrap{display:flex;flex-direction:column;padding:10px 14px 16px;flex:1;}
@@ -649,24 +650,35 @@ function renderLogin(){
       <div style="flex:1;display:flex;flex-direction:column;overflow-y:auto;">
         <div class="mgr-wrap">
           <div class="mgr-label">בחר מנהל</div>
-          <div class="mgr-list">${DEMO_MANAGERS.map(m=>{
+          <div class="mgr-grid">${DEMO_MANAGERS.map(m=>{
             const initials=m.replace(/[^A-Za-zא-ת]/g,'').slice(0,2).toUpperCase()||m.slice(0,2).toUpperCase();
-            return `<div class="mgr-row" onclick="selectManager('${m}')" role="button" aria-label="${m}">
-              <div class="mgr-avatar">${initials}</div>
-              <div class="mgr-row-name">${m}</div>
-              <div class="mgr-badge" id="mc-${m}"></div>
-              <div class="mgr-chevron">›</div>
+            return `<div class="mgr-tile" onclick="selectManager('${m}')" role="button" aria-label="${m}">
+              <div class="mgr-tile-av">${initials}</div>
+              <div class="mgr-tile-name">${m}</div>
+              <div class="mgr-tile-stats">
+                <div class="mgr-tile-s1" id="mc-ag-${m}"></div>
+                <div class="mgr-tile-s2" id="mc-cl-${m}"></div>
+              </div>
             </div>`;
           }).join('')}</div>
         </div>
       </div>`;
-    // fill manager agent counts
+    // fill manager tile stats
     if(STATIC_DATA?.agentsByManager){
       DEMO_MANAGERS.forEach(m=>{
-        const el=document.getElementById('mc-'+m);
-        if(!el)return;
-        const count=(STATIC_DATA.agentsByManager[m]||[]).length;
-        el.textContent=count?count+' סוכנים':'';
+        const elAg=document.getElementById('mc-ag-'+m);
+        const elCl=document.getElementById('mc-cl-'+m);
+        const agents=STATIC_DATA.agentsByManager[m]||[];
+        if(elAg) elAg.textContent=agents.length?agents.length+' סוכנים':'';
+        if(elCl&&STATIC_DATA.routes){
+          const uniq=new Set();
+          agents.forEach(a=>{
+            [1,2,3,4,5].forEach(d=>{
+              (STATIC_DATA.routes[`${a.agentCode}_${d}`]||[]).forEach(c=>uniq.add(c.custId));
+            });
+          });
+          if(uniq.size) elCl.textContent=uniq.size+' לקוחות פעילים';
+        }
       });
     }
   }else{
