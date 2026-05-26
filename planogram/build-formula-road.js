@@ -363,19 +363,33 @@ EVALUATE DISTINCT(SELECTCOLUMNS(
   // Generate CSV of all corrections for Priority ERP import
   const corrIds = Object.keys(gpsCorrections);
   if (corrIds.length > 0) {
-    const csvLines = ['מס. לקוח,שם לקוח,עיר,כתובת,קו רוחב,קו אורך,תאריך תיקון'];
-    for (const id of corrIds) {
+    const now = new Date();
+    const fmtDate = iso => {
+      if (!iso) return '';
+      const d = new Date(iso);
+      const pad = n => String(n).padStart(2, '0');
+      return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+    const daysSince = iso => {
+      if (!iso) return '';
+      const diff = Math.floor((now - new Date(iso)) / 86400000);
+      return diff === 0 ? 'היום' : diff === 1 ? 'אתמול' : `לפני ${diff} ימים`;
+    };
+    const csvLines = ['מס. לקוח,שם לקוח,עיר,כתובת,קו רוחב,קו אורך,תאריך תיקון,ימים'];
+    const sorted = corrIds.slice().sort((a,b) => new Date(gpsCorrections[b].correctedAt||0) - new Date(gpsCorrections[a].correctedAt||0));
+    for (const id of sorted) {
       const c   = gpsCorrections[id];
       const inf = clientLookup[id] || {};
       const esc = s => `"${(s||'').replace(/"/g,'""')}"`;
       csvLines.push([
         id,
         esc(c.name || inf.custName),
-        esc(inf.city),
-        esc(inf.address),
+        esc(inf.city || c.city),
+        esc(inf.address || c.address),
         c.lat,
         c.lng,
-        c.correctedAt || '',
+        esc(fmtDate(c.correctedAt)),
+        esc(daysSince(c.correctedAt)),
       ].join(','));
     }
     const csvPath = path.join(__dirname, '../docs/gps-corrections-export.csv');
