@@ -1377,8 +1377,11 @@ function renderMap(){
       const prev=list[i-1];
       const p=L.polyline([[prev.lat,prev.lng],[c.lat,c.lng]],{color:'#1565C0',weight:2.5,opacity:.55}).addTo(map);
       mapPolylines.push(p);
-      const dec=L.polylineDecorator(p,{patterns:[{offset:'50%',repeat:0,symbol:L.Symbol.arrowHead({pixelSize:11,polygon:false,pathOptions:{stroke:true,color:'#1565C0',weight:2.5,opacity:.85}})}]}).addTo(map);
-      mapPolylines.push(dec);
+      const segKm=haversineKm(prev.lat,prev.lng,c.lat,c.lng);
+      if(segKm>0.15){
+        const dec=L.polylineDecorator(p,{patterns:[{offset:'50%',repeat:0,symbol:L.Symbol.arrowHead({pixelSize:11,polygon:false,pathOptions:{stroke:true,color:'#1565C0',weight:2.5,opacity:.85}})}]}).addTo(map);
+        mapPolylines.push(dec);
+      }
     });
   }
   map.addLayer(markerCluster);
