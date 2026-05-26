@@ -126,7 +126,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .c-num{width:24px;height:24px;border-radius:50%;background:var(--sky-light);border:1.5px solid var(--sky-mid);font-size:11px;font-weight:800;color:var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .c-num-walk{background:#E8F5E9;border-color:var(--green);color:var(--green);}
 .selected .c-num{background:var(--blue);color:#fff;border-color:var(--blue);}
-.c-id-side{font-size:9px;font-weight:700;color:var(--blue);opacity:.7;white-space:nowrap;letter-spacing:-.2px;}
+.c-id-side{font-size:8px;font-weight:700;color:#fff;background:#9e9e9e;border-radius:4px;padding:2px 5px;white-space:nowrap;flex-shrink:0;align-self:center;}
 .c-drag{color:var(--light);font-size:15px;cursor:grab;flex-shrink:0;touch-action:none;user-select:none;width:28px;height:20px;display:flex;align-items:center;justify-content:center;}
 .c-body{flex:1;min-width:0;}
 .c-name{font-size:13px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;}
@@ -1172,7 +1172,6 @@ function renderClientList(html){
     return `<div class="${cls}" data-id="${c.custId}" ondblclick="selectClient('${c.custId}')">
       <div class="c-num-wrap">
         <span class="c-num${inWalk?' c-num-walk':''}">${i+1}</span>
-        <span class="c-id-side">${c.custId||''}</span>
         <span class="c-drag">✋</span>
         ${inWalk?`<span class="walk-icon">🚶</span>`:''}
       </div>
@@ -1180,6 +1179,7 @@ function renderClientList(html){
         <div class="c-name">${nameLine}</div>
         <div class="c-sub">${[lastOrder,yedPart,sales,pctPart,indicPart].filter(Boolean).join(SEP)}</div>
       </div>
+      ${c.custId?`<span class="c-id-side">${c.custId}</span>`:''}
       <span class="day-change-btn" data-id="${c.custId}" onclick="openDayPopup(event,this.dataset.id)">📅</span>
       ${noGps
         ? `<span class="no-gps-badge" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name)">NO GPS</span>`
