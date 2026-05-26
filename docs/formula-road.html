@@ -1342,7 +1342,7 @@ function renderMap(){
     const _di=_hasDupe?(_coordIdx[_ck]=(_coordIdx[_ck]||0)+1)-1:0;
     const mLat = isCityCenter ? c.lat+((id*7+3)%17-8)*0.00015 : _hasDupe ? c.lat+((_di*7+3)%17-8)*0.00015 : c.lat;
     const mLng = isCityCenter ? c.lng+((id*13+5)%19-9)*0.00015 : _hasDupe ? c.lng+((_di*13+5)%19-9)*0.00015 : c.lng;
-    const m=L.marker([mLat,mLng],{icon});
+    const m=L.marker([mLat,mLng],{icon,zIndexOffset:isSel?1000:0});
     m._rn=i+1;
     const corrMark = gpsCorrections[String(c.custId)] ? ' ✏️' : '';
     const approxNote = isCityCenter ? '<br><span style="font-size:11px;color:#FF8C00">⚠ מיקום משוער — מרכז עיר</span>' : '';
