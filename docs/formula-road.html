@@ -213,6 +213,17 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .mgr-tile-s1{font-size:11px;font-weight:800;color:#C9A84C;letter-spacing:.2px;}
 .mgr-tile-s2{font-size:10px;font-weight:700;color:rgba(255,255,255,.65);}
 
+/* CODE ENTRY (RLS login) */
+.code-entry{display:flex;flex-direction:column;align-items:center;gap:20px;padding:40px 24px;flex:1;justify-content:center;}
+.code-entry input{width:180px;text-align:center;font-size:32px;font-weight:900;border:2.5px solid #1A3F7C;border-radius:16px;padding:14px 10px;color:#1A3F7C;outline:none;background:#f0f6ff;letter-spacing:4px;}
+.code-entry input:focus{border-color:#009FFF;box-shadow:0 0 0 3px rgba(0,159,255,.15);}
+.code-entry-btn{background:#1A3F7C;color:#fff;border:none;border-radius:20px;padding:14px 44px;font-size:17px;font-weight:900;cursor:pointer;min-width:180px;transition:background .15s;}
+.code-entry-btn:active{background:#0d2b5a;}
+.code-entry-err{color:#b71c1c;font-size:13px;font-weight:700;min-height:18px;text-align:center;}
+.logout-wrap{display:flex;flex-direction:column;align-items:center;gap:16px;padding:40px 24px;flex:1;justify-content:center;}
+.logout-name{font-size:20px;font-weight:900;color:#1A3F7C;text-align:center;}
+.logout-btn{background:#fff;color:#b71c1c;border:2px solid #b71c1c;border-radius:20px;padding:12px 36px;font-size:15px;font-weight:800;cursor:pointer;}
+
 /* AGENT LIST */
 .agent-wrap{display:flex;flex-direction:column;padding:10px 14px 16px;flex:1;}
 .agent-list{display:flex;flex-direction:column;gap:0;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(26,63,124,.13);}
@@ -300,6 +311,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
       <div class="hdr-title" id="route-title">FORMULA ROAD</div>
       <div class="hdr-sub" id="route-sub"></div>
     </div>
+    <button id="logout-btn" onclick="logout()" style="display:none;background:none;border:none;color:rgba(255,255,255,.7);font-size:11px;font-weight:700;cursor:pointer;padding:4px 8px;letter-spacing:.5px;" title="יציאה">✕ יציאה</button>
   </div>
   <div class="sky-line"></div>
   <div class="tab-bar">
@@ -609,7 +621,23 @@ function show(id){
 }
 
 function goBack(from){
-  if(from==='s-city'){st.step='manager';renderLogin();show('s-login');}
+  if(from==='s-city'){
+    const auth=_loadAuth();
+    if(auth&&!auth.isManager){
+      // Agent — back shows logout option
+      const body=document.getElementById('login-body');
+      const sub=document.getElementById('login-sub');
+      sub.textContent='';
+      body.innerHTML=`<div class="logout-wrap">
+        <div class="logout-name">שלום, ${auth.name}</div>
+        <button class="code-entry-btn" onclick="show('s-city')" style="background:#1A3F7C;">← חזרה למסלול</button>
+        <button class="logout-btn" onclick="logout()">יציאה מהמערכת</button>
+      </div>`;
+      show('s-login');
+    } else {
+      st.step='manager';renderLogin();show('s-login');
+    }
+  }
   else if(from==='s-day'){show('s-city');}
   else if(from==='s-route'){show('s-city');}
 }
@@ -618,37 +646,88 @@ function goBack(from){
 async function initLogin(){
   await loadStaticData();
   await loadCorrections();
+
+  // RLS: check saved session
+  const saved = _loadAuth();
+  if(saved){
+    if(saved.isManager){
+      // Manager — show full picker
+      _setupManagerPicker();
+      renderLogin();
+      show('s-login');
+    } else {
+      // Agent — skip picker, go directly to city
+      st.agent={code:saved.code,name:saved.name};
+      document.getElementById('city-agent-label').textContent=saved.name;
+      buildCityChips();
+      show('s-city');
+      document.getElementById('logout-btn').style.display='';
+    }
+    return;
+  }
+
+  // No auth — show code entry
   renderLogin();
   show('s-login');
+}
+
+function _loadAuth(){
+  try{ return JSON.parse(localStorage.getItem('frAgent')||'null'); }catch{ return null; }
+}
+
+function _setupManagerPicker(){
   if(STATIC_DATA){
-    // Use pre-built static data
     DEMO_MANAGERS.length=0;
     STATIC_DATA.managers.forEach(m=>DEMO_MANAGERS.push(m));
     document.getElementById('demo-tag').style.display='none';
-  }else{
-    try{
-      const r=await fetch(API+'/managers');
-      if(!r.ok)throw new Error();
-      const data=await r.json();
-      const list=data.map(m=>m.managerCode).filter(Boolean);
-      if(list.length){
-        DEMO_MANAGERS.length=0;
-        list.forEach(m=>DEMO_MANAGERS.push(m));
-        document.getElementById('demo-tag').style.display='none';
-      }else{
-        document.getElementById('demo-tag').style.display='';
-      }
-    }catch{
-      document.getElementById('demo-tag').style.display='';
-      st.isDemo=true;
-    }
   }
-  renderLogin();
+}
+
+function doLogin(code){
+  code=String(code||'').trim();
+  const agentData=STATIC_DATA?.agents?.[code];
+  const err=document.getElementById('login-err');
+  if(!agentData){
+    if(err) err.textContent='מספר סוכן לא נמצא ❌';
+    return;
+  }
+  const payload={code, name:agentData.name, isManager:!!agentData.isManager};
+  localStorage.setItem('frAgent',JSON.stringify(payload));
+  if(agentData.isManager){
+    _setupManagerPicker();
+    st.step='manager';
+    renderLogin();
+  } else {
+    st.agent={code, name:agentData.name};
+    document.getElementById('city-agent-label').textContent=agentData.name;
+    buildCityChips();
+    show('s-city');
+    document.getElementById('logout-btn').style.display='';
+  }
+}
+
+function logout(){
+  localStorage.removeItem('frAgent');
+  window.location.reload();
 }
 
 function renderLogin(){
   const body=document.getElementById('login-body');
   const sub=document.getElementById('login-sub');
+  // If no auth at all — show code entry screen
+  if(!_loadAuth()){
+    sub.textContent='הזן מספר סוכן';
+    body.innerHTML=`<div class="code-entry">
+      <input id="agent-code-inp" type="number" inputmode="numeric" pattern="[0-9]*"
+        placeholder="000" autofocus
+        onkeydown="if(event.key==='Enter')doLogin(this.value)"
+        oninput="document.getElementById('login-err').textContent=''"/>
+      <button class="code-entry-btn" onclick="doLogin(document.getElementById('agent-code-inp').value)">כניסה →</button>
+      <div id="login-err" class="code-entry-err"></div>
+    </div>`;
+    setTimeout(()=>document.getElementById('agent-code-inp')?.focus(),100);
+    return;
+  }
   if(st.step==='manager'){
     sub.textContent='מערכת ניהול מסלולים';
     body.innerHTML=`
@@ -838,6 +917,9 @@ async function initRoute(){
   setTab('list');
   buildDaySwitcher();
   fillWorkDaysBar();
+  // Show logout button only for RLS-authenticated agents (not managers using picker)
+  const _auth=_loadAuth();
+  document.getElementById('logout-btn').style.display=(_auth&&!_auth.isManager)?'':'none';
   renderClientList('<div class="spinner"><div class="spin"></div><span>טוען לקוחות...</span></div>');
   document.getElementById('km-val').textContent='—';
 
