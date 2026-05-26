@@ -1182,11 +1182,15 @@ function renderClientList(html){
         <div class="c-name">${nameLine}</div>
         <div class="c-sub">${[lastOrder,yedPart,sales,pctPart,indicPart].filter(Boolean).join(SEP)}</div>
       </div>
-      ${c.custId?`<span class="c-id-side">${c.custId}</span>`:''}
-      <span class="day-change-btn" data-id="${c.custId}" onclick="openDayPopup(event,this.dataset.id)">📅</span>
-      ${noGps
-        ? `<span class="no-gps-badge" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name)">NO GPS</span>`
-        : `<span class="gps-edit-btn"  data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name)">📍</span>`}
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;">
+        ${c.custId?`<span class="c-id-side">${c.custId}</span>`:''}
+        <div style="display:flex;align-items:center;gap:0;">
+          <span class="day-change-btn" data-id="${c.custId}" onclick="openDayPopup(event,this.dataset.id)">📅</span>
+          ${noGps
+            ? `<span class="no-gps-badge" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name)">NO GPS</span>`
+            : `<span class="gps-edit-btn"  data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name)">📍</span>`}
+        </div>
+      </div>
     </div>`;
   }).join('');
 }
