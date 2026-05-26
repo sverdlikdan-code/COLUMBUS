@@ -1165,18 +1165,18 @@ function renderClientList(html){
       const old=days>14;
       return `<span style="${old?'color:var(--red);font-weight:700':''}">הזמנה: ${label}${old?` (${days}d)`:''}</span>`;
     })();
-    const sales=c.monthlySales?`<span style="color:var(--sky);font-weight:800;font-size:12px;">₪${Math.round(c.monthlySales).toLocaleString()}</span> <span style="font-size:10px;color:var(--light)">החודש</span>`:`<span title="אין מכירות החודש">😥</span>`;
-    const yedPart=c.target?`<span style="font-size:10px;color:var(--mid)">יעד: </span><span style="font-size:10px;font-weight:800;color:var(--mid)">₪${Math.round(c.target).toLocaleString()}</span>`:'';
+    const sales=c.monthlySales?`<span style="font-weight:700;color:var(--text)">₪${Math.round(c.monthlySales).toLocaleString()}</span><span style="font-size:10px;color:var(--light)"> החודש</span>`:'';
     const pctPart=(()=>{
       if(!c.target) return '';
-      const pct=c.target?Math.round((c.monthlySales||0)/c.target*100):0;
-      const color=pct>=100?'var(--green)':pct>=70?'var(--sky)':'var(--red)';
-      return `<span style="font-size:11px;font-weight:900;color:${color}">${pct}%</span>`;
+      const pct=Math.round((c.monthlySales||0)/c.target*100);
+      return `<span style="font-size:11px;font-weight:700;color:var(--mid)">${pct}%</span>`;
     })();
     const indic=c.indication||(c.target?calcIndication(c.monthlySales||0,c.target):'');
-    const indicPart=indic?`<span style="font-size:13px;">${indic}</span>`:'';
+    const indicPart=(indic&&indic!=='🚀')?`<span style="font-size:13px;">${indic}</span>`:'';
     const SEP='<span style="color:var(--light)"> · </span>';
-    const nameLine=[shortName(c.custName,c.city)||c.custName||'',c.city,c.address].filter(Boolean).join(' · ');
+    const shortN=shortName(c.custName,c.city)||c.custName||'';
+    const cityInName=c.city&&shortN.includes(c.city);
+    const nameLine=[shortN,cityInName?'':c.city,c.address].filter(Boolean).join(' · ');
     return `<div class="${cls}" data-id="${c.custId}" ondblclick="selectClient('${c.custId}')">
       <div class="c-num-wrap">
         <span class="c-num${inWalk?' c-num-walk':''}">${i+1}</span>
@@ -1185,7 +1185,7 @@ function renderClientList(html){
       </div>
       <div class="c-body">
         <div class="c-name">${nameLine}</div>
-        <div class="c-sub">${[lastOrder,yedPart,sales,pctPart,indicPart].filter(Boolean).join(SEP)}</div>
+        <div class="c-sub">${[lastOrder,sales,pctPart,indicPart].filter(Boolean).join(SEP)}</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;">
         ${c.custId?`<span class="c-id-side">${c.custId}</span>`:''}
