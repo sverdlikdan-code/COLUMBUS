@@ -39,6 +39,21 @@ const azureCache = fs.existsSync(AZURE_CACHE_PATH)
   : {};
 let azureCacheDirty = false;
 
+function workingDaysPct() {
+  const now = new Date();
+  const yesterday = now.getDate() - 1; // today is incomplete — count up to yesterday
+  const y = now.getFullYear(), m = now.getMonth();
+  const dim = new Date(y, m + 1, 0).getDate();
+  let total = 0, passed = 0;
+  for (let d = 1; d <= dim; d++) {
+    if (new Date(y, m, d).getDay() <= 4) { // Sun(0)–Thu(4)
+      total++;
+      if (d <= yesterday) passed++;
+    }
+  }
+  return total ? passed / total : 0;
+}
+
 function isValidIL(lat, lng) {
   return lat && lng && lat >= IL.minLat && lat <= IL.maxLat && lng >= IL.minLng && lng <= IL.maxLng;
 }
@@ -251,11 +266,13 @@ function mapClient(r, dayNum) {
     monthlySales:  r['[מכירות חודש]']  || 0,
     target:        r['[יעד]']          || 0,
     pct:           (() => { const m = r['[מכירות חודש]'] || 0; const t = r['[יעד]'] || 0; return t > 0 ? m / t : 0; })(),
+    indication:    r['[indication]'] || null,
   };
 }
 
 async function fetchClients(agentCode, dayNum) {
   const dayLabel = DAY_LABELS[dayNum];
+  const daysPct  = workingDaysPct();
   const dax = `
 EVALUATE
 ADDCOLUMNS(
@@ -280,7 +297,17 @@ ADDCOLUMNS(
         && 'ALL_PARTS'[חברה]="FORMULA"
         && YEAR('ALL_PARTS'[תאריך])=YEAR(TODAY())
         && MONTH('ALL_PARTS'[תאריך])=MONTH(TODAY()))),
-  "יעד", CALCULATE([יעד $], 'משטח'[סטטוס] IN {"פעיל"})
+  "יעד", CALCULATE([יעד $], 'משטח'[סטטוס] IN {"פעיל"}),
+  "indication",
+    VAR target = CALCULATE([יעד $], 'משטח'[סטטוס] IN {"פעיל"})
+    VAR sales  = CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)],
+      FILTER('ALL_PARTS',
+        'ALL_PARTS'[מספר לקוח]=EARLIER('משטח'[מס. לקוח])
+        && 'ALL_PARTS'[חברה]="FORMULA"
+        && YEAR('ALL_PARTS'[תאריך])=YEAR(TODAY())
+        && MONTH('ALL_PARTS'[תאריך])=MONTH(TODAY())))
+    RETURN IF(target = 0, BLANK(),
+      IF(DIVIDE(sales, target) - ${daysPct} < -0.05, "😕", "🚀"))
 )
 ORDER BY [סדר ביקור_k] ASC`;
   const rows = await executeDax(dax);
