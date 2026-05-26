@@ -875,7 +875,12 @@ function detectCity(){
           const city=a.city||a.town||a.village||a.suburb||a.neighbourhood||a.municipality||a.county||a.state_district||'';
           const street=a.road?` · ${a.road}${a.house_number?' '+a.house_number:''}` : '';
           const label=city+(city&&street?street:'');
-          const display=label||d?.display_name?.split(',')[0]||`${st.startLat.toFixed(4)}, ${st.startLng.toFixed(4)}`;
+          let display=label;
+          if(!display&&d?.display_name){
+            const parts=d.display_name.split(',').map(s=>s.trim());
+            display=parts.find(p=>/[א-ת]/.test(p))||'';
+          }
+          if(!display) display='מיקום GPS';
           st.startCityName=display;
           document.getElementById('city-input').value=display;
           document.getElementById('city-confirm').disabled=false;
