@@ -525,42 +525,28 @@ function twoOpt(route){
 // ── OSRM real-road routing ──────────────────────────────────────────────────
 const OSRM_CACHE = new Map();
 
-async function osrmTrip(clients) {
-  const withGps = clients.filter(c => c.lat && c.lng);
-  const noGps   = clients.filter(c => !c.lat || !c.lng);
-  if (withGps.length < 2) return null;
+async function osrmRoadData(clients) {
+  if (clients.length < 2) return null;
   const hasStart = !!(st.startLat && st.startLng);
-  const cacheKey = (hasStart?`${st.startLat.toFixed(4)},${st.startLng.toFixed(4)}|`:'')+
-    withGps.map(c=>`${c.custId}:${(c.lat||0).toFixed(4)},${(c.lng||0).toFixed(4)}`).join('|');
-  if (OSRM_CACHE.has(cacheKey)) {
-    const cached = OSRM_CACHE.get(cacheKey);
-    return { ...cached, ordered:[...cached.ordered,...noGps] };
-  }
-  // Prepend actual start coordinate so OSRM optimizes from agent's location
   const startPt = hasStart ? `${st.startLng},${st.startLat};` : '';
-  const coords = startPt + withGps.map(c=>`${c.lng},${c.lat}`).join(';');
-  const clientOffset = hasStart ? 1 : 0;
+  const coords = startPt + clients.map(c=>`${c.lng},${c.lat}`).join(';');
+  const cacheKey = 'geom|'+(hasStart?`${st.startLat.toFixed(4)},${st.startLng.toFixed(4)}|`:'')+
+    clients.map(c=>`${c.custId}:${(c.lat||0).toFixed(4)},${(c.lng||0).toFixed(4)}`).join('|');
+  if (OSRM_CACHE.has(cacheKey)) return OSRM_CACHE.get(cacheKey);
   try {
     const r = await fetch(
-      `https://router.project-osrm.org/trip/v1/driving/${coords}?roundtrip=false&source=first&destination=any&geometries=geojson&overview=full&steps=false`,
+      `https://router.project-osrm.org/route/v1/driving/${coords}?geometries=geojson&overview=full&steps=false`,
       { signal: AbortSignal.timeout(10000) }
     );
     const data = await r.json();
-    if (data.code !== 'Ok' || !data.trips?.length) return null;
-    const trip = data.trips[0];
-    // waypoints: index 0 = start point (skip), rest = clients
-    const ordered = new Array(withGps.length);
-    data.waypoints.forEach((wp,i) => {
-      if (i < clientOffset) return; // skip start point
-      ordered[wp.waypoint_index - (hasStart ? 1 : 0)] = withGps[i - clientOffset];
-    });
+    if (data.code !== 'Ok' || !data.routes?.length) return null;
+    const route = data.routes[0];
     const result = {
-      ordered: ordered.filter(Boolean),
-      roadKm: trip.distance / 1000,
-      roadGeometry: trip.geometry.coordinates.map(([lon,lat]) => [lat,lon])
+      roadKm: route.distance / 1000,
+      roadGeometry: route.geometry.coordinates.map(([lon,lat]) => [lat,lon])
     };
     OSRM_CACHE.set(cacheKey, result);
-    return { ...result, ordered:[...result.ordered,...noGps] };
+    return result;
   } catch (_) { return null; }
 }
 
@@ -588,16 +574,23 @@ async function osrmRoute(clients) {
 
 function triggerOsrm() {
   const snap = { clients:[...st.clients], agentCode:st.agent?.code, day:st.day };
-  osrmTrip(snap.clients).then(res => {
+  // 2-opt order (instant, no API)
+  const ordered = nearestNeighbor([...snap.clients]);
+  if (st.agent?.code === snap.agentCode && st.day === snap.day) {
+    st.aiClients = ordered;
+    if (st.sortMode === 'ai') renderClientList();
+  }
+  // OSRM /route/ for road geometry with 2-opt order
+  const withGps = ordered.filter(c => c.lat && c.lng);
+  osrmRoadData(withGps).then(res => {
     if (!res) return;
     if (st.agent?.code !== snap.agentCode || st.day !== snap.day) return;
-    st.aiClients  = res.ordered;
-    st.roadKm     = res.roadKm;
+    st.roadKm = res.roadKm;
     st.roadGeometry = res.roadGeometry;
     updateKmBar();
-    if (st.sortMode === 'ai') renderClientList();
     if (window.innerWidth >= 700 || st.tab === 'map') renderMap();
   });
+  // priority km (fixed visit order)
   osrmRoute(snap.clients).then(km => {
     if (km == null) return;
     if (st.agent?.code !== snap.agentCode || st.day !== snap.day) return;
@@ -1039,13 +1032,17 @@ function recalcRoute(){
   const btn = document.getElementById('recalc-btn');
   btn.textContent = '⏳ כביש...'; btn.disabled = true;
   const snap = { agentCode:st.agent?.code, day:st.day };
-  osrmTrip([...st.clients]).then(res => {
+  OSRM_CACHE.clear();
+  const ordered = nearestNeighbor([...st.clients]);
+  st.aiClients = ordered;
+  updateKmBar(); renderClientList();
+  const withGps = ordered.filter(c => c.lat && c.lng);
+  osrmRoadData(withGps).then(res => {
     btn.disabled = false;
-    btn.textContent = res ? '✅ כביש!' : '✅ חושב!';
-    setTimeout(() => { btn.textContent = '🔄 חשב מחדש'; }, 1800);
+    btn.textContent = '🔄 חשב מחדש';
     if (!res || st.agent?.code !== snap.agentCode || st.day !== snap.day) return;
-    st.aiClients = res.ordered; st.roadKm = res.roadKm; st.roadGeometry = res.roadGeometry;
-    updateKmBar(); renderClientList();
+    st.roadKm = res.roadKm; st.roadGeometry = res.roadGeometry;
+    updateKmBar();
     if (st.tab === 'map' || window.innerWidth >= 700) renderMap();
   });
 }
