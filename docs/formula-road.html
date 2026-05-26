@@ -973,6 +973,23 @@ function toggleCity(city){
 
 function haversineM(la1,lo1,la2,lo2){return haversineKm(la1,lo1,la2,lo2)*1000;}
 
+function calcIndication(monthlySales, target) {
+  if (!target) return '';
+  const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  let totalWork = 0, passedWork = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dow = new Date(y, m, d).getDay(); // 0=Sun … 6=Sat
+    if (dow <= 4) { // Sun-Thu = Israeli work days
+      totalWork++;
+      if (d <= now.getDate()) passedWork++;
+    }
+  }
+  const daysPct = totalWork ? passedWork / totalWork : 0;
+  return (monthlySales / target - daysPct) < -0.05 ? '😕' : '🚀';
+}
+
 function shortName(name, city) {
   if (!city || !name) return name;
   const esc = city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -1020,7 +1037,8 @@ function renderClientList(html){
       const color=pct>=100?'var(--green)':pct>=70?'var(--sky)':'var(--red)';
       return `<span style="font-size:11px;font-weight:900;color:${color}">${pct}%</span>`;
     })();
-    const indicPart=c.indication?`<span style="font-size:13px;">${c.indication}</span>`:'';
+    const indic=c.target?calcIndication(c.monthlySales||0,c.target):'';
+    const indicPart=indic?`<span style="font-size:13px;">${indic}</span>`:'';
     const SEP='<span style="color:var(--light)"> · </span>';
     const nameLine=[shortName(c.custName,c.city)||c.custName||'',c.city,c.address].filter(Boolean).join(' · ');
     return `<div class="${cls}" data-id="${c.custId}" ondblclick="selectClient('${c.custId}')">
