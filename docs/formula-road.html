@@ -183,23 +183,32 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .login-tagline{font-size:12px;color:rgba(255,255,255,.6);letter-spacing:1px;}
 .login-sky-bar{height:4px;background:linear-gradient(90deg,var(--sky),var(--blue));flex-shrink:0;}
 .login-section{padding:16px 14px 6px;font-size:11px;font-weight:800;color:var(--sky);letter-spacing:2px;text-transform:uppercase;}
-.mgr-grid{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:10px;padding:6px 14px 14px;flex:1;}
-.mgr-card{border-radius:18px;padding:22px 16px 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;color:#fff;
-  box-shadow:0 2px 0 rgba(0,0,0,.25) inset, 0 -3px 0 rgba(0,0,0,.2) inset, 0 8px 20px rgba(0,0,0,.22), 0 2px 4px rgba(0,0,0,.15);
-  transition:transform .1s,box-shadow .1s;position:relative;overflow:hidden;border-top:1px solid rgba(255,255,255,.35);}
-.mgr-card::after{content:'';position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(to bottom,rgba(255,255,255,.18),transparent);border-radius:18px 18px 0 0;pointer-events:none;}
-.mgr-card:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.25) inset,0 -1px 0 rgba(0,0,0,.2) inset,0 3px 8px rgba(0,0,0,.2);}
-.mgr-card:hover{transform:translateY(-2px);box-shadow:0 2px 0 rgba(0,0,0,.25) inset,0 -3px 0 rgba(0,0,0,.2) inset,0 14px 28px rgba(0,0,0,.25);}
-.mgr-name{font-size:clamp(26px,5vw,36px);font-weight:900;letter-spacing:1px;text-shadow:0 1px 3px rgba(0,0,0,.25);text-align:center;}
-.mgr-count{font-size:11px;opacity:.75;min-height:14px;}
+/* MANAGER LIST — brand palette from logo */
+.mgr-wrap{display:flex;flex-direction:column;padding:10px 14px 16px;flex:1;}
+.mgr-label{font-size:11px;font-weight:700;color:#50A0D0;letter-spacing:1.2px;text-transform:uppercase;padding:0 2px 8px;text-align:right;}
+.mgr-list{display:flex;flex-direction:column;gap:0;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(26,63,124,.13);}
+.mgr-row{display:flex;align-items:center;gap:14px;padding:14px 16px;border-bottom:1px solid #e8f4ff;cursor:pointer;transition:background .15s;background:#fdfdff;}
+.mgr-row:last-child{border-bottom:none;}
+.mgr-row:hover{background:#e8f9ff;}
+.mgr-row:active{background:#d0f0ff;}
+.mgr-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(145deg,#1A3F7C,#50A0D0);color:#fff;font-size:15px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;letter-spacing:.5px;box-shadow:0 2px 8px rgba(26,63,124,.25);}
+.mgr-row-name{flex:1;font-size:16px;font-weight:800;color:#1A3F7C;letter-spacing:.2px;}
+.mgr-badge{background:#C9A84C;color:#fff;font-size:10px;font-weight:900;padding:2px 8px;border-radius:20px;letter-spacing:.3px;white-space:nowrap;}
+.mgr-chevron{color:#009FFF;font-size:18px;line-height:1;opacity:.7;}
 
-/* AGENT CARDS (when manager selected) */
-.agent-grid{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:10px;padding:6px 14px 14px;flex:1;}
-.agent-card{background:#fff;border-radius:14px;padding:16px 14px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;box-shadow:0 2px 10px rgba(21,101,192,.10);transition:transform .12s,box-shadow .12s;border-top:4px solid;}
-.agent-card:active{transform:scale(.96);}
-.agent-card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(21,101,192,.18);}
-.agent-avatar{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#fff;}
-.agent-name{font-size:13px;font-weight:800;color:var(--text);text-align:center;}
+/* AGENT LIST */
+.agent-wrap{display:flex;flex-direction:column;padding:10px 14px 16px;flex:1;}
+.agent-list{display:flex;flex-direction:column;gap:0;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(26,63,124,.13);}
+.agent-row{display:flex;align-items:center;gap:14px;padding:13px 16px;border-bottom:1px solid #e8f4ff;cursor:pointer;transition:background .15s;background:#fdfdff;}
+.agent-row:last-child{border-bottom:none;}
+.agent-row:hover{background:#e8f9ff;}
+.agent-row:active{background:#d0f0ff;}
+.agent-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(145deg,#1A3F7C,#50A0D0);color:#fff;font-size:14px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(26,63,124,.2);}
+.agent-row-name{flex:1;font-size:15px;font-weight:800;color:#1A3F7C;}
+.agent-row-count{font-size:12px;color:#50A0D0;font-weight:600;}
+.agent-chevron{color:#009FFF;font-size:18px;line-height:1;opacity:.7;}
+
+/* legacy agent-count used elsewhere */
 .agent-count{font-size:11px;color:var(--mid);min-height:16px;}
 </style>
 </head>
@@ -593,32 +602,49 @@ function renderLogin(){
   if(st.step==='manager'){
     sub.textContent='מערכת ניהול מסלולים';
     body.innerHTML=`
-      <div style="flex:1;display:flex;flex-direction:column;">
-        <div class="login-section">בחר מנהל</div>
-        <div class="mgr-grid">${DEMO_MANAGERS.map(m=>{
-          const color=MGR_COLORS[m]||'#1565C0';
-          return `<div class="mgr-card" style="background:linear-gradient(160deg,${color}ee 0%,${color} 60%,${color}cc 100%)" onclick="selectManager('${m}')">
-            <div class="mgr-name">${m}</div>
-            <div class="mgr-count" id="mc-${m}"></div>
-          </div>`;
-        }).join('')}</div>
+      <div style="flex:1;display:flex;flex-direction:column;overflow-y:auto;">
+        <div class="mgr-wrap">
+          <div class="mgr-label">בחר מנהל</div>
+          <div class="mgr-list">${DEMO_MANAGERS.map(m=>{
+            const initials=m.replace(/[^A-Za-zא-ת]/g,'').slice(0,2).toUpperCase()||m.slice(0,2).toUpperCase();
+            return `<div class="mgr-row" onclick="selectManager('${m}')" role="button" aria-label="${m}">
+              <div class="mgr-avatar">${initials}</div>
+              <div class="mgr-row-name">${m}</div>
+              <div class="mgr-badge" id="mc-${m}"></div>
+              <div class="mgr-chevron">›</div>
+            </div>`;
+          }).join('')}</div>
+        </div>
       </div>`;
+    // fill manager agent counts
+    if(STATIC_DATA?.agentsByManager){
+      DEMO_MANAGERS.forEach(m=>{
+        const el=document.getElementById('mc-'+m);
+        if(!el)return;
+        const count=(STATIC_DATA.agentsByManager[m]||[]).length;
+        el.textContent=count?count+' סוכנים':'';
+      });
+    }
   }else{
     sub.textContent=`${st.manager}`;
-    const color=MGR_COLORS[st.manager]||'#1565C0';
     const agents=st._agents||[];
     body.innerHTML=`
-      <div style="flex:1;display:flex;flex-direction:column;">
-        <div style="padding:12px 14px 4px;display:flex;align-items:center;gap:10px;flex-shrink:0;">
-          <button onclick="goBack('s-city')" style="background:${color}18;border:1.5px solid ${color}55;color:${color};font-size:13px;font-weight:800;cursor:pointer;padding:6px 14px;border-radius:20px;display:flex;align-items:center;gap:4px;">← חזור</button>
-          <span style="font-size:13px;font-weight:900;color:${color};letter-spacing:1px;">בחר סוכן</span>
+      <div style="flex:1;display:flex;flex-direction:column;overflow-y:auto;">
+        <div class="agent-wrap">
+          <div style="display:flex;align-items:center;gap:10px;padding:0 2px 10px;">
+            <button onclick="goBack('s-city')" style="background:#e8f4ff;border:1.5px solid #50A0D0;color:#1A3F7C;font-size:13px;font-weight:800;cursor:pointer;padding:7px 14px;border-radius:20px;display:flex;align-items:center;gap:4px;min-height:36px;">← חזור</button>
+            <span style="font-size:11px;font-weight:700;color:#50A0D0;letter-spacing:1.2px;text-transform:uppercase;">בחר סוכן</span>
+          </div>
+          <div class="agent-list">${agents.map(a=>{
+            const initials=a.agentName.replace(/[^A-Za-zא-ת]/g,'').slice(0,2).toUpperCase()||a.agentName.slice(0,2).toUpperCase();
+            return `<div class="agent-row" onclick="selectAgent('${a.agentCode}','${a.agentName.replace(/'/g,"\\'")}')">
+              <div class="agent-avatar">${initials}</div>
+              <div class="agent-row-name">${a.agentName}</div>
+              <div class="agent-row-count" id="cnt-${a.agentCode}"></div>
+              <div class="agent-chevron">›</div>
+            </div>`;
+          }).join('')}</div>
         </div>
-        <div class="agent-grid">${agents.map(a=>`
-          <div class="agent-card" style="border-top-color:${color}" onclick="selectAgent('${a.agentCode}','${a.agentName.replace(/'/g,"\\'")}')">
-            <div class="agent-avatar" style="background:${color}">${a.agentName[0]}</div>
-            <div class="agent-name">${a.agentName}</div>
-            <div class="agent-count" id="cnt-${a.agentCode}">...</div>
-          </div>`).join('')}</div>
       </div>`;
     agents.forEach(a=>{
       const el=document.getElementById('cnt-'+a.agentCode);
