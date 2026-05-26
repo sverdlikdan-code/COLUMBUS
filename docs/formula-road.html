@@ -89,6 +89,10 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .km-val{font-weight:900;color:var(--blue-dark);font-size:15px;}
 .km-unit{font-size:10px;color:var(--light);}
 .km-saving{background:#E8F5E9;color:var(--green);font-weight:800;font-size:11px;padding:2px 7px;border-radius:10px;border:1px solid #A5D6A7;}
+.wd-bar{display:flex;gap:10px;align-items:center;flex-shrink:0;padding:0 6px;}
+.wd-item{display:flex;flex-direction:column;align-items:center;min-width:28px;}
+.wd-num{font-size:14px;font-weight:900;color:var(--blue-dark);line-height:1;}
+.wd-lbl{font-size:8px;color:var(--light);font-weight:600;white-space:nowrap;margin-top:2px;}
 .sort-btns{display:flex;gap:5px;}
 .sort-btn{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:800;cursor:pointer;border:2px solid var(--sky-mid);background:none;color:var(--mid);transition:all .15s;}
 .sort-btn.active-priority{color:var(--blue);border-color:var(--blue);background:var(--sky-light);box-shadow:0 2px 8px rgba(21,101,192,.18);}
@@ -317,6 +321,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
       </div>
       <div class="km-cities" id="city-filters"></div>
     </div>
+    <div class="wd-bar" id="wd-bar"></div>
     <div class="day-switch" id="day-switch"></div>
     <div class="km-right">
       <div class="km-info">
@@ -832,6 +837,7 @@ async function initRoute(){
   document.getElementById('export-btn').classList.remove('visible');
   setTab('list');
   buildDaySwitcher();
+  fillWorkDaysBar();
   renderClientList('<div class="spinner"><div class="spin"></div><span>טוען לקוחות...</span></div>');
   document.getElementById('km-val').textContent='—';
 
@@ -1001,6 +1007,27 @@ function calcIndication(monthlySales, target) {
   }
   const daysPct = totalWork ? passedWork / totalWork : 0;
   return (monthlySales / target - daysPct) < -0.05 ? '😕' : '🚀';
+}
+
+function fillWorkDaysBar() {
+  const now = new Date();
+  const yesterday = now.getDate() - 1;
+  const y = now.getFullYear(), m = now.getMonth();
+  const dim = new Date(y, m + 1, 0).getDate();
+  let totalWork = 0, passedWork = 0;
+  for (let d = 1; d <= dim; d++) {
+    if (new Date(y, m, d).getDay() <= 4) {
+      totalWork++;
+      if (d <= yesterday) passedWork++;
+    }
+  }
+  const pct = totalWork ? Math.round(passedWork / totalWork * 100) : 0;
+  const el = document.getElementById('wd-bar');
+  if (!el) return;
+  el.innerHTML =
+    `<div class="wd-item"><span class="wd-num">${totalWork}</span><span class="wd-lbl">ימי עבודה החודש</span></div>` +
+    `<div class="wd-item"><span class="wd-num">${passedWork}</span><span class="wd-lbl">ימי עבודה שעברו</span></div>` +
+    `<div class="wd-item"><span class="wd-num">${pct}%</span><span class="wd-lbl">% ימים שעברו</span></div>`;
 }
 
 function shortName(name, city) {
