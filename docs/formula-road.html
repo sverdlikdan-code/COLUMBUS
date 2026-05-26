@@ -957,6 +957,12 @@ async function initRoute(){
     }
   });
 
+  // Apply GPS corrections (localStorage + gps-corrections.json) to client objects
+  st.clients=st.clients.map(c=>{
+    const corr=gpsCorrections[String(c.custId)];
+    return corr?{...c,lat:corr.lat,lng:corr.lng,gpsSource:'correction'}:c;
+  });
+
   st.aiClients=nearestNeighbor([...st.clients]);
   st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; triggerOsrm();
   updateKmBar();
