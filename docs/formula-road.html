@@ -107,31 +107,36 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .city-chip{padding:3px 9px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--sky-mid);background:#fff;color:var(--mid);white-space:nowrap;flex-shrink:0;}
 .city-chip.on{background:var(--blue);color:#fff;border-color:var(--blue);}
 
-/* CLIENT CARD */
-.client-card{background:#fff;border-radius:8px;padding:4px 8px;margin-bottom:2px;display:flex;align-items:center;gap:5px;box-shadow:0 1px 4px rgba(21,101,192,.07);position:relative;cursor:pointer;border-right:3px solid var(--sky-mid);touch-action:pan-y;transition:box-shadow .12s;}
+/* CLIENT CARD — distill: background-tint states instead of side-stripe */
+.client-card{background:#fff;border-radius:8px;padding:6px 8px;margin-bottom:2px;display:flex;align-items:center;gap:5px;box-shadow:0 1px 4px rgba(21,101,192,.07);position:relative;cursor:pointer;touch-action:pan-y;transition:box-shadow .12s;}
 .client-card:hover{box-shadow:0 3px 12px rgba(21,101,192,.14);}
-.client-card.no-gps{border-right-color:var(--orange);}
-.client-card.selected{border-right-color:var(--blue);background:var(--sky-light);}
-.client-card.ai-diff{border-right-color:var(--green);}
-.client-card.walk-card{border-right-color:var(--green);}
+.client-card.no-gps{background:#FFF8F0;}
+.client-card.selected{background:var(--sky-light);box-shadow:0 2px 10px rgba(21,101,192,.18);}
+.client-card.ai-diff{background:#F1FBF4;}
+.client-card.walk-card{background:#F1FBF4;}
 .client-card.walk-top{margin-bottom:2px;border-radius:10px 10px 4px 4px;}
 .client-card.walk-mid{margin-bottom:2px;border-radius:4px;margin-top:0;}
 .client-card.walk-bottom{border-radius:4px 4px 10px 10px;margin-top:0;}
 .c-num-wrap{display:flex;flex-direction:column;align-items:center;gap:1px;flex-shrink:0;}
 .walk-icon{font-size:11px;line-height:1;}
-.c-num{width:20px;height:20px;border-radius:50%;background:var(--sky-light);border:1.5px solid var(--sky-mid);font-size:10px;font-weight:800;color:var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+/* adapt: larger visual + touch zone */
+.c-num{width:26px;height:26px;border-radius:50%;background:var(--sky-light);border:1.5px solid var(--sky-mid);font-size:11px;font-weight:800;color:var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .c-num-walk{background:#E8F5E9;border-color:var(--green);color:var(--green);}
 .selected .c-num{background:var(--blue);color:#fff;border-color:var(--blue);}
 .c-body{flex:1;min-width:0;}
-.c-name{font-size:12px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;}
-.c-sub{font-size:9px;color:var(--mid);margin-top:0;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.c-drag{color:var(--light);font-size:14px;cursor:grab;padding:0 1px;flex-shrink:0;touch-action:none;user-select:none;}
+.c-name{font-size:13px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;}
+/* typeset: 9px → 11px */
+.c-sub{font-size:11px;color:var(--mid);margin-top:1px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.c-drag{color:var(--light);font-size:18px;cursor:grab;flex-shrink:0;touch-action:none;user-select:none;/* adapt: 44px touch zone */min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;}
 .no-gps-icon{display:none;}
-.no-gps-badge{font-size:10px;font-weight:900;color:#fff;background:var(--red);padding:3px 8px;border-radius:8px;flex-shrink:0;cursor:pointer;letter-spacing:.5px;white-space:nowrap;}
-.gps-edit-btn{font-size:16px;flex-shrink:0;cursor:pointer;opacity:.35;transition:opacity .15s;padding:2px;}
-.gps-edit-btn:hover{opacity:.8;}
-.day-change-btn{font-size:15px;flex-shrink:0;cursor:pointer;opacity:.3;transition:opacity .15s;padding:2px;margin-right:2px;}
+.no-gps-badge{font-size:11px;font-weight:900;color:#fff;background:var(--red);padding:4px 10px;border-radius:8px;flex-shrink:0;cursor:pointer;letter-spacing:.5px;white-space:nowrap;}
+/* adapt: 44px touch zones for icon buttons */
+.gps-edit-btn{font-size:16px;flex-shrink:0;cursor:pointer;opacity:.4;transition:opacity .15s;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;}
+.gps-edit-btn:hover{opacity:.85;}
+.day-change-btn{font-size:16px;flex-shrink:0;cursor:pointer;opacity:.35;transition:opacity .15s;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;}
 .day-change-btn:hover{opacity:.9;}
+/* harden: prefers-reduced-motion */
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important;}}
 #day-popup{position:fixed;background:#fff;border-radius:14px;box-shadow:0 6px 28px rgba(0,0,0,.18);padding:10px 12px;display:none;gap:7px;z-index:9999;align-items:center;}
 #day-popup.open{display:flex;}
 .day-pop-btn{width:42px;height:42px;border-radius:11px;background:var(--sky-light);border:2px solid var(--sky-mid);font-size:17px;font-weight:900;color:var(--blue-dark);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s;}
@@ -280,8 +285,8 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
       <div class="sort-btns">
         <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')">לפי סדר ביקור</button>
         <button class="sort-btn active-ai" id="sort-btn-ai" onclick="setSort('ai')">לפי AI</button>
-        <button class="sort-btn" id="recalc-btn" onclick="recalcRoute()" style="border-color:var(--orange,#F57C00);color:var(--orange,#F57C00)">🔄</button>
-        <button class="sort-btn" onclick="resetRoute()" title="איפוס יום" style="border-color:#b71c1c;color:#b71c1c">↩</button>
+        <button class="sort-btn" id="recalc-btn" onclick="recalcRoute()" aria-label="חישוב מסלול מחדש" style="border-color:var(--orange,#F57C00);color:var(--orange,#F57C00)">🔄</button>
+        <button class="sort-btn" onclick="resetRoute()" aria-label="איפוס סדר היום" title="איפוס יום" style="border-color:#b71c1c;color:#b71c1c">↩</button>
         <button class="export-btn" id="export-btn" onclick="exportCSV()"><span class="xls-icon">XL</span>שמור</button>
       </div>
       <div class="km-cities" id="city-filters"></div>
@@ -299,8 +304,8 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
         <span id="km-saving-wrap" style="display:none" class="km-saving">חיסכון ↓<span id="km-saving">—</span> km</span>
       </div>
       <div class="tab-inline">
-        <button class="tab-inline-btn active" id="tab-inline-list" onclick="setTab('list')">📋</button>
-        <button class="tab-inline-btn" id="tab-inline-map" onclick="setTab('map')">🗺</button>
+        <button class="tab-inline-btn active" id="tab-inline-list" onclick="setTab('list')" aria-label="רשימת לקוחות">📋</button>
+        <button class="tab-inline-btn" id="tab-inline-map" onclick="setTab('map')" aria-label="מפת מסלול">🗺</button>
       </div>
     </div>
   </div>
@@ -375,7 +380,9 @@ async function loadStaticData(){
       if(dt&&STATIC_DATA.updatedAt){
         const d=new Date(STATIC_DATA.updatedAt);
         const fmt=n=>String(n).padStart(2,'0');
-        dt.textContent=`עודכן: ${fmt(d.getDate())}/${fmt(d.getMonth()+1)}/${d.getFullYear()} ${fmt(d.getHours())}:${fmt(d.getMinutes())}`;
+        const h=d.getHours();
+        const tod=h<12?'בוקר':h<18?'צהריים':'ערב';
+        dt.textContent=`עודכן: ${fmt(d.getDate())}/${fmt(d.getMonth()+1)}/${d.getFullYear()} ${fmt(h)}:${fmt(d.getMinutes())} (${tod})`;
       }
     }
   }catch(_){ console.log('ℹ️ No static data, using live API'); }
@@ -891,7 +898,7 @@ function renderClientList(html){
   const el=document.getElementById('client-list');
   if(html){el.innerHTML=html;return;}
   const list=displayClients();
-  if(!list.length){el.innerHTML='<div class="spinner" style="padding:40px"><span>אין לקוחות</span></div>';return;}
+  if(!list.length){el.innerHTML=`<div style="padding:40px 20px;text-align:center;color:var(--mid)"><div style="font-size:36px;margin-bottom:12px">📭</div><div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px">אין לקוחות ביום זה</div><div style="font-size:12px">נסה לשנות את הסינון או בחר יום אחר</div></div>`;return;}
   el.innerHTML=list.map((c,i)=>{
     const noGps=!c.lat||!c.lng;
     const isSel=st.selectedId===c.custId;
