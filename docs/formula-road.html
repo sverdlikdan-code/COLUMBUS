@@ -1047,8 +1047,11 @@ function recalcRoute(){
 }
 
 function updateKmBar(){
-  const priorityKm=st.priorityRoadKm!=null?st.priorityRoadKm:totalKm(st.clients);
-  const aiKm=st.roadKm!=null?st.roadKm:totalKm(st.aiClients);
+  const filtered=st.selectedCities.length>0;
+  const shownPriority=filtered?st.clients.filter(c=>st.selectedCities.includes(c.city)):st.clients;
+  const shownAi=filtered?st.aiClients.filter(c=>st.selectedCities.includes(c.city)):st.aiClients;
+  const priorityKm=filtered?totalKm(shownPriority):(st.priorityRoadKm!=null?st.priorityRoadKm:totalKm(st.clients));
+  const aiKm=filtered?totalKm(shownAi):(st.roadKm!=null?st.roadKm:totalKm(st.aiClients));
   document.getElementById('km-val').textContent=priorityKm!=null?priorityKm.toFixed(1):'—';
   document.getElementById('km-ai').textContent=aiKm!=null?aiKm.toFixed(1):'—';
   const aiLbl=document.getElementById('km-ai-lbl');
