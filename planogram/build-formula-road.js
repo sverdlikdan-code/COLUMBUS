@@ -6,8 +6,35 @@
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const fs   = require('fs');
 const path = require('path');
+const XLSX = require('xlsx');
 const { executeDax } = require('../server/powerbi');
 const { fetchLastRefresh } = require('./pbi-kapua');
+
+const USERS_EXCEL = path.join(__dirname, '../USERS - PASSWORD.xlsx');
+function readAgentsFromExcel() {
+  if (!fs.existsSync(USERS_EXCEL)) return {};
+  try {
+    const wb = XLSX.readFile(USERS_EXCEL);
+    const ws = wb.Sheets['DataSheet'];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+    const header = rows[0] || [];
+    const mgrIdx = header.findIndex(h => String(h || '').includes('מנהל'));
+    const agents = {};
+    rows.slice(1).forEach(row => {
+      const code = String(row[0] || '').trim();
+      const name = String(row[1] || '').trim();
+      const inactive = String(row[19] || '');
+      if (!code || code === '000' || code.startsWith('999') || code.startsWith('91') || code.startsWith('92') || code.startsWith('93') || inactive === 'Y') return;
+      if (!agents[code]) {
+        agents[code] = { name, isManager: mgrIdx >= 0 && row[mgrIdx] == 1 };
+      }
+    });
+    return agents;
+  } catch (e) {
+    console.warn('readAgentsFromExcel failed:', e.message);
+    return {};
+  }
+}
 
 const DAY_LABELS = { 1:'א', 2:'ב', 3:'ג', 4:'ד', 5:'ה' };
 const IL = { minLat:29.3, maxLat:33.5, minLng:34.2, maxLng:35.9 };
@@ -363,11 +390,13 @@ EVALUATE DISTINCT(SELECTCOLUMNS(
 
   // 4. Save — use PBI SERVER DATE TIME as updatedAt (same as planogram editor)
   const pbiRefreshRaw = await fetchLastRefresh().catch(() => null);
+  const agents = readAgentsFromExcel();
   const out = {
     updatedAt: pbiRefreshRaw || new Date().toISOString(),
     managers,
     agentsByManager,
     routes,
+    agents,
   };
   const outPath = path.join(__dirname, '../docs/formula-road-data.json');
   fs.writeFileSync(outPath, JSON.stringify(out));
