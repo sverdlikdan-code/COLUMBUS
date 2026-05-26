@@ -683,27 +683,33 @@ function _setupManagerPicker(){
   }
 }
 
+const MANAGER_PASS = '***REDACTED***';
+
 function doLogin(code){
   code=String(code||'').trim();
-  const agentData=STATIC_DATA?.agents?.[code];
   const err=document.getElementById('login-err');
+
+  // Manager password — full access
+  if(code === MANAGER_PASS){
+    localStorage.setItem('frAgent',JSON.stringify({code:'mgr',name:'מנהל',isManager:true}));
+    _setupManagerPicker();
+    st.step='manager';
+    renderLogin();
+    return;
+  }
+
+  // Agent code
+  const agentData=STATIC_DATA?.agents?.[code];
   if(!agentData){
     if(err) err.textContent='מספר סוכן לא נמצא ❌';
     return;
   }
-  const payload={code, name:agentData.name, isManager:!!agentData.isManager};
-  localStorage.setItem('frAgent',JSON.stringify(payload));
-  if(agentData.isManager){
-    _setupManagerPicker();
-    st.step='manager';
-    renderLogin();
-  } else {
-    st.agent={code, name:agentData.name};
-    document.getElementById('city-agent-label').textContent=agentData.name;
-    buildCityChips();
-    show('s-city');
-    document.getElementById('logout-btn').style.display='';
-  }
+  localStorage.setItem('frAgent',JSON.stringify({code, name:agentData.name, isManager:false}));
+  st.agent={code, name:agentData.name};
+  document.getElementById('city-agent-label').textContent=agentData.name;
+  buildCityChips();
+  show('s-city');
+  document.getElementById('logout-btn').style.display='';
 }
 
 function logout(){
