@@ -1129,10 +1129,12 @@ function fillWorkDaysBar() {
 function shortName(name, city) {
   if (!city || !name) return name;
   const esc = city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return name
-    .replace(new RegExp('[\\s\\-–(]+' + esc + '[)\\s]*$'), '')
-    .replace(new RegExp(esc + '$'), '')
-    .trim() || name;
+  const result = name
+    .replace(new RegExp('[\\s\\-–·.(]*' + esc + '[)\\s\\-–·.]*', 'g'), ' ')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/^[\s\-–·.]+|[\s\-–·.]+$/g, '')
+    .trim();
+  return result || name;
 }
 
 function renderClientList(html){
@@ -1175,8 +1177,7 @@ function renderClientList(html){
     const indicPart=(indic&&indic!=='🚀')?`<span style="font-size:13px;">${indic}</span>`:'';
     const SEP='<span style="color:var(--light)"> · </span>';
     const shortN=shortName(c.custName,c.city)||c.custName||'';
-    const cityInName=c.city&&shortN.includes(c.city);
-    const nameLine=[shortN,cityInName?'':c.city,c.address].filter(Boolean).join(' · ');
+    const nameLine=[shortN,c.city,c.address].filter(Boolean).join(' · ');
     return `<div class="${cls}" data-id="${c.custId}" ondblclick="selectClient('${c.custId}')">
       <div class="c-num-wrap">
         <span class="c-num${inWalk?' c-num-walk':''}">${i+1}</span>
