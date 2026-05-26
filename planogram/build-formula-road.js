@@ -85,6 +85,15 @@ function cleanAddr(address) {
   return s.replace(/[,\s]+$/, '').replace(/\s{2,}/g, ' ').trim();
 }
 
+// Raw address trimmed to: first comma, or last digit (strips trailing non-numeric noise)
+function trimAddr(address) {
+  if (!address) return null;
+  const raw = fixPriorityAddr(address);
+  if (raw.includes(',')) return raw.split(',')[0].trim();
+  const m = raw.match(/^([\s\S]*\d)/);
+  return m ? m[1].trim() : null;
+}
+
 async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 async function nominatim(url) {
@@ -165,11 +174,13 @@ async function azureMapsQuery(q, city) {
 }
 
 async function geocodeOne(address, city) {
+  const trimmed = trimAddr(address);
   const cleaned = cleanAddr(address);
   const attempts = [];
-  if (cleaned) attempts.push([cleaned, city].filter(Boolean).join(', '));
+  if (trimmed) attempts.push([trimmed, city].filter(Boolean).join(', '));
+  if (cleaned && cleaned !== trimmed) attempts.push([cleaned, city].filter(Boolean).join(', '));
   const street = extractStreetNum(cleaned || address);
-  if (street && street !== cleaned) attempts.push([street, city].filter(Boolean).join(', '));
+  if (street && street !== cleaned && street !== trimmed) attempts.push([street, city].filter(Boolean).join(', '));
 
   for (let i = 0; i < attempts.length; i++) {
     const key = attempts[i];
