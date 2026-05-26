@@ -1349,6 +1349,14 @@ function renderMap(){
     markerCluster.addLayer(m);
     mapMarkers.push(m);
   });
+  // Thin subtle lines between ordered clients
+  list.forEach((c,i)=>{
+    if(!i||!c.lat||!c.lng)return;
+    const prev=list[i-1];
+    if(!prev.lat||!prev.lng)return;
+    const p=L.polyline([[prev.lat,prev.lng],[c.lat,c.lng]],{color:'#90A4AE',weight:1,opacity:.45}).addTo(map);
+    mapPolylines.push(p);
+  });
   map.addLayer(markerCluster);
   if(bounds.length) map.fitBounds(bounds,{padding:[6,6]});
   setTimeout(()=>map.invalidateSize(),100);
