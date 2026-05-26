@@ -886,8 +886,7 @@ function detectCity(){
           document.getElementById('city-confirm').disabled=false;
           btn.textContent='✅ '+display;
         }).catch(()=>{
-          const label=`${st.startLat.toFixed(4)}, ${st.startLng.toFixed(4)}`;
-          document.getElementById('city-input').value=label;
+          document.getElementById('city-input').value='מיקום GPS';
           document.getElementById('city-confirm').disabled=false;
           btn.textContent='✅ מיקום נקלט';
         });
