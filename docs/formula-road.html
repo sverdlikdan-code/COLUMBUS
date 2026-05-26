@@ -375,14 +375,14 @@ async function loadStaticData(){
     const r=await fetch('./formula-road-data.json?_='+Date.now());
     if(r.ok){
       STATIC_DATA=await r.json();
-      console.log('✅ Static data loaded, updated:',STATIC_DATA.updatedAt);
       const dt=document.getElementById('data-time');
-      if(dt&&STATIC_DATA.updatedAt){
-        const d=new Date(STATIC_DATA.updatedAt);
+      if(dt){
+        const lastMod=r.headers.get('Last-Modified');
+        const d=lastMod?new Date(lastMod):new Date(STATIC_DATA.updatedAt);
         const fmt=n=>String(n).padStart(2,'0');
         const h=d.getHours();
         const tod=h<12?'בוקר':h<18?'צהריים':'ערב';
-        dt.textContent=`עודכן: ${fmt(d.getDate())}/${fmt(d.getMonth()+1)}/${d.getFullYear()} ${fmt(h)}:${fmt(d.getMinutes())} (${tod})`;
+        dt.textContent=`נכון ל: ${fmt(d.getDate())}/${fmt(d.getMonth()+1)}/${d.getFullYear()} ${fmt(h)}:${fmt(d.getMinutes())} (${tod})`;
       }
     }
   }catch(_){ console.log('ℹ️ No static data, using live API'); }
