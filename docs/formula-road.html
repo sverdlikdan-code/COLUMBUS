@@ -1349,15 +1349,6 @@ function renderMap(){
     markerCluster.addLayer(m);
     mapMarkers.push(m);
   });
-  // Start point marker (both modes)
-  if(st.startLat&&st.startLng){
-    const sIcon=L.divIcon({className:'',
-      html:`<div style="width:14px;height:14px;background:#2E7D32;border-radius:50%;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(46,125,50,.5)"></div>`,
-      iconSize:[14,14],iconAnchor:[7,7]});
-    const sm=L.marker([st.startLat,st.startLng],{icon:sIcon}).addTo(map);
-    mapMarkers.push(sm);
-    bounds.push([st.startLat,st.startLng]);
-  }
   map.addLayer(markerCluster);
   if(bounds.length) map.fitBounds(bounds,{padding:[24,24]});
   setTimeout(()=>map.invalidateSize(),100);
