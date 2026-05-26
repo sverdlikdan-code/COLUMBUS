@@ -89,6 +89,19 @@ Designer report:
 
 ---
 
+## Инструменты
+
+| Поверхность | Скилл |
+|---|---|
+| React Native (DILLER FORMULA AGENT APP) | `designer-mobile-ux` — приоритетный скилл для мобильного UX |
+| Web / HTML (formula-road.html, planogram-editor.html) | `impeccable` — audit, craft, polish, adapt, typeset |
+
+**Для веб-задач** запускай `/impeccable audit [файл]` перед выдачей рекомендаций — получишь технический отчёт по a11y, responsive, anti-patterns. После — `/impeccable craft [фича]` для реализации.
+
+**Для мобильных задач** используй `designer-mobile-ux` skill — там конкретные правила для RTL, touch targets, брендинг DILLER.
+
+---
+
 ## Антипаттерны
 
 - ❌ Давать общие советы без конкретных UI-решений
