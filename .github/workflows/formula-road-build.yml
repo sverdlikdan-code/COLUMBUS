@@ -2,8 +2,10 @@ name: Formula Road Build
 
 on:
   schedule:
-    # 06:30 Israel (UTC+3) = 03:30 UTC — после mahsan билда
-    - cron: '30 3 * * *'
+    # 07:30 Israel (UTC+3) = 04:30 UTC
+    - cron: '30 4 * * *'
+    # 21:00 Israel (UTC+3) = 18:00 UTC
+    - cron: '0 18 * * *'
   workflow_dispatch:
 
 jobs:
