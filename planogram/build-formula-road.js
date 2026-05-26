@@ -9,17 +9,6 @@ const path = require('path');
 const { executeDax } = require('../server/powerbi');
 const { fetchLastRefresh } = require('./pbi-kapua');
 
-// Managers with full access — maintained here, not read from Excel
-const MANAGER_CODES = {
-  '51':  'דן סברדליק',
-  '52':  'אנטולי רוסנובסקי',
-  '53':  'אלכסי ברילוב',
-  '90':  'דמיטרי ואינברג',
-  '94':  'יוסי אליאב',
-  '117': 'ולדיסלב גלושצ\'נקו',
-  '219': 'נטליה רובין',
-  '226': 'סבטלנה פרלמן',
-};
 
 const DAY_LABELS = { 1:'א', 2:'ב', 3:'ג', 4:'ד', 5:'ה' };
 const IL = { minLat:29.3, maxLat:33.5, minLng:34.2, maxLng:35.9 };
@@ -375,17 +364,12 @@ EVALUATE DISTINCT(SELECTCOLUMNS(
 
   // 4. Save — use PBI SERVER DATE TIME as updatedAt (same as planogram editor)
   const pbiRefreshRaw = await fetchLastRefresh().catch(() => null);
-  // Build agents map from PBI data + hardcoded managers
+  // Build agents map from PBI data (managers use password 1999, not agent code)
   const agents = {};
-  // Add managers first (full access)
-  for (const [code, name] of Object.entries(MANAGER_CODES)) {
-    agents[code] = { name, isManager: true };
-  }
-  // Add all agents from PBI routes
   for (const agentList of Object.values(agentsByManager)) {
     for (const a of agentList) {
       const c = String(a.agentCode || '');
-      if (c && !agents[c]) agents[c] = { name: a.agentName || '', isManager: false };
+      if (c && !agents[c]) agents[c] = { name: a.agentName || '' };
     }
   }
 
