@@ -1206,7 +1206,7 @@ function selectClient(id){
     renderMap();
     if(st.selectedId){
       const c=st.clients.find(x=>x.custId===st.selectedId)||st.aiClients.find(x=>x.custId===st.selectedId);
-      if(c&&c.lat&&c.lng) setTimeout(()=>map.flyTo([c.lat,c.lng],Math.min((map.getZoom()||10)+1,14),{duration:0.4}),50);
+      if(c&&c.lat&&c.lng) setTimeout(()=>map.flyTo([c.lat,c.lng],Math.min((map.getZoom()||10)+1,14),{duration:1.2}),50);
     }
   }
 }
