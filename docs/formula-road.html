@@ -1583,8 +1583,9 @@ function exportCSV(){
     c.lng||'',
     c.lat&&c.lng?'✓':'חסר'
   ]));
-  // append GPS corrections section if any
-  const corrEntries=Object.entries(gpsCorrections);
+  // append GPS corrections section — only for this agent's clients
+  const agentIds=new Set(list.map(c=>String(c.custId)));
+  const corrEntries=Object.entries(gpsCorrections).filter(([id])=>agentIds.has(id));
   if(corrEntries.length){
     rows.push([]);
     rows.push(['--- תיקוני GPS ---','','','','','','','','']);
