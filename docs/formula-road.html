@@ -89,10 +89,10 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .km-val{font-weight:900;color:var(--blue-dark);font-size:15px;}
 .km-unit{font-size:10px;color:var(--light);}
 .km-saving{background:#E8F5E9;color:var(--green);font-weight:800;font-size:11px;padding:2px 7px;border-radius:10px;border:1px solid #A5D6A7;}
-.wd-bar{display:flex;gap:10px;align-items:center;flex-shrink:0;padding:0 6px;}
+.wd-bar{display:flex;gap:14px;align-items:center;flex-shrink:0;padding:0 10px;}
 .wd-item{display:flex;flex-direction:column;align-items:center;min-width:28px;}
-.wd-num{font-size:14px;font-weight:900;color:var(--blue-dark);line-height:1;}
-.wd-lbl{font-size:8px;color:var(--light);font-weight:600;white-space:nowrap;margin-top:2px;}
+.wd-num{font-size:15px;font-weight:900;color:#fff;line-height:1;}
+.wd-lbl{font-size:8px;color:rgba(255,255,255,.65);font-weight:600;white-space:nowrap;margin-top:2px;}
 .sort-btns{display:flex;gap:5px;}
 .sort-btn{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:800;cursor:pointer;border:2px solid var(--sky-mid);background:none;color:var(--mid);transition:all .15s;}
 .sort-btn.active-priority{color:var(--blue);border-color:var(--blue);background:var(--sky-light);box-shadow:0 2px 8px rgba(21,101,192,.18);}
@@ -311,6 +311,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
       <div class="hdr-title" id="route-title">FORMULA ROAD</div>
       <div class="hdr-sub" id="route-sub"></div>
     </div>
+    <div class="wd-bar" id="wd-bar" style="margin-right:auto;"></div>
     <button id="logout-btn" onclick="logout()" style="display:none;background:none;border:none;color:rgba(255,255,255,.7);font-size:11px;font-weight:700;cursor:pointer;padding:4px 8px;letter-spacing:.5px;" title="יציאה">✕ יציאה</button>
   </div>
   <div class="sky-line"></div>
@@ -333,7 +334,6 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
       </div>
       <div class="km-cities" id="city-filters"></div>
     </div>
-    <div class="wd-bar" id="wd-bar"></div>
     <div class="day-switch" id="day-switch"></div>
     <div class="km-right">
       <div class="km-info">
