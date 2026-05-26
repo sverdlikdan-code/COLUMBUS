@@ -1020,6 +1020,7 @@ function renderClientList(html){
       const color=pct>=100?'var(--green)':pct>=70?'var(--sky)':'var(--red)';
       return `<span style="font-size:11px;font-weight:900;color:${color}">${pct}%</span>`;
     })();
+    const indicPart=c.indication?`<span style="font-size:13px;">${c.indication}</span>`:'';
     const SEP='<span style="color:var(--light)"> · </span>';
     const nameLine=[shortName(c.custName,c.city)||c.custName||'',c.city,c.address].filter(Boolean).join(' · ');
     return `<div class="${cls}" data-id="${c.custId}" ondblclick="selectClient('${c.custId}')">
@@ -1031,7 +1032,7 @@ function renderClientList(html){
       </div>
       <div class="c-body">
         <div class="c-name">${nameLine}</div>
-        <div class="c-sub">${[lastOrder,yedPart,sales,pctPart].filter(Boolean).join(SEP)}</div>
+        <div class="c-sub">${[lastOrder,yedPart,sales,pctPart,indicPart].filter(Boolean).join(SEP)}</div>
       </div>
       <span class="day-change-btn" data-id="${c.custId}" onclick="openDayPopup(event,this.dataset.id)">📅</span>
       ${noGps
