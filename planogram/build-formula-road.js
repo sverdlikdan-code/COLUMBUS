@@ -54,7 +54,9 @@ function fixPriorityAddr(address) {
   // Priority exports some fields in visual LTR order with directional marks — strip + reverse to logical order
   if (/[‎‏‪-‮]/.test(s)) {
     s = s.replace(/[‎‏‪-‮]/g, '');
-    s = s.split('').reverse().join('').replace(/\d+/g, m => m.split('').reverse().join(''));
+    s = s.split('').reverse().join('')
+         .replace(/\d+/g, m => m.split('').reverse().join(''))
+         .replace(/[A-Za-z][A-Za-z\d\s\-'",.]*/g, m => m.split('').reverse().join(''));
   }
   return s.trim();
 }
