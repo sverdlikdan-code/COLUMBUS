@@ -875,14 +875,18 @@ function detectCity(){
           const city=a.city||a.town||a.village||a.suburb||a.neighbourhood||a.municipality||a.county||a.state_district||'';
           const street=a.road?` · ${a.road}${a.house_number?' '+a.house_number:''}` : '';
           const label=city+(city&&street?street:'');
-          const display=label||d?.display_name?.split(',')[0]||`${st.startLat.toFixed(4)}, ${st.startLng.toFixed(4)}`;
+          let display=label;
+          if(!display&&d?.display_name){
+            const parts=d.display_name.split(',').map(s=>s.trim());
+            display=parts.find(p=>/[א-ת]/.test(p))||'';
+          }
+          if(!display) display='מיקום GPS';
           st.startCityName=display;
           document.getElementById('city-input').value=display;
           document.getElementById('city-confirm').disabled=false;
           btn.textContent='✅ '+display;
         }).catch(()=>{
-          const label=`${st.startLat.toFixed(4)}, ${st.startLng.toFixed(4)}`;
-          document.getElementById('city-input').value=label;
+          document.getElementById('city-input').value='מיקום GPS';
           document.getElementById('city-confirm').disabled=false;
           btn.textContent='✅ מיקום נקלט';
         });
@@ -1124,10 +1128,12 @@ function fillWorkDaysBar() {
 function shortName(name, city) {
   if (!city || !name) return name;
   const esc = city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return name
-    .replace(new RegExp('[\\s\\-–(]+' + esc + '[)\\s]*$'), '')
-    .replace(new RegExp(esc + '$'), '')
-    .trim() || name;
+  const result = name
+    .replace(new RegExp('[\\s\\-–·.(]*' + esc + '[)\\s\\-–·.]*', 'g'), ' ')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/^[\s\-–·.]+|[\s\-–·.]+$/g, '')
+    .trim();
+  return result || name;
 }
 
 function renderClientList(html){
@@ -1160,18 +1166,17 @@ function renderClientList(html){
       const old=days>14;
       return `<span style="${old?'color:var(--red);font-weight:700':''}">הזמנה: ${label}${old?` (${days}d)`:''}</span>`;
     })();
-    const sales=c.monthlySales?`<span style="color:var(--sky);font-weight:800;font-size:12px;">₪${Math.round(c.monthlySales).toLocaleString()}</span> <span style="font-size:10px;color:var(--light)">החודש</span>`:`<span title="אין מכירות החודש">😥</span>`;
-    const yedPart=c.target?`<span style="font-size:10px;color:var(--mid)">יעד: </span><span style="font-size:10px;font-weight:800;color:var(--mid)">₪${Math.round(c.target).toLocaleString()}</span>`:'';
+    const sales=c.monthlySales?`<span style="font-weight:700;color:var(--text)">₪${Math.round(c.monthlySales).toLocaleString()}</span><span style="font-size:10px;color:var(--light)"> החודש</span>`:'';
     const pctPart=(()=>{
       if(!c.target) return '';
-      const pct=c.target?Math.round((c.monthlySales||0)/c.target*100):0;
-      const color=pct>=100?'var(--green)':pct>=70?'var(--sky)':'var(--red)';
-      return `<span style="font-size:11px;font-weight:900;color:${color}">${pct}%</span>`;
+      const pct=Math.round((c.monthlySales||0)/c.target*100);
+      return `<span style="font-size:11px;font-weight:700;color:var(--mid)">${pct}%</span>`;
     })();
     const indic=c.indication||(c.target?calcIndication(c.monthlySales||0,c.target):'');
-    const indicPart=indic?`<span style="font-size:13px;">${indic}</span>`:'';
+    const indicPart=(indic&&indic!=='🚀')?`<span style="font-size:13px;">${indic}</span>`:'';
     const SEP='<span style="color:var(--light)"> · </span>';
-    const nameLine=[shortName(c.custName,c.city)||c.custName||'',c.city,c.address].filter(Boolean).join(' · ');
+    const shortN=shortName(c.custName,c.city)||c.custName||'';
+    const nameLine=[shortN,c.city,c.address].filter(Boolean).join(' · ');
     return `<div class="${cls}" data-id="${c.custId}" ondblclick="selectClient('${c.custId}')">
       <div class="c-num-wrap">
         <span class="c-num${inWalk?' c-num-walk':''}">${i+1}</span>
@@ -1180,7 +1185,7 @@ function renderClientList(html){
       </div>
       <div class="c-body">
         <div class="c-name">${nameLine}</div>
-        <div class="c-sub">${[lastOrder,yedPart,sales,pctPart,indicPart].filter(Boolean).join(SEP)}</div>
+        <div class="c-sub">${[lastOrder,sales,pctPart,indicPart].filter(Boolean).join(SEP)}</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;">
         ${c.custId?`<span class="c-id-side">${c.custId}</span>`:''}
@@ -1372,8 +1377,11 @@ function renderMap(){
       const prev=list[i-1];
       const p=L.polyline([[prev.lat,prev.lng],[c.lat,c.lng]],{color:'#1565C0',weight:2.5,opacity:.55}).addTo(map);
       mapPolylines.push(p);
-      const dec=L.polylineDecorator(p,{patterns:[{offset:'50%',repeat:0,symbol:L.Symbol.arrowHead({pixelSize:11,polygon:false,pathOptions:{stroke:true,color:'#1565C0',weight:2.5,opacity:.85}})}]}).addTo(map);
-      mapPolylines.push(dec);
+      const segKm=haversineKm(prev.lat,prev.lng,c.lat,c.lng);
+      if(segKm>0.15){
+        const dec=L.polylineDecorator(p,{patterns:[{offset:'50%',repeat:0,symbol:L.Symbol.arrowHead({pixelSize:11,polygon:false,pathOptions:{stroke:true,color:'#1565C0',weight:2.5,opacity:.85}})}]}).addTo(map);
+        mapPolylines.push(dec);
+      }
     });
   }
   map.addLayer(markerCluster);
