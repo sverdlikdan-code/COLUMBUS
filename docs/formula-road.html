@@ -283,7 +283,6 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
         <button class="sort-btn" id="recalc-btn" onclick="recalcRoute()" style="border-color:var(--orange,#F57C00);color:var(--orange,#F57C00)">🔄</button>
         <button class="sort-btn" onclick="resetRoute()" title="איפוס יום" style="border-color:#b71c1c;color:#b71c1c">↩</button>
         <button class="export-btn" id="export-btn" onclick="exportCSV()"><span class="xls-icon">XL</span>שמור</button>
-        <button id="export-corr-btn" onclick="exportCorrections()" style="display:none;background:#1565C0;color:#fff;border:none;border-radius:20px;padding:5px 13px;height:36px;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(21,101,192,.35);white-space:nowrap;flex-shrink:0;">📍 הורד תיקוני GPS</button>
       </div>
       <div class="km-cities" id="city-filters"></div>
     </div>
@@ -357,7 +356,9 @@ async function loadCorrections(){
     const r=await fetch('./gps-corrections.json?_='+Date.now());
     if(r.ok){
       gpsCorrections=await r.json();
-      if(Object.keys(gpsCorrections).length>0) document.getElementById('export-corr-btn').style.display='flex';
+      // merge local corrections on top
+      const localCorr=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
+      Object.assign(gpsCorrections, localCorr);
     }
   }catch(_){}
 }
@@ -906,7 +907,7 @@ function renderClientList(html){
       inWalk?'walk-card':'',walkTop?'walk-top':'',walkBottom?'walk-bottom':'',walkMid?'walk-mid':''
     ].filter(Boolean).join(' ');
     const lastOrder=(()=>{
-      if(!c.lastOrderDate) return `<span style="color:var(--red);font-weight:700">לא הוזמן</span>`;
+      if(!c.lastOrderDate) return `<span style="color:var(--red);font-weight:700">לא הזמין</span>`;
       const d=new Date(c.lastOrderDate.slice(0,10));
       const today=new Date(); today.setHours(0,0,0,0);
       const days=Math.round((today-d)/86400000);
@@ -1086,8 +1087,9 @@ function renderMap(){
     m._rn=i+1;
     const corrMark = gpsCorrections[String(c.custId)] ? ' ✏️' : '';
     const approxNote = isCityCenter ? '<br><span style="font-size:11px;color:#FF8C00">⚠ מיקום משוער — מרכז עיר</span>' : '';
-    const safeName = (c.custName||'').replace(/"/g,'&quot;');
-    m.bindPopup(`<b>${c.custName}${corrMark}</b><br>${c.city||''}${c.address?'<br><span style="font-size:11px;color:#555">'+c.address+'</span>':''}${approxNote}`);
+    const safeName=(c.custName||'').replace(/"/g,'&quot;');
+    const fixBtn=`<br><button data-id="${c.custId}" data-name="${safeName}" onclick="startGpsCorrection(this.dataset.id,this.dataset.name)" style="margin-top:6px;background:#1565C0;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">📍 תקן מיקום</button>`;
+    m.bindPopup(`<b>${c.custName}${corrMark}</b><br>${c.city||''}${c.address?'<br><span style="font-size:11px;color:#555">'+c.address+'</span>':''}${approxNote}${fixBtn}`);
     if(isSel) m.openPopup();
     bounds.push([c.lat,c.lng]);
     markerCluster.addLayer(m);
@@ -1312,6 +1314,14 @@ function exportCSV(){
     c.lng||'',
     c.lat&&c.lng?'✓':'חסר'
   ]));
+  // append GPS corrections section if any
+  const corrEntries=Object.entries(gpsCorrections);
+  if(corrEntries.length){
+    rows.push([]);
+    rows.push(['--- תיקוני GPS ---','','','','','','','','']);
+    rows.push(['מס. לקוח','שם לקוח','עיר','כתובת','קו רוחב','קו אורך','תאריך תיקון','','']);
+    corrEntries.forEach(([id,c])=>rows.push([id,c.name||'',c.city||'',c.address||'',c.lat||'',c.lng||'',c.correctedAt?c.correctedAt.slice(0,10):'','','']));
+  }
   const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);
@@ -1319,25 +1329,32 @@ function exportCSV(){
   a.click();
 }
 
-function exportCorrections(){
-  const entries=Object.entries(gpsCorrections);
-  if(!entries.length){alert('אין תיקוני GPS');return;}
-  const today=new Date().toISOString().slice(0,10);
-  const rows=[['מס. לקוח','שם לקוח','עיר','כתובת','קו רוחב','קו אורך','תאריך תיקון']];
-  entries.forEach(([id,c])=>rows.push([
-    id,
-    c.name||'',
-    c.city||'',
-    c.address||'',
-    c.lat||'',
-    c.lng||'',
-    c.correctedAt?c.correctedAt.slice(0,10):''
-  ]));
-  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const a=document.createElement('a');
-  a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);
-  a.download=`תיקוני_GPS_${today}.csv`;
-  a.click();
+function startGpsCorrection(custId, custName){
+  showToast('📍 הקש על המפה כדי לקבוע מיקום חדש', 4000);
+  map.getContainer().style.cursor='crosshair';
+  map.once('click', (e)=>{
+    map.getContainer().style.cursor='';
+    const {lat,lng}=e.latlng;
+    const IL={minLat:29.3,maxLat:33.5,minLng:34.2,maxLng:35.9};
+    if(lat<IL.minLat||lat>IL.maxLat||lng<IL.minLng||lng>IL.maxLng){
+      showToast('❌ מחוץ לגבולות ישראל'); return;
+    }
+    const la=+lat.toFixed(6), lo=+lng.toFixed(6);
+    const cl=st.clients.find(x=>String(x.custId)===String(custId))||{};
+    const entry={lat:la,lng:lo,correctedAt:new Date().toISOString(),name:custName,city:cl.city||'',address:cl.address||''};
+    gpsCorrections[String(custId)]=entry;
+    // save to localStorage
+    const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
+    local[String(custId)]=entry;
+    localStorage.setItem('fr_gps_local',JSON.stringify(local));
+    // update client position
+    st.clients=st.clients.map(x=>String(x.custId)===String(custId)?{...x,lat:la,lng:lo}:x);
+    st.aiClients=nearestNeighbor([...st.clients]);
+    st.roadKm=null; st.roadGeometry=null; triggerOsrm();
+    saveRoute(st.agent.code,st.day,st.clients);
+    updateKmBar(); renderClientList(); renderMap();
+    showToast('✅ מיקום נשמר');
+  });
 }
 
 // ── DEMO DATA ──────────────────────────────────────────────────────────────
