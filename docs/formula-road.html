@@ -1350,7 +1350,7 @@ function renderMap(){
     mapMarkers.push(m);
   });
   map.addLayer(markerCluster);
-  if(bounds.length) map.fitBounds(bounds,{padding:[24,24]});
+  if(bounds.length) map.fitBounds(bounds,{padding:[6,6]});
   setTimeout(()=>map.invalidateSize(),100);
 }
 
