@@ -448,7 +448,7 @@ const st = {
   sortMode:'ai', tab:'list',
   selectedCities:[], selectedId:null,
   addrClientId:null, isDemo:false,
-  roadKm:null, roadGeometry:null,
+  roadKm:null, roadGeometry:null, priorityRoadKm:null,
 };
 
 let map=null, mapMarkers=[], mapPolylines=[], markerCluster=null, sortable=null, mapBearing=0;
@@ -547,6 +547,28 @@ async function osrmTrip(clients) {
   } catch (_) { return null; }
 }
 
+async function osrmRoute(clients) {
+  const withGps = clients.filter(c => c.lat && c.lng);
+  if (withGps.length < 2) return null;
+  const hasStart = !!(st.startLat && st.startLng);
+  const startPt = hasStart ? `${st.startLng},${st.startLat};` : '';
+  const coords = startPt + withGps.map(c => `${c.lng},${c.lat}`).join(';');
+  const cacheKey = 'route|' + (hasStart ? `${st.startLat.toFixed(4)},${st.startLng.toFixed(4)}|` : '') +
+    withGps.map(c => `${c.custId}:${(c.lat||0).toFixed(4)},${(c.lng||0).toFixed(4)}`).join('|');
+  if (OSRM_CACHE.has(cacheKey)) return OSRM_CACHE.get(cacheKey);
+  try {
+    const r = await fetch(
+      `https://router.project-osrm.org/route/v1/driving/${coords}?overview=false`,
+      { signal: AbortSignal.timeout(10000) }
+    );
+    const data = await r.json();
+    if (data.code !== 'Ok' || !data.routes?.length) return null;
+    const km = data.routes[0].distance / 1000;
+    OSRM_CACHE.set(cacheKey, km);
+    return km;
+  } catch (_) { return null; }
+}
+
 function triggerOsrm() {
   const snap = { clients:[...st.clients], agentCode:st.agent?.code, day:st.day };
   osrmTrip(snap.clients).then(res => {
@@ -558,6 +580,12 @@ function triggerOsrm() {
     updateKmBar();
     if (st.sortMode === 'ai') renderClientList();
     if (window.innerWidth >= 700 || st.tab === 'map') renderMap();
+  });
+  osrmRoute(snap.clients).then(km => {
+    if (km == null) return;
+    if (st.agent?.code !== snap.agentCode || st.day !== snap.day) return;
+    st.priorityRoadKm = km;
+    updateKmBar();
   });
 }
 
@@ -787,7 +815,7 @@ async function selectDay(day){
 // ── ROUTE ──────────────────────────────────────────────────────────────────
 async function initRoute(){
   st.sortMode='ai'; st.selectedCities=[]; st.selectedId=null;
-  st.roadKm=null; st.roadGeometry=null;
+  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null;
   document.getElementById('route-title').textContent='DILER FORMULA';
   document.getElementById('route-sub').textContent=`${st.agent.name} · יום ${DAY_LABELS[st.day]}`;
   document.getElementById('export-btn').classList.remove('visible');
@@ -827,7 +855,7 @@ async function initRoute(){
   });
 
   st.aiClients=nearestNeighbor([...st.clients]);
-  st.roadKm=null; st.roadGeometry=null; triggerOsrm();
+  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; triggerOsrm();
   updateKmBar();
   renderCityFilters();
   renderClientList();
@@ -892,7 +920,7 @@ function resetRoute(){
 }
 
 function recalcRoute(){
-  st.roadKm=null; st.roadGeometry=null;
+  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null;
   st.aiClients = nearestNeighbor([...st.clients]);
   st.sortMode = 'ai';
   document.getElementById('sort-btn-priority').className = 'sort-btn';
@@ -914,7 +942,7 @@ function recalcRoute(){
 }
 
 function updateKmBar(){
-  const priorityKm=totalKm(st.clients);
+  const priorityKm=st.priorityRoadKm!=null?st.priorityRoadKm:totalKm(st.clients);
   const aiKm=st.roadKm!=null?st.roadKm:totalKm(st.aiClients);
   document.getElementById('km-val').textContent=priorityKm!=null?priorityKm.toFixed(1):'—';
   document.getElementById('km-ai').textContent=aiKm!=null?aiKm.toFixed(1):'—';
@@ -1211,7 +1239,7 @@ function _startMapPlace(id,c){
     // Save locally immediately
     st.clients=st.clients.map(x=>x.custId===id?{...x,lat:la,lng:lo}:x);
     st.aiClients=nearestNeighbor([...st.clients]);
-    st.roadKm=null; st.roadGeometry=null; triggerOsrm();
+    st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; triggerOsrm();
     saveRoute(st.agent.code,st.day,st.clients);
     updateKmBar(); renderClientList(); renderMap();
     showToast('✅ מיקום נשמר (מקומי)');
@@ -1263,7 +1291,7 @@ function detectAddrGps(){
         const cl=st.clients.find(x=>x.custId===id)||{};
         st.clients=st.clients.map(x=>x.custId===id?{...x,lat,lng,address:addr}:x);
         st.aiClients=nearestNeighbor([...st.clients]);
-        st.roadKm=null; st.roadGeometry=null; triggerOsrm();
+        st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; triggerOsrm();
         saveRoute(st.agent.code,st.day,st.clients);
         updateKmBar(); renderClientList();
         if(window.innerWidth>=700||st.tab==='map') renderMap();
@@ -1272,7 +1300,7 @@ function detectAddrGps(){
         const cl=st.clients.find(x=>x.custId===id)||{};
         st.clients=st.clients.map(x=>x.custId===id?{...x,lat,lng}:x);
         st.aiClients=nearestNeighbor([...st.clients]);
-        st.roadKm=null; st.roadGeometry=null; triggerOsrm();
+        st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; triggerOsrm();
         saveRoute(st.agent.code,st.day,st.clients);
         updateKmBar(); renderClientList();
         if(window.innerWidth>=700||st.tab==='map') renderMap();
@@ -1295,7 +1323,7 @@ async function submitAddress(){
     if(d&&d.lat){
       st.clients=st.clients.map(x=>x.custId===st.addrClientId?{...x,address:addr,lat:d.lat,lng:d.lng}:x);
       st.aiClients=nearestNeighbor([...st.clients]);
-      st.roadKm=null; st.roadGeometry=null; triggerOsrm();
+      st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; triggerOsrm();
       updateKmBar(); renderClientList();
     }
   }catch{}
@@ -1349,7 +1377,7 @@ function changeClientDay(custId,newDay){
   setDayOverrides(st.agent.code,ov);
   st.clients=st.clients.filter(c=>c.custId!==custId);
   st.aiClients=nearestNeighbor([...st.clients]);
-  st.roadKm=null; st.roadGeometry=null; triggerOsrm();
+  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; triggerOsrm();
   saveRoute(st.agent.code,st.day,st.clients);
   updateKmBar(); renderClientList();
   if(window.innerWidth>=700||st.tab==='map') renderMap();
@@ -1455,7 +1483,7 @@ function startGpsCorrection(custId, custName){
     // update client position
     st.clients=st.clients.map(x=>String(x.custId)===String(custId)?{...x,lat:la,lng:lo}:x);
     st.aiClients=nearestNeighbor([...st.clients]);
-    st.roadKm=null; st.roadGeometry=null; triggerOsrm();
+    st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; triggerOsrm();
     saveRoute(st.agent.code,st.day,st.clients);
     updateKmBar(); renderClientList(); renderMap();
     showToast('✅ מיקום נשמר');
