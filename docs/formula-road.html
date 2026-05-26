@@ -979,11 +979,12 @@ function calcIndication(monthlySales, target) {
   const y = now.getFullYear(), m = now.getMonth();
   const daysInMonth = new Date(y, m + 1, 0).getDate();
   let totalWork = 0, passedWork = 0;
+  const yesterday = now.getDate() - 1; // today incomplete — count up to yesterday
   for (let d = 1; d <= daysInMonth; d++) {
     const dow = new Date(y, m, d).getDay(); // 0=Sun … 6=Sat
     if (dow <= 4) { // Sun-Thu = Israeli work days
       totalWork++;
-      if (d <= now.getDate()) passedWork++;
+      if (d <= yesterday) passedWork++;
     }
   }
   const daysPct = totalWork ? passedWork / totalWork : 0;
@@ -1037,7 +1038,7 @@ function renderClientList(html){
       const color=pct>=100?'var(--green)':pct>=70?'var(--sky)':'var(--red)';
       return `<span style="font-size:11px;font-weight:900;color:${color}">${pct}%</span>`;
     })();
-    const indic=c.target?calcIndication(c.monthlySales||0,c.target):'';
+    const indic=c.indication||(c.target?calcIndication(c.monthlySales||0,c.target):'');
     const indicPart=indic?`<span style="font-size:13px;">${indic}</span>`:'';
     const SEP='<span style="color:var(--light)"> · </span>';
     const nameLine=[shortName(c.custName,c.city)||c.custName||'',c.city,c.address].filter(Boolean).join(' · ');
