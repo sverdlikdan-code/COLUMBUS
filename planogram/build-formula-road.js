@@ -7,6 +7,7 @@ require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const fs   = require('fs');
 const path = require('path');
 const { executeDax } = require('../server/powerbi');
+const { fetchLastRefresh } = require('./pbi-kapua');
 
 const DAY_LABELS = { 1:'א', 2:'ב', 3:'ג', 4:'ד', 5:'ה' };
 const IL = { minLat:29.3, maxLat:33.5, minLng:34.2, maxLng:35.9 };
@@ -333,9 +334,10 @@ EVALUATE DISTINCT(SELECTCOLUMNS(
     }
   }
 
-  // 4. Save
+  // 4. Save — use PBI SERVER DATE TIME as updatedAt (same as planogram editor)
+  const pbiRefreshRaw = await fetchLastRefresh().catch(() => null);
   const out = {
-    updatedAt: new Date().toISOString(),
+    updatedAt: pbiRefreshRaw || new Date().toISOString(),
     managers,
     agentsByManager,
     routes,
