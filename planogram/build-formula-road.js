@@ -251,6 +251,7 @@ function mapClient(r, dayNum) {
     monthlySales:  r['[מכירות חודש]']  || 0,
     target:        r['[יעד]']          || 0,
     pct:           (() => { const m = r['[מכירות חודש]'] || 0; const t = r['[יעד]'] || 0; return t > 0 ? m / t : 0; })(),
+    indication:    r['[indication]']   || null,
   };
 }
 
@@ -280,7 +281,18 @@ ADDCOLUMNS(
         && 'ALL_PARTS'[חברה]="FORMULA"
         && YEAR('ALL_PARTS'[תאריך])=YEAR(TODAY())
         && MONTH('ALL_PARTS'[תאריך])=MONTH(TODAY()))),
-  "יעד", CALCULATE([יעד $], 'משטח'[סטטוס] IN {"פעיל"})
+  "יעד", CALCULATE([יעד $], 'משטח'[סטטוס] IN {"פעיל"}),
+  "indication",
+    VAR target = CALCULATE([יעד $], 'משטח'[סטטוס] IN {"פעיל"})
+    VAR sales  = CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)],
+      FILTER('ALL_PARTS',
+        'ALL_PARTS'[מספר לקוח]=EARLIER('משטח'[מס. לקוח])
+        && 'ALL_PARTS'[חברה]="FORMULA"
+        && YEAR('ALL_PARTS'[תאריך])=YEAR(TODAY())
+        && MONTH('ALL_PARTS'[תאריך])=MONTH(TODAY())))
+    RETURN
+      IF(target = 0, BLANK(),
+        IF(DIVIDE(sales, target) - [ימי עבודה % ALL LAKOAH] < -0.05, "😕", "🚀"))
 )
 ORDER BY [סדר ביקור_k] ASC`;
   const rows = await executeDax(dax);
