@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FORMULA ROAD — מצגת</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:    oklch(11.5% 0.020 245);
+  --panel: oklch(17%   0.026 245);
+  --edge:  oklch(24%   0.030 245);
+  --txt:   oklch(95%   0.007 245);
+  --dim:   oklch(62%   0.014 245);
+  --gold:  #C9A84C;
+  --sky:   #009FFF;
+  --ok:    oklch(72% 0.18 150);
+  --warn:  oklch(70% 0.18 25);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { font-family: 'Heebo', Arial, sans-serif; background: var(--bg); color: var(--txt); overflow: hidden; }
+
+/* ── scroll container ── */
+main {
+  height: 100vh;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  position: relative;
+}
+main::-webkit-scrollbar { display: none; }
+
+/* ── slide base ── */
+.slide {
+  height: 100vh;
+  scroll-snap-align: start;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* ── nav dots ── */
+.nav {
+  position: fixed;
+  left: 22px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  z-index: 300;
+}
+.nav-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--edge);
+  border: none; cursor: pointer; padding: 0;
+  transition: background .25s, transform .25s;
+}
+.nav-dot.on { background: var(--gold); transform: scale(1.5); }
+
+/* ── scroll cue ── */
+.cue {
+  position: absolute; bottom: 26px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  opacity: .45; pointer-events: none;
+  animation: bob 2.4s ease-in-out infinite;
+}
+.cue span { font-size: 10px; letter-spacing: .16em; color: var(--dim); }
+@keyframes bob {
+  0%,100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(7px); }
+}
+
+/* ── shared labels ── */
+.s-eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: .24em;
+  color: var(--gold); text-transform: uppercase; margin-bottom: 12px;
+}
+.s-title {
+  font-size: clamp(30px, 4vw, 50px); font-weight: 900;
+  letter-spacing: -.03em; line-height: 1.1; color: var(--txt);
+}
+
+/* ══════════════════════════
+   S1 — HERO
+══════════════════════════ */
+#s1 { flex-direction: column; }
+
+.grid-bg {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(oklch(28% 0.025 245 / .22) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(28% 0.025 245 / .22) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, black 25%, transparent 100%);
+  pointer-events: none;
+}
+
+.hero-inner {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: 0;
+}
+.hero-name {
+  font-size: clamp(60px, 9.5vw, 112px); font-weight: 900;
+  letter-spacing: -.045em; line-height: .9; color: var(--txt);
+}
+.hero-rule { width: 56px; height: 3px; background: var(--gold); margin: 22px auto; }
+.hero-sub  { font-size: clamp(14px, 1.9vw, 19px); font-weight: 300; color: var(--dim); line-height: 1.7; }
+.hero-pill {
+  margin-top: 32px;
+  display: inline-flex; align-items: center; gap: 8px;
+  border: 1px solid var(--edge); border-radius: 100px;
+  padding: 8px 22px; font-size: 13px; font-weight: 500; color: var(--txt);
+}
+.hero-pill b { color: var(--gold); }
+
+/* ══════════════════════════
+   S2 — WHAT
+══════════════════════════ */
+#s2 .bg-shot {
+  position: absolute; inset: 0;
+  background: url('./Screenshot 2026-05-27 123041.jpg') center / cover no-repeat;
+  opacity: .1; pointer-events: none;
+}
+
+.what-wrap { position: relative; z-index: 1; max-width: 800px; width: 100%; padding: 0 36px; }
+.what-wrap .s-title { margin-bottom: 28px; }
+
+.what-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.what-card {
+  background: var(--panel); border: 1px solid var(--edge);
+  border-radius: 12px; padding: 22px 24px;
+}
+.card-tag { font-size: 10px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; margin-bottom: 8px; }
+.tag-prob { color: var(--warn); }
+.tag-sol  { color: var(--ok); }
+.what-card p { font-size: 14px; font-weight: 400; color: var(--txt); line-height: 1.75; }
+.what-card p b { color: var(--gold); font-weight: 700; }
+
+/* ══════════════════════════
+   S3 — HOW
+══════════════════════════ */
+#s3 { flex-direction: column; gap: 0; }
+
+.how-inner {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 28px; padding: 0 40px; max-width: 1020px; width: 100%;
+}
+.how-head { text-align: center; }
+.how-head .s-title { font-size: clamp(26px, 3.5vw, 40px); margin-top: 8px; }
+
+.steps-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; width: 100%; }
+
+.step-card { display: flex; flex-direction: column; gap: 10px; }
+.step-thumb {
+  aspect-ratio: 16/10; border-radius: 8px; overflow: hidden;
+  border: 1px solid var(--edge); background: var(--panel);
+}
+.step-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+
+.step-foot { display: flex; align-items: flex-start; gap: 10px; }
+.step-n {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--gold); color: oklch(11.5% .020 245);
+  font-size: 12px; font-weight: 900;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.step-txt h4 { font-size: 13px; font-weight: 700; color: var(--txt); line-height: 1.3; }
+.step-txt p  { font-size: 11px; font-weight: 400; color: var(--dim); line-height: 1.5; margin-top: 2px; }
+
+/* ══════════════════════════
+   S4 — FEATURES
+══════════════════════════ */
+#s4 {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr;
+  align-items: stretch;
+  padding: 0;
+}
+
+.feat-img { position: relative; overflow: hidden; background: var(--panel); }
+.feat-img img { width: 100%; height: 100%; object-fit: cover; object-position: right top; display: block; }
+.feat-img::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(to right, var(--bg) 0%, transparent 55%);
+}
+
+.feat-content {
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 52px 52px 52px 40px; gap: 26px;
+}
+.feat-content .s-title { font-size: clamp(24px, 3.2vw, 36px); margin-top: 8px; margin-bottom: 4px; }
+
+.feat-item { display: flex; gap: 14px; align-items: flex-start; }
+.feat-icon {
+  width: 44px; height: 44px; border-radius: 10px;
+  background: var(--panel); border: 1px solid var(--edge);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.feat-item h3 { font-size: 15px; font-weight: 700; color: var(--txt); margin-bottom: 4px; }
+.feat-item p  { font-size: 13px; font-weight: 400; color: var(--dim); line-height: 1.6; }
+.feat-item p b { color: var(--gold); font-weight: 700; }
+
+/* ══════════════════════════
+   S5 — RESULTS
+══════════════════════════ */
+#s5 { flex-direction: column; gap: 32px; }
+
+.results-head { text-align: center; }
+.results-head .s-title { margin-top: 8px; }
+
+.kpi-row {
+  display: grid; grid-template-columns: repeat(3,1fr);
+  max-width: 780px; width: 100%; gap: 3px;
+}
+.kpi {
+  background: var(--panel); padding: 32px 24px; text-align: center;
+  border: 1px solid var(--edge); border-radius: 12px;
+}
+.kpi-n  { font-size: clamp(44px, 6vw, 64px); font-weight: 900; letter-spacing: -.04em; color: var(--gold); line-height: 1; margin-bottom: 6px; }
+.kpi-l  { font-size: 14px; font-weight: 600; color: var(--txt); }
+.kpi-s  { font-size: 12px; font-weight: 400; color: var(--dim); margin-top: 4px; line-height: 1.5; }
+
+/* ══════════════════════════
+   S6 — END
+══════════════════════════ */
+#s6 { flex-direction: column; gap: 16px; }
+#s6 .grid-bg { opacity: .5; }
+#s6 > * { position: relative; z-index: 1; }
+.end-name { font-size: clamp(32px, 5vw, 52px); font-weight: 900; letter-spacing: -.035em; }
+.end-rule { width: 40px; height: 2px; background: var(--gold); }
+.end-meta { font-size: 13px; font-weight: 300; color: var(--dim); letter-spacing: .1em; }
+</style>
+</head>
+<body>
+
+<nav class="nav" id="nav" aria-label="ניווט שקופיות">
+  <button class="nav-dot on" data-i="0" aria-label="שקף 1"></button>
+  <button class="nav-dot"    data-i="1" aria-label="שקף 2"></button>
+  <button class="nav-dot"    data-i="2" aria-label="שקף 3"></button>
+  <button class="nav-dot"    data-i="3" aria-label="שקף 4"></button>
+  <button class="nav-dot"    data-i="4" aria-label="שקף 5"></button>
+  <button class="nav-dot"    data-i="5" aria-label="שקף 6"></button>
+</nav>
+
+<main id="main">
+
+  <!-- ── S1: HERO ── -->
+  <section class="slide" id="s1" aria-label="פתיחה">
+    <div class="grid-bg" aria-hidden="true"></div>
+    <div class="hero-inner">
+      <p class="s-eyebrow">DILER B.M.D · 2026</p>
+      <div class="hero-name">FORMULA<br>ROAD</div>
+      <div class="hero-rule" aria-hidden="true"></div>
+      <p class="hero-sub">ניהול מסלולי ביקור חכם<br>לסוכני שטח</p>
+      <div class="hero-pill">פחות ניירת&nbsp;·&nbsp;<b>יותר ביקורים</b></div>
+    </div>
+    <div class="cue" aria-hidden="true">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M8 3v10M3 9l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--dim)"/>
+      </svg>
+      <span>גלול</span>
+    </div>
+  </section>
+
+  <!-- ── S2: WHAT ── -->
+  <section class="slide" id="s2" aria-label="מה זה">
+    <div class="bg-shot" aria-hidden="true"></div>
+    <div class="what-wrap">
+      <p class="s-eyebrow">מה זה</p>
+      <h2 class="s-title">הגדר פעם אחת —<br>קבל מסלול אוטומטית</h2>
+      <div class="what-grid">
+        <div class="what-card">
+          <p class="card-tag tag-prob">הבעיה</p>
+          <p>מנהל שדה מבזבז <b>שעות מדי שבוע</b> על תכנון סדר הביקורים היומי לכל סוכן — ידנית, בטלפון, בוואטסאפ.</p>
+        </div>
+        <div class="what-card">
+          <p class="card-tag tag-sol">הפתרון</p>
+          <p>FORMULA ROAD מחשבת את המסלול האופטימלי. <b>הסוכן מכניס עיר מוצא — המערכת מסדרת הכל</b> בשנייה.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── S3: HOW ── -->
+  <section class="slide" id="s3" aria-label="איך עובד">
+    <div class="how-inner">
+      <div class="how-head">
+        <p class="s-eyebrow">איך עובד</p>
+        <h2 class="s-title">4 צעדים לתחילת יום שטח</h2>
+      </div>
+      <div class="steps-row">
+        <div class="step-card">
+          <div class="step-thumb">
+            <img src="./Screenshot 2026-05-27 122852.jpg" alt="מסך כניסה — בחר מנהל">
+          </div>
+          <div class="step-foot">
+            <div class="step-n" aria-hidden="true">1</div>
+            <div class="step-txt">
+              <h4>כניסה ובחירת מנהל</h4>
+              <p>לחץ על כרטיס המנהל הרלוונטי</p>
+            </div>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-thumb">
+            <img src="./Screenshot 2026-05-27 122937.jpg" alt="בחר סוכן ויום">
+          </div>
+          <div class="step-foot">
+            <div class="step-n" aria-hidden="true">2</div>
+            <div class="step-txt">
+              <h4>בחר סוכן ויום</h4>
+              <p>רשימת סוכנים · בחר יום בשבוע</p>
+            </div>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-thumb">
+            <img src="./Screenshot 2026-05-27 123003.jpg" alt="הזן עיר מוצא">
+          </div>
+          <div class="step-foot">
+            <div class="step-n" aria-hidden="true">3</div>
+            <div class="step-txt">
+              <h4>הזן עיר מוצא</h4>
+              <p>הקלד עיר או זהה GPS אוטומטית</p>
+            </div>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-thumb">
+            <img src="./Screenshot 2026-05-27 123041.jpg" alt="מסלול מוכן">
+          </div>
+          <div class="step-foot">
+            <div class="step-n" aria-hidden="true">4</div>
+            <div class="step-txt">
+              <h4>קבל מסלול מסודר</h4>
+              <p>מפה · רשימה · ק"מ · מיון AI</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── S4: FEATURES ── -->
+  <section class="slide" id="s4" aria-label="פיצ'רים מרכזיים">
+    <div class="feat-img">
+      <img src="./Screenshot 2026-05-27 123134.jpg" alt="תיקון קואורדינטות GPS">
+    </div>
+    <div class="feat-content">
+      <div>
+        <p class="s-eyebrow">כלים מרכזיים</p>
+        <h2 class="s-title">חוסכים זמן אמת<br>בשטח ובמשרד</h2>
+      </div>
+      <div class="feat-item">
+        <div class="feat-icon" aria-hidden="true">📍</div>
+        <div>
+          <h3>תיקון קואורדינטות GPS</h3>
+          <p>כתובת לא מדויקת? לחץ 📍 · גרור את הסיכה למיקום הנכון · שמור. <b>נשמר לנצח</b> לכל ביקור עתידי.</p>
+        </div>
+      </div>
+      <div class="feat-item">
+        <div class="feat-icon" aria-hidden="true">📊</div>
+        <div>
+          <h3>ייצוא מסלול ל-Excel בלחיצה אחת</h3>
+          <p>כפתור <b>XL</b> — כל המסלול היומי מיוצא מיידית: שמות לקוחות, כתובות, קילומטרז', מכירות חודשיות.</p>
+        </div>
+      </div>
+      <div class="feat-item">
+        <div class="feat-icon" aria-hidden="true">🤖</div>
+        <div>
+          <h3>מיון AI — מסלול מינימלי ק"מ</h3>
+          <p>לחץ <b>AI</b> — המערכת ממיינת לפי מסלול קצר אופטימלי. ההשוואה מוצגת בזמן אמת לצד מיון ביקור.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── S5: RESULTS ── -->
+  <section class="slide" id="s5" aria-label="תוצאות">
+    <div class="results-head">
+      <p class="s-eyebrow">מה מרוויחים</p>
+      <h2 class="s-title">פחות אדמיניסטרציה —<br>יותר ביקורים</h2>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="kpi-n">0</div>
+        <div class="kpi-l">שעות תכנון יומי</div>
+        <div class="kpi-s">סדר הביקורים מחושב<br>אוטומטית — ללא קשר טלפוני</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-n">1</div>
+        <div class="kpi-l">לחיצה לייצוא Excel</div>
+        <div class="kpi-s">מסלול מלא — שמות,<br>כתובות, ק"מ, מכירות</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-n">18%</div>
+        <div class="kpi-l">חיסכון ממוצע בק"מ</div>
+        <div class="kpi-s">מיון AI מול סדר<br>ביקור ידני קלאסי</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── S6: END ── -->
+  <section class="slide" id="s6" aria-label="סיום">
+    <div class="grid-bg" aria-hidden="true"></div>
+    <div class="end-name">FORMULA ROAD</div>
+    <div class="end-rule" aria-hidden="true"></div>
+    <p class="end-meta">DILER B.M.D · © 2026</p>
+  </section>
+
+</main>
+
+<script>
+(function () {
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const dots   = Array.from(document.querySelectorAll('.nav-dot'));
+  const main   = document.getElementById('main');
+
+  function setDot(i) {
+    dots.forEach((d, j) => d.classList.toggle('on', j === i));
+  }
+
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting && e.intersectionRatio >= 0.5) {
+        setDot(slides.indexOf(e.target));
+      }
+    });
+  }, { root: main, threshold: 0.5 });
+
+  slides.forEach(s => io.observe(s));
+
+  dots.forEach(d => d.addEventListener('click', () => {
+    slides[+d.dataset.i].scrollIntoView({ behavior: 'smooth' });
+  }));
+
+  document.addEventListener('keydown', e => {
+    const cur = dots.findIndex(d => d.classList.contains('on'));
+    if (e.key === 'ArrowDown' && cur < slides.length - 1) slides[cur + 1].scrollIntoView({ behavior: 'smooth' });
+    if (e.key === 'ArrowUp'   && cur > 0)                 slides[cur - 1].scrollIntoView({ behavior: 'smooth' });
+  });
+})();
+</script>
+</body>
+</html>

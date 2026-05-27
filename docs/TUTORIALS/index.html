@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FORMULA ROAD — מדריך למשתמש</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #0D2137; }
+
+  header {
+    background: linear-gradient(135deg, #1A3F7C 0%, #1565C0 100%);
+    color: #fff;
+    padding: 32px 24px 28px;
+    text-align: center;
+  }
+  header h1 { font-size: 28px; font-weight: 900; letter-spacing: 2px; margin-bottom: 6px; }
+  header p  { font-size: 14px; opacity: .75; }
+
+  .steps { max-width: 860px; margin: 32px auto; padding: 0 16px 48px; display: flex; flex-direction: column; gap: 32px; }
+
+  .step {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 2px 12px rgba(21,101,192,.1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid #E3EAF2;
+  }
+  .step-num {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: #1565C0; color: #fff;
+    font-size: 16px; font-weight: 900;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .step-title { font-size: 17px; font-weight: 800; color: #1A3F7C; }
+  .step-sub   { font-size: 13px; color: #546E7A; margin-top: 2px; }
+
+  .step-body { padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 14px; }
+
+  .step-img {
+    border-radius: 10px;
+    border: 1px solid #D6E4F0;
+    width: 100%;
+    display: block;
+  }
+
+  .step-desc {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #334;
+  }
+  .step-desc strong { color: #1565C0; }
+
+  .tip {
+    background: #EEF5FF;
+    border-right: 3px solid #009FFF;
+    border-radius: 0 8px 8px 0;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #1A3F7C;
+    line-height: 1.6;
+  }
+
+  footer {
+    text-align: center;
+    padding: 24px;
+    font-size: 12px;
+    color: #90A4AE;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>FORMULA ROAD</h1>
+  <p>מדריך שימוש למסלולי ביקור · DILER BMD</p>
+</header>
+
+<div class="steps">
+
+  <!-- Step 1 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-title">כניסה למערכת — בחר מנהל</div>
+        <div class="step-sub">מסך הפתיחה של FORMULA ROAD</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <img class="step-img" src="Screenshot 2026-05-27 122852.jpg" alt="מסך כניסה">
+      <div class="step-desc">
+        פתח את הכתובת של FORMULA ROAD בדפדפן.<br>
+        תראה רשימת <strong>מנהלים</strong> — לחץ על הכרטיס של המנהל הרלוונטי.
+      </div>
+      <div class="tip">💡 אם אתה סוכן — הקלד את <strong>קוד הסוכן</strong> שלך בשדה הכניסה.</div>
+    </div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">2</div>
+      <div>
+        <div class="step-title">בחר סוכן ויום</div>
+        <div class="step-sub">רשימת הסוכנים תחת המנהל</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <img class="step-img" src="Screenshot 2026-05-27 122937.jpg" alt="בחר סוכן">
+      <div class="step-desc">
+        לחץ על שם הסוכן, ואז בחר את <strong>יום העבודה</strong> (א–ה) מהרשימה שתיפתח.
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">3</div>
+      <div>
+        <div class="step-title">הזן עיר מוצא</div>
+        <div class="step-sub">ממה מתחיל המסלול היום?</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <img class="step-img" src="Screenshot 2026-05-27 123003.jpg" alt="עיר מוצא">
+      <div class="step-desc">
+        הקלד את שם העיר שממנה מתחיל הסוכן היום, או לחץ על
+        <strong>📍 זהה מיקום אוטומטית</strong> — המערכת תאתר את המיקום דרך GPS.
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 4 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">4</div>
+      <div>
+        <div class="step-title">אשר עיר מוצא</div>
+        <div class="step-sub">לחץ "המשך לבניית מסלול"</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <img class="step-img" src="Screenshot 2026-05-27 123019.jpg" alt="אשר עיר">
+      <div class="step-desc">
+        לאחר שהעיר זוהתה (תופיע עם ✅), לחץ על <strong>המשך לבניית מסלול ←</strong>.
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 5 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">5</div>
+      <div>
+        <div class="step-title">מסך המסלול — רשימה + מפה</div>
+        <div class="step-sub">סקירת לקוחות ביום הנבחר</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <img class="step-img" src="Screenshot 2026-05-27 123041.jpg" alt="מסלול ראשי">
+      <div class="step-desc">
+        המסך מתחלק לשניים: <strong>מפה</strong> משמאל ו<strong>רשימת לקוחות</strong> מימין.<br><br>
+        • הכפתורים <strong>א / ב / ג / ד / ה</strong> — מעבר בין ימות השבוע<br>
+        • <strong>ביקור / AI</strong> — מיון לפי סדר Priority או סדר אופטימלי<br>
+        • <strong>km ביסכון / km ביקור</strong> — קילומטרז' כולל לפי שני הסדרים<br>
+        • לחיצה על שם לקוח — מרחיבה פרטים, לחיצה כפולה — ממקמת אותו במפה
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 6 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">6</div>
+      <div>
+        <div class="step-title">סינון לפי עיר</div>
+        <div class="step-sub">הצג רק לקוחות באזור מסוים</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <img class="step-img" src="Screenshot 2026-05-27 123118.jpg" alt="סינון עיר">
+      <div class="step-desc">
+        לחץ על שם עיר בשורת הסינון כדי להציג רק את הלקוחות באותה עיר.<br>
+        הקילומטרז' יחושב מחדש בהתאם לסינון.
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 7 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">7</div>
+      <div>
+        <div class="step-title">עדכון מיקום GPS של לקוח</div>
+        <div class="step-sub">כאשר הכתובת לא מדויקת</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <img class="step-img" src="Screenshot 2026-05-27 123134.jpg" alt="עדכון GPS">
+      <div class="step-desc">
+        לחץ על כפתור <strong>📍</strong> בצד הכרטיס של הלקוח.<br>
+        תיפתח חלונית עם שתי אפשרויות:<br><br>
+        • <strong>📍 קבע מיקום נוכחי</strong> — ישתמש ב-GPS הנוכחי של הטלפון<br>
+        • <strong>🗺 מקום על המפה באצבע</strong> — גרור את הסיכה למיקום המדויק
+      </div>
+      <div class="tip">💡 המיקום נשמר ויישאר גם בפתיחות הבאות של האפליקציה.</div>
+    </div>
+  </div>
+
+  <!-- Step 8 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">8</div>
+      <div>
+        <div class="step-title">פרטי לקוח במפה</div>
+        <div class="step-sub">לחץ על מספר הלקוח במפה</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <img class="step-img" src="Screenshot 2026-05-27 123157.jpg" alt="פרטים במפה">
+      <div class="step-desc">
+        לחיצה על <strong>מספר הלקוח במפה</strong> פותחת חלונית עם שם, עיר וכתובת.<br>
+        ניתן לתקן את המיקום ישירות מכאן עם <strong>📍 תקן מיקום</strong>.
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 9 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">9</div>
+      <div>
+        <div class="step-title">לחיצה כפולה — מעבר ללקוח במפה</div>
+        <div class="step-sub">איתור מהיר על המפה</div>
+      </div>
+    </div>
+    <div class="step-body">
+      <img class="step-img" src="Screenshot 2026-05-27 123218.jpg" alt="דאבל קליק">
+      <div class="step-desc">
+        לחיצה כפולה על כרטיס לקוח ברשימה — <strong>מסמנת אותו בכחול במפה</strong>
+        ומתמקדת עליו בזום עדין.<br>
+        לחיצה כפולה שנייה — מבטלת את הסימון.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>FORMULA ROAD · DILER BMD · © 2026</footer>
+
+</body>
+</html>
