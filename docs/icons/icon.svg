@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#1A3F7C"/>
+  <!-- Road line -->
+  <path d="M 100 380 Q 180 260 256 200 Q 340 140 420 120" stroke="#009FFF" stroke-width="28" stroke-linecap="round" fill="none"/>
+  <!-- Pin at destination -->
+  <circle cx="420" cy="120" r="36" fill="#C9A84C"/>
+  <circle cx="420" cy="112" r="18" fill="#1A3F7C"/>
+  <path d="M420 144 L420 168" stroke="#C9A84C" stroke-width="10" stroke-linecap="round"/>
+  <!-- Start dot -->
+  <circle cx="100" cy="380" r="22" fill="#fff" opacity="0.9"/>
+  <circle cx="100" cy="380" r="12" fill="#009FFF"/>
+</svg>
