@@ -743,8 +743,18 @@ async function fetchPakuotAllForMakats(makatim) {
   return result;
 }
 
-// ── חלבי family codes — KARTIS PARIT[משפחת מוצר] column
-// Source: משפחת מוצר לפי מחסן.xlsx col "משפחת מוצר N" (section = "חלבי")
+// Hardcoded halavi family display names — keyed by fixHebRTL(KARTIS PARIT[תאור משפחה]).
+// Same principle as dagim FAM_NAMES: one hardcoded map, no runtime encoding guesswork.
+// To add entries: check build log for "halavi fam unknown" lines → paste code here.
+const HALAVI_FAM_NAMES = {
+  'SVALIA גבינה':   'גבינה SVALIA',
+  'SVALIA פרוסות':  'פרוסות SVALIA',
+  'SVALIA שמנת':    'שמנת SVALIA',
+  'SVALIA טבורוג':  'טבורוג SVALIA',
+  'PRESIDENT':      'PRESIDENT',
+  "גבינה פרמנזן PARNIDZIO 200 ג'": "גבינה פרמנזן PARNIDZIO 200 ג'",
+};
+
 // ── Fetch all active חלבי products from KARTIS PARIT + live stock/sales/pakuot ──
 async function fetchHalaviFromBI() {
   const t = await getToken();
@@ -771,10 +781,12 @@ async function fetchHalaviFromBI() {
     if (!mk) continue;
     const raw = r['[name]'] || '';
     const rawFam = r['[fam]'] ? r['[fam]'].replace(/[‎‏‪-‮⁦-⁩]/g, '').trim() : '';
+    const fixedFam = rawFam ? (fixHebRTL(rawFam) || null) : null;
+    const famName = fixedFam ? (HALAVI_FAM_NAMES[fixedFam] ?? (() => { console.log('halavi fam unknown: ' + JSON.stringify(fixedFam)); return fixedFam; })()) : null;
     result[mk] = {
       makat:     mk,
       desc:      raw.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim() || null,
-      fam:       rawFam ? fixHebRTL(rawFam) || null : null,
+      fam:       famName,
       weight:    r['[weight]'] ?? null,
       shelfLife: r['[shelfLife]'] ?? null,
       stopSale:  false,
