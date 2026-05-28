@@ -124,7 +124,7 @@ function addBorders(row) {
     ['11', 'Масштаб + полный экран', 'Кнопки +/- для zoom, кнопка "Fit to screen" (⊡), полный экран (⛶).', '✅ Готово', 'Средний'],
     ['12', 'Сброс секции (↩ אפס)', 'Возврат секции к последнему сохранённому состоянию.', '✅ Готово', 'Средний'],
     ['13', 'Печать планограммы (PDF)', 'Генерация PDF из текущего вида. Landscape, без интерфейсных элементов.', '✅ Готово', 'Средний'],
-    ['14', 'Auto-build из Excel + Power BI', 'build-planogram.js (1040 строк) собирает planogram из קפוא.xlsx, חלבי.xlsx, דגים.xlsx + данные продаж из Power BI (pbi-kapua.js).', '✅ Готово', 'Высокий'],
+    ['14', 'Auto-build из Power BI', 'build-planogram.js собирает планограмму: данные склада и продаж из Power BI (pbi-kapua.js) + сетка bay-ов из MAHSAN 8.xlsx + кратность паллет из FORMULA PALLETS.xlsx.', '✅ Готово', 'Высокий'],
     ['15', 'GitHub Actions CI/CD', 'Автоматическая пересборка и деплой при git push. product-data.json обновляется автоматически.', '✅ Готово', 'Высокий'],
     ['16', 'Порядок семейств קפוא (утверждён)', 'חמאה FERMA → חמאה רושן → ממרחי → כיסונים → SANTA BREMOR main → עוגות רושן → עוגות מוזיקה → חטיף גבינה → SANTA BREMOR דגים → VALESTA → מוסדי', '✅ Готово', 'Высокий'],
   ];
@@ -215,7 +215,7 @@ function addBorders(row) {
     ['Данные планограммы', 'JSON (auto-generated)', 'docs/product-data.json', 'Все SKU, bay-позиции, фото, продажи, партии תוקף. Генерируется build-планограм.js'],
     ['Build-скрипт', 'Node.js (1040 строк)', 'PLANOGRAM MAHSAN FORMULA/build-planogram.js', 'Читает Excel-файлы + Power BI, собирает product-data.json. Порядок семейств жёстко закреплён.'],
     ['Power BI интеграция', 'Node.js + PBI REST API', 'PLANOGRAM MAHSAN FORMULA/pbi-kapua.js', 'Загружает данные продаж (ממוצע מכירה 45 дней) и партии תוקף из Power BI Fabric.'],
-    ['Источники данных', 'Excel (ежедневно)', 'קפוא.xlsx · חלבי.xlsx · דגים.xlsx · FORMULA PALLETS.xlsx', 'קפוא/חלבי/דגים — ежедневные. FORMULA PALLETS + MAHSAN 8 — статичные шаблоны.'],
+    ['Источники данных', 'Power BI + Excel (статика)', 'Power BI Fabric (данные склада/продаж) · MAHSAN 8.xlsx (сетка bay) · FORMULA PALLETS.xlsx (кратность)', 'Power BI — основной источник данных. MAHSAN 8 и FORMULA PALLETS — статичные шаблоны, меняются редко.'],
     ['Хостинг', 'GitHub Pages', 'sverdlikdan-code.github.io/COLUMBUS/planogram-editor.html', 'Бесплатный хостинг, SSL автоматически. Деплой при git push.'],
     ['CI/CD', 'GitHub Actions', '.github/workflows/build-planogram.yml', 'Триггер: push в master → build-planogram.js → product-data.json в docs/.'],
     ['Хранение состояния', 'localStorage браузера', 'Ключ: mahsan_planogram_state_[секция]', 'Сохранение версий редактирования. Хранится локально в браузере пользователя.'],
@@ -251,11 +251,9 @@ function addBorders(row) {
     ['GitHub репозиторий', 'https://github.com/sverdlikdan-code/COLUMBUS', 'Разработчики'],
     ['GitHub Actions', 'https://github.com/sverdlikdan-code/COLUMBUS/actions', 'Мониторинг деплоев'],
     ['', '', ''],
-    ['Исходные данные קפוא', 'PLANOGRAM MAHSAN FORMULA\\קפוא.xlsx', 'Ежедневно — оператор склада'],
-    ['Исходные данные חלבי', 'PLANOGRAM MAHSAN FORMULA\\MAHSAN חלבי\\חלבי.xlsx', 'Ежедневно — оператор склада'],
-    ['Исходные данные דגים', 'PLANOGRAM MAHSAN FORMULA\\MAHSAN דגים\\דגים.xlsx', 'Ежедневно — оператор склада'],
-    ['Шаблон склада', 'PLANOGRAM MAHSAN FORMULA\\MAHSAN 8.xlsx', 'Статичный — менять редко'],
+    ['Шаблон склада (bay-сетка)', 'PLANOGRAM MAHSAN FORMULA\\MAHSAN 8.xlsx', 'Статичный — менять редко'],
     ['Кратность паллет', 'PLANOGRAM MAHSAN FORMULA\\FORMULA PALLETS.xlsx', 'Статичный — менять редко'],
+    ['Данные склада и продаж', 'Power BI Fabric (pbi-kapua.js)', 'Автоматически при каждой пересборке'],
   ];
 
   rows.forEach((r, i) => {
