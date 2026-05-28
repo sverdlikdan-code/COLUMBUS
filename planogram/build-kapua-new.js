@@ -116,6 +116,8 @@ async function dax(token, query) {
   }
 
   // Build product list, filter blacklist + zero sales
+  // EXPLICIT_MAKATIM bypass sales filter — they're frozen surimi intentionally included
+  const explicitSet = new Set(EXPLICIT_MAKATIM);
   const seen = new Set();
   const products = [];
   for (const r of mlayRows) {
@@ -125,7 +127,7 @@ async function dax(token, query) {
     seen.add(mk);
     if (BLACKLIST.has(mk)) { console.log(`  ⛔ blacklisted: ${mk}`); continue; }
     const mkr = salesMap[mk] || 0;
-    if (mkr <= 0) continue;
+    if (mkr <= 0 && !explicitSet.has(mk)) continue; // explicit makatim bypass zero-sales filter
     products.push({ makat: mk, fam: FAM_NAMES[fc] || fc, famCode: fc, mkr365: mkr });
   }
 
@@ -156,7 +158,9 @@ async function dax(token, query) {
   }
 
   // Clean reserve slots: null products with zero 365-day sales (not in active products list)
+  // EXPLICIT_MAKATIM are always protected — never clean them regardless of sales
   const activeKapuaSet = new Set(products.map(p => String(p.makat)));
+  EXPLICIT_MAKATIM.forEach(m => activeKapuaSet.add(m));
   let kCleaned = 0;
   for (const pk of Object.keys(picks)) {
     if (Number(pk) < RESERVE_START || !picks[pk]) continue;
