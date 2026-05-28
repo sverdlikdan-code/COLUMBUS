@@ -309,6 +309,27 @@ ORDER BY 'משטח עם כפולות'[סדר ביקור] ASC
   }
 });
 
+// Save GPS correction — shared across all users via gps-corrections.json
+app.post('/save-gps', (req, res) => {
+  try {
+    const path = require('path');
+    const fs   = require('fs');
+    const { custId, lat, lng, name, city, address } = req.body;
+    if (!custId || !lat || !lng) return res.status(400).json({ error: 'missing custId/lat/lng' });
+    const IL = { minLat: 29.3, maxLat: 33.5, minLng: 34.2, maxLng: 35.9 };
+    if (lat < IL.minLat || lat > IL.maxLat || lng < IL.minLng || lng > IL.maxLng) {
+      return res.status(400).json({ error: 'coordinates outside Israel' });
+    }
+    const filePath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
+    const current  = fs.existsSync(filePath) ? JSON.parse(fs.readFileSync(filePath, 'utf8')) : {};
+    current[String(custId)] = { lat, lng, correctedAt: new Date().toISOString(), name: name || '', city: city || '', address: address || '' };
+    fs.writeFileSync(filePath, JSON.stringify(current, null, 2), 'utf8');
+    res.json({ ok: true, total: Object.keys(current).length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Save planogram base JSON back to docs/
 app.post('/save-kapua', (req, res) => {
   try {
