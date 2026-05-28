@@ -1984,8 +1984,8 @@ function buildExpiryPage() {
     if (!hasRealBatches) return null;
     const sakanaMain = batches.main.some(b => batchSakana(b, salesMain, shelfLife)?.isSakana);
     const sakanaZafn = batches.zafn.some(b => batchSakana(b, salesZafn, shelfLife)?.isSakana);
+    if (d.stock == null || d.stockZafn == null) return null;
     if (window._expiryOnlySakana && !(sakanaMain || sakanaZafn)) return null;
-    if (window._expiryOnlySakana && (d.stock == null || d.stockZafn == null)) return null;
     const zafnDays = (salesZafn > 0 && d.stockZafn > 0) ? (d.stockZafn / salesZafn) * 1.4 : null;
     if (window._expiryZafnLow && !(zafnDays != null && zafnDays < 3)) return null;
     return { pick, p, mk, d, salesMain, salesZafn, shelfLife, batches, sakanaMain, sakanaZafn, zafnDays };
