@@ -17,13 +17,6 @@
  * passed via the explicit makatim list and fetched through UNION with famMakatim.
  */
 
-function fixVisualRTL(s) {
-  if (!s) return s;
-  s = s.replace(/[‎‏‪-‮⁦-⁩﻿]/g, '');
-  const full = s.split('').reverse().join('');
-  return full.replace(/[\x20-\x7E]+/g, m => m.split('').reverse().join('')).trim();
-}
-
 const TENANT    = process.env.PBI_TENANT;
 const CLIENT    = process.env.PBI_CLIENT;
 const SECRET    = process.env.PBI_SECRET;
@@ -774,7 +767,7 @@ async function fetchHalaviFromBI() {
     result[mk] = {
       makat:     mk,
       desc:      raw.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim() || null,
-      fam:       fixVisualRTL(r['[fam]'] || '') || null,
+      fam:       r['[fam]'] || null,
       weight:    r['[weight]'] ?? null,
       shelfLife: r['[shelfLife]'] ?? null,
       stopSale:  false,
@@ -853,7 +846,7 @@ async function fetchDagimFromBI() {
     result[mk] = {
       makat:     mk,
       desc:      raw.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim() || null,
-      fam:       fixVisualRTL(r['[fam]'] || '') || null,
+      fam:       r['[fam]'] || null,
       weight:    r['[weight]'] ?? null,
       shelfLife: r['[shelfLife]'] ?? null,
       stopSale:  false,
