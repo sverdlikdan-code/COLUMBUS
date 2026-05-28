@@ -408,6 +408,25 @@ const API = 'https://api.sverdlik-apps.site';
 const MAINTENANCE_MODE = true; // set false to re-enable
 let gpsCorrections = {}; // custId → {lat,lng}
 
+// ── SESSION TOKEN ────────────────────────────────────────────────────────────
+function _getToken(){ return localStorage.getItem('frToken') || ''; }
+function _saveToken(t){ if(t) localStorage.setItem('frToken', t); }
+
+async function apiFetch(url, opts={}){
+  const token = _getToken();
+  const headers = { ...(opts.headers || {}) };
+  if(token) headers['X-Session'] = token;
+  const r = await fetch(url, { ...opts, headers });
+  if(r.status === 401){
+    localStorage.removeItem('frAgent');
+    localStorage.removeItem('frToken');
+    alert('פג תוקף הסשן — נא להתחבר מחדש');
+    window.location.reload();
+    throw new Error('session_expired');
+  }
+  return r;
+}
+
 async function loadCorrections(){
   try{
     const r=await fetch('./gps-corrections.json?_='+Date.now());
@@ -657,8 +676,14 @@ async function initLogin(){
   await loadStaticData();
   await loadCorrections();
 
-  // RLS: check saved session
+  // RLS: check saved session — if no token, force re-login
   const saved = _loadAuth();
+  if(saved && !_getToken()){
+    localStorage.removeItem('frAgent');
+    renderLogin();
+    show('s-login');
+    return;
+  }
   if(saved){
     if(saved.isManager){
       // Manager — show full picker
@@ -699,9 +724,8 @@ async function doLogin(code){
   const btn=document.querySelector('.code-entry-btn');
   if(btn) btn.disabled=true;
 
-  // Try manager password via server
   try{
-    const r=await fetch(API+'/auth/manager',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});
+    const r=await fetch(API+'/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});
     if(r.status===429){
       if(err) err.textContent='יותר מדי ניסיונות — המתן דקה ❌';
       if(btn) btn.disabled=false;
@@ -709,30 +733,29 @@ async function doLogin(code){
     }
     const j=await r.json();
     if(j.ok){
-      localStorage.setItem('frAgent',JSON.stringify({code:'mgr',name:'מנהל',isManager:true}));
-      _logAccess('login',null,null,true);
-      _setupManagerPicker();
-      st.step='manager';
-      renderLogin();
+      _saveToken(j.token);
+      if(j.type==='manager'){
+        localStorage.setItem('frAgent',JSON.stringify({code:'mgr',name:'מנהל',isManager:true}));
+        _logAccess('login',null,'מנהל',true);
+        _setupManagerPicker();
+        st.step='manager';
+        renderLogin();
+      } else {
+        localStorage.setItem('frAgent',JSON.stringify({code:j.agentCode,name:j.agentName,isManager:false}));
+        _logAccess('login',j.agentCode,j.agentName,false);
+        st.agent={code:j.agentCode,name:j.agentName};
+        document.getElementById('city-agent-label').textContent=j.agentName;
+        buildCityChips();
+        show('s-city');
+        document.getElementById('logout-btn').style.display='';
+      }
       if(btn) btn.disabled=false;
       return;
     }
-  }catch(_){}
-
-  // Agent code
-  const agentData=STATIC_DATA?.agents?.[code];
-  if(!agentData){
-    if(err) err.textContent='מספר סוכן לא נמצא ❌';
-    if(btn) btn.disabled=false;
-    return;
+    if(err) err.textContent='מספר סוכן / סיסמה לא נמצאו ❌';
+  }catch(e){
+    if(e.message!=='session_expired' && err) err.textContent='שגיאת חיבור ❌';
   }
-  localStorage.setItem('frAgent',JSON.stringify({code, name:agentData.name, isManager:false}));
-  _logAccess('login', code, agentData.name, false);
-  st.agent={code, name:agentData.name};
-  document.getElementById('city-agent-label').textContent=agentData.name;
-  buildCityChips();
-  show('s-city');
-  document.getElementById('logout-btn').style.display='';
   if(btn) btn.disabled=false;
 }
 
@@ -740,6 +763,7 @@ function logout(){
   const auth=_loadAuth();
   if(auth) _logAccess('logout', auth.code||null, auth.name||null, !!auth.isManager);
   localStorage.removeItem('frAgent');
+  localStorage.removeItem('frToken');
   window.location.reload();
 }
 
@@ -837,7 +861,7 @@ function renderLogin(){
         },0);
         el.textContent=total?total+' לקוחות':'';
       }else{
-        fetch(`${API}/customers?agent=${encodeURIComponent(a.agentCode)}`)
+        apiFetch(`${API}/customers?agent=${encodeURIComponent(a.agentCode)}`)
           .then(r=>r.json()).then(d=>{if(el)el.textContent=Array.isArray(d)?d.length+' לקוחות':'';})
           .catch(()=>{if(el)el.textContent='';});
       }
@@ -854,7 +878,7 @@ async function selectManager(mgr){
     st._agents=STATIC_DATA.agentsByManager[mgr];
   }else{
     try{
-      const r=await fetch(`${API}/manager-agents?manager=${encodeURIComponent(mgr)}`);
+      const r=await apiFetch(`${API}/manager-agents?manager=${encodeURIComponent(mgr)}`);
       if(!r.ok)throw new Error();
       const data=await r.json();
       st._agents=data.length?data:(DEMO_AGENTS[mgr]||[]);
@@ -938,7 +962,7 @@ async function confirmCity(){
   st.startCity=city;
   // Keep GPS coords if they were captured (detectCity) — only geocode if we don't have them
   if(!st.startLat || !st.startLng) {
-    fetch(`${API}/geocode?address=${encodeURIComponent(city)}&city=${encodeURIComponent(city)}`)
+    apiFetch(`${API}/geocode?address=${encodeURIComponent(city)}&city=${encodeURIComponent(city)}`)
       .then(r=>r.json()).then(d=>{if(d&&d.lat){st.startLat=d.lat;st.startLng=d.lng;}}).catch(()=>{});
   }
   const wd = new Date().getDay(); // 0=Sun..6=Sat
@@ -974,7 +998,7 @@ async function initRoute(){
     st.clients=STATIC_DATA.routes[staticKey];
   }else{
     try{
-      const r=await fetch(`${API}/customers?agent=${st.agent.code}&day=${st.day}`);
+      const r=await apiFetch(`${API}/customers?agent=${st.agent.code}&day=${st.day}`);
       if(!r.ok)throw new Error();
       st.clients=await r.json();
     }catch{
@@ -1530,7 +1554,7 @@ async function submitAddress(){
   const c=st.clients.find(x=>x.custId===st.addrClientId);
   closeAddrModal();
   try{
-    const r=await fetch(`${API}/geocode?address=${encodeURIComponent(addr)}&city=${encodeURIComponent(c?.city||'')}`);
+    const r=await apiFetch(`${API}/geocode?address=${encodeURIComponent(addr)}&city=${encodeURIComponent(c?.city||'')}`);
     const d=await r.json();
     if(d&&d.lat){
       st.clients=st.clients.map(x=>x.custId===st.addrClientId?{...x,address:addr,lat:d.lat,lng:d.lng}:x);
@@ -1694,7 +1718,7 @@ function startGpsCorrection(custId, custName){
     localStorage.setItem('fr_gps_local',JSON.stringify(local));
     updateGpsHistBtn();
     // sync to server → gps-corrections.json (shared for all users)
-    fetch(`${API}/save-gps`,{method:'POST',headers:{'Content-Type':'application/json'},
+    apiFetch(`${API}/save-gps`,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({custId,lat:la,lng:lo,name:custName,city:cl.city||'',address:cl.address||''})
     }).catch(()=>{});
     // update client position

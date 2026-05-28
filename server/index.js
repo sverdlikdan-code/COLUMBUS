@@ -6,8 +6,17 @@ const path = require('path');
 const { executeDax } = require('./powerbi');
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+  origin: [
+    'https://sverdlikdan-code.github.io',
+    'http://localhost:3000',
+    'http://localhost:8080',
+    'http://127.0.0.1:5500',
+  ],
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'X-Session'],
+}));
+app.use(express.json({ limit: '512kb' }));
 
 // ── ACCESS LOGGING ─────────────────────────────────────────────────────────
 const ACCESS_LOG = path.join(__dirname, 'access-log.json');
@@ -47,6 +56,45 @@ function checkRateLimit(ip) {
   return rec.count > 10; // block after 10 attempts/min
 }
 
+// ── SESSION MANAGEMENT ─────────────────────────────────────────────────────
+const crypto = require('crypto');
+const sessions = new Map(); // token → { agentCode, isManager, expiresAt }
+
+function createSession(agentCode, isManager) {
+  const token = crypto.randomUUID();
+  sessions.set(token, { agentCode, isManager, expiresAt: Date.now() + 8 * 60 * 60 * 1000 });
+  // Prune expired sessions when map grows large
+  if (sessions.size > 500) {
+    const now = Date.now();
+    for (const [t, s] of sessions) { if (s.expiresAt < now) sessions.delete(t); }
+  }
+  return token;
+}
+
+function requireAuth(req, res, next) {
+  const token = (req.headers['x-session'] || '').trim();
+  const sess = sessions.get(token);
+  if (!sess || Date.now() > sess.expiresAt) return res.status(401).json({ error: 'unauthorized' });
+  req.session = sess;
+  next();
+}
+
+// Agent list cache — loaded from formula-road-data.json (built by GitHub Actions)
+let agentListCache = null;
+function loadAgentList() {
+  if (agentListCache) return agentListCache;
+  try {
+    const raw = fs.readFileSync(path.join(__dirname, '..', 'docs', 'formula-road-data.json'), 'utf8');
+    agentListCache = JSON.parse(raw).agents || {};
+    return agentListCache;
+  } catch { return {}; }
+}
+
+// HTML escape helper for log output
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 // POST /log-access — client sends login/logout events
 app.post('/log-access', (req, res) => {
   const { event, agentCode, agentName, isManager } = req.body || {};
@@ -64,17 +112,29 @@ app.post('/log-access', (req, res) => {
   res.json({ ok: true });
 });
 
-// POST /auth/manager — server-side manager password validation
-app.post('/auth/manager', (req, res) => {
+// POST /auth — unified login: manager password OR agent code → returns session token
+app.post('/auth', (req, res) => {
   const ip = getRealIp(req);
   if (checkRateLimit(ip)) return res.status(429).json({ ok: false, error: 'too_many_attempts' });
   const { code } = req.body || {};
+  const codeStr = String(code || '').trim();
+
+  // Manager password check
   const MANAGER_PASS = process.env.MANAGER_PASS || '1999';
-  if (String(code || '').trim() !== MANAGER_PASS) {
-    return res.json({ ok: false, error: 'wrong_pass' });
+  if (codeStr === MANAGER_PASS) {
+    loginAttempts.delete(ip);
+    return res.json({ ok: true, type: 'manager', token: createSession(null, true) });
   }
-  loginAttempts.delete(ip);
-  res.json({ ok: true });
+
+  // Agent code check — validate against formula-road-data.json
+  const agents = loadAgentList();
+  const agent = agents[codeStr];
+  if (agent) {
+    loginAttempts.delete(ip);
+    return res.json({ ok: true, type: 'agent', agentCode: codeStr, agentName: agent.name, token: createSession(codeStr, false) });
+  }
+
+  res.json({ ok: false, error: 'invalid_code' });
 });
 
 // GET /admin/logs?key=KEY — view access log
@@ -88,11 +148,11 @@ app.get('/admin/logs', (req, res) => {
       const d = new Date(e.ts);
       const local = d.toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem', hour12: false });
       return `<tr>
-        <td>${local}</td>
-        <td>${e.event === 'logout' ? '🚪' : '🟢'} ${e.event}</td>
-        <td>${e.isManager ? '👑 מנהל' : (e.agentName || '')} ${e.agentCode ? `(${e.agentCode})` : ''}</td>
-        <td>${e.ip}</td>
-        <td>${e.device}</td>
+        <td>${esc(local)}</td>
+        <td>${e.event === 'logout' ? '🚪' : '🟢'} ${esc(e.event)}</td>
+        <td>${e.isManager ? '👑 מנהל' : esc(e.agentName || '')} ${e.agentCode ? `(${esc(e.agentCode)})` : ''}</td>
+        <td>${esc(e.ip)}</td>
+        <td>${esc(e.device)}</td>
       </tr>`;
     }).join('');
     return res.send(`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><title>Access Log</title>
@@ -257,7 +317,7 @@ async function geocodeBatch(clients) {
 }
 
 // GET /geocode?address=&city= — geocode a single address
-app.get('/geocode', async (req, res) => {
+app.get('/geocode', requireAuth, async (req, res) => {
   const { address, city } = req.query;
   if (!address) return res.status(400).json({ error: 'address required' });
   const result = await geocodeAddress(address, city || '');
@@ -265,7 +325,7 @@ app.get('/geocode', async (req, res) => {
 });
 
 // GET /managers — unique manager groups from Fabric
-app.get('/managers', async (req, res) => {
+app.get('/managers', requireAuth, async (req, res) => {
   try {
     const rows = await executeDax(
       "EVALUATE DISTINCT(SELECTCOLUMNS('משטח', \"managerCode\", 'משטח'[קבוצה]))"
@@ -281,7 +341,7 @@ app.get('/managers', async (req, res) => {
 });
 
 // GET /manager-agents?manager=ALEXEY — agents for a manager
-app.get('/manager-agents', async (req, res) => {
+app.get('/manager-agents', requireAuth, async (req, res) => {
   const { manager } = req.query;
   if (!manager) return res.status(400).json({ error: 'manager required' });
   try {
@@ -308,7 +368,7 @@ ORDER BY [agentName] ASC
 });
 
 // GET /customers?agent=CODE&day=1
-app.get('/customers', async (req, res) => {
+app.get('/customers', requireAuth, async (req, res) => {
   const { agent, day } = req.query;
   if (!agent) return res.status(400).json({ error: 'agent required' });
 
@@ -435,7 +495,7 @@ async function pushGpsToGithub(content) {
 }
 
 // Save GPS correction — shared across all users via gps-corrections.json
-app.post('/save-gps', async (req, res) => {
+app.post('/save-gps', requireAuth, async (req, res) => {
   try {
     const { custId, lat, lng, name, city, address } = req.body;
     if (!custId || !lat || !lng) return res.status(400).json({ error: 'missing custId/lat/lng' });
@@ -456,7 +516,7 @@ app.post('/save-gps', async (req, res) => {
 });
 
 // Save planogram base JSON back to docs/
-app.post('/save-kapua', (req, res) => {
+app.post('/save-kapua', requireAuth, (req, res) => {
   try {
     const data = req.body;
     if (!data || !data.picks) return res.status(400).json({ error: 'invalid payload' });
