@@ -361,11 +361,21 @@
   background:#fff; overflow:hidden;
   direction:rtl; flex-direction:column;
 ">
-  <div style="display:flex; align-items:center; gap:8px; padding:8px 16px; background:#1565C0; flex-shrink:0;">
-    <span style="font-weight:bold; font-size:13px; color:#fff; flex:1;" id="pos-tbl-title">טבלת מיקום</span>
-    <button onclick="toggleTable()" style="background:rgba(255,255,255,0.2); border:none; color:#fff; font-size:18px; cursor:pointer; border-radius:4px; padding:2px 10px; line-height:1;">✕</button>
+  <div style="background:#1565C0; flex-shrink:0;">
+    <div style="display:flex; align-items:center; gap:8px; padding:8px 16px;">
+      <span style="font-weight:bold; font-size:13px; color:#fff; flex:1;" id="pos-tbl-title">טבלת מיקום</span>
+      <button onclick="exportCSVAll()" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:#fff;font-size:11px;font-weight:bold;cursor:pointer;border-radius:4px;padding:3px 10px;">⬇ CSV</button>
+      <button onclick="toggleTable()" style="background:rgba(255,255,255,0.2); border:none; color:#fff; font-size:18px; cursor:pointer; border-radius:4px; padding:2px 10px; line-height:1;">✕</button>
+    </div>
+    <div style="display:flex; gap:4px; padding:0 16px 8px;">
+      <button id="ptab-kapua"  onclick="switchPosTblSec('kapua')"  style="flex:1;padding:4px 6px;border:none;border-radius:4px;font-size:12px;font-weight:bold;cursor:pointer;background:rgba(255,255,255,0.15);color:#fff;">קפוא</button>
+      <button id="ptab-halavi" onclick="switchPosTblSec('halavi')" style="flex:1;padding:4px 6px;border:none;border-radius:4px;font-size:12px;font-weight:bold;cursor:pointer;background:rgba(255,255,255,0.15);color:#fff;">חלבי</button>
+      <button id="ptab-dagim"  onclick="switchPosTblSec('dagim')"  style="flex:1;padding:4px 6px;border:none;border-radius:4px;font-size:12px;font-weight:bold;cursor:pointer;background:rgba(255,255,255,0.15);color:#fff;">דגים</button>
+      <button id="ptab-yavesh" onclick="switchPosTblSec('yavesh')" style="flex:1;padding:4px 6px;border:none;border-radius:4px;font-size:12px;font-weight:bold;cursor:pointer;background:rgba(255,255,255,0.15);color:#fff;">דג יבש</button>
+      <button id="ptab-all"    onclick="switchPosTblSec('all')"    style="flex:1;padding:4px 6px;border:none;border-radius:4px;font-size:12px;font-weight:bold;cursor:pointer;background:rgba(255,255,255,0.15);color:#fff;">כולם</button>
+    </div>
   </div>
-  <div style="flex:1; overflow-y:auto; overflow-x:auto; padding:0 16px 12px;">
+  <div style="flex:1; overflow-y:auto; overflow-x:auto; padding:0 16px 12px;" id="pos-tbl-wrap">
     <table id="pos-tbl" style="border-collapse:collapse; font-size:12px; min-width:400px; width:100%;">
       <thead>
         <tr style="background:#e8f0fe; color:#1565C0; position:sticky; top:0; z-index:5;">
@@ -1683,14 +1693,67 @@ function toggleTable() {
   panel.style.display = open ? 'flex' : 'none';
   document.getElementById('btn-table').style.background = open ? '#1565C0' : '#f0f4ff';
   document.getElementById('btn-table').style.color      = open ? '#fff'    : '#1565C0';
-  if (open) updateTable();
+  if (open) {
+    window._posTblSec = window._currentSection || 'kapua';
+    _updatePosTblTabs();
+    updateTable();
+  }
+}
+
+function switchPosTblSec(sec) {
+  window._posTblSec = sec;
+  _updatePosTblTabs();
+  updateTable();
+}
+
+function _updatePosTblTabs() {
+  const sec = window._posTblSec || 'kapua';
+  ['kapua','halavi','dagim','yavesh','all'].forEach(s => {
+    const btn = document.getElementById('ptab-' + s);
+    if (!btn) return;
+    const active = s === sec;
+    btn.style.background = active ? '#fff' : 'rgba(255,255,255,0.15)';
+    btn.style.color      = active ? '#1565C0' : '#fff';
+    btn.style.fontWeight = active ? '900' : 'bold';
+  });
 }
 
 function updateTable() {
-  const sec   = window._currentSection || 'kapua';
+  const sec   = window._posTblSec || window._currentSection || 'kapua';
   const body  = document.getElementById('pos-tbl-body');
   const title = document.getElementById('pos-tbl-title');
-  title.textContent = `טבלת מיקום — ${sec} (${Object.keys(state[sec]).filter(k => state[sec][k]).length} מוצרים)`;
+  const SEC_NAMES = { kapua:'קפוא', halavi:'חלבי', dagim:'דגים', yavesh:'דג יבש' };
+
+  if (sec === 'all') {
+    // Read-only combined view — all 4 sections
+    let total = 0;
+    let html  = '';
+    for (const s of _SECTIONS) {
+      const order = _getPrintOrder(s);
+      total += order.filter(p => state[s][p]).length;
+      const secName = SEC_NAMES[s];
+      html += `<tr><td colspan="5" style="padding:6px 10px; background:#1565C0; color:#fff; font-weight:bold; font-size:12px;">${secName} — ${order.filter(p=>state[s][p]).length} מוצרים</td></tr>`;
+      order.forEach((pick, i) => {
+        const p  = state[s][pick];
+        if (!p) return;
+        const bg = i % 2 === 0 ? '#fff' : '#f5f7ff';
+        const fl = famColor(p.fam);
+        html += `<tr style="background:${bg}; border-left:3px solid ${fl};">
+          <td style="padding:2px 6px; text-align:center; color:#888; font-size:10px; font-weight:bold;">${(_SEC_PREFIX[s]||'')}${i+1}</td>
+          <td style="padding:2px 10px; text-align:center; font-weight:bold; color:#1565C0;">${pick}</td>
+          <td style="padding:2px 10px;">${p.makat}</td>
+          <td style="padding:2px 10px; font-weight:bold;">${p.name || productData[String(p.makat)]?.nameEn || productData[String(p.makat)]?.desc || ''}</td>
+          <td style="padding:2px 10px; font-size:10px; color:#555;">${p.fam || ''}</td>
+        </tr>`;
+      });
+    }
+    title.textContent = `טבלת מיקום — כל המחלקות (${total} מוצרים)`;
+    body.innerHTML = html;
+    return;
+  }
+
+  // Single-section editable view
+  title.textContent = `טבלת מיקום — ${SEC_NAMES[sec]||sec} (${Object.keys(state[sec]).filter(k => state[sec][k]).length} מוצרים)`;
   const order = _getPrintOrder(sec);
   const btnStyle = 'background:none;border:none;cursor:pointer;font-size:13px;padding:0 2px;line-height:1;color:#1565C0;';
   body.innerHTML = order.map((pick, i) => {
@@ -1711,6 +1774,32 @@ function updateTable() {
     </tr>`;
   }).join('');
   _initTableDrag(body);
+}
+
+function exportCSVAll() {
+  const SEC_NAMES = { kapua:'קפוא', halavi:'חלבי', dagim:'דגים', yavesh:'דג יבש' };
+  const rows = ['﻿' + 'מחלקה,סדר הדפסה,ביי,מקט,שם,משפחה'];
+  for (const sec of _SECTIONS) {
+    const reserveStart = sectionReserveStart(sec);
+    const order = _getPrintOrder(sec).filter(pick => reserveStart === 0 || +pick < reserveStart);
+    const seenMakat = new Set();
+    let idx = 0;
+    order.forEach(pick => {
+      const p = state[sec][pick];
+      if (!p) return;
+      if (seenMakat.has(String(p.makat))) return;
+      seenMakat.add(String(p.makat));
+      idx++;
+      const name = (p.name || productData[String(p.makat)]?.nameEn || productData[String(p.makat)]?.desc || '').replace(/"/g,'""');
+      const fam  = (p.fam || '').replace(/"/g,'""');
+      rows.push(`"${SEC_NAMES[sec]}",${(_SEC_PREFIX[sec]||'')}${idx},${pick},${p.makat},"${name}","${fam}"`);
+    });
+  }
+  const a = Object.assign(document.createElement('a'), {
+    href:     URL.createObjectURL(new Blob([rows.join('\n')], {type:'text/csv;charset=utf-8'})),
+    download: `planogram-all-${new Date().toISOString().slice(0,10)}.csv`,
+  });
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
 function _initTableDrag(tbody) {
