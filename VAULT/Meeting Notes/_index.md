@@ -1,4 +1,4 @@
-# Meeting Notes — Индекс
+﻿# Meeting Notes — Индекс
 
 Эта папка содержит topic files для каждого кода, архитектуры и решений в проекте COLUMBUS.
 
@@ -36,3 +36,5 @@
 - [[session-2026-05-24]] — Сессия 2026-05-24: watchdog fix, dagim TRN кнопка, капуа без Trnz, UI defaults
 - [[session-2026-05-25]] — Сессия 2026-05-25: Formula Road RTL fix, Azure Maps, duplicate jitter, pct fix, city detection
 - [[session-2026-05-26]] — Сессия 2026-05-26: daysStock через PBI measure, лейбל מכר ממוצע 45 יום
+- [[agent-security-agent]] — Security Agent — аудит безопасности Formula Road PWA + API, hardening, Cloudflare WAF, session tokens
+- [[session-2026-05-28]] — Сессия 2026-05-28: Formula Road полный hardening, security-agent создан
