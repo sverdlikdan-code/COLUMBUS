@@ -405,6 +405,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
 const API = 'https://api.sverdlik-apps.site';
+const MAINTENANCE_MODE = true; // set false to re-enable
 let gpsCorrections = {}; // custId → {lat,lng}
 
 async function loadCorrections(){
@@ -645,6 +646,14 @@ function goBack(from){
 
 // ── LOGIN ──────────────────────────────────────────────────────────────────
 async function initLogin(){
+  if (MAINTENANCE_MODE) {
+    document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#1a1a2e;flex-direction:column;gap:20px;font-family:Arial,sans-serif;">
+      <div style="font-size:48px;">🔧</div>
+      <div style="color:#fff;font-size:22px;font-weight:bold;">המערכת בתחזוקה</div>
+      <div style="color:#aaa;font-size:16px;">נחזור בקרוב</div>
+    </div>`;
+    return;
+  }
   await loadStaticData();
   await loadCorrections();
 
