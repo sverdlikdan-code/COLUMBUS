@@ -1196,7 +1196,7 @@ async function main() {
         weightCarton:        wc,
         daysStockAll:        (dsa > 0 && p.stock > 0) ? Math.round(p.stock / dsa) : null,
         nameEn:              nameEnMap[mk] ? fixVisualRTL(nameEnMap[mk].replace(/\s*\([^)]*\)/g, '').trim()) : null,
-        fam:                 p.fam ? fixVisualRTL(p.fam.replace(/[‎‏‪-‮⁦-⁩﻿]/g,'').trim()) : null,
+        fam:                 p.fam ? (p.fam.replace(/[‎‏‪-‮⁦-⁩﻿]/g,'').trim()) || null : null,
         ashdodPalletCartons: prevAshdod[mk] ?? null,
         pakuot:              (p.pakuot || kd?.pakuot || []).map(b => ({ date: b.date ? new Date(b.date).toISOString().slice(0,10) : null, daysLeft: b.daysLeft, cartons: b.cartons })),
         pakuotZafn:          (p.pakuotZafn || kd?.pakuotZafn || []).map(b => ({ date: b.date ? new Date(b.date).toISOString().slice(0,10) : null, daysLeft: b.daysLeft, cartons: b.cartons })),
@@ -1503,9 +1503,17 @@ async function main() {
         added.push(`${p.makat}→pick${pk}`);
       }
 
-      if (added.length || hCleaned > 0) {
+      // Normalize fam in ALL picks using current PBI data (fixes historical visual-RTL garbling)
+      let hFamFixed = 0;
+      for (const [pk, pick] of Object.entries(hb.picks)) {
+        if (!pick) continue;
+        const cleanFam = halaviProdMap[String(pick.makat)]?.fam;
+        if (cleanFam && cleanFam !== pick.fam) { hb.picks[pk] = { ...pick, fam: cleanFam }; hFamFixed++; }
+      }
+
+      if (added.length || hCleaned > 0 || hFamFixed > 0) {
         fs.writeFileSync(hbPath, JSON.stringify(hb, null, 2), 'utf8');
-        console.log(`halavi-base.json: +${added.length} added, -${hCleaned} cleaned from reserve`);
+        console.log(`halavi-base.json: +${added.length} added, -${hCleaned} cleaned, ~${hFamFixed} fam fixed`);
       } else {
         console.log(`halavi-base.json: all ${halaviProds.length} halavi products mapped, reserve clean`);
       }
@@ -1554,9 +1562,17 @@ async function main() {
         added.push(`${p.makat}→pick${pk}`);
       }
 
-      if (added.length || dCleaned > 0 || dActiveCleaned > 0) {
+      // Normalize fam in ALL picks using current PBI data
+      let dFamFixed = 0;
+      for (const [pk, pick] of Object.entries(db.picks)) {
+        if (!pick) continue;
+        const cleanFam = dagimProdMap[String(pick.makat)]?.fam;
+        if (cleanFam && cleanFam !== pick.fam) { db.picks[pk] = { ...pick, fam: cleanFam }; dFamFixed++; }
+      }
+
+      if (added.length || dCleaned > 0 || dActiveCleaned > 0 || dFamFixed > 0) {
         fs.writeFileSync(dbPath, JSON.stringify(db, null, 2), 'utf8');
-        console.log(`dagim-base.json: +${added.length} added, -${dCleaned} reserve cleaned, -${dActiveCleaned} active cleaned`);
+        console.log(`dagim-base.json: +${added.length} added, -${dCleaned} reserve cleaned, -${dActiveCleaned} active cleaned, ~${dFamFixed} fam fixed`);
       } else {
         console.log(`dagim-base.json: all ${dagimProds.length} dagim products mapped, clean`);
       }
