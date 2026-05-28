@@ -159,7 +159,16 @@ async function dax(token, query) {
     Object.values(existingPicks).filter(Boolean).map(p => String(p.makat))
   );
 
-  const picks = { ...existingPicks };
+  // Build makat→famName map for normalizing fam in existing picks
+  const makatFamMap = {};
+  for (const prod of products) makatFamMap[prod.makat] = prod.fam;
+
+  // Copy existing picks, normalizing fam where known (fixes reversed/malformed values from old builds)
+  const picks = {};
+  for (const [pk, p] of Object.entries(existingPicks)) {
+    if (p && makatFamMap[String(p.makat)]) picks[pk] = { ...p, fam: makatFamMap[String(p.makat)] };
+    else picks[pk] = p;
+  }
 
   // Ensure all reserve slots exist as null — use fixed range, not layout (layout may be empty)
   for (let n = RESERVE_START; n < RESERVE_START + RESERVE_SLOTS; n++) {
