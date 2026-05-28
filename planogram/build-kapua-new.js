@@ -131,6 +131,15 @@ async function dax(token, query) {
     products.push({ makat: mk, fam: FAM_NAMES[fc] || fc, famCode: fc, mkr365: mkr });
   }
 
+  // EXPLICIT_MAKATIM not returned by MLAY → add manually so they're never lost
+  for (const mk of EXPLICIT_MAKATIM) {
+    if (!seen.has(mk) && !BLACKLIST.has(mk)) {
+      console.log(`  ⚠ explicit makat ${mk} missing from MLAY — adding manually`);
+      products.push({ makat: mk, fam: FAM_NAMES['030'], famCode: '030', mkr365: salesMap[mk] || 0 });
+      seen.add(mk);
+    }
+  }
+
   // Sort: family order → sales desc within family
   products.sort((a, b) => {
     const fo = (FAM_ORDER[a.famCode] ?? 99) - (FAM_ORDER[b.famCode] ?? 99);
