@@ -693,38 +693,64 @@ function _setupManagerPicker(){
   }
 }
 
-const MANAGER_PASS = '***REDACTED***';
-
-function doLogin(code){
+async function doLogin(code){
   code=String(code||'').trim();
   const err=document.getElementById('login-err');
+  const btn=document.querySelector('.code-entry-btn');
+  if(btn) btn.disabled=true;
 
-  // Manager password — full access
-  if(code === MANAGER_PASS){
-    localStorage.setItem('frAgent',JSON.stringify({code:'mgr',name:'מנהל',isManager:true}));
-    _setupManagerPicker();
-    st.step='manager';
-    renderLogin();
-    return;
-  }
+  // Try manager password via server
+  try{
+    const r=await fetch(API+'/auth/manager',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});
+    if(r.status===429){
+      if(err) err.textContent='יותר מדי ניסיונות — המתן דקה ❌';
+      if(btn) btn.disabled=false;
+      return;
+    }
+    const j=await r.json();
+    if(j.ok){
+      localStorage.setItem('frAgent',JSON.stringify({code:'mgr',name:'מנהל',isManager:true}));
+      _logAccess('login',null,null,true);
+      _setupManagerPicker();
+      st.step='manager';
+      renderLogin();
+      if(btn) btn.disabled=false;
+      return;
+    }
+  }catch(_){}
 
   // Agent code
   const agentData=STATIC_DATA?.agents?.[code];
   if(!agentData){
     if(err) err.textContent='מספר סוכן לא נמצא ❌';
+    if(btn) btn.disabled=false;
     return;
   }
   localStorage.setItem('frAgent',JSON.stringify({code, name:agentData.name, isManager:false}));
+  _logAccess('login', code, agentData.name, false);
   st.agent={code, name:agentData.name};
   document.getElementById('city-agent-label').textContent=agentData.name;
   buildCityChips();
   show('s-city');
   document.getElementById('logout-btn').style.display='';
+  if(btn) btn.disabled=false;
 }
 
 function logout(){
+  const auth=_loadAuth();
+  if(auth) _logAccess('logout', auth.code||null, auth.name||null, !!auth.isManager);
   localStorage.removeItem('frAgent');
   window.location.reload();
+}
+
+function _logAccess(event, agentCode, agentName, isManager){
+  try{
+    fetch(API+'/log-access',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({event, agentCode, agentName, isManager})
+    }).catch(()=>{});
+  }catch(_){}
 }
 
 function renderLogin(){
