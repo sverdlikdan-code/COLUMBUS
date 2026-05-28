@@ -309,21 +309,49 @@ ORDER BY 'משטח עם כפולות'[סדר ביקור] ASC
   }
 });
 
+// Push gps-corrections.json to GitHub so GitHub Actions build picks it up
+async function pushGpsToGithub(content) {
+  const token = process.env.GITHUB_TOKEN;
+  if (!token) return;
+  const owner = 'sverdlikdan-code';
+  const repo  = 'COLUMBUS';
+  const filePath = 'docs/gps-corrections.json';
+  const apiBase = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
+  const headers = {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+    'Accept': 'application/vnd.github+json',
+  };
+  // Get current SHA
+  const getRes = await fetch(apiBase, { headers });
+  const getJson = await getRes.json();
+  const sha = getJson.sha;
+  const body = JSON.stringify({
+    message: `chore(gps): update correction for ${new Date().toISOString().slice(0,10)}`,
+    content: Buffer.from(content, 'utf8').toString('base64'),
+    sha,
+    committer: { name: 'COLUMBUS Bot', email: 'columbus-bot@diler.co.il' },
+  });
+  await fetch(apiBase, { method: 'PUT', headers, body });
+}
+
 // Save GPS correction — shared across all users via gps-corrections.json
-app.post('/save-gps', (req, res) => {
+app.post('/save-gps', async (req, res) => {
   try {
     const path = require('path');
     const fs   = require('fs');
     const { custId, lat, lng, name, city, address } = req.body;
     if (!custId || !lat || !lng) return res.status(400).json({ error: 'missing custId/lat/lng' });
-    const IL = { minLat: 29.3, maxLat: 33.5, minLng: 34.2, maxLng: 35.9 };
     if (lat < IL.minLat || lat > IL.maxLat || lng < IL.minLng || lng > IL.maxLng) {
       return res.status(400).json({ error: 'coordinates outside Israel' });
     }
     const filePath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
     const current  = fs.existsSync(filePath) ? JSON.parse(fs.readFileSync(filePath, 'utf8')) : {};
     current[String(custId)] = { lat, lng, correctedAt: new Date().toISOString(), name: name || '', city: city || '', address: address || '' };
-    fs.writeFileSync(filePath, JSON.stringify(current, null, 2), 'utf8');
+    const json = JSON.stringify(current, null, 2);
+    fs.writeFileSync(filePath, json, 'utf8');
+    // Push to GitHub so next build picks up the correction
+    pushGpsToGithub(json).catch(e => console.error('GitHub push failed:', e.message));
     res.json({ ok: true, total: Object.keys(current).length });
   } catch (err) {
     res.status(500).json({ error: err.message });
