@@ -123,7 +123,7 @@ async function getCityBBox(city) {
 }
 
 function inBBox(lat, lng, bbox) {
-  if (!bbox) return true;
+  if (!bbox) return false; // no bbox → can't validate → treat as invalid, force re-geocode
   const P = 0.018;
   return lat >= bbox.minLat-P && lat <= bbox.maxLat+P && lng >= bbox.minLng-P && lng <= bbox.maxLng+P;
 }
@@ -193,7 +193,7 @@ async function geocodeOne(address, city) {
   return null;
 }
 
-async function geocodeBatch(clients) {
+async function geocodeBatch(clients, reGeocode = new Set()) {
   // fetch bboxes for ALL cities (needed for bbox validation)
   const allCities = [...new Set(clients.map(c => c.city).filter(Boolean))];
   for (const city of allCities) {
@@ -227,7 +227,7 @@ async function geocodeBatch(clients) {
 
   // cascade-geocode clients with street number still missing valid coords
   // (skip clients covered by gps-lookup — their coords are already verified)
-  const need = clients.filter(c => !isValidIL(c.lat, c.lng) && extractStreetNum(c.address) && !gpsLookup[String(c.custId)]);
+  const need = clients.filter(c => !isValidIL(c.lat, c.lng) && extractStreetNum(c.address) && (!gpsLookup[String(c.custId)] || reGeocode.has(String(c.custId))));
   for (const c of need) {
     const bbox = cityBBoxCache.get(c.city) ?? null;
     // 1st try: Nominatim
@@ -351,15 +351,58 @@ EVALUATE DISTINCT(SELECTCOLUMNS(
     console.log(`  ${mgr}: ${agentsByManager[mgr].length} agents`);
   }
 
-  // 3. Clients per agent×day
+  // 3a. Fetch all clients (no geocoding yet)
+  const allRouteClients = {};
+  for (const mgr of managers) {
+    for (const agent of agentsByManager[mgr]) {
+      for (const day of [1,2,3,4,5]) {
+        const key = `${agent.agentCode}_${day}`;
+        try {
+          allRouteClients[key] = await fetchClients(agent.agentCode, day);
+        } catch (e) {
+          console.warn(`  ${key} fetch FAILED: ${e.message}`);
+          allRouteClients[key] = [];
+        }
+      }
+    }
+  }
+
+  // 3b. Global duplicate-coord detection — PBI sometimes assigns one coordinate to
+  // multiple distinct clients (e.g. all of קרית גת at the same point).
+  // Find coords shared by 2+ clients → force re-geocode via Azure.
+  const coordCount = {};
+  for (const clients of Object.values(allRouteClients)) {
+    for (const c of clients) {
+      if (c.gpsSource === 'correction' || !isValidIL(c.lat, c.lng)) continue;
+      const ck = `${c.lat.toFixed(6)},${c.lng.toFixed(6)}`;
+      if (!coordCount[ck]) coordCount[ck] = new Set();
+      coordCount[ck].add(String(c.custId));
+    }
+  }
+  const dupCustIds = new Set();
+  for (const [ck, ids] of Object.entries(coordCount)) {
+    if (ids.size >= 2) for (const id of ids) dupCustIds.add(id);
+  }
+  if (dupCustIds.size > 0) {
+    console.log(`  ⚠ ${dupCustIds.size} clients share duplicate PBI coords → force re-geocode`);
+    for (const clients of Object.values(allRouteClients)) {
+      for (const c of clients) {
+        if (dupCustIds.has(String(c.custId)) && c.gpsSource !== 'correction') {
+          c.lat = null; c.lng = null; c.gpsSource = null;
+        }
+      }
+    }
+  }
+
+  // 3c. Geocode each route (dupCustIds bypass gpsLookup skip)
   const routes = {};
   for (const mgr of managers) {
     for (const agent of agentsByManager[mgr]) {
       for (const day of [1,2,3,4,5]) {
         const key = `${agent.agentCode}_${day}`;
         try {
-          const clients = await fetchClients(agent.agentCode, day);
-          await geocodeBatch(clients);
+          const clients = allRouteClients[key];
+          await geocodeBatch(clients, dupCustIds);
           routes[key] = clients;
           const noGps  = clients.filter(c => !isValidIL(c.lat, c.lng)).length;
           const byAzure = clients.filter(c => c.gpsSource === 'azure').length;
