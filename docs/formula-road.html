@@ -405,7 +405,19 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
 const API = 'https://api.sverdlik-apps.site';
-const MAINTENANCE_MODE = 'manager-only'; // 'manager-only' = только менеджер | false = все | true = никто
+const MAINTENANCE_MODE = true; // true = все видят maintenance (кроме разблокированных устройств)
+const DEV_UNLOCK_KEY = 'fr-diler-2026';
+
+// Unlock this device: visit URL with ?unlock=fr-diler-2026
+(function(){
+  const p = new URLSearchParams(location.search);
+  if(p.get('unlock') === DEV_UNLOCK_KEY){
+    localStorage.setItem('frUnlocked', DEV_UNLOCK_KEY);
+    history.replaceState(null,'', location.pathname); // убрать ключ из URL
+  }
+})();
+function _isUnlocked(){ return localStorage.getItem('frUnlocked') === DEV_UNLOCK_KEY; }
+
 let gpsCorrections = {}; // custId → {lat,lng}
 
 // ── SESSION TOKEN ────────────────────────────────────────────────────────────
@@ -658,7 +670,7 @@ function goBack(from){
 
 // ── LOGIN ──────────────────────────────────────────────────────────────────
 async function initLogin(){
-  if (MAINTENANCE_MODE === true) {
+  if (MAINTENANCE_MODE && !_isUnlocked()) {
     document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#1a1a2e;flex-direction:column;gap:20px;font-family:Arial,sans-serif;">
       <div style="font-size:48px;">🔧</div>
       <div style="color:#fff;font-size:22px;font-weight:bold;">המערכת בתחזוקה</div>
@@ -684,15 +696,6 @@ async function initLogin(){
       renderLogin();
       show('s-login');
     } else {
-      // Agent — block if maintenance-only mode
-      if (MAINTENANCE_MODE === 'manager-only') {
-        document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#1a1a2e;flex-direction:column;gap:20px;font-family:Arial,sans-serif;">
-          <div style="font-size:48px;">🔧</div>
-          <div style="color:#fff;font-size:22px;font-weight:bold;">המערכת בתחזוקה</div>
-          <div style="color:#aaa;font-size:16px;">נחזור בקרוב</div>
-        </div>`;
-        return;
-      }
       // Agent — skip picker, go directly to city
       st.agent={code:saved.code,name:saved.name};
       document.getElementById('city-agent-label').textContent=saved.name;
@@ -743,15 +746,6 @@ async function doLogin(code){
         st.step='manager';
         renderLogin();
       } else {
-        if (MAINTENANCE_MODE === 'manager-only') {
-          if(btn) btn.disabled=false;
-          document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#1a1a2e;flex-direction:column;gap:20px;font-family:Arial,sans-serif;">
-            <div style="font-size:48px;">🔧</div>
-            <div style="color:#fff;font-size:22px;font-weight:bold;">המערכת בתחזוקה</div>
-            <div style="color:#aaa;font-size:16px;">נחזור בקרוב</div>
-          </div>`;
-          return;
-        }
         localStorage.setItem('frAgent',JSON.stringify({code:j.agentCode,name:j.agentName,isManager:false}));
         _logAccess('login',j.agentCode,j.agentName,false);
         st.agent={code:j.agentCode,name:j.agentName};
