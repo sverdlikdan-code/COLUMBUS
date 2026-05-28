@@ -18,6 +18,16 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '512kb' }));
 
+// ── HTTP SECURITY HEADERS ──────────────────────────────────────────────────
+app.use((req, res, next) => {
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Permissions-Policy', 'geolocation=(), camera=(), microphone=()');
+  next();
+});
+
 // ── ACCESS LOGGING ─────────────────────────────────────────────────────────
 const ACCESS_LOG = path.join(__dirname, 'access-log.json');
 
@@ -44,8 +54,9 @@ function deviceType(ua) {
   return 'desktop';
 }
 
-// ── RATE LIMITER (login attempts per IP) ───────────────────────────────────
+// ── RATE LIMITER ────────────────────────────────────────────────────────────
 const loginAttempts = new Map();
+const generalRequests = new Map();
 
 function checkRateLimit(ip) {
   const now = Date.now();
@@ -53,7 +64,31 @@ function checkRateLimit(ip) {
   if (now > rec.resetAt) rec = { count: 0, resetAt: now + 60_000 };
   rec.count++;
   loginAttempts.set(ip, rec);
-  return rec.count > 10; // block after 10 attempts/min
+  return rec.count > 10; // block after 10 auth attempts/min
+}
+
+// General rate limit: 60 requests/min per IP for data endpoints
+function checkGeneralLimit(ip) {
+  const now = Date.now();
+  let rec = generalRequests.get(ip) || { count: 0, resetAt: now + 60_000 };
+  if (now > rec.resetAt) rec = { count: 0, resetAt: now + 60_000 };
+  rec.count++;
+  generalRequests.set(ip, rec);
+  return rec.count > 60;
+}
+
+const dataRateLimit = (req, res, next) => {
+  if (checkGeneralLimit(getRealIp(req))) return res.status(429).json({ error: 'rate_limit' });
+  next();
+};
+
+// ── INPUT VALIDATION ─────────────────────────────────────────────────────────
+function validateAgentCode(code) {
+  return /^\d{1,10}$/.test(String(code || ''));
+}
+function validateManagerName(name) {
+  // Letters (any), digits, spaces, Hebrew, plus, hyphen — max 60 chars
+  return /^[\wא-ת\s+\-]{1,60}$/.test(String(name || ''));
 }
 
 // ── SESSION MANAGEMENT ─────────────────────────────────────────────────────
@@ -341,9 +376,10 @@ app.get('/managers', requireAuth, async (req, res) => {
 });
 
 // GET /manager-agents?manager=ALEXEY — agents for a manager
-app.get('/manager-agents', requireAuth, async (req, res) => {
+app.get('/manager-agents', requireAuth, dataRateLimit, async (req, res) => {
   const { manager } = req.query;
   if (!manager) return res.status(400).json({ error: 'manager required' });
+  if (!validateManagerName(manager)) return res.status(400).json({ error: 'invalid manager' });
   try {
     const rows = await executeDax(`
 EVALUATE
@@ -368,9 +404,11 @@ ORDER BY [agentName] ASC
 });
 
 // GET /customers?agent=CODE&day=1
-app.get('/customers', requireAuth, async (req, res) => {
+app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
   const { agent, day } = req.query;
   if (!agent) return res.status(400).json({ error: 'agent required' });
+  if (!validateAgentCode(agent)) return res.status(400).json({ error: 'invalid agent code' });
+  if (day && !/^[1-5]$/.test(String(day))) return res.status(400).json({ error: 'invalid day' });
 
   const dayLabel = day ? DAY_LABELS[parseInt(day)] : null;
   const dayFilter = dayLabel
@@ -495,7 +533,7 @@ async function pushGpsToGithub(content) {
 }
 
 // Save GPS correction — shared across all users via gps-corrections.json
-app.post('/save-gps', requireAuth, async (req, res) => {
+app.post('/save-gps', requireAuth, dataRateLimit, async (req, res) => {
   try {
     const { custId, lat, lng, name, city, address } = req.body;
     if (!custId || !lat || !lng) return res.status(400).json({ error: 'missing custId/lat/lng' });
@@ -507,6 +545,9 @@ app.post('/save-gps', requireAuth, async (req, res) => {
     current[String(custId)] = { lat, lng, correctedAt: new Date().toISOString(), name: name || '', city: city || '', address: address || '' };
     const json = JSON.stringify(current, null, 2);
     fs.writeFileSync(filePath, json, 'utf8');
+    // Audit log
+    writeLog({ ts: new Date().toISOString(), event: 'gps-correction', custId: String(custId),
+      agentCode: req.session?.agentCode || null, ip: getRealIp(req) });
     // Push to GitHub so next build picks up the correction
     pushGpsToGithub(json).catch(e => console.error('GitHub push failed:', e.message));
     res.json({ ok: true, total: Object.keys(current).length });
@@ -520,8 +561,12 @@ app.post('/save-kapua', requireAuth, (req, res) => {
   try {
     const data = req.body;
     if (!data || !data.picks) return res.status(400).json({ error: 'invalid payload' });
+    if (!req.session?.isManager) return res.status(403).json({ error: 'managers only' });
     const dest = path.join(__dirname, '..', 'docs', 'kapua-base.json');
     fs.writeFileSync(dest, JSON.stringify(data, null, 2), 'utf8');
+    // Audit log
+    writeLog({ ts: new Date().toISOString(), event: 'planogram-save',
+      picks: Object.keys(data.picks || {}).length, ip: getRealIp(req) });
     res.json({ ok: true, v: data.v });
   } catch (err) {
     res.status(500).json({ error: err.message });
