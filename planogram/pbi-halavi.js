@@ -166,13 +166,14 @@ async function fetchHalaviFromBI() {
       ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
     `),
 
-    // 8. Product names from KARTIS PARIT — לועזי first, fallback to שם מוצר
+    // 8. Product names + family desc from KARTIS PARIT
     dax(t, `
       EVALUATE
       SUMMARIZECOLUMNS(
         'KARTIS PARIT'[מק"ט],
         'KARTIS PARIT'[שם מוצר לועזי],
         'KARTIS PARIT'[שם מוצר],
+        'KARTIS PARIT'[תאור משפחה],
         FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] = "פעיל")
       )
     `),
@@ -251,13 +252,17 @@ async function fetchHalaviFromBI() {
 
   const nameEnMap = {};
   for (const r of nameEnRows) {
-    const mk  = r['KARTIS PARIT[מק"ט]'];
-    const lou = r['KARTIS PARIT[שם מוצר לועזי]'];
-    const heb = r['KARTIS PARIT[שם מוצר]'];
+    const mk      = r['KARTIS PARIT[מק"ט]'];
+    const lou     = r['KARTIS PARIT[שם מוצר לועזי]'];
+    const heb     = r['KARTIS PARIT[שם מוצר]'];
+    const famDesc = r['KARTIS PARIT[תאור משפחה]'];
     if (!mk) continue;
     const name = (lou && lou.trim()) || (heb && heb.trim()) || null;
     nameEnMap[String(mk)] = name;
-    if (result[mk]) result[mk].nameEn = name;
+    if (result[mk]) {
+      result[mk].nameEn = name;
+      if (famDesc && famDesc.trim()) result[mk].fam = famDesc.trim();
+    }
   }
 
   const total     = Object.keys(result).length;
