@@ -384,12 +384,12 @@ EVALUATE DISTINCT(SELECTCOLUMNS(
     }
   }
 
+  // routes and agents are excluded from the public static file (security: customer data)
+  // Agent validation is now server-side (/auth endpoint)
   const out = {
     updatedAt: pbiRefreshRaw || new Date().toISOString(),
     managers,
     agentsByManager,
-    routes,
-    agents,
   };
   const outPath = path.join(__dirname, '../docs/formula-road-data.json');
   fs.writeFileSync(outPath, JSON.stringify(out));
