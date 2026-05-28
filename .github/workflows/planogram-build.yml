@@ -42,8 +42,8 @@ jobs:
           echo "POWERBI_DATASET_ID=${{ secrets.PBI_DATASET }}" >> .env
           echo "POWERBI_WORKSPACE_ID=${{ secrets.PBI_WORKSPACE }}" >> .env
 
-      - name: Run build-planogram
-        run: node planogram/build-planogram.js
+      - name: Run build-kapua-new
+        run: node planogram/build-kapua-new.js
         continue-on-error: true
 
       - name: Run build-halavi-new
@@ -52,6 +52,14 @@ jobs:
 
       - name: Run build-dagim-fab
         run: node planogram/build-dagim-fab.js
+        continue-on-error: true
+
+      - name: Run build-dagim-yavesh-new
+        run: node planogram/build-dagim-yavesh-new.js
+        continue-on-error: true
+
+      - name: Run build-planogram
+        run: node planogram/build-planogram.js
         continue-on-error: true
 
       - name: Run workflow-doctor
