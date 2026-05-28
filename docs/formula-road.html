@@ -477,14 +477,7 @@ const CITIES = [
 ].sort();
 const MGR_COLORS = {VLAD:'#8B3A4A',ALEXEY:'#2E6BAA',NATALYA:'#5E3A8A',SVETA:'#924A30',ANATOL:'#9E6428','SADRAN+':'#2A6E72'};
 const DEMO_MANAGERS = ['VLAD','ALEXEY','NATALYA','SVETA','ANATOL','SADRAN+'];
-const DEMO_AGENTS = {
-  ANATOL: [{agentCode:'238',agentName:"וצ'סלב שולקין"},{agentCode:'112',agentName:'סרגיי שפונט'},{agentCode:'123',agentName:'קונסטנטין קפוסטינסקי'}],
-  ALEXEY: [{agentCode:'110',agentName:'אולג גלדקיך'},{agentCode:'258',agentName:'דוד גומרשטדט'},{agentCode:'149',agentName:'יבגני אפנסייב'}],
-  NATALYA:[{agentCode:'129',agentName:'אלכסיי סביצקי'},{agentCode:'136',agentName:'דמיטרי שפילמן'},{agentCode:'239',agentName:'דן אוחיון'}],
-  SVETA:  [{agentCode:'260',agentName:'אדלינה גולדפאיין'},{agentCode:'126',agentName:"אולג בלז'"},{agentCode:'215',agentName:'אלכסנדר סוסנוב'}],
-  VLAD:   [{agentCode:'62',agentName:"אוריאל חיימצ'אייב"},{agentCode:'138',agentName:'טוליק בסרייב'},{agentCode:'275',agentName:'עירית בלובה'}],
-  'SADRAN+':[{agentCode:'272',agentName:'אלכס שלפקוב'},{agentCode:'235',agentName:'אלכסיי נובוסלסקי'},{agentCode:'256',agentName:'יבגני בלקיטני'}],
-};
+const DEMO_AGENTS = {}; // agent data is loaded via API only (security)
 
 const st = {
   step:'manager', manager:null, agent:null,
