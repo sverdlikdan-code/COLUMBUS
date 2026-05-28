@@ -70,7 +70,7 @@ async function fetchDagimYaveshFromBI() {
     )`;
 
   const [stockRows, salesRows, descRows, mlayDescRows, pakuaRows, salesAllRows, pakuaAllRows, nameEnRows,
-         stockZafnRows, salesZafnRows, pakuaZafnRows] = await Promise.all([
+         stockZafnRows, salesZafnRows, pakuaZafnRows, sales365Rows] = await Promise.all([
 
     // 1. Stock at Main (Ashdod)
     dax(t, `
@@ -219,11 +219,25 @@ async function fetchDagimYaveshFromBI() {
       )
       ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
     `),
+
+    // 12. 365-day eligibility — all warehouses, used for reserve-slot filter
+    dax(t, `
+      EVALUATE
+      CALCULATETABLE(
+        ADDCOLUMNS(
+          SUMMARIZE('ALL_PARTS', 'ALL_PARTS'[מק'ט]),
+          "daySales365", [TOTAL מכר בקרטונים ממוצע ביום]
+        ),
+        'ALL_PARTS'[חברה] = "FORMULA",
+        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 365),
+        TREATAS(${famMakatim}, 'ALL_PARTS'[מק'ט])
+      )
+    `),
   ]);
 
   const result = {};
   function ensure(mk) {
-    if (!result[mk]) result[mk] = { desc: null, stock: 0, daySales: null, pakuot: [], daySalesAll: null, pakuotAll: [], fam: null, nameEn: null, shelfLife: null, stockZafn: 0, daySalesZafn: null, pakuotZafn: [] };
+    if (!result[mk]) result[mk] = { desc: null, stock: 0, daySales: null, daySales365: null, pakuot: [], daySalesAll: null, pakuotAll: [], fam: null, nameEn: null, shelfLife: null, stockZafn: 0, daySalesZafn: null, pakuotZafn: [] };
   }
 
   for (const r of stockRows) {
@@ -332,6 +346,13 @@ async function fetchDagimYaveshFromBI() {
       result[mk].nameEn    = name;
       result[mk].shelfLife = r['KARTIS PARIT[חיי מדף]'] ?? null;
     }
+  }
+
+  for (const r of sales365Rows) {
+    const mk = r["ALL_PARTS[מק'ט]"];
+    if (!mk) continue;
+    ensure(mk);
+    result[mk].daySales365 = r['[daySales365]'] || null;
   }
 
   const total     = Object.keys(result).length;
