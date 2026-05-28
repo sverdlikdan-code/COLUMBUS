@@ -1434,7 +1434,7 @@ async function main() {
       for (const p of newHalaviProds) {
         if (slotIdx >= emptySlots.length) break;
         const pk = String(emptySlots[slotIdx++]);
-        hb.picks[pk] = { makat: p.makat, fam: p.fam || '', name: nameEnMap[String(p.makat)] || null };
+        hb.picks[pk] = { makat: p.makat, fam: fixVisualRTL(p.fam || ''), name: nameEnMap[String(p.makat)] || null };
         added.push(`${p.makat}→pick${pk}`);
       }
 
