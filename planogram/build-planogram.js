@@ -1304,11 +1304,12 @@ async function main() {
       const { dagimYaveshData } = await fetchDagimYaveshFromBI();
       let yaveshAdded = 0;
       for (const [mk, d] of Object.entries(dagimYaveshData)) {
-        if (d.stock <= 0 && !d.daySales) continue;
+        if (d.stock <= 0 && !d.daySales365) continue; // keep if stock OR sold in last 365d
         const stockAll = d.pakuotAll.reduce((s, p) => s + (p.cartons || 0), 0);
         prodData[mk] = {
           stock:        d.stock        || 0,
           daySales:     d.daySales     || null,
+          daySales365:  d.daySales365  || null,
           pakuot:       d.pakuot       || [],
           pakuotAll:    d.pakuotAll    || [],
           daySalesAll:  d.daySalesAll  || null,
@@ -1325,16 +1326,57 @@ async function main() {
       }
       console.log(`דג יבש: ${yaveshAdded} מקטים → product-data.json`);
 
-      // Force yavesh:true on all base picks — some Russia makats are also in dagim section
-      // and get overwritten without the flag; this ensures they render as יבש cards
+      // Force yavesh:true on all base picks
       for (const [, item] of Object.entries(dagyaveshPicks)) {
         if (!item) continue;
         const mk = String(item.makat);
         if (prodData[mk]) prodData[mk].yavesh = true;
       }
 
-      // NOTE: dagim-yavesh cleanup disabled — CSV (csv-to-base.js) controls bay assignments.
-      // Auto-cleanup was removing valid products when PBI returns null daySales temporarily.
+      // ── dagim-yavesh-base.json: auto-sync new products into reserve slots ──
+      {
+        const ybPath = path.join(__dirname, '..', 'docs', 'dagim-yavesh-base.json');
+        const yb = JSON.parse(fs.readFileSync(ybPath, 'utf8'));
+        const ybPicks = yb.picks || yb;
+        const ybMakatSet = new Set(
+          Object.values(ybPicks).filter(Boolean).map(p => String(p.makat))
+        );
+
+        // Clean reserve: remove only if stock=0 AND daySales365=0
+        let yCleaned = 0;
+        for (const [bay, pick] of Object.entries(ybPicks)) {
+          if (!pick || Number(bay) < (yb.reserveStart || 54)) continue;
+          const d = dagimYaveshData[String(pick.makat)];
+          if (!d || ((d.stock || 0) <= 0 && (d.daySales365 || 0) <= 0)) {
+            ybPicks[bay] = null;
+            yCleaned++;
+          }
+        }
+
+        const emptySlots = Object.keys(yb.layout || ybPicks)
+          .map(Number)
+          .sort((a, b) => a - b)
+          .filter(pk => pk >= (yb.reserveStart || 54) && (!ybPicks[String(pk)] || ybPicks[String(pk)] === null));
+
+        let slotIdx = 0;
+        const added = [];
+        const newYaveshProds = Object.entries(dagimYaveshData)
+          .filter(([mk, d]) => !ybMakatSet.has(mk) && ((d.stock || 0) > 0 || (d.daySales365 || 0) > 0))
+          .sort(([, a], [, b]) => (b.daySales365 || 0) - (a.daySales365 || 0));
+        for (const [mk, d] of newYaveshProds) {
+          if (slotIdx >= emptySlots.length) break;
+          const pk = String(emptySlots[slotIdx++]);
+          ybPicks[pk] = { makat: mk, fam: d.fam || 'דג יבש', name: d.nameEn || null };
+          added.push(`${mk}→pick${pk}`);
+        }
+
+        if (added.length || yCleaned > 0) {
+          fs.writeFileSync(ybPath, JSON.stringify(yb, null, 2), 'utf8');
+          console.log(`dagim-yavesh-base.json: +${added.length} added, -${yCleaned} cleaned from reserve`);
+        } else {
+          console.log(`dagim-yavesh-base.json: all ${Object.keys(dagimYaveshData).length} yavesh products mapped, reserve clean`);
+        }
+      }
     }
 
     fs.writeFileSync(path.join(__dirname,'..','docs','product-data.json'),
