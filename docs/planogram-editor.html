@@ -156,7 +156,7 @@
       padding: 2px 5px; display: flex; align-items: center; gap: 4px;
       background: rgba(0,0,0,0.035); flex-shrink: 0;
     }
-    .slot-pick-badge  { font-size: 9px; color: #888; }
+    .slot-pick-badge  { font-size: 13px; color: #555; font-weight: bold; }
     .slot-makat-badge { font-size: 10px; font-weight: bold; color: #222; }
 
     /* Text mode */
@@ -169,7 +169,7 @@
       overflow: visible;
     }
     .slot.text-mode:hover .edit-btn { display: inline !important; }
-    .slot.text-mode .s-pick  { font-size: 10px; color: #777; font-weight: bold; }
+    .slot.text-mode .s-pick  { font-size: 14px; color: #555; font-weight: bold; }
     .slot.text-mode .s-makat { font-size: 11px; color: #333; margin: 1px 0; }
     .slot.text-mode .s-name  {
       font-size: 9px; color: #111; font-weight: bold; line-height: 1.3;
@@ -195,6 +195,7 @@
     .slot-kart-line .s-krat { color: #999; }
     .s-zero-bar { text-align: center; }
     .slot-stock .s-zero { color: #cc0000; font-weight: bold; }
+    .slot.zero-stock { background: #e0e0e0 !important; }
     .slot-meta  { font-size: 8px; color: #bbb; padding: 0 5px 2px; line-height: 1.2; text-align: center; }
     .slot-meta .s-meta { color: #bbb; }
 
@@ -760,6 +761,15 @@ function stockHTML(makat) {
   return `<div class="slot-stock">${palLine}${stockLine}${noDataLine}${wtLine}</div>${metaLine}`;
 }
 
+function isZeroStock(makat) {
+  const d = productData[String(makat)];
+  if (!d) return false;
+  const wh = window._activeWarehouse || 'Main';
+  if (wh === 'Trnz') return !d.stockTrnz || d.stockTrnz <= 0;
+  const stock = wh === 'Zafn' ? d.stockZafn : d.stock;
+  return stock != null && stock <= 0;
+}
+
 async function loadMaps() {
   const base = './';
   try {
@@ -941,7 +951,7 @@ function makeSlot(pick, p, reserveStart = 0) {
   const sec = window._currentSection || 'kapua';
   const photoUrl = getPhotoUrl(p.makat);
   if (photoUrl) {
-    el.className = 'slot has-photo';
+    el.className = 'slot has-photo' + (isZeroStock(p.makat) ? ' zero-stock' : '');
     el.innerHTML = `
       <img class="slot-img" src="${photoUrl}" alt="${p.makat}"
            onerror="this.closest('.slot').classList.remove('has-photo'); this.closest('.slot').classList.add('text-mode'); renderTextMode(this.closest('.slot'), ${pick});">
@@ -960,7 +970,7 @@ function makeSlot(pick, p, reserveStart = 0) {
            style="position:absolute;top:2px;left:2px;background:rgba(26,110,245,0.7);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">📷</button>`
       : '';
     el.className = 'slot text-mode' + (!hasRealPhoto && !hiddenPhotos.has(String(p.makat)) ? ' no-photo-mark' : '');
-    el.style.background = cardBg(p.makat, p.fam);
+    el.style.background = isZeroStock(p.makat) ? '#e0e0e0' : cardBg(p.makat, p.fam);
     const clearBtn = `<button class="edit-btn" onclick="clearPick(${pick},'${sec}')" title="הסר מוצר"
       style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.35);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">✕</button>`;
     el.innerHTML = clearBtn + restoreBtn + textModeHTML(pick, p, reserveStart) + stockHTML(p.makat);
@@ -990,7 +1000,7 @@ window.renderTextMode = function(el, pick) {
   const section = window._currentSection || 'kapua';
   const p = state[section][pick];
   if (p) {
-    el.style.background = cardBg(p.makat, p.fam);
+    el.style.background = isZeroStock(p.makat) ? '#e0e0e0' : cardBg(p.makat, p.fam);
     const clearBtn = `<button class="edit-btn" onclick="clearPick(${pick},'${section}')" title="הסר מוצר"
       style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.35);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">✕</button>`;
     el.innerHTML = clearBtn + textModeHTML(pick, p, sectionReserveStart(section)) + stockHTML(p.makat);
@@ -1027,7 +1037,7 @@ function refreshSlot(el, pick, section) {
   }
   const photoUrl = getPhotoUrl(p.makat);
   if (photoUrl) {
-    el.className = 'slot has-photo';
+    el.className = 'slot has-photo' + (isZeroStock(p.makat) ? ' zero-stock' : '');
     el.style.background = '';
     el.innerHTML = `
       <img class="slot-img" src="${photoUrl}" alt="${p.makat}"
@@ -1047,7 +1057,7 @@ function refreshSlot(el, pick, section) {
            style="position:absolute;top:2px;left:2px;background:rgba(26,110,245,0.7);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">📷</button>`
       : '';
     el.className = 'slot text-mode';
-    el.style.background = cardBg(p.makat, p.fam);
+    el.style.background = isZeroStock(p.makat) ? '#e0e0e0' : cardBg(p.makat, p.fam);
     const clearBtnR = `<button class="edit-btn" onclick="clearPick(${pick},'${section}')" title="הסר מוצר"
       style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.35);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">✕</button>`;
     el.innerHTML = clearBtnR + restoreBtn + textModeHTML(pick, p, rs) + stockHTML(p.makat);
