@@ -201,6 +201,20 @@ app.get('/admin/logs', (req, res) => {
   res.json(log);
 });
 
+// POST /admin/revoke?key=KEY&agentCode=CODE — invalidate all sessions for a specific agent
+app.post('/admin/revoke', (req, res) => {
+  const ADMIN_KEY = process.env.ADMIN_LOG_KEY || '';
+  if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(403).json({ error: 'forbidden' });
+  const code = String(req.query.agentCode || '').trim();
+  if (!code) return res.status(400).json({ error: 'agentCode required' });
+  let revoked = 0;
+  for (const [token, sess] of sessions) {
+    if (sess.agentCode === code) { sessions.delete(token); revoked++; }
+  }
+  appendLog({ event: 'revoke', agentCode: code, revokedCount: revoked, ip: getRealIp(req), device: req.headers['user-agent'] || '' });
+  res.json({ ok: true, agentCode: code, revokedSessions: revoked });
+});
+
 const DAY_LABELS = { 1: 'א', 2: 'ב', 3: 'ג', 4: 'ד', 5: 'ה' };
 
 // Israel bounding box
