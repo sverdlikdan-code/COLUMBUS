@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MAHSAN FORMULA — מצגת</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:     oklch(11.5% 0.020 245);
+  --bg2:    oklch(15%   0.022 245);
+  --card:   oklch(18%   0.024 245);
+  --blue:   oklch(55%   0.18  240);
+  --gold:   oklch(72%   0.14  75);
+  --text:   oklch(92%   0.008 245);
+  --muted:  oklch(60%   0.012 245);
+  --green:  oklch(65%   0.16  145);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Heebo',sans-serif}
+
+/* ── Lang overlay ── */
+#lang-overlay{
+  position:fixed;inset:0;z-index:9999;
+  background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;
+}
+#lang-overlay.gone{display:none}
+.lang-title{font-size:clamp(18px,3vw,26px);color:var(--muted);font-weight:300;letter-spacing:2px}
+.lang-btns{display:flex;gap:20px}
+.lang-btn{
+  padding:16px 44px;font-size:20px;font-weight:700;font-family:'Heebo',sans-serif;
+  border:2px solid var(--blue);border-radius:12px;background:transparent;color:var(--text);
+  cursor:pointer;transition:all .2s;letter-spacing:1px;
+}
+.lang-btn:hover{background:var(--blue);border-color:var(--blue)}
+#lang-toggle{
+  position:fixed;bottom:22px;left:22px;z-index:1000;
+  padding:7px 14px;font-size:13px;font-weight:700;font-family:'Heebo',sans-serif;
+  background:var(--card);border:1px solid oklch(30% 0.03 245);color:var(--muted);
+  border-radius:8px;cursor:pointer;transition:all .2s;
+}
+#lang-toggle:hover{color:var(--text);border-color:var(--blue)}
+
+/* ── Scroll snap container ── */
+#deck{height:100vh;overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none}
+#deck::-webkit-scrollbar{display:none}
+
+/* ── Slides ── */
+.slide{
+  height:100vh;scroll-snap-align:start;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:40px clamp(20px,5vw,80px);position:relative;overflow:hidden;
+}
+
+/* ── Nav dots ── */
+#dots{
+  position:fixed;right:22px;top:50%;transform:translateY(-50%);
+  display:flex;flex-direction:column;gap:10px;z-index:100;
+}
+.dot{
+  width:8px;height:8px;border-radius:50%;background:oklch(30% 0.03 245);
+  cursor:pointer;transition:all .3s;
+}
+.dot.active{background:var(--gold);transform:scale(1.4)}
+
+/* ── S1: Title ── */
+#s1{background:radial-gradient(ellipse 80% 60% at 50% 40%,oklch(18% 0.04 245) 0%,var(--bg) 70%)}
+.s1-logo{font-size:clamp(11px,1.5vw,14px);letter-spacing:6px;color:var(--muted);text-transform:uppercase;margin-bottom:24px}
+.s1-title{font-size:clamp(36px,7vw,86px);font-weight:900;line-height:1;letter-spacing:-1px;margin-bottom:16px}
+.s1-title .accent{color:var(--gold)}
+.s1-sub{font-size:clamp(14px,2vw,20px);color:var(--muted);font-weight:300;margin-bottom:48px;max-width:580px;text-align:center}
+.s1-badges{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.badge{
+  padding:8px 18px;border-radius:20px;font-size:clamp(12px,1.4vw,14px);font-weight:500;
+  border:1px solid oklch(30% 0.04 245);color:var(--muted);
+}
+.badge.hi{border-color:var(--blue);color:oklch(75% 0.14 240)}
+
+/* ── S2: What ── */
+#s2{background:var(--bg)}
+.slide-label{font-size:11px;letter-spacing:4px;color:var(--blue);text-transform:uppercase;margin-bottom:20px;font-weight:500}
+.slide-h{font-size:clamp(26px,4.5vw,52px);font-weight:800;margin-bottom:12px;line-height:1.1}
+.slide-sub{font-size:clamp(13px,1.6vw,17px);color:var(--muted);margin-bottom:40px;max-width:640px;line-height:1.7}
+
+.sections-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:16px;width:100%;max-width:860px;
+}
+.sec-card{
+  background:var(--card);border:1px solid oklch(22% 0.025 245);
+  border-radius:14px;padding:24px 16px;text-align:center;
+}
+.sec-icon{font-size:36px;margin-bottom:10px}
+.sec-name{font-size:16px;font-weight:700;margin-bottom:4px}
+.sec-note{font-size:11px;color:var(--muted);font-weight:300}
+
+/* ── S3: How ── */
+#s3{background:var(--bg2)}
+.flow-row{
+  display:flex;align-items:center;gap:0;max-width:900px;width:100%;margin-top:32px;
+}
+.flow-step{
+  flex:1;background:var(--card);border:1px solid oklch(22% 0.025 245);
+  border-radius:12px;padding:18px 14px;text-align:center;
+}
+.flow-arrow{
+  font-size:22px;color:var(--blue);padding:0 8px;flex-shrink:0;
+}
+.flow-icon{font-size:28px;margin-bottom:8px}
+.flow-title{font-size:13px;font-weight:700;margin-bottom:4px}
+.flow-desc{font-size:11px;color:var(--muted);line-height:1.5}
+
+/* ── S4: Features ── */
+#s4{background:var(--bg)}
+.feat-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:860px;width:100%;margin-top:28px;
+}
+.feat-card{
+  background:var(--card);border:1px solid oklch(22% 0.025 245);
+  border-radius:12px;padding:20px 18px;
+}
+.feat-icon{font-size:24px;margin-bottom:8px}
+.feat-name{font-size:14px;font-weight:700;margin-bottom:5px}
+.feat-desc{font-size:12px;color:var(--muted);line-height:1.6}
+
+/* ── S5: KPIs ── */
+#s5{background:var(--bg2)}
+.kpi-row{display:flex;gap:24px;max-width:860px;width:100%;margin-top:32px;flex-wrap:wrap;justify-content:center}
+.kpi-card{
+  flex:1;min-width:200px;
+  background:var(--card);border:1px solid oklch(22% 0.025 245);
+  border-radius:16px;padding:28px 24px;text-align:center;
+}
+.kpi-num{font-size:clamp(36px,5vw,58px);font-weight:900;line-height:1;color:var(--gold);margin-bottom:6px}
+.kpi-label{font-size:13px;font-weight:600;margin-bottom:4px}
+.kpi-sub{font-size:11px;color:var(--muted);line-height:1.5}
+
+/* ── S6: End ── */
+#s6{background:radial-gradient(ellipse 70% 50% at 50% 60%,oklch(18% 0.04 245) 0%,var(--bg) 70%)}
+.end-title{font-size:clamp(32px,6vw,72px);font-weight:900;line-height:1.05;text-align:center;margin-bottom:20px}
+.end-url{
+  display:inline-block;margin-top:32px;
+  padding:14px 32px;border-radius:10px;
+  background:var(--blue);color:#fff;font-size:15px;font-weight:700;
+  text-decoration:none;letter-spacing:.5px;
+}
+.end-url:hover{opacity:.9}
+.end-note{margin-top:18px;font-size:13px;color:var(--muted)}
+
+/* ── Bilingual ── */
+span.ru{display:none}
+html.ru-mode span.ru{display:inline}
+html.ru-mode span.he{display:none}
+.bl{display:block}
+span.bl.ru{display:none}
+html.ru-mode span.bl.ru{display:block}
+html.ru-mode span.bl.he{display:none}
+
+@media(max-width:700px){
+  .sections-grid{grid-template-columns:repeat(2,1fr)}
+  .feat-grid{grid-template-columns:repeat(2,1fr)}
+  .flow-row{flex-direction:column}
+  .flow-arrow{transform:rotate(90deg)}
+}
+</style>
+</head>
+<body>
+
+<!-- Lang overlay -->
+<div id="lang-overlay">
+  <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:4px">
+    <rect width="72" height="72" rx="18" fill="oklch(18% 0.04 245)"/>
+    <!-- Warehouse shelf lines -->
+    <rect x="12" y="44" width="48" height="4" rx="2" fill="#009FFF" opacity="0.9"/>
+    <rect x="12" y="30" width="48" height="4" rx="2" fill="#009FFF" opacity="0.6"/>
+    <rect x="12" y="16" width="48" height="4" rx="2" fill="#009FFF" opacity="0.35"/>
+    <!-- Vertical supports -->
+    <rect x="12" y="14" width="3" height="36" rx="1.5" fill="#009FFF" opacity="0.5"/>
+    <rect x="57" y="14" width="3" height="36" rx="1.5" fill="#009FFF" opacity="0.5"/>
+    <!-- Snowflake / cold indicator -->
+    <text x="36" y="62" text-anchor="middle" font-size="16" fill="#C9A84C">❄</text>
+  </svg>
+  <div style="font-size:clamp(22px,3.5vw,30px);font-weight:900;letter-spacing:1px;color:oklch(92% 0.008 245);margin-bottom:4px">MAHSAN <span style="color:#C9A84C">FORMULA</span></div>
+  <div style="font-size:13px;letter-spacing:3px;color:oklch(55% 0.015 245);margin-bottom:32px;text-transform:uppercase">פלנוגרמת בית קירור</div>
+  <div class="lang-title">בחר שפה / Выберите язык</div>
+  <div class="lang-btns">
+    <button class="lang-btn" onclick="pickLang('he')">עברית</button>
+    <button class="lang-btn" onclick="pickLang('ru')">Русский</button>
+  </div>
+</div>
+<button id="lang-toggle" onclick="toggleLang()">
+  <span class="he">RU</span><span class="ru">עב</span>
+</button>
+
+<!-- Nav dots -->
+<nav id="dots"></nav>
+
+<!-- ═══════════════════════════════ DECK ═══════════════════════════════════ -->
+<div id="deck">
+
+<!-- S1: Title -->
+<section class="slide" id="s1">
+  <div class="s1-logo">FORMULA · DILER BMD</div>
+  <h1 class="s1-title">
+    <span class="he">מחסן <span class="accent">FORMULA</span><br>פלנוגרמת בית קירור</span>
+    <span class="ru">MAHSAN <span class="accent">FORMULA</span><br>Планограмма склада</span>
+  </h1>
+  <p class="s1-sub">
+    <span class="he">מערכת ניהול חזותי של סידור מוצרים בבית הקירור — 4 מחסנות</span>
+    <span class="ru">Визуальная система управления расстановкой товаров в холодном складе — 4 склада</span>
+  </p>
+  <div class="s1-badges">
+    <span class="badge hi">Web PWA</span>
+    <span class="badge hi">GitHub Pages</span>
+    <span class="badge">4 מחסנות</span>
+    <span class="badge">Power BI Fabric</span>
+    <span class="badge">Auto-build CI/CD</span>
+  </div>
+</section>
+
+<!-- S2: What -->
+<section class="slide" id="s2">
+  <div class="slide-label"><span class="he">מה זה</span><span class="ru">ЧТО ЭТО</span></div>
+  <h2 class="slide-h">
+    <span class="he">פלנוגרמה חזותית<br>עם תמונות SKU ונתוני מכירות</span>
+    <span class="ru">Визуальная планограмма<br>с фото SKU и данными продаж</span>
+  </h2>
+  <p class="slide-sub">
+    <span class="he">במקום Excel — תצוגת web אינטראקטיבית של סידור המוצרים לפי bay, עם תמונות, ממוצע מכירה 45 יום, ובקרת תוקף</span>
+    <span class="ru">Вместо Excel — интерактивный web-интерфейс расстановки товаров по bay-ам, с фотографиями, средними продажами 45 дней и контролем сроков годности</span>
+  </p>
+  <div class="sections-grid">
+    <div class="sec-card">
+      <div class="sec-icon">❄️</div>
+      <div class="sec-name">קפוא</div>
+      <div class="sec-note"><span class="he">מוצרי קפואים</span><span class="ru">Заморозка</span></div>
+    </div>
+    <div class="sec-card">
+      <div class="sec-icon">🥛</div>
+      <div class="sec-name">חלבי</div>
+      <div class="sec-note"><span class="he">מוצרי חלב</span><span class="ru">Молочка</span></div>
+    </div>
+    <div class="sec-card">
+      <div class="sec-icon">🐟</div>
+      <div class="sec-name">דגים</div>
+      <div class="sec-note"><span class="he">דגים טריים</span><span class="ru">Рыба</span></div>
+    </div>
+    <div class="sec-card">
+      <div class="sec-icon">🧂</div>
+      <div class="sec-name">דג יבש</div>
+      <div class="sec-note"><span class="he">דגים מלוחים</span><span class="ru">Сухая рыба</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- S3: How it works -->
+<section class="slide" id="s3">
+  <div class="slide-label"><span class="he">איך זה עובד</span><span class="ru">КАК РАБОТАЕТ</span></div>
+  <h2 class="slide-h">
+    <span class="he">מקובץ Excel לפלנוגרמה חיה — אוטומטית</span>
+    <span class="ru">Из Excel-файла в живую планограмму — автоматически</span>
+  </h2>
+  <div class="flow-row">
+    <div class="flow-step">
+      <div class="flow-icon">📊</div>
+      <div class="flow-title"><span class="he">נתוני מלאי</span><span class="ru">Данные склада</span></div>
+      <div class="flow-desc">קפוא / חלבי / דגים .xlsx<br><span class="he">עדכון יומי</span><span class="ru">Обновление ежедневно</span></div>
+    </div>
+    <div class="flow-arrow">←</div>
+    <div class="flow-step">
+      <div class="flow-icon">⚙️</div>
+      <div class="flow-title">build-planogram.js</div>
+      <div class="flow-desc"><span class="he">סקריפט Node.js<br>1,040 שורות</span><span class="ru">Node.js скрипт<br>1,040 строк</span></div>
+    </div>
+    <div class="flow-arrow">←</div>
+    <div class="flow-step">
+      <div class="flow-icon">📈</div>
+      <div class="flow-title">Power BI Fabric</div>
+      <div class="flow-desc"><span class="he">ממוצע מכירה 45 יום<br>נתוני תוקף</span><span class="ru">Средние продажи 45 дней<br>Данные תוקף</span></div>
+    </div>
+    <div class="flow-arrow">←</div>
+    <div class="flow-step">
+      <div class="flow-icon">🌐</div>
+      <div class="flow-title">GitHub Pages</div>
+      <div class="flow-desc"><span class="he">פלנוגרמה חיה<br>ללא התקנה</span><span class="ru">Живая планограмма<br>без установки</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- S4: Features -->
+<section class="slide" id="s4">
+  <div class="slide-label"><span class="he">יכולות</span><span class="ru">ФУНКЦИИ</span></div>
+  <h2 class="slide-h">
+    <span class="he">כל מה שצריך לניהול המחסן</span>
+    <span class="ru">Всё необходимое для управления складом</span>
+  </h2>
+  <div class="feat-grid">
+    <div class="feat-card">
+      <div class="feat-icon">✏️</div>
+      <div class="feat-name"><span class="he">מצב עריכה</span><span class="ru">Режим редактирования</span></div>
+      <div class="feat-desc"><span class="he">גרור ושחרר SKU בין bay-ים. שמור גרסה עם חותמת זמן</span><span class="ru">Drag & drop SKU между bay-ами. Сохранение версии с меткой времени</span></div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🕐</div>
+      <div class="feat-name"><span class="he">היסטוריה</span><span class="ru">История версий</span></div>
+      <div class="feat-desc"><span class="he">כל הגרסאות השמורות — שחזור בלחיצה אחת</span><span class="ru">Все сохранённые версии — восстановление одним кликом</span></div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📦</div>
+      <div class="feat-name"><span class="he">דוח תוקף</span><span class="ru">Отчёт תוקף</span></div>
+      <div class="feat-desc"><span class="he">כל האצוות לפי מחלקה. פילטר ⚠ סכנה בלבד. צפון &lt;3 ימים</span><span class="ru">Все партии по секциям. Фильтр ⚠ только опасные. Север &lt;3 дней</span></div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📊</div>
+      <div class="feat-name"><span class="he">טבלת מיקום</span><span class="ru">Таблица позиций</span></div>
+      <div class="feat-desc"><span class="he">רשימת כל ה-SKU עם מיקום ב-bay. שינוי סדר הדפסה</span><span class="ru">Список всех SKU с позицией в bay. Изменение порядка печати</span></div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">⬇️</div>
+      <div class="feat-name"><span class="he">ייצוא CSV + PDF</span><span class="ru">Экспорт CSV + PDF</span></div>
+      <div class="feat-desc"><span class="he">ייצוא פלנוגרמה לקובץ CSV. הדפסת PDF אוטומטית — landscape</span><span class="ru">Экспорт планограммы в CSV. Печать PDF — landscape, без интерфейса</span></div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🏭</div>
+      <div class="feat-name"><span class="he">שני מחסנים</span><span class="ru">Два склада</span></div>
+      <div class="feat-desc"><span class="he">אשדוד (Main) ו-צפון (Zafn) — החלפה בלחיצה. נתונים נפרדים לכל מחסן</span><span class="ru">אשדוד (Main) и צפון (Zafn) — переключение нажатием. Данные раздельно</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- S5: KPIs -->
+<section class="slide" id="s5">
+  <div class="slide-label"><span class="he">תוצאות</span><span class="ru">РЕЗУЛЬТАТЫ</span></div>
+  <h2 class="slide-h">
+    <span class="he">ניהול מחסן — ברמה אחרת</span>
+    <span class="ru">Управление складом на новом уровне</span>
+  </h2>
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-num">4</div>
+      <div class="kpi-label"><span class="he">מחלקות קפואות</span><span class="ru">Секции холодного склада</span></div>
+      <div class="kpi-sub"><span class="he">קפוא · חלבי · דגים · דג יבש<br>2 מחסנים — הכל במסך אחד</span><span class="ru">Заморозка · Молочка · Рыба · Сухая рыба<br>2 склада — всё в одном экране</span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-num">1</div>
+      <div class="kpi-label"><span class="he">לחיצה לבדיקת תוקף</span><span class="ru">клик для проверки сроков</span></div>
+      <div class="kpi-sub"><span class="he">במקום סריקה פיזית של המדפים<br>פילטר ⚠ סכנה בלבד</span><span class="ru">Вместо физического обхода полок<br>Фильтр ⚠ только опасные</span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-num">45</div>
+      <div class="kpi-label"><span class="he">ימי ממוצע מכירה</span><span class="ru">дней средних продаж</span></div>
+      <div class="kpi-sub"><span class="he">Power BI Fabric → ממוצע מכירה<br>נראה על כל bay בפלנוגרמה</span><span class="ru">Power BI Fabric → ממוצע מכירה<br>виден на каждом bay планограммы</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- S6: End -->
+<section class="slide" id="s6">
+  <h2 class="end-title">
+    <span class="he">המערכת מוכנה.<br>אפשר להתחיל.</span>
+    <span class="ru">Система готова.<br>Можно начинать.</span>
+  </h2>
+  <a class="end-url" href="https://sverdlikdan-code.github.io/COLUMBUS/planogram-editor.html" target="_blank">
+    פתח פלנוגרמה →
+  </a>
+  <p class="end-note">
+    <span class="he">FORMULA · MAHSAN · DILER BMD · 2026</span>
+    <span class="ru">FORMULA · MAHSAN · DILER BMD · 2026</span>
+  </p>
+</section>
+
+</div><!-- /deck -->
+
+<script>
+const h = document.documentElement;
+
+function pickLang(lang) {
+  applyLang(lang);
+  document.getElementById('lang-overlay').classList.add('gone');
+  localStorage.setItem('mahsan_lang', lang);
+}
+function toggleLang() {
+  pickLang(h.classList.contains('ru-mode') ? 'he' : 'ru');
+}
+function applyLang(lang) {
+  if (lang === 'ru') {
+    h.classList.add('ru-mode'); h.setAttribute('dir','ltr'); h.setAttribute('lang','ru');
+  } else {
+    h.classList.remove('ru-mode'); h.setAttribute('dir','rtl'); h.setAttribute('lang','he');
+  }
+}
+
+// Restore saved lang
+const saved = localStorage.getItem('mahsan_lang');
+if (saved) { applyLang(saved); document.getElementById('lang-overlay').classList.add('gone'); }
+
+// Nav dots
+const slides = document.querySelectorAll('.slide');
+const dotsEl = document.getElementById('dots');
+slides.forEach((_,i) => {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i===0?' active':'');
+  d.onclick = () => slides[i].scrollIntoView({behavior:'smooth'});
+  dotsEl.appendChild(d);
+});
+const dots = dotsEl.querySelectorAll('.dot');
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const i = [...slides].indexOf(e.target);
+      dots.forEach((d,j) => d.classList.toggle('active', i===j));
+    }
+  });
+}, {threshold:.5});
+slides.forEach(s => obs.observe(s));
+
+// Keyboard nav
+document.addEventListener('keydown', e => {
+  const deck = document.getElementById('deck');
+  if (e.key==='ArrowDown'||e.key==='PageDown') { e.preventDefault(); deck.scrollBy({top:window.innerHeight,behavior:'smooth'}); }
+  if (e.key==='ArrowUp'||e.key==='PageUp')     { e.preventDefault(); deck.scrollBy({top:-window.innerHeight,behavior:'smooth'}); }
+});
+</script>
+</body>
+</html>

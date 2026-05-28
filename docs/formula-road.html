@@ -1653,11 +1653,15 @@ function startGpsCorrection(custId, custName){
     const cl=st.clients.find(x=>String(x.custId)===String(custId))||{};
     const entry={lat:la,lng:lo,correctedAt:new Date().toISOString(),name:custName,city:cl.city||'',address:cl.address||''};
     gpsCorrections[String(custId)]=entry;
-    // save to localStorage
+    // save to localStorage (immediate, offline-safe)
     const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
     local[String(custId)]=entry;
     localStorage.setItem('fr_gps_local',JSON.stringify(local));
     updateGpsHistBtn();
+    // sync to server → gps-corrections.json (shared for all users)
+    fetch(`${API}/save-gps`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({custId,lat:la,lng:lo,name:custName,city:cl.city||'',address:cl.address||''})
+    }).catch(()=>{});
     // update client position
     st.clients=st.clients.map(x=>String(x.custId)===String(custId)?{...x,lat:la,lng:lo}:x);
     st.aiClients=nearestNeighbor([...st.clients]);
