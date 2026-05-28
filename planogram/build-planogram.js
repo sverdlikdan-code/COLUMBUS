@@ -1196,6 +1196,7 @@ async function main() {
         weightCarton:        wc,
         daysStockAll:        (dsa > 0 && p.stock > 0) ? Math.round(p.stock / dsa) : null,
         nameEn:              nameEnMap[mk] ? fixVisualRTL(nameEnMap[mk].replace(/\s*\([^)]*\)/g, '').trim()) : null,
+        fam:                 p.fam ? fixVisualRTL(p.fam.replace(/[‎‏‪-‮⁦-⁩﻿]/g,'').trim()) : null,
         ashdodPalletCartons: prevAshdod[mk] ?? null,
         pakuot:              (p.pakuot || kd?.pakuot || []).map(b => ({ date: b.date ? new Date(b.date).toISOString().slice(0,10) : null, daysLeft: b.daysLeft, cartons: b.cartons })),
         pakuotZafn:          (p.pakuotZafn || kd?.pakuotZafn || []).map(b => ({ date: b.date ? new Date(b.date).toISOString().slice(0,10) : null, daysLeft: b.daysLeft, cartons: b.cartons })),
@@ -1434,7 +1435,7 @@ async function main() {
       for (const p of newHalaviProds) {
         if (slotIdx >= emptySlots.length) break;
         const pk = String(emptySlots[slotIdx++]);
-        hb.picks[pk] = { makat: p.makat, fam: fixVisualRTL(p.fam || ''), name: nameEnMap[String(p.makat)] || null };
+        hb.picks[pk] = { makat: p.makat, fam: p.fam || '', name: nameEnMap[String(p.makat)] || null };
         added.push(`${p.makat}→pick${pk}`);
       }
 
