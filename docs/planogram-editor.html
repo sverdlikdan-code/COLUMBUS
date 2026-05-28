@@ -742,7 +742,7 @@ function stockHTML(makat) {
   const stock    = wh === 'Zafn' ? d.stockZafn    : d.stock;
   const palStock = wh === 'Zafn' ? d.palStockZafn : d.palStock;
   const daySales = wh === 'Zafn' ? d.daySalesZafn : d.daySales;
-  if (stock == null && wh === 'Zafn') return '';
+  if (stock == null) return '';
   if (!stock || stock <= 0) return `<div class="slot-stock s-zero-bar"><span class="s-zero">אפס מלאי</span></div>`;
   const palLine  = palStock != null && palStock > 0
     ? `<div class="s-pal-big">${Math.round(palStock)} <span class="s-pal-unit">PAL</span></div>` : '';
