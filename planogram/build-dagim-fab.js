@@ -1,7 +1,7 @@
 /**
  * build-dagim-fab.js
- * Builds dagim-base.json from Fabric (Power BI / KARTIS PARIT) only.
- * Same schema as build-dagim-yavesh-new.js
+ * Builds dagim-base.json from Fabric (Power BI DAX) only.
+ * Same schema as build-dagim-yavesh-new.js / build-halavi-new.js / build-kapua-new.js
  */
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 if (!process.env.PBI_TENANT && process.env.AZURE_TENANT_ID) {
@@ -21,26 +21,12 @@ const WORKING_SLOTS = 97;
 const RESERVE_START = 98;
 const TOTAL_SLOTS   = 126;
 
-// fixHebRTL(clean) → display name
+const FAM_CODES = ['030', '0301', '036'];
 const FAM_NAMES = {
-  'NORD PORT דגים':             'NORD PORT דגים',
-  'NORD PORT מצונן פורל/סלמון': 'NORD PORT מצונן',
-  'SANTA BREMOR דגים':          'SANTA BREMOR דגים',
+  '030':  'SANTA BREMOR דגים',
+  '0301': 'NORD PORT דגים',
+  '036':  'NORD PORT מצונן',
 };
-
-function fixHebRTL(s) {
-  if (!s) return s;
-  return s.replace(/[ְ-תװ-״]+/g, m => m.split('').reverse().join(''));
-}
-
-function cleanFam(raw) {
-  const clean = (raw || '').replace(/[‎‏‪-‮⁦-⁩]/g, '').trim();
-  const fixed = fixHebRTL(clean);
-  if (!fixed) return null;
-  if (FAM_NAMES[fixed]) return FAM_NAMES[fixed];
-  console.log(`dagim fam unknown: ${JSON.stringify(fixed)}`);
-  return fixed;
-}
 
 (async () => {
   // ── Step 1: Read layout from existing dagim-base.json ─────────────────────
@@ -53,7 +39,7 @@ function cleanFam(raw) {
   if (missing.length) console.warn('⚠ Missing positions:', missing.join(','));
   else console.log(`✅ All ${TOTAL_SLOTS} positions mapped`);
 
-  // ── Step 2: Fetch products + sales from Fabric ────────────────────────────
+  // ── Step 2: Fetch products from Fabric ────────────────────────────────────
   const t = await getToken();
   const WORKSPACE = process.env.PBI_WORKSPACE;
   const DATASET   = process.env.PBI_DATASET;
@@ -70,28 +56,10 @@ function cleanFam(raw) {
     return j.results?.[0]?.tables?.[0]?.rows || [];
   }
 
-  const dagimMakatim = `
-    SELECTCOLUMNS(
-      FILTER('KARTIS PARIT',
-        'KARTIS PARIT'[סטטוס] = "פעיל" &&
-        'KARTIS PARIT'[שם מחסן אשדוד] = "דגים 🐟"
-      ),
-      "mk", 'KARTIS PARIT'[מק"ט]
-    )`;
+  const famFilter = FAM_CODES.map(c => `"${c}"`).join(',');
+  const mkSet = `SELECTCOLUMNS(FILTER(MLAY, CONTAINSROW({${famFilter}}, MLAY[משפחת מוצר])), "mk", MLAY[מק'ט])`;
 
-  const [kpRows, salesRows] = await Promise.all([
-    dax(`
-      EVALUATE
-      SELECTCOLUMNS(
-        FILTER('KARTIS PARIT',
-          'KARTIS PARIT'[סטטוס] = "פעיל" &&
-          'KARTIS PARIT'[שם מחסן אשדוד] = "דגים 🐟"
-        ),
-        "makat", 'KARTIS PARIT'[מק"ט],
-        "fam",   'KARTIS PARIT'[תאור משפחה]
-      )
-      ORDER BY 'KARTIS PARIT'[תאור משפחה], 'KARTIS PARIT'[מק"ט]
-    `),
+  const [salesRows, nameRows] = await Promise.all([
     dax(`
       EVALUATE
       CALCULATETABLE(
@@ -102,12 +70,20 @@ function cleanFam(raw) {
         'ALL_PARTS'[חברה] = "FORMULA",
         'ALL_PARTS'[מחסן] = "Main",
         FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 365),
-        TREATAS(${dagimMakatim}, 'ALL_PARTS'[מק'ט])
+        TREATAS(${mkSet}, 'ALL_PARTS'[מק'ט])
       )
     `),
+    dax(`
+      EVALUATE
+      SUMMARIZECOLUMNS(
+        MLAY[מק'ט],
+        MLAY[תאור מוצר],
+        MLAY[משפחת מוצר],
+        FILTER(MLAY, CONTAINSROW({${famFilter}}, MLAY[משפחת מוצר]))
+      )
+      ORDER BY MLAY[משפחת מוצר], MLAY[מק'ט]
+    `),
   ]);
-
-  if (!kpRows.length) throw new Error('No dagim products found — check שם מחסן אשדוד = "דגים 🐟"');
 
   const salesMap = {};
   for (const r of salesRows) {
@@ -118,18 +94,20 @@ function cleanFam(raw) {
   const hasSales = [];
   const noSales  = [];
 
-  for (const r of kpRows) {
-    const mk  = String(r['[makat]'] || '').trim();
-    const fam = cleanFam(r['[fam]']);
+  for (const r of nameRows) {
+    const mk   = String(r["MLAY[מק'ט]"] || '').trim();
+    const name = String(r["MLAY[תאור מוצר]"] || '').replace(/[‎‏‪-‮⁦-⁩]/g, '').trim();
+    const fc   = String(r["MLAY[משפחת מוצר]"] || '').trim();
     if (!mk) continue;
-    const ds = salesMap[mk] || 0;
-    if (ds > 0) hasSales.push({ makat: mk, fam, name: null });
-    else        noSales.push({ makat: mk, fam, name: null });
+    const fam = FAM_NAMES[fc] || fc;
+    const ds  = salesMap[mk] || 0;
+    if (ds > 0) hasSales.push({ makat: mk, fam, name });
+    else        noSales.push({ makat: mk, fam, name });
   }
 
-  // hasSales: preserve order from DAX (family, makat)
+  // hasSales: preserve family order (already sorted by family, makat in DAX)
   // noSales: sort by family then makat
-  noSales.sort((a, b) => (a.fam || '').localeCompare(b.fam || '') || Number(a.makat) - Number(b.makat));
+  noSales.sort((a, b) => a.fam.localeCompare(b.fam) || Number(a.makat) - Number(b.makat));
 
   console.log(`Products with sales: ${hasSales.length} | without: ${noSales.length}`);
 
@@ -140,7 +118,7 @@ function cleanFam(raw) {
   const allProds = [...hasSales, ...noSales];
   for (let i = 1; i <= WORKING_SLOTS; i++) {
     const prod = allProds[i - 1];
-    picks[String(i)] = prod ? { makat: prod.makat, fam: prod.fam, name: null } : null;
+    picks[String(i)] = prod ? { makat: prod.makat, fam: prod.fam, name: prod.name } : null;
   }
 
   // Reserve slots 98-126: overflow products
@@ -149,7 +127,7 @@ function cleanFam(raw) {
   for (let i = 0; i < reserveSlots; i++) {
     const pick = RESERVE_START + i;
     picks[String(pick)] = reserveProds[i]
-      ? { makat: reserveProds[i].makat, fam: reserveProds[i].fam, name: null }
+      ? { makat: reserveProds[i].makat, fam: reserveProds[i].fam, name: reserveProds[i].name }
       : null;
   }
   console.log(`Reserve overflow: ${Math.min(reserveProds.length, reserveSlots)}/${reserveSlots} slots used`);
@@ -171,6 +149,6 @@ function cleanFam(raw) {
 
   // Summary by family
   const famCounts = {};
-  for (const p of allProds) famCounts[p.fam || '?'] = (famCounts[p.fam || '?'] || 0) + 1;
+  for (const p of allProds) famCounts[p.fam] = (famCounts[p.fam] || 0) + 1;
   for (const [fam, cnt] of Object.entries(famCounts)) console.log(`  ${fam}: ${cnt}`);
 })().catch(e => { console.error(e); process.exit(1); });
