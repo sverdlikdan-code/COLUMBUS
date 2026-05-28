@@ -223,8 +223,25 @@ function isValidIL(lat, lng) {
   return lat && lng && lat >= IL.minLat && lat <= IL.maxLat && lng >= IL.minLng && lng <= IL.maxLng;
 }
 
-// In-memory geocode cache: address string → { lat, lng } | null
+// ── Persistent geocode cache ──────────────────────────────────────────────────
+const GEOCODE_CACHE_PATH = path.join(__dirname, 'geocode-cache.json');
 const geocodeCache = new Map();
+
+(function loadGeocodeCache() {
+  try {
+    const data = JSON.parse(fs.readFileSync(GEOCODE_CACHE_PATH, 'utf8'));
+    for (const [k, v] of Object.entries(data)) geocodeCache.set(k, v);
+    console.log(`geocode cache loaded: ${geocodeCache.size} entries`);
+  } catch (_) {}
+})();
+
+function saveGeocodeCache() {
+  try {
+    const obj = {};
+    for (const [k, v] of geocodeCache) obj[k] = v;
+    fs.writeFileSync(GEOCODE_CACHE_PATH, JSON.stringify(obj), 'utf8');
+  } catch (_) {}
+}
 
 // City bounding-box cache: city name → { minLat, maxLat, minLng, maxLng } | null
 const cityBBoxCache = new Map();
@@ -232,19 +249,33 @@ const cityBBoxCache = new Map();
 async function getCityBBox(city) {
   if (!city) return null;
   if (cityBBoxCache.has(city)) return cityBBoxCache.get(city);
+
+  // Azure Maps returns viewport (bounding box) — no rate limit
+  if (AZURE_MAPS_KEY) {
+    try {
+      const url = `https://atlas.microsoft.com/search/address/json?api-version=1.0&query=${encodeURIComponent(city + ', ישראל')}&countrySet=IL&limit=1&subscription-key=${AZURE_MAPS_KEY}`;
+      const resp = await fetch(url, { signal: AbortSignal.timeout(4000) });
+      const data = await resp.json();
+      const r = data?.results?.[0];
+      if (r?.viewport) {
+        const bbox = {
+          minLat: r.viewport.btmRightPoint.lat, maxLat: r.viewport.topLeftPoint.lat,
+          minLng: r.viewport.topLeftPoint.lon,  maxLng: r.viewport.btmRightPoint.lon,
+        };
+        cityBBoxCache.set(city, bbox);
+        return bbox;
+      }
+    } catch (_) {}
+  }
+
+  // Nominatim fallback for bbox
   try {
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city + ', ישראל')}&format=json&limit=1&countrycodes=il`;
-    const resp = await fetch(url, {
-      headers: { 'User-Agent': 'ColumbusDillerApp/1.1' },
-      signal: AbortSignal.timeout(4000),
-    });
+    const resp = await fetch(url, { headers: { 'User-Agent': 'ColumbusDillerApp/1.1' }, signal: AbortSignal.timeout(4000) });
     const data = await resp.json();
     if (data.length > 0 && data[0].boundingbox) {
-      const bb = data[0].boundingbox; // [minLat, maxLat, minLng, maxLng]
-      const bbox = {
-        minLat: parseFloat(bb[0]), maxLat: parseFloat(bb[1]),
-        minLng: parseFloat(bb[2]), maxLng: parseFloat(bb[3]),
-      };
+      const bb = data[0].boundingbox;
+      const bbox = { minLat: parseFloat(bb[0]), maxLat: parseFloat(bb[1]), minLng: parseFloat(bb[2]), maxLng: parseFloat(bb[3]) };
       cityBBoxCache.set(city, bbox);
       return bbox;
     }
@@ -254,40 +285,45 @@ async function getCityBBox(city) {
 }
 
 function isWithinCityBBox(lat, lng, bbox) {
-  if (!bbox) return true; // can't validate → don't reject
-  const PAD = 0.018; // ~2 km tolerance on each side
+  if (!bbox) return true;
+  const PAD = 0.018; // ~2km tolerance
   return lat >= bbox.minLat - PAD && lat <= bbox.maxLat + PAD &&
          lng >= bbox.minLng - PAD && lng <= bbox.maxLng + PAD;
 }
 
-const VENUE_PATTERNS = [
-  /מרכז מסחרי[^,]*/gi,
-  /מרכז עסקים[^,]*/gi,
-  /מרכז קניות[^,]*/gi,
-  /קניון[^,]*/gi,
-  /מתחם[^,]*/gi,
-  /פארק תעשיי?ה[^,]*/gi,
-  /אזור תעשיי?ה[^,]*/gi,
-  /בית קפה[^,]*/gi,
-  /מסעדה[^,]*/gi,
-  /סופרמרקט[^,]*/gi,
-  /קומה\s*\d+/gi,
-  /דירה\s*\d+/gi,
-  /כניסה\s*[א-ת\d]+/gi,
-  /בניין\s*[א-ת\d]*/gi,
-  /\(.*?\)/g,
+// ── Address normalization ──────────────────────────────────────────────────────
+const ABBREV_MAP = [
+  [/רח[''׳]\s*/g, 'רחוב '],
+  [/ד[""״]ר\s*/g, 'דוקטור '],
+  [/פרופ[''׳]\s*/g, 'פרופסור '],
+  [/שד[''׳]\s*/g, 'שדרות '],
 ];
+
+const VENUE_PATTERNS = [
+  /מרכז מסחרי[^,]*/gi, /מרכז עסקים[^,]*/gi, /מרכז קניות[^,]*/gi,
+  /קניון[^,]*/gi, /מתחם[^,]*/gi, /פארק תעשיי?ה[^,]*/gi,
+  /אזור תעשיי?ה[^,]*/gi, /בית קפה[^,]*/gi, /מסעדה[^,]*/gi,
+  /סופרמרקט[^,]*/gi, /קומה\s*\d+/gi, /דירה\s*\d+/gi,
+  /כניסה\s*[א-ת\d]+/gi, /בניין\s*[א-ת\d]*/gi, /\(.*?\)/g,
+];
+
+function isPoBox(address) {
+  return /ת\.?ד\.?\s*\d+/i.test(address) || /p\.?o\.?\s*box/i.test(address);
+}
 
 function cleanAddressForGeocoding(address) {
   if (!address) return address;
-  let clean = address;
-  for (const pattern of VENUE_PATTERNS) {
-    clean = clean.replace(pattern, '');
-  }
-  return clean.replace(/[,\s]+$/, '').replace(/\s{2,}/g, ' ').trim();
+  let s = address;
+  for (const [pat, rep] of ABBREV_MAP) s = s.replace(pat, rep);
+  // strip apartment fraction: "הרצל 5/3" → "הרצל 5"
+  s = s.replace(/(\d+)\/\d+/g, '$1');
+  for (const pattern of VENUE_PATTERNS) s = s.replace(pattern, '');
+  return s.replace(/[,\s]+$/, '').replace(/\s{2,}/g, ' ').trim();
 }
 
+// ── Geocoding services ────────────────────────────────────────────────────────
 const AZURE_MAPS_KEY = process.env.AZURE_MAPS_KEY || '';
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 
 async function geocodeAzure(query) {
   if (!AZURE_MAPS_KEY) return null;
@@ -301,65 +337,101 @@ async function geocodeAzure(query) {
   return null;
 }
 
+let _lastNominatimMs = 0;
 async function geocodeNominatim(query) {
+  // respect 1 req/sec limit
+  const wait = 1100 - (Date.now() - _lastNominatimMs);
+  if (wait > 0) await new Promise(r => setTimeout(r, wait));
+  _lastNominatimMs = Date.now();
   try {
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=il`;
-    const resp = await fetch(url, {
-      headers: { 'User-Agent': 'ColumbusDillerApp/1.1' },
-      signal: AbortSignal.timeout(4000),
-    });
+    const resp = await fetch(url, { headers: { 'User-Agent': 'ColumbusDillerApp/1.1' }, signal: AbortSignal.timeout(4000) });
     const data = await resp.json();
     if (data.length > 0) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
   } catch (_) {}
   return null;
 }
 
-async function geocodeAddress(address, city) {
-  const cleanAddr = cleanAddressForGeocoding(address);
-  const query = [cleanAddr, city, 'ישראל'].filter(Boolean).join(', ');
+// Haiku parses messy Hebrew addresses when all else fails (~$0.001/address)
+async function normalizeAddressWithAI(address, city) {
+  if (!ANTHROPIC_API_KEY) return null;
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 60,
+        messages: [{ role: 'user', content: `Extract ONLY the street name and house number from this Israeli address for geocoding. Return "street_name number" in Hebrew. If no street (P.O. box, vague description), return null.\n\nAddress: "${address}"\nCity: "${city || ''}"` }],
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+    const data = await resp.json();
+    const text = (data?.content?.[0]?.text || '').trim();
+    if (!text || text === 'null') return null;
+    return text;
+  } catch (_) { return null; }
+}
+
+async function geocodeAddress(query) {
   if (geocodeCache.has(query)) return geocodeCache.get(query);
-
-  // Azure Maps first (better Hebrew support, no rate limit)
   let result = await geocodeAzure(query);
-  // Nominatim fallback
   if (!result) result = await geocodeNominatim(query);
-
   geocodeCache.set(query, result || null);
   return result || null;
 }
 
 function extractStreetNum(address) {
   if (!address) return null;
-  const m = (address || '').match(/[א-ת"'\-\s]{2,}\s+\d+/);
+  const m = address.match(/[א-ת"'\-\s]{2,}\s+\d+/);
   return m ? m[0].trim() : null;
 }
 
 async function geocodeAddressCascade(address, city) {
-  const cleaned = cleanAddressForGeocoding(address);
-  const attempts = [];
-  if (cleaned) attempts.push([cleaned, city, 'ישראל'].filter(Boolean).join(', '));
-  const street = extractStreetNum(cleaned || address);
-  if (street && street !== cleaned) attempts.push([street, city, 'ישראל'].filter(Boolean).join(', '));
-  if (city) attempts.push(city + ', ישראל'); // city-only fallback
+  if (isPoBox(address || '')) return null;
 
-  for (const attempt of attempts) {
-    const result = await geocodeAddress(attempt, '');
-    if (result) return result;
+  const cleaned = cleanAddressForGeocoding(address);
+  const cityStr = city ? `, ${city}` : '';
+
+  // attempt 1: full cleaned address + city
+  if (cleaned) {
+    const r = await geocodeAddress(cleaned + cityStr + ', ישראל');
+    if (r) return r;
   }
+
+  // attempt 2: street+number only + city
+  const street = extractStreetNum(cleaned || address || '');
+  if (street && street !== cleaned) {
+    const r = await geocodeAddress(street + cityStr + ', ישראל');
+    if (r) return r;
+  }
+
+  // attempt 3: AI normalization + city
+  const aiAddr = await normalizeAddressWithAI(address, city);
+  if (aiAddr) {
+    const r = await geocodeAddress(aiAddr + cityStr + ', ישראל');
+    if (r) { saveGeocodeCache(); return r; }
+  }
+
+  // attempt 4: city-only fallback
+  if (city) {
+    const r = await geocodeAddress(city + ', ישראל');
+    if (r) return r;
+  }
+
   return null;
 }
 
 async function geocodeBatch(clients) {
-  // fetch bboxes for ALL cities (needed for bbox validation)
+  // fetch city bboxes (Azure Maps, no delays)
   const allCities = [...new Set(clients.map(c => c.city).filter(Boolean))];
-  for (const city of allCities) {
-    if (!cityBBoxCache.has(city)) {
-      await getCityBBox(city);
-      await new Promise(r => setTimeout(r, 1100));
-    }
-  }
+  await Promise.all(allCities.map(city => cityBBoxCache.has(city) ? null : getCityBBox(city)));
 
-  // validate existing IL coords against city bbox — null out only if outside
+  // null out existing coords that are outside city bbox
   for (const c of clients) {
     if (isValidIL(c.lat, c.lng)) {
       const bbox = cityBBoxCache.get(c.city) ?? null;
@@ -367,18 +439,19 @@ async function geocodeBatch(clients) {
     }
   }
 
-  // cascade-geocode clients still missing valid coords
+  // geocode clients still missing valid coords
   const needsGeocode = clients.filter(c => !isValidIL(c.lat, c.lng) && (c.address || c.city));
+  let resolved = 0;
   for (const c of needsGeocode) {
     const result = await geocodeAddressCascade(c.address, c.city);
     if (result) {
       const bbox = cityBBoxCache.get(c.city) ?? null;
       if (isWithinCityBBox(result.lat, result.lng, bbox)) {
-        c.lat = result.lat; c.lng = result.lng;
+        c.lat = result.lat; c.lng = result.lng; resolved++;
       }
     }
-    await new Promise(r => setTimeout(r, 1100));
   }
+  if (resolved > 0) { saveGeocodeCache(); console.log(`geocodeBatch: resolved ${resolved}/${needsGeocode.length}`); }
   return clients;
 }
 
@@ -386,7 +459,9 @@ async function geocodeBatch(clients) {
 app.get('/geocode', requireAuth, async (req, res) => {
   const { address, city } = req.query;
   if (!address) return res.status(400).json({ error: 'address required' });
-  const result = await geocodeAddress(address, city || '');
+  const cleaned = cleanAddressForGeocoding(address);
+  const query = [cleaned, city, 'ישראל'].filter(Boolean).join(', ');
+  const result = await geocodeAddress(query);
   res.json(result || {});
 });
 
