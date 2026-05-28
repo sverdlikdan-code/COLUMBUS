@@ -46,6 +46,14 @@ jobs:
         run: node planogram/build-planogram.js
         continue-on-error: true
 
+      - name: Run build-halavi-new
+        run: node planogram/build-halavi-new.js
+        continue-on-error: true
+
+      - name: Run build-dagim-fab
+        run: node planogram/build-dagim-fab.js
+        continue-on-error: true
+
       - name: Run workflow-doctor
         run: node planogram/workflow-doctor.js
         continue-on-error: true
