@@ -92,6 +92,22 @@
         overflow: visible !important;
       }
       body.printing-expiry #expiry-grid > div { break-inside: avoid; }
+
+      /* ── Assembler page print ── */
+      body.printing-assembler > *:not(#assembler-page) { display: none !important; }
+      body.printing-assembler #assembler-page {
+        display: block !important;
+        position: static !important;
+        overflow: visible !important;
+        height: auto !important;
+        background: #fff !important;
+        z-index: auto !important;
+      }
+      body.printing-assembler #assembler-page > div:first-child { display: none !important; }
+      body.printing-assembler .asm-sec-header { background: #000 !important; color: #fff !important; }
+      body.printing-assembler .asm-table { page-break-inside: auto; }
+      body.printing-assembler .asm-table tr { break-inside: avoid; }
+      @page { size: portrait; margin: 8mm; }
     }
     #print-header {
       display: none;
@@ -306,6 +322,7 @@
 
   <button class="btn no-print" id="btn-table" onclick="toggleTable()" style="background:#f0f4ff;color:#1565C0;border:1px solid #1565C0;">📊 מיקום</button>
   <button class="btn no-print" id="btn-expiry" onclick="toggleExpiryPage()" style="background:#f0f4ff;color:#c62828;border:1px solid #ef9a9a;">📦 תוקף</button>
+  <button class="btn no-print" id="btn-assembler" onclick="openAssemblerPage()" style="background:#e8f5e9;color:#2e7d32;border:1px solid #81c784;font-weight:bold;">🖨 לסובר</button>
   <span class="no-print" style="margin-right:6px;border-right:1px solid #ccc;padding-right:8px;display:inline-flex;align-items:center;gap:3px;">
     <button id="wh-main" class="btn wh-btn wh-active" onclick="setWarehouse('Main')">אשדוד</button>
     <button id="wh-zafn" class="btn wh-btn"           onclick="setWarehouse('Zafn')">צפון</button>
@@ -352,6 +369,19 @@
     <button onclick="toggleExpiryPage()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:16px;cursor:pointer;border-radius:4px;padding:2px 8px;">✕</button>
   </div>
   <div id="expiry-grid" style="padding:12px 16px; display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-start;"></div>
+</div>
+
+<!-- Assembler print page — full-screen overlay -->
+<div id="assembler-page" style="
+  display:none; position:fixed; inset:0; z-index:610;
+  background:#f4f6fb; overflow-y:auto; direction:rtl;
+">
+  <div style="display:flex;align-items:center;gap:10px;padding:10px 18px;background:#2e7d32;position:sticky;top:0;z-index:10;">
+    <span style="font-weight:bold;font-size:13px;color:#fff;flex:1;" id="assembler-title">דוח לסובר</span>
+    <button onclick="printAssemblerPage()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;cursor:pointer;border-radius:4px;padding:4px 14px;">🖨 הדפס</button>
+    <button onclick="closeAssemblerPage()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:16px;cursor:pointer;border-radius:4px;padding:2px 8px;">✕</button>
+  </div>
+  <div id="assembler-content" style="padding:12px 20px 24px;"></div>
 </div>
 
 <!-- Summary position table — fixed overlay panel -->
@@ -1284,6 +1314,98 @@ function exportCSV() {
     download: `planogram-${sec}-${new Date().toISOString().slice(0,10)}.csv`,
   });
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// ASSEMBLER PRINT REPORT
+// ══════════════════════════════════════════════════════════════════════════
+function openAssemblerPage() {
+  const wh    = window._activeWarehouse || 'Main';
+  const whLabel = wh === 'Zafn' ? 'צפון' : wh === 'Trnz' ? 'מעבר' : 'אשדוד';
+  const date  = new Date().toLocaleDateString('he-IL');
+  document.getElementById('assembler-title').textContent = `דוח לסובר — ${whLabel} — ${date}`;
+
+  const SEC_NAMES = { kapua: 'קפוא', halavi: 'חלבי', dagim: 'דגים', yavesh: 'דג יבש' };
+  let html = '';
+  let grandTotal = 0;
+
+  for (const sec of _SECTIONS) {
+    const reserveStart = sectionReserveStart(sec);
+    const order = _getPrintOrder(sec).filter(pick => reserveStart === 0 || +pick < reserveStart);
+    const seenMakat = new Set();
+    const rows = [];
+    for (const pick of order) {
+      const p = state[sec] && state[sec][pick];
+      if (!p || !p.makat) continue;
+      const mk = String(p.makat);
+      if (seenMakat.has(mk)) continue;
+      seenMakat.add(mk);
+      const d    = productData[mk] || {};
+      const name = p.name || d.nameEn || d.desc || p.fam || mk;
+      const fam  = p.fam || d.fam || '';
+      const stock = wh === 'Zafn' ? (d.stockZafn ?? null) : wh === 'Trnz' ? (d.stockTrnz ?? null) : (d.stock ?? null);
+      rows.push({ pick, mk, name, fam, stock });
+    }
+    if (!rows.length) continue;
+    grandTotal += rows.length;
+
+    html += `<div class="asm-sec-header" style="
+      margin:16px 0 6px; padding:7px 14px;
+      background:#2e7d32; color:#fff;
+      font-size:14px; font-weight:bold; border-radius:6px; letter-spacing:0.3px;
+    ">${SEC_NAMES[sec]} — ${rows.length} מוצרים</div>`;
+
+    html += `<table class="asm-table" style="
+      border-collapse:collapse; width:100%; font-size:13px; direction:rtl;
+    ">
+    <thead>
+      <tr style="background:#e8f5e9; color:#1b5e20;">
+        <th style="padding:5px 8px; text-align:center; border:1px solid #c8e6c9; min-width:36px;">#</th>
+        <th style="padding:5px 8px; text-align:center; border:1px solid #c8e6c9; min-width:40px;">ביי</th>
+        <th style="padding:5px 8px; text-align:right;  border:1px solid #c8e6c9; min-width:70px;">מקט</th>
+        <th style="padding:5px 8px; text-align:right;  border:1px solid #c8e6c9; min-width:200px;">שם מוצר</th>
+        <th style="padding:5px 8px; text-align:right;  border:1px solid #c8e6c9; min-width:110px;">משפחה</th>
+        <th style="padding:5px 8px; text-align:center; border:1px solid #c8e6c9; min-width:60px;">מלאי</th>
+      </tr>
+    </thead>
+    <tbody>`;
+
+    rows.forEach((r, i) => {
+      const bg   = i % 2 === 0 ? '#ffffff' : '#f1f8e9';
+      const stk  = r.stock == null ? '—' : r.stock <= 0 ? '<span style="color:#c62828;font-weight:bold;">0</span>' : r.stock;
+      html += `<tr style="background:${bg};">
+        <td style="padding:4px 8px; text-align:center; border:1px solid #dcedc8; color:#555;">${i+1}</td>
+        <td style="padding:4px 8px; text-align:center; border:1px solid #dcedc8; font-weight:bold;">${r.pick}</td>
+        <td style="padding:4px 8px; text-align:right;  border:1px solid #dcedc8;">${r.mk}</td>
+        <td style="padding:4px 8px; text-align:right;  border:1px solid #dcedc8; font-weight:bold;">${r.name}</td>
+        <td style="padding:4px 8px; text-align:right;  border:1px solid #dcedc8; color:#555;">${r.fam}</td>
+        <td style="padding:4px 8px; text-align:center; border:1px solid #dcedc8;">${stk}</td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+  }
+
+  if (!grandTotal) {
+    html = `<div style="text-align:center;color:#aaa;padding:40px;font-size:15px;">אין מוצרים בפלנוגרמה</div>`;
+  } else {
+    html += `<div style="margin-top:18px;padding:8px 14px;background:#f1f8e9;border:1px solid #a5d6a7;border-radius:6px;font-weight:bold;color:#1b5e20;font-size:13px;">
+      סה"כ: ${grandTotal} מוצרים — ${whLabel}
+    </div>`;
+  }
+
+  document.getElementById('assembler-content').innerHTML = html;
+  document.getElementById('assembler-page').style.display = 'block';
+}
+
+function closeAssemblerPage() {
+  document.getElementById('assembler-page').style.display = 'none';
+  document.body.classList.remove('printing-assembler');
+}
+
+function printAssemblerPage() {
+  document.body.classList.add('printing-assembler');
+  window.print();
+  setTimeout(() => document.body.classList.remove('printing-assembler'), 500);
 }
 
 // ══════════════════════════════════════════════════════════════════════════
