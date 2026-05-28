@@ -287,11 +287,21 @@ function cleanAddressForGeocoding(address) {
   return clean.replace(/[,\s]+$/, '').replace(/\s{2,}/g, ' ').trim();
 }
 
-async function geocodeAddress(address, city) {
-  const cleanAddr = cleanAddressForGeocoding(address);
-  const query = [cleanAddr, city, 'ישראל'].filter(Boolean).join(', ');
-  if (geocodeCache.has(query)) return geocodeCache.get(query);
+const AZURE_MAPS_KEY = process.env.AZURE_MAPS_KEY || '';
 
+async function geocodeAzure(query) {
+  if (!AZURE_MAPS_KEY) return null;
+  try {
+    const url = `https://atlas.microsoft.com/search/address/json?api-version=1.0&query=${encodeURIComponent(query)}&countrySet=IL&limit=1&subscription-key=${AZURE_MAPS_KEY}`;
+    const resp = await fetch(url, { signal: AbortSignal.timeout(4000) });
+    const data = await resp.json();
+    const r = data?.results?.[0];
+    if (r?.position) return { lat: r.position.lat, lng: r.position.lon };
+  } catch (_) {}
+  return null;
+}
+
+async function geocodeNominatim(query) {
   try {
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=il`;
     const resp = await fetch(url, {
@@ -299,18 +309,25 @@ async function geocodeAddress(address, city) {
       signal: AbortSignal.timeout(4000),
     });
     const data = await resp.json();
-    if (data.length > 0) {
-      const result = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-      geocodeCache.set(query, result);
-      return result;
-    }
+    if (data.length > 0) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
   } catch (_) {}
-
-  geocodeCache.set(query, null);
   return null;
 }
 
-// Geocode a batch — max 1 req/sec (Nominatim rate limit)
+async function geocodeAddress(address, city) {
+  const cleanAddr = cleanAddressForGeocoding(address);
+  const query = [cleanAddr, city, 'ישראל'].filter(Boolean).join(', ');
+  if (geocodeCache.has(query)) return geocodeCache.get(query);
+
+  // Azure Maps first (better Hebrew support, no rate limit)
+  let result = await geocodeAzure(query);
+  // Nominatim fallback
+  if (!result) result = await geocodeNominatim(query);
+
+  geocodeCache.set(query, result || null);
+  return result || null;
+}
+
 function extractStreetNum(address) {
   if (!address) return null;
   const m = (address || '').match(/[א-ת"'\-\s]{2,}\s+\d+/);
@@ -323,10 +340,10 @@ async function geocodeAddressCascade(address, city) {
   if (cleaned) attempts.push([cleaned, city, 'ישראל'].filter(Boolean).join(', '));
   const street = extractStreetNum(cleaned || address);
   if (street && street !== cleaned) attempts.push([street, city, 'ישראל'].filter(Boolean).join(', '));
+  if (city) attempts.push(city + ', ישראל'); // city-only fallback
 
-  for (let i = 0; i < attempts.length; i++) {
-    if (i > 0) await new Promise(r => setTimeout(r, 1100));
-    const result = await geocodeAddress(attempts[i], '');
+  for (const attempt of attempts) {
+    const result = await geocodeAddress(attempt, '');
     if (result) return result;
   }
   return null;
