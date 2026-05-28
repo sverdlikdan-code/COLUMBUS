@@ -1215,25 +1215,34 @@ async function main() {
       prodData[String(p.makat)] = mkEntry(p);
     }
     // Add any kapua-base.json picks not in hardcoded KAPUA_PICKS (e.g. 819-826 חטיף גבינה)
-    // Also auto-clean stale duplicates: if kapua-base.json has a makat already in KAPUA_PICKS, remove it
+    // Also auto-clean: if same makat appears at 2+ positions within kapua-base.json, keep lowest pick only
     try {
       const kbPath = path.join(__dirname,'..','docs','kapua-base.json');
       const kbJson = JSON.parse(fs.readFileSync(kbPath, 'utf8'));
-      const kapuaMakatSet = new Set(Object.values(KAPUA_PICKS).map(p => String(p.makat)));
+      const seenMakats = {};
       let kbDupCleaned = 0;
       for (const [bay, p] of Object.entries(kbJson.picks || {})) {
         if (!p || !p.makat) continue;
-        if (kapuaMakatSet.has(String(p.makat))) {
-          kbJson.picks[bay] = null;
+        const mk = String(p.makat);
+        if (seenMakats[mk]) {
+          // duplicate within kapua-base.json — remove higher-numbered pick
+          const prevBay = seenMakats[mk];
+          const removeFrom = Number(bay) > Number(prevBay) ? bay : prevBay;
+          if (removeFrom !== bay) seenMakats[mk] = bay;
+          kbJson.picks[removeFrom] = null;
           kbDupCleaned++;
-          console.log(`🧹 kapua-base.json: removed stale dup מקט ${p.makat} from pick ${bay} (already in KAPUA_PICKS)`);
+          console.log(`🧹 kapua-base.json: removed dup מקט ${mk} from pick ${removeFrom}`);
         } else {
-          prodData[String(p.makat)] = mkEntry({ ...p, stock: (kapuaData[String(p.makat)]||{}).stock ?? 0, daySales: (kapuaData[String(p.makat)]||{}).daySales ?? null, daySalesAll: (kapuaData[String(p.makat)]||{}).daySalesAll ?? null, stockZafn: (kapuaData[String(p.makat)]||{}).stockZafn ?? null, daySalesZafn: (kapuaData[String(p.makat)]||{}).daySalesZafn ?? null, daysStock: (kapuaData[String(p.makat)]||{}).daysStock ?? null, daysStockZafn: (kapuaData[String(p.makat)]||{}).daysStockZafn ?? null, stockTrnz: (kapuaData[String(p.makat)]||{}).stockTrnz ?? null, daySalesTrnz: (kapuaData[String(p.makat)]||{}).daySalesTrnz ?? null, pakuot: (kapuaData[String(p.makat)]||{}).pakuot || [], pakuotAll: (kapuaData[String(p.makat)]||{}).pakuotAll || [] });
+          seenMakats[mk] = bay;
+        }
+        if (!prodData[mk]) {
+          const kd = kapuaData[mk] || {};
+          prodData[mk] = mkEntry({ ...p, stock: kd.stock ?? 0, daySales: kd.daySales ?? null, daySalesAll: kd.daySalesAll ?? null, stockZafn: kd.stockZafn ?? null, daySalesZafn: kd.daySalesZafn ?? null, daysStock: kd.daysStock ?? null, daysStockZafn: kd.daysStockZafn ?? null, stockTrnz: kd.stockTrnz ?? null, daySalesTrnz: kd.daySalesTrnz ?? null, pakuot: kd.pakuot || [], pakuotAll: kd.pakuotAll || [] });
         }
       }
       if (kbDupCleaned > 0) {
         fs.writeFileSync(kbPath, JSON.stringify(kbJson, null, 2), 'utf8');
-        console.log(`kapua-base.json: auto-cleaned ${kbDupCleaned} stale duplicates`);
+        console.log(`kapua-base.json: auto-cleaned ${kbDupCleaned} internal duplicates`);
       }
     } catch(e) { console.warn('kapua-base.json extra picks skipped:', e.message); }
 
