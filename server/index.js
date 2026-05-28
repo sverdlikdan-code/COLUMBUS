@@ -1,11 +1,110 @@
 require('dotenv').config({ path: '../.env' });
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
 const { executeDax } = require('./powerbi');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// ── ACCESS LOGGING ─────────────────────────────────────────────────────────
+const ACCESS_LOG = path.join(__dirname, 'access-log.json');
+
+function readLog() {
+  try { return JSON.parse(fs.readFileSync(ACCESS_LOG, 'utf8')); } catch { return []; }
+}
+
+function writeLog(entry) {
+  const log = readLog();
+  log.push(entry);
+  if (log.length > 2000) log.splice(0, log.length - 2000);
+  try { fs.writeFileSync(ACCESS_LOG, JSON.stringify(log, null, 2), 'utf8'); } catch (_) {}
+}
+
+function getRealIp(req) {
+  return req.headers['cf-connecting-ip'] ||
+    (req.headers['x-forwarded-for'] || '').split(',')[0].trim() ||
+    req.socket.remoteAddress || '';
+}
+
+function deviceType(ua) {
+  if (!ua) return 'unknown';
+  if (/Mobile|Android|iPhone|iPad/i.test(ua)) return 'mobile';
+  return 'desktop';
+}
+
+// ── RATE LIMITER (login attempts per IP) ───────────────────────────────────
+const loginAttempts = new Map();
+
+function checkRateLimit(ip) {
+  const now = Date.now();
+  let rec = loginAttempts.get(ip) || { count: 0, resetAt: now + 60_000 };
+  if (now > rec.resetAt) rec = { count: 0, resetAt: now + 60_000 };
+  rec.count++;
+  loginAttempts.set(ip, rec);
+  return rec.count > 10; // block after 10 attempts/min
+}
+
+// POST /log-access — client sends login/logout events
+app.post('/log-access', (req, res) => {
+  const { event, agentCode, agentName, isManager } = req.body || {};
+  const ip = getRealIp(req);
+  writeLog({
+    ts: new Date().toISOString(),
+    event: event || 'login',
+    agentCode: agentCode || null,
+    agentName: agentName || null,
+    isManager: !!isManager,
+    ip,
+    device: deviceType(req.headers['user-agent'] || ''),
+    ua: (req.headers['user-agent'] || '').substring(0, 120),
+  });
+  res.json({ ok: true });
+});
+
+// POST /auth/manager — server-side manager password validation
+app.post('/auth/manager', (req, res) => {
+  const ip = getRealIp(req);
+  if (checkRateLimit(ip)) return res.status(429).json({ ok: false, error: 'too_many_attempts' });
+  const { code } = req.body || {};
+  const MANAGER_PASS = process.env.MANAGER_PASS || '1999';
+  if (String(code || '').trim() !== MANAGER_PASS) {
+    return res.json({ ok: false, error: 'wrong_pass' });
+  }
+  loginAttempts.delete(ip);
+  res.json({ ok: true });
+});
+
+// GET /admin/logs?key=KEY — view access log
+app.get('/admin/logs', (req, res) => {
+  const ADMIN_KEY = process.env.ADMIN_LOG_KEY || '';
+  if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(403).json({ error: 'forbidden' });
+  const log = readLog().slice(-300).reverse();
+  const html = req.headers.accept?.includes('text/html');
+  if (html) {
+    const rows = log.map(e => {
+      const d = new Date(e.ts);
+      const local = d.toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem', hour12: false });
+      return `<tr>
+        <td>${local}</td>
+        <td>${e.event === 'logout' ? '🚪' : '🟢'} ${e.event}</td>
+        <td>${e.isManager ? '👑 מנהל' : (e.agentName || '')} ${e.agentCode ? `(${e.agentCode})` : ''}</td>
+        <td>${e.ip}</td>
+        <td>${e.device}</td>
+      </tr>`;
+    }).join('');
+    return res.send(`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><title>Access Log</title>
+      <style>body{font-family:Arial;padding:20px;direction:rtl}table{border-collapse:collapse;width:100%}
+      th,td{border:1px solid #ddd;padding:8px;font-size:13px}th{background:#1A3F7C;color:#fff}
+      tr:nth-child(even){background:#f5f5f5}h2{color:#1A3F7C}</style></head>
+      <body><h2>Formula Road — Access Log (${log.length} entries)</h2>
+      <table><thead><tr><th>זמן</th><th>אירוע</th><th>משתמש</th><th>IP</th><th>מכשיר</th></tr></thead>
+      <tbody>${rows}</tbody></table></body></html>`);
+  }
+  res.json(log);
+});
 
 const DAY_LABELS = { 1: 'א', 2: 'ב', 3: 'ג', 4: 'ד', 5: 'ה' };
 
@@ -338,8 +437,6 @@ async function pushGpsToGithub(content) {
 // Save GPS correction — shared across all users via gps-corrections.json
 app.post('/save-gps', async (req, res) => {
   try {
-    const path = require('path');
-    const fs   = require('fs');
     const { custId, lat, lng, name, city, address } = req.body;
     if (!custId || !lat || !lng) return res.status(400).json({ error: 'missing custId/lat/lng' });
     if (lat < IL.minLat || lat > IL.maxLat || lng < IL.minLng || lng > IL.maxLng) {
@@ -361,8 +458,6 @@ app.post('/save-gps', async (req, res) => {
 // Save planogram base JSON back to docs/
 app.post('/save-kapua', (req, res) => {
   try {
-    const path = require('path');
-    const fs   = require('fs');
     const data = req.body;
     if (!data || !data.picks) return res.status(400).json({ error: 'invalid payload' });
     const dest = path.join(__dirname, '..', 'docs', 'kapua-base.json');
