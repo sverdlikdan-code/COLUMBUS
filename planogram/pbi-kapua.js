@@ -27,6 +27,12 @@ const WORKSPACE = process.env.PBI_WORKSPACE;
 // 030 (SANTA BREMOR דגים) excluded — those are chilled (מצונן), not frozen
 // Products 1045/1046/1051 from family 030 are frozen surimi and handled via explicit makat UNION
 
+// Fix family names from KARTIS PARIT: Latin chars are already LTR, Hebrew chars are visual-RTL encoded.
+// Reverse only the Hebrew character runs to get correct logical Unicode.
+function fixHebRTL(s) {
+  return (s || '').replace(/[֐-׿יִ-ﭏ]+/g, m => m.split('').reverse().join(''));
+}
+
 async function getToken() {
   const res = await fetch(
     `https://login.microsoftonline.com/${TENANT}/oauth2/v2.0/token`,
@@ -764,10 +770,11 @@ async function fetchHalaviFromBI() {
     const mk = String(r['[makat]'] || '');
     if (!mk) continue;
     const raw = r['[name]'] || '';
+    const rawFam = r['[fam]'] ? r['[fam]'].replace(/[‎‏‪-‮⁦-⁩]/g, '').trim() : '';
     result[mk] = {
       makat:     mk,
       desc:      raw.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim() || null,
-      fam:       r['[fam]'] || null,
+      fam:       rawFam ? fixHebRTL(rawFam) || null : null,
       weight:    r['[weight]'] ?? null,
       shelfLife: r['[shelfLife]'] ?? null,
       stopSale:  false,
@@ -843,10 +850,11 @@ async function fetchDagimFromBI() {
     const mk = String(r['[makat]'] || '');
     if (!mk) continue;
     const raw = r['[name]'] || '';
+    const rawFam = r['[fam]'] ? r['[fam]'].replace(/[‎‏‪-‮⁦-⁩]/g, '').trim() : '';
     result[mk] = {
       makat:     mk,
       desc:      raw.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim() || null,
-      fam:       r['[fam]'] || null,
+      fam:       rawFam ? fixHebRTL(rawFam) || null : null,
       weight:    r['[weight]'] ?? null,
       shelfLife: r['[shelfLife]'] ?? null,
       stopSale:  false,
