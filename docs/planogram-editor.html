@@ -196,6 +196,9 @@
     .s-zero-bar { text-align: center; }
     .slot-stock .s-zero { color: #888; font-weight: bold; font-size: 9px; letter-spacing: 0.5px; }
     .slot.zero-stock { filter: grayscale(0.7) opacity(0.55); }
+    .slot.zero-stock:hover { filter: none; }
+    .slot.new-product { outline: 2px solid #22c55e; outline-offset: -2px; }
+    .slot.new-product::after { content: '★ חדש'; position: absolute; bottom: 22px; right: 2px; background: #22c55e; color: #fff; font-size: 7px; font-weight: bold; padding: 1px 4px; border-radius: 3px; z-index: 11; letter-spacing: 0.3px; }
     .slot-meta  { font-size: 8px; color: #bbb; padding: 0 5px 2px; line-height: 1.2; text-align: center; }
     .slot-meta .s-meta { color: #bbb; }
 
@@ -770,6 +773,15 @@ function isZeroStock(makat) {
   return stock != null && stock <= 0;
 }
 
+function isNewProduct(makat) {
+  const d = productData[String(makat)];
+  if (!d) return false;
+  if (isZeroStock(makat)) return false;
+  const wh = window._activeWarehouse || 'Main';
+  const sales = wh === 'Zafn' ? d.daySalesZafn : d.daySales;
+  return !(sales > 0);
+}
+
 async function loadMaps() {
   const base = './';
   try {
@@ -951,7 +963,7 @@ function makeSlot(pick, p, reserveStart = 0) {
   const sec = window._currentSection || 'kapua';
   const photoUrl = getPhotoUrl(p.makat);
   if (photoUrl) {
-    el.className = 'slot has-photo' + (isZeroStock(p.makat) ? ' zero-stock' : '');
+    el.className = 'slot has-photo' + (isZeroStock(p.makat) ? ' zero-stock' : isNewProduct(p.makat) ? ' new-product' : '');
     el.innerHTML = `
       <img class="slot-img" src="${photoUrl}" alt="${p.makat}"
            onerror="this.closest('.slot').classList.remove('has-photo'); this.closest('.slot').classList.add('text-mode'); renderTextMode(this.closest('.slot'), ${pick});">
@@ -969,7 +981,7 @@ function makeSlot(pick, p, reserveStart = 0) {
       ? `<button onclick="showPhoto('${p.makat}',${pick},'${sec}')" title="שחזר תמונה"
            style="position:absolute;top:2px;left:2px;background:rgba(26,110,245,0.7);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">📷</button>`
       : '';
-    el.className = 'slot text-mode' + (!hasRealPhoto && !hiddenPhotos.has(String(p.makat)) ? ' no-photo-mark' : '');
+    el.className = 'slot text-mode' + (!hasRealPhoto && !hiddenPhotos.has(String(p.makat)) ? ' no-photo-mark' : '') + (isNewProduct(p.makat) ? ' new-product' : '');
     el.style.background = cardBg(p.makat, p.fam);
     const clearBtn = `<button class="edit-btn" onclick="clearPick(${pick},'${sec}')" title="הסר מוצר"
       style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.35);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">✕</button>`;
@@ -1037,7 +1049,7 @@ function refreshSlot(el, pick, section) {
   }
   const photoUrl = getPhotoUrl(p.makat);
   if (photoUrl) {
-    el.className = 'slot has-photo' + (isZeroStock(p.makat) ? ' zero-stock' : '');
+    el.className = 'slot has-photo' + (isZeroStock(p.makat) ? ' zero-stock' : isNewProduct(p.makat) ? ' new-product' : '');
     el.style.background = '';
     el.innerHTML = `
       <img class="slot-img" src="${photoUrl}" alt="${p.makat}"
@@ -1056,7 +1068,7 @@ function refreshSlot(el, pick, section) {
       ? `<button onclick="showPhoto('${p.makat}',${pick},'${section}')" title="שחזר תמונה"
            style="position:absolute;top:2px;left:2px;background:rgba(26,110,245,0.7);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">📷</button>`
       : '';
-    el.className = 'slot text-mode';
+    el.className = 'slot text-mode' + (isNewProduct(p.makat) ? ' new-product' : '');
     el.style.background = cardBg(p.makat, p.fam);
     const clearBtnR = `<button class="edit-btn" onclick="clearPick(${pick},'${section}')" title="הסר מוצר"
       style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.35);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">✕</button>`;
