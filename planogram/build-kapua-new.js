@@ -198,6 +198,17 @@ async function dax(token, query) {
     added.push(`${prod.makat}(${prod.fam})→pick${pk}`);
   }
 
+  // Fix garbled/unknown fam in all slots (legacy values from pre-KARTIS PARIT builds)
+  const knownFams = new Set(FAM_ORDER_LIST);
+  let fFixed = 0;
+  for (const [pk, p] of Object.entries(picks)) {
+    if (p && p.fam && !knownFams.has(p.fam)) {
+      picks[pk] = { ...p, fam: null };
+      fFixed++;
+    }
+  }
+  if (fFixed > 0) console.log(`Fixed ${fFixed} garbled/unknown fam → null`);
+
   // ── Step 4: Write kapua-base.json ─────────────────────────────────────────
   const today = new Date().toISOString().slice(0, 10);
   const newV  = added.length > 0 ? `${today}-kapua-new` : (existing.v || `${today}-kapua-v1`);
