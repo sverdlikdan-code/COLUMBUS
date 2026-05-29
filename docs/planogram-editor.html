@@ -194,8 +194,8 @@
     .slot-kart-line .s-kart { color: #444; }
     .slot-kart-line .s-krat { color: #999; }
     .s-zero-bar { text-align: center; }
-    .slot-stock .s-zero { color: #cc0000; font-weight: bold; }
-    .slot.zero-stock { background: #e0e0e0 !important; }
+    .slot-stock .s-zero { color: #888; font-weight: bold; font-size: 9px; letter-spacing: 0.5px; }
+    .slot.zero-stock { filter: grayscale(0.7) opacity(0.55); }
     .slot-meta  { font-size: 8px; color: #bbb; padding: 0 5px 2px; line-height: 1.2; text-align: center; }
     .slot-meta .s-meta { color: #bbb; }
 
@@ -970,7 +970,7 @@ function makeSlot(pick, p, reserveStart = 0) {
            style="position:absolute;top:2px;left:2px;background:rgba(26,110,245,0.7);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">📷</button>`
       : '';
     el.className = 'slot text-mode' + (!hasRealPhoto && !hiddenPhotos.has(String(p.makat)) ? ' no-photo-mark' : '');
-    el.style.background = isZeroStock(p.makat) ? '#e0e0e0' : cardBg(p.makat, p.fam);
+    el.style.background = cardBg(p.makat, p.fam);
     const clearBtn = `<button class="edit-btn" onclick="clearPick(${pick},'${sec}')" title="הסר מוצר"
       style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.35);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">✕</button>`;
     el.innerHTML = clearBtn + restoreBtn + textModeHTML(pick, p, reserveStart) + stockHTML(p.makat);
@@ -1000,7 +1000,7 @@ window.renderTextMode = function(el, pick) {
   const section = window._currentSection || 'kapua';
   const p = state[section][pick];
   if (p) {
-    el.style.background = isZeroStock(p.makat) ? '#e0e0e0' : cardBg(p.makat, p.fam);
+    el.style.background = cardBg(p.makat, p.fam);
     const clearBtn = `<button class="edit-btn" onclick="clearPick(${pick},'${section}')" title="הסר מוצר"
       style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.35);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">✕</button>`;
     el.innerHTML = clearBtn + textModeHTML(pick, p, sectionReserveStart(section)) + stockHTML(p.makat);
@@ -1057,7 +1057,7 @@ function refreshSlot(el, pick, section) {
            style="position:absolute;top:2px;left:2px;background:rgba(26,110,245,0.7);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">📷</button>`
       : '';
     el.className = 'slot text-mode';
-    el.style.background = isZeroStock(p.makat) ? '#e0e0e0' : cardBg(p.makat, p.fam);
+    el.style.background = cardBg(p.makat, p.fam);
     const clearBtnR = `<button class="edit-btn" onclick="clearPick(${pick},'${section}')" title="הסר מוצר"
       style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.35);border:none;color:#fff;font-size:9px;cursor:pointer;border-radius:3px;padding:1px 4px;z-index:10;line-height:1.4;">✕</button>`;
     el.innerHTML = clearBtnR + restoreBtn + textModeHTML(pick, p, rs) + stockHTML(p.makat);
@@ -1614,10 +1614,12 @@ function toggleEditMode() {
 // ── Mouse drag-to-scroll on planogram sections ────────────────────────────
 (function() {
   function attachDragScroll(el) {
-    let down = false, startX, scrollLeft;
+    let down = false, startX, startY, scrollLeft, scrollTop;
     el.addEventListener('mousedown', e => {
-      if (e.target.closest('button,img,.slot')) return; // don't intercept clicks on cards
-      down = true; startX = e.pageX - el.offsetLeft; scrollLeft = el.scrollLeft;
+      if (e.target.closest('button,img,.slot')) return;
+      down = true;
+      startX = e.pageX - el.offsetLeft; scrollLeft = el.scrollLeft;
+      startY = e.pageY; scrollTop = window.scrollY;
       el.style.cursor = 'grabbing'; e.preventDefault();
     });
     el.addEventListener('mouseleave', () => { down = false; el.style.cursor = ''; });
@@ -1626,6 +1628,7 @@ function toggleEditMode() {
       if (!down) return;
       const x = e.pageX - el.offsetLeft;
       el.scrollLeft = scrollLeft - (x - startX);
+      window.scrollTo(0, scrollTop - (e.pageY - startY));
     });
   }
   document.querySelectorAll('.section').forEach(attachDragScroll);

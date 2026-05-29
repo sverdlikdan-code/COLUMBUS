@@ -1,7 +1,7 @@
 /**
  * build-halavi-new.js
- * Builds halavi-base.json from Fabric (Power BI DAX) only.
- * Same schema as build-dagim-yavesh-new.js
+ * Builds halavi-base.json from Fabric (Power BI / KARTIS PARIT) only.
+ * Same schema as build-dagim-fab.js
  */
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 if (!process.env.PBI_TENANT && process.env.AZURE_TENANT_ID) {
@@ -16,19 +16,34 @@ const fs   = require('fs');
 const { getToken } = require('./pbi-kapua');
 
 const OUT_PATH      = path.join(__dirname, '..', 'docs', 'halavi-base.json');
+const SECTION       = 'חלבי 🥛';
 
 const WORKING_SLOTS = 60;
 const RESERVE_START = 61;
 const TOTAL_SLOTS   = 132;
 
-const FAM_CODES = ['018', '020', '021', '025', '028'];
+// fixHebRTL(clean KARTIS PARIT value) → display name
 const FAM_NAMES = {
-  '018': 'PRESIDENT',
-  '020': 'טבורוג SVALIA',
-  '021': 'שמנת SVALIA',
-  '025': 'גבינה SVALIA',
-  '028': 'פרוסות SVALIA',
+  'PRESIDENT גבינות':                  'PRESIDENT',
+  "SVALIA למריחה גבינה/'קוטג/טבורוג": 'טבורוג SVALIA',
+  'SVALIA גבינה':                      'גבינה SVALIA',
+  'SVALIA פרוסות גבינה':               'פרוסות SVALIA',
+  'SVALIA שמנת/יוגורט/ דייסה':         'שמנת SVALIA',
 };
+
+function fixHebRTL(s) {
+  if (!s) return s;
+  return s.replace(/[ְ-תװ-״]+/g, m => m.split('').reverse().join(''));
+}
+
+function cleanFam(raw) {
+  const clean = (raw || '').replace(/[‎‏‪-‮⁦-⁩]/g, '').trim();
+  const fixed = fixHebRTL(clean);
+  if (!fixed) return null;
+  if (FAM_NAMES[fixed]) return FAM_NAMES[fixed];
+  console.log(`halavi fam unknown: ${JSON.stringify(fixed)}`);
+  return fixed;
+}
 
 (async () => {
   // ── Step 1: Read layout from existing halavi-base.json ────────────────────
@@ -39,9 +54,9 @@ const FAM_NAMES = {
   const missing = [];
   for (let i = 1; i <= TOTAL_SLOTS; i++) if (!layout[String(i)]) missing.push(i);
   if (missing.length) console.warn('⚠ Missing positions:', missing.join(','));
-  else console.log('✅ All 132 positions mapped');
+  else console.log(`✅ All ${TOTAL_SLOTS} positions mapped`);
 
-  // ── Step 2: Fetch products from Fabric ────────────────────────────────────
+  // ── Step 2: Fetch products + sales from Fabric ────────────────────────────
   const t = await getToken();
   const WORKSPACE = process.env.PBI_WORKSPACE;
   const DATASET   = process.env.PBI_DATASET;
@@ -58,10 +73,28 @@ const FAM_NAMES = {
     return j.results?.[0]?.tables?.[0]?.rows || [];
   }
 
-  const famFilter = FAM_CODES.map(c => `"${c}"`).join(',');
-  const mkSet = `SELECTCOLUMNS(FILTER(MLAY, CONTAINSROW({${famFilter}}, MLAY[משפחת מוצר])), "mk", MLAY[מק'ט])`;
+  const sectionMakatim = `
+    SELECTCOLUMNS(
+      FILTER('KARTIS PARIT',
+        'KARTIS PARIT'[סטטוס] = "פעיל" &&
+        'KARTIS PARIT'[שם מחסן אשדוד] = "${SECTION}"
+      ),
+      "mk", 'KARTIS PARIT'[מק"ט]
+    )`;
 
-  const [salesRows, nameRows] = await Promise.all([
+  const [kpRows, salesRows] = await Promise.all([
+    dax(`
+      EVALUATE
+      SELECTCOLUMNS(
+        FILTER('KARTIS PARIT',
+          'KARTIS PARIT'[סטטוס] = "פעיל" &&
+          'KARTIS PARIT'[שם מחסן אשדוד] = "${SECTION}"
+        ),
+        "makat", 'KARTIS PARIT'[מק"ט],
+        "fam",   'KARTIS PARIT'[תאור משפחה]
+      )
+      ORDER BY 'KARTIS PARIT'[תאור משפחה], 'KARTIS PARIT'[מק"ט]
+    `),
     dax(`
       EVALUATE
       CALCULATETABLE(
@@ -72,20 +105,12 @@ const FAM_NAMES = {
         'ALL_PARTS'[חברה] = "FORMULA",
         'ALL_PARTS'[מחסן] = "Main",
         FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 365),
-        TREATAS(${mkSet}, 'ALL_PARTS'[מק'ט])
+        TREATAS(${sectionMakatim}, 'ALL_PARTS'[מק'ט])
       )
-    `),
-    dax(`
-      EVALUATE
-      SUMMARIZECOLUMNS(
-        MLAY[מק'ט],
-        MLAY[תאור מוצר],
-        MLAY[משפחת מוצר],
-        FILTER(MLAY, CONTAINSROW({${famFilter}}, MLAY[משפחת מוצר]))
-      )
-      ORDER BY MLAY[משפחת מוצר], MLAY[מק'ט]
     `),
   ]);
+
+  if (!kpRows.length) throw new Error(`No halavi products found — check שם מחסן אשדוד = "${SECTION}"`);
 
   const salesMap = {};
   for (const r of salesRows) {
@@ -96,40 +121,34 @@ const FAM_NAMES = {
   const hasSales = [];
   const noSales  = [];
 
-  for (const r of nameRows) {
-    const mk   = String(r["MLAY[מק'ט]"] || '').trim();
-    const name = String(r["MLAY[תאור מוצר]"] || '').replace(/[‎‏‪-‮⁦-⁩]/g, '').trim();
-    const fc   = String(r["MLAY[משפחת מוצר]"] || '').trim();
+  for (const r of kpRows) {
+    const mk  = String(r['[makat]'] || '').trim();
+    const fam = cleanFam(r['[fam]']);
     if (!mk) continue;
-    const fam = FAM_NAMES[fc] || fc;
-    const ds  = salesMap[mk] || 0;
-    if (ds > 0) hasSales.push({ makat: mk, fam, name });
-    else        noSales.push({ makat: mk, fam, name });
+    const ds = salesMap[mk] || 0;
+    if (ds > 0) hasSales.push({ makat: mk, fam, name: null });
+    else        noSales.push({ makat: mk, fam, name: null });
   }
 
-  // hasSales: preserve family order (already sorted by family, makat in DAX)
-  // noSales: sort by family then makat
-  noSales.sort((a, b) => a.fam.localeCompare(b.fam) || Number(a.makat) - Number(b.makat));
+  noSales.sort((a, b) => (a.fam || '').localeCompare(b.fam || '') || Number(a.makat) - Number(b.makat));
 
   console.log(`Products with sales: ${hasSales.length} | without: ${noSales.length}`);
 
   // ── Step 3: Assign products to picks ──────────────────────────────────────
   const picks = {};
 
-  // Working slots 1-60: hasSales first, then noSales to fill remaining
   const allProds = [...hasSales, ...noSales];
   for (let i = 1; i <= WORKING_SLOTS; i++) {
     const prod = allProds[i - 1];
-    picks[String(i)] = prod ? { makat: prod.makat, fam: prod.fam, name: prod.name } : null;
+    picks[String(i)] = prod ? { makat: prod.makat, fam: prod.fam, name: null } : null;
   }
 
-  // Reserve slots 61-132: overflow products that didn't fit in working
   const reserveProds = noSales.slice(WORKING_SLOTS - hasSales.length);
   const reserveSlots = TOTAL_SLOTS - WORKING_SLOTS;
   for (let i = 0; i < reserveSlots; i++) {
     const pick = RESERVE_START + i;
     picks[String(pick)] = reserveProds[i]
-      ? { makat: reserveProds[i].makat, fam: reserveProds[i].fam, name: reserveProds[i].name }
+      ? { makat: reserveProds[i].makat, fam: reserveProds[i].fam, name: null }
       : null;
   }
   console.log(`Reserve overflow: ${Math.min(reserveProds.length, reserveSlots)}/${reserveSlots} slots used`);
@@ -148,14 +167,7 @@ const FAM_NAMES = {
   fs.writeFileSync(OUT_PATH, JSON.stringify(result, null, 2), 'utf8');
   console.log(`\n✅ Written: ${OUT_PATH}`);
 
-  // Summary by grid row
-  const rows = {};
-  for (const [k, v] of Object.entries(layout)) {
-    if (!rows[v.r]) rows[v.r] = [];
-    rows[v.r].push(+k);
-  }
-  for (const r of Object.keys(rows).sort((a, b) => +a - +b)) {
-    const sorted = rows[r].sort((a, b) => a - b);
-    console.log(`  r:${r}: picks ${sorted[0]}-${sorted[sorted.length-1]} (${sorted.length} slots)`);
-  }
+  const famCounts = {};
+  for (const p of allProds) famCounts[p.fam || '?'] = (famCounts[p.fam || '?'] || 0) + 1;
+  for (const [fam, cnt] of Object.entries(famCounts)) console.log(`  ${fam}: ${cnt}`);
 })().catch(e => { console.error(e); process.exit(1); });
