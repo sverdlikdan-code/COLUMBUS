@@ -25,10 +25,10 @@ const TOTAL_SLOTS   = 132;
 // fixHebRTL(clean KARTIS PARIT value) → display name
 const FAM_NAMES = {
   'PRESIDENT גבינות':                  'PRESIDENT',
-  "SVALIA למריחה גבינה/'קוטג/טבורוג": 'טבורוג SVALIA',
-  'SVALIA גבינה':                      'גבינה SVALIA',
-  'SVALIA פרוסות גבינה':               'פרוסות SVALIA',
-  'SVALIA שמנת/יוגורט/ דייסה':         'שמנת SVALIA',
+  "SVALIA למריחה גבינה/'קוטג/טבורוג": 'SVALIA טבורוג',
+  'SVALIA גבינה':                      'SVALIA גבינה',
+  'SVALIA פרוסות גבינה':               'SVALIA פרוסות',
+  'SVALIA שמנת/יוגורט/ דייסה':         'SVALIA שמנת',
 };
 
 function fixHebRTL(s) {
