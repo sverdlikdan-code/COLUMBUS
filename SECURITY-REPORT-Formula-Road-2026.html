@@ -128,7 +128,7 @@
       <div class="s-lbl">Мер защиты активно</div>
     </div>
     <div class="s-card yellow">
-      <div class="s-num">1</div>
+      <div class="s-num">0</div>
       <div class="s-lbl">Остаточных рисков</div>
     </div>
     <div class="s-card blue">
@@ -278,24 +278,11 @@
   <section class="pb">
     <h2>3. Остаточные риски</h2>
 
-    <div class="callout yellow">
-      <span class="callout-icon">ℹ️</span>
-      <div class="callout-text">
-        <strong>Все критические и высокие риски устранены.</strong>
-        Перечисленные ниже риски связаны с безопасностью данных и требуют отдельных действий.
-      </div>
-    </div>
-
-    <div class="card yellow">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px;">
-        <div class="card-title">R-01 — Пароль менеджера в git-истории</div>
-        <span class="badge medium">НИЗКИЙ</span>
-      </div>
-      <div class="card-desc">
-        До 28.05.2026 пароль менеджера был захардкожен в HTML-файле, который попал в git-историю. Текущий пароль изменён и хранится только в .env. Однако старое значение технически доступно через git log.
-        <br><br>
-        <strong>Статус:</strong> пароль изменён. Старое значение более не действительно. Репозиторий приватный — git-история не публична.
-        <br><strong>Рекомендация:</strong> очистить историю через BFG Repo-Cleaner или git filter-repo.
+    <div class="callout" style="background:#F0FDF4;border-left:4px solid #16A34A;padding:16px 20px;border-radius:8px;display:flex;gap:12px;align-items:flex-start;">
+      <span style="font-size:20px;">✅</span>
+      <div>
+        <strong style="color:#15803D;">Все риски безопасности данных устранены.</strong>
+        Система полностью защищена: аутентификация, шифрование данных на диске, git-история очищена, API заблокирован без токена.
       </div>
     </div>
 
