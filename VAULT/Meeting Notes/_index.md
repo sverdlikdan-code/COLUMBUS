@@ -39,3 +39,4 @@
 - [[agent-security-agent]] — Security Agent — аудит безопасности Formula Road PWA + API, hardening, Cloudflare WAF, session tokens
 - [[session-2026-05-28]] — Сессия 2026-05-28: Formula Road полный hardening, security-agent создан
 - [[session-2026-05-29]] — Сессия 2026-05-29: build-halavi-new + build-dagim-fab (Fabric), GPS inBBox fix, Azure Maps, bay шрифт, אפס מלאי grey
+- [[session-2026-05-31]] — Сессия 2026-05-31: все 4 секции на KARTIS PARIT, new-product класс ★ חדש, garbled fam чистка, zero-stock hover fix
