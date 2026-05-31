@@ -428,7 +428,14 @@ async function apiFetch(url, opts={}){
   const token = _getToken();
   const headers = { ...(opts.headers || {}) };
   if(token) headers['X-Session'] = token;
-  const r = await fetch(url, { ...opts, headers });
+  const controller = new AbortController();
+  const tid = setTimeout(() => controller.abort(), 12000);
+  let r;
+  try {
+    r = await fetch(url, { ...opts, headers, signal: controller.signal });
+  } finally {
+    clearTimeout(tid);
+  }
   if(r.status === 401){
     localStorage.removeItem('frAgent');
     localStorage.removeItem('frToken');
