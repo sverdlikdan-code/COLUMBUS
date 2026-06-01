@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DILER BMD — Case Study</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #0a0e1a;
+    color: #e8eaf0;
+    height: 100vh;
+    overflow: hidden;
+    direction: rtl;
+  }
+
+  .deck { width: 100%; height: 100vh; position: relative; }
+
+  .slide {
+    display: none;
+    width: 100%;
+    height: 100vh;
+    padding: 60px 80px;
+    flex-direction: column;
+    justify-content: center;
+    position: absolute;
+    top: 0; left: 0;
+    animation: fadeIn 0.35s ease;
+  }
+  .slide.active { display: flex; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+  .nav {
+    position: fixed;
+    bottom: 32px; left: 40px;
+    display: flex;
+    gap: 12px;
+    z-index: 99;
+  }
+  .nav button {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #fff;
+    padding: 10px 22px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .nav button:hover { background: rgba(255,255,255,0.18); }
+
+  .btn-pdf {
+    position: fixed;
+    top: 24px; left: 40px;
+    background: rgba(99,102,241,0.2);
+    border: 1px solid rgba(99,102,241,0.4);
+    color: #a5b4fc;
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    z-index: 99;
+  }
+  .btn-pdf:hover { background: rgba(99,102,241,0.35); }
+
+  .progress {
+    position: fixed;
+    bottom: 38px; right: 40px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 1px;
+  }
+
+  .accent-line {
+    width: 56px; height: 4px;
+    background: linear-gradient(90deg, #6366f1, #3b82f6);
+    border-radius: 2px;
+    margin-bottom: 28px;
+  }
+
+  /* SLIDE 1 */
+  .slide-cover {
+    background: linear-gradient(135deg, #0a0e1a 0%, #0f172a 50%, #1a1040 100%);
+    align-items: flex-start;
+  }
+  .slide-cover .label { font-size: 12px; letter-spacing: 2px; color: #6366f1; margin-bottom: 20px; }
+  .slide-cover h1 { font-size: 56px; font-weight: 800; line-height: 1.15; color: #fff; max-width: 720px; margin-bottom: 24px; }
+  .slide-cover h1 span { color: #3b82f6; }
+  .slide-cover .sub { font-size: 19px; color: rgba(255,255,255,0.5); max-width: 560px; line-height: 1.6; }
+  .tag-row { display: flex; gap: 12px; margin-top: 40px; flex-wrap: wrap; }
+  .tag { background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3); color: #a5b4fc; padding: 6px 16px; border-radius: 20px; font-size: 13px; }
+
+  /* SLIDE 2 */
+  .slide-title { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: #6366f1; margin-bottom: 16px; }
+  h2 { font-size: 40px; font-weight: 700; color: #fff; margin-bottom: 44px; line-height: 1.2; }
+  .pain-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 860px; }
+  .pain-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 24px 28px; }
+  .pain-card .icon { font-size: 28px; margin-bottom: 12px; }
+  .pain-card h3 { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 6px; }
+  .pain-card p { font-size: 14px; color: rgba(255,255,255,0.5); line-height: 1.6; }
+
+  /* SLIDE 3 & 4 */
+  .project-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; max-width: 1000px; }
+  .project-number { font-size: 100px; font-weight: 900; color: rgba(99,102,241,0.12); line-height: 1; margin-bottom: -20px; }
+  .project-name { font-size: 36px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+  .project-desc { font-size: 15px; color: rgba(255,255,255,0.5); margin-bottom: 28px; line-height: 1.6; }
+  .feature-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+  .feature-list li { display: flex; align-items: flex-start; gap: 12px; font-size: 15px; color: rgba(255,255,255,0.75); line-height: 1.4; }
+  .feature-list li::before { content: ''; width: 6px; height: 6px; background: #3b82f6; border-radius: 50%; margin-top: 7px; flex-shrink: 0; }
+  .stack-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+  .stack-tag { background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25); color: #93c5fd; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-family: monospace; }
+  .project-visual { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; padding: 32px; display: flex; flex-direction: column; gap: 16px; }
+  .visual-row { display: flex; align-items: center; gap: 16px; padding: 14px 16px; background: rgba(255,255,255,0.04); border-radius: 10px; }
+  .visual-row .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .dot-green { background: #22c55e; }
+  .dot-blue  { background: #3b82f6; }
+  .dot-purple{ background: #8b5cf6; }
+  .dot-orange{ background: #f97316; }
+  .visual-row span { font-size: 14px; color: rgba(255,255,255,0.65); }
+
+  /* SLIDE 5 */
+  .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 900px; }
+  .result-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 22px 24px; display: flex; gap: 16px; align-items: center; }
+  .result-before { flex: 1; font-size: 13px; color: rgba(255,255,255,0.35); line-height: 1.5; }
+  .result-arrow { color: #6366f1; font-size: 20px; }
+  .result-after { flex: 1; font-size: 14px; font-weight: 600; color: #a5b4fc; line-height: 1.5; }
+  .metrics-row { display: flex; gap: 32px; margin-top: 36px; }
+  .metric { text-align: center; }
+  .metric .val { font-size: 36px; font-weight: 800; color: #3b82f6; }
+  .metric .lbl { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 4px; }
+
+  /* SLIDE 6 */
+  .offer-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; max-width: 960px; margin-bottom: 36px; }
+  .offer-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 28px 24px; }
+  .offer-card .num { font-size: 40px; font-weight: 900; color: rgba(99,102,241,0.25); margin-bottom: 4px; }
+  .offer-card h3 { font-size: 17px; font-weight: 700; color: #fff; margin-bottom: 10px; }
+  .offer-card p { font-size: 14px; color: rgba(255,255,255,0.5); line-height: 1.55; }
+  .price-banner { background: linear-gradient(90deg, rgba(59,130,246,0.1), rgba(99,102,241,0.1)); border: 1px solid rgba(99,102,241,0.25); border-radius: 12px; padding: 20px 28px; display: flex; align-items: center; gap: 40px; max-width: 600px; }
+  .price-banner .price { font-size: 28px; font-weight: 800; color: #a5b4fc; }
+  .price-banner .price-sub { font-size: 13px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+  /* SLIDE 7 */
+  .slide-contact { background: linear-gradient(135deg, #0a0e1a 0%, #0f172a 60%, #1a1040 100%); align-items: flex-start; }
+  .contact-big { font-size: 52px; font-weight: 800; color: #fff; line-height: 1.15; max-width: 700px; margin-bottom: 32px; }
+  .contact-big span { color: #3b82f6; }
+  .contact-row { display: flex; gap: 40px; margin-top: 8px; }
+  .contact-item .label2 { font-size: 12px; color: rgba(255,255,255,0.35); letter-spacing: 1px; margin-bottom: 4px; }
+  .contact-item .val2 { font-size: 18px; font-weight: 600; color: #e8eaf0; }
+
+  /* PRINT */
+  @media print {
+    body { background: #fff !important; color: #000 !important; height: auto; overflow: visible; }
+    .nav, .btn-pdf, .progress { display: none !important; }
+    .deck { height: auto; }
+    .slide { display: flex !important; position: relative !important; height: 100vh; page-break-after: always; background: #0a0e1a !important; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  }
+</style>
+</head>
+<body>
+
+<button class="btn-pdf" onclick="window.print()">⬇ שמור PDF</button>
+
+<div class="deck">
+
+  <!-- SLIDE 1 -->
+  <div class="slide slide-cover active">
+    <div class="label">Case Study · 2026</div>
+    <h1>BI + Apps<br>לעסקים ישראלים —<br><span>תוצאות אמיתיות</span></h1>
+    <div class="sub">כיצד העברנו את DILER BMD מאקסל וואטסאפ לדשבורדים חיים וניווט שטח מובייל</div>
+    <div class="tag-row">
+      <span class="tag">Power BI Fabric</span>
+      <span class="tag">PWA App</span>
+      <span class="tag">Azure Maps</span>
+      <span class="tag">GitHub Actions</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 2 -->
+  <div class="slide">
+    <div class="slide-title">הבעיה</div>
+    <h2>הנתונים היו שם.<br>הנראות — לא.</h2>
+    <div class="pain-grid">
+      <div class="pain-card">
+        <div class="icon">🗺️</div>
+        <h3>מסלולי סוכנים</h3>
+        <p>תכנון יומי בראש או בוואטסאפ. המנהל לא ידע איפה כל אחד ומה בוצע.</p>
+      </div>
+      <div class="pain-card">
+        <div class="icon">📦</div>
+        <h3>מחסן על נייר</h3>
+        <p>יתרות קירור — סיור ידני. מלאי אפס התגלה בדיעבד.</p>
+      </div>
+      <div class="pain-card">
+        <div class="icon">📊</div>
+        <h3>אין אנליטיקה</h3>
+        <p>ייצוא ידני לאקסל. להבין מה קורה עסקית — שעה עבודה, לא 10 שניות.</p>
+      </div>
+      <div class="pain-card">
+        <div class="icon">🆕</div>
+        <h3>מוצרים חדשים אבדו</h3>
+        <p>מוצר חדש על המדף — מישהו צריך לזכור. לפעמים שכחו שבועות.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3 -->
+  <div class="slide">
+    <div class="slide-title">פתרון 1 מתוך 2</div>
+    <div class="project-layout">
+      <div>
+        <div class="project-number">01</div>
+        <div class="project-name">Formula Road</div>
+        <div class="project-desc">אפליקציית PWA לסוכנים ומנהלים. ללא App Store — עובד על כל טלפון.</div>
+        <ul class="feature-list">
+          <li>מסלול יומי מותאם אישית — Azure Maps</li>
+          <li>תיקון GPS בזמן אמת</li>
+          <li>המנהל רואה את כל הסוכנים על המפה</li>
+          <li>KPI ביצוע תוכנית ב-Power BI דשבורד</li>
+        </ul>
+        <div class="stack-row">
+          <span class="stack-tag">Node.js</span>
+          <span class="stack-tag">PWA</span>
+          <span class="stack-tag">Azure Maps</span>
+          <span class="stack-tag">Power BI</span>
+          <span class="stack-tag">Cloudflare</span>
+        </div>
+      </div>
+      <div class="project-visual">
+        <div class="visual-row"><span class="dot dot-green"></span><span>סוכן א' — 14/18 ביקורים ✓</span></div>
+        <div class="visual-row"><span class="dot dot-blue"></span><span>סוכן ב' — 11/15 ביקורים</span></div>
+        <div class="visual-row"><span class="dot dot-purple"></span><span>סוכן ג' — מסלול פעיל</span></div>
+        <div class="visual-row"><span class="dot dot-orange"></span><span>KPI היום: 87%</span></div>
+        <div class="visual-row"><span class="dot dot-green"></span><span>ביקור הבא: 2.4 ק"מ ←</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4 -->
+  <div class="slide">
+    <div class="slide-title">פתרון 2 מתוך 2</div>
+    <div class="project-layout">
+      <div>
+        <div class="project-number">02</div>
+        <div class="project-name">MAHSAN Planogram</div>
+        <div class="project-desc">מפה ויזואלית חיה של מחסן הקירור. 4 מדורים — קפוא, חלבי, דגים, דג יבש.</div>
+        <ul class="feature-list">
+          <li>כל תא = יתרה אמיתית מ-Power BI בזמן אמת</li>
+          <li>🔴 מלאי אפס — אינדיקטור אוטומטי אדום</li>
+          <li>⭐ מוצר חדש — תג עם תמונה מיד לאחר הוספה</li>
+          <li>GitHub Actions — נתונים מתעדכנים כל לילה</li>
+        </ul>
+        <div class="stack-row">
+          <span class="stack-tag">HTML/JS</span>
+          <span class="stack-tag">Power BI DAX</span>
+          <span class="stack-tag">GitHub Actions</span>
+          <span class="stack-tag">CI/CD</span>
+        </div>
+      </div>
+      <div class="project-visual">
+        <div class="visual-row"><span class="dot dot-green"></span><span>חמאה FERMA — 42 קרטון ✓</span></div>
+        <div class="visual-row"><span class="dot dot-green"></span><span>SVALIA גבינה — 18 קרטון ✓</span></div>
+        <div class="visual-row"><span class="dot" style="background:#ef4444"></span><span>כיסונים — 0 קרטון ⚠️</span></div>
+        <div class="visual-row"><span class="dot dot-purple"></span><span>★ חדש — VALESTA</span></div>
+        <div class="visual-row"><span class="dot dot-blue"></span><span>עודכן: היום 07:00</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5 -->
+  <div class="slide">
+    <div class="slide-title">תוצאות</div>
+    <h2>לפני ← אחרי</h2>
+    <div class="results-grid">
+      <div class="result-card">
+        <div class="result-after">מסלול מותאם על הטלפון כל בוקר</div>
+        <div class="result-arrow">←</div>
+        <div class="result-before">מסלולים בראש ובוואטסאפ</div>
+      </div>
+      <div class="result-card">
+        <div class="result-after">Power BI דשבורד בזמן אמת</div>
+        <div class="result-arrow">←</div>
+        <div class="result-before">המנהל מתקשר לסוכנים לברר סטטוס</div>
+      </div>
+      <div class="result-card">
+        <div class="result-after">פלנוגרמה חיה עם אינדיקציה צבעונית</div>
+        <div class="result-arrow">←</div>
+        <div class="result-before">יתרות מחסן — סיור ידני</div>
+      </div>
+      <div class="result-card">
+        <div class="result-after">תג אוטומטי עם תמונה מיידית</div>
+        <div class="result-arrow">←</div>
+        <div class="result-before">מוצר חדש — מישהו צריך לזכור</div>
+      </div>
+    </div>
+    <div class="metrics-row">
+      <div class="metric"><div class="val">0 דק׳</div><div class="lbl">תכנון מסלול</div></div>
+      <div class="metric"><div class="val">6–8 שבועות</div><div class="lbl">מאפס למוצר עובד</div></div>
+      <div class="metric"><div class="val">24/7</div><div class="lbl">נתונים עדכניים במחסן</div></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6 -->
+  <div class="slide">
+    <div class="slide-title">מה אנחנו עושים עבורכם</div>
+    <h2>שלושה תחומים</h2>
+    <div class="offer-grid">
+      <div class="offer-card">
+        <div class="num">01</div>
+        <h3>ניווט שטח</h3>
+        <p>אפליקציה מובייל עם מסלולים מותאמים ודשבורד KPI למנהל — ללא App Store</p>
+      </div>
+      <div class="offer-card">
+        <div class="num">02</div>
+        <h3>פלנוגרמת מחסן</h3>
+        <p>מפה ויזואלית חיה עם יתרות מה-ERP שלכם. מלאי אפס — נראה מיד</p>
+      </div>
+      <div class="offer-card">
+        <div class="num">03</div>
+        <h3>Power BI דשבורדים</h3>
+        <p>מחזוריות, מרווח לפי ספק, ימי כיסוי — מתחברים ל-Priority, SAP, אקסל</p>
+      </div>
+    </div>
+    <div class="price-banner">
+      <div><div class="price">החל מ-₪8,000</div><div class="price-sub">MVP · 4–8 שבועות · ללא מחירי enterprise</div></div>
+      <div><div class="price">₪500–800</div><div class="price-sub">מינוי חודשי תמיכה</div></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7 -->
+  <div class="slide slide-contact">
+    <div class="accent-line"></div>
+    <div class="contact-big">נראה לכם דמו<br>על <span>הנתונים שלכם</span><br>האמיתיים</div>
+    <div class="contact-row">
+      <div class="contact-item">
+        <div class="label2">אימייל</div>
+        <div class="val2">d.sverdlik@dilerbmd.com</div>
+      </div>
+      <div class="contact-item">
+        <div class="label2">טלפון</div>
+        <div class="val2">+972 —</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="progress" id="prog">1 / 7</div>
+<div class="nav">
+  <button onclick="next()">→</button>
+  <button onclick="prev()">←</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  let cur = 0;
+
+  function show(n) {
+    slides[cur].classList.remove('active');
+    cur = (n + slides.length) % slides.length;
+    slides[cur].classList.add('active');
+    document.getElementById('prog').textContent = (cur + 1) + ' / ' + slides.length;
+  }
+
+  function next() { show(cur + 1); }
+  function prev() { show(cur - 1); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowDown') next();
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp')   prev();
+  });
+</script>
+</body>
+</html>
