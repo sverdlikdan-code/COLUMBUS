@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מכ"ם רכש — Procurement Radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Heebo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg:          oklch(98.5% 0.006 165);
+  --teal:        #1B7A7C;
+  --teal-dim:    rgba(27,122,124,0.08);
+  --teal-border: rgba(27,122,124,0.22);
+  --green:       #7DC242;
+  --red:         #E05252;
+  --amber:       #F59E0B;
+  --text:        oklch(14% 0.018 160);
+  --muted:       oklch(42% 0.022 160);
+  --faint:       oklch(91% 0.012 165);
+  --border:      oklch(84% 0.014 165);
+}
+
+body {
+  font-family: 'Heebo', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+  direction: rtl;
+}
+
+.progress-bar {
+  position: fixed; top: 0; right: 0;
+  height: 3px; background: var(--teal);
+  transition: width 0.45s cubic-bezier(0.22,1,0.36,1);
+  z-index: 100;
+}
+
+.deck { width: 100%; height: 100vh; position: relative; }
+
+.slide {
+  position: absolute; inset: 0;
+  padding: 56px 80px;
+  display: flex; flex-direction: column; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transform: translateY(14px);
+  transition: opacity 0.4s cubic-bezier(0.22,1,0.36,1), transform 0.4s cubic-bezier(0.22,1,0.36,1);
+}
+.slide.active { opacity: 1; pointer-events: auto; transform: translateY(0); }
+
+.nav {
+  position: fixed; bottom: 28px; left: 36px;
+  display: flex; gap: 8px; z-index: 99;
+}
+.nav button {
+  width: 44px; height: 44px;
+  background: var(--teal); border: none; color: #fff;
+  border-radius: 50%; font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 12px rgba(27,122,124,0.3);
+  transition: background 0.2s, transform 0.15s;
+}
+.nav button:hover { background: #155f61; transform: scale(1.08); }
+
+.counter {
+  position: fixed; bottom: 36px; right: 36px;
+  font-size: 11px; letter-spacing: 2px; color: var(--muted);
+  direction: ltr;
+}
+
+.eyebrow {
+  font-size: 10px; font-weight: 700; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--teal); margin-bottom: 16px;
+}
+
+h2 { font-weight: 800; color: var(--text); line-height: 1.1; margin-bottom: 32px; }
+h2 em { font-style: normal; color: var(--teal); }
+
+/* ── COVER ── */
+.slide-cover { padding: 0; align-items: stretch; justify-content: stretch; }
+.cover-inner { display: grid; grid-template-columns: 1fr 1fr; height: 100%; width: 100%; }
+
+.cover-teal {
+  background: var(--teal);
+  display: flex; flex-direction: column; justify-content: center;
+  align-items: center; padding: 64px 48px; gap: 16px; text-align: center;
+}
+.radar-icon {
+  width: 88px; height: 88px; border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 38px; margin-bottom: 8px;
+  border: 2px solid rgba(255,255,255,0.2);
+}
+.cover-brand { font-size: 13px; font-weight: 700; letter-spacing: 3px; color: rgba(255,255,255,0.55); text-transform: uppercase; }
+.cover-name { font-size: 42px; font-weight: 900; color: #fff; line-height: 1; }
+.cover-name span { color: var(--green); }
+.cover-en { font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 700; letter-spacing: 2px; color: rgba(255,255,255,0.4); text-transform: uppercase; }
+
+.cover-light {
+  display: flex; flex-direction: column; justify-content: center;
+  align-items: flex-end; padding: 64px 72px;
+  background: linear-gradient(135deg, oklch(97% 0.018 165) 0%, oklch(93% 0.025 185) 100%);
+}
+.cover-light h1 { font-size: clamp(44px,6vw,76px); font-weight: 900; line-height: 0.95; text-align: right; }
+.cover-light h1 em { font-style: normal; color: var(--teal); }
+.cover-light .sub { font-size: 15px; color: var(--muted); max-width: 400px; line-height: 1.7; margin-top: 20px; text-align: right; }
+.cover-light .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 22px; justify-content: flex-end; }
+.tag {
+  border: 1px solid var(--teal-border); color: var(--teal);
+  padding: 4px 12px; border-radius: 2px; font-size: 9px;
+  font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+}
+
+/* ── PAIN SLIDE ── */
+.pain-grid {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 24px; max-width: 1060px;
+}
+.pain-card {
+  background: #fff; border: 1px solid var(--border);
+  border-radius: 8px; padding: 28px 24px;
+  border-top: 3px solid var(--red);
+}
+.pain-card .pain-icon { font-size: 28px; margin-bottom: 12px; }
+.pain-card h3 { font-size: 15px; font-weight: 800; margin-bottom: 8px; color: var(--text); }
+.pain-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+/* ── TIMELINE SLIDE ── */
+.timeline-wrap { max-width: 900px; }
+.tl-row { display: flex; align-items: center; gap: 0; margin-bottom: 8px; }
+.tl-seg {
+  height: 42px; display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #fff; border-radius: 4px;
+  position: relative;
+}
+.tl-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; font-weight: 600; text-align: right; }
+.tl-now { font-size: 11px; font-weight: 700; color: var(--red); margin-top: 12px; }
+
+/* ── SKU TABLE SLIDE ── */
+.sku-table-wrap {
+  background: #fff; border: 1px solid var(--border);
+  border-radius: 10px; overflow: hidden;
+  box-shadow: 0 4px 24px rgba(27,122,124,0.08);
+  max-width: 1060px;
+}
+.sku-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.sku-table thead th {
+  background: oklch(95% 0.014 165);
+  padding: 10px 14px; font-size: 10px; font-weight: 700;
+  letter-spacing: 1px; color: var(--muted); text-align: right;
+  border-bottom: 1px solid var(--border);
+}
+.sku-table tbody td {
+  padding: 11px 14px; border-bottom: 1px solid var(--faint);
+  color: var(--text);
+}
+.sku-table tbody tr:last-child td { border-bottom: none; }
+.sku-table tbody tr:hover { background: oklch(97% 0.010 165); }
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+}
+.badge.danger  { background: rgba(224,82,82,0.12);  color: var(--red); }
+.badge.warning { background: rgba(245,158,11,0.12); color: var(--amber); }
+.badge.ok      { background: rgba(125,194,66,0.12);  color: #5a9e22; }
+.order-btn {
+  background: var(--teal); color: #fff; border: none;
+  padding: 5px 14px; border-radius: 4px; font-size: 12px;
+  font-family: 'Heebo', sans-serif; font-weight: 700; cursor: pointer;
+}
+.order-btn-ghost {
+  background: transparent; color: var(--muted); border: 1px solid var(--border);
+  padding: 5px 14px; border-radius: 4px; font-size: 12px;
+  font-family: 'Heebo', sans-serif; cursor: pointer;
+}
+
+/* ── PRICING ── */
+.pricing-grid {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px; max-width: 900px;
+}
+.price-card {
+  background: #fff; border: 1px solid var(--border);
+  border-radius: 10px; padding: 28px 24px; position: relative;
+}
+.price-card.featured {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 2px var(--teal);
+}
+.price-card .pc-badge {
+  position: absolute; top: -11px; right: 20px;
+  background: var(--teal); color: #fff;
+  font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  padding: 3px 10px; border-radius: 20px; text-transform: uppercase;
+}
+.price-card .pc-name { font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 10px; letter-spacing: 1px; }
+.price-card .pc-price { font-family: 'Barlow Condensed', sans-serif; font-size: 46px; font-weight: 900; color: var(--teal); line-height: 1; margin-bottom: 4px; }
+.price-card .pc-unit { font-size: 11px; color: var(--muted); margin-bottom: 18px; }
+.price-card ul { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.price-card ul li { font-size: 13px; color: var(--muted); display: flex; gap: 8px; align-items: flex-start; }
+.price-card ul li::before { content: '✓'; color: var(--teal); font-weight: 700; flex-shrink: 0; }
+
+/* ── CONTACT ── */
+.slide-contact {
+  background: linear-gradient(150deg, #1B7A7C 0%, #115c5e 55%, #2d5a1a 100%);
+  padding: 64px 80px;
+  align-items: flex-start; justify-content: center; gap: 24px;
+}
+.contact-slogan {
+  font-size: clamp(44px,6vw,72px); font-weight: 900; color: #fff; line-height: 1.0;
+}
+.contact-slogan em { font-style: normal; color: var(--green); }
+.contact-row { display: flex; gap: 40px; flex-wrap: wrap; margin-top: 8px; }
+.contact-item .lbl { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.45); margin-bottom: 4px; }
+.contact-item .val { font-size: 16px; font-weight: 700; color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="pb"></div>
+
+<div class="deck">
+
+  <!-- 1. COVER -->
+  <div class="slide slide-cover active">
+    <div class="cover-inner">
+      <div class="cover-teal">
+        <div class="radar-icon">📡</div>
+        <div class="cover-brand">ישומית HD · פתרון רכש</div>
+        <div class="cover-name">מכ"ם <span>רכש</span></div>
+        <div class="cover-en">Procurement Radar</div>
+      </div>
+      <div class="cover-light">
+        <h1>תמיד תדע —<br><em>לפני שיגמר.</em></h1>
+        <div class="sub">מסך אחד לקניין. כל ה-SKU. התראות על גירעונות לפני שהם קורים — על בסיס תחזית, לא תגובה.</div>
+        <div class="tags">
+          <span class="tag">ניהול מלאי חכם</span>
+          <span class="tag">תחזית ביקוש</span>
+          <span class="tag">התראות בזמן אמת</span>
+          <span class="tag">הזמנות אוטומטיות</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. PAIN -->
+  <div class="slide">
+    <div class="eyebrow">הבעיה</div>
+    <h2 style="font-size:clamp(34px,4.5vw,50px);">הקניין שלך עובד <em>בעיוורון</em></h2>
+    <div class="pain-grid">
+      <div class="pain-card">
+        <div class="pain-icon">⏳</div>
+        <h3>ליד טיים ארוך — ריאקציה מאוחרת</h3>
+        <p>יבואן מחכה 45–90 יום לסחורה. כשרואים גירעון — כבר מאוחר מדי.</p>
+      </div>
+      <div class="pain-card">
+        <div class="pain-icon">📊</div>
+        <h3>נתונים פזורים — אין תמונה אחת</h3>
+        <p>ERP, אקסל, WhatsApp עם הספק. הקניין פותח 4 מסכים כדי להבין מה להזמין.</p>
+      </div>
+      <div class="pain-card">
+        <div class="pain-icon">🔔</div>
+        <h3>אין התראות — מגיבים לתלונות</h3>
+        <p>גירעון מגלים כשלקוח מתקשר. לא כשהמלאי מתחיל לרדת.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. THE GAP -->
+  <div class="slide">
+    <div class="eyebrow">הבעיה האמיתית</div>
+    <h2 style="font-size:clamp(32px,4vw,46px);">הגירעון קורה <em>בין שתי נקודות</em></h2>
+    <div class="timeline-wrap">
+      <div class="tl-label">היום — מלאי נוכחי</div>
+      <div class="tl-row">
+        <div class="tl-seg" style="width:22%; background:var(--green);">מלאי OK</div>
+        <div class="tl-seg" style="width:28%; background:var(--amber);">⚠ ירידה</div>
+        <div class="tl-seg" style="width:18%; background:var(--red);">🔴 גירעון</div>
+        <div class="tl-seg" style="width:32%; background:#ccc; color:#888;">ממתין להזמנה</div>
+      </div>
+      <div style="display:flex; margin-top:6px; font-size:11px; color:var(--muted);">
+        <span style="width:22%; text-align:right;">עכשיו</span>
+        <span style="width:28%; text-align:right;">יום 30</span>
+        <span style="width:18%; text-align:right;">יום 50</span>
+        <span style="width:32%; text-align:right; color:var(--teal); font-weight:700;">יום 80 — הסחורה מגיעה</span>
+      </div>
+      <div class="tl-now" style="margin-top:20px;">
+        ❌ בלי מכ"ם: מזמינים ביום 50 (כשרואים גירעון) → הסחורה מגיעה ביום 110 → 30 יום ללא מוצר
+      </div>
+      <div style="font-size:13px; color:#5a9e22; font-weight:700; margin-top:10px;">
+        ✓ עם מכ"ם: מתריעים ביום 10 → מזמינים ביום 15 → הסחורה מגיעה ביום 75 → אפס גירעון
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. SOLUTION — SKU TABLE DEMO -->
+  <div class="slide">
+    <div class="eyebrow">הפתרון — מסך הקניין</div>
+    <h2 style="font-size:clamp(26px,3.2vw,38px); margin-bottom:14px;">מסך אחד. כל ה-SKU. <em>סטטוס בזמן אמת.</em></h2>
+    <div class="sku-table-wrap">
+      <table class="sku-table">
+        <thead>
+          <tr>
+            <th style="width:36px;"></th>
+            <th>מוצר</th>
+            <th>משפחה</th>
+            <th>מלאי</th>
+            <th>מכר/יום</th>
+            <th>ימי מלאי</th>
+            <th>ליד טיים</th>
+            <th>סטטוס</th>
+            <th>הזמנה מוצעת</th>
+            <th>פעולה</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><img src="https://tevacom.com/wp-content/uploads/2026/01/N01-Pink-Clay-front-1024x1024.jpg" style="width:32px;height:32px;object-fit:cover;border-radius:4px;display:block;"></td>
+            <td><strong>NOAH's Pink Clay Mask</strong></td>
+            <td style="font-size:11px;color:var(--muted);">דרמוקוסמטיקה</td>
+            <td>38</td>
+            <td>2.4</td>
+            <td><strong style="color:var(--red);">16</strong></td>
+            <td>60</td>
+            <td><span class="badge danger">🔴 דחוף</span></td>
+            <td>360 יח'</td>
+            <td><button class="order-btn">הזמן</button></td>
+          </tr>
+          <tr>
+            <td><img src="https://tevacom.com/wp-content/uploads/2026/01/I-Drop-Pur_BoxBottle_EN_Right_Shadow-June-2021-1-1024x1024.jpg" style="width:32px;height:32px;object-fit:cover;border-radius:4px;display:block;"></td>
+            <td><strong>I DROP PUR — טיפות עיניים</strong></td>
+            <td style="font-size:11px;color:var(--muted);">לעיניים</td>
+            <td>145</td>
+            <td>2.8</td>
+            <td><strong style="color:var(--amber);">52</strong></td>
+            <td>45</td>
+            <td><span class="badge warning">🟡 הזמן</span></td>
+            <td>210 יח'</td>
+            <td><button class="order-btn">הזמן</button></td>
+          </tr>
+          <tr>
+            <td><img src="https://tevacom.com/wp-content/uploads/2026/02/CortinaT.jpg" style="width:32px;height:32px;object-fit:cover;border-radius:4px;display:block;"></td>
+            <td><strong>CortinaT קרם</strong></td>
+            <td style="font-size:11px;color:var(--muted);">ללא מרשם</td>
+            <td>290</td>
+            <td>1.8</td>
+            <td><strong>161</strong></td>
+            <td>60</td>
+            <td><span class="badge ok">🟢 OK</span></td>
+            <td>—</td>
+            <td><button class="order-btn-ghost">בדוק</button></td>
+          </tr>
+          <tr>
+            <td><img src="https://tevacom.com/wp-content/uploads/2026/01/Aloe-Drink.jpg" style="width:32px;height:32px;object-fit:cover;border-radius:4px;display:block;"></td>
+            <td><strong>Aloe Vera Drink</strong></td>
+            <td style="font-size:11px;color:var(--muted);">תוספי תזונה</td>
+            <td>24</td>
+            <td>1.9</td>
+            <td><strong style="color:var(--red);">13</strong></td>
+            <td>75</td>
+            <td><span class="badge danger">🔴 דחוף</span></td>
+            <td>220 יח'</td>
+            <td><button class="order-btn">הזמן</button></td>
+          </tr>
+          <tr>
+            <td><img src="https://tevacom.com/wp-content/uploads/2026/01/1100-X-1400_-300-dpi-OLS-Packshot-for-flipkart-1-805x1024.jpg" style="width:32px;height:32px;object-fit:cover;border-radius:4px;display:block;"></td>
+            <td><strong>Oil La Santé</strong></td>
+            <td style="font-size:11px;color:var(--muted);">דרמוקוסמטיקה</td>
+            <td>380</td>
+            <td>2.1</td>
+            <td><strong>181</strong></td>
+            <td>60</td>
+            <td><span class="badge ok">🟢 OK</span></td>
+            <td>—</td>
+            <td><button class="order-btn-ghost">בדוק</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 5. HOW IT WORKS -->
+  <div class="slide">
+    <div class="eyebrow">איך זה עובד</div>
+    <h2 style="font-size:clamp(32px,4vw,46px);">מהנתונים <em>להזמנה</em> — אוטומטית</h2>
+    <div style="display:grid; grid-template-columns: repeat(4,1fr); gap:16px; max-width:1000px;">
+      <div style="text-align:center;">
+        <div style="width:64px;height:64px;background:var(--teal-dim);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 12px;">🗄️</div>
+        <div style="font-size:12px;font-weight:700;color:var(--teal);margin-bottom:6px;">1 · נתונים</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.5;">ERP / Priority → מלאי, מכירות, ספקים</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="width:64px;height:64px;background:var(--teal-dim);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 12px;">🧠</div>
+        <div style="font-size:12px;font-weight:700;color:var(--teal);margin-bottom:6px;">2 · תחזית</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.5;">AI מחשב ביקוש ל-90 יום + עונתיות</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="width:64px;height:64px;background:var(--teal-dim);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 12px;">🔔</div>
+        <div style="font-size:12px;font-weight:700;color:var(--teal);margin-bottom:6px;">3 · התראה</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.5;">WhatsApp + Email לפני שיש גירעון</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="width:64px;height:64px;background:var(--teal-dim);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 12px;">📦</div>
+        <div style="font-size:12px;font-weight:700;color:var(--teal);margin-bottom:6px;">4 · הזמנה</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.5;">קניין מאשר → PDF לספק → נרשם בהיסטוריה</div>
+      </div>
+    </div>
+    <div style="margin-top:32px; display:flex; gap:24px; max-width:1000px;">
+      <div style="flex:1; background:#fff; border:1px solid var(--border); border-radius:8px; padding:18px 20px;">
+        <div style="font-size:11px;font-weight:700;color:var(--teal);letter-spacing:2px;margin-bottom:8px;">מה המערכת מחשבת</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.8; font-family:'Courier New',monospace; direction:ltr; text-align:left;">
+          days_left = stock / avg_daily_sales<br>
+          <span style="color:var(--red);">if days_left &lt; lead_time → 🔴 DANGER</span><br>
+          <span style="color:var(--amber);">if days_left &lt; lead_time × 1.5 → 🟡 WARN</span><br>
+          order_qty = forecast_90d − stock + buffer
+        </div>
+      </div>
+      <div style="flex:1; background:#fff; border:1px solid var(--border); border-radius:8px; padding:18px 20px;">
+        <div style="font-size:11px;font-weight:700;color:var(--teal);letter-spacing:2px;margin-bottom:8px;">AI אומר</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.7;">
+          💬 "Vitamin D — מכירות עלו ×2.4 בנובמבר–ינואר בשנים האחרונות. מומלץ להגדיל safety stock ל-60 יום לפני אוקטובר."
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. PRICING -->
+  <div class="slide">
+    <div class="eyebrow">מחירים</div>
+    <h2 style="font-size:clamp(32px,4vw,46px);">מחיר <em>סטארט-אפ</em> — מומחיות אמיתית</h2>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="pc-name">SETUP</div>
+        <div class="pc-price">15K</div>
+        <div class="pc-unit">₪ — הטמעה חד-פעמית</div>
+        <ul>
+          <li>חיבור ל-ERP / Priority</li>
+          <li>לוח מכ"ם + סטטוסים</li>
+          <li>הגדרת ליד טיים + ספקים</li>
+          <li>התראות Email</li>
+          <li>הדרכה + אונבורדינג</li>
+        </ul>
+      </div>
+      <div class="price-card featured">
+        <div class="pc-badge">מומלץ</div>
+        <div class="pc-name">SETUP + FORECAST</div>
+        <div class="pc-price">25K</div>
+        <div class="pc-unit">₪ — הטמעה + מנוע חיזוי</div>
+        <ul>
+          <li>הכל ב-SETUP +</li>
+          <li>תחזית ביקוש 90 יום</li>
+          <li>זיהוי עונתיות אוטומטי</li>
+          <li>AI אינסייטים על SKU</li>
+          <li>התראות WhatsApp</li>
+        </ul>
+      </div>
+      <div class="price-card">
+        <div class="pc-name">SaaS MONTHLY</div>
+        <div class="pc-price">1.9K</div>
+        <div class="pc-unit">₪/חודש — אחרי ההטמעה</div>
+        <ul>
+          <li>הרצת שרת + דאטה יומי</li>
+          <li>עדכוני מודל חיזוי</li>
+          <li>תמיכה שוטפת</li>
+          <li>גיבויים אוטומטיים</li>
+          <li>SLA תגובה 4 שעות</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. CONTACT -->
+  <div class="slide slide-contact">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+      <div style="background:rgba(255,255,255,0.92);border-radius:7px;padding:8px 14px;font-size:26px;">📡</div>
+      <div style="font-size:26px;font-weight:900;color:#fff;">מכ"ם <span style="color:var(--green);">רכש</span></div>
+    </div>
+    <div class="contact-slogan"><em>תחזית.</em> שליטה. תוצאות.</div>
+    <div class="contact-row">
+      <div class="contact-item">
+        <div class="lbl">חברה</div>
+        <div class="val">ישומית HD</div>
+      </div>
+      <div class="contact-item">
+        <div class="lbl">טלפון</div>
+        <div class="val" dir="ltr">08-669-98-55</div>
+      </div>
+      <div class="contact-item">
+        <div class="lbl">נייד / וואטסאפ</div>
+        <div class="val" dir="ltr">052-51-888-62</div>
+      </div>
+      <div class="contact-item">
+        <div class="lbl">מייל</div>
+        <div class="val">office@yissumithd.co.il</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:18px;">ראשון לציון · בניין METRO צרפתי · פאול גרוניגר 4 · קומה 3 · יחידה 303</div>
+  </div>
+
+</div>
+
+<div class="counter" id="counter">1 / 7</div>
+<div class="nav">
+  <button onclick="next()">&#8594;</button>
+  <button onclick="prev()">&#8592;</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const pb = document.getElementById('pb');
+  const counter = document.getElementById('counter');
+  let cur = 0;
+
+  function show(n) {
+    slides[cur].classList.remove('active');
+    cur = (n + slides.length) % slides.length;
+    slides[cur].classList.add('active');
+    pb.style.width = ((cur + 1) / slides.length * 100) + '%';
+    counter.textContent = (cur + 1) + ' / ' + slides.length;
+  }
+
+  pb.style.width = (1 / slides.length * 100) + '%';
+  function next() { show(cur + 1); }
+  function prev() { show(cur - 1); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowDown')  next();
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp')    prev();
+  });
+
+  let tx = 0;
+  document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; });
+  document.addEventListener('touchend',   e => {
+    const dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 50) dx < 0 ? prev() : next();
+  });
+</script>
+</body>
+</html>
