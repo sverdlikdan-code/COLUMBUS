@@ -2,8 +2,9 @@ const puppeteer = require('puppeteer');
 const path = require('path');
 
 const files = [
-  { in: 'portfolio/diler-bmd-presentation.html', out: 'portfolio/diler-bmd-presentation.pdf', slides: 7  },
-  { in: 'portfolio/powerbi-presentation.html',   out: 'portfolio/powerbi-presentation.pdf',   slides: 11 },
+  { in: 'portfolio/diler-bmd-presentation.html',    out: 'portfolio/diler-bmd-presentation.pdf',    slides: 7 },
+  { in: 'portfolio/diler-bmd-presentation-he.html', out: 'portfolio/diler-bmd-presentation-he.pdf', slides: 6 },
+  { in: 'portfolio/powerbi-presentation.html',      out: 'portfolio/powerbi-presentation.pdf',      slides: 11 },
 ];
 
 (async () => {
