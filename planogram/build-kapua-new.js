@@ -127,7 +127,7 @@ async function dax(token, query) {
   const makatDataMap = {};
   for (const p of products) makatDataMap[p.makat] = { fam: p.fam, name: p.name };
 
-  const bdPicks = await loadBreiraDefault('קפוא');
+  const bdPicks = loadBreiraDefault('קפוא');
   const picks = {};
   const bdMakatSet = new Set();
   for (const [bay, bd] of Object.entries(bdPicks)) {
