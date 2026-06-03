@@ -15,6 +15,7 @@ if (!process.env.PBI_TENANT && process.env.AZURE_TENANT_ID) {
 const path = require('path');
 const fs   = require('fs');
 const { getToken } = require('./pbi-kapua');
+const { loadBreiraDefault } = require('./breira-default/loader');
 
 const OUT_PATH = path.join(__dirname, '..', 'docs', 'kapua-base.json');
 const SECTION  = 'קפוא ❄';
@@ -122,45 +123,37 @@ async function dax(token, query) {
   if (products.length > WORKING_SLOTS)
     console.warn(`⚠ ${products.length - WORKING_SLOTS} products overflow ${WORKING_SLOTS} working slots`);
 
-  // ── Step 3: Preserve ברירת מחדל, add new products to reserve slots ─────────
-  const existingPicks   = existing.picks || {};
-  const existingMakatSet = new Set(
-    Object.values(existingPicks).filter(Boolean).map(p => String(p.makat))
-  );
+  // ── Step 3: Build picks from בררת מחדל FOR ALL ──────────────────────────────
+  const makatDataMap = {};
+  for (const p of products) makatDataMap[p.makat] = { fam: p.fam, name: p.name };
 
-  // Build makat→fam map for normalizing fam in existing picks
-  const makatFamMap = {};
-  for (const p of products) makatFamMap[p.makat] = p.fam;
-
-  // Copy existing picks, normalizing fam where known
+  const bdPicks = await loadBreiraDefault('קפוא');
   const picks = {};
-  for (const [pk, p] of Object.entries(existingPicks)) {
-    if (p && makatFamMap[String(p.makat)]) picks[pk] = { ...p, fam: makatFamMap[String(p.makat)] };
-    else picks[pk] = p;
+  const bdMakatSet = new Set();
+  for (const [bay, bd] of Object.entries(bdPicks)) {
+    const data = makatDataMap[bd.makat];
+    picks[bay] = { makat: bd.makat, fam: data?.fam || bd.fam || null, name: data?.name || bd.name || null };
+    bdMakatSet.add(String(bd.makat));
   }
 
-  // Ensure all reserve slots exist
   for (let n = RESERVE_START; n < RESERVE_START + RESERVE_SLOTS; n++) {
     if (!(String(n) in picks)) picks[String(n)] = null;
   }
 
-  // Clean reserve slots: remove products no longer active in KARTIS PARIT
   const activeSet = new Set(products.map(p => String(p.makat)));
   let kCleaned = 0;
   for (const pk of Object.keys(picks)) {
     if (Number(pk) < RESERVE_START || !picks[pk]) continue;
     if (!activeSet.has(String(picks[pk].makat))) { picks[pk] = null; kCleaned++; }
   }
-  if (kCleaned > 0) console.log(`Cleaned ${kCleaned} reserve slots (inactive/zero sales)`);
+  if (kCleaned > 0) console.log(`Cleaned ${kCleaned} reserve slots (inactive)`);
 
-  // Empty reserve slots after cleanup
   const emptyReserve = [];
   for (let n = RESERVE_START; n < RESERVE_START + RESERVE_SLOTS; n++) {
     if (!picks[String(n)]) emptyReserve.push(n);
   }
 
-  // New products → reserve slots
-  const newProducts = products.filter(p => !existingMakatSet.has(String(p.makat)));
+  const newProducts = products.filter(p => !bdMakatSet.has(String(p.makat)));
   let slotIdx = 0;
   const added = [];
   for (const prod of newProducts) {
@@ -169,6 +162,7 @@ async function dax(token, query) {
     picks[pk] = { makat: prod.makat, fam: prod.fam, name: prod.name || null };
     added.push(`${prod.makat}(${prod.fam})→pick${pk}`);
   }
+  console.log(`בררת מחדל FOR ALL: ${Object.keys(bdPicks).length} positions | new to reserve: ${newProducts.length} | cleaned: ${kCleaned}`);
 
 
   // ── Step 4: Write kapua-base.json ─────────────────────────────────────────
