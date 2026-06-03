@@ -42,6 +42,10 @@ jobs:
           echo "POWERBI_DATASET_ID=${{ secrets.PBI_DATASET }}" >> .env
           echo "POWERBI_WORKSPACE_ID=${{ secrets.PBI_WORKSPACE }}" >> .env
 
+      - name: Convert בררת מחדל xlsx to CSV
+        run: node planogram/convert-breira.js
+        continue-on-error: true
+
       - name: Run build-kapua-new
         run: node planogram/build-kapua-new.js
         continue-on-error: true
