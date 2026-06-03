@@ -178,7 +178,7 @@ function cleanFam(raw) {
   console.log(`בררת מחדל FOR ALL: ${Object.keys(bdPicks).length} positions | new to reserve: ${newProducts.length} | cleaned: ${kCleaned}`);
 
   // ── Step 4: Write dagim-base.json ─────────────────────────────────────────
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toISOString().slice(0, 16).replace('T','-').replace(':','');
   const result = {
     picks,
     layout,
