@@ -140,7 +140,7 @@ function cleanFam(raw) {
   const makatDataMap = {};
   for (const p of allProds) makatDataMap[p.makat] = { fam: p.fam, name: p.name };
 
-  const bdPicks = await loadBreiraDefault('דג יבש');
+  const bdPicks = loadBreiraDefault('דג יבש');
   const picks = {};
   const bdMakatSet = new Set();
   for (const [bay, bd] of Object.entries(bdPicks)) {

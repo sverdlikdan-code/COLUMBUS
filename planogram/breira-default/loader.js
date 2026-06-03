@@ -1,42 +1,41 @@
 /**
- * loader.js — reads בררת מחדל FOR ALL.xlsx
+ * loader.js — reads בררת מחדל FOR-ALL.csv
  * Returns { bay → { makat, fam, name } } for a given section name.
  * Section names: 'קפוא' | 'חלבי' | 'דגים' | 'דג יבש'
  */
-const ExcelJS = require('exceljs');
-const path    = require('path');
+const fs   = require('fs');
+const path = require('path');
 
-const FILE = path.join(__dirname, 'FOR-ALL.xlsx');
+const FILE = path.join(__dirname, 'FOR-ALL.csv');
 
-async function loadBreiraDefault(sectionName) {
-  const wb = new ExcelJS.Workbook();
-  await wb.xlsx.readFile(FILE);
-  const ws = wb.worksheets[0];
+function loadBreiraDefault(sectionName) {
+  const raw   = fs.readFileSync(FILE, 'utf8').replace(/^﻿/, '');
+  const lines = raw.split('\n').filter(l => l.trim());
 
-  // Row 2 = headers
-  const cols = {};
-  ws.getRow(2).eachCell((cell, colIdx) => {
-    const v = String(cell.value || '').trim();
-    if (v) cols[v] = colIdx;
-  });
+  // Line 1 = headers
+  const headers = lines[0].split(',').map(h => h.trim());
+  const idx = {
+    mahlaka: headers.indexOf('מחלקה'),
+    bay:     headers.indexOf('בי'),
+    makat:   headers.indexOf('מקט'),
+    name:    headers.indexOf('שם'),
+    fam:     headers.indexOf('משפחה'),
+  };
 
-  const required = ['מחלקה', 'בי', 'מקט'];
-  for (const c of required) {
-    if (!cols[c]) throw new Error(`Column '${c}' not found in FOR-ALL.xlsx`);
-  }
+  if (idx.mahlaka < 0 || idx.bay < 0 || idx.makat < 0)
+    throw new Error(`Missing columns in FOR-ALL.csv. Found: ${headers.join(', ')}`);
 
-  const result = {}; // bay → { makat, fam, name }
-  ws.eachRow((row, n) => {
-    if (n <= 2) return;
-    const mahlaka = String(row.getCell(cols['מחלקה']).value || '').trim();
-    if (mahlaka !== sectionName) return;
-    const bay   = String(row.getCell(cols['בי']).value || '').trim();
-    const makat = String(row.getCell(cols['מקט']).value || '').trim();
-    const fam   = cols['משפחה'] ? String(row.getCell(cols['משפחה']).value || '').trim() || null : null;
-    const name  = cols['שם']    ? String(row.getCell(cols['שם']).value    || '').trim() || null : null;
+  const result = {};
+  for (let i = 1; i < lines.length; i++) {
+    const cols    = lines[i].split(',');
+    const mahlaka = (cols[idx.mahlaka] || '').trim();
+    if (mahlaka !== sectionName) continue;
+    const bay   = (cols[idx.bay]   || '').trim();
+    const makat = (cols[idx.makat] || '').trim();
+    const name  = idx.name >= 0 ? (cols[idx.name] || '').trim() || null : null;
+    const fam   = idx.fam  >= 0 ? (cols[idx.fam]  || '').trim() || null : null;
     if (bay && makat) result[bay] = { makat, fam, name };
-  });
-
+  }
   return result;
 }
 
