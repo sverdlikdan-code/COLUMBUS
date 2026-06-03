@@ -78,7 +78,8 @@ function cleanFam(raw) {
           'KARTIS PARIT'[שם מחסן אשדוד] = "${SECTION}"
         ),
         "makat", 'KARTIS PARIT'[מק"ט],
-        "fam",   'KARTIS PARIT'[תאור משפחה]
+        "fam",   'KARTIS PARIT'[תאור משפחה],
+        "name",  'KARTIS PARIT'[תאור מוצר]
       )
 
     `),
@@ -118,39 +119,63 @@ function cleanFam(raw) {
   let excluded = 0;
 
   for (const r of kpRows) {
-    const mk  = String(r['[makat]'] || '').trim();
-    const fam = cleanFam(r['[fam]']);
+    const mk   = String(r['[makat]'] || '').trim();
+    const fam  = cleanFam(r['[fam]']);
+    const name = fixHebRTL((r['[name]'] || '').trim()) || null;
     if (!mk) continue;
     const ds    = salesMap[mk] || 0;
-    const stock = stockMap[mk] ?? -1; // -1 = unknown (no product-data yet)
-    // Exclude: no 365-day sales AND confirmed zero stock
+    const stock = stockMap[mk] ?? -1;
     if (ds === 0 && stock === 0) { excluded++; continue; }
-    if (ds > 0) hasSales.push({ makat: mk, fam, name: null });
-    else        noSales.push({ makat: mk, fam, name: null });
+    if (ds > 0) hasSales.push({ makat: mk, fam, name });
+    else        noSales.push({ makat: mk, fam, name });
   }
 
   noSales.sort((a, b) => (a.fam || '').localeCompare(b.fam || '') || Number(a.makat) - Number(b.makat));
 
   console.log(`Products with sales: ${hasSales.length} | without: ${noSales.length} | excluded (no sales+stock): ${excluded}`);
 
-  // ── Step 3: Assign products to picks ──────────────────────────────────────
-  const picks = {};
-
+  // ── Step 3: Preserve ברירת מחדל, add new products to reserve ────────────────
+  const RESERVE_SLOTS = TOTAL_SLOTS - WORKING_SLOTS;
   const allProds = [...hasSales, ...noSales];
-  for (let i = 1; i <= WORKING_SLOTS; i++) {
-    const prod = allProds[i - 1];
-    picks[String(i)] = prod ? { makat: prod.makat, fam: prod.fam, name: null } : null;
+  const existingPicks    = existing.picks || {};
+  const existingMakatSet = new Set(Object.values(existingPicks).filter(Boolean).map(p => String(p.makat)));
+  const makatDataMap = {};
+  for (const p of allProds) makatDataMap[p.makat] = { fam: p.fam, name: p.name };
+
+  const picks = {};
+  for (const [pk, p] of Object.entries(existingPicks)) {
+    if (p && makatDataMap[String(p.makat)]) picks[pk] = { ...p, fam: makatDataMap[String(p.makat)].fam, name: makatDataMap[String(p.makat)].name || p.name };
+    else picks[pk] = p;
   }
 
-  const reserveProds = noSales.slice(WORKING_SLOTS - hasSales.length);
-  const reserveSlots = TOTAL_SLOTS - WORKING_SLOTS;
-  for (let i = 0; i < reserveSlots; i++) {
-    const pick = RESERVE_START + i;
-    picks[String(pick)] = reserveProds[i]
-      ? { makat: reserveProds[i].makat, fam: reserveProds[i].fam, name: null }
-      : null;
+  for (let n = RESERVE_START; n < RESERVE_START + RESERVE_SLOTS; n++) {
+    if (!(String(n) in picks)) picks[String(n)] = null;
   }
-  console.log(`Reserve overflow: ${Math.min(reserveProds.length, reserveSlots)}/${reserveSlots} slots used`);
+
+  const activeSet = new Set(allProds.map(p => String(p.makat)));
+  let kCleaned = 0;
+  for (const pk of Object.keys(picks)) {
+    if (Number(pk) < RESERVE_START || !picks[pk]) continue;
+    if (!activeSet.has(String(picks[pk].makat))) { picks[pk] = null; kCleaned++; }
+  }
+  if (kCleaned > 0) console.log(`Cleaned ${kCleaned} reserve slots (inactive)`);
+
+  const emptyReserve = [];
+  for (let n = RESERVE_START; n < RESERVE_START + RESERVE_SLOTS; n++) {
+    if (!picks[String(n)]) emptyReserve.push(n);
+  }
+
+  const newProducts = allProds.filter(p => !existingMakatSet.has(String(p.makat)));
+  let slotIdx = 0;
+  const added = [];
+  for (const prod of newProducts) {
+    if (slotIdx >= emptyReserve.length) { console.warn(`⚠ No reserve slot for ${prod.makat}`); break; }
+    const pk = String(emptyReserve[slotIdx++]);
+    picks[pk] = { makat: prod.makat, fam: prod.fam, name: prod.name || null };
+    added.push(`${prod.makat}(${prod.fam})→pick${pk}`);
+  }
+  if (added.length) console.log(`Added to reserve: ${added.join(', ')}`);
+  console.log(`ברירת מחדל preserved | new: ${newProducts.length} | cleaned: ${kCleaned}`);
 
   // ── Step 4: Write halavi-base.json ────────────────────────────────────────
   const today = new Date().toISOString().slice(0, 10);
