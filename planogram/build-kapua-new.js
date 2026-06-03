@@ -25,44 +25,10 @@ const RESERVE_START = 62;
 
 const BLACKLIST = new Set(['1130', '1131']);
 
-// fixHebRTL(clean KARTIS PARIT value) → display name
-const FAM_NAMES = {
-  'FERMA חמאה':              'חמאה FERMA',
-  'SANTA BREMOR פורל/סלמון': 'SANTA BREMOR',
-  'SANTA BREMOR דגים':       'SANTA BREMOR דגים',
-  'SVALIA חמאה':             'חמאה SVALIA',
-  'Valesto מאפה':            'VALESTA',
-  'חמאה ממרחי':              'ממרחי חמאה',
-  'גבינה חטיף':              'חטיף גבינה',
-  'מוזאיקה עוגות':           'עוגות מוזיקה',
-  'מוסדי':                   'מוסדי',
-  'סירניקי/כיסונים':         'כיסונים',
-  'רושן חמאה':               'חמאה רושן',
-  'רושן עוגות':              'עוגות רושן',
-};
-
-// Approved family order (user-confirmed)
-const FAM_ORDER_LIST = [
-  'חמאה FERMA', 'חמאה רושן', 'חמאה SVALIA', 'ממרחי חמאה',
-  'כיסונים', 'SANTA BREMOR',
-  'עוגות רושן', 'עוגות מוזיקה', 'חטיף גבינה',
-  'SANTA BREMOR דגים', 'VALESTA', 'מוסדי',
-];
-const FAM_ORDER = {};
-FAM_ORDER_LIST.forEach((f, i) => { FAM_ORDER[f] = i; });
-
-function fixHebRTL(s) {
-  if (!s) return s;
-  return s.replace(/[ְ-תװ-״]+/g, m => m.split('').reverse().join(''));
-}
-
+// fam comes directly from KARTIS PARIT — no manual mapping, no whitelist
 function cleanFam(raw) {
-  const clean = (raw || '').replace(/[‎‏‪-‮⁦-⁩]/g, '').trim();
-  const fixed = fixHebRTL(clean);
-  if (!fixed) return null;
-  if (FAM_NAMES[fixed]) return FAM_NAMES[fixed];
-  console.log(`kapua fam unknown: ${JSON.stringify(fixed)}`);
-  return fixed;
+  const s = (raw || '').replace(/[‎‏‪-‮⁦-⁩]/g, '').trim();
+  return s || null;
 }
 
 async function dax(token, query) {
@@ -198,16 +164,6 @@ async function dax(token, query) {
     added.push(`${prod.makat}(${prod.fam})→pick${pk}`);
   }
 
-  // Fix garbled/unknown fam in all slots (legacy values from pre-KARTIS PARIT builds)
-  const knownFams = new Set(FAM_ORDER_LIST);
-  let fFixed = 0;
-  for (const [pk, p] of Object.entries(picks)) {
-    if (p && p.fam && !knownFams.has(p.fam)) {
-      picks[pk] = { ...p, fam: null };
-      fFixed++;
-    }
-  }
-  if (fFixed > 0) console.log(`Fixed ${fFixed} garbled/unknown fam → null`);
 
   // ── Step 4: Write kapua-base.json ─────────────────────────────────────────
   const today = new Date().toISOString().slice(0, 10);
