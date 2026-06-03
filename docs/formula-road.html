@@ -509,6 +509,7 @@ const st = {
 };
 
 let map=null, mapMarkers=[], mapPolylines=[], markerCluster=null, sortable=null, mapBearing=0;
+let baseTileLayer=null, lastTileMode='normal', gpsCorrectMode=false;
 
 // ── Haversine ──────────────────────────────────────────────────────────────
 function haversineKm(la1,lo1,la2,lo2){
@@ -1363,7 +1364,19 @@ function setupSortable(){
 function renderMap(){
   if(!map){
     map=L.map('map',{rotate:true,bearing:0}).setView([32.0,34.9],10);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',{attribution:'© CartoDB',subdomains:'abcd',maxZoom:19}).addTo(map);
+    baseTileLayer=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',{attribution:'© CartoDB',subdomains:'abcd',maxZoom:19}).addTo(map);
+    lastTileMode='normal';
+  }
+  // переключение тайла при входе/выходе из режима коррекции
+  if(baseTileLayer){
+    const need=gpsCorrectMode?'satellite':'normal';
+    if(need!==lastTileMode){
+      map.removeLayer(baseTileLayer);
+      baseTileLayer=need==='satellite'
+        ? L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri',maxZoom:19}).addTo(map)
+        : L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',{attribution:'© CartoDB',subdomains:'abcd',maxZoom:19}).addTo(map);
+      lastTileMode=need;
+    }
   }
   mapMarkers.forEach(m=>m.remove()); mapMarkers=[];
   mapPolylines.forEach(p=>p.remove()); mapPolylines=[];
@@ -1398,7 +1411,15 @@ function renderMap(){
       ?`<span style="transform:rotate(45deg);font-size:${isFirst&&!isSel?'9px':'13px'};font-weight:900">${isFirst&&!isSel?'START':i+1}</span>`
       :`${i+1}`;
     const isCityCenter = c.gpsSource === 'city-center';
-    const icon=isSel
+    const shortName = (c.custName||'').length>24 ? (c.custName||'').slice(0,22)+'…' : (c.custName||'');
+    const icon=gpsCorrectMode
+      ? L.divIcon({className:'',
+          html:`<div style="position:relative;width:38px;height:38px">
+            <div style="position:absolute;top:0;left:0;width:38px;height:38px;border-radius:50%;background:#D32F2F;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;border:3px solid #fff;box-shadow:0 3px 12px rgba(211,47,47,.6)">${i+1}</div>
+            <div style="position:absolute;left:44px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.78);color:#fff;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap;pointer-events:none;direction:rtl">${shortName}</div>
+          </div>`,
+          iconSize:[38,38], iconAnchor:[19,19]})
+      : isSel
       ? L.divIcon({className:'',
           html:`<div style="background:#1565C0;color:#fff;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;border:2.5px solid #fff;box-shadow:0 3px 10px rgba(21,101,192,.5);animation:marker-pulse .55s ease-out">${i+1}</div>`,
           iconSize:[36,36], iconAnchor:[18,18]})
@@ -1711,14 +1732,17 @@ function deleteGpsCorrection(custId){
   showToast('🗑 תיקון נמחק');
 }
 function startGpsCorrection(custId, custName){
-  showToast('📍 הקש על המפה כדי לקבוע מיקום חדש', 4000);
+  gpsCorrectMode=true;
+  renderMap();
+  showToast('📍 לחץ על המפה לקביעת מיקום חדש', 4000);
   map.getContainer().style.cursor='crosshair';
   map.once('click', (e)=>{
     map.getContainer().style.cursor='';
+    gpsCorrectMode=false;
     const {lat,lng}=e.latlng;
     const IL={minLat:29.3,maxLat:33.5,minLng:34.2,maxLng:35.9};
     if(lat<IL.minLat||lat>IL.maxLat||lng<IL.minLng||lng>IL.maxLng){
-      showToast('❌ מחוץ לגבולות ישראל'); return;
+      showToast('❌ מחוץ לגבולות ישראל'); renderMap(); return;
     }
     const la=+lat.toFixed(6), lo=+lng.toFixed(6);
     const cl=st.clients.find(x=>String(x.custId)===String(custId))||{};
