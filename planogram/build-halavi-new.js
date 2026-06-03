@@ -78,7 +78,8 @@ function cleanFam(raw) {
           'KARTIS PARIT'[שם מחסן אשדוד] = "${SECTION}"
         ),
         "makat", 'KARTIS PARIT'[מק"ט],
-        "fam",   'KARTIS PARIT'[תאור משפחה]
+        "fam",   'KARTIS PARIT'[תאור משפחה],
+        "name",  'KARTIS PARIT'[תאור]
         
       )
 
@@ -121,7 +122,7 @@ function cleanFam(raw) {
   for (const r of kpRows) {
     const mk   = String(r['[makat]'] || '').trim();
     const fam  = cleanFam(r['[fam]']);
-    const name = fixHebRTL((r['[name]'] || '').trim()) || null;
+    const name = cleanFam(r['[name]'] || '') || null;
     if (!mk) continue;
     const ds    = salesMap[mk] || 0;
     const stock = stockMap[mk] ?? -1;
