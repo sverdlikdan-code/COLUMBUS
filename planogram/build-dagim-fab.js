@@ -21,10 +21,14 @@ const WORKING_SLOTS = 97;
 const RESERVE_START = 98;
 const TOTAL_SLOTS   = 126;
 
-// fam comes directly from KARTIS PARIT — no manual mapping, no whitelist
+// fam from KARTIS PARIT — fix reversed Hebrew only, no manual remapping
+function fixHebRTL(s) {
+  if (!s) return s;
+  return s.replace(/[ְ-תװ-״]+/g, m => m.split('').reverse().join(''));
+}
 function cleanFam(raw) {
   const s = (raw || '').replace(/[‎‏‪-‮⁦-⁩]/g, '').trim();
-  return s || null;
+  return fixHebRTL(s) || null;
 }
 
 (async () => {
@@ -75,7 +79,7 @@ function cleanFam(raw) {
         "makat", 'KARTIS PARIT'[מק"ט],
         "fam",   'KARTIS PARIT'[תאור משפחה]
       )
-      ORDER BY 'KARTIS PARIT'[תאור משפחה], 'KARTIS PARIT'[מק"ט]
+
     `),
     dax(`
       EVALUATE
