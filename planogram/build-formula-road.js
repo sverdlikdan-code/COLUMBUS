@@ -80,8 +80,16 @@ function fixPriorityAddr(address) {
 function cleanAddr(address) {
   if (!address) return address;
   let s = fixPriorityAddr(address);
+  // take first part before comma
   s = s.split(',')[0];
-  for (const p of VENUE_PATTERNS) s = s.replace(p, '');
+  // strip intersection suffix — keep only the street before פינת
+  s = s.replace(/[,\s]+פינת[\s\S]*$/i, '').trim();
+  // strip venue noise (קניון, מרכז, etc.) — but only if something useful remains
+  let stripped = s;
+  for (const p of VENUE_PATTERNS) stripped = stripped.replace(p, '');
+  stripped = stripped.replace(/[,\s]+$/, '').replace(/\s{2,}/g, ' ').trim();
+  // if stripping removed everything (pure POI address), keep the original
+  s = stripped || s;
   return s.replace(/[,\s]+$/, '').replace(/\s{2,}/g, ' ').trim();
 }
 
@@ -89,8 +97,12 @@ function cleanAddr(address) {
 function trimAddr(address) {
   if (!address) return null;
   const raw = fixPriorityAddr(address);
-  if (raw.includes(',')) return raw.split(',')[0].trim();
-  const m = raw.match(/^([\s\S]*\d)/);
+  // "הרצל 12/3" → "הרצל 12" — take the larger number (house num > apt num, survives fixPriorityAddr reversal)
+  let s = raw.replace(/(\d+)\/(\d+)/g, (_, a, b) => String(Math.max(+a, +b)));
+  // "ארגמן פינת החותרים 1" → "ארגמן" (keep only first street, before intersection marker)
+  s = s.replace(/[,\s]+פינת[\s\S]*$/i, '').trim();
+  if (s.includes(',')) return s.split(',')[0].trim();
+  const m = s.match(/^([\s\S]*\d)/);
   return m ? m[1].trim() : null;
 }
 
@@ -215,6 +227,21 @@ async function geocodeBatch(clients, reGeocode = new Set()) {
     if (!isValidIL(c.lat, c.lng)) continue;   // already no GPS, skip
     if (extractStreetNum(c.address)) continue; // has street+number, GPS may be valid
     if (SETTLEMENT_RE.test(c.address)) { c.lat = null; c.lng = null; }
+  }
+
+  // venue addresses (קניון/מרכז/תחנה) without street number → try Azure as POI before city-center
+  const VENUE_RE = /קניון|מרכז מסחרי|מרכז קניות|מרכז עסקים|תחנה מרכזית/i;
+  for (const c of clients) {
+    if (isValidIL(c.lat, c.lng)) continue;
+    if (extractStreetNum(c.address)) continue; // has number → handled in cascade below
+    if (!VENUE_RE.test(c.address)) continue;   // not a venue address
+    const q = [fixPriorityAddr(c.address), c.city].filter(Boolean).join(', ');
+    const az = await azureMapsQuery(q, c.city);
+    const azBbox = cityBBoxCache.get(c.city) ?? null;
+    if (az && inBBox(az.lat, az.lng, azBbox)) {
+      c.lat = az.lat; c.lng = az.lng; c.gpsSource = 'azure-poi';
+    }
+    await sleep(1100);
   }
 
   // clients without street number → city center from bbox (0 API calls)
