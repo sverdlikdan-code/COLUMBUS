@@ -14,6 +14,7 @@ if (!process.env.PBI_TENANT && process.env.AZURE_TENANT_ID) {
 const path = require('path');
 const fs   = require('fs');
 const { getToken } = require('./pbi-kapua');
+const { loadBreiraDefault } = require('./breira-default/loader');
 
 const OUT_PATH      = path.join(__dirname, '..', 'docs', 'halavi-base.json');
 const SECTION       = 'חלבי 🥛';
@@ -135,18 +136,19 @@ function cleanFam(raw) {
 
   console.log(`Products with sales: ${hasSales.length} | without: ${noSales.length} | excluded (no sales+stock): ${excluded}`);
 
-  // ── Step 3: Preserve ברירת מחדל, add new products to reserve ────────────────
+  // ── Step 3: Build picks from בררת מחדל FOR ALL ──────────────────────────────
   const RESERVE_SLOTS = TOTAL_SLOTS - WORKING_SLOTS;
   const allProds = [...hasSales, ...noSales];
-  const existingPicks    = existing.picks || {};
-  const existingMakatSet = new Set(Object.values(existingPicks).filter(Boolean).map(p => String(p.makat)));
   const makatDataMap = {};
   for (const p of allProds) makatDataMap[p.makat] = { fam: p.fam, name: p.name };
 
+  const bdPicks = await loadBreiraDefault('חלבי');
   const picks = {};
-  for (const [pk, p] of Object.entries(existingPicks)) {
-    if (p && makatDataMap[String(p.makat)]) picks[pk] = { ...p, fam: makatDataMap[String(p.makat)].fam, name: makatDataMap[String(p.makat)].name || p.name };
-    else picks[pk] = p;
+  const bdMakatSet = new Set();
+  for (const [bay, bd] of Object.entries(bdPicks)) {
+    const data = makatDataMap[bd.makat];
+    picks[bay] = { makat: bd.makat, fam: data?.fam || bd.fam || null, name: data?.name || bd.name || null };
+    bdMakatSet.add(String(bd.makat));
   }
 
   for (let n = RESERVE_START; n < RESERVE_START + RESERVE_SLOTS; n++) {
@@ -166,7 +168,7 @@ function cleanFam(raw) {
     if (!picks[String(n)]) emptyReserve.push(n);
   }
 
-  const newProducts = allProds.filter(p => !existingMakatSet.has(String(p.makat)));
+  const newProducts = allProds.filter(p => !bdMakatSet.has(String(p.makat)));
   let slotIdx = 0;
   const added = [];
   for (const prod of newProducts) {
@@ -176,7 +178,7 @@ function cleanFam(raw) {
     added.push(`${prod.makat}(${prod.fam})→pick${pk}`);
   }
   if (added.length) console.log(`Added to reserve: ${added.join(', ')}`);
-  console.log(`ברירת מחדל preserved | new: ${newProducts.length} | cleaned: ${kCleaned}`);
+  console.log(`בררת מחדל FOR ALL: ${Object.keys(bdPicks).length} positions | new to reserve: ${newProducts.length} | cleaned: ${kCleaned}`);
 
   // ── Step 4: Write halavi-base.json ────────────────────────────────────────
   const today = new Date().toISOString().slice(0, 10);
