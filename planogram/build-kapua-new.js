@@ -74,7 +74,8 @@ async function dax(token, query) {
           'KARTIS PARIT'[שם מחסן אשדוד] = "${SECTION}"
         ),
         "makat", 'KARTIS PARIT'[מק"ט],
-        "fam",   'KARTIS PARIT'[תאור משפחה]
+        "fam",   'KARTIS PARIT'[תאור משפחה],
+        "name",  'KARTIS PARIT'[תאור מוצר]
       )
     `),
     dax(t, `
@@ -100,13 +101,14 @@ async function dax(token, query) {
   const seen = new Set();
   const products = [];
   for (const r of kpRows) {
-    const mk  = String(r['[makat]'] || '').trim();
-    const fam = cleanFam(r['[fam]']);
+    const mk   = String(r['[makat]'] || '').trim();
+    const fam  = cleanFam(r['[fam]']);
+    const name = fixHebRTL((r['[name]'] || '').trim()) || null;
     if (!mk || seen.has(mk)) continue;
     seen.add(mk);
     if (BLACKLIST.has(mk)) { console.log(`  ⛔ blacklisted: ${mk}`); continue; }
     const mkr = salesMap[mk] || 0;
-    products.push({ makat: mk, fam, mkr365: mkr });
+    products.push({ makat: mk, fam, name, mkr365: mkr });
   }
 
   // Sort: family alphabetical → sales desc within family
@@ -163,7 +165,7 @@ async function dax(token, query) {
   for (const prod of newProducts) {
     if (slotIdx >= emptyReserve.length) { console.warn(`⚠ No reserve slot for ${prod.makat}`); break; }
     const pk = String(emptyReserve[slotIdx++]);
-    picks[pk] = { makat: prod.makat, fam: prod.fam, name: null };
+    picks[pk] = { makat: prod.makat, fam: prod.fam, name: prod.name || null };
     added.push(`${prod.makat}(${prod.fam})→pick${pk}`);
   }
 
