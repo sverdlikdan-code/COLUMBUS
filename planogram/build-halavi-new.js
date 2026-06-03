@@ -78,8 +78,8 @@ function cleanFam(raw) {
           'KARTIS PARIT'[שם מחסן אשדוד] = "${SECTION}"
         ),
         "makat", 'KARTIS PARIT'[מק"ט],
-        "fam",   'KARTIS PARIT'[תאור משפחה],
-        "name",  'KARTIS PARIT'[תאור מוצר]
+        "fam",   'KARTIS PARIT'[תאור משפחה]
+        
       )
 
     `),
