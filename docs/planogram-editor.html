@@ -386,7 +386,7 @@
           <th style="padding:4px 10px; text-align:right; min-width:55px;">מחלקה</th>
           <th style="padding:4px 10px; text-align:center; min-width:55px;">סדר הדפסה</th>
           <th style="padding:4px 10px; text-align:center; min-width:40px;">מיקום</th>
-          <th style="padding:4px 10px; text-align:center; min-width:36px;">ביי</th>
+          <th style="padding:4px 10px; text-align:center; min-width:36px;">בי</th>
           <th style="padding:4px 10px; text-align:right; min-width:60px;">מקט</th>
           <th style="padding:4px 10px; text-align:right; min-width:160px;">שם מוצר</th>
           <th style="padding:4px 10px; text-align:right; min-width:100px;">משפחה</th>
@@ -1312,10 +1312,11 @@ function updateTabPalTotals() {
 // EXPORT / SAVE / RESET
 // ══════════════════════════════════════════════════════════════════════════
 function exportCSV() {
+  const SEC_NAMES = { kapua:'קפוא', halavi:'חלבי', dagim:'דגים', yavesh:'דג יבש' };
   const sec         = window._currentSection || 'kapua';
   const reserveStart = sectionReserveStart(sec);
   const order = _getPrintOrder(sec).filter(pick => +pick < reserveStart);
-  const rows  = ['﻿' + 'סדר הדפסה,מיקום,ביי,מקט,שם,משפחה'];
+  const rows  = ['﻿' + 'מחלקה,סדר הדפסה,מיקום,בי,מקט,שם,משפחה'];
   const seenMakat = new Set();
   let printIdx = 0;
   order.forEach(pick => {
@@ -1324,7 +1325,9 @@ function exportCSV() {
     if (seenMakat.has(String(p.makat))) return;
     seenMakat.add(String(p.makat));
     printIdx++;
-    rows.push(`${(_SEC_BASE[sec]||0) + printIdx},${(_SEC_BASE[sec]||0) + Number(pick)},${pick},${p.makat},"${(p.name || '').replace(/"/g,'""')}","${(productData[String(p.makat)]?.fam || _cleanStr(p.fam)).replace(/"/g,'""')}"`);
+    const name = (p.name || '').replace(/"/g,'""');
+    const fam  = (_cleanStr(p.fam) || '').replace(/"/g,'""');
+    rows.push(`"${SEC_NAMES[sec]}",${(_SEC_BASE[sec]||0) + printIdx},${(_SEC_BASE[sec]||0) + Number(pick)},${pick},${p.makat},"${name}","${fam}"`);
   });
   const a = Object.assign(document.createElement('a'), {
     href:     URL.createObjectURL(new Blob([rows.join('\n')], {type:'text/csv;charset=utf-8'})),
@@ -1820,7 +1823,7 @@ function updateTable() {
 
 function exportCSVAll() {
   const SEC_NAMES = { kapua:'קפוא', halavi:'חלבי', dagim:'דגים', yavesh:'דג יבש' };
-  const rows = ['﻿' + 'מחלקה,סדר הדפסה,מיקום,ביי,מקט,שם,משפחה'];
+  const rows = ['﻿' + 'מחלקה,סדר הדפסה,מיקום,בי,מקט,שם,משפחה'];
   for (const sec of _SECTIONS) {
     const reserveStart = sectionReserveStart(sec);
     const order = _getPrintOrder(sec).filter(pick => reserveStart === 0 || +pick < reserveStart);
