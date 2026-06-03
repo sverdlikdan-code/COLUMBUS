@@ -383,6 +383,7 @@
     <table id="pos-tbl" style="border-collapse:collapse; font-size:12px; min-width:400px; width:100%;">
       <thead>
         <tr style="background:#e8f0fe; color:#1565C0; position:sticky; top:0; z-index:5;">
+          <th style="padding:4px 10px; text-align:right; min-width:55px;">מחלקה</th>
           <th style="padding:4px 10px; text-align:center; min-width:55px;">סדר הדפסה</th>
           <th style="padding:4px 10px; text-align:center; min-width:40px;">מיקום</th>
           <th style="padding:4px 10px; text-align:center; min-width:36px;">ביי</th>
@@ -1770,19 +1771,19 @@ function updateTable() {
       const order = _getPrintOrder(s);
       total += order.filter(p => state[s][p]).length;
       const secName = SEC_NAMES[s];
-      html += `<tr><td colspan="5" style="padding:6px 10px; background:#1565C0; color:#fff; font-weight:bold; font-size:12px;">${secName} — ${order.filter(p=>state[s][p]).length} מוצרים</td></tr>`;
       order.forEach((pick, i) => {
         const p  = state[s][pick];
         if (!p) return;
         const bg = i % 2 === 0 ? '#fff' : '#f5f7ff';
         const fl = famColor(p.fam);
         html += `<tr style="background:${bg}; border-left:3px solid ${fl};">
+          <td style="padding:2px 8px; text-align:right; font-size:10px; font-weight:bold; color:#1565C0; white-space:nowrap;">${secName}</td>
           <td style="padding:2px 6px; text-align:center; color:#888; font-size:10px; font-weight:bold;">${(_SEC_BASE[s]||0) + i + 1}</td>
           <td style="padding:2px 10px; text-align:center; font-weight:bold; color:#1565C0;">${(_SEC_BASE[s]||0) + Number(pick)}</td>
           <td style="padding:2px 10px; text-align:center; color:#aaa; font-size:11px;">${pick}</td>
           <td style="padding:2px 10px;">${p.makat}</td>
-          <td style="padding:2px 10px; font-weight:bold;">${p.name || productData[String(p.makat)]?.nameEn || productData[String(p.makat)]?.desc || ''}</td>
-          <td style="padding:2px 10px; font-size:10px; color:#555; direction:rtl;">${productData[String(p.makat)]?.fam || _cleanStr(p.fam) || ''}</td>
+          <td style="padding:2px 10px; font-weight:bold;">${p.name || ''}</td>
+          <td style="padding:2px 10px; font-size:10px; color:#555; direction:rtl;">${_cleanStr(p.fam) || ''}</td>
         </tr>`;
       });
     }
@@ -1803,14 +1804,15 @@ function updateTable() {
     const up   = i > 0              ? `<button style="${btnStyle}" onclick="movePrintOrder('${sec}',${i},-1)" title="הזז למעלה">▲</button>` : '<span style="width:18px;display:inline-block"></span>';
     const down = i < order.length-1 ? `<button style="${btnStyle}" onclick="movePrintOrder('${sec}',${i},1)"  title="הזז למטה">▼</button>`  : '<span style="width:18px;display:inline-block"></span>';
     return `<tr draggable="true" data-pick="${pick}" data-idx="${i}" data-sec="${sec}" style="background:${bg}; border-left:3px solid ${fl}; cursor:grab;">
+      <td style="padding:2px 8px; text-align:right; font-size:10px; font-weight:bold; color:#1565C0; white-space:nowrap;">${SEC_NAMES[sec]||sec}</td>
       <td style="padding:2px 6px; text-align:center; white-space:nowrap;">
         <span style="color:#ccc;font-size:13px;margin-left:2px;cursor:grab;" title="גרור לשינוי סדר">⠿</span>${up}${down}<span style="margin-right:4px;font-weight:bold;color:#888;font-size:10px;">${(_SEC_BASE[sec]||0) + i + 1}</span>
       </td>
       <td style="padding:2px 10px; text-align:center; font-weight:bold; color:#1565C0;">${(_SEC_BASE[sec]||0) + Number(pick)}</td>
       <td style="padding:2px 10px; text-align:center; color:#aaa; font-size:11px;">${pick}</td>
       <td style="padding:2px 10px;">${p.makat}</td>
-      <td style="padding:2px 10px; font-weight:bold;">${p.name || productData[String(p.makat)]?.nameEn || productData[String(p.makat)]?.desc || ''}</td>
-      <td style="padding:2px 10px; font-size:10px; color:#555;">${_cleanStr(p.fam) || productData[String(p.makat)]?.fam || ''}</td>
+      <td style="padding:2px 10px; font-weight:bold;">${p.name || ''}</td>
+      <td style="padding:2px 10px; font-size:10px; color:#555;">${_cleanStr(p.fam) || ''}</td>
     </tr>`;
   }).join('');
   _initTableDrag(body);
