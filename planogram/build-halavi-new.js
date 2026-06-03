@@ -22,27 +22,10 @@ const WORKING_SLOTS = 60;
 const RESERVE_START = 61;
 const TOTAL_SLOTS   = 132;
 
-// fixHebRTL(clean KARTIS PARIT value) → display name
-const FAM_NAMES = {
-  'PRESIDENT גבינות':                  'PRESIDENT',
-  "SVALIA למריחה גבינה/'קוטג/טבורוג": 'SVALIA טבורוג',
-  'SVALIA גבינה':                      'SVALIA גבינה',
-  'SVALIA פרוסות גבינה':               'SVALIA פרוסות',
-  'SVALIA שמנת/יוגורט/ דייסה':         'SVALIA שמנת',
-};
-
-function fixHebRTL(s) {
-  if (!s) return s;
-  return s.replace(/[ְ-תװ-״]+/g, m => m.split('').reverse().join(''));
-}
-
+// fam comes directly from KARTIS PARIT — no manual mapping, no whitelist
 function cleanFam(raw) {
-  const clean = (raw || '').replace(/[‎‏‪-‮⁦-⁩]/g, '').trim();
-  const fixed = fixHebRTL(clean);
-  if (!fixed) return null;
-  if (FAM_NAMES[fixed]) return FAM_NAMES[fixed];
-  console.log(`halavi fam unknown: ${JSON.stringify(fixed)}`);
-  return fixed;
+  const s = (raw || '').replace(/[‎‏‪-‮⁦-⁩]/g, '').trim();
+  return s || null;
 }
 
 (async () => {

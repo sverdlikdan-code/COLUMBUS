@@ -22,25 +22,10 @@ const WORKING_SLOTS = 32;
 const RESERVE_START = 33;
 const TOTAL_SLOTS   = 35;
 
-// fixHebRTL(clean KARTIS PARIT value) → display name
-const FAM_NAMES = {
-  'KAZAHSTAN דגים': 'דגים KAZAHSTAN',
-  'RUSSIA דגים':    'דגים RUSSIA',
-  'פודסטוק דגים':   'דגים פודסטוק',
-};
-
-function fixHebRTL(s) {
-  if (!s) return s;
-  return s.replace(/[ְ-תװ-״]+/g, m => m.split('').reverse().join(''));
-}
-
+// fam comes directly from KARTIS PARIT — no manual mapping, no whitelist
 function cleanFam(raw) {
-  const clean = (raw || '').replace(/[‎‏‪-‮⁦-⁩]/g, '').trim();
-  const fixed = fixHebRTL(clean);
-  if (!fixed) return null;
-  if (FAM_NAMES[fixed]) return FAM_NAMES[fixed];
-  console.log(`dagim-yavesh fam unknown: ${JSON.stringify(fixed)}`);
-  return fixed;
+  const s = (raw || '').replace(/[‎‏‪-‮⁦-⁩]/g, '').trim();
+  return s || null;
 }
 
 (async () => {
