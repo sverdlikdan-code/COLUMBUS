@@ -21,25 +21,10 @@ const WORKING_SLOTS = 97;
 const RESERVE_START = 98;
 const TOTAL_SLOTS   = 126;
 
-// fixHebRTL(clean) → display name
-const FAM_NAMES = {
-  'NORD PORT דגים':             'NORD PORT דגים',
-  'NORD PORT מצונן פורל/סלמון': 'NORD PORT מצונן',
-  'SANTA BREMOR דגים':          'SANTA BREMOR דגים',
-};
-
-function fixHebRTL(s) {
-  if (!s) return s;
-  return s.replace(/[ְ-תװ-״]+/g, m => m.split('').reverse().join(''));
-}
-
+// fam comes directly from KARTIS PARIT — no manual mapping, no whitelist
 function cleanFam(raw) {
-  const clean = (raw || '').replace(/[‎‏‪-‮⁦-⁩]/g, '').trim();
-  const fixed = fixHebRTL(clean);
-  if (!fixed) return null;
-  if (FAM_NAMES[fixed]) return FAM_NAMES[fixed];
-  console.log(`dagim fam unknown: ${JSON.stringify(fixed)}`);
-  return fixed;
+  const s = (raw || '').replace(/[‎‏‪-‮⁦-⁩]/g, '').trim();
+  return s || null;
 }
 
 (async () => {
