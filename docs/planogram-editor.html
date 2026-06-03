@@ -757,7 +757,9 @@ function stockHTML(makat) {
   const wCarton  = d.weightCarton != null && d.weightCarton > 0 ? d.weightCarton
                  : (d.weight != null && d.weight > 0 && d.packFactor > 0 ? +(d.weight * d.packFactor).toFixed(1) : null);
   const wtLine   = wCarton != null ? `<span class="s-weight">${wCarton} kg/קרט</span>` : '';
-  const daysLeft = wh === 'Zafn' ? (d.daysStockZafn ?? null) : (d.daysStock ?? null);
+  const daysLeft = wh === 'Zafn'
+    ? (d.daysStockZafn ?? null)
+    : (d.daysStock ?? (d.stock > 0 && d.daySales > 0 ? Math.round(d.stock / d.daySales) : null));
   const daysLine = daysLeft != null ? `<span class="s-meta" title="days for saleout">${daysLeft}<span style="font-size:9px;opacity:0.7"> days</span></span>` : '';
   const metaLine = daysLine ? `<div class="slot-meta">${daysLine}</div>` : '';
   const stockLine = (kartLine || kratLine) ? `<div class="slot-kart-line">${kartLine}${kratLine}</div>` : '';
@@ -815,7 +817,9 @@ async function loadMaps() {
       } else {
         for (const [pick, p] of Object.entries(dy.picks)) {
           if (!p) { state.yavesh[pick] = null; }
-          else if (!(pick in state.yavesh)) state.yavesh[pick] = { ...p };
+          else if (!(pick in state.yavesh)) { state.yavesh[pick] = { ...p }; }
+          else { if (p.fam  !== undefined) state.yavesh[pick].fam  = p.fam;
+                 if (p.name !== undefined) state.yavesh[pick].name = p.name; }
         }
       }
       console.log(`dagim-yavesh-base.json: ${Object.keys(dy.picks).length} picks, v=${freshYaveshV}`);
@@ -866,7 +870,9 @@ async function loadMaps() {
       } else {
         for (const [pick, p] of Object.entries(hb.picks)) {
           if (!p) { state.halavi[pick] = null; }
-          else if (!(pick in state.halavi) || state.halavi[pick] === null) state.halavi[pick] = { ...p };
+          else if (!(pick in state.halavi) || state.halavi[pick] === null) { state.halavi[pick] = { ...p }; }
+          else { if (p.fam  !== undefined) state.halavi[pick].fam  = p.fam;
+                 if (p.name !== undefined) state.halavi[pick].name = p.name; }
         }
         for (const pick of Object.keys(state.halavi)) {
           if (!(pick in hb.picks)) state.halavi[pick] = null;
@@ -892,7 +898,9 @@ async function loadMaps() {
       } else {
         for (const [pick, p] of Object.entries(db.picks)) {
           if (!p) { state.dagim[pick] = null; }
-          else if (!(pick in state.dagim) || state.dagim[pick] === null) state.dagim[pick] = { ...p };
+          else if (!(pick in state.dagim) || state.dagim[pick] === null) { state.dagim[pick] = { ...p }; }
+          else { if (p.fam  !== undefined) state.dagim[pick].fam  = p.fam;
+                 if (p.name !== undefined) state.dagim[pick].name = p.name; }
         }
         for (const pick of Object.keys(state.dagim)) {
           if (!(pick in db.picks)) state.dagim[pick] = null;
