@@ -106,9 +106,9 @@ async function dax(token, query) {
     products.push({ makat: mk, fam, mkr365: mkr });
   }
 
-  // Sort: family order → sales desc within family
+  // Sort: family alphabetical → sales desc within family
   products.sort((a, b) => {
-    const fo = (FAM_ORDER[a.fam] ?? 99) - (FAM_ORDER[b.fam] ?? 99);
+    const fo = (a.fam || '').localeCompare(b.fam || '', 'he');
     return fo !== 0 ? fo : b.mkr365 - a.mkr365;
   });
 
