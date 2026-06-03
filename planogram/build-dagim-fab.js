@@ -104,21 +104,31 @@ function cleanFam(raw) {
     if (mk) salesMap[String(mk)] = r['[daySales]'] || 0;
   }
 
+  let stockMap = {};
+  try {
+    const pdPath = path.join(__dirname, '..', 'docs', 'product-data.json');
+    const pd = JSON.parse(fs.readFileSync(pdPath, 'utf8'));
+    for (const [mk, d] of Object.entries(pd)) stockMap[mk] = d.stock || 0;
+  } catch (e) { console.warn('product-data.json not available, skipping stock filter'); }
+
   const hasSales = [];
   const noSales  = [];
+  let excluded = 0;
 
   for (const r of kpRows) {
     const mk  = String(r['[makat]'] || '').trim();
     const fam = cleanFam(r['[fam]']);
     if (!mk) continue;
-    const ds = salesMap[mk] || 0;
+    const ds    = salesMap[mk] || 0;
+    const stock = stockMap[mk] ?? -1;
+    if (ds === 0 && stock === 0) { excluded++; continue; }
     if (ds > 0) hasSales.push({ makat: mk, fam, name: null });
     else        noSales.push({ makat: mk, fam, name: null });
   }
 
   noSales.sort((a, b) => (a.fam || '').localeCompare(b.fam || '') || Number(a.makat) - Number(b.makat));
 
-  console.log(`Products with sales: ${hasSales.length} | without: ${noSales.length}`);
+  console.log(`Products with sales: ${hasSales.length} | without: ${noSales.length} | excluded (no sales+stock): ${excluded}`);
 
   // ── Step 3: Assign products to picks ──────────────────────────────────────
   const picks = {};
