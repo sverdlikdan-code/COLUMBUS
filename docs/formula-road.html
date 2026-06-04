@@ -1444,12 +1444,21 @@ function renderMap(){
       ?`<span style="transform:rotate(45deg);font-size:${isFirst&&!isSel?'9px':'13px'};font-weight:900">${isFirst&&!isSel?'START':i+1}</span>`
       :`${i+1}`;
     const isCityCenter = c.gpsSource === 'city-center';
-    const shortName = (c.custName||'').length>24 ? (c.custName||'').slice(0,22)+'…' : (c.custName||'');
+    // pre-compute duplicate index here (used both for icon label and jitter below)
+    const _ck=`${c.lat},${c.lng}`;
+    const _hasDupe=_coordCount[_ck]>1;
+    const _di=_hasDupe?(_coordIdx[_ck]=(_coordIdx[_ck]||0)+1)-1:0;
+    const _groupSize=_coordCount[_ck]||1;
+    // label: remove city from name, then cap length
+    const _rawLabel=(shortName(c.custName||'',c.city||'')||c.custName||'');
+    const labelName=_rawLabel.length>22?_rawLabel.slice(0,20)+'…':_rawLabel;
+    // vertical offset: spread clustered labels so they don't overlap
+    const labelOffsetY=_hasDupe?Math.round((_di-(_groupSize-1)/2)*26):0;
     const icon=gpsCorrectMode
       ? L.divIcon({className:'',
           html:`<div style="position:relative;width:38px;height:38px">
             <div style="position:absolute;top:0;left:0;width:38px;height:38px;border-radius:50%;background:#D32F2F;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;border:3px solid #fff;box-shadow:0 3px 12px rgba(211,47,47,.6)">${i+1}</div>
-            <div style="position:absolute;left:44px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.78);color:#fff;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap;pointer-events:none;direction:rtl">${shortName}</div>
+            <div style="position:absolute;left:44px;top:calc(50% + ${labelOffsetY}px);transform:translateY(-50%);background:rgba(0,0,0,.82);color:#fff;padding:5px 10px;border-radius:5px;font-size:11px;font-weight:700;white-space:nowrap;pointer-events:none;direction:rtl;min-width:70px;box-shadow:0 2px 6px rgba(0,0,0,.4)">${labelName}</div>
           </div>`,
           iconSize:[38,38], iconAnchor:[19,19]})
       : isSel
@@ -1475,9 +1484,6 @@ function renderMap(){
           iconSize:[28,28], iconAnchor:[14,14],
         });
     const id = parseInt(c.custId) || 0;
-    const _ck=`${c.lat},${c.lng}`;
-    const _hasDupe=_coordCount[_ck]>1;
-    const _di=_hasDupe?(_coordIdx[_ck]=(_coordIdx[_ck]||0)+1)-1:0;
     const mLat = isCityCenter ? c.lat+((id*7+3)%17-8)*0.00015 : _hasDupe ? c.lat+((_di*7+3)%17-8)*0.00015 : c.lat;
     const mLng = isCityCenter ? c.lng+((id*13+5)%19-9)*0.00015 : _hasDupe ? c.lng+((_di*13+5)%19-9)*0.00015 : c.lng;
     const m=L.marker([mLat,mLng],{icon,zIndexOffset:isSel?1000:0});
