@@ -215,6 +215,75 @@ app.post('/admin/revoke', (req, res) => {
   res.json({ ok: true, agentCode: code, revokedSessions: revoked });
 });
 
+// GET /manager/gps-report — CSV: clients where our GPS differs from Priority (manager session only)
+app.get('/manager/gps-report', requireAuth, async (req, res) => {
+  if (!req.session.isManager) return res.status(403).json({ error: 'forbidden' });
+  try {
+    const rows = await executeDax(`
+EVALUATE
+SELECTCOLUMNS(
+  FILTER('משטח', 'משטח'[סטטוס] = "פעיל"),
+  "custId",    'משטח'[מס. לקוח],
+  "custName",  'משטח'[שם לקוח],
+  "city",      'משטח'[עיר],
+  "address",   'משטח'[כתובת],
+  "lat",       'משטח'[קו רוחב],
+  "lng",       'משטח'[קו אורך],
+  "agentCode", 'משטח'[סוכן],
+  "agentName", 'משטח'[שם סוכן]
+)
+ORDER BY 'משטח'[מס. לקוח] ASC
+    `);
+
+    const clients = rows.map(r => ({
+      custId:    r['[custId]'],
+      custName:  r['[custName]'] || '',
+      city:      r['[city]']    || '',
+      address:   r['[address]'] || '',
+      lat:       r['[lat]']     || null,
+      lng:       r['[lng]']     || null,
+      agentCode: r['[agentCode]'] || '',
+      agentName: r['[agentName]'] || '',
+    }));
+
+    await geocodeBatch(clients);
+
+    // load manual corrections
+    const correctionsPath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
+    let corrections = {};
+    try { corrections = JSON.parse(fs.readFileSync(correctionsPath, 'utf8')); } catch (_) {}
+
+    const diffClients = clients.filter(c => c.gpsSource !== 'pbi');
+
+    const csvRows = [['מס. לקוח', 'שם לקוח', 'עיר', 'כתובת', 'קו רוחב Priority', 'קו אורך Priority', 'קו רוחב מערכת', 'קו אורך מערכת', 'מקור GPS', 'קוד סוכן', 'שם סוכן', 'תיקון ידני']];
+    for (const c of diffClients) {
+      const corr = corrections[c.custId];
+      csvRows.push([
+        c.custId,
+        c.custName,
+        c.city,
+        c.address,
+        c.pbiLat  ?? '',
+        c.pbiLng  ?? '',
+        corr ? corr.lat : (c.lat ?? ''),
+        corr ? corr.lng : (c.lng ?? ''),
+        corr ? 'correction' : c.gpsSource,
+        c.agentCode,
+        c.agentName,
+        corr ? 'כן' : 'לא',
+      ]);
+    }
+
+    const csv = csvRows.map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+    const BOM = '﻿';
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="gps-report-${new Date().toISOString().slice(0,10)}.csv"`);
+    res.send(BOM + csv);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const DAY_LABELS = { 1: 'א', 2: 'ב', 3: 'ג', 4: 'ד', 5: 'ה' };
 
 // Israel bounding box
@@ -323,6 +392,7 @@ function cleanAddressForGeocoding(address) {
 
 // ── Geocoding services ────────────────────────────────────────────────────────
 const AZURE_MAPS_KEY = process.env.AZURE_MAPS_KEY || '';
+const GOOGLE_MAPS_KEY = process.env.GOOGLE_MAPS_KEY || '';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 
 async function geocodeAzure(query) {
@@ -333,6 +403,18 @@ async function geocodeAzure(query) {
     const data = await resp.json();
     const r = data?.results?.[0];
     if (r?.position) return { lat: r.position.lat, lng: r.position.lon };
+  } catch (_) {}
+  return null;
+}
+
+async function geocodeGoogle(query) {
+  if (!GOOGLE_MAPS_KEY) return null;
+  try {
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&region=il&key=${GOOGLE_MAPS_KEY}`;
+    const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    const data = await resp.json();
+    const r = data?.results?.[0]?.geometry?.location;
+    if (r) return { lat: r.lat, lng: r.lng };
   } catch (_) {}
   return null;
 }
@@ -379,7 +461,8 @@ async function normalizeAddressWithAI(address, city) {
 
 async function geocodeAddress(query) {
   if (geocodeCache.has(query)) return geocodeCache.get(query);
-  let result = await geocodeAzure(query);
+  let result = await geocodeGoogle(query);
+  if (!result) result = await geocodeAzure(query);
   if (!result) result = await geocodeNominatim(query);
   geocodeCache.set(query, result || null);
   return result || null;
@@ -431,11 +514,21 @@ async function geocodeBatch(clients) {
   const allCities = [...new Set(clients.map(c => c.city).filter(Boolean))];
   await Promise.all(allCities.map(city => cityBBoxCache.has(city) ? null : getCityBBox(city)));
 
-  // null out existing coords that are outside city bbox
+  // save Priority GPS and mark source before any overwrite
   for (const c of clients) {
+    c.pbiLat = c.lat || null;
+    c.pbiLng = c.lng || null;
+
     if (isValidIL(c.lat, c.lng)) {
       const bbox = cityBBoxCache.get(c.city) ?? null;
-      if (!isWithinCityBBox(c.lat, c.lng, bbox)) { c.lat = null; c.lng = null; }
+      if (!isWithinCityBBox(c.lat, c.lng, bbox)) {
+        c.gpsSource = 'pbi-bad';
+        c.lat = null; c.lng = null;
+      } else {
+        c.gpsSource = 'pbi';
+      }
+    } else {
+      c.gpsSource = 'geocoded';
     }
   }
 
@@ -450,6 +543,7 @@ async function geocodeBatch(clients) {
         c.lat = result.lat; c.lng = result.lng; resolved++;
       }
     }
+    if (!isValidIL(c.lat, c.lng)) c.gpsSource = 'no-gps';
   }
   if (resolved > 0) { saveGeocodeCache(); console.log(`geocodeBatch: resolved ${resolved}/${needsGeocode.length}`); }
   return clients;
