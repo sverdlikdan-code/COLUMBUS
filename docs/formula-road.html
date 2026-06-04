@@ -1297,8 +1297,7 @@ function renderClientList(html){
     const indic=c.indication||(c.target?calcIndication(c.monthlySales||0,c.target):'');
     const indicPart=(indic&&indic!=='🚀')?`<span style="font-size:13px;">${indic}</span>`:'';
     const SEP='<span style="color:var(--light)"> · </span>';
-    const shortN=shortName(c.custName,c.city)||c.custName||'';
-    const nameLine=shortN
+    const nameLine=(c.custName||'')
       +(c.city?`<span style="font-weight:400;color:var(--mid);font-size:11px;"> · ${c.city}</span>`:'')
       +(c.address?`<span style="font-weight:400;color:var(--mid);font-size:11px;"> · ${c.address}</span>`:'');
     return `<div class="${cls}" data-id="${c.custId}" ondblclick="selectClient('${c.custId}')">
