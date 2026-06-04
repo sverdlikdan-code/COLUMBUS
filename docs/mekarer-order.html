@@ -34,16 +34,21 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
 .chip{padding:5px 12px;border-radius:20px;border:1.5px solid var(--sky-mid);background:#fff;font-size:12px;font-weight:700;cursor:pointer;color:var(--blue-dark);transition:all .15s;}
 .chip.on{background:var(--blue);color:#fff;border-color:var(--blue);}
-/* SALES CHART */
+/* SALES TABLE */
 .sales-loading{text-align:center;padding:20px;color:var(--light);font-size:13px;}
-.chart-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f0f4f8;}
-.chart-row:last-child{border-bottom:none;}
-.chart-row.cur .chart-month{font-weight:900;color:var(--blue-dark);}
-.chart-month{font-size:12px;font-weight:600;color:var(--text);min-width:72px;white-space:nowrap;}
-.chart-bar-wrap{flex:1;background:#EEF2F8;border-radius:4px;height:18px;overflow:hidden;}
-.chart-bar{height:100%;border-radius:4px;background:var(--blue);transition:width .4s;}
-.chart-row.cur .chart-bar{background:var(--orange);}
-.chart-val{font-size:12px;font-weight:700;color:var(--blue-dark);min-width:54px;text-align:left;}
+.sales-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:8px;border:1px solid var(--sky-mid);}
+.sales-tbl{border-collapse:collapse;width:100%;font-size:11px;min-width:480px;}
+.sales-tbl th{background:var(--blue-dark);color:#fff;font-weight:700;padding:7px 8px;white-space:nowrap;text-align:center;border-right:1px solid rgba(255,255,255,.15);}
+.sales-tbl th:first-child{text-align:right;min-width:90px;}
+.sales-tbl th.total-col{background:var(--blue);}
+.sales-tbl td{padding:5px 8px;border-bottom:1px solid var(--sky-mid);border-right:1px solid #f0f4f8;text-align:center;white-space:nowrap;}
+.sales-tbl td:first-child{font-weight:700;text-align:right;color:var(--blue-dark);background:var(--sky);}
+.sales-tbl td.total-col{font-weight:800;color:var(--blue-dark);background:#EEF2F8;}
+.sales-tbl tr.cur-month td{background:#FFF3E0;}
+.sales-tbl tr.cur-month td:first-child{background:#FFE0B2;color:var(--orange);}
+.sales-tbl tr.cur-month td.total-col{background:#FFD180;color:var(--orange);}
+.sales-tbl tr:last-child td{border-bottom:none;}
+.sales-tbl .zero{color:var(--light);}
 /* FORM FIELDS */
 .field{margin-bottom:14px;}
 .field label{display:block;font-size:12px;font-weight:700;color:var(--mid);margin-bottom:4px;}
@@ -109,7 +114,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 
 <!-- SALES BLOCK -->
 <div class="section">
-  <div class="sec-head"><span class="sec-icon">📊</span><span class="sec-title">12 חודשי מכירות</span></div>
+  <div class="sec-head"><span class="sec-icon">📊</span><span class="sec-title" id="sales-title">מכירות</span></div>
   <div class="sec-body">
     <div class="chips" id="company-chips">
       <span class="chip on" data-co="הכל">הכל</span>
@@ -117,6 +122,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
       <span class="chip" data-co="ICE">ICE</span>
       <span class="chip" data-co="INTER">INTER</span>
     </div>
+    <div class="chips" id="year-chips"></div>
     <div id="sales-area"><div class="sales-loading">טוען נתונים...</div></div>
   </div>
 </div>
@@ -184,7 +190,7 @@ const agentName = params.get('agentName') || '';
 const manager = params.get('manager') || '';
 
 let parts = []; // [{makat, name}]
-let salesData = []; // [{month, sales}]
+let salesData = []; // legacy — used for order snapshot
 let refCount = 0;
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
@@ -217,47 +223,86 @@ async function loadParts() {
 }
 
 // ── SALES ─────────────────────────────────────────────────────────────────────
+let salesAllMonths = [];
+let salesCats = [];
+let selectedYear = null;
+
 async function loadSales(company) {
-  if (!custId) { renderSales([]); return; }
+  if (!custId) { renderSalesTable([], []); return; }
   document.getElementById('sales-area').innerHTML = '<div class="sales-loading">טוען...</div>';
   try {
     const url = `/api/client-sales?custId=${encodeURIComponent(custId)}&company=${encodeURIComponent(company)}`;
     const r = await apiFetch(url);
     if (!r.ok) throw new Error('err');
-    salesData = await r.json();
-    renderSales(salesData);
+    const data = await r.json();
+    salesAllMonths = data.months || [];
+    salesCats = data.categories || [];
+    buildYearChips();
+    renderSalesTable(getFilteredMonths(), salesCats);
   } catch {
     document.getElementById('sales-area').innerHTML = '<div class="sales-loading" style="color:#e57373">שגיאה בטעינת נתונים</div>';
   }
 }
 
-const HEB_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
-function fmtMonth(ym) {
-  const [y, m] = ym.split('-');
-  return `${HEB_MONTHS[parseInt(m)-1]} ${y}`;
-}
-function fmtSales(n) {
-  return n >= 1000 ? `₪${(n/1000).toFixed(1)}K` : `₪${n.toLocaleString()}`;
+function buildYearChips() {
+  const years = [...new Set(salesAllMonths.map(r => r.month.slice(0, 4)))].sort().reverse();
+  selectedYear = selectedYear && years.includes(selectedYear) ? selectedYear : years[0];
+  const el = document.getElementById('year-chips');
+  el.innerHTML = years.map(y =>
+    `<span class="chip${y === selectedYear ? ' on' : ''}" data-yr="${y}">${y}</span>`
+  ).join('');
+  const title = document.getElementById('sales-title');
+  if (title) title.textContent = `מכירות ${selectedYear}`;
 }
 
-function renderSales(rows) {
+function getFilteredMonths() {
+  if (!selectedYear) return salesAllMonths;
+  return salesAllMonths.filter(r => r.month.startsWith(selectedYear));
+}
+
+const HEB_MONTHS_SHORT = ['ינו׳','פבר׳','מרץ','אפר׳','מאי','יוני','יולי','אוג׳','ספט׳','אוק׳','נוב׳','דצמ׳'];
+function fmtMonthShort(ym) {
+  const [, m] = ym.split('-');
+  return HEB_MONTHS_SHORT[parseInt(m) - 1];
+}
+function fmtK(n) {
+  if (!n) return '';
+  return n >= 1000 ? `${(n/1000).toFixed(0)}K` : String(n);
+}
+
+function renderSalesTable(rows, cats) {
   if (!rows.length) {
     document.getElementById('sales-area').innerHTML = '<div class="sales-loading">אין נתוני מכירות</div>';
     return;
   }
   const nowKey = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
-  const maxSales = Math.max(...rows.map(r => r.sales), 1);
-  let html = '';
-  for (const row of rows) {
-    const pct = Math.round((row.sales / maxSales) * 100);
-    const cur = row.month === nowKey ? ' cur' : '';
-    html += `<div class="chart-row${cur}">
-      <div class="chart-month">${fmtMonth(row.month)}</div>
-      <div class="chart-bar-wrap"><div class="chart-bar" style="width:${pct}%"></div></div>
-      <div class="chart-val">${fmtSales(row.sales)}</div>
-    </div>`;
+  const displayCats = [...cats];
+  if (rows.some(r => r['אחרים'] > 0)) displayCats.push('אחרים');
+
+  // Shorten category names (remove brand names, keep family)
+  function shortCat(c) {
+    return c.replace(/\b(FORMULA|ICE|INTER|RUSSIA|NORD PORT|SANTA BREMOR|KAZAHSTAN|RUSSIAN SEA|PRESIDENT|FERMA|SVALIA|ןשור|YUKKI|MOZAIKA|DADU|RUD|BONBONETTI)\b/gi, '').replace(/\s{2,}/g, ' ').trim();
   }
-  document.getElementById('sales-area').innerHTML = html;
+
+  let thead = '<tr><th>חודש</th>';
+  for (const c of displayCats) thead += `<th title="${c}">${shortCat(c)}</th>`;
+  thead += '<th class="total-col">סה"כ</th></tr>';
+
+  let tbody = '';
+  for (const row of rows) {
+    const isCur = row.month === nowKey;
+    tbody += `<tr class="${isCur ? 'cur-month' : ''}">`;
+    tbody += `<td>${fmtMonthShort(row.month)}</td>`;
+    for (const c of displayCats) {
+      const v = row[c] || 0;
+      tbody += `<td class="${v ? '' : 'zero'}">${fmtK(v)}</td>`;
+    }
+    tbody += `<td class="total-col">${fmtK(row.total)}</td>`;
+    tbody += '</tr>';
+  }
+
+  document.getElementById('sales-area').innerHTML =
+    `<div class="sales-scroll"><table class="sales-tbl"><thead>${thead}</thead><tbody>${tbody}</tbody></table></div>`;
 }
 
 // Company chips
@@ -266,7 +311,19 @@ document.getElementById('company-chips').addEventListener('click', e => {
   if (!chip) return;
   document.querySelectorAll('#company-chips .chip').forEach(c => c.classList.remove('on'));
   chip.classList.add('on');
+  selectedYear = null;
   loadSales(chip.dataset.co);
+});
+
+// Year chips
+document.getElementById('year-chips').addEventListener('click', e => {
+  const chip = e.target.closest('.chip');
+  if (!chip || !chip.dataset.yr) return;
+  selectedYear = chip.dataset.yr;
+  document.querySelectorAll('#year-chips .chip').forEach(c => c.classList.toggle('on', c.dataset.yr === selectedYear));
+  const title = document.getElementById('sales-title');
+  if (title) title.textContent = `מכירות ${selectedYear}`;
+  renderSalesTable(getFilteredMonths(), salesCats);
 });
 
 // ── REF BLOCKS ───────────────────────────────────────────────────────────────
@@ -413,7 +470,7 @@ async function submitOrder() {
   const order = {
     custId, custName, city, agentCode, agentName, manager,
     contactName, phone, location, mekarerim,
-    salesSnapshot: salesData.slice(0, 3),
+    salesSnapshot: salesAllMonths.slice(0, 3).map(r => ({ month: r.month, total: r.total })),
     submittedAt: new Date().toISOString(),
   };
 
