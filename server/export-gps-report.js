@@ -109,17 +109,9 @@ function fixBiDiHebrew(raw) {
   const hasBidi = BIDI_TEST.test(raw);
   const s = raw.replace(BIDI_STRIP, '').trim();
   if (!hasBidi || !/[א-ת]/.test(s)) return s;
-  // Reverse character order within each Hebrew word; keep numbers/Latin as-is;
-  // reverse the word sequence so Hebrew words appear in logical order.
-  const words = s.split(/\s+/);
-  const heb = [];
-  const num = [];
-  for (const w of words) {
-    if (/[א-ת]/.test(w)) heb.push(w.split('').reverse().join(''));
-    else if (w) num.push(w);
-  }
-  heb.reverse();
-  return [...heb, ...num].join(' ');
+  return s.split(/\s+/).reverse()
+    .map(w => /[א-ת]/.test(w) ? w.split('').reverse().join('') : w)
+    .join(' ');
 }
 
 async function geocodeClient(c) {
