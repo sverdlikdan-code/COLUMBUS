@@ -34,14 +34,16 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
 .chip{padding:5px 12px;border-radius:20px;border:1.5px solid var(--sky-mid);background:#fff;font-size:12px;font-weight:700;cursor:pointer;color:var(--blue-dark);transition:all .15s;}
 .chip.on{background:var(--blue);color:#fff;border-color:var(--blue);}
-/* SALES TABLE */
-.sales-table{width:100%;border-collapse:collapse;font-size:13px;}
-.sales-table th{background:var(--sky);padding:6px 10px;text-align:right;font-size:11px;font-weight:800;color:var(--mid);border-bottom:1px solid var(--sky-mid);}
-.sales-table td{padding:7px 10px;border-bottom:1px solid #f0f4f8;}
-.sales-table tr:last-child td{border-bottom:none;}
-.sales-table .sales-num{font-weight:700;color:var(--blue-dark);}
-.sales-table .cur-month{background:#FFFDE7;}
+/* SALES CHART */
 .sales-loading{text-align:center;padding:20px;color:var(--light);font-size:13px;}
+.chart-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f0f4f8;}
+.chart-row:last-child{border-bottom:none;}
+.chart-row.cur .chart-month{font-weight:900;color:var(--blue-dark);}
+.chart-month{font-size:12px;font-weight:600;color:var(--text);min-width:72px;white-space:nowrap;}
+.chart-bar-wrap{flex:1;background:#EEF2F8;border-radius:4px;height:18px;overflow:hidden;}
+.chart-bar{height:100%;border-radius:4px;background:var(--blue);transition:width .4s;}
+.chart-row.cur .chart-bar{background:var(--orange);}
+.chart-val{font-size:12px;font-weight:700;color:var(--blue-dark);min-width:54px;text-align:left;}
 /* FORM FIELDS */
 .field{margin-bottom:14px;}
 .field label{display:block;font-size:12px;font-weight:700;color:var(--mid);margin-bottom:4px;}
@@ -86,7 +88,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 
 <!-- TOP BAR -->
 <div class="top-bar">
-  <button class="back-btn" onclick="history.back()">←</button>
+  <button class="back-btn" onclick="window.history.length>1?history.back():window.close()">←</button>
   <div class="top-title">הזמנת מקרר</div>
   <div class="top-date" id="top-date"></div>
 </div>
@@ -164,7 +166,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
     <div class="modal-icon">✅</div>
     <div class="modal-title">ההזמנה נשלחה!</div>
     <div class="modal-sub" id="modal-sub">מספר הזמנה: —</div>
-    <button class="modal-btn" onclick="history.back()">חזור לרשימה</button>
+    <button class="modal-btn" onclick="window.history.length>1?history.back():window.close()">חזור לרשימה</button>
   </div>
 </div>
 
@@ -244,12 +246,17 @@ function renderSales(rows) {
     return;
   }
   const nowKey = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
-  let html = '<table class="sales-table"><thead><tr><th>חודש</th><th>מכירות</th></tr></thead><tbody>';
+  const maxSales = Math.max(...rows.map(r => r.sales), 1);
+  let html = '';
   for (const row of rows) {
-    const cur = row.month === nowKey ? ' cur-month' : '';
-    html += `<tr class="${cur}"><td>${fmtMonth(row.month)}</td><td class="sales-num">${fmtSales(row.sales)}</td></tr>`;
+    const pct = Math.round((row.sales / maxSales) * 100);
+    const cur = row.month === nowKey ? ' cur' : '';
+    html += `<div class="chart-row${cur}">
+      <div class="chart-month">${fmtMonth(row.month)}</div>
+      <div class="chart-bar-wrap"><div class="chart-bar" style="width:${pct}%"></div></div>
+      <div class="chart-val">${fmtSales(row.sales)}</div>
+    </div>`;
   }
-  html += '</tbody></table>';
   document.getElementById('sales-area').innerHTML = html;
 }
 
