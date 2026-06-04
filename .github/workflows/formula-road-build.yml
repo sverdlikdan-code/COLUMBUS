@@ -40,7 +40,8 @@ jobs:
           echo "AZURE_CLIENT_SECRET=${{ secrets.PBI_SECRET }}" >> .env
           echo "POWERBI_DATASET_ID=${{ secrets.PBI_DATASET }}" >> .env
           echo "POWERBI_WORKSPACE_ID=${{ secrets.PBI_WORKSPACE }}" >> .env
-          echo "AZURE_MAPS_KEY=${{ secrets.AZURE_MAPS_KEY }}"     >> .env
+          echo "AZURE_MAPS_KEY=${{ secrets.AZURE_MAPS_KEY }}"       >> .env
+          echo "GOOGLE_MAPS_KEY=${{ secrets.GOOGLE_MAPS_KEY }}"   >> .env
 
       - name: Install planogram dependencies
         run: npm install
