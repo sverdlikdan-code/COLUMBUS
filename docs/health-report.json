@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-04T16:21:28.126Z",
+  "generatedAt": "2026-06-04T19:24:11.216Z",
   "date": "2026-06-04",
   "totalSessions": 4,
   "last7days": [
@@ -66,7 +66,7 @@
   "recentIssues": [
     {
       "level": "warning",
-      "msg": "GitHub Actions не коммитил 4.5ч — последний: COLUMBUS Bot в 2026-06-04T11:53:16.000Z",
+      "msg": "GitHub Actions не коммитил 3ч — последний: COLUMBUS Bot в 2026-06-04T16:21:28.000Z",
       "fix": "Проверь GitHub Actions: https://github.com/sverdlikdan-code/COLUMBUS/actions — ищи failed runs",
       "code": "ACTIONS_STALE"
     },
@@ -79,10 +79,10 @@
   ],
   "status": "warning",
   "githubActions": {
-    "lastActionsCommit": "2026-06-04T11:53:16.000Z",
+    "lastActionsCommit": "2026-06-04T16:21:28.000Z",
     "lastActionsAuthor": "COLUMBUS Bot",
-    "hoursSinceLastActions": 4.5,
+    "hoursSinceLastActions": 3,
     "status": "warning",
-    "warning": "GitHub Actions не коммитил 4.5ч — последний: COLUMBUS Bot в 2026-06-04T11:53:16.000Z"
+    "warning": "GitHub Actions не коммитил 3ч — последний: COLUMBUS Bot в 2026-06-04T16:21:28.000Z"
   }
 }
