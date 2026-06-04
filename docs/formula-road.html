@@ -129,6 +129,10 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .client-card.walk-top{margin-bottom:2px;border-radius:10px 10px 4px 4px;}
 .client-card.walk-mid{margin-bottom:2px;border-radius:4px;margin-top:0;}
 .client-card.walk-bottom{border-radius:4px 4px 10px 10px;margin-top:0;}
+.client-card.excluded{background:#f0f0f0!important;opacity:.5;pointer-events:auto;}
+.excl-btn{font-size:14px;flex-shrink:0;cursor:pointer;opacity:.28;transition:opacity .15s;min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;}
+.excl-btn:hover,.client-card.excluded .excl-btn{opacity:.9;}
+.excl-section-lbl{padding:5px 10px 2px;font-size:10px;font-weight:700;color:var(--light);letter-spacing:1px;text-transform:uppercase;border-top:1px solid var(--sky-mid);margin-top:4px;}
 .c-num-wrap{display:flex;flex-direction:column;align-items:center;gap:1px;flex-shrink:0;min-width:28px;cursor:grab;touch-action:none;user-select:none;}
 .walk-icon{font-size:11px;line-height:1;}
 .c-num{width:21px;height:21px;border-radius:50%;background:var(--sky-light);border:1.5px solid var(--sky-mid);font-size:10px;font-weight:800;color:var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -517,6 +521,7 @@ const st = {
   selectedCities:[], selectedId:null,
   addrClientId:null, isDemo:false,
   roadKm:null, roadGeometry:null, priorityRoadKm:null,
+  excluded: new Set(),
 };
 
 let map=null, mapMarkers=[], mapPolylines=[], markerCluster=null, sortable=null, mapBearing=0;
@@ -649,7 +654,7 @@ async function osrmRoute(clients) {
 }
 
 function triggerOsrm() {
-  const snap = { clients:[...st.clients], agentCode:st.agent?.code, day:st.day };
+  const snap = { clients:activeClients(), agentCode:st.agent?.code, day:st.day };
   // 2-opt order (instant, no API)
   const ordered = nearestNeighbor([...snap.clients]);
   if (st.agent?.code === snap.agentCode && st.day === snap.day) {
@@ -1029,6 +1034,7 @@ async function selectDay(day){
 async function initRoute(){
   st.sortMode='ai'; st.selectedCities=[]; st.selectedId=null;
   st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null;
+  st.excluded=loadExcluded(st.agent?.code, st.day);
   document.getElementById('route-title').textContent='DILER FORMULA';
   document.getElementById('route-sub').textContent=`${st.agent.name} · יום ${DAY_LABELS[st.day]}`;
   document.getElementById('export-btn').classList.remove('visible');
@@ -1090,10 +1096,12 @@ async function initRoute(){
   if(window.innerWidth>=700) setTimeout(()=>renderMap(),200);
 }
 
+function activeClients(){ return st.clients.filter(c=>!st.excluded.has(c.custId)); }
 function displayClients(){
   const base=st.sortMode==='ai'?st.aiClients:st.clients;
-  if(!st.selectedCities.length)return base;
-  return base.filter(c=>st.selectedCities.includes(c.city));
+  const active=base.filter(c=>!st.excluded.has(c.custId));
+  if(!st.selectedCities.length)return active;
+  return active.filter(c=>st.selectedCities.includes(c.city));
 }
 
 function buildDaySwitcher(){
@@ -1320,6 +1328,7 @@ function renderClientList(html){
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;">
         ${c.custId?`<span class="c-id-side">${c.custId}</span>`:''}
         <div style="display:flex;align-items:center;gap:0;">
+          <span class="excl-btn" data-id="${c.custId}" onclick="toggleExclude('${c.custId}',event)" title="הוצא ממסלול">🚫</span>
           <span class="day-change-btn" data-id="${c.custId}" onclick="openDayPopup(event,this.dataset.id)">📅</span>
           ${noGps
             ? `<span class="no-gps-badge" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name)">NO GPS</span>`
@@ -1328,6 +1337,40 @@ function renderClientList(html){
       </div>
     </div>`;
   }).join('');
+  // Excluded clients section at bottom
+  const exclList=(st.sortMode==='ai'?st.aiClients:st.clients)
+    .filter(c=>st.excluded.has(c.custId))
+    .filter(c=>!st.selectedCities.length||st.selectedCities.includes(c.city));
+  if(exclList.length){
+    el.innerHTML+=`<div class="excl-section-lbl">מוצאים ממסלול (${exclList.length})</div>`+
+      exclList.map(c=>`<div class="client-card excluded" data-id="${c.custId}">
+        <div class="c-num-wrap"><span style="font-size:13px;line-height:1;opacity:.5">🚫</span></div>
+        <div class="c-body">
+          <div class="c-name">${shortName(c.custName,c.city)||c.custName||''}</div>
+          <div class="c-sub">${c.city||''}</div>
+        </div>
+        <div style="display:flex;align-items:center;flex-shrink:0;">
+          <span class="excl-btn" data-id="${c.custId}" onclick="toggleExclude('${c.custId}',event)" title="החזר למסלול" style="opacity:.7;font-size:16px;">↩️</span>
+        </div>
+      </div>`).join('');
+  }
+}
+
+function saveExcluded(code,day){ localStorage.setItem(`excl_${code}_${day}`,JSON.stringify([...st.excluded])); }
+function loadExcluded(code,day){ try{return new Set(JSON.parse(localStorage.getItem(`excl_${code}_${day}`)||'[]'));}catch(_){return new Set();} }
+function toggleExclude(custId,e){
+  if(e){e.stopPropagation();e.preventDefault();}
+  if(st.excluded.has(custId)) st.excluded.delete(custId); else st.excluded.add(custId);
+  saveExcluded(st.agent?.code, st.day);
+  const withGps=activeClients().filter(c=>c.lat&&c.lng);
+  st.aiClients=nearestNeighbor([...activeClients()]);
+  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null;
+  updateKmBar(); renderClientList(); renderMap();
+  osrmRoadData(withGps).then(res=>{
+    if(!res)return;
+    st.roadKm=res.roadKm; st.roadGeometry=res.roadGeometry;
+    updateKmBar(); if(window.innerWidth>=700||st.tab==='map')renderMap();
+  });
 }
 
 function selectClient(id){
@@ -1347,12 +1390,12 @@ let _dtapTime=0, _dtapId=null, _dtapStartY=0;
 function setupCardDoubleTap(listEl){
   listEl.addEventListener('touchstart',e=>{
     const card=e.target.closest('.client-card');
-    if(!card||e.target.closest('.day-change-btn,.no-gps-badge,.gps-edit-btn,.c-drag')) return;
+    if(!card||e.target.closest('.day-change-btn,.no-gps-badge,.gps-edit-btn,.c-drag,.excl-btn')) return;
     _dtapStartY=e.touches[0].clientY;
   },{passive:true});
   listEl.addEventListener('touchend',e=>{
     const card=e.target.closest('.client-card');
-    if(!card||e.target.closest('.day-change-btn,.no-gps-badge,.gps-edit-btn,.c-drag')) return;
+    if(!card||e.target.closest('.day-change-btn,.no-gps-badge,.gps-edit-btn,.c-drag,.excl-btn')) return;
     if(Math.abs(e.changedTouches[0].clientY-_dtapStartY)>12) return; // was scrolling
     const id=card.dataset.id;
     const now=Date.now();
