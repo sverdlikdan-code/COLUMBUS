@@ -199,6 +199,9 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .map-rotate-btn{width:34px;height:34px;border-radius:10px;background:#fff;border:2px solid var(--sky-mid);color:var(--blue-dark);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.18);transition:background .12s;}
 .map-rotate-btn:hover{background:var(--sky-light);}
 .map-reset-btn{width:34px;height:20px;border-radius:8px;background:#fff;border:2px solid var(--sky-mid);color:var(--mid);font-size:9px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.12);letter-spacing:.5px;}
+.map-tile-ctrl{position:absolute;top:10px;left:10px;z-index:1000;}
+.map-tile-btn{height:30px;border-radius:10px;background:#fff;border:2px solid var(--sky-mid);color:var(--blue-dark);font-size:11px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:4px;box-shadow:0 2px 8px rgba(0,0,0,.18);padding:0 10px;white-space:nowrap;}
+.map-tile-btn:hover{background:var(--sky-light);}
 
 /* LOGIN HERO */
 .login-hero{background:linear-gradient(160deg,var(--blue-deeper) 0%,var(--blue-dark) 50%,var(--blue) 100%);padding:28px 20px 22px;display:flex;flex-direction:column;align-items:center;gap:10px;flex-shrink:0;}
@@ -366,10 +369,13 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
     </div>
     <div id="map-pane" style="position:relative">
       <div id="map"></div>
+      <div class="map-tile-ctrl">
+        <button class="map-tile-btn" id="tile-btn" onclick="cycleTile()"></button>
+      </div>
       <div class="map-rotate-ctrl">
         <button class="map-rotate-btn" onclick="rotateMap(-45)" title="↺ поворот влево">↺</button>
         <button class="map-rotate-btn" onclick="rotateMap(45)" title="↻ поворот вправо">↻</button>
-        <button class="map-reset-btn" onclick="rotateMap(0,true)" title="сброс">N↑</button>
+        <button class="map-reset-btn" onclick="rotateMap(0,true)" title="סדר">N↑</button>
       </div>
     </div>
   </div>
@@ -509,7 +515,30 @@ const st = {
 };
 
 let map=null, mapMarkers=[], mapPolylines=[], markerCluster=null, sortable=null, mapBearing=0;
-let baseTileLayer=null, lastTileMode='normal', gpsCorrectMode=false;
+let baseTileLayer=null, gpsCorrectMode=false;
+let userTileKey='light', currentTileKey=null;
+
+const TILE_DEFS={
+  light:    {icon:'☁',  label:'בהיר',   url:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', opts:{attribution:'© CartoDB',subdomains:'abcd',maxZoom:19}},
+  street:   {icon:'🗺', label:'רחובות', url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts:{attribution:'© Esri',maxZoom:19}},
+  satellite:{icon:'🛰', label:'לוויין', url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts:{attribution:'© Esri',maxZoom:19}},
+};
+const TILE_ORDER=['light','street','satellite'];
+
+function setTile(key){
+  if(!map) return;
+  if(baseTileLayer) map.removeLayer(baseTileLayer);
+  const d=TILE_DEFS[key];
+  baseTileLayer=L.tileLayer(d.url,d.opts).addTo(map);
+  currentTileKey=key;
+  const btn=document.getElementById('tile-btn');
+  if(btn) btn.innerHTML=`${d.icon} ${d.label}`;
+}
+function cycleTile(){
+  if(gpsCorrectMode) return;
+  userTileKey=TILE_ORDER[(TILE_ORDER.indexOf(userTileKey)+1)%TILE_ORDER.length];
+  setTile(userTileKey);
+}
 
 // ── Haversine ──────────────────────────────────────────────────────────────
 function haversineKm(la1,lo1,la2,lo2){
@@ -1362,21 +1391,16 @@ function setupSortable(){
 
 // ── MAP ────────────────────────────────────────────────────────────────────
 function renderMap(){
+  const neededKey=gpsCorrectMode?'satellite':userTileKey;
   if(!map){
     map=L.map('map',{rotate:true,bearing:0}).setView([32.0,34.9],10);
-    baseTileLayer=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',{attribution:'© CartoDB',subdomains:'abcd',maxZoom:19}).addTo(map);
-    lastTileMode='normal';
-  }
-  // переключение тайла при входе/выходе из режима коррекции
-  if(baseTileLayer){
-    const need=gpsCorrectMode?'satellite':'normal';
-    if(need!==lastTileMode){
-      map.removeLayer(baseTileLayer);
-      baseTileLayer=need==='satellite'
-        ? L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri',maxZoom:19}).addTo(map)
-        : L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',{attribution:'© CartoDB',subdomains:'abcd',maxZoom:19}).addTo(map);
-      lastTileMode=need;
-    }
+    setTile(neededKey);
+  } else if(neededKey!==currentTileKey){
+    setTile(neededKey);
+  } else {
+    // refresh button label if tile-btn was just created
+    const btn=document.getElementById('tile-btn');
+    if(btn&&!btn.innerHTML.trim()){const d=TILE_DEFS[currentTileKey||'light'];btn.innerHTML=`${d.icon} ${d.label}`;}
   }
   mapMarkers.forEach(m=>m.remove()); mapMarkers=[];
   mapPolylines.forEach(p=>p.remove()); mapPolylines=[];
