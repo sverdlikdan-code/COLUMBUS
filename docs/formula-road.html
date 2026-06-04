@@ -1246,16 +1246,19 @@ function fillWorkDaysBar() {
 function shortName(name, city) {
   if (!city || !name) return name;
   const DIR = /[‎‏‪-‮]/g;
+  const hasBidi = /[‎‏‪-‮]/.test(name);
   const cleanName = name.replace(DIR, '');
   const cleanCity = city.replace(DIR, '').trim();
-  if (!cleanCity) return cleanName || name;
+  if (!cleanCity) return name;
   const esc = cleanCity.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const result = cleanName
     .replace(new RegExp('[\\s\\-–·.(]*' + esc + '[)\\s\\-–·.]*', 'g'), ' ')
     .replace(/\s{2,}/g, ' ')
     .replace(/^[\s\-–·.]+|[\s\-–·.]+$/g, '')
     .trim();
-  return result || cleanName || name;
+  const base = result || cleanName;
+  // Priority stores names in visual order with LRE wrapper — restore it so browser doesn't reverse chars
+  return hasBidi ? '‪' + base + '‬' : base;
 }
 
 function renderClientList(html){
@@ -1297,7 +1300,7 @@ function renderClientList(html){
     const indic=c.indication||(c.target?calcIndication(c.monthlySales||0,c.target):'');
     const indicPart=(indic&&indic!=='🚀')?`<span style="font-size:13px;">${indic}</span>`:'';
     const SEP='<span style="color:var(--light)"> · </span>';
-    const nameLine=(c.custName||'')
+    const nameLine=(shortName(c.custName,c.city)||c.custName||'')
       +(c.city?`<span style="font-weight:400;color:var(--mid);font-size:11px;"> · ${c.city}</span>`:'')
       +(c.address?`<span style="font-weight:400;color:var(--mid);font-size:11px;"> · ${c.address}</span>`:'');
     return `<div class="${cls}" data-id="${c.custId}" ondblclick="selectClient('${c.custId}')">
