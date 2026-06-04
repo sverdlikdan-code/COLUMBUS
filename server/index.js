@@ -827,7 +827,7 @@ CALCULATETABLE(
     SUMMARIZE(ALL_PARTS, ALL_PARTS[תאריך]),
     "sales", CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)])
   ),
-  ALL_PARTS[מספר לקוח] = ${custId}${companyArg}
+  ALL_PARTS[מספר לקוח] = "${custId}"${companyArg}
 )
 ORDER BY ALL_PARTS[תאריך] DESC
 `);
