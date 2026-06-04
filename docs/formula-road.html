@@ -1339,12 +1339,15 @@ function renderClientList(html){
       </div>
     </div>`;
   }).join('');
-  // Excluded clients section at bottom
-  const exclList=(st.sortMode==='ai'?st.aiClients:st.clients)
+  // Excluded clients section at bottom — always from st.clients (full list), never aiClients
+  const exclList=st.clients
     .filter(c=>st.excluded.has(c.custId))
     .filter(c=>!st.selectedCities.length||st.selectedCities.includes(c.city));
   if(exclList.length){
-    el.innerHTML+=`<div class="excl-section-lbl">מוצאים ממסלול (${exclList.length})</div>`+
+    el.innerHTML+=`<div class="excl-section-lbl" style="display:flex;align-items:center;justify-content:space-between;">
+      <span>מוצאים ממסלול (${exclList.length})</span>
+      <span onclick="resetExcluded()" style="cursor:pointer;font-size:11px;font-weight:700;color:var(--gold);text-decoration:underline;padding-right:4px;">↩️ איפוס הכל</span>
+    </div>`+
       exclList.map(c=>`<div class="client-card excluded" data-id="${c.custId}">
         <div class="c-num-wrap"><span style="font-size:13px;line-height:1;opacity:.5">🚫</span></div>
         <div class="c-body">
@@ -1360,6 +1363,20 @@ function renderClientList(html){
 
 function saveExcluded(code,day){ localStorage.setItem(`excl_${code}_${day}`,JSON.stringify([...st.excluded])); }
 function loadExcluded(code,day){ try{return new Set(JSON.parse(localStorage.getItem(`excl_${code}_${day}`)||'[]'));}catch(_){return new Set();} }
+function resetExcluded(){
+  st.excluded=new Set();
+  saveExcluded(st.agent?.code, st.day);
+  st.aiClients=nearestNeighbor([...activeClients()]);
+  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null;
+  updateKmBar(); renderClientList(); renderMap();
+  const withGps=activeClients().filter(c=>c.lat&&c.lng);
+  osrmRoadData(withGps).then(res=>{
+    if(!res)return;
+    st.roadKm=res.roadKm; st.roadGeometry=res.roadGeometry;
+    updateKmBar(); if(window.innerWidth>=700||st.tab==='map')renderMap();
+  });
+  showToast('↩️ כל הלקוחות הוחזרו למסלול');
+}
 function toggleExclude(custId,e){
   if(e){e.stopPropagation();e.preventDefault();}
   if(st.excluded.has(custId)) st.excluded.delete(custId); else st.excluded.add(custId);
@@ -1514,7 +1531,7 @@ function renderMap(){
       ? L.divIcon({className:'',
           html:`<div style="position:relative;width:38px;height:38px">
             <div style="position:absolute;top:0;left:0;width:38px;height:38px;border-radius:50%;background:#D32F2F;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;border:3px solid #fff;box-shadow:0 3px 12px rgba(211,47,47,.6)">${i+1}</div>
-            <div style="position:absolute;left:44px;top:calc(50% + ${labelOffsetY}px);transform:translateY(-50%);background:rgba(0,0,0,.82);color:#fff;padding:5px 10px;border-radius:5px;font-size:11px;font-weight:700;white-space:normal;word-break:break-word;pointer-events:none;direction:rtl;max-width:300px;box-shadow:0 2px 6px rgba(0,0,0,.4)">${labelName}</div>
+            <div style="position:absolute;left:44px;top:calc(50% + ${labelOffsetY}px);transform:translateY(-50%);background:rgba(0,0,0,.82);color:#fff;padding:5px 10px;border-radius:5px;font-size:11px;font-weight:700;white-space:normal;word-break:break-word;pointer-events:none;direction:rtl;min-width:140px;max-width:300px;box-shadow:0 2px 6px rgba(0,0,0,.4)">${labelName}</div>
           </div>`,
           iconSize:[38,38], iconAnchor:[19,19]})
       : isSel
@@ -1786,7 +1803,8 @@ function updateGpsHistBtn(){
   const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
   const btn=document.getElementById('gps-hist-btn');
   if(!btn)return;
-  const count=Object.keys(local).length;
+  const agentIds=new Set((st.clients||[]).map(c=>String(c.custId)));
+  const count=agentIds.size?Object.keys(local).filter(id=>agentIds.has(id)).length:Object.keys(local).length;
   if(count>0){btn.classList.add('visible');btn.textContent=`📍 תיקונים (${count})`;}
   else{btn.classList.remove('visible');}
 }
@@ -1803,7 +1821,8 @@ function closeGpsHistOutside(e){
 function renderGpsHistory(){
   const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
   const dd=document.getElementById('gps-hist-dd');
-  const entries=Object.entries(local);
+  const agentIds=new Set((st.clients||[]).map(c=>String(c.custId)));
+  const entries=agentIds.size?Object.entries(local).filter(([id])=>agentIds.has(id)):Object.entries(local);
   if(!entries.length){dd.innerHTML=`<div class="gps-hist-empty">אין תיקוני מיקום</div>`;return;}
   dd.innerHTML=entries.sort((a,b)=>new Date(b[1].correctedAt)-new Date(a[1].correctedAt)).map(([id,c])=>{
     const d=new Date(c.correctedAt);
