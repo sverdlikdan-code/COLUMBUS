@@ -1,4 +1,5 @@
 const { ConfidentialClientApplication } = require('@azure/msal-node');
+const https = require('https');
 
 const msalConfig = {
   auth: {
@@ -22,6 +23,29 @@ async function getPowerBIToken() {
   return result.accessToken;
 }
 
+function httpsPost(url, headers, body) {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const payload = Buffer.from(body, 'utf8');
+    const req = https.request({
+      hostname: u.hostname, path: u.pathname + u.search,
+      method: 'POST', timeout: 60000,
+      headers: { ...headers, 'Content-Length': payload.length },
+    }, res => {
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => {
+        const text = Buffer.concat(chunks).toString('utf8');
+        resolve({ status: res.statusCode, ok: res.statusCode < 400, text, json: JSON.parse(text) });
+      });
+    });
+    req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); reject(new Error('PBI request timeout (60s)')); });
+    req.write(payload);
+    req.end();
+  });
+}
+
 async function executeDax(daxQuery) {
   const token = await getPowerBIToken();
   const workspaceId = process.env.POWERBI_WORKSPACE_ID;
@@ -29,25 +53,16 @@ async function executeDax(daxQuery) {
 
   const url = `https://api.powerbi.com/v1.0/myorg/groups/${workspaceId}/datasets/${datasetId}/executeQueries`;
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      queries: [{ query: daxQuery }],
-      serializerSettings: { includeNulls: true },
-    }),
-  });
+  const res = await httpsPost(url, {
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  }, JSON.stringify({
+    queries: [{ query: daxQuery }],
+    serializerSettings: { includeNulls: true },
+  }));
 
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Power BI API error ${response.status}: ${err}`);
-  }
-
-  const json = await response.json();
-  return json.results[0].tables[0].rows;
+  if (!res.ok) throw new Error(`Power BI API error ${res.status}: ${res.text}`);
+  return res.json.results[0].tables[0].rows;
 }
 
 async function getTableNames() {
