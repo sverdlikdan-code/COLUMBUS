@@ -1245,13 +1245,17 @@ function fillWorkDaysBar() {
 
 function shortName(name, city) {
   if (!city || !name) return name;
-  const esc = city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const result = name
+  const DIR = /[‎‏‪-‮]/g;
+  const cleanName = name.replace(DIR, '');
+  const cleanCity = city.replace(DIR, '').trim();
+  if (!cleanCity) return cleanName || name;
+  const esc = cleanCity.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const result = cleanName
     .replace(new RegExp('[\\s\\-–·.(]*' + esc + '[)\\s\\-–·.]*', 'g'), ' ')
     .replace(/\s{2,}/g, ' ')
     .replace(/^[\s\-–·.]+|[\s\-–·.]+$/g, '')
     .trim();
-  return result || name;
+  return result || cleanName || name;
 }
 
 function renderClientList(html){
