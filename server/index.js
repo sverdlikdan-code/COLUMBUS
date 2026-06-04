@@ -773,5 +773,111 @@ app.post('/save-kapua', requireAuth, (req, res) => {
   }
 });
 
+// ── BiDi decode (same logic as export-gps-report.js) ────────────────────────
+const _BIDI_TEST  = /[‎‏‪-‮]/;
+const _BIDI_STRIP = /[‎‏‪-‮]/g;
+function fixBiDi(raw) {
+  if (!raw) return '';
+  const hasBidi = _BIDI_TEST.test(raw);
+  const s = raw.replace(_BIDI_STRIP, '').trim();
+  if (!hasBidi || !/[א-ת]/.test(s)) return s;
+  const words = s.split(/\s+/);
+  const heb = [], rest = [];
+  for (const w of words) {
+    if (/[א-ת]/.test(w)) heb.push(w.split('').reverse().join(''));
+    else if (w) rest.push(w);
+  }
+  heb.reverse();
+  return [...heb, ...rest].join(' ');
+}
+
+// GET /api/mekarer-parts — product names for the 4 refrigerator codes
+app.get('/api/mekarer-parts', requireAuth, async (req, res) => {
+  try {
+    const rows = await executeDax(`
+EVALUATE
+FILTER(
+  SELECTCOLUMNS('KARTIS PARIT', "makat", 'KARTIS PARIT'[מק"ט], "name", 'KARTIS PARIT'[תאור]),
+  OR(OR(OR(
+    [makat] = "901401",
+    [makat] = "901402"),
+    [makat] = "901301"),
+    [makat] = "901302"
+  )
+)
+`);
+    const parts = rows.map(r => ({
+      makat: r['[makat]'],
+      name: fixBiDi(r['[name]']),
+    }));
+    res.json(parts);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/client-sales?custId=X&company=X — last 12 months sales per (month, company)
+app.get('/api/client-sales', requireAuth, async (req, res) => {
+  const custId = parseInt(req.query.custId);
+  if (!custId) return res.status(400).json({ error: 'custId required' });
+  const company = req.query.company || '';
+  const companyFilter = company && company !== 'הכל'
+    ? `&& 'ALL_PARTS'[חברה] = "${company.replace(/"/g, '')}"`
+    : '';
+  try {
+    const rows = await executeDax(`
+EVALUATE
+CALCULATETABLE(
+  ADDCOLUMNS(
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[תאריך], ALL_PARTS[חברה]),
+    "sales", CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)])
+  ),
+  FILTER(ALL_PARTS,
+    'ALL_PARTS'[מספר לקוח] = ${custId}
+    ${companyFilter}
+    && 'ALL_PARTS'[תאריך] >= DATE(${new Date().getFullYear() - 1}, ${new Date().getMonth() + 1}, 1)
+  )
+)
+ORDER BY ALL_PARTS[תאריך] DESC
+`);
+    // Aggregate by month on server
+    const monthMap = {};
+    for (const r of rows) {
+      const d = r['ALL_PARTS[תאריך]'];
+      const s = r['[sales]'] || 0;
+      if (!d || !s) continue;
+      const dt = new Date(d);
+      const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+      monthMap[key] = (monthMap[key] || 0) + s;
+    }
+    const months = Object.entries(monthMap)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .slice(0, 12)
+      .map(([month, sales]) => ({ month, sales: Math.round(sales) }));
+    res.json(months);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/mekarer-order — save equipment order
+app.post('/api/mekarer-order', requireAuth, async (req, res) => {
+  try {
+    const order = req.body;
+    if (!order || !order.custId) return res.status(400).json({ error: 'invalid order' });
+    const filePath = path.join(__dirname, '..', 'docs', 'mekarer-orders.json');
+    const list = fs.existsSync(filePath) ? JSON.parse(fs.readFileSync(filePath, 'utf8')) : [];
+    const id = Date.now();
+    list.push({ id, ...order, submittedAt: new Date().toISOString(),
+      agentCode: req.session?.agentCode || null });
+    fs.writeFileSync(filePath, JSON.stringify(list, null, 2), 'utf8');
+    writeLog({ ts: new Date().toISOString(), event: 'mekarer-order', id,
+      custId: String(order.custId), agentCode: req.session?.agentCode || null, ip: getRealIp(req) });
+    res.json({ ok: true, id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Columbus server running on port ${PORT}`));

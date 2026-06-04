@@ -132,6 +132,8 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .client-card.excluded{background:#f0f0f0!important;opacity:.5;pointer-events:auto;}
 .excl-btn{font-size:14px;flex-shrink:0;cursor:pointer;opacity:.28;transition:opacity .15s;min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;}
 .excl-btn:hover,.client-card.excluded .excl-btn{opacity:.9;}
+.mekarer-btn{font-size:11px;flex-shrink:0;cursor:pointer;background:#E3F2FD;border:1.5px solid #90CAF9;border-radius:6px;padding:2px 5px;color:#1565C0;font-weight:800;line-height:1.3;text-align:center;transition:background .12s;min-width:32px;min-height:28px;display:flex;align-items:center;justify-content:center;}
+.mekarer-btn:hover{background:#BBDEFB;}
 .excl-section-lbl{padding:5px 10px 2px;font-size:10px;font-weight:700;color:var(--light);letter-spacing:1px;text-transform:uppercase;border-top:1px solid var(--sky-mid);margin-top:4px;}
 .c-num-wrap{display:flex;flex-direction:column;align-items:center;gap:1px;flex-shrink:0;min-width:28px;cursor:grab;touch-action:none;user-select:none;}
 .walk-icon{font-size:11px;line-height:1;}
@@ -548,9 +550,10 @@ function setTile(key){
   if(btn) btn.innerHTML=`${d.icon} ${d.label}`;
 }
 function cycleTile(){
-  if(gpsCorrectMode) return;
-  userTileKey=TILE_ORDER[(TILE_ORDER.indexOf(userTileKey)+1)%TILE_ORDER.length];
-  setTile(userTileKey);
+  const cur = currentTileKey || userTileKey;
+  const next = TILE_ORDER[(TILE_ORDER.indexOf(cur)+1)%TILE_ORDER.length];
+  if(!gpsCorrectMode) userTileKey = next;
+  setTile(next);
 }
 
 // ── Haversine ──────────────────────────────────────────────────────────────
@@ -1332,6 +1335,7 @@ function renderClientList(html){
         <div style="display:flex;align-items:center;gap:0;">
           <span class="excl-btn" data-id="${c.custId}" onclick="toggleExclude('${c.custId}',event)" title="הוצא ממסלול">🚫</span>
           <span class="day-change-btn" data-id="${c.custId}" onclick="openDayPopup(event,this.dataset.id)">📅</span>
+          <span class="mekarer-btn" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" data-city="${(c.city||'').replace(/"/g,'&quot;')}" onclick="openMekarerOrder(event,this.dataset.id,this.dataset.name,this.dataset.city)">🧊</span>
           ${noGps
             ? `<span class="no-gps-badge" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name)">NO GPS</span>`
             : `<span class="gps-edit-btn"  data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name)">📍</span>`}
@@ -1377,6 +1381,17 @@ function resetExcluded(){
   });
   showToast('↩️ כל הלקוחות הוחזרו למסלול');
 }
+function openMekarerOrder(e,custId,custName,city){
+  if(e){e.stopPropagation();e.preventDefault();}
+  const token=_getToken();
+  const agent=st.agent||{};
+  const p=new URLSearchParams({
+    custId,custName,city,
+    agentCode:agent.code||'',agentName:agent.name||'',
+    manager:st.manager||'',token,
+  });
+  window.open('mekarer-order.html?'+p.toString(),'_blank');
+}
 function toggleExclude(custId,e){
   if(e){e.stopPropagation();e.preventDefault();}
   if(st.excluded.has(custId)) st.excluded.delete(custId); else st.excluded.add(custId);
@@ -1409,12 +1424,12 @@ let _dtapTime=0, _dtapId=null, _dtapStartY=0;
 function setupCardDoubleTap(listEl){
   listEl.addEventListener('touchstart',e=>{
     const card=e.target.closest('.client-card');
-    if(!card||e.target.closest('.day-change-btn,.no-gps-badge,.gps-edit-btn,.c-drag,.excl-btn')) return;
+    if(!card||e.target.closest('.day-change-btn,.no-gps-badge,.gps-edit-btn,.c-drag,.excl-btn,.mekarer-btn')) return;
     _dtapStartY=e.touches[0].clientY;
   },{passive:true});
   listEl.addEventListener('touchend',e=>{
     const card=e.target.closest('.client-card');
-    if(!card||e.target.closest('.day-change-btn,.no-gps-badge,.gps-edit-btn,.c-drag,.excl-btn')) return;
+    if(!card||e.target.closest('.day-change-btn,.no-gps-badge,.gps-edit-btn,.c-drag,.excl-btn,.mekarer-btn')) return;
     if(Math.abs(e.changedTouches[0].clientY-_dtapStartY)>12) return; // was scrolling
     const id=card.dataset.id;
     const now=Date.now();
@@ -1470,7 +1485,7 @@ function setupSortable(){
 
 // ── MAP ────────────────────────────────────────────────────────────────────
 function renderMap(){
-  const neededKey=gpsCorrectMode?'satellite':userTileKey;
+  const neededKey=gpsCorrectMode?'street':userTileKey;
   if(!map){
     map=L.map('map',{rotate:true,bearing:0}).setView([32.0,34.9],10);
     setTile(neededKey);

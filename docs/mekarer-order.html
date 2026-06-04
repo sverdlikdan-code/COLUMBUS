@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>הזמנת מקרר — FORMULA</title>
+<style>
+:root{
+  --blue:#1565C0;--blue-dark:#0D47A1;--sky:#E3F2FD;--sky-mid:#BBDEFB;
+  --green:#2E7D32;--orange:#E65100;--red:#C62828;
+  --text:#1A1A2E;--mid:#5C6BC0;--light:#90A4AE;
+  --bg:#F5F7FA;--card:#fff;--radius:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(--text);min-height:100vh;padding-bottom:80px;}
+/* HEADER */
+.top-bar{background:linear-gradient(135deg,var(--blue-dark),var(--blue));color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2);}
+.back-btn{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;width:36px;height:36px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.top-title{font-size:17px;font-weight:800;flex:1;}
+.top-date{font-size:11px;opacity:.75;white-space:nowrap;}
+/* SECTION CARD */
+.section{background:var(--card);border-radius:var(--radius);margin:12px;box-shadow:0 1px 4px rgba(21,101,192,.08);overflow:hidden;}
+.sec-head{background:var(--sky);padding:10px 14px;border-bottom:1px solid var(--sky-mid);display:flex;align-items:center;gap:8px;}
+.sec-icon{font-size:18px;}
+.sec-title{font-size:14px;font-weight:800;color:var(--blue-dark);}
+.sec-body{padding:14px;}
+/* CLIENT INFO GRID */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.info-item{background:var(--sky);border-radius:8px;padding:8px 10px;}
+.info-lbl{font-size:10px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;}
+.info-val{font-size:13px;font-weight:700;color:var(--text);}
+.info-item.full{grid-column:1/-1;}
+/* CHIPS */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+.chip{padding:5px 12px;border-radius:20px;border:1.5px solid var(--sky-mid);background:#fff;font-size:12px;font-weight:700;cursor:pointer;color:var(--blue-dark);transition:all .15s;}
+.chip.on{background:var(--blue);color:#fff;border-color:var(--blue);}
+/* SALES TABLE */
+.sales-table{width:100%;border-collapse:collapse;font-size:13px;}
+.sales-table th{background:var(--sky);padding:6px 10px;text-align:right;font-size:11px;font-weight:800;color:var(--mid);border-bottom:1px solid var(--sky-mid);}
+.sales-table td{padding:7px 10px;border-bottom:1px solid #f0f4f8;}
+.sales-table tr:last-child td{border-bottom:none;}
+.sales-table .sales-num{font-weight:700;color:var(--blue-dark);}
+.sales-table .cur-month{background:#FFFDE7;}
+.sales-loading{text-align:center;padding:20px;color:var(--light);font-size:13px;}
+/* FORM FIELDS */
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--mid);margin-bottom:4px;}
+.field input,.field textarea,.field select{
+  width:100%;padding:10px 12px;border:1.5px solid var(--sky-mid);border-radius:8px;
+  font-size:14px;font-family:inherit;color:var(--text);background:#fff;
+  transition:border-color .15s;
+}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--blue);}
+.field textarea{resize:vertical;min-height:70px;}
+/* RADIO GROUP */
+.radio-group{display:flex;flex-wrap:wrap;gap:8px;}
+.radio-opt{position:relative;}
+.radio-opt input[type=radio]{position:absolute;opacity:0;width:0;height:0;}
+.radio-opt label{display:block;padding:7px 14px;border:1.5px solid var(--sky-mid);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;background:#fff;color:var(--text);}
+.radio-opt input[type=radio]:checked+label{background:var(--blue);color:#fff;border-color:var(--blue);}
+/* REF BLOCK */
+.ref-block{border:2px solid var(--sky-mid);border-radius:var(--radius);padding:14px;margin-bottom:12px;background:#FAFCFF;}
+.ref-title{font-size:14px;font-weight:800;color:var(--blue-dark);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+.ref-remove{background:none;border:none;font-size:18px;cursor:pointer;opacity:.6;}
+.cond-block{background:var(--sky);border-radius:8px;padding:10px 12px;margin-top:8px;}
+/* ADD BTN */
+.add-ref-btn{width:100%;padding:11px;border:2px dashed var(--sky-mid);border-radius:var(--radius);background:transparent;color:var(--mid);font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;}
+.add-ref-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--sky);}
+/* SUBMIT */
+.submit-bar{position:fixed;bottom:0;right:0;left:0;background:#fff;padding:12px 16px;box-shadow:0 -2px 12px rgba(0,0,0,.12);z-index:100;}
+.submit-btn{width:100%;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--radius);font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;}
+.submit-btn:disabled{background:var(--light);cursor:default;}
+/* SUCCESS MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal-card{background:#fff;border-radius:20px;padding:28px 24px;text-align:center;max-width:320px;width:100%;}
+.modal-icon{font-size:52px;margin-bottom:12px;}
+.modal-title{font-size:20px;font-weight:900;color:var(--green);margin-bottom:6px;}
+.modal-sub{font-size:13px;color:var(--mid);margin-bottom:20px;}
+.modal-btn{padding:12px 28px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;}
+/* TOAST */
+.toast{position:fixed;bottom:80px;right:50%;transform:translateX(50%);background:#323232;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;z-index:9999;opacity:0;transition:opacity .3s;}
+.toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <button class="back-btn" onclick="history.back()">←</button>
+  <div class="top-title">הזמנת מקרר</div>
+  <div class="top-date" id="top-date"></div>
+</div>
+
+<!-- CLIENT INFO -->
+<div class="section">
+  <div class="sec-head"><span class="sec-icon">🏪</span><span class="sec-title">פרטי לקוח</span></div>
+  <div class="sec-body">
+    <div class="info-grid">
+      <div class="info-item full"><div class="info-lbl">שם לקוח</div><div class="info-val" id="inf-name">—</div></div>
+      <div class="info-item"><div class="info-lbl">מספר לקוח</div><div class="info-val" id="inf-id">—</div></div>
+      <div class="info-item"><div class="info-lbl">עיר</div><div class="info-val" id="inf-city">—</div></div>
+      <div class="info-item"><div class="info-lbl">סוכן</div><div class="info-val" id="inf-agent">—</div></div>
+      <div class="info-item"><div class="info-lbl">מנהל</div><div class="info-val" id="inf-manager">—</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- SALES BLOCK -->
+<div class="section">
+  <div class="sec-head"><span class="sec-icon">📊</span><span class="sec-title">12 חודשי מכירות</span></div>
+  <div class="sec-body">
+    <div class="chips" id="company-chips">
+      <span class="chip on" data-co="הכל">הכל</span>
+      <span class="chip" data-co="FORMULA">FORMULA</span>
+      <span class="chip" data-co="ICE">ICE</span>
+      <span class="chip" data-co="INTER">INTER</span>
+    </div>
+    <div id="sales-area"><div class="sales-loading">טוען נתונים...</div></div>
+  </div>
+</div>
+
+<!-- CONTACT -->
+<div class="section">
+  <div class="sec-head"><span class="sec-icon">👤</span><span class="sec-title">פרטי קשר</span></div>
+  <div class="sec-body">
+    <div class="field">
+      <label>שם איש קשר</label>
+      <input type="text" id="f-contact" placeholder="שם מלא">
+    </div>
+    <div class="field">
+      <label>טלפון</label>
+      <input type="tel" id="f-phone" placeholder="05X-XXXXXXX" dir="ltr">
+    </div>
+    <div class="field">
+      <label>איפה הציוד עומד</label>
+      <div class="radio-group">
+        <div class="radio-opt"><input type="radio" name="location" id="loc-in" value="בפנים"><label for="loc-in">בפנים</label></div>
+        <div class="radio-opt"><input type="radio" name="location" id="loc-out" value="בחוץ"><label for="loc-out">בחוץ</label></div>
+        <div class="radio-opt"><input type="radio" name="location" id="loc-other" value="אחר"><label for="loc-other">אחר</label></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EQUIPMENT -->
+<div class="section">
+  <div class="sec-head"><span class="sec-icon">🧊</span><span class="sec-title">ציוד</span></div>
+  <div class="sec-body">
+    <div id="refs-container">
+      <!-- ref blocks injected here -->
+    </div>
+    <button class="add-ref-btn" id="add-ref-btn" onclick="addRef()">+ הוסף מקרר שני</button>
+  </div>
+</div>
+
+<!-- SUBMIT -->
+<div class="submit-bar">
+  <button class="submit-btn" id="submit-btn" onclick="submitOrder()">שלח הזמנה</button>
+</div>
+
+<!-- SUCCESS MODAL -->
+<div class="modal-bg" id="modal" style="display:none">
+  <div class="modal-card">
+    <div class="modal-icon">✅</div>
+    <div class="modal-title">ההזמנה נשלחה!</div>
+    <div class="modal-sub" id="modal-sub">מספר הזמנה: —</div>
+    <button class="modal-btn" onclick="history.back()">חזור לרשימה</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'https://api.sverdlik-apps.site';
+const params = new URLSearchParams(location.search);
+const TOKEN = params.get('token') || localStorage.getItem('frToken') || '';
+const custId = params.get('custId') || '';
+const custName = params.get('custName') || '';
+const city = params.get('city') || '';
+const agentCode = params.get('agentCode') || '';
+const agentName = params.get('agentName') || '';
+const manager = params.get('manager') || '';
+
+let parts = []; // [{makat, name}]
+let salesData = []; // [{month, sales}]
+let refCount = 0;
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+async function init() {
+  // Date display
+  const now = new Date();
+  document.getElementById('top-date').textContent =
+    now.toLocaleDateString('he-IL', { day:'2-digit', month:'2-digit', year:'numeric' });
+
+  // Client info
+  document.getElementById('inf-name').textContent = custName || '—';
+  document.getElementById('inf-id').textContent = custId || '—';
+  document.getElementById('inf-city').textContent = city || '—';
+  document.getElementById('inf-agent').textContent = agentName ? `${agentName} (${agentCode})` : agentCode || '—';
+  document.getElementById('inf-manager').textContent = manager || '—';
+
+  // Load parts + sales in parallel
+  await Promise.allSettled([loadParts(), loadSales('הכל')]);
+
+  // Add first ref block
+  addRef();
+}
+
+// ── PARTS ─────────────────────────────────────────────────────────────────────
+async function loadParts() {
+  try {
+    const r = await apiFetch('/api/mekarer-parts');
+    if (r.ok) parts = await r.json();
+  } catch {}
+}
+
+// ── SALES ─────────────────────────────────────────────────────────────────────
+async function loadSales(company) {
+  if (!custId) { renderSales([]); return; }
+  document.getElementById('sales-area').innerHTML = '<div class="sales-loading">טוען...</div>';
+  try {
+    const url = `/api/client-sales?custId=${encodeURIComponent(custId)}&company=${encodeURIComponent(company)}`;
+    const r = await apiFetch(url);
+    if (!r.ok) throw new Error('err');
+    salesData = await r.json();
+    renderSales(salesData);
+  } catch {
+    document.getElementById('sales-area').innerHTML = '<div class="sales-loading" style="color:#e57373">שגיאה בטעינת נתונים</div>';
+  }
+}
+
+const HEB_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+function fmtMonth(ym) {
+  const [y, m] = ym.split('-');
+  return `${HEB_MONTHS[parseInt(m)-1]} ${y}`;
+}
+function fmtSales(n) {
+  return n >= 1000 ? `₪${(n/1000).toFixed(1)}K` : `₪${n.toLocaleString()}`;
+}
+
+function renderSales(rows) {
+  if (!rows.length) {
+    document.getElementById('sales-area').innerHTML = '<div class="sales-loading">אין נתוני מכירות</div>';
+    return;
+  }
+  const nowKey = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+  let html = '<table class="sales-table"><thead><tr><th>חודש</th><th>מכירות</th></tr></thead><tbody>';
+  for (const row of rows) {
+    const cur = row.month === nowKey ? ' cur-month' : '';
+    html += `<tr class="${cur}"><td>${fmtMonth(row.month)}</td><td class="sales-num">${fmtSales(row.sales)}</td></tr>`;
+  }
+  html += '</tbody></table>';
+  document.getElementById('sales-area').innerHTML = html;
+}
+
+// Company chips
+document.getElementById('company-chips').addEventListener('click', e => {
+  const chip = e.target.closest('.chip');
+  if (!chip) return;
+  document.querySelectorAll('#company-chips .chip').forEach(c => c.classList.remove('on'));
+  chip.classList.add('on');
+  loadSales(chip.dataset.co);
+});
+
+// ── REF BLOCKS ───────────────────────────────────────────────────────────────
+function addRef() {
+  if (refCount >= 2) return;
+  refCount++;
+  const id = `ref${refCount}`;
+  const container = document.getElementById('refs-container');
+  const div = document.createElement('div');
+  div.className = 'ref-block';
+  div.id = `block-${id}`;
+  div.innerHTML = buildRefHTML(id, refCount);
+  container.appendChild(div);
+  if (refCount >= 2) document.getElementById('add-ref-btn').style.display = 'none';
+  // Init conditional logic
+  initRefLogic(id);
+}
+
+function removeRef(id) {
+  document.getElementById(`block-${id}`)?.remove();
+  refCount = Math.max(refCount - 1, 0);
+  document.getElementById('add-ref-btn').style.display = '';
+  // Renumber remaining
+  document.querySelectorAll('.ref-block').forEach((b, i) => {
+    b.querySelector('.ref-num').textContent = `מקרר #${i + 1}`;
+  });
+}
+
+function buildRefHTML(id, num) {
+  const partsOpts = parts.length
+    ? parts.map(p => `<option value="${p.makat}">${p.makat} — ${p.name}</option>`).join('')
+    : '<option value="">טוען...</option>';
+  return `
+<div class="ref-title">
+  <span class="ref-num">מקרר #${num}</span>
+  ${num > 1 ? `<button class="ref-remove" onclick="removeRef('${id}')">✕</button>` : ''}
+</div>
+<div class="field">
+  <label>מה לעשות?</label>
+  <div class="radio-group" id="${id}-actions">
+    <div class="radio-opt"><input type="radio" name="${id}-act" id="${id}-act-supply" value="לספק"><label for="${id}-act-supply">לספק</label></div>
+    <div class="radio-opt"><input type="radio" name="${id}-act" id="${id}-act-replace" value="להחליף"><label for="${id}-act-replace">להחליף</label></div>
+    <div class="radio-opt"><input type="radio" name="${id}-act" id="${id}-act-return" value="להחזיר"><label for="${id}-act-return">להחזיר</label></div>
+    <div class="radio-opt"><input type="radio" name="${id}-act" id="${id}-act-repair" value="תיקון"><label for="${id}-act-repair">תיקון</label></div>
+  </div>
+</div>
+<div id="${id}-cond" style="display:none" class="cond-block">
+  <div id="${id}-new-wrap" style="display:none">
+    <div class="field">
+      <label id="${id}-new-lbl">איזה מקרר לספק</label>
+      <select id="${id}-new-model"><option value="">— בחר דגם —</option>${partsOpts}</select>
+    </div>
+    <div class="field">
+      <label>כמות סלסלאות</label>
+      <input type="number" id="${id}-salot" min="0" max="20" placeholder="0">
+    </div>
+    <div class="field" style="display:flex;align-items:center;gap:10px;">
+      <input type="checkbox" id="${id}-agala" style="width:auto;">
+      <label for="${id}-agala" style="font-size:13px;font-weight:700;cursor:pointer;">עגלה</label>
+    </div>
+    <div class="field">
+      <label>מועד אספקה</label>
+      <input type="date" id="${id}-supply-date">
+    </div>
+  </div>
+  <div id="${id}-return-wrap" style="display:none">
+    <div class="field">
+      <label>איזה מקרר מחזירים</label>
+      <select id="${id}-return-model"><option value="">— בחר דגם —</option>${partsOpts}</select>
+    </div>
+  </div>
+  <div id="${id}-fault-wrap" style="display:none">
+    <div class="field">
+      <label>תאור תקלה</label>
+      <textarea id="${id}-fault" placeholder="תאר את הבעיה..."></textarea>
+    </div>
+  </div>
+</div>`;
+}
+
+function initRefLogic(id) {
+  document.querySelectorAll(`input[name="${id}-act"]`).forEach(radio => {
+    radio.addEventListener('change', () => updateRefCond(id));
+  });
+}
+
+function updateRefCond(id) {
+  const val = document.querySelector(`input[name="${id}-act"]:checked`)?.value;
+  const cond = document.getElementById(`${id}-cond`);
+  const newWrap = document.getElementById(`${id}-new-wrap`);
+  const returnWrap = document.getElementById(`${id}-return-wrap`);
+  const faultWrap = document.getElementById(`${id}-fault-wrap`);
+  const newLbl = document.getElementById(`${id}-new-lbl`);
+
+  if (!val) { cond.style.display = 'none'; return; }
+  cond.style.display = 'block';
+
+  const isSupply = val === 'לספק';
+  const isReplace = val === 'להחליף';
+  const isReturn = val === 'להחזיר';
+  const isRepair = val === 'תיקון';
+
+  newWrap.style.display = (isSupply || isReplace) ? 'block' : 'none';
+  returnWrap.style.display = (isReplace || isReturn) ? 'block' : 'none';
+  faultWrap.style.display = isRepair ? 'block' : 'none';
+
+  if (newLbl) newLbl.textContent = isReplace ? 'איזה מקרר חדש לספק' : 'איזה מקרר לספק';
+}
+
+// ── COLLECT FORM ──────────────────────────────────────────────────────────────
+function collectRef(id) {
+  const action = document.querySelector(`input[name="${id}-act"]:checked`)?.value || '';
+  return {
+    action,
+    newModel: document.getElementById(`${id}-new-model`)?.value || '',
+    returnModel: document.getElementById(`${id}-return-model`)?.value || '',
+    salot: parseInt(document.getElementById(`${id}-salot`)?.value) || 0,
+    agala: document.getElementById(`${id}-agala`)?.checked || false,
+    supplyDate: document.getElementById(`${id}-supply-date`)?.value || '',
+    fault: document.getElementById(`${id}-fault`)?.value || '',
+  };
+}
+
+// ── SUBMIT ────────────────────────────────────────────────────────────────────
+async function submitOrder() {
+  // Validate
+  const contactName = document.getElementById('f-contact').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
+  const location = document.querySelector('input[name="location"]:checked')?.value || '';
+
+  if (!contactName) { showToast('נא להזין שם איש קשר'); return; }
+  if (!phone) { showToast('נא להזין טלפון'); return; }
+  if (!location) { showToast('נא לסמן איפה הציוד עומד'); return; }
+
+  // Collect ref blocks
+  const mekarerim = [];
+  for (let i = 1; i <= refCount; i++) {
+    const r = collectRef(`ref${i}`);
+    if (!r.action) { showToast(`נא לבחור פעולה עבור מקרר #${i}`); return; }
+    mekarerim.push(r);
+  }
+  if (!mekarerim.length) { showToast('נא להוסיף לפחות מקרר אחד'); return; }
+
+  const order = {
+    custId, custName, city, agentCode, agentName, manager,
+    contactName, phone, location, mekarerim,
+    salesSnapshot: salesData.slice(0, 3),
+    submittedAt: new Date().toISOString(),
+  };
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'שולח...';
+
+  try {
+    const r = await apiFetch('/api/mekarer-order', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order) });
+    if (!r.ok) throw new Error('server error');
+    const data = await r.json();
+    document.getElementById('modal-sub').textContent = `מספר הזמנה: ${data.id}`;
+    document.getElementById('modal').style.display = 'flex';
+  } catch (e) {
+    showToast('שגיאה בשליחה — נסה שוב');
+    btn.disabled = false;
+    btn.textContent = 'שלח הזמנה';
+  }
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function apiFetch(path, opts = {}) {
+  return fetch(API + path, {
+    ...opts,
+    headers: { 'X-Session': TOKEN, ...(opts.headers || {}) },
+  });
+}
+
+let _toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ── START ─────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
