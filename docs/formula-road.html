@@ -204,6 +204,8 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .map-tile-btn:hover{background:var(--sky-light);}
 .gps-cancel-btn{position:absolute;bottom:70px;left:50%;transform:translateX(-50%);z-index:1100;background:#c62828;color:#fff;border:none;border-radius:22px;padding:10px 28px;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 4px 16px rgba(198,40,40,.5);display:none;align-items:center;gap:8px;white-space:nowrap;}
 .gps-cancel-btn:hover{background:#b71c1c;}
+body.gps-fs #map-pane{position:fixed!important;top:0;left:0;right:0;bottom:0;z-index:500;display:block!important;}
+body.gps-fs #map{height:100%!important;}
 
 /* LOGIN HERO */
 .login-hero{background:linear-gradient(160deg,var(--blue-deeper) 0%,var(--blue-dark) 50%,var(--blue) 100%);padding:28px 20px 22px;display:flex;flex-direction:column;align-items:center;gap:10px;flex-shrink:0;}
@@ -1406,6 +1408,7 @@ function renderMap(){
     const btn=document.getElementById('tile-btn');
     if(btn&&!btn.innerHTML.trim()){const d=TILE_DEFS[currentTileKey||'light'];btn.innerHTML=`${d.icon} ${d.label}`;}
   }
+  document.body.classList.toggle('gps-fs',gpsCorrectMode);
   const gcb=document.getElementById('gps-cancel-btn');
   if(gcb) gcb.style.display=gpsCorrectMode?'flex':'none';
   mapMarkers.forEach(m=>m.remove()); mapMarkers=[];
