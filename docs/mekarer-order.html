@@ -123,6 +123,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
       <span class="chip" data-co="INTER">INTER</span>
     </div>
     <div class="chips" id="year-chips"></div>
+    <div class="chips" id="month-chips" style="margin-top:4px"></div>
     <div id="sales-area"><div class="sales-loading">טוען נתונים...</div></div>
   </div>
 </div>
@@ -226,6 +227,7 @@ async function loadParts() {
 let salesAllMonths = [];
 let salesCats = [];
 let selectedYear = null;
+let selectedMonth = null; // null = all months in year
 
 async function loadSales(company) {
   if (!custId) { renderSalesTable([], []); return; }
@@ -247,17 +249,34 @@ async function loadSales(company) {
 function buildYearChips() {
   const years = [...new Set(salesAllMonths.map(r => r.month.slice(0, 4)))].sort().reverse();
   selectedYear = selectedYear && years.includes(selectedYear) ? selectedYear : years[0];
+  selectedMonth = null;
   const el = document.getElementById('year-chips');
   el.innerHTML = years.map(y =>
     `<span class="chip${y === selectedYear ? ' on' : ''}" data-yr="${y}">${y}</span>`
   ).join('');
+  buildMonthChips();
   const title = document.getElementById('sales-title');
   if (title) title.textContent = `מכירות ${selectedYear}`;
 }
 
+function buildMonthChips() {
+  const monthsInYear = salesAllMonths
+    .filter(r => r.month.startsWith(selectedYear))
+    .map(r => r.month)
+    .sort();
+  const el = document.getElementById('month-chips');
+  if (!monthsInYear.length) { el.innerHTML = ''; return; }
+  el.innerHTML = monthsInYear.map(m => {
+    const [, mm] = m.split('-');
+    const label = HEB_MONTHS_SHORT[parseInt(mm, 10) - 1];
+    return `<span class="chip${m === selectedMonth ? ' on' : ''}" data-mo="${m}" style="font-size:10px;padding:3px 8px">${label}</span>`;
+  }).join('');
+}
+
 function getFilteredMonths() {
-  if (!selectedYear) return salesAllMonths;
-  return salesAllMonths.filter(r => r.month.startsWith(selectedYear));
+  let rows = selectedYear ? salesAllMonths.filter(r => r.month.startsWith(selectedYear)) : salesAllMonths;
+  if (selectedMonth) rows = rows.filter(r => r.month === selectedMonth);
+  return rows;
 }
 
 const HEB_MONTHS_SHORT = ['ינו׳','פבר׳','מרץ','אפר׳','מאי','יוני','יולי','אוג׳','ספט׳','אוק׳','נוב׳','דצמ׳'];
@@ -320,9 +339,20 @@ document.getElementById('year-chips').addEventListener('click', e => {
   const chip = e.target.closest('.chip');
   if (!chip || !chip.dataset.yr) return;
   selectedYear = chip.dataset.yr;
+  selectedMonth = null;
   document.querySelectorAll('#year-chips .chip').forEach(c => c.classList.toggle('on', c.dataset.yr === selectedYear));
   const title = document.getElementById('sales-title');
   if (title) title.textContent = `מכירות ${selectedYear}`;
+  buildMonthChips();
+  renderSalesTable(getFilteredMonths(), salesCats);
+});
+
+// Month chips
+document.getElementById('month-chips').addEventListener('click', e => {
+  const chip = e.target.closest('.chip');
+  if (!chip || !chip.dataset.mo) return;
+  selectedMonth = selectedMonth === chip.dataset.mo ? null : chip.dataset.mo;
+  document.querySelectorAll('#month-chips .chip').forEach(c => c.classList.toggle('on', c.dataset.mo === selectedMonth));
   renderSalesTable(getFilteredMonths(), salesCats);
 });
 
