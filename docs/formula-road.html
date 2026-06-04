@@ -199,6 +199,13 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .map-rotate-btn{width:34px;height:34px;border-radius:10px;background:#fff;border:2px solid var(--sky-mid);color:var(--blue-dark);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.18);transition:background .12s;}
 .map-rotate-btn:hover{background:var(--sky-light);}
 .map-reset-btn{width:34px;height:20px;border-radius:8px;background:#fff;border:2px solid var(--sky-mid);color:var(--mid);font-size:9px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.12);letter-spacing:.5px;}
+.map-tile-ctrl{position:absolute;top:10px;left:10px;z-index:1000;}
+.map-tile-btn{height:30px;border-radius:10px;background:#fff;border:2px solid var(--sky-mid);color:var(--blue-dark);font-size:11px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:4px;box-shadow:0 2px 8px rgba(0,0,0,.18);padding:0 10px;white-space:nowrap;}
+.map-tile-btn:hover{background:var(--sky-light);}
+.gps-cancel-btn{position:absolute;bottom:70px;left:50%;transform:translateX(-50%);z-index:1100;background:#c62828;color:#fff;border:none;border-radius:22px;padding:10px 28px;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 4px 16px rgba(198,40,40,.5);display:none;align-items:center;gap:8px;white-space:nowrap;}
+.gps-cancel-btn:hover{background:#b71c1c;}
+body.gps-fs #map-pane{position:fixed!important;top:0;left:0;right:0;bottom:0;z-index:500;display:block!important;}
+body.gps-fs #map{height:100%!important;}
 
 /* LOGIN HERO */
 .login-hero{background:linear-gradient(160deg,var(--blue-deeper) 0%,var(--blue-dark) 50%,var(--blue) 100%);padding:28px 20px 22px;display:flex;flex-direction:column;align-items:center;gap:10px;flex-shrink:0;}
@@ -366,10 +373,14 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
     </div>
     <div id="map-pane" style="position:relative">
       <div id="map"></div>
+      <div class="map-tile-ctrl">
+        <button class="map-tile-btn" id="tile-btn" onclick="cycleTile()"></button>
+      </div>
+      <button class="gps-cancel-btn" id="gps-cancel-btn" onclick="cancelGpsCorrection()">✕ ביטול תיקון</button>
       <div class="map-rotate-ctrl">
         <button class="map-rotate-btn" onclick="rotateMap(-45)" title="↺ поворот влево">↺</button>
         <button class="map-rotate-btn" onclick="rotateMap(45)" title="↻ поворот вправо">↻</button>
-        <button class="map-reset-btn" onclick="rotateMap(0,true)" title="сброс">N↑</button>
+        <button class="map-reset-btn" onclick="rotateMap(0,true)" title="סדר">N↑</button>
       </div>
     </div>
   </div>
@@ -509,7 +520,31 @@ const st = {
 };
 
 let map=null, mapMarkers=[], mapPolylines=[], markerCluster=null, sortable=null, mapBearing=0;
-let baseTileLayer=null, lastTileMode='normal', gpsCorrectMode=false;
+let baseTileLayer=null, gpsCorrectMode=false;
+let userTileKey='light', currentTileKey=null;
+let _gpsClickHandler=null;
+
+const TILE_DEFS={
+  light:    {icon:'☁',  label:'בהיר',   url:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', opts:{attribution:'© CartoDB',subdomains:'abcd',maxZoom:19}},
+  street:   {icon:'🗺', label:'רחובות', url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts:{attribution:'© Esri',maxZoom:19}},
+  satellite:{icon:'🛰', label:'לוויין', url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts:{attribution:'© Esri',maxZoom:19}},
+};
+const TILE_ORDER=['light','street','satellite'];
+
+function setTile(key){
+  if(!map) return;
+  if(baseTileLayer) map.removeLayer(baseTileLayer);
+  const d=TILE_DEFS[key];
+  baseTileLayer=L.tileLayer(d.url,d.opts).addTo(map);
+  currentTileKey=key;
+  const btn=document.getElementById('tile-btn');
+  if(btn) btn.innerHTML=`${d.icon} ${d.label}`;
+}
+function cycleTile(){
+  if(gpsCorrectMode) return;
+  userTileKey=TILE_ORDER[(TILE_ORDER.indexOf(userTileKey)+1)%TILE_ORDER.length];
+  setTile(userTileKey);
+}
 
 // ── Haversine ──────────────────────────────────────────────────────────────
 function haversineKm(la1,lo1,la2,lo2){
@@ -1362,22 +1397,20 @@ function setupSortable(){
 
 // ── MAP ────────────────────────────────────────────────────────────────────
 function renderMap(){
+  const neededKey=gpsCorrectMode?'satellite':userTileKey;
   if(!map){
     map=L.map('map',{rotate:true,bearing:0}).setView([32.0,34.9],10);
-    baseTileLayer=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',{attribution:'© CartoDB',subdomains:'abcd',maxZoom:19}).addTo(map);
-    lastTileMode='normal';
+    setTile(neededKey);
+  } else if(neededKey!==currentTileKey){
+    setTile(neededKey);
+  } else {
+    // refresh button label if tile-btn was just created
+    const btn=document.getElementById('tile-btn');
+    if(btn&&!btn.innerHTML.trim()){const d=TILE_DEFS[currentTileKey||'light'];btn.innerHTML=`${d.icon} ${d.label}`;}
   }
-  // переключение тайла при входе/выходе из режима коррекции
-  if(baseTileLayer){
-    const need=gpsCorrectMode?'satellite':'normal';
-    if(need!==lastTileMode){
-      map.removeLayer(baseTileLayer);
-      baseTileLayer=need==='satellite'
-        ? L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri',maxZoom:19}).addTo(map)
-        : L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',{attribution:'© CartoDB',subdomains:'abcd',maxZoom:19}).addTo(map);
-      lastTileMode=need;
-    }
-  }
+  document.body.classList.toggle('gps-fs',gpsCorrectMode);
+  const gcb=document.getElementById('gps-cancel-btn');
+  if(gcb) gcb.style.display=gpsCorrectMode?'flex':'none';
   mapMarkers.forEach(m=>m.remove()); mapMarkers=[];
   mapPolylines.forEach(p=>p.remove()); mapPolylines=[];
   if(markerCluster){markerCluster.clearLayers();map.removeLayer(markerCluster);}
@@ -1411,12 +1444,21 @@ function renderMap(){
       ?`<span style="transform:rotate(45deg);font-size:${isFirst&&!isSel?'9px':'13px'};font-weight:900">${isFirst&&!isSel?'START':i+1}</span>`
       :`${i+1}`;
     const isCityCenter = c.gpsSource === 'city-center';
-    const shortName = (c.custName||'').length>24 ? (c.custName||'').slice(0,22)+'…' : (c.custName||'');
+    // pre-compute duplicate index here (used both for icon label and jitter below)
+    const _ck=`${c.lat},${c.lng}`;
+    const _hasDupe=_coordCount[_ck]>1;
+    const _di=_hasDupe?(_coordIdx[_ck]=(_coordIdx[_ck]||0)+1)-1:0;
+    const _groupSize=_coordCount[_ck]||1;
+    // label: remove city from name, then cap length
+    const _rawLabel=(shortName(c.custName||'',c.city||'')||c.custName||'');
+    const labelName=_rawLabel.length>22?_rawLabel.slice(0,20)+'…':_rawLabel;
+    // vertical offset: spread clustered labels so they don't overlap
+    const labelOffsetY=_hasDupe?Math.round((_di-(_groupSize-1)/2)*26):0;
     const icon=gpsCorrectMode
       ? L.divIcon({className:'',
           html:`<div style="position:relative;width:38px;height:38px">
             <div style="position:absolute;top:0;left:0;width:38px;height:38px;border-radius:50%;background:#D32F2F;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;border:3px solid #fff;box-shadow:0 3px 12px rgba(211,47,47,.6)">${i+1}</div>
-            <div style="position:absolute;left:44px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.78);color:#fff;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap;pointer-events:none;direction:rtl">${shortName}</div>
+            <div style="position:absolute;left:44px;top:calc(50% + ${labelOffsetY}px);transform:translateY(-50%);background:rgba(0,0,0,.82);color:#fff;padding:5px 10px;border-radius:5px;font-size:11px;font-weight:700;white-space:nowrap;pointer-events:none;direction:rtl;min-width:70px;box-shadow:0 2px 6px rgba(0,0,0,.4)">${labelName}</div>
           </div>`,
           iconSize:[38,38], iconAnchor:[19,19]})
       : isSel
@@ -1442,9 +1484,6 @@ function renderMap(){
           iconSize:[28,28], iconAnchor:[14,14],
         });
     const id = parseInt(c.custId) || 0;
-    const _ck=`${c.lat},${c.lng}`;
-    const _hasDupe=_coordCount[_ck]>1;
-    const _di=_hasDupe?(_coordIdx[_ck]=(_coordIdx[_ck]||0)+1)-1:0;
     const mLat = isCityCenter ? c.lat+((id*7+3)%17-8)*0.00015 : _hasDupe ? c.lat+((_di*7+3)%17-8)*0.00015 : c.lat;
     const mLng = isCityCenter ? c.lng+((id*13+5)%19-9)*0.00015 : _hasDupe ? c.lng+((_di*13+5)%19-9)*0.00015 : c.lng;
     const m=L.marker([mLat,mLng],{icon,zIndexOffset:isSel?1000:0});
@@ -1731,12 +1770,20 @@ function deleteGpsCorrection(custId){
   renderMap();renderClientList();
   showToast('🗑 תיקון נמחק');
 }
+function cancelGpsCorrection(){
+  if(_gpsClickHandler){ map.off('click',_gpsClickHandler); _gpsClickHandler=null; }
+  map.getContainer().style.cursor='';
+  gpsCorrectMode=false;
+  renderMap();
+  showToast('ביטול');
+}
 function startGpsCorrection(custId, custName){
   gpsCorrectMode=true;
   renderMap();
   showToast('📍 לחץ על המפה לקביעת מיקום חדש', 4000);
   map.getContainer().style.cursor='crosshair';
-  map.once('click', (e)=>{
+  _gpsClickHandler=(e)=>{
+    map.off('click',_gpsClickHandler); _gpsClickHandler=null;
     map.getContainer().style.cursor='';
     gpsCorrectMode=false;
     const {lat,lng}=e.latlng;
@@ -1748,23 +1795,21 @@ function startGpsCorrection(custId, custName){
     const cl=st.clients.find(x=>String(x.custId)===String(custId))||{};
     const entry={lat:la,lng:lo,correctedAt:new Date().toISOString(),name:custName,city:cl.city||'',address:cl.address||''};
     gpsCorrections[String(custId)]=entry;
-    // save to localStorage (immediate, offline-safe)
     const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
     local[String(custId)]=entry;
     localStorage.setItem('fr_gps_local',JSON.stringify(local));
     updateGpsHistBtn();
-    // sync to server → gps-corrections.json (shared for all users)
     apiFetch(`${API}/save-gps`,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({custId,lat:la,lng:lo,name:custName,city:cl.city||'',address:cl.address||''})
     }).catch(()=>{});
-    // update client position
     st.clients=st.clients.map(x=>String(x.custId)===String(custId)?{...x,lat:la,lng:lo}:x);
     st.aiClients=nearestNeighbor([...st.clients]);
     st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; triggerOsrm();
     saveRoute(st.agent.code,st.day,st.clients);
     updateKmBar(); renderClientList(); renderMap();
     showToast('✅ מיקום נשמר');
-  });
+  };
+  map.on('click',_gpsClickHandler);
 }
 
 // ── DEMO DATA ──────────────────────────────────────────────────────────────
@@ -1779,6 +1824,7 @@ function getDemoClients(){
 }
 
 // ── INIT ───────────────────────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&gpsCorrectMode) cancelGpsCorrection();});
 initLogin();
 </script>
 </body>
