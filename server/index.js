@@ -816,22 +816,18 @@ app.get('/api/client-sales', requireAuth, async (req, res) => {
   const custId = parseInt(req.query.custId);
   if (!custId) return res.status(400).json({ error: 'custId required' });
   const company = req.query.company || '';
-  const companyFilter = company && company !== 'הכל'
-    ? `&& 'ALL_PARTS'[חברה] = "${company.replace(/"/g, '')}"`
+  const companyArg = company && company !== 'הכל'
+    ? `,\n  ALL_PARTS[חברה] = "${company.replace(/"/g, '')}"`
     : '';
   try {
     const rows = await executeDax(`
 EVALUATE
 CALCULATETABLE(
   ADDCOLUMNS(
-    SUMMARIZE(ALL_PARTS, ALL_PARTS[תאריך], ALL_PARTS[חברה]),
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[תאריך]),
     "sales", CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)])
   ),
-  FILTER(ALL_PARTS,
-    'ALL_PARTS'[מספר לקוח] = ${custId}
-    ${companyFilter}
-    && 'ALL_PARTS'[תאריך] >= DATE(${new Date().getFullYear() - 1}, ${new Date().getMonth() + 1}, 1)
-  )
+  ALL_PARTS[מספר לקוח] = ${custId}${companyArg}
 )
 ORDER BY ALL_PARTS[תאריך] DESC
 `);
