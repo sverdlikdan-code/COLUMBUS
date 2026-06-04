@@ -169,36 +169,50 @@ ORDER BY 'משטח'[מס. לקוח] ASC
   try { corrections = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'docs', 'gps-corrections.json'), 'utf8')); } catch (_) {}
   console.log(`Manual corrections: ${Object.keys(corrections).length}`);
 
-  // Prefetch city bboxes (only for cities needing geocoding)
-  const cities = [...new Set(clients.filter(c => !isValidIL(c.pbiLat, c.pbiLng) && !corrections[String(c.custId)]).map(c => c.city).filter(Boolean))];
+  // Prefetch city bboxes for all clients (to validate Priority GPS too)
+  const cities = [...new Set(clients.filter(c => !corrections[String(c.custId)]).map(c => c.city).filter(Boolean))];
   console.log(`Fetching bboxes for ${cities.length} cities...`);
   await Promise.all(cities.map(city => getCityBBox(city)));
 
   // Process
   const diffRows = [];
-  let idx = 0, geocoded = 0, fromCache = 0, failed = 0;
+  let idx = 0, geocoded = 0, fromCache = 0, failed = 0, bboxMismatch = 0;
 
   for (const c of clients) {
     idx++;
-    if (idx % 100 === 0) process.stdout.write(`\r  Processing ${idx}/${clients.length} | geocoded: ${geocoded} cache: ${fromCache} failed: ${failed}   `);
+    if (idx % 100 === 0) process.stdout.write(`\r  Processing ${idx}/${clients.length} | geocoded: ${geocoded} cache: ${fromCache} failed: ${failed} mismatch: ${bboxMismatch}   `);
 
     const corr = corrections[String(c.custId)];
-
     if (corr) {
       diffRows.push({ ...c, ourLat: corr.lat, ourLng: corr.lng, gpsSource: 'correction', note: 'תיקון ידני' });
       continue;
     }
 
-    if (isValidIL(c.pbiLat, c.pbiLng)) continue; // Priority GPS valid → skip
+    if (isValidIL(c.pbiLat, c.pbiLng)) {
+      // Priority has GPS — validate against city bbox
+      const bbox = cityBBoxCache.get(c.city) ?? null;
+      if (!bbox || isWithinBBox(c.pbiLat, c.pbiLng, bbox)) continue; // passes → skip
+      // Priority GPS is outside city bbox → geocode and flag
+      bboxMismatch++;
+      const wasCached = geocodeCache.has([cleanAddr(c.address), c.city, 'ישראל'].filter(Boolean).join(', '));
+      const geo = await geocodeClient(c);
+      if (geo) {
+        if (!wasCached) { geocoded++; } else { fromCache++; }
+        diffRows.push({ ...c, ourLat: geo.lat, ourLng: geo.lng, gpsSource: 'bbox-mismatch', note: 'לדיוק קואורדינטות' });
+      } else {
+        diffRows.push({ ...c, ourLat: c.pbiLat, ourLng: c.pbiLng, gpsSource: 'bbox-mismatch', note: 'GPS שגוי — לדיוק' });
+      }
+      continue;
+    }
 
-    // Need geocoding
+    // Need geocoding (no valid Priority GPS)
     const cacheKey = [cleanAddr(c.address), c.city, 'ישראל'].filter(Boolean).join(', ');
     const wasCached = geocodeCache.has(cacheKey);
     const geo = await geocodeClient(c);
 
     if (geo) {
       if (!wasCached) { geocoded++; } else { fromCache++; }
-      diffRows.push({ ...c, ourLat: geo.lat, ourLng: geo.lng, gpsSource: 'no-gps', note: wasCached ? 'מתוך cache' : 'גיאוקוד חדש' });
+      diffRows.push({ ...c, ourLat: geo.lat, ourLng: geo.lng, gpsSource: 'no-gps', note: 'לדיוק קואורדינטות' });
     } else {
       failed++;
       diffRows.push({ ...c, ourLat: '', ourLng: '', gpsSource: 'no-gps', note: 'לא נמצא GPS' });
@@ -237,8 +251,9 @@ ORDER BY 'משטח'[מס. לקוח] ASC
   ws.getRow(1).height = 24;
 
   const srcFill = {
-    'correction': 'FF1B5E20',
-    'no-gps':     'FF0D47A1',
+    'correction':    'FF1B5E20',
+    'no-gps':        'FF0D47A1',
+    'bbox-mismatch': 'FFB71C1C',
   };
 
   for (const row of diffRows) {
@@ -276,14 +291,16 @@ ORDER BY 'משטח'[מס. לקוח] ASC
   const outPath = `C:\\Users\\d.sverdlik\\Desktop\\gps-report-${today}.xlsx`;
   await wb.xlsx.writeFile(outPath);
 
-  const cntCorr    = diffRows.filter(r => r.gpsSource === 'correction').length;
-  const cntGeocoded = diffRows.filter(r => r.gpsSource === 'no-gps' && r.ourLat).length;
-  const cntFailed  = diffRows.filter(r => r.gpsSource === 'no-gps' && !r.ourLat).length;
+  const cntCorr     = diffRows.filter(r => r.gpsSource === 'correction').length;
+  const cntGeocoded = diffRows.filter(r => r.gpsSource !== 'correction' && r.ourLat).length;
+  const cntFailed   = diffRows.filter(r => r.gpsSource !== 'correction' && !r.ourLat).length;
+  const cntMismatch = diffRows.filter(r => r.gpsSource === 'bbox-mismatch').length;
 
   console.log(`\n✓ Saved: ${outPath}`);
-  console.log(`  ✏️  Manual corrections:  ${cntCorr}`);
-  console.log(`  📍 Geocoded (no-gps):   ${cntGeocoded} (${fromCache} from cache, ${geocoded} new)`);
-  console.log(`  ❌ Failed (no GPS found): ${cntFailed}`);
+  console.log(`  ✏️  Manual corrections:     ${cntCorr}`);
+  console.log(`  📍 Geocoded (לדיוק):       ${cntGeocoded} (${fromCache} from cache, ${geocoded} new)`);
+  console.log(`  🚨 Priority GPS bbox-fail: ${cntMismatch}`);
+  console.log(`  ❌ Failed (no GPS found):  ${cntFailed}`);
   console.log(`  Total rows: ${diffRows.length}`);
 }
 
