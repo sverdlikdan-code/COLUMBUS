@@ -41,3 +41,4 @@
 - [[session-2026-05-29]] — Сессия 2026-05-29: build-halavi-new + build-dagim-fab (Fabric), GPS inBBox fix, Azure Maps, bay шрифт, אפס מלאי grey
 - [[session-2026-05-31]] — Сессия 2026-05-31: все 4 секции на KARTIS PARIT, new-product класс ★ חדש, garbled fam чистка, zero-stock hover fix
 - [[session-2026-06-03]] — Сессия 2026-06-03: mahsan ФИНАЛЬНЫЙ restore (0 дублей, май-31 база), фильтр 360д откат, 1M context error диагноз
+- [[session-2026-06-04]] — Сессия 2026-06-04: Formula Road satellite labels fix, excluded clients fix, BiDi geocoding fix в export-gps-report
