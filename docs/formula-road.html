@@ -1250,15 +1250,19 @@ function shortName(name, city) {
   const cleanName = name.replace(DIR, '');
   const cleanCity = city.replace(DIR, '').trim();
   if (!cleanCity) return name;
-  const esc = cleanCity.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // Priority names are in visual order (chars reversed); city arrives in logical order.
+  // Reverse city + handle sofit letter forms (ן↔נ etc.) to match visual-order name.
+  const SOFIT = {ן:'[ןנ]',ם:'[םמ]',ף:'[ףפ]',ך:'[ךכ]',ץ:'[ץצ]',נ:'[נן]',מ:'[מם]',פ:'[פף]',כ:'[כך]',צ:'[צץ]'};
+  const revCityPat = [...cleanCity].reverse().map(c =>
+    SOFIT[c] || c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  ).join('');
   const result = cleanName
-    .replace(new RegExp('[\\s\\-–·.(]*' + esc + '[)\\s\\-–·.]*', 'g'), ' ')
+    .replace(new RegExp('[\\s\\-–·.(]*' + revCityPat + '[)\\s\\-–·.]*', 'g'), ' ')
     .replace(/\s{2,}/g, ' ')
     .replace(/^[\s\-–·.]+|[\s\-–·.]+$/g, '')
     .trim();
   const base = result || cleanName;
-  // Priority stores names in visual order with LRO (U+202D) wrapper — restore LRO, not LRE,
-  // so browser forces all chars LTR without bidi regrouping (LRE would reverse visual-order chars)
+  // Restore LRO (U+202D) — forces all chars LTR, preserving visual-order display
   return hasBidi ? '‭' + base + '‬' : base;
 }
 
@@ -1458,14 +1462,14 @@ function renderMap(){
     const _groupSize=_coordCount[_ck]||1;
     // label: remove city from name, then cap length
     const _rawLabel=(shortName(c.custName||'',c.city||'')||c.custName||'');
-    const labelName=_rawLabel.length>22?_rawLabel.slice(0,20)+'…':_rawLabel;
+    const labelName=_rawLabel.length>40?_rawLabel.slice(0,38)+'…':_rawLabel;
     // vertical offset: spread clustered labels so they don't overlap
     const labelOffsetY=_hasDupe?Math.round((_di-(_groupSize-1)/2)*26):0;
     const icon=gpsCorrectMode
       ? L.divIcon({className:'',
           html:`<div style="position:relative;width:38px;height:38px">
             <div style="position:absolute;top:0;left:0;width:38px;height:38px;border-radius:50%;background:#D32F2F;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;border:3px solid #fff;box-shadow:0 3px 12px rgba(211,47,47,.6)">${i+1}</div>
-            <div style="position:absolute;left:44px;top:calc(50% + ${labelOffsetY}px);transform:translateY(-50%);background:rgba(0,0,0,.82);color:#fff;padding:5px 10px;border-radius:5px;font-size:11px;font-weight:700;white-space:nowrap;pointer-events:none;direction:rtl;min-width:70px;box-shadow:0 2px 6px rgba(0,0,0,.4)">${labelName}</div>
+            <div style="position:absolute;left:44px;top:calc(50% + ${labelOffsetY}px);transform:translateY(-50%);background:rgba(0,0,0,.82);color:#fff;padding:5px 10px;border-radius:5px;font-size:11px;font-weight:700;white-space:normal;max-width:150px;word-break:break-word;pointer-events:none;direction:rtl;min-width:70px;box-shadow:0 2px 6px rgba(0,0,0,.4)">${labelName}</div>
           </div>`,
           iconSize:[38,38], iconAnchor:[19,19]})
       : isSel
