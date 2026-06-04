@@ -202,6 +202,8 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .map-tile-ctrl{position:absolute;top:10px;left:10px;z-index:1000;}
 .map-tile-btn{height:30px;border-radius:10px;background:#fff;border:2px solid var(--sky-mid);color:var(--blue-dark);font-size:11px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:4px;box-shadow:0 2px 8px rgba(0,0,0,.18);padding:0 10px;white-space:nowrap;}
 .map-tile-btn:hover{background:var(--sky-light);}
+.gps-cancel-btn{position:absolute;bottom:70px;left:50%;transform:translateX(-50%);z-index:1100;background:#c62828;color:#fff;border:none;border-radius:22px;padding:10px 28px;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 4px 16px rgba(198,40,40,.5);display:none;align-items:center;gap:8px;white-space:nowrap;}
+.gps-cancel-btn:hover{background:#b71c1c;}
 
 /* LOGIN HERO */
 .login-hero{background:linear-gradient(160deg,var(--blue-deeper) 0%,var(--blue-dark) 50%,var(--blue) 100%);padding:28px 20px 22px;display:flex;flex-direction:column;align-items:center;gap:10px;flex-shrink:0;}
@@ -372,6 +374,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
       <div class="map-tile-ctrl">
         <button class="map-tile-btn" id="tile-btn" onclick="cycleTile()"></button>
       </div>
+      <button class="gps-cancel-btn" id="gps-cancel-btn" onclick="cancelGpsCorrection()">✕ ביטול תיקון</button>
       <div class="map-rotate-ctrl">
         <button class="map-rotate-btn" onclick="rotateMap(-45)" title="↺ поворот влево">↺</button>
         <button class="map-rotate-btn" onclick="rotateMap(45)" title="↻ поворот вправо">↻</button>
@@ -517,6 +520,7 @@ const st = {
 let map=null, mapMarkers=[], mapPolylines=[], markerCluster=null, sortable=null, mapBearing=0;
 let baseTileLayer=null, gpsCorrectMode=false;
 let userTileKey='light', currentTileKey=null;
+let _gpsClickHandler=null;
 
 const TILE_DEFS={
   light:    {icon:'☁',  label:'בהיר',   url:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', opts:{attribution:'© CartoDB',subdomains:'abcd',maxZoom:19}},
@@ -1402,6 +1406,8 @@ function renderMap(){
     const btn=document.getElementById('tile-btn');
     if(btn&&!btn.innerHTML.trim()){const d=TILE_DEFS[currentTileKey||'light'];btn.innerHTML=`${d.icon} ${d.label}`;}
   }
+  const gcb=document.getElementById('gps-cancel-btn');
+  if(gcb) gcb.style.display=gpsCorrectMode?'flex':'none';
   mapMarkers.forEach(m=>m.remove()); mapMarkers=[];
   mapPolylines.forEach(p=>p.remove()); mapPolylines=[];
   if(markerCluster){markerCluster.clearLayers();map.removeLayer(markerCluster);}
@@ -1755,12 +1761,20 @@ function deleteGpsCorrection(custId){
   renderMap();renderClientList();
   showToast('🗑 תיקון נמחק');
 }
+function cancelGpsCorrection(){
+  if(_gpsClickHandler){ map.off('click',_gpsClickHandler); _gpsClickHandler=null; }
+  map.getContainer().style.cursor='';
+  gpsCorrectMode=false;
+  renderMap();
+  showToast('ביטול');
+}
 function startGpsCorrection(custId, custName){
   gpsCorrectMode=true;
   renderMap();
   showToast('📍 לחץ על המפה לקביעת מיקום חדש', 4000);
   map.getContainer().style.cursor='crosshair';
-  map.once('click', (e)=>{
+  _gpsClickHandler=(e)=>{
+    map.off('click',_gpsClickHandler); _gpsClickHandler=null;
     map.getContainer().style.cursor='';
     gpsCorrectMode=false;
     const {lat,lng}=e.latlng;
@@ -1772,23 +1786,21 @@ function startGpsCorrection(custId, custName){
     const cl=st.clients.find(x=>String(x.custId)===String(custId))||{};
     const entry={lat:la,lng:lo,correctedAt:new Date().toISOString(),name:custName,city:cl.city||'',address:cl.address||''};
     gpsCorrections[String(custId)]=entry;
-    // save to localStorage (immediate, offline-safe)
     const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
     local[String(custId)]=entry;
     localStorage.setItem('fr_gps_local',JSON.stringify(local));
     updateGpsHistBtn();
-    // sync to server → gps-corrections.json (shared for all users)
     apiFetch(`${API}/save-gps`,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({custId,lat:la,lng:lo,name:custName,city:cl.city||'',address:cl.address||''})
     }).catch(()=>{});
-    // update client position
     st.clients=st.clients.map(x=>String(x.custId)===String(custId)?{...x,lat:la,lng:lo}:x);
     st.aiClients=nearestNeighbor([...st.clients]);
     st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; triggerOsrm();
     saveRoute(st.agent.code,st.day,st.clients);
     updateKmBar(); renderClientList(); renderMap();
     showToast('✅ מיקום נשמר');
-  });
+  };
+  map.on('click',_gpsClickHandler);
 }
 
 // ── DEMO DATA ──────────────────────────────────────────────────────────────
@@ -1803,6 +1815,7 @@ function getDemoClients(){
 }
 
 // ── INIT ───────────────────────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&gpsCorrectMode) cancelGpsCorrection();});
 initLogin();
 </script>
 </body>
