@@ -122,7 +122,7 @@ async function geocodeClient(c) {
 
   const queries = [
     addr && city ? `${addr}, ${city}, ישראל` : null,
-    addr         ? `${addr}, ישראל`           : null,
+    addr && bbox ? `${addr}, ישראל`           : null,  // skip if no bbox — any IL result would pass
     city         ? `${city}, ישראל`           : null,
   ].filter(Boolean);
 
