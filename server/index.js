@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const ExcelJS = require('exceljs');
 const { executeDax } = require('./powerbi');
 
 const app = express();
@@ -824,28 +825,50 @@ app.get('/api/client-sales', requireAuth, async (req, res) => {
 EVALUATE
 CALCULATETABLE(
   ADDCOLUMNS(
-    SUMMARIZE(ALL_PARTS, ALL_PARTS[תאריך]),
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[תאריך], ALL_PARTS[תאור משפחת מוצר]),
     "sales", CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)])
   ),
   ALL_PARTS[מספר לקוח] = "${custId}"${companyArg}
 )
 ORDER BY ALL_PARTS[תאריך] DESC
 `);
-    // Aggregate by month on server
+    // Aggregate by month + category
     const monthMap = {};
+    const catTotals = {};
     for (const r of rows) {
       const d = r['ALL_PARTS[תאריך]'];
       const s = r['[sales]'] || 0;
       if (!d || !s) continue;
       const dt = new Date(d);
-      const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
-      monthMap[key] = (monthMap[key] || 0) + s;
+      const mKey = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+      const cat = fixBiDi(r['ALL_PARTS[תאור משפחת מוצר]'] || '');
+      if (!cat) continue;
+      if (!monthMap[mKey]) monthMap[mKey] = {};
+      monthMap[mKey][cat] = Math.round((monthMap[mKey][cat] || 0) + s);
+      catTotals[cat] = (catTotals[cat] || 0) + s;
     }
+    // Top 7 categories by total sales
+    const topCats = Object.entries(catTotals)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 7)
+      .map(([c]) => c);
     const months = Object.entries(monthMap)
       .sort(([a], [b]) => b.localeCompare(a))
-      .slice(0, 12)
-      .map(([month, sales]) => ({ month, sales: Math.round(sales) }));
-    res.json(months);
+      .slice(0, 24)
+      .map(([month, cats]) => {
+        const row = { month };
+        let total = 0;
+        for (const cat of topCats) { row[cat] = cats[cat] || 0; total += row[cat]; }
+        // other = everything not in top7
+        const other = Object.entries(cats)
+          .filter(([c]) => !topCats.includes(c))
+          .reduce((s, [, v]) => s + v, 0);
+        row['אחרים'] = Math.round(other);
+        total += other;
+        row.total = Math.round(total);
+        return row;
+      });
+    res.json({ months, categories: topCats });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -865,6 +888,139 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
     writeLog({ ts: new Date().toISOString(), event: 'mekarer-order', id,
       custId: String(order.custId), agentCode: req.session?.agentCode || null, ip: getRealIp(req) });
     res.json({ ok: true, id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/mekarer-export — download all מקרר orders as Excel
+app.get('/api/mekarer-export', requireAuth, async (req, res) => {
+  try {
+    const filePath = path.join(__dirname, '..', 'docs', 'mekarer-orders.json');
+    const orders = fs.existsSync(filePath) ? JSON.parse(fs.readFileSync(filePath, 'utf8')) : [];
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'COLUMBUS';
+
+    function hCell(cell, text, bg, fontColor) {
+      cell.value = text;
+      cell.font = { bold: true, color: { argb: fontColor || 'FFFFFFFF' }, size: 11, name: 'Calibri' };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg || 'FF0D47A1' } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.border = { bottom: { style: 'medium', color: { argb: 'FFC9A84C' } } };
+    }
+    function dCell(cell, text, opts = {}) {
+      cell.value = text ?? '';
+      cell.font = { size: opts.size || 10, bold: !!opts.bold, color: { argb: opts.fc || 'FF1A1A2E' }, name: 'Calibri' };
+      if (opts.bg) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: opts.bg } };
+      cell.alignment = { horizontal: opts.align || 'right', vertical: 'middle', wrapText: !!opts.wrap };
+    }
+    function fmtDate(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
+    }
+    function fmtDT(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      return `${fmtDate(iso)} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+    }
+
+    // ── Sheet 1: Summary ────────────────────────────────────────────────────
+    const ws1 = wb.addWorksheet('סיכום הזמנות', { views: [{ rightToLeft: true }] });
+    ws1.mergeCells('A1:K1');
+    const t1 = ws1.getCell('A1');
+    t1.value = `הזמנות מקרר — FORMULA  |  ${fmtDate(new Date().toISOString())}  |  ${orders.length} הזמנות`;
+    t1.font = { bold: true, size: 13, color: { argb: 'FFFFFFFF' }, name: 'Calibri' };
+    t1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0D47A1' } };
+    t1.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws1.getRow(1).height = 28;
+
+    const s1cols = [
+      ['A',5,'#'],['B',13,'מס\' לקוח'],['C',28,'שם לקוח'],['D',15,'עיר'],
+      ['E',20,'שם סוכן'],['F',14,'מנהל'],['G',16,'איש קשר'],['H',14,'טלפון'],
+      ['I',12,'מיקום'],['J',11,'מקררים'],['K',20,'תאריך הגשה'],
+    ];
+    s1cols.forEach(([k, w, lbl]) => { ws1.getColumn(k).width = w; hCell(ws1.getCell(`${k}2`), lbl); });
+    ws1.getRow(2).height = 20;
+
+    orders.forEach((o, i) => {
+      const r = 3 + i;
+      const bg = i % 2 === 0 ? 'FFFFFFFF' : 'FFEEF2F8';
+      ws1.getRow(r).height = 18;
+      dCell(ws1.getCell(`A${r}`), i+1,              { align:'center', bold:true, bg });
+      dCell(ws1.getCell(`B${r}`), o.custId,          { align:'center', bg });
+      dCell(ws1.getCell(`C${r}`), o.custName,        { bold:true, bg });
+      dCell(ws1.getCell(`D${r}`), o.city,            { bg });
+      dCell(ws1.getCell(`E${r}`), o.agentName,       { bg });
+      dCell(ws1.getCell(`F${r}`), o.manager,         { bg });
+      dCell(ws1.getCell(`G${r}`), o.contactName,     { bg });
+      dCell(ws1.getCell(`H${r}`), o.phone,           { align:'left', bg });
+      dCell(ws1.getCell(`I${r}`), o.location,        { align:'center', bg });
+      dCell(ws1.getCell(`J${r}`), (o.mekarerim||[]).length, { align:'center', bold:true, bg });
+      dCell(ws1.getCell(`K${r}`), fmtDT(o.submittedAt), { align:'center', bg });
+    });
+    ws1.autoFilter = { from: 'A2', to: `K${2+orders.length}` };
+    ws1.views[0] = { rightToLeft: true, state: 'frozen', ySplit: 2 };
+
+    // ── Sheet 2: Detail (one row per unit) ──────────────────────────────────
+    const ws2 = wb.addWorksheet('פירוט מקררים', { views: [{ rightToLeft: true }] });
+    const totalUnits = orders.reduce((s, o) => s + (o.mekarerim||[]).length, 0);
+    ws2.mergeCells('A1:Q1');
+    const t2 = ws2.getCell('A1');
+    t2.value = `פירוט מקררים — ${totalUnits} יחידות`;
+    t2.font = { bold: true, size: 13, color: { argb: 'FFFFFFFF' }, name: 'Calibri' };
+    t2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1565C0' } };
+    t2.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws2.getRow(1).height = 28;
+
+    const s2cols = [
+      ['A',5,'#'],['B',13,'מס\' לקוח'],['C',28,'שם לקוח'],['D',15,'עיר'],
+      ['E',20,'שם סוכן'],['F',14,'מנהל'],['G',16,'איש קשר'],['H',14,'טלפון'],
+      ['I',12,'מיקום'],['J',14,'פעולה'],['K',16,'דגם לספק'],['L',16,'דגם לאסוף'],
+      ['M',8,'שלות'],['N',8,'עגלה'],['O',16,'תאריך אספקה'],['P',24,'הערה'],['Q',20,'הגשה'],
+    ];
+    s2cols.forEach(([k, w, lbl]) => { ws2.getColumn(k).width = w; hCell(ws2.getCell(`${k}2`), lbl); });
+    ws2.getRow(2).height = 20;
+
+    const ACTION_BG = { 'לספק':'FFE8F5E9','להחליף':'FFE3F2FD','לאסוף':'FFFFF3E0','לתקן':'FFFFF9C4' };
+    const ACTION_FC = { 'לספק':'FF2E7D32','להחליף':'FF0D47A1','לאסוף':'FFE65100','לתקן':'FF6D4C41' };
+
+    let row = 3, unit = 1;
+    orders.forEach((o, oi) => {
+      (o.mekarerim || []).forEach(m => {
+        const bg = oi % 2 === 0 ? 'FFFFFFFF' : 'FFEEF2F8';
+        ws2.getRow(row).height = 18;
+        dCell(ws2.getCell(`A${row}`), unit,          { align:'center', bold:true, bg });
+        dCell(ws2.getCell(`B${row}`), o.custId,      { align:'center', bg });
+        dCell(ws2.getCell(`C${row}`), o.custName,    { bold:true, bg });
+        dCell(ws2.getCell(`D${row}`), o.city,        { bg });
+        dCell(ws2.getCell(`E${row}`), o.agentName,   { bg });
+        dCell(ws2.getCell(`F${row}`), o.manager,     { bg });
+        dCell(ws2.getCell(`G${row}`), o.contactName, { bg });
+        dCell(ws2.getCell(`H${row}`), o.phone,       { align:'left', bg });
+        dCell(ws2.getCell(`I${row}`), o.location,    { align:'center', bg });
+        const act = m.action || '';
+        dCell(ws2.getCell(`J${row}`), act, { align:'center', bold:true, bg: ACTION_BG[act]||bg, fc: ACTION_FC[act]||'FF1A1A2E' });
+        dCell(ws2.getCell(`K${row}`), m.newModel||'',    { align:'center', bg });
+        dCell(ws2.getCell(`L${row}`), m.returnModel||'', { align:'center', bg });
+        dCell(ws2.getCell(`M${row}`), m.salot??'',       { align:'center', bold:true, bg });
+        const agala = !!m.agala;
+        dCell(ws2.getCell(`N${row}`), agala?'כן':'לא', { align:'center', bold:true, bg: agala?'FFE8F5E9':bg, fc: agala?'FF2E7D32':'FF1A1A2E' });
+        dCell(ws2.getCell(`O${row}`), fmtDate(m.supplyDate), { align:'center', bg });
+        dCell(ws2.getCell(`P${row}`), m.fault||'',       { bg, wrap:true });
+        dCell(ws2.getCell(`Q${row}`), fmtDT(o.submittedAt), { align:'center', bg });
+        row++; unit++;
+      });
+    });
+    ws2.autoFilter = { from: 'A2', to: `Q${row-1}` };
+    ws2.views[0] = { rightToLeft: true, state: 'frozen', ySplit: 2 };
+
+    const date = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="mekarer-orders-${date}.xlsx"`);
+    await wb.xlsx.write(res);
+    res.end();
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
