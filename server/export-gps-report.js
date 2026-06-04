@@ -100,6 +100,28 @@ function cleanAddr(s) {
   return (s || '').replace(/(\d+)\/\d+/g, '$1').replace(/[,\s]+$/, '').replace(/\s{2,}/g, ' ').trim();
 }
 
+// Power BI (Priority ERP) delivers Hebrew text wrapped in LRO/RLO BiDi marks,
+// with characters in visual order (reversed). Strip marks then un-reverse.
+const BIDI_TEST  = /[‎‏‪-‮]/;     // no g — for detection only
+const BIDI_STRIP = /[‎‏‪-‮]/g;    // g — for replace
+function fixBiDiHebrew(raw) {
+  if (!raw) return '';
+  const hasBidi = BIDI_TEST.test(raw);
+  const s = raw.replace(BIDI_STRIP, '').trim();
+  if (!hasBidi || !/[א-ת]/.test(s)) return s;
+  // Reverse character order within each Hebrew word; keep numbers/Latin as-is;
+  // reverse the word sequence so Hebrew words appear in logical order.
+  const words = s.split(/\s+/);
+  const heb = [];
+  const num = [];
+  for (const w of words) {
+    if (/[א-ת]/.test(w)) heb.push(w.split('').reverse().join(''));
+    else if (w) num.push(w);
+  }
+  heb.reverse();
+  return [...heb, ...num].join(' ');
+}
+
 async function geocodeClient(c) {
   if (/ת\.?ד\.?\s*\d+/i.test(c.address)) return null;
   const bbox = cityBBoxCache.get(c.city) ?? null;
@@ -138,16 +160,15 @@ SUMMARIZE(
 ORDER BY 'משטח'[מס. לקוח] ASC
   `);
 
-  const DIR = /[‎‏‪-‮]/g;
   const clients = rows.map(r => ({
     custId:    r['משטח[מס. לקוח]'],
-    custName:  (r['משטח[שם לקוח]'] || '').replace(DIR, ''),
-    city:      (r['משטח[עיר]']     || '').replace(DIR, '').trim(),
-    address:   (r['משטח[כתובת]']   || '').replace(DIR, '').trim(),
+    custName:  fixBiDiHebrew(r['משטח[שם לקוח]'] || ''),
+    city:      fixBiDiHebrew(r['משטח[עיר]']     || ''),
+    address:   fixBiDiHebrew(r['משטח[כתובת]']   || ''),
     pbiLat:    r['משטח[קו רוחב]']  || null,
     pbiLng:    r['משטח[קו אורך]']  || null,
     agentCode: r['משטח[סוכן]']     || '',
-    agentName: (r['משטח[שם סוכן]'] || '').replace(DIR, ''),
+    agentName: fixBiDiHebrew(r['משטח[שם סוכן]'] || ''),
   }));
   console.log(`Active clients: ${clients.length}`);
 
