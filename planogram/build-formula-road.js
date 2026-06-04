@@ -157,6 +157,31 @@ async function nominatimQuery(q) {
   return null;
 }
 
+// Persistent Google Maps geocode cache
+const GOOGLE_CACHE_PATH = path.join(__dirname, '../docs/google-geocode-cache.json');
+const googleCache = fs.existsSync(GOOGLE_CACHE_PATH)
+  ? JSON.parse(fs.readFileSync(GOOGLE_CACHE_PATH, 'utf8'))
+  : {};
+let googleCacheDirty = false;
+
+async function googleMapsQuery(q, city) {
+  if (!process.env.GOOGLE_MAPS_KEY) return null;
+  if (q in googleCache) return googleCache[q];
+  try {
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(q)}&language=he&region=il&key=${process.env.GOOGLE_MAPS_KEY}`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
+    const data = await r.json();
+    const res = data?.results?.[0];
+    if (res?.geometry?.location) {
+      const { lat, lng } = res.geometry.location;
+      googleCache[q] = { lat, lng }; googleCacheDirty = true;
+      return { lat, lng };
+    }
+  } catch (_) {}
+  googleCache[q] = null; googleCacheDirty = true;
+  return null;
+}
+
 async function azureMapsQuery(q, city) {
   if (!process.env.AZURE_MAPS_KEY) return null;
   if (q in azureCache) return azureCache[q];
@@ -240,17 +265,22 @@ async function geocodeBatch(clients, reGeocode = new Set()) {
     if (SETTLEMENT_RE.test(c.address)) { c.lat = null; c.lng = null; }
   }
 
-  // venue addresses (קניון/מרכז/תחנה) without street number → try Azure as POI before city-center
+  // venue addresses (קניון/מרכז/תחנה) without street number → Azure POI → Google POI → city-center
   const VENUE_RE = /קניון|מרכז מסחרי|מרכז קניות|מרכז עסקים|תחנה מרכזית/i;
   for (const c of clients) {
     if (isValidIL(c.lat, c.lng)) continue;
-    if (extractStreetNum(c.address)) continue; // has number → handled in cascade below
-    if (!VENUE_RE.test(c.address)) continue;   // not a venue address
+    if (extractStreetNum(c.address)) continue;
+    if (!VENUE_RE.test(c.address)) continue;
     const q = [fixPriorityAddr(c.address), c.city].filter(Boolean).join(', ');
-    const az = await azureMapsQuery(q, c.city);
     const azBbox = cityBBoxCache.get(c.city) ?? null;
+    const az = await azureMapsQuery(q, c.city);
     if (az && inBBox(az.lat, az.lng, azBbox)) {
       c.lat = az.lat; c.lng = az.lng; c.gpsSource = 'azure-poi';
+    } else {
+      const g = await googleMapsQuery(q, c.city);
+      if (g && inBBox(g.lat, g.lng, azBbox)) {
+        c.lat = g.lat; c.lng = g.lng; c.gpsSource = 'google-poi';
+      }
     }
     await sleep(1100);
   }
@@ -279,6 +309,12 @@ async function geocodeBatch(clients, reGeocode = new Set()) {
       const azBbox = cityBBoxCache.get(c.city) ?? null;
       if (az && inBBox(az.lat, az.lng, azBbox)) {
         c.lat = az.lat; c.lng = az.lng; c.gpsSource = 'azure';
+      } else {
+        // 3rd try: Google Maps (best for Hebrew: POI names, intersections, abbreviations)
+        const g = await googleMapsQuery(q, c.city);
+        if (g && inBBox(g.lat, g.lng, azBbox)) {
+          c.lat = g.lat; c.lng = g.lng; c.gpsSource = 'google';
+        }
       }
     }
     await sleep(1100);
@@ -552,6 +588,10 @@ EVALUATE DISTINCT(SELECTCOLUMNS(
   if (azureCacheDirty) {
     fs.writeFileSync(AZURE_CACHE_PATH, JSON.stringify(azureCache, null, 2));
     console.log(`✅ Azure cache → docs/azure-geocode-cache.json (${Object.keys(azureCache).length} entries)`);
+  }
+  if (googleCacheDirty) {
+    fs.writeFileSync(GOOGLE_CACHE_PATH, JSON.stringify(googleCache, null, 2));
+    console.log(`✅ Google cache → docs/google-geocode-cache.json (${Object.keys(googleCache).length} entries)`);
   }
 }
 
