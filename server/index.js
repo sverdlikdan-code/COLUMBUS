@@ -820,19 +820,21 @@ app.get('/api/client-sales', requireAuth, async (req, res) => {
   const companyArg = company && company !== 'הכל'
     ? `,\n  ALL_PARTS[חברה] = "${company.replace(/"/g, '')}"`
     : '';
+  const SKIP_CATS = new Set(['ציוד', 'שאריות', 'תגמולים']);
   try {
     const rows = await executeDax(`
 EVALUATE
 CALCULATETABLE(
   ADDCOLUMNS(
     SUMMARIZE(ALL_PARTS, ALL_PARTS[תאריך], ALL_PARTS[תאור משפחת מוצר]),
+    "מחלקה", LOOKUPVALUE(ADIFUT[מחלקה], ADIFUT[תאור משפחה], ALL_PARTS[תאור משפחת מוצר]),
     "sales", CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)])
   ),
   ALL_PARTS[מספר לקוח] = "${custId}"${companyArg}
 )
 ORDER BY ALL_PARTS[תאריך] DESC
 `);
-    // Aggregate by month + category
+    // Aggregate by month + מחלקה
     const monthMap = {};
     const catTotals = {};
     for (const r of rows) {
@@ -841,8 +843,10 @@ ORDER BY ALL_PARTS[תאריך] DESC
       if (!d || !s) continue;
       const dt = new Date(d);
       const mKey = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
-      const cat = fixBiDi(r['ALL_PARTS[תאור משפחת מוצר]'] || '');
-      if (!cat) continue;
+      const rawCat = r['[מחלקה]'] || '';
+      if (!rawCat) continue;
+      const cat = fixBiDi(rawCat);
+      if (!cat || SKIP_CATS.has(cat)) continue;
       if (!monthMap[mKey]) monthMap[mKey] = {};
       monthMap[mKey][cat] = Math.round((monthMap[mKey][cat] || 0) + s);
       catTotals[cat] = (catTotals[cat] || 0) + s;
