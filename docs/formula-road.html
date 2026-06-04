@@ -1257,8 +1257,9 @@ function shortName(name, city) {
     .replace(/^[\s\-–·.]+|[\s\-–·.]+$/g, '')
     .trim();
   const base = result || cleanName;
-  // Priority stores names in visual order with LRE wrapper — restore it so browser doesn't reverse chars
-  return hasBidi ? '‪' + base + '‬' : base;
+  // Priority stores names in visual order with LRO (U+202D) wrapper — restore LRO, not LRE,
+  // so browser forces all chars LTR without bidi regrouping (LRE would reverse visual-order chars)
+  return hasBidi ? '‭' + base + '‬' : base;
 }
 
 function renderClientList(html){
@@ -1498,7 +1499,7 @@ function renderMap(){
     const approxNote = isCityCenter ? '<br><span style="font-size:11px;color:#FF8C00">⚠ מיקום משוער — מרכז עיר</span>' : '';
     const safeName=(c.custName||'').replace(/"/g,'&quot;');
     const fixBtn=`<br><button data-id="${c.custId}" data-name="${safeName}" onclick="startGpsCorrection(this.dataset.id,this.dataset.name)" style="margin-top:6px;background:#1565C0;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">📍 תקן מיקום</button>`;
-    m.bindPopup(`<b>${c.custName}${corrMark}</b><br>${c.city||''}${c.address?'<br><span style="font-size:11px;color:#555">'+c.address+'</span>':''}${approxNote}${fixBtn}`);
+    m.bindPopup(`<b>${_rawLabel}${corrMark}</b><br>${c.city||''}${c.address?'<br><span style="font-size:11px;color:#555">'+c.address+'</span>':''}${approxNote}${fixBtn}`);
     if(isSel) m.openPopup();
     bounds.push([c.lat,c.lng]);
     if(isSel) m.addTo(map); else markerCluster.addLayer(m);
