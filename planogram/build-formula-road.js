@@ -265,7 +265,7 @@ async function geocodeBatch(clients, reGeocode = new Set()) {
     if (SETTLEMENT_RE.test(c.address)) { c.lat = null; c.lng = null; }
   }
 
-  // venue addresses (קניון/מרכז/תחנה) without street number → Azure POI → Google POI → city-center
+  // venue addresses (קניון/מרכז/תחנה) without street number → Google POI → Azure POI → city-center
   const VENUE_RE = /קניון|מרכז מסחרי|מרכז קניות|מרכז עסקים|תחנה מרכזית/i;
   for (const c of clients) {
     if (isValidIL(c.lat, c.lng)) continue;
@@ -273,13 +273,13 @@ async function geocodeBatch(clients, reGeocode = new Set()) {
     if (!VENUE_RE.test(c.address)) continue;
     const q = [fixPriorityAddr(c.address), c.city].filter(Boolean).join(', ');
     const azBbox = cityBBoxCache.get(c.city) ?? null;
-    const az = await azureMapsQuery(q, c.city);
-    if (az && inBBox(az.lat, az.lng, azBbox)) {
-      c.lat = az.lat; c.lng = az.lng; c.gpsSource = 'azure-poi';
+    const g = await googleMapsQuery(q, c.city);
+    if (g && inBBox(g.lat, g.lng, azBbox)) {
+      c.lat = g.lat; c.lng = g.lng; c.gpsSource = 'google-poi';
     } else {
-      const g = await googleMapsQuery(q, c.city);
-      if (g && inBBox(g.lat, g.lng, azBbox)) {
-        c.lat = g.lat; c.lng = g.lng; c.gpsSource = 'google-poi';
+      const az = await azureMapsQuery(q, c.city);
+      if (az && inBBox(az.lat, az.lng, azBbox)) {
+        c.lat = az.lat; c.lng = az.lng; c.gpsSource = 'azure-poi';
       }
     }
     await sleep(1100);
@@ -303,17 +303,17 @@ async function geocodeBatch(clients, reGeocode = new Set()) {
     if (r && inBBox(r.lat, r.lng, bbox)) {
       c.lat = r.lat; c.lng = r.lng; c.gpsSource = 'nominatim';
     } else {
-      // 2nd try: Azure Maps
+      // 2nd try: Google Maps (best for Hebrew: POI, intersections, abbreviations)
       const q = [cleanAddr(c.address), c.city].filter(Boolean).join(', ');
-      const az = await azureMapsQuery(q, c.city);
       const azBbox = cityBBoxCache.get(c.city) ?? null;
-      if (az && inBBox(az.lat, az.lng, azBbox)) {
-        c.lat = az.lat; c.lng = az.lng; c.gpsSource = 'azure';
+      const g = await googleMapsQuery(q, c.city);
+      if (g && inBBox(g.lat, g.lng, azBbox)) {
+        c.lat = g.lat; c.lng = g.lng; c.gpsSource = 'google';
       } else {
-        // 3rd try: Google Maps (best for Hebrew: POI names, intersections, abbreviations)
-        const g = await googleMapsQuery(q, c.city);
-        if (g && inBBox(g.lat, g.lng, azBbox)) {
-          c.lat = g.lat; c.lng = g.lng; c.gpsSource = 'google';
+        // 3rd try: Azure Maps
+        const az = await azureMapsQuery(q, c.city);
+        if (az && inBBox(az.lat, az.lng, azBbox)) {
+          c.lat = az.lat; c.lng = az.lng; c.gpsSource = 'azure';
         }
       }
     }
