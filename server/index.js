@@ -781,14 +781,9 @@ function fixBiDi(raw) {
   const hasBidi = _BIDI_TEST.test(raw);
   const s = raw.replace(_BIDI_STRIP, '').trim();
   if (!hasBidi || !/[א-ת]/.test(s)) return s;
-  const words = s.split(/\s+/);
-  const heb = [], rest = [];
-  for (const w of words) {
-    if (/[א-ת]/.test(w)) heb.push(w.split('').reverse().join(''));
-    else if (w) rest.push(w);
-  }
-  heb.reverse();
-  return [...heb, ...rest].join(' ');
+  return s.split(/\s+/).reverse()
+    .map(w => /[א-ת]/.test(w) ? w.split('').reverse().join('') : w)
+    .join(' ');
 }
 
 // GET /api/mekarer-parts — product names for the 4 refrigerator codes
