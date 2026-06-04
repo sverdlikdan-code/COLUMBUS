@@ -97,8 +97,8 @@ function cleanAddr(address) {
 function trimAddr(address) {
   if (!address) return null;
   const raw = fixPriorityAddr(address);
-  // "הרצל 12/3" → "הרצל 12" — take the larger number (house num > apt num, survives fixPriorityAddr reversal)
-  let s = raw.replace(/(\d+)\/(\d+)/g, (_, a, b) => String(Math.max(+a, +b)));
+  // "הרצל 12/3" → "הרצל 12" — first number is always the house number (Israeli format: HOUSE/APT)
+  let s = raw.replace(/(\d+)\/\d+/g, '$1');
   // "ארגמן פינת החותרים 1" → "ארגמן" (keep only first street, before intersection marker)
   s = s.replace(/[,\s]+פינת[\s\S]*$/i, '').trim();
   if (s.includes(',')) return s.split(',')[0].trim();
@@ -218,6 +218,17 @@ async function geocodeBatch(clients, reGeocode = new Set()) {
       const bbox = cityBBoxCache.get(c.city) ?? null;
       if (!inBBox(c.lat, c.lng, bbox)) { c.lat = null; c.lng = null; }
     }
+  }
+
+  // X/Y apartment addresses (e.g. "הרצל 12/3") — GPS was likely geocoded from dirty address → force re-geocode
+  // Skip: gps-corrections (manual fixes) and gps-lookup (Excel coordinates, more reliable)
+  const APT_RE = /\d+\/\d+/;
+  for (const c of clients) {
+    if (!APT_RE.test(c.address)) continue;
+    if (!isValidIL(c.lat, c.lng)) continue;         // already missing GPS → will geocode anyway
+    if (c.gpsSource === 'correction') continue;      // manual agent fix → don't touch
+    if (gpsLookup[String(c.custId)]) continue;       // Excel coordinates → probably correct
+    c.lat = null; c.lng = null;                      // was PBI GPS from dirty address → re-geocode
   }
 
   // settlement addresses (מושב/קיבוץ etc.) without street number → force city center
