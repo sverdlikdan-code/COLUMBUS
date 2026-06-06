@@ -204,6 +204,25 @@ h2 em { font-style: normal; color: var(--teal); }
 .price-card ul li { font-size: 13px; color: var(--muted); display: flex; gap: 8px; align-items: flex-start; }
 .price-card ul li::before { content: '✓'; color: var(--teal); font-weight: 700; flex-shrink: 0; }
 
+/* ── HOURS BREAKDOWN ── */
+.hrs-table { width:100%; border-collapse:collapse; font-size:13px; }
+.hrs-table thead th {
+  background:oklch(95% 0.014 165); padding:9px 14px;
+  font-size:10px; font-weight:700; letter-spacing:1px; color:var(--muted);
+  text-align:right; border-bottom:1px solid var(--border);
+}
+.hrs-table tbody td { padding:9px 14px; border-bottom:1px solid var(--faint); }
+.hrs-table tbody tr:last-child td { border-bottom:none; }
+.hrs-table .subtotal td { background:oklch(95% 0.014 165); font-weight:800; }
+.hrs-table .grandtotal td { background:oklch(93% 0.018 165); font-weight:900; color:var(--teal); font-size:14px; }
+.hrs-num { text-align:center; font-weight:700; width:64px; }
+
+.quote-item { display:flex; justify-content:space-between; align-items:center;
+  padding:9px 0; border-bottom:1px solid var(--faint); }
+.quote-item:last-child { border-bottom:none; }
+.quote-total { display:flex; justify-content:space-between; align-items:center;
+  background:oklch(96% 0.015 165); margin:0 -22px; padding:11px 22px; margin-top:4px; }
+
 /* ── CONTACT ── */
 .slide-contact {
   background: linear-gradient(150deg, #1B7A7C 0%, #115c5e 55%, #2d5a1a 100%);
@@ -428,6 +447,138 @@ h2 em { font-style: normal; color: var(--teal); }
     </div>
   </div>
 
+  <!-- 6. ARCHITECTURE -->
+  <div class="slide">
+    <div class="eyebrow">ארכיטקטורה טכנית</div>
+    <h2 style="font-size:clamp(28px,3.5vw,42px);">שלוש שכבות — <em>זרימה אחת</em></h2>
+    <div style="display:grid; grid-template-columns:1fr 56px 1fr 56px 1fr; align-items:center; gap:0; max-width:960px;">
+
+      <!-- SQL -->
+      <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:26px 22px;">
+        <div style="font-size:24px;margin-bottom:10px;">🗄️</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--teal);margin-bottom:8px;">SQL SERVER</div>
+        <div style="font-size:15px;font-weight:800;margin-bottom:12px;">Priority ERP</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="font-size:12px;color:var(--muted);display:flex;gap:6px;"><span style="color:var(--teal)">▸</span>מלאי בזמן אמת</div>
+          <div style="font-size:12px;color:var(--muted);display:flex;gap:6px;"><span style="color:var(--teal)">▸</span>היסטוריית מכירות 24M</div>
+          <div style="font-size:12px;color:var(--muted);display:flex;gap:6px;"><span style="color:var(--teal)">▸</span>ספקים + ליד טיים</div>
+          <div style="font-size:12px;color:var(--muted);display:flex;gap:6px;"><span style="color:var(--teal)">▸</span>תוקפים + פרטיות</div>
+        </div>
+        <div style="margin-top:14px;padding:8px 10px;background:oklch(96% 0.012 165);border-radius:6px;font-size:11px;color:var(--muted);font-family:'Courier New',monospace;direction:ltr;text-align:left;">Daily SQL sync<br>REST API / Direct</div>
+      </div>
+
+      <!-- Arrow 1 -->
+      <div style="text-align:center;">
+        <div style="font-size:22px;color:var(--teal);font-weight:900;">→</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:4px;font-weight:700;letter-spacing:1px;">סנכרון<br>יומי</div>
+      </div>
+
+      <!-- Power BI -->
+      <div style="background:#fff;border:2px solid var(--teal);border-radius:12px;padding:26px 22px;position:relative;">
+        <div style="position:absolute;top:-11px;right:16px;background:var(--teal);color:#fff;font-size:9px;font-weight:700;letter-spacing:1px;padding:3px 10px;border-radius:20px;">ANALYTICS LAYER</div>
+        <div style="font-size:24px;margin-bottom:10px;">📊</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--teal);margin-bottom:8px;">POWER BI FABRIC</div>
+        <div style="font-size:15px;font-weight:800;margin-bottom:12px;">Semantic Model</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="font-size:12px;color:var(--muted);display:flex;gap:6px;"><span style="color:var(--teal)">▸</span>DAX measures — ימי מלאי</div>
+          <div style="font-size:12px;color:var(--muted);display:flex;gap:6px;"><span style="color:var(--teal)">▸</span>תחזית ביקוש (Prophet)</div>
+          <div style="font-size:12px;color:var(--muted);display:flex;gap:6px;"><span style="color:var(--teal)">▸</span>KPI סטטוסים אוטומטיים</div>
+          <div style="font-size:12px;color:var(--muted);display:flex;gap:6px;"><span style="color:var(--teal)">▸</span>API לאפליקציה</div>
+        </div>
+        <div style="margin-top:14px;padding:8px 10px;background:rgba(27,122,124,0.06);border-radius:6px;font-size:11px;color:var(--muted);font-family:'Courier New',monospace;direction:ltr;text-align:left;">executeQueries REST<br>Bearer token auth</div>
+      </div>
+
+      <!-- Arrow 2 -->
+      <div style="text-align:center;">
+        <div style="font-size:22px;color:var(--teal);font-weight:900;">→</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:4px;font-weight:700;letter-spacing:1px;">REST<br>API</div>
+      </div>
+
+      <!-- APP -->
+      <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:26px 22px;">
+        <div style="font-size:24px;margin-bottom:10px;">📡</div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:var(--teal);margin-bottom:8px;">WEB APP / PWA</div>
+        <div style="font-size:15px;font-weight:800;margin-bottom:12px;">מכ"ם רכש</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="font-size:12px;color:var(--muted);display:flex;gap:6px;"><span style="color:var(--teal)">▸</span>לוח SKU + סטטוסים</div>
+          <div style="font-size:12px;color:var(--muted);display:flex;gap:6px;"><span style="color:var(--teal)">▸</span>מרכז התראות</div>
+          <div style="font-size:12px;color:var(--muted);display:flex;gap:6px;"><span style="color:var(--teal)">▸</span>Order Builder + PDF</div>
+          <div style="font-size:12px;color:var(--muted);display:flex;gap:6px;"><span style="color:var(--teal)">▸</span>WhatsApp / Email</div>
+        </div>
+        <div style="margin-top:14px;padding:8px 10px;background:oklch(96% 0.012 165);border-radius:6px;font-size:11px;color:var(--muted);font-family:'Courier New',monospace;direction:ltr;text-align:left;">Node.js + React<br>VPS / Azure Cloud</div>
+      </div>
+
+    </div>
+    <div style="margin-top:20px;font-size:12px;color:var(--muted);max-width:960px;display:flex;gap:24px;">
+      <span>🔐 JWT auth — Buyer / Manager / ReadOnly</span>
+      <span>🌐 Hebrew RTL PWA — עובד מהנייד</span>
+      <span>🇮🇱 Priority ERP ישראל — ידוע לנו מבפנים</span>
+    </div>
+  </div>
+
+  <!-- 7. HOURS BREAKDOWN -->
+  <div class="slide">
+    <div class="eyebrow">כמה עבודה מאחורי המחיר</div>
+    <h2 style="font-size:clamp(26px,3.2vw,40px);">אומדן שעות — <em>MVP מלא</em></h2>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; max-width:1000px;">
+      <div class="sku-table-wrap" style="max-width:100%">
+        <table class="hrs-table">
+          <thead>
+            <tr>
+              <th>פאזה</th>
+              <th>מה כלול</th>
+              <th class="hrs-num">שעות</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>1 · תשתית + Auth</td><td style="color:var(--muted)">שרת, DB, API skeleton, JWT</td><td class="hrs-num">20</td></tr>
+            <tr><td>2 · חיבור ERP</td><td style="color:var(--muted)">Priority SQL / sync יומי</td><td class="hrs-num">25</td></tr>
+            <tr><td>3 · לוח SKU</td><td style="color:var(--muted)">טבלה, סטטוסים, פילטרים</td><td class="hrs-num">40</td></tr>
+            <tr><td>4 · מנוע התראות</td><td style="color:var(--muted)">Email + WhatsApp + לוגיקה</td><td class="hrs-num">20</td></tr>
+            <tr><td>5 · Order Builder</td><td style="color:var(--muted)">חישוב הזמנה + PDF + אישור</td><td class="hrs-num">30</td></tr>
+            <tr><td>6 · ניהול ספקים</td><td style="color:var(--muted)">CRUD, ליד טיים, MOQ</td><td class="hrs-num">15</td></tr>
+            <tr><td>7 · UI / עברית RTL</td><td style="color:var(--muted)">עיצוב, ריספונסיב, PWA</td><td class="hrs-num">20</td></tr>
+            <tr><td>8 · QA + Deploy</td><td style="color:var(--muted)">VPS, HTTPS, security, UAT</td><td class="hrs-num">25</td></tr>
+            <tr><td>9 · הדרכה + אונבורדינג</td><td style="color:var(--muted)">3 מפגשים + תיעוד</td><td class="hrs-num">15</td></tr>
+            <tr class="subtotal">
+              <td colspan="2" style="color:var(--teal)">MVP סה"כ</td>
+              <td class="hrs-num" style="color:var(--teal);font-size:15px">210</td>
+            </tr>
+            <tr>
+              <td style="color:var(--muted)">Forecast + AI + WhatsApp</td>
+              <td style="color:var(--muted)">Prophet + Claude API</td>
+              <td class="hrs-num">65</td>
+            </tr>
+            <tr class="grandtotal">
+              <td colspan="2">Setup + Forecast סה"כ</td>
+              <td class="hrs-num" style="font-size:16px">275</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:20px 22px;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--muted);margin-bottom:8px">מחיר שוק</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:900;color:var(--muted);line-height:1">275 שעות</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:6px">× 400–450₪ = <span style="text-decoration:line-through;color:var(--red)">110,000–124,000₪</span></div>
+        </div>
+        <div style="background:#fff;border:2px solid var(--teal);border-radius:8px;padding:20px 22px;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--teal);margin-bottom:8px">המחיר שלנו</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:40px;font-weight:900;color:var(--teal);line-height:1">23,000₪</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:4px">הטמעה חד-פעמית — Setup + Forecast</div>
+          <div style="font-size:13px;font-weight:700;color:var(--green);margin-top:8px">+ 1,900₪/חודש שרת + תמיכה</div>
+        </div>
+        <div style="background:rgba(27,122,124,0.05);border:1px solid var(--teal-border);border-radius:8px;padding:16px 18px;">
+          <div style="font-size:12px;color:var(--muted);line-height:1.8;">
+            🗓 <strong>לוח זמנים:</strong> 6–8 שבועות<br>
+            💼 <strong>ניסיון:</strong> Priority ERP מבפנים<br>
+            🔒 <strong>ללא תלות:</strong> קוד שלכם, שרת שלכם
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- 6. PRICING -->
   <div class="slide">
     <div class="eyebrow">מחירים</div>
@@ -473,7 +624,91 @@ h2 em { font-style: normal; color: var(--teal); }
     </div>
   </div>
 
-  <!-- 7. CONTACT -->
+  <!-- 9. הצעת מחיר -->
+  <div class="slide">
+    <div class="eyebrow">הצעת מחיר רשמית</div>
+    <h2 style="font-size:clamp(26px,3.2vw,40px);">הצעת מחיר — <em>מכ"ם רכש</em></h2>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; max-width:1000px;">
+
+      <!-- Left: breakdown -->
+      <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:22px;display:flex;flex-direction:column;gap:0;">
+        <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--teal);margin-bottom:14px">פירוט השירותים</div>
+        <div class="quote-item">
+          <span style="font-size:13px">Setup — לוח SKU, ERP, סטטוסים, Email</span>
+          <span style="font-weight:800;color:var(--teal);white-space:nowrap">15,000₪</span>
+        </div>
+        <div class="quote-item">
+          <span style="font-size:13px">Forecast — תחזית 90 יום + AI אינסייטס</span>
+          <span style="font-weight:800;color:var(--teal);white-space:nowrap">+6,000₪</span>
+        </div>
+        <div class="quote-item">
+          <span style="font-size:13px">Order Builder + PDF לספק</span>
+          <span style="font-weight:800;color:var(--teal);white-space:nowrap">+2,000₪</span>
+        </div>
+        <div class="quote-item">
+          <span style="font-size:13px">התראות WhatsApp Business</span>
+          <span style="font-weight:800;color:var(--teal);white-space:nowrap">כלול</span>
+        </div>
+        <div class="quote-item" style="border-bottom:1px solid var(--faint)">
+          <span style="font-size:13px">הדרכה 3 מפגשים + תיעוד משתמש</span>
+          <span style="font-weight:800;color:var(--teal);white-space:nowrap">כלול</span>
+        </div>
+        <div class="quote-total">
+          <span style="font-size:15px;font-weight:800">סה"כ הטמעה</span>
+          <span style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:900;color:var(--teal)">23,000₪</span>
+        </div>
+        <div class="quote-item" style="margin-top:8px;border-bottom:none">
+          <span style="font-size:13px">SaaS — שרת + עדכונים + תמיכה (חודשי)</span>
+          <span style="font-weight:800;color:var(--green);white-space:nowrap">1,900₪/חודש</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:10px;padding-top:10px;border-top:1px dashed var(--border)">
+          שנה ראשונה סה"כ: 23,000 + (12 × 1,900) = <strong>45,800₪</strong>
+        </div>
+      </div>
+
+      <!-- Right: terms -->
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:20px 22px;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--teal);margin-bottom:12px">לוח זמנים ואספקה</div>
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--muted);">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="min-width:26px;height:26px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;">1</div>
+              <span><strong>שבועות 1–2</strong> — תשתית + חיבור Priority</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="min-width:26px;height:26px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;">2</div>
+              <span><strong>שבועות 3–4</strong> — לוח SKU + סטטוסים + התראות</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="min-width:26px;height:26px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;">3</div>
+              <span><strong>שבועות 5–6</strong> — Order Builder + Forecast</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="min-width:26px;height:26px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;">✓</div>
+              <span><strong>שבועות 7–8</strong> — QA + הדרכה + Go-Live</span>
+            </div>
+          </div>
+        </div>
+        <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:20px 22px;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--teal);margin-bottom:12px">תנאי תשלום</div>
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--muted);">
+            <div>💳 <strong>50%</strong> בחתימה — תחילת עבודה</div>
+            <div>💳 <strong>50%</strong> במסירה — יום Go-Live</div>
+          </div>
+        </div>
+        <div style="background:rgba(27,122,124,0.06);border:1px solid var(--teal-border);border-radius:10px;padding:14px 18px;">
+          <div style="font-size:12px;color:var(--muted);line-height:1.8;">
+            📋 הצעה תקפה <strong>30 יום</strong> ממועד שליחה<br>
+            🔒 SLA — תגובה עד 4 שעות לתקלות קריטיות<br>
+            📦 קוד פתוח — הכל שלכם בסוף הפרויקט
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 10. CONTACT -->
   <div class="slide slide-contact">
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
       <div style="background:rgba(255,255,255,0.92);border-radius:7px;padding:8px 14px;font-size:26px;">📡</div>
@@ -503,7 +738,7 @@ h2 em { font-style: normal; color: var(--teal); }
 
 </div>
 
-<div class="counter" id="counter">1 / 7</div>
+<div class="counter" id="counter">1 / 10</div>
 <div class="nav">
   <button onclick="next()">&#8594;</button>
   <button onclick="prev()">&#8592;</button>
