@@ -167,6 +167,7 @@ h2 em { font-style: normal; color: var(--teal); }
 .badge.danger  { background: rgba(224,82,82,0.12);  color: var(--red); }
 .badge.warning { background: rgba(245,158,11,0.12); color: var(--amber); }
 .badge.ok      { background: rgba(125,194,66,0.12);  color: #5a9e22; }
+.badge.excess  { background: rgba(139,92,246,0.12);  color: #7c3aed; }
 .order-btn {
   background: var(--teal); color: #fff; border: none;
   padding: 5px 14px; border-radius: 4px; font-size: 12px;
@@ -260,7 +261,7 @@ h2 em { font-style: normal; color: var(--teal); }
           <span style="font-size:11px;color:var(--muted);font-weight:600;">יבואן / מפיץ · 50–500 SKU · Priority ERP</span>
         </div>
         <h1>תמיד תדע —<br><em>לפני שיגמר.</em></h1>
-        <div class="sub">מסך אחד לקניין. כל ה-SKU. התראות על גירעונות לפני שהם קורים — על בסיס תחזית, לא תגובה.</div>
+        <div class="sub">מסך אחד לקניין. כל ה-SKU. התראות על גירעונות לפני שהם קורים — לפני שקורה — לא אחרי.</div>
         <div class="tags">
           <span class="tag">ניהול מלאי חכם</span>
           <span class="tag">תחזית ביקוש</span>
@@ -402,6 +403,18 @@ h2 em { font-style: normal; color: var(--teal); }
             <td>—</td>
             <td><button class="order-btn-ghost">בדוק</button></td>
           </tr>
+          <tr style="background:rgba(139,92,246,0.04);">
+            <td><img src="https://tevacom.com/wp-content/uploads/2026/02/CortinaT.jpg" style="width:32px;height:32px;object-fit:cover;border-radius:4px;display:block;"></td>
+            <td><strong>Omega 3 Premium</strong></td>
+            <td style="font-size:11px;color:var(--muted);">תוספי תזונה</td>
+            <td>1,240</td>
+            <td>1.2</td>
+            <td><strong style="color:#7c3aed;">1,033</strong></td>
+            <td>45</td>
+            <td><span class="badge excess">🟣 עודף</span></td>
+            <td style="font-size:11px;color:#7c3aed;">אל תזמין — 2.8 שנה</td>
+            <td><button class="order-btn-ghost">בדוק</button></td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -467,14 +480,13 @@ h2 em { font-style: normal; color: var(--teal); }
           <div style="font-size:12px;color:var(--muted);display:flex;gap:6px;"><span style="color:var(--teal)">▸</span>מלאי בזמן אמת</div>
           <div style="font-size:12px;color:var(--muted);display:flex;gap:6px;"><span style="color:var(--teal)">▸</span>היסטוריית מכירות 24M</div>
           <div style="font-size:12px;color:var(--muted);display:flex;gap:6px;"><span style="color:var(--teal)">▸</span>ספקים + ליד טיים</div>
-          <div style="font-size:12px;color:var(--muted);display:flex;gap:6px;"><span style="color:var(--teal)">▸</span>תוקפים + פרטיות</div>
         </div>
         <div style="margin-top:14px;padding:8px 10px;background:oklch(96% 0.012 165);border-radius:6px;font-size:11px;color:var(--muted);font-family:'Courier New',monospace;direction:ltr;text-align:left;">Daily SQL sync<br>REST API / Direct</div>
       </div>
 
       <!-- Arrow 1 -->
       <div style="text-align:center;">
-        <div style="font-size:22px;color:var(--teal);font-weight:900;">→</div>
+        <div style="font-size:22px;color:var(--teal);font-weight:900;">←</div>
         <div style="font-size:9px;color:var(--muted);margin-top:4px;font-weight:700;letter-spacing:1px;">סנכרון<br>יומי</div>
       </div>
 
@@ -495,7 +507,7 @@ h2 em { font-style: normal; color: var(--teal); }
 
       <!-- Arrow 2 -->
       <div style="text-align:center;">
-        <div style="font-size:22px;color:var(--teal);font-weight:900;">→</div>
+        <div style="font-size:22px;color:var(--teal);font-weight:900;">←</div>
         <div style="font-size:9px;color:var(--muted);margin-top:4px;font-weight:700;letter-spacing:1px;">REST<br>API</div>
       </div>
 
@@ -536,27 +548,27 @@ h2 em { font-style: normal; color: var(--teal); }
             </tr>
           </thead>
           <tbody>
-            <tr><td>1 · תשתית + Auth</td><td style="color:var(--muted)">שרת, DB, API skeleton, JWT</td><td class="hrs-num">20</td></tr>
-            <tr><td>2 · חיבור ERP</td><td style="color:var(--muted)">Priority SQL / sync יומי</td><td class="hrs-num">25</td></tr>
-            <tr><td>3 · לוח SKU</td><td style="color:var(--muted)">טבלה, סטטוסים, פילטרים</td><td class="hrs-num">40</td></tr>
-            <tr><td>4 · מנוע התראות</td><td style="color:var(--muted)">Email + WhatsApp + לוגיקה</td><td class="hrs-num">20</td></tr>
-            <tr><td>5 · Order Builder</td><td style="color:var(--muted)">חישוב הזמנה + PDF + אישור</td><td class="hrs-num">30</td></tr>
-            <tr><td>6 · ניהול ספקים</td><td style="color:var(--muted)">CRUD, ליד טיים, MOQ</td><td class="hrs-num">15</td></tr>
-            <tr><td>7 · UI / עברית RTL</td><td style="color:var(--muted)">עיצוב, ריספונסיב, PWA</td><td class="hrs-num">20</td></tr>
-            <tr><td>8 · QA + Deploy</td><td style="color:var(--muted)">VPS, HTTPS, security, UAT</td><td class="hrs-num">25</td></tr>
-            <tr><td>9 · הדרכה + אונבורדינג</td><td style="color:var(--muted)">3 מפגשים + תיעוד</td><td class="hrs-num">15</td></tr>
+            <tr><td>1 · תשתית + Auth</td><td style="color:var(--muted)">שרת, DB, API skeleton, JWT</td><td class="hrs-num">15</td></tr>
+            <tr><td>2 · PBI Gateway + Model</td><td style="color:var(--muted)">Gateway, DAX measures, refresh</td><td class="hrs-num">20</td></tr>
+            <tr><td>3 · לוח SKU</td><td style="color:var(--muted)">טבלה, סטטוסים, פילטרים</td><td class="hrs-num">30</td></tr>
+            <tr><td>4 · מנוע התראות</td><td style="color:var(--muted)">Email + לוגיקה + cron</td><td class="hrs-num">15</td></tr>
+            <tr><td>5 · Order Builder</td><td style="color:var(--muted)">חישוב הזמנה + PDF + אישור</td><td class="hrs-num">25</td></tr>
+            <tr><td>6 · ניהול ספקים</td><td style="color:var(--muted)">CRUD, ליד טיים, MOQ</td><td class="hrs-num">10</td></tr>
+            <tr><td>7 · UI / עברית RTL</td><td style="color:var(--muted)">עיצוב, ריספונסיב, PWA</td><td class="hrs-num">15</td></tr>
+            <tr><td>8 · QA + Deploy</td><td style="color:var(--muted)">VPS, HTTPS, security, UAT</td><td class="hrs-num">20</td></tr>
+            <tr><td>9 · הדרכה + אונבורדינג</td><td style="color:var(--muted)">2 מפגשים + תיעוד</td><td class="hrs-num">10</td></tr>
             <tr class="subtotal">
               <td colspan="2" style="color:var(--teal)">MVP סה"כ</td>
-              <td class="hrs-num" style="color:var(--teal);font-size:15px">210</td>
+              <td class="hrs-num" style="color:var(--teal);font-size:15px">160</td>
             </tr>
             <tr>
               <td style="color:var(--muted)">Forecast + AI + WhatsApp</td>
               <td style="color:var(--muted)">Prophet + Claude API</td>
-              <td class="hrs-num">65</td>
+              <td class="hrs-num">50</td>
             </tr>
             <tr class="grandtotal">
               <td colspan="2">Setup + Forecast סה"כ</td>
-              <td class="hrs-num" style="font-size:16px">275</td>
+              <td class="hrs-num" style="font-size:16px">210</td>
             </tr>
           </tbody>
         </table>
@@ -564,8 +576,8 @@ h2 em { font-style: normal; color: var(--teal); }
       <div style="display:flex; flex-direction:column; gap:16px;">
         <div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:20px 22px;">
           <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--muted);margin-bottom:8px">מחיר שוק</div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:900;color:var(--muted);line-height:1">275 שעות</div>
-          <div style="font-size:13px;color:var(--muted);margin-top:6px">× 400–450₪ = <span style="text-decoration:line-through;color:var(--red)">110,000–124,000₪</span></div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:900;color:var(--muted);line-height:1">210 שעות</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:6px">× 250₪ = <span style="text-decoration:line-through;color:var(--red)">52,500₪</span></div>
         </div>
         <div style="background:#fff;border:2px solid var(--teal);border-radius:8px;padding:20px 22px;">
           <div style="font-size:10px;font-weight:700;letter-spacing:2px;color:var(--teal);margin-bottom:8px">המחיר שלנו</div>
@@ -611,6 +623,7 @@ h2 em { font-style: normal; color: var(--teal); }
           <li>תחזית ביקוש 90 יום</li>
           <li>זיהוי עונתיות אוטומטי</li>
           <li>AI אינסייטים על SKU</li>
+          <li>זיהוי עודפי מלאי (Slow Movers)</li>
           <li>התראות WhatsApp</li>
         </ul>
       </div>
