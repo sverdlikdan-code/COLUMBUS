@@ -2045,23 +2045,18 @@ function buildOrderPage() {
     const name     = p.name || d.nameEn || p.fam || mk;
     const fam      = d.fam  || p.fam   || '';
     const iksGroup = d.iksGroup || null;   // IKRA / SAL / KAPUS from KARTIS PARIT
-    const stock    = +(d.stock    || 0);
-    const stockZafn = +(d.stockZafn || 0);
-    const stockTrnz = +(d.stockTrnz || 0);
-    const stockAll  = stock + stockZafn + stockTrnz;
-    const palStock    = +(d.palStock    || 0);
-    const palStockAll = palStock + +(d.palStockZafn || 0) + +(d.palStockTrnz || 0);
+    const spo     = +(d.spo || 0);   // מלאי זמין + הזמנות רכש פתוחות (MLAY measure)
+    const krat    = +(d.ashdodPalletCartons || d.kratnost || 1);
+    const palSpo  = krat > 0 && spo > 0 ? +(spo / krat).toFixed(1) : 0;
     const _ps = window._orderPeriodSales;
     const daySales = +(_ps ? (_ps[mk] ?? d.daySalesAll ?? d.daySales ?? 0) : (d.daySalesAll || d.daySales || 0));
-    const openOrders = +(d.openOrders || 0);
-    const daysStk  = daySales > 0 ? (stockAll + openOrders) / daySales * 1.4 : null;
-    const krat     = +(d.ashdodPalletCartons || d.kratnost || 1);
+    const daysStk  = daySales > 0 ? spo / daySales * 1.4 : null;
     const safetyDays = _getSafetyDays(fam);
     const safetyK    = Math.ceil(safetyDays / 1.4 * daySales);
-    const need       = safetyK - stockAll - openOrders;
+    const need       = safetyK - spo;
     const orderK     = need > 0 && daySales > 0 ? Math.ceil(need / Math.max(1, krat)) * Math.max(1, krat) : 0;
     const orderP     = krat > 0 && orderK > 0 ? Math.round(orderK / krat) : 0;
-    allRows.push({ mk, name, fam, iksGroup, stock, stockAll, palStockAll, daySales, daysStk, openOrders, krat, safetyDays, safetyK, orderK, orderP });
+    allRows.push({ mk, name, fam, iksGroup, spo, palSpo, daySales, daysStk, krat, safetyDays, safetyK, orderK, orderP });
   }
 
   // Group key: iksGroup (IKRA/SAL/KAPUS) if available, else fam
@@ -2144,11 +2139,10 @@ function buildOrderPage() {
     <tr style="background:#1a1a2e;color:#fff;">
       <th style="padding:8px 6px;font-size:10px;font-weight:600;width:46px;"></th>
       <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:right;" dir="rtl">תאור</th>
-      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">מלאי<br>KARTON</th>
-      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">מלאי<br>PALLET</th>
+      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">מלאי זמין<br>+ הזמנות</th>
+      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">PAL</th>
       <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">מכר<br>קרט/יום</th>
       <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">📅 לכמה<br>ימים</th>
-      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;background:#00695c;color:#b2dfdb;">הזמנות<br>פתוחות</th>
       <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;background:#0d47a1;color:#90caf9;">הזמנה<br>KARTON ↓</th>
       <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">הזמנה<br>PALLET</th>
       <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;background:#4a148c;color:#e1bee7;">✏ PAL<br>ידני</th>
@@ -2157,19 +2151,18 @@ function buildOrderPage() {
 
   const fmtK = n => Math.round(n || 0).toLocaleString('en');
   let tbRows = '';
-  let gtStock = 0, gtPalStock = 0, gtOrder = 0, gtPal = 0, gtOpenOrders = 0;
+  let gtSpo = 0, gtPalSpo = 0, gtOrder = 0, gtPal = 0;
 
   for (const grp of grpOrder) {
     const gr = groups[grp] || [];
-    let fStock = 0, fPalStock = 0, fOrder = 0, fPal = 0, fOpenOrders = 0;
+    let fSpo = 0, fPalSpo = 0, fOrder = 0, fPal = 0;
     for (const r of gr) {
-      fStock      += r.stockAll;
-      fPalStock   += r.palStockAll;
-      fOrder      += r.orderK;
-      fPal        += r.orderK > 0 ? r.orderP : 0;
-      fOpenOrders += r.openOrders;
+      fSpo    += r.spo;
+      fPalSpo += r.palSpo;
+      fOrder  += r.orderK;
+      fPal    += r.orderK > 0 ? r.orderP : 0;
     }
-    gtStock += fStock; gtPalStock += fPalStock; gtOrder += fOrder; gtPal += fPal; gtOpenOrders += fOpenOrders;
+    gtSpo += fSpo; gtPalSpo += fPalSpo; gtOrder += fOrder; gtPal += fPal;
 
     const fContFull = Math.floor(fPal / 20);
     const fContRem  = Math.round(fPal) % 20;
@@ -2183,11 +2176,10 @@ function buildOrderPage() {
 
     tbRows += `<tr style="background:#263238;color:#eceff1;">
       <td colspan="2" style="padding:7px 12px;font-size:13px;font-weight:800;text-align:right;" dir="rtl">📦 ${grpLabel(grp)}</td>
-      <td style="padding:7px 8px;text-align:center;font-size:12px;font-weight:700;">${fmtK(fStock)}</td>
-      <td style="padding:7px 8px;text-align:center;font-size:11px;color:#90a4ae;">${fPalStock.toFixed(1)}</td>
+      <td style="padding:7px 8px;text-align:center;font-size:12px;font-weight:700;">${fmtK(fSpo)}</td>
+      <td style="padding:7px 8px;text-align:center;font-size:11px;color:#90a4ae;">${fPalSpo.toFixed(1)}</td>
       <td style="padding:7px 8px;text-align:center;font-size:10px;color:#78909c;">${gr.length} פריטים</td>
       <td style="padding:7px 8px;"></td>
-      <td style="padding:7px 8px;text-align:center;font-size:12px;font-weight:700;color:#80cbc4;">${fOpenOrders > 0 ? fmtK(fOpenOrders) : '—'}</td>
       <td style="padding:7px 8px;text-align:center;font-size:13px;font-weight:800;color:#ffcc02;">${fmtK(fOrder)}</td>
       <td style="padding:7px 8px;text-align:center;font-size:12px;font-weight:700;color:#a5d6a7;">${fPal}</td>
       <td style="padding:3px 4px;text-align:center;"><span style="font-size:13px;font-weight:900;color:#e1bee7;">${fContTxt}</span></td>
@@ -2204,11 +2196,10 @@ function buildOrderPage() {
       tbRows += `<tr style="background:${bg};border-bottom:1px solid #eeeeee;">
         <td style="padding:4px 6px;text-align:center;">${imgHtml}</td>
         <td style="padding:4px 8px;font-size:11px;font-weight:600;max-width:220px;line-height:1.3;" dir="rtl">${r.name}<br><span style="font-size:8px;color:#1565c0;">${r.safetyDays}d בטחון</span> <span style="font-size:8px;color:#999;">מק"ט: ${r.mk}</span>${r.krat > 1 ? ` <span style="font-size:8px;color:#bbb;">[${r.krat} קרט/פל]</span>` : ''}</td>
-        <td style="padding:4px 8px;text-align:center;font-size:13px;font-weight:700;">${fmtK(r.stockAll)}</td>
-        <td style="padding:4px 8px;text-align:center;font-size:12px;color:#555;">${r.palStockAll > 0 ? r.palStockAll.toFixed(1) : '—'}</td>
+        <td style="padding:4px 8px;text-align:center;font-size:13px;font-weight:700;">${fmtK(r.spo)}</td>
+        <td style="padding:4px 8px;text-align:center;font-size:12px;color:#555;">${r.palSpo > 0 ? r.palSpo.toFixed(1) : '—'}</td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;">${r.daySales > 0 ? Math.round(r.daySales) : '—'}</td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;font-weight:700;color:${dc};">${r.daysStk !== null ? Math.round(r.daysStk) : '—'}</td>
-        <td style="padding:4px 8px;text-align:center;font-size:12px;font-weight:700;color:${r.openOrders > 0 ? '#00897b' : '#bbb'};">${r.openOrders > 0 ? fmtK(r.openOrders) : '—'}</td>
         <td style="padding:4px 8px;text-align:center;font-size:14px;font-weight:800;color:${oc};background:${r.orderK > 0 ? '#fff3e0' : '#f1f8e9'};">${r.orderK > 0 ? fmtK(r.orderK) : 0}</td>
         <td style="padding:4px 8px;text-align:center;font-size:13px;font-weight:700;">${r.orderK > 0 ? r.orderP : '—'}</td>
         <td style="padding:4px 4px;text-align:center;"><input type="number" class="ord-pal-input" value="${r.orderK > 0 ? r.orderP : 0}" min="0" oninput="_recalcOrdPal()" style="width:58px;padding:3px 4px;font-size:13px;font-weight:700;text-align:center;border:2px solid #9c27b0;border-radius:4px;background:#f3e5f5;color:#4a148c;outline:none;" data-mk="${r.mk}"></td>
@@ -2217,11 +2208,10 @@ function buildOrderPage() {
 
     tbRows += `<tr style="background:#e8f5e9;border-top:2px solid #388e3c;border-bottom:2px solid #388e3c;">
       <td colspan="2" style="padding:5px 12px;font-size:11px;font-weight:700;color:#1b5e20;text-align:right;" dir="rtl">סה"כ ${grpLabel(grp)}</td>
-      <td style="padding:5px 8px;text-align:center;font-size:12px;font-weight:700;">${fmtK(fStock)}</td>
-      <td style="padding:5px 8px;text-align:center;font-size:11px;font-weight:600;">${fPalStock.toFixed(1)}</td>
+      <td style="padding:5px 8px;text-align:center;font-size:12px;font-weight:700;">${fmtK(fSpo)}</td>
+      <td style="padding:5px 8px;text-align:center;font-size:11px;font-weight:600;">${fPalSpo.toFixed(1)}</td>
       <td style="padding:5px 8px;"></td>
       <td style="padding:5px 8px;"></td>
-      <td style="padding:5px 8px;text-align:center;font-size:11px;font-weight:700;color:#004d40;">${fOpenOrders > 0 ? fmtK(fOpenOrders) : ''}</td>
       <td style="padding:5px 8px;text-align:center;font-size:14px;font-weight:800;color:#c62828;background:#ffecb3;">${fmtK(fOrder)}</td>
       <td style="padding:5px 8px;text-align:center;font-size:13px;font-weight:700;">${fPal}</td>
       <td style="padding:3px 4px;text-align:center;"><span style="font-size:11px;font-weight:900;color:#2e7d32;">🚢${fContTxt}</span></td>
@@ -2230,11 +2220,10 @@ function buildOrderPage() {
 
   tbRows += `<tr style="background:#1a1a2e;color:#fff;">
     <td colspan="2" style="padding:7px 10px;font-size:12px;font-weight:700;text-align:right;" dir="rtl">📋 סה"כ כולל</td>
-    <td style="padding:7px 6px;text-align:center;font-size:13px;font-weight:700;">${fmtK(gtStock)}</td>
-    <td style="padding:7px 6px;text-align:center;font-size:12px;font-weight:700;">${gtPalStock.toFixed(1)}</td>
+    <td style="padding:7px 6px;text-align:center;font-size:13px;font-weight:700;">${fmtK(gtSpo)}</td>
+    <td style="padding:7px 6px;text-align:center;font-size:12px;font-weight:700;">${gtPalSpo.toFixed(1)}</td>
     <td style="padding:7px 6px;"></td>
     <td style="padding:7px 6px;"></td>
-    <td style="padding:7px 6px;text-align:center;font-size:13px;font-weight:700;color:#80cbc4;">${gtOpenOrders > 0 ? fmtK(gtOpenOrders) : '—'}</td>
     <td style="padding:7px 6px;text-align:center;font-size:16px;font-weight:800;color:#ffcc02;">${fmtK(gtOrder)}</td>
     <td style="padding:7px 6px;text-align:center;font-size:13px;font-weight:700;">${Math.round(gtPal)}</td>
     <td id="ord-pal-gt-cell" style="padding:7px 6px;text-align:center;font-size:14px;font-weight:900;color:#e1bee7;background:#4a148c;">${Math.round(gtPal)}</td>
