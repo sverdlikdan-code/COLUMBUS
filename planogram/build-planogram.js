@@ -713,6 +713,7 @@ async function main() {
       p.stockTrnz    = src.stockTrnz    ?? null;
       p.daySalesTrnz = src.daySalesTrnz ?? null;
       p.daySalesAll = src.daySalesAll  ?? null;
+      p.openOrders  = src.openOrders  ?? 0;
       p.pakuot      = src.pakuot     || [];
       p.pakuotZafn  = src.pakuotZafn || [];
     }
@@ -1203,6 +1204,7 @@ async function main() {
         pakuotZafn:          (p.pakuotZafn || kd?.pakuotZafn || []).map(b => ({ date: b.date ? new Date(b.date).toISOString().slice(0,10) : null, daysLeft: b.daysLeft, cartons: b.cartons })),
         shelfLife:           p.shelfLife ?? kd?.shelfLife ?? null,
         stopSale:            p.stopSale  ?? kd?.stopSale  ?? false,
+        openOrders:          p.openOrders > 0 ? p.openOrders : null,
       };
     };
 
