@@ -887,16 +887,34 @@ async function fetchDagimFromBI() {
     return result;
   }
 
-  const [stockMap, pakuotMap, pakuotZafnMap, pakuotAllMap, stopSaleMap] = await Promise.all([
+  const mkSet = '{' + makatim.map(m => `"${m}"`).join(',') + '}';
+  const [stockMap, pakuotMap, pakuotZafnMap, pakuotAllMap, stopSaleMap, openOrdersRows] = await Promise.all([
     fetchStockMain(makatim),
     fetchPakuotForMakats(makatim),
     fetchPakuotZafnForMakats(makatim),
     fetchPakuotAllForMakats(makatim),
     fetchStopSale(t, makatim),
+    dax(t, `
+      EVALUATE
+      CALCULATETABLE(
+        ADDCOLUMNS(
+          SUMMARIZE('KARTIS PARIT', 'KARTIS PARIT'[מק"ט]),
+          "openOrders", [הזמנות רכש פתוחות PLUS מלאי זמין]
+        ),
+        TREATAS(${mkSet}, 'KARTIS PARIT'[מק"ט])
+      )
+    `).catch(() => []),
   ]);
+
+  const openOrdersMap = {};
+  for (const r of (openOrdersRows || [])) {
+    const mk = r['KARTIS PARIT[מק"ט]'];
+    if (mk != null) openOrdersMap[String(mk)] = r['[openOrders]'] ?? 0;
+  }
 
   for (const mk of makatim) {
     const fm = stockMap[mk] || {};
+    const spo = openOrdersMap[mk] ?? 0;
     Object.assign(result[mk], {
       stock:        fm.stock        ?? 0,
       daySales:     fm.daySales     ?? null,
@@ -912,6 +930,7 @@ async function fetchDagimFromBI() {
       pakuotZafn:    pakuotZafnMap[mk] || [],
       pakuotAll:     pakuotAllMap[mk]  || [],
       stopSale:      stopSaleMap[mk]   || false,
+      openOrders:    spo > 0 ? Math.max(0, Math.round(spo) - (fm.stock ?? 0)) : 0,
     });
     result[mk].dayAvg = result[mk].daySales;
   }
