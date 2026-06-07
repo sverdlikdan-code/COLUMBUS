@@ -2030,7 +2030,14 @@ function buildOrderPage() {
   const grpOrder = [...new Set(rows.map(getGrp))].sort();
   const groups = {};
   for (const r of rows) (groups[getGrp(r)] || (groups[getGrp(r)] = [])).push(r);
-  for (const g of Object.values(groups)) g.sort((a, b) => (b.orderK - a.orderK) || a.name.localeCompare(b.name, 'he'));
+  // Sort: products with order first (desc by orderK), then zero-order by daysStk asc (lowest = most urgent)
+  for (const g of Object.values(groups)) g.sort((a, b) => {
+    const aHas = a.orderK > 0, bHas = b.orderK > 0;
+    if (aHas !== bHas) return aHas ? -1 : 1;
+    if (aHas) return b.orderK - a.orderK;
+    const ad = a.daysStk ?? 9999, bd = b.daysStk ?? 9999;
+    return ad - bd;
+  });
 
   const thead = `<thead style="position:sticky;top:36px;z-index:5;">
     <tr style="background:#1a1a2e;color:#fff;">
