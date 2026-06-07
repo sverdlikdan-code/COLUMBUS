@@ -94,7 +94,7 @@ function footerLine(s, pageNum) {
 }
 
 // ─── Data slide: screenshot left + right panel KPIs + bottom rec ─────────────
-function dataSlide({ pageNum, section, title, imgTs, kpis, analysis, rec }) {
+function dataSlide({ pageNum, section, title, imgTs, kpis, analysis, rec, sourceLinks }) {
   const s = pptx.addSlide();
   s.background = { fill: BG };
   pageHeader(s, section, title, 'MMD Distribution');
@@ -120,7 +120,17 @@ function dataSlide({ pageNum, section, title, imgTs, kpis, analysis, rec }) {
   const textH = Math.max(0.4, 5.63 - textY);
   s.addText(analysis, { x: 8.73, y: textY, w: 4.34, h: textH, fontSize: 9.5, color: TEXT, align: 'left', valign: 'top', wrap: true });
 
-  insightBox(s, 0.15, 5.92, 12.9, 1.18, t('Рекомендация:', 'המלצה:', 'Recommendation:'), rec, 'E8F9F0', GREEN);
+  insightBox(s, 0.15, 5.92, 13.03, 1.18, t('Рекомендация:', 'המלצה:', 'Recommendation:'), rec, 'E8F9F0', GREEN);
+
+  if (sourceLinks && sourceLinks.length > 0) {
+    const runs = [{ text: t('Источники: ','מקורות: ','Sources: '), options: { fontSize: 6, color: MUTED, bold: true } }];
+    sourceLinks.forEach((src, i) => {
+      if (i > 0) runs.push({ text: ' · ', options: { fontSize: 6, color: MUTED } });
+      runs.push({ text: src.text, options: { fontSize: 6, color: BLUE, hyperlink: { url: src.url, tooltip: src.text } } });
+    });
+    s.addText(runs, { x: 0.15, y: 7.12, w: 13.0, h: 0.14, align: 'left' });
+  }
+
   footerLine(s, pageNum);
 }
 
@@ -241,11 +251,11 @@ function s2_exec() {
   const maxPct = Math.max(...DATA_COMPANIES.map(c => Math.abs(c.pct || 0)));
   DATA_COMPANIES.forEach((c, i) => {
     const y = 2.72 + i * 0.7;
-    const barW = maxPct > 0 ? ((c.pct || 0) / maxPct) * 3.4 : 0;
+    const barW = maxPct > 0 ? ((c.pct || 0) / maxPct) * 2.2 : 0;
     const bc = pctColor(c.pct);
     s.addText(c.name, { x: 8.4, y: y+0.06, w: 1.6, h: 0.28, fontSize: 9, bold: true, color: TEXT, align: 'left' });
     s.addShape(pptx.ShapeType.rect, { x: 10.1, y: y+0.06, w: Math.max(barW, 0.02), h: 0.28, fill: { color: bc } });
-    s.addText(arrow(c.pct), { x: 10.1 + Math.max(barW, 0.05) + 0.1, y: y+0.06, w: 1.5, h: 0.28, fontSize: 9, bold: true, color: bc, align: 'left' });
+    s.addText(arrow(c.pct), { x: 10.1 + Math.max(barW, 0.05) + 0.08, y: y+0.06, w: 0.75, h: 0.28, fontSize: 9, bold: true, color: bc, align: 'left' });
   });
 
   insightBox(s, 0.3, 6.3, 12.7, 0.58,
@@ -271,14 +281,14 @@ function buildSlides() {
       { label: t('Некошерный сегмент','לא כשר','Non-Kosher'), value: '▲ +16%', sub: '₪ 2,058,898 → 2,388,582', color: GREEN },
     ],
     analysis: t(
-      'Некошерный рынок растёт в 8× быстрее кошерного. Системный тренд: секулярное население расширяется, покупательская способность non-kosher сегмента растёт.\n\nКошерный рынок удерживает объём (+2%), но теряет долю в общем росте. Non-kosher уже 43% всех продаж.',
-      'שוק הלא-כשר גדל פי 8 מהכשר — מגמה מערכתית: אוכלוסייה חילונית גדלה. כשר שומר על נפח (+2%), אך מאבד נתח בצמיחה הכוללת.',
-      'Non-kosher grows 8× faster than kosher. Systemic trend: secular population expanding. Kosher holds volume (+2%) but loses share of total growth.'
+      'Non-kosher +16% — в 8× быстрее кошерного. Демографический тренд работает на нас.\n\n❓ Мы его используем или просто едем по волне?\n\nКошер +2% — стагнация. А у FORMULA кошерный портфель уже -9%. Это рынок проседает или мы теряем полку и клиентов?\n\nБез SKU-аудита по каждой компании ответа нет.',
+      'לא-כשר +16% — פי 8 מהכשר. מגמה דמוגרפית עובדת לטובתנו.\n\n❓ האם אנו מנצלים אותה — או פשוט רוכבים על הגל?\n\nכשר +2% — קיפאון. ב-FORMULA הכשר כבר -9%. זה השוק יורד — או שאנחנו מאבדים מדף ולקוחות? ללא אודיט SKU — אין תשובה.',
+      'Non-kosher +16% — 8× faster than kosher. Demographic trend working in our favour.\n\n❓ Are we capturing it — or just riding the wave?\n\nKosher +2% — stagnation. FORMULA kosher already -9%. Is the market declining — or are we losing shelf & clients? No answer without SKU audit.'
     ),
     rec: t(
-      'Сфокусировать рост ICE MISH и ICE bdd на некошерном канале — там динамика. Для FORMULA кошерный портфель требует аудита SKU: сегмент почти не растёт.',
-      'למקד צמיחת ICE MISH ו-ICE bdd בערוץ הלא-כשר. ב-FORMULA — לסקור תיק הכשר: הסגמנט כמעט לא צומח.',
-      'Focus ICE MISH & ICE bdd growth on non-kosher. For FORMULA — kosher portfolio SKU audit needed: segment barely growing.'
+      'Активно заходить в non-kosher — тренд долгосрочный. Кошер: провести SKU-аудит по каждой компании. Выявить — это рыночная просадка или наша потеря позиций. Разные диагнозы → разные действия.',
+      'להיכנס אקטיבית ללא-כשר — מגמה לטווח ארוך. כשר: לבצע אודיט SKU לכל חברה. לאבחן — האם זו ירידת שוק או אובדן עמדות שלנו. אבחון שונה = פעולה שונה.',
+      'Actively push non-kosher — long-term trend. Kosher: SKU audit per company. Diagnose — market decline or our position loss? Different diagnosis → different action.'
     ),
   });
 
@@ -293,14 +303,14 @@ function buildSlides() {
       { label: t('Сетевые магазины (רשתות)','רשתות','Chain Stores'),         value: '▲ +5%',  sub: '₪ 2,350,495 → 2,470,362', color: BLUE  },
     ],
     analysis: t(
-      'Частный рынок (55% продаж) обгоняет сети вдвое (+10% vs +5%). Малый и средний ритейл — חנויות, מכולות — динамичнее крупных сетей.\n\nСети растут медленнее: жёсткие условия входа, давление на маржу, долгие переговоры по ассортименту.',
-      'שוק פרטי (55% ממכירות) מוביל פי 2 על הרשתות (+10% מול +5%). חנויות ומכולות — דינמיות יותר. רשתות גדלות לאט יותר.',
-      'Independent market (55% of sales) outpaces chains 2× (+10% vs +5%). Small/mid retail more dynamic than chains.'
+      'Частный рынок +10% против сетей +5% — разрыв вдвое.\n\n❓ Это рынок — или мы сами?\n\nВопросы к исполнению в сетях:\n• Частота визитов — раз в месяц?\n• Ценники и POS-материалы — есть на полке?\n• Участвуем в сетевых промо/каталогах?\n• Out-of-stock — товар вымывается и не пополняется?\n\nЕсли хоть один пункт слабый — +5% это не потолок рынка, это наша упущенная точка роста.',
+      'שוק פרטי +10% מול רשתות +5% — פער כפול.\n\n❓ זה השוק — או אנחנו?\n\nשאלות לביצוע ברשתות:\n• תדירות ביקורים — פעם בחודש?\n• תוויות מחיר ו-POS — קיימים על המדף?\n• האם אנו משתתפים בפרומו ובקטלוגים?\n• חוסרים — האם הסחורה נגמרת ולא מתחדשת?\n\nאם נקודה אחת חלשה — +5% זה לא תקרת השוק, זה נקודת צמיחה שאנחנו מפסידים.',
+      'Independent +10% vs chains +5% — 2× gap.\n\n❓ Is this the market — or is it us?\n\nExecution questions in chains:\n• Visit frequency — once a month?\n• Price tags & POS on shelf?\n• Participating in chain promos/catalogues?\n• Out-of-stock — product running out without replenishment?\n\nIf any one item is weak — +5% is not the market ceiling, it\'s our missed growth.'
     ),
     rec: t(
-      'Наращивать покрытие в независимом ритейле — рост без сетевой наценки. Развивать клиентов типа חנויות и מכולות. В сетях — работать над расширением ассортимента, а не наращиванием точек.',
-      'להרחיב כיסוי בקמעונאות עצמאית — צמיחה ללא עמלות רשת. לפתח חנויות ומכולות. ברשתות — לעבוד על הרחבת מגוון.',
-      'Expand independent retail coverage — growth without chain fees. Develop חנויות & מכולות. In chains — focus on assortment expansion, not store count.'
+      'Аудит исполнения в 3 крупнейших сетях: частота визитов, состояние полки, наличие ценников, участие в промо. Задача: если сети работают как частный рынок — получим +10% вместо +5%. Это +₪120K/год.',
+      'ביצוע אודיט בשלוש הרשתות הגדולות: תדירות ביקורים, מצב מדף, תוויות מחיר, השתתפות בפרומו. אם הרשתות עובדות כמו שוק פרטי — נגיע ל-+10% במקום +5%. זה +₪120K לשנה.',
+      'Audit execution in top 3 chains: visit frequency, shelf condition, price tags, promo participation. If chains perform like independent market — we get +10% instead of +5%. That\'s +₪120K/year.'
     ),
   });
 
@@ -311,19 +321,24 @@ function buildSlides() {
     title:   t('Регионы: Эйлат +19% и Арава -24% (2025)','אזורים: אילת +19% וערבה -24%','Regions: Eilat +19% and Arava -24%'),
     imgTs: '180835',
     kpis: [
-      { label: t('Эйлат — ⚠️ аномалия войны','אילת — ⚠️ אנומליית מלחמה','Eilat — ⚠️ war anomaly'), value: '▲ +19%', sub: '₪ 3,724,977 → 4,449,672', color: AMBER   },
-      { label: t('Арава — военная зона','ערבה — איזור מלחמה','Arava — war zone'),                  value: '▼ -24%', sub: '₪ 1,418,214 → 1,081,563', color: DECLINE },
+      { label: t('Эйлат — ⚠️ аномалия: эвакуированные + блокада Хусити','אילת — ⚠️ אנומליה: מפונים + חות׳ים','Eilat — ⚠️ anomaly: evacuees + Houthi blockade'), value: '▲ +19%', sub: '₪ 3,724,977 → 4,449,672', color: AMBER   },
+      { label: t('Арава — военная зона (2024→2025)','ערבה — איזור מלחמה (2024→2025)','Arava — war zone (2024→2025)'),              value: '▼ -24%', sub: '₪ 1,418,214 → 1,081,563', color: DECLINE },
     ],
     analysis: t(
-      '⚠️ Рост Эйлата +19% НЕ органический!\n\nПричина: 60,000 эвакуированных с Севера удвоили население города. При этом туристов = 0 (порт обанкротился). Покупают эвакуированные, не туристы.\n\nАрава -24% = приграничные районы закрыты по соображениям безопасности.',
-      '⚠️ +19% אילת — לא אורגני! 60,000 מפונים מהצפון הכפילו אוכלוסייה. תיירים = 0 (הנמל פשט רגל). ערבה -24% = אזורים גבוליים סגורים.',
-      '⚠️ +19% Eilat is NOT organic! 60K evacuees from the North doubled population. Tourists = 0 (port bankrupt). Arava -24% = border areas closed.'
+      '⚠️ Рост Эйлата +19% (2024→2025) НЕ органический!\n\n~60,000 эвакуированных удвоили население. Туристов = 0: порт -80% выручки (блокада Хусити). Но MMD работает с местной розницей — эвакуированные покупают ежедневно, месяцами.\n\nMMD +19% = рост вместе с рынком, не победа бренда.\n\nАрава -24% = другая история. Нет туристов, нет HRI — чисто местные: кибуцы, мошавы вдоль иорданской границы. Погранзоны закрыты → агент не мог приехать, клиенты частично эвакуированы.',
+      '⚠️ +19% אילת (2024→2025) — לא אורגני!\n~60,000 מפונים (מ-7.10.2023) הכפילו אוכלוסייה. תיירים = 0: רמון ללא טיסות, נמל אילת — הכנסות -80% (212M→42M ₪), בסף סגירה (חות׳ים חסמו ים סוף). כל קמעונאות אילת עלתה ~18-22% (StoreNext). MMD +19% = מגמת שוק, לא ניצחון מותג.\nערבה -24% (2024→2025) = אזורים גבוליים סגורים.',
+      '⚠️ +19% Eilat (2024→2025) NOT organic!\n~60K evacuees (since Oct 7, 2023) doubled population. Tourists = 0: Eilat port revenue -80% (212M→42M ₪), near closure (Houthi Red Sea blockade). All Eilat retail grew ~18-22% (StoreNext). MMD +19% = market trend, not brand win.\nArava -24% (2024→2025) = border zones closed since Oct 2023.'
     ),
     rec: t(
-      'НЕ планировать Эйлат +19% как устойчивый тренд. После окончания войны — ожидать нормализации до ~10-12%. Арава: не инвестировать в расширение до снятия военного режима.',
-      'לא לתכנן +19% אילת כמגמה בת-קיימא. עם סיום המלחמה — לצפות לנורמליזציה ל-~10%. ערבה: לא להשקיע עד סיום המצב הביטחוני.',
-      'DO NOT project Eilat +19% as sustainable. Post-war normalization expected ~10%. Arava: no investment until security situation resolves.'
+      'НЕ планировать Эйлат +19% как устойчивый тренд. После нормализации — ожидать возврата к ~10-12%. Арава: режим снят — начать восстановление каналов. Потенциал отскока огромный, действовать сейчас.',
+      'לא לתכנן +19% אילת כמגמה בת-קיימא. ערבה: המצב הביטחוני הוסר — להתחיל שיקום הערוצים. פוטנציאל הריבאונד עצום, לפעול עכשיו.',
+      'DO NOT project Eilat +19% as sustainable. Arava: security restrictions lifted — begin channel restoration now. Rebound potential is huge, act immediately.'
     ),
+    sourceLinks: [
+      { text: 'TheMarker — «אילת מלאה — עסקים סובלים»', url: 'https://www.themarker.com' },
+      { text: 'Globes — «מכירות בעלייה באילת»', url: 'https://www.globes.co.il' },
+      { text: 'CBS — סקר מסחר קמעונאי', url: 'https://www.cbs.gov.il' },
+    ],
   });
 
   // S6: Бренды
@@ -337,14 +352,14 @@ function buildSlides() {
       { label: t('TERRA FOOD — сюрприз года','TERRA FOOD — הפתעת השנה','TERRA FOOD — year surprise'), value: '▲+156%', sub: 'Малая база → взрывной рост',     color: GREEN },
     ],
     analysis: t(
-      'TERRA FOOD +156% — взрыв с малой базы, нужно наблюдать.\nYUKKI +50% — крупный бренд, продолжает доминировать.\nSVALYA +14% — стабильный рост.\nROSHEN +1% — стагнация флагмана INTER.\nSANTA BREMOR -5% — давление санкций против Беларуси.',
-      'TERRA FOOD +156% — פיצוץ מבסיס קטן.\nYUKKI +50% — מותג גדול ממשיך לדומינירה.\nSVALYA +14% — יציב.\nROSHEN +1% — קיפאון.\nSANTA BREMOR -5% — סנקציות בלארוס.',
-      'TERRA FOOD +156% — explosive from small base.\nYUKKI +50% — major brand dominates.\nSVALYA +14% — stable.\nROSHEN +1% — stagnant.\nSANTA BREMOR -5% — Belarus sanctions.'
+      'YUKKI +50% — реальный движок: большой объём, большой прирост в шекелях.\n\nTERRA FOOD +156% — красивая цифра, но малая база: в абсолютных шекелях вклад небольшой. Без YUKKI — картина гораздо скромнее.\n\nROSHEN +1% — флагман INTER стоит. Это насыщение рынка или мы не делаем промо и не обновляем выкладку?\n\n❓ По каким брендам мы работаем на автопилоте и теряем позиции без шума?',
+      'YUKKI +50% — מנוע אמיתי: נפח גדול, גידול גדול בשקלים.\n\nTERRA FOOD +156% — מספר יפה אבל בסיס קטן: התרומה בשקלים קטנה. בלי YUKKI — התמונה הרבה יותר צנועה.\n\nROSHEN +1% — מותג דגל עומד במקום. האם זה רוויית שוק — או שאנחנו לא עושים פרומו ולא מחדשים תצוגה?\n\n❓ אילו מותגים רצים על טייס אוטומטי ומאבדים עמדות בלי רעש?',
+      'YUKKI +50% — the real engine: large volume, large absolute growth.\n\nTERRA FOOD +156% — impressive %, but small base: absolute contribution is modest. Without YUKKI — a much weaker picture.\n\nROSHEN +1% — flagship standing still. Market saturation or are we not doing promo/display refresh?\n\n❓ Which brands are running on autopilot while quietly losing position?'
     ),
     rec: t(
-      'Инвестировать в YUKKI и TERRA FOOD — они несут портфель. Начать готовить замену SANTA BREMOR (санкционный риск долгосрочный). Разобраться с причиной стагнации ROSHEN — ценовая конкуренция или потеря полки.',
-      'להשקיע ב-YUKKI ו-TERRA FOOD. להתחיל להכין תחליף ל-SANTA BREMOR (סיכון סנקציות). לאבחן קיפאון ROSHEN.',
-      'Invest in YUKKI & TERRA FOOD. Start SANTA BREMOR replacement (long-term sanctions risk). Diagnose ROSHEN stagnation.'
+      'YUKKI и TERRA FOOD: защитить полку, усилить промо — они несут цифры. ROSHEN: провести аудит промо-активности — есть ли акции, ценники, каталоги?',
+      'YUKKI ו-TERRA FOOD: להגן על המדף, לחזק פרומו. ROSHEN: לבדוק פעילות פרומו — יש מבצעים, תוויות, קטלוגים?',
+      'YUKKI & TERRA FOOD: protect shelf, reinforce promo — they carry the numbers. ROSHEN: audit promo activity — are there deals, price tags, catalogues?'
     ),
   });
 
@@ -359,14 +374,14 @@ function buildSlides() {
       { label: t('Некошерный портфель FORMULA','FORMULA — לא כשר','FORMULA — Non-Kosher'), value: '▲ +14%', sub: '₪ 1,097,662 → 1,256,511', color: GREEN  },
     ],
     analysis: t(
-      'FORMULA в целом +0% — стагнация. Внутри — разрыв:\n• Кошер -9%: теряет клиентов\n• Non-kosher +14%: компенсирует\n\nПо регионам:\n• Эйлат +33% (эффект войны)\n• Арава -50% (закрытые районы)\n\nПо каналам:\nשופרסל דיל +370% — новый крупный контракт.',
-      'FORMULA +0% בסך הכל — קיפאון. פנימית:\n• כשר -9%\n• לא-כשר +14%\n\nאזורים:\n• אילת +33% (מלחמה)\n• ערבה -50%\n\nשופרסל דיל +370% — חוזה חדש.',
-      'FORMULA flat +0%. Internally split:\n• Kosher -9%\n• Non-kosher +14%\n\nRegions: Eilat +33% (war), Arava -50%.\nShufersal Deal +370% — new major contract.'
+      'FORMULA +0% — итог скрывает разрыв внутри:\n• Кошер -9%: клиенты уходят. Куда? К конкурентам? Или меняют на non-kosher?\n• Non-kosher +14%: единственный рост\n\nשופרסל דיל +370% — крупный контракт. Разовый вход или начало масштабирования?\n\n⚠️ Май-июн 2026: ВСЕ FORMULA SKU — участие в рабочих днях <50% (диапазон 4–35%). Проблема частоты визитов. Выделенный агент = больше визитов = больше рабочих дней.\n\n❓ Кошер -9% — это рынок или наша потеря позиций? Эти диагнозы требуют разных действий.',
+      'FORMULA +0% — מסתיר פער פנימי:\n• כשר -9%: לקוחות עוזבים. לאן? מתחרים? עוברים ללא-כשר?\n• לא-כשר +14%: הצמיחה היחידה\n\nשופרסל דיל +370% — כניסה חד-פעמית או תחילת שכפול?\n\n❓ כשר -9% — זה השוק או אובדן עמדות? האבחון משנה את הפעולה.',
+      'FORMULA +0% — hides an internal gap:\n• Kosher -9%: clients leaving. To whom? Competitors? Switching to non-kosher?\n• Non-kosher +14%: the only growth\n\nShufersal Deal +370% — one-time entry or start of scaling?\n\n❓ Kosher -9% — market decline or position loss? Different diagnosis = different action.'
     ),
     rec: t(
-      'Переориентировать FORMULA на рост некошерного направления (+14%). Кошерный портфель: аудит SKU, убрать неходовые позиции. Закрепить успех со שופרסל דיל — расширить ассортимент в этой сети.',
-      'לאוורינט FORMULA לצמיחה לא-כשר (+14%). תיק כשר: בדיקת SKU, להסיר מוצרים איטיים. לחזק שופרסל דיל.',
-      'Reorient FORMULA to non-kosher (+14%). Kosher SKU audit — remove slow movers. Consolidate Shufersal Deal success.'
+      'Аргумент за выделенного агента: ВСЕ FORMULA SKU участвуют менее чем в 50% рабочих дней (4–35%) — проблема частоты, не спроса. Срочно: понять кто забирает кошерных клиентов. PRESIDENT (май 2026) — кошерная линейка с короткими сроками → высокая частота визитов. Шопрсаль Диль +370% — масштабировать в других сетях.',
+      'דחוף: להבין מי לוקח את לקוחות הכשר של FORMULA. מתחרה על המדף — או שינוי העדפות צרכנים? שופרסל דיל +370% — לתעד מה עבד ולשכפל ברשתות אחרות.',
+      'Urgent: identify who is taking FORMULA\'s kosher clients. Shelf competitor or consumer preference shift? Shufersal Deal +370% — document what worked and replicate in other chains.'
     ),
   });
 
@@ -381,14 +396,14 @@ function buildSlides() {
       { label: t('YUKKI — флагман','YUKKI — דגל','YUKKI — flagship'),            value: '▲ +50%', sub: 'SVALYA ▼ -32% (внимание!)',  color: GREEN },
     ],
     analysis: t(
-      'ICE bdd — единственный быстрорастущий игрок холдинга. Рост равномерный:\n• Кошер +32%, некошер +15%\n• Эйлат +23%, Арава +26%\n\nОба региона и оба сегмента в плюсе — редкость.\n\nYUKKI лидирует по объёму.\nSVALYA -32% — серьёзное падение.',
-      'ICE bdd — שחקן צמיחה מהיר יחיד. כשר +32%, לא-כשר +15%. אילת +23%, ערבה +26%. שני אזורים ושני סגמנטים בפלוס. YUKKI מוביל. SVALYA -32% — נפילה חמורה.',
-      'ICE bdd sole fast-grower. Kosher +32%, non-kosher +15%. Eilat +23%, Arava +26%. Both regions & segments positive. YUKKI leads. SVALYA -32% — serious drop.'
+      'ICE bdd +24% — лучший результат холдинга. Что делают иначе?\n• Оба сегмента в плюсе: кошер +32%, некошер +15%\n• Оба региона в плюсе: Эйлат +23%, Арава +26%\n\nЭто не случайность — это системная работа. Нужно понять модель и перенести в другие компании.\n\n❓ SVALYA -32% — было принято решение вывести («не идёт»). Но оправдано ли оно? На каких данных основано — или на ощущении? Стоит перепроверить до финального вывода.',
+      'ICE bdd +24% — התוצאה הטובה של הקבוצה. מה עושים אחרת?\n• שני סגמנטים: כשר +32%, לא-כשר +15%\n• שני אזורים: אילת +23%, ערבה +26%\n\nזה לא מקרי — זו עבודה שיטתית. צריך להבין את המודל ולהעביר לחברות אחרות.\n\n❓ SVALYA -32% — התקבלה החלטה להוציא מהמגוון («לא נמכר»). האם זה מוצדק? מה הנתונים מאחורי ההחלטה — או שזה תחושת בטן? כדאי לבדוק לפני הוצאה סופית.',
+      'ICE bdd +24% — best result in the group. What are they doing differently?\n• Both segments: kosher +32%, non-kosher +15%\n• Both regions: Eilat +23%, Arava +26%\n\nThis is not luck — it\'s systematic execution. Understand the model, transfer to other companies.\n\n❓ SVALYA -32% — a decision was made to phase it out ("doesn\'t sell"). But is that justified? What data supports it — or is it a gut feel? Worth verifying before final exit.'
     ),
     rec: t(
-      'Масштабировать модель ICE bdd на другие компании холдинга. Разобраться с падением SVALYA -32% — ценовая конкуренция, поставки или потеря полки? YUKKI — защитить полочное пространство от конкурентов.',
-      'להרחיב מודל ICE bdd לחברות אחרות. לברר סיבת SVALYA -32%. YUKKI — להגן על שטח מדף.',
-      'Scale ICE bdd model to other companies. Diagnose SVALYA -32% — pricing, supply or shelf loss? YUKKI — protect shelf space.'
+      'Провести интервью с командой ICE bdd: что именно делают с полкой, промо, запасом? Задокументировать и передать как стандарт. SVALYA: пересмотреть решение о выводе — запросить данные продаж по точкам, аудит полки, сравнение с конкурентом. Решения "не идёт" без цифр стоят дорого.',
+      'לערוך ראיון עם צוות ICE bdd: מה בדיוק עושים עם המדף, פרומו, מלאי? לתעד ולהעביר כסטנדרט. SVALYA: לשקול מחדש את ההחלטה — לבקש נתוני מכירות לפי נקודה, ביקורת מדף, השוואה למתחרה. החלטות "לא נמכר" ללא מספרים יקרות מאוד.',
+      'Interview ICE bdd team: what exactly do they do with shelf, promo, stock? Document and pass as standard. SVALYA: reconsider the phase-out decision — pull point-of-sale data, shelf audit, competitor comparison. "Doesn\'t sell" decisions without data are expensive.'
     ),
   });
 
@@ -403,14 +418,14 @@ function buildSlides() {
       { label: t('RUD — взрывной рост','RUD — צמיחה פיצוצית','RUD — explosive'),    value: '▲+103%', sub: 'NICEE ▼ -38% (диагностика)', color: AMBER },
     ],
     analysis: t(
-      'ICE MISH показывает ровный рост без резких колебаний:\n• Эйлат +18%, Арава +17% — оба региона в плюсе\n• MOTAGIM +5% — стабильно\n• RUD +103% — взрывной рост!\n• NICEE -38% — серьёзное падение\n\nКлиенты:\nשופרסל דיל +181%, לאלירון +92%.',
-      'ICE MISH צמיחה אחידה:\n• אילת +18%, ערבה +17%\n• RUD +103% — פיצוצי\n• NICEE -38% — נפילה חמורה\nשופרסל דיל +181%, לאלירון +92%.',
-      'ICE MISH steady growth:\n• Eilat +18%, Arava +17% — both positive\n• RUD +103% — explosive\n• NICEE -38% — serious drop\nShufersal Deal +181%, Lealirón +92%.'
+      'ICE MISH +18% — ровный рост, нет региональных провалов.\n\nRUD +103% — что стоит за этой цифрой? Новый клиент, новая точка, акция — нужно разобрать и задокументировать модель чтобы повторить.\n\nNICEE -38% — это не "рыночная динамика". Это конкретный клиент или полка. Кто-то что-то потерял.\n\n❓ שופרסל דיל +181% — случайный пик или результат работы? Если работа — документировать.',
+      'ICE MISH +18% — צמיחה אחידה, ללא פרוסות אזוריות.\n\nRUD +103% — מה עומד מאחורי המספר הזה? לקוח חדש, נקודת מכירה חדשה, מבצע — צריך לנתח ולתעד כדי לשכפל.\n\nNICEE -38% — זו לא "דינמיקת שוק". זה לקוח ספציפי או מדף. מישהו משהו איבד.\n\n❓ שופרסל דיל +181% — פיק מקרי או תוצאת עבודה? אם עבודה — לתעד.',
+      'ICE MISH +18% — steady growth, no regional collapses.\n\nRUD +103% — what is behind this number? New client, new outlet, promo — need to analyse and document the model to replicate it.\n\nNICEE -38% — this is not "market dynamics". Specific client or shelf. Someone lost something.\n\n❓ Shufersal Deal +181% — coincidence peak or result of work? If work — document it.'
     ),
     rec: t(
-      'Разобраться с RUD +103% — новый клиент или ценовой эффект? Масштабировать эту модель. Диагностика NICEE -38%: ценовой конфликт или потеря полки. Развивать сеть לאלירון — показывает потенциал.',
-      'לברר גורם RUD +103% — לקוח חדש? להרחיב מודל. לאבחן NICEE -38%. לפתח רשת לאלירון.',
-      'Diagnose RUD +103% — new account or price effect? Scale the model. Diagnose NICEE -38%. Develop Lealirón network.'
+      'RUD: разобрать что привело к +103% — задокументировать и передать как модель. NICEE: у кого упали продажи — у одного клиента или у многих? Ответ определяет действие.',
+      'RUD: לנתח מה הביא ל-+103% — לתעד ולהעביר כמודל. NICEE: אצל מי ירדו מכירות — לקוח אחד או רבים? התשובה קובעת את הפעולה.',
+      'RUD: analyse what drove +103% — document and transfer as a model. NICEE: did sales drop at one client or many? The answer determines the action.'
     ),
   });
 
@@ -425,14 +440,14 @@ function buildSlides() {
       { label: t('ROSHEN — флагман (88%)','ROSHEN — דגל (88%)','ROSHEN — flagship (88%)'), value: '→ 0%', sub: '₪ 814,129 → 816,145', color: FLAT },
     ],
     analysis: t(
-      'INTER растёт умеренно (+5%). Концентрация на ROSHEN — риск:\n• ROSHEN = 88% выручки, рост 0%\n• UKR OLIYA +11% — позитив\n• YARYCH — новинка, растёт\n\nПо каналам: частный рынок +28%, сети -16% — выход из убыточных сетей.\nחנויות +28%, המכולת שלי +17%.',
-      'INTER גדל במתינות (+5%). תלות ב-ROSHEN — סיכון:\n• ROSHEN = 88%, צמיחה 0%\n• UKR OLIYA +11%\n• חנויות +28%, המכולת שלי +17%\n• רשתות -16% — יציאה.',
-      'INTER moderate growth (+5%). ROSHEN dependence = risk:\n• ROSHEN = 88%, growth 0%\n• UKR OLIYA +11%\n• Stores +28%, HaMakolet +17%\n• Chains -16% — exiting.'
+      'INTER +5% — несмотря на кашрут-потери в 2025. Проблемы с кашрутом товара = потери темпов роста → восстановление позиций.\n\nСети -16%: кашрут = условие входа в листинг. Без нужной хашгахи — ИСКЛЮЧЕНО.\n\n❓ Кашрут закрыт к 2026? → восстановление листинга в сетях = прямой рычаг роста.',
+      'INTER +5% — למרות בעיות כשרות ואספקה ב-2025. בתנאים "נקיים" המספר היה גבוה יותר.\n\nרשתות -16%: בלי הכשר — מחוץ לאסורטימנט, נקודה. לא "מורידים בעת בעיה" — בלי כשרות מתאימה המוצר פשוט לא נכנס לליסטינג. כשרות = כרטיס כניסה.\n\nROSHEN 88% מהכנסות עם צמיחה 0% — סיכון מבני. פיזור הוא קריטי.\n\n❓ הכשרות סגורה לקראת 2026? אם כן — שחזור הליסטינג ברשתות = מנוף צמיחה ישיר.',
+      'INTER +5% — despite kashrut and supply problems in 2025. In "clean" conditions the number would be higher.\n\nChains -16%: no hashgaha = EXCLUDED, full stop. Not "they remove" — without the right certification the product never makes it into the chain listing. Kashrut = entry ticket.\n\nROSHEN 88% of revenue at 0% growth — structural risk. Diversification is critical.\n\n❓ Is kashrut resolved for 2026? If yes — restoring chain listings is a direct growth lever.'
     ),
     rec: t(
-      'Диверсифицировать за пределы ROSHEN — развивать SAMBA, YARYCH, UKR OLIYA. Выходить из убыточных сетей (рашатот -16%) и концентрироваться на частном рынке. Искать новые украинские бренды.',
-      'לגוון מ-ROSHEN — לפתח SAMBA, YARYCH, UKR OLIYA. לצאת מרשתות הפסדיות (-16%). לחפש מותגים אוקראינים חדשים.',
-      'Diversify beyond ROSHEN — develop SAMBA, YARYCH, UKR OLIYA. Exit declining chains (-16%). Seek new Ukrainian brands.'
+      'Кашрут — на поставщике, не на MMD. Запросить у поставщика список SKU с действующей хашгахой → именно по ним сразу начать восстановление листинга в сетях. Не ждать решения по всему ассортименту. ROSHEN: промо-аудит в топ-10 клиентах. UKR OLIYA +11% — масштабировать.',
+      'כשרות — באחריות הספק, לא MMD. לבקש מהספק רשימת SKU עם כשרות בתוקף → להתחיל שחזור ליסטינג ברשתות דווקא עבורם. לא לחכות לפתרון כשרות על כל האסורטימנט. ROSHEN: בדיקת פרומו ב-10 לקוחות הגדולים. UKR OLIYA +11% — לשכפל.',
+      'Kashrut — supplier\'s responsibility, not MMD\'s. Request from supplier the list of SKUs with active hashgaha → start chain listing restoration with those immediately. Do not wait for full-assortment kashrut resolution. ROSHEN: promo audit in top 10 clients. UKR OLIYA +11% — scale it.'
     ),
   });
 
@@ -469,15 +484,20 @@ function buildSlides() {
       { label: t('Арава 2026 — падение углубляется','ערבה 2026 — הנפילה מתעמקת','Arava 2026 — fall deepens'),            value: '▼ -31%', sub: '₪ 427,413 → 293,279',   color: DECLINE },
     ],
     analysis: t(
-      'Обе тенденции 2025 года ускоряются:\n\nЭйлат +34% (было +19%) — эвакуированные всё ещё там. Когда туристы вернутся → нормализация к ~12-15%.\n\nАрава -31% (было -24%) — ситуация ухудшается. Военная зона. Потенциал восстановления огромный — когда откроется.',
-      'שתי המגמות של 2025 מתחזקות:\nאילת +34% (היה +19%) — מפונים עדיין שם.\nערבה -31% (היה -24%) — מחמיר. פוטנציאל התאוששות ענק.',
-      'Both 2025 trends accelerating:\nEilat +34% (was +19%) — evacuees still there.\nArava -31% (was -24%) — worsening. Huge recovery potential post-war.'
+      'Обе тенденции 2025 ускоряются (янв-май 2026 vs янв-май 2025):\n\nЭйлат +34% (было +19% в 2025) — рост продолжается. ❓ Что за этим стоит — новые клиенты, эвакуированные, возврат туристов? Нужно проверить структуру роста до прогноза на H2.\n\nАрава -31% (было -24%) — данные за период когда режим ещё действовал. Режим снят → ожидать восстановление. Огромный потенциал отскока.',
+      'שתי המגמות מתחזקות (ינו-מאי 2026 מול ינו-מאי 2025):\nאילת +34% (היה +19% ב-2025) — הצמיחה נמשכת. ❓ מה מאחורי זה — לקוחות חדשים, מפונים, חזרת תיירים? צריך לבדוק את מבנה הצמיחה לפני תחזית H2.\nערבה -31% (היה -24%) — נתונים מתקופה שהמצב הביטחוני עוד חל. המצב הוסר → לצפות לריבאונד. פוטנציאל עצום.',
+      'Both trends accelerating (Jan-May 2026 vs Jan-May 2025):\nEilat +34% (was +19% in 2025) — growth continues. ❓ What drives it — new clients, evacuees, returning tourists? Need to verify growth structure before H2 forecast.\nArava -31% (was -24%) — data covers the period when restrictions were still in place. Restrictions now lifted → expect rebound. Huge recovery potential.'
     ),
     rec: t(
-      'Готовить ДВА бюджетных сценария на 2027: (1) Нормализация — Эйлат -15%, Арава +70% восстановление. (2) Продолжение — текущие темпы. НЕ сокращать ресурсы в Арава — это временная просадка с огромным отскоком.',
-      'להכין שני תרחישי תקציב ל-2027:\n(1) נורמליזציה — אילת -15%, ערבה +70%.\n(2) המשך — קצבים נוכחיים.\nלא לצמצם ב-ערבה — ירידה זמנית עם פוטנציאל גדול.',
-      'Prepare TWO 2027 budget scenarios:\n(1) Normalization — Eilat -15%, Arava +70% recovery.\n(2) Continuation — current pace.\nDO NOT cut Arava resources — temporary dip, huge rebound potential.'
+      'Эйлат: не закладывать +34% как устойчивый тренд — сначала понять структуру роста. Логистика: цикл заказа среда→воскресенье = потери свежести, под-заказ. Вариант: заказ четверг 14:00 → поставка воскресенье. НЕ сокращать ресурсы в Арава — режим снят, огромный потенциал отскока, действовать сейчас.',
+      'אילת: לא לתקצב +34% כמגמה יציבה — לבדוק קודם מבנה הצמיחה. לוגיסטיקה: מחזור הזמנה רביעי→ראשון = אובדן טריות, הזמנת חסר. אפשרות: הזמנה חמישי 14:00 → מסירה ראשון. לא לצמצם ב-ערבה — המצב הוסר, פוטנציאל עצום, לפעול עכשיו.',
+      'Eilat: do not budget +34% as a stable trend — verify growth structure first. Logistics: order Wed→receive Sun = freshness loss, under-ordering. Option: order Thursday 14:00 → Sunday delivery. DO NOT cut Arava resources — restrictions lifted, huge rebound potential, act now.'
     ),
+    sourceLinks: [
+      { text: 'CBS Israel — נתוני מסחר', url: 'https://www.cbs.gov.il' },
+      { text: 'Bank of Israel — Regional Report', url: 'https://www.boi.org.il' },
+      { text: 'Ministry of Tourism Israel', url: 'https://www.gov.il/he/departments/ministry_of_tourism' },
+    ],
   });
 }
 
@@ -496,7 +516,7 @@ function s13_conclusions() {
     { n:'01', text: t('MMD вырос на +8% → ₪5,531,234. Рынок живёт, несмотря на войну.','MMD גדל +8% → ₪5,531,234 למרות המלחמה.','MMD grew +8% → ₪5,531,234 despite war.'), color: GREEN },
     { n:'02', text: t('ICE bdd — двигатель роста (+24%). Остальные растут ниже рынка.','ICE bdd — מנוע הצמיחה (+24%). שאר — מתחת לשוק.','ICE bdd growth engine (+24%). Others below market rate.'), color: GREEN },
     { n:'03', text: t('FORMULA стагнирует (0%). Кошерный портфель в минусе (-9%).','FORMULA בקיפאון (0%). כשר ב-(-9%).','FORMULA stagnant (0%). Kosher portfolio -9%.'), color: AMBER },
-    { n:'04', text: t('Эйлат +19% = военная аномалия. Не строить на этом планы!','אילת +19% = אנומליית מלחמה. לא לתכנן על זה!','Eilat +19% = war anomaly. Do not plan on this!'), color: AMBER },
+    { n:'04', text: t('Эйлат +19% = аномалия (эвакуированные + блокада Хусити → порт -80%). Не планировать как тренд.','אילת +19% = אנומליה (מפונים + חות׳ים → נמל -80%). לא לתכנן כמגמה.','Eilat +19% = anomaly (evacuees + Houthi → port -80%). Do not plan as trend.'), color: AMBER },
     { n:'05', text: t('Non-kosher растёт в 8× быстрее kosher (+16% vs +2%).','לא-כשר גדל פי 8 מהכשר (+16% מול +2%).','Non-kosher grows 8× faster than kosher.'), color: BLUE },
     { n:'06', text: t('2026 YTD +20% — впервые все 4 компании одновременно в плюсе.','2026 YTD +20% — לראשונה כל 4 החברות בפלוס.','2026 YTD +20% — first time all 4 companies positive.'), color: GREEN },
   ];
@@ -513,23 +533,24 @@ function s13_conclusions() {
   s.addText(t('Следующие шаги','צעדים הבאים','Next Steps'), { x: 6.73, y: 0.9, w: 6.27, h: 0.28, fontSize: 11, bold: true, color: WHITE, align: 'left' });
 
   const actions = [
-    { company: 'FORMULA', action: t('Аудит кошерного SKU. Развивать non-kosher. Масштабировать שופרסל דיל.','בדיקת SKU כשר. פיתוח לא-כשר. הרחבת שופרסל דיל.','Kosher SKU audit. Non-kosher push. Scale Shufersal Deal.'), color: MUTED },
-    { company: 'ICE bdd',  action: t('Защитить полку YUKKI. Разобраться с SVALYA -32%. Масштабировать модель.','להגן על מדף YUKKI. לאבחן SVALYA -32%. להרחיב מודל.','Protect YUKKI shelf. Diagnose SVALYA -32%. Scale model.'), color: GREEN },
-    { company: 'ICE MISH', action: t('Изучить RUD +103%. Диагностировать NICEE -38%. Развивать לאלירון.','לחקור RUD +103%. לאבחן NICEE -38%. לפתח לאלירון.','Investigate RUD +103%. Diagnose NICEE -38%. Develop Lealirón.'), color: GREEN },
-    { company: 'INTER',    action: t('Диверсифицировать за ROSHEN. Развивать SAMBA/YARYCH. Уйти из убыточных сетей.','לגוון מ-ROSHEN. לפתח SAMBA/YARYCH. לצאת מרשתות הפסדיות.','Diversify from ROSHEN. Develop SAMBA/YARYCH. Exit declining chains.'), color: BLUE },
+    { company: 'FORMULA', action: t('PRESIDENT (май 2026) — кошерная линейка, короткие сроки → высокая частота визитов. Аудит кошерного SKU. Масштабировать שופרסל דיל.','PRESIDENT (מאי 2026) — קו כשר, תפוגה קצרה → תדירות ביקורים גבוהה. בדיקת SKU כשר. הרחבת שופרסל דיל.','PRESIDENT (May 2026) — kosher line, short shelf life → high visit frequency. Kosher SKU audit. Scale Shufersal Deal.'), color: MUTED },
+    { company: 'ICE bdd',  action: t('Защитить полку YUKKI. Разобраться с SVALYA -32%. Масштабировать модель OneSale.','להגן על מדף YUKKI. לאבחן SVALYA -32%. להרחיב מודל OneSale.','Protect YUKKI shelf. Diagnose SVALYA -32%. Scale OneSale model.'), color: GREEN },
+    { company: 'ICE MISH', action: t('Разобрать драйвер RUD +103% — задокументировать модель. Диагностировать NICEE -38%.','לנתח את הדרייבר של RUD +103% — לתעד המודל. לאבחן NICEE -38%.','Analyse RUD +103% driver — document the model. Diagnose NICEE -38%.'), color: GREEN },
+    { company: 'INTER',    action: t('Выделить агента: INTER + ICE MISH — идеальный портфель. Летом шоколад↓, мороженое↑. Агент без мёртвых сезонов весь год. Задача агента: кашрут→сети + ROSHEN аудит + развить SAMBA/YARYCH.','נסיע ייעודי: INTER + ICE MISH — תיק מושלם. שוקולד↓ קיץ, גלידה↑. נסיע ללא מתים-עונות כל השנה. משימה: כשרות→רשתות + ROSHEN + SAMBA/YARYCH.','Dedicate agent: INTER + ICE MISH — perfect portfolio. Chocolate↓ summer, ice cream↑. Agent with zero dead seasons year-round. Mission: kashrut→chains + ROSHEN audit + build SAMBA/YARYCH.'), color: BLUE },
+    { company: '★ OneSale: следующий шаг', action: t('ICE bdd доказал: свой агент = +24%. INTER — следующий. Один агент, один фокус: кашрут → сети → ROSHEN. Эйлат: INTER+ICE MISH — антисезонная пара: шоколад↓ летом, мороженое↑. Ноль амплитуды у агента. FORMULA — отдельно.','ICE bdd הוכיח: נסיע ייעודי = +24%. INTER הבא. מיקוד אחד: כשרות→רשתות→ROSHEN. אילת: INTER+ICE MISH — זוג אנטי-עונתי: שוקולד↓ בקיץ, גלידה↑. אפס תנודתיות. FORMULA — נפרד.','ICE bdd proved it: dedicated agent = +24%. INTER is next. One agent, one focus: kashrut→chains→ROSHEN. Eilat: INTER+ICE MISH — anti-seasonal pair: chocolate↓ summer, ice cream↑. Zero amplitude. FORMULA separate.'), color: AMBER },
   ];
   actions.forEach((a, i) => {
-    const y = 1.32 + i * 1.2;
-    s.addShape(pptx.ShapeType.rect, { x: 6.66, y, w: 6.41, h: 1.06, fill: { color: BG }, line: { color: a.color, width: 1 } });
-    s.addShape(pptx.ShapeType.rect, { x: 6.66, y, w: 0.08, h: 1.06, fill: { color: a.color } });
-    s.addText(a.company, { x: 6.82, y: y+0.07, w: 6.1, h: 0.26, fontSize: 10, bold: true, color: a.color, align: 'left' });
-    s.addText(a.action,  { x: 6.82, y: y+0.37, w: 6.1, h: 0.58, fontSize: 9, color: TEXT, align: 'left', wrap: true });
+    const y = 1.32 + i * 1.0;
+    s.addShape(pptx.ShapeType.rect, { x: 6.66, y, w: 6.41, h: 0.88, fill: { color: BG }, line: { color: a.color, width: 1 } });
+    s.addShape(pptx.ShapeType.rect, { x: 6.66, y, w: 0.08, h: 0.88, fill: { color: a.color } });
+    s.addText(a.company, { x: 6.82, y: y+0.05, w: 6.1, h: 0.22, fontSize: 9.5, bold: true, color: a.color, align: 'left' });
+    s.addText(a.action,  { x: 6.82, y: y+0.30, w: 6.1, h: 0.50, fontSize: 8.5, color: TEXT, align: 'left', wrap: true });
   });
 
   insightBox(s, 0.15, 6.88, 12.9, 0.25, null,
-    t('Стратегически: война искажает региональные данные. Планировать 2027 с двумя сценариями — с нормализацией и без.',
-      'אסטרטגית: המלחמה מעוותת נתוני אזורים. לתכנן 2027 עם שני תרחישים.',
-      'Strategically: war distorts regional data. Plan 2027 with two scenarios — normalized and war-continued.'),
+    t('Стратегически: война искажает региональные данные. Арава — режим снят → действовать немедленно. Эйлат — понять структуру роста до планирования H2.',
+      'אסטרטגית: המלחמה מעוותת נתוני אזורים. ערבה — המצב הוסר → לפעול מיד. אילת — להבין מבנה הצמיחה לפני תכנון H2.',
+      'Strategically: war distorts regional data. Arava — restrictions lifted → act immediately. Eilat — understand growth structure before H2 planning.'),
     LIGHT, NAVY
   );
   footerLine(s, 13);
