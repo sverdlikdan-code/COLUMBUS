@@ -447,7 +447,7 @@ async function fetchStockMain(makatim) {
   const t = await getToken();
   const mkSet = '{' + makatim.map(m => `"${m}"`).join(',') + '}';
 
-  const [stockRows, salesRows, salesAllRows, stockZafnRows, stockTrnzRows, salesZafnRows, salesTrnzRows, sales90Rows] = await Promise.all([
+  const [stockRows, salesRows, salesAllRows, stockZafnRows, stockTrnzRows, salesZafnRows, salesTrnzRows, sales90Rows, openOrdersRows] = await Promise.all([
     dax(t, `
       EVALUATE
       SUMMARIZECOLUMNS(
@@ -545,10 +545,21 @@ async function fetchStockMain(makatim) {
         TREATAS(${mkSet}, 'ALL_PARTS'[מק'ט])
       )
     `),
+    // Open purchase orders per makat — measure [מלאי זמין plus הזמנות רכש פתוחות] = stock + open orders
+    dax(t, `
+      EVALUATE
+      CALCULATETABLE(
+        ADDCOLUMNS(
+          SUMMARIZE('KARTIS PARIT', 'KARTIS PARIT'[מק"ט]),
+          "stockPlusOrders", [מלאי זמין plus הזמנות רכש פתוחות]
+        ),
+        TREATAS(${mkSet}, 'KARTIS PARIT'[מק"ט])
+      )
+    `).catch(() => []),
   ]);
 
   const result = {};
-  for (const mk of makatim) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0, daySalesZafn: null, daySalesTrnz: null, daySales180: null, daysStock: null, daysStockZafn: null };
+  for (const mk of makatim) result[mk] = { stock: 0, daySales: null, daySalesAll: null, stockZafn: 0, stockTrnz: 0, daySalesZafn: null, daySalesTrnz: null, daySales180: null, daysStock: null, daysStockZafn: null, openOrders: 0 };
 
   for (const r of stockRows) {
     const mk = r['מלאי-תוקף[מק"ט]'];
@@ -600,9 +611,17 @@ async function fetchStockMain(makatim) {
     result[mk].daySales180 = r['[daySales180]'] || null;
   }
 
+  for (const r of (openOrdersRows || [])) {
+    const mk = r['KARTIS PARIT[מק"ט]'];
+    if (!mk || !result[mk]) continue;
+    const spo = r['[stockPlusOrders]'];
+    if (spo != null) result[mk].openOrders = Math.max(0, Math.round(spo) - result[mk].stock);
+  }
+
   for (const r of Object.values(result)) {
-    r.daysStock     = r.daySales     > 0 ? r.stock     / r.daySales     * 1.4 : null;
-    r.daysStockZafn = r.daySalesZafn > 0 ? r.stockZafn / r.daySalesZafn * 1.4 : null;
+    const stockPlusOrders = r.stock + (r.openOrders || 0);
+    r.daysStock     = r.daySales     > 0 ? stockPlusOrders / r.daySales     * 1.4 : null;
+    r.daysStockZafn = r.daySalesZafn > 0 ? r.stockZafn     / r.daySalesZafn * 1.4 : null;
   }
 
   console.log(`Stock/sales Main: ${Object.values(result).filter(v=>v.stock>0).length}/${makatim.length} with stock`);
