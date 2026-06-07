@@ -2058,7 +2058,7 @@ function buildOrderPage() {
     const krat     = +(d.ashdodPalletCartons || d.kratnost || 1);
     const safetyDays = _getSafetyDays(fam);
     const safetyK    = Math.ceil(safetyDays / 1.4 * daySales);
-    const need       = safetyK - stockAll;
+    const need       = safetyK - stockAll - openOrders;
     const orderK     = need > 0 && daySales > 0 ? Math.ceil(need / Math.max(1, krat)) * Math.max(1, krat) : 0;
     const orderP     = krat > 0 && orderK > 0 ? Math.round(orderK / krat) : 0;
     allRows.push({ mk, name, fam, iksGroup, stock, stockAll, palStockAll, daySales, daysStk, openOrders, krat, safetyDays, safetyK, orderK, orderP });
