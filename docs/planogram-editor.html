@@ -2080,13 +2080,33 @@ function buildOrderPage() {
     <td style="padding:7px 8px;text-align:center;font-size:13px;font-weight:700;">${gtPal.toFixed(1)}</td>
   </tr>`;
 
+  const PALS_PER_CONT = 20;
+  const contFull = Math.floor(gtPal / PALS_PER_CONT);
+  const contRem  = gtPal % PALS_PER_CONT;
+  const contFrac = gtPal / PALS_PER_CONT;
+
   wrap.innerHTML = `
+    <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+      <div style="background:#1b5e20;color:#fff;border-radius:10px;padding:14px 22px;min-width:130px;text-align:center;box-shadow:0 3px 10px rgba(0,0,0,0.18);">
+        <div style="font-size:10px;opacity:0.8;margin-bottom:4px;letter-spacing:.5px;">הזמנה KARTON</div>
+        <div style="font-size:32px;font-weight:900;line-height:1;">${gtOrder}</div>
+      </div>
+      <div style="background:#2e7d32;color:#fff;border-radius:10px;padding:14px 22px;min-width:130px;text-align:center;box-shadow:0 3px 10px rgba(0,0,0,0.18);">
+        <div style="font-size:10px;opacity:0.8;margin-bottom:4px;letter-spacing:.5px;">הזמנה PALLET</div>
+        <div style="font-size:32px;font-weight:900;line-height:1;">${gtPal.toFixed(1)}</div>
+      </div>
+      <div style="background:#0d47a1;color:#fff;border-radius:10px;padding:14px 22px;min-width:150px;text-align:center;box-shadow:0 3px 10px rgba(0,0,0,0.18);">
+        <div style="font-size:10px;opacity:0.8;margin-bottom:4px;letter-spacing:.5px;">קונטיינר 40'</div>
+        <div style="font-size:32px;font-weight:900;line-height:1;">${contFull}</div>
+        <div style="font-size:11px;opacity:0.85;margin-top:3px;">+ ${contRem.toFixed(1)} PAL (≈${contFrac.toFixed(2)})</div>
+      </div>
+    </div>
     <table style="width:100%;border-collapse:collapse;box-shadow:0 2px 10px rgba(0,0,0,0.08);">
       ${thead}
       <tbody>${tbRows}</tbody>
     </table>
     <div style="font-size:10px;color:#999;margin-top:10px;text-align:left;direction:ltr;">
-      ${rows.length} מוצרים | בטחון: NP מצונן/פורל/סלמון = 10d | אחרים = 45d
+      ${rows.length} מוצרים | בטחון: NP מצונן/פורל/סלמון = 10d | אחרים = 45d | קונטיינר = ${PALS_PER_CONT} PAL
     </div>`;
 }
 
