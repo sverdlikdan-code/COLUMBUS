@@ -2013,7 +2013,7 @@ function buildOrderPage() {
     const zeroSt = window._orderZero ? 'background:#ff5252;color:#fff;border-color:#ff5252;' : defSt;
     btnContainer.innerHTML =
       `<button class="ord-fam-btn" onclick="setOrderFam('')" style="${!window._orderFam ? actSt : defSt}">כולם</button>` +
-      grpKeys.map(f => `<button class="ord-fam-btn" onclick="setOrderFam(${JSON.stringify(f)})" style="${window._orderFam === f ? actSt : defSt}">${f}</button>`).join('') +
+      grpKeys.map(f => `<button class="ord-fam-btn" onclick="setOrderFam('${f}')" style="${window._orderFam === f ? actSt : defSt}">${f}</button>`).join('') +
       `<button class="ord-fam-btn" onclick="toggleOrderZero()" style="${zeroSt}">מלאי ZERO</button>`;
   }
 
