@@ -67,6 +67,8 @@ description: <одна строка — когда использовать. И�
 | geograf-israel-routing | `.claude/SKILLS/geograf-israel-routing/SKILL.md` | ✅ active |
 | warehouse-floor-plan | `.claude/SKILLS/warehouse-floor-plan/SKILL.md` | ✅ active |
 | obsidian-vault-workflow | `.claude/SKILLS/obsidian/obsidian-vault-workflow/SKILL.md` | ✅ active |
+| pbix-reader | `.claude/SKILLS/pbix-reader/SKILL.md` | ✅ active |
+| annual-report-pptx | `.claude/SKILLS/annual-report-pptx/SKILL.md` | ✅ active |
 | nano-banana-2 | (системный) | ✅ active |
 | skill-creator | (системный) | ✅ active |
 | update-config | (системный) | ✅ active |

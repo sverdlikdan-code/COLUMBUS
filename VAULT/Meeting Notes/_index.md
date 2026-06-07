@@ -42,3 +42,5 @@
 - [[session-2026-05-31]] — Сессия 2026-05-31: все 4 секции на KARTIS PARIT, new-product класс ★ חדש, garbled fam чистка, zero-stock hover fix
 - [[session-2026-06-03]] — Сессия 2026-06-03: mahsan ФИНАЛЬНЫЙ restore (0 дублей, май-31 база), фильтр 360д откат, 1M context error диагноз
 - [[session-2026-06-04]] — Сессия 2026-06-04: BiDi geocoding fix, excluded clients fix + мקרר: LOOKUPVALUE מחלקה как колонки таблицы, month chips
+
+- [[session-2026-06-07-mmd-report]] — Сессия 2026-06-07: MMD Annual Report PPTX (505KB, 10 слайдов), скилл annual-report-pptx, Яэль Brand Voice заполнен
