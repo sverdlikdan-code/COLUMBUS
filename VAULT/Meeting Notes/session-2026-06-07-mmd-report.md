@@ -1,8 +1,8 @@
 ---
 title: session-2026-06-07-mmd-report
 date: 2026-06-07
-status: completed
-tags: [mmd, annual-report, pptx, yael, skill-creator]
+status: in-progress
+tags: [mmd, annual-report, pptx, yael, skill-creator, fmsg-israel, eilat]
 ---
 
 # Сессия 2026-06-07 — MMD Annual Report + Skill Creation
@@ -38,8 +38,29 @@ tags: [mmd, annual-report, pptx, yael, skill-creator]
 | תגמולים  | -163,878 | -186,352 | -22,474 | — |
 | **TOTAL** | **5,143,192** | **5,531,234** | **+388,043** | **+8%** |
 
+## 4. Скилл `fmsg-israel-market-research`
+
+Создан `.claude/SKILLS/fmsg-israel-market-research/SKILL.md` — комплексное исследование рынка.
+
+**Содержание скилла:**
+- Еврейский праздничный календарь + impact на FMCG (таблица по 8 праздникам)
+- Специфика Pesach: кошер l'Pesach обязателен, 8 дней трансформация магазинов
+- Шаббат = еженедельный пик продаж (пятница → 30-40% дневных продаж за 3ч)
+- Эйлат: 55K жителей + 250K туристов/мес → HRI-канал доминирует, зона без НДС
+- Война 2024: Эйлат потерял весь туристический трафик, 60K эвакуированных удвоили население, порт банкрот, рост +19% = военная аномалия (не органический)
+- Источники: StoreNext (коммерческий), CBS/data.gov.il/Мин.туризма (открытые), USDA FAS (бесплатный PDF)
+- Deep Search methodology: 5 уровней поисковых запросов
+
+**Стоп-список ошибок в скилле:**
+- StoreNext ≠ "Stornex" — такой компании нет
+- Западная сезонность (Рождество) к Израилю неприменима
+- Рост Эйлата 2024 — аномалия войны, не органика
+
 ## Статус
 
-- ✅ PPTX сгенерирован
+- ✅ PPTX v2 сгенерирован (MMD-Annual-Report-v2.pptx, 504 KB, 10 слайдов)
 - ✅ Скилл annual-report-pptx создан
 - ✅ Яэль Brand Voice заполнен
+- ✅ Скилл fmsg-israel-market-research создан
+- 🔜 PPTX v3 — объяснительная версия с PBI screenshots (user предложил прислать)
+- 🔜 MMD-специфический анализ через призму рынка Израиль
