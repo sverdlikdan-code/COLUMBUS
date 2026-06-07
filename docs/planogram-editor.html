@@ -2074,8 +2074,12 @@ function buildOrderPage() {
     const fContFull = Math.floor(fPal / 20);
     const fContRem  = Math.round(fPal) % 20;
     const fContTxt  = fContFull > 0
-      ? fContRem > 0 ? `${fContFull}<span style="font-size:9px;color:#b0bec5;"> +${fContRem}</span>` : `${fContFull}`
-      : fContRem > 0 ? `<span style="font-size:9px;color:#b0bec5;">+${fContRem}</span>` : '—';
+      ? fContRem > 0
+        ? `${fContFull}<span style="font-size:9px;font-weight:600;color:#ce93d8;">KNT</span> <span style="font-size:10px;color:#b0bec5;">+${fContRem}<span style="font-size:8px;">PALL</span></span>`
+        : `${fContFull}<span style="font-size:9px;font-weight:600;color:#ce93d8;">KNT</span>`
+      : fContRem > 0
+        ? `<span style="font-size:10px;color:#b0bec5;">+${fContRem}<span style="font-size:8px;">PALL</span></span>`
+        : '—';
 
     tbRows += `<tr style="background:#263238;color:#eceff1;">
       <td colspan="2" style="padding:7px 12px;font-size:13px;font-weight:800;text-align:right;" dir="rtl">📦 ${grpLabel(grp)}</td>
@@ -2085,7 +2089,7 @@ function buildOrderPage() {
       <td style="padding:7px 8px;"></td>
       <td style="padding:7px 8px;text-align:center;font-size:13px;font-weight:800;color:#ffcc02;">${fmtK(fOrder)}</td>
       <td style="padding:7px 8px;text-align:center;font-size:12px;font-weight:700;color:#a5d6a7;">${fPal}</td>
-      <td style="padding:3px 4px;text-align:center;"><span style="font-size:11px;font-weight:900;color:#e1bee7;">🚢${fContTxt}</span></td>
+      <td style="padding:3px 4px;text-align:center;"><span style="font-size:13px;font-weight:900;color:#e1bee7;">${fContTxt}</span></td>
     </tr>`;
 
     gr.forEach((r, i) => {
