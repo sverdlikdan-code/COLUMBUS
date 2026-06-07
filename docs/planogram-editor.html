@@ -1988,14 +1988,17 @@ function buildOrderPage() {
     const fam      = d.fam  || p.fam   || '';
     const iksGroup = d.iksGroup || null;   // IKRA / SAL / KAPUS from KARTIS PARIT
     const stock    = +(d.stock    || 0);
+    const stockZafn = +(d.stockZafn || 0);
+    const stockTrnz = +(d.stockTrnz || 0);
+    const stockAll  = stock + stockZafn + stockTrnz;
     const palStock = +(d.palStock || 0);
     const daySales = +(d.daySales || 0);
-    const daysStk  = d.daysStock != null ? d.daysStock : (daySales > 0 ? stock / daySales * 1.4 : null);
     const openOrders = +(d.openOrders || 0);
+    const daysStk  = daySales > 0 ? (stockAll + openOrders) / daySales * 1.4 : null;
     const krat     = +(d.ashdodPalletCartons || d.kratnost || 1);
     const safetyDays = _getSafetyDays(fam);
     const safetyK    = Math.ceil(safetyDays * daySales);
-    const need       = safetyK - stock;
+    const need       = safetyK - stockAll;
     const orderK     = need > 0 && daySales > 0 ? Math.ceil(need / Math.max(1, krat)) * Math.max(1, krat) : 0;
     const orderP     = krat > 0 && orderK > 0 ? Math.round(orderK / krat) : 0;
     allRows.push({ mk, name, fam, iksGroup, stock, palStock, daySales, daysStk, openOrders, krat, safetyDays, safetyK, orderK, orderP });
