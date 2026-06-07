@@ -1194,6 +1194,7 @@ async function main() {
         weight:              wt != null ? +wt.toFixed(3) : null,
         packFactor:          pf,
         weightCarton:        wc,
+        daySalesAll:         dsa != null ? +dsa.toFixed(1) : null,
         daysStockAll:        (dsa > 0 && p.stock > 0) ? Math.round(p.stock / dsa) : null,
         nameEn:              nameEnMap[mk] ? fixVisualRTL(nameEnMap[mk].replace(/\s*\([^)]*\)/g, '').trim()) : null,
         fam:                 p.fam ? (p.fam.replace(/[‎‏‪-‮⁦-⁩﻿]/g,'').trim()) || null : null,
