@@ -1969,25 +1969,60 @@ function toggleOrderZero() {
 }
 
 const _orderPeriodCache = {};
-function setOrderPeriod(year, month) {
-  window._orderYear  = year  || null;
-  window._orderMonth = month || null;
-  if (!year) { window._orderPeriodSales = null; buildOrderPage(); return; }
+window._orderSelectedPeriods = window._orderSelectedPeriods || new Set();
 
-  const key = `${year}-${month || 0}`;
-  if (_orderPeriodCache[key]) { window._orderPeriodSales = _orderPeriodCache[key]; buildOrderPage(); return; }
+function clearOrderPeriod() {
+  window._orderSelectedPeriods.clear();
+  window._orderPeriodSales = null;
+  buildOrderPage();
+}
+
+function toggleOrderPeriod(year, month) {
+  const key = `${year}-${month}`;
+  if (window._orderSelectedPeriods.has(key)) {
+    window._orderSelectedPeriods.delete(key);
+  } else {
+    window._orderSelectedPeriods.add(key);
+  }
+  _applyOrderPeriods();
+}
+
+async function _applyOrderPeriods() {
+  const periods = [...window._orderSelectedPeriods];
+  if (!periods.length) { window._orderPeriodSales = null; buildOrderPage(); return; }
 
   const bar = document.getElementById('ord-period-btns');
   if (bar) bar.querySelectorAll('button').forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
 
-  fetch(`https://api.sverdlik-apps.site/pbi/dagim-sales?year=${year}${month ? '&month=' + month : ''}`)
-    .then(r => r.json())
-    .then(j => { if (j.ok && j.data) { _orderPeriodCache[key] = j.data; window._orderPeriodSales = j.data; } })
-    .catch(() => { window._orderPeriodSales = null; })
-    .finally(() => {
-      if (bar) bar.querySelectorAll('button').forEach(b => { b.disabled = false; b.style.opacity = '1'; });
-      buildOrderPage();
-    });
+  const fetches = periods.map(key => {
+    if (_orderPeriodCache[key]) return Promise.resolve(_orderPeriodCache[key]);
+    const [y, m] = key.split('-').map(Number);
+    return fetch(`https://api.sverdlik-apps.site/pbi/dagim-sales?year=${y}&month=${m}`)
+      .then(r => r.json())
+      .then(j => { if (j.ok && j.data) { _orderPeriodCache[key] = j.data; return j.data; } return null; })
+      .catch(() => null);
+  });
+
+  try {
+    const results = await Promise.all(fetches);
+    const sum = {}, cnt = {};
+    for (const data of results) {
+      if (!data) continue;
+      for (const [mk, val] of Object.entries(data)) {
+        if (val == null) continue;
+        sum[mk] = (sum[mk] || 0) + val;
+        cnt[mk] = (cnt[mk] || 0) + 1;
+      }
+    }
+    const merged = {};
+    for (const mk of Object.keys(sum)) merged[mk] = sum[mk] / cnt[mk];
+    window._orderPeriodSales = merged;
+  } catch(e) {
+    window._orderPeriodSales = null;
+  } finally {
+    if (bar) bar.querySelectorAll('button').forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+    buildOrderPage();
+  }
 }
 
 function _getSafetyDays(fam) {
@@ -2051,7 +2086,7 @@ function buildOrderPage() {
   const periodBar = document.getElementById('ord-period-btns');
   if (periodBar) {
     const HM = ['','ינו','פבר','מרץ','אפר','מאי','יונ','יול','אוג','ספט','אוק','נוב','דצ'];
-    const cy = window._orderYear, cm = window._orderMonth;
+    const sel = window._orderSelectedPeriods || new Set();
     const now = new Date();
     const nowY = now.getFullYear(), nowM = now.getMonth() + 1;
     const months = [];
@@ -2062,19 +2097,20 @@ function buildOrderPage() {
     }
     const act = 'background:#1565c0;color:#fff;border:1px solid #1976d2;';
     const def = 'background:rgba(255,255,255,0.07);color:#ccc;border:1px solid rgba(255,255,255,0.16);';
-    const rst = !cy ? 'background:#c62828;color:#fff;border:1px solid #c62828;' : def;
+    const hasAny = sel.size > 0;
+    const rst = !hasAny ? 'background:#c62828;color:#fff;border:1px solid #c62828;' : def;
     let ph = `<div style="display:flex;align-items:flex-end;gap:2px;">`;
     ph += `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;margin-right:5px;">
       <span style="font-size:9px;color:transparent;line-height:1;">·</span>
-      <button style="${rst}font-size:10px;padding:2px 7px;border-radius:3px;cursor:pointer;white-space:nowrap;" onclick="setOrderPeriod(null,null)">ברירת מחדל</button>
+      <button style="${rst}font-size:10px;padding:2px 7px;border-radius:3px;cursor:pointer;white-space:nowrap;" onclick="clearOrderPeriod()">ברירת מחדל</button>
     </div>`;
     let prevY = null;
     for (const { y, m } of months) {
       const isFirst = y !== prevY;
-      const isAct   = cy === y && cm === m;
+      const isAct   = sel.has(`${y}-${m}`);
       ph += `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
         <span style="font-size:9px;color:#9eacc7;font-weight:600;line-height:1;">${isFirst ? y : '&nbsp;'}</span>
-        <button style="${isAct ? act : def}font-size:10px;padding:2px 5px;border-radius:3px;cursor:pointer;min-width:28px;text-align:center;" onclick="setOrderPeriod(${y},${m})">${HM[m]}</button>
+        <button style="${isAct ? act : def}font-size:10px;padding:2px 5px;border-radius:3px;cursor:pointer;min-width:28px;text-align:center;" onclick="toggleOrderPeriod(${y},${m})">${HM[m]}</button>
       </div>`;
       prevY = y;
     }
