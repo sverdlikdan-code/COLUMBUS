@@ -713,7 +713,6 @@ async function main() {
       p.stockTrnz    = src.stockTrnz    ?? null;
       p.daySalesTrnz = src.daySalesTrnz ?? null;
       p.daySalesAll = src.daySalesAll  ?? null;
-      p.openOrders  = src.openOrders  ?? 0;
       p.pakuot      = src.pakuot     || [];
       p.pakuotZafn  = src.pakuotZafn || [];
     }

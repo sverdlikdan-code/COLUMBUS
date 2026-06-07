@@ -930,7 +930,7 @@ async function fetchDagimFromBI() {
       pakuotZafn:    pakuotZafnMap[mk] || [],
       pakuotAll:     pakuotAllMap[mk]  || [],
       stopSale:      stopSaleMap[mk]   || false,
-      openOrders:    spo > 0 ? Math.max(0, Math.round(spo) - (fm.stock ?? 0)) : 0,
+      openOrders:    spo > 0 ? Math.max(0, Math.round(spo) - ((fm.stock ?? 0) + (fm.stockZafn ?? 0) + (fm.stockTrnz ?? 0))) : 0,
     });
     result[mk].dayAvg = result[mk].daySales;
   }
