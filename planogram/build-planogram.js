@@ -1204,6 +1204,7 @@ async function main() {
         pakuotZafn:          (p.pakuotZafn || kd?.pakuotZafn || []).map(b => ({ date: b.date ? new Date(b.date).toISOString().slice(0,10) : null, daysLeft: b.daysLeft, cartons: b.cartons })),
         shelfLife:           p.shelfLife ?? kd?.shelfLife ?? null,
         stopSale:            p.stopSale  ?? kd?.stopSale  ?? false,
+        spo:                 p.spo > 0 ? p.spo : null,
         openOrders:          p.openOrders > 0 ? p.openOrders : null,
       };
     };
