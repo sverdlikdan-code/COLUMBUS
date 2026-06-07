@@ -1968,33 +1968,39 @@ function buildOrderPage() {
     const d        = productData[mk] || {};
     const name     = p.name || d.nameEn || p.fam || mk;
     const fam      = d.fam  || p.fam   || '';
+    const iksGroup = d.iksGroup || null;   // IKRA / SAL / KAPUS from KARTIS PARIT
     const stock    = +(d.stock    || 0);
     const palStock = +(d.palStock || 0);
     const daySales = +(d.daySales || 0);
+    const daysStk  = daySales > 0 ? stock / daySales : null;
     const krat     = +(d.ashdodPalletCartons || d.kratnost || 1);
     const safetyDays = _getSafetyDays(fam);
     const safetyK    = Math.ceil(safetyDays * daySales);
     const need       = safetyK - stock;
     const orderK     = need > 0 && daySales > 0 ? Math.ceil(need / Math.max(1, krat)) * Math.max(1, krat) : 0;
-    const orderP     = krat > 0 && orderK > 0 ? (orderK / krat).toFixed(1) : 0;
-    allRows.push({ mk, name, fam, stock, palStock, daySales, krat, safetyDays, safetyK, orderK, orderP });
+    const orderP     = krat > 0 && orderK > 0 ? Math.round(orderK / krat) : 0;
+    allRows.push({ mk, name, fam, iksGroup, stock, palStock, daySales, daysStk, krat, safetyDays, safetyK, orderK, orderP });
   }
 
-  // Build family buttons
-  const fams = [...new Set(allRows.map(r => r.fam).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'he'));
+  // Group key: iksGroup (IKRA/SAL/KAPUS) if available, else fam
+  const getGrp = r => r.iksGroup || r.fam || '—';
+  const hasIks = allRows.some(r => r.iksGroup);
+
+  // Build filter buttons
+  const grpKeys = [...new Set(allRows.map(getGrp).filter(Boolean))].sort();
   const btnContainer = document.getElementById('ord-fam-btns');
   if (btnContainer) {
-    const actSt = 'background:rgba(255,255,255,0.9);color:#1b5e20;';
-    const defSt = 'background:rgba(255,255,255,0.15);color:#fff;';
+    const actSt  = 'background:rgba(255,255,255,0.9);color:#1b5e20;';
+    const defSt  = 'background:rgba(255,255,255,0.15);color:#fff;';
     const zeroSt = window._orderZero ? 'background:#ff5252;color:#fff;border-color:#ff5252;' : defSt;
     btnContainer.innerHTML =
       `<button class="ord-fam-btn" onclick="setOrderFam('')" style="${!window._orderFam ? actSt : defSt}">כולם</button>` +
-      fams.map(f => `<button class="ord-fam-btn" onclick="setOrderFam(${JSON.stringify(f)})" style="${window._orderFam === f ? actSt : defSt}">${f}</button>`).join('') +
+      grpKeys.map(f => `<button class="ord-fam-btn" onclick="setOrderFam(${JSON.stringify(f)})" style="${window._orderFam === f ? actSt : defSt}">${f}</button>`).join('') +
       `<button class="ord-fam-btn" onclick="toggleOrderZero()" style="${zeroSt}">מלאי ZERO</button>`;
   }
 
   // Filter
-  let rows = window._orderFam ? allRows.filter(r => r.fam === window._orderFam) : allRows;
+  let rows = window._orderFam ? allRows.filter(r => getGrp(r) === window._orderFam) : allRows;
   if (window._orderZero) rows = rows.filter(r => r.stock <= 0);
 
   if (!rows.length) {
@@ -2002,19 +2008,20 @@ function buildOrderPage() {
     return;
   }
 
-  // Group by fam
-  const famOrder = [...new Set(rows.map(r => r.fam))].sort((a, b) => a.localeCompare(b, 'he'));
+  // Group by IKRA/SAL/KAPUS (or fam fallback), sort within group by orderK desc
+  const grpOrder = [...new Set(rows.map(getGrp))].sort();
   const groups = {};
-  for (const r of rows) (groups[r.fam] || (groups[r.fam] = [])).push(r);
+  for (const r of rows) (groups[getGrp(r)] || (groups[getGrp(r)] = [])).push(r);
   for (const g of Object.values(groups)) g.sort((a, b) => (b.orderK - a.orderK) || a.name.localeCompare(b.name, 'he'));
 
   const thead = `<thead style="position:sticky;top:60px;z-index:5;">
     <tr style="background:#1b5e20;color:#fff;">
-      <th style="padding:8px 6px;font-size:10px;font-weight:600;width:48px;"></th>
+      <th style="padding:8px 6px;font-size:10px;font-weight:600;width:46px;"></th>
       <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:right;" dir="rtl">תאור</th>
       <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">מלאי<br>KARTON</th>
       <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">מלאי<br>PALLET</th>
       <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">מכר<br>קרט/יום</th>
+      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">לכמה<br>ימים</th>
       <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;background:#2e7d32;color:#c8e6c9;">הזמנה<br>KARTON ↓</th>
       <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">הזמנה<br>PALLET</th>
     </tr>
@@ -2023,24 +2030,25 @@ function buildOrderPage() {
   let tbRows = '';
   let gtStock = 0, gtPalStock = 0, gtOrder = 0, gtPal = 0;
 
-  for (const fam of famOrder) {
-    const gr = groups[fam] || [];
+  for (const grp of grpOrder) {
+    const gr = groups[grp] || [];
     let fStock = 0, fPalStock = 0, fOrder = 0, fPal = 0;
     for (const r of gr) {
       fStock    += r.stock;
       fPalStock += r.palStock;
       fOrder    += r.orderK;
-      fPal      += r.orderK > 0 ? +r.orderP : 0;
+      fPal      += r.orderK > 0 ? r.orderP : 0;
     }
     gtStock += fStock; gtPalStock += fPalStock; gtOrder += fOrder; gtPal += fPal;
 
     tbRows += `<tr style="background:#263238;color:#eceff1;">
-      <td colspan="2" style="padding:7px 12px;font-size:12px;font-weight:700;text-align:right;" dir="rtl">📦 ${fam}</td>
+      <td colspan="2" style="padding:7px 12px;font-size:13px;font-weight:800;text-align:right;" dir="rtl">📦 ${grp}</td>
       <td style="padding:7px 8px;text-align:center;font-size:12px;font-weight:700;">${fStock}</td>
       <td style="padding:7px 8px;text-align:center;font-size:11px;color:#90a4ae;">${fPalStock.toFixed(1)}</td>
       <td style="padding:7px 8px;text-align:center;font-size:10px;color:#78909c;">${gr.length} פריטים</td>
+      <td style="padding:7px 8px;"></td>
       <td style="padding:7px 8px;text-align:center;font-size:13px;font-weight:800;color:#ffcc02;">${fOrder}</td>
-      <td style="padding:7px 8px;text-align:center;font-size:11px;color:#90a4ae;">${fPal.toFixed(1)}</td>
+      <td style="padding:7px 8px;text-align:center;font-size:12px;font-weight:700;color:#a5d6a7;">${fPal}</td>
     </tr>`;
 
     gr.forEach((r, i) => {
@@ -2048,26 +2056,29 @@ function buildOrderPage() {
       const imgHtml  = photoUrl
         ? `<img src="${photoUrl}" style="width:40px;height:40px;object-fit:contain;border-radius:4px;border:1px solid #ddd;background:#fff;" onerror="this.style.display='none'">`
         : `<span style="font-size:16px;">📷</span>`;
-      const oc = r.orderK > 0 ? '#c62828' : '#2e7d32';
-      const bg = i % 2 === 0 ? '#fff' : '#f5f5f5';
+      const oc  = r.orderK > 0 ? '#c62828' : '#2e7d32';
+      const bg  = i % 2 === 0 ? '#fff' : '#f5f5f5';
+      const dc  = r.daysStk === null ? '#aaa' : r.daysStk < 5 ? '#c62828' : r.daysStk < 14 ? '#e65100' : '#2e7d32';
       tbRows += `<tr style="background:${bg};border-bottom:1px solid #eeeeee;">
         <td style="padding:4px 6px;text-align:center;">${imgHtml}</td>
         <td style="padding:4px 8px;font-size:11px;font-weight:600;max-width:220px;line-height:1.3;" dir="rtl">${r.name}<br><span style="font-size:8px;color:#1565c0;">${r.safetyDays}d בטחון</span></td>
         <td style="padding:4px 8px;text-align:center;font-size:13px;font-weight:700;">${r.stock}</td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;color:#555;">${r.palStock > 0 ? r.palStock.toFixed(1) : '—'}</td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;">${r.daySales > 0 ? Math.round(r.daySales) : '—'}</td>
+        <td style="padding:4px 8px;text-align:center;font-size:12px;font-weight:700;color:${dc};">${r.daysStk !== null ? Math.round(r.daysStk) : '—'}</td>
         <td style="padding:4px 8px;text-align:center;font-size:14px;font-weight:800;color:${oc};background:${r.orderK > 0 ? '#fff3e0' : '#f1f8e9'};">${r.orderK || 0}</td>
-        <td style="padding:4px 8px;text-align:center;font-size:12px;">${r.orderK > 0 ? r.orderP : '—'}</td>
+        <td style="padding:4px 8px;text-align:center;font-size:13px;font-weight:700;">${r.orderK > 0 ? r.orderP : '—'}</td>
       </tr>`;
     });
 
     tbRows += `<tr style="background:#e8f5e9;border-top:2px solid #388e3c;border-bottom:2px solid #388e3c;">
-      <td colspan="2" style="padding:5px 12px;font-size:11px;font-weight:700;color:#1b5e20;text-align:right;" dir="rtl">סה"כ ${fam}</td>
+      <td colspan="2" style="padding:5px 12px;font-size:11px;font-weight:700;color:#1b5e20;text-align:right;" dir="rtl">סה"כ ${grp}</td>
       <td style="padding:5px 8px;text-align:center;font-size:12px;font-weight:700;">${fStock}</td>
       <td style="padding:5px 8px;text-align:center;font-size:11px;font-weight:600;">${fPalStock.toFixed(1)}</td>
       <td style="padding:5px 8px;"></td>
+      <td style="padding:5px 8px;"></td>
       <td style="padding:5px 8px;text-align:center;font-size:14px;font-weight:800;color:#c62828;background:#ffecb3;">${fOrder}</td>
-      <td style="padding:5px 8px;text-align:center;font-size:12px;font-weight:700;">${fPal.toFixed(1)}</td>
+      <td style="padding:5px 8px;text-align:center;font-size:13px;font-weight:700;">${fPal}</td>
     </tr>`;
   }
 
@@ -2076,8 +2087,9 @@ function buildOrderPage() {
     <td style="padding:7px 8px;text-align:center;font-size:13px;font-weight:700;">${gtStock}</td>
     <td style="padding:7px 8px;text-align:center;font-size:12px;font-weight:700;">${gtPalStock.toFixed(1)}</td>
     <td style="padding:7px 8px;"></td>
+    <td style="padding:7px 8px;"></td>
     <td style="padding:7px 8px;text-align:center;font-size:16px;font-weight:800;color:#ffcc02;">${gtOrder}</td>
-    <td style="padding:7px 8px;text-align:center;font-size:13px;font-weight:700;">${gtPal.toFixed(1)}</td>
+    <td style="padding:7px 8px;text-align:center;font-size:13px;font-weight:700;">${gtPal}</td>
   </tr>`;
 
   const PALS_PER_CONT = 20;
