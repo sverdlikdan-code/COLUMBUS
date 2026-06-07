@@ -384,14 +384,16 @@
 </div>
 
 <!-- Order page — full-screen overlay for דגים הזמנה -->
-<div id="order-page" style="display:none; position:fixed; inset:0; z-index:610; background:#f0f7ff; overflow-y:auto; direction:rtl;">
-  <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:#1b5e20;position:sticky;top:0;z-index:10;flex-wrap:wrap;">
-    <span style="font-weight:bold;font-size:14px;color:#fff;flex:1;">📋 הזמנה דגים</span>
-    <div id="ord-fam-btns" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
-    <button onclick="window.print()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;cursor:pointer;border-radius:4px;padding:4px 12px;" class="no-print">🖨 הדפס</button>
-    <button onclick="toggleOrderPage()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:16px;cursor:pointer;border-radius:4px;padding:2px 8px;" class="no-print">✕</button>
+<div id="order-page" style="display:none; position:fixed; inset:0; z-index:610; background:#f5f5f5; overflow-y:auto; direction:rtl;">
+  <div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:#1a1a2e;position:sticky;top:0;z-index:10;flex-wrap:wrap;">
+    <button onclick="toggleOrderPage()" style="background:rgba(255,255,255,0.12);border:none;color:#fff;font-size:15px;cursor:pointer;border-radius:4px;padding:2px 8px;line-height:1;" class="no-print">✕</button>
+    <img src="logo-diler-bmd.png" alt="DILER" style="height:26px;filter:brightness(0) invert(1);opacity:0.9;" class="no-print">
+    <span style="font-size:12px;font-weight:700;color:#90caf9;letter-spacing:.5px;white-space:nowrap;">הזמנה דגים</span>
+    <div id="ord-fam-btns" style="display:flex;gap:4px;flex-wrap:wrap;flex:1;min-width:0;"></div>
+    <div id="ord-summary-inline" style="display:flex;gap:14px;align-items:center;flex-shrink:0;" class="no-print"></div>
+    <button onclick="window.print()" style="background:rgba(255,255,255,0.12);border:none;color:#fff;font-size:12px;cursor:pointer;border-radius:4px;padding:4px 10px;" class="no-print">🖨</button>
   </div>
-  <div id="order-table-wrap" style="padding:16px;overflow-x:auto;"></div>
+  <div id="order-table-wrap" style="padding:12px;overflow-x:auto;"></div>
 </div>
 
 <!-- Summary position table — fixed overlay panel -->
@@ -1929,6 +1931,22 @@ function _initTableDrag(tbody) {
 window._orderFam  = '';
 window._orderZero = false;
 
+function _recalcOrdPal() {
+  let total = 0;
+  document.querySelectorAll('.ord-pal-input').forEach(inp => { total += Number(inp.value) || 0; });
+  const gt = document.getElementById('ord-pal-gt-cell');
+  if (gt) gt.textContent = Math.round(total);
+  const hdr = document.getElementById('ord-pal-hdr');
+  if (hdr) hdr.textContent = Math.round(total);
+  const PALS_PER_CONT = 20;
+  const full = Math.floor(total / PALS_PER_CONT);
+  const rem  = Math.round(total) % PALS_PER_CONT;
+  const contEl = document.getElementById('ord-cont-hdr');
+  if (contEl) contEl.innerHTML = rem > 0
+    ? `${full}<span style="font-size:10px;color:#90caf9;"> +${rem}</span>`
+    : `${full}`;
+}
+
 function toggleOrderPage() {
   const page = document.getElementById('order-page');
   const btn  = document.getElementById('btn-order');
@@ -2014,19 +2032,21 @@ function buildOrderPage() {
   for (const r of rows) (groups[getGrp(r)] || (groups[getGrp(r)] = [])).push(r);
   for (const g of Object.values(groups)) g.sort((a, b) => (b.orderK - a.orderK) || a.name.localeCompare(b.name, 'he'));
 
-  const thead = `<thead style="position:sticky;top:60px;z-index:5;">
-    <tr style="background:#1b5e20;color:#fff;">
+  const thead = `<thead style="position:sticky;top:36px;z-index:5;">
+    <tr style="background:#1a1a2e;color:#fff;">
       <th style="padding:8px 6px;font-size:10px;font-weight:600;width:46px;"></th>
       <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:right;" dir="rtl">תאור</th>
       <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">מלאי<br>KARTON</th>
       <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">מלאי<br>PALLET</th>
       <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">מכר<br>קרט/יום</th>
       <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">לכמה<br>ימים</th>
-      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;background:#2e7d32;color:#c8e6c9;">הזמנה<br>KARTON ↓</th>
+      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;background:#0d47a1;color:#90caf9;">הזמנה<br>KARTON ↓</th>
       <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">הזמנה<br>PALLET</th>
+      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;background:#4a148c;color:#e1bee7;">✏ PAL<br>ידני</th>
     </tr>
   </thead>`;
 
+  const fmtK = n => Math.round(n || 0).toLocaleString('en');
   let tbRows = '';
   let gtStock = 0, gtPalStock = 0, gtOrder = 0, gtPal = 0;
 
@@ -2043,12 +2063,13 @@ function buildOrderPage() {
 
     tbRows += `<tr style="background:#263238;color:#eceff1;">
       <td colspan="2" style="padding:7px 12px;font-size:13px;font-weight:800;text-align:right;" dir="rtl">📦 ${grp}</td>
-      <td style="padding:7px 8px;text-align:center;font-size:12px;font-weight:700;">${fStock}</td>
+      <td style="padding:7px 8px;text-align:center;font-size:12px;font-weight:700;">${fmtK(fStock)}</td>
       <td style="padding:7px 8px;text-align:center;font-size:11px;color:#90a4ae;">${fPalStock.toFixed(1)}</td>
       <td style="padding:7px 8px;text-align:center;font-size:10px;color:#78909c;">${gr.length} פריטים</td>
       <td style="padding:7px 8px;"></td>
-      <td style="padding:7px 8px;text-align:center;font-size:13px;font-weight:800;color:#ffcc02;">${fOrder}</td>
+      <td style="padding:7px 8px;text-align:center;font-size:13px;font-weight:800;color:#ffcc02;">${fmtK(fOrder)}</td>
       <td style="padding:7px 8px;text-align:center;font-size:12px;font-weight:700;color:#a5d6a7;">${fPal}</td>
+      <td style="padding:7px 8px;"></td>
     </tr>`;
 
     gr.forEach((r, i) => {
@@ -2062,63 +2083,73 @@ function buildOrderPage() {
       tbRows += `<tr style="background:${bg};border-bottom:1px solid #eeeeee;">
         <td style="padding:4px 6px;text-align:center;">${imgHtml}</td>
         <td style="padding:4px 8px;font-size:11px;font-weight:600;max-width:220px;line-height:1.3;" dir="rtl">${r.name}<br><span style="font-size:8px;color:#1565c0;">${r.safetyDays}d בטחון</span></td>
-        <td style="padding:4px 8px;text-align:center;font-size:13px;font-weight:700;">${r.stock}</td>
+        <td style="padding:4px 8px;text-align:center;font-size:13px;font-weight:700;">${fmtK(r.stock)}</td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;color:#555;">${r.palStock > 0 ? r.palStock.toFixed(1) : '—'}</td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;">${r.daySales > 0 ? Math.round(r.daySales) : '—'}</td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;font-weight:700;color:${dc};">${r.daysStk !== null ? Math.round(r.daysStk) : '—'}</td>
-        <td style="padding:4px 8px;text-align:center;font-size:14px;font-weight:800;color:${oc};background:${r.orderK > 0 ? '#fff3e0' : '#f1f8e9'};">${r.orderK || 0}</td>
+        <td style="padding:4px 8px;text-align:center;font-size:14px;font-weight:800;color:${oc};background:${r.orderK > 0 ? '#fff3e0' : '#f1f8e9'};">${r.orderK > 0 ? fmtK(r.orderK) : 0}</td>
         <td style="padding:4px 8px;text-align:center;font-size:13px;font-weight:700;">${r.orderK > 0 ? r.orderP : '—'}</td>
+        <td style="padding:4px 4px;text-align:center;"><input type="number" class="ord-pal-input" value="${r.orderK > 0 ? r.orderP : 0}" min="0" oninput="_recalcOrdPal()" style="width:58px;padding:3px 4px;font-size:13px;font-weight:700;text-align:center;border:2px solid #9c27b0;border-radius:4px;background:#f3e5f5;color:#4a148c;outline:none;" data-mk="${r.mk}"></td>
       </tr>`;
     });
 
     tbRows += `<tr style="background:#e8f5e9;border-top:2px solid #388e3c;border-bottom:2px solid #388e3c;">
       <td colspan="2" style="padding:5px 12px;font-size:11px;font-weight:700;color:#1b5e20;text-align:right;" dir="rtl">סה"כ ${grp}</td>
-      <td style="padding:5px 8px;text-align:center;font-size:12px;font-weight:700;">${fStock}</td>
+      <td style="padding:5px 8px;text-align:center;font-size:12px;font-weight:700;">${fmtK(fStock)}</td>
       <td style="padding:5px 8px;text-align:center;font-size:11px;font-weight:600;">${fPalStock.toFixed(1)}</td>
       <td style="padding:5px 8px;"></td>
       <td style="padding:5px 8px;"></td>
-      <td style="padding:5px 8px;text-align:center;font-size:14px;font-weight:800;color:#c62828;background:#ffecb3;">${fOrder}</td>
+      <td style="padding:5px 8px;text-align:center;font-size:14px;font-weight:800;color:#c62828;background:#ffecb3;">${fmtK(fOrder)}</td>
       <td style="padding:5px 8px;text-align:center;font-size:13px;font-weight:700;">${fPal}</td>
+      <td style="padding:5px 8px;"></td>
     </tr>`;
   }
 
-  tbRows += `<tr style="background:#1b5e20;color:#fff;">
-    <td colspan="2" style="padding:7px 12px;font-size:12px;font-weight:700;text-align:right;" dir="rtl">📋 סה"כ כולל</td>
-    <td style="padding:7px 8px;text-align:center;font-size:13px;font-weight:700;">${gtStock}</td>
-    <td style="padding:7px 8px;text-align:center;font-size:12px;font-weight:700;">${gtPalStock.toFixed(1)}</td>
-    <td style="padding:7px 8px;"></td>
-    <td style="padding:7px 8px;"></td>
-    <td style="padding:7px 8px;text-align:center;font-size:16px;font-weight:800;color:#ffcc02;">${gtOrder}</td>
-    <td style="padding:7px 8px;text-align:center;font-size:13px;font-weight:700;">${gtPal}</td>
+  tbRows += `<tr style="background:#1a1a2e;color:#fff;">
+    <td colspan="2" style="padding:7px 10px;font-size:12px;font-weight:700;text-align:right;" dir="rtl">📋 סה"כ כולל</td>
+    <td style="padding:7px 6px;text-align:center;font-size:13px;font-weight:700;">${fmtK(gtStock)}</td>
+    <td style="padding:7px 6px;text-align:center;font-size:12px;font-weight:700;">${gtPalStock.toFixed(1)}</td>
+    <td style="padding:7px 6px;"></td>
+    <td style="padding:7px 6px;"></td>
+    <td style="padding:7px 6px;text-align:center;font-size:16px;font-weight:800;color:#ffcc02;">${fmtK(gtOrder)}</td>
+    <td style="padding:7px 6px;text-align:center;font-size:13px;font-weight:700;">${Math.round(gtPal)}</td>
+    <td id="ord-pal-gt-cell" style="padding:7px 6px;text-align:center;font-size:14px;font-weight:900;color:#e1bee7;background:#4a148c;">${Math.round(gtPal)}</td>
   </tr>`;
 
   const PALS_PER_CONT = 20;
   const contFull = Math.floor(gtPal / PALS_PER_CONT);
-  const contRem  = gtPal % PALS_PER_CONT;
-  const contFrac = gtPal / PALS_PER_CONT;
+  const contRem  = Math.round(gtPal) % PALS_PER_CONT;
+
+  // Update inline summary in header
+  const sumEl = document.getElementById('ord-summary-inline');
+  if (sumEl) {
+    const s = (lbl, val, clr) =>
+      `<span style="display:flex;flex-direction:column;align-items:center;line-height:1.1;">
+        <span style="font-size:9px;color:#90caf9;letter-spacing:.4px;">${lbl}</span>
+        <span style="font-size:16px;font-weight:900;color:${clr};">${val}</span>
+      </span>`;
+    const contTxt = contRem > 0 ? `${contFull}<span style="font-size:10px;color:#90caf9;"> +${contRem}</span>` : `${contFull}`;
+    sumEl.innerHTML =
+      s('KARTON', fmtK(gtOrder), '#fff') +
+      `<span style="color:rgba(255,255,255,0.2);font-size:18px;">|</span>` +
+      `<span style="display:flex;flex-direction:column;align-items:center;line-height:1.1;">
+        <span style="font-size:9px;color:#90caf9;letter-spacing:.4px;">PALLET</span>
+        <span id="ord-pal-hdr" style="font-size:16px;font-weight:900;color:#fff;">${Math.round(gtPal)}</span>
+      </span>` +
+      `<span style="color:rgba(255,255,255,0.2);font-size:18px;">|</span>` +
+      `<span style="display:flex;flex-direction:column;align-items:center;line-height:1.1;">
+        <span style="font-size:9px;color:#90caf9;letter-spacing:.4px;">קונטיינר 40'</span>
+        <span id="ord-cont-hdr" style="font-size:16px;font-weight:900;color:#fff;">${contTxt}</span>
+      </span>`;
+  }
 
   wrap.innerHTML = `
-    <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
-      <div style="background:#1b5e20;color:#fff;border-radius:10px;padding:14px 22px;min-width:130px;text-align:center;box-shadow:0 3px 10px rgba(0,0,0,0.18);">
-        <div style="font-size:10px;opacity:0.8;margin-bottom:4px;letter-spacing:.5px;">הזמנה KARTON</div>
-        <div style="font-size:32px;font-weight:900;line-height:1;">${gtOrder}</div>
-      </div>
-      <div style="background:#2e7d32;color:#fff;border-radius:10px;padding:14px 22px;min-width:130px;text-align:center;box-shadow:0 3px 10px rgba(0,0,0,0.18);">
-        <div style="font-size:10px;opacity:0.8;margin-bottom:4px;letter-spacing:.5px;">הזמנה PALLET</div>
-        <div style="font-size:32px;font-weight:900;line-height:1;">${Math.round(gtPal)}</div>
-      </div>
-      <div style="background:#0d47a1;color:#fff;border-radius:10px;padding:14px 22px;min-width:150px;text-align:center;box-shadow:0 3px 10px rgba(0,0,0,0.18);">
-        <div style="font-size:10px;opacity:0.8;margin-bottom:4px;letter-spacing:.5px;">קונטיינר 40'</div>
-        <div style="font-size:32px;font-weight:900;line-height:1;">${contFull}</div>
-        <div style="font-size:11px;opacity:0.85;margin-top:3px;">+ ${contRem} PAL (≈${contFrac.toFixed(1)})</div>
-      </div>
-    </div>
     <table style="width:100%;border-collapse:collapse;box-shadow:0 2px 10px rgba(0,0,0,0.08);">
       ${thead}
       <tbody>${tbRows}</tbody>
     </table>
     <div style="font-size:10px;color:#999;margin-top:10px;text-align:left;direction:ltr;">
-      ${rows.length} מוצרים | בטחון: NP מצונן/פורל/סלמון = 10d | אחרים = 45d | קונטיינר = ${PALS_PER_CONT} PAL
+      ${rows.length} מוצרים | בטחון: מצונן/פורל/סלמון = 10d | אחרים = 45d | קונטיינר = ${PALS_PER_CONT} PAL
     </div>`;
 }
 
