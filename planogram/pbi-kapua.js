@@ -851,6 +851,7 @@ async function fetchDagimFromBI() {
       "makat",    'KARTIS PARIT'[מק"ט],
       "name",     'KARTIS PARIT'[תאור],
       "fam",      'KARTIS PARIT'[תאור משפחה],
+      "iksGroup", 'KARTIS PARIT'[IKRA SAL KAPUS],
       "weight",   'KARTIS PARIT'[משקל ליחידה],
       "shelfLife",'KARTIS PARIT'[חיי מדף]
     )
@@ -863,10 +864,12 @@ async function fetchDagimFromBI() {
     if (!mk) continue;
     const raw = r['[name]'] || '';
     const rawFam = r['[fam]'] ? r['[fam]'].replace(/[‎‏‪-‮⁦-⁩]/g, '').trim() : '';
+    const rawIks = r['[iksGroup]'] ? String(r['[iksGroup]']).trim() : null;
     result[mk] = {
       makat:     mk,
       desc:      raw.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim() || null,
       fam:       rawFam ? fixHebRTL(rawFam) || null : null,
+      iksGroup:  rawIks || null,
       weight:    r['[weight]'] ?? null,
       shelfLife: r['[shelfLife]'] ?? null,
       stopSale:  false,
