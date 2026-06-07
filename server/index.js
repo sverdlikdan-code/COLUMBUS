@@ -1030,5 +1030,39 @@ app.get('/api/mekarer-export', requireAuth, async (req, res) => {
   }
 });
 
+// GET /pbi/dagim-sales?year=2026&month=6 — live sales for הזמנה period filter
+app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
+  const year  = parseInt(req.query.year  || '0', 10);
+  const month = parseInt(req.query.month || '0', 10);
+  if (!year || year < 2020 || year > 2030) return res.status(400).json({ error: 'invalid year' });
+  if (month && (month < 1 || month > 12))  return res.status(400).json({ error: 'invalid month' });
+
+  const dateFilter = month
+    ? `FILTER('ALL_PARTS', YEAR('ALL_PARTS'[תאריך]) = ${year} && MONTH('ALL_PARTS'[תאריך]) = ${month})`
+    : `FILTER('ALL_PARTS', YEAR('ALL_PARTS'[תאריך]) = ${year})`;
+
+  try {
+    const rows = await executeDax(`
+      EVALUATE
+      CALCULATETABLE(
+        ADDCOLUMNS(
+          SUMMARIZE('ALL_PARTS', 'ALL_PARTS'[מק'ט]),
+          "daySales", [TOTAL מכר בקרטונים ממוצע ביום]
+        ),
+        'ALL_PARTS'[חברה] = "FORMULA",
+        ${dateFilter}
+      )
+    `);
+    const data = {};
+    for (const r of rows) {
+      const mk = r["ALL_PARTS[מק'ט]"];
+      if (mk != null) data[String(mk)] = r['[daySales]'] ?? null;
+    }
+    res.json({ ok: true, year, month: month || null, data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Columbus server running on port ${PORT}`));

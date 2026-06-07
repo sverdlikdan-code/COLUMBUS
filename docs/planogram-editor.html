@@ -393,6 +393,7 @@
     <div id="ord-summary-inline" style="display:flex;gap:14px;align-items:center;flex-shrink:0;" class="no-print"></div>
     <button onclick="window.print()" style="background:rgba(255,255,255,0.12);border:none;color:#fff;font-size:12px;cursor:pointer;border-radius:4px;padding:4px 10px;" class="no-print">🖨</button>
   </div>
+  <div id="ord-period-btns" style="display:flex;gap:3px;flex-wrap:wrap;padding:4px 10px;background:#0d1117;border-bottom:1px solid rgba(255,255,255,0.08);position:sticky;top:36px;z-index:9;" class="no-print"></div>
   <div id="order-table-wrap" style="padding:12px;overflow-x:auto;"></div>
 </div>
 
@@ -1967,6 +1968,28 @@ function toggleOrderZero() {
   buildOrderPage();
 }
 
+const _orderPeriodCache = {};
+function setOrderPeriod(year, month) {
+  window._orderYear  = year  || null;
+  window._orderMonth = month || null;
+  if (!year) { window._orderPeriodSales = null; buildOrderPage(); return; }
+
+  const key = `${year}-${month || 0}`;
+  if (_orderPeriodCache[key]) { window._orderPeriodSales = _orderPeriodCache[key]; buildOrderPage(); return; }
+
+  const bar = document.getElementById('ord-period-btns');
+  if (bar) bar.querySelectorAll('button').forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
+
+  fetch(`https://api.sverdlik-apps.site/pbi/dagim-sales?year=${year}${month ? '&month=' + month : ''}`)
+    .then(r => r.json())
+    .then(j => { if (j.ok && j.data) { _orderPeriodCache[key] = j.data; window._orderPeriodSales = j.data; } })
+    .catch(() => { window._orderPeriodSales = null; })
+    .finally(() => {
+      if (bar) bar.querySelectorAll('button').forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+      buildOrderPage();
+    });
+}
+
 function _getSafetyDays(fam) {
   if (/מצונן|פורל|סלמון/i.test(fam || '')) return 10;
   return 45;
@@ -1992,7 +2015,8 @@ function buildOrderPage() {
     const stockTrnz = +(d.stockTrnz || 0);
     const stockAll  = stock + stockZafn + stockTrnz;
     const palStock = +(d.palStock || 0);
-    const daySales = +(d.daySalesAll || d.daySales || 0);
+    const _ps = window._orderPeriodSales;
+    const daySales = +(_ps ? (_ps[mk] ?? d.daySalesAll ?? d.daySales ?? 0) : (d.daySalesAll || d.daySales || 0));
     const openOrders = +(d.openOrders || 0);
     const daysStk  = daySales > 0 ? (stockAll + openOrders) / daySales * 1.4 : null;
     const krat     = +(d.ashdodPalletCartons || d.kratnost || 1);
@@ -2020,6 +2044,23 @@ function buildOrderPage() {
       `<button class="ord-fam-btn" onclick="setOrderFam('')" style="${!window._orderFam ? actSt : defSt}">כולם</button>` +
       grpKeys.map(f => `<button class="ord-fam-btn" onclick="setOrderFam('${f}')" style="${window._orderFam === f ? actSt : defSt}">${grpLabel(f)}</button>`).join('') +
       `<button class="ord-fam-btn" onclick="toggleOrderZero()" style="${zeroSt}">מלאי ZERO</button>`;
+  }
+
+  // Build period buttons (year/month selector)
+  const periodBar = document.getElementById('ord-period-btns');
+  if (periodBar) {
+    const HM = ['','ינו','פבר','מרץ','אפר','מאי','יונ','יול','אוג','ספט','אוק','נוב','דצ'];
+    const cy = window._orderYear, cm = window._orderMonth;
+    const act = 'background:#1565c0;color:#fff;border:1px solid #1565c0;';
+    const def = 'background:rgba(255,255,255,0.08);color:#ccc;border:1px solid rgba(255,255,255,0.15);';
+    let ph = `<button style="${!cy ? 'background:#c62828;color:#fff;border:1px solid #c62828;' : def}font-size:10px;padding:2px 8px;border-radius:3px;cursor:pointer;" onclick="setOrderPeriod(null,null)">ברירת מחדל</button>`;
+    for (const y of [2025, 2026]) {
+      const ys = y % 100;
+      ph += `<button style="${cy===y&&!cm ? act : def}font-size:10px;padding:2px 8px;border-radius:3px;cursor:pointer;" onclick="setOrderPeriod(${y},null)">${ys}</button>`;
+      for (let m = 1; m <= 12; m++)
+        ph += `<button style="${cy===y&&cm===m ? act : def}font-size:10px;padding:2px 6px;border-radius:3px;cursor:pointer;" onclick="setOrderPeriod(${y},${m})">${ys}/${HM[m]}</button>`;
+    }
+    periodBar.innerHTML = ph;
   }
 
   // Filter
