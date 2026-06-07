@@ -92,6 +92,29 @@
         overflow: visible !important;
       }
       body.printing-expiry #expiry-grid > div { break-inside: avoid; }
+
+      /* ── Order page print ── */
+      body.printing-order > *:not(#order-page) { display: none !important; }
+      body.printing-order #order-page {
+        display: block !important;
+        position: static !important;
+        overflow: visible !important;
+        height: auto !important;
+        background: #fff !important;
+      }
+      body.printing-order #order-page > div:first-child { display: none !important; }
+      body.printing-order #order-table-wrap table { font-size: 9px !important; }
+      body.printing-order #order-table-wrap td, body.printing-order #order-table-wrap th { padding: 3px 5px !important; }
+    }
+    .ord-fam-btn {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.4);
+      color: #fff;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 4px;
+      padding: 4px 10px;
     }
     #print-header {
       display: none;
@@ -310,6 +333,7 @@
 
   <button class="btn no-print" id="btn-table" onclick="toggleTable()" style="background:#f0f4ff;color:#1565C0;border:1px solid #1565C0;">📊 מיקום</button>
   <button class="btn no-print" id="btn-expiry" onclick="toggleExpiryPage()" style="background:#f0f4ff;color:#c62828;border:1px solid #ef9a9a;">📦 תוקף</button>
+  <button class="btn no-print" id="btn-order" onclick="toggleOrderPage()" style="background:#f0fff4;color:#1b5e20;border:1px solid #81c784;">📋 הזמנה</button>
   <span class="no-print" style="margin-right:6px;border-right:1px solid #ccc;padding-right:8px;display:inline-flex;align-items:center;gap:3px;">
     <button id="wh-main" class="btn wh-btn wh-active" onclick="setWarehouse('Main')">אשדוד</button>
     <button id="wh-zafn" class="btn wh-btn"           onclick="setWarehouse('Zafn')">צפון</button>
@@ -357,6 +381,20 @@
     <button onclick="toggleExpiryPage()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:16px;cursor:pointer;border-radius:4px;padding:2px 8px;">✕</button>
   </div>
   <div id="expiry-grid" style="padding:12px 16px; display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-start;"></div>
+</div>
+
+<!-- Order page — full-screen overlay for דגים הזמנה -->
+<div id="order-page" style="display:none; position:fixed; inset:0; z-index:610; background:#f0f7ff; overflow-y:auto; direction:rtl;">
+  <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:#1b5e20;position:sticky;top:0;z-index:10;flex-wrap:wrap;">
+    <span style="font-weight:bold;font-size:14px;color:#fff;flex:1;">📋 הזמנה דגים</span>
+    <button id="ord-btn-all"   onclick="setOrderFam('')"      class="ord-fam-btn" style="background:rgba(255,255,255,0.9);color:#1b5e20;">כולם</button>
+    <button id="ord-btn-ikra"  onclick="setOrderFam('ikra')"  class="ord-fam-btn">IKRA</button>
+    <button id="ord-btn-sal"   onclick="setOrderFam('sal')"   class="ord-fam-btn">SAL</button>
+    <button id="ord-btn-kapus" onclick="setOrderFam('kapus')" class="ord-fam-btn">KAPUS</button>
+    <button onclick="window.print()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;cursor:pointer;border-radius:4px;padding:4px 12px;" class="no-print">🖨 הדפס</button>
+    <button onclick="toggleOrderPage()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:16px;cursor:pointer;border-radius:4px;padding:2px 8px;" class="no-print">✕</button>
+  </div>
+  <div id="order-table-wrap" style="padding:16px;overflow-x:auto;"></div>
 </div>
 
 <!-- Summary position table — fixed overlay panel -->
@@ -1889,6 +1927,126 @@ function _initTableDrag(tbody) {
 // ══════════════════════════════════════════════════════════════════════════
 // EXPIRY REPORT PAGE
 // ══════════════════════════════════════════════════════════════════════════
+// ── Order page (דגים הזמנה) ─────────────────────────────────────────────────
+
+window._orderFam = '';
+
+function toggleOrderPage() {
+  const page = document.getElementById('order-page');
+  const btn  = document.getElementById('btn-order');
+  const open = page.style.display === 'none';
+  page.style.display = open ? 'block' : 'none';
+  btn.style.background = open ? '#1b5e20' : '#f0fff4';
+  btn.style.color      = open ? '#fff'    : '#1b5e20';
+  if (open) buildOrderPage();
+}
+
+function setOrderFam(fam) {
+  window._orderFam = fam;
+  for (const [id, val] of [['ord-btn-all',''],['ord-btn-ikra','ikra'],['ord-btn-sal','sal'],['ord-btn-kapus','kapus']]) {
+    const b = document.getElementById(id);
+    if (!b) continue;
+    const sel = val === fam;
+    b.style.background = sel ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)';
+    b.style.color      = sel ? '#1b5e20' : '#fff';
+  }
+  buildOrderPage();
+}
+
+function _getOrderFam(name, fam) {
+  const txt = (name || '') + ' ' + (fam || '');
+  if (/איקרה|ביצי.*דג|דג.*ביצי/i.test(txt)) return 'ikra';
+  if (/סלט/i.test(txt)) return 'sal';
+  return 'kapus';
+}
+
+function buildOrderPage() {
+  const wrap = document.getElementById('order-table-wrap');
+  const base = DAGIM_BASE || {};
+  const seen = new Set();
+  const rows = [];
+
+  for (const p of Object.values(base)) {
+    if (!p || !p.makat) continue;
+    const mk = String(p.makat);
+    if (seen.has(mk)) continue;
+    seen.add(mk);
+    const d    = productData[mk] || {};
+    const name = p.name || d.nameEn || p.fam || mk;
+    const fam  = d.fam  || p.fam   || '';
+    const cat  = _getOrderFam(name, fam);
+    if (window._orderFam && cat !== window._orderFam) continue;
+
+    const stock    = +(d.stock    || 0);
+    const daySales = +(d.daySales || 0);
+    const daysStk  = daySales > 0 ? stock / daySales : null;
+    const krat     = +(d.ashdodPalletCartons || d.kratnost || 1);
+    const safety   = Math.ceil(7 * daySales);
+    const need     = safety - stock;
+    const orderK   = need > 0 && daySales > 0 ? Math.ceil(need / Math.max(1, krat)) * Math.max(1, krat) : 0;
+    const orderP   = krat > 0 && orderK > 0 ? (orderK / krat).toFixed(1) : 0;
+
+    rows.push({ mk, name, fam, cat, stock, daySales, daysStk, krat, orderK, orderP, d });
+  }
+
+  rows.sort((a, b) => (b.orderK - a.orderK) || a.name.localeCompare(b.name, 'he'));
+
+  if (!rows.length) {
+    wrap.innerHTML = '<div style="text-align:center;padding:40px;color:#888;font-size:14px;">אין מוצרים</div>';
+    return;
+  }
+
+  const thead = `<thead style="position:sticky;top:60px;z-index:5;">
+    <tr style="background:#1b5e20;color:#fff;">
+      <th style="padding:8px 6px;font-size:10px;font-weight:600;"></th>
+      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:right;" dir="rtl">תאור</th>
+      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:right;" dir="rtl">משפחה</th>
+      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">מלאי<br>KARTON</th>
+      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">מכר<br>קרט/יום</th>
+      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">לכמה<br>ימים</th>
+      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">KART/<br>PALLET</th>
+      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;background:#c8e6c9;color:#1b5e20;">הזמנה<br>KARTON ↓</th>
+      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">הזמנה<br>PALLET</th>
+    </tr>
+  </thead>`;
+
+  const tbRows = rows.map((r, i) => {
+    const photoUrl = getPhotoUrl(r.mk);
+    const imgHtml  = photoUrl
+      ? `<img src="${photoUrl}" style="width:46px;height:46px;object-fit:contain;border-radius:4px;border:1px solid #ddd;background:#fff;" onerror="this.style.display='none'">`
+      : `<span style="font-size:18px;">📷</span>`;
+
+    const dc = r.daysStk === null ? '#888'
+             : r.daysStk <  5    ? '#c62828'
+             : r.daysStk < 10    ? '#e65100'
+             : r.daysStk < 14    ? '#f57c00'
+             :                     '#2e7d32';
+    const oc = r.orderK > 0 ? '#c62828' : '#2e7d32';
+    const bg = i % 2 === 0 ? '#fff' : '#f9fafb';
+
+    return `<tr style="background:${bg};border-bottom:1px solid #e8eaf0;">
+      <td style="padding:6px 8px;text-align:center;">${imgHtml}</td>
+      <td style="padding:6px 8px;font-size:11px;font-weight:600;max-width:180px;line-height:1.3;" dir="rtl">${r.name}</td>
+      <td style="padding:6px 8px;font-size:9px;color:#666;max-width:100px;line-height:1.3;" dir="rtl">${r.fam}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:13px;font-weight:700;">${r.stock}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:12px;">${r.daySales > 0 ? r.daySales.toFixed(1) : '—'}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:13px;font-weight:700;color:${dc};">${r.daysStk !== null ? r.daysStk.toFixed(0) : '—'}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:12px;">${r.krat || '—'}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:14px;font-weight:800;color:${oc};background:${r.orderK > 0 ? '#fff3e0' : '#f1f8e9'};">${r.orderK || 0}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:12px;">${r.orderK > 0 ? r.orderP : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.08);">
+      ${thead}
+      <tbody>${tbRows}</tbody>
+    </table>
+    <div style="font-size:10px;color:#999;margin-top:10px;text-align:left;direction:ltr;">
+      ${rows.length} מוצרים | הזמנה = max(0, 7×מכר/יום − מלאי), מעוגל לכפולת פלט
+    </div>`;
+}
+
 function toggleExpiryPage() {
   const page = document.getElementById('expiry-page');
   const open = page.style.display === 'none';
@@ -2175,13 +2333,18 @@ window._currentSection = 'kapua';
 // Print / Save PDF: set class on body so @media print knows what to show
 window.addEventListener('beforeprint', () => {
   const ep = document.getElementById('expiry-page');
+  const op = document.getElementById('order-page');
   if (ep && ep.style.display !== 'none') {
     document.body.classList.add('printing-expiry');
     document.title = 'דוח תוקף — FORMULA';
+  } else if (op && op.style.display !== 'none') {
+    document.body.classList.add('printing-order');
+    document.title = 'הזמנה דגים — FORMULA';
   }
 });
 window.addEventListener('afterprint', () => {
   document.body.classList.remove('printing-expiry');
+  document.body.classList.remove('printing-order');
   document.title = 'MAHSAN FORMULA';
 });
 
