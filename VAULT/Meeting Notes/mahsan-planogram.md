@@ -87,3 +87,33 @@ Pending: scheduled build запишет nameEn → карточки получа
 - **settings.local.json**: добавлен в `.gitignore` (содержал GitHub PAT)
 
 Коммиты: `9fcf784` → `ba8cdb3` → `6898ef5` + `632f272` (gitignore)
+
+### 2026-06-07 #session-end ✅
+
+**Страница תוקף — временное скрытие карточек перед печатью:**
+
+- **Фича**: кнопка **✕** на каждой карточке в странице תוקף — скрывает карточку перед печатью
+- **Не навсегда**: состояние хранится только в `window._hiddenExpiryMakats = new Set()` (в памяти страницы, не в localStorage)
+- **Кнопка ↩ איפוס (N)**: появляется в хедере страницы תוקף, когда есть скрытые карточки (N = количество); нажатие возвращает все
+- **При печати**: кнопки ✕ и ↩ не печатаются (`class="no-print"`)
+- **При закрытии/открытии** страницы תוקף — все скрытые карточки возвращаются автоматически
+- **Функции**: `hideExpiryCard(mk)`, `resetHiddenExpiryCards()`, `_syncResetBtn()`
+- Фильтр в `buildExpiryPage()`: `if (window._hiddenExpiryMakats.has(mk)) return null;`
+
+**Объяснено**: кнопка מרענן делает `location.reload(true)` — тянет JSON из `docs/` (GitHub Pages). Данные PBI попадают туда только через GitHub Actions флоу. Дата в бейдже = дата последнего обновления PBI, не дата запуска флоу.
+
+Коммит: `2d627ab` → push `4d11774`
+
+### 2026-06-07 #session-end ✅ (продолжение)
+
+**Страница הזמנה — открытые заказы и мלаי всех складов:**
+
+- **Фикс фильтров** (HERRING/IKRA/KAPUSTA/OTHER): `const grpLabel` был в TDZ — перенесён до первого использования. Теперь кнопки работают.
+- **Колонка הזמנות פתוחות**: добавлена в таблицу, header 📅 לכמה ימים
+- **`fetchDagimFromBI()`**: добавлен запрос `[הזמנות רכש פתוחות PLUS מלאי זמין]` из KARTIS PARIT для dagim только. `openOrders = spo - (Main + Zafn + Trnz)` — вычитаем ВСЕ склады.
+- **`fetchStockMain()`**: не тронут — планограмма не затронута
+- **`build-planogram.js`**: одна строка в `mkEntry`: `openOrders: p.openOrders > 0 ? p.openOrders : null`. Строка из kapua merge section удалена.
+- **`buildOrderPage()`**: `stockAll = stock + stockZafn + stockTrnz`; `daysStk = (stockAll + openOrders) / daySales * 1.4`; `need = safetyK - stockAll`
+- **Логика**: `[הזמנות רכש פתוחות PLUS מלאי זמין]` = млаי всех складов + заказы поставщику. `openOrders` = чисто заказы (мера − все склады). `daysStk` = сколько дней хватит (все склады + заказы в пути).
+
+Коммиты: `e71b63d` (planogram-editor), `b1d80ec` (pbi-kapua + build), + финальный фикс stockAll
