@@ -1992,7 +1992,7 @@ function buildOrderPage() {
     const stockTrnz = +(d.stockTrnz || 0);
     const stockAll  = stock + stockZafn + stockTrnz;
     const palStock = +(d.palStock || 0);
-    const daySales = +(d.daySales || 0);
+    const daySales = +(d.daySalesAll || d.daySales || 0);
     const openOrders = +(d.openOrders || 0);
     const daysStk  = daySales > 0 ? (stockAll + openOrders) / daySales * 1.4 : null;
     const krat     = +(d.ashdodPalletCartons || d.kratnost || 1);
