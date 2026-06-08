@@ -392,17 +392,24 @@
 
 <!-- Order page — full-screen overlay for דגים הזמנה -->
 <div id="order-page" style="display:none; position:fixed; inset:0; z-index:610; background:#f5f5f5; overflow:hidden; direction:rtl; flex-direction:column;">
-  <div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:#1a1a2e;flex-shrink:0;z-index:10;flex-wrap:wrap;">
-    <button onclick="toggleOrderPage()" style="background:rgba(255,255,255,0.12);border:none;color:#fff;font-size:15px;cursor:pointer;border-radius:4px;padding:2px 8px;line-height:1;" class="no-print">✕</button>
-    <img src="logo-diler-bmd.png" alt="DILER" style="height:26px;filter:brightness(0) invert(1);opacity:0.9;" class="no-print">
-    <span style="font-size:12px;font-weight:700;color:#90caf9;letter-spacing:.5px;white-space:nowrap;">הזמנה דגים</span>
-    <div id="ord-fam-btns" style="display:flex;gap:4px;flex-wrap:wrap;flex:1;min-width:0;"></div>
-    <div id="ord-summary-inline" style="display:flex;gap:14px;align-items:center;flex-shrink:0;" class="no-print"></div>
-    <button id="btn-order-only" onclick="toggleOrderOnly()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:11px;cursor:pointer;border-radius:4px;padding:3px 8px;" class="no-print">📋 הזמנה בלבד</button>
-    <button onclick="exportOrderCsv()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:11px;cursor:pointer;border-radius:4px;padding:3px 8px;" class="no-print">📊 Excel</button>
-    <button onclick="window.print()" style="background:rgba(255,255,255,0.12);border:none;color:#fff;font-size:12px;cursor:pointer;border-radius:4px;padding:4px 10px;" class="no-print">🖨</button>
+  <!-- Row 1: nav + summary -->
+  <div style="display:flex;align-items:center;gap:10px;padding:6px 12px;background:#1a1a2e;flex-shrink:0;z-index:10;">
+    <button onclick="toggleOrderPage()" style="background:rgba(255,255,255,0.12);border:none;color:#fff;font-size:15px;cursor:pointer;border-radius:4px;padding:2px 8px;line-height:1;flex-shrink:0;" class="no-print">✕</button>
+    <img src="logo-diler-bmd.png" alt="DILER" style="height:24px;filter:brightness(0) invert(1);opacity:0.85;flex-shrink:0;" class="no-print">
+    <span style="font-size:13px;font-weight:800;color:#90caf9;letter-spacing:.5px;white-space:nowrap;flex-shrink:0;">הזמנה דגים</span>
+    <div style="flex:1;"></div>
+    <div id="ord-summary-inline" style="display:flex;gap:16px;align-items:center;" class="no-print"></div>
+    <button onclick="window.print()" style="background:rgba(255,255,255,0.12);border:none;color:#fff;font-size:13px;cursor:pointer;border-radius:4px;padding:4px 10px;flex-shrink:0;" class="no-print">🖨</button>
   </div>
-  <div id="ord-period-btns" style="display:flex;gap:3px;flex-wrap:wrap;padding:4px 10px;background:#1a2035;border-bottom:1px solid rgba(255,255,255,0.12);flex-shrink:0;z-index:9;direction:ltr;" class="no-print"></div>
+  <!-- Row 2: family filters + action buttons -->
+  <div style="display:flex;align-items:center;gap:6px;padding:5px 10px;background:#1a2035;flex-shrink:0;z-index:9;flex-wrap:wrap;" class="no-print">
+    <div id="ord-fam-btns" style="display:flex;gap:4px;flex-wrap:wrap;flex:1;min-width:0;"></div>
+    <div style="width:1px;height:22px;background:rgba(255,255,255,0.18);flex-shrink:0;"></div>
+    <button id="btn-order-only" onclick="toggleOrderOnly()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);color:#cfd8dc;font-size:11px;cursor:pointer;border-radius:4px;padding:3px 10px;white-space:nowrap;flex-shrink:0;">📋 הזמנה בלבד</button>
+    <button onclick="exportOrderCsv()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);color:#cfd8dc;font-size:11px;cursor:pointer;border-radius:4px;padding:3px 10px;white-space:nowrap;flex-shrink:0;">📊 Excel</button>
+  </div>
+  <!-- Row 3: period selector -->
+  <div id="ord-period-btns" style="display:flex;gap:3px;flex-wrap:wrap;padding:4px 10px;background:#101828;border-bottom:2px solid rgba(255,255,255,0.08);flex-shrink:0;z-index:8;direction:ltr;" class="no-print"></div>
   <div id="order-table-wrap" style="flex:1;min-height:0;overflow:auto;padding:0 12px 12px;"></div>
 </div>
 
