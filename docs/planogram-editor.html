@@ -2073,8 +2073,7 @@ function buildOrderPage() {
     const safetyDays = _getSafetyDays(fam);
     const safetyK    = Math.ceil(safetyDays / 1.4 * daySales);
     const deferredDemand  = daysStk !== null && daysStk < safetyDays / 2;
-    const _roundKrat = (q, k) => q <= 0 ? 0 : (q < k ? q : Math.ceil(q / k) * k);
-    const orderK          = spo < safetyK && daySales > 0 ? _roundKrat(safetyK, krat) : 0;
+    const orderK          = spo < safetyK && daySales > 0 ? safetyK : 0;
     const orderP     = krat > 0 && orderK > 0 ? Math.round(orderK / krat * 10) / 10 : 0;
     const stock = +(d.stock || 0);
     allRows.push({ mk, name, fam, iksGroup, stock, spo, palSpo, openOrders, daySales, daysStk, krat, safetyDays, safetyK, orderK, orderP, deferredDemand });
