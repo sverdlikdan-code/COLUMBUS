@@ -70,6 +70,8 @@ description: <одна строка — когда использовать. И�
 | pbix-reader | `.claude/SKILLS/pbix-reader/SKILL.md` | ✅ active |
 | annual-report-pptx | `.claude/SKILLS/annual-report-pptx/SKILL.md` | ✅ active |
 | fmsg-israel-market-research | `.claude/SKILLS/fmsg-israel-market-research/SKILL.md` | ✅ active |
+| israel-food-market | `.claude/SKILLS/israel-food-market/SKILL.md` | ✅ active |
+| pbi-to-pptx-pipeline | `.claude/SKILLS/pbi-to-pptx-pipeline/SKILL.md` | ✅ active |
 | nano-banana-2 | (системный) | ✅ active |
 | skill-creator | (системный) | ✅ active |
 | update-config | (системный) | ✅ active |
