@@ -398,10 +398,12 @@
     <span style="font-size:12px;font-weight:700;color:#90caf9;letter-spacing:.5px;white-space:nowrap;">הזמנה דגים</span>
     <div id="ord-fam-btns" style="display:flex;gap:4px;flex-wrap:wrap;flex:1;min-width:0;"></div>
     <div id="ord-summary-inline" style="display:flex;gap:14px;align-items:center;flex-shrink:0;" class="no-print"></div>
+    <button id="btn-order-only" onclick="toggleOrderOnly()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:11px;cursor:pointer;border-radius:4px;padding:3px 8px;" class="no-print">📋 הזמנה בלבד</button>
+    <button onclick="exportOrderCsv()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:11px;cursor:pointer;border-radius:4px;padding:3px 8px;" class="no-print">📊 Excel</button>
     <button onclick="window.print()" style="background:rgba(255,255,255,0.12);border:none;color:#fff;font-size:12px;cursor:pointer;border-radius:4px;padding:4px 10px;" class="no-print">🖨</button>
   </div>
   <div id="ord-period-btns" style="display:flex;gap:3px;flex-wrap:wrap;padding:4px 10px;background:#1a2035;border-bottom:1px solid rgba(255,255,255,0.12);flex-shrink:0;z-index:9;direction:ltr;" class="no-print"></div>
-  <div id="order-table-wrap" style="flex:1;min-height:0;overflow:auto;padding:12px;"></div>
+  <div id="order-table-wrap" style="flex:1;min-height:0;overflow:auto;padding:0 12px 12px;"></div>
 </div>
 
 <!-- Summary position table — fixed overlay panel -->
@@ -1978,6 +1980,51 @@ function toggleOrderZero() {
   buildOrderPage();
 }
 
+window._orderOnlyMode = false;
+function toggleOrderOnly() {
+  window._orderOnlyMode = !window._orderOnlyMode;
+  const btn = document.getElementById('btn-order-only');
+  if (btn) {
+    btn.style.background = window._orderOnlyMode ? '#e65100' : 'rgba(255,255,255,0.12)';
+    btn.style.borderColor = window._orderOnlyMode ? '#e65100' : 'rgba(255,255,255,0.2)';
+    btn.textContent = window._orderOnlyMode ? '📋 הזמנה בלבד ✓' : '📋 הזמנה בלבד';
+  }
+  buildOrderPage();
+}
+
+function exportOrderCsv() {
+  const rows = (window._orderCurrentRows || []).filter(r => r.orderK > 0);
+  if (!rows.length) { alert('אין מוצרים להזמנה'); return; }
+  const BOM = '﻿';
+  const headers = ['תאור', 'מק"ט', 'משפחה', 'מלאי+הזמנות (קרטונים)', 'PAL', 'הזמנות פתוחות', 'מכר קרט/יום', 'לכמה ימים', 'ימי בטחון', 'הזמנה KARTON', 'הזמנה PALLET'];
+  const csvLines = [headers.join(',')];
+  for (const r of rows) {
+    csvLines.push([
+      `"${(r.name || '').replace(/"/g, '""')}"`,
+      r.mk,
+      `"${(r.fam || '').replace(/"/g, '""')}"`,
+      r.spo,
+      r.palSpo > 0 ? r.palSpo.toFixed(1) : 0,
+      r.openOrders || 0,
+      r.daySales > 0 ? Math.round(r.daySales) : 0,
+      r.daysStk !== null ? Math.round(r.daysStk) : '',
+      r.safetyDays,
+      r.orderK,
+      r.orderP
+    ].join(','));
+  }
+  const csv = BOM + csvLines.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `order-dagim-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 const _orderPeriodCache = {};
 window._orderSelectedPeriods = window._orderSelectedPeriods || new Set();
 
@@ -2138,6 +2185,8 @@ function buildOrderPage() {
   // Filter
   let rows = window._orderFam ? allRows.filter(r => getGrp(r) === window._orderFam) : allRows;
   if (window._orderZero) rows = rows.filter(r => r.stock <= 0);
+  if (window._orderOnlyMode) rows = rows.filter(r => r.orderK > 0);
+  window._orderCurrentRows = rows;
 
   if (!rows.length) {
     wrap.innerHTML = '<div style="text-align:center;padding:40px;color:#888;font-size:14px;">אין מוצרים</div>';
@@ -2157,18 +2206,19 @@ function buildOrderPage() {
     return ad - bd;
   });
 
-  const thead = `<thead style="position:sticky;top:0;z-index:5;">
-    <tr style="background:#1a1a2e;color:#fff;">
-      <th style="padding:8px 6px;font-size:10px;font-weight:600;width:46px;"></th>
-      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:right;" dir="rtl">תאור</th>
-      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">מלאי זמין<br>+ הזמנות</th>
-      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">PAL</th>
-      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;background:#1b5e20;color:#a5d6a7;">הזמנות<br>פתוחות 🚛</th>
-      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">מכר<br>קרט/יום</th>
-      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">📅 לכמה<br>ימים</th>
-      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;background:#0d47a1;color:#90caf9;">הזמנה<br>KARTON ↓</th>
-      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;">הזמנה<br>PALLET</th>
-      <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:center;background:#4a148c;color:#e1bee7;">✏ PAL<br>ידני</th>
+  const _th = (extra='') => `position:sticky;top:0;z-index:5;background:#1a1a2e;color:#fff;padding:8px 6px;font-size:10px;font-weight:600;${extra}`;
+  const thead = `<thead>
+    <tr>
+      <th style="${_th('width:46px;')}"></th>
+      <th style="${_th('text-align:right;')}" dir="rtl">תאור</th>
+      <th style="${_th('text-align:center;')}">מלאי זמין<br>+ הזמנות</th>
+      <th style="${_th('text-align:center;')}">PAL</th>
+      <th style="${_th('text-align:center;background:#1b5e20;color:#a5d6a7;')}">הזמנות<br>פתוחות 🚛</th>
+      <th style="${_th('text-align:center;')}">מכר<br>קרט/יום</th>
+      <th style="${_th('text-align:center;')}">📅 לכמה<br>ימים</th>
+      <th style="${_th('text-align:center;background:#0d47a1;color:#90caf9;')}">הזמנה<br>KARTON ↓</th>
+      <th style="${_th('text-align:center;')}">הזמנה<br>PALLET</th>
+      <th style="${_th('text-align:center;background:#4a148c;color:#e1bee7;')}">✏ PAL<br>ידני</th>
     </tr>
   </thead>`;
 
