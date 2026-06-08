@@ -1976,7 +1976,7 @@ function _initTableDrag(tbody) {
 // ══════════════════════════════════════════════════════════════════════════
 // ── Order page (דגים הזמנה) ─────────────────────────────────────────────────
 
-window._orderFam  = '';
+window._orderFams = new Set();
 window._orderZero = false;
 
 function _recalcOrdTotal() {
@@ -2060,7 +2060,12 @@ function toggleOrderPage() {
 }
 
 function setOrderFam(fam) {
-  window._orderFam = fam;
+  if (fam === '') {
+    window._orderFams.clear();
+  } else {
+    if (window._orderFams.has(fam)) window._orderFams.delete(fam);
+    else window._orderFams.add(fam);
+  }
   buildOrderPage();
 }
 
@@ -2292,8 +2297,8 @@ function buildOrderPage() {
     const chipDef  = '';
     const chipZeroAct = 'background:#dc2626;color:#fff;border-color:#ef4444;';
     btnContainer.innerHTML =
-      `<button class="ord-fam-btn" onclick="setOrderFam('')" style="${!window._orderFam ? chipAct : chipDef}">כולם</button>` +
-      grpKeys.map(f => `<button class="ord-fam-btn" onclick="setOrderFam('${f}')" style="${window._orderFam === f ? chipAct : chipDef}">${grpLabel(f)}</button>`).join('') +
+      `<button class="ord-fam-btn" onclick="setOrderFam('')" style="${window._orderFams.size === 0 ? chipAct : chipDef}">כולם</button>` +
+      grpKeys.map(f => `<button class="ord-fam-btn" onclick="setOrderFam('${f}')" style="${window._orderFams.has(f) ? chipAct : chipDef}">${grpLabel(f)}</button>`).join('') +
       `<button class="ord-fam-btn" onclick="toggleOrderZero()" style="${window._orderZero ? chipZeroAct : chipDef}">מלאי ZERO</button>`;
   }
 
@@ -2336,7 +2341,7 @@ function buildOrderPage() {
   }
 
   // Filter
-  let rows = window._orderFam ? allRows.filter(r => getGrp(r) === window._orderFam) : allRows;
+  let rows = window._orderFams.size > 0 ? allRows.filter(r => window._orderFams.has(getGrp(r))) : allRows;
   if (window._orderZero) rows = rows.filter(r => r.stock <= 0);
   if (window._orderOnlyMode) rows = rows.filter(r => r.orderK > 0);
   window._orderCurrentRows = rows;
