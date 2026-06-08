@@ -398,24 +398,29 @@
 
   <!-- Row 1: top nav bar -->
   <div style="display:flex;align-items:stretch;height:50px;background:#111827;flex-shrink:0;z-index:10;border-bottom:1px solid rgba(255,255,255,0.07);">
-    <button onclick="toggleOrderPage()" class="no-print" style="background:none;border:none;border-left:1px solid rgba(255,255,255,0.07);color:rgba(255,255,255,0.45);font-size:16px;cursor:pointer;padding:0 16px;flex-shrink:0;transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.45)'">✕</button>
+    <button onclick="toggleOrderPage()" class="no-print" style="background:none;border:none;border-left:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);font-size:16px;cursor:pointer;padding:0 16px;flex-shrink:0;transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.5)'">✕</button>
     <div style="display:flex;align-items:center;gap:10px;padding:0 16px;flex-shrink:0;">
-      <img src="logo-diler-bmd.png" alt="DILER" class="no-print" style="height:18px;filter:brightness(0) invert(1);opacity:0.5;flex-shrink:0;">
-      <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.35);letter-spacing:1.2px;text-transform:uppercase;">הזמנה דגים</span>
+      <img src="logo-diler-bmd.png" alt="DILER" class="no-print" style="height:18px;filter:brightness(0) invert(1);opacity:0.55;flex-shrink:0;">
+      <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:1.2px;text-transform:uppercase;">הזמנה דגים 🐟</span>
     </div>
-    <div style="width:1px;background:rgba(255,255,255,0.07);flex-shrink:0;margin:10px 0;"></div>
+    <div style="width:1px;background:rgba(255,255,255,0.08);flex-shrink:0;margin:10px 0;"></div>
     <div style="flex:1;"></div>
     <div id="ord-summary-inline" style="display:flex;align-items:stretch;" class="no-print"></div>
-    <div style="width:1px;background:rgba(255,255,255,0.07);flex-shrink:0;margin:10px 0;" class="no-print"></div>
-    <button onclick="window.print()" class="no-print" style="background:none;border:none;border-right:1px solid rgba(255,255,255,0.07);color:rgba(255,255,255,0.4);font-size:14px;cursor:pointer;padding:0 16px;flex-shrink:0;" title="הדפסה">🖨</button>
+    <div style="width:1px;background:rgba(255,255,255,0.08);flex-shrink:0;margin:10px 0;" class="no-print"></div>
+    <!-- Print button — visible with label -->
+    <button onclick="window.print()" class="no-print" style="background:none;border:none;border-right:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);font-size:13px;cursor:pointer;padding:0 16px;flex-shrink:0;display:flex;align-items:center;gap:5px;white-space:nowrap;" title="הדפסה">
+      🖨 <span style="font-size:10px;font-weight:600;letter-spacing:.4px;">הדפסה</span>
+    </button>
   </div>
 
-  <!-- Row 2: family filter chips + action buttons -->
+  <!-- Row 2: action buttons (right side) + family filter chips -->
   <div style="display:flex;align-items:center;gap:5px;padding:0 14px;background:#0d1424;flex-shrink:0;z-index:9;border-bottom:1px solid rgba(255,255,255,0.05);height:42px;" class="no-print">
-    <div id="ord-fam-btns" style="display:flex;gap:5px;flex:1;height:100%;align-items:center;overflow-x:auto;min-width:0;"></div>
-    <div style="width:1px;height:18px;background:rgba(255,255,255,0.1);flex-shrink:0;margin:0 6px;"></div>
+    <!-- Action buttons first in DOM → appear on far RIGHT in RTL -->
+    <button onclick="exportOrderCsv()" style="background:#1d4ed8;border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:5px 15px;white-space:nowrap;flex-shrink:0;letter-spacing:.3px;">⬇ Excel</button>
     <button id="btn-order-only" onclick="toggleOrderOnly()" style="background:none;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.5);font-size:11px;font-weight:600;cursor:pointer;border-radius:6px;padding:4px 13px;white-space:nowrap;flex-shrink:0;letter-spacing:.2px;transition:all 0.15s;">📋 הזמנה בלבד</button>
-    <button onclick="exportOrderCsv()" style="background:#1d4ed8;border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:5px 14px;white-space:nowrap;flex-shrink:0;margin-right:4px;letter-spacing:.3px;">⬇ Excel</button>
+    <div style="width:1px;height:18px;background:rgba(255,255,255,0.1);flex-shrink:0;margin:0 6px;"></div>
+    <!-- Family chips — fill remaining space, chips packed to the right (RTL) -->
+    <div id="ord-fam-btns" style="display:flex;gap:5px;flex:1;height:100%;align-items:center;overflow-x:auto;min-width:0;justify-content:flex-end;"></div>
   </div>
 
   <!-- Row 3: period selector -->
@@ -2248,7 +2253,7 @@ function buildOrderPage() {
       while (m <= 0) { m += 12; y--; }
       months.push({ y, m });
     }
-    const chipM    = 'font-size:10px;padding:3px 7px;border-radius:6px;cursor:pointer;min-width:32px;text-align:center;font-weight:600;border:1px solid;transition:all 0.12s;';
+    const chipM    = 'font-size:10px;padding:4px 11px;border-radius:6px;cursor:pointer;min-width:42px;text-align:center;font-weight:600;border:1px solid;transition:all 0.12s;';
     const mAct     = chipM + 'background:#1e3a8a;color:#93c5fd;border-color:#3b82f6;';
     const mDef     = chipM + 'background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.38);border-color:rgba(255,255,255,0.08);';
     let py = nowY, pm = nowM - 1; if (pm <= 0) { pm = 12; py--; }
@@ -2407,7 +2412,7 @@ function buildOrderPage() {
   if (sumEl) {
     const kpi = (lbl, val, clr='#fff') =>
       `<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 18px;border-right:1px solid rgba(255,255,255,0.07);min-width:90px;">
-        <span style="font-size:9px;font-weight:700;color:#4b5563;letter-spacing:.09em;text-transform:uppercase;line-height:1;">${lbl}</span>
+        <span style="font-size:9px;font-weight:700;color:#9ca3af;letter-spacing:.09em;text-transform:uppercase;line-height:1;">${lbl}</span>
         <span style="font-size:18px;font-weight:800;color:${clr};line-height:1.25;margin-top:1px;">${val}</span>
       </div>`;
     const contVal = contRem > 0
@@ -2417,7 +2422,7 @@ function buildOrderPage() {
       kpi('KARTON', fmtK(gtOrder)) +
       kpi('PALLET', `<span id="ord-pal-hdr">${Math.round(gtPal)}</span>`) +
       `<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 18px;border-right:1px solid rgba(255,255,255,0.07);min-width:90px;">
-        <span style="font-size:9px;font-weight:700;color:#4b5563;letter-spacing:.09em;text-transform:uppercase;line-height:1;">קונטיינר 40'</span>
+        <span style="font-size:9px;font-weight:700;color:#9ca3af;letter-spacing:.09em;text-transform:uppercase;line-height:1;">קונטיינר 40'</span>
         <span id="ord-cont-hdr" style="font-size:18px;font-weight:800;color:#fff;line-height:1.25;margin-top:1px;">${contVal}</span>
       </div>`;
   }
