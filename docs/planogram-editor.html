@@ -2061,8 +2061,9 @@ function buildOrderPage() {
     const daysStk  = daySales > 0 ? spo / daySales * 1.4 : null;
     const safetyDays = _getSafetyDays(fam);
     const safetyK    = Math.ceil(safetyDays / 1.4 * daySales);
-    const need       = safetyK - spo;
-    const orderK     = need > 0 && daySales > 0 ? Math.ceil(need / Math.max(1, krat)) * Math.max(1, krat) : 0;
+    const stockOnArrival = Math.max(0, spo - safetyK);
+    const need           = safetyK - stockOnArrival;
+    const orderK         = need > 0 && daySales > 0 ? Math.ceil(need / Math.max(1, krat)) * Math.max(1, krat) : 0;
     const orderP     = krat > 0 && orderK > 0 ? Math.round(orderK / krat) : 0;
     const stock = +(d.stock || 0);
     allRows.push({ mk, name, fam, iksGroup, stock, spo, palSpo, openOrders, daySales, daysStk, krat, safetyDays, safetyK, orderK, orderP });
