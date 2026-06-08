@@ -899,7 +899,7 @@ async function fetchDagimFromBI() {
       CALCULATETABLE(
         ADDCOLUMNS(
           SUMMARIZE('KARTIS PARIT', 'KARTIS PARIT'[מק"ט]),
-          "openOrders", [הזמנות רכש פתוחות PLUS מלאי זמין]
+          "spo", [מלאי +הזמנות פתוחות קרטונים 🚛]
         ),
         TREATAS(${mkSet}, 'KARTIS PARIT'[מק"ט])
       )
@@ -909,7 +909,7 @@ async function fetchDagimFromBI() {
   const openOrdersMap = {};
   for (const r of (openOrdersRows || [])) {
     const mk = r['KARTIS PARIT[מק"ט]'];
-    if (mk != null) openOrdersMap[String(mk)] = r['[openOrders]'] ?? 0;
+    if (mk != null) openOrdersMap[String(mk)] = r['[spo]'] ?? 0;
   }
 
   for (const mk of makatim) {
