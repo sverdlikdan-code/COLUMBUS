@@ -44,3 +44,4 @@
 - [[session-2026-06-04]] — Сессия 2026-06-04: BiDi geocoding fix, excluded clients fix + мקרר: LOOKUPVALUE מחלקה как колонки таблицы, month chips
 
 - [[session-2026-06-07-mmd-report]] — Сессия 2026-06-07: MMD Annual Report PPTX (505KB, 10 слайдов), скилл annual-report-pptx, Яэль Brand Voice заполнен
+- [[pbi-to-pptx-automation]] — Исследование: Power BI → Node.js PPTX автоматизация без скриншотов (REST API, XMLA, DAX, SQL прямой доступ)

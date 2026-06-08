@@ -75,7 +75,7 @@ async function fetchKapuaFromBI(makatim) {
       SELECTCOLUMNS({${explicitMks}}, "mk", [Value])
     )`;
 
-  const [stockRows, salesRows, descRows, mlayDescRows, pakuaRows, salesAllRows, pakuaAllRows, nameEnRows, packFactorRows, stockZafnRows, salesZafnRows, pakuaZafnRows] = await Promise.all([
+  const [stockRows, salesRows, descRows, mlayDescRows, pakuaRows, salesAllRows, pakuaAllRows, nameEnRows, packFactorRows, stockZafnRows, salesZafnRows, pakuaZafnRows, mlayStockRows, openOrdersRows] = await Promise.all([
 
     // 1. Stock at Main (Ashdod)
     dax(t, `
@@ -242,6 +242,29 @@ async function fetchKapuaFromBI(makatim) {
       ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
     `),
 
+    // 14. MLAY stock units + pack factor (all warehouses, FORMULA only)
+    dax(t, `
+      EVALUATE
+      ADDCOLUMNS(
+        SUMMARIZE(
+          FILTER(MLAY, CONTAINSROW(${famMakatim}, MLAY[מק'ט]) && MLAY[חברה] = "FORMULA"),
+          MLAY[מק'ט],
+          "stockUnits", SUM(MLAY[מלאי זמין])
+        ),
+        "packFactor", LOOKUPVALUE('גורם אירוז'[תכולת האריזה למוצר], 'גורם אירוז'[מק"ט], MLAY[מק'ט])
+      )
+    `).catch(() => []),
+
+    // 15. Open purchase orders (cartons) per מק"ט — הזמנות רכש פתוחות
+    dax(t, `
+      EVALUATE
+      SUMMARIZE(
+        FILTER('הזמנות רכש פתוחות', CONTAINSROW(${famMakatim}, 'הזמנות רכש פתוחות'[מק"ט])),
+        'הזמנות רכש פתוחות'[מק"ט],
+        "ooCartons", SUM('הזמנות רכש פתוחות'[KARTON הזמנות פתוחות])
+      )
+    `).catch(() => []),
+
   ]);
 
   // ── Build result map ──────────────────────────────────────────────────────
@@ -367,6 +390,32 @@ async function fetchKapuaFromBI(makatim) {
     ensure(mk);
     const pf = r['[packFactor]'];
     if (pf) result[mk].packFactor = pf;
+  }
+
+  // MLAY all-warehouse stock: stockUnits / packFactor = stockAllWh in cartons
+  for (const r of mlayStockRows) {
+    const mk = r["MLAY[מק'ט]"];
+    if (!mk) continue;
+    ensure(mk);
+    const units = r['[stockUnits]'] || 0;
+    const pf    = r['[packFactor]'] || result[mk].packFactor || 1;
+    if (pf > 1) result[mk].packFactor = pf;
+    result[mk].stockAllWh = pf > 0 ? Math.round(units / pf) : 0;
+  }
+
+  // Open purchase orders: already in cartons
+  for (const r of openOrdersRows) {
+    const mk = r['הזמנות רכש פתוחות[מק"ט]'];
+    if (!mk) continue;
+    ensure(mk);
+    result[mk].openOrders = r['[ooCartons]'] || 0;
+  }
+
+  // spo = all-warehouse stock + open orders (used on הזמנה page)
+  for (const mk of Object.keys(result)) {
+    const stk = result[mk].stockAllWh ?? result[mk].stock ?? 0;
+    const oo  = result[mk].openOrders ?? 0;
+    result[mk].spo = stk + oo;
   }
 
   for (const r of stockZafnRows) {
@@ -888,33 +937,55 @@ async function fetchDagimFromBI() {
   }
 
   const mkSet = '{' + makatim.map(m => `"${m}"`).join(',') + '}';
-  const [stockMap, pakuotMap, pakuotZafnMap, pakuotAllMap, stopSaleMap, openOrdersRows] = await Promise.all([
+  const [stockMap, pakuotMap, pakuotZafnMap, pakuotAllMap, stopSaleMap, mlayStockRowsDag, openOrdersRowsDag] = await Promise.all([
     fetchStockMain(makatim),
     fetchPakuotForMakats(makatim),
     fetchPakuotZafnForMakats(makatim),
     fetchPakuotAllForMakats(makatim),
     fetchStopSale(t, makatim),
+    // MLAY all-warehouse stock units + pack factor
     dax(t, `
       EVALUATE
-      CALCULATETABLE(
-        ADDCOLUMNS(
-          SUMMARIZE('KARTIS PARIT', 'KARTIS PARIT'[מק"ט]),
-          "spo", [מלאי +הזמנות פתוחות קרטונים 🚛]
+      ADDCOLUMNS(
+        SUMMARIZE(
+          FILTER(MLAY, CONTAINSROW(${mkSet}, MLAY[מק'ט]) && MLAY[חברה] = "FORMULA"),
+          MLAY[מק'ט],
+          "stockUnits", SUM(MLAY[מלאי זמין])
         ),
-        TREATAS(${mkSet}, 'KARTIS PARIT'[מק"ט])
+        "packFactor", LOOKUPVALUE('גורם אירוז'[תכולת האריזה למוצר], 'גורם אירוז'[מק"ט], MLAY[מק'ט])
+      )
+    `).catch(() => []),
+    // Open purchase orders in cartons
+    dax(t, `
+      EVALUATE
+      SUMMARIZE(
+        FILTER('הזמנות רכש פתוחות', CONTAINSROW(${mkSet}, 'הזמנות רכש פתוחות'[מק"ט])),
+        'הזמנות רכש פתוחות'[מק"ט],
+        "ooCartons", SUM('הזמנות רכש פתוחות'[KARTON הזמנות פתוחות])
       )
     `).catch(() => []),
   ]);
 
-  const openOrdersMap = {};
-  for (const r of (openOrdersRows || [])) {
-    const mk = r['KARTIS PARIT[מק"ט]'];
-    if (mk != null) openOrdersMap[String(mk)] = r['[spo]'] ?? 0;
+  const mlayMapDag = {};
+  for (const r of (mlayStockRowsDag || [])) {
+    const mk = r["MLAY[מק'ט]"];
+    if (!mk) continue;
+    const units = r['[stockUnits]'] || 0;
+    const pf    = r['[packFactor]'] || 1;
+    mlayMapDag[String(mk)] = { stockAllWh: pf > 0 ? Math.round(units / pf) : 0 };
+  }
+
+  const ooMapDag = {};
+  for (const r of (openOrdersRowsDag || [])) {
+    const mk = r['הזמנות רכש פתוחות[מק"ט]'];
+    if (mk != null) ooMapDag[String(mk)] = r['[ooCartons]'] || 0;
   }
 
   for (const mk of makatim) {
-    const fm = stockMap[mk] || {};
-    const spo = openOrdersMap[mk] ?? 0;
+    const fm  = stockMap[mk] || {};
+    const ml  = mlayMapDag[mk] || {};
+    const oo  = ooMapDag[mk]  || 0;
+    const stk = ml.stockAllWh ?? fm.stock ?? 0;
     Object.assign(result[mk], {
       stock:        fm.stock        ?? 0,
       daySales:     fm.daySales     ?? null,
@@ -930,8 +1001,9 @@ async function fetchDagimFromBI() {
       pakuotZafn:    pakuotZafnMap[mk] || [],
       pakuotAll:     pakuotAllMap[mk]  || [],
       stopSale:      stopSaleMap[mk]   || false,
-      spo:           spo > 0 ? Math.round(spo) : 0,
-      openOrders:    spo > 0 ? Math.max(0, Math.round(spo) - ((fm.stock ?? 0) + (fm.stockZafn ?? 0) + (fm.stockTrnz ?? 0))) : 0,
+      stockAllWh:    stk,
+      openOrders:    oo,
+      spo:           stk + oo,
     });
     result[mk].dayAvg = result[mk].daySales;
   }

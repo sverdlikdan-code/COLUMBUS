@@ -705,16 +705,18 @@ async function main() {
       if(!p.desc && src.desc)   p.desc        = src.desc;
       if(src.nameEn)            p.nameEn      = src.nameEn;
       if(src.daySales != null)  p.daySales    = src.daySales;
-      p.stock       = src.stock;
+      p.stock        = src.stock;
       p.stockZafn    = src.stockZafn    ?? null;
       p.daySalesZafn = src.daySalesZafn ?? null;
       p.daysStock    = src.daysStock    ?? null;
       p.daysStockZafn= src.daysStockZafn?? null;
       p.stockTrnz    = src.stockTrnz    ?? null;
       p.daySalesTrnz = src.daySalesTrnz ?? null;
-      p.daySalesAll = src.daySalesAll  ?? null;
-      p.pakuot      = src.pakuot     || [];
-      p.pakuotZafn  = src.pakuotZafn || [];
+      p.daySalesAll  = src.daySalesAll  ?? null;
+      p.pakuot       = src.pakuot     || [];
+      p.pakuotZafn   = src.pakuotZafn || [];
+      p.spo          = src.spo        ?? null;
+      p.openOrders   = src.openOrders ?? null;
     }
   }
 
@@ -736,6 +738,7 @@ async function main() {
       stockTrnz: d.stockTrnz ?? null, daySalesTrnz: d.daySalesTrnz ?? null,
       pakuot: d.pakuot || [], pakuotAll: d.pakuotAll || [],
       dayAvg: d.daySales || null, weight: null, ss: null,
+      spo: d.spo ?? null, openOrders: d.openOrders ?? null,
     }));
   // Sort: with sales first (daySales desc), then no-sales at end
   newKapuaProds.sort((a, b) => {
@@ -1241,7 +1244,7 @@ async function main() {
         }
         if (!prodData[mk]) {
           const kd = kapuaData[mk] || {};
-          prodData[mk] = mkEntry({ ...p, stock: kd.stock ?? 0, daySales: kd.daySales ?? null, daySalesAll: kd.daySalesAll ?? null, stockZafn: kd.stockZafn ?? null, daySalesZafn: kd.daySalesZafn ?? null, daysStock: kd.daysStock ?? null, daysStockZafn: kd.daysStockZafn ?? null, stockTrnz: kd.stockTrnz ?? null, daySalesTrnz: kd.daySalesTrnz ?? null, pakuot: kd.pakuot || [], pakuotAll: kd.pakuotAll || [] });
+          prodData[mk] = mkEntry({ ...p, stock: kd.stock ?? 0, daySales: kd.daySales ?? null, daySalesAll: kd.daySalesAll ?? null, stockZafn: kd.stockZafn ?? null, daySalesZafn: kd.daySalesZafn ?? null, daysStock: kd.daysStock ?? null, daysStockZafn: kd.daysStockZafn ?? null, stockTrnz: kd.stockTrnz ?? null, daySalesTrnz: kd.daySalesTrnz ?? null, pakuot: kd.pakuot || [], pakuotAll: kd.pakuotAll || [], spo: kd.spo ?? null, openOrders: kd.openOrders ?? null });
         }
       }
       if (kbDupCleaned > 0) {
