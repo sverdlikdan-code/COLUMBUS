@@ -101,6 +101,13 @@
         overflow: visible !important;
         height: auto !important;
         background: #fff !important;
+        flex-direction: unset !important;
+      }
+      body.printing-order #order-table-wrap {
+        flex: unset !important;
+        min-height: unset !important;
+        overflow: visible !important;
+        height: auto !important;
       }
       body.printing-order #order-page > div:first-child { display: none !important; }
       body.printing-order #order-table-wrap table { font-size: 9px !important; }
@@ -384,8 +391,8 @@
 </div>
 
 <!-- Order page — full-screen overlay for דגים הזמנה -->
-<div id="order-page" style="display:none; position:fixed; inset:0; z-index:610; background:#f5f5f5; overflow-y:auto; direction:rtl;">
-  <div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:#1a1a2e;position:sticky;top:0;z-index:10;flex-wrap:wrap;">
+<div id="order-page" style="display:none; position:fixed; inset:0; z-index:610; background:#f5f5f5; overflow:hidden; direction:rtl; flex-direction:column;">
+  <div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:#1a1a2e;flex-shrink:0;z-index:10;flex-wrap:wrap;">
     <button onclick="toggleOrderPage()" style="background:rgba(255,255,255,0.12);border:none;color:#fff;font-size:15px;cursor:pointer;border-radius:4px;padding:2px 8px;line-height:1;" class="no-print">✕</button>
     <img src="logo-diler-bmd.png" alt="DILER" style="height:26px;filter:brightness(0) invert(1);opacity:0.9;" class="no-print">
     <span style="font-size:12px;font-weight:700;color:#90caf9;letter-spacing:.5px;white-space:nowrap;">הזמנה דגים</span>
@@ -393,8 +400,8 @@
     <div id="ord-summary-inline" style="display:flex;gap:14px;align-items:center;flex-shrink:0;" class="no-print"></div>
     <button onclick="window.print()" style="background:rgba(255,255,255,0.12);border:none;color:#fff;font-size:12px;cursor:pointer;border-radius:4px;padding:4px 10px;" class="no-print">🖨</button>
   </div>
-  <div id="ord-period-btns" style="display:flex;gap:3px;flex-wrap:wrap;padding:4px 10px;background:#1a2035;border-bottom:1px solid rgba(255,255,255,0.12);position:sticky;top:36px;z-index:9;direction:ltr;" class="no-print"></div>
-  <div id="order-table-wrap" style="padding:12px;overflow-x:auto;"></div>
+  <div id="ord-period-btns" style="display:flex;gap:3px;flex-wrap:wrap;padding:4px 10px;background:#1a2035;border-bottom:1px solid rgba(255,255,255,0.12);flex-shrink:0;z-index:9;direction:ltr;" class="no-print"></div>
+  <div id="order-table-wrap" style="flex:1;min-height:0;overflow:auto;padding:12px;"></div>
 </div>
 
 <!-- Summary position table — fixed overlay panel -->
@@ -1952,7 +1959,7 @@ function toggleOrderPage() {
   const page = document.getElementById('order-page');
   const btn  = document.getElementById('btn-order');
   const open = page.style.display === 'none';
-  page.style.display = open ? 'block' : 'none';
+  page.style.display = open ? 'flex' : 'none';
   btn.style.background = open ? '#1b5e20' : '#f0fff4';
   btn.style.color      = open ? '#fff'    : '#1b5e20';
   if (open) buildOrderPage();
@@ -2136,7 +2143,7 @@ function buildOrderPage() {
     return ad - bd;
   });
 
-  const thead = `<thead style="position:sticky;top:36px;z-index:5;">
+  const thead = `<thead style="position:sticky;top:0;z-index:5;">
     <tr style="background:#1a1a2e;color:#fff;">
       <th style="padding:8px 6px;font-size:10px;font-weight:600;width:46px;"></th>
       <th style="padding:8px 6px;font-size:10px;font-weight:600;text-align:right;" dir="rtl">תאור</th>
