@@ -114,14 +114,17 @@
       body.printing-order #order-table-wrap td, body.printing-order #order-table-wrap th { padding: 3px 5px !important; }
     }
     .ord-fam-btn {
-      background: rgba(255,255,255,0.15);
-      border: 1px solid rgba(255,255,255,0.4);
-      color: #fff;
-      font-size: 12px;
-      font-weight: bold;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.55);
+      font-size: 11px;
+      font-weight: 600;
       cursor: pointer;
-      border-radius: 4px;
-      padding: 4px 10px;
+      border-radius: 999px;
+      padding: 3px 13px;
+      white-space: nowrap;
+      transition: background 0.12s, color 0.12s;
+      letter-spacing: .2px;
     }
     #print-header {
       display: none;
@@ -340,7 +343,7 @@
 
   <button class="btn no-print" id="btn-table" onclick="toggleTable()" style="background:#f0f4ff;color:#1565C0;border:1px solid #1565C0;">📊 מיקום</button>
   <button class="btn no-print" id="btn-expiry" onclick="toggleExpiryPage()" style="background:#f0f4ff;color:#c62828;border:1px solid #ef9a9a;">📦 תוקף</button>
-  <button class="btn no-print" id="btn-order" onclick="toggleOrderPage()" style="background:#f0fff4;color:#1b5e20;border:1px solid #81c784;">📋 הזמנה</button>
+  <button class="btn no-print" id="btn-order" onclick="toggleOrderPage()" style="background:#f0fff4;color:#1b5e20;border:1px solid #81c784;">🐟 הזמנה</button>
   <span class="no-print" style="margin-right:6px;border-right:1px solid #ccc;padding-right:8px;display:inline-flex;align-items:center;gap:3px;">
     <button id="wh-main" class="btn wh-btn wh-active" onclick="setWarehouse('Main')">אשדוד</button>
     <button id="wh-zafn" class="btn wh-btn"           onclick="setWarehouse('Zafn')">צפון</button>
@@ -391,26 +394,34 @@
 </div>
 
 <!-- Order page — full-screen overlay for דגים הזמנה -->
-<div id="order-page" style="display:none; position:fixed; inset:0; z-index:610; background:#f5f5f5; overflow:hidden; direction:rtl; flex-direction:column;">
-  <!-- Row 1: nav + summary -->
-  <div style="display:flex;align-items:center;gap:10px;padding:6px 12px;background:#1a1a2e;flex-shrink:0;z-index:10;">
-    <button onclick="toggleOrderPage()" style="background:rgba(255,255,255,0.12);border:none;color:#fff;font-size:15px;cursor:pointer;border-radius:4px;padding:2px 8px;line-height:1;flex-shrink:0;" class="no-print">✕</button>
-    <img src="logo-diler-bmd.png" alt="DILER" style="height:24px;filter:brightness(0) invert(1);opacity:0.85;flex-shrink:0;" class="no-print">
-    <span style="font-size:13px;font-weight:800;color:#90caf9;letter-spacing:.5px;white-space:nowrap;flex-shrink:0;">הזמנה דגים</span>
+<div id="order-page" style="display:none; position:fixed; inset:0; z-index:610; background:#0b0f1a; overflow:hidden; direction:rtl; flex-direction:column;">
+
+  <!-- Row 1: top nav bar -->
+  <div style="display:flex;align-items:stretch;height:50px;background:#111827;flex-shrink:0;z-index:10;border-bottom:1px solid rgba(255,255,255,0.07);">
+    <button onclick="toggleOrderPage()" class="no-print" style="background:none;border:none;border-left:1px solid rgba(255,255,255,0.07);color:rgba(255,255,255,0.45);font-size:16px;cursor:pointer;padding:0 16px;flex-shrink:0;transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.45)'">✕</button>
+    <div style="display:flex;align-items:center;gap:10px;padding:0 16px;flex-shrink:0;">
+      <img src="logo-diler-bmd.png" alt="DILER" class="no-print" style="height:18px;filter:brightness(0) invert(1);opacity:0.5;flex-shrink:0;">
+      <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.35);letter-spacing:1.2px;text-transform:uppercase;">הזמנה דגים</span>
+    </div>
+    <div style="width:1px;background:rgba(255,255,255,0.07);flex-shrink:0;margin:10px 0;"></div>
     <div style="flex:1;"></div>
-    <div id="ord-summary-inline" style="display:flex;gap:16px;align-items:center;" class="no-print"></div>
-    <button onclick="window.print()" style="background:rgba(255,255,255,0.12);border:none;color:#fff;font-size:13px;cursor:pointer;border-radius:4px;padding:4px 10px;flex-shrink:0;" class="no-print">🖨</button>
+    <div id="ord-summary-inline" style="display:flex;align-items:stretch;" class="no-print"></div>
+    <div style="width:1px;background:rgba(255,255,255,0.07);flex-shrink:0;margin:10px 0;" class="no-print"></div>
+    <button onclick="window.print()" class="no-print" style="background:none;border:none;border-right:1px solid rgba(255,255,255,0.07);color:rgba(255,255,255,0.4);font-size:14px;cursor:pointer;padding:0 16px;flex-shrink:0;" title="הדפסה">🖨</button>
   </div>
-  <!-- Row 2: family filters + action buttons -->
-  <div style="display:flex;align-items:center;gap:6px;padding:5px 10px;background:#1a2035;flex-shrink:0;z-index:9;flex-wrap:wrap;" class="no-print">
-    <div id="ord-fam-btns" style="display:flex;gap:4px;flex-wrap:wrap;flex:1;min-width:0;"></div>
-    <div style="width:1px;height:22px;background:rgba(255,255,255,0.18);flex-shrink:0;"></div>
-    <button id="btn-order-only" onclick="toggleOrderOnly()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);color:#cfd8dc;font-size:11px;cursor:pointer;border-radius:4px;padding:3px 10px;white-space:nowrap;flex-shrink:0;">📋 הזמנה בלבד</button>
-    <button onclick="exportOrderCsv()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);color:#cfd8dc;font-size:11px;cursor:pointer;border-radius:4px;padding:3px 10px;white-space:nowrap;flex-shrink:0;">📊 Excel</button>
+
+  <!-- Row 2: family filter chips + action buttons -->
+  <div style="display:flex;align-items:center;gap:5px;padding:0 14px;background:#0d1424;flex-shrink:0;z-index:9;border-bottom:1px solid rgba(255,255,255,0.05);height:42px;" class="no-print">
+    <div id="ord-fam-btns" style="display:flex;gap:5px;flex:1;height:100%;align-items:center;overflow-x:auto;min-width:0;"></div>
+    <div style="width:1px;height:18px;background:rgba(255,255,255,0.1);flex-shrink:0;margin:0 6px;"></div>
+    <button id="btn-order-only" onclick="toggleOrderOnly()" style="background:none;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.5);font-size:11px;font-weight:600;cursor:pointer;border-radius:6px;padding:4px 13px;white-space:nowrap;flex-shrink:0;letter-spacing:.2px;transition:all 0.15s;">📋 הזמנה בלבד</button>
+    <button onclick="exportOrderCsv()" style="background:#1d4ed8;border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:5px 14px;white-space:nowrap;flex-shrink:0;margin-right:4px;letter-spacing:.3px;">⬇ Excel</button>
   </div>
+
   <!-- Row 3: period selector -->
-  <div id="ord-period-btns" style="display:flex;gap:3px;flex-wrap:wrap;padding:4px 10px;background:#101828;border-bottom:2px solid rgba(255,255,255,0.08);flex-shrink:0;z-index:8;direction:ltr;" class="no-print"></div>
-  <div id="order-table-wrap" style="flex:1;min-height:0;overflow:auto;padding:0 12px 12px;"></div>
+  <div id="ord-period-btns" style="display:flex;flex-wrap:wrap;padding:6px 14px;background:#080c17;border-bottom:1px solid rgba(255,255,255,0.04);flex-shrink:0;z-index:8;direction:ltr;align-items:center;gap:3px;" class="no-print"></div>
+
+  <div id="order-table-wrap" style="flex:1;min-height:0;overflow:auto;padding:0 12px 16px;background:#0b0f1a;"></div>
 </div>
 
 <!-- Summary position table — fixed overlay panel -->
@@ -1972,7 +1983,16 @@ function toggleOrderPage() {
   btn.style.background = open ? '#1b5e20' : '#f0fff4';
   btn.style.color      = open ? '#fff'    : '#1b5e20';
   if (open) {
-    if (!window._orderSelectedPeriods.size) _defaultOrderPeriods();
+    // Restore previously selected periods from localStorage
+    try {
+      const saved = localStorage.getItem('ord_periods');
+      if (saved) {
+        const arr = JSON.parse(saved);
+        if (Array.isArray(arr) && arr.length > 0) {
+          window._orderSelectedPeriods = new Set(arr);
+        } else { _defaultOrderPeriods(); }
+      } else if (!window._orderSelectedPeriods.size) { _defaultOrderPeriods(); }
+    } catch { if (!window._orderSelectedPeriods.size) _defaultOrderPeriods(); }
     buildOrderPage();
   }
 }
@@ -1992,44 +2012,114 @@ function toggleOrderOnly() {
   window._orderOnlyMode = !window._orderOnlyMode;
   const btn = document.getElementById('btn-order-only');
   if (btn) {
-    btn.style.background = window._orderOnlyMode ? '#e65100' : 'rgba(255,255,255,0.12)';
-    btn.style.borderColor = window._orderOnlyMode ? '#e65100' : 'rgba(255,255,255,0.2)';
+    btn.style.background   = window._orderOnlyMode ? '#c2410c' : 'none';
+    btn.style.borderColor  = window._orderOnlyMode ? '#ea580c' : 'rgba(255,255,255,0.15)';
+    btn.style.color        = window._orderOnlyMode ? '#fff' : 'rgba(255,255,255,0.5)';
+    btn.style.fontWeight   = window._orderOnlyMode ? '700' : '600';
     btn.textContent = window._orderOnlyMode ? '📋 הזמנה בלבד ✓' : '📋 הזמנה בלבד';
   }
   buildOrderPage();
 }
 
 function exportOrderCsv() {
-  const rows = (window._orderCurrentRows || []).filter(r => r.orderK > 0);
+  // Export all visible rows; if ORDER ONLY mode is active — already filtered to orders only
+  const rows = window._orderCurrentRows || [];
   if (!rows.length) { alert('אין מוצרים להזמנה'); return; }
-  const BOM = '﻿';
-  const headers = ['תאור', 'מק"ט', 'משפחה', 'מלאי+הזמנות (קרטונים)', 'PAL', 'הזמנות פתוחות', 'מכר קרט/יום', 'לכמה ימים', 'ימי בטחון', 'הזמנה KARTON', 'הזמנה PALLET'];
-  const csvLines = [headers.join(',')];
-  for (const r of rows) {
-    csvLines.push([
-      `"${(r.name || '').replace(/"/g, '""')}"`,
-      r.mk,
-      `"${(r.fam || '').replace(/"/g, '""')}"`,
-      r.spo,
-      r.palSpo > 0 ? r.palSpo.toFixed(1) : 0,
-      r.openOrders || 0,
-      r.daySales > 0 ? Math.round(r.daySales) : 0,
-      r.daysStk !== null ? Math.round(r.daysStk) : '',
-      r.safetyDays,
-      r.orderK,
-      r.orderP
-    ].join(','));
-  }
-  const csv = BOM + csvLines.join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `order-dagim-${new Date().toISOString().slice(0,10)}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('he-IL', { year:'numeric', month:'2-digit', day:'2-digit' });
+  const periods = [...(window._orderSelectedPeriods || [])].join(', ');
+  const modeNote = window._orderOnlyMode ? ' | מסנן: הזמנה בלבד' : '';
+
+  const col = (bg, fg, bold) =>
+    `background:${bg};color:${fg};${bold?'font-weight:bold;':''}font-family:Arial,sans-serif;font-size:10pt;padding:6px 8px;border:1px solid #d0d7de;`;
+
+  const HDR   = col('#1e3a5f','#ffffff',true);
+  const META  = col('#f0f4ff','#374151',false);
+  const SUBHD = col('#e8f0fe','#1e40af',true);
+  const EVEN  = col('#f9fafb','#111827',false);
+  const ODD   = col('#ffffff','#111827',false);
+  const ORDER_EVEN = col('#ecfdf5','#065f46',false);
+  const ORDER_ODD  = col('#f0fdf4','#065f46',false);
+  const NUM   = 'text-align:center;';
+  const RTL   = 'text-align:right;direction:rtl;';
+
+  const cols = [
+    { h:'תאור',                  s:RTL,  w:200 },
+    { h:'מק"ט',                  s:NUM,  w:60  },
+    { h:'ברקוד EAN',             s:NUM,  w:100 },
+    { h:'משפחה',                 s:RTL,  w:110 },
+    { h:'מלאי+הזמנות (קרט)',     s:NUM,  w:80  },
+    { h:'PAL מלאי',              s:NUM,  w:60  },
+    { h:'הזמנות פתוחות 🚛',       s:NUM,  w:80  },
+    { h:'מכר קרט/יום',           s:NUM,  w:70  },
+    { h:'לכמה ימים',             s:NUM,  w:60  },
+    { h:'ימי בטחון',             s:NUM,  w:60  },
+    { h:'הזמנה KARTON',          s:NUM,  w:80  },
+    { h:'הזמנה PALLET',          s:NUM,  w:70  },
+  ];
+  const numCols = cols.length;
+
+  const cell = (val, base, extra='') =>
+    `<td style="${base}${extra}white-space:nowrap;">${val ?? ''}</td>`;
+
+  let tbody = '';
+  rows.forEach((r, i) => {
+    const hasOrder = r.orderK > 0;
+    const base = hasOrder ? (i % 2 === 0 ? ORDER_EVEN : ORDER_ODD) : (i % 2 === 0 ? EVEN : ODD);
+    const ean  = (typeof makatEan !== 'undefined' ? makatEan[String(r.mk)] : '') || '';
+    const ds   = r.daySales > 0 ? (r.daySales >= 1 ? Math.round(r.daySales) : r.daySales.toFixed(1)) : '—';
+    const dstk = r.daysStk !== null ? Math.round(r.daysStk) : '—';
+    tbody += `<tr>
+      ${cell(r.name || '', base, RTL)}
+      ${cell(r.mk, base, NUM)}
+      ${cell(ean, base, NUM)}
+      ${cell(r.fam || '', base, RTL)}
+      ${cell(r.spo, base, NUM)}
+      ${cell(r.palSpo > 0 ? r.palSpo.toFixed(1) : 0, base, NUM)}
+      ${cell(r.openOrders || 0, base, NUM)}
+      ${cell(ds, base, NUM)}
+      ${cell(dstk, base, NUM)}
+      ${cell(r.safetyDays, base, NUM)}
+      ${cell(hasOrder ? r.orderK : '', base, NUM + (hasOrder ? 'font-weight:700;color:#065f46;' : ''))}
+      ${cell(hasOrder ? r.orderP.toFixed(1) : '', base, NUM + (hasOrder ? 'font-weight:700;color:#065f46;' : ''))}
+    </tr>`;
+  });
+
+  const colWidths = cols.map(c => `<col width="${c.w}">`).join('');
+  const hdrCells  = cols.map(c => `<th style="${HDR}${c.s}">${c.h}</th>`).join('');
+
+  const totalOrder = rows.filter(r=>r.orderK>0).reduce((s,r)=>s+r.orderK,0);
+  const totalPal   = rows.filter(r=>r.orderK>0).reduce((s,r)=>s+r.orderP,0);
+
+  const html = `<html xmlns:x="urn:schemas-microsoft-com:office:excel">
+<head><meta charset="utf-8">
+<xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>
+<x:Name>הזמנה דגים</x:Name>
+<x:WorksheetOptions><x:DisplayRightToLeft/></x:WorksheetOptions>
+</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml>
+</head>
+<body dir="rtl">
+<table border="0" cellspacing="0" cellpadding="0">
+  ${colWidths}
+  <tr><td colspan="${numCols}" style="${col('#1e3a5f','#fff',true)}font-size:13pt;padding:10px 14px;border:none;">
+    🐟 הזמנת דגים FORMULA &nbsp;&nbsp; <span style="font-size:10pt;font-weight:normal;color:#93c5fd;">תאריך: ${dateStr}${periods ? ' | תקופה: '+periods : ''}${modeNote}</span>
+  </td></tr>
+  <tr><td colspan="${numCols}" style="${col('#f0f4ff','#6b7280',false)}font-size:9pt;padding:4px 14px;border:none;">
+    סה"כ הזמנה: <b>${Math.round(totalOrder).toLocaleString('en')} קרטונים</b> | ${Math.round(totalPal * 10) / 10} PALLET | ${rows.length} מוצרים (${rows.filter(r=>r.orderK>0).length} להזמנה)
+  </td></tr>
+  <tr>${hdrCells}</tr>
+  ${tbody}
+</table>
+</body></html>`;
+
+  const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `order-dagim-${today.toISOString().slice(0,10)}.xls`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
 const _orderPeriodCache = {};
@@ -2046,6 +2136,7 @@ function _defaultOrderPeriods() {
 }
 function clearOrderPeriod() {
   _defaultOrderPeriods();
+  localStorage.setItem('ord_periods', JSON.stringify([...window._orderSelectedPeriods]));
   _applyOrderPeriods();
 }
 
@@ -2056,6 +2147,7 @@ function toggleOrderPeriod(year, month) {
   } else {
     window._orderSelectedPeriods.add(key);
   }
+  localStorage.setItem('ord_periods', JSON.stringify([...window._orderSelectedPeriods]));
   _applyOrderPeriods();
 }
 
@@ -2066,29 +2158,20 @@ async function _applyOrderPeriods() {
   const bar = document.getElementById('ord-period-btns');
   if (bar) bar.querySelectorAll('button').forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
 
-  const fetches = periods.map(key => {
-    if (_orderPeriodCache[key]) return Promise.resolve(_orderPeriodCache[key]);
-    const [y, m] = key.split('-').map(Number);
-    return fetch(`https://api.sverdlik-apps.site/pbi/dagim-sales?year=${y}&month=${m}`)
-      .then(r => r.json())
-      .then(j => { if (j.ok && j.data) { _orderPeriodCache[key] = j.data; return j.data; } return null; })
-      .catch(() => null);
-  });
-
+  // One combined request — measure computes average over the full merged period (no partial-month bias)
+  const cacheKey = periods.slice().sort().join(',');
   try {
-    const results = await Promise.all(fetches);
-    const sum = {}, cnt = {};
-    for (const data of results) {
-      if (!data) continue;
-      for (const [mk, val] of Object.entries(data)) {
-        if (val == null) continue;
-        sum[mk] = (sum[mk] || 0) + val;
-        cnt[mk] = (cnt[mk] || 0) + 1;
-      }
+    let data;
+    if (_orderPeriodCache[cacheKey]) {
+      data = _orderPeriodCache[cacheKey];
+    } else {
+      const periodsParam = periods.join(',');
+      const j = await fetch(`https://api.sverdlik-apps.site/pbi/dagim-sales?periods=${encodeURIComponent(periodsParam)}`)
+        .then(r => r.json()).catch(() => null);
+      data = (j && j.ok && j.data) ? j.data : null;
+      if (data) _orderPeriodCache[cacheKey] = data;
     }
-    const merged = {};
-    for (const mk of Object.keys(sum)) merged[mk] = sum[mk] / cnt[mk];
-    window._orderPeriodSales = merged;
+    window._orderPeriodSales = data;
   } catch(e) {
     window._orderPeriodSales = null;
   } finally {
@@ -2142,16 +2225,16 @@ function buildOrderPage() {
   const grpKeys = [...new Set(allRows.map(getGrp).filter(Boolean))].sort();
   const btnContainer = document.getElementById('ord-fam-btns');
   if (btnContainer) {
-    const actSt  = 'background:rgba(255,255,255,0.9);color:#1b5e20;';
-    const defSt  = 'background:rgba(255,255,255,0.15);color:#fff;';
-    const zeroSt = window._orderZero ? 'background:#ff5252;color:#fff;border-color:#ff5252;' : defSt;
+    const chipAct  = 'background:#1d4ed8;color:#fff;border-color:#3b82f6;';
+    const chipDef  = '';
+    const chipZeroAct = 'background:#dc2626;color:#fff;border-color:#ef4444;';
     btnContainer.innerHTML =
-      `<button class="ord-fam-btn" onclick="setOrderFam('')" style="${!window._orderFam ? actSt : defSt}">כולם</button>` +
-      grpKeys.map(f => `<button class="ord-fam-btn" onclick="setOrderFam('${f}')" style="${window._orderFam === f ? actSt : defSt}">${grpLabel(f)}</button>`).join('') +
-      `<button class="ord-fam-btn" onclick="toggleOrderZero()" style="${zeroSt}">מלאי ZERO</button>`;
+      `<button class="ord-fam-btn" onclick="setOrderFam('')" style="${!window._orderFam ? chipAct : chipDef}">כולם</button>` +
+      grpKeys.map(f => `<button class="ord-fam-btn" onclick="setOrderFam('${f}')" style="${window._orderFam === f ? chipAct : chipDef}">${grpLabel(f)}</button>`).join('') +
+      `<button class="ord-fam-btn" onclick="toggleOrderZero()" style="${window._orderZero ? chipZeroAct : chipDef}">מלאי ZERO</button>`;
   }
 
-  // Build period buttons — "зmeika" timeline: last 13 months
+  // Build period buttons — professional timeline
   const periodBar = document.getElementById('ord-period-btns');
   if (periodBar) {
     const HM = ['','ינו','פבר','מרץ','אפר','מאי','יונ','יול','אוג','ספט','אוק','נוב','דצ'];
@@ -2164,28 +2247,28 @@ function buildOrderPage() {
       while (m <= 0) { m += 12; y--; }
       months.push({ y, m });
     }
-    const act = 'background:#1565c0;color:#fff;border:1px solid #1976d2;';
-    const def = 'background:rgba(255,255,255,0.07);color:#ccc;border:1px solid rgba(255,255,255,0.16);';
-    const now2 = new Date(); const ny = now2.getFullYear(), nm = now2.getMonth()+1;
-    let py = ny, pm = nm-1; if (pm<=0){pm=12;py--;}
-    const isDefault = sel.size===2 && sel.has(`${ny}-${nm}`) && sel.has(`${py}-${pm}`);
-    const rst = isDefault ? 'background:#c62828;color:#fff;border:1px solid #c62828;' : def;
-    let ph = `<div style="display:flex;align-items:flex-end;gap:2px;">`;
-    ph += `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;margin-right:5px;">
-      <span style="font-size:9px;color:transparent;line-height:1;">·</span>
-      <button style="${rst}font-size:10px;padding:2px 7px;border-radius:3px;cursor:pointer;white-space:nowrap;" onclick="clearOrderPeriod()">ברירת מחדל</button>
-    </div>`;
+    const chipM    = 'font-size:10px;padding:3px 7px;border-radius:6px;cursor:pointer;min-width:32px;text-align:center;font-weight:600;border:1px solid;transition:all 0.12s;';
+    const mAct     = chipM + 'background:#1e3a8a;color:#93c5fd;border-color:#3b82f6;';
+    const mDef     = chipM + 'background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.38);border-color:rgba(255,255,255,0.08);';
+    let py = nowY, pm = nowM - 1; if (pm <= 0) { pm = 12; py--; }
+    const isDefault = sel.size === 2 && sel.has(`${nowY}-${nowM}`) && sel.has(`${py}-${pm}`);
+    const rstSt = `font-size:10px;padding:3px 10px;border-radius:6px;cursor:pointer;font-weight:700;border:1px solid;transition:all 0.12s;` +
+      (isDefault
+        ? 'background:#1d4ed8;color:#fff;border-color:#3b82f6;'
+        : 'background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.35);border-color:rgba(255,255,255,0.08);');
+    const rstLabel = isDefault ? '✓ ברירת מחדל' : '↺ ברירת מחדל';
+    let ph = `<button style="${rstSt}" onclick="clearOrderPeriod()">${rstLabel}</button>`;
+    ph += `<span style="color:rgba(255,255,255,0.12);font-size:14px;margin:0 4px;">|</span>`;
     let prevY = null;
     for (const { y, m } of months) {
-      const isFirst = y !== prevY;
-      const isAct   = sel.has(`${y}-${m}`);
-      ph += `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
-        <span style="font-size:9px;color:#9eacc7;font-weight:600;line-height:1;">${isFirst ? y : '&nbsp;'}</span>
-        <button style="${isAct ? act : def}font-size:10px;padding:2px 5px;border-radius:3px;cursor:pointer;min-width:28px;text-align:center;" onclick="toggleOrderPeriod(${y},${m})">${HM[m]}</button>
-      </div>`;
-      prevY = y;
+      if (y !== prevY) {
+        if (prevY !== null) ph += `<span style="color:rgba(255,255,255,0.1);font-size:14px;margin:0 3px;">|</span>`;
+        ph += `<span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:.8px;margin-left:2px;">${y}</span>`;
+        prevY = y;
+      }
+      const isAct = sel.has(`${y}-${m}`);
+      ph += `<button style="${isAct ? mAct : mDef}" onclick="toggleOrderPeriod(${y},${m})">${HM[m]}</button>`;
     }
-    ph += `</div>`;
     periodBar.innerHTML = ph;
   }
 
@@ -2318,27 +2401,24 @@ function buildOrderPage() {
   const contFull = Math.floor(gtPal / PALS_PER_CONT);
   const contRem  = Math.round(gtPal) % PALS_PER_CONT;
 
-  // Update inline summary in header
+  // Update inline summary in header — KPI stat blocks
   const sumEl = document.getElementById('ord-summary-inline');
   if (sumEl) {
-    const s = (lbl, val, clr) =>
-      `<span style="display:flex;flex-direction:column;align-items:center;line-height:1.1;">
-        <span style="font-size:9px;color:#90caf9;letter-spacing:.4px;">${lbl}</span>
-        <span style="font-size:16px;font-weight:900;color:${clr};">${val}</span>
-      </span>`;
-    const contTxt = contRem > 0 ? `${contFull}<span style="font-size:10px;color:#90caf9;"> +${contRem}</span>` : `${contFull}`;
+    const kpi = (lbl, val, clr='#fff') =>
+      `<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 18px;border-right:1px solid rgba(255,255,255,0.07);min-width:90px;">
+        <span style="font-size:9px;font-weight:700;color:#4b5563;letter-spacing:.09em;text-transform:uppercase;line-height:1;">${lbl}</span>
+        <span style="font-size:18px;font-weight:800;color:${clr};line-height:1.25;margin-top:1px;">${val}</span>
+      </div>`;
+    const contVal = contRem > 0
+      ? `${contFull}<span style="font-size:11px;color:#6b7280;font-weight:600;"> +${contRem}</span>`
+      : `${contFull}`;
     sumEl.innerHTML =
-      s('KARTON', fmtK(gtOrder), '#fff') +
-      `<span style="color:rgba(255,255,255,0.2);font-size:18px;">|</span>` +
-      `<span style="display:flex;flex-direction:column;align-items:center;line-height:1.1;">
-        <span style="font-size:9px;color:#90caf9;letter-spacing:.4px;">PALLET</span>
-        <span id="ord-pal-hdr" style="font-size:16px;font-weight:900;color:#fff;">${Math.round(gtPal)}</span>
-      </span>` +
-      `<span style="color:rgba(255,255,255,0.2);font-size:18px;">|</span>` +
-      `<span style="display:flex;flex-direction:column;align-items:center;line-height:1.1;">
-        <span style="font-size:9px;color:#90caf9;letter-spacing:.4px;">קונטיינר 40'</span>
-        <span id="ord-cont-hdr" style="font-size:16px;font-weight:900;color:#fff;">${contTxt}</span>
-      </span>`;
+      kpi('KARTON', fmtK(gtOrder)) +
+      kpi('PALLET', `<span id="ord-pal-hdr">${Math.round(gtPal)}</span>`) +
+      `<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 18px;border-right:1px solid rgba(255,255,255,0.07);min-width:90px;">
+        <span style="font-size:9px;font-weight:700;color:#4b5563;letter-spacing:.09em;text-transform:uppercase;line-height:1;">קונטיינר 40'</span>
+        <span id="ord-cont-hdr" style="font-size:18px;font-weight:800;color:#fff;line-height:1.25;margin-top:1px;">${contVal}</span>
+      </div>`;
   }
 
   wrap.innerHTML = `
