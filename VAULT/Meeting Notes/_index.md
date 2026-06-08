@@ -45,3 +45,4 @@
 
 - [[session-2026-06-07-mmd-report]] — Сессия 2026-06-07: MMD Annual Report PPTX (505KB, 10 слайдов), скилл annual-report-pptx, Яэль Brand Voice заполнен
 - [[pbi-to-pptx-automation]] — Исследование: Power BI → Node.js PPTX автоматизация без скриншотов (REST API, XMLA, DAX, SQL прямой доступ)
+- [[session-2026-06-08]] — Сессия 2026-06-08: редактируемый KARTON live update, print fix чёрный фон, toolbar polish
