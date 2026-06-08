@@ -2064,7 +2064,8 @@ function buildOrderPage() {
     const need       = safetyK - spo;
     const orderK     = need > 0 && daySales > 0 ? Math.ceil(need / Math.max(1, krat)) * Math.max(1, krat) : 0;
     const orderP     = krat > 0 && orderK > 0 ? Math.round(orderK / krat) : 0;
-    allRows.push({ mk, name, fam, iksGroup, spo, palSpo, openOrders, daySales, daysStk, krat, safetyDays, safetyK, orderK, orderP });
+    const stock = +(d.stock || 0);
+    allRows.push({ mk, name, fam, iksGroup, stock, spo, palSpo, openOrders, daySales, daysStk, krat, safetyDays, safetyK, orderK, orderP });
   }
 
   // Group key: iksGroup (IKRA/SAL/KAPUS) if available, else fam
