@@ -1962,7 +1962,10 @@ function toggleOrderPage() {
   page.style.display = open ? 'flex' : 'none';
   btn.style.background = open ? '#1b5e20' : '#f0fff4';
   btn.style.color      = open ? '#fff'    : '#1b5e20';
-  if (open) buildOrderPage();
+  if (open) {
+    if (!window._orderSelectedPeriods.size) _defaultOrderPeriods();
+    buildOrderPage();
+  }
 }
 
 function setOrderFam(fam) {
@@ -1978,10 +1981,18 @@ function toggleOrderZero() {
 const _orderPeriodCache = {};
 window._orderSelectedPeriods = window._orderSelectedPeriods || new Set();
 
-function clearOrderPeriod() {
+function _defaultOrderPeriods() {
+  const now = new Date();
+  const nowY = now.getFullYear(), nowM = now.getMonth() + 1;
+  let prevY = nowY, prevM = nowM - 1;
+  if (prevM <= 0) { prevM = 12; prevY--; }
   window._orderSelectedPeriods.clear();
-  window._orderPeriodSales = null;
-  buildOrderPage();
+  window._orderSelectedPeriods.add(`${nowY}-${nowM}`);
+  window._orderSelectedPeriods.add(`${prevY}-${prevM}`);
+}
+function clearOrderPeriod() {
+  _defaultOrderPeriods();
+  _applyOrderPeriods();
 }
 
 function toggleOrderPeriod(year, month) {
@@ -2102,8 +2113,10 @@ function buildOrderPage() {
     }
     const act = 'background:#1565c0;color:#fff;border:1px solid #1976d2;';
     const def = 'background:rgba(255,255,255,0.07);color:#ccc;border:1px solid rgba(255,255,255,0.16);';
-    const hasAny = sel.size > 0;
-    const rst = !hasAny ? 'background:#c62828;color:#fff;border:1px solid #c62828;' : def;
+    const now2 = new Date(); const ny = now2.getFullYear(), nm = now2.getMonth()+1;
+    let py = ny, pm = nm-1; if (pm<=0){pm=12;py--;}
+    const isDefault = sel.size===2 && sel.has(`${ny}-${nm}`) && sel.has(`${py}-${pm}`);
+    const rst = isDefault ? 'background:#c62828;color:#fff;border:1px solid #c62828;' : def;
     let ph = `<div style="display:flex;align-items:flex-end;gap:2px;">`;
     ph += `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;margin-right:5px;">
       <span style="font-size:9px;color:transparent;line-height:1;">·</span>
