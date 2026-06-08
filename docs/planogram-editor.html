@@ -1993,7 +1993,7 @@ function toggleOrderPage() {
         } else { _defaultOrderPeriods(); }
       } else if (!window._orderSelectedPeriods.size) { _defaultOrderPeriods(); }
     } catch { if (!window._orderSelectedPeriods.size) _defaultOrderPeriods(); }
-    buildOrderPage();
+    _applyOrderPeriods();
   }
 }
 
@@ -2123,7 +2123,7 @@ function exportOrderCsv() {
   document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
-const _orderPeriodCache = {};
+const _orderPeriodCache = {};  // cleared on each page-load; in-session only
 window._orderSelectedPeriods = window._orderSelectedPeriods || new Set();
 
 function _defaultOrderPeriods() {
