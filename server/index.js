@@ -1030,16 +1030,37 @@ app.get('/api/mekarer-export', requireAuth, async (req, res) => {
   }
 });
 
-// GET /pbi/dagim-sales?year=2026&month=6 — live sales for הזמנה period filter
+// GET /pbi/dagim-sales?periods=2026-5,2026-6 — live sales for הזמנה period filter (combined period)
+// Legacy single-month form also supported: ?year=2026&month=5
 app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
-  const year  = parseInt(req.query.year  || '0', 10);
-  const month = parseInt(req.query.month || '0', 10);
-  if (!year || year < 2020 || year > 2030) return res.status(400).json({ error: 'invalid year' });
-  if (month && (month < 1 || month > 12))  return res.status(400).json({ error: 'invalid month' });
+  let dateFilter;
 
-  const dateFilter = month
-    ? `FILTER('ALL_PARTS', YEAR('ALL_PARTS'[תאריך]) = ${year} && MONTH('ALL_PARTS'[תאריך]) = ${month})`
-    : `FILTER('ALL_PARTS', YEAR('ALL_PARTS'[תאריך]) = ${year})`;
+  if (req.query.periods) {
+    // Multi-period: "2026-5,2026-6" → OR-combined DAX filter
+    const parts = String(req.query.periods).split(',').map(s => s.trim()).filter(Boolean);
+    const conditions = [];
+    for (const p of parts) {
+      const [y, m] = p.split('-').map(Number);
+      if (!y || y < 2020 || y > 2030) return res.status(400).json({ error: `invalid period: ${p}` });
+      if (m) {
+        if (m < 1 || m > 12) return res.status(400).json({ error: `invalid month in: ${p}` });
+        conditions.push(`(YEAR('ALL_PARTS'[תאריך]) = ${y} && MONTH('ALL_PARTS'[תאריך]) = ${m})`);
+      } else {
+        conditions.push(`YEAR('ALL_PARTS'[תאריך]) = ${y}`);
+      }
+    }
+    if (!conditions.length) return res.status(400).json({ error: 'no valid periods' });
+    dateFilter = `FILTER('ALL_PARTS', ${conditions.join(' || ')})`;
+  } else {
+    // Legacy single-month form
+    const year  = parseInt(req.query.year  || '0', 10);
+    const month = parseInt(req.query.month || '0', 10);
+    if (!year || year < 2020 || year > 2030) return res.status(400).json({ error: 'invalid year' });
+    if (month && (month < 1 || month > 12))  return res.status(400).json({ error: 'invalid month' });
+    dateFilter = month
+      ? `FILTER('ALL_PARTS', YEAR('ALL_PARTS'[תאריך]) = ${year} && MONTH('ALL_PARTS'[תאריך]) = ${month})`
+      : `FILTER('ALL_PARTS', YEAR('ALL_PARTS'[תאריך]) = ${year})`;
+  }
 
   try {
     const rows = await executeDax(`
@@ -1058,7 +1079,7 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
       const mk = r["ALL_PARTS[מק'ט]"];
       if (mk != null) data[String(mk)] = r['[daySales]'] ?? null;
     }
-    res.json({ ok: true, year, month: month || null, data });
+    res.json({ ok: true, data });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
