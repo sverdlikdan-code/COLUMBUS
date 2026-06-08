@@ -2021,6 +2021,20 @@ function _recalcRowPal(inp) {
   _recalcOrdTotal();
 }
 
+function _recalcRowK(inp) {
+  const pal  = Math.max(0, Number(inp.value) || 0);
+  const krat = Number(inp.dataset.krat) || 1;
+  const mk   = inp.dataset.mk;
+  const k    = Math.round(pal * krat);
+  const kInp = document.querySelector(`.ord-k-input[data-mk="${mk}"]`);
+  if (kInp) kInp.value = k;
+  const pCell = document.querySelector(`.ord-p-auto[data-mk="${mk}"]`);
+  if (pCell) pCell.textContent = pal > 0 ? pal.toFixed(1) : '—';
+  const row = (window._orderCurrentRows || []).find(r => String(r.mk) === String(mk));
+  if (row) { row.orderK = k; row.orderP = pal; }
+  _recalcOrdTotal();
+}
+
 function _recalcOrdPal() { _recalcOrdTotal(); }
 
 function toggleOrderPage() {
@@ -2417,7 +2431,7 @@ function buildOrderPage() {
         <td style="padding:4px 8px;text-align:center;font-size:12px;font-weight:700;color:${dc};">${r.daysStk !== null ? Math.round(r.daysStk) : '—'}${r.deferredDemand ? ' <span title="ביקוש נדחה — מלאי מתחת למחצית מלאי הביטחון" style="cursor:help;">⚡</span>' : ''}</td>
         <td style="padding:4px 4px;text-align:center;"><input type="number" class="ord-k-input" value="${r.orderK}" min="0" step="1" oninput="_recalcRowPal(this)" data-mk="${r.mk}" data-krat="${r.krat}" style="width:65px;padding:3px 5px;font-size:13px;font-weight:800;text-align:center;border:2px solid ${r.orderK > 0 ? '#e65100' : '#c8e6c9'};border-radius:4px;background:${r.orderK > 0 ? '#fff8e1' : '#f1f8e9'};color:${r.orderK > 0 ? '#bf360c' : '#388e3c'};outline:none;"></td>
         <td class="ord-p-auto" data-mk="${r.mk}" style="padding:4px 8px;text-align:center;font-size:13px;font-weight:700;">${r.orderK > 0 ? r.orderP.toFixed(1) : '—'}</td>
-        <td style="padding:4px 4px;text-align:center;"><input type="number" class="ord-pal-input" value="${r.orderK > 0 ? r.orderP.toFixed(1) : 0}" min="0" oninput="_recalcOrdPal()" style="width:58px;padding:3px 4px;font-size:13px;font-weight:700;text-align:center;border:2px solid #9c27b0;border-radius:4px;background:#f3e5f5;color:#4a148c;outline:none;" data-mk="${r.mk}"></td>
+        <td style="padding:4px 4px;text-align:center;"><input type="number" class="ord-pal-input" value="${r.orderK > 0 ? r.orderP.toFixed(1) : 0}" min="0" step="0.5" oninput="_recalcRowK(this)" style="width:58px;padding:3px 4px;font-size:13px;font-weight:700;text-align:center;border:2px solid #9c27b0;border-radius:4px;background:#f3e5f5;color:#4a148c;outline:none;" data-mk="${r.mk}" data-krat="${r.krat}"></td>
       </tr>`;
     });
 
