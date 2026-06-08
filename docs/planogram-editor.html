@@ -108,10 +108,25 @@
         min-height: unset !important;
         overflow: visible !important;
         height: auto !important;
+        background: #fff !important;
+        padding: 0 !important;
       }
       body.printing-order #order-page > div:first-child { display: none !important; }
       body.printing-order #order-table-wrap table { font-size: 9px !important; }
       body.printing-order #order-table-wrap td, body.printing-order #order-table-wrap th { padding: 3px 5px !important; }
+      /* grand total row — lighten dark #1a1a2e for print */
+      body.printing-order #order-table-wrap tr:last-child { background: #1e3a8a !important; }
+      body.printing-order #order-table-wrap tr:last-child td { color: #fff !important; }
+      /* inputs in KARTON / PAL columns — show value cleanly */
+      body.printing-order .ord-k-input,
+      body.printing-order .ord-pal-input {
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        font-size: 9px !important;
+        width: auto !important;
+        color: inherit !important;
+      }
     }
     .ord-fam-btn {
       background: rgba(255,255,255,0.05);
