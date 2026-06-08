@@ -2043,13 +2043,14 @@ function exportOrderCsv() {
   const ORDER_ODD  = col('#f0fdf4','#065f46',false);
   const NUM   = 'text-align:center;';
   const RTL   = 'text-align:right;direction:rtl;';
+  const TXT   = 'text-align:center;mso-number-format:"@";';  // forces Excel text (no scientific notation)
 
   const cols = [
-    { h:'תאור',                  s:RTL,  w:200 },
-    { h:'מק"ט',                  s:NUM,  w:60  },
-    { h:'ברקוד EAN',             s:NUM,  w:100 },
-    { h:'משפחה',                 s:RTL,  w:110 },
-    { h:'מלאי+הזמנות (קרט)',     s:NUM,  w:80  },
+    { h:'תאור',                  s:RTL,  w:240 },
+    { h:'מק"ט',                  s:TXT,  w:65  },
+    { h:'ברקוד EAN',             s:TXT,  w:130 },
+    { h:'משפחה',                 s:RTL,  w:120 },
+    { h:'מלאי+הזמנות (קרט)',     s:NUM,  w:85  },
     { h:'PAL מלאי',              s:NUM,  w:60  },
     { h:'הזמנות פתוחות 🚛',       s:NUM,  w:80  },
     { h:'מכר קרט/יום',           s:NUM,  w:70  },
@@ -2072,8 +2073,8 @@ function exportOrderCsv() {
     const dstk = r.daysStk !== null ? Math.round(r.daysStk) : '—';
     tbody += `<tr>
       ${cell(r.name || '', base, RTL)}
-      ${cell(r.mk, base, NUM)}
-      ${cell(ean, base, NUM)}
+      ${cell(r.mk, base, TXT)}
+      ${cell(ean, base, TXT)}
       ${cell(r.fam || '', base, RTL)}
       ${cell(r.spo, base, NUM)}
       ${cell(r.palSpo > 0 ? r.palSpo.toFixed(1) : 0, base, NUM)}
