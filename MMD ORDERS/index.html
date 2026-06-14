@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>🚚 הזמנה - מלאי MMD</title>
+  <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --blue:      #1565C0;
+      --blue-dark: #0D47A1;
+      --sky:       #E3F2FD;
+      --sky-mid:   #BBDEFB;
+      --green:     #2E7D32;
+      --orange:    #E65100;
+      --red:       #C62828;
+      --text:      #1A1A2E;
+      --mid:       #5C6BC0;
+      --light:     #90A4AE;
+      --bg:        #F5F7FA;
+      --card:      #fff;
+      --radius:    10px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      direction: rtl;
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── HEADER ─────────────────────────────────────────────── */
+    #hdr {
+      background: linear-gradient(135deg, var(--blue-dark), var(--blue));
+      padding: 10px 16px;
+      flex-shrink: 0;
+      z-index: 200;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+    #hdr-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      gap: 12px;
+    }
+    h1 {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #fff;
+      white-space: nowrap;
+    }
+
+    .btn-row { display: flex; gap: 7px; align-items: center; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 13px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 700;
+      font-family: inherit;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn:hover  { opacity: .85; }
+    .btn:active { transform: scale(.97); }
+    .btn-excel  { background: var(--green); color: #fff; }
+    .btn-hist   { background: #fff3cd; color: #7a5c00; border: 1px solid #e0c040; }
+    .btn-print  { background: rgba(255,255,255,.15); color: #fff; border: 1px solid rgba(255,255,255,.3); }
+    .btn-reload { background: rgba(255,255,255,.15); color: #fff; border: 1px solid rgba(255,255,255,.3); }
+    .btn-clear  { background: rgba(255,255,255,.12); color: #ffcdd2; border: 1px solid rgba(255,255,255,.25); font-size: .75rem; }
+    .hist-wrap  { position: relative; display: inline-block; }
+    .hist-dd {
+      display: none; position: absolute; top: 100%; right: 0; margin-top: 4px;
+      background: #fff; border: 1px solid #ddd; border-radius: 8px;
+      box-shadow: 0 6px 20px rgba(0,0,0,.18); z-index: 1000;
+      min-width: 290px; max-height: 320px; overflow-y: auto;
+    }
+    .hist-dd.open { display: block; }
+    .hist-item { padding: 10px 14px; cursor: pointer; font-size: 12px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+    .hist-item:hover { background: #f0f4ff; }
+    .hist-item:last-child { border-bottom: none; }
+    .hist-item .h-ts  { color: #444; font-weight: 600; }
+    .hist-item .h-cnt { color: #1a6ef5; font-size: 11px; font-weight: 700; }
+    .hist-empty { padding: 14px; text-align: center; color: #aaa; font-size: 12px; }
+
+    /* KPI row */
+    .kpi-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .kpi {
+      background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.25);
+      border-radius: 8px;
+      padding: 5px 14px;
+      text-align: center;
+      min-width: 90px;
+    }
+    .kpi-label { font-size: .62rem; color: rgba(255,255,255,.75); text-transform: uppercase; letter-spacing: .05em; }
+    .kpi-value { font-size: 1.05rem; font-weight: 700; color: #fff; }
+    .kpi-value.g  { color: #A5D6A7; }
+    .kpi-value.y  { color: #FFE082; }
+
+    /* ── PERIOD BAR ─────────────────────────────────────────── */
+    #period-bar {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      overflow-x: auto;
+      padding: 7px 16px;
+      scrollbar-width: none;
+      flex-wrap: nowrap;
+      background: var(--sky);
+      border-bottom: 1px solid var(--sky-mid);
+    }
+    #period-bar::-webkit-scrollbar { display: none; }
+    .period-def {
+      background: var(--blue);
+      border: 1px solid var(--blue-dark);
+      border-radius: 6px;
+      color: #fff;
+      padding: 3px 11px;
+      font-size: .75rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      margin-left: 10px;
+      transition: all .12s;
+    }
+    .period-def.off {
+      background: #fff;
+      border-color: var(--sky-mid);
+      color: var(--mid);
+      font-weight: 600;
+    }
+    .period-yr {
+      font-size: .6rem;
+      color: var(--mid);
+      font-weight: 700;
+      padding: 0 8px;
+      flex-shrink: 0;
+      white-space: nowrap;
+      letter-spacing: .05em;
+    }
+    .period-chip {
+      background: #fff;
+      border: 1px solid var(--sky-mid);
+      border-radius: 5px;
+      color: var(--light);
+      padding: 3px 9px;
+      font-size: .73rem;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: all .12s;
+    }
+    .period-chip:hover { background: var(--sky); border-color: var(--blue); color: var(--blue); }
+    .period-chip.cur   { border-color: var(--sky-mid); color: var(--light); }
+    .period-chip.on    { background: var(--blue) !important; border-color: var(--blue-dark) !important; color: #fff !important; font-weight: 700; }
+
+    /* ── STOCK FILTER BAR ───────────────────────────────────── */
+    #stkbar {
+      padding: 6px 16px !important;
+      background: #fff !important;
+      border-bottom: 1px solid var(--sky-mid) !important;
+    }
+
+    /* ── FILTER BAR ─────────────────────────────────────────── */
+    #fbar {
+      padding: 8px 16px;
+      background: var(--sky);
+      border-bottom: 1px solid var(--sky-mid);
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .flabel { font-size: .7rem; color: var(--mid); font-weight: 700; white-space: nowrap; }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 16px;
+      border-radius: 20px;
+      font-size: .97rem;
+      cursor: pointer;
+      border: 1.5px solid var(--sky-mid);
+      background: #fff;
+      color: var(--blue-dark);
+      transition: all .15s;
+      user-select: none;
+      white-space: nowrap;
+      font-weight: 600;
+      box-shadow: 0 2px 6px rgba(0,0,0,.18);
+    }
+    .chip:hover { background: var(--sky); border-color: var(--blue); box-shadow: 0 3px 10px rgba(0,0,0,.25); }
+    .chip.on    { background: var(--blue); border-color: var(--blue-dark); color: #fff; box-shadow: 0 3px 10px rgba(25,72,175,.35); }
+    .chip .co-badge { font-size: .8em; opacity: .85; font-weight: 700; }
+    .fam-sel {
+      background: #fff;
+      border: 1.5px solid var(--sky-mid);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 3px 10px;
+      font-size: .78rem;
+      font-family: inherit;
+      cursor: pointer;
+      max-width: 220px;
+      direction: rtl;
+    }
+    .fam-sel:focus { outline: none; border-color: var(--blue); }
+
+    #period-bar { flex-shrink: 0; }
+    #stkbar     { flex-shrink: 0; }
+    #fbar       { flex-shrink: 0; }
+
+    /* ── TABLE SCROLL ───────────────────────────────────────── */
+    #tw {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      background: var(--bg);
+    }
+
+    /* ── TABLE ──────────────────────────────────────────────── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1500px;
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: 0 1px 4px rgba(21,101,192,.08);
+      margin: 12px;
+      width: calc(100% - 24px);
+    }
+    thead th {
+      background: var(--blue-dark);
+      color: #fff;
+      font-weight: 700;
+      font-size: .7rem;
+      padding: 8px 9px;
+      white-space: nowrap;
+      border-right: 1px solid rgba(255,255,255,.1);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      text-align: center;
+    }
+    thead th:first-child { text-align: right; border-right: none; }
+    tbody tr:nth-child(even) td { background: var(--card); }
+    tbody tr:nth-child(odd)  td { background: var(--card); }
+    tr.drow:hover td { background: var(--sky) !important; }
+    td {
+      padding: 5px 9px;
+      border-bottom: 1px solid var(--sky-mid);
+      border-right: 1px solid #f0f4f8;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    /* cell types */
+    .c-img  { width: 50px; text-align: center; padding: 3px 5px; }
+    .c-img img { width: 43px; height: 43px; object-fit: contain; border-radius: 3px; background: #e8edf2; display: block; margin: auto; }
+    .c-img .ni { width: 43px; height: 43px; background: var(--sky); border-radius: 3px; display: inline-block; }
+    thead th.col-pair { border-bottom: 3px solid #FFD54F !important; background: #0d47a1 !important; }
+    .c-mkt { font-weight: 700; color: var(--blue-dark); font-size: .82rem; }
+    .c-taur { min-width: 200px; white-space: normal; line-height: 1.3; }
+    .c-co   { color: var(--light); font-size: .72rem; }
+    .c-num  { text-align: center; font-variant-numeric: tabular-nums; }
+    .c-haml { text-align: center; font-weight: 800; color: var(--green); }
+    .c-tukuf { max-width: 130px; font-size: .7rem; line-height: 1.6; }
+    .tk-d { display: block; white-space: nowrap; }
+    .lo { }
+    .md { }
+    .ok { }
+
+    /* editable inputs */
+    .ei {
+      background: #fff;
+      border: 1.5px solid var(--sky-mid);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 3px 6px;
+      font-size: .8rem;
+      font-family: inherit;
+    }
+    .ei:focus { outline: none; border-color: var(--blue); background: var(--sky); }
+    .ei-n { width: 66px; text-align: center; }
+    .ei-p { width: 130px; text-align: right; }
+
+    /* family group rows */
+    tr.fam-hdr td {
+      background: var(--sky) !important;
+      color: var(--blue-dark);
+      font-weight: 800;
+      font-size: .76rem;
+      padding: 5px 12px;
+      border-top: 2px solid var(--blue);
+      border-bottom: 1px solid var(--sky-mid);
+      letter-spacing: .02em;
+    }
+    tr.sub-tot td {
+      background: #EEF2F8 !important;
+      color: var(--blue-dark);
+      font-weight: 700;
+      font-size: .76rem;
+      border-top: 1px dashed var(--sky-mid);
+      border-bottom: 2px solid var(--sky-mid);
+    }
+
+    /* footer row */
+    tfoot td {
+      background: var(--blue-dark) !important;
+      font-weight: 700;
+      color: #fff;
+      border-top: 2px solid var(--blue);
+      padding: 6px 9px;
+    }
+
+    /* loading */
+    #ld {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 80px 20px;
+      color: var(--light);
+    }
+    .spin {
+      width: 34px; height: 34px;
+      border: 3px solid var(--sky-mid);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: sp .75s linear infinite;
+    }
+    @keyframes sp { to { transform: rotate(360deg); } }
+
+    /* status */
+    #sbar {
+      background: #fff;
+      border-top: 1px solid var(--sky-mid);
+      padding: 4px 18px;
+      font-size: .68rem;
+      color: var(--light);
+      position: fixed;
+      bottom: 0;
+      right: 0;
+      left: 0;
+      z-index: 100;
+      box-shadow: 0 -1px 4px rgba(0,0,0,.06);
+    }
+
+    /* dividers in stkbar */
+    #stkbar span[style*="background:rgba"] { background: var(--sky-mid) !important; }
+
+    /* ── PRINT ──────────────────────────────────────────────── */
+    @media print {
+      #hdr, #fbar, #sbar { display: none !important; }
+      #ph { display: block !important; }
+      body { background: #fff; color: #000; font-size: 11px; }
+      thead th { background: var(--blue-dark) !important; color: #fff !important; }
+      tbody tr:nth-child(even) td { background: #f1f5f9 !important; }
+      tbody tr:nth-child(odd)  td { background: #fff !important; }
+      .c-mkt { color: var(--blue-dark); }
+      .c-haml { color: var(--green); }
+      .ei { border: 1px solid #ccc; background: transparent !important; color: #000; }
+      tfoot td { background: var(--blue-dark) !important; color: #fff !important; }
+      #tw { overflow: visible; }
+    }
+    #ph { display: none; text-align: right; padding: 10px 0 6px; font-size: 1rem; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<div id="ph">🚚 הזמנה - מלאי MMD — <span id="ph-d"></span></div>
+
+<!-- HEADER -->
+<div id="hdr">
+  <div id="hdr-top">
+    <h1>🚚 הזמנה - מלאי MMD</h1>
+    <div class="btn-row">
+      <button class="btn btn-reload" onclick="load()">⟳ רענן</button>
+      <button class="btn btn-clear" onclick="clearAll()">✕ נקה הזמנות</button>
+      <button class="btn btn-excel" onclick="exportXL()">⬇ Excel</button>
+      <div class="hist-wrap">
+        <button class="btn btn-hist" id="btn-hist" onclick="toggleOrderHistory()">🕐 היסטוריה</button>
+        <div class="hist-dd" id="hist-dd"></div>
+      </div>
+      <button class="btn btn-print" onclick="window.print()">🖨 הדפסה</button>
+    </div>
+  </div>
+</div>
+
+<!-- PERIOD BAR -->
+<div id="period-bar"></div>
+
+<!-- STOCK FILTER BAR -->
+<div id="stkbar" style="padding:6px 18px;background:#0a1220;border-bottom:1px solid #1e293b;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+  <span class="flabel">ASHDOD:</span>
+  <span class="chip on" id="sk-ash-yes" onclick="togStock('ash','yes')">✓ ASHDOD יש 📦</span>
+  <span class="chip"    id="sk-ash-no"  onclick="togStock('ash','no')">ASHDOD חסר 😢</span>
+  <span style="display:inline-block;width:1px;height:14px;background:rgba(255,255,255,.2);margin:0 8px;flex-shrink:0;align-self:center;"></span>
+  <span class="flabel">MMD:</span>
+  <span class="chip" id="sk-mmd-yes" onclick="togStock('mmd','yes')">✓ MMD יש 📦</span>
+  <span class="chip" id="sk-mmd-no"  onclick="togStock('mmd','no')">MMD חסר 😢</span>
+  <span style="display:inline-block;width:1px;height:14px;background:rgba(255,255,255,.2);margin:0 8px;flex-shrink:0;align-self:center;"></span>
+  <span class="chip" id="sk-ord-only" onclick="togOrdOnly()">📋 הזמנה בלבד</span>
+</div>
+
+<!-- FILTER BAR -->
+<div id="fbar">
+  <span class="flabel">משפחה:</span>
+  <select id="fam-sel" class="fam-sel" onchange="togFamSel(this.value)">
+    <option value="*">כולם</option>
+  </select>
+</div>
+
+<!-- TABLE -->
+<div id="tw">
+  <div id="ld"><div class="spin"></div><div>טוען נתוני מלאי...</div></div>
+  <table id="t" style="display:none">
+    <thead>
+      <tr>
+        <th>מק"ט</th>
+        <th></th>
+        <th>שם מוצר</th>
+        <th>חברה</th>
+        <th class="col-pair">מלאי<br>MMD</th>
+        <th class="col-pair">מכר ממוצע<br>בשבוע קרטון</th>
+        <th>מלאי<br>אשדוד</th>
+        <th>מחסן<br>מעבר</th>
+        <th>תוקף</th>
+        <th>כמה ימים<br>נשארו</th>
+        <th>מכר קרטון<br>בתקופה</th>
+        <th>לכמה שבועות<br>יספיק המלאי</th>
+        <th>WEEKS<br>לפח</th>
+        <th>ימים שהיה<br>מלאי</th>
+        <th>ימי מכר<br>מכלל %</th>
+        <th>המלצה להזמנה<br>קרטון</th>
+        <th>הזמנה<br>ידנית</th>
+        <th>תוקף<br>הזמנה</th>
+      </tr>
+    </thead>
+    <tbody id="tb"></tbody>
+    <tfoot id="tf"></tfoot>
+  </table>
+</div>
+
+<div id="sbar"><span id="st">מוכן</span></div>
+
+<script>
+(function () {
+  const LS = 'mmd-orders-v1';
+  const HE_SHORT = ['ינו','פבר','מרץ','אפר','מאי','יון','יול','אוג','ספט','אוק','נוב','דצ'];
+  let all = [];
+  let fams = new Set();
+  let cos  = new Set();
+  let selStart = null, selEnd = null; // null = default (prev+cur month); range selection
+  let ordOnly   = false;
+  const ashFilter = new Set(['yes']); // default: show only items with Ashdod stock
+  const mmdFilter = new Set();
+
+  function saved()  { try { return JSON.parse(localStorage.getItem(LS) || '{}'); } catch { return {}; } }
+  function save(o)  { try { localStorage.setItem(LS, JSON.stringify(o)); } catch {} }
+  function st(m)    { document.getElementById('st').textContent = m; }
+
+  // ── Period helpers ───────────────────────────────────────────
+  function defaultPeriod() {
+    const now = new Date();
+    const curY = now.getFullYear(), curM = now.getMonth() + 1;
+    const prevM = curM === 1 ? 12 : curM - 1;
+    const prevY = curM === 1 ? curY - 1 : curY;
+    return { y1: prevY, m1: prevM, y2: curY, m2: curM };
+  }
+
+  function getPeriodParams() {
+    if (!selStart) return defaultPeriod();
+    return { y1: selStart.y, m1: selStart.m, y2: selEnd.y, m2: selEnd.m };
+  }
+
+  // ── Period timeline bar ──────────────────────────────────────
+  function buildPeriodBar() {
+    const bar = document.getElementById('period-bar');
+    bar.innerHTML = '';
+    const now = new Date();
+    const curY = now.getFullYear(), curM = now.getMonth() + 1;
+    const def  = defaultPeriod();
+
+    // Default button
+    const defBtn = document.createElement('button');
+    defBtn.id = 'period-def';
+    defBtn.className = 'period-def' + (selStart ? ' off' : '');
+    defBtn.textContent = '✓ ברירת מחדל';
+    defBtn.onclick = () => { selStart = null; selEnd = null; buildPeriodBar(); load(); };
+    bar.appendChild(defBtn);
+
+    // Month chips: 13 months back + current = 14 total
+    let lastY = null;
+    for (let i = -13; i <= 0; i++) {
+      const d = new Date(curY, curM - 1 + i, 1);
+      const y = d.getFullYear(), m = d.getMonth() + 1;
+      if (y !== lastY) {
+        const yl = document.createElement('span');
+        yl.className = 'period-yr';
+        yl.textContent = y;
+        bar.appendChild(yl);
+        lastY = y;
+      }
+      const chip = document.createElement('button');
+      const isCur = y === curY && m === curM;
+      // Highlight range or default months
+      let isOn = false;
+      const n = y * 12 + m;
+      if (selStart) {
+        const s = selStart.y * 12 + selStart.m;
+        const e = selEnd.y * 12 + selEnd.m;
+        isOn = n >= s && n <= e;
+      } else {
+        isOn = (y === def.y1 && m === def.m1) || (y === def.y2 && m === def.m2);
+      }
+      chip.className = 'period-chip' + (isCur ? ' cur' : '') + (isOn ? ' on' : '');
+      chip.dataset.y = y; chip.dataset.m = m;
+      chip.textContent = HE_SHORT[m - 1];
+      chip.onclick = () => {
+        const cn = y * 12 + m;
+        if (!selStart) {
+          selStart = {y, m}; selEnd = {y, m};
+        } else {
+          const cs = selStart.y * 12 + selStart.m;
+          const ce = selEnd.y * 12 + selEnd.m;
+          if (cn === cs && cn === ce) { selStart = null; selEnd = null; }
+          else if (cn < cs) { selStart = {y, m}; }
+          else { selEnd = {y, m}; }
+        }
+        buildPeriodBar(); load();
+      };
+      bar.appendChild(chip);
+    }
+
+    setTimeout(() => {
+      const on = bar.querySelector('.period-chip.on, .period-chip.cur');
+      if (on) on.scrollIntoView({ inline: 'center', block: 'nearest' });
+    }, 50);
+  }
+
+
+  const _HE_MON = ['','ינו\'','פבר\'','מרץ','אפר\'','מאי','יוני','יולי','אוג\'','ספט\'','אוק\'','נוב\'','דצמ\''];
+  function _fmtDate(raw) {
+    const p = raw.trim().split(/\s+/);
+    if (p.length === 2) {
+      const m = parseInt(p[0], 10);
+      if (m >= 1 && m <= 12) return _HE_MON[m] + ' ' + p[1];
+    }
+    return raw.trim();
+  }
+  function formatTukuf(raw) {
+    if (!raw) return '';
+    return raw.split('/').map(d => d.trim()).filter(Boolean)
+      .map(d => '<span class="tk-d">' + _fmtDate(d) + '</span>').join('');
+  }
+
+  function buildPrtimCell(mk, tukuf, savedVal) {
+    const opts = tukuf ? tukuf.split('/').map(d => d.trim()).filter(Boolean) : [];
+    if (!opts.length) return '';
+    const esc = v => (v || '').replace(/"/g, '&quot;');
+    return '<select class="ei ei-p" data-mk="' + mk + '" data-f="p" onchange="inp(this)">' +
+      '<option value=""></option>' +
+      opts.map(d => '<option value="' + esc(d) + '"' + (savedVal === d ? ' selected' : '') + '>' + _fmtDate(d) + '</option>').join('') +
+      '</select>';
+  }
+
+  function klass(v) {
+    if (v == null || v === '') return '';
+    if (v <= 0)  return 'lo';
+    if (v <= 3)  return 'md';
+    return 'ok';
+  }
+
+  async function load() {
+    document.getElementById('ld').style.display  = 'flex';
+    document.getElementById('t').style.display   = 'none';
+    document.getElementById('ld').innerHTML = '<div class="spin"></div><div>טוען נתוני מלאי...</div>';
+    st('טוען...');
+    try {
+      const p = getPeriodParams();
+      const url = `/pbi/mmd-orders?y1=${p.y1}&m1=${p.m1}&y2=${p.y2}&m2=${p.m2}`;
+      const r = await fetch(url);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error || 'API error');
+      all = j.data;
+      buildPeriodBar();
+      buildChips();
+      render();
+      const ts = j.ts ? new Date(j.ts).toLocaleTimeString('he-IL') : '';
+      st('נטענו ' + all.length + ' פריטים · ' + ts);
+    } catch (e) {
+      st('⚠ ' + e.message);
+      document.getElementById('ld').innerHTML = '<div style="color:#f87171;padding:20px">⚠ ' + e.message + '</div>';
+    }
+  }
+
+  function buildChips() {
+    // Populate family dropdown
+    const sel = document.getElementById('fam-sel');
+    if (sel) {
+      const cur = fams.size === 1 ? [...fams][0] : '*';
+      const uniqFam = [...new Set(all.map(r => r.mishpacha).filter(Boolean))].sort();
+      sel.innerHTML = '<option value="*">כולם</option>' +
+        uniqFam.map(f => '<option value="' + f + '"' + (cur === f ? ' selected' : '') + '>' + f + '</option>').join('');
+    }
+
+    // Company chips — clear all after select + 1 span label that may exist
+    const bar = document.getElementById('fbar');
+    // remove everything after the select element
+    while (bar.children.length > 2) bar.removeChild(bar.lastChild);
+
+    // Separator
+    const sep = document.createElement('span');
+    sep.style.cssText = 'display:inline-block;width:1px;height:14px;background:rgba(255,255,255,.2);margin:0 8px;flex-shrink:0;align-self:center;';
+    bar.appendChild(sep);
+
+    // Company label
+    const coLabel = document.createElement('span');
+    coLabel.className = 'flabel';
+    coLabel.textContent = 'חברה:';
+    bar.appendChild(coLabel);
+
+    const allCo = document.createElement('span');
+    allCo.className = 'chip' + (cos.size === 0 ? ' on' : '');
+    allCo.dataset.c = '*';
+    allCo.textContent = 'כולם';
+    allCo.onclick = () => togCo('*');
+    bar.appendChild(allCo);
+
+    [...new Set(all.map(r => r.hevra).filter(Boolean))].sort().forEach(c => {
+      const el = document.createElement('span');
+      el.className = 'chip' + (cos.has(c) ? ' on' : '');
+      el.dataset.c = c;
+      el.textContent = c;
+      el.onclick = () => togCo(c);
+      bar.appendChild(el);
+    });
+  }
+
+  window.togFamSel = function(v) {
+    fams.clear();
+    if (v !== '*') fams.add(v);
+    render();
+  };
+
+  window.togCo = function(c) {
+    if (c === '*') {
+      cos.clear();
+      document.querySelectorAll('#fbar .chip[data-c]').forEach(ch => ch.classList.toggle('on', ch.dataset.c === '*'));
+    } else {
+      cos.has(c) ? cos.delete(c) : cos.add(c);
+      const a = document.querySelector('#fbar .chip[data-c="*"]');
+      if (a) a.classList.toggle('on', cos.size === 0);
+      document.querySelectorAll('#fbar .chip[data-c]').forEach(ch => {
+        if (ch.dataset.c !== '*') ch.classList.toggle('on', cos.has(ch.dataset.c));
+      });
+    }
+    render();
+  };
+
+  window.togStock = function(type, val) {
+    const f  = type === 'ash' ? ashFilter : mmdFilter;
+    f.has(val) ? f.delete(val) : f.add(val);
+    const el = document.getElementById('sk-' + type + '-' + val);
+    if (el) el.classList.toggle('on', f.has(val));
+    render();
+  };
+
+  window.togOrdOnly = function() {
+    ordOnly = !ordOnly;
+    const el = document.getElementById('sk-ord-only');
+    if (el) el.classList.toggle('on', ordOnly);
+    render();
+  };
+
+  function filtered() {
+    const sv = ordOnly ? saved() : null;
+    return all.filter(r => {
+      if (fams.size && !fams.has(r.mishpacha)) return false;
+      if (cos.size  && !cos.has(r.hevra))      return false;
+      if (ashFilter.size) {
+        const has = r.ashdod_k > 0;
+        if (!ashFilter.has(has ? 'yes' : 'no')) return false;
+      }
+      if (mmdFilter.size) {
+        const has = r.mmd_k > 0;
+        if (!mmdFilter.has(has ? 'yes' : 'no')) return false;
+      }
+      if (ordOnly && sv) {
+        const s = sv[String(r.mkt ?? '')] || {};
+        const haml = r.hamlatza ?? 0;
+        const eff  = s.k != null ? s.k : (haml > 0 ? Math.round(haml) : 0);
+        if (eff <= 0) return false;
+      }
+      return true;
+    });
+  }
+
+  function render() {
+    const rows = filtered();
+    const sv   = saved();
+    const tb   = document.getElementById('tb');
+    tb.innerHTML = '';
+
+    let tAsh = 0, tEil = 0, tMav = 0, tMmd = 0, tMkr = 0, tHaml = 0, tOrd = 0, nOrd = 0;
+    const coMap = {}; // per-company order totals
+
+    // Group by mishpacha
+    const seen = [], grpMap = {};
+    rows.forEach(r => {
+      const g = r.mishpacha || '—';
+      if (!grpMap[g]) { grpMap[g] = []; seen.push(g); }
+      grpMap[g].push(r);
+    });
+
+    // Sort groups: groups with any order first
+    seen.sort((a, b) => {
+      const aHas = grpMap[a].some(r => {
+        const s = sv[String(r.mkt ?? '')] || {};
+        return (s.k != null ? s.k : (r.hamlatza > 0 ? Math.round(r.hamlatza) : 0)) > 0;
+      });
+      const bHas = grpMap[b].some(r => {
+        const s = sv[String(r.mkt ?? '')] || {};
+        return (s.k != null ? s.k : (r.hamlatza > 0 ? Math.round(r.hamlatza) : 0)) > 0;
+      });
+      return bHas - aHas;
+    });
+
+    seen.forEach(grp => {
+      const grpRows = grpMap[grp];
+
+      // Sort rows within group: ordered (largest first), then unordered
+      grpRows.sort((a, b) => {
+        const sa = sv[String(a.mkt ?? '')] || {}, sb = sv[String(b.mkt ?? '')] || {};
+        const ea = sa.k != null ? sa.k : (a.hamlatza > 0 ? Math.round(a.hamlatza) : 0);
+        const eb = sb.k != null ? sb.k : (b.hamlatza > 0 ? Math.round(b.hamlatza) : 0);
+        return eb - ea;
+      });
+
+      let gAsh = 0, gEil = 0, gMav = 0, gMmd = 0, gMkr = 0, gHaml = 0, gOrd = 0;
+
+      // Group header row
+      const hdr = document.createElement('tr');
+      hdr.className = 'fam-hdr';
+      hdr.innerHTML = '<td colspan="14">📦 ' + grp + ' <span style="font-weight:400;opacity:.5;font-size:.68rem">(' + grpRows.length + ')</span></td>';
+      tb.appendChild(hdr);
+
+      grpRows.forEach(r => {
+        const mk   = String(r.mkt ?? '');
+        const s    = sv[mk] || {};
+        const nts  = s.p || '';
+        const ash  = r.ashdod_k ?? 0;
+        const eil  = r.eilat_k  ?? 0;
+        const mav  = r.maavar   ?? 0;
+        const mmd  = r.mmd_k    ?? 0;
+        const mkr  = r.mkr_shvua != null ? r.mkr_shvua : null;
+        const haml = r.hamlatza  ?? 0;
+        const hamlRnd = haml > 0 ? Math.round(haml) : 0;
+        const ordV    = s.k != null ? s.k : hamlRnd || '';
+        const eff     = Number(ordV) || 0;
+
+        const yamim     = r.yamim ?? null;
+        const shavuot   = r.shavuot ?? null;
+        const mkrTk     = r.mkr_tk ?? null;
+        const weeksNf   = r.weeks_nf ?? null;
+        const yamimHaya = r.yamim_haya ?? null;
+        const pctMkr    = r.pct_mkr ?? null;
+        const yamimDisp = yamim == null ? '—' : yamim > 999 ? '999+' : String(yamim);
+        const yamimCls  = yamim == null ? '' : yamim <= 14 ? 'lo' : yamim <= 30 ? 'md' : 'ok';
+
+        gAsh += ash; gEil += eil; gMav += mav; gMmd += mmd;
+        if (mkr != null) gMkr += mkr;
+        gHaml += haml;
+        if (eff > 0) { gOrd += eff; nOrd++; }
+        // accumulate per-company
+        if (eff > 0) coMap[r.hevra || '—'] = (coMap[r.hevra || '—'] || 0) + eff;
+
+        const tr = document.createElement('tr');
+        tr.className = 'drow';
+        tr.innerHTML =
+          '<td class="c-mkt">' + mk + '</td>' +
+          '<td class="c-img">' +
+            (r.img ? '<img src="' + r.img + '" alt="" loading="lazy" onerror="this.outerHTML=\'<span class=ni></span>\'">' : '<span class="ni"></span>') +
+          '</td>' +
+          '<td class="c-taur" dir="auto" title="' + r.taur + '">' + r.taur + '</td>' +
+          '<td class="c-co">' + (r.hevra || '') + '</td>' +
+          '<td class="c-num ' + klass(mmd) + '">' + mmd + '</td>' +
+          '<td class="c-num">' + (mkr != null ? mkr.toFixed(1) : '—') + '</td>' +
+          '<td class="c-num ' + klass(ash) + '">' + ash + '</td>' +
+          '<td class="c-num ' + klass(mav) + '">' + mav + '</td>' +
+          '<td class="c-tukuf">' + formatTukuf(r.tukuf) + '</td>' +
+          '<td class="c-num ' + yamimCls + '">' + yamimDisp + '</td>' +
+          '<td class="c-num">' + (mkrTk != null ? mkrTk : '—') + '</td>' +
+          '<td class="c-num ' + (shavuot != null && shavuot < 2 ? 'lo' : '') + '">' + (shavuot != null ? Math.round(shavuot) : '—') + '</td>' +
+          '<td class="c-num">' + (weeksNf != null ? weeksNf : '—') + '</td>' +
+          '<td class="c-num">' + (yamimHaya != null ? yamimHaya : '—') + '</td>' +
+          '<td class="c-num">' + (pctMkr != null ? pctMkr + '%' : '—') + '</td>' +
+          '<td class="c-haml">' + (haml > 0 ? Math.round(haml) : '') + '</td>' +
+          '<td class="c-num"><input class="ei ei-n" type="number" min="0" step="1" value="' + ordV + '" data-mk="' + mk + '" data-f="k" oninput="inp(this)" placeholder="0"/></td>' +
+          '<td>' + buildPrtimCell(mk, r.tukuf, nts) + '</td>';
+        tb.appendChild(tr);
+      });
+
+      tAsh += gAsh; tEil += gEil; tMav += gMav; tMmd += gMmd;
+      tMkr += gMkr; tHaml += gHaml; tOrd += gOrd;
+    });
+
+    // Grand total footer
+    const tf = document.getElementById('tf');
+    tf.innerHTML =
+      '<tr>' +
+        '<td colspan="4">סה"כ (' + rows.length + ' פריטים)</td>' +
+        '<td class="c-num">' + tMmd + '</td>' +
+        '<td class="c-num">' + tMkr.toFixed(1) + '</td>' +
+        '<td class="c-num">' + tAsh + '</td>' +
+        '<td></td>' +
+        '<td colspan="7"></td>' +
+        '<td class="c-num" id="ft-ord">' + tOrd + '</td>' +
+        '<td colspan="2"></td>' +
+      '</tr>';
+
+    document.getElementById('t').style.display  = '';
+    document.getElementById('ld').style.display = 'none';
+    updateCoKPIs(coMap);
+  }
+
+  function updateCoKPIs(coMap) {
+    const total = Object.values(coMap).reduce((s, v) => s + v, 0);
+    document.querySelectorAll('#fbar .chip[data-c]').forEach(ch => {
+      const c = ch.dataset.c;
+      if (c === '*') {
+        ch.innerHTML = 'כולם' + (total ? ' <span class="co-badge">• ' + total + '</span>' : '');
+      } else {
+        const v = coMap[c] || 0;
+        ch.innerHTML = c + (v ? ' <span class="co-badge">• ' + v + '</span>' : '');
+      }
+    });
+  }
+
+  window.inp = function(el) {
+    const mk = el.dataset.mk, f = el.dataset.f;
+    const sv = saved();
+    if (!sv[mk]) sv[mk] = {};
+    const v = el.value.trim();
+    if (v === '') delete sv[mk][f];
+    else sv[mk][f] = f === 'k' ? Number(v) : v;
+    if (!sv[mk].k && !sv[mk].p) delete sv[mk];
+    save(sv);
+    recalc();
+  };
+
+  function recalc() {
+    const sv   = saved();
+    const rows = filtered();
+    let ord = 0, items = 0;
+    const coMap = {};
+    rows.forEach(r => {
+      const s = sv[String(r.mkt ?? '')] || {};
+      const haml = r.hamlatza ?? 0;
+      const eff  = s.k != null ? s.k : (haml > 0 ? Math.round(haml) : 0);
+      if (eff > 0) {
+        ord += eff; items++;
+        const co = r.hevra || '—';
+        coMap[co] = (coMap[co] || 0) + eff;
+      }
+    });
+    const ft = document.getElementById('ft-ord');
+    if (ft) ft.textContent = ord;
+    updateCoKPIs(coMap);
+  }
+
+  window.clearAll = function() {
+    if (!confirm('למחוק את כל ההזמנות השמורות?')) return;
+    localStorage.removeItem(LS);
+    document.querySelectorAll('.ei-n').forEach(i => { i.value = ''; });
+    document.querySelectorAll('.ei-p').forEach(i => { i.value = ''; });
+    recalc();
+  };
+
+  window.exportXL = function() {
+    const rows = filtered();
+    const sv   = saved();
+    const now  = new Date();
+    const dateStr = now.toLocaleDateString('he-IL');
+    const timeStr = now.toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'});
+    const fileDateStr = dateStr.replace(/\//g, '-');
+
+    const orderedRows = rows.filter(r => {
+      const s   = sv[String(r.mkt ?? '')] || {};
+      const haml = r.hamlatza ?? 0;
+      const eff  = s.k != null ? s.k : (haml > 0 ? Math.round(haml) : 0);
+      return eff > 0;
+    });
+
+    const histItems = [];
+    const aoa = [
+      ['הזמנה MMD', '', '', '', ''],
+      [dateStr + '  ' + timeStr, '', '', '', ''],
+      [],
+      ['מק"ט', 'שם מוצר', 'מלאי MMD', 'מלאי אשדוד', 'הזמנה קרטון', 'תוקף הזמנה'],
+    ];
+
+    orderedRows.forEach(r => {
+      const mk  = String(r.mkt ?? '');
+      const s   = sv[mk] || {};
+      const haml = r.hamlatza ?? 0;
+      const eff  = s.k != null ? Number(s.k) : (haml > 0 ? Math.round(haml) : 0);
+      const opts = r.tukuf ? r.tukuf.split('/').map(d => d.trim()).filter(Boolean) : [];
+      const tukufVal = s.p || opts[0] || '';
+      aoa.push([mk, r.taur, r.mmd_k ?? 0, r.ashdod_k ?? 0, eff, tukufVal]);
+      histItems.push({ mk, taur: r.taur, mmd: r.mmd_k ?? 0, ash: r.ashdod_k ?? 0, qty: eff, tukuf: tukufVal });
+    });
+
+    // Save snapshot to history
+    const hist = JSON.parse(localStorage.getItem('mmd_order_history') || '[]');
+    hist.unshift({ ts: dateStr + ' ' + timeStr, count: histItems.length, items: histItems });
+    if (hist.length > 25) hist.pop();
+    localStorage.setItem('mmd_order_history', JSON.stringify(hist));
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!merges'] = [
+      { s:{r:0,c:0}, e:{r:0,c:4} },
+      { s:{r:1,c:0}, e:{r:1,c:4} },
+    ];
+    ws['!cols'] = [{wch:13},{wch:42},{wch:14},{wch:14},{wch:16}];
+    ws['!sheetViews'] = [{ rightToLeft: true, state:'frozen', ySplit: 4 }];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'הזמנה MMD');
+    XLSX.writeFile(wb, 'MMD-Order-' + fileDateStr + '.xlsx');
+  };
+
+  window.toggleOrderHistory = function() {
+    const dd = document.getElementById('hist-dd');
+    const open = dd.classList.toggle('open');
+    if (open) _renderHistDd();
+    if (open) {
+      const close = e => {
+        if (!dd.contains(e.target) && e.target.id !== 'btn-hist') {
+          dd.classList.remove('open');
+          document.removeEventListener('click', close);
+        }
+      };
+      setTimeout(() => document.addEventListener('click', close), 10);
+    }
+  };
+
+  function _renderHistDd() {
+    const hist = JSON.parse(localStorage.getItem('mmd_order_history') || '[]');
+    const dd = document.getElementById('hist-dd');
+    if (!hist.length) {
+      dd.innerHTML = '<div class="hist-empty">אין היסטוריית הזמנות<br>לחץ Excel כדי לשמור הזמנה</div>';
+      return;
+    }
+    dd.innerHTML = hist.map((h, i) =>
+      `<div class="hist-item" onclick="restoreOrder(${i})">
+         <span class="h-ts">${h.ts} · ${h.count} פריטים</span>
+         <span class="h-cnt">שחזר ↩</span>
+       </div>`
+    ).join('');
+  }
+
+  window.restoreOrder = function(idx) {
+    const hist = JSON.parse(localStorage.getItem('mmd_order_history') || '[]');
+    if (!hist[idx]) return;
+    if (!confirm('לשחזר הזמנה מ-' + hist[idx].ts + '?')) return;
+    const sv = saved();
+    hist[idx].items.forEach(item => {
+      sv[item.mk] = sv[item.mk] || {};
+      sv[item.mk].k = item.qty;
+    });
+    localStorage.setItem('mmd_saved', JSON.stringify(sv));
+    document.getElementById('hist-dd').classList.remove('open');
+    render();
+  };
+
+  document.getElementById('ph-d').textContent = new Date().toLocaleDateString('he-IL');
+
+  window.load = load;
+  load();
+})();
+</script>
+</body>
+</html>
