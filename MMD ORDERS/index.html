@@ -281,9 +281,11 @@
     .c-haml { text-align: center; font-weight: 800; color: var(--green); }
     .c-tukuf { max-width: 130px; font-size: .7rem; line-height: 1.6; }
     .tk-d { display: block; white-space: nowrap; }
-    .lo { }
-    .md { }
-    .ok { }
+    .lo { color: #d32f2f; font-weight: 800; }
+    .md { color: #e65100; }
+    .ok { color: #2e7d32; }
+    tr.danger .c-haml { color: #d32f2f !important; }
+    tr.danger .ei-n { border-color: #d32f2f !important; color: #d32f2f !important; }
 
     /* editable inputs */
     .ei {
@@ -783,7 +785,7 @@
         const weeksNf   = r.weeks_nf ?? null;
         const yamimHaya = r.yamim_haya ?? null;
         const pctMkr    = r.pct_mkr ?? null;
-        const yamimDisp = yamim == null ? '—' : yamim > 999 ? '999+' : String(yamim);
+        const yamimDisp = yamim == null ? '—' : yamim > 999 ? '999+' : (yamim <= 14 ? '⚠ ' : '') + String(yamim);
         const yamimCls  = yamim == null ? '' : yamim <= 14 ? 'lo' : yamim <= 30 ? 'md' : 'ok';
 
         gAsh += ash; gEil += eil; gMav += mav; gMmd += mmd;
@@ -794,7 +796,7 @@
         if (eff > 0) coMap[r.hevra || '—'] = (coMap[r.hevra || '—'] || 0) + eff;
 
         const tr = document.createElement('tr');
-        tr.className = 'drow';
+        tr.className = 'drow' + (yamim != null && yamim <= 14 ? ' danger' : '');
         tr.innerHTML =
           '<td class="c-mkt">' + mk + '</td>' +
           '<td class="c-taur" dir="auto" title="' + r.taur + '">' + r.taur + '</td>' +
