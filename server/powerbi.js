@@ -46,12 +46,12 @@ function httpsPost(url, headers, body) {
   });
 }
 
-async function executeDax(daxQuery) {
+async function executeDax(daxQuery, datasetId) {
   const token = await getPowerBIToken();
   const workspaceId = process.env.POWERBI_WORKSPACE_ID;
-  const datasetId = process.env.POWERBI_DATASET_ID;
+  const dsId = datasetId || process.env.POWERBI_DATASET_ID;
 
-  const url = `https://api.powerbi.com/v1.0/myorg/groups/${workspaceId}/datasets/${datasetId}/executeQueries`;
+  const url = `https://api.powerbi.com/v1.0/myorg/groups/${workspaceId}/datasets/${dsId}/executeQueries`;
 
   const res = await httpsPost(url, {
     Authorization: `Bearer ${token}`,
@@ -80,4 +80,34 @@ async function getTableNames() {
   return found;
 }
 
-module.exports = { executeDax, getPowerBIToken, getTableNames };
+async function getDatasetRefreshTime(datasetId) {
+  try {
+    const token = await getPowerBIToken();
+    const workspaceId = process.env.POWERBI_WORKSPACE_ID;
+    const dsId = datasetId || process.env.POWERBI_DATASET_ID;
+    const url = `https://api.powerbi.com/v1.0/myorg/groups/${workspaceId}/datasets/${dsId}/refreshes?$top=1`;
+    return await new Promise((resolve) => {
+      const u = new URL(url);
+      const req = https.request({
+        hostname: u.hostname, path: u.pathname + u.search,
+        method: 'GET', timeout: 15000,
+        headers: { Authorization: `Bearer ${token}` },
+      }, res => {
+        const chunks = [];
+        res.on('data', c => chunks.push(c));
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+            const last = json.value?.[0];
+            resolve(last?.endTime || last?.startTime || null);
+          } catch { resolve(null); }
+        });
+      });
+      req.on('error', () => resolve(null));
+      req.on('timeout', () => { req.destroy(); resolve(null); });
+      req.end();
+    });
+  } catch { return null; }
+}
+
+module.exports = { executeDax, getPowerBIToken, getTableNames, getDatasetRefreshTime };
