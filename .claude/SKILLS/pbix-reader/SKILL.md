@@ -144,8 +144,39 @@ Remove-Item "C:\tmp\pbix-extracted" -Recurse -Force
 Remove-Item "C:\tmp\_pbix_work.zip" -Force
 ```
 
+## DAX Measures — читать через PBIP или PBIT (ВАЖНО!)
+
+`DataModel` в `.pbix` — бинарный Vertipaq. DAX-формулы мер **нельзя** прочитать из PBIX напрямую.
+
+**Решение:** попросить пользователя сохранить файл в одном из форматов:
+
+### Вариант 1: PBIT (Power BI Template)
+```powershell
+$pbit = "<path>.pbit"
+Expand-Archive $pbit "C:\tmp\pbit-out" -Force
+$schema = Get-Content "C:\tmp\pbit-out\DataModelSchema" -Raw -Encoding Unicode
+# Поиск конкретной меры:
+$idx = $schema.IndexOf("имя меры")
+$schema.Substring([Math]::Max(0,$idx-50), 2000)
+```
+
+### Вариант 2: PBIP (Power BI Project) — предпочтительный
+При сохранении как PBIP создаётся папка `<name>.SemanticModel/definition/tables/`:
+- `MEASURE TABLE.tmdl` — все DAX-меры в читаемом TMDL-формате
+- `<TableName>.tmdl` — колонки и вычисляемые столбцы каждой таблицы
+
+```powershell
+# Читать все меры:
+Get-Content "path\to\MEASURE TABLE.tmdl" -Encoding UTF8
+```
+
+TMDL-файлы — обычный текст, читаются через Read tool напрямую.
+
+### Важно: заголовки колонок в таблицах PBI ≠ имена мер!
+Пользователь видит в таблице заголовок, который может быть переименованным алиасом. Всегда проверять точное имя меры в TMDL.
+
 ## Limitations
 
-- `DataModel` is Vertipaq-compressed binary. Measure DAX code is NOT readable without Power BI Desktop or third-party tools (DAX Studio, Tabular Editor).
 - Images embedded in visuals are not extractable via this method.
 - Real data values are not in the PBIX — only schema/structure.
+- PBIX DataModel — бинарный, нечитаемый. Использовать PBIP/PBIT для DAX.
