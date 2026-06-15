@@ -785,8 +785,8 @@
         const weeksNf   = r.weeks_nf ?? null;
         const yamimHaya = r.yamim_haya ?? null;
         const pctMkr    = r.pct_mkr ?? null;
-        const yamimDisp = yamim == null ? '—' : yamim > 999 ? '999+' : (yamim <= 14 ? '⚠ ' : '') + String(yamim);
-        const yamimCls  = yamim == null ? '' : yamim <= 14 ? 'lo' : yamim <= 30 ? 'md' : 'ok';
+        const yamimDisp = yamim == null ? '—' : yamim > 999 ? '999+' : (yamim < 10 ? '⚠ ' : '') + String(yamim);
+        const yamimCls  = yamim == null ? '' : yamim < 10 ? 'lo' : yamim <= 30 ? 'md' : 'ok';
 
         gAsh += ash; gEil += eil; gMav += mav; gMmd += mmd;
         if (mkr != null) gMkr += mkr;
@@ -796,7 +796,7 @@
         if (eff > 0) coMap[r.hevra || '—'] = (coMap[r.hevra || '—'] || 0) + eff;
 
         const tr = document.createElement('tr');
-        tr.className = 'drow' + (yamim != null && yamim <= 14 ? ' danger' : '');
+        tr.className = 'drow' + (yamim != null && yamim < 10 ? ' danger' : '');
         tr.innerHTML =
           '<td class="c-mkt">' + mk + '</td>' +
           '<td class="c-taur" dir="auto" title="' + r.taur + '">' + r.taur + '</td>' +
