@@ -2276,7 +2276,7 @@ function buildOrderPage() {
     const krat    = +(d.ashdodPalletCartons || d.kratnost || 1);
     const palSpo  = krat > 0 && spo > 0 ? +(spo / krat).toFixed(1) : 0;
     const _ps = window._orderPeriodSales;
-    const daySales = +(_ps ? (_ps[mk] ?? d.daySalesAll ?? 0) : (d.daySalesAll || 0));
+    const daySales = +(_ps ? (_ps[mk] ?? 0) : (d.daySalesAll || 0));
     const daysStk  = daySales > 0 ? spo / daySales * 1.4 : null;
     const safetyDays = _getSafetyDays(fam);
     const safetyK    = Math.ceil(safetyDays / 1.4 * daySales);
