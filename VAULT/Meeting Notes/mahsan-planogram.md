@@ -117,3 +117,20 @@ Pending: scheduled build запишет nameEn → карточки получа
 - **Логика**: `[הזמנות רכש פתוחות PLUS מלאי זמין]` = млаי всех складов + заказы поставщику. `openOrders` = чисто заказы (мера − все склады). `daysStk` = сколько дней хватит (все склады + заказы в пути).
 
 Коммиты: `e71b63d` (planogram-editor), `b1d80ec` (pbi-kapua + build), + финальный фикс stockAll
+
+### 2026-06-15 #session-in-progress
+
+**תוקף page — печать 3×3 карточки на страницу:**
+- Print CSS изменён: `#expiry-grid` в `@media print` переключён с `display:flex` → `display:grid; grid-template-columns:repeat(3,1fr)`
+- Карточки: `width:auto !important` (переопределяет inline `width:340px`)
+- Заголовки секций: класс `expiry-sec-hdr` + `grid-column:1/-1` — занимают всю ширину страницы
+- Функция `buildExpiryPage`: добавлен `class="expiry-sec-hdr"` к div заголовков секций
+
+**MMD ORDERS — שם מוצר фикс:**
+- Добавлена `fixVisualRTL(s)` (аналогично planogram-editor) для исправления перевёрнутых Hebrew имён из PBI
+- `.c-taur`: bold 700, color #1a1a2e, font-size .88rem — красивый шрифт как в MAHSAN редакторе
+- `dir="rtl"` (был `dir="auto"`) + `fixVisualRTL(r.taur)` при рендеринге строки
+
+**MMD ORDERS — تוקף display fix:**
+- `_HE_MON`: убраны апострофы из аббревиатур месяцев
+- `formatTukuf`: `dir="ltr"` на каждый span — Hebrew month + Latin year рендерится слева направо без RTL-инверсии
