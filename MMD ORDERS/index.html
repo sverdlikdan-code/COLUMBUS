@@ -508,36 +508,34 @@
     #splash.hiding { opacity: 0; pointer-events: none; }
     #splash.gone   { display: none; }
 
-    /* Artistic Eilat scene — inline SVG, no external dependencies */
+    /* Luxury minimal dark background */
     #splash-bg {
-      position: absolute;
-      inset: 0;
-      overflow: hidden;
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse at 50% 42%, rgba(8,45,110,0.38) 0%, transparent 52%),
+        linear-gradient(155deg, #010810 0%, #030d20 28%, #061828 55%, #040c1a 78%, #020810 100%);
+    }
+    #splash-bg::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: repeating-linear-gradient(
+        -45deg,
+        transparent, transparent 90px,
+        rgba(255,200,70,0.022) 90px, rgba(255,200,70,0.022) 91px
+      );
+    }
+    #splash-bg::after {
+      content: '';
+      position: absolute; bottom: 0; left: 0; right: 0; height: 40%;
+      background: linear-gradient(to top, rgba(255,185,40,0.055) 0%, transparent 100%);
     }
     #splash-bg svg {
       position: absolute;
       inset: 0;
       width: 100%; height: 100%;
     }
-    /* Dark overlay for text readability */
-    #splash-overlay {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(160deg,
-        rgba(2,8,20,0.72)  0%,
-        rgba(5,18,40,0.62) 50%,
-        rgba(10,30,55,0.45) 75%,
-        rgba(60,20,8,0.50) 100%
-      );
-    }
-    /* Sun glow bottom-right */
-    #splash-sun {
-      position: absolute;
-      right: -80px; bottom: -80px;
-      width: 480px; height: 400px;
-      background: radial-gradient(ellipse, rgba(255,155,40,0.45) 0%, transparent 65%);
-      pointer-events: none;
-    }
+    #splash-overlay { display: none; }
+    #splash-sun     { display: none; }
 
     /* Center content */
     #splash-content {
@@ -698,118 +696,11 @@
 
 <!-- ═══════════════ SPLASH LANDING PAGE ═══════════════ -->
 <div id="splash">
-  <div id="splash-bg">
-    <!-- Artistic Eilat scene: Red Sea · Edom mountains · Negev · dusk sky -->
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 900" preserveAspectRatio="xMidYMid slice">
-      <defs>
-        <linearGradient id="eg-sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stop-color="#010810"/>
-          <stop offset="35%"  stop-color="#041730"/>
-          <stop offset="65%"  stop-color="#082e58"/>
-          <stop offset="85%"  stop-color="#0a4a7a"/>
-          <stop offset="100%" stop-color="#0d5e8e"/>
-        </linearGradient>
-        <radialGradient id="eg-sun" cx="18%" cy="82%" r="35%">
-          <stop offset="0%"   stop-color="#d06020" stop-opacity="0.7"/>
-          <stop offset="30%"  stop-color="#903010" stop-opacity="0.35"/>
-          <stop offset="70%"  stop-color="#501808" stop-opacity="0.12"/>
-          <stop offset="100%" stop-color="#000"    stop-opacity="0"/>
-        </radialGradient>
-        <linearGradient id="eg-sea" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stop-color="#0d6892"/>
-          <stop offset="40%"  stop-color="#094870"/>
-          <stop offset="100%" stop-color="#020e20"/>
-        </linearGradient>
-        <linearGradient id="eg-sea-glow" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%"   stop-color="#a04820" stop-opacity="0.25"/>
-          <stop offset="35%"  stop-color="#c86030" stop-opacity="0.12"/>
-          <stop offset="60%"  stop-color="#0a5080" stop-opacity="0"/>
-        </linearGradient>
-        <filter id="eg-blur"><feGaussianBlur stdDeviation="3"/></filter>
-        <filter id="eg-glow"><feGaussianBlur stdDeviation="8"/></filter>
-      </defs>
-
-      <!-- Sky -->
-      <rect width="1920" height="900" fill="url(#eg-sky)"/>
-      <!-- Sunset radial glow (left = west in RTL context) -->
-      <ellipse cx="340" cy="740" rx="700" ry="500" fill="url(#eg-sun)"/>
-
-      <!-- Stars -->
-      <g opacity="0.85">
-        <circle cx="180"  cy="60"  r="1.2" fill="#fff" opacity="0.8"/>
-        <circle cx="340"  cy="35"  r="0.9" fill="#fff" opacity="0.6"/>
-        <circle cx="520"  cy="90"  r="1.4" fill="#fff" opacity="0.7"/>
-        <circle cx="680"  cy="45"  r="0.8" fill="#fff" opacity="0.9"/>
-        <circle cx="820"  cy="20"  r="1.1" fill="#fff" opacity="0.65"/>
-        <circle cx="1020" cy="70"  r="1.3" fill="#fff" opacity="0.75"/>
-        <circle cx="1180" cy="30"  r="0.9" fill="#fff" opacity="0.8"/>
-        <circle cx="1350" cy="85"  r="1.5" fill="#fff" opacity="0.6"/>
-        <circle cx="1530" cy="50"  r="1.0" fill="#fff" opacity="0.85"/>
-        <circle cx="1700" cy="25"  r="1.2" fill="#fff" opacity="0.7"/>
-        <circle cx="1850" cy="75"  r="0.8" fill="#fff" opacity="0.6"/>
-        <circle cx="90"   cy="140" r="0.9" fill="#fff" opacity="0.5"/>
-        <circle cx="450"  cy="160" r="1.0" fill="#fff" opacity="0.55"/>
-        <circle cx="760"  cy="120" r="0.8" fill="#fff" opacity="0.6"/>
-        <circle cx="1100" cy="130" r="1.1" fill="#fff" opacity="0.5"/>
-        <circle cx="1460" cy="150" r="0.9" fill="#fff" opacity="0.6"/>
-        <circle cx="1780" cy="130" r="1.2" fill="#fff" opacity="0.5"/>
-        <!-- "Venus" bright star above sunset -->
-        <circle cx="260"  cy="320" r="2.2" fill="#ffe8a0" opacity="0.9"/>
-      </g>
-
-      <!-- Edom mountains (Jordan, right side in RTL = east) -->
-      <polygon
-        points="1920,0 1920,620 1820,580 1720,480 1650,560 1560,390 1480,510 1400,350 1310,480 1230,420 1150,520 1070,460 990,580 920,500 850,570 780,620 1920,620"
-        fill="#06121e" opacity="0.92"/>
-      <!-- Edom mountains lighter layer (distance) -->
-      <polygon
-        points="1920,150 1920,520 1820,480 1740,400 1680,460 1610,340 1540,430 1470,310 1400,410 1330,360 1260,450 1200,390 1140,470 1080,420 1010,500 950,460 890,520 830,560 780,620 1920,620"
-        fill="#071828" opacity="0.6"/>
-
-      <!-- Negev mountains (Israel, left side = west) -->
-      <polygon
-        points="0,0 0,640 60,620 130,520 210,600 290,440 370,560 450,390 530,510 610,430 680,540 750,480 810,580 860,540 900,620 0,620"
-        fill="#060f1c" opacity="0.9"/>
-
-      <!-- Sea (Red Sea / Gulf of Aqaba) -->
-      <rect y="600" width="1920" height="300" fill="url(#eg-sea)"/>
-      <!-- Sunset reflection on sea surface -->
-      <rect y="600" width="1920" height="8" fill="url(#eg-sea-glow)"/>
-
-      <!-- Sea shimmer lines -->
-      <g opacity="0.12" filter="url(#eg-blur)">
-        <line x1="0" y1="640" x2="600" y2="640" stroke="#88ccee" stroke-width="1.5"/>
-        <line x1="0" y1="660" x2="700" y2="660" stroke="#88ccee" stroke-width="1"/>
-        <line x1="0" y1="680" x2="500" y2="680" stroke="#88ccee" stroke-width="1.5"/>
-        <line x1="0" y1="700" x2="800" y2="700" stroke="#88ccee" stroke-width="1"/>
-        <line x1="100" y1="720" x2="650" y2="720" stroke="#88ccee" stroke-width="1.5"/>
-      </g>
-
-      <!-- City lights (Eilat waterfront) — tiny warm glows -->
-      <g filter="url(#eg-glow)" opacity="0.55">
-        <rect x="680" y="588" width="3" height="32" fill="#ffe080"/>
-        <rect x="710" y="575" width="4" height="45" fill="#ffcc60"/>
-        <rect x="750" y="582" width="3" height="38" fill="#ffe080"/>
-        <rect x="790" y="570" width="5" height="50" fill="#ffd070"/>
-        <rect x="840" y="578" width="3" height="42" fill="#ffcc60"/>
-        <rect x="875" y="565" width="4" height="55" fill="#ffe080"/>
-        <rect x="920" y="575" width="3" height="45" fill="#ffd070"/>
-        <rect x="960" y="580" width="4" height="40" fill="#ffcc60"/>
-        <rect x="1000" y="572" width="3" height="48" fill="#ffe080"/>
-        <rect x="1040" y="582" width="5" height="38" fill="#ffd070"/>
-        <rect x="1090" y="570" width="3" height="50" fill="#ffcc60"/>
-        <rect x="1130" y="578" width="4" height="42" fill="#ffe080"/>
-      </g>
-
-      <!-- Horizon haze -->
-      <rect y="590" width="1920" height="25" fill="#0a3a5a" opacity="0.45"/>
-    </svg>
-  </div>
+  <div id="splash-bg"></div>
   <div id="splash-overlay"></div>
   <div id="splash-sun"></div>
 
   <div id="splash-content">
-    <div class="splash-stars">✦ &nbsp; ✦ &nbsp; ✦</div>
 
     <div id="splash-emblem">
       <img src="/logo-diler-bmd.png" alt="DILER" id="splash-emblem-logo">
