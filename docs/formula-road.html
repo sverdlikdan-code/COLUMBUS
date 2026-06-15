@@ -11,9 +11,12 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="F-ROAD">
 <link rel="apple-touch-icon" href="./icons/icon.svg">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
+      integrity="sha384-pmjIAcz2bAn0xukfxADbZIb3t8oRT9Sv0rvO+BR5Csr6Dhqq+nZs59P0pPKQJkEV" crossorigin="anonymous"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
+      integrity="sha384-wgw+aLYNQ7dlhK47ZPK7FRACiq7ROZwgFNg0m04avm4CaXS+Z9Y7nMu8yNjBKYC+" crossorigin="anonymous"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
@@ -417,21 +420,25 @@ body.gps-fs #map{height:100%!important;}
 </div>
 
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"></script>
-<script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate-src.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.js"
+        integrity="sha384-FhPn/2P/fJGhQLeNWDn9B/2Gml2bPOrKJwFqJXgR3xOPYxWg5mYQ5XZdhUSugZT0" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate-src.js"
+        integrity="sha384-WaInCl5qKhXVwIIJ/XMxRvjzCTIkZ1uH9Evm3mNtVtfXWhJGU3EkedDBaf/037Ew" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"
+        integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"
+        integrity="sha384-BSxuMLxX+FCbTdYec3TbXlnMGEEM2QXTFdtDaveen71o+jswm2J36+xFqp8k4VHM" crossorigin="anonymous"></script>
 <script>
 const API = 'https://api.sverdlik-apps.site';
-const MAINTENANCE_MODE = true; // true = все видят maintenance (кроме разблокированных устройств)
-const DEV_UNLOCK_KEY = 'fr-diler-2026';
+const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const MAINTENANCE_MODE = true;
 
-// Unlock this device: visit URL with ?unlock=fr-diler-2026
 (function(){
   const p = new URLSearchParams(location.search);
-  if(p.get('unlock') === DEV_UNLOCK_KEY){
-    localStorage.setItem('frUnlocked', DEV_UNLOCK_KEY);
+  if(p.get('unlock') === 'fr-diler-2026'){
+    localStorage.setItem('frUnlocked', 'fr-diler-2026');
     history.replaceState(null,'', location.pathname); // убрать ключ из URL
   }
 })();
@@ -1318,9 +1325,9 @@ function renderClientList(html){
     const indic=c.indication||(c.target?calcIndication(c.monthlySales||0,c.target):'');
     const indicPart=(indic&&indic!=='🚀')?`<span style="font-size:13px;">${indic}</span>`:'';
     const SEP='<span style="color:var(--light)"> · </span>';
-    const nameLine=(shortName(c.custName,c.city)||c.custName||'')
-      +(c.city?`<span style="font-weight:400;color:var(--mid);font-size:11px;"> · ${c.city}</span>`:'')
-      +(c.address?`<span style="font-weight:400;color:var(--mid);font-size:11px;"> · ${c.address}</span>`:'');
+    const nameLine=(shortName(c.custName,c.city)||esc(c.custName)||'')
+      +(c.city?`<span style="font-weight:400;color:var(--mid);font-size:11px;"> · ${esc(c.city)}</span>`:'')
+      +(c.address?`<span style="font-weight:400;color:var(--mid);font-size:11px;"> · ${esc(c.address)}</span>`:'');
     return `<div class="${cls}" data-id="${c.custId}" ondblclick="selectClient('${c.custId}')">
       <div class="c-num-wrap c-drag">
         <span class="c-num${inWalk?' c-num-walk':''}">${i+1}</span>
@@ -1580,7 +1587,7 @@ function renderMap(){
     const approxNote = isCityCenter ? '<br><span style="font-size:11px;color:#FF8C00">⚠ מיקום משוער — מרכז עיר</span>' : '';
     const safeName=(c.custName||'').replace(/"/g,'&quot;');
     const fixBtn=`<br><button data-id="${c.custId}" data-name="${safeName}" onclick="startGpsCorrection(this.dataset.id,this.dataset.name)" style="margin-top:6px;background:#1565C0;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">📍 תקן מיקום</button>`;
-    m.bindPopup(`<b>${_rawLabel}${corrMark}</b><br>${c.city||''}${c.address?'<br><span style="font-size:11px;color:#555">'+c.address+'</span>':''}${approxNote}${fixBtn}`);
+    m.bindPopup(`<b>${esc(_rawLabel)}${corrMark}</b><br>${esc(c.city||'')}${c.address?'<br><span style="font-size:11px;color:#555">'+esc(c.address)+'</span>':''}${approxNote}${fixBtn}`);
     if(!gpsCorrectMode) m.bindTooltip(_rawLabel,{permanent:false,direction:'right',opacity:1,className:'fr-tip'});
     if(isSel) m.openPopup();
     bounds.push([c.lat,c.lng]);
