@@ -442,8 +442,8 @@
         <th class="h-co">חברה</th>
         <th class="col-pair">מלאי<br>MMD</th>
         <th class="col-pair">מכר ממוצע<br>בשבוע קרטון</th>
-        <th class="col-g">מלאי<br>אשדוד</th>
-        <th class="col-g">מחסן<br>מעבר</th>
+        <th>מלאי<br>אשדוד</th>
+        <th>מחסן<br>מעבר</th>
         <th>תוקף</th>
         <th>כמה ימים<br>נשארו</th>
         <th>מכר קרטון<br>בתקופה</th>
@@ -451,9 +451,9 @@
         <th>נפח מלאי ביטחון<br>שבועות</th>
         <th>ימי מכר</th>
         <th>ימי מכר<br>מכלל %</th>
-        <th class="col-g">המלצה להזמנה<br>קרטון</th>
-        <th class="col-g">הזמנה<br>ידנית</th>
-        <th class="col-g">תוקף<br>הזמנה</th>
+        <th>המלצה להזמנה<br>קרטון</th>
+        <th>הזמנה<br>ידנית</th>
+        <th>תוקף<br>הזמנה</th>
       </tr>
     </thead>
     <tbody id="tb"></tbody>
@@ -567,6 +567,16 @@
       if (m >= 1 && m <= 12) return _HE_MON[m] + ' ' + p[1];
     }
     return raw.trim();
+  }
+  function _ltrWrap(s) {
+    return s.split(/(\s+)/).map(tok =>
+      /[A-Za-z0-9]/.test(tok) ? '<span dir="ltr">' + tok + '</span>' : tok
+    ).join('');
+  }
+  function shortName(s) {
+    const m = s.match(/\d+\s*ג[.'׳]?/);
+    if (!m) return s;
+    return s.slice(0, s.indexOf(m[0]) + m[0].length).trim();
   }
   function formatTukuf(raw) {
     if (!raw) return '';
@@ -800,7 +810,7 @@
         tr.className = 'drow' + (yamim != null && yamim < 10 ? ' danger' : '');
         tr.innerHTML =
           '<td class="c-mkt">' + mk + '</td>' +
-          '<td class="c-taur" dir="auto" title="' + r.taur + '">' + r.taur + '</td>' +
+          '<td class="c-taur" dir="rtl" title="' + r.taur + '">' + _ltrWrap(shortName(r.taur)) + '</td>' +
           '<td class="c-img">' +
             (r.img ? '<img src="' + r.img + '" alt="" loading="lazy" onerror="this.outerHTML=\'<span class=ni></span>\'">' : '<span class="ni"></span>') +
           '</td>' +
