@@ -11,6 +11,10 @@ server/gps-*.log
 server/gps-*-rerun.js
 server/gps-batch-run.log
 *.pbix
+*.pbip
+*.pbit
+MMD ORDERS/MMD.Report/
+MMD ORDERS/MMD.SemanticModel/
 *.xlsx
 !EXEL COORDINATES.xlsx
 !planogram/MAHSAN 8.xlsx
