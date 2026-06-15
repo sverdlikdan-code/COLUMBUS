@@ -1,4 +1,4 @@
-# mahsan-planogram — MAHSAN PLANOGRAM (FORMULA cold storage)
+﻿# mahsan-planogram — MAHSAN PLANOGRAM (FORMULA cold storage)
 
 Topic file for planogram build system: ExcelJS builder, Power BI data, GitHub Actions CI/CD.
 
@@ -118,19 +118,12 @@ Pending: scheduled build запишет nameEn → карточки получа
 
 Коммиты: `e71b63d` (planogram-editor), `b1d80ec` (pbi-kapua + build), + финальный фикс stockAll
 
-### 2026-06-15 #session-in-progress
+### 2026-06-15 #session-end ✅
 
-**תוקף page — печать 3×3 карточки на страницу:**
-- Print CSS изменён: `#expiry-grid` в `@media print` переключён с `display:flex` → `display:grid; grid-template-columns:repeat(3,1fr)`
-- Карточки: `width:auto !important` (переопределяет inline `width:340px`)
-- Заголовки секций: класс `expiry-sec-hdr` + `grid-column:1/-1` — занимают всю ширину страницы
-- Функция `buildExpiryPage`: добавлен `class="expiry-sec-hdr"` к div заголовков секций
+**MMD ORDERS — layout и BiDi финальные фиксы:**
+- Sidebar убран полностью; фильтры мלаי אשדוד/MMD перенесены в горизонтальные строки `#skrow / .skline`
+- `col-g` (#e8f0f8) — серая заливка на 5 колонках: מלאי MMD, מכר ממוצע, המלצה, הזמנה ידנית, תוקף הזמנה
+- CSS: `tbody td.col-g { background: !important }` — переопределяет nth-child odd специфику
+- `fixProductName(s)` — точечный фикс: `'ג004 → 400ג'` + зеркальные скобки `)text( → (text)`, применяется к строкам без BiDi-маркеров
+- Порядок пайплайна рендера: `fixProductName → shortName → _ltrWrap`
 
-**MMD ORDERS — שם מוצר фикс:**
-- Добавлена `fixVisualRTL(s)` (аналогично planogram-editor) для исправления перевёрнутых Hebrew имён из PBI
-- `.c-taur`: bold 700, color #1a1a2e, font-size .88rem — красивый шрифт как в MAHSAN редакторе
-- `dir="rtl"` (был `dir="auto"`) + `fixVisualRTL(r.taur)` при рендеринге строки
-
-**MMD ORDERS — تוקף display fix:**
-- `_HE_MON`: убраны апострофы из аббревиатур месяцев
-- `formatTukuf`: `dir="ltr"` на каждый span — Hebrew month + Latin year рендерится слева направо без RTL-инверсии

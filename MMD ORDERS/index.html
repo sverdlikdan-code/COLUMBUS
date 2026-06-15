@@ -170,12 +170,29 @@
     .period-chip.cur   { border-color: var(--sky-mid); color: var(--light); }
     .period-chip.on    { background: var(--blue) !important; border-color: var(--blue-dark) !important; color: #fff !important; font-weight: 700; }
 
-    /* ── STOCK FILTER BAR ───────────────────────────────────── */
-    #stkbar {
-      padding: 6px 16px !important;
-      background: #fff !important;
-      border-bottom: 1px solid var(--sky-mid) !important;
+    /* ── STOCK FILTER ROWS ──────────────────────────────────── */
+    #skrow {
+      flex-shrink: 0;
+      background: var(--sky);
+      border-bottom: 1px solid var(--sky-mid);
+      padding: 4px 16px 5px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
     }
+    .skline {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .stk-label {
+      font-size: .68rem;
+      font-weight: 700;
+      color: var(--mid);
+      white-space: nowrap;
+    }
+    /* Bigger חברה chips */
+    #fbar .chip { padding: 8px 22px; font-size: 1rem; font-weight: 700; }
 
     /* ── FILTER BAR ─────────────────────────────────────────── */
     #fbar {
@@ -222,7 +239,6 @@
     .fam-sel:focus { outline: none; border-color: var(--blue); }
 
     #period-bar { flex-shrink: 0; }
-    #stkbar     { flex-shrink: 0; }
     #fbar       { flex-shrink: 0; }
 
     /* ── TABLE SCROLL ───────────────────────────────────────── */
@@ -284,8 +300,9 @@
     .lo { color: #d32f2f; font-weight: 800; }
     tr.danger .c-haml { color: #d32f2f !important; }
     tr.danger .ei-n { border-color: #d32f2f !important; color: #d32f2f !important; }
-    .col-g { background: #f0f4f8; }
-    tbody td.col-g { background: #f4f6f9 !important; }
+    .col-g { background: #e8f0f8; }
+    thead th.col-g { background: #0d47a1 !important; }
+    tbody td.col-g { background: #e8f0f8 !important; }
     td.tk-lo select { border-color: #d32f2f !important; color: #d32f2f !important; background: #fff5f5; }
     .c-mmd { font-weight: 900; font-size: 1.1rem; color: var(--blue-dark); }
     /* family multi-select dropdown */
@@ -389,8 +406,6 @@
       box-shadow: 0 -1px 4px rgba(0,0,0,.06);
     }
 
-    /* dividers in stkbar */
-    #stkbar span[style*="background:rgba"] { background: var(--sky-mid) !important; }
 
     /* ── PRINT ──────────────────────────────────────────────── */
     @media print {
@@ -430,21 +445,9 @@
   </div>
 </div>
 
+<!-- MAIN WRAP -->
 <!-- PERIOD BAR -->
 <div id="period-bar"></div>
-
-<!-- STOCK FILTER BAR -->
-<div id="stkbar" style="padding:6px 18px;background:#0a1220;border-bottom:1px solid #1e293b;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-  <span class="flabel">ASHDOD:</span>
-  <span class="chip on" id="sk-ash-yes" onclick="togStock('ash','yes')">✓ ASHDOD יש 📦</span>
-  <span class="chip"    id="sk-ash-no"  onclick="togStock('ash','no')">ASHDOD חסר 😢</span>
-  <span style="display:inline-block;width:1px;height:14px;background:rgba(255,255,255,.2);margin:0 8px;flex-shrink:0;align-self:center;"></span>
-  <span class="flabel">MMD:</span>
-  <span class="chip" id="sk-mmd-yes" onclick="togStock('mmd','yes')">✓ MMD יש 📦</span>
-  <span class="chip" id="sk-mmd-no"  onclick="togStock('mmd','no')">MMD חסר 😢</span>
-  <span style="display:inline-block;width:1px;height:14px;background:rgba(255,255,255,.2);margin:0 8px;flex-shrink:0;align-self:center;"></span>
-  <span class="chip" id="sk-ord-only" onclick="togOrdOnly()">📋 הזמנה בלבד</span>
-</div>
 
 <!-- FILTER BAR -->
 <div id="fbar">
@@ -452,6 +455,21 @@
   <div class="fam-drop" id="fam-drop">
     <button class="fam-drop-btn" id="fam-drop-btn" onclick="toggleFamDrop(event)">כולם ▾</button>
     <div class="fam-drop-panel" id="fam-drop-panel"></div>
+  </div>
+</div>
+
+<!-- STOCK FILTER ROWS -->
+<div id="skrow">
+  <div class="skline">
+    <span class="stk-label">אשדוד:</span>
+    <span class="chip on" id="sk-ash-yes" onclick="togStock('ash','yes')">✓ יש 📦</span>
+    <span class="chip"    id="sk-ash-no"  onclick="togStock('ash','no')">חסר 😢</span>
+  </div>
+  <div class="skline">
+    <span class="stk-label">MMD:</span>
+    <span class="chip" id="sk-mmd-yes" onclick="togStock('mmd','yes')">✓ יש 📦</span>
+    <span class="chip" id="sk-mmd-no"  onclick="togStock('mmd','no')">חסר 😢</span>
+    <span class="chip" id="sk-ord-only" onclick="togOrdOnly()">📋 הזמנה בלבד</span>
   </div>
 </div>
 
@@ -465,8 +483,8 @@
         <th>שם מוצר</th>
         <th></th>
         <th class="h-co">חברה</th>
-        <th class="col-pair">מלאי<br>MMD</th>
-        <th class="col-pair">מכר ממוצע<br>בשבוע קרטון</th>
+        <th class="col-pair col-g">מלאי<br>MMD</th>
+        <th class="col-pair col-g">מכר ממוצע<br>בשבוע קרטון</th>
         <th>מלאי<br>אשדוד</th>
         <th>מחסן<br>מעבר</th>
         <th>תוקף</th>
@@ -476,15 +494,15 @@
         <th>נפח מלאי ביטחון<br>שבועות</th>
         <th>ימי מכר</th>
         <th>ימי מכר<br>מכלל %</th>
-        <th>המלצה להזמנה<br>קרטון</th>
-        <th>הזמנה<br>ידנית</th>
-        <th>תוקף<br>הזמנה</th>
+        <th class="col-g">המלצה להזמנה<br>קרטון</th>
+        <th class="col-g">הזמנה<br>ידנית</th>
+        <th class="col-g">תוקף<br>הזמנה</th>
       </tr>
     </thead>
     <tbody id="tb"></tbody>
     <tfoot id="tf"></tfoot>
   </table>
-</div>
+</div><!-- /tw -->
 
 <div id="sbar"><span id="st">מוכן</span></div>
 
@@ -603,6 +621,18 @@
       return String(n0).padStart(2,'0') + ' ' + _HE_MON[n1];
     return raw.trim();
   }
+  function fixVisualRTL(s) {
+    s = s.replace(/[‎‏‪-‮⁦-⁩]/g, '');
+    const full = s.split('').reverse().join('');
+    return full.replace(/[\x20-\x7E]+/g, m => m.split('').reverse().join('')).trim();
+  }
+  function fixProductName(s) {
+    // Visual-order gram suffix from PBI (no BiDi markers): 'ג004 → 400ג'
+    s = s.replace(/([''׳])ג(\d+)/g, '$2ג$1');
+    // Mirrored brackets from PBI visual order: )text( → (text)
+    s = s.replace(/\)([^()]+)\(/g, '($1)');
+    return s;
+  }
   function _ltrWrap(s) {
     return s.split(/(\s+)/).map(tok =>
       /[A-Za-z0-9]/.test(tok) ? '<span dir="ltr">' + tok + '</span>' : tok
@@ -611,7 +641,10 @@
   function shortName(s) {
     const m = s.match(/\d+\s*ג[.'׳]?/);
     if (!m) return s;
-    return s.slice(0, s.indexOf(m[0]) + m[0].length).trim();
+    let res = s.slice(0, s.indexOf(m[0]) + m[0].length).trim();
+    // Non-breaking space before ג to prevent orphan on new line
+    res = res.replace(/(\d+)\s+(ג[.'׳]?)$/, '$1 $2');
+    return res;
   }
   function formatTukuf(raw) {
     if (!raw) return '';
@@ -777,7 +810,7 @@
   function filtered() {
     const sv = ordOnly ? saved() : null;
     return all.filter(r => {
-      if (fams.size && !fams.has(r.mishpacha)) return false;
+      if (fams.size && fams.has(r.mishpacha)) return false;
       if (cos.size  && !cos.has(r.hevra))      return false;
       if (ashFilter.size) {
         const has = r.ashdod_k > 0;
@@ -880,15 +913,15 @@
         tr.className = 'drow' + (yamim != null && yamim < 10 ? ' danger' : '');
         tr.innerHTML =
           '<td class="c-mkt">' + mk + '</td>' +
-          '<td class="c-taur" dir="rtl" title="' + r.taur + '">' + _ltrWrap(shortName(r.taur)) + '</td>' +
+          '<td class="c-taur" dir="rtl" title="' + r.taur + '">' + _ltrWrap(shortName(fixProductName(r.taur))) + '</td>' +
           '<td class="c-img">' +
             (r.img ? '<img src="' + r.img + '" alt="" loading="lazy" onerror="this.outerHTML=\'<span class=ni></span>\'">' : '<span class="ni"></span>') +
           '</td>' +
           '<td class="c-co">' + (r.hevra || '') + '</td>' +
-          '<td class="c-num c-mmd ' + klass(mmd) + '">' + mmd + '</td>' +
-          '<td class="c-num">' + (mkr != null ? mkr.toFixed(1) : '—') + '</td>' +
-          '<td class="c-num col-g ' + klass(ash) + '">' + ash + '</td>' +
-          '<td class="c-num col-g">' + mav + '</td>' +
+          '<td class="c-num c-mmd col-g ' + klass(mmd) + '">' + mmd + '</td>' +
+          '<td class="c-num col-g">' + (mkr != null ? mkr.toFixed(1) : '—') + '</td>' +
+          '<td class="c-num ' + klass(ash) + '">' + ash + '</td>' +
+          '<td class="c-num">' + mav + '</td>' +
           '<td class="c-tukuf">' + formatTukuf(r.tukuf) + '</td>' +
           '<td class="c-num ' + yamimCls + '">' + yamimDisp + '</td>' +
           '<td class="c-num">' + (mkrTk != null ? mkrTk : '—') + '</td>' +
