@@ -747,6 +747,7 @@ app.post('/save-gps', requireAuth, dataRateLimit, async (req, res) => {
   try {
     const { custId, lat, lng, name, city, address } = req.body;
     if (!custId || !lat || !lng) return res.status(400).json({ error: 'missing custId/lat/lng' });
+    if (!/^\d{1,15}$/.test(String(custId))) return res.status(400).json({ error: 'invalid custId' });
     if (lat < IL.minLat || lat > IL.maxLat || lng < IL.minLng || lng > IL.maxLng) {
       return res.status(400).json({ error: 'coordinates outside Israel' });
     }
