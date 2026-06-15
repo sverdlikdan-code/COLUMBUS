@@ -48,8 +48,6 @@
     #hdr-top {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      margin-bottom: 10px;
       gap: 12px;
     }
     h1 {
@@ -110,24 +108,24 @@
     .kpi-value.g  { color: #A5D6A7; }
     .kpi-value.y  { color: #FFE082; }
 
-    /* ── PERIOD BAR ─────────────────────────────────────────── */
+    /* ── PERIOD BAR — inside #hdr-top ──────────────────────── */
     #period-bar {
       display: flex;
       align-items: center;
       gap: 2px;
       overflow-x: auto;
-      padding: 7px 16px;
+      padding: 0 8px;
       scrollbar-width: none;
       flex-wrap: nowrap;
-      background: var(--sky);
-      border-bottom: 1px solid var(--sky-mid);
+      flex: 1;
+      min-width: 0;
     }
     #period-bar::-webkit-scrollbar { display: none; }
     .period-def {
-      background: var(--blue);
-      border: 1px solid var(--blue-dark);
+      background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.3);
       border-radius: 6px;
-      color: #fff;
+      color: rgba(255,255,255,.85);
       padding: 3px 11px;
       font-size: .75rem;
       font-weight: 700;
@@ -139,14 +137,14 @@
       transition: all .12s;
     }
     .period-def.off {
-      background: #fff;
-      border-color: var(--sky-mid);
-      color: var(--mid);
+      background: rgba(255,255,255,.06);
+      border-color: rgba(255,255,255,.15);
+      color: rgba(255,255,255,.4);
       font-weight: 600;
     }
     .period-yr {
       font-size: .6rem;
-      color: var(--mid);
+      color: rgba(255,255,255,.4);
       font-weight: 700;
       padding: 0 8px;
       flex-shrink: 0;
@@ -154,10 +152,10 @@
       letter-spacing: .05em;
     }
     .period-chip {
-      background: #fff;
-      border: 1px solid var(--sky-mid);
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.2);
       border-radius: 5px;
-      color: var(--light);
+      color: rgba(255,255,255,.6);
       padding: 3px 9px;
       font-size: .73rem;
       font-family: inherit;
@@ -166,9 +164,9 @@
       flex-shrink: 0;
       transition: all .12s;
     }
-    .period-chip:hover { background: var(--sky); border-color: var(--blue); color: var(--blue); }
-    .period-chip.cur   { border-color: var(--sky-mid); color: var(--light); }
-    .period-chip.on    { background: var(--blue) !important; border-color: var(--blue-dark) !important; color: #fff !important; font-weight: 700; }
+    .period-chip:hover { background: rgba(255,255,255,.22); border-color: rgba(255,255,255,.45); color: #fff; }
+    .period-chip.cur   { color: rgba(255,255,255,.6); }
+    .period-chip.on    { background: #fff !important; border-color: rgba(255,255,255,.6) !important; color: var(--blue-dark) !important; font-weight: 700; }
 
     /* ── STOCK FILTER ROWS ──────────────────────────────────── */
     #skrow {
@@ -238,7 +236,6 @@
     }
     .fam-sel:focus { outline: none; border-color: var(--blue); }
 
-    #period-bar { flex-shrink: 0; }
     #fbar       { flex-shrink: 0; }
 
     /* ── TABLE SCROLL ───────────────────────────────────────── */
@@ -432,6 +429,7 @@
 <div id="hdr">
   <div id="hdr-top">
     <h1>🚚 הזמנה - מלאי MMD</h1>
+    <div id="period-bar"></div>
     <div class="btn-row">
       <button class="btn btn-reload" onclick="load()">⟳ רענן</button>
       <button class="btn btn-clear" onclick="clearAll()">✕ נקה הזמנות</button>
@@ -444,10 +442,6 @@
     </div>
   </div>
 </div>
-
-<!-- MAIN WRAP -->
-<!-- PERIOD BAR -->
-<div id="period-bar"></div>
 
 <!-- FILTER BAR -->
 <div id="fbar">
