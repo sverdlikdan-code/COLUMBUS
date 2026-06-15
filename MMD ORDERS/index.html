@@ -151,9 +151,9 @@
     .hist-wrap  { position: relative; display: inline-block; }
     @keyframes histIn { from { opacity:0; transform:translateY(-8px) scale(.97); } to { opacity:1; transform:translateY(0) scale(1); } }
     .hist-dd {
-      display: none; position: absolute; top: calc(100% + 6px); right: 0;
+      display: none; position: fixed;
       background: #fff; border: 1px solid #e0e0e0; border-radius: 10px;
-      box-shadow: 0 8px 28px rgba(0,0,0,.22); z-index: 1000;
+      box-shadow: 0 8px 28px rgba(0,0,0,.22); z-index: 9999;
       min-width: 320px; max-height: 420px; overflow: hidden;
       flex-direction: column;
     }
@@ -1604,9 +1604,13 @@
 
   window.toggleOrderHistory = function() {
     const dd = document.getElementById('hist-dd');
+    const btn = document.getElementById('btn-hist');
     const open = dd.classList.toggle('open');
-    if (open) _renderHistDd();
     if (open) {
+      const r = btn.getBoundingClientRect();
+      dd.style.top   = (r.bottom + 6) + 'px';
+      dd.style.right = (window.innerWidth - r.right) + 'px';
+      _renderHistDd();
       const close = e => {
         if (!dd.contains(e.target) && e.target.id !== 'btn-hist') {
           dd.classList.remove('open');
