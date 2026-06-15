@@ -47,3 +47,4 @@
 - [[pbi-to-pptx-automation]] — Исследование: Power BI → Node.js PPTX автоматизация без скриншотов (REST API, XMLA, DAX, SQL прямой доступ)
 - [[session-2026-06-08]] — Сессия 2026-06-08: редактируемый KARTON live update, print fix чёрный фон, toolbar polish
 - [[session-2026-06-14]] — Сессия 2026-06-14: KARTON/PAL двусторонняя синхронизация, step 0.5, мультифильтр семейств, hover строки
+- [[session-2026-06-15]] — Сессия 2026-06-15: MMD ORDERS title page, #filter-row wrapper, PBI badge, checkbox inversion; planограмма daySales fallback fix
