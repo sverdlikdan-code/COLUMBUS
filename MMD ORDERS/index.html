@@ -616,7 +616,13 @@
       font-size: .72rem;
       color: rgba(255,255,255,.38);
       letter-spacing: .06em;
-      margin-bottom: 36px;
+      margin-bottom: 10px;
+    }
+    #splash-pbi-date {
+      font-size: .72rem;
+      color: rgba(255,200,80,.6);
+      letter-spacing: .05em;
+      margin-bottom: 30px;
     }
 
     /* Divider line */
@@ -701,9 +707,10 @@
     </div>
 
     <div id="splash-title">MMD &nbsp;<span>ORDERS</span></div>
-    <div id="splash-tagline">DILER BMD · מחסן אילת</div>
+    <div id="splash-tagline">מחסן אילת</div>
     <div class="splash-rule"></div>
-    <div id="splash-desc">מערכת ניהול הזמנות · מלאי · ניתוח ספקים</div>
+    <div id="splash-desc">מערכת ניהול הזמנות · מלאי</div>
+    <div id="splash-pbi-date">טוען נתונים...</div>
     <button id="splash-btn" onclick="enterApp()">כניסה למערכת &nbsp;→</button>
   </div>
 
@@ -972,13 +979,18 @@
       const ts = j.ts ? new Date(j.ts).toLocaleTimeString('he-IL') : '';
       st('נטענו ' + all.length + ' פריטים · ' + ts);
       const upEl = document.getElementById('pbi-update');
+      const splashDate = document.getElementById('splash-pbi-date');
       if (upEl) {
         if (j.refreshedAt) {
           const d = new Date(j.refreshedAt);
           const df = d.toLocaleDateString('he-IL', {day:'2-digit',month:'2-digit',year:'2-digit'});
           const tf = d.toLocaleTimeString('he-IL', {hour:'2-digit',minute:'2-digit'});
           upEl.textContent = '⬆ עדכון PBI: ' + df + ' ' + tf;
-        } else { upEl.textContent = ''; }
+          if (splashDate) splashDate.textContent = '⬆ עדכון שרת MMD: ' + df + ' ' + tf;
+        } else {
+          upEl.textContent = '';
+          if (splashDate) splashDate.textContent = '';
+        }
       }
     } catch (e) {
       st('⚠ ' + e.message);
