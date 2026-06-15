@@ -212,7 +212,7 @@ app.post('/admin/revoke', (req, res) => {
   for (const [token, sess] of sessions) {
     if (sess.agentCode === code) { sessions.delete(token); revoked++; }
   }
-  appendLog({ event: 'revoke', agentCode: code, revokedCount: revoked, ip: getRealIp(req), device: req.headers['user-agent'] || '' });
+  writeLog({ event: 'revoke', agentCode: code, revokedCount: revoked, ip: getRealIp(req), device: req.headers['user-agent'] || '' });
   res.json({ ok: true, agentCode: code, revokedSessions: revoked });
 });
 
