@@ -85,13 +85,14 @@
       }
       body.printing-expiry #expiry-page > div:first-child { display: none !important; }
       body.printing-expiry #expiry-grid {
-        display: flex !important;
-        flex-wrap: wrap !important;
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
         gap: 6px !important;
         padding: 4px !important;
         overflow: visible !important;
       }
-      body.printing-expiry #expiry-grid > div { break-inside: avoid; }
+      body.printing-expiry #expiry-grid > div { break-inside: avoid; width: auto !important; flex-shrink: 1 !important; min-width: 0 !important; }
+      body.printing-expiry #expiry-grid > .expiry-sec-hdr { grid-column: 1 / -1; }
 
       /* ── Order page print ── */
       body.printing-order > *:not(#order-page) { display: none !important; }
@@ -435,8 +436,15 @@
     <button onclick="exportOrderCsv()" style="background:#1d4ed8;border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:5px 15px;white-space:nowrap;flex-shrink:0;letter-spacing:.3px;">⬇ Excel</button>
     <button id="btn-order-only" onclick="toggleOrderOnly()" style="background:none;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.5);font-size:11px;font-weight:600;cursor:pointer;border-radius:6px;padding:4px 13px;white-space:nowrap;flex-shrink:0;letter-spacing:.2px;transition:all 0.15s;">📋 הזמנה בלבד</button>
     <div style="width:1px;height:18px;background:rgba(255,255,255,0.1);flex-shrink:0;margin:0 6px;"></div>
-    <!-- Family chips — fill remaining space, chips packed to the right (RTL) -->
-    <div id="ord-fam-btns" style="display:flex;gap:5px;flex:1;height:100%;align-items:center;overflow-x:auto;min-width:0;justify-content:flex-end;"></div>
+    <!-- Family dropdown -->
+    <div style="display:flex;gap:7px;align-items:center;flex:1;justify-content:flex-end;">
+      <span style="color:rgba(255,255,255,0.45);font-size:10px;font-weight:600;white-space:nowrap;">משפחת מוצר:</span>
+      <select id="ord-fam-select" onchange="setOrderFam(this.value)"
+        style="background:#fff;color:#0f172a;border:1px solid #cbd5e1;border-radius:6px;padding:4px 10px;font-size:11.5px;font-family:inherit;cursor:pointer;min-width:160px;max-width:260px;font-weight:600;direction:rtl;">
+        <option value="">כולם</option>
+      </select>
+    </div>
+    <div id="ord-fam-btns" style="display:none"></div>
   </div>
 
   <!-- Row 3: period selector -->
@@ -1981,6 +1989,7 @@ window._orderFams = new Set();
 window._orderZero = false;
 
 function _recalcOrdTotal() {
+  const fmtK = n => Math.round(n || 0).toLocaleString('en');
   let totalK = 0, totalPal = 0;
   document.querySelectorAll('.ord-k-input').forEach(inp => {
     const k    = Math.max(0, Number(inp.value) || 0);
@@ -2285,22 +2294,17 @@ function buildOrderPage() {
     allRows.push({ mk, name, fam, iksGroup, stock, spo, palSpo, openOrders, daySales, daysStk, krat, safetyDays, safetyK, orderK, orderP, deferredDemand });
   }
 
-  // Group key: iksGroup (IKRA/SAL/KAPUS) if available, else fam
-  const getGrp = r => r.iksGroup || r.fam || '—';
-  const hasIks = allRows.some(r => r.iksGroup);
-  const grpLabel = g => g === 'OTHER' ? 'מצונן' : g;
+  // Group by fam (משפחת מוצר)
+  const getGrp  = r => r.fam || '—';
+  const grpLabel = g => g;
 
-  // Build filter buttons
-  const grpKeys = [...new Set(allRows.map(getGrp).filter(Boolean))].sort();
-  const btnContainer = document.getElementById('ord-fam-btns');
-  if (btnContainer) {
-    const chipAct  = 'background:#1d4ed8;color:#fff;border-color:#3b82f6;';
-    const chipDef  = '';
-    const chipZeroAct = 'background:#dc2626;color:#fff;border-color:#ef4444;';
-    btnContainer.innerHTML =
-      `<button class="ord-fam-btn" onclick="setOrderFam('')" style="${window._orderFams.size === 0 ? chipAct : chipDef}">כולם</button>` +
-      grpKeys.map(f => `<button class="ord-fam-btn" onclick="setOrderFam('${f}')" style="${window._orderFams.has(f) ? chipAct : chipDef}">${grpLabel(f)}</button>`).join('') +
-      `<button class="ord-fam-btn" onclick="toggleOrderZero()" style="${window._orderZero ? chipZeroAct : chipDef}">מלאי ZERO</button>`;
+  // Populate family dropdown
+  const selEl = document.getElementById('ord-fam-select');
+  if (selEl) {
+    const curFam  = window._orderFams.size === 1 ? [...window._orderFams][0] : '';
+    const famKeys = [...new Set(allRows.map(r => r.fam).filter(Boolean))].sort();
+    selEl.innerHTML = '<option value="">כולם</option>' +
+      famKeys.map(f => `<option value="${f}"${curFam === f ? ' selected' : ''}>${f}</option>`).join('');
   }
 
   // Build period buttons — professional timeline
@@ -2441,17 +2445,6 @@ function buildOrderPage() {
       </tr>`;
     });
 
-    tbRows += `<tr style="background:#e8f5e9;border-top:2px solid #388e3c;border-bottom:2px solid #388e3c;">
-      <td colspan="2" style="padding:5px 12px;font-size:11px;font-weight:700;color:#1b5e20;text-align:right;" dir="rtl">סה"כ ${grpLabel(grp)}</td>
-      <td style="padding:5px 8px;text-align:center;font-size:12px;font-weight:700;">${fmtK(fSpo)}</td>
-      <td style="padding:5px 8px;text-align:center;font-size:11px;font-weight:600;">${fPalSpo.toFixed(1)}</td>
-      <td style="padding:5px 8px;text-align:center;font-size:11px;font-weight:700;color:#1b5e20;">${fOpenOrders > 0 ? fmtK(fOpenOrders) : '—'}</td>
-      <td style="padding:5px 8px;"></td>
-      <td style="padding:5px 8px;"></td>
-      <td style="padding:5px 8px;text-align:center;font-size:14px;font-weight:800;color:#c62828;background:#ffecb3;">${fmtK(fOrder)}</td>
-      <td style="padding:5px 8px;text-align:center;font-size:13px;font-weight:700;">${fPal.toFixed(1)}</td>
-      <td style="padding:3px 4px;text-align:center;"><span style="font-size:11px;font-weight:900;color:#2e7d32;">🚢${fContTxt}</span></td>
-    </tr>`;
   }
 
   tbRows += `<tr style="background:#1a1a2e;color:#fff;">
@@ -2669,7 +2662,7 @@ function buildExpiryPage() {
   _totalShown += cards.length;
   if (cards.length > 0) {
     const secLabel = SEC_NAMES[sec] || sec;
-    _allHtml += `<div style="width:100%;flex-basis:100%;padding:6px 14px;margin:10px 0 6px;background:#1a237e;color:#fff;font-size:13px;font-weight:bold;border-radius:6px;letter-spacing:0.3px;">${secLabel} — ${cards.length} מוצרים</div>`;
+    _allHtml += `<div class="expiry-sec-hdr" style="width:100%;flex-basis:100%;padding:6px 14px;margin:10px 0 6px;background:#1a237e;color:#fff;font-size:13px;font-weight:bold;border-radius:6px;letter-spacing:0.3px;">${secLabel} — ${cards.length} מוצרים</div>`;
     _allHtml += cards.map(({ pick, p, mk, d, salesMain, salesZafn, shelfLife, batches, sakanaMain, sakanaZafn }) => {
     const name = p.name || d.nameEn || d.desc || p.fam || mk;
     // Product-level STOP SALE: ALL batches with stock are fully blocked (per PBI formula /1.4)
