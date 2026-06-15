@@ -1033,6 +1033,8 @@
     s = s.replace(/([''׳])ג(\d+)/g, '$2ג$1');
     // Mirrored brackets from PBI visual order: )text( → (text)
     s = s.replace(/\)([^()]+)\(/g, '($1)');
+    // Strip short abbreviations in brackets: (NP), (Np), (VG) etc.
+    s = s.replace(/\s*\([A-Za-z]{1,6}\)\s*/g, ' ').trim();
     return s;
   }
   function _ltrWrap(s) {
