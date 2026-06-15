@@ -50,11 +50,18 @@
       align-items: center;
       gap: 12px;
     }
-    h1 {
-      font-size: 1.1rem;
+    #hdr-title-main {
+      font-size: 1.05rem;
       font-weight: 800;
       color: #fff;
       white-space: nowrap;
+      line-height: 1.2;
+    }
+    #pbi-update {
+      font-size: .6rem;
+      color: rgba(255,255,255,.5);
+      white-space: nowrap;
+      line-height: 1;
     }
 
     .btn-row { display: flex; gap: 7px; align-items: center; }
@@ -177,14 +184,31 @@
     /* Bigger חברה chips — only direct children of fbar (company chips appended by JS) */
     #fbar > .chip { padding: 8px 22px; font-size: 1rem; font-weight: 700; }
 
-    /* ── STOCK FILTER INLINE ─────────────────────────────────── */
+    /* ── FILTER + STOCK ROW ─────────────────────────────────── */
+    #filter-row {
+      display: flex;
+      align-items: center;
+      background: var(--sky);
+      border-bottom: 1px solid var(--sky-mid);
+      flex-shrink: 0;
+    }
+    #fbar {
+      flex: 1;
+      padding: 8px 16px;
+      background: transparent;
+      border-bottom: none;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
     #sk-inline {
       display: flex;
       align-items: center;
       gap: 5px;
-      margin-inline-start: auto;
-      padding-inline-start: 14px;
+      padding: 8px 16px;
       border-inline-start: 1.5px solid var(--sky-mid);
+      flex-shrink: 0;
     }
     #sk-inline .chip { padding: 4px 10px; font-size: .82rem; }
     #sk-ord-only {
@@ -195,17 +219,6 @@
       font-size: .82rem !important;
     }
     #sk-ord-only.on { background: #dc2626 !important; border-color: #dc2626 !important; }
-
-    /* ── FILTER BAR ─────────────────────────────────────────── */
-    #fbar {
-      padding: 8px 16px;
-      background: var(--sky);
-      border-bottom: 1px solid var(--sky-mid);
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
     .flabel { font-size: .7rem; color: var(--mid); font-weight: 700; white-space: nowrap; }
     .chip {
       display: inline-flex;
@@ -240,7 +253,7 @@
     }
     .fam-sel:focus { outline: none; border-color: var(--blue); }
 
-    #fbar       { flex-shrink: 0; }
+    #fbar > .chip { font-size: 1rem; }
 
     /* ── TABLE SCROLL ───────────────────────────────────────── */
     #tw {
@@ -410,7 +423,7 @@
 
     /* ── PRINT ──────────────────────────────────────────────── */
     @media print {
-      #hdr, #fbar, #sbar { display: none !important; }
+      #hdr, #filter-row, #sbar { display: none !important; }
       #ph { display: block !important; }
       body { background: #fff; color: #000; font-size: 11px; }
       thead th { background: var(--blue-dark) !important; color: #fff !important; }
@@ -432,7 +445,12 @@
 <!-- HEADER -->
 <div id="hdr">
   <div id="hdr-top">
-    <h1>🚚 הזמנה - מלאי MMD</h1>
+    <img src="/logo-diler-bmd.png"
+         alt="DILER" style="height:30px;filter:brightness(0) invert(1);opacity:.9;flex-shrink:0;">
+    <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0;">
+      <div id="hdr-title-main" style="color:#fff;">🚚 הזמנה · מלאי MMD</div>
+      <div id="pbi-update"></div>
+    </div>
     <div id="period-bar"></div>
     <div class="btn-row">
       <button class="btn btn-reload" onclick="load()">⟳ רענן</button>
@@ -447,18 +465,22 @@
   </div>
 </div>
 
-<!-- FILTER BAR -->
-<div id="fbar">
-  <span class="flabel">משפחה:</span>
-  <div class="fam-drop" id="fam-drop">
-    <button class="fam-drop-btn" id="fam-drop-btn" onclick="toggleFamDrop(event)">כולם ▾</button>
-    <div class="fam-drop-panel" id="fam-drop-panel"></div>
+<!-- FILTER + STOCK ROW -->
+<div id="filter-row">
+  <div id="fbar">
+    <span class="flabel">משפחה:</span>
+    <div class="fam-drop" id="fam-drop">
+      <button class="fam-drop-btn" id="fam-drop-btn" onclick="toggleFamDrop(event)">כולם ▾</button>
+      <div class="fam-drop-panel" id="fam-drop-panel"></div>
+    </div>
   </div>
+  <img src="/logo-diler-bmd.png" alt="" id="fbar-logo"
+       style="height:22px;filter:brightness(0);opacity:.13;flex-shrink:0;padding:0 18px;">
   <div id="sk-inline">
     <span class="stk-label">אשדוד:</span>
     <span class="chip on" id="sk-ash-yes" onclick="togStock('ash','yes')">✓ יש 📦</span>
     <span class="chip"    id="sk-ash-no"  onclick="togStock('ash','no')">חסר 😢</span>
-    <span class="stk-label" style="margin-right:4px">MMD:</span>
+    <span class="stk-label" style="margin-right:8px">MMD:</span>
     <span class="chip" id="sk-mmd-yes" onclick="togStock('mmd','yes')">✓ יש 📦</span>
     <span class="chip" id="sk-mmd-no"  onclick="togStock('mmd','no')">חסר 😢</span>
     <span class="chip" id="sk-ord-only" onclick="togOrdOnly()">📋 הזמנה בלבד</span>
@@ -679,6 +701,15 @@
       render();
       const ts = j.ts ? new Date(j.ts).toLocaleTimeString('he-IL') : '';
       st('נטענו ' + all.length + ' פריטים · ' + ts);
+      const upEl = document.getElementById('pbi-update');
+      if (upEl) {
+        if (j.refreshedAt) {
+          const d = new Date(j.refreshedAt);
+          const df = d.toLocaleDateString('he-IL', {day:'2-digit',month:'2-digit',year:'2-digit'});
+          const tf = d.toLocaleTimeString('he-IL', {hour:'2-digit',minute:'2-digit'});
+          upEl.textContent = '⬆ עדכון PBI: ' + df + ' ' + tf;
+        } else { upEl.textContent = ''; }
+      }
     } catch (e) {
       st('⚠ ' + e.message);
       document.getElementById('ld').innerHTML = '<div style="color:#f87171;padding:20px">⚠ ' + e.message + '</div>';
@@ -689,11 +720,11 @@
     const allChk = document.getElementById('fam-all');
     if (allChk) allChk.checked = fams.size === 0;
     document.querySelectorAll('#fam-drop-panel input[type="checkbox"]:not(#fam-all)').forEach(cb => {
-      cb.checked = fams.has(cb.value);
+      cb.checked = !fams.has(cb.value); // checked = visible (not excluded)
     });
     const btn = document.getElementById('fam-drop-btn');
     if (btn) {
-      btn.textContent = fams.size === 0 ? 'כולם ▾' : fams.size + ' משפחות ▾';
+      btn.textContent = fams.size === 0 ? 'כולם ▾' : fams.size + ' מוסתרות ▾';
       btn.classList.toggle('active', fams.size > 0);
     }
   }
@@ -755,8 +786,8 @@
   };
 
   window.togFamChk = function(cb) {
-    if (cb.checked) fams.add(cb.value);
-    else fams.delete(cb.value);
+    if (!cb.checked) fams.add(cb.value);   // uncheck = exclude
+    else fams.delete(cb.value);             // check = show again
     syncFamPanel();
     render();
   };
