@@ -1388,7 +1388,7 @@ function openMekarerOrder(e,custId,custName,city){
   const p=new URLSearchParams({
     custId,custName,city,
     agentCode:agent.code||'',agentName:agent.name||'',
-    manager:st.manager||'',token,
+    manager:st.manager||'',
   });
   window.open('mekarer-order.html?'+p.toString(),'_blank');
 }
