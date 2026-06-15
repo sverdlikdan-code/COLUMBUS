@@ -485,10 +485,16 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"
+        integrity="sha384-HZZ/fukV+9G8gwTNjN7zQDG0Sp7MsZy5DDN6VfY3Be7V9dvQpEpR2jF2HlyFUUjU" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
+        integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+        integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk" crossorigin="anonymous"></script>
 <script>
+
+const API = 'https://api.sverdlik-apps.site';
+const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
 // ══════════════════════════════════════════════════════════════════════════
 // FAMILY COLORS
@@ -1657,9 +1663,10 @@ async function saveState() {
       reserveStart: KAPUA_RESERVE_START,
       v:            (window._kapuaVer || '') + '-saved',
     };
-    const resp = await fetch('http://localhost:3000/save-kapua', {
+    const token = localStorage.getItem('frToken') || '';
+    const resp = await fetch(API + '/save-kapua', {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Session': token },
       body:    JSON.stringify(payload),
     });
     if (resp.ok) {
@@ -1873,8 +1880,8 @@ function updateTable() {
           <td style="padding:2px 10px; text-align:center; font-weight:bold; color:#1565C0;">${(_SEC_BASE[s]||0) + Number(pick)}</td>
           <td style="padding:2px 10px; text-align:center; color:#aaa; font-size:11px;">${pick}</td>
           <td style="padding:2px 10px;">${p.makat}</td>
-          <td style="padding:2px 10px; font-weight:bold;">${p.name || ''}</td>
-          <td style="padding:2px 10px; font-size:10px; color:#555; direction:rtl;">${_cleanStr(p.fam) || ''}</td>
+          <td style="padding:2px 10px; font-weight:bold;">${esc(p.name || '')}</td>
+          <td style="padding:2px 10px; font-size:10px; color:#555; direction:rtl;">${esc(_cleanStr(p.fam) || '')}</td>
         </tr>`;
       });
     }
@@ -2298,8 +2305,9 @@ function buildOrderPage() {
     const chipDef = 'font-size:10px;padding:3px 11px;border-radius:5px;cursor:pointer;font-weight:700;border:1px solid;background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.45);border-color:rgba(255,255,255,0.1);';
     const grpKeys = [...new Set(allRows.map(getGrp).filter(Boolean))].sort();
     famBtns.innerHTML =
-      `<button class="ord-fam-btn" onclick="setOrderFam('')" style="${window._orderFams.size === 0 ? chipAct : chipDef}">כולם</button>` +
-      grpKeys.map(f => `<button class="ord-fam-btn" onclick="setOrderFam('${f}')" style="${window._orderFams.has(f) ? chipAct : chipDef}">${grpLabel(f)}</button>`).join('');
+      `<button class="ord-fam-btn" data-fam="" style="${window._orderFams.size === 0 ? chipAct : chipDef}">כולם</button>` +
+      grpKeys.map(f => `<button class="ord-fam-btn" data-fam="${esc(f)}" style="${window._orderFams.has(f) ? chipAct : chipDef}">${esc(grpLabel(f))}</button>`).join('');
+    famBtns.querySelectorAll('.ord-fam-btn').forEach(btn => btn.addEventListener('click', () => setOrderFam(btn.dataset.fam)));
   }
 
   // Build period buttons — professional timeline
@@ -2428,7 +2436,7 @@ function buildOrderPage() {
       const dc  = r.daysStk === null ? '#aaa' : r.orderK > 0 ? '#c62828' : '#333';
       tbRows += `<tr class="ord-row" style="background:${bg};border-bottom:1px solid #eeeeee;">
         <td style="padding:4px 6px;text-align:center;">${imgHtml}</td>
-        <td style="padding:4px 8px;font-size:11px;font-weight:600;max-width:220px;line-height:1.3;" dir="rtl">${r.name}<br><span style="font-size:8px;color:#1565c0;">${r.safetyDays}d בטחון</span> <span style="font-size:8px;color:#999;">מק"ט: ${r.mk}</span>${r.krat > 1 ? ` <span style="font-size:8px;color:#bbb;">[${r.krat} קרט/פל]</span>` : ''}</td>
+        <td style="padding:4px 8px;font-size:11px;font-weight:600;max-width:220px;line-height:1.3;" dir="rtl">${esc(r.name)}<br><span style="font-size:8px;color:#1565c0;">${r.safetyDays}d בטחון</span> <span style="font-size:8px;color:#999;">מק"ט: ${r.mk}</span>${r.krat > 1 ? ` <span style="font-size:8px;color:#bbb;">[${r.krat} קרט/פל]</span>` : ''}</td>
         <td style="padding:4px 8px;text-align:center;font-size:13px;font-weight:700;">${fmtK(r.spo)}</td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;color:#555;">${r.palSpo > 0 ? r.palSpo.toFixed(1) : '—'}</td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;font-weight:${r.openOrders > 0 ? '700' : '400'};color:${r.openOrders > 0 ? '#2e7d32' : '#bbb'};">${r.openOrders > 0 ? fmtK(r.openOrders) : '—'}</td>
