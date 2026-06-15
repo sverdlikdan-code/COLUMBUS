@@ -53,6 +53,8 @@
     .history-item .h-restore { color: #1a6ef5; font-weight: bold; font-size: 11px; }
     .history-empty { padding: 14px; text-align: center; color: #aaa; font-size: 12px; }
 
+    .grid-page-break { display: none; }
+
     /* Print styles */
     @media print {
       .header, .tabs, .toolbar, #position-table, #legend, .no-print { display: none !important; }
@@ -93,6 +95,8 @@
       }
       body.printing-expiry #expiry-grid > div { break-inside: avoid; width: auto !important; flex-shrink: 1 !important; min-width: 0 !important; }
       body.printing-expiry #expiry-grid > .expiry-sec-hdr { grid-column: 1 / -1; }
+      body.printing-expiry .grid-page-break { display: block !important; grid-column: 1 / -1; break-before: page; height: 0; margin: 0; padding: 0; }
+
 
       /* ── Order page print ── */
       body.printing-order > *:not(#order-page) { display: none !important; }
@@ -2578,7 +2582,7 @@ function _expiryImgErr(img) {
 function buildExpiryPage() {
   const grid  = document.getElementById('expiry-grid');
   const SEC_NAMES = { kapua: 'קפוא', halavi: 'חלבי', dagim: 'דגים', yavesh: 'דג יבש' };
-  let _totalAll = 0, _totalShown = 0, _allHtml = '';
+  let _totalAll = 0, _totalShown = 0, _allHtml = '', _pgBreakCount = 0;
   for (const sec of _SECTIONS) {
   if (window._expirySecFilter && window._expirySecFilter !== sec) continue;
   const order = _getPrintOrder(sec);
@@ -2663,7 +2667,7 @@ function buildExpiryPage() {
   if (cards.length > 0) {
     const secLabel = SEC_NAMES[sec] || sec;
     _allHtml += `<div class="expiry-sec-hdr" style="width:100%;flex-basis:100%;padding:6px 14px;margin:10px 0 6px;background:#1a237e;color:#fff;font-size:13px;font-weight:bold;border-radius:6px;letter-spacing:0.3px;">${secLabel} — ${cards.length} מוצרים</div>`;
-    _allHtml += cards.map(({ pick, p, mk, d, salesMain, salesZafn, shelfLife, batches, sakanaMain, sakanaZafn }) => {
+    const _cardHtmls = cards.map(({ pick, p, mk, d, salesMain, salesZafn, shelfLife, batches, sakanaMain, sakanaZafn }) => {
     const name = p.name || d.nameEn || d.desc || p.fam || mk;
     // Product-level STOP SALE: ALL batches with stock are fully blocked (per PBI formula /1.4)
     const isBatchStop = (b, sales) => {
@@ -2745,7 +2749,12 @@ function buildExpiryPage() {
         </table>
       </div>
     </div>`;
-    }).join('');
+    });
+    _cardHtmls.forEach(ch => {
+      if (_pgBreakCount > 0 && _pgBreakCount % 9 === 0) _allHtml += '<div class="grid-page-break"></div>';
+      _allHtml += ch;
+      _pgBreakCount++;
+    });
   }
   } // end for _SECTIONS
   const filtered = window._expiryOnlySakana || window._expiryZafnLow;
