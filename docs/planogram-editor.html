@@ -228,6 +228,7 @@
     .slot.text-mode .s-name  {
       font-size: 9px; color: #111; font-weight: bold; line-height: 1.3;
       flex: 1; word-break: break-word;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     }
     .s-badges { font-size: 14px; line-height: 1; display: block; margin-bottom: 1px; }
     .slot-id .s-badges { font-size: 13px; display: inline; margin-right: 3px; }
@@ -1090,13 +1091,15 @@ function makeSlot(pick, p, reserveStart = 0) {
 
 function textModeHTML(pick, p, reserveStart = 0) {
   const isReserve = reserveStart > 0 && pick >= reserveStart;
-  const displayName = p.name || '';
+  const mk = String(p.makat);
+  const raw = productData[mk]?.name || p.name || '';
+  const displayName = raw.replace(/\s*\([^)]*\)\s*/g, ' ').trim();
   const sec = window._currentSection || 'kapua';
   const badges = isReserve ? '' : slotBadges(sec, p.makat);
   return `${isReserve ? '' : `<span class="s-pick">#${pick}</span>`}
           ${badges}
-          <span class="s-makat">${p.makat}</span>
-          ${displayName ? `<span class="s-name">${displayName}</span>` : `<span class="s-fam" dir="rtl">${productData[String(p.makat)]?.fam || p.fam || ''}</span>`}`;
+          <span class="s-makat">${mk}</span>
+          ${displayName ? `<span class="s-name">${displayName}</span>` : `<span class="s-fam" dir="rtl">${productData[mk]?.fam || p.fam || ''}</span>`}`;
 }
 
 function sectionReserveStart(section) {
