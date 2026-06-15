@@ -168,29 +168,33 @@
     .period-chip.cur   { color: rgba(255,255,255,.6); }
     .period-chip.on    { background: #fff !important; border-color: rgba(255,255,255,.6) !important; color: var(--blue-dark) !important; font-weight: 700; }
 
-    /* ── STOCK FILTER ROWS ──────────────────────────────────── */
-    #skrow {
-      flex-shrink: 0;
-      background: var(--sky);
-      border-bottom: 1px solid var(--sky-mid);
-      padding: 4px 16px 5px;
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-    }
-    .skline {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
     .stk-label {
       font-size: .68rem;
       font-weight: 700;
       color: var(--mid);
       white-space: nowrap;
     }
-    /* Bigger חברה chips */
-    #fbar .chip { padding: 8px 22px; font-size: 1rem; font-weight: 700; }
+    /* Bigger חברה chips — only direct children of fbar (company chips appended by JS) */
+    #fbar > .chip { padding: 8px 22px; font-size: 1rem; font-weight: 700; }
+
+    /* ── STOCK FILTER INLINE ─────────────────────────────────── */
+    #sk-inline {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-inline-start: auto;
+      padding-inline-start: 14px;
+      border-inline-start: 1.5px solid var(--sky-mid);
+    }
+    #sk-inline .chip { padding: 4px 10px; font-size: .82rem; }
+    #sk-ord-only {
+      border-radius: 6px !important;
+      background: #1e3a8a !important;
+      color: #fff !important;
+      border-color: #1e3a8a !important;
+      font-size: .82rem !important;
+    }
+    #sk-ord-only.on { background: #dc2626 !important; border-color: #dc2626 !important; }
 
     /* ── FILTER BAR ─────────────────────────────────────────── */
     #fbar {
@@ -450,17 +454,11 @@
     <button class="fam-drop-btn" id="fam-drop-btn" onclick="toggleFamDrop(event)">כולם ▾</button>
     <div class="fam-drop-panel" id="fam-drop-panel"></div>
   </div>
-</div>
-
-<!-- STOCK FILTER ROWS -->
-<div id="skrow">
-  <div class="skline">
+  <div id="sk-inline">
     <span class="stk-label">אשדוד:</span>
     <span class="chip on" id="sk-ash-yes" onclick="togStock('ash','yes')">✓ יש 📦</span>
     <span class="chip"    id="sk-ash-no"  onclick="togStock('ash','no')">חסר 😢</span>
-  </div>
-  <div class="skline">
-    <span class="stk-label">MMD:</span>
+    <span class="stk-label" style="margin-right:4px">MMD:</span>
     <span class="chip" id="sk-mmd-yes" onclick="togStock('mmd','yes')">✓ יש 📦</span>
     <span class="chip" id="sk-mmd-no"  onclick="togStock('mmd','no')">חסר 😢</span>
     <span class="chip" id="sk-ord-only" onclick="togOrdOnly()">📋 הזמנה בלבד</span>
