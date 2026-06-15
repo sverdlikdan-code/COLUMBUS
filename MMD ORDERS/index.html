@@ -276,7 +276,7 @@
     thead th.col-pair { border-bottom: 3px solid #FFD54F !important; background: #0d47a1 !important; }
     .c-mkt { font-weight: 700; color: var(--blue-dark); font-size: .82rem; }
     .c-taur { min-width: 180px; max-width: 280px; white-space: normal; line-height: 1.4; font-weight: 700; color: #1a1a2e; font-size: .88rem; }
-    .c-co   { color: var(--light); font-size: .72rem; }
+    .c-co, th.h-co { display: none; }
     .c-num  { text-align: center; font-variant-numeric: tabular-nums; }
     .c-haml { text-align: center; font-weight: 800; color: var(--green); }
     .c-tukuf { max-width: 130px; font-size: .7rem; line-height: 1.6; }
@@ -434,9 +434,9 @@
     <thead>
       <tr>
         <th>מק"ט</th>
-        <th></th>
         <th>שם מוצר</th>
-        <th>חברה</th>
+        <th></th>
+        <th class="h-co">חברה</th>
         <th class="col-pair">מלאי<br>MMD</th>
         <th class="col-pair">מכר ממוצע<br>בשבוע קרטון</th>
         <th>מלאי<br>אשדוד</th>
@@ -797,10 +797,10 @@
         tr.className = 'drow';
         tr.innerHTML =
           '<td class="c-mkt">' + mk + '</td>' +
+          '<td class="c-taur" dir="auto" title="' + r.taur + '">' + r.taur + '</td>' +
           '<td class="c-img">' +
             (r.img ? '<img src="' + r.img + '" alt="" loading="lazy" onerror="this.outerHTML=\'<span class=ni></span>\'">' : '<span class="ni"></span>') +
           '</td>' +
-          '<td class="c-taur" dir="auto" title="' + r.taur + '">' + r.taur + '</td>' +
           '<td class="c-co">' + (r.hevra || '') + '</td>' +
           '<td class="c-num ' + klass(mmd) + '">' + mmd + '</td>' +
           '<td class="c-num">' + (mkr != null ? mkr.toFixed(1) : '—') + '</td>' +
@@ -912,10 +912,10 @@
 
     const histItems = [];
     const aoa = [
-      ['הזמנה MMD', '', '', '', ''],
-      [dateStr + '  ' + timeStr, '', '', '', ''],
+      ['הזמנה MMD', '', '', '', '', ''],
+      [dateStr + '  ' + timeStr, '', '', '', '', ''],
       [],
-      ['מק"ט', 'שם מוצר', 'מלאי MMD', 'מלאי אשדוד', 'הזמנה קרטון', 'תוקף הזמנה'],
+      ['מק"ט', 'חברה', 'שם מוצר', 'מלאי MMD', 'מלאי אשדוד', 'הזמנה קרטון', 'תוקף הזמנה'],
     ];
 
     orderedRows.forEach(r => {
@@ -925,7 +925,7 @@
       const eff  = s.k != null ? Number(s.k) : (haml > 0 ? Math.round(haml) : 0);
       const opts = r.tukuf ? r.tukuf.split('/').map(d => d.trim()).filter(Boolean) : [];
       const tukufVal = s.p || opts[0] || '';
-      aoa.push([mk, r.taur, r.mmd_k ?? 0, r.ashdod_k ?? 0, eff, tukufVal]);
+      aoa.push([mk, r.hevra || '', r.taur, r.mmd_k ?? 0, r.ashdod_k ?? 0, eff, tukufVal]);
       histItems.push({ mk, taur: r.taur, mmd: r.mmd_k ?? 0, ash: r.ashdod_k ?? 0, qty: eff, tukuf: tukufVal });
     });
 
@@ -937,10 +937,10 @@
 
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws['!merges'] = [
-      { s:{r:0,c:0}, e:{r:0,c:4} },
-      { s:{r:1,c:0}, e:{r:1,c:4} },
+      { s:{r:0,c:0}, e:{r:0,c:6} },
+      { s:{r:1,c:0}, e:{r:1,c:6} },
     ];
-    ws['!cols'] = [{wch:13},{wch:42},{wch:14},{wch:14},{wch:16}];
+    ws['!cols'] = [{wch:13},{wch:18},{wch:42},{wch:14},{wch:14},{wch:16},{wch:14}];
     ws['!sheetViews'] = [{ rightToLeft: true, state:'frozen', ySplit: 4 }];
 
     const wb = XLSX.utils.book_new();
