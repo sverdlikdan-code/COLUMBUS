@@ -26,6 +26,14 @@ app.use((req, res, next) => {
   res.setHeader('Referrer-Policy', 'no-referrer');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Permissions-Policy', 'geolocation=(), camera=(), microphone=()');
+  res.setHeader('Content-Security-Policy',
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
+    "img-src 'self' data: blob: https:; " +
+    "connect-src 'self'; " +
+    "style-src 'self' 'unsafe-inline'; " +
+    "frame-ancestors 'none';"
+  );
   next();
 });
 
@@ -281,7 +289,7 @@ ORDER BY 'משטח'[מס. לקוח] ASC
     res.setHeader('Content-Disposition', `attachment; filename="gps-report-${new Date().toISOString().slice(0,10)}.csv"`);
     res.send(BOM + csv);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err); res.status(500).json({ error: 'server_error' });
   }
 });
 
@@ -572,7 +580,7 @@ app.get('/managers', requireAuth, async (req, res) => {
       .sort((a, b) => a.managerCode.localeCompare(b.managerCode));
     res.json(managers);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err); res.status(500).json({ error: 'server_error' });
   }
 });
 
@@ -600,7 +608,7 @@ ORDER BY [agentName] ASC
       }))
     );
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err); res.status(500).json({ error: 'server_error' });
   }
 });
 
@@ -703,7 +711,7 @@ ORDER BY 'משטח עם כפולות'[סדר ביקור] ASC
     await geocodeBatch(clients);
     res.json(clients);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err); res.status(500).json({ error: 'server_error' });
   }
 });
 
@@ -753,7 +761,7 @@ app.post('/save-gps', requireAuth, dataRateLimit, async (req, res) => {
     pushGpsToGithub(json).catch(e => console.error('GitHub push failed:', e.message));
     res.json({ ok: true, total: Object.keys(current).length });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err); res.status(500).json({ error: 'server_error' });
   }
 });
 
@@ -770,7 +778,7 @@ app.post('/save-kapua', requireAuth, (req, res) => {
       picks: Object.keys(data.picks || {}).length, ip: getRealIp(req) });
     res.json({ ok: true, v: data.v });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err); res.status(500).json({ error: 'server_error' });
   }
 });
 
@@ -810,7 +818,7 @@ FILTER(
     }));
     res.json(parts);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err); res.status(500).json({ error: 'server_error' });
   }
 });
 
@@ -819,6 +827,9 @@ app.get('/api/client-sales', requireAuth, async (req, res) => {
   const custId = parseInt(req.query.custId);
   if (!custId) return res.status(400).json({ error: 'custId required' });
   const company = req.query.company || '';
+  if (company && !/^[֐-׿a-zA-Z0-9 \-']{1,60}$/.test(company)) {
+    return res.status(400).json({ error: 'invalid company' });
+  }
   const companyArg = company && company !== 'הכל'
     ? `,\n  ALL_PARTS[חברה] = "${company.replace(/"/g, '')}"`
     : '';
@@ -876,7 +887,7 @@ ORDER BY ALL_PARTS[תאריך] DESC
       });
     res.json({ months, categories: topCats });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err); res.status(500).json({ error: 'server_error' });
   }
 });
 
@@ -895,7 +906,7 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
       custId: String(order.custId), agentCode: req.session?.agentCode || null, ip: getRealIp(req) });
     res.json({ ok: true, id });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err); res.status(500).json({ error: 'server_error' });
   }
 });
 
@@ -1028,7 +1039,7 @@ app.get('/api/mekarer-export', requireAuth, async (req, res) => {
     await wb.xlsx.write(res);
     res.end();
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err); res.status(500).json({ error: 'server_error' });
   }
 });
 
@@ -1083,7 +1094,7 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
     }
     res.json({ ok: true, data });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err); res.status(500).json({ error: 'server_error' });
   }
 });
 
@@ -1163,7 +1174,7 @@ app.get('/pbi/mmd-orders', dataRateLimit, async (req, res) => {
     const refreshedAt = await getDatasetRefreshTime(MMD_DS);
     res.json({ ok: true, data, ts: Date.now(), refreshedAt });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err); res.status(500).json({ error: 'server_error' });
   }
 });
 

@@ -4,7 +4,9 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>🚚 הזמנה - מלאי MMD</title>
-  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"
+          integrity="sha384-Pqp51FUN2/qzfxZxBCtF0stpc9ONI6MYZpVqmo8m20SoaQCzf+arZvACkLkirlPz"
+          crossorigin="anonymous"></script>
   <style>
     :root {
       --blue:      #1565C0;
@@ -919,6 +921,9 @@
     const full = s.split('').reverse().join('');
     return full.replace(/[\x20-\x7E]+/g, m => m.split('').reverse().join('')).trim();
   }
+  function esc(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
   function fixProductName(s) {
     // Visual-order gram suffix from PBI (no BiDi markers): 'ג004 → 400ג'
     s = s.replace(/([''׳])ג(\d+)/g, '$2ג$1');
@@ -1185,7 +1190,7 @@
       // Group header row
       const hdr = document.createElement('tr');
       hdr.className = 'fam-hdr';
-      hdr.innerHTML = '<td colspan="14">📦 ' + grp + ' <span style="font-weight:400;opacity:.5;font-size:.68rem">(' + grpRows.length + ')</span></td>';
+      hdr.innerHTML = '<td colspan="14">📦 ' + esc(grp) + ' <span style="font-weight:400;opacity:.5;font-size:.68rem">(' + grpRows.length + ')</span></td>';
       tb.appendChild(hdr);
 
       grpRows.forEach(r => {
@@ -1222,11 +1227,11 @@
         tr.className = 'drow' + (yamim != null && yamim < 10 ? ' danger' : '');
         tr.innerHTML =
           '<td class="c-mkt">' + mk + '</td>' +
-          '<td class="c-taur" dir="rtl" title="' + r.taur + '">' + _ltrWrap(shortName(fixProductName(r.taur))) + '</td>' +
+          '<td class="c-taur" dir="rtl" title="' + esc(r.taur) + '">' + _ltrWrap(shortName(fixProductName(r.taur))) + '</td>' +
           '<td class="c-img">' +
-            (r.img ? '<img src="' + r.img + '" alt="" loading="lazy" onerror="this.outerHTML=\'<span class=ni></span>\'">' : '<span class="ni"></span>') +
+            (r.img ? '<img src="' + esc(r.img) + '" alt="" loading="lazy" onerror="this.outerHTML=\'<span class=ni></span>\'">' : '<span class="ni"></span>') +
           '</td>' +
-          '<td class="c-co">' + (r.hevra || '') + '</td>' +
+          '<td class="c-co">' + esc(r.hevra || '') + '</td>' +
           '<td class="c-num c-mmd col-g ' + klass(mmd) + '">' + mmd + '</td>' +
           '<td class="c-num col-g">' + (mkr != null ? mkr.toFixed(1) : '—') + '</td>' +
           '<td class="c-num ' + klass(ash) + '">' + ash + '</td>' +
@@ -1275,7 +1280,7 @@
         ch.innerHTML = 'כולם' + (total ? ' <span class="co-badge">• ' + total + '</span>' : '');
       } else {
         const v = coMap[c] || 0;
-        ch.innerHTML = c + (v ? ' <span class="co-badge">• ' + v + '</span>' : '');
+        ch.innerHTML = esc(c) + (v ? ' <span class="co-badge">• ' + v + '</span>' : '');
       }
     });
   }
