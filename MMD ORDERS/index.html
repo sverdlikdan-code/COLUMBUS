@@ -284,6 +284,9 @@
     .lo { color: #d32f2f; font-weight: 800; }
     tr.danger .c-haml { color: #d32f2f !important; }
     tr.danger .ei-n { border-color: #d32f2f !important; color: #d32f2f !important; }
+    .col-g { background: #f0f4f8; }
+    tbody .col-g { background: #f4f6f9; }
+    td.tk-lo select { border-color: #d32f2f !important; color: #d32f2f !important; background: #fff5f5; }
 
     /* editable inputs */
     .ei {
@@ -439,8 +442,8 @@
         <th class="h-co">חברה</th>
         <th class="col-pair">מלאי<br>MMD</th>
         <th class="col-pair">מכר ממוצע<br>בשבוע קרטון</th>
-        <th>מלאי<br>אשדוד</th>
-        <th>מחסן<br>מעבר</th>
+        <th class="col-g">מלאי<br>אשדוד</th>
+        <th class="col-g">מחסן<br>מעבר</th>
         <th>תוקף</th>
         <th>כמה ימים<br>נשארו</th>
         <th>מכר קרטון<br>בתקופה</th>
@@ -448,9 +451,9 @@
         <th>נפח מלאי ביטחון<br>שבועות</th>
         <th>ימי מכר</th>
         <th>ימי מכר<br>מכלל %</th>
-        <th>המלצה להזמנה<br>קרטון</th>
-        <th>הזמנה<br>ידנית</th>
-        <th>תוקף<br>הזמנה</th>
+        <th class="col-g">המלצה להזמנה<br>קרטון</th>
+        <th class="col-g">הזמנה<br>ידנית</th>
+        <th class="col-g">תוקף<br>הזמנה</th>
       </tr>
     </thead>
     <tbody id="tb"></tbody>
@@ -804,8 +807,8 @@
           '<td class="c-co">' + (r.hevra || '') + '</td>' +
           '<td class="c-num ' + klass(mmd) + '">' + mmd + '</td>' +
           '<td class="c-num">' + (mkr != null ? mkr.toFixed(1) : '—') + '</td>' +
-          '<td class="c-num ' + klass(ash) + '">' + ash + '</td>' +
-          '<td class="c-num">' + mav + '</td>' +
+          '<td class="c-num col-g ' + klass(ash) + '">' + ash + '</td>' +
+          '<td class="c-num col-g">' + mav + '</td>' +
           '<td class="c-tukuf">' + formatTukuf(r.tukuf) + '</td>' +
           '<td class="c-num ' + yamimCls + '">' + yamimDisp + '</td>' +
           '<td class="c-num">' + (mkrTk != null ? mkrTk : '—') + '</td>' +
@@ -813,9 +816,9 @@
           '<td class="c-num">' + (weeksNf != null ? weeksNf : '—') + '</td>' +
           '<td class="c-num">' + (yamimHaya != null ? yamimHaya : '—') + '</td>' +
           '<td class="c-num">' + (pctMkr != null ? pctMkr + '%' : '—') + '</td>' +
-          '<td class="c-haml">' + (haml > 0 ? Math.round(haml) : '') + '</td>' +
-          '<td class="c-num"><input class="ei ei-n" type="number" min="0" step="1" value="' + ordV + '" data-mk="' + mk + '" data-f="k" oninput="inp(this)" placeholder="0"/></td>' +
-          '<td>' + buildPrtimCell(mk, r.tukuf, nts) + '</td>';
+          '<td class="c-haml col-g">' + (haml > 0 ? Math.round(haml) : '') + '</td>' +
+          '<td class="c-num col-g"><input class="ei ei-n" type="number" min="0" step="1" value="' + ordV + '" data-mk="' + mk + '" data-f="k" oninput="inp(this)" placeholder="0"/></td>' +
+          '<td class="col-g' + (yamim != null && yamim < 14 ? ' tk-lo' : '') + '">' + buildPrtimCell(mk, r.tukuf, nts) + '</td>';
         tb.appendChild(tr);
       });
 
