@@ -556,11 +556,6 @@
   }
 
 
-  function fixVisualRTL(s) {
-    const full = s.split('').reverse().join('');
-    return full.replace(/[\x20-\x7E]+/g, m => m.split('').reverse().join(''));
-  }
-
   const _HE_MON = ['','ינו','פבר','מרץ','אפר','מאי','יוני','יולי','אוג','ספט','אוק','נוב','דצמ'];
   function _fmtDate(raw) {
     const p = raw.trim().split(/\s+/);
@@ -805,7 +800,7 @@
           '<td class="c-img">' +
             (r.img ? '<img src="' + r.img + '" alt="" loading="lazy" onerror="this.outerHTML=\'<span class=ni></span>\'">' : '<span class="ni"></span>') +
           '</td>' +
-          '<td class="c-taur" dir="rtl" title="' + r.taur + '">' + fixVisualRTL(r.taur || '') + '</td>' +
+          '<td class="c-taur" dir="auto" title="' + r.taur + '">' + r.taur + '</td>' +
           '<td class="c-co">' + (r.hevra || '') + '</td>' +
           '<td class="c-num ' + klass(mmd) + '">' + mmd + '</td>' +
           '<td class="c-num">' + (mkr != null ? mkr.toFixed(1) : '—') + '</td>' +
