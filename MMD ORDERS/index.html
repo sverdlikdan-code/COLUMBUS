@@ -144,23 +144,34 @@
     .btn:active { transform: scale(.97); }
     .btn-excel  { background: var(--green); color: #fff; }
     .btn-hist   { background: #fff3cd; color: #7a5c00; border: 1px solid #e0c040; }
+    .btn-save   { background: #2e7d32; color: #fff; border: 1px solid #1b5e20; }
     .btn-print  { background: rgba(255,255,255,.15); color: #fff; border: 1px solid rgba(255,255,255,.3); }
     .btn-reload { background: rgba(255,255,255,.15); color: #fff; border: 1px solid rgba(255,255,255,.3); }
     .btn-clear  { background: rgba(255,255,255,.12); color: #ffcdd2; border: 1px solid rgba(255,255,255,.25); font-size: .75rem; }
     .hist-wrap  { position: relative; display: inline-block; }
+    @keyframes histIn { from { opacity:0; transform:translateY(-8px) scale(.97); } to { opacity:1; transform:translateY(0) scale(1); } }
     .hist-dd {
-      display: none; position: absolute; top: 100%; right: 0; margin-top: 4px;
-      background: #fff; border: 1px solid #ddd; border-radius: 8px;
-      box-shadow: 0 6px 20px rgba(0,0,0,.18); z-index: 1000;
-      min-width: 290px; max-height: 320px; overflow-y: auto;
+      display: none; position: absolute; top: calc(100% + 6px); right: 0;
+      background: #fff; border: 1px solid #e0e0e0; border-radius: 10px;
+      box-shadow: 0 8px 28px rgba(0,0,0,.22); z-index: 1000;
+      min-width: 320px; max-height: 420px; overflow: hidden;
+      flex-direction: column;
     }
-    .hist-dd.open { display: block; }
-    .hist-item { padding: 10px 14px; cursor: pointer; font-size: 12px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+    .hist-dd.open { display: flex; animation: histIn .18s ease; }
+    .hist-header {
+      padding: 10px 14px 8px; font-size: 11px; font-weight: 700; color: #1a6ef5;
+      border-bottom: 1px solid #eee; background: #f5f8ff; border-radius: 10px 10px 0 0;
+      flex-shrink: 0; letter-spacing: .03em;
+    }
+    .hist-scroll { overflow-y: auto; flex: 1; }
+    .hist-item { padding: 9px 14px; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
     .hist-item:hover { background: #f0f4ff; }
     .hist-item:last-child { border-bottom: none; }
-    .hist-item .h-ts  { color: #444; font-weight: 600; }
-    .hist-item .h-cnt { color: #1a6ef5; font-size: 11px; font-weight: 700; }
-    .hist-empty { padding: 14px; text-align: center; color: #aaa; font-size: 12px; }
+    .h-left { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+    .h-date { font-size: 13px; font-weight: 700; color: #222; }
+    .h-time { font-size: 11px; color: #888; }
+    .h-cnt  { color: #1a6ef5; font-size: 12px; font-weight: 700; white-space: nowrap; }
+    .hist-empty { padding: 20px 14px; text-align: center; color: #aaa; font-size: 12px; line-height: 1.8; }
 
     /* KPI row */
     .kpi-row { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -832,6 +843,7 @@
       <button class="btn btn-reload" onclick="load()">⟳ רענן</button>
       <button class="btn btn-clear" onclick="clearAll()">✕ נקה הזמנות</button>
       <button class="btn btn-excel" onclick="exportXL()">⬇ Excel</button>
+      <button class="btn btn-save" onclick="saveOrderNow()">💾 שמור</button>
       <div class="hist-wrap">
         <button class="btn btn-hist" id="btn-hist" onclick="toggleOrderHistory()">🕐 היסטוריה</button>
         <div class="hist-dd" id="hist-dd"></div>
@@ -1432,19 +1444,7 @@
         return eff > 0;
       });
 
-      // Save history
-      const histItems = [];
-      orderedRows.forEach(r => {
-        const mk = String(r.mkt ?? '');
-        const s  = sv[mk] || {};
-        const eff = s.k != null ? Number(s.k) : ((r.hamlatza ?? 0) > 0 ? Math.round(r.hamlatza) : 0);
-        const tukuf = s.p || (r.tukuf || '').split('/')[0]?.trim() || '';
-        histItems.push({ mk, taur: r.taur, mmd: r.mmd_k ?? 0, ash: r.ashdod_k ?? 0, qty: eff, tukuf });
-      });
-      const hist = JSON.parse(localStorage.getItem('mmd_order_history') || '[]');
-      hist.unshift({ ts: dateStr + ' ' + timeStr, count: histItems.length, items: histItems });
-      if (hist.length > 25) hist.pop();
-      localStorage.setItem('mmd_order_history', JSON.stringify(hist));
+      _saveOrderToHistory();
 
       // ── ExcelJS ──────────────────────────────────────────────────────
       const wb = new ExcelJS.Workbook();
@@ -1569,6 +1569,37 @@
     }
   };
 
+  function _saveOrderToHistory() {
+    const rows = filtered();
+    const sv   = saved();
+    const now  = new Date();
+    const date = now.toLocaleDateString('he-IL');
+    const time = now.toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'});
+    const orderedRows = rows.filter(r => {
+      const s = sv[String(r.mkt ?? '')] || {};
+      const eff = s.k != null ? s.k : ((r.hamlatza ?? 0) > 0 ? Math.round(r.hamlatza) : 0);
+      return eff > 0;
+    });
+    const items = orderedRows.map(r => {
+      const mk = String(r.mkt ?? '');
+      const s  = sv[mk] || {};
+      const eff = s.k != null ? Number(s.k) : ((r.hamlatza ?? 0) > 0 ? Math.round(r.hamlatza) : 0);
+      const tukuf = s.p || (r.tukuf || '').split('/')[0]?.trim() || '';
+      return { mk, taur: r.taur, mmd: r.mmd_k ?? 0, ash: r.ashdod_k ?? 0, qty: eff, tukuf };
+    });
+    const hist = JSON.parse(localStorage.getItem('mmd_order_history') || '[]');
+    hist.unshift({ date, time, ts: date + ' ' + time, count: items.length, items });
+    if (hist.length > 30) hist.pop();
+    localStorage.setItem('mmd_order_history', JSON.stringify(hist));
+    return items.length;
+  }
+
+  window.saveOrderNow = function() {
+    const n = _saveOrderToHistory();
+    const btn = document.querySelector('.btn-save');
+    if (btn) { btn.textContent = '✓ נשמר!'; setTimeout(() => { btn.textContent = '💾 שמור'; }, 1500); }
+  };
+
   window.toggleOrderHistory = function() {
     const dd = document.getElementById('hist-dd');
     const open = dd.classList.toggle('open');
@@ -1588,21 +1619,31 @@
     const hist = JSON.parse(localStorage.getItem('mmd_order_history') || '[]');
     const dd = document.getElementById('hist-dd');
     if (!hist.length) {
-      dd.innerHTML = '<div class="hist-empty">אין היסטוריית הזמנות<br>לחץ Excel כדי לשמור הזמנה</div>';
+      dd.innerHTML = `<div class="hist-header">היסטוריית הזמנות</div>
+        <div class="hist-scroll"><div class="hist-empty">אין הזמנות שמורות<br>לחץ 💾 שמור כדי לשמור</div></div>`;
       return;
     }
-    dd.innerHTML = hist.map((h, i) =>
-      `<div class="hist-item" onclick="restoreOrder(${i})">
-         <span class="h-ts">${h.ts} · ${h.count} פריטים</span>
-         <span class="h-cnt">שחזר ↩</span>
-       </div>`
-    ).join('');
+    const items = hist.map((h, i) => {
+      const date = h.date || (h.ts || '').split(' ')[0] || '';
+      const time = h.time || (h.ts || '').split(' ')[1] || '';
+      return `<div class="hist-item" onclick="restoreOrder(${i})">
+        <div class="h-left">
+          <div class="h-date">${date}</div>
+          <div class="h-time">${time} · ${h.count} פריטים</div>
+        </div>
+        <span class="h-cnt">שחזר ↩</span>
+      </div>`;
+    }).join('');
+    dd.innerHTML = `<div class="hist-header">היסטוריית הזמנות · ${hist.length} רשומות</div>
+      <div class="hist-scroll">${items}</div>`;
   }
 
   window.restoreOrder = function(idx) {
     const hist = JSON.parse(localStorage.getItem('mmd_order_history') || '[]');
     if (!hist[idx]) return;
-    if (!confirm('לשחזר הזמנה מ-' + hist[idx].ts + '?')) return;
+    const h = hist[idx];
+    const label = (h.date || h.ts || '') + (h.time ? ' ' + h.time : '');
+    if (!confirm('לשחזר הזמנה מ-' + label + '?')) return;
     const sv = saved();
     hist[idx].items.forEach(item => {
       sv[item.mk] = sv[item.mk] || {};
