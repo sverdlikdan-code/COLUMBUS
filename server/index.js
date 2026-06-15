@@ -140,14 +140,15 @@ function esc(s) {
 }
 
 // POST /log-access — client sends login/logout events
-app.post('/log-access', (req, res) => {
+const LOG_EVENTS = new Set(['login', 'logout']);
+app.post('/log-access', checkGeneralLimit, (req, res) => {
   const { event, agentCode, agentName, isManager } = req.body || {};
   const ip = getRealIp(req);
   writeLog({
     ts: new Date().toISOString(),
-    event: event || 'login',
-    agentCode: agentCode || null,
-    agentName: agentName || null,
+    event: LOG_EVENTS.has(event) ? event : 'login',
+    agentCode: agentCode ? String(agentCode).substring(0, 20) : null,
+    agentName: agentName ? String(agentName).substring(0, 60) : null,
     isManager: !!isManager,
     ip,
     device: deviceType(req.headers['user-agent'] || ''),
@@ -1045,7 +1046,7 @@ app.get('/api/mekarer-export', requireAuth, async (req, res) => {
 
 // GET /pbi/dagim-sales?periods=2026-5,2026-6 — live sales for הזמנה period filter (combined period)
 // Legacy single-month form also supported: ?year=2026&month=5
-app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
+app.get('/pbi/dagim-sales', requireAuth, dataRateLimit, async (req, res) => {
   let dateFilter;
 
   if (req.query.periods) {
