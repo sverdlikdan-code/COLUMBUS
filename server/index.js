@@ -4,7 +4,7 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const ExcelJS = require('exceljs');
-const { executeDax } = require('./powerbi');
+const { executeDax, getDatasetRefreshTime } = require('./powerbi');
 
 const app = express();
 app.use(cors({
@@ -1089,6 +1089,9 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
 
 // ── MMD ORDERS ──────────────────────────────────────────────────────────────
 app.use('/mmd', express.static(path.join(__dirname, '..', 'MMD ORDERS')));
+app.get('/logo-diler-bmd.png', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'docs', 'logo-diler-bmd.png'));
+});
 
 app.get('/pbi/mmd-orders', dataRateLimit, async (req, res) => {
   const MMD_DS = process.env.POWERBI_MMD_DATASET_ID;
@@ -1157,7 +1160,8 @@ app.get('/pbi/mmd-orders', dataRateLimit, async (req, res) => {
       yamim:      r['[yamim]']  != null ? Math.round(r['[yamim]']) : null,
     }));
 
-    res.json({ ok: true, data, ts: Date.now() });
+    const refreshedAt = await getDatasetRefreshTime(MMD_DS);
+    res.json({ ok: true, data, ts: Date.now(), refreshedAt });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
