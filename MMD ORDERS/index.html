@@ -1168,9 +1168,11 @@
     const tb   = document.getElementById('tb');
     tb.innerHTML = '';
 
-    // Popular threshold — top 25% by weekly avg sales
+    // Popular threshold — top 30% by mkr_shvua AND pct_mkr
     const mkrVals = rows.map(r => r.mkr_shvua).filter(v => v != null && v > 0).sort((a, b) => a - b);
-    const popThreshold = mkrVals.length ? mkrVals[Math.floor(mkrVals.length * 0.75)] : Infinity;
+    const popThreshold = mkrVals.length ? mkrVals[Math.floor(mkrVals.length * 0.70)] : Infinity;
+    const pctVals = rows.map(r => r.pct_mkr).filter(v => v != null && v > 0).sort((a, b) => a - b);
+    const pctThreshold = pctVals.length ? pctVals[Math.floor(pctVals.length * 0.70)] : Infinity;
 
     let tAsh = 0, tEil = 0, tMav = 0, tMmd = 0, tMkr = 0, tHaml = 0, tOrd = 0, nOrd = 0;
     const coMap = {}; // per-company order totals
@@ -1237,7 +1239,8 @@
         const pctMkr    = r.pct_mkr ?? null;
         const yamimDisp = yamim == null ? '—' : yamim > 999 ? '999+' : (yamim < 10 ? '⚠ ' : '') + String(yamim);
         const yamimCls  = yamim == null ? '' : yamim < 10 ? 'lo' : yamim <= 30 ? 'md' : 'ok';
-        const isPopular = r.mkr_shvua != null && r.mkr_shvua >= popThreshold;
+        const isPopular = r.mkr_shvua != null && r.mkr_shvua >= popThreshold &&
+                          r.pct_mkr  != null && r.pct_mkr  >= pctThreshold;
 
         gAsh += ash; gEil += eil; gMav += mav; gMmd += mmd;
         if (mkr != null) gMkr += mkr;
