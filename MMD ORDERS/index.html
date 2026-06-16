@@ -1429,7 +1429,7 @@
         const mk    = String(r.mkt ?? '');
         const s     = sv[mk] || {};
         const eff   = s.k != null ? Number(s.k) : ((r.hamlatza ?? 0) > 0 ? Math.round(r.hamlatza) : 0);
-        const tukuf = s.p || (r.tukuf || '').split('/')[0]?.trim() || '';
+        const tukuf = s.p || '';
         const mmdK  = r.mmd_k ?? 0;
         const ashK  = r.ashdod_k ?? 0;
         totalK += eff;
