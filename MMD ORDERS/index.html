@@ -515,11 +515,11 @@
     #splash.hiding { opacity: 0; pointer-events: none; }
     #splash.gone   { display: none; }
 
-    /* City photo background */
+    /* City photo background — light overlay so photo is visible */
     #splash-bg {
       position: absolute; inset: 0;
       background:
-        linear-gradient(to bottom, rgba(0,0,0,0.58) 0%, rgba(0,0,0,0.72) 100%),
+        linear-gradient(to bottom, rgba(0,5,15,0.18) 0%, rgba(0,5,15,0.50) 100%),
         url('FOTO CITY/hf_20260616_070536_e10a8e5d-0af1-482d-82c5-36ce4b35341f.png') center/cover no-repeat;
     }
     #splash-bg::before {
@@ -544,7 +544,7 @@
     #splash-overlay { display: none; }
     #splash-sun     { display: none; }
 
-    /* Center content */
+    /* Center content — frosted glass card */
     #splash-content {
       position: relative;
       z-index: 1;
@@ -555,6 +555,14 @@
       text-align: center;
       direction: rtl;
       animation: splashIn .9s ease both;
+      background: rgba(0,8,28,0.74);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+      border: 1px solid rgba(255,200,70,0.22);
+      border-radius: 28px;
+      padding: 48px 72px 44px;
+      box-shadow: 0 28px 72px rgba(0,0,0,0.58), 0 0 0 1px rgba(255,200,70,0.06);
+      min-width: 380px;
     }
     @keyframes splashIn {
       from { opacity: 0; transform: translateY(22px); }
@@ -603,13 +611,13 @@
     .splash-stars { font-size: 1rem; color: rgba(255,200,80,.6); letter-spacing: .35em; margin-bottom: 6px; }
 
     #splash-title {
-      font-size: 2.6rem;
+      font-size: 3.2rem;
       font-weight: 900;
       color: #fff;
-      letter-spacing: .06em;
+      letter-spacing: .08em;
       line-height: 1;
-      text-shadow: 0 2px 20px rgba(0,0,0,.6);
-      margin-bottom: 4px;
+      text-shadow: 0 2px 24px rgba(0,0,0,.8);
+      margin-bottom: 6px;
     }
     #splash-title span {
       color: #ffc85a;
