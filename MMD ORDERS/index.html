@@ -1248,7 +1248,7 @@
 
         const tr = document.createElement('tr');
         tr.className = 'drow' +
-      (yamim != null && yamim < 10 ? ' danger' : '') + +;
+      (yamim != null && yamim < 10 ? ' danger' : '');
         tr.innerHTML =
           '<td class="c-mkt">' + mk + '</td>' +
           '<td class="c-taur" dir="rtl" title="' + esc(r.taur) + '">' + (isPopular ? '<span class="pop-star">⭐</span> ' : '') + _ltrWrap(shortName(fixProductName(r.taur))) + '</td>' +
