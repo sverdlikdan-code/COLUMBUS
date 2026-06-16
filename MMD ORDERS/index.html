@@ -515,12 +515,12 @@
     #splash.hiding { opacity: 0; pointer-events: none; }
     #splash.gone   { display: none; }
 
-    /* Luxury minimal dark background */
+    /* City photo background */
     #splash-bg {
       position: absolute; inset: 0;
       background:
-        radial-gradient(ellipse at 50% 42%, rgba(8,45,110,0.38) 0%, transparent 52%),
-        linear-gradient(155deg, #010810 0%, #030d20 28%, #061828 55%, #040c1a 78%, #020810 100%);
+        linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.55) 100%),
+        url('FOTO CITY/hf_20260616_070536_e10a8e5d-0af1-482d-82c5-36ce4b35341f.png') center/cover no-repeat;
     }
     #splash-bg::before {
       content: '';
@@ -932,10 +932,10 @@
     return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
   function fixProductName(s) {
-    // Visual-order gram suffix from PBI — any apostrophe variant before ג+digits
-    s = s.replace(/['''`´ʼ׳‘’]\s*ג\s*(\d+)\s*[''׳]?/g, ' $1ג');
-    // Fallback: bare space+ג+2+digits (no apostrophe, still reversed)
-    s = s.replace(/\s+ג(\d{2,})/g, ' $1ג');
+    // Gram weight: ג+digits or apostrophe+ג+digits → digits+ג (regex built as string to avoid encoding issues)
+    s = s.replace(new RegExp('ג\s*[\u0027\u2018\u2019\u05F3\u02BC\u00B4`]?\s*(\d+)\s*[\u0027\u2019\u05F3]?', 'g'), ' $1ג');
+    // apostrophe before ג then digits
+    s = s.replace(new RegExp('[\u0027\u2018\u2019\u05F3\u02BC\u00B4`]\s*ג\s*(\d+)\s*[\u0027\u2019\u05F3]?', 'g'), ' $1ג');
     // Mirrored brackets from PBI visual order: )text( → (text)
     s = s.replace(/\)([^()]+)\(/g, '($1)');
     // Strip short abbreviations in brackets: (NP), (Np), (VG) etc.
