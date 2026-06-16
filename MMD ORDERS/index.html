@@ -455,8 +455,6 @@
     }
 
     /* popular & low-pct highlights */
-    tr.row-pop td  { background: #fffbeb !important; }
-    tr.row-pop .c-taur { color: #92400e; }
     .pop-star { font-size: .8em; }
 
     /* footer row */
@@ -1250,8 +1248,7 @@
 
         const tr = document.createElement('tr');
         tr.className = 'drow' +
-      (yamim != null && yamim < 10 ? ' danger' : '') +
-      (isPopular ? ' row-pop' : '') +;
+      (yamim != null && yamim < 10 ? ' danger' : '') + +;
         tr.innerHTML =
           '<td class="c-mkt">' + mk + '</td>' +
           '<td class="c-taur" dir="rtl" title="' + esc(r.taur) + '">' + (isPopular ? '<span class="pop-star">⭐</span> ' : '') + _ltrWrap(shortName(fixProductName(r.taur))) + '</td>' +
