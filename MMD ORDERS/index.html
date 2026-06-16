@@ -294,6 +294,8 @@
       font-size: .82rem !important;
     }
     #sk-ord-only.on { background: #dc2626 !important; border-color: #dc2626 !important; }
+    #sk-no-mkr { border-radius: 6px !important; background: #4a1d96 !important; color: #e9d5ff !important; border-color: #6d28d9 !important; font-size: .82rem !important; }
+    #sk-no-mkr.on { background: #7c3aed !important; border-color: #7c3aed !important; color: #fff !important; }
     .flabel { font-size: .7rem; color: var(--mid); font-weight: 700; white-space: nowrap; }
     .chip {
       display: inline-flex;
@@ -451,6 +453,11 @@
       border-top: 1px dashed var(--sky-mid);
       border-bottom: 2px solid var(--sky-mid);
     }
+
+    /* popular & low-pct highlights */
+    tr.row-pop td  { background: #fffbeb !important; }
+    tr.row-pop .c-taur { color: #92400e; }
+    .pop-star { font-size: .8em; }
 
     /* footer row */
     tfoot td {
@@ -765,6 +772,7 @@
     <span class="chip" id="sk-mmd-yes" onclick="togStock('mmd','yes')">✓ יש 📦</span>
     <span class="chip" id="sk-mmd-no"  onclick="togStock('mmd','no')">חסר 😢</span>
     <span class="chip" id="sk-ord-only" onclick="togOrdOnly()">📋 הזמנה בלבד</span>
+    <span class="chip" id="sk-no-mkr" onclick="togNoMkr()">🚫 אין מכר MMD</span>
   </div>
 </div>
 
@@ -810,6 +818,7 @@
   let cos  = new Set();
   let selStart = null, selEnd = null; // null = default (prev+cur month); range selection
   let ordOnly   = false;
+  let noMkr    = false;
   const ashFilter = new Set(['yes']); // default: show only items with Ashdod stock
   const mmdFilter = new Set();
 
@@ -925,8 +934,10 @@
     return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
   function fixProductName(s) {
-    // Visual-order gram suffix from PBI (no BiDi markers): 'ג004 → 400ג'
-    s = s.replace(/([''׳])ג(\d+)/g, '$2ג$1');
+    // Visual-order gram suffix from PBI — any apostrophe variant before ג+digits
+    s = s.replace(/['''`´ʼ׳‘’]\s*ג\s*(\d+)\s*[''׳]?/g, ' $1ג');
+    // Fallback: bare space+ג+2+digits (no apostrophe, still reversed)
+    s = s.replace(/\s+ג(\d{2,})/g, ' $1ג');
     // Mirrored brackets from PBI visual order: )text( → (text)
     s = s.replace(/\)([^()]+)\(/g, '($1)');
     // Strip short abbreviations in brackets: (NP), (Np), (VG) etc.
@@ -1120,6 +1131,12 @@
     if (el) el.classList.toggle('on', ordOnly);
     render();
   };
+  window.togNoMkr = function() {
+    noMkr = !noMkr;
+    const el = document.getElementById('sk-no-mkr');
+    if (el) el.classList.toggle('on', noMkr);
+    render();
+  };
 
   function filtered() {
     const sv = ordOnly ? saved() : null;
@@ -1133,6 +1150,9 @@
       if (mmdFilter.size) {
         const has = r.mmd_k > 0;
         if (!mmdFilter.has(has ? 'yes' : 'no')) return false;
+      }
+      if (noMkr) {
+        if ((r.mkr_tk ?? 0) > 0) return false;
       }
       if (ordOnly && sv) {
         const s = sv[String(r.mkt ?? '')] || {};
@@ -1149,6 +1169,10 @@
     const sv   = saved();
     const tb   = document.getElementById('tb');
     tb.innerHTML = '';
+
+    // Popular threshold — top 25% by weekly avg sales
+    const mkrVals = rows.map(r => r.mkr_shvua).filter(v => v != null && v > 0).sort((a, b) => a - b);
+    const popThreshold = mkrVals.length ? mkrVals[Math.floor(mkrVals.length * 0.75)] : Infinity;
 
     let tAsh = 0, tEil = 0, tMav = 0, tMmd = 0, tMkr = 0, tHaml = 0, tOrd = 0, nOrd = 0;
     const coMap = {}; // per-company order totals
@@ -1215,6 +1239,7 @@
         const pctMkr    = r.pct_mkr ?? null;
         const yamimDisp = yamim == null ? '—' : yamim > 999 ? '999+' : (yamim < 10 ? '⚠ ' : '') + String(yamim);
         const yamimCls  = yamim == null ? '' : yamim < 10 ? 'lo' : yamim <= 30 ? 'md' : 'ok';
+        const isPopular = r.mkr_shvua != null && r.mkr_shvua >= popThreshold;
 
         gAsh += ash; gEil += eil; gMav += mav; gMmd += mmd;
         if (mkr != null) gMkr += mkr;
@@ -1224,10 +1249,12 @@
         if (eff > 0) coMap[r.hevra || '—'] = (coMap[r.hevra || '—'] || 0) + eff;
 
         const tr = document.createElement('tr');
-        tr.className = 'drow' + (yamim != null && yamim < 10 ? ' danger' : '');
+        tr.className = 'drow' +
+      (yamim != null && yamim < 10 ? ' danger' : '') +
+      (isPopular ? ' row-pop' : '') +;
         tr.innerHTML =
           '<td class="c-mkt">' + mk + '</td>' +
-          '<td class="c-taur" dir="rtl" title="' + esc(r.taur) + '">' + _ltrWrap(shortName(fixProductName(r.taur))) + '</td>' +
+          '<td class="c-taur" dir="rtl" title="' + esc(r.taur) + '">' + (isPopular ? '<span class="pop-star">⭐</span> ' : '') + _ltrWrap(shortName(fixProductName(r.taur))) + '</td>' +
           '<td class="c-img">' +
             (r.img ? '<img src="' + esc(r.img) + '" alt="" loading="lazy" onerror="this.outerHTML=\'<span class=ni></span>\'">' : '<span class="ni"></span>') +
           '</td>' +
@@ -1292,7 +1319,7 @@
     const v = el.value.trim();
     if (v === '') delete sv[mk][f];
     else sv[mk][f] = f === 'k' ? Number(v) : v;
-    if (!sv[mk].k && !sv[mk].p) delete sv[mk];
+    if (sv[mk].k == null && !sv[mk].p) delete sv[mk];
     save(sv);
     recalc();
   };
@@ -1551,7 +1578,7 @@
       sv[item.mk] = sv[item.mk] || {};
       sv[item.mk].k = item.qty;
     });
-    localStorage.setItem('mmd_saved', JSON.stringify(sv));
+    save(sv);
     document.getElementById('hist-dd').classList.remove('open');
     render();
   };
