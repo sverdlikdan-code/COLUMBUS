@@ -25,13 +25,13 @@ app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'no-referrer');
   res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Permissions-Policy', 'geolocation=(), camera=(), microphone=()');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=()');
   res.setHeader('Content-Security-Policy',
     "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; " +
     "img-src 'self' data: blob: https:; " +
-    "connect-src 'self'; " +
-    "style-src 'self' 'unsafe-inline'; " +
+    "connect-src 'self' https://nominatim.openstreetmap.org https://router.project-osrm.org; " +
+    "style-src 'self' 'unsafe-inline' https://unpkg.com; " +
     "frame-ancestors 'none';"
   );
   next();
@@ -155,6 +155,13 @@ app.post('/log-access', checkGeneralLimit, (req, res) => {
     ua: (req.headers['user-agent'] || '').substring(0, 120),
   });
   res.json({ ok: true });
+});
+
+// GET /auth/pbi — auto-login as manager if opened via PBI (fr_ok cookie present)
+app.get('/auth/pbi', (req, res) => {
+  const cookies = req.headers.cookie || '';
+  if (!/(?:^|;\s*)fr_ok=1/.test(cookies)) return res.status(401).json({ ok: false });
+  return res.json({ ok: true, token: createSession(null, true) });
 });
 
 // POST /auth — unified login: manager password OR agent code → returns session token
@@ -784,6 +791,18 @@ app.post('/save-kapua', requireAuth, (req, res) => {
   }
 });
 
+// ── ג normalization: ג'004 / 'ג032 → 004 ג ──────────────────────────────────
+function fixGimel(s) {
+  if (!s) return s;
+  // apostrophe before gimel: 'ג032 → 032 ג
+  s = s.replace(/[\u0027\u2018\u2019\u05F3\u02BC\u00B4`]\s*\u05D2\s*(\d+)[\u0027\u2019\u05F3]?/g, ' $1 \u05D2');
+  // digits before gimel+apostrophe: 0021ג' → 0021 ג  (actual PBI format)
+  s = s.replace(/(\d+)\u05D2[\u0027\u2018\u2019\u05F3\u02BC\u00B4`]/g, '$1 \u05D2 ');
+  // gimel before digits (no apostrophe): ג025 → 025 ג
+  s = s.replace(/\u05D2[\u0027\u2018\u2019\u05F3\u02BC\u00B4`]?\s*(\d+)[\u0027\u2019\u05F3]?/g, ' $1 \u05D2');
+  return s.replace(/\s{2,}/g, ' ').trim();
+}
+
 // ── BiDi decode (same logic as export-gps-report.js) ────────────────────────
 const _BIDI_TEST  = /[‎‏‪-‮]/;
 const _BIDI_STRIP = /[‎‏‪-‮]/g;
@@ -793,7 +812,7 @@ function fixBiDi(raw) {
   const s = raw.replace(_BIDI_STRIP, '').trim();
   if (!hasBidi || !/[א-ת]/.test(s)) return s;
   const fixed = s.split(/\s+/).reverse()
-    .map(w => /[א-ת]/.test(w) ? w.split('').reverse().join('') : w)
+    .map(w => /[א-ת]/.test(w) ? w.split('').reverse().join('').replace(/\d+/g, m => m.split('').reverse().join('')) : w)
     .join(' ');
   // BiDi visual encoding mirrors parentheses — swap them back
   return fixed.replace(/\(/g, '\x01').replace(/\)/g, '(').replace(/\x01/g, ')');
@@ -1101,7 +1120,48 @@ app.get('/pbi/dagim-sales', requireAuth, dataRateLimit, async (req, res) => {
 });
 
 // ── MMD ORDERS ──────────────────────────────────────────────────────────────
-app.use('/mmd', express.static(path.join(__dirname, '..', 'MMD ORDERS')));
+function mmdGuard(req, res, next) {
+  const key = process.env.MMD_PBI_KEY;
+  if (!key) return next(); // no key configured → open access (dev mode)
+  const cookies = req.headers.cookie || '';
+  const hasCookie = /(?:^|;\s*)pbi_ok=1/.test(cookies);
+  if (req.query.k === key) {
+    res.setHeader('Set-Cookie', 'pbi_ok=1; Path=/mmd; HttpOnly; SameSite=Lax; Max-Age=2592000');
+    return next();
+  }
+  if (hasCookie) return next();
+  return res.status(403).send(`<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>גישה מוגבלת</title><style>body{font-family:sans-serif;background:#f0f2f5;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}div{text-align:center;background:#fff;padding:48px 40px;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.08)}h2{margin:0 0 12px;color:#1a1a2e;font-size:1.4rem}p{color:#666;margin:0}</style></head><body><div><div style="font-size:2.5rem;margin-bottom:16px">🔒</div><h2>גישה דרך Power BI בלבד</h2><p>יש לפתוח את האפליקציה מתוך לוח הבקרה ב-Power BI</p></div></body></html>`);
+}
+app.use('/mmd', mmdGuard, express.static(path.join(__dirname, '..', 'MMD ORDERS')));
+
+// ── FORMULA ROAD ─────────────────────────────────────────────────────────────
+function formulaRoadGuard(req, res, next) {
+  const key = process.env.FORMULA_PBI_KEY;
+  if (!key) return next();
+  const cookies = req.headers.cookie || '';
+  const hasCookie = /(?:^|;\s*)fr_ok=1/.test(cookies);
+  if (req.query.k === key) {
+    res.setHeader('Set-Cookie', 'fr_ok=1; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000');
+    return next();
+  }
+  if (hasCookie) return next();
+  return res.status(403).send(`<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>גישה מוגבלת</title><style>body{font-family:sans-serif;background:#f0f2f5;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}div{text-align:center;background:#fff;padding:48px 40px;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.08)}h2{margin:0 0 12px;color:#1a1a2e;font-size:1.4rem}p{color:#666;margin:0}</style></head><body><div><div style="font-size:2.5rem;margin-bottom:16px">🔒</div><h2>גישה דרך Power BI בלבד</h2><p>יש לפתוח את האפליקציה מתוך לוח הבקרה ב-Power BI</p></div></body></html>`);
+}
+app.get('/formula-road', formulaRoadGuard, (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'docs', 'formula-road.html'));
+});
+app.get('/marshrut-rud', (req, res) => {
+  if (req.query.k !== 'rud2026') return res.status(403).send('Forbidden');
+  res.sendFile(path.join(__dirname, '..', 'docs', 'marshrut-rud.html'));
+});
+// Static data files referenced via relative fetch in formula-road.html
+app.get('/gps-corrections.json', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'docs', 'gps-corrections.json'));
+});
+app.get('/formula-road-data.json', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'docs', 'formula-road-data.json'));
+});
+
 app.get('/logo-diler-bmd.png', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'logo-diler-bmd.png'));
 });
@@ -1153,7 +1213,7 @@ app.get('/pbi/mmd-orders', dataRateLimit, async (req, res) => {
 
     const data = rows.map(r => ({
       mkt:       r['KARTIS PARIT[מק"ט]'],
-      taur:      fixBiDi(r['KARTIS PARIT[תאור]'] || ''),
+      taur:      fixGimel(fixBiDi(r['KARTIS PARIT[תאור]'] || '')),
       mishpacha: fixBiDi(r['KARTIS PARIT[תאור משפחה]'] || ''),
       hevra:     r['KARTIS PARIT[HEVRA.חברה]'] || '',
       krat:      r['KARTIS PARIT[תכולת האריזה למוצר]'] ?? null,
