@@ -1572,6 +1572,7 @@ function renderMap(){
       ?`<span style="transform:rotate(45deg);font-size:${isFirst&&!isSel?'9px':'13px'};font-weight:900">${isFirst&&!isSel?'START':i+1}</span>`
       :`${i+1}`;
     const isCityCenter = c.gpsSource === 'city-center';
+    const isGeocoded = c.gpsSource === 'geocoded' || c.gpsSource === 'pbi-sibling-near';
     // pre-compute duplicate index here (used both for icon label and jitter below)
     const _ck=`${c.lat},${c.lng}`;
     const _hasDupe=_coordCount[_ck]>1;
@@ -1617,7 +1618,11 @@ function renderMap(){
     const m=L.marker([mLat,mLng],{icon,zIndexOffset:isSel?1000:0});
     m._rn=i+1;
     const corrMark = gpsCorrections[String(c.custId)] ? ' ✏️' : '';
-    const approxNote = isCityCenter ? '<br><span style="font-size:11px;color:#FF8C00">⚠ מיקום משוער — מרכז עיר</span>' : '';
+    const approxNote = isCityCenter
+      ? '<br><span style="font-size:11px;color:#FF8C00">⚠ מיקום משוער — מרכז עיר</span>'
+      : isGeocoded
+      ? '<br><span style="font-size:11px;color:#E65100">⚠ GPS לא מדוייק</span>'
+      : '';
     const safeName=(c.custName||'').replace(/"/g,'&quot;');
     const fixBtn=`<br><button data-id="${c.custId}" data-name="${safeName}" onclick="startGpsCorrection(this.dataset.id,this.dataset.name)" style="margin-top:6px;background:#1565C0;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">📍 תקן מיקום</button>`;
     m.bindPopup(`<b>${esc(_rawLabel)}${corrMark}</b><br>${esc(c.city||'')}${c.address?'<br><span style="font-size:11px;color:#555">'+esc(c.address)+'</span>':''}${approxNote}${fixBtn}`);
