@@ -37,6 +37,28 @@ status: in-progress
 - **Минус:** URL меняется при перезагрузке компьютера → нужна новая сборка APK
 - **Решение:** купить домен и создать Named Tunnel (постоянный URL)
 
+## PBI Guard — 2026-06-16 ✅
+
+**Задача:** спрятать Formula Road за Power BI кнопкой — нельзя открыть без прохождения через BI.
+
+**Реализация** (идентична MMD ORDERS guard):
+- Middleware `formulaRoadGuard` в `server/index.js`
+- URL `https://api.sverdlik-apps.site/formula-road?k=FORMULA_PBI_KEY`
+- При первом доступе с ключом → cookie `fr_ok=1; Path=/formula-road; HttpOnly; Max-Age=2592000` (30 дней)
+- Без ключа и без cookie → 403 страница "גישה דרך Power BI בלבד"
+- Данные: `/gps-corrections.json` и `/formula-road-data.json` — отдельные маршруты (без guard, публичны как GitHub Pages)
+
+**Ключ:** `LN80v9eK7hEng5LagaHs2Feh` (в `.env` как `FORMULA_PBI_KEY`)
+
+**URL для PBI кнопки:**
+```
+https://api.sverdlik-apps.site/formula-road?k=LN80v9eK7hEng5LagaHs2Feh
+```
+
+**Проверено:** без ключа → 403, с ключом → 200
+
+---
+
 ## Что нужно сделать
 
 - [ ] Дождаться APK v3 (`b8a3654a`)

@@ -433,7 +433,7 @@ body.gps-fs #map{height:100%!important;}
 <script>
 const API = 'https://api.sverdlik-apps.site';
 const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 
 (function(){
   const p = new URLSearchParams(location.search);
@@ -463,6 +463,20 @@ async function apiFetch(url, opts={}){
     clearTimeout(tid);
   }
   if(r.status === 401){
+    // Try silent PBI re-auth before showing error
+    try {
+      const pbi = await fetch(API+'/auth/pbi');
+      if(pbi.ok){
+        const j = await pbi.json();
+        if(j.ok && j.token){
+          localStorage.setItem('frToken', j.token);
+          // Retry original request with new token
+          const newHeaders = { ...headers, 'x-session': j.token };
+          const retry = await fetch(url, { ...opts, headers: newHeaders });
+          if(retry.status !== 401) return retry;
+        }
+      }
+    } catch(_){}
     localStorage.removeItem('frAgent');
     localStorage.removeItem('frToken');
     alert('פג תוקף הסשן — נא להתחבר מחדש');
@@ -766,7 +780,25 @@ async function initLogin(){
     return;
   }
 
-  // No auth — show code entry
+  // No auth — try PBI auto-login first (fr_ok cookie → manager session)
+  try {
+    const r = await fetch(API+'/auth/pbi');
+    if(r.ok){
+      const j = await r.json();
+      if(j.ok && j.token){
+        _saveToken(j.token);
+        localStorage.setItem('frAgent', JSON.stringify({code:'mgr',name:'מנהל',isManager:true}));
+        _logAccess('login',null,'מנהל',true);
+        _setupManagerPicker();
+        st.step='manager';
+        renderLogin();
+        show('s-login');
+        return;
+      }
+    }
+  } catch(_){}
+
+  // Fallback — show code entry
   renderLogin();
   show('s-login');
 }
@@ -1017,7 +1049,8 @@ function detectCity(){
         });
       btn.disabled=false;
     },
-    ()=>{btn.textContent='❌ נדחה — הקלד ידנית';btn.disabled=false;}
+    ()=>{btn.textContent='❌ נדחה — הקלד ידנית';btn.disabled=false;},
+    {timeout:10000, maximumAge:60000, enableHighAccuracy:false}
   );
 }
 
