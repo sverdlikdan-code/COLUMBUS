@@ -316,8 +316,14 @@ const geocodeCache = new Map();
 (function loadGeocodeCache() {
   try {
     const data = JSON.parse(fs.readFileSync(GEOCODE_CACHE_PATH, 'utf8'));
-    for (const [k, v] of Object.entries(data)) geocodeCache.set(k, v);
-    console.log(`geocode cache loaded: ${geocodeCache.size} entries`);
+    let purged = 0;
+    for (const [k, v] of Object.entries(data)) {
+      // skip keys that contain BiDi control chars — those were geocoded with reversed Hebrew
+      if (/[‎‏‪-‮]/.test(k)) { purged++; continue; }
+      geocodeCache.set(k, v);
+    }
+    console.log(`geocode cache loaded: ${geocodeCache.size} entries (purged ${purged} BiDi-corrupted)`);
+    if (purged > 0) saveGeocodeCache();
   } catch (_) {}
 })();
 
@@ -397,9 +403,23 @@ function isPoBox(address) {
   return /ת\.?ד\.?\s*\d+/i.test(address) || /p\.?o\.?\s*box/i.test(address);
 }
 
+// PBI stores Hebrew addresses in visual order wrapped in LTR-Override markers.
+// Strip BiDi marks and reverse Hebrew segments to get logical (geocodable) text.
+function fixBiDiAddress(str) {
+  if (!str) return str;
+  const hasLROverride = /[‪‭]/.test(str);
+  let clean = str.replace(/[‎‏‪-‮]/g, '');
+  if (hasLROverride) {
+    clean = clean.replace(/[֐-׿יִ-ﭏ]+/g, seg =>
+      seg.split('').reverse().join('')
+    );
+  }
+  return clean.trim();
+}
+
 function cleanAddressForGeocoding(address) {
   if (!address) return address;
-  let s = address;
+  let s = fixBiDiAddress(address);
   for (const [pat, rep] of ABBREV_MAP) s = s.replace(pat, rep);
   // strip apartment fraction: "הרצל 5/3" → "הרצל 5"
   s = s.replace(/(\d+)\/\d+/g, '$1');
@@ -478,9 +498,9 @@ async function normalizeAddressWithAI(address, city) {
 
 async function geocodeAddress(query) {
   if (geocodeCache.has(query)) return geocodeCache.get(query);
-  let result = await geocodeGoogle(query);
-  if (!result) result = await geocodeAzure(query);
+  let result = await geocodeAzure(query);
   if (!result) result = await geocodeNominatim(query);
+  if (!result) result = await geocodeGoogle(query); // last — guesses aggressively
   geocodeCache.set(query, result || null);
   return result || null;
 }
@@ -491,10 +511,21 @@ function extractStreetNum(address) {
   return m ? m[0].trim() : null;
 }
 
+const SETTLEMENT_RE = /(מושב|קיבוץ|כפר|ישוב|מוצא|נחלה)/;
+
 async function geocodeAddressCascade(address, city) {
   if (isPoBox(address || '')) return null;
 
   const cleaned = cleanAddressForGeocoding(address);
+
+  // settlement-type address with no street number → skip geocoding, use city center
+  if (SETTLEMENT_RE.test(cleaned || address || '') && !extractStreetNum(cleaned || address || '')) {
+    if (city) {
+      const r = await geocodeAddress(city + ', ישראל');
+      if (r) return { ...r, cityCenter: true };
+    }
+    return null;
+  }
   const cityStr = city ? `, ${city}` : '';
 
   // attempt 1: full cleaned address + city
@@ -517,10 +548,85 @@ async function geocodeAddressCascade(address, city) {
     if (r) { saveGeocodeCache(); return r; }
   }
 
-  // attempt 4: city-only fallback
+  // attempt 4: city-only fallback — mark as approximate
   if (city) {
     const r = await geocodeAddress(city + ', ישראל');
-    if (r) return r;
+    if (r) return { ...r, cityCenter: true };
+  }
+
+  return null;
+}
+
+// ── PBI Sibling Lookup ────────────────────────────────────────────────────────
+// Finds clients in PBI with GPS at the same address (or same street ±10 houses)
+// to use their coordinates instead of geocoding from scratch.
+
+let _pbiSiblingData = null;
+let _pbiSiblingLoadedAt = 0;
+const PBI_SIBLING_TTL = 30 * 60 * 1000;
+
+async function loadPBISiblingData() {
+  if (_pbiSiblingData && (Date.now() - _pbiSiblingLoadedAt) < PBI_SIBLING_TTL) return _pbiSiblingData;
+  try {
+    const rows = await executeDax(`
+EVALUATE
+FILTER(
+  SELECTCOLUMNS('משטח',
+    "id",   'משטח'[מס. לקוח],
+    "addr", 'משטח'[כתובת],
+    "city", 'משטח'[עיר],
+    "lat",  'משטח'[קו רוחב],
+    "lng",  'משטח'[קו אורך]
+  ),
+  AND('משטח'[קו רוחב] <> 0, 'משטח'[קו אורך] <> 0)
+)`);
+    _pbiSiblingData = rows.map(r => ({
+      addr: fixBiDiAddress(r['[addr]'] || '').trim(),
+      city: (r['[city]'] || '').trim(),
+      lat:  parseFloat(r['[lat]']),
+      lng:  parseFloat(r['[lng]']),
+    })).filter(r => isValidIL(r.lat, r.lng));
+    _pbiSiblingLoadedAt = Date.now();
+    console.log(`PBI sibling cache: ${_pbiSiblingData.length} clients with GPS`);
+  } catch (e) {
+    console.error('loadPBISiblingData:', e.message);
+    _pbiSiblingData = [];
+  }
+  return _pbiSiblingData;
+}
+
+function parseAddrParts(addr) {
+  // "הציונות 41" or "41 הציונות" → { street, num }
+  const m1 = addr.match(/^([֐-׿\s"'\-]+?)\s+(\d+)\s*$/);
+  if (m1) return { street: m1[1].trim(), num: parseInt(m1[2]) };
+  const m2 = addr.match(/^(\d+)\s+([֐-׿\s"'\-]+?)\s*$/);
+  if (m2) return { street: m2[2].trim(), num: parseInt(m2[1]) };
+  return { street: addr.trim(), num: null };
+}
+
+async function findPBISibling(address, city) {
+  if (!address || !city) return null;
+  const siblings = await loadPBISiblingData();
+  const clean = fixBiDiAddress(address).trim();
+  const norm = s => s.replace(/\s+/g, ' ').trim();
+
+  // Step 1: exact address match in same city
+  const exact = siblings.find(s =>
+    s.city === city && norm(s.addr) === norm(clean)
+  );
+  if (exact) return { lat: exact.lat, lng: exact.lng, source: 'pbi-sibling' };
+
+  // Step 2: same city + same street + house number ±10
+  const { street, num } = parseAddrParts(clean);
+  if (street && num !== null) {
+    const nearby = siblings.find(s => {
+      if (s.city !== city) return false;
+      const p = parseAddrParts(s.addr);
+      if (!p.street || p.num === null) return false;
+      if (!p.street.includes(street) && !street.includes(p.street)) return false;
+      return Math.abs(p.num - num) <= 10;
+    });
+    if (nearby) return { lat: nearby.lat, lng: nearby.lng, source: 'pbi-sibling-near' };
   }
 
   return null;
@@ -553,11 +659,24 @@ async function geocodeBatch(clients) {
   const needsGeocode = clients.filter(c => !isValidIL(c.lat, c.lng) && (c.address || c.city));
   let resolved = 0;
   for (const c of needsGeocode) {
+    // Step 0: PBI sibling lookup (accurate, no external API)
+    const sibling = await findPBISibling(c.address, c.city);
+    if (sibling) {
+      const bbox = cityBBoxCache.get(c.city) ?? null;
+      if (isWithinCityBBox(sibling.lat, sibling.lng, bbox)) {
+        c.lat = sibling.lat; c.lng = sibling.lng;
+        c.gpsSource = sibling.source;
+        resolved++;
+        continue;
+      }
+    }
+
     const result = await geocodeAddressCascade(c.address, c.city);
     if (result) {
       const bbox = cityBBoxCache.get(c.city) ?? null;
       if (isWithinCityBBox(result.lat, result.lng, bbox)) {
         c.lat = result.lat; c.lng = result.lng; resolved++;
+        c.gpsSource = result.cityCenter ? 'city-center' : 'geocoded';
       }
     }
     if (!isValidIL(c.lat, c.lng)) c.gpsSource = 'no-gps';
@@ -628,92 +747,89 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
   if (day && !/^[1-5]$/.test(String(day))) return res.status(400).json({ error: 'invalid day' });
 
   const dayLabel = day ? DAY_LABELS[parseInt(day)] : null;
-  const dayFilter = dayLabel
-    ? `&& 'משטח עם כפולות'[יום] = "${dayLabel}"`
-    : '';
+  const agentSafe = agent.replace(/"/g, '');
+
+  // Day condition: check existence in 'משטח עם כפולות' for the specified day
+  const dayVisitCond = dayLabel
+    ? `COUNTROWS(FILTER('משטח עם כפולות',
+        AND('משטח עם כפולות'[מס.לקוח] = EARLIER('משטח'[מס. לקוח]),
+            'משטח עם כפולות'[יום] = "${dayLabel}")
+      )) > 0`
+    : 'TRUE()';
+
+  // Day/order lookup from 'משטח עם כפולות' (only these two fields come from there)
+  const dayMatchFilter = dayLabel
+    ? `AND('משטח עם כפולות'[מס.לקוח] = EARLIER('משטח'[מס. לקוח]), 'משטח עם כפולות'[יום] = "${dayLabel}")`
+    : `'משטח עם כפולות'[מס.לקוח] = EARLIER('משטח'[מס. לקוח])`;
 
   const dax = `
 EVALUATE
 ADDCOLUMNS(
-  FILTER('משטח עם כפולות',
-    'משטח עם כפולות'[סוכן] = "${agent.replace(/"/g, '')}"
-    ${dayFilter}
+  FILTER('משטח',
+    AND(
+      'משטח'[סוכן] = "${agentSafe}",
+      ${dayVisitCond}
+    )
   ),
-  "כתובת",    LOOKUPVALUE('משטח'[כתובת],    'משטח'[מס. לקוח], 'משטח עם כפולות'[מס.לקוח]),
-  "עיר",      LOOKUPVALUE('משטח'[עיר],      'משטח'[מס. לקוח], 'משטח עם כפולות'[מס.לקוח]),
-  "כשרות",    LOOKUPVALUE('משטח'[כשרות],    'משטח'[מס. לקוח], 'משטח עם כפולות'[מס.לקוח]),
-  "סוג מכירה",LOOKUPVALUE('משטח'[סוג מכירה],'משטח'[מס. לקוח], 'משטח עם כפולות'[מס.לקוח]),
-  "קבוצה",    LOOKUPVALUE('משטח'[קבוצה],    'משטח'[מס. לקוח], 'משטח עם כפולות'[מס.לקוח]),
-  "lat",      LOOKUPVALUE('משטח'[קו רוחב], 'משטח'[מס. לקוח], 'משטח עם כפולות'[מס.לקוח]),
-  "lng",      LOOKUPVALUE('משטח'[קו אורך], 'משטח'[מס. לקוח], 'משטח עם כפולות'[מס.לקוח]),
+  "יום",        CALCULATE(MAX('משטח עם כפולות'[יום]),          FILTER('משטח עם כפולות', ${dayMatchFilter})),
+  "סדר ביקור",  CALCULATE(MIN('משטח עם כפולות'[סדר ביקור]),    FILTER('משטח עם כפולות', ${dayMatchFilter})),
   "הזמנה אחרונה",
-    CALCULATE(
-      MAX('ALL_PARTS'[תאריך]),
-      FILTER('ALL_PARTS', 'ALL_PARTS'[מספר לקוח] = EARLIER('משטח עם כפולות'[מס.לקוח]))
-    ),
+    CALCULATE(MAX('ALL_PARTS'[תאריך]),
+      FILTER('ALL_PARTS', 'ALL_PARTS'[מספר לקוח] = EARLIER('משטח'[מס. לקוח]))),
   "מכירות חודש",
-    CALCULATE(
-      [TOTAL SALES (ללא זיכויים מרכזים)],
+    CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)],
       FILTER('ALL_PARTS',
-        'ALL_PARTS'[מספר לקוח] = EARLIER('משטח עם כפולות'[מס.לקוח])
+        'ALL_PARTS'[מספר לקוח] = EARLIER('משטח'[מס. לקוח])
         && YEAR('ALL_PARTS'[תאריך]) = YEAR(TODAY())
-        && MONTH('ALL_PARTS'[תאריך]) = MONTH(TODAY())
-      )
-    ),
+        && MONTH('ALL_PARTS'[תאריך]) = MONTH(TODAY()))),
   "totalSales",
-    CALCULATE(
-      [TOTAL SALES (ללא זיכויים מרכזים)],
-      FILTER('ALL_PARTS', 'ALL_PARTS'[מספר לקוח] = EARLIER('משטח עם כפולות'[מס.לקוח]))
-    ),
+    CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)],
+      FILTER('ALL_PARTS', 'ALL_PARTS'[מספר לקוח] = EARLIER('משטח'[מס. לקוח]))),
   "lastSaleDate",
-    CALCULATE(
-      MAX('ALL_PARTS'[תאריך]),
-      FILTER('ALL_PARTS', 'ALL_PARTS'[מספר לקוח] = EARLIER('משטח עם כפולות'[מס.לקוח]))
-    ),
+    CALCULATE(MAX('ALL_PARTS'[תאריך]),
+      FILTER('ALL_PARTS', 'ALL_PARTS'[מספר לקוח] = EARLIER('משטח'[מס. לקוח]))),
   "יעד",
     CALCULATE([יעד $],
-      FILTER('משטח',
-        'משטח'[מס. לקוח] = EARLIER('משטח עם כפולות'[מס.לקוח])
-        && 'משטח'[סטטוס] IN {"פעיל"})),
+      FILTER('משטח', 'משטח'[מס. לקוח] = EARLIER('משטח'[מס. לקוח]) && 'משטח'[סטטוס] IN {"פעיל"})),
   "% ביצוע",
     CALCULATE([% יעד כספי ביצוע],
-      FILTER('ALL_PARTS','ALL_PARTS'[מספר לקוח]=EARLIER('משטח עם כפולות'[מס.לקוח])),
-      FILTER('משטח','משטח'[מס. לקוח]=EARLIER('משטח עם כפולות'[מס.לקוח])))
+      FILTER('ALL_PARTS', 'ALL_PARTS'[מספר לקוח] = EARLIER('משטח'[מס. לקוח])),
+      FILTER('משטח', 'משטח'[מס. לקוח] = EARLIER('משטח'[מס. לקוח])))
 )
-ORDER BY 'משטח עם כפולות'[סדר ביקור] ASC
+ORDER BY [סדר ביקור] ASC
   `;
 
   try {
     const rows = await executeDax(dax);
     const clients = rows.map(r => {
-      const custName = r['משטח עם כפולות[שם לקוח]'] || '';
-      const address  = r['[כתובת]'] || '';
-      const city     = r['[עיר]']   || '';
+      const custName = r['משטח[שם לקוח]']  || '';
+      const address  = r['משטח[כתובת]']    || '';
+      const city     = r['משטח[עיר]']      || '';
       const dayNum   = parseInt(day) || null;
       return {
-        custId:        r['משטח עם כפולות[מס.לקוח]'],
+        custId:        r['משטח[מס. לקוח]'],
         custName,
         city,
         address,
         fullAddress:   [address, city, 'ישראל'].filter(Boolean).join(', '),
-        lat:           r['[lat]'] || null,
-        lng:           r['[lng]'] || null,
-        status:        r['משטח עם כפולות[סטטוס]'],
-        kosher:        r['[כשרות]'],
-        saleType:      r['[סוג מכירה]'],
+        lat:           r['משטח[קו רוחב]']  || null,
+        lng:           r['משטח[קו אורך]']  || null,
+        status:        r['משטח[סטטוס]'],
+        kosher:        r['משטח[כשרות]'],
+        saleType:      r['משטח[סוג מכירה]'],
         param7:        null,
-        agentCode:     r['משטח עם כפולות[סוכן]'],
-        agentName:     r['משטח עם כפולות[שם סוכן]'],
+        agentCode:     r['משטח[סוכן]'],
+        agentName:     r['משטח[שם סוכן]'],
         schedulerName: null,
         dayNum,
-        dayLabel:      dayLabel || r['משטח עם כפולות[יום]'],
-        priorityOrder:   r['משטח עם כפולות[סדר ביקור]'] || 0,
-        lastOrderDate:   r['[הזמנה אחרונה]'] ? r['[הזמנה אחרונה]'].split('T')[0] : null,
-        monthlySales:    r['[מכירות חודש]'] || 0,
-        totalSales:      r['[totalSales]'] || 0,
-        lastSaleDate:    r['[lastSaleDate]'] ? r['[lastSaleDate]'].split('T')[0] : null,
-        target:          r['[יעד]'] || 0,
-        pct:             r['[% ביצוע]'] || 0,
+        dayLabel:      dayLabel || r['[יום]'],
+        priorityOrder: r['[סדר ביקור]'] || 0,
+        lastOrderDate: r['[הזמנה אחרונה]'] ? r['[הזמנה אחרונה]'].split('T')[0] : null,
+        monthlySales:  r['[מכירות חודש]']  || 0,
+        totalSales:    r['[totalSales]']    || 0,
+        lastSaleDate:  r['[lastSaleDate]']  ? r['[lastSaleDate]'].split('T')[0] : null,
+        target:        r['[יעד]']           || 0,
+        pct:           r['[% ביצוע]']       || 0,
       };
     });
     await geocodeBatch(clients);
