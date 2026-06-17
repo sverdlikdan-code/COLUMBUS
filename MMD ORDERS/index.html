@@ -1441,7 +1441,7 @@
         const row = ws.getRow(ri); row.height = 20;
         const bg  = i % 2 === 0 ? 'FFFFFF' : 'EAF3FC';
 
-        const vals = [mk, r.hevra||'', r.taur||'', mmdK, ashK, eff, tukuf];
+        const vals = [mk, r.hevra||'', '‏' + (r.taur||''), mmdK, ashK, eff, tukuf];
         vals.forEach((v, ci) => {
           const c = row.getCell(ci+1);
           c.value  = v;
