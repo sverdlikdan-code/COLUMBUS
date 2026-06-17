@@ -1429,6 +1429,7 @@ function openMekarerOrder(e,custId,custName,city){
     custId,custName,city,
     agentCode:agent.code||'',agentName:agent.name||'',
     manager:st.manager||'',
+    token,
   });
   window.open('mekarer-order.html?'+p.toString(),'_blank');
 }
