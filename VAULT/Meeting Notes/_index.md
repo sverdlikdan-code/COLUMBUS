@@ -28,6 +28,7 @@
 - [[agent-skill-creator]] — Агент Skill Creator — создание, редактирование и оптимизация SKILL.md в системе COLUMBUS
 - [[agent-fin-agent]] — Агент Fin-Agent — мониторинг токенов Claude API, сравнение моделей, рекомендации по экономии
 - [[session-2026-05-10]] — Сессия 2026-05-10: mahsan, skill-creator, fin-agent, CEO dispute mode, weekly market scan routine
+- [[marshrut-rud]] — Интерактивная карта маршрутов RUD: 2 дня, Ashdod + Rishon, деплой на api.sverdlik-apps.site/marshrut-rud
 - [[mahsan-planogram]] — MAHSAN PLANOGRAM build system + planogram-editor עמוד תוקף, per-warehouse sales/days, סכנה logic
 - [[agent-bug-agent]] — Агент Bug Agent — workflow-doctor, watchdog, GitHub Actions мониторинг
 - [[agent-biz-analyst]] — Агент Biz Analyst — коммерческая оценка COLUMBUS, Excel delivery docs, ROI
@@ -48,3 +49,5 @@
 - [[session-2026-06-08]] — Сессия 2026-06-08: редактируемый KARTON live update, print fix чёрный фон, toolbar polish
 - [[session-2026-06-14]] — Сессия 2026-06-14: KARTON/PAL двусторонняя синхронизация, step 0.5, мультифильтр семейств, hover строки
 - [[session-2026-06-15]] — Сессия 2026-06-15: MMD ORDERS title page, #filter-row wrapper, PBI badge, checkbox inversion; planограмма daySales fallback fix
+- [[session-2026-06-16]] — Сессия 2026-06-16: ⭐ top-30% обе метрики, תוקף пустота, fixProductName ג unicode fix, splash фото попытки + откат, variants mockup
+- [[mmd-orders-app]] — MMD ORDERS: BiDi числа фикс (1200 ג), fixGimel, company chips nowrap+count sort
