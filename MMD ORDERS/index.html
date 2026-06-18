@@ -306,7 +306,7 @@
     }
     #sk-ord-only.on { background: #dc2626 !important; border-color: #dc2626 !important; }
     #sk-no-mkr { border-radius: 6px !important; background: #4a1d96 !important; color: #e9d5ff !important; border-color: #6d28d9 !important; font-size: .82rem !important; }
-    #sk-no-mkr.on { background: #7c3aed !important; border-color: #7c3aed !important; color: #fff !important; }
+    #sk-no-mkr.on { background: #dc2626 !important; border-color: #dc2626 !important; color: #fff !important; }
     .flabel { font-size: .7rem; color: var(--mid); font-weight: 700; white-space: nowrap; }
     .chip {
       display: inline-flex;
@@ -825,7 +825,7 @@
         <th>ימי מכר<br>מכלל %</th>
         <th class="col-g">המלצה להזמנה<br>קרטון</th>
         <th class="col-g">הזמנה<br>ידנית</th>
-        <th class="col-g">תוקף<br>הזמנה</th>
+        <th class="col-g">תוקף<br>נדרש</th>
       </tr>
     </thead>
     <tbody id="tb"></tbody>
@@ -1471,7 +1471,7 @@
           { name: 'מלאי MMD',    filterButton: true },
           { name: 'מלאי אשדוד',  filterButton: true },
           { name: 'הזמנה קרטון', filterButton: true },
-          { name: 'תוקף הזמנה',  filterButton: true },
+          { name: 'תוקף נדרש',  filterButton: true },
         ],
         rows: tableData,
       });
