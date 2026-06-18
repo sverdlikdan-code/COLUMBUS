@@ -1656,29 +1656,8 @@ function renderMap(){
       const p=L.polyline([[prev.lat,prev.lng],[c.lat,c.lng]],{color:'#FFEB3B',weight:3,opacity:1}).addTo(map);
       mapPolylines.push(p);
     });
-  } else if(st.roadGeometry&&st.roadGeometry.length>1&&st.sortMode==='ai'&&!st.selectedCities.length){
-    // OSRM road-following line
-    const roadLine=L.polyline(st.roadGeometry,{color:'#1565C0',weight:3,opacity:.55}).addTo(map);
-    mapPolylines.push(roadLine);
-    const dec=L.polylineDecorator(roadLine,{patterns:[{offset:'12%',repeat:'22%',symbol:L.Symbol.arrowHead({pixelSize:10,polygon:false,pathOptions:{stroke:true,color:'#1565C0',weight:2.5,opacity:.85}})}]}).addTo(map);
-    mapPolylines.push(dec);
-    // Green dashed start → first client
-    if(st.startLat&&st.startLng&&list.length&&list[0].lat&&list[0].lng){
-      const sp=L.polyline([[st.startLat,st.startLng],[list[0].lat,list[0].lng]],{color:'#2E7D32',weight:2,opacity:.5,dashArray:'6,5'}).addTo(map);
-      mapPolylines.push(sp);
-    }
-    // Orange straight lines on top for walking segments ≤400m
-    list.forEach((c,i)=>{
-      if(!i||!c.lat||!c.lng)return;
-      const prev=list[i-1];
-      if(!prev.lat||!prev.lng)return;
-      if(haversineM(prev.lat,prev.lng,c.lat,c.lng)<=400){
-        const wp=L.polyline([[prev.lat,prev.lng],[c.lat,c.lng]],{color:'#FF6F00',weight:3.5,opacity:.85}).addTo(map);
-        mapPolylines.push(wp);
-      }
-    });
   } else {
-    // Straight fallback (priority mode or OSRM not yet loaded)
+    // Straight geometric lines with arrows
     if(st.startLat&&st.startLng&&list.length&&list[0].lat&&list[0].lng){
       const sp=L.polyline([[st.startLat,st.startLng],[list[0].lat,list[0].lng]],{color:'#2E7D32',weight:2,opacity:.5,dashArray:'6,5'}).addTo(map);
       mapPolylines.push(sp);
