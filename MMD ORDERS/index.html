@@ -847,6 +847,7 @@
   let noMkr    = false;
   const ashFilter = new Set(['yes']); // default: show only items with Ashdod stock
   const mmdFilter = new Set();
+  const sessionP = {}; // תוקף נדרש — session-only, resets on page reload
 
   function saved()  { try { return JSON.parse(localStorage.getItem(LS) || '{}'); } catch { return {}; } }
   function save(o)  { try { localStorage.setItem(LS, JSON.stringify(o)); } catch {} }
@@ -1054,12 +1055,12 @@
   function refreshFamDrop() {
     const panel = document.getElementById('fam-drop-panel');
     if (!panel) return;
-    let base = noMkr ? all.filter(r => (r.mkr_tk ?? 0) <= 0.1) : all;
+    let base = noMkr ? all.filter(r => (r.mkr_shvua ?? 0) <= 0.1) : all;
     if (cos.size > 0) base = base.filter(r => cos.has(r.hevra));
     // Company order by product count desc (same as chips)
     const coOrd = {};
     const coCnt = {};
-    (noMkr ? all.filter(r => (r.mkr_tk ?? 0) <= 0.1) : all).forEach(r => { if (r.hevra) coCnt[r.hevra] = (coCnt[r.hevra] || 0) + 1; });
+    (noMkr ? all.filter(r => (r.mkr_shvua ?? 0) <= 0.1) : all).forEach(r => { if (r.hevra) coCnt[r.hevra] = (coCnt[r.hevra] || 0) + 1; });
     Object.keys(coCnt).sort((a, b) => coCnt[b] - coCnt[a]).forEach((c, i) => { coOrd[c] = i; });
     const famHevra = {}, famMkt = {};
     base.forEach(r => {
@@ -1109,7 +1110,7 @@
     bar.appendChild(allCo);
 
     const coCount = {};
-    const coBase = noMkr ? all.filter(r => (r.mkr_tk ?? 0) <= 0.1) : all;
+    const coBase = noMkr ? all.filter(r => (r.mkr_shvua ?? 0) <= 0.1) : all;
     coBase.forEach(r => { if (r.hevra) coCount[r.hevra] = (coCount[r.hevra] || 0) + 1; });
     Object.entries(coCount).sort((a, b) => b[1] - a[1]).forEach(([c]) => {
       const el = document.createElement('span');
@@ -1198,7 +1199,7 @@
         if (!mmdFilter.has(has ? 'yes' : 'no')) return false;
       }
       if (noMkr) {
-        if ((r.mkr_tk ?? 0) > 0.1) return false;
+        if ((r.mkr_shvua ?? 0) > 0.1) return false;
       }
       if (ordOnly && sv) {
         const s = sv[String(r.mkt ?? '')] || {};
@@ -1268,7 +1269,7 @@
       grpRows.forEach(r => {
         const mk   = String(r.mkt ?? '');
         const s    = sv[mk] || {};
-        const nts  = s.p || '';
+        const nts  = sessionP[mk] || '';
         const ash  = r.ashdod_k ?? 0;
         const eil  = r.eilat_k  ?? 0;
         const mav  = r.maavar   ?? 0;
@@ -1363,12 +1364,17 @@
 
   window.inp = function(el) {
     const mk = el.dataset.mk, f = el.dataset.f;
+    if (f === 'p') {
+      const v = el.value.trim();
+      if (v === '') delete sessionP[mk]; else sessionP[mk] = v;
+      recalc(); return;
+    }
     const sv = saved();
     if (!sv[mk]) sv[mk] = {};
     const v = el.value.trim();
     if (v === '') delete sv[mk][f];
-    else sv[mk][f] = f === 'k' ? Number(v) : v;
-    if (sv[mk].k == null && !sv[mk].p) delete sv[mk];
+    else sv[mk][f] = Number(v);
+    if (sv[mk].k == null) delete sv[mk];
     save(sv);
     recalc();
   };
@@ -1472,7 +1478,7 @@
         const s   = sv[mk] || {};
         const eff = Number(s.k);
         totalK += eff;
-        return [mk, r.mishpacha||'', r.hevra||'', '‏'+(r.taur||''), r.mmd_k??0, r.ashdod_k??0, eff, s.p||''];
+        return [mk, r.mishpacha||'', r.hevra||'', '‏'+(r.taur||''), r.mmd_k??0, r.ashdod_k??0, eff, sessionP[mk]||''];
       });
 
       // Smart Excel Table at A5 — proper filter buttons, banded rows
@@ -1562,7 +1568,7 @@
       const mk = String(r.mkt ?? '');
       const s  = sv[mk] || {};
       const eff = s.k != null ? Number(s.k) : ((r.hamlatza ?? 0) > 0 ? Math.round(r.hamlatza) : 0);
-      const tukuf = s.p || (r.tukuf || '').split('/')[0]?.trim() || '';
+      const tukuf = sessionP[mk] || (r.tukuf || '').split('/')[0]?.trim() || '';
       return { mk, taur: r.taur, mmd: r.mmd_k ?? 0, ash: r.ashdod_k ?? 0, qty: eff, tukuf };
     });
     const hist = JSON.parse(localStorage.getItem('mmd_order_history') || '[]');
