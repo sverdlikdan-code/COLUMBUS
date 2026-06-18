@@ -450,6 +450,8 @@ let gpsCorrections = {}; // custId → {lat,lng}
 function _getToken(){ return localStorage.getItem('frToken') || ''; }
 function _saveToken(t){ if(t) localStorage.setItem('frToken', t); }
 
+let _sessionExpiredShown = false;
+
 async function apiFetch(url, opts={}){
   const token = _getToken();
   const headers = { ...(opts.headers || {}) };
@@ -479,8 +481,14 @@ async function apiFetch(url, opts={}){
     } catch(_){}
     localStorage.removeItem('frAgent');
     localStorage.removeItem('frToken');
-    alert('פג תוקף הסשן — נא להתחבר מחדש');
-    window.location.reload();
+    if (!_sessionExpiredShown) {
+      _sessionExpiredShown = true;
+      const banner = document.createElement('div');
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#c0392b;color:#fff;text-align:center;padding:18px;font-size:17px;font-family:Arial;direction:rtl;box-shadow:0 2px 8px rgba(0,0,0,.4)';
+      banner.textContent = 'פג תוקף הסשן — מתחבר מחדש...';
+      document.body.appendChild(banner);
+      setTimeout(() => window.location.reload(), 1800);
+    }
     throw new Error('session_expired');
   }
   return r;
