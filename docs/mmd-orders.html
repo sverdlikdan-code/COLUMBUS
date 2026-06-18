@@ -699,8 +699,8 @@
       #tw { overflow: visible !important; }
       table { width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; }
       th, td { padding: 2px 4px !important; font-size: 8px !important; line-height: 1.3 !important; word-break: break-word; }
-      /* hide: תמונה(3), מחסן מעבר(8), ימים שנשארו(10), מכר בתקופה(11), לכמה שבועות(12), נפח ביטחון(13), ימי מכר(14), ימי מכר %(15) */
-      td:nth-child(3),th:nth-child(3),
+      /* hide: מחסן מעבר(8), ימים שנשארו(10), מכר בתקופה(11), לכמה שבועות(12), נפח ביטחון(13), ימי מכר(14), ימי מכר %(15) */
+      td:nth-child(3) img, td:nth-child(3) .ni { width:28px !important; height:28px !important; }
       td:nth-child(8),th:nth-child(8),
       td:nth-child(10),th:nth-child(10),
       td:nth-child(11),th:nth-child(11),
@@ -770,7 +770,7 @@
         <button class="btn btn-hist" id="btn-hist" onclick="toggleOrderHistory()">🕐 היסטוריה</button>
         <div class="hist-dd" id="hist-dd"></div>
       </div>
-      <button class="btn btn-print" onclick="window.print()">🖨 הדפסה</button>
+      <button class="btn btn-print" onclick="(()=>{document.querySelectorAll('.c-img img').forEach(img=>{img.removeAttribute('loading');if(!img.complete){const s=img.src;img.src='';img.src=s;}});setTimeout(()=>window.print(),80);})()">🖨 הדפסה</button>
     </div>
   </div>
 </div>
@@ -1174,7 +1174,9 @@
       }
       if (ordOnly && sv) {
         const s = sv[String(r.mkt ?? '')] || {};
-        if (s.k == null || Number(s.k) <= 0) return false;
+        const haml = r.hamlatza ?? 0;
+        const eff  = s.k != null ? Number(s.k) : (haml > 0 ? Math.round(haml) : 0);
+        if (eff <= 0) return false;
       }
       return true;
     });
@@ -1392,7 +1394,7 @@
       const wb = new ExcelJS.Workbook();
       wb.creator = 'DILER BMD'; wb.created = now;
       const ws = wb.addWorksheet('הזמנה MMD', {
-        views: [{ rightToLeft: true, state: 'frozen', ySplit: 4 }],
+        views: [{ rightToLeft: true, state: 'frozen', ySplit: 5 }],
         properties: { tabColor: { argb: 'FF0D47A1' } }
       });
 
@@ -1403,33 +1405,36 @@
         return { top:e, bottom:e, left:e, right:e };
       };
 
-      // Row 1: Title
-      ws.mergeCells(1,1,1,8);
-      const t = ws.getCell(1,1);
-      t.value     = '🚚  הזמנה MMD · אילת';
-      t.font      = { bold:true, size:17, color:{ argb:'FFFFFFFF' }, name:'Segoe UI' };
-      t.fill      = solid('0D47A1');
-      t.alignment = { horizontal:'center', vertical:'middle', readingOrder:'rightToLeft' };
-      ws.getRow(1).height = 38;
-
-      // Row 2: Date
-      ws.mergeCells(2,1,2,8);
-      const d = ws.getCell(2,1);
-      d.value     = dateStr + '  |  ' + timeStr + '   ·   DILER BMD';
-      d.font      = { size:9, italic:true, color:{ argb:'FF445577' } };
-      d.fill      = solid('EEF3FB');
-      d.alignment = { horizontal:'center', vertical:'middle' };
-      ws.getRow(2).height = 18;
-
-      // Row 3: spacer
-      ws.mergeCells(3,1,3,8); ws.getCell(3,1).fill = solid('EEF3FB');
-      ws.getRow(3).height = 5;
-
-      // Column widths (8 columns: מק"ט, משפחת מוצר, חברה, שם מוצר, מלאי MMD, מלאי אשדוד, הזמנה, תוקף)
+      // 8 data columns A–H
       ws.columns = [
         {width:13},{width:20},{width:15},{width:44},
         {width:15},{width:15},{width:17},{width:16}
       ];
+
+      // Row 1: empty top margin
+      ws.getRow(1).height = 8;
+
+      // Row 2: Title
+      ws.mergeCells(2,1,2,8);
+      const t = ws.getCell(2,1);
+      t.value     = '🚚  הזמנה MMD · אילת';
+      t.font      = { bold:true, size:17, color:{ argb:'FFFFFFFF' }, name:'Segoe UI' };
+      t.fill      = solid('0D47A1');
+      t.alignment = { horizontal:'center', vertical:'middle', readingOrder:'rightToLeft' };
+      ws.getRow(2).height = 38;
+
+      // Row 3: Date
+      ws.mergeCells(3,1,3,8);
+      const d = ws.getCell(3,1);
+      d.value     = dateStr + '  |  ' + timeStr + '   ·   DILER BMD';
+      d.font      = { size:9, italic:true, color:{ argb:'FF445577' } };
+      d.fill      = solid('EEF3FB');
+      d.alignment = { horizontal:'center', vertical:'middle' };
+      ws.getRow(3).height = 18;
+
+      // Row 4: spacer
+      ws.mergeCells(4,1,4,8); ws.getCell(4,1).fill = solid('EEF3FB');
+      ws.getRow(4).height = 5;
 
       // Build data rows
       let totalK = 0;
@@ -1441,10 +1446,10 @@
         return [mk, r.mishpacha||'', r.hevra||'', '‏'+(r.taur||''), r.mmd_k??0, r.ashdod_k??0, eff, s.p||''];
       });
 
-      // Smart Excel Table — proper filter buttons, banded rows
+      // Smart Excel Table at A5 — proper filter buttons, banded rows
       ws.addTable({
         name: 'OrderTable',
-        ref: 'A4',
+        ref: 'A5',
         headerRow: true,
         totalsRow: false,
         style: { theme: 'TableStyleMedium2', showRowStripes: true },
@@ -1461,20 +1466,20 @@
         rows: tableData,
       });
 
-      // Header row formatting
-      ws.getRow(4).height = 26;
+      // Header row formatting (row 5 = table header)
+      ws.getRow(5).height = 26;
       for (let ci = 1; ci <= 8; ci++) {
-        ws.getRow(4).getCell(ci).alignment = { horizontal:'center', vertical:'middle', readingOrder:'rightToLeft' };
+        ws.getRow(5).getCell(ci).alignment = { horizontal:'center', vertical:'middle', readingOrder:'rightToLeft' };
       }
 
-      // Per-row formatting
+      // Per-row formatting (data starts at row 6)
       orderedRows.forEach((r, i) => {
         const mk   = String(r.mkt ?? '');
         const s    = sv[mk] || {};
         const eff  = s.k != null ? Number(s.k) : ((r.hamlatza??0)>0 ? Math.round(r.hamlatza):0);
         const mmdK = r.mmd_k ?? 0;
         const ashK = r.ashdod_k ?? 0;
-        const row  = ws.getRow(5 + i); row.height = 20;
+        const row  = ws.getRow(6 + i); row.height = 20;
         for (let ci = 1; ci <= 8; ci++) {
           row.getCell(ci).alignment = { vertical:'middle', readingOrder:'rightToLeft',
             horizontal: ci === 4 ? 'right' : 'center' };
@@ -1486,7 +1491,7 @@
       });
 
       // Summary row (below table)
-      const si = 5 + orderedRows.length;
+      const si = 6 + orderedRows.length;
       ws.mergeCells(si,1,si,4);
       const sumRow = ws.getRow(si); sumRow.height = 22;
       const s1 = sumRow.getCell(1);
