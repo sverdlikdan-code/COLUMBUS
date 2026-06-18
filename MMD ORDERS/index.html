@@ -1162,9 +1162,7 @@
       }
       if (ordOnly && sv) {
         const s = sv[String(r.mkt ?? '')] || {};
-        const haml = r.hamlatza ?? 0;
-        const eff  = s.k != null ? s.k : (haml > 0 ? Math.round(haml) : 0);
-        if (eff <= 0) return false;
+        if (s.k == null || Number(s.k) <= 0) return false;
       }
       return true;
     });
@@ -1376,6 +1374,16 @@
         const eff = s.k != null ? s.k : ((r.hamlatza ?? 0) > 0 ? Math.round(r.hamlatza) : 0);
         return eff > 0;
       });
+
+      // תוקף נדרש — validate expiry date for all ordered rows
+      const missingTukuf = orderedRows.filter(r => !(sv[String(r.mkt ?? '')] || {}).p);
+      if (missingTukuf.length > 0) {
+        const names = missingTukuf.slice(0, 3).map(r => r.taur.slice(0, 20)).join(', ');
+        const more  = missingTukuf.length > 3 ? ` ועוד ${missingTukuf.length - 3}` : '';
+        showToast(`⚠️ חסר תוקף ל־${missingTukuf.length} מוצרים: ${names}${more}`);
+        if (btn) { btn.disabled = false; btn.textContent = '⬇ Excel'; }
+        return;
+      }
 
       _saveOrderToHistory();
 
