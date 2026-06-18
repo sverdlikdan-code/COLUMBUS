@@ -1056,7 +1056,18 @@
     if (!panel) return;
     let base = noMkr ? all.filter(r => (r.mkr_tk ?? 0) <= 0.1) : all;
     if (cos.size > 0) base = base.filter(r => cos.has(r.hevra));
-    const uniqFam = [...new Set(base.map(r => r.mishpacha).filter(Boolean))].sort();
+    // Company order by product count desc (same as chips)
+    const coOrd = {};
+    const coCnt = {};
+    (noMkr ? all.filter(r => (r.mkr_tk ?? 0) <= 0.1) : all).forEach(r => { if (r.hevra) coCnt[r.hevra] = (coCnt[r.hevra] || 0) + 1; });
+    Object.keys(coCnt).sort((a, b) => coCnt[b] - coCnt[a]).forEach((c, i) => { coOrd[c] = i; });
+    const famHevra = {};
+    base.forEach(r => { if (r.mishpacha && r.hevra && !famHevra[r.mishpacha]) famHevra[r.mishpacha] = r.hevra; });
+    const uniqFam = [...new Set(base.map(r => r.mishpacha).filter(Boolean))];
+    uniqFam.sort((a, b) => {
+      const ca = coOrd[famHevra[a]] ?? 999, cb = coOrd[famHevra[b]] ?? 999;
+      return ca !== cb ? ca - cb : a.localeCompare(b, 'he');
+    });
     for (const f of [...fams]) { if (!uniqFam.includes(f)) fams.delete(f); }
     panel.innerHTML =
       '<label class="fam-drop-item all-item"><input type="checkbox" id="fam-all" onchange="togFamAll(this.checked)"> כולם</label>' +
