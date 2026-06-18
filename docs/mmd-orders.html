@@ -1369,8 +1369,7 @@
 
       const orderedRows = rows.filter(r => {
         const s = sv[String(r.mkt ?? '')] || {};
-        const eff = s.k != null ? s.k : ((r.hamlatza ?? 0) > 0 ? Math.round(r.hamlatza) : 0);
-        return eff > 0;
+        return s.k != null && Number(s.k) > 0;
       });
 
       _saveOrderToHistory();
@@ -1423,7 +1422,7 @@
       const tableData = orderedRows.map(r => {
         const mk  = String(r.mkt ?? '');
         const s   = sv[mk] || {};
-        const eff = s.k != null ? Number(s.k) : ((r.hamlatza ?? 0) > 0 ? Math.round(r.hamlatza) : 0);
+        const eff = Number(s.k);
         totalK += eff;
         return [mk, r.mishpacha||'', r.hevra||'', '‏'+(r.taur||''), r.mmd_k??0, r.ashdod_k??0, eff, s.p||''];
       });
