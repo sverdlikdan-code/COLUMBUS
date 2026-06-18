@@ -1179,7 +1179,7 @@
         if (!mmdFilter.has(has ? 'yes' : 'no')) return false;
       }
       if (noMkr) {
-        if ((r.mkr_tk ?? 0) > 0) return false;
+        if ((r.mkr_tk ?? 0) > 0.1) return false;
       }
       if (ordOnly && sv) {
         const s = sv[String(r.mkt ?? '')] || {};
