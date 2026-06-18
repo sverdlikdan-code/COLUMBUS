@@ -1052,7 +1052,17 @@
     const panel = document.getElementById('fam-drop-panel');
     if (panel) {
       const famBase = noMkr ? all.filter(r => (r.mkr_tk ?? 0) <= 0.1) : all;
-    const uniqFam = [...new Set(famBase.map(r => r.mishpacha).filter(Boolean))].sort();
+    const coOrd = {};
+    const coCnt = {};
+    famBase.forEach(r => { if (r.hevra) coCnt[r.hevra] = (coCnt[r.hevra] || 0) + 1; });
+    Object.keys(coCnt).sort((a, b) => coCnt[b] - coCnt[a]).forEach((c, i) => { coOrd[c] = i; });
+    const famHevra = {};
+    famBase.forEach(r => { if (r.mishpacha && r.hevra && !famHevra[r.mishpacha]) famHevra[r.mishpacha] = r.hevra; });
+    const uniqFam = [...new Set(famBase.map(r => r.mishpacha).filter(Boolean))];
+    uniqFam.sort((a, b) => {
+      const ca = coOrd[famHevra[a]] ?? 999, cb = coOrd[famHevra[b]] ?? 999;
+      return ca !== cb ? ca - cb : a.localeCompare(b, 'he');
+    });
       panel.innerHTML =
         '<label class="fam-drop-item all-item"><input type="checkbox" id="fam-all" onchange="togFamAll(this.checked)"> כולם</label>' +
         uniqFam.map(f =>
