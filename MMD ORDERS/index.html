@@ -1061,12 +1061,17 @@
     const coCnt = {};
     (noMkr ? all.filter(r => (r.mkr_tk ?? 0) <= 0.1) : all).forEach(r => { if (r.hevra) coCnt[r.hevra] = (coCnt[r.hevra] || 0) + 1; });
     Object.keys(coCnt).sort((a, b) => coCnt[b] - coCnt[a]).forEach((c, i) => { coOrd[c] = i; });
-    const famHevra = {};
-    base.forEach(r => { if (r.mishpacha && r.hevra && !famHevra[r.mishpacha]) famHevra[r.mishpacha] = r.hevra; });
+    const famHevra = {}, famMkt = {};
+    base.forEach(r => {
+      if (!r.mishpacha) return;
+      if (!famHevra[r.mishpacha]) famHevra[r.mishpacha] = r.hevra;
+      const m = Number(r.mkt);
+      if (!famMkt[r.mishpacha] || m < famMkt[r.mishpacha]) famMkt[r.mishpacha] = m;
+    });
     const uniqFam = [...new Set(base.map(r => r.mishpacha).filter(Boolean))];
     uniqFam.sort((a, b) => {
       const ca = coOrd[famHevra[a]] ?? 999, cb = coOrd[famHevra[b]] ?? 999;
-      return ca !== cb ? ca - cb : a.localeCompare(b, 'he');
+      return ca !== cb ? ca - cb : (famMkt[a] ?? 0) - (famMkt[b] ?? 0);
     });
     for (const f of [...fams]) { if (!uniqFam.includes(f)) fams.delete(f); }
     panel.innerHTML =
