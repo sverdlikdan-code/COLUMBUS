@@ -1051,7 +1051,8 @@
     // Populate family multi-select dropdown
     const panel = document.getElementById('fam-drop-panel');
     if (panel) {
-      const uniqFam = [...new Set(all.map(r => r.mishpacha).filter(Boolean))].sort();
+      const famBase = noMkr ? all.filter(r => (r.mkr_tk ?? 0) <= 0.1) : all;
+    const uniqFam = [...new Set(famBase.map(r => r.mishpacha).filter(Boolean))].sort();
       panel.innerHTML =
         '<label class="fam-drop-item all-item"><input type="checkbox" id="fam-all" onchange="togFamAll(this.checked)"> כולם</label>' +
         uniqFam.map(f =>
@@ -1084,7 +1085,8 @@
     bar.appendChild(allCo);
 
     const coCount = {};
-    all.forEach(r => { if (r.hevra) coCount[r.hevra] = (coCount[r.hevra] || 0) + 1; });
+    const coBase = noMkr ? all.filter(r => (r.mkr_tk ?? 0) <= 0.1) : all;
+    coBase.forEach(r => { if (r.hevra) coCount[r.hevra] = (coCount[r.hevra] || 0) + 1; });
     Object.entries(coCount).sort((a, b) => b[1] - a[1]).forEach(([c]) => {
       const el = document.createElement('span');
       el.className = 'chip' + (cos.has(c) ? ' on' : '');
@@ -1154,6 +1156,7 @@
     noMkr = !noMkr;
     const el = document.getElementById('sk-no-mkr');
     if (el) el.classList.toggle('on', noMkr);
+    buildChips();
     render();
   };
 
