@@ -1036,18 +1036,23 @@
     }
   }
 
-  function buildChips() {
-    // Populate family multi-select dropdown
+  function refreshFamDrop() {
     const panel = document.getElementById('fam-drop-panel');
-    if (panel) {
-      const uniqFam = [...new Set(all.map(r => r.mishpacha).filter(Boolean))].sort();
-      panel.innerHTML =
-        '<label class="fam-drop-item all-item"><input type="checkbox" id="fam-all" onchange="togFamAll(this.checked)"> כולם</label>' +
-        uniqFam.map(f =>
-          '<label class="fam-drop-item"><input type="checkbox" value="' + f + '" onchange="togFamChk(this)"> ' + f + '</label>'
-        ).join('');
-      syncFamPanel();
-    }
+    if (!panel) return;
+    const base = cos.size > 0 ? all.filter(r => cos.has(r.hevra)) : all;
+    const uniqFam = [...new Set(base.map(r => r.mishpacha).filter(Boolean))].sort();
+    for (const f of [...fams]) { if (!uniqFam.includes(f)) fams.delete(f); }
+    panel.innerHTML =
+      '<label class="fam-drop-item all-item"><input type="checkbox" id="fam-all" onchange="togFamAll(this.checked)"> כולם</label>' +
+      uniqFam.map(f =>
+        '<label class="fam-drop-item"><input type="checkbox" value="' + f + '" onchange="togFamChk(this)"> ' + f + '</label>'
+      ).join('');
+    syncFamPanel();
+  }
+
+  function buildChips() {
+    // Populate family dropdown for current company filter
+    refreshFamDrop();
 
     // Company chips — rebuild fbar from scratch
     const bar = document.getElementById('fbar');
@@ -1121,6 +1126,7 @@
       });
     }
     render();
+    refreshFamDrop();
   };
 
   window.togStock = function(type, val) {
@@ -1375,16 +1381,6 @@
         return eff > 0;
       });
 
-      // תוקף נדרש — validate expiry date for all ordered rows
-      const missingTukuf = orderedRows.filter(r => !(sv[String(r.mkt ?? '')] || {}).p);
-      if (missingTukuf.length > 0) {
-        const names = missingTukuf.slice(0, 3).map(r => r.taur.slice(0, 20)).join(', ');
-        const more  = missingTukuf.length > 3 ? ` ועוד ${missingTukuf.length - 3}` : '';
-        showToast(`⚠️ חסר תוקף ל־${missingTukuf.length} מוצרים: ${names}${more}`);
-        if (btn) { btn.disabled = false; btn.textContent = '⬇ Excel'; }
-        return;
-      }
-
       _saveOrderToHistory();
 
       // ── ExcelJS ──────────────────────────────────────────────────────
@@ -1403,7 +1399,7 @@
       };
 
       // Row 1: Title
-      ws.mergeCells(1,1,1,7);
+      ws.mergeCells(1,1,1,8);
       const t = ws.getCell(1,1);
       t.value     = '🚚  הזמנה MMD · אילת';
       t.font      = { bold:true, size:17, color:{ argb:'FFFFFFFF' }, name:'Segoe UI' };
@@ -1412,7 +1408,7 @@
       ws.getRow(1).height = 38;
 
       // Row 2: Date
-      ws.mergeCells(2,1,2,7);
+      ws.mergeCells(2,1,2,8);
       const d = ws.getCell(2,1);
       d.value     = dateStr + '  |  ' + timeStr + '   ·   DILER BMD';
       d.font      = { size:9, italic:true, color:{ argb:'FF445577' } };
@@ -1421,82 +1417,84 @@
       ws.getRow(2).height = 18;
 
       // Row 3: spacer
-      ws.mergeCells(3,1,3,7); ws.getCell(3,1).fill = solid('EEF3FB');
+      ws.mergeCells(3,1,3,8); ws.getCell(3,1).fill = solid('EEF3FB');
       ws.getRow(3).height = 5;
 
-      // Row 4: Headers
-      const HEADERS = ['מק"ט','חברה','שם מוצר','מלאי MMD','מלאי אשדוד','הזמנה קרטון','תוקף הזמנה'];
-      const hRow = ws.getRow(4); hRow.height = 26;
-      HEADERS.forEach((h, i) => {
-        const c = hRow.getCell(i+1);
-        c.value     = h;
-        c.font      = { bold:true, size:10, color:{ argb:'FFFFFFFF' } };
-        c.fill      = solid('1565C0');
-        c.alignment = { horizontal:'center', vertical:'middle', readingOrder:'rightToLeft' };
-        c.border    = bdr('thin','1A5799');
-      });
-
-      // Column widths
+      // Column widths (8 columns: מק"ט, משפחת מוצר, חברה, שם מוצר, מלאי MMD, מלאי אשדוד, הזמנה, תוקף)
       ws.columns = [
-        {width:13},{width:15},{width:44},
+        {width:13},{width:20},{width:15},{width:44},
         {width:15},{width:15},{width:17},{width:16}
       ];
 
-      // Data rows
+      // Build data rows
       let totalK = 0;
-      orderedRows.forEach((r, i) => {
-        const mk    = String(r.mkt ?? '');
-        const s     = sv[mk] || {};
-        const eff   = s.k != null ? Number(s.k) : ((r.hamlatza ?? 0) > 0 ? Math.round(r.hamlatza) : 0);
-        const tukuf = s.p || '';
-        const mmdK  = r.mmd_k ?? 0;
-        const ashK  = r.ashdod_k ?? 0;
+      const tableData = orderedRows.map(r => {
+        const mk  = String(r.mkt ?? '');
+        const s   = sv[mk] || {};
+        const eff = s.k != null ? Number(s.k) : ((r.hamlatza ?? 0) > 0 ? Math.round(r.hamlatza) : 0);
         totalK += eff;
-
-        const ri  = 5 + i;
-        const row = ws.getRow(ri); row.height = 20;
-        const bg  = i % 2 === 0 ? 'FFFFFF' : 'EAF3FC';
-
-        const vals = [mk, r.hevra||'', '‏' + (r.taur||''), mmdK, ashK, eff, tukuf];
-        vals.forEach((v, ci) => {
-          const c = row.getCell(ci+1);
-          c.value  = v;
-          c.fill   = solid(ci===5 && eff>0 ? 'FFF3E0' : bg);
-          c.border = bdr('thin', ci===5 && eff>0 ? 'E65100' : 'DDDDDD');
-          c.alignment = { vertical:'middle', readingOrder:'rightToLeft',
-            horizontal: ci===2 ? 'right' : 'center' };
-
-          if (ci===3) { // מלאי MMD
-            c.font = { size:10, bold:mmdK<=0, color:{ argb: mmdK>0 ? 'FF1B5E20':'FFB71C1C' } };
-          } else if (ci===4) { // מלאי אשדוד
-            c.font = { size:10, color:{ argb: ashK>0 ? 'FF1B5E20':'FFB71C1C' } };
-          } else if (ci===5) { // הזמנה
-            c.font = { size:11, bold:true, color:{ argb: eff>0 ? 'FFE65100':'FF999999' } };
-            if (eff>0) c.border = bdr('medium','E65100');
-          } else {
-            c.font = { size:10 };
-          }
-        });
+        return [mk, r.mishpacha||'', r.hevra||'', '‏'+(r.taur||''), r.mmd_k??0, r.ashdod_k??0, eff, s.p||''];
       });
 
-      // Summary row
+      // Smart Excel Table — proper filter buttons, banded rows
+      ws.addTable({
+        name: 'OrderTable',
+        ref: 'A4',
+        headerRow: true,
+        totalsRow: false,
+        style: { theme: 'TableStyleMedium2', showRowStripes: true },
+        columns: [
+          { name: 'מק"ט',        filterButton: true },
+          { name: 'משפחת מוצר',  filterButton: true },
+          { name: 'חברה',        filterButton: true },
+          { name: 'שם מוצר',     filterButton: true },
+          { name: 'מלאי MMD',    filterButton: true },
+          { name: 'מלאי אשדוד',  filterButton: true },
+          { name: 'הזמנה קרטון', filterButton: true },
+          { name: 'תוקף הזמנה',  filterButton: true },
+        ],
+        rows: tableData,
+      });
+
+      // Header row formatting
+      ws.getRow(4).height = 26;
+      for (let ci = 1; ci <= 8; ci++) {
+        ws.getRow(4).getCell(ci).alignment = { horizontal:'center', vertical:'middle', readingOrder:'rightToLeft' };
+      }
+
+      // Per-row formatting
+      orderedRows.forEach((r, i) => {
+        const mk   = String(r.mkt ?? '');
+        const s    = sv[mk] || {};
+        const eff  = s.k != null ? Number(s.k) : ((r.hamlatza??0)>0 ? Math.round(r.hamlatza):0);
+        const mmdK = r.mmd_k ?? 0;
+        const ashK = r.ashdod_k ?? 0;
+        const row  = ws.getRow(5 + i); row.height = 20;
+        for (let ci = 1; ci <= 8; ci++) {
+          row.getCell(ci).alignment = { vertical:'middle', readingOrder:'rightToLeft',
+            horizontal: ci === 4 ? 'right' : 'center' };
+        }
+        row.getCell(5).font = { size:10, bold:mmdK<=0, color:{ argb:mmdK>0?'FF1B5E20':'FFB71C1C' } };
+        row.getCell(6).font = { size:10, color:{ argb:ashK>0?'FF1B5E20':'FFB71C1C' } };
+        row.getCell(7).font = { size:11, bold:true, color:{ argb:eff>0?'FFE65100':'FF999999' } };
+        if (eff > 0) row.getCell(7).border = bdr('medium','E65100');
+      });
+
+      // Summary row (below table)
       const si = 5 + orderedRows.length;
-      ws.mergeCells(si,1,si,3);
+      ws.mergeCells(si,1,si,4);
       const sumRow = ws.getRow(si); sumRow.height = 22;
       const s1 = sumRow.getCell(1);
       s1.value     = `סה"כ: ${orderedRows.length} מוצרים`;
       s1.font      = { bold:true, size:10, color:{ argb:'FF333366' } };
       s1.fill      = solid('D8E4F0');
       s1.alignment = { horizontal:'center', vertical:'middle' };
-      const s6 = sumRow.getCell(6);
-      s6.value  = totalK;
-      s6.font   = { bold:true, size:12, color:{ argb:'FFE65100' } };
-      s6.fill   = solid('D8E4F0');
-      s6.alignment = { horizontal:'center', vertical:'middle' };
-      s6.border = bdr('medium','E65100');
-
-      // Autofilter
-      ws.autoFilter = { from:{row:4,column:1}, to:{row:4,column:7} };
+      const s7 = sumRow.getCell(7);
+      s7.value  = totalK;
+      s7.font   = { bold:true, size:12, color:{ argb:'FFE65100' } };
+      s7.fill   = solid('D8E4F0');
+      s7.alignment = { horizontal:'center', vertical:'middle' };
+      s7.border = bdr('medium','E65100');
 
       // Download
       const buf  = await wb.xlsx.writeBuffer();
