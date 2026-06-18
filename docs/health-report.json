@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-18T15:54:53.394Z",
+  "generatedAt": "2026-06-18T16:35:13.725Z",
   "date": "2026-06-18",
   "totalSessions": 5,
   "last7days": [
@@ -93,12 +93,6 @@
   "recentIssues": [
     {
       "level": "warning",
-      "msg": "GitHub Actions не коммитил 6.7ч — последний: COLUMBUS Bot в 2026-06-18T09:11:36.000Z",
-      "fix": "Проверь GitHub Actions: https://github.com/sverdlikdan-code/COLUMBUS/actions — ищи failed runs",
-      "code": "ACTIONS_STALE"
-    },
-    {
-      "level": "warning",
       "msg": "Сегодня workflow не запускался",
       "fix": "Проверь scheduled task COLUMBUS-Daily-06 или запусти run-workflow.bat вручную",
       "code": "NO_RUN_TODAY"
@@ -106,10 +100,10 @@
   ],
   "status": "warning",
   "githubActions": {
-    "lastActionsCommit": "2026-06-18T09:11:36.000Z",
+    "lastActionsCommit": "2026-06-18T15:54:53.000Z",
     "lastActionsAuthor": "COLUMBUS Bot",
-    "hoursSinceLastActions": 6.7,
-    "status": "warning",
-    "warning": "GitHub Actions не коммитил 6.7ч — последний: COLUMBUS Bot в 2026-06-18T09:11:36.000Z"
+    "hoursSinceLastActions": 0.7,
+    "status": "ok",
+    "warning": null
   }
 }
