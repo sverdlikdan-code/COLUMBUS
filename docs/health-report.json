@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-06-18T08:11:33.642Z",
+  "generatedAt": "2026-06-18T15:54:53.394Z",
   "date": "2026-06-18",
-  "totalSessions": 4,
+  "totalSessions": 5,
   "last7days": [
     {
       "date": "2026-19-05",
@@ -57,13 +57,46 @@
       "errorCount": 0,
       "errors": [],
       "findings": []
+    },
+    {
+      "date": "2026-18-06",
+      "done": true,
+      "pushed": false,
+      "noChanges": false,
+      "errorCount": 3,
+      "errors": [
+        "network error",
+        "[Thu 06/18/2026 12:28:47.37] ERROR: build-planogram failed"
+      ],
+      "findings": [
+        {
+          "level": "critical",
+          "code": "BUILD_FAILED",
+          "msg": "build-planogram.js упал",
+          "fix": "Проверь .env файл — токены PBI/Fabric могли истечь. Запусти node build-planogram.js вручную для деталей."
+        },
+        {
+          "level": "warning",
+          "code": "NETWORK",
+          "msg": "Сетевая ошибка во время workflow",
+          "fix": "Проблема с интернетом в момент запуска (06:00). Watchdog в 07:30 должен поймать и поретраить."
+        }
+      ]
     }
   ],
   "patterns": {
     "PUSH_REJECTED": 1,
-    "PULL_UNSTAGED": 1
+    "PULL_UNSTAGED": 1,
+    "BUILD_FAILED": 1,
+    "NETWORK": 1
   },
   "recentIssues": [
+    {
+      "level": "warning",
+      "msg": "GitHub Actions не коммитил 6.7ч — последний: COLUMBUS Bot в 2026-06-18T09:11:36.000Z",
+      "fix": "Проверь GitHub Actions: https://github.com/sverdlikdan-code/COLUMBUS/actions — ищи failed runs",
+      "code": "ACTIONS_STALE"
+    },
     {
       "level": "warning",
       "msg": "Сегодня workflow не запускался",
@@ -73,10 +106,10 @@
   ],
   "status": "warning",
   "githubActions": {
-    "lastActionsCommit": "2026-06-17T22:02:09.000Z",
+    "lastActionsCommit": "2026-06-18T09:11:36.000Z",
     "lastActionsAuthor": "COLUMBUS Bot",
-    "hoursSinceLastActions": 10.2,
-    "status": "ok",
-    "warning": null
+    "hoursSinceLastActions": 6.7,
+    "status": "warning",
+    "warning": "GitHub Actions не коммитил 6.7ч — последний: COLUMBUS Bot в 2026-06-18T09:11:36.000Z"
   }
 }
