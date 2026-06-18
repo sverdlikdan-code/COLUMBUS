@@ -558,7 +558,7 @@ const st = {
 };
 
 let map=null, mapMarkers=[], mapPolylines=[], markerCluster=null, sortable=null, mapBearing=0;
-let baseTileLayer=null, gpsCorrectMode=false;
+let baseTileLayer=null, gpsCorrectMode=false, gpsCorrectId=null;
 let userTileKey='light', currentTileKey=null;
 let _gpsClickHandler=null;
 
@@ -1592,13 +1592,19 @@ function renderMap(){
     const labelName=_rawLabel;
     // vertical offset: spread clustered labels so they don't overlap
     const labelOffsetY=_hasDupe?Math.round((_di-(_groupSize-1)/2)*26):0;
+    const _isTarget = gpsCorrectMode && String(c.custId) === String(gpsCorrectId);
     const icon=gpsCorrectMode
-      ? L.divIcon({className:'',
-          html:`<div style="position:relative;width:38px;height:38px">
-            <div style="position:absolute;top:0;left:0;width:38px;height:38px;border-radius:50%;background:#D32F2F;color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;border:3px solid #fff;box-shadow:0 3px 12px rgba(211,47,47,.6)">${i+1}</div>
-            <div style="position:absolute;left:44px;top:calc(50% + ${labelOffsetY}px);transform:translateY(-50%);background:rgba(0,0,0,.82);color:#fff;padding:5px 10px;border-radius:5px;font-size:11px;font-weight:700;white-space:normal;word-break:break-word;pointer-events:none;direction:rtl;width:max-content;max-width:260px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.4)">${labelName}</div>
-          </div>`,
-          iconSize:[38,38], iconAnchor:[19,19]})
+      ? (_isTarget
+          ? L.divIcon({className:'',
+              html:`<div style="position:relative;width:48px;height:48px">
+                <div style="width:48px;height:48px;border-radius:50%;background:#E65100;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;border:3px solid #fff;box-shadow:0 0 0 5px rgba(230,81,0,.35),0 3px 14px rgba(230,81,0,.7);animation:marker-pulse .7s ease-out infinite">📍</div>
+                <div style="position:absolute;left:54px;top:calc(50% + ${labelOffsetY}px);transform:translateY(-50%);background:rgba(230,81,0,.95);color:#fff;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:800;white-space:nowrap;pointer-events:none;direction:rtl;max-width:220px;overflow:hidden;text-overflow:ellipsis;box-shadow:0 2px 8px rgba(0,0,0,.4)">${labelName}</div>
+              </div>`,
+              iconSize:[48,48], iconAnchor:[24,24]})
+          : L.divIcon({className:'',
+              html:`<div style="width:28px;height:28px;border-radius:50%;background:#90A4AE;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2px solid #fff;opacity:0.45">${i+1}</div>`,
+              iconSize:[28,28], iconAnchor:[14,14]})
+        )
       : isSel
       ? L.divIcon({className:'',
           html:`<div style="background:#1565C0;color:#fff;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;border:2.5px solid #fff;box-shadow:0 3px 10px rgba(21,101,192,.5);animation:marker-pulse .55s ease-out">${i+1}</div>`,
@@ -1677,17 +1683,19 @@ function placeOnMap(){
 }
 
 function _startMapPlace(id,c){
+  gpsCorrectMode=true; gpsCorrectId=id; st.selectedId=id;
+  renderMap();
   showToast('👆 הקש על המפה למיקום '+c.custName, 5000);
   map.getContainer().style.cursor='crosshair';
   map.once('click', async(e)=>{
     map.getContainer().style.cursor='';
+    gpsCorrectMode=false; gpsCorrectId=null;
     const {lat,lng}=e.latlng;
     const IL={minLat:29.3,maxLat:33.5,minLng:34.2,maxLng:35.9};
     if(lat<IL.minLat||lat>IL.maxLat||lng<IL.minLng||lng>IL.maxLng){
-      showToast('❌ מחוץ לגבולות ישראל'); return;
+      showToast('❌ מחוץ לגבולות ישראל'); renderMap(); return;
     }
     const la=+lat.toFixed(6), lo=+lng.toFixed(6);
-    // Save locally immediately
     st.clients=st.clients.map(x=>x.custId===id?{...x,lat:la,lng:lo}:x);
     st.aiClients=nearestNeighbor([...st.clients]);
     st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; triggerOsrm();
@@ -1918,19 +1926,21 @@ function deleteGpsCorrection(custId){
 function cancelGpsCorrection(){
   if(_gpsClickHandler){ map.off('click',_gpsClickHandler); _gpsClickHandler=null; }
   map.getContainer().style.cursor='';
-  gpsCorrectMode=false;
+  gpsCorrectMode=false; gpsCorrectId=null;
   renderMap();
   showToast('ביטול');
 }
 function startGpsCorrection(custId, custName){
   gpsCorrectMode=true;
+  gpsCorrectId=custId;
+  st.selectedId=custId;
   renderMap();
-  showToast('📍 לחץ על המפה לקביעת מיקום חדש', 4000);
+  showToast('📍 לחץ על המפה לקביעת מיקום חדש עבור: '+custName, 4000);
   map.getContainer().style.cursor='crosshair';
   _gpsClickHandler=(e)=>{
     map.off('click',_gpsClickHandler); _gpsClickHandler=null;
     map.getContainer().style.cursor='';
-    gpsCorrectMode=false;
+    gpsCorrectMode=false; gpsCorrectId=null;
     const {lat,lng}=e.latlng;
     const IL={minLat:29.3,maxLat:33.5,minLng:34.2,maxLng:35.9};
     if(lat<IL.minLat||lat>IL.maxLat||lng<IL.minLng||lng>IL.maxLng){

@@ -267,9 +267,17 @@
       border-bottom: 1px solid var(--sky-mid);
       flex-shrink: 0;
     }
+    #fam-section {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px 8px 16px;
+      flex-shrink: 0;
+      border-inline-start: 1.5px solid var(--sky-mid);
+    }
     #fbar {
       flex: 1;
-      padding: 8px 16px;
+      padding: 8px 8px;
       background: transparent;
       border-bottom: none;
       display: flex;
@@ -757,13 +765,14 @@
 
 <!-- FILTER + STOCK ROW -->
 <div id="filter-row">
-  <div id="fbar">
+  <div id="fam-section">
     <span class="flabel">משפחה:</span>
     <div class="fam-drop" id="fam-drop">
       <button class="fam-drop-btn" id="fam-drop-btn" onclick="toggleFamDrop(event)">כולם ▾</button>
       <div class="fam-drop-panel" id="fam-drop-panel"></div>
     </div>
   </div>
+  <div id="fbar"></div>
   <img src="/logo-diler-bmd.png" alt="" id="fbar-logo"
        style="height:22px;filter:brightness(0);opacity:.13;flex-shrink:0;padding:0 18px;">
   <div id="sk-inline">
@@ -1040,10 +1049,9 @@
       syncFamPanel();
     }
 
-    // Company chips — clear all after select + 1 span label that may exist
+    // Company chips — rebuild fbar from scratch
     const bar = document.getElementById('fbar');
-    // remove everything after the select element
-    while (bar.children.length > 2) bar.removeChild(bar.lastChild);
+    while (bar.children.length > 0) bar.removeChild(bar.lastChild);
 
     // Separator
     const sep = document.createElement('span');
