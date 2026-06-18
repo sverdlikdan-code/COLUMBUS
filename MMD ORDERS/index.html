@@ -1054,7 +1054,8 @@
   function refreshFamDrop() {
     const panel = document.getElementById('fam-drop-panel');
     if (!panel) return;
-    const base = cos.size > 0 ? all.filter(r => cos.has(r.hevra)) : all;
+    let base = noMkr ? all.filter(r => (r.mkr_tk ?? 0) <= 0.1) : all;
+    if (cos.size > 0) base = base.filter(r => cos.has(r.hevra));
     const uniqFam = [...new Set(base.map(r => r.mishpacha).filter(Boolean))].sort();
     for (const f of [...fams]) { if (!uniqFam.includes(f)) fams.delete(f); }
     panel.innerHTML =
@@ -1092,7 +1093,8 @@
     bar.appendChild(allCo);
 
     const coCount = {};
-    all.forEach(r => { if (r.hevra) coCount[r.hevra] = (coCount[r.hevra] || 0) + 1; });
+    const coBase = noMkr ? all.filter(r => (r.mkr_tk ?? 0) <= 0.1) : all;
+    coBase.forEach(r => { if (r.hevra) coCount[r.hevra] = (coCount[r.hevra] || 0) + 1; });
     Object.entries(coCount).sort((a, b) => b[1] - a[1]).forEach(([c]) => {
       const el = document.createElement('span');
       el.className = 'chip' + (cos.has(c) ? ' on' : '');
@@ -1162,6 +1164,7 @@
     noMkr = !noMkr;
     const el = document.getElementById('sk-no-mkr');
     if (el) el.classList.toggle('on', noMkr);
+    buildChips();
     render();
   };
 
