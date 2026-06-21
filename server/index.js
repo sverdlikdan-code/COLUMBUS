@@ -1331,6 +1331,34 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
   }
 });
 
+// ── Order history (דגים order page) — shared across devices, file-persisted ──
+const ORDER_HISTORY_FILE = path.join(__dirname, 'order-history-store.json');
+
+function readOrderHistory() {
+  try { return JSON.parse(fs.readFileSync(ORDER_HISTORY_FILE, 'utf8')); } catch { return []; }
+}
+
+app.get('/api/order-history', dataRateLimit, (req, res) => {
+  res.json({ ok: true, versions: readOrderHistory() });
+});
+
+app.post('/api/order-history', dataRateLimit, (req, res) => {
+  try {
+    const edits = req.body?.edits;
+    if (!edits || typeof edits !== 'object' || !Object.keys(edits).length) {
+      return res.status(400).json({ error: 'missing edits' });
+    }
+    const versions = readOrderHistory();
+    const ts = new Date().toISOString();
+    versions.unshift({ ts, edits });
+    if (versions.length > 5) versions.length = 5;
+    fs.writeFileSync(ORDER_HISTORY_FILE, JSON.stringify(versions, null, 2), 'utf8');
+    res.json({ ok: true, ts });
+  } catch (err) {
+    console.error(err); res.status(500).json({ error: 'server_error' });
+  }
+});
+
 // ── MMD ORDERS ──────────────────────────────────────────────────────────────
 function mmdGuard(req, res, next) {
   const key = process.env.MMD_PBI_KEY;

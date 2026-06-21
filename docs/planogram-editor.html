@@ -2127,18 +2127,37 @@ function toggleOrderOnly() {
 }
 
 // ── Order page: save/restore manual order quantities (KARTON/PALLET) ───────
+// Shared across devices via server (/api/order-history); localStorage is offline fallback only.
 const ORD_VERSIONS_KEY = 'mahsan_order_versions';
+const ORDER_HISTORY_API = 'https://api.sverdlik-apps.site/api/order-history';
 
-function _orderSaveSnapshot() {
+function _orderFmtTs(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('he-IL') + ' ' + d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+}
+
+async function _orderSaveSnapshot() {
   const edits = window._orderManualEdits || {};
   if (!Object.keys(edits).length) { alert('אין הזמנה ידנית לשמירה'); return; }
-  const versions = JSON.parse(localStorage.getItem(ORD_VERSIONS_KEY) || '[]');
-  const now = new Date();
-  const ts = now.toLocaleDateString('he-IL') + ' ' + now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
-  versions.unshift({ ts, edits: deepClone(edits) });
-  if (versions.length > 5) versions.length = 5;
-  localStorage.setItem(ORD_VERSIONS_KEY, JSON.stringify(versions));
-  alert(`✅ ההזמנה נשמרה (${ts})`);
+  const cloned = deepClone(edits);
+  let ts = new Date().toISOString();
+  try {
+    const resp = await fetch(ORDER_HISTORY_API, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ edits: cloned }),
+    });
+    const j = await resp.json().catch(() => null);
+    if (!resp.ok || !j?.ok) throw new Error('save failed');
+    ts = j.ts;
+    alert(`✅ ההזמנה נשמרה (${_orderFmtTs(ts)}) — משותף לכל המחשבים`);
+  } catch (e) {
+    console.error('[ord-history] server save failed, falling back to localStorage:', e);
+    const versions = JSON.parse(localStorage.getItem(ORD_VERSIONS_KEY) || '[]');
+    versions.unshift({ ts, edits: cloned });
+    if (versions.length > 5) versions.length = 5;
+    localStorage.setItem(ORD_VERSIONS_KEY, JSON.stringify(versions));
+    alert(`⚠ השרת לא הגיב — נשמר רק במחשב הזה (${_orderFmtTs(ts)})`);
+  }
 }
 
 function _orderToggleHistory() {
@@ -2157,25 +2176,40 @@ function _orderCloseHistoryOutside(e) {
   }
 }
 
-function _orderRenderHistoryDropdown() {
-  const versions = JSON.parse(localStorage.getItem(ORD_VERSIONS_KEY) || '[]');
+async function _orderRenderHistoryDropdown() {
   const dd = document.getElementById('order-history-dropdown');
+  dd.innerHTML = `<div class="history-empty">טוען...</div>`;
+  let versions = null;
+  let fromServer = true;
+  try {
+    const resp = await fetch(ORDER_HISTORY_API);
+    const j = await resp.json().catch(() => null);
+    if (!resp.ok || !j?.ok) throw new Error('fetch failed');
+    versions = j.versions;
+  } catch (e) {
+    console.error('[ord-history] server fetch failed, falling back to localStorage:', e);
+    fromServer = false;
+    versions = JSON.parse(localStorage.getItem(ORD_VERSIONS_KEY) || '[]');
+  }
+  window._orderHistoryCache = { versions, fromServer };
   if (!versions.length) {
     dd.innerHTML = `<div class="history-empty">אין גרסאות שמורות להזמנה</div>`;
     return;
   }
-  dd.innerHTML = versions.map((v, i) =>
-    `<div class="history-item" onclick="_orderRestoreVersion(${i})">
-       <span class="h-ts">${v.ts}</span>
-       <span class="h-restore">שחזר ↩</span>
-     </div>`
-  ).join('');
+  dd.innerHTML = (fromServer ? '' : `<div class="history-empty" style="color:#b45309;">⚠ במחשב זה בלבד</div>`) +
+    versions.map((v, i) =>
+      `<div class="history-item" onclick="_orderRestoreVersion(${i})">
+         <span class="h-ts">${v.ts.includes('T') ? _orderFmtTs(v.ts) : v.ts}</span>
+         <span class="h-restore">שחזר ↩</span>
+       </div>`
+    ).join('');
 }
 
 function _orderRestoreVersion(index) {
-  const versions = JSON.parse(localStorage.getItem(ORD_VERSIONS_KEY) || '[]');
+  const versions = window._orderHistoryCache?.versions || [];
   if (!versions[index]) return;
-  if (!confirm(`לשחזר הזמנה מ-${versions[index].ts}?`)) return;
+  const label = versions[index].ts.includes('T') ? _orderFmtTs(versions[index].ts) : versions[index].ts;
+  if (!confirm(`לשחזר הזמנה מ-${label}?`)) return;
   window._orderManualEdits = deepClone(versions[index].edits);
   document.getElementById('order-history-dropdown').classList.remove('open');
   buildOrderPage();
