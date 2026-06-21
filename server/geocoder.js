@@ -19,13 +19,15 @@ function reversePart(s) {
 function fixAddress(address) {
   if (!address) return address;
   // Number at end: "הרצל 15" → "הרצל 51"... wait, reversed: "51" → "15"
-  const m = address.match(/^(.*\D)\s+(\d[\d\/]*)(\s*)$/);
+  // Separator allows comma directly before the number — Priority/BiDi text
+  // often renders "הרצל ,15" (comma glued to the digits, no space).
+  const m = address.match(/^(.*\D)[\s,]+(\d[\d\/]*)(\s*)$/);
   if (m) {
     const num = m[2].split('/').map(reversePart).join('/');
     return `${m[1].trim()} ${num}`;
   }
   // Number in middle: "הרצל 51 מרכז מסחרי" → "הרצל 15 מרכז מסחרי"
-  const m2 = address.match(/^(.*?\D)\s+(\d[\d\/]*)\s+(.+)$/);
+  const m2 = address.match(/^(.*?\D)[\s,]+(\d[\d\/]*)[\s,]+(.+)$/);
   if (m2) {
     const num = m2[2].split('/').map(reversePart).join('/');
     return `${m2[1].trim()} ${num} ${m2[3]}`;
@@ -36,14 +38,16 @@ function fixAddress(address) {
 // ── 2. Strip junk after house number ──────────────────────────────────────
 // "הכרמל 22 פינת ארבל 51" → "הכרמל 22"
 function stripAfterHouseNumber(address) {
-  const m = address.match(/^([א-ת\w\s'".\\/\-״]+?)\s+(\d[\d\/]*)\s+.+$/);
+  const m = address.match(/^([א-ת\w\s'".\\/\-״]+?)[\s,]+(\d[\d\/]*)[\s,]+.+$/);
   if (m) return `${m[1].trim()} ${m[2]}`;
   return address;
 }
 
 // ── 3. Clean address ───────────────────────────────────────────────────────
+// Multi-word phrases (מרכז מסחרי/עסקים/קניות) must run BEFORE the generic
+// single-letter "מרכז X" pattern — otherwise the generic one eats just the
+// first letter ("מרכז מ") and leaves a mangled tail ("סחרי") behind.
 const STRIP_PATTERNS = [
-  /מרכז\s+[א-ת](['"]?\s*\w*)?/g,
   /מרכז\s+מסחרי[^,\d]*/gi, /מרכז\s+עסקים[^,\d]*/gi,
   /מרכז\s+קניות[^,\d]*/gi, /קניון[^,\d]*/gi,
   /מתחם[^,\d]*/gi, /פארק\s+תעשיי?ה[^,\d]*/gi,
@@ -53,6 +57,7 @@ const STRIP_PATTERNS = [
   /בניין\s*[א-ת\d]*/gi, /\(.*?\)/g,
   /בית\s+קפה[^,]*/gi, /מסעדה[^,]*/gi,
   /סופרמרקט[^,]*/gi, /שופרסל[^,]*/gi,
+  /מרכז\s+[א-ת](['"]?\s*\w*)?/g,
 ];
 
 function cleanAddress(address, city) {
