@@ -957,20 +957,29 @@ function renderLogin(){
           }).join('')}</div>
         </div>
       </div>`;
-    agents.forEach(a=>{
-      const el=document.getElementById('cnt-'+a.agentCode);
-      if(!el)return;
-      if(STATIC_DATA?.routes){
-        const total=[1,2,3,4,5].reduce((s,d)=>{
-          return s+(STATIC_DATA.routes[`${a.agentCode}_${d}`]?.length||0);
-        },0);
-        el.textContent=total?total+' לקוחות':'';
-      }else{
-        apiFetch(`${API}/customers?agent=${encodeURIComponent(a.agentCode)}`)
-          .then(r=>r.json()).then(d=>{if(el)el.textContent=Array.isArray(d)?d.length+' לקוחות':'';})
-          .catch(()=>{if(el)el.textContent='';});
+    (async()=>{
+      for(const a of agents){
+        const el=document.getElementById('cnt-'+a.agentCode);
+        if(!el)continue;
+        if(STATIC_DATA?.routes){
+          const total=[1,2,3,4,5].reduce((s,d)=>{
+            return s+(STATIC_DATA.routes[`${a.agentCode}_${d}`]?.length||0);
+          },0);
+          el.textContent=total?total+' לקוחות':'';
+        }else{
+          // Один запрос за раз — параллельный залп по всем агентам перегружал
+          // Power BI dataset и из-за этого основной /customers при выборе агента
+          // вылетал по таймауту (12с) и откатывался на демо-клиентов.
+          try{
+            const r=await apiFetch(`${API}/customers?agent=${encodeURIComponent(a.agentCode)}`);
+            const d=await r.json();
+            if(el)el.textContent=Array.isArray(d)?d.length+' לקוחות':'';
+          }catch(_){
+            if(el)el.textContent='';
+          }
+        }
       }
-    });
+    })();
   }
 }
 
