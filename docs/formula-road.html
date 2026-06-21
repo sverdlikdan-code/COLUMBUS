@@ -469,7 +469,7 @@ async function apiFetch(url, opts={}){
   if(r.status === 401){
     // Try silent PBI re-auth before showing error
     try {
-      const pbi = await fetch(API+'/auth/pbi');
+      const pbi = await fetch(API+'/auth/pbi', { credentials: 'include' });
       if(pbi.ok){
         const j = await pbi.json();
         if(j.ok && j.token){
@@ -804,7 +804,7 @@ async function initLogin(){
 
   // No auth — try PBI auto-login first (fr_ok cookie → manager session)
   try {
-    const r = await fetch(API+'/auth/pbi');
+    const r = await fetch(API+'/auth/pbi', { credentials: 'include' });
     if(r.ok){
       const j = await r.json();
       if(j.ok && j.token){
