@@ -612,21 +612,33 @@ function nearestNeighbor(clients){
     result.push(chosen);
     curLat=chosen.lat; curLng=chosen.lng;
   }
-  return [...twoOpt(result),...noGps];
+  return [...twoOpt(result,startLat,startLng),...noGps];
 }
 
 // ── 2-opt: eliminates crossing edges ───────────────────────────────────────
-function twoOpt(route){
-  if(route.length<4) return route;
+// Маршрут ОТКРЫТЫЙ (старт → клиенты, без возврата в старт) — два момента,
+// которые ломали порядок визитов:
+// 1) ребро "старт → первая точка" не учитывалось в стоимости вообще —
+//    разворот мог увести первую точку маршрута далеко от старта незамеченно;
+// 2) dist(best[j], best[(j+1)%length]) оборачивался по модулю, как для
+//    ЗАКРЫТОГО TSP-кольца — на последнем j это считало фантомное ребро
+//    "последняя точка → первая точка", которого в реальности нет (машина не
+//    возвращается в старт), и алгоритм оптимизировал несуществующее ребро.
+// i=-1 — псевдо-индекс старта (виртуальный узел перед best[0]), j=last —
+// конец маршрута без следующего ребра (стоимость после j считается 0).
+function twoOpt(route,startLat,startLng){
+  if(route.length<3) return route;
   let best=[...route], improved=true;
   const dist=(a,b)=>haversineKm(a.lat,a.lng,b.lat,b.lng);
+  const distFromStart=(c)=>haversineKm(startLat,startLng,c.lat,c.lng);
   while(improved){
     improved=false;
-    for(let i=0;i<best.length-1;i++){
+    for(let i=-1;i<best.length-1;i++){
+      const distToINext = (c)=> i===-1 ? distFromStart(c) : dist(best[i],c);
       for(let j=i+2;j<best.length;j++){
-        if(j===best.length-1&&i===0) continue;
-        const d1=dist(best[i],best[i+1])+dist(best[j],best[(j+1)%best.length]);
-        const d2=dist(best[i],best[j])+dist(best[i+1],best[(j+1)%best.length]);
+        const hasNext = j+1<best.length;
+        const d1=distToINext(best[i+1])+(hasNext?dist(best[j],best[j+1]):0);
+        const d2=distToINext(best[j])+(hasNext?dist(best[i+1],best[j+1]):0);
         if(d2<d1-0.001){
           best=[...best.slice(0,i+1),...best.slice(i+1,j+1).reverse(),...best.slice(j+1)];
           improved=true;
