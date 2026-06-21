@@ -2325,22 +2325,17 @@ async function _applyOrderPeriods() {
     let data;
     if (_orderPeriodCache[cacheKey]) {
       data = _orderPeriodCache[cacheKey];
-      window._orderPeriodAuthFailed = false;
+      window._orderPeriodFetchFailed = false;
     } else {
       const periodsParam = periods.join(',');
-      const token = localStorage.getItem('frToken') || '';
-      const resp = await fetch(`https://api.sverdlik-apps.site/pbi/dagim-sales?periods=${encodeURIComponent(periodsParam)}`, {
-        headers: { 'X-Session': token },
-      }).catch(e => { console.error('[ord-periods] network error:', e); return null; });
+      const resp = await fetch(`https://api.sverdlik-apps.site/pbi/dagim-sales?periods=${encodeURIComponent(periodsParam)}`)
+        .catch(e => { console.error('[ord-periods] network error:', e); return null; });
       if (!resp) {
-        data = null; window._orderPeriodAuthFailed = true;
-      } else if (resp.status === 401 || resp.status === 403) {
-        console.error('[ord-periods] auth failed — token missing/expired, status', resp.status);
-        data = null; window._orderPeriodAuthFailed = true;
+        data = null; window._orderPeriodFetchFailed = true;
       } else {
         const j = await resp.json().catch(() => null);
         data = (j && j.ok && j.data) ? j.data : null;
-        window._orderPeriodAuthFailed = !data;
+        window._orderPeriodFetchFailed = !data;
         if (!data) console.error('[ord-periods] unexpected response, falling back to static daySalesAll:', j);
         if (data) _orderPeriodCache[cacheKey] = data;
       }
@@ -2349,27 +2344,10 @@ async function _applyOrderPeriods() {
   } catch(e) {
     console.error('[ord-periods] unexpected error:', e);
     window._orderPeriodSales = null;
-    window._orderPeriodAuthFailed = true;
+    window._orderPeriodFetchFailed = true;
   } finally {
     if (bar) bar.querySelectorAll('button').forEach(b => { b.disabled = false; b.style.opacity = '1'; });
     buildOrderPage();
-  }
-}
-
-async function _orderQuickLogin() {
-  const code = prompt('קוד גישה (מנהל / סוכן):');
-  if (!code) return;
-  try {
-    const r = await fetch(API + '/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) });
-    const j = await r.json();
-    if (j.ok && j.token) {
-      localStorage.setItem('frToken', j.token);
-      _applyOrderPeriods();
-    } else {
-      alert('קוד שגוי');
-    }
-  } catch (e) {
-    alert('שגיאת חיבור לשרת');
   }
 }
 
@@ -2464,10 +2442,9 @@ function buildOrderPage() {
       const isAct = sel.has(`${y}-${m}`);
       ph += `<button style="${isAct ? mAct : mDef}" onclick="toggleOrderPeriod(${y},${m})">${HM[m]}</button>`;
     }
-    if (window._orderPeriodAuthFailed) {
+    if (window._orderPeriodFetchFailed) {
       ph += `<span style="color:rgba(255,255,255,0.12);font-size:14px;margin:0 4px;">|</span>` +
-        `<span style="background:#7f1d1d;color:#fecaca;font-size:10px;font-weight:700;padding:4px 8px;border-radius:6px;" title="ההתחברות פגה — מכר ממוצע מציג ערך קבוע ולא לפי התקופה שנבחרה">⚠ אין התחברות — מכר ממוצע קבוע</span>` +
-        `<button onclick="_orderQuickLogin()" style="font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;cursor:pointer;background:#1d4ed8;color:#fff;border:1px solid #3b82f6;">🔑 התחבר</button>`;
+        `<span style="background:#7f1d1d;color:#fecaca;font-size:10px;font-weight:700;padding:4px 8px;border-radius:6px;" title="השרת לא הגיב — מכר ממוצע מציג ערך קבוע ולא לפי התקופה שנבחרה">⚠ שגיאת שרת — מכר ממוצע קבוע</span>`;
     }
     periodBar.innerHTML = ph;
   }
