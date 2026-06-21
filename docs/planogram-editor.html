@@ -2363,14 +2363,8 @@ function buildOrderPage() {
   const grpOrder = [...new Set(rows.map(getGrp))].sort();
   const groups = {};
   for (const r of rows) (groups[getGrp(r)] || (groups[getGrp(r)] = [])).push(r);
-  // Sort: products with order first (desc by orderK), then zero-order by daysStk asc (lowest = most urgent)
-  for (const g of Object.values(groups)) g.sort((a, b) => {
-    const aHas = a.orderK > 0, bHas = b.orderK > 0;
-    if (aHas !== bHas) return aHas ? -1 : 1;
-    if (aHas) return b.orderK - a.orderK;
-    const ad = a.daysStk ?? 9999, bd = b.daysStk ?? 9999;
-    return ad - bd;
-  });
+  // Sort by מקט, independent of הזמנה/orderK
+  for (const g of Object.values(groups)) g.sort((a, b) => Number(a.mk) - Number(b.mk));
 
   const _th = (extra='') => `position:sticky;top:0;z-index:5;background:#1a1a2e;color:#fff;padding:8px 6px;font-size:10px;font-weight:600;${extra}`;
   const thead = `<thead>

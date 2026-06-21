@@ -1234,29 +1234,28 @@
       grpMap[g].push(r);
     });
 
-    // Sort groups: groups with any order first
+    // Sort groups by חברה order (same as fam dropdown/chips), then by min מקט within חברה
+    const coOrdR = {}, coCntR = {};
+    (noMkr ? all.filter(r => (r.mkr_shvua ?? 0) <= 0.1) : all).forEach(r => { if (r.hevra) coCntR[r.hevra] = (coCntR[r.hevra] || 0) + 1; });
+    Object.keys(coCntR).sort((a, b) => coCntR[b] - coCntR[a]).forEach((c, i) => { coOrdR[c] = i; });
+    const famHevraR = {}, famMktR = {};
+    seen.forEach(g => {
+      grpMap[g].forEach(r => {
+        if (!famHevraR[g]) famHevraR[g] = r.hevra;
+        const m = Number(r.mkt);
+        if (!famMktR[g] || m < famMktR[g]) famMktR[g] = m;
+      });
+    });
     seen.sort((a, b) => {
-      const aHas = grpMap[a].some(r => {
-        const s = sv[String(r.mkt ?? '')] || {};
-        return (s.k != null ? s.k : (r.hamlatza > 0 ? Math.round(r.hamlatza) : 0)) > 0;
-      });
-      const bHas = grpMap[b].some(r => {
-        const s = sv[String(r.mkt ?? '')] || {};
-        return (s.k != null ? s.k : (r.hamlatza > 0 ? Math.round(r.hamlatza) : 0)) > 0;
-      });
-      return bHas - aHas;
+      const ca = coOrdR[famHevraR[a]] ?? 999, cb = coOrdR[famHevraR[b]] ?? 999;
+      return ca !== cb ? ca - cb : (famMktR[a] ?? 0) - (famMktR[b] ?? 0);
     });
 
     seen.forEach(grp => {
       const grpRows = grpMap[grp];
 
-      // Sort rows within group: ordered (largest first), then unordered
-      grpRows.sort((a, b) => {
-        const sa = sv[String(a.mkt ?? '')] || {}, sb = sv[String(b.mkt ?? '')] || {};
-        const ea = sa.k != null ? sa.k : (a.hamlatza > 0 ? Math.round(a.hamlatza) : 0);
-        const eb = sb.k != null ? sb.k : (b.hamlatza > 0 ? Math.round(b.hamlatza) : 0);
-        return eb - ea;
-      });
+      // Sort rows within group by מקט (independent of order quantity)
+      grpRows.sort((a, b) => Number(a.mkt ?? 0) - Number(b.mkt ?? 0));
 
       let gAsh = 0, gEil = 0, gMav = 0, gMmd = 0, gMkr = 0, gHaml = 0, gOrd = 0;
 
