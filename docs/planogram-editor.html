@@ -438,6 +438,11 @@
   <!-- Row 2: action buttons + IKRA/SAL/KAPUS group chip filters -->
   <div style="display:flex;align-items:center;gap:5px;padding:0 14px;background:#0d1424;flex-shrink:0;z-index:9;border-bottom:1px solid rgba(255,255,255,0.05);height:42px;" class="no-print">
     <button onclick="exportOrderCsv()" style="background:#1d4ed8;border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:5px 15px;white-space:nowrap;flex-shrink:0;letter-spacing:.3px;">⬇ Excel</button>
+    <button onclick="_orderSaveSnapshot()" style="background:#15803d;border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:5px 15px;white-space:nowrap;flex-shrink:0;letter-spacing:.3px;">💾 שמור</button>
+    <div style="position:relative;display:inline-block;flex-shrink:0;">
+      <button id="btn-order-history" onclick="_orderToggleHistory()" style="background:none;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.5);font-size:11px;font-weight:600;cursor:pointer;border-radius:6px;padding:4px 13px;white-space:nowrap;letter-spacing:.2px;">🕐 היסטוריה</button>
+      <div class="history-dropdown" id="order-history-dropdown"></div>
+    </div>
     <button id="btn-order-only" onclick="toggleOrderOnly()" style="background:none;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.5);font-size:11px;font-weight:600;cursor:pointer;border-radius:6px;padding:4px 13px;white-space:nowrap;flex-shrink:0;letter-spacing:.2px;transition:all 0.15s;">📋 הזמנה בלבד</button>
     <div style="width:1px;height:18px;background:rgba(255,255,255,0.1);flex-shrink:0;margin:0 6px;"></div>
     <div id="ord-fam-btns" style="display:flex;flex:1;flex-wrap:wrap;gap:4px;align-items:center;justify-content:flex-end;"></div>
@@ -1987,17 +1992,31 @@ function _initTableDrag(tbody) {
 
 window._orderFams = new Set();
 window._orderZero = false;
+window._orderManualEdits = window._orderManualEdits || {};
 
 function _recalcOrdTotal() {
   const fmtK = n => Math.round(n || 0).toLocaleString('en');
   let totalK = 0, totalPal = 0;
+  const grpTotals = {};
   document.querySelectorAll('.ord-k-input').forEach(inp => {
     const k    = Math.max(0, Number(inp.value) || 0);
     const krat = Number(inp.dataset.krat) || 1;
+    const pal  = krat > 0 ? k / krat : 0;
     totalK   += k;
-    totalPal += krat > 0 ? k / krat : 0;
+    totalPal += pal;
+    const gIdx = inp.dataset.grp;
+    if (!grpTotals[gIdx]) grpTotals[gIdx] = { k: 0, pal: 0 };
+    grpTotals[gIdx].k   += k;
+    grpTotals[gIdx].pal += pal;
   });
   totalPal = Math.round(totalPal * 10) / 10;
+  // Per-group subtotal rows (not just the top KPI bar / bottom grand total)
+  for (const [gIdx, t] of Object.entries(grpTotals)) {
+    const kEl = document.getElementById(`ord-grp-k-${gIdx}`);
+    if (kEl) kEl.textContent = fmtK(t.k);
+    const pEl = document.getElementById(`ord-grp-pal-${gIdx}`);
+    if (pEl) pEl.textContent = (Math.round(t.pal * 10) / 10).toFixed(1);
+  }
   const kHdr = document.getElementById('ord-k-hdr');
   if (kHdr) kHdr.textContent = fmtK(totalK);
   const pHdr = document.getElementById('ord-pal-hdr');
@@ -2026,6 +2045,8 @@ function _recalcRowPal(inp) {
   // Sync back to data so Excel export reflects manual edits
   const row = (window._orderCurrentRows || []).find(r => String(r.mk) === String(mk));
   if (row) { row.orderK = k; row.orderP = pal; }
+  // Remember the edit so it survives a buildOrderPage() rebuild (period/filter/mode switch)
+  window._orderManualEdits[mk] = { orderK: k, orderP: pal };
   // Update PALLET display cell
   const pCell = document.querySelector(`.ord-p-auto[data-mk="${mk}"]`);
   if (pCell) pCell.textContent = k > 0 ? pal.toFixed(1) : '—';
@@ -2046,6 +2067,7 @@ function _recalcRowK(inp) {
   if (pCell) pCell.textContent = pal > 0 ? pal.toFixed(1) : '—';
   const row = (window._orderCurrentRows || []).find(r => String(r.mk) === String(mk));
   if (row) { row.orderK = k; row.orderP = pal; }
+  window._orderManualEdits[mk] = { orderK: k, orderP: pal };
   _recalcOrdTotal();
 }
 
@@ -2099,6 +2121,61 @@ function toggleOrderOnly() {
     btn.style.fontWeight   = window._orderOnlyMode ? '700' : '600';
     btn.textContent = window._orderOnlyMode ? '📋 הזמנה בלבד ✓' : '📋 הזמנה בלבד';
   }
+  buildOrderPage();
+}
+
+// ── Order page: save/restore manual order quantities (KARTON/PALLET) ───────
+const ORD_VERSIONS_KEY = 'mahsan_order_versions';
+
+function _orderSaveSnapshot() {
+  const edits = window._orderManualEdits || {};
+  if (!Object.keys(edits).length) { alert('אין הזמנה ידנית לשמירה'); return; }
+  const versions = JSON.parse(localStorage.getItem(ORD_VERSIONS_KEY) || '[]');
+  const now = new Date();
+  const ts = now.toLocaleDateString('he-IL') + ' ' + now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+  versions.unshift({ ts, edits: deepClone(edits) });
+  if (versions.length > 5) versions.length = 5;
+  localStorage.setItem(ORD_VERSIONS_KEY, JSON.stringify(versions));
+  alert(`✅ ההזמנה נשמרה (${ts})`);
+}
+
+function _orderToggleHistory() {
+  const dd = document.getElementById('order-history-dropdown');
+  const open = dd.classList.toggle('open');
+  if (open) {
+    _orderRenderHistoryDropdown();
+    setTimeout(() => document.addEventListener('click', _orderCloseHistoryOutside, { once: true }), 10);
+  }
+}
+
+function _orderCloseHistoryOutside(e) {
+  const dd = document.getElementById('order-history-dropdown');
+  if (!dd.contains(e.target) && e.target.id !== 'btn-order-history') {
+    dd.classList.remove('open');
+  }
+}
+
+function _orderRenderHistoryDropdown() {
+  const versions = JSON.parse(localStorage.getItem(ORD_VERSIONS_KEY) || '[]');
+  const dd = document.getElementById('order-history-dropdown');
+  if (!versions.length) {
+    dd.innerHTML = `<div class="history-empty">אין גרסאות שמורות להזמנה</div>`;
+    return;
+  }
+  dd.innerHTML = versions.map((v, i) =>
+    `<div class="history-item" onclick="_orderRestoreVersion(${i})">
+       <span class="h-ts">${v.ts}</span>
+       <span class="h-restore">שחזר ↩</span>
+     </div>`
+  ).join('');
+}
+
+function _orderRestoreVersion(index) {
+  const versions = JSON.parse(localStorage.getItem(ORD_VERSIONS_KEY) || '[]');
+  if (!versions[index]) return;
+  if (!confirm(`לשחזר הזמנה מ-${versions[index].ts}?`)) return;
+  window._orderManualEdits = deepClone(versions[index].edits);
+  document.getElementById('order-history-dropdown').classList.remove('open');
   buildOrderPage();
 }
 
@@ -2329,8 +2406,12 @@ function buildOrderPage() {
     const safetyDays = _getSafetyDays(fam);
     const safetyK    = Math.ceil(safetyDays / 1.4 * daySales);
     const deferredDemand  = daysStk !== null && daysStk < safetyDays / 2;
-    const orderK          = spo < safetyK && daySales > 0 ? safetyK : 0;
-    const orderP     = krat > 0 && orderK > 0 ? Math.round(orderK / krat * 10) / 10 : 0;
+    const autoOrderK = spo < safetyK && daySales > 0 ? safetyK : 0;
+    const autoOrderP = krat > 0 && autoOrderK > 0 ? Math.round(autoOrderK / krat * 10) / 10 : 0;
+    // Manual row edits must survive a rebuild (period/filter/mode switch) — see _recalcRowPal/_recalcRowK
+    const manualEdit = (window._orderManualEdits || {})[mk];
+    const orderK = manualEdit ? manualEdit.orderK : autoOrderK;
+    const orderP = manualEdit ? manualEdit.orderP : autoOrderP;
     const stock = +(d.stock || 0);
     allRows.push({ mk, name, fam, iksGroup, stock, spo, palSpo, openOrders, daySales, daysStk, krat, safetyDays, safetyK, orderK, orderP, deferredDemand });
   }
@@ -2432,7 +2513,9 @@ function buildOrderPage() {
   let tbRows = '';
   let gtSpo = 0, gtPalSpo = 0, gtOpenOrders = 0, gtOrder = 0, gtPal = 0;
 
+  let gIdx = -1;
   for (const grp of grpOrder) {
+    gIdx++;
     const gr = groups[grp] || [];
     let fSpo = 0, fPalSpo = 0, fOpenOrders = 0, fOrder = 0, fPal = 0;
     for (const r of gr) {
@@ -2461,8 +2544,8 @@ function buildOrderPage() {
       <td style="padding:7px 8px;text-align:center;font-size:11px;color:#a5d6a7;">${fOpenOrders > 0 ? fmtK(fOpenOrders) : '—'}</td>
       <td style="padding:7px 8px;text-align:center;font-size:10px;color:#78909c;">${gr.length} פריטים</td>
       <td style="padding:7px 8px;"></td>
-      <td style="padding:7px 8px;text-align:center;font-size:13px;font-weight:800;color:#ffcc02;">${fmtK(fOrder)}</td>
-      <td style="padding:7px 8px;text-align:center;font-size:12px;font-weight:700;color:#a5d6a7;">${fPal.toFixed(1)}</td>
+      <td id="ord-grp-k-${gIdx}" style="padding:7px 8px;text-align:center;font-size:13px;font-weight:800;color:#ffcc02;">${fmtK(fOrder)}</td>
+      <td id="ord-grp-pal-${gIdx}" style="padding:7px 8px;text-align:center;font-size:12px;font-weight:700;color:#a5d6a7;">${fPal.toFixed(1)}</td>
       <td style="padding:3px 4px;text-align:center;"><span style="font-size:13px;font-weight:900;color:#e1bee7;">${fContTxt}</span></td>
     </tr>`;
 
@@ -2482,9 +2565,9 @@ function buildOrderPage() {
         <td style="padding:4px 8px;text-align:center;font-size:12px;font-weight:${r.openOrders > 0 ? '700' : '400'};color:${r.openOrders > 0 ? '#2e7d32' : '#bbb'};">${r.openOrders > 0 ? fmtK(r.openOrders) : '—'}</td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;">${r.daySales > 0 ? (r.daySales >= 1 ? Math.round(r.daySales) : r.daySales.toFixed(1)) : '—'}</td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;font-weight:700;color:${dc};">${r.daysStk !== null ? Math.round(r.daysStk) : '—'}${r.deferredDemand ? ' <span title="ביקוש נדחה — מלאי מתחת למחצית מלאי הביטחון" style="cursor:help;">⚡</span>' : ''}</td>
-        <td style="padding:4px 4px;text-align:center;"><input type="number" class="ord-k-input" value="${r.orderK}" min="0" step="1" oninput="_recalcRowPal(this)" data-mk="${r.mk}" data-krat="${r.krat}" style="width:65px;padding:3px 5px;font-size:13px;font-weight:800;text-align:center;border:2px solid ${r.orderK > 0 ? '#e65100' : '#c8e6c9'};border-radius:4px;background:${r.orderK > 0 ? '#fff8e1' : '#f1f8e9'};color:${r.orderK > 0 ? '#bf360c' : '#388e3c'};outline:none;"></td>
+        <td style="padding:4px 4px;text-align:center;"><input type="number" class="ord-k-input" value="${r.orderK}" min="0" step="1" oninput="_recalcRowPal(this)" data-mk="${r.mk}" data-krat="${r.krat}" data-grp="${gIdx}" style="width:65px;padding:3px 5px;font-size:13px;font-weight:800;text-align:center;border:2px solid ${r.orderK > 0 ? '#e65100' : '#c8e6c9'};border-radius:4px;background:${r.orderK > 0 ? '#fff8e1' : '#f1f8e9'};color:${r.orderK > 0 ? '#bf360c' : '#388e3c'};outline:none;"></td>
         <td class="ord-p-auto" data-mk="${r.mk}" style="padding:4px 8px;text-align:center;font-size:13px;font-weight:700;">${r.orderK > 0 ? r.orderP.toFixed(1) : '—'}</td>
-        <td style="padding:4px 4px;text-align:center;"><input type="number" class="ord-pal-input" value="${r.orderK > 0 ? r.orderP.toFixed(1) : 0}" min="0" step="0.5" oninput="_recalcRowK(this)" style="width:58px;padding:3px 4px;font-size:13px;font-weight:700;text-align:center;border:2px solid #9c27b0;border-radius:4px;background:#f3e5f5;color:#4a148c;outline:none;" data-mk="${r.mk}" data-krat="${r.krat}"></td>
+        <td style="padding:4px 4px;text-align:center;"><input type="number" class="ord-pal-input" value="${r.orderK > 0 ? r.orderP.toFixed(1) : 0}" min="0" step="0.5" oninput="_recalcRowK(this)" style="width:58px;padding:3px 4px;font-size:13px;font-weight:700;text-align:center;border:2px solid #9c27b0;border-radius:4px;background:#f3e5f5;color:#4a148c;outline:none;" data-mk="${r.mk}" data-krat="${r.krat}" data-grp="${gIdx}"></td>
       </tr>`;
     });
 
