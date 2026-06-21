@@ -2301,14 +2301,11 @@ function clearOrderPeriod() {
 
 function toggleOrderPeriod(year, month) {
   const key = `${year}-${month}`;
-  // Single-select switch: clicking a month shows ONLY that month.
-  // (Previously this added/removed the month from an accumulating multi-month
-  // blend — since the default already pre-selects 2 months, clicking a 3rd/4th
-  // just diluted the average further, making it look "stuck" when switching.)
-  if (window._orderSelectedPeriods.size === 1 && window._orderSelectedPeriods.has(key)) {
-    _defaultOrderPeriods();  // re-clicking the active month returns to the smoothed default
+  // Multi-select toggle: clicking a month adds/removes it from the blended average.
+  // At least one month must stay selected.
+  if (window._orderSelectedPeriods.has(key)) {
+    if (window._orderSelectedPeriods.size > 1) window._orderSelectedPeriods.delete(key);
   } else {
-    window._orderSelectedPeriods.clear();
     window._orderSelectedPeriods.add(key);
   }
   localStorage.setItem('ord_periods', JSON.stringify([...window._orderSelectedPeriods]));
