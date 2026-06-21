@@ -34,15 +34,40 @@ function haversineKm(lat1, lng1, lat2, lng2) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-// Structured query (street/city/country as separate fields) forces LocationIQ
-// to filter by city instead of free-text-matching a street name anywhere in
-// the country — fixes the wrong-city collisions seen with a single "q=" string.
-async function geocodeLocationIQ(street, city) {
+// city= в structured query — лишь МЯГКАЯ подсказка: LocationIQ может её
+// игнорировать и вернуть лучший free-text матч в другом городе (так
+// "שד' ירושלים" в אשדוד находило город Иерусалим). viewbox+bounded=1 —
+// ЖЁСТКИЙ геофильтр: результат вне прямоугольника не возвращается вообще.
+// bbox строим из координат ДРУГИХ клиентов того же города, которые уже есть
+// в выгрузке (CLEAN+SUSPECT с валидным pbiLat/pbiLng) — без статической
+// таблицы городов.
+function buildCityBbox(points) {
+  if (!points || points.length === 0) return null;
+  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+  for (const p of points) {
+    if (p.lat < minLat) minLat = p.lat;
+    if (p.lat > maxLat) maxLat = p.lat;
+    if (p.lng < minLng) minLng = p.lng;
+    if (p.lng > maxLng) maxLng = p.lng;
+  }
+  // Одна референс-точка не даёт размера города — пад побольше (~6.5км),
+  // при нескольких точках паддинг чуть меньше (~3.3км) сверх их разброса.
+  const pad = points.length === 1 ? 0.06 : 0.03;
+  return { minLat: minLat - pad, maxLat: maxLat + pad, minLng: minLng - pad, maxLng: maxLng + pad };
+}
+
+// Structured query (street/city/country as separate fields) + опциональный
+// bbox-геофильтр (bounded=1 жёстко исключает результаты вне города).
+async function geocodeLocationIQ(street, city, bbox) {
   if (!LOCATIONIQ_KEY) return null;
   try {
-    const url = `https://us1.locationiq.com/v1/search?key=${LOCATIONIQ_KEY}&street=${encodeURIComponent(street)}&city=${encodeURIComponent(city)}&country=Israel&format=json&limit=1`;
+    let url = `https://us1.locationiq.com/v1/search?key=${LOCATIONIQ_KEY}&street=${encodeURIComponent(street)}&city=${encodeURIComponent(city)}&country=Israel&format=json&limit=1`;
+    if (bbox) {
+      // viewbox = left,top,right,bottom → lon_min,lat_max,lon_max,lat_min
+      url += `&viewbox=${bbox.minLng},${bbox.maxLat},${bbox.maxLng},${bbox.minLat}&bounded=1`;
+    }
     const resp = await fetch(url, { signal: AbortSignal.timeout(6000) });
-    if (resp.status === 429) { await new Promise(res => setTimeout(res, 1200)); return geocodeLocationIQ(street, city); }
+    if (resp.status === 429) { await new Promise(res => setTimeout(res, 1200)); return geocodeLocationIQ(street, city, bbox); }
     const data = await resp.json();
     const r = Array.isArray(data) ? data[0] : null;
     if (!r) return null;
@@ -82,6 +107,21 @@ async function main() {
   });
   console.log(`Total rows: ${rows.length}`);
 
+  // bbox по городу — из ВСЕХ строк с валидным pbiLat/pbiLng (не только
+  // suspect), чтобы у каждого suspect-клиента был максимум референс-точек
+  // его же города для геофильтра.
+  const cityPoints = new Map();
+  for (const r of rows) {
+    if (!isValidIL(r.pbiLat, r.pbiLng)) continue;
+    const key = (r.city || '').trim();
+    if (!key) continue;
+    if (!cityPoints.has(key)) cityPoints.set(key, []);
+    cityPoints.get(key).push({ lat: r.pbiLat, lng: r.pbiLng });
+  }
+  const cityBbox = new Map();
+  for (const [city, pts] of cityPoints) cityBbox.set(city, buildCityBbox(pts));
+  console.log(`Cities with bbox reference: ${cityBbox.size}`);
+
   const suspect = rows.filter(r => r.garbageLevel === 'SUSPECT');
   const garbage = rows.filter(r => r.garbageLevel === 'GARBAGE');
   console.log(`SUSPECT to geocode via Google: ${suspect.length}`);
@@ -92,7 +132,8 @@ async function main() {
   for (const r of suspect) {
     i++;
     const cleanedAddr = cleanForGeocode(r.address, r.city);
-    const g = await geocodeLocationIQ(cleanedAddr, r.city);
+    const bbox = cityBbox.get((r.city || '').trim()) || null;
+    const g = await geocodeLocationIQ(cleanedAddr, r.city, bbox);
 
     let baseLat = isValidIL(r.pbiLat, r.pbiLng) ? r.pbiLat : (isValidIL(r.iceLat, r.iceLng) ? r.iceLat : null);
     let baseLng = isValidIL(r.pbiLat, r.pbiLng) ? r.pbiLng : (isValidIL(r.iceLat, r.iceLng) ? r.iceLng : null);
