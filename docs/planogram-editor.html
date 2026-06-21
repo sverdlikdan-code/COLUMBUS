@@ -2004,6 +2004,10 @@ function _recalcOrdTotal() {
   if (pHdr) pHdr.textContent = Math.round(totalPal);
   const gt = document.getElementById('ord-pal-gt-cell');
   if (gt) gt.textContent = Math.round(totalPal);
+  const gtK = document.getElementById('ord-gt-karton-cell');
+  if (gtK) gtK.textContent = fmtK(totalK);
+  const gtP = document.getElementById('ord-gt-pallet-cell');
+  if (gtP) gtP.textContent = Math.round(totalPal);
   const PALS_PER_CONT = 20;
   const full = Math.floor(totalPal / PALS_PER_CONT);
   const rem  = Math.round(totalPal) % PALS_PER_CONT;
@@ -2244,8 +2248,10 @@ async function _applyOrderPeriods() {
       data = _orderPeriodCache[cacheKey];
     } else {
       const periodsParam = periods.join(',');
-      const j = await fetch(`https://api.sverdlik-apps.site/pbi/dagim-sales?periods=${encodeURIComponent(periodsParam)}`)
-        .then(r => r.json()).catch(() => null);
+      const token = localStorage.getItem('frToken') || '';
+      const j = await fetch(`https://api.sverdlik-apps.site/pbi/dagim-sales?periods=${encodeURIComponent(periodsParam)}`, {
+        headers: { 'X-Session': token },
+      }).then(r => r.json()).catch(() => null);
       data = (j && j.ok && j.data) ? j.data : null;
       if (data) _orderPeriodCache[cacheKey] = data;
     }
@@ -2451,8 +2457,8 @@ function buildOrderPage() {
     <td style="padding:7px 6px;text-align:center;font-size:13px;font-weight:700;color:#a5d6a7;">${gtOpenOrders > 0 ? fmtK(gtOpenOrders) : '—'}</td>
     <td style="padding:7px 6px;"></td>
     <td style="padding:7px 6px;"></td>
-    <td style="padding:7px 6px;text-align:center;font-size:16px;font-weight:800;color:#ffcc02;">${fmtK(gtOrder)}</td>
-    <td style="padding:7px 6px;text-align:center;font-size:13px;font-weight:700;">${Math.round(gtPal)}</td>
+    <td id="ord-gt-karton-cell" style="padding:7px 6px;text-align:center;font-size:16px;font-weight:800;color:#ffcc02;">${fmtK(gtOrder)}</td>
+    <td id="ord-gt-pallet-cell" style="padding:7px 6px;text-align:center;font-size:13px;font-weight:700;">${Math.round(gtPal)}</td>
     <td id="ord-pal-gt-cell" style="padding:7px 6px;text-align:center;font-size:14px;font-weight:900;color:#e1bee7;background:#4a148c;">${Math.round(gtPal)}</td>
   </tr>`;
 
