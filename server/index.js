@@ -632,6 +632,50 @@ async function findPBISibling(address, city) {
   return null;
 }
 
+// ── FORM+I+INT Client GPS Lookup ────────────────────────────────────────────
+// 'לקוחות FORM+I+INT' carries verified per-client GPS (custId match) for ~58%
+// of all clients — far more reliable than re-geocoding a messy free-text
+// address, since it's an exact ID match rather than fuzzy street matching.
+let _formIIntGpsByCustId = null;
+let _formIIntGpsLoadedAt = 0;
+const FORM_I_INT_TTL = 30 * 60 * 1000;
+
+async function loadFormIIntGPS() {
+  if (_formIIntGpsByCustId && (Date.now() - _formIIntGpsLoadedAt) < FORM_I_INT_TTL) return _formIIntGpsByCustId;
+  const map = new Map();
+  try {
+    const rows = await executeDax(`
+EVALUATE
+SELECTCOLUMNS('לקוחות FORM+I+INT',
+  "id",  'לקוחות FORM+I+INT'[מס. לקוח],
+  "lat", 'לקוחות FORM+I+INT'[קו רוחב],
+  "lng", 'לקוחות FORM+I+INT'[קו אורך]
+)`);
+    for (const r of rows) {
+      const id = r['[id]'];
+      const lat = parseFloat(r['[lat]']);
+      const lng = parseFloat(r['[lng]']);
+      if (!id || map.has(id) || !isValidIL(lat, lng)) continue;
+      map.set(id, { lat, lng });
+    }
+    _formIIntGpsByCustId = map;
+    _formIIntGpsLoadedAt = Date.now();
+    console.log(`FORM+I+INT GPS cache: ${map.size} clients with GPS`);
+  } catch (e) {
+    console.error('loadFormIIntGPS:', e.message);
+    _formIIntGpsByCustId = map;
+  }
+  return _formIIntGpsByCustId;
+}
+
+async function findFormIIntGPS(custId) {
+  if (!custId) return null;
+  const map = await loadFormIIntGPS();
+  const hit = map.get(String(custId));
+  if (!hit) return null;
+  return { lat: hit.lat, lng: hit.lng, source: 'form-i-int' };
+}
+
 async function geocodeBatch(clients) {
   // fetch city bboxes (Azure Maps, no delays)
   const allCities = [...new Set(clients.map(c => c.city).filter(Boolean))];
@@ -659,7 +703,20 @@ async function geocodeBatch(clients) {
   const needsGeocode = clients.filter(c => !isValidIL(c.lat, c.lng) && (c.address || c.city));
   let resolved = 0;
   for (const c of needsGeocode) {
-    // Step 0: PBI sibling lookup (accurate, no external API)
+    // Step 0a: exact custId GPS lookup against 'לקוחות FORM+I+INT' —
+    // verified per-client coordinates, more reliable than re-geocoding text
+    const exact = await findFormIIntGPS(c.custId);
+    if (exact) {
+      const bbox = cityBBoxCache.get(c.city) ?? null;
+      if (isWithinCityBBox(exact.lat, exact.lng, bbox)) {
+        c.lat = exact.lat; c.lng = exact.lng;
+        c.gpsSource = exact.source;
+        resolved++;
+        continue;
+      }
+    }
+
+    // Step 0b: PBI sibling lookup (accurate, no external API)
     const sibling = await findPBISibling(c.address, c.city);
     if (sibling) {
       const bbox = cityBBoxCache.get(c.city) ?? null;
