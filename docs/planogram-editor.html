@@ -2490,8 +2490,8 @@ function buildOrderPage() {
   const grpOrder = [...new Set(rows.map(getGrp))].sort();
   const groups = {};
   for (const r of rows) (groups[getGrp(r)] || (groups[getGrp(r)] = [])).push(r);
-  // Sort by מקט, independent of הזמנה/orderK
-  for (const g of Object.values(groups)) g.sort((a, b) => Number(a.mk) - Number(b.mk));
+  // Sort alphabetically by שם מוצר, independent of הזמנה/orderK
+  for (const g of Object.values(groups)) g.sort((a, b) => String(a.name).localeCompare(String(b.name), 'he'));
 
   const _th = (extra='') => `position:sticky;top:0;z-index:5;background:#1a1a2e;color:#fff;padding:8px 6px;font-size:10px;font-weight:600;${extra}`;
   const thead = `<thead>
