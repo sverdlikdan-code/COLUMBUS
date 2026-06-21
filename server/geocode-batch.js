@@ -56,6 +56,21 @@ const STRIP_PATTERNS = [
   /שופרסל[^,]*/gi,
   /קריית\s+[א-ת ]+/gi,
   /קרית\s+[א-ת ]+/gi,
+  // "הרצל 15 פינת ויצמן" → "הרצל 15" — lookbehind требует текст до
+  // "פינה/פינת", иначе адрес-перекрёсток без основной улицы не трогаем
+  /(?<=[א-ת0-9])\s+פינ[הת]\b.*$/g,
+];
+
+// רח'/רחוב — генерик, не входит в индексируемое имя у геокодеров, удаляем.
+// שד'/שדרות — смыслоразличительно (бульвар ≠ улица/город того же имени,
+// см. "שד' ירושלים" в אשדוד которое без "שדרות" ловится как город Иерусалим)
+// — обязательно разворачиваем, не удаляем.
+const ABBREV_MAP = [
+  [/רח[''׳]\s*/g, ''],
+  [/(?<![א-ת])רחוב(?![א-ת])\s*/g, ''],
+  [/(?<![א-ת])רח(?![א-ת'"׳])\s*/g, ''],
+  [/שד[''׳]\s*/g, 'שדרות '],
+  [/(?<![א-ת])שד(?![א-ת'"׳])\s*/g, 'שדרות '],
 ];
 
 function removeCityFromAddress(address, city) {
@@ -71,6 +86,7 @@ function removeCityFromAddress(address, city) {
 function cleanAddress(address, city) {
   if (!address || address.trim() === '-' || address.trim().length < 2) return null;
   let a = address;
+  for (const [pat, rep] of ABBREV_MAP) a = a.replace(pat, rep);
   for (const p of STRIP_PATTERNS) a = a.replace(p, '');
   if (city) a = removeCityFromAddress(a, city);
   a = a.replace(/,/g, ' ').replace(/[،\s]+$/, '').replace(/^[،\s]+/, '').replace(/\s{2,}/g, ' ').trim();
@@ -112,12 +128,41 @@ function cityMatches(clientCity, geocodedAddr) {
 // ── Geocoders ────────────────────────────────────────────────────────────────
 const geocodeCache = new Map();
 
-async function geocodeAzure(address, city) {
+// city= в query — мягкая подсказка, геокодер может вернуть лучший
+// free-text матч в другом городе ("שד' ירושלים" в אשדוד → город Иерусалим).
+// bbox строим из координат ДРУГИХ клиентов того же города с уже валидным
+// GPS (alreadyGood) — без статической таблицы городов.
+function buildCityBbox(points) {
+  if (!points || points.length === 0) return null;
+  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+  for (const p of points) {
+    if (p.lat < minLat) minLat = p.lat;
+    if (p.lat > maxLat) maxLat = p.lat;
+    if (p.lng < minLng) minLng = p.lng;
+    if (p.lng > maxLng) maxLng = p.lng;
+  }
+  const pad = points.length === 1 ? 0.06 : 0.03; // 1 точка → пад ~6.5км, иначе ~3.3км
+  return { minLat: minLat - pad, maxLat: maxLat + pad, minLng: minLng - pad, maxLng: maxLng + pad };
+}
+
+async function geocodeAzure(address, city, bbox) {
   const query = [address, city, 'ישראל'].filter(Boolean).join(', ');
   if (geocodeCache.has(query)) return geocodeCache.get(query);
 
   try {
-    const url = `https://atlas.microsoft.com/search/address/json?api-version=1.0&query=${encodeURIComponent(query)}&subscription-key=${AZURE_KEY}&language=he-IL&countrySet=IL&limit=1`;
+    let url = `https://atlas.microsoft.com/search/address/json?api-version=1.0&query=${encodeURIComponent(query)}&subscription-key=${AZURE_KEY}&language=he-IL&countrySet=IL&limit=1`;
+    if (bbox) {
+      // Azure Maps Search не поддерживает жёсткий bbox-фильтр для этого
+      // эндпоинта — lat/lon/radius — это смещение приоритета (bias), а не
+      // строгое исключение результатов за пределами области.
+      const lat = (bbox.minLat + bbox.maxLat) / 2;
+      const lon = (bbox.minLng + bbox.maxLng) / 2;
+      const radius = Math.ceil(Math.max(
+        (bbox.maxLat - bbox.minLat) * 111000,
+        (bbox.maxLng - bbox.minLng) * 96000,
+      ) / 2);
+      url += `&lat=${lat}&lon=${lon}&radius=${radius}`;
+    }
     const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
     const data = await resp.json();
     if (data.results && data.results.length > 0) {
@@ -145,12 +190,18 @@ async function geocodeAzure(address, city) {
   return null;
 }
 
-async function geocodeNominatim(address, city) {
+async function geocodeNominatim(address, city, bbox) {
   const query = [address, city, 'ישראל'].filter(Boolean).join(', ');
   if (geocodeCache.has(query)) return geocodeCache.get(query);
 
   try {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=il&addressdetails=1`;
+    let url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=il&addressdetails=1`;
+    if (bbox) {
+      // viewbox = left,top,right,bottom → lon_min,lat_max,lon_max,lat_min;
+      // bounded=1 жёстко исключает результаты вне прямоугольника (в отличие
+      // от Azure это настоящий geo-фильтр, не просто bias).
+      url += `&viewbox=${bbox.minLng},${bbox.maxLat},${bbox.maxLng},${bbox.minLat}&bounded=1`;
+    }
     const resp = await fetch(url, {
       headers: { 'User-Agent': 'DillerFormulaGeocode/1.0' },
       signal: AbortSignal.timeout(6000),
@@ -175,9 +226,9 @@ async function geocodeNominatim(address, city) {
   return null;
 }
 
-async function geocode(address, city) {
-  if (AZURE_KEY) return geocodeAzure(address, city);
-  return geocodeNominatim(address, city);
+async function geocode(address, city, bbox) {
+  if (AZURE_KEY) return geocodeAzure(address, city, bbox);
+  return geocodeNominatim(address, city, bbox);
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -272,6 +323,20 @@ async function main() {
   console.log(`📋 Total clients: ${allClients.length}`);
   console.log(`✅ Already have valid GPS: ${alreadyGood.length}`);
   console.log(`📍 Need geocoding: ${toGeocode.length}`);
+
+  // bbox по городу — из клиентов, у которых GPS уже валиден, чтобы
+  // geocode()/geocodeNominatim() мог жёстко ограничить поиск границами
+  // города вместо того, чтобы полагаться на текстовое поле city=.
+  const cityPoints = new Map();
+  for (const c of alreadyGood) {
+    const key = (c.city || '').trim();
+    if (!key) continue;
+    if (!cityPoints.has(key)) cityPoints.set(key, []);
+    cityPoints.get(key).push({ lat: c.existingLat, lng: c.existingLng });
+  }
+  const cityBbox = new Map();
+  for (const [city, pts] of cityPoints) cityBbox.set(city, buildCityBbox(pts));
+  console.log(`🗺  Cities with bbox reference: ${cityBbox.size}`);
   if (AZURE_KEY) console.log(`   Azure Maps — ~${Math.ceil(toGeocode.length / 1000 * 0.5).toFixed(2)}$ (free up to 5000/month)`);
   console.log();
 
@@ -293,7 +358,8 @@ async function main() {
       continue;
     }
 
-    const geo = await geocode(cleaned, c.city);
+    const bbox = cityBbox.get((c.city || '').trim()) || null;
+    const geo = await geocode(cleaned, c.city, bbox);
     await sleep(AZURE_KEY ? 150 : 1100);
 
     if (geo) {
