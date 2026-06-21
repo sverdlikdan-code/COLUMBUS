@@ -42,6 +42,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .hdr-title{font-size:13px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:#fff;}
 .hdr-sub{font-size:11px;color:rgba(255,255,255,.7);margin-top:1px;}
 .sky-line{height:3px;background:linear-gradient(90deg,var(--sky),var(--blue));flex-shrink:0;}
+.demo-banner{background:#c0392b;color:#fff;text-align:center;padding:8px 14px;font-size:13px;font-weight:800;direction:rtl;flex-shrink:0;}
 .demo-tag{font-size:9px;background:rgba(41,182,246,.25);color:var(--sky);padding:2px 8px;border-radius:10px;letter-spacing:1px;border:1px solid rgba(41,182,246,.4);}
 
 /* SCROLL BODY */
@@ -341,6 +342,7 @@ body.gps-fs #map{height:100%!important;}
     <button id="logout-btn" onclick="logout()" style="display:none;background:none;border:none;color:rgba(255,255,255,.7);font-size:11px;font-weight:700;cursor:pointer;padding:4px 8px;letter-spacing:.5px;" title="יציאה">✕ יציאה</button>
   </div>
   <div class="sky-line"></div>
+  <div class="demo-banner" id="demo-banner" style="display:none">⚠️ אין חיבור לשרת — אלו נתוני דמו לדוגמה, לא הלקוחות האמיתיים</div>
   <div class="tab-bar">
     <button class="tab-btn active" id="tab-list" onclick="setTab('list')">📋 רשימה</button>
     <button class="tab-btn" id="tab-map" onclick="setTab('map')">🗺 מפה</button>
@@ -1121,6 +1123,7 @@ async function initRoute(){
   renderClientList('<div class="spinner"><div class="spin"></div><span>טוען לקוחות...</span></div>');
   document.getElementById('km-val').textContent='—';
 
+  st.isDemo=false;
   const staticKey=`${st.agent.code}_${st.day}`;
   if(STATIC_DATA?.routes?.[staticKey]){
     st.clients=STATIC_DATA.routes[staticKey];
@@ -1129,11 +1132,14 @@ async function initRoute(){
       const r=await apiFetch(`${API}/customers?agent=${st.agent.code}&day=${st.day}`);
       if(!r.ok)throw new Error();
       st.clients=await r.json();
-    }catch{
+    }catch(e){
+      console.error('customers fetch failed — falling back to demo data', e);
       st.clients=getDemoClients();
       st.isDemo=true;
     }
   }
+  const demoBanner=document.getElementById('demo-banner');
+  if(demoBanner) demoBanner.style.display=st.isDemo?'':'none';
 
   // Merge with localStorage
   const saved=loadSavedRoute(st.agent.code,st.day);
