@@ -881,6 +881,8 @@ function isNewProduct(makat) {
   if (!d) return false;
   if (isZeroStock(makat)) return false;
   const wh = window._activeWarehouse || 'Main';
+  const stock = wh === 'Zafn' ? d.stockZafn : d.stock;
+  if (stock == null) return false; // нет данных по складу ≠ новый товар
   const sales = wh === 'Zafn' ? d.daySalesZafn : d.daySales;
   return !(sales > 0);
 }
