@@ -16,6 +16,7 @@ app.use(cors({
   ],
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type', 'X-Session'],
+  credentials: true,
 }));
 app.use(express.json({ limit: '512kb' }));
 
@@ -104,6 +105,30 @@ function validateManagerName(name) {
 const crypto = require('crypto');
 const sessions = new Map(); // token → { agentCode, isManager, expiresAt }
 
+// Sessions persist to disk so a server restart (crash/redeploy/manual
+// recovery per CLAUDE.md) doesn't silently invalidate every logged-in
+// manager/agent token — without this, restarts force everyone through the
+// silent-reauth path, which is broken cross-origin (see /auth/pbi below).
+const SESSIONS_FILE = path.join(__dirname, '.sessions.json');
+
+function loadSessions() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'));
+    const now = Date.now();
+    for (const [token, sess] of Object.entries(raw)) {
+      if (sess.expiresAt > now) sessions.set(token, sess);
+    }
+  } catch (_) { /* no file yet or unreadable — start empty */ }
+}
+
+function saveSessions() {
+  try {
+    fs.writeFileSync(SESSIONS_FILE, JSON.stringify(Object.fromEntries(sessions)));
+  } catch (_) { /* best-effort — don't crash the request on disk issues */ }
+}
+
+loadSessions();
+
 function createSession(agentCode, isManager) {
   const token = crypto.randomUUID();
   sessions.set(token, { agentCode, isManager, expiresAt: Date.now() + 8 * 60 * 60 * 1000 });
@@ -112,6 +137,7 @@ function createSession(agentCode, isManager) {
     const now = Date.now();
     for (const [t, s] of sessions) { if (s.expiresAt < now) sessions.delete(t); }
   }
+  saveSessions();
   return token;
 }
 
@@ -228,6 +254,7 @@ app.post('/admin/revoke', (req, res) => {
   for (const [token, sess] of sessions) {
     if (sess.agentCode === code) { sessions.delete(token); revoked++; }
   }
+  if (revoked > 0) saveSessions();
   writeLog({ event: 'revoke', agentCode: code, revokedCount: revoked, ip: getRealIp(req), device: req.headers['user-agent'] || '' });
   res.json({ ok: true, agentCode: code, revokedSessions: revoked });
 });
@@ -1326,7 +1353,11 @@ function formulaRoadGuard(req, res, next) {
   const cookies = req.headers.cookie || '';
   const hasCookie = /(?:^|;\s*)fr_ok=1/.test(cookies);
   if (req.query.k === key) {
-    res.setHeader('Set-Cookie', 'fr_ok=1; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000');
+    // SameSite=None;Secure (not Lax) — formula-road.html is served from
+    // GitHub Pages, a different origin than this API, so the cookie must be
+    // sendable on cross-site fetch() calls (Lax blocks those, only allows
+    // top-level navigation).
+    res.setHeader('Set-Cookie', 'fr_ok=1; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000');
     return next();
   }
   if (hasCookie) return next();
