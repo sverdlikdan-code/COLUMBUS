@@ -1359,6 +1359,91 @@ app.post('/api/order-history', dataRateLimit, (req, res) => {
   }
 });
 
+app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
+  try {
+    const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
+    if (!rows.length) return res.status(400).json({ error: 'missing rows' });
+    const periods = req.body?.periods || '';
+    const modeNote = req.body?.modeNote || '';
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'COLUMBUS';
+    const ws = wb.addWorksheet('הזמנה דגים', { views: [{ rightToLeft: true }] });
+
+    const today = new Date();
+    const dateStr = today.toLocaleDateString('he-IL', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    const totalOrder = rows.filter(r => r.orderK > 0).reduce((s, r) => s + r.orderK, 0);
+    const totalPal = rows.filter(r => r.orderK > 0).reduce((s, r) => s + r.orderP, 0);
+    const orderCnt = rows.filter(r => r.orderK > 0).length;
+
+    // Plain (non-merged) info rows above the table — merged cells block Excel's
+    // "Format as Table" / smart-table autofilter from working cleanly.
+    const titleCell = ws.getCell('A1');
+    titleCell.value = `🐟 הזמנת דגים FORMULA  —  תאריך: ${dateStr}${periods ? ' | תקופה: ' + periods : ''}${modeNote}`;
+    titleCell.font = { bold: true, size: 13, color: { argb: 'FFFFFFFF' }, name: 'Calibri' };
+    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } };
+    titleCell.alignment = { horizontal: 'right', vertical: 'middle' };
+    ws.getRow(1).height = 26;
+
+    const sumCell = ws.getCell('A2');
+    sumCell.value = `סה"כ הזמנה: ${Math.round(totalOrder).toLocaleString('en')} קרטונים | ${Math.round(totalPal * 10) / 10} PALLET | ${rows.length} מוצרים (${orderCnt} להזמנה)`;
+    sumCell.font = { italic: true, size: 10, color: { argb: 'FF6B7280' }, name: 'Calibri' };
+    sumCell.alignment = { horizontal: 'right', vertical: 'middle' };
+    ws.getRow(2).height = 18;
+
+    const tableCols = [
+      { name: 'תאור', key: 'name', width: 38 },
+      { name: 'מק"ט', key: 'mk', width: 11 },
+      { name: 'ברקוד EAN', key: 'ean', width: 18 },
+      { name: 'משפחה', key: 'fam', width: 18 },
+      { name: 'מלאי+הזמנות (קרט)', key: 'spo', width: 14 },
+      { name: 'PAL מלאי', key: 'palSpo', width: 10 },
+      { name: 'הזמנות פתוחות', key: 'openOrders', width: 13 },
+      { name: 'מכר קרט/יום', key: 'daySales', width: 12 },
+      { name: 'לכמה ימים', key: 'daysStk', width: 10 },
+      { name: 'ימי בטחון', key: 'safetyDays', width: 10 },
+      { name: 'הזמנה KARTON', key: 'orderK', width: 13 },
+      { name: 'הזמנה PALLET', key: 'orderP', width: 13 },
+    ];
+    tableCols.forEach((c, i) => { ws.getColumn(i + 1).width = c.width; });
+
+    const tableRows = rows.map(r => [
+      r.name || '',
+      String(r.mk ?? ''),
+      r.ean || '',
+      r.fam || '',
+      r.spo ?? 0,
+      r.palSpo ? Math.round(r.palSpo * 10) / 10 : 0,
+      r.openOrders || 0,
+      r.daySales ? Math.round(r.daySales * 10) / 10 : 0,
+      r.daysStk != null ? Math.round(r.daysStk) : 0,
+      r.safetyDays ?? 0,
+      r.orderK > 0 ? r.orderK : 0,
+      r.orderK > 0 ? Math.round(r.orderP * 10) / 10 : 0,
+    ]);
+
+    ws.addTable({
+      name: 'OrderDagim',
+      ref: 'A4',
+      headerRow: true,
+      totalsRow: false,
+      style: { theme: 'TableStyleMedium9', showRowStripes: true },
+      columns: tableCols.map(c => ({ name: c.name, filterButton: true })),
+      rows: tableRows,
+    });
+    ws.getRow(4).font = { bold: true, color: { argb: 'FFFFFFFF' }, name: 'Calibri' };
+    ws.views[0] = { rightToLeft: true, state: 'frozen', ySplit: 4 };
+
+    const date = today.toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="order-dagim-${date}.xlsx"`);
+    await wb.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    console.error(err); res.status(500).json({ error: 'server_error' });
+  }
+});
+
 // ── MMD ORDERS ──────────────────────────────────────────────────────────────
 function mmdGuard(req, res, next) {
   const key = process.env.MMD_PBI_KEY;
