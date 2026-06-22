@@ -691,8 +691,13 @@ const printOrder = {
   dagim:  JSON.parse(localStorage.getItem('mahsan_print_order_dagim')  || 'null'),
   yavesh: JSON.parse(localStorage.getItem('mahsan_print_order_yavesh') || 'null'),
 };
+function _printOrderKey(sec, pick) {
+  const v = state[sec]?.[pick]?.printOrder;
+  return v != null ? v : +pick;
+}
 function _getPrintOrder(sec) {
-  const activePicks = Object.keys(state[sec] || {}).filter(k => state[sec][k]).sort((a,b)=>+a-+b);
+  const activePicks = Object.keys(state[sec] || {}).filter(k => state[sec][k])
+    .sort((a,b) => _printOrderKey(sec,a) - _printOrderKey(sec,b) || +a - +b);
   const saved = printOrder[sec];
   if (!saved) return activePicks;
   // Keep saved order, add any new picks at end, remove stale
