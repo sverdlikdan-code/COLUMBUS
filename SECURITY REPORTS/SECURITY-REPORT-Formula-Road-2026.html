@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security Report — Formula Road | DILER BMD | 2026</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  :root{
+    --blue:#1A3F7C;--blue2:#2563EB;--blue3:#0F2447;
+    --green:#16A34A;--red:#DC2626;--orange:#EA580C;--yellow:#D97706;
+    --grey:#6B7280;--bg:#F8FAFC;--border:#E2E8F0;
+  }
+  body{font-family:'Inter',-apple-system,Arial,sans-serif;background:var(--bg);color:#1E293B;font-size:14px;line-height:1.6;}
+  @media print{
+    body{background:#fff;font-size:12px;}
+    .no-print{display:none;}
+    .container{max-width:100%;padding:0 20px;}
+    header,th,.badge,.layer-badge{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .pb{page-break-before:always;}
+  }
+  .container{max-width:980px;margin:0 auto;padding:0 32px;}
+
+  header{background:linear-gradient(135deg,var(--blue3) 0%,var(--blue) 55%,var(--blue2) 100%);color:#fff;padding:52px 0 38px;margin-bottom:44px;}
+  .h-inner{max-width:980px;margin:0 auto;padding:0 32px;}
+  .h-label{font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:10px;}
+  .h-title{font-size:34px;font-weight:900;margin-bottom:6px;}
+  .h-sub{font-size:15px;color:rgba(255,255,255,.7);margin-bottom:28px;}
+  .h-meta{display:flex;gap:36px;flex-wrap:wrap;}
+  .meta-item{display:flex;flex-direction:column;gap:2px;}
+  .meta-lbl{font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.4);}
+  .meta-val{font-size:13px;font-weight:600;color:rgba(255,255,255,.88);}
+  .skyline{height:4px;background:linear-gradient(90deg,#38BDF8,#2563EB,#6366F1);margin-top:32px;}
+
+  section{margin-bottom:52px;}
+  h2{font-size:20px;font-weight:800;color:var(--blue);padding-bottom:10px;border-bottom:2px solid var(--border);margin-bottom:24px;}
+  h3{font-size:15px;font-weight:700;color:#1E293B;margin-bottom:14px;margin-top:28px;}
+
+  /* STATUS GRID */
+  .status-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:40px;}
+  .s-card{background:#fff;border-radius:12px;padding:22px 18px;border:1px solid var(--border);text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+  .s-num{font-size:40px;font-weight:900;line-height:1;margin-bottom:6px;}
+  .s-lbl{font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--grey);}
+  .s-card.green .s-num{color:var(--green);}
+  .s-card.red .s-num{color:var(--red);}
+  .s-card.yellow .s-num{color:var(--yellow);}
+  .s-card.blue .s-num{color:var(--blue2);}
+
+  /* TABLES */
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--border);}
+  th{background:var(--blue);color:#fff;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:12px 16px;text-align:left;}
+  td{padding:12px 16px;border-bottom:1px solid var(--border);vertical-align:top;font-size:13px;}
+  tr:last-child td{border-bottom:none;}
+  tr:nth-child(even) td{background:#F8FAFC;}
+
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.4px;white-space:nowrap;}
+  .badge.ok{background:#DCFCE7;color:#166534;}
+  .badge.risk{background:#FEE2E2;color:#991B1B;}
+  .badge.medium{background:#FEF3C7;color:#92400E;}
+  .badge.info{background:#EFF6FF;color:#1D4ED8;}
+
+  .layer-badge{display:inline-block;padding:2px 10px;border-radius:6px;font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;background:var(--blue);color:#fff;}
+
+  .tech{font-family:'Courier New',monospace;font-size:12px;background:#F1F5F9;padding:2px 6px;border-radius:4px;display:inline-block;margin:1px 2px;}
+
+  /* CARDS */
+  .card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:20px 24px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+  .card.green{border-left:5px solid var(--green);}
+  .card.yellow{border-left:5px solid var(--yellow);}
+  .card.red{border-left:5px solid var(--red);}
+  .card-title{font-weight:800;font-size:14px;margin-bottom:6px;}
+  .card-desc{color:#475569;font-size:13px;}
+
+  /* CALLOUT */
+  .callout{padding:16px 20px;border-radius:10px;margin:20px 0;display:flex;gap:14px;align-items:flex-start;}
+  .callout.green{background:#DCFCE7;border:1px solid #BBF7D0;}
+  .callout.yellow{background:#FEF3C7;border:1px solid #FDE68A;}
+  .callout.red{background:#FEE2E2;border:1px solid #FECACA;}
+  .callout-icon{font-size:20px;flex-shrink:0;}
+  .callout-text{font-size:13px;}
+  .callout-text strong{display:block;font-weight:700;margin-bottom:3px;}
+
+  /* CHECK LIST */
+  .check-list{list-style:none;}
+  .check-list li{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;}
+  .check-list li:last-child{border-bottom:none;}
+  .check-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+
+  /* RISK TABLE */
+  .risk-row td:first-child{font-weight:700;}
+
+  /* CODE */
+  pre{background:#1E293B;color:#E2E8F0;padding:16px 20px;border-radius:8px;font-size:12px;overflow-x:auto;font-family:'Courier New',monospace;line-height:1.7;margin:12px 0;}
+  pre .c{color:#64748B;}
+  pre .g{color:#86EFAC;}
+  pre .y{color:#FDE68A;}
+  pre .b{color:#93C5FD;}
+
+  footer{background:#1E293B;color:#94A3B8;padding:28px 0;font-size:12px;margin-top:64px;}
+  .f-inner{max-width:980px;margin:0 auto;padding:0 32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="h-inner">
+    <div class="h-label">Security Assessment — Confidential</div>
+    <div class="h-title">Formula Road — Security Report</div>
+    <div class="h-sub">Оценка защищённости системы маршрутизации DILER BMD</div>
+    <div class="h-meta">
+      <div class="meta-item"><span class="meta-lbl">Дата</span><span class="meta-val">28 мая 2026</span></div>
+      <div class="meta-item"><span class="meta-lbl">Версия</span><span class="meta-val">2.0 — актуальное состояние</span></div>
+      <div class="meta-item"><span class="meta-lbl">Область</span><span class="meta-val">PWA + API + Инфраструктура</span></div>
+      <div class="meta-item"><span class="meta-lbl">Статус системы</span><span class="meta-val">🔧 На обслуживании</span></div>
+      <div class="meta-item"><span class="meta-lbl">Конфиденциальность</span><span class="meta-val">INTERNAL</span></div>
+    </div>
+    <div class="skyline"></div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- STATUS GRID -->
+  <div class="status-grid">
+    <div class="s-card green">
+      <div class="s-num">15</div>
+      <div class="s-lbl">Мер защиты активно</div>
+    </div>
+    <div class="s-card yellow">
+      <div class="s-num">0</div>
+      <div class="s-lbl">Остаточных рисков</div>
+    </div>
+    <div class="s-card blue">
+      <div class="s-num">0</div>
+      <div class="s-lbl">Критических открытых</div>
+    </div>
+    <div class="s-card blue">
+      <div class="s-num">8h</div>
+      <div class="s-lbl">TTL сессионного токена</div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: STACK -->
+  <section>
+    <h2>1. Архитектура системы</h2>
+    <table>
+      <thead><tr><th style="width:150px">Уровень</th><th style="width:220px">Технология</th><th>Описание</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="layer-badge">Клиент</span></td>
+          <td><span class="tech">HTML5 PWA</span> <span class="tech">Leaflet</span> <span class="tech">localStorage</span></td>
+          <td>Single-page приложение formula-road.html на GitHub Pages. Аутентификация через сессионный токен, полученный от сервера. Все запросы к API включают <span class="tech">X-Session</span> header.</td>
+        </tr>
+        <tr>
+          <td><span class="layer-badge">API Сервер</span></td>
+          <td><span class="tech">Node.js 20</span> <span class="tech">Express</span> <span class="tech">PORT 3000</span></td>
+          <td>Локальная Windows-машина в офисе. Все data-эндпоинты защищены middleware requireAuth. Входящие запросы проходят через Cloudflare Tunnel (TLS).</td>
+        </tr>
+        <tr>
+          <td><span class="layer-badge">Туннель</span></td>
+          <td><span class="tech">Cloudflare Tunnel</span> <span class="tech">api.sverdlik-apps.site</span></td>
+          <td>Encrypted tunnel: локальный порт 3000 → публичный домен. TLS termination на стороне Cloudflare. WAF rule активен: блок всех запросов вне Израиля.</td>
+        </tr>
+        <tr>
+          <td><span class="layer-badge">Data Source</span></td>
+          <td><span class="tech">Power BI Fabric</span> <span class="tech">Azure AD</span> <span class="tech">DAX API</span></td>
+          <td>Данные клиентов и маршрутов загружаются через DAX-запросы с валидацией параметров. Azure AD Service Principal с минимальными правами (read-only).</td>
+        </tr>
+        <tr>
+          <td><span class="layer-badge">Статика</span></td>
+          <td><span class="tech">GitHub Pages</span> <span class="tech">docs/</span></td>
+          <td>Публичные файлы: formula-road.html, иконки, манифест, formula-road-data.json (только updatedAt + список менеджеров). Данные клиентов и коды агентов в статике не публикуются.</td>
+        </tr>
+        <tr>
+          <td><span class="layer-badge">CI/CD</span></td>
+          <td><span class="tech">GitHub Actions</span> <span class="tech">GitHub Secrets</span></td>
+          <td>Ежедневная сборка formula-road-data.json и планограмм. Все секреты в GitHub Secrets (не в коде). Workflow запускает только публикацию безопасных данных.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- SECTION 2: ACTIVE PROTECTIONS -->
+  <section>
+    <h2>2. Активные меры защиты</h2>
+
+    <h3>2.1 Аутентификация и авторизация</h3>
+    <ul class="check-list">
+      <li>
+        <span class="check-icon">🔐</span>
+        <div><strong>Сессионные токены (8 часов)</strong> — POST /auth выдаёт UUID-токен. Все защищённые эндпоинты проверяют токен через requireAuth middleware. Без токена — HTTP 401.</div>
+      </li>
+      <li>
+        <span class="check-icon">🔐</span>
+        <div><strong>Серверная валидация входа</strong> — пароль менеджера хранится только в .env на сервере, не в клиентском коде. Агенты валидируются по базе данных Power BI через /auth.</div>
+      </li>
+      <li>
+        <span class="check-icon">🔐</span>
+        <div><strong>Разграничение прав</strong> — /save-kapua (редактирование планограммы) доступен только менеджерам (isManager check в сессии). Агенты не могут изменять планограмму.</div>
+      </li>
+      <li>
+        <span class="check-icon">🔐</span>
+        <div><strong>Автоматический выход</strong> — при получении HTTP 401 приложение автоматически очищает localStorage и требует повторного входа. Токен не хранится после истечения 8 часов.</div>
+      </li>
+    </ul>
+
+    <h3>2.2 Сетевая защита</h3>
+    <ul class="check-list">
+      <li>
+        <span class="check-icon">🌐</span>
+        <div><strong>Cloudflare WAF — Geo-block</strong> — активное правило "Block non-Israel": все запросы с IP вне Израиля блокируются на уровне Cloudflare до попадания на сервер.</div>
+      </li>
+      <li>
+        <span class="check-icon">🌐</span>
+        <div><strong>HTTPS обязателен</strong> — Cloudflare Tunnel обеспечивает TLS для всего трафика. Незашифрованный HTTP не принимается.</div>
+      </li>
+      <li>
+        <span class="check-icon">🌐</span>
+        <div><strong>CORS ограничен</strong> — сервер принимает запросы только от sverdlikdan-code.github.io и localhost. Посторонние сайты не могут обращаться к API.</div>
+      </li>
+    </ul>
+
+    <h3>2.3 Защита от злоупотреблений</h3>
+    <ul class="check-list">
+      <li>
+        <span class="check-icon">⏱️</span>
+        <div><strong>Rate limiting — аутентификация</strong> — максимум 10 попыток входа в минуту с одного IP. При превышении — HTTP 429 на 60 секунд.</div>
+      </li>
+      <li>
+        <span class="check-icon">⏱️</span>
+        <div><strong>Rate limiting — данные</strong> — максимум 60 запросов в минуту с одного IP на все data-эндпоинты (/customers, /managers, /geocode и др.). Блокирует автоматический скрапинг.</div>
+      </li>
+      <li>
+        <span class="check-icon">⏱️</span>
+        <div><strong>Лимит размера запросов</strong> — максимум 512KB на тело POST-запроса. Защита от DoS через большие payload.</div>
+      </li>
+      <li>
+        <span class="check-icon">🛡️</span>
+        <div><strong>Валидация входных данных</strong> — код агента принимается только в формате цифр (\d+), имя менеджера — по whitelist символов. DAX-запросы не получают произвольный пользовательский ввод.</div>
+      </li>
+    </ul>
+
+    <h3>2.4 Защита приложения</h3>
+    <ul class="check-list">
+      <li>
+        <span class="check-icon">🧱</span>
+        <div><strong>HTTP Security Headers</strong> — X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy: no-referrer, X-XSS-Protection: 1; mode=block, Permissions-Policy.</div>
+      </li>
+      <li>
+        <span class="check-icon">🧱</span>
+        <div><strong>XSS защита в admin-интерфейсе</strong> — все данные в /admin/logs HTML-экранируются через функцию esc() перед выводом.</div>
+      </li>
+      <li>
+        <span class="check-icon">🧱</span>
+        <div><strong>Минимальное раскрытие данных</strong> — formula-road-data.json не содержит данных клиентов, GPS-координат, объёмов продаж и кодов агентов. Только список менеджеров и дата обновления.</div>
+      </li>
+    </ul>
+
+    <h3>2.5 Логирование и аудит</h3>
+    <ul class="check-list">
+      <li>
+        <span class="check-icon">📋</span>
+        <div><strong>Лог доступа</strong> — каждый вход/выход записывается: timestamp (Israel TZ), имя агента, код, IP-адрес, тип устройства (mobile/desktop). Хранится в server/access-log.json (до 2000 записей).</div>
+      </li>
+      <li>
+        <span class="check-icon">📋</span>
+        <div><strong>Аудит-лог административных действий</strong> — каждое сохранение GPS-корректировки и изменение планограммы логируется: кто, когда, какой объект.</div>
+      </li>
+      <li>
+        <span class="check-icon">📋</span>
+        <div><strong>Admin-панель просмотра логов</strong> — GET /admin/logs?key=KEY возвращает HTML-таблицу с последними 300 записями. Защищена отдельным ключом из .env.</div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- SECTION 3: RESIDUAL RISKS -->
+  <section class="pb">
+    <h2>3. Остаточные риски</h2>
+
+    <div class="callout" style="background:#F0FDF4;border-left:4px solid #16A34A;padding:16px 20px;border-radius:8px;display:flex;gap:12px;align-items:flex-start;">
+      <span style="font-size:20px;">✅</span>
+      <div>
+        <strong style="color:#15803D;">Все риски безопасности данных устранены.</strong>
+        Система полностью защищена: аутентификация, шифрование данных на диске, git-история очищена, API заблокирован без токена.
+      </div>
+    </div>
+
+  </section>
+
+  <!-- SECTION 4: ACCESS LOG USAGE -->
+  <section>
+    <h2>4. Мониторинг доступа</h2>
+
+    <table>
+      <thead><tr><th>Что отслеживается</th><th>Где смотреть</th><th>Формат</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Входы и выходы агентов и менеджеров</td>
+          <td><span class="tech">GET /admin/logs?key=KEY</span></td>
+          <td>HTML-таблица: время (Израиль), имя, IP, устройство</td>
+        </tr>
+        <tr>
+          <td>GPS-корректировки</td>
+          <td><span class="tech">server/access-log.json</span></td>
+          <td>event: gps-correction, custId, agentCode, IP</td>
+        </tr>
+        <tr>
+          <td>Изменения планограммы</td>
+          <td><span class="tech">server/access-log.json</span></td>
+          <td>event: planogram-save, количество позиций, IP</td>
+        </tr>
+        <tr>
+          <td>Отзыв сессии агента</td>
+          <td><span class="tech">POST /admin/revoke?key=KEY&agentCode=CODE</span></td>
+          <td>Немедленно инвалидирует все токены агента. Агент вынужден войти заново.</td>
+        </tr>
+        <tr>
+          <td>Заблокированные запросы (не из IL)</td>
+          <td>Cloudflare Dashboard → Security → Analytics</td>
+          <td>Карта по странам, Events last 24h в WAF rules</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top:20px;">
+      <h3 style="margin-top:0;">Ссылка для просмотра логов входа:</h3>
+      <pre><span class="b">https://api.sverdlik-apps.site/admin/logs?key=</span><span class="y">[ADMIN_LOG_KEY из .env]</span></pre>
+    </div>
+  </section>
+
+  <!-- SECTION 5: THREAT MODEL -->
+  <section>
+    <h2>5. Модель угроз и уровень защищённости</h2>
+
+    <table>
+      <thead><tr><th style="width:220px">Сценарий угрозы</th><th>Защита</th><th style="width:100px">Уровень</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Внешний атакующий (не из Израиля) пытается получить данные клиентов</td>
+          <td>Cloudflare WAF блокирует запрос до попадания на сервер</td>
+          <td><span class="badge ok">Закрыто</span></td>
+        </tr>
+        <tr>
+          <td>Перебор кодов агентов (brute force)</td>
+          <td>Rate limit 10 попыток/мин/IP + Israel-only</td>
+          <td><span class="badge ok">Закрыто</span></td>
+        </tr>
+        <tr>
+          <td>Прямой вызов API без авторизации</td>
+          <td>requireAuth middleware — все data-эндпоинты требуют X-Session токен</td>
+          <td><span class="badge ok">Закрыто</span></td>
+        </tr>
+        <tr>
+          <td>Конкурент скачивает клиентскую базу скриптом</td>
+          <td>Токен + rate limit 60 req/min + Israel-only. Без токена — 401.</td>
+          <td><span class="badge ok">Закрыто</span></td>
+        </tr>
+        <tr>
+          <td>Перезапись планограммы чужим запросом</td>
+          <td>requireAuth + isManager проверка — только авторизованный менеджер</td>
+          <td><span class="badge ok">Закрыто</span></td>
+        </tr>
+        <tr>
+          <td>Внедрение вредоносных GPS-координат</td>
+          <td>requireAuth + валидация координат (только Израиль) + аудит-лог</td>
+          <td><span class="badge ok">Закрыто</span></td>
+        </tr>
+        <tr>
+          <td>Инъекция в DAX-запросы через параметры</td>
+          <td>Whitelist-валидация: agent=только цифры, manager=ограниченный charset</td>
+          <td><span class="badge ok">Закрыто</span></td>
+        </tr>
+        <tr>
+          <td>XSS через данные в admin-панели</td>
+          <td>HTML-экранирование всех выводимых значений через esc()</td>
+          <td><span class="badge ok">Закрыто</span></td>
+        </tr>
+        <tr>
+          <td>Публичный доступ к данным клиентов через GitHub Pages</td>
+          <td>formula-road-data.json не содержит клиентских данных и кодов агентов</td>
+          <td><span class="badge ok">Закрыто</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+</div>
+
+<footer>
+  <div class="f-inner">
+    <div>Formula Road Security Report v2.0 — DILER BMD | COLUMBUS | 28.05.2026</div>
+    <div>CONFIDENTIAL — только для внутреннего использования</div>
+  </div>
+</footer>
+</body>
+</html>

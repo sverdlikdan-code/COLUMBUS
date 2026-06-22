@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="ru" dir="ltr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>MMD ORDERS — Project Handoff v1.0</title>
+  <style>
+    :root {
+      --dark-navy: #030d20;
+      --navy:      #0a1f3d;
+      --blue:      #1565C0;
+      --blue-mid:  #1976D2;
+      --blue-light:#E3F2FD;
+      --accent:    #ffc85a;
+      --green:     #2E7D32;
+      --green-lt:  #E8F5E9;
+      --orange:    #E65100;
+      --orange-lt: #FFF3E0;
+      --red:       #C62828;
+      --red-lt:    #FFEBEE;
+      --text:      #1a1a2e;
+      --muted:     #546E7A;
+      --border:    #CFD8DC;
+      --bg:        #F5F7FA;
+      --card:      #ffffff;
+      --radius:    10px;
+      --shadow:    0 2px 12px rgba(0,0,0,.08);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    /* ── HEADER ── */
+    .page-header {
+      background: linear-gradient(125deg, #010810 0%, #030d20 30%, #061828 60%, #030d20 100%);
+      padding: 48px 60px 40px;
+      position: relative;
+      overflow: hidden;
+    }
+    .page-header::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        -45deg, transparent, transparent 90px,
+        rgba(255,200,70,0.018) 90px, rgba(255,200,70,0.018) 91px
+      );
+      pointer-events: none;
+    }
+    .header-inner { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; }
+    .header-tag {
+      display: inline-block;
+      background: rgba(255,200,80,.12);
+      border: 1px solid rgba(255,200,80,.35);
+      color: var(--accent);
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 16px;
+    }
+    .header-title {
+      font-size: 2.4rem;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: .04em;
+      line-height: 1.15;
+      margin-bottom: 10px;
+    }
+    .header-title span { color: var(--accent); }
+    .header-sub {
+      font-size: .95rem;
+      color: rgba(255,255,255,.55);
+      margin-bottom: 28px;
+      max-width: 620px;
+    }
+    .header-meta {
+      display: flex;
+      gap: 28px;
+      flex-wrap: wrap;
+    }
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .meta-label {
+      font-size: .65rem;
+      color: rgba(255,255,255,.38);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+    .meta-value {
+      font-size: .88rem;
+      font-weight: 700;
+      color: rgba(255,255,255,.82);
+    }
+    .meta-divider {
+      width: 1px;
+      background: rgba(255,255,255,.12);
+      align-self: stretch;
+    }
+
+    /* ── NAV ── */
+    .toc-bar {
+      background: var(--navy);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      padding: 0 60px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .toc-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      gap: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .toc-inner::-webkit-scrollbar { display: none; }
+    .toc-link {
+      display: inline-block;
+      padding: 12px 16px;
+      color: rgba(255,255,255,.5);
+      text-decoration: none;
+      font-size: .77rem;
+      font-weight: 600;
+      white-space: nowrap;
+      letter-spacing: .02em;
+      border-bottom: 2px solid transparent;
+      transition: all .15s;
+    }
+    .toc-link:hover {
+      color: rgba(255,255,255,.9);
+      border-bottom-color: var(--accent);
+    }
+
+    /* ── CONTENT WRAPPER ── */
+    .content-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 60px 80px;
+    }
+
+    /* ── SECTION ── */
+    .section {
+      margin-bottom: 48px;
+    }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: var(--dark-navy);
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--blue-light);
+    }
+    .section-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      background: var(--blue);
+      color: #fff;
+      font-size: .82rem;
+      font-weight: 900;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px 28px;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: .8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--blue);
+      margin-bottom: 10px;
+    }
+
+    /* ── GRID ── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    @media (max-width: 760px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .content-wrap { padding: 24px 20px 60px; }
+      .page-header { padding: 32px 20px 28px; }
+      .toc-bar { padding: 0 20px; }
+    }
+
+    /* ── ARCH DIAGRAM ── */
+    .arch-diagram {
+      background: var(--dark-navy);
+      border-radius: var(--radius);
+      padding: 32px 24px;
+      margin-bottom: 16px;
+      overflow-x: auto;
+    }
+    .arch-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      flex-wrap: nowrap;
+      min-width: 600px;
+    }
+    .arch-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-width: 120px;
+    }
+    .arch-box {
+      background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 8px;
+      padding: 12px 16px;
+      text-align: center;
+      min-width: 110px;
+    }
+    .arch-box-icon { font-size: 1.5rem; margin-bottom: 4px; }
+    .arch-box-label {
+      font-size: .75rem;
+      font-weight: 700;
+      color: #fff;
+      white-space: nowrap;
+    }
+    .arch-box-sub {
+      font-size: .62rem;
+      color: rgba(255,255,255,.45);
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+    .arch-arrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 0 10px;
+      flex-shrink: 0;
+    }
+    .arch-arrow-line {
+      width: 60px;
+      height: 2px;
+      background: rgba(255,200,80,.4);
+      position: relative;
+    }
+    .arch-arrow-line::after {
+      content: '';
+      position: absolute;
+      right: -1px;
+      top: -4px;
+      border-left: 8px solid rgba(255,200,80,.6);
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+    }
+    .arch-arrow-label {
+      font-size: .58rem;
+      color: rgba(255,200,80,.6);
+      white-space: nowrap;
+      letter-spacing: .05em;
+    }
+    .arch-highlight { border-color: rgba(255,200,80,.55) !important; }
+
+    /* ── TECH TABLE / FILE TABLE ── */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      margin-bottom: 0;
+    }
+    .data-table thead th {
+      background: var(--blue);
+      color: #fff;
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      padding: 10px 14px;
+      text-align: left;
+      border-right: 1px solid rgba(255,255,255,.1);
+    }
+    .data-table thead th:last-child { border-right: none; }
+    .data-table tbody td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid #f0f4f8;
+      font-size: .84rem;
+      vertical-align: top;
+    }
+    .data-table tbody tr:last-child td { border-bottom: none; }
+    .data-table tbody tr:hover td { background: var(--blue-light); }
+    .data-table tbody tr:nth-child(even) td { background: #fafbfd; }
+    .data-table tbody tr:nth-child(even):hover td { background: var(--blue-light); }
+
+    /* ── BADGES ── */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: .7rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .badge-blue   { background: var(--blue-light); color: var(--blue); }
+    .badge-green  { background: var(--green-lt);   color: var(--green); }
+    .badge-orange { background: var(--orange-lt);  color: var(--orange); }
+    .badge-red    { background: var(--red-lt);     color: var(--red); }
+    .badge-gray   { background: #ECEFF1; color: var(--muted); }
+
+    /* ── FEATURE LIST ── */
+    .feature-list {
+      list-style: none;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    @media (max-width: 680px) { .feature-list { grid-template-columns: 1fr; } }
+    .feature-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      padding: 10px 14px;
+      background: #fafbfd;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: .84rem;
+    }
+    .feature-list li .fi { flex-shrink: 0; font-size: 1rem; margin-top: 1px; }
+    .fi-text strong { display: block; font-size: .84rem; color: var(--text); margin-bottom: 2px; }
+    .fi-text span   { font-size: .76rem; color: var(--muted); }
+
+    /* ── ENV TABLE ── */
+    .env-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .env-table tr td {
+      padding: 7px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: .84rem;
+    }
+    .env-table tr:last-child td { border-bottom: none; }
+    .env-key {
+      font-family: 'Courier New', monospace;
+      font-size: .8rem;
+      font-weight: 700;
+      color: var(--orange);
+      white-space: nowrap;
+    }
+    .env-req { color: var(--red); font-weight: 700; font-size: .72rem; }
+    .env-opt { color: var(--muted); font-size: .72rem; }
+
+    /* ── CODE ── */
+    .code-block {
+      background: #0d1b2e;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 8px;
+      padding: 16px 20px;
+      font-family: 'Courier New', monospace;
+      font-size: .8rem;
+      color: #a8d8ff;
+      overflow-x: auto;
+      line-height: 1.7;
+    }
+    .code-block .comment { color: rgba(255,255,255,.3); }
+    .code-block .cmd     { color: #7ec8e3; }
+    .code-block .var     { color: var(--accent); }
+
+    /* ── TODO LIST ── */
+    .todo-list { list-style: none; }
+    .todo-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: .86rem;
+    }
+    .todo-list li:last-child { border-bottom: none; }
+    .todo-prio {
+      flex-shrink: 0;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: .65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+    .prio-high   { background: var(--red-lt);    color: var(--red); }
+    .prio-med    { background: var(--orange-lt);  color: var(--orange); }
+    .prio-low    { background: var(--green-lt);   color: var(--green); }
+
+    /* ── CALLOUT ── */
+    .callout {
+      display: flex;
+      gap: 14px;
+      padding: 16px 18px;
+      border-radius: 8px;
+      border-left: 4px solid;
+      font-size: .84rem;
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+    .callout-icon { font-size: 1.2rem; flex-shrink: 0; }
+    .callout-info    { background: var(--blue-light); border-color: var(--blue); }
+    .callout-warn    { background: var(--orange-lt);  border-color: var(--orange); }
+    .callout-success { background: var(--green-lt);   border-color: var(--green); }
+
+    /* ── FOOTER ── */
+    .page-footer {
+      background: var(--dark-navy);
+      color: rgba(255,255,255,.35);
+      text-align: center;
+      padding: 24px;
+      font-size: .75rem;
+      letter-spacing: .04em;
+    }
+    .page-footer strong { color: var(--accent); }
+
+    code {
+      font-family: 'Courier New', monospace;
+      font-size: .82em;
+      background: #EEF2F8;
+      color: #1565C0;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+    p { margin-bottom: .6em; }
+    p:last-child { margin-bottom: 0; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════ HEADER ═══════════════ -->
+<header class="page-header">
+  <div class="header-inner">
+    <div class="header-tag">Project Handoff Document</div>
+    <div class="header-title">MMD&nbsp;<span>ORDERS</span></div>
+    <div class="header-sub">Система управления заказами и остатками склада MMD Эйлат — документ передачи проекта разработчику / менеджеру</div>
+    <div class="header-meta">
+      <div class="meta-item">
+        <span class="meta-label">Версия</span>
+        <span class="meta-value">1.0</span>
+      </div>
+      <div class="meta-divider"></div>
+      <div class="meta-item">
+        <span class="meta-label">Дата</span>
+        <span class="meta-value">2026-06-15</span>
+      </div>
+      <div class="meta-divider"></div>
+      <div class="meta-item">
+        <span class="meta-label">Проект</span>
+        <span class="meta-value">COLUMBUS</span>
+      </div>
+      <div class="meta-divider"></div>
+      <div class="meta-item">
+        <span class="meta-label">Компания</span>
+        <span class="meta-value">DILER BMD</span>
+      </div>
+      <div class="meta-divider"></div>
+      <div class="meta-item">
+        <span class="meta-label">Статус</span>
+        <span class="meta-value" style="color:#A5D6A7">Production</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════ NAV ═══════════════ -->
+<nav class="toc-bar">
+  <div class="toc-inner">
+    <a class="toc-link" href="#s1">1. Обзор</a>
+    <a class="toc-link" href="#s2">2. Архитектура</a>
+    <a class="toc-link" href="#s3">3. Стек</a>
+    <a class="toc-link" href="#s4">4. Что реализовано</a>
+    <a class="toc-link" href="#s5">5. Файлы</a>
+    <a class="toc-link" href="#s6">6. Деплой и запуск</a>
+    <a class="toc-link" href="#s7">7. TODO</a>
+    <a class="toc-link" href="#s8">8. Зависимости</a>
+  </div>
+</nav>
+
+<!-- ═══════════════ CONTENT ═══════════════ -->
+<div class="content-wrap">
+
+  <!-- ── 1. ОБЗОР ── -->
+  <section class="section" id="s1">
+    <h2 class="section-title">
+      <span class="section-num">1</span>
+      Обзор проекта
+    </h2>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Что это</div>
+        <p>
+          <strong>MMD ORDERS</strong> — веб-приложение для управления заказами продуктов на склад MMD в Эйлате. Система позволяет менеджеру склада видеть актуальные остатки (MMD + Ашдод + транзитный склад), анализировать скорость продаж, получать рекомендацию к заказу и формировать заказ поставщикам в один клик.
+        </p>
+        <p style="margin-top:10px">
+          Данные поступают в реальном времени из Power BI Fabric — никакого ручного ввода остатков. Система живёт по адресу, открытому через Cloudflare Tunnel поверх локального Node.js-сервера.
+        </p>
+      </div>
+      <div class="card">
+        <div class="card-title">Пользователи</div>
+        <p style="margin-bottom:10px">Приложение предназначено для <strong>одного пользователя</strong> — менеджера / кладовщика склада MMD (Эйлат). Аутентификация намеренно отсутствует — доступ ограничен на уровне Cloudflare Tunnel и сети.</p>
+        <table class="env-table">
+          <tr><td><strong>Основной пользователь</strong></td><td>Менеджер склада MMD, Эйлат</td></tr>
+          <tr><td><strong>Частота использования</strong></td><td>Ежедневно / несколько раз в неделю</td></tr>
+          <tr><td><strong>Устройства</strong></td><td>Desktop браузер (Chrome / Edge)</td></tr>
+          <tr><td><strong>Язык интерфейса</strong></td><td>Иврит (RTL)</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="callout callout-info">
+      <span class="callout-icon">&#9432;</span>
+      <div>
+        <strong>Контекст:</strong> MMD ORDERS — один из модулей более широкой платформы COLUMBUS. Основной API-сервер (<code>server/index.js</code>) обслуживает несколько подсистем одновременно: Formula Road (маршруты агентов), MMD Orders (склад), планограмму Махсан и другие. MMD ORDERS подключается к отдельному Power BI датасету (<code>POWERBI_MMD_DATASET_ID</code>).
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 2. АРХИТЕКТУРА ── -->
+  <section class="section" id="s2">
+    <h2 class="section-title">
+      <span class="section-num">2</span>
+      Архитектура
+    </h2>
+
+    <div class="arch-diagram">
+      <div class="arch-flow">
+
+        <div class="arch-node">
+          <div class="arch-box arch-highlight">
+            <div class="arch-box-icon">&#127760;</div>
+            <div class="arch-box-label">Браузер</div>
+            <div class="arch-box-sub">index.html</div>
+            <div class="arch-box-sub">Vanilla JS / ExcelJS</div>
+          </div>
+        </div>
+
+        <div class="arch-arrow">
+          <div class="arch-arrow-line"></div>
+          <div class="arch-arrow-label">HTTPS / CF Tunnel</div>
+        </div>
+
+        <div class="arch-node">
+          <div class="arch-box">
+            <div class="arch-box-icon">&#9729;</div>
+            <div class="arch-box-label">Cloudflare</div>
+            <div class="arch-box-sub">Tunnel + WAF</div>
+            <div class="arch-box-sub">TLS termination</div>
+          </div>
+        </div>
+
+        <div class="arch-arrow">
+          <div class="arch-arrow-line"></div>
+          <div class="arch-arrow-label">localhost:3000</div>
+        </div>
+
+        <div class="arch-node">
+          <div class="arch-box arch-highlight">
+            <div class="arch-box-icon">&#9881;</div>
+            <div class="arch-box-label">Express API</div>
+            <div class="arch-box-sub">server/index.js</div>
+            <div class="arch-box-sub">Node.js 18+</div>
+          </div>
+        </div>
+
+        <div class="arch-arrow">
+          <div class="arch-arrow-line"></div>
+          <div class="arch-arrow-label">REST API / MSAL</div>
+        </div>
+
+        <div class="arch-node">
+          <div class="arch-box arch-highlight">
+            <div class="arch-box-icon">&#128202;</div>
+            <div class="arch-box-label">Power BI Fabric</div>
+            <div class="arch-box-sub">server/powerbi.js</div>
+            <div class="arch-box-sub">DAX Queries</div>
+          </div>
+        </div>
+
+        <div class="arch-arrow">
+          <div class="arch-arrow-line"></div>
+          <div class="arch-arrow-label">DAX / DirectQuery</div>
+        </div>
+
+        <div class="arch-node">
+          <div class="arch-box">
+            <div class="arch-box-icon">&#128200;</div>
+            <div class="arch-box-label">SQL Server</div>
+            <div class="arch-box-sub">Priority ERP</div>
+            <div class="arch-box-sub">KARTIS PARIT etc.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Маршрут данных</div>
+        <ol style="padding-left:18px;font-size:.85rem;line-height:2">
+          <li>Браузер открывает <code>/mmd/</code> — сервер отдаёт <code>index.html</code> из папки <code>MMD ORDERS/</code></li>
+          <li>JS делает <code>GET /pbi/mmd-orders?y1=&amp;m1=&amp;y2=&amp;m2=</code></li>
+          <li>Express обращается к Power BI REST API через MSAL (Client Credentials)</li>
+          <li>Power BI выполняет DAX-запрос к таблицам Priority ERP</li>
+          <li>Данные возвращаются как JSON, рендерятся в таблицу</li>
+          <li>Заказ сохраняется в <code>localStorage</code> (ключ <code>mmd-orders-v1</code>)</li>
+        </ol>
+      </div>
+      <div class="card">
+        <div class="card-title">Хостинг и сеть</div>
+        <table class="env-table">
+          <tr><td><strong>Сервер</strong></td><td>Windows ПК, локальный Node.js процесс</td></tr>
+          <tr><td><strong>Порт</strong></td><td><code>3000</code> (настраивается через <code>PORT</code>)</td></tr>
+          <tr><td><strong>Туннель</strong></td><td>Cloudflare Tunnel (<code>cloudflared</code>), отдельный процесс</td></tr>
+          <tr><td><strong>Домен</strong></td><td><code>api.sverdlik-apps.site</code></td></tr>
+          <tr><td><strong>TLS</strong></td><td>Cloudflare (автоматически, бесплатно)</td></tr>
+          <tr><td><strong>Статика</strong></td><td><code>app.use('/mmd', express.static(...))</code></td></tr>
+          <tr><td><strong>Логотип</strong></td><td><code>GET /logo-diler-bmd.png</code> → <code>docs/</code></td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 3. СТЕК ── -->
+  <section class="section" id="s3">
+    <h2 class="section-title">
+      <span class="section-num">3</span>
+      Стек технологий
+    </h2>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Слой</th>
+          <th>Технология</th>
+          <th>Версия / источник</th>
+          <th>Назначение</th>
+          <th>Тип</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Фронтенд</strong></td>
+          <td>HTML5 / CSS3 / Vanilla JS</td>
+          <td>Без фреймворков</td>
+          <td>Весь интерфейс в одном файле <code>index.html</code>. Нет сборщиков, нет npm на клиенте.</td>
+          <td><span class="badge badge-blue">Frontend</span></td>
+        </tr>
+        <tr>
+          <td><strong>Фронтенд</strong></td>
+          <td>ExcelJS</td>
+          <td>4.4.0 (CDN)</td>
+          <td>Генерация xlsx-файла заказа прямо в браузере без сервера. Загружается с jsDelivr.</td>
+          <td><span class="badge badge-blue">Frontend</span></td>
+        </tr>
+        <tr>
+          <td><strong>Бэкенд</strong></td>
+          <td>Node.js</td>
+          <td>18+ LTS</td>
+          <td>Runtime сервера. Встроенный <code>fetch</code> (без node-fetch), <code>https</code> (нативный модуль).</td>
+          <td><span class="badge badge-orange">Backend</span></td>
+        </tr>
+        <tr>
+          <td><strong>Бэкенд</strong></td>
+          <td>Express.js</td>
+          <td>^4.x</td>
+          <td>HTTP-фреймворк. CORS, rate limiting, static files, JSON middleware.</td>
+          <td><span class="badge badge-orange">Backend</span></td>
+        </tr>
+        <tr>
+          <td><strong>Бэкенд</strong></td>
+          <td>ExcelJS</td>
+          <td>^4.x</td>
+          <td>Серверная генерация xlsx для <code>/api/mekarer-export</code> (не для MMD Orders — тот использует клиентский ExcelJS).</td>
+          <td><span class="badge badge-orange">Backend</span></td>
+        </tr>
+        <tr>
+          <td><strong>Интеграция</strong></td>
+          <td>Power BI REST API</td>
+          <td>v1.0</td>
+          <td>Исполнение DAX-запросов. Endpoint: <code>/v1.0/myorg/groups/{ws}/datasets/{ds}/executeQueries</code></td>
+          <td><span class="badge badge-green">Integration</span></td>
+        </tr>
+        <tr>
+          <td><strong>Интеграция</strong></td>
+          <td>@azure/msal-node</td>
+          <td>^2.x</td>
+          <td>Получение OAuth 2.0 токена через Client Credentials Flow для Power BI API.</td>
+          <td><span class="badge badge-green">Integration</span></td>
+        </tr>
+        <tr>
+          <td><strong>Инфраструктура</strong></td>
+          <td>Cloudflare Tunnel</td>
+          <td>cloudflared</td>
+          <td>Публикация локального сервера в интернет без открытия портов на роутере. Отдельный процесс.</td>
+          <td><span class="badge badge-gray">Infra</span></td>
+        </tr>
+        <tr>
+          <td><strong>Auth (PBI)</strong></td>
+          <td>Azure AD App Registration</td>
+          <td>Client Secret</td>
+          <td>Service Principal с разрешением <code>Dataset.ReadWrite.All</code> в Power BI Fabric.</td>
+          <td><span class="badge badge-gray">Auth</span></td>
+        </tr>
+        <tr>
+          <td><strong>Хранилище</strong></td>
+          <td>localStorage (браузер)</td>
+          <td>Browser API</td>
+          <td>Сохранение текущего заказа (<code>mmd-orders-v1</code>) и истории заказов (<code>mmd_order_history</code>, до 30 записей).</td>
+          <td><span class="badge badge-blue">Frontend</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ── 4. ЧТО РЕАЛИЗОВАНО ── -->
+  <section class="section" id="s4">
+    <h2 class="section-title">
+      <span class="section-num">4</span>
+      Что реализовано
+    </h2>
+
+    <ul class="feature-list">
+      <li>
+        <span class="fi">&#128400;</span>
+        <div class="fi-text">
+          <strong>Splash-страница</strong>
+          <span>Люксовый тёмный экран загрузки с логотипом DILER, названием города Эйлат и датой последнего обновления Power BI. Исчезает с анимацией при нажатии "כניסה למערכת".</span>
+        </div>
+      </li>
+      <li>
+        <span class="fi">&#128202;</span>
+        <div class="fi-text">
+          <strong>Загрузка данных из Power BI в реальном времени</strong>
+          <span>DAX-запрос к таблицам KARTIS PARIT, тоקף FORM и DIMCALENDAR. Данные остатков (MMD, Ашдод, транзит), скорость продаж, рекомендация к заказу, срок годности — всё из PBI.</span>
+        </div>
+      </li>
+      <li>
+        <span class="fi">&#128197;</span>
+        <div class="fi-text">
+          <strong>Фильтр периода (timeline bar)</strong>
+          <span>Горизонтальная полоса с чипами месяцев: 14 месяцев назад + текущий. Поддержка выбора диапазона (клик начало, клик конец). Кнопка "ברירת מחדל" — предыдущий + текущий месяц.</span>
+        </div>
+      </li>
+      <li>
+        <span class="fi">&#128269;</span>
+        <div class="fi-text">
+          <strong>Фильтр по семейству товара (multi-select)</strong>
+          <span>Выпадающий список с чекбоксами семейств. "Скрыть" / "Показать все". Счётчик скрытых семейств на кнопке.</span>
+        </div>
+      </li>
+      <li>
+        <span class="fi">&#127970;</span>
+        <div class="fi-text">
+          <strong>Фильтр по компании</strong>
+          <span>Чипы компаний (חברה) генерируются динамически из данных. Одиночный или множественный выбор. Показывает счётчик заказанных единиц рядом с названием.</span>
+        </div>
+      </li>
+      <li>
+        <span class="fi">&#128230;</span>
+        <div class="fi-text">
+          <strong>Фильтр по наличию (Ашдод / MMD)</strong>
+          <span>Быстрые чипы: "יש 📦" / "חסר 😢" для каждого склада независимо. Default: показывать только товары с наличием в Ашдоде.</span>
+        </div>
+      </li>
+      <li>
+        <span class="fi">&#128204;</span>
+        <div class="fi-text">
+          <strong>Режим "только заказ" (📋 הזמנה בלבד)</strong>
+          <span>Переключатель, скрывающий строки без заказанного количества. Позволяет видеть только сформированный заказ.</span>
+        </div>
+      </li>
+      <li>
+        <span class="fi">&#128200;</span>
+        <div class="fi-text">
+          <strong>Группировка по семейству с subtotal</strong>
+          <span>Строки сгруппированы по mishpacha (תאור משפחה). Группы с заказами сортируются выше. Внутри группы — строки с заказами сначала.</span>
+        </div>
+      </li>
+      <li>
+        <span class="fi">&#128221;</span>
+        <div class="fi-text">
+          <strong>Редактируемое количество заказа</strong>
+          <span>Поле ввода (число) в каждой строке. По умолчанию заполняется рекомендацией PBI (המלצה). Изменения сохраняются в localStorage мгновенно (oninput).</span>
+        </div>
+      </li>
+      <li>
+        <span class="fi">&#128338;</span>
+        <div class="fi-text">
+          <strong>Выбор тוקף (срок годности) заказа</strong>
+          <span>Select-список дат из поля тוקף PBI. Подсвечивается красным если дней мало (&lt;14). Значение сохраняется в localStorage.</span>
+        </div>
+      </li>
+      <li>
+        <span class="fi">&#128247;</span>
+        <div class="fi-text">
+          <strong>Изображения товаров</strong>
+          <span>URL фото берётся из поля PBI (KARTIS PARIT[URL תמונה]). Ленивая загрузка. Fallback на серый прямоугольник при ошибке.</span>
+        </div>
+      </li>
+      <li>
+        <span class="fi">&#9888;</span>
+        <div class="fi-text">
+          <strong>Подсветка критических остатков</strong>
+          <span>Строки с &lt;10 днями до истечения срока — класс danger (красный). Ячейки с нулевым остатком — red. Более 3 недель запаса — green.</span>
+        </div>
+      </li>
+      <li>
+        <span class="fi">&#8681;</span>
+        <div class="fi-text">
+          <strong>Экспорт Excel (ExcelJS, клиент)</strong>
+          <span>Скачивает только строки с ненулевым заказом. Форматированный xlsx: заголовок, дата, автофильтр, freeze строк, цветные ячейки заказа. Имя файла: MMD-Order-DD-MM-YYYY.xlsx.</span>
+        </div>
+      </li>
+      <li>
+        <span class="fi">&#128190;</span>
+        <div class="fi-text">
+          <strong>Сохранение и история заказов</strong>
+          <span>Кнопка "שמור" фиксирует снимок заказа в localStorage (до 30 записей). История открывается в popup с возможностью восстановить любой прошлый заказ.</span>
+        </div>
+      </li>
+      <li>
+        <span class="fi">&#128247;</span>
+        <div class="fi-text">
+          <strong>Печать</strong>
+          <span>Кнопка "הדפסה" вызывает window.print(). CSS @media print скрывает шапку / фильтры, показывает print-заголовок с датой, обеспечивает читаемую таблицу на бумаге.</span>
+        </div>
+      </li>
+      <li>
+        <span class="fi">&#128268;</span>
+        <div class="fi-text">
+          <strong>PBI badge — время обновления датасета</strong>
+          <span>После загрузки показывает "⬆ עדכון PBI: DD/MM/YY HH:MM" в шапке и на splash-экране. Данные от <code>getDatasetRefreshTime()</code>.</span>
+        </div>
+      </li>
+      <li>
+        <span class="fi">&#128272;</span>
+        <div class="fi-text">
+          <strong>Rate limiting (серверный)</strong>
+          <span>60 запросов/мин на IP для data endpoints (<code>/pbi/mmd-orders</code>, <code>/pbi/dagim-sales</code>). Защита от случайных циклов или DDoS.</span>
+        </div>
+      </li>
+      <li>
+        <span class="fi">&#128737;</span>
+        <div class="fi-text">
+          <strong>Security headers</strong>
+          <span>X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy, X-XSS-Protection, Permissions-Policy — для всех ответов сервера.</span>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ── 5. ФАЙЛЫ ── -->
+  <section class="section" id="s5">
+    <h2 class="section-title">
+      <span class="section-num">5</span>
+      Файлы проекта
+    </h2>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Файл / Путь</th>
+          <th>Роль</th>
+          <th>Тип</th>
+          <th>Ключевые детали</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>MMD ORDERS/index.html</code></td>
+          <td>Весь фронтенд приложения</td>
+          <td><span class="badge badge-blue">Frontend</span></td>
+          <td>Standalone HTML: CSS (~700 строк), HTML-разметка, весь JS (~760 строк) внутри одного файла. Нет внешних зависимостей кроме ExcelJS CDN.</td>
+        </tr>
+        <tr>
+          <td><code>server/index.js</code></td>
+          <td>Главный Express API сервер</td>
+          <td><span class="badge badge-orange">Backend</span></td>
+          <td>
+            Обслуживает все модули COLUMBUS. Для MMD Orders:
+            <code>app.use('/mmd', static(...))</code> и
+            <code>GET /pbi/mmd-orders</code>.
+            Также содержит: auth, rate limit, geocoding, customers, GPS corrections, mekarer orders, access log.
+          </td>
+        </tr>
+        <tr>
+          <td><code>server/powerbi.js</code></td>
+          <td>Power BI / MSAL интеграция</td>
+          <td><span class="badge badge-green">Integration</span></td>
+          <td>
+            Экспортирует: <code>executeDax(daxQuery, datasetId?)</code> и <code>getDatasetRefreshTime(datasetId?)</code>.
+            Токен получается через <code>@azure/msal-node</code> Client Credentials.
+            HTTP делается через нативный <code>https</code> (без axios).
+          </td>
+        </tr>
+        <tr>
+          <td><code>.env</code> (корень проекта)</td>
+          <td>Переменные окружения</td>
+          <td><span class="badge badge-gray">Config</span></td>
+          <td>
+            Содержит Azure AD credentials, Power BI Dataset IDs, Admin key. Загружается через <code>require('dotenv').config({ path: '../.env' })</code> из <code>server/</code>.
+            <strong>Не коммитится в git.</strong>
+          </td>
+        </tr>
+        <tr>
+          <td><code>docs/logo-diler-bmd.png</code></td>
+          <td>Логотип DILER BMD</td>
+          <td><span class="badge badge-gray">Asset</span></td>
+          <td>Используется в шапке и на splash. Раздаётся через <code>GET /logo-diler-bmd.png</code> → Express sendFile.</td>
+        </tr>
+        <tr>
+          <td><code>server/access-log.json</code></td>
+          <td>Лог доступа (runtime)</td>
+          <td><span class="badge badge-gray">Runtime</span></td>
+          <td>Ротация: последние 2000 записей. Просмотр через <code>GET /admin/logs?key=ADMIN_KEY</code> (HTML или JSON).</td>
+        </tr>
+        <tr>
+          <td><code>server/geocode-cache.json</code></td>
+          <td>Кэш геокодинга</td>
+          <td><span class="badge badge-gray">Runtime</span></td>
+          <td>Персистентный кэш адрес → координаты для Formula Road. Не используется модулем MMD Orders напрямую.</td>
+        </tr>
+        <tr>
+          <td><code>docs/formula-road-data.json</code></td>
+          <td>Список агентов (статик)</td>
+          <td><span class="badge badge-gray">Data</span></td>
+          <td>Генерируется GitHub Actions. Используется для <code>POST /auth</code> (не MMD Orders). MMD Orders auth не требует.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-warn" style="margin-top:16px">
+      <span class="callout-icon">&#9888;</span>
+      <div>
+        <strong>Обратите внимание:</strong> В пути <code>MMD ORDERS/</code> есть пробел. При работе с командной строкой — всегда заключать в кавычки: <code>"MMD ORDERS/index.html"</code>. В коде Node.js используется <code>path.join(__dirname, '..', 'MMD ORDERS')</code> — это работает корректно.
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 6. ДЕПЛОЙ ── -->
+  <section class="section" id="s6">
+    <h2 class="section-title">
+      <span class="section-num">6</span>
+      Деплой и запуск
+    </h2>
+
+    <div class="grid-2">
+      <div>
+        <div class="card">
+          <div class="card-title">Запуск сервера</div>
+          <pre class="code-block"><span class="comment"># Из корня проекта COLUMBUS</span>
+<span class="cmd">cd server</span>
+<span class="cmd">node index.js</span>
+
+<span class="comment"># Или через PowerShell (фон)</span>
+<span class="comment"># Bash run_in_background: true</span>
+<span class="cmd">cd server &amp;&amp; node index.js</span>
+
+<span class="comment"># Сервер слушает на порту:</span>
+<span class="var">PORT=3000</span> <span class="comment">(из .env или default)</span></pre>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div class="card-title">Проверка работоспособности</div>
+          <pre class="code-block"><span class="comment"># Локальный тест</span>
+<span class="cmd">curl http://localhost:3000/pbi/mmd-orders</span>
+
+<span class="comment"># Через туннель</span>
+<span class="cmd">curl https://api.sverdlik-apps.site/pbi/mmd-orders</span>
+
+<span class="comment"># Открыть приложение</span>
+<span class="comment"># https://api.sverdlik-apps.site/mmd/</span></pre>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <div class="card-title">Восстановление при зависании</div>
+          <p style="font-size:.83rem;margin-bottom:10px">Признаки: порт 3000 LISTENING + CLOSE_WAIT соединения + HTTP timeout.</p>
+          <pre class="code-block"><span class="comment"># 1. Найти PID на порту 3000</span>
+<span class="cmd">netstat -ano | Select-String ":3000"</span>
+
+<span class="comment"># 2. Убить процесс</span>
+<span class="cmd">Stop-Process -Id <span class="var">&lt;PID&gt;</span> -Force</span>
+
+<span class="comment"># 3. Перезапустить</span>
+<span class="cmd">cd server</span>
+<span class="cmd">node index.js</span>
+
+<span class="comment"># Проверить cloudflared (туннель)</span>
+<span class="cmd">Get-Process cloudflared</span>
+<span class="comment"># Если не запущен — туннель не работает!</span></pre>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div class="card-title">Cloudflare Tunnel</div>
+          <p style="font-size:.83rem">Tunnel (<code>cloudflared</code>) — <strong>отдельный от Node.js процесс</strong>. Должен быть запущен независимо. Если туннель упал, а сервер работает — приложение всё равно недоступно извне.</p>
+          <p style="font-size:.83rem;margin-top:8px">Конфигурация туннеля хранится в Cloudflare Dashboard (не в репозитории).</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-success" style="margin-top:8px">
+      <span class="callout-icon">&#10003;</span>
+      <div>
+        <strong>URL приложения:</strong> <code>https://api.sverdlik-apps.site/mmd/</code> — прямой доступ к интерфейсу MMD Orders. API endpoint данных: <code>https://api.sverdlik-apps.site/pbi/mmd-orders</code>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 7. TODO ── -->
+  <section class="section" id="s7">
+    <h2 class="section-title">
+      <span class="section-num">7</span>
+      Что осталось / TODO
+    </h2>
+
+    <ul class="todo-list">
+      <li>
+        <span class="todo-prio prio-high">High</span>
+        <div>
+          <strong>Мобильная адаптация</strong><br>
+          <span style="color:var(--muted);font-size:.82rem">
+            Таблица имеет <code>min-width: 1500px</code> — не работает на телефоне. Нужна либо горизонтальная прокрутка с закреплённой первой колонкой, либо карточный вид для мобильных. Сервисные рабочие на складе могут использовать телефон.
+          </span>
+        </div>
+      </li>
+      <li>
+        <span class="todo-prio prio-high">High</span>
+        <div>
+          <strong>Автоматический перезапуск сервера (PM2 / Windows Service)</strong><br>
+          <span style="color:var(--muted);font-size:.82rem">
+            Сейчас сервер не перезапускается после перезагрузки ПК или краша. Нужно добавить PM2 (<code>pm2 start server/index.js --name columbus</code>) или Windows Task Scheduler.
+          </span>
+        </div>
+      </li>
+      <li>
+        <span class="todo-prio prio-med">Medium</span>
+        <div>
+          <strong>Фото Эйлата на splash-экране</strong><br>
+          <span style="color:var(--muted);font-size:.82rem">
+            Splash background сейчас тёмный градиент с геометрическим паттерном. Планировалось добавить реальное фото Красного моря / Эйлата (<code>position: absolute; object-fit: cover; opacity: 0.12</code>). В коде есть заготовка (<code>#splash-overlay</code>, <code>#splash-sun</code> — <code>display:none</code>).
+          </span>
+        </div>
+      </li>
+      <li>
+        <span class="todo-prio prio-med">Medium</span>
+        <div>
+          <strong>Push-уведомления / напоминания</strong><br>
+          <span style="color:var(--muted);font-size:.82rem">
+            Уведомление менеджеру когда срок годности товаров критический (&lt;10 дней). Возможная реализация: Service Worker + Web Push API + серверное расписание (cron).
+          </span>
+        </div>
+      </li>
+      <li>
+        <span class="todo-prio prio-med">Medium</span>
+        <div>
+          <strong>Отправка заказа по email / WhatsApp</strong><br>
+          <span style="color:var(--muted);font-size:.82rem">
+            Сейчас единственный выход — скачать Excel и отправить вручную. Можно добавить <code>POST /api/send-order</code> с nodemailer или WhatsApp Business API для автоматической отправки поставщику.
+          </span>
+        </div>
+      </li>
+      <li>
+        <span class="todo-prio prio-med">Medium</span>
+        <div>
+          <strong>Кэширование PBI ответа</strong><br>
+          <span style="color:var(--muted);font-size:.82rem">
+            Каждый нажатый "Refresh" делает полный DAX-запрос к PBI (~2-5 секунд). Добавить in-memory кэш с TTL 5-10 минут на стороне сервера. Ключ кэша: <code>y1_m1_y2_m2</code>.
+          </span>
+        </div>
+      </li>
+      <li>
+        <span class="todo-prio prio-low">Low</span>
+        <div>
+          <strong>Колонка "Компания" в Excel-экспорте — исправление BiDi</strong><br>
+          <span style="color:var(--muted);font-size:.82rem">
+            Поле <code>r.hevra</code> (חברה) не проходит через <code>fixBiDi()</code> перед записью в Excel. На иврите может отображаться в зеркальном порядке в некоторых версиях Excel.
+          </span>
+        </div>
+      </li>
+      <li>
+        <span class="todo-prio prio-low">Low</span>
+        <div>
+          <strong>Темная тема для ночной смены</strong><br>
+          <span style="color:var(--muted);font-size:.82rem">
+            Таблица сейчас светлая. Toggle <code>prefers-color-scheme: dark</code> или ручная кнопка. Шапка уже тёмная — нужно адаптировать фильтр-строку и таблицу.
+          </span>
+        </div>
+      </li>
+      <li>
+        <span class="todo-prio prio-low">Low</span>
+        <div>
+          <strong>Разделение history-ключа в localStorage</strong><br>
+          <span style="color:var(--muted);font-size:.82rem">
+            Сохранение заказа (<code>mmd-orders-v1</code>) и история (<code>mmd_order_history</code>) используют разные форматы ключей. Стоит унифицировать под единый namespace <code>mmd-orders.*</code>.
+          </span>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ── 8. ЗАВИСИМОСТИ ── -->
+  <section class="section" id="s8">
+    <h2 class="section-title">
+      <span class="section-num">8</span>
+      Зависимости и переменные окружения
+    </h2>
+
+    <div class="callout callout-warn">
+      <span class="callout-icon">&#128274;</span>
+      <div>
+        Все переменные ниже хранятся в файле <code>.env</code> в корне проекта (<code>COLUMBUS/.env</code>). Файл загружается сервером через <code>require('dotenv').config({ path: '../.env' })</code>. Никогда не коммитить <code>.env</code> в git.
+      </div>
+    </div>
+
+    <table class="data-table" style="margin-top:16px">
+      <thead>
+        <tr>
+          <th>Переменная</th>
+          <th>Обязательна</th>
+          <th>Назначение</th>
+          <th>Где взять</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code class="env-key">AZURE_CLIENT_ID</code></td>
+          <td><span class="env-req">Обязательна</span></td>
+          <td>Client ID Azure AD App Registration (Service Principal)</td>
+          <td>Azure Portal → App Registrations</td>
+        </tr>
+        <tr>
+          <td><code class="env-key">AZURE_CLIENT_SECRET</code></td>
+          <td><span class="env-req">Обязательна</span></td>
+          <td>Client Secret Azure AD — для получения токена Power BI</td>
+          <td>Azure Portal → App Registration → Certificates &amp; Secrets</td>
+        </tr>
+        <tr>
+          <td><code class="env-key">AZURE_TENANT_ID</code></td>
+          <td><span class="env-req">Обязательна</span></td>
+          <td>Tenant ID организации в Azure AD</td>
+          <td>Azure Portal → Azure Active Directory → Overview</td>
+        </tr>
+        <tr>
+          <td><code class="env-key">POWERBI_WORKSPACE_ID</code></td>
+          <td><span class="env-req">Обязательна</span></td>
+          <td>GUID рабочего пространства Power BI Fabric (группы)</td>
+          <td>Power BI Fabric → Workspace Settings → Workspace ID</td>
+        </tr>
+        <tr>
+          <td><code class="env-key">POWERBI_MMD_DATASET_ID</code></td>
+          <td><span class="env-req">Обязательна для MMD</span></td>
+          <td>GUID датасета MMD в Power BI. Используется в <code>GET /pbi/mmd-orders</code></td>
+          <td>Power BI → Dataset Settings → Dataset ID (в URL)</td>
+        </tr>
+        <tr>
+          <td><code class="env-key">POWERBI_DATASET_ID</code></td>
+          <td><span class="env-opt">Опционально</span></td>
+          <td>Default датасет для Formula Road (не MMD). Fallback в <code>executeDax()</code> если не передан явный ID</td>
+          <td>Power BI → Dataset Settings</td>
+        </tr>
+        <tr>
+          <td><code class="env-key">PORT</code></td>
+          <td><span class="env-opt">Опционально</span></td>
+          <td>Порт HTTP-сервера. Default: <code>3000</code></td>
+          <td>Устанавливается в .env или системно</td>
+        </tr>
+        <tr>
+          <td><code class="env-key">MANAGER_PASS</code></td>
+          <td><span class="env-opt">Для Formula Road</span></td>
+          <td>Пароль менеджера для <code>POST /auth</code>. Не используется MMD Orders.</td>
+          <td>Устанавливается вручную</td>
+        </tr>
+        <tr>
+          <td><code class="env-key">ADMIN_LOG_KEY</code></td>
+          <td><span class="env-opt">Опционально</span></td>
+          <td>Ключ для <code>GET /admin/logs?key=</code> — просмотр лога доступа</td>
+          <td>Любая случайная строка (&gt;20 символов)</td>
+        </tr>
+        <tr>
+          <td><code class="env-key">AZURE_MAPS_KEY</code></td>
+          <td><span class="env-opt">Для Formula Road</span></td>
+          <td>Ключ Azure Maps для геокодинга (не используется MMD Orders)</td>
+          <td>Azure Portal → Azure Maps</td>
+        </tr>
+        <tr>
+          <td><code class="env-key">GOOGLE_MAPS_KEY</code></td>
+          <td><span class="env-opt">Для Formula Road</span></td>
+          <td>Ключ Google Maps Geocoding API (fallback, не используется MMD Orders)</td>
+          <td>Google Cloud Console → APIs &amp; Services</td>
+        </tr>
+        <tr>
+          <td><code class="env-key">GITHUB_TOKEN</code></td>
+          <td><span class="env-opt">Для GPS corrections</span></td>
+          <td>GitHub Personal Access Token для автоматического коммита gps-corrections.json</td>
+          <td>GitHub → Settings → Developer Settings → PAT</td>
+        </tr>
+        <tr>
+          <td><code class="env-key">ANTHROPIC_API_KEY</code></td>
+          <td><span class="env-opt">Для геокодинга</span></td>
+          <td>Claude API ключ — AI-нормализация адресов (fallback 4й попытки). ~$0.001/адрес.</td>
+          <td>console.anthropic.com</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="card" style="margin-top:20px">
+      <div class="card-title">Power BI — необходимые таблицы и меры (датасет MMD)</div>
+      <table class="data-table">
+        <thead>
+          <tr><th>Таблица / Мера</th><th>Назначение в DAX-запросе MMD Orders</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>KARTIS PARIT</code></td><td>Каталог товаров: мар"т, описание, семейство, компания, URL фото, остатки Ашдод/MMD</td></tr>
+          <tr><td><code>KARTIS PARIT[ASHDOD KAARTON]</code></td><td>Остаток на складе Ашдод (в ящиках)</td></tr>
+          <tr><td><code>KARTIS PARIT[MMD KARTON]</code></td><td>Остаток на складе MMD Эйлат (в ящиках)</td></tr>
+          <tr><td><code>KARTIS PARIT[URL תמונה]</code></td><td>URL фотографии товара</td></tr>
+          <tr><td><code>תוקף FORM</code></td><td>Таблица сроков годности. Мера: <code>MIN([כמה ימים נשארו])</code></td></tr>
+          <tr><td><code>DIMCALENDAR[Date]</code></td><td>Используется в DATESBETWEEN для фильтра периода</td></tr>
+          <tr><td><code>[מלאי בקרטון EILAT]</code></td><td>Мера: остаток в ящиках Эйлат (не карточный)</td></tr>
+          <tr><td><code>[מחסן מעבר]</code></td><td>Мера: транзитный склад</td></tr>
+          <tr><td><code>[מכר ממוצע בשבוע קרטון]</code></td><td>Мера: средние продажи в ящиках в неделю за период</td></tr>
+          <tr><td><code>[מכר קרטון]</code></td><td>Мера: продажи ящиков за период</td></tr>
+          <tr><td><code>[לכמה שבועות יספיק המלאי]</code></td><td>Мера: на сколько недель хватит текущего запаса</td></tr>
+          <tr><td><code>[WEEKS נפח הזמנה]</code></td><td>Мера: объём заказа в неделях</td></tr>
+          <tr><td><code>[ימים שהיה בהם מלאי]</code></td><td>Мера: дней с ненулевым остатком за период</td></tr>
+          <tr><td><code>[ימי מכר מכלל ימי עבודה %]</code></td><td>Мера: % дней с продажами от рабочих дней периода</td></tr>
+          <tr><td><code>[המלצה להזמנה קרטון]</code></td><td>Мера: рекомендуемый заказ в ящиках — ключевая мера</td></tr>
+          <tr><td><code>[List of ת. תפוגת תוקף values]</code></td><td>Мера: список дат срока годности через "/"</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div><!-- /content-wrap -->
+
+<!-- ═══════════════ FOOTER ═══════════════ -->
+<footer class="page-footer">
+  <strong>MMD ORDERS</strong> &nbsp;|&nbsp; Project Handoff v1.0 &nbsp;|&nbsp; 2026-06-15 &nbsp;|&nbsp;
+  COLUMBUS Platform &nbsp;&middot;&nbsp; DILER BMD &nbsp;&middot;&nbsp; Eilat, Israel
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>MMD ORDERS — מדריך למשתמש</title>
+  <style>
+    :root {
+      --blue:      #1a6ef5;
+      --blue-dark: #0d47a1;
+      --blue-mid:  #1565C0;
+      --sky:       #E3F2FD;
+      --sky-mid:   #BBDEFB;
+      --green:     #2e7d32;
+      --orange:    #e65100;
+      --red:       #c62828;
+      --gold:      #ffc85a;
+      --bg:        #f4f6fb;
+      --card:      #ffffff;
+      --text:      #1a1a2e;
+      --muted:     #5c6bc0;
+      --light:     #78909c;
+      --radius:    14px;
+      --shadow:    0 4px 20px rgba(26, 110, 245, 0.10);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      direction: rtl;
+      font-size: 15px;
+      line-height: 1.65;
+      padding-bottom: 60px;
+    }
+
+    /* ── HEADER ── */
+    .site-header {
+      background: linear-gradient(125deg, #04111f 0%, #072e52 30%, #0a5a86 65%, #3a1f08 88%, #1a0c04 100%);
+      color: #fff;
+      padding: 28px 40px 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .site-header::before {
+      content: '';
+      position: absolute;
+      left: -30px; bottom: -50px;
+      width: 400px; height: 260px;
+      background: radial-gradient(ellipse, rgba(200,110,40,0.13) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .site-header::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg, transparent, transparent 9px,
+        rgba(255,255,255,.015) 9px, rgba(255,255,255,.015) 10px
+      );
+      pointer-events: none;
+    }
+    .header-inner {
+      position: relative;
+      z-index: 1;
+    }
+    .header-brand {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: .18em;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      opacity: .9;
+    }
+    .header-title {
+      font-size: 2.3rem;
+      font-weight: 900;
+      letter-spacing: .04em;
+      line-height: 1.1;
+      margin-bottom: 8px;
+    }
+    .header-title span { color: var(--gold); }
+    .header-sub {
+      font-size: .88rem;
+      color: rgba(255,255,255,.6);
+      letter-spacing: .08em;
+      margin-bottom: 14px;
+    }
+    .header-date {
+      display: inline-block;
+      font-size: .72rem;
+      color: rgba(255,200,80,.55);
+      letter-spacing: .08em;
+      border: 1px solid rgba(255,200,80,.25);
+      border-radius: 20px;
+      padding: 3px 16px;
+    }
+
+    /* ── CONTAINER ── */
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* ── INTRO BAR ── */
+    .intro-bar {
+      background: var(--blue-dark);
+      color: #fff;
+      padding: 16px 24px;
+      border-radius: 0 0 var(--radius) var(--radius);
+      margin-bottom: 36px;
+      text-align: center;
+      font-size: .92rem;
+      line-height: 1.7;
+    }
+    .intro-bar strong { color: var(--gold); }
+
+    /* ── TOC ── */
+    .toc-card {
+      background: var(--card);
+      border: 1.5px solid var(--sky-mid);
+      border-right: 4px solid var(--blue);
+      border-radius: var(--radius);
+      padding: 22px 28px;
+      margin-bottom: 36px;
+      box-shadow: var(--shadow);
+    }
+    .toc-title {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--blue-dark);
+      margin-bottom: 14px;
+      letter-spacing: .03em;
+    }
+    .toc-list {
+      list-style: none;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 24px;
+    }
+    .toc-list li a {
+      color: var(--blue);
+      text-decoration: none;
+      font-size: .92rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: color .15s;
+    }
+    .toc-list li a:hover { color: var(--blue-dark); }
+    .toc-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      background: var(--sky);
+      color: var(--blue-dark);
+      border-radius: 50%;
+      font-size: .72rem;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    /* ── SECTION ── */
+    .section {
+      margin-bottom: 36px;
+    }
+    .section-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .section-header {
+      background: var(--blue-dark);
+      color: #fff;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .section-num {
+      background: rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .82rem;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    .section-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: .03em;
+    }
+    .section-emoji {
+      font-size: 1.3rem;
+      flex-shrink: 0;
+    }
+    .section-body {
+      padding: 24px 28px;
+    }
+
+    /* ── STEP BOXES ── */
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 4px;
+    }
+    .step {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .step-icon {
+      font-size: 1.4rem;
+      flex-shrink: 0;
+      margin-top: 2px;
+      width: 34px;
+      text-align: center;
+    }
+    .step-content {}
+    .step-label {
+      font-weight: 700;
+      color: var(--blue-dark);
+      font-size: .95rem;
+      margin-bottom: 3px;
+    }
+    .step-desc {
+      color: #333;
+      font-size: .88rem;
+    }
+
+    /* ── INFO BOXES ── */
+    .info-box {
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-top: 18px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      font-size: .88rem;
+      line-height: 1.6;
+    }
+    .info-box.tip {
+      background: #e8f5e9;
+      border: 1px solid #a5d6a7;
+      color: #1b5e20;
+    }
+    .info-box.note {
+      background: #e3f2fd;
+      border: 1px solid #90caf9;
+      color: #0d47a1;
+    }
+    .info-box.warn {
+      background: #fff8e1;
+      border: 1px solid #ffe082;
+      color: #7a5c00;
+    }
+    .info-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
+    .info-text strong { font-weight: 700; display: block; margin-bottom: 2px; }
+
+    /* ── TABLE-STYLE COLUMN EXPLAINER ── */
+    .col-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: .86rem;
+    }
+    .col-table thead th {
+      background: var(--blue-dark);
+      color: #fff;
+      padding: 9px 14px;
+      font-weight: 700;
+      text-align: right;
+      font-size: .82rem;
+    }
+    .col-table tbody tr:nth-child(even) td { background: var(--sky); }
+    .col-table tbody tr:nth-child(odd) td  { background: #fff; }
+    .col-table td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--sky-mid);
+      vertical-align: top;
+      line-height: 1.55;
+    }
+    .col-name {
+      font-weight: 800;
+      color: var(--blue-dark);
+      white-space: nowrap;
+      width: 28%;
+    }
+    .col-desc { color: #333; }
+    .badge {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 12px;
+      font-size: .73rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .badge.green  { background: #e8f5e9; color: #1b5e20; border: 1px solid #a5d6a7; }
+    .badge.red    { background: #ffebee; color: #b71c1c; border: 1px solid #ef9a9a; }
+    .badge.blue   { background: #e3f2fd; color: #0d47a1; border: 1px solid #90caf9; }
+    .badge.orange { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; }
+    .badge.gold   { background: #fff8e1; color: #7a5c00; border: 1px solid #ffe082; }
+
+    /* ── FILTER CHIPS DEMO ── */
+    .chip-demo {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .chip-demo-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: .85rem;
+      font-weight: 700;
+      border: 1.5px solid;
+    }
+    .chip-demo-item.active {
+      background: var(--blue-dark);
+      border-color: var(--blue-dark);
+      color: #fff;
+    }
+    .chip-demo-item.inactive {
+      background: #fff;
+      border-color: #bbdefb;
+      color: var(--blue-dark);
+    }
+    .chip-demo-item.dark {
+      background: #1e3a8a;
+      border-color: #1e3a8a;
+      color: #fff;
+    }
+
+    /* ── BUTTON DEMO ── */
+    .btn-demo-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+      align-items: center;
+    }
+    .btn-demo {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 16px;
+      border-radius: 8px;
+      font-size: .88rem;
+      font-weight: 700;
+      border: none;
+      cursor: default;
+    }
+    .btn-demo.green  { background: #2e7d32; color: #fff; }
+    .btn-demo.blue   { background: #1565c0; color: #fff; }
+    .btn-demo.gold   { background: #fff3cd; color: #7a5c00; border: 1px solid #e0c040; }
+    .btn-demo.print  { background: #455a64; color: #fff; }
+    .btn-demo.reload { background: #546e7a; color: #fff; }
+    .btn-demo.clear  { background: #ffebee; color: #b71c1c; border: 1px solid #ef9a9a; }
+    .btn-desc {
+      font-size: .78rem;
+      color: var(--light);
+      display: block;
+      margin-top: 3px;
+    }
+    .btn-demo-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px 16px;
+      align-items: center;
+      margin-top: 14px;
+    }
+
+    /* ── HIGHLIGHT BOX ── */
+    .highlight {
+      background: linear-gradient(135deg, #e8f0fe, #f0f8ff);
+      border: 1.5px solid #90caf9;
+      border-right: 4px solid var(--blue);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-top: 18px;
+      font-size: .88rem;
+      line-height: 1.7;
+      color: #0d47a1;
+    }
+    .highlight strong { color: var(--blue-dark); }
+
+    /* ── PERIOD BAR DEMO ── */
+    .period-demo {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+      padding: 12px 16px;
+      background: #1a3555;
+      border-radius: 10px;
+    }
+    .period-demo-chip {
+      padding: 4px 11px;
+      border-radius: 5px;
+      font-size: .78rem;
+      font-weight: 700;
+      cursor: default;
+      color: rgba(255,255,255,.5);
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.15);
+    }
+    .period-demo-chip.on {
+      background: #fff;
+      color: #0d47a1;
+      border-color: rgba(255,255,255,.5);
+    }
+    .period-demo-chip.def {
+      background: rgba(255,255,255,.15);
+      color: rgba(255,255,255,.9);
+      border: 1px solid rgba(255,255,255,.3);
+    }
+    .period-yr-label {
+      font-size: .62rem;
+      color: rgba(255,255,255,.35);
+      font-weight: 700;
+      padding: 0 6px;
+    }
+
+    /* ── FOOTER ── */
+    .site-footer {
+      background: var(--blue-dark);
+      color: rgba(255,255,255,.55);
+      text-align: center;
+      padding: 18px;
+      font-size: .78rem;
+      margin-top: 48px;
+      letter-spacing: .04em;
+    }
+    .site-footer strong { color: var(--gold); }
+
+    /* ── DIVIDER ── */
+    .section-divider {
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--sky-mid), transparent);
+      margin: 10px 0 0;
+    }
+
+    /* Input demo */
+    .input-demo {
+      display: inline-block;
+      background: #fff;
+      border: 1.5px solid #bbdefb;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: .9rem;
+      font-family: inherit;
+      width: 70px;
+      text-align: center;
+      color: #1a1a2e;
+      font-weight: 700;
+    }
+
+    @media (max-width: 600px) {
+      .site-header { padding: 20px 16px 18px; }
+      .header-title { font-size: 1.7rem; }
+      .section-body { padding: 18px 16px; }
+      .toc-list { grid-template-columns: 1fr; }
+      .btn-demo-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="site-header">
+  <div class="header-inner">
+    <div class="header-brand">DILER | MMD ORDERS</div>
+    <div class="header-title">מדריך <span>למשתמש</span></div>
+    <div class="header-sub">מחסן אילת · ניהול הזמנות ומלאי</div>
+    <div class="header-date">2026-06-15</div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- INTRO -->
+  <div class="intro-bar">
+    <strong>MMD ORDERS</strong> היא מערכת לניהול הזמנות מלאי למחסן אילת של חברת FORMULA / DILER.<br>
+    המערכת שואבת נתונים ישירות מ-Power BI ומאפשרת לסנן, להזמין ולייצא בקלות.
+  </div>
+
+  <!-- TOC -->
+  <div class="toc-card">
+    <div class="toc-title">📋 תוכן עניינים</div>
+    <ul class="toc-list">
+      <li><a href="#s1"><span class="toc-num">1</span>כניסה למערכת</a></li>
+      <li><a href="#s2"><span class="toc-num">2</span>סינון מוצרים</a></li>
+      <li><a href="#s3"><span class="toc-num">3</span>הזמנה ידנית</a></li>
+      <li><a href="#s4"><span class="toc-num">4</span>שמירת הזמנה</a></li>
+      <li><a href="#s5"><span class="toc-num">5</span>היסטוריית הזמנות</a></li>
+      <li><a href="#s6"><span class="toc-num">6</span>ייצוא לאקסל</a></li>
+      <li><a href="#s7"><span class="toc-num">7</span>עמודות בטבלה</a></li>
+    </ul>
+  </div>
+
+
+  <!-- ═══ SECTION 1 ═══ -->
+  <div class="section" id="s1">
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-num">1</div>
+        <div class="section-emoji">🚪</div>
+        <div class="section-title">כניסה למערכת</div>
+      </div>
+      <div class="section-body">
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-icon">🌊</div>
+            <div class="step-content">
+              <div class="step-label">מסך פתיחה (Splash)</div>
+              <div class="step-desc">
+                בטעינת הדף מופיע מסך כניסה כהה עם לוגו DILER ושם העיר <strong>אילת</strong>.
+                המערכת טוענת בשקט את נתוני המלאי מהשרת — ניתן לראות את תאריך עדכון הנתונים בתחתית המסך.
+              </div>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-icon">▶️</div>
+            <div class="step-content">
+              <div class="step-label">לחץ "כניסה למערכת"</div>
+              <div class="step-desc">
+                כשנתוני המלאי מוכנים, לחץ על כפתור
+                <strong>"כניסה למערכת →"</strong> בחלק המרכזי של המסך.
+                הדף יעבור לממשק ניהול ההזמנות.
+              </div>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-icon">📊</div>
+            <div class="step-content">
+              <div class="step-label">הממשק הראשי נטען</div>
+              <div class="step-desc">
+                כל פריטי המלאי של מחסן אילת מוצגים בטבלה. בשורת הסטטוס בתחתית תראה:
+                <em>"נטענו X פריטים"</em> + שעת הרענון האחרון.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-box note">
+          <div class="info-icon">ℹ️</div>
+          <div class="info-text">
+            <strong>עדכון נתונים</strong>
+            הנתונים נשלפים אוטומטית בטעינה. לרענון ידני לחץ על כפתור <strong>⟳ רענן</strong> בסרגל הכלים.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══ SECTION 2 ═══ -->
+  <div class="section" id="s2">
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-num">2</div>
+        <div class="section-emoji">🔍</div>
+        <div class="section-title">סינון מוצרים</div>
+      </div>
+      <div class="section-body">
+
+        <p style="margin-bottom:18px;font-size:.9rem;">
+          שורת הסינון ממוקמת מתחת לסרגל הכלים העליון. היא מחולקת לשלושה אזורים:
+          <strong>משפחת מוצר</strong>, <strong>חברה</strong>, ו<strong>מצב מלאי</strong>.
+        </p>
+
+        <!-- Family filter -->
+        <div class="step-label" style="color:var(--blue-dark);margin-bottom:8px;">📦 סינון לפי משפחה</div>
+        <div class="step-desc" style="margin-bottom:12px;font-size:.88rem;">
+          לחץ על הכפתור <strong>"כולם ▾"</strong> כדי לפתוח את תפריט הבחירה.
+          ניתן לסמן/לבטל משפחות מוצר (גלידה, בשר, עוף, מאפה, וכו').
+          ביטול הסימון מסתיר את המשפחה מהטבלה — הכפתור יציג <em>"X מוסתרות ▾"</em>.
+        </div>
+
+        <!-- Company filter -->
+        <div class="step-label" style="color:var(--blue-dark);margin-bottom:8px;">🏢 סינון לפי חברה</div>
+        <div class="step-desc" style="margin-bottom:12px;font-size:.88rem;">
+          בסרגל הסינון מופיעים לחצני חברה. לחיצה מפעילה סינון לחברה ספציפית:
+        </div>
+        <div class="chip-demo" style="margin-bottom:18px;">
+          <div class="chip-demo-item active">כולם <span style="font-size:.8em;opacity:.8;">• 142</span></div>
+          <div class="chip-demo-item inactive">TNUVA</div>
+          <div class="chip-demo-item inactive">STRAUSS</div>
+          <div class="chip-demo-item inactive">SUGAT</div>
+        </div>
+        <div class="step-desc" style="font-size:.86rem;margin-bottom:18px;">
+          לחיצה על חברה מדגישה אותה (כחול מלא). לחיצה שוב מבטלת. לחצן <strong>כולם</strong> מאפס את כל הסינונים.
+          ליד כל חברה מוצג בסוגריים <strong>•&nbsp;סה"כ קרטוני ההזמנה</strong> שלה.
+        </div>
+
+        <!-- Stock filter -->
+        <div class="step-label" style="color:var(--blue-dark);margin-bottom:8px;">📊 סינון לפי מצב מלאי</div>
+        <div class="step-desc" style="margin-bottom:12px;font-size:.88rem;">
+          באזור הימני של שורת הסינון — לחצני מלאי נפרדים לאשדוד ול-MMD:
+        </div>
+        <div class="chip-demo" style="margin-bottom:18px;align-items:center;gap:16px;">
+          <span style="font-size:.8rem;font-weight:700;color:var(--muted);">אשדוד:</span>
+          <div class="chip-demo-item active">✓ יש 📦</div>
+          <div class="chip-demo-item inactive">חסר 😢</div>
+          <span style="font-size:.8rem;font-weight:700;color:var(--muted);">MMD:</span>
+          <div class="chip-demo-item inactive">✓ יש 📦</div>
+          <div class="chip-demo-item inactive">חסר 😢</div>
+        </div>
+
+        <table class="col-table" style="margin-bottom:18px;">
+          <thead><tr><th>לחצן</th><th>מה הוא מציג</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="col-name"><span class="badge green">✓ יש 📦</span></td>
+              <td class="col-desc">מציג רק מוצרים שיש להם מלאי חיובי במחסן הנבחר (ברירת מחדל: אשדוד בלבד)</td>
+            </tr>
+            <tr>
+              <td class="col-name"><span class="badge red">חסר 😢</span></td>
+              <td class="col-desc">מציג מוצרים שאין להם מלאי כלל במחסן הנבחר</td>
+            </tr>
+            <tr>
+              <td class="col-name"><span class="badge blue">📋 הזמנה בלבד</span></td>
+              <td class="col-desc">מציג רק מוצרים שכבר הוזנה להם כמות הזמנה (עם המלצה או ידנית)</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Period bar -->
+        <div class="step-label" style="color:var(--blue-dark);margin-bottom:8px;">📅 בחירת תקופת מכירות</div>
+        <div class="step-desc" style="margin-bottom:10px;font-size:.88rem;">
+          בסרגל העליון מופיעים לחצני חודשים (14 חודשים אחורה). ניתן לבחור טווח תקופה שממנה יחושב הממוצע השבועי וההמלצות.
+        </div>
+        <div class="period-demo">
+          <button class="period-demo-chip def">✓ ברירת מחדל</button>
+          <span class="period-yr-label">2025</span>
+          <span class="period-demo-chip">יון</span>
+          <span class="period-demo-chip">יול</span>
+          <span class="period-demo-chip">אוג</span>
+          <span class="period-demo-chip">ספט</span>
+          <span class="period-demo-chip">אוק</span>
+          <span class="period-demo-chip">נוב</span>
+          <span class="period-demo-chip">דצ</span>
+          <span class="period-yr-label">2026</span>
+          <span class="period-demo-chip">ינו</span>
+          <span class="period-demo-chip">פבר</span>
+          <span class="period-demo-chip">מרץ</span>
+          <span class="period-demo-chip">אפר</span>
+          <span class="period-demo-chip on">מאי</span>
+          <span class="period-demo-chip on">יון</span>
+        </div>
+
+        <div class="info-box tip" style="margin-top:14px;">
+          <div class="info-icon">💡</div>
+          <div class="info-text">
+            <strong>ברירת מחדל</strong>
+            בטעינה ראשונה המערכת מחשבת לפי חודש נוכחי + חודש קודם. לחיצה על <strong>✓ ברירת מחדל</strong> מאפסת לטווח זה.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══ SECTION 3 ═══ -->
+  <div class="section" id="s3">
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-num">3</div>
+        <div class="section-emoji">✍️</div>
+        <div class="section-title">הזמנה — הזנת כמויות</div>
+      </div>
+      <div class="section-body">
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-icon">👀</div>
+            <div class="step-content">
+              <div class="step-label">עמודת "המלצה להזמנה קרטון"</div>
+              <div class="step-desc">
+                העמודה הכחולה <strong>המלצה</strong> מציגה את הכמות המחושבת אוטומטית לפי קצב מכירה, מלאי קיים ומלאי ביטחון.
+                זו <em>הצעה בלבד</em> — המערכת כבר ממלאת אותה כברירת מחדל בשדה ההזמנה.
+              </div>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-icon">📝</div>
+            <div class="step-content">
+              <div class="step-label">שדה "הזמנה ידנית"</div>
+              <div class="step-desc">
+                לכל מוצר יש שדה קלט בעמודה <strong>הזמנה ידנית</strong>.
+                המערכת ממלאת את ערך ההמלצה כברירת מחדל. שנה את הכמות לפי הצורך:
+              </div>
+              <div style="margin-top:10px;display:flex;align-items:center;gap:10px;">
+                <input class="input-demo" type="number" value="12" readonly>
+                <span style="font-size:.85rem;color:var(--light);">← ניתן לשנות לכל מספר חיובי</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-icon">📅</div>
+            <div class="step-content">
+              <div class="step-label">שדה "תוקף הזמנה"</div>
+              <div class="step-desc">
+                לצד כמות ההזמנה — תפריט נפתח עם תאריכי תוקף הקיימים לאותו מוצר.
+                בחר את התוקף המתאים להזמנה הנוכחית.
+                תאריכים קרובים (פחות מ-14 ימים) יסומנו באדום.
+              </div>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-icon">⚠️</div>
+            <div class="step-content">
+              <div class="step-label">שורות אדומות — תשומת לב נדרשת</div>
+              <div class="step-desc">
+                שורה שמסומנת באדום מציינת מוצר שנשארו לו <strong>פחות מ-10 ימים</strong> עד סיום תוקף המלאי הקיים. יש לטפל בו בעדיפות.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-box warn">
+          <div class="info-icon">⚠️</div>
+          <div class="info-text">
+            <strong>שמירה אוטומטית</strong>
+            כל שינוי בשדה ההזמנה נשמר ב<em>זיכרון הדפדפן</em> מיידית — גם בלי לחיצה על כפתור שמור.
+            אם תסגור את הדף ותחזור, הכמויות יישארו. לחץ 💾 שמור כדי לשמור גם בהיסטוריה.
+          </div>
+        </div>
+
+        <div class="highlight">
+          <strong>מה ההבדל בין "המלצה" ל"הזמנה ידנית"?</strong><br>
+          <strong>המלצה</strong> — מחושבת אוטומטית: מלאי MMD ÷ ממוצע מכירות שבועי, תוך התחשבות בשבועות מלאי ביטחון.<br>
+          <strong>הזמנה ידנית</strong> — מה שאתה בפועל מזמין. אם לא שינית — הערך יהיה זהה להמלצה.
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══ SECTION 4 ═══ -->
+  <div class="section" id="s4">
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-num">4</div>
+        <div class="section-emoji">💾</div>
+        <div class="section-title">שמירת הזמנה</div>
+      </div>
+      <div class="section-body">
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-icon">💾</div>
+            <div class="step-content">
+              <div class="step-label">כפתור "שמור"</div>
+              <div class="step-desc">
+                לחץ על <strong>💾 שמור</strong> בסרגל הכלים הימני. הכפתור יציג לרגע <em>"✓ נשמר!"</em> וחוזר.
+                הפעולה שומרת את ההזמנה הנוכחית ל<strong>היסטוריה</strong> עם תאריך ושעה.
+              </div>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-icon">📋</div>
+            <div class="step-content">
+              <div class="step-label">מה נשמר?</div>
+              <div class="step-desc">
+                לכל רשומה בהיסטוריה נשמרים:
+                מק"ט, שם מוצר, מלאי MMD, מלאי אשדוד, כמות הזמנה, תוקף שנבחר.
+                ניתן לשמור עד <strong>30 הזמנות</strong> בהיסטוריה.
+              </div>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-icon">✕</div>
+            <div class="step-content">
+              <div class="step-label">נקה הזמנות</div>
+              <div class="step-desc">
+                הכפתור <strong>✕ נקה הזמנות</strong> מאפס את כל הכמויות שהוזנו. המערכת תבקש אישור לפני המחיקה.
+                <em>שים לב: ניקוי אינו מוחק את ההיסטוריה השמורה.</em>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="btn-demo-grid" style="margin-top:18px;">
+          <div class="btn-demo green">💾 שמור</div>
+          <div>
+            <span style="font-size:.88rem;font-weight:700;">שמירה להיסטוריה</span>
+            <span class="btn-desc">שומר snapshot של ההזמנה הנוכחית עם תאריך ושעה</span>
+          </div>
+
+          <div class="btn-demo clear">✕ נקה הזמנות</div>
+          <div>
+            <span style="font-size:.88rem;font-weight:700;">איפוס כמויות</span>
+            <span class="btn-desc">מאפס את כל שדות ההזמנה לריק (לאחר אישור)</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══ SECTION 5 ═══ -->
+  <div class="section" id="s5">
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-num">5</div>
+        <div class="section-emoji">🕐</div>
+        <div class="section-title">היסטוריית הזמנות</div>
+      </div>
+      <div class="section-body">
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-icon">🕐</div>
+            <div class="step-content">
+              <div class="step-label">פתיחת ההיסטוריה</div>
+              <div class="step-desc">
+                לחץ על כפתור <strong>🕐 היסטוריה</strong> בסרגל הכלים.
+                יפתח תפריט צף עם רשימת ההזמנות השמורות — עד 30 הזמנות, מהחדשה לישנה.
+              </div>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-icon">📋</div>
+            <div class="step-content">
+              <div class="step-label">קריאת הרשימה</div>
+              <div class="step-desc">
+                כל שורה מציגה: <strong>תאריך הזמנה</strong>, שעה, ומספר פריטים שנשמרו.
+                לדוגמה: <em>"15/06/2026 · 14:35 · 38 פריטים"</em>
+              </div>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-icon">↩️</div>
+            <div class="step-content">
+              <div class="step-label">שחזור הזמנה ישנה — כפתור "שחזר ↩"</div>
+              <div class="step-desc">
+                לחץ <strong>שחזר ↩</strong> ליד ההזמנה הרצויה.
+                המערכת תבקש אישור ותטען את הכמויות שהיו לאותה הזמנה בחזרה לשדות הטבלה.
+                שים לב: שחזור <em>מוסיף</em> על מה שקיים — לא מוחק כמויות אחרות.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-box note">
+          <div class="info-icon">ℹ️</div>
+          <div class="info-text">
+            <strong>היסטוריה שמורה בדפדפן</strong>
+            ההיסטוריה מאוחסנת ב-localStorage של הדפדפן. ניקוי מטמון הדפדפן ימחק אותה.
+            מקסימום 30 רשומות — הישנה ביותר נמחקת אוטומטית.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══ SECTION 6 ═══ -->
+  <div class="section" id="s6">
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-num">6</div>
+        <div class="section-emoji">📊</div>
+        <div class="section-title">ייצוא לאקסל</div>
+      </div>
+      <div class="section-body">
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-icon">⬇️</div>
+            <div class="step-content">
+              <div class="step-label">כפתור "Excel"</div>
+              <div class="step-desc">
+                לחץ על <strong>⬇ Excel</strong> (ירוק) בסרגל הכלים. הכפתור יציג "⏳ מכין..." לרגע קצר, ואז הקובץ יורד אוטומטית לתיקיית ה-Downloads.
+              </div>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-icon">📁</div>
+            <div class="step-content">
+              <div class="step-label">שם הקובץ</div>
+              <div class="step-desc">
+                הקובץ נשמר בשם: <code style="background:#f0f4ff;padding:2px 8px;border-radius:4px;font-size:.85rem;direction:ltr;">MMD-Order-DD-MM-YYYY.xlsx</code><br>
+                לדוגמה: <em>MMD-Order-15-06-2026.xlsx</em>
+              </div>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-icon">📋</div>
+            <div class="step-content">
+              <div class="step-label">מה כלול בייצוא?</div>
+              <div class="step-desc">
+                הקובץ כולל <strong>רק מוצרים עם הזמנה חיובית</strong> (לא כל הטבלה).
+                הייצוא מפעיל שמירה אוטומטית להיסטוריה.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <table class="col-table" style="margin-top:18px;">
+          <thead><tr><th>עמודה באקסל</th><th>תוכן</th></tr></thead>
+          <tbody>
+            <tr><td class="col-name">מק"ט</td><td class="col-desc">קוד הפריט</td></tr>
+            <tr><td class="col-name">חברה</td><td class="col-desc">שם החברה הספקית</td></tr>
+            <tr><td class="col-name">שם מוצר</td><td class="col-desc">תיאור מלא של המוצר</td></tr>
+            <tr><td class="col-name">מלאי MMD</td><td class="col-desc">מלאי קיים במחסן אילת (קרטונים) — ירוק=יש, אדום=אין</td></tr>
+            <tr><td class="col-name">מלאי אשדוד</td><td class="col-desc">מלאי קיים במחסן אשדוד (קרטונים) — ירוק=יש, אדום=אין</td></tr>
+            <tr><td class="col-name">הזמנה קרטון</td><td class="col-desc">כמות ההזמנה הסופית — מודגשת בכתום</td></tr>
+            <tr><td class="col-name">תוקף הזמנה</td><td class="col-desc">תאריך התוקף שנבחר לאותה הזמנה</td></tr>
+          </tbody>
+        </table>
+
+        <div class="info-box tip">
+          <div class="info-icon">💡</div>
+          <div class="info-text">
+            <strong>פורמט הקובץ</strong>
+            קובץ ה-Excel מגיע מעוצב: שורת כותרת כחולה, שורות בהדגשת RTL, autofilter פעיל, וסה"כ קרטונים בשורה האחרונה.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══ SECTION 7 ═══ -->
+  <div class="section" id="s7">
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-num">7</div>
+        <div class="section-emoji">📑</div>
+        <div class="section-title">עמודות בטבלה — מדריך שדות</div>
+      </div>
+      <div class="section-body">
+
+        <p style="font-size:.88rem;margin-bottom:14px;color:var(--light);">
+          הטבלה הראשית מכילה מידע מקיף על כל פריט. להלן פירוט כל העמודות:
+        </p>
+
+        <table class="col-table">
+          <thead>
+            <tr>
+              <th style="width:30%;">שם עמודה</th>
+              <th>הסבר</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="col-name">מק"ט</td>
+              <td class="col-desc">
+                קוד המוצר הייחודי במערכת. ניתן להשתמש בו לאיתור מוצר ספציפי.
+              </td>
+            </tr>
+            <tr>
+              <td class="col-name">שם מוצר</td>
+              <td class="col-desc">
+                שם מלא של המוצר — כולל משקל / גרמים כשרלוונטי. ליד השם מוצג תמונה מזערית של המוצר.
+              </td>
+            </tr>
+            <tr>
+              <td class="col-name">
+                מלאי MMD
+                <br><span class="badge blue" style="margin-top:4px;">כחול</span>
+              </td>
+              <td class="col-desc">
+                מספר הקרטונים הנוכחי <strong>במחסן אילת (MMD)</strong>.
+                <br><span class="badge green">ירוק</span> — יש מלאי
+                &nbsp; <span class="badge red">אדום</span> — אין מלאי
+              </td>
+            </tr>
+            <tr>
+              <td class="col-name">מכר ממוצע<br>בשבוע קרטון</td>
+              <td class="col-desc">
+                ממוצע קרטונים שנמכרו בשבוע בתקופה שנבחרה. בסיס לחישוב ההמלצה.
+              </td>
+            </tr>
+            <tr>
+              <td class="col-name">מלאי אשדוד</td>
+              <td class="col-desc">
+                מספר קרטונים במחסן המרכזי באשדוד — מקור האספקה לאילת.
+                <br><span class="badge green">ירוק</span> — יש מלאי &nbsp; <span class="badge red">אדום</span> — אין מלאי
+              </td>
+            </tr>
+            <tr>
+              <td class="col-name">מחסן מעבר</td>
+              <td class="col-desc">
+                כמות קרטונים שנמצאים כרגע בדרך (במעבר) ממחסן אשדוד לאילת.
+              </td>
+            </tr>
+            <tr>
+              <td class="col-name">תוקף</td>
+              <td class="col-desc">
+                תאריכי תוקף המוצרים הקיימים במלאי. יכול להיות מספר תאריכים מופרדים.
+                <br>תאריך מתקרב (פחות מ-10 ימים) — השורה כולה מסומנת אדום.
+              </td>
+            </tr>
+            <tr>
+              <td class="col-name">כמה ימים נשארו</td>
+              <td class="col-desc">
+                מספר ימים עד תפוגת המוצר הקרוב ביותר.
+                <br><span class="badge red">⚠ מספר קטן</span> — פחות מ-10 ימים, דורש טיפול דחוף.
+              </td>
+            </tr>
+            <tr>
+              <td class="col-name">מכר קרטון<br>בתקופה</td>
+              <td class="col-desc">
+                סך כל הקרטונים שנמכרו בתקופה שנבחרה בסרגל הפילטר.
+              </td>
+            </tr>
+            <tr>
+              <td class="col-name">לכמה שבועות<br>יספיק המלאי</td>
+              <td class="col-desc">
+                חישוב: מלאי MMD קיים ÷ ממוצע שבועי. ערך נמוך מ-2 — <span class="badge red">מסומן אדום</span>.
+              </td>
+            </tr>
+            <tr>
+              <td class="col-name">נפח מלאי ביטחון<br>שבועות</td>
+              <td class="col-desc">
+                מספר שבועות מלאי ביטחון לפי הגדרה — מתחתיו נחשב כמחסור.
+              </td>
+            </tr>
+            <tr>
+              <td class="col-name">ימי מכר</td>
+              <td class="col-desc">
+                מספר ימים בפועל שבהם נרשמו מכירות לפריט בתקופה.
+              </td>
+            </tr>
+            <tr>
+              <td class="col-name">ימי מכר מכלל %</td>
+              <td class="col-desc">
+                אחוז הימים בתקופה שבהם נמכר הפריט. 100% = נמכר כל יום.
+              </td>
+            </tr>
+            <tr>
+              <td class="col-name">
+                המלצה להזמנה קרטון
+                <br><span class="badge blue" style="margin-top:4px;">כחול</span>
+              </td>
+              <td class="col-desc">
+                <strong>הצעת הזמנה מחושבת אוטומטית.</strong> מבוססת על מלאי, ממוצע מכירות ומלאי ביטחון.
+                ברירת המחדל בשדה ההזמנה הידנית.
+              </td>
+            </tr>
+            <tr>
+              <td class="col-name">
+                הזמנה ידנית
+                <br><span class="badge orange" style="margin-top:4px;">כתום</span>
+              </td>
+              <td class="col-desc">
+                <strong>שדה הקלט הראשי.</strong> הזן כאן את כמות הקרטונים שברצונך להזמין.
+                ערך ריק = לא מוזמן. שינוי נשמר אוטומטית.
+              </td>
+            </tr>
+            <tr>
+              <td class="col-name">
+                תוקף הזמנה
+                <br><span class="badge gold" style="margin-top:4px;">זהב</span>
+              </td>
+              <td class="col-desc">
+                תפריט נפתח לבחירת תאריך תוקף לפריט הנוכחי בהזמנה.
+                האפשרויות הן התאריכים הקיימים במלאי אשדוד.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="info-box note" style="margin-top:18px;">
+          <div class="info-icon">ℹ️</div>
+          <div class="info-text">
+            <strong>עמודות כחולות (הדגשה)</strong>
+            עמודות מלאי MMD, המלצה להזמנה והזמנה ידנית מודגשות ברקע כחול בהיר — הן העמודות המרכזיות בתהליך ההזמנה.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- QUICK REFERENCE -->
+  <div class="section">
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-emoji">⚡</div>
+        <div class="section-title">מדריך מהיר — כפתורי הסרגל</div>
+      </div>
+      <div class="section-body">
+        <div class="btn-demo-grid">
+
+          <div class="btn-demo reload">⟳ רענן</div>
+          <div>
+            <span style="font-size:.88rem;font-weight:700;">רענון נתונים</span>
+            <span class="btn-desc">טוען מחדש את המלאי מהשרת — שימושי אחרי עדכון Power BI</span>
+          </div>
+
+          <div class="btn-demo clear">✕ נקה הזמנות</div>
+          <div>
+            <span style="font-size:.88rem;font-weight:700;">איפוס כל הכמויות</span>
+            <span class="btn-desc">מאפס את כל שדות הכמות לאחר אישור</span>
+          </div>
+
+          <div class="btn-demo green">⬇ Excel</div>
+          <div>
+            <span style="font-size:.88rem;font-weight:700;">הורדת קובץ Excel</span>
+            <span class="btn-desc">מייצא רק מוצרים עם הזמנה חיובית + שומר להיסטוריה</span>
+          </div>
+
+          <div class="btn-demo green">💾 שמור</div>
+          <div>
+            <span style="font-size:.88rem;font-weight:700;">שמירה להיסטוריה</span>
+            <span class="btn-desc">שומר snapshot של ההזמנה הנוכחית עם תאריך ושעה</span>
+          </div>
+
+          <div class="btn-demo gold">🕐 היסטוריה</div>
+          <div>
+            <span style="font-size:.88rem;font-weight:700;">היסטוריית הזמנות</span>
+            <span class="btn-desc">פותח רשימת הזמנות שמורות + אפשרות שחזור</span>
+          </div>
+
+          <div class="btn-demo print">🖨 הדפסה</div>
+          <div>
+            <span style="font-size:.88rem;font-weight:700;">הדפסת הטבלה</span>
+            <span class="btn-desc">שולח לדפדפן הדפסה — מוסתרים כל כפתורי הממשק, נותרת הטבלה בלבד</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  <strong>DILER | MMD ORDERS</strong> &nbsp;·&nbsp; מדריך למשתמש &nbsp;·&nbsp; מחסן אילת &nbsp;·&nbsp; 2026-06-15
+  <br>
+  <span style="font-size:.68rem;opacity:.6;">FORMULA / DILER BMD — Internal Use Only</span>
+</footer>
+
+</body>
+</html>

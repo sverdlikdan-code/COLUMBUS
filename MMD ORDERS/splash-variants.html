@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Splash C — MMD ORDERS</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #111; overflow: hidden; }
+
+#splash {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+
+/* Photo background */
+#splash-bg {
+  position: absolute; inset: 0;
+  background-image: url('FOTO CITY/hf_20260616_070536_e10a8e5d-0af1-482d-82c5-36ce4b35341f.png');
+  background-size: cover;
+  background-position: center 30%;
+  filter: brightness(.45) saturate(.8);
+}
+#splash-bg::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg,
+    rgba(4,17,31,.92) 0%,
+    rgba(7,46,82,.80) 40%,
+    rgba(10,90,134,.55) 100%);
+}
+
+/* Content */
+#splash-content {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; direction: rtl;
+  animation: splashIn .9s ease both;
+  gap: 0;
+}
+@keyframes splashIn {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.badge {
+  font-size: .62rem; letter-spacing: .22em; color: #5bc0f8;
+  background: rgba(91,192,248,.12); border: 1px solid rgba(91,192,248,.3);
+  border-radius: 20px; padding: 4px 16px; margin-bottom: 22px;
+  display: inline-block;
+}
+
+#emblem {
+  width: 80px; height: 80px; border-radius: 50%;
+  border: 2px solid rgba(255,200,70,.55);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  margin: 0 auto 20px;
+  box-shadow: 0 0 44px rgba(255,200,70,.15);
+  overflow: hidden;
+  background: rgba(0,0,0,.25);
+}
+#emblem img { width: 60px; height: 60px; object-fit: contain; }
+
+#splash-title {
+  font-size: 2.8rem; font-weight: 900; color: #fff;
+  letter-spacing: .08em; line-height: 1;
+  text-shadow: 0 2px 24px rgba(0,0,0,.7);
+}
+#splash-title span { color: #ffc85a; }
+
+.splash-line {
+  width: 130px; height: 2px;
+  background: linear-gradient(90deg, transparent, #ffc85a, transparent);
+  margin: 14px auto 14px;
+}
+
+#splash-tagline {
+  font-size: .8rem; color: rgba(255,255,255,.6);
+  letter-spacing: .14em; margin-bottom: 4px;
+}
+#splash-desc {
+  font-size: .72rem; color: rgba(255,255,255,.42);
+  letter-spacing: .1em; margin-bottom: 6px;
+}
+#splash-pbi-date {
+  font-size: .63rem; color: rgba(91,192,248,.65);
+  letter-spacing: .06em; margin-bottom: 28px;
+  min-height: 1em;
+}
+
+#splash-btn {
+  padding: 13px 52px;
+  background: linear-gradient(135deg, #1565C0, #0D47A1);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 40px; color: #fff;
+  font-size: .95rem; font-weight: 700; letter-spacing: .07em;
+  cursor: pointer;
+  box-shadow: 0 8px 28px rgba(13,71,161,.5);
+  transition: transform .15s, box-shadow .15s;
+}
+#splash-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 36px rgba(13,71,161,.65); }
+</style>
+</head>
+<body>
+<div id="splash">
+  <div id="splash-bg"></div>
+  <div id="splash-content">
+    <span class="badge">DILER B.M.D &nbsp;·&nbsp; אילת</span>
+    <div id="emblem">
+      <img src="../docs/logo-diler-bmd.png" alt="DILER BMD"/>
+    </div>
+    <div id="splash-title">MMD &nbsp;<span>ORDERS</span></div>
+    <div class="splash-line"></div>
+    <div id="splash-tagline">מחסן אילת</div>
+    <div id="splash-desc">מערכת ניהול הזמנות · מלאי</div>
+    <div id="splash-pbi-date">⬆ עדכון שרת MMD: 16.06.2026 09:41</div>
+    <button id="splash-btn">כניסה למערכת &nbsp;→</button>
+  </div>
+</div>
+</body>
+</html>
