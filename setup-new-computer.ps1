@@ -1,5 +1,5 @@
-# Bootstrap для второго компьютера COLUMBUS.
-# Запуск ПОСЛЕ git clone/git pull репозитория:
+# Bootstrap for a second COLUMBUS machine.
+# Run AFTER git clone/git pull of the repo:
 #   powershell -ExecutionPolicy Bypass -File setup-new-computer.ps1
 
 $ErrorActionPreference = 'Stop'
@@ -14,7 +14,7 @@ $needsRestart = $false
 
 Write-Host "=== 1. Git ===" -ForegroundColor Cyan
 if (-not (Test-Cmd git)) {
-    Write-Host "Git не найден — устанавливаю через winget..." -ForegroundColor Yellow
+    Write-Host "Git not found, installing via winget..." -ForegroundColor Yellow
     winget install -e --id Git.Git --accept-source-agreements --accept-package-agreements
     $needsRestart = $true
 } else {
@@ -23,7 +23,7 @@ if (-not (Test-Cmd git)) {
 
 Write-Host "`n=== 2. Node.js ===" -ForegroundColor Cyan
 if (-not (Test-Cmd node)) {
-    Write-Host "Node.js не найден — устанавливаю через winget (LTS)..." -ForegroundColor Yellow
+    Write-Host "Node.js not found, installing via winget (LTS)..." -ForegroundColor Yellow
     winget install -e --id OpenJS.NodeJS.LTS --accept-source-agreements --accept-package-agreements
     $needsRestart = $true
 } else {
@@ -31,44 +31,44 @@ if (-not (Test-Cmd node)) {
 }
 
 if ($needsRestart) {
-    Write-Host "`nГit/Node.js только установлены — PATH обновится после перезапуска терминала." -ForegroundColor Yellow
-    Write-Host "Закрой это окно, открой новый PowerShell и запусти скрипт ещё раз — он продолжит с того места." -ForegroundColor Yellow
+    Write-Host "`nGit/Node.js were just installed - PATH will update after a terminal restart." -ForegroundColor Yellow
+    Write-Host "Close this window, open a new PowerShell, and run this script again - it will continue from here." -ForegroundColor Yellow
     exit 0
 }
 
-Write-Host "`n=== 3. GitHub CLI (gh, опционально) ===" -ForegroundColor Cyan
+Write-Host "`n=== 3. GitHub CLI (gh, optional) ===" -ForegroundColor Cyan
 if (-not (Test-Cmd gh)) {
-    Write-Host "gh не найден — устанавливаю через winget..." -ForegroundColor Yellow
-    try { winget install -e --id GitHub.cli --accept-source-agreements --accept-package-agreements } catch { Write-Host "Не критично, пропускаю." -ForegroundColor DarkYellow }
+    Write-Host "gh not found, installing via winget..." -ForegroundColor Yellow
+    try { winget install -e --id GitHub.cli --accept-source-agreements --accept-package-agreements } catch { Write-Host "Not critical, skipping." -ForegroundColor DarkYellow }
 } else {
-    Write-Host "gh уже установлен."
+    Write-Host "gh already installed."
 }
 
-Write-Host "`n=== 4. Obsidian (для VAULT/) ===" -ForegroundColor Cyan
+Write-Host "`n=== 4. Obsidian (for VAULT/) ===" -ForegroundColor Cyan
 if (-not (Test-Cmd obsidian)) {
-    Write-Host "Obsidian не найден — устанавливаю через winget..." -ForegroundColor Yellow
-    try { winget install -e --id Obsidian.Obsidian --accept-source-agreements --accept-package-agreements } catch { Write-Host "Не удалось автоматически — установи вручную: https://obsidian.md" -ForegroundColor Red }
+    Write-Host "Obsidian not found, installing via winget..." -ForegroundColor Yellow
+    try { winget install -e --id Obsidian.Obsidian --accept-source-agreements --accept-package-agreements } catch { Write-Host "Could not auto-install - install manually: https://obsidian.md" -ForegroundColor Red }
 } else {
-    Write-Host "Obsidian уже установлен."
+    Write-Host "Obsidian already installed."
 }
 
-Write-Host "`n=== 5. cloudflared (для туннеля API) ===" -ForegroundColor Cyan
+Write-Host "`n=== 5. cloudflared (for the API tunnel) ===" -ForegroundColor Cyan
 if (-not (Test-Cmd cloudflared)) {
-    Write-Host "cloudflared не найден — устанавливаю через winget..." -ForegroundColor Yellow
-    try { winget install -e --id Cloudflare.cloudflared --accept-source-agreements --accept-package-agreements } catch { Write-Host "Не удалось автоматически — установи вручную: https://github.com/cloudflare/cloudflared/releases" -ForegroundColor Red }
+    Write-Host "cloudflared not found, installing via winget..." -ForegroundColor Yellow
+    try { winget install -e --id Cloudflare.cloudflared --accept-source-agreements --accept-package-agreements } catch { Write-Host "Could not auto-install - install manually: https://github.com/cloudflare/cloudflared/releases" -ForegroundColor Red }
 } else {
-    Write-Host "cloudflared уже установлен."
+    Write-Host "cloudflared already installed."
 }
 
-Write-Host "`n=== 6. VS Code (для Claude Code extension, опционально) ===" -ForegroundColor Cyan
+Write-Host "`n=== 6. VS Code (for the Claude Code extension, optional) ===" -ForegroundColor Cyan
 if (-not (Test-Cmd code)) {
-    Write-Host "VS Code не найден — устанавливаю через winget..." -ForegroundColor Yellow
-    try { winget install -e --id Microsoft.VisualStudioCode --accept-source-agreements --accept-package-agreements } catch { Write-Host "Не критично, пропускаю." -ForegroundColor DarkYellow }
+    Write-Host "VS Code not found, installing via winget..." -ForegroundColor Yellow
+    try { winget install -e --id Microsoft.VisualStudioCode --accept-source-agreements --accept-package-agreements } catch { Write-Host "Not critical, skipping." -ForegroundColor DarkYellow }
 } else {
-    Write-Host "VS Code уже установлен."
+    Write-Host "VS Code already installed."
 }
 
-Write-Host "`n=== 7. npm install по подпроектам ===" -ForegroundColor Cyan
+Write-Host "`n=== 7. npm install for each subproject ===" -ForegroundColor Cyan
 $projects = @('.', 'server', 'app', 'planogram', 'BIZNES-AI', 'APP-MAHSAN/portfolio')
 foreach ($p in $projects) {
     $pkg = Join-Path $root "$p\package.json"
@@ -80,8 +80,8 @@ foreach ($p in $projects) {
     }
 }
 
-Write-Host "`n=== ГОТОВО ===" -ForegroundColor Cyan
-Write-Host "Дальше вручную (зависит от секретов, не в git):"
-Write-Host "  - создать server/.env (DB-строка, ключи) — .env не пушится в git по соображениям безопасности"
-Write-Host "  - запустить сервер: cd server; node index.js"
-Write-Host "  - запустить тоннель: cloudflared tunnel run <имя-туннеля> (если используется)"
+Write-Host "`n=== DONE ===" -ForegroundColor Cyan
+Write-Host "Left to do manually (secrets are not stored in git):"
+Write-Host "  - create server/.env (DB connection string, keys) - .env is gitignored for security"
+Write-Host "  - start the server: cd server; node index.js"
+Write-Host "  - start the tunnel: cloudflared tunnel run <tunnel-name> (if used)"
