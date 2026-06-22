@@ -920,6 +920,8 @@ async function loadMaps() {
       if (freshYaveshV && savedYaveshV !== freshYaveshV) {
         state.yavesh = deepClone(dy.picks);
         localStorage.setItem('yavesh_base_v', freshYaveshV);
+        printOrder.yavesh = null;
+        localStorage.removeItem('mahsan_print_order_yavesh');
         _anyVersionReset = true;
         console.log(`dagim-yavesh-base.json: version changed ${savedYaveshV} → ${freshYaveshV}, state reset`);
       } else {
@@ -947,6 +949,8 @@ async function loadMaps() {
       if (freshVer && savedVer !== freshVer) {
         state.kapua = deepClone(kb.picks);
         localStorage.setItem('kapua_base_v', freshVer);
+        printOrder.kapua = null;
+        localStorage.removeItem('mahsan_print_order_kapua');
         _anyVersionReset = true;
         console.log(`kapua-base.json: version changed ${savedVer} → ${freshVer}, state reset`);
       } else {
@@ -973,6 +977,8 @@ async function loadMaps() {
       if (freshHalaviV && savedHalaviV !== freshHalaviV) {
         state.halavi = deepClone(hb.picks);
         localStorage.setItem('halavi_base_v', freshHalaviV);
+        printOrder.halavi = null;
+        localStorage.removeItem('mahsan_print_order_halavi');
         _anyVersionReset = true;
         console.log(`halavi-base.json: version changed ${savedHalaviV} → ${freshHalaviV}, state reset`);
       } else {
@@ -1001,6 +1007,8 @@ async function loadMaps() {
       if (freshDagimV && savedDagimV !== freshDagimV) {
         state.dagim = deepClone(db.picks);
         localStorage.setItem('dagim_base_v', freshDagimV);
+        printOrder.dagim = null;
+        localStorage.removeItem('mahsan_print_order_dagim');
         _anyVersionReset = true;
         console.log(`dagim-base.json: version changed ${savedDagimV} → ${freshDagimV}, state reset`);
       } else {
