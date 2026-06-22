@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>הזמנות MMD — Mockup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; direction: rtl; }
+
+  /* ── Header ── */
+  .app-header {
+    background: #1e3a5f;
+    color: #fff;
+    padding: 0 20px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .app-logo { font-size: 22px; }
+  .app-title { font-size: 17px; font-weight: 700; letter-spacing: .5px; flex: 1; }
+  .app-meta { font-size: 12px; color: rgba(255,255,255,0.6); text-align: left; direction: ltr; }
+
+  /* ── Filters Row ── */
+  .filters-row {
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .chip {
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .chip.active {
+    background: #1e3a5f;
+    border-color: #1e3a5f;
+    color: #fff;
+  }
+  .chip.multi-active {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+  }
+  .search-box {
+    margin-right: auto;
+    display: flex;
+    align-items: center;
+    background: #f9fafb;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 5px 12px;
+    gap: 6px;
+    direction: rtl;
+  }
+  .search-box input {
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    outline: none;
+    width: 180px;
+    direction: rtl;
+    color: #374151;
+  }
+  .search-box input::placeholder { color: #9ca3af; }
+
+  /* ── Table ── */
+  .table-wrap {
+    padding: 16px 20px;
+    flex: 1;
+    overflow: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    font-size: 13px;
+  }
+  thead th {
+    background: #1e3a5f;
+    color: #fff;
+    padding: 10px 10px;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: .3px;
+    text-align: center;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+  }
+  thead th:first-child { text-align: right; padding-right: 16px; }
+  tbody tr { border-bottom: 1px solid #f3f4f6; transition: background 0.1s; }
+  tbody tr:hover { background: #f8faff; }
+  tbody tr.has-order { background: #f0fdf4; }
+  tbody tr.has-order:hover { background: #dcfce7; }
+  tbody tr.urgent { background: #fff7ed; }
+  tbody tr.urgent:hover { background: #fed7aa55; }
+  td {
+    padding: 9px 10px;
+    text-align: center;
+    color: #374151;
+    vertical-align: middle;
+  }
+  td.name-cell {
+    text-align: right;
+    padding-right: 16px;
+    max-width: 240px;
+  }
+  .prod-name { font-weight: 600; font-size: 12px; color: #111827; line-height: 1.3; }
+  .prod-sub  { font-size: 10px; color: #9ca3af; margin-top: 2px; }
+  .fam-badge {
+    display: inline-block;
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 6px;
+    margin-top: 3px;
+    letter-spacing: .2px;
+  }
+
+  /* Days stock coloring */
+  .days-ok    { color: #059669; font-weight: 700; }
+  .days-warn  { color: #d97706; font-weight: 700; }
+  .days-crit  { color: #dc2626; font-weight: 800; }
+
+  /* Order input */
+  .ord-input {
+    width: 72px;
+    padding: 5px 6px;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    border: 2px solid #d1d5db;
+    border-radius: 6px;
+    background: #fff;
+    color: #374151;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .ord-input:focus  { border-color: #2563eb; }
+  .ord-input.filled { border-color: #16a34a; background: #f0fdf4; color: #15803d; }
+
+  /* Pal display */
+  .pal-val { font-size: 12px; color: #7c3aed; font-weight: 700; }
+
+  /* Group header */
+  tr.grp-hdr td {
+    background: #f1f5f9;
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    text-align: right;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  /* ── Footer ── */
+  .footer-bar {
+    background: #fff;
+    border-top: 2px solid #e5e7eb;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .footer-kpi {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 16px;
+    border-left: 1px solid #e5e7eb;
+  }
+  .footer-kpi:last-of-type { border-left: none; }
+  .kpi-lbl { font-size: 9px; font-weight: 700; color: #9ca3af; letter-spacing: .5px; text-transform: uppercase; }
+  .kpi-val { font-size: 20px; font-weight: 800; color: #111827; }
+  .kpi-val.green { color: #16a34a; }
+  .kpi-val.blue  { color: #2563eb; }
+
+  .btn-submit {
+    margin-right: auto;
+    background: #16a34a;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 28px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: .3px;
+    box-shadow: 0 2px 6px rgba(22,163,74,0.3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-clear {
+    background: #fff;
+    color: #6b7280;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* Screen container */
+  .screen {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .scrollable { flex: 1; overflow-y: auto; }
+
+  /* Screen 2 overlay */
+  .confirm-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .confirm-overlay.show { display: flex; }
+  .confirm-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px;
+    width: 480px;
+    max-height: 80vh;
+    overflow-y: auto;
+    direction: rtl;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  }
+  .confirm-title { font-size: 18px; font-weight: 800; color: #111827; margin-bottom: 16px; }
+  .confirm-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 13px;
+  }
+  .confirm-row:last-child { border-bottom: none; }
+  .confirm-name { color: #374151; font-weight: 500; }
+  .confirm-qty  { color: #16a34a; font-weight: 800; font-size: 15px; }
+  .confirm-meta { font-size: 10px; color: #9ca3af; margin-top: 2px; }
+  .confirm-total {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 16px;
+    display: flex;
+    justify-content: space-between;
+    font-weight: 700;
+  }
+  .confirm-btns { display: flex; gap: 10px; margin-top: 20px; }
+  .btn-confirm {
+    flex: 1;
+    background: #16a34a;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-back {
+    background: #fff;
+    color: #6b7280;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* Success toast */
+  .toast {
+    display: none;
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #16a34a;
+    color: #fff;
+    padding: 14px 28px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    z-index: 200;
+    box-shadow: 0 4px 20px rgba(22,163,74,0.4);
+  }
+  .toast.show { display: block; }
+</style>
+</head>
+<body>
+
+<div class="screen">
+
+  <!-- Header -->
+  <div class="app-header">
+    <span class="app-logo">🛒</span>
+    <span class="app-title">הזמנות MMD</span>
+    <div class="app-meta">
+      <div>14/06/2026</div>
+      <div>Dan Sverdlik</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-row">
+    <button class="chip active" onclick="filterFam('')">כולם</button>
+    <button class="chip" onclick="filterFam('SANTA BREMOR')">SANTA BREMOR</button>
+    <button class="chip" onclick="filterFam('FORMULA')">FORMULA</button>
+    <button class="chip" onclick="filterFam('IKRA')">IKRA</button>
+    <button class="chip" onclick="filterFam('HERRING')">HERRING</button>
+
+    <div class="search-box">
+      <span>🔍</span>
+      <input type="text" placeholder="חיפוש מוצר / מקט..." id="searchInput" oninput="filterSearch()">
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="scrollable table-wrap">
+    <table id="ordTable">
+      <thead>
+        <tr>
+          <th style="text-align:right;padding-right:16px;min-width:220px;">תאור מוצר</th>
+          <th>מקט</th>
+          <th>מלאי<br>קרטון</th>
+          <th>מכר<br>קרט/יום</th>
+          <th>📅 ימים<br>למלאי</th>
+          <th>ימי<br>בטחון</th>
+          <th style="background:#0f2d50;min-width:90px;">הזמנה<br>KARTON</th>
+          <th style="background:#3b0764;min-width:80px;">PAL<br>ידני</th>
+        </tr>
+      </thead>
+      <tbody id="ordBody">
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer-bar">
+    <div class="footer-kpi">
+      <span class="kpi-lbl">מוצרים</span>
+      <span class="kpi-val" id="ft-prods">0</span>
+    </div>
+    <div class="footer-kpi">
+      <span class="kpi-lbl">KARTON</span>
+      <span class="kpi-val green" id="ft-kart">0</span>
+    </div>
+    <div class="footer-kpi">
+      <span class="kpi-lbl">PALLET</span>
+      <span class="kpi-val blue" id="ft-pal">0.0</span>
+    </div>
+    <div class="footer-kpi">
+      <span class="kpi-lbl">קונטיינר 40'</span>
+      <span class="kpi-val" id="ft-cont">0</span>
+    </div>
+    <button class="btn-clear" onclick="clearAll()">↺ נקה</button>
+    <button class="btn-submit" onclick="showConfirm()">
+      ✅ שלח הזמנה
+    </button>
+  </div>
+</div>
+
+<!-- Confirm overlay -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-card">
+    <div class="confirm-title">📋 אישור הזמנה — MMD</div>
+    <div id="confirmRows"></div>
+    <div class="confirm-total" id="confirmTotal"></div>
+    <div class="confirm-btns">
+      <button class="btn-back" onclick="hideConfirm()">← חזרה לעריכה</button>
+      <button class="btn-confirm" onclick="submitOrder()">✅ אשר ושלח</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">✅ ההזמנה נשלחה בהצלחה ל-SharePoint!</div>
+
+<script>
+const PRODUCTS = [
+  { mk:'1012', name:'חתיכות פילה דג הרינג מלוח מצון עם בצל 260ג (6)', fam:'SANTA BREMOR', stock:19, sales:8.3, days:2, safety:4, krat:20 },
+  { mk:'1049', name:'חתיכות פילה דג הרינג סקנד׳ינבי מלוח מצון 260ג (6)', fam:'SANTA BREMOR', stock:29, sales:10.3, days:3, safety:4, krat:20 },
+  { mk:'1006', name:'פילה דג הרינג מומלח בשמן מצון 1000ג (3)', fam:'SANTA BREMOR', stock:8, sales:5.2, days:2, safety:4, krat:12 },
+  { mk:'1108', name:'סלט אצות ים-צ׳וקה 150ג (6)', fam:'SANTA BREMOR', stock:11, sales:5.9, days:2, safety:4, krat:6 },
+  { mk:'1013', name:'חתיכות פילה דג הרינג מלוח מצון עם תבלין 260ג (6)', fam:'SANTA BREMOR', stock:10, sales:5.4, days:2, safety:4, krat:20 },
+  { mk:'1047', name:'חתיכות פילה דג הרינג מתובל בשמן 400ג (6)', fam:'SANTA BREMOR', stock:6, sales:3.7, days:2, safety:4, krat:6 },
+  { mk:'1005', name:'חתיכות פילה דג הרינג מלוח בשמן מצון 400ג (6)', fam:'SANTA BREMOR', stock:8, sales:4.2, days:2, safety:4, krat:6 },
+  { mk:'1175', name:'פילה דג הרינג סקנד׳ינבי מומלח בשמן מצון 1000ג (3)', fam:'SANTA BREMOR', stock:8, sales:4.0, days:2, safety:4, krat:12 },
+  { mk:'1174', name:'פילה דג הרינג מומלח XXL בשמן מצון 300ג (6)', fam:'SANTA BREMOR', stock:16, sales:5.9, days:3, safety:4, krat:6 },
+  { mk:'1011', name:'פילה דג הרינג מלוח מצון 250ג (10)', fam:'SANTA BREMOR', stock:20, sales:6.6, days:3, safety:4, krat:10 },
+  { mk:'800',  name:'חמאה רשן 82.5% בד"צ 200ג (24) חדש', fam:'FORMULA', stock:30, sales:18.7, days:2, safety:4, krat:24 },
+  { mk:'732',  name:'חמאה FERMA 82.5% 200ג (20)', fam:'FORMULA', stock:12, sales:41.3, days:1, safety:4, krat:20 },
+  { mk:'818',  name:'חטיף גבינה וניל 45ג (18)', fam:'FORMULA', stock:45, sales:17.7, days:3, safety:4, krat:18 },
+  { mk:'815',  name:'חטיף גבינה עם ריבת חלב 45ג (18)', fam:'FORMULA', stock:44, sales:13.5, days:3, safety:4, krat:18 },
+  { mk:'1014', name:'חתיכות פילה הרינג מלוח IKRA פרמיום 260ג', fam:'IKRA', stock:17, sales:10.1, days:2, safety:4, krat:6 },
+  { mk:'1055', name:'סלט אצות ים מוחמצות 200ג (12)', fam:'HERRING', stock:8, sales:3.5, days:2, safety:4, krat:12 },
+  { mk:'1019', name:'ביצי דג זהבנון MINTAY מומלח 130ג (12)', fam:'HERRING', stock:7, sales:3.2, days:2, safety:4, krat:12 },
+];
+
+let orders = {}; // mk -> { karton, pal }
+let activeFam = '';
+
+function getRows() {
+  let rows = PRODUCTS;
+  const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  if (activeFam) rows = rows.filter(r => r.fam === activeFam);
+  if (q) rows = rows.filter(r => r.name.toLowerCase().includes(q) || r.mk.includes(q));
+  return rows;
+}
+
+function render() {
+  const rows = getRows();
+  // Group by family
+  const groups = {};
+  rows.forEach(r => {
+    if (!groups[r.fam]) groups[r.fam] = [];
+    groups[r.fam].push(r);
+  });
+
+  let html = '';
+  Object.entries(groups).forEach(([fam, prods]) => {
+    html += `<tr class="grp-hdr"><td colspan="8">📦 ${fam}</td></tr>`;
+    prods.forEach(r => {
+      const ord = orders[r.mk] || { karton: 0, pal: 0 };
+      const hasOrd = ord.karton > 0;
+      const dCls = r.days <= 1 ? 'days-crit' : r.days <= 2 ? 'days-warn' : 'days-ok';
+      const rowCls = hasOrd ? 'has-order' : r.days <= 2 ? 'urgent' : '';
+      const palVal = ord.karton > 0 ? (ord.pal || (ord.karton / r.krat).toFixed(1)) : '';
+      html += `<tr class="${rowCls}">
+        <td class="name-cell">
+          <div class="prod-name">${r.name}</div>
+          <span class="fam-badge">${r.fam}</span>
+        </td>
+        <td style="font-size:11px;color:#6b7280;">${r.mk}</td>
+        <td style="font-weight:700;">${r.stock}</td>
+        <td>${r.sales}</td>
+        <td><span class="${dCls}">${r.days}</span></td>
+        <td style="color:#6b7280;">4</td>
+        <td>
+          <input type="number" class="ord-input ${ord.karton > 0 ? 'filled' : ''}"
+            value="${ord.karton > 0 ? ord.karton : ''}"
+            placeholder="0"
+            min="0" step="1"
+            onchange="setOrdK('${r.mk}', this.value, ${r.krat})"
+            style="width:72px;">
+        </td>
+        <td>
+          <input type="number" class="ord-input ${ord.pal > 0 ? 'filled' : ''}"
+            value="${palVal}"
+            placeholder="0"
+            min="0" step="0.5"
+            onchange="setOrdPal('${r.mk}', this.value, ${r.krat})"
+            style="width:65px;border-color:#7c3aed;background:${ord.pal > 0 ? '#faf5ff' : '#fff'};color:#7c3aed;">
+        </td>
+      </tr>`;
+    });
+  });
+  document.getElementById('ordBody').innerHTML = html;
+  updateFooter();
+}
+
+function setOrdK(mk, val, krat) {
+  const k = Math.max(0, parseInt(val) || 0);
+  const p = krat > 0 ? Math.round(k / krat * 10) / 10 : 0;
+  if (k > 0) orders[mk] = { karton: k, pal: p };
+  else delete orders[mk];
+  render();
+}
+
+function setOrdPal(mk, val, krat) {
+  const p = Math.max(0, parseFloat(val) || 0);
+  const k = Math.round(p * krat);
+  if (p > 0) orders[mk] = { karton: k, pal: p };
+  else delete orders[mk];
+  render();
+}
+
+function filterFam(fam) {
+  activeFam = fam;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  event.target.classList.add('active');
+  render();
+}
+
+function filterSearch() { render(); }
+
+function updateFooter() {
+  const ordered = Object.values(orders);
+  const totalK = ordered.reduce((s, o) => s + o.karton, 0);
+  const totalP = ordered.reduce((s, o) => s + o.pal, 0);
+  const cont = Math.floor(totalP / 20);
+  document.getElementById('ft-prods').textContent = ordered.length;
+  document.getElementById('ft-kart').textContent = totalK;
+  document.getElementById('ft-pal').textContent = totalP.toFixed(1);
+  document.getElementById('ft-cont').textContent = cont;
+}
+
+function clearAll() {
+  orders = {};
+  render();
+}
+
+function showConfirm() {
+  const ordered = Object.entries(orders);
+  if (!ordered.length) { alert('לא הוזנו הזמנות'); return; }
+  let rows = '';
+  ordered.forEach(([mk, o]) => {
+    const prod = PRODUCTS.find(p => p.mk === mk);
+    rows += `<div class="confirm-row">
+      <div>
+        <div class="confirm-name">${prod?.name || mk}</div>
+        <div class="confirm-meta">מקט: ${mk} | ${o.pal} PAL</div>
+      </div>
+      <div class="confirm-qty">${o.karton} קרט</div>
+    </div>`;
+  });
+  const totalK = ordered.reduce((s,[,o])=>s+o.karton,0);
+  const totalP = ordered.reduce((s,[,o])=>s+o.pal,0);
+  document.getElementById('confirmRows').innerHTML = rows;
+  document.getElementById('confirmTotal').innerHTML =
+    `<span>סה"כ</span><span>${totalK} KARTON · ${totalP.toFixed(1)} PALLET</span>`;
+  document.getElementById('confirmOverlay').classList.add('show');
+}
+
+function hideConfirm() {
+  document.getElementById('confirmOverlay').classList.remove('show');
+}
+
+function submitOrder() {
+  hideConfirm();
+  const toast = document.getElementById('toast');
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3000);
+  orders = {};
+  render();
+}
+
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0f172a; font-family:'Rubik',sans-serif; color:#f1f5f9; width:1280px; height:720px; overflow:hidden; direction:rtl; }
+
+/* TOP NAV */
+.topnav { background:#0a0f1e; border-bottom:1px solid #1e2540; padding:8px 16px; display:flex; gap:8px; align-items:center; }
+.nav-btn { background:#1e2540; border:1px solid #334155; color:#94a3b8; padding:7px 16px; border-radius:6px; font-size:12px; font-family:'Rubik',sans-serif; cursor:pointer; }
+.nav-btn.active { background:#f59e0b; color:#0f172a; font-weight:700; border-color:#f59e0b; }
+.nav-btn.home { background:#1e3a5f; border-color:#2563eb; color:#93c5fd; }
+
+/* FILTER ROW */
+.filters { background:#0c1628; border-bottom:1px solid #1e2540; padding:6px 16px; display:flex; gap:6px; align-items:center; }
+.filter-chip { background:#1e2540; border:1px solid #334155; color:#cbd5e1; padding:4px 12px; border-radius:4px; font-size:11px; }
+.filter-chip.active { background:rgba(245,158,11,0.15); border-color:rgba(245,158,11,0.4); color:#f59e0b; }
+.year-chip { background:rgba(37,99,235,0.2); border:1px solid #2563eb; color:#93c5fd; padding:4px 12px; border-radius:4px; font-size:11px; font-weight:600; }
+
+/* MAIN GRID */
+.main { display:grid; grid-template-columns:180px 1fr 320px; gap:0; height:calc(720px - 84px); }
+
+/* LEFT SIDEBAR */
+.sidebar { background:#0a0f1e; border-left:1px solid #1e2540; padding:12px 10px; display:flex; flex-direction:column; gap:6px; }
+.sidebar-label { font-size:10px; color:#64748b; letter-spacing:1px; text-transform:uppercase; margin-bottom:2px; padding:0 4px; }
+.sidebar-item { background:#1e2540; border:1px solid #334155; border-radius:5px; padding:8px 12px; font-size:12px; color:#cbd5e1; cursor:pointer; }
+.sidebar-item.active { background:rgba(245,158,11,0.12); border-color:rgba(245,158,11,0.35); color:#f59e0b; font-weight:600; }
+
+/* CENTER */
+.center { display:flex; flex-direction:column; }
+
+/* KPI CARDS */
+.kpi-row { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; padding:10px 12px; background:#0c1628; border-bottom:1px solid #1e2540; }
+.kpi-card { background:#1e2540; border:1px solid #334155; border-radius:6px; padding:10px 14px; }
+.kpi-label { font-size:10px; color:#64748b; margin-bottom:4px; }
+.kpi-val { font-size:22px; font-weight:700; color:#f1f5f9; line-height:1; }
+.kpi-val.amber { color:#f59e0b; }
+.kpi-val.green { color:#34d399; }
+.kpi-val.red { color:#f87171; }
+.kpi-change { font-size:10px; margin-top:3px; }
+.kpi-change.up { color:#34d399; }
+.kpi-change.down { color:#f87171; }
+
+/* CHART AREA */
+.chart-area { flex:1; padding:12px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+.chart-card { background:#1e2540; border:1px solid #334155; border-radius:8px; padding:14px; display:flex; flex-direction:column; }
+.chart-title { font-size:11px; font-weight:600; color:#94a3b8; margin-bottom:10px; text-align:right; }
+.ribbon-chart { flex:1; position:relative; display:flex; align-items:flex-end; gap:2px; padding-top:24px; }
+.ribbon-group { display:flex; gap:2px; align-items:flex-end; flex:1; }
+.ribbon-bar { border-radius:2px 2px 0 0; position:relative; }
+.year-label { position:absolute; bottom:-16px; left:50%; transform:translateX(-50%); font-size:9px; color:#64748b; white-space:nowrap; }
+.legend { display:flex; gap:8px; margin-top:18px; flex-wrap:wrap; }
+.legend-item { display:flex; align-items:center; gap:4px; font-size:9px; color:#94a3b8; }
+.legend-dot { width:8px; height:8px; border-radius:2px; }
+
+/* RIGHT PANEL */
+.right-panel { background:#0c1628; border-right:1px solid #1e2540; padding:10px; display:flex; flex-direction:column; gap:8px; overflow:hidden; }
+.panel-title { font-size:11px; font-weight:600; color:#94a3b8; border-bottom:1px solid #1e2540; padding-bottom:6px; margin-bottom:4px; }
+.table-mini { width:100%; border-collapse:collapse; font-size:10.5px; }
+.table-mini th { background:#0f172a; color:#f59e0b; font-weight:600; padding:5px 8px; text-align:right; border-bottom:1px solid #334155; }
+.table-mini td { padding:5px 8px; border-bottom:1px solid #1e2540; color:#cbd5e1; }
+.table-mini tr:hover td { background:rgba(245,158,11,0.05); }
+.badge-up { color:#34d399; font-weight:600; }
+.badge-down { color:#f87171; font-weight:600; }
+.badge-warn { color:#f59e0b; font-weight:600; }
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<div class="topnav">
+  <button class="nav-btn home">🏠 HOME</button>
+  <button class="nav-btn active">💰 רווח - הפסד</button>
+  <button class="nav-btn">🚢 הזמנות רכש</button>
+  <button class="nav-btn">🛒 רשתות</button>
+  <button class="nav-btn">💎 LOST SALES</button>
+  <button class="nav-btn">🏭 MAHSAN</button>
+  <button class="nav-btn">📈 YARICH</button>
+  <div style="margin-right:auto;display:flex;gap:6px;">
+    <span class="year-chip">2024</span>
+    <span class="year-chip">2025</span>
+    <span class="year-chip" style="background:rgba(245,158,11,0.25);border-color:#f59e0b;color:#fbbf24;">2026</span>
+  </div>
+</div>
+
+<!-- FILTERS -->
+<div class="filters">
+  <span class="filter-label" style="font-size:10px;color:#64748b;">חברה:</span>
+  <span class="filter-chip active">ICE</span>
+  <span class="filter-chip active">FORMULA</span>
+  <span class="filter-chip active">INTER</span>
+  <span class="filter-chip active">MMD</span>
+  <span style="width:1px;height:18px;background:#334155;margin:0 6px;"></span>
+  <span class="filter-label" style="font-size:10px;color:#64748b;">חודש:</span>
+  <span class="filter-chip">ינואר</span><span class="filter-chip">פברואר</span>
+  <span class="filter-chip">מרץ</span><span class="filter-chip">אפריל</span>
+  <span class="filter-chip active" style="background:rgba(37,99,235,0.2);border-color:#2563eb;color:#93c5fd;">מאי ▼</span>
+</div>
+
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-label">מחלקה</div>
+    <div class="sidebar-item active">מוצג</div>
+    <div class="sidebar-item">משפחה</div>
+    <div class="sidebar-item">ספק 2</div>
+    <div class="sidebar-item">ספק</div>
+    <div style="margin-top:8px;"></div>
+    <div class="sidebar-label">מוצר</div>
+    <div class="sidebar-item">Select all</div>
+    <div class="sidebar-item">SVALYA</div>
+    <div class="sidebar-item">YUKKI</div>
+    <div class="sidebar-item">ROSHEN</div>
+    <div class="sidebar-item">RUD</div>
+    <div class="sidebar-item">NORD PORT</div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center">
+
+    <!-- KPI CARDS -->
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-label">שינוי SALES שיווק</div>
+        <div class="kpi-val red">-7.89M</div>
+        <div class="kpi-change down">▼ vs שנה קודמת</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">% CHANGE SALES</div>
+        <div class="kpi-val red">-38%</div>
+        <div class="kpi-change down">▼ May 2026</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">שינוי ברווח כללי</div>
+        <div class="kpi-val red">-2.26M</div>
+        <div class="kpi-change down">▼ vs שנה קודמת</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">% CHANGE PROFIT</div>
+        <div class="kpi-val red">-33%</div>
+        <div class="kpi-change down">▼ חישוב כולל</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">PROFIT CHANGE ALL</div>
+        <div class="kpi-val amber">+4%</div>
+        <div class="kpi-change up">▲ כלל החברות</div>
+      </div>
+    </div>
+
+    <!-- RIBBON CHARTS -->
+    <div class="chart-area">
+
+      <!-- SALES CHART -->
+      <div class="chart-card">
+        <div class="chart-title">SALES (₪) — מכירות לפי שנה</div>
+        <div class="ribbon-chart">
+          <!-- 2024 -->
+          <div class="ribbon-group">
+            <div class="ribbon-bar" style="height:120px;width:22px;background:#1d4ed8;"></div>
+            <div class="ribbon-bar" style="height:90px;width:22px;background:#f59e0b;"></div>
+            <div class="ribbon-bar" style="height:55px;width:22px;background:#7c3aed;"></div>
+            <div class="ribbon-bar" style="height:30px;width:22px;background:#0891b2;"></div>
+            <div style="position:absolute;bottom:-16px;right:0;left:0;text-align:center;font-size:9px;color:#64748b;">2024</div>
+          </div>
+          <!-- 2025 -->
+          <div class="ribbon-group" style="margin-right:6px;">
+            <div class="ribbon-bar" style="height:140px;width:22px;background:#1d4ed8;"></div>
+            <div class="ribbon-bar" style="height:108px;width:22px;background:#f59e0b;"></div>
+            <div class="ribbon-bar" style="height:65px;width:22px;background:#7c3aed;"></div>
+            <div class="ribbon-bar" style="height:38px;width:22px;background:#0891b2;"></div>
+            <div style="position:absolute;bottom:-16px;right:0;left:0;text-align:center;font-size:9px;color:#64748b;">2025</div>
+          </div>
+          <!-- 2026 -->
+          <div class="ribbon-group" style="margin-right:6px;">
+            <div class="ribbon-bar" style="height:95px;width:22px;background:#1d4ed8;opacity:0.8;"></div>
+            <div class="ribbon-bar" style="height:72px;width:22px;background:#f59e0b;opacity:0.8;"></div>
+            <div class="ribbon-bar" style="height:78px;width:22px;background:#7c3aed;opacity:0.8;"></div>
+            <div class="ribbon-bar" style="height:52px;width:22px;background:#0891b2;opacity:0.8;"></div>
+            <div style="position:absolute;bottom:-16px;right:0;left:0;text-align:center;font-size:9px;color:#f59e0b;">2026</div>
+          </div>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#1d4ed8;"></div>ICE</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#f59e0b;"></div>FORMULA</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#7c3aed;"></div>INTER</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#0891b2;"></div>MMD</div>
+        </div>
+      </div>
+
+      <!-- PROFIT CHART -->
+      <div class="chart-card">
+        <div class="chart-title">PROFIT (₪) — רווח לפי שנה</div>
+        <div class="ribbon-chart">
+          <div class="ribbon-group">
+            <div class="ribbon-bar" style="height:80px;width:22px;background:#1d4ed8;"></div>
+            <div class="ribbon-bar" style="height:55px;width:22px;background:#f59e0b;"></div>
+            <div class="ribbon-bar" style="height:35px;width:22px;background:#7c3aed;"></div>
+            <div class="ribbon-bar" style="height:20px;width:22px;background:#0891b2;"></div>
+            <div style="position:absolute;bottom:-16px;right:0;left:0;text-align:center;font-size:9px;color:#64748b;">2024</div>
+          </div>
+          <div class="ribbon-group" style="margin-right:6px;">
+            <div class="ribbon-bar" style="height:95px;width:22px;background:#1d4ed8;"></div>
+            <div class="ribbon-bar" style="height:72px;width:22px;background:#f59e0b;"></div>
+            <div class="ribbon-bar" style="height:45px;width:22px;background:#7c3aed;"></div>
+            <div class="ribbon-bar" style="height:28px;width:22px;background:#0891b2;"></div>
+            <div style="position:absolute;bottom:-16px;right:0;left:0;text-align:center;font-size:9px;color:#64748b;">2025</div>
+          </div>
+          <div class="ribbon-group" style="margin-right:6px;">
+            <div class="ribbon-bar" style="height:60px;width:22px;background:#1d4ed8;opacity:0.8;"></div>
+            <div class="ribbon-bar" style="height:48px;width:22px;background:#f59e0b;opacity:0.8;"></div>
+            <div class="ribbon-bar" style="height:55px;width:22px;background:#7c3aed;opacity:0.8;"></div>
+            <div class="ribbon-bar" style="height:32px;width:22px;background:#0891b2;opacity:0.8;"></div>
+            <div style="position:absolute;bottom:-16px;right:0;left:0;text-align:center;font-size:9px;color:#f59e0b;">2026</div>
+          </div>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#1d4ed8;"></div>ICE</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#f59e0b;"></div>FORMULA</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#7c3aed;"></div>INTER</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#0891b2;"></div>MMD</div>
+        </div>
+      </div>
+
+      <!-- ALL COMPANIES -->
+      <div class="chart-card">
+        <div class="chart-title">TOTAL PROFIT ALL COMPANIES</div>
+        <div class="ribbon-chart">
+          <div class="ribbon-group">
+            <div class="ribbon-bar" style="height:100px;width:30px;background:linear-gradient(180deg,#1d4ed8,#3b82f6);"></div>
+            <div style="position:absolute;bottom:-16px;right:0;left:0;text-align:center;font-size:9px;color:#64748b;">2024</div>
+          </div>
+          <div class="ribbon-group" style="margin-right:8px;">
+            <div class="ribbon-bar" style="height:120px;width:30px;background:linear-gradient(180deg,#1d4ed8,#3b82f6);"></div>
+            <div style="position:absolute;bottom:-16px;right:0;left:0;text-align:center;font-size:9px;color:#64748b;">2025</div>
+          </div>
+          <div class="ribbon-group" style="margin-right:8px;">
+            <div class="ribbon-bar" style="height:130px;width:30px;background:linear-gradient(180deg,#f59e0b,#fbbf24);"></div>
+            <div style="position:absolute;bottom:-16px;right:0;left:0;text-align:center;font-size:9px;color:#f59e0b;">2026</div>
+          </div>
+        </div>
+        <div style="margin-top:24px;text-align:center;">
+          <div style="font-size:28px;font-weight:700;color:#f59e0b;">357K</div>
+          <div style="font-size:10px;color:#64748b;">שינוי ברווח כללי</div>
+          <div style="font-size:14px;font-weight:600;color:#34d399;margin-top:4px;">▲ +4%</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="panel-title">מלאי שווי — לפי מחלקה</div>
+    <table class="table-mini">
+      <tr><th>מחלקה</th><th>שווי NIS</th><th>% שינוי</th></tr>
+      <tr><td>🍦 גלידה mish</td><td>2,777,839</td><td class="badge-up">+42%</td></tr>
+      <tr><td>🍦 גלידה bdd</td><td>5,562,753</td><td class="badge-up">+30%</td></tr>
+      <tr><td>🧊 דג יבש</td><td style="color:#64748b;">0</td><td>—</td></tr>
+      <tr><td>🐟 דגים</td><td>3,346,430</td><td class="badge-down">-30%</td></tr>
+      <tr><td>🥛 חלבי</td><td>4,731,548</td><td class="badge-up">+8%</td></tr>
+      <tr><td>❄️ מדף</td><td>519,425</td><td class="badge-up">+51%</td></tr>
+      <tr><td>🍬 מתוקים</td><td>3,416,140</td><td class="badge-up">+26%</td></tr>
+      <tr><td>❄️ קפוא</td><td>1,837,059</td><td class="badge-up">+38%</td></tr>
+      <tr style="border-top:2px solid #334155;"><td style="font-weight:700;color:#f1f5f9;">Total</td><td style="font-weight:700;color:#f59e0b;">22,191,194</td><td class="badge-up">+18%</td></tr>
+    </table>
+
+    <div style="margin-top:8px;"></div>
+    <div class="panel-title">Growth Inventory Buffer</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+      <div style="background:#1e2540;border:1px solid #334155;border-radius:5px;padding:8px;text-align:center;">
+        <div style="font-size:9px;color:#64748b;margin-bottom:3px;">ימי מכר אבודים</div>
+        <div style="font-size:18px;font-weight:700;color:#f87171;">74</div>
+      </div>
+      <div style="background:#1e2540;border:1px solid #334155;border-radius:5px;padding:8px;text-align:center;">
+        <div style="font-size:9px;color:#64748b;margin-bottom:3px;">% זיכויים</div>
+        <div style="font-size:18px;font-weight:700;color:#f59e0b;">-3%</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
