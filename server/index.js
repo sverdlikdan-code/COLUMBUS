@@ -1376,36 +1376,43 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
     const totalPal = rows.filter(r => r.orderK > 0).reduce((s, r) => s + r.orderP, 0);
     const orderCnt = rows.filter(r => r.orderK > 0).length;
 
+    // Column A and row 1 are left blank on purpose — visual margin so the
+    // table doesn't start flush against the sheet edge (approved style, see
+    // memory feedback_excel_style.md).
+    ws.getColumn(1).width = 3;
+    ws.getRow(1).height = 6;
+
     // Plain (non-merged) info rows above the table — merged cells block Excel's
     // "Format as Table" / smart-table autofilter from working cleanly.
-    const titleCell = ws.getCell('A1');
+    const titleCell = ws.getCell('B2');
     titleCell.value = `🐟 הזמנת דגים FORMULA  —  תאריך: ${dateStr}${periods ? ' | תקופה: ' + periods : ''}${modeNote}`;
     titleCell.font = { bold: true, size: 13, color: { argb: 'FFFFFFFF' }, name: 'Calibri' };
     titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } };
     titleCell.alignment = { horizontal: 'right', vertical: 'middle' };
-    ws.getRow(1).height = 26;
+    ws.getRow(2).height = 26;
 
-    const sumCell = ws.getCell('A2');
+    const sumCell = ws.getCell('B3');
     sumCell.value = `סה"כ הזמנה: ${Math.round(totalOrder).toLocaleString('en')} קרטונים | ${Math.round(totalPal * 10) / 10} PALLET | ${rows.length} מוצרים (${orderCnt} להזמנה)`;
     sumCell.font = { italic: true, size: 10, color: { argb: 'FF6B7280' }, name: 'Calibri' };
     sumCell.alignment = { horizontal: 'right', vertical: 'middle' };
-    ws.getRow(2).height = 18;
+    ws.getRow(3).height = 18;
 
     const tableCols = [
-      { name: 'תאור', key: 'name', width: 38 },
-      { name: 'מק"ט', key: 'mk', width: 11 },
-      { name: 'ברקוד EAN', key: 'ean', width: 18 },
-      { name: 'משפחה', key: 'fam', width: 18 },
-      { name: 'מלאי+הזמנות (קרט)', key: 'spo', width: 14 },
-      { name: 'PAL מלאי', key: 'palSpo', width: 10 },
-      { name: 'הזמנות פתוחות', key: 'openOrders', width: 13 },
-      { name: 'מכר קרט/יום', key: 'daySales', width: 12 },
-      { name: 'לכמה ימים', key: 'daysStk', width: 10 },
-      { name: 'ימי בטחון', key: 'safetyDays', width: 10 },
-      { name: 'הזמנה KARTON', key: 'orderK', width: 13 },
-      { name: 'הזמנה PALLET', key: 'orderP', width: 13 },
+      { name: 'תאור', key: 'name', width: 38, totalsRowFunction: 'none', totalsRowLabel: 'Total' },
+      { name: 'מק"ט', key: 'mk', width: 11, totalsRowFunction: 'none' },
+      { name: 'ברקוד EAN', key: 'ean', width: 18, totalsRowFunction: 'none' },
+      { name: 'משפחה', key: 'fam', width: 18, totalsRowFunction: 'none' },
+      { name: 'מלאי+הזמנות (קרט)', key: 'spo', width: 14, totalsRowFunction: 'sum' },
+      { name: 'PAL מלאי', key: 'palSpo', width: 10, totalsRowFunction: 'sum' },
+      { name: 'הזמנות פתוחות', key: 'openOrders', width: 13, totalsRowFunction: 'sum' },
+      { name: 'מכר קרט/יום', key: 'daySales', width: 12, totalsRowFunction: 'sum' },
+      { name: 'לכמה ימים', key: 'daysStk', width: 10, totalsRowFunction: 'sum' },
+      { name: 'ימי בטחון', key: 'safetyDays', width: 10, totalsRowFunction: 'sum' },
+      { name: 'הזמנה KARTON', key: 'orderK', width: 13, totalsRowFunction: 'sum' },
+      { name: 'הזמנה PALLET', key: 'orderP', width: 13, totalsRowFunction: 'sum' },
     ];
-    tableCols.forEach((c, i) => { ws.getColumn(i + 1).width = c.width; });
+    // +1 to skip the blank margin column A
+    tableCols.forEach((c, i) => { ws.getColumn(i + 2).width = c.width; });
 
     const tableRows = rows.map(r => [
       r.name || '',
@@ -1422,17 +1429,19 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
       r.orderK > 0 ? Math.round(r.orderP * 10) / 10 : 0,
     ]);
 
+    const HEADER_ROW = 5; // row 1 blank margin, 2 title, 3 summary, 4 blank, 5 header
     ws.addTable({
       name: 'OrderDagim',
-      ref: 'A4',
+      ref: `B${HEADER_ROW}`,
       headerRow: true,
-      totalsRow: false,
+      totalsRow: true,
       style: { theme: 'TableStyleMedium9', showRowStripes: true },
-      columns: tableCols.map(c => ({ name: c.name, filterButton: true })),
+      columns: tableCols.map(c => ({ name: c.name, filterButton: true, totalsRowFunction: c.totalsRowFunction, totalsRowLabel: c.totalsRowLabel })),
       rows: tableRows,
     });
-    ws.getRow(4).font = { bold: true, color: { argb: 'FFFFFFFF' }, name: 'Calibri' };
-    ws.views[0] = { rightToLeft: true, state: 'frozen', ySplit: 4 };
+    ws.getRow(HEADER_ROW).font = { bold: true, color: { argb: 'FFFFFFFF' }, name: 'Calibri' };
+    ws.getRow(HEADER_ROW + 1 + tableRows.length).font = { bold: true, name: 'Calibri' };
+    ws.views[0] = { rightToLeft: true, state: 'frozen', ySplit: HEADER_ROW };
 
     const date = today.toISOString().slice(0, 10);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
