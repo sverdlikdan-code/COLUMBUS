@@ -141,3 +141,18 @@ Pending: scheduled build запишет nameEn → карточки получа
   - **Фикс**: `window._orderManualEdits[mk] = {orderK, orderP}` пишется в `_recalcRowPal`/`_recalcRowK`; `buildOrderPage()` проверяет оверрайд перед авто-расчётом.
 - **Добавлены 💾 שמור / 🕐 היסטוריה** в тулбар הזמנה (по аналогии с основной планограммой — localStorage `mahsan_order_versions`, последние 5 версий ручных правок, restore через dropdown).
 - Коммит: `419776e`
+
+### 2026-06-22 #session-end ✅ (MAHSAN EDITOR FORMULA)
+
+**Найден и устранён разрыв пайплайна סדר הדפסה — данные из мастер-Excel молча отбрасывались:**
+
+- **Причина**: пользователь правил `סדר הדפסה` в файле `בררת מחדל FOR ALL.xlsx` (корень COLUMBUS) — но этот файл гитигнорится (`*.xlsx`) и никогда не был подключён к пайплайну. Реальный файл автоматизации — `planogram/breira-default/FOR-ALL.xlsx`, хардкодом зашитый в `convert-breira.js`, не обновлялся с 3 июня.
+- **Фикс файла**: корневой xlsx скопирован в `planogram/breira-default/FOR-ALL.xlsx` (старая версия — бэкап `FOR-ALL.xlsx.bak-20260603`).
+- **Фикс пайплайна** (колонка `סדר הדפסה` читалась из CSV, но никуда не передавалась):
+  - `planogram/breira-default/loader.js` — добавлен `idx.printOrder`, парсинг и возврат `printOrder` в результате `loadBreiraDefault()`
+  - 4 build-скрипта (`build-kapua-new.js`, `build-halavi-new.js`, `build-dagim-fab.js`, `build-dagim-yavesh-new.js`) — `picks[bay]` теперь содержит `printOrder: bd.printOrder ?? null`
+  - `docs/planogram-editor.html` — новый `_printOrderKey(sec, pick)` + `_getPrintOrder()` теперь сортирует по умолчанию по `printOrder` из Excel (а не по номеру bay-позиции), localStorage-оверрайд (ручная перетаска) остаётся приоритетным
+- **Пересобраны все 4 base.json**, проверено: halavi 23/23 PRESIDENT гбинот с printOrder, kapua 53/71, dagim 59/59, dagim-yavesh 30/30
+- Коммит: `5ca97f4`
+
+Pending: визуальная проверка в браузере не выполнена; `build-planogram.js` + `workflow-doctor.js` (финальные шаги прод-workflow) не запускались локально — параллель с прод-сборкой не на 100%.
