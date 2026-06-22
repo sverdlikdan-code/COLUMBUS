@@ -94,7 +94,7 @@
         overflow: visible !important;
       }
       body.printing-expiry #expiry-grid > div { break-inside: avoid; width: auto !important; flex-shrink: 1 !important; min-width: 0 !important; }
-      body.printing-expiry #expiry-grid > .expiry-sec-hdr { grid-column: 1 / -1; }
+      body.printing-expiry #expiry-grid > .expiry-sec-hdr { display: none !important; }
       body.printing-expiry .grid-page-break { display: block !important; grid-column: 1 / -1; break-before: page; height: 0; margin: 0; padding: 0; }
 
 
@@ -2215,106 +2215,40 @@ function _orderRestoreVersion(index) {
   buildOrderPage();
 }
 
-function exportOrderCsv() {
+const ORDER_EXPORT_API = 'https://api.sverdlik-apps.site/api/export-order-xlsx';
+
+async function exportOrderCsv() {
   // Export all visible rows; if ORDER ONLY mode is active — already filtered to orders only
   const rows = window._orderCurrentRows || [];
   if (!rows.length) { alert('אין מוצרים להזמנה'); return; }
 
-  const today = new Date();
-  const dateStr = today.toLocaleDateString('he-IL', { year:'numeric', month:'2-digit', day:'2-digit' });
-  const periods = [...(window._orderSelectedPeriods || [])].join(', ');
+  const periods  = [...(window._orderSelectedPeriods || [])].join(', ');
   const modeNote = window._orderOnlyMode ? ' | מסנן: הזמנה בלבד' : '';
+  const payloadRows = rows.map(r => ({
+    name: r.name, mk: r.mk, fam: r.fam,
+    ean: (typeof makatEan !== 'undefined' ? makatEan[String(r.mk)] : '') || '',
+    spo: r.spo, palSpo: r.palSpo, openOrders: r.openOrders,
+    daySales: r.daySales, daysStk: r.daysStk, safetyDays: r.safetyDays,
+    orderK: r.orderK, orderP: r.orderP,
+  }));
 
-  const col = (bg, fg, bold) =>
-    `background:${bg};color:${fg};${bold?'font-weight:bold;':''}font-family:Arial,sans-serif;font-size:10pt;padding:6px 8px;border:1px solid #d0d7de;`;
-
-  const HDR   = col('#1e3a5f','#ffffff',true);
-  const META  = col('#f0f4ff','#374151',false);
-  const SUBHD = col('#e8f0fe','#1e40af',true);
-  const EVEN  = col('#f9fafb','#111827',false);
-  const ODD   = col('#ffffff','#111827',false);
-  const ORDER_EVEN = col('#ecfdf5','#065f46',false);
-  const ORDER_ODD  = col('#f0fdf4','#065f46',false);
-  const NUM   = 'text-align:center;';
-  const RTL   = 'text-align:right;direction:rtl;';
-  const TXT   = 'text-align:center;mso-number-format:"@";';  // forces Excel text (no scientific notation)
-
-  const cols = [
-    { h:'תאור',                  s:RTL,  w:240 },
-    { h:'מק"ט',                  s:TXT,  w:65  },
-    { h:'ברקוד EAN',             s:TXT,  w:130 },
-    { h:'משפחה',                 s:RTL,  w:120 },
-    { h:'מלאי+הזמנות (קרט)',     s:NUM,  w:85  },
-    { h:'PAL מלאי',              s:NUM,  w:60  },
-    { h:'הזמנות פתוחות 🚛',       s:NUM,  w:80  },
-    { h:'מכר קרט/יום',           s:NUM,  w:70  },
-    { h:'לכמה ימים',             s:NUM,  w:60  },
-    { h:'ימי בטחון',             s:NUM,  w:60  },
-    { h:'הזמנה KARTON',          s:NUM,  w:80  },
-    { h:'הזמנה PALLET',          s:NUM,  w:70  },
-  ];
-  const numCols = cols.length;
-
-  const cell = (val, base, extra='') =>
-    `<td style="${base}${extra}white-space:nowrap;">${val ?? ''}</td>`;
-
-  let tbody = '';
-  rows.forEach((r, i) => {
-    const hasOrder = r.orderK > 0;
-    const base = hasOrder ? (i % 2 === 0 ? ORDER_EVEN : ORDER_ODD) : (i % 2 === 0 ? EVEN : ODD);
-    const ean  = (typeof makatEan !== 'undefined' ? makatEan[String(r.mk)] : '') || '';
-    const ds   = r.daySales > 0 ? (r.daySales >= 1 ? Math.round(r.daySales) : r.daySales.toFixed(1)) : '—';
-    const dstk = r.daysStk !== null ? Math.round(r.daysStk) : '—';
-    tbody += `<tr>
-      ${cell(r.name || '', base, RTL)}
-      ${cell(r.mk, base, TXT)}
-      ${cell(ean, base, TXT)}
-      ${cell(r.fam || '', base, RTL)}
-      ${cell(r.spo, base, NUM)}
-      ${cell(r.palSpo > 0 ? r.palSpo.toFixed(1) : 0, base, NUM)}
-      ${cell(r.openOrders || 0, base, NUM)}
-      ${cell(ds, base, NUM)}
-      ${cell(dstk, base, NUM)}
-      ${cell(r.safetyDays, base, NUM)}
-      ${cell(hasOrder ? r.orderK : '', base, NUM + (hasOrder ? 'font-weight:700;color:#065f46;' : ''))}
-      ${cell(hasOrder ? r.orderP.toFixed(1) : '', base, NUM + (hasOrder ? 'font-weight:700;color:#065f46;' : ''))}
-    </tr>`;
-  });
-
-  const colWidths = cols.map(c => `<col width="${c.w}">`).join('');
-  const hdrCells  = cols.map(c => `<th style="${HDR}${c.s}">${c.h}</th>`).join('');
-
-  const totalOrder = rows.filter(r=>r.orderK>0).reduce((s,r)=>s+r.orderK,0);
-  const totalPal   = rows.filter(r=>r.orderK>0).reduce((s,r)=>s+r.orderP,0);
-
-  const html = `<html xmlns:x="urn:schemas-microsoft-com:office:excel">
-<head><meta charset="utf-8">
-<xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>
-<x:Name>הזמנה דגים</x:Name>
-<x:WorksheetOptions><x:DisplayRightToLeft/></x:WorksheetOptions>
-</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml>
-</head>
-<body dir="rtl">
-<table border="0" cellspacing="0" cellpadding="0">
-  ${colWidths}
-  <tr><td colspan="${numCols}" style="${col('#1e3a5f','#fff',true)}font-size:13pt;padding:10px 14px;border:none;">
-    🐟 הזמנת דגים FORMULA &nbsp;&nbsp; <span style="font-size:10pt;font-weight:normal;color:#93c5fd;">תאריך: ${dateStr}${periods ? ' | תקופה: '+periods : ''}${modeNote}</span>
-  </td></tr>
-  <tr><td colspan="${numCols}" style="${col('#f0f4ff','#6b7280',false)}font-size:9pt;padding:4px 14px;border:none;">
-    סה"כ הזמנה: <b>${Math.round(totalOrder).toLocaleString('en')} קרטונים</b> | ${Math.round(totalPal * 10) / 10} PALLET | ${rows.length} מוצרים (${rows.filter(r=>r.orderK>0).length} להזמנה)
-  </td></tr>
-  <tr>${hdrCells}</tr>
-  ${tbody}
-</table>
-</body></html>`;
-
-  const blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `order-dagim-${today.toISOString().slice(0,10)}.xls`;
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a); URL.revokeObjectURL(url);
+  try {
+    const resp = await fetch(ORDER_EXPORT_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rows: payloadRows, periods, modeNote }),
+    });
+    if (!resp.ok) throw new Error('export failed');
+    const blob = await resp.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `order-dagim-${new Date().toISOString().slice(0,10)}.xlsx`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  } catch (err) {
+    alert('השרת לא הגיב — לא ניתן לייצא כרגע');
+  }
 }
 
 const _orderPeriodCache = {};  // cleared on each page-load; in-session only
