@@ -132,7 +132,7 @@ async function dax(token, query) {
   const bdMakatSet = new Set();
   for (const [bay, bd] of Object.entries(bdPicks)) {
     const data = makatDataMap[bd.makat];
-    picks[bay] = { makat: bd.makat, fam: data?.fam || bd.fam || null, name: data?.name || bd.name || null };
+    picks[bay] = { makat: bd.makat, fam: data?.fam || bd.fam || null, name: data?.name || bd.name || null, printOrder: bd.printOrder ?? null };
     bdMakatSet.add(String(bd.makat));
   }
 

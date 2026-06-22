@@ -15,11 +15,12 @@ function loadBreiraDefault(sectionName) {
   // Line 1 = headers
   const headers = lines[0].split(',').map(h => h.trim());
   const idx = {
-    mahlaka: headers.indexOf('מחלקה'),
-    bay:     headers.indexOf('בי'),
-    makat:   headers.indexOf('מקט'),
-    name:    headers.indexOf('שם'),
-    fam:     headers.indexOf('משפחה'),
+    mahlaka:    headers.indexOf('מחלקה'),
+    bay:        headers.indexOf('בי'),
+    makat:      headers.indexOf('מקט'),
+    name:       headers.indexOf('שם'),
+    fam:        headers.indexOf('משפחה'),
+    printOrder: headers.indexOf('סדר הדפסה'),
   };
 
   if (idx.mahlaka < 0 || idx.bay < 0 || idx.makat < 0)
@@ -34,7 +35,9 @@ function loadBreiraDefault(sectionName) {
     const makat = (cols[idx.makat] || '').trim();
     const name  = idx.name >= 0 ? (cols[idx.name] || '').trim() || null : null;
     const fam   = idx.fam  >= 0 ? (cols[idx.fam]  || '').trim() || null : null;
-    if (bay && makat) result[bay] = { makat, fam, name };
+    const printOrderRaw = idx.printOrder >= 0 ? (cols[idx.printOrder] || '').trim() : '';
+    const printOrder = printOrderRaw !== '' && !isNaN(Number(printOrderRaw)) ? Number(printOrderRaw) : null;
+    if (bay && makat) result[bay] = { makat, fam, name, printOrder };
   }
   return result;
 }
