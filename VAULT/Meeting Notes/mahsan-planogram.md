@@ -156,3 +156,13 @@ Pending: scheduled build запишет nameEn → карточки получа
 - Коммит: `5ca97f4`
 
 Pending: визуальная проверка в браузере не выполнена; `build-planogram.js` + `workflow-doctor.js` (финальные шаги прод-workflow) не запускались локально — параллель с прод-сборкой не на 100%.
+
+**Визуальная проверка + найден второй баг (тот же день, продолжение):**
+
+- Puppeteer-проверка (headless, временный static-сервер) подтвердила: таблица מיקום и `exportCSV()`/`exportCSVAll()` действительно сортируют по одному и тому же `_getPrintOrder()` — 3 SKU "+300" (413001/413002/413000, printOrder 506-508) корректно уходят в конец списка, остальные 20 PRESIDENT-позиций (printOrder 235-254) — в середине. Подтверждено идентичным кодом обоих мест (`sectionReserveStart(sec)` + `.filter(pick => +pick < reserveStart)`).
+- **Юзер показал скриншот живой страницы — порядок не совпадал ни с בי, ни с новым סדר הדפסה.** Причина: `_getPrintOrder()` сначала проверяет localStorage `mahsan_print_order_<sec>` (ручная drag/▲▼ перестановка) и, если она есть, **навсегда** перекрывает Excel-данные — даже после ребилда base.json с новым `printOrder`. Версионный ресет (`kapua_base_v`/`halavi_base_v`/`dagim_base_v`/`yavesh_base_v`) обновлял `state[sec]` из свежего JSON, но никогда не трогал этот отдельный localStorage-ключ — старая ручная сортировка переживала любой ребилд.
+- **Фикс**: во всех 4 блоках версионного ресета в `docs/planogram-editor.html` добавлено `printOrder[sec] = null` + `localStorage.removeItem('mahsan_print_order_<sec>')` — при смене версии base.json ручной оверрайд теперь тоже сбрасывается, таблица возвращается к Excel-порядку `סדר הדפסה`.
+- Проверено Puppeteer: искусственно выставили `halavi_base_v=STALE-OLD-VERSION` + фейковый `mahsan_print_order_halavi` → после reload оба ключа очистились, таблица отрисовалась по свежему printOrder.
+- Коммит: `5a2b2dd` → push.
+
+Pending: `build-planogram.js` + `workflow-doctor.js` всё ещё не прогнаны локально (прод-паритет).
