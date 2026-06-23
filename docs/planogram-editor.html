@@ -2237,13 +2237,17 @@ async function exportOrderCsv() {
 
   const periods  = [...(window._orderSelectedPeriods || [])].join(', ');
   const modeNote = window._orderOnlyMode ? ' | מסנן: הזמנה בלבד' : '';
-  const payloadRows = rows.map(r => ({
-    name: r.name, mk: r.mk, fam: r.fam,
-    ean: (typeof makatEan !== 'undefined' ? makatEan[String(r.mk)] : '') || '',
-    spo: r.spo, palSpo: r.palSpo, openOrders: r.openOrders,
-    daySales: r.daySales, daysStk: r.daysStk, safetyDays: r.safetyDays,
-    orderK: r.orderK, orderP: r.orderP,
-  }));
+  const payloadRows = rows.map(r => {
+    const photo = getPhotoUrl(r.mk);
+    return {
+      name: r.name, mk: r.mk, fam: r.fam,
+      ean: (typeof makatEan !== 'undefined' ? makatEan[String(r.mk)] : '') || '',
+      spo: r.spo, palSpo: r.palSpo, openOrders: r.openOrders,
+      daySales: r.daySales, daysStk: r.daysStk, safetyDays: r.safetyDays,
+      orderK: r.orderK, orderP: r.orderP,
+      photoUrl: photo ? new URL(photo, location.href).href : '',
+    };
+  });
 
   try {
     const resp = await fetch(ORDER_EXPORT_API, {
@@ -2449,6 +2453,8 @@ function buildOrderPage() {
   for (const r of rows) (groups[getGrp(r)] || (groups[getGrp(r)] = [])).push(r);
   // Sort alphabetically by שם מוצר, independent of הזמנה/orderK
   for (const g of Object.values(groups)) g.sort((a, b) => String(a.name).localeCompare(String(b.name), 'he'));
+  // Keep the export (window._orderCurrentRows) in the exact same order as the table below
+  window._orderCurrentRows = grpOrder.flatMap(g => groups[g] || []);
 
   const _th = (extra='') => `position:sticky;top:0;z-index:5;background:#1a1a2e;color:#fff;padding:8px 6px;font-size:10px;font-weight:600;${extra}`;
   const thead = `<thead>

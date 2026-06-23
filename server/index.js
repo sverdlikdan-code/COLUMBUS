@@ -1412,6 +1412,7 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
     ws.getRow(3).height = 18;
 
     const tableCols = [
+      { name: 'תמונה', key: 'photo', width: 8, totalsRowFunction: 'none' },
       { name: 'תאור', key: 'name', width: 38, totalsRowFunction: 'none', totalsRowLabel: 'Total' },
       { name: 'מק"ט', key: 'mk', width: 11, totalsRowFunction: 'none' },
       { name: 'ברקוד EAN', key: 'ean', width: 18, totalsRowFunction: 'none' },
@@ -1429,6 +1430,7 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
     tableCols.forEach((c, i) => { ws.getColumn(i + 2).width = c.width; });
 
     const tableRows = rows.map(r => [
+      '',
       r.name || '',
       String(r.mk ?? ''),
       r.ean || '',
@@ -1456,6 +1458,27 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
     ws.getRow(HEADER_ROW).font = { bold: true, color: { argb: 'FFFFFFFF' }, name: 'Calibri' };
     ws.getRow(HEADER_ROW + 1 + tableRows.length).font = { bold: true, name: 'Calibri' };
     ws.views[0] = { rightToLeft: true, state: 'frozen', ySplit: HEADER_ROW };
+
+    // Embed product photos in the photo column, fetched from the URL the client resolved
+    const DATA_START_ROW = HEADER_ROW + 1;
+    const PHOTO_SIZE = 40;
+    for (let i = 0; i < rows.length; i++) ws.getRow(DATA_START_ROW + i).height = 32;
+    await Promise.all(rows.map(async (r, i) => {
+      if (!r.photoUrl) return;
+      try {
+        const resp = await fetch(r.photoUrl, { signal: AbortSignal.timeout(4000) });
+        if (!resp.ok) return;
+        const ct = resp.headers.get('content-type') || '';
+        const extension = /png/i.test(ct) || /\.png(\?|$)/i.test(r.photoUrl) ? 'png'
+          : /gif/i.test(ct) || /\.gif(\?|$)/i.test(r.photoUrl) ? 'gif' : 'jpeg';
+        const buffer = Buffer.from(await resp.arrayBuffer());
+        const imageId = wb.addImage({ buffer, extension });
+        ws.addImage(imageId, {
+          tl: { col: 1.1, row: (DATA_START_ROW - 1) + i + 0.1 },
+          ext: { width: PHOTO_SIZE, height: PHOTO_SIZE },
+        });
+      } catch { /* missing/unreachable photo — leave cell blank */ }
+    }));
 
     const date = today.toISOString().slice(0, 10);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
