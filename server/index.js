@@ -155,7 +155,21 @@ function loadAgentList() {
   if (agentListCache) return agentListCache;
   try {
     const raw = fs.readFileSync(path.join(__dirname, '..', 'docs', 'formula-road-data.json'), 'utf8');
-    agentListCache = JSON.parse(raw).agents || {};
+    const data = JSON.parse(raw);
+    if (data.agents && Object.keys(data.agents).length > 0) {
+      agentListCache = data.agents;
+    } else if (data.agentsByManager) {
+      const map = {};
+      for (const list of Object.values(data.agentsByManager)) {
+        for (const a of list) {
+          const c = String(a.agentCode || '');
+          if (c && !map[c]) map[c] = { name: a.agentName || '' };
+        }
+      }
+      agentListCache = map;
+    } else {
+      agentListCache = {};
+    }
     return agentListCache;
   } catch { return {}; }
 }
