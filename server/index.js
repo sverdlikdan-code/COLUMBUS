@@ -1321,31 +1321,52 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
   }
 
   try {
-    const [rows, totRes] = await Promise.all([
+    // Query 1 — stable: daySales only (proven to work)
+    const rows = await executeDax(`
+      EVALUATE
+      SUMMARIZECOLUMNS(
+        'ALL_PARTS'[מק'ט],
+        ${dateFilter},
+        'ALL_PARTS'[חברה] = "FORMULA",
+        "daySales", [TOTAL מכר בקרטונים ממוצע ביום]
+      )
+    `);
+
+    // Query 2 — optional: mkrTk + branchy (fail silently if measure doesn't exist)
+    const [extRows, totRes] = await Promise.all([
       executeDax(`
         EVALUATE
         SUMMARIZECOLUMNS(
           'ALL_PARTS'[מק'ט],
           ${dateFilter},
           'ALL_PARTS'[חברה] = "FORMULA",
-          "daySales", [TOTAL מכר בקרטונים ממוצע ביום],
-          "mkrTk",    [TOTAL מכר בקרטונים],
-          "branchy",  [סניפים2  שקנו]
+          "mkrTk",   [TOTAL מכר בקרטונים],
+          "branchy", [סניפים2  שקנו]
         )
-      `),
+      `).catch(() => null),
       executeDax(`
         EVALUATE
         ROW("tot", CALCULATE([DIST COUNT מ.CAT 7], ALL('ALL_PARTS'), 'ALL_PARTS'[ASHMADOT] IN {"-מכר-"}, 'משטח'[סטטוס] IN {"פעיל"}))
       `).catch(() => null),
     ]);
+
     const totalBranchy = totRes?.[0]?.['[tot]'] ?? null;
+
+    // Build ext lookup by מק"ט
+    const extMap = {};
+    if (extRows) {
+      for (const r of extRows) {
+        const mk = r["ALL_PARTS[מק'ט]"];
+        if (mk != null) extMap[String(mk)] = { mkrTk: r['[mkrTk]'] ?? null, branchy: r['[branchy]'] ?? null };
+      }
+    }
+
     const data = {};
     for (const r of rows) {
       const mk = r["ALL_PARTS[מק'ט]"];
       if (mk != null) data[String(mk)] = {
         daySales: r['[daySales]'] ?? null,
-        mkrTk:    r['[mkrTk]']   ?? null,
-        branchy:  r['[branchy]'] ?? null,
+        ...(extMap[String(mk)] || {}),
       };
     }
     res.json({ ok: true, data, totalBranchy });
