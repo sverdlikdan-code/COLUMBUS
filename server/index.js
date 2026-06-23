@@ -1409,24 +1409,29 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
     sumCell.alignment = { horizontal: 'right', vertical: 'middle' };
     ws.getRow(3).height = 18;
 
+    // Photo column (B) + data columns (C onward)
+    const PHOTO_COL = 2;  // Excel column B
+    ws.getColumn(PHOTO_COL).width = 7;
+
     const tableCols = [
-      { name: 'תאור', key: 'name', width: 38, totalsRowFunction: 'none', totalsRowLabel: 'Total' },
-      { name: 'מק"ט', key: 'mk', width: 11, totalsRowFunction: 'none' },
-      { name: 'ברקוד EAN', key: 'ean', width: 18, totalsRowFunction: 'none' },
-      { name: 'משפחה', key: 'fam', width: 18, totalsRowFunction: 'none' },
-      { name: 'מלאי+הזמנות (קרט)', key: 'spo', width: 14, totalsRowFunction: 'sum' },
-      { name: 'PAL מלאי', key: 'palSpo', width: 10, totalsRowFunction: 'sum' },
-      { name: 'הזמנות פתוחות', key: 'openOrders', width: 13, totalsRowFunction: 'sum' },
-      { name: 'מכר קרט/יום', key: 'daySales', width: 12, totalsRowFunction: 'sum' },
-      { name: 'לכמה ימים', key: 'daysStk', width: 10, totalsRowFunction: 'sum' },
-      { name: 'ימי בטחון', key: 'safetyDays', width: 10, totalsRowFunction: 'sum' },
-      { name: 'הזמנה KARTON', key: 'orderK', width: 13, totalsRowFunction: 'sum' },
-      { name: 'הזמנה PALLET', key: 'orderP', width: 13, totalsRowFunction: 'sum' },
+      { name: 'תמונה',             width: 7,  totalsRowFunction: 'none' },
+      { name: 'תאור',              width: 38, totalsRowFunction: 'none', totalsRowLabel: 'Total' },
+      { name: 'מק"ט',             width: 11, totalsRowFunction: 'none' },
+      { name: 'ברקוד EAN',         width: 18, totalsRowFunction: 'none' },
+      { name: 'משפחה',             width: 18, totalsRowFunction: 'none' },
+      { name: 'מלאי+הזמנות (קרט)', width: 14, totalsRowFunction: 'sum' },
+      { name: 'PAL מלאי',          width: 10, totalsRowFunction: 'sum' },
+      { name: 'הזמנות פתוחות',    width: 13, totalsRowFunction: 'sum' },
+      { name: 'מכר קרט/יום',      width: 12, totalsRowFunction: 'sum' },
+      { name: 'לכמה ימים',         width: 10, totalsRowFunction: 'sum' },
+      { name: 'ימי בטחון',         width: 10, totalsRowFunction: 'sum' },
+      { name: 'הזמנה KARTON',      width: 13, totalsRowFunction: 'sum' },
+      { name: 'הזמנה PALLET',      width: 13, totalsRowFunction: 'sum' },
     ];
-    // +1 to skip the blank margin column A
     tableCols.forEach((c, i) => { ws.getColumn(i + 2).width = c.width; });
 
     const tableRows = rows.map(r => [
+      '',  // photo placeholder
       r.name || '',
       String(r.mk ?? ''),
       r.ean || '',
@@ -1441,7 +1446,7 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
       r.orderK > 0 ? Math.round(r.orderP * 10) / 10 : 0,
     ]);
 
-    const HEADER_ROW = 5; // row 1 blank margin, 2 title, 3 summary, 4 blank, 5 header
+    const HEADER_ROW = 5;
     ws.addTable({
       name: 'OrderDagim',
       ref: `B${HEADER_ROW}`,
@@ -1454,6 +1459,29 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
     ws.getRow(HEADER_ROW).font = { bold: true, color: { argb: 'FFFFFFFF' }, name: 'Calibri' };
     ws.getRow(HEADER_ROW + 1 + tableRows.length).font = { bold: true, name: 'Calibri' };
     ws.views[0] = { rightToLeft: true, state: 'frozen', ySplit: HEADER_ROW };
+
+    // Fetch and embed product photos in parallel (skip failures silently)
+    const IMG_ROW_HEIGHT = 38;
+    await Promise.all(rows.map(async (r, i) => {
+      if (!r.photoUrl) return;
+      try {
+        const resp = await fetch(r.photoUrl, {
+          headers: { 'User-Agent': 'Mozilla/5.0' },
+          signal: AbortSignal.timeout(4000),
+        });
+        if (!resp.ok) return;
+        const buf = Buffer.from(await resp.arrayBuffer());
+        const ext = /\.png(\?|$)/i.test(r.photoUrl) ? 'png' : 'jpeg';
+        const imgId = wb.addImage({ buffer: buf, extension: ext });
+        const excelRow = HEADER_ROW + 1 + i;  // 1-indexed Excel row
+        ws.addImage(imgId, {
+          tl: { col: PHOTO_COL - 1 + 0.06, row: excelRow - 1 + 0.06 },
+          br: { col: PHOTO_COL      - 0.06, row: excelRow     - 0.06 },
+          editAs: 'oneCell',
+        });
+        ws.getRow(excelRow).height = IMG_ROW_HEIGHT;
+      } catch { /* skip */ }
+    }));
 
     const date = today.toISOString().slice(0, 10);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
