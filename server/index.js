@@ -1467,8 +1467,8 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
     const tableRows = rows.map(r => [
       '',  // photo placeholder
       r.name || '',
-      String(r.mk ?? ''),
-      r.ean || '',
+      r.mk != null && r.mk !== '' ? (isNaN(Number(r.mk)) ? r.mk : Number(r.mk)) : '',
+      r.ean != null && r.ean !== '' ? (isNaN(Number(r.ean)) ? r.ean : Number(r.ean)) : '',
       r.fam || '',
       r.spo ?? 0,
       r.palSpo ? Math.round(r.palSpo * 10) / 10 : 0,
@@ -1486,13 +1486,24 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
       ref: `B${HEADER_ROW}`,
       headerRow: true,
       totalsRow: true,
-      style: { theme: 'TableStyleMedium9', showRowStripes: true },
+      style: { theme: 'TableStyleLight9', showRowStripes: true },
       columns: tableCols.map(c => ({ name: c.name, filterButton: true, totalsRowFunction: c.totalsRowFunction, totalsRowLabel: c.totalsRowLabel })),
       rows: tableRows,
     });
     ws.getRow(HEADER_ROW).font = { bold: true, color: { argb: 'FFFFFFFF' }, name: 'Calibri' };
     ws.getRow(HEADER_ROW + 1 + tableRows.length).font = { bold: true, name: 'Calibri' };
     ws.views[0] = { rightToLeft: true, state: 'frozen', ySplit: HEADER_ROW };
+
+    // Center-align all table cells (header + data + totals)
+    const TAUR_COL = PHOTO_COL + 1; // תאור column — keep right-aligned (RTL name)
+    for (let ri = 0; ri <= tableRows.length + 1; ri++) {
+      const row = ws.getRow(HEADER_ROW + ri);
+      row.eachCell({ includeEmpty: false }, (cell, colNum) => {
+        cell.alignment = colNum === TAUR_COL && ri > 0
+          ? { horizontal: 'right', vertical: 'middle', wrapText: true }
+          : { horizontal: 'center', vertical: 'middle', wrapText: true };
+      });
+    }
 
     // Fetch and embed product photos — use ext (pixels) not br to ensure image fills cell
     const IMG_PX = 90;        // photo display size in pixels
