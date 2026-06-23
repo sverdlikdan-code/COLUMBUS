@@ -84,3 +84,24 @@ s = s.replace(/(\d+)ג['‘’׳ʼ´`]/g, '$1 ג ');
 - Создан `docs/mmd-orders.html` — статичная версия приложения
 - Загружены первичные данные: 424 продукта, период май-июнь 2026
 - Секрет `PBI_MMD_DATASET` добавлен пользователем, первый автозапуск CI: 16:00 UTC = 19:00 IST 2026-06-17
+
+### 2026-06-23 #resolved ✅ Excel-экспорт ломался при открытии
+
+**Симптом:** пользователь получил `MMD-Order-23.6.2026.xlsx`, при открытии в Excel — диалог "We found a problem with some content... Do you want us to try to recover?", repair-log: `Removed Feature: AutoFilter from /xl/tables/table1.xml part (Table)` + `Removed Feature: Table from /xl/tables/table1.xml part (Table)`.
+
+**Root cause (подтверждён живой репродукцией через Puppeteer):** баг в библиотеке `exceljs@4.4.0` (CDN, `node_modules/exceljs/lib/xlsx/xform/table/table-xform.js`):
+```js
+totalsRowCount: model.totalsRow ? '1' : undefined,
+totalsRowShown: model.totalsRow ? undefined : '1',   // ← инвертировано
+```
+При `ws.addTable({ totalsRow: false, ... })` (как в `window.exportXL()`) высота таблицы (`ref`) правильно НЕ включает доп. строку (`table.js:126`), но рендер всё равно пишет `totalsRowShown="1"` в `xl/tables/table1.xml`. Несоответствие `ref` ↔ `totalsRowShown` — ровно то, что триггерит Excel's "file level validation and repair" и вырезает Table/AutoFilter.
+
+Менять `totalsRow: true` нельзя — это раздвинуло бы `ref` Table ровно на следующую строку, которая уже занята вручную написанной строкой "סה"כ" (summary row), и затёрло бы её.
+
+**Фикс (применён в обоих файлах — `docs/mmd-orders.html` и `MMD ORDERS/index.html`, это НЕ синхронные копии, разошлись по фетчу данных/фону/путям):** убрали `ws.addTable()` целиком. Вместо Table-объекта — обычный header row (вручную стилизованный: bold, fill `4472C4`, border) + `ws.autoFilter = { from:{row:5,column:1}, to:{row:5+tableData.length,column:8} }` (plain autoFilter, без Table XML) + ручная запись значений строк + ручное чередование цвета строк (`F2F5FB`) для имитации banded rows темы `TableStyleMedium2`.
+
+**Верификация:** Puppeteer-репродукция (перехват Blob через monkey-patch `URL.createObjectURL`) на патченном файле → `unzip -t` без ошибок, в архиве больше нет `xl/tables/` вообще, `[Content_Types].xml` не содержит ссылок на table — корректный OOXML.
+
+**Коммит:** `cc51f1c` — `fix(docs): убрать ws.addTable из экспорта MMD Order — баг exceljs totalsRowShown`, запушено в `master` (`dfc20bd..cc51f1c`).
+
+**Не затронуто (отдельная, более низкоприоритетная находка):** в `docs/mmd-orders.json` поле `taur` показывает зеркальные скобки (`)20(` вместо `(20)`) — похоже на ещё один BiDi-косметический баг, не связан с порчей файла, пользователю не поднимался, фикс не делался.
