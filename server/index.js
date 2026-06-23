@@ -1321,22 +1321,34 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
   }
 
   try {
-    const rows = await executeDax(`
-      EVALUATE
-      SUMMARIZECOLUMNS(
-        'ALL_PARTS'[מק'ט],
-        ${dateFilter},
-        'ALL_PARTS'[חברה] = "FORMULA",
-        "daySales", [TOTAL מכר בקרטונים ממוצע ביום],
-        "mkrTk",    [TOTAL מכר בקרטונים]
-      )
-    `);
+    const [rows, totRes] = await Promise.all([
+      executeDax(`
+        EVALUATE
+        SUMMARIZECOLUMNS(
+          'ALL_PARTS'[מק'ט],
+          ${dateFilter},
+          'ALL_PARTS'[חברה] = "FORMULA",
+          "daySales", [TOTAL מכר בקרטונים ממוצע ביום],
+          "mkrTk",    [TOTAL מכר בקרטונים],
+          "branchy",  [סניפים2  שקנו]
+        )
+      `),
+      executeDax(`
+        EVALUATE
+        ROW("tot", CALCULATE([DIST COUNT מ.CAT 7], ALL('ALL_PARTS'), 'ALL_PARTS'[ASHMADOT] IN {"-מכר-"}, 'משטח'[סטטוס] IN {"פעיל"}))
+      `).catch(() => null),
+    ]);
+    const totalBranchy = totRes?.[0]?.['[tot]'] ?? null;
     const data = {};
     for (const r of rows) {
       const mk = r["ALL_PARTS[מק'ט]"];
-      if (mk != null) data[String(mk)] = { daySales: r['[daySales]'] ?? null, mkrTk: r['[mkrTk]'] ?? null };
+      if (mk != null) data[String(mk)] = {
+        daySales: r['[daySales]'] ?? null,
+        mkrTk:    r['[mkrTk]']   ?? null,
+        branchy:  r['[branchy]'] ?? null,
+      };
     }
-    res.json({ ok: true, data });
+    res.json({ ok: true, data, totalBranchy });
   } catch (err) {
     console.error(err); res.status(500).json({ error: 'server_error' });
   }

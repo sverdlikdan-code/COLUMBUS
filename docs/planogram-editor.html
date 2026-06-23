@@ -417,26 +417,28 @@
 <!-- Order page — full-screen overlay for דגים הזמנה -->
 <div id="order-page" style="display:none; position:fixed; inset:0; z-index:610; background:#0b0f1a; overflow:hidden; direction:rtl; flex-direction:column;">
 
-  <!-- Row 1: top nav bar -->
-  <div style="display:flex;align-items:stretch;height:50px;background:#111827;flex-shrink:0;z-index:10;border-bottom:1px solid rgba(255,255,255,0.07);">
-    <button onclick="toggleOrderPage()" class="no-print" style="background:none;border:none;border-left:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);font-size:16px;cursor:pointer;padding:0 16px;flex-shrink:0;transition:color 0.15s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.5)'">✕</button>
-    <div style="display:flex;align-items:center;gap:10px;padding:0 16px;flex-shrink:0;">
-      <img src="logo-diler-bmd.png" alt="DILER" class="no-print" style="height:18px;filter:brightness(0) invert(1);opacity:0.55;flex-shrink:0;">
-      <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:1.2px;text-transform:uppercase;">הזמנה דגים 🐟</span>
+  <!-- Row 1: top nav bar — gradient matching MMD Orders header -->
+  <div style="display:flex;align-items:stretch;height:50px;flex-shrink:0;z-index:10;box-shadow:0 3px 14px rgba(0,0,0,.45);position:relative;overflow:hidden;background:linear-gradient(125deg,#04111f 0%,#072e52 25%,#0a5a86 58%,#4a2810 82%,#2e1608 100%);">
+    <!-- sun glow -->
+    <div style="position:absolute;left:-20px;bottom:-40px;width:320px;height:200px;background:radial-gradient(ellipse,rgba(200,110,40,0.15) 0%,transparent 65%);pointer-events:none;"></div>
+    <!-- shimmer lines -->
+    <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 9px,rgba(255,255,255,.018) 9px,rgba(255,255,255,.018) 10px);pointer-events:none;"></div>
+    <button onclick="toggleOrderPage()" class="no-print" style="background:none;border:none;border-left:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);font-size:16px;cursor:pointer;padding:0 16px;flex-shrink:0;transition:color 0.15s;position:relative;z-index:1;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.5)'">✕</button>
+    <div style="display:flex;align-items:center;gap:10px;padding:0 16px;flex-shrink:0;position:relative;z-index:1;">
+      <img src="logo-diler-bmd.png" alt="DILER" class="no-print" style="height:18px;filter:brightness(0) invert(1);opacity:0.7;flex-shrink:0;">
+      <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);letter-spacing:1.2px;text-transform:uppercase;">הזמנה דגים 🐟</span>
     </div>
-    <div style="width:1px;background:rgba(255,255,255,0.08);flex-shrink:0;margin:10px 0;"></div>
-    <!-- Period selector inline — replaces empty space -->
-    <div id="ord-period-btns" style="display:flex;flex:1;min-width:0;overflow:hidden;padding:0 10px;align-items:center;gap:3px;direction:ltr;" class="no-print"></div>
-    <div id="ord-summary-inline" style="display:flex;align-items:stretch;" class="no-print"></div>
-    <div style="width:1px;background:rgba(255,255,255,0.08);flex-shrink:0;margin:10px 0;" class="no-print"></div>
-    <!-- Print button — visible with label -->
-    <button onclick="window.print()" class="no-print" style="background:none;border:none;border-right:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);font-size:13px;cursor:pointer;padding:0 16px;flex-shrink:0;display:flex;align-items:center;gap:5px;white-space:nowrap;" title="הדפסה">
+    <div style="width:1px;background:rgba(255,255,255,0.08);flex-shrink:0;margin:10px 0;position:relative;z-index:1;"></div>
+    <div id="ord-period-btns" style="display:flex;flex:1;min-width:0;overflow:hidden;padding:0 10px;align-items:center;gap:3px;direction:ltr;position:relative;z-index:1;" class="no-print"></div>
+    <div id="ord-summary-inline" style="display:flex;align-items:stretch;position:relative;z-index:1;" class="no-print"></div>
+    <div style="width:1px;background:rgba(255,255,255,0.08);flex-shrink:0;margin:10px 0;position:relative;z-index:1;" class="no-print"></div>
+    <button onclick="window.print()" class="no-print" style="background:none;border:none;border-right:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);font-size:13px;cursor:pointer;padding:0 16px;flex-shrink:0;display:flex;align-items:center;gap:5px;white-space:nowrap;position:relative;z-index:1;" title="הדפסה">
       🖨 <span style="font-size:10px;font-weight:600;letter-spacing:.4px;">הדפסה</span>
     </button>
   </div>
 
   <!-- Row 2: action buttons + IKRA/SAL/KAPUS group chip filters -->
-  <div style="display:flex;align-items:center;gap:5px;padding:0 14px;background:#0d1424;flex-shrink:0;z-index:9;border-bottom:1px solid rgba(255,255,255,0.05);height:42px;" class="no-print">
+  <div style="display:flex;align-items:center;gap:5px;padding:0 14px;background:rgba(4,17,31,0.92);flex-shrink:0;z-index:9;border-bottom:1px solid rgba(255,255,255,0.06);height:42px;" class="no-print">
     <button onclick="exportOrderCsv()" style="background:#1d4ed8;border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:5px 15px;white-space:nowrap;flex-shrink:0;letter-spacing:.3px;">⬇ Excel</button>
     <button onclick="_orderSaveSnapshot()" style="background:#15803d;border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:5px 15px;white-space:nowrap;flex-shrink:0;letter-spacing:.3px;">💾 שמור</button>
     <div style="position:relative;display:inline-block;flex-shrink:0;">
@@ -2333,7 +2335,10 @@ async function _applyOrderPeriods() {
         data = (j && j.ok && j.data) ? j.data : null;
         window._orderPeriodFetchFailed = !data;
         if (!data) console.error('[ord-periods] unexpected response, falling back to static daySalesAll:', j);
-        if (data) _orderPeriodCache[cacheKey] = data;
+        if (data) {
+          _orderPeriodCache[cacheKey] = data;
+          if (j.totalBranchy != null) window._orderTotalBranchy = j.totalBranchy;
+        }
       }
     }
     window._orderPeriodSales = data;
@@ -2393,7 +2398,12 @@ function buildOrderPage() {
       let pd = 0; for (const p of sel2) { const [y,m] = p.split('-').map(Number); pd += new Date(y,m,0).getDate(); }
       if (pd > 0) periodSales = Math.round(daySales * pd);
     }
-    allRows.push({ mk, name, fam, iksGroup, stock, spo, palSpo, openOrders, daySales, periodSales, daysStk, krat, safetyDays, safetyK, orderK, orderP, deferredDemand });
+    // פיזור — % of active clients that bought this product
+    const branchy = _psRow != null && typeof _psRow === 'object' ? (_psRow.branchy ?? null) : null;
+    const totalB  = window._orderTotalBranchy || null;
+    const pizur   = branchy != null && totalB > 0 ? Math.round(branchy / totalB * 100) : null;
+    const isStar  = pizur != null && pizur >= 60;
+    allRows.push({ mk, name, fam, iksGroup, stock, spo, palSpo, openOrders, daySales, periodSales, daysStk, krat, safetyDays, safetyK, orderK, orderP, deferredDemand, branchy, pizur, isStar });
   }
 
   // Group key: iksGroup (IKRA/SAL/KAPUS/HERRING) if available, else fam
@@ -2473,6 +2483,19 @@ function buildOrderPage() {
   for (const g of Object.values(groups)) g.sort((a, b) => String(a.name).localeCompare(String(b.name), 'he'));
 
   const _th = (extra='') => `position:sticky;top:0;z-index:5;background:#263238;color:#cfd8dc;padding:8px 6px;font-size:10px;font-weight:600;border-bottom:2px solid #37474f;${extra}`;
+  const _donut = (pct) => {
+    if (pct == null) return '<span style="color:#ccc;font-size:10px;">—</span>';
+    const r = 11, cx = 15, cy = 15, circ = 2 * Math.PI * r;
+    const fill = Math.min(pct / 100, 1) * circ;
+    const clr  = pct >= 60 ? '#4caf50' : pct >= 30 ? '#ffa726' : '#ef5350';
+    return `<svg width="30" height="30" style="vertical-align:middle;display:inline-block;">
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e0e0e0" stroke-width="4"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${clr}" stroke-width="4"
+        stroke-dasharray="${fill.toFixed(2)} ${circ.toFixed(2)}"
+        stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})"/>
+      <text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="7" fill="#333" font-weight="700">${pct}%</text>
+    </svg>`;
+  };
   const thead = `<thead>
     <tr>
       <th style="${_th('text-align:right;')}" dir="rtl">תאור</th>
@@ -2480,6 +2503,7 @@ function buildOrderPage() {
       <th style="${_th('text-align:center;')}">מלאי זמין<br>+ הזמנות</th>
       <th style="${_th('text-align:center;')}">PAL</th>
       <th style="${_th('text-align:center;')}">הזמנות<br>פתוחות</th>
+      <th style="${_th('text-align:center;color:#ce93d8;')}">פיזור<br>⬤</th>
       <th style="${_th('text-align:center;')}">KARTON<br>PER DAY</th>
       <th style="${_th('text-align:center;color:#b3e5fc;')}">מכר<br>בתקופה</th>
       <th style="${_th('text-align:center;')}">לכמה<br>ימים</th>
@@ -2541,12 +2565,14 @@ function buildOrderPage() {
       const dc  = r.daysStk === null ? '#aaa' : r.orderK > 0 ? '#c62828' : '#333';
       const hasManual = !!( window._orderManualEdits || {} )[r.mk];
       const manualBadge = hasManual ? ' <span title="הזמנה ידנית" style="font-size:9px;color:#f57f17;font-weight:700;">✏</span>' : '';
+      const starBadge   = r.isStar ? '<span title="פיזור גבוה ≥60%" style="font-size:11px;">⭐</span> ' : '';
       tbRows += `<tr class="ord-row" style="background:${bg};border-bottom:1px solid #eeeeee;">
-        <td style="padding:4px 8px;font-size:11px;font-weight:600;max-width:220px;line-height:1.3;" dir="rtl">${esc(r.name)}${manualBadge}<br><span style="font-size:8px;color:#1565c0;">${r.safetyDays}d בטחון</span> <span style="font-size:8px;color:#999;">מק"ט: ${r.mk}</span>${r.krat > 1 ? ` <span style="font-size:8px;color:#bbb;">[${r.krat} קרט/פל]</span>` : ''}</td>
+        <td style="padding:4px 8px;font-size:11px;font-weight:600;max-width:220px;line-height:1.3;" dir="rtl">${starBadge}${esc(r.name)}${manualBadge}<br><span style="font-size:8px;color:#1565c0;">${r.safetyDays}d בטחון</span> <span style="font-size:8px;color:#999;">מק"ט: ${r.mk}</span>${r.krat > 1 ? ` <span style="font-size:8px;color:#bbb;">[${r.krat} קרט/פל]</span>` : ''}</td>
         <td style="padding:4px 6px;text-align:center;">${imgHtml}</td>
         <td style="padding:4px 8px;text-align:center;font-size:13px;font-weight:700;">${fmtK(r.spo)}</td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;color:#555;">${r.palSpo > 0 ? r.palSpo.toFixed(1) : '—'}</td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;font-weight:${r.openOrders > 0 ? '700' : '400'};color:${r.openOrders > 0 ? '#2e7d32' : '#bbb'};">${r.openOrders > 0 ? fmtK(r.openOrders) : '—'}</td>
+        <td style="padding:2px 4px;text-align:center;">${_donut(r.pizur)}</td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;">${r.daySales > 0 ? (r.daySales >= 1 ? Math.round(r.daySales) : r.daySales.toFixed(1)) : '—'}</td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;font-weight:${r.periodSales ? '700' : '400'};color:${r.periodSales ? '#01579b' : '#bbb'};">${r.periodSales ? fmtK(r.periodSales) : '—'}</td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;font-weight:700;color:${dc};">${r.daysStk !== null ? Math.round(r.daysStk) : '—'}${r.deferredDemand ? ' <span title="ביקוש נדחה — מלאי מתחת למחצית מלאי הביטחון" style="cursor:help;">⚡</span>' : ''}</td>
@@ -2563,6 +2589,7 @@ function buildOrderPage() {
     <td style="padding:7px 6px;text-align:center;font-size:13px;font-weight:700;">${fmtK(gtSpo)}</td>
     <td style="padding:7px 6px;text-align:center;font-size:12px;font-weight:700;">${gtPalSpo.toFixed(1)}</td>
     <td style="padding:7px 6px;text-align:center;font-size:13px;font-weight:700;color:#a5d6a7;">${gtOpenOrders > 0 ? fmtK(gtOpenOrders) : '—'}</td>
+    <td style="padding:7px 6px;"></td>
     <td style="padding:7px 6px;"></td>
     <td style="padding:7px 6px;text-align:center;font-size:13px;font-weight:800;color:#b3e5fc;">${gtPeriodSales > 0 ? fmtK(gtPeriodSales) : '—'}</td>
     <td style="padding:7px 6px;"></td>
