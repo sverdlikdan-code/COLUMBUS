@@ -1290,6 +1290,16 @@ app.get('/api/mekarer-export', requireAuth, async (req, res) => {
   }
 });
 
+// GET /pbi/formula-refresh — last PBI dataset refresh time for FORMULA dataset
+app.get('/pbi/formula-refresh', async (req, res) => {
+  try {
+    const t = await getDatasetRefreshTime(process.env.POWERBI_DATASET_ID);
+    res.json({ ok: true, refreshedAt: t });
+  } catch (err) {
+    res.json({ ok: false, refreshedAt: null });
+  }
+});
+
 // GET /pbi/dagim-sales?periods=2026-5,2026-6 — live sales for הזמנה period filter (combined period)
 // Legacy single-month form also supported: ?year=2026&month=5
 app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
