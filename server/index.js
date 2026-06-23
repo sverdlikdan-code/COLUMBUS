@@ -1402,8 +1402,8 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
     // Column A and row 1 are left blank on purpose — visual margin so the
     // table doesn't start flush against the sheet edge (approved style, see
     // memory feedback_excel_style.md).
-    ws.getColumn(1).width = 3;
-    ws.getRow(1).height = 6;
+    ws.getColumn(1).width = 10;
+    ws.getRow(1).height = 22;
 
     // Plain (non-merged) info rows above the table — merged cells block Excel's
     // "Format as Table" / smart-table autofilter from working cleanly.
@@ -1497,6 +1497,88 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
     const date = today.toISOString().slice(0, 10);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="order-dagim-${date}.xlsx"`);
+    await wb.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    console.error(err); res.status(500).json({ error: 'server_error' });
+  }
+});
+
+// ── POSITION TABLE XLSX (מיקום + photos) ────────────────────────────────────
+app.post('/api/export-position-xlsx', dataRateLimit, async (req, res) => {
+  try {
+    const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
+    if (!rows.length) return res.status(400).json({ error: 'missing rows' });
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'COLUMBUS';
+    const ws = wb.addWorksheet('מיקום', { views: [{ rightToLeft: true }] });
+
+    const dateStr = new Date().toLocaleDateString('he-IL', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+    ws.getColumn(1).width = 10;
+    ws.getRow(1).height = 22;
+
+    const titleCell = ws.getCell('B2');
+    titleCell.value = `📦 טבלת מיקום FORMULA  —  תאריך: ${dateStr}`;
+    titleCell.font = { bold: true, size: 13, color: { argb: 'FFFFFFFF' }, name: 'Calibri' };
+    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } };
+    titleCell.alignment = { horizontal: 'right', vertical: 'middle' };
+    ws.getRow(2).height = 26;
+
+    const PHOTO_COL = 2;
+    ws.getColumn(PHOTO_COL).width = 14;
+
+    const HEADER_ROW = 4;
+    const tableCols = [
+      { name: 'תמונה',   width: 14, totalsRowFunction: 'none' },
+      { name: 'תאור',    width: 38, totalsRowFunction: 'none' },
+      { name: 'מק"ט',   width: 11, totalsRowFunction: 'none' },
+      { name: 'מחלקה',  width: 12, totalsRowFunction: 'none' },
+      { name: 'מיקום',  width: 9,  totalsRowFunction: 'none' },
+      { name: 'בי',      width: 9,  totalsRowFunction: 'none' },
+      { name: 'משפחה',  width: 22, totalsRowFunction: 'none' },
+    ];
+
+    tableCols.forEach((c, i) => { ws.getColumn(PHOTO_COL + i).width = c.width; });
+
+    const tableRows = rows.map(r => ['', r.name || '', r.makat || '', r.sec || '', r.pos || '', r.bay || '', r.fam || '']);
+    ws.addTable({
+      name: 'PositionTable',
+      ref: `B${HEADER_ROW}`,
+      headerRow: true,
+      totalsRow: false,
+      style: { theme: 'TableStyleMedium2', showRowStripes: true },
+      columns: tableCols.map(c => ({ name: c.name, filterButton: true, totalsRowFunction: c.totalsRowFunction })),
+      rows: tableRows,
+    });
+
+    ws.getRow(HEADER_ROW).height = 22;
+    ws.getRow(HEADER_ROW).font = { bold: true };
+    ws.views[0] = { rightToLeft: true, state: 'frozen', ySplit: HEADER_ROW };
+
+    const IMG_ROW_HEIGHT = 76;
+    await Promise.all(rows.map(async (r, i) => {
+      if (!r.photoUrl) return;
+      try {
+        const resp = await fetch(r.photoUrl, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(4000) });
+        if (!resp.ok) return;
+        const buf = Buffer.from(await resp.arrayBuffer());
+        const ext = /\.png(\?|$)/i.test(r.photoUrl) ? 'png' : 'jpeg';
+        const imgId = wb.addImage({ buffer: buf, extension: ext });
+        const excelRow = HEADER_ROW + 1 + i;
+        ws.addImage(imgId, {
+          tl: { col: PHOTO_COL - 1 + 0.06, row: excelRow - 1 + 0.06 },
+          br: { col: PHOTO_COL      - 0.06, row: excelRow     - 0.06 },
+          editAs: 'oneCell',
+        });
+        ws.getRow(excelRow).height = IMG_ROW_HEIGHT;
+      } catch { /* skip */ }
+    }));
+
+    const date = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="position-${date}.xlsx"`);
     await wb.xlsx.write(res);
     res.end();
   } catch (err) {
