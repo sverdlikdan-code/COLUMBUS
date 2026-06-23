@@ -1502,10 +1502,6 @@ function formulaRoadGuard(req, res, next) {
 app.get('/formula-road', formulaRoadGuard, (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'formula-road.html'));
 });
-app.get('/marshrut-rud', (req, res) => {
-  if (req.query.k !== 'rud2026') return res.status(403).send('Forbidden');
-  res.sendFile(path.join(__dirname, '..', 'docs', 'marshrut-rud.html'));
-});
 // Static data files referenced via relative fetch in formula-road.html
 app.get('/gps-corrections.json', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'gps-corrections.json'));
