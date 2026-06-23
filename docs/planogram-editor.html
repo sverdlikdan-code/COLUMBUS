@@ -1031,6 +1031,18 @@ async function loadMaps() {
       document.getElementById('refresh-badge').textContent = '🔄 ' + ri.label;
     }
 
+    // Fetch real PBI refresh time (overrides static refresh-info.json date)
+    fetch('https://api.sverdlik-apps.site/pbi/formula-refresh')
+      .then(r => r.ok ? r.json() : null).catch(() => null)
+      .then(j => {
+        if (!j?.refreshedAt) return;
+        const d = new Date(j.refreshedAt);
+        const label = d.toLocaleDateString('he-IL', { day:'2-digit', month:'2-digit', year:'numeric' })
+          + ' ' + d.toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' });
+        const badge = document.getElementById('refresh-badge');
+        if (badge) badge.textContent = '🔄 PBI: ' + label;
+      });
+
     // Persist reset state so ALL users see fresh layout without manual איפוס
     if (_anyVersionReset) {
       localStorage.setItem('mahsan_editor', JSON.stringify(state));
