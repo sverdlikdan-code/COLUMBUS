@@ -16,7 +16,40 @@
       "Bash(curl -s http://localhost:3000/pbi-tables)",
       "Bash(curl -s \"http://localhost:3000/pbi-tables\")",
       "Bash(git commit -m ' *)",
-      "Bash(node -e \"const d=require\\('./docs/product-data.json'\\); const keys=Object.keys\\(d\\); console.log\\('Продуктов в product-data:', keys.length\\); const withEan=keys.filter\\(k=>d[k].ean\\); console.log\\('С EAN:', withEan.length\\); console.log\\('Примеры:', withEan.slice\\(0,3\\).map\\(k=>k+' ean='+d[k].ean\\)\\);\")"
+      "Bash(node -e \"const d=require\\('./docs/product-data.json'\\); const keys=Object.keys\\(d\\); console.log\\('Продуктов в product-data:', keys.length\\); const withEan=keys.filter\\(k=>d[k].ean\\); console.log\\('С EAN:', withEan.length\\); console.log\\('Примеры:', withEan.slice\\(0,3\\).map\\(k=>k+' ean='+d[k].ean\\)\\);\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://api.sverdlik-apps.site/planogram-editor\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://sverdlikdan-code.github.io/COLUMBUS/planogram-editor.html\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://sverdlikdan-code.github.io/COLUMBUS/\")",
+      "Bash(grep -v \"//\\\\|comment\")",
+      "Bash(curl -s -o /dev/null -w \"photo-map.json: %{http_code}\\\\n\" \"https://sverdlikdan-code.github.io/COLUMBUS/photo-map.json\")",
+      "Bash(curl -s -o /dev/null -w \"product-data.json: %{http_code}\\\\n\" \"https://sverdlikdan-code.github.io/COLUMBUS/product-data.json\")",
+      "Bash(curl -s -o /dev/null -w \"kapua-base.json: %{http_code}\\\\n\" \"https://sverdlikdan-code.github.io/COLUMBUS/kapua-base.json\")",
+      "Bash(curl -s -o /dev/null -w \"halavi-base.json: %{http_code}\\\\n\" \"https://sverdlikdan-code.github.io/COLUMBUS/halavi-base.json\")",
+      "Bash(curl -s -o /dev/null -w \"dagim-base.json: %{http_code}\\\\n\" \"https://sverdlikdan-code.github.io/COLUMBUS/dagim-base.json\")",
+      "Bash(node index.js)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NonInteractive -Command \"Write-Output '[AUTO FIN-AGENT] Sessiya startovala. Esli kontekst rastyot bystro ili sessiya >3ch — predloji polzovatelyu /compact. [AUTO SECURITY] Kazhdiy raz kogda menyaetsya server/index.js — avtomaticheski prover novye routes na: missing auth, SQL injection, otsutstvuyushiy rate-limit, XSS.'\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NonInteractive -Command \"try { $raw = [Console]::In.ReadToEnd(); $j = $raw | ConvertFrom-Json; $fp = $j.tool_input.file_path; if ($fp -match 'server[/\\\\\\\\]index\\.js') { Write-Output ('*** AUTO SECURITY-AGENT TRIGGER *** Izmenyono: ' + $fp + ' — prover novye/izmenennye routes na: 1) requireAuth middleware 2) input validation 3) SQL/NoSQL injection 4) rate limit 5) XSS escape') } } catch {}\""
+          }
+        ]
+      }
     ]
   }
 }
