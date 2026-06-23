@@ -1309,26 +1309,28 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
       }
     }
     if (!conds.length) return res.status(400).json({ error: 'no valid periods' });
-    dateFilter = `FILTER(ALL('ALL_PARTS'),${conds.join('||')})`;
+    dateFilter = `FILTER(ALL('ALL_PARTS'[תאריך]),${conds.join('||')})`;
   } else {
     const year  = parseInt(req.query.year  || '0', 10);
     const month = parseInt(req.query.month || '0', 10);
     if (!year || year < 2020 || year > 2030) return res.status(400).json({ error: 'invalid year' });
     if (month && (month < 1 || month > 12))  return res.status(400).json({ error: 'invalid month' });
     dateFilter = month
-      ? `FILTER(ALL('ALL_PARTS'),YEAR('ALL_PARTS'[תאריך])=${year}&&MONTH('ALL_PARTS'[תאריך])=${month})`
-      : `FILTER(ALL('ALL_PARTS'),YEAR('ALL_PARTS'[תאריך])=${year})`;
+      ? `FILTER(ALL('ALL_PARTS'[תאריך]),YEAR('ALL_PARTS'[תאריך])=${year}&&MONTH('ALL_PARTS'[תאריך])=${month})`
+      : `FILTER(ALL('ALL_PARTS'[תאריך]),YEAR('ALL_PARTS'[תאריך])=${year})`;
   }
 
   try {
-    // Query 1 — stable: daySales only (proven to work)
+    // Query 1: CALCULATETABLE wraps SUMMARIZECOLUMNS — filters outside, measure runs clean
     const rows = await executeDax(`
       EVALUATE
-      SUMMARIZECOLUMNS(
-        'ALL_PARTS'[מק'ט],
-        ${dateFilter},
+      CALCULATETABLE(
+        SUMMARIZECOLUMNS(
+          'ALL_PARTS'[מק'ט],
+          "daySales", [TOTAL מכר בקרטונים ממוצע ביום]
+        ),
         'ALL_PARTS'[חברה] = "FORMULA",
-        "daySales", [TOTAL מכר בקרטונים ממוצע ביום]
+        ${dateFilter}
       )
     `);
 
