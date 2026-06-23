@@ -438,7 +438,7 @@
   </div>
 
   <!-- Row 2: action buttons + IKRA/SAL/KAPUS group chip filters -->
-  <div style="display:flex;align-items:center;gap:5px;padding:0 14px;background:#0a2744;flex-shrink:0;z-index:9;border-bottom:1px solid rgba(255,255,255,0.12);height:48px;" class="no-print">
+  <div style="display:flex;align-items:center;gap:5px;padding:0 14px;background:#04111f;flex-shrink:0;z-index:9;border-bottom:1px solid rgba(255,255,255,0.12);height:52px;" class="no-print">
     <button onclick="exportOrderCsv()" style="background:#1d4ed8;border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:5px 15px;white-space:nowrap;flex-shrink:0;letter-spacing:.3px;">⬇ Excel</button>
     <button onclick="_orderSaveSnapshot()" style="background:#15803d;border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:5px 15px;white-space:nowrap;flex-shrink:0;letter-spacing:.3px;">💾 שמור</button>
     <div style="position:relative;display:inline-block;flex-shrink:0;">
@@ -2466,12 +2466,16 @@ function buildOrderPage() {
   // Populate group chip buttons
   const famBtns = document.getElementById('ord-fam-btns');
   if (famBtns) {
-    const chipAct = 'font-size:12px;padding:5px 16px;border-radius:6px;cursor:pointer;font-weight:700;border:2px solid;background:#1565C0;color:#fff;border-color:#42a5f5;';
-    const chipDef = 'font-size:12px;padding:5px 16px;border-radius:6px;cursor:pointer;font-weight:600;border:2px solid;background:#1e3a5f;color:#90caf9;border-color:#1e4976;';
+    const chipAct = 'font-size:13px;padding:7px 20px;border-radius:8px;cursor:pointer;font-weight:700;border:2px solid;background:#1565C0;color:#fff;border-color:#42a5f5;white-space:nowrap;';
+    const chipDef = 'font-size:13px;padding:7px 20px;border-radius:8px;cursor:pointer;font-weight:600;border:2px solid;background:rgba(30,58,95,0.9);color:#90caf9;border-color:#1e4976;white-space:nowrap;';
+    const chipZeroAct = 'font-size:13px;padding:7px 20px;border-radius:8px;cursor:pointer;font-weight:700;border:2px solid;background:#e65100;color:#fff;border-color:#ff6d00;white-space:nowrap;';
+    const chipZeroDef = 'font-size:13px;padding:7px 20px;border-radius:8px;cursor:pointer;font-weight:600;border:2px solid;background:rgba(230,81,0,0.15);color:#ffcc80;border-color:rgba(230,81,0,0.4);white-space:nowrap;';
     const grpKeys = [...new Set(allRows.map(getGrp).filter(Boolean))].sort();
     famBtns.innerHTML =
       `<button class="ord-fam-btn" data-fam="" style="${window._orderFams.size === 0 ? chipAct : chipDef}">כולם</button>` +
-      grpKeys.map(f => `<button class="ord-fam-btn" data-fam="${esc(f)}" style="${window._orderFams.has(f) ? chipAct : chipDef}">${esc(grpLabel(f))}</button>`).join('');
+      grpKeys.map(f => `<button class="ord-fam-btn" data-fam="${esc(f)}" style="${window._orderFams.has(f) ? chipAct : chipDef}">${esc(grpLabel(f))}</button>`).join('') +
+      `<span style="width:1px;height:22px;background:rgba(255,255,255,0.1);margin:0 6px;align-self:center;display:inline-block;flex-shrink:0;"></span>` +
+      `<button onclick="toggleOrderZero()" style="${window._orderZero ? chipZeroAct : chipZeroDef}">⚠ חסר במלאי${window._orderZero ? ' ✓' : ''}</button>`;
     famBtns.querySelectorAll('.ord-fam-btn').forEach(btn => btn.addEventListener('click', () => setOrderFam(btn.dataset.fam)));
   }
 
@@ -2634,7 +2638,7 @@ function buildOrderPage() {
         <td style="padding:4px 8px;text-align:center;font-size:12px;font-weight:${r.openOrders > 0 ? '700' : '400'};color:${r.openOrders > 0 ? '#2e7d32' : '#bbb'};">${r.openOrders > 0 ? fmtK(r.openOrders) : '—'}</td>
         <td style="padding:4px 6px;text-align:center;font-size:12px;font-weight:700;color:${r.branchy != null ? '#01579b' : '#bbb'};">${r.branchy != null ? r.branchy.toLocaleString('en') : '—'}</td>
         <td style="padding:4px 6px;text-align:center;font-size:11px;color:#777;">${(window._orderTotalBranchy||null) != null ? window._orderTotalBranchy.toLocaleString('en') : '—'}</td>
-        <td style="padding:4px 6px;text-align:center;font-size:13px;font-weight:800;color:${r.pizur != null ? (r.pizur >= 60 ? '#2e7d32' : r.pizur >= 30 ? '#e65100' : '#b71c1c') : '#bbb'};">${r.pizur != null ? r.pizur+'%' : '—'}${r.isStar ? ' ⭐' : ''}</td>
+        <td style="padding:2px 4px;text-align:center;">${_donut(r.pizur)}${r.isStar ? '<br><span style="font-size:9px;line-height:1;">⭐</span>' : ''}</td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;">${r.daySales > 0 ? (r.daySales >= 1 ? Math.round(r.daySales) : r.daySales.toFixed(1)) : '—'}</td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;font-weight:${r.periodSales ? '700' : '400'};color:${r.periodSales ? '#01579b' : '#bbb'};">${r.periodSales ? fmtK(r.periodSales) : '—'}</td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;font-weight:700;color:${dc};">${r.daysStk !== null ? Math.round(r.daysStk) : '—'}${r.deferredDemand ? ' <span title="ביקוש נדחה — מלאי מתחת למחצית מלאי הביטחון" style="cursor:help;">⚡</span>' : ''}</td>
