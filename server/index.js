@@ -1296,50 +1296,59 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
   let dateFilter;
 
   if (req.query.periods) {
-    // Multi-period: "2026-5,2026-6" → OR-combined DAX filter
     const parts = String(req.query.periods).split(',').map(s => s.trim()).filter(Boolean);
-    const conditions = [];
+    const conds = [];
     for (const p of parts) {
       const [y, m] = p.split('-').map(Number);
       if (!y || y < 2020 || y > 2030) return res.status(400).json({ error: `invalid period: ${p}` });
       if (m) {
         if (m < 1 || m > 12) return res.status(400).json({ error: `invalid month in: ${p}` });
-        conditions.push(`(YEAR('ALL_PARTS'[תאריך]) = ${y} && MONTH('ALL_PARTS'[תאריך]) = ${m})`);
+        conds.push(`(YEAR('ALL_PARTS'[תאריך])=${y}&&MONTH('ALL_PARTS'[תאריך])=${m})`);
       } else {
-        conditions.push(`YEAR('ALL_PARTS'[תאריך]) = ${y}`);
+        conds.push(`YEAR('ALL_PARTS'[תאריך])=${y}`);
       }
     }
-    if (!conditions.length) return res.status(400).json({ error: 'no valid periods' });
-    dateFilter = `FILTER('ALL_PARTS', ${conditions.join(' || ')})`;
+    if (!conds.length) return res.status(400).json({ error: 'no valid periods' });
+    dateFilter = `FILTER(ALL('ALL_PARTS'),${conds.join('||')})`;
   } else {
-    // Legacy single-month form
     const year  = parseInt(req.query.year  || '0', 10);
     const month = parseInt(req.query.month || '0', 10);
     if (!year || year < 2020 || year > 2030) return res.status(400).json({ error: 'invalid year' });
     if (month && (month < 1 || month > 12))  return res.status(400).json({ error: 'invalid month' });
     dateFilter = month
-      ? `FILTER('ALL_PARTS', YEAR('ALL_PARTS'[תאריך]) = ${year} && MONTH('ALL_PARTS'[תאריך]) = ${month})`
-      : `FILTER('ALL_PARTS', YEAR('ALL_PARTS'[תאריך]) = ${year})`;
+      ? `FILTER(ALL('ALL_PARTS'),YEAR('ALL_PARTS'[תאריך])=${year}&&MONTH('ALL_PARTS'[תאריך])=${month})`
+      : `FILTER(ALL('ALL_PARTS'),YEAR('ALL_PARTS'[תאריך])=${year})`;
   }
 
   try {
-    const rows = await executeDax(`
-      EVALUATE
-      CALCULATETABLE(
-        ADDCOLUMNS(
-          SUMMARIZE('ALL_PARTS', 'ALL_PARTS'[מק'ט]),
-          "daySales", [TOTAL מכר בקרטונים ממוצע ביום]
-        ),
-        'ALL_PARTS'[חברה] = "FORMULA",
-        ${dateFilter}
-      )
-    `);
+    const [rows, totRes] = await Promise.all([
+      executeDax(`
+        EVALUATE
+        SUMMARIZECOLUMNS(
+          'ALL_PARTS'[מק'ט],
+          ${dateFilter},
+          'ALL_PARTS'[חברה] = "FORMULA",
+          "daySales", [TOTAL מכר בקרטונים ממוצע ביום],
+          "mkrTk",    [TOTAL מכר בקרטונים],
+          "branchy",  [סניפים2  שקנו]
+        )
+      `),
+      executeDax(`
+        EVALUATE
+        ROW("tot", CALCULATE([DIST COUNT מ.CAT 7], ALL('ALL_PARTS'), 'ALL_PARTS'[ASHMADOT] IN {"-מכר-"}, 'משטח'[סטטוס] IN {"פעיל"}))
+      `).catch(() => null),
+    ]);
+    const totalBranchy = totRes?.[0]?.['[tot]'] ?? null;
     const data = {};
     for (const r of rows) {
       const mk = r["ALL_PARTS[מק'ט]"];
-      if (mk != null) data[String(mk)] = r['[daySales]'] ?? null;
+      if (mk != null) data[String(mk)] = {
+        daySales: r['[daySales]'] ?? null,
+        mkrTk:    r['[mkrTk]']   ?? null,
+        branchy:  r['[branchy]'] ?? null,
+      };
     }
-    res.json({ ok: true, data });
+    res.json({ ok: true, data, totalBranchy });
   } catch (err) {
     console.error(err); res.status(500).json({ error: 'server_error' });
   }
@@ -1393,8 +1402,8 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
     // Column A and row 1 are left blank on purpose — visual margin so the
     // table doesn't start flush against the sheet edge (approved style, see
     // memory feedback_excel_style.md).
-    ws.getColumn(1).width = 3;
-    ws.getRow(1).height = 6;
+    ws.getColumn(1).width = 10;
+    ws.getRow(1).height = 22;
 
     // Plain (non-merged) info rows above the table — merged cells block Excel's
     // "Format as Table" / smart-table autofilter from working cleanly.
@@ -1411,26 +1420,29 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
     sumCell.alignment = { horizontal: 'right', vertical: 'middle' };
     ws.getRow(3).height = 18;
 
+    // Photo column (B) + data columns (C onward)
+    const PHOTO_COL = 2;  // Excel column B
+    ws.getColumn(PHOTO_COL).width = 14;
+
     const tableCols = [
-      { name: 'תמונה', key: 'photo', width: 8, totalsRowFunction: 'none' },
-      { name: 'תאור', key: 'name', width: 38, totalsRowFunction: 'none', totalsRowLabel: 'Total' },
-      { name: 'מק"ט', key: 'mk', width: 11, totalsRowFunction: 'none' },
-      { name: 'ברקוד EAN', key: 'ean', width: 18, totalsRowFunction: 'none' },
-      { name: 'משפחה', key: 'fam', width: 18, totalsRowFunction: 'none' },
-      { name: 'מלאי+הזמנות (קרט)', key: 'spo', width: 14, totalsRowFunction: 'sum' },
-      { name: 'PAL מלאי', key: 'palSpo', width: 10, totalsRowFunction: 'sum' },
-      { name: 'הזמנות פתוחות', key: 'openOrders', width: 13, totalsRowFunction: 'sum' },
-      { name: 'מכר קרט/יום', key: 'daySales', width: 12, totalsRowFunction: 'sum' },
-      { name: 'לכמה ימים', key: 'daysStk', width: 10, totalsRowFunction: 'sum' },
-      { name: 'ימי בטחון', key: 'safetyDays', width: 10, totalsRowFunction: 'sum' },
-      { name: 'הזמנה KARTON', key: 'orderK', width: 13, totalsRowFunction: 'sum' },
-      { name: 'הזמנה PALLET', key: 'orderP', width: 13, totalsRowFunction: 'sum' },
+      { name: 'תמונה',             width: 14, totalsRowFunction: 'none' },
+      { name: 'תאור',              width: 38, totalsRowFunction: 'none', totalsRowLabel: 'Total' },
+      { name: 'מק"ט',             width: 11, totalsRowFunction: 'none' },
+      { name: 'ברקוד EAN',         width: 18, totalsRowFunction: 'none' },
+      { name: 'משפחה',             width: 18, totalsRowFunction: 'none' },
+      { name: 'מלאי+הזמנות (קרט)', width: 14, totalsRowFunction: 'sum' },
+      { name: 'PAL מלאי',          width: 10, totalsRowFunction: 'sum' },
+      { name: 'הזמנות פתוחות',    width: 13, totalsRowFunction: 'sum' },
+      { name: 'מכר קרט/יום',      width: 12, totalsRowFunction: 'sum' },
+      { name: 'לכמה ימים',         width: 10, totalsRowFunction: 'sum' },
+      { name: 'ימי בטחון',         width: 10, totalsRowFunction: 'sum' },
+      { name: 'הזמנה KARTON',      width: 13, totalsRowFunction: 'sum' },
+      { name: 'הזמנה PALLET',      width: 13, totalsRowFunction: 'sum' },
     ];
-    // +1 to skip the blank margin column A
     tableCols.forEach((c, i) => { ws.getColumn(i + 2).width = c.width; });
 
     const tableRows = rows.map(r => [
-      '',
+      '',  // photo placeholder
       r.name || '',
       String(r.mk ?? ''),
       r.ean || '',
@@ -1445,7 +1457,7 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
       r.orderK > 0 ? Math.round(r.orderP * 10) / 10 : 0,
     ]);
 
-    const HEADER_ROW = 5; // row 1 blank margin, 2 title, 3 summary, 4 blank, 5 header
+    const HEADER_ROW = 5;
     ws.addTable({
       name: 'OrderDagim',
       ref: `B${HEADER_ROW}`,
@@ -1459,30 +1471,118 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
     ws.getRow(HEADER_ROW + 1 + tableRows.length).font = { bold: true, name: 'Calibri' };
     ws.views[0] = { rightToLeft: true, state: 'frozen', ySplit: HEADER_ROW };
 
-    // Embed product photos in the photo column, fetched from the URL the client resolved
-    const DATA_START_ROW = HEADER_ROW + 1;
-    const PHOTO_SIZE = 40;
-    for (let i = 0; i < rows.length; i++) ws.getRow(DATA_START_ROW + i).height = 32;
+    // Fetch and embed product photos — use ext (pixels) not br to ensure image fills cell
+    const IMG_PX = 90;        // photo display size in pixels
+    const IMG_ROW_PT = 68;    // row height in points  (1pt ≈ 1.333px → 68pt ≈ 91px)
     await Promise.all(rows.map(async (r, i) => {
       if (!r.photoUrl) return;
       try {
-        const resp = await fetch(r.photoUrl, { signal: AbortSignal.timeout(4000) });
-        if (!resp.ok) return;
-        const ct = resp.headers.get('content-type') || '';
-        const extension = /png/i.test(ct) || /\.png(\?|$)/i.test(r.photoUrl) ? 'png'
-          : /gif/i.test(ct) || /\.gif(\?|$)/i.test(r.photoUrl) ? 'gif' : 'jpeg';
-        const buffer = Buffer.from(await resp.arrayBuffer());
-        const imageId = wb.addImage({ buffer, extension });
-        ws.addImage(imageId, {
-          tl: { col: 1.1, row: (DATA_START_ROW - 1) + i + 0.1 },
-          ext: { width: PHOTO_SIZE, height: PHOTO_SIZE },
+        const resp = await fetch(r.photoUrl, {
+          headers: { 'User-Agent': 'Mozilla/5.0' },
+          signal: AbortSignal.timeout(4000),
         });
-      } catch { /* missing/unreachable photo — leave cell blank */ }
+        if (!resp.ok) return;
+        const buf = Buffer.from(await resp.arrayBuffer());
+        const ext = /\.png(\?|$)/i.test(r.photoUrl) ? 'png' : 'jpeg';
+        const imgId = wb.addImage({ buffer: buf, extension: ext });
+        const excelRow = HEADER_ROW + 1 + i;
+        ws.addImage(imgId, {
+          tl: { col: PHOTO_COL - 1 + 0.04, row: excelRow - 1 + 0.04 },
+          ext: { width: IMG_PX, height: IMG_PX },
+          editAs: 'oneCell',
+        });
+        ws.getRow(excelRow).height = IMG_ROW_PT;
+      } catch { /* skip */ }
     }));
 
     const date = today.toISOString().slice(0, 10);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="order-dagim-${date}.xlsx"`);
+    await wb.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    console.error(err); res.status(500).json({ error: 'server_error' });
+  }
+});
+
+// ── POSITION TABLE XLSX (מיקום + photos) ────────────────────────────────────
+app.post('/api/export-position-xlsx', dataRateLimit, async (req, res) => {
+  try {
+    const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
+    if (!rows.length) return res.status(400).json({ error: 'missing rows' });
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'COLUMBUS';
+    const ws = wb.addWorksheet('מיקום', { views: [{ rightToLeft: true }] });
+
+    const dateStr = new Date().toLocaleDateString('he-IL', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+    ws.getColumn(1).width = 10;
+    ws.getRow(1).height = 22;
+
+    const titleCell = ws.getCell('B2');
+    titleCell.value = `📦 טבלת מיקום FORMULA  —  תאריך: ${dateStr}`;
+    titleCell.font = { bold: true, size: 13, color: { argb: 'FFFFFFFF' }, name: 'Calibri' };
+    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } };
+    titleCell.alignment = { horizontal: 'right', vertical: 'middle' };
+    ws.getRow(2).height = 26;
+
+    const PHOTO_COL = 2;
+    ws.getColumn(PHOTO_COL).width = 14;
+
+    const HEADER_ROW = 4;
+    const tableCols = [
+      { name: 'תמונה',      width: 14, totalsRowFunction: 'none' },
+      { name: 'תאור',       width: 38, totalsRowFunction: 'none' },
+      { name: 'מק"ט',      width: 11, totalsRowFunction: 'none' },
+      { name: 'מחלקה',     width: 12, totalsRowFunction: 'none' },
+      { name: 'סדר הדפסה', width: 10, totalsRowFunction: 'none' },
+      { name: 'מיקום',     width: 9,  totalsRowFunction: 'none' },
+      { name: 'בי',         width: 9,  totalsRowFunction: 'none' },
+      { name: 'משפחה',     width: 22, totalsRowFunction: 'none' },
+    ];
+
+    tableCols.forEach((c, i) => { ws.getColumn(PHOTO_COL + i).width = c.width; });
+
+    rows.sort((a, b) => (Number(a.printOrder) || 0) - (Number(b.printOrder) || 0));
+    const tableRows = rows.map(r => ['', r.name || '', r.makat || '', r.sec || '', r.printOrder || '', r.pos || '', r.bay || '', r.fam || '']);
+    ws.addTable({
+      name: 'PositionTable',
+      ref: `B${HEADER_ROW}`,
+      headerRow: true,
+      totalsRow: false,
+      style: { theme: 'TableStyleMedium2', showRowStripes: true },
+      columns: tableCols.map(c => ({ name: c.name, filterButton: true, totalsRowFunction: c.totalsRowFunction })),
+      rows: tableRows,
+    });
+
+    ws.getRow(HEADER_ROW).height = 22;
+    ws.getRow(HEADER_ROW).font = { bold: true };
+    ws.views[0] = { rightToLeft: true, state: 'frozen', ySplit: HEADER_ROW };
+
+    const IMG_PX = 90;
+    const IMG_ROW_PT = 68;
+    await Promise.all(rows.map(async (r, i) => {
+      if (!r.photoUrl) return;
+      try {
+        const resp = await fetch(r.photoUrl, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(4000) });
+        if (!resp.ok) return;
+        const buf = Buffer.from(await resp.arrayBuffer());
+        const ext = /\.png(\?|$)/i.test(r.photoUrl) ? 'png' : 'jpeg';
+        const imgId = wb.addImage({ buffer: buf, extension: ext });
+        const excelRow = HEADER_ROW + 1 + i;
+        ws.addImage(imgId, {
+          tl: { col: PHOTO_COL - 1 + 0.04, row: excelRow - 1 + 0.04 },
+          ext: { width: IMG_PX, height: IMG_PX },
+          editAs: 'oneCell',
+        });
+        ws.getRow(excelRow).height = IMG_ROW_PT;
+      } catch { /* skip */ }
+    }));
+
+    const date = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="position-${date}.xlsx"`);
     await wb.xlsx.write(res);
     res.end();
   } catch (err) {
