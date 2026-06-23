@@ -122,6 +122,17 @@
       /* grand total row — white + bold border for print */
       body.printing-order #order-table-wrap tr:last-child { background: #fff !important; border-top: 2px solid #000 !important; }
       body.printing-order #order-table-wrap tr:last-child td { color: #000 !important; font-weight: 900 !important; }
+      /* thead — repeat header on every printed page */
+      body.printing-order #order-table-wrap thead {
+        display: table-header-group !important;
+      }
+      body.printing-order #order-table-wrap thead th {
+        position: static !important;
+        background: #0D47A1 !important;
+        color: #fff !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
       /* inputs in KARTON / PAL columns — show value cleanly */
       body.printing-order .ord-k-input,
       body.printing-order .ord-pal-input {
