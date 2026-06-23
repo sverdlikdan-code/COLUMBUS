@@ -1296,21 +1296,21 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
   let dateFilter;
 
   if (req.query.periods) {
-    // Multi-period: "2026-5,2026-6" → OR-combined DAX filter
+    // Multi-period via DIMCALENDAR — proper PBI relationship chain
     const parts = String(req.query.periods).split(',').map(s => s.trim()).filter(Boolean);
-    const conditions = [];
+    const calConds = [];
     for (const p of parts) {
       const [y, m] = p.split('-').map(Number);
       if (!y || y < 2020 || y > 2030) return res.status(400).json({ error: `invalid period: ${p}` });
       if (m) {
         if (m < 1 || m > 12) return res.status(400).json({ error: `invalid month in: ${p}` });
-        conditions.push(`(YEAR('ALL_PARTS'[תאריך]) = ${y} && MONTH('ALL_PARTS'[תאריך]) = ${m})`);
+        calConds.push(`(YEAR(DIMCALENDAR[Date])=${y}&&MONTH(DIMCALENDAR[Date])=${m})`);
       } else {
-        conditions.push(`YEAR('ALL_PARTS'[תאריך]) = ${y}`);
+        calConds.push(`YEAR(DIMCALENDAR[Date])=${y}`);
       }
     }
-    if (!conditions.length) return res.status(400).json({ error: 'no valid periods' });
-    dateFilter = `FILTER('ALL_PARTS', ${conditions.join(' || ')})`;
+    if (!calConds.length) return res.status(400).json({ error: 'no valid periods' });
+    dateFilter = `FILTER(ALL(DIMCALENDAR),${calConds.join('||')})`;
   } else {
     // Legacy single-month form
     const year  = parseInt(req.query.year  || '0', 10);
@@ -1318,8 +1318,8 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
     if (!year || year < 2020 || year > 2030) return res.status(400).json({ error: 'invalid year' });
     if (month && (month < 1 || month > 12))  return res.status(400).json({ error: 'invalid month' });
     dateFilter = month
-      ? `FILTER('ALL_PARTS', YEAR('ALL_PARTS'[תאריך]) = ${year} && MONTH('ALL_PARTS'[תאריך]) = ${month})`
-      : `FILTER('ALL_PARTS', YEAR('ALL_PARTS'[תאריך]) = ${year})`;
+      ? `FILTER(ALL(DIMCALENDAR),YEAR(DIMCALENDAR[Date])=${year}&&MONTH(DIMCALENDAR[Date])=${month})`
+      : `FILTER(ALL(DIMCALENDAR),YEAR(DIMCALENDAR[Date])=${year})`;
   }
 
   try {
@@ -1328,7 +1328,8 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
       CALCULATETABLE(
         ADDCOLUMNS(
           SUMMARIZE('ALL_PARTS', 'ALL_PARTS'[מק'ט]),
-          "daySales", [TOTAL מכר בקרטונים ממוצע ביום]
+          "daySales", [TOTAL מכר בקרטונים ממוצע ביום],
+          "mkrTk",    [TOTAL מכר בקרטונים]
         ),
         'ALL_PARTS'[חברה] = "FORMULA",
         ${dateFilter}
@@ -1337,7 +1338,7 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
     const data = {};
     for (const r of rows) {
       const mk = r["ALL_PARTS[מק'ט]"];
-      if (mk != null) data[String(mk)] = r['[daySales]'] ?? null;
+      if (mk != null) data[String(mk)] = { daySales: r['[daySales]'] ?? null, mkrTk: r['[mkrTk]'] ?? null };
     }
     res.json({ ok: true, data });
   } catch (err) {
