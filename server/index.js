@@ -1532,18 +1532,19 @@ app.post('/api/export-position-xlsx', dataRateLimit, async (req, res) => {
 
     const HEADER_ROW = 4;
     const tableCols = [
-      { name: 'תמונה',   width: 14, totalsRowFunction: 'none' },
-      { name: 'תאור',    width: 38, totalsRowFunction: 'none' },
-      { name: 'מק"ט',   width: 11, totalsRowFunction: 'none' },
-      { name: 'מחלקה',  width: 12, totalsRowFunction: 'none' },
-      { name: 'מיקום',  width: 9,  totalsRowFunction: 'none' },
-      { name: 'בי',      width: 9,  totalsRowFunction: 'none' },
-      { name: 'משפחה',  width: 22, totalsRowFunction: 'none' },
+      { name: 'תמונה',      width: 14, totalsRowFunction: 'none' },
+      { name: 'תאור',       width: 38, totalsRowFunction: 'none' },
+      { name: 'מק"ט',      width: 11, totalsRowFunction: 'none' },
+      { name: 'מחלקה',     width: 12, totalsRowFunction: 'none' },
+      { name: 'סדר הדפסה', width: 10, totalsRowFunction: 'none' },
+      { name: 'מיקום',     width: 9,  totalsRowFunction: 'none' },
+      { name: 'בי',         width: 9,  totalsRowFunction: 'none' },
+      { name: 'משפחה',     width: 22, totalsRowFunction: 'none' },
     ];
 
     tableCols.forEach((c, i) => { ws.getColumn(PHOTO_COL + i).width = c.width; });
 
-    const tableRows = rows.map(r => ['', r.name || '', r.makat || '', r.sec || '', r.pos || '', r.bay || '', r.fam || '']);
+    const tableRows = rows.map(r => ['', r.name || '', r.makat || '', r.sec || '', r.printOrder || '', r.pos || '', r.bay || '', r.fam || '']);
     ws.addTable({
       name: 'PositionTable',
       ref: `B${HEADER_ROW}`,
