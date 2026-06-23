@@ -1544,6 +1544,7 @@ app.post('/api/export-position-xlsx', dataRateLimit, async (req, res) => {
 
     tableCols.forEach((c, i) => { ws.getColumn(PHOTO_COL + i).width = c.width; });
 
+    rows.sort((a, b) => (Number(a.printOrder) || 0) - (Number(b.printOrder) || 0));
     const tableRows = rows.map(r => ['', r.name || '', r.makat || '', r.sec || '', r.printOrder || '', r.pos || '', r.bay || '', r.fam || '']);
     ws.addTable({
       name: 'PositionTable',
