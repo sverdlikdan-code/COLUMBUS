@@ -1334,16 +1334,17 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
       )
     `);
 
-    // Query 2 — optional: mkrTk + branchy (fail silently if measure doesn't exist)
+    // Query 2 — optional: branchy per product (same CALCULATETABLE pattern as Q1)
     const [extRows, totRes] = await Promise.all([
       executeDax(`
         EVALUATE
-        SUMMARIZECOLUMNS(
-          'ALL_PARTS'[מק'ט],
-          ${dateFilter},
+        CALCULATETABLE(
+          SUMMARIZECOLUMNS(
+            'ALL_PARTS'[מק'ט],
+            "branchy", [סניפים2  שקנו]
+          ),
           'ALL_PARTS'[חברה] = "FORMULA",
-          "mkrTk",   [TOTAL מכר בקרטונים],
-          "branchy", [סניפים2  שקנו]
+          ${dateFilter}
         )
       `).catch(() => null),
       executeDax(`
@@ -1428,20 +1429,16 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
     ws.getColumn(1).width = 10;
     ws.getRow(1).height = 22;
 
-    // Plain (non-merged) info rows above the table — merged cells block Excel's
-    // "Format as Table" / smart-table autofilter from working cleanly.
+    // Merge title across all 14 data columns (B–O) so text is visible
+    const LAST_COL_LETTER = 'O'; // 14 columns: B(photo)..O(last)
+    ws.mergeCells(`B2:${LAST_COL_LETTER}2`);
+
     const titleCell = ws.getCell('B2');
     titleCell.value = `🐟 הזמנת דגים FORMULA  —  תאריך: ${dateStr}${periods ? ' | תקופה: ' + periods : ''}${modeNote}`;
     titleCell.font = { bold: true, size: 13, color: { argb: 'FFFFFFFF' }, name: 'Calibri' };
     titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } };
     titleCell.alignment = { horizontal: 'right', vertical: 'middle' };
     ws.getRow(2).height = 26;
-
-    const sumCell = ws.getCell('B3');
-    sumCell.value = `סה"כ הזמנה: ${Math.round(totalOrder).toLocaleString('en')} קרטונים | ${Math.round(totalPal * 10) / 10} PALLET | ${rows.length} מוצרים (${orderCnt} להזמנה)`;
-    sumCell.font = { italic: true, size: 10, color: { argb: 'FF6B7280' }, name: 'Calibri' };
-    sumCell.alignment = { horizontal: 'right', vertical: 'middle' };
-    ws.getRow(3).height = 18;
 
     // Photo column (B) + data columns (C onward)
     const PHOTO_COL = 2;  // Excel column B
@@ -1453,6 +1450,7 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
       { name: 'מק"ט',             width: 11, totalsRowFunction: 'none' },
       { name: 'ברקוד EAN',         width: 18, totalsRowFunction: 'none' },
       { name: 'משפחה',             width: 18, totalsRowFunction: 'none' },
+      { name: 'קרט/פלט',          width:  9, totalsRowFunction: 'none' },
       { name: 'מלאי+הזמנות (קרט)', width: 14, totalsRowFunction: 'sum' },
       { name: 'PAL מלאי',          width: 10, totalsRowFunction: 'sum' },
       { name: 'הזמנות פתוחות',    width: 13, totalsRowFunction: 'sum' },
@@ -1470,6 +1468,7 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
       r.mk != null && r.mk !== '' ? (isNaN(Number(r.mk)) ? r.mk : Number(r.mk)) : '',
       r.ean != null && r.ean !== '' ? (isNaN(Number(r.ean)) ? r.ean : Number(r.ean)) : '',
       r.fam || '',
+      r.krat || 1,
       r.spo ?? 0,
       r.palSpo ? Math.round(r.palSpo * 10) / 10 : 0,
       r.openOrders || 0,
@@ -1480,7 +1479,7 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
       r.orderK > 0 ? Math.round(r.orderP * 10) / 10 : 0,
     ]);
 
-    const HEADER_ROW = 5;
+    const HEADER_ROW = 4;
     ws.addTable({
       name: 'OrderDagim',
       ref: `B${HEADER_ROW}`,
@@ -1495,7 +1494,9 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
     ws.views[0] = { rightToLeft: true, state: 'frozen', ySplit: HEADER_ROW };
 
     // Center-align all table cells (header + data + totals)
-    const TAUR_COL = PHOTO_COL + 1; // תאור column — keep right-aligned (RTL name)
+    const TAUR_COL  = PHOTO_COL + 1; // תאור — right-aligned RTL
+    const MAKAT_COL = PHOTO_COL + 2; // מק"ט
+    const EAN_COL   = PHOTO_COL + 3; // ברקוד EAN
     for (let ri = 0; ri <= tableRows.length + 1; ri++) {
       const row = ws.getRow(HEADER_ROW + ri);
       row.eachCell({ includeEmpty: false }, (cell, colNum) => {
@@ -1503,6 +1504,11 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
           ? { horizontal: 'right', vertical: 'middle', wrapText: true }
           : { horizontal: 'center', vertical: 'middle', wrapText: true };
       });
+    }
+    // EAN / מק"ט — force plain integer format (no scientific notation)
+    for (let ri = 1; ri <= tableRows.length; ri++) {
+      ws.getCell(HEADER_ROW + ri, MAKAT_COL).numFmt = '0';
+      ws.getCell(HEADER_ROW + ri, EAN_COL).numFmt   = '0';
     }
 
     // Fetch and embed product photos — use ext (pixels) not br to ensure image fills cell
