@@ -155,7 +155,21 @@ function loadAgentList() {
   if (agentListCache) return agentListCache;
   try {
     const raw = fs.readFileSync(path.join(__dirname, '..', 'docs', 'formula-road-data.json'), 'utf8');
-    agentListCache = JSON.parse(raw).agents || {};
+    const data = JSON.parse(raw);
+    if (data.agents && Object.keys(data.agents).length > 0) {
+      agentListCache = data.agents;
+    } else if (data.agentsByManager) {
+      const map = {};
+      for (const list of Object.values(data.agentsByManager)) {
+        for (const a of list) {
+          const c = String(a.agentCode || '');
+          if (c && !map[c]) map[c] = { name: a.agentName || '' };
+        }
+      }
+      agentListCache = map;
+    } else {
+      agentListCache = {};
+    }
     return agentListCache;
   } catch { return {}; }
 }
@@ -1487,10 +1501,6 @@ function formulaRoadGuard(req, res, next) {
 }
 app.get('/formula-road', formulaRoadGuard, (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'formula-road.html'));
-});
-app.get('/marshrut-rud', (req, res) => {
-  if (req.query.k !== 'rud2026') return res.status(403).send('Forbidden');
-  res.sendFile(path.join(__dirname, '..', 'docs', 'marshrut-rud.html'));
 });
 // Static data files referenced via relative fetch in formula-road.html
 app.get('/gps-corrections.json', (req, res) => {

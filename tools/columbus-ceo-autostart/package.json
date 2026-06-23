@@ -1,0 +1,41 @@
+{
+  "name": "columbus-ceo-autostart",
+  "displayName": "COLUMBUS CEO Autostart",
+  "description": "Opens Agent chat with CEO? after boot autostart (when pending flag exists).",
+  "publisher": "columbus",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "COLUMBUS CEO Autostart",
+      "properties": {
+        "columbusCeoAutostart.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable CEO Agent chat autostart for COLUMBUS workspace."
+        },
+        "columbusCeoAutostart.prompt": {
+          "type": "string",
+          "default": "CEO?",
+          "description": "Initial Agent prompt after boot autostart."
+        },
+        "columbusCeoAutostart.delayMs": {
+          "type": "number",
+          "default": 8000,
+          "minimum": 2000,
+          "description": "Delay before opening Agent chat (ms)."
+        },
+        "columbusCeoAutostart.requireBootFlag": {
+          "type": "boolean",
+          "default": true,
+          "description": "Only autostart when .cursor/ceo-boot-pending exists (set by columbus-autostart.ps1)."
+        }
+      }
+    }
+  }
+}
