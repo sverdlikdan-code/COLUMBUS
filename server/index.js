@@ -1422,10 +1422,10 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
 
     // Photo column (B) + data columns (C onward)
     const PHOTO_COL = 2;  // Excel column B
-    ws.getColumn(PHOTO_COL).width = 7;
+    ws.getColumn(PHOTO_COL).width = 14;
 
     const tableCols = [
-      { name: 'תמונה',             width: 7,  totalsRowFunction: 'none' },
+      { name: 'תמונה',             width: 14, totalsRowFunction: 'none' },
       { name: 'תאור',              width: 38, totalsRowFunction: 'none', totalsRowLabel: 'Total' },
       { name: 'מק"ט',             width: 11, totalsRowFunction: 'none' },
       { name: 'ברקוד EAN',         width: 18, totalsRowFunction: 'none' },
@@ -1472,7 +1472,7 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
     ws.views[0] = { rightToLeft: true, state: 'frozen', ySplit: HEADER_ROW };
 
     // Fetch and embed product photos in parallel (skip failures silently)
-    const IMG_ROW_HEIGHT = 38;
+    const IMG_ROW_HEIGHT = 76;
     await Promise.all(rows.map(async (r, i) => {
       if (!r.photoUrl) return;
       try {
