@@ -1563,7 +1563,8 @@ function setupSortable(){
 function renderMap(){
   const neededKey=gpsCorrectMode?'street':userTileKey;
   if(!map){
-    map=L.map('map',{rotate:true,bearing:0}).setView([32.0,34.9],10);
+    map=L.map('map',{rotate:true,bearing:0,zoomControl:false}).setView([32.0,34.9],10);
+    L.control.zoom({position:'bottomright'}).addTo(map);
     setTile(neededKey);
   } else if(neededKey!==currentTileKey){
     setTile(neededKey);
