@@ -1471,31 +1471,27 @@
         return [mk, r.mishpacha||'', r.hevra||'', '‏'+(r.taur||''), r.mmd_k??0, r.ashdod_k??0, eff, sessionP[mk]||''];
       });
 
-      // Smart Excel Table at A5 — proper filter buttons, banded rows
-      ws.addTable({
-        name: 'OrderTable',
-        ref: 'A5',
-        headerRow: true,
-        totalsRow: false,
-        style: { theme: 'TableStyleMedium2', showRowStripes: true },
-        columns: [
-          { name: 'מק"ט',        filterButton: true },
-          { name: 'משפחת מוצר',  filterButton: true },
-          { name: 'חברה',        filterButton: true },
-          { name: 'שם מוצר',     filterButton: true },
-          { name: 'מלאי MMD',    filterButton: true },
-          { name: 'מלאי אשדוד',  filterButton: true },
-          { name: 'הזמנה קרטון', filterButton: true },
-          { name: 'תוקף נדרש',  filterButton: true },
-        ],
-        rows: tableData,
+      // Header + filterable data at A5 — manual header/autoFilter instead of ws.addTable().
+      // ws.addTable({totalsRow:false}) still writes totalsRowShown="1" in xl/tables/table1.xml
+      // (exceljs@4.4.0 table-xform.js bug: the ternary is inverted) without reserving the extra
+      // row in `ref`, which Excel's file-validation strips ("Removed Feature: Table/AutoFilter").
+      const headers = ['מק"ט','משפחת מוצר','חברה','שם מוצר','מלאי MMD','מלאי אשדוד','הזמנה קרטון','תוקף נדרש'];
+      const headerRow = ws.getRow(5);
+      headerRow.height = 26;
+      headers.forEach((h, i) => {
+        const cell = headerRow.getCell(i + 1);
+        cell.value     = h;
+        cell.font      = { bold:true, size:11, color:{ argb:'FFFFFFFF' } };
+        cell.fill      = solid('4472C4');
+        cell.border    = bdr('thin','2F528F');
+        cell.alignment = { horizontal:'center', vertical:'middle', readingOrder:'rightToLeft' };
       });
+      ws.autoFilter = { from: { row:5, column:1 }, to: { row: 5 + tableData.length, column:8 } };
 
-      // Header row formatting (row 5 = table header)
-      ws.getRow(5).height = 26;
-      for (let ci = 1; ci <= 8; ci++) {
-        ws.getRow(5).getCell(ci).alignment = { horizontal:'center', vertical:'middle', readingOrder:'rightToLeft' };
-      }
+      tableData.forEach((vals, i) => {
+        const row = ws.getRow(6 + i);
+        vals.forEach((v, ci) => { row.getCell(ci + 1).value = v; });
+      });
 
       // Per-row formatting (data starts at row 6)
       orderedRows.forEach((r, i) => {
@@ -1505,6 +1501,7 @@
         const mmdK = r.mmd_k ?? 0;
         const ashK = r.ashdod_k ?? 0;
         const row  = ws.getRow(6 + i); row.height = 20;
+        if (i % 2 === 1) row.eachCell({ includeEmpty:true }, cell => { cell.fill = solid('F2F5FB'); });
         for (let ci = 1; ci <= 8; ci++) {
           row.getCell(ci).alignment = { vertical:'middle', readingOrder:'rightToLeft',
             horizontal: ci === 4 ? 'right' : 'center' };
