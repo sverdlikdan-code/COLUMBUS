@@ -2371,9 +2371,8 @@ function buildOrderPage() {
     const spo     = +(d.spo ?? ((+(d.stock||0) + +(d.stockZafn||0) + +(d.stockTrnz||0)) + openOrders));  // PBI SPO measure; fallback = all-wh stock + open orders
     const krat    = +(d.ashdodPalletCartons || d.kratnost || 1);
     const palSpo  = krat > 0 && spo > 0 ? +(spo / krat).toFixed(1) : 0;
-    const _ps    = window._orderPeriodSales;
-    const _psRow = _ps ? _ps[mk] : null;
-    const daySales = +(_psRow != null ? (typeof _psRow === 'object' ? (_psRow.daySales ?? 0) : _psRow) : (d.daySalesAll || 0));
+    const _ps = window._orderPeriodSales;
+    const daySales = +(_ps ? (_ps[mk] ?? 0) : (d.daySalesAll || 0));
     const daysStk  = daySales > 0 ? spo / daySales * 1.4 : null;
     const safetyDays = _getSafetyDays(fam);
     const safetyK    = Math.ceil(safetyDays / 1.4 * daySales);
@@ -2385,14 +2384,10 @@ function buildOrderPage() {
     const orderK = manualEdit ? manualEdit.orderK : autoOrderK;
     const orderP = manualEdit ? manualEdit.orderP : autoOrderP;
     const stock = +(d.stock || 0);
-    // מכר בתקופה — DAX [TOTAL מכר בקרטונים] via ALL_PARTS filter; fallback: daySales × days
-    const mkrTk = _psRow != null && typeof _psRow === 'object' ? (_psRow.mkrTk ?? null) : null;
-    let periodSales = mkrTk !== null ? Math.round(mkrTk) : null;
-    if (periodSales === null && daySales > 0) {
-      const sel2 = window._orderSelectedPeriods || new Set();
-      let pd = 0; for (const p of sel2) { const [y,m] = p.split('-').map(Number); pd += new Date(y,m,0).getDate(); }
-      if (pd > 0) periodSales = Math.round(daySales * pd);
-    }
+    // מכר בתקופה — daySales × calendar days in selected period
+    const sel2 = window._orderSelectedPeriods || new Set();
+    let pd = 0; for (const p of sel2) { const [y,m] = p.split('-').map(Number); pd += new Date(y,m,0).getDate(); }
+    const periodSales = daySales > 0 && pd > 0 ? Math.round(daySales * pd) : null;
     allRows.push({ mk, name, fam, iksGroup, stock, spo, palSpo, openOrders, daySales, periodSales, daysStk, krat, safetyDays, safetyK, orderK, orderP, deferredDemand });
   }
 
