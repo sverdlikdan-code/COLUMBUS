@@ -415,7 +415,7 @@
 </div>
 
 <!-- Order page — full-screen overlay for דגים הזמנה -->
-<div id="order-page" style="display:none; position:fixed; inset:0; z-index:610; background:#0b0f1a; overflow:hidden; direction:rtl; flex-direction:column;">
+<div id="order-page" style="display:none; position:fixed; inset:0; z-index:610; background:#F5F7FA; overflow:hidden; direction:rtl; flex-direction:column;">
 
   <!-- Row 1: top nav bar — gradient matching MMD Orders header -->
   <div style="display:flex;align-items:stretch;height:50px;flex-shrink:0;z-index:10;box-shadow:0 3px 14px rgba(0,0,0,.45);position:relative;overflow:hidden;background:linear-gradient(125deg,#04111f 0%,#072e52 25%,#0a5a86 58%,#4a2810 82%,#2e1608 100%);">
@@ -450,7 +450,7 @@
     <div id="ord-fam-btns" style="display:flex;flex:1;flex-wrap:wrap;gap:4px;align-items:center;justify-content:flex-end;"></div>
   </div>
 
-  <div id="order-table-wrap" style="flex:1;min-height:0;overflow:auto;padding:0 12px 16px;background:#0b0f1a;"></div>
+  <div id="order-table-wrap" style="flex:1;min-height:0;overflow:auto;padding:0 12px 16px;background:#F5F7FA;"></div>
 </div>
 
 <!-- Summary position table — fixed overlay panel -->
@@ -1961,20 +1961,20 @@ async function exportPositionXlsx() {
       });
     });
   }
-  if (!payload.length) return;
+  if (!payload.length) { alert('אין מוצרים בטבלה'); return; }
   try {
     const resp = await fetch('https://api.sverdlik-apps.site/api/export-position-xlsx', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rows: payload }),
     });
-    if (!resp.ok) { alert('שגיאה בייצוא'); return; }
+    if (!resp.ok) { const t = await resp.text().catch(()=>''); alert(`שגיאה: ${resp.status} ${t.slice(0,80)}`); return; }
     const blob = await resp.blob();
     const a = Object.assign(document.createElement('a'), {
       href: URL.createObjectURL(blob),
       download: `position-${new Date().toISOString().slice(0,10)}.xlsx`,
     });
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
-  } catch(e) { alert('שגיאת רשת'); }
+  } catch(e) { alert(`שגיאת רשת: ${e.message}`); }
 }
 
 function exportCSVAll() {
