@@ -2055,7 +2055,7 @@ window._orderManualEdits = window._orderManualEdits || {};
 function _recalcOrdTotal() {
   const fmtK = n => Math.round(n || 0).toLocaleString('en');
   let totalK = 0, totalPal = 0, totalManualPal = 0;
-  const grpTotals = {};
+  const grpTotals = {}, grpManualPal = {};
   document.querySelectorAll('.ord-k-input').forEach(inp => {
     const k    = Math.max(0, Number(inp.value) || 0);
     const krat = Number(inp.dataset.krat) || 1;
@@ -2068,7 +2068,11 @@ function _recalcOrdTotal() {
     grpTotals[gIdx].pal += pal;
   });
   document.querySelectorAll('.ord-pal-input').forEach(inp => {
-    totalManualPal += Math.max(0, Number(inp.value) || 0);
+    const v = Math.max(0, Number(inp.value) || 0);
+    totalManualPal += v;
+    const gIdx = inp.dataset.grp;
+    if (!grpManualPal[gIdx]) grpManualPal[gIdx] = 0;
+    grpManualPal[gIdx] += v;
   });
   totalPal = Math.round(totalPal * 10) / 10;
   totalManualPal = Math.round(totalManualPal * 10) / 10;
@@ -2083,19 +2087,21 @@ function _recalcOrdTotal() {
   if (kHdr) kHdr.textContent = fmtK(totalK);
   const pHdr = document.getElementById('ord-pal-hdr');
   if (pHdr) pHdr.textContent = Math.round(totalPal);
+  // Per-group manual PAL subtotals
+  for (const [gIdx, mp] of Object.entries(grpManualPal)) {
+    const el = document.getElementById(`ord-grp-manual-pal-${gIdx}`);
+    if (el) el.textContent = mp.toFixed(1);
+  }
   const gt = document.getElementById('ord-pal-gt-cell');
-  if (gt) gt.textContent = totalManualPal.toFixed(1);   // PAL ידני total (manual)
+  if (gt) gt.textContent = totalManualPal.toFixed(1);   // PAL ידני total
   const gtK = document.getElementById('ord-gt-karton-cell');
   if (gtK) gtK.textContent = fmtK(totalK);
   const gtP = document.getElementById('ord-gt-pallet-cell');
   if (gtP) gtP.textContent = totalPal.toFixed(1);   // המלצה PALLET total (auto)
+  // Container from PAL ידני with decimal — 40ft = 20 pallets
   const PALS_PER_CONT = 20;
-  const full = Math.floor(totalPal / PALS_PER_CONT);
-  const rem  = Math.round(totalPal) % PALS_PER_CONT;
   const contEl = document.getElementById('ord-cont-hdr');
-  if (contEl) contEl.innerHTML = rem > 0
-    ? `${full}<span style="font-size:10px;color:#90caf9;"> +${rem}</span>`
-    : `${full}`;
+  if (contEl) contEl.textContent = (totalManualPal / PALS_PER_CONT).toFixed(1);
 }
 
 function _recalcRowPal(inp) {
@@ -2593,20 +2599,20 @@ function buildOrderPage() {
         ? `<span style="font-size:10px;color:#b0bec5;">+${fContRem}<span style="font-size:8px;">PALL</span></span>`
         : '—';
 
-    tbRows += `<tr style="background:#1565C0;color:#fff;">
-      <td colspan="2" style="padding:7px 12px;font-size:13px;font-weight:800;text-align:right;" dir="rtl">📦 ${grpLabel(grp)}</td>
-      <td style="padding:7px 8px;text-align:center;font-size:12px;font-weight:700;">${fmtK(fSpo)}</td>
-      <td style="padding:7px 8px;text-align:center;font-size:11px;opacity:0.8;">${fPalSpo.toFixed(1)}</td>
-      <td style="padding:7px 8px;text-align:center;font-size:11px;">${fOpenOrders > 0 ? fmtK(fOpenOrders) : '—'}</td>
-      <td style="padding:7px 8px;"></td>
-      <td style="padding:7px 8px;"></td>
-      <td style="padding:7px 8px;text-align:center;font-size:10px;opacity:0.7;">${gr.length} פריטים</td>
-      <td style="padding:7px 8px;"></td>
-      <td style="padding:7px 8px;text-align:center;font-size:11px;font-weight:700;">${fPeriodSales > 0 ? fmtK(fPeriodSales) : '—'}</td>
-      <td style="padding:7px 8px;"></td>
-      <td id="ord-grp-k-${gIdx}" style="padding:7px 8px;text-align:center;font-size:13px;font-weight:800;">${fmtK(fOrder)}</td>
-      <td id="ord-grp-pal-${gIdx}" style="padding:7px 8px;text-align:center;font-size:12px;font-weight:700;">${fPal.toFixed(1)}</td>
-      <td style="padding:3px 4px;text-align:center;"><span style="font-size:13px;font-weight:900;">${fContTxt}</span></td>
+    tbRows += `<tr style="background:#1E88E5;color:#fff;">
+      <td colspan="2" style="padding:6px 12px;font-size:12px;font-weight:800;text-align:right;" dir="rtl">📦 ${grpLabel(grp)} <span style="font-size:10px;font-weight:500;opacity:0.75;">(${gr.length})</span></td>
+      <td style="padding:6px 8px;text-align:center;font-size:12px;font-weight:700;">${fmtK(fSpo)}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:11px;opacity:0.8;">${fPalSpo.toFixed(1)}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:11px;">${fOpenOrders > 0 ? fmtK(fOpenOrders) : '—'}</td>
+      <td style="padding:6px 8px;"></td>
+      <td style="padding:6px 8px;"></td>
+      <td style="padding:6px 8px;"></td>
+      <td style="padding:6px 8px;"></td>
+      <td style="padding:6px 8px;"></td>
+      <td style="padding:6px 8px;"></td>
+      <td id="ord-grp-k-${gIdx}" style="padding:6px 8px;text-align:center;font-size:13px;font-weight:800;">${fmtK(fOrder)}</td>
+      <td id="ord-grp-pal-${gIdx}" style="padding:6px 8px;text-align:center;font-size:12px;font-weight:700;">${fPal.toFixed(1)}</td>
+      <td id="ord-grp-manual-pal-${gIdx}" style="padding:6px 8px;text-align:center;font-size:12px;font-weight:700;background:rgba(0,0,0,0.15);">${fPal.toFixed(1)}</td>
     </tr>`;
 
     gr.forEach((r, i) => {
@@ -2656,43 +2662,25 @@ function buildOrderPage() {
     <td id="ord-pal-gt-cell" style="padding:7px 6px;text-align:center;font-size:14px;font-weight:900;color:#a5d6a7;background:#1b5e20;">${Math.round(gtPal)}</td>
   </tr>`;
 
-  const PALS_PER_CONT = 20;
-  const contFull = Math.floor(gtPal / PALS_PER_CONT);
-  const contRem  = Math.round(gtPal) % PALS_PER_CONT;
+  const PALS_PER_CONT = 20;  // 40ft container = 20 standard pallets
+  const contDec = (gtPal / PALS_PER_CONT).toFixed(1);
 
   // Update inline summary in header — KPI stat blocks
   const sumEl = document.getElementById('ord-summary-inline');
   if (sumEl) {
     const kpi = (lbl, val, clr='#fff') =>
-      `<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 18px;border-right:1px solid rgba(255,255,255,0.07);min-width:90px;">
+      `<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 16px;border-right:1px solid rgba(255,255,255,0.07);min-width:80px;">
         <span style="font-size:9px;font-weight:700;color:#9ca3af;letter-spacing:.09em;text-transform:uppercase;line-height:1;">${lbl}</span>
         <span style="font-size:18px;font-weight:800;color:${clr};line-height:1.25;margin-top:1px;">${val}</span>
       </div>`;
-    const contVal = contRem > 0
-      ? `${contFull}<span style="font-size:11px;color:#6b7280;font-weight:600;"> +${contRem}</span>`
-      : `${contFull}`;
-    const mekLabel  = gtPeriodSales > 0 ? fmtK(gtPeriodSales) : '—';
-    const cntAll    = rows.length;
-    const cntStock  = rows.filter(r => r.stock > 0).length;
+    const cntAll   = rows.length;
+    const cntStock = rows.filter(r => r.stock > 0).length;
     sumEl.innerHTML =
-      kpi('KARTON', `<span id="ord-k-hdr">${fmtK(gtOrder)}</span>`) +
-      kpi('PALLET', `<span id="ord-pal-hdr">${Math.round(gtPal)}</span>`) +
-      `<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 18px;border-right:1px solid rgba(255,255,255,0.07);min-width:90px;">
-        <span style="font-size:9px;font-weight:700;color:#9ca3af;letter-spacing:.09em;text-transform:uppercase;line-height:1;">קונטיינר 40'</span>
-        <span id="ord-cont-hdr" style="font-size:18px;font-weight:800;color:#fff;line-height:1.25;margin-top:1px;">${contVal}</span>
-      </div>` +
-      `<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 18px;border-right:1px solid rgba(255,255,255,0.07);min-width:100px;">
-        <span style="font-size:9px;font-weight:700;color:#9ca3af;letter-spacing:.09em;text-transform:uppercase;line-height:1;">מכר בתקופה</span>
-        <span id="ord-mekarer-hdr" style="font-size:18px;font-weight:800;color:#b3e5fc;line-height:1.25;margin-top:1px;">${mekLabel}</span>
-      </div>` +
-      `<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 18px;border-right:1px solid rgba(255,255,255,0.07);min-width:80px;">
-        <span style="font-size:9px;font-weight:700;color:#9ca3af;letter-spacing:.09em;text-transform:uppercase;line-height:1;">מק"ט</span>
-        <span style="font-size:18px;font-weight:800;color:#fff;line-height:1.25;margin-top:1px;">${cntAll}</span>
-      </div>` +
-      `<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 18px;min-width:90px;">
-        <span style="font-size:9px;font-weight:700;color:#9ca3af;letter-spacing:.09em;text-transform:uppercase;line-height:1;">עם מלאי</span>
-        <span style="font-size:18px;font-weight:800;color:#a5d6a7;line-height:1.25;margin-top:1px;">${cntStock}</span>
-      </div>`;
+      kpi('KARTON',    `<span id="ord-k-hdr">${fmtK(gtOrder)}</span>`) +
+      kpi('PALLET',    `<span id="ord-pal-hdr">${gtPal.toFixed(1)}</span>`) +
+      kpi("קונטיינר 40'", `<span id="ord-cont-hdr">${contDec}</span>`) +
+      kpi('מק"ט',     `${cntAll}`) +
+      kpi('עם מלאי',  `${cntStock}`, '#a5d6a7');
   }
 
   wrap.innerHTML = `
