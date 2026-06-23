@@ -50,7 +50,7 @@
 - [[session-2026-06-14]] — Сессия 2026-06-14: KARTON/PAL двусторонняя синхронизация, step 0.5, мультифильтр семейств, hover строки
 - [[session-2026-06-15]] — Сессия 2026-06-15: MMD ORDERS title page, #filter-row wrapper, PBI badge, checkbox inversion; planограмма daySales fallback fix
 - [[session-2026-06-16]] — Сессия 2026-06-16: ⭐ top-30% обе метрики, תוקף пустота, fixProductName ג unicode fix, splash фото попытки + откат, variants mockup
-- [[mmd-orders-app]] — MMD ORDERS: BiDi числа фикс (1200 ג), fixGimel, company chips nowrap+count sort
+- [[mmd-orders-app]] — MMD ORDERS: BiDi числа фикс (1200 ג), fixGimel, company chips nowrap+count sort, xlsx Table-баг exceljs фикс (2026-06-23)
 - [[session-2026-06-17]] — Сессия 2026-06-17: MMD ORDERS → GitHub Pages (CI 7 слотов/день), Excel RLM фикс, מקרר token fix
 - [[session-2026-06-22]] — Сессия 2026-06-22: Formula Road session persistence, order-dagim xlsx фикс + стандарт отступов/Total для Excel, перенос на 2-й комп, мультикомпьютерный git-workflow
 - [[session-2026-06-23]] — Сессия 2026-06-23: Formula Road фикс 503 (два cloudflared), фикс loadAgentList (agentsByManager), config.yml ingress rule, git HEAD recover
