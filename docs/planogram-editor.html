@@ -2371,7 +2371,9 @@ function buildOrderPage() {
     const krat    = +(d.ashdodPalletCartons || d.kratnost || 1);
     const palSpo  = krat > 0 && spo > 0 ? +(spo / krat).toFixed(1) : 0;
     const _ps = window._orderPeriodSales;
-    const daySales = +(_ps ? (_ps[mk] ?? 0) : (d.daySalesAll || 0));
+    const _psRow   = _ps ? _ps[mk] : null;
+    const daySales = +(_psRow ? (_psRow.daySales ?? _psRow ?? 0) : (d.daySalesAll || 0));
+    const mkrTk    = _psRow ? (_psRow.mkrTk ?? null) : null;
     const daysStk  = daySales > 0 ? spo / daySales * 1.4 : null;
     const safetyDays = _getSafetyDays(fam);
     const safetyK    = Math.ceil(safetyDays / 1.4 * daySales);
@@ -2383,11 +2385,13 @@ function buildOrderPage() {
     const orderK = manualEdit ? manualEdit.orderK : autoOrderK;
     const orderP = manualEdit ? manualEdit.orderP : autoOrderP;
     const stock = +(d.stock || 0);
-    // מכר בתקופה — total sales in selected period (daySales × days in selected months)
-    const sel = window._orderSelectedPeriods || new Set();
-    let periodDays = 0;
-    for (const p of sel) { const [y,m] = p.split('-').map(Number); periodDays += new Date(y,m,0).getDate(); }
-    const periodSales = daySales > 0 && periodDays > 0 ? Math.round(daySales * periodDays) : null;
+    // מכר בתקופה — use actual PBI [מכר קרטון] if available, else daySales × days
+    let periodSales = mkrTk !== null ? Math.round(mkrTk) : null;
+    if (periodSales === null && daySales > 0) {
+      const sel2 = window._orderSelectedPeriods || new Set();
+      let pd = 0; for (const p of sel2) { const [y,m] = p.split('-').map(Number); pd += new Date(y,m,0).getDate(); }
+      if (pd > 0) periodSales = Math.round(daySales * pd);
+    }
     allRows.push({ mk, name, fam, iksGroup, stock, spo, palSpo, openOrders, daySales, periodSales, daysStk, krat, safetyDays, safetyK, orderK, orderP, deferredDemand });
   }
 
@@ -2581,7 +2585,9 @@ function buildOrderPage() {
     const contVal = contRem > 0
       ? `${contFull}<span style="font-size:11px;color:#6b7280;font-weight:600;"> +${contRem}</span>`
       : `${contFull}`;
-    const mekLabel = gtPeriodSales > 0 ? fmtK(gtPeriodSales) : '—';
+    const mekLabel  = gtPeriodSales > 0 ? fmtK(gtPeriodSales) : '—';
+    const cntAll    = rows.length;
+    const cntStock  = rows.filter(r => r.stock > 0).length;
     sumEl.innerHTML =
       kpi('KARTON', `<span id="ord-k-hdr">${fmtK(gtOrder)}</span>`) +
       kpi('PALLET', `<span id="ord-pal-hdr">${Math.round(gtPal)}</span>`) +
@@ -2592,6 +2598,14 @@ function buildOrderPage() {
       `<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 18px;border-right:1px solid rgba(255,255,255,0.07);min-width:100px;">
         <span style="font-size:9px;font-weight:700;color:#9ca3af;letter-spacing:.09em;text-transform:uppercase;line-height:1;">מכר בתקופה</span>
         <span id="ord-mekarer-hdr" style="font-size:18px;font-weight:800;color:#b3e5fc;line-height:1.25;margin-top:1px;">${mekLabel}</span>
+      </div>` +
+      `<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 18px;border-right:1px solid rgba(255,255,255,0.07);min-width:80px;">
+        <span style="font-size:9px;font-weight:700;color:#9ca3af;letter-spacing:.09em;text-transform:uppercase;line-height:1;">מק"ט</span>
+        <span style="font-size:18px;font-weight:800;color:#fff;line-height:1.25;margin-top:1px;">${cntAll}</span>
+      </div>` +
+      `<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 18px;min-width:90px;">
+        <span style="font-size:9px;font-weight:700;color:#9ca3af;letter-spacing:.09em;text-transform:uppercase;line-height:1;">עם מלאי</span>
+        <span style="font-size:18px;font-weight:800;color:#a5d6a7;line-height:1.25;margin-top:1px;">${cntStock}</span>
       </div>`;
   }
 
