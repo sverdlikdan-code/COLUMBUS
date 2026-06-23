@@ -1471,8 +1471,9 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
     ws.getRow(HEADER_ROW + 1 + tableRows.length).font = { bold: true, name: 'Calibri' };
     ws.views[0] = { rightToLeft: true, state: 'frozen', ySplit: HEADER_ROW };
 
-    // Fetch and embed product photos in parallel (skip failures silently)
-    const IMG_ROW_HEIGHT = 76;
+    // Fetch and embed product photos — use ext (pixels) not br to ensure image fills cell
+    const IMG_PX = 90;        // photo display size in pixels
+    const IMG_ROW_PT = 68;    // row height in points  (1pt ≈ 1.333px → 68pt ≈ 91px)
     await Promise.all(rows.map(async (r, i) => {
       if (!r.photoUrl) return;
       try {
@@ -1484,13 +1485,13 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
         const buf = Buffer.from(await resp.arrayBuffer());
         const ext = /\.png(\?|$)/i.test(r.photoUrl) ? 'png' : 'jpeg';
         const imgId = wb.addImage({ buffer: buf, extension: ext });
-        const excelRow = HEADER_ROW + 1 + i;  // 1-indexed Excel row
+        const excelRow = HEADER_ROW + 1 + i;
         ws.addImage(imgId, {
-          tl: { col: PHOTO_COL - 1 + 0.06, row: excelRow - 1 + 0.06 },
-          br: { col: PHOTO_COL      - 0.06, row: excelRow     - 0.06 },
+          tl: { col: PHOTO_COL - 1 + 0.04, row: excelRow - 1 + 0.04 },
+          ext: { width: IMG_PX, height: IMG_PX },
           editAs: 'oneCell',
         });
-        ws.getRow(excelRow).height = IMG_ROW_HEIGHT;
+        ws.getRow(excelRow).height = IMG_ROW_PT;
       } catch { /* skip */ }
     }));
 
@@ -1557,7 +1558,8 @@ app.post('/api/export-position-xlsx', dataRateLimit, async (req, res) => {
     ws.getRow(HEADER_ROW).font = { bold: true };
     ws.views[0] = { rightToLeft: true, state: 'frozen', ySplit: HEADER_ROW };
 
-    const IMG_ROW_HEIGHT = 76;
+    const IMG_PX = 90;
+    const IMG_ROW_PT = 68;
     await Promise.all(rows.map(async (r, i) => {
       if (!r.photoUrl) return;
       try {
@@ -1568,11 +1570,11 @@ app.post('/api/export-position-xlsx', dataRateLimit, async (req, res) => {
         const imgId = wb.addImage({ buffer: buf, extension: ext });
         const excelRow = HEADER_ROW + 1 + i;
         ws.addImage(imgId, {
-          tl: { col: PHOTO_COL - 1 + 0.06, row: excelRow - 1 + 0.06 },
-          br: { col: PHOTO_COL      - 0.06, row: excelRow     - 0.06 },
+          tl: { col: PHOTO_COL - 1 + 0.04, row: excelRow - 1 + 0.04 },
+          ext: { width: IMG_PX, height: IMG_PX },
           editAs: 'oneCell',
         });
-        ws.getRow(excelRow).height = IMG_ROW_HEIGHT;
+        ws.getRow(excelRow).height = IMG_ROW_PT;
       } catch { /* skip */ }
     }));
 
