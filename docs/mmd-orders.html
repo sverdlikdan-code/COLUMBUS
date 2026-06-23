@@ -1468,7 +1468,10 @@
         const s   = sv[mk] || {};
         const eff = Number(s.k);
         totalK += eff;
-        return [mk, r.mishpacha||'', r.hevra||'', '‏'+(r.taur||''), r.mmd_k??0, r.ashdod_k??0, eff, sessionP[mk]||''];
+        // תוקף נדרש: אופציה אחת — נבחרת אוטומטית; כמה אופציות בלי בחירה — נשארת ריקה ותסומן באדום בלולאת העיצוב
+        const opts = r.tukuf ? String(r.tukuf).split('/').map(x => x.trim()).filter(Boolean) : [];
+        const tukufVal = sessionP[mk] || (opts.length === 1 ? opts[0] : '');
+        return [mk, r.mishpacha||'', r.hevra||'', '‏'+(r.taur||''), r.mmd_k??0, r.ashdod_k??0, eff, tukufVal];
       });
 
       // Header + filterable data at A5 — manual header/autoFilter instead of ws.addTable().
@@ -1510,6 +1513,13 @@
         row.getCell(6).font = { size:10, color:{ argb:ashK>0?'FF1B5E20':'FFB71C1C' } };
         row.getCell(7).font = { size:11, bold:true, color:{ argb:eff>0?'FFE65100':'FF999999' } };
         if (eff > 0) row.getCell(7).border = bdr('medium','E65100');
+        // יותר מאופציה אחת ב"תוקף אשדוד" ואין בחירת משתמש — לסמן את תא תוקף נדרש באדום
+        const tOpts = r.tukuf ? String(r.tukuf).split('/').map(x => x.trim()).filter(Boolean) : [];
+        if (tOpts.length > 1 && !sessionP[mk]) {
+          row.getCell(8).fill   = solid('FFCDD2');
+          row.getCell(8).font   = { size:10, bold:true, color:{ argb:'FFB71C1C' } };
+          row.getCell(8).border = bdr('medium','D32F2F');
+        }
       });
 
       // Summary row (below table)
