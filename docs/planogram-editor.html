@@ -417,36 +417,43 @@
 <!-- Order page — full-screen overlay for דגים הזמנה -->
 <div id="order-page" style="display:none; position:fixed; inset:0; z-index:610; background:#F5F7FA; overflow:hidden; direction:rtl; flex-direction:column;">
 
-  <!-- Row 1: top nav bar — gradient matching MMD Orders header -->
-  <div style="display:flex;align-items:stretch;height:50px;flex-shrink:0;z-index:10;box-shadow:0 3px 14px rgba(0,0,0,.45);position:relative;overflow:hidden;background:linear-gradient(125deg,#04111f 0%,#072e52 25%,#0a5a86 58%,#4a2810 82%,#2e1608 100%);">
-    <!-- sun glow -->
+  <!-- Row 1: gradient title bar — logo + period chips + actions -->
+  <div style="display:flex;align-items:stretch;height:52px;flex-shrink:0;z-index:10;box-shadow:0 3px 14px rgba(0,0,0,.45);position:relative;overflow:hidden;background:linear-gradient(125deg,#04111f 0%,#072e52 25%,#0a5a86 58%,#4a2810 82%,#2e1608 100%);">
     <div style="position:absolute;left:-20px;bottom:-40px;width:320px;height:200px;background:radial-gradient(ellipse,rgba(200,110,40,0.15) 0%,transparent 65%);pointer-events:none;"></div>
-    <!-- shimmer lines -->
     <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 9px,rgba(255,255,255,.018) 9px,rgba(255,255,255,.018) 10px);pointer-events:none;"></div>
-    <button onclick="toggleOrderPage()" class="no-print" style="background:none;border:none;border-left:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);font-size:16px;cursor:pointer;padding:0 16px;flex-shrink:0;transition:color 0.15s;position:relative;z-index:1;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.5)'">✕</button>
-    <div style="display:flex;align-items:center;gap:10px;padding:0 16px;flex-shrink:0;position:relative;z-index:1;">
-      <img src="logo-diler-bmd.png" alt="DILER" class="no-print" style="height:18px;filter:brightness(0) invert(1);opacity:0.7;flex-shrink:0;">
-      <span style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);letter-spacing:1.2px;text-transform:uppercase;">הזמנה דגים 🐟</span>
+    <button onclick="toggleOrderPage()" class="no-print" style="background:none;border:none;border-left:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.4);font-size:16px;cursor:pointer;padding:0 14px;flex-shrink:0;transition:color 0.15s;position:relative;z-index:1;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.4)'">✕</button>
+    <div style="display:flex;align-items:center;gap:8px;padding:0 14px 0 10px;flex-shrink:0;position:relative;z-index:1;border-left:1px solid rgba(255,255,255,0.08);">
+      <img src="logo-diler-bmd.png" alt="DILER" class="no-print" style="height:26px;filter:brightness(0) invert(1);opacity:0.85;flex-shrink:0;">
+      <div style="display:flex;flex-direction:column;gap:1px;">
+        <span style="font-size:13px;font-weight:900;color:#fff;letter-spacing:.025em;line-height:1.1;">הזמנה דגים 🐟</span>
+        <span style="font-size:9px;font-weight:500;color:rgba(255,255,255,0.45);letter-spacing:.05em;">FORMULA · FISH ORDER</span>
+      </div>
     </div>
-    <div style="width:1px;background:rgba(255,255,255,0.08);flex-shrink:0;margin:10px 0;position:relative;z-index:1;"></div>
     <div id="ord-period-btns" style="display:flex;flex:1;min-width:0;overflow:hidden;padding:0 10px;align-items:center;gap:3px;direction:ltr;position:relative;z-index:1;" class="no-print"></div>
-    <div id="ord-summary-inline" style="display:flex;align-items:stretch;position:relative;z-index:1;" class="no-print"></div>
-    <div style="width:1px;background:rgba(255,255,255,0.08);flex-shrink:0;margin:10px 0;position:relative;z-index:1;" class="no-print"></div>
-    <button onclick="window.print()" class="no-print" style="background:none;border:none;border-right:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);font-size:13px;cursor:pointer;padding:0 16px;flex-shrink:0;display:flex;align-items:center;gap:5px;white-space:nowrap;position:relative;z-index:1;" title="הדפסה">
-      🖨 <span style="font-size:10px;font-weight:600;letter-spacing:.4px;">הדפסה</span>
-    </button>
+    <div style="width:1px;background:rgba(255,255,255,0.08);flex-shrink:0;margin:8px 0;position:relative;z-index:1;" class="no-print"></div>
+    <div style="display:flex;align-items:center;gap:6px;padding:0 10px;position:relative;z-index:1;" class="no-print">
+      <button onclick="exportOrderCsv()" style="background:#1d4ed8;border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:5px 13px;white-space:nowrap;letter-spacing:.3px;">⬇ Excel</button>
+      <button onclick="_orderSaveSnapshot()" style="background:#15803d;border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:5px 13px;white-space:nowrap;letter-spacing:.3px;">💾 שמור</button>
+      <div style="position:relative;display:inline-block;">
+        <button id="btn-order-history" onclick="_orderToggleHistory()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.8);font-size:11px;font-weight:600;cursor:pointer;border-radius:6px;padding:4px 11px;white-space:nowrap;">🕐 היסטוריה</button>
+        <div class="history-dropdown" id="order-history-dropdown"></div>
+      </div>
+      <button onclick="window.print()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.8);font-size:11px;font-weight:600;cursor:pointer;border-radius:6px;padding:4px 11px;white-space:nowrap;">🖨 הדפסה</button>
+    </div>
   </div>
 
-  <!-- Row 2: action buttons + IKRA/SAL/KAPUS group chip filters -->
-  <div style="display:flex;align-items:center;gap:5px;padding:0 14px;background:#04111f;flex-shrink:0;z-index:9;border-bottom:1px solid rgba(255,255,255,0.12);height:52px;" class="no-print">
-    <button onclick="exportOrderCsv()" style="background:#1d4ed8;border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:5px 15px;white-space:nowrap;flex-shrink:0;letter-spacing:.3px;">⬇ Excel</button>
-    <button onclick="_orderSaveSnapshot()" style="background:#15803d;border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:5px 15px;white-space:nowrap;flex-shrink:0;letter-spacing:.3px;">💾 שמור</button>
-    <div style="position:relative;display:inline-block;flex-shrink:0;">
-      <button id="btn-order-history" onclick="_orderToggleHistory()" style="background:none;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.5);font-size:11px;font-weight:600;cursor:pointer;border-radius:6px;padding:4px 13px;white-space:nowrap;letter-spacing:.2px;">🕐 היסטוריה</button>
-      <div class="history-dropdown" id="order-history-dropdown"></div>
+  <!-- Row 2: KPI bar — dark strip with metric blocks -->
+  <div style="display:flex;align-items:stretch;flex-shrink:0;background:#07192e;border-bottom:1px solid rgba(255,255,255,0.07);" class="no-print">
+    <div id="ord-summary-inline" style="display:flex;align-items:stretch;flex:1;"></div>
+    <div style="display:flex;align-items:center;padding:0 16px;border-right:1px solid rgba(255,255,255,0.07);">
+      <span id="ord-pbi-badge" style="font-size:10px;color:rgba(255,255,255,0.3);white-space:nowrap;">🔄 —</span>
     </div>
-    <button id="btn-order-only" onclick="toggleOrderOnly()" style="background:none;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.5);font-size:11px;font-weight:600;cursor:pointer;border-radius:6px;padding:4px 13px;white-space:nowrap;flex-shrink:0;letter-spacing:.2px;transition:all 0.15s;">📋 הזמנה בלבד</button>
-    <div style="width:1px;height:18px;background:rgba(255,255,255,0.1);flex-shrink:0;margin:0 6px;"></div>
+  </div>
+
+  <!-- Row 3: filter chips — light sky background like MMD Orders -->
+  <div style="display:flex;align-items:center;gap:6px;padding:7px 14px;background:#E3F2FD;border-bottom:1px solid #BBDEFB;flex-shrink:0;" class="no-print">
+    <button id="btn-order-only" onclick="toggleOrderOnly()" style="background:#fff;border:1.5px solid #BBDEFB;color:#0D47A1;font-size:11px;font-weight:700;cursor:pointer;border-radius:20px;padding:5px 14px;white-space:nowrap;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.12);transition:all 0.15s;">📋 הזמנה בלבד</button>
+    <div style="width:1px;height:18px;background:#BBDEFB;flex-shrink:0;margin:0 2px;"></div>
     <div id="ord-fam-btns" style="display:flex;flex:1;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;"></div>
   </div>
 
@@ -1041,6 +1048,8 @@ async function loadMaps() {
           + ' ' + d.toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' });
         const badge = document.getElementById('refresh-badge');
         if (badge) badge.textContent = '🔄 PBI: ' + label;
+        const ordBadge = document.getElementById('ord-pbi-badge');
+        if (ordBadge) ordBadge.textContent = '🔄 PBI ' + label;
       });
 
     // Persist reset state so ALL users see fresh layout without manual איפוס
@@ -2478,10 +2487,10 @@ function buildOrderPage() {
   // Populate group chip buttons
   const famBtns = document.getElementById('ord-fam-btns');
   if (famBtns) {
-    const chipAct = 'font-size:13px;padding:7px 20px;border-radius:8px;cursor:pointer;font-weight:700;border:2px solid;background:#1565C0;color:#fff;border-color:#42a5f5;white-space:nowrap;';
-    const chipDef = 'font-size:13px;padding:7px 20px;border-radius:8px;cursor:pointer;font-weight:600;border:2px solid;background:rgba(30,58,95,0.9);color:#90caf9;border-color:#1e4976;white-space:nowrap;';
-    const chipZeroAct = 'font-size:13px;padding:7px 20px;border-radius:8px;cursor:pointer;font-weight:700;border:2px solid;background:#e65100;color:#fff;border-color:#ff6d00;white-space:nowrap;';
-    const chipZeroDef = 'font-size:13px;padding:7px 20px;border-radius:8px;cursor:pointer;font-weight:600;border:2px solid;background:rgba(230,81,0,0.15);color:#ffcc80;border-color:rgba(230,81,0,0.4);white-space:nowrap;';
+    const chipAct = 'font-size:13px;padding:5px 18px;border-radius:20px;cursor:pointer;font-weight:700;border:1.5px solid #0D47A1;background:#1565C0;color:#fff;white-space:nowrap;box-shadow:0 3px 10px rgba(25,72,175,.35);';
+    const chipDef = 'font-size:13px;padding:5px 18px;border-radius:20px;cursor:pointer;font-weight:600;border:1.5px solid #BBDEFB;background:#fff;color:#0D47A1;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.12);';
+    const chipZeroAct = 'font-size:13px;padding:5px 18px;border-radius:20px;cursor:pointer;font-weight:700;border:1.5px solid #bf360c;background:#e65100;color:#fff;white-space:nowrap;box-shadow:0 3px 10px rgba(230,81,0,.35);';
+    const chipZeroDef = 'font-size:13px;padding:5px 18px;border-radius:20px;cursor:pointer;font-weight:600;border:1.5px solid #ffccbc;background:#fff3e0;color:#bf360c;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.12);';
     const grpKeys = [...new Set(allRows.map(getGrp).filter(Boolean))].sort();
     famBtns.innerHTML =
       `<button class="ord-fam-btn" data-fam="" style="${window._orderFams.size === 0 ? chipAct : chipDef}">כולם</button>` +
@@ -2554,8 +2563,8 @@ function buildOrderPage() {
   window._orderCurrentRows = grpOrder.flatMap(g => groups[g] || []);
 
   const _th = (extra='') => `position:sticky;top:0;z-index:5;background:#0D47A1;color:#fff;padding:8px 6px;font-size:10px;font-weight:700;border-bottom:2px solid #0a3880;border-right:1px solid rgba(255,255,255,0.1);${extra}`;
-  const _donut = (pct) => {
-    if (pct == null) return '<span style="color:#ccc;font-size:10px;">—</span>';
+  const _donut = (pct, isStar=false) => {
+    if (pct == null) return `<span style="color:#ccc;font-size:10px;">${isStar ? '⭐' : '—'}</span>`;
     const r = 11, cx = 15, cy = 15, circ = 2 * Math.PI * r;
     const fill = Math.min(pct / 100, 1) * circ;
     const clr  = pct >= 60 ? '#4caf50' : pct >= 30 ? '#ffa726' : '#ef5350';
@@ -2565,6 +2574,7 @@ function buildOrderPage() {
         stroke-dasharray="${fill.toFixed(2)} ${circ.toFixed(2)}"
         stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})"/>
       <text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="7" fill="#333" font-weight="700">${pct}%</text>
+      ${isStar ? `<text x="27" y="6" text-anchor="middle" font-size="8">⭐</text>` : ''}
     </svg>`;
   };
   const thead = `<thead>
@@ -2650,7 +2660,7 @@ function buildOrderPage() {
         <td style="padding:4px 8px;text-align:center;font-size:12px;font-weight:${r.openOrders > 0 ? '700' : '400'};color:${r.openOrders > 0 ? '#2e7d32' : '#bbb'};">${r.openOrders > 0 ? fmtK(r.openOrders) : '—'}</td>
         <td style="padding:4px 6px;text-align:center;font-size:12px;font-weight:700;color:${r.branchy != null ? '#01579b' : '#bbb'};">${r.branchy != null ? r.branchy.toLocaleString('en') : '—'}</td>
         <td style="padding:4px 6px;text-align:center;font-size:11px;color:#777;">${(window._orderTotalBranchy||null) != null ? window._orderTotalBranchy.toLocaleString('en') : '—'}</td>
-        <td style="padding:2px 4px;text-align:center;">${_donut(r.pizur)}${r.isStar ? '<br><span style="font-size:9px;line-height:1;">⭐</span>' : ''}</td>
+        <td style="padding:2px 4px;text-align:center;">${_donut(r.pizur, r.isStar)}</td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;">${r.daySales > 0 ? (r.daySales >= 1 ? Math.round(r.daySales) : r.daySales.toFixed(1)) : '—'}</td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;font-weight:${r.periodSales ? '700' : '400'};color:${r.periodSales ? '#01579b' : '#bbb'};">${r.periodSales ? fmtK(r.periodSales) : '—'}</td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;font-weight:700;color:${dc};">${r.daysStk !== null ? Math.round(r.daysStk) : '—'}${r.deferredDemand ? ' <span title="ביקוש נדחה — מלאי מתחת למחצית מלאי הביטחון" style="cursor:help;">⚡</span>' : ''}</td>
@@ -2685,9 +2695,9 @@ function buildOrderPage() {
   const sumEl = document.getElementById('ord-summary-inline');
   if (sumEl) {
     const kpi = (lbl, val, clr='#fff') =>
-      `<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 16px;border-right:1px solid rgba(255,255,255,0.07);min-width:80px;">
-        <span style="font-size:9px;font-weight:700;color:#9ca3af;letter-spacing:.09em;text-transform:uppercase;line-height:1;">${lbl}</span>
-        <span style="font-size:18px;font-weight:800;color:${clr};line-height:1.25;margin-top:1px;">${val}</span>
+      `<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;padding:5px 14px;margin:5px 4px;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);border-radius:8px;min-width:88px;text-align:center;">
+        <span style="font-size:9px;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:.05em;text-transform:uppercase;line-height:1;">${lbl}</span>
+        <span style="font-size:17px;font-weight:800;color:${clr};line-height:1.3;margin-top:2px;">${val}</span>
       </div>`;
     const cntAll   = rows.length;
     const cntStock = rows.filter(r => r.stock > 0).length;
