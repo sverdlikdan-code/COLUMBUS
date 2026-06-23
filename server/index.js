@@ -1328,8 +1328,7 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
       CALCULATETABLE(
         ADDCOLUMNS(
           SUMMARIZE('ALL_PARTS', 'ALL_PARTS'[מק'ט]),
-          "daySales", [TOTAL מכר בקרטונים ממוצע ביום],
-          "mkrTk",    [מכר קרטון]
+          "daySales", [TOTAL מכר בקרטונים ממוצע ביום]
         ),
         'ALL_PARTS'[חברה] = "FORMULA",
         ${dateFilter}
@@ -1338,7 +1337,7 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
     const data = {};
     for (const r of rows) {
       const mk = r["ALL_PARTS[מק'ט]"];
-      if (mk != null) data[String(mk)] = { daySales: r['[daySales]'] ?? null, mkrTk: r['[mkrTk]'] ?? null };
+      if (mk != null) data[String(mk)] = r['[daySales]'] ?? null;
     }
     res.json({ ok: true, data });
   } catch (err) {
