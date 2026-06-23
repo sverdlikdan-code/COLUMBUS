@@ -1309,33 +1309,32 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
       }
     }
     if (!conds.length) return res.status(400).json({ error: 'no valid periods' });
-    dateFilter = `FILTER('ALL_PARTS',${conds.join('||')})`;
+    dateFilter = `FILTER(ALL('ALL_PARTS'),${conds.join('||')})`;
   } else {
     const year  = parseInt(req.query.year  || '0', 10);
     const month = parseInt(req.query.month || '0', 10);
     if (!year || year < 2020 || year > 2030) return res.status(400).json({ error: 'invalid year' });
     if (month && (month < 1 || month > 12))  return res.status(400).json({ error: 'invalid month' });
     dateFilter = month
-      ? `FILTER('ALL_PARTS',YEAR('ALL_PARTS'[תאריך])=${year}&&MONTH('ALL_PARTS'[תאריך])=${month})`
-      : `FILTER('ALL_PARTS',YEAR('ALL_PARTS'[תאריך])=${year})`;
+      ? `FILTER(ALL('ALL_PARTS'),YEAR('ALL_PARTS'[תאריך])=${year}&&MONTH('ALL_PARTS'[תאריך])=${month})`
+      : `FILTER(ALL('ALL_PARTS'),YEAR('ALL_PARTS'[תאריך])=${year})`;
   }
 
   try {
     const rows = await executeDax(`
       EVALUATE
-      CALCULATETABLE(
-        ADDCOLUMNS(
-          SUMMARIZE('ALL_PARTS', 'ALL_PARTS'[מק'ט]),
-          "daySales", [TOTAL מכר בקרטונים ממוצע ביום]
-        ),
+      SUMMARIZECOLUMNS(
+        'ALL_PARTS'[מק'ט],
+        ${dateFilter},
         'ALL_PARTS'[חברה] = "FORMULA",
-        ${dateFilter}
+        "daySales", [TOTAL מכר בקרטונים ממוצע ביום],
+        "mkrTk",    [TOTAL מכר בקרטונים]
       )
     `);
     const data = {};
     for (const r of rows) {
       const mk = r["ALL_PARTS[מק'ט]"];
-      if (mk != null) data[String(mk)] = r['[daySales]'] ?? null;
+      if (mk != null) data[String(mk)] = { daySales: r['[daySales]'] ?? null, mkrTk: r['[mkrTk]'] ?? null };
     }
     res.json({ ok: true, data });
   } catch (err) {
