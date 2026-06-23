@@ -53,3 +53,4 @@
 - [[mmd-orders-app]] — MMD ORDERS: BiDi числа фикс (1200 ג), fixGimel, company chips nowrap+count sort
 - [[session-2026-06-17]] — Сессия 2026-06-17: MMD ORDERS → GitHub Pages (CI 7 слотов/день), Excel RLM фикс, מקרר token fix
 - [[session-2026-06-22]] — Сессия 2026-06-22: Formula Road session persistence, order-dagim xlsx фикс + стандарт отступов/Total для Excel, перенос на 2-й комп, мультикомпьютерный git-workflow
+- [[session-2026-06-23]] — Сессия 2026-06-23: Formula Road фикс 503 (два cloudflared), фикс loadAgentList (agentsByManager), config.yml ingress rule, git HEAD recover
