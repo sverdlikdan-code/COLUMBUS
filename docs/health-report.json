@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-06-22T14:41:27.755Z",
-  "date": "2026-06-22",
-  "totalSessions": 5,
+  "generatedAt": "2026-06-23T03:00:10.150Z",
+  "date": "2026-06-23",
+  "totalSessions": 6,
   "last7days": [
     {
       "date": "2026-19-05",
@@ -82,6 +82,15 @@
           "fix": "Проблема с интернетом в момент запуска (06:00). Watchdog в 07:30 должен поймать и поретраить."
         }
       ]
+    },
+    {
+      "date": "2026-23-06",
+      "done": false,
+      "pushed": false,
+      "noChanges": false,
+      "errorCount": 0,
+      "errors": [],
+      "findings": []
     }
   ],
   "patterns": {
@@ -93,7 +102,7 @@
   "recentIssues": [
     {
       "level": "warning",
-      "msg": "GitHub Actions не коммитил 4ч — последний: COLUMBUS Bot в 2026-06-22T10:40:26.000Z",
+      "msg": "GitHub Actions не коммитил более 14ч (16.3ч)",
       "fix": "Проверь GitHub Actions: https://github.com/sverdlikdan-code/COLUMBUS/actions — ищи failed runs",
       "code": "ACTIONS_STALE"
     },
@@ -108,8 +117,8 @@
   "githubActions": {
     "lastActionsCommit": "2026-06-22T10:40:26.000Z",
     "lastActionsAuthor": "COLUMBUS Bot",
-    "hoursSinceLastActions": 4,
+    "hoursSinceLastActions": 16.3,
     "status": "warning",
-    "warning": "GitHub Actions не коммитил 4ч — последний: COLUMBUS Bot в 2026-06-22T10:40:26.000Z"
+    "warning": "GitHub Actions не коммитил более 14ч (16.3ч)"
   }
 }
