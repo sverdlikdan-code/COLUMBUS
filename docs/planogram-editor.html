@@ -2501,7 +2501,7 @@ function buildOrderPage() {
     const chipAct = 'font-size:13px;padding:5px 18px;border-radius:20px;cursor:pointer;font-weight:700;border:1.5px solid #0D47A1;background:#1565C0;color:#fff;white-space:nowrap;box-shadow:0 3px 10px rgba(25,72,175,.35);';
     const chipDef = 'font-size:13px;padding:5px 18px;border-radius:20px;cursor:pointer;font-weight:600;border:1.5px solid #BBDEFB;background:#fff;color:#0D47A1;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.12);';
     const chipZeroAct = 'font-size:13px;padding:5px 18px;border-radius:20px;cursor:pointer;font-weight:700;border:1.5px solid #bf360c;background:#e65100;color:#fff;white-space:nowrap;box-shadow:0 3px 10px rgba(230,81,0,.35);';
-    const chipZeroDef = 'font-size:13px;padding:5px 18px;border-radius:20px;cursor:pointer;font-weight:600;border:1.5px solid #ffccbc;background:#fff3e0;color:#bf360c;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.12);';
+    const chipZeroDef = 'font-size:13px;padding:5px 18px;border-radius:20px;cursor:pointer;font-weight:600;border:1.5px solid #BBDEFB;background:#fff;color:#0D47A1;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.12);';
     const grpKeys = [...new Set(allRows.map(getGrp).filter(Boolean))].sort();
     famBtns.innerHTML =
       `<button class="ord-fam-btn" data-fam="" style="${window._orderFams.size === 0 ? chipAct : chipDef}">כולם</button>` +
@@ -3028,12 +3028,41 @@ window.addEventListener('beforeprint', () => {
   } else if (op && op.style.display !== 'none') {
     document.body.classList.add('printing-order');
     document.title = 'הזמנה דגים — FORMULA';
+    // Split into multiple tables (one per group) so thead repeats on every page
+    const wrap = document.getElementById('order-table-wrap');
+    const tbl = wrap?.querySelector('table');
+    if (tbl) {
+      const theadHTML = tbl.querySelector('thead')?.outerHTML || '';
+      const tblStyle = tbl.getAttribute('style') || '';
+      const rows = Array.from(tbl.querySelectorAll('tbody tr'));
+      let tables = '', chunk = '';
+      rows.forEach(tr => {
+        const isGroup = tr.children[0]?.colSpan === 2 && tr.textContent.includes('📦');
+        if (isGroup && chunk) {
+          tables += `<table style="${tblStyle}">${theadHTML}<tbody>${chunk}</tbody></table>`;
+          chunk = '';
+        }
+        chunk += tr.outerHTML;
+      });
+      if (chunk) tables += `<table style="${tblStyle}">${theadHTML}<tbody>${chunk}</tbody></table>`;
+      const div = document.createElement('div');
+      div.id = 'print-split-tables';
+      div.innerHTML = tables;
+      tbl.hidden = true;
+      wrap.insertBefore(div, tbl);
+    }
   }
 });
 window.addEventListener('afterprint', () => {
   document.body.classList.remove('printing-expiry');
   document.body.classList.remove('printing-order');
   document.title = 'MAHSAN FORMULA';
+  const split = document.getElementById('print-split-tables');
+  if (split) {
+    split.remove();
+    const tbl = document.querySelector('#order-table-wrap table');
+    if (tbl) tbl.hidden = false;
+  }
 });
 
 (async () => {
