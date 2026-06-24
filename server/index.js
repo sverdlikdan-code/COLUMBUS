@@ -1359,7 +1359,11 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
       `).catch(() => null),
       executeDax(`
         EVALUATE
-        ROW("tot", CALCULATE([DIST COUNT מ.CAT 7], ALL('ALL_PARTS'), 'ALL_PARTS'[ASHMADOT] IN {"-מכר-"}, 'משטח'[סטטוס] IN {"פעיל"}))
+        CALCULATETABLE(
+          ROW("tot", CALCULATE([DIST COUNT מ.CAT 7], 'ALL_PARTS'[ASHMADOT] IN {"-מכר-"}, 'משטח'[סטטוס] IN {"פעיל"})),
+          'ALL_PARTS'[חברה] = "FORMULA",
+          ${dateFilter}
+        )
       `).catch(() => null),
     ]);
 

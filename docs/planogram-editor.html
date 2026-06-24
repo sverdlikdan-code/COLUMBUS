@@ -2339,6 +2339,7 @@ async function exportOrderCsv() {
       name: r.name, mk: r.mk, fam: r.fam,
       ean: (typeof makatEan !== 'undefined' ? makatEan[String(r.mk)] : '') || '',
       photoUrl: photo ? new URL(photo, location.href).href : '',
+      krat: r.krat,
       spo: r.spo, palSpo: r.palSpo, openOrders: r.openOrders,
       daySales: r.daySales, daysStk: r.daysStk, safetyDays: r.safetyDays,
       orderK: r.orderK, orderP: r.orderP,
@@ -2555,7 +2556,7 @@ function buildOrderPage() {
 
   // Filter
   let rows = window._orderFams.size > 0 ? allRows.filter(r => window._orderFams.has(getGrp(r))) : allRows;
-  if (window._orderZero) rows = rows.filter(r => r.stock <= 0);
+  if (window._orderZero) rows = rows.filter(r => r.spo <= 0);
   if (window._orderOnlyMode) rows = rows.filter(r => r.orderK > 0);
   window._orderCurrentRows = rows;
 
