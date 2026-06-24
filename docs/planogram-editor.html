@@ -2221,6 +2221,12 @@ function toggleOrderZero() {
   buildOrderPage();
 }
 
+window._orderSortBy = '';
+function setOrderSort(val) {
+  window._orderSortBy = val;
+  buildOrderPage();
+}
+
 window._orderOnlyMode = false;
 function toggleOrderOnly() {
   window._orderOnlyMode = !window._orderOnlyMode;
@@ -2501,16 +2507,25 @@ function buildOrderPage() {
   // Populate group chip buttons
   const famBtns = document.getElementById('ord-fam-btns');
   if (famBtns) {
-    const chipAct = 'font-size:13px;padding:5px 18px;border-radius:20px;cursor:pointer;font-weight:700;border:1.5px solid #0D47A1;background:#1565C0;color:#fff;white-space:nowrap;box-shadow:0 3px 10px rgba(25,72,175,.35);';
-    const chipDef = 'font-size:13px;padding:5px 18px;border-radius:20px;cursor:pointer;font-weight:600;border:1.5px solid #BBDEFB;background:#fff;color:#0D47A1;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.12);';
-    const chipZeroAct = 'font-size:13px;padding:5px 18px;border-radius:20px;cursor:pointer;font-weight:700;border:1.5px solid #bf360c;background:#e65100;color:#fff;white-space:nowrap;box-shadow:0 3px 10px rgba(230,81,0,.35);';
-    const chipZeroDef = 'font-size:13px;padding:5px 18px;border-radius:20px;cursor:pointer;font-weight:600;border:1.5px solid #BBDEFB;background:#fff;color:#0D47A1;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.12);';
+    const chipAct     = 'font-size:15px;padding:7px 22px;border-radius:22px;cursor:pointer;font-weight:800;border:2px solid #0D47A1;background:#1565C0;color:#fff;white-space:nowrap;box-shadow:0 4px 18px rgba(21,101,192,.55),0 0 0 3px rgba(21,101,192,.18),inset 0 1px 0 rgba(255,255,255,.25);letter-spacing:.01em;';
+    const chipDef     = 'font-size:15px;padding:7px 22px;border-radius:22px;cursor:pointer;font-weight:700;border:2px solid #BBDEFB;background:#fff;color:#1565C0;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.13),0 1px 3px rgba(21,101,192,.08);letter-spacing:.01em;';
+    const chipZeroAct = 'font-size:15px;padding:7px 22px;border-radius:22px;cursor:pointer;font-weight:800;border:2px solid #bf360c;background:#e65100;color:#fff;white-space:nowrap;box-shadow:0 4px 18px rgba(230,81,0,.55),0 0 0 3px rgba(230,81,0,.18),inset 0 1px 0 rgba(255,255,255,.2);letter-spacing:.01em;';
+    const chipZeroDef = 'font-size:15px;padding:7px 22px;border-radius:22px;cursor:pointer;font-weight:700;border:2px solid #BBDEFB;background:#fff;color:#1565C0;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.13);letter-spacing:.01em;';
+    const sortSel = `<select onchange="setOrderSort(this.value)" style="font-size:13px;padding:6px 12px;border-radius:12px;border:2px solid #BBDEFB;background:#fff;color:#1565C0;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.1);outline:none;margin-right:6px;">
+      <option value="" ${!window._orderSortBy?'selected':''}>לסנן לפי...</option>
+      <option value="pizur" ${window._orderSortBy==='pizur'?'selected':''}>לפי פיזור ↓</option>
+      <option value="daySales" ${window._orderSortBy==='daySales'?'selected':''}>לפי מכר ממוצע ↓</option>
+      <option value="periodSales" ${window._orderSortBy==='periodSales'?'selected':''}>לפי מכר בתקופה ↓</option>
+      <option value="daysStk" ${window._orderSortBy==='daysStk'?'selected':''}>לכמה ימים מלאי ↑</option>
+    </select>`;
     const grpKeys = [...new Set(allRows.map(getGrp).filter(Boolean))].sort();
     famBtns.innerHTML =
       `<button class="ord-fam-btn" data-fam="" style="${window._orderFams.size === 0 ? chipAct : chipDef}">כולם</button>` +
       grpKeys.map(f => `<button class="ord-fam-btn" data-fam="${esc(f)}" style="${window._orderFams.has(f) ? chipAct : chipDef}">${esc(grpLabel(f))}</button>`).join('') +
-      `<span style="width:1px;height:22px;background:rgba(255,255,255,0.1);margin:0 6px;align-self:center;display:inline-block;flex-shrink:0;"></span>` +
-      `<button onclick="toggleOrderZero()" style="${window._orderZero ? chipZeroAct : chipZeroDef}">⚠ חסר במלאי${window._orderZero ? ' ✓' : ''}</button>`;
+      `<span style="width:1px;height:26px;background:#BBDEFB;margin:0 8px;align-self:center;display:inline-block;flex-shrink:0;"></span>` +
+      `<button onclick="toggleOrderZero()" style="${window._orderZero ? chipZeroAct : chipZeroDef}">⚠ חסר במלאי${window._orderZero ? ' ✓' : ''}</button>` +
+      `<span style="flex:1;"></span>` +
+      sortSel;
     famBtns.querySelectorAll('.ord-fam-btn').forEach(btn => btn.addEventListener('click', () => setOrderFam(btn.dataset.fam)));
   }
 
@@ -2571,8 +2586,15 @@ function buildOrderPage() {
   const grpOrder = [...new Set(rows.map(getGrp))].sort();
   const groups = {};
   for (const r of rows) (groups[getGrp(r)] || (groups[getGrp(r)] = [])).push(r);
-  // Sort alphabetically by שם מוצר, independent of הזמנה/orderK
-  for (const g of Object.values(groups)) g.sort((a, b) => String(a.name).localeCompare(String(b.name), 'he'));
+  // Sort within group — by selected sort key or alphabetically by name
+  const _sortBy = window._orderSortBy;
+  for (const g of Object.values(groups)) {
+    if (_sortBy === 'pizur')        g.sort((a, b) => (b.pizur ?? -1) - (a.pizur ?? -1));
+    else if (_sortBy === 'daySales')     g.sort((a, b) => (b.daySales ?? -1) - (a.daySales ?? -1));
+    else if (_sortBy === 'periodSales')  g.sort((a, b) => (b.periodSales ?? -1) - (a.periodSales ?? -1));
+    else if (_sortBy === 'daysStk')      g.sort((a, b) => (a.daysStk ?? 9999) - (b.daysStk ?? 9999));
+    else                                 g.sort((a, b) => String(a.name).localeCompare(String(b.name), 'he'));
+  }
   // Keep the export (window._orderCurrentRows) in the exact same order as the table below
   window._orderCurrentRows = grpOrder.flatMap(g => groups[g] || []);
 
