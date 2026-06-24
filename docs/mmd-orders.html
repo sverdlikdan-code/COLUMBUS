@@ -1045,11 +1045,11 @@
     const allChk = document.getElementById('fam-all');
     if (allChk) allChk.checked = fams.size === 0;
     document.querySelectorAll('#fam-drop-panel input[type="checkbox"]:not(#fam-all)').forEach(cb => {
-      cb.checked = !fams.has(cb.value); // checked = visible (not excluded)
+      cb.checked = fams.has(cb.value); // checked = included (include model)
     });
     const btn = document.getElementById('fam-drop-btn');
     if (btn) {
-      btn.textContent = fams.size === 0 ? 'כולם ▾' : fams.size + ' מוסתרות ▾';
+      btn.textContent = fams.size === 0 ? 'כולם ▾' : fams.size + ' משפחות ▾';
       btn.classList.toggle('active', fams.size > 0);
     }
   }
@@ -1125,13 +1125,12 @@
   };
 
   window.togFamAll = function(checked) {
-    if (checked) { fams.clear(); syncFamPanel(); render(); }
-    else { document.getElementById('fam-all').checked = true; }
+    fams.clear(); syncFamPanel(); render(); // click כולם = clear all = show all
   };
 
   window.togFamChk = function(cb) {
-    if (!cb.checked) fams.add(cb.value);   // uncheck = exclude
-    else fams.delete(cb.value);             // check = show again
+    if (cb.checked) fams.add(cb.value);    // check = include only this
+    else fams.delete(cb.value);            // uncheck = remove from include
     syncFamPanel();
     render();
   };
@@ -1195,7 +1194,7 @@
         if (!r.maavar || r.maavar <= 0) return false;
         return true; // in maavar mode skip other filters
       }
-      if (fams.size && fams.has(r.mishpacha)) return false;
+      if (fams.size && !fams.has(r.mishpacha)) return false;
       if (cos.size  && !cos.has(r.hevra))      return false;
       if (ashFilter.size) {
         const has = r.ashdod_k > 0;
