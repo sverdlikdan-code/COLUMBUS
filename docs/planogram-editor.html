@@ -2556,7 +2556,7 @@ function buildOrderPage() {
 
   // Filter
   let rows = window._orderFams.size > 0 ? allRows.filter(r => window._orderFams.has(getGrp(r))) : allRows;
-  if (window._orderZero) rows = rows.filter(r => r.spo <= 0);
+  if (window._orderZero) rows = rows.filter(r => r.stock <= 0);
   if (window._orderOnlyMode) rows = rows.filter(r => r.orderK > 0);
   window._orderCurrentRows = rows;
 
