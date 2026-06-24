@@ -1290,6 +1290,16 @@ app.get('/api/mekarer-export', requireAuth, async (req, res) => {
   }
 });
 
+// GET /pbi/formula-refresh — last PBI dataset refresh time for FORMULA dataset
+app.get('/pbi/formula-refresh', async (req, res) => {
+  try {
+    const t = await getDatasetRefreshTime(process.env.POWERBI_DATASET_ID);
+    res.json({ ok: true, refreshedAt: t });
+  } catch (err) {
+    res.json({ ok: false, refreshedAt: null });
+  }
+});
+
 // GET /pbi/dagim-sales?periods=2026-5,2026-6 — live sales for הזמנה period filter (combined period)
 // Legacy single-month form also supported: ?year=2026&month=5
 app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
@@ -1309,43 +1319,67 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
       }
     }
     if (!conds.length) return res.status(400).json({ error: 'no valid periods' });
-    dateFilter = `FILTER(ALL('ALL_PARTS'),${conds.join('||')})`;
+    dateFilter = `FILTER(ALL('ALL_PARTS'[תאריך]),${conds.join('||')})`;
   } else {
     const year  = parseInt(req.query.year  || '0', 10);
     const month = parseInt(req.query.month || '0', 10);
     if (!year || year < 2020 || year > 2030) return res.status(400).json({ error: 'invalid year' });
     if (month && (month < 1 || month > 12))  return res.status(400).json({ error: 'invalid month' });
     dateFilter = month
-      ? `FILTER(ALL('ALL_PARTS'),YEAR('ALL_PARTS'[תאריך])=${year}&&MONTH('ALL_PARTS'[תאריך])=${month})`
-      : `FILTER(ALL('ALL_PARTS'),YEAR('ALL_PARTS'[תאריך])=${year})`;
+      ? `FILTER(ALL('ALL_PARTS'[תאריך]),YEAR('ALL_PARTS'[תאריך])=${year}&&MONTH('ALL_PARTS'[תאריך])=${month})`
+      : `FILTER(ALL('ALL_PARTS'[תאריך]),YEAR('ALL_PARTS'[תאריך])=${year})`;
   }
 
   try {
-    const [rows, totRes] = await Promise.all([
-      executeDax(`
-        EVALUATE
+    // Query 1: CALCULATETABLE wraps SUMMARIZECOLUMNS — filters outside, measure runs clean
+    const rows = await executeDax(`
+      EVALUATE
+      CALCULATETABLE(
         SUMMARIZECOLUMNS(
           'ALL_PARTS'[מק'ט],
-          ${dateFilter},
+          "daySales", [TOTAL מכר בקרטונים ממוצע ביום]
+        ),
+        'ALL_PARTS'[חברה] = "FORMULA",
+        ${dateFilter}
+      )
+    `);
+
+    // Query 2 — optional: branchy per product (same CALCULATETABLE pattern as Q1)
+    const [extRows, totRes] = await Promise.all([
+      executeDax(`
+        EVALUATE
+        CALCULATETABLE(
+          SUMMARIZECOLUMNS(
+            'ALL_PARTS'[מק'ט],
+            "branchy", [סניפים2  שקנו]
+          ),
           'ALL_PARTS'[חברה] = "FORMULA",
-          "daySales", [TOTAL מכר בקרטונים ממוצע ביום],
-          "mkrTk",    [TOTAL מכר בקרטונים],
-          "branchy",  [סניפים2  שקנו]
+          ${dateFilter}
         )
-      `),
+      `).catch(() => null),
       executeDax(`
         EVALUATE
         ROW("tot", CALCULATE([DIST COUNT מ.CAT 7], ALL('ALL_PARTS'), 'ALL_PARTS'[ASHMADOT] IN {"-מכר-"}, 'משטח'[סטטוס] IN {"פעיל"}))
       `).catch(() => null),
     ]);
+
     const totalBranchy = totRes?.[0]?.['[tot]'] ?? null;
+
+    // Build ext lookup by מק"ט
+    const extMap = {};
+    if (extRows) {
+      for (const r of extRows) {
+        const mk = r["ALL_PARTS[מק'ט]"];
+        if (mk != null) extMap[String(mk)] = { mkrTk: r['[mkrTk]'] ?? null, branchy: r['[branchy]'] ?? null };
+      }
+    }
+
     const data = {};
     for (const r of rows) {
       const mk = r["ALL_PARTS[מק'ט]"];
       if (mk != null) data[String(mk)] = {
         daySales: r['[daySales]'] ?? null,
-        mkrTk:    r['[mkrTk]']   ?? null,
-        branchy:  r['[branchy]'] ?? null,
+        ...(extMap[String(mk)] || {}),
       };
     }
     res.json({ ok: true, data, totalBranchy });
@@ -1405,20 +1439,16 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
     ws.getColumn(1).width = 10;
     ws.getRow(1).height = 22;
 
-    // Plain (non-merged) info rows above the table — merged cells block Excel's
-    // "Format as Table" / smart-table autofilter from working cleanly.
+    // Merge title across all 14 data columns (B–O) so text is visible
+    const LAST_COL_LETTER = 'O'; // 14 columns: B(photo)..O(last)
+    ws.mergeCells(`B2:${LAST_COL_LETTER}2`);
+
     const titleCell = ws.getCell('B2');
     titleCell.value = `🐟 הזמנת דגים FORMULA  —  תאריך: ${dateStr}${periods ? ' | תקופה: ' + periods : ''}${modeNote}`;
     titleCell.font = { bold: true, size: 13, color: { argb: 'FFFFFFFF' }, name: 'Calibri' };
     titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } };
     titleCell.alignment = { horizontal: 'right', vertical: 'middle' };
     ws.getRow(2).height = 26;
-
-    const sumCell = ws.getCell('B3');
-    sumCell.value = `סה"כ הזמנה: ${Math.round(totalOrder).toLocaleString('en')} קרטונים | ${Math.round(totalPal * 10) / 10} PALLET | ${rows.length} מוצרים (${orderCnt} להזמנה)`;
-    sumCell.font = { italic: true, size: 10, color: { argb: 'FF6B7280' }, name: 'Calibri' };
-    sumCell.alignment = { horizontal: 'right', vertical: 'middle' };
-    ws.getRow(3).height = 18;
 
     // Photo column (B) + data columns (C onward)
     const PHOTO_COL = 2;  // Excel column B
@@ -1430,6 +1460,7 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
       { name: 'מק"ט',             width: 11, totalsRowFunction: 'none' },
       { name: 'ברקוד EAN',         width: 18, totalsRowFunction: 'none' },
       { name: 'משפחה',             width: 18, totalsRowFunction: 'none' },
+      { name: 'קרט/פלט',          width:  9, totalsRowFunction: 'none' },
       { name: 'מלאי+הזמנות (קרט)', width: 14, totalsRowFunction: 'sum' },
       { name: 'PAL מלאי',          width: 10, totalsRowFunction: 'sum' },
       { name: 'הזמנות פתוחות',    width: 13, totalsRowFunction: 'sum' },
@@ -1444,9 +1475,10 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
     const tableRows = rows.map(r => [
       '',  // photo placeholder
       r.name || '',
-      String(r.mk ?? ''),
-      r.ean || '',
+      r.mk != null && r.mk !== '' ? (isNaN(Number(r.mk)) ? r.mk : Number(r.mk)) : '',
+      r.ean != null && r.ean !== '' ? (isNaN(Number(r.ean)) ? r.ean : Number(r.ean)) : '',
       r.fam || '',
+      r.krat || 1,
       r.spo ?? 0,
       r.palSpo ? Math.round(r.palSpo * 10) / 10 : 0,
       r.openOrders || 0,
@@ -1457,19 +1489,37 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
       r.orderK > 0 ? Math.round(r.orderP * 10) / 10 : 0,
     ]);
 
-    const HEADER_ROW = 5;
+    const HEADER_ROW = 4;
     ws.addTable({
       name: 'OrderDagim',
       ref: `B${HEADER_ROW}`,
       headerRow: true,
       totalsRow: true,
-      style: { theme: 'TableStyleMedium9', showRowStripes: true },
+      style: { theme: 'TableStyleLight9', showRowStripes: true },
       columns: tableCols.map(c => ({ name: c.name, filterButton: true, totalsRowFunction: c.totalsRowFunction, totalsRowLabel: c.totalsRowLabel })),
       rows: tableRows,
     });
     ws.getRow(HEADER_ROW).font = { bold: true, color: { argb: 'FFFFFFFF' }, name: 'Calibri' };
     ws.getRow(HEADER_ROW + 1 + tableRows.length).font = { bold: true, name: 'Calibri' };
     ws.views[0] = { rightToLeft: true, state: 'frozen', ySplit: HEADER_ROW };
+
+    // Center-align all table cells (header + data + totals)
+    const TAUR_COL  = PHOTO_COL + 1; // תאור — right-aligned RTL
+    const MAKAT_COL = PHOTO_COL + 2; // מק"ט
+    const EAN_COL   = PHOTO_COL + 3; // ברקוד EAN
+    for (let ri = 0; ri <= tableRows.length + 1; ri++) {
+      const row = ws.getRow(HEADER_ROW + ri);
+      row.eachCell({ includeEmpty: false }, (cell, colNum) => {
+        cell.alignment = colNum === TAUR_COL && ri > 0
+          ? { horizontal: 'right', vertical: 'middle', wrapText: true }
+          : { horizontal: 'center', vertical: 'middle', wrapText: true };
+      });
+    }
+    // EAN / מק"ט — force plain integer format (no scientific notation)
+    for (let ri = 1; ri <= tableRows.length; ri++) {
+      ws.getCell(HEADER_ROW + ri, MAKAT_COL).numFmt = '0';
+      ws.getCell(HEADER_ROW + ri, EAN_COL).numFmt   = '0';
+    }
 
     // Fetch and embed product photos — use ext (pixels) not br to ensure image fills cell
     const IMG_PX = 90;        // photo display size in pixels
