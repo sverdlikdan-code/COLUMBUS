@@ -27,7 +27,8 @@ function fixGimel(s) {
 
 async function build() {
   const MMD_DS = process.env.POWERBI_MMD_DATASET_ID;
-  if (!MMD_DS) { console.error('POWERBI_MMD_DATASET_ID not set'); process.exit(1); }
+  if (!MMD_DS) { console.error('POWERBI_MMD_DATASET_ID not set — check PBI_MMD_DATASET GitHub secret'); process.exit(1); }
+  console.log('Dataset ID:', MMD_DS.slice(0,8) + '...' + MMD_DS.slice(-4)); // partial for security
 
   const now = new Date();
   const curY = now.getFullYear(), curM = now.getMonth() + 1;
