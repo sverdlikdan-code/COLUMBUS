@@ -3036,7 +3036,7 @@ function buildExpiryPage() {
         return s + Math.ceil(Math.max(0, (b.cartons || 0) - canSell));
       }, 0);
     const _totalStockCard = (d.stock || 0) + (d.stockZafn || 0) + (d.stockTrnz || 0);
-    const _pctSakana = _totalStockCard > 0 ? Math.min(100, Math.round(_sakanaCartons / _totalStockCard * 100)) : 0;
+    const _pctSakana = _totalStockCard > 0 ? Math.min(100, Math.round(_throwCartons / _totalStockCard * 100)) : 0;
     const _pctBadge = (() => {
       if (!window._expiryOnlySakana || _pctSakana <= 0) return '';
       const pct = _pctSakana;
