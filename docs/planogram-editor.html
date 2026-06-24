@@ -97,7 +97,24 @@
         width: 100% !important;
       }
       body.printing-expiry #expiry-grid.mauchad-active {
+        display: block !important;
+        gap: 0 !important;
+        padding: 0 !important;
+      }
+      body.printing-expiry .expiry-page-group {
+        display: grid !important;
         grid-template-columns: repeat(3, 1fr) !important;
+        grid-template-rows: repeat(3, 1fr) !important;
+        gap: 4px !important;
+        width: 100% !important;
+        height: calc(100vh - 14mm) !important;
+        break-after: page !important;
+        page-break-after: always !important;
+        box-sizing: border-box !important;
+      }
+      body.printing-expiry .expiry-page-group > div {
+        overflow: hidden !important;
+        min-height: 0 !important;
       }
       body.printing-expiry #expiry-grid > div { break-inside: avoid; width: auto !important; flex-shrink: 1 !important; min-width: 0 !important; }
       body.printing-expiry #expiry-grid > .expiry-sec-hdr { display: none !important; }
@@ -3212,12 +3229,21 @@ function buildExpiryPage() {
       </div>
     </div>`;
     });
-    _cardHtmls.forEach(ch => {
-      if (!ch) return;
-      if (!window._expiryMauchad && _pgBreakCount > 0 && _pgBreakCount % 9 === 0) _allHtml += '<div class="grid-page-break"></div>';
-      _allHtml += ch;
-      _pgBreakCount++;
-    });
+    if (window._expiryMauchad) {
+      const validCards = _cardHtmls.filter(ch => !!ch);
+      for (let i = 0; i < validCards.length; i += 9) {
+        const group = validCards.slice(i, i + 9);
+        _allHtml += `<div class="expiry-page-group">${group.join('')}</div>`;
+        _pgBreakCount += group.length;
+      }
+    } else {
+      _cardHtmls.forEach(ch => {
+        if (!ch) return;
+        if (_pgBreakCount > 0 && _pgBreakCount % 9 === 0) _allHtml += '<div class="grid-page-break"></div>';
+        _allHtml += ch;
+        _pgBreakCount++;
+      });
+    }
   }
   } // end for _SECTIONS
   const filtered = window._expiryOnlySakana || window._expiryZafnLow;
