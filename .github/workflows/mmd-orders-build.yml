@@ -38,15 +38,13 @@ jobs:
         run: npm install
         working-directory: server
 
-      - name: Create .env
-        run: |
-          echo "AZURE_TENANT_ID=${{ secrets.PBI_TENANT }}"              >> .env
-          echo "AZURE_CLIENT_ID=${{ secrets.PBI_CLIENT }}"              >> .env
-          echo "AZURE_CLIENT_SECRET=${{ secrets.PBI_SECRET }}"          >> .env
-          echo "POWERBI_WORKSPACE_ID=${{ secrets.PBI_WORKSPACE }}"      >> .env
-          echo "POWERBI_MMD_DATASET_ID=${{ secrets.PBI_MMD_DATASET }}"  >> .env
-
       - name: Build mmd-orders.json
+        env:
+          AZURE_TENANT_ID: ${{ secrets.PBI_TENANT }}
+          AZURE_CLIENT_ID: ${{ secrets.PBI_CLIENT }}
+          AZURE_CLIENT_SECRET: ${{ secrets.PBI_SECRET }}
+          POWERBI_WORKSPACE_ID: ${{ secrets.PBI_WORKSPACE }}
+          POWERBI_MMD_DATASET_ID: ${{ secrets.PBI_MMD_DATASET }}
         run: node server/build-mmd-orders.js
 
       - name: Commit and push
