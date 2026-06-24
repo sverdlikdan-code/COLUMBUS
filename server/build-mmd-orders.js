@@ -10,12 +10,11 @@ function fixBiDi(raw) {
   if (!raw) return '';
   const hasBidi = _BIDI_TEST.test(raw);
   const s = raw.replace(_BIDI_STRIP, '').trim();
-  if (!hasBidi) return s;
-  return s.split(/\s+/)
-    .map(w => /[א-ת]/.test(w)
-      ? w.split('').reverse().join('').replace(/\d+/g, m => m.split('').reverse().join(''))
-      : w)
+  if (!hasBidi || !/[א-ת]/.test(s)) return s;
+  const fixed = s.split(/\s+/).reverse()
+    .map(w => /[א-ת]/.test(w) ? w.split('').reverse().join('').replace(/\d+/g, m => m.split('').reverse().join('')) : w)
     .join(' ');
+  return fixed.replace(/\(/g, '\x01').replace(/\)/g, '(').replace(/\x01/g, ')');
 }
 
 function fixGimel(s) {
