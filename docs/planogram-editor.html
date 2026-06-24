@@ -2339,6 +2339,7 @@ async function exportOrderCsv() {
       name: r.name, mk: r.mk, fam: r.fam,
       ean: (typeof makatEan !== 'undefined' ? makatEan[String(r.mk)] : '') || '',
       photoUrl: photo ? new URL(photo, location.href).href : '',
+      krat: r.krat,
       spo: r.spo, palSpo: r.palSpo, openOrders: r.openOrders,
       daySales: r.daySales, daysStk: r.daysStk, safetyDays: r.safetyDays,
       orderK: r.orderK, orderP: r.orderP,
