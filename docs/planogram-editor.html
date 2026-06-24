@@ -465,6 +465,7 @@
     <button id="btn-sec-yavesh" onclick="toggleSecFilter('yavesh')" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:#fff;font-size:12px;font-weight:bold;cursor:pointer;border-radius:4px;padding:4px 10px;">דג יבש</button>
     <span style="width:1px;height:20px;background:rgba(255,255,255,0.3);margin:0 4px;"></span>
     <button id="btn-sakana-filter"  onclick="toggleSakanaFilter()"  style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);color:#fff;font-size:12px;font-weight:bold;cursor:pointer;border-radius:5px;padding:4px 12px;">⚠ סכנה בלבד</button>
+    <button id="btn-sort-sakana-pct" onclick="toggleSortSakanaPct()" style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);color:#fff;font-size:12px;font-weight:bold;cursor:pointer;border-radius:5px;padding:4px 12px;">% סכנה ↓</button>
     <button id="btn-zafn-low-filter" onclick="toggleZafnLowFilter()" style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);color:#fff;font-size:12px;font-weight:bold;cursor:pointer;border-radius:5px;padding:4px 12px;">📦 צפון &lt;3 ימים</button>
 <button id="btn-reset-hidden" onclick="resetHiddenExpiryCards()" style="display:none;background:#fff3cd;border:none;color:#7a5c00;font-size:12px;font-weight:bold;cursor:pointer;border-radius:4px;padding:4px 12px;" class="no-print">↩ איפוס</button>
 <button onclick="window.print()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;cursor:pointer;border-radius:4px;padding:4px 12px;">🖨 הדפס</button>
@@ -2865,11 +2866,19 @@ function toggleZafnLowFilter() {
   _syncFilterBtns();
   buildExpiryPage();
 }
+window._expirySortSakanaPct = false;
+function toggleSortSakanaPct() {
+  window._expirySortSakanaPct = !window._expirySortSakanaPct;
+  _syncFilterBtns();
+  buildExpiryPage();
+}
 function _syncFilterBtns() {
-  const bs = document.getElementById('btn-sakana-filter');
-  const bz = document.getElementById('btn-zafn-low-filter');
-  if (bs) { bs.style.background = window._expiryOnlySakana ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)'; bs.style.color = window._expiryOnlySakana ? '#c62828' : '#fff'; }
-  if (bz) { bz.style.background = window._expiryZafnLow    ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)'; bz.style.color = window._expiryZafnLow    ? '#c62828' : '#fff'; }
+  const bs  = document.getElementById('btn-sakana-filter');
+  const bsp = document.getElementById('btn-sort-sakana-pct');
+  const bz  = document.getElementById('btn-zafn-low-filter');
+  if (bs)  { bs.style.background  = window._expiryOnlySakana    ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)'; bs.style.color  = window._expiryOnlySakana    ? '#c62828' : '#fff'; }
+  if (bsp) { bsp.style.background = window._expirySortSakanaPct ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)'; bsp.style.color = window._expirySortSakanaPct ? '#c62828' : '#fff'; }
+  if (bz)  { bz.style.background  = window._expiryZafnLow       ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)'; bz.style.color  = window._expiryZafnLow       ? '#c62828' : '#fff'; }
   for (const sec of ['kapua','halavi','dagim','yavesh']) {
     const b = document.getElementById('btn-sec-' + sec);
     if (b) { b.style.background = (window._expirySecFilter === sec) ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)'; b.style.color = (window._expirySecFilter === sec) ? '#c62828' : '#fff'; }
@@ -2970,6 +2979,21 @@ function buildExpiryPage() {
     return { pick, p, mk, d, salesMain, salesZafn, shelfLife, batches, sakanaMain, sakanaZafn, zafnDays };
   }).filter(Boolean);
 
+  // Sort by % סכנה descending if requested
+  if (window._expirySortSakanaPct && cards.length > 1) {
+    cards.sort((a, b) => {
+      const pct = card => {
+        const total = (card.d.stock || 0) + (card.d.stockZafn || 0);
+        if (total <= 0) return 0;
+        const sk =
+          card.batches.main.filter(ba => batchSakana(ba, card.salesMain, card.shelfLife)?.isSakana).reduce((s, ba) => s + (ba.cartons || 0), 0) +
+          card.batches.zafn.filter(ba => batchSakana(ba, card.salesZafn, card.shelfLife)?.isSakana).reduce((s, ba) => s + (ba.cartons || 0), 0);
+        return sk / total;
+      };
+      return pct(b) - pct(a);
+    });
+  }
+
   _totalAll   += order.filter(pk => state[sec][pk]).length;
   _totalShown += cards.length;
   if (cards.length > 0) {
@@ -2997,6 +3021,14 @@ function buildExpiryPage() {
 
     const maxRows    = Math.max(batches.main.length, batches.zafn.length, 1);
     const cardBorder = isStop ? '2.5px solid #6a1b9a' : (sakanaMain || sakanaZafn) ? '2px solid #c62828' : '1px solid #dde0e8';
+    const _sakanaCartons =
+      batches.main.filter(b => batchSakana(b, salesMain, shelfLife)?.isSakana).reduce((s, b) => s + (b.cartons || 0), 0) +
+      batches.zafn.filter(b => batchSakana(b, salesZafn, shelfLife)?.isSakana).reduce((s, b) => s + (b.cartons || 0), 0);
+    const _totalStockCard = (d.stock || 0) + (d.stockZafn || 0);
+    const _pctSakana = _totalStockCard > 0 ? Math.round(_sakanaCartons / _totalStockCard * 100) : 0;
+    const _pctBadge = window._expiryOnlySakana && _pctSakana > 0
+      ? `<div style="font-size:10px;font-weight:900;color:#fff;background:${_pctSakana >= 70 ? '#b71c1c' : '#c62828'};border-radius:4px;padding:2px 5px;margin-top:3px;letter-spacing:.3px;">${_pctSakana}% בסכנה</div>`
+      : '';
 
     const thMain = sakanaMain
       ? 'padding:2px 6px;background:#c62828;font-size:9px;color:#fff;text-align:right;font-weight:bold;'
@@ -3027,6 +3059,7 @@ function buildExpiryPage() {
         ${imgHtml}
         <div style="font-size:9px;color:#888;margin-top:2px;">#${pick}</div>
         <div style="font-size:9px;color:#1565C0;font-weight:bold;">${mk}</div>
+        ${_pctBadge}
       </div>
       <div style="flex:1; min-width:0;">
         <div style="font-size:10px;font-weight:bold;color:#222;margin-bottom:3px;line-height:1.3;">${name}</div>
