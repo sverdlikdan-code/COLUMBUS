@@ -467,6 +467,7 @@
     <button id="btn-sakana-filter"  onclick="toggleSakanaFilter()"  style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);color:#fff;font-size:12px;font-weight:bold;cursor:pointer;border-radius:5px;padding:4px 12px;">⚠ סכנה בלבד</button>
     <button id="btn-sort-sakana-pct" onclick="toggleSortSakanaPct()" style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);color:#fff;font-size:12px;font-weight:bold;cursor:pointer;border-radius:5px;padding:4px 12px;">% סכנה ↓</button>
     <button id="btn-zafn-low-filter" onclick="toggleZafnLowFilter()" style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);color:#fff;font-size:12px;font-weight:bold;cursor:pointer;border-radius:5px;padding:4px 12px;">📦 צפון &lt;3 ימים</button>
+    <button id="btn-combined-wh" onclick="toggleCombinedWh()" style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);color:#fff;font-size:12px;font-weight:bold;cursor:pointer;border-radius:5px;padding:4px 12px;">🔗 מחסן מאוחד</button>
 <button id="btn-reset-hidden" onclick="resetHiddenExpiryCards()" style="display:none;background:#fff3cd;border:none;color:#7a5c00;font-size:12px;font-weight:bold;cursor:pointer;border-radius:4px;padding:4px 12px;" class="no-print">↩ איפוס</button>
 <button onclick="window.print()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;cursor:pointer;border-radius:4px;padding:4px 12px;">🖨 הדפס</button>
     <button onclick="toggleExpiryPage()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:16px;cursor:pointer;border-radius:4px;padding:2px 8px;">✕</button>
@@ -2866,6 +2867,12 @@ function toggleZafnLowFilter() {
   _syncFilterBtns();
   buildExpiryPage();
 }
+window._expiryMauchad = false;
+function toggleCombinedWh() {
+  window._expiryMauchad = !window._expiryMauchad;
+  _syncFilterBtns();
+  buildExpiryPage();
+}
 window._expirySortSakanaPct = false;
 function toggleSortSakanaPct() {
   window._expirySortSakanaPct = !window._expirySortSakanaPct;
@@ -2876,9 +2883,11 @@ function _syncFilterBtns() {
   const bs  = document.getElementById('btn-sakana-filter');
   const bsp = document.getElementById('btn-sort-sakana-pct');
   const bz  = document.getElementById('btn-zafn-low-filter');
+  const bcw = document.getElementById('btn-combined-wh');
   if (bs)  { bs.style.background  = window._expiryOnlySakana    ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)'; bs.style.color  = window._expiryOnlySakana    ? '#c62828' : '#fff'; }
   if (bsp) { bsp.style.background = window._expirySortSakanaPct ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)'; bsp.style.color = window._expirySortSakanaPct ? '#c62828' : '#fff'; }
   if (bz)  { bz.style.background  = window._expiryZafnLow       ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)'; bz.style.color  = window._expiryZafnLow       ? '#c62828' : '#fff'; }
+  if (bcw) { bcw.style.background = window._expiryMauchad       ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)'; bcw.style.color = window._expiryMauchad       ? '#c62828' : '#fff'; }
   for (const sec of ['kapua','halavi','dagim','yavesh']) {
     const b = document.getElementById('btn-sec-' + sec);
     if (b) { b.style.background = (window._expirySecFilter === sec) ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)'; b.style.color = (window._expirySecFilter === sec) ? '#c62828' : '#fff'; }
@@ -3070,6 +3079,64 @@ function buildExpiryPage() {
       </tr>`;
     }).join('');
 
+    // ── Combined warehouse view ───────────────────────────────────────────────
+    if (window._expiryMauchad) {
+      const combinedSales = (salesMain || 0) + (salesZafn || 0);
+      const totalStock = (d.stock || 0) + (d.stockZafn || 0);
+      // merge batches by expiry date
+      const byDate = {};
+      for (const b of [...batches.main, ...batches.zafn]) {
+        const key = String(b.date || 'unknown');
+        if (!byDate[key]) byDate[key] = { date: b.date, daysLeft: b.daysLeft, cartons: 0 };
+        byDate[key].cartons += b.cartons || 0;
+        if (b.daysLeft != null) byDate[key].daysLeft = b.daysLeft;
+      }
+      const merged = Object.values(byDate).sort((a, b) => (a.daysLeft ?? 999) - (b.daysLeft ?? 999));
+      const anySakana = merged.some(b => {
+        if (!(b.cartons > 0) || b.daysLeft == null) return false;
+        const sellDays = combinedSales > 0 ? (b.cartons / combinedSales) * 1.4 : Infinity;
+        return isFinite(sellDays) && (b.daysLeft - sellDays) < (shelfLife ?? 0);
+      });
+      if (window._expiryOnlySakana && !anySakana) return '';
+      const batchRowsCombined = merged.map(b => {
+        if (!(b.cartons > 0) || b.daysLeft == null) return '';
+        const sellDays = combinedSales > 0 ? Math.ceil((b.cartons / combinedSales) * 1.4) : null;
+        const eff = Math.max(0, (b.daysLeft ?? 0) - (shelfLife ?? 0));
+        const canSell = eff > 0 && combinedSales > 0 ? (eff / 1.4) * combinedSales : 0;
+        const throwAway = Math.ceil(Math.max(0, b.cartons - canSell));
+        const isSak = sellDays != null && isFinite(sellDays) && (b.daysLeft - sellDays) < (shelfLife ?? 0);
+        const clr = isSak ? '#c62828' : '#1a6b1a';
+        const sakTag = isSak ? `<span style="background:#c62828;color:#fff;font-size:8px;font-weight:bold;border-radius:3px;padding:1px 4px;margin-left:3px;">⚠ סכנה</span>` : '';
+        const throwLine = isSak && throwAway > 0 ? `<div style="font-size:9px;font-weight:bold;color:#c62828;border:1.5px solid #222;border-radius:3px;padding:1px 6px;display:inline-block;margin-top:3px;">צפי ~${throwAway} קרט לזריקה</div>` : '';
+        return `<tr><td style="padding:4px 8px;border-bottom:1px solid #f0f0f0;">
+          <div>${sakTag}<b style="color:${clr};">תוקף: ${fmt(b.date)}</b> <span style="font-size:9px;color:#888;">(${b.daysLeft} ימים)</span></div>
+          <div style="color:#1565C0;font-weight:bold;font-size:11px;">כמות: ${Math.round(b.cartons)} קרט</div>
+          ${sellDays != null ? `<div style="font-size:9px;color:#666;">days needed for sellout: <b style="color:${clr};">${sellDays}</b></div>` : ''}
+          ${throwLine}
+        </td></tr>`;
+      }).join('');
+      const cBorder = anySakana ? '2px solid #c62828' : '1px solid #dde0e8';
+      return `<div style="background:#fff;border-radius:8px;border:${cBorder};box-shadow:0 1px 4px rgba(0,0,0,0.06);padding:8px;width:300px;flex-shrink:0;display:flex;gap:8px;align-items:flex-start;position:relative;">
+        <button onclick="hideExpiryCard('${mk}')" style="position:absolute;top:4px;left:4px;background:rgba(0,0,0,0.28);border:none;color:#fff;font-size:10px;cursor:pointer;border-radius:3px;padding:2px 7px;z-index:10;" class="no-print">✕</button>
+        <div style="flex-shrink:0;text-align:center;">${imgHtml}
+          <div style="font-size:9px;color:#888;margin-top:2px;">#${pick}</div>
+          <div style="font-size:9px;color:#1565C0;font-weight:bold;">${mk}</div>
+          ${_pctBadge}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:10px;font-weight:bold;color:#222;margin-bottom:4px;">${name}</div>
+          <span style="font-size:11px;font-weight:bold;padding:2px 10px;border-radius:4px;background:#e3f2fd;color:#0d47a1;">סה"כ מלאי: ${totalStock} קרט</span>
+          <table style="width:100%;border-collapse:collapse;font-size:10px;margin-top:6px;">
+            <thead><tr><th style="padding:2px 8px;background:${anySakana?'#c62828':'#f5f5f5'};font-size:9px;color:${anySakana?'#fff':'#555'};text-align:right;">כל המחסנים — פק"ע</th></tr></thead>
+            <tbody>${batchRowsCombined}</tbody>
+            <tfoot><tr><td style="padding:4px 8px;border-top:2px solid #e0e0e0;background:#f5f7fa;">
+              ${combinedSales > 0 ? `<div style="font-size:9px;color:#666;">ממוצע מכירה כולל: <b style="color:#222;">${combinedSales.toFixed(1)} קרט/יום</b></div>` : '<div style="font-size:9px;color:#bbb;">אין נתוני מכירה</div>'}
+            </td></tr></tfoot>
+          </table>
+        </div>
+      </div>`;
+    }
+    // ── Split warehouse view (default) ────────────────────────────────────────
     return `<div style="
       background:#fff; border-radius:8px; border:${cardBorder};
       box-shadow:0 1px 4px rgba(0,0,0,0.06); padding:8px;
