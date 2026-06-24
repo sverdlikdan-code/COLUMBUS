@@ -97,6 +97,11 @@ async function build() {
   const outPath = path.join(__dirname, '..', 'docs', 'mmd-orders.json');
   fs.writeFileSync(outPath, JSON.stringify(out));
   console.log(`✓ Saved ${data.length} products → docs/mmd-orders.json`);
+
+  const htmlPath = path.join(__dirname, '..', 'docs', 'mmd-orders.html');
+  const html = fs.readFileSync(htmlPath, 'utf8');
+  fs.writeFileSync(htmlPath, html.replace(/__MMD_BUILD__/g, String(out.ts)));
+  console.log(`✓ Cache-busted mmd-orders.html → ?v=${out.ts}`);
 }
 
 build().catch(err => { console.error(err); process.exit(1); });
