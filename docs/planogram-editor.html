@@ -3115,13 +3115,34 @@ function buildExpiryPage() {
           ${throwLine}
         </td></tr>`;
       }).join('');
+      // combined throw badge (uses combined sales, not split)
+      const _combinedThrow = merged.reduce((s, b) => {
+        if (!(b.cartons > 0) || b.daysLeft == null) return s;
+        const eff = Math.max(0, (b.daysLeft ?? 0) - (shelfLife ?? 0));
+        const canSell = eff > 0 && combinedSales > 0 ? (eff / 1.4) * combinedSales : 0;
+        return s + Math.ceil(Math.max(0, b.cartons - canSell));
+      }, 0);
+      const _pctC = totalStock > 0 ? Math.min(100, Math.round(_combinedThrow / totalStock * 100)) : 0;
+      const _combinedBadge = (() => {
+        if (!window._expiryOnlySakana || _pctC <= 0 || !anySakana) return '';
+        const r = 14, cx = 16, cy = 16, circ = 2 * Math.PI * r;
+        const fill = Math.min(_pctC / 100, 1) * circ;
+        const clr = _pctC >= 70 ? '#b71c1c' : _pctC >= 40 ? '#c62828' : '#e53935';
+        return `<svg width="32" height="32" style="display:block;margin:5px auto 0;overflow:visible;">
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#fce4e4" stroke-width="4"/>
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${clr}" stroke-width="4"
+            stroke-dasharray="${fill.toFixed(2)} ${circ.toFixed(2)}"
+            stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})"/>
+          <text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="7" fill="${clr}" font-weight="900" font-family="Arial">${_pctC}%</text>
+        </svg>${_combinedThrow > 0 ? `<div style="font-size:8px;font-weight:800;color:#b71c1c;text-align:center;margin-top:1px;line-height:1.2;">🗑 ${Math.round(_combinedThrow)} קרט</div>` : ''}`;
+      })();
       const cBorder = anySakana ? '2px solid #c62828' : '1px solid #dde0e8';
       return `<div style="background:#fff;border-radius:8px;border:${cBorder};box-shadow:0 1px 4px rgba(0,0,0,0.06);padding:8px;width:300px;flex-shrink:0;display:flex;gap:8px;align-items:flex-start;position:relative;">
         <button onclick="hideExpiryCard('${mk}')" style="position:absolute;top:4px;left:4px;background:rgba(0,0,0,0.28);border:none;color:#fff;font-size:10px;cursor:pointer;border-radius:3px;padding:2px 7px;z-index:10;" class="no-print">✕</button>
         <div style="flex-shrink:0;text-align:center;">${imgHtml}
           <div style="font-size:9px;color:#888;margin-top:2px;">#${pick}</div>
           <div style="font-size:9px;color:#1565C0;font-weight:bold;">${mk}</div>
-          ${_pctBadge}
+          ${_combinedBadge}
         </div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:10px;font-weight:bold;color:#222;margin-bottom:4px;">${name}</div>
