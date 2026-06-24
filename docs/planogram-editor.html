@@ -2935,7 +2935,7 @@ function _expiryImgErr(img) {
 function buildExpiryPage() {
   const grid  = document.getElementById('expiry-grid');
   const SEC_NAMES = { kapua: 'קפוא', halavi: 'חלבי', dagim: 'דגים', yavesh: 'דג יבש' };
-  let _totalAll = 0, _totalShown = 0, _allHtml = '', _pgBreakCount = 0;
+  let _totalAll = 0, _totalShown = 0, _allHtml = '', _pgBreakCount = 0, _allMauchadCards = [];
   for (const sec of _SECTIONS) {
   if (window._expirySecFilter && window._expirySecFilter !== sec) continue;
   const order = _getPrintOrder(sec);
@@ -3230,12 +3230,7 @@ function buildExpiryPage() {
     </div>`;
     });
     if (window._expiryMauchad) {
-      const validCards = _cardHtmls.filter(ch => !!ch);
-      for (let i = 0; i < validCards.length; i += 9) {
-        const group = validCards.slice(i, i + 9);
-        _allHtml += `<div class="expiry-page-group">${group.join('')}</div>`;
-        _pgBreakCount += group.length;
-      }
+      _allMauchadCards.push(..._cardHtmls.filter(ch => !!ch));
     } else {
       _cardHtmls.forEach(ch => {
         if (!ch) return;
@@ -3246,6 +3241,13 @@ function buildExpiryPage() {
     }
   }
   } // end for _SECTIONS
+  if (window._expiryMauchad && _allMauchadCards.length > 0) {
+    for (let i = 0; i < _allMauchadCards.length; i += 9) {
+      const group = _allMauchadCards.slice(i, i + 9);
+      _allHtml += `<div class="expiry-page-group">${group.join('')}</div>`;
+      _pgBreakCount += group.length;
+    }
+  }
   const filtered = window._expiryOnlySakana || window._expiryZafnLow;
   document.getElementById('expiry-title').textContent = filtered
     ? `דוח תוקף (${_totalShown} / ${_totalAll} מוצרים)`
