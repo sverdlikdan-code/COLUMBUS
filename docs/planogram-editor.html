@@ -3026,9 +3026,31 @@ function buildExpiryPage() {
       batches.zafn.filter(b => batchSakana(b, salesZafn, shelfLife)?.isSakana).reduce((s, b) => s + (b.cartons || 0), 0);
     const _totalStockCard = (d.stock || 0) + (d.stockZafn || 0);
     const _pctSakana = _totalStockCard > 0 ? Math.round(_sakanaCartons / _totalStockCard * 100) : 0;
-    const _pctBadge = window._expiryOnlySakana && _pctSakana > 0
-      ? `<div style="font-size:10px;font-weight:900;color:#fff;background:${_pctSakana >= 70 ? '#b71c1c' : '#c62828'};border-radius:4px;padding:2px 5px;margin-top:3px;letter-spacing:.3px;">${_pctSakana}% בסכנה</div>`
-      : '';
+    const _pctBadge = (() => {
+      if (!window._expiryOnlySakana || _pctSakana <= 0) return '';
+      const pct = _pctSakana;
+      const r = 22, cx = 34, cy = 30;
+      const arcLen = Math.PI * r;
+      const filled = Math.min(pct / 100, 1) * arcLen;
+      const clr  = pct >= 70 ? '#b71c1c' : pct >= 40 ? '#c62828' : '#e53935';
+      const glow = pct >= 70 ? `filter:drop-shadow(0 0 4px ${clr}88);` : '';
+      const uid  = 'g' + mk;
+      return `<svg width="68" height="42" style="display:block;margin:5px auto 0;overflow:visible;${glow}">
+        <defs>
+          <linearGradient id="${uid}" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="${clr}" stop-opacity=".55"/>
+            <stop offset="100%" stop-color="${clr}" stop-opacity="1"/>
+          </linearGradient>
+        </defs>
+        <path d="M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}"
+          fill="none" stroke="#fce4e4" stroke-width="7" stroke-linecap="round"/>
+        <path d="M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}"
+          fill="none" stroke="url(#${uid})" stroke-width="7" stroke-linecap="round"
+          stroke-dasharray="${filled.toFixed(1)} ${arcLen.toFixed(1)}"/>
+        <text x="${cx}" y="${cy-3}" text-anchor="middle" font-size="13" font-weight="900" fill="${clr}" font-family="Arial">${pct}%</text>
+        <text x="${cx}" y="${cy+13}" text-anchor="middle" font-size="7" fill="#bbb" font-family="Arial">מלאי בסכנה</text>
+      </svg>`;
+    })();
 
     const thMain = sakanaMain
       ? 'padding:2px 6px;background:#c62828;font-size:9px;color:#fff;text-align:right;font-weight:bold;'
