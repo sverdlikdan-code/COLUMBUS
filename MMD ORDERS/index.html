@@ -2,6 +2,10 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8"/>
+  <script>var _p=new URLSearchParams(location.search);if(_p.get('v')!=='1782304580563'){_p.set('v','1782304580563');location.replace(location.pathname+'?'+_p.toString());}</script>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+  <meta http-equiv="Pragma" content="no-cache"/>
+  <meta http-equiv="Expires" content="0"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>🚚 הזמנה - מלאי MMD</title>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"
@@ -122,10 +126,10 @@
       letter-spacing: .05em;
     }
     #pbi-update {
-      font-size: .57rem;
-      color: rgba(255,255,255,.38);
+      font-size: .72rem;
+      color: rgba(255,255,255,.75);
       white-space: nowrap;
-      line-height: 1;
+      line-height: 1.3;
     }
 
     .btn-row { display: flex; gap: 7px; align-items: center; }
@@ -307,6 +311,8 @@
     #sk-ord-only.on { background: #dc2626 !important; border-color: #dc2626 !important; }
     #sk-no-mkr { border-radius: 6px !important; background: #4a1d96 !important; color: #e9d5ff !important; border-color: #6d28d9 !important; font-size: .82rem !important; }
     #sk-no-mkr.on { background: #dc2626 !important; border-color: #dc2626 !important; color: #fff !important; }
+    #sk-maavar { border-color: #7c3aed; color: #6d28d9; }
+    #sk-maavar.on { background: #7c3aed !important; border-color: #6d28d9 !important; color: #fff !important; }
     .flabel { font-size: .7rem; color: var(--mid); font-weight: 700; white-space: nowrap; }
     .chip {
       display: inline-flex;
@@ -529,9 +535,7 @@
     /* Photo background with dark overlay */
     #splash-bg {
       position: absolute; inset: 0;
-      background-image: url('FOTO%20CITY/hf_20260616_070536_e10a8e5d-0af1-482d-82c5-36ce4b35341f.png');
-      background-size: cover;
-      background-position: center 30%;
+      background: linear-gradient(155deg, #010810 0%, #03122a 35%, #061c34 60%, #040c1a 100%);
     }
     #splash-bg::before {
       content: '';
@@ -738,7 +742,7 @@
   <div id="splash-content">
 
     <div id="splash-emblem">
-      <img src="/logo-diler-bmd.png" alt="DILER" id="splash-emblem-logo">
+      <img src="./logo-diler-bmd.png" alt="DILER" id="splash-emblem-logo">
       <div id="splash-emblem-city">אילת</div>
     </div>
 
@@ -756,7 +760,7 @@
 <div id="hdr">
   <div id="hdr-top">
     <div id="hdr-brand">
-      <img src="/logo-diler-bmd.png" alt="DILER" id="hdr-logo">
+      <img src="./logo-diler-bmd.png" alt="DILER" id="hdr-logo">
       <div id="hdr-text">
         <div id="hdr-title-main">MMD &nbsp;<span class="hdr-city">אילת</span></div>
         <div id="hdr-sub">הזמנות · מלאי</div>
@@ -788,7 +792,7 @@
     </div>
   </div>
   <div id="fbar"></div>
-  <img src="/logo-diler-bmd.png" alt="" id="fbar-logo"
+  <img src="./logo-diler-bmd.png" alt="" id="fbar-logo"
        style="height:22px;filter:brightness(0);opacity:.13;flex-shrink:0;padding:0 18px;">
   <div id="sk-inline">
     <span class="stk-label">אשדוד:</span>
@@ -799,6 +803,7 @@
     <span class="chip" id="sk-mmd-no"  onclick="togStock('mmd','no')">חסר 😢</span>
     <span class="chip" id="sk-ord-only" onclick="togOrdOnly()">📋 הזמנה בלבד</span>
     <span class="chip" id="sk-no-mkr" onclick="togNoMkr()">🚫 אין מכר MMD</span>
+    <span class="chip" id="sk-maavar" onclick="togMaavar()">📦 מחסן מעבר הזמנה</span>
   </div>
 </div>
 
@@ -843,9 +848,10 @@
   let fams = new Set();
   let cos  = new Set();
   let selStart = null, selEnd = null; // null = default (prev+cur month); range selection
-  let ordOnly   = false;
-  let noMkr    = false;
-  const ashFilter = new Set(['yes']); // default: show only items with Ashdod stock
+  let ordOnly    = false;
+  let noMkr      = false;
+  let maavarMode = false;
+  const ashFilter = new Set(); // default: show all (including maavar-only products)
   const mmdFilter = new Set();
   const sessionP = {}; // תוקף נדרש — session-only, resets on page reload
 
@@ -1007,9 +1013,7 @@
     document.getElementById('ld').innerHTML = '<div class="spin"></div><div>טוען נתוני מלאי...</div>';
     st('טוען...');
     try {
-      const p = getPeriodParams();
-      const url = `/pbi/mmd-orders?y1=${p.y1}&m1=${p.m1}&y2=${p.y2}&m2=${p.m2}`;
-      const r = await fetch(url);
+      const r = await fetch('./mmd-orders.json?_=' + Date.now());
       if (!r.ok) throw new Error('HTTP ' + r.status);
       const j = await r.json();
       if (!j.ok) throw new Error(j.error || 'API error');
@@ -1026,8 +1030,10 @@
           const d = new Date(j.refreshedAt);
           const df = d.toLocaleDateString('he-IL', {day:'2-digit',month:'2-digit',year:'2-digit'});
           const tf = d.toLocaleTimeString('he-IL', {hour:'2-digit',minute:'2-digit'});
-          upEl.textContent = '⬆ עדכון PBI: ' + df + ' ' + tf;
-          if (splashDate) splashDate.textContent = '⬆ עדכון שרת MMD: ' + df + ' ' + tf;
+          const ciUrl = 'https://github.com/sverdlikdan-code/COLUMBUS/actions/workflows/mmd-orders-build.yml';
+          const lbl = '⬆ עדכון PBI: ' + df + ' ' + tf;
+          upEl.innerHTML = '<a href="' + ciUrl + '" target="_blank" style="color:inherit;text-decoration:none;" title="GitHub Actions — MMD Orders Build">' + lbl + '</a>';
+          if (splashDate) splashDate.innerHTML = '<a href="' + ciUrl + '" target="_blank" style="color:inherit;text-decoration:underline dotted;opacity:.85;" title="GitHub Actions — MMD Orders Build">' + lbl + '</a>';
         } else {
           upEl.textContent = '';
           if (splashDate) splashDate.textContent = '';
@@ -1043,52 +1049,47 @@
     const allChk = document.getElementById('fam-all');
     if (allChk) allChk.checked = fams.size === 0;
     document.querySelectorAll('#fam-drop-panel input[type="checkbox"]:not(#fam-all)').forEach(cb => {
-      cb.checked = !fams.has(cb.value); // checked = visible (not excluded)
+      cb.checked = fams.has(cb.value); // checked = included (include model)
     });
     const btn = document.getElementById('fam-drop-btn');
     if (btn) {
-      btn.textContent = fams.size === 0 ? 'כולם ▾' : fams.size + ' מוסתרות ▾';
+      btn.textContent = fams.size === 0 ? 'כולם ▾' : fams.size + ' משפחות ▾';
       btn.classList.toggle('active', fams.size > 0);
     }
   }
 
-  function refreshFamDrop() {
+  function buildChips() {
+    // Populate family multi-select dropdown
     const panel = document.getElementById('fam-drop-panel');
-    if (!panel) return;
-    let base = noMkr ? all.filter(r => (r.mkr_shvua ?? 0) <= 0.1) : all;
-    if (cos.size > 0) base = base.filter(r => cos.has(r.hevra));
-    // Company order by product count desc (same as chips)
+    if (panel) {
+      const famBase = noMkr ? all.filter(r => (r.mkr_shvua ?? 0) <= 0.1) : all;
     const coOrd = {};
     const coCnt = {};
-    (noMkr ? all.filter(r => (r.mkr_shvua ?? 0) <= 0.1) : all).forEach(r => { if (r.hevra) coCnt[r.hevra] = (coCnt[r.hevra] || 0) + 1; });
+    famBase.forEach(r => { if (r.hevra) coCnt[r.hevra] = (coCnt[r.hevra] || 0) + 1; });
     Object.keys(coCnt).sort((a, b) => coCnt[b] - coCnt[a]).forEach((c, i) => { coOrd[c] = i; });
     const famHevra = {}, famMkt = {};
-    base.forEach(r => {
+    famBase.forEach(r => {
       if (!r.mishpacha) return;
       if (!famHevra[r.mishpacha]) famHevra[r.mishpacha] = r.hevra;
       const m = Number(r.mkt);
       if (!famMkt[r.mishpacha] || m < famMkt[r.mishpacha]) famMkt[r.mishpacha] = m;
     });
-    const uniqFam = [...new Set(base.map(r => r.mishpacha).filter(Boolean))];
+    const uniqFam = [...new Set(famBase.map(r => r.mishpacha).filter(Boolean))];
     uniqFam.sort((a, b) => {
       const ca = coOrd[famHevra[a]] ?? 999, cb = coOrd[famHevra[b]] ?? 999;
       return ca !== cb ? ca - cb : (famMkt[a] ?? 0) - (famMkt[b] ?? 0);
     });
-    for (const f of [...fams]) { if (!uniqFam.includes(f)) fams.delete(f); }
-    panel.innerHTML =
-      '<label class="fam-drop-item all-item"><input type="checkbox" id="fam-all" onchange="togFamAll(this.checked)"> כולם</label>' +
-      uniqFam.map(f =>
-        '<label class="fam-drop-item"><input type="checkbox" value="' + f + '" onchange="togFamChk(this)"> ' + f + '</label>'
-      ).join('');
-    syncFamPanel();
-  }
+      panel.innerHTML =
+        '<label class="fam-drop-item all-item"><input type="checkbox" id="fam-all" onchange="togFamAll(this.checked)"> כולם</label>' +
+        uniqFam.map(f =>
+          '<label class="fam-drop-item"><input type="checkbox" value="' + f + '" onchange="togFamChk(this)"> ' + f + '</label>'
+        ).join('');
+      syncFamPanel();
+    }
 
-  function buildChips() {
-    // Populate family dropdown for current company filter
-    refreshFamDrop();
-
-    // Company chips — rebuild fbar from scratch
+    // Company chips — clear all after select + 1 span label that may exist
     const bar = document.getElementById('fbar');
+    // remove everything after the select element
     while (bar.children.length > 0) bar.removeChild(bar.lastChild);
 
     // Separator
@@ -1128,13 +1129,12 @@
   };
 
   window.togFamAll = function(checked) {
-    if (checked) { fams.clear(); syncFamPanel(); render(); }
-    else { document.getElementById('fam-all').checked = true; }
+    fams.clear(); syncFamPanel(); render(); // click כולם = clear all = show all
   };
 
   window.togFamChk = function(cb) {
-    if (!cb.checked) fams.add(cb.value);   // uncheck = exclude
-    else fams.delete(cb.value);             // check = show again
+    if (cb.checked) fams.add(cb.value);    // check = include only this
+    else fams.delete(cb.value);            // uncheck = remove from include
     syncFamPanel();
     render();
   };
@@ -1184,11 +1184,21 @@
     buildChips();
     render();
   };
+  window.togMaavar = function() {
+    maavarMode = !maavarMode;
+    const el = document.getElementById('sk-maavar');
+    if (el) el.classList.toggle('on', maavarMode);
+    render();
+  };
 
   function filtered() {
     const sv = ordOnly ? saved() : null;
     return all.filter(r => {
-      if (fams.size && fams.has(r.mishpacha)) return false;
+      if (maavarMode) {
+        if (!r.maavar || r.maavar <= 0) return false;
+        return true; // in maavar mode skip other filters
+      }
+      if (fams.size && !fams.has(r.mishpacha)) return false;
       if (cos.size  && !cos.has(r.hevra))      return false;
       if (ashFilter.size) {
         const has = r.ashdod_k > 0;
@@ -1319,7 +1329,7 @@
           '<td class="c-num">' + (yamimHaya != null ? yamimHaya : '—') + '</td>' +
           '<td class="c-num">' + (pctMkr != null ? pctMkr + '%' : '—') + '</td>' +
           '<td class="c-haml col-g">' + (haml > 0 ? Math.round(haml) : '') + '</td>' +
-          '<td class="c-num col-g"><input class="ei ei-n" type="number" min="0" step="1" value="' + ordV + '" data-mk="' + mk + '" data-f="k" oninput="inp(this)" placeholder="0"/></td>' +
+          '<td class="c-num col-g"><input class="ei ei-n" type="number" min="0" step="1" value="' + ordV + '" data-mk="' + mk + '" data-ash="' + ash + '" data-mav="' + mav + '" data-f="k" oninput="inp(this)" placeholder="0"/></td>' +
           '<td class="col-g' + (yamim != null && yamim < 14 ? ' tk-lo' : '') + '">' + buildPrtimCell(mk, r.tukuf, nts) + '</td>';
         tb.appendChild(tr);
       });
@@ -1370,7 +1380,16 @@
     }
     const sv = saved();
     if (!sv[mk]) sv[mk] = {};
-    const v = el.value.trim();
+    let v = el.value.trim();
+    if (f === 'k' && v !== '') {
+      const cap = maavarMode ? Number(el.dataset.mav || 0) : Number(el.dataset.ash || 0);
+      if (Number(v) > cap) {
+        el.value = cap;
+        v = String(cap);
+        el.style.outline = '2px solid #f59e0b';
+        setTimeout(() => { el.style.outline = ''; }, 800);
+      }
+    }
     if (v === '') delete sv[mk][f];
     else sv[mk][f] = Number(v);
     if (sv[mk].k == null) delete sv[mk];
