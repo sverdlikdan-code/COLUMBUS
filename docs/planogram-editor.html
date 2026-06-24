@@ -2459,7 +2459,7 @@ function buildOrderPage() {
     const fam      = d.fam  || p.fam   || '';
     const iksGroup = d.iksGroup || null;   // IKRA / SAL / KAPUS from KARTIS PARIT
     const openOrders = +(d.openOrders || 0);
-    const spo     = (+(d.stock||0) + +(d.stockTrnz||0) + openOrders);  // אשדוד + מעבר + הזמנות פתוחות (Zafn excluded)
+    const spo     = +(d.spo ?? ((+(d.stock||0) + +(d.stockZafn||0) + +(d.stockTrnz||0)) + openOrders));  // all warehouses + open orders
     const krat    = +(d.ashdodPalletCartons || d.kratnost || 1);
     const palSpo  = krat > 0 && spo > 0 ? +(spo / krat).toFixed(1) : 0;
     const _ps    = window._orderPeriodSales;
@@ -2475,8 +2475,9 @@ function buildOrderPage() {
     const manualEdit = (window._orderManualEdits || {})[mk];
     const orderK = manualEdit ? manualEdit.orderK : autoOrderK;
     const orderP = manualEdit ? manualEdit.orderP : autoOrderP;
-    const stock     = +(d.stock    || 0);
-    const stockTrnz = +(d.stockTrnz || 0);
+    const stock     = +(d.stock     || 0);
+    const stockTrnz = +(d.stockTrnz  || 0);
+    const stockZafn = +(d.stockZafn  || 0);
     // מכר בתקופה — real DAX mkrTk first, fallback to daySales × calendar days
     const mkrTk = _psRow != null && typeof _psRow === 'object' ? (_psRow.mkrTk ?? null) : null;
     let periodSales = mkrTk !== null ? Math.round(mkrTk) : null;
@@ -2490,7 +2491,7 @@ function buildOrderPage() {
     const totalB  = window._orderTotalBranchy || null;
     const pizur   = branchy != null && totalB > 0 ? Math.round(branchy / totalB * 100) : null;
     const isStar  = pizur != null && pizur >= 60;
-    allRows.push({ mk, name, fam, iksGroup, stock, stockTrnz, spo, palSpo, openOrders, daySales, periodSales, daysStk, krat, safetyDays, safetyK, orderK, orderP, deferredDemand, branchy, pizur, isStar });
+    allRows.push({ mk, name, fam, iksGroup, stock, stockTrnz, stockZafn, spo, palSpo, openOrders, daySales, periodSales, daysStk, krat, safetyDays, safetyK, orderK, orderP, deferredDemand, branchy, pizur, isStar });
   }
 
   // Group key: iksGroup (IKRA/SAL/KAPUS/HERRING) if available, else fam
@@ -2557,7 +2558,7 @@ function buildOrderPage() {
 
   // Filter
   let rows = window._orderFams.size > 0 ? allRows.filter(r => window._orderFams.has(getGrp(r))) : allRows;
-  if (window._orderZero) rows = rows.filter(r => r.stock <= 0 && r.stockTrnz <= 0);
+  if (window._orderZero) rows = rows.filter(r => (+(r.stock||0) + +(r.stockTrnz||0) + +(r.stockZafn||0)) <= 0);
   if (window._orderOnlyMode) rows = rows.filter(r => r.orderK > 0);
   window._orderCurrentRows = rows;
 
