@@ -1009,7 +1009,7 @@
     document.getElementById('ld').innerHTML = '<div class="spin"></div><div>טוען נתוני מלאי...</div>';
     st('טוען...');
     try {
-      const r = await fetch('./mmd-orders.json');
+      const r = await fetch('./mmd-orders.json?_=' + Date.now());
       if (!r.ok) throw new Error('HTTP ' + r.status);
       const j = await r.json();
       if (!j.ok) throw new Error(j.error || 'API error');
