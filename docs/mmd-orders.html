@@ -1380,7 +1380,7 @@
     // Cap to ashdod_k in normal mode (maavar mode allows any qty)
     if (f === 'k' && !maavarMode && v !== '') {
       const ash = Number(el.dataset.ash || 0);
-      if (ash > 0 && Number(v) > ash) {
+      if (Number(v) > ash) {
         el.value = ash;
         v = String(ash);
         el.style.outline = '2px solid #f59e0b';
