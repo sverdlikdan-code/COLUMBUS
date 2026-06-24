@@ -1328,7 +1328,7 @@
           '<td class="c-num">' + (yamimHaya != null ? yamimHaya : '—') + '</td>' +
           '<td class="c-num">' + (pctMkr != null ? pctMkr + '%' : '—') + '</td>' +
           '<td class="c-haml col-g">' + (haml > 0 ? Math.round(haml) : '') + '</td>' +
-          '<td class="c-num col-g"><input class="ei ei-n" type="number" min="0" step="1" value="' + ordV + '" data-mk="' + mk + '" data-ash="' + ash + '" data-f="k" oninput="inp(this)" placeholder="0"/></td>' +
+          '<td class="c-num col-g"><input class="ei ei-n" type="number" min="0" step="1" value="' + ordV + '" data-mk="' + mk + '" data-ash="' + ash + '" data-mav="' + mav + '" data-f="k" oninput="inp(this)" placeholder="0"/></td>' +
           '<td class="col-g' + (yamim != null && yamim < 14 ? ' tk-lo' : '') + '">' + buildPrtimCell(mk, r.tukuf, nts) + '</td>';
         tb.appendChild(tr);
       });
@@ -1380,12 +1380,11 @@
     const sv = saved();
     if (!sv[mk]) sv[mk] = {};
     let v = el.value.trim();
-    // Cap to ashdod_k in normal mode (maavar mode allows any qty)
-    if (f === 'k' && !maavarMode && v !== '') {
-      const ash = Number(el.dataset.ash || 0);
-      if (Number(v) > ash) {
-        el.value = ash;
-        v = String(ash);
+    if (f === 'k' && v !== '') {
+      const cap = maavarMode ? Number(el.dataset.mav || 0) : Number(el.dataset.ash || 0);
+      if (Number(v) > cap) {
+        el.value = cap;
+        v = String(cap);
         el.style.outline = '2px solid #f59e0b';
         setTimeout(() => { el.style.outline = ''; }, 800);
       }
