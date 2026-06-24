@@ -2221,9 +2221,16 @@ function toggleOrderZero() {
   buildOrderPage();
 }
 
-window._orderSortBy = '';
-function setOrderSort(val) {
-  window._orderSortBy = val;
+window._orderSortCol = '';
+window._orderSortDir = 'desc';
+function sortOrderBy(col) {
+  if (window._orderSortCol === col) {
+    if (window._orderSortDir === 'desc') window._orderSortDir = 'asc';
+    else { window._orderSortCol = ''; window._orderSortDir = 'desc'; }
+  } else {
+    window._orderSortCol = col;
+    window._orderSortDir = 'desc';
+  }
   buildOrderPage();
 }
 
@@ -2511,21 +2518,12 @@ function buildOrderPage() {
     const chipDef     = 'font-size:15px;padding:7px 22px;border-radius:22px;cursor:pointer;font-weight:700;border:2px solid #BBDEFB;background:#fff;color:#1565C0;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.13),0 1px 3px rgba(21,101,192,.08);letter-spacing:.01em;';
     const chipZeroAct = 'font-size:15px;padding:7px 22px;border-radius:22px;cursor:pointer;font-weight:800;border:2px solid #bf360c;background:#e65100;color:#fff;white-space:nowrap;box-shadow:0 4px 18px rgba(230,81,0,.55),0 0 0 3px rgba(230,81,0,.18),inset 0 1px 0 rgba(255,255,255,.2);letter-spacing:.01em;';
     const chipZeroDef = 'font-size:15px;padding:7px 22px;border-radius:22px;cursor:pointer;font-weight:700;border:2px solid #BBDEFB;background:#fff;color:#1565C0;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.13);letter-spacing:.01em;';
-    const sortSel = `<select onchange="setOrderSort(this.value)" style="font-size:13px;padding:6px 12px;border-radius:12px;border:2px solid #BBDEFB;background:#fff;color:#1565C0;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.1);outline:none;margin-right:6px;">
-      <option value="" ${!window._orderSortBy?'selected':''}>לסנן לפי...</option>
-      <option value="pizur" ${window._orderSortBy==='pizur'?'selected':''}>לפי פיזור ↓</option>
-      <option value="daySales" ${window._orderSortBy==='daySales'?'selected':''}>לפי מכר ממוצע ↓</option>
-      <option value="periodSales" ${window._orderSortBy==='periodSales'?'selected':''}>לפי מכר בתקופה ↓</option>
-      <option value="daysStk" ${window._orderSortBy==='daysStk'?'selected':''}>לכמה ימים מלאי ↑</option>
-    </select>`;
     const grpKeys = [...new Set(allRows.map(getGrp).filter(Boolean))].sort();
     famBtns.innerHTML =
       `<button class="ord-fam-btn" data-fam="" style="${window._orderFams.size === 0 ? chipAct : chipDef}">כולם</button>` +
       grpKeys.map(f => `<button class="ord-fam-btn" data-fam="${esc(f)}" style="${window._orderFams.has(f) ? chipAct : chipDef}">${esc(grpLabel(f))}</button>`).join('') +
       `<span style="width:1px;height:26px;background:#BBDEFB;margin:0 8px;align-self:center;display:inline-block;flex-shrink:0;"></span>` +
-      `<button onclick="toggleOrderZero()" style="${window._orderZero ? chipZeroAct : chipZeroDef}">⚠ חסר במלאי${window._orderZero ? ' ✓' : ''}</button>` +
-      `<span style="flex:1;"></span>` +
-      sortSel;
+      `<button onclick="toggleOrderZero()" style="${window._orderZero ? chipZeroAct : chipZeroDef}">⚠ חסר במלאי${window._orderZero ? ' ✓' : ''}</button>`;
     famBtns.querySelectorAll('.ord-fam-btn').forEach(btn => btn.addEventListener('click', () => setOrderFam(btn.dataset.fam)));
   }
 
@@ -2586,19 +2584,23 @@ function buildOrderPage() {
   const grpOrder = [...new Set(rows.map(getGrp))].sort();
   const groups = {};
   for (const r of rows) (groups[getGrp(r)] || (groups[getGrp(r)] = [])).push(r);
-  // Sort within group — by selected sort key or alphabetically by name
-  const _sortBy = window._orderSortBy;
+  // Sort within group — by clicked column header or alphabetically by name
+  const _sc = window._orderSortCol, _sd = window._orderSortDir;
+  const _numSort = (key, asc) => (a, b) => {
+    const av = a[key] ?? (asc ? Infinity : -Infinity);
+    const bv = b[key] ?? (asc ? Infinity : -Infinity);
+    return asc ? av - bv : bv - av;
+  };
   for (const g of Object.values(groups)) {
-    if (_sortBy === 'pizur')        g.sort((a, b) => (b.pizur ?? -1) - (a.pizur ?? -1));
-    else if (_sortBy === 'daySales')     g.sort((a, b) => (b.daySales ?? -1) - (a.daySales ?? -1));
-    else if (_sortBy === 'periodSales')  g.sort((a, b) => (b.periodSales ?? -1) - (a.periodSales ?? -1));
-    else if (_sortBy === 'daysStk')      g.sort((a, b) => (a.daysStk ?? 9999) - (b.daysStk ?? 9999));
-    else                                 g.sort((a, b) => String(a.name).localeCompare(String(b.name), 'he'));
+    if (_sc) g.sort(_numSort(_sc, _sd === 'asc'));
+    else     g.sort((a, b) => String(a.name).localeCompare(String(b.name), 'he'));
   }
   // Keep the export (window._orderCurrentRows) in the exact same order as the table below
   window._orderCurrentRows = grpOrder.flatMap(g => groups[g] || []);
 
-  const _th = (extra='') => `position:sticky;top:0;z-index:5;background:#0D47A1;color:#fff;padding:8px 6px;font-size:10px;font-weight:700;border-bottom:2px solid #0a3880;border-right:1px solid rgba(255,255,255,0.1);${extra}`;
+  const _th  = (extra='') => `position:sticky;top:0;z-index:5;background:#0D47A1;color:#fff;padding:8px 6px;font-size:10px;font-weight:700;border-bottom:2px solid #0a3880;border-right:1px solid rgba(255,255,255,0.1);${extra}`;
+  const _ths = (col, extra='') => `${_th('cursor:pointer;user-select:none;' + extra)}" onclick="sortOrderBy('${col}')`;
+  const _arr = col => _sc === col ? (_sd === 'desc' ? '<br><span style="font-size:9px;opacity:.9;">↓</span>' : '<br><span style="font-size:9px;opacity:.9;">↑</span>') : '<br><span style="font-size:9px;opacity:.35;">⇅</span>';
   const _donut = (pct, isStar=false) => {
     if (pct == null) return `<span style="color:#ccc;font-size:10px;">${isStar ? '⭐' : '—'}</span>`;
     const r = 11, cx = 15, cy = 15, circ = 2 * Math.PI * r;
@@ -2617,16 +2619,16 @@ function buildOrderPage() {
     <tr>
       <th style="${_th('text-align:right;')}" dir="rtl">תאור</th>
       <th style="${_th('width:46px;')}"></th>
-      <th style="${_th('text-align:center;')}">מלאי זמין<br>+ הזמנות</th>
+      <th style="${_ths('spo','text-align:center;')}">מלאי זמין<br>+ הזמנות${_arr('spo')}</th>
       <th style="${_th('text-align:center;')}">PAL</th>
-      <th style="${_th('text-align:center;')}">הזמנות<br>פתוחות</th>
-      <th style="${_th('text-align:center;')}">לקוחות<br>שקנו</th>
+      <th style="${_ths('openOrders','text-align:center;')}">הזמנות<br>פתוחות${_arr('openOrders')}</th>
+      <th style="${_ths('branchy','text-align:center;')}">לקוחות<br>שקנו${_arr('branchy')}</th>
       <th style="${_th('text-align:center;')}">לקוחות<br>מופעלים</th>
-      <th style="${_th('text-align:center;')}">פיזור<br>%</th>
-      <th style="${_th('text-align:center;')}">KARTON<br>PER DAY</th>
-      <th style="${_th('text-align:center;')}">מכר<br>בתקופה</th>
-      <th style="${_th('text-align:center;')}">לכמה<br>ימים</th>
-      <th style="${_th('text-align:center;')}">המלצה<br>KARTON ↓</th>
+      <th style="${_ths('pizur','text-align:center;')}">פיזור<br>%${_arr('pizur')}</th>
+      <th style="${_ths('daySales','text-align:center;')}">KARTON<br>PER DAY${_arr('daySales')}</th>
+      <th style="${_ths('periodSales','text-align:center;')}">מכר<br>בתקופה${_arr('periodSales')}</th>
+      <th style="${_ths('daysStk','text-align:center;')}">לכמה<br>ימים${_arr('daysStk')}</th>
+      <th style="${_ths('orderK','text-align:center;')}">המלצה<br>KARTON${_arr('orderK')}</th>
       <th style="${_th('text-align:center;')}">המלצה<br>PALLET</th>
       <th style="${_th('text-align:center;')}">PAL<br>ידני</th>
     </tr>
