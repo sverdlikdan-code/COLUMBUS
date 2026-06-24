@@ -2459,7 +2459,7 @@ function buildOrderPage() {
     const fam      = d.fam  || p.fam   || '';
     const iksGroup = d.iksGroup || null;   // IKRA / SAL / KAPUS from KARTIS PARIT
     const openOrders = +(d.openOrders || 0);
-    const spo     = +(d.spo ?? ((+(d.stock||0) + +(d.stockZafn||0) + +(d.stockTrnz||0)) + openOrders));  // PBI SPO measure; fallback = all-wh stock + open orders
+    const spo     = (+(d.stock||0) + +(d.stockTrnz||0) + openOrders);  // אשדוד + מעבר + הזמנות פתוחות (Zafn excluded)
     const krat    = +(d.ashdodPalletCartons || d.kratnost || 1);
     const palSpo  = krat > 0 && spo > 0 ? +(spo / krat).toFixed(1) : 0;
     const _ps    = window._orderPeriodSales;
