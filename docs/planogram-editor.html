@@ -3203,6 +3203,7 @@ function buildExpiryPage() {
     </div>`;
     });
     _cardHtmls.forEach(ch => {
+      if (!ch) return;
       if (_pgBreakCount > 0 && _pgBreakCount % 9 === 0) _allHtml += '<div class="grid-page-break"></div>';
       _allHtml += ch;
       _pgBreakCount++;
