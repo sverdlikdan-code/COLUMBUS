@@ -307,6 +307,8 @@
     #sk-ord-only.on { background: #dc2626 !important; border-color: #dc2626 !important; }
     #sk-no-mkr { border-radius: 6px !important; background: #4a1d96 !important; color: #e9d5ff !important; border-color: #6d28d9 !important; font-size: .82rem !important; }
     #sk-no-mkr.on { background: #dc2626 !important; border-color: #dc2626 !important; color: #fff !important; }
+    #sk-maavar { border-color: #7c3aed; color: #6d28d9; }
+    #sk-maavar.on { background: #7c3aed !important; border-color: #6d28d9 !important; color: #fff !important; }
     .flabel { font-size: .7rem; color: var(--mid); font-weight: 700; white-space: nowrap; }
     .chip {
       display: inline-flex;
@@ -797,6 +799,7 @@
     <span class="chip" id="sk-mmd-no"  onclick="togStock('mmd','no')">חסר 😢</span>
     <span class="chip" id="sk-ord-only" onclick="togOrdOnly()">📋 הזמנה בלבד</span>
     <span class="chip" id="sk-no-mkr" onclick="togNoMkr()">🚫 אין מכר MMD</span>
+    <span class="chip" id="sk-maavar" onclick="togMaavar()">📦 מחסן מעבר הזמנה</span>
   </div>
 </div>
 
@@ -841,8 +844,9 @@
   let fams = new Set();
   let cos  = new Set();
   let selStart = null, selEnd = null; // null = default (prev+cur month); range selection
-  let ordOnly   = false;
-  let noMkr    = false;
+  let ordOnly    = false;
+  let noMkr      = false;
+  let maavarMode = false;
   const ashFilter = new Set(['yes']); // default: show only items with Ashdod stock
   const mmdFilter = new Set();
   const sessionP = {}; // תוקף נדרש — session-only, resets on page reload
@@ -1175,10 +1179,20 @@
     buildChips();
     render();
   };
+  window.togMaavar = function() {
+    maavarMode = !maavarMode;
+    const el = document.getElementById('sk-maavar');
+    if (el) el.classList.toggle('on', maavarMode);
+    render();
+  };
 
   function filtered() {
     const sv = ordOnly ? saved() : null;
     return all.filter(r => {
+      if (maavarMode) {
+        if (!r.maavar || r.maavar <= 0) return false;
+        return true; // in maavar mode skip other filters
+      }
       if (fams.size && fams.has(r.mishpacha)) return false;
       if (cos.size  && !cos.has(r.hevra))      return false;
       if (ashFilter.size) {
@@ -1310,7 +1324,7 @@
           '<td class="c-num">' + (yamimHaya != null ? yamimHaya : '—') + '</td>' +
           '<td class="c-num">' + (pctMkr != null ? pctMkr + '%' : '—') + '</td>' +
           '<td class="c-haml col-g">' + (haml > 0 ? Math.round(haml) : '') + '</td>' +
-          '<td class="c-num col-g"><input class="ei ei-n" type="number" min="0" step="1" value="' + ordV + '" data-mk="' + mk + '" data-f="k" oninput="inp(this)" placeholder="0"/></td>' +
+          '<td class="c-num col-g"><input class="ei ei-n" type="number" min="0" step="1" value="' + ordV + '" data-mk="' + mk + '" data-ash="' + ash + '" data-f="k" oninput="inp(this)" placeholder="0"/></td>' +
           '<td class="col-g' + (yamim != null && yamim < 14 ? ' tk-lo' : '') + '">' + buildPrtimCell(mk, r.tukuf, nts) + '</td>';
         tb.appendChild(tr);
       });
@@ -1361,7 +1375,17 @@
     }
     const sv = saved();
     if (!sv[mk]) sv[mk] = {};
-    const v = el.value.trim();
+    let v = el.value.trim();
+    // Cap to ashdod_k in normal mode (maavar mode allows any qty)
+    if (f === 'k' && !maavarMode && v !== '') {
+      const ash = Number(el.dataset.ash || 0);
+      if (ash > 0 && Number(v) > ash) {
+        el.value = ash;
+        v = String(ash);
+        el.style.outline = '2px solid #f59e0b';
+        setTimeout(() => { el.style.outline = ''; }, 800);
+      }
+    }
     if (v === '') delete sv[mk][f];
     else sv[mk][f] = Number(v);
     if (sv[mk].k == null) delete sv[mk];
