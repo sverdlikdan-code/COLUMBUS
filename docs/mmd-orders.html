@@ -1026,8 +1026,10 @@
           const d = new Date(j.refreshedAt);
           const df = d.toLocaleDateString('he-IL', {day:'2-digit',month:'2-digit',year:'2-digit'});
           const tf = d.toLocaleTimeString('he-IL', {hour:'2-digit',minute:'2-digit'});
-          upEl.textContent = '⬆ עדכון PBI: ' + df + ' ' + tf;
-          if (splashDate) splashDate.textContent = '⬆ עדכון PBI: ' + df + ' ' + tf;
+          const ciUrl = 'https://github.com/sverdlikdan-code/COLUMBUS/actions/workflows/mmd-orders-build.yml';
+          const lbl = '⬆ עדכון PBI: ' + df + ' ' + tf;
+          upEl.innerHTML = '<a href="' + ciUrl + '" target="_blank" style="color:inherit;text-decoration:none;" title="GitHub Actions — MMD Orders Build">' + lbl + '</a>';
+          if (splashDate) splashDate.innerHTML = '<a href="' + ciUrl + '" target="_blank" style="color:inherit;text-decoration:underline dotted;opacity:.85;" title="GitHub Actions — MMD Orders Build">' + lbl + '</a>';
         } else {
           upEl.textContent = '';
           if (splashDate) splashDate.textContent = '';
