@@ -97,24 +97,7 @@
         width: 100% !important;
       }
       body.printing-expiry #expiry-grid.mauchad-active {
-        display: block !important;
-        gap: 0 !important;
-        padding: 0 !important;
-      }
-      body.printing-expiry .expiry-page-group {
-        display: grid !important;
         grid-template-columns: repeat(3, 1fr) !important;
-        grid-template-rows: repeat(3, 1fr) !important;
-        gap: 4px !important;
-        width: 100% !important;
-        height: calc(100vh - 14mm) !important;
-        break-after: page !important;
-        page-break-after: always !important;
-        box-sizing: border-box !important;
-      }
-      body.printing-expiry .expiry-page-group > div {
-        overflow: hidden !important;
-        min-height: 0 !important;
       }
       body.printing-expiry #expiry-grid > div { break-inside: avoid; width: auto !important; flex-shrink: 1 !important; min-width: 0 !important; }
       body.printing-expiry #expiry-grid > .expiry-sec-hdr { display: none !important; }
@@ -3242,11 +3225,8 @@ function buildExpiryPage() {
   }
   } // end for _SECTIONS
   if (window._expiryMauchad && _allMauchadCards.length > 0) {
-    for (let i = 0; i < _allMauchadCards.length; i += 9) {
-      const group = _allMauchadCards.slice(i, i + 9);
-      _allHtml += `<div class="expiry-page-group">${group.join('')}</div>`;
-      _pgBreakCount += group.length;
-    }
+    _allHtml += _allMauchadCards.join('');
+    _pgBreakCount += _allMauchadCards.length;
   }
   const filtered = window._expiryOnlySakana || window._expiryZafnLow;
   document.getElementById('expiry-title').textContent = filtered
