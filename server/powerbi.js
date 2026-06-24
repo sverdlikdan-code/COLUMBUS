@@ -36,7 +36,10 @@ function httpsPost(url, headers, body) {
       res.on('data', c => chunks.push(c));
       res.on('end', () => {
         const text = Buffer.concat(chunks).toString('utf8');
-        resolve({ status: res.statusCode, ok: res.statusCode < 400, text, json: JSON.parse(text) });
+        let json = null;
+        try { json = JSON.parse(text); } catch { /* non-JSON response, text preserved */ }
+        if (!json && res.statusCode >= 400) console.error('PBI raw error response:', res.statusCode, text.slice(0, 500));
+        resolve({ status: res.statusCode, ok: res.statusCode < 400, text, json });
       });
     });
     req.on('error', reject);
