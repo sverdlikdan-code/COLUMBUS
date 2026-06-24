@@ -98,6 +98,54 @@
       body.printing-expiry .grid-page-break { display: block !important; grid-column: 1 / -1; break-before: page; height: 0; margin: 0; padding: 0; }
 
 
+      /* ── Main planogram print (9 cards per landscape page) ── */
+      body.printing-main > *:not(.section.active):not(#print-header) { display: none !important; }
+      body.printing-main .section.active {
+        display: block !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        height: auto !important;
+        max-height: none !important;
+        background: #fff !important;
+      }
+      body.printing-main .warehouse-grid {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 3px !important;
+        width: 100% !important;
+        padding: 0 !important;
+        min-width: 0 !important;
+        overflow: visible !important;
+      }
+      body.printing-main .slot {
+        width: auto !important;
+        min-height: 0 !important;
+        font-size: 7px !important;
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        border: 1px solid #ccc !important;
+        border-radius: 4px !important;
+        padding: 2px !important;
+        overflow: hidden !important;
+        box-shadow: none !important;
+      }
+      body.printing-main .slot * { font-size: 7px !important; }
+      body.printing-main .slot-img { max-height: 40px !important; width: auto !important; }
+      body.printing-main .section-divider,
+      body.printing-main .toolbar,
+      body.printing-main .tabs { display: none !important; }
+      body.printing-main .warehouse-grid > .grid-section-hdr {
+        grid-column: 1 / -1 !important;
+        break-before: auto !important;
+        font-size: 10px !important;
+        font-weight: 700 !important;
+        background: #0D47A1 !important;
+        color: #fff !important;
+        padding: 4px 8px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
       /* ── Order page print ── */
       body.printing-order > *:not(#order-page) { display: none !important; }
       body.printing-order #order-page {
@@ -3078,11 +3126,15 @@ window.addEventListener('beforeprint', () => {
       tbl.hidden = true;
       wrap.insertBefore(div, tbl);
     }
+  } else {
+    document.body.classList.add('printing-main');
+    document.title = 'MAHSAN PLANOGRAM — FORMULA';
   }
 });
 window.addEventListener('afterprint', () => {
   document.body.classList.remove('printing-expiry');
   document.body.classList.remove('printing-order');
+  document.body.classList.remove('printing-main');
   document.title = 'MAHSAN FORMULA';
   const split = document.getElementById('print-split-tables');
   if (split) {
