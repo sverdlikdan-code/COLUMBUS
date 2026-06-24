@@ -471,7 +471,6 @@
     <button id="btn-sec-yavesh" onclick="toggleSecFilter('yavesh')" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:#fff;font-size:12px;font-weight:bold;cursor:pointer;border-radius:4px;padding:4px 10px;">דג יבש</button>
     <span style="width:1px;height:20px;background:rgba(255,255,255,0.3);margin:0 4px;"></span>
     <button id="btn-sakana-filter"  onclick="toggleSakanaFilter()"  style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);color:#fff;font-size:12px;font-weight:bold;cursor:pointer;border-radius:5px;padding:4px 12px;">⚠ סכנה בלבד</button>
-    <button id="btn-sort-sakana-pct" onclick="toggleSortSakanaPct()" style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);color:#fff;font-size:12px;font-weight:bold;cursor:pointer;border-radius:5px;padding:4px 12px;">% סכנה ↓</button>
     <button id="btn-zafn-low-filter" onclick="toggleZafnLowFilter()" style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);color:#fff;font-size:12px;font-weight:bold;cursor:pointer;border-radius:5px;padding:4px 12px;">📦 צפון &lt;3 ימים</button>
     <button id="btn-combined-wh" onclick="toggleCombinedWh()" style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);color:#fff;font-size:12px;font-weight:bold;cursor:pointer;border-radius:5px;padding:4px 12px;">🔗 מחסן מאוחד</button>
 <button id="btn-reset-hidden" onclick="resetHiddenExpiryCards()" style="display:none;background:#fff3cd;border:none;color:#7a5c00;font-size:12px;font-weight:bold;cursor:pointer;border-radius:4px;padding:4px 12px;" class="no-print">↩ איפוס</button>
@@ -2821,6 +2820,9 @@ function toggleExpiryPage() {
   btn.style.background = open ? '#c62828' : '#f0f4ff';
   btn.style.color      = open ? '#fff'    : '#c62828';
   if (open) {
+    const grid = document.getElementById('expiry-grid');
+    if (grid) grid.classList.toggle('mauchad-active', window._expiryMauchad);
+    _syncFilterBtns();
     buildExpiryPage();
     if (!page._dragScrollInit) {
       page._dragScrollInit = true;
@@ -2873,7 +2875,7 @@ function toggleZafnLowFilter() {
   _syncFilterBtns();
   buildExpiryPage();
 }
-window._expiryMauchad = false;
+window._expiryMauchad = true;
 function toggleCombinedWh() {
   window._expiryMauchad = !window._expiryMauchad;
   const grid = document.getElementById('expiry-grid');
@@ -3210,10 +3212,9 @@ function buildExpiryPage() {
       </div>
     </div>`;
     });
-    const _cardsPerPage = window._expiryMauchad ? 8 : 9;
     _cardHtmls.forEach(ch => {
       if (!ch) return;
-      if (_pgBreakCount > 0 && _pgBreakCount % _cardsPerPage === 0) _allHtml += '<div class="grid-page-break"></div>';
+      if (!window._expiryMauchad && _pgBreakCount > 0 && _pgBreakCount % 9 === 0) _allHtml += '<div class="grid-page-break"></div>';
       _allHtml += ch;
       _pgBreakCount++;
     });
