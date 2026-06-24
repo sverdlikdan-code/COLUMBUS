@@ -100,7 +100,7 @@ async function build() {
 
   const htmlPath = path.join(__dirname, '..', 'docs', 'mmd-orders.html');
   const html = fs.readFileSync(htmlPath, 'utf8');
-  fs.writeFileSync(htmlPath, html.replace(/__MMD_BUILD__/g, String(out.ts)));
+  fs.writeFileSync(htmlPath, html.replace(/1782304580563/g, String(out.ts)));
   console.log(`✓ Cache-busted mmd-orders.html → ?v=${out.ts}`);
 }
 
