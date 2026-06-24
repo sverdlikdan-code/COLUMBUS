@@ -178,3 +178,27 @@ Pending: `build-planogram.js` + `workflow-doctor.js` всё ещё не прог
   - Коммит: `8d1d3ab` → push.
 
 Итог сессии: пайплайн `סדר הדפסה` (Excel → build → UI) полностью рабочий и визуально проверен на всех уровнях — сортировка, localStorage-версионирование, отображение реального значения, прод-ребилд.
+
+### 2026-06-26 #session-end ✅ (הזמנה דגים + automation)
+
+**הזמנה дגים — цвета, פיזור, Excel מיקום:**
+
+- **Цветовая палитра MMD** — финально применена к странице הזמנה:
+  - Thead: `#0D47A1` + белый текст (все заголовки, без цветных акцентов)
+  - Чётные строки: `#E3F2FD`, нечётные: `#fff`, границы: `#BBDEFB`
+  - Группы: `#1565C0` (было `#263238`), белый текст без цветных иконок
+- **Разбивка запроса `/pbi/dagim-sales` на два**: Query 1 — `daySales` только (стабильный, всегда работает); Query 2 — `mkrTk` + `branchy` с `.catch(() => null)` (не роняет основной запрос)
+- **Причина "שגיאת שרת"**: `[TOTAL מכר בקרטונים]` и `[סניפים2  שקנו]` ломают SUMMARIZECOLUMNS — изолированы в отдельный запрос с fallback
+
+**Excel מיקום — новая колонка + сортировка:**
+- Добавлена колонка `סדר הדפסה` в `/api/export-position-xlsx`
+- Server-side сортировка по `printOrder` перед записью в Excel (`rows.sort(...)`)
+- Фото: `ext: {width:90, height:90}` (не `tl/br`) — правильный размер изображения
+- `printOrder` теперь передаётся из клиента в payload
+
+**Automation — Hooks + CronCreate:**
+- `SessionStart` hook → инжектирует напоминание в контекст (fin-agent + security)
+- `PostToolUse` hook (Edit) → при изменении `server/index.js` — security-agent trigger
+- CronCreate durable: fin-agent каждый понедельник 9:03, security-agent каждую пятницу 10:07
+
+Коммиты: `7cc5f48` → `360692f` → `09f2e51` → `7e14ca6`
