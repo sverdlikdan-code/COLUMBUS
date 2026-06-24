@@ -3024,32 +3024,34 @@ function buildExpiryPage() {
     const _sakanaCartons =
       batches.main.filter(b => batchSakana(b, salesMain, shelfLife)?.isSakana).reduce((s, b) => s + (b.cartons || 0), 0) +
       batches.zafn.filter(b => batchSakana(b, salesZafn, shelfLife)?.isSakana).reduce((s, b) => s + (b.cartons || 0), 0);
-    const _totalStockCard = (d.stock || 0) + (d.stockZafn || 0);
-    const _pctSakana = _totalStockCard > 0 ? Math.round(_sakanaCartons / _totalStockCard * 100) : 0;
+    // denominator = all physical stock including transit so % is accurate
+    const _totalStockCard = (d.stock || 0) + (d.stockZafn || 0) + (d.stockTrnz || 0);
+    const _pctSakana = _totalStockCard > 0 ? Math.min(100, Math.round(_sakanaCartons / _totalStockCard * 100)) : 0;
     const _pctBadge = (() => {
       if (!window._expiryOnlySakana || _pctSakana <= 0) return '';
       const pct = _pctSakana;
-      const r = 22, cx = 34, cy = 30;
+      const r = 16, cx = 26, cy = 22;
       const arcLen = Math.PI * r;
       const filled = Math.min(pct / 100, 1) * arcLen;
       const clr  = pct >= 70 ? '#b71c1c' : pct >= 40 ? '#c62828' : '#e53935';
-      const glow = pct >= 70 ? `filter:drop-shadow(0 0 4px ${clr}88);` : '';
+      const glow = pct >= 70 ? `filter:drop-shadow(0 0 3px ${clr}99);` : '';
       const uid  = 'g' + mk;
-      return `<svg width="68" height="42" style="display:block;margin:5px auto 0;overflow:visible;${glow}">
+      return `<svg width="52" height="34" style="display:block;margin:4px auto 0;overflow:visible;${glow}">
         <defs>
           <linearGradient id="${uid}" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="${clr}" stop-opacity=".55"/>
+            <stop offset="0%" stop-color="${clr}" stop-opacity=".45"/>
             <stop offset="100%" stop-color="${clr}" stop-opacity="1"/>
           </linearGradient>
         </defs>
         <path d="M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}"
-          fill="none" stroke="#fce4e4" stroke-width="7" stroke-linecap="round"/>
+          fill="none" stroke="#fce4e4" stroke-width="5" stroke-linecap="round"/>
         <path d="M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}"
-          fill="none" stroke="url(#${uid})" stroke-width="7" stroke-linecap="round"
+          fill="none" stroke="url(#${uid})" stroke-width="5" stroke-linecap="round"
           stroke-dasharray="${filled.toFixed(1)} ${arcLen.toFixed(1)}"/>
-        <text x="${cx}" y="${cy-3}" text-anchor="middle" font-size="13" font-weight="900" fill="${clr}" font-family="Arial">${pct}%</text>
-        <text x="${cx}" y="${cy+13}" text-anchor="middle" font-size="7" fill="#bbb" font-family="Arial">מלאי בסכנה</text>
-      </svg>`;
+        <text x="${cx}" y="${cy-2}" text-anchor="middle" font-size="10" font-weight="900" fill="${clr}" font-family="Arial">${pct}%</text>
+      </svg>
+      <div style="font-size:8px;font-weight:700;color:${clr};text-align:center;margin-top:-2px;line-height:1.2;">${Math.round(_sakanaCartons)} קרט</div>`
+      ;
     })();
 
     const thMain = sakanaMain
