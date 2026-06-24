@@ -76,6 +76,7 @@
       #print-header { display: block !important; }
 
       /* ── Expiry page print (active only when expiry is open) ── */
+      @page { margin: 6mm; }
       body.printing-expiry > *:not(#expiry-page) { display: none !important; }
       body.printing-expiry #expiry-page {
         display: block !important;
@@ -84,14 +85,19 @@
         height: auto !important;
         background: #fff !important;
         z-index: auto !important;
+        width: 100% !important;
       }
       body.printing-expiry #expiry-page > div:first-child { display: none !important; }
       body.printing-expiry #expiry-grid {
         display: grid !important;
         grid-template-columns: repeat(3, 1fr) !important;
-        gap: 6px !important;
-        padding: 4px !important;
+        gap: 4px !important;
+        padding: 2px !important;
         overflow: visible !important;
+        width: 100% !important;
+      }
+      body.printing-expiry #expiry-grid.mauchad-active {
+        grid-template-columns: repeat(4, 1fr) !important;
       }
       body.printing-expiry #expiry-grid > div { break-inside: avoid; width: auto !important; flex-shrink: 1 !important; min-width: 0 !important; }
       body.printing-expiry #expiry-grid > .expiry-sec-hdr { display: none !important; }
@@ -2870,6 +2876,8 @@ function toggleZafnLowFilter() {
 window._expiryMauchad = false;
 function toggleCombinedWh() {
   window._expiryMauchad = !window._expiryMauchad;
+  const grid = document.getElementById('expiry-grid');
+  if (grid) grid.classList.toggle('mauchad-active', window._expiryMauchad);
   _syncFilterBtns();
   buildExpiryPage();
 }
@@ -3202,9 +3210,10 @@ function buildExpiryPage() {
       </div>
     </div>`;
     });
+    const _cardsPerPage = window._expiryMauchad ? 8 : 9;
     _cardHtmls.forEach(ch => {
       if (!ch) return;
-      if (_pgBreakCount > 0 && _pgBreakCount % 9 === 0) _allHtml += '<div class="grid-page-break"></div>';
+      if (_pgBreakCount > 0 && _pgBreakCount % _cardsPerPage === 0) _allHtml += '<div class="grid-page-break"></div>';
       _allHtml += ch;
       _pgBreakCount++;
     });
