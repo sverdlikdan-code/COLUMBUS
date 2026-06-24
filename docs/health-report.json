@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-06-23T06:54:06.331Z",
-  "date": "2026-06-23",
-  "totalSessions": 5,
+  "generatedAt": "2026-06-24T03:00:11.003Z",
+  "date": "2026-06-24",
+  "totalSessions": 6,
   "last7days": [
     {
       "date": "2026-19-05",
@@ -82,6 +82,15 @@
           "fix": "Проблема с интернетом в момент запуска (06:00). Watchdog в 07:30 должен поймать и поретраить."
         }
       ]
+    },
+    {
+      "date": "2026-24-06",
+      "done": false,
+      "pushed": false,
+      "noChanges": false,
+      "errorCount": 0,
+      "errors": [],
+      "findings": []
     }
   ],
   "patterns": {
@@ -93,6 +102,12 @@
   "recentIssues": [
     {
       "level": "warning",
+      "msg": "GitHub Actions не коммитил более 14ч (18.7ч)",
+      "fix": "Проверь GitHub Actions: https://github.com/sverdlikdan-code/COLUMBUS/actions — ищи failed runs",
+      "code": "ACTIONS_STALE"
+    },
+    {
+      "level": "warning",
       "msg": "Сегодня workflow не запускался",
       "fix": "Проверь scheduled task COLUMBUS-Daily-06 или запусти run-workflow.bat вручную",
       "code": "NO_RUN_TODAY"
@@ -100,10 +115,10 @@
   ],
   "status": "warning",
   "githubActions": {
-    "lastActionsCommit": "2026-06-22T20:57:00.000Z",
+    "lastActionsCommit": "2026-06-23T08:17:33.000Z",
     "lastActionsAuthor": "COLUMBUS Bot",
-    "hoursSinceLastActions": 10,
-    "status": "ok",
-    "warning": null
+    "hoursSinceLastActions": 18.7,
+    "status": "warning",
+    "warning": "GitHub Actions не коммитил более 14ч (18.7ч)"
   }
 }
