@@ -123,3 +123,17 @@ totalsRowShown: model.totalsRow ? undefined : '1',   // ← инвертиров
 **Роут JSON:** добавлен `app.get('/mmd/mmd-orders.json', mmdGuard, ...)` в server/index.js — сервер отдаёт docs/mmd-orders.json через /mmd/ маршрут.
 
 **ПРАВИЛО:** никогда не копировать `docs/mmd-orders.html` → `MMD ORDERS/index.html`. Это разные файлы с разными путями, разным сплэшем, разными фетчами.
+
+### 2026-06-25 #resolved ✅ Excel export — фото, умная таблица, фильтры
+
+**תוקף נדרש в Excel:** красная заливка + 🚩 только когда `tOpts.length > 1 && !sessionP[mk]`. Никакого автозаполнения единственного срока.
+
+**Фото в Excel:** добавлен прокси-роут `GET /mmd/img/:mkt` в server/index.js → качает с `priority.dilerbmd.com/priimages/:mkt.jpg`. Client-side canvas resize 40×40 JPEG q0.55. Колонка תמונה (col 5) между שם מוצר и מלאי MMD. Размер файла пригоден для email.
+
+**Умная таблица:** `ws.addTable({ totalsRow:true, style:'TableStyleLight2', ... })` — настоящий Excel ListObject с autoFilter, banding, totals row (SUM на הזמנה קרטון). Обходит баг exceljs@4.4.0 (только `totalsRow:false` давал кривой XML).
+
+**Цвета:** заголовок `455A64` (серо-синий), строки `F5F5F5` (нейтральный серый), титул `37474F`.
+
+**חסר/יש фильтры в maavarMode:** в `filtered()` строка `return true` скипала все фильтры. Фикс: ashFilter и mmdFilter применяются и в maavar-режиме.
+
+**Экспорт = то что видишь:** `orderedRows = filtered().filter(eff > 0)` — все активные фильтры (маавар, семейство, компания, חסר/יש) применяются к экспорту.
