@@ -131,10 +131,14 @@
         grid-template-rows: repeat(3, 1fr) !important;
         gap: 4px !important;
         width: 100% !important;
-        height: calc(100vh - 28px) !important;
+        height: 190mm !important;
         break-after: page !important;
         page-break-after: always !important;
         box-sizing: border-box !important;
+      }
+      body.printing-expiry .expiry-page-group:last-child {
+        break-after: auto !important;
+        page-break-after: auto !important;
       }
       body.printing-expiry .expiry-page-group > div {
         overflow: hidden !important;
