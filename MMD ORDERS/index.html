@@ -1430,17 +1430,23 @@
     const btn = document.querySelector('.btn-excel');
     if (btn) { btn.disabled = true; btn.textContent = '⏳ מכין...'; }
     try {
-      const rows = filtered();
       const sv   = saved();
       const now  = new Date();
       const dateStr    = now.toLocaleDateString('he-IL');
       const timeStr    = now.toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'});
       const fileDateStr = dateStr.replace(/\//g, '-');
 
-      const orderedRows = rows.filter(r => {
+      // Use `all` (not filtered()) so active filters don't hide ordered products
+      const orderedRows = all.filter(r => {
         const s = sv[String(r.mkt ?? '')] || {};
         return s.k != null && Number(s.k) > 0;
       });
+
+      if (orderedRows.length === 0) {
+        alert('אין הזמנות — הכנס כמויות בעמודת הזמנה ידנית');
+        if (btn) { btn.disabled = false; btn.textContent = '⬇ Excel'; }
+        return;
+      }
 
       _saveOrderToHistory();
 
