@@ -142,15 +142,9 @@
       body.printing-expiry .expiry-page-group > div {
         overflow: hidden !important;
         min-height: 0 !important;
-        width: 100% !important;
         height: 100% !important;
         box-sizing: border-box !important;
         transform-origin: top left !important;
-        zoom: 1 !important;
-      }
-      body.printing-expiry .expiry-page-group > div > div {
-        width: 100% !important;
-        min-width: 0 !important;
       }
       body.printing-expiry #expiry-grid > div { break-inside: avoid; width: auto !important; flex-shrink: 1 !important; min-width: 0 !important; }
       body.printing-expiry #expiry-grid > .expiry-sec-hdr { display: none !important; }
@@ -3528,9 +3522,20 @@ window.addEventListener('beforeprint', () => {
         cards.slice(i, i + 9).forEach(c => grp.appendChild(c));
         grid.appendChild(grp);
       }
-      // Cards fill grid cells via CSS (width: 100% !important)
+      // Measure real paper width via CSS mm ruler (works in print context)
+      const ruler = document.createElement('div');
+      ruler.style.cssText = 'position:fixed;top:-99px;left:0;width:100mm;height:1px;pointer-events:none;visibility:hidden;';
+      document.body.appendChild(ruler);
+      const mmPx = ruler.getBoundingClientRect().width / 100;
+      document.body.removeChild(ruler);
+      // @page margin = 6mm each side → available width = (page_mm - 12mm) * mmPx
+      // Read first group's actual width to get available space
+      const grp0 = document.querySelector('.expiry-page-group');
+      const grpW = grp0 ? grp0.getBoundingClientRect().width : (mmPx * 285);
+      const colW = (grpW - 8) / 3;
+      const cardScale = Math.max(0.8, Math.min(colW / 300, 3));
       document.querySelectorAll('.expiry-page-group > div').forEach(c => {
-        c.style.zoom = '';
+        c.style.zoom = cardScale.toFixed(3);
       });
     }
   } else if (op && op.style.display !== 'none') {
