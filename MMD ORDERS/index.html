@@ -1436,14 +1436,15 @@
       const timeStr    = now.toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'});
       const fileDateStr = dateStr.replace(/\//g, '-');
 
-      // Use `all` (not filtered()) so active filters don't hide ordered products
+      // Use `all` (not filtered()); eff = manual k if set, else hamlatza recommendation
       const orderedRows = all.filter(r => {
         const s = sv[String(r.mkt ?? '')] || {};
-        return s.k != null && Number(s.k) > 0;
+        const eff = s.k != null ? Number(s.k) : Math.round(r.hamlatza ?? 0);
+        return eff > 0;
       });
 
       if (orderedRows.length === 0) {
-        alert('אין הזמנות — הכנס כמויות ידנית בעמודת "הזמנה ידנית"');
+        alert('אין הזמנות — אין המלצות להזמנה ואין כמויות ידניות');
         if (btn) { btn.disabled = false; btn.textContent = '⬇ Excel'; }
         return;
       }
@@ -1501,7 +1502,7 @@
       const tableData = orderedRows.map(r => {
         const mk  = String(r.mkt ?? '');
         const s   = sv[mk] || {};
-        const eff = s.k != null ? Number(s.k) : 0;
+        const eff = s.k != null ? Number(s.k) : Math.round(r.hamlatza ?? 0);
         totalK += eff;
         // תוקף נדרש: אופציה אחת — נבחרת אוטומטית; כמה אופציות בלי בחירה — נשארת ריקה ותסומן באדום בלולאת העיצוב
         const opts = r.tukuf ? String(r.tukuf).split('/').map(x => x.trim()).filter(Boolean) : [];
