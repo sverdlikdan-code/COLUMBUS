@@ -89,7 +89,7 @@
       #print-header { display: block !important; }
 
       /* ── Expiry page print (active only when expiry is open) ── */
-      @page { margin: 6mm; }
+      @page { size: A4 landscape; margin: 6mm; }
       body.printing-expiry > *:not(#expiry-page) { display: none !important; }
       body.printing-expiry #expiry-page {
         display: block !important;
@@ -139,9 +139,9 @@
       body.printing-expiry .expiry-page-group > div {
         overflow: hidden !important;
         min-height: 0 !important;
-        height: 100% !important;
         box-sizing: border-box !important;
         transform-origin: top left !important;
+        display: block !important;
       }
       body.printing-expiry #expiry-grid > div { break-inside: avoid; width: auto !important; flex-shrink: 1 !important; min-width: 0 !important; }
       body.printing-expiry #expiry-grid > .expiry-sec-hdr { display: none !important; }
@@ -3495,6 +3495,15 @@ window.addEventListener('beforeprint', () => {
   const ep = document.getElementById('expiry-page');
   const op = document.getElementById('order-page');
   if (ep && ep.style.display !== 'none') {
+    // Measure card size BEFORE print CSS overrides (height:100% etc corrupt scrollHeight)
+    let preNatW = 300, preNatH = 200;
+    if (window._expiryMauchad) {
+      const sampleCard = document.querySelector('#expiry-grid > div:not(.expiry-sec-hdr):not(.grid-page-break)');
+      if (sampleCard) {
+        preNatW = sampleCard.offsetWidth  || 300;
+        preNatH = sampleCard.offsetHeight || 200;
+      }
+    }
     document.body.classList.add('printing-expiry');
     document.title = 'דוח תוקף — FORMULA';
     const pd = document.getElementById('expiry-print-date');
@@ -3512,24 +3521,13 @@ window.addEventListener('beforeprint', () => {
         cards.slice(i, i + 9).forEach(c => grp.appendChild(c));
         grid.appendChild(grp);
       }
-      // Detect paper size via matchMedia (evaluates against print page in beforeprint)
-      const isA3       = window.matchMedia('(min-width: 380mm)').matches;
-      const isLandsc   = window.matchMedia('(orientation: landscape)').matches;
-      const PW = isA3 ? (isLandsc ? 420 : 297) : (isLandsc ? 297 : 210); // mm
-      const PH = isA3 ? (isLandsc ? 297 : 420) : (isLandsc ? 210 : 297); // mm
-      const MM = 96 / 25.4; // px per mm at 96dpi
-      const HDR = 28; // print header height px
-      const GAP = 8;  // grid gap total px
-      const MARGIN = 12; // @page 6mm × 2
-      const cellW = ((PW - MARGIN) * MM - GAP) / 3;
-      const cellH = ((PH - MARGIN) * MM - HDR - GAP) / 3;
-      // Measure card natural size (before any zoom)
-      const firstCard = document.querySelector('.expiry-page-group > div');
-      const natW = firstCard ? (firstCard.scrollWidth  || 300) : 300;
-      const natH = firstCard ? (firstCard.scrollHeight || 300) : 300;
-      const scale = Math.min(cellW / natW, cellH / natH) * 0.97;
+      // A4 landscape @ 96dpi: content 285mm × 198mm = 1077 × 748px
+      const MM = 96 / 25.4;
+      const cellW = (285 * MM - 8) / 3;  // ≈ 356px
+      const cellH = (198 * MM - 28 - 8) / 3; // ≈ 237px
+      const scale = Math.min(cellW / (preNatW || 300), cellH / (preNatH || 200)) * 0.97;
       document.querySelectorAll('.expiry-page-group > div').forEach(c => {
-        c.style.zoom = Math.max(0.4, Math.min(scale, 4)).toFixed(3);
+        c.style.zoom = Math.max(0.5, Math.min(scale, 3)).toFixed(3);
       });
     }
   } else if (op && op.style.display !== 'none') {
