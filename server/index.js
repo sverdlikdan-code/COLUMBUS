@@ -623,28 +623,30 @@ const PBI_SIBLING_TTL = 30 * 60 * 1000;
 async function loadPBISiblingData() {
   if (_pbiSiblingData && (Date.now() - _pbiSiblingLoadedAt) < PBI_SIBLING_TTL) return _pbiSiblingData;
   try {
-    const rows = await executeDax(`
-EVALUATE
-FILTER(
-  SELECTCOLUMNS('משטח',
-    "id",   'משטח'[מס. לקוח],
-    "addr", 'משטח'[כתובת],
-    "city", 'משטח'[עיר],
-    "lat",  'משטח'[קו רוחב],
-    "lng",  'משטח'[קו אורך]
-  ),
-  AND('משטח'[קו רוחב] <> 0, 'משטח'[קו אורך] <> 0)
-)`);
-    _pbiSiblingData = rows.map(r => ({
-      addr: fixBiDiAddress(r['[addr]'] || '').trim(),
-      city: (r['[city]'] || '').trim(),
-      lat:  parseFloat(r['[lat]']),
-      lng:  parseFloat(r['[lng]']),
+    const result = await db.query(`
+      SELECT
+        c.CUSTNAME                       AS id,
+        c.ADDRESS                        AS addr,
+        c.STATE                          AS city,
+        TRY_CAST(c.GPSX AS FLOAT)        AS lat,
+        TRY_CAST(c.GPSY AS FLOAT)        AS lng
+      FROM form.dbo.CUSTOMERS c
+      LEFT JOIN form.dbo.CUSTSTATS cs ON c.CUSTSTAT = cs.CUSTSTAT
+      WHERE cs.STATDES = N'פעיל'
+        AND c.GPSX IS NOT NULL AND c.GPSY IS NOT NULL
+        AND TRY_CAST(c.GPSX AS FLOAT) <> 0
+        AND TRY_CAST(c.GPSY AS FLOAT) <> 0
+    `);
+    _pbiSiblingData = result.recordset.map(r => ({
+      addr: (r.addr || '').trim(),
+      city: (r.city || '').trim(),
+      lat:  parseFloat(r.lat),
+      lng:  parseFloat(r.lng),
     })).filter(r => isValidIL(r.lat, r.lng));
     _pbiSiblingLoadedAt = Date.now();
-    console.log(`PBI sibling cache: ${_pbiSiblingData.length} clients with GPS`);
+    console.log(`SQL sibling cache: ${_pbiSiblingData.length} clients with GPS`);
   } catch (e) {
-    console.error('loadPBISiblingData:', e.message);
+    console.error('loadSiblingData SQL:', e.message);
     _pbiSiblingData = [];
   }
   return _pbiSiblingData;
@@ -699,25 +701,28 @@ async function loadFormIIntGPS() {
   if (_formIIntGpsByCustId && (Date.now() - _formIIntGpsLoadedAt) < FORM_I_INT_TTL) return _formIIntGpsByCustId;
   const map = new Map();
   try {
-    const rows = await executeDax(`
-EVALUATE
-SELECTCOLUMNS('לקוחות FORM+I+INT',
-  "id",  'לקוחות FORM+I+INT'[מס. לקוח],
-  "lat", 'לקוחות FORM+I+INT'[קו רוחב],
-  "lng", 'לקוחות FORM+I+INT'[קו אורך]
-)`);
-    for (const r of rows) {
-      const id = r['[id]'];
-      const lat = parseFloat(r['[lat]']);
-      const lng = parseFloat(r['[lng]']);
+    const result = await db.query(`
+      SELECT
+        c.CUSTNAME                  AS id,
+        TRY_CAST(c.GPSX AS FLOAT)  AS lat,
+        TRY_CAST(c.GPSY AS FLOAT)  AS lng
+      FROM form.dbo.CUSTOMERS c
+      WHERE c.GPSX IS NOT NULL AND c.GPSY IS NOT NULL
+        AND TRY_CAST(c.GPSX AS FLOAT) <> 0
+        AND TRY_CAST(c.GPSY AS FLOAT) <> 0
+    `);
+    for (const r of result.recordset) {
+      const id = r.id;
+      const lat = parseFloat(r.lat);
+      const lng = parseFloat(r.lng);
       if (!id || map.has(id) || !isValidIL(lat, lng)) continue;
       map.set(id, { lat, lng });
     }
     _formIIntGpsByCustId = map;
     _formIIntGpsLoadedAt = Date.now();
-    console.log(`FORM+I+INT GPS cache: ${map.size} clients with GPS`);
+    console.log(`SQL GPS cache: ${map.size} clients with GPS`);
   } catch (e) {
-    console.error('loadFormIIntGPS:', e.message);
+    console.error('loadFormIIntGPS SQL:', e.message);
     _formIIntGpsByCustId = map;
   }
   return _formIIntGpsByCustId;
