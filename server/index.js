@@ -816,6 +816,12 @@ async function geocodeBatch(clients) {
       if (isWithinCityBBox(result.lat, result.lng, bbox)) {
         c.lat = result.lat; c.lng = result.lng; resolved++;
         c.gpsSource = result.cityCenter ? 'city-center' : 'geocoded';
+      } else {
+        // result outside city bbox — mark queries as null so cache doesn't replay bad coords
+        const cityStr = c.city ? `, ${c.city}` : '';
+        const cleaned = cleanAddressForGeocoding(c.address);
+        if (cleaned) geocodeCache.set(cleaned + cityStr + ', ישראל', null);
+        if (c.address && c.address !== cleaned) geocodeCache.set(c.address + cityStr + ', ישראל', null);
       }
     }
     if (!isValidIL(c.lat, c.lng)) c.gpsSource = 'no-gps';
