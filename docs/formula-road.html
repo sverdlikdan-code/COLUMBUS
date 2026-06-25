@@ -1124,15 +1124,16 @@ async function initRoute(){
   document.getElementById('km-val').textContent='—';
 
   st.isDemo=false;
-  const staticKey=`${st.agent.code}_${st.day}`;
-  if(STATIC_DATA?.routes?.[staticKey]?.length){
-    st.clients=STATIC_DATA.routes[staticKey];
-  }else{
-    try{
-      const r=await apiFetch(`${API}/customers?agent=${st.agent.code}&day=${st.day}`);
-      if(!r.ok)throw new Error();
-      st.clients=await r.json();
-    }catch(e){
+  try{
+    const r=await apiFetch(`${API}/customers?agent=${st.agent.code}&day=${st.day}`);
+    if(!r.ok)throw new Error();
+    st.clients=await r.json();
+  }catch(e){
+    // API down — fallback to static (PBI cache) or demo
+    const staticKey=`${st.agent.code}_${st.day}`;
+    if(STATIC_DATA?.routes?.[staticKey]?.length){
+      st.clients=STATIC_DATA.routes[staticKey];
+    }else{
       console.error('customers fetch failed — falling back to demo data', e);
       st.clients=getDemoClients();
       st.isDemo=true;
