@@ -1437,15 +1437,13 @@
       const fileDateStr = dateStr.replace(/\//g, '-');
 
       // Use `all` (not filtered()) so active filters don't hide ordered products
-      // eff = manual k if entered, else hamlatza recommendation (same logic as הזמנה בלבד filter)
       const orderedRows = all.filter(r => {
         const s = sv[String(r.mkt ?? '')] || {};
-        const eff = s.k != null ? Number(s.k) : Math.round(r.hamlatza ?? 0);
-        return eff > 0;
+        return s.k != null && Number(s.k) > 0;
       });
 
       if (orderedRows.length === 0) {
-        alert('אין הזמנות — הכנס כמויות בעמודת הזמנה ידנית');
+        alert('אין הזמנות — הכנס כמויות ידנית בעמודת "הזמנה ידנית"');
         if (btn) { btn.disabled = false; btn.textContent = '⬇ Excel'; }
         return;
       }
@@ -1503,7 +1501,7 @@
       const tableData = orderedRows.map(r => {
         const mk  = String(r.mkt ?? '');
         const s   = sv[mk] || {};
-        const eff = s.k != null ? Number(s.k) : Math.round(r.hamlatza ?? 0);
+        const eff = s.k != null ? Number(s.k) : 0;
         totalK += eff;
         // תוקף נדרש: אופציה אחת — נבחרת אוטומטית; כמה אופציות בלי בחירה — נשארת ריקה ותסומן באדום בלולאת העיצוב
         const opts = r.tukuf ? String(r.tukuf).split('/').map(x => x.trim()).filter(Boolean) : [];
