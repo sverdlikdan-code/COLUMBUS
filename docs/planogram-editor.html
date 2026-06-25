@@ -2918,7 +2918,7 @@ function _expiryImgErr(img) {
 function buildExpiryPage() {
   const grid  = document.getElementById('expiry-grid');
   const SEC_NAMES = { kapua: 'קפוא', halavi: 'חלבי', dagim: 'דגים', yavesh: 'דג יבש' };
-  let _totalAll = 0, _totalShown = 0, _allHtml = '', _pgBreakCount = 0, _allMauchadCards = [];
+  let _totalAll = 0, _totalShown = 0, _allHtml = '', _pgBreakCount = 0;
   for (const sec of _SECTIONS) {
   if (window._expirySecFilter && window._expirySecFilter !== sec) continue;
   const order = _getPrintOrder(sec);
@@ -3212,22 +3212,14 @@ function buildExpiryPage() {
       </div>
     </div>`;
     });
-    if (window._expiryMauchad) {
-      _allMauchadCards.push(..._cardHtmls.filter(ch => !!ch));
-    } else {
-      _cardHtmls.forEach(ch => {
-        if (!ch) return;
-        if (_pgBreakCount > 0 && _pgBreakCount % 9 === 0) _allHtml += '<div class="grid-page-break"></div>';
-        _allHtml += ch;
-        _pgBreakCount++;
-      });
-    }
+    _cardHtmls.forEach(ch => {
+      if (!ch) return;
+      if (!window._expiryMauchad && _pgBreakCount > 0 && _pgBreakCount % 9 === 0) _allHtml += '<div class="grid-page-break"></div>';
+      _allHtml += ch;
+      _pgBreakCount++;
+    });
   }
   } // end for _SECTIONS
-  if (window._expiryMauchad && _allMauchadCards.length > 0) {
-    _allHtml += _allMauchadCards.join('');
-    _pgBreakCount += _allMauchadCards.length;
-  }
   const filtered = window._expiryOnlySakana || window._expiryZafnLow;
   document.getElementById('expiry-title').textContent = filtered
     ? `דוח תוקף (${_totalShown} / ${_totalAll} מוצרים)`
