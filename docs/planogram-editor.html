@@ -1322,6 +1322,8 @@ async function loadMaps() {
         if (badge) badge.textContent = '🔄 PBI: ' + label;
         const ordBadge = document.getElementById('ord-pbi-badge');
         if (ordBadge) ordBadge.textContent = '🔄 PBI ' + label;
+        const spPbi = document.getElementById('splash-pbi-date');
+        if (spPbi) spPbi.textContent = '🔄 PBI: ' + label;
       });
 
     // Persist reset state so ALL users see fresh layout without manual איפוס
