@@ -6,6 +6,7 @@ const path = require('path');
 const https = require('https');
 const ExcelJS = require('exceljs');
 const { executeDax, getDatasetRefreshTime } = require('./powerbi');
+const db = require('./db');
 
 const app = express();
 app.use(cors({
@@ -806,147 +807,126 @@ app.get('/geocode', requireAuth, async (req, res) => {
   res.json(result || {});
 });
 
-// GET /managers — unique manager groups from Fabric
+// GET /managers — unique manager groups (direct SQL → form)
 app.get('/managers', requireAuth, async (req, res) => {
   try {
-    const rows = await executeDax(
-      "EVALUATE DISTINCT(SELECTCOLUMNS('משטח', \"managerCode\", 'משטח'[קבוצה]))"
-    );
-    const managers = rows
-      .map(r => ({ managerCode: r['[managerCode]'] }))
-      .filter(m => m.managerCode)
-      .sort((a, b) => a.managerCode.localeCompare(b.managerCode));
+    const result = await db.query(`
+      SELECT DISTINCT ub.SNAME AS managerCode
+      FROM form.dbo.CUSTOMERS c
+      LEFT JOIN form.dbo.CUSTSTATS cs ON c.CUSTSTAT = cs.CUSTSTAT
+      LEFT JOIN system.dbo.USERSB ub ON c.YISS_MANAGER = ub.USERB
+      WHERE cs.STATDES = N'פעיל'
+        AND ub.SNAME IS NOT NULL AND ub.SNAME <> ''
+      ORDER BY ub.SNAME
+    `);
+    const managers = result.recordset.map(r => ({ managerCode: r.managerCode }));
     res.json(managers);
   } catch (err) {
-    console.error(err); res.status(500).json({ error: 'server_error' });
+    console.error('/managers SQL error:', err.message);
+    res.status(500).json({ error: 'server_error' });
   }
 });
 
-// GET /manager-agents?manager=ALEXEY — agents for a manager
+// GET /manager-agents?manager=NAME — agents for a manager (direct SQL → form)
 app.get('/manager-agents', requireAuth, dataRateLimit, async (req, res) => {
   const { manager } = req.query;
   if (!manager) return res.status(400).json({ error: 'manager required' });
   if (!validateManagerName(manager)) return res.status(400).json({ error: 'invalid manager' });
   try {
-    const rows = await executeDax(`
-EVALUATE
-DISTINCT(
-  SELECTCOLUMNS(
-    FILTER('משטח', 'משטח'[קבוצה] = "${manager.replace(/"/g, '')}"),
-    "agentCode", 'משטח'[סוכן],
-    "agentName", 'משטח'[שם סוכן]
-  )
-)
-ORDER BY [agentName] ASC
-    `);
-    res.json(
-      rows.map(r => ({
-        agentCode: r['[agentCode]'],
-        agentName: r['[agentName]'],
-      }))
-    );
+    const result = await db.query(`
+      SELECT DISTINCT a.AGENTCODE AS agentCode, a.AGENTNAME AS agentName
+      FROM form.dbo.CUSTOMERS c
+      LEFT JOIN form.dbo.CUSTSTATS cs ON c.CUSTSTAT = cs.CUSTSTAT
+      LEFT JOIN form.dbo.AGENTS a    ON c.AGENT     = a.AGENT
+      LEFT JOIN system.dbo.USERSB ub ON c.YISS_MANAGER = ub.USERB
+      WHERE cs.STATDES = N'פעיל'
+        AND ub.SNAME = @manager
+        AND a.AGENTCODE IS NOT NULL AND a.AGENTCODE <> ''
+      ORDER BY a.AGENTNAME
+    `, { manager });
+    res.json(result.recordset.map(r => ({ agentCode: r.agentCode, agentName: r.agentName })));
   } catch (err) {
-    console.error(err); res.status(500).json({ error: 'server_error' });
+    console.error('/manager-agents SQL error:', err.message);
+    res.status(500).json({ error: 'server_error' });
   }
 });
 
-// GET /customers?agent=CODE&day=1
+// GET /customers?agent=CODE&day=1 — direct SQL → form (Phase 1: no sales data)
 app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
   const { agent, day } = req.query;
   if (!agent) return res.status(400).json({ error: 'agent required' });
   if (!validateAgentCode(agent)) return res.status(400).json({ error: 'invalid agent code' });
   if (day && !/^[1-5]$/.test(String(day))) return res.status(400).json({ error: 'invalid day' });
 
-  const dayLabel = day ? DAY_LABELS[parseInt(day)] : null;
-  const agentSafe = agent.replace(/"/g, '');
-
-  // Day condition: check existence in 'משטח עם כפולות' for the specified day
-  const dayVisitCond = dayLabel
-    ? `COUNTROWS(FILTER('משטח עם כפולות',
-        AND('משטח עם כפולות'[מס.לקוח] = EARLIER('משטח'[מס. לקוח]),
-            'משטח עם כפולות'[יום] = "${dayLabel}")
-      )) > 0`
-    : 'TRUE()';
-
-  // Day/order lookup from 'משטח עם כפולות' (only these two fields come from there)
-  const dayMatchFilter = dayLabel
-    ? `AND('משטח עם כפולות'[מס.לקוח] = EARLIER('משטח'[מס. לקוח]), 'משטח עם כפולות'[יום] = "${dayLabel}")`
-    : `'משטח עם כפולות'[מס.לקוח] = EARLIER('משטח'[מס. לקוח])`;
-
-  const dax = `
-EVALUATE
-ADDCOLUMNS(
-  FILTER('משטח',
-    AND(
-      'משטח'[סוכן] = "${agentSafe}",
-      ${dayVisitCond}
-    )
-  ),
-  "יום",        CALCULATE(MAX('משטח עם כפולות'[יום]),          FILTER('משטח עם כפולות', ${dayMatchFilter})),
-  "סדר ביקור",  CALCULATE(MIN('משטח עם כפולות'[סדר ביקור]),    FILTER('משטח עם כפולות', ${dayMatchFilter})),
-  "הזמנה אחרונה",
-    CALCULATE(MAX('ALL_PARTS'[תאריך]),
-      FILTER('ALL_PARTS', 'ALL_PARTS'[מספר לקוח] = EARLIER('משטח'[מס. לקוח]))),
-  "מכירות חודש",
-    CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)],
-      FILTER('ALL_PARTS',
-        'ALL_PARTS'[מספר לקוח] = EARLIER('משטח'[מס. לקוח])
-        && YEAR('ALL_PARTS'[תאריך]) = YEAR(TODAY())
-        && MONTH('ALL_PARTS'[תאריך]) = MONTH(TODAY()))),
-  "totalSales",
-    CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)],
-      FILTER('ALL_PARTS', 'ALL_PARTS'[מספר לקוח] = EARLIER('משטח'[מס. לקוח]))),
-  "lastSaleDate",
-    CALCULATE(MAX('ALL_PARTS'[תאריך]),
-      FILTER('ALL_PARTS', 'ALL_PARTS'[מספר לקוח] = EARLIER('משטח'[מס. לקוח]))),
-  "יעד",
-    CALCULATE([יעד $],
-      FILTER('משטח', 'משטח'[מס. לקוח] = EARLIER('משטח'[מס. לקוח]) && 'משטח'[סטטוס] IN {"פעיל"})),
-  "% ביצוע",
-    CALCULATE([% יעד כספי ביצוע],
-      FILTER('ALL_PARTS', 'ALL_PARTS'[מספר לקוח] = EARLIER('משטח'[מס. לקוח])),
-      FILTER('משטח', 'משטח'[מס. לקוח] = EARLIER('משטח'[מס. לקוח])))
-)
-ORDER BY [סדר ביקור] ASC
-  `;
+  const dayNum = day ? parseInt(day) : null;
+  const dayLabel = dayNum ? DAY_LABELS[dayNum] : null;
 
   try {
-    const rows = await executeDax(dax);
-    const clients = rows.map(r => {
-      const custName = r['משטח[שם לקוח]']  || '';
-      const address  = r['משטח[כתובת]']    || '';
-      const city     = r['משטח[עיר]']      || '';
-      const dayNum   = parseInt(day) || null;
+    const dayFilter = dayNum ? 'AND ccf.DAYNUM = @dayNum' : '';
+    const result = await db.query(`
+      SELECT
+        c.CUSTNAME        AS custId,
+        c.CUSTDES         AS custName,
+        c.STATE           AS city,
+        c.ADDRESS         AS address,
+        c.GPSX            AS lat,
+        c.GPSY            AS lng,
+        cs.STATDES        AS status,
+        csp.SPEC10        AS kosher,
+        csp.SPEC20        AS saleType,
+        csp.SPEC7         AS param7,
+        a.AGENTCODE       AS agentCode,
+        a.AGENTNAME       AS agentName,
+        ub.SNAME          AS schedulerName,
+        ccf.DAYNUM        AS dayNum,
+        ccf.TOPP_NUM1     AS priorityOrder
+      FROM form.dbo.CUSTCALLFREQUENCY ccf
+      INNER JOIN form.dbo.CUSTOMERS c   ON ccf.CUST    = c.CUST
+      LEFT  JOIN form.dbo.CUSTSTATS cs  ON c.CUSTSTAT  = cs.CUSTSTAT
+      LEFT  JOIN form.dbo.CUSTSPEC  csp ON c.CUST      = csp.CUST
+      LEFT  JOIN form.dbo.AGENTS    a   ON c.AGENT     = a.AGENT
+      LEFT  JOIN system.dbo.USERSB  ub  ON c.YISS_MANAGER = ub.USERB
+      WHERE a.AGENTCODE = @agent
+        AND cs.STATDES  = N'פעיל'
+        ${dayFilter}
+      ORDER BY ccf.TOPP_NUM1 ASC, c.CUSTNAME ASC
+    `, { agent, ...(dayNum ? { dayNum: String(dayNum) } : {}) });
+
+    const clients = result.recordset.map(r => {
+      const custName = r.custName || '';
+      const address  = r.address  || '';
+      const city     = r.city     || '';
       return {
-        custId:        r['משטח[מס. לקוח]'],
+        custId:        r.custId,
         custName,
         city,
         address,
         fullAddress:   [address, city, 'ישראל'].filter(Boolean).join(', '),
-        lat:           r['משטח[קו רוחב]']  || null,
-        lng:           r['משטח[קו אורך]']  || null,
-        status:        r['משטח[סטטוס]'],
-        kosher:        r['משטח[כשרות]'],
-        saleType:      r['משטח[סוג מכירה]'],
-        param7:        null,
-        agentCode:     r['משטח[סוכן]'],
-        agentName:     r['משטח[שם סוכן]'],
-        schedulerName: null,
-        dayNum,
-        dayLabel:      dayLabel || r['[יום]'],
-        priorityOrder: r['[סדר ביקור]'] || 0,
-        lastOrderDate: r['[הזמנה אחרונה]'] ? r['[הזמנה אחרונה]'].split('T')[0] : null,
-        monthlySales:  r['[מכירות חודש]']  || 0,
-        totalSales:    r['[totalSales]']    || 0,
-        lastSaleDate:  r['[lastSaleDate]']  ? r['[lastSaleDate]'].split('T')[0] : null,
-        target:        r['[יעד]']           || 0,
-        pct:           r['[% ביצוע]']       || 0,
+        lat:           r.lat   || null,
+        lng:           r.lng   || null,
+        status:        r.status,
+        kosher:        r.kosher,
+        saleType:      r.saleType,
+        param7:        r.param7   || null,
+        agentCode:     r.agentCode,
+        agentName:     r.agentName,
+        schedulerName: r.schedulerName || null,
+        dayNum:        r.dayNum   ? parseInt(r.dayNum) : dayNum,
+        dayLabel:      r.dayNum   ? (DAY_LABELS[parseInt(r.dayNum)] || null) : dayLabel,
+        priorityOrder: r.priorityOrder ? parseInt(r.priorityOrder) : 0,
+        lastOrderDate: null,
+        monthlySales:  0,
+        totalSales:    0,
+        lastSaleDate:  null,
+        target:        0,
+        pct:           0,
       };
     });
     await geocodeBatch(clients);
     res.json(clients);
   } catch (err) {
-    console.error(err); res.status(500).json({ error: 'server_error' });
+    console.error('/customers SQL error:', err.message);
+    res.status(500).json({ error: 'server_error' });
   }
 });
 
