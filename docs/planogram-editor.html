@@ -19,19 +19,34 @@
 
     /* Tabs */
     .tabs {
-      display: flex; gap: 6px; padding: 10px 20px 0;
-      background: #fff; border-bottom: 2px solid #dde0e8;
-      justify-content: center;
+      display: flex; gap: 8px; padding: 12px 20px;
+      background: #f0f4fb; border-bottom: 2px solid #BBDEFB;
+      justify-content: center; flex-wrap: wrap;
     }
     .tab {
-      padding: 10px 36px; border: none; border-radius: 6px 6px 0 0;
-      font-size: 13px; font-weight: bold; cursor: pointer;
-      background: #e8eaf0; color: #666; line-height: 1.4;
-      display: flex; flex-direction: column; align-items: center; gap: 1px;
-      flex: 1; max-width: 220px;
+      padding: 7px 22px; border: 1.5px solid #BBDEFB; border-radius: 22px;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      background: #fff; color: #1565C0; line-height: 1.3;
+      display: inline-flex; flex-direction: column; align-items: center; gap: 2px;
+      min-width: 110px; transition: all 0.18s ease-out;
+      box-shadow: 0 1px 4px rgba(21,101,192,0.07);
     }
-    .tab.active { background: #1a6ef5; color: #fff; }
-    .tab-pal { font-size: 10px; font-weight: normal; opacity: 0.8; }
+    .tab:hover:not(.active) {
+      background: #E3F2FD; border-color: #90CAF9;
+      box-shadow: 0 2px 8px rgba(21,101,192,0.13);
+      transform: translateY(-1px);
+    }
+    .tab.active {
+      background: linear-gradient(135deg, #1976D2 0%, #1565C0 60%, #0D47A1 100%);
+      color: #fff; border-color: transparent;
+      box-shadow: 0 0 0 3px rgba(21,101,192,0.18), 0 4px 14px rgba(13,71,161,0.32);
+      transform: translateY(-1px);
+    }
+    .tab-pal {
+      font-size: 10px; font-weight: 600; opacity: 0.75;
+      letter-spacing: 0.03em; line-height: 1;
+    }
+    .tab.active .tab-pal { opacity: 0.85; }
     .wh-btn { background:#f0f4ff;color:#1565C0;border:1px solid #90caf9;font-size:11px;padding:4px 9px;font-weight:600; }
     .wh-btn.wh-active { background:#1565C0;color:#fff;border-color:#0d47a1; }
 
@@ -112,18 +127,6 @@
         color: #333;
         border-bottom: 1px solid #ccc;
         margin-bottom: 4px;
-      }
-      body.printing-expiry .expiry-cover-page {
-        display: flex !important;
-        flex-direction: column !important;
-        width: 100% !important;
-        height: calc(100vh - 12mm) !important;
-        break-after: page !important;
-        page-break-after: always !important;
-        box-sizing: border-box !important;
-        overflow: hidden !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
       }
       body.printing-expiry .expiry-page-group {
         display: grid !important;
@@ -435,8 +438,149 @@
       .slot.has-photo .slot-img { height: 56px; }
     }
   </style>
+<style>
+/* ── App Splash Screen ─────────────────────────────────────────── */
+#app-splash {
+  position: fixed; inset: 0; z-index: 9999;
+  background: #0d0d1a;
+  display: flex; flex-direction: column;
+  transition: opacity .45s ease, transform .45s ease;
+  overflow: hidden;
+}
+#app-splash.hidden { opacity: 0; pointer-events: none; transform: scale(1.03); }
+.splash-bar {
+  background: linear-gradient(135deg, #7f0000 0%, #b71c1c 45%, #c62828 100%);
+  padding: 36px 56px 32px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.splash-bar-left { display: flex; flex-direction: column; gap: 6px; }
+.splash-eyebrow {
+  font-size: 11px; color: rgba(255,255,255,.6);
+  letter-spacing: 3px; text-transform: uppercase; font-weight: 600;
+}
+.splash-title {
+  font-size: 52px; font-weight: 900; color: #fff;
+  line-height: 1; letter-spacing: -1.5px;
+  font-family: sans-serif;
+}
+.splash-sub { font-size: 15px; color: rgba(255,255,255,.8); font-weight: 500; }
+.splash-logo { height: 72px; opacity: .92; filter: brightness(0) invert(1); }
+.splash-kpi-bar {
+  background: #1a237e;
+  padding: 16px 56px;
+  display: flex; align-items: center; gap: 24px;
+  flex-shrink: 0;
+}
+.splash-kpi {
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 10px; padding: 12px 24px; text-align: center; min-width: 100px;
+}
+.splash-kpi-val { font-size: 28px; font-weight: 900; color: #fff; line-height: 1; }
+.splash-kpi-lbl { font-size: 10px; color: rgba(255,255,255,.7); font-weight: 600; margin-top: 3px; }
+.splash-kpi.danger { background: rgba(183,28,28,.4); border-color: rgba(255,100,100,.4); }
+.splash-kpi.danger .splash-kpi-val { color: #ff8a80; }
+.splash-date { margin-right: auto; color: rgba(255,255,255,.55); font-size: 12px; line-height: 1.7; }
+.splash-date strong { font-size: 18px; color: #fff; font-weight: 800; display: block; }
+.splash-body {
+  flex: 1; display: flex; flex-direction: column;
+  padding: 36px 56px; gap: 20px; overflow: hidden;
+}
+.splash-sec-label {
+  font-size: 11px; font-weight: 700; color: rgba(255,255,255,.5);
+  letter-spacing: 2px; text-transform: uppercase;
+}
+.splash-cards {
+  display: flex; gap: 16px; flex-wrap: wrap;
+}
+.splash-card {
+  flex: 1; min-width: 180px;
+  background: rgba(255,255,255,.07);
+  border: 1.5px solid rgba(255,255,255,.12);
+  border-radius: 16px; padding: 22px 24px;
+  cursor: pointer; transition: background .18s, border-color .18s, transform .18s;
+  display: flex; flex-direction: column; gap: 10px;
+  position: relative; overflow: hidden;
+}
+.splash-card:hover {
+  background: rgba(255,255,255,.14);
+  border-color: rgba(255,255,255,.3);
+  transform: translateY(-2px);
+}
+.splash-card-icon { font-size: 34px; line-height: 1; }
+.splash-card-name { font-size: 20px; font-weight: 800; color: #fff; }
+.splash-card-sub { font-size: 12px; color: rgba(255,255,255,.55); font-weight: 500; }
+.splash-card-cnt {
+  position: absolute; top: 16px; left: 16px;
+  font-size: 11px; font-weight: 700; color: rgba(255,255,255,.4);
+}
+.splash-enter {
+  align-self: center; margin-top: auto;
+  background: linear-gradient(135deg, #1565C0, #0D47A1);
+  border: none; color: #fff; font-size: 15px; font-weight: 700;
+  padding: 14px 52px; border-radius: 32px; cursor: pointer;
+  letter-spacing: .5px;
+  box-shadow: 0 4px 18px rgba(13,71,161,.55), 0 0 0 3px rgba(21,101,192,.25);
+  transition: transform .15s, box-shadow .15s;
+}
+.splash-enter:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(13,71,161,.7), 0 0 0 3px rgba(21,101,192,.4); }
+</style>
 </head>
 <body>
+
+<!-- ── App Splash ──────────────────────────────────────────────── -->
+<div id="app-splash">
+  <div class="splash-bar">
+    <div class="splash-bar-left">
+      <span class="splash-eyebrow">FORMULA COLD WAREHOUSE</span>
+      <span class="splash-title">MAHSAN EDITOR</span>
+      <span class="splash-sub">מערכת ניהול פלנוגרמה — מחסן קפוא</span>
+    </div>
+    <img src="logo-diler-bmd.png" alt="DILER BMD" class="splash-logo" onerror="this.style.display='none'">
+  </div>
+  <div class="splash-kpi-bar">
+    <div class="splash-kpi" id="sp-kpi-sku"><div class="splash-kpi-val" id="sp-val-sku">—</div><div class="splash-kpi-lbl">מוצרים פעילים</div></div>
+    <div class="splash-kpi" id="sp-kpi-pal"><div class="splash-kpi-val" id="sp-val-pal">—</div><div class="splash-kpi-lbl">פלטות במלאי</div></div>
+    <div class="splash-kpi danger" id="sp-kpi-exp"><div class="splash-kpi-val" id="sp-val-exp">—</div><div class="splash-kpi-lbl">⚠ סכנת תוקף</div></div>
+    <div class="splash-date">
+      <span>תאריך</span>
+      <strong id="sp-date"></strong>
+    </div>
+    <span id="sp-pbi-date" style="color:rgba(255,255,255,.45);font-size:11px;margin-right:0;"></span>
+  </div>
+  <div class="splash-body">
+    <div class="splash-sec-label">בחר מחלקה להתחלה</div>
+    <div class="splash-cards">
+      <div class="splash-card" onclick="splashEnter('kapua')">
+        <span class="splash-card-cnt" id="sp-cnt-kapua"></span>
+        <span class="splash-card-icon">❄️</span>
+        <span class="splash-card-name">קפוא</span>
+        <span class="splash-card-sub">מוצרי קפאון</span>
+      </div>
+      <div class="splash-card" onclick="splashEnter('halavi')">
+        <span class="splash-card-cnt" id="sp-cnt-halavi"></span>
+        <span class="splash-card-icon">🥛</span>
+        <span class="splash-card-name">חלבי</span>
+        <span class="splash-card-sub">מוצרי חלב</span>
+      </div>
+      <div class="splash-card" onclick="splashEnter('dagim')">
+        <span class="splash-card-cnt" id="sp-cnt-dagim"></span>
+        <span class="splash-card-icon">🐟</span>
+        <span class="splash-card-name">דגים</span>
+        <span class="splash-card-sub">מוצרי דגים טריים</span>
+      </div>
+      <div class="splash-card" onclick="splashEnter('yavesh')">
+        <span class="splash-card-cnt" id="sp-cnt-yavesh"></span>
+        <span class="splash-card-icon">🐠</span>
+        <span class="splash-card-name">דג יבש</span>
+        <span class="splash-card-sub">דגים יבשים ומלוחים</span>
+      </div>
+    </div>
+    <button class="splash-enter" onclick="splashEnter(null)">פתח עורך ←</button>
+  </div>
+</div>
+<!-- ── END Splash ──────────────────────────────────────────────── -->
 
 <div class="header">
   <h1>MAHSAN EDITOR</h1>
@@ -447,10 +591,10 @@
 </div>
 
 <div class="tabs">
-  <button class="tab active" data-sec="kapua"  onclick="switchTab('kapua',this)"><span>קפוא ❄️</span><span class="tab-pal" id="tab-pal-kapua"></span></button>
-  <button class="tab"        data-sec="halavi" onclick="switchTab('halavi',this)"><span>חלבי 🥛</span><span class="tab-pal" id="tab-pal-halavi"></span></button>
-  <button class="tab"        data-sec="dagim"  onclick="switchTab('dagim',this)"><span>דגים 🐟</span><span class="tab-pal" id="tab-pal-dagim"></span></button>
-  <button class="tab"        data-sec="yavesh" onclick="switchTab('yavesh',this)"><span>דג יבש 🧂</span><span class="tab-pal" id="tab-pal-yavesh"></span></button>
+  <button class="tab active" data-sec="kapua"  onclick="switchTab('kapua',this)"><span>❄️ קפוא</span><span class="tab-pal" id="tab-pal-kapua"></span></button>
+  <button class="tab"        data-sec="halavi" onclick="switchTab('halavi',this)"><span>🥛 חלבי</span><span class="tab-pal" id="tab-pal-halavi"></span></button>
+  <button class="tab"        data-sec="dagim"  onclick="switchTab('dagim',this)"><span>🐟 דגים</span><span class="tab-pal" id="tab-pal-dagim"></span></button>
+  <button class="tab"        data-sec="yavesh" onclick="switchTab('yavesh',this)"><span>🐠 דג יבש</span><span class="tab-pal" id="tab-pal-yavesh"></span></button>
 </div>
 
 <div id="print-header">MAHSAN PLANOGRAM — FORMULA</div>
@@ -1545,14 +1689,20 @@ function switchTab(name, tabEl) {
 
 function updateTabPalTotals() {
   for (const sec of ['kapua','halavi','dagim','yavesh']) {
-    let total = 0;
+    let palTotal = 0;
+    let skuCount = 0;
     for (const p of Object.values(state[sec] || {})) {
       if (!p) continue;
+      skuCount++;
       const d = productData[String(p.makat)];
-      if (d && d.palStock != null && d.palStock > 0) total += d.palStock;
+      if (d && d.palStock != null && d.palStock > 0) palTotal += d.palStock;
     }
     const el = document.getElementById('tab-pal-' + sec);
-    if (el) el.textContent = total > 0 ? Math.round(total) + ' PAL' : '';
+    if (el) {
+      const palPart = palTotal > 0 ? Math.round(palTotal) + ' PAL' : '';
+      const skuPart = skuCount > 0 ? skuCount + ' SKU' : '';
+      el.textContent = [skuPart, palPart].filter(Boolean).join(' · ');
+    }
   }
 }
 
@@ -3300,6 +3450,49 @@ function buildLegend() {
 // ══════════════════════════════════════════════════════════════════════════
 window._currentSection = 'kapua';
 
+// ── Splash screen ────────────────────────────────────────────────────────────
+(function initSplash() {
+  const el = document.getElementById('app-splash');
+  if (!el) return;
+  // Date
+  const d = document.getElementById('sp-date');
+  if (d) d.textContent = new Date().toLocaleDateString('he-IL', { weekday:'long', day:'2-digit', month:'2-digit', year:'numeric' });
+
+  // Populate KPIs — called after state + productData are loaded
+  window._updateSplashKPI = function() {
+    const secs = { kapua: 0, halavi: 0, dagim: 0, yavesh: 0 };
+    let totalPal = 0;
+    for (const sec of Object.keys(secs)) {
+      const cnt = Object.values(state[sec] || {}).filter(Boolean).length;
+      secs[sec] = cnt;
+      for (const p of Object.values(state[sec] || {})) {
+        if (!p) continue;
+        const d = productData[String(p.makat)];
+        if (d && d.palStock > 0) totalPal += d.palStock;
+      }
+    }
+    const totalSku = Object.values(secs).reduce((s,v) => s+v, 0);
+    const sv = document.getElementById('sp-val-sku'); if (sv) sv.textContent = totalSku || '—';
+    const pv = document.getElementById('sp-val-pal'); if (pv) pv.textContent = Math.round(totalPal) || '—';
+    for (const sec of Object.keys(secs)) {
+      const cnt = document.getElementById('sp-cnt-'+sec);
+      if (cnt) cnt.textContent = secs[sec] ? secs[sec] + ' מוצרים' : '';
+    }
+    const pbiEl = document.getElementById('refresh-badge');
+    const spPbi = document.getElementById('sp-pbi-date');
+    if (spPbi && pbiEl) spPbi.textContent = pbiEl.textContent;
+  };
+})();
+
+function splashEnter(sec) {
+  const el = document.getElementById('app-splash');
+  if (el) { el.classList.add('hidden'); setTimeout(() => el.remove(), 500); }
+  if (sec) {
+    const tab = document.querySelector(`.tab[data-sec="${sec}"]`);
+    if (tab) switchTab(sec, tab);
+  }
+}
+
 // Print / Save PDF: set class on body so @media print knows what to show
 window.addEventListener('beforeprint', () => {
   const ep = document.getElementById('expiry-page');
@@ -3312,51 +3505,8 @@ window.addEventListener('beforeprint', () => {
     if (window._expiryMauchad) {
       const grid = document.getElementById('expiry-grid');
       const cards = [...grid.querySelectorAll(':scope > div:not(.expiry-sec-hdr):not(.grid-page-break)')];
-      // Collect section stats before replacing innerHTML
-      const secHdrs = [...grid.querySelectorAll('.expiry-sec-hdr')].map(h => h.textContent);
       grid._printOrigHTML = grid.innerHTML;
       grid.innerHTML = '';
-
-      // ── Cover page (MMD Orders style) ────────────────────────────────────
-      const now = new Date();
-      const dateStr = now.toLocaleDateString('he-IL', { day:'2-digit', month:'2-digit', year:'numeric' });
-      const sakanaCount = cards.filter(c => c.querySelector('[style*="2px solid #c62828"]') || c.style.border?.includes('c62828')).length;
-      const totalCount = cards.length;
-      const cover = document.createElement('div');
-      cover.className = 'expiry-cover-page';
-      cover.innerHTML = `
-        <div style="background:linear-gradient(135deg,#b71c1c 0%,#c62828 40%,#7f0000 100%);padding:32px 48px;display:flex;align-items:center;justify-content:space-between;min-height:140px;">
-          <div>
-            <div style="font-size:11px;color:rgba(255,255,255,.7);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">FORMULA WAREHOUSE REPORT</div>
-            <div style="font-size:42px;font-weight:900;color:#fff;line-height:1;letter-spacing:-1px;">דוח תוקף מחסן</div>
-            <div style="font-size:16px;color:rgba(255,255,255,.85);margin-top:8px;font-weight:600;">מחסן מאוחד — כל המחלקות</div>
-          </div>
-          <div style="text-align:left;">
-            <img src="https://sverdlikdan-code.github.io/COLUMBUS/formula-logo.png" style="height:80px;opacity:.9;" onerror="this.style.display='none'">
-          </div>
-        </div>
-        <div style="background:#1a237e;padding:18px 48px;display:flex;gap:32px;align-items:center;">
-          <div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:10px;padding:14px 28px;text-align:center;min-width:120px;">
-            <div style="font-size:36px;font-weight:900;color:#fff;">${totalCount}</div>
-            <div style="font-size:11px;color:rgba(255,255,255,.75);font-weight:600;margin-top:2px;">מוצרים בדוח</div>
-          </div>
-          <div style="background:rgba(183,28,28,.35);border:1px solid rgba(255,100,100,.4);border-radius:10px;padding:14px 28px;text-align:center;min-width:120px;">
-            <div style="font-size:36px;font-weight:900;color:#ff8a80;">${sakanaCount}</div>
-            <div style="font-size:11px;color:rgba(255,200,200,.85);font-weight:600;margin-top:2px;">⚠ בסכנה</div>
-          </div>
-          <div style="flex:1;"></div>
-          <div style="text-align:right;color:rgba(255,255,255,.7);font-size:13px;line-height:1.8;">
-            <div style="font-size:15px;color:#fff;font-weight:700;">תאריך הדפסה</div>
-            <div style="font-size:22px;font-weight:900;color:#fff;">${dateStr}</div>
-          </div>
-        </div>
-        <div style="padding:32px 48px;flex:1;display:flex;flex-direction:column;gap:16px;background:#f8f9ff;">
-          <div style="font-size:14px;font-weight:700;color:#1a237e;border-bottom:2px solid #c62828;padding-bottom:6px;">פירוט לפי מחלקה</div>
-          ${secHdrs.map(h => `<div style="display:flex;align-items:center;gap:12px;padding:10px 16px;background:#fff;border-radius:8px;border:1px solid #e0e0e0;font-size:14px;font-weight:600;color:#222;">📦 ${h}</div>`).join('')}
-          ${secHdrs.length === 0 ? `<div style="color:#888;font-size:13px;">כל המוצרים בטווח בטוח — אין סכנת תוקף</div>` : ''}
-        </div>
-      `;
-      grid.appendChild(cover);
 
       // ── Card pages ────────────────────────────────────────────────────────
       for (let i = 0; i < cards.length; i += 9) {
@@ -3433,6 +3583,7 @@ window.addEventListener('afterprint', () => {
   buildLegend();
   updateTabPalTotals();
   updateSectionStats();
+  if (window._updateSplashKPI) window._updateSplashKPI();
 })();
 </script>
 </body>
