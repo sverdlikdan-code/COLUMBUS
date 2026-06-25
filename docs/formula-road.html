@@ -1125,7 +1125,7 @@ async function initRoute(){
 
   st.isDemo=false;
   const staticKey=`${st.agent.code}_${st.day}`;
-  if(STATIC_DATA?.routes?.[staticKey]){
+  if(STATIC_DATA?.routes?.[staticKey]?.length){
     st.clients=STATIC_DATA.routes[staticKey];
   }else{
     try{
