@@ -1437,9 +1437,11 @@
       const fileDateStr = dateStr.replace(/\//g, '-');
 
       // Use `all` (not filtered()) so active filters don't hide ordered products
+      // eff = manual k if entered, else hamlatza recommendation (same logic as הזמנה בלבד filter)
       const orderedRows = all.filter(r => {
         const s = sv[String(r.mkt ?? '')] || {};
-        return s.k != null && Number(s.k) > 0;
+        const eff = s.k != null ? Number(s.k) : Math.round(r.hamlatza ?? 0);
+        return eff > 0;
       });
 
       if (orderedRows.length === 0) {
@@ -1501,7 +1503,7 @@
       const tableData = orderedRows.map(r => {
         const mk  = String(r.mkt ?? '');
         const s   = sv[mk] || {};
-        const eff = Number(s.k);
+        const eff = s.k != null ? Number(s.k) : Math.round(r.hamlatza ?? 0);
         totalK += eff;
         // תוקף נדרש: אופציה אחת — נבחרת אוטומטית; כמה אופציות בלי בחירה — נשארת ריקה ותסומן באדום בלולאת העיצוב
         const opts = r.tukuf ? String(r.tukuf).split('/').map(x => x.trim()).filter(Boolean) : [];
