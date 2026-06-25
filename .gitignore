@@ -28,3 +28,8 @@ server/geocode-cache.json
 server/.sessions.json
 server/order-history-store.json
 !planogram/breira-default/FOR-ALL.xlsx
+
+# Migration secrets — NEVER commit
+MIGRATION/.env
+MIGRATION/IT DILER DOCS/dan
+MIGRATION/IT DILER DOCS/
