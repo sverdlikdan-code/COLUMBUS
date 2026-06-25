@@ -458,6 +458,13 @@ function isPoBox(address) {
   return /ת\.?ד\.?\s*\d+/i.test(address) || /p\.?o\.?\s*box/i.test(address);
 }
 
+// Priority ERP stores digit sequences reversed within Hebrew text fields.
+// Reverse each digit run to recover the correct numbers.
+function fixPriNumbers(str) {
+  if (!str) return str;
+  return String(str).replace(/\d+/g, m => m.split('').reverse().join(''));
+}
+
 // PBI stores Hebrew addresses in visual order wrapped in LTR-Override markers.
 // Strip BiDi marks and reverse Hebrew segments to get logical (geocodable) text.
 function fixBiDiAddress(str) {
@@ -898,8 +905,8 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
     `, { agent, ...(dayNum ? { dayNum: String(dayNum) } : {}) });
 
     const clients = result.recordset.map(r => {
-      const custName = r.custName || '';
-      const address  = r.address  || '';
+      const custName = fixPriNumbers(r.custName || '');
+      const address  = fixPriNumbers(r.address  || '');
       const city     = r.city     || '';
       return {
         custId:        r.custId,
@@ -912,10 +919,10 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
         status:        r.status,
         kosher:        r.kosher,
         saleType:      r.saleType,
-        param7:        r.param7   || null,
+        param7:        fixPriNumbers(r.param7 || '') || null,
         agentCode:     r.agentCode,
-        agentName:     r.agentName,
-        schedulerName: r.schedulerName || null,
+        agentName:     fixPriNumbers(r.agentName || ''),
+        schedulerName: fixPriNumbers(r.schedulerName || '') || null,
         dayNum:        r.dayNum   ? parseInt(r.dayNum) : dayNum,
         dayLabel:      r.dayNum   ? (DAY_LABELS[parseInt(r.dayNum)] || null) : dayLabel,
         priorityOrder: r.priorityOrder ? parseInt(r.priorityOrder) : 0,
