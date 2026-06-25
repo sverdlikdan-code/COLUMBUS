@@ -1447,7 +1447,17 @@
       const orderedRows = all.filter(r => {
         const s = sv[String(r.mkt ?? '')] || {};
         const eff = s.k != null ? Number(s.k) : Math.round(r.hamlatza ?? 0);
-        return eff > 0;
+        if (eff <= 0) return false;
+        if (maavarMode && (!r.maavar || r.maavar <= 0)) return false;
+        if (ashFilter.size) {
+          const has = r.ashdod_k > 0;
+          if (!ashFilter.has(has ? 'yes' : 'no')) return false;
+        }
+        if (mmdFilter.size) {
+          const has = r.mmd_k > 0;
+          if (!mmdFilter.has(has ? 'yes' : 'no')) return false;
+        }
+        return true;
       });
 
       if (orderedRows.length === 0) {
