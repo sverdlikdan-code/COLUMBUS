@@ -385,7 +385,22 @@ async function getCityBBox(city) {
   if (!city) return null;
   if (cityBBoxCache.has(city)) return cityBBoxCache.get(city);
 
-  // Azure Maps returns viewport (bounding box) — no rate limit
+  // Google Maps — best for Israeli city boundaries
+  if (GOOGLE_MAPS_KEY) {
+    try {
+      const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(city + ', ישראל')}&region=il&key=${GOOGLE_MAPS_KEY}`;
+      const resp = await fetch(url, { signal: AbortSignal.timeout(4000) });
+      const data = await resp.json();
+      const vp = data?.results?.[0]?.geometry?.viewport;
+      if (vp) {
+        const bbox = { minLat: vp.southwest.lat, maxLat: vp.northeast.lat, minLng: vp.southwest.lng, maxLng: vp.northeast.lng };
+        cityBBoxCache.set(city, bbox);
+        return bbox;
+      }
+    } catch (_) {}
+  }
+
+  // Azure Maps fallback
   if (AZURE_MAPS_KEY) {
     try {
       const url = `https://atlas.microsoft.com/search/address/json?api-version=1.0&query=${encodeURIComponent(city + ', ישראל')}&countrySet=IL&limit=1&subscription-key=${AZURE_MAPS_KEY}`;
@@ -403,7 +418,7 @@ async function getCityBBox(city) {
     } catch (_) {}
   }
 
-  // Nominatim fallback for bbox
+  // Nominatim last resort
   try {
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city + ', ישראל')}&format=json&limit=1&countrycodes=il`;
     const resp = await fetch(url, { headers: { 'User-Agent': 'ColumbusDillerApp/1.1' }, signal: AbortSignal.timeout(4000) });
@@ -560,9 +575,9 @@ async function normalizeAddressWithAI(address, city) {
 
 async function geocodeAddress(query) {
   if (geocodeCache.has(query)) return geocodeCache.get(query);
-  let result = await geocodeAzure(query);
+  let result = await geocodeGoogle(query);
+  if (!result) result = await geocodeAzure(query);
   if (!result) result = await geocodeNominatim(query);
-  if (!result) result = await geocodeGoogle(query); // last — guesses aggressively
   geocodeCache.set(query, result || null);
   return result || null;
 }
