@@ -54,6 +54,7 @@
     .history-empty { padding: 14px; text-align: center; color: #aaa; font-size: 12px; }
 
     .grid-page-break { display: none; }
+    #expiry-print-header { display: none; }
 
     /* Print styles */
     @media print {
@@ -101,7 +102,6 @@
         padding: 0 !important;
         gap: 0 !important;
       }
-      #expiry-print-header { display: none; }
       body.printing-expiry #expiry-print-header {
         display: flex !important;
         justify-content: space-between;
@@ -3047,7 +3047,6 @@ function buildExpiryPage() {
   _totalShown += cards.length;
   if (cards.length > 0) {
     const secLabel = SEC_NAMES[sec] || sec;
-    if (!window._expiryMauchad) _allHtml += `<div class="expiry-sec-hdr" style="width:100%;flex-basis:100%;padding:6px 14px;margin:10px 0 6px;background:#1a237e;color:#fff;font-size:13px;font-weight:bold;border-radius:6px;letter-spacing:0.3px;">${secLabel} — ${cards.length} מוצרים</div>`;
     const _cardHtmls = cards.map(({ pick, p, mk, d, salesMain, salesZafn, shelfLife, batches, sakanaMain, sakanaZafn }) => {
     const name = p.name || d.nameEn || d.desc || p.fam || mk;
     // Product-level STOP SALE: ALL batches with stock are fully blocked (per PBI formula /1.4)
@@ -3242,15 +3241,18 @@ function buildExpiryPage() {
       </div>
     </div>`;
     });
-    if (window._expiryMauchad) {
-      _allMauchadCards.push(..._cardHtmls.filter(Boolean));
-    } else {
-      _cardHtmls.forEach(ch => {
-        if (!ch) return;
-        if (_pgBreakCount > 0 && _pgBreakCount % 9 === 0) _allHtml += '<div class="grid-page-break"></div>';
-        _allHtml += ch;
-        _pgBreakCount++;
-      });
+    const _validCards = _cardHtmls.filter(Boolean);
+    if (_validCards.length > 0) {
+      if (window._expiryMauchad) {
+        _allMauchadCards.push(..._validCards);
+      } else {
+        _allHtml += `<div class="expiry-sec-hdr" style="width:100%;flex-basis:100%;padding:6px 14px;margin:10px 0 6px;background:#1a237e;color:#fff;font-size:13px;font-weight:bold;border-radius:6px;letter-spacing:0.3px;">${secLabel} — ${_validCards.length} מוצרים</div>`;
+        _validCards.forEach(ch => {
+          if (_pgBreakCount > 0 && _pgBreakCount % 9 === 0) _allHtml += '<div class="grid-page-break"></div>';
+          _allHtml += ch;
+          _pgBreakCount++;
+        });
+      }
     }
   }
   } // end for _SECTIONS
