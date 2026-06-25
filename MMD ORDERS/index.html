@@ -1513,34 +1513,36 @@
       ws.mergeCells(4,1,4,9); ws.getCell(4,1).fill = solid('ECEFF1');
       ws.getRow(4).height = 5;
 
-      let totalK = 0;
       const tableData = orderedRows.map(r => {
         const mk  = String(r.mkt ?? '');
         const s   = sv[mk] || {};
         const eff = s.k != null ? Number(s.k) : Math.round(r.hamlatza ?? 0);
-        totalK += eff;
         const tOpts = r.tukuf ? String(r.tukuf).split('/').map(x=>x.trim()).filter(Boolean) : [];
         const tukufVal = sessionP[mk] || (tOpts.length > 1 ? '🚩 בחר תאריך' : '');
         return [mk, r.mishpacha||'', r.hevra||'', '‏'+(r.taur||''), '', r.mmd_k??0, r.ashdod_k??0, eff, tukufVal];
       });
 
-      const NCOLS = 9;
-      const HEADERS = ['מק"ט','משפחת מוצר','חברה','שם מוצר','','מלאי MMD','מלאי אשדוד','הזמנה קרטון','תוקף נדרש'];
-      const headerRow = ws.getRow(5); headerRow.height = 26;
-      HEADERS.forEach((h, i) => {
-        const cell = headerRow.getCell(i + 1);
-        cell.value     = h;
-        cell.font      = { bold:true, size:10, color:{ argb:'FFFFFFFF' } };
-        cell.fill      = solid('455A64');
-        cell.border    = bdr('thin','37474F');
-        cell.alignment = { horizontal:'center', vertical:'middle', readingOrder:'rightToLeft' };
+      // Excel smart table — totalsRow:true avoids exceljs@4.4.0 XML bug (inverted totalsRowShown)
+      ws.addTable({
+        name: 'MMDOrder',
+        ref: 'A5',
+        headerRow: true,
+        totalsRow: true,
+        style: { theme: 'TableStyleLight2', showRowStripes: true },
+        columns: [
+          { name: 'מק"ט' },
+          { name: 'משפחת מוצר' },
+          { name: 'חברה' },
+          { name: 'שם מוצר' },
+          { name: 'תמונה' },
+          { name: 'מלאי MMD' },
+          { name: 'מלאי אשדוד' },
+          { name: 'הזמנה קרטון', totalsRowFunction: 'sum' },
+          { name: 'תוקף נדרש', totalsRowLabel: `סה"כ: ${orderedRows.length} מוצרים` },
+        ],
+        rows: tableData,
       });
-      ws.autoFilter = { from:{row:5,column:1}, to:{row:5+tableData.length,column:NCOLS} };
-
-      tableData.forEach((vals, i) => {
-        const row = ws.getRow(6 + i);
-        vals.forEach((v, ci) => { row.getCell(ci + 1).value = v; });
-      });
+      ws.getRow(5).height = 26;
 
       orderedRows.forEach((r, i) => {
         const mk   = String(r.mkt ?? '');
@@ -1550,8 +1552,7 @@
         const ashK = r.ashdod_k ?? 0;
         const tOpts = r.tukuf ? String(r.tukuf).split('/').map(x=>x.trim()).filter(Boolean) : [];
         const row  = ws.getRow(6 + i); row.height = 46;
-        if (i % 2 === 1) row.eachCell({ includeEmpty:true }, cell => { cell.fill = solid('F5F5F5'); });
-        for (let ci = 1; ci <= NCOLS; ci++) {
+        for (let ci = 1; ci <= 9; ci++) {
           row.getCell(ci).alignment = { vertical:'middle', readingOrder:'rightToLeft',
             horizontal: ci === 4 ? 'right' : 'center' };
         }
@@ -1564,29 +1565,12 @@
           row.getCell(9).font   = { size:10, bold:true, color:{ argb:'FFB71C1C' } };
           row.getCell(9).border = bdr('medium','D32F2F');
         }
-        // embed thumbnail in photo column (col 5)
         const b64 = thumbs[mk];
         if (b64) {
           const imgId = wb.addImage({ base64: b64, extension: 'jpeg' });
           ws.addImage(imgId, { tl:{ col:4.1, row:5+i }, ext:{ width:38, height:38 } });
         }
       });
-
-      // Summary
-      const si = 6 + orderedRows.length;
-      ws.mergeCells(si,1,si,4);
-      const sumRow = ws.getRow(si); sumRow.height = 22;
-      const s1 = sumRow.getCell(1);
-      s1.value     = `סה"כ: ${orderedRows.length} מוצרים`;
-      s1.font      = { bold:true, size:10, color:{ argb:'FF37474F' } };
-      s1.fill      = solid('ECEFF1');
-      s1.alignment = { horizontal:'center', vertical:'middle' };
-      const s8 = sumRow.getCell(8);
-      s8.value  = totalK;
-      s8.font   = { bold:true, size:12, color:{ argb:'FFBF360C' } };
-      s8.fill   = solid('ECEFF1');
-      s8.alignment = { horizontal:'center', vertical:'middle' };
-      s8.border = bdr('medium','BF360C');
 
       // Download
       const buf  = await wb.xlsx.writeBuffer();
