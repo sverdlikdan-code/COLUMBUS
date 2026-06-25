@@ -3515,21 +3515,23 @@ window.addEventListener('beforeprint', () => {
         cards.slice(i, i + 9).forEach(c => grp.appendChild(c));
         grid.appendChild(grp);
       }
-      // Measure real paper width via CSS mm ruler (works in print context)
-      const ruler = document.createElement('div');
-      ruler.style.cssText = 'position:fixed;top:-99px;left:0;width:100mm;height:1px;pointer-events:none;visibility:hidden;';
-      document.body.appendChild(ruler);
-      const mmPx = ruler.getBoundingClientRect().width / 100;
-      document.body.removeChild(ruler);
-      // @page margin = 6mm each side → available width = (page_mm - 12mm) * mmPx
-      // Read first group's actual width to get available space
+      // Scale each card to fill its grid cell (width AND height)
+      // Read card natural size before zoom, then measure cell from group
       const grp0 = document.querySelector('.expiry-page-group');
-      const grpW = grp0 ? grp0.getBoundingClientRect().width : (mmPx * 285);
-      const colW = (grpW - 8) / 3;
-      const cardScale = Math.max(0.8, Math.min(colW / 300, 3));
-      document.querySelectorAll('.expiry-page-group > div').forEach(c => {
-        c.style.zoom = cardScale.toFixed(3);
-      });
+      if (grp0) {
+        const grpR = grp0.getBoundingClientRect();
+        const cellW = (grpR.width  - 8) / 3;
+        const cellH = (grpR.height - 8) / 3;
+        document.querySelectorAll('.expiry-page-group > div').forEach(c => {
+          c.style.zoom = ''; // reset first so we read natural size
+          const natW = c.scrollWidth  || c.offsetWidth  || 300;
+          const natH = c.scrollHeight || c.offsetHeight || 300;
+          const scaleW = cellW / natW;
+          const scaleH = cellH / natH;
+          const scale = Math.min(scaleW, scaleH) * 0.97; // 3% padding
+          c.style.zoom = Math.max(0.5, Math.min(scale, 4)).toFixed(3);
+        });
+      }
     }
   } else if (op && op.style.display !== 'none') {
     document.body.classList.add('printing-order');
