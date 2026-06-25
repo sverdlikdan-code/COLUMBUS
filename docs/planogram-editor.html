@@ -3495,14 +3495,17 @@ window.addEventListener('beforeprint', () => {
   const ep = document.getElementById('expiry-page');
   const op = document.getElementById('order-page');
   if (ep && ep.style.display !== 'none') {
-    // Measure card size BEFORE print CSS overrides (height:100% etc corrupt scrollHeight)
+    // Measure ALL cards BEFORE print CSS (height:100% corrupts scrollHeight)
+    // Use MAX height so the tallest card's batches aren't clipped by overflow:hidden
     let preNatW = 300, preNatH = 200;
     if (window._expiryMauchad) {
-      const sampleCard = document.querySelector('#expiry-grid > div:not(.expiry-sec-hdr):not(.grid-page-break)');
-      if (sampleCard) {
-        preNatW = sampleCard.offsetWidth  || 300;
-        preNatH = sampleCard.offsetHeight || 200;
-      }
+      let maxH = 0;
+      document.querySelectorAll('#expiry-grid > div:not(.expiry-sec-hdr):not(.grid-page-break)').forEach(c => {
+        const h = c.offsetHeight || 0;
+        const w = c.offsetWidth  || 0;
+        if (h > maxH) { maxH = h; preNatW = w || preNatW; }
+      });
+      if (maxH > 0) preNatH = maxH;
     }
     document.body.classList.add('printing-expiry');
     document.title = 'דוח תוקף — FORMULA';
@@ -3519,6 +3522,8 @@ window.addEventListener('beforeprint', () => {
         const grp = document.createElement('div');
         grp.className = 'expiry-page-group';
         cards.slice(i, i + 9).forEach(c => grp.appendChild(c));
+        // Pad to 9 so auto-placement is always sequential (no orphan cards)
+        while (grp.children.length < 9) grp.appendChild(document.createElement('div'));
         grid.appendChild(grp);
       }
       // A4 landscape @ 96dpi: content 285mm × 198mm = 1077 × 748px
