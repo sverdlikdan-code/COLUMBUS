@@ -97,7 +97,36 @@
         width: 100% !important;
       }
       body.printing-expiry #expiry-grid.mauchad-active {
+        display: block !important;
+        padding: 0 !important;
+        gap: 0 !important;
+      }
+      #expiry-print-header { display: none; }
+      body.printing-expiry #expiry-print-header {
+        display: flex !important;
+        justify-content: space-between;
+        align-items: center;
+        padding: 4px 8px;
+        font-size: 11px;
+        font-weight: bold;
+        color: #333;
+        border-bottom: 1px solid #ccc;
+        margin-bottom: 4px;
+      }
+      body.printing-expiry .expiry-page-group {
+        display: grid !important;
         grid-template-columns: repeat(3, 1fr) !important;
+        grid-template-rows: repeat(3, 1fr) !important;
+        gap: 4px !important;
+        width: 100% !important;
+        height: calc(100vh - 28px) !important;
+        break-after: page !important;
+        page-break-after: always !important;
+        box-sizing: border-box !important;
+      }
+      body.printing-expiry .expiry-page-group > div {
+        overflow: hidden !important;
+        min-height: 0 !important;
       }
       body.printing-expiry #expiry-grid > div { break-inside: avoid; width: auto !important; flex-shrink: 1 !important; min-width: 0 !important; }
       body.printing-expiry #expiry-grid > .expiry-sec-hdr { display: none !important; }
@@ -477,6 +506,7 @@
 <button onclick="window.print()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:12px;cursor:pointer;border-radius:4px;padding:4px 12px;">🖨 הדפס</button>
     <button onclick="toggleExpiryPage()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:16px;cursor:pointer;border-radius:4px;padding:2px 8px;">✕</button>
   </div>
+  <div id="expiry-print-header"><span>דוח תוקף מחסן — FORMULA</span><span id="expiry-print-date"></span></div>
   <div id="expiry-grid" style="padding:12px 16px; display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-start;"></div>
 </div>
 
@@ -3255,6 +3285,20 @@ window.addEventListener('beforeprint', () => {
   if (ep && ep.style.display !== 'none') {
     document.body.classList.add('printing-expiry');
     document.title = 'דוח תוקף — FORMULA';
+    const pd = document.getElementById('expiry-print-date');
+    if (pd) pd.textContent = 'הדפסה: ' + new Date().toLocaleDateString('he-IL');
+    if (window._expiryMauchad) {
+      const grid = document.getElementById('expiry-grid');
+      const cards = [...grid.querySelectorAll(':scope > div:not(.expiry-sec-hdr):not(.grid-page-break)')];
+      grid._printOrigHTML = grid.innerHTML;
+      grid.innerHTML = '';
+      for (let i = 0; i < cards.length; i += 9) {
+        const grp = document.createElement('div');
+        grp.className = 'expiry-page-group';
+        cards.slice(i, i + 9).forEach(c => grp.appendChild(c));
+        grid.appendChild(grp);
+      }
+    }
   } else if (op && op.style.display !== 'none') {
     document.body.classList.add('printing-order');
     document.title = 'הזמנה דגים — FORMULA';
@@ -3296,6 +3340,11 @@ window.addEventListener('afterprint', () => {
     split.remove();
     const tbl = document.querySelector('#order-table-wrap table');
     if (tbl) tbl.hidden = false;
+  }
+  const grid = document.getElementById('expiry-grid');
+  if (grid && grid._printOrigHTML !== undefined) {
+    grid.innerHTML = grid._printOrigHTML;
+    delete grid._printOrigHTML;
   }
 });
 
