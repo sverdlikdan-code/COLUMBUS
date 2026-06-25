@@ -2948,7 +2948,7 @@ function _expiryImgErr(img) {
 function buildExpiryPage() {
   const grid  = document.getElementById('expiry-grid');
   const SEC_NAMES = { kapua: 'קפוא', halavi: 'חלבי', dagim: 'דגים', yavesh: 'דג יבש' };
-  let _totalAll = 0, _totalShown = 0, _allHtml = '', _pgBreakCount = 0;
+  let _totalAll = 0, _totalShown = 0, _allHtml = '', _pgBreakCount = 0, _allMauchadCards = [];
   for (const sec of _SECTIONS) {
   if (window._expirySecFilter && window._expirySecFilter !== sec) continue;
   const order = _getPrintOrder(sec);
@@ -3047,7 +3047,7 @@ function buildExpiryPage() {
   _totalShown += cards.length;
   if (cards.length > 0) {
     const secLabel = SEC_NAMES[sec] || sec;
-    _allHtml += `<div class="expiry-sec-hdr" style="width:100%;flex-basis:100%;padding:6px 14px;margin:10px 0 6px;background:#1a237e;color:#fff;font-size:13px;font-weight:bold;border-radius:6px;letter-spacing:0.3px;">${secLabel} — ${cards.length} מוצרים</div>`;
+    if (!window._expiryMauchad) _allHtml += `<div class="expiry-sec-hdr" style="width:100%;flex-basis:100%;padding:6px 14px;margin:10px 0 6px;background:#1a237e;color:#fff;font-size:13px;font-weight:bold;border-radius:6px;letter-spacing:0.3px;">${secLabel} — ${cards.length} מוצרים</div>`;
     const _cardHtmls = cards.map(({ pick, p, mk, d, salesMain, salesZafn, shelfLife, batches, sakanaMain, sakanaZafn }) => {
     const name = p.name || d.nameEn || d.desc || p.fam || mk;
     // Product-level STOP SALE: ALL batches with stock are fully blocked (per PBI formula /1.4)
@@ -3242,14 +3242,19 @@ function buildExpiryPage() {
       </div>
     </div>`;
     });
-    _cardHtmls.forEach(ch => {
-      if (!ch) return;
-      if (!window._expiryMauchad && _pgBreakCount > 0 && _pgBreakCount % 9 === 0) _allHtml += '<div class="grid-page-break"></div>';
-      _allHtml += ch;
-      _pgBreakCount++;
-    });
+    if (window._expiryMauchad) {
+      _allMauchadCards.push(..._cardHtmls.filter(Boolean));
+    } else {
+      _cardHtmls.forEach(ch => {
+        if (!ch) return;
+        if (_pgBreakCount > 0 && _pgBreakCount % 9 === 0) _allHtml += '<div class="grid-page-break"></div>';
+        _allHtml += ch;
+        _pgBreakCount++;
+      });
+    }
   }
   } // end for _SECTIONS
+  if (window._expiryMauchad) _allHtml += _allMauchadCards.join('');
   const filtered = window._expiryOnlySakana || window._expiryZafnLow;
   document.getElementById('expiry-title').textContent = filtered
     ? `דוח תוקף (${_totalShown} / ${_totalAll} מוצרים)`
