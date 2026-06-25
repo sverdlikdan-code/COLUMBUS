@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const https = require('https');
 const ExcelJS = require('exceljs');
 const { executeDax, getDatasetRefreshTime } = require('./powerbi');
 
@@ -1660,6 +1661,21 @@ function mmdGuard(req, res, next) {
 app.get('/mmd/mmd-orders.json', mmdGuard, (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'mmd-orders.json'));
 });
+
+app.get('/mmd/img/:mkt', mmdGuard, (req, res) => {
+  const mkt = req.params.mkt.replace(/\D/g, '');
+  if (!mkt) return res.status(400).end();
+  const imgUrl = `https://priority.dilerbmd.com/priimages/${mkt}.jpg`;
+  const req2 = https.get(imgUrl, imgRes => {
+    if (imgRes.statusCode !== 200) return res.status(404).end();
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    imgRes.pipe(res);
+  });
+  req2.on('error', () => res.status(502).end());
+  req2.setTimeout(4000, () => { req2.destroy(); res.status(504).end(); });
+});
+
 app.use('/mmd', mmdGuard, express.static(path.join(__dirname, '..', 'MMD ORDERS')));
 
 // ── FORMULA ROAD ─────────────────────────────────────────────────────────────
