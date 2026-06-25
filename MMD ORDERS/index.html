@@ -1436,7 +1436,6 @@
       const timeStr    = now.toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'});
       const fileDateStr = dateStr.replace(/\//g, '-');
 
-      // Use `all` (not filtered()); eff = manual k if set, else hamlatza recommendation
       const orderedRows = all.filter(r => {
         const s = sv[String(r.mkt ?? '')] || {};
         const eff = s.k != null ? Number(s.k) : Math.round(r.hamlatza ?? 0);
@@ -1451,137 +1450,151 @@
 
       _saveOrderToHistory();
 
+      // Fetch product thumbnails via server proxy → compress to 40×40 JPEG
+      if (btn) btn.textContent = '📷 מוריד תמונות...';
+      const thumbs = {};
+      await Promise.all(orderedRows.map(r => new Promise(resolve => {
+        const mk = String(r.mkt ?? '');
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          try {
+            const c = document.createElement('canvas'); c.width = c.height = 40;
+            c.getContext('2d').drawImage(img, 0, 0, 40, 40);
+            thumbs[mk] = c.toDataURL('image/jpeg', 0.55).split(',')[1];
+          } catch(_) {}
+          resolve();
+        };
+        img.onerror = () => resolve();
+        img.src = '/mmd/img/' + mk;
+      })));
+
+      if (btn) btn.textContent = '⏳ בונה קובץ...';
+
       // ── ExcelJS ──────────────────────────────────────────────────────
       const wb = new ExcelJS.Workbook();
       wb.creator = 'DILER BMD'; wb.created = now;
       const ws = wb.addWorksheet('הזמנה MMD', {
         views: [{ rightToLeft: true, state: 'frozen', ySplit: 5 }],
-        properties: { tabColor: { argb: 'FF0D47A1' } }
+        properties: { tabColor: { argb: 'FF455A64' } }
       });
 
-      // helpers
       const solid = hex => ({ type:'pattern', pattern:'solid', fgColor:{ argb:'FF'+hex } });
       const bdr = (s='thin', c='CCCCCC') => {
         const e = { style:s, color:{ argb:'FF'+c } };
         return { top:e, bottom:e, left:e, right:e };
       };
 
-      // 8 data columns A–H
+      // 9 columns: מק"ט | משפחה | חברה | שם מוצר | תמונה | מלאי MMD | מלאי אשדוד | הזמנה קרטון | תוקף נדרש
       ws.columns = [
-        {width:13},{width:20},{width:15},{width:44},
-        {width:15},{width:15},{width:17},{width:16}
+        {width:11},{width:20},{width:13},{width:42},
+        {width:8},
+        {width:13},{width:13},{width:15},{width:14}
       ];
 
-      // Row 1: empty top margin
       ws.getRow(1).height = 8;
 
-      // Row 2: Title
-      ws.mergeCells(2,1,2,8);
+      ws.mergeCells(2,1,2,9);
       const t = ws.getCell(2,1);
       t.value     = '🚚  הזמנה MMD · אילת';
-      t.font      = { bold:true, size:17, color:{ argb:'FFFFFFFF' }, name:'Segoe UI' };
-      t.fill      = solid('0D47A1');
+      t.font      = { bold:true, size:16, color:{ argb:'FFFFFFFF' }, name:'Segoe UI' };
+      t.fill      = solid('37474F');
       t.alignment = { horizontal:'center', vertical:'middle', readingOrder:'rightToLeft' };
-      ws.getRow(2).height = 38;
+      ws.getRow(2).height = 36;
 
-      // Row 3: Date
-      ws.mergeCells(3,1,3,8);
-      const d = ws.getCell(3,1);
-      d.value     = dateStr + '  |  ' + timeStr + '   ·   DILER BMD';
-      d.font      = { size:9, italic:true, color:{ argb:'FF445577' } };
-      d.fill      = solid('EEF3FB');
-      d.alignment = { horizontal:'center', vertical:'middle' };
+      ws.mergeCells(3,1,3,9);
+      const dd = ws.getCell(3,1);
+      dd.value     = dateStr + '  |  ' + timeStr + '   ·   DILER BMD';
+      dd.font      = { size:9, italic:true, color:{ argb:'FF546E7A' } };
+      dd.fill      = solid('ECEFF1');
+      dd.alignment = { horizontal:'center', vertical:'middle' };
       ws.getRow(3).height = 18;
 
-      // Row 4: spacer
-      ws.mergeCells(4,1,4,8); ws.getCell(4,1).fill = solid('EEF3FB');
+      ws.mergeCells(4,1,4,9); ws.getCell(4,1).fill = solid('ECEFF1');
       ws.getRow(4).height = 5;
 
-      // Build data rows
       let totalK = 0;
       const tableData = orderedRows.map(r => {
         const mk  = String(r.mkt ?? '');
         const s   = sv[mk] || {};
         const eff = s.k != null ? Number(s.k) : Math.round(r.hamlatza ?? 0);
         totalK += eff;
-        // תוקף נדרש: אופציה אחת — נבחרת אוטומטית; כמה אופציות בלי בחירה — נשארת ריקה ותסומן באדום בלולאת העיצוב
-        const opts = r.tukuf ? String(r.tukuf).split('/').map(x => x.trim()).filter(Boolean) : [];
-        const tOpts2 = r.tukuf ? String(r.tukuf).split('/').map(x=>x.trim()).filter(Boolean) : [];
-        const tukufVal = sessionP[mk] || (tOpts2.length > 1 ? '🚩 בחר תאריך' : '');
-        return [mk, r.mishpacha||'', r.hevra||'', '‏'+(r.taur||''), r.mmd_k??0, r.ashdod_k??0, eff, tukufVal];
+        const tOpts = r.tukuf ? String(r.tukuf).split('/').map(x=>x.trim()).filter(Boolean) : [];
+        const tukufVal = sessionP[mk] || (tOpts.length > 1 ? '🚩 בחר תאריך' : '');
+        return [mk, r.mishpacha||'', r.hevra||'', '‏'+(r.taur||''), '', r.mmd_k??0, r.ashdod_k??0, eff, tukufVal];
       });
 
-      // Header + filterable data at A5 — manual header/autoFilter instead of ws.addTable().
-      // ws.addTable({totalsRow:false}) still writes totalsRowShown="1" in xl/tables/table1.xml
-      // (exceljs@4.4.0 table-xform.js bug: the ternary is inverted) without reserving the extra
-      // row in `ref`, which Excel's file-validation strips ("Removed Feature: Table/AutoFilter").
-      const headers = ['מק"ט','משפחת מוצר','חברה','שם מוצר','מלאי MMD','מלאי אשדוד','הזמנה קרטון','תוקף נדרש'];
-      const headerRow = ws.getRow(5);
-      headerRow.height = 26;
-      headers.forEach((h, i) => {
+      const NCOLS = 9;
+      const HEADERS = ['מק"ט','משפחת מוצר','חברה','שם מוצר','','מלאי MMD','מלאי אשדוד','הזמנה קרטון','תוקף נדרש'];
+      const headerRow = ws.getRow(5); headerRow.height = 26;
+      HEADERS.forEach((h, i) => {
         const cell = headerRow.getCell(i + 1);
         cell.value     = h;
-        cell.font      = { bold:true, size:11, color:{ argb:'FFFFFFFF' } };
-        cell.fill      = solid('4472C4');
-        cell.border    = bdr('thin','2F528F');
+        cell.font      = { bold:true, size:10, color:{ argb:'FFFFFFFF' } };
+        cell.fill      = solid('455A64');
+        cell.border    = bdr('thin','37474F');
         cell.alignment = { horizontal:'center', vertical:'middle', readingOrder:'rightToLeft' };
       });
-      ws.autoFilter = { from: { row:5, column:1 }, to: { row: 5 + tableData.length, column:8 } };
+      ws.autoFilter = { from:{row:5,column:1}, to:{row:5+tableData.length,column:NCOLS} };
 
       tableData.forEach((vals, i) => {
         const row = ws.getRow(6 + i);
         vals.forEach((v, ci) => { row.getCell(ci + 1).value = v; });
       });
 
-      // Per-row formatting (data starts at row 6)
       orderedRows.forEach((r, i) => {
         const mk   = String(r.mkt ?? '');
         const s    = sv[mk] || {};
         const eff  = s.k != null ? Number(s.k) : ((r.hamlatza??0)>0 ? Math.round(r.hamlatza):0);
         const mmdK = r.mmd_k ?? 0;
         const ashK = r.ashdod_k ?? 0;
-        const row  = ws.getRow(6 + i); row.height = 20;
-        if (i % 2 === 1) row.eachCell({ includeEmpty:true }, cell => { cell.fill = solid('F2F5FB'); });
-        for (let ci = 1; ci <= 8; ci++) {
+        const tOpts = r.tukuf ? String(r.tukuf).split('/').map(x=>x.trim()).filter(Boolean) : [];
+        const row  = ws.getRow(6 + i); row.height = 46;
+        if (i % 2 === 1) row.eachCell({ includeEmpty:true }, cell => { cell.fill = solid('F5F5F5'); });
+        for (let ci = 1; ci <= NCOLS; ci++) {
           row.getCell(ci).alignment = { vertical:'middle', readingOrder:'rightToLeft',
             horizontal: ci === 4 ? 'right' : 'center' };
         }
-        row.getCell(5).font = { size:10, bold:mmdK<=0, color:{ argb:mmdK>0?'FF1B5E20':'FFB71C1C' } };
-        row.getCell(6).font = { size:10, color:{ argb:ashK>0?'FF1B5E20':'FFB71C1C' } };
-        row.getCell(7).font = { size:11, bold:true, color:{ argb:eff>0?'FFE65100':'FF999999' } };
-        if (eff > 0) row.getCell(7).border = bdr('medium','E65100');
-        // more than 1 expiry option and no user selection → red flag cell
-        const tOpts2 = r.tukuf ? String(r.tukuf).split('/').map(x=>x.trim()).filter(Boolean) : [];
-        if (tOpts2.length > 1 && !sessionP[mk]) {
-          row.getCell(8).fill   = solid('FFCDD2');
-          row.getCell(8).font   = { size:10, bold:true, color:{ argb:'FFB71C1C' } };
-          row.getCell(8).border = bdr('medium','D32F2F');
+        row.getCell(6).font = { size:10, bold:mmdK<=0, color:{ argb:mmdK>0?'FF2E7D32':'FFCC0000' } };
+        row.getCell(7).font = { size:10, color:{ argb:ashK>0?'FF2E7D32':'FFCC0000' } };
+        row.getCell(8).font = { size:12, bold:true, color:{ argb:eff>0?'FFBF360C':'FF999999' } };
+        if (eff > 0) row.getCell(8).border = bdr('medium','BF360C');
+        if (tOpts.length > 1 && !sessionP[mk]) {
+          row.getCell(9).fill   = solid('FFCDD2');
+          row.getCell(9).font   = { size:10, bold:true, color:{ argb:'FFB71C1C' } };
+          row.getCell(9).border = bdr('medium','D32F2F');
+        }
+        // embed thumbnail in photo column (col 5)
+        const b64 = thumbs[mk];
+        if (b64) {
+          const imgId = wb.addImage({ base64: b64, extension: 'jpeg' });
+          ws.addImage(imgId, { tl:{ col:4.1, row:5+i }, ext:{ width:38, height:38 } });
         }
       });
 
-      // Summary row (below table)
+      // Summary
       const si = 6 + orderedRows.length;
       ws.mergeCells(si,1,si,4);
       const sumRow = ws.getRow(si); sumRow.height = 22;
       const s1 = sumRow.getCell(1);
       s1.value     = `סה"כ: ${orderedRows.length} מוצרים`;
-      s1.font      = { bold:true, size:10, color:{ argb:'FF333366' } };
-      s1.fill      = solid('D8E4F0');
+      s1.font      = { bold:true, size:10, color:{ argb:'FF37474F' } };
+      s1.fill      = solid('ECEFF1');
       s1.alignment = { horizontal:'center', vertical:'middle' };
-      const s7 = sumRow.getCell(7);
-      s7.value  = totalK;
-      s7.font   = { bold:true, size:12, color:{ argb:'FFE65100' } };
-      s7.fill   = solid('D8E4F0');
-      s7.alignment = { horizontal:'center', vertical:'middle' };
-      s7.border = bdr('medium','E65100');
+      const s8 = sumRow.getCell(8);
+      s8.value  = totalK;
+      s8.font   = { bold:true, size:12, color:{ argb:'FFBF360C' } };
+      s8.fill   = solid('ECEFF1');
+      s8.alignment = { horizontal:'center', vertical:'middle' };
+      s8.border = bdr('medium','BF360C');
 
       // Download
       const buf  = await wb.xlsx.writeBuffer();
       const blob = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const url  = URL.createObjectURL(blob);
+      const xlUrl = URL.createObjectURL(blob);
       const a    = document.createElement('a');
-      a.href = url; a.download = 'MMD-Order-' + fileDateStr + '.xlsx'; a.click();
-      URL.revokeObjectURL(url);
+      a.href = xlUrl; a.download = 'MMD-Order-' + fileDateStr + '.xlsx'; a.click();
+      URL.revokeObjectURL(xlUrl);
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = '⬇ Excel'; }
     }
