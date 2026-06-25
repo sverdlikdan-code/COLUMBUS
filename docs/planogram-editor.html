@@ -1720,9 +1720,7 @@ function updateTabPalTotals() {
     const skuCount = seen.size;
     const el = document.getElementById('tab-pal-' + sec);
     if (el) {
-      const palPart = palTotal > 0 ? Math.round(palTotal) + ' PAL' : '';
-      const skuPart = skuCount > 0 ? skuCount + ' SKU' : '';
-      el.textContent = [skuPart, palPart].filter(Boolean).join(' · ');
+      el.textContent = palTotal > 0 ? Math.round(palTotal) + ' PAL' : '';
     }
   }
 }
