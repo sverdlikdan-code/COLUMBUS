@@ -113,6 +113,18 @@
         border-bottom: 1px solid #ccc;
         margin-bottom: 4px;
       }
+      body.printing-expiry .expiry-cover-page {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        height: calc(100vh - 12mm) !important;
+        break-after: page !important;
+        page-break-after: always !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
       body.printing-expiry .expiry-page-group {
         display: grid !important;
         grid-template-columns: repeat(3, 1fr) !important;
@@ -3300,22 +3312,64 @@ window.addEventListener('beforeprint', () => {
     if (window._expiryMauchad) {
       const grid = document.getElementById('expiry-grid');
       const cards = [...grid.querySelectorAll(':scope > div:not(.expiry-sec-hdr):not(.grid-page-break)')];
+      // Collect section stats before replacing innerHTML
+      const secHdrs = [...grid.querySelectorAll('.expiry-sec-hdr')].map(h => h.textContent);
       grid._printOrigHTML = grid.innerHTML;
       grid.innerHTML = '';
+
+      // ── Cover page (MMD Orders style) ────────────────────────────────────
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('he-IL', { day:'2-digit', month:'2-digit', year:'numeric' });
+      const sakanaCount = cards.filter(c => c.querySelector('[style*="2px solid #c62828"]') || c.style.border?.includes('c62828')).length;
+      const totalCount = cards.length;
+      const cover = document.createElement('div');
+      cover.className = 'expiry-cover-page';
+      cover.innerHTML = `
+        <div style="background:linear-gradient(135deg,#b71c1c 0%,#c62828 40%,#7f0000 100%);padding:32px 48px;display:flex;align-items:center;justify-content:space-between;min-height:140px;">
+          <div>
+            <div style="font-size:11px;color:rgba(255,255,255,.7);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">FORMULA WAREHOUSE REPORT</div>
+            <div style="font-size:42px;font-weight:900;color:#fff;line-height:1;letter-spacing:-1px;">דוח תוקף מחסן</div>
+            <div style="font-size:16px;color:rgba(255,255,255,.85);margin-top:8px;font-weight:600;">מחסן מאוחד — כל המחלקות</div>
+          </div>
+          <div style="text-align:left;">
+            <img src="https://sverdlikdan-code.github.io/COLUMBUS/formula-logo.png" style="height:80px;opacity:.9;" onerror="this.style.display='none'">
+          </div>
+        </div>
+        <div style="background:#1a237e;padding:18px 48px;display:flex;gap:32px;align-items:center;">
+          <div style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:10px;padding:14px 28px;text-align:center;min-width:120px;">
+            <div style="font-size:36px;font-weight:900;color:#fff;">${totalCount}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.75);font-weight:600;margin-top:2px;">מוצרים בדוח</div>
+          </div>
+          <div style="background:rgba(183,28,28,.35);border:1px solid rgba(255,100,100,.4);border-radius:10px;padding:14px 28px;text-align:center;min-width:120px;">
+            <div style="font-size:36px;font-weight:900;color:#ff8a80;">${sakanaCount}</div>
+            <div style="font-size:11px;color:rgba(255,200,200,.85);font-weight:600;margin-top:2px;">⚠ בסכנה</div>
+          </div>
+          <div style="flex:1;"></div>
+          <div style="text-align:right;color:rgba(255,255,255,.7);font-size:13px;line-height:1.8;">
+            <div style="font-size:15px;color:#fff;font-weight:700;">תאריך הדפסה</div>
+            <div style="font-size:22px;font-weight:900;color:#fff;">${dateStr}</div>
+          </div>
+        </div>
+        <div style="padding:32px 48px;flex:1;display:flex;flex-direction:column;gap:16px;background:#f8f9ff;">
+          <div style="font-size:14px;font-weight:700;color:#1a237e;border-bottom:2px solid #c62828;padding-bottom:6px;">פירוט לפי מחלקה</div>
+          ${secHdrs.map(h => `<div style="display:flex;align-items:center;gap:12px;padding:10px 16px;background:#fff;border-radius:8px;border:1px solid #e0e0e0;font-size:14px;font-weight:600;color:#222;">📦 ${h}</div>`).join('')}
+          ${secHdrs.length === 0 ? `<div style="color:#888;font-size:13px;">כל המוצרים בטווח בטוח — אין סכנת תוקף</div>` : ''}
+        </div>
+      `;
+      grid.appendChild(cover);
+
+      // ── Card pages ────────────────────────────────────────────────────────
       for (let i = 0; i < cards.length; i += 9) {
         const grp = document.createElement('div');
         grp.className = 'expiry-page-group';
         cards.slice(i, i + 9).forEach(c => grp.appendChild(c));
         grid.appendChild(grp);
       }
-      // Scale cards to fill grid cells: measure page width via mm units
-      // window.innerWidth in beforeprint ≈ CSS px width of paper (96dpi)
-      // A4 landscape ~1123px, A3 landscape ~1587px
+      // Scale cards to fill grid cells
       const pageW = window.innerWidth || 1123;
-      const marginPx = 6 * 96 / 25.4 * 2; // 6mm each side at 96dpi
-      const colW = (pageW - marginPx - 8) / 3; // 3 cols, 4px gap×2
-      const nativeCardW = 300; // card inline width
-      const cardScale = Math.max(1, Math.min(colW / nativeCardW, 2.5));
+      const marginPx = 6 * 96 / 25.4 * 2;
+      const colW = (pageW - marginPx - 8) / 3;
+      const cardScale = Math.max(1, Math.min(colW / 300, 2.5));
       document.querySelectorAll('.expiry-page-group > div').forEach(c => {
         c.style.zoom = cardScale.toFixed(3);
       });
