@@ -559,11 +559,18 @@
 }
 #splash-btn:active { transform: translateY(0); }
 #splash-loc {
-  position: absolute; bottom: 28px; left: 50%;
+  position: absolute; bottom: 44px; left: 50%;
   transform: translateX(-50%);
   font-size: .65rem; color: rgba(255,255,255,.3);
   letter-spacing: .15em; text-transform: uppercase; white-space: nowrap;
 }
+#splash-credit {
+  position: absolute; bottom: 20px; left: 50%;
+  transform: translateX(-50%);
+  font-size: .6rem; color: rgba(255,255,255,.2);
+  letter-spacing: .08em; white-space: nowrap;
+}
+#splash-credit span { color: rgba(255,200,80,.35); font-weight: 600; }
 </style>
 </head>
 <body>
@@ -588,7 +595,8 @@
     <button type="button" id="splash-btn" onclick="splashEnter(null)">כניסה למערכת &nbsp;→</button>
   </div>
 
-  <div id="splash-loc">אשדוד · מחסן קפוא · FORMULA</div>
+  <div id="splash-loc">FORMULA</div>
+  <div id="splash-credit">פיתוח ועיצוב &nbsp;·&nbsp; <span>דן סברדליק</span> &nbsp;·&nbsp; 2026</div>
 </div>
 <!-- ── END Splash ──────────────────────────────────────────────── -->
 
