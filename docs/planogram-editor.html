@@ -3512,23 +3512,25 @@ window.addEventListener('beforeprint', () => {
         cards.slice(i, i + 9).forEach(c => grp.appendChild(c));
         grid.appendChild(grp);
       }
-      // Scale each card to fill its grid cell (width AND height)
-      // Read card natural size before zoom, then measure cell from group
-      const grp0 = document.querySelector('.expiry-page-group');
-      if (grp0) {
-        const grpR = grp0.getBoundingClientRect();
-        const cellW = (grpR.width  - 8) / 3;
-        const cellH = (grpR.height - 8) / 3;
-        document.querySelectorAll('.expiry-page-group > div').forEach(c => {
-          c.style.zoom = ''; // reset first so we read natural size
-          const natW = c.scrollWidth  || c.offsetWidth  || 300;
-          const natH = c.scrollHeight || c.offsetHeight || 300;
-          const scaleW = cellW / natW;
-          const scaleH = cellH / natH;
-          const scale = Math.min(scaleW, scaleH) * 0.97; // 3% padding
-          c.style.zoom = Math.max(0.5, Math.min(scale, 4)).toFixed(3);
-        });
-      }
+      // Detect paper size via matchMedia (evaluates against print page in beforeprint)
+      const isA3       = window.matchMedia('(min-width: 380mm)').matches;
+      const isLandsc   = window.matchMedia('(orientation: landscape)').matches;
+      const PW = isA3 ? (isLandsc ? 420 : 297) : (isLandsc ? 297 : 210); // mm
+      const PH = isA3 ? (isLandsc ? 297 : 420) : (isLandsc ? 210 : 297); // mm
+      const MM = 96 / 25.4; // px per mm at 96dpi
+      const HDR = 28; // print header height px
+      const GAP = 8;  // grid gap total px
+      const MARGIN = 12; // @page 6mm × 2
+      const cellW = ((PW - MARGIN) * MM - GAP) / 3;
+      const cellH = ((PH - MARGIN) * MM - HDR - GAP) / 3;
+      // Measure card natural size (before any zoom)
+      const firstCard = document.querySelector('.expiry-page-group > div');
+      const natW = firstCard ? (firstCard.scrollWidth  || 300) : 300;
+      const natH = firstCard ? (firstCard.scrollHeight || 300) : 300;
+      const scale = Math.min(cellW / natW, cellH / natH) * 0.97;
+      document.querySelectorAll('.expiry-page-group > div').forEach(c => {
+        c.style.zoom = Math.max(0.4, Math.min(scale, 4)).toFixed(3);
+      });
     }
   } else if (op && op.style.display !== 'none') {
     document.body.classList.add('printing-order');
