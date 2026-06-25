@@ -565,12 +565,18 @@
   letter-spacing: .15em; text-transform: uppercase; white-space: nowrap;
 }
 #splash-credit {
-  position: absolute; bottom: 20px; left: 50%;
+  position: absolute; bottom: 18px; left: 50%;
   transform: translateX(-50%);
-  font-size: .6rem; color: rgba(255,255,255,.2);
-  letter-spacing: .08em; white-space: nowrap;
+  font-size: .62rem; color: rgba(255,255,255,.22);
+  letter-spacing: .1em; white-space: nowrap;
+  display: flex; align-items: baseline; gap: 6px;
 }
-#splash-credit span { color: rgba(255,200,80,.35); font-weight: 600; }
+#splash-credit span {
+  font-family: 'Brush Script MT', 'Segoe Script', cursive;
+  font-size: 1.15rem;
+  color: rgba(255,200,80,.45);
+  line-height: 1;
+}
 </style>
 </head>
 <body>
@@ -596,7 +602,7 @@
   </div>
 
   <div id="splash-loc">FORMULA</div>
-  <div id="splash-credit">פיתוח ועיצוב &nbsp;·&nbsp; <span>דן סברדליק</span> &nbsp;·&nbsp; 2026</div>
+  <div id="splash-credit">created by &nbsp;<span>D.S</span></div>
 </div>
 <!-- ── END Splash ──────────────────────────────────────────────── -->
 
