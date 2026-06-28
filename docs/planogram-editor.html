@@ -3499,17 +3499,14 @@ window.addEventListener('beforeprint', () => {
   const ep = document.getElementById('expiry-page');
   const op = document.getElementById('order-page');
   if (ep && ep.style.display !== 'none') {
-    // Measure ALL cards BEFORE print CSS (height:100% corrupts scrollHeight)
-    // Use MAX height so the tallest card's batches aren't clipped by overflow:hidden
-    let preNatW = 300, preNatH = 200;
+    // Measure EACH card BEFORE print CSS — store per-card height for individual zoom
+    let preNatW = 300;
+    const _cardNatH = new Map();
     if (window._expiryMauchad) {
-      let maxH = 0;
       document.querySelectorAll('#expiry-grid > div:not(.expiry-sec-hdr):not(.grid-page-break)').forEach(c => {
-        const h = c.offsetHeight || 0;
-        const w = c.offsetWidth  || 0;
-        if (h > maxH) { maxH = h; preNatW = w || preNatW; }
+        _cardNatH.set(c, c.offsetHeight || 200);
+        preNatW = Math.max(preNatW, c.offsetWidth || 300);
       });
-      if (maxH > 0) preNatH = maxH;
     }
     document.body.classList.add('printing-expiry');
     document.title = 'דוח תוקף — FORMULA';
@@ -3534,9 +3531,10 @@ window.addEventListener('beforeprint', () => {
       const MM = 96 / 25.4;
       const cellW = (285 * MM - 8) / 3;  // ≈ 356px
       const cellH = (198 * MM - 28 - 8) / 3; // ≈ 237px
-      const scale = Math.min(cellW / (preNatW || 300), cellH / (preNatH || 200)) * 0.88;
       document.querySelectorAll('.expiry-page-group > div').forEach(c => {
-        c.style.zoom = Math.max(0.5, Math.min(scale, 3)).toFixed(3);
+        const natH = _cardNatH.get(c) || 200;
+        const s = Math.min(cellW / (preNatW || 300), cellH / natH) * 0.92;
+        c.style.zoom = Math.max(0.4, Math.min(s, 3)).toFixed(3);
       });
     }
   } else if (op && op.style.display !== 'none') {
