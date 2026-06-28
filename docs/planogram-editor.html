@@ -127,7 +127,7 @@
       }
       body.printing-expiry .expiry-page-group {
         display: grid !important;
-        grid-template-columns: repeat(3, 1fr) !important;
+        grid-template-columns: repeat(2, 1fr) !important;
         grid-template-rows: repeat(2, 1fr) !important;
         gap: 4px !important;
         width: 100% !important;
@@ -3519,28 +3519,27 @@ window.addEventListener('beforeprint', () => {
       grid.innerHTML = '';
 
       // ── Card pages ────────────────────────────────────────────────────────
-      for (let i = 0; i < cards.length; i += 6) {
+      for (let i = 0; i < cards.length; i += 4) {
         const grp = document.createElement('div');
         grp.className = 'expiry-page-group';
-        cards.slice(i, i + 6).forEach(c => grp.appendChild(c));
-        while (grp.children.length < 6) grp.appendChild(document.createElement('div'));
+        cards.slice(i, i + 4).forEach(c => grp.appendChild(c));
+        while (grp.children.length < 4) grp.appendChild(document.createElement('div'));
         grid.appendChild(grp);
       }
       // A4 landscape @ 96dpi: content 285mm × 198mm = 1077 × 748px
       const MM = 96 / 25.4;
-      const cellW = (285 * MM - 8) / 3;   // ≈ 356px (3 columns)
+      const cellW = (285 * MM - 4) / 2;   // ≈ 536px (2 columns, 1 gap)
       const cellH = (198 * MM - 28 - 4) / 2; // ≈ 358px (2 rows, 1 gap)
       // Per-row zoom: all 3 cards in a row share the same scale (symmetry)
       // Scale is determined by the tallest card in that row
       const allCells = [...document.querySelectorAll('.expiry-page-group > div')];
-      for (let i = 0; i < allCells.length; i += 3) {
-        const row = allCells.slice(i, i + 3);
+      for (let i = 0; i < allCells.length; i += 2) {
+        const row = allCells.slice(i, i + 2);
         let rowMaxH = 0;
         row.forEach(c => { const h = _cardNatH.get(c) || 0; if (h > rowMaxH) rowMaxH = h; });
         if (rowMaxH === 0) rowMaxH = 200;
-        // zoom by cell height, capped at 1.4 to limit right-side clipping (green rows unchanged ~1.185)
-        const s = Math.min(cellH / rowMaxH, 1.4);
-        row.forEach(c => { c.style.zoom = Math.max(0.4, Math.min(s, 2)).toFixed(3); });
+        const s = Math.min(cellW / (preNatW || 300), cellH / rowMaxH);
+        row.forEach(c => { c.style.zoom = Math.max(0.4, Math.min(s, 3)).toFixed(3); });
       }
     }
   } else if (op && op.style.display !== 'none') {
