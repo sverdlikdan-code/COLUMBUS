@@ -1134,7 +1134,7 @@ async function fetchPhotoUrls() {
 
 // ── Trigger PBI dataset refresh and wait for completion ─────────────────────
 // Polls every 30s, gives up after maxWaitMs (default 15 min)
-async function triggerAndWaitRefresh(maxWaitMs = 15 * 60 * 1000) {
+async function triggerAndWaitRefresh(maxWaitMs = 40 * 60 * 1000) {
   const t = await getToken();
   const url = `https://api.powerbi.com/v1.0/myorg/groups/${WORKSPACE}/datasets/${DATASET}/refreshes`;
   const res = await fetch(url, {
