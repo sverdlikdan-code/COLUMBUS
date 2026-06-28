@@ -1308,22 +1308,53 @@ function toggleCity(city){
 
 function haversineM(la1,lo1,la2,lo2){return haversineKm(la1,lo1,la2,lo2)*1000;}
 
-function calcIndication(monthlySales, target) {
-  if (!target) return '';
+function _workDaysFrac() {
   const now = new Date();
   const y = now.getFullYear(), m = now.getMonth();
   const daysInMonth = new Date(y, m + 1, 0).getDate();
   let totalWork = 0, passedWork = 0;
-  const yesterday = now.getDate() - 1; // today incomplete — count up to yesterday
+  const yesterday = now.getDate() - 1;
   for (let d = 1; d <= daysInMonth; d++) {
-    const dow = new Date(y, m, d).getDay(); // 0=Sun … 6=Sat
-    if (dow <= 4) { // Sun-Thu = Israeli work days
-      totalWork++;
-      if (d <= yesterday) passedWork++;
-    }
+    const dow = new Date(y, m, d).getDay();
+    if (dow <= 4) { totalWork++; if (d <= yesterday) passedWork++; }
   }
-  const daysPct = totalWork ? passedWork / totalWork : 0;
+  return totalWork ? passedWork / totalWork : 0;
+}
+
+function calcIndication(monthlySales, target) {
+  if (!target) return '';
+  const daysPct = _workDaysFrac();
   return (monthlySales / target - daysPct) < -0.05 ? '😕' : '🚀';
+}
+
+function glassIcon(sales, target, custId) {
+  if (!target) return '';
+  const pct = Math.round((sales || 0) / target * 100);
+  const timeFrac = _workDaysFrac();
+  const diff = pct / 100 - timeFrac;
+  const color  = diff >= 0   ? '#1B7B34' : diff >= -0.1 ? '#E65100' : '#C62828';
+  const bgClr  = diff >= 0   ? '#E8F5E9' : diff >= -0.1 ? '#FFF3E0' : '#FFEBEE';
+
+  // one or two glasses
+  const numG = pct > 100 ? 2 : 1;
+  const fill1 = Math.min(1, pct / 100);
+  const fill2 = numG > 1 ? Math.min(1, (pct - 100) / 100) : 0;
+
+  const W = 13, H = 20, innerH = 15, gap = 3;
+  const totalW = numG === 2 ? W * 2 + gap : W;
+
+  function oneGlass(frac, idx) {
+    const x0 = idx * (W + gap);
+    const fillPx = Math.round(frac * innerH);
+    const id = `wc_${String(custId).replace(/\W/g,'')}_${idx}`;
+    const pts = `${x0+1},1 ${x0+W-1},1 ${x0+W-2.5},${H-1} ${x0+2.5},${H-1}`;
+    return `<defs><clipPath id="${id}"><polygon points="${pts}"/></clipPath></defs>`
+      + `<polygon points="${pts}" fill="${bgClr}" stroke="${color}" stroke-width="1.2" stroke-linejoin="round"/>`
+      + (fillPx > 0 ? `<rect x="${x0}" y="${H - fillPx}" width="${W}" height="${fillPx}" fill="${color}" opacity="0.7" clip-path="url(#${id})"/>` : '');
+  }
+
+  const svgBody = oneGlass(fill1, 0) + (numG > 1 ? oneGlass(fill2, 1) : '');
+  return `<svg width="${totalW}" height="${H}" viewBox="0 0 ${totalW} ${H}" style="display:inline-block;vertical-align:middle;flex-shrink:0;margin-left:1px;">${svgBody}</svg>`;
 }
 
 function fillWorkDaysBar() {
@@ -1404,7 +1435,11 @@ function renderClientList(html){
     const pctPart=(()=>{
       if(!c.target) return '';
       const pct=Math.round((c.monthlySales||0)/c.target*100);
-      return `<span style="font-size:11px;font-weight:700;color:var(--mid)">${pct}%</span>`;
+      const timeFrac=_workDaysFrac();
+      const diff=pct/100-timeFrac;
+      const textColor=diff>=0?'var(--green)':diff>=-0.1?'var(--orange)':'var(--red)';
+      const glass=glassIcon(c.monthlySales||0,c.target,c.custId);
+      return `<span style="display:inline-flex;align-items:center;gap:2px;">${glass}<span style="font-size:11px;font-weight:900;color:${textColor}">${pct}%</span></span>`;
     })();
     const indic=c.indication||(c.target?calcIndication(c.monthlySales||0,c.target):'');
     const indicPart=(indic&&indic!=='🚀')?`<span style="font-size:13px;">${indic}</span>`:'';
