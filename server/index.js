@@ -1766,7 +1766,9 @@ app.get('/mmd/period-data', mmdGuard, dataRateLimit, async (req, res) => {
         "shavuot",    CALCULATE([לכמה שבועות יספיק המלאי], ${df}),
         "yamim_haya", CALCULATE([ימים שהיה בהם מלאי],    ${df}),
         "pct_mkr",    CALCULATE([ימי מכר מכלל ימי עבודה %], ${df}),
-        "hamlatza_k", CALCULATE([המלצה להזמנה קרטון],     ${df})
+        "hamlatza_k", CALCULATE([המלצה להזמנה קרטון],     ${df}),
+        "tukuf",      [List of ת. תפוגת תוקף values],
+        "yamim",      MIN('תוקף FORM'[כמה ימים נשארו])
       )
     `, MMD_DS);
     const data = rows.map(r => ({
@@ -1781,6 +1783,8 @@ app.get('/mmd/period-data', mmdGuard, dataRateLimit, async (req, res) => {
       yamim_haya: r['[yamim_haya]'] != null ? Math.round(r['[yamim_haya]'])          : null,
       pct_mkr:    r['[pct_mkr]']   != null ? Math.round(r['[pct_mkr]'])             : null,
       hamlatza:   r['[hamlatza_k]'] != null ? Math.round(r['[hamlatza_k]'] * 10) / 10 : null,
+      tukuf:      r['[tukuf]']      ?? null,
+      yamim:      r['[yamim]']      != null ? Math.round(r['[yamim]'])               : null,
     }));
     res.json({ ok: true, data });
   } catch(e) {
