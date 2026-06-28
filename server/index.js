@@ -799,14 +799,12 @@ async function geocodeBatch(clients) {
     c.pbiLat = c.lat || null;
     c.pbiLng = c.lng || null;
 
-    if (isValidIL(c.lat, c.lng)) {
-      const bbox = cityBBoxCache.get(c.city) ?? null;
-      if (!isWithinCityBBox(c.lat, c.lng, bbox)) {
-        c.gpsSource = 'pbi-bad';
-        c.lat = null; c.lng = null;
-      } else {
-        c.gpsSource = 'pbi';
-      }
+    const la = parseFloat(c.lat), lo = parseFloat(c.lng);
+    if (isValidIL(la, lo)) {
+      // Trust Priority GPS if inside Israel — no city-bbox cross-check
+      // (Azure/Nominatim bbox unreliable for Hebrew city abbreviations)
+      c.lat = la; c.lng = lo;
+      c.gpsSource = 'pbi';
     } else {
       c.gpsSource = 'geocoded';
     }
