@@ -14,7 +14,7 @@ if (!process.env.PBI_TENANT && process.env.AZURE_TENANT_ID) {
 const fs      = require('fs');
 const path    = require('path');
 const ExcelJS = require('exceljs');
-const { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchHalaviFromBI, fetchDagimFromBI, fetchPhotoUrls, triggerAndWaitRefresh } = require('./pbi-kapua');
+const { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchHalaviFromBI, fetchDagimFromBI, fetchPhotoUrls, triggerAndWaitRefresh, fetchWeeklySales } = require('./pbi-kapua');
 const { fetchExtraSheets }   = require('./pbi-extra-sheets');
 const { fetchDagimYaveshFromBI } = require('./pbi-dagim-yavesh');
 
@@ -1409,6 +1409,20 @@ async function main() {
           console.log(`dagim-yavesh-base.json: all ${Object.keys(dagimYaveshData).length} yavesh products mapped, reserve clean`);
         }
       }
+    }
+
+    // ── weekly sales trend (last 7 ISO-weeks) ────────────────────────────────
+    {
+      const allMks = Object.keys(prodData);
+      const weekMap = await fetchWeeklySales(allMks).catch(e => {
+        console.warn('⚠ fetchWeeklySales (non-fatal):', e.message);
+        return {};
+      });
+      let wkCount = 0;
+      for (const [mk, ws] of Object.entries(weekMap)) {
+        if (prodData[mk]) { prodData[mk].weekSales = ws; wkCount++; }
+      }
+      console.log(`weekSales: ${wkCount} מקטים`);
     }
 
     fs.writeFileSync(path.join(__dirname,'..','docs','product-data.json'),
