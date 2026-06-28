@@ -146,6 +146,7 @@
         min-height: 0 !important;
         box-sizing: border-box !important;
         transform-origin: top left !important;
+        width: 100% !important;
       }
       body.printing-expiry #expiry-grid > div { break-inside: avoid; width: auto !important; flex-shrink: 1 !important; min-width: 0 !important; }
       body.printing-expiry #expiry-grid > .expiry-sec-hdr { display: none !important; }
@@ -3539,8 +3540,9 @@ window.addEventListener('beforeprint', () => {
         let rowMaxH = 0;
         row.forEach(c => { const h = _cardNatH.get(c) || 0; if (h > rowMaxH) rowMaxH = h; });
         if (rowMaxH === 0) rowMaxH = 200;
-        const s = Math.min(cellW / (preNatW || 300), cellH / rowMaxH) * 0.92;
-        row.forEach(c => { c.style.zoom = Math.max(0.4, Math.min(s, 3)).toFixed(3); });
+        // width:100% already fills cellW — constrain only by height, cap zoom at 1.0
+        const s = Math.min(1.0, cellH / rowMaxH) * 0.93;
+        row.forEach(c => { c.style.zoom = Math.max(0.4, Math.min(s, 1.0)).toFixed(3); });
       }
     }
   } else if (op && op.style.display !== 'none') {
