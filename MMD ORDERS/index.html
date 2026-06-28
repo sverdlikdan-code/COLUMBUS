@@ -1709,11 +1709,8 @@
 // ── Splash enter ─────────────────────────────────────────
 window.loadPeriod = async function() {
   if (!baseAll) { render(); return; }
-  const p   = selectedPeriod();
-  const def = defaultPeriod();
-  const isDefault = p.y1===def.y1 && p.m1===def.m1 && p.y2===def.y2 && p.m2===def.m2;
-  if (isDefault) { all = baseAll; render(); return; }
-  st('טוען תקופה...');
+  const p = selectedPeriod();
+  st('טוען נתוני מכר...');
   try {
     const url = `/mmd/period-data?y1=${p.y1}&m1=${p.m1}&y2=${p.y2}&m2=${p.m2}`;
     const r = await fetch(url);
@@ -1728,8 +1725,9 @@ window.loadPeriod = async function() {
     });
     st('נטענו ' + all.length + ' פריטים');
   } catch(e) {
-    st('⚠ ' + e.message);
+    // server unavailable — fall back to pre-built JSON metrics
     all = baseAll;
+    st('⚠ נתוני מכר מהמטמון · ' + e.message);
   }
   render();
 };
