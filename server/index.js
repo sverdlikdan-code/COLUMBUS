@@ -534,16 +534,27 @@ async function geocodeGoogle(query) {
 }
 
 let _lastNominatimMs = 0;
-async function geocodeNominatim(query) {
+async function geocodeNominatim(query, city) {
   // respect 1 req/sec limit
   const wait = 1100 - (Date.now() - _lastNominatimMs);
   if (wait > 0) await new Promise(r => setTimeout(r, wait));
   _lastNominatimMs = Date.now();
   try {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&countrycodes=il`;
-    const resp = await fetch(url, { headers: { 'User-Agent': 'ColumbusDillerApp/1.1' }, signal: AbortSignal.timeout(4000) });
+    // structured query (street + city separately) gives better results for Hebrew
+    const bbox = city ? (cityBBoxCache.get(city) ?? null) : null;
+    const baseUrl = city
+      ? `https://nominatim.openstreetmap.org/search?street=${encodeURIComponent(query)}&city=${encodeURIComponent(city)}&country=Israel&format=json&limit=5&countrycodes=il`
+      : `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=3&countrycodes=il`;
+    const resp = await fetch(baseUrl, { headers: { 'User-Agent': 'ColumbusDillerApp/1.1' }, signal: AbortSignal.timeout(5000) });
     const data = await resp.json();
-    if (data.length > 0) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+    if (!Array.isArray(data) || !data.length) return null;
+    // prefer first result within city bbox
+    for (const r of data) {
+      const lat = parseFloat(r.lat), lng = parseFloat(r.lon);
+      if (!bbox || isWithinCityBBox(lat, lng, bbox)) return { lat, lng };
+    }
+    // fallback: first result regardless
+    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
   } catch (_) {}
   return null;
 }
@@ -573,11 +584,11 @@ async function normalizeAddressWithAI(address, city) {
   } catch (_) { return null; }
 }
 
-async function geocodeAddress(query) {
+async function geocodeAddress(query, city) {
   if (geocodeCache.has(query)) return geocodeCache.get(query);
   let result = await geocodeGoogle(query);
   if (!result) result = await geocodeAzure(query);
-  if (!result) result = await geocodeNominatim(query);
+  if (!result) result = await geocodeNominatim(query, city);
   geocodeCache.set(query, result || null);
   return result || null;
 }
@@ -607,27 +618,27 @@ async function geocodeAddressCascade(address, city) {
 
   // attempt 1: full cleaned address + city
   if (cleaned) {
-    const r = await geocodeAddress(cleaned + cityStr + ', ישראל');
+    const r = await geocodeAddress(cleaned + cityStr + ', ישראל', city);
     if (r) return r;
   }
 
   // attempt 2: street+number only + city
   const street = extractStreetNum(cleaned || address || '');
   if (street && street !== cleaned) {
-    const r = await geocodeAddress(street + cityStr + ', ישראל');
+    const r = await geocodeAddress(street + cityStr + ', ישראל', city);
     if (r) return r;
   }
 
   // attempt 3: AI normalization + city
   const aiAddr = await normalizeAddressWithAI(address, city);
   if (aiAddr) {
-    const r = await geocodeAddress(aiAddr + cityStr + ', ישראל');
+    const r = await geocodeAddress(aiAddr + cityStr + ', ישראל', city);
     if (r) { saveGeocodeCache(); return r; }
   }
 
   // attempt 4: city-only fallback — mark as approximate
   if (city) {
-    const r = await geocodeAddress(city + ', ישראל');
+    const r = await geocodeAddress(city + ', ישראל', city);
     if (r) return { ...r, cityCenter: true };
   }
 
