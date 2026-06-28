@@ -1139,6 +1139,17 @@ async function initRoute(){
       st.isDemo=true;
     }
   }
+  // Enrich GPS from STATIC_DATA by custId — PBI GPS is more reliable than server geocoding
+  if(STATIC_DATA?.routes && st.clients?.length){
+    const gpsMap={};
+    Object.values(STATIC_DATA.routes).forEach(day=>(day||[]).forEach(c=>{
+      if(c.custId&&c.lat&&c.lng) gpsMap[c.custId]={lat:c.lat,lng:c.lng};
+    }));
+    st.clients=st.clients.map(c=>{
+      if((!c.lat||!c.lng)&&gpsMap[c.custId]) return{...c,...gpsMap[c.custId],gpsSource:'static'};
+      return c;
+    });
+  }
   const demoBanner=document.getElementById('demo-banner');
   if(demoBanner) demoBanner.style.display=st.isDemo?'':'none';
 
