@@ -149,6 +149,8 @@
       }
       body.printing-expiry #expiry-grid > div { break-inside: avoid; width: auto !important; flex-shrink: 1 !important; min-width: 0 !important; }
       body.printing-expiry #expiry-grid > .expiry-sec-hdr { display: none !important; }
+      body.printing-expiry #expiry-grid > .expiry-haluka-sep { display: none !important; }
+      .expiry-haluka-sep { width:100%; flex-basis:100%; padding:5px 14px; margin:14px 0 4px; background:linear-gradient(90deg,#e8eaf6,#fff); color:#3949ab; font-size:12px; font-weight:bold; border-right:4px solid #3949ab; border-radius:0 4px 4px 0; letter-spacing:0.4px; }
       body.printing-expiry .grid-page-break { display: block !important; grid-column: 1 / -1; break-before: page; height: 0; margin: 0; padding: 0; }
 
 
@@ -3321,7 +3323,7 @@ function buildExpiryPage() {
         const sellDays = combinedSales > 0 ? (b.cartons / combinedSales) * 1.4 : Infinity;
         return isFinite(sellDays) && (b.daysLeft - sellDays) < (shelfLife ?? 0);
       });
-      if (window._expiryOnlySakana && !anySakana) return '';
+      if (window._expiryOnlySakana && !anySakana) return null;
       const batchRowsCombined = merged.map(b => {
         if (!(b.cartons > 0) || b.daysLeft == null) return '';
         const sellDays = combinedSales > 0 ? Math.ceil((b.cartons / combinedSales) * 1.4) : null;
@@ -3361,7 +3363,7 @@ function buildExpiryPage() {
         </svg>${_combinedThrow > 0 ? `<div style="font-size:8px;font-weight:800;color:#b71c1c;text-align:center;margin-top:1px;line-height:1.2;">🗑 ${Math.round(_combinedThrow)} קרט</div>` : ''}`;
       })();
       const cBorder = anySakana ? '2px solid #c62828' : '1px solid #dde0e8';
-      return `<div style="background:#fff;border-radius:8px;border:${cBorder};box-shadow:0 1px 4px rgba(0,0,0,0.06);padding:8px;width:300px;flex-shrink:0;display:flex;gap:8px;align-items:flex-start;position:relative;">
+      return { html: `<div data-haluka="${p.haluka ?? ''}" style="background:#fff;border-radius:8px;border:${cBorder};box-shadow:0 1px 4px rgba(0,0,0,0.06);padding:8px;width:300px;flex-shrink:0;display:flex;gap:8px;align-items:flex-start;position:relative;">
         <button onclick="hideExpiryCard('${mk}')" style="position:absolute;top:4px;left:4px;background:rgba(0,0,0,0.28);border:none;color:#fff;font-size:10px;cursor:pointer;border-radius:3px;padding:2px 7px;z-index:10;" class="no-print">✕</button>
         <div style="flex-shrink:0;text-align:center;">${imgHtml}
           <div style="font-size:9px;color:#888;margin-top:2px;">#${pick}</div>
@@ -3379,10 +3381,10 @@ function buildExpiryPage() {
             </td></tr></tfoot>
           </table>
         </div>
-      </div>`;
+      </div>`, haluka: p.haluka ?? null };
     }
     // ── Split warehouse view (default) ────────────────────────────────────────
-    return `<div style="
+    return { html: `<div data-haluka="${p.haluka ?? ''}" style="
       background:#fff; border-radius:8px; border:${cardBorder};
       box-shadow:0 1px 4px rgba(0,0,0,0.06); padding:8px;
       width:340px; flex-shrink:0; display:flex; gap:8px; align-items:flex-start;
@@ -3424,24 +3426,38 @@ function buildExpiryPage() {
           </tr></tfoot>
         </table>
       </div>
-    </div>`;
+    </div>`, haluka: p.haluka ?? null };
     });
-    const _validCards = _cardHtmls.filter(Boolean);
+    const _validCards = _cardHtmls.filter(c => c != null);
     if (_validCards.length > 0) {
       if (window._expiryMauchad) {
         _allMauchadCards.push(..._validCards);
       } else {
         _allHtml += `<div class="expiry-sec-hdr" style="width:100%;flex-basis:100%;padding:6px 14px;margin:10px 0 6px;background:#1a237e;color:#fff;font-size:13px;font-weight:bold;border-radius:6px;letter-spacing:0.3px;">${secLabel} — ${_validCards.length} מוצרים</div>`;
+        let _lastHalukaInSec = null;
         _validCards.forEach(ch => {
           if (_pgBreakCount > 0 && _pgBreakCount % 9 === 0) _allHtml += '<div class="grid-page-break"></div>';
-          _allHtml += ch;
+          if (ch.haluka != null && ch.haluka !== _lastHalukaInSec) {
+            if (_lastHalukaInSec !== null) _allHtml += `<div class="expiry-haluka-sep">חלוקה ${ch.haluka}</div>`;
+            _lastHalukaInSec = ch.haluka;
+          }
+          _allHtml += ch.html;
           _pgBreakCount++;
         });
       }
     }
   }
   } // end for _SECTIONS
-  if (window._expiryMauchad) _allHtml += _allMauchadCards.join('');
+  if (window._expiryMauchad) {
+    let _lastH = null;
+    for (const c of _allMauchadCards) {
+      if (c.haluka != null && c.haluka !== _lastH) {
+        if (_lastH !== null) _allHtml += `<div class="expiry-haluka-sep">חלוקה ${c.haluka}</div>`;
+        _lastH = c.haluka;
+      }
+      _allHtml += c.html;
+    }
+  }
   const filtered = window._expiryOnlySakana || window._expiryZafnLow;
   document.getElementById('expiry-title').textContent = filtered
     ? `דוח תוקף (${_totalShown} / ${_totalAll} מוצרים)`
@@ -3503,7 +3519,7 @@ window.addEventListener('beforeprint', () => {
     let preNatW = 300;
     const _cardNatH = new Map();
     if (window._expiryMauchad) {
-      document.querySelectorAll('#expiry-grid > div:not(.expiry-sec-hdr):not(.grid-page-break)').forEach(c => {
+      document.querySelectorAll('#expiry-grid > div:not(.expiry-sec-hdr):not(.grid-page-break):not(.expiry-haluka-sep)').forEach(c => {
         _cardNatH.set(c, c.offsetHeight || 200);
         preNatW = Math.max(preNatW, c.offsetWidth || 300);
       });
@@ -3514,18 +3530,32 @@ window.addEventListener('beforeprint', () => {
     if (pd) pd.textContent = 'הדפסה: ' + new Date().toLocaleDateString('he-IL');
     if (window._expiryMauchad) {
       const grid = document.getElementById('expiry-grid');
-      const cards = [...grid.querySelectorAll(':scope > div:not(.expiry-sec-hdr):not(.grid-page-break)')];
+      const cards = [...grid.querySelectorAll(':scope > div:not(.expiry-sec-hdr):not(.grid-page-break):not(.expiry-haluka-sep)')];
       grid._printOrigHTML = grid.innerHTML;
       grid.innerHTML = '';
 
-      // ── Card pages ────────────────────────────────────────────────────────
-      for (let i = 0; i < cards.length; i += 4) {
-        const grp = document.createElement('div');
-        grp.className = 'expiry-page-group';
-        cards.slice(i, i + 4).forEach(c => grp.appendChild(c));
+      // ── Card pages — new page per חלוקה group, 4 per page within group ──
+      let grp = null;
+      let lastHalukaGroup = null;
+      const flushGrp = () => {
+        if (!grp) return;
         while (grp.children.length < 4) grp.appendChild(document.createElement('div'));
         grid.appendChild(grp);
-      }
+        grp = null;
+      };
+      cards.forEach((c, i) => {
+        const hk = c.dataset.haluka || '';
+        const groupChanged = hk !== '' && hk !== lastHalukaGroup;
+        const rowFull = grp && grp.querySelectorAll('[data-haluka]').length >= 4;
+        if (groupChanged || rowFull) flushGrp();
+        if (!grp) {
+          grp = document.createElement('div');
+          grp.className = 'expiry-page-group';
+        }
+        if (hk !== '') lastHalukaGroup = hk;
+        grp.appendChild(c);
+      });
+      flushGrp();
       // A4 landscape @ 96dpi: content 285mm × 198mm = 1077 × 748px
       const MM = 96 / 25.4;
       const cellW = (285 * MM - 4) / 2;   // ≈ 536px (2 columns, 1 gap)
