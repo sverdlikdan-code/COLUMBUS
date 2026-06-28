@@ -866,6 +866,7 @@
   let fams = new Set();
   let cos  = new Set();
   let selStart = null, selEnd = null; // null = default (prev+cur month); range selection
+  let baseAll = null; // base JSON data — never mutated
   let ordOnly    = false;
   let noMkr      = false;
   let maavarMode = false;
@@ -904,7 +905,7 @@
     defBtn.id = 'period-def';
     defBtn.className = 'period-def' + (selStart ? ' off' : '');
     defBtn.textContent = '✓ ברירת מחדל';
-    defBtn.onclick = () => { selStart = null; selEnd = null; buildPeriodBar(); load(); };
+    defBtn.onclick = () => { selStart = null; selEnd = null; buildPeriodBar(); loadPeriod(); };
     bar.appendChild(defBtn);
 
     // Month chips: 13 months back + current = 14 total
@@ -945,7 +946,7 @@
           else if (cn < cs) { selStart = {y, m}; }
           else { selEnd = {y, m}; }
         }
-        buildPeriodBar(); load();
+        buildPeriodBar(); loadPeriod();
       };
       bar.appendChild(chip);
     }
@@ -1035,10 +1036,11 @@
       if (!r.ok) throw new Error('HTTP ' + r.status);
       const j = await r.json();
       if (!j.ok) throw new Error(j.error || 'API error');
-      all = j.data;
+      baseAll = j.data;
+      all = baseAll;
       buildPeriodBar();
       buildChips();
-      render();
+      await loadPeriod();
       const ts = j.ts ? new Date(j.ts).toLocaleTimeString('he-IL') : '';
       st('נטענו ' + all.length + ' פריטים · ' + ts);
       const upEl = document.getElementById('pbi-update');
@@ -1705,6 +1707,33 @@
 })();
 
 // ── Splash enter ─────────────────────────────────────────
+window.loadPeriod = async function() {
+  if (!baseAll) { render(); return; }
+  const p   = selectedPeriod();
+  const def = defaultPeriod();
+  const isDefault = p.y1===def.y1 && p.m1===def.m1 && p.y2===def.y2 && p.m2===def.m2;
+  if (isDefault) { all = baseAll; render(); return; }
+  st('טוען תקופה...');
+  try {
+    const url = `/mmd/period-data?y1=${p.y1}&m1=${p.m1}&y2=${p.y2}&m2=${p.m2}`;
+    const r = await fetch(url);
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || 'שגיאה');
+    const map = {};
+    j.data.forEach(d => { map[String(d.mkt)] = d; });
+    all = baseAll.map(row => {
+      const pd = map[String(row.mkt)];
+      if (!pd) return Object.assign({}, row, { mkr_shvua:null, mkr_tk:null, shavuot:null, yamim_haya:null, pct_mkr:null, hamlatza:null });
+      return Object.assign({}, row, { mkr_shvua:pd.mkr_shvua, mkr_tk:pd.mkr_tk, shavuot:pd.shavuot, yamim_haya:pd.yamim_haya, pct_mkr:pd.pct_mkr, hamlatza:pd.hamlatza });
+    });
+    st('נטענו ' + all.length + ' פריטים');
+  } catch(e) {
+    st('⚠ ' + e.message);
+    all = baseAll;
+  }
+  render();
+};
+
 window.enterApp = function() {
   const sp = document.getElementById('splash');
   if (!sp) return;
