@@ -2220,14 +2220,24 @@ function updateTable() {
   title.textContent = `טבלת מיקום — ${SEC_NAMES[sec]||sec} (${Object.keys(state[sec]).filter(k => state[sec][k]).length} מוצרים)`;
   const order = _getPrintOrder(sec);
   const btnStyle = 'background:none;border:none;cursor:pointer;font-size:13px;padding:0 2px;line-height:1;color:#1565C0;';
-  body.innerHTML = order.map((pick, i) => {
+  const HALUKA_COLORS = ['#e8eaf6','#fce4ec','#e8f5e9','#fff3e0','#e0f7fa','#f3e5f5','#fafafa'];
+  let _tblLastHaluka = null;
+  let _tblHalukaIdx  = -1;
+  let html = '';
+  order.forEach((pick, i) => {
     const p  = state[sec][pick];
-    if (!p) return '';
-    const bg = i % 2 === 0 ? '#fff' : '#f5f7ff';
+    if (!p) return;
+    if (p.haluka != null && p.haluka !== _tblLastHaluka) {
+      _tblLastHaluka = p.haluka;
+      _tblHalukaIdx  = (_tblHalukaIdx + 1) % HALUKA_COLORS.length;
+      const zoneColor = HALUKA_COLORS[_tblHalukaIdx];
+      html += `<tr><td colspan="7" style="padding:4px 12px;background:${zoneColor};border-top:2px solid #bdbdbd;border-bottom:1px solid #e0e0e0;font-size:10px;font-weight:bold;color:#37474f;letter-spacing:0.5px;">── אזור ${p.haluka} ──</td></tr>`;
+    }
+    const bg = HALUKA_COLORS[_tblHalukaIdx < 0 ? 0 : _tblHalukaIdx];
     const fl = famColor(p.fam);
     const up   = i > 0              ? `<button style="${btnStyle}" onclick="movePrintOrder('${sec}',${i},-1)" title="הזז למעלה">▲</button>` : '<span style="width:18px;display:inline-block"></span>';
     const down = i < order.length-1 ? `<button style="${btnStyle}" onclick="movePrintOrder('${sec}',${i},1)"  title="הזז למטה">▼</button>`  : '<span style="width:18px;display:inline-block"></span>';
-    return `<tr draggable="true" data-pick="${pick}" data-idx="${i}" data-sec="${sec}" style="background:${bg}; border-left:3px solid ${fl}; cursor:grab;">
+    html += `<tr draggable="true" data-pick="${pick}" data-idx="${i}" data-sec="${sec}" style="background:${bg}; border-left:3px solid ${fl}; cursor:grab;">
       <td style="padding:2px 8px; text-align:right; font-size:10px; font-weight:bold; color:#1565C0; white-space:nowrap;">${SEC_NAMES[sec]||sec}</td>
       <td style="padding:2px 6px; text-align:center; white-space:nowrap;">
         <span style="color:#ccc;font-size:13px;margin-left:2px;cursor:grab;" title="גרור לשינוי סדר">⠿</span>${up}${down}<span style="margin-right:4px;font-weight:bold;color:#888;font-size:10px;">${(_SEC_BASE[sec]||0) + i + 1}</span>
@@ -2238,7 +2248,8 @@ function updateTable() {
       <td style="padding:2px 10px; font-weight:bold;">${p.name || ''}</td>
       <td style="padding:2px 10px; font-size:10px; color:#555;">${_cleanStr(p.fam) || ''}</td>
     </tr>`;
-  }).join('');
+  });
+  body.innerHTML = html;
   _initTableDrag(body);
 }
 
@@ -3434,13 +3445,8 @@ function buildExpiryPage() {
         _allMauchadCards.push(..._validCards);
       } else {
         _allHtml += `<div class="expiry-sec-hdr" style="width:100%;flex-basis:100%;padding:6px 14px;margin:10px 0 6px;background:#1a237e;color:#fff;font-size:13px;font-weight:bold;border-radius:6px;letter-spacing:0.3px;">${secLabel} — ${_validCards.length} מוצרים</div>`;
-        let _lastHalukaInSec = null;
         _validCards.forEach(ch => {
           if (_pgBreakCount > 0 && _pgBreakCount % 9 === 0) _allHtml += '<div class="grid-page-break"></div>';
-          if (ch.haluka != null && ch.haluka !== _lastHalukaInSec) {
-            if (_lastHalukaInSec !== null) _allHtml += `<div class="expiry-haluka-sep">חלוקה ${ch.haluka}</div>`;
-            _lastHalukaInSec = ch.haluka;
-          }
           _allHtml += ch.html;
           _pgBreakCount++;
         });
@@ -3449,14 +3455,7 @@ function buildExpiryPage() {
   }
   } // end for _SECTIONS
   if (window._expiryMauchad) {
-    let _lastH = null;
-    for (const c of _allMauchadCards) {
-      if (c.haluka != null && c.haluka !== _lastH) {
-        if (_lastH !== null) _allHtml += `<div class="expiry-haluka-sep">חלוקה ${c.haluka}</div>`;
-        _lastH = c.haluka;
-      }
-      _allHtml += c.html;
-    }
+    _allHtml += _allMauchadCards.map(c => c.html).join('');
   }
   const filtered = window._expiryOnlySakana || window._expiryZafnLow;
   document.getElementById('expiry-title').textContent = filtered
@@ -3534,28 +3533,14 @@ window.addEventListener('beforeprint', () => {
       grid._printOrigHTML = grid.innerHTML;
       grid.innerHTML = '';
 
-      // ── Card pages — new page per חלוקה group, 4 per page within group ──
-      let grp = null;
-      let lastHalukaGroup = null;
-      const flushGrp = () => {
-        if (!grp) return;
+      // ── Card pages: 4 per page (2×2) ────────────────────────────────────
+      for (let i = 0; i < cards.length; i += 4) {
+        const grp = document.createElement('div');
+        grp.className = 'expiry-page-group';
+        cards.slice(i, i + 4).forEach(c => grp.appendChild(c));
         while (grp.children.length < 4) grp.appendChild(document.createElement('div'));
         grid.appendChild(grp);
-        grp = null;
-      };
-      cards.forEach((c, i) => {
-        const hk = c.dataset.haluka || '';
-        const groupChanged = hk !== '' && hk !== lastHalukaGroup;
-        const rowFull = grp && grp.querySelectorAll('[data-haluka]').length >= 4;
-        if (groupChanged || rowFull) flushGrp();
-        if (!grp) {
-          grp = document.createElement('div');
-          grp.className = 'expiry-page-group';
-        }
-        if (hk !== '') lastHalukaGroup = hk;
-        grp.appendChild(c);
-      });
-      flushGrp();
+      }
       // A4 landscape @ 96dpi: content 285mm × 198mm = 1077 × 748px
       const MM = 96 / 25.4;
       const cellW = (285 * MM - 4) / 2;   // ≈ 536px (2 columns, 1 gap)
