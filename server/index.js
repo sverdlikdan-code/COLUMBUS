@@ -542,8 +542,13 @@ async function geocodeNominatim(query, city) {
   try {
     // structured query (street + city separately) gives better results for Hebrew
     const bbox = city ? (cityBBoxCache.get(city) ?? null) : null;
+    // strip city/country suffix so street= param contains only street+number
+    let streetPart = query;
+    if (city) {
+      streetPart = query.replace(new RegExp(`,\\s*${city}.*$`), '').replace(/,\s*ישראל\s*$/, '').trim();
+    }
     const baseUrl = city
-      ? `https://nominatim.openstreetmap.org/search?street=${encodeURIComponent(query)}&city=${encodeURIComponent(city)}&country=Israel&format=json&limit=5&countrycodes=il`
+      ? `https://nominatim.openstreetmap.org/search?street=${encodeURIComponent(streetPart)}&city=${encodeURIComponent(city)}&country=Israel&format=json&limit=5&countrycodes=il`
       : `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=3&countrycodes=il`;
     const resp = await fetch(baseUrl, { headers: { 'User-Agent': 'ColumbusDillerApp/1.1' }, signal: AbortSignal.timeout(5000) });
     const data = await resp.json();
@@ -587,7 +592,7 @@ async function normalizeAddressWithAI(address, city) {
 async function geocodeAddress(query, city) {
   if (geocodeCache.has(query)) return geocodeCache.get(query);
   let result = await geocodeGoogle(query);
-  if (!result) result = await geocodeAzure(query);
+  // Skip Azure — consistently returns wrong Israeli cities for Hebrew addresses
   if (!result) result = await geocodeNominatim(query, city);
   geocodeCache.set(query, result || null);
   return result || null;

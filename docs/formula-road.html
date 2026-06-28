@@ -567,9 +567,10 @@ let _gpsClickHandler=null;
 const TILE_DEFS={
   light:    {icon:'☁',  label:'בהיר',   url:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', opts:{attribution:'© CartoDB',subdomains:'abcd',maxZoom:19}},
   street:   {icon:'🗺', label:'רחובות', url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', opts:{attribution:'© Esri',maxZoom:19}},
+  osm:      {icon:'🏠', label:'מספרי בתים', url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', opts:{attribution:'© OpenStreetMap',subdomains:'abc',maxZoom:19}},
   satellite:{icon:'🛰', label:'לוויין', url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts:{attribution:'© Esri',maxZoom:19}},
 };
-const TILE_ORDER=['light','street','satellite'];
+const TILE_ORDER=['light','street','osm','satellite'];
 
 function setTile(key){
   if(!map) return;
