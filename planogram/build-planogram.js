@@ -14,7 +14,7 @@ if (!process.env.PBI_TENANT && process.env.AZURE_TENANT_ID) {
 const fs      = require('fs');
 const path    = require('path');
 const ExcelJS = require('exceljs');
-const { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchHalaviFromBI, fetchDagimFromBI, fetchPhotoUrls } = require('./pbi-kapua');
+const { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchHalaviFromBI, fetchDagimFromBI, fetchPhotoUrls, triggerAndWaitRefresh } = require('./pbi-kapua');
 const { fetchExtraSheets }   = require('./pbi-extra-sheets');
 const { fetchDagimYaveshFromBI } = require('./pbi-dagim-yavesh');
 
@@ -679,6 +679,9 @@ function cleanFam(s) {
 // MAIN
 // ═══════════════════════════════════════════════════════════════════════════
 async function main() {
+  // Trigger PBI dataset refresh before reading to ensure fresh data
+  await triggerAndWaitRefresh().catch(e => console.warn('⚠  triggerAndWaitRefresh error (non-fatal):', e.message));
+
   // Load קפוא data from Power BI (replaces קפוא.xlsx)
   // stock = cartons at אשדוד only (מחסן Main, no צפון)
   const allMakatim = Object.values(KAPUA_PICKS).map(p => p.makat);

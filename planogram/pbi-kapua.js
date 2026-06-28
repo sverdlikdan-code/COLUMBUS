@@ -1082,4 +1082,41 @@ async function fetchPhotoUrls() {
   return result;
 }
 
-module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchStopSale, fetchHalaviFromBI, fetchDagimFromBI, fetchPhotoUrls, getToken };
+// ── Trigger PBI dataset refresh and wait for completion ─────────────────────
+// Polls every 30s, gives up after maxWaitMs (default 15 min)
+async function triggerAndWaitRefresh(maxWaitMs = 15 * 60 * 1000) {
+  const t = await getToken();
+  const url = `https://api.powerbi.com/v1.0/myorg/groups/${WORKSPACE}/datasets/${DATASET}/refreshes`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + t, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notifyOption: 'NoNotification' }),
+  });
+  if (res.status === 202) {
+    console.log('⟳  PBI refresh triggered (202 Accepted). Waiting for completion...');
+  } else if (res.status === 400) {
+    const j = await res.json().catch(() => ({}));
+    console.warn('⚠  PBI refresh already in progress or not needed:', j.error?.message || res.status);
+    // Already running — still poll for completion below
+  } else {
+    const txt = await res.text().catch(() => '');
+    console.warn(`⚠  PBI refresh trigger returned ${res.status}: ${txt.slice(0, 200)}`);
+    return; // Don't block the build
+  }
+  // Poll until Completed or timeout
+  const deadline = Date.now() + maxWaitMs;
+  while (Date.now() < deadline) {
+    await new Promise(r => setTimeout(r, 30_000));
+    const newT = await getToken(); // token may expire during wait
+    const hist = await fetch(`${url}?$top=1`, { headers: { 'Authorization': 'Bearer ' + newT } });
+    const j = await hist.json();
+    const latest = j?.value?.[0];
+    const status = latest?.status;
+    console.log(`   PBI refresh status: ${status} (${latest?.startTime ?? '?'} → ${latest?.endTime ?? '…'})`);
+    if (status === 'Completed') { console.log('✅  PBI refresh Completed'); return; }
+    if (status === 'Failed')    { console.warn('❌  PBI refresh Failed:', latest?.serviceExceptionJson || ''); return; }
+  }
+  console.warn('⚠  PBI refresh timed out — proceeding with possibly stale data');
+}
+
+module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchStopSale, fetchHalaviFromBI, fetchDagimFromBI, fetchPhotoUrls, getToken, triggerAndWaitRefresh };
