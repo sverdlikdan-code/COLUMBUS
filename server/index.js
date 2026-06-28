@@ -1327,7 +1327,7 @@ app.get('/api/mekarer-export', requireAuth, async (req, res) => {
 });
 
 // GET /pbi/formula-refresh — last PBI dataset refresh time for FORMULA dataset
-app.get('/pbi/formula-refresh', dataRateLimit, async (req, res) => {
+app.get('/pbi/formula-refresh', requireAuth, dataRateLimit, async (req, res) => {
   try {
     const t = await getDatasetRefreshTime(process.env.POWERBI_DATASET_ID);
     res.json({ ok: true, refreshedAt: t });
@@ -1457,19 +1457,16 @@ app.post('/api/order-history', requireAuth, dataRateLimit, (req, res) => {
 });
 
 // SSRF guard: only allow HTTPS to external public hosts
+const PHOTO_ALLOWED_HOSTS = new Set(['priority.dilerbmd.com']);
 function isSafePhotoUrl(url) {
-  if (typeof url !== 'string' || url.length > 2000) return false;
+  if (typeof url !== 'string' || url.length > 500) return false;
   let parsed;
   try { parsed = new URL(url); } catch { return false; }
   if (parsed.protocol !== 'https:') return false;
-  const host = parsed.hostname.toLowerCase();
-  if (host === 'localhost' || host === '::1') return false;
-  if (/^(127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host)) return false;
-  if (/\.(internal|local|localhost|intranet|corp)$/.test(host)) return false;
-  return true;
+  return PHOTO_ALLOWED_HOSTS.has(parsed.hostname.toLowerCase());
 }
 
-app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
+app.post('/api/export-order-xlsx', requireAuth, dataRateLimit, async (req, res) => {
   try {
     const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
     if (!rows.length) return res.status(400).json({ error: 'missing rows' });
@@ -1609,7 +1606,7 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
 });
 
 // ── POSITION TABLE XLSX (מיקום + photos) ────────────────────────────────────
-app.post('/api/export-position-xlsx', dataRateLimit, async (req, res) => {
+app.post('/api/export-position-xlsx', requireAuth, dataRateLimit, async (req, res) => {
   try {
     const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
     if (!rows.length) return res.status(400).json({ error: 'missing rows' });
