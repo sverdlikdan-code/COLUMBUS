@@ -59,3 +59,4 @@
 - [[session-2026-06-25]] — Сессия 2026-06-25: Excel фото+умная таблица+скромные цвета, תוקף נדרש flag, חסר в maavarMode, export=filtered()
 - [[formula-road-app]] — Formula Road SQL Migration: /managers /manager-agents /customers → form.dbo, fixPriNumbers, Google Maps первый, bbox→null кэш
 - [[session-2026-06-26-security]] — Сессия 2026-06-26: еженедельный security scan + hardening — SSRF, auth guards, DAX injection, mekarer whitelist, rate limit fix
+- [[session-2026-06-28-print]] — Сессия 2026-06-28: תוקף print A4 landscape финальный фикс — per-row zoom, width 100%, symmetry, no blank page
