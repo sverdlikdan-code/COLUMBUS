@@ -1108,14 +1108,16 @@ async function selectDay(day){
 }
 
 // ── ROUTE ──────────────────────────────────────────────────────────────────
+let _initRouteId = 0;
 async function initRoute(){
+  const myId = ++_initRouteId;
   st.sortMode='ai'; st.selectedCities=[]; st.selectedId=null;
   st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null;
   st.excluded=loadExcluded(st.agent?.code, st.day);
   document.getElementById('route-title').textContent='DILER FORMULA';
   document.getElementById('route-sub').textContent=`${st.agent.name} · יום ${DAY_LABELS[st.day]}`;
   document.getElementById('export-btn').classList.remove('visible');
-  setTab('list');
+  setTab('list', true); // true = skip renderMap (data not ready yet)
   buildDaySwitcher();
   fillWorkDaysBar();
   // Show logout button only for RLS-authenticated agents (not managers using picker)
@@ -1176,6 +1178,7 @@ async function initRoute(){
     return corr?{...c,lat:corr.lat,lng:corr.lng,gpsSource:'correction'}:c;
   });
 
+  if(myId !== _initRouteId) return; // newer call in flight — discard stale results
   st.aiClients=nearestNeighbor([...st.clients]);
   st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; triggerOsrm();
   updateKmBar();
@@ -1186,7 +1189,7 @@ async function initRoute(){
   setupSortable();
   setupDragScroll(document.getElementById('list-pane'));
   setupCardDoubleTap(document.getElementById('list-pane'));
-  if(window.innerWidth>=700) setTimeout(()=>renderMap(),200);
+  if(window.innerWidth>=700) setTimeout(()=>{ if(myId===_initRouteId) renderMap(); },200);
 }
 
 function activeClients(){ return st.clients.filter(c=>!st.excluded.has(c.custId)); }
@@ -1210,7 +1213,7 @@ function switchDay(d){
   initRoute();
 }
 
-function setTab(t){
+function setTab(t, skipMap=false){
   st.tab=t;
   document.getElementById('tab-list').classList.toggle('active',t==='list');
   document.getElementById('tab-map').classList.toggle('active',t==='map');
@@ -1222,7 +1225,7 @@ function setTab(t){
     document.getElementById('list-pane').style.display=t==='list'?'block':'none';
     document.getElementById('map-pane').classList.toggle('active',t==='map');
   }
-  if(t==='map'||window.innerWidth>=700) renderMap();
+  if(!skipMap && (t==='map'||window.innerWidth>=700)) renderMap();
 }
 
 function setSort(mode){
