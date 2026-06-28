@@ -78,11 +78,47 @@ https://api.sverdlik-apps.site/formula-road?k=LN80v9eK7hEng5LagaHs2Feh
 
 ---
 
+---
+
+## SQL Migration — 2026-06-25 ✅
+
+**Задача:** мигрировать Formula Road с DAX/Power BI → прямой SQL на form.dbo (192.168.100.246)
+
+**Выполнено:**
+
+### server/db.js — пул подключений к SQL Server
+- База `form` (не `icecrea`) — подтверждено через TMDL
+- Credentials из `.env`: DB_USER=ReadOnlyUser, DB_PASSWORD=aA123456b!B
+
+### Миграция эндпоинтов
+- `/managers` → SQL: `form.dbo.CUSTOMERS` + `system.dbo.USERSB.SNAME` (вместо TEAMS.xlsx)
+- `/manager-agents` → SQL: тот же JOIN, фильтр по SNAME
+- `/customers` → SQL: `CUSTCALLFREQUENCY` JOIN `CUSTOMERS` + `AGENTS` + `USERSB`, фильтр `cs.STATDES = N'פעיל'`
+- `loadPBISiblingData` → SQL: `form.dbo.CUSTOMERS` GPSX/GPSY
+- `loadFormIIntGPS` → SQL: `form.dbo.CUSTOMERS` где GPS не null/0
+
+### Баг-фиксы
+- **Числа в Priority хранятся перевёрнуто**: `fixPriNumbers()` — реверсит digit-runs в строках (91→19, 672→276). Применяется к custName, address, agentName, schedulerName, param7
+- **Пустая карта при смене дня**: static-data использовалась даже с нулевым GPS → теперь ВСЕГДА API первым, static только fallback при недоступности сервера
+- **bbox fail → null в кэше**: если Google нашёл адрес вне города — явно пишем null в geocode-cache, чтобы не повторять неверный результат
+
+### Геокодинг
+- Порядок изменён: **Google Maps первый** (лучше знает Израиль) → Azure Maps → Nominatim
+- То же для getCityBBox
+- Geocode cache (1777 записей) скопирован с dev на прод
+- **Важно:** кэш только для адресов прошедших bbox; неверные пишутся как null
+
+### Архитектура
+- `AGENTCODE` в AGENTS — строка ("126", "47"), не число
+- `ub.SNAME` из `system.dbo.USERSB` = имя менеджера/сдарана (не реверсируется PBI-ем → не трогаем)
+- Priority хранит Hebrew в VISUAL ORDER → числа реверсированы, Hebrew сам правильно рендерится через BiDi
+
+**Прод:** PM2 `columbus-api` на 31.154.67.58, автодеплой через git pull
+
+---
+
 ## Что нужно сделать
 
-- [ ] Дождаться APK v3 (`b8a3654a`)
-- [ ] Купить домен (~$8-10/год на cloudflare.com/products/registrar)
-- [ ] Создать Named Tunnel с постоянным URL
-- [ ] Обновить `client.ts` на постоянный URL → финальная сборка APK
-- [ ] Протестировать APK на телефоне агента
-- [ ] Google Play: $25 аккаунт разработчика + сборка AAB + листинг
+- [ ] Phase 2: продажи + יעד $ в карточке клиента (ALL_PARTS = 6 таблиц из 3 компаний + FORMULATAHSHIV Excel)
+- [ ] Мигрировать `/manager/gps-report`, `/api/client-sales`, `/api/mekarer-parts` с DAX на SQL
+- [ ] APK через Capacitor (обернуть formula-road.html)
