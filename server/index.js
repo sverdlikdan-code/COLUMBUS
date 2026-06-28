@@ -901,7 +901,7 @@ app.get('/manager-agents', requireAuth, dataRateLimit, async (req, res) => {
   }
 });
 
-// GET /customers?agent=CODE&day=1 — direct SQL → form (Phase 1: no sales data)
+// GET /customers?agent=CODE&day=1 — SQL → form with sales + target (Phase 2)
 app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
   const { agent, day } = req.query;
   if (!agent) return res.status(400).json({ error: 'agent required' });
@@ -914,6 +914,32 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
   try {
     const dayFilter = dayNum ? 'AND ccf.DAYNUM = @dayNum' : '';
     const result = await db.query(`
+      WITH
+      sales_cte AS (
+        SELECT i.CUST,
+          SUM(i.TOTPRICE) AS monthlySales,
+          MAX(DATEADD(MINUTE, CAST(i.IVDATE AS BIGINT), '19880101')) AS lastDate
+        FROM form.dbo.INVOICES i
+        JOIN form.dbo.AGENTS a2 ON i.AGENT = a2.AGENT AND a2.AGENTCODE = @agent
+        WHERE MONTH(DATEADD(MINUTE, CAST(i.IVDATE AS BIGINT), '19880101')) = MONTH(GETDATE())
+          AND YEAR(DATEADD(MINUTE, CAST(i.IVDATE AS BIGINT), '19880101')) = YEAR(GETDATE())
+        GROUP BY i.CUST
+      ),
+      target_cte AS (
+        SELECT sti.CUST,
+          CASE MONTH(GETDATE())
+            WHEN 1  THEN sti.JANPRICE WHEN 2  THEN sti.FEBPRICE WHEN 3  THEN sti.MARPRICE
+            WHEN 4  THEN sti.APRPRICE WHEN 5  THEN sti.MAYPRICE WHEN 6  THEN sti.JUNPRICE
+            WHEN 7  THEN sti.JULPRICE WHEN 8  THEN sti.AUGPRICE WHEN 9  THEN sti.SEPPRICE
+            WHEN 10 THEN sti.OCTPRICE WHEN 11 THEN sti.NOVPRICE WHEN 12 THEN sti.DECPRICE
+          END AS monthTarget
+        FROM form.dbo.SALESTARGETITEMS sti
+        JOIN form.dbo.AGENTS a2 ON sti.AGENT = a2.AGENT AND a2.AGENTCODE = @agent
+        INNER JOIN (
+          SELECT TOP 1 SALESTARGET FROM form.dbo.SALESTARGETS
+          WHERE STYEAR <> '' ORDER BY STYEAR DESC
+        ) st ON sti.SALESTARGET = st.SALESTARGET
+      )
       SELECT
         c.CUSTNAME        AS custId,
         c.CUSTDES         AS custName,
@@ -929,13 +955,18 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
         a.AGENTNAME       AS agentName,
         ub.SNAME          AS schedulerName,
         ccf.DAYNUM        AS dayNum,
-        ccf.TOPP_NUM1     AS priorityOrder
+        ccf.TOPP_NUM1     AS priorityOrder,
+        ISNULL(s.monthlySales, 0) AS monthlySales,
+        ISNULL(t.monthTarget, 0)  AS target,
+        s.lastDate                AS lastSaleDate
       FROM form.dbo.CUSTCALLFREQUENCY ccf
       INNER JOIN form.dbo.CUSTOMERS c   ON ccf.CUST    = c.CUST
       LEFT  JOIN form.dbo.CUSTSTATS cs  ON c.CUSTSTAT  = cs.CUSTSTAT
       LEFT  JOIN form.dbo.CUSTSPEC  csp ON c.CUST      = csp.CUST
       LEFT  JOIN form.dbo.AGENTS    a   ON c.AGENT     = a.AGENT
       LEFT  JOIN system.dbo.USERSB  ub  ON c.YISS_MANAGER = ub.USERB
+      LEFT  JOIN sales_cte s            ON c.CUST      = s.CUST
+      LEFT  JOIN target_cte t           ON c.CUST      = t.CUST
       WHERE a.AGENTCODE = @agent
         AND cs.STATDES  = N'פעיל'
         ${dayFilter}
@@ -946,6 +977,9 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
       const custName = fixPriNumbers(r.custName || '');
       const address  = fixPriNumbers(r.address  || '');
       const city     = r.city     || '';
+      const monthlySales = parseFloat(r.monthlySales) || 0;
+      const target       = parseFloat(r.target)       || 0;
+      const pct          = target > 0 ? Math.round((monthlySales / target) * 100) : 0;
       return {
         custId:        r.custId,
         custName,
@@ -964,12 +998,12 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
         dayNum:        r.dayNum   ? parseInt(r.dayNum) : dayNum,
         dayLabel:      r.dayNum   ? (DAY_LABELS[parseInt(r.dayNum)] || null) : dayLabel,
         priorityOrder: r.priorityOrder ? parseInt(r.priorityOrder) : 0,
-        lastOrderDate: null,
-        monthlySales:  0,
-        totalSales:    0,
-        lastSaleDate:  null,
-        target:        0,
-        pct:           0,
+        lastOrderDate: r.lastSaleDate ? r.lastSaleDate.toISOString().slice(0,10) : null,
+        monthlySales,
+        totalSales:    monthlySales,
+        lastSaleDate:  r.lastSaleDate ? r.lastSaleDate.toISOString().slice(0,10) : null,
+        target,
+        pct,
       };
     });
     await geocodeBatch(clients);
