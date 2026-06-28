@@ -448,6 +448,56 @@ async function fetchKapuaFromBI(makatim) {
   return { kapuaData: result, nameEnMap };
 }
 
+// ── Weekly sales trend: last 7 ISO-weeks per makat ──────────────────────────
+// Returns Map<makat, [w1,w2,...,w7]> oldest→newest, values = avg קרט/יום that week
+async function fetchWeeklySales(makatim) {
+  if (!makatim || !makatim.length) return {};
+  const t = await getToken();
+  const makatList = makatim.map(m => `"${String(m).replace(/"/g, '')}"`).join(',');
+  const rows = await dax(t, `
+    EVALUATE
+    CALCULATETABLE(
+      ADDCOLUMNS(
+        SUMMARIZE(
+          'ALL_PARTS',
+          'ALL_PARTS'[מק'ט],
+          "yr",  YEAR('ALL_PARTS'[תאריך]),
+          "wk",  WEEKNUM('ALL_PARTS'[תאריך], 2)
+        ),
+        "avg_day", DIVIDE(
+          CALCULATE(SUM('ALL_PARTS'[כמות בקרטונים])),
+          7
+        )
+      ),
+      'ALL_PARTS'[חברה] = "FORMULA",
+      'ALL_PARTS'[מחסן] = "Main",
+      FILTER(ALL('ALL_PARTS'), 'ALL_PARTS'[תאריך] >= TODAY() - 49),
+      'ALL_PARTS'[מק'ט] IN {${makatList}}
+    )
+    ORDER BY 'ALL_PARTS'[מק'ט], [yr], [wk]
+  `).catch(e => { console.warn('fetchWeeklySales DAX error:', e.message); return []; });
+
+  // Group by makat → sorted array of weekly avg (last 7 weeks)
+  const byMakat = {};
+  for (const r of rows) {
+    const mk  = String(r["ALL_PARTS[מק'ט]"] ?? '');
+    const yr  = r['[yr]'];
+    const wk  = r['[wk]'];
+    const val = r['[avg_day]'] || 0;
+    if (!mk) continue;
+    if (!byMakat[mk]) byMakat[mk] = [];
+    byMakat[mk].push({ yr, wk, val });
+  }
+  const result = {};
+  for (const [mk, weeks] of Object.entries(byMakat)) {
+    weeks.sort((a, b) => a.yr - b.yr || a.wk - b.wk);
+    const last7 = weeks.slice(-7).map(w => Math.round(w.val * 10) / 10);
+    while (last7.length < 7) last7.unshift(0);
+    result[mk] = last7;
+  }
+  return result;
+}
+
 // ── Last data update time — from SERVER DATE TIME table (MAX ORDERS.UDATE from SQL Server)
 // This is the actual source-data timestamp that PBI reports show.
 // Fallback: PBI dataset refresh API (= when PBI pulled data, often stale).
@@ -1119,4 +1169,4 @@ async function triggerAndWaitRefresh(maxWaitMs = 15 * 60 * 1000) {
   console.warn('⚠  PBI refresh timed out — proceeding with possibly stale data');
 }
 
-module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchStopSale, fetchHalaviFromBI, fetchDagimFromBI, fetchPhotoUrls, getToken, triggerAndWaitRefresh };
+module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchStopSale, fetchHalaviFromBI, fetchDagimFromBI, fetchPhotoUrls, getToken, triggerAndWaitRefresh, fetchWeeklySales };

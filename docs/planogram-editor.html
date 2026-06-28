@@ -152,6 +152,10 @@
       body.printing-expiry #expiry-grid > .expiry-haluka-sep { display: none !important; }
       .expiry-haluka-sep { width:100%; flex-basis:100%; padding:5px 14px; margin:14px 0 4px; background:linear-gradient(90deg,#e8eaf6,#fff); color:#3949ab; font-size:12px; font-weight:bold; border-right:4px solid #3949ab; border-radius:0 4px 4px 0; letter-spacing:0.4px; }
       body.printing-expiry .grid-page-break { display: block !important; grid-column: 1 / -1; break-before: page; height: 0; margin: 0; padding: 0; }
+      .week-spark-wrap { display:inline-block;cursor:zoom-in;transition:transform 0.15s;transform-origin:bottom center;line-height:1; }
+      .week-spark-wrap:hover { transform:scale(2.8);z-index:999;position:relative;background:#fff;box-shadow:0 3px 12px rgba(0,0,0,0.18);border-radius:4px;padding:3px; }
+      body.printing-expiry .week-spark-wrap { cursor:default; }
+      body.printing-expiry .week-spark-wrap:hover { transform:none;box-shadow:none;padding:0; }
 
 
       /* ── Main planogram print (9 cards per landscape page) ── */
@@ -3143,6 +3147,30 @@ function _expiryImgErr(img) {
   img.outerHTML = '<div style="width:72px;height:72px;background:#f0f0f0;border-radius:6px;border:1px solid #e0e0e0;display:flex;align-items:center;justify-content:center;font-size:20px;">📷</div>';
 }
 
+function _sparkSvg(weekSales) {
+  if (!weekSales || weekSales.length < 2) return '';
+  const W = 126, H = 32, PAD = 4;
+  const vals = weekSales.slice(-7);
+  while (vals.length < 7) vals.unshift(0);
+  const minV = Math.min(...vals), maxV = Math.max(...vals);
+  const range = maxV - minV || 1;
+  const pts = vals.map((v, i) => {
+    const x = PAD + (i / (vals.length - 1)) * (W - PAD * 2);
+    const y = H - PAD - ((v - minV) / range) * (H - PAD * 2 - 4);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const [lx, ly] = pts.split(' ').pop().split(',');
+  const wkLabels = vals.map((v, i) => `שב${i + 1}: ${v.toFixed(1)}`).join(' | ');
+  return `<div class="week-spark-wrap" title="${wkLabels}">
+    <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+      <polyline points="${pts}" fill="none" stroke="#90a4ae" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="${lx}" cy="${ly}" r="3" fill="#c62828"/>
+      <text x="${W - PAD}" y="${H - 1}" text-anchor="end" font-size="6" fill="#bbb" font-family="Arial">${vals[vals.length-1].toFixed(1)} קרט/י</text>
+    </svg>
+    <div style="font-size:6.5px;color:#aaa;text-align:center;letter-spacing:0.3px;margin-top:-1px;">7 שבועות אחרונים</div>
+  </div>`;
+}
+
 function buildExpiryPage() {
   const grid  = document.getElementById('expiry-grid');
   const SEC_NAMES = { kapua: 'קפוא', halavi: 'חלבי', dagim: 'דגים', yavesh: 'דג יבש' };
@@ -3389,6 +3417,7 @@ function buildExpiryPage() {
             <tbody>${batchRowsCombined}</tbody>
             <tfoot><tr><td style="padding:4px 8px;border-top:2px solid #e0e0e0;background:#f5f7fa;">
               ${combinedSales > 0 ? `<div style="font-size:9px;color:#666;">ממוצע מכירה כולל: <b style="color:#222;">${combinedSales.toFixed(1)} קרט/יום</b></div>` : '<div style="font-size:9px;color:#bbb;">אין נתוני מכירה</div>'}
+              ${_sparkSvg(productData[String(mk)]?.weekSales)}
             </td></tr></tfoot>
           </table>
         </div>
@@ -3423,18 +3452,23 @@ function buildExpiryPage() {
             </tr>
           </thead>
           <tbody>${batchRows}</tbody>
-          <tfoot><tr>
-            <td style="padding:4px 6px;border-top:2px solid #e0e0e0;background:#f5f7fa;line-height:1.7;">${
-              salesMain > 0
-                ? `<div style="font-size:9px;color:#666;">ממוצע מכירה: <b style="color:#222;">${salesMain.toFixed(1)} קרט/יום</b></div>`
-                : '<div style="font-size:9px;color:#bbb;">אין נתוני מכירה</div>'
-            }</td>
-            <td style="padding:4px 6px;border-top:2px solid #e0e0e0;border-right:2px solid #e0e0e0;background:#f5f7fa;line-height:1.7;">${
-              salesZafn > 0
-                ? `<div style="font-size:9px;color:#666;">ממוצע מכירה: <b style="color:#222;">${salesZafn.toFixed(1)} קרט/יום</b></div>`
-                : '<div style="font-size:9px;color:#bbb;">אין נתוני מכירה</div>'
-            }</td>
-          </tr></tfoot>
+          <tfoot>
+            <tr>
+              <td style="padding:4px 6px;border-top:2px solid #e0e0e0;background:#f5f7fa;line-height:1.7;">${
+                salesMain > 0
+                  ? `<div style="font-size:9px;color:#666;">ממוצע מכירה: <b style="color:#222;">${salesMain.toFixed(1)} קרט/יום</b></div>`
+                  : '<div style="font-size:9px;color:#bbb;">אין נתוני מכירה</div>'
+              }</td>
+              <td style="padding:4px 6px;border-top:2px solid #e0e0e0;border-right:2px solid #e0e0e0;background:#f5f7fa;line-height:1.7;">${
+                salesZafn > 0
+                  ? `<div style="font-size:9px;color:#666;">ממוצע מכירה: <b style="color:#222;">${salesZafn.toFixed(1)} קרט/יום</b></div>`
+                  : '<div style="font-size:9px;color:#bbb;">אין נתוני מכירה</div>'
+              }</td>
+            </tr>
+            <tr><td colspan="2" style="padding:3px 6px;background:#f5f7fa;border-top:1px solid #eee;">
+              ${_sparkSvg(productData[String(mk)]?.weekSales)}
+            </td></tr>
+          </tfoot>
         </table>
       </div>
     </div>`, haluka: p.haluka ?? null };
