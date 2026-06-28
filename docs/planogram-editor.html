@@ -3534,10 +3534,14 @@ window.addEventListener('beforeprint', () => {
       grid.innerHTML = '';
 
       // ── Card pages: 4 per page (2×2) ────────────────────────────────────
+      // Within each group of 4, sort by height so short pairs with short,
+      // tall pairs with tall → per-row zoom works uniformly, no tiny cards
       for (let i = 0; i < cards.length; i += 4) {
+        const group = cards.slice(i, i + 4);
+        group.sort((a, b) => (_cardNatH.get(a) || 200) - (_cardNatH.get(b) || 200));
         const grp = document.createElement('div');
         grp.className = 'expiry-page-group';
-        cards.slice(i, i + 4).forEach(c => grp.appendChild(c));
+        group.forEach(c => grp.appendChild(c));
         while (grp.children.length < 4) grp.appendChild(document.createElement('div'));
         grid.appendChild(grp);
       }
