@@ -3557,7 +3557,7 @@ window.addEventListener('beforeprint', () => {
         let rowMaxH = 0;
         row.forEach(c => { const h = _cardNatH.get(c) || 0; if (h > rowMaxH) rowMaxH = h; });
         if (rowMaxH === 0) rowMaxH = 200;
-        const s = Math.min(cellW / (preNatW || 300), cellH / rowMaxH);
+        const s = Math.min(cellW / (preNatW || 300), cellH / rowMaxH, 1.4);
         row.forEach(c => { c.style.zoom = Math.max(0.4, Math.min(s, 3)).toFixed(3); });
       }
     }
