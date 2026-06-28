@@ -183,7 +183,7 @@ function esc(s) {
 
 // POST /log-access — client sends login/logout events
 const LOG_EVENTS = new Set(['login', 'logout']);
-app.post('/log-access', checkGeneralLimit, (req, res) => {
+app.post('/log-access', dataRateLimit, (req, res) => {
   const { event, agentCode, agentName, isManager } = req.body || {};
   const ip = getRealIp(req);
   writeLog({
@@ -1088,11 +1088,11 @@ app.get('/api/client-sales', requireAuth, async (req, res) => {
   const custId = parseInt(req.query.custId);
   if (!custId) return res.status(400).json({ error: 'custId required' });
   const company = req.query.company || '';
-  if (company && !/^[֐-׿a-zA-Z0-9 \-']{1,60}$/.test(company)) {
+  if (company && !/^[֐-׿a-zA-Z0-9 \-]{1,60}$/.test(company)) {
     return res.status(400).json({ error: 'invalid company' });
   }
   const companyArg = company && company !== 'הכל'
-    ? `,\n  ALL_PARTS[חברה] = "${company.replace(/"/g, '')}"`
+    ? `,\n  ALL_PARTS[חברה] = "${company.replace(/["\\\]]/g, '')}"`
     : '';
   const SKIP_CATS = new Set(['ציוד', 'שאריות', 'תגמולים']);
   try {
@@ -1155,8 +1155,19 @@ ORDER BY ALL_PARTS[תאריך] DESC
 // POST /api/mekarer-order — save equipment order
 app.post('/api/mekarer-order', requireAuth, async (req, res) => {
   try {
-    const order = req.body;
-    if (!order || !order.custId) return res.status(400).json({ error: 'invalid order' });
+    const body = req.body;
+    if (!body || !body.custId) return res.status(400).json({ error: 'invalid order' });
+    const order = {
+      custId:      String(body.custId).substring(0, 20),
+      custName:    String(body.custName    || '').substring(0, 100),
+      city:        String(body.city        || '').substring(0, 60),
+      agentName:   String(body.agentName   || '').substring(0, 60),
+      contactName: String(body.contactName || '').substring(0, 80),
+      phone:       String(body.phone       || '').substring(0, 20),
+      location:    String(body.location    || '').substring(0, 200),
+      mekarerim:   Array.isArray(body.mekarerim) ? body.mekarerim.slice(0, 50) : [],
+      manager:     String(body.manager     || '').substring(0, 60),
+    };
     const filePath = path.join(__dirname, '..', 'docs', 'mekarer-orders.json');
     const list = fs.existsSync(filePath) ? JSON.parse(fs.readFileSync(filePath, 'utf8')) : [];
     const id = Date.now();
@@ -1305,7 +1316,7 @@ app.get('/api/mekarer-export', requireAuth, async (req, res) => {
 });
 
 // GET /pbi/formula-refresh — last PBI dataset refresh time for FORMULA dataset
-app.get('/pbi/formula-refresh', async (req, res) => {
+app.get('/pbi/formula-refresh', dataRateLimit, async (req, res) => {
   try {
     const t = await getDatasetRefreshTime(process.env.POWERBI_DATASET_ID);
     res.json({ ok: true, refreshedAt: t });
@@ -1316,7 +1327,7 @@ app.get('/pbi/formula-refresh', async (req, res) => {
 
 // GET /pbi/dagim-sales?periods=2026-5,2026-6 — live sales for הזמנה period filter (combined period)
 // Legacy single-month form also supported: ?year=2026&month=5
-app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
+app.get('/pbi/dagim-sales', requireAuth, dataRateLimit, async (req, res) => {
   let dateFilter;
 
   if (req.query.periods) {
@@ -1413,11 +1424,11 @@ function readOrderHistory() {
   try { return JSON.parse(fs.readFileSync(ORDER_HISTORY_FILE, 'utf8')); } catch { return []; }
 }
 
-app.get('/api/order-history', dataRateLimit, (req, res) => {
+app.get('/api/order-history', requireAuth, dataRateLimit, (req, res) => {
   res.json({ ok: true, versions: readOrderHistory() });
 });
 
-app.post('/api/order-history', dataRateLimit, (req, res) => {
+app.post('/api/order-history', requireAuth, dataRateLimit, (req, res) => {
   try {
     const edits = req.body?.edits;
     if (!edits || typeof edits !== 'object' || !Object.keys(edits).length) {
@@ -1725,10 +1736,10 @@ app.get('/formula-road', formulaRoadGuard, (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'formula-road.html'));
 });
 // Static data files referenced via relative fetch in formula-road.html
-app.get('/gps-corrections.json', (req, res) => {
+app.get('/gps-corrections.json', formulaRoadGuard, (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'gps-corrections.json'));
 });
-app.get('/formula-road-data.json', (req, res) => {
+app.get('/formula-road-data.json', formulaRoadGuard, (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'formula-road-data.json'));
 });
 
@@ -1736,7 +1747,7 @@ app.get('/logo-diler-bmd.png', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'logo-diler-bmd.png'));
 });
 
-app.get('/pbi/mmd-orders', dataRateLimit, async (req, res) => {
+app.get('/pbi/mmd-orders', mmdGuard, dataRateLimit, async (req, res) => {
   const MMD_DS = process.env.POWERBI_MMD_DATASET_ID;
   if (!MMD_DS) return res.status(503).json({ error: 'MMD dataset not configured' });
   try {
