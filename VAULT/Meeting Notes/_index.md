@@ -56,3 +56,6 @@
 - [[session-2026-06-23]] — Сессия 2026-06-23: Formula Road фикс 503 (два cloudflared), фикс loadAgentList (agentsByManager), config.yml ingress rule, git HEAD recover
 - [[session-2026-06-24]] — Сессия 2026-06-24: הזמנה header 3-row MMD redesign, donut star inside SVG, spo/חסר במלאי logic, krat xlsx fix, totalBranchy period-linked (1837 vs 2031)
 - [[session-2026-06-24b]] — Сессия 2026-06-24 (вечер): MMD ORDERS CI fix, SKU 1004, фильтр семейств, сплэш фото, fixBiDi имена продуктов
+- [[session-2026-06-25]] — Сессия 2026-06-25: Excel фото+умная таблица+скромные цвета, תוקף נדרש flag, חסר в maavarMode, export=filtered()
+- [[formula-road-app]] — Formula Road SQL Migration: /managers /manager-agents /customers → form.dbo, fixPriNumbers, Google Maps первый, bbox→null кэш
+- [[session-2026-06-26-security]] — Сессия 2026-06-26: еженедельный security scan + hardening — SSRF, auth guards, DAX injection, mekarer whitelist, rate limit fix
