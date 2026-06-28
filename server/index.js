@@ -1740,6 +1740,46 @@ app.post('/mmd/rebuild', mmdGuard, (req, res) => {
   });
 });
 
+app.get('/mmd/period-data', mmdGuard, dataRateLimit, async (req, res) => {
+  const y1 = parseInt(req.query.y1), m1 = parseInt(req.query.m1);
+  const y2 = parseInt(req.query.y2), m2 = parseInt(req.query.m2);
+  if ([y1,m1,y2,m2].some(n => !Number.isInteger(n)) ||
+      m1 < 1 || m1 > 12 || m2 < 1 || m2 > 12 ||
+      y1 < 2020 || y1 > 2100 || y2 < 2020 || y2 > 2100) {
+    return res.status(400).json({ ok: false, error: 'bad params' });
+  }
+  const MMD_DS = process.env.POWERBI_MMD_DATASET_ID;
+  if (!MMD_DS) return res.status(503).json({ ok: false, error: 'MMD dataset not configured' });
+  const lastDay = new Date(y2, m2, 0).getDate();
+  const df = `DATESBETWEEN(DIMCALENDAR[Date], DATE(${y1},${m1},1), DATE(${y2},${m2},${lastDay}))`;
+  try {
+    const rows = await executeDax(`
+      EVALUATE
+      SUMMARIZECOLUMNS(
+        'KARTIS PARIT'[מק"ט],
+        "mkr_shvua",  CALCULATE([מכר ממוצע בשבוע קרטון], ${df}),
+        "mkr_tk",     CALCULATE([מכר קרטון],              ${df}),
+        "shavuot",    CALCULATE([לכמה שבועות יספיק המלאי], ${df}),
+        "yamim_haya", CALCULATE([ימים שהיה בהם מלאי],    ${df}),
+        "pct_mkr",    CALCULATE([ימי מכר מכלל ימי עבודה %], ${df}),
+        "hamlatza_k", CALCULATE([המלצה להזמנה קרטון],     ${df})
+      )
+    `, MMD_DS);
+    const data = rows.map(r => ({
+      mkt:        r['KARTIS PARIT[מק"ט]'],
+      mkr_shvua:  r['[mkr_shvua]']  != null ? Math.round(r['[mkr_shvua]']  * 10) / 10 : null,
+      mkr_tk:     r['[mkr_tk]']     != null ? Math.round(r['[mkr_tk]'])              : null,
+      shavuot:    r['[shavuot]']    != null ? Math.round(r['[shavuot]']  * 10) / 10 : null,
+      yamim_haya: r['[yamim_haya]'] != null ? Math.round(r['[yamim_haya]'])          : null,
+      pct_mkr:    r['[pct_mkr]']   != null ? Math.round(r['[pct_mkr]'])             : null,
+      hamlatza:   r['[hamlatza_k]'] != null ? Math.round(r['[hamlatza_k]'] * 10) / 10 : null,
+    }));
+    res.json({ ok: true, data });
+  } catch(e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 app.use('/mmd', mmdGuard, express.static(path.join(__dirname, '..', 'MMD ORDERS')));
 
 // ── FORMULA ROAD ─────────────────────────────────────────────────────────────
