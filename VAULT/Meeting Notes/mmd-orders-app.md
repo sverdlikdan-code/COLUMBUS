@@ -137,3 +137,14 @@ totalsRowShown: model.totalsRow ? undefined : '1',   // ← инвертиров
 **חסר/יש фильтры в maavarMode:** в `filtered()` строка `return true` скипала все фильтры. Фикс: ashFilter и mmdFilter применяются и в maavar-режиме.
 
 **Экспорт = то что видишь:** `orderedRows = filtered().filter(eff > 0)` — все активные фильтры (маавар, семейство, компания, חסר/יש) применяются к экспорту.
+
+### 2026-06-28 #resolved ✅ Security audit + auth hardening
+
+**Аудит:** 23 роута проверены. Найдено 3 открытых без auth + SSRF в isSafePhotoUrl.
+
+**Фиксы:**
+- `requireAuth` добавлен на `/pbi/formula-refresh`, `/api/export-order-xlsx`, `/api/export-position-xlsx`
+- `isSafePhotoUrl`: заменён IP-блок на строгий domain whitelist `priority.dilerbmd.com`
+- Проверено: `/mmd/` без ключа → 403, с ключом → 200 ✅
+
+**Итог:** все 23 роута защищены.
