@@ -4,6 +4,7 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const { execFile } = require('child_process');
 const ExcelJS = require('exceljs');
 const { executeDax, getDatasetRefreshTime } = require('./powerbi');
 const db = require('./db');
@@ -1724,6 +1725,19 @@ app.get('/mmd/img/:mkt', mmdGuard, (req, res) => {
   });
   req2.on('error', () => res.status(502).end());
   req2.setTimeout(4000, () => { req2.destroy(); res.status(504).end(); });
+});
+
+let rebuildInProgress = false;
+app.post('/mmd/rebuild', mmdGuard, (req, res) => {
+  if (rebuildInProgress) return res.json({ ok: false, busy: true });
+  rebuildInProgress = true;
+  const script = path.join(__dirname, 'build-mmd-orders.js');
+  execFile('node', [script], { timeout: 60000 }, (err, stdout) => {
+    rebuildInProgress = false;
+    if (err) return res.status(500).json({ ok: false, error: err.message });
+    const m = stdout.match(/Saved (\d+) products/);
+    res.json({ ok: true, products: m ? Number(m[1]) : null });
+  });
 });
 
 app.use('/mmd', mmdGuard, express.static(path.join(__dirname, '..', 'MMD ORDERS')));
