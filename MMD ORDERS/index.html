@@ -1040,9 +1040,12 @@
       all = baseAll;
       buildPeriodBar();
       buildChips();
-      await loadPeriod();
+      render();
+      document.getElementById('ld').style.display = 'none';
+      document.getElementById('t').style.display  = '';
       const ts = j.ts ? new Date(j.ts).toLocaleTimeString('he-IL') : '';
-      st('נטענו ' + all.length + ' פריטים · ' + ts);
+      st('נטענו ' + all.length + ' פריטים · מעדכן נתוני מכר...');
+      loadPeriod(); // background — no await
       const upEl = document.getElementById('pbi-update');
       const splashDate = document.getElementById('splash-pbi-date');
       if (upEl) {
