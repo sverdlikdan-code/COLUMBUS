@@ -984,15 +984,27 @@ function _printOrderKey(sec, pick) {
   return v != null ? v : +pick;
 }
 function _getPrintOrder(sec) {
+  // 1. חלוקה (zone) → 2. סדר הדפסה within zone
   const activePicks = Object.keys(state[sec] || {}).filter(k => state[sec][k])
-    .sort((a,b) => _printOrderKey(sec,a) - _printOrderKey(sec,b) || +a - +b);
+    .sort((a, b) => {
+      const pa = state[sec][a], pb = state[sec][b];
+      const ha = pa?.haluka ?? 999, hb = pb?.haluka ?? 999;
+      if (ha !== hb) return ha - hb;
+      const oa = pa?.printOrder != null ? pa.printOrder : +a;
+      const ob = pb?.printOrder != null ? pb.printOrder : +b;
+      return oa - ob || +a - +b;
+    });
   const saved = printOrder[sec];
   if (!saved) return activePicks;
-  // Keep saved order, add any new picks at end, remove stale
+  // Keep saved order but re-sort by haluka (so manual moves stay within-zone)
   const activeSet = new Set(activePicks);
   const filtered = saved.filter(p => activeSet.has(p));
   activePicks.forEach(p => { if (!filtered.includes(p)) filtered.push(p); });
-  return filtered;
+  // Re-apply haluka grouping over saved order
+  return filtered.sort((a, b) => {
+    const ha = state[sec][a]?.haluka ?? 999, hb = state[sec][b]?.haluka ?? 999;
+    return ha - hb;
+  });
 }
 function _savePrintOrder(sec, order) {
   printOrder[sec] = order;
