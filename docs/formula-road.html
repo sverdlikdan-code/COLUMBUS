@@ -1433,7 +1433,7 @@ function renderClientList(html){
     })();
     const sales=c.monthlySales?`<span style="font-weight:700;color:var(--text)">₪${Math.round(c.monthlySales).toLocaleString()}</span><span style="font-size:10px;color:var(--light)"> החודש</span>`:'';
     const pctPart=(()=>{
-      if(!c.target) return '';
+      if(!c.target||!c.monthlySales) return '';
       const pct=Math.round((c.monthlySales||0)/c.target*100);
       const timeFrac=_workDaysFrac();
       const diff=pct/100-timeFrac;
