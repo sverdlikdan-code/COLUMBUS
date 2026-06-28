@@ -481,6 +481,20 @@ function fixPriNumbers(str) {
   return String(str).replace(/\d+/g, m => m.split('').reverse().join(''));
 }
 
+// Expand Hebrew city abbreviations used by Priority ERP to full city names
+// so geocoding services can resolve them correctly.
+function expandCityAbbrev(str) {
+  if (!str) return str;
+  return str
+    .replace(/ב["״״]ש\b/g, 'באר שבע')
+    .replace(/ת["״״]א\b/g, 'תל אביב')
+    .replace(/י["״״]מ\b/g, 'ירושלים')
+    .replace(/\bי-ם\b/g,        'ירושלים')
+    .replace(/ק["״״]ג\b/g, 'קריית גת')
+    .replace(/ק["״״]מ\b/g, 'קריית מלאכי')
+    .replace(/נ["״״]ע\b/g, 'נהריה');
+}
+
 // PBI stores Hebrew addresses in visual order wrapped in LTR-Override markers.
 // Strip BiDi marks and reverse Hebrew segments to get logical (geocodable) text.
 function fixBiDiAddress(str) {
@@ -975,8 +989,8 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
 
     const clients = result.recordset.map(r => {
       const custName = fixPriNumbers(r.custName || '');
-      const address  = fixPriNumbers(r.address  || '');
-      const city     = r.city     || '';
+      const address  = expandCityAbbrev(fixPriNumbers(r.address  || ''));
+      const city     = expandCityAbbrev(r.city || '');
       const monthlySales = parseFloat(r.monthlySales) || 0;
       const target       = parseFloat(r.target)       || 0;
       const pct          = target > 0 ? Math.round((monthlySales / target) * 100) : 0;
