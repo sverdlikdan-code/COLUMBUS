@@ -1757,6 +1757,10 @@ app.get('/mmd/period-data', mmdGuard, dataRateLimit, async (req, res) => {
       EVALUATE
       SUMMARIZECOLUMNS(
         'KARTIS PARIT'[מק"ט],
+        'KARTIS PARIT'[ASHDOD KAARTON],
+        'KARTIS PARIT'[MMD KARTON],
+        "eilat_k",    [מלאי בקרטון EILAT],
+        "maavar",     [מחסן מעבר],
         "mkr_shvua",  CALCULATE([מכר ממוצע בשבוע קרטון], ${df}),
         "mkr_tk",     CALCULATE([מכר קרטון],              ${df}),
         "shavuot",    CALCULATE([לכמה שבועות יספיק המלאי], ${df}),
@@ -1767,6 +1771,10 @@ app.get('/mmd/period-data', mmdGuard, dataRateLimit, async (req, res) => {
     `, MMD_DS);
     const data = rows.map(r => ({
       mkt:        r['KARTIS PARIT[מק"ט]'],
+      ashdod_k:   r['KARTIS PARIT[ASHDOD KAARTON]'] ?? null,
+      mmd_k:      r['KARTIS PARIT[MMD KARTON]']     ?? null,
+      eilat_k:    r['[eilat_k]']    ?? null,
+      maavar:     r['[maavar]']     ?? null,
       mkr_shvua:  r['[mkr_shvua]']  != null ? Math.round(r['[mkr_shvua]']  * 10) / 10 : null,
       mkr_tk:     r['[mkr_tk]']     != null ? Math.round(r['[mkr_tk]'])              : null,
       shavuot:    r['[shavuot]']    != null ? Math.round(r['[shavuot]']  * 10) / 10 : null,

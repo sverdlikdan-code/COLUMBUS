@@ -1721,7 +1721,7 @@ window.loadPeriod = async function() {
     all = baseAll.map(row => {
       const pd = map[String(row.mkt)];
       if (!pd) return Object.assign({}, row, { mkr_shvua:null, mkr_tk:null, shavuot:null, yamim_haya:null, pct_mkr:null, hamlatza:null });
-      return Object.assign({}, row, { mkr_shvua:pd.mkr_shvua, mkr_tk:pd.mkr_tk, shavuot:pd.shavuot, yamim_haya:pd.yamim_haya, pct_mkr:pd.pct_mkr, hamlatza:pd.hamlatza });
+      return Object.assign({}, row, { ashdod_k:pd.ashdod_k, mmd_k:pd.mmd_k, eilat_k:pd.eilat_k, maavar:pd.maavar, mkr_shvua:pd.mkr_shvua, mkr_tk:pd.mkr_tk, shavuot:pd.shavuot, yamim_haya:pd.yamim_haya, pct_mkr:pd.pct_mkr, hamlatza:pd.hamlatza });
     });
     st('נטענו ' + all.length + ' פריטים');
   } catch(e) {
