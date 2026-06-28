@@ -867,6 +867,7 @@
   let cos  = new Set();
   let selStart = null, selEnd = null; // null = default (prev+cur month); range selection
   let baseAll = null; // base JSON data — never mutated
+  let _periodLoadId = 0; // race-condition guard
   let ordOnly    = false;
   let noMkr      = false;
   let maavarMode = false;
@@ -1712,12 +1713,14 @@
 // ── Splash enter ─────────────────────────────────────────
 window.loadPeriod = async function() {
   if (!baseAll) { render(); return; }
+  const myId = ++_periodLoadId;
   const p = selectedPeriod();
   st('טוען נתוני מכר...');
   try {
     const url = `/mmd/period-data?y1=${p.y1}&m1=${p.m1}&y2=${p.y2}&m2=${p.m2}`;
     const r = await fetch(url);
     const j = await r.json();
+    if (myId !== _periodLoadId) return; // superseded by newer call
     if (!j.ok) throw new Error(j.error || 'שגיאה');
     const map = {};
     j.data.forEach(d => { map[String(d.mkt)] = d; });
@@ -1728,7 +1731,7 @@ window.loadPeriod = async function() {
     });
     st('נטענו ' + all.length + ' פריטים');
   } catch(e) {
-    // server unavailable — fall back to pre-built JSON metrics
+    if (myId !== _periodLoadId) return;
     all = baseAll;
     st('⚠ נתוני מכר מהמטמון · ' + e.message);
   }
