@@ -128,7 +128,7 @@
       body.printing-expiry .expiry-page-group {
         display: grid !important;
         grid-template-columns: repeat(3, 1fr) !important;
-        grid-template-rows: repeat(3, 1fr) !important;
+        grid-template-rows: repeat(2, 1fr) !important;
         gap: 4px !important;
         width: 100% !important;
         height: 190mm !important;
@@ -3519,18 +3519,17 @@ window.addEventListener('beforeprint', () => {
       grid.innerHTML = '';
 
       // ── Card pages ────────────────────────────────────────────────────────
-      for (let i = 0; i < cards.length; i += 9) {
+      for (let i = 0; i < cards.length; i += 6) {
         const grp = document.createElement('div');
         grp.className = 'expiry-page-group';
-        cards.slice(i, i + 9).forEach(c => grp.appendChild(c));
-        // Pad to 9 so auto-placement is always sequential (no orphan cards)
-        while (grp.children.length < 9) grp.appendChild(document.createElement('div'));
+        cards.slice(i, i + 6).forEach(c => grp.appendChild(c));
+        while (grp.children.length < 6) grp.appendChild(document.createElement('div'));
         grid.appendChild(grp);
       }
       // A4 landscape @ 96dpi: content 285mm × 198mm = 1077 × 748px
       const MM = 96 / 25.4;
-      const cellW = (285 * MM - 8) / 3;  // ≈ 356px
-      const cellH = (198 * MM - 28 - 8) / 3; // ≈ 237px
+      const cellW = (285 * MM - 8) / 3;   // ≈ 356px (3 columns)
+      const cellH = (198 * MM - 28 - 4) / 2; // ≈ 358px (2 rows, 1 gap)
       // Per-row zoom: all 3 cards in a row share the same scale (symmetry)
       // Scale is determined by the tallest card in that row
       const allCells = [...document.querySelectorAll('.expiry-page-group > div')];
