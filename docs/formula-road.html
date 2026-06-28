@@ -1107,6 +1107,42 @@ async function selectDay(day){
   initRoute();
 }
 
+// ── Client-side Nominatim geocoding for clients without GPS ────────────────
+const _clientGeoCache = {};
+let _lastNomClientMs = 0;
+async function geocodeMissingClientSide(clients) {
+  const missing = clients.filter(c => !c.lat || !c.lng || c.gpsSource === 'no-gps');
+  if (!missing.length) return;
+  for (const c of missing) {
+    const city = c.city || '';
+    const addr = (c.address || '').replace(/,.*$/,'').trim(); // strip comma-suffixes
+    if (!addr && !city) continue;
+    const key = addr + '|' + city;
+    if (_clientGeoCache[key] === null) continue; // known failure
+    if (_clientGeoCache[key]) { c.lat=_clientGeoCache[key].lat; c.lng=_clientGeoCache[key].lng; c.gpsSource='geocoded'; continue; }
+    const wait = 1100 - (Date.now() - _lastNomClientMs);
+    if (wait > 0) await new Promise(r => setTimeout(r, wait));
+    _lastNomClientMs = Date.now();
+    try {
+      const url = city && addr
+        ? `https://nominatim.openstreetmap.org/search?street=${encodeURIComponent(addr)}&city=${encodeURIComponent(city)}&country=Israel&format=json&limit=3&countrycodes=il`
+        : `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent([addr,city,'ישראל'].filter(Boolean).join(', '))}&format=json&limit=3&countrycodes=il`;
+      const r = await fetch(url, { headers: { 'User-Agent': 'DilerFormulaRoad/1.0' } });
+      const data = await r.json();
+      if (data?.length) {
+        const lat = parseFloat(data[0].lat), lng = parseFloat(data[0].lon);
+        if (lat >= 29.3 && lat <= 33.5 && lng >= 34.2 && lng <= 35.9) {
+          c.lat = lat; c.lng = lng; c.gpsSource = 'geocoded';
+          _clientGeoCache[key] = { lat, lng };
+          renderClientList(); renderRoute(); // update map progressively
+          continue;
+        }
+      }
+    } catch(_) {}
+    _clientGeoCache[key] = null;
+  }
+}
+
 // ── ROUTE ──────────────────────────────────────────────────────────────────
 async function initRoute(){
   st.sortMode='ai'; st.selectedCities=[]; st.selectedId=null;
@@ -1175,6 +1211,9 @@ async function initRoute(){
     const corr=gpsCorrections[String(c.custId)];
     return corr?{...c,lat:corr.lat,lng:corr.lng,gpsSource:'correction'}:c;
   });
+
+  // Client-side Nominatim geocoding for clients still missing GPS
+  await geocodeMissingClientSide(st.clients);
 
   st.aiClients=nearestNeighbor([...st.clients]);
   st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; triggerOsrm();
