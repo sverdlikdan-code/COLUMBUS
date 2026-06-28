@@ -649,8 +649,24 @@
       font-size: .72rem;
       color: rgba(255,200,80,.6);
       letter-spacing: .05em;
-      margin-bottom: 30px;
+      margin-bottom: 14px;
     }
+    #splash-refresh {
+      display: inline-block;
+      background: none;
+      border: 1px solid rgba(255,200,80,.3);
+      border-radius: 20px;
+      color: rgba(255,200,80,.55);
+      font-size: .68rem;
+      font-family: inherit;
+      padding: 5px 16px;
+      cursor: pointer;
+      margin-bottom: 22px;
+      transition: all .18s ease;
+      letter-spacing: .04em;
+    }
+    #splash-refresh:hover { border-color: rgba(255,200,80,.7); color: rgba(255,200,80,.9); }
+    #splash-refresh:disabled { opacity: .4; cursor: default; }
 
     /* Divider line */
     .splash-rule {
@@ -752,6 +768,7 @@
     <div class="splash-rule"></div>
     <div id="splash-desc">מערכת ניהול הזמנות · מלאי</div>
     <div id="splash-pbi-date">טוען נתונים...</div>
+    <button id="splash-refresh" onclick="splashRebuild()">🔄 רענן נתונים</button>
     <button id="splash-btn" onclick="enterApp()">כניסה למערכת &nbsp;→</button>
   </div>
 
@@ -1693,6 +1710,25 @@ window.enterApp = function() {
   if (!sp) return;
   sp.classList.add('hiding');
   setTimeout(() => sp.classList.add('gone'), 720);
+};
+
+window.splashRebuild = async function() {
+  const btn = document.getElementById('splash-refresh');
+  const lbl = document.getElementById('splash-pbi-date');
+  btn.disabled = true;
+  btn.textContent = '⏳ מעדכן...';
+  try {
+    const r = await fetch('/mmd/rebuild', { method: 'POST' });
+    const j = await r.json();
+    if (j.busy) { btn.textContent = '⏳ כבר רץ...'; setTimeout(() => { btn.disabled=false; btn.textContent='🔄 רענן נתונים'; }, 3000); return; }
+    if (!j.ok) throw new Error(j.error || 'שגיאה');
+    btn.textContent = '✅ עודכן!';
+    if (lbl) lbl.textContent = 'טוען מחדש...';
+    setTimeout(() => location.reload(), 1200);
+  } catch(e) {
+    btn.textContent = '❌ ' + e.message;
+    setTimeout(() => { btn.disabled=false; btn.textContent='🔄 רענן נתונים'; }, 3000);
+  }
 };
 </script>
 </body>
