@@ -3539,8 +3539,8 @@ window.addEventListener('beforeprint', () => {
         let rowMaxH = 0;
         row.forEach(c => { const h = _cardNatH.get(c) || 0; if (h > rowMaxH) rowMaxH = h; });
         if (rowMaxH === 0) rowMaxH = 200;
-        // max zoom = fill cell width (356/300=1.187) OR fill cell height — whichever is smaller
-        const s = Math.min(cellW / (preNatW || 300), cellH / rowMaxH);
+        // zoom by cell height, capped at 1.4 to limit right-side clipping (green rows unchanged ~1.185)
+        const s = Math.min(cellH / rowMaxH, 1.4);
         row.forEach(c => { c.style.zoom = Math.max(0.4, Math.min(s, 2)).toFixed(3); });
       }
     }
