@@ -786,6 +786,7 @@
       </div>
     </div>
     <div id="period-bar"></div>
+    <div id="period-active-label" style="font-size:.72rem;color:#90a4ae;padding:2px 8px 4px;min-height:16px;direction:rtl;"></div>
     <div class="btn-row">
       <button class="btn btn-reload" onclick="load()">⟳ רענן</button>
       <button class="btn btn-clear" onclick="clearAll()">✕ נקה הזמנות</button>
@@ -1717,11 +1718,16 @@ function periodLabel(p) {
   return HE_MON_FULL[p.m1] + '–' + HE_MON_FULL[p.m2] + ' ' + p.y1;
 }
 
+function _setPeriodLabel(txt) {
+  const el = document.getElementById('period-active-label');
+  if (el) el.textContent = txt;
+}
+
 window.loadPeriod = async function() {
   if (!baseAll) { render(); return; }
   const myId = ++_periodLoadId;
   const p = selectedPeriod();
-  st('⏳ טוען ' + periodLabel(p) + '...');
+  _setPeriodLabel('⏳ ' + periodLabel(p));
   try {
     const url = `/mmd/period-data?y1=${p.y1}&m1=${p.m1}&y2=${p.y2}&m2=${p.m2}`;
     const r = await fetch(url);
@@ -1736,11 +1742,13 @@ window.loadPeriod = async function() {
       if (!pd) return Object.assign({}, row, { mkr_shvua:null, mkr_tk:null, shavuot:null, yamim_haya:null, pct_mkr:null, hamlatza:null });
       return Object.assign({}, row, { krat:pd.krat, img:pd.img, ashdod_k:pd.ashdod_k, mmd_k:pd.mmd_k, eilat_k:pd.eilat_k, maavar:pd.maavar, mkr_shvua:pd.mkr_shvua, mkr_tk:pd.mkr_tk, shavuot:pd.shavuot, yamim_haya:pd.yamim_haya, pct_mkr:pd.pct_mkr, hamlatza:pd.hamlatza, tukuf:pd.tukuf, yamim:pd.yamim });
     });
+    _setPeriodLabel('📅 ' + periodLabel(p));
     st('📅 ' + periodLabel(p) + ' · ' + all.length + ' פריטים');
   } catch(e) {
     if (myId !== _periodLoadId) return;
     all = baseAll;
-    st('⚠ שגיאה בטעינת ' + periodLabel(p) + ': ' + e.message);
+    _setPeriodLabel('⚠ ' + periodLabel(p) + ': ' + e.message);
+    st('⚠ שגיאה: ' + e.message);
   }
   render();
 };
