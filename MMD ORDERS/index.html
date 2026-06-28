@@ -936,16 +936,16 @@
       chip.className = 'period-chip' + (isCur ? ' cur' : '') + (isOn ? ' on' : '');
       chip.dataset.y = y; chip.dataset.m = m;
       chip.textContent = HE_SHORT[m - 1];
-      chip.onclick = () => {
+      chip.onclick = (e) => {
         const cn = y * 12 + m;
-        if (!selStart) {
-          selStart = {y, m}; selEnd = {y, m};
-        } else {
+        if (e.shiftKey && selStart) {
+          // shift+click: extend range
           const cs = selStart.y * 12 + selStart.m;
-          const ce = selEnd.y * 12 + selEnd.m;
-          if (cn === cs && cn === ce) { selStart = null; selEnd = null; }
-          else if (cn < cs) { selStart = {y, m}; }
-          else { selEnd = {y, m}; }
+          if (cn < cs) selStart = {y, m};
+          else selEnd = {y, m};
+        } else {
+          // normal click: always select single month
+          selStart = {y, m}; selEnd = {y, m};
         }
         buildPeriodBar(); loadPeriod();
       };
@@ -1711,16 +1711,23 @@
 })();
 
 // ── Splash enter ─────────────────────────────────────────
+const HE_MON_FULL = ['','ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+function periodLabel(p) {
+  if (p.y1===p.y2 && p.m1===p.m2) return HE_MON_FULL[p.m1] + ' ' + p.y1;
+  return HE_MON_FULL[p.m1] + '–' + HE_MON_FULL[p.m2] + ' ' + p.y1;
+}
+
 window.loadPeriod = async function() {
   if (!baseAll) { render(); return; }
   const myId = ++_periodLoadId;
   const p = selectedPeriod();
-  st('טוען נתוני מכר...');
+  st('⏳ טוען ' + periodLabel(p) + '...');
   try {
     const url = `/mmd/period-data?y1=${p.y1}&m1=${p.m1}&y2=${p.y2}&m2=${p.m2}`;
     const r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
     const j = await r.json();
-    if (myId !== _periodLoadId) return; // superseded by newer call
+    if (myId !== _periodLoadId) return;
     if (!j.ok) throw new Error(j.error || 'שגיאה');
     const map = {};
     j.data.forEach(d => { map[String(d.mkt)] = d; });
@@ -1729,11 +1736,11 @@ window.loadPeriod = async function() {
       if (!pd) return Object.assign({}, row, { mkr_shvua:null, mkr_tk:null, shavuot:null, yamim_haya:null, pct_mkr:null, hamlatza:null });
       return Object.assign({}, row, { krat:pd.krat, img:pd.img, ashdod_k:pd.ashdod_k, mmd_k:pd.mmd_k, eilat_k:pd.eilat_k, maavar:pd.maavar, mkr_shvua:pd.mkr_shvua, mkr_tk:pd.mkr_tk, shavuot:pd.shavuot, yamim_haya:pd.yamim_haya, pct_mkr:pd.pct_mkr, hamlatza:pd.hamlatza, tukuf:pd.tukuf, yamim:pd.yamim });
     });
-    st('נטענו ' + all.length + ' פריטים');
+    st('📅 ' + periodLabel(p) + ' · ' + all.length + ' פריטים');
   } catch(e) {
     if (myId !== _periodLoadId) return;
     all = baseAll;
-    st('⚠ נתוני מכר מהמטמון · ' + e.message);
+    st('⚠ שגיאה בטעינת ' + periodLabel(p) + ': ' + e.message);
   }
   render();
 };
