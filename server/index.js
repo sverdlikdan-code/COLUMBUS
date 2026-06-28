@@ -1434,6 +1434,19 @@ app.post('/api/order-history', dataRateLimit, (req, res) => {
   }
 });
 
+// SSRF guard: only allow HTTPS to external public hosts
+function isSafePhotoUrl(url) {
+  if (typeof url !== 'string' || url.length > 2000) return false;
+  let parsed;
+  try { parsed = new URL(url); } catch { return false; }
+  if (parsed.protocol !== 'https:') return false;
+  const host = parsed.hostname.toLowerCase();
+  if (host === 'localhost' || host === '::1') return false;
+  if (/^(127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host)) return false;
+  if (/\.(internal|local|localhost|intranet|corp)$/.test(host)) return false;
+  return true;
+}
+
 app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
   try {
     const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
@@ -1543,7 +1556,7 @@ app.post('/api/export-order-xlsx', dataRateLimit, async (req, res) => {
     const IMG_PX = 90;        // photo display size in pixels
     const IMG_ROW_PT = 68;    // row height in points  (1pt ≈ 1.333px → 68pt ≈ 91px)
     await Promise.all(rows.map(async (r, i) => {
-      if (!r.photoUrl) return;
+      if (!r.photoUrl || !isSafePhotoUrl(r.photoUrl)) return;
       try {
         const resp = await fetch(r.photoUrl, {
           headers: { 'User-Agent': 'Mozilla/5.0' },
@@ -1631,7 +1644,7 @@ app.post('/api/export-position-xlsx', dataRateLimit, async (req, res) => {
     const IMG_PX = 90;
     const IMG_ROW_PT = 68;
     await Promise.all(rows.map(async (r, i) => {
-      if (!r.photoUrl) return;
+      if (!r.photoUrl || !isSafePhotoUrl(r.photoUrl)) return;
       try {
         const resp = await fetch(r.photoUrl, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(4000) });
         if (!resp.ok) return;
