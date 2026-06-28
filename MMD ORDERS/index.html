@@ -907,7 +907,7 @@
     defBtn.id = 'period-def';
     defBtn.className = 'period-def' + (selStart ? ' off' : '');
     defBtn.textContent = '✓ ברירת מחדל';
-    defBtn.onclick = () => { selStart = null; selEnd = null; buildPeriodBar(); loadPeriod(); };
+    defBtn.onclick = () => { selStart = null; selEnd = null; all = baseAll; buildPeriodBar(); _setPeriodLabel('📦 נתוני ברירת מחדל'); render(); };
     bar.appendChild(defBtn);
 
     // Month chips: 13 months back + current = 14 total
@@ -948,7 +948,9 @@
           // normal click: always select single month
           selStart = {y, m}; selEnd = {y, m};
         }
-        buildPeriodBar(); loadPeriod();
+        buildPeriodBar();
+        _setPeriodLabel('⏳ ' + HE_MON_FULL[m-1] + ' ' + y + ' — שולח בקשה לשרת...');
+        loadPeriod();
       };
       bar.appendChild(chip);
     }
@@ -1043,11 +1045,9 @@
       buildPeriodBar();
       buildChips();
       render();
-      document.getElementById('ld').style.display = 'none';
-      document.getElementById('t').style.display  = '';
       const ts = j.ts ? new Date(j.ts).toLocaleTimeString('he-IL') : '';
-      st('נטענו ' + all.length + ' פריטים · מעדכן נתוני מכר...');
-      loadPeriod(); // background — no await
+      st('נטענו ' + all.length + ' פריטים · ' + ts);
+      _setPeriodLabel('📦 נתוני ברירת מחדל — בחר חודש לנתונים חיים');
       const upEl = document.getElementById('pbi-update');
       const splashDate = document.getElementById('splash-pbi-date');
       if (upEl) {
