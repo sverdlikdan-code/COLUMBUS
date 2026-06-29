@@ -2206,25 +2206,33 @@ function updateTable() {
 
   if (sec === 'all') {
     // Read-only combined view — all 4 sections
+    const HALUKA_COLORS_ALL = ['#e8eaf6','#fce4ec','#e8f5e9','#fff3e0','#e0f7fa','#f3e5f5','#fafafa'];
     let total = 0;
     let html  = '';
     for (const s of _SECTIONS) {
       const order = _getPrintOrder(s);
       total += order.filter(p => state[s][p]).length;
       const secName = SEC_NAMES[s];
+      let lastH = null, hIdx = -1;
       order.forEach((pick, i) => {
         const p  = state[s][pick];
         if (!p) return;
-        const bg = i % 2 === 0 ? '#fff' : '#f5f7ff';
+        if (p.haluka != null && p.haluka !== lastH) {
+          lastH = p.haluka; hIdx = (hIdx + 1) % HALUKA_COLORS_ALL.length;
+          html += `<tr><td colspan="8" style="padding:3px 12px;background:${HALUKA_COLORS_ALL[hIdx]};border-top:2px solid #bdbdbd;font-size:9px;font-weight:bold;color:#37474f;">── ${secName} / אזור ${p.haluka} ──</td></tr>`;
+        }
+        const bg = hIdx >= 0 ? HALUKA_COLORS_ALL[hIdx] : (i % 2 === 0 ? '#fff' : '#f5f7ff');
         const fl = famColor(p.fam);
+        const po = p.printOrder != null ? `<b style="color:#1a237e;">${p.printOrder}</b>` : `<span style="color:#bbb;">${(_SEC_BASE[s]||0) + i + 1}</span>`;
         html += `<tr style="background:${bg}; border-left:3px solid ${fl};">
           <td style="padding:2px 8px; text-align:right; font-size:10px; font-weight:bold; color:#1565C0; white-space:nowrap;">${secName}</td>
-          <td style="padding:2px 6px; text-align:center; color:#888; font-size:10px; font-weight:bold;">${(_SEC_BASE[s]||0) + i + 1}</td>
+          <td style="padding:2px 6px; text-align:center;">${po}</td>
           <td style="padding:2px 10px; text-align:center; font-weight:bold; color:#1565C0;">${(_SEC_BASE[s]||0) + Number(pick)}</td>
           <td style="padding:2px 10px; text-align:center; color:#aaa; font-size:11px;">${pick}</td>
           <td style="padding:2px 10px;">${p.makat}</td>
           <td style="padding:2px 10px; font-weight:bold;">${esc(p.name || '')}</td>
           <td style="padding:2px 10px; font-size:10px; color:#555; direction:rtl;">${esc(_cleanStr(p.fam) || '')}</td>
+          <td style="padding:2px 10px; text-align:center; font-weight:bold; color:#3949ab;">${p.haluka ?? '—'}</td>
         </tr>`;
       });
     }
