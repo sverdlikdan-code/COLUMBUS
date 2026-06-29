@@ -149,6 +149,19 @@ totalsRowShown: model.totalsRow ? undefined : '1',   // ← инвертиров
 
 **Итог:** все 23 роута защищены.
 
+### 2026-06-29 #resolved ✅ Динамические данные по месяцам — три критических бага
+
+**Баги:**
+1. `selectedPeriod()` → функция не существовала, нужно `getPeriodParams()` — ReferenceError до try/catch, loadPeriod падал молча
+2. `HE_MON_FULL[m-1]` → off-by-one, Jun показывал May в label
+3. `window.loadPeriod` определён снаружи IIFE → `baseAll`, `all`, `getPeriodParams` недоступны (разные скоупы)
+
+**Фикс:** перенесли `HE_MON_FULL`, `periodLabel`, `_setPeriodLabel`, `window.loadPeriod` внутрь IIFE (до `})();`).
+
+**Коммиты:** `32396d32`, `e4a114fd`, `45cbc53b`
+
+**Верификация DAX:** `[מכר ממוצע בשבוע]` для May=13.5, Jun=12.8, May+Jun=15.6 — математически корректно (5 distinct недель вместо 6 из-за граничной недели). `[מכר קרטון]` всегда точен.
+
 ### 2026-06-28 (вечер) #resolved ✅ Кнопка ручного обновления данных + архитектура data refresh
 
 **Проблема:** JSON обновляется 3×/день (07/13/19 IST). F5 не даёт свежие данные — только перезагружает страницу с тем же JSON. PBI dataset обновляется чаще.
