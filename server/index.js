@@ -9,6 +9,54 @@ const ExcelJS = require('exceljs');
 const { executeDax, getDatasetRefreshTime } = require('./powerbi');
 const db = require('./db');
 
+// ── TAHSHIV TARGETS CACHE ──────────────────────────────────────────────────
+const TAHSHIV_PATH = '\\\\dilerbmdsrv\\yulia-dan\\bi pilot\\FORMULA\\TAHSHIV FORMULA.xlsx';
+
+// Priority stores SPEC7 codes with BiDi marks. In SQL result they come out
+// like "236502RF" (chars reversed) — reversing chars back gives "FR205632"
+// which matches CATGORY 7 key in TAHSHIV Excel.
+function normCat7(str) {
+  if (!str) return '';
+  const s = String(str).replace(/[‎‏‪-‮⁦-⁩]/g, '').trim();
+  return /^\d.*[A-Za-z]$/.test(s) ? s.split('').reverse().join('') : s;
+}
+let tahshivCache = new Map(); // custId → monthlyTarget (number)
+
+async function loadTahshiv() {
+  try {
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.readFile(TAHSHIV_PATH);
+    const ws = wb.worksheets[0];
+    // Find header row (row 2 is headers in this file)
+    let headerRowNum = -1, cat7Col = -1, yadCol = -1;
+    ws.eachRow((row, rowNum) => {
+      if (headerRowNum >= 0) return;
+      row.eachCell((cell, colNum) => {
+        const val = String(cell.value || '').trim();
+        if (val === 'CATGORY 7') { cat7Col = colNum; headerRowNum = rowNum; }
+        if (val.startsWith('יעד')) yadCol = colNum;
+      });
+    });
+    if (cat7Col < 0 || yadCol < 0) {
+      console.warn('TAHSHIV: header not found, using fallback col 4/7', { cat7Col, yadCol });
+      cat7Col = cat7Col < 0 ? 4 : cat7Col;
+      yadCol  = yadCol  < 0 ? 7 : yadCol;
+      headerRowNum = headerRowNum < 0 ? 2 : headerRowNum;
+    }
+    const newCache = new Map();
+    ws.eachRow((row, rowNum) => {
+      if (rowNum <= headerRowNum) return;
+      const key    = String(row.getCell(cat7Col).value || '').trim(); // e.g. FR206139
+      const target = parseFloat(row.getCell(yadCol).value) || 0;
+      if (key) newCache.set(key, target);
+    });
+    tahshivCache = newCache;
+    console.log(`TAHSHIV cache loaded: ${newCache.size} targets`);
+  } catch (e) {
+    console.error('TAHSHIV load error:', e.message);
+  }
+}
+
 const app = express();
 app.use(cors({
   origin: [
@@ -929,28 +977,18 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
       WITH
       sales_cte AS (
         SELECT i.CUST,
-          SUM(i.TOTPRICE) AS monthlySales,
-          MAX(DATEADD(MINUTE, CAST(i.IVDATE AS BIGINT), '19880101')) AS lastDate
-        FROM form.dbo.INVOICES i
-        JOIN form.dbo.AGENTS a2 ON i.AGENT = a2.AGENT AND a2.AGENTCODE = @agent
-        WHERE MONTH(DATEADD(MINUTE, CAST(i.IVDATE AS BIGINT), '19880101')) = MONTH(GETDATE())
-          AND YEAR(DATEADD(MINUTE, CAST(i.IVDATE AS BIGINT), '19880101')) = YEAR(GETDATE())
+          SUM(ii.IVCOST * CASE WHEN i.DEBIT = N'C' THEN -1.0 ELSE 1.0 END) AS monthlySales,
+          MAX(DATEADD(MINUTE, CAST(i.IVDATE AS BIGINT), '19880101'))        AS lastDate
+        FROM form.dbo.INVOICES      i
+        INNER JOIN form.dbo.INVOICEITEMS ii  ON ii.IV    = i.IV
+        INNER JOIN form.dbo.ORDERITEMS   oi  ON oi.ORDI  = ii.ORDI
+        INNER JOIN form.dbo.IVTYPES      ivt ON ivt.TYPE = i.TYPE AND ivt.DEBIT = i.DEBIT
+        INNER JOIN form.dbo.AGENTS       a2  ON ii.AGENT = a2.AGENT AND a2.AGENTCODE = @agent
+        WHERE i.FINAL    = N'Y'
+          AND ivt.OTYPE  = N'C'
+          AND MONTH(DATEADD(MINUTE, CAST(i.IVDATE AS BIGINT), '19880101')) = MONTH(GETDATE())
+          AND YEAR (DATEADD(MINUTE, CAST(i.IVDATE AS BIGINT), '19880101')) = YEAR (GETDATE())
         GROUP BY i.CUST
-      ),
-      target_cte AS (
-        SELECT sti.CUST,
-          CASE MONTH(GETDATE())
-            WHEN 1  THEN sti.JANPRICE WHEN 2  THEN sti.FEBPRICE WHEN 3  THEN sti.MARPRICE
-            WHEN 4  THEN sti.APRPRICE WHEN 5  THEN sti.MAYPRICE WHEN 6  THEN sti.JUNPRICE
-            WHEN 7  THEN sti.JULPRICE WHEN 8  THEN sti.AUGPRICE WHEN 9  THEN sti.SEPPRICE
-            WHEN 10 THEN sti.OCTPRICE WHEN 11 THEN sti.NOVPRICE WHEN 12 THEN sti.DECPRICE
-          END AS monthTarget
-        FROM form.dbo.SALESTARGETITEMS sti
-        JOIN form.dbo.AGENTS a2 ON sti.AGENT = a2.AGENT AND a2.AGENTCODE = @agent
-        INNER JOIN (
-          SELECT TOP 1 SALESTARGET FROM form.dbo.SALESTARGETS
-          WHERE STYEAR <> '' ORDER BY STYEAR DESC
-        ) st ON sti.SALESTARGET = st.SALESTARGET
       )
       SELECT
         c.CUSTNAME        AS custId,
@@ -969,7 +1007,6 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
         ccf.DAYNUM        AS dayNum,
         ccf.TOPP_NUM1     AS priorityOrder,
         ISNULL(s.monthlySales, 0) AS monthlySales,
-        ISNULL(t.monthTarget, 0)  AS target,
         s.lastDate                AS lastSaleDate
       FROM form.dbo.CUSTCALLFREQUENCY ccf
       INNER JOIN form.dbo.CUSTOMERS c   ON ccf.CUST    = c.CUST
@@ -978,7 +1015,6 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
       LEFT  JOIN form.dbo.AGENTS    a   ON c.AGENT     = a.AGENT
       LEFT  JOIN system.dbo.USERSB  ub  ON c.YISS_MANAGER = ub.USERB
       LEFT  JOIN sales_cte s            ON c.CUST      = s.CUST
-      LEFT  JOIN target_cte t           ON c.CUST      = t.CUST
       WHERE a.AGENTCODE = @agent
         AND cs.STATDES  = N'פעיל'
         ${dayFilter}
@@ -990,7 +1026,7 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
       const address  = expandCityAbbrev(fixPriNumbers(r.address  || ''));
       const city     = expandCityAbbrev(r.city || '');
       const monthlySales = parseFloat(r.monthlySales) || 0;
-      const target       = parseFloat(r.target)       || 0;
+      const target       = tahshivCache.get(normCat7(r.param7)) || 0;
       const pct          = target > 0 ? Math.round((monthlySales / target) * 100) : 0;
       return {
         custId:        r.custId,
@@ -1950,5 +1986,15 @@ app.get('/pbi/mmd-orders', mmdGuard, dataRateLimit, async (req, res) => {
   }
 });
 
+// POST /admin/reload-targets — перечитать TAHSHIV FORMULA.xlsx без перезапуска
+app.post('/admin/reload-targets', requireAuth, async (req, res) => {
+  if (!req.session.isManager) return res.status(403).json({ error: 'forbidden' });
+  await loadTahshiv();
+  res.json({ ok: true, count: tahshivCache.size });
+});
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Columbus server running on port ${PORT}`));
+app.listen(PORT, async () => {
+  console.log(`Columbus server running on port ${PORT}`);
+  await loadTahshiv();
+});
