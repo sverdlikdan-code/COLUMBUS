@@ -1013,7 +1013,7 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
         cs.STATDES        AS status,
         csp.SPEC10        AS kosher,
         csp.SPEC20        AS saleType,
-        csp.SPEC7         AS param7,
+        REVERSE(csp.SPEC7) AS param7,
         a.AGENTCODE       AS agentCode,
         a.AGENTNAME       AS agentName,
         ub.SNAME          AS schedulerName,
@@ -1039,7 +1039,7 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
       const address  = expandCityAbbrev(fixPriNumbers(r.address  || ''));
       const city     = expandCityAbbrev(r.city || '');
       const monthlySales = parseFloat(r.monthlySales) || 0;
-      const target       = tahshivCache.get(normCat7(r.param7)) || 0;
+      const target       = tahshivCache.get(r.param7 || '') || 0;
       const pct          = target > 0 ? Math.round((monthlySales / target) * 100) : 0;
       return {
         custId:        r.custId,
