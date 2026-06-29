@@ -975,19 +975,38 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
     const dayFilter = dayNum ? 'AND ccf.DAYNUM = @dayNum' : '';
     const result = await db.query(`
       WITH
+      agent_custs AS (
+        -- Customers that belong to this agent (for sales filter — matches PBI slicer logic)
+        SELECT DISTINCT c2.CUST
+        FROM form.dbo.CUSTCALLFREQUENCY ccf2
+        INNER JOIN form.dbo.CUSTOMERS c2  ON ccf2.CUST   = c2.CUST
+        INNER JOIN form.dbo.AGENTS    a2  ON c2.AGENT    = a2.AGENT AND a2.AGENTCODE = @agent
+        INNER JOIN form.dbo.CUSTSTATS cs2 ON c2.CUSTSTAT = cs2.CUSTSTAT AND cs2.STATDES = N'פעיל'
+      ),
       sales_cte AS (
+        -- Based on PBI M-code: FORM INV 23-26 (3)
+        -- AGENTS joined on INVOICEITEMS.AGENT (dimension only, no WHERE filter by agent)
+        -- Agent filtering via agent_custs (= PBI slicer on שם סוכן by customer ownership)
         SELECT i.CUST,
-          SUM(ii.IVCOST * CASE WHEN i.DEBIT = N'C' THEN -1.0 ELSE 1.0 END) AS monthlySales,
-          MAX(DATEADD(MINUTE, CAST(i.IVDATE AS BIGINT), '19880101'))        AS lastDate
+          SUM(
+            CASE WHEN i.FINAL = N'Y'
+              THEN ii.IVCOST
+              ELSE ii.QPRICE * (100.0 - ii.TOTPERCENT) / 100.0
+            END
+            * CASE WHEN i.DEBIT = N'C' THEN -1.0 ELSE 1.0 END
+          ) AS monthlySales,
+          MAX(DATEADD(MINUTE, i.IVDATE, '19880101')) AS lastDate
         FROM form.dbo.INVOICES      i
         INNER JOIN form.dbo.INVOICEITEMS ii  ON ii.IV    = i.IV
         INNER JOIN form.dbo.ORDERITEMS   oi  ON oi.ORDI  = ii.ORDI
         INNER JOIN form.dbo.IVTYPES      ivt ON ivt.TYPE = i.TYPE AND ivt.DEBIT = i.DEBIT
-        INNER JOIN form.dbo.AGENTS       a2  ON ii.AGENT = a2.AGENT AND a2.AGENTCODE = @agent
-        WHERE i.FINAL    = N'Y'
-          AND ivt.OTYPE  = N'C'
-          AND MONTH(DATEADD(MINUTE, CAST(i.IVDATE AS BIGINT), '19880101')) = MONTH(GETDATE())
-          AND YEAR (DATEADD(MINUTE, CAST(i.IVDATE AS BIGINT), '19880101')) = YEAR (GETDATE())
+        INNER JOIN agent_custs           ac  ON ac.CUST  = i.CUST
+        WHERE i.FINAL   = N'Y'
+          AND i.TYPE   <> N'R'
+          AND ivt.OTYPE = N'C'
+          AND ii.ORDI   = oi.ORDI
+          AND MONTH(DATEADD(MINUTE, i.IVDATE, '19880101')) = MONTH(GETDATE())
+          AND YEAR (DATEADD(MINUTE, i.IVDATE, '19880101')) = YEAR (GETDATE())
         GROUP BY i.CUST
       )
       SELECT
@@ -1823,17 +1842,18 @@ app.post('/mmd/rebuild', mmdGuard, (req, res) => {
 });
 
 app.get('/mmd/period-data', mmdGuard, dataRateLimit, async (req, res) => {
-  const y1 = parseInt(req.query.y1), m1 = parseInt(req.query.m1);
-  const y2 = parseInt(req.query.y2), m2 = parseInt(req.query.m2);
-  if ([y1,m1,y2,m2].some(n => !Number.isInteger(n)) ||
-      m1 < 1 || m1 > 12 || m2 < 1 || m2 > 12 ||
-      y1 < 2020 || y1 > 2100 || y2 < 2020 || y2 > 2100) {
-    return res.status(400).json({ ok: false, error: 'bad params' });
+  const d1s = req.query.d1, d2s = req.query.d2;
+  if (!d1s || !d2s || !/^\d{4}-\d{2}-\d{2}$/.test(d1s) || !/^\d{4}-\d{2}-\d{2}$/.test(d2s)) {
+    return res.status(400).json({ ok: false, error: 'bad params: need d1, d2 as YYYY-MM-DD' });
+  }
+  const [y1,m1,day1] = d1s.split('-').map(Number);
+  const [y2,m2,day2] = d2s.split('-').map(Number);
+  if (y1 < 2020 || y2 > 2100 || new Date(d1s) > new Date(d2s)) {
+    return res.status(400).json({ ok: false, error: 'bad date range' });
   }
   const MMD_DS = process.env.POWERBI_MMD_DATASET_ID;
   if (!MMD_DS) return res.status(503).json({ ok: false, error: 'MMD dataset not configured' });
-  const lastDay = new Date(y2, m2, 0).getDate();
-  const df = `DATESBETWEEN(DIMCALENDAR[Date], DATE(${y1},${m1},1), DATE(${y2},${m2},${lastDay}))`;
+  const df = `DATESBETWEEN(DIMCALENDAR[Date], DATE(${y1},${m1},${day1}), DATE(${y2},${m2},${day2}))`;
   try {
     const rows = await executeDax(`
       EVALUATE
