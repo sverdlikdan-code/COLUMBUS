@@ -10,7 +10,10 @@ const { executeDax, getDatasetRefreshTime } = require('./powerbi');
 const db = require('./db');
 
 // ── TAHSHIV TARGETS CACHE ──────────────────────────────────────────────────
-const TAHSHIV_PATH = '\\\\dilerbmdsrv\\yulia-dan\\bi pilot\\FORMULA\\TAHSHIV FORMULA.xlsx';
+// Windows: network share; Linux VPS: local copy in server/
+const TAHSHIV_PATH = process.platform === 'win32'
+  ? '\\\\dilerbmdsrv\\yulia-dan\\bi pilot\\FORMULA\\TAHSHIV FORMULA.xlsx'
+  : path.join(__dirname, 'TAHSHIV_FORMULA.xlsx');
 
 // Priority stores SPEC7 codes with BiDi marks. In SQL result they come out
 // like "236502RF" (chars reversed) — reversing chars back gives "FR205632"
