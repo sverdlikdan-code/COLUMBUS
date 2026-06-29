@@ -1264,6 +1264,10 @@ async function loadMaps() {
             state.kapua[pick] = null;
           } else if (!(pick in state.kapua) || state.kapua[pick] === null) {
             state.kapua[pick] = { ...p };
+          } else {
+            // Always sync haluka and printOrder from fresh base (may be missing in old saved state)
+            if (p.haluka != null) state.kapua[pick].haluka = p.haluka;
+            if (p.printOrder != null && state.kapua[pick].printOrder == null) state.kapua[pick].printOrder = p.printOrder;
           }
         }
       }
@@ -1291,7 +1295,9 @@ async function loadMaps() {
           if (!p) { state.halavi[pick] = null; }
           else if (!(pick in state.halavi) || state.halavi[pick] === null) { state.halavi[pick] = { ...p }; }
           else { if (p.fam  !== undefined) state.halavi[pick].fam  = p.fam;
-                 if (p.name !== undefined) state.halavi[pick].name = p.name; }
+                 if (p.name !== undefined) state.halavi[pick].name = p.name;
+                 if (p.haluka != null) state.halavi[pick].haluka = p.haluka;
+                 if (p.printOrder != null && state.halavi[pick].printOrder == null) state.halavi[pick].printOrder = p.printOrder; }
         }
         for (const pick of Object.keys(state.halavi)) {
           if (!(pick in hb.picks)) state.halavi[pick] = null;
@@ -1321,7 +1327,9 @@ async function loadMaps() {
           if (!p) { state.dagim[pick] = null; }
           else if (!(pick in state.dagim) || state.dagim[pick] === null) { state.dagim[pick] = { ...p }; }
           else { if (p.fam  !== undefined) state.dagim[pick].fam  = p.fam;
-                 if (p.name !== undefined) state.dagim[pick].name = p.name; }
+                 if (p.name !== undefined) state.dagim[pick].name = p.name;
+                 if (p.haluka != null) state.dagim[pick].haluka = p.haluka;
+                 if (p.printOrder != null && state.dagim[pick].printOrder == null) state.dagim[pick].printOrder = p.printOrder; }
         }
         for (const pick of Object.keys(state.dagim)) {
           if (!(pick in db.picks)) state.dagim[pick] = null;
