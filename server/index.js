@@ -185,7 +185,7 @@ loadSessions();
 
 function createSession(agentCode, isManager) {
   const token = crypto.randomUUID();
-  sessions.set(token, { agentCode, isManager, expiresAt: Date.now() + 8 * 60 * 60 * 1000 });
+  sessions.set(token, { agentCode, isManager, expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000 });
   // Prune expired sessions when map grows large
   if (sessions.size > 500) {
     const now = Date.now();
