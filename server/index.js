@@ -199,6 +199,9 @@ function requireAuth(req, res, next) {
   const token = (req.headers['x-session'] || '').trim();
   const sess = sessions.get(token);
   if (!sess || Date.now() > sess.expiresAt) return res.status(401).json({ error: 'unauthorized' });
+  // Rolling session: extend expiry on every use
+  sess.expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
+  saveSessions();
   req.session = sess;
   next();
 }
