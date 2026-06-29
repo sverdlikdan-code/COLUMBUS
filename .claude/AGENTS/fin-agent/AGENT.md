@@ -53,13 +53,14 @@ Fin-Agent не отключает агентов и не меняет модел
 ## Прайс-лист (актуализировать при каждом мониторинге)
 
 ```
-claude-fable-5:       $? / $?    per M tokens (новая, уточнить)
+claude-fable-5:       $10 / $50  per M tokens ← PREMIUM, дороже Sonnet в 3.3x, не для экономии
 claude-opus-4-8:      $15 / $75  per M tokens (input/output)
-claude-sonnet-4-6:     $3 / $15  per M tokens
-claude-haiku-4-5:    $0.8 / $4   per M tokens
+claude-sonnet-4-6:     $3 / $15  per M tokens ← стандарт COLUMBUS
+claude-haiku-4-5:    $0.8 / $4   per M tokens ← мониторинг / простые задачи
 
 Prompt cache write:  25% от input price
 Prompt cache hit:     5% от input price
+✅ Claude Code включает caching автоматически — ручная настройка не нужна
 ```
 Актуализировано: 2026-06-29
 
