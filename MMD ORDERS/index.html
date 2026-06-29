@@ -1728,7 +1728,7 @@ window.loadPeriod = async function() {
   if (!base || !base.length) { render(); return; }
   if (!baseAll) baseAll = all; // save snapshot if not yet saved
   const myId = ++_periodLoadId;
-  const p = selectedPeriod();
+  const p = getPeriodParams();
   _setPeriodLabel('⏳ ' + periodLabel(p));
   try {
     const url = `/mmd/period-data?y1=${p.y1}&m1=${p.m1}&y2=${p.y2}&m2=${p.m2}`;
