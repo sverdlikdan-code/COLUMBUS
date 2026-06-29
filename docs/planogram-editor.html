@@ -2313,7 +2313,7 @@ async function exportPositionXlsx() {
   if (!payload.length) { alert('אין מוצרים בטבלה'); return; }
   try {
     const resp = await fetch('https://api.sverdlik-apps.site/api/export-position-xlsx', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Session': localStorage.getItem('frToken') || '' },
       body: JSON.stringify({ rows: payload }),
     });
     if (!resp.ok) { const t = await resp.text().catch(()=>''); alert(`שגיאה: ${resp.status} ${t.slice(0,80)}`); return; }
@@ -2580,7 +2580,7 @@ async function _orderSaveSnapshot() {
   let ts = new Date().toISOString();
   try {
     const resp = await fetch(ORDER_HISTORY_API, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Session': localStorage.getItem('frToken') || '' },
       body: JSON.stringify({ edits: cloned }),
     });
     const j = await resp.json().catch(() => null);
@@ -2619,7 +2619,7 @@ async function _orderRenderHistoryDropdown() {
   let versions = null;
   let fromServer = true;
   try {
-    const resp = await fetch(ORDER_HISTORY_API);
+    const resp = await fetch(ORDER_HISTORY_API, { headers: { 'X-Session': localStorage.getItem('frToken') || '' } });
     const j = await resp.json().catch(() => null);
     if (!resp.ok || !j?.ok) throw new Error('fetch failed');
     versions = j.versions;
@@ -2677,7 +2677,7 @@ async function exportOrderCsv() {
   try {
     const resp = await fetch(ORDER_EXPORT_API, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Session': localStorage.getItem('frToken') || '' },
       body: JSON.stringify({ rows: payloadRows, periods, modeNote }),
     });
     if (!resp.ok) throw new Error('export failed');
