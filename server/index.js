@@ -975,80 +975,33 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
     const dayFilter = dayNum ? 'AND ccf.DAYNUM = @dayNum' : '';
     const result = await db.query(`
       WITH
-      agent_cust_names AS (
-        -- CUSTNAME list for this agent (shared key across FORM/ICE/DILLER databases)
-        SELECT DISTINCT c2.CUSTNAME
+      agent_custs AS (
+        SELECT DISTINCT c2.CUST
         FROM form.dbo.CUSTCALLFREQUENCY ccf2
         INNER JOIN form.dbo.CUSTOMERS c2  ON ccf2.CUST   = c2.CUST
         INNER JOIN form.dbo.AGENTS    a2  ON c2.AGENT    = a2.AGENT AND a2.AGENTCODE = @agent
         INNER JOIN form.dbo.CUSTSTATS cs2 ON c2.CUSTSTAT = cs2.CUSTSTAT AND cs2.STATDES = N'פעיל'
       ),
       sales_cte AS (
-        -- TOTAL SALES = FORM + ICE (icecrea) + INTER (diller) — matches PBI ALL_PARTS measure
-        -- Formula: IVCOST if FINAL='Y' else QPRICE*(1-TOTPERCENT/100), * DEBIT sign
-        -- Excludes internal products (0,915xxx,916xxx) per DAX ExcludedProducts
-        SELECT inv.CUSTNAME,
-          SUM(inv.sales) AS monthlySales,
-          MAX(inv.iv_date) AS lastDate
-        FROM (
-          -- FORM
-          SELECT c.CUSTNAME,
+        SELECT i.CUST,
+          SUM(
             CASE WHEN i.FINAL=N'Y' THEN ii.IVCOST ELSE ii.QPRICE*(100.0-ii.TOTPERCENT)/100.0 END
-            * CASE WHEN i.DEBIT=N'C' THEN -1.0 ELSE 1.0 END AS sales,
-            DATEADD(MINUTE, i.IVDATE, '19880101') AS iv_date
-          FROM form.dbo.INVOICES i
-          INNER JOIN form.dbo.INVOICEITEMS ii  ON ii.IV   = i.IV
-          INNER JOIN form.dbo.ORDERITEMS   oi  ON oi.ORDI = ii.ORDI AND ii.ORDI = oi.ORDI
-          INNER JOIN form.dbo.IVTYPES      ivt ON ivt.TYPE = i.TYPE AND ivt.DEBIT = i.DEBIT
-          INNER JOIN form.dbo.PART         pt  ON pt.PART  = ii.PART
-          INNER JOIN form.dbo.CUSTOMERS    c   ON c.CUST   = i.CUST
-          INNER JOIN agent_cust_names      acn ON acn.CUSTNAME = c.CUSTNAME
-          WHERE i.FINAL=N'Y' AND i.TYPE<>N'R' AND ivt.OTYPE=N'C'
-            AND pt.PARTNAME NOT IN (N'0',N'915001',N'915002',N'916000',N'916001',N'916002',
-                                     N'916003',N'916004',N'916005',N'916006',N'916007',
-                                     N'916008',N'916009',N'916010',N'916011')
-            AND MONTH(DATEADD(MINUTE, i.IVDATE, '19880101')) = MONTH(GETDATE())
-            AND YEAR (DATEADD(MINUTE, i.IVDATE, '19880101')) = YEAR (GETDATE())
-          UNION ALL
-          -- ICE (icecrea)
-          SELECT c.CUSTNAME,
-            CASE WHEN i.FINAL=N'Y' THEN ii.IVCOST ELSE ii.QPRICE*(100.0-ii.TOTPERCENT)/100.0 END
-            * CASE WHEN i.DEBIT=N'C' THEN -1.0 ELSE 1.0 END AS sales,
-            DATEADD(MINUTE, i.IVDATE, '19880101') AS iv_date
-          FROM icecrea.dbo.INVOICES i
-          INNER JOIN icecrea.dbo.INVOICEITEMS ii  ON ii.IV   = i.IV
-          INNER JOIN icecrea.dbo.ORDERITEMS   oi  ON oi.ORDI = ii.ORDI AND ii.ORDI = oi.ORDI
-          INNER JOIN icecrea.dbo.IVTYPES      ivt ON ivt.TYPE = i.TYPE AND ivt.DEBIT = i.DEBIT
-          INNER JOIN icecrea.dbo.PART         pt  ON pt.PART  = ii.PART
-          INNER JOIN icecrea.dbo.CUSTOMERS    c   ON c.CUST   = i.CUST
-          INNER JOIN agent_cust_names         acn ON acn.CUSTNAME = c.CUSTNAME
-          WHERE i.FINAL=N'Y' AND i.TYPE<>N'R' AND ivt.OTYPE=N'C'
-            AND pt.PARTNAME NOT IN (N'0',N'915001',N'915002',N'916000',N'916001',N'916002',
-                                     N'916003',N'916004',N'916005',N'916006',N'916007',
-                                     N'916008',N'916009',N'916010',N'916011')
-            AND MONTH(DATEADD(MINUTE, i.IVDATE, '19880101')) = MONTH(GETDATE())
-            AND YEAR (DATEADD(MINUTE, i.IVDATE, '19880101')) = YEAR (GETDATE())
-          UNION ALL
-          -- INTER (diller)
-          SELECT c.CUSTNAME,
-            CASE WHEN i.FINAL=N'Y' THEN ii.IVCOST ELSE ii.QPRICE*(100.0-ii.TOTPERCENT)/100.0 END
-            * CASE WHEN i.DEBIT=N'C' THEN -1.0 ELSE 1.0 END AS sales,
-            DATEADD(MINUTE, i.IVDATE, '19880101') AS iv_date
-          FROM diller.dbo.INVOICES i
-          INNER JOIN diller.dbo.INVOICEITEMS ii  ON ii.IV   = i.IV
-          INNER JOIN diller.dbo.ORDERITEMS   oi  ON oi.ORDI = ii.ORDI AND ii.ORDI = oi.ORDI
-          INNER JOIN diller.dbo.IVTYPES      ivt ON ivt.TYPE = i.TYPE AND ivt.DEBIT = i.DEBIT
-          INNER JOIN diller.dbo.PART         pt  ON pt.PART  = ii.PART
-          INNER JOIN diller.dbo.CUSTOMERS    c   ON c.CUST   = i.CUST
-          INNER JOIN agent_cust_names        acn ON acn.CUSTNAME = c.CUSTNAME
-          WHERE i.FINAL=N'Y' AND i.TYPE<>N'R' AND ivt.OTYPE=N'C'
-            AND pt.PARTNAME NOT IN (N'0',N'915001',N'915002',N'916000',N'916001',N'916002',
-                                     N'916003',N'916004',N'916005',N'916006',N'916007',
-                                     N'916008',N'916009',N'916010',N'916011')
-            AND MONTH(DATEADD(MINUTE, i.IVDATE, '19880101')) = MONTH(GETDATE())
-            AND YEAR (DATEADD(MINUTE, i.IVDATE, '19880101')) = YEAR (GETDATE())
-        ) inv
-        GROUP BY inv.CUSTNAME
+            * CASE WHEN i.DEBIT=N'C' THEN -1.0 ELSE 1.0 END
+          ) AS monthlySales,
+          MAX(DATEADD(MINUTE, i.IVDATE, '19880101')) AS lastDate
+        FROM form.dbo.INVOICES      i
+        INNER JOIN form.dbo.INVOICEITEMS ii  ON ii.IV    = i.IV
+        INNER JOIN form.dbo.ORDERITEMS   oi  ON oi.ORDI  = ii.ORDI AND ii.ORDI = oi.ORDI
+        INNER JOIN form.dbo.IVTYPES      ivt ON ivt.TYPE = i.TYPE AND ivt.DEBIT = i.DEBIT
+        INNER JOIN form.dbo.PART         pt  ON pt.PART  = ii.PART
+        INNER JOIN agent_custs           ac  ON ac.CUST  = i.CUST
+        WHERE i.FINAL=N'Y' AND i.TYPE<>N'R' AND ivt.OTYPE=N'C'
+          AND pt.PARTNAME NOT IN (N'0',N'915001',N'915002',N'916000',N'916001',N'916002',
+                                   N'916003',N'916004',N'916005',N'916006',N'916007',
+                                   N'916008',N'916009',N'916010',N'916011')
+          AND MONTH(DATEADD(MINUTE, i.IVDATE, '19880101')) = MONTH(GETDATE())
+          AND YEAR (DATEADD(MINUTE, i.IVDATE, '19880101')) = YEAR (GETDATE())
+        GROUP BY i.CUST
       )
       SELECT
         c.CUSTNAME        AS custId,
@@ -1074,7 +1027,7 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
       LEFT  JOIN form.dbo.CUSTSPEC  csp ON c.CUST      = csp.CUST
       LEFT  JOIN form.dbo.AGENTS    a   ON c.AGENT     = a.AGENT
       LEFT  JOIN system.dbo.USERSB  ub  ON c.YISS_MANAGER = ub.USERB
-      LEFT  JOIN sales_cte s            ON c.CUSTNAME  = s.CUSTNAME
+      LEFT  JOIN sales_cte s            ON c.CUST      = s.CUST
       WHERE a.AGENTCODE = @agent
         AND cs.STATDES  = N'פעיל'
         ${dayFilter}
