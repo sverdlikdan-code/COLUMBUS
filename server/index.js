@@ -989,25 +989,59 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
         INNER JOIN form.dbo.CUSTSTATS cs2 ON c2.CUSTSTAT = cs2.CUSTSTAT AND cs2.STATDES = N'פעיל'
       ),
       sales_cte AS (
-        SELECT i.CUST,
-          SUM(
-            CASE WHEN i.FINAL=N'Y' THEN ii.IVCOST ELSE ii.QPRICE*(100.0-ii.TOTPERCENT)/100.0 END
-            * CASE WHEN i.DEBIT=N'C' THEN -1.0 ELSE 1.0 END
-          ) AS monthlySales,
-          MAX(DATEADD(MINUTE, i.IVDATE, '19880101')) AS lastDate
-        FROM form.dbo.INVOICES      i
-        INNER JOIN form.dbo.INVOICEITEMS ii  ON ii.IV    = i.IV
-        INNER JOIN form.dbo.ORDERITEMS   oi  ON oi.ORDI  = ii.ORDI AND ii.ORDI = oi.ORDI
-        INNER JOIN form.dbo.IVTYPES      ivt ON ivt.TYPE = i.TYPE AND ivt.DEBIT = i.DEBIT
-        INNER JOIN form.dbo.PART         pt  ON pt.PART  = ii.PART
-        INNER JOIN agent_custs           ac  ON ac.CUST  = i.CUST
-        WHERE i.FINAL=N'Y' AND i.TYPE<>N'R' AND ivt.OTYPE=N'C'
-          AND pt.PARTNAME NOT IN (N'0',N'915001',N'915002',N'916000',N'916001',N'916002',
-                                   N'916003',N'916004',N'916005',N'916006',N'916007',
-                                   N'916008',N'916009',N'916010',N'916011')
-          AND MONTH(DATEADD(MINUTE, i.IVDATE, '19880101')) = MONTH(GETDATE())
-          AND YEAR (DATEADD(MINUTE, i.IVDATE, '19880101')) = YEAR (GETDATE())
-        GROUP BY i.CUST
+        SELECT CUST, SUM(sales) AS monthlySales, MAX(lastDate) AS lastDate
+        FROM (
+          -- FORM INV (חשבוניות) — per FORM INV 23-26 (3).tmdl M-code
+          SELECT i.CUST,
+            SUM(
+              CASE WHEN i.FINAL=N'Y' THEN ii.IVCOST ELSE ii.QPRICE*(100.0-ii.TOTPERCENT)/100.0 END
+              * CASE WHEN i.DEBIT=N'C' THEN -1.0 ELSE 1.0 END
+            ) AS sales,
+            MAX(DATEADD(MINUTE, i.IVDATE, '19880101')) AS lastDate
+          FROM form.dbo.INVOICES      i
+          INNER JOIN form.dbo.INVOICEITEMS ii  ON ii.IV    = i.IV
+          INNER JOIN form.dbo.ORDERITEMS   oi  ON oi.ORDI  = ii.ORDI AND ii.ORDI = oi.ORDI
+          INNER JOIN form.dbo.IVTYPES      ivt ON ivt.TYPE = i.TYPE AND ivt.DEBIT = i.DEBIT
+          INNER JOIN form.dbo.PART         pt  ON pt.PART  = ii.PART
+          INNER JOIN agent_custs           ac  ON ac.CUST  = i.CUST
+          WHERE i.FINAL=N'Y' AND i.TYPE<>N'R' AND ivt.OTYPE=N'C'
+            AND pt.PARTNAME NOT IN (N'0',N'915001',N'915002',N'916000',N'916001',N'916002',
+                                     N'916003',N'916004',N'916005',N'916006',N'916007',
+                                     N'916008',N'916009',N'916010',N'916011')
+            AND MONTH(DATEADD(MINUTE, i.IVDATE, '19880101')) = MONTH(GETDATE())
+            AND YEAR (DATEADD(MINUTE, i.IVDATE, '19880101')) = YEAR (GETDATE())
+          GROUP BY i.CUST
+
+          UNION ALL
+
+          -- FORM DOCS (תעודות משלוח, IV=0) — per FORM DOCS 23-26 (4).tmdl M-code
+          SELECT d.CUST,
+            SUM(
+              tr.PRICE * (CONVERT(FLOAT, ISNULL(tr.TQUANT, 0)) / 1000.0)
+              * (100.0 - ISNULL(tr.T$PERCENT, 0.0)) / 100.0
+              * (100.0 - CASE WHEN fam.RECYCLINGFLAG=N'Y' THEN 0.0 ELSE ISNULL(doc.T$PERCENT, 0.0) END) / 100.0
+              * ISNULL(tr.IEXCHANGE, 1.0)
+              * CASE WHEN tr.TYPE=N'N' THEN -1.0 ELSE 1.0 END
+            ) AS sales,
+            MAX(DATEADD(MINUTE, tr.CURDATE, '19880101')) AS lastDate
+          FROM form.dbo.TRANSORDER tr
+          INNER JOIN form.dbo.DOCUMENTS doc ON doc.DOC    = tr.DOC
+          INNER JOIN form.dbo.CUSTOMERS d   ON d.CUST     = doc.CUST
+          INNER JOIN form.dbo.PART      pt  ON pt.PART    = tr.PART
+          INNER JOIN form.dbo.FAMILY    fam ON fam.FAMILY = pt.FAMILY
+          INNER JOIN agent_custs        ac  ON ac.CUST    = d.CUST
+          WHERE tr.IV    = 0
+            AND tr.FLAG  = N'Y'
+            AND tr.TYPE  IN (N'D', N'N')
+            AND doc.FLAG  = N'Y'
+            AND pt.PARTNAME NOT IN (N'0',N'915001',N'915002',N'916000',N'916001',N'916002',
+                                     N'916003',N'916004',N'916005',N'916006',N'916007',
+                                     N'916008',N'916009',N'916010',N'916011')
+            AND MONTH(DATEADD(MINUTE, tr.CURDATE, '19880101')) = MONTH(GETDATE())
+            AND YEAR (DATEADD(MINUTE, tr.CURDATE, '19880101')) = YEAR (GETDATE())
+          GROUP BY d.CUST
+        ) combined
+        GROUP BY CUST
       )
       SELECT
         c.CUSTNAME        AS custId,
@@ -1739,9 +1773,10 @@ app.post('/api/export-position-xlsx', requireAuth, dataRateLimit, async (req, re
 
     const HEADER_ROW = 4;
     const tableCols = [
-      { name: 'תמונה',      width: 14, totalsRowFunction: 'none' },
+      { name: 'תמונה',      width: 8,  totalsRowFunction: 'none' },
       { name: 'תאור',       width: 38, totalsRowFunction: 'none' },
       { name: 'מק"ט',      width: 11, totalsRowFunction: 'none' },
+      { name: 'חלוקה',     width: 9,  totalsRowFunction: 'none' },
       { name: 'מחלקה',     width: 12, totalsRowFunction: 'none' },
       { name: 'סדר הדפסה', width: 10, totalsRowFunction: 'none' },
       { name: 'מיקום',     width: 9,  totalsRowFunction: 'none' },
@@ -1751,8 +1786,12 @@ app.post('/api/export-position-xlsx', requireAuth, dataRateLimit, async (req, re
 
     tableCols.forEach((c, i) => { ws.getColumn(PHOTO_COL + i).width = c.width; });
 
-    rows.sort((a, b) => (Number(a.printOrder) || 0) - (Number(b.printOrder) || 0));
-    const tableRows = rows.map(r => ['', r.name || '', r.makat || '', r.sec || '', r.printOrder || '', r.pos || '', r.bay || '', r.fam || '']);
+    rows.sort((a, b) => {
+      const ha = a.haluka ?? 999, hb = b.haluka ?? 999;
+      if (ha !== hb) return ha - hb;
+      return (Number(a.printOrder) || 0) - (Number(b.printOrder) || 0);
+    });
+    const tableRows = rows.map(r => ['', r.name || '', r.makat || '', r.haluka ?? '—', r.sec || '', r.printOrder || '', r.pos || '', r.bay || '', r.fam || '']);
     ws.addTable({
       name: 'PositionTable',
       ref: `B${HEADER_ROW}`,
@@ -1767,8 +1806,8 @@ app.post('/api/export-position-xlsx', requireAuth, dataRateLimit, async (req, re
     ws.getRow(HEADER_ROW).font = { bold: true };
     ws.views[0] = { rightToLeft: true, state: 'frozen', ySplit: HEADER_ROW };
 
-    const IMG_PX = 90;
-    const IMG_ROW_PT = 68;
+    const IMG_PX = 30;
+    const IMG_ROW_PT = 24;
     await Promise.all(rows.map(async (r, i) => {
       if (!r.photoUrl || !isSafePhotoUrl(r.photoUrl)) return;
       try {
