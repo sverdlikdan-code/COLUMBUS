@@ -144,10 +144,17 @@
       body.printing-expiry .expiry-page-group > div {
         overflow: hidden !important;
         min-height: 0 !important;
+        height: 100% !important;
+        width: 100% !important;
         box-sizing: border-box !important;
         transform-origin: top left !important;
       }
-      body.printing-expiry #expiry-grid > div { break-inside: avoid; width: auto !important; flex-shrink: 1 !important; min-width: 0 !important; }
+      body.printing-expiry .expiry-page-group > div > div:first-child {
+        width: 100% !important;
+        height: 100% !important;
+        box-sizing: border-box !important;
+      }
+      body.printing-expiry #expiry-grid > div { break-inside: avoid; width: 100% !important; flex-shrink: 1 !important; min-width: 0 !important; max-width: 100% !important; }
       body.printing-expiry #expiry-grid > .expiry-sec-hdr { display: none !important; }
       body.printing-expiry #expiry-grid > .expiry-haluka-sep { display: none !important; }
       .expiry-haluka-sep { width:100%; flex-basis:100%; padding:5px 14px; margin:14px 0 4px; background:linear-gradient(90deg,#e8eaf6,#fff); color:#3949ab; font-size:12px; font-weight:bold; border-right:4px solid #3949ab; border-radius:0 4px 4px 0; letter-spacing:0.4px; }
