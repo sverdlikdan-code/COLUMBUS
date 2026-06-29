@@ -583,6 +583,7 @@
 <body>
 
 <!-- ── App Splash (MMD Orders style) ──────────────────────────── -->
+
 <div id="app-splash">
   <div id="splash-bg"></div>
 
@@ -2767,10 +2768,7 @@ async function _applyOrderPeriods() {
       }).catch(e => { console.error('[ord-periods] network error:', e); return null; });
       if (!resp) {
         data = null; window._orderPeriodFetchFailed = true; window._orderNeedsLogin = false;
-      } else if (resp.status === 401) {
-        data = null; window._orderPeriodFetchFailed = false; window._orderNeedsLogin = true;
       } else {
-        window._orderNeedsLogin = false;
         const j = await resp.json().catch(() => null);
         data = (j && j.ok && j.data) ? j.data : null;
         window._orderPeriodFetchFailed = !data;
@@ -2903,10 +2901,7 @@ function buildOrderPage() {
       const isAct = sel.has(`${y}-${m}`);
       ph += `<button style="${isAct ? mAct : mDef}" onclick="toggleOrderPeriod(${y},${m})">${HM[m]}</button>`;
     }
-    if (window._orderNeedsLogin) {
-      ph += `<span style="color:rgba(255,255,255,0.12);font-size:14px;margin:0 4px;">|</span>` +
-        `<span style="background:#78350f;color:#fde68a;font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;cursor:pointer;" onclick="window.open('formula-road.html','_blank')" title="הסשן פג תוקף — לחץ להתחברות מחדש">🔑 כניסה מחדש</span>`;
-    } else if (window._orderPeriodFetchFailed) {
+    if (window._orderPeriodFetchFailed) {
       ph += `<span style="color:rgba(255,255,255,0.12);font-size:14px;margin:0 4px;">|</span>` +
         `<span style="background:#7f1d1d;color:#fecaca;font-size:10px;font-weight:700;padding:4px 8px;border-radius:6px;" title="השרת לא הגיב — מכר ממוצע מציג ערך קבוע ולא לפי התקופה שנבחרה">⚠ שגיאת שרת — מכר ממוצע קבוע</span>`;
     }

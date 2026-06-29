@@ -1445,7 +1445,7 @@ app.get('/pbi/formula-refresh', dataRateLimit, async (req, res) => {
 
 // GET /pbi/dagim-sales?periods=2026-5,2026-6 — live sales for הזמנה period filter (combined period)
 // Legacy single-month form also supported: ?year=2026&month=5
-app.get('/pbi/dagim-sales', requireAuth, dataRateLimit, async (req, res) => {
+app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
   let dateFilter;
 
   if (req.query.periods) {
