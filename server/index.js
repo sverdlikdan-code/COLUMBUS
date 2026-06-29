@@ -1000,11 +1000,15 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
         INNER JOIN form.dbo.INVOICEITEMS ii  ON ii.IV    = i.IV
         INNER JOIN form.dbo.ORDERITEMS   oi  ON oi.ORDI  = ii.ORDI
         INNER JOIN form.dbo.IVTYPES      ivt ON ivt.TYPE = i.TYPE AND ivt.DEBIT = i.DEBIT
+        INNER JOIN form.dbo.PART         pt  ON pt.PART  = ii.PART
         INNER JOIN agent_custs           ac  ON ac.CUST  = i.CUST
         WHERE i.FINAL   = N'Y'
           AND i.TYPE   <> N'R'
           AND ivt.OTYPE = N'C'
           AND ii.ORDI   = oi.ORDI
+          AND pt.PARTNAME NOT IN (N'0',N'915001',N'915002',N'916000',N'916001',N'916002',
+                                   N'916003',N'916004',N'916005',N'916006',N'916007',
+                                   N'916008',N'916009',N'916010',N'916011')
           AND MONTH(DATEADD(MINUTE, i.IVDATE, '19880101')) = MONTH(GETDATE())
           AND YEAR (DATEADD(MINUTE, i.IVDATE, '19880101')) = YEAR (GETDATE())
         GROUP BY i.CUST
