@@ -1331,7 +1331,8 @@ async function loadMaps() {
     }
 
     // Fetch real PBI refresh time (overrides static refresh-info.json date)
-    fetch('https://api.sverdlik-apps.site/pbi/formula-refresh')
+    const _frTok = localStorage.getItem('frToken') || '';
+    fetch('https://api.sverdlik-apps.site/pbi/formula-refresh', { headers: { 'X-Session': _frTok } })
       .then(r => r.ok ? r.json() : null).catch(() => null)
       .then(j => {
         if (!j?.refreshedAt) return;
