@@ -2335,6 +2335,7 @@ async function exportPositionXlsx() {
         makat: String(p.makat),
         name: p.name || '',
         fam: productData[String(p.makat)]?.fam || _cleanStr(p.fam) || '',
+        haluka: p.haluka ?? null,
         photoUrl: getPhotoUrl(p.makat) || '',
       });
     });
