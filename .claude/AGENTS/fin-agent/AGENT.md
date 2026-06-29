@@ -52,13 +52,15 @@ Fin-Agent не отключает агентов и не меняет модел
 ## Прайс-лист (актуализировать при каждом мониторинге)
 
 ```
-claude-opus-4-7:      $15 / $75  per M tokens (input/output)
+claude-fable-5:       $? / $?    per M tokens (новая, уточнить)
+claude-opus-4-8:      $15 / $75  per M tokens (input/output)
 claude-sonnet-4-6:     $3 / $15  per M tokens
 claude-haiku-4-5:    $0.8 / $4   per M tokens
 
 Prompt cache write:  25% от input price
 Prompt cache hit:     5% от input price
 ```
+Актуализировано: 2026-06-29
 
 Источник: https://www.anthropic.com/pricing
 
