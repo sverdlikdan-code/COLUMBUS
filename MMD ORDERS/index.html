@@ -1724,7 +1724,9 @@ function _setPeriodLabel(txt) {
 }
 
 window.loadPeriod = async function() {
-  if (!baseAll) { render(); return; }
+  const base = baseAll || all;
+  if (!base || !base.length) { render(); return; }
+  if (!baseAll) baseAll = all; // save snapshot if not yet saved
   const myId = ++_periodLoadId;
   const p = selectedPeriod();
   _setPeriodLabel('⏳ ' + periodLabel(p));
