@@ -1001,10 +1001,14 @@ function _getPrintOrder(sec) {
   const activeSet = new Set(activePicks);
   const filtered = saved.filter(p => activeSet.has(p));
   activePicks.forEach(p => { if (!filtered.includes(p)) filtered.push(p); });
-  // Re-apply haluka grouping over saved order
+  // Re-apply haluka → printOrder sort (no haluka → bottom)
   return filtered.sort((a, b) => {
-    const ha = state[sec][a]?.haluka ?? 999, hb = state[sec][b]?.haluka ?? 999;
-    return ha - hb;
+    const pa = state[sec][a], pb = state[sec][b];
+    const ha = pa?.haluka ?? 999, hb = pb?.haluka ?? 999;
+    if (ha !== hb) return ha - hb;
+    const oa = pa?.printOrder != null ? pa.printOrder : +a;
+    const ob = pb?.printOrder != null ? pb.printOrder : +b;
+    return oa - ob || +a - +b;
   });
 }
 function _savePrintOrder(sec, order) {
