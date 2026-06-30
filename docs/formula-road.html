@@ -1327,34 +1327,35 @@ function calcIndication(monthlySales, target) {
   return (monthlySales / target - daysPct) < -0.05 ? '😕' : '🚀';
 }
 
-function glassIcon(sales, target, custId) {
+function gaugeIcon(sales, target) {
   if (!target) return '';
-  const pct = Math.round((sales || 0) / target * 100);
+  const raw = (sales || 0) / target;
+  const pctDisplay = Math.round(raw * 100);
+  const pctVal = Math.min(raw, 0.998);
+
   const timeFrac = _workDaysFrac();
-  const diff = pct / 100 - timeFrac;
-  const color  = diff >= 0   ? '#1B7B34' : diff >= -0.1 ? '#E65100' : '#C62828';
-  const bgClr  = diff >= 0   ? '#E8F5E9' : diff >= -0.1 ? '#FFF3E0' : '#FFEBEE';
+  const diff = raw - timeFrac;
+  const color  = diff >= 0 ? '#1B7B34' : diff >= -0.1 ? '#E65100' : '#C62828';
+  const trackC = diff >= 0 ? '#C8E6C9' : diff >= -0.1 ? '#FFE0B2' : '#FFCDD2';
 
-  // one or two glasses
-  const numG = pct > 100 ? 2 : 1;
-  const fill1 = Math.min(1, pct / 100);
-  const fill2 = numG > 1 ? Math.min(1, (pct - 100) / 100) : 0;
+  // semi-circle: cx=21 cy=21 r=16, arc from left → top → right
+  // angle in standard math: π (left) → 0 (right), SVG y is flipped
+  const cx = 21, cy = 21, r = 16;
+  const angle = Math.PI * (1 - pctVal);
+  const ex = (cx + r * Math.cos(angle)).toFixed(2);
+  const ey = (cy - r * Math.sin(angle)).toFixed(2);
+  const laf = pctVal > 0.5 ? 1 : 0;
 
-  const W = 13, H = 20, innerH = 15, gap = 3;
-  const totalW = numG === 2 ? W * 2 + gap : W;
+  const bg   = `M ${cx-r} ${cy} A ${r} ${r} 0 0 0 ${cx+r} ${cy}`;
+  const fill = pctVal > 0.005 ? `M ${cx-r} ${cy} A ${r} ${r} 0 ${laf} 0 ${ex} ${ey}` : '';
+  const dot  = raw >= 1 ? `<circle cx="${cx+r}" cy="${cy}" r="2.5" fill="${color}"/>` : '';
 
-  function oneGlass(frac, idx) {
-    const x0 = idx * (W + gap);
-    const fillPx = Math.round(frac * innerH);
-    const id = `wc_${String(custId).replace(/\W/g,'')}_${idx}`;
-    const pts = `${x0+1},1 ${x0+W-1},1 ${x0+W-2.5},${H-1} ${x0+2.5},${H-1}`;
-    return `<defs><clipPath id="${id}"><polygon points="${pts}"/></clipPath></defs>`
-      + `<polygon points="${pts}" fill="${bgClr}" stroke="${color}" stroke-width="1.2" stroke-linejoin="round"/>`
-      + (fillPx > 0 ? `<rect x="${x0}" y="${H - fillPx}" width="${W}" height="${fillPx}" fill="${color}" opacity="0.7" clip-path="url(#${id})"/>` : '');
-  }
-
-  const svgBody = oneGlass(fill1, 0) + (numG > 1 ? oneGlass(fill2, 1) : '');
-  return `<svg width="${totalW}" height="${H}" viewBox="0 0 ${totalW} ${H}" style="display:inline-block;vertical-align:middle;flex-shrink:0;margin-left:1px;">${svgBody}</svg>`;
+  return `<svg width="42" height="23" viewBox="0 0 42 23" style="display:inline-block;vertical-align:middle;flex-shrink:0;">
+    <path d="${bg}" stroke="${trackC}" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    ${fill?`<path d="${fill}" stroke="${color}" stroke-width="3.5" fill="none" stroke-linecap="round"/>`:''}
+    ${dot}
+    <text x="${cx}" y="${cy+1}" text-anchor="middle" font-size="7" font-weight="900" fill="${color}" font-family="Segoe UI,Arial">${pctDisplay}%</text>
+  </svg>`;
 }
 
 function fillWorkDaysBar() {
@@ -1431,18 +1432,9 @@ function renderClientList(html){
       const old=days>14;
       return `<span style="${old?'color:var(--red);font-weight:700':''}">הזמנה: ${label}${old?` (${days}d)`:''}</span>`;
     })();
-    const sales=c.monthlySales?`<span style="font-weight:700;color:var(--text)">₪${Math.round(c.monthlySales).toLocaleString()}</span><span style="font-size:10px;color:var(--light)"> החודש</span>${c.target?`<span style="font-size:10px;color:var(--light)"> / יעד ₪${Math.round(c.target).toLocaleString()}</span>`:''}`:'';
-    const pctPart=(()=>{
-      if(!c.target||!c.monthlySales) return '';
-      const pct=Math.round((c.monthlySales||0)/c.target*100);
-      const timeFrac=_workDaysFrac();
-      const diff=pct/100-timeFrac;
-      const textColor=diff>=0?'var(--green)':diff>=-0.1?'var(--orange)':'var(--red)';
-      const glass=glassIcon(c.monthlySales||0,c.target,c.custId);
-      return `<span style="display:inline-flex;align-items:center;gap:2px;">${glass}<span style="font-size:11px;font-weight:900;color:${textColor}">${pct}%</span></span>`;
-    })();
-    const indic=c.indication||(c.target?calcIndication(c.monthlySales||0,c.target):'');
-    const indicPart=(indic&&indic!=='🚀')?`<span style="font-size:13px;">${indic}</span>`:'';
+    const sales='';
+    const pctPart='';
+    const indicPart='';
     const SEP='<span style="color:var(--light)"> · </span>';
     const nameLine=(shortName(c.custName,c.city)||esc(c.custName)||'')
       +(c.city?`<span style="font-weight:400;color:var(--mid);font-size:11px;"> · ${esc(c.city)}</span>`:'')
