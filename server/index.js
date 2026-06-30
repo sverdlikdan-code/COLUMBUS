@@ -995,6 +995,15 @@ app.get('/manager-agents', requireAuth, dataRateLimit, async (req, res) => {
   res.json(agents.sort((a, b) => (a.agentName || '').localeCompare(b.agentName || '')));
 });
 
+// GET /agent-exists?agent=CODE — быстрая проверка наличия агента в кэше (без геокодинга)
+app.get('/agent-exists', requireAuth, async (req, res) => {
+  const { agent } = req.query;
+  if (!agent || !validateAgentCode(agent)) return res.json({ exists: false, reason: 'invalid' });
+  if (!pbiCache) return res.json({ exists: null, reason: 'loading' }); // null = неизвестно, сервер грузится
+  const exists = pbiCache.byAgent.has(agent);
+  res.json({ exists, count: exists ? pbiCache.byAgent.get(agent).length : 0 });
+});
+
 // GET /customers?agent=CODE&day=1 — from PBI cache
 app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
   const { agent, day } = req.query;
