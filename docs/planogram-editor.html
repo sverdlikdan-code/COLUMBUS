@@ -757,7 +757,7 @@
   <div style="background:#1565C0; flex-shrink:0;">
     <div style="display:flex; align-items:center; gap:8px; padding:8px 16px;">
       <span style="font-weight:bold; font-size:13px; color:#fff; flex:1;" id="pos-tbl-title">טבלת מיקום</span>
-      <button onclick="exportPositionXlsx()" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:#fff;font-size:11px;font-weight:bold;cursor:pointer;border-radius:4px;padding:3px 10px;">⬇ Excel 📷</button>
+      <button id="btn-export-pos" onclick="exportPositionXlsx()" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:#fff;font-size:11px;font-weight:bold;cursor:pointer;border-radius:4px;padding:3px 10px;">⬇ Excel 📷</button>
       <button onclick="toggleTable()" style="background:rgba(255,255,255,0.2); border:none; color:#fff; font-size:18px; cursor:pointer; border-radius:4px; padding:2px 10px; line-height:1;">✕</button>
     </div>
     <div style="display:flex; gap:4px; padding:0 16px 8px;">
@@ -2315,6 +2315,9 @@ function updateTable() {
 }
 
 async function exportPositionXlsx() {
+  const btn = document.getElementById('btn-export-pos');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ מכין...'; }
+  const _done = () => { if (btn) { btn.disabled = false; btn.textContent = '⬇ Excel 📷'; } };
   const SEC_NAMES = { kapua:'קפוא', halavi:'חלבי', dagim:'דגים', yavesh:'דג יבש' };
   const payload = [];
   for (const sec of _SECTIONS) {
@@ -2340,20 +2343,21 @@ async function exportPositionXlsx() {
       });
     });
   }
-  if (!payload.length) { alert('אין מוצרים בטבלה'); return; }
+  if (!payload.length) { _done(); alert('אין מוצרים בטבלה'); return; }
   try {
     const resp = await fetch('https://api.sverdlik-apps.site/api/export-position-xlsx', {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Session': localStorage.getItem('frToken') || '' },
       body: JSON.stringify({ rows: payload }),
     });
-    if (!resp.ok) { const t = await resp.text().catch(()=>''); alert(`שגיאה: ${resp.status} ${t.slice(0,80)}`); return; }
+    if (!resp.ok) { const t = await resp.text().catch(()=>''); _done(); alert(`שגיאה: ${resp.status} ${t.slice(0,80)}`); return; }
     const blob = await resp.blob();
     const a = Object.assign(document.createElement('a'), {
       href: URL.createObjectURL(blob),
       download: `position-${new Date().toISOString().slice(0,10)}.xlsx`,
     });
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
-  } catch(e) { alert(`שגיאת רשת: ${e.message}`); }
+    _done();
+  } catch(e) { _done(); alert(`שגיאת רשת: ${e.message}`); }
 }
 
 function exportCSVAll() {
