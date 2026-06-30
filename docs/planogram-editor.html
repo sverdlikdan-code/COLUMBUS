@@ -2588,10 +2588,10 @@ function toggleOrderOnly() {
   window._orderOnlyMode = !window._orderOnlyMode;
   const btn = document.getElementById('btn-order-only');
   if (btn) {
-    btn.style.background   = window._orderOnlyMode ? '#c2410c' : 'none';
-    btn.style.borderColor  = window._orderOnlyMode ? '#ea580c' : 'rgba(255,255,255,0.15)';
-    btn.style.color        = window._orderOnlyMode ? '#fff' : 'rgba(255,255,255,0.5)';
-    btn.style.fontWeight   = window._orderOnlyMode ? '700' : '600';
+    btn.style.background   = window._orderOnlyMode ? '#c2410c' : '#fff';
+    btn.style.borderColor  = window._orderOnlyMode ? '#ea580c' : '#BBDEFB';
+    btn.style.color        = window._orderOnlyMode ? '#fff' : '#0D47A1';
+    btn.style.fontWeight   = '700';
     btn.textContent = window._orderOnlyMode ? '📋 הזמנה בלבד ✓' : '📋 הזמנה בלבד';
   }
   buildOrderPage();
