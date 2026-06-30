@@ -1015,8 +1015,11 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
   const dayNum = day ? parseInt(day) : null;
 
   try {
-    let clients = (pbiCache.byAgent.get(agent) || []).slice();
+    const allForAgent = pbiCache.byAgent.get(agent) || [];
+    console.log(`[/customers] agent=${agent} day=${dayNum} total=${allForAgent.length} dayNums=${[...new Set(allForAgent.map(c=>c.dayNum))].sort()}`);
+    let clients = allForAgent.slice();
     if (dayNum) clients = clients.filter(c => c.dayNum === dayNum);
+    console.log(`[/customers] after day filter: ${clients.length}`);
 
     // Apply GPS corrections from local file
     const correctionsPath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
