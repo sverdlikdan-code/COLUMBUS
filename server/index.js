@@ -1516,14 +1516,14 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
       )
     `);
 
-    // Query 2 — optional: branchy per product (same CALCULATETABLE pattern as Q1)
+    // Query 2 — total carton sales per product in selected period
     const [extRows, totRes] = await Promise.all([
       executeDax(`
         EVALUATE
         CALCULATETABLE(
           SUMMARIZECOLUMNS(
             'ALL_PARTS'[מק'ט],
-            "branchy", [סניפים2  שקנו]
+            "mkrTk", [TOTAL מכר בקרטונים]
           ),
           'ALL_PARTS'[חברה] = "FORMULA",
           ${dateFilter}
@@ -1546,7 +1546,7 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
     if (extRows) {
       for (const r of extRows) {
         const mk = r["ALL_PARTS[מק'ט]"];
-        if (mk != null) extMap[String(mk)] = { mkrTk: r['[mkrTk]'] ?? null, branchy: r['[branchy]'] ?? null };
+        if (mk != null) extMap[String(mk)] = { mkrTk: r['[mkrTk]'] ?? null };
       }
     }
 
