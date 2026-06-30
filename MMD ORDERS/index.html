@@ -963,11 +963,13 @@
       chip.textContent = HE_MON_CHIPS[m - 1];
       chip.title = `${HE_MON_CHIPS[m-1]} ${YEAR_MON}`;
       if (!isFuture) {
-        chip.onclick = (ev) => {
-          if (ev.shiftKey && selStart) {
+        chip.onclick = () => {
+          if (selStart && !(selStart.m === selEnd.m && m === selStart.m)) {
+            // Second+ click — extend range
             if (m < selStart.m) selStart = { y: YEAR_MON, m };
             else selEnd = { y: YEAR_MON, m };
           } else {
+            // First click or clicking the already-selected single month → fresh anchor
             selStart = { y: YEAR_MON, m }; selEnd = { y: YEAR_MON, m };
           }
           buildPeriodBar();
