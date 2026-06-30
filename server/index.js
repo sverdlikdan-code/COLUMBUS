@@ -7,57 +7,155 @@ const https = require('https');
 const { execFile } = require('child_process');
 const ExcelJS = require('exceljs');
 const { executeDax, getDatasetRefreshTime } = require('./powerbi');
-const db = require('./db');
 
-// ── TAHSHIV TARGETS CACHE ──────────────────────────────────────────────────
-// Windows: network share; Linux VPS: local copy in server/
-const TAHSHIV_PATH = process.platform === 'win32'
-  ? '\\\\dilerbmdsrv\\yulia-dan\\bi pilot\\FORMULA\\TAHSHIV FORMULA.xlsx'
-  : path.join(__dirname, 'TAHSHIV_FORMULA.xlsx');
+// ── PBI CACHE ──────────────────────────────────────────────────────────────
+// Single source of truth: all client/agent/manager data loaded from Power BI
+// at startup and refreshed daily. Endpoints serve from memory → <5ms latency.
 
-// Priority stores SPEC7 codes with BiDi marks. In SQL result they come out
-// like "236502RF" (chars reversed) — reversing chars back gives "FR205632"
-// which matches CATGORY 7 key in TAHSHIV Excel.
-function normCat7(str) {
-  if (!str) return '';
-  const s = String(str).replace(/[‎‏‪-‮⁦-⁩]/g, '').trim();
-  return /^\d.*[A-Za-z]$/.test(s) ? s.split('').reverse().join('') : s;
-}
-let tahshivCache = new Map(); // custId → monthlyTarget (number)
+const DAY_HE_TO_NUM = { 'ראשון': 1, 'שני': 2, 'שלישי': 3, 'רביעי': 4, 'חמישי': 5 };
 
-async function loadTahshiv() {
+let pbiCache = null; // set by loadPBICache()
+
+async function loadPBICache() {
+  console.log('[PBI] Loading cache...');
   try {
-    const wb = new ExcelJS.Workbook();
-    await wb.xlsx.readFile(TAHSHIV_PATH);
-    const ws = wb.worksheets[0];
-    // Find header row (row 2 is headers in this file)
-    let headerRowNum = -1, cat7Col = -1, yadCol = -1;
-    ws.eachRow((row, rowNum) => {
-      if (headerRowNum >= 0) return;
-      row.eachCell((cell, colNum) => {
-        const val = String(cell.value || '').trim();
-        if (val === 'CATGORY 7') { cat7Col = colNum; headerRowNum = rowNum; }
-        if (val.startsWith('יעד')) yadCol = colNum;
+    // A: All active clients + targets from 'משטח'
+    const clientRows = await executeDax(`
+EVALUATE
+ADDCOLUMNS(
+  FILTER('משטח', 'משטח'[סטטוס] = "פעיל"),
+  "target", CALCULATE([יעד $])
+)
+`);
+
+    // B: Visit schedule from 'משטח עם כפולות' (one row per customer-day)
+    const schedRows = await executeDax(`
+EVALUATE
+SELECTCOLUMNS(
+  FILTER('משטח עם כפולות', 'משטח עם כפולות'[סטטוס] = "פעיל"),
+  "custId",     'משטח עם כפולות'[מס.לקוח],
+  "day",        'משטח עם כפולות'[יום],
+  "visitOrder", 'משטח עם כפולות'[סדר ביקור]
+)
+`);
+
+    // C: Current month sales per customer from ALL_PARTS (FORM+ICE+INTER)
+    const salesRows = await executeDax(`
+EVALUATE
+CALCULATETABLE(
+  ADDCOLUMNS(
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]),
+    "monthlySales", CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)]),
+    "lastDate",     CALCULATE(MAX(ALL_PARTS[תאריך]))
+  ),
+  MONTH(ALL_PARTS[תאריך]) = MONTH(TODAY()),
+  YEAR(ALL_PARTS[תאריך])  = YEAR(TODAY())
+)
+`);
+
+    // Build client map: custId → client object
+    const clientMap = new Map();
+    for (const r of clientRows) {
+      const custId = String(r['משטח[מס. לקוח]'] || '');
+      if (!custId) continue;
+      const rawAddr = r['משטח[כתובת]'] || '';
+      const rawCity = r['משטח[עיר]'] || '';
+      clientMap.set(custId, {
+        custId,
+        custName:  fixBiDi(r['משטח[שם לקוח]']  || ''),
+        city:      expandCityAbbrev(fixBiDi(rawCity)),
+        address:   expandCityAbbrev(fixBiDiAddress(rawAddr)),
+        lat:       r['משטח[קו רוחב]']  || null,
+        lng:       r['משטח[קו אורך]']  || null,
+        status:    r['משטח[סטטוס]']   || '',
+        kosher:    r['משטח[כשרות]']   || '',
+        saleType:  r['משטח[סוג מכירה]'] || '',
+        param7:    r['משטח[פרמטר 7]'] || null,
+        agentCode: r['משטח[סוכן]']    || '',
+        agentName: fixBiDi(r['משטח[שם סוכן]'] || ''),
+        manager:   r['משטח[קבוצה]']   || '',
+        target:    parseFloat(r['[target]']) || 0,
+        monthlySales:  0,
+        lastOrderDate: null,
       });
-    });
-    if (cat7Col < 0 || yadCol < 0) {
-      console.warn('TAHSHIV: header not found, using fallback col 4/7', { cat7Col, yadCol });
-      cat7Col = cat7Col < 0 ? 4 : cat7Col;
-      yadCol  = yadCol  < 0 ? 7 : yadCol;
-      headerRowNum = headerRowNum < 0 ? 2 : headerRowNum;
     }
-    const newCache = new Map();
-    ws.eachRow((row, rowNum) => {
-      if (rowNum <= headerRowNum) return;
-      const key    = String(row.getCell(cat7Col).value || '').trim(); // e.g. FR206139
-      const target = parseFloat(row.getCell(yadCol).value) || 0;
-      if (key) newCache.set(key, target);
-    });
-    tahshivCache = newCache;
-    console.log(`TAHSHIV cache loaded: ${newCache.size} targets`);
-  } catch (e) {
-    console.error('TAHSHIV load error:', e.message);
+
+    // Merge sales into clientMap
+    for (const r of salesRows) {
+      const custId = String(r['ALL_PARTS[מספר לקוח]'] || '');
+      const c = clientMap.get(custId);
+      if (!c) continue;
+      c.monthlySales  = parseFloat(r['[monthlySales]']) || 0;
+      const d = r['[lastDate]'];
+      c.lastOrderDate = d ? new Date(d).toISOString().slice(0, 10) : null;
+    }
+
+    // Build schedule map: custId → [{dayNum, dayLabel, visitOrder}]
+    const schedMap = new Map();
+    for (const r of schedRows) {
+      const custId = String(r['[custId]'] || '');
+      if (!custId) continue;
+      const day = r['[day]'] || '';
+      const dayNum = DAY_HE_TO_NUM[day] || null;
+      if (!schedMap.has(custId)) schedMap.set(custId, []);
+      schedMap.get(custId).push({ dayNum, dayLabel: day, visitOrder: parseInt(r['[visitOrder]']) || 999 });
+    }
+
+    // Build byAgent map: agentCode → sorted array of {client+schedule}
+    const byAgent = new Map();
+    for (const [custId, scheds] of schedMap) {
+      const c = clientMap.get(custId);
+      if (!c || !c.agentCode) continue;
+      for (const s of scheds) {
+        if (!byAgent.has(c.agentCode)) byAgent.set(c.agentCode, []);
+        byAgent.get(c.agentCode).push({
+          ...c,
+          dayNum:        s.dayNum,
+          dayLabel:      s.dayLabel,
+          priorityOrder: s.visitOrder,
+          fullAddress:   [c.address, c.city, 'ישראל'].filter(Boolean).join(', '),
+          pct: c.target > 0 ? Math.round((c.monthlySales / c.target) * 100) : 0,
+        });
+      }
+    }
+    for (const [, arr] of byAgent) {
+      arr.sort((a, b) => (a.priorityOrder - b.priorityOrder) || a.custId.localeCompare(b.custId));
+    }
+
+    // Build managers list and agents-per-manager
+    const managers = new Set();
+    const agentsByManager = new Map();
+    for (const [, c] of clientMap) {
+      if (!c.manager) continue;
+      managers.add(c.manager);
+      if (!agentsByManager.has(c.manager)) agentsByManager.set(c.manager, new Map());
+      const agMap = agentsByManager.get(c.manager);
+      if (c.agentCode && !agMap.has(c.agentCode)) {
+        agMap.set(c.agentCode, { agentCode: c.agentCode, agentName: c.agentName });
+      }
+    }
+
+    pbiCache = {
+      clientMap,
+      byAgent,
+      managers: [...managers].sort(),
+      agentsByManager: new Map([...agentsByManager].map(([k, v]) => [k, [...v.values()]])),
+      loadedAt: new Date(),
+    };
+    console.log(`[PBI] Cache loaded: ${clientMap.size} clients, ${byAgent.size} agents, ${managers.size} managers`);
+  } catch (err) {
+    console.error('[PBI] Cache load error:', err.message);
   }
+}
+
+// Schedule daily reload at 06:00 (server local time)
+function scheduleDailyPBIReload() {
+  const now = new Date();
+  const next = new Date(now);
+  next.setHours(6, 0, 0, 0);
+  if (next <= now) next.setDate(next.getDate() + 1);
+  const ms = next - now;
+  setTimeout(() => { loadPBICache(); setInterval(loadPBICache, 24 * 60 * 60 * 1000); }, ms);
 }
 
 const app = express();
@@ -723,40 +821,19 @@ async function geocodeAddressCascade(address, city) {
 // Finds clients in PBI with GPS at the same address (or same street ±10 houses)
 // to use their coordinates instead of geocoding from scratch.
 
-let _pbiSiblingData = null;
-let _pbiSiblingLoadedAt = 0;
-const PBI_SIBLING_TTL = 30 * 60 * 1000;
+function getPBISiblingData() {
+  if (!pbiCache) return [];
+  const result = [];
+  for (const [, c] of pbiCache.clientMap) {
+    if (c.lat && c.lng && isValidIL(c.lat, c.lng)) {
+      result.push({ addr: c.address || '', city: c.city || '', lat: c.lat, lng: c.lng });
+    }
+  }
+  return result;
+}
 
 async function loadPBISiblingData() {
-  if (_pbiSiblingData && (Date.now() - _pbiSiblingLoadedAt) < PBI_SIBLING_TTL) return _pbiSiblingData;
-  try {
-    const result = await db.query(`
-      SELECT
-        c.CUSTNAME                       AS id,
-        c.ADDRESS                        AS addr,
-        c.STATE                          AS city,
-        TRY_CAST(c.GPSX AS FLOAT)        AS lat,
-        TRY_CAST(c.GPSY AS FLOAT)        AS lng
-      FROM form.dbo.CUSTOMERS c
-      LEFT JOIN form.dbo.CUSTSTATS cs ON c.CUSTSTAT = cs.CUSTSTAT
-      WHERE cs.STATDES = N'פעיל'
-        AND c.GPSX IS NOT NULL AND c.GPSY IS NOT NULL
-        AND TRY_CAST(c.GPSX AS FLOAT) <> 0
-        AND TRY_CAST(c.GPSY AS FLOAT) <> 0
-    `);
-    _pbiSiblingData = result.recordset.map(r => ({
-      addr: (r.addr || '').trim(),
-      city: (r.city || '').trim(),
-      lat:  parseFloat(r.lat),
-      lng:  parseFloat(r.lng),
-    })).filter(r => isValidIL(r.lat, r.lng));
-    _pbiSiblingLoadedAt = Date.now();
-    console.log(`SQL sibling cache: ${_pbiSiblingData.length} clients with GPS`);
-  } catch (e) {
-    console.error('loadSiblingData SQL:', e.message);
-    _pbiSiblingData = [];
-  }
-  return _pbiSiblingData;
+  return getPBISiblingData();
 }
 
 function parseAddrParts(addr) {
@@ -800,39 +877,13 @@ async function findPBISibling(address, city) {
 // 'לקוחות FORM+I+INT' carries verified per-client GPS (custId match) for ~58%
 // of all clients — far more reliable than re-geocoding a messy free-text
 // address, since it's an exact ID match rather than fuzzy street matching.
-let _formIIntGpsByCustId = null;
-let _formIIntGpsLoadedAt = 0;
-const FORM_I_INT_TTL = 30 * 60 * 1000;
-
 async function loadFormIIntGPS() {
-  if (_formIIntGpsByCustId && (Date.now() - _formIIntGpsLoadedAt) < FORM_I_INT_TTL) return _formIIntGpsByCustId;
+  if (!pbiCache) return new Map();
   const map = new Map();
-  try {
-    const result = await db.query(`
-      SELECT
-        c.CUSTNAME                  AS id,
-        TRY_CAST(c.GPSX AS FLOAT)  AS lat,
-        TRY_CAST(c.GPSY AS FLOAT)  AS lng
-      FROM form.dbo.CUSTOMERS c
-      WHERE c.GPSX IS NOT NULL AND c.GPSY IS NOT NULL
-        AND TRY_CAST(c.GPSX AS FLOAT) <> 0
-        AND TRY_CAST(c.GPSY AS FLOAT) <> 0
-    `);
-    for (const r of result.recordset) {
-      const id = r.id;
-      const lat = parseFloat(r.lat);
-      const lng = parseFloat(r.lng);
-      if (!id || map.has(id) || !isValidIL(lat, lng)) continue;
-      map.set(id, { lat, lng });
-    }
-    _formIIntGpsByCustId = map;
-    _formIIntGpsLoadedAt = Date.now();
-    console.log(`SQL GPS cache: ${map.size} clients with GPS`);
-  } catch (e) {
-    console.error('loadFormIIntGPS SQL:', e.message);
-    _formIIntGpsByCustId = map;
+  for (const [custId, c] of pbiCache.clientMap) {
+    if (c.lat && c.lng && isValidIL(c.lat, c.lng)) map.set(custId, { lat: c.lat, lng: c.lng });
   }
-  return _formIIntGpsByCustId;
+  return map;
 }
 
 async function findFormIIntGPS(custId) {
@@ -923,194 +974,55 @@ app.get('/geocode', requireAuth, async (req, res) => {
   res.json(result || {});
 });
 
-// GET /managers — unique manager groups (direct SQL → form)
+// GET /managers — from PBI cache
 app.get('/managers', requireAuth, async (req, res) => {
-  try {
-    const result = await db.query(`
-      SELECT DISTINCT ub.SNAME AS managerCode
-      FROM form.dbo.CUSTOMERS c
-      LEFT JOIN form.dbo.CUSTSTATS cs ON c.CUSTSTAT = cs.CUSTSTAT
-      LEFT JOIN system.dbo.USERSB ub ON c.YISS_MANAGER = ub.USERB
-      WHERE cs.STATDES = N'פעיל'
-        AND ub.SNAME IS NOT NULL AND ub.SNAME <> ''
-      ORDER BY ub.SNAME
-    `);
-    const managers = result.recordset.map(r => ({ managerCode: r.managerCode }));
-    res.json(managers);
-  } catch (err) {
-    console.error('/managers SQL error:', err.message);
-    res.status(500).json({ error: 'server_error' });
-  }
+  if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
+  res.json(pbiCache.managers.map(m => ({ managerCode: m })));
 });
 
-// GET /manager-agents?manager=NAME — agents for a manager (direct SQL → form)
+// GET /manager-agents?manager=NAME — from PBI cache
 app.get('/manager-agents', requireAuth, dataRateLimit, async (req, res) => {
   const { manager } = req.query;
   if (!manager) return res.status(400).json({ error: 'manager required' });
   if (!validateManagerName(manager)) return res.status(400).json({ error: 'invalid manager' });
-  try {
-    const result = await db.query(`
-      SELECT DISTINCT a.AGENTCODE AS agentCode, a.AGENTNAME AS agentName
-      FROM form.dbo.CUSTOMERS c
-      LEFT JOIN form.dbo.CUSTSTATS cs ON c.CUSTSTAT = cs.CUSTSTAT
-      LEFT JOIN form.dbo.AGENTS a    ON c.AGENT     = a.AGENT
-      LEFT JOIN system.dbo.USERSB ub ON c.YISS_MANAGER = ub.USERB
-      WHERE cs.STATDES = N'פעיל'
-        AND ub.SNAME = @manager
-        AND a.AGENTCODE IS NOT NULL AND a.AGENTCODE <> ''
-      ORDER BY a.AGENTNAME
-    `, { manager });
-    res.json(result.recordset.map(r => ({ agentCode: r.agentCode, agentName: r.agentName })));
-  } catch (err) {
-    console.error('/manager-agents SQL error:', err.message);
-    res.status(500).json({ error: 'server_error' });
-  }
+  if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
+  const agents = pbiCache.agentsByManager.get(manager) || [];
+  res.json(agents.sort((a, b) => (a.agentName || '').localeCompare(b.agentName || '')));
 });
 
-// GET /customers?agent=CODE&day=1 — SQL → form with sales + target (Phase 2)
+// GET /customers?agent=CODE&day=1 — from PBI cache
 app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
   const { agent, day } = req.query;
   if (!agent) return res.status(400).json({ error: 'agent required' });
   if (!validateAgentCode(agent)) return res.status(400).json({ error: 'invalid agent code' });
   if (day && !/^[1-5]$/.test(String(day))) return res.status(400).json({ error: 'invalid day' });
+  if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
 
   const dayNum = day ? parseInt(day) : null;
-  const dayLabel = dayNum ? DAY_LABELS[dayNum] : null;
 
   try {
-    const dayFilter = dayNum ? 'AND ccf.DAYNUM = @dayNum' : '';
-    const result = await db.query(`
-      WITH
-      agent_custs AS (
-        SELECT DISTINCT c2.CUST
-        FROM form.dbo.CUSTCALLFREQUENCY ccf2
-        INNER JOIN form.dbo.CUSTOMERS c2  ON ccf2.CUST   = c2.CUST
-        INNER JOIN form.dbo.AGENTS    a2  ON c2.AGENT    = a2.AGENT AND a2.AGENTCODE = @agent
-        INNER JOIN form.dbo.CUSTSTATS cs2 ON c2.CUSTSTAT = cs2.CUSTSTAT AND cs2.STATDES = N'פעיל'
-      ),
-      sales_cte AS (
-        SELECT CUST, SUM(sales) AS monthlySales, MAX(lastDate) AS lastDate
-        FROM (
-          -- FORM INV (חשבוניות) — per FORM INV 23-26 (3).tmdl M-code
-          SELECT i.CUST,
-            SUM(
-              CASE WHEN i.FINAL=N'Y' THEN ii.IVCOST ELSE ii.QPRICE*(100.0-ii.TOTPERCENT)/100.0 END
-              * CASE WHEN i.DEBIT=N'C' THEN -1.0 ELSE 1.0 END
-            ) AS sales,
-            MAX(DATEADD(MINUTE, i.IVDATE, '19880101')) AS lastDate
-          FROM form.dbo.INVOICES      i
-          INNER JOIN form.dbo.INVOICEITEMS ii  ON ii.IV    = i.IV
-          INNER JOIN form.dbo.ORDERITEMS   oi  ON oi.ORDI  = ii.ORDI AND ii.ORDI = oi.ORDI
-          INNER JOIN form.dbo.IVTYPES      ivt ON ivt.TYPE = i.TYPE AND ivt.DEBIT = i.DEBIT
-          INNER JOIN form.dbo.PART         pt  ON pt.PART  = ii.PART
-          INNER JOIN agent_custs           ac  ON ac.CUST  = i.CUST
-          WHERE i.FINAL=N'Y' AND i.TYPE<>N'R' AND ivt.OTYPE=N'C'
-            AND pt.PARTNAME NOT IN (N'0',N'915001',N'915002',N'916000',N'916001',N'916002',
-                                     N'916003',N'916004',N'916005',N'916006',N'916007',
-                                     N'916008',N'916009',N'916010',N'916011')
-            AND MONTH(DATEADD(MINUTE, i.IVDATE, '19880101')) = MONTH(GETDATE())
-            AND YEAR (DATEADD(MINUTE, i.IVDATE, '19880101')) = YEAR (GETDATE())
-          GROUP BY i.CUST
+    let clients = (pbiCache.byAgent.get(agent) || []).slice();
+    if (dayNum) clients = clients.filter(c => c.dayNum === dayNum);
 
-          UNION ALL
+    // Apply GPS corrections from local file
+    const correctionsPath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
+    let corrections = {};
+    try { corrections = JSON.parse(fs.readFileSync(correctionsPath, 'utf8')); } catch (_) {}
 
-          -- FORM DOCS (תעודות משלוח, IV=0) — per FORM DOCS 23-26 (4).tmdl M-code
-          SELECT d.CUST,
-            SUM(
-              tr.PRICE * (CONVERT(FLOAT, ISNULL(tr.TQUANT, 0)) / 1000.0)
-              * (100.0 - ISNULL(tr.T$PERCENT, 0.0)) / 100.0
-              * (100.0 - CASE WHEN fam.RECYCLINGFLAG=N'Y' THEN 0.0 ELSE ISNULL(doc.T$PERCENT, 0.0) END) / 100.0
-              * ISNULL(tr.IEXCHANGE, 1.0)
-              * CASE WHEN tr.TYPE=N'N' THEN -1.0 ELSE 1.0 END
-            ) AS sales,
-            MAX(DATEADD(MINUTE, tr.CURDATE, '19880101')) AS lastDate
-          FROM form.dbo.TRANSORDER tr
-          INNER JOIN form.dbo.DOCUMENTS doc ON doc.DOC    = tr.DOC
-          INNER JOIN form.dbo.CUSTOMERS d   ON d.CUST     = doc.CUST
-          INNER JOIN form.dbo.PART      pt  ON pt.PART    = tr.PART
-          INNER JOIN form.dbo.FAMILY    fam ON fam.FAMILY = pt.FAMILY
-          INNER JOIN agent_custs        ac  ON ac.CUST    = d.CUST
-          WHERE tr.IV    = 0
-            AND tr.FLAG  = N'Y'
-            AND tr.TYPE  IN (N'D', N'N')
-            AND doc.FLAG  = N'Y'
-            AND pt.PARTNAME NOT IN (N'0',N'915001',N'915002',N'916000',N'916001',N'916002',
-                                     N'916003',N'916004',N'916005',N'916006',N'916007',
-                                     N'916008',N'916009',N'916010',N'916011')
-            AND MONTH(DATEADD(MINUTE, tr.CURDATE, '19880101')) = MONTH(GETDATE())
-            AND YEAR (DATEADD(MINUTE, tr.CURDATE, '19880101')) = YEAR (GETDATE())
-          GROUP BY d.CUST
-        ) combined
-        GROUP BY CUST
-      )
-      SELECT
-        c.CUSTNAME        AS custId,
-        c.CUSTDES         AS custName,
-        c.STATE           AS city,
-        c.ADDRESS         AS address,
-        c.GPSX            AS lat,
-        c.GPSY            AS lng,
-        cs.STATDES        AS status,
-        csp.SPEC10        AS kosher,
-        csp.SPEC20        AS saleType,
-        REVERSE(csp.SPEC7) AS param7,
-        a.AGENTCODE       AS agentCode,
-        a.AGENTNAME       AS agentName,
-        ub.SNAME          AS schedulerName,
-        ccf.DAYNUM        AS dayNum,
-        ccf.TOPP_NUM1     AS priorityOrder,
-        ISNULL(s.monthlySales, 0) AS monthlySales,
-        s.lastDate                AS lastSaleDate
-      FROM form.dbo.CUSTCALLFREQUENCY ccf
-      INNER JOIN form.dbo.CUSTOMERS c   ON ccf.CUST    = c.CUST
-      LEFT  JOIN form.dbo.CUSTSTATS cs  ON c.CUSTSTAT  = cs.CUSTSTAT
-      LEFT  JOIN form.dbo.CUSTSPEC  csp ON c.CUST      = csp.CUST
-      LEFT  JOIN form.dbo.AGENTS    a   ON c.AGENT     = a.AGENT
-      LEFT  JOIN system.dbo.USERSB  ub  ON c.YISS_MANAGER = ub.USERB
-      LEFT  JOIN sales_cte s            ON c.CUST      = s.CUST
-      WHERE a.AGENTCODE = @agent
-        AND cs.STATDES  = N'פעיל'
-        ${dayFilter}
-      ORDER BY ccf.TOPP_NUM1 ASC, c.CUSTNAME ASC
-    `, { agent, ...(dayNum ? { dayNum: String(dayNum) } : {}) });
-
-    const clients = result.recordset.map(r => {
-      const custName = fixPriNumbers(r.custName || '');
-      const address  = expandCityAbbrev(fixPriNumbers(r.address  || ''));
-      const city     = expandCityAbbrev(r.city || '');
-      const monthlySales = parseFloat(r.monthlySales) || 0;
-      const target       = tahshivCache.get(r.param7 || '') || 0;
-      const pct          = target > 0 ? Math.round((monthlySales / target) * 100) : 0;
+    clients = clients.map(c => {
+      const corr = corrections[c.custId];
       return {
-        custId:        r.custId,
-        custName,
-        city,
-        address,
-        fullAddress:   [address, city, 'ישראל'].filter(Boolean).join(', '),
-        lat:           r.lat   || null,
-        lng:           r.lng   || null,
-        status:        r.status,
-        kosher:        r.kosher,
-        saleType:      r.saleType,
-        param7:        fixPriNumbers(r.param7 || '') || null,
-        agentCode:     r.agentCode,
-        agentName:     fixPriNumbers(r.agentName || ''),
-        schedulerName: fixPriNumbers(r.schedulerName || '') || null,
-        dayNum:        r.dayNum   ? parseInt(r.dayNum) : dayNum,
-        dayLabel:      r.dayNum   ? (DAY_LABELS[parseInt(r.dayNum)] || null) : dayLabel,
-        priorityOrder: r.priorityOrder ? parseInt(r.priorityOrder) : 0,
-        lastOrderDate: r.lastSaleDate ? r.lastSaleDate.toISOString().slice(0,10) : null,
-        monthlySales,
-        totalSales:    monthlySales,
-        lastSaleDate:  r.lastSaleDate ? r.lastSaleDate.toISOString().slice(0,10) : null,
-        target,
-        pct,
+        ...c,
+        lat:       corr ? corr.lat : c.lat,
+        lng:       corr ? corr.lng : c.lng,
+        gpsSource: corr ? 'correction' : (c.lat && c.lng ? 'pbi' : undefined),
       };
     });
+
     await geocodeBatch(clients);
     res.json(clients);
   } catch (err) {
-    console.error('/customers SQL error:', err.message);
+    console.error('/customers error:', err.message);
     res.status(500).json({ error: 'server_error' });
   }
 });
@@ -2045,15 +1957,23 @@ app.get('/pbi/mmd-orders', mmdGuard, dataRateLimit, async (req, res) => {
   }
 });
 
-// POST /admin/reload-targets — перечитать TAHSHIV FORMULA.xlsx без перезапуска
+// POST /admin/reload-cache — перезагрузить PBI кэш без перезапуска
+app.post('/admin/reload-cache', requireAuth, async (req, res) => {
+  if (!req.session.isManager) return res.status(403).json({ error: 'forbidden' });
+  await loadPBICache();
+  res.json({ ok: true, clients: pbiCache?.clientMap?.size || 0, loadedAt: pbiCache?.loadedAt });
+});
+
+// Keep old endpoint for backward compat (redirects to new)
 app.post('/admin/reload-targets', requireAuth, async (req, res) => {
   if (!req.session.isManager) return res.status(403).json({ error: 'forbidden' });
-  await loadTahshiv();
-  res.json({ ok: true, count: tahshivCache.size });
+  await loadPBICache();
+  res.json({ ok: true, clients: pbiCache?.clientMap?.size || 0, loadedAt: pbiCache?.loadedAt });
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
   console.log(`Columbus server running on port ${PORT}`);
-  await loadTahshiv();
+  await loadPBICache();
+  scheduleDailyPBIReload();
 });
