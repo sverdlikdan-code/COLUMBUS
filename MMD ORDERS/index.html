@@ -868,7 +868,7 @@
   let all = [];
   let fams = new Set();
   let cos  = new Set();
-  let selStart = null, selEnd = null; // {y,m} or null = default
+  let selMonths = new Set(); // selected month numbers (1-12), empty = default
   let baseAll = null; // base JSON data — never mutated
   let _periodLoadId = 0; // race-condition guard
   let _sortCol = '';
@@ -912,13 +912,15 @@
   }
 
   function getPeriodParams() {
-    if (!selStart) {
+    if (!selMonths.size) {
       const def = defaultMonthPeriod();
       return { d1: def.d1, d2: capToLastSunday(def.d2) };
     }
-    const rawD2 = `${selEnd.y}-${String(selEnd.m).padStart(2,'0')}-${lastDayOfMonth(selEnd.y, selEnd.m)}`;
+    const sorted = [...selMonths].sort((a, b) => a - b);
+    const minM = sorted[0], maxM = sorted[sorted.length - 1];
+    const rawD2 = `${YEAR_MON}-${String(maxM).padStart(2,'0')}-${lastDayOfMonth(YEAR_MON, maxM)}`;
     return {
-      d1: `${selStart.y}-${String(selStart.m).padStart(2,'0')}-01`,
+      d1: `${YEAR_MON}-${String(minM).padStart(2,'0')}-01`,
       d2: capToLastSunday(rawD2)
     };
   }
@@ -946,10 +948,10 @@
 
     const defBtn = document.createElement('button');
     defBtn.id = 'period-def';
-    defBtn.className = 'period-def' + (selStart ? ' off' : '');
+    defBtn.className = 'period-def' + (selMonths.size ? ' off' : '');
     defBtn.textContent = '✓ ברירת מחדל';
     defBtn.onclick = () => {
-      selStart = null; selEnd = null;
+      selMonths.clear();
       buildPeriodBar();
       _setPeriodLabel('⏳ חודש נוכחי + קודם — שולח בקשה לשרת...');
       loadPeriod();
@@ -964,37 +966,19 @@
     for (let m = 1; m <= curM; m++) {
       const isCur = (m === curM);
       const chip = document.createElement('button');
-      let isOn = false;
-      if (selStart) {
-        isOn = m >= selStart.m && m <= selEnd.m;
-      } else {
-        isOn = m >= defStartM && m <= defEndM;
-      }
+      const isOn = selMonths.size ? selMonths.has(m) : (m >= defStartM && m <= defEndM);
       chip.className = 'period-chip' +
         (isCur ? ' cur' : '') +
         (isOn ? ' on' : '');
       chip.textContent = HE_MON_CHIPS[m - 1];
       chip.title = `${HE_MON_CHIPS[m-1]} ${YEAR_MON}`;
-      {
-        chip.onclick = () => {
-          if (!selStart) {
-            selStart = { y: YEAR_MON, m }; selEnd = { y: YEAR_MON, m };
-          } else if (m < selStart.m) {
-            selStart = { y: YEAR_MON, m };           // extend left
-          } else if (m > selEnd.m) {
-            selEnd = { y: YEAR_MON, m };              // extend right
-          } else if (selStart.m === selEnd.m && m === selStart.m) {
-            // click on the already-selected single month → deselect (back to default)
-            selStart = null; selEnd = null;
-          } else {
-            // click on boundary or inside range → collapse to single month
-            selStart = { y: YEAR_MON, m }; selEnd = { y: YEAR_MON, m };
-          }
-          buildPeriodBar();
-          _setPeriodLabel('⏳ ' + HE_MON_CHIPS[m-1] + ' ' + YEAR_MON + ' — שולח בקשה לשרת...');
-          loadPeriod();
-        };
-      }
+      chip.onclick = () => {
+        if (selMonths.has(m)) selMonths.delete(m);
+        else selMonths.add(m);
+        buildPeriodBar();
+        _setPeriodLabel('⏳ ' + HE_MON_CHIPS[m-1] + ' ' + YEAR_MON + ' — שולח בקשה לשרת...');
+        loadPeriod();
+      };
       bar.appendChild(chip);
     }
 
