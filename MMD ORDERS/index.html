@@ -381,6 +381,8 @@
       text-align: center;
     }
     thead th:first-child { text-align: right; border-right: none; }
+    thead th.sortable { cursor: pointer; -webkit-user-select: none; user-select: none; }
+    thead th.sortable:hover { background: #1565c0 !important; }
     tbody tr:nth-child(even) td { background: var(--card); }
     tbody tr:nth-child(odd)  td { background: var(--card); }
     tr.drow:hover td { background: var(--sky) !important; }
@@ -836,18 +838,18 @@
         <th>שם מוצר</th>
         <th></th>
         <th class="h-co">חברה</th>
-        <th class="col-pair col-g">מלאי<br>MMD</th>
-        <th class="col-pair col-g">מכר ממוצע<br>בשבוע קרטון</th>
-        <th>מלאי<br>אשדוד</th>
-        <th>מחסן<br>מעבר</th>
+        <th class="col-pair col-g sortable" onclick="sortMMD('mmd_k')">מלאי<br>MMD<span id="sarr-mmd_k"></span></th>
+        <th class="col-pair col-g sortable" onclick="sortMMD('mkr_shvua')">מכר ממוצע<br>בשבוע קרטון<span id="sarr-mkr_shvua"></span></th>
+        <th class="sortable" onclick="sortMMD('ashdod_k')">מלאי<br>אשדוד<span id="sarr-ashdod_k"></span></th>
+        <th class="sortable" onclick="sortMMD('maavar')">מחסן<br>מעבר<span id="sarr-maavar"></span></th>
         <th>תוקף</th>
-        <th>כמה ימים<br>נשארו</th>
-        <th>מכר קרטון<br>בתקופה</th>
-        <th>לכמה שבועות<br>יספיק המלאי</th>
+        <th class="sortable" onclick="sortMMD('yamim')">כמה ימים<br>נשארו<span id="sarr-yamim"></span></th>
+        <th class="sortable" onclick="sortMMD('mkr_tk')">מכר קרטון<br>בתקופה<span id="sarr-mkr_tk"></span></th>
+        <th class="sortable" onclick="sortMMD('shavuot')">לכמה שבועות<br>יספיק המלאי<span id="sarr-shavuot"></span></th>
         <th>נפח מלאי ביטחון<br>שבועות</th>
-        <th>ימי מכר</th>
-        <th>ימי מכר<br>מכלל %</th>
-        <th class="col-g">המלצה להזמנה<br>קרטון</th>
+        <th class="sortable" onclick="sortMMD('yamim_haya')">ימי מכר<span id="sarr-yamim_haya"></span></th>
+        <th class="sortable" onclick="sortMMD('pct_mkr')">ימי מכר<br>מכלל %<span id="sarr-pct_mkr"></span></th>
+        <th class="col-g sortable" onclick="sortMMD('hamlatza')">המלצה להזמנה<br>קרטון<span id="sarr-hamlatza"></span></th>
         <th class="col-g">הזמנה<br>ידנית</th>
         <th class="col-g">תוקף<br>נדרש</th>
       </tr>
@@ -869,6 +871,8 @@
   let selStart = null, selEnd = null; // {y,m} or null = default
   let baseAll = null; // base JSON data — never mutated
   let _periodLoadId = 0; // race-condition guard
+  let _sortCol = '';
+  let _sortDir = 'desc';
   let ordOnly    = false;
   let noMkr      = false;
   let maavarMode = false;
@@ -918,6 +922,17 @@
       d2: capToLastSunday(rawD2)
     };
   }
+
+  // ── Column sort ──────────────────────────────────────────────
+  window.sortMMD = function(col) {
+    if (_sortCol === col) {
+      if (_sortDir === 'desc') _sortDir = 'asc';
+      else { _sortCol = ''; _sortDir = 'desc'; }
+    } else {
+      _sortCol = col; _sortDir = 'desc';
+    }
+    render();
+  };
 
   // ── Period timeline bar (months 2026) ────────────────────────
   function buildPeriodBar() {
@@ -1320,8 +1335,17 @@
     seen.forEach(grp => {
       const grpRows = grpMap[grp];
 
-      // Sort rows within group by מקט (independent of order quantity)
-      grpRows.sort((a, b) => Number(a.mkt ?? 0) - Number(b.mkt ?? 0));
+      // Sort rows within group — by selected column or fallback to מקט
+      if (_sortCol) {
+        const asc = _sortDir === 'asc';
+        grpRows.sort((a, b) => {
+          const av = a[_sortCol] ?? (asc ? Infinity : -Infinity);
+          const bv = b[_sortCol] ?? (asc ? Infinity : -Infinity);
+          return asc ? av - bv : bv - av;
+        });
+      } else {
+        grpRows.sort((a, b) => Number(a.mkt ?? 0) - Number(b.mkt ?? 0));
+      }
 
       let gAsh = 0, gEil = 0, gMav = 0, gMmd = 0, gMkr = 0, gHaml = 0, gOrd = 0;
 
@@ -1412,6 +1436,19 @@
     document.getElementById('t').style.display  = '';
     document.getElementById('ld').style.display = 'none';
     updateCoKPIs(coMap);
+
+    // Update sort arrow indicators
+    ['mmd_k','mkr_shvua','ashdod_k','maavar','yamim','mkr_tk','shavuot','yamim_haya','pct_mkr','hamlatza'].forEach(c => {
+      const el = document.getElementById('sarr-' + c);
+      if (!el) return;
+      if (_sortCol === c) {
+        el.innerHTML = _sortDir === 'desc'
+          ? '<br><span style="font-size:9px;opacity:.9">↓</span>'
+          : '<br><span style="font-size:9px;opacity:.9">↑</span>';
+      } else {
+        el.innerHTML = '<br><span style="font-size:9px;opacity:.3">⇅</span>';
+      }
+    });
   }
 
   function updateCoKPIs(coMap) {
