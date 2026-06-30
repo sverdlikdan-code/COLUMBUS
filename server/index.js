@@ -95,7 +95,7 @@ CALCULATETABLE(
     for (const r of schedRows) {
       const custId = String(r['[custId]'] || '');
       if (!custId) continue;
-      const day = r['[day]'] || '';
+      const day = fixBiDi(r['[day]'] || '');
       const dayNum = DAY_HE_TO_NUM[day] || null;
       if (!schedMap.has(custId)) schedMap.set(custId, []);
       schedMap.get(custId).push({ dayNum, dayLabel: day, visitOrder: parseInt(r['[visitOrder]']) || 999 });
