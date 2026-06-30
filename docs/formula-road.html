@@ -793,6 +793,12 @@ async function initLogin(){
       renderLogin();
       show('s-login');
     } else {
+      // Быстрая проверка: агент ещё существует в PBI кэше?
+      // exists:false — точно нет → логин. exists:null — сервер грузится → пропускаем.
+      try {
+        const ve = await apiFetch(`${API}/agent-exists?agent=${encodeURIComponent(saved.code)}`);
+        if(ve.ok){ const vj=await ve.json(); if(vj.exists===false){ localStorage.removeItem('frAgent'); renderLogin(); show('s-login'); return; } }
+      } catch(_){}
       st.agent={code:saved.code,name:saved.name};
       document.getElementById('city-agent-label').textContent=saved.name;
       buildCityChips();
