@@ -866,7 +866,7 @@
   let all = [];
   let fams = new Set();
   let cos  = new Set();
-  let selStart = null, selEnd = null; // null = default (prev+cur month); range selection
+  let selStart = null, selEnd = null; // {y,m} or null = default
   let baseAll = null; // base JSON data — never mutated
   let _periodLoadId = 0; // race-condition guard
   let ordOnly    = false;
@@ -880,65 +880,56 @@
   function save(o)  { try { localStorage.setItem(LS, JSON.stringify(o)); } catch {} }
   function st(m)    { document.getElementById('st').textContent = m; }
 
-  // ── ISO Week helpers ─────────────────────────────────────────
-  function isoWeekMonday(y, w) {
-    const jan4 = new Date(y, 0, 4);
-    const dow = jan4.getDay() || 7;
-    const mon1 = new Date(jan4);
-    mon1.setDate(jan4.getDate() - dow + 1);
-    const r = new Date(mon1);
-    r.setDate(mon1.getDate() + (w - 1) * 7);
-    return r;
-  }
-  function isoWeekSunday(y, w) {
-    const r = isoWeekMonday(y, w);
-    r.setDate(r.getDate() + 6);
-    return r;
-  }
-  function dateToISOWeek(d) {
-    const t = new Date(d); t.setHours(12, 0, 0, 0);
-    t.setDate(t.getDate() + 4 - (t.getDay() || 7));
-    const y = t.getFullYear();
-    const jan1 = new Date(y, 0, 1);
-    return { y, w: Math.ceil(((t - jan1) / 86400000 + 1) / 7) };
-  }
-  function fmtD(d) {
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  }
-  function lastCompleteWeek() {
-    const today = new Date();
-    const { y, w } = dateToISOWeek(today);
-    const dow = today.getDay() || 7; // Mon=1..Sun=7
-    if (dow === 7) return { y, w };  // Sunday — current week complete
-    return w > 1 ? { y, w: w - 1 } : dateToISOWeek(new Date(y - 1, 11, 28));
-  }
-  function defaultWeekPeriod() {
-    const last = lastCompleteWeek();
-    let w1 = last.w - 5, y1 = last.y;
-    if (w1 < 1) { y1--; w1 += dateToISOWeek(new Date(y1, 11, 28)).w; }
-    return { d1: fmtD(isoWeekMonday(y1, w1)), d2: fmtD(isoWeekSunday(last.y, last.w)) };
-  }
+  // ── Month helpers ─────────────────────────────────────────
+  const YEAR_MON = 2026;
+  const HE_MON_CHIPS = ['ינו','פבר','מרץ','אפר','מאי','יוני','יולי','אוג','ספט','אוק','נוב','דצמ'];
 
-  function getPeriodParams() {
-    if (!selStart) return defaultWeekPeriod();
+  function lastDayOfMonth(y, m) { return new Date(y, m, 0).getDate(); }
+
+  function defaultMonthPeriod() {
+    const today = new Date();
+    const curM  = today.getFullYear() === YEAR_MON ? today.getMonth() + 1 : 12;
+    const endM  = curM > 1 ? curM - 1 : 1; // last fully-complete month
+    const startM = Math.max(1, endM - 2);   // 3-month window
     return {
-      d1: fmtD(isoWeekMonday(selStart.y, selStart.w)),
-      d2: fmtD(isoWeekSunday(selEnd.y, selEnd.w))
+      d1: `${YEAR_MON}-${String(startM).padStart(2,'0')}-01`,
+      d2: `${YEAR_MON}-${String(endM).padStart(2,'0')}-${lastDayOfMonth(YEAR_MON, endM)}`
     };
   }
 
-  // ── Period timeline bar (weeks) ──────────────────────────────
+  // Cap a date string to the last fully-complete Sunday (≤ today)
+  function capToLastSunday(dateStr) {
+    const today = new Date(); today.setHours(23,59,59,0);
+    const d = new Date(dateStr + 'T23:59:59');
+    const eff = d < today ? d : today;
+    // roll back to last Sunday (day 0)
+    const dow = eff.getDay(); // 0=Sun
+    eff.setDate(eff.getDate() - dow);
+    return `${eff.getFullYear()}-${String(eff.getMonth()+1).padStart(2,'0')}-${String(eff.getDate()).padStart(2,'0')}`;
+  }
+
+  function getPeriodParams() {
+    if (!selStart) {
+      const def = defaultMonthPeriod();
+      return { d1: def.d1, d2: capToLastSunday(def.d2) };
+    }
+    const rawD2 = `${selEnd.y}-${String(selEnd.m).padStart(2,'0')}-${lastDayOfMonth(selEnd.y, selEnd.m)}`;
+    return {
+      d1: `${selStart.y}-${String(selStart.m).padStart(2,'0')}-01`,
+      d2: capToLastSunday(rawD2)
+    };
+  }
+
+  // ── Period timeline bar (months 2026) ────────────────────────
   function buildPeriodBar() {
     const bar = document.getElementById('period-bar');
     bar.innerHTML = '';
-    const YEAR = 2026;
-    const last = lastCompleteWeek();
-    const curWeek = dateToISOWeek(new Date());
-    const def = defaultWeekPeriod();
-    const defStart = dateToISOWeek(new Date(def.d1 + 'T12:00:00'));
-    const defEnd   = dateToISOWeek(new Date(def.d2 + 'T12:00:00'));
+    const today  = new Date();
+    const curM   = today.getFullYear() === YEAR_MON ? today.getMonth() + 1 : 12;
+    const def    = defaultMonthPeriod();
+    const defStartM = parseInt(def.d1.split('-')[1]);
+    const defEndM   = parseInt(def.d2.split('-')[1]);
 
-    // Default button
     const defBtn = document.createElement('button');
     defBtn.id = 'period-def';
     defBtn.className = 'period-def' + (selStart ? ' off' : '');
@@ -946,43 +937,41 @@
     defBtn.onclick = () => {
       selStart = null; selEnd = null;
       buildPeriodBar();
-      _setPeriodLabel('⏳ 6 שבועות אחרונים — שולח בקשה לשרת...');
+      _setPeriodLabel('⏳ 3 חודשים אחרונים — שולח בקשה לשרת...');
       loadPeriod();
     };
     bar.appendChild(defBtn);
 
-    // Year label
     const yl = document.createElement('span');
     yl.className = 'period-yr';
-    yl.textContent = YEAR;
+    yl.textContent = YEAR_MON;
     bar.appendChild(yl);
 
-    // Week chips: W01 → last complete + current (greyed)
-    const totalWeeks = curWeek.y === YEAR ? curWeek.w : last.w;
-    for (let w = 1; w <= totalWeeks; w++) {
-      const isIncomplete = (w === curWeek.w && curWeek.y === YEAR);
+    for (let m = 1; m <= 12; m++) {
+      const isCur    = (m === curM);
+      const isFuture = (m > curM);
       const chip = document.createElement('button');
       let isOn = false;
       if (selStart) {
-        isOn = w >= selStart.w && w <= selEnd.w;
+        isOn = m >= selStart.m && m <= selEnd.m;
       } else {
-        isOn = w >= defStart.w && w <= defEnd.w;
+        isOn = m >= defStartM && m <= defEndM;
       }
       chip.className = 'period-chip' +
-        (isIncomplete ? ' cur' : '') +
+        (isCur || isFuture ? ' cur' : '') +
         (isOn ? ' on' : '');
-      chip.textContent = String(w).padStart(2, '0');
-      chip.title = `שבוע ${w}: ${fmtD(isoWeekMonday(YEAR,w))} – ${fmtD(isoWeekSunday(YEAR,w))}`;
-      if (!isIncomplete) {
+      chip.textContent = HE_MON_CHIPS[m - 1];
+      chip.title = `${HE_MON_CHIPS[m-1]} ${YEAR_MON}`;
+      if (!isFuture) {
         chip.onclick = (ev) => {
           if (ev.shiftKey && selStart) {
-            if (w < selStart.w) selStart = { y: YEAR, w };
-            else selEnd = { y: YEAR, w };
+            if (m < selStart.m) selStart = { y: YEAR_MON, m };
+            else selEnd = { y: YEAR_MON, m };
           } else {
-            selStart = { y: YEAR, w }; selEnd = { y: YEAR, w };
+            selStart = { y: YEAR_MON, m }; selEnd = { y: YEAR_MON, m };
           }
           buildPeriodBar();
-          _setPeriodLabel('⏳ שבוע ' + w + ' · ' + YEAR + ' — שולח בקשה לשרת...');
+          _setPeriodLabel('⏳ ' + HE_MON_CHIPS[m-1] + ' ' + YEAR_MON + ' — שולח בקשה לשרת...');
           loadPeriod();
         };
       }
@@ -1744,10 +1733,11 @@
   // ── Period helpers ───────────────────────────────────────
   function periodLabel(p) {
     if (!p.d1) return '';
-    const w1 = dateToISOWeek(new Date(p.d1 + 'T12:00:00'));
-    const w2 = dateToISOWeek(new Date(p.d2 + 'T12:00:00'));
-    if (w1.w === w2.w) return `שבוע ${w1.w} · ${w1.y}`;
-    return `שבועות ${w1.w}–${w2.w} · ${w1.y}`;
+    const m1 = parseInt(p.d1.split('-')[1]);
+    const m2 = parseInt(p.d2.split('-')[1]);
+    const y  = parseInt(p.d1.split('-')[0]);
+    if (m1 === m2) return `${HE_MON_CHIPS[m1-1]} ${y}`;
+    return `${HE_MON_CHIPS[m1-1]}–${HE_MON_CHIPS[m2-1]} ${y}`;
   }
   function _setPeriodLabel(txt) {
     const el = document.getElementById('period-active-label');
