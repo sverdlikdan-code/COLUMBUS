@@ -2045,7 +2045,7 @@ app.get('/admin/debug-cache', async (req, res) => {
   const agents = [];
   for (const [code, clients] of pbiCache.byAgent) {
     const days = [...new Set(clients.map(c => c.dayNum))].sort();
-    agents.push({ code, count: clients.length, days });
+    agents.push({ code, name: clients[0]?.agentName || '', mgr: clients[0]?.manager || '', count: clients.length, days });
   }
   res.json({ managers: pbiCache.managers, agents, loadedAt: pbiCache.loadedAt });
 });
