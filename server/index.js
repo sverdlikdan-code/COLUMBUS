@@ -12,7 +12,7 @@ const { executeDax, getDatasetRefreshTime } = require('./powerbi');
 // Single source of truth: all client/agent/manager data loaded from Power BI
 // at startup and refreshed daily. Endpoints serve from memory → <5ms latency.
 
-const DAY_HE_TO_NUM = { 'ראשון': 1, 'שני': 2, 'שלישי': 3, 'רביעי': 4, 'חמישי': 5 };
+const DAY_HE_TO_NUM = { 'א': 1, 'ב': 2, 'ג': 3, 'ד': 4, 'ה': 5, 'ראשון': 1, 'שני': 2, 'שלישי': 3, 'רביעי': 4, 'חמישי': 5 };
 
 let pbiCache = null; // set by loadPBICache()
 
