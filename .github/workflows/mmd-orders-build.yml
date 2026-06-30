@@ -65,6 +65,7 @@ jobs:
         run: node server/build-mmd-orders.js
 
       - name: Fetch Prophet history from PBI
+        continue-on-error: true
         env:
           AZURE_TENANT_ID: ${{ secrets.PBI_TENANT }}
           AZURE_CLIENT_ID: ${{ secrets.PBI_CLIENT }}
@@ -74,6 +75,7 @@ jobs:
         run: node server/fetch-prophet-history.js
 
       - name: Run Prophet forecast
+        continue-on-error: true
         run: python prophet/run_prophet.py
 
       - name: Commit and push
