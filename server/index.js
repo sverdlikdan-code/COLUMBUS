@@ -1856,6 +1856,9 @@ function mmdGuard(req, res, next) {
 app.get('/mmd/mmd-orders.json', mmdGuard, (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'mmd-orders.json'));
 });
+app.get('/mmd/prophet.json', mmdGuard, (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'docs', 'prophet.json'));
+});
 
 app.get('/mmd/img/:mkt', mmdGuard, (req, res) => {
   const mkt = req.params.mkt.replace(/\D/g, '');
