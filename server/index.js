@@ -100,16 +100,6 @@ CALCULATETABLE(
       if (!schedMap.has(custId)) schedMap.set(custId, []);
       schedMap.get(custId).push({ dayNum, dayLabel: day, visitOrder: parseInt(r['[visitOrder]']) || 999 });
     }
-    // Diagnostics
-    console.log(`[PBI] schedRows: ${schedRows.length}, schedMap: ${schedMap.size}`);
-    if (schedRows.length > 0) {
-      const sample = schedRows[0];
-      console.log('[PBI] schedRow sample keys:', Object.keys(sample).join(', '));
-      console.log('[PBI] schedRow sample values:', JSON.stringify(sample));
-    }
-    const sampleClient = clientMap.values().next().value;
-    if (sampleClient) console.log('[PBI] clientMap sample agentCode:', JSON.stringify(sampleClient.agentCode), 'custId:', sampleClient.custId);
-
     // Build byAgent map: agentCode → sorted array of {client+schedule}
     const byAgent = new Map();
     for (const [custId, scheds] of schedMap) {
