@@ -977,12 +977,14 @@
       chip.title = `${HE_MON_CHIPS[m-1]} ${YEAR_MON}`;
       {
         chip.onclick = () => {
-          if (selStart && !(selStart.m === selEnd.m && m === selStart.m)) {
-            // Second+ click — extend range
-            if (m < selStart.m) selStart = { y: YEAR_MON, m };
-            else selEnd = { y: YEAR_MON, m };
+          if (!selStart) {
+            selStart = { y: YEAR_MON, m }; selEnd = { y: YEAR_MON, m };
+          } else if (m < selStart.m) {
+            selStart = { y: YEAR_MON, m };           // extend left
+          } else if (m > selEnd.m) {
+            selEnd = { y: YEAR_MON, m };              // extend right
           } else {
-            // First click or clicking the already-selected single month → fresh anchor
+            // click on boundary or inside range → collapse to single month
             selStart = { y: YEAR_MON, m }; selEnd = { y: YEAR_MON, m };
           }
           buildPeriodBar();
