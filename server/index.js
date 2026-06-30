@@ -538,15 +538,16 @@ async function getCityBBox(city) {
   if (!city) return null;
   if (cityBBoxCache.has(city)) return cityBBoxCache.get(city);
 
-  // Google Maps — best for Israeli city boundaries
-  if (GOOGLE_MAPS_KEY) {
+  // LocationIQ — city bounding box
+  if (LOCATIONIQ_KEY) {
     try {
-      const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(city + ', ישראל')}&region=il&key=${GOOGLE_MAPS_KEY}`;
+      const url = `https://us1.locationiq.com/v1/search?key=${LOCATIONIQ_KEY}&q=${encodeURIComponent(city + ', ישראל')}&countrycode=il&format=json&limit=1&accept-language=he`;
       const resp = await fetch(url, { signal: AbortSignal.timeout(4000) });
       const data = await resp.json();
-      const vp = data?.results?.[0]?.geometry?.viewport;
-      if (vp) {
-        const bbox = { minLat: vp.southwest.lat, maxLat: vp.northeast.lat, minLng: vp.southwest.lng, maxLng: vp.northeast.lng };
+      const r = Array.isArray(data) ? data[0] : null;
+      if (r?.boundingbox) {
+        const [minLat, maxLat, minLng, maxLng] = r.boundingbox.map(Number);
+        const bbox = { minLat, maxLat, minLng, maxLng };
         cityBBoxCache.set(city, bbox);
         return bbox;
       }
@@ -672,9 +673,23 @@ function cleanAddressForGeocoding(address) {
 }
 
 // ── Geocoding services ────────────────────────────────────────────────────────
-const AZURE_MAPS_KEY = process.env.AZURE_MAPS_KEY || '';
-const GOOGLE_MAPS_KEY = process.env.GOOGLE_MAPS_KEY || '';
+const AZURE_MAPS_KEY    = process.env.AZURE_MAPS_KEY    || '';
+const GOOGLE_MAPS_KEY   = process.env.GOOGLE_MAPS_KEY   || '';  // REQUEST_DENIED — billing not enabled
+const LOCATIONIQ_KEY    = process.env.LOCATIONIQ_KEY    || '';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+
+// LocationIQ — OSM-based, works well for Israel, no billing required
+async function geocodeLocationIQ(query) {
+  if (!LOCATIONIQ_KEY) return null;
+  try {
+    const url = `https://us1.locationiq.com/v1/search?key=${LOCATIONIQ_KEY}&q=${encodeURIComponent(query)}&countrycode=il&format=json&limit=1&accept-language=he`;
+    const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    const data = await resp.json();
+    const r = Array.isArray(data) ? data[0] : null;
+    if (r?.lat && r?.lon) return { lat: parseFloat(r.lat), lng: parseFloat(r.lon) };
+  } catch (_) {}
+  return null;
+}
 
 async function geocodeAzure(query) {
   if (!AZURE_MAPS_KEY) return null;
@@ -688,17 +703,8 @@ async function geocodeAzure(query) {
   return null;
 }
 
-async function geocodeGoogle(query) {
-  if (!GOOGLE_MAPS_KEY) return null;
-  try {
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&region=il&key=${GOOGLE_MAPS_KEY}`;
-    const resp = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    const data = await resp.json();
-    const r = data?.results?.[0]?.geometry?.location;
-    if (r) return { lat: r.lat, lng: r.lng };
-  } catch (_) {}
-  return null;
-}
+// Google geocoding disabled — REQUEST_DENIED (billing not enabled on GCP project)
+async function geocodeGoogle(query) { return null; }
 
 let _lastNominatimMs = 0;
 async function geocodeNominatim(query, city) {
@@ -758,8 +764,9 @@ async function normalizeAddressWithAI(address, city) {
 
 async function geocodeAddress(query, city) {
   if (geocodeCache.has(query)) return geocodeCache.get(query);
-  let result = await geocodeGoogle(query);
-  // Skip Azure — consistently returns wrong Israeli cities for Hebrew addresses
+  // LocationIQ first (OSM-based, Israel-aware, billing not required)
+  let result = await geocodeLocationIQ(query);
+  // Nominatim fallback (same OSM data, 1 req/sec limit)
   if (!result) result = await geocodeNominatim(query, city);
   geocodeCache.set(query, result || null);
   return result || null;
