@@ -793,18 +793,6 @@ async function initLogin(){
       renderLogin();
       show('s-login');
     } else {
-      // Agent — validate against PBI cache before using saved code
-      try {
-        const vr = await apiFetch(`${API}/customers?agent=${encodeURIComponent(saved.code)}`);
-        const vdata = vr.ok ? await vr.json() : null;
-        if (!vdata || !vdata.length) {
-          // Agent code no longer valid — clear and go to login
-          localStorage.removeItem('frAgent');
-          show('s-login');
-          renderLogin();
-          return;
-        }
-      } catch(_) {}
       st.agent={code:saved.code,name:saved.name};
       document.getElementById('city-agent-label').textContent=saved.name;
       buildCityChips();
