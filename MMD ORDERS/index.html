@@ -983,6 +983,9 @@
             selStart = { y: YEAR_MON, m };           // extend left
           } else if (m > selEnd.m) {
             selEnd = { y: YEAR_MON, m };              // extend right
+          } else if (selStart.m === selEnd.m && m === selStart.m) {
+            // click on the already-selected single month → deselect (back to default)
+            selStart = null; selEnd = null;
           } else {
             // click on boundary or inside range → collapse to single month
             selStart = { y: YEAR_MON, m }; selEnd = { y: YEAR_MON, m };
