@@ -1027,6 +1027,82 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
   }
 });
 
+// POST /api/export-route-xlsx — Excel с Smart Table, подсветкой изменений и GPS
+app.post('/api/export-route-xlsx', requireAuth, dataRateLimit, async (req, res) => {
+  const { rows, agentName, dayLabel } = req.body;
+  if (!Array.isArray(rows) || !rows.length) return res.status(400).json({ error: 'missing rows' });
+
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'Formula Road';
+  const ws = wb.addWorksheet('מסלול', { views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
+
+  const COLS = [
+    { name: '#',          width: 6  },
+    { name: 'מס. לקוח',  width: 14 },
+    { name: 'שם לקוח',   width: 28 },
+    { name: 'יום',        width: 10 },
+    { name: 'עיר',        width: 16 },
+    { name: 'כתובת',      width: 26 },
+    { name: 'קו רוחב',    width: 13 },
+    { name: 'קו אורך',    width: 13 },
+    { name: 'GPS',        width: 10 },
+    { name: 'סדר מקורי',  width: 13 },
+    { name: 'הערה',       width: 20 },
+  ];
+
+  ws.addTable({
+    name: 'RouteTable',
+    ref: 'A1',
+    headerRow: true,
+    totalsRow: false,
+    style: { theme: 'TableStyleMedium7', showRowStripes: true },
+    columns: COLS.map(c => ({ name: c.name, filterButton: true })),
+    rows: rows.map(r => [
+      r.currentPos,
+      String(r.custId || ''),
+      r.custName || '',
+      r.dayLabel || '',
+      r.city || '',
+      r.address || '',
+      r.lat ? Number(parseFloat(r.lat).toFixed(6)) : '',
+      r.lng ? Number(parseFloat(r.lng).toFixed(6)) : '',
+      r.lat && r.lng ? '✓' : 'חסר',
+      r.noOrder ? 'חסר סדר ביקור' : (r.originalPos != null ? r.originalPos : ''),
+      r.note || '',
+    ]),
+  });
+
+  COLS.forEach((c, i) => { ws.getColumn(i + 1).width = c.width; });
+
+  const FILL_YELLOW = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF59D' } };
+  const FILL_ORANGE = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFCC80' } };
+  const FILL_GRAY1  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECEFF1' } };
+  const FILL_GRAY2  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
+  const DOUBTFUL    = new Set(['geocoded', 'pbi-sibling-near', 'city-center', 'no-gps']);
+
+  rows.forEach((r, i) => {
+    const rowNum = i + 2;
+    let fill = null;
+    if (r.noOrder) {
+      fill = i % 2 === 0 ? FILL_GRAY1 : FILL_GRAY2;
+    } else if (DOUBTFUL.has(r.gpsSource)) {
+      fill = FILL_ORANGE;
+    } else if (r.changed) {
+      fill = FILL_YELLOW;
+    }
+    if (fill) {
+      for (let col = 1; col <= COLS.length; col++) ws.getCell(rowNum, col).fill = fill;
+    }
+  });
+
+  const today = new Date().toISOString().slice(0, 10);
+  const fname = `מסלול_${agentName || ''}_${dayLabel || ''}_${today}.xlsx`;
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(fname)}`);
+  await wb.xlsx.write(res);
+  res.end();
+});
+
 // Push gps-corrections.json to GitHub so GitHub Actions build picks it up
 async function pushGpsToGithub(content) {
   const token = process.env.GITHUB_TOKEN;
