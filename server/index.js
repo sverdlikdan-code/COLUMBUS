@@ -1801,8 +1801,7 @@ app.post('/api/export-position-xlsx', requireAuth, dataRateLimit, async (req, re
     ws.getRow(HEADER_ROW).font = { bold: true };
     ws.views[0] = { rightToLeft: true, state: 'frozen', ySplit: HEADER_ROW };
 
-    const IMG_PX = 30;
-    const IMG_ROW_PT = 24;
+    const IMG_ROW_PT = 17;
     await Promise.all(rows.map(async (r, i) => {
       if (!r.photoUrl || !isSafePhotoUrl(r.photoUrl)) return;
       try {
@@ -1813,9 +1812,9 @@ app.post('/api/export-position-xlsx', requireAuth, dataRateLimit, async (req, re
         const imgId = wb.addImage({ buffer: buf, extension: ext });
         const excelRow = HEADER_ROW + 1 + i;
         ws.addImage(imgId, {
-          tl: { col: PHOTO_COL - 1 + 0.04, row: excelRow - 1 + 0.04 },
-          ext: { width: IMG_PX, height: IMG_PX },
-          editAs: 'oneCell',
+          tl: { col: PHOTO_COL - 1 + 0.05, row: excelRow - 1 + 0.05 },
+          br: { col: PHOTO_COL - 0.05,     row: excelRow - 0.05 },
+          editAs: 'twoCell',
         });
         ws.getRow(excelRow).height = IMG_ROW_PT;
       } catch { /* skip */ }
