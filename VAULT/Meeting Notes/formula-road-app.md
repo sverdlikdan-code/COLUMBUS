@@ -119,6 +119,11 @@ https://api.sverdlik-apps.site/formula-road?k=LN80v9eK7hEng5LagaHs2Feh
 
 ## Что нужно сделать
 
-- [ ] Phase 2: продажи + יעד $ в карточке клиента (ALL_PARTS = 6 таблиц из 3 компаний + FORMULATAHSHIV Excel)
+- [x] Phase 2: продажи + יעד $ в карточке клиента — ГОТОВО (2026-06-29)
+  - sales_cte: INVOICEITEMS + ORDERITEMS + OTYPE='C' + FINAL='Y', SUM(IVCOST * DEBIT_SIGN) = точно как PBI
+  - target: из TAHSHIV Excel (\\dilerbmdsrv\yulia-dan\bi pilot\FORMULA\TAHSHIV FORMULA.xlsx), кэш при старте
+  - join key: CATGORY 7 (Excel col4) ↔ CUSTSPEC.SPEC7 (SQL), BiDi нормализация normCat7()
+  - /admin/reload-targets — обновить кэш без перезапуска (для ежемесячного обновления Excel)
+  - только FORM (ICE/INTER — pending решение)
 - [ ] Мигрировать `/manager/gps-report`, `/api/client-sales`, `/api/mekarer-parts` с DAX на SQL
 - [ ] APK через Capacitor (обернуть formula-road.html)

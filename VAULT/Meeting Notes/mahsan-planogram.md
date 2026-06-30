@@ -1,5 +1,16 @@
 ﻿# mahsan-planogram — MAHSAN PLANOGRAM (FORMULA cold storage)
 
+## Сессия 2026-06-29 #in-progress
+
+### Исправления planogram-editor.html (MAHSAN EDITOR)
+- **Auth**: все fetch к API теперь передают `X-Session: frToken`; `/pbi/dagim-sales` и `/pbi/formula-refresh` стали публичными (no auth)
+- **Сессии**: rolling 30 дней — каждый запрос продлевает токен, больше ежедневного логина нет
+- **הזמנה данные по месяцам**: красный баннер "שגיאת שרת" устранён — dagim-sales теперь работает без токена
+- **מיקום сортировка**: исправлено — теперь haluka→printOrder (bug: localStorage state не имел haluka из старых сессий, исправлен merge из base.json)
+- **מיקום "כל המחלקות"**: все секции смешиваются и сортируются по חלוקה глобально
+- **Excel из מיקום**: добавлена колонка חלוקה, фото уменьшено в 3 раза (90px→30px), сортировка по haluka→printOrder
+- **תוקף print**: карточки растягиваются до высоты строки (height:100% в grid)
+
 Topic file for planogram build system: ExcelJS builder, Power BI data, GitHub Actions CI/CD.
 
 ## Архитектура
