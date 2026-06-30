@@ -868,7 +868,13 @@
   let all = [];
   let fams = new Set();
   let cos  = new Set();
-  let selMonths = new Set(); // selected month numbers (1-12), empty = default
+  const _defaultSelMonths = () => {
+    const today = new Date();
+    const curM  = today.getFullYear() === YEAR_MON ? today.getMonth() + 1 : 12;
+    const prevM = curM > 1 ? curM - 1 : curM;
+    return new Set(prevM !== curM ? [prevM, curM] : [curM]);
+  };
+  let selMonths = _defaultSelMonths();
   let baseAll = null; // base JSON data — never mutated
   let _periodLoadId = 0; // race-condition guard
   let _sortCol = '';
@@ -912,10 +918,6 @@
   }
 
   function getPeriodParams() {
-    if (!selMonths.size) {
-      const def = defaultMonthPeriod();
-      return { d1: def.d1, d2: capToLastSunday(def.d2) };
-    }
     const sorted = [...selMonths].sort((a, b) => a - b);
     const minM = sorted[0], maxM = sorted[sorted.length - 1];
     const rawD2 = `${YEAR_MON}-${String(maxM).padStart(2,'0')}-${lastDayOfMonth(YEAR_MON, maxM)}`;
@@ -942,16 +944,15 @@
     bar.innerHTML = '';
     const today  = new Date();
     const curM   = today.getFullYear() === YEAR_MON ? today.getMonth() + 1 : 12;
-    const def    = defaultMonthPeriod();
-    const defStartM = parseInt(def.d1.split('-')[1]);
-    const defEndM   = parseInt(def.d2.split('-')[1]);
+    const defSet = _defaultSelMonths();
+    const isDefault = defSet.size === selMonths.size && [...defSet].every(m => selMonths.has(m));
 
     const defBtn = document.createElement('button');
     defBtn.id = 'period-def';
-    defBtn.className = 'period-def' + (selMonths.size ? ' off' : '');
+    defBtn.className = 'period-def' + (isDefault ? '' : ' off');
     defBtn.textContent = '✓ ברירת מחדל';
     defBtn.onclick = () => {
-      selMonths.clear();
+      selMonths = _defaultSelMonths();
       buildPeriodBar();
       _setPeriodLabel('⏳ חודש נוכחי + קודם — שולח בקשה לשרת...');
       loadPeriod();
@@ -966,7 +967,7 @@
     for (let m = 1; m <= curM; m++) {
       const isCur = (m === curM);
       const chip = document.createElement('button');
-      const isOn = selMonths.size ? selMonths.has(m) : (m >= defStartM && m <= defEndM);
+      const isOn = selMonths.has(m);
       chip.className = 'period-chip' +
         (isCur ? ' cur' : '') +
         (isOn ? ' on' : '');
