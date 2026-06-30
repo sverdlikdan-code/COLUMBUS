@@ -800,18 +800,18 @@ async function geocodeAddressCascade(address, city) {
     if (r) return r;
   }
 
-  // attempt 2: street+number only + city
-  const street = extractStreetNum(cleaned || address || '');
-  if (street && street !== cleaned) {
-    const r = await geocodeAddress(street + cityStr + ', ישראל', city);
-    if (r) return r;
-  }
-
-  // attempt 3: AI normalization + city
+  // attempt 2: AI normalization — knows Hebrew better than regex
   const aiAddr = await normalizeAddressWithAI(address, city);
   if (aiAddr) {
     const r = await geocodeAddress(aiAddr + cityStr + ', ישראל', city);
     if (r) { saveGeocodeCache(); return r; }
+  }
+
+  // attempt 3: street+number only + city
+  const street = extractStreetNum(cleaned || address || '');
+  if (street && street !== cleaned) {
+    const r = await geocodeAddress(street + cityStr + ', ישראל', city);
+    if (r) return r;
   }
 
   // attempt 4: city-only fallback — mark as approximate
