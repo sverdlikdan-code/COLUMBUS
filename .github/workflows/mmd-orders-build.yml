@@ -21,7 +21,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -33,6 +33,23 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip + CmdStan
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.cmdstan
+          key: prophet-${{ runner.os }}-${{ hashFiles('prophet/requirements.txt') }}
+          restore-keys: prophet-${{ runner.os }}-
+
+      - name: Install Python dependencies
+        run: pip install -r prophet/requirements.txt
 
       - name: Install server dependencies
         run: npm install
@@ -47,12 +64,24 @@ jobs:
           POWERBI_MMD_DATASET_ID: ${{ secrets.PBI_MMD_DATASET }}
         run: node server/build-mmd-orders.js
 
+      - name: Fetch Prophet history from PBI
+        env:
+          AZURE_TENANT_ID: ${{ secrets.PBI_TENANT }}
+          AZURE_CLIENT_ID: ${{ secrets.PBI_CLIENT }}
+          AZURE_CLIENT_SECRET: ${{ secrets.PBI_SECRET }}
+          POWERBI_WORKSPACE_ID: ${{ secrets.PBI_WORKSPACE }}
+          POWERBI_MMD_DATASET_ID: ${{ secrets.PBI_MMD_DATASET }}
+        run: node server/fetch-prophet-history.js
+
+      - name: Run Prophet forecast
+        run: python prophet/run_prophet.py
+
       - name: Commit and push
         run: |
           git config user.email "columbus-bot@diler.co.il"
           git config user.name "COLUMBUS Bot"
-          git add docs/mmd-orders.json
+          git add docs/mmd-orders.json docs/prophet.json
           git diff --cached --quiet && echo "No changes." || \
-            git commit -m "chore: mmd-orders build $(date -u +'%Y-%m-%d %H:%M UTC')"
+            git commit -m "chore: mmd-orders + prophet build $(date -u +'%Y-%m-%d %H:%M UTC')"
           git push origin master || \
             (git pull --no-rebase -X ours origin master && git push origin master)
