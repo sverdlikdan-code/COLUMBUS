@@ -2037,9 +2037,10 @@ app.get('/pbi/mmd-orders', mmdGuard, dataRateLimit, async (req, res) => {
   }
 });
 
-// GET /admin/debug-cache — временный диагностический endpoint
-app.get('/admin/debug-cache', requireAuth, async (req, res) => {
-  if (!req.session.isManager) return res.status(403).json({ error: 'forbidden' });
+// GET /admin/debug-cache?key=KEY — временный диагностический endpoint
+app.get('/admin/debug-cache', async (req, res) => {
+  const ADMIN_KEY = process.env.ADMIN_LOG_KEY || '';
+  if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(403).json({ error: 'forbidden' });
   if (!pbiCache) return res.json({ error: 'no cache' });
   const agents = [];
   for (const [code, clients] of pbiCache.byAgent) {
