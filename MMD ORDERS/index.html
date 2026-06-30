@@ -412,6 +412,11 @@
     .col-g { background: #e8f0f8; }
     thead th.col-g { background: #0d47a1 !important; }
     tbody td.col-g { background: #e8f0f8 !important; }
+    .col-prophet { background: #f3e5f5; }
+    thead th.col-prophet { background: #4a148c !important; color: #fff !important; }
+    tbody td.col-prophet { background: #f3e5f5 !important; font-weight: 700; color: #4a148c; text-align: center; }
+    .prophet-up   { color: #2e7d32; }
+    .prophet-down { color: #c62828; }
     td.tk-lo select { border-color: #d32f2f !important; color: #d32f2f !important; background: #fff5f5; }
     .c-mmd { font-weight: 900; font-size: 1.1rem; color: var(--blue-dark); }
     /* family multi-select dropdown */
@@ -850,6 +855,7 @@
         <th class="sortable" onclick="sortMMD('yamim_haya')">ימי מכר<span id="sarr-yamim_haya"></span></th>
         <th class="sortable" onclick="sortMMD('pct_mkr')">ימי מכר<br>מכלל %<span id="sarr-pct_mkr"></span></th>
         <th class="col-g sortable" onclick="sortMMD('hamlatza')">המלצה להזמנה<br>קרטון<span id="sarr-hamlatza"></span></th>
+        <th class="col-prophet" title="Prophet ML — תחזית ביקוש 4 שבועות">🔮 Prophet<br>הזמנה</th>
         <th class="col-g">הזמנה<br>ידנית</th>
         <th class="col-g">תוקף<br>נדרש</th>
       </tr>
@@ -1063,10 +1069,17 @@
     document.getElementById('ld').innerHTML = '<div class="spin"></div><div>טוען נתוני מלאי...</div>';
     st('טוען...');
     try {
-      const r = await fetch('./mmd-orders.json?_=' + Date.now());
+      const [r, rp] = await Promise.all([
+        fetch('./mmd-orders.json?_=' + Date.now()),
+        fetch('./prophet.json?_='    + Date.now()).catch(() => null)
+      ]);
       if (!r.ok) throw new Error('HTTP ' + r.status);
       const j = await r.json();
       if (!j.ok) throw new Error(j.error || 'API error');
+      if (rp && rp.ok) {
+        const jp = await rp.json();
+        window.prophetMap = jp.skus || {};
+      }
       baseAll = j.data;
       all = baseAll;
       buildPeriodBar();
@@ -1398,6 +1411,7 @@
           '<td class="c-num">' + (yamimHaya != null ? yamimHaya : '—') + '</td>' +
           '<td class="c-num">' + (pctMkr != null ? pctMkr + '%' : '—') + '</td>' +
           '<td class="c-haml col-g">' + (haml > 0 ? Math.round(haml) : '') + '</td>' +
+          (function(){ const p = window.prophetMap && window.prophetMap[mk]; if (!p || p.prophet_order == null) return '<td class="col-prophet" style="color:#bbb;font-weight:400">—</td>'; const delta = haml > 0 ? Math.round(p.prophet_order) - Math.round(haml) : null; const dc = delta != null && delta > 0 ? ' prophet-up' : delta != null && delta < 0 ? ' prophet-down' : ''; const dsign = delta != null && delta > 0 ? '+' : ''; return '<td class="col-prophet' + dc + '" title="P4=' + p.p4 + ' שבועות_נפח=' + p.weeks_nf + (delta != null ? ' Δ=' + dsign + delta : '') + '">' + Math.round(p.prophet_order) + (delta != null ? '<br><span style="font-size:.7rem;font-weight:400">' + dsign + delta + '</span>' : '') + '</td>'; })() +
           '<td class="c-num col-g"><input class="ei ei-n" type="number" min="0" step="1" value="' + ordV + '" data-mk="' + mk + '" data-ash="' + ash + '" data-mav="' + mav + '" data-f="k" oninput="inp(this)" placeholder="0"/></td>' +
           '<td class="col-g' + (yamim != null && yamim < 14 ? ' tk-lo' : '') + '">' + buildPrtimCell(mk, r.tukuf, nts) + '</td>';
         tb.appendChild(tr);
