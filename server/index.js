@@ -1963,6 +1963,9 @@ function formulaRoadGuard(req, res, next) {
 app.get('/formula-road', formulaRoadGuard, (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'formula-road.html'));
 });
+app.get('/mekarer-order.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'docs', 'mekarer-order.html'));
+});
 // Static data files referenced via relative fetch in formula-road.html
 app.get('/gps-corrections.json', formulaRoadGuard, (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'gps-corrections.json'));
