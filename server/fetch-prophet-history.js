@@ -1,31 +1,40 @@
 /**
- * Pulls weekly carton sales for top-10 SKUs from Power BI MMD dataset.
- * Output: prophet/weekly_sales.csv
+ * Pulls weekly carton sales for ALL active MMD SKUs from Power BI.
+ * Source of truth: docs/mmd-orders.json (already built by build-mmd-orders.js)
+ *
+ * Output:
+ *   prophet/weekly_sales.csv   — SKU x week x carton sales
+ *   prophet/hamlatza_map.json  — SKU → hamlatza (from mmd-orders.json)
  *
  * Run: node server/fetch-prophet-history.js
- * Requires: prophet/top10_skus.json (created by probe-prophet.js)
  */
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const { executeDax } = require('./powerbi');
 const fs   = require('fs');
 const path = require('path');
 
-const MMD_DS     = process.env.POWERBI_MMD_DATASET_ID;
+const MMD_DS      = process.env.POWERBI_MMD_DATASET_ID;
 const PROPHET_DIR = path.join(__dirname, '..', 'prophet');
+const DOCS_DIR    = path.join(__dirname, '..', 'docs');
 
 async function fetchHistory() {
-  // Load top-10 SKUs from probe output
-  const top10Path = path.join(PROPHET_DIR, 'top10_skus.json');
-  if (!fs.existsSync(top10Path)) {
-    console.error('prophet/top10_skus.json not found — run probe-prophet.js first');
+  // Read all active SKUs from the already-built mmd-orders.json
+  const ordersPath = path.join(DOCS_DIR, 'mmd-orders.json');
+  if (!fs.existsSync(ordersPath)) {
+    console.error('docs/mmd-orders.json not found — run build-mmd-orders.js first');
     process.exit(1);
   }
-  const top10 = JSON.parse(fs.readFileSync(top10Path, 'utf8'));
-  const mktList = top10.map(r => `"${r.mkt}"`).join(', ');
-  console.log(`Fetching history for ${top10.length} SKUs: [${mktList}]`);
+  const orders = JSON.parse(fs.readFileSync(ordersPath, 'utf8'));
+  const skus = orders.data || [];
+  console.log(`Active SKUs from mmd-orders.json: ${skus.length}`);
 
-  // DAX: weekly carton sales for top-10 SKUs, 2025-01-01 → today
-  // DIMCALENDAR[Year] + DIMCALENDAR[Week Number] give ISO week grain
+  // Build hamlatza map for all SKUs
+  const hamlatzaMap = {};
+  skus.forEach(r => { hamlatzaMap[String(r.mkt)] = r.hamlatza ?? null; });
+  fs.writeFileSync(path.join(PROPHET_DIR, 'hamlatza_map.json'), JSON.stringify(hamlatzaMap, null, 2));
+  console.log(`Saved hamlatza_map.json for ${skus.length} SKUs`);
+
+  // DAX: weekly carton sales for ALL SKUs, 2022 → today (no SKU filter)
   const dax = `
     EVALUATE
     FILTER(
@@ -34,7 +43,6 @@ async function fetchHistory() {
         'KARTIS PARIT'[תאור],
         DIMCALENDAR[Year],
         DIMCALENDAR[Week Number],
-        FILTER('KARTIS PARIT', 'KARTIS PARIT'[מק"ט] IN {${mktList}}),
         FILTER(DIMCALENDAR, DIMCALENDAR[Year] >= 2022),
         "mkr_k", [מכר קרטון]
       ),
@@ -43,7 +51,7 @@ async function fetchHistory() {
     ORDER BY 'KARTIS PARIT'[מק"ט], DIMCALENDAR[Year], DIMCALENDAR[Week Number]
   `;
 
-  console.log('Querying Power BI...');
+  console.log('Querying Power BI for all SKUs history (2022+)...');
   const rows = await executeDax(dax, MMD_DS);
   console.log(`Got ${rows.length} rows`);
 
@@ -51,9 +59,6 @@ async function fetchHistory() {
     console.error('No data returned — check DAX query');
     process.exit(1);
   }
-
-  // Debug: show first row keys
-  console.log('Sample row keys:', Object.keys(rows[0]));
 
   // Build CSV
   const lines = ['mkt,taur,year,week,mkr_k'];
@@ -69,13 +74,11 @@ async function fetchHistory() {
 
   const csvPath = path.join(PROPHET_DIR, 'weekly_sales.csv');
   fs.writeFileSync(csvPath, lines.join('\n'), 'utf8');
-  console.log(`✓ Saved ${lines.length - 1} rows → prophet/weekly_sales.csv`);
+  console.log(`Saved ${lines.length - 1} rows → prophet/weekly_sales.csv`);
 
-  // Also save the hamlatza map from top10 for Python script
-  const hamlatzaMap = {};
-  top10.forEach(r => { hamlatzaMap[r.mkt] = r.hamlatza; });
-  fs.writeFileSync(path.join(PROPHET_DIR, 'hamlatza_map.json'), JSON.stringify(hamlatzaMap, null, 2));
-  console.log('✓ Saved prophet/hamlatza_map.json');
+  // Report unique SKUs found
+  const uniqueSkus = new Set(rows.map(r => r['KARTIS PARIT[מק"ט]']));
+  console.log(`Unique SKUs with sales history: ${uniqueSkus.size}`);
 }
 
 fetchHistory().catch(e => { console.error('FATAL:', e.message); process.exit(1); });
