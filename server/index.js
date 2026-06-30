@@ -764,10 +764,9 @@ async function normalizeAddressWithAI(address, city) {
 
 async function geocodeAddress(query, city) {
   if (geocodeCache.has(query)) return geocodeCache.get(query);
-  // LocationIQ first (OSM-based, Israel-aware, billing not required)
   let result = await geocodeLocationIQ(query);
-  // Nominatim fallback (same OSM data, 1 req/sec limit)
   if (!result) result = await geocodeNominatim(query, city);
+  if (!result) result = await geocodeAzure(query);
   geocodeCache.set(query, result || null);
   return result || null;
 }
