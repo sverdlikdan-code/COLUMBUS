@@ -32,7 +32,7 @@ ADDCOLUMNS(
     const schedRows = await executeDax(`
 EVALUATE
 SELECTCOLUMNS(
-  FILTER('משטח עם כפולות', 'משטח עם כפולות'[סטטוס] = "פעיל"),
+  'משטח עם כפולות',
   "custId",     'משטח עם כפולות'[מס.לקוח],
   "day",        'משטח עם כפולות'[יום],
   "visitOrder", 'משטח עם כפולות'[סדר ביקור]
