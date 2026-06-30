@@ -354,7 +354,7 @@ body.gps-fs #map{height:100%!important;}
         <button class="sort-btn active-ai" id="sort-btn-ai" onclick="setSort('ai')">לפי AI</button>
         <button class="sort-btn" id="recalc-btn" onclick="recalcRoute()" aria-label="חישוב מסלול מחדש" style="border-color:var(--orange,#F57C00);color:var(--orange,#F57C00)">🔄</button>
         <button class="sort-btn" onclick="resetRoute()" aria-label="איפוס סדר היום" title="איפוס יום" style="border-color:#b71c1c;color:#b71c1c">↩</button>
-        <button class="export-btn" id="export-btn" onclick="exportCSV()"><span class="xls-icon">XL</span>שמור</button>
+        <button class="export-btn" id="export-btn" onclick="exportXLSX()"><span class="xls-icon">XL</span>שמור</button>
         <div class="gps-hist-wrap">
           <button class="gps-hist-btn" id="gps-hist-btn" onclick="toggleGpsHistory()">📍 תיקונים</button>
           <div class="gps-hist-dd" id="gps-hist-dd"></div>
@@ -1934,38 +1934,53 @@ function changeClientDay(custId,newDay){
   if(window.innerWidth>=700||st.tab==='map') renderMap();
 }
 
-// ── EXPORT CSV ─────────────────────────────────────────────────────────────
-function exportCSV(){
+// ── EXPORT XLSX ─────────────────────────────────────────────────────────────
+const DOUBTFUL_GPS=new Set(['geocoded','pbi-sibling-near','city-center','no-gps']);
+async function exportXLSX(){
   const list=displayClients();
-  const today=new Date().toISOString().slice(0,10);
-  const agent=st.agent?.name||st.agent?.code||'';
-  const day=DAY_LABELS[st.day]||st.day;
-  const rows=[['סדר ביקור','מס. לקוח','שם לקוח','יום ביקור','עיר','כתובת','קו רוחב','קו אורך','GPS']];
-  list.forEach((c,i)=>rows.push([
-    i+1,
-    c.custId||'',
-    c.custName||'',
-    c.dayLabel||DAY_LABELS[c.dayNum]||'',
-    c.city||'',
-    c.address||'',
-    c.lat||'',
-    c.lng||'',
-    c.lat&&c.lng?'✓':'חסר'
-  ]));
-  // append GPS corrections section — only for this agent's clients
-  const agentIds=new Set(list.map(c=>String(c.custId)));
-  const corrEntries=Object.entries(gpsCorrections).filter(([id])=>agentIds.has(id));
-  if(corrEntries.length){
-    rows.push([]);
-    rows.push(['--- תיקוני GPS ---','','','','','','','','']);
-    rows.push(['מס. לקוח','שם לקוח','עיר','כתובת','קו רוחב','קו אורך','תאריך תיקון','','']);
-    corrEntries.forEach(([id,c])=>rows.push([id,c.name||'',c.city||'',c.address||'',c.lat||'',c.lng||'',c.correctedAt?c.correctedAt.slice(0,10):'','','']));
-  }
-  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const a=document.createElement('a');
-  a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);
-  a.download=`מסלול_${agent}_יום${day}_${today}.csv`;
-  a.click();
+  if(!list.length)return;
+  const withOrder=list.filter(c=>c.priorityOrder>0);
+  const noOrder=list.filter(c=>!c.priorityOrder);
+  const sorted=[...withOrder].sort((a,b)=>(a.priorityOrder||999)-(b.priorityOrder||999));
+  const origRank=new Map(sorted.map((c,i)=>[String(c.custId),i+1]));
+  const makeRow=(c,i,isNoOrder)=>({
+    currentPos:i+1,
+    originalPos:isNoOrder?null:(origRank.get(String(c.custId))||i+1),
+    changed:!isNoOrder&&(i+1)!==(origRank.get(String(c.custId))||i+1),
+    noOrder:isNoOrder,
+    custId:c.custId||'',
+    custName:c.custName||'',
+    dayLabel:c.dayLabel||DAY_LABELS[c.dayNum]||'',
+    city:c.city||'',
+    address:c.address||'',
+    lat:c.lat||null,
+    lng:c.lng||null,
+    gpsSource:c.gpsSource||null,
+    note:DOUBTFUL_GPS.has(c.gpsSource)?'⚠ GPS לא מדוייק':'',
+  });
+  const rows=[
+    ...withOrder.map((c,i)=>makeRow(c,i,false)),
+    ...noOrder.map((c,i)=>makeRow(c,withOrder.length+i,true)),
+  ];
+  const btn=document.getElementById('export-btn');
+  const orig=btn.innerHTML;
+  btn.innerHTML='<span class="xls-icon">⏳</span>...';btn.disabled=true;
+  try{
+    const r=await apiFetch('/api/export-route-xlsx',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({rows,agentName:st.agent?.name||st.agent?.code||'',dayLabel:DAY_LABELS[st.day]||String(st.day||'')}),
+    });
+    if(!r.ok)throw new Error(r.status);
+    const blob=await r.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`מסלול_${st.agent?.name||''}_${new Date().toISOString().slice(0,10)}.xlsx`;
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+  }catch(e){alert('שגיאה בייצוא: '+e.message);}
+  finally{btn.innerHTML=orig;btn.disabled=false;}
 }
 
 function updateGpsHistBtn(){
