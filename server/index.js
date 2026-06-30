@@ -2037,6 +2037,18 @@ app.get('/pbi/mmd-orders', mmdGuard, dataRateLimit, async (req, res) => {
   }
 });
 
+// GET /admin/debug-cache — временный диагностический endpoint
+app.get('/admin/debug-cache', requireAuth, async (req, res) => {
+  if (!req.session.isManager) return res.status(403).json({ error: 'forbidden' });
+  if (!pbiCache) return res.json({ error: 'no cache' });
+  const agents = [];
+  for (const [code, clients] of pbiCache.byAgent) {
+    const days = [...new Set(clients.map(c => c.dayNum))].sort();
+    agents.push({ code, count: clients.length, days });
+  }
+  res.json({ managers: pbiCache.managers, agents, loadedAt: pbiCache.loadedAt });
+});
+
 // POST /admin/reload-cache — перезагрузить PBI кэш без перезапуска
 app.post('/admin/reload-cache', requireAuth, async (req, res) => {
   if (!req.session.isManager) return res.status(403).json({ error: 'forbidden' });
