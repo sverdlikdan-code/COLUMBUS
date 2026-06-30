@@ -865,6 +865,8 @@
 (function () {
   const LS = 'mmd-orders-v1';
   const HE_SHORT = ['ינו','פבר','מרץ','אפר','מאי','יון','יול','אוג','ספט','אוק','נוב','דצ'];
+  const YEAR_MON = 2026;
+  const HE_MON_CHIPS = ['ינו','פבר','מרץ','אפר','מאי','יוני','יולי','אוג','ספט','אוק','נוב','דצמ'];
   let all = [];
   let fams = new Set();
   let cos  = new Set();
@@ -891,9 +893,6 @@
   function st(m)    { document.getElementById('st').textContent = m; }
 
   // ── Month helpers ─────────────────────────────────────────
-  const YEAR_MON = 2026;
-  const HE_MON_CHIPS = ['ינו','פבר','מרץ','אפר','מאי','יוני','יולי','אוג','ספט','אוק','נוב','דצמ'];
-
   function lastDayOfMonth(y, m) { return new Date(y, m, 0).getDate(); }
 
   function defaultMonthPeriod() {
