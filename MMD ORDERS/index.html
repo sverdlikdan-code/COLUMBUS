@@ -889,11 +889,10 @@
   function defaultMonthPeriod() {
     const today = new Date();
     const curM  = today.getFullYear() === YEAR_MON ? today.getMonth() + 1 : 12;
-    const endM  = curM > 1 ? curM - 1 : 1; // last fully-complete month
-    const startM = Math.max(1, endM - 2);   // 3-month window
+    const startM = curM > 1 ? curM - 1 : curM; // prev month (or current if Jan)
     return {
       d1: `${YEAR_MON}-${String(startM).padStart(2,'0')}-01`,
-      d2: `${YEAR_MON}-${String(endM).padStart(2,'0')}-${lastDayOfMonth(YEAR_MON, endM)}`
+      d2: `${YEAR_MON}-${String(curM).padStart(2,'0')}-${lastDayOfMonth(YEAR_MON, curM)}`
     };
   }
 
@@ -937,7 +936,7 @@
     defBtn.onclick = () => {
       selStart = null; selEnd = null;
       buildPeriodBar();
-      _setPeriodLabel('⏳ 3 חודשים אחרונים — שולח בקשה לשרת...');
+      _setPeriodLabel('⏳ חודש נוכחי + קודם — שולח בקשה לשרת...');
       loadPeriod();
     };
     bar.appendChild(defBtn);
@@ -947,9 +946,8 @@
     yl.textContent = YEAR_MON;
     bar.appendChild(yl);
 
-    for (let m = 1; m <= 12; m++) {
-      const isCur    = (m === curM);
-      const isFuture = (m > curM);
+    for (let m = 1; m <= curM; m++) {
+      const isCur = (m === curM);
       const chip = document.createElement('button');
       let isOn = false;
       if (selStart) {
@@ -958,11 +956,11 @@
         isOn = m >= defStartM && m <= defEndM;
       }
       chip.className = 'period-chip' +
-        (isCur || isFuture ? ' cur' : '') +
+        (isCur ? ' cur' : '') +
         (isOn ? ' on' : '');
       chip.textContent = HE_MON_CHIPS[m - 1];
       chip.title = `${HE_MON_CHIPS[m-1]} ${YEAR_MON}`;
-      if (!isFuture) {
+      {
         chip.onclick = () => {
           if (selStart && !(selStart.m === selEnd.m && m === selStart.m)) {
             // Second+ click — extend range
