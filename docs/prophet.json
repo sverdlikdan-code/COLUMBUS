@@ -1,12 +1,12 @@
 {
-  "ts": 1782828589983,
+  "ts": 1782829510693,
   "skus": {
     "1106": {
       "p4": 23.1,
       "p8": 23.0,
-      "prophet_order": 14.3,
+      "prophet_order": 16.3,
       "weeks_nf": 3,
-      "eilat_k": 55,
+      "eilat_k": 53,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 129
@@ -14,9 +14,9 @@
     "403001": {
       "p4": 46.5,
       "p8": 44.0,
-      "prophet_order": 33.5,
+      "prophet_order": 38.5,
       "weeks_nf": 1,
-      "eilat_k": 13,
+      "eilat_k": 8,
       "hamlatza": 27.9,
       "delta_p4": 18.6,
       "n_points": 90
@@ -24,39 +24,39 @@
     "403002": {
       "p4": 30.7,
       "p8": 26.9,
-      "prophet_order": 17.7,
+      "prophet_order": 18.7,
       "weeks_nf": 1,
-      "eilat_k": 13,
+      "eilat_k": 12,
       "hamlatza": 7.2,
       "delta_p4": 23.5,
       "n_points": 92
     },
     "501009": {
-      "p4": 24.0,
-      "p8": 26.3,
+      "p4": 23.9,
+      "p8": 26.2,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 155,
+      "eilat_k": 154,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 131
     },
     "501011": {
-      "p4": 18.6,
-      "p8": 19.5,
+      "p4": 18.5,
+      "p8": 19.4,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 151,
+      "eilat_k": 150,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 130
     },
     "501604": {
-      "p4": 41.3,
-      "p8": 40.9,
+      "p4": 41.7,
+      "p8": 41.3,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 238,
+      "eilat_k": 236,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 130
@@ -72,13 +72,13 @@
       "n_points": 129
     },
     "631": {
-      "p4": 17.0,
-      "p8": 15.8,
-      "prophet_order": 16.0,
+      "p4": 16.9,
+      "p8": 15.7,
+      "prophet_order": 15.9,
       "weeks_nf": 1,
       "eilat_k": 1,
       "hamlatza": 14.7,
-      "delta_p4": 2.3,
+      "delta_p4": 2.2,
       "n_points": 100
     },
     "732": {
@@ -86,7 +86,7 @@
       "p8": 41.2,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 262,
+      "eilat_k": 256,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 105
