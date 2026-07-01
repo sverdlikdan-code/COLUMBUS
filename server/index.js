@@ -1510,6 +1510,48 @@ app.get('/api/mekarer-export', requireAuth, async (req, res) => {
   }
 });
 
+// GET /api/bbox-audit-xlsx — clients with valid IL GPS from PBI but outside city bbox
+app.get('/api/bbox-audit-xlsx', requireAuth, async (req, res) => {
+  try {
+    if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
+    const allClients = [];
+    for (const [, list] of pbiCache.byAgent) allClients.push(...list);
+    const allCities = [...new Set(allClients.map(c => c.city).filter(Boolean))];
+    await Promise.all(allCities.map(city => cityBBoxCache.has(city) ? null : getCityBBox(city)));
+
+    const bad = [];
+    for (const c of allClients) {
+      const la = parseFloat(c.lat), lo = parseFloat(c.lng);
+      if (!isValidIL(la, lo)) continue;
+      const bbox = cityBBoxCache.get(c.city) ?? null;
+      if (!bbox) continue;
+      if (!isWithinCityBBox(la, lo, bbox)) {
+        bad.push({ custId: c.custId, custName: c.custName, city: c.city, agentName: c.agentName, manager: c.manager, lat: la, lng: lo,
+          bboxMinLat: bbox.minLat, bboxMaxLat: bbox.maxLat, bboxMinLng: bbox.minLng, bboxMaxLng: bbox.maxLng });
+      }
+    }
+    const wb = new ExcelJS.Workbook(); wb.creator = 'COLUMBUS';
+    const ws = wb.addWorksheet('GPS Bbox Errors', { views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
+    ws.columns = [
+      { header: 'custId',    key: 'custId',    width: 12 },
+      { header: 'שם לקוח',  key: 'custName',  width: 30 },
+      { header: 'עיר PBI',   key: 'city',      width: 18 },
+      { header: 'סוכן',      key: 'agentName', width: 22 },
+      { header: 'מנהל',      key: 'manager',   width: 12 },
+      { header: 'lat PBI',   key: 'lat',       width: 12 },
+      { header: 'lng PBI',   key: 'lng',       width: 12 },
+    ];
+    ws.getRow(1).font = { bold: true }; ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB71C1C' } };
+    ws.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    ws.autoFilter = { from: 'A1', to: 'G1' };
+    bad.forEach(r => { const row = ws.addRow(r); row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF8E1' } }; });
+    const date = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="bbox-errors-${date}.xlsx"`);
+    await wb.xlsx.write(res); res.end();
+  } catch (err) { console.error(err); res.status(500).json({ error: 'server_error' }); }
+});
+
 // GET /pbi/formula-refresh — last PBI dataset refresh time for FORMULA dataset
 app.get('/pbi/formula-refresh', dataRateLimit, async (req, res) => {
   try {
