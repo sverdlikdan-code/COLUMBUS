@@ -1483,10 +1483,15 @@
             const avg4  = last4.length  ? last4.reduce((s,x)=>s+x.y,0)/last4.length  : 0;
             const avg8  = prev4.length  ? prev4.reduce((s,x)=>s+x.y,0)/prev4.length  : 0;
             let trendSpan = '';
+            let trendPct  = null;
             if (avg8 > 0 && last4.length >= 2 && prev4.length >= 2) {
-              const tp = Math.round((avg4/avg8-1)*100);
-              if (tp > 30)       trendSpan = '<br><span style="font-size:.65rem;color:#2e7d32;font-weight:600">▲' + tp + '%</span>';
-              else if (tp < -30) trendSpan = '<br><span style="font-size:.65rem;color:#c62828;font-weight:600">▼' + Math.abs(tp) + '%</span>';
+              trendPct = Math.round((avg4/avg8-1)*100);
+              if (trendPct > 30)       trendSpan = '<br><span style="font-size:.65rem;color:#2e7d32;font-weight:600">▲' + trendPct + '%</span>';
+              else if (trendPct < -30) trendSpan = '<br><span style="font-size:.65rem;color:#c62828;font-weight:600">▼' + Math.abs(trendPct) + '%</span>';
+            }
+            // ── Trend override: demand falling >30% → suppress Prophet ──
+            if (trendPct !== null && trendPct < -30) {
+              return '<td class="col-prophet prophet-down" data-mk="' + mk + '" onclick="' + onclk + '" title="מודל בוטל — ירידה ' + Math.abs(trendPct) + '%">—' + trendSpan + '</td>';
             }
             if (haml <= 0 && po === 0) return '<td class="col-prophet" style="color:#bbb;font-weight:400;font-size:.75rem" data-mk="' + mk + '" onclick="' + onclk + '">≈' + trendSpan + '</td>';
             const delta = haml > 0 ? po - Math.round(haml) : null;
@@ -1977,39 +1982,51 @@ window.openProphetPanel = function(mk, taur, hevra, mkrShvua) {
     deltaEl.className   = 'pp-metric-val dim';
   }
 
-  // ── Dual progress bar ───────────────────────────────────────────
-  const maxBar = Math.max(haml, po, 1);
-  document.getElementById('pp-fbar-haml-lbl').textContent  = '■ המלצה: ' + (haml > 0 ? haml : '—');
-  document.getElementById('pp-fbar-pro-lbl').textContent   = '■ Prophet: ' + po;
-  document.getElementById('pp-fbar-ham').style.width = (haml > 0 ? Math.round(haml / maxBar * 100) : 0) + '%';
-  document.getElementById('pp-fbar-pro').style.width = Math.round(po / maxBar * 100) + '%';
-
-  // ── CI note ─────────────────────────────────────────────────────
-  document.getElementById('pp-ci').textContent = ciLo != null ? ciLo + ' – ' + ciHi + ' קרט/שבוע' : '—';
-
-  // ── Formula ─────────────────────────────────────────────────────
-  document.getElementById('pp-formula').textContent = wn !== '—'
-    ? 'P4 × ' + wn + ' שבועות − ' + ek + ' אילת = ' + po + ' קרטון'
-    : 'Prophet Order = ' + po;
-
-  // ── n_points note ───────────────────────────────────────────────
-  document.getElementById('pp-np').textContent = np + ' שבועות היסטוריה';
-
-  // ── Trend badge — last 4 actual weeks vs prev 4 weeks ──────────
-  const badge = document.getElementById('pp-trend-badge');
+  // ── Trend calc (needed before bar + badge) ─────────────────────
   const actualSorted = (p.series && p.series.actual ? [...p.series.actual] : [])
     .sort((a, b) => a.w.localeCompare(b.w));
   const last4  = actualSorted.slice(-4);
   const prev4  = actualSorted.slice(-8, -4);
-  const avg4   = last4.length  ? last4.reduce((s, x) => s + x.y, 0)  / last4.length  : 0;
-  const avg8   = prev4.length  ? prev4.reduce((s, x) => s + x.y, 0)  / prev4.length  : 0;
-  if (avg8 > 0 && last4.length >= 2 && prev4.length >= 2) {
-    const trendPct = Math.round((avg4 / avg8 - 1) * 100);
+  const avg4   = last4.length  ? last4.reduce((s, x) => s + x.y, 0) / last4.length  : 0;
+  const avg8   = prev4.length  ? prev4.reduce((s, x) => s + x.y, 0) / prev4.length  : 0;
+  let trendPct = null;
+  if (avg8 > 0 && last4.length >= 2 && prev4.length >= 2)
+    trendPct = Math.round((avg4 / avg8 - 1) * 100);
+
+  // ── Trend override: falling >30% → suppress Prophet order ───────
+  const trendBlocked = trendPct !== null && trendPct < -30;
+  const poEff = trendBlocked ? 0 : po;
+
+  // ── Dual progress bar ───────────────────────────────────────────
+  const maxBar = Math.max(haml, poEff, 1);
+  document.getElementById('pp-fbar-haml-lbl').textContent = '■ המלצה: ' + (haml > 0 ? haml : '—');
+  document.getElementById('pp-fbar-pro-lbl').textContent  = trendBlocked
+    ? '■ Prophet: מבוטל (ירידה ' + Math.abs(trendPct) + '%)'
+    : '■ Prophet: ' + poEff;
+  document.getElementById('pp-fbar-ham').style.width = (haml > 0 ? Math.round(haml / maxBar * 100) : 0) + '%';
+  document.getElementById('pp-fbar-pro').style.width = Math.round(poEff / maxBar * 100) + '%';
+
+  // ── CI note ─────────────────────────────────────────────────────
+  document.getElementById('pp-ci').textContent = trendBlocked
+    ? 'Prophet בוטל — מכירות בירידה. הזמן לפי שיקול דעתך'
+    : (ciLo != null ? ciLo + ' – ' + ciHi + ' קרט/שבוע' : '—');
+
+  // ── Formula ─────────────────────────────────────────────────────
+  document.getElementById('pp-formula').textContent = trendBlocked
+    ? 'מגמת ירידה ' + Math.abs(trendPct) + '% — Prophet מבוטל (המלצה: 0)'
+    : (wn !== '—' ? 'P4 × ' + wn + ' שבועות − ' + ek + ' אילת = ' + poEff + ' קרטון' : 'Prophet Order = ' + poEff);
+
+  // ── n_points note ───────────────────────────────────────────────
+  document.getElementById('pp-np').textContent = np + ' שבועות היסטוריה';
+
+  // ── Trend badge ─────────────────────────────────────────────────
+  const badge = document.getElementById('pp-trend-badge');
+  if (trendPct !== null) {
     if (trendPct > 30) {
       badge.textContent = '📈 +' + trendPct + '% ביקוש עולה';
       badge.className = 'pp-trend-badge up';
     } else if (trendPct < -30) {
-      badge.textContent = '📉 −' + Math.abs(trendPct) + '% ירידה';
+      badge.textContent = '📉 −' + Math.abs(trendPct) + '% ירידה | Prophet בוטל';
       badge.className = 'pp-trend-badge dn';
     } else {
       badge.textContent = '➡ ביקוש יציב ' + (trendPct >= 0 ? '+' : '') + trendPct + '%';
