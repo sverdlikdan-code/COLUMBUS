@@ -1334,6 +1334,7 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
       manager:     String(body.manager     || '').substring(0, 60),
     };
     const filePath = path.join(__dirname, '..', 'docs', 'mekarer-orders.json');
+    console.log(`[mekarer-order] saving to: ${filePath}`);
     const list = fs.existsSync(filePath) ? JSON.parse(fs.readFileSync(filePath, 'utf8')) : [];
     const id = Date.now();
     list.push({ id, ...order, submittedAt: new Date().toISOString(),
