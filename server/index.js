@@ -913,10 +913,16 @@ async function geocodeBatch(clients) {
 
     const la = parseFloat(c.lat), lo = parseFloat(c.lng);
     if (isValidIL(la, lo)) {
-      // Trust Priority GPS if inside Israel — no city-bbox cross-check
-      // (Azure/Nominatim bbox unreliable for Hebrew city abbreviations)
-      c.lat = la; c.lng = lo;
-      c.gpsSource = 'pbi';
+      const bbox = cityBBoxCache.get(c.city) ?? null;
+      if (isWithinCityBBox(la, lo, bbox)) {
+        c.lat = la; c.lng = lo;
+        c.gpsSource = 'pbi';
+      } else {
+        // PBI coords valid Israel but outside city bbox — re-geocode
+        c.lat = null; c.lng = null;
+        c.gpsSource = 'geocoded';
+        console.log(`[bbox] custId=${c.custId} city=${c.city} pbi=(${la},${lo}) outside bbox → re-geocode`);
+      }
     } else {
       c.gpsSource = 'geocoded';
     }
