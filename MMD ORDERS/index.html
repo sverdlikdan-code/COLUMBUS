@@ -419,13 +419,17 @@
     /* ── Sparkline ── */
     .pp-spark-wrap { padding:12px 16px 6px; border-bottom:1px solid rgba(255,255,255,.06); }
     .pp-spark-lbl { font-size:.62rem; color:#8899aa; margin-bottom:5px; direction:rtl; }
-    .pp-spark { display:flex; align-items:flex-end; gap:2px; height:56px; }
+    .pp-spark { display:flex; align-items:flex-end; gap:2px; height:110px; }
     .pp-spark-bar { flex:1; min-width:3px; border-radius:2px 2px 0 0; background:rgba(93,140,200,.5); transition:background .2s; }
     .pp-spark-bar:hover { background:rgba(93,140,200,.85); }
     .pp-spark-bar.fc { background:rgba(76,175,80,.45); border:1px dashed rgba(76,175,80,.7); }
     .pp-spark-bar.fc:hover { background:rgba(76,175,80,.75); }
-    .pp-spark-div { width:1.5px; background:rgba(201,162,39,.6); height:64px; margin:-4px 3px; flex-shrink:0; }
+    .pp-spark-div { width:1.5px; background:rgba(201,162,39,.6); height:118px; margin:-4px 3px; flex-shrink:0; }
     .pp-spark-axis { display:flex; justify-content:space-between; font-size:.58rem; color:#556677; padding:3px 1px 0; direction:rtl; }
+    .pp-spark-axis-dyn { display:flex; align-items:flex-start; gap:2px; padding:3px 0 0; direction:rtl; }
+    .pp-spark-axis-dyn .ax-lbl { flex:1; min-width:3px; font-size:.5rem; color:#667788; text-align:center; line-height:1.3; white-space:pre; }
+    .pp-spark-axis-dyn .ax-lbl.fc-lbl { color:rgba(76,175,80,.7); }
+    .pp-spark-axis-dyn .ax-div { width:1.5px; flex-shrink:0; margin:0 3px; }
     /* ── Metrics 4-tile grid ── */
     .pp-metrics { display:grid; grid-template-columns:repeat(4,1fr); background:rgba(255,255,255,.03); border-bottom:1px solid rgba(255,255,255,.06); }
     .pp-metric { padding:10px 8px; text-align:center; border-right:1px solid rgba(255,255,255,.06); }
@@ -2030,7 +2034,7 @@ window.openProphetPanel = function(mk, taur, hevra, mkrShvua) {
       const bar = document.createElement('div');
       bar.className = 'pp-spark-bar';
       bar.style.height = Math.max(4, Math.round(d.y / maxY * 100)) + '%';
-      bar.title = d.y + ' קרט';
+      bar.title = d.y + ' קרט | ' + d.w;
       sparkEl.appendChild(bar);
     });
 
@@ -2042,12 +2046,39 @@ window.openProphetPanel = function(mk, taur, hevra, mkrShvua) {
         const bar = document.createElement('div');
         bar.className = 'pp-spark-bar fc';
         bar.style.height = Math.max(4, Math.round(d.y / maxY * 100)) + '%';
-        bar.title = '🔮 ' + d.y + ' קרט';
+        bar.title = d.y + ' קרט (תחזית) | ' + d.w;
         sparkEl.appendChild(bar);
       });
     }
     document.getElementById('pp-spark-lbl').textContent =
       actual.length + ' שבועות אחרונים + תחזית ' + fc.length + 'w';
+
+    // ── Dynamic week/year axis ────────────────────────────────────
+    (function() {
+      function isoWY(ds) {
+        var d = new Date(ds + 'T12:00:00');
+        d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+        var y = d.getFullYear();
+        var w = Math.ceil((((d - new Date(y,0,1))/86400000)+1)/7);
+        return 'W' + w + "\n'" + String(y).slice(2);
+      }
+      var ax = document.getElementById('pp-spark-axis-dyn');
+      if (!ax) return;
+      ax.innerHTML = '';
+      actual.forEach(function(d, i) {
+        var sp = document.createElement('div');
+        sp.className = 'ax-lbl';
+        if (i % 4 === 0 || i === actual.length - 1) sp.textContent = isoWY(d.w);
+        ax.appendChild(sp);
+      });
+      var dv = document.createElement('div'); dv.className = 'ax-div'; ax.appendChild(dv);
+      fc.forEach(function(d, i) {
+        var sp = document.createElement('div');
+        sp.className = 'ax-lbl fc-lbl';
+        if (i === fc.length - 1) sp.textContent = isoWY(d.w);
+        ax.appendChild(sp);
+      });
+    })();
   } else {
     // No series yet — placeholder bars using p4 / msv
     const ph = [msv, msv, msv, msv, msv, msv, msv, msv,
@@ -2095,7 +2126,7 @@ window.closeProphetPanel = function() {
     <div class="pp-spark-wrap">
       <div class="pp-spark-lbl" id="pp-spark-lbl">26 שבועות אחרונים + תחזית 4w</div>
       <div class="pp-spark" id="pp-spark"></div>
-      <div class="pp-spark-axis"><span>26w לפני</span><span>↑ היום</span><span>+4w</span></div>
+      <div class="pp-spark-axis-dyn" id="pp-spark-axis-dyn"></div>
     </div>
     <!-- 4-tile metrics grid -->
     <div class="pp-metrics">
