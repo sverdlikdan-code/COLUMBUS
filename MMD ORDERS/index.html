@@ -437,6 +437,15 @@
     #prophet-panel .pp-close { padding:14px 20px; border-top:1px solid rgba(255,255,255,.08); }
     #prophet-panel .pp-close button { width:100%; background:transparent; border:1px solid #c9a227; color:#c9a227; padding:9px; border-radius:8px; cursor:pointer; font-size:.85rem; transition:background .15s; }
     #prophet-panel .pp-close button:hover { background:rgba(201,162,39,.15); }
+    .pp-chart { background:rgba(255,255,255,.04); border-radius:10px; padding:14px 16px; direction:rtl; }
+    .pp-chart-svg-wrap { overflow:hidden; border-radius:6px; margin-bottom:8px; }
+    .pp-chart-legend { display:flex; gap:14px; font-size:.7rem; color:#8899aa; margin-bottom:8px; direction:rtl; }
+    .pp-chart-legend span { display:flex; align-items:center; gap:4px; }
+    .pp-chart-legend .dot { width:10px; height:10px; border-radius:2px; flex-shrink:0; }
+    .pp-trend-box { margin-top:8px; padding:8px 12px; border-radius:8px; font-size:.82rem; font-weight:600; text-align:center; direction:rtl; }
+    .pp-trend-box.up   { background:rgba(76,175,80,.13);  color:#4caf50; }
+    .pp-trend-box.dn   { background:rgba(244,67,54,.13);  color:#f44336; }
+    .pp-trend-box.flat { background:rgba(201,162,39,.11); color:#c9a227; }
     #prophet-overlay { position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:9998; display:none; }
     #prophet-overlay.open { display:block; }
     td.col-prophet[data-mk] { cursor:pointer; }
@@ -1444,7 +1453,7 @@
           '<td class="c-num">' + (yamimHaya != null ? yamimHaya : '—') + '</td>' +
           '<td class="c-num">' + (pctMkr != null ? pctMkr + '%' : '—') + '</td>' +
           '<td class="c-haml col-g">' + (haml > 0 ? Math.round(haml) : '') + '</td>' +
-          (function(){ const p = window.prophetMap && window.prophetMap[mk]; if (!p || p.prophet_order == null) return '<td class="col-prophet" style="color:#bbb;font-weight:400">—</td>'; const po = Math.round(p.prophet_order); if (haml <= 0 && po === 0) return '<td class="col-prophet" style="color:#bbb;font-weight:400;font-size:.75rem">≈</td>'; const delta = haml > 0 ? po - Math.round(haml) : null; const pct = haml > 0 ? Math.abs(delta) / haml : 1; if (pct < 0.30) return '<td class="col-prophet" style="color:#bbb;font-weight:400;font-size:.75rem" data-mk="' + mk + '" onclick="openProphetPanel(\'' + mk + '\',\'' + esc(r.taur||'') + '\',\'' + esc(r.hevra||'') + '\')">≈</td>'; const dc = delta != null && delta > 0 ? ' prophet-up' : delta != null && delta < 0 ? ' prophet-down' : ''; const dsign = delta != null && delta > 0 ? '+' : ''; const dspan = delta != null ? '<br><span style="font-size:.7rem;font-weight:400">' + dsign + delta + '</span>' : ''; return '<td class="col-prophet' + dc + '" data-mk="' + mk + '" onclick="openProphetPanel(\'' + mk + '\',\'' + esc(r.taur||'') + '\',\'' + esc(r.hevra||'') + '\')" title="לחץ לפרטים">' + po + dspan + '</td>'; })() +
+          (function(){ const p = window.prophetMap && window.prophetMap[mk]; if (!p || p.prophet_order == null) return '<td class="col-prophet" style="color:#bbb;font-weight:400">—</td>'; const po = Math.round(p.prophet_order); if (haml <= 0 && po === 0) return '<td class="col-prophet" style="color:#bbb;font-weight:400;font-size:.75rem">≈</td>'; const delta = haml > 0 ? po - Math.round(haml) : null; const pct = haml > 0 ? Math.abs(delta) / haml : 1; const mkrArg = mkr != null ? mkr : 'null'; if (pct < 0.30) return '<td class="col-prophet" style="color:#bbb;font-weight:400;font-size:.75rem" data-mk="' + mk + '" onclick="openProphetPanel(\'' + mk + '\',\'' + esc(r.taur||'') + '\',\'' + esc(r.hevra||'') + '\',' + mkrArg + ')">≈</td>'; const dc = delta != null && delta > 0 ? ' prophet-up' : delta != null && delta < 0 ? ' prophet-down' : ''; const dsign = delta != null && delta > 0 ? '+' : ''; const dspan = delta != null ? '<br><span style="font-size:.7rem;font-weight:400">' + dsign + delta + '</span>' : ''; return '<td class="col-prophet' + dc + '" data-mk="' + mk + '" onclick="openProphetPanel(\'' + mk + '\',\'' + esc(r.taur||'') + '\',\'' + esc(r.hevra||'') + '\',' + mkrArg + ')" title="לחץ לפרטים">' + po + dspan + '</td>'; })() +
           '<td class="c-num col-g"><input class="ei ei-n" type="number" min="0" step="1" value="' + ordV + '" data-mk="' + mk + '" data-ash="' + ash + '" data-mav="' + mav + '" data-f="k" oninput="inp(this)" placeholder="0"/></td>' +
           '<td class="col-g' + (yamim != null && yamim < 14 ? ' tk-lo' : '') + '">' + buildPrtimCell(mk, r.tukuf, nts) + '</td>';
         tb.appendChild(tr);
@@ -1886,13 +1895,15 @@ window.splashRebuild = async function() {
 };
 
 // ── Prophet drill-down panel ────────────────────────────────
-window.openProphetPanel = function(mk, taur, hevra) {
+window.openProphetPanel = function(mk, taur, hevra, mkrShvua) {
   const p = window.prophetMap && window.prophetMap[mk];
   if (!p) return;
 
   const po   = Math.round(p.prophet_order ?? 0);
-  const p4   = p.p4 != null ? p.p4.toFixed(1) : '—';
-  const p8   = p.p8 != null ? p.p8.toFixed(1) : '—';
+  const p4f  = p.p4 != null ? p.p4 : null;
+  const p8f  = p.p8 != null ? p.p8 : null;
+  const p4   = p4f != null ? p4f.toFixed(1) : '—';
+  const p8   = p8f != null ? p8f.toFixed(1) : '—';
   const haml = p.hamlatza != null ? Math.round(p.hamlatza) : 0;
   const wn   = p.weeks_nf ?? '—';
   const ek   = p.eilat_k  ?? 0;
@@ -1902,15 +1913,14 @@ window.openProphetPanel = function(mk, taur, hevra) {
   const dpCls  = dp != null && dp > 0 ? 'up' : dp != null && dp < 0 ? 'dn' : '';
   const pct    = haml > 0 ? Math.round(Math.abs(po - haml) / haml * 100) : null;
 
-  // Confidence interval approx (Prophet 80% CI ≈ ±20% for multiplicative)
-  const ciLo = p4 !== '—' ? Math.round(parseFloat(p4) * 0.80) : '—';
-  const ciHi = p4 !== '—' ? Math.round(parseFloat(p4) * 1.20) : '—';
+  const ciLo = p4f != null ? Math.round(p4f * 0.80) : '—';
+  const ciHi = p4f != null ? Math.round(p4f * 1.20) : '—';
 
   const formulaStr = wn !== '—'
     ? `P4 × נפח בטחון − מלאי אילת = ${p4} × ${wn} − ${ek} = ${po}`
     : `Prophet Order = ${po}`;
 
-  document.getElementById('pp-title').textContent   = `${taur}`;
+  document.getElementById('pp-title').textContent    = taur;
   document.getElementById('pp-subtitle').textContent = `מק"ט ${mk} · ${hevra || ''}`;
   document.getElementById('pp-prophet-val').textContent = po > 0 ? po : '0';
   document.getElementById('pp-haml-val').textContent    = haml > 0 ? haml : '—';
@@ -1928,6 +1938,73 @@ window.openProphetPanel = function(mk, taur, hevra) {
   document.getElementById('pp-np').textContent    = np + ' שבועות';
   document.getElementById('pp-ci').textContent    = ciLo + '–' + ciHi + ' קרט/שבוע (80% CI)';
   document.getElementById('pp-formula').textContent = formulaStr;
+
+  // ── Time-series chart ──────────────────────────────────────────
+  const msv        = mkrShvua != null && !isNaN(parseFloat(mkrShvua)) ? parseFloat(mkrShvua) : null;
+  const chartBlock = document.getElementById('pp-chart-block');
+  const chartSvg   = document.getElementById('pp-chart-svg');
+  const trendBox   = document.getElementById('pp-trend-box');
+  const avgLabel   = document.getElementById('pp-avg-label');
+  const series     = p.series;
+
+  const hasChart = series && Array.isArray(series.actual) && series.actual.length > 0;
+  if (hasChart) {
+    const actual  = series.actual;
+    const fc      = Array.isArray(series.fc) ? series.fc : [];
+    const allBars = actual.map(d => ({ y: d.y, type: 'actual' }))
+                          .concat(fc.map(d => ({ y: d.y, type: 'fc' })));
+
+    const maxY   = Math.max(...allBars.map(b => b.y), 1);
+    const n      = allBars.length;
+    const W      = 360;
+    const H      = 100;
+    const barW   = Math.max(4, Math.floor((W - (n - 1) * 2) / n));
+    const gap    = Math.max(1, Math.floor((W - n * barW) / Math.max(n - 1, 1)));
+
+    let rects = '';
+    allBars.forEach(function(bar, i) {
+      const x = i * (barW + gap);
+      const h = Math.max(2, Math.round(bar.y / maxY * H));
+      const y = H - h;
+      const fill = bar.type === 'actual' ? '#3d6ea8' : '#4caf50';
+      rects += '<rect x="' + x + '" y="' + y + '" width="' + barW + '" height="' + h + '" fill="' + fill + '" rx="2"/>';
+    });
+
+    // "Today" marker line between actual and forecast
+    const todayX = actual.length * (barW + gap) - Math.ceil(gap / 2);
+    rects += '<line x1="' + todayX + '" y1="0" x2="' + todayX + '" y2="' + H + '" stroke="#c9a227" stroke-width="1.5" stroke-dasharray="3,2"/>';
+    rects += '<text x="' + (todayX + 3) + '" y="12" fill="#c9a227" font-size="9" font-family="Segoe UI,sans-serif">היום</text>';
+
+    const totalW = (n - 1) * (barW + gap) + barW;
+    chartSvg.innerHTML = '<svg viewBox="0 0 ' + totalW + ' ' + H + '" preserveAspectRatio="none" style="width:100%;height:110px;display:block">' + rects + '</svg>';
+
+    if (msv != null) avgLabel.textContent = 'ממוצע ' + msv.toFixed(1) + '/שב׳';
+    else avgLabel.textContent = '';
+
+    const ratio = (msv != null && msv > 0 && p4f != null) ? p4f / msv : null;
+    if (ratio != null && ratio > 1.10) {
+      trendBox.textContent = '📈 ביקוש עולה — Prophet צופה +' + Math.round((ratio - 1) * 100) + '% מהממוצע';
+      trendBox.className = 'pp-trend-box up';
+    } else if (ratio != null && ratio < 0.90) {
+      trendBox.textContent = '📉 ביקוש יורד — Prophet צופה −' + Math.round((1 - ratio) * 100) + '% מהממוצע';
+      trendBox.className = 'pp-trend-box dn';
+    } else {
+      trendBox.textContent = '➡ ביקוש יציב — Prophet בקנה אחד עם הממוצע';
+      trendBox.className = 'pp-trend-box flat';
+    }
+    chartBlock.style.display = 'block';
+  } else if (msv != null && p4f != null) {
+    // Fallback: no series yet — show text summary until next Prophet build
+    chartSvg.innerHTML = '<div style="color:#556677;font-size:.75rem;padding:12px 0;direction:rtl">גרף יהיה זמין לאחר עדכון Prophet הבא</div>';
+    avgLabel.textContent = msv != null ? 'ממוצע ' + msv.toFixed(1) + '/שב׳' : '';
+    const ratio = msv > 0 ? p4f / msv : null;
+    if (ratio != null && ratio > 1.10) { trendBox.textContent = '📈 ביקוש עולה +' + Math.round((ratio-1)*100) + '%'; trendBox.className = 'pp-trend-box up'; }
+    else if (ratio != null && ratio < 0.90) { trendBox.textContent = '📉 ביקוש יורד −' + Math.round((1-ratio)*100) + '%'; trendBox.className = 'pp-trend-box dn'; }
+    else { trendBox.textContent = '➡ ביקוש יציב'; trendBox.className = 'pp-trend-box flat'; }
+    chartBlock.style.display = 'block';
+  } else {
+    chartBlock.style.display = 'none';
+  }
 
   document.getElementById('prophet-overlay').classList.add('open');
   document.getElementById('prophet-panel').classList.add('open');
@@ -1974,6 +2051,16 @@ window.closeProphetPanel = function() {
       <div class="pp-calc-title">📈 מידע מודל</div>
       <div class="pp-row"><span class="pp-k">נקודות נתון</span><span class="pp-v" id="pp-np">—</span></div>
       <div class="pp-row"><span class="pp-k">רווח בטחון</span><span class="pp-v" id="pp-ci">—</span></div>
+    </div>
+    <div class="pp-chart" id="pp-chart-block">
+      <div class="pp-calc-title">📊 26 שבועות אחרונים + תחזית 4w</div>
+      <div class="pp-chart-legend">
+        <span><span class="dot" style="background:#3d6ea8"></span>מכירות בפועל</span>
+        <span><span class="dot" style="background:#4caf50"></span>תחזית Prophet</span>
+        <span id="pp-avg-label" style="margin-right:auto;color:#c9a227;font-weight:600"></span>
+      </div>
+      <div class="pp-chart-svg-wrap" id="pp-chart-svg"></div>
+      <div id="pp-trend-box" class="pp-trend-box flat"></div>
     </div>
     <div class="pp-meta">Prophet ML · Meta · עדכון שבועי<br>היסטוריה מ-2022 · סגנוניות ישראל + ביקוש</div>
   </div>
