@@ -1965,17 +1965,28 @@ window.openProphetPanel = function(mk, taur, hevra, mkrShvua) {
   // ── n_points note ───────────────────────────────────────────────
   document.getElementById('pp-np').textContent = np + ' שבועות היסטוריה';
 
-  // ── Trend badge ─────────────────────────────────────────────────
+  // ── Trend badge — last 4 actual weeks vs prev 4 weeks ──────────
   const badge = document.getElementById('pp-trend-badge');
-  const ratio = (msv != null && msv > 0 && p4f != null) ? p4f / msv : null;
-  if (ratio != null && ratio > 1.10) {
-    badge.textContent = '📈 ביקוש עולה +' + Math.round((ratio - 1) * 100) + '%';
-    badge.className = 'pp-trend-badge up';
-  } else if (ratio != null && ratio < 0.90) {
-    badge.textContent = '📉 ביקוש יורד −' + Math.round((1 - ratio) * 100) + '%';
-    badge.className = 'pp-trend-badge dn';
+  const actualSorted = (p.series && p.series.actual ? [...p.series.actual] : [])
+    .sort((a, b) => a.w.localeCompare(b.w));
+  const last4  = actualSorted.slice(-4);
+  const prev4  = actualSorted.slice(-8, -4);
+  const avg4   = last4.length  ? last4.reduce((s, x) => s + x.y, 0)  / last4.length  : 0;
+  const avg8   = prev4.length  ? prev4.reduce((s, x) => s + x.y, 0)  / prev4.length  : 0;
+  if (avg8 > 0 && last4.length >= 2 && prev4.length >= 2) {
+    const trendPct = Math.round((avg4 / avg8 - 1) * 100);
+    if (trendPct > 10) {
+      badge.textContent = '📈 ביקוש עולה +' + trendPct + '%';
+      badge.className = 'pp-trend-badge up';
+    } else if (trendPct < -10) {
+      badge.textContent = '📉 ביקוש יורד −' + Math.abs(trendPct) + '%';
+      badge.className = 'pp-trend-badge dn';
+    } else {
+      badge.textContent = '➡ ביקוש יציב ' + (trendPct >= 0 ? '+' : '') + trendPct + '%';
+      badge.className = 'pp-trend-badge flat';
+    }
   } else {
-    badge.textContent = '➡ ביקוש יציב ועולה';
+    badge.textContent = '— אין מספיק נתונים';
     badge.className = 'pp-trend-badge flat';
   }
 
