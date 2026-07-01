@@ -469,7 +469,9 @@ function collectRef(id) {
   return {
     action,
     newModel: document.getElementById(`${id}-new-model`)?.value || '',
+    newModelName: (() => { const s = document.getElementById(`${id}-new-model`); return s?.options[s.selectedIndex]?.text || ''; })(),
     returnModel: document.getElementById(`${id}-return-model`)?.value || '',
+    returnModelName: (() => { const s = document.getElementById(`${id}-return-model`); return s?.options[s.selectedIndex]?.text || ''; })(),
     salot: parseInt(document.getElementById(`${id}-salot`)?.value) || 0,
     agala: document.getElementById(`${id}-agala`)?.checked || false,
     supplyDate: document.getElementById(`${id}-supply-date`)?.value || '',
