@@ -1,6 +1,586 @@
 {
-  "ts": 1782830257497,
+  "ts": 1782837820477,
   "skus": {
+    "1000": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 91
+    },
+    "1001": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 82
+    },
+    "1002": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 11,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 103
+    },
+    "1003": {
+      "p4": 4.0,
+      "p8": 2.5,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 49
+    },
+    "1004": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 10,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 100
+    },
+    "1005": {
+      "p4": 3.3,
+      "p8": 3.5,
+      "prophet_order": 5.9,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 114
+    },
+    "1006": {
+      "p4": 7.3,
+      "p8": 5.7,
+      "prophet_order": 19.9,
+      "weeks_nf": 3,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 86
+    },
+    "1008": {
+      "p4": 15.1,
+      "p8": 8.7,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 50
+    },
+    "1009": {
+      "p4": 1.4,
+      "p8": 1.4,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 72
+    },
+    "1010": {
+      "p4": 2.7,
+      "p8": 2.9,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 103
+    },
+    "1011": {
+      "p4": 6.6,
+      "p8": 7.1,
+      "prophet_order": 11.8,
+      "weeks_nf": 3,
+      "eilat_k": 8,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 124
+    },
+    "1012": {
+      "p4": 8.4,
+      "p8": 8.6,
+      "prophet_order": 11.2,
+      "weeks_nf": 3,
+      "eilat_k": 14,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 130
+    },
+    "1013": {
+      "p4": 4.7,
+      "p8": 4.5,
+      "prophet_order": 13.1,
+      "weeks_nf": 3,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 122
+    },
+    "1014": {
+      "p4": 10.2,
+      "p8": 9.3,
+      "prophet_order": 11.6,
+      "weeks_nf": 3,
+      "eilat_k": 19,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 126
+    },
+    "1015": {
+      "p4": 3.0,
+      "p8": 2.5,
+      "prophet_order": 5.0,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 90
+    },
+    "1017": {
+      "p4": 5.3,
+      "p8": 5.2,
+      "prophet_order": 3.9,
+      "weeks_nf": 3,
+      "eilat_k": 12,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 122
+    },
+    "1018": {
+      "p4": 2.8,
+      "p8": 2.5,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 16,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 108
+    },
+    "1019": {
+      "p4": 2.7,
+      "p8": 2.9,
+      "prophet_order": 2.1,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 113
+    },
+    "1020": {
+      "p4": 2.6,
+      "p8": 2.5,
+      "prophet_order": 1.8,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 115
+    },
+    "1023": {
+      "p4": 0.1,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 37
+    },
+    "1024": {
+      "p4": 1.5,
+      "p8": 1.3,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 39
+    },
+    "1025": {
+      "p4": 0.5,
+      "p8": 1.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 35
+    },
+    "1026": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 43
+    },
+    "1029": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 31
+    },
+    "1030": {
+      "p4": 12.4,
+      "p8": 11.5,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 104
+    },
+    "1031": {
+      "p4": 4.2,
+      "p8": 4.4,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 96
+    },
+    "1032": {
+      "p4": 3.3,
+      "p8": 2.1,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 78
+    },
+    "1033": {
+      "p4": 1.9,
+      "p8": 3.4,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 74
+    },
+    "1034": {
+      "p4": 2.5,
+      "p8": 1.8,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 77
+    },
+    "1035": {
+      "p4": 1.0,
+      "p8": 1.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 69
+    },
+    "1036": {
+      "p4": 1.5,
+      "p8": 2.1,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 71
+    },
+    "1037": {
+      "p4": 0.1,
+      "p8": 0.5,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 37
+    },
+    "1045": {
+      "p4": 2.8,
+      "p8": 2.4,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 10,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 119
+    },
+    "1046": {
+      "p4": 1.7,
+      "p8": 1.9,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 7,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 97
+    },
+    "1047": {
+      "p4": 5.1,
+      "p8": 4.3,
+      "prophet_order": 7.3,
+      "weeks_nf": 3,
+      "eilat_k": 8,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 88
+    },
+    "1048": {
+      "p4": 4.2,
+      "p8": 4.1,
+      "prophet_order": 8.6,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 95
+    },
+    "1049": {
+      "p4": 9.4,
+      "p8": 8.5,
+      "prophet_order": 14.2,
+      "weeks_nf": 3,
+      "eilat_k": 14,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 114
+    },
+    "1050": {
+      "p4": 7.5,
+      "p8": 7.0,
+      "prophet_order": 7.5,
+      "weeks_nf": 1,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 63
+    },
+    "1051": {
+      "p4": 2.4,
+      "p8": 2.7,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 67
+    },
+    "1052": {
+      "p4": 6.9,
+      "p8": 6.1,
+      "prophet_order": 6.9,
+      "weeks_nf": 1,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 69
+    },
+    "1053": {
+      "p4": 10.4,
+      "p8": 11.6,
+      "prophet_order": 10.4,
+      "weeks_nf": 1,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 62
+    },
+    "1055": {
+      "p4": 2.9,
+      "p8": 3.0,
+      "prophet_order": 2.7,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 63
+    },
+    "1056": {
+      "p4": 3.0,
+      "p8": 3.0,
+      "prophet_order": 4.0,
+      "weeks_nf": 3,
+      "eilat_k": 5,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 49
+    },
+    "1057": {
+      "p4": 1.2,
+      "p8": 1.1,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 52
+    },
+    "1060": {
+      "p4": 9.8,
+      "p8": 7.4,
+      "prophet_order": 9.8,
+      "weeks_nf": 1,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 53
+    },
+    "1061": {
+      "p4": 6.5,
+      "p8": 2.5,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 9
+    },
+    "1062": {
+      "p4": 10.5,
+      "p8": 7.7,
+      "prophet_order": 10.5,
+      "weeks_nf": 1,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 60
+    },
+    "1063": {
+      "p4": 19.0,
+      "p8": 6.3,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 7
+    },
+    "1064": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 28
+    },
+    "1076": {
+      "p4": 8.5,
+      "p8": 8.9,
+      "prophet_order": 8.5,
+      "weeks_nf": 1,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 105
+    },
+    "1077": {
+      "p4": 6.6,
+      "p8": 7.5,
+      "prophet_order": 0.6,
+      "weeks_nf": 1,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 98
+    },
+    "1098": {
+      "p4": 0.6,
+      "p8": 0.4,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 36
+    },
+    "1099": {
+      "p4": 0.2,
+      "p8": 0.1,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 34
+    },
+    "1100": {
+      "p4": 0.2,
+      "p8": 0.2,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 79
+    },
+    "1101": {
+      "p4": 0.4,
+      "p8": 0.3,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 70
+    },
+    "1102": {
+      "p4": 0.5,
+      "p8": 0.4,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 46
+    },
+    "1104": {
+      "p4": 0.5,
+      "p8": 0.5,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 70
+    },
+    "1105": {
+      "p4": 0.3,
+      "p8": 0.3,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 49
+    },
     "1106": {
       "p4": 23.1,
       "p8": 23.0,
@@ -10,6 +590,2896 @@
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 129
+    },
+    "1107": {
+      "p4": 8.9,
+      "p8": 8.6,
+      "prophet_order": 3.7,
+      "weeks_nf": 3,
+      "eilat_k": 23,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 121
+    },
+    "1108": {
+      "p4": 3.3,
+      "p8": 3.2,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 10,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 105
+    },
+    "1109": {
+      "p4": 2.3,
+      "p8": 2.5,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 77
+    },
+    "1112": {
+      "p4": 0.8,
+      "p8": 0.9,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 51
+    },
+    "1113": {
+      "p4": 0.1,
+      "p8": 0.2,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 3,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 42
+    },
+    "1114": {
+      "p4": 0.3,
+      "p8": 0.7,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 40
+    },
+    "1115": {
+      "p4": 0.2,
+      "p8": 0.4,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 3,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 45
+    },
+    "1116": {
+      "p4": 0.3,
+      "p8": 0.3,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 43
+    },
+    "1117": {
+      "p4": 0.2,
+      "p8": 0.2,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 39
+    },
+    "1118": {
+      "p4": 0.2,
+      "p8": 0.2,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 39
+    },
+    "1119": {
+      "p4": 0.4,
+      "p8": 0.3,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 44
+    },
+    "1120": {
+      "p4": 3.4,
+      "p8": 3.7,
+      "prophet_order": 6.2,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 108
+    },
+    "1122": {
+      "p4": 2.9,
+      "p8": 2.6,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 15,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 109
+    },
+    "1123": {
+      "p4": 10.8,
+      "p8": 9.3,
+      "prophet_order": 10.4,
+      "weeks_nf": 3,
+      "eilat_k": 22,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 114
+    },
+    "1124": {
+      "p4": 8.0,
+      "p8": 7.4,
+      "prophet_order": 8.0,
+      "weeks_nf": 3,
+      "eilat_k": 16,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 114
+    },
+    "1125": {
+      "p4": 0.0,
+      "p8": 21.5,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 22
+    },
+    "1126": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 21
+    },
+    "1127": {
+      "p4": 6.6,
+      "p8": 2.6,
+      "prophet_order": 19.8,
+      "weeks_nf": 3,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 13
+    },
+    "1147": {
+      "p4": 6.0,
+      "p8": 11.8,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 49
+    },
+    "1148": {
+      "p4": 2.4,
+      "p8": 2.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 48
+    },
+    "1150": {
+      "p4": 0.0,
+      "p8": 67.9,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 13
+    },
+    "1154": {
+      "p4": 1.2,
+      "p8": 1.5,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 87
+    },
+    "1156": {
+      "p4": 7.4,
+      "p8": 5.8,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 51
+    },
+    "1157": {
+      "p4": 3.3,
+      "p8": 3.5,
+      "prophet_order": 0.9,
+      "weeks_nf": 3,
+      "eilat_k": 9,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 112
+    },
+    "1163": {
+      "p4": 7.1,
+      "p8": 6.1,
+      "prophet_order": 12.3,
+      "weeks_nf": 3,
+      "eilat_k": 9,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 110
+    },
+    "1164": {
+      "p4": 4.3,
+      "p8": 4.2,
+      "prophet_order": 4.9,
+      "weeks_nf": 3,
+      "eilat_k": 8,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 101
+    },
+    "1165": {
+      "p4": 6.2,
+      "p8": 6.1,
+      "prophet_order": 3.6,
+      "weeks_nf": 3,
+      "eilat_k": 15,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 110
+    },
+    "1166": {
+      "p4": 6.5,
+      "p8": 5.4,
+      "prophet_order": 13.5,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 116
+    },
+    "1167": {
+      "p4": 5.5,
+      "p8": 4.6,
+      "prophet_order": 10.5,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 110
+    },
+    "1168": {
+      "p4": 5.7,
+      "p8": 4.8,
+      "prophet_order": 13.1,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 94
+    },
+    "1170": {
+      "p4": 0.8,
+      "p8": 0.7,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 61
+    },
+    "1171": {
+      "p4": 3.6,
+      "p8": 3.5,
+      "prophet_order": 7.8,
+      "weeks_nf": 3,
+      "eilat_k": 3,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 51
+    },
+    "1172": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 5
+    },
+    "1173": {
+      "p4": 88.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 12
+    },
+    "1174": {
+      "p4": 6.8,
+      "p8": 6.6,
+      "prophet_order": 9.4,
+      "weeks_nf": 3,
+      "eilat_k": 11,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 121
+    },
+    "1175": {
+      "p4": 4.5,
+      "p8": 7.2,
+      "prophet_order": 9.5,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 70
+    },
+    "1176": {
+      "p4": 0.7,
+      "p8": 1.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 27
+    },
+    "1177": {
+      "p4": 37.6,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 12
+    },
+    "1180": {
+      "p4": 3.4,
+      "p8": 3.1,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 17,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 123
+    },
+    "1181": {
+      "p4": 1.0,
+      "p8": 1.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 59
+    },
+    "1182": {
+      "p4": 2.1,
+      "p8": 2.4,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 15,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 111
+    },
+    "1183": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 17
+    },
+    "1184": {
+      "p4": 3.3,
+      "p8": 3.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 11,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 129
+    },
+    "1185": {
+      "p4": 1.9,
+      "p8": 2.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 13,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 127
+    },
+    "1186": {
+      "p4": 1.9,
+      "p8": 1.6,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 38
+    },
+    "1187": {
+      "p4": 1.7,
+      "p8": 1.7,
+      "prophet_order": 1.1,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 113
+    },
+    "1188": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 6
+    },
+    "1189": {
+      "p4": 17.0,
+      "p8": 19.3,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 4
+    },
+    "1190": {
+      "p4": 2.4,
+      "p8": 2.5,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 9,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 116
+    },
+    "1191": {
+      "p4": 4.1,
+      "p8": 4.1,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 14,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 110
+    },
+    "1192": {
+      "p4": 2.2,
+      "p8": 1.6,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 17,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 119
+    },
+    "1193": {
+      "p4": 2.3,
+      "p8": 1.7,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 17,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 96
+    },
+    "1194": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 69
+    },
+    "1195": {
+      "p4": 1.6,
+      "p8": 1.5,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 94
+    },
+    "1196": {
+      "p4": 1.4,
+      "p8": 1.3,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 8,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 93
+    },
+    "1197": {
+      "p4": 1.5,
+      "p8": 1.7,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 9,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 83
+    },
+    "1198": {
+      "p4": 0.3,
+      "p8": 0.2,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 13,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 105
+    },
+    "1200": {
+      "p4": 15.5,
+      "p8": 3.8,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 6
+    },
+    "1207": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 2
+    },
+    "1208": {
+      "p4": 3.3,
+      "p8": 0.0,
+      "prophet_order": 6.6,
+      "weeks_nf": 2,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 42
+    },
+    "1209": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 39
+    },
+    "1210": {
+      "p4": 6.7,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 39
+    },
+    "1211": {
+      "p4": 23.6,
+      "p8": 26.6,
+      "prophet_order": 47.2,
+      "weeks_nf": 2,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 31
+    },
+    "1212": {
+      "p4": 0.0,
+      "p8": 70.7,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 9
+    },
+    "1213": {
+      "p4": 7.7,
+      "p8": 2.7,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 12
+    },
+    "1214": {
+      "p4": 4.5,
+      "p8": 2.8,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 8
+    },
+    "1215": {
+      "p4": 2.5,
+      "p8": 0.9,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 8
+    },
+    "1216": {
+      "p4": 1.0,
+      "p8": 1.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 4
+    },
+    "1217": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 8
+    },
+    "1218": {
+      "p4": 1.0,
+      "p8": 1.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 5
+    },
+    "1219": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 23
+    },
+    "241": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 16
+    },
+    "242": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 14
+    },
+    "247": {
+      "p4": 28.1,
+      "p8": 37.3,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 6
+    },
+    "301000": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 7
+    },
+    "301001": {
+      "p4": 4.1,
+      "p8": 4.9,
+      "prophet_order": 0.3,
+      "weeks_nf": 3,
+      "eilat_k": 12,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 112
+    },
+    "301002": {
+      "p4": 3.8,
+      "p8": 4.9,
+      "prophet_order": 2.4,
+      "weeks_nf": 3,
+      "eilat_k": 9,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 103
+    },
+    "301003": {
+      "p4": 1.3,
+      "p8": 1.1,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 77
+    },
+    "301200": {
+      "p4": 6.7,
+      "p8": 6.7,
+      "prophet_order": 8.1,
+      "weeks_nf": 3,
+      "eilat_k": 12,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 112
+    },
+    "301201": {
+      "p4": 0.0,
+      "p8": 128.6,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 18
+    },
+    "301406": {
+      "p4": 2.4,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 7
+    },
+    "301407": {
+      "p4": 2.5,
+      "p8": 1.9,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 9
+    },
+    "301408": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 1
+    },
+    "301409": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 3
+    },
+    "301601": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 9
+    },
+    "302000": {
+      "p4": 3.3,
+      "p8": 3.1,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 14,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 84
+    },
+    "302001": {
+      "p4": 1.5,
+      "p8": 1.7,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 21,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 117
+    },
+    "302002": {
+      "p4": 1.3,
+      "p8": 1.2,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 8,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 106
+    },
+    "302003": {
+      "p4": 3.8,
+      "p8": 3.9,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 18,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 113
+    },
+    "302004": {
+      "p4": 0.6,
+      "p8": 0.7,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 81
+    },
+    "302005": {
+      "p4": 0.3,
+      "p8": 0.1,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 17,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 46
+    },
+    "302006": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 23,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 9
+    },
+    "302206": {
+      "p4": 346.4,
+      "p8": 21.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 32
+    },
+    "302207": {
+      "p4": 3.4,
+      "p8": 3.6,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 23,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 107
+    },
+    "302208": {
+      "p4": 239.2,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 17
+    },
+    "302209": {
+      "p4": 62.1,
+      "p8": 205.8,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 18
+    },
+    "302210": {
+      "p4": 3.1,
+      "p8": 3.7,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 13,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 106
+    },
+    "302211": {
+      "p4": 3.7,
+      "p8": 3.1,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 17,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 103
+    },
+    "302212": {
+      "p4": 1.9,
+      "p8": 2.9,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 51
+    },
+    "302213": {
+      "p4": 26.3,
+      "p8": 11.2,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 28
+    },
+    "302214": {
+      "p4": 2.3,
+      "p8": 2.4,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 15,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 89
+    },
+    "302215": {
+      "p4": 2.7,
+      "p8": 3.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 48
+    },
+    "302217": {
+      "p4": 3.6,
+      "p8": 3.0,
+      "prophet_order": 3.8,
+      "weeks_nf": 3,
+      "eilat_k": 7,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 82
+    },
+    "302218": {
+      "p4": 2.5,
+      "p8": 2.4,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 8,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 90
+    },
+    "302219": {
+      "p4": 1.8,
+      "p8": 1.8,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 91
+    },
+    "302220": {
+      "p4": 4.2,
+      "p8": 6.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 47
+    },
+    "302221": {
+      "p4": 1.4,
+      "p8": 1.7,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 14,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 92
+    },
+    "302222": {
+      "p4": 2.1,
+      "p8": 5.9,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 48
+    },
+    "302223": {
+      "p4": 0.8,
+      "p8": 1.2,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 7,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 22
+    },
+    "302224": {
+      "p4": 2931.3,
+      "p8": 1126.3,
+      "prophet_order": 8787.9,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 21
+    },
+    "302225": {
+      "p4": 837.1,
+      "p8": 1055.3,
+      "prophet_order": 2506.3,
+      "weeks_nf": 3,
+      "eilat_k": 5,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 28
+    },
+    "302226": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 8,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 15
+    },
+    "302227": {
+      "p4": 1.1,
+      "p8": 1.4,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 8,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 17
+    },
+    "302228": {
+      "p4": 0.0,
+      "p8": 0.1,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 20
+    },
+    "302300": {
+      "p4": 0.0,
+      "p8": 5.7,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 4
+    },
+    "302301": {
+      "p4": 0.0,
+      "p8": 5.7,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 4
+    },
+    "302302": {
+      "p4": 0.0,
+      "p8": 7.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 6
+    },
+    "302303": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 3
+    },
+    "302304": {
+      "p4": 4.3,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 4
+    },
+    "302400": {
+      "p4": 2.1,
+      "p8": 2.1,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 8,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 55
+    },
+    "302403": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 7,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 40
+    },
+    "302404": {
+      "p4": 0.6,
+      "p8": 0.5,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 53
+    },
+    "302405": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 2
+    },
+    "302406": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 1
+    },
+    "302407": {
+      "p4": 4.2,
+      "p8": 0.0,
+      "prophet_order": 11.6,
+      "weeks_nf": 3,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 19
+    },
+    "302408": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 19
+    },
+    "302409": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 3,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 14
+    },
+    "302410": {
+      "p4": 0.8,
+      "p8": 0.7,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 5,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 65
+    },
+    "302411": {
+      "p4": 0.1,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 39
+    },
+    "302412": {
+      "p4": 0.2,
+      "p8": 0.3,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 5,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 49
+    },
+    "302414": {
+      "p4": 2.3,
+      "p8": 2.4,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 10,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 5
+    },
+    "302415": {
+      "p4": 1.0,
+      "p8": 1.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 8
+    },
+    "302416": {
+      "p4": 1.1,
+      "p8": 1.1,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 5,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 59
+    },
+    "302417": {
+      "p4": 1.9,
+      "p8": 1.5,
+      "prophet_order": 0.7,
+      "weeks_nf": 3,
+      "eilat_k": 5,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 108
+    },
+    "302418": {
+      "p4": 0.7,
+      "p8": 8.4,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 5,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 41
+    },
+    "302419": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 15
+    },
+    "302420": {
+      "p4": 1.0,
+      "p8": 0.8,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 56
+    },
+    "302421": {
+      "p4": 0.5,
+      "p8": 0.5,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 76
+    },
+    "302422": {
+      "p4": 0.8,
+      "p8": 0.6,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 75
+    },
+    "302423": {
+      "p4": 1.4,
+      "p8": 1.4,
+      "prophet_order": 0.2,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 56
+    },
+    "302424": {
+      "p4": 0.3,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 42
+    },
+    "302425": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 3
+    },
+    "302426": {
+      "p4": 4.1,
+      "p8": 4.5,
+      "prophet_order": 7.3,
+      "weeks_nf": 3,
+      "eilat_k": 5,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 33
+    },
+    "302427": {
+      "p4": 2.6,
+      "p8": 0.0,
+      "prophet_order": 3.8,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 47
+    },
+    "302428": {
+      "p4": 3.4,
+      "p8": 2.8,
+      "prophet_order": 2.2,
+      "weeks_nf": 3,
+      "eilat_k": 8,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 42
+    },
+    "302429": {
+      "p4": 0.6,
+      "p8": 0.8,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 68
+    },
+    "302430": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 5,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 33
+    },
+    "302431": {
+      "p4": 0.8,
+      "p8": 0.7,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 53
+    },
+    "302432": {
+      "p4": 0.4,
+      "p8": 0.4,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 4
+    },
+    "302433": {
+      "p4": 4.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 13
+    },
+    "302434": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 7,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 4
+    },
+    "302435": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": 3,
+      "eilat_k": 7,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 3
+    },
+    "302436": {
+      "p4": 0.0,
+      "p8": 0.7,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 10,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 4
+    },
+    "303006": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 22
+    },
+    "303007": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 3,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 25
+    },
+    "303009": {
+      "p4": 34.4,
+      "p8": 21.1,
+      "prophet_order": 101.2,
+      "weeks_nf": 3,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 26
+    },
+    "303010": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 3,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 33
+    },
+    "303011": {
+      "p4": 1.0,
+      "p8": 1.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 4
+    },
+    "303012": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 5
+    },
+    "303017": {
+      "p4": 42.9,
+      "p8": 381.8,
+      "prophet_order": 122.7,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 41
+    },
+    "303018": {
+      "p4": 11.4,
+      "p8": 6.3,
+      "prophet_order": 28.2,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 54
+    },
+    "303019": {
+      "p4": 0.7,
+      "p8": 0.8,
+      "prophet_order": 0.1,
+      "weeks_nf": 3,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 40
+    },
+    "303020": {
+      "p4": 5.4,
+      "p8": 2.8,
+      "prophet_order": 12.2,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 44
+    },
+    "303021": {
+      "p4": 0.9,
+      "p8": 1.2,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 5,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 77
+    },
+    "303022": {
+      "p4": 0.8,
+      "p8": 1.1,
+      "prophet_order": 0.4,
+      "weeks_nf": 3,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 49
+    },
+    "304000": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 17
+    },
+    "304001": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 18
+    },
+    "304003": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 17
+    },
+    "304004": {
+      "p4": 35.3,
+      "p8": 56.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 6
+    },
+    "304005": {
+      "p4": 0.0,
+      "p8": 80.2,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 8
+    },
+    "304006": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 8
+    },
+    "304200": {
+      "p4": 12.9,
+      "p8": 8.7,
+      "prophet_order": 11.7,
+      "weeks_nf": 3,
+      "eilat_k": 27,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 65
+    },
+    "304201": {
+      "p4": 5.3,
+      "p8": 5.7,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 26,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 123
+    },
+    "304202": {
+      "p4": 4.3,
+      "p8": 4.5,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 27,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 123
+    },
+    "304203": {
+      "p4": 4.7,
+      "p8": 4.7,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 34,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 120
+    },
+    "304204": {
+      "p4": 3.8,
+      "p8": 4.5,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 31,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 128
+    },
+    "304205": {
+      "p4": 8.1,
+      "p8": 6.5,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 14
+    },
+    "304206": {
+      "p4": 19.0,
+      "p8": 31.4,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 15
+    },
+    "304207": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 8
+    },
+    "304208": {
+      "p4": 5.3,
+      "p8": 5.7,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 30,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 126
+    },
+    "304400": {
+      "p4": 2.9,
+      "p8": 2.7,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 14,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 90
+    },
+    "304401": {
+      "p4": 18.0,
+      "p8": 3.2,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 12
+    },
+    "304402": {
+      "p4": 4.6,
+      "p8": 4.1,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 8
+    },
+    "304602": {
+      "p4": 1.4,
+      "p8": 1.1,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 11,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 66
+    },
+    "304603": {
+      "p4": 1.4,
+      "p8": 1.5,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 9,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 70
+    },
+    "304604": {
+      "p4": 1.3,
+      "p8": 1.1,
+      "prophet_order": 1.9,
+      "weeks_nf": 3,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 28
+    },
+    "304605": {
+      "p4": 0.0,
+      "p8": 8.7,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 23
+    },
+    "304606": {
+      "p4": 0.3,
+      "p8": 0.1,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 27
+    },
+    "304607": {
+      "p4": 0.0,
+      "p8": 17.5,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 21
+    },
+    "304608": {
+      "p4": 9.0,
+      "p8": 1.0,
+      "prophet_order": 23.0,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 18
+    },
+    "304800": {
+      "p4": 2477.7,
+      "p8": 527.4,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 16
+    },
+    "304801": {
+      "p4": 3601.6,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 17
+    },
+    "304802": {
+      "p4": 5.3,
+      "p8": 3.9,
+      "prophet_order": 2.9,
+      "weeks_nf": 3,
+      "eilat_k": 13,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 60
+    },
+    "304803": {
+      "p4": 3.9,
+      "p8": 2.4,
+      "prophet_order": 0.7,
+      "weeks_nf": 3,
+      "eilat_k": 11,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 62
+    },
+    "304804": {
+      "p4": 8.0,
+      "p8": 5.1,
+      "prophet_order": 9.0,
+      "weeks_nf": 3,
+      "eilat_k": 15,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 62
+    },
+    "304806": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 5
+    },
+    "305001": {
+      "p4": 0.6,
+      "p8": 0.7,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 10,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 78
+    },
+    "305002": {
+      "p4": 1.9,
+      "p8": 2.2,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 10,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 83
+    },
+    "305003": {
+      "p4": 2.7,
+      "p8": 3.2,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 12,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 76
+    },
+    "305004": {
+      "p4": 0.7,
+      "p8": 0.7,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 10,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 94
+    },
+    "305005": {
+      "p4": 1.0,
+      "p8": 0.7,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 8,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 91
+    },
+    "305006": {
+      "p4": 1.5,
+      "p8": 1.6,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 13,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 102
+    },
+    "305007": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 1
+    },
+    "305008": {
+      "p4": 2.3,
+      "p8": 2.6,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 10,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 103
+    },
+    "305009": {
+      "p4": 1.9,
+      "p8": 2.4,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 16,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 97
+    },
+    "305010": {
+      "p4": 1.8,
+      "p8": 2.2,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 15,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 93
+    },
+    "305011": {
+      "p4": 3.6,
+      "p8": 3.2,
+      "prophet_order": 4.8,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 33
+    },
+    "305012": {
+      "p4": 3.7,
+      "p8": 13.1,
+      "prophet_order": 5.1,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 35
+    },
+    "305013": {
+      "p4": 1.0,
+      "p8": 0.6,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 9,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 36
+    },
+    "305014": {
+      "p4": 0.6,
+      "p8": 0.4,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 40
+    },
+    "305015": {
+      "p4": 0.5,
+      "p8": 0.3,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 9,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 44
+    },
+    "305016": {
+      "p4": 45.5,
+      "p8": 42.6,
+      "prophet_order": 131.5,
+      "weeks_nf": 3,
+      "eilat_k": 5,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 23
+    },
+    "305017": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 29
+    },
+    "305018": {
+      "p4": 9.2,
+      "p8": 0.0,
+      "prophet_order": 22.6,
+      "weeks_nf": 3,
+      "eilat_k": 5,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 24
+    },
+    "305019": {
+      "p4": 5.5,
+      "p8": 1.9,
+      "prophet_order": 10.5,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 17
+    },
+    "305020": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 20
+    },
+    "305021": {
+      "p4": 0.0,
+      "p8": 10.9,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 19
+    },
+    "305022": {
+      "p4": 21.2,
+      "p8": 8.1,
+      "prophet_order": 63.6,
+      "weeks_nf": 3,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 15
+    },
+    "305023": {
+      "p4": 1.2,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 5,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 19
+    },
+    "305024": {
+      "p4": 0.7,
+      "p8": 2.6,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 20
+    },
+    "305025": {
+      "p4": 0.0,
+      "p8": 0.7,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 17
+    },
+    "305027": {
+      "p4": 1.1,
+      "p8": 3.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 7,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 8
+    },
+    "305028": {
+      "p4": 11.1,
+      "p8": 6.6,
+      "prophet_order": 28.3,
+      "weeks_nf": 3,
+      "eilat_k": 5,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 8
+    },
+    "305100": {
+      "p4": 3.0,
+      "p8": 3.2,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 12,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 113
+    },
+    "305101": {
+      "p4": 2.7,
+      "p8": 3.4,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 10,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 121
+    },
+    "305102": {
+      "p4": 1.9,
+      "p8": 2.1,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 8,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 107
+    },
+    "305103": {
+      "p4": 3.5,
+      "p8": 3.4,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 13,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 116
+    },
+    "305104": {
+      "p4": 0.8,
+      "p8": 0.7,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 99
+    },
+    "305105": {
+      "p4": 1.4,
+      "p8": 1.3,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 8,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 96
+    },
+    "305106": {
+      "p4": 0.9,
+      "p8": 1.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 57
+    },
+    "305107": {
+      "p4": 1.3,
+      "p8": 1.1,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 93
+    },
+    "305200": {
+      "p4": 303.7,
+      "p8": 170.4,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 23
+    },
+    "305201": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 20
+    },
+    "305202": {
+      "p4": 213.3,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 18
+    },
+    "306000": {
+      "p4": 3.4,
+      "p8": 4.4,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 57
+    },
+    "306001": {
+      "p4": 2.0,
+      "p8": 2.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 71
+    },
+    "306002": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 34
+    },
+    "306003": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 17
+    },
+    "306004": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 30
+    },
+    "306005": {
+      "p4": 18.2,
+      "p8": 9.6,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 26
+    },
+    "306100": {
+      "p4": 155.3,
+      "p8": 16.1,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 8
+    },
+    "306101": {
+      "p4": 78.2,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 14
+    },
+    "306102": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 9
+    },
+    "306200": {
+      "p4": 7.4,
+      "p8": 7.5,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 27,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 126
+    },
+    "306201": {
+      "p4": 6.9,
+      "p8": 6.8,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 24,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 124
+    },
+    "306202": {
+      "p4": 369.0,
+      "p8": 14.6,
+      "prophet_order": 1101.0,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 25
+    },
+    "306203": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 9,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 21
+    },
+    "306204": {
+      "p4": 0.8,
+      "p8": 0.9,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 7,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 45
+    },
+    "306205": {
+      "p4": 0.7,
+      "p8": 0.7,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 38
+    },
+    "306206": {
+      "p4": 4.1,
+      "p8": 1.6,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 16
+    },
+    "306207": {
+      "p4": 2.8,
+      "p8": 1.6,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 13
+    },
+    "306208": {
+      "p4": 0.9,
+      "p8": 0.3,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 15
+    },
+    "307010": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 3
+    },
+    "307011": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 2
+    },
+    "307012": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 2
+    },
+    "307013": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 2
+    },
+    "307014": {
+      "p4": 15.2,
+      "p8": 8.9,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 5
+    },
+    "307015": {
+      "p4": 0.4,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 5
+    },
+    "307016": {
+      "p4": 13.3,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 4
+    },
+    "307017": {
+      "p4": 59.6,
+      "p8": 43.1,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 4
+    },
+    "307018": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 3
+    },
+    "391000": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 3,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 20
+    },
+    "391001": {
+      "p4": 1.7,
+      "p8": 0.0,
+      "prophet_order": 1.4,
+      "weeks_nf": 2,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 17
+    },
+    "391002": {
+      "p4": 1.6,
+      "p8": 0.4,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 5,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 12
+    },
+    "391003": {
+      "p4": 1.0,
+      "p8": 0.5,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 3,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 12
+    },
+    "391004": {
+      "p4": 0.4,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 17
+    },
+    "391100": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 27
+    },
+    "391101": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 20
+    },
+    "391102": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 1
+    },
+    "391103": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 15
+    },
+    "391400": {
+      "p4": 0.0,
+      "p8": 1.7,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 28
+    },
+    "391401": {
+      "p4": 0.6,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 11
+    },
+    "391402": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 20
+    },
+    "391403": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 26
+    },
+    "391404": {
+      "p4": 1.1,
+      "p8": 0.7,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 23
+    },
+    "391405": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 1
+    },
+    "391406": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 3,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 29
+    },
+    "391407": {
+      "p4": 3.0,
+      "p8": 4.9,
+      "prophet_order": 4.0,
+      "weeks_nf": 2,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 28
+    },
+    "391408": {
+      "p4": 3.0,
+      "p8": 1.8,
+      "prophet_order": 4.0,
+      "weeks_nf": 2,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 21
+    },
+    "391409": {
+      "p4": 0.8,
+      "p8": 0.7,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 21
+    },
+    "391410": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 25
+    },
+    "391411": {
+      "p4": 0.1,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 36
+    },
+    "391412": {
+      "p4": 4.4,
+      "p8": 3.5,
+      "prophet_order": 6.8,
+      "weeks_nf": 2,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 20
+    },
+    "391413": {
+      "p4": 0.4,
+      "p8": 0.7,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 25
+    },
+    "392000": {
+      "p4": 1.9,
+      "p8": 2.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 21,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 94
+    },
+    "392001": {
+      "p4": 1.9,
+      "p8": 1.9,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 9,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 77
+    },
+    "400001": {
+      "p4": 28.9,
+      "p8": 0.0,
+      "prophet_order": 76.7,
+      "weeks_nf": 3,
+      "eilat_k": 10,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 26
+    },
+    "400002": {
+      "p4": 193.8,
+      "p8": 10.3,
+      "prophet_order": 575.4,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 23
+    },
+    "400003": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 5,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 25
     },
     "403001": {
       "p4": 46.5,
@@ -31,9 +3501,459 @@
       "delta_p4": 23.5,
       "n_points": 92
     },
+    "403003": {
+      "p4": 13.0,
+      "p8": 12.1,
+      "prophet_order": 13.0,
+      "weeks_nf": 1,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 91
+    },
+    "403004": {
+      "p4": 5.7,
+      "p8": 6.4,
+      "prophet_order": 1.7,
+      "weeks_nf": 1,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 85
+    },
+    "403005": {
+      "p4": 24.7,
+      "p8": 17.9,
+      "prophet_order": 24.7,
+      "weeks_nf": 1,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 78
+    },
+    "403006": {
+      "p4": 11.3,
+      "p8": 10.0,
+      "prophet_order": 11.3,
+      "weeks_nf": 1,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 61
+    },
+    "403007": {
+      "p4": 0.4,
+      "p8": 0.2,
+      "prophet_order": 0,
+      "weeks_nf": 1,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 44
+    },
+    "403008": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 1,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 43
+    },
+    "410000": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 1,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 7
+    },
+    "410001": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 1,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 7
+    },
+    "410002": {
+      "p4": 5.4,
+      "p8": 0.0,
+      "prophet_order": 3.4,
+      "weeks_nf": 1,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 7
+    },
+    "410003": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 1,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 7
+    },
+    "410004": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 1,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 7
+    },
+    "411000": {
+      "p4": 185.6,
+      "p8": 0.0,
+      "prophet_order": 182.6,
+      "weeks_nf": 1,
+      "eilat_k": 3,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 8
+    },
+    "411001": {
+      "p4": 0.0,
+      "p8": 18.7,
+      "prophet_order": 0,
+      "weeks_nf": 1,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 7
+    },
+    "411500": {
+      "p4": 177.7,
+      "p8": 0.0,
+      "prophet_order": 173.7,
+      "weeks_nf": 1,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 8
+    },
+    "412200": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 1,
+      "eilat_k": 7,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 8
+    },
+    "412201": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 1,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 8
+    },
+    "412202": {
+      "p4": 0.0,
+      "p8": 0.5,
+      "prophet_order": 0,
+      "weeks_nf": 1,
+      "eilat_k": 5,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 8
+    },
+    "412500": {
+      "p4": 42.0,
+      "p8": 27.4,
+      "prophet_order": 40.0,
+      "weeks_nf": 1,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 7
+    },
+    "412501": {
+      "p4": 693.3,
+      "p8": 175.4,
+      "prophet_order": 687.3,
+      "weeks_nf": 1,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 8
+    },
+    "412502": {
+      "p4": 600.2,
+      "p8": 131.9,
+      "prophet_order": 599.2,
+      "weeks_nf": 1,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 8
+    },
+    "413000": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": 1,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 3
+    },
+    "413001": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": 1,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 3
+    },
+    "413002": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": 1,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 3
+    },
+    "413200": {
+      "p4": 86.4,
+      "p8": 82.9,
+      "prophet_order": 80.4,
+      "weeks_nf": 1,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 7
+    },
+    "413201": {
+      "p4": 144.4,
+      "p8": 0.0,
+      "prophet_order": 138.4,
+      "weeks_nf": 1,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 8
+    },
+    "413202": {
+      "p4": 0.0,
+      "p8": 54.7,
+      "prophet_order": 0,
+      "weeks_nf": 1,
+      "eilat_k": 7,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 8
+    },
+    "413500": {
+      "p4": 0.0,
+      "p8": 3.0,
+      "prophet_order": 0,
+      "weeks_nf": 1,
+      "eilat_k": 10,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 7
+    },
+    "413501": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 1,
+      "eilat_k": 10,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 8
+    },
+    "413502": {
+      "p4": 0.0,
+      "p8": 97.8,
+      "prophet_order": 0,
+      "weeks_nf": 1,
+      "eilat_k": 13,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 8
+    },
+    "420001": {
+      "p4": 16.7,
+      "p8": 11.6,
+      "prophet_order": 41.1,
+      "weeks_nf": 3,
+      "eilat_k": 9,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 48
+    },
+    "420002": {
+      "p4": 9.4,
+      "p8": 6.8,
+      "prophet_order": 14.2,
+      "weeks_nf": 3,
+      "eilat_k": 14,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 48
+    },
+    "420003": {
+      "p4": 2.7,
+      "p8": 0.9,
+      "prophet_order": 6.1,
+      "weeks_nf": 3,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 28
+    },
+    "420004": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 3,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 32
+    },
+    "420005": {
+      "p4": 46.5,
+      "p8": 64.5,
+      "prophet_order": 133.5,
+      "weeks_nf": 3,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 39
+    },
+    "420006": {
+      "p4": 6.0,
+      "p8": 37.3,
+      "prophet_order": 15.0,
+      "weeks_nf": 3,
+      "eilat_k": 3,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 27
+    },
+    "420007": {
+      "p4": 0.0,
+      "p8": 4.1,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 26
+    },
+    "420008": {
+      "p4": 53.2,
+      "p8": 72.9,
+      "prophet_order": 156.6,
+      "weeks_nf": 3,
+      "eilat_k": 3,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 26
+    },
+    "501001": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 7
+    },
+    "501002": {
+      "p4": 2030.5,
+      "p8": 571.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 20
+    },
+    "501003": {
+      "p4": 3.1,
+      "p8": 3.1,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 18,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 126
+    },
+    "501004": {
+      "p4": 0.8,
+      "p8": 0.7,
+      "prophet_order": 4.2,
+      "weeks_nf": 4,
+      "eilat_k": -1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 65
+    },
+    "501005": {
+      "p4": 0.4,
+      "p8": 0.4,
+      "prophet_order": 3.6,
+      "weeks_nf": 4,
+      "eilat_k": -2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 60
+    },
+    "501006": {
+      "p4": 0.9,
+      "p8": 1.3,
+      "prophet_order": 3.6,
+      "weeks_nf": 4,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 55
+    },
+    "501007": {
+      "p4": 1.4,
+      "p8": 1.4,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 7,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 84
+    },
+    "501008": {
+      "p4": 2.2,
+      "p8": 2.1,
+      "prophet_order": 2.8,
+      "weeks_nf": 4,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 56
+    },
     "501009": {
-      "p4": 23.9,
-      "p8": 26.2,
+      "p4": 24.0,
+      "p8": 26.3,
       "prophet_order": 0,
       "weeks_nf": 4,
       "eilat_k": 154,
@@ -41,9 +3961,19 @@
       "delta_p4": null,
       "n_points": 131
     },
+    "501010": {
+      "p4": 12.2,
+      "p8": 13.4,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 127,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 131
+    },
     "501011": {
-      "p4": 18.5,
-      "p8": 19.4,
+      "p4": 18.6,
+      "p8": 19.5,
       "prophet_order": 0,
       "weeks_nf": 4,
       "eilat_k": 150,
@@ -51,15 +3981,865 @@
       "delta_p4": null,
       "n_points": 130
     },
+    "501012": {
+      "p4": 2.0,
+      "p8": 2.0,
+      "prophet_order": 3.0,
+      "weeks_nf": 4,
+      "eilat_k": 5,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 35
+    },
+    "501207": {
+      "p4": 1.2,
+      "p8": 0.8,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 47
+    },
+    "501208": {
+      "p4": 6.9,
+      "p8": 7.2,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 118,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 128
+    },
+    "501209": {
+      "p4": 7.5,
+      "p8": 6.5,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 67,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 123
+    },
+    "501210": {
+      "p4": 3.6,
+      "p8": 4.1,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 23,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 119
+    },
+    "501211": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 29
+    },
+    "501212": {
+      "p4": 133.7,
+      "p8": 104.1,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 28
+    },
+    "501213": {
+      "p4": 1.4,
+      "p8": 2.8,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 41
+    },
+    "501214": {
+      "p4": 1.1,
+      "p8": 1.8,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 43
+    },
+    "501215": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 15,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 26
+    },
+    "501216": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 17,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 32
+    },
+    "501406": {
+      "p4": 4.2,
+      "p8": 4.5,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 112,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 119
+    },
+    "501407": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 11
+    },
+    "501408": {
+      "p4": 4.7,
+      "p8": 4.3,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 126,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 125
+    },
+    "501409": {
+      "p4": 15.8,
+      "p8": 5.9,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 8
+    },
+    "501410": {
+      "p4": 10.8,
+      "p8": 8.4,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 11
+    },
+    "501411": {
+      "p4": 2.5,
+      "p8": 2.7,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 54
+    },
+    "501412": {
+      "p4": 1.5,
+      "p8": 1.4,
+      "prophet_order": 8.0,
+      "weeks_nf": 4,
+      "eilat_k": -2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 53
+    },
+    "501413": {
+      "p4": 1.0,
+      "p8": 1.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 6
+    },
+    "501414": {
+      "p4": 7.8,
+      "p8": 8.0,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 141,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 129
+    },
+    "501415": {
+      "p4": 4.4,
+      "p8": 4.3,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 110
+    },
+    "501416": {
+      "p4": 6.6,
+      "p8": 6.1,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 76,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 129
+    },
+    "501417": {
+      "p4": 8.3,
+      "p8": 8.3,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 84,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 128
+    },
+    "501418": {
+      "p4": 4.9,
+      "p8": 5.3,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 25,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 122
+    },
+    "501419": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 18
+    },
+    "501420": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 16
+    },
+    "501421": {
+      "p4": 7.8,
+      "p8": 8.5,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 50,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 127
+    },
+    "501422": {
+      "p4": 0.0,
+      "p8": 13.8,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 4
+    },
+    "501423": {
+      "p4": 3.5,
+      "p8": 2.5,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 45
+    },
+    "501424": {
+      "p4": 2.2,
+      "p8": 3.4,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 39
+    },
+    "501425": {
+      "p4": 4.9,
+      "p8": 4.6,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 36
+    },
+    "501426": {
+      "p4": 5.4,
+      "p8": 5.6,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 37
+    },
+    "501427": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": 4,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 1
+    },
+    "501428": {
+      "p4": 28.4,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 184,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 13
+    },
+    "501429": {
+      "p4": 0.0,
+      "p8": 14.0,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 11,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 15
+    },
+    "501601": {
+      "p4": 5.1,
+      "p8": 1.9,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 11
+    },
+    "501602": {
+      "p4": 6.0,
+      "p8": 3.7,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 5
+    },
+    "501603": {
+      "p4": 0.0,
+      "p8": 137.6,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 32
+    },
     "501604": {
-      "p4": 41.7,
-      "p8": 41.3,
+      "p4": 41.3,
+      "p8": 40.9,
       "prophet_order": 0,
       "weeks_nf": 4,
       "eilat_k": 236,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 130
+    },
+    "501605": {
+      "p4": 2.8,
+      "p8": 2.6,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 41,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 103
+    },
+    "501606": {
+      "p4": 2.7,
+      "p8": 2.5,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 15,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 107
+    },
+    "501607": {
+      "p4": 2.8,
+      "p8": 4.4,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 94
+    },
+    "501608": {
+      "p4": 4.1,
+      "p8": 3.4,
+      "prophet_order": 10.4,
+      "weeks_nf": 4,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 115
+    },
+    "501609": {
+      "p4": 2.9,
+      "p8": 2.5,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 12,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 114
+    },
+    "501610": {
+      "p4": 1.8,
+      "p8": 1.8,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 9,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 84
+    },
+    "501611": {
+      "p4": 1.0,
+      "p8": 1.0,
+      "prophet_order": 3.0,
+      "weeks_nf": 4,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 6
+    },
+    "501800": {
+      "p4": 6.3,
+      "p8": 5.5,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 145,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 121
+    },
+    "501801": {
+      "p4": 6.5,
+      "p8": 7.1,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 120,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 114
+    },
+    "501802": {
+      "p4": 2.8,
+      "p8": 2.9,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 92,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 117
+    },
+    "501803": {
+      "p4": 2.9,
+      "p8": 3.1,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 60,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 52
+    },
+    "501804": {
+      "p4": 5.2,
+      "p8": 5.9,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 74,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 55
+    },
+    "501805": {
+      "p4": 1.5,
+      "p8": 1.0,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 39,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 34
+    },
+    "501806": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 7,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 42
+    },
+    "501807": {
+      "p4": 0.8,
+      "p8": 0.7,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 8,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 40
+    },
+    "501808": {
+      "p4": 0.5,
+      "p8": 0.6,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 8,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 40
+    },
+    "501900": {
+      "p4": 2.4,
+      "p8": 0.0,
+      "prophet_order": 0.6,
+      "weeks_nf": 4,
+      "eilat_k": 9,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 32
+    },
+    "501901": {
+      "p4": 1.5,
+      "p8": 2.3,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 9,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 29
+    },
+    "501902": {
+      "p4": 1.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 27
+    },
+    "502000": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 28
+    },
+    "502001": {
+      "p4": 1.8,
+      "p8": 1.2,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 86
+    },
+    "502002": {
+      "p4": 7.3,
+      "p8": 7.7,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 68,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 126
+    },
+    "502003": {
+      "p4": 2.2,
+      "p8": 1.7,
+      "prophet_order": 0,
+      "weeks_nf": 1,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 44
+    },
+    "502004": {
+      "p4": 6.5,
+      "p8": 4.2,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 36
+    },
+    "502005": {
+      "p4": 1.6,
+      "p8": 11.1,
+      "prophet_order": 0,
+      "weeks_nf": 1,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 41
+    },
+    "502006": {
+      "p4": 1.1,
+      "p8": 1.3,
+      "prophet_order": 0,
+      "weeks_nf": 1,
+      "eilat_k": 7,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 36
+    },
+    "502007": {
+      "p4": 6.6,
+      "p8": 6.2,
+      "prophet_order": 5.6,
+      "weeks_nf": 1,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 21
+    },
+    "502008": {
+      "p4": 1.6,
+      "p8": 1.5,
+      "prophet_order": 0,
+      "weeks_nf": 1,
+      "eilat_k": 5,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 54
+    },
+    "502009": {
+      "p4": 1.6,
+      "p8": 1.7,
+      "prophet_order": 0,
+      "weeks_nf": 1,
+      "eilat_k": 10,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 68
+    },
+    "502010": {
+      "p4": 1.1,
+      "p8": 1.1,
+      "prophet_order": 1.1,
+      "weeks_nf": 1,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 78
+    },
+    "502011": {
+      "p4": 0.7,
+      "p8": 0.8,
+      "prophet_order": 0,
+      "weeks_nf": 1,
+      "eilat_k": 8,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 67
+    },
+    "502012": {
+      "p4": 2.6,
+      "p8": 2.3,
+      "prophet_order": 0,
+      "weeks_nf": 1,
+      "eilat_k": 7,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 33
+    },
+    "502013": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 37,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 39
+    },
+    "502014": {
+      "p4": 24.5,
+      "p8": 26.3,
+      "prophet_order": 28.0,
+      "weeks_nf": 2,
+      "eilat_k": 21,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 39
+    },
+    "502015": {
+      "p4": 47.5,
+      "p8": 68.9,
+      "prophet_order": 84.0,
+      "weeks_nf": 2,
+      "eilat_k": 11,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 39
+    },
+    "502016": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 19,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 27
+    },
+    "502017": {
+      "p4": 349.3,
+      "p8": 477.1,
+      "prophet_order": 678.6,
+      "weeks_nf": 2,
+      "eilat_k": 20,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 37
+    },
+    "502018": {
+      "p4": 91.8,
+      "p8": 0.0,
+      "prophet_order": 170.6,
+      "weeks_nf": 2,
+      "eilat_k": 13,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 27
+    },
+    "502019": {
+      "p4": 34.7,
+      "p8": 215.0,
+      "prophet_order": 52.4,
+      "weeks_nf": 2,
+      "eilat_k": 17,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 34
+    },
+    "502020": {
+      "p4": 5.7,
+      "p8": 4.6,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 24,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 50
+    },
+    "502021": {
+      "p4": 52.7,
+      "p8": 30.7,
+      "prophet_order": 95.4,
+      "weeks_nf": 2,
+      "eilat_k": 10,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 21
+    },
+    "502022": {
+      "p4": 591.8,
+      "p8": 1228.5,
+      "prophet_order": 1175.6,
+      "weeks_nf": 2,
+      "eilat_k": 8,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 28
+    },
+    "502023": {
+      "p4": 0.0,
+      "p8": 27.7,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 14,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 25
+    },
+    "502203": {
+      "p4": 6.7,
+      "p8": 5.9,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 93
+    },
+    "502204": {
+      "p4": 6.2,
+      "p8": 6.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 68
+    },
+    "502205": {
+      "p4": 6.6,
+      "p8": 4.9,
+      "prophet_order": 8.4,
+      "weeks_nf": 4,
+      "eilat_k": 18,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 88
+    },
+    "502206": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 9
     },
     "502210": {
       "p4": 23.8,
@@ -71,15 +4851,1065 @@
       "delta_p4": 15.2,
       "n_points": 129
     },
+    "502500": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": 2,
+      "eilat_k": 24,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 3
+    },
+    "502501": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": 2,
+      "eilat_k": 54,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 3
+    },
+    "502502": {
+      "p4": 345.3,
+      "p8": 186.0,
+      "prophet_order": 671.6,
+      "weeks_nf": 2,
+      "eilat_k": 19,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 4
+    },
+    "502503": {
+      "p4": 4.1,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 26,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 4
+    },
+    "502504": {
+      "p4": 29.3,
+      "p8": 23.4,
+      "prophet_order": 33.6,
+      "weeks_nf": 2,
+      "eilat_k": 25,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 4
+    },
+    "503010": {
+      "p4": 2.5,
+      "p8": 1.9,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 22,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 70
+    },
+    "503011": {
+      "p4": 4.7,
+      "p8": 4.4,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 66
+    },
+    "503013": {
+      "p4": 1.0,
+      "p8": 5.9,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 49
+    },
+    "503014": {
+      "p4": 2.1,
+      "p8": 1.4,
+      "prophet_order": 8.4,
+      "weeks_nf": 4,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 58
+    },
+    "503016": {
+      "p4": 3.7,
+      "p8": 4.0,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 19,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 107
+    },
+    "503017": {
+      "p4": 3.1,
+      "p8": 3.7,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 18,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 97
+    },
+    "503018": {
+      "p4": 1.7,
+      "p8": 1.4,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 8,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 78
+    },
+    "503020": {
+      "p4": 3.5,
+      "p8": 3.0,
+      "prophet_order": 2.0,
+      "weeks_nf": 4,
+      "eilat_k": 12,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 97
+    },
+    "503021": {
+      "p4": 2.0,
+      "p8": 1.7,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 12,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 81
+    },
+    "503022": {
+      "p4": 4.2,
+      "p8": 3.8,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 23,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 103
+    },
+    "503023": {
+      "p4": 0.1,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 10
+    },
+    "503024": {
+      "p4": 1.9,
+      "p8": 2.3,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 17,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 82
+    },
+    "503025": {
+      "p4": 2.5,
+      "p8": 2.8,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 28
+    },
+    "503026": {
+      "p4": 1.1,
+      "p8": 1.2,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 12
+    },
+    "503027": {
+      "p4": 3.8,
+      "p8": 4.0,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 18,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 74
+    },
+    "503030": {
+      "p4": 3.4,
+      "p8": 2.7,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 22,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 80
+    },
+    "503031": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 4
+    },
+    "503032": {
+      "p4": 0.2,
+      "p8": 0.2,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 14
+    },
+    "503033": {
+      "p4": 0.4,
+      "p8": 0.3,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 13
+    },
+    "503034": {
+      "p4": 2.5,
+      "p8": 2.1,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 24,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 74
+    },
+    "503035": {
+      "p4": 1.7,
+      "p8": 1.6,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 23,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 95
+    },
+    "503036": {
+      "p4": 1.6,
+      "p8": 2.3,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 16,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 80
+    },
+    "503037": {
+      "p4": 2.5,
+      "p8": 2.7,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 22,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 85
+    },
+    "503038": {
+      "p4": 1.1,
+      "p8": 0.7,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 54
+    },
+    "503039": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 7,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 63
+    },
+    "503040": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 10,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 69
+    },
+    "503041": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 5,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 75
+    },
+    "503042": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 82
+    },
+    "503043": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 70
+    },
+    "503044": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 3,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 68
+    },
+    "503045": {
+      "p4": 2.6,
+      "p8": 2.1,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 10,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 69
+    },
+    "503046": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 46
+    },
+    "503047": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 2.0,
+      "weeks_nf": 2,
+      "eilat_k": -2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 44
+    },
+    "503048": {
+      "p4": 0.4,
+      "p8": 0.2,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 51
+    },
+    "503049": {
+      "p4": 0.3,
+      "p8": 0.2,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 52
+    },
+    "503050": {
+      "p4": 0.0,
+      "p8": 7.9,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 13
+    },
+    "503051": {
+      "p4": 21.0,
+      "p8": 19.6,
+      "prophet_order": 34.0,
+      "weeks_nf": 4,
+      "eilat_k": 50,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 83
+    },
+    "503052": {
+      "p4": 3.2,
+      "p8": 2.6,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 17,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 66
+    },
+    "503053": {
+      "p4": 2.7,
+      "p8": 2.5,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 54
+    },
+    "503054": {
+      "p4": 0.1,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 55
+    },
+    "503055": {
+      "p4": 11.1,
+      "p8": 2.5,
+      "prophet_order": 16.2,
+      "weeks_nf": 2,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 23
+    },
+    "503056": {
+      "p4": 1.0,
+      "p8": 2.4,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 7,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 17
+    },
+    "503057": {
+      "p4": 0.4,
+      "p8": 0.3,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 15
+    },
+    "503058": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 9,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 29
+    },
+    "503059": {
+      "p4": 1.4,
+      "p8": 1.3,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 13,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 31
+    },
+    "503060": {
+      "p4": 0.9,
+      "p8": 0.7,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 8,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 34
+    },
+    "503061": {
+      "p4": 2.6,
+      "p8": 2.2,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 10,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 40
+    },
+    "503062": {
+      "p4": 2.0,
+      "p8": 1.8,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 9,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 32
+    },
+    "503063": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 9,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 34
+    },
+    "503064": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 30
+    },
+    "503065": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 8,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 27
+    },
+    "503066": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 10,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 23
+    },
+    "503067": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": 4,
+      "eilat_k": 8,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 3
+    },
+    "503068": {
+      "p4": 0.4,
+      "p8": 0.9,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 7,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 4
+    },
+    "503069": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": 4,
+      "eilat_k": 25,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 3
+    },
+    "600": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 16
+    },
+    "601": {
+      "p4": 1.0,
+      "p8": 1.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 6
+    },
+    "602": {
+      "p4": 32.6,
+      "p8": 17.5,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 6
+    },
+    "604": {
+      "p4": 9.6,
+      "p8": 8.2,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 93,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 93
+    },
+    "624": {
+      "p4": 4.2,
+      "p8": 3.5,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 48
+    },
+    "625": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 2
+    },
+    "628": {
+      "p4": 16.1,
+      "p8": 16.4,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 42
+    },
+    "630": {
+      "p4": 6.2,
+      "p8": 6.1,
+      "prophet_order": 5.2,
+      "weeks_nf": 1,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 91
+    },
     "631": {
-      "p4": 16.9,
-      "p8": 15.7,
-      "prophet_order": 15.9,
+      "p4": 17.0,
+      "p8": 15.8,
+      "prophet_order": 16.0,
       "weeks_nf": 1,
       "eilat_k": 1,
       "hamlatza": 14.7,
-      "delta_p4": 2.2,
+      "delta_p4": 2.3,
       "n_points": 100
+    },
+    "643": {
+      "p4": 4.3,
+      "p8": 3.9,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 44
+    },
+    "644": {
+      "p4": 4.5,
+      "p8": 3.8,
+      "prophet_order": 4.5,
+      "weeks_nf": 1,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 78
+    },
+    "645": {
+      "p4": 11.2,
+      "p8": 9.8,
+      "prophet_order": 11.2,
+      "weeks_nf": 1,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 105
+    },
+    "646": {
+      "p4": 11.5,
+      "p8": 10.3,
+      "prophet_order": 11.5,
+      "weeks_nf": 1,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 84
+    },
+    "649": {
+      "p4": 0.0,
+      "p8": 37.9,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 3,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 29
+    },
+    "650": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 32
+    },
+    "659": {
+      "p4": 13.6,
+      "p8": 12.7,
+      "prophet_order": 6.6,
+      "weeks_nf": 1,
+      "eilat_k": 7,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 124
+    },
+    "660": {
+      "p4": 2.0,
+      "p8": 2.3,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 6,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 83
+    },
+    "661": {
+      "p4": 2.4,
+      "p8": 2.0,
+      "prophet_order": 1.8,
+      "weeks_nf": 2,
+      "eilat_k": 3,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 72
+    },
+    "662": {
+      "p4": 3.2,
+      "p8": 2.8,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 7,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 104
+    },
+    "664": {
+      "p4": 1.0,
+      "p8": 1.1,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 103
+    },
+    "665": {
+      "p4": 3.7,
+      "p8": 3.1,
+      "prophet_order": 6.8,
+      "weeks_nf": 4,
+      "eilat_k": 8,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 87
+    },
+    "667": {
+      "p4": 3.6,
+      "p8": 4.1,
+      "prophet_order": 1.4,
+      "weeks_nf": 4,
+      "eilat_k": 13,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 120
+    },
+    "668": {
+      "p4": 3.3,
+      "p8": 3.1,
+      "prophet_order": 5.2,
+      "weeks_nf": 4,
+      "eilat_k": 8,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 119
+    },
+    "669": {
+      "p4": 4.6,
+      "p8": 5.0,
+      "prophet_order": 1.4,
+      "weeks_nf": 4,
+      "eilat_k": 17,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 124
+    },
+    "670": {
+      "p4": 0.7,
+      "p8": 0.9,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 4,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 89
+    },
+    "672": {
+      "p4": 1.2,
+      "p8": 1.2,
+      "prophet_order": 1.8,
+      "weeks_nf": 4,
+      "eilat_k": 3,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 76
+    },
+    "673": {
+      "p4": 1.7,
+      "p8": 1.6,
+      "prophet_order": 0,
+      "weeks_nf": 4,
+      "eilat_k": 7,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 104
+    },
+    "677": {
+      "p4": 7.7,
+      "p8": 7.6,
+      "prophet_order": 4.8,
+      "weeks_nf": 4,
+      "eilat_k": 26,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 123
+    },
+    "680": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 3
+    },
+    "683": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 3
+    },
+    "701": {
+      "p4": 0.5,
+      "p8": 0.6,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 46
+    },
+    "711": {
+      "p4": 0.4,
+      "p8": 0.4,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 65
+    },
+    "712": {
+      "p4": 1.1,
+      "p8": 0.7,
+      "prophet_order": 1.2,
+      "weeks_nf": 2,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 58
+    },
+    "713": {
+      "p4": 1.0,
+      "p8": 0.7,
+      "prophet_order": 1.0,
+      "weeks_nf": 2,
+      "eilat_k": 1,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 61
+    },
+    "714": {
+      "p4": 1.4,
+      "p8": 1.2,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 12,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 68
+    },
+    "715": {
+      "p4": 6.1,
+      "p8": 1.9,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 23
+    },
+    "716": {
+      "p4": 0.0,
+      "p8": 93.1,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 23
+    },
+    "717": {
+      "p4": 0.0,
+      "p8": 0.7,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 72,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 35
+    },
+    "719": {
+      "p4": 15.3,
+      "p8": 8.6,
+      "prophet_order": 3.6,
+      "weeks_nf": 2,
+      "eilat_k": 27,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 34
+    },
+    "721": {
+      "p4": 9.3,
+      "p8": 7.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 85,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 35
+    },
+    "724": {
+      "p4": 3.7,
+      "p8": 2.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 40,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 38
+    },
+    "725": {
+      "p4": 10.0,
+      "p8": 14.1,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 62,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 31
+    },
+    "726": {
+      "p4": 1.9,
+      "p8": 0.8,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 57,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 35
+    },
+    "727": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 61,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 18
+    },
+    "728": {
+      "p4": 45.5,
+      "p8": 28.1,
+      "prophet_order": 70.0,
+      "weeks_nf": 2,
+      "eilat_k": 21,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 14
+    },
+    "731": {
+      "p4": 7.5,
+      "p8": 6.8,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 43
     },
     "732": {
       "p4": 41.2,
@@ -91,6 +5921,156 @@
       "delta_p4": null,
       "n_points": 105
     },
+    "735": {
+      "p4": 4.9,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 14
+    },
+    "736": {
+      "p4": 0.6,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 3,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 36
+    },
+    "737": {
+      "p4": 1.0,
+      "p8": 1.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 8
+    },
+    "738": {
+      "p4": 0.0,
+      "p8": 0.9,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 16
+    },
+    "739": {
+      "p4": 0.7,
+      "p8": 0.8,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 3,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 54
+    },
+    "740": {
+      "p4": 1.5,
+      "p8": 0.0,
+      "prophet_order": 1.5,
+      "weeks_nf": 3,
+      "eilat_k": 3,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 38
+    },
+    "755": {
+      "p4": 3.3,
+      "p8": 3.0,
+      "prophet_order": 0,
+      "weeks_nf": 2,
+      "eilat_k": 7,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 101
+    },
+    "759": {
+      "p4": 1.0,
+      "p8": 1.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 4
+    },
+    "760": {
+      "p4": 1.0,
+      "p8": 1.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 4
+    },
+    "800": {
+      "p4": 13.1,
+      "p8": 9.0,
+      "prophet_order": 30.4,
+      "weeks_nf": 4,
+      "eilat_k": 22,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 78
+    },
+    "802": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 17
+    },
+    "803": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 2,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 11
+    },
+    "815": {
+      "p4": 11.3,
+      "p8": 11.8,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 40,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 129
+    },
+    "816": {
+      "p4": 8.7,
+      "p8": 9.7,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 43,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 130
+    },
+    "817": {
+      "p4": 10.1,
+      "p8": 10.2,
+      "prophet_order": 0,
+      "weeks_nf": 3,
+      "eilat_k": 41,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 130
+    },
     "818": {
       "p4": 18.2,
       "p8": 17.8,
@@ -100,6 +6080,286 @@
       "hamlatza": 6.7,
       "delta_p4": 11.5,
       "n_points": 128
+    },
+    "819": {
+      "p4": 6.4,
+      "p8": 6.8,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 64
+    },
+    "820": {
+      "p4": 8.6,
+      "p8": 7.7,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 63
+    },
+    "821": {
+      "p4": 1.9,
+      "p8": 3.2,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 63
+    },
+    "822": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 9
+    },
+    "825": {
+      "p4": 9.0,
+      "p8": 6.2,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 41
+    },
+    "826": {
+      "p4": 1517.4,
+      "p8": 813.3,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 33
+    },
+    "908002": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 1
+    },
+    "908003": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 1
+    },
+    "908004": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 6
+    },
+    "908006": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 1
+    },
+    "908007": {
+      "p4": 2.8,
+      "p8": 4.3,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 14
+    },
+    "908008": {
+      "p4": 5.3,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 11
+    },
+    "908010": {
+      "p4": 0.1,
+      "p8": 0.2,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 13
+    },
+    "908013": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 1
+    },
+    "908014": {
+      "p4": 63.6,
+      "p8": 32.9,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 15
+    },
+    "908015": {
+      "p4": 0.7,
+      "p8": 2.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 11
+    },
+    "908021": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 2
+    },
+    "908022": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 4
+    },
+    "908023": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 3
+    },
+    "908025": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 3
+    },
+    "908026": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 2
+    },
+    "908029": {
+      "p4": 0.0,
+      "p8": 0.0,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 12
+    },
+    "908030": {
+      "p4": 0.0,
+      "p8": 7.9,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 5
+    },
+    "908031": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 1
+    },
+    "908032": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 3
+    },
+    "908033": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 3
+    },
+    "908034": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 1
+    },
+    "908035": {
+      "p4": null,
+      "p8": null,
+      "prophet_order": null,
+      "weeks_nf": null,
+      "eilat_k": 0,
+      "hamlatza": null,
+      "delta_p4": null,
+      "n_points": 3
     }
   }
 }
