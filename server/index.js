@@ -7,6 +7,8 @@ const https = require('https');
 const { execFile } = require('child_process');
 const ExcelJS = require('exceljs');
 const { executeDax, getDatasetRefreshTime } = require('./powerbi');
+const { Resend } = require('resend');
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // ── PBI CACHE ──────────────────────────────────────────────────────────────
 // Single source of truth: all client/agent/manager data loaded from Power BI
@@ -1334,6 +1336,36 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
     writeLog({ ts: new Date().toISOString(), event: 'mekarer-order', id,
       custId: String(order.custId), agentCode: req.session?.agentCode || null, ip: getRealIp(req) });
     res.json({ ok: true, id });
+    // Send email notification (fire-and-forget)
+    if (resend && process.env.NOTIFY_EMAIL) {
+      const mekarerRows = order.mekarerim.map(m =>
+        `<tr><td style="padding:6px 8px;border-bottom:1px solid #eee">${m.action || ''}</td><td style="padding:6px 8px;border-bottom:1px solid #eee">${m.brand || ''}</td><td style="padding:6px 8px;border-bottom:1px solid #eee">${m.model || ''}</td><td style="padding:6px 8px;border-bottom:1px solid #eee">${m.serial || ''}</td></tr>`
+      ).join('');
+      resend.emails.send({
+        from: process.env.RESEND_FROM || 'orders@diler.co.il',
+        to: process.env.NOTIFY_EMAIL,
+        subject: `הזמנת מקרר חדשה — ${order.custName} (${order.city})`,
+        html: `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+<h2 style="background:#1a73e8;color:#fff;padding:16px;border-radius:8px 8px 0 0;margin:0">🧊 הזמנת מקרר חדשה</h2>
+<div style="border:1px solid #ddd;border-top:none;border-radius:0 0 8px 8px;padding:20px">
+<table style="width:100%;border-collapse:collapse;margin-bottom:16px">
+<tr><td style="color:#666;padding:4px 0;width:120px">לקוח</td><td style="font-weight:bold">${order.custName}</td></tr>
+<tr><td style="color:#666;padding:4px 0">עיר</td><td>${order.city}</td></tr>
+<tr><td style="color:#666;padding:4px 0">סוכן</td><td>${order.agentName}</td></tr>
+<tr><td style="color:#666;padding:4px 0">מנהל</td><td>${order.manager}</td></tr>
+<tr><td style="color:#666;padding:4px 0">איש קשר</td><td>${order.contactName}</td></tr>
+<tr><td style="color:#666;padding:4px 0">טלפון</td><td dir="ltr">${order.phone}</td></tr>
+<tr><td style="color:#666;padding:4px 0">מיקום</td><td>${order.location}</td></tr>
+</table>
+<h3 style="margin:16px 0 8px">ציוד</h3>
+<table style="width:100%;border-collapse:collapse;font-size:14px">
+<tr style="background:#f5f5f5"><th style="padding:6px 8px;text-align:right">פעולה</th><th style="padding:6px 8px;text-align:right">מותג</th><th style="padding:6px 8px;text-align:right">דגם</th><th style="padding:6px 8px;text-align:right">סריאל</th></tr>
+${mekarerRows}
+</table>
+<p style="margin-top:20px;font-size:12px;color:#999">מזהה הזמנה: ${id} · ${new Date().toLocaleString('he-IL')}</p>
+</div></div>`
+      }).catch(e => console.error('[resend]', e.message));
+    }
   } catch (err) {
     console.error(err); res.status(500).json({ error: 'server_error' });
   }
