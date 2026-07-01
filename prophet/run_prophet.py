@@ -261,6 +261,10 @@ def save_json(results, mmd_orders_path):
             'hamlatza':      r['hamlatza'],
             'delta_p4':      r['delta_p4'],
             'n_points':      r['n_points'],
+            'series': {
+                'actual': r.get('series_actual', []),
+                'fc':     r.get('series_fc',     []),
+            },
         }
 
     out = {
@@ -316,13 +320,30 @@ def main():
         delta_p4  = round(p4 - hamlatza, 1) if p4 is not None and hamlatza is not None else None
         delta_p8  = round(p8 - hamlatza, 1) if p8 is not None and hamlatza is not None else None
 
+        # Weekly series for chart (last 12 actual + next 4 forecast)
+        actual_series = [
+            {'w': row['ds'].strftime('%Y-%m-%d'), 'y': round(float(row['y']), 1)}
+            for _, row in hist.tail(12).iterrows()
+        ]
+        fc_series = [
+            {
+                'w':  row['ds'].strftime('%Y-%m-%d'),
+                'y':  round(max(0.0, float(row['yhat'])), 1),
+                'lo': round(max(0.0, float(row['yhat_lower'])), 1),
+                'hi': round(max(0.0, float(row['yhat_upper'])), 1),
+            }
+            for _, row in future_fc.head(4).iterrows()
+        ]
+
         print(f"avg={avg_weekly}  P4={p4}  P8={p8}  ham={hamlatza}  D={delta_p4}")
         results.append({
             'mkt': mkt, 'taur': taur,
             'avg_weekly': avg_weekly, 'p4': p4, 'p8': p8,
             'hamlatza': hamlatza,
             'delta_p4': delta_p4, 'delta_p8': delta_p8,
-            'n_points': n_points, 'note': ''
+            'n_points': n_points, 'note': '',
+            'series_actual': actual_series,
+            'series_fc':     fc_series,
         })
 
     out_path = os.path.join(SCRIPT_DIR, 'forecast_pilot.xlsx')

@@ -1347,7 +1347,14 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
     // Send email notification (fire-and-forget)
     if (resend && process.env.NOTIFY_EMAIL) {
       const mekarerRows = order.mekarerim.map(m =>
-        `<tr><td style="padding:6px 8px;border-bottom:1px solid #eee">${m.action || ''}</td><td style="padding:6px 8px;border-bottom:1px solid #eee">${m.brand || ''}</td><td style="padding:6px 8px;border-bottom:1px solid #eee">${m.model || ''}</td><td style="padding:6px 8px;border-bottom:1px solid #eee">${m.serial || ''}</td></tr>`
+        `<tr>
+          <td style="padding:6px 8px;border-bottom:1px solid #eee">${m.action || ''}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #eee">${m.newModel || ''}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:center">${m.salot || 0}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:center">${m.agala ? '✓' : ''}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #eee">${m.supplyDate || ''}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #eee">${m.fault || ''}</td>
+        </tr>`
       ).join('');
       resend.emails.send({
         from: process.env.RESEND_FROM || 'orders@diler.co.il',
@@ -1367,7 +1374,7 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
 </table>
 <h3 style="margin:16px 0 8px">ציוד</h3>
 <table style="width:100%;border-collapse:collapse;font-size:14px">
-<tr style="background:#f5f5f5"><th style="padding:6px 8px;text-align:right">פעולה</th><th style="padding:6px 8px;text-align:right">מותג</th><th style="padding:6px 8px;text-align:right">דגם</th><th style="padding:6px 8px;text-align:right">סריאל</th></tr>
+<tr style="background:#f5f5f5"><th style="padding:6px 8px;text-align:right">פעולה</th><th style="padding:6px 8px;text-align:right">דגם</th><th style="padding:6px 8px;text-align:center">סלות</th><th style="padding:6px 8px;text-align:center">עגלה</th><th style="padding:6px 8px;text-align:right">תאריך אספקה</th><th style="padding:6px 8px;text-align:right">תקלה</th></tr>
 ${mekarerRows}
 </table>
 <p style="margin-top:20px;font-size:12px;color:#999">מזהה הזמנה: ${id} · ${new Date().toLocaleString('he-IL')}</p>

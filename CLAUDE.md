@@ -71,8 +71,8 @@ netstat -ano | Select-String ":3000"
 # 2. Убить зависший процесс (взять PID из п.1)
 Stop-Process -Id <PID> -Force
 
-# 3. Перезапустить сервер (в фоне)
-# Bash: cd server && node index.js  [run_in_background: true]
+# 3. Перезапустить сервер на VPS через SSH
+# PowerShell: ssh -o StrictHostKeyChecking=no root@31.154.67.58 "pm2 restart columbus-api"
 
 # 4. Проверить что API живой
 curl https://api.sverdlik-apps.site/health  # ожидаем 404 за <1с (нет endpoint, но отвечает)
@@ -84,7 +84,7 @@ curl https://api.sverdlik-apps.site/health  # ожидаем 404 за <1с (не
 ## Автономность — ОБЯЗАТЕЛЬНО
 
 **Всегда выполнять самостоятельно, без делегирования пользователю:**
-- Запускать сервер: `cd server && node index.js` (в фоне через Bash run_in_background)
+- Перезапускать сервер на VPS через SSH: `ssh root@31.154.67.58 "pm2 restart columbus-api"` (НЕ запускать node локально на Windows — сервер только на VPS)
 - Запускать скрипты, билды, тесты
 - Стартовать процессы, тоннели, воркфлоу
 - Коммитить, пушить, деплоить
