@@ -1343,7 +1343,7 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
       ).join('');
       resend.emails.send({
         from: process.env.RESEND_FROM || 'orders@diler.co.il',
-        to: process.env.NOTIFY_EMAIL,
+        to: process.env.NOTIFY_EMAIL.split(',').map(e => e.trim()),
         subject: `הזמנת מקרר חדשה — ${order.custName} (${order.city})`,
         html: `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
 <h2 style="background:#1a73e8;color:#fff;padding:16px;border-radius:8px 8px 0 0;margin:0">🧊 הזמנת מקרר חדשה</h2>
