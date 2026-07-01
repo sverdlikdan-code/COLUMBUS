@@ -584,7 +584,7 @@ function setTile(key){
 function cycleTile(){
   const cur = currentTileKey || userTileKey;
   const next = TILE_ORDER[(TILE_ORDER.indexOf(cur)+1)%TILE_ORDER.length];
-  if(!gpsCorrectMode) userTileKey = next;
+  userTileKey = next;
   setTile(next);
 }
 
@@ -1609,7 +1609,7 @@ function setupSortable(){
 
 // ── MAP ────────────────────────────────────────────────────────────────────
 function renderMap(){
-  const neededKey=gpsCorrectMode?'street':userTileKey;
+  const neededKey=userTileKey;
   if(!map){
     map=L.map('map',{rotate:true,bearing:0,zoomControl:false}).setView([32.0,34.9],10);
     L.control.zoom({position:'bottomright'}).addTo(map);
