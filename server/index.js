@@ -1349,7 +1349,7 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
       const mekarerRows = order.mekarerim.map(m =>
         `<tr>
           <td style="padding:6px 8px;border-bottom:1px solid #eee">${m.action || ''}</td>
-          <td style="padding:6px 8px;border-bottom:1px solid #eee">${m.newModel || ''}</td>
+          <td style="padding:6px 8px;border-bottom:1px solid #eee">${m.newModel ? `${m.newModel}${m.newModelName && m.newModelName !== m.newModel ? ' — ' + m.newModelName : ''}` : ''}</td>
           <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:center">${m.salot || 0}</td>
           <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:center">${m.agala ? '✓' : ''}</td>
           <td style="padding:6px 8px;border-bottom:1px solid #eee">${m.supplyDate || ''}</td>
@@ -1369,7 +1369,7 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
 <tr><td style="color:#666;padding:4px 0">סוכן</td><td>${order.agentName}</td></tr>
 <tr><td style="color:#666;padding:4px 0">מנהל</td><td>${order.manager}</td></tr>
 <tr><td style="color:#666;padding:4px 0">איש קשר</td><td>${order.contactName}</td></tr>
-<tr><td style="color:#666;padding:4px 0">טלפון</td><td dir="ltr">${order.phone}</td></tr>
+<tr><td style="color:#666;padding:4px 0">טלפון</td><td style="text-align:right">${order.phone}</td></tr>
 <tr><td style="color:#666;padding:4px 0">מיקום</td><td>${order.location}</td></tr>
 </table>
 <h3 style="margin:16px 0 8px">ציוד</h3>
