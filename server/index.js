@@ -1511,11 +1511,20 @@ app.get('/api/mekarer-export', requireAuth, async (req, res) => {
 });
 
 // GET /api/bbox-audit-xlsx — clients with valid IL GPS from PBI but outside city bbox
-app.get('/api/bbox-audit-xlsx', requireAuth, async (req, res) => {
+app.get('/api/bbox-audit-xlsx', async (req, res) => {
+  const adminOk = req.query.key === process.env.ADMIN_LOG_KEY;
+  if (!adminOk) {
+    const token = (req.headers['x-session'] || '').trim();
+    const sess = sessions.get(token);
+    if (!sess || Date.now() > sess.expiresAt) return res.status(401).json({ error: 'unauthorized' });
+  }
   try {
     if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
+    const seen = new Set();
     const allClients = [];
-    for (const [, list] of pbiCache.byAgent) allClients.push(...list);
+    for (const [, list] of pbiCache.byAgent) {
+      for (const c of list) { if (!seen.has(c.custId)) { seen.add(c.custId); allClients.push(c); } }
+    }
     const allCities = [...new Set(allClients.map(c => c.city).filter(Boolean))];
     await Promise.all(allCities.map(city => cityBBoxCache.has(city) ? null : getCityBBox(city)));
 
@@ -1526,24 +1535,27 @@ app.get('/api/bbox-audit-xlsx', requireAuth, async (req, res) => {
       const bbox = cityBBoxCache.get(c.city) ?? null;
       if (!bbox) continue;
       if (!isWithinCityBBox(la, lo, bbox)) {
-        bad.push({ custId: c.custId, custName: c.custName, city: c.city, agentName: c.agentName, manager: c.manager, lat: la, lng: lo,
-          bboxMinLat: bbox.minLat, bboxMaxLat: bbox.maxLat, bboxMinLng: bbox.minLng, bboxMaxLng: bbox.maxLng });
+        bad.push({ custId: c.custId, custName: c.custName, address: c.address || '', city: c.city,
+          agentName: c.agentName, manager: c.manager, lat: la, lng: lo });
       }
     }
     const wb = new ExcelJS.Workbook(); wb.creator = 'COLUMBUS';
     const ws = wb.addWorksheet('GPS Bbox Errors', { views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
     ws.columns = [
-      { header: 'custId',    key: 'custId',    width: 12 },
-      { header: 'שם לקוח',  key: 'custName',  width: 30 },
+      { header: 'מספר לקוח', key: 'custId',    width: 13 },
+      { header: 'שם לקוח',   key: 'custName',  width: 32 },
+      { header: 'כתובת PBI', key: 'address',   width: 30 },
       { header: 'עיר PBI',   key: 'city',      width: 18 },
-      { header: 'סוכן',      key: 'agentName', width: 22 },
+      { header: 'סוכן',      key: 'agentName', width: 24 },
       { header: 'מנהל',      key: 'manager',   width: 12 },
       { header: 'lat PBI',   key: 'lat',       width: 12 },
       { header: 'lng PBI',   key: 'lng',       width: 12 },
     ];
-    ws.getRow(1).font = { bold: true }; ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB71C1C' } };
-    ws.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    ws.autoFilter = { from: 'A1', to: 'G1' };
+    const hdr = ws.getRow(1);
+    hdr.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    hdr.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB71C1C' } };
+    hdr.height = 20;
+    ws.autoFilter = { from: 'A1', to: 'H1' };
     bad.forEach(r => { const row = ws.addRow(r); row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF8E1' } }; });
     const date = new Date().toISOString().slice(0, 10);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
