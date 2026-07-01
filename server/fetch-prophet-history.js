@@ -34,7 +34,8 @@ async function fetchHistory() {
   fs.writeFileSync(path.join(PROPHET_DIR, 'hamlatza_map.json'), JSON.stringify(hamlatzaMap, null, 2));
   console.log(`Saved hamlatza_map.json for ${skus.length} SKUs`);
 
-  // DAX: weekly carton sales for ALL SKUs, 2022 → today (no SKU filter)
+  // DAX: weekly carton sales for ALL SKUs, 2022 → last COMPLETE week only
+  // Exclude current partial week: filter dates < start of current week (Sunday)
   const dax = `
     EVALUATE
     FILTER(
@@ -43,7 +44,10 @@ async function fetchHistory() {
         'KARTIS PARIT'[תאור],
         DIMCALENDAR[Year],
         DIMCALENDAR[Week Number],
-        FILTER(DIMCALENDAR, DIMCALENDAR[Year] >= 2022),
+        FILTER(DIMCALENDAR,
+          DIMCALENDAR[Year] >= 2022 &&
+          DIMCALENDAR[Date] < TODAY() - MOD(WEEKDAY(TODAY(), 1) - 1, 7)
+        ),
         "mkr_k", [מכר קרטון]
       ),
       [mkr_k] > 0

@@ -91,10 +91,17 @@ def week_to_date(year, week):
 
 
 def load_data():
+    from datetime import date
     csv_path  = os.path.join(SCRIPT_DIR, 'weekly_sales.csv')
     top10_path = os.path.join(SCRIPT_DIR, 'top10_skus.json')
     df  = pd.read_csv(csv_path, dtype={'mkt': str})
     top10 = json.load(open(top10_path, encoding='utf-8'))
+    # Remove current incomplete week (never train on partial data)
+    today = date.today()
+    iso_year, iso_week, _ = today.isocalendar()
+    before = len(df)
+    df = df[~((df['year'] == iso_year) & (df['week'] == iso_week))]
+    print(f"Removed {before - len(df)} rows from current incomplete week {iso_year}-W{iso_week:02d}")
     # Build name and hamlatza lookup
     meta = {str(r['mkt']): r for r in top10}
     return df, meta
