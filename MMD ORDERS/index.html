@@ -1975,11 +1975,11 @@ window.openProphetPanel = function(mk, taur, hevra, mkrShvua) {
   const avg8   = prev4.length  ? prev4.reduce((s, x) => s + x.y, 0)  / prev4.length  : 0;
   if (avg8 > 0 && last4.length >= 2 && prev4.length >= 2) {
     const trendPct = Math.round((avg4 / avg8 - 1) * 100);
-    if (trendPct > 10) {
-      badge.textContent = '📈 ביקוש עולה +' + trendPct + '%';
+    if (trendPct > 30) {
+      badge.textContent = '📈 +' + trendPct + '% ביקוש עולה';
       badge.className = 'pp-trend-badge up';
-    } else if (trendPct < -10) {
-      badge.textContent = '📉 ביקוש יורד −' + Math.abs(trendPct) + '%';
+    } else if (trendPct < -30) {
+      badge.textContent = '📉 −' + Math.abs(trendPct) + '% ירידה';
       badge.className = 'pp-trend-badge dn';
     } else {
       badge.textContent = '➡ ביקוש יציב ' + (trendPct >= 0 ? '+' : '') + trendPct + '%';
