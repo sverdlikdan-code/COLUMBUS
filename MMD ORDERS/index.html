@@ -412,40 +412,53 @@
     /* ── Prophet drill-down panel ───────────────────────────── */
     #prophet-panel { position:fixed; top:0; right:-420px; width:400px; height:100vh; background:#0a1628; color:#e8eaf0; z-index:9999; box-shadow:-4px 0 32px rgba(0,0,0,.6); transition:right .28s cubic-bezier(.4,0,.2,1); display:flex; flex-direction:column; font-family:'Segoe UI',sans-serif; }
     #prophet-panel.open { right:0; }
-    #prophet-panel .pp-head { background:#0d1f3a; border-bottom:2px solid #c9a227; padding:18px 20px 14px; }
-    #prophet-panel .pp-head h3 { margin:0 0 4px; font-size:1rem; color:#c9a227; direction:rtl; }
-    #prophet-panel .pp-head .pp-sub { font-size:.75rem; color:#8899aa; direction:rtl; }
-    #prophet-panel .pp-body { flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:16px; }
-    .pp-vs { display:grid; grid-template-columns:1fr auto 1fr; gap:8px; align-items:center; background:rgba(255,255,255,.04); border-radius:10px; padding:16px; }
-    .pp-vs .pp-col { text-align:center; }
-    .pp-vs .pp-col .pp-lbl { font-size:.7rem; color:#8899aa; margin-bottom:4px; }
-    .pp-vs .pp-col .pp-val { font-size:2rem; font-weight:800; line-height:1; }
-    .pp-vs .pp-col .pp-val.gold { color:#c9a227; }
-    .pp-vs .pp-col .pp-val.blue { color:#5eb6f5; }
-    .pp-vs .pp-sep { text-align:center; }
-    .pp-vs .pp-delta { font-size:1.1rem; font-weight:700; }
-    .pp-vs .pp-delta.up { color:#4caf50; }
-    .pp-vs .pp-delta.dn { color:#f44336; }
-    .pp-calc { background:rgba(255,255,255,.04); border-radius:10px; padding:14px 16px; direction:rtl; }
-    .pp-calc .pp-calc-title { font-size:.72rem; color:#c9a227; font-weight:600; margin-bottom:10px; letter-spacing:.05em; }
-    .pp-calc .pp-row { display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid rgba(255,255,255,.06); font-size:.82rem; }
-    .pp-calc .pp-row:last-child { border:none; }
-    .pp-calc .pp-row .pp-k { color:#8899aa; }
-    .pp-calc .pp-row .pp-v { font-weight:600; }
-    .pp-calc .pp-formula { margin-top:10px; padding:10px; background:rgba(201,162,39,.1); border-radius:8px; font-size:.8rem; text-align:center; color:#c9a227; direction:ltr; }
-    .pp-meta { font-size:.72rem; color:#556677; direction:rtl; text-align:center; }
-    #prophet-panel .pp-close { padding:14px 20px; border-top:1px solid rgba(255,255,255,.08); }
+    #prophet-panel .pp-head { background:#0d1f3a; border-bottom:2px solid #c9a227; padding:14px 20px 12px; }
+    #prophet-panel .pp-head h3 { margin:0 0 2px; font-size:.95rem; color:#c9a227; direction:rtl; }
+    #prophet-panel .pp-head .pp-sub { font-size:.7rem; color:#8899aa; direction:rtl; }
+    #prophet-panel .pp-body { flex:1; overflow-y:auto; display:flex; flex-direction:column; }
+    /* ── Sparkline ── */
+    .pp-spark-wrap { padding:12px 16px 6px; border-bottom:1px solid rgba(255,255,255,.06); }
+    .pp-spark-lbl { font-size:.62rem; color:#8899aa; margin-bottom:5px; direction:rtl; }
+    .pp-spark { display:flex; align-items:flex-end; gap:2px; height:56px; }
+    .pp-spark-bar { flex:1; min-width:3px; border-radius:2px 2px 0 0; background:rgba(93,140,200,.5); transition:background .2s; }
+    .pp-spark-bar:hover { background:rgba(93,140,200,.85); }
+    .pp-spark-bar.fc { background:rgba(76,175,80,.45); border:1px dashed rgba(76,175,80,.7); }
+    .pp-spark-bar.fc:hover { background:rgba(76,175,80,.75); }
+    .pp-spark-div { width:1.5px; background:rgba(201,162,39,.6); height:64px; margin:-4px 3px; flex-shrink:0; }
+    .pp-spark-axis { display:flex; justify-content:space-between; font-size:.58rem; color:#556677; padding:3px 1px 0; direction:rtl; }
+    /* ── Metrics 4-tile grid ── */
+    .pp-metrics { display:grid; grid-template-columns:repeat(4,1fr); background:rgba(255,255,255,.03); border-bottom:1px solid rgba(255,255,255,.06); }
+    .pp-metric { padding:10px 8px; text-align:center; border-right:1px solid rgba(255,255,255,.06); }
+    .pp-metric:last-child { border-right:none; }
+    .pp-metric-val { font-size:1.05rem; font-weight:800; line-height:1; }
+    .pp-metric-val.purple { color:#a78bfa; }
+    .pp-metric-val.green  { color:#4caf50; }
+    .pp-metric-val.gold   { color:#c9a227; }
+    .pp-metric-val.red    { color:#ef5350; }
+    .pp-metric-val.dim    { color:#64748b; }
+    .pp-metric-lbl { font-size:.58rem; color:#8899aa; margin-top:3px; direction:rtl; }
+    /* ── Forecast progress bar ── */
+    .pp-fbar-wrap { padding:10px 16px; border-bottom:1px solid rgba(255,255,255,.06); }
+    .pp-fbar-label { display:flex; justify-content:space-between; font-size:.62rem; color:#8899aa; margin-bottom:5px; direction:rtl; }
+    .pp-fbar-haml-lbl { color:#64748b; }
+    .pp-fbar-pro-lbl  { color:#4caf50; }
+    .pp-fbar-track { background:rgba(255,255,255,.06); border-radius:4px; height:9px; position:relative; overflow:hidden; }
+    .pp-fbar-ham { position:absolute; left:0; top:0; height:100%; background:#4a5568; border-radius:4px; }
+    .pp-fbar-pro { position:absolute; left:0; top:0; height:100%; background:#4caf50; border-radius:4px; opacity:.85; }
+    /* ── CI + formula ── */
+    .pp-ci-note { padding:8px 16px; font-size:.72rem; color:#8899aa; direction:rtl; border-bottom:1px solid rgba(255,255,255,.06); }
+    .pp-ci-range { color:#e8eaf0; font-weight:600; }
+    .pp-formula-block { padding:10px 16px; background:rgba(201,162,39,.07); border-bottom:1px solid rgba(255,255,255,.06); direction:ltr; font-size:.75rem; color:#c9a227; text-align:center; }
+    /* ── Footer ── */
+    .pp-foot { padding:10px 16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+    .pp-trend-badge { font-size:.78rem; font-weight:600; padding:5px 10px; border-radius:20px; direction:rtl; }
+    .pp-trend-badge.up   { background:rgba(76,175,80,.15);  color:#4caf50; }
+    .pp-trend-badge.dn   { background:rgba(239,83,80,.15);  color:#ef5350; }
+    .pp-trend-badge.flat { background:rgba(201,162,39,.12); color:#c9a227; }
+    .pp-np-note { font-size:.65rem; color:#556677; direction:rtl; }
+    #prophet-panel .pp-close { padding:12px 20px; border-top:1px solid rgba(255,255,255,.08); }
     #prophet-panel .pp-close button { width:100%; background:transparent; border:1px solid #c9a227; color:#c9a227; padding:9px; border-radius:8px; cursor:pointer; font-size:.85rem; transition:background .15s; }
     #prophet-panel .pp-close button:hover { background:rgba(201,162,39,.15); }
-    .pp-chart { background:rgba(255,255,255,.04); border-radius:10px; padding:14px 16px; direction:rtl; }
-    .pp-chart-svg-wrap { overflow:hidden; border-radius:6px; margin-bottom:8px; }
-    .pp-chart-legend { display:flex; gap:14px; font-size:.7rem; color:#8899aa; margin-bottom:8px; direction:rtl; }
-    .pp-chart-legend span { display:flex; align-items:center; gap:4px; }
-    .pp-chart-legend .dot { width:10px; height:10px; border-radius:2px; flex-shrink:0; }
-    .pp-trend-box { margin-top:8px; padding:8px 12px; border-radius:8px; font-size:.82rem; font-weight:600; text-align:center; direction:rtl; }
-    .pp-trend-box.up   { background:rgba(76,175,80,.13);  color:#4caf50; }
-    .pp-trend-box.dn   { background:rgba(244,67,54,.13);  color:#f44336; }
-    .pp-trend-box.flat { background:rgba(201,162,39,.11); color:#c9a227; }
     #prophet-overlay { position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:9998; display:none; }
     #prophet-overlay.open { display:block; }
     td.col-prophet[data-mk] { cursor:pointer; }
@@ -1899,111 +1912,129 @@ window.openProphetPanel = function(mk, taur, hevra, mkrShvua) {
   const p = window.prophetMap && window.prophetMap[mk];
   if (!p) return;
 
-  const po   = Math.round(p.prophet_order ?? 0);
   const p4f  = p.p4 != null ? p.p4 : null;
-  const p8f  = p.p8 != null ? p.p8 : null;
-  const p4   = p4f != null ? p4f.toFixed(1) : '—';
-  const p8   = p8f != null ? p8f.toFixed(1) : '—';
   const haml = p.hamlatza != null ? Math.round(p.hamlatza) : 0;
   const wn   = p.weeks_nf ?? '—';
   const ek   = p.eilat_k  ?? 0;
   const np   = p.n_points ?? '—';
+  const po   = Math.round(p.prophet_order ?? 0);
   const dp   = p.delta_p4 != null ? Math.round(p.delta_p4) : null;
-  const dpSign = dp != null && dp > 0 ? '+' : '';
-  const dpCls  = dp != null && dp > 0 ? 'up' : dp != null && dp < 0 ? 'dn' : '';
-  const pct    = haml > 0 ? Math.round(Math.abs(po - haml) / haml * 100) : null;
+  const msv  = mkrShvua != null && !isNaN(parseFloat(mkrShvua)) ? parseFloat(mkrShvua) : null;
 
-  const ciLo = p4f != null ? Math.round(p4f * 0.80) : '—';
-  const ciHi = p4f != null ? Math.round(p4f * 1.20) : '—';
+  const ciLo = p4f != null ? Math.round(p4f * 0.80) : null;
+  const ciHi = p4f != null ? Math.round(p4f * 1.20) : null;
 
-  const formulaStr = wn !== '—'
-    ? `P4 × נפח בטחון − מלאי אילת = ${p4} × ${wn} − ${ek} = ${po}`
-    : `Prophet Order = ${po}`;
-
+  // ── Header ─────────────────────────────────────────────────────
   document.getElementById('pp-title').textContent    = taur;
-  document.getElementById('pp-subtitle').textContent = `מק"ט ${mk} · ${hevra || ''}`;
-  document.getElementById('pp-prophet-val').textContent = po > 0 ? po : '0';
-  document.getElementById('pp-haml-val').textContent    = haml > 0 ? haml : '—';
-  const deltaEl = document.getElementById('pp-delta');
+  document.getElementById('pp-subtitle').textContent = 'מק"ט ' + mk + ' · ' + (hevra || '');
+
+  // ── Metrics 4-tile grid ─────────────────────────────────────────
+  const avgEl   = document.getElementById('pp-avg-val');
+  const p4El    = document.getElementById('pp-p4-val');
+  const hamlEl  = document.getElementById('pp-haml-val');
+  const deltaEl = document.getElementById('pp-delta-val');
+
+  avgEl.textContent  = msv != null ? msv.toFixed(1) : '—';
+  p4El.textContent   = p4f != null ? p4f.toFixed(1) : '—';
+  hamlEl.textContent = haml > 0 ? haml : '—';
+
   if (dp != null) {
-    deltaEl.textContent = dpSign + dp + (pct != null ? ' (' + pct + '%)' : '');
-    deltaEl.className = 'pp-delta ' + dpCls;
+    const sign = dp > 0 ? '+' : '';
+    deltaEl.textContent = sign + dp;
+    deltaEl.className   = 'pp-metric-val ' + (dp > 0 ? 'green' : dp < 0 ? 'red' : 'dim');
   } else {
-    deltaEl.textContent = '—'; deltaEl.className = 'pp-delta';
+    deltaEl.textContent = '—';
+    deltaEl.className   = 'pp-metric-val dim';
   }
-  document.getElementById('pp-p4').textContent    = p4;
-  document.getElementById('pp-p8').textContent    = p8;
-  document.getElementById('pp-wn').textContent    = wn;
-  document.getElementById('pp-ek').textContent    = ek;
-  document.getElementById('pp-np').textContent    = np + ' שבועות';
-  document.getElementById('pp-ci').textContent    = ciLo + '–' + ciHi + ' קרט/שבוע (80% CI)';
-  document.getElementById('pp-formula').textContent = formulaStr;
 
-  // ── Time-series chart ──────────────────────────────────────────
-  const msv        = mkrShvua != null && !isNaN(parseFloat(mkrShvua)) ? parseFloat(mkrShvua) : null;
-  const chartBlock = document.getElementById('pp-chart-block');
-  const chartSvg   = document.getElementById('pp-chart-svg');
-  const trendBox   = document.getElementById('pp-trend-box');
-  const avgLabel   = document.getElementById('pp-avg-label');
-  const series     = p.series;
+  // ── Dual progress bar ───────────────────────────────────────────
+  const maxBar = Math.max(haml, po, 1);
+  document.getElementById('pp-fbar-haml-lbl').textContent  = '■ המלצה: ' + (haml > 0 ? haml : '—');
+  document.getElementById('pp-fbar-pro-lbl').textContent   = '■ Prophet: ' + po;
+  document.getElementById('pp-fbar-ham').style.width = (haml > 0 ? Math.round(haml / maxBar * 100) : 0) + '%';
+  document.getElementById('pp-fbar-pro').style.width = Math.round(po / maxBar * 100) + '%';
 
-  const hasChart = series && Array.isArray(series.actual) && series.actual.length > 0;
-  if (hasChart) {
-    const actual  = series.actual;
-    const fc      = Array.isArray(series.fc) ? series.fc : [];
-    const allBars = actual.map(d => ({ y: d.y, type: 'actual' }))
-                          .concat(fc.map(d => ({ y: d.y, type: 'fc' })));
+  // ── CI note ─────────────────────────────────────────────────────
+  document.getElementById('pp-ci').textContent = ciLo != null ? ciLo + ' – ' + ciHi + ' קרט/שבוע' : '—';
 
-    const maxY   = Math.max(...allBars.map(b => b.y), 1);
-    const n      = allBars.length;
-    const W      = 360;
-    const H      = 100;
-    const barW   = Math.max(4, Math.floor((W - (n - 1) * 2) / n));
-    const gap    = Math.max(1, Math.floor((W - n * barW) / Math.max(n - 1, 1)));
+  // ── Formula ─────────────────────────────────────────────────────
+  document.getElementById('pp-formula').textContent = wn !== '—'
+    ? 'P4 × ' + wn + ' שבועות − ' + ek + ' אילת = ' + po + ' קרטון'
+    : 'Prophet Order = ' + po;
 
-    let rects = '';
-    allBars.forEach(function(bar, i) {
-      const x = i * (barW + gap);
-      const h = Math.max(2, Math.round(bar.y / maxY * H));
-      const y = H - h;
-      const fill = bar.type === 'actual' ? '#3d6ea8' : '#4caf50';
-      rects += '<rect x="' + x + '" y="' + y + '" width="' + barW + '" height="' + h + '" fill="' + fill + '" rx="2"/>';
+  // ── n_points note ───────────────────────────────────────────────
+  document.getElementById('pp-np').textContent = np + ' שבועות היסטוריה';
+
+  // ── Trend badge ─────────────────────────────────────────────────
+  const badge = document.getElementById('pp-trend-badge');
+  const ratio = (msv != null && msv > 0 && p4f != null) ? p4f / msv : null;
+  if (ratio != null && ratio > 1.10) {
+    badge.textContent = '📈 ביקוש עולה +' + Math.round((ratio - 1) * 100) + '%';
+    badge.className = 'pp-trend-badge up';
+  } else if (ratio != null && ratio < 0.90) {
+    badge.textContent = '📉 ביקוש יורד −' + Math.round((1 - ratio) * 100) + '%';
+    badge.className = 'pp-trend-badge dn';
+  } else {
+    badge.textContent = '➡ ביקוש יציב ועולה';
+    badge.className = 'pp-trend-badge flat';
+  }
+
+  // ── Sparkline chart ─────────────────────────────────────────────
+  const sparkEl = document.getElementById('pp-spark');
+  const series  = p.series;
+  sparkEl.innerHTML = '';
+
+  if (series && Array.isArray(series.actual) && series.actual.length > 0) {
+    const actual = series.actual;
+    const fc     = Array.isArray(series.fc) ? series.fc : [];
+    const maxY   = Math.max(...actual.map(d => d.y), ...fc.map(d => d.y), 1);
+
+    actual.forEach(function(d) {
+      const bar = document.createElement('div');
+      bar.className = 'pp-spark-bar';
+      bar.style.height = Math.max(4, Math.round(d.y / maxY * 100)) + '%';
+      bar.title = d.y + ' קרט';
+      sparkEl.appendChild(bar);
     });
 
-    // "Today" marker line between actual and forecast
-    const todayX = actual.length * (barW + gap) - Math.ceil(gap / 2);
-    rects += '<line x1="' + todayX + '" y1="0" x2="' + todayX + '" y2="' + H + '" stroke="#c9a227" stroke-width="1.5" stroke-dasharray="3,2"/>';
-    rects += '<text x="' + (todayX + 3) + '" y="12" fill="#c9a227" font-size="9" font-family="Segoe UI,sans-serif">היום</text>';
-
-    const totalW = (n - 1) * (barW + gap) + barW;
-    chartSvg.innerHTML = '<svg viewBox="0 0 ' + totalW + ' ' + H + '" preserveAspectRatio="none" style="width:100%;height:110px;display:block">' + rects + '</svg>';
-
-    if (msv != null) avgLabel.textContent = 'ממוצע ' + msv.toFixed(1) + '/שב׳';
-    else avgLabel.textContent = '';
-
-    const ratio = (msv != null && msv > 0 && p4f != null) ? p4f / msv : null;
-    if (ratio != null && ratio > 1.10) {
-      trendBox.textContent = '📈 ביקוש עולה — Prophet צופה +' + Math.round((ratio - 1) * 100) + '% מהממוצע';
-      trendBox.className = 'pp-trend-box up';
-    } else if (ratio != null && ratio < 0.90) {
-      trendBox.textContent = '📉 ביקוש יורד — Prophet צופה −' + Math.round((1 - ratio) * 100) + '% מהממוצע';
-      trendBox.className = 'pp-trend-box dn';
-    } else {
-      trendBox.textContent = '➡ ביקוש יציב — Prophet בקנה אחד עם הממוצע';
-      trendBox.className = 'pp-trend-box flat';
+    if (fc.length > 0) {
+      const div = document.createElement('div');
+      div.className = 'pp-spark-div';
+      sparkEl.appendChild(div);
+      fc.forEach(function(d) {
+        const bar = document.createElement('div');
+        bar.className = 'pp-spark-bar fc';
+        bar.style.height = Math.max(4, Math.round(d.y / maxY * 100)) + '%';
+        bar.title = '🔮 ' + d.y + ' קרט';
+        sparkEl.appendChild(bar);
+      });
     }
-    chartBlock.style.display = 'block';
-  } else if (msv != null && p4f != null) {
-    // Fallback: no series yet — show text summary until next Prophet build
-    chartSvg.innerHTML = '<div style="color:#556677;font-size:.75rem;padding:12px 0;direction:rtl">גרף יהיה זמין לאחר עדכון Prophet הבא</div>';
-    avgLabel.textContent = msv != null ? 'ממוצע ' + msv.toFixed(1) + '/שב׳' : '';
-    const ratio = msv > 0 ? p4f / msv : null;
-    if (ratio != null && ratio > 1.10) { trendBox.textContent = '📈 ביקוש עולה +' + Math.round((ratio-1)*100) + '%'; trendBox.className = 'pp-trend-box up'; }
-    else if (ratio != null && ratio < 0.90) { trendBox.textContent = '📉 ביקוש יורד −' + Math.round((1-ratio)*100) + '%'; trendBox.className = 'pp-trend-box dn'; }
-    else { trendBox.textContent = '➡ ביקוש יציב'; trendBox.className = 'pp-trend-box flat'; }
-    chartBlock.style.display = 'block';
+    document.getElementById('pp-spark-lbl').textContent =
+      actual.length + ' שבועות אחרונים + תחזית ' + fc.length + 'w';
   } else {
-    chartBlock.style.display = 'none';
+    // No series yet — placeholder bars using p4 / msv
+    const ph = [msv, msv, msv, msv, msv, msv, msv, msv,
+                msv, msv, msv, msv].map(function(v) { return v || 0; });
+    const maxPh = Math.max(...ph, p4f || 1, 1);
+    ph.forEach(function(v) {
+      const bar = document.createElement('div');
+      bar.className = 'pp-spark-bar';
+      bar.style.height = Math.max(4, Math.round(v / maxPh * 100)) + '%';
+      bar.style.opacity = '0.35';
+      sparkEl.appendChild(bar);
+    });
+    const div = document.createElement('div');
+    div.className = 'pp-spark-div';
+    sparkEl.appendChild(div);
+    if (p4f != null) {
+      for (var i = 0; i < 4; i++) {
+        const bar = document.createElement('div');
+        bar.className = 'pp-spark-bar fc';
+        bar.style.height = Math.max(4, Math.round(p4f / maxPh * 100)) + '%';
+        sparkEl.appendChild(bar);
+      }
+    }
+    document.getElementById('pp-spark-lbl').textContent = 'גרף מלא יהיה זמין לאחר עדכון Prophet הבא';
   }
 
   document.getElementById('prophet-overlay').classList.add('open');
@@ -2023,48 +2054,41 @@ window.closeProphetPanel = function() {
     <div class="pp-sub" id="pp-subtitle"></div>
   </div>
   <div class="pp-body">
-    <div class="pp-vs">
-      <div class="pp-col">
-        <div class="pp-lbl">🔮 Prophet הזמנה</div>
-        <div class="pp-val gold" id="pp-prophet-val">—</div>
-        <div style="font-size:.7rem;color:#8899aa;margin-top:2px">קרטון</div>
+    <!-- Sparkline chart -->
+    <div class="pp-spark-wrap">
+      <div class="pp-spark-lbl" id="pp-spark-lbl">26 שבועות אחרונים + תחזית 4w</div>
+      <div class="pp-spark" id="pp-spark"></div>
+      <div class="pp-spark-axis"><span>26w לפני</span><span>↑ היום</span><span>+4w</span></div>
+    </div>
+    <!-- 4-tile metrics grid -->
+    <div class="pp-metrics">
+      <div class="pp-metric"><div class="pp-metric-val purple" id="pp-avg-val">—</div><div class="pp-metric-lbl">ממוצע שבועי</div></div>
+      <div class="pp-metric"><div class="pp-metric-val green"  id="pp-p4-val">—</div><div class="pp-metric-lbl">Prophet P4</div></div>
+      <div class="pp-metric"><div class="pp-metric-val dim"    id="pp-haml-val">—</div><div class="pp-metric-lbl">המלצה נוכחית</div></div>
+      <div class="pp-metric"><div class="pp-metric-val"        id="pp-delta-val">—</div><div class="pp-metric-lbl">דלתא</div></div>
+    </div>
+    <!-- Dual progress bar -->
+    <div class="pp-fbar-wrap">
+      <div class="pp-fbar-label">
+        <span id="pp-fbar-haml-lbl" class="pp-fbar-haml-lbl"></span>
+        <span id="pp-fbar-pro-lbl"  class="pp-fbar-pro-lbl"></span>
       </div>
-      <div class="pp-sep">
-        <div class="pp-delta" id="pp-delta"></div>
-        <div style="font-size:.65rem;color:#556677;margin-top:4px">vs המלצה</div>
-      </div>
-      <div class="pp-col">
-        <div class="pp-lbl">📊 המלצה PBI</div>
-        <div class="pp-val blue" id="pp-haml-val">—</div>
-        <div style="font-size:.7rem;color:#8899aa;margin-top:2px">קרטון</div>
+      <div class="pp-fbar-track">
+        <div class="pp-fbar-ham" id="pp-fbar-ham"></div>
+        <div class="pp-fbar-pro" id="pp-fbar-pro"></div>
       </div>
     </div>
-    <div class="pp-calc">
-      <div class="pp-calc-title">⚙ חישוב הזמנה Prophet</div>
-      <div class="pp-row"><span class="pp-k">תחזית P4 (ממוצע שבועי)</span><span class="pp-v" id="pp-p4">—</span></div>
-      <div class="pp-row"><span class="pp-k">תחזית P8 (ממוצע שבועי)</span><span class="pp-v" id="pp-p8">—</span></div>
-      <div class="pp-row"><span class="pp-k">נפח מלאי בטחון (שבועות)</span><span class="pp-v" id="pp-wn">—</span></div>
-      <div class="pp-row"><span class="pp-k">מלאי אילת (קרטון)</span><span class="pp-v" id="pp-ek">—</span></div>
-      <div class="pp-formula" id="pp-formula"></div>
+    <!-- CI -->
+    <div class="pp-ci-note">רווח בטחון 80%: <span class="pp-ci-range" id="pp-ci">—</span></div>
+    <!-- Formula -->
+    <div class="pp-formula-block" id="pp-formula"></div>
+    <!-- Footer: trend badge + data points -->
+    <div class="pp-foot">
+      <span class="pp-trend-badge flat" id="pp-trend-badge">—</span>
+      <span class="pp-np-note" id="pp-np"></span>
     </div>
-    <div class="pp-calc">
-      <div class="pp-calc-title">📈 מידע מודל</div>
-      <div class="pp-row"><span class="pp-k">נקודות נתון</span><span class="pp-v" id="pp-np">—</span></div>
-      <div class="pp-row"><span class="pp-k">רווח בטחון</span><span class="pp-v" id="pp-ci">—</span></div>
-    </div>
-    <div class="pp-chart" id="pp-chart-block">
-      <div class="pp-calc-title">📊 26 שבועות אחרונים + תחזית 4w</div>
-      <div class="pp-chart-legend">
-        <span><span class="dot" style="background:#3d6ea8"></span>מכירות בפועל</span>
-        <span><span class="dot" style="background:#4caf50"></span>תחזית Prophet</span>
-        <span id="pp-avg-label" style="margin-right:auto;color:#c9a227;font-weight:600"></span>
-      </div>
-      <div class="pp-chart-svg-wrap" id="pp-chart-svg"></div>
-      <div id="pp-trend-box" class="pp-trend-box flat"></div>
-    </div>
-    <div class="pp-meta">Prophet ML · Meta · עדכון שבועי<br>היסטוריה מ-2022 · סגנוניות ישראל + ביקוש</div>
   </div>
-  <div class="pp-close"><button onclick="closeProphetPanel()">✕ סגור</button></div>
+  <div class="pp-close"><button type="button" onclick="closeProphetPanel()">✕ סגור</button></div>
 </div>
 </body>
 </html>
