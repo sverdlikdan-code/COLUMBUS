@@ -172,6 +172,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json({ limit: '512kb' }));
+app.use((req, res, next) => { if (req.method === 'POST') console.log(`[POST] ${req.path} sess=${req.headers['x-session']?.slice(0,8)||'none'}`); next(); });
 
 // ── HTTP SECURITY HEADERS ──────────────────────────────────────────────────
 app.use((req, res, next) => {
