@@ -1360,33 +1360,33 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
           const boldB  = { bold:true, size:11 };
           const gray   = { color:{ argb:'FF'+DGRAY }, size:10 };
 
-          // Title row
-          ws.mergeCells('A1:G1');
+          // Title row — centerContinuous instead of merge
+          const nowStr = new Date().toLocaleString('he-IL');
           const title = ws.getCell('A1');
           title.value = `הזמנת מקרר חדשה — ${order.custName}`;
           title.font = { ...boldW, size:14 }; title.fill = hFill;
-          title.alignment = { horizontal:'right', vertical:'middle' };
+          title.alignment = { horizontal:'centerContinuous', vertical:'middle' };
           ws.getRow(1).height = 32;
 
-          // Info rows
+          // Info rows — no merge, label col A, value col B
           const info = [
             ['לקוח', order.custName], ['עיר', order.city],
             ['סוכן', order.agentName], ['מנהל', order.manager],
             ['איש קשר', order.contactName], ['טלפון', order.phone],
             ['מיקום', order.location],
-            ['תאריך הזמנה', new Date(order.submittedAt).toLocaleString('he-IL')],
+            ['תאריך הזמנה', nowStr],
             ['מספר הזמנה', String(id)],
           ];
           info.forEach(([label, val], i) => {
             const r = i + 2;
-            ws.mergeCells(`B${r}:G${r}`);
+            const altFill = i % 2 === 0 ? gFill : { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFFFFF' } };
             const lCell = ws.getCell(`A${r}`); lCell.value = label;
             lCell.font = gray; lCell.alignment = { horizontal:'right' };
-            lCell.fill = i % 2 === 0 ? gFill : { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFFFFF' } };
+            lCell.fill = altFill;
             const vCell = ws.getCell(`B${r}`); vCell.value = val || '';
             vCell.font = i === 0 ? boldB : { size:11 };
             vCell.alignment = { horizontal:'right' };
-            vCell.fill = lCell.fill;
+            vCell.fill = altFill;
           });
 
           // Gap row
@@ -1407,8 +1407,8 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
           // Equipment rows
           order.mekarerim.forEach((m, i) => {
             const r = eqHdrR + 1 + i;
-            const modelStr = m.newModel ? `${m.newModel}${m.newModelName && m.newModelName !== m.newModel ? ' — ' + m.newModelName : ''}` : '';
-            const returnStr = m.returnModel ? `${m.returnModel}${m.returnModelName && m.returnModelName !== m.returnModel ? ' — ' + m.returnModelName : ''}` : '';
+            const modelStr = m.newModelName || m.newModel || '';
+            const returnStr = m.returnModelName || m.returnModel || '';
             const rowVals = [m.action||'', modelStr, m.salot||0, m.agala ? '✓' : '', m.supplyDate||'', returnStr, m.fault||''];
             const rowFill = i%2===0 ? gFill : { type:'pattern', pattern:'solid', fgColor:{argb:'FFFFFFFF'} };
             rowVals.forEach((v, ci) => {
