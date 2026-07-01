@@ -2074,10 +2074,10 @@ window.openProphetPanel = function(mk, taur, hevra, mkrShvua) {
     (function() {
       function isoWY(ds) {
         var d = new Date(ds + 'T12:00:00');
-        d.setDate(d.getDate() + 4 - (d.getDay() || 7));
-        var y = d.getFullYear();
-        var w = Math.ceil((((d - new Date(y,0,1))/86400000)+1)/7);
-        return 'W' + w + "\n'" + String(y).slice(2);
+        var dd = String(d.getDate()).padStart(2,'0');
+        var mm = String(d.getMonth()+1).padStart(2,'0');
+        var yy = String(d.getFullYear()).slice(2);
+        return dd + '/' + mm + "\n'" + yy;
       }
       var ax = document.getElementById('pp-spark-axis-dyn');
       if (!ax) return;
