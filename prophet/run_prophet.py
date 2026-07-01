@@ -316,6 +316,12 @@ def main():
         if p4 is not None: p4 = max(0.0, p4)
         if p8 is not None: p8 = max(0.0, p8)
 
+        # Sanity cap: if P4 > 4× historical average → model anomaly, discard
+        if avg_weekly and avg_weekly > 0:
+            if p4 is not None and p4 > avg_weekly * 4:
+                print(f"    [ANOMALY] P4={p4} >> 4x avg={avg_weekly*4:.1f} -> null")
+                p4 = None; p8 = None
+
         hamlatza  = info.get('hamlatza')
         delta_p4  = round(p4 - hamlatza, 1) if p4 is not None and hamlatza is not None else None
         delta_p8  = round(p8 - hamlatza, 1) if p8 is not None and hamlatza is not None else None
