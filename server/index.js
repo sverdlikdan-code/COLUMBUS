@@ -1344,24 +1344,113 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
     writeLog({ ts: new Date().toISOString(), event: 'mekarer-order', id,
       custId: String(order.custId), agentCode: req.session?.agentCode || null, ip: getRealIp(req) });
     res.json({ ok: true, id });
-    // Send email notification (fire-and-forget)
+    // Send email notification with Excel attachment (fire-and-forget)
     if (resend && process.env.NOTIFY_EMAIL) {
-      const mekarerRows = order.mekarerim.map(m =>
-        `<tr>
-          <td style="padding:6px 8px;border-bottom:1px solid #eee">${m.action || ''}</td>
-          <td style="padding:6px 8px;border-bottom:1px solid #eee">${m.newModel ? `${m.newModel}${m.newModelName && m.newModelName !== m.newModel ? ' — ' + m.newModelName : ''}` : ''}</td>
-          <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:center">${m.salot || 0}</td>
-          <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:center">${m.agala ? '✓' : ''}</td>
-          <td style="padding:6px 8px;border-bottom:1px solid #eee">${m.supplyDate || ''}</td>
-          <td style="padding:6px 8px;border-bottom:1px solid #eee">${m.fault || ''}</td>
-        </tr>`
-      ).join('');
-      resend.emails.send({
-        from: process.env.RESEND_FROM || 'orders@diler.co.il',
-        to: process.env.NOTIFY_EMAIL.split(',').map(e => e.trim()),
-        subject: `הזמנת מקרר חדשה — ${order.custName} (${order.city})`,
-        html: `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
-<h2 style="background:#1a73e8;color:#fff;padding:16px;border-radius:8px 8px 0 0;margin:0">🧊 הזמנת מקרר חדשה</h2>
+      (async () => {
+        try {
+          // ── Build Excel ──────────────────────────────────────────────
+          const wb = new ExcelJS.Workbook();
+          wb.creator = 'COLUMBUS'; wb.created = new Date();
+          const ws = wb.addWorksheet('הזמנת מקרר', { views: [{ rightToLeft: true }] });
+
+          const BLUE = '1A3F7C', WHITE = 'FFFFFF', LGRAY = 'F2F4F7', DGRAY = '555555';
+          const hFill  = { type:'pattern', pattern:'solid', fgColor:{ argb: 'FF'+BLUE } };
+          const gFill  = { type:'pattern', pattern:'solid', fgColor:{ argb: 'FF'+LGRAY } };
+          const boldW  = { bold:true, color:{ argb:'FF'+WHITE }, size:12 };
+          const boldB  = { bold:true, size:11 };
+          const gray   = { color:{ argb:'FF'+DGRAY }, size:10 };
+
+          // Title row
+          ws.mergeCells('A1:G1');
+          const title = ws.getCell('A1');
+          title.value = `הזמנת מקרר חדשה — ${order.custName}`;
+          title.font = { ...boldW, size:14 }; title.fill = hFill;
+          title.alignment = { horizontal:'right', vertical:'middle' };
+          ws.getRow(1).height = 32;
+
+          // Info rows
+          const info = [
+            ['לקוח', order.custName], ['עיר', order.city],
+            ['סוכן', order.agentName], ['מנהל', order.manager],
+            ['איש קשר', order.contactName], ['טלפון', order.phone],
+            ['מיקום', order.location],
+            ['תאריך הזמנה', new Date(order.submittedAt).toLocaleString('he-IL')],
+            ['מספר הזמנה', String(id)],
+          ];
+          info.forEach(([label, val], i) => {
+            const r = i + 2;
+            ws.mergeCells(`B${r}:G${r}`);
+            const lCell = ws.getCell(`A${r}`); lCell.value = label;
+            lCell.font = gray; lCell.alignment = { horizontal:'right' };
+            lCell.fill = i % 2 === 0 ? gFill : { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFFFFF' } };
+            const vCell = ws.getCell(`B${r}`); vCell.value = val || '';
+            vCell.font = i === 0 ? boldB : { size:11 };
+            vCell.alignment = { horizontal:'right' };
+            vCell.fill = lCell.fill;
+          });
+
+          // Gap row
+          const gapR = info.length + 2;
+          ws.getRow(gapR).height = 8;
+
+          // Equipment header
+          const eqHdrR = gapR + 1;
+          const eqCols = ['פעולה','דגם','סלות','עגלה','תאריך אספקה','דגם החזרה','תקלה'];
+          eqCols.forEach((h, ci) => {
+            const cell = ws.getCell(eqHdrR, ci + 1);
+            cell.value = h; cell.font = boldW; cell.fill = hFill;
+            cell.alignment = { horizontal:'right', vertical:'middle' };
+            cell.border = { bottom:{ style:'thin', color:{ argb:'FFFFFFFF' } } };
+          });
+          ws.getRow(eqHdrR).height = 22;
+
+          // Equipment rows
+          order.mekarerim.forEach((m, i) => {
+            const r = eqHdrR + 1 + i;
+            const modelStr = m.newModel ? `${m.newModel}${m.newModelName && m.newModelName !== m.newModel ? ' — ' + m.newModelName : ''}` : '';
+            const returnStr = m.returnModel ? `${m.returnModel}${m.returnModelName && m.returnModelName !== m.returnModel ? ' — ' + m.returnModelName : ''}` : '';
+            const rowVals = [m.action||'', modelStr, m.salot||0, m.agala ? '✓' : '', m.supplyDate||'', returnStr, m.fault||''];
+            const rowFill = i%2===0 ? gFill : { type:'pattern', pattern:'solid', fgColor:{argb:'FFFFFFFF'} };
+            rowVals.forEach((v, ci) => {
+              const cell = ws.getCell(r, ci+1); cell.value = v; cell.fill = rowFill;
+              cell.alignment = { horizontal: (ci===2||ci===3) ? 'center' : 'right', vertical:'middle' };
+              cell.border = { bottom:{ style:'hair', color:{ argb:'FFDDDDDD' } } };
+            });
+            ws.getRow(r).height = 20;
+          });
+
+          // Column widths
+          [28, 38, 8, 8, 16, 32, 24].forEach((w, i) => { ws.getColumn(i+1).width = w; });
+
+          // Freeze header row + autofilter
+          ws.views[0].state = 'frozen'; ws.views[0].ySplit = eqHdrR;
+          ws.autoFilter = { from:{ row:eqHdrR, column:1 }, to:{ row:eqHdrR, column:7 } };
+
+          const xlsBuf = await wb.xlsx.writeBuffer();
+          const xlsB64 = Buffer.from(xlsBuf).toString('base64');
+          const safeDate = new Date().toISOString().slice(0,10);
+          const safeName = (order.custName || 'order').replace(/[^\w֐-׿ ]/g,'').trim().slice(0,30);
+
+          // ── HTML rows ────────────────────────────────────────────────
+          const mekarerRows = order.mekarerim.map(m => {
+            const modelStr = m.newModel ? `${m.newModel}${m.newModelName && m.newModelName !== m.newModel ? ' — ' + m.newModelName : ''}` : '';
+            return `<tr>
+              <td style="padding:6px 8px;border-bottom:1px solid #eee">${m.action||''}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid #eee">${modelStr}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:center">${m.salot||0}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:center">${m.agala?'✓':''}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid #eee">${m.supplyDate||''}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid #eee">${m.fault||''}</td>
+            </tr>`;
+          }).join('');
+
+          await resend.emails.send({
+            from: process.env.RESEND_FROM || 'orders@sverdlik-apps.site',
+            to: process.env.NOTIFY_EMAIL.split(',').map(e => e.trim()),
+            subject: `הזמנת מקרר חדשה — ${order.custName} (${order.city})`,
+            attachments: [{ filename: `mekarer-${safeDate}-${safeName}.xlsx`, content: xlsB64 }],
+            html: `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+<h2 style="background:#1A3F7C;color:#fff;padding:16px;border-radius:8px 8px 0 0;margin:0">🧊 הזמנת מקרר חדשה</h2>
 <div style="border:1px solid #ddd;border-top:none;border-radius:0 0 8px 8px;padding:20px">
 <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
 <tr><td style="color:#666;padding:4px 0;width:120px">לקוח</td><td style="font-weight:bold">${order.custName}</td></tr>
@@ -1377,9 +1466,11 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
 <tr style="background:#f5f5f5"><th style="padding:6px 8px;text-align:right">פעולה</th><th style="padding:6px 8px;text-align:right">דגם</th><th style="padding:6px 8px;text-align:center">סלות</th><th style="padding:6px 8px;text-align:center">עגלה</th><th style="padding:6px 8px;text-align:right">תאריך אספקה</th><th style="padding:6px 8px;text-align:right">תקלה</th></tr>
 ${mekarerRows}
 </table>
-<p style="margin-top:20px;font-size:12px;color:#999">מזהה הזמנה: ${id} · ${new Date().toLocaleString('he-IL')}</p>
+<p style="margin-top:16px;font-size:12px;color:#aaa">📎 מצורף קובץ Excel · מזהה: ${id} · ${new Date().toLocaleString('he-IL')}</p>
 </div></div>`
-      }).catch(e => console.error('[resend]', e.message));
+          });
+        } catch(e) { console.error('[resend]', e.message); }
+      })();
     }
   } catch (err) {
     console.error(err); res.status(500).json({ error: 'server_error' });
