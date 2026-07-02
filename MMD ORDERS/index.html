@@ -1866,6 +1866,7 @@
     hist[idx].items.forEach(item => {
       sv[item.mk] = sv[item.mk] || {};
       sv[item.mk].k = item.qty;
+      if (item.tukuf) sessionP[item.mk] = item.tukuf;
     });
     save(sv);
     document.getElementById('hist-dd').classList.remove('open');
