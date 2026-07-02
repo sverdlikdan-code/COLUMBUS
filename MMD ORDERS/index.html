@@ -1670,9 +1670,9 @@
       };
 
       const GROUPS = [
-        { name:'FORMULA',        tab:'FF37474F', hdr:'37474F', fn: r => r.hevra === 'FORMULA',                              tbl:'Formula' },
-        { name:'INTER',          tab:'FF1B5E20', hdr:'1B5E20', fn: r => r.hevra === 'INTER',                                tbl:'Inter'   },
-        { name:'ICE BDD + MISH', tab:'FF0D47A1', hdr:'0D47A1', fn: r => r.hevra === 'ICE bdd' || r.hevra === 'ICE MISH',   tbl:'Ice'     },
+        { name:'FORMULA',        tab:'FF2E7D32', hdr:'2E7D32', ord:'2E7D32', fn: r => r.hevra === 'FORMULA',                              tbl:'Formula' },
+        { name:'INTER',          tab:'FFE65100', hdr:'E65100', ord:'E65100', fn: r => r.hevra === 'INTER',                                tbl:'Inter'   },
+        { name:'ICE BDD + MISH', tab:'FF1565C0', hdr:'1565C0', ord:'1565C0', fn: r => r.hevra === 'ICE bdd' || r.hevra === 'ICE MISH',   tbl:'Ice'     },
       ];
 
       for (const grp of GROUPS) {
@@ -1733,6 +1733,13 @@
           rows: tableData,
         });
         ws.getRow(5).height = 26;
+        // Override table header row with company color (addTable provides autoFilter)
+        for (let ci = 1; ci <= 9; ci++) {
+          const c = ws.getCell(5, ci);
+          c.fill = solid(grp.hdr);
+          c.font = { bold:true, color:{ argb:'FFFFFFFF' }, size:10, name:'Segoe UI' };
+          c.alignment = { vertical:'middle', horizontal:'center', readingOrder:'rightToLeft' };
+        }
 
         sheetRows.forEach((r, i) => {
           const mk   = String(r.mkt ?? '');
@@ -1748,8 +1755,8 @@
           }
           row.getCell(6).font = { size:10 };
           row.getCell(7).font = { size:10 };
-          row.getCell(8).font = { size:12, bold:true, color:{ argb:eff>0?'FFBF360C':'FF999999' } };
-          if (eff > 0) row.getCell(8).border = bdr('medium','BF360C');
+          row.getCell(8).font = { size:12, bold:true, color:{ argb:eff>0?('FF'+grp.ord):'FF999999' } };
+          if (eff > 0) row.getCell(8).border = bdr('medium', grp.ord);
           if (tOpts.length > 1 && !sessionP[mk]) {
             row.getCell(9).fill   = solid('FFCDD2');
             row.getCell(9).font   = { size:10, bold:true, color:{ argb:'FFB71C1C' } };
