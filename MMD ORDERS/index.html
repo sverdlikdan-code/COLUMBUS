@@ -1644,7 +1644,7 @@
       await Promise.all(orderedRows.map(r => new Promise(resolve => {
         const mk = String(r.mkt ?? '');
         const img = new Image();
-        img.crossOrigin = 'anonymous';
+        // No crossOrigin — same-origin proxy, cookies needed for mmdGuard, canvas not tainted
         img.onload = () => {
           try {
             const c = document.createElement('canvas'); c.width = c.height = 40;
@@ -1676,7 +1676,8 @@
       ];
 
       for (const grp of GROUPS) {
-        const sheetRows = orderedRows.filter(grp.fn);
+        const sheetRows = orderedRows.filter(grp.fn)
+          .sort((a, b) => (a.hevra||'').localeCompare(b.hevra||'') || (a.mishpacha||'').localeCompare(b.mishpacha||''));
         if (sheetRows.length === 0) continue;
 
         const ws = wb.addWorksheet(grp.name, {
@@ -1723,7 +1724,7 @@
         ws.addTable({
           name: 'MMDOrder' + grp.tbl,
           ref: 'A5', headerRow: true, totalsRow: true,
-          style: { theme: 'TableStyleLight2', showRowStripes: true },
+          style: { theme: null, showRowStripes: false },
           columns: [
             { name: 'מק"ט' }, { name: 'משפחת מוצר' }, { name: 'חברה' }, { name: 'שם מוצר' },
             { name: 'תמונה' }, { name: 'מלאי MMD' }, { name: 'מלאי אשדוד' },
