@@ -91,17 +91,21 @@ def week_to_date(year, week):
 
 
 def load_data():
-    from datetime import date
+    from datetime import date, timedelta
     csv_path  = os.path.join(SCRIPT_DIR, 'weekly_sales.csv')
     top10_path = os.path.join(SCRIPT_DIR, 'top10_skus.json')
     df  = pd.read_csv(csv_path, dtype={'mkt': str})
     top10 = json.load(open(top10_path, encoding='utf-8'))
-    # Remove current incomplete week (never train on partial data)
+    # Remove current + future incomplete weeks — filter by converted date, not week number
+    # PBI week numbers use Sunday-start; ISO uses Monday-start → mismatch if filtering by number
     today = date.today()
-    iso_year, iso_week, _ = today.isocalendar()
+    week_start_monday = today - timedelta(days=today.weekday())  # Monday of current week
+    cutoff = pd.Timestamp(week_start_monday)
+    # Convert year+week to ds temporarily for filtering
+    df['_ds'] = df.apply(lambda r: week_to_date(r['year'], r['week']), axis=1)
     before = len(df)
-    df = df[~((df['year'] == iso_year) & (df['week'] == iso_week))]
-    print(f"Removed {before - len(df)} rows from current incomplete week {iso_year}-W{iso_week:02d}")
+    df = df[df['_ds'] < cutoff].drop(columns=['_ds'])
+    print(f"Removed {before - len(df)} rows with week_start >= {week_start_monday} (current/future weeks)")
     # Build name and hamlatza lookup
     meta = {str(r['mkt']): r for r in top10}
     return df, meta
