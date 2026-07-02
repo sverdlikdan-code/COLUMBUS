@@ -66,6 +66,40 @@ s = s.replace(/(\d+)ג['‘’׳ʼ´`]/g, '$1 ג ');
 - `server/index.js` — endpoint `/pbi/mmd-orders`, функции `fixBiDi`, `fixGimel`
 - `server/build-mmd-orders.js` — CI build script
 - `docs/mmd-orders.html` — публичная статика GitHub Pages
+
+## Prophet MMD — пилот прогнозирования (2026-06-30) #done
+
+**Цель:** заменить статичную `[המלצה להזמנה קרטון]` прогнозом Prophet на 4–8 недель.
+
+### Что создано
+- `server/probe-prophet.js` — probe DIMCALENDAR колонок + top-10 SKUs по объёму
+- `server/fetch-prophet-history.js` — DAX pull 78 недель `[מכר קרטון]` для top-10 SKUs → `prophet/weekly_sales.csv`
+- `prophet/run_prophet.py` — Prophet fit + Excel output
+- `prophet/requirements.txt` — prophet, pandas, openpyxl
+- `prophet/forecast_pilot.xlsx` — **результат пилота** (10 SKU, P4/P8 прогноз vs hamlatza)
+
+### DIMCALENDAR структура
+- `DIMCALENDAR[Date]`, `[Year]`, `[Month]`, `[Week Number]`, `[Sort Column]` (YYYYMM), `[Quarter]`
+- WeekStart/WeekNum — нет. Используем `Year` + `Week Number`
+
+### Результаты пилота (краткие)
+| mkt | avg 26w | P4 | hamlatza | delta |
+|-----|---------|----|----------|-------|
+| 403001 | 38.7 | 51.7 | 27.9 | +23.8 |
+| 403002 | 21.0 | 106.7 | 7.2 | +99.5 (аномалия — проверить) |
+| 502210 | 16.9 | 28.3 | 8.6 | +19.7 |
+| 818 | 17.4 | 15.2 | 6.7 | +8.5 |
+| 631 | 14.6 | 13.9 | 14.7 | -0.8 |
+
+### Запуск пайплайна
+```powershell
+cd server; node probe-prophet.js   # обновить top10 SKUs
+node fetch-prophet-history.js      # обновить CSV
+cd ..; set PYTHONIOENCODING=utf-8; python prophet/run_prophet.py  # fit + Excel
+```
+
+### Security
+Пилот чисто локальный — нет новых HTTP-маршрутов. При добавлении API endpoint нужен `requireAuth`.
 - `docs/mmd-orders.json` — pre-built данные (обновляется CI 3×/день)
 
 ---
@@ -181,3 +215,48 @@ mmd-orders.json
   ↓ F5 / reload
 приложение
 ```
+
+### 2026-07-01 #done ✅ Prophet панель — тренд, спарклайн, санкейп, DAX fix
+
+**Реализовано:**
+
+1. **Редизайн панели** `#prophet-panel` под layout из демо (`demo_prophet_page.html`):
+   - Sparkline (div-бары) — 12 недель факта (синие) + 4 недели прогноза (зелёные dashed)
+   - 4-tile metrics grid: `ממוצע שבועי` | `Prophet P4` | `המלצה נוכחית` | `דלתא`
+   - Dual progress bar, CI note, Formula block (скрыт — внутренняя логика)
+   - Trend badge: last4 vs prev4 actual weeks (реальный тренд продаж, не прогноз)
+
+2. **Аномалии Prophet** — multiplicative seasonality + sparse data → P4=1176 для SKU с avg=2.0/нед:
+   - Санкейп: если P4 > 4× avg_weekly → null (77 SKU занулены)
+   - Emoji в print() → UnicodeEncodeError cp1255 → заменены на ASCII
+
+3. **Тренд бейдж** (last4 vs prev4 actual weeks):
+   - `> +30%` → `📈 +X% ביקוש עולה`
+   - `< −30%` → `📉 −X% ירידה`
+   - ±30% → `➡ יציב`
+
+4. **Тренд в таблице** — колонка Prophet показывает `▲X%` / `▼X%` под значением
+
+5. **Trend override** — если `< −30%`: Prophet показывает `—` в таблице + `מבוטל` в панели (не рекомендует заказывать при падении продаж)
+
+6. **Спарклайн 2× выше** (56→110px) + динамическая ось `DD/MM 'YY` под каждым 4-м баром (ISO week → отказались, показываем дату начала недели)
+
+7. **Неполная неделя** — Prophet не должен обучаться на незаконченных данных:
+   - DAX: `DIMCALENDAR[Date] < TODAY() - MOD(WEEKDAY(TODAY(),1)-1, 7)` (фильтр до начала текущей недели)
+   - Python `load_data()`: удаляет строки текущей ISO year+week перед fit
+
+8. **DAX мера `מכר קרטון average per Week Number`** исправлена:
+   - Баг: зерно по `Week Number` без года → Week 27 суммировал 5 лет → x5 инфляция (854 вместо 4.0)
+   - Фикс: `AVERAGEX(FILTER(SUMMARIZE(Year, Week Number), MAX(Date) < TODAY()), CALCULATE([מכר קרטון]))`
+   - Результат: SKU 800: 854→4.0, SKU 604: 3260→12.8
+
+9. **`docs/mmd-orders.json` пересобран** — 422 продукта с правильными `mkr_shvua`
+
+**Коммиты:** `8677a8a9` (prophet panel+series), `d83f662a` (trend in table), `6b23c047` (trend override), `c3b2e938` (sparkline 2x + axis), `52b25320` (incomplete week fix), `0675b475` (mmd-orders rebuild)
+
+**Файлы изменены:**
+- `MMD ORDERS/index.html` — prophet panel, trend badge, table column, sparkline
+- `prophet/run_prophet.py` — series output, sanity cap, incomplete week filter
+- `server/fetch-prophet-history.js` — DAX incomplete week filter
+- `docs/prophet.json` — 596 SKU с series данными, 77 занулены санкейпом
+- `docs/mmd-orders.json` — пересобран с правильными mkr_shvua
