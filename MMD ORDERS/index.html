@@ -966,8 +966,9 @@
   const _defaultSelMonths = () => {
     const today = new Date();
     const curM  = today.getFullYear() === YEAR_MON ? today.getMonth() + 1 : 12;
-    const prevM = curM > 1 ? curM - 1 : curM;
-    return new Set(prevM !== curM ? [prevM, curM] : [curM]);
+    const months = new Set();
+    for (let i = 0; i < 3; i++) { const m = curM - i; if (m >= 1) months.add(m); }
+    return months;
   };
   let selMonths = _defaultSelMonths();
   let baseAll = null; // base JSON data — never mutated
@@ -1017,6 +1018,14 @@
     };
   }
 
+  // Round a date string UP to the next Sunday (first complete week start)
+  function capToFirstSunday(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    const dow = d.getDay(); // 0=Sun
+    if (dow !== 0) d.setDate(d.getDate() + (7 - dow));
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
   // Cap a date string to the last fully-complete Sunday (≤ today)
   function capToLastSunday(dateStr) {
     const today = new Date(); today.setHours(23,59,59,0);
@@ -1031,9 +1040,10 @@
   function getPeriodParams() {
     const sorted = [...selMonths].sort((a, b) => a - b);
     const minM = sorted[0], maxM = sorted[sorted.length - 1];
+    const rawD1 = `${YEAR_MON}-${String(minM).padStart(2,'0')}-01`;
     const rawD2 = `${YEAR_MON}-${String(maxM).padStart(2,'0')}-${lastDayOfMonth(YEAR_MON, maxM)}`;
     return {
-      d1: `${YEAR_MON}-${String(minM).padStart(2,'0')}-01`,
+      d1: capToFirstSunday(rawD1),
       d2: capToLastSunday(rawD2)
     };
   }
@@ -1065,7 +1075,7 @@
     defBtn.onclick = () => {
       selMonths = _defaultSelMonths();
       buildPeriodBar();
-      _setPeriodLabel('⏳ חודש נוכחי + קודם — שולח בקשה לשרת...');
+      _setPeriodLabel('⏳ חודש נוכחי + 2 קודמים — שולח בקשה לשרת...');
       loadPeriod();
     };
     bar.appendChild(defBtn);
