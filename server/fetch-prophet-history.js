@@ -34,7 +34,7 @@ async function fetchHistory() {
   fs.writeFileSync(path.join(PROPHET_DIR, 'hamlatza_map.json'), JSON.stringify(hamlatzaMap, null, 2));
   console.log(`Saved hamlatza_map.json for ${skus.length} SKUs`);
 
-  // DAX: weekly carton sales for ALL SKUs, 2022 → last COMPLETE week only
+  // DAX: weekly carton sales for ALL SKUs, 2023 → last COMPLETE week only
   // Exclude current partial week: filter dates < start of current week (Sunday)
   const dax = `
     EVALUATE
@@ -45,7 +45,7 @@ async function fetchHistory() {
         DIMCALENDAR[Year],
         DIMCALENDAR[Week Number],
         FILTER(DIMCALENDAR,
-          DIMCALENDAR[Year] >= 2022 &&
+          DIMCALENDAR[Year] >= 2023 &&
           DIMCALENDAR[Date] < TODAY() - MOD(WEEKDAY(TODAY(), 1) - 1, 7)
         ),
         "mkr_k", [מכר קרטון]
@@ -55,7 +55,7 @@ async function fetchHistory() {
     ORDER BY 'KARTIS PARIT'[מק"ט], DIMCALENDAR[Year], DIMCALENDAR[Week Number]
   `;
 
-  console.log('Querying Power BI for all SKUs history (2022+)...');
+  console.log('Querying Power BI for all SKUs history (2023+)...');
   const rows = await executeDax(dax, MMD_DS);
   console.log(`Got ${rows.length} rows`);
 
