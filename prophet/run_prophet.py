@@ -309,12 +309,18 @@ def main():
 
         if forecast is None:
             print("SKIP (too few points)")
+            actual_series = [
+                {'w': row['ds'].strftime('%Y-%m-%d'), 'y': round(float(row['y']), 1)}
+                for _, row in hist.iterrows()
+            ] if hist is not None and not hist.empty else []
             results.append({
                 'mkt': mkt, 'taur': taur,
                 'avg_weekly': avg_weekly, 'p4': None, 'p8': None,
                 'hamlatza': info.get('hamlatza'),
                 'delta_p4': None, 'delta_p8': None,
-                'n_points': n_points, 'note': 'Too few data points'
+                'n_points': n_points, 'note': 'Too few data points',
+                'series_actual': actual_series,
+                'series_fc': [],
             })
             continue
 
