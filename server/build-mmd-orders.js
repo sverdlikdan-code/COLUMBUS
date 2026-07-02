@@ -67,11 +67,7 @@ async function build() {
         "tukuf",      [List of ת. תפוגת תוקף values],
         "yamim",      MIN('תוקף FORM'[כמה ימים נשארו])
       ),
-      NOT(
-        ISBLANK('KARTIS PARIT'[ASHDOD KAARTON]) &&
-        ISBLANK('KARTIS PARIT'[MMD KARTON]) &&
-        ISBLANK([maavar])
-      )
+      OR(OR('KARTIS PARIT'[ASHDOD KAARTON] > 0, 'KARTIS PARIT'[MMD KARTON] > 0), [מחסן מעבר] > 0)
     )
     ORDER BY 'KARTIS PARIT'[תאור משפחה] ASC, 'KARTIS PARIT'[מק"ט] ASC
   `, MMD_DS);
