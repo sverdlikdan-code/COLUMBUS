@@ -2056,7 +2056,14 @@ window.openProphetPanel = function(mk, taur, hevra, mkrShvua) {
   sparkEl.innerHTML = '';
 
   if (series && Array.isArray(series.actual) && series.actual.length > 0) {
-    const actual = series.actual;
+    // Client-side: drop weeks >= Monday of current week (incomplete/future)
+    (function(){
+      var now = new Date(); now.setHours(0,0,0,0);
+      var dow = now.getDay() || 7;           // 1=Mon … 7=Sun
+      now.setDate(now.getDate() - (dow - 1)); // rewind to Monday
+      window._sparkCutoff = now.toISOString().slice(0,10);
+    })();
+    const actual = series.actual.filter(d => d.w < window._sparkCutoff);
     const fc     = Array.isArray(series.fc) ? series.fc : [];
 
     // ── Fill zero-sale weeks within the actual range ──────────────
@@ -2140,23 +2147,26 @@ window.openProphetPanel = function(mk, taur, hevra, mkrShvua) {
     document.getElementById('pp-spark-lbl').textContent =
       fullActual.length + ' שבועות + תחזית ' + fc.length + 'w' + zeroNote;
 
-    // ── Dynamic week/year axis (שב N + DD/MM + 'YY) ──────────────
+    // ── Dynamic week axis: שב N + DD/MM + year only on first label of each year ──
     (function() {
-      function isoWY(ds) {
-        var d = new Date(ds + 'T12:00:00');
-        var dd = String(d.getDate()).padStart(2,'0');
-        var mm = String(d.getMonth()+1).padStart(2,'0');
-        var yy = String(d.getFullYear()).slice(2);
-        var wk = isoWeekNum(ds);
-        return 'שב' + wk + '\n' + dd + '/' + mm + "\n'" + yy;
-      }
       var ax = document.getElementById('pp-spark-axis-dyn');
       if (!ax) return;
       ax.innerHTML = '';
+      var shownYears = {};
       fullActual.forEach(function(d, i) {
         var sp = document.createElement('div');
         sp.className = 'ax-lbl';
-        if (i % 3 === 0 || i === fullActual.length - 1) sp.textContent = isoWY(d.w);
+        var showLabel = (i % 3 === 0 || i === fullActual.length - 1);
+        if (showLabel) {
+          var wk = isoWeekNum(d.w);
+          var dd = d.w.slice(8, 10);
+          var mm = d.w.slice(5, 7);
+          var yr = d.w.slice(0, 4);
+          var yy = d.w.slice(2, 4);
+          var yearLine = (!shownYears[yr]) ? "\n'" + yy : '';
+          shownYears[yr] = true;
+          sp.textContent = 'שב' + wk + '\n' + dd + '/' + mm + yearLine;
+        }
         ax.appendChild(sp);
       });
       var dv = document.createElement('div'); dv.className = 'ax-div'; ax.appendChild(dv);
