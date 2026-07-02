@@ -1753,7 +1753,7 @@ function renderMap(){
     });
   }
   map.addLayer(markerCluster);
-  if(bounds.length) map.fitBounds(bounds,{padding:[6,6]});
+  if(bounds.length && !gpsCorrectMode) map.fitBounds(bounds,{padding:[6,6]});
   setTimeout(()=>map.invalidateSize(),100);
 }
 
@@ -2047,6 +2047,8 @@ function startGpsCorrection(custId, custName){
   gpsCorrectId=custId;
   st.selectedId=custId;
   renderMap();
+  const _cl=st.clients.find(x=>String(x.custId)===String(custId));
+  if(_cl&&_cl.lat&&_cl.lng) map.panTo([_cl.lat,_cl.lng],{animate:true,duration:0.4});
   showToast('📍 לחץ על המפה לקביעת מיקום חדש עבור: '+custName, 4000);
   map.getContainer().style.cursor='crosshair';
   _gpsClickHandler=(e)=>{
