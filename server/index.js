@@ -2159,7 +2159,13 @@ function formulaRoadGuard(req, res, next) {
   if (hasCookie) return next();
   return res.status(403).send(`<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>גישה מוגבלת</title><style>body{font-family:sans-serif;background:#f0f2f5;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}div{text-align:center;background:#fff;padding:48px 40px;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.08)}h2{margin:0 0 12px;color:#1a1a2e;font-size:1.4rem}p{color:#666;margin:0}</style></head><body><div><div style="font-size:2.5rem;margin-bottom:16px">🔒</div><h2>גישה דרך Power BI בלבד</h2><p>יש לפתוח את האפליקציה מתוך לוח הבקרה ב-Power BI</p></div></body></html>`);
 }
-app.get('/formula-road', formulaRoadGuard, (req, res) => {
+// On local Windows dev server, redirect Formula Road to VPS — prevents session mismatch
+const IS_LOCAL = process.platform === 'win32';
+const VPS_URL = 'https://api.sverdlik-apps.site';
+app.get('/formula-road', (req, res, next) => {
+  if (IS_LOCAL) return res.redirect(302, VPS_URL + '/formula-road');
+  next();
+}, formulaRoadGuard, (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'formula-road.html'));
 });
 app.get('/mekarer-order.html', (req, res) => {
