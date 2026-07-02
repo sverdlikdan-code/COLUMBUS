@@ -2035,10 +2035,12 @@ function deleteGpsCorrection(custId){
   renderMap();renderClientList();
   showToast('🗑 תיקון נמחק');
 }
+let _tileBeforeGps=null;
 function cancelGpsCorrection(){
   if(_gpsClickHandler){ map.off('click',_gpsClickHandler); _gpsClickHandler=null; }
   map.getContainer().style.cursor='';
   gpsCorrectMode=false; gpsCorrectId=null;
+  if(_tileBeforeGps){ setTile(_tileBeforeGps); userTileKey=_tileBeforeGps; _tileBeforeGps=null; }
   renderMap();
   showToast('ביטול');
 }
@@ -2046,6 +2048,8 @@ function startGpsCorrection(custId, custName){
   gpsCorrectMode=true;
   gpsCorrectId=custId;
   st.selectedId=custId;
+  _tileBeforeGps=currentTileKey||userTileKey;
+  setTile('osm');
   renderMap();
   const _cl=st.clients.find(x=>String(x.custId)===String(custId));
   if(_cl&&_cl.lat&&_cl.lng) map.panTo([_cl.lat,_cl.lng],{animate:true,duration:0.4});
@@ -2055,6 +2059,7 @@ function startGpsCorrection(custId, custName){
     map.off('click',_gpsClickHandler); _gpsClickHandler=null;
     map.getContainer().style.cursor='';
     gpsCorrectMode=false; gpsCorrectId=null;
+    if(_tileBeforeGps){ setTile(_tileBeforeGps); userTileKey=_tileBeforeGps; _tileBeforeGps=null; }
     const {lat,lng}=e.latlng;
     const IL={minLat:29.3,maxLat:33.5,minLng:34.2,maxLng:35.9};
     if(lat<IL.minLat||lat>IL.maxLat||lng<IL.minLng||lng>IL.maxLng){
