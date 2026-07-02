@@ -62,3 +62,5 @@
 - [[session-2026-06-28-print]] — Сессия 2026-06-28: תוקף print A4 landscape финальный фикс — per-row zoom, width 100%, symmetry, no blank page
 - [[session-2026-06-29]] — Сессия 2026-06-29: MMD ORDERS 3 бага чипов месяцев (IIFE scope, ReferenceError, off-by-one); fin-agent report; power-bi-dax skill v2; Prophet/Fabric исследование
 - [[session-2026-07-01-mekarer]] — Сессия 2026-07-01: הזמנת מקרר — root cause (рогатый локальный сервер), email Resend, Excel вложение, no-merge, Invalid Date fix, телефон RTL
+- [[session-2026-07-02-infra]] — Сессия 2026-07-02: туннель 579497d4 перенесён на VPS (cloudflared-api); GPS zoom fix; OSM тайл при תקן מיקום; IS_LOCAL loop fix
+- [[migration-plan-vps]] — ПЛАН МИГРАЦИИ: анализ 6 ошибок Formula Road + чеклист для MMD Orders и Mahsan Editor
