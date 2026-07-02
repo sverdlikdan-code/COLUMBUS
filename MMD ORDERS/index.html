@@ -419,12 +419,14 @@
     /* ── Sparkline ── */
     .pp-spark-wrap { padding:12px 16px 6px; border-bottom:1px solid rgba(255,255,255,.06); }
     .pp-spark-lbl { font-size:.62rem; color:#8899aa; margin-bottom:5px; direction:rtl; }
-    .pp-spark { display:flex; align-items:flex-end; gap:2px; height:110px; }
-    .pp-spark-bar { flex:1; min-width:3px; border-radius:2px 2px 0 0; background:rgba(93,140,200,.5); transition:background .2s; }
+    .pp-spark { display:flex; align-items:stretch; gap:2px; height:200px; }
+    .pp-spark-col { display:flex; flex-direction:column; align-items:center; justify-content:flex-end; flex:1; min-width:3px; }
+    .pp-spark-val { font-size:.44rem; color:#99aacc; line-height:1.2; min-height:.65rem; text-align:center; }
+    .pp-spark-bar { width:100%; border-radius:2px 2px 0 0; background:rgba(93,140,200,.5); transition:background .2s; }
     .pp-spark-bar:hover { background:rgba(93,140,200,.85); }
     .pp-spark-bar.fc { background:rgba(76,175,80,.45); border:1px dashed rgba(76,175,80,.7); }
     .pp-spark-bar.fc:hover { background:rgba(76,175,80,.75); }
-    .pp-spark-div { width:1.5px; background:rgba(201,162,39,.6); height:118px; margin:-4px 3px; flex-shrink:0; }
+    .pp-spark-div { width:1.5px; background:rgba(201,162,39,.6); height:208px; margin:-4px 3px; flex-shrink:0; align-self:stretch; margin-bottom:0; }
     .pp-spark-axis { display:flex; justify-content:space-between; font-size:.58rem; color:#556677; padding:3px 1px 0; direction:rtl; }
     .pp-spark-axis-dyn { display:flex; align-items:flex-start; gap:2px; padding:3px 0 0; direction:rtl; }
     .pp-spark-axis-dyn .ax-lbl { flex:1; min-width:3px; font-size:.5rem; color:#667788; text-align:center; line-height:1.3; white-space:pre; }
@@ -1459,7 +1461,7 @@
           '</td>' +
           '<td class="c-co">' + esc(r.hevra || '') + '</td>' +
           '<td class="c-num c-mmd col-g ' + klass(mmd) + '">' + mmd + '</td>' +
-          '<td class="c-num col-g">' + (mkr != null ? mkr.toFixed(1) : '—') + '</td>' +
+          '<td class="c-num col-g">' + (mkr != null && mkr > 0 ? mkr.toFixed(1) : '—') + '</td>' +
           '<td class="c-num ' + klass(ash) + '">' + ash + '</td>' +
           '<td class="c-num">' + mav + '</td>' +
           '<td class="c-tukuf">' + formatTukuf(r.tukuf) + '</td>' +
@@ -2050,12 +2052,23 @@ window.openProphetPanel = function(mk, taur, hevra, mkrShvua) {
     const fc     = Array.isArray(series.fc) ? series.fc : [];
     const maxY   = Math.max(...actual.map(d => d.y), ...fc.map(d => d.y), 1);
 
+    function fmtBarVal(v) {
+      if (v <= 0) return '';
+      return v % 1 === 0 ? String(v) : v.toFixed(1);
+    }
     actual.forEach(function(d) {
+      const col = document.createElement('div');
+      col.className = 'pp-spark-col';
+      const lbl = document.createElement('div');
+      lbl.className = 'pp-spark-val';
+      lbl.textContent = fmtBarVal(d.y);
       const bar = document.createElement('div');
       bar.className = 'pp-spark-bar';
       bar.style.height = Math.max(4, Math.round(d.y / maxY * 100)) + '%';
       bar.title = d.y + ' קרט | ' + d.w;
-      sparkEl.appendChild(bar);
+      col.appendChild(lbl);
+      col.appendChild(bar);
+      sparkEl.appendChild(col);
     });
 
     if (fc.length > 0) {
@@ -2063,11 +2076,19 @@ window.openProphetPanel = function(mk, taur, hevra, mkrShvua) {
       div.className = 'pp-spark-div';
       sparkEl.appendChild(div);
       fc.forEach(function(d) {
+        const col = document.createElement('div');
+        col.className = 'pp-spark-col';
+        const lbl = document.createElement('div');
+        lbl.className = 'pp-spark-val';
+        lbl.style.color = 'rgba(76,175,80,.75)';
+        lbl.textContent = fmtBarVal(d.y);
         const bar = document.createElement('div');
         bar.className = 'pp-spark-bar fc';
         bar.style.height = Math.max(4, Math.round(d.y / maxY * 100)) + '%';
         bar.title = d.y + ' קרט (תחזית) | ' + d.w;
-        sparkEl.appendChild(bar);
+        col.appendChild(lbl);
+        col.appendChild(bar);
+        sparkEl.appendChild(col);
       });
     }
     document.getElementById('pp-spark-lbl').textContent =
@@ -2088,7 +2109,7 @@ window.openProphetPanel = function(mk, taur, hevra, mkrShvua) {
       actual.forEach(function(d, i) {
         var sp = document.createElement('div');
         sp.className = 'ax-lbl';
-        if (i % 4 === 0 || i === actual.length - 1) sp.textContent = isoWY(d.w);
+        if (i % 3 === 0 || i === actual.length - 1) sp.textContent = isoWY(d.w);
         ax.appendChild(sp);
       });
       var dv = document.createElement('div'); dv.className = 'ax-div'; ax.appendChild(dv);
