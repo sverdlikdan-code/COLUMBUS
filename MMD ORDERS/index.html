@@ -172,6 +172,9 @@
     .hist-item { padding: 9px 14px; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
     .hist-item:hover { background: #f0f4ff; }
     .hist-item:last-child { border-bottom: none; }
+    .hist-others { border-top: 1px solid #e0e8ff; flex-shrink: 0; }
+    .hist-others-btn { padding: 8px 14px; font-size: .78rem; color: #1a6ef5; cursor: pointer; }
+    .hist-others-btn:hover { background: #f0f4ff; }
     .h-left { display: flex; flex-direction: column; gap: 2px; flex: 1; }
     .h-date { font-size: 13px; font-weight: 700; color: #222; }
     .h-time { font-size: 11px; color: #888; }
@@ -838,9 +841,30 @@
     <div id="splash-desc">מערכת ניהול הזמנות · מלאי</div>
     <div id="splash-pbi-date">טוען נתונים...</div>
     <button id="splash-refresh" onclick="splashRebuild()">🔄 רענן נתונים</button>
+    <div id="splash-user-row" style="display:none;margin-bottom:10px">
+      <p style="color:#e0e7ef;margin:0 0 8px;font-size:.9rem">מי אתה? (לשמירת הזמנה בשרת)</p>
+      <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:8px">
+        <button onclick="document.getElementById('splash-user-input').value='אילת';document.getElementById('splash-user-input').focus()"
+          style="background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:.85rem">אילת</button>
+        <button onclick="document.getElementById('splash-user-input').value='אשדוד';document.getElementById('splash-user-input').focus()"
+          style="background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:.85rem">אשדוד</button>
+        <button onclick="document.getElementById('splash-user-input').value='ירושלים';document.getElementById('splash-user-input').focus()"
+          style="background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:.85rem">ירושלים</button>
+      </div>
+      <input id="splash-user-input" type="text" placeholder="שם / מיקום..." maxlength="30"
+        onkeydown="if(event.key==='Enter') confirmSplashUser()"
+        style="font-size:1rem;padding:8px 14px;border-radius:8px;border:none;width:200px;text-align:center;direction:rtl;background:rgba(255,255,255,.15);color:#fff">
+    </div>
     <button id="splash-btn" onclick="enterApp()">כניסה למערכת &nbsp;→</button>
   </div>
 
+</div>
+
+<!-- VIEW MODE BANNER -->
+<div id="view-mode-banner" style="display:none;background:#f59e0b;color:#1a1a2e;padding:6px 16px;font-size:.85rem;font-weight:600;text-align:center;direction:rtl;position:sticky;top:0;z-index:200">
+  👁 מציג נתוני: <span id="view-mode-user"></span>
+  &nbsp;·&nbsp;
+  <a href="#" onclick="exitViewMode();return false" style="color:#1a1a2e;text-decoration:underline">חזור לנתוני שלי</a>
 </div>
 
 <!-- HEADER -->
@@ -865,6 +889,7 @@
         <button class="btn btn-hist" id="btn-hist" onclick="toggleOrderHistory()">🕐 היסטוריה</button>
         <div class="hist-dd" id="hist-dd"></div>
       </div>
+      <span id="user-badge" style="font-size:.72rem;color:#90a4ae;padding:2px 6px;align-self:center;white-space:nowrap;cursor:pointer" title="לחץ לשינוי שם" onclick="promptChangeUser()"></span>
       <button class="btn btn-print" onclick="(()=>{document.querySelectorAll('.c-img img').forEach(img=>{img.removeAttribute('loading');if(!img.complete){const s=img.src;img.src='';img.src=s;}});setTimeout(()=>window.print(),80);})()">🖨 הדפסה</button>
     </div>
   </div>
@@ -956,9 +981,28 @@
   const mmdFilter = new Set();
   const sessionP = {}; // תוקף נדרש — session-only, resets on page reload
 
-  function saved()  { try { return JSON.parse(localStorage.getItem(LS) || '{}'); } catch { return {}; } }
+  window._viewData = null; // null = own data, object = viewing another user
+  function saved()  {
+    if (window._viewData !== null) return window._viewData;
+    try { return JSON.parse(localStorage.getItem(LS) || '{}'); } catch { return {}; }
+  }
   function save(o)  { try { localStorage.setItem(LS, JSON.stringify(o)); } catch {} }
   function st(m)    { document.getElementById('st').textContent = m; }
+
+  // ── Draft sync to server ──────────────────────────────────
+  let _draftTimer = null;
+  function scheduleDraftSave() {
+    if (window._viewData !== null) return; // never save during view mode
+    clearTimeout(_draftTimer);
+    _draftTimer = setTimeout(async () => {
+      const userId = localStorage.getItem('mmd_user_id');
+      if (!userId) return;
+      try {
+        await fetch('/mmd/draft', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, items: saved() }) });
+      } catch (_) {}
+    }, 3000);
+  }
 
   // ── Month helpers ─────────────────────────────────────────
   function lastDayOfMonth(y, m) { return new Date(y, m, 0).getDate(); }
@@ -1586,6 +1630,7 @@
     else sv[mk][f] = Number(v);
     if (sv[mk].k == null) delete sv[mk];
     save(sv);
+    scheduleDraftSave();
     recalc();
   };
 
@@ -1856,7 +1901,11 @@
       </div>`;
     }).join('');
     dd.innerHTML = `<div class="hist-header">היסטוריית הזמנות · ${hist.length} רשומות</div>
-      <div class="hist-scroll">${items}</div>`;
+      <div class="hist-scroll">${items}</div>
+      <div class="hist-others" id="hist-others-wrap">
+        <div class="hist-others-btn" onclick="loadOtherUsersSection()">👁 צפה בנתוני משתמשים אחרים ▾</div>
+        <div id="hist-others-list"></div>
+      </div>`;
   }
 
   window.restoreOrder = function(idx) {
@@ -1935,10 +1984,105 @@
 })();
 
 window.enterApp = function() {
+  if (!localStorage.getItem('mmd_user_id')) {
+    const row = document.getElementById('splash-user-row');
+    if (row) {
+      row.style.display = '';
+      const inp = document.getElementById('splash-user-input');
+      if (inp) inp.focus();
+      const btn = document.getElementById('splash-btn');
+      btn.textContent = 'אישור →';
+      btn.onclick = window.confirmSplashUser;
+      return;
+    }
+  }
+  _doEnterApp();
+};
+
+window.confirmSplashUser = function() {
+  const inp = document.getElementById('splash-user-input');
+  const val = (inp ? inp.value : '').trim();
+  if (!val) { if (inp) inp.focus(); return; }
+  localStorage.setItem('mmd_user_id', val);
+  _doEnterApp();
+};
+
+function _doEnterApp() {
   const sp = document.getElementById('splash');
   if (!sp) return;
   sp.classList.add('hiding');
   setTimeout(() => sp.classList.add('gone'), 720);
+  const badge = document.getElementById('user-badge');
+  const uid = localStorage.getItem('mmd_user_id');
+  if (badge && uid) badge.textContent = '👤 ' + uid;
+}
+
+
+window.loadUserView = async function(userId) {
+  try {
+    const r = await fetch('/mmd/draft/' + encodeURIComponent(userId));
+    const j = await r.json();
+    window._viewData = j.items || {};
+    document.getElementById('view-mode-user').textContent = userId;
+    document.getElementById('view-mode-banner').style.display = '';
+    render();
+  } catch { alert('שגיאה בטעינת נתוני ' + userId); }
+};
+
+window.exitViewMode = function() {
+  window._viewData = null;
+  document.getElementById('view-mode-banner').style.display = 'none';
+  render();
+};
+
+window.loadOtherUsersSection = async function() {
+  const list = document.getElementById('hist-others-list');
+  if (!list) return;
+  if (list.children.length > 0) { list.innerHTML = ''; return; } // toggle
+  list.textContent = 'טוען...';
+  try {
+    const r = await fetch('/mmd/draft-list');
+    const j = await r.json();
+    const myId = localStorage.getItem('mmd_user_id') || '';
+    const others = (j.users || []).filter(u => u.userId !== myId);
+    list.textContent = '';
+    if (!others.length) {
+      const msg = document.createElement('div');
+      msg.style.cssText = 'padding:6px 12px;color:#8899aa;font-size:.8rem';
+      msg.textContent = 'אין נתונים שמורים ממשתמשים אחרים';
+      list.appendChild(msg);
+      return;
+    }
+    others.forEach(u => {
+      const d = u.savedAt ? new Date(u.savedAt).toLocaleString('he-IL', { hour12: false }) : '';
+      const item = document.createElement('div');
+      item.className = 'hist-item';
+      item.textContent = '👁 ' + u.userId;
+      const small = document.createElement('small');
+      small.style.color = '#8899aa';
+      small.textContent = ` · ${u.count} פריטים · ${d}`;
+      item.appendChild(small);
+      item.onclick = () => { document.getElementById('hist-dd').classList.remove('open'); loadUserView(u.userId); };
+      list.appendChild(item);
+    });
+  } catch {
+    list.textContent = '';
+    const e = document.createElement('div');
+    e.style.cssText = 'padding:6px 12px;color:red;font-size:.8rem';
+    e.textContent = 'שגיאה בטעינה';
+    list.appendChild(e);
+  }
+};
+
+window.promptChangeUser = function() {
+  const cur = localStorage.getItem('mmd_user_id') || '';
+  const val = prompt('שם שלך (לשמירת הזמנות בשרת):', cur);
+  if (val === null) return;
+  const trimmed = val.trim();
+  if (!trimmed) return;
+  localStorage.setItem('mmd_user_id', trimmed);
+  const badge = document.getElementById('user-badge');
+  if (badge) badge.textContent = '👤 ' + trimmed;
 };
 
 window.splashRebuild = async function() {
