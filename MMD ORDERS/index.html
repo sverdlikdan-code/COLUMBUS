@@ -1084,6 +1084,9 @@
   function esc(s) {
     return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
+  function escJs(s) {
+    return String(s ?? '').replace(/\\/g,'\\\\').replace(/'/g,'\\u0027').replace(/"/g,'\\u0022').replace(/[\r\n]/g,'');
+  }
   function fixProductName(s) {
     s = s.replace(/\)([^()]+)\(/g, '($1)');
     s = s.replace(/\s*\([A-Za-z]{1,6}\)\s*/g, ' ').trim();
@@ -1475,11 +1478,11 @@
           '<td class="c-haml col-g">' + (haml > 0 ? Math.round(haml) : '') + '</td>' +
           (function(){
             const p = window.prophetMap && window.prophetMap[mk];
-            const _da = ' data-mk="' + mk + '" data-taur="' + esc(r.taur||'') + '" data-hevra="' + esc(r.hevra||'') + '" data-mkr="' + (mkr != null ? mkr : '') + '"';
-            if (!p || p.prophet_order == null) {
-              return '<td class="col-prophet" style="color:#bbb;font-weight:400;cursor:pointer"' + _da + '>—</td>';
-            }
+            const mkrArg = mkr != null ? mkr : 'null';
+            const onclk = 'openProphetPanel(\'' + mk + '\',\'' + escJs(r.taur||'') + '\',\'' + escJs(r.hevra||'') + '\',' + mkrArg + ')';
+            if (!p || p.prophet_order == null) return '<td class="col-prophet" style="color:#bbb;font-weight:400;cursor:pointer" data-mk="' + mk + '" onclick="' + onclk + '">—</td>';
             const po = Math.round(p.prophet_order);
+            // trend: last4 vs prev4 actual weeks
             const actualSorted = (p.series && p.series.actual ? [...p.series.actual] : []).sort((a,b)=>a.w.localeCompare(b.w));
             const last4 = actualSorted.slice(-4);
             const prev4 = actualSorted.slice(-8,-4);
@@ -1492,17 +1495,18 @@
               if (trendPct > 30)       trendSpan = '<br><span style="font-size:.65rem;color:#2e7d32;font-weight:600">▲' + trendPct + '%</span>';
               else if (trendPct < -30) trendSpan = '<br><span style="font-size:.65rem;color:#c62828;font-weight:600">▼' + Math.abs(trendPct) + '%</span>';
             }
+            // ── Trend override: demand falling >30% → suppress Prophet ──
             if (trendPct !== null && trendPct < -30) {
-              return '<td class="col-prophet prophet-down"' + _da + ' title="מודל בוטל — ירידה ' + Math.abs(trendPct) + '%">—' + trendSpan + '</td>';
+              return '<td class="col-prophet prophet-down" data-mk="' + mk + '" onclick="' + onclk + '" title="מודל בוטל — ירידה ' + Math.abs(trendPct) + '%">—' + trendSpan + '</td>';
             }
-            if (haml <= 0 && po === 0) return '<td class="col-prophet" style="color:#bbb;font-weight:400;font-size:.75rem"' + _da + '>≈' + trendSpan + '</td>';
+            if (haml <= 0 && po === 0) return '<td class="col-prophet" style="color:#bbb;font-weight:400;font-size:.75rem" data-mk="' + mk + '" onclick="' + onclk + '">≈' + trendSpan + '</td>';
             const delta = haml > 0 ? po - Math.round(haml) : null;
             const pct   = haml > 0 ? Math.abs(delta) / haml : 1;
-            if (pct < 0.30) return '<td class="col-prophet" style="color:#bbb;font-weight:400;font-size:.75rem"' + _da + '>≈' + trendSpan + '</td>';
+            if (pct < 0.30) return '<td class="col-prophet" style="color:#bbb;font-weight:400;font-size:.75rem" data-mk="' + mk + '" onclick="' + onclk + '">≈' + trendSpan + '</td>';
             const dc    = delta != null && delta > 0 ? ' prophet-up' : delta != null && delta < 0 ? ' prophet-down' : '';
             const dsign = delta != null && delta > 0 ? '+' : '';
             const dspan = delta != null ? '<br><span style="font-size:.7rem;font-weight:400">' + dsign + delta + '</span>' : '';
-            return '<td class="col-prophet' + dc + '"' + _da + ' title="לחץ לפרטים">' + po + dspan + trendSpan + '</td>';
+            return '<td class="col-prophet' + dc + '" data-mk="' + mk + '" onclick="' + onclk + '" title="לחץ לפרטים">' + po + dspan + trendSpan + '</td>';
           })() +
           '<td class="c-num col-g"><input class="ei ei-n" type="number" min="0" step="1" value="' + ordV + '" data-mk="' + mk + '" data-ash="' + ash + '" data-mav="' + mav + '" data-f="k" oninput="inp(this)" placeholder="0"/></td>' +
           '<td class="col-g' + (yamim != null && yamim < 14 ? ' tk-lo' : '') + '">' + buildPrtimCell(mk, r.tukuf, nts) + '</td>';
@@ -1959,30 +1963,7 @@ window.splashRebuild = async function() {
 // ── Prophet drill-down panel ────────────────────────────────
 window.openProphetPanel = function(mk, taur, hevra, mkrShvua) {
   const p = window.prophetMap && window.prophetMap[mk];
-
-  document.getElementById('pp-title').textContent    = taur;
-  document.getElementById('pp-subtitle').textContent = 'מק"ט ' + mk + ' · ' + (hevra || '');
-
-  if (!p) {
-    ['pp-avg-val','pp-p4-val','pp-haml-val'].forEach(id => { document.getElementById(id).textContent = '—'; });
-    document.getElementById('pp-delta-val').textContent = '—';
-    document.getElementById('pp-delta-val').className   = 'pp-metric-val dim';
-    document.getElementById('pp-fbar-haml-lbl').textContent = '■ המלצה: —';
-    document.getElementById('pp-fbar-pro-lbl').textContent  = '■ Prophet: אין נתונים';
-    document.getElementById('pp-fbar-ham').style.width = '0%';
-    document.getElementById('pp-fbar-pro').style.width = '0%';
-    document.getElementById('pp-ci').textContent      = 'אין נתוני Prophet לפריט זה';
-    document.getElementById('pp-formula').textContent = 'Prophet לא חישב תחזית — ייתכן שאין מספיק היסטוריה מכירות';
-    document.getElementById('pp-np').textContent      = '0 שבועות היסטוריה';
-    const badge = document.getElementById('pp-trend-badge');
-    badge.textContent = '— אין נתוני Prophet';
-    badge.className   = 'pp-trend-badge flat';
-    document.getElementById('pp-spark').innerHTML     = '';
-    document.getElementById('pp-spark-lbl').textContent = 'אין נתונים — יעודכן בהרצת Prophet הבאה';
-    document.getElementById('prophet-overlay').classList.add('open');
-    document.getElementById('prophet-panel').classList.add('open');
-    return;
-  }
+  if (!p) return;
 
   const p4f  = p.p4 != null ? p.p4 : null;
   const haml = p.hamlatza != null ? Math.round(p.hamlatza) : 0;
@@ -1995,6 +1976,10 @@ window.openProphetPanel = function(mk, taur, hevra, mkrShvua) {
 
   const ciLo = p4f != null ? Math.round(p4f * 0.80) : null;
   const ciHi = p4f != null ? Math.round(p4f * 1.20) : null;
+
+  // ── Header ─────────────────────────────────────────────────────
+  document.getElementById('pp-title').textContent    = taur;
+  document.getElementById('pp-subtitle').textContent = 'מק"ט ' + mk + ' · ' + (hevra || '');
 
   // ── Metrics 4-tile grid ─────────────────────────────────────────
   const avgEl   = document.getElementById('pp-avg-val');
@@ -2231,16 +2216,6 @@ window.closeProphetPanel = function() {
   document.getElementById('prophet-panel').classList.remove('open');
   document.getElementById('prophet-overlay').classList.remove('open');
 };
-
-document.addEventListener('click', function(e) {
-  const td = e.target.closest('td.col-prophet[data-mk]');
-  if (!td) return;
-  const mk    = td.dataset.mk;
-  const taur  = td.dataset.taur  || '';
-  const hevra = td.dataset.hevra || '';
-  const mkr   = td.dataset.mkr   ? parseFloat(td.dataset.mkr) : null;
-  openProphetPanel(mk, taur, hevra, mkr);
-});
 </script>
 
 <div id="prophet-overlay" onclick="closeProphetPanel()"></div>
