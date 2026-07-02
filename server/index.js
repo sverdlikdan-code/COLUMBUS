@@ -2066,6 +2066,56 @@ app.get('/mmd/img/:mkt', mmdGuard, (req, res) => {
   req2.setTimeout(4000, () => { req2.destroy(); res.status(504).end(); });
 });
 
+// ── MMD DRAFT SYNC ─────────────────────────────────────────────────────────
+const DRAFTS_DIR = path.join(__dirname, '..', 'docs', 'mmd-drafts');
+if (!fs.existsSync(DRAFTS_DIR)) fs.mkdirSync(DRAFTS_DIR);
+
+function draftFilename(userId) {
+  return path.join(DRAFTS_DIR, String(userId).replace(/[^א-תa-zA-Z0-9_\-]/gu, '_').slice(0, 30) + '.json');
+}
+
+// POST /mmd/draft — save current user's qty state
+app.post('/mmd/draft', mmdGuard, dataRateLimit, (req, res) => {
+  const { userId, items } = req.body || {};
+  if (!userId || typeof userId !== 'string' || userId.length > 30) {
+    return res.status(400).json({ error: 'invalid userId' });
+  }
+  if (!items || typeof items !== 'object' || Array.isArray(items)) {
+    return res.status(400).json({ error: 'invalid items' });
+  }
+  const safe = {};
+  for (const [mkt, val] of Object.entries(items)) {
+    if (!/^\d{1,10}$/.test(mkt) || !val || val.k == null) continue;
+    safe[mkt] = { k: Number(val.k) };
+  }
+  fs.writeFileSync(draftFilename(userId), JSON.stringify({ userId, items: safe, savedAt: new Date().toISOString() }, null, 2), 'utf8');
+  res.json({ ok: true, count: Object.keys(safe).length });
+});
+
+// GET /mmd/draft/:userId — load a specific user's draft
+app.get('/mmd/draft/:userId', mmdGuard, (req, res) => {
+  const file = draftFilename(req.params.userId);
+  if (!fs.existsSync(file)) return res.json({ ok: false, items: {} });
+  try {
+    const d = JSON.parse(fs.readFileSync(file, 'utf8'));
+    res.json({ ok: true, userId: d.userId, items: d.items || {}, savedAt: d.savedAt });
+  } catch { res.status(500).json({ error: 'read_error' }); }
+});
+
+// GET /mmd/draft-list — list all users with saved drafts
+app.get('/mmd/draft-list', mmdGuard, (req, res) => {
+  try {
+    const files = fs.existsSync(DRAFTS_DIR) ? fs.readdirSync(DRAFTS_DIR).filter(f => f.endsWith('.json')) : [];
+    const users = files.map(f => {
+      try {
+        const d = JSON.parse(fs.readFileSync(path.join(DRAFTS_DIR, f), 'utf8'));
+        return { userId: d.userId, savedAt: d.savedAt, count: Object.keys(d.items || {}).length };
+      } catch { return null; }
+    }).filter(Boolean).sort((a, b) => (b.savedAt || '').localeCompare(a.savedAt || ''));
+    res.json({ users });
+  } catch { res.status(500).json({ error: 'list_error' }); }
+});
+
 let rebuildInProgress = false;
 app.post('/mmd/rebuild', mmdGuard, (req, res) => {
   if (rebuildInProgress) return res.json({ ok: false, busy: true });
