@@ -6,7 +6,7 @@
   <meta http-equiv="Pragma" content="no-cache"/>
   <meta http-equiv="Expires" content="0"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>🚚 הזמנה - מלאי MMD</title>
+  <title>🚚 הזמנה - מלאי MMD [v07]</title>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"
           integrity="sha384-Pqp51FUN2/qzfxZxBCtF0stpc9ONI6MYZpVqmo8m20SoaQCzf+arZvACkLkirlPz"
           crossorigin="anonymous"></script>
@@ -1963,7 +1963,32 @@ window.splashRebuild = async function() {
 // ── Prophet drill-down panel ────────────────────────────────
 window.openProphetPanel = function(mk, taur, hevra, mkrShvua) {
   const p = window.prophetMap && window.prophetMap[mk];
-  if (!p) return;
+  if (!p) {
+    // No prophet data — open panel with "no data" message
+    document.getElementById('pp-title').textContent    = taur || ('מק"ט ' + mk);
+    document.getElementById('pp-subtitle').textContent = 'מק"ט ' + mk + ' · ' + (hevra || '');
+    document.getElementById('pp-avg-val').textContent  = mkrShvua != null ? parseFloat(mkrShvua).toFixed(1) : '—';
+    document.getElementById('pp-p4-val').textContent   = '—';
+    document.getElementById('pp-haml-val').textContent = '—';
+    document.getElementById('pp-delta-val').textContent = '—';
+    document.getElementById('pp-delta-val').className  = 'pp-metric-val dim';
+    document.getElementById('pp-fbar-haml-lbl').textContent = '■ המלצה: —';
+    document.getElementById('pp-fbar-pro-lbl').textContent  = '■ Prophet: אין נתונים';
+    document.getElementById('pp-fbar-ham').style.width = '0%';
+    document.getElementById('pp-fbar-pro').style.width = '0%';
+    document.getElementById('pp-ci').textContent      = '—';
+    document.getElementById('pp-formula').textContent  = 'מוצר זה טרם עובד על ידי מודל Prophet';
+    document.getElementById('pp-np').textContent       = 'אין היסטוריית מכירות מספקת';
+    document.getElementById('pp-trend-badge').textContent = '— אין נתוני Prophet';
+    document.getElementById('pp-trend-badge').className  = 'pp-trend-badge flat';
+    document.getElementById('pp-spark').innerHTML = '<div style="color:#8899aa;font-size:.75rem;padding:20px 0;text-align:center">אין נתוני מכירות שבועיים</div>';
+    document.getElementById('pp-spark-lbl').textContent = '';
+    const axDyn = document.getElementById('pp-spark-axis-dyn');
+    if (axDyn) axDyn.innerHTML = '';
+    document.getElementById('prophet-overlay').classList.add('open');
+    document.getElementById('prophet-panel').classList.add('open');
+    return;
+  }
 
   const p4f  = p.p4 != null ? p.p4 : null;
   const haml = p.hamlatza != null ? Math.round(p.hamlatza) : 0;
@@ -1976,6 +2001,19 @@ window.openProphetPanel = function(mk, taur, hevra, mkrShvua) {
 
   const ciLo = p4f != null ? Math.round(p4f * 0.80) : null;
   const ciHi = p4f != null ? Math.round(p4f * 1.20) : null;
+
+  // ── Trend calc (needed before metrics + bar + badge) ───────────
+  const actualSorted = (p.series && p.series.actual ? [...p.series.actual] : [])
+    .sort((a, b) => a.w.localeCompare(b.w));
+  const last4  = actualSorted.slice(-4);
+  const prev4  = actualSorted.slice(-8, -4);
+  const avg4   = last4.length  ? last4.reduce((s, x) => s + x.y, 0) / last4.length  : 0;
+  const avg8   = prev4.length  ? prev4.reduce((s, x) => s + x.y, 0) / prev4.length  : 0;
+  let trendPct = null;
+  if (avg8 > 0 && last4.length >= 2 && prev4.length >= 2)
+    trendPct = Math.round((avg4 / avg8 - 1) * 100);
+  const trendBlocked = trendPct !== null && trendPct < -30;
+  const poEff = trendBlocked ? 0 : po;
 
   // ── Header ─────────────────────────────────────────────────────
   document.getElementById('pp-title').textContent    = taur;
@@ -2000,20 +2038,8 @@ window.openProphetPanel = function(mk, taur, hevra, mkrShvua) {
     deltaEl.className   = 'pp-metric-val dim';
   }
 
-  // ── Trend calc (needed before bar + badge) ─────────────────────
-  const actualSorted = (p.series && p.series.actual ? [...p.series.actual] : [])
-    .sort((a, b) => a.w.localeCompare(b.w));
-  const last4  = actualSorted.slice(-4);
-  const prev4  = actualSorted.slice(-8, -4);
-  const avg4   = last4.length  ? last4.reduce((s, x) => s + x.y, 0) / last4.length  : 0;
-  const avg8   = prev4.length  ? prev4.reduce((s, x) => s + x.y, 0) / prev4.length  : 0;
-  let trendPct = null;
-  if (avg8 > 0 && last4.length >= 2 && prev4.length >= 2)
-    trendPct = Math.round((avg4 / avg8 - 1) * 100);
-
   // ── Trend override: falling >30% → suppress Prophet order ───────
-  const trendBlocked = trendPct !== null && trendPct < -30;
-  const poEff = trendBlocked ? 0 : po;
+  // (actualSorted / last4 / avg4 / trendPct / trendBlocked / poEff computed above)
 
   // ── Dual progress bar ───────────────────────────────────────────
   const maxBar = Math.max(haml, poEff, 1);
@@ -2099,6 +2125,7 @@ window.openProphetPanel = function(mk, taur, hevra, mkrShvua) {
       var y0 = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
       return Math.ceil(((d - y0) / 86400000 + 1) / 7);
     }
+    function isoWY(ds) { return 'שב' + isoWeekNum(ds) + '’' + ds.slice(2,4); }
 
     const fullActual = fillWeeks(actual);
     const maxY = Math.max(...fullActual.map(d => d.y), ...fc.map(d => d.y), 1);

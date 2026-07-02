@@ -31,13 +31,17 @@ async function build() {
 
   const now = new Date();
   const curY = now.getFullYear(), curM = now.getMonth() + 1;
-  const prevM = curM === 1 ? 12 : curM - 1;
-  const prevY = curM === 1 ? curY - 1 : curY;
-  const y1 = prevY, m1 = prevM, y2 = curY, m2 = curM;
-  const lastDay2 = new Date(y2, m2, 0).getDate();
-  const df = `DATESBETWEEN(DIMCALENDAR[Date], DATE(${y1},${m1},1), DATE(${y2},${m2},${lastDay2}))`;
+  const lastDay2 = new Date(curY, curM, 0).getDate();
+  // Start = 6 full weeks back from start of current week (Sunday)
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay()); // rewind to Sunday
+  const sixWeeksBack = new Date(startOfWeek);
+  sixWeeksBack.setDate(startOfWeek.getDate() - 42);
+  const y1 = sixWeeksBack.getFullYear(), m1 = sixWeeksBack.getMonth() + 1, d1 = sixWeeksBack.getDate();
+  const y2 = curY, m2 = curM;
+  const df = `DATESBETWEEN(DIMCALENDAR[Date], DATE(${y1},${m1},${d1}), DATE(${y2},${m2},${lastDay2}))`;
 
-  console.log(`Building MMD ORDERS: ${y1}-${String(m1).padStart(2,'0')} → ${y2}-${String(m2).padStart(2,'0')}`);
+  console.log(`Building MMD ORDERS: ${y1}-${String(m1).padStart(2,'0')}-${String(d1).padStart(2,'0')} → ${y2}-${String(m2).padStart(2,'0')}-${lastDay2}`);
 
   const rows = await executeDax(`
     EVALUATE

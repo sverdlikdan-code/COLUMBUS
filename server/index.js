@@ -2136,7 +2136,11 @@ app.get('/mmd/period-data', mmdGuard, dataRateLimit, async (req, res) => {
   }
 });
 
-app.use('/mmd', mmdGuard, express.static(path.join(__dirname, '..', 'MMD ORDERS')));
+app.use('/mmd', mmdGuard, express.static(path.join(__dirname, '..', 'MMD ORDERS'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-store');
+  }
+}));
 
 // ── FORMULA ROAD ─────────────────────────────────────────────────────────────
 function formulaRoadGuard(req, res, next) {
