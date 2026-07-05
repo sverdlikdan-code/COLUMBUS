@@ -1210,14 +1210,18 @@ async function initRoute(){
 
   // Apply day overrides — remove moved-away, add moved-here
   const dayOv=getDayOverrides(st.agent.code);
-  st.clients=st.clients.filter(c=>dayOv[c.custId]===undefined||dayOv[c.custId]===st.day);
+  const dayOvClients=getDayOverrideClients(st.agent.code);
+  st.clients=st.clients.filter(c=>dayOv[String(c.custId)]===undefined||dayOv[String(c.custId)]===st.day);
   Object.entries(dayOv).filter(([,d])=>d===st.day).forEach(([id])=>{
-    if(st.clients.find(c=>c.custId===id))return;
+    if(st.clients.find(c=>String(c.custId)===String(id)))return;
+    let client=null;
     for(let d=1;d<=5;d++){
       if(d===st.day)continue;
-      const client=(STATIC_DATA?.routes?.[`${st.agent.code}_${d}`]||[]).find(c=>c.custId===id);
-      if(client){st.clients.push({...client,dayNum:st.day,dayLabel:DAY_LABELS[st.day]});break;}
+      client=(STATIC_DATA?.routes?.[`${st.agent.code}_${d}`]||[]).find(c=>String(c.custId)===String(id));
+      if(client)break;
     }
+    if(!client&&dayOvClients[String(id)]) client=dayOvClients[String(id)];
+    if(client) st.clients.push({...client,dayNum:st.day,dayLabel:DAY_LABELS[st.day]});
   });
 
   // Apply GPS corrections (localStorage + gps-corrections.json) to client objects
@@ -1300,6 +1304,7 @@ function resetRoute(){
   if(!confirm(`לאפס יום ${dayLabel}?\nכל השינויים יימחקו והסדר המקורי של Priority יוחזר`)) return;
   try{ localStorage.removeItem(`fr_${st.agent.code}_${st.day}`); }catch{}
   try{ localStorage.removeItem(`fr_dayov_${st.agent.code}`); }catch{}
+  try{ localStorage.removeItem(`fr_dayov_clients_${st.agent.code}`); }catch{}
   initRoute();
 }
 
@@ -1965,6 +1970,12 @@ function getDayOverrides(code){
 function setDayOverrides(code,ov){
   try{localStorage.setItem(`fr_dayov_${code}`,JSON.stringify(ov));}catch{}
 }
+function getDayOverrideClients(code){
+  try{return JSON.parse(localStorage.getItem(`fr_dayov_clients_${code}`)||'{}');}catch{return{};}
+}
+function setDayOverrideClients(code,data){
+  try{localStorage.setItem(`fr_dayov_clients_${code}`,JSON.stringify(data));}catch{}
+}
 function openDayPopup(event,custId){
   event.stopPropagation();
   const popup=document.getElementById('day-popup');
@@ -1981,9 +1992,15 @@ function changeClientDay(custId,newDay){
   closeDayPopup();
   if(newDay===st.day)return;
   const ov=getDayOverrides(st.agent.code);
-  ov[custId]=newDay;
+  ov[String(custId)]=newDay;
   setDayOverrides(st.agent.code,ov);
-  st.clients=st.clients.filter(c=>c.custId!==custId);
+  const clientData=st.clients.find(c=>String(c.custId)===String(custId));
+  if(clientData){
+    const store=getDayOverrideClients(st.agent.code);
+    store[String(custId)]={...clientData};
+    setDayOverrideClients(st.agent.code,store);
+  }
+  st.clients=st.clients.filter(c=>String(c.custId)!==String(custId));
   st.aiClients=nearestNeighbor([...st.clients]);
   st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; triggerOsrm();
   saveRoute(st.agent.code,st.day,st.clients);
