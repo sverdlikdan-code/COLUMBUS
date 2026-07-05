@@ -2237,10 +2237,14 @@ app.post('/api/export-position-xlsx', dataRateLimit, async (req, res) => {
     ws.views[0] = { rightToLeft: true, state: 'frozen', ySplit: HEADER_ROW };
 
     const IMG_ROW_PT = 17;
-    await Promise.all(rows.map(async (r, i) => {
+    const BATCH = 5;
+    const fetchPhoto = async (r, i) => {
       if (!r.photoUrl || !isSafePhotoUrl(r.photoUrl)) return;
       try {
-        const resp = await fetch(r.photoUrl, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(4000) });
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 3500);
+        const resp = await fetch(r.photoUrl, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: ctrl.signal });
+        clearTimeout(tid);
         if (!resp.ok) return;
         const buf = Buffer.from(await resp.arrayBuffer());
         const ext = /\.png(\?|$)/i.test(r.photoUrl) ? 'png' : 'jpeg';
@@ -2253,7 +2257,10 @@ app.post('/api/export-position-xlsx', dataRateLimit, async (req, res) => {
         });
         ws.getRow(excelRow).height = IMG_ROW_PT;
       } catch { /* skip */ }
-    }));
+    };
+    for (let b = 0; b < rows.length; b += BATCH) {
+      await Promise.all(rows.slice(b, b + BATCH).map((r, j) => fetchPhoto(r, b + j)));
+    }
 
     const date = new Date().toISOString().slice(0, 10);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
