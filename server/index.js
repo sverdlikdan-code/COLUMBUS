@@ -2419,6 +2419,23 @@ app.get('/mmd/period-data', mmdGuard, dataRateLimit, async (req, res) => {
   }
 });
 
+app.get('/mmd', (req, res, next) => {
+  if (req.query.r === '1') {
+    const q = new URLSearchParams(req.query);
+    q.set('r', '2');
+    return res.redirect(302, '/mmd/?' + q.toString());
+  }
+  next();
+});
+app.get('/mmd/', (req, res, next) => {
+  if (req.query.r === '1') {
+    const q = new URLSearchParams(req.query);
+    q.set('r', '2');
+    return res.redirect(302, '/mmd/?' + q.toString());
+  }
+  next();
+});
+
 app.use('/mmd', mmdGuard, express.static(path.join(__dirname, '..', 'MMD ORDERS'), {
   etag: false,
   lastModified: false,
