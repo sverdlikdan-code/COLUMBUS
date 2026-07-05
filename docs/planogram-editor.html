@@ -2396,13 +2396,14 @@ async function exportPositionXlsx() {
     ws.getRow(HEADER_ROW).font = { bold:true };
     ws.views[0] = { rightToLeft:true, state:'frozen', ySplit:HEADER_ROW };
 
-    // Fetch photos in browser, batches of 8
+    // Fetch photos via proxy (CORS bridge), batches of 8
+    const PROXY = 'https://api.sverdlik-apps.site/api/photo-proxy?url=';
     const fetchAndEmbed = async (r, i) => {
       if (!r.photoUrl) return;
       try {
         const ctrl = new AbortController();
         const tid = setTimeout(() => ctrl.abort(), 4000);
-        const resp = await fetch(r.photoUrl, { signal: ctrl.signal });
+        const resp = await fetch(PROXY + encodeURIComponent(r.photoUrl), { signal: ctrl.signal });
         clearTimeout(tid);
         if (!resp.ok) return;
         const buf = await resp.arrayBuffer();

@@ -2176,6 +2176,24 @@ app.post('/api/export-order-xlsx', requireAuth, dataRateLimit, async (req, res) 
   }
 });
 
+// ── PHOTO PROXY (CORS bridge for github.io → priority.dilerbmd.com) ─────────
+app.get('/api/photo-proxy', async (req, res) => {
+  const url = req.query.url;
+  if (!isSafePhotoUrl(url)) return res.status(400).json({ error: 'invalid url' });
+  try {
+    const ctrl = new AbortController();
+    const tid  = setTimeout(() => ctrl.abort(), 5000);
+    const r    = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: ctrl.signal });
+    clearTimeout(tid);
+    if (!r.ok) return res.status(r.status).end();
+    const buf = Buffer.from(await r.arrayBuffer());
+    res.setHeader('Content-Type', r.headers.get('content-type') || 'image/jpeg');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.end(buf);
+  } catch { res.status(502).end(); }
+});
+
 // ── POSITION TABLE XLSX (מיקום + photos) ────────────────────────────────────
 app.post('/api/export-position-xlsx', dataRateLimit, async (req, res) => {
   try {
