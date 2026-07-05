@@ -327,7 +327,24 @@ async function geocodeBatch(clients, reGeocode = new Set()) {
     await sleep(1100);
   }
 
-  // clients without street number → city center from bbox (0 API calls)
+  // clients without street number — try Google with custName+city before falling to city-center
+  const noNumClients = clients.filter(c =>
+    !isValidIL(c.lat, c.lng) &&
+    !extractStreetNum(c.address) &&
+    !gpsLookup[String(c.custId)] &&
+    c.custName
+  );
+  for (const c of noNumClients) {
+    const bbox = cityBBoxCache.get(c.city) ?? null;
+    const gq = [c.custName, c.city].filter(Boolean).join(', ');
+    const g = await googleMapsQuery(gq, c.city);
+    if (g && inBBox(g.lat, g.lng, bbox)) {
+      c.lat = g.lat; c.lng = g.lng; c.gpsSource = 'google-name';
+    }
+    await sleep(1100);
+  }
+
+  // clients still without street number → city center from bbox (0 API calls)
   for (const c of clients) {
     if (isValidIL(c.lat, c.lng)) continue;
     if (extractStreetNum(c.address)) continue; // has number → will Nominatim below
@@ -345,15 +362,16 @@ async function geocodeBatch(clients, reGeocode = new Set()) {
     if (r && inBBox(r.lat, r.lng, bbox)) {
       c.lat = r.lat; c.lng = r.lng; c.gpsSource = 'nominatim';
     } else {
-      // 2nd try: Google Maps (best for Hebrew: POI, intersections, abbreviations)
-      const q = [cleanAddr(c.address), c.city].filter(Boolean).join(', ');
+      // 2nd try: Google Maps with name+address+city (smarter context)
       const azBbox = cityBBoxCache.get(c.city) ?? null;
-      const g = await googleMapsQuery(q, c.city);
+      const gq = [c.custName, cleanAddr(c.address), c.city].filter(Boolean).join(', ');
+      const g = await googleMapsQuery(gq, c.city);
       if (g && inBBox(g.lat, g.lng, azBbox)) {
         c.lat = g.lat; c.lng = g.lng; c.gpsSource = 'google';
       } else {
-        // 3rd try: Azure Maps
-        const az = await azureMapsQuery(q, c.city);
+        // 3rd try: Azure Maps (address only)
+        const aq = [cleanAddr(c.address), c.city].filter(Boolean).join(', ');
+        const az = await azureMapsQuery(aq, c.city);
         if (az && inBBox(az.lat, az.lng, azBbox)) {
           c.lat = az.lat; c.lng = az.lng; c.gpsSource = 'azure';
         }
