@@ -2177,7 +2177,7 @@ app.post('/api/export-order-xlsx', requireAuth, dataRateLimit, async (req, res) 
 });
 
 // ── POSITION TABLE XLSX (מיקום + photos) ────────────────────────────────────
-app.post('/api/export-position-xlsx', requireAuth, dataRateLimit, async (req, res) => {
+app.post('/api/export-position-xlsx', dataRateLimit, async (req, res) => {
   try {
     const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
     if (!rows.length) return res.status(400).json({ error: 'missing rows' });
