@@ -2368,7 +2368,7 @@ async function exportPositionXlsx() {
     const ws = wb.addWorksheet('מיקום', { views: [{ rightToLeft: true }] });
     const dateStr = new Date().toLocaleDateString('he-IL', { year:'numeric', month:'2-digit', day:'2-digit' });
 
-    const PHOTO_COL = 2, HEADER_ROW = 4, IMG_ROW_PT = 17;
+    const PHOTO_COL = 2, HEADER_ROW = 4, IMG_ROW_PT = 22;
     ws.getColumn(1).width = 10;
     ws.getRow(1).height = 22;
     const titleCell = ws.getCell('B2');
