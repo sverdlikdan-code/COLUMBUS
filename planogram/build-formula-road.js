@@ -182,6 +182,48 @@ async function googleMapsQuery(q, city) {
   return null;
 }
 
+// Overpass API cache: chainName → [{lat,lng,name}]
+const OVERPASS_CACHE = new Map();
+const OVERPASS_MIRROR = 'https://maps.mail.ru/osm/tools/overpass/api/interpreter';
+
+async function overpassChainBranches(name) {
+  if (OVERPASS_CACHE.has(name)) return OVERPASS_CACHE.get(name);
+  try {
+    const q = `[out:json][timeout:20];
+(
+  node["name"~"${name.replace(/"/g,'')}",i](29.0,34.0,33.5,36.0);
+  way["name"~"${name.replace(/"/g,'')}",i](29.0,34.0,33.5,36.0);
+);
+out center 50;`;
+    const r = await fetch(`${OVERPASS_MIRROR}?data=${encodeURIComponent(q)}`, {
+      headers: { 'User-Agent': 'COLUMBUS-geocoder/1.0' },
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!r.ok) { OVERPASS_CACHE.set(name, []); return []; }
+    const data = await r.json();
+    const branches = (data.elements || []).map(e => ({
+      lat: e.lat ?? e.center?.lat,
+      lng: e.lon ?? e.center?.lon,
+      name: e.tags?.name || name,
+    })).filter(b => b.lat && b.lng);
+    OVERPASS_CACHE.set(name, branches);
+    return branches;
+  } catch (_) {
+    OVERPASS_CACHE.set(name, []);
+    return [];
+  }
+}
+
+function findNearestBranch(branches, bbox) {
+  if (!bbox || !branches.length) return null;
+  const P = 0.03; // ~3km padding beyond city bbox
+  const inCity = branches.filter(b =>
+    b.lat >= bbox.minLat - P && b.lat <= bbox.maxLat + P &&
+    b.lng >= bbox.minLng - P && b.lng <= bbox.maxLng + P
+  );
+  return inCity[0] || null;
+}
+
 async function azureMapsQuery(q, city) {
   if (!process.env.AZURE_MAPS_KEY) return null;
   if (q in azureCache) return azureCache[q];
@@ -285,7 +327,24 @@ async function geocodeBatch(clients, reGeocode = new Set()) {
     await sleep(1100);
   }
 
-  // clients without street number → city center from bbox (0 API calls)
+  // clients without street number — try Google with custName+city before falling to city-center
+  const noNumClients = clients.filter(c =>
+    !isValidIL(c.lat, c.lng) &&
+    !extractStreetNum(c.address) &&
+    !gpsLookup[String(c.custId)] &&
+    c.custName
+  );
+  for (const c of noNumClients) {
+    const bbox = cityBBoxCache.get(c.city) ?? null;
+    const gq = [c.custName, c.city].filter(Boolean).join(', ');
+    const g = await googleMapsQuery(gq, c.city);
+    if (g && inBBox(g.lat, g.lng, bbox)) {
+      c.lat = g.lat; c.lng = g.lng; c.gpsSource = 'google-name';
+    }
+    await sleep(1100);
+  }
+
+  // clients still without street number → city center from bbox (0 API calls)
   for (const c of clients) {
     if (isValidIL(c.lat, c.lng)) continue;
     if (extractStreetNum(c.address)) continue; // has number → will Nominatim below
@@ -303,15 +362,16 @@ async function geocodeBatch(clients, reGeocode = new Set()) {
     if (r && inBBox(r.lat, r.lng, bbox)) {
       c.lat = r.lat; c.lng = r.lng; c.gpsSource = 'nominatim';
     } else {
-      // 2nd try: Google Maps (best for Hebrew: POI, intersections, abbreviations)
-      const q = [cleanAddr(c.address), c.city].filter(Boolean).join(', ');
+      // 2nd try: Google Maps with name+address+city (smarter context)
       const azBbox = cityBBoxCache.get(c.city) ?? null;
-      const g = await googleMapsQuery(q, c.city);
+      const gq = [c.custName, cleanAddr(c.address), c.city].filter(Boolean).join(', ');
+      const g = await googleMapsQuery(gq, c.city);
       if (g && inBBox(g.lat, g.lng, azBbox)) {
         c.lat = g.lat; c.lng = g.lng; c.gpsSource = 'google';
       } else {
-        // 3rd try: Azure Maps
-        const az = await azureMapsQuery(q, c.city);
+        // 3rd try: Azure Maps (address only)
+        const aq = [cleanAddr(c.address), c.city].filter(Boolean).join(', ');
+        const az = await azureMapsQuery(aq, c.city);
         if (az && inBBox(az.lat, az.lng, azBbox)) {
           c.lat = az.lat; c.lng = az.lng; c.gpsSource = 'azure';
         }
@@ -330,7 +390,7 @@ async function geocodeBatch(clients, reGeocode = new Set()) {
     }
   }
 
-  // רשתות (chains): try Google with business name + city for poor-quality GPS
+  // רשתות (chains): Overpass OSM lookup by chain name — free, no API key, covers all Israel
   const CHAIN_BAD_SOURCES = new Set(['city-center', 'geocoded', 'pbi-sibling-near', 'nominatim']);
   const chainBad = clients.filter(c =>
     c.custType === 'רשתות' &&
@@ -338,16 +398,40 @@ async function geocodeBatch(clients, reGeocode = new Set()) {
     !gpsLookup[String(c.custId)] &&
     c.custName
   );
-  if (chainBad.length > 0) console.log(`  🔍 name-geocode: ${chainBad.length} chain clients at city-center → Google by name`);
-  for (const c of chainBad) {
-    const q = [c.custName, c.city].filter(Boolean).join(', ');
-    const bbox = cityBBoxCache.get(c.city) ?? null;
-    const g = await googleMapsQuery(q, c.city);
-    if (g && inBBox(g.lat, g.lng, bbox)) {
-      c.lat = g.lat; c.lng = g.lng; c.gpsSource = 'google-name';
-      console.log(`    ✅ ${c.custName} → ${g.lat.toFixed(4)},${g.lng.toFixed(4)}`);
+  if (chainBad.length > 0) {
+    // Group by chain name to batch Overpass queries
+    const byName = new Map();
+    for (const c of chainBad) {
+      const key = c.custName.trim();
+      if (!byName.has(key)) byName.set(key, []);
+      byName.get(key).push(c);
     }
-    await sleep(1100);
+    console.log(`  🗺 Overpass: ${chainBad.length} chain clients, ${byName.size} unique names`);
+    for (const [name, group] of byName) {
+      const branches = await overpassChainBranches(name);
+      for (const c of group) {
+        const bbox = cityBBoxCache.get(c.city) ?? null;
+        const match = findNearestBranch(branches, bbox);
+        if (match) {
+          c.lat = match.lat; c.lng = match.lng; c.gpsSource = 'overpass';
+        }
+      }
+      await sleep(500);
+    }
+    const fixed = chainBad.filter(c => c.gpsSource === 'overpass').length;
+    console.log(`    ✅ Overpass fixed: ${fixed}/${chainBad.length}`);
+
+    // Fallback to Google for chains still without good GPS
+    const stillBad = chainBad.filter(c => CHAIN_BAD_SOURCES.has(c.gpsSource));
+    for (const c of stillBad) {
+      const q = [c.custName, c.city].filter(Boolean).join(', ');
+      const bbox = cityBBoxCache.get(c.city) ?? null;
+      const g = await googleMapsQuery(q, c.city);
+      if (g && inBBox(g.lat, g.lng, bbox)) {
+        c.lat = g.lat; c.lng = g.lng; c.gpsSource = 'google-name';
+      }
+      await sleep(1100);
+    }
   }
 }
 
