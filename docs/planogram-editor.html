@@ -787,6 +787,9 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"
+        integrity="sha384-Pqp51FUN2/qzfxZxBCtF0stpc9ONI6MYZpVqmo8m20SoaQCzf+arZvACkLkirlPz"
+        crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"
         integrity="sha384-HZZ/fukV+9G8gwTNjN7zQDG0Sp7MsZy5DDN6VfY3Be7V9dvQpEpR2jF2HlyFUUjU" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
@@ -2327,46 +2330,103 @@ async function exportPositionXlsx() {
   const btn = document.getElementById('btn-export-pos');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ מכין...'; }
   const _done = () => { if (btn) { btn.disabled = false; btn.textContent = '⬇ Excel 📷'; } };
-  const SEC_NAMES = { kapua:'קפוא', halavi:'חלבי', dagim:'דגים', yavesh:'דג יבש' };
-  const payload = [];
-  for (const sec of _SECTIONS) {
-    const reserveStart = sectionReserveStart(sec);
-    const order = _getPrintOrder(sec).filter(pick => reserveStart === 0 || +pick < reserveStart);
-    const seen = new Set(); let idx = 0;
-    order.forEach((pick, i) => {
-      const p = state[sec][pick];
-      if (!p || seen.has(String(p.makat))) return;
-      seen.add(String(p.makat));
-      idx++;
-      const printOrd = (_SEC_BASE[sec]||0) + i + 1;
-      payload.push({
-        sec: SEC_NAMES[sec],
-        printOrder: printOrd,
-        pos: (_SEC_BASE[sec]||0) + idx,
-        bay: pick,
-        makat: String(p.makat),
-        name: p.name || '',
-        fam: productData[String(p.makat)]?.fam || _cleanStr(p.fam) || '',
-        haluka: p.haluka ?? null,
-        photoUrl: getPhotoUrl(p.makat) || '',
-      });
-    });
-  }
-  if (!payload.length) { _done(); alert('אין מוצרים בטבלה'); return; }
   try {
-    const resp = await fetch('https://api.sverdlik-apps.site/api/export-position-xlsx', {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Session': localStorage.getItem('frToken') || '' },
-      body: JSON.stringify({ rows: payload }),
+    const SEC_NAMES = { kapua:'קפוא', halavi:'חלבי', dagim:'דגים', yavesh:'דג יבש' };
+    const rows = [];
+    for (const sec of _SECTIONS) {
+      const reserveStart = sectionReserveStart(sec);
+      const order = _getPrintOrder(sec).filter(pick => reserveStart === 0 || +pick < reserveStart);
+      const seen = new Set(); let idx = 0;
+      order.forEach((pick, i) => {
+        const p = state[sec][pick];
+        if (!p || seen.has(String(p.makat))) return;
+        seen.add(String(p.makat));
+        idx++;
+        rows.push({
+          sec: SEC_NAMES[sec],
+          printOrder: p.printOrder ?? ((_SEC_BASE[sec]||0) + i + 1),
+          pos: (_SEC_BASE[sec]||0) + idx,
+          bay: pick,
+          makat: String(p.makat),
+          name: p.name || '',
+          fam: productData[String(p.makat)]?.fam || _cleanStr(p.fam) || '',
+          haluka: p.haluka ?? null,
+          photoUrl: getPhotoUrl(p.makat) || '',
+        });
+      });
+    }
+    if (!rows.length) { _done(); alert('אין מוצרים בטבלה'); return; }
+
+    rows.sort((a, b) => {
+      const ha = a.haluka ?? 999, hb = b.haluka ?? 999;
+      if (ha !== hb) return ha - hb;
+      return (Number(a.printOrder) || 0) - (Number(b.printOrder) || 0);
     });
-    if (!resp.ok) { const t = await resp.text().catch(()=>''); _done(); alert(`שגיאה: ${resp.status} ${t.slice(0,80)}`); return; }
-    const blob = await resp.blob();
-    const a = Object.assign(document.createElement('a'), {
-      href: URL.createObjectURL(blob),
-      download: `position-${new Date().toISOString().slice(0,10)}.xlsx`,
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'COLUMBUS';
+    const ws = wb.addWorksheet('מיקום', { views: [{ rightToLeft: true }] });
+    const dateStr = new Date().toLocaleDateString('he-IL', { year:'numeric', month:'2-digit', day:'2-digit' });
+
+    const PHOTO_COL = 2, HEADER_ROW = 4, IMG_ROW_PT = 17;
+    ws.getColumn(1).width = 10;
+    ws.getRow(1).height = 22;
+    const titleCell = ws.getCell('B2');
+    titleCell.value = `📦 טבלת מיקום FORMULA  —  תאריך: ${dateStr}`;
+    titleCell.font = { bold:true, size:13, color:{argb:'FFFFFFFF'}, name:'Calibri' };
+    titleCell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF1E3A5F'} };
+    titleCell.alignment = { horizontal:'right', vertical:'middle' };
+    ws.getRow(2).height = 26;
+
+    const tableCols = [
+      { name:'תמונה', width:8 }, { name:'תאור', width:38 }, { name:'מק"ט', width:11 },
+      { name:'חלוקה', width:9 }, { name:'מחלקה', width:12 }, { name:'סדר הדפסה', width:10 },
+      { name:'מיקום', width:9 }, { name:'בי', width:9 }, { name:'משפחה', width:22 },
+    ];
+    tableCols.forEach((c, i) => { ws.getColumn(PHOTO_COL + i).width = c.width; });
+    ws.addTable({
+      name: 'PositionTable', ref: `B${HEADER_ROW}`,
+      headerRow: true, totalsRow: false,
+      style: { theme:'TableStyleMedium2', showRowStripes:true },
+      columns: tableCols.map(c => ({ name:c.name, filterButton:true, totalsRowFunction:'none' })),
+      rows: rows.map(r => ['', r.name||'', r.makat||'', r.haluka??'—', r.sec||'', r.printOrder||'', r.pos||'', r.bay||'', r.fam||'']),
     });
-    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
+    ws.getRow(HEADER_ROW).height = 22;
+    ws.getRow(HEADER_ROW).font = { bold:true };
+    ws.views[0] = { rightToLeft:true, state:'frozen', ySplit:HEADER_ROW };
+
+    // Fetch photos in browser, batches of 8
+    const fetchAndEmbed = async (r, i) => {
+      if (!r.photoUrl) return;
+      try {
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 4000);
+        const resp = await fetch(r.photoUrl, { signal: ctrl.signal });
+        clearTimeout(tid);
+        if (!resp.ok) return;
+        const buf = await resp.arrayBuffer();
+        const ext = /\.png(\?|$)/i.test(r.photoUrl) ? 'png' : 'jpeg';
+        const imgId = wb.addImage({ buffer: buf, extension: ext });
+        const excelRow = HEADER_ROW + 1 + i;
+        ws.addImage(imgId, {
+          tl: { col: PHOTO_COL - 1 + 0.05, row: excelRow - 1 + 0.05 },
+          br: { col: PHOTO_COL - 0.05,     row: excelRow - 0.05 },
+          editAs: 'twoCell',
+        });
+        ws.getRow(excelRow).height = IMG_ROW_PT;
+      } catch {}
+    };
+    const BATCH = 8;
+    for (let b = 0; b < rows.length; b += BATCH)
+      await Promise.all(rows.slice(b, b + BATCH).map((r, j) => fetchAndEmbed(r, b + j)));
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = Object.assign(document.createElement('a'), { href:url, download:`position-${new Date().toISOString().slice(0,10)}.xlsx` });
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
     _done();
-  } catch(e) { _done(); alert(`שגיאת רשת: ${e.message}`); }
+  } catch(e) { _done(); alert(`שגיאה: ${e.message}`); }
 }
 
 function exportCSVAll() {
