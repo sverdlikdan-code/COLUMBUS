@@ -2422,8 +2422,15 @@ function _initTableDrag(tbody) {
     const fromIdx = parseInt(dragSrc.dataset.idx);
     const toIdx   = parseInt(row.dataset.idx);
     const order   = _getPrintOrder(sec);
-    const [item]  = order.splice(fromIdx, 1);
+    // Collect printOrder values in the affected range, redistribute after splice
+    const lo = Math.min(fromIdx, toIdx), hi = Math.max(fromIdx, toIdx);
+    const rangePOs = order.slice(lo, hi + 1).map(p => state[sec]?.[p]?.printOrder ?? null);
+    rangePOs.sort((a, b) => (a ?? 0) - (b ?? 0));
+    const [item] = order.splice(fromIdx, 1);
     order.splice(toIdx, 0, item);
+    order.slice(lo, hi + 1).forEach((pick, i) => {
+      if (state[sec]?.[pick] && rangePOs[i] != null) state[sec][pick].printOrder = rangePOs[i];
+    });
     _savePrintOrder(sec, order);
     updateTable();
   });
