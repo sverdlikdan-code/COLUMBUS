@@ -329,6 +329,26 @@ async function geocodeBatch(clients, reGeocode = new Set()) {
       c.lat = az.lat; c.lng = az.lng; c.gpsSource = 'city-center';
     }
   }
+
+  // רשתות (chains): try Google with business name + city for poor-quality GPS
+  const CHAIN_BAD_SOURCES = new Set(['city-center', 'geocoded', 'pbi-sibling-near', 'nominatim']);
+  const chainBad = clients.filter(c =>
+    c.custType === 'רשתות' &&
+    CHAIN_BAD_SOURCES.has(c.gpsSource) &&
+    !gpsLookup[String(c.custId)] &&
+    c.custName
+  );
+  if (chainBad.length > 0) console.log(`  🔍 name-geocode: ${chainBad.length} chain clients at city-center → Google by name`);
+  for (const c of chainBad) {
+    const q = [c.custName, c.city].filter(Boolean).join(', ');
+    const bbox = cityBBoxCache.get(c.city) ?? null;
+    const g = await googleMapsQuery(q, c.city);
+    if (g && inBBox(g.lat, g.lng, bbox)) {
+      c.lat = g.lat; c.lng = g.lng; c.gpsSource = 'google-name';
+      console.log(`    ✅ ${c.custName} → ${g.lat.toFixed(4)},${g.lng.toFixed(4)}`);
+    }
+    await sleep(1100);
+  }
 }
 
 function mapClient(r, dayNum) {
@@ -340,6 +360,7 @@ function mapClient(r, dayNum) {
     custName:      fixPriorityAddr(r['משטח[שם לקוח]'] || ''),
     city:          fixPriorityAddr(r['משטח[עיר]']     || ''),
     address:       fixPriorityAddr(r['משטח[כתובת]']   || ''),
+    custType:      r['[custType]'] || '',
     lat:           corr ? corr.lat : (r['משטח[קו רוחב]'] || null) || (lookup ? lookup.lat : null),
     lng:           corr ? corr.lng : (r['משטח[קו אורך]'] || null) || (lookup ? lookup.lng : null),
     gpsSource:     corr ? 'correction' : (r['משטח[קו רוחב]'] ? 'pbi' : lookup ? 'lookup' : null),
@@ -384,6 +405,7 @@ ADDCOLUMNS(
         && YEAR('ALL_PARTS'[תאריך])=YEAR(TODAY())
         && MONTH('ALL_PARTS'[תאריך])=MONTH(TODAY()))),
   "יעד", CALCULATE([יעד $], 'משטח'[סטטוס] IN {"פעיל"}),
+  "custType", 'משטח'[רשתות - פרטי],
   "indication",
     VAR target = CALCULATE([יעד $], 'משטח'[סטטוס] IN {"פעיל"})
     VAR sales  = CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)],
