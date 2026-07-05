@@ -1279,6 +1279,40 @@ app.get('/api/gps-pending-xlsx', requireAuth, async (req, res) => {
   const F1 = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFFFFF' } };
   const F2 = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFF5F5F5' } };
   pending.forEach((_, i) => { const r=ws.getRow(i+2); r.fill = i%2===0?F1:F2; r.eachCell(c=>{c.fill=i%2===0?F1:F2;}); });
+
+  // ── Sheet 2: חסר GPS (no-gps — outside IL bounds or truly missing) ──
+  const DOUBTFUL_SOURCES = new Set(['geocoded','pbi-sibling-near','city-center','no-gps']);
+  const seen = new Set();
+  const noGpsClients = [], doubtfulClients = [];
+  for (const [, c] of pbiCache.clientMap) {
+    if (seen.has(c.custId)) continue; seen.add(c.custId);
+    if (c.gpsSource === 'no-gps' || !c.lat || !c.lng) noGpsClients.push(c);
+    else if (DOUBTFUL_SOURCES.has(c.gpsSource)) doubtfulClients.push(c);
+  }
+  const GEO_COLS = [
+    { name: 'מס. לקוח', width: 14 }, { name: 'שם לקוח', width: 30 }, { name: 'עיר', width: 16 },
+    { name: 'כתובת', width: 26 }, { name: 'קו רוחב', width: 13 }, { name: 'קו אורך', width: 13 },
+    { name: 'מקור GPS', width: 16 }, { name: 'קוד סוכן', width: 12 }, { name: 'שם סוכן', width: 22 },
+  ];
+  const makeGeoRow = c => [
+    String(c.custId||''), c.custName||'', c.city||'', c.address||'',
+    c.lat ? +parseFloat(c.lat).toFixed(6) : '', c.lng ? +parseFloat(c.lng).toFixed(6) : '',
+    c.gpsSource||'', c.agentCode||'', c.agentName||'',
+  ];
+  const addGeoSheet = (name, tableName, rows, hdrArgb) => {
+    const s = wb.addWorksheet(name, { views:[{ rightToLeft:true, state:'frozen', ySplit:1 }] });
+    s.addTable({ name: tableName, ref:'A1', headerRow:true, totalsRow:false,
+      style:{ theme:'TableStyleLight1', showRowStripes:false },
+      columns: GEO_COLS.map(c=>({ name:c.name, filterButton:true })),
+      rows: rows.map(makeGeoRow),
+    });
+    GEO_COLS.forEach((c,i)=>{ s.getColumn(i+1).width=c.width; });
+    const h=s.getRow(1); h.font={bold:true,color:{argb:'FFFFFFFF'}}; h.fill={type:'pattern',pattern:'solid',fgColor:{argb:hdrArgb}};
+    rows.forEach((_,i)=>{ const r=s.getRow(i+2); r.eachCell(cell=>{ cell.fill=i%2===0?F1:F2; }); });
+  };
+  addGeoSheet('חסר GPS', 'NoGpsTable', noGpsClients, 'FFB71C1C');       // red header
+  addGeoSheet('לא מדויק', 'DoubtfulTable', doubtfulClients, 'FFE65100'); // orange header
+
   const date = new Date().toISOString().slice(0,10);
   res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition',`attachment; filename*=UTF-8''${encodeURIComponent(`GPS_Pending_${date}.xlsx`)}`);
@@ -1287,7 +1321,7 @@ app.get('/api/gps-pending-xlsx', requireAuth, async (req, res) => {
 
 // POST /api/export-all-days-xlsx — multi-sheet Excel, one sheet per day
 app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, res) => {
-  const { agentCode, agentName } = req.body;
+  const { agentCode, agentName, dayOverrides = {}, savedOrders = {} } = req.body;
   if (!agentCode) return res.status(400).json({ error: 'agentCode required' });
   if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
   const allClients = pbiCache.byAgent.get(agentCode) || [];
@@ -1295,9 +1329,12 @@ app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, re
   const corrPath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
   const corrections = fs.existsSync(corrPath) ? JSON.parse(fs.readFileSync(corrPath, 'utf8')) : {};
   const DAY_ORDER = ['א','ב','ג','ד','ה','ו'];
+  const DAY_LABEL = {1:'א',2:'ב',3:'ג',4:'ד',5:'ה'};
   const byDay = {};
   for (const c of allClients) {
-    const d = c.dayLabel || String(c.dayNum||'');
+    // Apply dayOverrides: use overridden day if set, else original
+    const overriddenDay = dayOverrides[String(c.custId)];
+    const d = overriddenDay ? (DAY_LABEL[overriddenDay] || String(overriddenDay)) : (c.dayLabel || String(c.dayNum||''));
     if (!byDay[d]) byDay[d] = [];
     byDay[d].push(c);
   }
@@ -1311,8 +1348,19 @@ app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, re
     GR1:{type:'pattern',pattern:'solid',fgColor:{argb:'FFECEFF1'}}, GR2:{type:'pattern',pattern:'solid',fgColor:{argb:'FFE0E0E0'}},
     W:{type:'pattern',pattern:'solid',fgColor:{argb:'FFFFFFFF'}}, S:{type:'pattern',pattern:'solid',fgColor:{argb:'FFF5F5F5'}},
   };
+  const DAY_NUM = {'א':1,'ב':2,'ג':3,'ד':4,'ה':5};
   for (const day of days) {
-    const clients = (byDay[day]||[]).sort((a,b)=>(a.priorityOrder||999)-(b.priorityOrder||999));
+    const dayNum = DAY_NUM[day];
+    const savedOrder = dayNum && savedOrders[dayNum] ? savedOrders[dayNum] : null;
+    let clients;
+    if (savedOrder && savedOrder.length) {
+      const byId = Object.fromEntries((byDay[day]||[]).map(c=>[String(c.custId),c]));
+      const ordered = savedOrder.map(id=>byId[id]).filter(Boolean);
+      const rest = (byDay[day]||[]).filter(c=>!savedOrder.includes(String(c.custId)));
+      clients = [...ordered, ...rest];
+    } else {
+      clients = (byDay[day]||[]).sort((a,b)=>(a.priorityOrder||999)-(b.priorityOrder||999));
+    }
     const ws = wb.addWorksheet(day, { views:[{ rightToLeft:true, state:'frozen', ySplit:1 }] });
     const COLS = [
       {name:'סדר ביקור מתוקן',width:8},{name:'מס. לקוח',width:14},{name:'שם לקוח',width:28},
