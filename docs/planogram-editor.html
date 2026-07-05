@@ -1027,6 +1027,15 @@ function movePrintOrder(sec, idx, dir) {
   const order = _getPrintOrder(sec);
   const newIdx = idx + dir;
   if (newIdx < 0 || newIdx >= order.length) return;
+  const pickA = order[idx], pickB = order[newIdx];
+  const pA = state[sec]?.[pickA], pB = state[sec]?.[pickB];
+  // Swap printOrder values so haluka-sort preserves the new position
+  if (pA && pB) {
+    const poA = pA.printOrder ?? +pickA;
+    const poB = pB.printOrder ?? +pickB;
+    pA.printOrder = poB;
+    pB.printOrder = poA;
+  }
   [order[idx], order[newIdx]] = [order[newIdx], order[idx]];
   _savePrintOrder(sec, order);
   updateTable();
