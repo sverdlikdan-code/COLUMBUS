@@ -1,5 +1,20 @@
 ﻿# mahsan-planogram — MAHSAN PLANOGRAM (FORMULA cold storage)
 
+## Сессия 2026-07-05 #done
+
+### CI / данные
+- **planogram-build.yml**: добавлены дневные запуски 08/10/12/14:00 Israel — теперь product-data.json обновляется каждые 2ч в рабочее время (раньше: только 06:00 + 16:00–23:00)
+- **sync-breira-only.js**: новый скрипт — синхронизирует XLSX → *-base.json без PBI-запросов (быстрый однократный синк)
+
+### Данные / planogram-editor
+- **חלבי חלוקה 1 printOrder**: исправлено 247-254 → 147-154 (XLSX + halavi-base.json)
+- **export-position-xlsx**: убран `requireAuth` — эндпоинт недоступен с GitHub Pages (разные localStorage домены); внутренний инструмент, авторизация не нужна
+- **▲▼ move fix**: `movePrintOrder` теперь меняет числа `.printOrder` у двух соседних позиций — ре-сорт больше не сбрасывает ручное перемещение
+- **drag-drop fix**: drop-handler в `_initTableDrag` перераспределяет `.printOrder` по диапазону затронутых строк — drag сохраняет позицию после sort
+
+### CLAUDE.md
+- Добавлен раздел "Честность и верификация — ОБЯЗАТЕЛЬНО" (правило не выдавать предположения как факты)
+
 ## Сессия 2026-06-30 #done
 
 ### Исправления planogram-editor.html (продолжение)
