@@ -1856,7 +1856,7 @@
       const mk = String(r.mkt ?? '');
       const s  = sv[mk] || {};
       const eff = s.k != null ? Number(s.k) : ((r.hamlatza ?? 0) > 0 ? Math.round(r.hamlatza) : 0);
-      const tukuf = sessionP[mk] || (r.tukuf || '').split('/')[0]?.trim() || '';
+      const tukuf = sessionP[mk] || '';
       return { mk, taur: r.taur, mmd: r.mmd_k ?? 0, ash: r.ashdod_k ?? 0, qty: eff, tukuf };
     });
     const hist = JSON.parse(localStorage.getItem('mmd_order_history') || '[]');
