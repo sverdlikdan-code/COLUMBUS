@@ -64,3 +64,4 @@
 - [[session-2026-07-01-mekarer]] — Сессия 2026-07-01: הזמנת מקרר — root cause (рогатый локальный сервер), email Resend, Excel вложение, no-merge, Invalid Date fix, телефон RTL
 - [[session-2026-07-02-infra]] — Сессия 2026-07-02: туннель 579497d4 перенесён на VPS (cloudflared-api); GPS zoom fix; OSM тайл при תקן מיקום; IS_LOCAL loop fix
 - [[migration-plan-vps]] — ПЛАН МИГРАЦИИ: анализ 6 ошибок Formula Road + чеклист для MMD Orders и Mahsan Editor
+- [[skill-hebrew-bidi]] — Скилл Hebrew BiDi: карта 5 функций (fixBiDi×4, fixVisualRTL×4, fixHebRTL×5), дерево решений, HTML RTL шаблоны
