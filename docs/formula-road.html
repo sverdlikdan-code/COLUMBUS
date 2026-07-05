@@ -1506,13 +1506,11 @@ function resetExcluded(){
 }
 function openMekarerOrder(e,custId,custName,city){
   if(e){e.stopPropagation();e.preventDefault();}
-  const token=_getToken();
   const agent=st.agent||{};
   const p=new URLSearchParams({
     custId,custName,city,
     agentCode:agent.code||'',agentName:agent.name||'',
     manager:st.manager||'',
-    token,
   });
   window.open('mekarer-order.html?'+p.toString(),'_blank');
 }

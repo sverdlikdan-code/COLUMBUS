@@ -183,7 +183,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 <script>
 const API = 'https://api.sverdlik-apps.site';
 const params = new URLSearchParams(location.search);
-const TOKEN = params.get('token') || localStorage.getItem('frToken') || '';
+const TOKEN = localStorage.getItem('frToken') || '';
 const custId = params.get('custId') || '';
 const custName = params.get('custName') || '';
 const city = params.get('city') || '';
