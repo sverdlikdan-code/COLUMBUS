@@ -120,8 +120,11 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 /* CLIENT LIST */
 #route-body{display:flex;flex:1;overflow:hidden;flex-direction:column;}
 #list-pane{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 6px 18px;min-width:0;background:var(--bg);}
-.city-chip{padding:3px 9px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--sky-mid);background:#fff;color:var(--mid);white-space:nowrap;flex:1;text-align:center;}
-.city-chip.on{background:var(--blue);color:#fff;border-color:var(--blue);}
+.city-chip{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #90CAF9;background:#F8FBFF;color:#1565C0;white-space:nowrap;flex:0 0 auto;display:flex;align-items:center;gap:5px;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.city-chip:hover{background:#E3F2FD;border-color:#42A5F5;}
+.city-chip.on{background:#1565C0;color:#fff;border-color:#1565C0;box-shadow:0 2px 6px rgba(21,101,192,.3);}
+.chip-count{font-size:10px;font-weight:700;background:rgba(21,101,192,.12);border-radius:10px;padding:1px 5px;min-width:16px;text-align:center;}
+.city-chip.on .chip-count{background:rgba(255,255,255,.25);}
 
 /* CLIENT CARD — distill: background-tint states instead of side-stripe */
 .client-card{background:#fff;border-radius:6px;padding:3px 7px;margin-bottom:1px;display:flex;align-items:center;gap:4px;box-shadow:0 1px 3px rgba(21,101,192,.06);position:relative;cursor:pointer;touch-action:pan-y;transition:box-shadow .12s;}
@@ -355,6 +358,7 @@ body.gps-fs #map{height:100%!important;}
         <button class="sort-btn" id="recalc-btn" onclick="recalcRoute()" aria-label="חישוב מסלול מחדש" style="border-color:var(--orange,#F57C00);color:var(--orange,#F57C00)">🔄</button>
         <button class="sort-btn" onclick="resetRoute()" aria-label="איפוס סדר היום" title="איפוס יום" style="border-color:#b71c1c;color:#b71c1c">↩</button>
         <button class="export-btn" id="export-btn" onclick="exportXLSX()"><span class="xls-icon">XL</span>שמור</button>
+        <button class="export-btn" id="export-all-btn" onclick="exportAllDaysXLSX()" style="background:#5C6BC0;box-shadow:0 2px 8px rgba(92,107,192,.35)"><span class="xls-icon" style="color:#5C6BC0">XL</span>כל הימים</button>
         <div class="gps-hist-wrap">
           <button class="gps-hist-btn" id="gps-hist-btn" onclick="toggleGpsHistory()">📍 תיקונים</button>
           <div class="gps-hist-dd" id="gps-hist-dd"></div>
@@ -561,7 +565,7 @@ const st = {
 
 let map=null, mapMarkers=[], mapPolylines=[], markerCluster=null, sortable=null, mapBearing=0;
 let baseTileLayer=null, gpsCorrectMode=false, gpsCorrectId=null;
-let userTileKey='light', currentTileKey=null;
+let userTileKey='osm', currentTileKey=null;
 let _gpsClickHandler=null;
 
 const TILE_DEFS={
@@ -654,6 +658,7 @@ function twoOpt(route,startLat,startLng){
 
 // ── OSRM real-road routing ──────────────────────────────────────────────────
 const OSRM_CACHE = new Map();
+const OSRM_TRIP_CACHE = new Map();
 
 async function osrmRoadData(clients) {
   if (clients.length < 2) return null;
@@ -700,6 +705,39 @@ async function osrmRoute(clients) {
     OSRM_CACHE.set(cacheKey, km);
     return km;
   } catch (_) { return null; }
+}
+
+// ── OSRM /trip — road-optimal ordering with cache ───────────────────────────
+async function osrmTripOrder(clients, startLat, startLng) {
+  const withGps = clients.filter(c => c.lat && c.lng);
+  const noGps   = clients.filter(c => !c.lat || !c.lng);
+  if (withGps.length < 2) return null;
+  const hasStart = !!(startLat && startLng);
+  const startKey = hasStart ? `${parseFloat(startLat).toFixed(4)},${parseFloat(startLng).toFixed(4)}` : 'none';
+  const clientsKey = [...withGps]
+    .sort((a,b) => String(a.custId).localeCompare(String(b.custId)))
+    .map(c => `${c.custId}:${parseFloat(c.lat).toFixed(4)},${parseFloat(c.lng).toFixed(4)}`)
+    .join('|');
+  const cacheKey = `trip|${startKey}|${clientsKey}`;
+  if (OSRM_TRIP_CACHE.has(cacheKey)) return [...OSRM_TRIP_CACHE.get(cacheKey), ...noGps];
+  try {
+    const allPts = hasStart ? [{lat:startLat,lng:startLng}, ...withGps] : withGps;
+    const coords = allPts.map(p => `${p.lng},${p.lat}`).join(';');
+    const r = await fetch(
+      `https://router.project-osrm.org/trip/v1/driving/${coords}?roundtrip=false${hasStart?'&source=first':''}`,
+      { signal: AbortSignal.timeout(12000) }
+    );
+    const data = await r.json();
+    if (data.code !== 'Ok' || !data.waypoints?.length) return null;
+    const offset = hasStart ? 1 : 0;
+    const clientWaypoints = data.waypoints.slice(offset);
+    const ordered = withGps
+      .map((c,i) => ({ client:c, ti: clientWaypoints[i]?.waypoint_index ?? i }))
+      .sort((a,b) => a.ti - b.ti)
+      .map(x => x.client);
+    OSRM_TRIP_CACHE.set(cacheKey, ordered);
+    return [...ordered, ...noGps];
+  } catch(_) { return null; }
 }
 
 function triggerOsrm() {
@@ -1094,13 +1132,17 @@ function detectCity(){
 async function confirmCity(){
   const city=document.getElementById('city-input').value.trim();
   if(!city)return;
+  // If city changed from GPS-detected city — reset coords so we geocode the new one
+  if(city !== st.startCityName){ st.startLat=null; st.startLng=null; }
   st.startCity=city;
-  // Keep GPS coords if they were captured (detectCity) — only geocode if we don't have them
-  if(!st.startLat || !st.startLng) {
-    apiFetch(`${API}/geocode?address=${encodeURIComponent(city)}&city=${encodeURIComponent(city)}`)
-      .then(r=>r.json()).then(d=>{if(d&&d.lat){st.startLat=d.lat;st.startLng=d.lng;}}).catch(()=>{});
+  if(!st.startLat || !st.startLng){
+    try{
+      const r=await apiFetch(`${API}/geocode?address=${encodeURIComponent(city)}&city=${encodeURIComponent(city)}`);
+      const d=await r.json();
+      if(d&&d.lat){ st.startLat=d.lat; st.startLng=d.lng; }
+    }catch(e){}
   }
-  const wd = new Date().getDay(); // 0=Sun..6=Sat
+  const wd = new Date().getDay();
   const todayDay = wd === 0 ? 1 : wd <= 4 ? wd + 1 : 1;
   selectDay(todayDay);
 }
@@ -1122,6 +1164,7 @@ async function initRoute(){
   document.getElementById('route-title').textContent='DILER FORMULA';
   document.getElementById('route-sub').textContent=`${st.agent.name} · יום ${DAY_LABELS[st.day]}`;
   document.getElementById('export-btn').classList.remove('visible');
+  document.getElementById('export-all-btn').classList.remove('visible');
   setTab('list', true); // true = skip renderMap (data not ready yet)
   buildDaySwitcher();
   fillWorkDaysBar();
@@ -1180,7 +1223,7 @@ async function initRoute(){
   // Apply GPS corrections (localStorage + gps-corrections.json) to client objects
   st.clients=st.clients.map(c=>{
     const corr=gpsCorrections[String(c.custId)];
-    return corr?{...c,lat:corr.lat,lng:corr.lng,gpsSource:'correction'}:c;
+    return corr?{...c,pbiLat:c.lat,pbiLng:c.lng,lat:corr.lat,lng:corr.lng,gpsSource:'correction'}:c;
   });
 
   if(myId !== _initRouteId) return; // newer call in flight — discard stale results
@@ -1189,7 +1232,16 @@ async function initRoute(){
   updateKmBar();
   renderCityFilters();
   renderClientList();
+  // Road-optimal ordering via OSRM /trip (async, cached)
+  const _snapId=myId, _snapAgent=st.agent?.code, _snapDay=st.day;
+  osrmTripOrder([...st.clients], st.startLat, st.startLng).then(ordered=>{
+    if(!ordered||myId!==_snapId||st.agent?.code!==_snapAgent||st.day!==_snapDay||st.sortMode!=='ai') return;
+    st.aiClients=ordered;
+    renderClientList(); updateKmBar();
+    showToast('🛣️ סדר עודכן לפי כביש');
+  });
   document.getElementById('export-btn').classList.add('visible');
+  document.getElementById('export-all-btn').classList.add('visible');
   updateGpsHistBtn();
   setupSortable();
   setupDragScroll(document.getElementById('list-pane'));
@@ -1253,27 +1305,27 @@ function resetRoute(){
 
 function recalcRoute(){
   st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null;
-  st.aiClients = nearestNeighbor([...st.clients]);
-  st.sortMode = 'ai';
-  document.getElementById('sort-btn-priority').className = 'sort-btn';
-  document.getElementById('sort-btn-ai').className = 'sort-btn active-ai';
+  st.sortMode='ai';
+  document.getElementById('sort-btn-priority').className='sort-btn';
+  document.getElementById('sort-btn-ai').className='sort-btn active-ai';
+  OSRM_CACHE.clear(); OSRM_TRIP_CACHE.clear();
+  st.aiClients=nearestNeighbor([...st.clients]);
   updateKmBar(); renderCityFilters(); renderClientList();
   if(st.tab==='map'||window.innerWidth>=700) renderMap();
-  const btn = document.getElementById('recalc-btn');
-  btn.textContent = '⏳ כביש...'; btn.disabled = true;
-  const snap = { agentCode:st.agent?.code, day:st.day };
-  OSRM_CACHE.clear();
-  const ordered = nearestNeighbor([...st.clients]);
-  st.aiClients = ordered;
-  updateKmBar(); renderClientList();
-  const withGps = ordered.filter(c => c.lat && c.lng);
-  osrmRoadData(withGps).then(res => {
-    btn.disabled = false;
-    btn.textContent = '🔄 חשב מחדש';
-    if (!res || st.agent?.code !== snap.agentCode || st.day !== snap.day) return;
-    st.roadKm = res.roadKm; st.roadGeometry = res.roadGeometry;
-    updateKmBar();
-    if (st.tab === 'map' || window.innerWidth >= 700) renderMap();
+  const btn=document.getElementById('recalc-btn');
+  btn.textContent='⏳ כביש...'; btn.disabled=true;
+  const snap={agentCode:st.agent?.code, day:st.day};
+  osrmTripOrder([...st.clients], st.startLat, st.startLng).then(ordered=>{
+    btn.disabled=false; btn.textContent='🔄 חשב מחדש';
+    if(st.agent?.code!==snap.agentCode||st.day!==snap.day||st.sortMode!=='ai') return;
+    if(ordered){ st.aiClients=ordered; updateKmBar(); renderClientList(); }
+    const withGps=(ordered||st.aiClients).filter(c=>c.lat&&c.lng);
+    osrmRoadData(withGps).then(res=>{
+      if(!res||st.agent?.code!==snap.agentCode||st.day!==snap.day) return;
+      st.roadKm=res.roadKm; st.roadGeometry=res.roadGeometry;
+      updateKmBar();
+      if(st.tab==='map'||window.innerWidth>=700) renderMap();
+    });
   });
 }
 
@@ -1298,8 +1350,10 @@ function updateKmBar(){
 
 function renderCityFilters(){
   const cities=[...new Set(st.clients.map(c=>c.city).filter(Boolean))].sort();
+  const countMap={};
+  for(const c of st.clients) if(c.city) countMap[c.city]=(countMap[c.city]||0)+1;
   const el=document.getElementById('city-filters');
-  el.innerHTML=cities.map(c=>`<span class="city-chip${st.selectedCities.includes(c)?' on':''}" onclick="toggleCity('${c}')">${c}</span>`).join('');
+  el.innerHTML=cities.map(c=>`<span class="city-chip${st.selectedCities.includes(c)?' on':''}" onclick="toggleCity('${c}')">${c}<span class="chip-count">${countMap[c]||0}</span></span>`).join('');
 }
 
 function toggleCity(city){
@@ -1958,7 +2012,10 @@ async function exportXLSX(){
     address:c.address||'',
     lat:c.lat||null,
     lng:c.lng||null,
+    pbiLat:c.pbiLat||null,
+    pbiLng:c.pbiLng||null,
     gpsSource:c.gpsSource||null,
+    corrected:c.gpsSource==='correction',
     note:DOUBTFUL_GPS.has(c.gpsSource)?'⚠ GPS לא מדוייק':'',
   });
   const rows=[
@@ -1986,6 +2043,24 @@ async function exportXLSX(){
   finally{btn.innerHTML=orig;btn.disabled=false;}
 }
 
+async function exportAllDaysXLSX(){
+  const btn=document.getElementById('export-all-btn');
+  const orig=btn.innerHTML; btn.innerHTML='⏳...'; btn.disabled=true;
+  try{
+    const r=await apiFetch('/api/export-all-days-xlsx',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({agentCode:st.agent?.code||'',agentName:st.agent?.name||st.agent?.code||''}),
+    });
+    if(!r.ok) throw new Error(r.status);
+    const blob=await r.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=`מסלול_${st.agent?.name||''}_כל_הימים_${new Date().toISOString().slice(0,10)}.xlsx`;
+    a.click(); setTimeout(()=>URL.revokeObjectURL(url),5000);
+  }catch(e){alert('שגיאה: '+e.message);}
+  finally{btn.innerHTML=orig;btn.disabled=false;}
+}
 function updateGpsHistBtn(){
   const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
   const btn=document.getElementById('gps-hist-btn');
@@ -2010,18 +2085,74 @@ function renderGpsHistory(){
   const dd=document.getElementById('gps-hist-dd');
   const agentIds=new Set((st.clients||[]).map(c=>String(c.custId)));
   const entries=agentIds.size?Object.entries(local).filter(([id])=>agentIds.has(id)):Object.entries(local);
-  if(!entries.length){dd.innerHTML=`<div class="gps-hist-empty">אין תיקוני מיקום</div>`;return;}
-  dd.innerHTML=entries.sort((a,b)=>new Date(b[1].correctedAt)-new Date(a[1].correctedAt)).map(([id,c])=>{
+  const syncBtn=`<div style="padding:6px 10px 4px;border-bottom:1px solid #eee">
+    <div style="display:flex;gap:5px">
+      <button onclick="runGpsSyncCheck()" style="flex:1;padding:5px 8px;background:#1565C0;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">🔄 בדוק סנכרון</button>
+      <button onclick="downloadGpsPendingXlsx()" style="padding:5px 8px;background:#1D6F42;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600" title="הורד Excel של כל הממתינים לסנכרון">📥 XLS</button>
+    </div>
+    <div id="gps-sync-result" style="margin-top:4px;font-size:11px;color:#555"></div>
+  </div>`;
+  if(!entries.length){dd.innerHTML=syncBtn+`<div class="gps-hist-empty">אין תיקוני מיקום</div>`;return;}
+  dd.innerHTML=syncBtn+entries.sort((a,b)=>new Date(b[1].correctedAt)-new Date(a[1].correctedAt)).map(([id,c])=>{
     const d=new Date(c.correctedAt);
     const fmt=n=>String(n).padStart(2,'0');
     const dateStr=`${fmt(d.getDate())}/${fmt(d.getMonth()+1)} ${fmt(d.getHours())}:${fmt(d.getMinutes())}`;
-    return `<div class="gps-hist-item">
+    return `<div class="gps-hist-item" id="gps-item-${id}">
       <div class="gps-hist-name">${c.name||id}</div>
       <div class="gps-hist-meta">${c.city||''} · ${c.lat?.toFixed(5)}, ${c.lng?.toFixed(5)}</div>
       <div class="gps-hist-meta">${dateStr}</div>
       <div class="gps-hist-del" onclick="deleteGpsCorrection('${id}')">✕ מחק תיקון</div>
     </div>`;
   }).join('');
+}
+async function runGpsSyncCheck(){
+  const el=document.getElementById('gps-sync-result');
+  el.textContent='⏳ בודק...';
+  try{
+    const r=await apiFetch('/api/gps-sync-check');
+    if(!r.ok) throw new Error(r.status);
+    const d=await r.json();
+    if(!d.synced.length){
+      el.textContent=`✅ הכל ממתין לעדכון — ${d.pending.length} תיקונים פעילים`;
+      return;
+    }
+    // highlight synced rows in green
+    d.synced.forEach(s=>{
+      const item=document.getElementById('gps-item-'+s.custId);
+      if(item) item.style.background='#E8F5E9';
+    });
+    const names=d.synced.map(s=>`${s.name} (${s.dist}מ')`).join('\n');
+    el.innerHTML=`<span style="color:#2E7D32;font-weight:600">✔ ${d.synced.length} תיקונים זהים ל-PBI (≤20מ')</span><br>
+      <button onclick="confirmGpsSyncClean(${JSON.stringify(d.synced.map(s=>s.custId))})"
+        style="margin-top:4px;padding:3px 8px;background:#2E7D32;color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer">
+        🗑 מחק ${d.synced.length} מיותרים
+      </button>`;
+  }catch(e){el.textContent='❌ שגיאה: '+e.message;}
+}
+async function downloadGpsPendingXlsx(){
+  try{
+    const r=await apiFetch('/api/gps-pending-xlsx');
+    if(!r.ok) throw new Error(r.status);
+    const blob=await r.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=`GPS_Pending_${new Date().toISOString().slice(0,10)}.xlsx`;
+    a.click(); setTimeout(()=>URL.revokeObjectURL(url),5000);
+  }catch(e){alert('שגיאה: '+e.message);}
+}
+async function confirmGpsSyncClean(custIds){
+  if(!confirm(`מחיקת ${custIds.length} תיקונים שסונכרנו ל-PBI?\nלא ניתן לשחזר.`)) return;
+  const el=document.getElementById('gps-sync-result');
+  try{
+    const r=await apiFetch('/api/gps-sync-clean',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({custIds})});
+    const d=await r.json();
+    // remove from localStorage too
+    const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
+    custIds.forEach(id=>{delete local[id]; delete gpsCorrections[id];});
+    localStorage.setItem('fr_gps_local',JSON.stringify(local));
+    showToast(`🗑 ${d.removed} תיקונים הוסרו`);
+    renderGpsHistory(); updateGpsHistBtn(); renderMap(); renderClientList();
+  }catch(e){el.textContent='❌ שגיאה: '+e.message;}
 }
 function deleteGpsCorrection(custId){
   const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
@@ -2047,6 +2178,7 @@ function startGpsCorrection(custId, custName){
   gpsCorrectId=custId;
   st.selectedId=custId;
   _tileBeforeGps=currentTileKey||userTileKey;
+  userTileKey='osm';
   setTile('osm');
   renderMap();
   const _cl=st.clients.find(x=>String(x.custId)===String(custId));

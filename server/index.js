@@ -1063,17 +1063,16 @@ app.post('/api/export-route-xlsx', requireAuth, dataRateLimit, async (req, res) 
   const ws = wb.addWorksheet('מסלול', { views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
 
   const COLS = [
-    { name: '#',          width: 6  },
-    { name: 'מס. לקוח',  width: 14 },
-    { name: 'שם לקוח',   width: 28 },
-    { name: 'יום',        width: 10 },
-    { name: 'עיר',        width: 16 },
-    { name: 'כתובת',      width: 26 },
-    { name: 'קו רוחב',    width: 13 },
-    { name: 'קו אורך',    width: 13 },
-    { name: 'GPS',        width: 10 },
-    { name: 'סדר מקורי',  width: 13 },
-    { name: 'הערה',       width: 20 },
+    { name: 'סדר ביקור מתוקן', width: 8  },
+    { name: 'מס. לקוח',        width: 14 },
+    { name: 'שם לקוח',         width: 28 },
+    { name: 'יום',              width: 10 },
+    { name: 'עיר',              width: 16 },
+    { name: 'כתובת',            width: 26 },
+    { name: 'קו רוחב',          width: 13 },
+    { name: 'קו אורך',          width: 13 },
+    { name: 'GPS',              width: 14 },
+    { name: 'סדר ביקור PRIORITY', width: 15 },
   ];
 
   ws.addTable({
@@ -1081,7 +1080,7 @@ app.post('/api/export-route-xlsx', requireAuth, dataRateLimit, async (req, res) 
     ref: 'A1',
     headerRow: true,
     totalsRow: false,
-    style: { theme: 'TableStyleMedium7', showRowStripes: true },
+    style: { theme: 'TableStyleLight1', showRowStripes: false },
     columns: COLS.map(c => ({ name: c.name, filterButton: true })),
     rows: rows.map(r => [
       r.currentPos,
@@ -1092,33 +1091,42 @@ app.post('/api/export-route-xlsx', requireAuth, dataRateLimit, async (req, res) 
       r.address || '',
       r.lat ? Number(parseFloat(r.lat).toFixed(6)) : '',
       r.lng ? Number(parseFloat(r.lng).toFixed(6)) : '',
-      r.lat && r.lng ? '✓' : 'חסר',
+      (() => {
+        if (!r.corrected) return r.lat && r.lng ? '✓' : 'חסר';
+        if (r.pbiLat && r.pbiLng) return haversineDist(r.lat, r.lng, Number(r.pbiLat), Number(r.pbiLng)) <= 20 ? '✓' : '✓ CHANGED';
+        return '✓ CHANGED';
+      })(),
       r.noOrder ? 'חסר סדר ביקור' : (r.originalPos != null ? r.originalPos : ''),
-      r.note || '',
     ]),
   });
 
   COLS.forEach((c, i) => { ws.getColumn(i + 1).width = c.width; });
 
-  const FILL_YELLOW = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF59D' } };
-  const FILL_ORANGE = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFCC80' } };
-  const FILL_GRAY1  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECEFF1' } };
-  const FILL_GRAY2  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } };
-  const DOUBTFUL    = new Set(['geocoded', 'pbi-sibling-near', 'city-center', 'no-gps']);
+  const FILL_GREEN1  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC8E6C9' } }; // corrected GPS (even)
+  const FILL_GREEN2  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFA5D6A7' } }; // corrected GPS (odd)
+  const FILL_ORANGE  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFCC80' } }; // doubtful GPS
+  const FILL_GRAY1   = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECEFF1' } }; // noOrder (even)
+  const FILL_GRAY2   = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } }; // noOrder (odd)
+  const FILL_STRIPE1 = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } }; // normal (even)
+  const FILL_STRIPE2 = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } }; // normal (odd)
+  const DOUBTFUL     = new Set(['geocoded', 'pbi-sibling-near', 'city-center', 'no-gps']);
 
   rows.forEach((r, i) => {
     const rowNum = i + 2;
-    let fill = null;
-    if (r.noOrder) {
+    let fill;
+    const isChanged = r.corrected && (
+      !r.pbiLat || !r.pbiLng || haversineDist(r.lat, r.lng, Number(r.pbiLat), Number(r.pbiLng)) > 20
+    );
+    if (isChanged) {
+      fill = i % 2 === 0 ? FILL_GREEN1 : FILL_GREEN2;
+    } else if (r.noOrder) {
       fill = i % 2 === 0 ? FILL_GRAY1 : FILL_GRAY2;
     } else if (DOUBTFUL.has(r.gpsSource)) {
       fill = FILL_ORANGE;
-    } else if (r.changed) {
-      fill = FILL_YELLOW;
+    } else {
+      fill = i % 2 === 0 ? FILL_STRIPE1 : FILL_STRIPE2;
     }
-    if (fill) {
-      for (let col = 1; col <= COLS.length; col++) ws.getCell(rowNum, col).fill = fill;
-    }
+    for (let col = 1; col <= COLS.length; col++) ws.getCell(rowNum, col).fill = fill;
   });
 
   const today = new Date().toISOString().slice(0, 10);
@@ -1178,6 +1186,179 @@ app.post('/save-gps', requireAuth, dataRateLimit, async (req, res) => {
   } catch (err) {
     console.error(err); res.status(500).json({ error: 'server_error' });
   }
+});
+
+// ── GPS Sync Check: compare corrections vs PBI coords ───────────────────────
+function haversineDist(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// GET /api/gps-sync-check — returns corrections that match PBI coords (within threshold)
+app.get('/api/gps-sync-check', requireAuth, (req, res) => {
+  if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
+  const THRESHOLD_M = 20;
+  const filePath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
+  const corrections = fs.existsSync(filePath) ? JSON.parse(fs.readFileSync(filePath, 'utf8')) : {};
+  const synced = [];
+  const pending = [];
+  for (const [custId, corr] of Object.entries(corrections)) {
+    const pbi = pbiCache.clientMap.get(String(custId));
+    if (!pbi || !pbi.lat || !pbi.lng) { pending.push({ custId, name: corr.name, reason: 'not_in_pbi' }); continue; }
+    const dist = haversineDist(corr.lat, corr.lng, Number(pbi.lat), Number(pbi.lng));
+    if (dist <= THRESHOLD_M) {
+      synced.push({ custId, name: corr.name, city: corr.city, dist: Math.round(dist), correctedAt: corr.correctedAt });
+    } else {
+      pending.push({ custId, name: corr.name, city: corr.city, dist: Math.round(dist) });
+    }
+  }
+  res.json({ synced, pending, threshold: THRESHOLD_M, total: Object.keys(corrections).length });
+});
+
+// POST /api/gps-sync-clean — delete confirmed synced corrections
+app.post('/api/gps-sync-clean', requireAuth, (req, res) => {
+  try {
+    const { custIds } = req.body;
+    if (!Array.isArray(custIds) || !custIds.length) return res.status(400).json({ error: 'custIds required' });
+    const filePath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
+    const corrections = fs.existsSync(filePath) ? JSON.parse(fs.readFileSync(filePath, 'utf8')) : {};
+    const removed = [];
+    for (const id of custIds) {
+      if (corrections[String(id)]) { removed.push(String(id)); delete corrections[String(id)]; }
+    }
+    const json = JSON.stringify(corrections, null, 2);
+    fs.writeFileSync(filePath, json, 'utf8');
+    writeLog({ ts: new Date().toISOString(), event: 'gps-sync-clean', removed, ip: getRealIp(req) });
+    pushGpsToGithub(json).catch(e => console.error('GitHub push failed:', e.message));
+    res.json({ ok: true, removed: removed.length, remaining: Object.keys(corrections).length });
+  } catch (err) {
+    console.error(err); res.status(500).json({ error: 'server_error' });
+  }
+});
+
+// GET /api/gps-pending-xlsx — Excel of all corrections not yet in PBI
+app.get('/api/gps-pending-xlsx', requireAuth, async (req, res) => {
+  if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
+  const THRESH = 20;
+  const filePath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
+  const corrections = fs.existsSync(filePath) ? JSON.parse(fs.readFileSync(filePath, 'utf8')) : {};
+  const pending = [];
+  for (const [custId, corr] of Object.entries(corrections)) {
+    const pbi = pbiCache.clientMap.get(String(custId));
+    const dist = (pbi && pbi.lat && pbi.lng) ? Math.round(haversineDist(corr.lat, corr.lng, Number(pbi.lat), Number(pbi.lng))) : null;
+    if (dist === null || dist > THRESH) pending.push({ custId, ...corr, pbiLat: pbi?.lat||null, pbiLng: pbi?.lng||null, dist });
+  }
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('GPS Pending', { views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
+  const COLS = [
+    { name: 'מס. לקוח', width: 14 }, { name: 'שם לקוח', width: 30 }, { name: 'עיר', width: 16 },
+    { name: 'כתובת', width: 26 }, { name: 'קו רוחב (תיקון)', width: 16 }, { name: 'קו אורך (תיקון)', width: 16 },
+    { name: 'קו רוחב PBI', width: 14 }, { name: 'קו אורך PBI', width: 14 },
+    { name: "מרחק (מ')", width: 12 }, { name: 'תאריך תיקון', width: 18 },
+  ];
+  ws.addTable({ name: 'GpsPending', ref: 'A1', headerRow: true, totalsRow: false,
+    style: { theme: 'TableStyleLight1', showRowStripes: false },
+    columns: COLS.map(c => ({ name: c.name, filterButton: true })),
+    rows: pending.map(p => [
+      String(p.custId), p.name||'', p.city||'', p.address||'',
+      p.lat ? +parseFloat(p.lat).toFixed(6) : '',
+      p.lng ? +parseFloat(p.lng).toFixed(6) : '',
+      p.pbiLat ? +parseFloat(p.pbiLat).toFixed(6) : 'חסר ב-PBI',
+      p.pbiLng ? +parseFloat(p.pbiLng).toFixed(6) : 'חסר ב-PBI',
+      p.dist !== null ? p.dist : 'N/A',
+      p.correctedAt ? new Date(p.correctedAt).toLocaleString('he-IL') : '',
+    ]),
+  });
+  COLS.forEach((c, i) => { ws.getColumn(i+1).width = c.width; });
+  const hdr = ws.getRow(1);
+  hdr.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  hdr.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1565C0' } };
+  const F1 = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFFFFF' } };
+  const F2 = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFF5F5F5' } };
+  pending.forEach((_, i) => { const r=ws.getRow(i+2); r.fill = i%2===0?F1:F2; r.eachCell(c=>{c.fill=i%2===0?F1:F2;}); });
+  const date = new Date().toISOString().slice(0,10);
+  res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition',`attachment; filename*=UTF-8''${encodeURIComponent(`GPS_Pending_${date}.xlsx`)}`);
+  await wb.xlsx.write(res); res.end();
+});
+
+// POST /api/export-all-days-xlsx — multi-sheet Excel, one sheet per day
+app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, res) => {
+  const { agentCode, agentName } = req.body;
+  if (!agentCode) return res.status(400).json({ error: 'agentCode required' });
+  if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
+  const allClients = pbiCache.byAgent.get(agentCode) || [];
+  if (!allClients.length) return res.status(404).json({ error: 'no clients' });
+  const corrPath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
+  const corrections = fs.existsSync(corrPath) ? JSON.parse(fs.readFileSync(corrPath, 'utf8')) : {};
+  const DAY_ORDER = ['א','ב','ג','ד','ה','ו'];
+  const byDay = {};
+  for (const c of allClients) {
+    const d = c.dayLabel || String(c.dayNum||'');
+    if (!byDay[d]) byDay[d] = [];
+    byDay[d].push(c);
+  }
+  const days = DAY_ORDER.filter(d=>byDay[d]).concat(Object.keys(byDay).filter(d=>!DAY_ORDER.includes(d)));
+  const wb = new ExcelJS.Workbook(); wb.creator = 'Formula Road';
+  const THRESH = 20;
+  const DOUBTFUL = new Set(['geocoded','pbi-sibling-near','city-center','no-gps']);
+  const FILLS = {
+    G1:{type:'pattern',pattern:'solid',fgColor:{argb:'FFC8E6C9'}}, G2:{type:'pattern',pattern:'solid',fgColor:{argb:'FFA5D6A7'}},
+    OR:{type:'pattern',pattern:'solid',fgColor:{argb:'FFFFCC80'}},
+    GR1:{type:'pattern',pattern:'solid',fgColor:{argb:'FFECEFF1'}}, GR2:{type:'pattern',pattern:'solid',fgColor:{argb:'FFE0E0E0'}},
+    W:{type:'pattern',pattern:'solid',fgColor:{argb:'FFFFFFFF'}}, S:{type:'pattern',pattern:'solid',fgColor:{argb:'FFF5F5F5'}},
+  };
+  for (const day of days) {
+    const clients = (byDay[day]||[]).sort((a,b)=>(a.priorityOrder||999)-(b.priorityOrder||999));
+    const ws = wb.addWorksheet(day, { views:[{ rightToLeft:true, state:'frozen', ySplit:1 }] });
+    const COLS = [
+      {name:'סדר ביקור מתוקן',width:8},{name:'מס. לקוח',width:14},{name:'שם לקוח',width:28},
+      {name:'עיר',width:16},{name:'כתובת',width:26},{name:'קו רוחב',width:13},{name:'קו אורך',width:13},
+      {name:'GPS',width:14},{name:'סדר ביקור PRIORITY',width:15},
+    ];
+    const rowData = clients.map((c,i) => {
+      const corr = corrections[String(c.custId)];
+      const lat = corr ? corr.lat : (c.lat||null);
+      const lng = corr ? corr.lng : (c.lng||null);
+      const pbiLat = c.lat ? Number(c.lat) : null;
+      const pbiLng = c.lng ? Number(c.lng) : null;
+      let gps = lat&&lng ? '✓' : 'חסר';
+      let isChanged = false;
+      if (corr) {
+        const dist = pbiLat&&pbiLng ? haversineDist(corr.lat,corr.lng,pbiLat,pbiLng) : Infinity;
+        isChanged = dist > THRESH;
+        gps = isChanged ? '✓ CHANGED' : '✓';
+      }
+      return {
+        row:[i+1,String(c.custId||''),c.custName||'',c.city||'',c.address||'',
+          lat?+parseFloat(lat).toFixed(6):'', lng?+parseFloat(lng).toFixed(6):'',
+          gps, c.priorityOrder||''],
+        isChanged, gpsSource:c.gpsSource||null, noOrder:!c.priorityOrder, even:i%2===0,
+      };
+    });
+    ws.addTable({ name:`RouteTable_${day.charCodeAt(0)}`, ref:'A1', headerRow:true, totalsRow:false,
+      style:{theme:'TableStyleLight1',showRowStripes:false},
+      columns:COLS.map(c=>({name:c.name,filterButton:true})),
+      rows:rowData.map(r=>r.row),
+    });
+    COLS.forEach((c,i)=>{ ws.getColumn(i+1).width=c.width; });
+    rowData.forEach((r,i) => {
+      const rowNum=i+2;
+      let f = r.isChanged ? (r.even?FILLS.G1:FILLS.G2)
+             : r.noOrder  ? (r.even?FILLS.GR1:FILLS.GR2)
+             : DOUBTFUL.has(r.gpsSource) ? FILLS.OR
+             : (r.even?FILLS.W:FILLS.S);
+      for(let col=1;col<=COLS.length;col++) ws.getCell(rowNum,col).fill=f;
+    });
+  }
+  const today=new Date().toISOString().slice(0,10);
+  const fname=`מסלול_${agentName||agentCode}_כל_הימים_${today}.xlsx`;
+  res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition',`attachment; filename*=UTF-8''${encodeURIComponent(fname)}`);
+  await wb.xlsx.write(res); res.end();
 });
 
 // Save planogram base JSON back to docs/
@@ -2191,8 +2372,15 @@ app.get('/mmd/period-data', mmdGuard, dataRateLimit, async (req, res) => {
 });
 
 app.use('/mmd', mmdGuard, express.static(path.join(__dirname, '..', 'MMD ORDERS'), {
+  etag: false,
+  lastModified: false,
   setHeaders: (res, filePath) => {
-    if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-store');
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Surrogate-Control', 'no-store');
+    }
   }
 }));
 
