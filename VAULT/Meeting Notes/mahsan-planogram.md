@@ -1,5 +1,12 @@
 ﻿# mahsan-planogram — MAHSAN PLANOGRAM (FORMULA cold storage)
 
+## Сессия 2026-07-05 (продолжение) #done
+
+### Photo proxy — CORS fix
+- **`/api/photo-proxy`**: GET endpoint на VPS — fetches `priority.dilerbmd.com` с SSRF-guard (`isSafePhotoUrl`), CORS `*`, Cache-Control 24h
+- **planogram-editor.html fetchAndEmbed**: теперь качает через `https://api.sverdlik-apps.site/api/photo-proxy?url=...` — GitHub Pages больше не блокируется CORS
+- **Деплой**: git push + pm2 restart columbus-api (online, ↺58)
+
 ## Сессия 2026-07-05 #done
 
 ### CI / данные
