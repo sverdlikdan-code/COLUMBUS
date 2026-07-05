@@ -2371,13 +2371,13 @@ async function exportPositionXlsx() {
     const PHOTO_COL = 2, HEADER_ROW = 4, IMG_ROW_PT = 22;
     ws.getColumn(1).width = 10;
     ws.getRow(1).height = 22;
-    const titleCell = ws.getCell('B2');
+    const titleCell = ws.getCell('C2');
     titleCell.value = `📦 טבלת מיקום FORMULA  —  תאריך: ${dateStr}`;
     titleCell.font = { bold:true, size:13, color:{argb:'FFFFFFFF'}, name:'Calibri' };
     titleCell.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FF1E3A5F'} };
     titleCell.alignment = { horizontal:'right', vertical:'middle' };
     ws.getRow(2).height = 26;
-    ws.mergeCells(2, 2, 2, 10);
+    ws.mergeCells(2, 3, 2, 11);
 
     const tableCols = [
       { name:'תמונה', width:8 }, { name:'תאור', width:38 }, { name:'מק"ט', width:11 },
