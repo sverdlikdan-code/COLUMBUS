@@ -86,8 +86,11 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def week_to_date(year, week):
-    """Convert ISO year+week to the Monday of that week (PBI uses ISO week numbering: %G-W%V)."""
-    return pd.to_datetime(f"{int(year)}-W{int(week):02d}-1", format="%G-W%V-%u")
+    """Convert PBI year+week to Monday of that week. PBI uses ISO-like numbering (%G-W%V); week 53 clamped to 52."""
+    try:
+        return pd.to_datetime(f"{int(year)}-W{int(week):02d}-1", format="%G-W%V-%u")
+    except ValueError:
+        return pd.to_datetime(f"{int(year)}-W52-1", format="%G-W%V-%u")
 
 
 def load_data():
