@@ -2519,6 +2519,9 @@ app.get('/gps-corrections.json', formulaRoadGuard, (req, res) => {
 app.get('/formula-road-data.json', formulaRoadGuard, (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'formula-road-data.json'));
 });
+app.get('/google-gps.json', formulaRoadGuard, (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'docs', 'google-gps.json'));
+});
 
 app.get('/logo-diler-bmd.png', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'logo-diler-bmd.png'));
