@@ -373,7 +373,7 @@ function mapClient(r, dayNum) {
   return {
     custId,
     custName:      fixPriorityAddr(r['משטח[שם לקוח]'] || ''),
-    city:          fixPriorityAddr(r['משטח[עיר]']     || ''),
+    city:          fixPriorityAddr(r['משטח[עיר]']     || '').replace(/\s*[-–]\s*יפו$/, '').replace(/\s+יפו$/, '').trim(),
     address:       fixPriorityAddr(r['משטח[כתובת]']   || ''),
     custType:      r['[custType]'] || '',
     lat:           corr ? corr.lat : (r['משטח[קו רוחב]'] || null) || (lookup ? lookup.lat : null),
