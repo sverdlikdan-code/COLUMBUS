@@ -2448,7 +2448,7 @@ app.get('/mmd/period-data', mmdGuard, dataRateLimit, async (req, res) => {
   }
 });
 
-const MMD_LOCAL_STUB = `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>MMD Orders</title><style>body{font-family:sans-serif;background:#04111f;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;color:#fff}div{text-align:center}a{color:#4fc3f7;font-size:1.2rem;font-weight:700;display:block;margin-top:16px}</style></head><body><div><div style="font-size:3rem;margin-bottom:16px">📦</div><p>MMD Orders פועל בשרת</p><a href="${VPS_URL}/mmd/">פתח MMD Orders ←</a></div></body></html>`;
+const MMD_LOCAL_STUB = '<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>MMD Orders</title><style>body{font-family:sans-serif;background:#04111f;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;color:#fff}div{text-align:center}a{color:#4fc3f7;font-size:1.2rem;font-weight:700;display:block;margin-top:16px}</style></head><body><div><div style="font-size:3rem;margin-bottom:16px">📦</div><p>MMD Orders פועל בשרת</p><a href="https://api.sverdlik-apps.site/mmd/">פתח MMD Orders ←</a></div></body></html>';
 
 app.get('/mmd', (req, res, next) => {
   if (IS_LOCAL) return res.status(200).send(MMD_LOCAL_STUB);
