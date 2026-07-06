@@ -1537,7 +1537,10 @@
             const mmdKArg = r.mmd_k != null ? r.mmd_k : 'null';
             const onclk = 'openProphetPanel(\'' + mk + '\',\'' + escJs(r.taur||'') + '\',\'' + escJs(r.hevra||'') + '\',' + mkrArg + ',' + hamlArg + ',' + mmdKArg + ')';
             if (!p || p.prophet_order == null) return '<td class="col-prophet" style="color:#bbb;font-weight:400;cursor:pointer" data-mk="' + mk + '" onclick="' + onclk + '">—</td>';
-            const po = Math.round(p.prophet_order);
+            const p4f = p.p4;
+            const wn  = p.weeks_nf;
+            const ek  = (r.mmd_k != null && r.mmd_k >= 0) ? r.mmd_k : (p.eilat_k ?? 0);
+            const po  = (p4f != null && wn != null) ? Math.max(0, Math.round(p4f * wn - ek)) : Math.round(p.prophet_order ?? 0);
             // trend: last4 vs prev4 actual weeks
             const actualSorted = (p.series && p.series.actual ? [...p.series.actual] : []).sort((a,b)=>a.w.localeCompare(b.w));
             const last4 = actualSorted.slice(-4);
