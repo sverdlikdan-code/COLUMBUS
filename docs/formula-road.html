@@ -776,8 +776,13 @@ async function osrmTripOrder(clients, startLat, startLng) {
 
 function triggerOsrm() {
   const snap = { clients:activeClients(), agentCode:st.agent?.code, day:st.day };
-  // 2-opt order (instant, no API)
-  const ordered = nearestNeighbor([...snap.clients]);
+  // 2-opt order: use AI GPS coords for sorting if AI mode is active
+  const clientsForSort = snap.clients.map(c => {
+    if(c.gpsSource==='correction') return c;
+    if(st.aiGpsMode){const a=AI_GPS[String(c.custId)];if(a?.aiLat&&a?.aiLng)return{...c,lat:a.aiLat,lng:a.aiLng};}
+    return c;
+  });
+  const ordered = nearestNeighbor([...clientsForSort]);
   if (st.agent?.code === snap.agentCode && st.day === snap.day) {
     st.aiClients = ordered;
     if (st.sortMode === 'ai') renderClientList();

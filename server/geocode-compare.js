@@ -101,11 +101,16 @@ DISTINCT(SELECTCOLUMNS(
   const rows = d.results?.[0]?.tables?.[0]?.rows||[];
   console.log(`Got ${rows.length} unique clients`);
 
+  // Normalize city name for geocoding (e.g. "תל אביב יפו" → "תל אביב")
+  function normCity(c) {
+    return (c||'').replace(/\s*[-–]\s*יפו$/,'').replace(/\s+יפו$/,'').trim();
+  }
+
   // Fix BiDi on all fields
   const clients = rows.map(row=>({
     custId: row['[custId]'],
     name:   fixBiDi(row['[name]']||''),
-    city:   fixBiDi(row['[city]']||''),
+    city:   normCity(fixBiDi(row['[city]']||'')),
     addr:   fixBiDi(row['[addr]']||''),
     pbiLat: Number(row['[pbiLat]'])||0,
     pbiLng: Number(row['[pbiLng]'])||0,
