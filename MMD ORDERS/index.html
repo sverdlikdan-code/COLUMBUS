@@ -1533,7 +1533,8 @@
           (function(){
             const p = window.prophetMap && window.prophetMap[mk];
             const mkrArg = mkr != null ? mkr : 'null';
-            const onclk = 'openProphetPanel(\'' + mk + '\',\'' + escJs(r.taur||'') + '\',\'' + escJs(r.hevra||'') + '\',' + mkrArg + ')';
+            const hamlArg = haml > 0 ? haml : 'null';
+            const onclk = 'openProphetPanel(\'' + mk + '\',\'' + escJs(r.taur||'') + '\',\'' + escJs(r.hevra||'') + '\',' + mkrArg + ',' + hamlArg + ')';
             if (!p || p.prophet_order == null) return '<td class="col-prophet" style="color:#bbb;font-weight:400;cursor:pointer" data-mk="' + mk + '" onclick="' + onclk + '">—</td>';
             const po = Math.round(p.prophet_order);
             // trend: last4 vs prev4 actual weeks
@@ -2115,7 +2116,7 @@ window.splashRebuild = async function() {
 };
 
 // ── Prophet drill-down panel ────────────────────────────────
-window.openProphetPanel = function(mk, taur, hevra, mkrShvua) {
+window.openProphetPanel = function(mk, taur, hevra, mkrShvua, tableHaml) {
   const p = window.prophetMap && window.prophetMap[mk];
   if (!p) {
     // No prophet data — open panel with "no data" message
@@ -2145,7 +2146,7 @@ window.openProphetPanel = function(mk, taur, hevra, mkrShvua) {
   }
 
   const p4f  = p.p4 != null ? p.p4 : null;
-  const haml = p.hamlatza != null ? Math.round(p.hamlatza) : 0;
+  const haml = (tableHaml != null && tableHaml > 0) ? Math.round(tableHaml) : (p.hamlatza != null ? Math.round(p.hamlatza) : 0);
   const wn   = p.weeks_nf ?? '—';
   const ek   = p.eilat_k  ?? 0;
   const np   = p.n_points ?? '—';
