@@ -2375,7 +2375,7 @@ app.get('/mmd/draft-list', mmdGuard, (req, res) => {
 });
 
 let rebuildInProgress = false;
-app.post('/mmd/rebuild', mmdGuard, (req, res) => {
+app.post('/mmd/rebuild', mmdGuard, dataRateLimit, (req, res) => {
   if (rebuildInProgress) return res.json({ ok: false, busy: true });
   rebuildInProgress = true;
   const script = path.join(__dirname, 'build-mmd-orders.js');
@@ -2394,8 +2394,12 @@ app.get('/mmd/period-data', mmdGuard, dataRateLimit, async (req, res) => {
   }
   const [y1,m1,day1] = d1s.split('-').map(Number);
   const [y2,m2,day2] = d2s.split('-').map(Number);
-  if (y1 < 2020 || y2 > 2100 || new Date(d1s) > new Date(d2s)) {
+  const dateD1 = new Date(d1s), dateD2 = new Date(d2s);
+  if (y1 < 2020 || y2 > 2100 || dateD1 > dateD2) {
     return res.status(400).json({ ok: false, error: 'bad date range' });
+  }
+  if ((dateD2 - dateD1) > 366 * 24 * 60 * 60 * 1000) {
+    return res.status(400).json({ ok: false, error: 'date range too large (max 366 days)' });
   }
   const MMD_DS = process.env.POWERBI_MMD_DATASET_ID;
   if (!MMD_DS) return res.status(503).json({ ok: false, error: 'MMD dataset not configured' });
