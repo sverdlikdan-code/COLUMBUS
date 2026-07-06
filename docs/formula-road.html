@@ -273,6 +273,14 @@ body.gps-fs #map{height:100%!important;}
 
 /* legacy agent-count used elsewhere */
 .agent-count{font-size:11px;color:var(--mid);min-height:16px;}
+
+#pwa-banner{position:fixed;bottom:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#1A3F7C,#2E6FAD);color:#fff;padding:14px 16px 20px;box-shadow:0 -4px 20px rgba(0,0,0,.3);display:none;flex-direction:column;gap:10px;border-radius:18px 18px 0 0;}
+#pwa-banner.show{display:flex;}
+#pwa-banner .pwa-title{font-size:15px;font-weight:900;text-align:center;}
+#pwa-banner .pwa-sub{font-size:12px;text-align:center;opacity:.85;}
+#pwa-banner .pwa-btns{display:flex;gap:10px;}
+#pwa-banner .pwa-install{flex:1;padding:11px;background:#C9A84C;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:900;cursor:pointer;}
+#pwa-banner .pwa-later{padding:11px 16px;background:rgba(255,255,255,.15);color:#fff;border:1.5px solid rgba(255,255,255,.3);border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -412,6 +420,16 @@ body.gps-fs #map{height:100%!important;}
 
 <!-- ── DAY POPUP ── -->
 <div id="day-popup"></div>
+
+<div id="pwa-banner">
+  <div class="pwa-title">📱 הוסף לדף הבית</div>
+  <div class="pwa-sub">התקן את FORMULA ROAD כאפליקציה — גישה מהירה ללא דפדפן</div>
+  <div class="pwa-btns">
+    <button class="pwa-install" id="pwa-install-btn" onclick="doPwaInstall()">✚ התקן</button>
+    <button class="pwa-later" onclick="dismissPwaBanner(false)">אחר כך</button>
+    <button class="pwa-later" onclick="dismissPwaBanner(true)">לא תודה</button>
+  </div>
+</div>
 
 <!-- ── ADDRESS MODAL ── -->
 <div class="modal-bg" id="addr-modal">
@@ -2299,6 +2317,41 @@ function getDemoClients(){
     {custId:'1004',custName:'רמי לוי פתח תקווה',city:'פתח תקווה',address:'הרצל 1',lat:32.089,lng:34.888,priorityOrder:4,monthlySales:2800},
     {custId:'1005',custName:'מחסני השוק חולון',city:'חולון',address:'סוקולוב 30',lat:32.011,lng:34.779,priorityOrder:5,lastOrderDate:'2026-05-19',monthlySales:1900},
   ];
+}
+
+// ── PWA INSTALL PROMPT ─────────────────────────────────────────────────────
+let _pwaPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  _pwaPrompt=e;
+  // show banner only on first visit (not if already dismissed/installed)
+  const s=localStorage.getItem('fr_pwa');
+  if(!s && !window.matchMedia('(display-mode: standalone)').matches){
+    setTimeout(()=>document.getElementById('pwa-banner').classList.add('show'), 2000);
+  }
+});
+async function doPwaInstall(){
+  document.getElementById('pwa-banner').classList.remove('show');
+  if(_pwaPrompt){ await _pwaPrompt.prompt(); const r=await _pwaPrompt.userChoice; localStorage.setItem('fr_pwa',r.outcome); }
+}
+function dismissPwaBanner(permanent){
+  document.getElementById('pwa-banner').classList.remove('show');
+  localStorage.setItem('fr_pwa', permanent?'dismissed':'later');
+  if(!permanent) setTimeout(()=>{
+    // show again next session if "later"
+    localStorage.removeItem('fr_pwa');
+  }, 24*60*60*1000);
+}
+// iOS fallback — no beforeinstallprompt, show manual tip once
+if(/iphone|ipad|ipod/i.test(navigator.userAgent) && !window.navigator.standalone){
+  if(!localStorage.getItem('fr_pwa')){
+    setTimeout(()=>{
+      const b=document.getElementById('pwa-banner');
+      b.querySelector('.pwa-sub').textContent='לחץ על 📤 ואז "הוסף למסך הבית"';
+      b.querySelector('.pwa-install').style.display='none';
+      b.classList.add('show');
+    },2000);
+  }
 }
 
 // ── INIT ───────────────────────────────────────────────────────────────────
