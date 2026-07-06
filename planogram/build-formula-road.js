@@ -40,6 +40,13 @@ const azureCache = fs.existsSync(AZURE_CACHE_PATH)
   : {};
 let azureCacheDirty = false;
 
+// Persistent city bbox cache — survives between builds (saves ~3 min per run)
+const CITY_BBOX_CACHE_PATH = path.join(__dirname, '../docs/city-bbox-cache.json');
+const cityBBoxCachePersisted = fs.existsSync(CITY_BBOX_CACHE_PATH)
+  ? JSON.parse(fs.readFileSync(CITY_BBOX_CACHE_PATH, 'utf8'))
+  : {};
+let cityBBoxCacheDirty = false;
+
 function workingDaysPct() {
   const now = new Date();
   const yesterday = now.getDate() - 1; // today is incomplete — count up to yesterday
@@ -119,6 +126,12 @@ async function nominatim(url) {
 async function getCityBBox(city) {
   if (!city) return null;
   if (cityBBoxCache.has(city)) return cityBBoxCache.get(city);
+  // check persisted cache first — skip Nominatim call if already known
+  if (city in cityBBoxCachePersisted) {
+    const bbox = cityBBoxCachePersisted[city];
+    cityBBoxCache.set(city, bbox);
+    return bbox;
+  }
   try {
     const data = await nominatim(
       `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1&countrycodes=il,ps`
@@ -127,10 +140,12 @@ async function getCityBBox(city) {
       const bb = data[0].boundingbox;
       const bbox = { minLat:+bb[0], maxLat:+bb[1], minLng:+bb[2], maxLng:+bb[3] };
       cityBBoxCache.set(city, bbox);
+      cityBBoxCachePersisted[city] = bbox; cityBBoxCacheDirty = true;
       return bbox;
     }
   } catch (_) {}
   cityBBoxCache.set(city, null);
+  cityBBoxCachePersisted[city] = null; cityBBoxCacheDirty = true;
   return null;
 }
 
@@ -182,47 +197,6 @@ async function googleMapsQuery(q, city) {
   return null;
 }
 
-// Overpass API cache: chainName → [{lat,lng,name}]
-const OVERPASS_CACHE = new Map();
-const OVERPASS_MIRROR = 'https://maps.mail.ru/osm/tools/overpass/api/interpreter';
-
-async function overpassChainBranches(name) {
-  if (OVERPASS_CACHE.has(name)) return OVERPASS_CACHE.get(name);
-  try {
-    const q = `[out:json][timeout:20];
-(
-  node["name"~"${name.replace(/"/g,'')}",i](29.0,34.0,33.5,36.0);
-  way["name"~"${name.replace(/"/g,'')}",i](29.0,34.0,33.5,36.0);
-);
-out center 50;`;
-    const r = await fetch(`${OVERPASS_MIRROR}?data=${encodeURIComponent(q)}`, {
-      headers: { 'User-Agent': 'COLUMBUS-geocoder/1.0' },
-      signal: AbortSignal.timeout(20000),
-    });
-    if (!r.ok) { OVERPASS_CACHE.set(name, []); return []; }
-    const data = await r.json();
-    const branches = (data.elements || []).map(e => ({
-      lat: e.lat ?? e.center?.lat,
-      lng: e.lon ?? e.center?.lon,
-      name: e.tags?.name || name,
-    })).filter(b => b.lat && b.lng);
-    OVERPASS_CACHE.set(name, branches);
-    return branches;
-  } catch (_) {
-    OVERPASS_CACHE.set(name, []);
-    return [];
-  }
-}
-
-function findNearestBranch(branches, bbox) {
-  if (!bbox || !branches.length) return null;
-  const P = 0.03; // ~3km padding beyond city bbox
-  const inCity = branches.filter(b =>
-    b.lat >= bbox.minLat - P && b.lat <= bbox.maxLat + P &&
-    b.lng >= bbox.minLng - P && b.lng <= bbox.maxLng + P
-  );
-  return inCity[0] || null;
-}
 
 async function azureMapsQuery(q, city) {
   if (!process.env.AZURE_MAPS_KEY) return null;
@@ -390,49 +364,6 @@ async function geocodeBatch(clients, reGeocode = new Set()) {
     }
   }
 
-  // רשתות (chains): Overpass OSM lookup by chain name — free, no API key, covers all Israel
-  const CHAIN_BAD_SOURCES = new Set(['city-center', 'geocoded', 'pbi-sibling-near', 'nominatim']);
-  const chainBad = clients.filter(c =>
-    c.custType === 'רשתות' &&
-    CHAIN_BAD_SOURCES.has(c.gpsSource) &&
-    !gpsLookup[String(c.custId)] &&
-    c.custName
-  );
-  if (chainBad.length > 0) {
-    // Group by chain name to batch Overpass queries
-    const byName = new Map();
-    for (const c of chainBad) {
-      const key = c.custName.trim();
-      if (!byName.has(key)) byName.set(key, []);
-      byName.get(key).push(c);
-    }
-    console.log(`  🗺 Overpass: ${chainBad.length} chain clients, ${byName.size} unique names`);
-    for (const [name, group] of byName) {
-      const branches = await overpassChainBranches(name);
-      for (const c of group) {
-        const bbox = cityBBoxCache.get(c.city) ?? null;
-        const match = findNearestBranch(branches, bbox);
-        if (match) {
-          c.lat = match.lat; c.lng = match.lng; c.gpsSource = 'overpass';
-        }
-      }
-      await sleep(500);
-    }
-    const fixed = chainBad.filter(c => c.gpsSource === 'overpass').length;
-    console.log(`    ✅ Overpass fixed: ${fixed}/${chainBad.length}`);
-
-    // Fallback to Google for chains still without good GPS
-    const stillBad = chainBad.filter(c => CHAIN_BAD_SOURCES.has(c.gpsSource));
-    for (const c of stillBad) {
-      const q = [c.custName, c.city].filter(Boolean).join(', ');
-      const bbox = cityBBoxCache.get(c.city) ?? null;
-      const g = await googleMapsQuery(q, c.city);
-      if (g && inBBox(g.lat, g.lng, bbox)) {
-        c.lat = g.lat; c.lng = g.lng; c.gpsSource = 'google-name';
-      }
-      await sleep(1100);
-    }
-  }
 }
 
 function mapClient(r, dayNum) {
@@ -694,6 +625,10 @@ EVALUATE DISTINCT(SELECTCOLUMNS(
   if (azureCacheDirty) {
     fs.writeFileSync(AZURE_CACHE_PATH, JSON.stringify(azureCache, null, 2));
     console.log(`✅ Azure cache → docs/azure-geocode-cache.json (${Object.keys(azureCache).length} entries)`);
+  }
+  if (cityBBoxCacheDirty) {
+    fs.writeFileSync(CITY_BBOX_CACHE_PATH, JSON.stringify(cityBBoxCachePersisted, null, 2));
+    console.log(`✅ City bbox cache → docs/city-bbox-cache.json (${Object.keys(cityBBoxCachePersisted).length} cities)`);
   }
   if (googleCacheDirty) {
     fs.writeFileSync(GOOGLE_CACHE_PATH, JSON.stringify(googleCache, null, 2));
