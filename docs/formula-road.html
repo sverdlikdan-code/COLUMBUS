@@ -1268,6 +1268,7 @@ async function initRoute(){
   setupDragScroll(document.getElementById('list-pane'));
   setupCardDoubleTap(document.getElementById('list-pane'));
   if(window.innerWidth>=700) setTimeout(()=>{ if(myId===_initRouteId) renderMap(); },200);
+  setTimeout(autoSyncGpsClean, 3000); // silent cleanup after route loads
 }
 
 function activeClients(){ return st.clients.filter(c=>!st.excluded.has(c.custId)); }
@@ -2146,12 +2147,8 @@ function renderGpsHistory(){
   const dd=document.getElementById('gps-hist-dd');
   const agentIds=new Set((st.clients||[]).map(c=>String(c.custId)));
   const entries=agentIds.size?Object.entries(local).filter(([id])=>agentIds.has(id)):Object.entries(local);
-  const syncBtn=`<div style="padding:6px 10px 4px;border-bottom:1px solid #eee">
-    <div style="display:flex;gap:5px">
-      <button onclick="runGpsSyncCheck()" style="flex:1;padding:5px 8px;background:#1565C0;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600">🔄 בדוק סנכרון</button>
-      <button onclick="downloadGpsPendingXlsx()" style="padding:5px 8px;background:#1D6F42;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600" title="הורד Excel של כל הממתינים לסנכרון">📥 XLS</button>
-    </div>
-    <div id="gps-sync-result" style="margin-top:4px;font-size:11px;color:#555"></div>
+  const syncBtn=`<div style="padding:4px 10px;border-bottom:1px solid #eee;display:flex;justify-content:flex-end">
+    <button onclick="downloadGpsPendingXlsx()" style="padding:4px 8px;background:#1D6F42;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600" title="הורד Excel של כל הממתינים לסנכרון">📥 XLS</button>
   </div>`;
   if(!entries.length){dd.innerHTML=syncBtn+`<div class="gps-hist-empty">אין תיקוני מיקום</div>`;return;}
   dd.innerHTML=syncBtn+entries.sort((a,b)=>new Date(b[1].correctedAt)-new Date(a[1].correctedAt)).map(([id,c])=>{
@@ -2207,13 +2204,29 @@ async function confirmGpsSyncClean(custIds){
   try{
     const r=await apiFetch('/api/gps-sync-clean',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({custIds})});
     const d=await r.json();
-    // remove from localStorage too
     const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
     custIds.forEach(id=>{delete local[id]; delete gpsCorrections[id];});
     localStorage.setItem('fr_gps_local',JSON.stringify(local));
     showToast(`🗑 ${d.removed} תיקונים הוסרו`);
     renderGpsHistory(); updateGpsHistBtn(); renderMap(); renderClientList();
   }catch(e){el.textContent='❌ שגיאה: '+e.message;}
+}
+
+async function autoSyncGpsClean(){
+  try{
+    const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
+    if(!Object.keys(local).length) return; // nothing to clean
+    const r=await apiFetch('/api/gps-sync-check');
+    if(!r.ok) return;
+    const d=await r.json();
+    if(!d.synced?.length) return;
+    // silent clean — no confirm, no toast
+    const custIds=d.synced.map(s=>String(s.custId));
+    await apiFetch('/api/gps-sync-clean',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({custIds})});
+    custIds.forEach(id=>{delete local[id]; delete gpsCorrections[id];});
+    localStorage.setItem('fr_gps_local',JSON.stringify(local));
+    renderGpsHistory(); updateGpsHistBtn();
+  }catch(_){}
 }
 function deleteGpsCorrection(custId){
   const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
