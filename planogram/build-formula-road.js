@@ -186,46 +186,30 @@ async function googleMapsQuery(q, city) {
 const OVERPASS_CACHE = new Map();
 const OVERPASS_MIRROR = 'https://maps.mail.ru/osm/tools/overpass/api/interpreter';
 
-// Extract brand keyword from full PBI chain name
-// "שופרסל דיל רמת גן" → "שופרסל"
-// "רמי לוי" → "רמי לוי" (2-word brands stay intact)
-const TWO_WORD_BRANDS = new Set(['רמי לוי','יינות ביתן','סי איי','am pm','co op']);
-function extractBrand(name) {
-  // strip BiDi marks
-  const clean = name.replace(/[‎‏‪-‮]/g, '').trim();
-  const words = clean.split(/\s+/);
-  if (words.length <= 2) return clean;
-  const two = words.slice(0,2).join(' ');
-  if (TWO_WORD_BRANDS.has(two.toLowerCase())) return two;
-  return words[0]; // first word = brand
-}
-
 async function overpassChainBranches(name) {
-  const brand = extractBrand(name);
-  const cacheKey = brand;
-  if (OVERPASS_CACHE.has(cacheKey)) return OVERPASS_CACHE.get(cacheKey);
+  if (OVERPASS_CACHE.has(name)) return OVERPASS_CACHE.get(name);
   try {
     const q = `[out:json][timeout:20];
 (
-  node["name"~"${brand.replace(/"/g,'')}",i](29.0,34.0,33.5,36.0);
-  way["name"~"${brand.replace(/"/g,'')}",i](29.0,34.0,33.5,36.0);
+  node["name"~"${name.replace(/"/g,'')}",i](29.0,34.0,33.5,36.0);
+  way["name"~"${name.replace(/"/g,'')}",i](29.0,34.0,33.5,36.0);
 );
 out center 50;`;
     const r = await fetch(`${OVERPASS_MIRROR}?data=${encodeURIComponent(q)}`, {
       headers: { 'User-Agent': 'COLUMBUS-geocoder/1.0' },
       signal: AbortSignal.timeout(20000),
     });
-    if (!r.ok) { OVERPASS_CACHE.set(cacheKey, []); return []; }
+    if (!r.ok) { OVERPASS_CACHE.set(name, []); return []; }
     const data = await r.json();
     const branches = (data.elements || []).map(e => ({
       lat: e.lat ?? e.center?.lat,
       lng: e.lon ?? e.center?.lon,
-      name: e.tags?.name || brand,
+      name: e.tags?.name || name,
     })).filter(b => b.lat && b.lng);
-    OVERPASS_CACHE.set(cacheKey, branches);
+    OVERPASS_CACHE.set(name, branches);
     return branches;
   } catch (_) {
-    OVERPASS_CACHE.set(cacheKey, []);
+    OVERPASS_CACHE.set(name, []);
     return [];
   }
 }
