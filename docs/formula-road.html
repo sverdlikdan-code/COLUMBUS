@@ -1745,8 +1745,9 @@ function renderMap(){
         iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
     }
   });
-  // in AI GPS mode use google-gps.json coords, fall back to regular lat/lng
+  // priority: manual correction > AI Google > PBI
   const _getCoord=(c)=>{
+    if(c.gpsSource==='correction') return{lat:c.lat,lng:c.lng};
     if(st.aiGpsMode){const a=AI_GPS[String(c.custId)];if(a?.aiLat&&a?.aiLng)return{lat:a.aiLat,lng:a.aiLng};}
     return{lat:c.lat,lng:c.lng};
   };
