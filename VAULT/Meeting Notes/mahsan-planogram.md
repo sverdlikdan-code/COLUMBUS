@@ -1,5 +1,12 @@
 ﻿# mahsan-planogram — MAHSAN PLANOGRAM (FORMULA cold storage)
 
+## Сессия 2026-07-06 #done
+
+### Excel мיקום — финальные правки
+- **mergeCells C2:J2**: заголовок теперь покрывает ровно ширину таблицы (C→J), без лишнего столбца K и без потери мастер-ячейки
+- **halavi-base.json v2** (`2026-07-05-halavi-v2`): версия поднята → при первом открытии страницы localStorage сбрасывается и printOrder обновляется со 147-154 (было 247-254)
+- **photo-proxy деплой**: VPS обновлён, фото через прокси загружаются в Excel
+
 ## Сессия 2026-07-05 (продолжение) #done
 
 ### Photo proxy — CORS fix
