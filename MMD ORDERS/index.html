@@ -1534,7 +1534,8 @@
             const p = window.prophetMap && window.prophetMap[mk];
             const mkrArg = mkr != null ? mkr : 'null';
             const hamlArg = haml > 0 ? haml : 'null';
-            const onclk = 'openProphetPanel(\'' + mk + '\',\'' + escJs(r.taur||'') + '\',\'' + escJs(r.hevra||'') + '\',' + mkrArg + ',' + hamlArg + ')';
+            const mmdKArg = r.mmd_k != null ? r.mmd_k : 'null';
+            const onclk = 'openProphetPanel(\'' + mk + '\',\'' + escJs(r.taur||'') + '\',\'' + escJs(r.hevra||'') + '\',' + mkrArg + ',' + hamlArg + ',' + mmdKArg + ')';
             if (!p || p.prophet_order == null) return '<td class="col-prophet" style="color:#bbb;font-weight:400;cursor:pointer" data-mk="' + mk + '" onclick="' + onclk + '">—</td>';
             const po = Math.round(p.prophet_order);
             // trend: last4 vs prev4 actual weeks
@@ -2116,7 +2117,7 @@ window.splashRebuild = async function() {
 };
 
 // ── Prophet drill-down panel ────────────────────────────────
-window.openProphetPanel = function(mk, taur, hevra, mkrShvua, tableHaml) {
+window.openProphetPanel = function(mk, taur, hevra, mkrShvua, tableHaml, currentMmdK) {
   const p = window.prophetMap && window.prophetMap[mk];
   if (!p) {
     // No prophet data — open panel with "no data" message
@@ -2148,9 +2149,9 @@ window.openProphetPanel = function(mk, taur, hevra, mkrShvua, tableHaml) {
   const p4f  = p.p4 != null ? p.p4 : null;
   const haml = (tableHaml != null && tableHaml > 0) ? Math.round(tableHaml) : (p.hamlatza != null ? Math.round(p.hamlatza) : 0);
   const wn   = p.weeks_nf ?? '—';
-  const ek   = p.eilat_k  ?? 0;
+  const ek   = (currentMmdK != null && currentMmdK >= 0) ? currentMmdK : (p.eilat_k ?? 0);
   const np   = p.n_points ?? '—';
-  const po   = Math.round(p.prophet_order ?? 0);
+  const po   = (p4f != null && wn !== '—') ? Math.max(0, Math.round(p4f * wn - ek)) : Math.round(p.prophet_order ?? 0);
   const dp   = p.delta_p4 != null ? Math.round(p.delta_p4) : null;
   const msv  = mkrShvua != null && !isNaN(parseFloat(mkrShvua)) ? parseFloat(mkrShvua) : null;
 
