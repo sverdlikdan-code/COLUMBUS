@@ -79,7 +79,8 @@ async function main() {
     if (ri === 1) return;
     const custId   = String(row.getCell(idCol).value||'').trim();
     const name     = String(row.getCell(nameCol).value||'').trim();
-    const city     = String(row.getCell(cityCol).value||'').trim();
+    const rawCity  = String(row.getCell(cityCol).value||'').trim();
+    const city     = rawCity.replace(/\s*[-–]\s*יפו$/,'').replace(/\s+יפו$/,'').trim();
     const custType = String(row.getCell(typeCol).value||'').trim();
     const gLat     = parseFloat(row.getCell(gLatCol).value);
     const gLng     = parseFloat(row.getCell(gLngCol).value);
