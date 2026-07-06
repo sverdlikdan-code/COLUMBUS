@@ -109,6 +109,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .sort-btn{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:800;cursor:pointer;border:2px solid var(--sky-mid);background:none;color:var(--mid);transition:all .15s;}
 .sort-btn.active-priority{color:var(--blue);border-color:var(--blue);background:var(--sky-light);box-shadow:0 2px 8px rgba(21,101,192,.18);}
 .sort-btn.active-ai{color:var(--green);border-color:var(--green);background:#E8F5E9;box-shadow:0 2px 8px rgba(27,123,52,.18);}
+.sort-btn.active-ai-google{color:#7B1FA2;border-color:#7B1FA2;background:#F3E5F5;box-shadow:0 2px 8px rgba(123,31,162,.18);}
 .day-switch{display:flex;gap:4px;flex-shrink:0;padding:0 6px;align-self:flex-start;}
 .day-sw-btn{width:46px;height:46px;border-radius:12px;background:var(--sky-light);border:2px solid var(--sky-mid);font-size:20px;font-weight:900;color:var(--blue-dark);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;box-shadow:0 1px 4px rgba(21,101,192,.10);}
 .day-sw-btn:hover{background:var(--sky-mid);transform:translateY(-1px);}
@@ -217,6 +218,10 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .leaflet-tooltip.fr-tip{background:rgba(0,0,0,.85)!important;color:#fff!important;border:none!important;font-size:12px!important;font-weight:700!important;direction:rtl!important;padding:5px 11px!important;border-radius:6px!important;box-shadow:0 2px 8px rgba(0,0,0,.45)!important;white-space:nowrap!important;pointer-events:none!important;}
 .leaflet-tooltip.fr-tip::before{display:none!important;}
 .map-tile-btn:hover{background:var(--sky-light);}
+.ai-gps-btn{height:30px;border-radius:10px;background:#fff;border:2px solid #7B1FA2;color:#7B1FA2;font-size:11px;font-weight:900;cursor:pointer;display:flex;align-items:center;gap:4px;box-shadow:0 2px 8px rgba(0,0,0,.18);padding:0 10px;white-space:nowrap;transition:background .12s,color .12s;}
+.ai-gps-btn:hover{background:#F3E5F5;}
+.ai-gps-btn.active{background:#7B1FA2;color:#fff;border-color:#4A148C;}
+.map-tile-ctrl{display:flex;gap:6px;align-items:center;}
 .gps-cancel-btn{position:absolute;bottom:70px;left:50%;transform:translateX(-50%);z-index:1100;background:#c62828;color:#fff;border:none;border-radius:22px;padding:10px 28px;font-size:15px;font-weight:900;cursor:pointer;box-shadow:0 4px 16px rgba(198,40,40,.5);display:none;align-items:center;gap:8px;white-space:nowrap;}
 .gps-cancel-btn:hover{background:#b71c1c;}
 body.gps-fs #map-pane{position:fixed!important;top:0;left:0;right:0;bottom:0;z-index:500;display:block!important;}
@@ -355,6 +360,7 @@ body.gps-fs #map{height:100%!important;}
       <div class="sort-btns">
         <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')">לפי סדר ביקור</button>
         <button class="sort-btn active-ai" id="sort-btn-ai" onclick="setSort('ai')">לפי AI</button>
+        <button class="sort-btn" id="sort-btn-ai-google" onclick="toggleAiGps()">🤖 AI Google</button>
         <button class="sort-btn" id="recalc-btn" onclick="recalcRoute()" aria-label="חישוב מסלול מחדש" style="border-color:var(--orange,#F57C00);color:var(--orange,#F57C00)">🔄</button>
         <button class="sort-btn" onclick="resetRoute()" aria-label="איפוס סדר היום" title="איפוס יום" style="border-color:#b71c1c;color:#b71c1c">↩</button>
         <button class="export-btn" id="export-btn" onclick="exportXLSX()"><span class="xls-icon">XL</span>שמור</button>
@@ -392,6 +398,7 @@ body.gps-fs #map{height:100%!important;}
       <div id="map"></div>
       <div class="map-tile-ctrl">
         <button class="map-tile-btn" id="tile-btn" onclick="cycleTile()"></button>
+        <button class="ai-gps-btn" id="ai-gps-btn" onclick="toggleAiGps()" title="מצב GPS מבוסס AI">🤖 AI GPS</button>
       </div>
       <button class="gps-cancel-btn" id="gps-cancel-btn" onclick="cancelGpsCorrection()">✕ ביטול תיקון</button>
       <div class="map-rotate-ctrl">
@@ -512,6 +519,14 @@ async function loadCorrections(){
   }catch(_){}
 }
 
+let AI_GPS = {}; // custId → {aiLat, aiLng} from google-gps.json
+async function loadAiGps(){
+  try{
+    const r=await fetch('./google-gps.json?_='+Date.now());
+    if(r.ok) AI_GPS=await r.json();
+  }catch(_){}
+}
+
 let STATIC_DATA = null; // loaded from formula-road-data.json if available
 
 async function loadStaticData(){
@@ -561,6 +576,7 @@ const st = {
   addrClientId:null, isDemo:false,
   roadKm:null, roadGeometry:null, priorityRoadKm:null,
   excluded: new Set(),
+  aiGpsMode: false,
 };
 
 let map=null, mapMarkers=[], mapPolylines=[], markerCluster=null, sortable=null, mapBearing=0;
@@ -815,6 +831,7 @@ async function initLogin(){
   }
   await loadStaticData();
   await loadCorrections();
+  await loadAiGps();
 
   // RLS: check saved session — if no token, force re-login
   const saved = _loadAuth();
@@ -1299,6 +1316,17 @@ function setSort(mode){
   if(st.tab==='map'||window.innerWidth>=700) renderMap();
 }
 
+function toggleAiGps(){
+  st.aiGpsMode=!st.aiGpsMode;
+  const sortBtn=document.getElementById('sort-btn-ai-google');
+  const mapBtn=document.getElementById('ai-gps-btn');
+  if(sortBtn) sortBtn.className='sort-btn'+(st.aiGpsMode?' active-ai-google':'');
+  if(mapBtn)  mapBtn.classList.toggle('active',st.aiGpsMode);
+  if(st.aiGpsMode) showToast('🤖 GPS: מצב AI Google פעיל');
+  else showToast('📍 GPS: מצב רגיל');
+  if(st.tab==='map'||window.innerWidth>=700) renderMap();
+}
+
 function resetRoute(){
   const dayLabel=DAY_LABELS[st.day]||st.day;
   if(!confirm(`לאפס יום ${dayLabel}?\nכל השינויים יימחקו והסדר המקורי של Priority יוחזר`)) return;
@@ -1698,7 +1726,13 @@ function renderMap(){
         iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
     }
   });
-  const list=displayClients().filter(c=>c.lat&&c.lng);
+  // in AI GPS mode use google-gps.json coords, fall back to regular lat/lng
+  const _getCoord=(c)=>{
+    if(st.aiGpsMode){const a=AI_GPS[String(c.custId)];if(a?.aiLat&&a?.aiLng)return{lat:a.aiLat,lng:a.aiLng};}
+    return{lat:c.lat,lng:c.lng};
+  };
+  const list=displayClients().filter(c=>{const p=_getCoord(c);return p.lat&&p.lng;})
+    .map(c=>{const p=_getCoord(c);return p.lat!==c.lat||p.lng!==c.lng?{...c,lat:p.lat,lng:p.lng,_usingAi:true}:c;});
   if(!list.length)return;
   const bounds=[];
   // build duplicate-coord map for jitter
@@ -1766,7 +1800,9 @@ function renderMap(){
     const m=L.marker([mLat,mLng],{icon,zIndexOffset:isSel?1000:0});
     m._rn=i+1;
     const corrMark = gpsCorrections[String(c.custId)] ? ' ✏️' : '';
-    const approxNote = isCityCenter
+    const aiNote = c._usingAi ? '<br><span style="font-size:11px;color:#7B1FA2">🤖 GPS: AI Google</span>' : '';
+    const approxNote = c._usingAi ? aiNote
+      : isCityCenter
       ? '<br><span style="font-size:11px;color:#FF8C00">⚠ מיקום משוער — מרכז עיר</span>'
       : isGeocoded
       ? '<br><span style="font-size:11px;color:#E65100">⚠ GPS לא מדוייק</span>'
