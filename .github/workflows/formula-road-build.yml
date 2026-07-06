@@ -62,11 +62,14 @@ jobs:
           git push origin master || \
             (git pull --no-rebase -X ours origin master && git push origin master)
 
-      - name: Deploy data file to VPS
+      - name: Deploy files to VPS
         run: |
           echo "${{ secrets.VPS_SSH_KEY }}" > /tmp/vps_key
           chmod 600 /tmp/vps_key
           scp -o StrictHostKeyChecking=no -i /tmp/vps_key \
             docs/formula-road-data.json \
-            root@31.154.67.58:/root/COLUMBUS/docs/formula-road-data.json
+            docs/formula-road.html \
+            docs/google-gps.json \
+            docs/gps-corrections.json \
+            root@31.154.67.58:/root/COLUMBUS/docs/
           rm /tmp/vps_key
