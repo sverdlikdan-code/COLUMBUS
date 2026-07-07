@@ -1330,7 +1330,6 @@ function setTab(t, skipMap=false){
 
 function setSort(mode){
   if(st.sortMode===mode)return;
-  if(mode==='priority'&&st.aiGpsMode){ st.aiGpsMode=false; document.getElementById('sort-btn-ai-google').className='sort-btn'; }
   st.sortMode=mode;
   document.getElementById('sort-btn-priority').className='sort-btn'+(mode==='priority'?' active-priority':'');
   renderCityFilters();
