@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Territory Planner — FORMULA</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif;}
+body{display:flex;flex-direction:column;height:100vh;background:#f4f6f8;}
+header{background:#1A3F7C;color:#fff;padding:10px 18px;display:flex;align-items:center;gap:14px;flex-shrink:0;}
+header h1{font-size:16px;font-weight:700;}
+.badge{background:#C9A84C;color:#1A3F7C;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700;}
+.main{display:flex;flex:1;overflow:hidden;}
+#map{flex:1;min-width:0;}
+#panel{width:340px;flex-shrink:0;background:#fff;border-right:1px solid #ddd;display:flex;flex-direction:column;overflow:hidden;}
+.panel-head{background:#1A3F7C;color:#fff;padding:12px 14px;font-weight:700;font-size:14px;flex-shrink:0;}
+.panel-body{flex:1;overflow-y:auto;padding:10px;}
+.upload-area{border:2px dashed #90A4AE;border-radius:8px;padding:18px;text-align:center;cursor:pointer;color:#546E7A;margin-bottom:10px;transition:border-color .2s;}
+.upload-area:hover{border-color:#1A3F7C;color:#1A3F7C;}
+#file-input{display:none;}
+.stats{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.stat{background:#EEF2FF;border-radius:6px;padding:5px 10px;font-size:12px;color:#3949AB;font-weight:600;}
+.stat.orange{background:#FFF3E0;color:#E65100;}
+.client-card{border:1px solid #E0E0E0;border-radius:6px;padding:8px 10px;margin-bottom:7px;font-size:12px;}
+.client-card .cname{font-weight:700;color:#1A3F7C;margin-bottom:2px;font-size:13px;}
+.client-card .caddr{color:#666;margin-bottom:5px;}
+.client-card .geo-status{font-size:11px;margin-bottom:5px;}
+.geo-ok{color:#2E7D32;} .geo-fail{color:#C62828;} .geo-pending{color:#F57C00;}
+select.agent-sel{width:100%;padding:5px 8px;border:1px solid #90A4AE;border-radius:5px;font-size:12px;background:#fff;cursor:pointer;}
+.actions{flex-shrink:0;padding:10px;border-top:1px solid #eee;display:flex;gap:8px;}
+.btn{flex:1;padding:9px;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;}
+.btn-export{background:#2E7D32;color:#fff;}
+.btn-clear{background:#B71C1C;color:#fff;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.legend{position:absolute;bottom:24px;left:10px;background:rgba(255,255,255,.95);border-radius:8px;padding:8px 12px;font-size:11px;z-index:1000;box-shadow:0 2px 8px rgba(0,0,0,.15);max-height:220px;overflow-y:auto;}
+.legend-item{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.leg-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+.leg-star{width:14px;height:14px;background:#7B1FA2;clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);flex-shrink:0;}
+.progress{background:#EEF2FF;border-radius:6px;padding:8px;font-size:12px;color:#3949AB;margin-bottom:8px;display:none;}
+</style>
+</head>
+<body>
+<header>
+  <h1>🗺️ Territory Planner</h1>
+  <span class="badge">FORMULA</span>
+  <span id="hdr-status" style="font-size:12px;opacity:.8;margin-right:auto"></span>
+</header>
+<div class="main">
+  <div id="map"></div>
+  <div id="panel">
+    <div class="panel-head">לקוחות חדשים — שיוך לסוכן</div>
+    <div class="panel-body">
+      <div class="upload-area" onclick="document.getElementById('file-input').click()">
+        📂 העלה קובץ Excel עם לקוחות חדשים<br>
+        <small style="font-size:11px;color:#999">שם לקוח · עיר · כתובת</small>
+      </div>
+      <input type="file" id="file-input" accept=".xlsx,.xls,.csv">
+      <div class="progress" id="progress">⏳ מגאוקד... <span id="prog-count"></span></div>
+      <div class="stats" id="stats"></div>
+      <div id="client-list"></div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-export" id="btn-export" disabled onclick="exportExcel()">📥 ייצוא Excel</button>
+      <button class="btn btn-clear" onclick="clearNew()">✕ נקה</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+let map, agentLayers = {}, newLayer, newClients = [], agents = [];
+
+const AGENT_COLORS = ['#1565C0','#2E7D32','#C62828','#E65100','#6A1B9A','#00695C',
+  '#AD1457','#F57F17','#0277BD','#558B2F','#4527A0','#00838F'];
+
+function agentColor(code) {
+  const idx = agents.findIndex(a => a.code === code);
+  return AGENT_COLORS[idx % AGENT_COLORS.length] || '#546E7A';
+}
+
+async function init() {
+  map = L.map('map', { center:[31.78, 35.22], zoom:12 });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© OpenStreetMap', maxZoom:19
+  }).addTo(map);
+
+  newLayer = L.layerGroup().addTo(map);
+
+  document.getElementById('hdr-status').textContent = 'טוען לקוחות קיימים...';
+  try {
+    const [clientsRes, dataRes] = await Promise.all([
+      fetch(`${API}/api/territory/clients`),
+      fetch(`${API}/formula-road-data.json`)
+    ]);
+    if (clientsRes.status === 401) { location.href='/'; return; }
+    const clients = await clientsRes.json();
+    const data = await dataRes.json();
+
+    // Build agent list
+    const agentMap = {};
+    Object.values(data.agentsByManager||{}).forEach(arr => arr.forEach(a => { agentMap[a.agentCode] = a.agentName; }));
+    agents = Object.entries(agentMap).map(([code,name])=>({code,name})).sort((a,b)=>a.name.localeCompare(b.name,'he'));
+
+    // Plot existing clients — Jerusalem only
+    const JLM = ['ירושלים','jerusalem','ירושלים-'];
+    const jlmClients = clients.filter(c => JLM.some(s => (c.city||'').toLowerCase().includes(s.toLowerCase())));
+    const byAgent = {};
+    jlmClients.forEach(c => { (byAgent[c.agentCode]||(byAgent[c.agentCode]=[])).push(c); });
+    let total = 0;
+    Object.entries(byAgent).forEach(([code, arr]) => {
+      const color = agentColor(code);
+      const layer = L.layerGroup();
+      arr.forEach(c => {
+        L.circleMarker([c.lat, c.lng], {
+          radius:5, color:color, fillColor:color, fillOpacity:0.7, weight:1
+        }).bindTooltip(`${c.name}<br>${c.city}<br><small>${agentMap[code]||code}</small>`,{direction:'top'}).addTo(layer);
+        total++;
+      });
+      layer.addTo(map);
+      agentLayers[code] = layer;
+    });
+
+    buildLegend(agentMap);
+    document.getElementById('hdr-status').textContent = `${total} לקוחות ירושלים`;
+  } catch(e) {
+    document.getElementById('hdr-status').textContent = 'שגיאה בטעינה';
+    console.error(e);
+  }
+}
+
+function buildLegend(agentMap) {
+  const div = L.DomUtil.create('div','legend');
+  div.innerHTML = '<div style="font-weight:700;margin-bottom:6px;font-size:12px">מקרא</div>' +
+    agents.map(a=>`<div class="legend-item"><div class="leg-dot" style="background:${agentColor(a.code)}"></div><span>${a.name}</span></div>`).join('') +
+    '<div class="legend-item" style="margin-top:6px"><div class="leg-star"></div><span>לקוח חדש</span></div>';
+  const ctrl = L.Control.extend({ onAdd:()=>div, options:{position:'bottomleft'} });
+  new ctrl().addTo(map);
+}
+
+// ── Excel Upload ──────────────────────────────────────────────────────────────
+document.getElementById('file-input').addEventListener('change', async e => {
+  const file = e.target.files[0]; if(!file) return;
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf);
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+  if (!rows.length) { alert('הקובץ ריק'); return; }
+
+  // Auto-detect columns
+  const keys = Object.keys(rows[0]);
+  const findKey = (...candidates) => keys.find(k => candidates.some(c => k.includes(c))) || '';
+  const nameKey = findKey('שם לקוח','שם','name','Name');
+  const cityKey = findKey('עיר','city','City');
+  const addrKey = findKey('כתובת','address','Address','רחוב');
+  const phoneKey = findKey('טלפון','phone','Phone','נייד');
+
+  newClients = rows.map((r,i) => ({
+    id: i,
+    name: String(r[nameKey]||r[keys[0]]||'').trim(),
+    city: String(r[cityKey]||'').trim(),
+    addr: String(r[addrKey]||'').trim(),
+    phone: String(r[phoneKey]||'').trim(),
+    lat: null, lng: null, geoStatus: 'pending', assignedAgent: '',
+  })).filter(c => c.name);
+
+  clearNew();
+  renderList();
+  await geocodeAll();
+});
+
+async function geocodeAll() {
+  const prog = document.getElementById('progress');
+  prog.style.display = 'block';
+  for (let i=0; i<newClients.length; i++) {
+    const c = newClients[i];
+    document.getElementById('prog-count').textContent = `${i+1}/${newClients.length}`;
+    const q = [c.name, c.addr, c.city, 'ישראל'].filter(Boolean).join(', ');
+    try {
+      const r = await fetch(`${API}/api/territory/geocode`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({q})
+      });
+      const loc = await r.json();
+      if (loc?.lat) {
+        c.lat = loc.lat; c.lng = loc.lng; c.geoStatus = 'ok';
+        addNewMarker(c);
+      } else { c.geoStatus = 'fail'; }
+    } catch { c.geoStatus = 'fail'; }
+    updateCard(i);
+    await new Promise(r=>setTimeout(r,150));
+  }
+  prog.style.display = 'none';
+  updateStats();
+  document.getElementById('btn-export').disabled = false;
+  if (newClients.some(c=>c.lat)) map.fitBounds(newLayer.getLayers().map(m=>m.getLatLng()), {padding:[40,40]});
+}
+
+function addNewMarker(c) {
+  const starIcon = L.divIcon({
+    html:`<div style="width:22px;height:22px;background:#7B1FA2;border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.4)">${c.id+1}</div>`,
+    className:'', iconSize:[22,22], iconAnchor:[11,11]
+  });
+  L.marker([c.lat,c.lng], {icon:starIcon})
+    .bindTooltip(`★ ${c.name}<br>${c.city}`,{direction:'top'})
+    .on('click', ()=>{ document.getElementById(`card-${c.id}`)?.scrollIntoView({behavior:'smooth',block:'center'}); })
+    .addTo(newLayer);
+}
+
+function renderList() {
+  const el = document.getElementById('client-list');
+  el.innerHTML = newClients.map(c => `
+    <div class="client-card" id="card-${c.id}">
+      <div class="cname">${c.id+1}. ${c.name}</div>
+      <div class="caddr">${[c.city,c.addr].filter(Boolean).join(' · ')}</div>
+      <div class="geo-status geo-pending" id="geo-${c.id}">⏳ ממתין לגאוקוד</div>
+      <select class="agent-sel" onchange="assignAgent(${c.id},this.value)">
+        <option value="">— בחר סוכן —</option>
+        ${agents.map(a=>`<option value="${a.code}">${a.name}</option>`).join('')}
+      </select>
+    </div>`).join('');
+  updateStats();
+}
+
+function updateCard(i) {
+  const c = newClients[i];
+  const el = document.getElementById(`geo-${i}`);
+  if (!el) return;
+  if (c.geoStatus==='ok') { el.className='geo-status geo-ok'; el.textContent=`✓ ${c.lat?.toFixed(5)}, ${c.lng?.toFixed(5)}`; }
+  else if (c.geoStatus==='fail') { el.className='geo-status geo-fail'; el.textContent='✗ לא נמצא — ניתן לדלג'; }
+}
+
+function updateStats() {
+  const ok = newClients.filter(c=>c.geoStatus==='ok').length;
+  const fail = newClients.filter(c=>c.geoStatus==='fail').length;
+  const assigned = newClients.filter(c=>c.assignedAgent).length;
+  document.getElementById('stats').innerHTML =
+    `<span class="stat">${newClients.length} חדשים</span>
+     <span class="stat">${ok} גאוקוד ✓</span>
+     ${fail?`<span class="stat orange">${fail} נכשל</span>`:''}
+     <span class="stat">${assigned} שויכו</span>`;
+}
+
+function assignAgent(id, code) {
+  newClients[id].assignedAgent = code;
+  updateStats();
+}
+
+function clearNew() {
+  newLayer.clearLayers();
+  newClients.forEach(c=>{c.lat=null;c.lng=null;c.geoStatus='pending';c.assignedAgent='';});
+}
+
+function exportExcel() {
+  const agentMap = Object.fromEntries(agents.map(a=>[a.code,a.name]));
+  const rows = newClients.map(c=>({
+    'שם לקוח': c.name,
+    'עיר': c.city,
+    'כתובת': c.addr,
+    'טלפון': c.phone,
+    'קו רוחב': c.lat||'',
+    'קו אורך': c.lng||'',
+    'GPS': c.geoStatus==='ok'?'✓':'✗',
+    'סוכן משויך': agentMap[c.assignedAgent]||'',
+    'קוד סוכן': c.assignedAgent||'',
+  }));
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(rows, {header:Object.keys(rows[0])});
+  ws['!cols'] = [28,16,26,14,12,12,6,22,10].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws, 'לקוחות חדשים');
+  XLSX.writeFile(wb, `territory-plan-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+init();
+</script>
+</body>
+</html>
