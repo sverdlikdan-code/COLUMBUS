@@ -3427,9 +3427,9 @@ function buildExpiryPage() {
     };
     const mainHasStock = batches.main.some(b => b.cartons > 0);
     const zafnHasStock = batches.zafn.some(b => b.cartons > 0);
-    const mainAllStop  = !mainHasStock || batches.main.every(b => isBatchStop(b, salesMain));
-    const zafnAllStop  = !zafnHasStock || batches.zafn.every(b => isBatchStop(b, salesZafn));
-    const isStop       = (mainHasStock || zafnHasStock) && mainAllStop && zafnAllStop;
+    const mainAnyStop  = mainHasStock && batches.main.some(b => b.cartons > 0 && isBatchStop(b, salesMain));
+    const zafnAnyStop  = zafnHasStock && batches.zafn.some(b => b.cartons > 0 && isBatchStop(b, salesZafn));
+    const isStop       = mainAnyStop || zafnAnyStop;
     const photoUrl = getPhotoUrl(mk);
     const imgHtml  = photoUrl
       ? `<img src="${photoUrl}" style="width:72px;height:72px;object-fit:contain;border-radius:6px;border:1px solid #ddd;background:#f5f5f5;" onerror="_expiryImgErr(this)">`
