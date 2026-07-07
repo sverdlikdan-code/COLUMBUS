@@ -3354,7 +3354,7 @@ function buildExpiryPage() {
     let throwLine = '';
     if (isSakana && pak.cartons > 0 && pak.daysLeft != null) {
       const effectiveDays = Math.max(0, pak.daysLeft - (shelfLife ?? 0));
-      // PBI formula: canSell = (effectiveDays / 1.4) * daySales  [division by 1.4 = pessimistic]
+      // 1.4 = 7/5: converts calendar days → working days (daySales is per working day, daysLeft is calendar)
       const canSell   = (effectiveDays > 0 && daySales > 0) ? (effectiveDays / 1.4) * daySales : 0;
       const throwAway = Math.ceil(Math.max(0, pak.cartons - canSell));
       const isStopSale = throwAway >= pak.cartons; // all cartons blocked → STOP SALE
