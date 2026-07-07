@@ -1104,7 +1104,7 @@ async function fetchStopSale(t, makatim) {
   const result = {};
   for (const r of rows) {
     const mk = String(r['KARTIS PARIT[מק"ט]'] || '');
-    if (mk) result[mk] = r['[stopSale]'] === 'STOP ⛔';
+    if (mk) { const v = r['[stopSale]']; result[mk] = v === 'STOP ⛔' || v === true || (typeof v === 'number' && v !== 0) || v === 1; }
   }
   return result;
 }
