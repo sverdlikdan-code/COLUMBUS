@@ -1603,7 +1603,7 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
 
           // Info rows — no merge, label col A, value col B
           const info = [
-            ['לקוח', order.custName], ['עיר', order.city],
+            ['לקוח', order.custName], ['מספר לקוח', String(order.custId || '')], ['עיר', order.city],
             ['סוכן', order.agentName], ['מנהל', order.manager],
             ['איש קשר', order.contactName], ['טלפון', order.phone],
             ['מיקום', order.location],
@@ -1628,7 +1628,7 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
 
           // Equipment header
           const eqHdrR = gapR + 1;
-          const eqCols = ['פעולה','דגם','סלות','עגלה','תאריך אספקה','דגם החזרה','תקלה'];
+          const eqCols = ['פעולה','דגם','סלסלות','עגלה','תאריך אספקה','דגם החזרה','תקלה'];
           eqCols.forEach((h, ci) => {
             const cell = ws.getCell(eqHdrR, ci + 1);
             cell.value = h; cell.font = boldW; cell.fill = hFill;
@@ -1680,6 +1680,7 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
           await resend.emails.send({
             from: process.env.RESEND_FROM || 'orders@sverdlik-apps.site',
             to: process.env.NOTIFY_EMAIL.split(',').map(e => e.trim()),
+            cc: ['natalia.a@DilerBMD.com'],
             subject: `הזמנת מקרר חדשה — ${order.custName} (${order.city})`,
             attachments: [{ filename: `mekarer-${safeDate}-${safeName}.xlsx`, content: xlsB64 }],
             html: `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
@@ -1687,6 +1688,7 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
 <div style="border:1px solid #ddd;border-top:none;border-radius:0 0 8px 8px;padding:20px">
 <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
 <tr><td style="color:#666;padding:4px 0;width:120px">לקוח</td><td style="font-weight:bold">${order.custName}</td></tr>
+<tr><td style="color:#666;padding:4px 0">מספר לקוח</td><td>${order.custId||''}</td></tr>
 <tr><td style="color:#666;padding:4px 0">עיר</td><td>${order.city}</td></tr>
 <tr><td style="color:#666;padding:4px 0">סוכן</td><td>${order.agentName}</td></tr>
 <tr><td style="color:#666;padding:4px 0">מנהל</td><td>${order.manager}</td></tr>
@@ -1696,7 +1698,7 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
 </table>
 <h3 style="margin:16px 0 8px">ציוד</h3>
 <table style="width:100%;border-collapse:collapse;font-size:14px">
-<tr style="background:#f5f5f5"><th style="padding:6px 8px;text-align:right">פעולה</th><th style="padding:6px 8px;text-align:right">דגם</th><th style="padding:6px 8px;text-align:center">סלות</th><th style="padding:6px 8px;text-align:center">עגלה</th><th style="padding:6px 8px;text-align:right">תאריך אספקה</th><th style="padding:6px 8px;text-align:right">תקלה</th></tr>
+<tr style="background:#f5f5f5"><th style="padding:6px 8px;text-align:right">פעולה</th><th style="padding:6px 8px;text-align:right">דגם</th><th style="padding:6px 8px;text-align:center">סלסלות</th><th style="padding:6px 8px;text-align:center">עגלה</th><th style="padding:6px 8px;text-align:right">תאריך אספקה</th><th style="padding:6px 8px;text-align:right">תקלה</th></tr>
 ${mekarerRows}
 </table>
 <p style="margin-top:16px;font-size:12px;color:#aaa">📎 מצורף קובץ Excel · מזהה: ${id} · ${new Date().toLocaleString('he-IL')}</p>
