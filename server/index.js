@@ -1423,6 +1423,45 @@ app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, re
   await wb.xlsx.write(res); res.end();
 });
 
+// ── Territory Planner (one-time) ──────────────────────────────────────────────
+app.get('/api/territory/clients', requireAuth, async (req, res) => {
+  try {
+    if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
+    const corrPath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
+    const corrections = fs.existsSync(corrPath) ? JSON.parse(fs.readFileSync(corrPath, 'utf8')) : {};
+    const result = []; const seen = new Set();
+    for (const [agentCode, clients] of pbiCache.byAgent) {
+      for (const c of clients) {
+        const id = String(c.custId);
+        if (seen.has(id)) continue; seen.add(id);
+        const corr = corrections[id];
+        const lat = corr ? corr.lat : c.lat;
+        const lng = corr ? corr.lng : c.lng;
+        if (!lat || !lng) continue;
+        result.push({ custId: c.custId, name: c.custName, city: c.city, lat, lng, agentCode, agentName: c.agentName || agentCode });
+      }
+    }
+    res.json(result);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/territory/geocode', requireAuth, async (req, res) => {
+  try {
+    const { q } = req.body;
+    if (!q) return res.status(400).json({ error: 'q required' });
+    if (!process.env.GOOGLE_MAPS_KEY) return res.status(503).json({ error: 'no key' });
+    const cacheFile = path.join(__dirname, '..', 'docs', 'google-geocode-cache.json');
+    const cache = fs.existsSync(cacheFile) ? JSON.parse(fs.readFileSync(cacheFile, 'utf8')) : {};
+    if (cache[q]) return res.json(cache[q]);
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(q)}&language=he&region=il&key=${process.env.GOOGLE_MAPS_KEY}`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    const d = await r.json();
+    const loc = d?.results?.[0]?.geometry?.location;
+    if (loc) { cache[q] = { lat: loc.lat, lng: loc.lng }; fs.writeFileSync(cacheFile, JSON.stringify(cache, null, 2)); }
+    res.json(loc || null);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // Save planogram base JSON back to docs/
 app.post('/save-kapua', requireAuth, (req, res) => {
   try {
