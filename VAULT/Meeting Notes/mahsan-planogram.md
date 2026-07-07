@@ -1,5 +1,32 @@
 ﻿# mahsan-planogram — MAHSAN PLANOGRAM (FORMULA cold storage)
 
+## Сессия 2026-07-07 #done
+
+### STOP SALE — исправление (combined view)
+
+**Баг**: карточки STOP SALE не показывали фиолетовую рамку в combined (מאוחד) режиме.
+
+**Причина**: в combined view была отдельная переменная `cBorder` (строка 3547), которая проверяла только `anySakana` (красный). Переменная `cardBorder` с `isStop` (фиолетовый) там не использовалась — вычислялась выше, но в combined path применялась только split view.
+
+**Fix** (`docs/planogram-editor.html`, commit `de2afa8b`):
+```js
+const cBorder  = isStop ? '2.5px solid #6a1b9a' : anySakana ? '2px solid #c62828' : '1px solid #dde0e8';
+const cThBg    = isStop ? '#6a1b9a' : anySakana ? '#c62828' : '#f5f5f5';
+const cThTxt   = isStop ? '⛔ STOP SALE — כל המחסנים' : 'כל המחסנים — פק"ע';
+```
+
+**isBatchStop логика** (finalized):
+- `cartons=0` → true (пустая партия = нечего продавать)
+- `eff=0` (daysLeft ≤ shelfLife) → true (просрочено/в окне хранения → нельзя продать)
+- `eff>0, sales=0` → false (данных нет, не можем судить)
+- иначе: `throwAway = ceil(cartons - (eff/1.4)*sales) ≥ cartons`
+
+**`/1.4` формула**: `1.4 = 7/5` — конвертирует рабочие дни → календарные. `daySales` — продажи за рабочий день, `daysLeft` — календарные дни.
+
+**Пример 411001**: daysLeft=1, shelfLife=7 → eff=0 → STOP SALE (фиолетовый).
+
+**Маркер**: `build:2026-07-07b` в консоли.
+
 ## Сессия 2026-07-06 #done
 
 ### Excel мיקום — финальные правки
