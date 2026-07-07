@@ -650,6 +650,7 @@
   <button class="btn no-print" id="btn-table" onclick="toggleTable()" style="background:#f0f4ff;color:#1565C0;border:1px solid #1565C0;">📊 מיקום</button>
   <button class="btn no-print" id="btn-expiry" onclick="toggleExpiryPage()" style="background:#f0f4ff;color:#c62828;border:1px solid #ef9a9a;">📦 תוקף</button>
   <button class="btn no-print" id="btn-order" onclick="toggleOrderPage()" style="background:#f0fff4;color:#1b5e20;border:1px solid #81c784;">🐟 הזמנה</button>
+  <button class="btn no-print" onclick="printPhotoA3()" style="background:#fff3e0;color:#e65100;border:1px solid #ffb74d;" title="הדפס תמונות A3 — עמוד אחד לכל מקט">📷 A3</button>
   <span class="no-print" style="margin-right:6px;border-right:1px solid #ccc;padding-right:8px;display:inline-flex;align-items:center;gap:3px;">
     <button id="wh-main" class="btn wh-btn wh-active" onclick="setWarehouse('Main')">אשדוד</button>
     <button id="wh-zafn" class="btn wh-btn"           onclick="setWarehouse('Zafn')">צפון</button>
@@ -1103,6 +1104,43 @@ function getPhotoUrl(makat) {
   }
   return './' + makat + '.png';
 }
+
+window.printPhotoA3 = function() {
+  const sec = window._currentSection || Object.keys(state)[0];
+  if (!sec || !state[sec]) { alert('No section loaded'); return; }
+  const PROXY = 'https://api.sverdlik-apps.site/api/photo-proxy?url=';
+  const picks = Object.keys(state[sec]).map(Number).sort((a,b)=>a-b);
+  const items = picks.map(pick => {
+    const p = state[sec][pick];
+    if (!p) return null;
+    const mk = String(p.makat);
+    const d  = productData[mk] || {};
+    const name = p.name || d.nameEn || d.desc || p.fam || mk;
+    const rawUrl = getPhotoUrl(mk);
+    const photoUrl = rawUrl && rawUrl.startsWith('http') ? (PROXY + encodeURIComponent(rawUrl)) : rawUrl;
+    return { mk, name, photoUrl, fam: p.fam || d.fam || '' };
+  }).filter(Boolean);
+  const win = window.open('', '_blank');
+  if (!win) { alert('אפשר חלונות קופצים עבור אתר זה'); return; }
+  const pages = items.map(item => {
+    const img = item.photoUrl
+      ? `<img src="${item.photoUrl}" onerror="this.style.display='none'">`
+      : `<div class="no-img">📷</div>`;
+    return `<div class="page">${img}<div class="name">${item.name}</div><div class="meta">מקט: ${item.mk}${item.fam ? ' · ' + item.fam : ''}</div></div>`;
+  }).join('');
+  win.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"><title>פוטו A3 — ${sec}</title><style>
+    @page{size:A3 landscape;margin:8mm}*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif}
+    .page{width:100%;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;page-break-after:always;padding:15mm;gap:12px}
+    .page:last-child{page-break-after:auto}
+    img{max-width:100%;max-height:calc(100vh - 90px);object-fit:contain}
+    .no-img{width:200px;height:200px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:64px;border-radius:12px}
+    .name{font-size:22px;font-weight:bold;text-align:center;color:#111}
+    .meta{font-size:15px;color:#666;text-align:center}
+  </style></head><body>${pages}</body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 900);
+};
 
 window.hidePhoto = function(makat, pick, section) {
   hiddenPhotos.add(String(makat));
