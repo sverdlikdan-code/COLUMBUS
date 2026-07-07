@@ -6,7 +6,12 @@ const path = require('path');
 const fs   = require('fs');
 const ExcelJS = require('exceljs');
 
-const EXCEL = path.join(__dirname, '../geocode-compare-2026-07-06.xlsx');
+const EXCEL = (() => {
+  const files = require('fs').readdirSync(path.join(__dirname,'..'))
+    .filter(f => f.startsWith('geocode-compare-') && f.endsWith('.xlsx'))
+    .sort().reverse();
+  return path.join(__dirname, '..', files[0]);
+})();
 const OUT   = path.join(__dirname, '../docs/google-gps.json');
 const OVERPASS = 'https://maps.mail.ru/osm/tools/overpass/api/interpreter';
 
@@ -79,8 +84,7 @@ async function main() {
     if (ri === 1) return;
     const custId   = String(row.getCell(idCol).value||'').trim();
     const name     = String(row.getCell(nameCol).value||'').trim();
-    const rawCity  = String(row.getCell(cityCol).value||'').trim();
-    const city     = rawCity.replace(/\s*[-–]\s*יפו$/,'').replace(/\s+יפו$/,'').trim();
+    const city     = String(row.getCell(cityCol).value||'').trim();
     const custType = String(row.getCell(typeCol).value||'').trim();
     const gLat     = parseFloat(row.getCell(gLatCol).value);
     const gLng     = parseFloat(row.getCell(gLngCol).value);
