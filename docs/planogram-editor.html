@@ -3385,7 +3385,7 @@ function buildExpiryPage() {
     const batches   = { main: d.pakuot || [], zafn: d.pakuotZafn || [] };
     const hasRealBatches = batches.main.some(b => b.daysLeft != null && b.cartons > 0)
                         || batches.zafn.some(b => b.daysLeft != null && b.cartons > 0);
-    if (!hasRealBatches && !d.stopSale) return null;
+    if (!hasRealBatches) return null;
     const sakanaMain = batches.main.some(b => batchSakana(b, salesMain, shelfLife)?.isSakana);
     const sakanaZafn = batches.zafn.some(b => batchSakana(b, salesZafn, shelfLife)?.isSakana);
     if (d.stock == null && d.stockZafn == null) return null;
@@ -3429,7 +3429,7 @@ function buildExpiryPage() {
     const zafnHasStock = batches.zafn.some(b => b.cartons > 0);
     const mainAllStop  = !mainHasStock || batches.main.every(b => isBatchStop(b, salesMain));
     const zafnAllStop  = !zafnHasStock || batches.zafn.every(b => isBatchStop(b, salesZafn));
-    const isStop       = d.stopSale === true || ((mainHasStock || zafnHasStock) && mainAllStop && zafnAllStop);
+    const isStop       = (mainHasStock || zafnHasStock) && mainAllStop && zafnAllStop;
     const photoUrl = getPhotoUrl(mk);
     const imgHtml  = photoUrl
       ? `<img src="${photoUrl}" style="width:72px;height:72px;object-fit:contain;border-radius:6px;border:1px solid #ddd;background:#f5f5f5;" onerror="_expiryImgErr(this)">`
