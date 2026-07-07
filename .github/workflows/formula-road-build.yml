@@ -72,4 +72,8 @@ jobs:
             docs/google-gps.json \
             docs/gps-corrections.json \
             root@31.154.67.58:/root/COLUMBUS/docs/
+          scp -o StrictHostKeyChecking=no -i /tmp/vps_key \
+            server/index.js \
+            root@31.154.67.58:/root/COLUMBUS/server/
+          ssh -o StrictHostKeyChecking=no -i /tmp/vps_key root@31.154.67.58 "pm2 restart columbus-api"
           rm /tmp/vps_key
