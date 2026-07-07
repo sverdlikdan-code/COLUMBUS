@@ -366,8 +366,7 @@ body.gps-fs #map{height:100%!important;}
   <div class="km-bar" id="km-bar">
     <div class="km-left">
       <div class="sort-btns">
-        <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')">לפי סדר ביקור</button>
-        <button class="sort-btn active-ai" id="sort-btn-ai" onclick="setSort('ai')">לפי AI</button>
+        <button class="sort-btn active-priority" id="sort-btn-priority" onclick="setSort('priority')">לפי סדר ביקור</button>
         <button class="sort-btn" id="sort-btn-ai-google" onclick="toggleAiGps()">🤖 AI Google</button>
         <button class="sort-btn" id="recalc-btn" onclick="recalcRoute()" aria-label="חישוב מסלול מחדש" style="border-color:var(--orange,#F57C00);color:var(--orange,#F57C00)">🔄</button>
         <button class="sort-btn" onclick="resetRoute()" aria-label="איפוס סדר היום" title="איפוס יום" style="border-color:#b71c1c;color:#b71c1c">↩</button>
@@ -406,7 +405,6 @@ body.gps-fs #map{height:100%!important;}
       <div id="map"></div>
       <div class="map-tile-ctrl">
         <button class="map-tile-btn" id="tile-btn" onclick="cycleTile()"></button>
-        <button class="ai-gps-btn" id="ai-gps-btn" onclick="toggleAiGps()" title="מצב GPS מבוסס AI">🤖 AI GPS</button>
       </div>
       <button class="gps-cancel-btn" id="gps-cancel-btn" onclick="cancelGpsCorrection()">✕ ביטול תיקון</button>
       <div class="map-rotate-ctrl">
@@ -589,7 +587,7 @@ const st = {
   step:'manager', manager:null, agent:null,
   startCity:'', startLat:null, startLng:null,
   day:null, clients:[], aiClients:[],
-  sortMode:'ai', tab:'list',
+  sortMode:'priority', tab:'list',
   selectedCities:[], selectedId:null,
   addrClientId:null, isDemo:false,
   roadKm:null, roadGeometry:null, priorityRoadKm:null,
@@ -1198,7 +1196,7 @@ async function selectDay(day){
 let _initRouteId = 0;
 async function initRoute(){
   const myId = ++_initRouteId;
-  st.sortMode='ai'; st.selectedCities=[]; st.selectedId=null;
+  st.sortMode=st.aiGpsMode?'ai':'priority'; st.selectedCities=[]; st.selectedId=null;
   st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null;
   st.excluded=loadExcluded(st.agent?.code, st.day);
   document.getElementById('route-title').textContent='DILER FORMULA';
@@ -1332,9 +1330,9 @@ function setTab(t, skipMap=false){
 
 function setSort(mode){
   if(st.sortMode===mode)return;
+  if(mode==='priority'&&st.aiGpsMode){ st.aiGpsMode=false; document.getElementById('sort-btn-ai-google').className='sort-btn'; }
   st.sortMode=mode;
   document.getElementById('sort-btn-priority').className='sort-btn'+(mode==='priority'?' active-priority':'');
-  document.getElementById('sort-btn-ai').className='sort-btn'+(mode==='ai'?' active-ai':'');
   renderCityFilters();
   renderClientList();
   if(st.tab==='map'||window.innerWidth>=700) renderMap();
@@ -1342,12 +1340,19 @@ function setSort(mode){
 
 function toggleAiGps(){
   st.aiGpsMode=!st.aiGpsMode;
-  const sortBtn=document.getElementById('sort-btn-ai-google');
-  const mapBtn=document.getElementById('ai-gps-btn');
-  if(sortBtn) sortBtn.className='sort-btn'+(st.aiGpsMode?' active-ai-google':'');
-  if(mapBtn)  mapBtn.classList.toggle('active',st.aiGpsMode);
-  if(st.aiGpsMode) showToast('🤖 GPS: מצב AI Google פעיל');
-  else showToast('📍 GPS: מצב רגיל');
+  const btn=document.getElementById('sort-btn-ai-google');
+  if(btn) btn.className='sort-btn'+(st.aiGpsMode?' active-ai-google':'');
+  if(st.aiGpsMode){
+    st.sortMode='ai';
+    document.getElementById('sort-btn-priority').className='sort-btn';
+    OSRM_CACHE.clear(); OSRM_TRIP_CACHE.clear();
+    showToast('🤖 GPS: מצב AI Google פעיל');
+    triggerOsrm();
+  } else {
+    st.sortMode='priority';
+    document.getElementById('sort-btn-priority').className='sort-btn active-priority';
+    showToast('📍 GPS: מצב רגיל');
+  }
   if(st.tab==='map'||window.innerWidth>=700) renderMap();
 }
 
@@ -1362,9 +1367,9 @@ function resetRoute(){
 
 function recalcRoute(){
   st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null;
-  st.sortMode='ai';
+  st.sortMode='ai'; st.aiGpsMode=true;
   document.getElementById('sort-btn-priority').className='sort-btn';
-  document.getElementById('sort-btn-ai').className='sort-btn active-ai';
+  document.getElementById('sort-btn-ai-google').className='sort-btn active-ai-google';
   OSRM_CACHE.clear(); OSRM_TRIP_CACHE.clear();
   st.aiClients=nearestNeighbor([...st.clients]);
   updateKmBar(); renderCityFilters(); renderClientList();
