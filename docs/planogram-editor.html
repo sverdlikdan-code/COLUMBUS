@@ -1390,7 +1390,7 @@ async function loadMaps() {
     computeSectionMedals('kapua',  KAPUA_BASE);
     computeSectionMedals('halavi', HALAVI_BASE);
     computeSectionMedals('dagim',  DAGIM_BASE);
-    console.log(`Heavy thresh: ${heavyThresh?.toFixed(1)} kg/קרט | Medals computed | build:2026-07-07`);
+    console.log(`Heavy thresh: ${heavyThresh?.toFixed(1)} kg/קרט | Medals computed | build:2026-07-07b`);
 
     const cnt = Object.keys(photoMap).length;
     console.log(`Photos: ${cnt} EANs | Stock: ${Object.keys(pd).length} | DY: ${Object.keys(dy).length}`);
@@ -3544,7 +3544,10 @@ function buildExpiryPage() {
           <text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="7" fill="${clr}" font-weight="900" font-family="Arial">${_pctC}%</text>
         </svg>${_combinedThrow > 0 ? `<div style="font-size:8px;font-weight:800;color:#b71c1c;text-align:center;margin-top:1px;line-height:1.2;">🗑 ${Math.round(_combinedThrow)} קרט</div>` : ''}`;
       })();
-      const cBorder = anySakana ? '2px solid #c62828' : '1px solid #dde0e8';
+      const cBorder = isStop ? '2.5px solid #6a1b9a' : anySakana ? '2px solid #c62828' : '1px solid #dde0e8';
+      const cThBg   = isStop ? '#6a1b9a' : anySakana ? '#c62828' : '#f5f5f5';
+      const cThClr  = (isStop || anySakana) ? '#fff' : '#555';
+      const cThTxt  = isStop ? '⛔ STOP SALE — כל המחסנים' : 'כל המחסנים — פק"ע';
       return { html: `<div data-haluka="${p.haluka ?? ''}" style="background:#fff;border-radius:8px;border:${cBorder};box-shadow:0 1px 4px rgba(0,0,0,0.06);padding:8px;width:300px;flex-shrink:0;display:flex;gap:8px;align-items:flex-start;position:relative;">
         <button onclick="hideExpiryCard('${mk}')" style="position:absolute;top:4px;left:4px;background:rgba(0,0,0,0.28);border:none;color:#fff;font-size:10px;cursor:pointer;border-radius:3px;padding:2px 7px;z-index:10;" class="no-print">✕</button>
         <div style="flex-shrink:0;text-align:center;">${imgHtml}
@@ -3556,7 +3559,7 @@ function buildExpiryPage() {
           <div style="font-size:10px;font-weight:bold;color:#222;margin-bottom:4px;">${name}</div>
           <span style="font-size:11px;font-weight:bold;padding:2px 10px;border-radius:4px;background:#e3f2fd;color:#0d47a1;">סה"כ מלאי: ${totalStock} קרט</span>
           <table style="width:100%;border-collapse:collapse;font-size:10px;margin-top:6px;">
-            <thead><tr><th style="padding:2px 8px;background:${anySakana?'#c62828':'#f5f5f5'};font-size:9px;color:${anySakana?'#fff':'#555'};text-align:right;">כל המחסנים — פק"ע</th></tr></thead>
+            <thead><tr><th style="padding:2px 8px;background:${cThBg};font-size:9px;color:${cThClr};text-align:right;">${cThTxt}</th></tr></thead>
             <tbody>${batchRowsCombined}</tbody>
             <tfoot><tr><td style="padding:4px 8px;border-top:2px solid #e0e0e0;background:#f5f7fa;">
               ${combinedSales > 0 ? `<div style="font-size:9px;color:#666;">ממוצע מכירה כולל: <b style="color:#222;">${combinedSales.toFixed(1)} קרט/יום</b></div>` : '<div style="font-size:9px;color:#bbb;">אין נתוני מכירה</div>'}
