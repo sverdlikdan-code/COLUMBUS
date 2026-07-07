@@ -1393,13 +1393,22 @@ app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, re
       rows:rowData.map(r=>r.row),
     });
     COLS.forEach((c,i)=>{ ws.getColumn(i+1).width=c.width; });
+    const hdr=ws.getRow(1);
+    hdr.height=22;
+    hdr.font={bold:true,color:{argb:'FFFFFFFF'},size:10};
+    hdr.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1565C0'}};
+    hdr.eachCell(cell=>{ cell.alignment={horizontal:'right',vertical:'middle'}; });
     rowData.forEach((r,i) => {
       const rowNum=i+2;
       let f = r.isChanged ? (r.even?FILLS.G1:FILLS.G2)
              : r.noOrder  ? (r.even?FILLS.GR1:FILLS.GR2)
              : DOUBTFUL.has(r.gpsSource) ? FILLS.OR
              : (r.even?FILLS.W:FILLS.S);
-      for(let col=1;col<=COLS.length;col++) ws.getCell(rowNum,col).fill=f;
+      const row=ws.getRow(rowNum); row.height=18;
+      for(let col=1;col<=COLS.length;col++){
+        const cell=ws.getCell(rowNum,col); cell.fill=f;
+        cell.alignment={horizontal:'right',vertical:'middle'};
+      }
     });
   }
   const today=new Date().toISOString().slice(0,10);
