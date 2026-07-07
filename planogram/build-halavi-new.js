@@ -159,7 +159,9 @@ function cleanFam(raw) {
   let kCleaned = 0;
   for (const pk of Object.keys(picks)) {
     if (Number(pk) < RESERVE_START || !picks[pk]) continue;
-    if (!activeSet.has(String(picks[pk].makat))) { picks[pk] = null; kCleaned++; }
+    const mk = String(picks[pk].makat);
+    // Don't clean explicitly placed breira-default products (e.g. equipment family 908)
+    if (!activeSet.has(mk) && !bdMakatSet.has(mk)) { picks[pk] = null; kCleaned++; }
   }
   if (kCleaned > 0) console.log(`Cleaned ${kCleaned} reserve slots (inactive)`);
 
