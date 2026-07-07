@@ -1445,6 +1445,28 @@ app.get('/api/territory/clients', requireAuth, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+app.get('/api/territory/jerusalem', async (req, res) => {
+  try {
+    if (!pbiCache) return res.json([]);
+    const corrPath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
+    const corrections = fs.existsSync(corrPath) ? JSON.parse(fs.readFileSync(corrPath, 'utf8')) : {};
+    const result = []; const seen = new Set();
+    for (const [agentCode, clients] of pbiCache.byAgent) {
+      for (const c of clients) {
+        const id = String(c.custId);
+        if (seen.has(id)) continue; seen.add(id);
+        if (!(c.city||'').includes('ירושלים')) continue;
+        const corr = corrections[id];
+        const lat = corr ? corr.lat : c.lat;
+        const lng = corr ? corr.lng : c.lng;
+        if (!lat || !lng) continue;
+        result.push({ custId: c.custId, name: c.custName, city: c.city, lat, lng, agentCode, agentName: c.agentName || agentCode });
+      }
+    }
+    res.json(result);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.post('/api/territory/geocode', async (req, res) => {
   try {
     const { q } = req.body;
