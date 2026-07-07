@@ -1445,7 +1445,7 @@ app.get('/api/territory/clients', requireAuth, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/territory/geocode', requireAuth, async (req, res) => {
+app.post('/api/territory/geocode', async (req, res) => {
   try {
     const { q } = req.body;
     if (!q) return res.status(400).json({ error: 'q required' });
@@ -2567,7 +2567,8 @@ app.get('/formula-road', (req, res, next) => {
 app.get('/mekarer-order.html', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'mekarer-order.html'));
 });
-app.get('/territory-planner.html', requireAuth, (req, res) => {
+app.get('/territory-planner.html', (req, res) => {
+  if (!req.session?.agentCode && !req.session?.isManager) return res.redirect('/');
   res.sendFile(path.join(__dirname, '..', 'docs', 'territory-planner.html'));
 });
 // Static data files referenced via relative fetch in formula-road.html
