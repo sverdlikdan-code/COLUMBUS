@@ -2373,7 +2373,7 @@ async function exportPositionXlsx() {
     const rows = [];
     for (const sec of _SECTIONS) {
       const reserveStart = sectionReserveStart(sec);
-      const order = _getPrintOrder(sec).filter(pick => reserveStart === 0 || +pick < reserveStart);
+      const order = _getPrintOrder(sec); // include reserve picks (empty ones filtered below)
       const seen = new Set(); let idx = 0;
       order.forEach((pick, i) => {
         const p = state[sec][pick];
