@@ -1108,7 +1108,6 @@ function getPhotoUrl(makat) {
 window.printPhotoA3 = function() {
   const sec = window._currentSection || Object.keys(state)[0];
   if (!sec || !state[sec]) { alert('No section loaded'); return; }
-  const PROXY = 'https://api.sverdlik-apps.site/api/photo-proxy?url=';
   const picks = Object.keys(state[sec]).map(Number).sort((a,b)=>a-b);
   const items = picks.map(pick => {
     const p = state[sec][pick];
@@ -1117,25 +1116,32 @@ window.printPhotoA3 = function() {
     const d  = productData[mk] || {};
     const name = p.name || d.nameEn || d.desc || p.fam || mk;
     const rawUrl = getPhotoUrl(mk);
-    const photoUrl = rawUrl && rawUrl.startsWith('http') ? (PROXY + encodeURIComponent(rawUrl)) : rawUrl;
+    // Use direct URL for <img> (no proxy needed — img tags are not CORS-restricted)
+    const photoUrl = rawUrl && rawUrl.startsWith('http') ? rawUrl : null;
     return { mk, name, photoUrl, fam: p.fam || d.fam || '' };
   }).filter(Boolean);
   const win = window.open('', '_blank');
   if (!win) { alert('אפשר חלונות קופצים עבור אתר זה'); return; }
   const pages = items.map(item => {
     const img = item.photoUrl
-      ? `<img src="${item.photoUrl}" onerror="this.style.display='none'">`
-      : `<div class="no-img">📷</div>`;
-    return `<div class="page">${img}<div class="name">${item.name}</div><div class="meta">מקט: ${item.mk}${item.fam ? ' · ' + item.fam : ''}</div></div>`;
+      ? `<img src="${item.photoUrl}" onerror="this.parentNode.querySelector('.no-img').style.display='flex';this.style.display='none'">`
+      : '';
+    const noImg = !item.photoUrl ? `<div class="no-img">📷</div>` : `<div class="no-img" style="display:none">📷</div>`;
+    return `<div class="page">
+      <div class="makat">${item.mk}</div>
+      <div class="img-wrap">${img}${noImg}</div>
+      <div class="name">${item.name}</div>
+    </div>`;
   }).join('');
   win.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"><title>פוטו A3 — ${sec}</title><style>
     @page{size:A3 landscape;margin:8mm}*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif}
-    .page{width:100%;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;page-break-after:always;padding:15mm;gap:12px}
+    .page{width:100%;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;page-break-after:always;padding:10mm 15mm;gap:8px}
     .page:last-child{page-break-after:auto}
-    img{max-width:100%;max-height:calc(100vh - 90px);object-fit:contain}
-    .no-img{width:200px;height:200px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:64px;border-radius:12px}
-    .name{font-size:22px;font-weight:bold;text-align:center;color:#111}
-    .meta{font-size:15px;color:#666;text-align:center}
+    .makat{font-size:96px;font-weight:900;color:#111;letter-spacing:4px;line-height:1;text-align:center}
+    .img-wrap{flex:1;display:flex;align-items:center;justify-content:center;max-height:calc(100vh - 200px);width:100%}
+    .img-wrap img{max-width:100%;max-height:100%;object-fit:contain}
+    .no-img{width:180px;height:180px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:64px;border-radius:12px}
+    .name{font-size:22px;font-weight:bold;text-align:center;color:#333;max-width:100%}
   </style></head><body>${pages}</body></html>`);
   win.document.close();
   win.focus();
