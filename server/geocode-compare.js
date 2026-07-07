@@ -101,8 +101,9 @@ DISTINCT(SELECTCOLUMNS(
   const rows = d.results?.[0]?.tables?.[0]?.rows||[];
   console.log(`Got ${rows.length} unique clients`);
 
-  // Normalize city name for geocoding (e.g. "תל אביב יפו" → "תל אביב")
-  function normCity(c) {
+  // Normalize city name for Google query only (e.g. "תל אביב יפו" → "תל אביב")
+  // Keep original city in object for bbox validation
+  function normCityQ(c) {
     return (c||'').replace(/\s*[-–]\s*יפו$/,'').replace(/\s+יפו$/,'').trim();
   }
 
@@ -110,7 +111,7 @@ DISTINCT(SELECTCOLUMNS(
   const clients = rows.map(row=>({
     custId: row['[custId]'],
     name:   fixBiDi(row['[name]']||''),
-    city:   normCity(fixBiDi(row['[city]']||'')),
+    city:   fixBiDi(row['[city]']||''),
     addr:   fixBiDi(row['[addr]']||''),
     pbiLat: Number(row['[pbiLat]'])||0,
     pbiLng: Number(row['[pbiLng]'])||0,
@@ -127,9 +128,11 @@ DISTINCT(SELECTCOLUMNS(
     const pbiOk = isValidIL(c.pbiLat, c.pbiLng);
 
     // Google: chains by name+city only (addresses from Priority are often garbled)
+    // Normalize city for query (תל אביב יפו → תל אביב) but keep original for bbox
+    const qCity = normCityQ(c.city);
     const gq = c.custType === 'רשתות'
-      ? [c.name, c.city].filter(Boolean).join(', ')
-      : [c.name, c.addr, c.city].filter(Boolean).join(', ');
+      ? [c.name, qCity].filter(Boolean).join(', ')
+      : [c.name, c.addr, qCity].filter(Boolean).join(', ');
     const g = await googleQuery(gq);
     const gOk = g && isValidIL(g.lat, g.lng);
 
