@@ -1328,6 +1328,8 @@ app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, re
   if (!allClients.length) return res.status(404).json({ error: 'no clients' });
   const corrPath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
   const corrections = fs.existsSync(corrPath) ? JSON.parse(fs.readFileSync(corrPath, 'utf8')) : {};
+  const aiGpsPath = path.join(__dirname, '..', 'docs', 'google-gps.json');
+  const aiGps = fs.existsSync(aiGpsPath) ? JSON.parse(fs.readFileSync(aiGpsPath, 'utf8')) : {};
   const DAY_ORDER = ['א','ב','ג','ד','ה','ו'];
   const DAY_LABEL = {1:'א',2:'ב',3:'ג',4:'ד',5:'ה'};
   const byDay = {};
@@ -1366,6 +1368,7 @@ app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, re
       {name:'סדר ביקור מתוקן',width:8},{name:'מס. לקוח',width:14},{name:'שם לקוח',width:28},
       {name:'עיר',width:16},{name:'כתובת',width:26},{name:'קו רוחב',width:13},{name:'קו אורך',width:13},
       {name:'GPS',width:14},{name:'סדר ביקור PRIORITY',width:15},
+      {name:'קו רוחב Google',width:14},{name:'קו אורך Google',width:14},
     ];
     const rowData = clients.map((c,i) => {
       const corr = corrections[String(c.custId)];
@@ -1380,10 +1383,12 @@ app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, re
         isChanged = dist > THRESH;
         gps = isChanged ? '✓ CHANGED' : '✓';
       }
+      const ai = aiGps[String(c.custId)];
       return {
         row:[i+1,String(c.custId||''),c.custName||'',c.city||'',c.address||'',
           lat?+parseFloat(lat).toFixed(6):'', lng?+parseFloat(lng).toFixed(6):'',
-          gps, c.priorityOrder||''],
+          gps, c.priorityOrder||'',
+          ai?.aiLat||'', ai?.aiLng||''],
         isChanged, gpsSource:c.gpsSource||null, noOrder:!c.priorityOrder, even:i%2===0,
       };
     });
