@@ -3420,9 +3420,10 @@ function buildExpiryPage() {
     // Product-level STOP SALE: ALL batches with stock are fully blocked (per PBI formula /1.4)
     const isBatchStop = (b, sales) => {
       if (!(b.cartons > 0)) return true; // empty = not counted
-      if (!(sales > 0)) return false;    // no sales data → cannot determine STOP SALE
-      const eff     = Math.max(0, (b.daysLeft ?? 0) - shelfLife);
-      const canSell = eff > 0 ? (eff / 1.4) * sales : 0;
+      const eff = Math.max(0, (b.daysLeft ?? 0) - shelfLife);
+      if (eff === 0) return true;        // past sell-by window → definitely can't sell
+      if (!(sales > 0)) return false;    // eff>0 but no sales → can't determine
+      const canSell = (eff / 1.4) * sales;
       return Math.ceil(Math.max(0, b.cartons - canSell)) >= b.cartons;
     };
     const mainHasStock = batches.main.some(b => b.cartons > 0);
