@@ -68,3 +68,4 @@
 - [[session-2026-07-07-prophet]] — Сессия 2026-07-07: Prophet stale eilat_k в таблице и панели — два фикса; cap ordV при рендере
 - [[session-2026-07-07-mahsan]] — Сессия 2026-07-07: MAHSAN STOP SALE фиолетовая рамка в combined view; isBatchStop; Excel סטנד open
 - [[session-2026-07-07-formula-road]] — Сессия 2026-07-07: geocode 2107 клиентов, google-gps.json, territory-planner, VPS deploy
+- [[session-2026-07-08-ai-analytics]] — Сессия 2026-07-08: AI кнопка на клиентах, Gemini 1.5 Flash, day briefing YoY, invite system, F5 restore, GPS priority
