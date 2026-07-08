@@ -632,6 +632,16 @@ function haversineKm(la1,lo1,la2,lo2){
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
+// ── Apply AI GPS coords to client list when AI mode is active ───────────────
+function _aiGpsClients(clients){
+  if(!st.aiGpsMode) return clients;
+  return clients.map(c=>{
+    if(c.gpsSource==='correction') return c;
+    const a=AI_GPS[String(c.custId)];
+    return (a?.aiLat&&a?.aiLng)?{...c,lat:a.aiLat,lng:a.aiLng}:c;
+  });
+}
+
 // ── Nearest Neighbor sort ──────────────────────────────────────────────────
 function nearestNeighbor(clients){
   const withGps = clients.filter(c=>c.lat&&c.lng);
@@ -1269,14 +1279,14 @@ async function initRoute(){
   });
 
   if(myId !== _initRouteId) return; // newer call in flight — discard stale results
-  st.aiClients=nearestNeighbor([...st.clients]);
+  st.aiClients=nearestNeighbor([..._aiGpsClients(st.clients)]);
   st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; triggerOsrm();
   updateKmBar();
   renderCityFilters();
   renderClientList();
   // Road-optimal ordering via OSRM /trip (async, cached)
   const _snapId=myId, _snapAgent=st.agent?.code, _snapDay=st.day;
-  osrmTripOrder([...st.clients], st.startLat, st.startLng).then(ordered=>{
+  osrmTripOrder([..._aiGpsClients(st.clients)], st.startLat, st.startLng).then(ordered=>{
     if(!ordered||myId!==_snapId||st.agent?.code!==_snapAgent||st.day!==_snapDay||st.sortMode!=='ai') return;
     st.aiClients=ordered;
     renderClientList(); updateKmBar();
@@ -1370,13 +1380,14 @@ function recalcRoute(){
   document.getElementById('sort-btn-priority').className='sort-btn';
   document.getElementById('sort-btn-ai-google').className='sort-btn active-ai-google';
   OSRM_CACHE.clear(); OSRM_TRIP_CACHE.clear();
-  st.aiClients=nearestNeighbor([...st.clients]);
+  const _rcClients=_aiGpsClients(st.clients);
+  st.aiClients=nearestNeighbor([..._rcClients]);
   updateKmBar(); renderCityFilters(); renderClientList();
   if(st.tab==='map'||window.innerWidth>=700) renderMap();
   const btn=document.getElementById('recalc-btn');
   btn.textContent='⏳ כביש...'; btn.disabled=true;
   const snap={agentCode:st.agent?.code, day:st.day};
-  osrmTripOrder([...st.clients], st.startLat, st.startLng).then(ordered=>{
+  osrmTripOrder([..._rcClients], st.startLat, st.startLng).then(ordered=>{
     btn.disabled=false; btn.textContent='🔄 חשב מחדש';
     if(st.agent?.code!==snap.agentCode||st.day!==snap.day||st.sortMode!=='ai') return;
     if(ordered){ st.aiClients=ordered; updateKmBar(); renderClientList(); }
