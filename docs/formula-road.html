@@ -925,10 +925,18 @@ async function initLogin(){
         if(ve.ok){ const vj=await ve.json(); if(vj.exists===false){ localStorage.removeItem('frAgent'); renderLogin(); show('s-login'); return; } }
       } catch(_){}
       st.agent={code:saved.code,name:saved.name};
+      document.getElementById('logout-btn').style.display='';
+      // F5 state restore: if last day+city are saved, skip city screen and go straight to route
+      const _lastDay  = parseInt(localStorage.getItem('frLastDay') || '0');
+      const _lastCity = localStorage.getItem('frLastCity') || '';
+      if(_lastDay && _lastCity){
+        st.startCity = _lastCity;
+        await selectDay(_lastDay);
+        return;
+      }
       document.getElementById('city-agent-label').textContent=saved.name;
       buildCityChips();
       show('s-city');
-      document.getElementById('logout-btn').style.display='';
     }
     return;
   }
@@ -1237,6 +1245,8 @@ async function confirmCity(){
 // ── DAY ────────────────────────────────────────────────────────────────────
 async function selectDay(day){
   st.day=day;
+  localStorage.setItem('frLastDay', String(day));
+  if(st.startCity) localStorage.setItem('frLastCity', st.startCity);
   show('s-route');
   initRoute();
 }
