@@ -1716,6 +1716,7 @@ function setupSortable(){
       saveRoute(st.agent.code,st.day,st.clients);
       updateKmBar();
       renderClientList();
+      if(st.tab==='map'||window.innerWidth>=700) renderMap();
     }
   });
 }
