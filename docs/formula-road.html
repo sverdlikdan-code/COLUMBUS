@@ -376,6 +376,7 @@ body.gps-fs #map{height:100%!important;}
           <button class="gps-hist-btn" id="gps-hist-btn" onclick="toggleGpsHistory()">📍 תיקונים</button>
           <div class="gps-hist-dd" id="gps-hist-dd"></div>
         </div>
+        <button class="export-btn" id="gps-audit-btn" onclick="exportGpsAuditXLSX()" style="display:none;background:#7B1FA2;box-shadow:0 2px 8px rgba(123,31,162,.35)" title="GPS Audit — תיקונים ידניים vs Google GPS חריג"><span class="xls-icon" style="color:#7B1FA2">XL</span>GPS</button>
       </div>
       <div class="km-cities" id="city-filters"></div>
     </div>
@@ -1294,6 +1295,8 @@ async function initRoute(){
   });
   document.getElementById('export-btn').classList.add('visible');
   document.getElementById('export-all-btn').classList.add('visible');
+  const _auth=_loadAuth();
+  if(_auth?.isManager) document.getElementById('gps-audit-btn').style.display='flex';
   updateGpsHistBtn();
   setupSortable();
   setupDragScroll(document.getElementById('list-pane'));
@@ -2134,6 +2137,23 @@ async function exportXLSX(){
     a.click();
     setTimeout(()=>URL.revokeObjectURL(url),5000);
   }catch(e){alert('שגיאה בייצוא: '+e.message);}
+  finally{btn.innerHTML=orig;btn.disabled=false;}
+}
+
+async function exportGpsAuditXLSX(){
+  const btn=document.getElementById('gps-audit-btn');
+  const orig=btn.innerHTML; btn.innerHTML='<span class="xls-icon">⏳</span>...'; btn.disabled=true;
+  try{
+    const r=await apiFetch('/api/gps-audit-xlsx');
+    if(!r.ok) throw new Error(r.status);
+    const blob=await r.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`GPS_Audit_${new Date().toISOString().slice(0,10)}.xlsx`;
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+  }catch(e){alert('שגיאה: '+e.message);}
   finally{btn.innerHTML=orig;btn.disabled=false;}
 }
 

@@ -1319,6 +1319,140 @@ app.get('/api/gps-pending-xlsx', requireAuth, async (req, res) => {
   await wb.xlsx.write(res); res.end();
 });
 
+// GET /api/gps-audit-xlsx — Sheet1: manual corrections vs PBI; Sheet2: Google GPS big-delta + bbox OK
+app.get('/api/gps-audit-xlsx', requireAuth, async (req, res) => {
+  if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
+  const corrPath  = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
+  const aiGpsPath = path.join(__dirname, '..', 'docs', 'google-gps.json');
+  const corrections = fs.existsSync(corrPath)  ? JSON.parse(fs.readFileSync(corrPath,  'utf8')) : {};
+  const aiGps       = fs.existsSync(aiGpsPath) ? JSON.parse(fs.readFileSync(aiGpsPath, 'utf8')) : {};
+  const corrSet = new Set(Object.keys(corrections));
+  const DELTA_MIN = 200; // metres — "big difference"
+
+  // ── Sheet 1: manual GPS corrections ──────────────────────────────────────
+  const sheet1Rows = Object.entries(corrections).map(([custId, corr]) => {
+    const pbi = pbiCache.clientMap.get(String(custId));
+    const deltaM = (pbi?.lat && pbi?.lng)
+      ? Math.round(haversineDist(corr.lat, corr.lng, Number(pbi.lat), Number(pbi.lng)))
+      : null;
+    return {
+      custId,
+      name:        corr.name       || pbi?.custName || '',
+      city:        corr.city       || pbi?.city     || '',
+      address:     corr.address    || pbi?.address  || '',
+      agentName:   pbi?.agentName  || '',
+      pbiLat:      pbi?.lat  ? +parseFloat(pbi.lat).toFixed(6)   : '',
+      pbiLng:      pbi?.lng  ? +parseFloat(pbi.lng).toFixed(6)   : '',
+      corrLat:     +parseFloat(corr.lat).toFixed(6),
+      corrLng:     +parseFloat(corr.lng).toFixed(6),
+      deltaM:      deltaM !== null ? deltaM : '',
+      correctedAt: corr.correctedAt ? new Date(corr.correctedAt).toLocaleString('he-IL') : '',
+    };
+  }).sort((a, b) => (b.deltaM || 0) - (a.deltaM || 0));
+
+  // ── Sheet 2: Google GPS with big delta + bbox passed ─────────────────────
+  // Batch-fetch city bboxes for all relevant cities
+  const candidateCities = new Set();
+  for (const [custId, ai] of Object.entries(aiGps)) {
+    if (!ai.aiLat || !ai.aiLng) continue;
+    const pbi = pbiCache.clientMap.get(String(custId));
+    if (!pbi?.lat || !pbi?.lng) continue;
+    const delta = haversineDist(ai.aiLat, ai.aiLng, Number(pbi.lat), Number(pbi.lng));
+    if (delta >= DELTA_MIN && pbi.city) candidateCities.add(pbi.city);
+  }
+  await Promise.all([...candidateCities].map(city =>
+    cityBBoxCache.has(city) ? null : getCityBBox(city)
+  ));
+
+  const sheet2Rows = [];
+  for (const [custId, ai] of Object.entries(aiGps)) {
+    if (!ai.aiLat || !ai.aiLng) continue;
+    const pbi = pbiCache.clientMap.get(String(custId));
+    if (!pbi?.lat || !pbi?.lng) continue;
+    const deltaM = Math.round(haversineDist(ai.aiLat, ai.aiLng, Number(pbi.lat), Number(pbi.lng)));
+    if (deltaM < DELTA_MIN) continue;
+    const bbox   = pbi.city ? cityBBoxCache.get(pbi.city) : null;
+    if (!isWithinCityBBox(ai.aiLat, ai.aiLng, bbox)) continue; // bbox failed — skip
+    sheet2Rows.push({
+      custId,
+      name:           pbi.custName  || '',
+      city:           pbi.city      || '',
+      address:        pbi.address   || '',
+      agentName:      pbi.agentName || '',
+      pbiLat:         +parseFloat(pbi.lat).toFixed(6),
+      pbiLng:         +parseFloat(pbi.lng).toFixed(6),
+      googleLat:      +parseFloat(ai.aiLat).toFixed(6),
+      googleLng:      +parseFloat(ai.aiLng).toFixed(6),
+      deltaM,
+      alreadyFixed:   corrSet.has(custId) ? '✓' : '',
+    });
+  }
+  sheet2Rows.sort((a, b) => b.deltaM - a.deltaM);
+
+  // ── Build workbook ────────────────────────────────────────────────────────
+  const wb = new ExcelJS.Workbook(); wb.creator = 'Formula Road';
+  const F1 = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFFFFF' } };
+  const F2 = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFF5F5F5' } };
+  const makeHdr = (ws, argb) => {
+    const h = ws.getRow(1);
+    h.font = { bold:true, color:{ argb:'FFFFFFFF' } };
+    h.fill = { type:'pattern', pattern:'solid', fgColor:{ argb } };
+    h.height = 20;
+  };
+
+  // Sheet 1
+  const ws1 = wb.addWorksheet('תיקוני GPS ידניים', { views:[{ rightToLeft:true, state:'frozen', ySplit:1 }] });
+  ws1.columns = [
+    { header:'מס. לקוח',      key:'custId',      width:13 },
+    { header:'שם לקוח',       key:'name',        width:30 },
+    { header:'עיר',            key:'city',        width:16 },
+    { header:'כתובת',          key:'address',     width:26 },
+    { header:'סוכן',           key:'agentName',   width:18 },
+    { header:'PBI lat',        key:'pbiLat',      width:14 },
+    { header:'PBI lng',        key:'pbiLng',      width:14 },
+    { header:'תיקון lat',      key:'corrLat',     width:14 },
+    { header:'תיקון lng',      key:'corrLng',     width:14 },
+    { header:"הפרש (מ')",      key:'deltaM',      width:12 },
+    { header:'תאריך תיקון',    key:'correctedAt', width:20 },
+  ];
+  makeHdr(ws1, 'FF1D6F42');
+  ws1.autoFilter = { from:'A1', to:'K1' };
+  sheet1Rows.forEach((r, i) => {
+    const row = ws1.addRow(r);
+    row.eachCell(c => { c.fill = i%2===0?F1:F2; });
+    if (r.deltaM > 2000) row.getCell('deltaM').fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFE0B2' } };
+  });
+
+  // Sheet 2
+  const ws2 = wb.addWorksheet('Google GPS חריג', { views:[{ rightToLeft:true, state:'frozen', ySplit:1 }] });
+  ws2.columns = [
+    { header:'מס. לקוח',      key:'custId',      width:13 },
+    { header:'שם לקוח',       key:'name',        width:30 },
+    { header:'עיר',            key:'city',        width:16 },
+    { header:'כתובת',          key:'address',     width:26 },
+    { header:'סוכן',           key:'agentName',   width:18 },
+    { header:'PBI lat',        key:'pbiLat',      width:14 },
+    { header:'PBI lng',        key:'pbiLng',      width:14 },
+    { header:'Google lat',     key:'googleLat',   width:14 },
+    { header:'Google lng',     key:'googleLng',   width:14 },
+    { header:"הפרש (מ')",      key:'deltaM',      width:12 },
+    { header:'תוקן ידנית',     key:'alreadyFixed',width:12 },
+  ];
+  makeHdr(ws2, 'FF1565C0');
+  ws2.autoFilter = { from:'A1', to:'K1' };
+  sheet2Rows.forEach((r, i) => {
+    const row = ws2.addRow(r);
+    row.eachCell(c => { c.fill = i%2===0?F1:F2; });
+    if (r.deltaM > 2000) row.getCell('deltaM').fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFCDD2' } };
+    if (r.alreadyFixed) row.getCell('alreadyFixed').fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFC8E6C9' } };
+  });
+
+  const date = new Date().toISOString().slice(0,10);
+  res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition',`attachment; filename*=UTF-8''${encodeURIComponent(`GPS_Audit_${date}.xlsx`)}`);
+  await wb.xlsx.write(res); res.end();
+});
+
 // POST /api/export-all-days-xlsx — multi-sheet Excel, one sheet per day
 app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, res) => {
   const { agentCode, agentName, dayOverrides = {}, savedOrders = {} } = req.body;
