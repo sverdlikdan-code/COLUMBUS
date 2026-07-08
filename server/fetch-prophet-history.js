@@ -45,7 +45,7 @@ async function fetchHistory() {
         DIMCALENDAR[Year],
         DIMCALENDAR[Week Number],
         FILTER(DIMCALENDAR,
-          DIMCALENDAR[Year] >= 2023 &&
+          DIMCALENDAR[Date] >= TODAY() - 365 &&
           DIMCALENDAR[Date] < TODAY() - MOD(WEEKDAY(TODAY(), 1) - 1, 7)
         ),
         "mkr_k", [מכר קרטון]
