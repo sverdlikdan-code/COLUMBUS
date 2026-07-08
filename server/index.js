@@ -354,6 +354,64 @@ app.post('/log-access', dataRateLimit, (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Magic-link invite tokens (HMAC-SHA256, no external lib) ─────────────────
+const INVITE_SECRET = process.env.INVITE_SECRET || 'changeme';
+function signInvite(payload) {
+  const data = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const sig = require('crypto').createHmac('sha256', INVITE_SECRET).update(data).digest('base64url');
+  return `${data}.${sig}`;
+}
+function verifyInvite(token) {
+  try {
+    const dot = token.lastIndexOf('.');
+    if (dot < 1) return null;
+    const data = token.slice(0, dot), sig = token.slice(dot + 1);
+    const expected = require('crypto').createHmac('sha256', INVITE_SECRET).update(data).digest('base64url');
+    if (sig !== expected) return null;
+    const payload = JSON.parse(Buffer.from(data, 'base64url').toString());
+    if (Date.now() > payload.exp) return null;
+    return payload;
+  } catch(_) { return null; }
+}
+
+// GET /invite/:token — magic link: verify → create session → set localStorage → redirect
+app.get('/invite/:token', (req, res) => {
+  const payload = verifyInvite(req.params.token);
+  if (!payload) return res.status(400).send(`<!DOCTYPE html><html><head><meta charset=utf-8><title>קישור לא בתוקף</title></head>
+<body style="font-family:Arial;text-align:center;padding:60px;background:#f5f5f5">
+<h2 style="color:#c62828">הקישור פג תוקף</h2>
+<p style="color:#555">בקש קישור חדש מהמנהל.</p></body></html>`);
+  const sessionToken = createSession(payload.code, false);
+  const name = payload.name || '';
+  const code = payload.code || '';
+  const APP_URL = `https://formula-road.sverdlik-apps.site/formula-road.html`;
+  res.send(`<!DOCTYPE html>
+<html><head><meta charset=utf-8><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Formula Roads — כניסה</title>
+<style>body{margin:0;font-family:Arial,sans-serif;background:#0d2137;display:flex;align-items:center;justify-content:center;min-height:100vh}
+.box{background:#fff;border-radius:18px;padding:40px 32px;text-align:center;max-width:340px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.logo{font-size:36px;margin-bottom:8px}.title{font-size:22px;font-weight:900;color:#1A3F7C;margin-bottom:6px}
+.sub{color:#666;font-size:14px;margin-bottom:28px}.spinner{width:48px;height:48px;border:5px solid #e0e0e0;border-top-color:#1A3F7C;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 20px}
+@keyframes spin{to{transform:rotate(360deg)}}.ok{color:#2E7D32;font-size:16px;font-weight:700;display:none}</style>
+</head><body>
+<div class=box>
+  <div class=logo>🗺️</div>
+  <div class=title>Formula Roads</div>
+  <div class=sub>שלום ${name}!</div>
+  <div class=spinner id=sp></div>
+  <div class=ok id=ok>✅ מחובר! מעביר...</div>
+</div>
+<script>
+try{
+  localStorage.setItem('frAgent', JSON.stringify({isManager:false, code:'${code}', name:'${name}'}));
+  localStorage.setItem('frToken', '${sessionToken}');
+}catch(e){}
+document.getElementById('sp').style.display='none';
+document.getElementById('ok').style.display='block';
+setTimeout(()=>{ window.location.replace('${APP_URL}'); }, 800);
+</script></body></html>`);
+});
+
 // GET /auth/pbi — auto-login as manager if opened via PBI (fr_ok cookie present)
 app.get('/auth/pbi', (req, res) => {
   const cookies = req.headers.cookie || '';
@@ -679,6 +737,7 @@ const AZURE_MAPS_KEY    = process.env.AZURE_MAPS_KEY    || '';
 const GOOGLE_MAPS_KEY   = process.env.GOOGLE_MAPS_KEY   || '';  // REQUEST_DENIED — billing not enabled
 const LOCATIONIQ_KEY    = process.env.LOCATIONIQ_KEY    || '';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+const GEMINI_API_KEY    = process.env.GEMINI_API_KEY    || '';
 
 // LocationIQ — OSM-based, works well for Israel, no billing required
 async function geocodeLocationIQ(query) {
@@ -737,6 +796,25 @@ async function geocodeNominatim(query, city) {
     return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
   } catch (_) {}
   return null;
+}
+
+// Gemini Flash — used for AI analytics (Anthropic fallback for geocoding)
+async function callGemini(prompt, maxTokens = 500) {
+  if (!GEMINI_API_KEY) throw new Error('AI not configured');
+  const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { maxOutputTokens: maxTokens, temperature: 0.4 },
+    }),
+    signal: AbortSignal.timeout(20000),
+  });
+  const data = await resp.json();
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error(data?.error?.message || 'Gemini returned empty');
+  return text;
 }
 
 // Haiku parses messy Hebrew addresses when all else fails (~$0.001/address)
@@ -1316,140 +1394,6 @@ app.get('/api/gps-pending-xlsx', requireAuth, async (req, res) => {
   const date = new Date().toISOString().slice(0,10);
   res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition',`attachment; filename*=UTF-8''${encodeURIComponent(`GPS_Pending_${date}.xlsx`)}`);
-  await wb.xlsx.write(res); res.end();
-});
-
-// GET /api/gps-audit-xlsx — Sheet1: manual corrections vs PBI; Sheet2: Google GPS big-delta + bbox OK
-app.get('/api/gps-audit-xlsx', requireAuth, async (req, res) => {
-  if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
-  const corrPath  = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
-  const aiGpsPath = path.join(__dirname, '..', 'docs', 'google-gps.json');
-  const corrections = fs.existsSync(corrPath)  ? JSON.parse(fs.readFileSync(corrPath,  'utf8')) : {};
-  const aiGps       = fs.existsSync(aiGpsPath) ? JSON.parse(fs.readFileSync(aiGpsPath, 'utf8')) : {};
-  const corrSet = new Set(Object.keys(corrections));
-  const DELTA_MIN = 200; // metres — "big difference"
-
-  // ── Sheet 1: manual GPS corrections ──────────────────────────────────────
-  const sheet1Rows = Object.entries(corrections).map(([custId, corr]) => {
-    const pbi = pbiCache.clientMap.get(String(custId));
-    const deltaM = (pbi?.lat && pbi?.lng)
-      ? Math.round(haversineDist(corr.lat, corr.lng, Number(pbi.lat), Number(pbi.lng)))
-      : null;
-    return {
-      custId,
-      name:        corr.name       || pbi?.custName || '',
-      city:        corr.city       || pbi?.city     || '',
-      address:     corr.address    || pbi?.address  || '',
-      agentName:   pbi?.agentName  || '',
-      pbiLat:      pbi?.lat  ? +parseFloat(pbi.lat).toFixed(6)   : '',
-      pbiLng:      pbi?.lng  ? +parseFloat(pbi.lng).toFixed(6)   : '',
-      corrLat:     +parseFloat(corr.lat).toFixed(6),
-      corrLng:     +parseFloat(corr.lng).toFixed(6),
-      deltaM:      deltaM !== null ? deltaM : '',
-      correctedAt: corr.correctedAt ? new Date(corr.correctedAt).toLocaleString('he-IL') : '',
-    };
-  }).sort((a, b) => (b.deltaM || 0) - (a.deltaM || 0));
-
-  // ── Sheet 2: Google GPS with big delta + bbox passed ─────────────────────
-  // Batch-fetch city bboxes for all relevant cities
-  const candidateCities = new Set();
-  for (const [custId, ai] of Object.entries(aiGps)) {
-    if (!ai.aiLat || !ai.aiLng) continue;
-    const pbi = pbiCache.clientMap.get(String(custId));
-    if (!pbi?.lat || !pbi?.lng) continue;
-    const delta = haversineDist(ai.aiLat, ai.aiLng, Number(pbi.lat), Number(pbi.lng));
-    if (delta >= DELTA_MIN && pbi.city) candidateCities.add(pbi.city);
-  }
-  await Promise.all([...candidateCities].map(city =>
-    cityBBoxCache.has(city) ? null : getCityBBox(city)
-  ));
-
-  const sheet2Rows = [];
-  for (const [custId, ai] of Object.entries(aiGps)) {
-    if (!ai.aiLat || !ai.aiLng) continue;
-    const pbi = pbiCache.clientMap.get(String(custId));
-    if (!pbi?.lat || !pbi?.lng) continue;
-    const deltaM = Math.round(haversineDist(ai.aiLat, ai.aiLng, Number(pbi.lat), Number(pbi.lng)));
-    if (deltaM < DELTA_MIN) continue;
-    const bbox   = pbi.city ? cityBBoxCache.get(pbi.city) : null;
-    if (!isWithinCityBBox(ai.aiLat, ai.aiLng, bbox)) continue; // bbox failed — skip
-    sheet2Rows.push({
-      custId,
-      name:           pbi.custName  || '',
-      city:           pbi.city      || '',
-      address:        pbi.address   || '',
-      agentName:      pbi.agentName || '',
-      pbiLat:         +parseFloat(pbi.lat).toFixed(6),
-      pbiLng:         +parseFloat(pbi.lng).toFixed(6),
-      googleLat:      +parseFloat(ai.aiLat).toFixed(6),
-      googleLng:      +parseFloat(ai.aiLng).toFixed(6),
-      deltaM,
-      alreadyFixed:   corrSet.has(custId) ? '✓' : '',
-    });
-  }
-  sheet2Rows.sort((a, b) => b.deltaM - a.deltaM);
-
-  // ── Build workbook ────────────────────────────────────────────────────────
-  const wb = new ExcelJS.Workbook(); wb.creator = 'Formula Road';
-  const F1 = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFFFFF' } };
-  const F2 = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFF5F5F5' } };
-  const makeHdr = (ws, argb) => {
-    const h = ws.getRow(1);
-    h.font = { bold:true, color:{ argb:'FFFFFFFF' } };
-    h.fill = { type:'pattern', pattern:'solid', fgColor:{ argb } };
-    h.height = 20;
-  };
-
-  // Sheet 1
-  const ws1 = wb.addWorksheet('תיקוני GPS ידניים', { views:[{ rightToLeft:true, state:'frozen', ySplit:1 }] });
-  ws1.columns = [
-    { header:'מס. לקוח',      key:'custId',      width:13 },
-    { header:'שם לקוח',       key:'name',        width:30 },
-    { header:'עיר',            key:'city',        width:16 },
-    { header:'כתובת',          key:'address',     width:26 },
-    { header:'סוכן',           key:'agentName',   width:18 },
-    { header:'PBI lat',        key:'pbiLat',      width:14 },
-    { header:'PBI lng',        key:'pbiLng',      width:14 },
-    { header:'תיקון lat',      key:'corrLat',     width:14 },
-    { header:'תיקון lng',      key:'corrLng',     width:14 },
-    { header:"הפרש (מ')",      key:'deltaM',      width:12 },
-    { header:'תאריך תיקון',    key:'correctedAt', width:20 },
-  ];
-  makeHdr(ws1, 'FF1D6F42');
-  ws1.autoFilter = { from:'A1', to:'K1' };
-  sheet1Rows.forEach((r, i) => {
-    const row = ws1.addRow(r);
-    row.eachCell(c => { c.fill = i%2===0?F1:F2; });
-    if (r.deltaM > 2000) row.getCell('deltaM').fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFE0B2' } };
-  });
-
-  // Sheet 2
-  const ws2 = wb.addWorksheet('Google GPS חריג', { views:[{ rightToLeft:true, state:'frozen', ySplit:1 }] });
-  ws2.columns = [
-    { header:'מס. לקוח',      key:'custId',      width:13 },
-    { header:'שם לקוח',       key:'name',        width:30 },
-    { header:'עיר',            key:'city',        width:16 },
-    { header:'כתובת',          key:'address',     width:26 },
-    { header:'סוכן',           key:'agentName',   width:18 },
-    { header:'PBI lat',        key:'pbiLat',      width:14 },
-    { header:'PBI lng',        key:'pbiLng',      width:14 },
-    { header:'Google lat',     key:'googleLat',   width:14 },
-    { header:'Google lng',     key:'googleLng',   width:14 },
-    { header:"הפרש (מ')",      key:'deltaM',      width:12 },
-    { header:'תוקן ידנית',     key:'alreadyFixed',width:12 },
-  ];
-  makeHdr(ws2, 'FF1565C0');
-  ws2.autoFilter = { from:'A1', to:'K1' };
-  sheet2Rows.forEach((r, i) => {
-    const row = ws2.addRow(r);
-    row.eachCell(c => { c.fill = i%2===0?F1:F2; });
-    if (r.deltaM > 2000) row.getCell('deltaM').fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFFCDD2' } };
-    if (r.alreadyFixed) row.getCell('alreadyFixed').fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFC8E6C9' } };
-  });
-
-  const date = new Date().toISOString().slice(0,10);
-  res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  res.setHeader('Content-Disposition',`attachment; filename*=UTF-8''${encodeURIComponent(`GPS_Audit_${date}.xlsx`)}`);
   await wb.xlsx.write(res); res.end();
 });
 
@@ -2841,6 +2785,114 @@ app.post('/admin/reload-targets', requireAuth, async (req, res) => {
   if (!req.session.isManager) return res.status(403).json({ error: 'forbidden' });
   await loadPBICache();
   res.json({ ok: true, clients: pbiCache?.clientMap?.size || 0, loadedAt: pbiCache?.loadedAt });
+});
+
+// ── AI Client Analytics — per-customer sales by מחלקה, 3 closed months ──────
+// Uses main FORMULA dataset (POWERBI_DATASET_ID): ALL_PARTS + ADIFUT[מחלקה]
+app.get('/api/client-analytics/:custId', requireAuth, async (req, res) => {
+  const custId = String(req.params.custId || '').trim();
+  if (!custId) return res.status(400).json({ ok: false, error: 'custId required' });
+  const lang = (req.query.lang || 'he').slice(0, 2);
+  if (!GEMINI_API_KEY && !ANTHROPIC_API_KEY) return res.status(503).json({ ok: false, error: 'AI not configured' });
+
+  // Last 3 closed months
+  const now = new Date();
+  const cm = now.getMonth() + 1, cy = now.getFullYear();
+  const months = [];
+  for (let i = 3; i >= 1; i--) {
+    let m = cm - i, y = cy;
+    if (m <= 0) { m += 12; y--; }
+    months.push({ year: y, month: m, label: `${m}/${y}` });
+  }
+  const start = months[0], end = months[2];
+  const lastDay = new Date(end.year, end.month, 0).getDate();
+  const SKIP_CATS = new Set(['ציוד', 'שאריות', 'תגמולים']);
+
+  // Also get company-wide average for same period (for comparison)
+  const daxClient = `
+EVALUATE
+CALCULATETABLE(
+  ADDCOLUMNS(
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[תאור משפחת מוצר]),
+    "מחלקה", LOOKUPVALUE(ADIFUT[מחלקה], ADIFUT[תאור משפחה], ALL_PARTS[תאור משפחת מוצר]),
+    "total",  CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)]),
+    "lastOrder", CALCULATE(MAX(ALL_PARTS[תאריך]))
+  ),
+  ALL_PARTS[מספר לקוח] = "${custId}",
+  ALL_PARTS[ASHMADOT] = "-מכר-",
+  ALL_PARTS[תאריך] >= DATE(${start.year},${start.month},1),
+  ALL_PARTS[תאריך] <= DATE(${end.year},${end.month},${lastDay})
+)`;
+
+  const daxAvg = `
+EVALUATE
+ROW(
+  "avg_per_client", DIVIDE(
+    CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)],
+      ALL_PARTS[ASHMADOT] = "-מכר-",
+      ALL_PARTS[תאריך] >= DATE(${start.year},${start.month},1),
+      ALL_PARTS[תאריך] <= DATE(${end.year},${end.month},${lastDay})
+    ),
+    CALCULATE(DISTINCTCOUNT(ALL_PARTS[מספר לקוח]),
+      ALL_PARTS[ASHMADOT] = "-מכר-",
+      ALL_PARTS[תאריך] >= DATE(${start.year},${start.month},1),
+      ALL_PARTS[תאריך] <= DATE(${end.year},${end.month},${lastDay})
+    )
+  )
+)`;
+
+  try {
+    const [rows, avgRows] = await Promise.all([
+      executeDax(daxClient),
+      executeDax(daxAvg),
+    ]);
+
+    const companyAvg = Math.round(avgRows?.[0]?.['[avg_per_client]'] || 0);
+
+    // Pivot by מחלקה (not משפחת מוצר — use department level)
+    const byMachlaka = {};
+    let clientTotal = 0;
+    let lastOrderDate = null;
+    for (const r of rows) {
+      const cat   = r['[מחלקה]'] || '';
+      const total = Math.round(r['[total]'] || 0);
+      const lo    = r['[lastOrder]'];
+      if (cat && !SKIP_CATS.has(cat) && total > 0) {
+        byMachlaka[cat] = (byMachlaka[cat] || 0) + total;
+        clientTotal += total;
+      }
+      if (lo && (!lastOrderDate || new Date(lo) > new Date(lastOrderDate))) lastOrderDate = lo;
+    }
+
+    const monthStr = months.map(m => m.label).join(' — ');
+    const lines = Object.entries(byMachlaka)
+      .sort(([, a], [, b]) => b - a)
+      .map(([cat, total]) => `${cat}: ₪${total.toLocaleString()}`);
+
+    const daysSinceOrder = lastOrderDate
+      ? Math.round((Date.now() - new Date(lastOrderDate)) / 86400000)
+      : null;
+
+    const dormantNote = daysSinceOrder && daysSinceOrder > 21
+      ? `\n⚠️ לא הזמין ${daysSinceOrder} ימים — דורש תשומת לב!`
+      : '';
+    const avgNote = `\nממוצע לקוח בחברה לאותה תקופה: ₪${companyAvg.toLocaleString()}`;
+    const clientNote = `סה"כ לקוח: ₪${clientTotal.toLocaleString()} (${clientTotal > companyAvg ? '+' + Math.round((clientTotal/companyAvg-1)*100) : Math.round((clientTotal/companyAvg-1)*100)}% מהממוצע)`;
+
+    const context = `${monthStr}\n${lines.join('\n')}${avgNote}\n${clientNote}${dormantNote}`;
+
+    const prompts = {
+      he: `אתה מנהל אזור של חברת הפצה. נתוני מכירות לפי מחלקה:\n${context}\n\nתן 3 תצפיות חדות + המלצה לסוכן. השווה לממוצע. ציין מחלקות חלשות. אם לא הזמין >3 שבועות — זה קריטי. מנהלי, ישיר.`,
+      uk: `Ти менеджер зони. Продажі по відділах:\n${context}\n\nДай 3 спостереження + рекомендацію. Порівняй із середнім. Відділи що відстають. Якщо >3 тижні без замовлення — критично. Прямо.`,
+      ru: `Ты менеджер зоны. Продажи по отделам:\n${context}\n\nДай 3 наблюдения + рекомендацию. Сравни со средним. Слабые отделы. Если >3 недель без заказа — критично. Прямо.`,
+    };
+
+    const analysis = await callGemini(prompts[lang] || prompts.he, 500);
+
+    res.json({ ok: true, months: months.map(m => m.label), families: byMachlaka, dropped: Array.from(SKIP_CATS), analysis });
+  } catch(e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
 });
 
 const PORT = process.env.PORT || 3000;

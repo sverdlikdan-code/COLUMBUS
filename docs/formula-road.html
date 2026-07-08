@@ -142,6 +142,27 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .excl-btn:hover,.client-card.excluded .excl-btn{opacity:.9;}
 .mekarer-btn{font-size:11px;flex-shrink:0;cursor:pointer;background:#E3F2FD;border:1.5px solid #90CAF9;border-radius:6px;padding:2px 5px;color:#1565C0;font-weight:800;line-height:1.3;text-align:center;transition:background .12s;min-width:32px;min-height:28px;display:flex;align-items:center;justify-content:center;}
 .mekarer-btn:hover{background:#BBDEFB;}
+.ai-insight-btn{font-size:10px;flex-shrink:0;cursor:pointer;background:#EDE7F6;border:1.5px solid #9575CD;border-radius:6px;padding:2px 6px;color:#4527A0;font-weight:900;line-height:1.3;text-align:center;transition:background .12s;min-height:28px;display:flex;align-items:center;justify-content:center;letter-spacing:.3px;}
+.ai-insight-btn:hover{background:#D1C4E9;}
+/* AI Analytics Modal */
+#ai-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px;}
+#ai-modal.open{display:flex;}
+#ai-modal-box{background:#fff;border-radius:16px;width:100%;max-width:520px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.35);}
+#ai-modal-head{background:#4A148C;color:#fff;padding:14px 18px 12px;display:flex;align-items:center;gap:10px;}
+#ai-modal-head .ai-title{flex:1;font-size:15px;font-weight:800;}
+#ai-modal-head .ai-close{font-size:20px;cursor:pointer;opacity:.8;padding:0 4px;}
+#ai-modal-head .ai-close:hover{opacity:1;}
+.ai-lang-bar{display:flex;gap:6px;padding:10px 14px 6px;background:#F8F4FF;border-bottom:1px solid #E8D8F8;}
+.ai-lang-btn{flex:1;padding:7px 4px;border-radius:8px;border:1.5px solid #CE93D8;background:#fff;font-size:13px;font-weight:700;color:#6A1B9A;cursor:pointer;text-align:center;transition:.12s;}
+.ai-lang-btn.active{background:#4A148C;color:#fff;border-color:#4A148C;}
+#ai-modal-body{overflow-y:auto;padding:14px 16px;flex:1;}
+.ai-families-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px;}
+.ai-families-tbl th{background:#F3E5F5;color:#4A148C;padding:5px 7px;text-align:right;font-weight:800;border-bottom:2px solid #CE93D8;}
+.ai-families-tbl td{padding:4px 7px;border-bottom:1px solid #F3E5F5;color:#333;}
+.ai-families-tbl tr:last-child td{border-bottom:none;}
+.ai-families-tbl .dropped{color:#C62828;font-style:italic;}
+.ai-analysis{background:#F8F4FF;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.7;color:#333;white-space:pre-wrap;direction:auto;}
+.ai-loading{text-align:center;padding:30px;color:#9C27B0;font-size:14px;}
 .excl-section-lbl{padding:5px 10px 2px;font-size:10px;font-weight:700;color:var(--light);letter-spacing:1px;text-transform:uppercase;border-top:1px solid var(--sky-mid);margin-top:4px;}
 .c-num-wrap{display:flex;flex-direction:column;align-items:center;gap:1px;flex-shrink:0;min-width:28px;cursor:grab;touch-action:none;user-select:none;}
 .walk-icon{font-size:11px;line-height:1;}
@@ -376,7 +397,6 @@ body.gps-fs #map{height:100%!important;}
           <button class="gps-hist-btn" id="gps-hist-btn" onclick="toggleGpsHistory()">📍 תיקונים</button>
           <div class="gps-hist-dd" id="gps-hist-dd"></div>
         </div>
-        <button class="export-btn" id="gps-audit-btn" onclick="exportGpsAuditXLSX()" style="display:none;background:#7B1FA2;box-shadow:0 2px 8px rgba(123,31,162,.35)" title="GPS Audit — תיקונים ידניים vs Google GPS חריג"><span class="xls-icon" style="color:#7B1FA2">XL</span>GPS</button>
       </div>
       <div class="km-cities" id="city-filters"></div>
     </div>
@@ -419,6 +439,23 @@ body.gps-fs #map{height:100%!important;}
 
 <!-- ── DAY POPUP ── -->
 <div id="day-popup"></div>
+
+<!-- ── AI CLIENT ANALYTICS MODAL ── -->
+<div id="ai-modal" onclick="if(event.target===this)closeAiModal()">
+  <div id="ai-modal-box">
+    <div id="ai-modal-head">
+      <span style="font-size:20px">📊</span>
+      <div class="ai-title" id="ai-modal-title">ניתוח לקוח</div>
+      <span class="ai-close" onclick="closeAiModal()">✕</span>
+    </div>
+    <div class="ai-lang-bar">
+      <button class="ai-lang-btn active" data-lang="he" onclick="switchAiLang(this,'he')">עברית</button>
+      <button class="ai-lang-btn" data-lang="uk" onclick="switchAiLang(this,'uk')">Українська</button>
+      <button class="ai-lang-btn" data-lang="ru" onclick="switchAiLang(this,'ru')">Русский</button>
+    </div>
+    <div id="ai-modal-body"><div class="ai-loading">⏳ טוען...</div></div>
+  </div>
+</div>
 
 <div id="pwa-banner">
   <div class="pwa-title">📱 הוסף לדף הבית</div>
@@ -1295,8 +1332,6 @@ async function initRoute(){
   });
   document.getElementById('export-btn').classList.add('visible');
   document.getElementById('export-all-btn').classList.add('visible');
-  const _auth=_loadAuth();
-  if(_auth?.isManager) document.getElementById('gps-audit-btn').style.display='flex';
   updateGpsHistBtn();
   setupSortable();
   setupDragScroll(document.getElementById('list-pane'));
@@ -1588,6 +1623,7 @@ function renderClientList(html){
           <span class="excl-btn" data-id="${c.custId}" onclick="toggleExclude('${c.custId}',event)" title="הוצא ממסלול">🚫</span>
           <span class="day-change-btn" data-id="${c.custId}" onclick="openDayPopup(event,this.dataset.id)">📅</span>
           <span class="mekarer-btn" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" data-city="${(c.city||'').replace(/"/g,'&quot;')}" onclick="openMekarerOrder(event,this.dataset.id,this.dataset.name,this.dataset.city)">🧊</span>
+          <span class="ai-insight-btn" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openClientAI(event,this.dataset.id,this.dataset.name)" title="ניתוח AI">AI</span>
           ${noGps
             ? `<span class="no-gps-badge" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name)">NO GPS</span>`
             : `<span class="gps-edit-btn"  data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name)">📍</span>`}
@@ -1675,12 +1711,12 @@ let _dtapTime=0, _dtapId=null, _dtapStartY=0;
 function setupCardDoubleTap(listEl){
   listEl.addEventListener('touchstart',e=>{
     const card=e.target.closest('.client-card');
-    if(!card||e.target.closest('.day-change-btn,.no-gps-badge,.gps-edit-btn,.c-drag,.excl-btn,.mekarer-btn')) return;
+    if(!card||e.target.closest('.day-change-btn,.no-gps-badge,.gps-edit-btn,.c-drag,.excl-btn,.mekarer-btn,.ai-insight-btn')) return;
     _dtapStartY=e.touches[0].clientY;
   },{passive:true});
   listEl.addEventListener('touchend',e=>{
     const card=e.target.closest('.client-card');
-    if(!card||e.target.closest('.day-change-btn,.no-gps-badge,.gps-edit-btn,.c-drag,.excl-btn,.mekarer-btn')) return;
+    if(!card||e.target.closest('.day-change-btn,.no-gps-badge,.gps-edit-btn,.c-drag,.excl-btn,.mekarer-btn,.ai-insight-btn')) return;
     if(Math.abs(e.changedTouches[0].clientY-_dtapStartY)>12) return; // was scrolling
     const id=card.dataset.id;
     const now=Date.now();
@@ -2068,6 +2104,75 @@ function openDayPopup(event,custId){
   popup.classList.add('open');
 }
 function closeDayPopup(){document.getElementById('day-popup').classList.remove('open');}
+
+// ── AI Client Analytics ──────────────────────────────────────────────────────
+let _aiState = { custId: null, custName: null, lang: 'he', cache: {} };
+
+function openClientAI(evt, custId, custName) {
+  evt.stopPropagation();
+  _aiState.custId   = custId;
+  _aiState.custName = custName;
+  document.getElementById('ai-modal-title').textContent = custName || custId;
+  document.getElementById('ai-modal').classList.add('open');
+  // reset lang buttons
+  document.querySelectorAll('.ai-lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === _aiState.lang));
+  _fetchClientAI(_aiState.lang);
+}
+
+function closeAiModal() {
+  document.getElementById('ai-modal').classList.remove('open');
+}
+
+function switchAiLang(btn, lang) {
+  document.querySelectorAll('.ai-lang-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  _aiState.lang = lang;
+  _fetchClientAI(lang);
+}
+
+async function _fetchClientAI(lang) {
+  const { custId } = _aiState;
+  const cacheKey = `${custId}_${lang}`;
+  const body = document.getElementById('ai-modal-body');
+
+  if (_aiState.cache[cacheKey]) {
+    body.innerHTML = _aiState.cache[cacheKey];
+    return;
+  }
+  body.innerHTML = '<div class="ai-loading">⏳ מחשב...</div>';
+
+  try {
+    const headers = { 'Content-Type': 'application/json', 'x-session': _getToken() };
+    const r = await fetch(`/api/client-analytics/${custId}?lang=${lang}`, { headers });
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || 'שגיאה');
+
+    const { months, families, dropped, analysis } = data;
+
+    // Build table
+    let tbl = `<table class="ai-families-tbl"><thead><tr><th>משפחת מוצר</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>`;
+    const sorted = Object.entries(families).sort((a,b)=>{
+      const totA = Object.values(a[1]).reduce((s,v)=>s+v,0);
+      const totB = Object.values(b[1]).reduce((s,v)=>s+v,0);
+      return totB - totA;
+    });
+    for (const [fam, byM] of sorted) {
+      const isDrop = dropped.includes(fam);
+      tbl += `<tr><td class="${isDrop?'dropped':''}">${fam}${isDrop?' ⚠️':''}</td>${months.map(m=>{
+        const v = byM[m];
+        return `<td style="text-align:left">${v ? '₪'+v.toLocaleString() : '—'}</td>`;
+      }).join('')}</tr>`;
+    }
+    tbl += '</tbody></table>';
+
+    const html = `${tbl}<div class="ai-analysis">${analysis.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+    _aiState.cache[cacheKey] = html;
+    body.innerHTML = html;
+  } catch(e) {
+    body.innerHTML = `<div class="ai-loading" style="color:#c62828">❌ ${e.message}</div>`;
+  }
+}
+
 function changeClientDay(custId,newDay){
   closeDayPopup();
   if(newDay===st.day)return;
@@ -2137,23 +2242,6 @@ async function exportXLSX(){
     a.click();
     setTimeout(()=>URL.revokeObjectURL(url),5000);
   }catch(e){alert('שגיאה בייצוא: '+e.message);}
-  finally{btn.innerHTML=orig;btn.disabled=false;}
-}
-
-async function exportGpsAuditXLSX(){
-  const btn=document.getElementById('gps-audit-btn');
-  const orig=btn.innerHTML; btn.innerHTML='<span class="xls-icon">⏳</span>...'; btn.disabled=true;
-  try{
-    const r=await apiFetch('/api/gps-audit-xlsx');
-    if(!r.ok) throw new Error(r.status);
-    const blob=await r.blob();
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.href=url;
-    a.download=`GPS_Audit_${new Date().toISOString().slice(0,10)}.xlsx`;
-    a.click();
-    setTimeout(()=>URL.revokeObjectURL(url),5000);
-  }catch(e){alert('שגיאה: '+e.message);}
   finally{btn.innerHTML=orig;btn.disabled=false;}
 }
 
