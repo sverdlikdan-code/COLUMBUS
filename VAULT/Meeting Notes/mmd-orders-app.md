@@ -260,3 +260,38 @@ mmd-orders.json
 - `server/fetch-prophet-history.js` — DAX incomplete week filter
 - `docs/prophet.json` — 596 SKU с series данными, 77 занулены санкейпом
 - `docs/mmd-orders.json` — пересобран с правильными mkr_shvua
+
+### 2026-07-06 #resolved ✅ Prophet: стale eilat_k в панели И в колонке таблицы
+
+**Проблема 1 — панель:** Prophet Panel показывал `hamilton=7` но `prophet_order=0`. Панель читала `eilat_k` из prophet.json (07:00 rebuild), но mmd-orders.json (13:16) уже содержал `mmd_k=4` (продали 8 картонов между ребилдами). `8.9 × 1 − 12 = −3.1 → 0` (неверно). Правильно: `8.9 × 1 − 4 = 4.9 → 5`.
+
+**Фикс панели (`openProphetPanel`):**
+- Добавлен аргумент `currentMmdK` — передаётся из onclick при рендере строки
+- `const ek = currentMmdK != null ? currentMmdK : (p.eilat_k ?? 0)`
+- `const po = (p4f != null && wn !== '—') ? Math.max(0, Math.round(p4f * wn - ek)) : Math.round(p.prophet_order ?? 0)`
+- Аналогично для `tableHaml` — панель берёт המלצה из таблицы (актуальная), не из prophet.json (стale)
+
+**Проблема 2 — колонка таблицы:** `const po = Math.round(p.prophet_order)` — та же стale проблема. Таблица показывала 0 вместо 5.
+
+**Фикс колонки:**
+```javascript
+const p4f = p.p4;
+const wn  = p.weeks_nf;
+const ek  = (r.mmd_k != null && r.mmd_k >= 0) ? r.mmd_k : (p.eilat_k ?? 0);
+const po  = (p4f != null && wn != null) ? Math.max(0, Math.round(p4f * wn - ek)) : Math.round(p.prophet_order ?? 0);
+```
+
+**Коммиты:** `30d8e6f5` (панель), `c2783cda` (колонка)
+
+### 2026-07-07 #resolved ✅ Заказ превышает млаי אשדוד при загрузке
+
+**Проблема:** `ordV = s.k != null ? s.k : hamlRnd` — сохранённое из localStorage значение (напр. 6) ставилось в инпут без проверки cap. Cap-check `inp()` срабатывал только на `oninput`, не на initial render. Если מלאי אשדוד упал с 8 до 1 между сессиями — инпут всё равно показывал 6.
+
+**Фикс (строка ~1490):**
+```javascript
+const _cap    = maavarMode ? mav : ash;
+const _rawOrd = s.k != null ? s.k : hamlRnd;
+const ordV    = (_rawOrd !== '' && _cap > 0 && Number(_rawOrd) > _cap) ? _cap : (_rawOrd || '');
+```
+
+**Коммит:** `c261a472`

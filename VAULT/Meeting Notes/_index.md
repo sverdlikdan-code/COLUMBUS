@@ -65,3 +65,6 @@
 - [[session-2026-07-02-infra]] — Сессия 2026-07-02: туннель 579497d4 перенесён на VPS (cloudflared-api); GPS zoom fix; OSM тайл при תקן מיקום; IS_LOCAL loop fix
 - [[migration-plan-vps]] — ПЛАН МИГРАЦИИ: анализ 6 ошибок Formula Road + чеклист для MMD Orders и Mahsan Editor
 - [[skill-hebrew-bidi]] — Скилл Hebrew BiDi: карта 5 функций (fixBiDi×4, fixVisualRTL×4, fixHebRTL×5), дерево решений, HTML RTL шаблоны
+- [[session-2026-07-07-prophet]] — Сессия 2026-07-07: Prophet stale eilat_k в таблице и панели — два фикса; cap ordV при рендере
+- [[session-2026-07-07-mahsan]] — Сессия 2026-07-07: MAHSAN STOP SALE фиолетовая рамка в combined view; isBatchStop; Excel סטנד open
+- [[session-2026-07-07-formula-road]] — Сессия 2026-07-07: geocode 2107 клиентов, google-gps.json, territory-planner, VPS deploy
