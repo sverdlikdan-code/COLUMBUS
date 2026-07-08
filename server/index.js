@@ -1,4 +1,4 @@
-require('dotenv').config({ path: '../.env' });
+﻿require('dotenv').config({ path: '../.env' });
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
@@ -2787,6 +2787,150 @@ app.post('/admin/reload-targets', requireAuth, async (req, res) => {
   res.json({ ok: true, clients: pbiCache?.clientMap?.size || 0, loadedAt: pbiCache?.loadedAt });
 });
 
+// ── AI Day Briefing — TOP 10 clients of agent's day, YoY growth + failures ───
+// Metrics: current 3M total, prev-year same 3M total, order days, SKU count
+// 3 parallel DAX calls -> rank TOP 10 by current sales -> Gemini growth/failure analysis
+app.get('/api/day-briefing', requireAuth, async (req, res) => {
+  const agentCode = req.session.agentCode;
+  if (!agentCode) return res.status(403).json({ ok: false, error: 'manager session -- no agent' });
+  if (!pbiCache) return res.status(503).json({ ok: false, error: 'cache_loading' });
+  if (!GEMINI_API_KEY) return res.status(503).json({ ok: false, error: 'AI not configured' });
+
+  const lang = (req.query.lang || 'he').slice(0, 2);
+  const dayNum = parseInt(req.query.day) || 0;
+
+  const allClients = pbiCache.byAgent.get(agentCode) || [];
+  const dayClients = dayNum ? allClients.filter(c => c.dayNum === dayNum) : allClients;
+  if (!dayClients.length) return res.json({ ok: false, error: 'no_clients' });
+
+  const now = new Date();
+  const cm = now.getMonth() + 1, cy = now.getFullYear();
+  const months = [];
+  for (let i = 3; i >= 1; i--) {
+    let m = cm - i, y = cy;
+    if (m <= 0) { m += 12; y--; }
+    months.push({ year: y, month: m });
+  }
+  const curStart = months[0], curEnd = months[2];
+  const curLastDay = new Date(curEnd.year, curEnd.month, 0).getDate();
+  const prevMonths = months.map(m => ({ year: m.year - 1, month: m.month }));
+  const prevStart = prevMonths[0], prevEnd = prevMonths[2];
+  const prevLastDay = new Date(prevEnd.year, prevEnd.month, 0).getDate();
+
+  const custIds = [...new Set(dayClients.map(c => String(c.custId)))];
+  const inList = custIds.map(id => `"${id}"`).join(', ');
+
+  const daxCur = `
+EVALUATE
+CALCULATETABLE(
+  ADDCOLUMNS(
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]),
+    "total",     CALCULATE([הכנסות כלליות (ללא זיכויים מרכזים)]),
+    "orderDays", CALCULATE(DISTINCTCOUNT(ALL_PARTS[תאריך])),
+    "skus",      CALCULATE(DISTINCTCOUNT(ALL_PARTS[מק'ט])),
+    "lastOrder", CALCULATE(MAX(ALL_PARTS[תאריך]))
+  ),
+  ALL_PARTS[מספר לקוח] IN {${inList}},
+  ALL_PARTS[ASHMADOT] = "-מכר-",
+  ALL_PARTS[תאריך] >= DATE(${curStart.year},${curStart.month},1),
+  ALL_PARTS[תאריך] <= DATE(${curEnd.year},${curEnd.month},${curLastDay})
+)`;
+
+  const daxPrev = `
+EVALUATE
+CALCULATETABLE(
+  ADDCOLUMNS(
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]),
+    "prevTotal", CALCULATE([הכנסות כלליות (ללא זיכויים מרכזים)])
+  ),
+  ALL_PARTS[מספר לקוח] IN {${inList}},
+  ALL_PARTS[ASHMADOT] = "-מכר-",
+  ALL_PARTS[תאריך] >= DATE(${prevStart.year},${prevStart.month},1),
+  ALL_PARTS[תאריך] <= DATE(${prevEnd.year},${prevEnd.month},${prevLastDay})
+)`;
+
+  const daxAvg = `
+EVALUATE
+ROW(
+  "avg", DIVIDE(
+    CALCULATE([הכנסות כלליות (ללא זיכויים מרכזים)],
+      ALL_PARTS[ASHMADOT] = "-מכר-",
+      ALL_PARTS[תאריך] >= DATE(${curStart.year},${curStart.month},1),
+      ALL_PARTS[תאריך] <= DATE(${curEnd.year},${curEnd.month},${curLastDay})
+    ),
+    CALCULATE(DISTINCTCOUNT(ALL_PARTS[מספר לקוח]),
+      ALL_PARTS[ASHMADOT] = "-מכר-",
+      ALL_PARTS[תאריך] >= DATE(${curStart.year},${curStart.month},1),
+      ALL_PARTS[תאריך] <= DATE(${curEnd.year},${curEnd.month},${curLastDay})
+    )
+  )
+)`;
+
+  try {
+    const [curRows, prevRows, avgRows] = await Promise.all([
+      executeDax(daxCur), executeDax(daxPrev), executeDax(daxAvg),
+    ]);
+    const companyAvg = Math.round(avgRows?.[0]?.['[avg]'] || 0);
+
+    const curMap = {}, prevMap = {};
+    for (const r of curRows) {
+      const id = String(r[`ALL_PARTS[מספר לקוח]`] || r['[מספר לקוח]'] || '');
+      if (id) curMap[id] = {
+        total: Math.round(r['[total]'] || 0),
+        orderDays: r['[orderDays]'] || 0,
+        skus: r['[skus]'] || 0,
+        lastOrder: r['[lastOrder]'] || null,
+      };
+    }
+    for (const r of prevRows) {
+      const id = String(r[`ALL_PARTS[מספר לקוח]`] || r['[מספר לקוח]'] || '');
+      if (id) prevMap[id] = Math.round(r['[prevTotal]'] || 0);
+    }
+
+    const enriched = dayClients.map(c => {
+      const id = String(c.custId);
+      const s = curMap[id] || { total: 0, orderDays: 0, skus: 0, lastOrder: null };
+      const prevTotal = prevMap[id] || 0;
+      const yoy = prevTotal > 0 ? Math.round((s.total / prevTotal - 1) * 100) : null;
+      const avgBasket = s.orderDays > 0 ? Math.round(s.total / s.orderDays) : 0;
+      const daysSince = s.lastOrder ? Math.round((Date.now() - new Date(s.lastOrder)) / 86400000) : null;
+      return { custId: id, name: c.custName || id, city: c.city || '', total: s.total, prevTotal, yoy, orderDays: s.orderDays, skus: s.skus, avgBasket, daysSince };
+    });
+    enriched.sort((a, b) => b.total - a.total);
+    const top10 = enriched.slice(0, 10);
+    const dormant = enriched.filter(c => c.daysSince !== null && c.daysSince > 21 && !top10.find(t => t.custId === c.custId));
+
+    const monthStr = `${months[0].month}/${months[0].year} — ${curEnd.month}/${curEnd.year}`;
+    const prevStr  = `${prevMonths[0].month}/${prevMonths[0].year} — ${prevEnd.month}/${prevEnd.year}`;
+
+    const top10Lines = top10.map((c, i) => {
+      const vsAvg = companyAvg ? ` (${c.total >= companyAvg ? '+' : ''}${Math.round((c.total / companyAvg - 1) * 100)}% מממוצע)` : '';
+      const yoyStr = c.yoy !== null ? ` | YoY:${c.yoy >= 0 ? '+' : ''}${c.yoy}%` : ' | YoY:—';
+      const basketStr = c.avgBasket ? ` | סל:₪${c.avgBasket.toLocaleString()}` : '';
+      const skuStr = c.skus ? ` | SKU:${c.skus}` : '';
+      const dormFlag = c.daysSince > 21 ? ` ⚠️${c.daysSince}d` : '';
+      return `${i + 1}. ${c.name} (${c.city}): ₪${c.total.toLocaleString()}${vsAvg}${yoyStr}${basketStr}${skuStr}${dormFlag}`;
+    }).join('\n');
+
+    const dormantLines = dormant.length
+      ? '\nלא הזמינו >3 שבועות (לא בTOP10): ' + dormant.slice(0, 5).map(c => `${c.name}(${c.daysSince}d)`).join(', ')
+      : '';
+
+    const context = `תקופה נוכחית: ${monthStr} | תקופה מקבילה אשתקד: ${prevStr}\nממוצע לקוח בחברה: ₪${companyAvg.toLocaleString()}\n\nTOP 10 לקוחות היום:\n${top10Lines}${dormantLines}`;
+
+    const prompts = {
+      he: `אתה מנהל אזור. נתוני TOP 10 לקוחות של הסוכן להיום (מכירות, YoY%, סל ממוצע, SKU):\n${context}\n\n⚡ מצא: 1) זוני צמיחה — מי גדל YoY ומה ניתן להגדיל עוד 2) כשלים — מי יורד YoY / לא הזמין / סל קטן 3) המלצה חדה לסוכן. מנהלי, ישיר, 6-8 שורות.`,
+      uk: `Ти менеджер зони. TOP 10 клієнтів на сьогодні:\n${context}\n\n⚡ Знайди: 1) Зони росту — хто зростає YoY 2) Провали — хто падає / не замовляв 3) Рекомендація. Прямо, 6-8 рядків.`,
+      ru: `Ты менеджер зоны. TOP 10 клиентов на сегодня:\n${context}\n\n⚡ Найди: 1) Зоны роста — кто растёт YoY 2) Провалы — кто падает / не заказывал 3) Рекомендация. Прямо, 6-8 строк.`,
+    };
+
+    const analysis = await callGemini(prompts[lang] || prompts.he, 700);
+    res.json({ ok: true, top10, dormant: dormant.slice(0, 5), companyAvg, monthStr, prevStr, analysis });
+  } catch(e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // ── AI Client Analytics — per-customer sales by מחלקה, 3 closed months ──────
 // Uses main FORMULA dataset (POWERBI_DATASET_ID): ALL_PARTS + ADIFUT[מחלקה]
 app.get('/api/client-analytics/:custId', requireAuth, async (req, res) => {
@@ -2890,6 +3034,55 @@ ROW(
     const analysis = await callGemini(prompts[lang] || prompts.he, 500);
 
     res.json({ ok: true, months: months.map(m => m.label), families: byMachlaka, dropped: Array.from(SKIP_CATS), analysis });
+  } catch(e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ── Admin: send ONE test invite (manager only, temporary) ────────────────────
+app.get('/admin/send-test-invite', requireAuth, async (req, res) => {
+  if (!req.session.isManager) return res.status(403).json({ ok: false, error: 'manager only' });
+  const RESEND_KEY = process.env.RESEND_API_KEY || '';
+  if (!RESEND_KEY) return res.status(503).json({ ok: false, error: 'RESEND_API_KEY missing' });
+
+  const toEmail = 'sverdlikdan@gmail.com';
+  const agentCode = '51'; const agentName = 'דן סברדליק';
+  const token = signInvite({ code: agentCode, name: agentName, exp: Date.now() + 7 * 24 * 60 * 60 * 1000 });
+  const inviteUrl = `https://api.sverdlik-apps.site/invite/${token}`;
+
+  const html = `<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="utf-8"><style>
+body{margin:0;padding:0;background:#f0f4f8;font-family:Arial,sans-serif;direction:rtl}
+.wrap{max-width:480px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.12)}
+.header{background:#1A3F7C;padding:32px 24px;text-align:center}.header h1{color:#fff;margin:0;font-size:22px}
+.header p{color:#a8c4e8;margin:6px 0 0;font-size:13px}.body{padding:32px 28px}
+.greeting{font-size:18px;font-weight:700;color:#1A3F7C;margin-bottom:12px}
+.text{color:#444;font-size:15px;line-height:1.7;margin-bottom:24px}
+.btn{display:block;width:fit-content;margin:0 auto;background:#1A3F7C;color:#fff!important;text-decoration:none;padding:16px 40px;border-radius:12px;font-size:17px;font-weight:700;text-align:center}
+.note{color:#888;font-size:12px;text-align:center;margin-top:20px;line-height:1.6}
+.footer{background:#f8f9fb;padding:16px 24px;text-align:center;color:#aaa;font-size:11px;border-top:1px solid #eee}
+</style></head><body>
+<div class="wrap">
+  <div class="header"><h1>🗺️ Formula Roads</h1><p>מערכת ניהול מסלולים — בדיקת אימייל</p></div>
+  <div class="body">
+    <div class="greeting">שלום ${agentName}!</div>
+    <div class="text">זהו קישור בדיקה ל-<strong>Formula Roads</strong>. לחץ כדי להיכנס אוטומטית.</div>
+    <a class="btn" href="${inviteUrl}">כניסה ל-Formula Roads</a>
+    <div class="note">הקישור בתוקף ל-7 ימים.</div>
+  </div>
+  <div class="footer">Formula Distribution &bull; DILER FORMULA &bull; TEST EMAIL</div>
+</div></body></html>`;
+
+  const body = JSON.stringify({ from: 'Formula Roads <orders@sverdlik-apps.site>', to: [toEmail], subject: 'TEST — זימון ל-Formula Roads', html });
+  try {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${RESEND_KEY}` },
+      body,
+      signal: AbortSignal.timeout(10000),
+    });
+    const d = await r.json();
+    if (r.ok) res.json({ ok: true, to: toEmail, inviteUrl });
+    else res.status(500).json({ ok: false, error: d?.message || 'Resend error', status: r.status });
   } catch(e) {
     res.status(500).json({ ok: false, error: e.message });
   }
