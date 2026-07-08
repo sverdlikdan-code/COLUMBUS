@@ -2383,7 +2383,9 @@ async function exportPositionXlsx() {
       const seen = new Set(); let idx = 0;
       order.forEach((pick, i) => {
         const p = state[sec][pick];
+        // Reserve picks (bay >= reserveStart) only if explicitly placed via breira-default (have printOrder)
         if (!p || seen.has(String(p.makat))) return;
+        if (reserveStart > 0 && +pick >= reserveStart && p.printOrder == null) return;
         seen.add(String(p.makat));
         idx++;
         rows.push({
