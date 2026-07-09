@@ -2518,7 +2518,7 @@ app.get('/mmd/draft/:userId', mmdGuard, (req, res) => {
 // GET /mmd/draft-list — list all users with saved drafts
 app.get('/mmd/draft-list', mmdGuard, (req, res) => {
   try {
-    const files = fs.existsSync(DRAFTS_DIR) ? fs.readdirSync(DRAFTS_DIR).filter(f => f.endsWith('.json')) : [];
+    const files = fs.existsSync(DRAFTS_DIR) ? fs.readdirSync(DRAFTS_DIR).filter(f => f.endsWith('.json') && !f.endsWith('-hist.json')) : [];
     const users = files.map(f => {
       try {
         const d = JSON.parse(fs.readFileSync(path.join(DRAFTS_DIR, f), 'utf8'));
