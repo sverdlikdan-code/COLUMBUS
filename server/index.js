@@ -3077,9 +3077,8 @@ ROW(
   }
 });
 
-// ── Admin: send ONE test invite — no session needed, checked via INVITE_SECRET key ──
+// ── Admin: send ONE test invite — temporary, no auth, sends only to Dan's tablet ──
 app.get('/admin/send-test-invite', async (req, res) => {
-  if ((req.query.key || '') !== INVITE_SECRET) return res.status(401).json({ error: 'unauthorized' });
   const RESEND_KEY = process.env.RESEND_API_KEY || '';
   if (!RESEND_KEY) return res.status(503).json({ ok: false, error: 'RESEND_API_KEY missing' });
 
