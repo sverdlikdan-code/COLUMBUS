@@ -1000,7 +1000,7 @@
       if (!userId) return;
       try {
         await fetch('/mmd/draft', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId, items: saved() }) });
+          body: JSON.stringify({ userId, items: saved(), tukuf: Object.assign({}, sessionP) }) });
       } catch (_) {}
     }, 3000);
   }
@@ -2067,6 +2067,8 @@ window.loadUserView = async function(userId) {
     const r = await fetch('/mmd/draft/' + encodeURIComponent(userId));
     const j = await r.json();
     window._viewData = j.items || {};
+    Object.keys(sessionP).forEach(k => delete sessionP[k]);
+    Object.assign(sessionP, j.tukuf || {});
     document.getElementById('view-mode-user').textContent = userId;
     document.getElementById('view-mode-banner').style.display = '';
     render();
@@ -2075,6 +2077,7 @@ window.loadUserView = async function(userId) {
 
 window.exitViewMode = function() {
   window._viewData = null;
+  Object.keys(sessionP).forEach(k => delete sessionP[k]);
   document.getElementById('view-mode-banner').style.display = 'none';
   render();
 };
