@@ -1863,16 +1863,19 @@
     const now  = new Date();
     const date = now.toLocaleDateString('he-IL');
     const time = now.toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'});
-    // Save ONLY explicit manual overrides (s.k != null, including 0).
-    // Recommendations are recalculated from live data on load — storing them
-    // in the snapshot causes ידנית to show המלצה values everywhere after restore.
+    // Save manual overrides (s.k != null) AND manual תוקף selections (sessionP).
+    // Recommendations are NOT stored — they come from live data on restore.
     const items = all
-      .filter(r => { const s = sv[String(r.mkt ?? '')] || {}; return s.k != null; })
+      .filter(r => {
+        const mk = String(r.mkt ?? '');
+        const s = sv[mk] || {};
+        return s.k != null || !!sessionP[mk];
+      })
       .map(r => {
         const mk = String(r.mkt ?? '');
         const s  = sv[mk] || {};
         const tukuf = sessionP[mk] || '';
-        return { mk, taur: r.taur, qty: Number(s.k), tukuf };
+        return { mk, taur: r.taur, qty: s.k != null ? Number(s.k) : null, tukuf };
       });
     const hist = JSON.parse(localStorage.getItem('mmd_order_history') || '[]');
     hist.unshift({ date, time, ts: date + ' ' + time, count: items.length, items });
@@ -1949,8 +1952,10 @@
     if (!confirm('לשחזר הזמנה מ-' + label + '?')) return;
     const sv = saved();
     hist[idx].items.forEach(item => {
-      sv[item.mk] = sv[item.mk] || {};
-      sv[item.mk].k = item.qty;
+      if (item.qty != null) {
+        sv[item.mk] = sv[item.mk] || {};
+        sv[item.mk].k = item.qty;
+      }
       if (item.tukuf) {
         const liveRow  = all.find(r => String(r.mkt ?? '') === item.mk);
         const liveOpts = liveRow?.tukuf ? String(liveRow.tukuf).split('/').map(d => d.trim()).filter(Boolean) : [];
@@ -2143,8 +2148,10 @@ window.restoreFromSnapshot = function(items) {
   if (!confirm('לשחזר הזמנה זו?')) return;
   const sv = saved();
   items.forEach(item => {
-    sv[item.mk] = sv[item.mk] || {};
-    sv[item.mk].k = item.qty;
+    if (item.qty != null) {
+      sv[item.mk] = sv[item.mk] || {};
+      sv[item.mk].k = item.qty;
+    }
     if (item.tukuf) {
       const liveRow  = all.find(r => String(r.mkt ?? '') === item.mk);
       const liveOpts = liveRow?.tukuf ? String(liveRow.tukuf).split('/').map(d => d.trim()).filter(Boolean) : [];
