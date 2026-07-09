@@ -3077,13 +3077,13 @@ ROW(
   }
 });
 
-// ── Admin: send ONE test invite (manager only, temporary) ────────────────────
-app.get('/admin/send-test-invite', requireAuth, async (req, res) => {
-  if (!req.session.isManager) return res.status(403).json({ ok: false, error: 'manager only' });
+// ── Admin: send ONE test invite — no session needed, checked via INVITE_SECRET key ──
+app.get('/admin/send-test-invite', async (req, res) => {
+  if ((req.query.key || '') !== INVITE_SECRET) return res.status(401).json({ error: 'unauthorized' });
   const RESEND_KEY = process.env.RESEND_API_KEY || '';
   if (!RESEND_KEY) return res.status(503).json({ ok: false, error: 'RESEND_API_KEY missing' });
 
-  const toEmail = 'sverdlikdan@gmail.com';
+  const toEmail = 'dilerformula98@gmail.com';
   const agentCode = '51'; const agentName = 'דן סברדליק';
   const token = signInvite({ code: agentCode, name: agentName, exp: Date.now() + 7 * 24 * 60 * 60 * 1000 });
   const inviteUrl = `https://api.sverdlik-apps.site/invite/${token}`;
