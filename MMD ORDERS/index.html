@@ -1486,7 +1486,9 @@
         const mmd  = r.mmd_k    ?? 0;
         const mkr  = r.mkr_shvua != null ? r.mkr_shvua : null;
         const haml = r.hamlatza  ?? 0;
-        const hamlRnd = haml > 0 ? Math.round(haml) : 0;
+        const _hamlMult = { '664': 4, '659': 2 };
+        const hamlEff = haml * (_hamlMult[mk] || 1);
+        const hamlRnd = hamlEff > 0 ? Math.round(hamlEff) : 0;
         const _cap    = maavarMode ? mav : ash;
         const _rawOrd = s.k != null ? s.k : hamlRnd;
         const ordV    = (_rawOrd !== '' && _cap > 0 && Number(_rawOrd) > _cap) ? _cap : (s.k === 0 ? 0 : (_rawOrd || ''));
@@ -1520,7 +1522,7 @@
             (r.img ? '<img src="' + esc(r.img) + '" alt="" loading="lazy" onerror="this.outerHTML=\'<span class=ni></span>\'">' : '<span class="ni"></span>') +
           '</td>' +
           '<td class="c-co">' + esc(r.hevra || '') + '</td>' +
-          '<td class="c-num c-mmd col-g ' + klass(mmd) + '">' + mmd + '</td>' +
+          '<td class="c-num c-mmd col-g ' + klass(mmd) + '">' + (mk === '664' && mmd % 1 !== 0 ? mmd.toFixed(1) : mmd) + '</td>' +
           '<td class="c-num col-g">' + (mkr != null && mkr > 0 ? mkr.toFixed(1) : '—') + '</td>' +
           '<td class="c-num ' + klass(ash) + '">' + ash + '</td>' +
           '<td class="c-num">' + mav + '</td>' +
