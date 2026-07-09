@@ -1834,6 +1834,16 @@
             ws.addImage(imgId, { tl:{ col:4.1, row:5+i }, ext:{ width:38, height:38 } });
           }
         });
+
+        // Style totals row — bold, company color fill, white text, bigger font
+        const totR = ws.getRow(6 + sheetRows.length);
+        totR.height = 28;
+        for (let ci = 1; ci <= 9; ci++) {
+          const c = totR.getCell(ci);
+          c.fill      = solid(grp.hdr);
+          c.font      = { bold:true, size:13, color:{ argb:'FFFFFFFF' }, name:'Segoe UI' };
+          c.alignment = { vertical:'middle', horizontal: ci===8 ? 'center' : 'right', readingOrder:'rightToLeft' };
+        }
       }
 
       // Download
