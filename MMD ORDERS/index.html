@@ -1561,11 +1561,7 @@
               if (trendPct > 30)       trendSpan = '<br><span style="font-size:.65rem;color:#2e7d32;font-weight:600">▲' + trendPct + '%</span>';
               else if (trendPct < -30) trendSpan = '<br><span style="font-size:.65rem;color:#c62828;font-weight:600">▼' + Math.abs(trendPct) + '%</span>';
             }
-            // ── Trend override: demand falling >30% → suppress Prophet ──
-            if (trendPct !== null && trendPct < -30) {
-              return '<td class="col-prophet prophet-down" data-mk="' + mk + '" onclick="' + onclk + '" title="מודל בוטל — ירידה ' + Math.abs(trendPct) + '%">—' + trendSpan + '</td>';
-            }
-            if (haml <= 0 && po === 0) return '<td class="col-prophet" style="color:#bbb;font-weight:400;font-size:.75rem" data-mk="' + mk + '" onclick="' + onclk + '">≈' + trendSpan + '</td>';
+if (haml <= 0 && po === 0) return '<td class="col-prophet" style="color:#bbb;font-weight:400;font-size:.75rem" data-mk="' + mk + '" onclick="' + onclk + '">≈' + trendSpan + '</td>';
             const delta = haml > 0 ? po - Math.round(haml) : null;
             const pct   = haml > 0 ? Math.abs(delta) / haml : 1;
             if (pct < 0.30) return '<td class="col-prophet" style="color:#bbb;font-weight:400;font-size:.75rem" data-mk="' + mk + '" onclick="' + onclk + '">≈' + trendSpan + '</td>';
