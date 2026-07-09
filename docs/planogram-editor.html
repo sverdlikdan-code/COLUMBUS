@@ -1105,6 +1105,45 @@ function getPhotoUrl(makat) {
   return './' + makat + '.png';
 }
 
+function _showMahsanLogin() {
+  if (document.getElementById('mahsan-login-modal')) return;
+  const m = document.createElement('div');
+  m.id = 'mahsan-login-modal';
+  m.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;';
+  m.innerHTML = `<div style="background:#1e3a5f;border-radius:12px;padding:28px 32px;min-width:280px;text-align:center;color:#fff;box-shadow:0 8px 32px rgba(0,0,0,.4);">
+    <div style="font-size:18px;font-weight:700;margin-bottom:6px;">🔐 כניסה נדרשת</div>
+    <div style="font-size:12px;color:#93c5fd;margin-bottom:16px;">הסשן פג — הכנס קוד מנהל</div>
+    <input id="mahsan-login-code" type="password" placeholder="קוד" dir="ltr"
+      style="width:100%;padding:10px;border-radius:6px;border:none;font-size:16px;text-align:center;outline:none;margin-bottom:12px;">
+    <button onclick="_doMahsanLogin()"
+      style="width:100%;padding:10px;background:#3b82f6;color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:700;cursor:pointer;">כניסה</button>
+    <div id="mahsan-login-err" style="color:#fca5a5;font-size:12px;margin-top:8px;min-height:16px;"></div>
+  </div>`;
+  m.querySelector('#mahsan-login-code').addEventListener('keydown', e => { if(e.key==='Enter') _doMahsanLogin(); });
+  document.body.appendChild(m);
+  setTimeout(() => m.querySelector('#mahsan-login-code').focus(), 50);
+}
+async function _doMahsanLogin() {
+  const code = (document.getElementById('mahsan-login-code')?.value || '').trim();
+  const err  = document.getElementById('mahsan-login-err');
+  if (!code) return;
+  try {
+    const r = await fetch('https://api.sverdlik-apps.site/auth', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ code })
+    });
+    const j = await r.json();
+    if (j.ok && j.token) {
+      localStorage.setItem('frToken', j.token);
+      document.getElementById('mahsan-login-modal')?.remove();
+      window._orderPeriodFetchFailed = false;
+      window._orderNeedsLogin = false;
+      if (window._orderSelectedPeriods?.size) _applyOrderPeriods();
+    } else {
+      if (err) err.textContent = 'קוד שגוי';
+    }
+  } catch(e) { if (err) err.textContent = 'שגיאת רשת'; }
+}
+
 window.printPhotoA3 = function() {
   const sec = window._currentSection || Object.keys(state)[0];
   if (!sec || !state[sec]) { alert('No section loaded'); return; }
@@ -2904,6 +2943,9 @@ async function _applyOrderPeriods() {
       }).catch(e => { console.error('[ord-periods] network error:', e); return null; });
       if (!resp) {
         data = null; window._orderPeriodFetchFailed = true; window._orderNeedsLogin = false;
+      } else if (resp.status === 401) {
+        data = null; window._orderPeriodFetchFailed = true; window._orderNeedsLogin = true;
+        _showMahsanLogin();
       } else {
         const j = await resp.json().catch(() => null);
         data = (j && j.ok && j.data) ? j.data : null;
