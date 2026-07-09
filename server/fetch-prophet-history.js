@@ -30,7 +30,12 @@ async function fetchHistory() {
 
   // Build hamlatza map for all SKUs
   const hamlatzaMap = {};
-  skus.forEach(r => { hamlatzaMap[String(r.mkt)] = r.hamlatza ?? null; });
+  skus.forEach(r => {
+    hamlatzaMap[String(r.mkt)] = {
+      hamlatza: r.hamlatza ?? null,
+      weeks_nf: r.weeks_nf  ?? null
+    };
+  });
   fs.writeFileSync(path.join(PROPHET_DIR, 'hamlatza_map.json'), JSON.stringify(hamlatzaMap, null, 2));
   console.log(`Saved hamlatza_map.json for ${skus.length} SKUs`);
 

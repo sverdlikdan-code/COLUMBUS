@@ -111,7 +111,19 @@ def load_data():
     print(f"Removed {before - len(df)} rows with week_start >= {week_start_monday} (current/future weeks)")
     # Build name and hamlatza lookup
     meta = {str(r['mkt']): r for r in top10}
-    return df, meta
+
+    # Load hamlatza_map.json for weeks_nf and hamlatza per SKU (all active SKUs)
+    haml_map_path = os.path.join(SCRIPT_DIR, 'hamlatza_map.json')
+    haml_map = {}
+    if os.path.exists(haml_map_path):
+        raw_map = json.load(open(haml_map_path, encoding='utf-8'))
+        for k, v in raw_map.items():
+            if isinstance(v, dict):
+                haml_map[str(k)] = {'hamlatza': v.get('hamlatza'), 'weeks_nf': v.get('weeks_nf')}
+            else:
+                haml_map[str(k)] = {'hamlatza': v, 'weeks_nf': None}
+
+    return df, meta, haml_map
 
 
 def fit_forecast(df_sku, forecast_weeks=8):
@@ -295,13 +307,14 @@ def save_json(results, mmd_orders_path):
 
 def main():
     print("Loading data...")
-    df, meta = load_data()
+    df, meta, haml_map = load_data()
 
     print(f"SKUs in CSV: {df['mkt'].nunique()}, rows: {len(df)}")
 
     results = []
     for mkt, group in df.groupby('mkt'):
         info = meta.get(str(mkt), {})
+        hm   = haml_map.get(str(mkt), {})
         taur = group['taur'].iloc[0] if not group.empty else str(mkt)
 
         print(f"  Fitting mkt={mkt} ({len(group)} weeks)...", end=' ')
@@ -319,7 +332,7 @@ def main():
             results.append({
                 'mkt': mkt, 'taur': taur,
                 'avg_weekly': avg_weekly, 'p4': None, 'p8': None,
-                'hamlatza': info.get('hamlatza'),
+                'hamlatza': hm.get('hamlatza') if hm else info.get('hamlatza'),
                 'delta_p4': None, 'delta_p8': None,
                 'n_points': n_points, 'note': 'Too few data points',
                 'series_actual': actual_series,
@@ -336,13 +349,15 @@ def main():
         if p4 is not None: p4 = max(0.0, p4)
         if p8 is not None: p8 = max(0.0, p8)
 
-        # Sanity cap: if P4 > 4× historical average → model anomaly, discard
+        # Sanity cap: if P4 > avg × weeks_nf (PBI order base) → model anomaly, discard
+        wn = hm.get('weeks_nf')
         if avg_weekly and avg_weekly > 0:
-            if p4 is not None and p4 > avg_weekly * 4:
-                print(f"    [ANOMALY] P4={p4} >> 4x avg={avg_weekly*4:.1f} -> null")
+            cap_mult = float(wn) if (wn is not None and float(wn) > 0) else 4.0
+            if p4 is not None and p4 > avg_weekly * cap_mult:
+                print(f"    [ANOMALY] P4={p4} > {cap_mult}x avg={avg_weekly*cap_mult:.1f} -> null")
                 p4 = None; p8 = None
 
-        hamlatza  = info.get('hamlatza')
+        hamlatza  = hm.get('hamlatza') if hm else info.get('hamlatza')
         delta_p4  = round(p4 - hamlatza, 1) if p4 is not None and hamlatza is not None else None
         delta_p8  = round(p8 - hamlatza, 1) if p8 is not None and hamlatza is not None else None
 
