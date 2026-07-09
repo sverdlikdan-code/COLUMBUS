@@ -384,7 +384,7 @@ app.get('/invite/:token', (req, res) => {
   const sessionToken = createSession(payload.code, false);
   const name = payload.name || '';
   const code = payload.code || '';
-  const APP_URL = `https://api.sverdlik-apps.site/formula-road.html`;
+  const APP_URL = `https://api.sverdlik-apps.site/formula-road`;
   res.send(`<!DOCTYPE html>
 <html><head><meta charset=utf-8><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Formula Roads — כניסה</title>
