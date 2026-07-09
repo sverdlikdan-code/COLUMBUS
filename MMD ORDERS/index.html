@@ -1888,6 +1888,7 @@
     const items = _saveOrderToHistory();
     const btn = document.querySelector('.btn-save');
     if (btn) { btn.textContent = '✓ נשמר!'; setTimeout(() => { btn.textContent = '💾 שמור'; }, 1500); }
+    scheduleDraftSave();
     const userId = localStorage.getItem('mmd_user_id');
     if (userId && items.length) {
       fetch('/mmd/history', {
@@ -1963,6 +1964,7 @@
       }
     });
     save(sv);
+    scheduleDraftSave();
     document.getElementById('hist-dd').classList.remove('open');
     render();
   };
@@ -2159,6 +2161,7 @@ window.restoreFromSnapshot = function(items) {
     }
   });
   save(sv);
+  scheduleDraftSave();
   render();
 };
 
