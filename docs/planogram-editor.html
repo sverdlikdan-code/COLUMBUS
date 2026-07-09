@@ -2937,14 +2937,10 @@ async function _applyOrderPeriods() {
       window._orderPeriodFetchFailed = false;
     } else {
       const periodsParam = periods.join(',');
-      const _tok = localStorage.getItem('frToken') || '';
-      const resp = await fetch(`https://api.sverdlik-apps.site/pbi/dagim-sales?periods=${encodeURIComponent(periodsParam)}`, {
-        headers: { 'X-Session': _tok }
-      }).catch(e => { console.error('[ord-periods] network error:', e); return null; });
+      const resp = await fetch(`https://api.sverdlik-apps.site/pbi/dagim-sales?periods=${encodeURIComponent(periodsParam)}`)
+        .catch(e => { console.error('[ord-periods] network error:', e); return null; });
       if (!resp) {
-        data = null; window._orderPeriodFetchFailed = true; window._orderNeedsLogin = false;
-      } else if (resp.status === 401) {
-        data = null; window._orderPeriodFetchFailed = true; window._orderNeedsLogin = true;
+        data = null; window._orderPeriodFetchFailed = true;
       } else {
         const j = await resp.json().catch(() => null);
         data = (j && j.ok && j.data) ? j.data : null;
@@ -3078,10 +3074,7 @@ function buildOrderPage() {
       const isAct = sel.has(`${y}-${m}`);
       ph += `<button style="${isAct ? mAct : mDef}" onclick="toggleOrderPeriod(${y},${m})">${HM[m]}</button>`;
     }
-    if (window._orderNeedsLogin) {
-      ph += `<span style="color:rgba(255,255,255,0.12);font-size:14px;margin:0 4px;">|</span>` +
-        `<button onclick="_showMahsanLogin()" style="background:#1e3a5f;color:#93c5fd;font-size:10px;font-weight:700;padding:4px 10px;border-radius:6px;border:1px solid #3b82f6;cursor:pointer;">🔐 התחבר</button>`;
-    } else if (window._orderPeriodFetchFailed) {
+    if (window._orderPeriodFetchFailed) {
       ph += `<span style="color:rgba(255,255,255,0.12);font-size:14px;margin:0 4px;">|</span>` +
         `<span style="background:#7f1d1d;color:#fecaca;font-size:10px;font-weight:700;padding:4px 8px;border-radius:6px;" title="השרת לא הגיב — מכר ממוצע מציג ערך קבוע ולא לפי התקופה שנבחרה">⚠ שגיאת שרת — מכר ממוצע קבוע</span>`;
     }
