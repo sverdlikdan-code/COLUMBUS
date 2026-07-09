@@ -1886,9 +1886,8 @@
         const tukuf = sessionP[mk] || '';
         return { mk, taur: r.taur, qty: s.k != null ? Number(s.k) : null, tukuf };
       });
-    const hist = JSON.parse(localStorage.getItem('mmd_order_history') || '[]');
+    const hist = JSON.parse(localStorage.getItem('mmd_order_history') || '[]').slice(0, 5);
     hist.unshift({ date, time, ts: date + ' ' + time, count: items.length, items });
-    if (hist.length > 6) hist.pop();
     localStorage.setItem('mmd_order_history', JSON.stringify(hist));
     return items;
   }
@@ -1928,7 +1927,7 @@
   };
 
   function _renderHistDd() {
-    const hist = JSON.parse(localStorage.getItem('mmd_order_history') || '[]');
+    const hist = JSON.parse(localStorage.getItem('mmd_order_history') || '[]').slice(0, 6);
     const dd = document.getElementById('hist-dd');
     if (!hist.length) {
       dd.innerHTML = `<div class="hist-header">היסטוריית הזמנות</div>
