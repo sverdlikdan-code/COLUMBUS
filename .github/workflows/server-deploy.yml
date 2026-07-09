@@ -1,0 +1,28 @@
+name: Server Deploy
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'server/index.js'
+      - 'docs/formula-road.html'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to VPS
+        run: |
+          echo "${{ secrets.VPS_SSH_KEY }}" > /tmp/vps_key
+          chmod 600 /tmp/vps_key
+          scp -o StrictHostKeyChecking=no -i /tmp/vps_key \
+            server/index.js \
+            root@31.154.67.58:/root/COLUMBUS/server/
+          scp -o StrictHostKeyChecking=no -i /tmp/vps_key \
+            docs/formula-road.html \
+            root@31.154.67.58:/root/COLUMBUS/docs/
+          ssh -o StrictHostKeyChecking=no -i /tmp/vps_key root@31.154.67.58 "pm2 restart columbus-api"
+          rm /tmp/vps_key
