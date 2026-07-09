@@ -385,6 +385,7 @@ app.get('/invite/:token', (req, res) => {
   const name = payload.name || '';
   const code = payload.code || '';
   const APP_URL = 'https://api.sverdlik-apps.site/formula-road';
+  res.setHeader('Set-Cookie', 'fr_ok=1; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000');
   res.send(`<!DOCTYPE html>
 <html><head><meta charset=utf-8><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Formula Roads — כניסה</title>
