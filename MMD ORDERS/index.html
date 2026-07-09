@@ -1489,7 +1489,7 @@
         const hamlRnd = haml > 0 ? Math.round(haml) : 0;
         const _cap    = maavarMode ? mav : ash;
         const _rawOrd = s.k != null ? s.k : hamlRnd;
-        const ordV    = (_rawOrd !== '' && _cap > 0 && Number(_rawOrd) > _cap) ? _cap : (_rawOrd || '');
+        const ordV    = (_rawOrd !== '' && _cap > 0 && Number(_rawOrd) > _cap) ? _cap : (s.k === 0 ? 0 : (_rawOrd || ''));
         const eff     = Number(ordV) || 0;
 
         const yamim     = r.yamim ?? null;
