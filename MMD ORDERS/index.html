@@ -1859,15 +1859,20 @@
   };
 
   function _saveOrderToHistory() {
-    const rows = filtered();
     const sv   = saved();
     const now  = new Date();
     const date = now.toLocaleDateString('he-IL');
     const time = now.toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'});
-    const orderedRows = rows.filter(r => {
-      const s = sv[String(r.mkt ?? '')] || {};
-      if (s.k != null) return true;         // user explicitly entered a value (including 0)
-      return (r.hamlatza ?? 0) > 0;         // or has auto-recommendation
+    // Use filtered() only for recommendation rows so ordOnly/fams filters apply.
+    // Explicit overrides (including qty=0) always come from all[] — ordOnly hides
+    // eff=0 products from view but we must still capture them in the snapshot.
+    const filteredMkts = new Set(filtered().map(r => String(r.mkt ?? '')));
+    const orderedRows = all.filter(r => {
+      const mk = String(r.mkt ?? '');
+      const s = sv[mk] || {};
+      if (s.k != null) return true;         // explicit override (including 0) — always save
+      if (!filteredMkts.has(mk)) return false; // not visible and no override — skip
+      return (r.hamlatza ?? 0) > 0;         // visible with auto-recommendation
     });
     const items = orderedRows.map(r => {
       const mk = String(r.mkt ?? '');
