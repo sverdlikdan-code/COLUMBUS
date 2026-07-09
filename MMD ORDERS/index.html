@@ -1868,7 +1868,7 @@
     });
     const hist = JSON.parse(localStorage.getItem('mmd_order_history') || '[]');
     hist.unshift({ date, time, ts: date + ' ' + time, count: items.length, items });
-    if (hist.length > 30) hist.pop();
+    if (hist.length > 6) hist.pop();
     localStorage.setItem('mmd_order_history', JSON.stringify(hist));
     return items.length;
   }
@@ -1935,7 +1935,11 @@
     hist[idx].items.forEach(item => {
       sv[item.mk] = sv[item.mk] || {};
       sv[item.mk].k = item.qty;
-      if (item.tukuf) sessionP[item.mk] = item.tukuf;
+      if (item.tukuf) {
+        const liveRow  = all.find(r => String(r.mkt ?? '') === item.mk);
+        const liveOpts = liveRow?.tukuf ? String(liveRow.tukuf).split('/').map(d => d.trim()).filter(Boolean) : [];
+        if (liveOpts.includes(item.tukuf)) sessionP[item.mk] = item.tukuf;
+      }
     });
     save(sv);
     document.getElementById('hist-dd').classList.remove('open');
