@@ -1856,8 +1856,8 @@
     const time = now.toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'});
     const orderedRows = rows.filter(r => {
       const s = sv[String(r.mkt ?? '')] || {};
-      const eff = s.k != null ? s.k : ((r.hamlatza ?? 0) > 0 ? Math.round(r.hamlatza) : 0);
-      return eff > 0;
+      if (s.k != null) return true;         // user explicitly entered a value (including 0)
+      return (r.hamlatza ?? 0) > 0;         // or has auto-recommendation
     });
     const items = orderedRows.map(r => {
       const mk = String(r.mkt ?? '');
