@@ -2360,7 +2360,7 @@ window.openProphetPanel = function(mk, taur, hevra, mkrShvua, tableHaml, current
 
     function fmtBarVal(v) {
       if (v <= 0) return '';
-      return v % 1 === 0 ? String(v) : v.toFixed(1);
+      return String(Math.round(v));
     }
     fullActual.forEach(function(d) {
       const col = document.createElement('div');
