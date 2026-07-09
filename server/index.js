@@ -2529,6 +2529,44 @@ app.get('/mmd/draft-list', mmdGuard, (req, res) => {
   } catch { res.status(500).json({ error: 'list_error' }); }
 });
 
+// ── MMD ORDER SNAPSHOTS (cross-device history) ──────────────────────────────
+function histFilename(userId) {
+  return path.join(DRAFTS_DIR, String(userId).replace(/[^א-תa-zA-Z0-9_\-]/gu, '_').slice(0, 30) + '-hist.json');
+}
+
+// POST /mmd/history — save timestamped snapshot on שמור click
+app.post('/mmd/history', mmdGuard, dataRateLimit, (req, res) => {
+  const { userId, items, ts } = req.body || {};
+  if (!userId || typeof userId !== 'string' || userId.length > 30)
+    return res.status(400).json({ error: 'invalid userId' });
+  if (!Array.isArray(items)) return res.status(400).json({ error: 'missing items' });
+  const snap = { ts: ts || new Date().toISOString(), userId, count: items.slice(0, 600).length, items: items.slice(0, 600) };
+  const histPath = histFilename(userId);
+  const hist = fs.existsSync(histPath) ? JSON.parse(fs.readFileSync(histPath, 'utf8')) : [];
+  hist.unshift(snap);
+  if (hist.length > 10) hist.length = 10;
+  fs.writeFileSync(histPath, JSON.stringify(hist, null, 2), 'utf8');
+  res.json({ ok: true });
+});
+
+// GET /mmd/history-all — all users' snapshots (last 3 per user) for cross-device history
+app.get('/mmd/history-all', mmdGuard, dataRateLimit, (req, res) => {
+  try {
+    const files = fs.existsSync(DRAFTS_DIR)
+      ? fs.readdirSync(DRAFTS_DIR).filter(f => f.endsWith('-hist.json'))
+      : [];
+    const snapshots = [];
+    for (const f of files) {
+      try {
+        const hist = JSON.parse(fs.readFileSync(path.join(DRAFTS_DIR, f), 'utf8'));
+        if (Array.isArray(hist)) snapshots.push(...hist.slice(0, 3));
+      } catch {}
+    }
+    snapshots.sort((a, b) => (b.ts || '').localeCompare(a.ts || ''));
+    res.json({ ok: true, snapshots });
+  } catch { res.status(500).json({ error: 'server_error' }); }
+});
+
 let rebuildInProgress = false;
 app.post('/mmd/rebuild', mmdGuard, dataRateLimit, (req, res) => {
   if (rebuildInProgress) return res.json({ ok: false, busy: true });

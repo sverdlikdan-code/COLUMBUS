@@ -1870,13 +1870,21 @@
     hist.unshift({ date, time, ts: date + ' ' + time, count: items.length, items });
     if (hist.length > 6) hist.pop();
     localStorage.setItem('mmd_order_history', JSON.stringify(hist));
-    return items.length;
+    return items;
   }
 
   window.saveOrderNow = function() {
-    const n = _saveOrderToHistory();
+    const items = _saveOrderToHistory();
     const btn = document.querySelector('.btn-save');
     if (btn) { btn.textContent = '✓ נשמר!'; setTimeout(() => { btn.textContent = '💾 שמור'; }, 1500); }
+    const userId = localStorage.getItem('mmd_user_id');
+    if (userId && items.length) {
+      fetch('/mmd/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, items, ts: new Date().toISOString() })
+      }).catch(() => {});
+    }
   };
 
   window.toggleOrderHistory = function() {
@@ -2062,30 +2070,57 @@ window.loadOtherUsersSection = async function() {
   if (list.children.length > 0) { list.innerHTML = ''; return; } // toggle
   list.textContent = 'טוען...';
   try {
-    const r = await fetch('/mmd/draft-list');
-    const j = await r.json();
     const myId = localStorage.getItem('mmd_user_id') || '';
-    const others = (j.users || []).filter(u => u.userId !== myId);
+    const [rDraft, rHist] = await Promise.all([
+      fetch('/mmd/draft-list').then(r => r.json()).catch(() => ({ users: [] })),
+      fetch('/mmd/history-all').then(r => r.json()).catch(() => ({ snapshots: [] }))
+    ]);
     list.textContent = '';
-    if (!others.length) {
+
+    // Show server snapshots (שמור clicks) — most recent first, exclude own
+    const snaps = (rHist.snapshots || []).filter(s => s.userId !== myId);
+    if (snaps.length) {
+      const hdr = document.createElement('div');
+      hdr.style.cssText = 'padding:4px 14px 2px;font-size:.7rem;font-weight:700;color:#1a6ef5;letter-spacing:.04em';
+      hdr.textContent = '💾 הזמנות שמורות';
+      list.appendChild(hdr);
+      snaps.forEach(s => {
+        const d = s.ts ? new Date(s.ts).toLocaleString('he-IL', { hour12: false, hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : '';
+        const item = document.createElement('div');
+        item.className = 'hist-item';
+        item.innerHTML = '<div class="h-left"><div class="h-date">' + s.userId + '</div>' +
+          '<div class="h-time">' + d + ' · ' + s.count + ' פריטים</div></div>' +
+          '<span class="h-cnt">שחזר ↩</span>';
+        item.onclick = () => { document.getElementById('hist-dd').classList.remove('open'); restoreFromSnapshot(s.items); };
+        list.appendChild(item);
+      });
+    }
+
+    // Show current drafts (live state) — exclude own and already shown in snapshots
+    const others = (rDraft.users || []).filter(u => u.userId !== myId);
+    if (others.length) {
+      const hdr2 = document.createElement('div');
+      hdr2.style.cssText = 'padding:6px 14px 2px;font-size:.7rem;font-weight:700;color:#607d8b;letter-spacing:.04em';
+      hdr2.textContent = '👁 מצב נוכחי';
+      list.appendChild(hdr2);
+      others.forEach(u => {
+        const d = u.savedAt ? new Date(u.savedAt).toLocaleString('he-IL', { hour12: false, hour: '2-digit', minute: '2-digit' }) : '';
+        const item = document.createElement('div');
+        item.className = 'hist-item';
+        item.innerHTML = '<div class="h-left"><div class="h-date">' + u.userId + '</div>' +
+          '<div class="h-time">' + d + ' · ' + u.count + ' פריטים</div></div>' +
+          '<span class="h-cnt" style="color:#607d8b">צפה</span>';
+        item.onclick = () => { document.getElementById('hist-dd').classList.remove('open'); loadUserView(u.userId); };
+        list.appendChild(item);
+      });
+    }
+
+    if (!snaps.length && !others.length) {
       const msg = document.createElement('div');
       msg.style.cssText = 'padding:6px 12px;color:#8899aa;font-size:.8rem';
       msg.textContent = 'אין נתונים שמורים ממשתמשים אחרים';
       list.appendChild(msg);
-      return;
     }
-    others.forEach(u => {
-      const d = u.savedAt ? new Date(u.savedAt).toLocaleString('he-IL', { hour12: false }) : '';
-      const item = document.createElement('div');
-      item.className = 'hist-item';
-      item.textContent = '👁 ' + u.userId;
-      const small = document.createElement('small');
-      small.style.color = '#8899aa';
-      small.textContent = ` · ${u.count} פריטים · ${d}`;
-      item.appendChild(small);
-      item.onclick = () => { document.getElementById('hist-dd').classList.remove('open'); loadUserView(u.userId); };
-      list.appendChild(item);
-    });
   } catch {
     list.textContent = '';
     const e = document.createElement('div');
@@ -2093,6 +2128,23 @@ window.loadOtherUsersSection = async function() {
     e.textContent = 'שגיאה בטעינה';
     list.appendChild(e);
   }
+};
+
+window.restoreFromSnapshot = function(items) {
+  if (!Array.isArray(items) || !items.length) return;
+  if (!confirm('לשחזר הזמנה זו?')) return;
+  const sv = saved();
+  items.forEach(item => {
+    sv[item.mk] = sv[item.mk] || {};
+    sv[item.mk].k = item.qty;
+    if (item.tukuf) {
+      const liveRow  = all.find(r => String(r.mkt ?? '') === item.mk);
+      const liveOpts = liveRow?.tukuf ? String(liveRow.tukuf).split('/').map(d => d.trim()).filter(Boolean) : [];
+      if (liveOpts.includes(item.tukuf)) sessionP[item.mk] = item.tukuf;
+    }
+  });
+  save(sv);
+  render();
 };
 
 window.promptChangeUser = function() {
