@@ -1863,24 +1863,20 @@
     const now  = new Date();
     const date = now.toLocaleDateString('he-IL');
     const time = now.toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'});
-    // Use filtered() only for recommendation rows so ordOnly/fams filters apply.
-    // Explicit overrides (including qty=0) always come from all[] — ordOnly hides
-    // eff=0 products from view but we must still capture them in the snapshot.
-    const filteredMkts = new Set(filtered().map(r => String(r.mkt ?? '')));
-    const orderedRows = all.filter(r => {
-      const mk = String(r.mkt ?? '');
-      const s = sv[mk] || {};
-      if (s.k != null) return true;         // explicit override (including 0) — always save
-      if (!filteredMkts.has(mk)) return false; // not visible and no override — skip
-      return (r.hamlatza ?? 0) > 0;         // visible with auto-recommendation
-    });
-    const items = orderedRows.map(r => {
-      const mk = String(r.mkt ?? '');
-      const s  = sv[mk] || {};
-      const eff = s.k != null ? Number(s.k) : ((r.hamlatza ?? 0) > 0 ? Math.round(r.hamlatza) : 0);
-      const tukuf = sessionP[mk] || '';
-      return { mk, taur: r.taur, mmd: r.mmd_k ?? 0, ash: r.ashdod_k ?? 0, qty: eff, tukuf };
-    });
+    // Save manual overrides (s.k != null) AND manual תוקף selections (sessionP).
+    // Recommendations are NOT stored — they come from live data on restore.
+    const items = all
+      .filter(r => {
+        const mk = String(r.mkt ?? '');
+        const s = sv[mk] || {};
+        return s.k != null || !!sessionP[mk];
+      })
+      .map(r => {
+        const mk = String(r.mkt ?? '');
+        const s  = sv[mk] || {};
+        const tukuf = sessionP[mk] || '';
+        return { mk, taur: r.taur, qty: s.k != null ? Number(s.k) : null, tukuf };
+      });
     const hist = JSON.parse(localStorage.getItem('mmd_order_history') || '[]');
     hist.unshift({ date, time, ts: date + ' ' + time, count: items.length, items });
     if (hist.length > 6) hist.pop();
@@ -1956,8 +1952,10 @@
     if (!confirm('לשחזר הזמנה מ-' + label + '?')) return;
     const sv = saved();
     hist[idx].items.forEach(item => {
-      sv[item.mk] = sv[item.mk] || {};
-      sv[item.mk].k = item.qty;
+      if (item.qty != null) {
+        sv[item.mk] = sv[item.mk] || {};
+        sv[item.mk].k = item.qty;
+      }
       if (item.tukuf) {
         const liveRow  = all.find(r => String(r.mkt ?? '') === item.mk);
         const liveOpts = liveRow?.tukuf ? String(liveRow.tukuf).split('/').map(d => d.trim()).filter(Boolean) : [];
@@ -2150,8 +2148,10 @@ window.restoreFromSnapshot = function(items) {
   if (!confirm('לשחזר הזמנה זו?')) return;
   const sv = saved();
   items.forEach(item => {
-    sv[item.mk] = sv[item.mk] || {};
-    sv[item.mk].k = item.qty;
+    if (item.qty != null) {
+      sv[item.mk] = sv[item.mk] || {};
+      sv[item.mk].k = item.qty;
+    }
     if (item.tukuf) {
       const liveRow  = all.find(r => String(r.mkt ?? '') === item.mk);
       const liveOpts = liveRow?.tukuf ? String(liveRow.tukuf).split('/').map(d => d.trim()).filter(Boolean) : [];
