@@ -2898,10 +2898,27 @@ async function _applyOrderPeriods() {
       window._orderPeriodFetchFailed = false;
     } else {
       const periodsParam = periods.join(',');
-      const _tok = localStorage.getItem('frToken') || '';
-      const resp = await fetch(`https://api.sverdlik-apps.site/pbi/dagim-sales?periods=${encodeURIComponent(periodsParam)}`, {
-        headers: { 'X-Session': _tok }
-      }).catch(e => { console.error('[ord-periods] network error:', e); return null; });
+      const API = 'https://api.sverdlik-apps.site';
+      const _dagimFetch = async (tok) => fetch(`${API}/pbi/dagim-sales?periods=${encodeURIComponent(periodsParam)}`, {
+        headers: { 'X-Session': tok }
+      }).catch(() => null);
+
+      let _tok = localStorage.getItem('frToken') || '';
+      let resp = await _dagimFetch(_tok);
+
+      // Silent re-auth on 401 (uses PBI cookie fr_ok=1)
+      if (resp && resp.status === 401) {
+        try {
+          const pbi = await fetch(`${API}/auth/pbi`, { credentials: 'include' });
+          const pj = pbi.ok ? await pbi.json().catch(() => null) : null;
+          if (pj && pj.ok && pj.token) {
+            localStorage.setItem('frToken', pj.token);
+            _tok = pj.token;
+            resp = await _dagimFetch(_tok);
+          }
+        } catch(_) {}
+      }
+
       if (!resp) {
         data = null; window._orderPeriodFetchFailed = true; window._orderNeedsLogin = false;
       } else {
