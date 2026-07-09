@@ -1951,11 +1951,11 @@
     const h = hist[idx];
     const label = (h.date || h.ts || '') + (h.time ? ' ' + h.time : '');
     if (!confirm('לשחזר הזמנה מ-' + label + '?')) return;
-    const sv = saved();
+    const sv = {};
+    Object.keys(sessionP).forEach(k => delete sessionP[k]);
     hist[idx].items.forEach(item => {
       if (item.qty != null) {
-        sv[item.mk] = sv[item.mk] || {};
-        sv[item.mk].k = item.qty;
+        sv[item.mk] = { k: item.qty };
       }
       if (item.tukuf) {
         const liveRow  = all.find(r => String(r.mkt ?? '') === item.mk);
@@ -2148,11 +2148,11 @@ window.loadOtherUsersSection = async function() {
 window.restoreFromSnapshot = function(items) {
   if (!Array.isArray(items) || !items.length) return;
   if (!confirm('לשחזר הזמנה זו?')) return;
-  const sv = saved();
+  const sv = {};
+  Object.keys(sessionP).forEach(k => delete sessionP[k]);
   items.forEach(item => {
     if (item.qty != null) {
-      sv[item.mk] = sv[item.mk] || {};
-      sv[item.mk].k = item.qty;
+      sv[item.mk] = { k: item.qty };
     }
     if (item.tukuf) {
       const liveRow  = all.find(r => String(r.mkt ?? '') === item.mk);
