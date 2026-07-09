@@ -1863,24 +1863,17 @@
     const now  = new Date();
     const date = now.toLocaleDateString('he-IL');
     const time = now.toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'});
-    // Use filtered() only for recommendation rows so ordOnly/fams filters apply.
-    // Explicit overrides (including qty=0) always come from all[] — ordOnly hides
-    // eff=0 products from view but we must still capture them in the snapshot.
-    const filteredMkts = new Set(filtered().map(r => String(r.mkt ?? '')));
-    const orderedRows = all.filter(r => {
-      const mk = String(r.mkt ?? '');
-      const s = sv[mk] || {};
-      if (s.k != null) return true;         // explicit override (including 0) — always save
-      if (!filteredMkts.has(mk)) return false; // not visible and no override — skip
-      return (r.hamlatza ?? 0) > 0;         // visible with auto-recommendation
-    });
-    const items = orderedRows.map(r => {
-      const mk = String(r.mkt ?? '');
-      const s  = sv[mk] || {};
-      const eff = s.k != null ? Number(s.k) : ((r.hamlatza ?? 0) > 0 ? Math.round(r.hamlatza) : 0);
-      const tukuf = sessionP[mk] || '';
-      return { mk, taur: r.taur, mmd: r.mmd_k ?? 0, ash: r.ashdod_k ?? 0, qty: eff, tukuf };
-    });
+    // Save ONLY explicit manual overrides (s.k != null, including 0).
+    // Recommendations are recalculated from live data on load — storing them
+    // in the snapshot causes ידנית to show המלצה values everywhere after restore.
+    const items = all
+      .filter(r => { const s = sv[String(r.mkt ?? '')] || {}; return s.k != null; })
+      .map(r => {
+        const mk = String(r.mkt ?? '');
+        const s  = sv[mk] || {};
+        const tukuf = sessionP[mk] || '';
+        return { mk, taur: r.taur, qty: Number(s.k), tukuf };
+      });
     const hist = JSON.parse(localStorage.getItem('mmd_order_history') || '[]');
     hist.unshift({ date, time, ts: date + ' ' + time, count: items.length, items });
     if (hist.length > 6) hist.pop();
