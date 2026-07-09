@@ -2498,7 +2498,7 @@ app.post('/mmd/draft', mmdGuard, dataRateLimit, (req, res) => {
   }
   const safe = {};
   for (const [mkt, val] of Object.entries(items)) {
-    if (!/^\d{1,10}$/.test(mkt) || !val || val.k == null) continue;
+    if (!/^[A-Za-z0-9]{1,15}$/.test(mkt) || !val || val.k == null) continue;
     safe[mkt] = { k: Number(val.k) };
   }
   fs.writeFileSync(draftFilename(userId), JSON.stringify({ userId, items: safe, savedAt: new Date().toISOString() }, null, 2), 'utf8');
