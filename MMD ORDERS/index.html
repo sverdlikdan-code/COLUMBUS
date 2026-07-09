@@ -2071,16 +2071,18 @@ function _doEnterApp() {
 
 
 window.loadUserView = async function(userId) {
+  let j;
   try {
     const r = await fetch('/mmd/draft/' + encodeURIComponent(userId));
-    const j = await r.json();
-    window._viewData = j.items || {};
-    Object.keys(sessionP).forEach(k => delete sessionP[k]);
-    Object.assign(sessionP, j.tukuf || {});
-    document.getElementById('view-mode-user').textContent = userId;
-    document.getElementById('view-mode-banner').style.display = '';
-    render();
-  } catch { alert('שגיאה בטעינת נתוני ' + userId); }
+    j = await r.json();
+  } catch (e) { alert('שגיאה בטעינת נתוני ' + userId + ': ' + (e && e.message || e)); return; }
+  if (!j || !j.ok) { alert('אין נתונים שמורים עבור ' + userId); return; }
+  window._viewData = j.items || {};
+  Object.keys(sessionP).forEach(k => delete sessionP[k]);
+  Object.assign(sessionP, j.tukuf || {});
+  document.getElementById('view-mode-user').textContent = userId;
+  document.getElementById('view-mode-banner').style.display = '';
+  render();
 };
 
 window.exitViewMode = function() {
