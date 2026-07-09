@@ -1486,9 +1486,12 @@
         const mmd  = r.mmd_k    ?? 0;
         const mkr  = r.mkr_shvua != null ? r.mkr_shvua : null;
         const haml = r.hamlatza  ?? 0;
-        const _hamlMult = { '664': 4, '659': 2 };
+        const _hamlMult = { '664': 4 };
         const hamlEff = haml * (_hamlMult[mk] || 1);
-        const hamlRnd = hamlEff > 0 ? Math.round(hamlEff) : 0;
+        const _hamlRnd0 = hamlEff > 0 ? Math.round(hamlEff) : 0;
+        // When no hamlatza, fall back to eilat_k × multiplier as default order
+        const _eilatDefaultMult = { '659': 2 };
+        const hamlRnd = _hamlRnd0 > 0 ? _hamlRnd0 : (_eilatDefaultMult[mk] ? Math.round(eil * (_eilatDefaultMult[mk] || 1)) : 0);
         const _cap    = maavarMode ? mav : ash;
         const _rawOrd = s.k != null ? s.k : hamlRnd;
         const ordV    = (_rawOrd !== '' && _cap > 0 && Number(_rawOrd) > _cap) ? _cap : (s.k === 0 ? 0 : (_rawOrd || ''));
@@ -1744,7 +1747,7 @@
 
       for (const grp of GROUPS) {
         const sheetRows = orderedRows.filter(grp.fn)
-          .sort((a, b) => (a.hevra||'').localeCompare(b.hevra||'') || (a.mishpacha||'').localeCompare(b.mishpacha||''));
+          .sort((a, b) => shortName(fixProductName(a.taur||'')).localeCompare(shortName(fixProductName(b.taur||'')), 'he'));
         if (sheetRows.length === 0) continue;
 
         const ws = wb.addWorksheet(grp.name, {
@@ -1782,10 +1785,12 @@
         const tableData = sheetRows.map(r => {
           const mk  = String(r.mkt ?? '');
           const s   = sv[mk] || {};
-          const eff = s.k != null ? Number(s.k) : Math.round(r.hamlatza ?? 0);
+          const _haml0 = Math.round(r.hamlatza ?? 0);
+          const eff = s.k != null ? Number(s.k) : (_haml0 > 0 ? _haml0 : (mk === '659' ? Math.round((r.eilat_k ?? 0) * 2) : 0));
           const tOpts = r.tukuf ? String(r.tukuf).split('/').map(x=>x.trim()).filter(Boolean) : [];
           const tukufVal = sessionP[mk] || (tOpts.length > 1 ? '🚩 בחר תאריך' : '');
-          return [mk, r.mishpacha||'', r.hevra||'', '‏'+(r.taur||''), '', r.mmd_k??0, r.ashdod_k??0, eff, tukufVal];
+          const dispName = shortName(fixProductName(r.taur||''));
+          return [mk, r.mishpacha||'', r.hevra||'', '‏'+dispName, '', r.mmd_k??0, r.ashdod_k??0, eff, tukufVal];
         });
 
         ws.addTable({
@@ -1801,7 +1806,8 @@
           rows: tableData,
         });
         ws.getRow(5).height = 26;
-        // Override table header row with company color (addTable provides autoFilter)
+        ws.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5, column: 9 } };
+        // Override table header row with company color
         for (let ci = 1; ci <= 9; ci++) {
           const c = ws.getCell(5, ci);
           c.fill = solid(grp.hdr);
@@ -1812,7 +1818,8 @@
         sheetRows.forEach((r, i) => {
           const mk   = String(r.mkt ?? '');
           const s    = sv[mk] || {};
-          const eff  = s.k != null ? Number(s.k) : ((r.hamlatza??0)>0 ? Math.round(r.hamlatza):0);
+          const _haml1 = (r.hamlatza??0)>0 ? Math.round(r.hamlatza) : 0;
+          const eff  = s.k != null ? Number(s.k) : (_haml1 > 0 ? _haml1 : (mk === '659' ? Math.round((r.eilat_k ?? 0) * 2) : 0));
           const mmdK = r.mmd_k ?? 0;
           const ashK = r.ashdod_k ?? 0;
           const tOpts = r.tukuf ? String(r.tukuf).split('/').map(x=>x.trim()).filter(Boolean) : [];
