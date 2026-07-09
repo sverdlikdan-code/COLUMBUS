@@ -2489,7 +2489,7 @@ function draftFilename(userId) {
 
 // POST /mmd/draft — save current user's qty state
 app.post('/mmd/draft', mmdGuard, dataRateLimit, (req, res) => {
-  const { userId, items } = req.body || {};
+  const { userId, items, tukuf } = req.body || {};
   if (!userId || typeof userId !== 'string' || userId.length > 30) {
     return res.status(400).json({ error: 'invalid userId' });
   }
@@ -2501,7 +2501,15 @@ app.post('/mmd/draft', mmdGuard, dataRateLimit, (req, res) => {
     if (!/^[A-Za-z0-9]{1,15}$/.test(mkt) || !val || val.k == null) continue;
     safe[mkt] = { k: Number(val.k) };
   }
-  fs.writeFileSync(draftFilename(userId), JSON.stringify({ userId, items: safe, savedAt: new Date().toISOString() }, null, 2), 'utf8');
+  const safeTukuf = {};
+  if (tukuf && typeof tukuf === 'object') {
+    for (const [mkt, val] of Object.entries(tukuf)) {
+      if (/^[A-Za-z0-9]{1,15}$/.test(mkt) && typeof val === 'string' && val.length < 30) {
+        safeTukuf[mkt] = val;
+      }
+    }
+  }
+  fs.writeFileSync(draftFilename(userId), JSON.stringify({ userId, items: safe, tukuf: safeTukuf, savedAt: new Date().toISOString() }, null, 2), 'utf8');
   res.json({ ok: true, count: Object.keys(safe).length });
 });
 
@@ -2511,7 +2519,7 @@ app.get('/mmd/draft/:userId', mmdGuard, (req, res) => {
   if (!fs.existsSync(file)) return res.json({ ok: false, items: {} });
   try {
     const d = JSON.parse(fs.readFileSync(file, 'utf8'));
-    res.json({ ok: true, userId: d.userId, items: d.items || {}, savedAt: d.savedAt });
+    res.json({ ok: true, userId: d.userId, items: d.items || {}, tukuf: d.tukuf || {}, savedAt: d.savedAt });
   } catch { res.status(500).json({ error: 'read_error' }); }
 });
 
