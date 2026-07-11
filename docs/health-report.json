@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-06-24T03:00:11.003Z",
-  "date": "2026-06-24",
-  "totalSessions": 6,
+  "generatedAt": "2026-07-11T03:00:15.932Z",
+  "date": "2026-07-11",
+  "totalSessions": 7,
   "last7days": [
     {
       "date": "2026-19-05",
@@ -88,13 +88,32 @@
       "done": false,
       "pushed": false,
       "noChanges": false,
+      "errorCount": 3,
+      "errors": [
+        "push rejected: remote ahead",
+        "failed to push"
+      ],
+      "findings": [
+        {
+          "level": "warning",
+          "code": "PUSH_REJECTED",
+          "msg": "Push rejected — remote had newer commits",
+          "fix": "run-workflow.bat теперь делает auto-retry. Если повторяется — кто-то пушит вручную пока workflow работает."
+        }
+      ]
+    },
+    {
+      "date": "2026-11-07",
+      "done": false,
+      "pushed": false,
+      "noChanges": false,
       "errorCount": 0,
       "errors": [],
       "findings": []
     }
   ],
   "patterns": {
-    "PUSH_REJECTED": 1,
+    "PUSH_REJECTED": 2,
     "PULL_UNSTAGED": 1,
     "BUILD_FAILED": 1,
     "NETWORK": 1
@@ -102,7 +121,7 @@
   "recentIssues": [
     {
       "level": "warning",
-      "msg": "GitHub Actions не коммитил более 14ч (18.7ч)",
+      "msg": "GitHub Actions не коммитил более 14ч (414.7ч)",
       "fix": "Проверь GitHub Actions: https://github.com/sverdlikdan-code/COLUMBUS/actions — ищи failed runs",
       "code": "ACTIONS_STALE"
     },
@@ -115,10 +134,10 @@
   ],
   "status": "warning",
   "githubActions": {
-    "lastActionsCommit": "2026-06-23T08:17:33.000Z",
+    "lastActionsCommit": "2026-06-23T20:17:18.000Z",
     "lastActionsAuthor": "COLUMBUS Bot",
-    "hoursSinceLastActions": 18.7,
+    "hoursSinceLastActions": 414.7,
     "status": "warning",
-    "warning": "GitHub Actions не коммитил более 14ч (18.7ч)"
+    "warning": "GitHub Actions не коммитил более 14ч (414.7ч)"
   }
 }
