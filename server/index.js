@@ -3157,7 +3157,7 @@ app.get('/admin/send-test-invite', async (req, res) => {
   if (!RESEND_KEY) return res.status(503).json({ ok: false, error: 'RESEND_API_KEY missing' });
 
   const toEmail = 'dilerformula98@gmail.com';
-  const agentCode = '51'; const agentName = 'דן סברדליק';
+  const agentCode = '258'; const agentName = 'דוד גומרשטדט';
   const token = signInvite({ code: agentCode, name: agentName, exp: Date.now() + 7 * 24 * 60 * 60 * 1000 });
   const inviteUrl = `https://api.sverdlik-apps.site/invite/${token}`;
 
