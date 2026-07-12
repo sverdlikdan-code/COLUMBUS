@@ -2165,16 +2165,17 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
     const [prodRows, salesRows, mkrRows, shiukRows] = await Promise.all([
       executeDax(`
         EVALUATE
-        SUMMARIZECOLUMNS(
-          'KARTIS PARIT INTER'[מק"ט],
-          'KARTIS PARIT INTER'[תאור],
-          'KARTIS PARIT INTER'[מותג],
-          'KARTIS PARIT INTER'[פרמטר 2],
-          'KARTIS PARIT INTER'[תכולת האריזה למוצר],
-          'KARTIS PARIT INTER'[משפחת מוצר],
-          'KARTIS PARIT INTER'[תאור משפחה]
+        CALCULATETABLE(
+          SUMMARIZECOLUMNS(
+            'KARTIS PARIT INTER'[מק"ט],
+            'KARTIS PARIT INTER'[תאור],
+            'KARTIS PARIT INTER'[מותג],
+            'KARTIS PARIT INTER'[משפחת מוצר],
+            'KARTIS PARIT INTER'[תאור משפחה]
+          ),
+          'KARTIS PARIT INTER'[משפחת מוצר] IN {30, 39}
         )
-        ORDER BY 'KARTIS PARIT INTER'[מותג] ASC, 'KARTIS PARIT INTER'[פרמטר 2] ASC, 'KARTIS PARIT INTER'[מק"ט] ASC
+        ORDER BY 'KARTIS PARIT INTER'[מותג] ASC, 'KARTIS PARIT INTER'[מק"ט] ASC
       `).catch(e => { console.error('[inter-prod DAX]', e?.message || e); return null; }),
       executeDax(`
         EVALUATE
@@ -2223,12 +2224,10 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
     else console.log(`[inter-prod] got ${prodRows.length} rows, sample:`, JSON.stringify(prodRows[0] || {}));
 
     const products = (prodRows || []).map(r => ({
-      makat:       String(r['KARTIS PARIT INTER[מק"ט]'] ?? ''),
-      name:        fixBiDi(String(r['KARTIS PARIT INTER[תאור]'] ?? '')),
-      motag:       fixBiDi(String(r['KARTIS PARIT INTER[מותג]'] ?? '')),
-      param2:      fixBiDi(String(r['KARTIS PARIT INTER[פרמטר 2]'] ?? '')),
-      krat:        Number(r['KARTIS PARIT INTER[תכולת האריזה למוצר]'] ?? 1) || 1,
-      mishpacaId:  r['KARTIS PARIT INTER[משפחת מוצר]'] ?? null,
+      makat:        String(r['KARTIS PARIT INTER[מק"ט]'] ?? ''),
+      name:         fixBiDi(String(r['KARTIS PARIT INTER[תאור]'] ?? '')),
+      motag:        fixBiDi(String(r['KARTIS PARIT INTER[מותג]'] ?? '')),
+      mishpacaId:   r['KARTIS PARIT INTER[משפחת מוצר]'] ?? null,
       mishpacaTaur: fixBiDi(String(r['KARTIS PARIT INTER[תאור משפחה]'] ?? '')),
     })).filter(p => p.makat);
 
