@@ -845,6 +845,7 @@
   const LS = 'mmd-orders-v1';
   const HE_SHORT = ['ינו','פבר','מרץ','אפר','מאי','יון','יול','אוג','ספט','אוק','נוב','דצ'];
   let all = [];
+  window._mmdGetAll = function() { return all; };
   let fams = new Set();
   let cos  = new Set();
   let selStart = null, selEnd = null; // null = default (prev+cur month); range selection
