@@ -2202,13 +2202,13 @@ window.openInfoPanel = function(mk, taur) {
   // ── Trend from series.actual ─────────────────────────────────────
   const actualSorted = (p && p.series && p.series.actual ? [...p.series.actual] : [])
     .sort(function(a, b){ return a.w.localeCompare(b.w); });
-  const last4 = actualSorted.slice(-4);
-  const prev4 = actualSorted.slice(-8, -4);
-  const avg4  = last4.length ? last4.reduce(function(s,x){return s+x.y;},0)/last4.length : 0;
-  const avg8  = prev4.length ? prev4.reduce(function(s,x){return s+x.y;},0)/prev4.length : 0;
+  const last6 = actualSorted.slice(-6);
+  const prev6 = actualSorted.slice(-12, -6);
+  const avg6  = last6.length ? last6.reduce(function(s,x){return s+x.y;},0)/last6.length : 0;
+  const avgP6 = prev6.length ? prev6.reduce(function(s,x){return s+x.y;},0)/prev6.length : 0;
   let trendPct = null;
-  if (avg8 > 0 && last4.length >= 2 && prev4.length >= 2)
-    trendPct = Math.round((avg4 / avg8 - 1) * 100);
+  if (avgP6 > 0 && last6.length >= 2 && prev6.length >= 2)
+    trendPct = Math.round((avg6 / avgP6 - 1) * 100);
 
   // ── Trend badge ──────────────────────────────────────────────────
   const badge = document.getElementById('pp-trend-badge');
@@ -2257,133 +2257,82 @@ window.openInfoPanel = function(mk, taur) {
   sparkEl.innerHTML = '';
 
   if (series && Array.isArray(series.actual) && series.actual.length > 0) {
-    // Client-side: drop weeks >= Monday of current week (incomplete/future)
+    // Drop incomplete current week
     (function(){
       var now = new Date(); now.setHours(0,0,0,0);
-      var dow = now.getDay() || 7;           // 1=Mon … 7=Sun
-      now.setDate(now.getDate() - (dow - 1)); // rewind to Monday
+      var dow = now.getDay() || 7;
+      now.setDate(now.getDate() - (dow - 1));
       window._sparkCutoff = now.toISOString().slice(0,10);
     })();
-    const actual = series.actual.filter(d => d.w < window._sparkCutoff);
-    const fc     = Array.isArray(series.fc) ? series.fc : [];
+    const actual = series.actual
+      .filter(function(d){ return d.w < window._sparkCutoff; })
+      .sort(function(a,b){ return a.w < b.w ? -1 : 1; });
 
-    // ── Fill zero-sale weeks within the actual range ──────────────
-    function fillWeeks(arr) {
-      if (!arr || arr.length === 0) return arr;
-      var map = {};
-      arr.forEach(function(d) { map[d.w] = d.y; });
-      var sorted = arr.slice().sort(function(a,b){ return a.w < b.w ? -1 : 1; });
-      var first = new Date(sorted[0].w + 'T12:00:00');
-      var last  = new Date(sorted[sorted.length-1].w + 'T12:00:00');
-      var full  = [];
-      var cur   = new Date(first);
-      while (cur <= last) {
-        var ds = cur.toISOString().slice(0, 10);
-        full.push({ w: ds, y: map[ds] != null ? map[ds] : 0 });
-        cur.setDate(cur.getDate() + 7);
-      }
-      return full;
-    }
+    // 6+6 weeks used for trend
+    const show6prev = actual.slice(-12, -6);
+    const show6last = actual.slice(-6);
+    const show12 = show6prev.concat(show6last);
 
-    // ── ISO week number helper ────────────────────────────────────
     function isoWeekNum(ds) {
-      var d = new Date(Date.UTC(
-        parseInt(ds.slice(0,4)), parseInt(ds.slice(5,7))-1, parseInt(ds.slice(8,10))
-      ));
+      var d = new Date(Date.UTC(parseInt(ds.slice(0,4)), parseInt(ds.slice(5,7))-1, parseInt(ds.slice(8,10))));
       var day = d.getUTCDay() || 7;
       d.setUTCDate(d.getUTCDate() + 4 - day);
       var y0 = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
       return Math.ceil(((d - y0) / 86400000 + 1) / 7);
     }
-    function isoWY(ds) { return 'שב' + isoWeekNum(ds) + '’' + ds.slice(2,4); }
 
-    const fullActual = fillWeeks(actual);
-    const maxY = Math.max(...fullActual.map(d => d.y), ...fc.map(d => d.y), 1);
-    const nZero = fullActual.filter(d => d.y === 0).length;
+    const maxY12 = Math.max.apply(null, show12.map(function(d){return d.y;}), [1]);
 
-    function fmtBarVal(v) {
-      if (v <= 0) return '';
-      return String(Math.round(v));
-    }
-    fullActual.forEach(function(d) {
-      const col = document.createElement('div');
-      col.className = 'pp-spark-col';
-      const lbl = document.createElement('div');
-      lbl.className = 'pp-spark-val';
-      lbl.textContent = fmtBarVal(d.y);
-      const bar = document.createElement('div');
-      if (d.y === 0) {
-        bar.className = 'pp-spark-bar zero';
-        bar.style.height = '6px';
-      } else {
-        bar.className = 'pp-spark-bar';
-        bar.style.height = Math.max(4, Math.round(d.y / maxY * 100)) + '%';
+    show12.forEach(function(d, i) {
+      if (i === 6) {
+        var div = document.createElement(‘div’);
+        div.className = ‘pp-spark-div’;
+        sparkEl.appendChild(div);
       }
-      bar.title = (d.y === 0 ? '0 מכר' : d.y + ' קרט') + ' | ' + d.w;
+      const isPrev = i < 6;
+      const col = document.createElement(‘div’);
+      col.className = ‘pp-spark-col’;
+      const lbl = document.createElement(‘div’);
+      lbl.className = ‘pp-spark-val’;
+      if (isPrev) lbl.style.opacity = ‘0.55’;
+      lbl.textContent = d.y > 0 ? String(Math.round(d.y)) : ‘’;
+      const bar = document.createElement(‘div’);
+      if (d.y === 0) {
+        bar.className = ‘pp-spark-bar zero’;
+        bar.style.height = ‘6px’;
+      } else {
+        bar.className = ‘pp-spark-bar’;
+        if (isPrev) bar.style.opacity = ‘0.45’;
+        bar.style.height = Math.max(4, Math.round(d.y / maxY12 * 100)) + ‘%’;
+      }
+      bar.title = (d.y === 0 ? ‘0’ : d.y) + ‘ קרט | שב’ + isoWeekNum(d.w) + ‘ ‘ + d.w.slice(5,10) + (isPrev ? ‘ (קודם)’ : ‘’);
       col.appendChild(lbl);
       col.appendChild(bar);
       sparkEl.appendChild(col);
     });
 
-    if (fc.length > 0) {
-      const div = document.createElement('div');
-      div.className = 'pp-spark-div';
-      sparkEl.appendChild(div);
-      fc.forEach(function(d) {
-        const col = document.createElement('div');
-        col.className = 'pp-spark-col';
-        const lbl = document.createElement('div');
-        lbl.className = 'pp-spark-val';
-        lbl.style.color = 'rgba(76,175,80,.75)';
-        lbl.textContent = fmtBarVal(d.y);
-        const bar = document.createElement('div');
-        bar.className = 'pp-spark-bar fc';
-        bar.style.height = Math.max(4, Math.round(d.y / maxY * 100)) + '%';
-        bar.title = d.y + ' קרט (תחזית) | ' + d.w;
-        col.appendChild(lbl);
-        col.appendChild(bar);
-        sparkEl.appendChild(col);
-      });
-    }
-    const zeroNote = nZero > 0 ? ' · ' + nZero + ' שבועות ללא מכר' : '';
-    document.getElementById('pp-spark-lbl').textContent =
-      fullActual.length + ' שבועות + תחזית ' + fc.length + 'w' + zeroNote;
-
-    // ── Dynamic week axis: שב N + DD/MM + year only on first label of each year ──
+    // Axis: week number under every bar
     (function() {
-      var ax = document.getElementById('pp-spark-axis-dyn');
+      var ax = document.getElementById(‘pp-spark-axis-dyn’);
       if (!ax) return;
-      ax.innerHTML = '';
-      var shownYears = {};
-      fullActual.forEach(function(d, i) {
-        var sp = document.createElement('div');
-        sp.className = 'ax-lbl';
-        var showLabel = (i % 3 === 0 || i === fullActual.length - 1);
-        if (showLabel) {
-          var wk = isoWeekNum(d.w);
-          var dd = d.w.slice(8, 10);
-          var mm = d.w.slice(5, 7);
-          var yr = d.w.slice(0, 4);
-          var yy = d.w.slice(2, 4);
-          var yearLine = (!shownYears[yr]) ? "\n'" + yy : '';
-          shownYears[yr] = true;
-          sp.textContent = 'שב' + wk + '\n' + dd + '/' + mm + yearLine;
-        }
-        ax.appendChild(sp);
-      });
-      var dv = document.createElement('div'); dv.className = 'ax-div'; ax.appendChild(dv);
-      fc.forEach(function(d, i) {
-        var sp = document.createElement('div');
-        sp.className = 'ax-lbl fc-lbl';
-        if (i === fc.length - 1) sp.textContent = isoWY(d.w);
+      ax.innerHTML = ‘’;
+      show12.forEach(function(d, i) {
+        if (i === 6) { var dv = document.createElement(‘div’); dv.className = ‘ax-div’; ax.appendChild(dv); }
+        var sp = document.createElement(‘div’);
+        sp.className = ‘ax-lbl’;
+        sp.style.opacity = i < 6 ? ‘0.5’ : ‘1’;
+        sp.textContent = ‘שב’ + isoWeekNum(d.w);
         ax.appendChild(sp);
       });
     })();
+
+    document.getElementById(‘pp-spark-lbl’).textContent =
+      show6prev.length + ‘ שב׳ קודמות + ‘ + show6last.length + ‘ שב׳ אחרונות’;
   } else {
-    sparkEl.innerHTML = '<div style="color:#8899aa;font-size:.75rem;padding:20px 0;text-align:center">אין נתוני מכירות שבועיים</div>';
-    document.getElementById('pp-spark-lbl').textContent = '';
-    const axDyn2 = document.getElementById('pp-spark-axis-dyn');
-    if (axDyn2) axDyn2.innerHTML = '';
+    sparkEl.innerHTML = ‘<div style="color:#8899aa;font-size:.75rem;padding:20px 0;text-align:center">אין נתוני מכירות שבועיים</div>’;
+    document.getElementById(‘pp-spark-lbl’).textContent = ‘’;
+    const axDyn2 = document.getElementById(‘pp-spark-axis-dyn’);
+    if (axDyn2) axDyn2.innerHTML = ‘’;
   }
 
   document.getElementById('prophet-overlay').classList.add('open');
