@@ -65,7 +65,9 @@ async function build() {
         "pct_mkr",    CALCULATE([ימי מכר מכלל ימי עבודה %], ${df}),
         "hamlatza_k", CALCULATE([המלצה להזמנה קרטון],     ${df}),
         "tukuf",      [List of ת. תפוגת תוקף values],
-        "yamim",      MIN('תוקף FORM'[כמה ימים נשארו])
+        "yamim",      MIN('תוקף FORM'[כמה ימים נשארו]),
+        "eilat_yamim", MIN('EILATתוקף'[כמה ימים נשארו]),
+        "eilat_tukuf_dt", MIN('EILATתוקף'[ת. תפוגת תוקף])
       ),
       OR(OR('KARTIS PARIT'[ASHDOD KAARTON] > 0, 'KARTIS PARIT'[MMD KARTON] > 0), [מחסן מעבר] > 0)
     )
@@ -90,8 +92,11 @@ async function build() {
     yamim_haya: r['[yamim_haya]'] != null ? Math.round(r['[yamim_haya]'])          : null,
     pct_mkr:    r['[pct_mkr]']    != null ? Math.round(r['[pct_mkr]']  * 100)      : null,
     hamlatza:   r['[hamlatza_k]'] != null ? Math.round(r['[hamlatza_k]'] * 10) / 10 : null,
-    tukuf:      r['[tukuf]']  || null,
-    yamim:      r['[yamim]']  != null ? Math.round(r['[yamim]']) : null,
+    tukuf:          r['[tukuf]']         || null,
+    yamim:          r['[yamim]']         != null ? Math.round(r['[yamim]'])       : null,
+    eilat_yamim:    r['[eilat_yamim]']   != null ? Math.round(r['[eilat_yamim]']) : null,
+    eilat_tukuf_dt: r['[eilat_tukuf_dt]'] != null
+      ? new Date(r['[eilat_tukuf_dt]']).toISOString().slice(0, 10) : null,
   }));
 
   const refreshedAt = await getDatasetRefreshTime(MMD_DS);

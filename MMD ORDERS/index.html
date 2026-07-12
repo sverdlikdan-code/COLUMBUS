@@ -2235,6 +2235,15 @@ window.openInfoPanel = function(mk, taur) {
   document.getElementById('pp-pct-zikuy').textContent  = r ? fmtPct(r.pct_zikuy)     : '—';
   document.getElementById('pp-pizur').textContent      = r ? fmtPct(r.pizur)          : '—';
   document.getElementById('pp-tarif').textContent      = r ? fmt(r.tarif_mmd, 2)      : '—';
+  // eilat expiry
+  const ey = r ? r.eilat_yamim : null;
+  const eyEl = document.getElementById('pp-eilat-yamim');
+  if (ey != null) {
+    eyEl.textContent = ey;
+    eyEl.className = 'pp-metric-val ' + (ey < 30 ? 'red' : ey < 90 ? 'gold' : 'green');
+  } else { eyEl.textContent = '—'; eyEl.className = 'pp-metric-val dim'; }
+  const etEl = document.getElementById('pp-eilat-tukuf');
+  if (etEl) etEl.textContent = (r && r.eilat_tukuf_dt) ? 'ת. תפוגה: ' + r.eilat_tukuf_dt : '';
 
   // ── n_points note ────────────────────────────────────────────────
   const np = p ? (p.n_points ?? null) : null;
@@ -2409,10 +2418,12 @@ window.closeProphetPanel = window.closeInfoPanel = function() {
       <div class="pp-metric"><div class="pp-metric-val red"    id="pp-zikuy-shach">—</div><div class="pp-metric-lbl">זיכויים ש"ח</div></div>
       <div class="pp-metric"><div class="pp-metric-val"        id="pp-pct-zikuy">—</div><div class="pp-metric-lbl">% זיכויים</div></div>
     </div>
-    <div class="pp-metrics" style="grid-template-columns:repeat(2,1fr)">
+    <div class="pp-metrics" style="grid-template-columns:repeat(3,1fr)">
       <div class="pp-metric"><div class="pp-metric-val purple" id="pp-pizur">—</div><div class="pp-metric-lbl">% פיזור לקוחות</div></div>
       <div class="pp-metric"><div class="pp-metric-val green"  id="pp-tarif">—</div><div class="pp-metric-lbl">תאריף MMD ₪</div></div>
+      <div class="pp-metric"><div class="pp-metric-val"        id="pp-eilat-yamim">—</div><div class="pp-metric-lbl">ימים לתוקף אילת</div></div>
     </div>
+    <div id="pp-eilat-tukuf" style="font-size:.7rem;color:#8899aa;text-align:center;padding:4px 0 8px;direction:rtl"></div>
   </div>
   <div class="pp-close"><button type="button" onclick="closeProphetPanel()">✕ סגור</button></div>
 </div>
