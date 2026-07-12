@@ -2173,7 +2173,7 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
             'KARTIS PARIT INTER'[משפחת מוצר],
             'KARTIS PARIT INTER'[תאור משפחה]
           ),
-          'KARTIS PARIT INTER'[משפחת מוצר] IN {30, 39}
+          'KARTIS PARIT INTER'[משפחת מוצר] IN {"30", "39"}
         )
         ORDER BY 'KARTIS PARIT INTER'[מותג] ASC, 'KARTIS PARIT INTER'[מק"ט] ASC
       `).catch(e => { console.error('[inter-prod DAX]', e?.message || e); return null; }),
