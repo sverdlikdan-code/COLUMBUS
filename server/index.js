@@ -2132,7 +2132,7 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
   }
 });
 
-// GET /pbi/inter-sales?periods=2026-5,2026-6 — products + sales for INTER ordering page
+// GET /pbi/inter-sales?periods=2026-5,2026-6[&shiuk=VALUE] — products + sales for INTER ordering page
 app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
   let dateFilter;
   if (req.query.periods) {
@@ -2154,8 +2154,15 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
     return res.status(400).json({ error: 'periods param required' });
   }
 
+  const shiuk = req.query.shiuk ? String(req.query.shiuk).trim() : null;
+  // Validate: no DAX injection
+  if (shiuk && !/^[֐-׿\w\s\-\/]+$/.test(shiuk)) {
+    return res.status(400).json({ error: 'invalid shiuk value' });
+  }
+  const shiukFilter = shiuk ? `,\n          'ALL_PARTS'[שיווק] = "${shiuk}"` : '';
+
   try {
-    const [prodRows, salesRows, mkrRows] = await Promise.all([
+    const [prodRows, salesRows, mkrRows, shiukRows] = await Promise.all([
       executeDax(`
         EVALUATE
         SUMMARIZECOLUMNS(
@@ -2174,7 +2181,7 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
             'ALL_PARTS'[מק'ט],
             "daySales", [TOTAL מכר בקרטונים ממוצע ביום]
           ),
-          'ALL_PARTS'[חברה] = "INTER",
+          'ALL_PARTS'[חברה] = "INTER"${shiukFilter},
           ${dateFilter}
         )
       `).catch(() => null),
@@ -2185,10 +2192,19 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
             'ALL_PARTS'[מק'ט],
             "mkrTk", [TOTAL מכר בקרטונים]
           ),
-          'ALL_PARTS'[חברה] = "INTER",
+          'ALL_PARTS'[חברה] = "INTER"${shiukFilter},
           ${dateFilter}
         )
       `).catch(() => null),
+      // Fetch distinct שיווק values only on first load (no shiuk param)
+      !shiuk ? executeDax(`
+        EVALUATE
+        CALCULATETABLE(
+          DISTINCT('ALL_PARTS'[שיווק]),
+          'ALL_PARTS'[חברה] = "INTER"
+        )
+        ORDER BY 'ALL_PARTS'[שיווק] ASC
+      `).catch(() => null) : Promise.resolve(null),
     ]);
 
     const salesMap = {}, mkrMap = {};
@@ -2202,11 +2218,11 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
     }
 
     const products = (prodRows || []).map(r => ({
-      makat:   String(r['KARTIS PARIT INTER[מק"ט]'] ?? ''),
-      name:    fixBiDi(String(r['KARTIS PARIT INTER[תאור]'] ?? '')),
-      motag:   fixBiDi(String(r['KARTIS PARIT INTER[מותג]'] ?? '')),
-      param2:  fixBiDi(String(r['KARTIS PARIT INTER[פרמטר 2]'] ?? '')),
-      krat:    Number(r['KARTIS PARIT INTER[תכולת האריזה למוצר]'] ?? 1) || 1,
+      makat:  String(r['KARTIS PARIT INTER[מק"ט]'] ?? ''),
+      name:   fixBiDi(String(r['KARTIS PARIT INTER[תאור]'] ?? '')),
+      motag:  fixBiDi(String(r['KARTIS PARIT INTER[מותג]'] ?? '')),
+      param2: fixBiDi(String(r['KARTIS PARIT INTER[פרמטר 2]'] ?? '')),
+      krat:   Number(r['KARTIS PARIT INTER[תכולת האריזה למוצר]'] ?? 1) || 1,
     })).filter(p => p.makat);
 
     const sales = {};
@@ -2214,7 +2230,11 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
       sales[p.makat] = { daySales: salesMap[p.makat] ?? null, mkrTk: mkrMap[p.makat] ?? null };
     }
 
-    res.json({ ok: true, products, sales });
+    const shiukValues = shiukRows
+      ? shiukRows.map(r => r["ALL_PARTS[שיווק]"]).filter(v => v != null && String(v).trim()).map(v => fixBiDi(String(v)))
+      : null;
+
+    res.json({ ok: true, products, sales, shiukValues });
   } catch (err) {
     console.error(err); res.status(500).json({ error: 'server_error' });
   }
