@@ -900,7 +900,7 @@ async function initLogin(){
     return;
   }
   // Invite magic-link: read session params from URL, set localStorage before any auth check
-  // This avoids Android Custom Tab context split (localStorage set in invite page not visible in Chrome)
+  let _fromInvite = false;
   {
     const _up = new URLSearchParams(window.location.search);
     const _inv = _up.get('_inv'), _ac = _up.get('_ac'), _an = _up.get('_an');
@@ -908,6 +908,7 @@ async function initLogin(){
       try {
         localStorage.setItem('frAgent', JSON.stringify({isManager:false, code:_ac, name:_an||''}));
         localStorage.setItem('frToken', _inv);
+        _fromInvite = true;
       } catch(_){}
       window.history.replaceState({}, '', window.location.pathname);
     }
@@ -932,12 +933,13 @@ async function initLogin(){
       renderLogin();
       show('s-login');
     } else {
-      // Быстрая проверка: агент ещё существует в PBI кэше?
-      // exists:false — точно нет → логин. exists:null — сервер грузится → пропускаем.
-      try {
-        const ve = await apiFetch(`${API}/agent-exists?agent=${encodeURIComponent(saved.code)}`);
-        if(ve.ok){ const vj=await ve.json(); if(vj.exists===false){ localStorage.removeItem('frAgent'); renderLogin(); show('s-login'); return; } }
-      } catch(_){}
+      // Quick existence check — skip when coming from invite (token already validated server-side)
+      if (!_fromInvite) {
+        try {
+          const ve = await apiFetch(`${API}/agent-exists?agent=${encodeURIComponent(saved.code)}`);
+          if(ve.ok){ const vj=await ve.json(); if(vj.exists===false){ localStorage.removeItem('frAgent'); renderLogin(); show('s-login'); return; } }
+        } catch(_){}
+      }
       st.agent={code:saved.code,name:saved.name};
       document.getElementById('logout-btn').style.display='';
       // F5 state restore: if last day+city are saved, skip city screen and go straight to route
