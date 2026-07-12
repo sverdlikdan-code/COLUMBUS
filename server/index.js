@@ -2170,12 +2170,13 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
             'KARTIS PARIT INTER'[מק"ט],
             'KARTIS PARIT INTER'[תאור],
             'KARTIS PARIT INTER'[מותג],
+            'KARTIS PARIT INTER'[תאור פרמטר 2 למוצר],
             'KARTIS PARIT INTER'[משפחת מוצר],
             'KARTIS PARIT INTER'[תאור משפחה]
           ),
           'KARTIS PARIT INTER'[משפחת מוצר] IN {"30", "39"}
         )
-        ORDER BY 'KARTIS PARIT INTER'[מותג] ASC, 'KARTIS PARIT INTER'[מק"ט] ASC
+        ORDER BY 'KARTIS PARIT INTER'[מותג] ASC, 'KARTIS PARIT INTER'[תאור פרמטר 2 למוצר] ASC, 'KARTIS PARIT INTER'[מק"ט] ASC
       `).catch(e => { console.error('[inter-prod DAX]', e?.message || e); return null; }),
       executeDax(`
         EVALUATE
@@ -2227,6 +2228,7 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
       makat:        String(r['KARTIS PARIT INTER[מק"ט]'] ?? ''),
       name:         fixBiDi(String(r['KARTIS PARIT INTER[תאור]'] ?? '')),
       motag:        fixBiDi(String(r['KARTIS PARIT INTER[מותג]'] ?? '')),
+      param2:       fixBiDi(String(r['KARTIS PARIT INTER[תאור פרמטר 2 למוצר]'] ?? '')),
       mishpacaId:   r['KARTIS PARIT INTER[משפחת מוצר]'] ?? null,
       mishpacaTaur: fixBiDi(String(r['KARTIS PARIT INTER[תאור משפחה]'] ?? '')),
     })).filter(p => p.makat);
