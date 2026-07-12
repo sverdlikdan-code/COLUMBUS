@@ -771,11 +771,6 @@
   <div style="display:flex;align-items:stretch;flex-shrink:0;background:#2d1200;border-bottom:1px solid rgba(255,255,255,0.07);" class="no-print">
     <div id="inter-summary-inline" style="display:flex;align-items:stretch;flex:1;"></div>
   </div>
-  <!-- שיווק filter row -->
-  <div id="inter-shiuk-bar" style="display:none;align-items:center;gap:6px;padding:5px 14px;background:#EFEBE9;border-bottom:1px solid #D7CCC8;flex-shrink:0;" class="no-print">
-    <span style="font-size:10px;font-weight:700;color:#6d3b00;white-space:nowrap;">שיווק:</span>
-    <div id="inter-shiuk-btns" style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;"></div>
-  </div>
   <!-- Filter chips -->
   <div style="display:flex;align-items:center;gap:6px;padding:7px 14px;background:#FFF3E0;border-bottom:1px solid #FFE0B2;flex-shrink:0;" class="no-print">
     <button id="btn-inter-only" onclick="toggleInterOnly()" style="background:#fff;border:1.5px solid #FFE0B2;color:#6d3b00;font-size:11px;font-weight:700;cursor:pointer;border-radius:20px;padding:5px 14px;white-space:nowrap;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.12);">📋 הזמנה בלבד</button>
@@ -3467,21 +3462,6 @@ function buildInterOrderPage() {
   if (!products.length) {
     wrap.innerHTML = `<div style="text-align:center;padding:40px;color:#999;font-size:14px;">אין נתונים</div>`;
     return;
-  }
-
-  // שיווק filter chips
-  const shiukBar  = document.getElementById('inter-shiuk-bar');
-  const shiukBtns = document.getElementById('inter-shiuk-btns');
-  const shiukVals = window._interShiukValues || [];
-  if (shiukBar && shiukBtns && shiukVals.length) {
-    shiukBar.style.display = 'flex';
-    const sAct = 'font-size:11px;padding:3px 12px;border-radius:14px;cursor:pointer;font-weight:700;border:none;background:#5d4037;color:#fff;white-space:nowrap;';
-    const sDef = 'font-size:11px;padding:3px 12px;border-radius:14px;cursor:pointer;font-weight:600;border:1px solid #A1887F;background:#fff;color:#5d4037;white-space:nowrap;';
-    shiukBtns.innerHTML =
-      `<button style="${!window._interShiuk ? sAct : sDef}" onclick="toggleInterShiuk(null)">הכל</button>` +
-      shiukVals.map(v => `<button style="${window._interShiuk===v ? sAct : sDef}" onclick="toggleInterShiuk('${esc(v)}')">${esc(v)}</button>`).join('');
-  } else if (shiukBar) {
-    shiukBar.style.display = 'none';
   }
 
   // מותג chip filters
