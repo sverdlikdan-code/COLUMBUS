@@ -105,10 +105,12 @@ def load_data():
     week_start_monday = today - timedelta(days=today.weekday())  # Monday of current week
     cutoff = pd.Timestamp(week_start_monday)
     # Convert year+week to ds temporarily for filtering
+    HISTORY_WEEKS = 26  # look back 26 weeks (~6 months) only
+    earliest = cutoff - pd.Timedelta(weeks=HISTORY_WEEKS)
     df['_ds'] = df.apply(lambda r: week_to_date(r['year'], r['week']), axis=1)
     before = len(df)
-    df = df[df['_ds'] < cutoff].drop(columns=['_ds'])
-    print(f"Removed {before - len(df)} rows with week_start >= {week_start_monday} (current/future weeks)")
+    df = df[(df['_ds'] >= earliest) & (df['_ds'] < cutoff)].drop(columns=['_ds'])
+    print(f"Kept {len(df)} rows ({HISTORY_WEEKS}w window {earliest.date()} -> {week_start_monday}), removed {before - len(df)}")
     # Build name and hamlatza lookup
     meta = {str(r['mkt']): r for r in top10}
 
