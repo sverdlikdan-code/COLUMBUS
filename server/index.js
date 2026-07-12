@@ -2161,10 +2161,11 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
         SUMMARIZECOLUMNS(
           'KARTIS PARIT INTER'[מק"ט],
           'KARTIS PARIT INTER'[תאור],
-          'KARTIS PARIT INTER'[תאור משפחה],
+          'KARTIS PARIT INTER'[מותג],
+          'KARTIS PARIT INTER'[פרמטר 2],
           'KARTIS PARIT INTER'[תכולת האריזה למוצר]
         )
-        ORDER BY 'KARTIS PARIT INTER'[תאור משפחה] ASC, 'KARTIS PARIT INTER'[מק"ט] ASC
+        ORDER BY 'KARTIS PARIT INTER'[מותג] ASC, 'KARTIS PARIT INTER'[פרמטר 2] ASC, 'KARTIS PARIT INTER'[מק"ט] ASC
       `).catch(() => null),
       executeDax(`
         EVALUATE
@@ -2203,7 +2204,8 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
     const products = (prodRows || []).map(r => ({
       makat:   String(r['KARTIS PARIT INTER[מק"ט]'] ?? ''),
       name:    fixBiDi(String(r['KARTIS PARIT INTER[תאור]'] ?? '')),
-      mishpacha: fixBiDi(String(r['KARTIS PARIT INTER[תאור משפחה]'] ?? '')),
+      motag:   fixBiDi(String(r['KARTIS PARIT INTER[מותג]'] ?? '')),
+      param2:  fixBiDi(String(r['KARTIS PARIT INTER[פרמטר 2]'] ?? '')),
       krat:    Number(r['KARTIS PARIT INTER[תכולת האריזה למוצר]'] ?? 1) || 1,
     })).filter(p => p.makat);
 
