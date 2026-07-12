@@ -3304,6 +3304,7 @@ function buildOrderPage() {
 // ══════════════════════════════════════════════════════
 //  INTER ORDER PAGE
 // ══════════════════════════════════════════════════════
+const fmtK = n => Math.round(n || 0).toLocaleString('en');
 window._interSelectedPeriods = new Set();
 window._interManualEdits     = {};
 window._interOnlyMode        = false;
