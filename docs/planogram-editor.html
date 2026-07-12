@@ -3401,7 +3401,10 @@ async function _applyInterPeriods() {
     } else {
       let url = `https://api.sverdlik-apps.site/pbi/inter-sales?periods=${encodeURIComponent(periodsKey)}`;
       if (shiuk) url += `&shiuk=${encodeURIComponent(shiuk)}`;
-      const resp = await fetch(url).catch(() => null);
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 45000);
+      const resp = await fetch(url, { signal: ctrl.signal }).catch(() => null);
+      clearTimeout(timer);
       if (resp && resp.ok) {
         const j = await resp.json().catch(() => null);
         if (j && j.ok) {

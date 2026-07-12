@@ -2162,7 +2162,7 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
   const shiukFilter = shiuk ? `,\n          'ALL_PARTS'[שיווק] = "${shiuk}"` : '';
 
   try {
-    const [prodRows, salesRows, mkrRows, shiukRows] = await Promise.all([
+    const [prodRows, salesRows, mkrRows] = await Promise.all([
       executeDax(`
         EVALUATE
         CALCULATETABLE(
@@ -2200,15 +2200,6 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
           ${dateFilter}
         )
       `).catch(() => null),
-      // Fetch distinct שיווק values only on first load (no shiuk param)
-      !shiuk ? executeDax(`
-        EVALUATE
-        CALCULATETABLE(
-          DISTINCT('ALL_PARTS'[שיווק]),
-          'ALL_PARTS'[חברה] = "INTER"
-        )
-        ORDER BY 'ALL_PARTS'[שיווק] ASC
-      `).catch(() => null) : Promise.resolve(null),
     ]);
 
     const salesMap = {}, mkrMap = {};
@@ -2238,11 +2229,7 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
       sales[p.makat] = { daySales: salesMap[p.makat] ?? null, mkrTk: mkrMap[p.makat] ?? null };
     }
 
-    const shiukValues = shiukRows
-      ? shiukRows.map(r => r["ALL_PARTS[שיווק]"]).filter(v => v != null && String(v).trim()).map(v => fixBiDi(String(v)))
-      : null;
-
-    res.json({ ok: true, products, sales, shiukValues });
+    res.json({ ok: true, products, sales });
   } catch (err) {
     console.error(err); res.status(500).json({ error: 'server_error' });
   }
