@@ -55,7 +55,6 @@ async function build() {
         'KARTIS PARIT'[URL תמונה],
         'KARTIS PARIT'[ASHDOD KAARTON],
         'KARTIS PARIT'[MMD KARTON],
-        TREATAS({"פעיל"}, 'KARTIS PARIT'[סטטוס]),
         "eilat_k",    [מלאי בקרטון EILAT],
         "maavar",     [מחסן מעבר],
         "mkr_shvua",  CALCULATE([מכר ממוצע בשבוע קרטון], ${df}),
