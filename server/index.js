@@ -374,7 +374,8 @@ function verifyInvite(token) {
   } catch(_) { return null; }
 }
 
-// GET /invite/:token — magic link: verify → create session → set localStorage → redirect
+// GET /invite/:token — magic link: verify → set cookie → redirect directly to formula-road with params
+// formula-road.html reads _inv/_ac/_an from URL params and sets localStorage itself (avoids Custom Tab context split)
 app.get('/invite/:token', (req, res) => {
   const payload = verifyInvite(req.params.token);
   if (!payload) return res.status(400).send(`<!DOCTYPE html><html><head><meta charset=utf-8><title>קישור לא בתוקף</title></head>
@@ -382,35 +383,11 @@ app.get('/invite/:token', (req, res) => {
 <h2 style="color:#c62828">הקישור פג תוקף</h2>
 <p style="color:#555">בקש קישור חדש מהמנהל.</p></body></html>`);
   const sessionToken = createSession(payload.code, false);
-  const name = payload.name || '';
-  const code = payload.code || '';
-  const APP_URL = 'https://api.sverdlik-apps.site/formula-road';
+  const name = encodeURIComponent(payload.name || '');
+  const code = encodeURIComponent(payload.code || '');
+  const inv  = encodeURIComponent(sessionToken);
   res.setHeader('Set-Cookie', 'fr_ok=1; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000');
-  res.send(`<!DOCTYPE html>
-<html><head><meta charset=utf-8><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Formula Roads — כניסה</title>
-<style>body{margin:0;font-family:Arial,sans-serif;background:#0d2137;display:flex;align-items:center;justify-content:center;min-height:100vh}
-.box{background:#fff;border-radius:18px;padding:40px 32px;text-align:center;max-width:340px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.4)}
-.logo{font-size:36px;margin-bottom:8px}.title{font-size:22px;font-weight:900;color:#1A3F7C;margin-bottom:6px}
-.sub{color:#666;font-size:14px;margin-bottom:28px}.spinner{width:48px;height:48px;border:5px solid #e0e0e0;border-top-color:#1A3F7C;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 20px}
-@keyframes spin{to{transform:rotate(360deg)}}.ok{color:#2E7D32;font-size:16px;font-weight:700;display:none}</style>
-</head><body>
-<div class=box>
-  <div class=logo>🗺️</div>
-  <div class=title>Formula Roads</div>
-  <div class=sub>שלום ${name}!</div>
-  <div class=spinner id=sp></div>
-  <div class=ok id=ok>✅ מחובר! מעביר...</div>
-</div>
-<script>
-try{
-  localStorage.setItem('frAgent', JSON.stringify({isManager:false, code:'${code}', name:'${name}'}));
-  localStorage.setItem('frToken', '${sessionToken}');
-}catch(e){}
-document.getElementById('sp').style.display='none';
-document.getElementById('ok').style.display='block';
-setTimeout(()=>{ window.location.replace('${APP_URL}'); }, 800);
-</script></body></html>`);
+  return res.redirect(302, `https://api.sverdlik-apps.site/formula-road?_inv=${inv}&_ac=${code}&_an=${name}`);
 });
 
 // GET /auth/pbi — auto-login as manager if opened via PBI (fr_ok cookie present)
@@ -2150,6 +2127,92 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
       };
     }
     res.json({ ok: true, data, totalBranchy });
+  } catch (err) {
+    console.error(err); res.status(500).json({ error: 'server_error' });
+  }
+});
+
+// GET /pbi/inter-sales?periods=2026-5,2026-6 — products + sales for INTER ordering page
+app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
+  let dateFilter;
+  if (req.query.periods) {
+    const parts = String(req.query.periods).split(',').map(s => s.trim()).filter(Boolean);
+    const conds = [];
+    for (const p of parts) {
+      const [y, m] = p.split('-').map(Number);
+      if (!y || y < 2020 || y > 2030) return res.status(400).json({ error: `invalid period: ${p}` });
+      if (m) {
+        if (m < 1 || m > 12) return res.status(400).json({ error: `invalid month in: ${p}` });
+        conds.push(`(YEAR('ALL_PARTS'[תאריך])=${y}&&MONTH('ALL_PARTS'[תאריך])=${m})`);
+      } else {
+        conds.push(`YEAR('ALL_PARTS'[תאריך])=${y}`);
+      }
+    }
+    if (!conds.length) return res.status(400).json({ error: 'no valid periods' });
+    dateFilter = `FILTER(ALL('ALL_PARTS'[תאריך]),${conds.join('||')})`;
+  } else {
+    return res.status(400).json({ error: 'periods param required' });
+  }
+
+  try {
+    const [prodRows, salesRows, mkrRows] = await Promise.all([
+      executeDax(`
+        EVALUATE
+        SUMMARIZECOLUMNS(
+          'KARTIS PARIT INTER'[מק"ט],
+          'KARTIS PARIT INTER'[תאור],
+          'KARTIS PARIT INTER'[תאור משפחה],
+          'KARTIS PARIT INTER'[תכולת האריזה למוצר]
+        )
+        ORDER BY 'KARTIS PARIT INTER'[תאור משפחה] ASC, 'KARTIS PARIT INTER'[מק"ט] ASC
+      `).catch(() => null),
+      executeDax(`
+        EVALUATE
+        CALCULATETABLE(
+          SUMMARIZECOLUMNS(
+            'ALL_PARTS'[מק'ט],
+            "daySales", [TOTAL מכר בקרטונים ממוצע ביום]
+          ),
+          'ALL_PARTS'[חברה] = "INTER",
+          ${dateFilter}
+        )
+      `).catch(() => null),
+      executeDax(`
+        EVALUATE
+        CALCULATETABLE(
+          SUMMARIZECOLUMNS(
+            'ALL_PARTS'[מק'ט],
+            "mkrTk", [TOTAL מכר בקרטונים]
+          ),
+          'ALL_PARTS'[חברה] = "INTER",
+          ${dateFilter}
+        )
+      `).catch(() => null),
+    ]);
+
+    const salesMap = {}, mkrMap = {};
+    if (salesRows) for (const r of salesRows) {
+      const mk = r["ALL_PARTS[מק'ט]"];
+      if (mk != null) salesMap[String(mk)] = r['[daySales]'] ?? null;
+    }
+    if (mkrRows) for (const r of mkrRows) {
+      const mk = r["ALL_PARTS[מק'ט]"];
+      if (mk != null) mkrMap[String(mk)] = r['[mkrTk]'] ?? null;
+    }
+
+    const products = (prodRows || []).map(r => ({
+      makat:   String(r['KARTIS PARIT INTER[מק"ט]'] ?? ''),
+      name:    fixBiDi(String(r['KARTIS PARIT INTER[תאור]'] ?? '')),
+      mishpacha: fixBiDi(String(r['KARTIS PARIT INTER[תאור משפחה]'] ?? '')),
+      krat:    Number(r['KARTIS PARIT INTER[תכולת האריזה למוצר]'] ?? 1) || 1,
+    })).filter(p => p.makat);
+
+    const sales = {};
+    for (const p of products) {
+      sales[p.makat] = { daySales: salesMap[p.makat] ?? null, mkrTk: mkrMap[p.makat] ?? null };
+    }
+
+    res.json({ ok: true, products, sales });
   } catch (err) {
     console.error(err); res.status(500).json({ error: 'server_error' });
   }
