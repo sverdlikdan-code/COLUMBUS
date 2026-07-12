@@ -2165,12 +2165,15 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
     const [prodRows, salesRows, mkrRows, shiukRows] = await Promise.all([
       executeDax(`
         EVALUATE
-        SUMMARIZECOLUMNS(
-          'KARTIS PARIT INTER'[מק"ט],
-          'KARTIS PARIT INTER'[תאור],
-          'KARTIS PARIT INTER'[מותג],
-          'KARTIS PARIT INTER'[פרמטר 2],
-          'KARTIS PARIT INTER'[תכולת האריזה למוצר]
+        CALCULATETABLE(
+          SUMMARIZECOLUMNS(
+            'KARTIS PARIT INTER'[מק"ט],
+            'KARTIS PARIT INTER'[תאור],
+            'KARTIS PARIT INTER'[מותג],
+            'KARTIS PARIT INTER'[פרמטר 2],
+            'KARTIS PARIT INTER'[תכולת האריזה למוצר]
+          ),
+          'KARTIS PARIT INTER'[משפחת מוצר] IN {"מתוקים", "מוצרי מדף"}
         )
         ORDER BY 'KARTIS PARIT INTER'[מותג] ASC, 'KARTIS PARIT INTER'[פרמטר 2] ASC, 'KARTIS PARIT INTER'[מק"ט] ASC
       `).catch(() => null),
