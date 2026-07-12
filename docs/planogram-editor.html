@@ -650,6 +650,7 @@
   <button class="btn no-print" id="btn-table" onclick="toggleTable()" style="background:#f0f4ff;color:#1565C0;border:1px solid #1565C0;">📊 מיקום</button>
   <button class="btn no-print" id="btn-expiry" onclick="toggleExpiryPage()" style="background:#f0f4ff;color:#c62828;border:1px solid #ef9a9a;">📦 תוקף</button>
   <button class="btn no-print" id="btn-order" onclick="toggleOrderPage()" style="background:#f0fff4;color:#1b5e20;border:1px solid #81c784;">🐟 הזמנה</button>
+  <button class="btn no-print" id="btn-inter-order" onclick="toggleInterOrderPage()" style="background:#fff8e1;color:#6d3b00;border:1px solid #ffb300;">🏪 INTER</button>
   <button class="btn no-print" onclick="printPhotoA3()" style="background:#fff3e0;color:#e65100;border:1px solid #ffb74d;" title="הדפס תמונות A3 — עמוד אחד לכל מקט">📷 A3</button>
   <span class="no-print" style="margin-right:6px;border-right:1px solid #ccc;padding-right:8px;display:inline-flex;align-items:center;gap:3px;">
     <button id="wh-main" class="btn wh-btn wh-active" onclick="setWarehouse('Main')">אשדוד</button>
@@ -746,6 +747,37 @@
   </div>
 
   <div id="order-table-wrap" style="flex:1;min-height:0;overflow:auto;padding:0 12px 16px;background:#F5F7FA;"></div>
+</div>
+
+<!-- INTER order page — full-screen overlay -->
+<div id="inter-order-page" style="display:none; position:fixed; inset:0; z-index:611; background:#FFF8E1; overflow:hidden; direction:rtl; flex-direction:column;">
+  <!-- Title bar -->
+  <div style="display:flex;align-items:stretch;height:52px;flex-shrink:0;z-index:10;box-shadow:0 3px 14px rgba(0,0,0,.45);position:relative;overflow:hidden;background:linear-gradient(125deg,#1a0a00 0%,#3e1c00 25%,#7c3a00 58%,#bf6a00 82%,#e08000 100%);">
+    <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 9px,rgba(255,255,255,.018) 9px,rgba(255,255,255,.018) 10px);pointer-events:none;"></div>
+    <button onclick="toggleInterOrderPage()" class="no-print" style="background:none;border:none;border-left:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.4);font-size:16px;cursor:pointer;padding:0 14px;flex-shrink:0;transition:color 0.15s;position:relative;z-index:1;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.4)'">✕</button>
+    <div style="display:flex;align-items:center;gap:8px;padding:0 14px 0 10px;flex-shrink:0;position:relative;z-index:1;border-left:1px solid rgba(255,255,255,0.08);">
+      <div style="display:flex;flex-direction:column;gap:1px;">
+        <span style="font-size:13px;font-weight:900;color:#fff;letter-spacing:.025em;line-height:1.1;">הזמנה INTER 🏪</span>
+        <span style="font-size:9px;font-weight:500;color:rgba(255,255,255,0.45);letter-spacing:.05em;">INTER · ORDER</span>
+      </div>
+    </div>
+    <div id="inter-period-btns" style="display:flex;flex:1;min-width:0;overflow:hidden;padding:0 10px;align-items:center;gap:3px;direction:ltr;position:relative;z-index:1;" class="no-print"></div>
+    <div style="display:flex;align-items:center;gap:6px;padding:0 10px;position:relative;z-index:1;" class="no-print">
+      <button onclick="exportInterOrderCsv()" style="background:#b45309;border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:5px 13px;white-space:nowrap;letter-spacing:.3px;">⬇ Excel</button>
+      <button onclick="window.print()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.8);font-size:11px;font-weight:600;cursor:pointer;border-radius:6px;padding:4px 11px;white-space:nowrap;">🖨 הדפסה</button>
+    </div>
+  </div>
+  <!-- KPI bar -->
+  <div style="display:flex;align-items:stretch;flex-shrink:0;background:#2d1200;border-bottom:1px solid rgba(255,255,255,0.07);" class="no-print">
+    <div id="inter-summary-inline" style="display:flex;align-items:stretch;flex:1;"></div>
+  </div>
+  <!-- Filter chips -->
+  <div style="display:flex;align-items:center;gap:6px;padding:7px 14px;background:#FFF3E0;border-bottom:1px solid #FFE0B2;flex-shrink:0;" class="no-print">
+    <button id="btn-inter-only" onclick="toggleInterOnly()" style="background:#fff;border:1.5px solid #FFE0B2;color:#6d3b00;font-size:11px;font-weight:700;cursor:pointer;border-radius:20px;padding:5px 14px;white-space:nowrap;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.12);">📋 הזמנה בלבד</button>
+    <div style="width:1px;height:18px;background:#FFE0B2;flex-shrink:0;margin:0 2px;"></div>
+    <div id="inter-fam-btns" style="display:flex;flex:1;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;"></div>
+  </div>
+  <div id="inter-table-wrap" style="flex:1;min-height:0;overflow:auto;padding:0 12px 16px;background:#FFF8E1;"></div>
 </div>
 
 <!-- Summary position table — fixed overlay panel -->
@@ -3267,6 +3299,294 @@ function buildOrderPage() {
     <div style="font-size:10px;color:#999;margin-top:10px;text-align:left;direction:ltr;">
       ${rows.length} מוצרים | בטחון: מצונן/פורל/סלמון = 10d | אחרים = 45d | קונטיינר = ${PALS_PER_CONT} PAL
     </div>`;
+}
+
+// ══════════════════════════════════════════════════════
+//  INTER ORDER PAGE
+// ══════════════════════════════════════════════════════
+window._interSelectedPeriods = new Set();
+window._interManualEdits     = {};
+window._interOnlyMode        = false;
+window._interMotagFilter     = new Set();
+window._interParam2Filter    = new Set();
+window._interProducts        = null;
+window._interPeriodSales     = null;
+window._interCurrentRows     = [];
+const _interPeriodCache      = {};
+
+function toggleInterOrderPage() {
+  const page = document.getElementById('inter-order-page');
+  const btn  = document.getElementById('btn-inter-order');
+  const open = page.style.display === 'none';
+  page.style.display = open ? 'flex' : 'none';
+  if (btn) { btn.style.background = open ? '#f57c00' : '#fff8e1'; btn.style.color = open ? '#fff' : '#6d3b00'; }
+  if (open) {
+    if (!window._interSelectedPeriods.size) _defaultInterPeriods();
+    _renderInterPeriodBar();
+    _applyInterPeriods();
+  }
+}
+
+function _defaultInterPeriods() {
+  const now = new Date();
+  const nowY = now.getFullYear(), nowM = now.getMonth() + 1;
+  let prevY = nowY, prevM = nowM - 1;
+  if (prevM <= 0) { prevM = 12; prevY--; }
+  window._interSelectedPeriods.clear();
+  window._interSelectedPeriods.add(`${nowY}-${nowM}`);
+  window._interSelectedPeriods.add(`${prevY}-${prevM}`);
+}
+
+function toggleInterPeriod(year, month) {
+  const key = `${year}-${month}`;
+  if (window._interSelectedPeriods.has(key)) {
+    if (window._interSelectedPeriods.size > 1) window._interSelectedPeriods.delete(key);
+  } else {
+    window._interSelectedPeriods.add(key);
+  }
+  _renderInterPeriodBar();
+  _applyInterPeriods();
+}
+
+function clearInterPeriod() {
+  _defaultInterPeriods();
+  _renderInterPeriodBar();
+  _applyInterPeriods();
+}
+
+function _renderInterPeriodBar() {
+  const bar = document.getElementById('inter-period-btns');
+  if (!bar) return;
+  const sel = window._interSelectedPeriods;
+  const now = new Date();
+  const nowY = now.getFullYear(), nowM = now.getMonth() + 1;
+  const HM = ['','ינו','פבר','מרץ','אפר','מאי','יונ','יול','אוג','ספט','אוק','נוב','דצ'];
+  const mAct = 'font-size:11px;padding:4px 10px;border-radius:16px;cursor:pointer;font-weight:700;border:none;background:#f57c00;color:#fff;white-space:nowrap;';
+  const mDef = 'font-size:11px;padding:4px 10px;border-radius:16px;cursor:pointer;font-weight:600;border:none;background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.8);white-space:nowrap;';
+  const rstSt= 'font-size:10px;padding:3px 9px;border-radius:12px;cursor:pointer;font-weight:600;border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);white-space:nowrap;margin-left:4px;';
+  let ph = `<button style="${rstSt}" onclick="clearInterPeriod()">↺ ברירת מחדל</button>`;
+  ph += `<span style="color:rgba(255,255,255,0.12);font-size:14px;margin:0 4px;">|</span>`;
+  for (let mo = 0; mo < 13; mo++) {
+    const m  = ((nowM - mo - 1 + 12) % 12) + 1;
+    const yr = (m > nowM) ? nowY - 1 : nowY;
+    const isAct = sel.has(`${yr}-${m}`);
+    ph += `<button style="${isAct ? mAct : mDef}" onclick="toggleInterPeriod(${yr},${m})">${HM[m]}</button>`;
+  }
+  bar.innerHTML = ph;
+}
+
+async function _applyInterPeriods() {
+  const periods = [...window._interSelectedPeriods];
+  if (!periods.length) { window._interPeriodSales = null; buildInterOrderPage(); return; }
+  const cacheKey = [...periods].sort().join(',');
+  const bar = document.getElementById('inter-period-btns');
+  if (bar) bar.querySelectorAll('button').forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
+  const wrap = document.getElementById('inter-table-wrap');
+  if (wrap) wrap.innerHTML = `<div style="text-align:center;padding:40px;color:#999;font-size:14px;">טוען...</div>`;
+  try {
+    if (_interPeriodCache[cacheKey]) {
+      const c = _interPeriodCache[cacheKey];
+      window._interProducts    = c.products;
+      window._interPeriodSales = c.sales;
+    } else {
+      const resp = await fetch(`https://api.sverdlik-apps.site/pbi/inter-sales?periods=${encodeURIComponent(cacheKey)}`).catch(() => null);
+      if (resp && resp.ok) {
+        const j = await resp.json().catch(() => null);
+        if (j && j.ok) {
+          window._interProducts    = j.products || [];
+          window._interPeriodSales = j.sales    || {};
+          _interPeriodCache[cacheKey] = { products: j.products, sales: j.sales };
+        }
+      }
+    }
+  } catch(e) { console.error('[inter]', e); }
+  finally {
+    if (bar) bar.querySelectorAll('button').forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+    buildInterOrderPage();
+  }
+}
+
+function toggleInterOnly() {
+  window._interOnlyMode = !window._interOnlyMode;
+  const btn = document.getElementById('btn-inter-only');
+  if (btn) { btn.style.background = window._interOnlyMode ? '#f57c00' : '#fff'; btn.style.color = window._interOnlyMode ? '#fff' : '#6d3b00'; }
+  buildInterOrderPage();
+}
+
+function toggleInterMotag(motag) {
+  if (window._interMotagFilter.has(motag)) window._interMotagFilter.delete(motag);
+  else window._interMotagFilter.add(motag);
+  buildInterOrderPage();
+}
+
+function _recalcInterRowK(mk, k) {
+  const prev = (window._interManualEdits || {})[mk] || {};
+  window._interManualEdits[mk] = { orderK: +k, orderP: prev.orderP ?? 0 };
+  const row = (window._interCurrentRows || []).find(r => String(r.mk) === String(mk));
+  if (row) row.orderK = +k;
+  _recalcInterTotal();
+}
+function _recalcInterRowPal(mk, p) {
+  const prev = (window._interManualEdits || {})[mk] || {};
+  window._interManualEdits[mk] = { orderK: prev.orderK ?? 0, orderP: +p };
+  const row = (window._interCurrentRows || []).find(r => String(r.mk) === String(mk));
+  if (row) row.orderP = +p;
+  _recalcInterTotal();
+}
+function _recalcInterTotal() {
+  let totK = 0, totPal = 0;
+  (window._interCurrentRows || []).forEach(r => { totK += r.orderK || 0; totPal += r.orderP || 0; });
+  const hK = document.getElementById('inter-k-hdr'); if (hK) hK.textContent = fmtK(totK);
+  const hP = document.getElementById('inter-pal-hdr'); if (hP) hP.textContent = totPal.toFixed(1);
+}
+
+function buildInterOrderPage() {
+  const wrap = document.getElementById('inter-table-wrap');
+  if (!wrap) return;
+  const products = window._interProducts || [];
+  const sales    = window._interPeriodSales || {};
+
+  if (!products.length) {
+    wrap.innerHTML = `<div style="text-align:center;padding:40px;color:#999;font-size:14px;">אין נתונים</div>`;
+    return;
+  }
+
+  // Chip filters: מותג level
+  const allMotags = [...new Set(products.map(p => p.motag || '—'))].sort();
+  const famBtns   = document.getElementById('inter-fam-btns');
+  if (famBtns) {
+    const chipAct = 'font-size:12px;padding:4px 14px;border-radius:18px;cursor:pointer;font-weight:700;border:2px solid #f57c00;background:#f57c00;color:#fff;white-space:nowrap;';
+    const chipDef = 'font-size:12px;padding:4px 14px;border-radius:18px;cursor:pointer;font-weight:600;border:2px solid #FFB74D;background:#fff;color:#bf360c;white-space:nowrap;';
+    famBtns.innerHTML = allMotags.map(m =>
+      `<button style="${window._interMotagFilter.has(m) ? chipAct : chipDef}" onclick="toggleInterMotag('${esc(m)}')">${esc(m)}</button>`
+    ).join('');
+  }
+
+  const allRows = products.map(p => {
+    const mk = String(p.makat);
+    const s  = sales[mk] || {};
+    const daySales  = +(s.daySales ?? 0);
+    const mkrTk     = s.mkrTk ?? null;
+    let periodSales = mkrTk !== null ? Math.round(mkrTk) : null;
+    if (periodSales === null && daySales > 0) {
+      let pd = 0;
+      for (const per of window._interSelectedPeriods) { const [y,m] = per.split('-').map(Number); pd += new Date(y,m,0).getDate(); }
+      if (pd > 0) periodSales = Math.round(daySales * pd);
+    }
+    const krat  = p.krat || 1;
+    const edit  = (window._interManualEdits || {})[mk];
+    return { mk, name: p.name, motag: p.motag || '—', param2: p.param2 || '—', krat, daySales, periodSales, orderK: edit ? edit.orderK : 0, orderP: edit ? edit.orderP : 0 };
+  });
+
+  let rows = allRows;
+  if (window._interMotagFilter.size) rows = rows.filter(r => window._interMotagFilter.has(r.motag));
+  if (window._interOnlyMode) rows = rows.filter(r => (r.orderK || 0) > 0);
+  window._interCurrentRows = rows;
+
+  // Group: מותג → פרמטר 2
+  const grouped = {};
+  rows.forEach(r => {
+    if (!grouped[r.motag]) grouped[r.motag] = {};
+    if (!grouped[r.motag][r.param2]) grouped[r.motag][r.param2] = [];
+    grouped[r.motag][r.param2].push(r);
+  });
+
+  const thead = `<thead><tr style="background:#bf360c;color:#fff;position:sticky;top:0;z-index:5;">
+    <th style="padding:8px 12px;text-align:right;font-size:11px;">שם מוצר</th>
+    <th style="padding:8px 6px;text-align:center;font-size:11px;">מק"ט</th>
+    <th style="padding:8px 6px;text-align:center;font-size:11px;">מכר/יום</th>
+    <th style="padding:8px 6px;text-align:center;font-size:11px;">מכר בתקופה</th>
+    <th style="padding:8px 6px;text-align:center;font-size:11px;">קרט/פל</th>
+    <th style="padding:8px 6px;text-align:center;font-size:11px;background:#6d3b00;">כמות קרטון</th>
+    <th style="padding:8px 6px;text-align:center;font-size:11px;background:#6d3b00;">פלטות</th>
+  </tr></thead>`;
+
+  let tbRows = '';
+  let gtOrder = 0, gtPal = 0;
+
+  Object.entries(grouped).sort(([a],[b]) => a.localeCompare(b)).forEach(([motag, param2Groups]) => {
+    const motagRows = Object.values(param2Groups).flat();
+    const motagK   = motagRows.reduce((s,r) => s + (r.orderK||0), 0);
+    const motagPal = motagRows.reduce((s,r) => s + (r.orderP||0), 0);
+    gtOrder += motagK; gtPal += motagPal;
+
+    // מותג header row
+    tbRows += `<tr style="background:#7c3a00;color:#fff;">
+      <td colspan="5" style="padding:6px 12px;font-size:13px;font-weight:900;" dir="rtl">🏷 ${esc(motag)}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:13px;font-weight:800;">${fmtK(motagK)}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:12px;font-weight:700;">${motagPal.toFixed(1)}</td>
+    </tr>`;
+
+    Object.entries(param2Groups).sort(([a],[b]) => a.localeCompare(b)).forEach(([param2, gr]) => {
+      const grpK   = gr.reduce((s,r) => s + (r.orderK||0), 0);
+      const grpPal = gr.reduce((s,r) => s + (r.orderP||0), 0);
+      tbRows += `<tr style="background:#f57c00;color:#fff;">
+        <td colspan="5" style="padding:4px 20px;font-size:11px;font-weight:700;" dir="rtl">📦 ${esc(param2)} <span style="opacity:0.7;font-size:10px;">(${gr.length})</span></td>
+        <td style="padding:4px 8px;text-align:center;font-size:11px;font-weight:700;">${fmtK(grpK)}</td>
+        <td style="padding:4px 8px;text-align:center;font-size:10px;font-weight:700;">${grpPal.toFixed(1)}</td>
+      </tr>`;
+
+      gr.forEach((r, i) => {
+        const bg = i % 2 === 0 ? '#fff' : '#FFF3E0';
+        const oc = r.orderK > 0 ? '#c62828' : '#888';
+        tbRows += `<tr style="background:${bg};border-bottom:1px solid #FFE0B2;">
+          <td style="padding:5px 12px;font-size:11px;font-weight:600;max-width:220px;" dir="rtl">${esc(r.name)}</td>
+          <td style="padding:5px 6px;text-align:center;font-size:10px;color:#888;">${r.mk}</td>
+          <td style="padding:5px 6px;text-align:center;font-size:12px;">${r.daySales > 0 ? r.daySales.toFixed(2) : '—'}</td>
+          <td style="padding:5px 6px;text-align:center;font-size:12px;">${r.periodSales != null ? fmtK(r.periodSales) : '—'}</td>
+          <td style="padding:5px 6px;text-align:center;font-size:11px;color:#aaa;">${r.krat}</td>
+          <td style="padding:5px 6px;text-align:center;background:#fff3e0;">
+            <input type="number" min="0" step="1" value="${r.orderK || ''}" placeholder="0"
+              style="width:60px;text-align:center;border:1px solid #ffb300;border-radius:4px;padding:3px;font-size:13px;font-weight:700;color:${oc};"
+              onchange="_recalcInterRowK('${r.mk}', this.value)">
+          </td>
+          <td style="padding:5px 6px;text-align:center;background:#fff3e0;">
+            <input type="number" min="0" step="0.5" value="${r.orderP || ''}" placeholder="0"
+              style="width:55px;text-align:center;border:1px solid #ffb300;border-radius:4px;padding:3px;font-size:12px;font-weight:600;color:${oc};"
+              onchange="_recalcInterRowPal('${r.mk}', this.value)">
+          </td>
+        </tr>`;
+      });
+    });
+  });
+
+  const sumEl = document.getElementById('inter-summary-inline');
+  if (sumEl) {
+    const kpi = (lbl, val) =>
+      `<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;padding:5px 14px;margin:5px 4px;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);border-radius:8px;min-width:80px;text-align:center;">
+        <span style="font-size:9px;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:.05em;text-transform:uppercase;">${lbl}</span>
+        <span style="font-size:17px;font-weight:800;color:#fff;line-height:1.3;margin-top:2px;">${val}</span>
+      </div>`;
+    sumEl.innerHTML =
+      kpi('KARTON', `<span id="inter-k-hdr">${fmtK(gtOrder)}</span>`) +
+      kpi('PALLET',  `<span id="inter-pal-hdr">${gtPal.toFixed(1)}</span>`) +
+      kpi('מק"ט',   `${rows.length}`);
+  }
+
+  wrap.innerHTML = `<table style="width:100%;border-collapse:collapse;box-shadow:0 2px 10px rgba(0,0,0,0.08);">${thead}<tbody>${tbRows}</tbody></table>`;
+}
+
+function exportInterOrderCsv() {
+  const rows = window._interCurrentRows || [];
+  if (!rows.length) { alert('אין מוצרים'); return; }
+  const cols = ['מק"ט','שם מוצר','מותג','פרמטר 2','מכר ממוצע ביום','מכר בתקופה','קרטון/פל','כמות קרטון','פלטות'];
+  const csvRows = [cols.join(',')];
+  rows.forEach(r => {
+    csvRows.push([r.mk,
+      `"${(r.name||'').replace(/"/g,'""')}"`,
+      `"${(r.motag||'').replace(/"/g,'""')}"`,
+      `"${(r.param2||'').replace(/"/g,'""')}"`,
+      r.daySales > 0 ? r.daySales.toFixed(2) : '',
+      r.periodSales != null ? r.periodSales : '',
+      r.krat, r.orderK || '', r.orderP || ''].join(','));
+  });
+  const csv  = '﻿' + csvRows.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `order-inter-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
 function toggleExpiryPage() {

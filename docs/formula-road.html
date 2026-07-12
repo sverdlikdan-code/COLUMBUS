@@ -899,6 +899,20 @@ async function initLogin(){
     </div>`;
     return;
   }
+  // Invite magic-link: read session params from URL, set localStorage before any auth check
+  // This avoids Android Custom Tab context split (localStorage set in invite page not visible in Chrome)
+  {
+    const _up = new URLSearchParams(window.location.search);
+    const _inv = _up.get('_inv'), _ac = _up.get('_ac'), _an = _up.get('_an');
+    if (_inv && _ac) {
+      try {
+        localStorage.setItem('frAgent', JSON.stringify({isManager:false, code:_ac, name:_an||''}));
+        localStorage.setItem('frToken', _inv);
+      } catch(_){}
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }
+
   await loadStaticData();
   await loadCorrections();
   await loadAiGps();
