@@ -891,8 +891,20 @@
       </div>
       <span id="user-badge" style="font-size:.72rem;color:#90a4ae;padding:2px 6px;align-self:center;white-space:nowrap;cursor:pointer" title="לחץ לשינוי שם" onclick="promptChangeUser()"></span>
       <button class="btn btn-print" onclick="(()=>{document.querySelectorAll('.c-img img').forEach(img=>{img.removeAttribute('loading');if(!img.complete){const s=img.src;img.src='';img.src=s;}});setTimeout(()=>window.print(),80);})()">🖨 הדפסה</button>
+      <button class="btn" id="btn-tukuf-overlay" onclick="openTukufOverlay()" style="background:#7a1515;color:#fff;border:1px solid #c62828;">📦 תוקף</button>
     </div>
   </div>
+</div>
+
+<!-- TUKUF OVERLAY — full-screen, like Mahsan Editor expiry page -->
+<div id="tukuf-overlay" style="display:none;position:fixed;inset:0;z-index:700;background:#04111f;overflow-y:auto;direction:rtl;">
+  <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:#7a1515;border-bottom:2px solid #c62828;position:sticky;top:0;z-index:10;">
+    <span style="font-weight:bold;font-size:.9rem;color:#fff;flex:1;">תוקף אילת</span>
+    <span id="tukuf-ov-summary" style="font-size:.72rem;color:rgba(255,255,255,.75);"></span>
+    <button id="btn-ov-sakana" onclick="toggleOvSakana()" style="background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.35);color:#fff;font-size:.75rem;font-weight:bold;cursor:pointer;border-radius:5px;padding:4px 12px;">⚠ סכנה בלבד</button>
+    <button onclick="closeTukufOverlay()" style="background:rgba(255,255,255,.15);border:none;color:#fff;font-size:1.1rem;cursor:pointer;border-radius:4px;padding:2px 10px;">✕</button>
+  </div>
+  <div id="tukuf-ov-grid" style="display:flex;flex-wrap:wrap;gap:10px;padding:12px 14px;"></div>
 </div>
 
 <!-- FILTER + STOCK ROW -->
@@ -2422,6 +2434,121 @@ window.openInfoPanel = function(mk, taur) {
 window.closeProphetPanel = window.closeInfoPanel = function() {
   document.getElementById('prophet-panel').classList.remove('open');
   document.getElementById('prophet-overlay').classList.remove('open');
+};
+
+// ── TUKUF OVERLAY ──────────────────────────────────────────────────
+var _ovSakanaOnly = false;
+
+function _tukufDangerLevel(batches, mkr_shvua) {
+  var hasDanger = false, hasWarn = false;
+  batches.forEach(function(b) {
+    if (b.qty <= 0) return;
+    var weeksToExpiry = b.days / 7;
+    var weeksOfStock  = mkr_shvua > 0 ? b.qty / mkr_shvua : 999;
+    if (b.days < 14 || weeksOfStock > weeksToExpiry) hasDanger = true;
+    else if (b.days < 30 || weeksOfStock > weeksToExpiry * 0.7) hasWarn = true;
+  });
+  return hasDanger ? 'danger' : (hasWarn ? 'warn' : 'ok');
+}
+
+function _renderTukufCards() {
+  var all = window._mmdGetAll ? window._mmdGetAll() : [];
+  var grid = document.getElementById('tukuf-ov-grid');
+  grid.innerHTML = '';
+  var cards = [];
+  all.forEach(function(r) {
+    if (!r.eilat_batches) return;
+    var batches = r.eilat_batches.split(';').filter(Boolean).map(function(b) {
+      var p = b.split('|');
+      return { dt: p[1], qty: parseInt(p[2], 10) || 0, days: parseInt(p[3], 10) || 0 };
+    });
+    var level = _tukufDangerLevel(batches, r.mkr_shvua);
+    cards.push({ r: r, batches: batches, level: level });
+  });
+  cards.sort(function(a, b) {
+    var ord = { danger: 0, warn: 1, ok: 2 };
+    if (ord[a.level] !== ord[b.level]) return ord[a.level] - ord[b.level];
+    var aMin = Math.min.apply(null, a.batches.map(function(x) { return x.days; }));
+    var bMin = Math.min.apply(null, b.batches.map(function(x) { return x.days; }));
+    return aMin - bMin;
+  });
+  var danger = 0, warn = 0, shown = 0;
+  cards.forEach(function(c) {
+    if (c.level === 'danger') danger++;
+    else if (c.level === 'warn') warn++;
+    if (_ovSakanaOnly && c.level !== 'danger') return;
+    shown++;
+    var r = c.r;
+    var borderClr = c.level === 'danger' ? '#c62828' : c.level === 'warn' ? '#e65100' : 'rgba(255,255,255,.08)';
+    var el = document.createElement('div');
+    el.style.cssText = 'background:#0b1e35;border-radius:10px;border:1px solid ' + borderClr + ';overflow:hidden;display:flex;flex-direction:column;width:210px;flex-shrink:0;';
+    // top
+    var imgTag = r.img
+      ? '<img src="/mmd/img/' + encodeURIComponent(r.mkt) + '" style="width:44px;height:44px;object-fit:contain;border-radius:4px;background:#0a1628;flex-shrink:0" onerror="this.style.display=\'none\'">'
+      : '<div style="width:44px;height:44px;background:#0a1628;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#334;font-size:1.1rem;flex-shrink:0">📦</div>';
+    var nameFull = fixProductName ? fixProductName(r.taur || '') : (r.taur || '');
+    el.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(0,0,0,.2)">'
+      + imgTag
+      + '<div><div style="font-size:.68rem;color:#c9a227;font-weight:bold;line-height:1.3;direction:rtl;unicode-bidi:plaintext">' + nameFull + '</div>'
+      + '<div style="font-size:.58rem;color:#556;margin-top:2px">מק"ט ' + r.mkt + ' · ' + (r.mishpacha || '') + '</div></div></div>';
+    // col header
+    var body = document.createElement('div');
+    body.style.cssText = 'padding:6px 10px;flex:1';
+    body.innerHTML = '<div style="display:flex;direction:rtl;padding:2px 0 3px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:1px">'
+      + '<span style="flex:1;text-align:center;font-size:.55rem;color:#334">ת. תפוגה</span>'
+      + '<span style="flex:1;text-align:center;font-size:.55rem;color:#334">מלאי</span>'
+      + '<span style="flex:1;text-align:center;font-size:.55rem;color:#334">ימים</span></div>';
+    c.batches.forEach(function(b) {
+      var clr = b.days < 30 ? '#e55' : b.days < 60 ? '#f90' : '#8b8';
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;direction:rtl;align-items:center;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:.64rem';
+      row.innerHTML = '<span style="flex:1;text-align:center;color:#7788aa">' + (b.dt || '—') + '</span>'
+        + '<span style="flex:1;text-align:center;font-weight:bold;color:' + clr + '">' + (b.qty > 0 ? b.qty : '<span style="color:#334">0</span>') + '</span>'
+        + '<span style="flex:1;text-align:center;font-weight:bold;color:' + clr + '">' + b.days + '</span>';
+      body.appendChild(row);
+    });
+    el.appendChild(body);
+    // footer
+    var wks = r.mkr_shvua != null ? r.mkr_shvua.toFixed(1) : null;
+    var badgeHtml = c.level === 'danger'
+      ? '<span style="background:#c62828;color:#fff;padding:2px 7px;border-radius:3px;font-weight:bold;font-size:.6rem">⚠ סכנה</span>'
+      : c.level === 'warn'
+      ? '<span style="background:#e65100;color:#fff;padding:2px 7px;border-radius:3px;font-size:.6rem">תשומת לב</span>'
+      : '<span style="color:#4caf50;font-size:.6rem">✓ בסדר</span>';
+    var footer = document.createElement('div');
+    footer.style.cssText = 'padding:5px 10px;background:rgba(0,0,0,.15);display:flex;align-items:center;justify-content:space-between;direction:rtl;font-size:.62rem;gap:6px';
+    footer.innerHTML = '<span style="color:#8899aa">' + (wks ? 'מכר שבועי: ' + wks + ' קרט\'' : 'אין מכר') + '</span>' + badgeHtml;
+    el.appendChild(footer);
+    grid.appendChild(el);
+  });
+  if (shown === 0) {
+    grid.innerHTML = '<div style="padding:40px;text-align:center;color:#334;font-size:.85rem;width:100%">'
+      + (_ovSakanaOnly ? 'אין מוצרים בסכנה' : 'אין מוצרי תוקף אילת') + '</div>';
+  }
+  var sumEl = document.getElementById('tukuf-ov-summary');
+  if (sumEl) sumEl.textContent = cards.length + ' מוצרים' + (danger ? ' · ⚠ ' + danger + ' סכנה' : '') + (warn ? ' · ' + warn + ' תשומת לב' : '');
+}
+
+window.openTukufOverlay = function() {
+  _ovSakanaOnly = false;
+  var btn = document.getElementById('btn-ov-sakana');
+  if (btn) { btn.style.background = 'rgba(255,255,255,.12)'; btn.style.borderColor = 'rgba(255,255,255,.35)'; }
+  _renderTukufCards();
+  document.getElementById('tukuf-overlay').style.display = '';
+};
+
+window.closeTukufOverlay = function() {
+  document.getElementById('tukuf-overlay').style.display = 'none';
+};
+
+window.toggleOvSakana = function() {
+  _ovSakanaOnly = !_ovSakanaOnly;
+  var btn = document.getElementById('btn-ov-sakana');
+  if (btn) {
+    btn.style.background = _ovSakanaOnly ? '#c62828' : 'rgba(255,255,255,.12)';
+    btn.style.borderColor = _ovSakanaOnly ? '#c62828' : 'rgba(255,255,255,.35)';
+  }
+  _renderTukufCards();
 };
 </script>
 
