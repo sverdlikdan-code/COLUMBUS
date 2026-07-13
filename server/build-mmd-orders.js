@@ -71,7 +71,10 @@ async function build() {
         "tukuf",      [List of ת. תפוגת תוקף values],
         "yamim",      MIN('תוקף FORM'[כמה ימים נשארו]),
         "eilat_yamim", MIN('EILATתוקף'[כמה ימים נשארו]),
-        "eilat_tukuf_dt", MIN('EILATתוקף'[ת. תפוגת תוקף])
+        "eilat_tukuf_dt", MIN('EILATתוקף'[ת. תפוגת תוקף]),
+        "dist_active", CALCULATE([לקוחות פעילים], ${df}),
+        "cust_bought", CALCULATE([כמות לקוחות], ${df}),
+        "eilat_batches", CONCATENATEX('EILATתוקף', [קרטון מלאי תוקף] & "|" & FORMAT('EILATתוקף'[ת. תפוגת תוקף],"DD/MM/YYYY") & "|" & 'EILATתוקף'[כמה ימים נשארו], ";", 'EILATתוקף'[ת. תפוגת תוקף], ASC)
       ),
       OR(OR('KARTIS PARIT'[ASHDOD KAARTON] > 0, 'KARTIS PARIT'[MMD KARTON] > 0), [מחסן מעבר] > 0)
     )
@@ -105,6 +108,9 @@ async function build() {
     eilat_yamim:    r['[eilat_yamim]']   != null ? Math.round(r['[eilat_yamim]']) : null,
     eilat_tukuf_dt: r['[eilat_tukuf_dt]'] != null
       ? new Date(r['[eilat_tukuf_dt]']).toISOString().slice(0, 10) : null,
+    dist_active:    r['[dist_active]']  != null ? Math.round(r['[dist_active]'])  : null,
+    cust_bought:    r['[cust_bought]']  != null ? Math.round(r['[cust_bought]'])  : null,
+    eilat_batches:  r['[eilat_batches]'] || null,
   }));
 
   const refreshedAt = await getDatasetRefreshTime(MMD_DS);
