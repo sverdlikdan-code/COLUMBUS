@@ -948,6 +948,10 @@ async function initLogin(){
         } catch(_){}
       }
       st.agent={code:saved.code,name:saved.name};
+      // Manager F5 restore: use the last selected route agent, not the manager code
+      if(saved.isManager){
+        try{const ra=JSON.parse(localStorage.getItem('frRouteAgent')||'null');if(ra?.code)st.agent=ra;}catch(_){}
+      }
       document.getElementById('logout-btn').style.display='';
       // F5 state restore: if last day+city are saved, skip city screen and go straight to route
       const _lastDay  = parseInt(localStorage.getItem('frLastDay') || '0');
@@ -1181,6 +1185,7 @@ async function selectManager(mgr){
 
 function selectAgent(code,name){
   st.agent={code,name};
+  localStorage.setItem('frRouteAgent', JSON.stringify({code,name}));
   document.getElementById('city-agent-label').textContent=name;
   buildCityChips();
   show('s-city');
