@@ -142,9 +142,76 @@ CALCULATETABLE(
       if (clients.length > 0 && clients.every(c => !c.manager)) managerAgents.add(agentCode);
     }
 
+    // D: ICE-only clients — secondary agent (מס.סוכן נוסף) = Formula agent code
+    // These clients are NOT in Formula meshtat but are visited by Formula agents in ICE territory
+    const ICE_DS = process.env.POWERBI_ICE_DATASET_ID;
+    const iceByAgent = new Map(); // agentCode → [{client obj, iceOnly:true}]
+    if (ICE_DS) {
+      try {
+        const iceRows = await executeDax(`
+EVALUATE
+SELECTCOLUMNS(
+  FILTER('MISHPAHTI ICE MISHTAH',
+    LEN('MISHPAHTI ICE MISHTAH'[שם סוכן נוסף]) > 0
+    && 'MISHPAHTI ICE MISHTAH'[פרמטר 18] <> BLANK()
+    && LEN('MISHPAHTI ICE MISHTAH'[פרמטר 18]) > 0
+  ),
+  "custId",    'MISHPAHTI ICE MISHTAH'[מס. לקוח],
+  "custName",  'MISHPAHTI ICE MISHTAH'[שם לקוח],
+  "city",      'MISHPAHTI ICE MISHTAH'[עיר],
+  "address",   'MISHPAHTI ICE MISHTAH'[כתובת],
+  "agentCode", 'MISHPAHTI ICE MISHTAH'[מס.סוכן נוסף],
+  "dayLetter", 'MISHPAHTI ICE MISHTAH'[פרמטר 18]
+)
+`, ICE_DS);
+
+        const ICE_DAY_MAP = { 'א': 1, 'ב': 2, 'ג': 3, 'ד': 4, 'ה': 5 };
+        for (const r of iceRows) {
+          const custId    = String(r['[custId]'] || '');
+          const agentCode = String(r['[agentCode]'] || '');
+          const dayLetter = (r['[dayLetter]'] || '').trim();
+          const dayNum    = ICE_DAY_MAP[dayLetter] || null;
+          if (!custId || !agentCode || agentCode === 'null' || !dayNum) continue;
+          // Skip if already in Formula meshtat
+          if (clientMap.has(custId)) continue;
+
+          const rawCity = r['[city]'] || '';
+          const rawAddr = r['[address]'] || '';
+          const city    = expandCityAbbrev(fixBiDi(rawCity));
+          const address = expandCityAbbrev(fixBiDiAddress(rawAddr));
+
+          if (!iceByAgent.has(agentCode)) iceByAgent.set(agentCode, []);
+          iceByAgent.get(agentCode).push({
+            custId,
+            custName:      fixBiDi(r['[custName]'] || ''),
+            city,
+            address,
+            lat:           null,
+            lng:           null,
+            agentCode,
+            agentName:     '',
+            manager:       '',
+            dayNum,
+            dayLabel:      dayLetter,
+            priorityOrder: 9000,
+            fullAddress:   [address, city, 'ישראל'].filter(Boolean).join(', '),
+            target:        0,
+            monthlySales:  0,
+            lastOrderDate: null,
+            pct:           0,
+            iceOnly:       true,
+          });
+        }
+        console.log(`[PBI] ICE clients loaded: ${[...iceByAgent.values()].reduce((s,a)=>s+a.length,0)} across ${iceByAgent.size} agents`);
+      } catch (iceErr) {
+        console.error('[PBI] ICE load error:', iceErr.message);
+      }
+    }
+
     pbiCache = {
       clientMap,
       byAgent,
+      iceByAgent,
       managers: [...managers].sort(),
       agentsByManager: new Map([...agentsByManager].map(([k, v]) => [k, [...v.values()]])),
       managerAgents,
@@ -1095,7 +1162,14 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
     console.log(`[/customers] agent=${agent} day=${dayNum} total=${allForAgent.length} dayNums=${[...new Set(allForAgent.map(c=>c.dayNum))].sort()}`);
     let clients = allForAgent.slice();
     if (dayNum) clients = clients.filter(c => c.dayNum === dayNum);
-    console.log(`[/customers] after day filter: ${clients.length}`);
+
+    // Merge ICE-only clients for this agent+day (not already in Formula meshtat)
+    const iceAll = pbiCache.iceByAgent?.get(agent) || [];
+    const formulaIds = new Set(clients.map(c => c.custId));
+    const iceForDay = iceAll.filter(c => (!dayNum || c.dayNum === dayNum) && !formulaIds.has(c.custId));
+    if (iceForDay.length) console.log(`[/customers] +${iceForDay.length} ICE-only clients`);
+    clients = [...clients, ...iceForDay];
+    console.log(`[/customers] after day filter + ICE: ${clients.length}`);
 
     // Apply GPS corrections from local file
     const correctionsPath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
