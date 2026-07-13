@@ -2175,8 +2175,7 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
           ),
           ${INTER_DATA}[חברה] = "INTER",
           ${INTER_DATA}[ASHMADOT] = "-מכר-",
-          'KARTIS PARIT'[סטטוס] = "פעיל",
-          'KARTIS PARIT'[תאור משפחה] IN {"מתוקים", "מוצרי מדף"}
+          'KARTIS PARIT'[סטטוס] = "פעיל"
         ),
         "totKarton", CALCULATE(SUM(${INTER_DATA}[KARTON]),
           ${INTER_DATA}[חברה]="INTER", ${INTER_DATA}[ASHMADOT]="-מכר-", ${dateFilter}),
@@ -2188,11 +2187,14 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
 
     console.log(`[inter-sales] got ${rows.length} products from CONTROL`);
 
+    const INTER_FAMILIES = new Set(['מתוקים', 'מוצרי מדף']);
     const products = [];
     const sales = {};
     for (const r of rows) {
       const makat = String(r['KARTIS PARIT[מק"ט]'] ?? '');
       if (!makat) continue;
+      const family = fixBiDi(String(r['KARTIS PARIT[תאור משפחה]'] ?? ''));
+      if (!INTER_FAMILIES.has(family)) continue;
       const totKarton = r['[totKarton]'] ?? null;
       const days      = r['[days]'] ?? null;
       const daySales  = (totKarton != null && days) ? totKarton / days : null;
@@ -2203,7 +2205,7 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
         motag:        fixBiDi(String(r['KARTIS PARIT[מותג]'] ?? '')),
         param2:       fixBiDi(String(r['KARTIS PARIT[תאור פרמטר 2 למוצר]'] ?? '')),
         mishpacaId:   r['KARTIS PARIT[משפחת מוצר]'] ?? null,
-        mishpacaTaur: fixBiDi(String(r['KARTIS PARIT[תאור משפחה]'] ?? '')),
+        mishpacaTaur: family,
         photoUrl:     String(r['KARTIS PARIT[URL תמונה]'] ?? '') || null,
         krat:         r['KARTIS PARIT[KARTON IN PALLET]'] ?? null,
         orderDays:    r['KARTIS PARIT[הזמנה לכמה ימים]'] ?? null,
