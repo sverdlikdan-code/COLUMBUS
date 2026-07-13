@@ -3537,7 +3537,7 @@ function buildInterOrderPage() {
     const recP         = krat > 0 && recK > 0 ? Math.round(recK / krat * 10) / 10 : 0;
     const edit         = (window._interManualEdits || {})[mk];
     return { mk, name: p.name, nameEng: p.nameEng || '', motag: p.motag || '—',
-      param2: p.param2 || '—', photoUrl: p.photoUrl || null,
+      param2: p.param2 || '—', photoUrl: p.photoUrl || null, mkod: p.mkod || '',
       krat, malaiKarton, hazmanaPtuha, spo, palSpo, orderDays,
       daySales365, daySales, periodSales, daysStk, recK, recP,
       orderP: edit ? edit.orderP : recP };
@@ -3572,6 +3572,8 @@ function buildInterOrderPage() {
       <th style="${_ths('periodSales','text-align:center;')}">מכר<br>בתקופה${_arr('periodSales')}</th>
       <th style="${_ths('daysStk','text-align:center;')}">לכמה<br>ימים${_arr('daysStk')}</th>
       <th style="${_ths('recK','text-align:center;')}">המלצה<br>KARTON${_arr('recK')}</th>
+      <th style="${_th('text-align:center;')}">קרט/<br>פל</th>
+      <th style="${_th('text-align:center;')}">MKOD</th>
       <th style="${_th('text-align:center;')}">PAL<br>ידני</th>
     </tr>
   </thead>`;
@@ -3603,6 +3605,7 @@ function buildInterOrderPage() {
       <td style="padding:6px 8px;text-align:center;font-size:12px;font-weight:700;">${fmtK(fPS)}</td>
       <td></td>
       <td style="padding:6px 8px;text-align:center;font-size:13px;font-weight:800;">${fmtK(fRecK)}</td>
+      <td></td><td></td>
       <td style="padding:6px 8px;text-align:center;font-size:11px;font-weight:700;">${fPal.toFixed(1)}</td>
     </tr>`;
 
@@ -3625,6 +3628,8 @@ function buildInterOrderPage() {
         <td style="padding:5px 6px;text-align:center;font-size:12px;">${r.periodSales != null ? fmtK(r.periodSales) : '—'}</td>
         <td style="padding:5px 6px;text-align:center;font-size:12px;font-weight:${dWt};color:${dCol};">${dStk != null ? dStk : '—'}</td>
         <td style="padding:5px 6px;text-align:center;font-size:13px;font-weight:800;color:${rcCol};">${r.recK > 0 ? fmtK(r.recK) : '—'}</td>
+        <td style="padding:5px 6px;text-align:center;font-size:11px;color:#777;">${r.krat || '—'}</td>
+        <td style="padding:5px 6px;text-align:center;font-size:11px;color:#555;font-weight:600;">${r.mkod || '—'}</td>
         <td style="padding:5px 6px;text-align:center;background:#fff3e0;">
           <input type="number" min="0" step="0.5" value="${r.orderP || ''}" placeholder="0"
             style="width:55px;text-align:center;border:1px solid #ffb300;border-radius:4px;padding:3px;font-size:12px;font-weight:600;color:${r.orderP > 0 ? '#c62828' : '#888'};"
