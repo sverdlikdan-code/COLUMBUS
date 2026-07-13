@@ -2257,35 +2257,11 @@ window.openInfoPanel = function(mk, taur) {
       bRows.forEach(function(b) { var d = parseInt(b.split('|')[3], 10); if (!isNaN(d) && d < minDays) minDays = d; });
       // hide redundant tukuf line — table includes dates
       if (etEl) { etEl.textContent = ''; etEl.style.display = 'none'; }
-      // build RTL table: columns right→left = ת.תפוגה | מלאי | ימים
-      var tbl = document.createElement('table');
-      tbl.setAttribute('dir', 'rtl');
-      tbl.style.cssText = 'width:100%;border-collapse:collapse;font-size:.67rem;margin-top:2px';
-      var hdr2 = tbl.insertRow();
-      hdr2.style.cssText = 'border-bottom:1px solid rgba(255,255,255,.1)';
-      ['ת. תפוגה', 'מלאי קרט\'', 'ימים'].forEach(function(h) {
-        var th = document.createElement('th');
-        th.textContent = h;
-        th.style.cssText = 'padding:3px 8px;color:#445;font-weight:normal;text-align:center;font-size:.62rem';
-        hdr2.appendChild(th);
-      });
-      bRows.forEach(function(b) {
-        var parts = b.split('|');
-        var dt = parts[1], qty = parseInt(parts[2], 10), days = parseInt(parts[3], 10);
-        var clr = days < 30 ? '#e55' : days < 60 ? '#f90' : '#8b8';
-        var row = tbl.insertRow();
-        row.style.cssText = 'border-bottom:1px solid rgba(255,255,255,.04)';
-        var tdDt = row.insertCell(); tdDt.textContent = dt;
-        tdDt.style.cssText = 'padding:4px 8px;text-align:center;color:#8899aa';
-        var tdQty = row.insertCell(); tdQty.textContent = isNaN(qty) ? '—' : qty;
-        tdQty.style.cssText = 'padding:4px 8px;text-align:center;color:' + clr + ';font-weight:bold';
-        var tdDays = row.insertCell(); tdDays.textContent = isNaN(days) ? '—' : days;
-        tdDays.style.cssText = 'padding:4px 8px;text-align:center;color:' + clr + ';font-weight:bold';
-      });
+      // build RTL flex rows (no table to avoid overflow with dir=rtl)
       ebEl.innerHTML = '';
       // danger badge header
       var badgeLine = document.createElement('div');
-      badgeLine.style.cssText = 'direction:rtl;font-size:.63rem;color:#445;padding:6px 8px 2px;display:flex;align-items:center;gap:6px';
+      badgeLine.style.cssText = 'direction:rtl;font-size:.63rem;color:#556;padding:6px 8px 2px;display:flex;align-items:center;gap:6px';
       var badgeLbl = document.createElement('span');
       badgeLbl.textContent = 'תוקף אילת';
       badgeLine.appendChild(badgeLbl);
@@ -2300,7 +2276,32 @@ window.openInfoPanel = function(mk, taur) {
         badgeLine.appendChild(eilatBadge);
       }
       ebEl.appendChild(badgeLine);
-      ebEl.appendChild(tbl);
+      // column header row (flex, RTL: right=ת.תפוגה, mid=מלאי, left=ימים)
+      var hdrRow = document.createElement('div');
+      hdrRow.style.cssText = 'display:flex;direction:rtl;padding:2px 8px;border-bottom:1px solid rgba(255,255,255,.08)';
+      ['ת. תפוגה', "מלאי קרט'", 'ימים'].forEach(function(h) {
+        var sp = document.createElement('span');
+        sp.textContent = h;
+        sp.style.cssText = 'flex:1;text-align:center;color:#445;font-size:.6rem';
+        hdrRow.appendChild(sp);
+      });
+      ebEl.appendChild(hdrRow);
+      // data rows
+      bRows.forEach(function(b) {
+        var parts = b.split('|');
+        var dt = parts[1], qty = parseInt(parts[2], 10), days = parseInt(parts[3], 10);
+        var clr = days < 30 ? '#e55' : days < 60 ? '#f90' : '#8b8';
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;direction:rtl;padding:4px 8px;border-bottom:1px solid rgba(255,255,255,.04);align-items:center';
+        var sDt = document.createElement('span'); sDt.textContent = dt;
+        sDt.style.cssText = 'flex:1;text-align:center;color:#8899aa;font-size:.67rem';
+        var sQty = document.createElement('span'); sQty.textContent = isNaN(qty) ? '—' : String(qty);
+        sQty.style.cssText = 'flex:1;text-align:center;color:' + clr + ';font-weight:bold;font-size:.7rem';
+        var sDays = document.createElement('span'); sDays.textContent = isNaN(days) ? '—' : String(days);
+        sDays.style.cssText = 'flex:1;text-align:center;color:' + clr + ';font-weight:bold;font-size:.7rem';
+        row.appendChild(sDt); row.appendChild(sQty); row.appendChild(sDays);
+        ebEl.appendChild(row);
+      });
       ebEl.style.display = '';
     } else {
       ebEl.innerHTML = '';
