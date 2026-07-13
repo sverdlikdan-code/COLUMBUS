@@ -2194,7 +2194,10 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
           ${INTER_DATA}[חברה]="INTER", ${INTER_DATA}[ASHMADOT]="-מכר-", ${dateFilter}),
         "tot365", CALCULATE(SUM(${INTER_DATA}[KARTON]),
           ${INTER_DATA}[חברה]="INTER", ${INTER_DATA}[ASHMADOT]="-מכר-",
-          FILTER(ALL(DIMCALENDAR[Date]), DIMCALENDAR[Date] >= TODAY()-365 && DIMCALENDAR[Date] <= TODAY()))
+          FILTER(ALL(DIMCALENDAR[Date]), DIMCALENDAR[Date] >= TODAY()-365 && DIMCALENDAR[Date] <= TODAY())),
+        "malaiKarton",  CALCULATE(SUM('מלאי INT+F+ICE'[מלאי קרטון]), 'מלאי INT+F+ICE'[חברה]="INTER"),
+        "hazmanaPtuha", CALCULATE(SUM('תעריכי הזמנות'[הזמנה פתוחה KARTON]), TREATAS(VALUES('KARTIS PARIT'[מק"ט]), 'תעריכי הזמנות'[מק'ט])),
+        "supDate",      CALCULATE(MAX('תעריכי הזמנות'[ת. אספקה]),          TREATAS(VALUES('KARTIS PARIT'[מק"ט]), 'תעריכי הזמנות'[מק'ט]))
       )
       ORDER BY 'KARTIS PARIT'[מותג] ASC, 'KARTIS PARIT'[תאור פרמטר 2 למוצר] ASC, 'KARTIS PARIT'[מק"ט] ASC
     `, INTER_DS, INTER_WS);
@@ -2212,9 +2215,10 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
       const tot365 = r['[tot365]'] ?? null;
       if (!tot365 || tot365 <= 0) continue;
       const family = fixBiDi(String(r['KARTIS PARIT[תאור משפחה]'] ?? ''));
-      const totKarton = r['[totKarton]'] ?? null;
-      const days      = r['[days]'] ?? null;
-      const daySales  = (totKarton != null && days) ? totKarton / days : null;
+      const totKarton   = r['[totKarton]'] ?? null;
+      const days        = r['[days]'] ?? null;
+      const daySales    = (totKarton != null && days) ? totKarton / days : null;
+      const daySales365 = tot365 / 365;
       products.push({
         makat,
         name:         fixBiDi(String(r['KARTIS PARIT[תאור]'] ?? '')),
@@ -2226,8 +2230,11 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
         photoUrl:     String(r['KARTIS PARIT[URL תמונה]'] ?? '') || null,
         krat:         r['KARTIS PARIT[KARTON IN PALLET]'] ?? null,
         orderDays:    r['KARTIS PARIT[הזמנה לכמה ימים]'] ?? null,
+        malaiKarton:  +(r['[malaiKarton]']  ?? 0),
+        hazmanaPtuha: +(r['[hazmanaPtuha]'] ?? 0),
+        supDate:      r['[supDate]'] ?? null,
       });
-      sales[makat] = { daySales, mkrTk: totKarton };
+      sales[makat] = { daySales, mkrTk: totKarton, daySales365 };
     }
 
     res.json({ ok: true, products, sales });
