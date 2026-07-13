@@ -2235,8 +2235,9 @@ window.openInfoPanel = function(mk, taur) {
   document.getElementById('pp-mkr-shach').textContent  = r ? fmtShach(r.mkr_shach)   : '—';
   document.getElementById('pp-zikuy-shach').textContent = r ? fmtShach(r.zikuy_shach)  : '—';
   document.getElementById('pp-pct-zikuy').textContent  = r ? fmtPct(r.pct_zikuy)     : '—';
-  document.getElementById('pp-cust-bought').textContent = r && r.cust_bought != null ? String(r.cust_bought) : '—';
-  document.getElementById('pp-dist-active').textContent = r && r.dist_active != null ? String(r.dist_active) : '—';
+  document.getElementById('pp-pizur').textContent      = r ? fmtPct(r.pizur)          : '—';
+  var psEl = document.getElementById('pp-pizur-sub');
+  if (psEl) psEl.textContent = (r && r.cust_bought != null) ? r.cust_bought + ' / ' + (r.dist_active || '?') + ' לקוחות' : '';
   document.getElementById('pp-tarif').textContent      = r ? fmt(r.tarif_mmd, 2)      : '—';
   // eilat expiry
   const ey = r ? r.eilat_yamim : null;
@@ -2255,7 +2256,7 @@ window.openInfoPanel = function(mk, taur) {
       var tbl = document.createElement('table');
       tbl.style.cssText = 'width:100%;border-collapse:collapse;font-size:.68rem';
       var hdr = tbl.insertRow();
-      ['קרטונות','ת. תפוגה','ימים'].forEach(function(h) {
+      ['פק"ע','ת. תפוגה','כמות'].forEach(function(h) {
         var th = document.createElement('th');
         th.textContent = h;
         th.style.cssText = 'text-align:center;padding:2px 6px;color:#556;font-weight:normal';
@@ -2263,13 +2264,14 @@ window.openInfoPanel = function(mk, taur) {
       });
       bRows.forEach(function(b) {
         var parts = b.split('|');
-        var qty = parts[0], dt = parts[1], days = parseInt(parts[2], 10);
+        var pke = parts[0], dt = parts[1], qty = parts[2], days = parseInt(parts[3], 10);
         var clr = days < 30 ? '#e55' : days < 60 ? '#f90' : '#8b8';
         var row = tbl.insertRow();
-        [qty, dt, String(days)].forEach(function(v, i) {
+        var vals = [pke, dt, qty];
+        vals.forEach(function(v, i) {
           var td = row.insertCell();
           td.textContent = v;
-          td.style.cssText = 'text-align:center;padding:2px 6px;' + (i !== 1 ? 'color:' + clr + ';font-weight:bold' : 'color:#aab');
+          td.style.cssText = 'text-align:center;padding:2px 6px;' + (i === 1 ? 'color:#aab' : 'color:' + clr + ';font-weight:bold');
         });
       });
       ebEl.innerHTML = '';
@@ -2404,7 +2406,7 @@ window.closeProphetPanel = window.closeInfoPanel = function() {
       <div class="pp-metric"><div class="pp-metric-val"        id="pp-pct-zikuy">—</div><div class="pp-metric-lbl">% זיכויים</div></div>
     </div>
     <div class="pp-metrics" style="grid-template-columns:repeat(3,1fr)">
-      <div class="pp-metric"><div style="display:flex;align-items:baseline;justify-content:center;gap:4px"><span class="pp-metric-val purple" id="pp-cust-bought">—</span><span style="color:#556;font-size:.75rem;line-height:1">/</span><span id="pp-dist-active" style="color:#8899aa;font-size:.85rem">—</span></div><div class="pp-metric-lbl">שקנו / פעילים</div></div>
+      <div class="pp-metric"><div class="pp-metric-val purple" id="pp-pizur">—</div><div class="pp-metric-lbl">% פיזור לקוחות</div><div id="pp-pizur-sub" style="font-size:.62rem;color:#8899aa;margin-top:2px">— / —</div></div>
       <div class="pp-metric"><div class="pp-metric-val green"  id="pp-tarif">—</div><div class="pp-metric-lbl">תאריף MMD ₪</div></div>
       <div class="pp-metric"><div class="pp-metric-val"        id="pp-eilat-yamim">—</div><div class="pp-metric-lbl">ימים לתוקף אילת</div></div>
     </div>
