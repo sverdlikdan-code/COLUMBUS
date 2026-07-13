@@ -2789,6 +2789,14 @@ app.get('/territory-planner.html', (req, res) => {
   if (!req.session?.agentCode && !req.session?.isManager) return res.redirect('/');
   res.sendFile(path.join(__dirname, '..', 'docs', 'territory-planner.html'));
 });
+app.get('/sw.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.setHeader('Service-Worker-Allowed', '/');
+  res.sendFile(path.join(__dirname, '..', 'docs', 'sw.js'));
+});
+app.get('/manifest.json', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'docs', 'manifest.json'));
+});
 // Static data files referenced via relative fetch in formula-road.html
 app.get('/gps-corrections.json', formulaRoadGuard, (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'gps-corrections.json'));
