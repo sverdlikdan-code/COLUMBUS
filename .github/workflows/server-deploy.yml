@@ -6,6 +6,7 @@ on:
     paths:
       - 'server/index.js'
       - 'docs/formula-road.html'
+      - 'docs/manifest.json'
 
 jobs:
   deploy:
@@ -23,6 +24,7 @@ jobs:
             root@31.154.67.58:/root/COLUMBUS/server/
           scp -o StrictHostKeyChecking=no -i /tmp/vps_key \
             docs/formula-road.html \
+            docs/manifest.json \
             root@31.154.67.58:/root/COLUMBUS/docs/
           ssh -o StrictHostKeyChecking=no -i /tmp/vps_key root@31.154.67.58 "pm2 restart columbus-api"
           rm /tmp/vps_key
