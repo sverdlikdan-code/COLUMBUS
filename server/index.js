@@ -2187,14 +2187,15 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
 
     console.log(`[inter-sales] got ${rows.length} products from CONTROL`);
 
-    const INTER_FAMILIES = new Set(['מתוקים', 'מוצרי מדף']);
+    const INTER_FAMILY_IDS = new Set([30, 39]); // 30=מתוקים, 39=מוצרי מדף
     const products = [];
     const sales = {};
     for (const r of rows) {
       const makat = String(r['KARTIS PARIT[מק"ט]'] ?? '');
       if (!makat) continue;
+      const famId = Number(r['KARTIS PARIT[משפחת מוצר]']);
+      if (!INTER_FAMILY_IDS.has(famId)) continue;
       const family = fixBiDi(String(r['KARTIS PARIT[תאור משפחה]'] ?? ''));
-      if (!INTER_FAMILIES.has(family)) continue;
       const totKarton = r['[totKarton]'] ?? null;
       const days      = r['[days]'] ?? null;
       const daySales  = (totKarton != null && days) ? totKarton / days : null;
