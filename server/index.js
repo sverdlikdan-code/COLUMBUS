@@ -136,14 +136,21 @@ CALCULATETABLE(
       }
     }
 
+    // Agents whose clients ALL have empty קבוצה (no manager) → they ARE managers → see everything
+    const managerAgents = new Set();
+    for (const [agentCode, clients] of byAgent) {
+      if (clients.length > 0 && clients.every(c => !c.manager)) managerAgents.add(agentCode);
+    }
+
     pbiCache = {
       clientMap,
       byAgent,
       managers: [...managers].sort(),
       agentsByManager: new Map([...agentsByManager].map(([k, v]) => [k, [...v.values()]])),
+      managerAgents,
       loadedAt: new Date(),
     };
-    console.log(`[PBI] Cache loaded: ${clientMap.size} clients, ${byAgent.size} agents, ${managers.size} managers`);
+    console.log(`[PBI] Cache loaded: ${clientMap.size} clients, ${byAgent.size} agents, ${managers.size} managers, ${managerAgents.size} manager-agents`);
   } catch (err) {
     console.error('[PBI] Cache load error:', err.message);
   }
@@ -404,7 +411,7 @@ app.post('/auth', (req, res) => {
   const { code } = req.body || {};
   const codeStr = String(code || '').trim();
 
-  // Manager password check
+  // Super-manager password (sees ALL managers + ALL agents)
   const MANAGER_PASS = process.env.MANAGER_PASS || '1999';
   if (codeStr === MANAGER_PASS) {
     loginAttempts.delete(ip);
@@ -416,6 +423,10 @@ app.post('/auth', (req, res) => {
   const agent = agents[codeStr];
   if (agent) {
     loginAttempts.delete(ip);
+    // If this agent's clients have no manager (empty קבוצה) → they ARE a manager → see everything
+    if (pbiCache?.managerAgents?.has(codeStr)) {
+      return res.json({ ok: true, type: 'manager', token: createSession(null, true) });
+    }
     return res.json({ ok: true, type: 'agent', agentCode: codeStr, agentName: agent.name, token: createSession(codeStr, false) });
   }
 
