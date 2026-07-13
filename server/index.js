@@ -2175,7 +2175,8 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
           ),
           ${INTER_DATA}[חברה] = "INTER",
           ${INTER_DATA}[ASHMADOT] = "-מכר-",
-          'KARTIS PARIT'[סטטוס] = "פעיל"
+          'KARTIS PARIT'[סטטוס] = "פעיל",
+          'KARTIS PARIT'[תאור משפחה] IN {"מתוקים", "מוצרי מדף"}
         ),
         "totKarton", CALCULATE(SUM(${INTER_DATA}[KARTON]),
           ${INTER_DATA}[חברה]="INTER", ${INTER_DATA}[ASHMADOT]="-מכר-", ${dateFilter}),
