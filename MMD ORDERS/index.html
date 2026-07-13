@@ -2285,27 +2285,27 @@ window.openInfoPanel = function(mk, taur) {
 
     show12.forEach(function(d, i) {
       if (i === 6) {
-        var div = document.createElement(‘div’);
-        div.className = ‘pp-spark-div’;
+        var div = document.createElement('div');
+        div.className = 'pp-spark-div';
         sparkEl.appendChild(div);
       }
       const isPrev = i < 6;
-      const col = document.createElement(‘div’);
-      col.className = ‘pp-spark-col’;
-      const lbl = document.createElement(‘div’);
-      lbl.className = ‘pp-spark-val’;
-      if (isPrev) lbl.style.opacity = ‘0.55’;
-      lbl.textContent = d.y > 0 ? String(Math.round(d.y)) : ‘’;
-      const bar = document.createElement(‘div’);
+      const col = document.createElement('div');
+      col.className = 'pp-spark-col';
+      const lbl = document.createElement('div');
+      lbl.className = 'pp-spark-val';
+      if (isPrev) lbl.style.opacity = '0.55';
+      lbl.textContent = d.y > 0 ? String(Math.round(d.y)) : '';
+      const bar = document.createElement('div');
       if (d.y === 0) {
-        bar.className = ‘pp-spark-bar zero’;
-        bar.style.height = ‘6px’;
+        bar.className = 'pp-spark-bar zero';
+        bar.style.height = '6px';
       } else {
-        bar.className = ‘pp-spark-bar’;
-        if (isPrev) bar.style.opacity = ‘0.45’;
-        bar.style.height = Math.max(4, Math.round(d.y / maxY12 * 100)) + ‘%’;
+        bar.className = 'pp-spark-bar';
+        if (isPrev) bar.style.opacity = '0.45';
+        bar.style.height = Math.max(4, Math.round(d.y / maxY12 * 100)) + '%';
       }
-      bar.title = (d.y === 0 ? ‘0’ : d.y) + ‘ קרט | שב’ + isoWeekNum(d.w) + ‘ ‘ + d.w.slice(5,10) + (isPrev ? ‘ (קודם)’ : ‘’);
+      bar.title = (d.y === 0 ? '0' : d.y) + ' קרט | שב' + isoWeekNum(d.w) + ' ' + d.w.slice(5,10) + (isPrev ? ' (קודם)' : '');
       col.appendChild(lbl);
       col.appendChild(bar);
       sparkEl.appendChild(col);
@@ -2313,26 +2313,26 @@ window.openInfoPanel = function(mk, taur) {
 
     // Axis: week number under every bar
     (function() {
-      var ax = document.getElementById(‘pp-spark-axis-dyn’);
+      var ax = document.getElementById('pp-spark-axis-dyn');
       if (!ax) return;
-      ax.innerHTML = ‘’;
+      ax.innerHTML = '';
       show12.forEach(function(d, i) {
-        if (i === 6) { var dv = document.createElement(‘div’); dv.className = ‘ax-div’; ax.appendChild(dv); }
-        var sp = document.createElement(‘div’);
-        sp.className = ‘ax-lbl’;
-        sp.style.opacity = i < 6 ? ‘0.5’ : ‘1’;
-        sp.textContent = ‘שב’ + isoWeekNum(d.w);
+        if (i === 6) { var dv = document.createElement('div'); dv.className = 'ax-div'; ax.appendChild(dv); }
+        var sp = document.createElement('div');
+        sp.className = 'ax-lbl';
+        sp.style.opacity = i < 6 ? '0.5' : '1';
+        sp.textContent = 'שב' + isoWeekNum(d.w);
         ax.appendChild(sp);
       });
     })();
 
-    document.getElementById(‘pp-spark-lbl’).textContent =
-      show6prev.length + ‘ שב׳ קודמות + ‘ + show6last.length + ‘ שב׳ אחרונות’;
+    document.getElementById('pp-spark-lbl').textContent =
+      show6prev.length + ' שב׳ קודמות + ' + show6last.length + ' שב׳ אחרונות';
   } else {
-    sparkEl.innerHTML = ‘<div style="color:#8899aa;font-size:.75rem;padding:20px 0;text-align:center">אין נתוני מכירות שבועיים</div>’;
-    document.getElementById(‘pp-spark-lbl’).textContent = ‘’;
-    const axDyn2 = document.getElementById(‘pp-spark-axis-dyn’);
-    if (axDyn2) axDyn2.innerHTML = ‘’;
+    sparkEl.innerHTML = '<div style="color:#8899aa;font-size:.75rem;padding:20px 0;text-align:center">אין נתוני מכירות שבועיים</div>';
+    document.getElementById('pp-spark-lbl').textContent = '';
+    const axDyn2 = document.getElementById('pp-spark-axis-dyn');
+    if (axDyn2) axDyn2.innerHTML = '';
   }
 
   document.getElementById('prophet-overlay').classList.add('open');
