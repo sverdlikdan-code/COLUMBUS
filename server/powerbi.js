@@ -49,9 +49,9 @@ function httpsPost(url, headers, body) {
   });
 }
 
-async function executeDax(daxQuery, datasetId) {
+async function executeDax(daxQuery, datasetId, workspaceIdOverride) {
   const token = await getPowerBIToken();
-  const workspaceId = process.env.POWERBI_WORKSPACE_ID;
+  const workspaceId = workspaceIdOverride || process.env.POWERBI_WORKSPACE_ID;
   const dsId = datasetId || process.env.POWERBI_DATASET_ID;
 
   const url = `https://api.powerbi.com/v1.0/myorg/groups/${workspaceId}/datasets/${dsId}/executeQueries`;
