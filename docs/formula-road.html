@@ -399,28 +399,9 @@ body.gps-fs #map{height:100%!important;}
     <button class="tab-btn" id="tab-map" onclick="setTab('map')">🗺 מפה</button>
   </div>
   <div class="km-bar" id="km-bar">
-    <!-- Row 1: day buttons + km stats + list/map toggle -->
+    <!-- Single row: day buttons + action buttons + km stats + tab toggle -->
     <div class="km-row-top">
       <div class="day-switch" id="day-switch"></div>
-      <div class="km-right">
-        <div class="km-info">
-          <span class="km-lbl">ביקור</span>
-          <span class="km-val" id="km-val">—</span>
-          <span class="km-unit">km</span>
-          <span style="color:var(--light);margin:0 3px">|</span>
-          <span class="km-lbl" id="km-ai-lbl">AI</span>
-          <span class="km-val" style="color:var(--green)" id="km-ai">—</span>
-          <span class="km-unit">km</span>
-          <span id="km-saving-wrap" style="display:none" class="km-saving">חיסכון ↓<span id="km-saving">—</span> km</span>
-        </div>
-        <div class="tab-inline">
-          <button class="tab-inline-btn active" id="tab-inline-list" onclick="setTab('list')" aria-label="רשימת לקוחות">📋</button>
-          <button class="tab-inline-btn" id="tab-inline-map" onclick="setTab('map')" aria-label="מפת מסלול">🗺</button>
-        </div>
-      </div>
-    </div>
-    <!-- Row 2: primary actions + overflow ⋮ -->
-    <div class="km-row-actions">
       <div class="sort-btns">
         <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')">לפי סדר ביקור</button>
         <button class="sort-btn active-ai-google" id="sort-btn-ai-google" onclick="toggleAiGps()">🤖 AI Google</button>
@@ -439,6 +420,22 @@ body.gps-fs #map{height:100%!important;}
               <div class="gps-hist-dd" id="gps-hist-dd"></div>
             </div>
           </div>
+        </div>
+      </div>
+      <div class="km-right">
+        <div class="km-info">
+          <span class="km-lbl">ביקור</span>
+          <span class="km-val" id="km-val">—</span>
+          <span class="km-unit">km</span>
+          <span style="color:var(--light);margin:0 3px">|</span>
+          <span class="km-lbl" id="km-ai-lbl">AI</span>
+          <span class="km-val" style="color:var(--green)" id="km-ai">—</span>
+          <span class="km-unit">km</span>
+          <span id="km-saving-wrap" style="display:none" class="km-saving">חיסכון ↓<span id="km-saving">—</span> km</span>
+        </div>
+        <div class="tab-inline">
+          <button class="tab-inline-btn active" id="tab-inline-list" onclick="setTab('list')" aria-label="רשימת לקוחות">📋</button>
+          <button class="tab-inline-btn" id="tab-inline-map" onclick="setTab('map')" aria-label="מפת מסלול">🗺</button>
         </div>
       </div>
     </div>
