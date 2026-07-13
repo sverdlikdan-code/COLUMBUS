@@ -2548,6 +2548,11 @@ if(/iphone|ipad|ipod/i.test(navigator.userAgent) && !window.navigator.standalone
 // ── INIT ───────────────────────────────────────────────────────────────────
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&gpsCorrectMode) cancelGpsCorrection();});
 initLogin();
+
+// Register service worker (required for PWA installability in Chrome)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
 </script>
 </body>
 </html>
