@@ -85,6 +85,9 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .days-grid{flex:1;display:grid;grid-template-columns:repeat(5,1fr);gap:16px;}
 .day-card{background:#fff;border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 20px rgba(21,101,192,.14);border-top:6px solid var(--sky);gap:10px;transition:transform .12s,box-shadow .12s;}
 .day-card:hover{transform:translateY(-5px);box-shadow:0 10px 32px rgba(21,101,192,.24);}
+.day-card-undef{border-top-color:#00B894;background:#E8FAF5;}
+.day-letter-undef{color:#00B894;font-size:16px;}
+.day-name-undef{color:#00B894;}
 .day-letter{font-size:clamp(40px,6vw,90px);font-weight:900;color:var(--blue-dark);line-height:1;}
 .day-name{font-size:clamp(13px,1.8vw,22px);color:var(--mid);font-weight:700;}
 
@@ -116,6 +119,8 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .day-sw-btn{width:44px;height:44px;border-radius:12px;background:var(--sky-light);border:2px solid var(--sky-mid);font-size:19px;font-weight:900;color:var(--blue-dark);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;box-shadow:0 1px 4px rgba(21,101,192,.10);}
 .day-sw-btn:hover{background:var(--sky-mid);transform:translateY(-1px);}
 .day-sw-btn.active{background:var(--blue);color:#fff;border-color:var(--blue-dark);box-shadow:0 2px 8px rgba(21,101,192,.38);}
+.day-sw-undef{border-color:#00B894;color:#00B894;font-size:16px;}
+.day-sw-undef.active{background:#00B894;border-color:#00B894;color:#fff;}
 .tab-inline{display:flex;gap:3px;}
 .tab-inline-btn{width:34px;height:34px;border-radius:8px;font-size:15px;cursor:pointer;background:none;border:1.5px solid var(--sky-mid);color:var(--mid);display:flex;align-items:center;justify-content:center;transition:all .15s;}
 .tab-inline-btn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
@@ -378,6 +383,7 @@ body.gps-fs #map{height:100%!important;}
       <div class="day-card" onclick="selectDay(3)"><div class="day-letter">ג</div><div class="day-name">שלישי</div></div>
       <div class="day-card" onclick="selectDay(4)"><div class="day-letter">ד</div><div class="day-name">רביעי</div></div>
       <div class="day-card" onclick="selectDay(5)"><div class="day-letter">ה</div><div class="day-name">חמישי</div></div>
+      <div class="day-card day-card-undef" onclick="selectDay(0)"><div class="day-letter day-letter-undef">?</div><div class="day-name day-name-undef">לא מוגדר</div></div>
     </div>
   </div>
 </div>
@@ -625,7 +631,7 @@ async function loadStaticData(){
     }
   }catch(_){ console.log('ℹ️ No static data, using live API'); }
 }
-const DAY_LABELS = {1:'א',2:'ב',3:'ג',4:'ד',5:'ה'};
+const DAY_LABELS = {1:'א',2:'ב',3:'ג',4:'ד',5:'ה',0:'?'};
 const DAY_NAMES  = {1:'ראשון',2:'שני',3:'שלישי',4:'רביעי',5:'חמישי'};
 const CITIES = [
   'תל אביב','ירושלים','חיפה','באר שבע','נתניה','פתח תקווה','אשדוד','ראשון לציון',
@@ -1305,7 +1311,7 @@ async function initRoute(){
   st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null;
   st.excluded=loadExcluded(st.agent?.code, st.day);
   document.getElementById('route-title').textContent='DILER FORMULA';
-  document.getElementById('route-sub').textContent=`${st.agent.name} · יום ${DAY_LABELS[st.day]}`;
+  document.getElementById('route-sub').textContent=`${st.agent.name} · ${st.day===0?'לא מוגדר':'יום '+DAY_LABELS[st.day]}`;
   document.getElementById('export-btn').classList.remove('visible');
   document.getElementById('export-all-btn').classList.remove('visible');
   setTab('list', true); // true = skip renderMap (data not ready yet)
@@ -1407,13 +1413,14 @@ function displayClients(){
 
 function buildDaySwitcher(){
   const el=document.getElementById('day-switch');
-  el.innerHTML=[1,2,3,4,5].map(d=>`<button class="day-sw-btn${d===st.day?' active':''}" onclick="switchDay(${d})">${DAY_LABELS[d]}</button>`).join('');
+  el.innerHTML=[1,2,3,4,5].map(d=>`<button class="day-sw-btn${d===st.day?' active':''}" onclick="switchDay(${d})">${DAY_LABELS[d]}</button>`).join('')
+    +`<button class="day-sw-btn day-sw-undef${st.day===0?' active':''}" onclick="switchDay(0)">?</button>`;
 }
 
 function switchDay(d){
   if(d===st.day)return;
   st.day=d;
-  document.getElementById('route-sub').textContent=`${st.agent.name} · יום ${DAY_LABELS[d]}`;
+  document.getElementById('route-sub').textContent=`${st.agent.name} · ${d===0?'לא מוגדר':'יום '+DAY_LABELS[d]}`;
   buildDaySwitcher();
   initRoute();
 }
