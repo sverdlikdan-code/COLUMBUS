@@ -225,6 +225,18 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .gps-hist-btn:hover{background:#e8f4ff;}
 .gps-hist-dd{display:none;position:absolute;top:calc(100% + 6px);left:0;min-width:260px;background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(26,63,124,.18);border:1px solid #e0eeff;z-index:9999;overflow:hidden;max-height:320px;overflow-y:auto;}
 .gps-hist-dd.open{display:block;}
+/* Overflow "⋮" menu */
+.km-more-wrap{position:relative;flex-shrink:0;}
+.km-more-btn{min-width:32px;padding:6px 9px;font-size:19px;font-weight:900;letter-spacing:0;line-height:1;}
+.km-more-dd{display:none;position:absolute;top:calc(100% + 6px);left:0;min-width:200px;background:#fff;border-radius:14px;box-shadow:0 6px 24px rgba(26,63,124,.2);border:1px solid var(--sky-mid);z-index:9999;overflow:hidden;}
+.km-more-dd.open{display:block;}
+.km-more-item{display:flex!important;width:100%;text-align:right;padding:11px 16px;border:none;background:none;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;gap:8px;align-items:center;direction:rtl;white-space:nowrap;}
+.km-more-item:hover{background:var(--sky-light);}
+.km-more-item:active{background:var(--sky-mid);}
+.km-more-sep{border:none;border-top:1px solid var(--sky-mid);margin:3px 0;}
+.km-more-dd .export-btn{display:flex!important;}
+.km-more-dd .gps-hist-wrap{position:static;border-top:1px solid var(--sky-mid);}
+.km-more-dd .gps-hist-dd{position:static;box-shadow:none;border:none;border-radius:0;max-height:200px;}
 .gps-hist-item{padding:10px 14px;border-bottom:1px solid #f0f6ff;font-size:12px;display:flex;flex-direction:column;gap:2px;}
 .gps-hist-item:last-child{border-bottom:none;}
 .gps-hist-item:hover{background:#f4f9ff;}
@@ -407,19 +419,26 @@ body.gps-fs #map{height:100%!important;}
         </div>
       </div>
     </div>
-    <!-- Row 2: action buttons (wrap freely) -->
+    <!-- Row 2: primary actions + overflow ⋮ -->
     <div class="km-row-actions">
       <div class="sort-btns">
         <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')">לפי סדר ביקור</button>
         <button class="sort-btn active-ai-google" id="sort-btn-ai-google" onclick="toggleAiGps()">🤖 AI Google</button>
-        <button class="sort-btn" id="day-briefing-btn" onclick="alert('כרגע בפיתוח 🔧')" title="ניתוח AI — TOP 10 לקוחות היום" style="background:#9E9E9E;color:#fff;border-color:#757575;font-weight:900">AI יום</button>
-        <button class="sort-btn" id="recalc-btn" onclick="recalcRoute()" title="חישוב מסלול מחדש" style="border-color:var(--orange,#F57C00);color:var(--orange,#F57C00);padding:6px 10px;">🔄</button>
-        <button class="sort-btn" onclick="resetRoute()" title="איפוס סדר היום" style="border-color:#b71c1c;color:#b71c1c;padding:6px 10px;">↩</button>
-        <button class="export-btn" id="export-btn" onclick="exportXLSX()"><span class="xls-icon">XL</span>שמור</button>
-        <button class="export-btn" id="export-all-btn" onclick="exportAllDaysXLSX()" style="background:#5C6BC0;box-shadow:0 2px 8px rgba(92,107,192,.35)"><span class="xls-icon" style="color:#5C6BC0">XL</span>כל הימים</button>
-        <div class="gps-hist-wrap">
-          <button class="gps-hist-btn" id="gps-hist-btn" onclick="toggleGpsHistory()">📍 תיקונים</button>
-          <div class="gps-hist-dd" id="gps-hist-dd"></div>
+        <button class="sort-btn" id="day-briefing-btn" onclick="alert('כרגע בפיתוח 🔧')" title="ניתוח יום — TOP 10 לקוחות" style="background:#5C6BC0;color:#fff;border-color:#3F51B5;font-weight:900">📊 ניתוח</button>
+        <div class="km-more-wrap">
+          <button class="sort-btn km-more-btn" id="km-more-btn" onclick="toggleKmMore()" title="עוד פעולות">⋮</button>
+          <div class="km-more-dd" id="km-more-dd">
+            <button class="km-more-item export-btn" id="export-btn" onclick="exportXLSX();closeKmMore()">📥 שמור יום (XLS)</button>
+            <button class="km-more-item export-btn" id="export-all-btn" onclick="exportAllDaysXLSX();closeKmMore()">📊 כל הימים (XLS)</button>
+            <hr class="km-more-sep">
+            <button class="km-more-item" id="recalc-btn" onclick="recalcRoute();closeKmMore()">🔄 חישוב מסלול מחדש</button>
+            <button class="km-more-item" onclick="resetRoute();closeKmMore()">↩ איפוס סדר היום</button>
+            <hr class="km-more-sep">
+            <div class="gps-hist-wrap">
+              <button class="km-more-item" id="gps-hist-btn" onclick="toggleGpsHistory()">📍 תיקוני GPS</button>
+              <div class="gps-hist-dd" id="gps-hist-dd"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -2319,6 +2338,12 @@ function updateGpsHistBtn(){
   if(count>0){btn.classList.add('visible');btn.textContent=`📍 תיקונים (${count})`;}
   else{btn.classList.remove('visible');}
 }
+function toggleKmMore(){
+  const dd=document.getElementById('km-more-dd');
+  const open=dd.classList.toggle('open');
+  if(open) setTimeout(()=>document.addEventListener('click',function h(e){if(!e.target.closest('.km-more-wrap')){dd.classList.remove('open');}document.removeEventListener('click',h);},{once:true}),10);
+}
+function closeKmMore(){document.getElementById('km-more-dd')?.classList.remove('open');}
 function toggleGpsHistory(){
   const dd=document.getElementById('gps-hist-dd');
   const open=dd.classList.toggle('open');
