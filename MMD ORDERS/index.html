@@ -416,7 +416,7 @@
     #prophet-panel { position:fixed; top:0; right:-420px; width:400px; height:100vh; background:#0a1628; color:#e8eaf0; z-index:9999; box-shadow:-4px 0 32px rgba(0,0,0,.6); transition:right .28s cubic-bezier(.4,0,.2,1); display:flex; flex-direction:column; font-family:'Segoe UI',sans-serif; }
     #prophet-panel.open { right:0; }
     #prophet-panel .pp-head { background:#0d1f3a; border-bottom:2px solid #c9a227; padding:14px 20px 12px; }
-    #prophet-panel .pp-head h3 { margin:0 0 2px; font-size:.95rem; color:#c9a227; direction:rtl; }
+    #prophet-panel .pp-head h3 { margin:0 0 2px; font-size:.95rem; color:#c9a227; direction:rtl; unicode-bidi:plaintext; }
     #prophet-panel .pp-head .pp-sub { font-size:.7rem; color:#8899aa; direction:rtl; }
     #prophet-panel .pp-body { flex:1; overflow-y:auto; display:flex; flex-direction:column; }
     /* ── Sparkline ── */
@@ -1551,7 +1551,7 @@
               if (trendPct > 10)       trendSpan = '<br><span style="font-size:.6rem;color:#2e7d32;font-weight:600">▲' + trendPct + '%</span>';
               else if (trendPct < -10) trendSpan = '<br><span style="font-size:.6rem;color:#c62828;font-weight:600">▼' + Math.abs(trendPct) + '%</span>';
             }
-            const onclk = 'openInfoPanel(\'' + mk + '\',\'' + escJs(r.taur||'') + '\')';
+            const onclk = 'openInfoPanel(\'' + mk + '\',\'' + escJs(fixProductName(r.taur||'')) + '\')';
             return '<td class="col-prophet" style="cursor:pointer;font-size:.85rem" data-mk="' + mk + '" onclick="' + onclk + '" title="נתוני מכירות">📊' + trendSpan + '</td>';
           })() +
           '<td class="c-num col-g"><input class="ei ei-n" type="number" min="0" step="1" value="' + ordV + '" data-mk="' + mk + '" data-ash="' + ash + '" data-mav="' + mav + '" data-f="k" oninput="inp(this)" placeholder="0"/></td>' +
@@ -2252,7 +2252,17 @@ window.openInfoPanel = function(mk, taur) {
   if (ebEl) {
     if (r && r.eilat_batches) {
       var bRows = r.eilat_batches.split(';').filter(function(b) { return b.trim(); });
-      // calc min days for danger badge
+      // danger: batch won't sell before expiry → qty/mkr_shvua > days/7
+      var hasDanger = false, hasWarn = false;
+      bRows.forEach(function(b) {
+        var parts = b.split('|');
+        var qty = parseInt(parts[2], 10), days = parseInt(parts[3], 10);
+        if (isNaN(qty) || isNaN(days) || qty <= 0) return;
+        var weeksStock = r.mkr_shvua > 0 ? qty / r.mkr_shvua : 999;
+        var weeksExpiry = days / 7;
+        if (weeksStock > weeksExpiry || days < 14) hasDanger = true;
+        else if (weeksStock > weeksExpiry * 0.7 || days < 30) hasWarn = true;
+      });
       var minDays = 9999;
       bRows.forEach(function(b) { var d = parseInt(b.split('|')[3], 10); if (!isNaN(d) && d < minDays) minDays = d; });
       // hide redundant tukuf line — table includes dates
