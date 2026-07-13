@@ -2182,7 +2182,8 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
             'KARTIS PARIT'[משפחת מוצר],
             'KARTIS PARIT'[URL תמונה],
             'KARTIS PARIT'[KARTON IN PALLET],
-            'KARTIS PARIT'[הזמנה לכמה ימים]
+            'KARTIS PARIT'[הזמנה לכמה ימים],
+            'KARTIS PARIT'[MKOD]
           ),
           ${INTER_DATA}[חברה] = "INTER",
           ${INTER_DATA}[ASHMADOT] = "-מכר-",
@@ -2230,6 +2231,7 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
         photoUrl:     String(r['KARTIS PARIT[URL תמונה]'] ?? '') || null,
         krat:         r['KARTIS PARIT[KARTON IN PALLET]'] ?? null,
         orderDays:    r['KARTIS PARIT[הזמנה לכמה ימים]'] ?? null,
+        mkod:         String(r['KARTIS PARIT[MKOD]'] ?? ''),
         malaiKarton:  +(r['[malaiKarton]']  ?? 0),
         hazmanaPtuha: +(r['[hazmanaPtuha]'] ?? 0),
         supDate:      r['[supDate]'] ?? null,
