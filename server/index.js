@@ -2180,7 +2180,10 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
         "totKarton", CALCULATE(SUM(${INTER_DATA}[KARTON]),
           ${INTER_DATA}[חברה]="INTER", ${INTER_DATA}[ASHMADOT]="-מכר-", ${dateFilter}),
         "days", CALCULATE(DISTINCTCOUNT(${INTER_DATA}[תאריך]),
-          ${INTER_DATA}[חברה]="INTER", ${INTER_DATA}[ASHMADOT]="-מכר-", ${dateFilter})
+          ${INTER_DATA}[חברה]="INTER", ${INTER_DATA}[ASHMADOT]="-מכר-", ${dateFilter}),
+        "tot365", CALCULATE(SUM(${INTER_DATA}[KARTON]),
+          ${INTER_DATA}[חברה]="INTER", ${INTER_DATA}[ASHMADOT]="-מכר-",
+          FILTER(ALL(DIMCALENDAR[Date]), DIMCALENDAR[Date] >= TODAY()-365 && DIMCALENDAR[Date] <= TODAY()))
       )
       ORDER BY 'KARTIS PARIT'[מותג] ASC, 'KARTIS PARIT'[תאור פרמטר 2 למוצר] ASC, 'KARTIS PARIT'[מק"ט] ASC
     `, INTER_DS, INTER_WS);
@@ -2195,6 +2198,8 @@ app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
       if (!makat) continue;
       const famId = String(r['KARTIS PARIT[משפחת מוצר]'] ?? '');
       if (!INTER_FAMILY_IDS.has(famId)) continue;
+      const tot365 = r['[tot365]'] ?? null;
+      if (!tot365 || tot365 <= 0) continue;
       const family = fixBiDi(String(r['KARTIS PARIT[תאור משפחה]'] ?? ''));
       const totKarton = r['[totKarton]'] ?? null;
       const days      = r['[days]'] ?? null;
