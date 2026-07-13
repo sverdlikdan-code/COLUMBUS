@@ -3492,7 +3492,7 @@ function buildInterOrderPage() {
     }
     const krat  = p.krat || 1;
     const edit  = (window._interManualEdits || {})[mk];
-    return { mk, name: p.name, motag: p.motag || '—', param2: p.param2 || '—', krat, daySales, periodSales, orderK: edit ? edit.orderK : 0, orderP: edit ? edit.orderP : 0 };
+    return { mk, name: p.name, nameEng: p.nameEng || '', motag: p.motag || '—', param2: p.param2 || '—', krat, daySales, periodSales, photoUrl: p.photoUrl || null, orderK: edit ? edit.orderK : 0, orderP: edit ? edit.orderP : 0 };
   });
 
   let rows = allRows;
@@ -3509,13 +3509,14 @@ function buildInterOrderPage() {
   });
 
   const thead = `<thead><tr style="background:#bf360c;color:#fff;position:sticky;top:0;z-index:5;">
+    <th style="padding:8px 6px;text-align:center;font-size:11px;width:52px;">📷</th>
     <th style="padding:8px 12px;text-align:right;font-size:11px;">שם מוצר</th>
     <th style="padding:8px 6px;text-align:center;font-size:11px;">מק"ט</th>
     <th style="padding:8px 6px;text-align:center;font-size:11px;">מכר/יום</th>
     <th style="padding:8px 6px;text-align:center;font-size:11px;">מכר בתקופה</th>
     <th style="padding:8px 6px;text-align:center;font-size:11px;">קרט/פל</th>
     <th style="padding:8px 6px;text-align:center;font-size:11px;background:#6d3b00;">כמות קרטון</th>
-    <th style="padding:8px 6px;text-align:center;font-size:11px;background:#6d3b00;">פלטות</th>
+    <th style="padding:8px 6px;text-align:center;font-size:11px;background:#6d3b00;">פלטות ידני</th>
   </tr></thead>`;
 
   let tbRows = '';
@@ -3529,7 +3530,7 @@ function buildInterOrderPage() {
 
     // מותג header row
     tbRows += `<tr style="background:#7c3a00;color:#fff;">
-      <td colspan="5" style="padding:6px 12px;font-size:13px;font-weight:900;" dir="rtl">🏷 ${esc(motag)}</td>
+      <td colspan="6" style="padding:6px 12px;font-size:13px;font-weight:900;" dir="rtl">🏷 ${esc(motag)}</td>
       <td style="padding:6px 8px;text-align:center;font-size:13px;font-weight:800;">${fmtK(motagK)}</td>
       <td style="padding:6px 8px;text-align:center;font-size:12px;font-weight:700;">${motagPal.toFixed(1)}</td>
     </tr>`;
@@ -3538,7 +3539,7 @@ function buildInterOrderPage() {
       const grpK   = gr.reduce((s,r) => s + (r.orderK||0), 0);
       const grpPal = gr.reduce((s,r) => s + (r.orderP||0), 0);
       tbRows += `<tr style="background:#f57c00;color:#fff;">
-        <td colspan="5" style="padding:4px 20px;font-size:11px;font-weight:700;" dir="rtl">📦 ${esc(param2)} <span style="opacity:0.7;font-size:10px;">(${gr.length})</span></td>
+        <td colspan="6" style="padding:4px 20px;font-size:11px;font-weight:700;" dir="rtl">📦 ${esc(param2)} <span style="opacity:0.7;font-size:10px;">(${gr.length})</span></td>
         <td style="padding:4px 8px;text-align:center;font-size:11px;font-weight:700;">${fmtK(grpK)}</td>
         <td style="padding:4px 8px;text-align:center;font-size:10px;font-weight:700;">${grpPal.toFixed(1)}</td>
       </tr>`;
@@ -3546,8 +3547,12 @@ function buildInterOrderPage() {
       gr.forEach((r, i) => {
         const bg = i % 2 === 0 ? '#fff' : '#FFF3E0';
         const oc = r.orderK > 0 ? '#c62828' : '#888';
+        const imgCell = r.photoUrl
+          ? `<img src="${r.photoUrl}" style="width:44px;height:44px;object-fit:contain;border-radius:4px;border:1px solid #ddd;background:#fff;" onerror="this.style.display='none'">`
+          : `<span style="font-size:18px;opacity:0.3;">📷</span>`;
         tbRows += `<tr style="background:${bg};border-bottom:1px solid #FFE0B2;">
-          <td style="padding:5px 12px;font-size:11px;font-weight:600;max-width:220px;" dir="rtl">${esc(r.name)}</td>
+          <td style="padding:3px 4px;text-align:center;width:52px;">${imgCell}</td>
+          <td style="padding:5px 12px;font-size:11px;font-weight:600;max-width:220px;" dir="rtl">${esc(r.name)}${r.nameEng ? `<br><span style="font-size:9px;color:#aaa;font-weight:400;">${esc(r.nameEng)}</span>` : ''}</td>
           <td style="padding:5px 6px;text-align:center;font-size:10px;color:#888;">${r.mk}</td>
           <td style="padding:5px 6px;text-align:center;font-size:12px;">${r.daySales > 0 ? r.daySales.toFixed(2) : '—'}</td>
           <td style="padding:5px 6px;text-align:center;font-size:12px;">${r.periodSales != null ? fmtK(r.periodSales) : '—'}</td>

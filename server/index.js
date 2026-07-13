@@ -2132,106 +2132,88 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
   }
 });
 
-// GET /pbi/inter-sales?periods=2026-5,2026-6[&shiuk=VALUE] — products + sales for INTER ordering page
-app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
-  let dateFilter;
-  if (req.query.periods) {
-    const parts = String(req.query.periods).split(',').map(s => s.trim()).filter(Boolean);
-    const conds = [];
-    for (const p of parts) {
-      const [y, m] = p.split('-').map(Number);
-      if (!y || y < 2020 || y > 2030) return res.status(400).json({ error: `invalid period: ${p}` });
-      if (m) {
-        if (m < 1 || m > 12) return res.status(400).json({ error: `invalid month in: ${p}` });
-        conds.push(`(YEAR('ALL_PARTS'[תאריך])=${y}&&MONTH('ALL_PARTS'[תאריך])=${m})`);
-      } else {
-        conds.push(`YEAR('ALL_PARTS'[תאריך])=${y}`);
-      }
-    }
-    if (!conds.length) return res.status(400).json({ error: 'no valid periods' });
-    dateFilter = `FILTER(ALL('ALL_PARTS'[תאריך]),${conds.join('||')})`;
-  } else {
-    return res.status(400).json({ error: 'periods param required' });
-  }
+// GET /pbi/inter-sales?periods=2026-5,2026-6 — products + sales for INTER ordering page
+// Source: INTERNATIONAL CONTROL DESK (CONTROL workspace) — includes photo URL, ENG name, krat
+const INTER_WS = 'ee9e5fc6-bc10-4e7d-a8f3-b23c08d150ed';
+const INTER_DS = 'fb6691a0-9b2f-413b-b438-78d2982c4e70';
+const INTER_DATA = `'DataIINא+F+I+MMD 25-23-24-22'`;
 
-  const shiuk = req.query.shiuk ? String(req.query.shiuk).trim() : null;
-  // Validate: no DAX injection
-  if (shiuk && !/^[֐-׿\w\s\-\/]+$/.test(shiuk)) {
-    return res.status(400).json({ error: 'invalid shiuk value' });
+app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
+  if (!req.query.periods) return res.status(400).json({ error: 'periods param required' });
+
+  const parts = String(req.query.periods).split(',').map(s => s.trim()).filter(Boolean);
+  const conds = [];
+  for (const p of parts) {
+    const [y, m] = p.split('-').map(Number);
+    if (!y || y < 2020 || y > 2030) return res.status(400).json({ error: `invalid period: ${p}` });
+    if (m) {
+      if (m < 1 || m > 12) return res.status(400).json({ error: `invalid month in: ${p}` });
+      conds.push(`(YEAR(DIMCALENDAR[Date])=${y}&&MONTH(DIMCALENDAR[Date])=${m})`);
+    } else {
+      conds.push(`YEAR(DIMCALENDAR[Date])=${y}`);
+    }
   }
-  const shiukFilter = shiuk ? `,\n          'ALL_PARTS'[שיווק] = "${shiuk}"` : '';
+  if (!conds.length) return res.status(400).json({ error: 'no valid periods' });
+  const dateFilter = `FILTER(ALL(DIMCALENDAR[Date]),${conds.join('||')})`;
 
   try {
-    const [prodRows, salesRows, mkrRows] = await Promise.all([
-      executeDax(`
-        EVALUATE
+    const rows = await executeDax(`
+      EVALUATE
+      ADDCOLUMNS(
         CALCULATETABLE(
           SUMMARIZECOLUMNS(
-            'KARTIS PARIT INTER'[מק"ט],
-            'KARTIS PARIT INTER'[תאור],
-            'KARTIS PARIT INTER'[מותג],
-            'KARTIS PARIT INTER'[תאור פרמטר 2 למוצר],
-            'KARTIS PARIT INTER'[משפחת מוצר],
-            'KARTIS PARIT INTER'[תאור משפחה]
+            'KARTIS PARIT'[מק"ט],
+            'KARTIS PARIT'[תאור],
+            'KARTIS PARIT'[תאור לועזי],
+            'KARTIS PARIT'[מותג],
+            'KARTIS PARIT'[תאור פרמטר 2 למוצר],
+            'KARTIS PARIT'[תאור משפחה],
+            'KARTIS PARIT'[משפחת מוצר],
+            'KARTIS PARIT'[URL תמונה],
+            'KARTIS PARIT'[KARTON IN PALLET],
+            'KARTIS PARIT'[הזמנה לכמה ימים]
           ),
-          'KARTIS PARIT INTER'[משפחת מוצר] IN {"30", "39"}
-        )
-        ORDER BY 'KARTIS PARIT INTER'[מותג] ASC, 'KARTIS PARIT INTER'[תאור פרמטר 2 למוצר] ASC, 'KARTIS PARIT INTER'[מק"ט] ASC
-      `).catch(e => { console.error('[inter-prod DAX]', e?.message || e); return null; }),
-      executeDax(`
-        EVALUATE
-        CALCULATETABLE(
-          SUMMARIZECOLUMNS(
-            'ALL_PARTS'[מק'ט],
-            "daySales", [TOTAL מכר בקרטונים ממוצע ביום]
-          ),
-          'ALL_PARTS'[חברה] = "INTER"${shiukFilter},
-          ${dateFilter}
-        )
-      `).catch(() => null),
-      executeDax(`
-        EVALUATE
-        CALCULATETABLE(
-          SUMMARIZECOLUMNS(
-            'ALL_PARTS'[מק'ט],
-            "mkrTk", [TOTAL מכר בקרטונים]
-          ),
-          'ALL_PARTS'[חברה] = "INTER"${shiukFilter},
-          ${dateFilter}
-        )
-      `).catch(() => null),
-    ]);
+          ${INTER_DATA}[חברה] = "INTER",
+          ${INTER_DATA}[ASHMADOT] = "-מכר-",
+          'KARTIS PARIT'[סטטוס] = "פעיל"
+        ),
+        "totKarton", CALCULATE(SUM(${INTER_DATA}[KARTON]),
+          ${INTER_DATA}[חברה]="INTER", ${INTER_DATA}[ASHMADOT]="-מכר-", ${dateFilter}),
+        "days", CALCULATE(DISTINCTCOUNT(${INTER_DATA}[תאריך]),
+          ${INTER_DATA}[חברה]="INTER", ${INTER_DATA}[ASHMADOT]="-מכר-", ${dateFilter})
+      )
+      ORDER BY 'KARTIS PARIT'[מותג] ASC, 'KARTIS PARIT'[תאור פרמטר 2 למוצר] ASC, 'KARTIS PARIT'[מק"ט] ASC
+    `, INTER_DS, INTER_WS);
 
-    const salesMap = {}, mkrMap = {};
-    if (salesRows) for (const r of salesRows) {
-      const mk = r["ALL_PARTS[מק'ט]"];
-      if (mk != null) salesMap[String(mk)] = r['[daySales]'] ?? null;
-    }
-    if (mkrRows) for (const r of mkrRows) {
-      const mk = r["ALL_PARTS[מק'ט]"];
-      if (mk != null) mkrMap[String(mk)] = r['[mkrTk]'] ?? null;
-    }
+    console.log(`[inter-sales] got ${rows.length} products from CONTROL`);
 
-    if (!prodRows) console.error('[inter-prod] prodRows is null — DAX query failed silently');
-    else console.log(`[inter-prod] got ${prodRows.length} rows, sample:`, JSON.stringify(prodRows[0] || {}));
-
-    const products = (prodRows || []).map(r => ({
-      makat:        String(r['KARTIS PARIT INTER[מק"ט]'] ?? ''),
-      name:         fixBiDi(String(r['KARTIS PARIT INTER[תאור]'] ?? '')),
-      motag:        fixBiDi(String(r['KARTIS PARIT INTER[מותג]'] ?? '')),
-      param2:       fixBiDi(String(r['KARTIS PARIT INTER[תאור פרמטר 2 למוצר]'] ?? '')),
-      mishpacaId:   r['KARTIS PARIT INTER[משפחת מוצר]'] ?? null,
-      mishpacaTaur: fixBiDi(String(r['KARTIS PARIT INTER[תאור משפחה]'] ?? '')),
-    })).filter(p => p.makat);
-
+    const products = [];
     const sales = {};
-    for (const p of products) {
-      sales[p.makat] = { daySales: salesMap[p.makat] ?? null, mkrTk: mkrMap[p.makat] ?? null };
+    for (const r of rows) {
+      const makat = String(r['KARTIS PARIT[מק"ט]'] ?? '');
+      if (!makat) continue;
+      const totKarton = r['[totKarton]'] ?? null;
+      const days      = r['[days]'] ?? null;
+      const daySales  = (totKarton != null && days) ? totKarton / days : null;
+      products.push({
+        makat,
+        name:         fixBiDi(String(r['KARTIS PARIT[תאור]'] ?? '')),
+        nameEng:      String(r['KARTIS PARIT[תאור לועזי]'] ?? ''),
+        motag:        fixBiDi(String(r['KARTIS PARIT[מותג]'] ?? '')),
+        param2:       fixBiDi(String(r['KARTIS PARIT[תאור פרמטר 2 למוצר]'] ?? '')),
+        mishpacaId:   r['KARTIS PARIT[משפחת מוצר]'] ?? null,
+        mishpacaTaur: fixBiDi(String(r['KARTIS PARIT[תאור משפחה]'] ?? '')),
+        photoUrl:     String(r['KARTIS PARIT[URL תמונה]'] ?? '') || null,
+        krat:         r['KARTIS PARIT[KARTON IN PALLET]'] ?? null,
+        orderDays:    r['KARTIS PARIT[הזמנה לכמה ימים]'] ?? null,
+      });
+      sales[makat] = { daySales, mkrTk: totKarton };
     }
 
     res.json({ ok: true, products, sales });
   } catch (err) {
-    console.error(err); res.status(500).json({ error: 'server_error' });
+    console.error('[inter-sales]', err?.message || err);
+    res.status(500).json({ error: 'server_error' });
   }
 });
 
