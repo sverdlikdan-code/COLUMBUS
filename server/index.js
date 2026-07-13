@@ -123,6 +123,24 @@ CALCULATETABLE(
       arr.sort((a, b) => (a.priorityOrder - b.priorityOrder) || a.custId.localeCompare(b.custId));
     }
 
+    // Formula clients with NO scheduled day (not in meshtat im kfulot) → appear under day=0 "לא מוגדר"
+    const scheduledIds = new Set(schedMap.keys());
+    const noScheduleByAgent = new Map();
+    for (const [custId, c] of clientMap) {
+      if (!c.agentCode || scheduledIds.has(custId)) continue;
+      if (!noScheduleByAgent.has(c.agentCode)) noScheduleByAgent.set(c.agentCode, []);
+      noScheduleByAgent.get(c.agentCode).push({
+        ...c,
+        dayNum: null,
+        dayLabel: '',
+        priorityOrder: 9500,
+        fullAddress: [c.address, c.city, 'ישראל'].filter(Boolean).join(', '),
+        pct: c.target > 0 ? Math.round((c.monthlySales / c.target) * 100) : 0,
+      });
+    }
+    const totalNoSched = [...noScheduleByAgent.values()].reduce((s,a)=>s+a.length,0);
+    if (totalNoSched) console.log(`[PBI] Formula clients without scheduled day: ${totalNoSched}`);
+
     // Build managers list and agents-per-manager
     const managers = new Set();
     const agentsByManager = new Map();
@@ -153,8 +171,6 @@ EVALUATE
 SELECTCOLUMNS(
   FILTER('MISHPAHTI ICE MISHTAH',
     LEN('MISHPAHTI ICE MISHTAH'[שם סוכן נוסף]) > 0
-    && 'MISHPAHTI ICE MISHTAH'[פרמטר 18] <> BLANK()
-    && LEN('MISHPAHTI ICE MISHTAH'[פרמטר 18]) > 0
   ),
   "custId",    'MISHPAHTI ICE MISHTAH'[מס. לקוח],
   "custName",  'MISHPAHTI ICE MISHTAH'[שם לקוח],
@@ -169,9 +185,9 @@ SELECTCOLUMNS(
         for (const r of iceRows) {
           const custId    = String(r['[custId]'] || '');
           const agentCode = String(r['[agentCode]'] || '');
+          if (!custId || !agentCode || agentCode === 'null') continue;
           const dayLetter = (r['[dayLetter]'] || '').trim();
-          const dayNum    = ICE_DAY_MAP[dayLetter] || null;
-          if (!custId || !agentCode || agentCode === 'null' || !dayNum) continue;
+          const dayNum    = ICE_DAY_MAP[dayLetter] || null; // null = no day assigned
           // Skip if already in Formula meshtat
           if (clientMap.has(custId)) continue;
 
@@ -212,6 +228,7 @@ SELECTCOLUMNS(
       clientMap,
       byAgent,
       iceByAgent,
+      noScheduleByAgent,
       managers: [...managers].sort(),
       agentsByManager: new Map([...agentsByManager].map(([k, v]) => [k, [...v.values()]])),
       managerAgents,
@@ -1152,21 +1169,38 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
   const { agent, day } = req.query;
   if (!agent) return res.status(400).json({ error: 'agent required' });
   if (!validateAgentCode(agent)) return res.status(400).json({ error: 'invalid agent code' });
-  if (day && !/^[1-5]$/.test(String(day))) return res.status(400).json({ error: 'invalid day' });
+  if (day && !/^[0-5]$/.test(String(day))) return res.status(400).json({ error: 'invalid day' });
   if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
 
-  const dayNum = day ? parseInt(day) : null;
+  // day=0 → "לא מוגדר": ICE clients with no scheduled day
+  // day=1-5 → Formula clients for that day + ICE clients with that specific day
+  // day=null → all clients
+  const dayNum = day !== undefined && day !== '' ? parseInt(day) : null;
 
   try {
-    const allForAgent = pbiCache.byAgent.get(agent) || [];
-    console.log(`[/customers] agent=${agent} day=${dayNum} total=${allForAgent.length} dayNums=${[...new Set(allForAgent.map(c=>c.dayNum))].sort()}`);
-    let clients = allForAgent.slice();
-    if (dayNum) clients = clients.filter(c => c.dayNum === dayNum);
+    const allForAgent    = pbiCache.byAgent.get(agent) || [];
+    const noSchedFormula = (pbiCache.noScheduleByAgent?.get(agent) || []);
+    // All Formula custIds (scheduled + unscheduled) — never show as ICE-only
+    const allFormulaIds  = new Set([...allForAgent, ...noSchedFormula].map(c => c.custId));
+    console.log(`[/customers] agent=${agent} day=${dayNum} scheduled=${allForAgent.length} noSched=${noSchedFormula.length}`);
 
-    // Merge ICE-only clients for this agent+day (not already in Formula meshtat)
+    let clients;
+    if (dayNum === 0) {
+      // "לא מוגדר": Formula unscheduled + ICE with no day
+      clients = noSchedFormula.slice();
+    } else {
+      clients = allForAgent.slice();
+      if (dayNum) clients = clients.filter(c => c.dayNum === dayNum);
+    }
+
+    // Merge ICE-only clients (not in any Formula list)
     const iceAll = pbiCache.iceByAgent?.get(agent) || [];
-    const formulaIds = new Set(clients.map(c => c.custId));
-    const iceForDay = iceAll.filter(c => (!dayNum || c.dayNum === dayNum) && !formulaIds.has(c.custId));
+    let iceForDay;
+    if (dayNum === 0) {
+      iceForDay = iceAll.filter(c => c.dayNum === null && !allFormulaIds.has(c.custId));
+    } else {
+      iceForDay = iceAll.filter(c => (!dayNum || c.dayNum === dayNum) && !allFormulaIds.has(c.custId));
+    }
     if (iceForDay.length) console.log(`[/customers] +${iceForDay.length} ICE-only clients`);
     clients = [...clients, ...iceForDay];
     console.log(`[/customers] after day filter + ICE: ${clients.length}`);
