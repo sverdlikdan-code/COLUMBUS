@@ -64,13 +64,12 @@ function clrClass(days) {
 function dangerLevel(batches, mkr_shvua) {
   var hasDanger = false, hasWarn = false;
   batches.forEach(function(b) {
-    var weeks = b.days / 7;
-    var qty = b.qty;
-    if (qty <= 0) return;
-    // Danger: weeks until expiry < mkr_shvua (won't cycle through avg weekly sales before expiry)
-    // OR batch expires in < 30 days
-    if (b.days < 30 || (mkr_shvua > 0 && weeks < mkr_shvua)) hasDanger = true;
-    else if (b.days < 60 || (mkr_shvua > 0 && weeks < mkr_shvua * 1.5)) hasWarn = true;
+    if (b.qty <= 0) return;
+    var weeksToExpiry = b.days / 7;
+    var weeksOfStock = mkr_shvua > 0 ? b.qty / mkr_shvua : 999;
+    // danger: have more stock than can sell before expiry, OR < 14 days left
+    if (b.days < 14 || weeksOfStock > weeksToExpiry) hasDanger = true;
+    else if (b.days < 30 || weeksOfStock > weeksToExpiry * 0.7) hasWarn = true;
   });
   return hasDanger ? 'danger' : (hasWarn ? 'warn' : 'ok');
 }
