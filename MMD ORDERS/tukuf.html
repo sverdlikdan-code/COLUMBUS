@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>תוקף אילת — MMD ORDERS</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#04111f;color:#e8eaf0;font-family:'Segoe UI',sans-serif;min-height:100vh}
+header{background:#0d1f3a;border-bottom:2px solid #c9a227;padding:10px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:99}
+header h1{font-size:.95rem;color:#c9a227;flex:1}
+.btn{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.07);color:#e8eaf0;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:.78rem}
+.btn.active{background:#c62828;border-color:#c62828;color:#fff;font-weight:bold}
+.btn-back{text-decoration:none;color:#8899aa;font-size:.78rem;border:1px solid #334;padding:5px 10px;border-radius:6px}
+#summary{padding:8px 16px;font-size:.72rem;color:#556;direction:rtl}
+#cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;padding:12px 16px}
+.card{background:#0b1e35;border-radius:10px;border:1px solid rgba(255,255,255,.08);overflow:hidden;display:flex;flex-direction:column}
+.card.is-danger{border-color:#c62828}
+.card.is-warn{border-color:#e65100}
+.card-top{display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(0,0,0,.2)}
+.card-photo{width:48px;height:48px;object-fit:contain;border-radius:4px;background:#0a1628;flex-shrink:0}
+.card-photo-placeholder{width:48px;height:48px;background:#0a1628;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#334;font-size:1.2rem;flex-shrink:0}
+.card-name{font-size:.72rem;color:#c9a227;font-weight:bold;line-height:1.3}
+.card-sub{font-size:.62rem;color:#556;margin-top:2px}
+.card-body{padding:8px 10px;flex:1}
+.batch-row{display:flex;direction:rtl;align-items:center;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);gap:0;font-size:.68rem}
+.batch-row:last-child{border-bottom:none}
+.bc{flex:1;text-align:center}
+.bc.date{color:#7788aa}
+.bc.qty{font-weight:bold}
+.bc.days{font-weight:bold}
+.col-hdr{display:flex;direction:rtl;padding:3px 0 1px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:2px}
+.col-hdr span{flex:1;text-align:center;font-size:.58rem;color:#334}
+.card-footer{padding:6px 10px;background:rgba(0,0,0,.15);display:flex;align-items:center;justify-content:space-between;direction:rtl;font-size:.65rem;gap:8px}
+.footer-sales{color:#8899aa}
+.badge-danger{background:#c62828;color:#fff;padding:2px 7px;border-radius:3px;font-weight:bold;font-size:.62rem}
+.badge-warn{background:#e65100;color:#fff;padding:2px 7px;border-radius:3px;font-size:.62rem}
+.badge-ok{color:#4caf50;font-size:.62rem}
+.clr-r{color:#e55}
+.clr-o{color:#f90}
+.clr-g{color:#8b8}
+#loading{padding:40px;text-align:center;color:#556}
+.empty{padding:40px;text-align:center;color:#334;font-size:.85rem}
+</style>
+</head>
+<body>
+<header>
+  <h1>תוקף אילת</h1>
+  <button class="btn" id="btn-sakana" onclick="toggleSakana()">⚠ סכנה בלבד</button>
+  <a class="btn-back" href="/mmd/">← חזרה</a>
+</header>
+<div id="summary"></div>
+<div id="loading">טוען נתונים...</div>
+<div id="cards" style="display:none"></div>
+
+<script>
+var showSakanaOnly = false;
+var allCards = [];
+
+function clrClass(days) {
+  return days < 30 ? 'clr-r' : days < 60 ? 'clr-o' : 'clr-g';
+}
+
+function dangerLevel(batches, mkr_shvua) {
+  var hasDanger = false, hasWarn = false;
+  batches.forEach(function(b) {
+    var weeks = b.days / 7;
+    var qty = b.qty;
+    if (qty <= 0) return;
+    // Danger: weeks until expiry < mkr_shvua (won't cycle through avg weekly sales before expiry)
+    // OR batch expires in < 30 days
+    if (b.days < 30 || (mkr_shvua > 0 && weeks < mkr_shvua)) hasDanger = true;
+    else if (b.days < 60 || (mkr_shvua > 0 && weeks < mkr_shvua * 1.5)) hasWarn = true;
+  });
+  return hasDanger ? 'danger' : (hasWarn ? 'warn' : 'ok');
+}
+
+function renderCards(data) {
+  var grid = document.getElementById('cards');
+  grid.innerHTML = '';
+  var shown = 0;
+  data.forEach(function(c) {
+    if (showSakanaOnly && c.level === 'ok') return;
+    if (showSakanaOnly && c.level === 'warn') return;
+    shown++;
+    var el = document.createElement('div');
+    el.className = 'card' + (c.level === 'danger' ? ' is-danger' : c.level === 'warn' ? ' is-warn' : '');
+    // top
+    var photoHtml = c.img
+      ? '<img class="card-photo" src="/mmd/img/' + encodeURIComponent(c.mkt) + '" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" loading="lazy"><div class="card-photo-placeholder" style="display:none">📦</div>'
+      : '<div class="card-photo-placeholder">📦</div>';
+    var top = document.createElement('div');
+    top.className = 'card-top';
+    top.innerHTML = photoHtml + '<div><div class="card-name">' + c.taur + '</div><div class="card-sub">מק"ט ' + c.mkt + ' · ' + (c.mishpacha || '') + '</div></div>';
+    el.appendChild(top);
+    // body
+    var body = document.createElement('div');
+    body.className = 'card-body';
+    var hdr = document.createElement('div');
+    hdr.className = 'col-hdr';
+    hdr.innerHTML = '<span>ת. תפוגה</span><span>מלאי</span><span>ימים</span>';
+    body.appendChild(hdr);
+    c.batches.forEach(function(b) {
+      var cls = clrClass(b.days);
+      var row = document.createElement('div');
+      row.className = 'batch-row';
+      row.innerHTML = '<span class="bc date">' + b.dt + '</span>'
+        + '<span class="bc qty ' + cls + '">' + (b.qty > 0 ? b.qty : '<span style="color:#334">0</span>') + '</span>'
+        + '<span class="bc days ' + cls + '">' + b.days + '</span>';
+      body.appendChild(row);
+    });
+    el.appendChild(body);
+    // footer
+    var wks = c.mkr_shvua != null ? (c.mkr_shvua).toFixed(1) : null;
+    var badgeHtml = c.level === 'danger' ? '<span class="badge-danger">⚠ סכנה</span>'
+                  : c.level === 'warn'   ? '<span class="badge-warn">תשומת לב</span>'
+                  : '<span class="badge-ok">✓ בסדר</span>';
+    var footer = document.createElement('div');
+    footer.className = 'card-footer';
+    footer.innerHTML = '<span class="footer-sales">' + (wks ? 'מכר שבועי: ' + wks + ' קרט\'' : 'אין נתוני מכר') + '</span>' + badgeHtml;
+    el.appendChild(footer);
+    grid.appendChild(el);
+  });
+  if (shown === 0) {
+    grid.innerHTML = '<div class="empty">' + (showSakanaOnly ? 'אין מוצרים בסכנה' : 'אין מוצרים עם תוקף אילת') + '</div>';
+  }
+  grid.style.display = '';
+}
+
+function toggleSakana() {
+  showSakanaOnly = !showSakanaOnly;
+  document.getElementById('btn-sakana').classList.toggle('active', showSakanaOnly);
+  renderCards(allCards);
+  updateSummary();
+}
+
+function updateSummary() {
+  var danger = allCards.filter(function(c) { return c.level === 'danger'; }).length;
+  var warn   = allCards.filter(function(c) { return c.level === 'warn'; }).length;
+  var total  = allCards.length;
+  document.getElementById('summary').textContent =
+    total + ' מוצרים עם מלאי תוקף' +
+    (danger ? ' · ⚠ ' + danger + ' בסכנה' : '') +
+    (warn   ? ' · ' + warn + ' בתשומת לב' : '');
+}
+
+fetch('./mmd-orders.json')
+  .then(function(r) { return r.json(); })
+  .then(function(json) {
+    document.getElementById('loading').style.display = 'none';
+    var data = (json.data || []).filter(function(r) { return r.eilat_batches; });
+    allCards = data.map(function(r) {
+      var batches = r.eilat_batches.split(';').filter(Boolean).map(function(b) {
+        var p = b.split('|');
+        return { pke: p[0], dt: p[1], qty: parseInt(p[2], 10) || 0, days: parseInt(p[3], 10) || 0 };
+      });
+      var level = dangerLevel(batches, r.mkr_shvua);
+      return { mkt: r.mkt, taur: r.taur, mishpacha: r.mishpacha, img: r.img,
+               mkr_shvua: r.mkr_shvua, batches: batches, level: level };
+    });
+    // sort: danger → warn → ok, then by min days asc
+    allCards.sort(function(a, b) {
+      var order = { danger: 0, warn: 1, ok: 2 };
+      if (order[a.level] !== order[b.level]) return order[a.level] - order[b.level];
+      var aMin = Math.min.apply(null, a.batches.map(function(x) { return x.days; }));
+      var bMin = Math.min.apply(null, b.batches.map(function(x) { return x.days; }));
+      return aMin - bMin;
+    });
+    updateSummary();
+    renderCards(allCards);
+  })
+  .catch(function(e) {
+    document.getElementById('loading').textContent = 'שגיאה בטעינת נתונים: ' + e.message;
+  });
+</script>
+</body>
+</html>

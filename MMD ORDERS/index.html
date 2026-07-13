@@ -2302,6 +2302,13 @@ window.openInfoPanel = function(mk, taur) {
         row.appendChild(sDt); row.appendChild(sQty); row.appendChild(sDays);
         ebEl.appendChild(row);
       });
+      // link to full tukuf page
+      var tukufLink = document.createElement('a');
+      tukufLink.href = '/mmd/tukuf';
+      tukufLink.target = '_blank';
+      tukufLink.textContent = 'דף תוקף אילת ←';
+      tukufLink.style.cssText = 'display:block;margin:8px 8px 2px;text-align:center;font-size:.68rem;color:#c9a227;text-decoration:none;border:1px solid rgba(201,162,39,.35);border-radius:5px;padding:5px 0';
+      ebEl.appendChild(tukufLink);
       ebEl.style.display = '';
     } else {
       ebEl.innerHTML = '';
