@@ -722,7 +722,7 @@
     <div style="width:1px;background:rgba(255,255,255,0.08);flex-shrink:0;margin:8px 0;position:relative;z-index:1;" class="no-print"></div>
     <div style="display:flex;align-items:center;gap:6px;padding:0 10px;position:relative;z-index:1;" class="no-print">
       <button onclick="exportOrderCsv()" style="background:#1d4ed8;border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:5px 13px;white-space:nowrap;letter-spacing:.3px;">⬇ Excel</button>
-      <button onclick="_orderSaveSnapshot()" style="background:#15803d;border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:5px 13px;white-space:nowrap;letter-spacing:.3px;">💾 שמור</button>
+      <button id="btn-order-save" onclick="_orderSaveSnapshot()" style="background:#15803d;border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:5px 13px;white-space:nowrap;letter-spacing:.3px;">💾 שמור</button>
       <div style="position:relative;display:inline-block;">
         <button id="btn-order-history" onclick="_orderToggleHistory()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.8);font-size:11px;font-weight:600;cursor:pointer;border-radius:6px;padding:4px 11px;white-space:nowrap;">🕐 היסטוריה</button>
         <div class="history-dropdown" id="order-history-dropdown"></div>
@@ -764,7 +764,7 @@
     <div id="inter-period-btns" style="display:flex;flex:1;min-width:0;overflow:hidden;padding:0 10px;align-items:center;gap:3px;direction:ltr;position:relative;z-index:1;" class="no-print"></div>
     <div style="display:flex;align-items:center;gap:6px;padding:0 10px;position:relative;z-index:1;" class="no-print">
       <button onclick="exportInterOrderCsv()" style="background:#b45309;border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:5px 13px;white-space:nowrap;letter-spacing:.3px;">⬇ Excel</button>
-      <button onclick="_interSaveSnapshot()" style="background:#15803d;border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:5px 13px;white-space:nowrap;letter-spacing:.3px;">💾 שמור</button>
+      <button id="btn-inter-save" onclick="_interSaveSnapshot()" style="background:#15803d;border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:5px 13px;white-space:nowrap;letter-spacing:.3px;">💾 שמור</button>
       <div style="position:relative;display:inline-block;">
         <button id="btn-inter-history" onclick="_interToggleHistory()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.8);font-size:11px;font-weight:600;cursor:pointer;border-radius:6px;padding:4px 11px;white-space:nowrap;">🕐 היסטוריה</button>
         <div class="history-dropdown" id="inter-history-dropdown"></div>
@@ -2808,27 +2808,39 @@ function _orderFmtTs(iso) {
 }
 
 async function _orderSaveSnapshot() {
+  // Build snapshot from current rows (manual edits + recK fallback)
+  const rows  = window._orderCurrentRows || [];
   const edits = window._orderManualEdits || {};
-  if (!Object.keys(edits).length) { alert('אין הזמנה ידנית לשמירה'); return; }
-  const cloned = deepClone(edits);
+  const snapshot = {};
+  rows.forEach(r => {
+    const mk = String(r.mk ?? r.makat ?? '');
+    const qty = edits[mk]?.orderK ?? r.recK ?? 0;
+    if (qty > 0) snapshot[mk] = { orderK: qty };
+  });
+
+  const btn = document.getElementById('btn-order-save');
+  const setBtn = t => { if (btn) btn.textContent = t; };
+  setBtn('⏳ שומר...');
+
   let ts = new Date().toISOString();
   try {
     const resp = await fetch(ORDER_HISTORY_API, {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Session': localStorage.getItem('frToken') || '' },
-      body: JSON.stringify({ edits: cloned }),
+      body: JSON.stringify({ edits: snapshot }),
     });
     const j = await resp.json().catch(() => null);
     if (!resp.ok || !j?.ok) throw new Error('save failed');
     ts = j.ts;
-    alert(`✅ ההזמנה נשמרה (${_orderFmtTs(ts)}) — משותף לכל המחשבים`);
+    setBtn('✓ נשמר!');
   } catch (e) {
     console.error('[ord-history] server save failed, falling back to localStorage:', e);
     const versions = JSON.parse(localStorage.getItem(ORD_VERSIONS_KEY) || '[]');
-    versions.unshift({ ts, edits: cloned });
+    versions.unshift({ ts, edits: snapshot });
     if (versions.length > 5) versions.length = 5;
     localStorage.setItem(ORD_VERSIONS_KEY, JSON.stringify(versions));
-    alert(`⚠ השרת לא הגיב — נשמר רק במחשב הזה (${_orderFmtTs(ts)})`);
+    setBtn('✓ נשמר!');
   }
+  setTimeout(() => setBtn('💾 שמור'), 1500);
 }
 
 function _orderToggleHistory() {
@@ -3462,26 +3474,36 @@ const INTER_VERSIONS_KEY = 'mahsan_inter_order_versions';
 const INTER_HISTORY_API  = 'https://api.sverdlik-apps.site/api/inter-order-history';
 
 async function _interSaveSnapshot() {
+  const rows  = window._interCurrentRows || [];
   const edits = window._interManualEdits || {};
-  if (!Object.keys(edits).length) { alert('אין הזמנה ידנית לשמירה'); return; }
-  const cloned = deepClone(edits);
+  const snapshot = {};
+  rows.forEach(r => {
+    const qty = edits[r.mk]?.orderP ?? r.recP ?? 0;
+    if (qty > 0) snapshot[r.mk] = { orderP: qty };
+  });
+
+  const btn = document.getElementById('btn-inter-save');
+  const setBtn = t => { if (btn) btn.textContent = t; };
+  setBtn('⏳ שומר...');
+
   let ts = new Date().toISOString();
   try {
     const resp = await fetch(INTER_HISTORY_API, {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Session': localStorage.getItem('frToken') || '' },
-      body: JSON.stringify({ edits: cloned }),
+      body: JSON.stringify({ edits: snapshot }),
     });
     const j = await resp.json().catch(() => null);
     if (!resp.ok || !j?.ok) throw new Error('save failed');
     ts = j.ts;
-    alert(`✅ ההזמנה נשמרה (${_orderFmtTs(ts)}) — משותף לכל המחשבים`);
+    setBtn('✓ נשמר!');
   } catch (e) {
     const versions = JSON.parse(localStorage.getItem(INTER_VERSIONS_KEY) || '[]');
-    versions.unshift({ ts, edits: cloned });
+    versions.unshift({ ts, edits: snapshot });
     if (versions.length > 5) versions.length = 5;
     localStorage.setItem(INTER_VERSIONS_KEY, JSON.stringify(versions));
-    alert(`⚠ השרת לא הגיב — נשמר רק במחשב הזה (${_orderFmtTs(ts)})`);
+    setBtn('✓ נשמר!');
   }
+  setTimeout(() => setBtn('💾 שמור'), 1500);
 }
 
 function _interToggleHistory() {
