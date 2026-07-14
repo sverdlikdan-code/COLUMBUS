@@ -1895,6 +1895,7 @@ function renderMap(){
       :`${i+1}`;
     const isCityCenter = c.gpsSource === 'city-center';
     const isGeocoded = c.gpsSource === 'geocoded' || c.gpsSource === 'pbi-sibling-near';
+    const isIce = !!c.iceOnly;
     // pre-compute duplicate index here (used both for icon label and jitter below)
     const _ck=`${c.lat},${c.lng}`;
     const _hasDupe=_coordCount[_ck]>1;
@@ -1935,6 +1936,12 @@ function renderMap(){
           html:`<div style="background:#FF8C00;color:#fff;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.45)">~${i+1}</div>`,
           iconSize:[30,30], iconAnchor:[15,15],
         })
+      : isIce
+      ? L.divIcon({
+          className:'',
+          html:`<div style="background:#00B894;color:#fff;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,184,148,.45)">${i+1}</div>`,
+          iconSize:[28,28], iconAnchor:[14,14],
+        })
       : L.divIcon({
           className:'',
           html:`<div style="background:#1A3F7C;color:#fff;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.45)">${i+1}</div>`,
@@ -1955,7 +1962,8 @@ function renderMap(){
       : '';
     const safeName=(c.custName||'').replace(/"/g,'&quot;');
     const fixBtn=`<br><button data-id="${c.custId}" data-name="${safeName}" onclick="startGpsCorrection(this.dataset.id,this.dataset.name)" style="margin-top:6px;background:#1565C0;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">📍 תקן מיקום</button>`;
-    m.bindPopup(`<b>${esc(_rawLabel)}${corrMark}</b><br>${esc(c.city||'')}${c.address?'<br><span style="font-size:11px;color:#555">'+esc(c.address)+'</span>':''}${approxNote}${fixBtn}`);
+    const iceMark = isIce ? ' <span style="background:#00B894;color:#fff;font-size:9px;font-weight:800;padding:1px 4px;border-radius:3px">ICE</span>' : '';
+    m.bindPopup(`<b>${esc(_rawLabel)}${corrMark}</b>${iceMark}<br>${esc(c.city||'')}${c.address?'<br><span style="font-size:11px;color:#555">'+esc(c.address)+'</span>':''}${approxNote}${fixBtn}`);
     m.bindTooltip(_rawLabel,{permanent:false,direction:'right',opacity:1,className:'fr-tip'});
     if(isSel) m.openPopup();
     bounds.push([c.lat,c.lng]);
