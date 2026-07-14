@@ -506,7 +506,7 @@ function renderClientList(){
     const isSel=st.selectedId===c.custId;
     const prev=i>0?list[i-1]:null, next=i<list.length-1?list[i+1]:null;
     const walkPrev=!!(prev&&prev.lat&&prev.lng&&c.lat&&c.lng&&haversineM(prev.lat,prev.lng,c.lat,c.lng)<=400);
-    const walkNext=!!(next&&next.lat&&next.lng&&c.lat&&c.lng&&haversineM(c.lat,c.lng,next.lat,next.lng)<=200);
+    const walkNext=!!(next&&next.lat&&next.lng&&c.lat&&c.lng&&haversineM(c.lat,c.lng,next.lat,next.lng)<=400);
     const inWalk=walkPrev||walkNext;
     const cls=['client-card',noGps?'no-gps':'',isSel?'selected':'',inWalk?'walk-card':''].filter(Boolean).join(' ');
 
