@@ -249,7 +249,7 @@ const AGENT_COLORS = ['#1565C0','#E53935','#2E7D32','#F57C00','#6A1B9A','#00838F
 // ── Auth ──
 function getToken(){ return localStorage.getItem(TOKEN_KEY)||''; }
 async function apiFetch(url, opts={}){
-  const r = await fetch(url,{...opts,headers:{...opts.headers,'x-auth-token':getToken(),'Content-Type':'application/json'}});
+  const r = await fetch(url,{...opts,headers:{...opts.headers,'x-session':getToken(),'Content-Type':'application/json'}});
   if(r.status===401){ alert('נדרשת התחברות מחדש'); location.href='formula-road.html'; throw new Error('401'); }
   return r;
 }
