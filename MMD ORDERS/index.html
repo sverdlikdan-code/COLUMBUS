@@ -891,7 +891,6 @@
       </div>
       <span id="user-badge" style="font-size:.72rem;color:#90a4ae;padding:2px 6px;align-self:center;white-space:nowrap;cursor:pointer" title="לחץ לשינוי שם" onclick="promptChangeUser()"></span>
       <button class="btn btn-print" onclick="(()=>{document.querySelectorAll('.c-img img').forEach(img=>{img.removeAttribute('loading');if(!img.complete){const s=img.src;img.src='';img.src=s;}});setTimeout(()=>window.print(),80);})()">🖨 הדפסה</button>
-      <button class="btn" id="btn-tukuf-overlay" onclick="openTukufOverlay()" style="background:#7a1515;color:#fff;border:1px solid #c62828;">📦 תוקף</button>
     </div>
   </div>
 </div>
@@ -929,6 +928,8 @@
     <span class="chip" id="sk-ord-only" onclick="togOrdOnly()">📋 הזמנה בלבד</span>
     <span class="chip" id="sk-no-mkr" onclick="togNoMkr()">🚫 אין מכר MMD</span>
     <span class="chip" id="sk-maavar" onclick="togMaavar()">📦 מחסן מעבר הזמנה</span>
+    <span style="width:1px;height:18px;background:rgba(255,255,255,.15);margin:0 4px;display:inline-block;vertical-align:middle;"></span>
+    <button id="btn-tukuf-overlay" onclick="openTukufOverlay()" style="background:#7a1515;color:#fff;border:1px solid #c62828;border-radius:6px;padding:3px 11px;font-size:.75rem;font-weight:700;cursor:pointer;font-family:inherit;">📦 תוקף</button>
   </div>
 </div>
 
@@ -2324,13 +2325,6 @@ window.openInfoPanel = function(mk, taur) {
         row.appendChild(sDt); row.appendChild(sQty); row.appendChild(sDays);
         ebEl.appendChild(row);
       });
-      // link to full tukuf page
-      var tukufLink = document.createElement('a');
-      tukufLink.href = '/mmd/tukuf';
-      tukufLink.target = '_blank';
-      tukufLink.textContent = 'דף תוקף אילת ←';
-      tukufLink.style.cssText = 'display:block;margin:8px 8px 2px;text-align:center;font-size:.68rem;color:#c9a227;text-decoration:none;border:1px solid rgba(201,162,39,.35);border-radius:5px;padding:5px 0';
-      ebEl.appendChild(tukufLink);
       ebEl.style.display = '';
     } else {
       ebEl.innerHTML = '';
