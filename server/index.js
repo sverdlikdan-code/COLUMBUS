@@ -2513,7 +2513,7 @@ app.post('/api/order-history', requireAuth, dataRateLimit, (req, res) => {
 });
 
 // SSRF guard: only allow HTTPS to external public hosts
-const PHOTO_ALLOWED_HOSTS = new Set(['priority.dilerbmd.com']);
+const PHOTO_ALLOWED_HOSTS = new Set(['priority.dilerbmd.com', 'sverdlikdan-code.github.io']);
 function isSafePhotoUrl(url) {
   if (typeof url !== 'string' || url.length > 500) return false;
   let parsed;
