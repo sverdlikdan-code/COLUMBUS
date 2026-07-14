@@ -29,11 +29,18 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0D1B2E;color:#E8F0F
 .city-search-inp{width:100%;background:#0D1B2E;border:1.5px solid #1A3F7C;border-radius:7px;color:#E8F0FC;font-size:12px;padding:6px 10px;outline:none;direction:rtl;font-family:inherit;}
 .city-search-inp:focus{border-color:#C9A84C;}
 .city-drop-list{overflow-y:auto;flex:1;}
-.city-drop-item{padding:8px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #0D1B2E22;direction:rtl;}
-.city-drop-item:hover,.city-drop-item.active{background:#1A3F7C44;}
-.city-drop-item-name{font-size:13px;font-weight:700;color:#E8F0FC;}
-.city-drop-item-meta{font-size:10px;color:#7098CC;white-space:nowrap;margin-right:8px;}
+.city-drop-item{padding:7px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid #0D1B2E22;direction:rtl;}
+.city-drop-item:hover{background:#1A3F7C44;}
+.city-drop-item input[type=checkbox]{accent-color:#C9A84C;width:14px;height:14px;flex-shrink:0;cursor:pointer;}
+.city-drop-item-name{font-size:13px;font-weight:700;color:#E8F0FC;flex:1;}
+.city-drop-item-meta{font-size:10px;color:#7098CC;white-space:nowrap;}
 .city-drop-empty{padding:16px;text-align:center;color:#7098CC;font-size:12px;}
+.city-drop-apply{padding:9px 14px;border-top:1px solid #1A3F7C;flex-shrink:0;display:none;gap:8px;align-items:center;}
+.city-apply-btn{flex:1;background:linear-gradient(135deg,#1A3F7C,#2E6FAD);border:none;color:#fff;font-size:12px;font-weight:800;padding:7px;border-radius:8px;cursor:pointer;}
+.city-apply-btn:disabled{opacity:.4;cursor:default;}
+.city-clear-btn{background:transparent;border:1px solid #2A5AAA;color:#7098CC;font-size:11px;padding:6px 10px;border-radius:8px;cursor:pointer;}
+.city-loading{padding:16px;text-align:center;color:#7098CC;font-size:12px;display:flex;align-items:center;justify-content:center;gap:8px;}
+.city-spin{width:16px;height:16px;border:2px solid #1A3F7C;border-top-color:#C9A84C;border-radius:50%;animation:spin .7s linear infinite;}
 .reset-btn{background:transparent;border:1.5px solid #C9A84C;color:#C9A84C;font-size:12px;font-weight:800;padding:6px 12px;border-radius:20px;cursor:pointer;white-space:nowrap;}
 .reset-btn:hover{background:#C9A84C22;}
 .export-btn{background:linear-gradient(135deg,#1A6E3C,#22A05A);border:none;color:#fff;font-size:12px;font-weight:800;padding:6px 14px;border-radius:20px;cursor:pointer;white-space:nowrap;}
@@ -51,7 +58,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0D1B2E;color:#E8F0F
 
 /* agent filter pills */
 .agent-pills{padding:8px 12px;border-bottom:1px solid #1A3F7C;display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;}
-.agent-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800;cursor:pointer;border:2px solid transparent;transition:all .12s;color:#fff;user-select:none;}
+.agent-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800;cursor:pointer;border:2px solid transparent;transition:all .12s;color:#fff;-webkit-user-select:none;user-select:none;}
 .agent-pill.off{opacity:.35;filter:grayscale(.7);}
 .agent-pill .pill-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 
@@ -161,7 +168,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0D1B2E;color:#E8F0F
 
 <!-- TOP BAR -->
 <div class="topbar">
-  <button class="topbar-back" onclick="history.back()">← חזור</button>
+  <button type="button" class="topbar-back" onclick="history.back()">← חזור</button>
   <div>
     <div class="topbar-title">🗺 ניתוח שטחים</div>
     <div class="topbar-sub">TERRITORY ANALYSIS</div>
@@ -177,6 +184,10 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0D1B2E;color:#E8F0F
         <input class="city-search-inp" id="city-search" placeholder="חיפוש עיר..." oninput="filterCities(this.value)" autocomplete="off">
       </div>
       <div class="city-drop-list" id="city-drop-list"></div>
+      <div class="city-drop-apply" id="city-drop-apply">
+        <button type="button" class="city-clear-btn" onclick="clearCitySelection()">נקה</button>
+        <button type="button" class="city-apply-btn" id="city-apply-btn" onclick="applySelectedCities()" disabled>טען (<span id="city-sel-count">0</span>)</button>
+      </div>
     </div>
   </div>
   <button type="button" class="lasso-btn" id="lasso-btn" onclick="toggleLasso()">⬡ לאסו</button>
@@ -270,22 +281,76 @@ function initMap(){
 
 // ── City picker ──
 let allCities = [];
-async function loadCities(){
-  try{
-    const r = await apiFetch(`${API}/api/territory/cities`);
-    allCities = await r.json();
-    renderCityList(allCities);
-  }catch(e){ console.error(e); }
+let selectedCities = new Set();
+
+async function loadCities(retries=4){
+  const el = document.getElementById('city-drop-list');
+  el.innerHTML = '<div class="city-loading"><div class="city-spin"></div>טוען ערים...</div>';
+  for(let i=0; i<retries; i++){
+    try{
+      const r = await apiFetch(`${API}/api/territory/cities`);
+      if(r.status===503){ await new Promise(res=>setTimeout(res,3000)); continue; }
+      const data = await r.json();
+      if(!Array.isArray(data)){ await new Promise(res=>setTimeout(res,3000)); continue; }
+      allCities = data;
+      renderCityList(allCities);
+      return;
+    }catch(e){
+      if(i<retries-1) await new Promise(res=>setTimeout(res,3000));
+    }
+  }
+  el.innerHTML='<div class="city-drop-empty">שגיאה בטעינה — רענן</div>';
 }
+
 function renderCityList(list){
   const el = document.getElementById('city-drop-list');
   if(!list.length){ el.innerHTML=`<div class="city-drop-empty">לא נמצאו ערים</div>`; return; }
-  el.innerHTML=list.map(c=>`
-    <div class="city-drop-item" onclick="selectCity('${c.city.replace(/'/g,"\\'")}')">
+  el.innerHTML=list.map(c=>{
+    const checked = selectedCities.has(c.city) ? 'checked' : '';
+    return `<div class="city-drop-item" onclick="toggleCityCheck('${c.city.replace(/'/g,"\\'")}')">
+      <input type="checkbox" ${checked} onclick="event.stopPropagation();toggleCityCheck('${c.city.replace(/'/g,"\\'")}')">
       <span class="city-drop-item-name">${c.city}</span>
-      <span class="city-drop-item-meta">${c.agentCount} סוכנים · ${c.clientCount}</span>
-    </div>`).join('');
+      <span class="city-drop-item-meta">${c.agentCount} סוכ · ${c.clientCount}</span>
+    </div>`;
+  }).join('');
 }
+
+function toggleCityCheck(city){
+  if(selectedCities.has(city)) selectedCities.delete(city);
+  else selectedCities.add(city);
+  updateCityApplyBtn();
+  renderCityList(document.getElementById('city-search').value.trim()
+    ? allCities.filter(c=>c.city.includes(document.getElementById('city-search').value.trim()))
+    : allCities);
+}
+
+function updateCityApplyBtn(){
+  const n = selectedCities.size;
+  const applyEl = document.getElementById('city-drop-apply');
+  const btn = document.getElementById('city-apply-btn');
+  const cnt = document.getElementById('city-sel-count');
+  applyEl.style.display = 'flex';
+  btn.disabled = n === 0;
+  cnt.textContent = n;
+  document.getElementById('city-inp').value = n===0 ? '' : n===1 ? [...selectedCities][0] : `${n} ערים`;
+}
+
+function clearCitySelection(){
+  selectedCities.clear();
+  updateCityApplyBtn();
+  renderCityList(allCities);
+}
+
+async function applySelectedCities(){
+  if(!selectedCities.size) return;
+  hideCityDrop();
+  if(selectedCities.size===1){
+    loadCity([...selectedCities][0]);
+  } else {
+    loadMultiCities([...selectedCities]);
+  }
+}
+
 function filterCities(q){
   renderCityList(q.trim() ? allCities.filter(c=>c.city.includes(q.trim())) : allCities);
 }
@@ -303,16 +368,47 @@ function hideCityDrop(){
   document.getElementById('city-search').value='';
   renderCityList(allCities);
 }
-function selectCity(city){
-  document.getElementById('city-inp').value = city;
-  hideCityDrop();
-  loadCity(city);
+
+async function loadMultiCities(cities){
+  moves={}; activeDays=new Set(); sadranMode=false; focusCustId=null;
+  ['side-empty','side-stats','agent-pills','filter-bar'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById('side-list').innerHTML='';
+  document.getElementById('side-loading').style.display='flex';
+  ['reset-btn','export-btn','save-btn'].forEach(id=>document.getElementById(id).style.display='none');
+  try{
+    const results = await Promise.all(cities.map(city=>
+      apiFetch(`${API}/api/territory/city?city=${encodeURIComponent(city)}`).then(r=>r.json())
+    ));
+    // merge: combine agents across cities
+    const agentMap = new Map();
+    for(const data of results){
+      for(const a of data.agents){
+        if(!agentMap.has(a.agentCode)){
+          agentMap.set(a.agentCode,{...a,clients:[]});
+        }
+        agentMap.get(a.agentCode).clients.push(...a.clients.map(c=>({...c,_city:data.city})));
+      }
+    }
+    cityData = { city: cities.join(', '), agents: [...agentMap.values()] };
+    colorMap={};
+    cityData.agents.forEach((a,i)=>{ colorMap[a.agentCode]=AGENT_COLORS[i%AGENT_COLORS.length]; });
+    visibleAgents=new Set(cityData.agents.map(a=>a.agentCode));
+    document.getElementById('side-loading').style.display='none';
+    document.getElementById('export-btn').style.display='';
+    render();
+  }catch(e){
+    document.getElementById('side-loading').style.display='none';
+    document.getElementById('side-empty').style.display='flex';
+    document.getElementById('side-empty').innerHTML='<div style="font-size:32px">⚠️</div><div>שגיאה בטעינה</div>';
+  }
 }
 
 // ── Load city ──
 async function loadCity(city){
   if(!city) return;
   moves = {}; activeDays = new Set(); sadranMode = false; focusCustId = null;
+  selectedCities = new Set([city]);
+  document.getElementById('city-inp').value = city;
   ['side-empty','side-stats','agent-pills','filter-bar'].forEach(id=>document.getElementById(id).style.display='none');
   document.getElementById('side-list').innerHTML='';
   document.getElementById('side-loading').style.display='flex';
