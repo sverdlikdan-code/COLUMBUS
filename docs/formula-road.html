@@ -2218,8 +2218,8 @@ async function _fetchClientAI(lang) {
   body.innerHTML = '<div class="ai-loading">⏳ מחשב...</div>';
 
   try {
-    const headers = { 'Content-Type': 'application/json', 'x-session': _getToken() };
-    const r = await fetch(`/api/client-analytics/${custId}?lang=${lang}`, { headers });
+    const r = await apiFetch(`${API}/api/client-analytics/${custId}?lang=${lang}`);
+    if(!r.ok){ const t=await r.text(); throw new Error(t.slice(0,120)); }
     const data = await r.json();
     if (!data.ok) throw new Error(data.error || 'שגיאה');
 
