@@ -84,6 +84,61 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0D1B2E;color:#E8F0F
 .mp-cancel{background:transparent;border:1.5px solid #2A5AAA;color:#7098CC;font-size:12px;font-weight:800;padding:8px 20px;border-radius:20px;cursor:pointer;}
 .mp-cancel:hover{border-color:#7098CC;color:#fff;}
 
+/* ── SAVE / VARIANTS BUTTONS ── */
+.save-btn{background:linear-gradient(135deg,#8B6914,#C9A84C);border:none;color:#fff;font-size:12px;font-weight:800;padding:6px 13px;border-radius:20px;cursor:pointer;white-space:nowrap;display:none;}
+.save-btn:hover{filter:brightness(1.1);}
+.variants-btn{background:#1A3F7C;border:1.5px solid #2A5AAA;color:#C9D6F0;font-size:12px;font-weight:800;padding:6px 13px;border-radius:20px;cursor:pointer;white-space:nowrap;}
+.variants-btn:hover{background:#2E6FAD;color:#fff;}
+
+/* ── VARIANTS DRAWER ── */
+.drawer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:3500;display:none;opacity:0;transition:opacity .2s;}
+.drawer-backdrop.open{display:block;opacity:1;}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:320px;max-width:95vw;background:#0A1628;border-left:2px solid #1A3F7C;z-index:4000;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .22s ease;box-shadow:-8px 0 32px rgba(0,0,0,.5);}
+.drawer.open{transform:translateX(0);}
+.drawer-hdr{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1.5px solid #1A3F7C;flex-shrink:0;}
+.drawer-title{font-size:14px;font-weight:900;color:#fff;flex:1;}
+.drawer-close{background:transparent;border:none;color:#7098CC;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:6px;}
+.drawer-close:hover{color:#fff;background:#1A3F7C;}
+.drawer-list{flex:1;overflow-y:auto;padding:8px 0;}
+.variant-item{padding:12px 16px;border-bottom:1px solid #0D1B2E;cursor:default;}
+.variant-item:hover{background:#1A3F7C18;}
+.variant-name{font-size:13px;font-weight:800;color:#E8F0FC;margin-bottom:3px;}
+.variant-meta{font-size:10.5px;color:#7098CC;margin-bottom:8px;}
+.variant-actions{display:flex;gap:8px;}
+.variant-load{background:#1A3F7C;border:1.5px solid #2A5AAA;color:#C9D6F0;font-size:11px;font-weight:800;padding:5px 12px;border-radius:14px;cursor:pointer;}
+.variant-load:hover{background:#2E6FAD;color:#fff;}
+.variant-del{background:transparent;border:1.5px solid #5A1A1A;color:#F07070;font-size:11px;font-weight:800;padding:5px 10px;border-radius:14px;cursor:pointer;}
+.variant-del:hover{background:#5A1A1A;}
+.drawer-empty{padding:32px 16px;text-align:center;color:#7098CC;font-size:13px;}
+
+/* ── DAY / SADRAN FILTER BAR ── */
+.filter-bar{padding:6px 12px;border-bottom:1px solid #1A3F7C;display:flex;gap:5px;align-items:center;flex-wrap:wrap;flex-shrink:0;}
+.day-btn{padding:3px 9px;border-radius:14px;font-size:11px;font-weight:800;cursor:pointer;border:1.5px solid #2A5AAA;color:#7098CC;background:transparent;transition:all .12s;}
+.day-btn.on{background:#1A3F7C;color:#E8F0FC;border-color:#4A7ACC;}
+.day-btn.all-btn{border-color:#C9A84C;color:#C9A84C;}
+.day-btn.all-btn.on{background:#C9A84C22;color:#C9D6F0;}
+.sadran-btn{padding:3px 10px;border-radius:14px;font-size:11px;font-weight:800;cursor:pointer;border:1.5px solid #00838F;color:#00838F;background:transparent;transition:all .12s;margin-right:6px;}
+.sadran-btn.on{background:#00838F;color:#fff;}
+
+/* ── CLIENT ROW METRICS ── */
+.cr-metrics{display:flex;gap:8px;margin-top:2px;}
+.cr-metric{font-size:9.5px;font-weight:700;color:#7098CC;white-space:nowrap;}
+.cr-metric span{color:#C9A84C;}
+
+/* ── AGENT STAT SALES ── */
+.stat-sales{font-size:9px;color:#7098CC;font-weight:700;margin-top:2px;}
+
+/* ── FOCUS / LASSO ── */
+.client-row.focus-row{background:#C9A84C18;border-right:3px solid #C9A84C;}
+.client-row.lasso-sel{background:#00838F18;border-right:3px solid #00838F;}
+.lasso-btn{background:#1A3F7C;border:1.5px solid #2A5AAA;color:#C9D6F0;font-size:12px;font-weight:800;padding:6px 12px;border-radius:20px;cursor:pointer;white-space:nowrap;}
+.lasso-btn:hover{background:#2E6FAD;color:#fff;}
+.lasso-btn.on{background:#C9A84C;border-color:#C9A84C;color:#0D1B2E;}
+.lasso-bulk{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#0A1628;border:2px solid #C9A84C;border-radius:14px;padding:10px 18px;z-index:3000;display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.6);font-size:12px;font-weight:800;color:#C9A84C;}
+.lasso-bulk-agents{display:flex;gap:6px;}
+.lasso-bulk-btn{padding:5px 12px;border-radius:14px;border:none;font-size:11px;font-weight:800;cursor:pointer;color:#fff;}
+.lasso-bulk-cancel{background:transparent;border:1px solid #2A5AAA;color:#7098CC;font-size:11px;font-weight:800;padding:5px 10px;border-radius:14px;cursor:pointer;}
+
 /* ── LOADING / EMPTY ── */
 .loading{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:12px;color:#7098CC;}
 .spin{width:36px;height:36px;border:3px solid #1A3F7C;border-top-color:#C9A84C;border-radius:50%;animation:spin .7s linear infinite;}
@@ -124,8 +179,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0D1B2E;color:#E8F0F
       <div class="city-drop-list" id="city-drop-list"></div>
     </div>
   </div>
-  <button class="reset-btn" onclick="resetMoves()" id="reset-btn" style="display:none">↩ איפוס</button>
-  <button class="export-btn" onclick="exportXlsx()" id="export-btn" style="display:none">📥 Excel</button>
+  <button type="button" class="lasso-btn" id="lasso-btn" onclick="toggleLasso()">⬡ לאסו</button>
+  <button type="button" class="save-btn" id="save-btn" onclick="saveVariant()">💾 שמור</button>
+  <button type="button" class="variants-btn" onclick="openDrawer()">📂 וריאנטים</button>
+  <button type="button" class="reset-btn" onclick="resetMoves()" id="reset-btn" style="display:none">↩ איפוס</button>
+  <button type="button" class="export-btn" onclick="exportXlsx()" id="export-btn" style="display:none">📥 Excel</button>
 </div>
 
 <!-- MAIN -->
@@ -139,8 +197,28 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0D1B2E;color:#E8F0F
     </div>
     <div id="side-stats" class="side-stats" style="display:none"></div>
     <div id="agent-pills" class="agent-pills" style="display:none"></div>
+    <div id="filter-bar" class="filter-bar" style="display:none"></div>
     <div class="side-list" id="side-list"></div>
   </div>
+</div>
+
+<!-- VARIANTS DRAWER -->
+<div class="drawer-backdrop" id="drawer-backdrop" onclick="closeDrawer()"></div>
+<div class="drawer" id="variants-drawer">
+  <div class="drawer-hdr">
+    <span class="drawer-title">📂 וריאנטים שמורים</span>
+    <button type="button" class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-list" id="drawer-list">
+    <div class="drawer-empty">טוען...</div>
+  </div>
+</div>
+
+<!-- LASSO BULK MOVE -->
+<div class="lasso-bulk" id="lasso-bulk" style="display:none">
+  <span id="lasso-count">0 לקוחות</span>
+  <div class="lasso-bulk-agents" id="lasso-bulk-agents"></div>
+  <button type="button" class="lasso-bulk-cancel" onclick="clearLasso()">✕</button>
 </div>
 
 <!-- MOVE PANEL -->
@@ -148,20 +226,16 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0D1B2E;color:#E8F0F
   <div class="mp-title" id="mp-title"></div>
   <div class="mp-sub">העבר ל:</div>
   <div class="mp-agents" id="mp-agents"></div>
-  <button class="mp-cancel" onclick="closeMove()">ביטול</button>
+  <button type="button" class="mp-cancel" onclick="closeMove()">ביטול</button>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-FhPn/2P/fJGhQLeNWDn9B/2Gml2bPOrKJwFqJXgR3xOPYxWg5mYQ5XZdhUSugZT0" crossorigin="anonymous"></script>
 <script>
 const API = 'https://api.sverdlik-apps.site';
 const TOKEN_KEY = 'frToken';
+const AGENT_COLORS = ['#1565C0','#E53935','#2E7D32','#F57C00','#6A1B9A','#00838F','#AD1457','#0277BD','#558B2F','#6D4C41','#37474F','#7B1FA2'];
 
-const AGENT_COLORS = [
-  '#1565C0','#E53935','#2E7D32','#F57C00','#6A1B9A','#00838F',
-  '#AD1457','#0277BD','#558B2F','#6D4C41','#37474F','#7B1FA2',
-];
-
-// ── Auth ──────────────────────────────────────────────────────
+// ── Auth ──
 function getToken(){ return localStorage.getItem(TOKEN_KEY)||''; }
 async function apiFetch(url, opts={}){
   const r = await fetch(url,{...opts,headers:{...opts.headers,'x-auth-token':getToken(),'Content-Type':'application/json'}});
@@ -169,27 +243,33 @@ async function apiFetch(url, opts={}){
   return r;
 }
 
-// ── State ─────────────────────────────────────────────────────
-let cityData = null;        // { city, agents: [{agentCode,agentName,clients:[]}] }
-let colorMap = {};          // agentCode → color
-let visibleAgents = new Set(); // which agents are shown
-let moves = {};             // custId → newAgentCode  (in-memory experiment)
+// ── State ──
+let cityData = null;
+let colorMap = {};
+let visibleAgents = new Set();
+let moves = {};
 let map = null, markers = [];
-let selectedCustId = null;
+let selectedCustId = null;   // highlighted on map
+let focusCustId = null;      // click-on-map → scroll list
+let activeDays = new Set();  // empty = ALL days
+let sadranMode = false;
+let lassoActive = false;
+let lassoPoints = [];
+let lassoPolyline = null;
+let lassoPolygon = null;
+let lassoSelectedIds = new Set();
+let lassoDrawing = false;
 
-// ── Map init ──────────────────────────────────────────────────
+// ── Map init ──
 function initMap(){
   if(map) return;
   map = L.map('map',{zoomControl:false}).setView([31.8,34.9],9);
   L.control.zoom({position:'bottomleft'}).addTo(map);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-    attribution:'© OpenStreetMap',maxZoom:19
-  }).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(map);
 }
 
-// ── City picker ───────────────────────────────────────────────
+// ── City picker ──
 let allCities = [];
-
 async function loadCities(){
   try{
     const r = await apiFetch(`${API}/api/territory/cities`);
@@ -197,70 +277,49 @@ async function loadCities(){
     renderCityList(allCities);
   }catch(e){ console.error(e); }
 }
-
 function renderCityList(list){
   const el = document.getElementById('city-drop-list');
-  if(!list.length){
-    el.innerHTML=`<div class="city-drop-empty">לא נמצאו ערים</div>`;
-    return;
-  }
+  if(!list.length){ el.innerHTML=`<div class="city-drop-empty">לא נמצאו ערים</div>`; return; }
   el.innerHTML=list.map(c=>`
     <div class="city-drop-item" onclick="selectCity('${c.city.replace(/'/g,"\\'")}')">
       <span class="city-drop-item-name">${c.city}</span>
       <span class="city-drop-item-meta">${c.agentCount} סוכנים · ${c.clientCount}</span>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
-
 function filterCities(q){
-  const filtered = q.trim()
-    ? allCities.filter(c=>c.city.includes(q.trim()))
-    : allCities;
-  renderCityList(filtered);
+  renderCityList(q.trim() ? allCities.filter(c=>c.city.includes(q.trim())) : allCities);
 }
-
 function showCityDrop(){
   document.getElementById('city-drop').classList.add('open');
   setTimeout(()=>document.getElementById('city-search').focus(),50);
   document.addEventListener('click', hideCityDropOutside, {once:true});
 }
-
 function hideCityDropOutside(e){
-  const picker = document.getElementById('city-picker');
-  if(!picker.contains(e.target)){
-    hideCityDrop();
-  } else {
-    document.addEventListener('click', hideCityDropOutside, {once:true});
-  }
+  if(!document.getElementById('city-picker').contains(e.target)) hideCityDrop();
+  else document.addEventListener('click', hideCityDropOutside, {once:true});
 }
-
 function hideCityDrop(){
   document.getElementById('city-drop').classList.remove('open');
   document.getElementById('city-search').value='';
   renderCityList(allCities);
 }
-
 function selectCity(city){
   document.getElementById('city-inp').value = city;
   hideCityDrop();
   loadCity(city);
 }
 
-// ── Load city data ────────────────────────────────────────────
+// ── Load city ──
 async function loadCity(city){
   if(!city) return;
-  moves = {};
-  document.getElementById('side-empty').style.display='none';
-  document.getElementById('side-stats').style.display='none';
-  document.getElementById('agent-pills').style.display='none';
+  moves = {}; activeDays = new Set(); sadranMode = false; focusCustId = null;
+  ['side-empty','side-stats','agent-pills','filter-bar'].forEach(id=>document.getElementById(id).style.display='none');
   document.getElementById('side-list').innerHTML='';
   document.getElementById('side-loading').style.display='flex';
-  document.getElementById('reset-btn').style.display='none';
-  document.getElementById('export-btn').style.display='none';
+  ['reset-btn','export-btn','save-btn'].forEach(id=>document.getElementById(id).style.display='none');
   try{
     const r = await apiFetch(`${API}/api/territory/city?city=${encodeURIComponent(city)}`);
     cityData = await r.json();
-    // assign colors
     colorMap = {};
     cityData.agents.forEach((a,i)=>{ colorMap[a.agentCode]=AGENT_COLORS[i%AGENT_COLORS.length]; });
     visibleAgents = new Set(cityData.agents.map(a=>a.agentCode));
@@ -274,126 +333,187 @@ async function loadCity(city){
   }
 }
 
-// ── Effective agent for a client ──────────────────────────────
-function effectiveAgent(custId, originalCode){
-  return moves[String(custId)] || originalCode;
-}
+// ── Helpers ──
+function effectiveAgent(custId, origCode){ return moves[String(custId)] || origCode; }
+function shortName(name){ return (name||'').split(' ')[0] || name; }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function trimName(n){ return n ? n.replace(/\s+[א-ת]["\-][א-ת]$/,'').trim().replace(/\s{2,}/g,' ') : ''; }
+function fmtK(n){ return n>=1000000?(n/1000000).toFixed(1)+'M':n>=1000?(n/1000).toFixed(0)+'K':Math.round(n).toLocaleString(); }
 
-// ── Render everything ─────────────────────────────────────────
+// ── Render all ──
 function render(){
   if(!cityData) return;
-  renderStats();
-  renderPills();
-  renderList();
-  renderMap();
   const hasMoves = Object.keys(moves).length > 0;
   document.getElementById('reset-btn').style.display = hasMoves ? '' : 'none';
+  document.getElementById('save-btn').style.display  = hasMoves ? '' : 'none';
+  renderStats(); renderPills(); renderFilterBar(); renderList(); renderMap();
 }
 
+// ── Stats panel ──
 function renderStats(){
-  const total = cityData.agents.reduce((s,a)=>s+a.clients.length,0);
   const el = document.getElementById('side-stats');
   el.style.display='flex';
-  el.innerHTML = cityData.agents.map(a=>`
-    <div class="stat-box">
-      <div class="stat-n" style="color:${colorMap[a.agentCode]}">${effectiveCount(a.agentCode)}</div>
-      <div class="stat-l">${shortName(a.agentName)}</div>
-    </div>
-  `).join('');
-}
-
-function effectiveCount(agentCode){
-  // Count clients whose effective agent = agentCode
-  let n = 0;
+  const sums = {};
+  for(const a of cityData.agents) sums[a.agentCode]={cnt:0,sales6:0};
   for(const a of cityData.agents){
     for(const c of a.clients){
-      if(effectiveAgent(c.custId, a.agentCode)===agentCode) n++;
+      const eff = effectiveAgent(c.custId, a.agentCode);
+      if(!sums[eff]) sums[eff]={cnt:0,sales6:0};
+      sums[eff].cnt++;
+      sums[eff].sales6 += (c.avg6Sales||0)*6;
     }
   }
-  return n;
+  el.innerHTML = cityData.agents.map(a=>{
+    const s = sums[a.agentCode]||{cnt:0,sales6:0};
+    return `<div class="stat-box">
+      <div class="stat-n" style="color:${colorMap[a.agentCode]}">${s.cnt}</div>
+      <div class="stat-sales">₪${fmtK(s.sales6)}</div>
+      <div class="stat-l">${shortName(a.agentName)}</div>
+    </div>`;
+  }).join('');
 }
 
-function shortName(name){
-  const parts = name.split(' ');
-  return parts[0] || name;
-}
-
+// ── Agent pills ──
 function renderPills(){
   const el = document.getElementById('agent-pills');
   el.style.display='flex';
   el.innerHTML = cityData.agents.map(a=>`
     <div class="agent-pill${visibleAgents.has(a.agentCode)?'':' off'}"
-         style="background:${colorMap[a.agentCode]}22;border-color:${colorMap[a.agentCode]};"
-         onclick="toggleAgent('${a.agentCode}')">
+         style="background:${colorMap[a.agentCode]}22;border-color:${colorMap[a.agentCode]};">
       <span class="pill-dot" style="background:${colorMap[a.agentCode]}"></span>
-      ${shortName(a.agentName)}
-    </div>
-  `).join('');
+      <span onclick="toggleAgent('${a.agentCode}')">${shortName(a.agentName)}</span>
+      <span style="font-size:9px;opacity:.55;cursor:pointer;padding:0 1px;" title="הצג רק" onclick="soloAgent('${a.agentCode}')">◉</span>
+    </div>`).join('')
+  + `<div class="agent-pill" style="background:#1A3F7C22;border-color:#2A5AAA;font-size:10px;cursor:pointer;" onclick="showAllAgents()">כולם</div>`;
 }
-
 function toggleAgent(code){
   if(visibleAgents.has(code)) visibleAgents.delete(code); else visibleAgents.add(code);
   renderPills(); renderList(); renderMap();
 }
+function soloAgent(code){
+  visibleAgents = new Set([code]);
+  renderPills(); renderList(); renderMap();
+}
+function showAllAgents(){
+  visibleAgents = new Set(cityData.agents.map(a=>a.agentCode));
+  renderPills(); renderList(); renderMap();
+}
 
-function renderList(){
-  const el = document.getElementById('side-list');
-  // build effective groups: group clients by effective agent
-  const groups = {}; // agentCode → { agentName, clients[] }
+// ── Filter bar: days + sadran ──
+function renderFilterBar(){
+  const el = document.getElementById('filter-bar');
+  const dayNums = new Set(); const dayLabels = {};
+  let hasSadran = false;
+  for(const a of cityData.agents) for(const c of a.clients){
+    if(c.dayNum){ dayNums.add(c.dayNum); }
+    if(c.sadran) hasSadran = true;
+  }
+  const days = [...dayNums].sort((a,b)=>a-b);
+  if(!days.length && !hasSadran){ el.style.display='none'; return; }
+  el.style.display='flex';
+  const DN = {1:'א',2:'ב',3:'ג',4:'ד',5:'ה'};
+  let h = `<button type="button" class="day-btn all-btn${activeDays.size===0?' on':''}" onclick="toggleDayAll()">כל</button>`;
+  for(const d of days)
+    h += `<button type="button" class="day-btn${activeDays.has(d)?' on':''}" onclick="toggleDay(${d})">${DN[d]||d}</button>`;
+  if(hasSadran)
+    h += `<button type="button" class="sadran-btn${sadranMode?' on':''}" onclick="toggleSadran()">סדרן</button>`;
+  el.innerHTML = h;
+}
+function toggleDay(d){
+  if(activeDays.has(d)) activeDays.delete(d); else activeDays.add(d);
+  renderFilterBar(); renderList(); renderMap(); renderStats();
+}
+function toggleDayAll(){ activeDays=new Set(); renderFilterBar(); renderList(); renderMap(); renderStats(); }
+function toggleSadran(){ sadranMode=!sadranMode; renderFilterBar(); renderList(); renderMap(); renderStats(); }
+
+// ── Client list ──
+function buildGroups(){
+  const groups = {};
   for(const a of cityData.agents){
     if(!groups[a.agentCode]) groups[a.agentCode]={agentName:a.agentName,clients:[]};
     for(const c of a.clients){
       const eff = effectiveAgent(c.custId, a.agentCode);
       if(!groups[eff]) groups[eff]={agentName:a.agentName,clients:[]};
-      groups[eff].clients.push({...c,_origAgent:a.agentCode});
+      groups[eff].clients.push({...c, _origAgent:a.agentCode});
     }
   }
-  let html='';
+  return groups;
+}
+function clientPassesFilter(c){
+  if(sadranMode && (c.iceOnly || !c.sadran)) return false;
+  if(activeDays.size>0 && !activeDays.has(c.dayNum)) return false;
+  return true;
+}
+function renderList(){
+  const el = document.getElementById('side-list');
+  const groups = buildGroups();
+  let html = '';
   for(const a of cityData.agents){
     if(!visibleAgents.has(a.agentCode)) continue;
     const g = groups[a.agentCode]||{clients:[]};
-    html+=`<div class="agent-group">
+    const visible = g.clients.filter(clientPassesFilter);
+    if(!visible.length) continue;
+    html += `<div class="agent-group">
       <div class="agent-group-hdr" style="background:#0A1628ee;">
         <span class="agent-group-dot" style="background:${colorMap[a.agentCode]}"></span>
-        <span class="agent-group-name">${a.agentName}</span>
-        <span class="agent-group-cnt">${g.clients.length}</span>
+        <span class="agent-group-name">${esc(a.agentName)}</span>
+        <span class="agent-group-cnt">${visible.length}</span>
       </div>
-      ${g.clients.map((c,i)=>{
+      ${visible.map((c,i)=>{
         const moved = moves[String(c.custId)] !== undefined;
         const eff = effectiveAgent(c.custId, c._origAgent);
-        return `<div class="client-row${moved?' moved':''}" onclick="openMove(${JSON.stringify(c.custId)})">
+        const salesK = fmtK(c.avg6Sales||0);
+        const ordM = (c.avg6Orders||0).toFixed(1);
+        const sadranBadge = c.sadran ? `<span style="color:#00838F;font-weight:900">${esc(c.sadran)}</span> · ` : '';
+        const isFocus = String(c.custId)===String(focusCustId);
+        const isLasso = lassoSelectedIds.has(String(c.custId));
+        return `<div class="client-row${moved?' moved':''}${isFocus?' focus-row':''}${isLasso?' lasso-sel':''}" id="cr-${c.custId}" onclick="openMove(${JSON.stringify(c.custId)})">
           <div class="client-rn">${i+1}</div>
           <div class="cr-body">
             <div class="cr-name">${esc(trimName(c.custName))}</div>
-            <div class="cr-sub">${esc(c.address||'')}${moved?' → '+shortName(cityData.agents.find(x=>x.agentCode===eff)?.agentName||eff):''}</div>
+            <div class="cr-sub">${sadranBadge}${esc(c.address||'')}${moved?' → '+shortName(cityData.agents.find(x=>x.agentCode===eff)?.agentName||eff):''}</div>
+            <div class="cr-metrics">
+              <span class="cr-metric">מכירות: <span>₪${salesK}/m</span></span>
+              <span class="cr-metric">הזמנות: <span>${ordM}/m</span></span>
+            </div>
           </div>
           <div class="cr-arrow">›</div>
         </div>`;
       }).join('')}
     </div>`;
   }
-  el.innerHTML = html||'<div style="padding:20px;text-align:center;color:#7098CC;font-size:13px">אין לקוחות מוצגים</div>';
+  el.innerHTML = html || '<div style="padding:20px;text-align:center;color:#7098CC;font-size:13px">אין לקוחות מוצגים</div>';
+  // scroll to focused client
+  if(focusCustId){
+    const row = document.getElementById(`cr-${focusCustId}`);
+    if(row) row.scrollIntoView({behavior:'smooth',block:'center'});
+  }
 }
 
+// ── Map ──
 function renderMap(){
   if(!map) initMap();
   markers.forEach(m=>m.remove()); markers=[];
   const bounds=[];
-
-  // collect all clients with GPS, apply effective agent color
   for(const a of cityData.agents){
     for(const c of a.clients){
       if(!c.lat||!c.lng) continue;
+      if(!clientPassesFilter(c)) continue;
       const eff = effectiveAgent(c.custId, a.agentCode);
       if(!visibleAgents.has(eff)) continue;
       const col = colorMap[eff]||'#888';
       const isSel = String(c.custId)===String(selectedCustId);
+      const isFoc = String(c.custId)===String(focusCustId);
+      const isLasso = lassoSelectedIds.has(String(c.custId));
       const sz = isSel ? 36 : 26;
+      const ring = isFoc ? `box-shadow:0 0 0 4px #C9A84C88,0 2px 8px rgba(0,0,0,.5);`
+                 : isLasso ? `box-shadow:0 0 0 3px #00838F88,0 2px 8px rgba(0,0,0,.5);`
+                 : 'box-shadow:0 2px 8px rgba(0,0,0,.5);';
       const icon = L.divIcon({className:'',
-        html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${col};border:${isSel?3:2}px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.5);${isSel?'animation:pulse .6s ease-out':''}"></div>`,
+        html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${col};border:${isSel?3:2}px solid #fff;${ring}"></div>`,
         iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
-      const m = L.marker([c.lat,c.lng],{icon,zIndexOffset:isSel?1000:0});
-      m.on('click',()=>openMove(c.custId));
+      const m = L.marker([c.lat,c.lng],{icon,zIndexOffset:isSel||isFoc?1000:0});
+      m.on('click',()=>{ focusClient(c.custId); });
       m.bindTooltip(`<b>${esc(trimName(c.custName))}</b><br>${esc(a.agentName)}`,{direction:'right',opacity:1});
       m.addTo(map); markers.push(m);
       bounds.push([c.lat,c.lng]);
@@ -402,11 +522,17 @@ function renderMap(){
   if(bounds.length) map.fitBounds(bounds,{padding:[30,30],maxZoom:14});
 }
 
-// ── Move dialog ───────────────────────────────────────────────
+// ── Focus client (click on map → scroll list) ──
+function focusClient(custId){
+  focusCustId = String(custId);
+  renderList(); // scrolls to the row
+  renderMap();  // highlights ring
+}
+
+// ── Move dialog ──
 function openMove(custId){
   if(!cityData) return;
   selectedCustId = custId;
-  // find the client
   let clientName='', origAgent='';
   for(const a of cityData.agents){
     const c = a.clients.find(x=>String(x.custId)===String(custId));
@@ -414,73 +540,201 @@ function openMove(custId){
   }
   const eff = effectiveAgent(custId, origAgent);
   document.getElementById('mp-title').textContent=trimName(clientName)||String(custId);
-  const btns = cityData.agents.map(a=>`
-    <button class="mp-agent-btn${eff===a.agentCode?' current':''}"
+  document.getElementById('mp-agents').innerHTML = cityData.agents.map(a=>`
+    <button type="button" class="mp-agent-btn${eff===a.agentCode?' current':''}"
             style="background:${colorMap[a.agentCode]};"
             onclick="applyMove(${JSON.stringify(String(custId))},'${a.agentCode}','${origAgent}')">
       ${shortName(a.agentName)}
-    </button>
-  `).join('');
-  document.getElementById('mp-agents').innerHTML=btns;
+    </button>`).join('');
   document.getElementById('move-panel').classList.add('open');
-  renderMap(); // highlight selected
+  renderMap();
 }
-
 function applyMove(custId, toAgent, origAgent){
-  if(toAgent===origAgent){
-    delete moves[String(custId)]; // reset to original
-  } else {
-    moves[String(custId)]=toAgent;
-  }
-  closeMove();
-  render();
+  if(toAgent===origAgent) delete moves[String(custId)];
+  else moves[String(custId)]=toAgent;
+  closeMove(); render();
 }
-
 function closeMove(){
   selectedCustId=null;
   document.getElementById('move-panel').classList.remove('open');
   renderMap();
 }
+function resetMoves(){ moves={}; render(); }
 
-function resetMoves(){
-  moves={};
-  render();
+// ── Save / Restore Variants ──
+async function saveVariant(){
+  const name = prompt('שם הוריאנט:','');
+  if(!name||!name.trim()) return;
+  const city = cityData?.city||'';
+  if(!city||!Object.keys(moves).length) return;
+  try{
+    await apiFetch(`${API}/api/territory/variants`,{method:'POST',body:JSON.stringify({name:name.trim(),city,moves})});
+  }catch(e){ alert('שגיאה בשמירה'); }
+}
+function openDrawer(){
+  document.getElementById('drawer-backdrop').classList.add('open');
+  document.getElementById('variants-drawer').classList.add('open');
+  loadVariantsList();
+}
+function closeDrawer(){
+  document.getElementById('drawer-backdrop').classList.remove('open');
+  document.getElementById('variants-drawer').classList.remove('open');
+}
+async function loadVariantsList(){
+  document.getElementById('drawer-list').innerHTML='<div class="drawer-empty">טוען...</div>';
+  try{
+    const r = await apiFetch(`${API}/api/territory/variants`);
+    renderVariantsList(await r.json());
+  }catch(e){ document.getElementById('drawer-list').innerHTML='<div class="drawer-empty">שגיאה בטעינה</div>'; }
+}
+function renderVariantsList(list){
+  if(!list.length){ document.getElementById('drawer-list').innerHTML='<div class="drawer-empty">אין וריאנטים שמורים</div>'; return; }
+  document.getElementById('drawer-list').innerHTML = list.map(v=>`
+    <div class="variant-item">
+      <div class="variant-name">${esc(v.name)}</div>
+      <div class="variant-meta">${esc(v.city)} · ${v.moveCount} העברות · ${new Date(v.savedAt).toLocaleDateString('he-IL')}</div>
+      <div class="variant-actions">
+        <button type="button" class="variant-load" onclick="loadVariant(${JSON.stringify(v)})">טען</button>
+        <button type="button" class="variant-del" onclick="deleteVariant(${v.id})">מחק</button>
+      </div>
+    </div>`).join('');
+}
+function loadVariant(v){
+  moves = {...v.moves};
+  if(v.city && v.city !== cityData?.city){ document.getElementById('city-inp').value=v.city; loadCity(v.city); }
+  else render();
+  closeDrawer();
+}
+async function deleteVariant(id){
+  if(!confirm('למחוק את הוריאנט?')) return;
+  try{ await apiFetch(`${API}/api/territory/variants/${id}`,{method:'DELETE'}); loadVariantsList(); }
+  catch(e){ alert('שגיאה במחיקה'); }
 }
 
-// ── Excel Export ───────────────────────────────────────────────
+// ── Excel Export ──
 function exportXlsx(){
   if(!cityData) return;
-  // Build rows: client, city, address, current agent, proposed agent
   const rows=[];
-  for(const a of cityData.agents){
-    for(const c of a.clients){
-      const eff=effectiveAgent(c.custId,a.agentCode);
-      const effName=cityData.agents.find(x=>x.agentCode===eff)?.agentName||eff;
-      rows.push([c.custId,c.custName,cityData.city,c.address||'',a.agentName,a.agentCode,effName,eff,eff!==a.agentCode?'הועבר':'']);
-    }
+  for(const a of cityData.agents) for(const c of a.clients){
+    const eff=effectiveAgent(c.custId,a.agentCode);
+    const effName=cityData.agents.find(x=>x.agentCode===eff)?.agentName||eff;
+    rows.push([c.custId,c.custName,cityData.city,c.address||'',a.agentName,a.agentCode,effName,eff,eff!==a.agentCode?'הועבר':'',
+      Math.round(c.avg6Sales||0),(c.avg6Orders||0).toFixed(1),c.sadran||'']);
   }
-  const hdrs=['מס. לקוח','שם לקוח','עיר','כתובת','סוכן נוכחי','קוד נוכחי','סוכן מוצע','קוד מוצע','סטטוס'];
-  const csvRows=[hdrs,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','));
-  const bom='﻿';
-  const blob=new Blob([bom+csvRows.join('\n')],{type:'text/csv;charset=utf-8'});
+  const hdrs=['מס. לקוח','שם לקוח','עיר','כתובת','סוכן נוכחי','קוד נוכחי','סוכן מוצע','קוד מוצע','סטטוס','מכירות/m 6M','הזמנות/m 6M','סדרן'];
+  const csv=[hdrs,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
+  a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}));
   a.download=`territory_${cityData.city}_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
 }
 
-// ── Helpers ───────────────────────────────────────────────────
-function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function trimName(name){
-  if(!name) return '';
-  // remove city suffix patterns like "י-מ" or city name from end
-  return name.replace(/\s+[א-ת]["\-][א-ת]$/, '').trim().replace(/\s{2,}/g,' ');
+// ── Lasso ──
+function toggleLasso(){
+  if(lassoActive) exitLasso();
+  else enterLasso();
+}
+function enterLasso(){
+  lassoActive = true;
+  lassoPoints = []; lassoSelectedIds = new Set(); lassoDrawing = false;
+  map.dragging.disable();
+  map.scrollWheelZoom.disable();
+  map.getContainer().style.cursor = 'crosshair';
+  document.getElementById('lasso-btn').classList.add('on');
+}
+function exitLasso(){
+  lassoActive = false; lassoDrawing = false;
+  map.dragging.enable();
+  map.scrollWheelZoom.enable();
+  map.getContainer().style.cursor = '';
+  document.getElementById('lasso-btn').classList.remove('on');
+  if(lassoPolyline){ map.removeLayer(lassoPolyline); lassoPolyline=null; }
+  if(lassoPolygon){ map.removeLayer(lassoPolygon); lassoPolygon=null; }
+  lassoPoints = [];
+}
+function clearLasso(){
+  lassoSelectedIds = new Set();
+  focusCustId = null;
+  document.getElementById('lasso-bulk').style.display='none';
+  exitLasso();
+  renderList(); renderMap();
+}
+function pointInPolygon(lat, lng, poly){
+  let inside = false;
+  for(let i=0, j=poly.length-1; i<poly.length; j=i++){
+    const xi=poly[i].lat, yi=poly[i].lng, xj=poly[j].lat, yj=poly[j].lng;
+    if(((yi>lng)!==(yj>lng)) && (lat<(xj-xi)*(lng-yi)/(yj-yi)+xi)) inside=!inside;
+  }
+  return inside;
+}
+function selectClientsInPolygon(){
+  if(!cityData) return;
+  lassoSelectedIds = new Set();
+  for(const a of cityData.agents){
+    for(const c of a.clients){
+      if(!c.lat||!c.lng) continue;
+      if(pointInPolygon(c.lat, c.lng, lassoPoints)) lassoSelectedIds.add(String(c.custId));
+    }
+  }
+  if(lassoSelectedIds.size > 0){
+    focusCustId = [...lassoSelectedIds][0];
+    // show bulk panel
+    const bulk = document.getElementById('lasso-bulk');
+    document.getElementById('lasso-count').textContent = `${lassoSelectedIds.size} לקוחות`;
+    document.getElementById('lasso-bulk-agents').innerHTML = cityData.agents.map(a=>
+      `<button type="button" class="lasso-bulk-btn" style="background:${colorMap[a.agentCode]}"
+        onclick="bulkMove('${a.agentCode}')">${shortName(a.agentName)}</button>`
+    ).join('');
+    bulk.style.display='flex';
+    renderList(); renderMap();
+  }
+}
+function bulkMove(toAgent){
+  for(const custId of lassoSelectedIds){
+    let origAgent = '';
+    for(const a of cityData.agents){
+      if(a.clients.some(c=>String(c.custId)===custId)){ origAgent=a.agentCode; break; }
+    }
+    if(origAgent && toAgent !== origAgent) moves[custId] = toAgent;
+    else if(toAgent === origAgent) delete moves[custId];
+  }
+  clearLasso();
+  render();
+}
+function initLassoEvents(){
+  const container = map.getContainer();
+  container.addEventListener('mousedown', e=>{
+    if(!lassoActive) return;
+    e.preventDefault(); e.stopPropagation();
+    lassoDrawing = true;
+    lassoPoints = [];
+    const ll = map.containerPointToLatLng([e.offsetX, e.offsetY]);
+    lassoPoints.push(ll);
+    if(lassoPolyline){ map.removeLayer(lassoPolyline); }
+    lassoPolyline = L.polyline([ll],{color:'#C9A84C',weight:2.5,opacity:.9,dashArray:'5,3'}).addTo(map);
+  });
+  container.addEventListener('mousemove', e=>{
+    if(!lassoActive||!lassoDrawing) return;
+    const ll = map.containerPointToLatLng([e.offsetX, e.offsetY]);
+    lassoPoints.push(ll);
+    if(lassoPolyline) lassoPolyline.setLatLngs(lassoPoints);
+  });
+  container.addEventListener('mouseup', e=>{
+    if(!lassoActive||!lassoDrawing) return;
+    lassoDrawing = false;
+    if(lassoPolyline){ map.removeLayer(lassoPolyline); lassoPolyline=null; }
+    if(lassoPoints.length < 3){ exitLasso(); return; }
+    lassoPolygon = L.polygon(lassoPoints,{color:'#C9A84C',fillColor:'#C9A84C66',weight:2,fillOpacity:.15}).addTo(map);
+    selectClientsInPolygon();
+    setTimeout(()=>{ if(lassoPolygon){ map.removeLayer(lassoPolygon); lassoPolygon=null; } exitLasso(); }, 2000);
+  });
 }
 
-// ── Init ──────────────────────────────────────────────────────
+// ── Init ──
 (async()=>{
   if(!getToken()){ location.href='formula-road.html'; return; }
   initMap();
+  initLassoEvents();
   await loadCities();
 })();
 </script>
