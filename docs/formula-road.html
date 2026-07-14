@@ -1392,6 +1392,7 @@ async function initRoute(){
     if(!ordered||myId!==_snapId||st.agent?.code!==_snapAgent||st.day!==_snapDay||st.sortMode!=='ai') return;
     st.aiClients=ordered;
     renderClientList(); updateKmBar();
+    if(window.innerWidth>=700||st.tab==='map') renderMap();
     showToast('🛣️ סדר עודכן לפי כביש');
   });
   document.getElementById('export-btn').classList.add('visible');
@@ -2303,7 +2304,7 @@ async function exportXLSX(){
   const orig=btn.innerHTML;
   btn.innerHTML='<span class="xls-icon">⏳</span>...';btn.disabled=true;
   try{
-    const r=await apiFetch('/api/export-route-xlsx',{
+    const r=await apiFetch(`${API}/api/export-route-xlsx`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({rows,agentName:st.agent?.name||st.agent?.code||'',dayLabel:DAY_LABELS[st.day]||String(st.day||'')}),
@@ -2324,7 +2325,7 @@ async function exportAllDaysXLSX(){
   const btn=document.getElementById('export-all-btn');
   const orig=btn.innerHTML; btn.innerHTML='⏳...'; btn.disabled=true;
   try{
-    const r=await apiFetch('/api/export-all-days-xlsx',{
+    const r=await apiFetch(`${API}/api/export-all-days-xlsx`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
@@ -2396,7 +2397,7 @@ async function runGpsSyncCheck(){
   const el=document.getElementById('gps-sync-result');
   el.textContent='⏳ בודק...';
   try{
-    const r=await apiFetch('/api/gps-sync-check');
+    const r=await apiFetch(`${API}/api/gps-sync-check`);
     if(!r.ok) throw new Error(r.status);
     const d=await r.json();
     if(!d.synced.length){
@@ -2418,7 +2419,7 @@ async function runGpsSyncCheck(){
 }
 async function downloadGpsPendingXlsx(){
   try{
-    const r=await apiFetch('/api/gps-pending-xlsx');
+    const r=await apiFetch(`${API}/api/gps-pending-xlsx`);
     if(!r.ok) throw new Error(r.status);
     const blob=await r.blob();
     const url=URL.createObjectURL(blob);
@@ -2431,7 +2432,7 @@ async function confirmGpsSyncClean(custIds){
   if(!confirm(`מחיקת ${custIds.length} תיקונים שסונכרנו ל-PBI?\nלא ניתן לשחזר.`)) return;
   const el=document.getElementById('gps-sync-result');
   try{
-    const r=await apiFetch('/api/gps-sync-clean',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({custIds})});
+    const r=await apiFetch(`${API}/api/gps-sync-clean`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({custIds})});
     const d=await r.json();
     const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
     custIds.forEach(id=>{delete local[id]; delete gpsCorrections[id];});
@@ -2445,13 +2446,13 @@ async function autoSyncGpsClean(){
   try{
     const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
     if(!Object.keys(local).length) return; // nothing to clean
-    const r=await apiFetch('/api/gps-sync-check');
+    const r=await apiFetch(`${API}/api/gps-sync-check`);
     if(!r.ok) return;
     const d=await r.json();
     if(!d.synced?.length) return;
     // silent clean — no confirm, no toast
     const custIds=d.synced.map(s=>String(s.custId));
-    await apiFetch('/api/gps-sync-clean',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({custIds})});
+    await apiFetch(`${API}/api/gps-sync-clean`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({custIds})});
     custIds.forEach(id=>{delete local[id]; delete gpsCorrections[id];});
     localStorage.setItem('fr_gps_local',JSON.stringify(local));
     renderGpsHistory(); updateGpsHistBtn();
