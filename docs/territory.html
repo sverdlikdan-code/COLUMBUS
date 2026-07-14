@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>ניתוח שטחים — FORMULA ROAD</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0D1B2E;color:#E8F0FC;height:100dvh;display:flex;flex-direction:column;overflow:hidden;}
+
+/* ── TOP BAR ── */
+.topbar{background:linear-gradient(90deg,#0D1B2E 0%,#1A3F7C 100%);border-bottom:1.5px solid #2A5AAA;padding:0 16px;height:54px;display:flex;align-items:center;gap:12px;flex-shrink:0;z-index:1000;}
+.topbar-back{background:#1A3F7C;border:1.5px solid #2A5AAA;color:#C9D6F0;font-size:13px;font-weight:800;cursor:pointer;padding:6px 14px;border-radius:20px;white-space:nowrap;}
+.topbar-back:hover{background:#2E6FAD;color:#fff;}
+.topbar-title{font-size:15px;font-weight:900;color:#fff;letter-spacing:.3px;white-space:nowrap;}
+.topbar-sub{font-size:10.5px;font-weight:700;color:#7098CC;letter-spacing:.8px;text-transform:uppercase;}
+.topbar-spacer{flex:1;}
+.city-select{background:#1A3F7C;border:1.5px solid #2A5AAA;color:#E8F0FC;font-size:13px;font-weight:700;padding:7px 12px;border-radius:10px;cursor:pointer;min-width:180px;direction:rtl;}
+.city-select option{background:#0D1B2E;}
+.reset-btn{background:transparent;border:1.5px solid #C9A84C;color:#C9A84C;font-size:12px;font-weight:800;padding:6px 12px;border-radius:20px;cursor:pointer;white-space:nowrap;}
+.reset-btn:hover{background:#C9A84C22;}
+.export-btn{background:linear-gradient(135deg,#1A6E3C,#22A05A);border:none;color:#fff;font-size:12px;font-weight:800;padding:6px 14px;border-radius:20px;cursor:pointer;white-space:nowrap;}
+
+/* ── LAYOUT ── */
+.main{display:flex;flex:1;overflow:hidden;}
+#map{flex:1;min-width:0;}
+
+/* ── SIDE PANEL ── */
+.side{width:300px;flex-shrink:0;background:#0A1628;border-right:1.5px solid #1A3F7C;display:flex;flex-direction:column;overflow:hidden;}
+.side-stats{padding:10px 14px;border-bottom:1px solid #1A3F7C;display:flex;gap:12px;flex-shrink:0;}
+.stat-box{flex:1;background:#0D1B2E;border-radius:8px;padding:7px 10px;text-align:center;}
+.stat-n{font-size:20px;font-weight:900;color:#C9A84C;}
+.stat-l{font-size:10px;color:#7098CC;font-weight:700;text-transform:uppercase;}
+
+/* agent filter pills */
+.agent-pills{padding:8px 12px;border-bottom:1px solid #1A3F7C;display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;}
+.agent-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800;cursor:pointer;border:2px solid transparent;transition:all .12s;color:#fff;user-select:none;}
+.agent-pill.off{opacity:.35;filter:grayscale(.7);}
+.agent-pill .pill-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
+/* client list */
+.side-list{flex:1;overflow-y:auto;}
+.agent-group{border-bottom:1px solid #0D1B2E;}
+.agent-group-hdr{display:flex;align-items:center;gap:8px;padding:8px 14px 6px;position:sticky;top:0;z-index:10;}
+.agent-group-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.agent-group-name{font-size:12px;font-weight:900;color:#E8F0FC;flex:1;}
+.agent-group-cnt{font-size:11px;font-weight:700;color:#7098CC;}
+.client-row{display:flex;align-items:center;gap:8px;padding:6px 14px 6px 24px;cursor:pointer;border-bottom:1px solid #0D1B2E11;transition:background .1s;}
+.client-row:hover{background:#1A3F7C22;}
+.client-row.moved{background:#1A6E3C18;}
+.client-row.moved .cr-name::after{content:' →';color:#22A05A;font-weight:900;}
+.client-rn{width:20px;font-size:10px;font-weight:700;color:#7098CC;text-align:center;flex-shrink:0;}
+.cr-body{flex:1;min-width:0;}
+.cr-name{font-size:12px;font-weight:700;color:#E8F0FC;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cr-sub{font-size:10px;color:#7098CC;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cr-arrow{font-size:14px;color:#2A5AAA;flex-shrink:0;}
+
+/* ── MOVE PANEL (bottom sheet) ── */
+.move-panel{position:fixed;bottom:0;left:0;right:0;background:#0D1B2E;border-top:2px solid #1A3F7C;padding:16px 20px 24px;z-index:2000;transform:translateY(100%);transition:transform .22s ease;box-shadow:0 -8px 32px rgba(0,0,0,.5);}
+.move-panel.open{transform:translateY(0);}
+.mp-title{font-size:13px;font-weight:900;color:#fff;margin-bottom:4px;}
+.mp-sub{font-size:11px;color:#7098CC;margin-bottom:14px;}
+.mp-agents{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+.mp-agent-btn{padding:8px 16px;border-radius:20px;border:2px solid transparent;font-size:12px;font-weight:800;cursor:pointer;color:#fff;transition:transform .1s,box-shadow .1s;}
+.mp-agent-btn:hover{transform:scale(1.05);box-shadow:0 3px 12px rgba(0,0,0,.4);}
+.mp-agent-btn.current{opacity:.4;cursor:default;pointer-events:none;}
+.mp-cancel{background:transparent;border:1.5px solid #2A5AAA;color:#7098CC;font-size:12px;font-weight:800;padding:8px 20px;border-radius:20px;cursor:pointer;}
+.mp-cancel:hover{border-color:#7098CC;color:#fff;}
+
+/* ── LOADING / EMPTY ── */
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:12px;color:#7098CC;}
+.spin{width:36px;height:36px;border:3px solid #1A3F7C;border-top-color:#C9A84C;border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:8px;color:#7098CC;font-size:14px;}
+
+/* scrollbar */
+.side-list::-webkit-scrollbar{width:4px;}
+.side-list::-webkit-scrollbar-track{background:#0A1628;}
+.side-list::-webkit-scrollbar-thumb{background:#1A3F7C;border-radius:2px;}
+
+@media(max-width:700px){
+  .side{width:100%;position:absolute;bottom:0;left:0;right:0;height:45vh;border-right:none;border-top:2px solid #1A3F7C;z-index:500;}
+  .main{flex-direction:column;}
+  #map{height:55vh;flex:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <button class="topbar-back" onclick="history.back()">← חזור</button>
+  <div>
+    <div class="topbar-title">🗺 ניתוח שטחים</div>
+    <div class="topbar-sub">TERRITORY ANALYSIS</div>
+  </div>
+  <div class="topbar-spacer"></div>
+  <select class="city-select" id="city-sel" onchange="loadCity(this.value)">
+    <option value="">בחר עיר...</option>
+  </select>
+  <button class="reset-btn" onclick="resetMoves()" id="reset-btn" style="display:none">↩ איפוס</button>
+  <button class="export-btn" onclick="exportXlsx()" id="export-btn" style="display:none">📥 Excel</button>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div id="map"></div>
+  <div class="side" id="side">
+    <div class="loading" id="side-loading" style="display:none"><div class="spin"></div><span>טוען...</span></div>
+    <div class="empty" id="side-empty">
+      <div style="font-size:40px">🏙</div>
+      <div>בחר עיר כדי להתחיל</div>
+    </div>
+    <div id="side-stats" class="side-stats" style="display:none"></div>
+    <div id="agent-pills" class="agent-pills" style="display:none"></div>
+    <div class="side-list" id="side-list"></div>
+  </div>
+</div>
+
+<!-- MOVE PANEL -->
+<div class="move-panel" id="move-panel">
+  <div class="mp-title" id="mp-title"></div>
+  <div class="mp-sub">העבר ל:</div>
+  <div class="mp-agents" id="mp-agents"></div>
+  <button class="mp-cancel" onclick="closeMove()">ביטול</button>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-FhPn/2P/fJGhQLeNWDn9B/2Gml2bPOrKJwFqJXgR3xOPYxWg5mYQ5XZdhUSugZT0" crossorigin="anonymous"></script>
+<script>
+const API = 'https://api.sverdlik-apps.site';
+const TOKEN_KEY = 'frToken';
+
+const AGENT_COLORS = [
+  '#1565C0','#E53935','#2E7D32','#F57C00','#6A1B9A','#00838F',
+  '#AD1457','#0277BD','#558B2F','#6D4C41','#37474F','#7B1FA2',
+];
+
+// ── Auth ──────────────────────────────────────────────────────
+function getToken(){ return localStorage.getItem(TOKEN_KEY)||''; }
+async function apiFetch(url, opts={}){
+  const r = await fetch(url,{...opts,headers:{...opts.headers,'x-auth-token':getToken(),'Content-Type':'application/json'}});
+  if(r.status===401){ alert('נדרשת התחברות מחדש'); location.href='formula-road.html'; throw new Error('401'); }
+  return r;
+}
+
+// ── State ─────────────────────────────────────────────────────
+let cityData = null;        // { city, agents: [{agentCode,agentName,clients:[]}] }
+let colorMap = {};          // agentCode → color
+let visibleAgents = new Set(); // which agents are shown
+let moves = {};             // custId → newAgentCode  (in-memory experiment)
+let map = null, markers = [];
+let selectedCustId = null;
+
+// ── Map init ──────────────────────────────────────────────────
+function initMap(){
+  if(map) return;
+  map = L.map('map',{zoomControl:false}).setView([31.8,34.9],9);
+  L.control.zoom({position:'bottomleft'}).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© OpenStreetMap',maxZoom:19
+  }).addTo(map);
+}
+
+// ── Load city list ────────────────────────────────────────────
+async function loadCities(){
+  try{
+    const r = await apiFetch(`${API}/api/territory/cities`);
+    const cities = await r.json();
+    const sel = document.getElementById('city-sel');
+    cities.forEach(c=>{
+      const opt = document.createElement('option');
+      opt.value = c.city;
+      opt.textContent = `${c.city} · ${c.agentCount} סוכנים · ${c.clientCount} לקוחות`;
+      sel.appendChild(opt);
+    });
+  }catch(e){ console.error(e); }
+}
+
+// ── Load city data ────────────────────────────────────────────
+async function loadCity(city){
+  if(!city) return;
+  moves = {};
+  document.getElementById('side-empty').style.display='none';
+  document.getElementById('side-stats').style.display='none';
+  document.getElementById('agent-pills').style.display='none';
+  document.getElementById('side-list').innerHTML='';
+  document.getElementById('side-loading').style.display='flex';
+  document.getElementById('reset-btn').style.display='none';
+  document.getElementById('export-btn').style.display='none';
+  try{
+    const r = await apiFetch(`${API}/api/territory/city?city=${encodeURIComponent(city)}`);
+    cityData = await r.json();
+    // assign colors
+    colorMap = {};
+    cityData.agents.forEach((a,i)=>{ colorMap[a.agentCode]=AGENT_COLORS[i%AGENT_COLORS.length]; });
+    visibleAgents = new Set(cityData.agents.map(a=>a.agentCode));
+    document.getElementById('side-loading').style.display='none';
+    document.getElementById('export-btn').style.display='';
+    render();
+  }catch(e){
+    document.getElementById('side-loading').style.display='none';
+    document.getElementById('side-empty').style.display='flex';
+    document.getElementById('side-empty').innerHTML='<div style="font-size:32px">⚠️</div><div>שגיאה בטעינה</div>';
+  }
+}
+
+// ── Effective agent for a client ──────────────────────────────
+function effectiveAgent(custId, originalCode){
+  return moves[String(custId)] || originalCode;
+}
+
+// ── Render everything ─────────────────────────────────────────
+function render(){
+  if(!cityData) return;
+  renderStats();
+  renderPills();
+  renderList();
+  renderMap();
+  const hasMoves = Object.keys(moves).length > 0;
+  document.getElementById('reset-btn').style.display = hasMoves ? '' : 'none';
+}
+
+function renderStats(){
+  const total = cityData.agents.reduce((s,a)=>s+a.clients.length,0);
+  const el = document.getElementById('side-stats');
+  el.style.display='flex';
+  el.innerHTML = cityData.agents.map(a=>`
+    <div class="stat-box">
+      <div class="stat-n" style="color:${colorMap[a.agentCode]}">${effectiveCount(a.agentCode)}</div>
+      <div class="stat-l">${shortName(a.agentName)}</div>
+    </div>
+  `).join('');
+}
+
+function effectiveCount(agentCode){
+  // Count clients whose effective agent = agentCode
+  let n = 0;
+  for(const a of cityData.agents){
+    for(const c of a.clients){
+      if(effectiveAgent(c.custId, a.agentCode)===agentCode) n++;
+    }
+  }
+  return n;
+}
+
+function shortName(name){
+  const parts = name.split(' ');
+  return parts[0] || name;
+}
+
+function renderPills(){
+  const el = document.getElementById('agent-pills');
+  el.style.display='flex';
+  el.innerHTML = cityData.agents.map(a=>`
+    <div class="agent-pill${visibleAgents.has(a.agentCode)?'':' off'}"
+         style="background:${colorMap[a.agentCode]}22;border-color:${colorMap[a.agentCode]};"
+         onclick="toggleAgent('${a.agentCode}')">
+      <span class="pill-dot" style="background:${colorMap[a.agentCode]}"></span>
+      ${shortName(a.agentName)}
+    </div>
+  `).join('');
+}
+
+function toggleAgent(code){
+  if(visibleAgents.has(code)) visibleAgents.delete(code); else visibleAgents.add(code);
+  renderPills(); renderList(); renderMap();
+}
+
+function renderList(){
+  const el = document.getElementById('side-list');
+  // build effective groups: group clients by effective agent
+  const groups = {}; // agentCode → { agentName, clients[] }
+  for(const a of cityData.agents){
+    if(!groups[a.agentCode]) groups[a.agentCode]={agentName:a.agentName,clients:[]};
+    for(const c of a.clients){
+      const eff = effectiveAgent(c.custId, a.agentCode);
+      if(!groups[eff]) groups[eff]={agentName:a.agentName,clients:[]};
+      groups[eff].clients.push({...c,_origAgent:a.agentCode});
+    }
+  }
+  let html='';
+  for(const a of cityData.agents){
+    if(!visibleAgents.has(a.agentCode)) continue;
+    const g = groups[a.agentCode]||{clients:[]};
+    html+=`<div class="agent-group">
+      <div class="agent-group-hdr" style="background:#0A1628ee;">
+        <span class="agent-group-dot" style="background:${colorMap[a.agentCode]}"></span>
+        <span class="agent-group-name">${a.agentName}</span>
+        <span class="agent-group-cnt">${g.clients.length}</span>
+      </div>
+      ${g.clients.map((c,i)=>{
+        const moved = moves[String(c.custId)] !== undefined;
+        const eff = effectiveAgent(c.custId, c._origAgent);
+        return `<div class="client-row${moved?' moved':''}" onclick="openMove(${JSON.stringify(c.custId)})">
+          <div class="client-rn">${i+1}</div>
+          <div class="cr-body">
+            <div class="cr-name">${esc(trimName(c.custName))}</div>
+            <div class="cr-sub">${esc(c.address||'')}${moved?' → '+shortName(cityData.agents.find(x=>x.agentCode===eff)?.agentName||eff):''}</div>
+          </div>
+          <div class="cr-arrow">›</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+  el.innerHTML = html||'<div style="padding:20px;text-align:center;color:#7098CC;font-size:13px">אין לקוחות מוצגים</div>';
+}
+
+function renderMap(){
+  if(!map) initMap();
+  markers.forEach(m=>m.remove()); markers=[];
+  const bounds=[];
+
+  // collect all clients with GPS, apply effective agent color
+  for(const a of cityData.agents){
+    for(const c of a.clients){
+      if(!c.lat||!c.lng) continue;
+      const eff = effectiveAgent(c.custId, a.agentCode);
+      if(!visibleAgents.has(eff)) continue;
+      const col = colorMap[eff]||'#888';
+      const isSel = String(c.custId)===String(selectedCustId);
+      const sz = isSel ? 36 : 26;
+      const icon = L.divIcon({className:'',
+        html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${col};border:${isSel?3:2}px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.5);${isSel?'animation:pulse .6s ease-out':''}"></div>`,
+        iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
+      const m = L.marker([c.lat,c.lng],{icon,zIndexOffset:isSel?1000:0});
+      m.on('click',()=>openMove(c.custId));
+      m.bindTooltip(`<b>${esc(trimName(c.custName))}</b><br>${esc(a.agentName)}`,{direction:'right',opacity:1});
+      m.addTo(map); markers.push(m);
+      bounds.push([c.lat,c.lng]);
+    }
+  }
+  if(bounds.length) map.fitBounds(bounds,{padding:[30,30],maxZoom:14});
+}
+
+// ── Move dialog ───────────────────────────────────────────────
+function openMove(custId){
+  if(!cityData) return;
+  selectedCustId = custId;
+  // find the client
+  let clientName='', origAgent='';
+  for(const a of cityData.agents){
+    const c = a.clients.find(x=>String(x.custId)===String(custId));
+    if(c){ clientName=c.custName; origAgent=a.agentCode; break; }
+  }
+  const eff = effectiveAgent(custId, origAgent);
+  document.getElementById('mp-title').textContent=trimName(clientName)||String(custId);
+  const btns = cityData.agents.map(a=>`
+    <button class="mp-agent-btn${eff===a.agentCode?' current':''}"
+            style="background:${colorMap[a.agentCode]};"
+            onclick="applyMove(${JSON.stringify(String(custId))},'${a.agentCode}','${origAgent}')">
+      ${shortName(a.agentName)}
+    </button>
+  `).join('');
+  document.getElementById('mp-agents').innerHTML=btns;
+  document.getElementById('move-panel').classList.add('open');
+  renderMap(); // highlight selected
+}
+
+function applyMove(custId, toAgent, origAgent){
+  if(toAgent===origAgent){
+    delete moves[String(custId)]; // reset to original
+  } else {
+    moves[String(custId)]=toAgent;
+  }
+  closeMove();
+  render();
+}
+
+function closeMove(){
+  selectedCustId=null;
+  document.getElementById('move-panel').classList.remove('open');
+  renderMap();
+}
+
+function resetMoves(){
+  moves={};
+  render();
+}
+
+// ── Excel Export ───────────────────────────────────────────────
+function exportXlsx(){
+  if(!cityData) return;
+  // Build rows: client, city, address, current agent, proposed agent
+  const rows=[];
+  for(const a of cityData.agents){
+    for(const c of a.clients){
+      const eff=effectiveAgent(c.custId,a.agentCode);
+      const effName=cityData.agents.find(x=>x.agentCode===eff)?.agentName||eff;
+      rows.push([c.custId,c.custName,cityData.city,c.address||'',a.agentName,a.agentCode,effName,eff,eff!==a.agentCode?'הועבר':'']);
+    }
+  }
+  const hdrs=['מס. לקוח','שם לקוח','עיר','כתובת','סוכן נוכחי','קוד נוכחי','סוכן מוצע','קוד מוצע','סטטוס'];
+  const csvRows=[hdrs,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','));
+  const bom='﻿';
+  const blob=new Blob([bom+csvRows.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`territory_${cityData.city}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function trimName(name){
+  if(!name) return '';
+  // remove city suffix patterns like "י-מ" or city name from end
+  return name.replace(/\s+[א-ת]["\-][א-ת]$/, '').trim().replace(/\s{2,}/g,' ');
+}
+
+// ── Init ──────────────────────────────────────────────────────
+(async()=>{
+  if(!getToken()){ location.href='formula-road.html'; return; }
+  initMap();
+  await loadCities();
+})();
+</script>
+</body>
+</html>
