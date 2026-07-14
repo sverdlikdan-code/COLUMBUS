@@ -1,0 +1,42 @@
+{
+  "_doc": "JJS (Jujutsu Shenanigans) Moveset Code Schema. Format: JSON -> UTF-8 -> zstd compress -> base64 = paste code",
+  "slot": {
+    "K_NAME": "CHASE | MELEE | SPECIAL | SKILL | AWAKENING",
+    "NAME": "string — display name",
+    "COOLDOWN": "number (seconds)",
+    "KEY": "1-8 (SKILL only: Q=1 E=2 R=3 T=4)",
+    "ADD": "boolean — replace slot if occupied",
+    "DURATION": "number (AWAKENING only)",
+    "DELAY": "number (AWAKENING only)",
+    "DATA": {
+      "Line": "array of timeline blocks",
+      "Branch": "dict of named branches",
+      "Req": "array of condition gates",
+      "Prop": "object of properties"
+    }
+  },
+  "timeline_blocks": {
+    "ANIM": {"ANIM_USE": "[g,i]", "SPEED": "number", "LOOPED": "bool", "FADE IN/OUT": "number"},
+    "VELO": {"FORCE": "number", "TIME": "number", "FADE": "bool", "TRACK": "bool", "LAST HIT": "bool"},
+    "HITBOX": {"POSITION": "x,y,z", "SIZE": "x,y,z", "DAMAGE": "number", "STUN": "number", "ATTACK TYPE": "string", "DEBREE": "bool"},
+    "VISUAL": {"EFFECT": "string", "AMOUNT": "number", "COLOR": "r,g,b", "POSITION": "x,y,z", "SIZE": "number", "TIME": "number"},
+    "SFX": {"ID": "number", "VOLUME": "number (>=2 audible)", "SPEED": "number", "CANCEL": "bool"},
+    "WAIT": {"TIME": "number"},
+    "STATE": {"STATE": "Stun|IFrame|...", "VALUE": "bool", "TIME": "number", "LAST HIT": "bool"},
+    "PROJECTILE": {"POSITION": "x,y,z", "SPEED": "number", "TIME": "number", "DAMAGE": "number", "CONTINUE": "bool"},
+    "GRAB": {"BODY PART": "string", "BODY PART2": "string", "POSITION": "x,y,z", "TIME": "number"}
+  },
+  "conditions": {
+    "K_NAME": "AIR | JUMP | HP | BAR | ULT | DOMAIN | HOLDING | DURABILITY",
+    "FLIP": "bool — invert condition",
+    "AMOUNT": "number — threshold"
+  },
+  "spatial_conventions": {
+    "X": "negative=right, positive=left",
+    "Y": "positive=up, negative=down",
+    "Z": "positive=forward, negative=backward",
+    "unit": "studs (character ~5 studs tall)",
+    "hitbox_default": "8,8,8",
+    "velocity_max": 1000
+  }
+}
