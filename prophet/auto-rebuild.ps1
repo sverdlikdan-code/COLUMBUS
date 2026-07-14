@@ -12,12 +12,16 @@ Log "=== Prophet auto-rebuild START ==="
 try {
     Set-Location $repo
 
+    & node server/fetch-prophet-history.js
+    if ($LASTEXITCODE -ne 0) { throw "fetch-prophet-history exit code: $LASTEXITCODE" }
+    Log "Weekly sales CSV updated from PBI"
+
     $env:PYTHONIOENCODING = "utf-8"
     & python prophet\run_prophet.py
     if ($LASTEXITCODE -ne 0) { throw "prophet exit code: $LASTEXITCODE" }
     Log "Prophet OK"
 
-    & git add docs/prophet.json
+    & git add docs/prophet.json prophet/weekly_sales.csv
     $ts2 = Get-Date -Format "yyyy-MM-dd HH:mm"
     & git commit -m "data: prophet auto-rebuild $ts2"
     if ($LASTEXITCODE -ne 0) { Log "Nothing to commit"; exit 0 }
