@@ -1660,6 +1660,62 @@ app.get('/api/territory/jerusalem', cors({ origin: true }), async (req, res) => 
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// Cities where 2+ agents have clients (for territory analysis)
+app.get('/api/territory/cities', requireAuth, async (req, res) => {
+  try {
+    if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
+    const cityMap = new Map(); // city → { agents: Set, count: 0 }
+    for (const [agentCode, clients] of pbiCache.byAgent) {
+      for (const c of clients) {
+        if (!c.city) continue;
+        if (!cityMap.has(c.city)) cityMap.set(c.city, { agents: new Set(), count: 0 });
+        cityMap.get(c.city).agents.add(agentCode);
+        cityMap.get(c.city).count++;
+      }
+    }
+    const result = [];
+    for (const [city, d] of cityMap) {
+      if (d.agents.size < 2) continue;
+      result.push({ city, agentCount: d.agents.size, clientCount: d.count });
+    }
+    result.sort((a, b) => b.clientCount - a.clientCount);
+    res.json(result);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// All clients in a city, grouped by agent
+app.get('/api/territory/city', requireAuth, async (req, res) => {
+  try {
+    if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
+    const { city } = req.query;
+    if (!city) return res.status(400).json({ error: 'city required' });
+    const corrPath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
+    const corrections = fs.existsSync(corrPath) ? JSON.parse(fs.readFileSync(corrPath, 'utf8')) : {};
+    const agentMap = new Map(); // agentCode → { agentCode, agentName, manager, clients[] }
+    for (const [agentCode, clients] of pbiCache.byAgent) {
+      const cityClients = clients.filter(c => c.city === city);
+      if (!cityClients.length) continue;
+      const corr = (c) => corrections[String(c.custId)];
+      agentMap.set(agentCode, {
+        agentCode,
+        agentName: cityClients[0].agentName || agentCode,
+        manager:   cityClients[0].manager   || '',
+        clients: cityClients.map(c => ({
+          custId:   c.custId,
+          custName: c.custName,
+          address:  c.address,
+          dayNum:   c.dayNum,
+          lat: corr(c) ? corr(c).lat : c.lat,
+          lng: corr(c) ? corr(c).lng : c.lng,
+          monthlySales: c.monthlySales,
+          target:       c.target,
+        })),
+      });
+    }
+    res.json({ city, agents: [...agentMap.values()] });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.post('/api/territory/geocode', cors({ origin: true }), async (req, res) => {
   try {
     const { q } = req.body;
