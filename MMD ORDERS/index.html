@@ -315,6 +315,8 @@
     #sk-no-mkr.on { background: #dc2626 !important; border-color: #dc2626 !important; color: #fff !important; }
     #sk-maavar { border-color: #7c3aed; color: #6d28d9; }
     #sk-maavar.on { background: #7c3aed !important; border-color: #6d28d9 !important; color: #fff !important; }
+    #btn-tukuf-overlay { background: #c62828 !important; color: #fff !important; border-color: #7a1515 !important; letter-spacing: .02em; }
+    #btn-tukuf-overlay:hover { background: #a31515 !important; }
     .flabel { font-size: .7rem; color: var(--mid); font-weight: 700; white-space: nowrap; }
     .chip {
       display: inline-flex;
@@ -919,6 +921,7 @@
   <img src="/logo-diler-bmd.png" alt="" id="fbar-logo"
        style="height:22px;filter:brightness(0);opacity:.13;flex-shrink:0;padding:0 18px;">
   <div id="sk-inline">
+    <span class="chip" id="btn-tukuf-overlay" onclick="openTukufOverlay()">📦 תוקף</span>
     <span class="stk-label">אשדוד:</span>
     <span class="chip on" id="sk-ash-yes" onclick="togStock('ash','yes')">✓ יש 📦</span>
     <span class="chip"    id="sk-ash-no"  onclick="togStock('ash','no')">חסר 😢</span>
@@ -928,8 +931,6 @@
     <span class="chip" id="sk-ord-only" onclick="togOrdOnly()">📋 הזמנה בלבד</span>
     <span class="chip" id="sk-no-mkr" onclick="togNoMkr()">🚫 אין מכר MMD</span>
     <span class="chip" id="sk-maavar" onclick="togMaavar()">📦 מחסן מעבר הזמנה</span>
-    <span style="width:1px;height:18px;background:rgba(255,255,255,.15);margin:0 4px;display:inline-block;vertical-align:middle;"></span>
-    <button id="btn-tukuf-overlay" onclick="openTukufOverlay()" style="background:#7a1515;color:#fff;border:1px solid #c62828;border-radius:6px;padding:3px 11px;font-size:.75rem;font-weight:700;cursor:pointer;font-family:inherit;">📦 תוקף</button>
   </div>
 </div>
 
