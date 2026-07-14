@@ -1728,7 +1728,6 @@ app.get('/api/territory/cities', requireAuth, async (req, res) => {
     }
     const result = [];
     for (const [city, d] of cityMap) {
-      if (d.agents.size < 2) continue;
       result.push({ city, agentCount: d.agents.size, clientCount: d.count });
     }
     result.sort((a, b) => b.clientCount - a.clientCount);
