@@ -250,7 +250,14 @@ const AGENT_COLORS = ['#1565C0','#E53935','#2E7D32','#F57C00','#6A1B9A','#00838F
 function getToken(){ return localStorage.getItem(TOKEN_KEY)||''; }
 async function apiFetch(url, opts={}){
   const r = await fetch(url,{...opts,headers:{...opts.headers,'x-session':getToken(),'Content-Type':'application/json'}});
-  if(r.status===401){ alert('נדרשת התחברות מחדש'); location.href='formula-road.html'; throw new Error('401'); }
+  if(r.status===401){
+    // Try silent PBI re-auth via cookie
+    try{
+      const pbi = await fetch(API+'/auth/pbi',{credentials:'include'});
+      if(pbi.ok){ const j=await pbi.json(); if(j.ok&&j.token){ localStorage.setItem('frToken',j.token); const retry=await fetch(url,{...opts,headers:{...opts.headers,'x-session':j.token,'Content-Type':'application/json'}}); if(retry.status!==401) return retry; } }
+    }catch(_){}
+    alert('נדרשת התחברות מחדש'); location.href='formula-road.html'; throw new Error('401');
+  }
   return r;
 }
 
@@ -829,7 +836,13 @@ function initLassoEvents(){
 
 // ── Init ──
 (async()=>{
-  if(!getToken()){ location.href='formula-road.html'; return; }
+  if(!getToken()){
+    try{
+      const pbi=await fetch(API+'/auth/pbi',{credentials:'include'});
+      if(pbi.ok){ const j=await pbi.json(); if(j.ok&&j.token) localStorage.setItem('frToken',j.token); }
+    }catch(_){}
+    if(!getToken()){ location.href='formula-road.html'; return; }
+  }
   initMap();
   initLassoEvents();
   await loadCities();
