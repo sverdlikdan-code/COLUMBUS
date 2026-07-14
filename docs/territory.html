@@ -23,46 +23,60 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 #app{height:100%;display:flex;flex-direction:column;overflow:hidden;}
 
 /* HEADER */
-.hdr{background:linear-gradient(135deg,var(--blue-deeper) 0%,var(--blue-dark) 60%,var(--blue) 100%);color:#fff;padding:8px 14px;flex-shrink:0;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(13,71,161,.35);}
-.hdr-logo{height:34px;filter:brightness(0) invert(1);opacity:.92;flex-shrink:0;}
+.hdr{background:linear-gradient(135deg,var(--blue-deeper) 0%,var(--blue-dark) 60%,var(--blue) 100%);color:#fff;padding:0 14px;height:50px;flex-shrink:0;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(13,71,161,.35);}
+.hdr-logo{height:32px;filter:brightness(0) invert(1);opacity:.92;flex-shrink:0;}
 .hdr-title{font-size:13px;font-weight:900;letter-spacing:3px;color:#fff;white-space:nowrap;}
 .sky-line{height:3px;background:linear-gradient(90deg,var(--sky),var(--blue));flex-shrink:0;}
 .hdr-right{margin-right:auto;display:flex;align-items:center;gap:8px;}
 .back-link{color:rgba(255,255,255,.8);font-size:12px;font-weight:700;text-decoration:none;padding:4px 10px;border:1.5px solid rgba(255,255,255,.35);border-radius:14px;white-space:nowrap;}
-.back-link:hover{background:rgba(255,255,255,.12);}
 
 /* FILTER BAR */
-.filter-bar{background:#fff;border-bottom:1px solid var(--sky-mid);padding:8px 10px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;}
+.filter-bar{background:#fff;border-bottom:1px solid var(--sky-mid);padding:6px 10px;flex-shrink:0;display:flex;flex-direction:column;gap:5px;}
 .filter-row{display:flex;align-items:center;flex-wrap:wrap;gap:6px;}
 .flt-label{font-size:10px;font-weight:700;color:var(--light);letter-spacing:.8px;text-transform:uppercase;flex-shrink:0;}
-.flt-select{padding:5px 10px;border:1.5px solid var(--sky-mid);border-radius:20px;font-size:13px;font-weight:700;color:var(--text);background:#fff;cursor:pointer;outline:none;min-width:120px;max-width:200px;}
-.flt-select:focus{border-color:var(--blue);}
-.flt-select:disabled{color:var(--light);cursor:default;}
-.day-btns{display:flex;gap:4px;}
-.day-btn{width:34px;height:34px;border-radius:10px;background:var(--sky-light);border:1.5px solid var(--sky-mid);font-size:14px;font-weight:900;color:var(--blue-dark);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;}
-.day-btn:hover{background:var(--sky-mid);}
-.day-btn.active{background:var(--blue);color:#fff;border-color:var(--blue-dark);box-shadow:0 2px 8px rgba(21,101,192,.38);}
-.city-chips{display:flex;gap:4px;overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;padding-bottom:2px;scrollbar-width:none;}
-.city-chips::-webkit-scrollbar{display:none;}
-.city-chip{padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #90CAF9;background:#F8FBFF;color:#1565C0;white-space:nowrap;flex:0 0 auto;transition:all .15s;}
-.city-chip:hover{background:#E3F2FD;border-color:#42A5F5;}
-.city-chip.on{background:#1565C0;color:#fff;border-color:#1565C0;}
-.chip-count{font-size:10px;font-weight:700;background:rgba(21,101,192,.12);border-radius:10px;padding:1px 5px;margin-right:3px;}
-.city-chip.on .chip-count{background:rgba(255,255,255,.25);}
 
-/* KM / ACTION ROW */
-.km-bar{background:#fff;border-bottom:1px solid var(--sky-mid);padding:5px 10px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;}
-.km-info{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--mid);}
-.km-val{font-weight:900;color:var(--blue-dark);font-size:14px;}
-.km-lbl{font-size:10px;color:var(--light);}
-.km-right{margin-right:auto;display:flex;align-items:center;gap:6px;}
-.sort-btn{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:800;cursor:pointer;border:1.5px solid var(--sky-mid);background:none;color:var(--mid);height:32px;display:flex;align-items:center;transition:all .15s;}
-.sort-btn.active{color:var(--blue);border-color:var(--blue);background:var(--sky-light);}
-.export-btn{background:#1D6F42;color:#fff;border:none;border-radius:20px;padding:4px 12px;height:32px;font-size:12px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap;}
-.export-btn:hover{background:#155230;}
+/* City multi-select */
+.city-wrap{position:relative;flex:1;min-width:160px;max-width:300px;}
+.city-btn{width:100%;padding:6px 14px;border:1.5px solid var(--sky-mid);border-radius:20px;font-size:13px;font-weight:700;color:var(--text);background:#fff;cursor:pointer;outline:none;display:flex;align-items:center;gap:6px;}
+.city-btn:hover,.city-btn.open{border-color:var(--blue);background:var(--sky-light);}
+.city-btn-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;}
+.city-dropdown{position:absolute;top:calc(100% + 4px);right:0;z-index:2000;background:#fff;border:1.5px solid var(--sky-mid);border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.16);min-width:200px;max-width:320px;max-height:320px;display:none;flex-direction:column;}
+.city-dropdown.open{display:flex;}
+.city-search{padding:8px 12px;border:none;border-bottom:1px solid var(--sky-mid);font-size:13px;width:100%;outline:none;border-radius:12px 12px 0 0;direction:rtl;}
+.city-items{overflow-y:auto;flex:1;}
+.city-item{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:600;color:var(--text);user-select:none;}
+.city-item:hover{background:var(--sky-light);}
+.city-item input[type=checkbox]{accent-color:var(--blue);width:15px;height:15px;cursor:pointer;flex-shrink:0;}
+.city-item-all{border-bottom:1px solid var(--sky-mid);font-weight:800;color:var(--blue-dark);}
+.city-count-badge{background:var(--blue);color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 7px;flex-shrink:0;}
+
+/* Day buttons */
+.day-btns{display:flex;gap:3px;}
+.day-btn{min-width:46px;height:52px;border-radius:10px;background:var(--sky-light);border:1.5px solid var(--sky-mid);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3px 5px;transition:all .12s;gap:1px;}
+.day-btn:hover{background:var(--sky-mid);}
+.day-btn.active{background:var(--blue);color:#fff;border-color:var(--blue-dark);}
+.day-btn-label{font-size:14px;font-weight:900;color:var(--blue-dark);line-height:1;}
+.day-btn.active .day-btn-label{color:#fff;}
+.day-btn-agents{font-size:9px;font-weight:700;color:var(--mid);line-height:1;white-space:nowrap;}
+.day-btn.active .day-btn-agents{color:rgba(255,255,255,.8);}
+.day-btn-sales{font-size:9px;font-weight:800;color:var(--green);line-height:1;white-space:nowrap;}
+.day-btn.active .day-btn-sales{color:#B3E5FC;}
+
+/* Stats row */
+.stats-row{background:#fff;border-bottom:1px solid var(--sky-mid);padding:4px 10px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;}
+.stat-chip{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:var(--sky-light);color:var(--blue-dark);white-space:nowrap;}
+.stats-right{margin-right:auto;display:flex;gap:6px;align-items:center;}
+.export-btn{background:#1D6F42;color:#fff;border:none;border-radius:16px;padding:4px 12px;height:28px;font-size:11px;font-weight:800;cursor:pointer;}
 .tab-inline{display:flex;gap:3px;}
-.tab-inline-btn{width:32px;height:32px;border-radius:8px;font-size:14px;cursor:pointer;background:none;border:1.5px solid var(--sky-mid);color:var(--mid);display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.tab-inline-btn{width:28px;height:28px;border-radius:7px;font-size:13px;cursor:pointer;background:none;border:1.5px solid var(--sky-mid);color:var(--mid);display:flex;align-items:center;justify-content:center;transition:all .15s;}
 .tab-inline-btn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+
+/* Agent legend */
+.agent-legend{display:flex;gap:4px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;padding-bottom:1px;}
+.agent-legend::-webkit-scrollbar{display:none;}
+.agent-chip{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:2px solid transparent;white-space:nowrap;flex:0 0 auto;opacity:.45;transition:all .15s;color:#fff;}
+.agent-chip.on{opacity:1;box-shadow:0 2px 8px rgba(0,0,0,.18);}
+.agent-chip-count{font-size:9px;font-weight:800;margin-right:4px;opacity:.8;}
 
 /* BODY */
 #route-body{display:flex;flex:1;overflow:hidden;flex-direction:column;}
@@ -73,73 +87,59 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 @media(min-width:700px){
   #route-body{flex-direction:row;}
   .tab-inline{display:none;}
-  #list-pane{display:block!important;flex:0 0 42%;border-left:1px solid var(--sky-mid);}
+  #list-pane{display:block!important;flex:0 0 40%;border-left:1px solid var(--sky-mid);max-width:420px;}
   #map-pane{display:block!important;flex:1;}
 }
 
-/* SPINNER */
-.spinner{display:flex;align-items:center;justify-content:center;flex:1;flex-direction:column;gap:12px;color:var(--mid);padding:40px;}
-.spin{width:34px;height:34px;border:3px solid var(--sky-mid);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;}
+/* SPINNER / PLACEHOLDER */
+.placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:40px 20px;text-align:center;color:var(--mid);}
+.placeholder-icon{font-size:48px;margin-bottom:14px;}
+.placeholder-text{font-size:15px;font-weight:700;color:var(--text);margin-bottom:5px;}
+.placeholder-sub{font-size:12px;}
+.spinner{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;padding:40px;color:var(--mid);}
+.spin{width:32px;height:32px;border:3px solid var(--sky-mid);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* CLIENT CARD */
-.client-card{background:#fff;border-radius:6px;padding:4px 8px;margin-bottom:1px;display:flex;align-items:center;gap:5px;box-shadow:0 1px 3px rgba(21,101,192,.06);position:relative;cursor:pointer;touch-action:pan-y;transition:box-shadow .12s;}
-.client-card:hover{box-shadow:0 3px 12px rgba(21,101,192,.14);}
+.client-card{background:#fff;border-radius:6px;padding:5px 8px;margin-bottom:1px;display:flex;align-items:center;gap:5px;box-shadow:0 1px 3px rgba(21,101,192,.06);cursor:pointer;border-right:4px solid transparent;transition:box-shadow .12s,border-color .12s;}
+.client-card:hover{box-shadow:0 3px 10px rgba(21,101,192,.14);}
 .client-card.no-gps{background:#FFF8F0;}
 .client-card.selected{background:var(--sky-light);box-shadow:0 2px 10px rgba(21,101,192,.18);}
-.client-card.excluded{background:#f0f0f0!important;opacity:.5;}
-.c-num-wrap{display:flex;flex-direction:column;align-items:center;gap:1px;flex-shrink:0;min-width:26px;}
-.c-num{width:21px;height:21px;border-radius:50%;background:var(--sky-light);border:1.5px solid var(--sky-mid);font-size:10px;font-weight:800;color:var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.selected .c-num{background:var(--blue);color:#fff;border-color:var(--blue);}
 .c-body{flex:1;min-width:0;}
-.c-name{font-size:12px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25;}
-.c-sub{font-size:10px;color:var(--mid);margin-top:1px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.c-btns{display:flex;align-items:center;gap:0;flex-shrink:0;}
-.c-id-side{font-size:8px;font-weight:700;color:#fff;background:#9e9e9e;border-radius:4px;padding:2px 5px;white-space:nowrap;align-self:center;margin-bottom:2px;}
-.excl-btn{font-size:13px;flex-shrink:0;cursor:pointer;opacity:.25;transition:opacity .15s;min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;}
-.excl-btn:hover,.client-card.excluded .excl-btn{opacity:.9;}
-.day-change-btn{font-size:14px;flex-shrink:0;cursor:pointer;opacity:.4;transition:opacity .15s;min-width:36px;min-height:32px;display:flex;align-items:center;justify-content:center;}
-.day-change-btn:hover{opacity:.9;}
-.gps-edit-btn{font-size:14px;flex-shrink:0;cursor:pointer;opacity:.35;transition:opacity .15s;min-width:36px;min-height:32px;display:flex;align-items:center;justify-content:center;}
-.gps-edit-btn:hover{opacity:.85;}
-.no-gps-badge{font-size:10px;font-weight:900;color:#fff;background:var(--red);padding:3px 7px;border-radius:6px;flex-shrink:0;cursor:pointer;letter-spacing:.3px;}
-.excl-section-lbl{padding:5px 10px 2px;font-size:10px;font-weight:700;color:var(--light);letter-spacing:1px;text-transform:uppercase;border-top:1px solid var(--sky-mid);margin-top:4px;}
-.walk-icon{font-size:10px;line-height:1;}
-.c-num-walk{background:#E8F5E9;border-color:var(--green);color:var(--green);}
-.client-card.walk-card{background:#F1FBF4;}
+.c-name{font-size:12px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;}
+.c-sub{font-size:10px;color:var(--mid);margin-top:2px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.c-actions{display:flex;align-items:center;gap:0;flex-shrink:0;}
+.c-id{font-size:8px;font-weight:700;color:#fff;background:#9e9e9e;border-radius:4px;padding:2px 5px;margin-bottom:2px;white-space:nowrap;}
+.act-btn{font-size:14px;cursor:pointer;opacity:.35;transition:opacity .15s;min-width:34px;min-height:30px;display:flex;align-items:center;justify-content:center;}
+.act-btn:hover{opacity:.9;}
+.no-gps-badge{font-size:9px;font-weight:900;color:#fff;background:var(--red);padding:2px 6px;border-radius:6px;flex-shrink:0;cursor:pointer;}
+.agent-badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;color:#fff;margin-left:4px;}
+.day-badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;background:var(--sky-light);color:var(--blue-dark);border:1px solid var(--sky-mid);}
+.changed-badge{background:#FFF3E0;border:1px solid #FFB74D;color:#E65100;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-right:3px;}
+
+/* AGENT POPUP */
+#agent-popup{position:fixed;background:#fff;border-radius:14px;box-shadow:0 6px 28px rgba(0,0,0,.22);padding:12px;display:none;flex-direction:column;gap:4px;z-index:9999;max-height:320px;overflow-y:auto;min-width:180px;}
+#agent-popup.open{display:flex;}
+.agent-pop-item{padding:7px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;border:none;background:none;width:100%;text-align:right;}
+.agent-pop-item:hover{background:var(--sky-light);}
+.agent-pop-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
 
 /* DAY POPUP */
 #day-popup{position:fixed;background:#fff;border-radius:14px;box-shadow:0 6px 28px rgba(0,0,0,.18);padding:10px 12px;display:none;gap:7px;z-index:9999;align-items:center;}
 #day-popup.open{display:flex;}
-.day-pop-btn{width:40px;height:40px;border-radius:10px;background:var(--sky-light);border:2px solid var(--sky-mid);font-size:15px;font-weight:900;color:var(--blue-dark);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s;}
+.day-pop-btn{width:38px;height:38px;border-radius:10px;background:var(--sky-light);border:2px solid var(--sky-mid);font-size:14px;font-weight:900;color:var(--blue-dark);cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .day-pop-btn:hover,.day-pop-btn.cur-day{background:var(--blue);color:#fff;border-color:var(--blue-dark);}
 
-/* MAP CONTROLS */
-.map-tile-ctrl{position:absolute;top:10px;left:10px;z-index:1000;display:flex;gap:6px;}
-.map-tile-btn{height:28px;border-radius:10px;background:#fff;border:2px solid var(--sky-mid);color:var(--blue-dark);font-size:11px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:4px;box-shadow:0 2px 8px rgba(0,0,0,.18);padding:0 10px;white-space:nowrap;}
-.map-rotate-ctrl{position:absolute;bottom:24px;left:10px;z-index:1000;display:flex;flex-direction:column;gap:4px;}
-.map-rotate-btn{width:32px;height:32px;border-radius:10px;background:#fff;border:2px solid var(--sky-mid);color:var(--blue-dark);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.18);}
-.map-reset-btn{width:32px;height:18px;border-radius:8px;background:#fff;border:2px solid var(--sky-mid);color:var(--mid);font-size:9px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+/* MAP */
+.map-ctrl-bar{position:absolute;top:10px;left:10px;z-index:1000;display:flex;gap:5px;flex-direction:column;}
+.map-tile-btn{height:26px;border-radius:10px;background:#fff;border:2px solid var(--sky-mid);color:var(--blue-dark);font-size:11px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18);padding:0 10px;white-space:nowrap;}
+.lasso-btn{height:32px;border-radius:10px;background:#fff;border:2px solid var(--sky-mid);color:var(--blue-dark);font-size:12px;font-weight:900;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.18);padding:0 12px;white-space:nowrap;display:flex;align-items:center;gap:5px;}
+.lasso-btn.active{background:var(--blue);color:#fff;border-color:var(--blue-dark);}
+.lasso-btn.has-selection{background:#E8F5E9;border-color:#2E7D32;color:#1B5E20;}
+.lasso-clear{height:26px;border-radius:10px;background:#fff;border:2px solid #EF9A9A;color:var(--red);font-size:11px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.12);padding:0 10px;white-space:nowrap;display:none;}
+.lasso-clear.visible{display:block;}
 .leaflet-tooltip.fr-tip{background:rgba(0,0,0,.85)!important;color:#fff!important;border:none!important;font-size:12px!important;font-weight:700!important;direction:rtl!important;padding:5px 11px!important;border-radius:6px!important;box-shadow:0 2px 8px rgba(0,0,0,.45)!important;white-space:nowrap!important;pointer-events:none!important;}
 .leaflet-tooltip.fr-tip::before{display:none!important;}
-
-/* ADDR MODAL */
-.modal-bg{display:none;position:fixed;inset:0;background:rgba(13,71,161,.45);z-index:1000;align-items:flex-end;justify-content:center;}
-.modal-bg.open{display:flex;}
-.modal{background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-width:500px;box-shadow:0 -4px 24px rgba(0,0,0,.18);}
-.modal-title{font-size:16px;font-weight:800;color:var(--text);margin-bottom:16px;}
-.modal-input{width:100%;border:2px solid var(--blue);border-radius:10px;padding:12px;font-size:16px;direction:rtl;text-align:right;outline:none;}
-.modal-btns{display:flex;gap:10px;margin-top:14px;}
-.modal-btn{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;border:none;}
-.modal-btn.cancel{background:var(--sky-light);color:var(--mid);}
-.modal-btn.confirm{background:var(--blue);color:#fff;}
-.gps-btn{background:#fff;border:2px solid var(--blue);border-radius:10px;padding:10px;width:100%;color:var(--blue);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:8px;}
-
-/* PLACEHOLDER */
-.placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:40px 20px;text-align:center;color:var(--mid);}
-.placeholder-icon{font-size:48px;margin-bottom:16px;}
-.placeholder-text{font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;}
-.placeholder-sub{font-size:12px;}
 
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important;}}
 </style>
@@ -147,7 +147,6 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 <body>
 <div id="app">
 
-  <!-- HEADER -->
   <div class="hdr">
     <img src="logo-diler-bmd.png" class="hdr-logo" alt="DILER BMD"/>
     <div class="hdr-title">TERRITORY</div>
@@ -157,44 +156,50 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
   </div>
   <div class="sky-line"></div>
 
-  <!-- FILTER BAR -->
+  <!-- FILTERS -->
   <div class="filter-bar">
     <div class="filter-row">
-      <span class="flt-label">מנהל</span>
-      <select class="flt-select" id="mgr-select" onchange="onManagerChange()" disabled>
-        <option value="">-- טוען... --</option>
-      </select>
-      <span class="flt-label">סוכן</span>
-      <select class="flt-select" id="agent-select" onchange="onAgentChange()" disabled>
-        <option value="">-- בחר מנהל --</option>
-      </select>
-      <div class="day-btns" id="day-btns">
-        <button class="day-btn" onclick="selectDay(1)">א</button>
-        <button class="day-btn" onclick="selectDay(2)">ב</button>
-        <button class="day-btn" onclick="selectDay(3)">ג</button>
-        <button class="day-btn" onclick="selectDay(4)">ד</button>
-        <button class="day-btn" onclick="selectDay(5)">ה</button>
-        <button class="day-btn" style="font-size:11px" onclick="selectDay(0)">?</button>
+      <span class="flt-label">ערים</span>
+      <div class="city-wrap" id="city-wrap">
+        <button class="city-btn" id="city-btn" onclick="toggleCityDropdown(event)">
+          <span class="city-btn-text" id="city-btn-text">-- בחר ערים --</span>
+          <span class="city-count-badge" id="city-count-badge" style="display:none">0</span>
+          <span style="color:var(--light);font-size:11px">▾</span>
+        </button>
+        <div class="city-dropdown" id="city-dropdown">
+          <input class="city-search" id="city-search" placeholder="חפש עיר..." oninput="filterCityList()" onclick="event.stopPropagation()"/>
+          <div class="city-items" id="city-items"></div>
+        </div>
+      </div>
+      <span class="flt-label">יום</span>
+      <div class="day-btns" id="day-btns-wrap">
+        <button class="day-btn active" onclick="selectDay(null)">
+          <span class="day-btn-label">כל</span>
+        </button>
+        <button class="day-btn" onclick="selectDay(1)"><span class="day-btn-label">א</span></button>
+        <button class="day-btn" onclick="selectDay(2)"><span class="day-btn-label">ב</span></button>
+        <button class="day-btn" onclick="selectDay(3)"><span class="day-btn-label">ג</span></button>
+        <button class="day-btn" onclick="selectDay(4)"><span class="day-btn-label">ד</span></button>
+        <button class="day-btn" onclick="selectDay(5)"><span class="day-btn-label">ה</span></button>
       </div>
     </div>
     <div class="filter-row">
-      <div class="city-chips" id="city-chips"></div>
+      <div class="agent-legend" id="agent-legend"></div>
     </div>
   </div>
 
-  <!-- KM / ACTION ROW -->
-  <div class="km-bar" id="km-bar" style="display:none;">
-    <div class="km-info">
-      <span class="km-lbl">km</span>
-      <span class="km-val" id="km-val">—</span>
-    </div>
-    <button class="sort-btn active" id="sort-pri-btn" onclick="setSort('priority')">סדר ביקור</button>
-    <button class="sort-btn" id="sort-ai-btn" onclick="setSort('ai')">AI</button>
-    <div class="km-right">
-      <button class="export-btn" id="export-btn" onclick="exportXLSX()">📥 Excel</button>
+  <!-- STATS BAR -->
+  <div class="stats-row" id="stats-row" style="display:none;">
+    <span class="stat-chip" id="stat-total"></span>
+    <span class="stat-chip" id="stat-avg" style="display:none;background:#E8F5E9;color:#1B5E20;"></span>
+    <span class="stat-chip" id="stat-lasso" style="display:none;background:#FFF3E0;color:#E65100;"></span>
+    <span class="stat-chip" id="stat-nogps" style="display:none;"></span>
+    <span class="stat-chip" id="stat-changed" style="display:none;"></span>
+    <div class="stats-right">
+      <button class="export-btn" onclick="exportXLSX()">📥 Excel</button>
       <div class="tab-inline">
-        <button class="tab-inline-btn active" id="tab-list-btn" onclick="setTab('list')">📋</button>
-        <button class="tab-inline-btn" id="tab-map-btn" onclick="setTab('map')">🗺</button>
+        <button class="tab-inline-btn active" id="tab-list" onclick="setTab('list')">📋</button>
+        <button class="tab-inline-btn" id="tab-map" onclick="setTab('map')">🗺</button>
       </div>
     </div>
   </div>
@@ -204,410 +209,394 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
     <div id="list-pane">
       <div id="client-list">
         <div class="placeholder">
-          <div class="placeholder-icon">🗂</div>
-          <div class="placeholder-text">בחר מנהל → סוכן → יום</div>
-          <div class="placeholder-sub">הלקוחות יופיעו כאן</div>
+          <div class="placeholder-icon">🗺</div>
+          <div class="placeholder-text">בחר עיר להתחיל</div>
+          <div class="placeholder-sub">תראה את כל הלקוחות של כל הסוכנים על המפה</div>
         </div>
       </div>
     </div>
     <div id="map-pane">
       <div id="map"></div>
-      <div class="map-tile-ctrl">
+      <div class="map-ctrl-bar">
         <button class="map-tile-btn" id="tile-btn" onclick="cycleTile()">🏠 בתים</button>
-      </div>
-      <div class="map-rotate-ctrl">
-        <button class="map-rotate-btn" onclick="rotateMap(-45)">↺</button>
-        <button class="map-rotate-btn" onclick="rotateMap(45)">↻</button>
-        <button class="map-reset-btn" onclick="rotateMap(0,true)">N↑</button>
+        <button class="lasso-btn" id="lasso-btn" onclick="toggleLasso()" title="לאסו — בחר אזור">🎯 לאסו</button>
+        <button class="lasso-clear" id="lasso-clear" onclick="clearLasso()">✕ נקה בחירה</button>
       </div>
     </div>
   </div>
 
 </div>
+
+<!-- AGENT POPUP -->
+<div id="agent-popup"></div>
 
 <!-- DAY POPUP -->
 <div id="day-popup"></div>
 
-<!-- ADDR MODAL -->
-<div class="modal-bg" id="addr-modal">
-  <div class="modal">
-    <div class="modal-title" id="addr-modal-title">עדכן כתובת</div>
-    <input class="modal-input" id="addr-input" placeholder="רחוב + מספר..." type="text"/>
-    <button class="gps-btn" onclick="placeOnMap()">🗺 מקם על המפה באצבע</button>
-    <div class="modal-btns">
-      <button class="modal-btn cancel" onclick="closeAddrModal()">ביטול</button>
-      <button class="modal-btn confirm" onclick="submitAddress()">עדכן</button>
-    </div>
-  </div>
-</div>
-
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate-src.js"
-        integrity="sha384-WaInCl5qKhXVwIIJ/XMxRvjzCTIkZ1uH9Evm3mNtVtfXWhJGU3EkedDBaf/037Ew" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/leaflet-lasso@2.0.4/dist/leaflet-lasso.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"
         integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 
 <script>
 const API = 'https://api.sverdlik-apps.site';
 const TOKEN_KEY = 'frToken';
-const DAY_LABELS = {1:'א',2:'ב',3:'ג',4:'ד',5:'ה',0:'?'};
+const DAY_LBL = {1:'א',2:'ב',3:'ג',4:'ד',5:'ה'};
 const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+// Agent colors — deterministic from agentCode
+const PALETTE = ['#1565C0','#C62828','#2E7D32','#E65100','#6A1B9A','#00695C','#AD1457','#F57F17','#1A237E','#4E342E','#006064','#33691E','#37474F','#BF360C','#880E4F','#0277BD'];
+function agentColor(code){
+  if(!code) return '#9E9E9E';
+  let h=0; for(const ch of String(code)) h=(h*31+ch.charCodeAt(0))&0x7FFFFFFF;
+  return PALETTE[h%PALETTE.length];
+}
 
 // ── AUTH ──────────────────────────────────────────────────────────────────
 function getToken(){ return localStorage.getItem(TOKEN_KEY)||''; }
 
 async function apiFetch(url, opts={}){
-  const token = getToken();
-  const headers = {...(opts.headers||{})};
-  if(token) headers['x-session'] = token;
-  const controller = new AbortController();
-  const tid = setTimeout(()=>controller.abort(), 12000);
+  const hdrs={...opts.headers||{}};
+  const tok=getToken(); if(tok) hdrs['x-session']=tok;
+  const ctrl=new AbortController(), tid=setTimeout(()=>ctrl.abort(),15000);
   let r;
-  try {
-    r = await fetch(url, {...opts, headers, signal: controller.signal});
-  } finally { clearTimeout(tid); }
-  if(r.status === 401){
-    try {
-      const pbi = await fetch(API+'/auth/pbi', {credentials:'include'});
-      if(pbi.ok){
-        const j = await pbi.json();
-        if(j.ok && j.token){
-          localStorage.setItem(TOKEN_KEY, j.token);
-          const h2 = {...headers, 'x-session': j.token};
-          const retry = await fetch(url, {...opts, headers: h2});
-          if(retry.status !== 401) return retry;
-        }
-      }
-    } catch(_){}
-    window.location.href = './formula-road.html';
-    throw new Error('session_expired');
+  try{ r=await fetch(url,{...opts,headers:hdrs,signal:ctrl.signal}); }
+  finally{ clearTimeout(tid); }
+  if(r.status===401){
+    try{
+      const p=await fetch(API+'/auth/pbi',{credentials:'include'});
+      if(p.ok){const j=await p.json();if(j.ok&&j.token){localStorage.setItem(TOKEN_KEY,j.token);hdrs['x-session']=j.token;return fetch(url,{...opts,headers:hdrs});}}
+    }catch(_){}
+    location.href='./formula-road.html'; throw new Error('session_expired');
   }
   return r;
 }
 
 // ── STATE ─────────────────────────────────────────────────────────────────
-const st = {
-  manager: null,
-  agent: {code:null, name:null},
-  day: null,
-  clients: [],
-  aiClients: [],
-  sortMode: 'priority',
-  tab: 'list',
-  selectedCities: [],
+const st={
+  allClients: [],        // raw from server
+  agents: [],            // [{agentCode, agentName, color}]
+  activeAgents: new Set(), // which agents are visible
+  dayFilter: null,       // null = all
+  lassoIds: null,        // Set of custIds within lasso, null = no lasso
+  overrides: {},         // custId → {agentCode?, dayNum?}
   selectedId: null,
-  excluded: new Set(),
-  addrClientId: null,
+  tab: 'list',
 };
 
-let map=null, mapMarkers=[], mapPolylines=[], markerCluster=null, mapBearing=0;
-let baseTileLayer=null, currentTileKey='osm';
-let gpsCorrections={};
+// ── OVERRIDES (local) ─────────────────────────────────────────────────────
+function loadOverrides(){
+  try{ st.overrides=JSON.parse(localStorage.getItem('tr_overrides')||'{}'); }catch{ st.overrides={}; }
+}
+function saveOverrides(){
+  try{ localStorage.setItem('tr_overrides',JSON.stringify(st.overrides)); }catch{}
+}
 
-// ── GPS CORRECTIONS ───────────────────────────────────────────────────────
-async function loadCorrections(){
+// ── CITY MULTI-SELECT ─────────────────────────────────────────────────────
+let allCities=[], selectedCities=new Set();
+
+async function loadCities(){
   try{
-    const r = await fetch('./gps-corrections.json?_='+Date.now());
-    if(r.ok){
-      gpsCorrections = await r.json();
-      const local = JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
-      Object.assign(gpsCorrections, local);
-    }
-  }catch(_){}
+    const r=await apiFetch(`${API}/territory-cities`);
+    const data=await r.json();
+    allCities=Array.isArray(data)?data:[];
+    renderCityItems(allCities);
+  }catch(e){ console.error('cities load failed',e); }
 }
 
-// ── TILE ──────────────────────────────────────────────────────────────────
-const TILE_DEFS={
-  osm:      {icon:'🏠',label:'בתים',    url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',          opts:{attribution:'© OpenStreetMap',subdomains:'abc',maxZoom:19}},
-  light:    {icon:'☁', label:'בהיר',    url:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',  opts:{attribution:'© CartoDB',subdomains:'abcd',maxZoom:19}},
-  satellite:{icon:'🛰',label:'לוויין',  url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opts:{attribution:'© Esri',maxZoom:19}},
-};
-const TILE_ORDER=['osm','light','satellite'];
-
-function setTile(key){
-  if(!map) return;
-  if(baseTileLayer) map.removeLayer(baseTileLayer);
-  const d=TILE_DEFS[key];
-  baseTileLayer=L.tileLayer(d.url,d.opts).addTo(map);
-  currentTileKey=key;
-  const btn=document.getElementById('tile-btn');
-  if(btn) btn.innerHTML=d.icon+' '+d.label;
-}
-function cycleTile(){
-  const next=TILE_ORDER[(TILE_ORDER.indexOf(currentTileKey)+1)%TILE_ORDER.length];
-  setTile(next);
+function renderCityItems(cities){
+  const el=document.getElementById('city-items');
+  const allChecked=cities.length>0&&cities.every(c=>selectedCities.has(c));
+  el.innerHTML=`<label class="city-item city-item-all">
+    <input type="checkbox" id="city-all-chk" ${allChecked?'checked':''} onchange="toggleAllCities(this.checked)"/>
+    <span>בחר הכל (${allCities.length})</span>
+  </label>`+
+  cities.map(c=>`<label class="city-item">
+    <input type="checkbox" value="${esc(c)}" ${selectedCities.has(c)?'checked':''} onchange="toggleCity('${esc(c)}',this.checked)"/>
+    <span>${esc(c)}</span>
+  </label>`).join('');
 }
 
-// ── MATH ──────────────────────────────────────────────────────────────────
-function haversineKm(la1,lo1,la2,lo2){
-  const R=6371,r=Math.PI/180;
-  const dLa=(la2-la1)*r,dLo=(lo2-lo1)*r;
-  const a=Math.sin(dLa/2)**2+Math.cos(la1*r)*Math.cos(la2*r)*Math.sin(dLo/2)**2;
-  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+function filterCityList(){
+  const q=(document.getElementById('city-search').value||'').trim().toLowerCase();
+  const filtered=q?allCities.filter(c=>c.toLowerCase().includes(q)):allCities;
+  renderCityItems(filtered);
 }
-function haversineM(a,b,c,d){ return haversineKm(a,b,c,d)*1000; }
 
-function nearestNeighbor(clients){
-  const wg=clients.filter(c=>c.lat&&c.lng), ng=clients.filter(c=>!c.lat||!c.lng);
-  if(!wg.length) return clients;
-  const rem=[...wg], res=[];
-  let la=32.0, lo=35.0;
-  while(rem.length){
-    let bi=-1, bd=Infinity;
-    rem.forEach((c,i)=>{ const d=haversineKm(la,lo,c.lat,c.lng); if(d<bd){bd=d;bi=i;} });
-    const ch=rem.splice(bi,1)[0];
-    res.push(ch); la=ch.lat; lo=ch.lng;
+function toggleCityDropdown(event){
+  event.stopPropagation();
+  const dd=document.getElementById('city-dropdown');
+  const btn=document.getElementById('city-btn');
+  const open=dd.classList.toggle('open');
+  btn.classList.toggle('open',open);
+  if(open) setTimeout(()=>document.getElementById('city-search')?.focus(),60);
+}
+
+function toggleAllCities(checked){
+  if(checked) allCities.forEach(c=>selectedCities.add(c));
+  else selectedCities.clear();
+  renderCityItems(allCities);
+  updateCityBtn();
+  onCitiesChanged();
+}
+
+function toggleCity(city, checked){
+  if(checked) selectedCities.add(city); else selectedCities.delete(city);
+  // update "all" checkbox state
+  const allChk=document.getElementById('city-all-chk');
+  if(allChk) allChk.checked=allCities.every(c=>selectedCities.has(c));
+  updateCityBtn();
+  onCitiesChanged();
+}
+
+function updateCityBtn(){
+  const n=selectedCities.size;
+  const badge=document.getElementById('city-count-badge');
+  const txt=document.getElementById('city-btn-text');
+  if(n===0){ txt.textContent='-- בחר ערים --'; badge.style.display='none'; }
+  else if(n===1){ txt.textContent=[...selectedCities][0]; badge.style.display='none'; }
+  else{ txt.textContent=`${n} ערים`; badge.textContent=n; badge.style.display=''; }
+}
+
+function onCitiesChanged(){
+  if(!selectedCities.size){ clearView(); return; }
+  loadClients([...selectedCities]);
+}
+
+// Close dropdown on outside click
+document.addEventListener('click',e=>{
+  const wrap=document.getElementById('city-wrap');
+  if(wrap&&!wrap.contains(e.target)){
+    document.getElementById('city-dropdown')?.classList.remove('open');
+    document.getElementById('city-btn')?.classList.remove('open');
   }
-  return [...res,...ng];
+});
+
+function clearView(){
+  st.allClients=[]; st.agents=[]; st.activeAgents=new Set(); st.selectedId=null;
+  document.getElementById('agent-legend').innerHTML='';
+  document.getElementById('stats-row').style.display='none';
+  document.getElementById('client-list').innerHTML='<div class="placeholder"><div class="placeholder-icon">🗺</div><div class="placeholder-text">בחר ערים להתחיל</div><div class="placeholder-sub">ניתן לבחור כמה ערים במקביל</div></div>';
+  if(map){mapMarkers.forEach(m=>m.remove());mapMarkers=[];mapPolylines.forEach(p=>p.remove());mapPolylines=[];if(markerCluster){markerCluster.clearLayers();}}
 }
 
-function totalKm(clients){
-  const wg=clients.filter(c=>c.lat&&c.lng);
-  if(!wg.length) return null;
-  let km=0, la=wg[0].lat, lo=wg[0].lng;
-  for(const c of wg){ km+=haversineKm(la,lo,c.lat,c.lng); la=c.lat; lo=c.lng; }
-  return km;
-}
-
-// ── MANAGERS ──────────────────────────────────────────────────────────────
-async function loadManagers(){
+let _loadId=0;
+async function loadClients(cities){
+  const myId=++_loadId;
+  document.getElementById('stats-row').style.display='none';
+  document.getElementById('client-list').innerHTML='<div class="spinner"><div class="spin"></div><span>טוען לקוחות...</span></div>';
+  document.getElementById('agent-legend').innerHTML='';
+  const cityArr=Array.isArray(cities)?cities:[cities];
   try{
-    const r = await apiFetch(`${API}/managers`);
-    const data = await r.json();
-    const sel = document.getElementById('mgr-select');
-    sel.innerHTML = '<option value="">-- בחר מנהל --</option>';
-    (Array.isArray(data)?data:[]).forEach(m=>{
-      const o=document.createElement('option'); o.value=m; o.textContent=m;
-      sel.appendChild(o);
-    });
-    sel.disabled = false;
-  }catch(e){ console.error('managers load failed', e); }
-}
+    const param=cityArr.map(c=>encodeURIComponent(c)).join(',');
+    const r=await apiFetch(`${API}/territory-clients?cities=${param}`);
+    if(!r.ok) throw new Error(r.status);
+    const data=await r.json();
+    if(myId!==_loadId) return;
+    st.allClients=Array.isArray(data)?data:[];
+  }catch(e){
+    if(myId!==_loadId) return;
+    document.getElementById('client-list').innerHTML=`<div class="placeholder"><div class="placeholder-icon">❌</div><div class="placeholder-text">שגיאה</div><div class="placeholder-sub">${esc(String(e))}</div></div>`;
+    return;
+  }
 
-async function onManagerChange(){
-  const mgr = document.getElementById('mgr-select').value;
-  st.manager = mgr||null;
-  const agSel = document.getElementById('agent-select');
-  agSel.innerHTML = '<option value="">-- טוען... --</option>';
-  agSel.disabled = true;
-  if(!mgr) return;
+  // Apply GPS corrections
   try{
-    const r = await apiFetch(`${API}/manager-agents?manager=${encodeURIComponent(mgr)}`);
-    const data = await r.json();
-    agSel.innerHTML = '<option value="">-- בחר סוכן --</option>';
-    (Array.isArray(data)?data:[]).forEach(a=>{
-      const o=document.createElement('option'); o.value=a.agentCode;
-      o.dataset.name=a.agentName; o.textContent=a.agentName;
-      agSel.appendChild(o);
+    const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
+    st.allClients=st.allClients.map(c=>{
+      const corr=local[String(c.custId)]; return corr?{...c,lat:corr.lat,lng:corr.lng}:c;
     });
-    agSel.disabled = false;
-  }catch(e){ agSel.innerHTML='<option value="">-- שגיאה --</option>'; }
+  }catch(_){}
+
+  // Build agent list
+  const agMap=new Map();
+  st.allClients.forEach(c=>{
+    if(c.agentCode&&!agMap.has(c.agentCode))
+      agMap.set(c.agentCode,{agentCode:c.agentCode,agentName:c.agentName||c.agentCode,color:agentColor(c.agentCode)});
+  });
+  st.agents=[...agMap.values()].sort((a,b)=>(a.agentName||'').localeCompare(b.agentName||''));
+  st.activeAgents=new Set(st.agents.map(a=>a.agentCode));
+
+  renderAgentLegend();
+  renderAll();
+  document.getElementById('stats-row').style.display='';
 }
 
-function onAgentChange(){
-  const sel = document.getElementById('agent-select');
-  const code = sel.value;
-  const name = sel.options[sel.selectedIndex]?.dataset.name || code;
-  st.agent = {code:code||null, name:name||null};
-  if(code && st.day!==null) loadClients();
+function renderDayBtns(){
+  // compute per-day stats from ALL clients (ignoring day filter but respecting agent filter)
+  const byDay={};
+  const baseCl=st.allClients.filter(c=>{
+    const ov=st.overrides[String(c.custId)]||{};
+    const agentCode=ov.agentCode||c.agentCode;
+    return st.activeAgents.has(agentCode);
+  });
+  [1,2,3,4,5].forEach(d=>{ byDay[d]={agents:new Set(),count:0,salesSum:0,salesCount:0}; });
+  baseCl.forEach(c=>{
+    const ov=st.overrides[String(c.custId)]||{};
+    const dayNum=ov.dayNum!==undefined?ov.dayNum:c.dayNum;
+    const agentCode=ov.agentCode||c.agentCode;
+    if(dayNum&&byDay[dayNum]){
+      byDay[dayNum].agents.add(agentCode);
+      byDay[dayNum].count++;
+      if(c.monthlySales>0){byDay[dayNum].salesSum+=c.monthlySales;byDay[dayNum].salesCount++;}
+    }
+  });
+  const totalAgents=new Set(baseCl.map(c=>{const ov=st.overrides[String(c.custId)]||{};return ov.agentCode||c.agentCode;}));
+  const totalAvg=baseCl.filter(c=>c.monthlySales>0).length?Math.round(baseCl.filter(c=>c.monthlySales>0).reduce((s,c)=>s+c.monthlySales,0)/baseCl.filter(c=>c.monthlySales>0).length):0;
+  const fmt=n=>n>=1000?`₪${(n/1000).toFixed(1)}K`:`₪${n}`;
+
+  const wrap=document.getElementById('day-btns-wrap');
+  if(!wrap) return;
+  const dayKeys=[null,1,2,3,4,5];
+  const btnEls=wrap.querySelectorAll('.day-btn');
+  btnEls.forEach((btn,i)=>{
+    const d=dayKeys[i];
+    btn.classList.toggle('active',d===st.dayFilter);
+    if(d===null){
+      const avg=totalAvg>0?`<span class="day-btn-sales">${fmt(totalAvg)}</span>`:'';
+      btn.innerHTML=`<span class="day-btn-label">כל</span><span class="day-btn-agents">${totalAgents.size} סוכ׳</span>${avg}`;
+    } else {
+      const info=byDay[d];
+      const avg=info.salesCount>0?Math.round(info.salesSum/info.salesCount):0;
+      const agLine=info.agents.size?`<span class="day-btn-agents">${info.agents.size} סוכ׳</span>`:'';
+      const sLine=avg>0?`<span class="day-btn-sales">${fmt(avg)}</span>`:'';
+      btn.innerHTML=`<span class="day-btn-label">${DAY_LBL[d]}</span>${agLine}${sLine}`;
+    }
+  });
 }
 
 function selectDay(d){
-  st.day = d;
-  document.querySelectorAll('.day-btn').forEach((btn,i)=>{
-    btn.classList.toggle('active', [1,2,3,4,5,0][i]===d);
-  });
-  if(st.agent.code) loadClients();
-}
-
-// ── CLIENTS LOAD ──────────────────────────────────────────────────────────
-let _loadId = 0;
-async function loadClients(){
-  if(!st.agent.code || st.day===null) return;
-  const myId = ++_loadId;
-  document.getElementById('km-bar').style.display='none';
-  document.getElementById('client-list').innerHTML='<div class="spinner"><div class="spin"></div><span>טוען לקוחות...</span></div>';
-  st.selectedCities=[]; st.excluded=new Set(); st.clients=[]; st.aiClients=[]; st.selectedId=null;
-  try{
-    const r = await apiFetch(`${API}/customers?agent=${encodeURIComponent(st.agent.code)}&day=${st.day}`);
-    if(!r.ok) throw new Error(r.status);
-    const data = await r.json();
-    if(myId!==_loadId) return;
-    st.clients = Array.isArray(data)?data:[];
-  }catch(e){
-    if(myId!==_loadId) return;
-    document.getElementById('client-list').innerHTML=`<div class="placeholder"><div class="placeholder-icon">❌</div><div class="placeholder-text">שגיאה בטעינת לקוחות</div><div class="placeholder-sub">${esc(String(e))}</div></div>`;
-    return;
-  }
-  // Apply GPS corrections
-  st.clients = st.clients.map(c=>{
-    const corr=gpsCorrections[String(c.custId)];
-    return corr ? {...c, lat:corr.lat, lng:corr.lng, gpsSource:'correction'} : c;
-  });
-  st.aiClients = nearestNeighbor([...st.clients]);
-  renderCityChips();
-  renderClientList();
-  document.getElementById('km-bar').style.display='';
-  updateKmBar();
-  if(window.innerWidth>=700) renderMap();
+  st.dayFilter=d;
+  renderDayBtns();
+  renderAll();
 }
 
 // ── DISPLAY LIST ──────────────────────────────────────────────────────────
 function displayClients(){
-  const base = st.sortMode==='ai' ? st.aiClients : st.clients;
-  const active = base.filter(c=>!st.excluded.has(c.custId));
-  if(!st.selectedCities.length) return active;
-  return active.filter(c=>st.selectedCities.includes(c.city));
+  return st.allClients.filter(c=>{
+    // apply overrides for display
+    const ov=st.overrides[String(c.custId)]||{};
+    const agentCode=ov.agentCode||c.agentCode;
+    const dayNum=ov.dayNum!==undefined?ov.dayNum:c.dayNum;
+    if(!st.activeAgents.has(agentCode)) return false;
+    if(st.dayFilter!==null && dayNum!==st.dayFilter) return false;
+    if(st.lassoIds!==null && !st.lassoIds.has(String(c.custId))) return false;
+    return true;
+  }).map(c=>{
+    const ov=st.overrides[String(c.custId)]||{};
+    return {
+      ...c,
+      agentCode: ov.agentCode||c.agentCode,
+      agentName: ov.agentCode ? (st.agents.find(a=>a.agentCode===ov.agentCode)?.agentName||ov.agentCode) : c.agentName,
+      dayNum:    ov.dayNum!==undefined?ov.dayNum:c.dayNum,
+      _changed:  !!(ov.agentCode||ov.dayNum!==undefined),
+    };
+  });
 }
 
-function updateKmBar(){
-  const km = totalKm(displayClients().filter(c=>c.lat&&c.lng));
-  document.getElementById('km-val').textContent = km!=null ? km.toFixed(1) : '—';
-}
-
-function renderCityChips(){
-  const cities=[...new Set(st.clients.map(c=>c.city).filter(Boolean))].sort();
-  const countMap={};
-  st.clients.forEach(c=>{ if(c.city) countMap[c.city]=(countMap[c.city]||0)+1; });
-  const el=document.getElementById('city-chips');
-  el.innerHTML = cities.map(c=>`<span class="city-chip${st.selectedCities.includes(c)?' on':''}" onclick="toggleCity('${esc(c)}')">`
-    +`<span class="chip-count">${countMap[c]||0}</span>${esc(c)}</span>`).join('');
-}
-
-function toggleCity(city){
-  if(st.selectedCities.includes(city)) st.selectedCities=st.selectedCities.filter(c=>c!==city);
-  else st.selectedCities.push(city);
-  renderCityChips(); renderClientList(); updateKmBar();
+function renderAll(){
+  renderDayBtns();
+  renderClientList();
+  updateStats();
   if(window.innerWidth>=700||st.tab==='map') renderMap();
 }
 
-// ── CARD RENDER ───────────────────────────────────────────────────────────
-function shortName(name, city){
-  if(!city||!name) return name;
-  const cleanName=name.replace(/[‎‏‪-‮]/g,'');
-  const cleanCity=city.replace(/[‎‏‪-‮]/g,'').trim();
-  if(!cleanCity) return name;
-  const SOFIT={ן:'[ןנ]',ם:'[םמ]',ף:'[ףפ]',ך:'[ךכ]',ץ:'[ץצ]',נ:'[נן]',מ:'[מם]',פ:'[פף]',כ:'[כך]',צ:'[צץ]'};
-  const revPat=[...cleanCity].reverse().map(c=>SOFIT[c]||c.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('');
-  return cleanName.replace(new RegExp('[\\s\\-–·.(]*'+revPat+'[)\\s\\-–·.]*','g'),' ')
-    .replace(/\s{2,}/g,' ').replace(/^[\s\-–·.]+|[\s\-–·.]+$/g,'').trim() || cleanName;
+function updateStats(){
+  const list=displayClients();
+  const noGps=list.filter(c=>!c.lat||!c.lng).length;
+  const changed=Object.keys(st.overrides).length;
+  const withSales=list.filter(c=>c.monthlySales>0);
+  const avgSales=withSales.length?Math.round(withSales.reduce((s,c)=>s+c.monthlySales,0)/withSales.length):0;
+  document.getElementById('stat-total').textContent=`${list.length} לקוחות`;
+  const avgEl=document.getElementById('stat-avg');
+  avgEl.textContent=avgSales>0?`ממוצע ₪${avgSales.toLocaleString()}`:''; avgEl.style.display=avgSales>0?'':'none';
+  const lassoEl=document.getElementById('stat-lasso');
+  if(st.lassoIds!==null){ lassoEl.textContent=`🎯 ${list.length} נבחרו`; lassoEl.style.display=''; }else{ lassoEl.style.display='none'; }
+  const ngEl=document.getElementById('stat-nogps');
+  ngEl.textContent=noGps?`${noGps} ללא GPS`:''; ngEl.style.display=noGps?'':'none';
+  const chEl=document.getElementById('stat-changed');
+  chEl.textContent=changed?`✏️ ${changed} שינויים`:''; chEl.style.display=changed?'':'none';
 }
 
+// ── AGENT LEGEND ──────────────────────────────────────────────────────────
+function renderAgentLegend(){
+  const el=document.getElementById('agent-legend');
+  const countMap={};
+  st.allClients.forEach(c=>{ const code=c.agentCode; if(code) countMap[code]=(countMap[code]||0)+1; });
+  el.innerHTML=st.agents.map(a=>`
+    <span class="agent-chip${st.activeAgents.has(a.agentCode)?' on':''}"
+          style="background:${a.color}"
+          onclick="toggleAgent('${esc(a.agentCode)}')">
+      <span class="agent-chip-count">${countMap[a.agentCode]||0}</span>${esc(a.agentName)}
+    </span>`).join('');
+}
+
+function toggleAgent(code){
+  if(st.activeAgents.has(code)) st.activeAgents.delete(code); else st.activeAgents.add(code);
+  renderAgentLegend(); renderAll();
+}
+
+// ── CARD RENDER ───────────────────────────────────────────────────────────
 function renderClientList(){
   const el=document.getElementById('client-list');
   const list=displayClients();
   if(!list.length){
-    el.innerHTML=`<div class="placeholder"><div class="placeholder-icon">📭</div><div class="placeholder-text">אין לקוחות</div><div class="placeholder-sub">נסה לשנות את הסינון</div></div>`;
+    el.innerHTML='<div class="placeholder"><div class="placeholder-icon">📭</div><div class="placeholder-text">אין לקוחות</div><div class="placeholder-sub">נסה לשנות את הסינון</div></div>';
     return;
   }
-  el.innerHTML = list.map((c,i)=>{
+  el.innerHTML=list.map((c,i)=>{
+    const color=agentColor(c.agentCode);
     const noGps=!c.lat||!c.lng;
     const isSel=st.selectedId===c.custId;
-    const prev=i>0?list[i-1]:null, next=i<list.length-1?list[i+1]:null;
-    const walkPrev=!!(prev&&prev.lat&&prev.lng&&c.lat&&c.lng&&haversineM(prev.lat,prev.lng,c.lat,c.lng)<=400);
-    const walkNext=!!(next&&next.lat&&next.lng&&c.lat&&c.lng&&haversineM(c.lat,c.lng,next.lat,next.lng)<=400);
-    const inWalk=walkPrev||walkNext;
-    const cls=['client-card',noGps?'no-gps':'',isSel?'selected':'',inWalk?'walk-card':''].filter(Boolean).join(' ');
-
-    // Last order
-    const lastOrder=(()=>{
-      if(!c.lastOrderDate) return `<span style="color:var(--red);font-weight:700">לא הזמין</span>`;
-      const d=new Date(c.lastOrderDate.slice(0,10));
-      const today=new Date(); today.setHours(0,0,0,0);
+    const lastOrd=(()=>{
+      if(!c.lastOrderDate) return '<span style="color:var(--red);font-weight:700">לא הזמין</span>';
+      const d=new Date(c.lastOrderDate.slice(0,10)); const today=new Date(); today.setHours(0,0,0,0);
       const days=Math.round((today-d)/86400000);
-      const dd=String(d.getDate()).padStart(2,'0'), mm=String(d.getMonth()+1).padStart(2,'0');
+      const dd=String(d.getDate()).padStart(2,'0'),mm=String(d.getMonth()+1).padStart(2,'0');
       return `<span style="${days>14?'color:var(--red);font-weight:700':''}">הזמנה: ${dd}.${mm}${days>14?` (${days}d)`:''}</span>`;
     })();
-
-    // Day label — updated by changeClientDay via data attribute
-    const dayVal = c.dayLabel || DAY_LABELS[c.dayNum] || '';
-    const dayPart = dayVal ? `<span data-day-label="${c.custId}">יום: ${esc(dayVal)}</span>` : `<span data-day-label="${c.custId}"></span>`;
-
-    // Sales: current month (already in /customers response)
-    const salesPart = c.monthlySales>0
-      ? `<span style="color:var(--green);font-weight:700">₪${Math.round(c.monthlySales).toLocaleString()}</span>`
-      : '';
-    const pctPart = c.pct>0
-      ? `<span style="color:${c.pct>=100?'var(--green)':c.pct>=80?'var(--orange)':'var(--red)'};font-weight:700">${Math.round(c.pct)}% יעד</span>`
-      : '';
-
-    const SEP='<span style="color:var(--light)"> · </span>';
-    const subParts=[lastOrder,dayPart,salesPart,pctPart].filter(Boolean).join(SEP);
-
-    const nameTxt=(shortName(c.custName,c.city)||c.custName||'');
-    const nameLine=esc(nameTxt)
-      +(c.city?`<span style="font-weight:400;color:var(--mid);font-size:11px;"> · ${esc(c.city)}</span>`:'');
-
-    return `<div class="${cls}" data-id="${c.custId}" ondblclick="selectClient('${c.custId}')">
-      <div class="c-num-wrap">
-        <span class="c-num${inWalk?' c-num-walk':''}">${i+1}</span>
-        ${inWalk?`<span class="walk-icon">🚶</span>`:''}
-      </div>
+    const dayBadge=c.dayNum?`<span class="day-badge">${DAY_LBL[c.dayNum]||'?'}</span>`:'';
+    const salesBadge=c.monthlySales>0?`<span style="color:var(--green);font-weight:700;font-size:10px"> · ₪${Math.round(c.monthlySales).toLocaleString()}</span>`:'';
+    const changedMark=c._changed?`<span class="changed-badge">✏️</span>`:'';
+    return `<div class="client-card${noGps?' no-gps':''}${isSel?' selected':''}"
+          style="border-right-color:${color}"
+          data-id="${c.custId}" onclick="selectClient('${c.custId}')">
       <div class="c-body">
-        <div class="c-name">${nameLine}</div>
-        <div class="c-sub">${subParts}</div>
+        <div class="c-name">${changedMark}${esc(c.custName||'')}${salesBadge}</div>
+        <div class="c-sub">
+          <span class="agent-badge" style="background:${color}">${esc(c.agentName||c.agentCode||'')}</span>
+          ${dayBadge}
+          <span style="margin-right:4px">${lastOrd}</span>
+        </div>
       </div>
-      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;">
-        ${c.custId?`<span class="c-id-side">${c.custId}</span>`:''}
-        <div class="c-btns">
-          <span class="excl-btn" onclick="toggleExclude('${c.custId}',event)">🚫</span>
-          <span class="day-change-btn" onclick="openDayPopup(event,'${c.custId}')">📅</span>
-          ${noGps
-            ? `<span class="no-gps-badge" onclick="openAddrModal(event,'${c.custId}','${esc(c.custName||'')}')">NO GPS</span>`
-            : `<span class="gps-edit-btn" onclick="openAddrModal(event,'${c.custId}','${esc(c.custName||'')}')">📍</span>`}
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0">
+        ${c.custId?`<span class="c-id">${c.custId}</span>`:''}
+        <div class="c-actions">
+          <span class="act-btn" onclick="openDayPopup(event,'${c.custId}',${c.dayNum||'null'})" title="שנה יום">📅</span>
+          <span class="act-btn" onclick="openAgentPopup(event,'${c.custId}')" title="שנה סוכן">👤</span>
+          ${noGps?`<span class="no-gps-badge">NO GPS</span>`:''}
         </div>
       </div>
     </div>`;
   }).join('');
-
-  // Excluded section
-  const exclList=st.clients.filter(c=>st.excluded.has(c.custId))
-    .filter(c=>!st.selectedCities.length||st.selectedCities.includes(c.city));
-  if(exclList.length){
-    el.innerHTML+=`<div class="excl-section-lbl">מוצאים (${exclList.length})</div>`
-      +exclList.map(c=>`<div class="client-card excluded">
-        <div class="c-num-wrap"><span style="font-size:12px;opacity:.4">🚫</span></div>
-        <div class="c-body"><div class="c-name">${esc(shortName(c.custName,c.city)||c.custName||'')}</div><div class="c-sub">${esc(c.city||'')}</div></div>
-        <span class="excl-btn" onclick="toggleExclude('${c.custId}',event)" style="opacity:.7;font-size:14px;">↩️</span>
-      </div>`).join('');
-  }
 }
 
-// ── ACTIONS ───────────────────────────────────────────────────────────────
+// ── SELECT CLIENT ─────────────────────────────────────────────────────────
 function selectClient(id){
-  st.selectedId = st.selectedId===id ? null : id;
+  st.selectedId=st.selectedId===id?null:id;
   renderClientList();
-  if(st.tab==='map'||window.innerWidth>=700){
+  if(st.selectedId&&(st.tab==='map'||window.innerWidth>=700)){
+    const c=displayClients().find(x=>x.custId===id);
+    if(c&&c.lat&&c.lng&&map) setTimeout(()=>map.flyTo([c.lat,c.lng],Math.min((map.getZoom()||10)+1,15),{duration:1}),50);
     renderMap();
-    if(st.selectedId){
-      const c=st.clients.find(x=>x.custId===st.selectedId);
-      if(c&&c.lat&&c.lng) setTimeout(()=>map.flyTo([c.lat,c.lng],Math.min((map.getZoom()||10)+1,14),{duration:1.2}),50);
-    }
   }
-}
-
-function toggleExclude(custId,e){
-  if(e){e.stopPropagation();e.preventDefault();}
-  if(st.excluded.has(custId)) st.excluded.delete(custId); else st.excluded.add(custId);
-  st.aiClients=nearestNeighbor([...st.clients.filter(c=>!st.excluded.has(c.custId))]);
-  updateKmBar(); renderClientList();
-  if(window.innerWidth>=700||st.tab==='map') renderMap();
-}
-
-function setSort(mode){
-  st.sortMode=mode;
-  document.getElementById('sort-pri-btn').classList.toggle('active',mode==='priority');
-  document.getElementById('sort-ai-btn').classList.toggle('active',mode==='ai');
-  if(mode==='ai'&&!st.aiClients.length) st.aiClients=nearestNeighbor([...st.clients]);
-  renderClientList(); updateKmBar();
-  if(st.tab==='map'||window.innerWidth>=700) renderMap();
 }
 
 function setTab(t){
   st.tab=t;
-  document.getElementById('tab-list-btn').classList.toggle('active',t==='list');
-  document.getElementById('tab-map-btn').classList.toggle('active',t==='map');
+  document.getElementById('tab-list').classList.toggle('active',t==='list');
+  document.getElementById('tab-map').classList.toggle('active',t==='map');
   if(window.innerWidth<700){
     document.getElementById('list-pane').style.display=t==='list'?'block':'none';
     document.getElementById('map-pane').classList.toggle('active',t==='map');
@@ -615,236 +604,231 @@ function setTab(t){
   if(t==='map'||window.innerWidth>=700) renderMap();
 }
 
-// ── DAY POPUP ─────────────────────────────────────────────────────────────
-function openDayPopup(event, custId){
+// ── AGENT POPUP ───────────────────────────────────────────────────────────
+let _agentPopCustId=null;
+function openAgentPopup(event, custId){
   event.stopPropagation();
+  _agentPopCustId=custId;
+  const popup=document.getElementById('agent-popup');
+  const curOv=st.overrides[String(custId)]||{};
+  const curAgent=curOv.agentCode||(st.allClients.find(c=>c.custId===custId)||{}).agentCode;
+  popup.innerHTML=st.agents.map(a=>`
+    <button class="agent-pop-item${a.agentCode===curAgent?' selected':''}" onclick="setClientAgent('${esc(a.agentCode)}')">
+      <span class="agent-pop-dot" style="background:${a.color}"></span>
+      ${esc(a.agentName)}
+      ${a.agentCode===curAgent?'✓':''}
+    </button>`).join('');
+  const r=event.target.getBoundingClientRect();
+  popup.style.top=Math.min(r.bottom+6,window.innerHeight-340)+'px';
+  popup.style.left=Math.max(6,r.left-140)+'px';
+  popup.classList.add('open');
+}
+
+function setClientAgent(agentCode){
+  closePops();
+  if(!_agentPopCustId) return;
+  const id=String(_agentPopCustId);
+  if(!st.overrides[id]) st.overrides[id]={};
+  st.overrides[id].agentCode=agentCode;
+  saveOverrides();
+  renderAgentLegend(); renderAll();
+  showToast(`👤 הועבר ל‑${st.agents.find(a=>a.agentCode===agentCode)?.agentName||agentCode}`);
+}
+
+// ── DAY POPUP ─────────────────────────────────────────────────────────────
+let _dayPopCustId=null;
+function openDayPopup(event, custId, curDay){
+  event.stopPropagation();
+  _dayPopCustId=custId;
   const popup=document.getElementById('day-popup');
   popup.innerHTML=[1,2,3,4,5].map(d=>
-    `<button class="day-pop-btn${d===st.day?' cur-day':''}" onclick="changeClientDay('${custId}',${d})">${DAY_LABELS[d]}</button>`
+    `<button class="day-pop-btn${d===curDay?' cur-day':''}" onclick="setClientDay(${d})">${DAY_LBL[d]}</button>`
   ).join('');
   const r=event.target.getBoundingClientRect();
   popup.style.top=(r.bottom+6)+'px';
   popup.style.left=Math.max(6,r.left-60)+'px';
   popup.classList.add('open');
 }
-function closeDayPopup(){ document.getElementById('day-popup').classList.remove('open'); }
 
-function getDayOverrides(code){ try{return JSON.parse(localStorage.getItem(`fr_dayov_${code}`)||'{}');}catch{return{};} }
-function setDayOverrides(code,ov){ try{localStorage.setItem(`fr_dayov_${code}`,JSON.stringify(ov));}catch{} }
-
-function changeClientDay(custId, newDay){
-  closeDayPopup();
-  const ov=getDayOverrides(st.agent.code);
-  ov[String(custId)]=newDay;
-  setDayOverrides(st.agent.code, ov);
-
-  if(newDay===st.day){
-    // Same day — just update the label in the card without removing
-    const spanEl=document.querySelector(`[data-day-label="${custId}"]`);
-    if(spanEl) spanEl.textContent='יום: '+DAY_LABELS[newDay];
-    return;
-  }
-
-  // Update the card's day label first (before removal — user sees feedback)
-  const spanEl=document.querySelector(`[data-day-label="${custId}"]`);
-  if(spanEl) spanEl.textContent='יום: '+DAY_LABELS[newDay];
-
-  // Short delay so user sees the change, then remove from current day view
-  setTimeout(()=>{
-    st.clients=st.clients.filter(c=>String(c.custId)!==String(custId));
-    st.aiClients=nearestNeighbor([...st.clients]);
-    updateKmBar(); renderClientList();
-    if(window.innerWidth>=700||st.tab==='map') renderMap();
-    showToast('📅 הועבר ליום '+DAY_LABELS[newDay]);
-  }, 600);
+function setClientDay(newDay){
+  closePops();
+  if(!_dayPopCustId) return;
+  const id=String(_dayPopCustId);
+  if(!st.overrides[id]) st.overrides[id]={};
+  st.overrides[id].dayNum=newDay;
+  saveOverrides();
+  renderAll();
+  showToast(`📅 יום שונה ל‑${DAY_LBL[newDay]}`);
 }
 
+function closePops(){
+  document.getElementById('agent-popup').classList.remove('open');
+  document.getElementById('day-popup').classList.remove('open');
+  _agentPopCustId=null; _dayPopCustId=null;
+}
 document.addEventListener('click',e=>{
-  const popup=document.getElementById('day-popup');
-  if(popup&&!popup.contains(e.target)&&!e.target.classList.contains('day-change-btn')&&!e.target.closest('.day-change-btn')) closeDayPopup();
+  const ap=document.getElementById('agent-popup'), dp=document.getElementById('day-popup');
+  if(ap&&!ap.contains(e.target)) ap.classList.remove('open');
+  if(dp&&!dp.contains(e.target)) dp.classList.remove('open');
 });
 
-// ── GPS / ADDR MODAL ──────────────────────────────────────────────────────
-let _gpsClickHandler=null;
-
-function openAddrModal(e, id, name){
-  if(e) e.stopPropagation();
-  st.addrClientId=id;
-  document.getElementById('addr-modal-title').textContent=name||'עדכן כתובת';
-  const c=st.clients.find(x=>x.custId===id);
-  document.getElementById('addr-input').value=c?.address||'';
-  document.getElementById('addr-modal').classList.add('open');
-}
-function closeAddrModal(){ document.getElementById('addr-modal').classList.remove('open'); }
-
-async function submitAddress(){
-  const addr=document.getElementById('addr-input').value.trim();
-  if(!addr){ closeAddrModal(); return; }
-  const c=st.clients.find(x=>x.custId===st.addrClientId);
-  closeAddrModal();
-  try{
-    const r=await apiFetch(`${API}/geocode?address=${encodeURIComponent(addr)}&city=${encodeURIComponent(c?.city||'')}`);
-    const d=await r.json();
-    if(d&&d.lat){
-      st.clients=st.clients.map(x=>x.custId===st.addrClientId?{...x,address:addr,lat:d.lat,lng:d.lng}:x);
-      st.aiClients=nearestNeighbor([...st.clients]);
-      updateKmBar(); renderClientList();
-      if(window.innerWidth>=700||st.tab==='map') renderMap();
-    }
-  }catch(_){}
-}
-
-function placeOnMap(){
-  const id=st.addrClientId;
-  const c=st.clients.find(x=>x.custId===id);
-  if(!c){ closeAddrModal(); return; }
-  closeAddrModal();
-  setTab('map');
-  setTimeout(()=>{ renderMap(); _startMapPlace(id,c); }, 250);
-}
-function _startMapPlace(id,c){
-  showToast('📍 לחץ על המפה למיקום '+c.custName, 4000);
-  map.getContainer().style.cursor='crosshair';
-  _gpsClickHandler=(e)=>{
-    map.off('click',_gpsClickHandler); _gpsClickHandler=null;
-    map.getContainer().style.cursor='';
-    const {lat,lng}=e.latlng;
-    const IL={minLat:29.3,maxLat:33.5,minLng:34.2,maxLng:35.9};
-    if(lat<IL.minLat||lat>IL.maxLat||lng<IL.minLng||lng>IL.maxLng){ showToast('❌ מחוץ לגבולות ישראל'); renderMap(); return; }
-    const la=+lat.toFixed(6), lo=+lng.toFixed(6);
-    const entry={lat:la,lng:lo,correctedAt:new Date().toISOString(),name:c.custName,city:c.city||''};
-    gpsCorrections[String(id)]=entry;
-    const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
-    local[String(id)]=entry;
-    localStorage.setItem('fr_gps_local',JSON.stringify(local));
-    apiFetch(`${API}/save-gps`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({custId:id,lat:la,lng:lo,name:c.custName,city:c.city||''})}).catch(()=>{});
-    st.clients=st.clients.map(x=>String(x.custId)===String(id)?{...x,lat:la,lng:lo,gpsSource:'correction'}:x);
-    st.aiClients=nearestNeighbor([...st.clients]);
-    updateKmBar(); renderClientList(); renderMap();
-    showToast('✅ מיקום נשמר');
-  };
-  map.on('click',_gpsClickHandler);
-  if(c.lat&&c.lng) map.panTo([c.lat,c.lng],{animate:true,duration:0.4});
-}
-
 // ── MAP ────────────────────────────────────────────────────────────────────
+let map=null,mapMarkers=[],mapPolylines=[],markerCluster=null;
+let baseTileLayer=null,currentTileKey='osm';
+const TILE_DEFS={
+  osm:      {icon:'🏠',label:'בתים',    url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',         opts:{attribution:'© OSM',subdomains:'abc',maxZoom:19}},
+  light:    {icon:'☁', label:'בהיר',    url:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', opts:{attribution:'© CartoDB',subdomains:'abcd',maxZoom:19}},
+  satellite:{icon:'🛰',label:'לוויין',  url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',opts:{attribution:'© Esri',maxZoom:19}},
+};
+const TILE_ORDER=['osm','light','satellite'];
+function setTile(key){
+  if(!map) return;
+  if(baseTileLayer) map.removeLayer(baseTileLayer);
+  const d=TILE_DEFS[key]; baseTileLayer=L.tileLayer(d.url,d.opts).addTo(map); currentTileKey=key;
+  const btn=document.getElementById('tile-btn'); if(btn) btn.innerHTML=d.icon+' '+d.label;
+}
+function cycleTile(){ setTile(TILE_ORDER[(TILE_ORDER.indexOf(currentTileKey)+1)%TILE_ORDER.length]); }
+
 function renderMap(){
   if(!map){
-    map=L.map('map',{rotate:true,bearing:0,zoomControl:false}).setView([32.0,34.9],10);
+    map=L.map('map',{zoomControl:false}).setView([32.0,34.9],10);
     L.control.zoom({position:'bottomright'}).addTo(map);
     setTile('osm');
+    initLasso();
   }
   mapMarkers.forEach(m=>m.remove()); mapMarkers=[];
   mapPolylines.forEach(p=>p.remove()); mapPolylines=[];
   if(markerCluster){markerCluster.clearLayers();map.removeLayer(markerCluster);}
   markerCluster=L.markerClusterGroup({
-    maxClusterRadius:50,disableClusteringAtZoom:16,
+    maxClusterRadius:40,disableClusteringAtZoom:17,
     iconCreateFunction(cluster){
-      const rns=cluster.getAllChildMarkers().map(m=>m._rn).sort((a,b)=>a-b);
-      const n=rns.length,label=n===1?`${rns[0]}`:`${rns[0]}–${rns[n-1]}`;
-      const sz=40;
-      return L.divIcon({className:'',html:`<div style="background:#C9A84C;color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2.5px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.35);font-size:12px;font-weight:900">${label}</div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
+      const marks=cluster.getAllChildMarkers();
+      // Group by agent color inside cluster
+      const colorMap={};
+      marks.forEach(m=>{const c=m._agColor||'#999';colorMap[c]=(colorMap[c]||0)+1;});
+      const colors=Object.keys(colorMap);
+      const sz=38;
+      const gradStop=colors.length===1?colors[0]:`conic-gradient(${colors.map((c,i)=>`${c} ${i/colors.length*360}deg ${(i+1)/colors.length*360}deg`).join(',')})`;
+      return L.divIcon({className:'',html:`<div style="background:${gradStop};color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2.5px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.35);font-size:12px;font-weight:900">${marks.length}</div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
     }
   });
 
   const list=displayClients().filter(c=>c.lat&&c.lng);
-  if(!list.length){ map.addLayer(markerCluster); setTimeout(()=>map.invalidateSize(),100); return; }
+  const bounds=[];
 
-  const bounds=[], coordCount={}, coordIdx={};
-  list.forEach(c=>{ const k=`${c.lat},${c.lng}`; coordCount[k]=(coordCount[k]||0)+1; });
-
-  list.forEach((c,i)=>{
+  list.forEach(c=>{
+    const color=agentColor(c.agentCode);
     const isSel=st.selectedId===c.custId;
-    const ck=`${c.lat},${c.lng}`, hasDupe=coordCount[ck]>1;
-    const di=hasDupe?(coordIdx[ck]=(coordIdx[ck]||0)+1)-1:0;
-    const mLat=hasDupe?c.lat+(((i*7+3)%17-8)*0.00015):c.lat;
-    const mLng=hasDupe?c.lng+(((i*13+5)%19-9)*0.00015):c.lng;
-    const sz=isSel?36:28;
-    const bg=isSel?'#1565C0':i===0?'#2E7D32':'#1A3F7C';
-    const icon=L.divIcon({className:'',html:`<div style="background:${bg};color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${isSel?13:12}px;font-weight:900;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4)">${i+1}</div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
-    const label=shortName(c.custName||'',c.city||'')||c.custName||'';
+    const sz=isSel?34:26;
+    const icon=L.divIcon({className:'',html:`<div style="background:${color};color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${isSel?12:10}px;font-weight:900;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4)">${DAY_LBL[c.dayNum]||'?'}</div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
+    const m=L.marker([c.lat,c.lng],{icon,zIndexOffset:isSel?1000:0});
+    m._agColor=color; m._custId=String(c.custId);
     const safeName=esc(c.custName||'');
-    const m=L.marker([mLat,mLng],{icon,zIndexOffset:isSel?1000:0});
-    m._rn=i+1;
-    m.bindPopup(`<b>${esc(label)}</b><br>${esc(c.city||'')}${c.address?'<br><span style="font-size:11px;color:#555">'+esc(c.address)+'</span>':''}<br><button data-id="${c.custId}" data-name="${safeName}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name)" style="margin-top:6px;background:#1565C0;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">📍 תקן מיקום</button>`);
-    m.bindTooltip(label,{permanent:false,direction:'right',opacity:1,className:'fr-tip'});
-    if(isSel) m.addTo(map); else markerCluster.addLayer(m);
-    if(isSel) m.openPopup();
+    m.bindTooltip(`${esc(c.custName||'')} · ${esc(c.agentName||'')}`,{permanent:false,direction:'right',opacity:1,className:'fr-tip'});
+    m.bindPopup(`<b>${safeName}</b><br><span style="color:${color};font-weight:700">${esc(c.agentName||c.agentCode||'')}</span><br>יום: ${DAY_LBL[c.dayNum]||'?'}${c.address?'<br>'+esc(c.address):''}`);
+    if(isSel){m.addTo(map);m.openPopup();}else{markerCluster.addLayer(m);}
     mapMarkers.push(m);
     bounds.push([c.lat,c.lng]);
   });
 
-  list.forEach((c,i)=>{
-    if(!i||!c.lat||!c.lng) return;
-    const prev=list[i-1]; if(!prev.lat||!prev.lng) return;
-    const color=haversineM(prev.lat,prev.lng,c.lat,c.lng)<=400?'#FF6F00':'#1A3F7C';
-    const p=L.polyline([[prev.lat,prev.lng],[c.lat,c.lng]],{color,weight:2.5,opacity:.85}).addTo(map);
-    mapPolylines.push(p);
-  });
-
   map.addLayer(markerCluster);
-  if(bounds.length&&!_gpsClickHandler) map.fitBounds(bounds,{padding:[6,6]});
+  if(bounds.length) map.fitBounds(bounds,{padding:[10,10]});
   setTimeout(()=>map.invalidateSize(),100);
 }
 
-function rotateMap(deg, reset){
-  if(reset) mapBearing=0; else mapBearing=(mapBearing+deg+360)%360;
-  if(map&&map.setBearing) map.setBearing(mapBearing);
+// ── LASSO ─────────────────────────────────────────────────────────────────
+let lassoControl=null, _lassoActive=false;
+
+function initLasso(){
+  if(!map||lassoControl) return;
+  lassoControl=L.control.lasso({intersect:true}).addTo(map);
+  map.on('lasso.finished', e=>{
+    _lassoActive=false;
+    updateLassoBtn(false);
+    if(!e.layers||!e.layers.length){ clearLasso(); return; }
+    const ids=new Set();
+    e.layers.forEach(layer=>{
+      if(layer._custId) ids.add(layer._custId);
+    });
+    st.lassoIds=ids;
+    document.getElementById('lasso-clear').classList.add('visible');
+    document.getElementById('lasso-btn').classList.remove('active');
+    document.getElementById('lasso-btn').classList.add('has-selection');
+    renderAll();
+    // scroll list to top
+    const lp=document.getElementById('list-pane'); if(lp) lp.scrollTop=0;
+  });
+  map.on('lasso.enabled', ()=>{ _lassoActive=true; updateLassoBtn(true); });
+  map.on('lasso.disabled', ()=>{ _lassoActive=false; if(!st.lassoIds) updateLassoBtn(false); });
 }
 
-// ── EXPORT XLSX ──────────────────────────────────────────────────────────
+function toggleLasso(){
+  if(!map) return;
+  if(!lassoControl) initLasso();
+  if(_lassoActive){ lassoControl.disable(); }
+  else{ if(st.lassoIds){ clearLasso(); }else{ lassoControl.enable(); } }
+}
+
+function clearLasso(){
+  st.lassoIds=null;
+  _lassoActive=false;
+  if(lassoControl) lassoControl.disable();
+  updateLassoBtn(false);
+  document.getElementById('lasso-btn').classList.remove('active','has-selection');
+  document.getElementById('lasso-clear').classList.remove('visible');
+  renderAll();
+}
+
+function updateLassoBtn(active){
+  const btn=document.getElementById('lasso-btn');
+  if(!btn) return;
+  btn.classList.toggle('active',active);
+}
+
+// ── EXPORT ────────────────────────────────────────────────────────────────
 async function exportXLSX(){
   const list=displayClients();
   if(!list.length) return;
-  const btn=document.getElementById('export-btn');
+  const btn=document.querySelector('.export-btn');
   const orig=btn.innerHTML; btn.innerHTML='⏳...'; btn.disabled=true;
   try{
     const rows=list.map((c,i)=>({
       currentPos:i+1, custId:c.custId||'', custName:c.custName||'',
-      dayLabel:c.dayLabel||DAY_LABELS[c.dayNum]||DAY_LABELS[st.day]||'',
-      city:c.city||'', address:c.address||'', lat:c.lat||null, lng:c.lng||null,
+      city:c.city||'', address:c.address||'',
+      agentCode:c.agentCode||'', agentName:c.agentName||'',
+      dayLabel:DAY_LBL[c.dayNum]||'', lat:c.lat||null, lng:c.lng||null,
+      changed:c._changed?'✏️':'',
     }));
     const r=await apiFetch(`${API}/api/export-route-xlsx`,{
       method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({rows, agentName:st.agent.name||st.agent.code||'', dayLabel:DAY_LABELS[st.day]||String(st.day||'')}),
+      body:JSON.stringify({rows, agentName:[...selectedCities].join(', ')||'', dayLabel:'כל הימים'}),
     });
     if(!r.ok) throw new Error(r.status);
     const blob=await r.blob();
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a'); a.href=url;
-    a.download=`territory_${st.agent.name||st.agent.code||''}_${new Date().toISOString().slice(0,10)}.xlsx`;
+    const cityStr=[...selectedCities].slice(0,2).join('_')||'territory';
+    a.download=`territory_${cityStr}_${new Date().toISOString().slice(0,10)}.xlsx`;
     a.click(); setTimeout(()=>URL.revokeObjectURL(url),5000);
-  }catch(e){ alert('שגיאה בייצוא: '+e.message); }
+  }catch(e){ alert('שגיאה: '+e.message); }
   finally{ btn.innerHTML=orig; btn.disabled=false; }
 }
 
 // ── TOAST ─────────────────────────────────────────────────────────────────
-function showToast(msg, ms=2500){
+function showToast(msg,ms=2500){
   let t=document.getElementById('toast');
-  if(!t){
-    t=document.createElement('div'); t.id='toast';
-    t.style='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1565C0;color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;font-weight:700;z-index:9999;pointer-events:none;transition:opacity .3s';
-    document.body.appendChild(t);
-  }
-  t.textContent=msg; t.style.opacity='1';
-  clearTimeout(t._to); t._to=setTimeout(()=>t.style.opacity='0',ms);
+  if(!t){t=document.createElement('div');t.id='toast';t.style='position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#1565C0;color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;font-weight:700;z-index:9999;pointer-events:none;transition:opacity .3s';document.body.appendChild(t);}
+  t.textContent=msg;t.style.opacity='1';clearTimeout(t._to);t._to=setTimeout(()=>t.style.opacity='0',ms);
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────
 async function init(){
+  loadOverrides();
   if(!getToken()){
-    try{
-      const r=await fetch(API+'/auth/pbi',{credentials:'include'});
-      if(r.ok){ const j=await r.json(); if(j.ok&&j.token) localStorage.setItem(TOKEN_KEY,j.token); }
-    }catch(_){}
-    if(!getToken()){ window.location.href='./formula-road.html'; return; }
+    try{const r=await fetch(API+'/auth/pbi',{credentials:'include'});if(r.ok){const j=await r.json();if(j.ok&&j.token)localStorage.setItem(TOKEN_KEY,j.token);}}catch(_){}
+    if(!getToken()){location.href='./formula-road.html';return;}
   }
-  await loadCorrections();
-  await loadManagers();
-  // Auto-select today's day
-  const wd=new Date().getDay();
-  const todayDay=wd===0||wd===6?1:(wd<=5?wd:1);
-  selectDay(todayDay);
+  await loadCities();
 }
 init();
 </script>
