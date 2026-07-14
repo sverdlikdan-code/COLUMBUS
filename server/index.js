@@ -237,6 +237,16 @@ SELECTCOLUMNS(
       loadedAt: new Date(),
     };
     console.log(`[PBI] Cache loaded: ${clientMap.size} clients, ${byAgent.size} agents, ${managers.size} managers, ${managerAgents.size} manager-agents`);
+
+    // Geocode ICE clients in background — updates pbiCache.iceByAgent objects in-place
+    // so subsequent /customers requests serve pre-geocoded lat/lng without API calls
+    const _allIce = [...iceByAgent.values()].flat().filter(c => !c.lat);
+    if (_allIce.length > 0) {
+      geocodeBatch(_allIce).then(() => {
+        const done = _allIce.filter(c => c.lat && c.lng).length;
+        console.log(`[PBI] ICE geocode: ${done}/${_allIce.length} with GPS`);
+      }).catch(() => {});
+    }
   } catch (err) {
     console.error('[PBI] Cache load error:', err.message);
   }
