@@ -3047,6 +3047,9 @@ app.get('/territory-planner.html', (req, res) => {
   if (!req.session?.agentCode && !req.session?.isManager) return res.redirect('/');
   res.sendFile(path.join(__dirname, '..', 'docs', 'territory-planner.html'));
 });
+app.get('/territory.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'docs', 'territory.html'));
+});
 app.get('/sw.js', (req, res) => {
   res.setHeader('Content-Type', 'application/javascript');
   res.setHeader('Service-Worker-Allowed', '/');
