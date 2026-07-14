@@ -414,7 +414,7 @@
     .lo { color: #d32f2f; font-weight: 800; }
     tr.danger .c-haml { color: #d32f2f !important; }
     tr.danger .ei-n { border-color: #d32f2f !important; color: #d32f2f !important; }
-    /* ── Info panel ─────────────────────────────────────────── */
+    /* ── Prophet drill-down panel ───────────────────────────── */
     #prophet-panel { position:fixed; top:0; right:-420px; width:400px; height:100vh; background:#0a1628; color:#e8eaf0; z-index:9999; box-shadow:-4px 0 32px rgba(0,0,0,.6); transition:right .28s cubic-bezier(.4,0,.2,1); display:flex; flex-direction:column; font-family:'Segoe UI',sans-serif; }
     #prophet-panel.open { right:0; }
     #prophet-panel .pp-head { background:#0d1f3a; border-bottom:2px solid #c9a227; padding:14px 20px 12px; }
@@ -422,6 +422,22 @@
     #prophet-panel .pp-head .pp-sub { font-size:.7rem; color:#8899aa; direction:rtl; }
     #prophet-panel .pp-body { flex:1; overflow-y:auto; display:flex; flex-direction:column; }
     /* ── Sparkline ── */
+    .pp-spark-wrap { padding:12px 16px 6px; border-bottom:1px solid rgba(255,255,255,.06); }
+    .pp-spark-lbl { font-size:.62rem; color:#8899aa; margin-bottom:5px; direction:rtl; }
+    .pp-spark { display:flex; align-items:stretch; gap:2px; height:200px; }
+    .pp-spark-col { display:flex; flex-direction:column; align-items:center; justify-content:flex-end; flex:1; min-width:3px; }
+    .pp-spark-val { font-size:.44rem; color:#99aacc; line-height:1.2; min-height:.65rem; text-align:center; }
+    .pp-spark-bar { width:100%; border-radius:2px 2px 0 0; background:rgba(93,140,200,.5); transition:background .2s; }
+    .pp-spark-bar:hover { background:rgba(93,140,200,.85); }
+    .pp-spark-bar.fc { background:rgba(76,175,80,.45); border:1px dashed rgba(76,175,80,.7); }
+    .pp-spark-bar.fc:hover { background:rgba(76,175,80,.75); }
+    .pp-spark-bar.zero { background:rgba(93,140,200,.1); border:1px dashed rgba(93,140,200,.22); }
+    .pp-spark-div { width:1.5px; background:rgba(201,162,39,.6); height:208px; margin:-4px 3px; flex-shrink:0; align-self:stretch; margin-bottom:0; }
+    .pp-spark-axis { display:flex; justify-content:space-between; font-size:.58rem; color:#556677; padding:3px 1px 0; direction:rtl; }
+    .pp-spark-axis-dyn { display:flex; align-items:flex-start; gap:2px; padding:3px 0 0; direction:rtl; }
+    .pp-spark-axis-dyn .ax-lbl { flex:1; min-width:3px; font-size:.46rem; color:#667788; text-align:center; line-height:1.25; white-space:pre; }
+    .pp-spark-axis-dyn .ax-lbl.fc-lbl { color:rgba(76,175,80,.7); }
+    .pp-spark-axis-dyn .ax-div { width:1.5px; flex-shrink:0; margin:0 3px; }
     /* ── Metrics 4-tile grid ── */
     .pp-metrics { display:grid; grid-template-columns:repeat(4,1fr); background:rgba(255,255,255,.03); border-bottom:1px solid rgba(255,255,255,.06); }
     .pp-metric { padding:10px 8px; text-align:center; border-right:1px solid rgba(255,255,255,.06); }
@@ -447,15 +463,27 @@
     .pp-formula-block { display:none; }
     /* ── Footer ── */
     .pp-foot { padding:10px 16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+    .pp-trend-badge { font-size:.78rem; font-weight:600; padding:5px 10px; border-radius:20px; direction:rtl; }
+    .pp-trend-badge.up   { background:rgba(76,175,80,.15);  color:#4caf50; }
+    .pp-trend-badge.dn   { background:rgba(239,83,80,.15);  color:#ef5350; }
+    .pp-trend-badge.flat { background:rgba(201,162,39,.12); color:#c9a227; }
+    .pp-np-note { font-size:.65rem; color:#556677; direction:rtl; }
     #prophet-panel .pp-close { padding:12px 20px; border-top:1px solid rgba(255,255,255,.08); }
     #prophet-panel .pp-close button { width:100%; background:transparent; border:1px solid #c9a227; color:#c9a227; padding:9px; border-radius:8px; cursor:pointer; font-size:.85rem; transition:background .15s; }
     #prophet-panel .pp-close button:hover { background:rgba(201,162,39,.15); }
     #prophet-overlay { position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:9998; display:none; }
     #prophet-overlay.open { display:block; }
+    td.col-prophet[data-mk] { cursor:pointer; }
+    td.col-prophet[data-mk]:hover { filter:brightness(1.15); }
 
     .col-g { background: #e8f0f8; }
     thead th.col-g { background: #0d47a1 !important; }
     tbody td.col-g { background: #e8f0f8 !important; }
+    .col-prophet { background: #f3e5f5; }
+    thead th.col-prophet { background: #4a148c !important; color: #fff !important; }
+    tbody td.col-prophet { background: #f3e5f5 !important; font-weight: 700; color: #4a148c; text-align: center; }
+    .prophet-up   { color: #2e7d32; }
+    .prophet-down { color: #c62828; }
     td.tk-lo select { border-color: #d32f2f !important; color: #d32f2f !important; background: #fff5f5; }
     .c-mmd { font-weight: 900; font-size: 1.1rem; color: var(--blue-dark); }
     /* family multi-select dropdown */
@@ -928,6 +956,7 @@
         <th class="sortable" onclick="sortMMD('yamim_haya')">ימי מכר<span id="sarr-yamim_haya"></span></th>
         <th class="sortable" onclick="sortMMD('pct_mkr')">ימי מכר<br>מכלל %<span id="sarr-pct_mkr"></span></th>
         <th class="col-g sortable" onclick="sortMMD('hamlatza')">המלצה להזמנה<br>קרטון<span id="sarr-hamlatza"></span></th>
+        <th class="col-prophet" title="Prophet ML — תחזית ביקוש 4 שבועות">🔮 Prophet<br>הזמנה</th>
         <th class="col-g">הזמנה<br>ידנית</th>
         <th class="col-g">תוקף<br>נדרש</th>
       </tr>
@@ -1174,10 +1203,17 @@
     document.getElementById('ld').innerHTML = '<div class="spin"></div><div>טוען נתוני מלאי...</div>';
     st('טוען...');
     try {
-      const r = await fetch('./mmd-orders.json?_=' + Date.now());
+      const [r, rp] = await Promise.all([
+        fetch('./mmd-orders.json?_=' + Date.now()),
+        fetch('./prophet.json?_='    + Date.now()).catch(() => null)
+      ]);
       if (!r.ok) throw new Error('HTTP ' + r.status);
       const j = await r.json();
       if (!j.ok) throw new Error(j.error || 'API error');
+      if (rp && rp.ok) {
+        const jp = await rp.json();
+        window.prophetMap = jp.skus || {};
+      }
       baseAll = j.data;
       all = baseAll;
       buildPeriodBar();
@@ -1499,7 +1535,7 @@
       (yamim != null && yamim < 10 ? ' danger' : '');
         tr.innerHTML =
           '<td class="c-mkt">' + mk + '</td>' +
-          '<td class="c-taur" dir="rtl" title="' + esc(r.taur) + '" style="cursor:pointer" onclick="openInfoPanel(\'' + mk + '\',\'' + escJs(fixProductName(r.taur||'')) + '\')">' + (isPopular ? '<span class="pop-star">⭐</span> ' : '') + _ltrWrap(shortName(fixProductName(r.taur))) + '</td>' +
+          '<td class="c-taur" dir="rtl" title="' + esc(r.taur) + '">' + (isPopular ? '<span class="pop-star">⭐</span> ' : '') + _ltrWrap(shortName(fixProductName(r.taur))) + '</td>' +
           '<td class="c-img">' +
             (r.img ? '<img src="' + esc(r.img) + '" alt="" loading="lazy" onerror="this.outerHTML=\'<span class=ni></span>\'">' : '<span class="ni"></span>') +
           '</td>' +
@@ -1516,6 +1552,22 @@
           '<td class="c-num">' + (yamimHaya != null ? yamimHaya : '—') + '</td>' +
           '<td class="c-num">' + (pctMkr != null ? pctMkr + '%' : '—') + '</td>' +
           '<td class="c-haml col-g">' + (haml > 0 ? Math.round(haml) : '') + '</td>' +
+          (function(){
+            const p = window.prophetMap && window.prophetMap[mk];
+            const actualSorted = (p && p.series && p.series.actual ? [...p.series.actual] : []).sort((a,b)=>a.w.localeCompare(b.w));
+            const last4 = actualSorted.slice(-4);
+            const prev4 = actualSorted.slice(-8,-4);
+            const avg4  = last4.length  ? last4.reduce((s,x)=>s+x.y,0)/last4.length  : 0;
+            const avg8  = prev4.length  ? prev4.reduce((s,x)=>s+x.y,0)/prev4.length  : 0;
+            let trendSpan = '';
+            if (avg8 > 0 && last4.length >= 2 && prev4.length >= 2) {
+              const trendPct = Math.round((avg4/avg8-1)*100);
+              if (trendPct > 10)       trendSpan = '<br><span style="font-size:.6rem;color:#2e7d32;font-weight:600">▲' + trendPct + '%</span>';
+              else if (trendPct < -10) trendSpan = '<br><span style="font-size:.6rem;color:#c62828;font-weight:600">▼' + Math.abs(trendPct) + '%</span>';
+            }
+            const onclk = 'openInfoPanel(\'' + mk + '\',\'' + escJs(fixProductName(r.taur||'')) + '\')';
+            return '<td class="col-prophet" style="cursor:pointer;font-size:.85rem" data-mk="' + mk + '" onclick="' + onclk + '" title="נתוני מכירות">📊' + trendSpan + '</td>';
+          })() +
           '<td class="c-num col-g"><input class="ei ei-n" type="number" min="0" step="1" value="' + ordV + '" data-mk="' + mk + '" data-ash="' + ash + '" data-mav="' + mav + '" data-f="k" oninput="inp(this)" placeholder="0"/></td>' +
           '<td class="col-g' + (yamim != null && yamim < 14 ? ' tk-lo' : '') + '">' + buildPrtimCell(mk, r.tukuf, nts) + '</td>';
         tb.appendChild(tr);
@@ -2150,15 +2202,47 @@ window.splashRebuild = async function() {
   }
 };
 
-// ── Info panel ───────────────────────────────────────────────────
+// ── Prophet drill-down panel ────────────────────────────────
 window.openInfoPanel = function(mk, taur) {
+  // Look up row data
   const _all = window._mmdGetAll ? window._mmdGetAll() : [];
   const r = _all.find(function(x){ return String(x.mkt ?? '') === mk; }) || null;
+  const p = window.prophetMap && window.prophetMap[mk];
 
+  // ── Header ──────────────────────────────────────────────────────
   document.getElementById('pp-title').textContent    = taur || ('מק"ט ' + mk);
   document.getElementById('pp-subtitle').textContent = 'מק"ט ' + mk + (r ? ' · ' + (r.hevra || '') : '');
 
-  // ── Metric tiles ─────────────────────────────────────────────────
+  // ── Trend from series.actual ─────────────────────────────────────
+  const actualSorted = (p && p.series && p.series.actual ? [...p.series.actual] : [])
+    .sort(function(a, b){ return a.w.localeCompare(b.w); });
+  const last6 = actualSorted.slice(-6);
+  const prev6 = actualSorted.slice(-12, -6);
+  const avg6  = last6.length ? last6.reduce(function(s,x){return s+x.y;},0)/last6.length : 0;
+  const avgP6 = prev6.length ? prev6.reduce(function(s,x){return s+x.y;},0)/prev6.length : 0;
+  let trendPct = null;
+  if (avgP6 > 0 && last6.length >= 2 && prev6.length >= 2)
+    trendPct = Math.round((avg6 / avgP6 - 1) * 100);
+
+  // ── Trend badge ──────────────────────────────────────────────────
+  const badge = document.getElementById('pp-trend-badge');
+  if (trendPct !== null) {
+    if (trendPct > 10) {
+      badge.textContent = '📈 +' + trendPct + '% ביקוש עולה';
+      badge.className = 'pp-trend-badge up';
+    } else if (trendPct < -10) {
+      badge.textContent = '📉 −' + Math.abs(trendPct) + '% ירידה';
+      badge.className = 'pp-trend-badge dn';
+    } else {
+      badge.textContent = '➡ ביקוש יציב ' + (trendPct >= 0 ? '+' : '') + trendPct + '%';
+      badge.className = 'pp-trend-badge flat';
+    }
+  } else {
+    badge.textContent = '— אין מספיק נתונים';
+    badge.className = 'pp-trend-badge flat';
+  }
+
+  // ── 5 metric tiles ───────────────────────────────────────────────
   function fmt(v, decimals) { return v != null ? (decimals ? parseFloat(v).toFixed(decimals) : v) : '—'; }
   function fmtPct(v) { return v != null ? v + '%' : '—'; }
   function fmtShach(v) { return v != null ? '₪' + Number(v).toLocaleString('he-IL', {maximumFractionDigits:0}) : '—'; }
@@ -2248,6 +2332,94 @@ window.openInfoPanel = function(mk, taur) {
       ebEl.style.display = 'none';
       if (etEl) { etEl.style.display = ''; etEl.textContent = (r && r.eilat_tukuf_dt) ? 'ת. תפוגה: ' + r.eilat_tukuf_dt : ''; }
     }
+  }
+
+  // ── n_points note ────────────────────────────────────────────────
+  const np = p ? (p.n_points ?? null) : null;
+  document.getElementById('pp-np').textContent = np != null ? np + ' שבועות היסטוריה' : '';
+
+  // ── Sparkline chart ─────────────────────────────────────────────
+  const sparkEl = document.getElementById('pp-spark');
+  const series  = p ? p.series : null;
+  sparkEl.innerHTML = '';
+
+  if (series && Array.isArray(series.actual) && series.actual.length > 0) {
+    // Drop incomplete current week
+    (function(){
+      var now = new Date(); now.setHours(0,0,0,0);
+      var dow = now.getDay() || 7;
+      now.setDate(now.getDate() - (dow - 1));
+      window._sparkCutoff = now.toISOString().slice(0,10);
+    })();
+    const actual = series.actual
+      .filter(function(d){ return d.w < window._sparkCutoff; })
+      .sort(function(a,b){ return a.w < b.w ? -1 : 1; });
+
+    // 6+6 weeks used for trend
+    const show6prev = actual.slice(-12, -6);
+    const show6last = actual.slice(-6);
+    const show12 = show6prev.concat(show6last);
+
+    function isoWeekNum(ds) {
+      var d = new Date(Date.UTC(parseInt(ds.slice(0,4)), parseInt(ds.slice(5,7))-1, parseInt(ds.slice(8,10))));
+      var day = d.getUTCDay() || 7;
+      d.setUTCDate(d.getUTCDate() + 4 - day);
+      var y0 = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+      return Math.ceil(((d - y0) / 86400000 + 1) / 7);
+    }
+
+    const maxY12 = Math.max.apply(null, show12.map(function(d){return d.y;}), [1]);
+
+    show12.forEach(function(d, i) {
+      if (i === 6) {
+        var div = document.createElement('div');
+        div.className = 'pp-spark-div';
+        sparkEl.appendChild(div);
+      }
+      const isPrev = i < 6;
+      const col = document.createElement('div');
+      col.className = 'pp-spark-col';
+      const lbl = document.createElement('div');
+      lbl.className = 'pp-spark-val';
+      if (isPrev) lbl.style.opacity = '0.55';
+      lbl.textContent = d.y > 0 ? String(Math.round(d.y)) : '';
+      const bar = document.createElement('div');
+      if (d.y === 0) {
+        bar.className = 'pp-spark-bar zero';
+        bar.style.height = '6px';
+      } else {
+        bar.className = 'pp-spark-bar';
+        if (isPrev) bar.style.opacity = '0.45';
+        bar.style.height = Math.max(4, Math.round(d.y / maxY12 * 100)) + '%';
+      }
+      bar.title = (d.y === 0 ? '0' : d.y) + ' קרט | שב' + isoWeekNum(d.w) + ' ' + d.w.slice(5,10) + (isPrev ? ' (קודם)' : '');
+      col.appendChild(lbl);
+      col.appendChild(bar);
+      sparkEl.appendChild(col);
+    });
+
+    // Axis: week number under every bar
+    (function() {
+      var ax = document.getElementById('pp-spark-axis-dyn');
+      if (!ax) return;
+      ax.innerHTML = '';
+      show12.forEach(function(d, i) {
+        if (i === 6) { var dv = document.createElement('div'); dv.className = 'ax-div'; ax.appendChild(dv); }
+        var sp = document.createElement('div');
+        sp.className = 'ax-lbl';
+        sp.style.opacity = i < 6 ? '0.5' : '1';
+        sp.textContent = 'שב' + isoWeekNum(d.w);
+        ax.appendChild(sp);
+      });
+    })();
+
+    document.getElementById('pp-spark-lbl').textContent =
+      show6prev.length + ' שב׳ קודמות + ' + show6last.length + ' שב׳ אחרונות';
+  } else {
+    sparkEl.innerHTML = '<div style="color:#8899aa;font-size:.75rem;padding:20px 0;text-align:center">אין נתוני מכירות שבועיים</div>';
+    document.getElementById('pp-spark-lbl').textContent = '';
+    const axDyn2 = document.getElementById('pp-spark-axis-dyn');
+    if (axDyn2) axDyn2.innerHTML = '';
   }
 
   document.getElementById('prophet-overlay').classList.add('open');
@@ -2395,7 +2567,18 @@ window.toggleOvSakana = function() {
     <div class="pp-sub" id="pp-subtitle"></div>
   </div>
   <div class="pp-body">
-    <!-- metrics grid (PBI data) -->
+    <!-- Trend badge -->
+    <div class="pp-foot" style="border-bottom:1px solid rgba(255,255,255,.06);padding:8px 16px;">
+      <span class="pp-trend-badge flat" id="pp-trend-badge">—</span>
+      <span class="pp-np-note" id="pp-np"></span>
+    </div>
+    <!-- Sparkline chart -->
+    <div class="pp-spark-wrap">
+      <div class="pp-spark-lbl" id="pp-spark-lbl">היסטוריית מכירות שבועית</div>
+      <div class="pp-spark" id="pp-spark"></div>
+      <div class="pp-spark-axis-dyn" id="pp-spark-axis-dyn"></div>
+    </div>
+    <!-- 5-tile metrics grid (PBI data) -->
     <div class="pp-metrics" style="grid-template-columns:repeat(3,1fr)">
       <div class="pp-metric"><div class="pp-metric-val gold"   id="pp-mkr-shach">—</div><div class="pp-metric-lbl">מכירות ש"ח</div></div>
       <div class="pp-metric"><div class="pp-metric-val red"    id="pp-zikuy-shach">—</div><div class="pp-metric-lbl">זיכויים ש"ח</div></div>
