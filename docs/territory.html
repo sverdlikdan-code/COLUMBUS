@@ -51,16 +51,18 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .city-count-badge{background:var(--blue);color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 7px;flex-shrink:0;}
 
 /* Day buttons */
-.day-btns{display:flex;gap:3px;}
-.day-btn{min-width:46px;height:52px;border-radius:10px;background:var(--sky-light);border:1.5px solid var(--sky-mid);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3px 5px;transition:all .12s;gap:1px;}
-.day-btn:hover{background:var(--sky-mid);}
-.day-btn.active{background:var(--blue);color:#fff;border-color:var(--blue-dark);}
-.day-btn-label{font-size:14px;font-weight:900;color:var(--blue-dark);line-height:1;}
+.day-btns{display:flex;gap:6px;width:100%;}
+.day-btn{flex:1;min-height:88px;border-radius:14px;background:var(--sky-light);border:2px solid var(--sky-mid);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;transition:all .12s;gap:2px;box-shadow:0 1px 4px rgba(21,101,192,.07);}
+.day-btn:hover{background:var(--sky-mid);transform:translateY(-1px);}
+.day-btn.active{background:var(--blue);color:#fff;border-color:var(--blue-dark);box-shadow:0 3px 10px rgba(21,101,192,.3);}
+.day-btn-label{font-size:22px;font-weight:900;color:var(--blue-dark);line-height:1;}
 .day-btn.active .day-btn-label{color:#fff;}
-.day-btn-agents{font-size:9px;font-weight:700;color:var(--mid);line-height:1;white-space:nowrap;}
-.day-btn.active .day-btn-agents{color:rgba(255,255,255,.8);}
-.day-btn-sales{font-size:9px;font-weight:800;color:var(--green);line-height:1;white-space:nowrap;}
+.day-btn-agents{font-size:11px;font-weight:700;color:var(--mid);line-height:1.2;white-space:nowrap;text-align:center;}
+.day-btn.active .day-btn-agents{color:rgba(255,255,255,.85);}
+.day-btn-sales{font-size:12px;font-weight:800;color:var(--green);line-height:1;}
 .day-btn.active .day-btn-sales{color:#B3E5FC;}
+.day-btn-count{font-size:10px;font-weight:700;color:var(--mid);line-height:1;opacity:.8;}
+.day-btn.active .day-btn-count{color:rgba(255,255,255,.7);}
 
 /* Stats row */
 .stats-row{background:#fff;border-bottom:1px solid var(--sky-mid);padding:4px 10px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;}
@@ -233,6 +235,19 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 <!-- DAY POPUP -->
 <div id="day-popup"></div>
 
+<!-- GPS FIX MODAL -->
+<div class="modal-bg" id="gps-modal" onclick="if(event.target===this)closeGpsModal()" style="position:fixed;inset:0;z-index:10001;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.5);padding:16px;">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:400px;padding:18px;display:flex;flex-direction:column;gap:10px;">
+    <div style="font-size:15px;font-weight:800;color:var(--text)" id="gps-modal-title">תיקון מיקום</div>
+    <input id="gps-addr-input" class="city-search" style="border-radius:8px;border:1.5px solid var(--sky-mid);padding:8px 12px;" placeholder="הכנס כתובת..." type="text"/>
+    <div id="gps-modal-status" style="font-size:12px;color:var(--mid);min-height:16px;"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button onclick="submitGpsAddress()" style="flex:1;background:var(--blue);color:#fff;border:none;border-radius:10px;padding:10px;font-weight:800;font-size:13px;cursor:pointer;">🔍 גיאוקוד</button>
+      <button onclick="closeGpsModal()" style="background:none;border:1.5px solid var(--sky-mid);border-radius:10px;padding:10px 16px;font-weight:700;font-size:13px;cursor:pointer;color:var(--mid);">ביטול</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet-lasso@2.0.4/dist/leaflet-lasso.umd.min.js" crossorigin="anonymous"></script>
@@ -242,6 +257,24 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 <script>
 const API = 'https://api.sverdlik-apps.site';
 const TOKEN_KEY = 'frToken';
+let gpsCorrections = {}; // custId → {lat,lng} — from gps-corrections.json + localStorage
+let gpsCorrectMode = false, gpsCorrectId = null;
+
+async function loadCorrections(){
+  try{
+    const r=await fetch('./gps-corrections.json?_='+Date.now());
+    if(r.ok){
+      gpsCorrections=await r.json();
+      const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
+      Object.assign(gpsCorrections,local);
+    }
+  }catch(_){
+    try{
+      const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
+      gpsCorrections=local;
+    }catch(__) {}
+  }
+}
 const DAY_LBL = {1:'א',2:'ב',3:'ג',4:'ד',5:'ה'};
 const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
@@ -278,7 +311,7 @@ const st={
   allClients: [],        // raw from server
   agents: [],            // [{agentCode, agentName, color}]
   activeAgents: new Set(), // which agents are visible
-  dayFilter: null,       // null = all
+  activeDays: new Set([1,2,3,4,5]), // multi-select days; all = {1..5}
   lassoIds: null,        // Set of custIds within lasso, null = no lasso
   overrides: {},         // custId → {agentCode?, dayNum?}
   selectedId: null,
@@ -394,18 +427,20 @@ async function loadClients(cities){
     if(!r.ok) throw new Error(r.status);
     const data=await r.json();
     if(myId!==_loadId) return;
-    st.allClients=Array.isArray(data)?data:[];
+    // Filter out "כללי" (catch-all unassigned, not route agents)
+    st.allClients=(Array.isArray(data)?data:[]).filter(c=>!String(c.agentName||'').includes('כללי'));
   }catch(e){
     if(myId!==_loadId) return;
     document.getElementById('client-list').innerHTML=`<div class="placeholder"><div class="placeholder-icon">❌</div><div class="placeholder-text">שגיאה</div><div class="placeholder-sub">${esc(String(e))}</div></div>`;
     return;
   }
 
-  // Apply GPS corrections
+  // Apply GPS corrections: gps-corrections.json (server-synced) + localStorage
   try{
-    const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
     st.allClients=st.allClients.map(c=>{
-      const corr=local[String(c.custId)]; return corr?{...c,lat:corr.lat,lng:corr.lng}:c;
+      const id=String(c.custId);
+      const corr=gpsCorrections[id];
+      return corr?{...c,lat:corr.lat,lng:corr.lng}:c;
     });
   }catch(_){}
 
@@ -452,22 +487,41 @@ function renderDayBtns(){
   const btnEls=wrap.querySelectorAll('.day-btn');
   btnEls.forEach((btn,i)=>{
     const d=dayKeys[i];
-    btn.classList.toggle('active',d===st.dayFilter);
+    btn.classList.toggle('active',d===null?st.activeDays.size===5:st.activeDays.has(d));
     if(d===null){
+      // "כל" button — show total unique agents abbreviated
+      const names=[...totalAgents].map(code=>{
+        const ag=st.agents.find(a=>a.agentCode===code);
+        return (ag?.agentName||code).split(/[\s\-]/)[0].slice(0,5);
+      }).slice(0,2);
+      const agTxt=names.join('/'+(totalAgents.size>2?'+':''))||'';
       const avg=totalAvg>0?`<span class="day-btn-sales">${fmt(totalAvg)}</span>`:'';
-      btn.innerHTML=`<span class="day-btn-label">כל</span><span class="day-btn-agents">${totalAgents.size} סוכ׳</span>${avg}`;
+      const cnt=baseCl.length?`<span class="day-btn-count">${baseCl.length} לק'</span>`:'';
+      btn.innerHTML=`<span class="day-btn-label">כל</span><span class="day-btn-agents">${agTxt}</span>${avg}${cnt}`;
     } else {
       const info=byDay[d];
       const avg=info.salesCount>0?Math.round(info.salesSum/info.salesCount):0;
-      const agLine=info.agents.size?`<span class="day-btn-agents">${info.agents.size} סוכ׳</span>`:'';
+      const names=[...info.agents].map(code=>{
+        const ag=st.agents.find(a=>a.agentCode===code);
+        return (ag?.agentName||code).split(/[\s\-]/)[0].slice(0,5);
+      });
+      const extra=names.length>2?`+${names.length-2}`:'';
+      const agTxt=names.slice(0,2).join('/')+extra;
+      const agLine=info.agents.size?`<span class="day-btn-agents">${agTxt}</span>`:'';
       const sLine=avg>0?`<span class="day-btn-sales">${fmt(avg)}</span>`:'';
-      btn.innerHTML=`<span class="day-btn-label">${DAY_LBL[d]}</span>${agLine}${sLine}`;
+      const cntLine=info.count?`<span class="day-btn-count">${info.count} לק'</span>`:'';
+      btn.innerHTML=`<span class="day-btn-label">${DAY_LBL[d]}</span>${agLine}${sLine}${cntLine}`;
     }
   });
 }
 
 function selectDay(d){
-  st.dayFilter=d;
+  if(d===null){
+    // "כל" — toggle: if all selected → deselect all; if any deselected → select all
+    if(st.activeDays.size===5) st.activeDays=new Set(); else st.activeDays=new Set([1,2,3,4,5]);
+  } else {
+    if(st.activeDays.has(d)) st.activeDays.delete(d); else st.activeDays.add(d);
+  }
   renderDayBtns();
   renderAll();
 }
@@ -480,7 +534,7 @@ function displayClients(){
     const agentCode=ov.agentCode||c.agentCode;
     const dayNum=ov.dayNum!==undefined?ov.dayNum:c.dayNum;
     if(!st.activeAgents.has(agentCode)) return false;
-    if(st.dayFilter!==null && dayNum!==st.dayFilter) return false;
+    if(st.activeDays.size<5 && dayNum && !st.activeDays.has(dayNum)) return false;
     if(st.lassoIds!==null && !st.lassoIds.has(String(c.custId))) return false;
     return true;
   }).map(c=>{
@@ -549,33 +603,28 @@ function renderClientList(){
     const color=agentColor(c.agentCode);
     const noGps=!c.lat||!c.lng;
     const isSel=st.selectedId===c.custId;
-    const lastOrd=(()=>{
-      if(!c.lastOrderDate) return '<span style="color:var(--red);font-weight:700">לא הזמין</span>';
-      const d=new Date(c.lastOrderDate.slice(0,10)); const today=new Date(); today.setHours(0,0,0,0);
-      const days=Math.round((today-d)/86400000);
-      const dd=String(d.getDate()).padStart(2,'0'),mm=String(d.getMonth()+1).padStart(2,'0');
-      return `<span style="${days>14?'color:var(--red);font-weight:700':''}">הזמנה: ${dd}.${mm}${days>14?` (${days}d)`:''}</span>`;
-    })();
     const dayBadge=c.dayNum?`<span class="day-badge">${DAY_LBL[c.dayNum]||'?'}</span>`:'';
     const salesBadge=c.monthlySales>0?`<span style="color:var(--green);font-weight:700;font-size:10px"> · ₪${Math.round(c.monthlySales).toLocaleString()}</span>`:'';
     const changedMark=c._changed?`<span class="changed-badge">✏️</span>`:'';
+    const addrText=esc(c.address||'');
     return `<div class="client-card${noGps?' no-gps':''}${isSel?' selected':''}"
           style="border-right-color:${color}"
           data-id="${c.custId}" onclick="selectClient('${c.custId}')">
       <div class="c-body">
         <div class="c-name">${changedMark}${esc(c.custName||'')}${salesBadge}</div>
         <div class="c-sub">
-          <span class="agent-badge" style="background:${color}">${esc(c.agentName||c.agentCode||'')}</span>
+          <span class="agent-badge" style="background:${color};cursor:pointer" onclick="openAgentPopup(event,'${c.custId}')">${esc(c.agentName||c.agentCode||'')}</span>
           ${dayBadge}
-          <span style="margin-right:4px">${lastOrd}</span>
+          ${addrText?`<span style="color:var(--mid);margin-right:4px;font-size:9px">${addrText}</span>`:''}
         </div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0">
         ${c.custId?`<span class="c-id">${c.custId}</span>`:''}
         <div class="c-actions">
           <span class="act-btn" onclick="openDayPopup(event,'${c.custId}',${c.dayNum||'null'})" title="שנה יום">📅</span>
-          <span class="act-btn" onclick="openAgentPopup(event,'${c.custId}')" title="שנה סוכן">👤</span>
-          ${noGps?`<span class="no-gps-badge">NO GPS</span>`:''}
+          ${noGps
+            ?`<span class="no-gps-badge" onclick="openGpsFix(event,'${c.custId}','${esc(c.custName||'')}','${esc(c.city||'')}','${esc(c.address||'')}')">📍 GPS</span>`
+            :`<span class="act-btn" onclick="openAddrModal(event,'${c.custId}','${esc(c.custName||'')}','${esc(c.city||'')}','${esc(c.address||'')}')" title="תיקון מיקום">📍</span>`}
         </div>
       </div>
     </div>`;
@@ -695,6 +744,23 @@ function renderMap(){
     L.control.zoom({position:'bottomright'}).addTo(map);
     setTile('osm');
     initLasso();
+    map.on('click', async(e)=>{
+      if(!gpsCorrectMode||!gpsCorrectId) return;
+      map.getContainer().style.cursor='';
+      const {lat,lng}=e.latlng;
+      const IL={minLat:29.3,maxLat:33.5,minLng:34.2,maxLng:35.9};
+      if(lat<IL.minLat||lat>IL.maxLat||lng<IL.minLng||lng>IL.maxLng){
+        showToast('❌ מחוץ לגבולות ישראל'); gpsCorrectMode=false; gpsCorrectId=null; renderMap(); return;
+      }
+      const la=+lat.toFixed(6), lo=+lng.toFixed(6);
+      const id=String(gpsCorrectId);
+      gpsCorrections[id]={lat:la,lng:lo};
+      try{const loc=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');loc[id]={lat:la,lng:lo};localStorage.setItem('fr_gps_local',JSON.stringify(loc));}catch(_){}
+      st.allClients=st.allClients.map(c=>String(c.custId)===id?{...c,lat:la,lng:lo,gpsSource:'correction'}:c);
+      gpsCorrectMode=false; gpsCorrectId=null;
+      renderAll();
+      showToast('✅ מיקום נשמר');
+    });
   }
   mapMarkers.forEach(m=>m.remove()); mapMarkers=[];
   mapPolylines.forEach(p=>p.remove()); mapPolylines=[];
@@ -814,6 +880,56 @@ async function exportXLSX(){
   finally{ btn.innerHTML=orig; btn.disabled=false; }
 }
 
+// ── GPS FIX ───────────────────────────────────────────────────────────────
+let _gpsCustId=null, _gpsCity='';
+
+function openGpsFix(event, custId, custName, city, address){
+  event.stopPropagation();
+  // Switch to map tab + map-click correction mode (same as formula-road)
+  if(st.tab!=='map') switchTab('map');
+  gpsCorrectMode=true; gpsCorrectId=custId; st.selectedId=custId;
+  renderMap();
+  if(map) map.getContainer().style.cursor='crosshair';
+  showToast('👆 הקש על המפה למיקום '+custName, 6000);
+}
+
+function openAddrModal(event, custId, custName, city, address){
+  // "📍" button on clients WITH GPS → open address-search modal for manual override
+  event.stopPropagation();
+  _gpsCustId=custId; _gpsCity=city;
+  document.getElementById('gps-modal-title').textContent=custName||'תיקון מיקום';
+  document.getElementById('gps-addr-input').value=address||'';
+  document.getElementById('gps-modal-status').textContent='';
+  document.getElementById('gps-modal').style.display='flex';
+  setTimeout(()=>document.getElementById('gps-addr-input').focus(),80);
+}
+
+function closeGpsModal(){
+  document.getElementById('gps-modal').style.display='none';
+  _gpsCustId=null;
+}
+
+async function submitGpsAddress(){
+  const addr=document.getElementById('gps-addr-input').value.trim();
+  const status=document.getElementById('gps-modal-status');
+  if(!addr){ status.textContent='הכנס כתובת'; return; }
+  status.textContent='⏳ מחפש...';
+  try{
+    const r=await apiFetch(`${API}/geocode?address=${encodeURIComponent(addr)}&city=${encodeURIComponent(_gpsCity||'')}`);
+    const d=await r.json();
+    if(d&&d.lat){
+      const id=String(_gpsCustId);
+      gpsCorrections[id]={lat:d.lat,lng:d.lng};
+      try{const loc=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');loc[id]={lat:d.lat,lng:d.lng};localStorage.setItem('fr_gps_local',JSON.stringify(loc));}catch(_){}
+      st.allClients=st.allClients.map(c=>String(c.custId)===id?{...c,lat:d.lat,lng:d.lng,address:addr}:c);
+      status.textContent=`✅ ${d.lat.toFixed(5)}, ${d.lng.toFixed(5)}`;
+      setTimeout(()=>{ closeGpsModal(); renderAll(); },800);
+    } else {
+      status.textContent='❌ לא נמצא — נסה כתובת אחרת';
+    }
+  }catch(e){ status.textContent='❌ שגיאה: '+e.message; }
+}
+
 // ── TOAST ─────────────────────────────────────────────────────────────────
 function showToast(msg,ms=2500){
   let t=document.getElementById('toast');
@@ -828,7 +944,7 @@ async function init(){
     try{const r=await fetch(API+'/auth/pbi',{credentials:'include'});if(r.ok){const j=await r.json();if(j.ok&&j.token)localStorage.setItem(TOKEN_KEY,j.token);}}catch(_){}
     if(!getToken()){location.href='./formula-road.html';return;}
   }
-  await loadCities();
+  await Promise.all([loadCities(), loadCorrections()]);
 }
 init();
 </script>

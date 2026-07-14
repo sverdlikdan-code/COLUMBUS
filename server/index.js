@@ -1218,6 +1218,7 @@ app.get('/territory-clients', requireAuth, dataRateLimit, async (req, res) => {
         address:       c.address || '',
         lat:           c.lat || null,
         lng:           c.lng || null,
+        gpsSource:     c.gpsSource || null,
         agentCode:     c.agentCode || agentCode,
         agentName:     c.agentName || '',
         manager:       c.manager || '',
