@@ -16,8 +16,24 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0D1B2E;color:#E8F0F
 .topbar-title{font-size:15px;font-weight:900;color:#fff;letter-spacing:.3px;white-space:nowrap;}
 .topbar-sub{font-size:10.5px;font-weight:700;color:#7098CC;letter-spacing:.8px;text-transform:uppercase;}
 .topbar-spacer{flex:1;}
-.city-select{background:#1A3F7C;border:1.5px solid #2A5AAA;color:#E8F0FC;font-size:13px;font-weight:700;padding:7px 12px;border-radius:10px;cursor:pointer;min-width:180px;direction:rtl;}
-.city-select option{background:#0D1B2E;}
+/* ── SEARCHABLE CITY PICKER ── */
+.city-picker{position:relative;min-width:220px;}
+.city-input-wrap{display:flex;align-items:center;background:#1A3F7C;border:1.5px solid #2A5AAA;border-radius:10px;overflow:hidden;cursor:text;}
+.city-input-wrap:focus-within{border-color:#C9A84C;}
+.city-inp{background:transparent;border:none;outline:none;color:#E8F0FC;font-size:13px;font-weight:700;padding:7px 10px;width:100%;direction:rtl;font-family:inherit;}
+.city-inp::placeholder{color:#7098CC;}
+.city-arrow-btn{background:transparent;border:none;color:#7098CC;padding:0 10px;cursor:pointer;font-size:12px;flex-shrink:0;}
+.city-drop{position:absolute;top:calc(100% + 4px);right:0;left:0;background:#0A1628;border:1.5px solid #2A5AAA;border-radius:10px;overflow:hidden;z-index:3000;box-shadow:0 8px 32px rgba(0,0,0,.6);display:none;max-height:320px;flex-direction:column;}
+.city-drop.open{display:flex;}
+.city-search-wrap{padding:8px 10px;border-bottom:1px solid #1A3F7C;flex-shrink:0;}
+.city-search-inp{width:100%;background:#0D1B2E;border:1.5px solid #1A3F7C;border-radius:7px;color:#E8F0FC;font-size:12px;padding:6px 10px;outline:none;direction:rtl;font-family:inherit;}
+.city-search-inp:focus{border-color:#C9A84C;}
+.city-drop-list{overflow-y:auto;flex:1;}
+.city-drop-item{padding:8px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #0D1B2E22;direction:rtl;}
+.city-drop-item:hover,.city-drop-item.active{background:#1A3F7C44;}
+.city-drop-item-name{font-size:13px;font-weight:700;color:#E8F0FC;}
+.city-drop-item-meta{font-size:10px;color:#7098CC;white-space:nowrap;margin-right:8px;}
+.city-drop-empty{padding:16px;text-align:center;color:#7098CC;font-size:12px;}
 .reset-btn{background:transparent;border:1.5px solid #C9A84C;color:#C9A84C;font-size:12px;font-weight:800;padding:6px 12px;border-radius:20px;cursor:pointer;white-space:nowrap;}
 .reset-btn:hover{background:#C9A84C22;}
 .export-btn{background:linear-gradient(135deg,#1A6E3C,#22A05A);border:none;color:#fff;font-size:12px;font-weight:800;padding:6px 14px;border-radius:20px;cursor:pointer;white-space:nowrap;}
@@ -96,9 +112,18 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0D1B2E;color:#E8F0F
     <div class="topbar-sub">TERRITORY ANALYSIS</div>
   </div>
   <div class="topbar-spacer"></div>
-  <select class="city-select" id="city-sel" onchange="loadCity(this.value)">
-    <option value="">בחר עיר...</option>
-  </select>
+  <div class="city-picker" id="city-picker">
+    <div class="city-input-wrap" onclick="showCityDrop()">
+      <input class="city-inp" id="city-inp" placeholder="בחר עיר..." readonly autocomplete="off">
+      <button type="button" class="city-arrow-btn" tabindex="-1">▾</button>
+    </div>
+    <div class="city-drop" id="city-drop">
+      <div class="city-search-wrap">
+        <input class="city-search-inp" id="city-search" placeholder="חיפוש עיר..." oninput="filterCities(this.value)" autocomplete="off">
+      </div>
+      <div class="city-drop-list" id="city-drop-list"></div>
+    </div>
+  </div>
   <button class="reset-btn" onclick="resetMoves()" id="reset-btn" style="display:none">↩ איפוס</button>
   <button class="export-btn" onclick="exportXlsx()" id="export-btn" style="display:none">📥 Excel</button>
 </div>
@@ -162,19 +187,63 @@ function initMap(){
   }).addTo(map);
 }
 
-// ── Load city list ────────────────────────────────────────────
+// ── City picker ───────────────────────────────────────────────
+let allCities = [];
+
 async function loadCities(){
   try{
     const r = await apiFetch(`${API}/api/territory/cities`);
-    const cities = await r.json();
-    const sel = document.getElementById('city-sel');
-    cities.forEach(c=>{
-      const opt = document.createElement('option');
-      opt.value = c.city;
-      opt.textContent = `${c.city} · ${c.agentCount} סוכנים · ${c.clientCount} לקוחות`;
-      sel.appendChild(opt);
-    });
+    allCities = await r.json();
+    renderCityList(allCities);
   }catch(e){ console.error(e); }
+}
+
+function renderCityList(list){
+  const el = document.getElementById('city-drop-list');
+  if(!list.length){
+    el.innerHTML=`<div class="city-drop-empty">לא נמצאו ערים</div>`;
+    return;
+  }
+  el.innerHTML=list.map(c=>`
+    <div class="city-drop-item" onclick="selectCity('${c.city.replace(/'/g,"\\'")}')">
+      <span class="city-drop-item-name">${c.city}</span>
+      <span class="city-drop-item-meta">${c.agentCount} סוכנים · ${c.clientCount}</span>
+    </div>
+  `).join('');
+}
+
+function filterCities(q){
+  const filtered = q.trim()
+    ? allCities.filter(c=>c.city.includes(q.trim()))
+    : allCities;
+  renderCityList(filtered);
+}
+
+function showCityDrop(){
+  document.getElementById('city-drop').classList.add('open');
+  setTimeout(()=>document.getElementById('city-search').focus(),50);
+  document.addEventListener('click', hideCityDropOutside, {once:true});
+}
+
+function hideCityDropOutside(e){
+  const picker = document.getElementById('city-picker');
+  if(!picker.contains(e.target)){
+    hideCityDrop();
+  } else {
+    document.addEventListener('click', hideCityDropOutside, {once:true});
+  }
+}
+
+function hideCityDrop(){
+  document.getElementById('city-drop').classList.remove('open');
+  document.getElementById('city-search').value='';
+  renderCityList(allCities);
+}
+
+function selectCity(city){
+  document.getElementById('city-inp').value = city;
+  hideCityDrop();
+  loadCity(city);
 }
 
 // ── Load city data ────────────────────────────────────────────
