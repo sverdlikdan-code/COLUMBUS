@@ -764,6 +764,11 @@
     <div id="inter-period-btns" style="display:flex;flex:1;min-width:0;overflow:hidden;padding:0 10px;align-items:center;gap:3px;direction:ltr;position:relative;z-index:1;" class="no-print"></div>
     <div style="display:flex;align-items:center;gap:6px;padding:0 10px;position:relative;z-index:1;" class="no-print">
       <button onclick="exportInterOrderCsv()" style="background:#b45309;border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:5px 13px;white-space:nowrap;letter-spacing:.3px;">⬇ Excel</button>
+      <button onclick="_interSaveSnapshot()" style="background:#15803d;border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;border-radius:6px;padding:5px 13px;white-space:nowrap;letter-spacing:.3px;">💾 שמור</button>
+      <div style="position:relative;display:inline-block;">
+        <button id="btn-inter-history" onclick="_interToggleHistory()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.8);font-size:11px;font-weight:600;cursor:pointer;border-radius:6px;padding:4px 11px;white-space:nowrap;">🕐 היסטוריה</button>
+        <div class="history-dropdown" id="inter-history-dropdown"></div>
+      </div>
       <button onclick="window.print()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.8);font-size:11px;font-weight:600;cursor:pointer;border-radius:6px;padding:4px 11px;white-space:nowrap;">🖨 הדפסה</button>
     </div>
   </div>
@@ -3308,6 +3313,7 @@ const fmtK = n => Math.round(n || 0).toLocaleString('en');
 window._interSelectedPeriods = new Set();
 window._interManualEdits     = {};
 window._interOnlyMode        = false;
+window._interZero            = false;
 window._interMotagFilter     = new Set();
 window._interParam2Filter    = new Set();
 window._interSortCol         = '';
@@ -3447,6 +3453,75 @@ function toggleInterOnly() {
   buildInterOrderPage();
 }
 
+function toggleInterZero() {
+  window._interZero = !window._interZero;
+  buildInterOrderPage();
+}
+
+const INTER_VERSIONS_KEY = 'mahsan_inter_order_versions';
+const INTER_HISTORY_API  = 'https://api.sverdlik-apps.site/api/inter-order-history';
+
+async function _interSaveSnapshot() {
+  const edits = window._interManualEdits || {};
+  if (!Object.keys(edits).length) { alert('אין הזמנה ידנית לשמירה'); return; }
+  const cloned = deepClone(edits);
+  let ts = new Date().toISOString();
+  try {
+    const resp = await fetch(INTER_HISTORY_API, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Session': localStorage.getItem('frToken') || '' },
+      body: JSON.stringify({ edits: cloned }),
+    });
+    const j = await resp.json().catch(() => null);
+    if (!resp.ok || !j?.ok) throw new Error('save failed');
+    ts = j.ts;
+    alert(`✅ ההזמנה נשמרה (${_orderFmtTs(ts)}) — משותף לכל המחשבים`);
+  } catch (e) {
+    const versions = JSON.parse(localStorage.getItem(INTER_VERSIONS_KEY) || '[]');
+    versions.unshift({ ts, edits: cloned });
+    if (versions.length > 5) versions.length = 5;
+    localStorage.setItem(INTER_VERSIONS_KEY, JSON.stringify(versions));
+    alert(`⚠ השרת לא הגיב — נשמר רק במחשב הזה (${_orderFmtTs(ts)})`);
+  }
+}
+
+function _interToggleHistory() {
+  const dd = document.getElementById('inter-history-dropdown');
+  const open = dd.classList.toggle('open');
+  if (open) {
+    _interRenderHistoryDropdown();
+    setTimeout(() => document.addEventListener('click', _interCloseHistoryOutside, { once: true }), 10);
+  }
+}
+function _interCloseHistoryOutside(e) {
+  const dd = document.getElementById('inter-history-dropdown');
+  if (dd && !dd.contains(e.target) && e.target.id !== 'btn-inter-history') dd.classList.remove('open');
+}
+async function _interRenderHistoryDropdown() {
+  const dd = document.getElementById('inter-history-dropdown');
+  dd.innerHTML = `<div class="history-empty">טוען...</div>`;
+  let versions = [];
+  try {
+    const resp = await fetch(INTER_HISTORY_API, { headers: { 'X-Session': localStorage.getItem('frToken') || '' } });
+    const j = await resp.json().catch(() => null);
+    if (!resp.ok || !j?.ok) throw new Error('fetch failed');
+    versions = j.versions;
+  } catch {
+    versions = JSON.parse(localStorage.getItem(INTER_VERSIONS_KEY) || '[]');
+  }
+  if (!versions.length) { dd.innerHTML = `<div class="history-empty">אין גרסאות שמורות</div>`; return; }
+  dd.innerHTML = versions.map((v, i) =>
+    `<div class="history-item" onclick="_interRestoreVersion(${i})" style="cursor:pointer;padding:8px 14px;font-size:12px;border-bottom:1px solid #f0e0c0;">${_orderFmtTs(v.ts)}</div>`
+  ).join('');
+}
+function _interRestoreVersion(idx) {
+  const versions = JSON.parse(localStorage.getItem(INTER_VERSIONS_KEY) || '[]');
+  if (!versions[idx]) return;
+  window._interManualEdits = deepClone(versions[idx].edits);
+  document.getElementById('inter-history-dropdown')?.classList.remove('open');
+  buildInterOrderPage();
+  alert(`✅ גרסה ${_orderFmtTs(versions[idx].ts)} שוחזרה`);
+}
+
 function toggleInterMotag(motag) {
   if (window._interMotagFilter.has(motag)) window._interMotagFilter.delete(motag);
   else window._interMotagFilter.add(motag);
@@ -3507,11 +3582,15 @@ function buildInterOrderPage() {
   const allParam2 = [...new Set(products.map(p => p.param2 || '—'))].sort();
   const famBtns   = document.getElementById('inter-fam-btns');
   if (famBtns) {
-    const chipAct = 'font-size:12px;padding:5px 16px;border-radius:20px;cursor:pointer;font-weight:800;border:2px solid #f57c00;background:#f57c00;color:#fff;white-space:nowrap;box-shadow:0 3px 10px rgba(245,124,0,.4);';
-    const chipDef = 'font-size:12px;padding:5px 16px;border-radius:20px;cursor:pointer;font-weight:600;border:2px solid #FFB74D;background:#fff;color:#bf360c;white-space:nowrap;';
+    const chipAct     = 'font-size:12px;padding:5px 16px;border-radius:20px;cursor:pointer;font-weight:800;border:2px solid #f57c00;background:#f57c00;color:#fff;white-space:nowrap;box-shadow:0 3px 10px rgba(245,124,0,.4);';
+    const chipDef     = 'font-size:12px;padding:5px 16px;border-radius:20px;cursor:pointer;font-weight:600;border:2px solid #FFB74D;background:#fff;color:#bf360c;white-space:nowrap;';
+    const chipZeroAct = 'font-size:12px;padding:5px 16px;border-radius:20px;cursor:pointer;font-weight:800;border:2px solid #bf360c;background:#e65100;color:#fff;white-space:nowrap;box-shadow:0 3px 10px rgba(230,81,0,.5);';
+    const chipZeroDef = 'font-size:12px;padding:5px 16px;border-radius:20px;cursor:pointer;font-weight:600;border:2px solid #FFB74D;background:#fff;color:#bf360c;white-space:nowrap;';
     famBtns.innerHTML =
       `<button style="${window._interParam2Filter.size === 0 ? chipAct : chipDef}" onclick="_interClearParam2()">כולם</button>` +
-      allParam2.map(p2 => `<button style="${window._interParam2Filter.has(p2) ? chipAct : chipDef}" onclick="toggleInterParam2('${esc(p2)}')">${esc(p2)}</button>`).join('');
+      allParam2.map(p2 => `<button style="${window._interParam2Filter.has(p2) ? chipAct : chipDef}" onclick="toggleInterParam2('${esc(p2)}')">${esc(p2)}</button>`).join('') +
+      `<span style="width:1px;height:26px;background:#FFE0B2;margin:0 8px;align-self:center;display:inline-block;flex-shrink:0;"></span>` +
+      `<button onclick="toggleInterZero()" style="${window._interZero ? chipZeroAct : chipZeroDef}">⚠ חסר במלאי${window._interZero ? ' ✓' : ''}</button>`;
   }
 
   const allRows = products.map(p => {
@@ -3546,6 +3625,7 @@ function buildInterOrderPage() {
   let rows = allRows;
   if (window._interParam2Filter.size) rows = rows.filter(r => window._interParam2Filter.has(r.param2));
   if (window._interOnlyMode) rows = rows.filter(r => r.recK > 0);
+  if (window._interZero) rows = rows.filter(r => r.malaiKarton <= 0);
 
   const _sc = window._interSortCol, _sd = window._interSortDir;
   if (_sc) {
@@ -3573,7 +3653,7 @@ function buildInterOrderPage() {
       <th style="${_ths('daysStk','text-align:center;')}">לכמה<br>ימים${_arr('daysStk')}</th>
       <th style="${_ths('recK','text-align:center;')}">המלצה<br>KARTON${_arr('recK')}</th>
       <th style="${_th('text-align:center;')}">קרט/<br>פל</th>
-      <th style="${_th('text-align:center;')}">MKOD</th>
+      <th style="${_th('text-align:center;display:none;')}">MKOD</th>
       <th style="${_th('text-align:center;')}">PAL<br>ידני</th>
     </tr>
   </thead>`;
@@ -3629,7 +3709,7 @@ function buildInterOrderPage() {
         <td style="padding:5px 6px;text-align:center;font-size:12px;font-weight:${dWt};color:${dCol};">${dStk != null ? dStk : '—'}</td>
         <td style="padding:5px 6px;text-align:center;font-size:13px;font-weight:800;color:${rcCol};">${r.recK > 0 ? fmtK(r.recK) : '—'}</td>
         <td style="padding:5px 6px;text-align:center;font-size:11px;color:#777;">${r.krat || '—'}</td>
-        <td style="padding:5px 6px;text-align:center;font-size:11px;color:#555;font-weight:600;">${r.mkod || '—'}</td>
+        <td style="padding:5px 6px;text-align:center;font-size:11px;color:#555;font-weight:600;display:none;">${r.mkod || '—'}</td>
         <td style="padding:5px 6px;text-align:center;background:#fff3e0;">
           <input type="number" min="0" step="0.5" value="${r.orderP || ''}" placeholder="0"
             style="width:55px;text-align:center;border:1px solid #ffb300;border-radius:4px;padding:3px;font-size:12px;font-weight:600;color:${r.orderP > 0 ? '#c62828' : '#888'};"
@@ -3658,13 +3738,14 @@ function buildInterOrderPage() {
 function exportInterOrderCsv() {
   const rows = window._interCurrentRows || [];
   if (!rows.length) { alert('אין מוצרים'); return; }
-  const cols = ['מק"ט','שם מוצר','מותג','פרמטר 2','מלאי קרטון','הזמנות פתוחות','מלאי+הזמנות','KARTON PER DAY','מכר בתקופה','לכמה ימים','המלצה KARTON','פלטות ידני'];
+  const cols = ['מק"ט','שם מוצר','מותג','פרמטר 2','MKOD','מלאי קרטון','הזמנות פתוחות','מלאי+הזמנות','KARTON PER DAY','מכר בתקופה','לכמה ימים','המלצה KARTON','פלטות ידני'];
   const csvRows = [cols.join(',')];
   rows.forEach(r => {
     csvRows.push([r.mk,
       `"${(r.name||'').replace(/"/g,'""')}"`,
       `"${(r.motag||'').replace(/"/g,'""')}"`,
       `"${(r.param2||'').replace(/"/g,'""')}"`,
+      r.mkod || '',
       r.malaiKarton || 0,
       r.hazmanaPtuha || 0,
       r.spo || 0,
