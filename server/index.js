@@ -77,8 +77,11 @@ CALCULATETABLE(
         agentCode: r['משטח[סוכן]']    || '',
         agentName: fixBiDi(r['משטח[שם סוכן]'] || ''),
         manager:   r['משטח[קבוצה]']   || '',
+        sadran:    r['משטח[שם סדרן]'] || '',
         target:    parseFloat(r['[target]']) || 0,
         monthlySales:  0,
+        avg6Sales:     0,
+        avg6Orders:    0,
         lastOrderDate: null,
       });
     }
@@ -91,6 +94,32 @@ CALCULATETABLE(
       c.monthlySales  = parseFloat(r['[monthlySales]']) || 0;
       const d = r['[lastDate]'];
       c.lastOrderDate = d ? new Date(d).toISOString().slice(0, 10) : null;
+    }
+
+    // D: Avg sales + order days per client — last 6 complete months
+    const _now = new Date();
+    const _d6s = new Date(_now.getFullYear(), _now.getMonth() - 6, 1);
+    const _d6e = new Date(_now.getFullYear(), _now.getMonth(), 0);
+    const d6start = `DATE(${_d6s.getFullYear()},${_d6s.getMonth()+1},1)`;
+    const d6end   = `DATE(${_d6e.getFullYear()},${_d6e.getMonth()+1},${_d6e.getDate()})`;
+    const avg6Rows = await executeDax(`
+EVALUATE
+CALCULATETABLE(
+  ADDCOLUMNS(
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]),
+    "avg6Sales",  DIVIDE(CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)]), 6),
+    "avg6Orders", DIVIDE(CALCULATE(DISTINCTCOUNT(ALL_PARTS[תאריך])), 6)
+  ),
+  ALL_PARTS[תאריך] >= ${d6start},
+  ALL_PARTS[תאריך] <= ${d6end}
+)
+`);
+    for (const r of avg6Rows) {
+      const custId = String(r['ALL_PARTS[מספר לקוח]'] || '');
+      const c = clientMap.get(custId);
+      if (!c) continue;
+      c.avg6Sales  = parseFloat(r['[avg6Sales]'])  || 0;
+      c.avg6Orders = parseFloat(r['[avg6Orders]']) || 0;
     }
 
     // Build schedule map: custId → [{dayNum, dayLabel, visitOrder}]
@@ -1660,6 +1689,30 @@ app.get('/api/territory/jerusalem', cors({ origin: true }), async (req, res) => 
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── Territory variants (save/restore redistribution experiments) ──────────────
+const VARIANTS_PATH = path.join(__dirname, '..', 'docs', 'territory-variants.json');
+function _loadVariants(){ try{ return JSON.parse(fs.readFileSync(VARIANTS_PATH,'utf8')); }catch(_){ return []; } }
+function _saveVariants(v){ fs.writeFileSync(VARIANTS_PATH, JSON.stringify(v, null, 2)); }
+
+app.get('/api/territory/variants', requireAuth, (req, res) => {
+  res.json(_loadVariants());
+});
+app.post('/api/territory/variants', requireAuth, (req, res) => {
+  const { name, city, moves } = req.body;
+  if (!name || !city || !moves) return res.status(400).json({ error: 'missing fields' });
+  const list = _loadVariants();
+  const id = Date.now();
+  list.unshift({ id, name, city, moves, savedAt: new Date().toISOString(), moveCount: Object.keys(moves).length });
+  if (list.length > 100) list.splice(100);
+  _saveVariants(list);
+  res.json({ ok: true, id });
+});
+app.delete('/api/territory/variants/:id', requireAuth, (req, res) => {
+  const id = parseInt(req.params.id);
+  _saveVariants(_loadVariants().filter(v => v.id !== id));
+  res.json({ ok: true });
+});
+
 // Cities where 2+ agents have clients (for territory analysis)
 app.get('/api/territory/cities', requireAuth, async (req, res) => {
   try {
@@ -1701,14 +1754,18 @@ app.get('/api/territory/city', requireAuth, async (req, res) => {
         agentName: cityClients[0].agentName || agentCode,
         manager:   cityClients[0].manager   || '',
         clients: cityClients.map(c => ({
-          custId:   c.custId,
-          custName: c.custName,
-          address:  c.address,
-          dayNum:   c.dayNum,
+          custId:      c.custId,
+          custName:    c.custName,
+          address:     c.address,
+          dayNum:      c.dayNum,
           lat: corr(c) ? corr(c).lat : c.lat,
           lng: corr(c) ? corr(c).lng : c.lng,
           monthlySales: c.monthlySales,
+          avg6Sales:    c.avg6Sales,
+          avg6Orders:   c.avg6Orders,
           target:       c.target,
+          sadran:       c.sadran || '',
+          iceOnly:      c.iceOnly || false,
         })),
       });
     }
