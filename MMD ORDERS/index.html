@@ -893,7 +893,7 @@
   <img src="/logo-diler-bmd.png" alt="" id="fbar-logo"
        style="height:22px;filter:brightness(0);opacity:.13;flex-shrink:0;padding:0 18px;">
   <div id="sk-inline">
-    <span class="chip" id="btn-tukuf-overlay" onclick="openTukufOverlay()">📦 תוקף</span>
+    <span class="chip" id="btn-tukuf-overlay">📦 תוקף</span>
     <span class="stk-label">אשדוד:</span>
     <span class="chip on" id="sk-ash-yes" onclick="togStock('ash','yes')">✓ יש 📦</span>
     <span class="chip"    id="sk-ash-no"  onclick="togStock('ash','no')">חסר 😢</span>
@@ -2353,16 +2353,29 @@ function _renderTukufCards() {
 }
 
 window.openTukufOverlay = function() {
+  var ov = document.getElementById('tukuf-overlay');
+  if (!ov) { alert('overlay not found'); return; }
   _ovSakanaOnly = false;
   var btn = document.getElementById('btn-ov-sakana');
   if (btn) { btn.style.background = 'rgba(255,255,255,.12)'; btn.style.borderColor = 'rgba(255,255,255,.35)'; }
-  _renderTukufCards();
-  document.getElementById('tukuf-overlay').style.display = '';
+  try { _renderTukufCards(); } catch(e) { console.error('tukuf render error:', e); }
+  ov.style.display = 'block';
 };
 
 window.closeTukufOverlay = function() {
   document.getElementById('tukuf-overlay').style.display = 'none';
 };
+
+// Wire up tukuf button — DOM element is already available (static HTML above script)
+(function() {
+  var btn = document.getElementById('btn-tukuf-overlay');
+  if (btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      window.openTukufOverlay();
+    });
+  }
+})();
 
 window.toggleOvSakana = function() {
   _ovSakanaOnly = !_ovSakanaOnly;
