@@ -70,6 +70,7 @@ CALCULATETABLE(
         lat:       r['משטח[קו רוחב]']  || null,
         lng:       r['משטח[קו אורך]']  || null,
         status:    r['משטח[סטטוס]']   || '',
+        hevra:     r['משטח[HEVRA]']      || 'FORMULA',
         kosher:    r['משטח[כשרות]']   || '',
         saleType:  r['משטח[סוג מכירה]'] || '',
         param7:    r['משטח[פרמטר 7]'] || null,
@@ -215,6 +216,7 @@ SELECTCOLUMNS(
             monthlySales:  0,
             lastOrderDate: null,
             pct:           0,
+            hevra:         'ICE',
             iceOnly:       true,
           });
         }
@@ -1238,16 +1240,17 @@ app.post('/api/export-route-xlsx', requireAuth, dataRateLimit, async (req, res) 
   const ws = wb.addWorksheet('מסלול', { views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
 
   const COLS = [
-    { name: 'סדר ביקור מתוקן', width: 8  },
-    { name: 'מס. לקוח',        width: 14 },
-    { name: 'שם לקוח',         width: 28 },
-    { name: 'יום',              width: 10 },
-    { name: 'עיר',              width: 16 },
-    { name: 'כתובת',            width: 26 },
-    { name: 'קו רוחב',          width: 13 },
-    { name: 'קו אורך',          width: 13 },
-    { name: 'GPS',              width: 14 },
-    { name: 'סדר ביקור PRIORITY', width: 15 },
+    { name: 'סדר ביקור מתוקן',    width: 8  },
+    { name: 'מס. לקוח',           width: 14 },
+    { name: 'שם לקוח',            width: 28 },
+    { name: 'חברה',               width: 10 },
+    { name: 'יום',                 width: 10 },
+    { name: 'עיר',                 width: 16 },
+    { name: 'כתובת',               width: 26 },
+    { name: 'קו רוחב',             width: 13 },
+    { name: 'קו אורך',             width: 13 },
+    { name: 'GPS',                 width: 14 },
+    { name: 'סדר ביקור PRIORITY',  width: 15 },
   ];
 
   ws.addTable({
@@ -1261,6 +1264,7 @@ app.post('/api/export-route-xlsx', requireAuth, dataRateLimit, async (req, res) 
       r.currentPos,
       String(r.custId || ''),
       r.custName || '',
+      r.hevra || 'FORMULA',
       r.dayLabel || '',
       r.city || '',
       r.address || '',
@@ -1284,6 +1288,8 @@ app.post('/api/export-route-xlsx', requireAuth, dataRateLimit, async (req, res) 
   const FILL_GRAY2   = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } }; // noOrder (odd)
   const FILL_STRIPE1 = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } }; // normal (even)
   const FILL_STRIPE2 = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } }; // normal (odd)
+  const FILL_ICE1    = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB2DFDB' } }; // ICE client (even)
+  const FILL_ICE2    = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF80CBC4' } }; // ICE client (odd)
   const DOUBTFUL     = new Set(['geocoded', 'pbi-sibling-near', 'city-center', 'no-gps']);
 
   rows.forEach((r, i) => {
@@ -1292,7 +1298,9 @@ app.post('/api/export-route-xlsx', requireAuth, dataRateLimit, async (req, res) 
     const isChanged = r.corrected && (
       !r.pbiLat || !r.pbiLng || haversineDist(r.lat, r.lng, Number(r.pbiLat), Number(r.pbiLng)) > 20
     );
-    if (isChanged) {
+    if (r.iceOnly) {
+      fill = i % 2 === 0 ? FILL_ICE1 : FILL_ICE2;
+    } else if (isChanged) {
       fill = i % 2 === 0 ? FILL_GREEN1 : FILL_GREEN2;
     } else if (r.noOrder) {
       fill = i % 2 === 0 ? FILL_GRAY1 : FILL_GRAY2;
