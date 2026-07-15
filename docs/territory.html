@@ -50,31 +50,37 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .city-item-all{border-bottom:1px solid var(--sky-mid);font-weight:800;color:var(--blue-dark);}
 .city-count-badge{background:var(--blue);color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 7px;flex-shrink:0;}
 
-/* Day buttons */
-.day-btns{display:flex;gap:4px;width:100%;}
-/* compact before data */
-.day-btn{flex:1;min-height:44px;border-radius:10px;background:var(--sky-light);border:1.5px solid var(--sky-mid);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 3px;transition:all .15s;gap:1px;}
-.day-btn:hover{background:var(--sky-mid);}
-.day-btn.active{background:var(--blue);color:#fff;border-color:var(--blue-dark);}
-.day-btn-label{font-size:16px;font-weight:900;color:var(--blue-dark);line-height:1;}
+/* Day buttons — card style */
+.day-btns{display:flex;gap:5px;width:100%;}
+.day-btn{
+  flex:1;min-height:46px;border-radius:12px;
+  background:#fff;border:2px solid var(--sky-mid);
+  cursor:pointer;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:5px 3px;transition:all .18s;gap:0;
+  box-shadow:0 1px 4px rgba(21,101,192,.07);
+}
+.day-btn:hover{border-color:var(--blue);box-shadow:0 3px 10px rgba(21,101,192,.14);}
+.day-btn.active{background:var(--blue);border-color:var(--blue-dark);box-shadow:0 3px 12px rgba(21,101,192,.35);}
+.day-btn-label{font-size:18px;font-weight:900;color:var(--blue-dark);line-height:1.1;}
 .day-btn.active .day-btn-label{color:#fff;}
-.day-btn-agents,.day-btn-sales,.day-btn-count{font-size:9px;font-weight:700;line-height:1.2;white-space:nowrap;text-align:center;display:none;}
-.day-btn-agents{color:var(--mid);}
-.day-btn.active .day-btn-agents{color:rgba(255,255,255,.85);}
-.day-btn-sales{color:var(--green);font-weight:800;}
-.day-btn.active .day-btn-sales{color:#B3E5FC;}
-.day-btn-count{color:var(--mid);opacity:.75;}
-.day-btn.active .day-btn-count{color:rgba(255,255,255,.7);}
+/* compact — no data yet */
+.day-btn-body{display:none;flex-direction:column;align-items:center;gap:1px;width:100%;}
 /* expanded with data */
-.day-btns.has-data .day-btn{min-height:90px;border-radius:14px;border-width:2px;padding:8px 4px;gap:3px;box-shadow:0 1px 5px rgba(21,101,192,.08);}
-.day-btns.has-data .day-btn:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(21,101,192,.15);}
-.day-btns.has-data .day-btn.active{box-shadow:0 3px 12px rgba(21,101,192,.35);}
-.day-btns.has-data .day-btn-label{font-size:24px;}
-.day-btns.has-data .day-btn-agents,.day-btns.has-data .day-btn-sales,.day-btns.has-data .day-btn-count{display:block;}
-.day-btn-ag-row{font-size:12px;font-weight:700;color:var(--mid);line-height:1.5;white-space:nowrap;text-align:center;display:none;}
-.day-btns.has-data .day-btn-ag-row{display:block;}
-.day-btn.active .day-btn-ag-row{color:rgba(255,255,255,.9);}
-.day-btn-ag-sales{color:var(--green);font-weight:900;font-size:13px;}
+.day-btns.has-data .day-btn{min-height:108px;border-radius:14px;padding:8px 5px;gap:2px;}
+.day-btns.has-data .day-btn:hover{transform:translateY(-1px);}
+.day-btns.has-data .day-btn-label{font-size:26px;font-weight:900;}
+.day-btns.has-data .day-btn-body{display:flex;}
+.day-btn-sales-total{
+  font-size:14px;font-weight:900;color:var(--green);line-height:1.2;
+  border-top:1px solid var(--sky-mid);margin-top:3px;padding-top:3px;width:100%;text-align:center;
+}
+.day-btn.active .day-btn-sales-total{color:#B3E5FC;border-color:rgba(255,255,255,.25);}
+.day-btn-count-lbl{font-size:9px;font-weight:700;color:var(--mid);line-height:1;}
+.day-btn.active .day-btn-count-lbl{color:rgba(255,255,255,.7);}
+.day-btn-ag-row{font-size:10px;font-weight:700;color:var(--mid);line-height:1.4;white-space:nowrap;text-align:center;width:100%;overflow:hidden;text-overflow:ellipsis;}
+.day-btn.active .day-btn-ag-row{color:rgba(255,255,255,.88);}
+.day-btn-ag-sales{font-weight:900;font-size:11px;color:var(--green);}
 .day-btn.active .day-btn-ag-sales{color:#B3E5FC;}
 
 /* Stats row */
@@ -495,13 +501,13 @@ async function loadClients(cities){
 }
 
 function renderDayBtns(){
-  const fmt=n=>n>=1000?`₪${(n/1000).toFixed(1)}K`:`₪${n}`;
+  const fmt=n=>n>=1000?`₪${(n/1000).toFixed(1)}K`:`₪${Math.round(n)}`;
   const baseCl=st.allClients.filter(c=>{
     const ov=st.overrides[String(c.custId)]||{};
     return st.activeAgents.has(ov.agentCode||c.agentCode);
   });
 
-  // per-day per-agent stats: byDay[dayNum][agentCode] = {name, count, salesSum, salesCount}
+  // per-day per-agent stats using avg6Sales (completed months only)
   const byDay={};
   [1,2,3,4,5].forEach(d=>{ byDay[d]={}; });
   baseCl.forEach(c=>{
@@ -511,10 +517,10 @@ function renderDayBtns(){
     if(!dayNum||!byDay[dayNum]) return;
     if(!byDay[dayNum][agentCode]){
       const ag=st.agents.find(a=>a.agentCode===agentCode);
-      byDay[dayNum][agentCode]={name:(ag?.agentName||agentCode).split(/[\s\-]/)[0].slice(0,6),count:0,salesSum:0,salesCount:0};
+      byDay[dayNum][agentCode]={name:(ag?.agentName||agentCode).split(/[\s\-]/)[0].slice(0,7),count:0,salesSum:0,salesCount:0};
     }
     byDay[dayNum][agentCode].count++;
-    if(c.monthlySales>0){byDay[dayNum][agentCode].salesSum+=c.monthlySales;byDay[dayNum][agentCode].salesCount++;}
+    if((c.avg6Sales||0)>0){byDay[dayNum][agentCode].salesSum+=c.avg6Sales;byDay[dayNum][agentCode].salesCount++;}
   });
 
   // "כל" per-agent totals
@@ -524,18 +530,26 @@ function renderDayBtns(){
     const agentCode=ov.agentCode||c.agentCode;
     if(!totalByAgent[agentCode]){
       const ag=st.agents.find(a=>a.agentCode===agentCode);
-      totalByAgent[agentCode]={name:(ag?.agentName||agentCode).split(/[\s\-]/)[0].slice(0,6),count:0,salesSum:0,salesCount:0};
+      totalByAgent[agentCode]={name:(ag?.agentName||agentCode).split(/[\s\-]/)[0].slice(0,7),count:0,salesSum:0,salesCount:0};
     }
     totalByAgent[agentCode].count++;
-    if(c.monthlySales>0){totalByAgent[agentCode].salesSum+=c.monthlySales;totalByAgent[agentCode].salesCount++;}
+    if((c.avg6Sales||0)>0){totalByAgent[agentCode].salesSum+=c.avg6Sales;totalByAgent[agentCode].salesCount++;}
   });
 
-  function agRows(agMap){
-    return Object.values(agMap).map(ag=>{
+  function buildCard(dayLabel, agMap){
+    const entries=Object.values(agMap);
+    const totalCount=entries.reduce((s,a)=>s+a.count,0);
+    const totalSalesSum=entries.reduce((s,a)=>s+a.salesSum,0);
+    const totalSalesCount=entries.reduce((s,a)=>s+a.salesCount,0);
+    const avgTotal=totalSalesCount>0?Math.round(totalSalesSum/totalSalesCount):0;
+    const salesLine=avgTotal?`<div class="day-btn-sales-total">${fmt(avgTotal)}</div>`:'';
+    const countLine=totalCount?`<div class="day-btn-count-lbl">${totalCount} לק'</div>`:'';
+    const agLines=entries.map(ag=>{
       const avg=ag.salesCount>0?Math.round(ag.salesSum/ag.salesCount):0;
       const s=avg?`<span class="day-btn-ag-sales">${fmt(avg)}</span> `:'';
       return `<div class="day-btn-ag-row">${ag.name} ${s}${ag.count}לק'</div>`;
     }).join('');
+    return `<span class="day-btn-label">${dayLabel}</span><div class="day-btn-body">${countLine}${salesLine}${agLines}</div>`;
   }
 
   const wrap=document.getElementById('day-btns-wrap');
@@ -547,10 +561,9 @@ function renderDayBtns(){
     const d=dayKeys[i];
     btn.classList.toggle('active',d===null?st.activeDays.size===5:st.activeDays.has(d));
     if(d===null){
-      btn.innerHTML=`<span class="day-btn-label">כל</span>${agRows(totalByAgent)}`;
+      btn.innerHTML=buildCard('כל',totalByAgent);
     } else {
-      const rows=agRows(byDay[d]);
-      btn.innerHTML=`<span class="day-btn-label">${DAY_LBL[d]}</span>${rows||'<span class="day-btn-count" style="display:block">—</span>'}`;
+      btn.innerHTML=buildCard(DAY_LBL[d],byDay[d]);
     }
   });
 }
