@@ -88,6 +88,11 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .day-btn.active .dc-ag-cnt{color:#fff;}
 .dc-ag-sales{display:table-cell;font-size:11px;font-weight:700;color:var(--green);padding:1px 0;text-align:left;font-variant-numeric:tabular-nums;white-space:nowrap;}
 .day-btn.active .dc-ag-sales{color:#B3E5FC;}
+.dc-ag-pct{display:table-cell;font-size:10px;font-weight:600;color:var(--mid);padding:1px 3px;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.day-btn.active .dc-ag-pct{color:rgba(255,255,255,.6);}
+.dc-ag-pct-g{font-size:9px;opacity:.7;}
+.dc-pct-grand{font-size:10px;font-weight:700;color:var(--mid);}
+.day-btn.active .dc-pct-grand{color:rgba(255,255,255,.65);}
 
 /* Stats row */
 .stats-row{background:#fff;border-bottom:1px solid var(--sky-mid);padding:4px 10px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;}
@@ -536,18 +541,23 @@ function renderDayBtns(){
     totalByAgent[agentCode].salesSum+=(c.avg6Sales||0);
   });
 
+  const grandTotal=baseCl.length;
+
   function buildCard(agMap){
     const entries=Object.values(agMap).filter(a=>a.count>0);
     const totalCount=entries.reduce((s,a)=>s+a.count,0);
     const totalSales=entries.reduce((s,a)=>s+a.salesSum,0);
     if(!totalCount) return '';
+    const pctGrandTotal=grandTotal>0?Math.round(totalCount/grandTotal*100):0;
     const agRows=entries.map(ag=>{
+      const pctDay=totalCount>0?Math.round(ag.count/totalCount*100):0;
       const salesCell=ag.salesSum>0?`<span class="dc-ag-sales">${fmt(ag.salesSum)}</span>`:`<span class="dc-ag-sales"></span>`;
-      return `<span class="dc-ag-row"><span class="dc-ag-name">${ag.name}</span><span class="dc-ag-cnt">${ag.count}</span>${salesCell}</span>`;
+      return `<span class="dc-ag-row"><span class="dc-ag-name">${ag.name}</span><span class="dc-ag-cnt">${ag.count}</span><span class="dc-ag-pct">${pctDay}%</span>${salesCell}</span>`;
     }).join('');
+    const pctLabel=grandTotal>0?`<span class="dc-pct-grand">${pctGrandTotal}%</span>`:'';
     return `<div class="day-card-body">
       <div class="dc-totals">
-        <div class="dc-lq"><span>${totalCount}</span> לק'</div>
+        <div class="dc-lq"><span>${totalCount}</span> לק' ${pctLabel}</div>
         <div class="dc-mkr">${totalSales>0?fmt(totalSales):''}</div>
       </div>
       <div class="dc-ag-tbl">${agRows}</div>
@@ -557,7 +567,6 @@ function renderDayBtns(){
   const wrap=document.getElementById('day-btns-wrap');
   if(!wrap) return;
   wrap.classList.toggle('has-data', baseCl.length>0);
-  // dayKeys order matches HTML button order: כל(null) א(1)..ה(5)
   const dayKeys=[null,1,2,3,4,5];
   const btnEls=wrap.querySelectorAll('.day-btn');
   btnEls.forEach((btn,i)=>{
@@ -729,9 +738,9 @@ function openAgentPopup(event, custId){
 }
 
 function setClientAgent(agentCode){
+  const id=String(_agentPopCustId); // save before closePops nulls it
   closePops();
-  if(!_agentPopCustId) return;
-  const id=String(_agentPopCustId);
+  if(!id||id==='null') return;
   if(!st.overrides[id]) st.overrides[id]={};
   st.overrides[id].agentCode=agentCode;
   saveOverrides();
@@ -755,14 +764,32 @@ function openDayPopup(event, custId, curDay){
 }
 
 function setClientDay(newDay){
+  const id=String(_dayPopCustId); // save before closePops nulls it
   closePops();
-  if(!_dayPopCustId) return;
-  const id=String(_dayPopCustId);
+  if(!id||id==='null') return;
   if(!st.overrides[id]) st.overrides[id]={};
   st.overrides[id].dayNum=newDay;
   saveOverrides();
   renderAll();
   showToast(`📅 יום שונה ל‑${DAY_LBL[newDay]}`);
+}
+
+function setClientDayFromMap(custId, newDay){
+  if(map) map.closePopup();
+  const id=String(custId);
+  if(!st.overrides[id]) st.overrides[id]={};
+  st.overrides[id].dayNum=newDay;
+  saveOverrides();
+  renderAll();
+  showToast(`📅 יום שונה ל‑${DAY_LBL[newDay]}`);
+}
+
+function openGpsFixFromMap(custId, custName){
+  if(map) map.closePopup();
+  gpsCorrectMode=true; gpsCorrectId=custId; st.selectedId=custId;
+  renderMap();
+  if(map) map.getContainer().style.cursor='crosshair';
+  showToast('👆 הקש על המפה למיקום '+custName, 6000);
 }
 
 function closePops(){
@@ -851,7 +878,13 @@ function renderMap(){
     m._agColor=color; m._custId=String(c.custId);
     const safeName=esc(c.custName||'');
     m.bindTooltip(`${esc(c.custName||'')} · ${esc(c.agentName||'')}`,{permanent:false,direction:'right',opacity:1,className:'fr-tip'});
-    m.bindPopup(`<b>${safeName}</b><br><span style="color:${color};font-weight:700">${esc(c.agentName||c.agentCode||'')}</span><br>יום: ${DAY_LBL[c.dayNum]||'?'}${c.address?'<br>'+esc(c.address):''}`);
+    const curDay=st.overrides[String(c.custId)]?.dayNum??c.dayNum;
+    const dayBtnsHtml=[1,2,3,4,5].map(d=>{
+      const on=d===curDay;
+      return `<button type="button" onclick="setClientDayFromMap('${c.custId}',${d})" style="width:28px;height:26px;border-radius:6px;background:${on?'#1565C0':'#E3F2FD'};color:${on?'#fff':'#1565C0'};border:1.5px solid #1565C0;font-size:12px;font-weight:900;cursor:pointer">${DAY_LBL[d]}</button>`;
+    }).join('');
+    const gpsBtnHtml=`<button type="button" onclick="openGpsFixFromMap('${c.custId}','${safeName}')" style="margin-top:6px;width:100%;background:#1565C0;color:#fff;border:none;border-radius:8px;padding:5px;font-size:11px;font-weight:700;cursor:pointer">📍 תיקון מיקום</button>`;
+    m.bindPopup(`<div style="min-width:160px;direction:rtl"><b>${safeName}</b><br><span style="color:${color};font-weight:700">${esc(c.agentName||c.agentCode||'')}</span>${c.address?'<br><span style="font-size:11px;color:#666">'+esc(c.address)+'</span>':''}<br><div style="display:flex;gap:3px;margin-top:5px">${dayBtnsHtml}</div>${gpsBtnHtml}</div>`);
     if(isSel){m.addTo(map);m.openPopup();}else{markerCluster.addLayer(m);}
     mapMarkers.push(m);
     bounds.push([c.lat,c.lng]);
