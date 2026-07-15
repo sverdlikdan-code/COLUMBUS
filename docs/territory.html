@@ -50,38 +50,44 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .city-item-all{border-bottom:1px solid var(--sky-mid);font-weight:800;color:var(--blue-dark);}
 .city-count-badge{background:var(--blue);color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 7px;flex-shrink:0;}
 
-/* Day table */
-.day-table{width:100%;border-radius:10px;overflow:hidden;border:1.5px solid var(--sky-mid);}
-.day-tbl-hdr{
-  display:grid;grid-template-columns:30px 38px 78px 1fr;gap:6px;
-  padding:5px 10px;background:var(--blue);color:#fff;
-  font-size:10px;font-weight:700;letter-spacing:.4px;direction:rtl;
-}
-.day-hdr-c{text-align:center;}
+/* Day cards */
+.day-btns{display:flex;gap:5px;width:100%;}
 .day-btn{
-  display:grid;grid-template-columns:30px 38px 78px 1fr;gap:6px;
-  padding:7px 10px;width:100%;background:#fff;border:none;
-  border-bottom:1px solid #EEF4FF;cursor:pointer;direction:rtl;
-  align-items:center;transition:background .12s;text-align:right;
+  flex:1;border-radius:12px;background:#fff;
+  border:2px solid var(--sky-mid);cursor:pointer;
+  display:flex;flex-direction:column;align-items:stretch;
+  padding:7px 6px 6px;transition:all .18s;gap:0;
+  box-shadow:0 1px 4px rgba(21,101,192,.07);min-height:40px;
 }
-.day-btn:last-child{border-bottom:none;}
-.day-btn.day-total{border-top:2px solid var(--sky-mid);background:#F6FAFF;}
-.day-btn.active{background:#E3F0FC;}
-.day-btn.day-total.active{background:#D2E8F8;}
-.day-btn:hover{background:#EDF5FF;}
-.day-btn-label{font-size:20px;font-weight:900;color:var(--blue);text-align:center;line-height:1;}
-.day-btn.active .day-btn-label{color:#0D47A1;}
-.dt-count{font-size:15px;font-weight:800;color:#222;text-align:center;font-variant-numeric:tabular-nums;}
-.dt-sales{font-size:12px;font-weight:800;color:var(--green);font-variant-numeric:tabular-nums;}
-.dt-agents{display:flex;flex-wrap:wrap;gap:3px;align-items:center;}
-.dt-ag{
-  display:inline-flex;align-items:center;gap:3px;
-  background:#E8F0FE;border-radius:5px;padding:1px 6px;
-  font-size:10px;font-weight:700;color:#1A56C4;white-space:nowrap;
+.day-btn:hover{border-color:var(--blue);}
+.day-btn.active{background:var(--blue);border-color:var(--blue-dark);box-shadow:0 3px 12px rgba(21,101,192,.35);}
+.day-btn-label{font-size:22px;font-weight:900;color:var(--blue);text-align:center;line-height:1.1;padding-bottom:4px;}
+.day-btn.active .day-btn-label{color:#fff;}
+/* inner mini-table — hidden until data */
+.day-card-body{display:none;flex-direction:column;gap:0;width:100%;}
+.day-btns.has-data .day-btn{min-height:100px;}
+.day-btns.has-data .day-card-body{display:flex;}
+/* totals row inside card */
+.dc-totals{
+  display:grid;grid-template-columns:1fr 1fr;gap:2px;
+  border-top:1px solid var(--sky-mid);padding-top:4px;margin-bottom:3px;
 }
-.dt-ag .dt-ag-n{max-width:60px;overflow:hidden;text-overflow:ellipsis;}
-.dt-ag .dt-ag-c{background:#1565C0;color:#fff;border-radius:3px;padding:0 3px;font-size:9px;font-variant-numeric:tabular-nums;}
-.dt-ag .dt-ag-s{color:var(--green);font-size:9px;font-variant-numeric:tabular-nums;}
+.day-btn.active .dc-totals{border-color:rgba(255,255,255,.25);}
+.dc-lq{font-size:11px;font-weight:700;color:var(--mid);text-align:right;font-variant-numeric:tabular-nums;}
+.dc-lq span{font-size:14px;font-weight:900;color:#222;}
+.day-btn.active .dc-lq{color:rgba(255,255,255,.7);}
+.day-btn.active .dc-lq span{color:#fff;}
+.dc-mkr{font-size:11px;font-weight:900;color:var(--green);text-align:left;font-variant-numeric:tabular-nums;}
+.day-btn.active .dc-mkr{color:#B3E5FC;}
+/* per-agent mini-table rows */
+.dc-ag-tbl{display:table;width:100%;border-collapse:collapse;}
+.dc-ag-row{display:table-row;}
+.dc-ag-name{display:table-cell;font-size:9.5px;font-weight:700;color:var(--mid);padding:1px 0;white-space:nowrap;overflow:hidden;max-width:50px;text-overflow:ellipsis;text-align:right;}
+.day-btn.active .dc-ag-name{color:rgba(255,255,255,.75);}
+.dc-ag-cnt{display:table-cell;font-size:9.5px;font-weight:800;color:#333;padding:1px 4px;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.day-btn.active .dc-ag-cnt{color:#fff;}
+.dc-ag-sales{display:table-cell;font-size:9.5px;font-weight:700;color:var(--green);padding:1px 0;text-align:left;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.day-btn.active .dc-ag-sales{color:#B3E5FC;}
 
 /* Stats row */
 .stats-row{background:#fff;border-bottom:1px solid var(--sky-mid);padding:4px 10px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;}
@@ -193,16 +199,13 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
         </div>
       </div>
       <span class="flt-label">יום</span>
-      <div class="day-table" id="day-btns-wrap">
-        <div class="day-tbl-hdr">
-          <span>יום</span><span class="day-hdr-c">לק'</span><span>מכר</span><span>סוכנים</span>
-        </div>
-        <button type="button" class="day-btn active" onclick="selectDay(1)"><span class="day-btn-label">א</span></button>
+      <div class="day-btns" id="day-btns-wrap">
+        <button type="button" class="day-btn active" onclick="selectDay(null)"><span class="day-btn-label">כל</span></button>
+        <button type="button" class="day-btn" onclick="selectDay(1)"><span class="day-btn-label">א</span></button>
         <button type="button" class="day-btn" onclick="selectDay(2)"><span class="day-btn-label">ב</span></button>
         <button type="button" class="day-btn" onclick="selectDay(3)"><span class="day-btn-label">ג</span></button>
         <button type="button" class="day-btn" onclick="selectDay(4)"><span class="day-btn-label">ד</span></button>
         <button type="button" class="day-btn" onclick="selectDay(5)"><span class="day-btn-label">ה</span></button>
-        <button type="button" class="day-btn day-total active" onclick="selectDay(null)"><span class="day-btn-label">כל</span></button>
       </div>
     </div>
     <div class="filter-row">
@@ -533,30 +536,35 @@ function renderDayBtns(){
     totalByAgent[agentCode].salesSum+=(c.avg6Sales||0);
   });
 
-  function buildRow(agMap){
+  function buildCard(agMap){
     const entries=Object.values(agMap).filter(a=>a.count>0);
     const totalCount=entries.reduce((s,a)=>s+a.count,0);
     const totalSales=entries.reduce((s,a)=>s+a.salesSum,0);
-    const chips=entries.map(ag=>{
-      const s=ag.salesSum>0?`<span class="dt-ag-s">${fmt(ag.salesSum)}</span>`:'';
-      return `<span class="dt-ag"><span class="dt-ag-n">${ag.name}</span>${s}<span class="dt-ag-c">${ag.count}</span></span>`;
+    if(!totalCount) return '';
+    const agRows=entries.map(ag=>{
+      const salesCell=ag.salesSum>0?`<span class="dc-ag-sales">${fmt(ag.salesSum)}</span>`:`<span class="dc-ag-sales"></span>`;
+      return `<span class="dc-ag-row"><span class="dc-ag-name">${ag.name}</span><span class="dc-ag-cnt">${ag.count}</span>${salesCell}</span>`;
     }).join('');
-    const countHtml=totalCount?`<span class="dt-count">${totalCount}</span>`:`<span class="dt-count" style="color:#ccc">—</span>`;
-    const salesHtml=totalSales>0?`<span class="dt-sales">${fmt(totalSales)}</span>`:`<span class="dt-sales" style="color:#ccc">—</span>`;
-    return `${countHtml}${salesHtml}<span class="dt-agents">${chips}</span>`;
+    return `<div class="day-card-body">
+      <div class="dc-totals">
+        <div class="dc-lq"><span>${totalCount}</span> לק'</div>
+        <div class="dc-mkr">${totalSales>0?fmt(totalSales):''}</div>
+      </div>
+      <div class="dc-ag-tbl">${agRows}</div>
+    </div>`;
   }
 
   const wrap=document.getElementById('day-btns-wrap');
   if(!wrap) return;
-  // dayKeys order matches HTML button order: א(1) ב(2) ג(3) ד(4) ה(5) כל(null)
-  const dayKeys=[1,2,3,4,5,null];
+  wrap.classList.toggle('has-data', baseCl.length>0);
+  // dayKeys order matches HTML button order: כל(null) א(1)..ה(5)
+  const dayKeys=[null,1,2,3,4,5];
   const btnEls=wrap.querySelectorAll('.day-btn');
   btnEls.forEach((btn,i)=>{
     const d=dayKeys[i];
     btn.classList.toggle('active',d===null?st.activeDays.size===5:st.activeDays.has(d));
     const lbl=`<span class="day-btn-label">${d===null?'כל':DAY_LBL[d]}</span>`;
-    const rowData=d===null?buildRow(totalByAgent):buildRow(byDay[d]||{});
-    btn.innerHTML=lbl+rowData;
+    btn.innerHTML=lbl+(d===null?buildCard(totalByAgent):buildCard(byDay[d]||{}));
   });
 }
 
