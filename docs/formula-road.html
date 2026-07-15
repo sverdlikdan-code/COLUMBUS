@@ -1043,6 +1043,11 @@ async function doLogin(code){
     const j=await r.json();
     if(j.ok){
       _saveToken(j.token);
+      const _nextUrl = new URLSearchParams(window.location.search).get('next');
+      if(_nextUrl && _nextUrl.startsWith('/')){
+        window.location.href = _nextUrl;
+        return;
+      }
       if(j.type==='manager'){
         localStorage.setItem('frAgent',JSON.stringify({code:'mgr',name:'מנהל',isManager:true}));
         _logAccess('login',null,'מנהל',true);
