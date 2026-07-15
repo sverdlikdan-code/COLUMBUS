@@ -274,6 +274,7 @@ const MAAYAN_DATA=[{id:0,name:"כל טוב-רכס",city:"ירושלים",addr:"�
 const API = 'https://api.sverdlik-apps.site';
 const TOKEN_KEY = 'frToken';
 let gpsCorrections = {}; // custId → {lat,lng} — from gps-corrections.json + localStorage
+let AI_GPS = {}; // custId → {aiLat,aiLng} — from google-gps.json (same as formula-road)
 let gpsCorrectMode = false, gpsCorrectId = null;
 
 async function loadCorrections(){
@@ -281,15 +282,20 @@ async function loadCorrections(){
     const r=await fetch('./gps-corrections.json?_='+Date.now());
     if(r.ok){
       gpsCorrections=await r.json();
-      const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
-      Object.assign(gpsCorrections,local);
     }
-  }catch(_){
-    try{
-      const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
-      gpsCorrections=local;
-    }catch(__) {}
-  }
+  }catch(_){}
+  // always merge localStorage on top (works even if server file blocked)
+  try{
+    const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
+    Object.assign(gpsCorrections,local);
+  }catch(_){}
+}
+
+async function loadAiGps(){
+  try{
+    const r=await fetch('./google-gps.json?_='+Date.now());
+    if(r.ok) AI_GPS=await r.json();
+  }catch(_){}
 }
 const DAY_LBL = {1:'א',2:'ב',3:'ג',4:'ד',5:'ה'};
 const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -458,6 +464,16 @@ async function loadClients(cities){
       const id=String(c.custId);
       const corr=gpsCorrections[id];
       return corr?{...c,lat:corr.lat,lng:corr.lng,gpsSource:'correction'}:c;
+    });
+  }catch(_){}
+
+  // Apply AI GPS as fallback for clients without manual correction (same as formula-road)
+  try{
+    st.allClients=st.allClients.map(c=>{
+      if(c.gpsSource==='correction') return c;
+      const ai=AI_GPS[String(c.custId)];
+      if(ai?.aiLat&&ai?.aiLng) return{...c,lat:ai.aiLat,lng:ai.aiLng,gpsSource:'ai'};
+      return c;
     });
   }catch(_){}
 
@@ -978,7 +994,7 @@ async function init(){
   loadOverrides();
   try{const r=await fetch(API+'/auth/pbi',{credentials:'include'});if(r.ok){const j=await r.json();if(j.ok&&j.token)localStorage.setItem(TOKEN_KEY,j.token);}}catch(_){}
   if(!getToken()){location.href='/formula-road?next=/territory.html';return;}
-  await Promise.all([loadCities(), loadCorrections()]);
+  await Promise.all([loadCities(), loadCorrections(), loadAiGps()]);
   if(!selectedCities.size){
     ['ירושלים','מעלה אדומים','מבשרת ציון'].forEach(c=>{ if(allCities.includes(c)) selectedCities.add(c); });
     if(selectedCities.size){ renderCityItems(allCities); updateCityBtn(); onCitiesChanged(); }
