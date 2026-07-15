@@ -451,7 +451,10 @@ async function loadClients(cities){
     const data=await r.json();
     if(myId!==_loadId) return;
     // Filter out "כללי" (catch-all unassigned, not route agents)
-    st.allClients=(Array.isArray(data)?data:[]).filter(c=>!String(c.agentName||'').includes('כללי'));
+    // Mark מעיין 2000 clients with _isNew flag
+    st.allClients=(Array.isArray(data)?data:[])
+      .filter(c=>!String(c.agentName||'').includes('כללי'))
+      .map(c=>String(c.clientType||'').includes('מעין')?{...c,_isNew:true}:c);
   }catch(e){
     if(myId!==_loadId) return;
     document.getElementById('client-list').innerHTML=`<div class="placeholder"><div class="placeholder-icon">❌</div><div class="placeholder-text">שגיאה</div><div class="placeholder-sub">${esc(String(e))}</div></div>`;
@@ -475,17 +478,6 @@ async function loadClients(cities){
       if(ai?.aiLat&&ai?.aiLng) return{...c,lat:ai.aiLat,lng:ai.aiLng,gpsSource:'ai'};
       return c;
     });
-  }catch(_){}
-
-  // Inject מעיין 2000 new clients (geocoded) for matching cities
-  try{
-    const maayanNew=MAAYAN_DATA
-      .filter(c=>cityArr.includes(c.city))
-      .map(c=>({
-        custId:`new-${c.id}`,custName:c.name,agentCode:'NEW',agentName:'מעיין 2000',
-        city:c.city,address:c.addr,lat:c.lat,lng:c.lng,dayNum:null,monthlySales:0,_isNew:true
-      }));
-    st.allClients=[...st.allClients,...maayanNew];
   }catch(_){}
 
   // Build agent list

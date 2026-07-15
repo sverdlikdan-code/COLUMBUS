@@ -69,10 +69,11 @@ CALCULATETABLE(
         address:   expandCityAbbrev(fixBiDiAddress(rawAddr)),
         lat:       r['משטח[קו רוחב]']  || null,
         lng:       r['משטח[קו אורך]']  || null,
-        status:    r['משטח[סטטוס]']   || '',
-        hevra:     r['משטח[HEVRA]']      || 'FORMULA',
-        kosher:    r['משטח[כשרות]']   || '',
-        saleType:  r['משטח[סוג מכירה]'] || '',
+        status:     r['משטח[סטטוס]']   || '',
+        hevra:      r['משטח[HEVRA]']      || 'FORMULA',
+        kosher:     r['משטח[כשרות]']   || '',
+        saleType:   r['משטח[סוג מכירה]'] || '',
+        clientType: fixBiDi(r['משטח[סוג לקוח]'] || ''),
         param7:    r['משטח[פרמטר 7]'] || null,
         agentCode: r['משטח[סוכן]']    || '',
         agentName: fixBiDi(r['משטח[שם סוכן]'] || ''),
@@ -1227,6 +1228,7 @@ app.get('/territory-clients', requireAuth, dataRateLimit, async (req, res) => {
         lastOrderDate: c.lastOrderDate || null,
         monthlySales:  c.monthlySales || 0,
         pct:           c.pct || 0,
+        clientType:    c.clientType || '',
       });
     }
   }
