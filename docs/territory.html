@@ -960,6 +960,10 @@ async function init(){
   try{const r=await fetch(API+'/auth/pbi',{credentials:'include'});if(r.ok){const j=await r.json();if(j.ok&&j.token)localStorage.setItem(TOKEN_KEY,j.token);}}catch(_){}
   if(!getToken()){location.href='/formula-road?next=/territory.html';return;}
   await Promise.all([loadCities(), loadCorrections()]);
+  if(!selectedCities.size){
+    ['ירושלים','מעלה אדומים','מבשרת ציון'].forEach(c=>{ if(allCities.includes(c)) selectedCities.add(c); });
+    if(selectedCities.size){ renderCityItems(allCities); updateCityBtn(); onCitiesChanged(); }
+  }
 }
 init();
 </script>
