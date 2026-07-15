@@ -69,8 +69,8 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .day-btn.active .day-btn-label{color:#fff;}
 /* inner mini-table — hidden until data */
 .day-card-body{display:none;flex-direction:column;gap:0;width:100%;}
-.day-btns.has-data .day-btn{min-height:110px;}
-.day-btns.has-data .day-card-body{display:flex;}
+.day-btns.has-data .day-btn{height:150px;}
+.day-btns.has-data .day-card-body{display:flex;overflow:hidden;}
 /* totals row inside card */
 .dc-totals{
   display:grid;grid-template-columns:1fr 1fr;gap:2px;
@@ -100,7 +100,13 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 
 /* Stats row */
 .stats-row{background:#fff;border-bottom:1px solid var(--sky-mid);padding:4px 10px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;}
-.stat-chip{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:var(--sky-light);color:var(--blue-dark);white-space:nowrap;}
+.stat-chip{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:var(--sky-light);color:var(--blue-dark);white-space:nowrap;border:none;}
+.nogps-btn{background:#FBE9E7;color:#BF360C;border:1.5px solid #FFCCBC;cursor:pointer;}
+.nogps-btn.active{background:#D84315;color:#fff;border-color:#BF360C;}
+.nosales-btn{background:#FFF3E0;color:#E65100;border:1.5px solid #FFCC80;cursor:pointer;}
+.nosales-btn.active{background:#E65100;color:#fff;border-color:#BF360C;}
+.nosales-btn180{background:#FCE4EC;color:#880E4F;border-color:#F48FB1;}
+.nosales-btn180.active{background:#880E4F;color:#fff;border-color:#880E4F;}
 .stats-right{margin-right:auto;display:flex;gap:6px;align-items:center;}
 .export-btn{background:#1D6F42;color:#fff;border:none;border-radius:16px;padding:4px 12px;height:28px;font-size:11px;font-weight:800;cursor:pointer;}
 .tab-inline{display:flex;gap:3px;}
@@ -229,9 +235,10 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
   <!-- STATS BAR -->
   <div class="stats-row" id="stats-row" style="display:none;">
     <span class="stat-chip" id="stat-total"></span>
-    <span class="stat-chip" id="stat-avg" style="display:none;background:#E8F5E9;color:#1B5E20;"></span>
     <span class="stat-chip" id="stat-lasso" style="display:none;background:#FFF3E0;color:#E65100;"></span>
-    <span class="stat-chip" id="stat-nogps" style="display:none;"></span>
+    <button type="button" class="stat-chip nogps-btn" id="stat-nogps" style="display:none" onclick="toggleNoGpsFilter()"></button>
+    <button type="button" class="stat-chip nosales-btn" id="stat-nosales60" style="display:none" onclick="toggleNoSales(60)"></button>
+    <button type="button" class="stat-chip nosales-btn nosales-btn180" id="stat-nosales180" style="display:none" onclick="toggleNoSales(180)"></button>
     <span class="stat-chip" id="stat-changed" style="display:none;"></span>
     <div class="stats-right">
       <button type="button" class="visit-btn" id="visit-btn" onclick="toggleVisitMode()">🗺 ביקור</button>
@@ -362,6 +369,8 @@ const st={
   activeAgents: new Set(),
   activeDays: new Set([0,1,2,3,4,5]),
   lassoIds: null,
+  noGpsFilter: false,
+  noSalesDays: 0,
   overrides: {},
   selectedId: null,
   tab: 'list',
@@ -618,7 +627,7 @@ function renderDayBtns(){
   const grandTotal=baseCl.length;
 
   function miniPie(entries,total){
-    if(entries.length<2||total<1) return '';
+    if(!entries.length||total<1) return '';
     const r=15,cx=17,cy=17,sz=34;
     let ang=-Math.PI/2;
     const paths=entries.map(ag=>{
@@ -633,7 +642,7 @@ function renderDayBtns(){
   }
 
   function buildCard(agMap){
-    const entries=Object.values(agMap).filter(a=>a.count>0);
+    const entries=Object.values(agMap).filter(a=>a.count>0).sort((a,b)=>b.count-a.count);
     const totalCount=entries.reduce((s,a)=>s+a.count,0);
     const totalSales=entries.reduce((s,a)=>s+a.salesSum,0);
     if(!totalCount) return '';
@@ -689,6 +698,12 @@ function displayClients(){
     if(!st.activeAgents.has(agentCode)) return false;
     if(st.activeDays.size<6 && !st.activeDays.has(dayNum||0)) return false;
     if(st.lassoIds!==null && !st.lassoIds.has(String(c.custId))) return false;
+    if(st.noGpsFilter && c.lat && c.lng && c.gpsSource!=='no-gps') return false;
+    if(st.noSalesDays>0){
+      const lo=c.lastOrderDate?new Date(c.lastOrderDate):null;
+      const cutoff=new Date(Date.now()-st.noSalesDays*86400000);
+      if(lo&&lo>=cutoff) return false;
+    }
     return true;
   }).map(c=>{
     const ov=st.overrides[String(c.custId)]||{};
@@ -716,19 +731,52 @@ function renderAll(){
 
 function updateStats(){
   const list=displayClients();
-  const noGps=list.filter(c=>!c.lat||!c.lng||c.gpsSource==='no-gps').length;
+  const baseList=(st.noGpsFilter||st.noSalesDays>0)?displayClientsAll():list;
+  const noGps=baseList.filter(c=>!c.lat||!c.lng||c.gpsSource==='no-gps').length;
+  const now=Date.now();
+  const cut60=new Date(now-60*86400000), cut180=new Date(now-180*86400000);
+  const noSales60=baseList.filter(c=>{ const lo=c.lastOrderDate?new Date(c.lastOrderDate):null; return !lo||lo<cut60; }).length;
+  const noSales180=baseList.filter(c=>{ const lo=c.lastOrderDate?new Date(c.lastOrderDate):null; return !lo||lo<cut180; }).length;
   const changed=Object.keys(st.overrides).length;
-  const withSales=list.filter(c=>c.monthlySales>0);
-  const avgSales=withSales.length?Math.round(withSales.reduce((s,c)=>s+c.monthlySales,0)/withSales.length):0;
   document.getElementById('stat-total').textContent=`${list.length} לקוחות`;
-  const avgEl=document.getElementById('stat-avg');
-  avgEl.textContent=avgSales>0?`ממוצע ₪${avgSales.toLocaleString()}`:''; avgEl.style.display=avgSales>0?'':'none';
   const lassoEl=document.getElementById('stat-lasso');
   if(st.lassoIds!==null){ lassoEl.textContent=`🎯 ${list.length} נבחרו`; lassoEl.style.display=''; }else{ lassoEl.style.display='none'; }
   const ngEl=document.getElementById('stat-nogps');
-  ngEl.textContent=noGps?`${noGps} ללא GPS`:''; ngEl.style.display=noGps?'':'none';
+  if(noGps>0){
+    ngEl.textContent=`📍 ${noGps} ללא GPS`; ngEl.style.display='';
+    ngEl.classList.toggle('active',st.noGpsFilter);
+  } else { ngEl.style.display='none'; st.noGpsFilter=false; }
+  const ns60El=document.getElementById('stat-nosales60');
+  if(noSales60>0){
+    ns60El.textContent=`🔶 ${noSales60} ללא מכר 60י`; ns60El.style.display='';
+    ns60El.classList.toggle('active',st.noSalesDays===60);
+  } else { ns60El.style.display='none'; if(st.noSalesDays===60) st.noSalesDays=0; }
+  const ns180El=document.getElementById('stat-nosales180');
+  if(noSales180>0){
+    ns180El.textContent=`🔴 ${noSales180} ללא מכר 180י`; ns180El.style.display='';
+    ns180El.classList.toggle('active',st.noSalesDays===180);
+  } else { ns180El.style.display='none'; if(st.noSalesDays===180) st.noSalesDays=0; }
   const chEl=document.getElementById('stat-changed');
   chEl.textContent=changed?`✏️ ${changed} שינויים`:''; chEl.style.display=changed?'':'none';
+}
+function displayClientsAll(){
+  return st.allClients.filter(c=>{
+    const ov=st.overrides[String(c.custId)]||{};
+    const agentCode=ov.agentCode||c.agentCode;
+    const dayNum=ov.dayNum!==undefined?ov.dayNum:c.dayNum;
+    if(!st.activeAgents.has(agentCode)) return false;
+    if(st.activeDays.size<6 && !st.activeDays.has(dayNum||0)) return false;
+    if(st.lassoIds!==null && !st.lassoIds.has(String(c.custId))) return false;
+    return true;
+  });
+}
+function toggleNoGpsFilter(){
+  st.noGpsFilter=!st.noGpsFilter;
+  renderAll();
+}
+function toggleNoSales(days){
+  st.noSalesDays=st.noSalesDays===days?0:days;
+  renderAll();
 }
 
 // ── AGENT LEGEND ──────────────────────────────────────────────────────────
