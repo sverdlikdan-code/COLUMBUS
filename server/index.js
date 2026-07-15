@@ -1238,12 +1238,15 @@ app.get('/territory-clients', requireAuth, dataRateLimit, async (req, res) => {
       pushClient(c, agentCode);
     }
   }
-  // Include ICE-only clients (visited by Formula agents in ICE territory)
+  // Include ICE-only clients — only where secondary agent (סוכן נוסף) matches a Formula agent
   if (pbiCache.iceByAgent) {
     for (const [agentCode, clients] of pbiCache.iceByAgent) {
+      if (!pbiCache.byAgent.has(agentCode)) continue; // skip ICE agents with no formula match
+      const formulaClients = pbiCache.byAgent.get(agentCode);
+      const agentName = formulaClients?.[0]?.agentName || agentCode;
       for (const c of clients) {
         if (!c.city || !citySet.has(c.city)) continue;
-        pushClient(c, agentCode, { hevra: 'ICE', iceOnly: true });
+        pushClient(c, agentCode, { hevra: 'ICE', iceOnly: true, agentName });
       }
     }
   }
