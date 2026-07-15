@@ -1388,28 +1388,27 @@ async function loadMaps() {
       if (kb.maxRows) KAPUA_MAX.rows = kb.maxRows;
       if (kb.reserveStart) KAPUA_RESERVE_START = kb.reserveStart;
       window._kapuaVer = kb.v || '';
-      // If base version changed → reset state from fresh JSON (clears stale localStorage order)
+      // Merge kb.picks into existing state — never wipe working bays (1-54).
+      // Reserve picks (62+) come from CI build; working picks stay in localStorage.
       const savedVer = localStorage.getItem('kapua_base_v');
       const freshVer = kb.v || '';
+      for (const [pick, p] of Object.entries(kb.picks)) {
+        const k = parseInt(pick);
+        if (!p) {
+          state.kapua[k] = null;
+        } else if (!(k in state.kapua) || state.kapua[k] === null) {
+          state.kapua[k] = deepClone(p);
+        } else {
+          if (p.haluka != null) state.kapua[k].haluka = p.haluka;
+          if (p.printOrder != null && state.kapua[k].printOrder == null) state.kapua[k].printOrder = p.printOrder;
+        }
+      }
       if (freshVer && savedVer !== freshVer) {
-        state.kapua = deepClone(kb.picks);
         localStorage.setItem('kapua_base_v', freshVer);
         printOrder.kapua = null;
         localStorage.removeItem('mahsan_print_order_kapua');
         _anyVersionReset = true;
-        console.log(`kapua-base.json: version changed ${savedVer} → ${freshVer}, state reset`);
-      } else {
-        for (const [pick, p] of Object.entries(kb.picks)) {
-          if (!p) {
-            state.kapua[pick] = null;
-          } else if (!(pick in state.kapua) || state.kapua[pick] === null) {
-            state.kapua[pick] = { ...p };
-          } else {
-            // Always sync haluka and printOrder from fresh base (may be missing in old saved state)
-            if (p.haluka != null) state.kapua[pick].haluka = p.haluka;
-            if (p.printOrder != null && state.kapua[pick].printOrder == null) state.kapua[pick].printOrder = p.printOrder;
-          }
-        }
+        console.log(`kapua-base.json: version changed ${savedVer} → ${freshVer}, reserve merged`);
       }
       console.log(`kapua-base.json: ${Object.keys(kb.picks).length} picks, maxRows=${kb.maxRows}, v=${freshVer}`);
     }

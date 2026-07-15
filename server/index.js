@@ -1206,31 +1206,45 @@ app.get('/territory-clients', requireAuth, dataRateLimit, async (req, res) => {
   const citySet = new Set(raw.split(',').map(c => c.trim()).filter(Boolean));
   const results = [];
   const seen = new Set();
+  const pushClient = (c, agentCode, extra = {}) => {
+    const key = `${c.custId}_${agentCode}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    results.push({
+      custId:        c.custId,
+      custName:      c.custName,
+      city:          c.city,
+      address:       c.address || '',
+      lat:           c.lat || null,
+      lng:           c.lng || null,
+      gpsSource:     c.gpsSource || null,
+      agentCode:     c.agentCode || agentCode,
+      agentName:     c.agentName || '',
+      manager:       c.manager || '',
+      dayNum:        c.dayNum || null,
+      dayLabel:      c.dayLabel || '',
+      lastOrderDate: c.lastOrderDate || null,
+      monthlySales:  c.monthlySales || 0,
+      avg6Sales:     c.avg6Sales || 0,
+      pct:           c.pct || 0,
+      clientType:    c.clientType || '',
+      hevra:         c.hevra || 'FORMULA',
+      ...extra,
+    });
+  };
   for (const [agentCode, clients] of pbiCache.byAgent) {
     for (const c of clients) {
       if (!c.city || !citySet.has(c.city)) continue;
-      const key = `${c.custId}_${agentCode}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      results.push({
-        custId:        c.custId,
-        custName:      c.custName,
-        city:          c.city,
-        address:       c.address || '',
-        lat:           c.lat || null,
-        lng:           c.lng || null,
-        gpsSource:     c.gpsSource || null,
-        agentCode:     c.agentCode || agentCode,
-        agentName:     c.agentName || '',
-        manager:       c.manager || '',
-        dayNum:        c.dayNum || null,
-        dayLabel:      c.dayLabel || '',
-        lastOrderDate: c.lastOrderDate || null,
-        monthlySales:  c.monthlySales || 0,
-        avg6Sales:     c.avg6Sales || 0,
-        pct:           c.pct || 0,
-        clientType:    c.clientType || '',
-      });
+      pushClient(c, agentCode);
+    }
+  }
+  // Include ICE-only clients (visited by Formula agents in ICE territory)
+  if (pbiCache.iceByAgent) {
+    for (const [agentCode, clients] of pbiCache.iceByAgent) {
+      for (const c of clients) {
+        if (!c.city || !citySet.has(c.city)) continue;
+        pushClient(c, agentCode, { hevra: 'ICE', iceOnly: true });
+      }
     }
   }
   res.json(results);
@@ -2568,6 +2582,34 @@ app.post('/api/order-history', requireAuth, dataRateLimit, (req, res) => {
     versions.unshift({ ts, edits });
     if (versions.length > 5) versions.length = 5;
     fs.writeFileSync(ORDER_HISTORY_FILE, JSON.stringify(versions, null, 2), 'utf8');
+    res.json({ ok: true, ts });
+  } catch (err) {
+    console.error(err); res.status(500).json({ error: 'server_error' });
+  }
+});
+
+// ── Inter order history (INTER order page) — shared across devices, file-persisted ──
+const INTER_ORDER_HISTORY_FILE = path.join(__dirname, 'inter-order-history-store.json');
+
+function readInterOrderHistory() {
+  try { return JSON.parse(fs.readFileSync(INTER_ORDER_HISTORY_FILE, 'utf8')); } catch { return []; }
+}
+
+app.get('/api/inter-order-history', requireAuth, dataRateLimit, (req, res) => {
+  res.json({ ok: true, versions: readInterOrderHistory() });
+});
+
+app.post('/api/inter-order-history', requireAuth, dataRateLimit, (req, res) => {
+  try {
+    const edits = req.body?.edits;
+    if (!edits || typeof edits !== 'object' || !Object.keys(edits).length) {
+      return res.status(400).json({ error: 'missing edits' });
+    }
+    const versions = readInterOrderHistory();
+    const ts = new Date().toISOString();
+    versions.unshift({ ts, edits });
+    if (versions.length > 5) versions.length = 5;
+    fs.writeFileSync(INTER_ORDER_HISTORY_FILE, JSON.stringify(versions, null, 2), 'utf8');
     res.json({ ok: true, ts });
   } catch (err) {
     console.error(err); res.status(500).json({ error: 'server_error' });
