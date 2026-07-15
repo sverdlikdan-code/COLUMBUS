@@ -770,12 +770,16 @@ function renderClientList(){
     const iceBadge=c.hevra==='ICE'?`<span style="background:#0288D1;color:#fff;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;flex-shrink:0;margin-left:4px">❄️ ICE</span>`:'';
     const addrText=esc(c.address||'');
     const vNum=visitOrderMap[String(c.custId)];
-    const visitBadge=vNum?`<span class="visit-num">${vNum}</span>`:'';
     return `<div class="client-card${noGps?' no-gps':''}${isSel?' selected':''}${c._isNew?' new-client':''}${c.hevra==='ICE'?' ice-client':''}"
           style="border-right-color:${color}${c._isNew?';border:1.5px solid #FFD600;border-right:4px solid #FF8F00':''}${c.hevra==='ICE'?';border:1.5px solid #81D4FA;border-right:4px solid #0288D1':''}"
           data-id="${c.custId}" onclick="selectClient('${c.custId}')">
+      <div class="c-drag" style="display:flex;align-items:center;justify-content:center;width:28px;flex-shrink:0;align-self:stretch;cursor:grab;touch-action:none;user-select:none">
+        ${vNum
+          ?`<span class="visit-num">${vNum}</span>`
+          :`<span style="font-size:14px;color:#bbb;line-height:1">⠿</span>`}
+      </div>
       <div class="c-body">
-        <div class="c-name">${visitBadge}${changedMark}${esc(c.custName||'')}${newBadge}${iceBadge}${salesBadge}</div>
+        <div class="c-name">${changedMark}${esc(c.custName||'')}${newBadge}${iceBadge}${salesBadge}</div>
         <div class="c-sub">
           <span class="agent-badge" style="background:${color};cursor:pointer" onclick="openAgentPopup(event,'${c.custId}')">${esc(c.agentName||c.agentCode||'')}</span>
           ${dayBadge}
@@ -783,7 +787,6 @@ function renderClientList(){
         </div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0">
-        <span class="c-drag" style="cursor:grab;touch-action:none;font-size:13px;color:#bbb;line-height:1;padding:2px 4px;user-select:none">⠿</span>
         ${c.custId?`<span class="c-id">${c.custId}</span>`:''}
         <div class="c-actions">
           <span class="act-btn" onclick="openDayPopup(event,'${c.custId}',${c.dayNum||'null'})" title="שנה יום">📅</span>
@@ -962,6 +965,8 @@ function renderMap(){
     }
   });
 
+  const mapVisitOrderMap={};
+  if(st.sortMode==='visit'&&st.visitOrder.length) st.visitOrder.forEach((id,i)=>mapVisitOrderMap[id]=i+1);
   const list=displayClients().filter(c=>c.lat&&c.lng&&c.gpsSource!=='no-gps');
   const bounds=[];
 
@@ -969,11 +974,13 @@ function renderMap(){
     const color=agentColor(c.agentCode);
     const isSel=st.selectedId===c.custId;
     const sz=isSel?36:c._isNew?30:c.hevra==='ICE'?28:26;
+    const vNum=mapVisitOrderMap[String(c.custId)];
+    const markerLabel=vNum?String(vNum):(DAY_LBL[c.dayNum]||'?');
     const markerInner=c._isNew
       ?`<div style="background:#FF8F00;color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${sz>28?13:11}px;font-weight:900;border:3px solid #FFD600;box-shadow:0 2px 10px rgba(255,143,0,.6)">🆕</div>`
       :c.hevra==='ICE'
       ?`<div style="background:#0288D1;color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;border:3px solid #81D4FA;box-shadow:0 2px 10px rgba(2,136,209,.6)">❄️</div>`
-      :`<div style="background:${color};color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${isSel?12:10}px;font-weight:900;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4)">${DAY_LBL[c.dayNum]||'?'}</div>`;
+      :`<div style="background:${color};color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${isSel?12:10}px;font-weight:900;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4)${vNum?';box-shadow:0 2px 8px rgba(0,0,0,.4),0 0 0 2.5px #fff,0 0 0 5px #5C6BC0':''}">${markerLabel}</div>`;
     const icon=L.divIcon({className:'',html:markerInner,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
     const m=L.marker([c.lat,c.lng],{icon,zIndexOffset:isSel?1000:0});
     m._agColor=color; m._custId=String(c.custId);
