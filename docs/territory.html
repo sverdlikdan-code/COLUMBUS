@@ -170,6 +170,9 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .lasso-btn.has-selection{background:#E8F5E9;border-color:#2E7D32;color:#1B5E20;}
 .lasso-clear{height:26px;border-radius:10px;background:#fff;border:2px solid #EF9A9A;color:var(--red);font-size:11px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.12);padding:0 10px;white-space:nowrap;display:none;}
 .lasso-clear.visible{display:block;}
+.visit-btn{background:#5C6BC0;color:#fff;border:none;border-radius:16px;padding:0 12px;height:28px;font-size:11px;font-weight:800;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.visit-btn.active{background:#283593;box-shadow:0 2px 8px rgba(40,53,147,.45);}
+.visit-num{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:5px;background:#5C6BC0;color:#fff;font-size:10px;font-weight:900;flex-shrink:0;margin-left:4px;}
 .leaflet-tooltip.fr-tip{background:rgba(0,0,0,.85)!important;color:#fff!important;border:none!important;font-size:12px!important;font-weight:700!important;direction:rtl!important;padding:5px 11px!important;border-radius:6px!important;box-shadow:0 2px 8px rgba(0,0,0,.45)!important;white-space:nowrap!important;pointer-events:none!important;}
 .leaflet-tooltip.fr-tip::before{display:none!important;}
 
@@ -226,6 +229,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
     <span class="stat-chip" id="stat-nogps" style="display:none;"></span>
     <span class="stat-chip" id="stat-changed" style="display:none;"></span>
     <div class="stats-right">
+      <button type="button" class="visit-btn" id="visit-btn" onclick="toggleVisitMode()">🗺 ביקור</button>
       <button class="export-btn" onclick="exportXLSX()">📥 Excel</button>
       <div class="tab-inline">
         <button class="tab-inline-btn active" id="tab-list" onclick="setTab('list')">📋</button>
@@ -346,15 +350,78 @@ async function apiFetch(url, opts={}){
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 const st={
-  allClients: [],        // raw from server
-  agents: [],            // [{agentCode, agentName, color}]
-  activeAgents: new Set(), // which agents are visible
-  activeDays: new Set([1,2,3,4,5]), // multi-select days; all = {1..5}
-  lassoIds: null,        // Set of custIds within lasso, null = no lasso
-  overrides: {},         // custId → {agentCode?, dayNum?}
+  allClients: [],
+  agents: [],
+  activeAgents: new Set(),
+  activeDays: new Set([1,2,3,4,5]),
+  lassoIds: null,
+  overrides: {},
   selectedId: null,
   tab: 'list',
+  sortMode: 'default',   // 'default' | 'visit'
+  visitOrder: [],        // custIds in route order
 };
+
+// ── ROUTING — ported from formula-road ────────────────────────────────────
+const TEL_AVIV_LAT=32.0853, TEL_AVIV_LNG=34.7818;
+function haversineKm(la1,lo1,la2,lo2){
+  const R=6371,d2r=Math.PI/180,dLat=(la2-la1)*d2r,dLon=(lo2-lo1)*d2r;
+  const a=Math.sin(dLat/2)**2+Math.cos(la1*d2r)*Math.cos(la2*d2r)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function twoOpt(route,sLat,sLng){
+  if(route.length<3) return route;
+  let best=[...route],improved=true;
+  const dist=(a,b)=>haversineKm(a.lat,a.lng,b.lat,b.lng);
+  const dS=(c)=>haversineKm(sLat,sLng,c.lat,c.lng);
+  while(improved){
+    improved=false;
+    for(let i=-1;i<best.length-1;i++){
+      const dI=(c)=>i===-1?dS(c):dist(best[i],c);
+      for(let j=i+2;j<best.length;j++){
+        const hasNext=j+1<best.length;
+        const d1=dI(best[i+1])+(hasNext?dist(best[j],best[j+1]):0);
+        const d2=dI(best[j])+(hasNext?dist(best[i+1],best[j+1]):0);
+        if(d2<d1-0.001){
+          best=[...best.slice(0,i+1),...best.slice(i+1,j+1).reverse(),...best.slice(j+1)];
+          improved=true;
+        }
+      }
+    }
+  }
+  return best;
+}
+function nearestNeighborFromTA(clients){
+  const withGps=clients.filter(c=>c.lat&&c.lng);
+  const noGps=clients.filter(c=>!c.lat||!c.lng);
+  if(!withGps.length) return clients;
+  const rem=[...withGps],result=[];
+  let curLat=TEL_AVIV_LAT,curLng=TEL_AVIV_LNG;
+  while(rem.length){
+    let bi=-1,bDist=Infinity;
+    rem.forEach((c,i)=>{const d=haversineKm(curLat,curLng,c.lat,c.lng);if(d<bDist){bDist=d;bi=i;}});
+    const ch=rem.splice(bi,1)[0];
+    result.push(ch); curLat=ch.lat; curLng=ch.lng;
+  }
+  return [...twoOpt(result,TEL_AVIV_LAT,TEL_AVIV_LNG),...noGps];
+}
+function computeVisitOrder(){
+  const clients=displayClients().map(c=>{
+    if(c.gpsSource==='correction') return c;
+    const ai=AI_GPS[String(c.custId)];
+    return (ai?.aiLat&&ai?.aiLng)?{...c,lat:ai.aiLat,lng:ai.aiLng}:c;
+  });
+  st.visitOrder=nearestNeighborFromTA(clients).map(c=>String(c.custId));
+}
+function toggleVisitMode(){
+  st.sortMode=st.sortMode==='visit'?'default':'visit';
+  if(st.sortMode==='visit') computeVisitOrder();
+  else st.visitOrder=[];
+  const btn=document.getElementById('visit-btn');
+  if(btn) btn.classList.toggle('active',st.sortMode==='visit');
+  renderClientList();
+  if(st.tab==='map'||window.innerWidth>=700) renderMap();
+}
 
 // ── OVERRIDES (local) ─────────────────────────────────────────────────────
 function loadOverrides(){
@@ -590,8 +657,7 @@ function selectDay(d){
 
 // ── DISPLAY LIST ──────────────────────────────────────────────────────────
 function displayClients(){
-  return st.allClients.filter(c=>{
-    // apply overrides for display
+  let result=st.allClients.filter(c=>{
     const ov=st.overrides[String(c.custId)]||{};
     const agentCode=ov.agentCode||c.agentCode;
     const dayNum=ov.dayNum!==undefined?ov.dayNum:c.dayNum;
@@ -609,6 +675,11 @@ function displayClients(){
       _changed:  !!(ov.agentCode||ov.dayNum!==undefined),
     };
   });
+  if(st.sortMode==='visit'&&st.visitOrder.length){
+    const orderMap={}; st.visitOrder.forEach((id,i)=>orderMap[id]=i);
+    result.sort((a,b)=>(orderMap[String(a.custId)]??9999)-(orderMap[String(b.custId)]??9999));
+  }
+  return result;
 }
 
 function renderAll(){
@@ -661,6 +732,8 @@ function renderClientList(){
     el.innerHTML='<div class="placeholder"><div class="placeholder-icon">📭</div><div class="placeholder-text">אין לקוחות</div><div class="placeholder-sub">נסה לשנות את הסינון</div></div>';
     return;
   }
+  const visitOrderMap={};
+  if(st.sortMode==='visit'&&st.visitOrder.length) st.visitOrder.forEach((id,i)=>visitOrderMap[id]=i+1);
   el.innerHTML=list.map((c,i)=>{
     const color=agentColor(c.agentCode);
     const noGps=!c.lat||!c.lng||c.gpsSource==='no-gps';
@@ -671,11 +744,13 @@ function renderClientList(){
     const newBadge=c._isNew?`<span style="background:#FF8F00;color:#fff;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;flex-shrink:0;margin-left:4px">🆕 חדש</span>`:'';
     const iceBadge=c.hevra==='ICE'?`<span style="background:#0288D1;color:#fff;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;flex-shrink:0;margin-left:4px">❄️ ICE</span>`:'';
     const addrText=esc(c.address||'');
+    const vNum=visitOrderMap[String(c.custId)];
+    const visitBadge=vNum?`<span class="visit-num">${vNum}</span>`:'';
     return `<div class="client-card${noGps?' no-gps':''}${isSel?' selected':''}${c._isNew?' new-client':''}${c.hevra==='ICE'?' ice-client':''}"
           style="border-right-color:${color}${c._isNew?';border:1.5px solid #FFD600;border-right:4px solid #FF8F00':''}${c.hevra==='ICE'?';border:1.5px solid #81D4FA;border-right:4px solid #0288D1':''}"
           data-id="${c.custId}" onclick="selectClient('${c.custId}')">
       <div class="c-body">
-        <div class="c-name">${changedMark}${esc(c.custName||'')}${newBadge}${iceBadge}${salesBadge}</div>
+        <div class="c-name">${visitBadge}${changedMark}${esc(c.custName||'')}${newBadge}${iceBadge}${salesBadge}</div>
         <div class="c-sub">
           <span class="agent-badge" style="background:${color};cursor:pointer" onclick="openAgentPopup(event,'${c.custId}')">${esc(c.agentName||c.agentCode||'')}</span>
           ${dayBadge}
