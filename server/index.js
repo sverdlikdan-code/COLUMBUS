@@ -10,6 +10,11 @@ const { executeDax, getDatasetRefreshTime } = require('./powerbi');
 const { Resend } = require('resend');
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
+// ── SERVER ENVIRONMENT ─────────────────────────────────────────────────────
+// Declared at top to prevent TDZ if code order changes during refactors
+const IS_LOCAL = process.platform === 'win32';
+const VPS_URL  = 'https://api.sverdlik-apps.site';
+
 // ── PBI CACHE ──────────────────────────────────────────────────────────────
 // Single source of truth: all client/agent/manager data loaded from Power BI
 // at startup and refreshed daily. Endpoints serve from memory → <5ms latency.
@@ -3143,8 +3148,6 @@ function formulaRoadGuard(req, res, next) {
 }
 // On local Windows dev server, show a pointer page instead of serving Formula Road
 // (avoids session mismatch; avoids redirect loop if local cloudflared is running)
-const IS_LOCAL = process.platform === 'win32';
-const VPS_URL = 'https://api.sverdlik-apps.site';
 app.get('/formula-road', (req, res, next) => {
   if (IS_LOCAL) return res.status(200).send(`<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>Formula Road</title><style>body{font-family:sans-serif;background:#0a1628;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;color:#fff}div{text-align:center}a{color:#4fc3f7;font-size:1.2rem;font-weight:700}</style></head><body><div><div style="font-size:3rem;margin-bottom:16px">🗺</div><p>Formula Road פועל בשרת</p><a href="${VPS_URL}/formula-road">פתח Formula Road ←</a></div></body></html>`);
   next();
