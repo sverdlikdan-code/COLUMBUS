@@ -1206,6 +1206,7 @@ app.get('/territory-clients', requireAuth, dataRateLimit, async (req, res) => {
   const citySet = new Set(raw.split(',').map(c => c.trim()).filter(Boolean));
   const results = [];
   const seen = new Set();
+  const formulaCustIds = new Set(); // for ICE dedup: skip custIds already in formula list
   const pushClient = (c, agentCode, extra = {}) => {
     const key = `${c.custId}_${agentCode}`;
     if (seen.has(key)) return;
@@ -1236,9 +1237,11 @@ app.get('/territory-clients', requireAuth, dataRateLimit, async (req, res) => {
     for (const c of clients) {
       if (!c.city || !citySet.has(c.city)) continue;
       pushClient(c, agentCode);
+      formulaCustIds.add(c.custId); // track all formula custIds for ICE dedup
     }
   }
-  // Include ICE-only clients — only where secondary agent (סוכן נוסף) matches a Formula agent
+  // Include ICE-only clients — same logic as /customers:
+  // only where secondary agent (סוכן נוסף) matches a Formula agent AND custId not already in formula list
   if (pbiCache.iceByAgent) {
     for (const [agentCode, clients] of pbiCache.iceByAgent) {
       if (!pbiCache.byAgent.has(agentCode)) continue; // skip ICE agents with no formula match
@@ -1246,6 +1249,7 @@ app.get('/territory-clients', requireAuth, dataRateLimit, async (req, res) => {
       const agentName = formulaClients?.[0]?.agentName || agentCode;
       for (const c of clients) {
         if (!c.city || !citySet.has(c.city)) continue;
+        if (formulaCustIds.has(c.custId)) continue; // already in formula list, skip
         pushClient(c, agentCode, { hevra: 'ICE', iceOnly: true, agentName });
       }
     }
