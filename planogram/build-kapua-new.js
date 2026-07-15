@@ -49,10 +49,16 @@ async function dax(token, query) {
 }
 
 (async () => {
-  // ── Step 1: Load physical layout from existing kapua-base.json ─────────────
+  // ── Step 1: Load physical layout + working picks from existing kapua-base.json ──
   const existing = JSON.parse(fs.readFileSync(OUT_PATH, 'utf8'));
   const { layout = {}, maxCols = 18, maxRows = 11 } = existing;
-  console.log(`Layout: ${Object.keys(layout).length} positions (from kapua-base.json)`);
+  // Preserve working picks (1..RESERVE_START-1) — they are user-managed,
+  // not generated from PBI/breira-default. CI only owns reserve slots (RESERVE_START+).
+  const existingWorkingPicks = {};
+  for (const [k, v] of Object.entries(existing.picks || {})) {
+    if (parseInt(k) < RESERVE_START) existingWorkingPicks[k] = v;
+  }
+  console.log(`Layout: ${Object.keys(layout).length} positions | working picks preserved: ${Object.keys(existingWorkingPicks).length}`);
 
   // ── Step 2: Fetch products + 365-day sales from Fabric ────────────────────
   const t = await getToken();
@@ -165,7 +171,14 @@ async function dax(token, query) {
   console.log(`בררת מחדל FOR ALL: ${Object.keys(bdPicks).length} positions | new to reserve: ${newProducts.length} | cleaned: ${kCleaned}`);
 
 
-  // ── Step 4: Write kapua-base.json ─────────────────────────────────────────
+  // ── Step 4: Merge working picks back, then write kapua-base.json ─────────
+  // Working picks (1-61) are user-managed — restore them from existing file.
+  // Reserve picks (62+) were just rebuilt from PBI/breira-default above.
+  for (const [k, v] of Object.entries(existingWorkingPicks)) {
+    if (!(k in picks)) picks[k] = v;
+  }
+  console.log(`Working picks merged back: ${Object.keys(existingWorkingPicks).length}`);
+
   const today = new Date().toISOString().slice(0, 16).replace('T','-').replace(':','');
   const newV  = `${today}-kapua`;
   const result = { picks, layout, maxCols, maxRows, reserveStart: RESERVE_START, v: newV };
