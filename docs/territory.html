@@ -51,18 +51,26 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .city-count-badge{background:var(--blue);color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 7px;flex-shrink:0;}
 
 /* Day buttons */
-.day-btns{display:flex;gap:6px;width:100%;}
-.day-btn{flex:1;min-height:88px;border-radius:14px;background:var(--sky-light);border:2px solid var(--sky-mid);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;transition:all .12s;gap:2px;box-shadow:0 1px 4px rgba(21,101,192,.07);}
-.day-btn:hover{background:var(--sky-mid);transform:translateY(-1px);}
-.day-btn.active{background:var(--blue);color:#fff;border-color:var(--blue-dark);box-shadow:0 3px 10px rgba(21,101,192,.3);}
-.day-btn-label{font-size:22px;font-weight:900;color:var(--blue-dark);line-height:1;}
+.day-btns{display:flex;gap:4px;width:100%;}
+/* compact before data */
+.day-btn{flex:1;min-height:44px;border-radius:10px;background:var(--sky-light);border:1.5px solid var(--sky-mid);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 3px;transition:all .15s;gap:1px;}
+.day-btn:hover{background:var(--sky-mid);}
+.day-btn.active{background:var(--blue);color:#fff;border-color:var(--blue-dark);}
+.day-btn-label{font-size:16px;font-weight:900;color:var(--blue-dark);line-height:1;}
 .day-btn.active .day-btn-label{color:#fff;}
-.day-btn-agents{font-size:11px;font-weight:700;color:var(--mid);line-height:1.2;white-space:nowrap;text-align:center;}
+.day-btn-agents,.day-btn-sales,.day-btn-count{font-size:9px;font-weight:700;line-height:1.2;white-space:nowrap;text-align:center;display:none;}
+.day-btn-agents{color:var(--mid);}
 .day-btn.active .day-btn-agents{color:rgba(255,255,255,.85);}
-.day-btn-sales{font-size:12px;font-weight:800;color:var(--green);line-height:1;}
+.day-btn-sales{color:var(--green);font-weight:800;}
 .day-btn.active .day-btn-sales{color:#B3E5FC;}
-.day-btn-count{font-size:10px;font-weight:700;color:var(--mid);line-height:1;opacity:.8;}
+.day-btn-count{color:var(--mid);opacity:.75;}
 .day-btn.active .day-btn-count{color:rgba(255,255,255,.7);}
+/* expanded with data */
+.day-btns.has-data .day-btn{min-height:90px;border-radius:14px;border-width:2px;padding:8px 4px;gap:3px;box-shadow:0 1px 5px rgba(21,101,192,.08);}
+.day-btns.has-data .day-btn:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(21,101,192,.15);}
+.day-btns.has-data .day-btn.active{box-shadow:0 3px 12px rgba(21,101,192,.35);}
+.day-btns.has-data .day-btn-label{font-size:24px;}
+.day-btns.has-data .day-btn-agents,.day-btns.has-data .day-btn-sales,.day-btns.has-data .day-btn-count{display:block;}
 
 /* Stats row */
 .stats-row{background:#fff;border-bottom:1px solid var(--sky-mid);padding:4px 10px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;}
@@ -483,6 +491,7 @@ function renderDayBtns(){
 
   const wrap=document.getElementById('day-btns-wrap');
   if(!wrap) return;
+  wrap.classList.toggle('has-data', baseCl.length>0);
   const dayKeys=[null,1,2,3,4,5];
   const btnEls=wrap.querySelectorAll('.day-btn');
   btnEls.forEach((btn,i)=>{
