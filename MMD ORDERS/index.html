@@ -1679,10 +1679,39 @@
     recalc();
   };
 
+  // Compute effective order quantity — same logic as render() so table and Excel always match
+  function _effOrd(r, s) {
+    if (s && s.k != null) return Number(s.k);
+    const mk   = String(r.mkt ?? '');
+    const haml = r.hamlatza ?? 0;
+    const hamlMult = { '664': 4 };
+    const hamlEff  = haml * (hamlMult[mk] || 1);
+    const hamlRnd  = hamlEff > 0 ? Math.round(hamlEff) : 0;
+    if (hamlRnd > 0) return hamlRnd;
+    // Eilat-specific fallback
+    const eilatMult = { '659': 2 };
+    if (eilatMult[mk]) return Math.round((r.eilat_k ?? 0) * eilatMult[mk]);
+    return 0;
+  }
+
   window.exportXL = async function() {
     const btn = document.querySelector('.btn-excel');
     if (btn) { btn.disabled = true; btn.textContent = '⏳ מכין...'; }
     try {
+      // Capture current visible input values into localStorage before building Excel
+      // so that users who accepted pre-filled recommendations without touching the field
+      // still get their order included (oninput only fires on actual keystrokes)
+      const svSnap = saved();
+      document.querySelectorAll('input.ei-n[data-mk]').forEach(el => {
+        const mk = el.dataset.mk;
+        const v  = Number(el.value);
+        if (v > 0 && (!svSnap[mk] || svSnap[mk].k == null)) {
+          if (!svSnap[mk]) svSnap[mk] = {};
+          svSnap[mk].k = v;
+        }
+      });
+      save(svSnap);
+
       const sv   = saved();
       const now  = new Date();
       const dateStr    = now.toLocaleDateString('he-IL');
@@ -1691,8 +1720,7 @@
 
       const orderedRows = filtered().filter(r => {
         const s = sv[String(r.mkt ?? '')] || {};
-        const eff = s.k != null ? Number(s.k) : Math.round(r.hamlatza ?? 0);
-        return eff > 0;
+        return _effOrd(r, s) > 0;
       });
 
       if (orderedRows.length === 0) {
@@ -1780,8 +1808,7 @@
         const tableData = sheetRows.map(r => {
           const mk  = String(r.mkt ?? '');
           const s   = sv[mk] || {};
-          const _haml0 = Math.round(r.hamlatza ?? 0);
-          const eff = s.k != null ? Number(s.k) : (_haml0 > 0 ? _haml0 : (mk === '659' ? Math.round((r.eilat_k ?? 0) * 2) : 0));
+          const eff = _effOrd(r, s);
           const tOpts = r.tukuf ? String(r.tukuf).split('/').map(x=>x.trim()).filter(Boolean) : [];
           const tukufVal = sessionP[mk] || (tOpts.length > 1 ? '🚩 בחר תאריך' : '');
           const dispName = shortName(fixProductName(r.taur||''));
@@ -1791,7 +1818,7 @@
         ws.addTable({
           name: 'MMDOrder' + grp.tbl,
           ref: 'A5', headerRow: true, totalsRow: true,
-          style: { theme: null, showRowStripes: false },
+          style: { theme: 'TableStyleMedium2', showRowStripes: false },
           columns: [
             { name: 'מק"ט' }, { name: 'משפחת מוצר' }, { name: 'חברה' }, { name: 'שם מוצר' },
             { name: 'תמונה' }, { name: 'מלאי MMD' }, { name: 'מלאי אשדוד' },
@@ -1801,7 +1828,8 @@
           rows: tableData,
         });
         ws.getRow(5).height = 26;
-        ws.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5, column: 9 } };
+        // NOTE: do NOT set ws.autoFilter here — addTable with headerRow:true
+        // already creates table-level autoFilter; duplicating it corrupts the XLSX
         // Override table header row with company color
         for (let ci = 1; ci <= 9; ci++) {
           const c = ws.getCell(5, ci);
@@ -1813,8 +1841,7 @@
         sheetRows.forEach((r, i) => {
           const mk   = String(r.mkt ?? '');
           const s    = sv[mk] || {};
-          const _haml1 = (r.hamlatza??0)>0 ? Math.round(r.hamlatza) : 0;
-          const eff  = s.k != null ? Number(s.k) : (_haml1 > 0 ? _haml1 : (mk === '659' ? Math.round((r.eilat_k ?? 0) * 2) : 0));
+          const eff  = _effOrd(r, s);
           const mmdK = r.mmd_k ?? 0;
           const ashK = r.ashdod_k ?? 0;
           const tOpts = r.tukuf ? String(r.tukuf).split('/').map(x=>x.trim()).filter(Boolean) : [];
