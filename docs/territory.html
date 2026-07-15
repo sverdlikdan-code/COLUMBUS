@@ -849,7 +849,7 @@ function initLassoEvents(){
     const pbi=await fetch(API+'/auth/pbi',{credentials:'include'});
     if(pbi.ok){ const j=await pbi.json(); if(j.ok&&j.token) localStorage.setItem('frToken',j.token); }
   }catch(_){}
-  if(!getToken()){ location.href='/formula-road'; return; }
+  if(!getToken()){ location.href='/formula-road?next=/territory.html'; return; }
   initMap();
   initLassoEvents();
   await loadCities();
