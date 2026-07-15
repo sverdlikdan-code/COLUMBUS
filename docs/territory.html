@@ -598,17 +598,32 @@ function renderDayBtns(){
     const agName=(ag?.agentName||agentCode).split(/[\s\-]/)[0].slice(0,8);
     // per-day
     if(dayNum&&byDay[dayNum]!==undefined){
-      if(!byDay[dayNum][agentCode]) byDay[dayNum][agentCode]={name:agName,count:0,salesSum:0};
+      if(!byDay[dayNum][agentCode]) byDay[dayNum][agentCode]={name:agName,count:0,salesSum:0,code:agentCode};
       byDay[dayNum][agentCode].count++;
       byDay[dayNum][agentCode].salesSum+=(c.avg6Sales||0);
     }
     // total
-    if(!totalByAgent[agentCode]) totalByAgent[agentCode]={name:agName,count:0,salesSum:0};
+    if(!totalByAgent[agentCode]) totalByAgent[agentCode]={name:agName,count:0,salesSum:0,code:agentCode};
     totalByAgent[agentCode].count++;
     totalByAgent[agentCode].salesSum+=(c.avg6Sales||0);
   });
 
   const grandTotal=baseCl.length;
+
+  function miniPie(entries,total){
+    if(entries.length<2||total<1) return '';
+    const r=15,cx=17,cy=17,sz=34;
+    let ang=-Math.PI/2;
+    const paths=entries.map(ag=>{
+      const frac=ag.count/total;
+      const a0=ang,a1=ang+frac*2*Math.PI; ang=a1;
+      if(frac>=0.999) return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${agentColor(ag.code)}"/>`;
+      const x1=(cx+r*Math.cos(a0)).toFixed(2),y1=(cy+r*Math.sin(a0)).toFixed(2);
+      const x2=(cx+r*Math.cos(a1)).toFixed(2),y2=(cy+r*Math.sin(a1)).toFixed(2);
+      return `<path d="M${cx},${cy}L${x1},${y1}A${r},${r},0,${frac>0.5?1:0},1,${x2},${y2}Z" fill="${agentColor(ag.code)}"/>`;
+    }).join('');
+    return `<svg width="${sz}" height="${sz}" style="flex-shrink:0;border-radius:50%;overflow:visible">${paths}</svg>`;
+  }
 
   function buildCard(agMap){
     const entries=Object.values(agMap).filter(a=>a.count>0);
@@ -622,12 +637,16 @@ function renderDayBtns(){
       return `<span class="dc-ag-row"><span class="dc-ag-name">${ag.name}</span><span class="dc-ag-cnt">${ag.count}</span><span class="dc-ag-pct">${pctDay}%</span>${salesCell}</span>`;
     }).join('');
     const pctLabel=grandTotal>0?`<span class="dc-pct-grand">${pctGrandTotal}%</span>`:'';
+    const pie=miniPie(entries,totalCount);
     return `<div class="day-card-body">
       <div class="dc-totals">
         <div class="dc-lq"><span>${totalCount}</span> לק' ${pctLabel}</div>
         <div class="dc-mkr">${totalSales>0?fmt(totalSales):''}</div>
       </div>
-      <div class="dc-ag-tbl">${agRows}</div>
+      <div style="display:flex;align-items:center;gap:4px;width:100%;margin-top:2px">
+        ${pie}
+        <div class="dc-ag-tbl">${agRows}</div>
+      </div>
     </div>`;
   }
 
