@@ -268,6 +268,9 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
         integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
 
 <script>
+// ── מעיין 2000 — geocoded new clients (2026-07-07) ──────────────────────────
+const MAAYAN_DATA=[{id:0,name:"כל טוב-רכס",city:"ירושלים",addr:"דרוק 54 רמת שלמה",lat:31.814365,lng:35.21748},{id:1,name:"ים סוף 101",city:"ירושלים",addr:"ים סוף 101",lat:31.8006229,lng:35.2199217},{id:2,name:"סנהדריה",city:"ירושלים",addr:"ים סוף 17",lat:31.8004431,lng:35.2202682},{id:3,name:"פסגת זאב",city:"ירושלים",addr:"מאיר גרשון 46 פסגת זאב",lat:31.8196612,lng:35.2504526},{id:4,name:"חריש- התאנה",city:"חריש",addr:"התאנה 19 חריש",lat:32.460825,lng:35.039119},{id:5,name:"ירמיהו 2",city:"ירושלים",addr:"ירמיהו 2 ירושלים",lat:31.7920002,lng:35.2070107},{id:6,name:"משה דיין",city:"ירושלים",addr:"משה דיין 160 פסגת זאב",lat:31.8215515,lng:35.2393212},{id:7,name:"מעלה אדומים 03",city:"מעלה אדומים",addr:"פרי מגדים 19 מעלה אדומים",lat:31.7714381,lng:35.2938669},{id:8,name:"גבעת מרדכי",city:"ירושלים",addr:"שחל 58 גבעת מרדכי",lat:31.762951,lng:35.197501},{id:9,name:"הר חומה",city:"ירושלים",addr:"מנחם ברש רועי 1 הר חומה",lat:31.7240389,lng:35.2175191},{id:10,name:"מרכז כלל",city:"ירושלים",addr:"אגריפס 40",lat:31.7835849,lng:35.2147211},{id:11,name:"קניון מעלה אדומים",city:"מעלה אדומים",addr:"הרכס 31 מעלה אדומים",lat:31.7823831,lng:35.3112938},{id:12,name:"הר חוצבים",city:"ירושלים",addr:"המרפא 1 הר חוצבים",lat:31.8010328,lng:35.21167},{id:13,name:"גילה",city:"ירושלים",addr:"יהושוע ברוכי 2 גילה",lat:31.7376859,lng:35.1774603},{id:14,name:"הילל",city:"ירושלים",addr:"הילל 14",lat:31.7801733,lng:35.2174527},{id:15,name:"שמואל הנביא",city:"ירושלים",addr:"שמואל הנביא 35",lat:31.789996,lng:35.224843},{id:16,name:"בית ישראל",city:"ירושלים",addr:"בית ישראל 17",lat:31.7895097,lng:35.2243603},{id:17,name:"קק\"ל",city:"ירושלים",addr:"קק\"ל 12 רחביה",lat:31.776883,lng:35.2161714},{id:18,name:"שער בנימין",city:"בנימין",addr:"אזור תעשייה שער בנימין",lat:31.865575,lng:35.261645},{id:19,name:"מעלה אדומים07",city:"מעלה אדומים",addr:"הצור 36 מעלה אדומים",lat:31.7866667,lng:35.3127811},{id:20,name:"טבריה",city:"טבריה",addr:"מיכאל 7 טבריה",lat:32.7935917,lng:35.5321904},{id:21,name:"חריש",city:"חריש",addr:"טופז 1 חריש",lat:32.4667806,lng:35.0484118},{id:22,name:"מגדל העמק",city:"מגדל העמק",addr:"הזית 4 מגדל העמק",lat:32.6757994,lng:35.2384784},{id:23,name:"גן ורשא",city:"בני ברק",addr:"רבי עקיבא 94 בני ברק",lat:32.0859521,lng:34.8315349},{id:24,name:"סמטת אזר",city:"בני ברק",addr:"העליה השניה 6 בני ברק",lat:32.0905218,lng:34.834588},{id:25,name:"הרב קוק",city:"בני ברק",addr:"הרב קוק 5 בני ברק",lat:32.0872987,lng:34.8271337},{id:26,name:"רכסים",city:"רכסים",addr:"אזור תעשיה רכסים",lat:32.759212,lng:35.097752},{id:27,name:"השישה עשר",city:"ירושלים",addr:"השישה עשר 39 פסגת זאב",lat:31.8287763,lng:35.2445371},{id:28,name:"חכם שמעון",city:"ירושלים",addr:"חכם שמעון 14",lat:31.7956357,lng:35.218633},{id:29,name:"כיכר יהלום",city:"מעלה אדומים",addr:"כיכר יהלום 1 מעלה אדומים",lat:31.773363,lng:35.29812},{id:30,name:"טבנקין",city:"באר שבע",addr:"טבנקין 76 באר שבע",lat:31.2536884,lng:34.7722505},{id:31,name:"יוחנן הורקנוס",city:"באר שבע",addr:"יוחנן הורקנוס 1 באר שבע",lat:31.2655619,lng:34.7954562},{id:32,name:"ברנפלד",city:"באר שבע",addr:"ברנפלד 17 באר שבע",lat:31.2704307,lng:34.7991725},{id:33,name:"טבריה 2",city:"טבריה",addr:"הנשיא וויצמן 65 טבריה",lat:32.7799835,lng:35.5109634},{id:34,name:"נווה יעקב",city:"ירושלים",addr:"אביר יעקב 2 ירושלים",lat:31.8410054,lng:35.25015},{id:35,name:"מורדות גילה",city:"ירושלים",addr:"אבנר שאקי 27 גילה",lat:31.7329238,lng:35.179724},{id:36,name:"קריית ספר",city:"מודיעין עילית",addr:"שערי תשובה 14 מודיעין עילית",lat:31.933159,lng:35.043286},{id:37,name:"באר שבע",city:"באר שבע",addr:"דוד המלך 2 מרכז גילת",lat:31.264551,lng:34.7930447}];
+
 const API = 'https://api.sverdlik-apps.site';
 const TOKEN_KEY = 'frToken';
 let gpsCorrections = {}; // custId → {lat,lng} — from gps-corrections.json + localStorage
@@ -295,6 +298,7 @@ const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replac
 const PALETTE = ['#1565C0','#C62828','#2E7D32','#E65100','#6A1B9A','#00695C','#AD1457','#F57F17','#1A237E','#4E342E','#006064','#33691E','#37474F','#BF360C','#880E4F','#0277BD'];
 function agentColor(code){
   if(!code) return '#9E9E9E';
+  if(code==='NEW') return '#FF8F00';
   let h=0; for(const ch of String(code)) h=(h*31+ch.charCodeAt(0))&0x7FFFFFFF;
   return PALETTE[h%PALETTE.length];
 }
@@ -455,6 +459,17 @@ async function loadClients(cities){
       const corr=gpsCorrections[id];
       return corr?{...c,lat:corr.lat,lng:corr.lng,gpsSource:'correction'}:c;
     });
+  }catch(_){}
+
+  // Inject מעיין 2000 new clients (geocoded) for matching cities
+  try{
+    const maayanNew=MAAYAN_DATA
+      .filter(c=>cityArr.includes(c.city))
+      .map(c=>({
+        custId:`new-${c.id}`,custName:c.name,agentCode:'NEW',agentName:'מעיין 2000',
+        city:c.city,address:c.addr,lat:c.lat,lng:c.lng,dayNum:null,monthlySales:0,_isNew:true
+      }));
+    st.allClients=[...st.allClients,...maayanNew];
   }catch(_){}
 
   // Build agent list
@@ -623,12 +638,13 @@ function renderClientList(){
     const dayBadge=c.dayNum?`<span class="day-badge">${DAY_LBL[c.dayNum]||'?'}</span>`:'';
     const salesBadge=c.monthlySales>0?`<span style="color:var(--green);font-weight:700;font-size:10px"> · ₪${Math.round(c.monthlySales).toLocaleString()}</span>`:'';
     const changedMark=c._changed?`<span class="changed-badge">✏️</span>`:'';
+    const newBadge=c._isNew?`<span style="background:#FF8F00;color:#fff;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;flex-shrink:0;margin-left:4px">🆕 חדש</span>`:'';
     const addrText=esc(c.address||'');
-    return `<div class="client-card${noGps?' no-gps':''}${isSel?' selected':''}"
-          style="border-right-color:${color}"
+    return `<div class="client-card${noGps?' no-gps':''}${isSel?' selected':''}${c._isNew?' new-client':''}"
+          style="border-right-color:${color}${c._isNew?';border:1.5px solid #FFD600;border-right:4px solid #FF8F00':''}"
           data-id="${c.custId}" onclick="selectClient('${c.custId}')">
       <div class="c-body">
-        <div class="c-name">${changedMark}${esc(c.custName||'')}${salesBadge}</div>
+        <div class="c-name">${changedMark}${esc(c.custName||'')}${newBadge}${salesBadge}</div>
         <div class="c-sub">
           <span class="agent-badge" style="background:${color};cursor:pointer" onclick="openAgentPopup(event,'${c.custId}')">${esc(c.agentName||c.agentCode||'')}</span>
           ${dayBadge}
@@ -802,8 +818,11 @@ function renderMap(){
   list.forEach(c=>{
     const color=agentColor(c.agentCode);
     const isSel=st.selectedId===c.custId;
-    const sz=isSel?34:26;
-    const icon=L.divIcon({className:'',html:`<div style="background:${color};color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${isSel?12:10}px;font-weight:900;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4)">${DAY_LBL[c.dayNum]||'?'}</div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
+    const sz=isSel?36:c._isNew?30:26;
+    const markerInner=c._isNew
+      ?`<div style="background:#FF8F00;color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${sz>28?13:11}px;font-weight:900;border:3px solid #FFD600;box-shadow:0 2px 10px rgba(255,143,0,.6)">🆕</div>`
+      :`<div style="background:${color};color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${isSel?12:10}px;font-weight:900;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4)">${DAY_LBL[c.dayNum]||'?'}</div>`;
+    const icon=L.divIcon({className:'',html:markerInner,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
     const m=L.marker([c.lat,c.lng],{icon,zIndexOffset:isSel?1000:0});
     m._agColor=color; m._custId=String(c.custId);
     const safeName=esc(c.custName||'');
