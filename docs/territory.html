@@ -539,14 +539,11 @@ function renderDayBtns(){
   function buildCard(dayLabel, agMap){
     const entries=Object.values(agMap);
     const totalCount=entries.reduce((s,a)=>s+a.count,0);
-    const totalSalesSum=entries.reduce((s,a)=>s+a.salesSum,0);
-    const totalSalesCount=entries.reduce((s,a)=>s+a.salesCount,0);
-    const avgTotal=totalSalesCount>0?Math.round(totalSalesSum/totalSalesCount):0;
-    const salesLine=avgTotal?`<div class="day-btn-sales-total">${fmt(avgTotal)}</div>`:'';
+    const totalSalesSum=entries.reduce((s,a)=>s+a.salesSum,0); // total expected monthly revenue
+    const salesLine=totalSalesSum>0?`<div class="day-btn-sales-total">${fmt(totalSalesSum)}</div>`:'';
     const countLine=totalCount?`<div class="day-btn-count-lbl">${totalCount} לק'</div>`:'';
     const agLines=entries.map(ag=>{
-      const avg=ag.salesCount>0?Math.round(ag.salesSum/ag.salesCount):0;
-      const s=avg?`<span class="day-btn-ag-sales">${fmt(avg)}</span> `:'';
+      const s=ag.salesSum>0?`<span class="day-btn-ag-sales">${fmt(ag.salesSum)}</span> `:'';
       return `<div class="day-btn-ag-row">${ag.name} ${s}${ag.count}לק'</div>`;
     }).join('');
     return `<span class="day-btn-label">${dayLabel}</span><div class="day-btn-body">${countLine}${salesLine}${agLines}</div>`;
