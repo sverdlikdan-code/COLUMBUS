@@ -1654,7 +1654,7 @@ function renderClientList(html){
     const prev=i>0?list[i-1]:null;
     const next=i<list.length-1?list[i+1]:null;
     const walkPrev=!!(prev&&prev.lat&&prev.lng&&c.lat&&c.lng&&haversineM(prev.lat,prev.lng,c.lat,c.lng)<=400);
-    const walkNext=!!(next&&next.lat&&next.lng&&c.lat&&c.lng&&haversineM(c.lat,c.lng,next.lat,next.lng)<=200);
+    const walkNext=!!(next&&next.lat&&next.lng&&c.lat&&c.lng&&haversineM(c.lat,c.lng,next.lat,next.lng)<=400);
     const inWalk=walkPrev||walkNext;
     const walkTop=walkNext&&!walkPrev, walkBottom=walkPrev&&!walkNext, walkMid=walkPrev&&walkNext;
     const cls=['client-card',
@@ -2223,8 +2223,8 @@ async function _fetchClientAI(lang) {
   body.innerHTML = '<div class="ai-loading">⏳ מחשב...</div>';
 
   try {
-    const headers = { 'Content-Type': 'application/json', 'x-session': _getToken() };
-    const r = await fetch(`/api/client-analytics/${custId}?lang=${lang}`, { headers });
+    const r = await apiFetch(`${API}/api/client-analytics/${custId}?lang=${lang}`);
+    if(!r.ok){ const t=await r.text(); throw new Error(t.slice(0,120)); }
     const data = await r.json();
     if (!data.ok) throw new Error(data.error || 'שגיאה');
 

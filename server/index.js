@@ -1186,6 +1186,65 @@ app.get('/managers', requireAuth, async (req, res) => {
   res.json(pbiCache.managers.map(m => ({ managerCode: m })));
 });
 
+// GET /territory-cities — unique cities from PBI cache
+app.get('/territory-cities', requireAuth, async (req, res) => {
+  if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
+  const cities = new Set();
+  for (const clients of pbiCache.byAgent.values()) {
+    for (const c of clients) { if (c.city) cities.add(c.city); }
+  }
+  res.json([...cities].sort((a,b) => a.localeCompare(b, 'he')));
+});
+
+// GET /territory-clients?cities=CITY1,CITY2 — all clients in cities across all agents
+app.get('/territory-clients', requireAuth, dataRateLimit, async (req, res) => {
+  const { city, cities } = req.query;
+  const raw = cities || city;
+  if (!raw) return res.status(400).json({ error: 'cities required' });
+  if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
+  const citySet = new Set(raw.split(',').map(c => c.trim()).filter(Boolean));
+  const results = [];
+  const seen = new Set();
+  for (const [agentCode, clients] of pbiCache.byAgent) {
+    for (const c of clients) {
+      if (!c.city || !citySet.has(c.city)) continue;
+      const key = `${c.custId}_${agentCode}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      results.push({
+        custId:        c.custId,
+        custName:      c.custName,
+        city:          c.city,
+        address:       c.address || '',
+        lat:           c.lat || null,
+        lng:           c.lng || null,
+        gpsSource:     c.gpsSource || null,
+        agentCode:     c.agentCode || agentCode,
+        agentName:     c.agentName || '',
+        manager:       c.manager || '',
+        dayNum:        c.dayNum || null,
+        dayLabel:      c.dayLabel || '',
+        lastOrderDate: c.lastOrderDate || null,
+        monthlySales:  c.monthlySales || 0,
+        pct:           c.pct || 0,
+      });
+    }
+  }
+  res.json(results);
+});
+
+// GET /all-agents — flat list of all agents from PBI cache
+app.get('/all-agents', requireAuth, async (req, res) => {
+  if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
+  const agents = new Map();
+  for (const [agentCode, clients] of pbiCache.byAgent) {
+    if (!clients.length) continue;
+    const sample = clients.find(c => c.agentName) || clients[0];
+    if (!agents.has(agentCode)) agents.set(agentCode, { agentCode, agentName: sample?.agentName || agentCode });
+  }
+  res.json([...agents.values()].sort((a,b) => (a.agentName||'').localeCompare(b.agentName||'')));
+});
+
 // GET /manager-agents?manager=NAME — from PBI cache
 app.get('/manager-agents', requireAuth, dataRateLimit, async (req, res) => {
   const { manager } = req.query;
