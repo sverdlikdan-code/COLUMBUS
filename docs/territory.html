@@ -374,7 +374,7 @@ const st={
   overrides: {},
   selectedId: null,
   tab: 'list',
-  sortMode: 'default',   // 'default' | 'visit'
+  sortMode: 'visit',     // 'default' | 'visit'
   visitOrder: [],        // custIds in route order
 };
 
@@ -588,6 +588,9 @@ async function loadClients(cities){
   st.activeAgents=new Set(st.agents.map(a=>a.agentCode));
 
   renderAgentLegend();
+  computeVisitOrder();
+  const vBtn=document.getElementById('visit-btn');
+  if(vBtn) vBtn.classList.add('active');
   renderAll();
   document.getElementById('stats-row').style.display='';
   setupSortable();
