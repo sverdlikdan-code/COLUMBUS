@@ -71,10 +71,10 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .day-btns.has-data .day-btn.active{box-shadow:0 3px 12px rgba(21,101,192,.35);}
 .day-btns.has-data .day-btn-label{font-size:24px;}
 .day-btns.has-data .day-btn-agents,.day-btns.has-data .day-btn-sales,.day-btns.has-data .day-btn-count{display:block;}
-.day-btn-ag-row{font-size:10px;font-weight:700;color:var(--mid);line-height:1.4;white-space:nowrap;text-align:center;display:none;}
+.day-btn-ag-row{font-size:12px;font-weight:700;color:var(--mid);line-height:1.5;white-space:nowrap;text-align:center;display:none;}
 .day-btns.has-data .day-btn-ag-row{display:block;}
 .day-btn.active .day-btn-ag-row{color:rgba(255,255,255,.9);}
-.day-btn-ag-sales{color:var(--green);font-weight:800;}
+.day-btn-ag-sales{color:var(--green);font-weight:900;font-size:13px;}
 .day-btn.active .day-btn-ag-sales{color:#B3E5FC;}
 
 /* Stats row */
@@ -314,7 +314,7 @@ async function apiFetch(url, opts={}){
       const p=await fetch(API+'/auth/pbi',{credentials:'include'});
       if(p.ok){const j=await p.json();if(j.ok&&j.token){localStorage.setItem(TOKEN_KEY,j.token);hdrs['x-session']=j.token;return fetch(url,{...opts,headers:hdrs});}}
     }catch(_){}
-    location.href='./formula-road.html'; throw new Error('session_expired');
+    location.href='/formula-road?next=/territory.html'; throw new Error('session_expired');
   }
   return r;
 }
@@ -453,7 +453,7 @@ async function loadClients(cities){
     st.allClients=st.allClients.map(c=>{
       const id=String(c.custId);
       const corr=gpsCorrections[id];
-      return corr?{...c,lat:corr.lat,lng:corr.lng}:c;
+      return corr?{...c,lat:corr.lat,lng:corr.lng,gpsSource:'correction'}:c;
     });
   }catch(_){}
 
@@ -575,7 +575,7 @@ function renderAll(){
 
 function updateStats(){
   const list=displayClients();
-  const noGps=list.filter(c=>!c.lat||!c.lng).length;
+  const noGps=list.filter(c=>!c.lat||!c.lng||c.gpsSource==='no-gps').length;
   const changed=Object.keys(st.overrides).length;
   const withSales=list.filter(c=>c.monthlySales>0);
   const avgSales=withSales.length?Math.round(withSales.reduce((s,c)=>s+c.monthlySales,0)/withSales.length):0;
@@ -618,7 +618,7 @@ function renderClientList(){
   }
   el.innerHTML=list.map((c,i)=>{
     const color=agentColor(c.agentCode);
-    const noGps=!c.lat||!c.lng;
+    const noGps=!c.lat||!c.lng||c.gpsSource==='no-gps';
     const isSel=st.selectedId===c.custId;
     const dayBadge=c.dayNum?`<span class="day-badge">${DAY_LBL[c.dayNum]||'?'}</span>`:'';
     const salesBadge=c.monthlySales>0?`<span style="color:var(--green);font-weight:700;font-size:10px"> · ₪${Math.round(c.monthlySales).toLocaleString()}</span>`:'';
@@ -796,7 +796,7 @@ function renderMap(){
     }
   });
 
-  const list=displayClients().filter(c=>c.lat&&c.lng);
+  const list=displayClients().filter(c=>c.lat&&c.lng&&c.gpsSource!=='no-gps');
   const bounds=[];
 
   list.forEach(c=>{
@@ -957,11 +957,13 @@ function showToast(msg,ms=2500){
 // ── INIT ──────────────────────────────────────────────────────────────────
 async function init(){
   loadOverrides();
-  if(!getToken()){
-    try{const r=await fetch(API+'/auth/pbi',{credentials:'include'});if(r.ok){const j=await r.json();if(j.ok&&j.token)localStorage.setItem(TOKEN_KEY,j.token);}}catch(_){}
-    if(!getToken()){location.href='./formula-road.html';return;}
-  }
+  try{const r=await fetch(API+'/auth/pbi',{credentials:'include'});if(r.ok){const j=await r.json();if(j.ok&&j.token)localStorage.setItem(TOKEN_KEY,j.token);}}catch(_){}
+  if(!getToken()){location.href='/formula-road?next=/territory.html';return;}
   await Promise.all([loadCities(), loadCorrections()]);
+  if(!selectedCities.size){
+    ['ירושלים','מעלה אדומים','מבשרת ציון'].forEach(c=>{ if(allCities.includes(c)) selectedCities.add(c); });
+    if(selectedCities.size){ renderCityItems(allCities); updateCityBtn(); onCitiesChanged(); }
+  }
 }
 init();
 </script>
