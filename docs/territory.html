@@ -196,7 +196,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
     <img src="logo-diler-bmd.png" class="hdr-logo" alt="DILER BMD"/>
     <div class="hdr-title">TERRITORY</div>
     <div class="hdr-right">
-      <a href="./formula-road.html" class="back-link">← ROAD</a>
+      <a href="/formula-road" class="back-link">← ROAD</a>
     </div>
   </div>
   <div class="sky-line"></div>
@@ -439,12 +439,26 @@ function toggleVisitMode(){
   if(st.tab==='map'||window.innerWidth>=700) renderMap();
 }
 
-// ── OVERRIDES (local) ─────────────────────────────────────────────────────
+// ── OVERRIDES (local + server) ────────────────────────────────────────────
 function loadOverrides(){
   try{ st.overrides=JSON.parse(localStorage.getItem('tr_overrides')||'{}'); }catch{ st.overrides={}; }
+  // Merge with server (server wins on conflict — server is source of truth)
+  apiFetch(API+'/api/territory-overrides').then(r=>r.ok?r.json():null).then(srv=>{
+    if(srv&&typeof srv==='object'){
+      st.overrides={...st.overrides,...srv};
+      try{ localStorage.setItem('tr_overrides',JSON.stringify(st.overrides)); }catch{}
+      renderAll();
+    }
+  }).catch(()=>{});
 }
+let _saveTimer=null;
 function saveOverrides(){
   try{ localStorage.setItem('tr_overrides',JSON.stringify(st.overrides)); }catch{}
+  // Debounce server save — avoid hammering on rapid changes
+  clearTimeout(_saveTimer);
+  _saveTimer=setTimeout(()=>{
+    apiFetch(API+'/api/territory-overrides',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(st.overrides)}).catch(()=>{});
+  },800);
 }
 
 // ── CITY MULTI-SELECT ─────────────────────────────────────────────────────
@@ -808,8 +822,9 @@ function renderClientList(){
     el.innerHTML='<div class="placeholder"><div class="placeholder-icon">📭</div><div class="placeholder-text">אין לקוחות</div><div class="placeholder-sub">נסה לשנות את הסינון</div></div>';
     return;
   }
+  // Re-index from filtered list so numbers start at 1 regardless of active filters
   const visitOrderMap={};
-  if(st.sortMode==='visit'&&st.visitOrder.length) st.visitOrder.forEach((id,i)=>visitOrderMap[id]=i+1);
+  if(st.sortMode==='visit'&&st.visitOrder.length) list.forEach((c,i)=>visitOrderMap[String(c.custId)]=i+1);
   el.innerHTML=list.map((c,i)=>{
     const color=agentColor(c.agentCode);
     const noGps=!c.lat||!c.lng||c.gpsSource==='no-gps';
@@ -1016,9 +1031,10 @@ function renderMap(){
     }
   });
 
-  const mapVisitOrderMap={};
-  if(st.sortMode==='visit'&&st.visitOrder.length) st.visitOrder.forEach((id,i)=>mapVisitOrderMap[id]=i+1);
   const list=displayClients().filter(c=>c.lat&&c.lng&&c.gpsSource!=='no-gps');
+  // Re-index from filtered map list so visit numbers start at 1 for visible clients
+  const mapVisitOrderMap={};
+  if(st.sortMode==='visit'&&st.visitOrder.length) list.forEach((c,i)=>mapVisitOrderMap[String(c.custId)]=i+1);
   const bounds=[];
 
   list.forEach(c=>{

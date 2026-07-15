@@ -1357,6 +1357,27 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
   }
 });
 
+// ── Territory Day/Agent Overrides — server-side persistence ─────────────────
+const OVERRIDES_FILE = path.join(__dirname, 'territory-overrides.json');
+
+app.get('/api/territory-overrides', requireAuth, (req, res) => {
+  try {
+    const data = fs.existsSync(OVERRIDES_FILE) ? JSON.parse(fs.readFileSync(OVERRIDES_FILE, 'utf8')) : {};
+    res.json(data);
+  } catch (_) { res.json({}); }
+});
+
+app.post('/api/territory-overrides', requireAuth, (req, res) => {
+  try {
+    const overrides = req.body;
+    if (!overrides || typeof overrides !== 'object') return res.status(400).json({ error: 'invalid' });
+    fs.writeFileSync(OVERRIDES_FILE, JSON.stringify(overrides, null, 2), 'utf8');
+    writeLog({ ts: new Date().toISOString(), event: 'territory-overrides-save',
+      count: Object.keys(overrides).length, agentCode: req.session?.agentCode || null, ip: getRealIp(req) });
+    res.json({ ok: true, count: Object.keys(overrides).length });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'server_error' }); }
+});
+
 // POST /api/export-route-xlsx — Excel с Smart Table, подсветкой изменений и GPS
 app.post('/api/export-route-xlsx', requireAuth, dataRateLimit, async (req, res) => {
   const { rows, agentName, dayLabel } = req.body;
