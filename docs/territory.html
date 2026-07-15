@@ -71,6 +71,11 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .day-btns.has-data .day-btn.active{box-shadow:0 3px 12px rgba(21,101,192,.35);}
 .day-btns.has-data .day-btn-label{font-size:24px;}
 .day-btns.has-data .day-btn-agents,.day-btns.has-data .day-btn-sales,.day-btns.has-data .day-btn-count{display:block;}
+.day-btn-ag-row{font-size:10px;font-weight:700;color:var(--mid);line-height:1.4;white-space:nowrap;text-align:center;display:none;}
+.day-btns.has-data .day-btn-ag-row{display:block;}
+.day-btn.active .day-btn-ag-row{color:rgba(255,255,255,.9);}
+.day-btn-ag-sales{color:var(--green);font-weight:800;}
+.day-btn.active .day-btn-ag-sales{color:#B3E5FC;}
 
 /* Stats row */
 .stats-row{background:#fff;border-bottom:1px solid var(--sky-mid);padding:4px 10px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;}
@@ -467,27 +472,48 @@ async function loadClients(cities){
 }
 
 function renderDayBtns(){
-  // compute per-day stats from ALL clients (ignoring day filter but respecting agent filter)
-  const byDay={};
+  const fmt=n=>n>=1000?`₪${(n/1000).toFixed(1)}K`:`₪${n}`;
   const baseCl=st.allClients.filter(c=>{
     const ov=st.overrides[String(c.custId)]||{};
-    const agentCode=ov.agentCode||c.agentCode;
-    return st.activeAgents.has(agentCode);
+    return st.activeAgents.has(ov.agentCode||c.agentCode);
   });
-  [1,2,3,4,5].forEach(d=>{ byDay[d]={agents:new Set(),count:0,salesSum:0,salesCount:0}; });
+
+  // per-day per-agent stats: byDay[dayNum][agentCode] = {name, count, salesSum, salesCount}
+  const byDay={};
+  [1,2,3,4,5].forEach(d=>{ byDay[d]={}; });
   baseCl.forEach(c=>{
     const ov=st.overrides[String(c.custId)]||{};
     const dayNum=ov.dayNum!==undefined?ov.dayNum:c.dayNum;
     const agentCode=ov.agentCode||c.agentCode;
-    if(dayNum&&byDay[dayNum]){
-      byDay[dayNum].agents.add(agentCode);
-      byDay[dayNum].count++;
-      if(c.monthlySales>0){byDay[dayNum].salesSum+=c.monthlySales;byDay[dayNum].salesCount++;}
+    if(!dayNum||!byDay[dayNum]) return;
+    if(!byDay[dayNum][agentCode]){
+      const ag=st.agents.find(a=>a.agentCode===agentCode);
+      byDay[dayNum][agentCode]={name:(ag?.agentName||agentCode).split(/[\s\-]/)[0].slice(0,6),count:0,salesSum:0,salesCount:0};
     }
+    byDay[dayNum][agentCode].count++;
+    if(c.monthlySales>0){byDay[dayNum][agentCode].salesSum+=c.monthlySales;byDay[dayNum][agentCode].salesCount++;}
   });
-  const totalAgents=new Set(baseCl.map(c=>{const ov=st.overrides[String(c.custId)]||{};return ov.agentCode||c.agentCode;}));
-  const totalAvg=baseCl.filter(c=>c.monthlySales>0).length?Math.round(baseCl.filter(c=>c.monthlySales>0).reduce((s,c)=>s+c.monthlySales,0)/baseCl.filter(c=>c.monthlySales>0).length):0;
-  const fmt=n=>n>=1000?`₪${(n/1000).toFixed(1)}K`:`₪${n}`;
+
+  // "כל" per-agent totals
+  const totalByAgent={};
+  baseCl.forEach(c=>{
+    const ov=st.overrides[String(c.custId)]||{};
+    const agentCode=ov.agentCode||c.agentCode;
+    if(!totalByAgent[agentCode]){
+      const ag=st.agents.find(a=>a.agentCode===agentCode);
+      totalByAgent[agentCode]={name:(ag?.agentName||agentCode).split(/[\s\-]/)[0].slice(0,6),count:0,salesSum:0,salesCount:0};
+    }
+    totalByAgent[agentCode].count++;
+    if(c.monthlySales>0){totalByAgent[agentCode].salesSum+=c.monthlySales;totalByAgent[agentCode].salesCount++;}
+  });
+
+  function agRows(agMap){
+    return Object.values(agMap).map(ag=>{
+      const avg=ag.salesCount>0?Math.round(ag.salesSum/ag.salesCount):0;
+      const s=avg?`<span class="day-btn-ag-sales">${fmt(avg)}</span> `:'';
+      return `<div class="day-btn-ag-row">${ag.name} ${s}${ag.count}לק'</div>`;
+    }).join('');
+  }
 
   const wrap=document.getElementById('day-btns-wrap');
   if(!wrap) return;
@@ -498,28 +524,10 @@ function renderDayBtns(){
     const d=dayKeys[i];
     btn.classList.toggle('active',d===null?st.activeDays.size===5:st.activeDays.has(d));
     if(d===null){
-      // "כל" button — show total unique agents abbreviated
-      const names=[...totalAgents].map(code=>{
-        const ag=st.agents.find(a=>a.agentCode===code);
-        return (ag?.agentName||code).split(/[\s\-]/)[0].slice(0,5);
-      }).slice(0,2);
-      const agTxt=names.join('/'+(totalAgents.size>2?'+':''))||'';
-      const avg=totalAvg>0?`<span class="day-btn-sales">${fmt(totalAvg)}</span>`:'';
-      const cnt=baseCl.length?`<span class="day-btn-count">${baseCl.length} לק'</span>`:'';
-      btn.innerHTML=`<span class="day-btn-label">כל</span><span class="day-btn-agents">${agTxt}</span>${avg}${cnt}`;
+      btn.innerHTML=`<span class="day-btn-label">כל</span>${agRows(totalByAgent)}`;
     } else {
-      const info=byDay[d];
-      const avg=info.salesCount>0?Math.round(info.salesSum/info.salesCount):0;
-      const names=[...info.agents].map(code=>{
-        const ag=st.agents.find(a=>a.agentCode===code);
-        return (ag?.agentName||code).split(/[\s\-]/)[0].slice(0,5);
-      });
-      const extra=names.length>2?`+${names.length-2}`:'';
-      const agTxt=names.slice(0,2).join('/')+extra;
-      const agLine=info.agents.size?`<span class="day-btn-agents">${agTxt}</span>`:'';
-      const sLine=avg>0?`<span class="day-btn-sales">${fmt(avg)}</span>`:'';
-      const cntLine=info.count?`<span class="day-btn-count">${info.count} לק'</span>`:'';
-      btn.innerHTML=`<span class="day-btn-label">${DAY_LBL[d]}</span>${agLine}${sLine}${cntLine}`;
+      const rows=agRows(byDay[d]);
+      btn.innerHTML=`<span class="day-btn-label">${DAY_LBL[d]}</span>${rows||'<span class="day-btn-count" style="display:block">—</span>'}`;
     }
   });
 }
