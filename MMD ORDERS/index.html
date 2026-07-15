@@ -1161,6 +1161,7 @@
     s = s.replace(/\s*\([A-Za-z]{1,6}\)\s*/g, ' ').trim();
     return s;
   }
+  window.fixProductName = fixProductName;
   function _ltrWrap(s) {
     return s.split(/(\s+)/).map(tok =>
       /[A-Za-z0-9]/.test(tok) ? '<span dir="ltr">' + tok + '</span>' : tok
