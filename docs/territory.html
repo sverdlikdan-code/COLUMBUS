@@ -61,6 +61,10 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 }
 .day-btn:hover{border-color:var(--blue);}
 .day-btn.active{background:var(--blue);border-color:var(--blue-dark);box-shadow:0 3px 12px rgba(21,101,192,.35);}
+.day-btn-undef{border-color:#9E9E9E;}
+.day-btn-undef .day-btn-label{color:#9E9E9E;}
+.day-btn-undef.active{background:#616161;border-color:#424242;box-shadow:0 3px 12px rgba(0,0,0,.25);}
+.day-btn-undef.active .day-btn-label{color:#fff;}
 .day-btn-label{font-size:28px;font-weight:900;color:var(--blue);text-align:center;line-height:1.1;padding-bottom:5px;}
 .day-btn.active .day-btn-label{color:#fff;}
 /* inner mini-table — hidden until data */
@@ -214,6 +218,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
         <button type="button" class="day-btn" onclick="selectDay(3)"><span class="day-btn-label">ג</span></button>
         <button type="button" class="day-btn" onclick="selectDay(4)"><span class="day-btn-label">ד</span></button>
         <button type="button" class="day-btn" onclick="selectDay(5)"><span class="day-btn-label">ה</span></button>
+        <button type="button" class="day-btn day-btn-undef" onclick="selectDay(0)"><span class="day-btn-label">?</span></button>
       </div>
     </div>
     <div class="filter-row">
@@ -285,6 +290,8 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 <script src="https://unpkg.com/leaflet-lasso@2.0.4/dist/leaflet-lasso.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"
         integrity="sha384-eXVCORTRlv4FUUgS/xmOyr66XBVraen8ATNLMESp92FKXLAMiKkerixTiBvXriZr" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"
+        integrity="sha384-BSxuMLxX+FCbTdYec3TbXlnMGEEM2QXTFdtDaveen71o+jswm2J36+xFqp8k4VHM" crossorigin="anonymous"></script>
 
 <script>
 // ── מעיין 2000 — geocoded new clients (2026-07-07) ──────────────────────────
@@ -353,7 +360,7 @@ const st={
   allClients: [],
   agents: [],
   activeAgents: new Set(),
-  activeDays: new Set([1,2,3,4,5]),
+  activeDays: new Set([0,1,2,3,4,5]),
   lassoIds: null,
   overrides: {},
   selectedId: null,
@@ -574,6 +581,7 @@ async function loadClients(cities){
   renderAgentLegend();
   renderAll();
   document.getElementById('stats-row').style.display='';
+  setupSortable();
 }
 
 function renderDayBtns(){
@@ -588,7 +596,7 @@ function renderDayBtns(){
 
   // per-day per-agent stats using avg6Sales (completed months only)
   const byDay={};
-  [1,2,3,4,5].forEach(d=>{ byDay[d]={}; });
+  [0,1,2,3,4,5].forEach(d=>{ byDay[d]={}; });
   const totalByAgent={};
   baseCl.forEach(c=>{
     const ov=st.overrides[String(c.custId)]||{};
@@ -596,12 +604,11 @@ function renderDayBtns(){
     const agentCode=ov.agentCode||c.agentCode;
     const ag=st.agents.find(a=>a.agentCode===agentCode);
     const agName=(ag?.agentName||agentCode).split(/[\s\-]/)[0].slice(0,8);
-    // per-day
-    if(dayNum&&byDay[dayNum]!==undefined){
-      if(!byDay[dayNum][agentCode]) byDay[dayNum][agentCode]={name:agName,count:0,salesSum:0,code:agentCode};
-      byDay[dayNum][agentCode].count++;
-      byDay[dayNum][agentCode].salesSum+=(c.avg6Sales||0);
-    }
+    // per-day (day 0 = no day)
+    const dk=dayNum||0;
+    if(!byDay[dk][agentCode]) byDay[dk][agentCode]={name:agName,count:0,salesSum:0,code:agentCode};
+    byDay[dk][agentCode].count++;
+    byDay[dk][agentCode].salesSum+=(c.avg6Sales||0);
     // total
     if(!totalByAgent[agentCode]) totalByAgent[agentCode]={name:agName,count:0,salesSum:0,code:agentCode};
     totalByAgent[agentCode].count++;
@@ -653,20 +660,19 @@ function renderDayBtns(){
   const wrap=document.getElementById('day-btns-wrap');
   if(!wrap) return;
   wrap.classList.toggle('has-data', baseCl.length>0);
-  const dayKeys=[null,1,2,3,4,5];
+  const dayKeys=[null,1,2,3,4,5,0];
   const btnEls=wrap.querySelectorAll('.day-btn');
   btnEls.forEach((btn,i)=>{
     const d=dayKeys[i];
-    btn.classList.toggle('active',d===null?st.activeDays.size===5:st.activeDays.has(d));
-    const lbl=`<span class="day-btn-label">${d===null?'כל':DAY_LBL[d]}</span>`;
+    btn.classList.toggle('active',d===null?st.activeDays.size===6:st.activeDays.has(d));
+    const lbl=`<span class="day-btn-label">${d===null?'כל':d===0?'?':DAY_LBL[d]}</span>`;
     btn.innerHTML=lbl+(d===null?buildCard(totalByAgent):buildCard(byDay[d]||{}));
   });
 }
 
 function selectDay(d){
   if(d===null){
-    // "כל" — toggle: if all selected → deselect all; if any deselected → select all
-    if(st.activeDays.size===5) st.activeDays=new Set(); else st.activeDays=new Set([1,2,3,4,5]);
+    if(st.activeDays.size===6) st.activeDays=new Set(); else st.activeDays=new Set([0,1,2,3,4,5]);
   } else {
     if(st.activeDays.has(d)) st.activeDays.delete(d); else st.activeDays.add(d);
   }
@@ -681,7 +687,7 @@ function displayClients(){
     const agentCode=ov.agentCode||c.agentCode;
     const dayNum=ov.dayNum!==undefined?ov.dayNum:c.dayNum;
     if(!st.activeAgents.has(agentCode)) return false;
-    if(st.activeDays.size<5 && dayNum && !st.activeDays.has(dayNum)) return false;
+    if(st.activeDays.size<6 && !st.activeDays.has(dayNum||0)) return false;
     if(st.lassoIds!==null && !st.lassoIds.has(String(c.custId))) return false;
     return true;
   }).map(c=>{
@@ -777,6 +783,7 @@ function renderClientList(){
         </div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0">
+        <span class="c-drag" style="cursor:grab;touch-action:none;font-size:13px;color:#bbb;line-height:1;padding:2px 4px;user-select:none">⠿</span>
         ${c.custId?`<span class="c-id">${c.custId}</span>`:''}
         <div class="c-actions">
           <span class="act-btn" onclick="openDayPopup(event,'${c.custId}',${c.dayNum||'null'})" title="שנה יום">📅</span>
@@ -898,7 +905,7 @@ document.addEventListener('click',e=>{
 });
 
 // ── MAP ────────────────────────────────────────────────────────────────────
-let map=null,mapMarkers=[],mapPolylines=[],markerCluster=null;
+let map=null,mapMarkers=[],mapPolylines=[],markerCluster=null,sortable=null;
 let baseTileLayer=null,currentTileKey='osm';
 const TILE_DEFS={
   osm:      {icon:'🏠',label:'בתים',    url:'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',         opts:{attribution:'© OSM',subdomains:'abc',maxZoom:19}},
@@ -1045,13 +1052,20 @@ async function exportXLSX(){
   const btn=document.querySelector('.export-btn');
   const orig=btn.innerHTML; btn.innerHTML='⏳...'; btn.disabled=true;
   try{
-    const rows=list.map((c,i)=>({
-      currentPos:i+1, custId:c.custId||'', custName:c.custName||'',
-      city:c.city||'', address:c.address||'',
-      agentCode:c.agentCode||'', agentName:c.agentName||'',
-      dayLabel:DAY_LBL[c.dayNum]||'', lat:c.lat||null, lng:c.lng||null,
-      changed:c._changed?'✏️':'',
-    }));
+    const rows=list.map((c,i)=>{
+      const ov=st.overrides[String(c.custId)]||{};
+      return {
+        currentPos:i+1, custId:c.custId||'', custName:c.custName||'',
+        hevra:c.hevra||'FORMULA', iceOnly:c.hevra==='ICE',
+        city:c.city||'', address:c.address||'',
+        agentCode:c.agentCode||'', agentName:c.agentName||'',
+        dayLabel:DAY_LBL[c.dayNum]||'', lat:c.lat||null, lng:c.lng||null,
+        gpsSource:c.gpsSource||null,
+        corrected:c.gpsSource==='correction',
+        noOrder:!c.dayNum,
+        dayChanged:ov.dayNum!==undefined, agentChanged:!!ov.agentCode,
+      };
+    });
     const r=await apiFetch(`${API}/api/export-route-xlsx`,{
       method:'POST', headers:{'Content-Type':'application/json'},
       body:JSON.stringify({rows, agentName:[...selectedCities].join(', ')||'', dayLabel:'כל הימים'}),
@@ -1067,13 +1081,34 @@ async function exportXLSX(){
   finally{ btn.innerHTML=orig; btn.disabled=false; }
 }
 
+// ── SORTABLE DRAG REORDER ────────────────────────────────────────────────
+function setupSortable(){
+  if(sortable){sortable.destroy();sortable=null;}
+  const el=document.getElementById('client-list');
+  if(!el||typeof Sortable==='undefined') return;
+  sortable=Sortable.create(el,{
+    handle:'.c-drag', animation:150,
+    onEnd(e){
+      if(e.oldIndex===e.newIndex) return;
+      const displayed=displayClients();
+      const moved=displayed.splice(e.oldIndex,1)[0];
+      displayed.splice(e.newIndex,0,moved);
+      const dispIds=new Set(displayed.map(c=>c.custId));
+      st.allClients=[...displayed,...st.allClients.filter(c=>!dispIds.has(c.custId))];
+      if(st.sortMode==='visit') st.visitOrder=displayed.map(c=>String(c.custId));
+      renderClientList();
+      if(st.tab==='map'||window.innerWidth>=700) renderMap();
+    }
+  });
+}
+
 // ── GPS FIX ───────────────────────────────────────────────────────────────
 let _gpsCustId=null, _gpsCity='';
 
 function openGpsFix(event, custId, custName, city, address){
   event.stopPropagation();
   // Switch to map tab + map-click correction mode (same as formula-road)
-  if(st.tab!=='map') switchTab('map');
+  if(st.tab!=='map') setTab('map');
   gpsCorrectMode=true; gpsCorrectId=custId; st.selectedId=custId;
   renderMap();
   if(map) map.getContainer().style.cursor='crosshair';

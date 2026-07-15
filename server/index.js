@@ -1417,17 +1417,22 @@ app.post('/api/export-route-xlsx', requireAuth, dataRateLimit, async (req, res) 
   const FILL_STRIPE2 = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } }; // normal (odd)
   const FILL_ICE1    = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB2DFDB' } }; // ICE client (even)
   const FILL_ICE2    = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF80CBC4' } }; // ICE client (odd)
+  const FILL_YELLOW1 = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF9C4' } }; // changed day/agent (even)
+  const FILL_YELLOW2 = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF176' } }; // changed day/agent (odd)
   const DOUBTFUL     = new Set(['geocoded', 'pbi-sibling-near', 'city-center', 'no-gps']);
 
   rows.forEach((r, i) => {
     const rowNum = i + 2;
     let fill;
-    const isChanged = r.corrected && (
+    const isGpsChanged = r.corrected && (
       !r.pbiLat || !r.pbiLng || haversineDist(r.lat, r.lng, Number(r.pbiLat), Number(r.pbiLng)) > 20
     );
-    if (r.iceOnly) {
+    const isOverrideChanged = !!(r.dayChanged || r.agentChanged);
+    if (isOverrideChanged) {
+      fill = i % 2 === 0 ? FILL_YELLOW1 : FILL_YELLOW2;
+    } else if (r.iceOnly) {
       fill = i % 2 === 0 ? FILL_ICE1 : FILL_ICE2;
-    } else if (isChanged) {
+    } else if (isGpsChanged) {
       fill = i % 2 === 0 ? FILL_GREEN1 : FILL_GREEN2;
     } else if (r.noOrder) {
       fill = i % 2 === 0 ? FILL_GRAY1 : FILL_GRAY2;
