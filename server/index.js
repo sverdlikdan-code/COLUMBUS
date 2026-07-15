@@ -1227,6 +1227,7 @@ app.get('/territory-clients', requireAuth, dataRateLimit, async (req, res) => {
         dayLabel:      c.dayLabel || '',
         lastOrderDate: c.lastOrderDate || null,
         monthlySales:  c.monthlySales || 0,
+        avg6Sales:     c.avg6Sales || 0,
         pct:           c.pct || 0,
         clientType:    c.clientType || '',
       });
