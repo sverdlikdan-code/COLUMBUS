@@ -6,85 +6,95 @@
 <title>תוקף אילת — MMD ORDERS</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#04111f;color:#e8eaf0;font-family:'Segoe UI',sans-serif;min-height:100vh}
-header{background:#0d1f3a;border-bottom:2px solid #c9a227;padding:10px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:99}
-header h1{font-size:.95rem;color:#c9a227;flex:1}
-.btn{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.07);color:#e8eaf0;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:.78rem}
-.btn.active{background:#c62828;border-color:#c62828;color:#fff;font-weight:bold}
-.btn-back{text-decoration:none;color:#8899aa;font-size:.78rem;border:1px solid #334;padding:5px 10px;border-radius:6px}
-.btn-print{background:rgba(201,162,39,.15);border:1px solid #c9a227;color:#c9a227;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:.78rem}
-.btn-print:hover{background:rgba(201,162,39,.3)}
+body{background:#f4f6fb;color:#222;font-family:'Segoe UI',sans-serif;min-height:100vh}
 
-@media print {
-  @page { size: A4 landscape; margin: 8mm; }
-  header .btn, header .btn-print, header .btn-back { display: none !important; }
-  header { position: static; border-bottom: 2px solid #c9a227; background: #fff !important; padding: 6px 12px; }
-  header h1 { color: #7a5c00 !important; font-size: 1rem; }
-  #summary { color: #555 !important; font-size: .72rem; }
-  body { background: #fff !important; color: #111 !important; }
-  #cards { grid-template-columns: repeat(4, 1fr) !important; gap: 8px !important; padding: 8px !important; }
-  .card { background: #fff !important; border: 1px solid #ccc !important; break-inside: avoid; page-break-inside: avoid; }
-  .card.is-danger { border: 2px solid #c62828 !important; }
-  .card.is-warn   { border: 2px solid #e65100 !important; }
-  .card-top { background: #f5f5f5 !important; }
-  .card-name { color: #7a5c00 !important; }
-  .card-sub  { color: #777 !important; }
-  .card-body { background: #fff !important; }
-  .card-footer { background: #f9f9f9 !important; }
-  .footer-sales { color: #555 !important; }
-  .col-hdr span { color: #888 !important; }
-  .bc.date { color: #555 !important; }
-  .clr-r { color: #c62828 !important; }
-  .clr-o { color: #e65100 !important; }
-  .clr-g { color: #2e7d32 !important; }
-  .badge-ok { color: #2e7d32 !important; }
-  #loading { display: none !important; }
-}
-#summary{padding:8px 16px;font-size:.72rem;color:#556;direction:rtl}
-#cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;padding:12px 16px}
-.card{background:#0b1e35;border-radius:10px;border:1px solid rgba(255,255,255,.08);overflow:hidden;display:flex;flex-direction:column}
-.card.is-danger{border-color:#c62828}
-.card.is-warn{border-color:#e65100}
-.card-top{display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(0,0,0,.2)}
-.card-photo{width:48px;height:48px;object-fit:contain;border-radius:4px;background:#0a1628;flex-shrink:0}
-.card-photo-placeholder{width:48px;height:48px;background:#0a1628;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#334;font-size:1.2rem;flex-shrink:0}
-.card-name{font-size:.72rem;color:#c9a227;font-weight:bold;line-height:1.3}
-.card-sub{font-size:.62rem;color:#556;margin-top:2px}
-.card-body{padding:8px 10px;flex:1}
-.batch-row{display:flex;direction:rtl;align-items:center;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);gap:0;font-size:.68rem}
+/* ── Header ── */
+header{background:#c62828;padding:8px 14px;display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:99;flex-wrap:wrap}
+header h1{font-size:.9rem;color:#fff;font-weight:bold;flex:none}
+.hdr-sep{width:1px;height:20px;background:rgba(255,255,255,.3);margin:0 2px;flex-shrink:0}
+.hbtn{border:1.5px solid rgba(255,255,255,.4);background:rgba(255,255,255,.12);color:#fff;padding:4px 11px;border-radius:5px;cursor:pointer;font-size:.75rem;font-weight:600;white-space:nowrap}
+.hbtn:hover{background:rgba(255,255,255,.25)}
+.hbtn.active{background:rgba(255,255,255,.9);color:#c62828;border-color:transparent}
+.hbtn-print{background:rgba(255,255,255,.2);border:none;color:#fff;padding:4px 11px;border-radius:4px;cursor:pointer;font-size:.75rem}
+.hbtn-back{text-decoration:none;color:rgba(255,255,255,.7);font-size:.75rem;border:1px solid rgba(255,255,255,.3);padding:4px 10px;border-radius:5px}
+.hbtn-reset{display:none;background:#fff3cd;border:none;color:#7a5c00;font-size:.75rem;font-weight:bold;cursor:pointer;border-radius:4px;padding:4px 11px}
+
+/* ── Summary bar ── */
+#summary{padding:6px 16px;font-size:.72rem;color:#666;direction:rtl;background:#fff;border-bottom:1px solid #dde0e8}
+
+/* ── Cards grid ── */
+#cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:10px;padding:12px 14px}
+.empty{padding:40px;text-align:center;color:#aaa;font-size:.85rem}
+
+/* ── Card ── */
+.card{background:#fff;border-radius:8px;border:1px solid #dde0e8;overflow:hidden;display:flex;flex-direction:column;position:relative}
+.card.is-danger{border:2px solid #c62828}
+.card.is-warn  {border:2px solid #e65100}
+.card-hide-btn{position:absolute;top:4px;left:4px;background:rgba(0,0,0,.18);border:none;color:#fff;font-size:10px;cursor:pointer;border-radius:3px;padding:2px 7px;z-index:10;line-height:1.4}
+.card-hide-btn:hover{background:rgba(0,0,0,.4)}
+
+.card-top{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#f5f5f5;border-bottom:1px solid #ececec}
+.card-photo{width:50px;height:50px;object-fit:contain;border-radius:4px;border:1px solid #ddd;background:#fff;flex-shrink:0}
+.card-photo-ph{width:50px;height:50px;background:#f0f0f0;border-radius:4px;border:1px solid #e0e0e0;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
+.card-name{font-size:.7rem;color:#333;font-weight:bold;line-height:1.3}
+.card-sub{font-size:.6rem;color:#888;margin-top:2px}
+.badge-yehidot{display:inline-block;background:#1565C0;color:#fff;font-size:.55rem;font-weight:bold;padding:1px 5px;border-radius:3px;margin-top:3px;letter-spacing:.03em}
+
+.card-body{padding:7px 10px;flex:1}
+.col-hdr{display:flex;direction:rtl;padding:2px 0 3px;border-bottom:1px solid #eee;margin-bottom:2px}
+.col-hdr span{flex:1;text-align:center;font-size:.57rem;color:#aaa;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.batch-row{display:flex;direction:rtl;align-items:center;padding:3px 0;border-bottom:1px solid #f5f5f5;gap:0;font-size:.68rem}
 .batch-row:last-child{border-bottom:none}
 .bc{flex:1;text-align:center}
-.bc.date{color:#7788aa}
+.bc.date{color:#666}
 .bc.qty{font-weight:bold}
 .bc.days{font-weight:bold}
-.col-hdr{display:flex;direction:rtl;padding:3px 0 1px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:2px}
-.col-hdr span{flex:1;text-align:center;font-size:.58rem;color:#334}
-.card-footer{padding:6px 10px;background:rgba(0,0,0,.15);display:flex;align-items:center;justify-content:space-between;direction:rtl;font-size:.65rem;gap:8px}
-.footer-sales{color:#8899aa}
-.badge-danger{background:#c62828;color:#fff;padding:2px 7px;border-radius:3px;font-weight:bold;font-size:.62rem}
-.badge-warn{background:#e65100;color:#fff;padding:2px 7px;border-radius:3px;font-size:.62rem}
-.badge-ok{color:#4caf50;font-size:.62rem}
-.clr-r{color:#e55}
-.clr-o{color:#f90}
-.clr-g{color:#8b8}
-#loading{padding:40px;text-align:center;color:#556}
-.empty{padding:40px;text-align:center;color:#334;font-size:.85rem}
+.clr-r{color:#c62828}
+.clr-o{color:#e65100}
+.clr-g{color:#2e7d32}
+
+.card-footer{padding:5px 10px;background:#fafafa;border-top:1px solid #ececec;display:flex;align-items:center;justify-content:space-between;direction:rtl;font-size:.64rem;gap:8px}
+.footer-sales{color:#888}
+.badge-danger{background:#c62828;color:#fff;padding:2px 7px;border-radius:3px;font-weight:bold;font-size:.6rem}
+.badge-warn  {background:#e65100;color:#fff;padding:2px 7px;border-radius:3px;font-size:.6rem}
+.badge-ok    {color:#2e7d32;font-size:.6rem;font-weight:600}
+
+#loading{padding:40px;text-align:center;color:#aaa}
+
+/* ── Print ── */
+@media print {
+  @page { size: A4 landscape; margin: 8mm; }
+  header { position:static; padding:5px 12px; }
+  .hbtn,.hbtn-print,.hbtn-back,.hbtn-reset,.card-hide-btn { display:none !important; }
+  #summary { font-size:.65rem; }
+  #cards { grid-template-columns:repeat(4,1fr) !important; gap:6px !important; padding:6px !important; }
+  .card { break-inside:avoid; page-break-inside:avoid; }
+  #loading { display:none !important; }
+}
 </style>
 </head>
 <body>
 <header>
-  <h1>תוקף אילת</h1>
-  <button class="btn" id="btn-sakana" onclick="toggleSakana()">⚠ סכנה בלבד</button>
-  <button class="btn-print" onclick="window.print()">🖨 הדפסה</button>
-  <a class="btn-back" href="/mmd/">← חזרה</a>
+  <h1>📦 תוקף אילת</h1>
+  <div class="hdr-sep"></div>
+  <button class="hbtn" id="btn-danger" onclick="setLevelFilter('danger')">⚠ סכנה בלבד</button>
+  <button class="hbtn" id="btn-warn"   onclick="setLevelFilter('warn')">🔶 תשומות לב</button>
+  <div class="hdr-sep"></div>
+  <div id="hevra-btns" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+  <div class="hdr-sep"></div>
+  <button class="hbtn-reset" id="btn-reset" onclick="resetHidden()">↩ איפוס</button>
+  <button class="hbtn-print" onclick="window.print()">🖨 הדפסה</button>
+  <a class="hbtn-back" href="/mmd/">← חזרה</a>
 </header>
 <div id="summary"></div>
 <div id="loading">טוען נתונים...</div>
 <div id="cards" style="display:none"></div>
 
 <script>
-var showSakanaOnly = false;
-var allCards = [];
+var allCards   = [];
+var levelFilter = null;   // null | 'danger' | 'warn'
+var hebraFilter = null;   // null | company string
+var hiddenSet   = new Set();
 
 function clrClass(days) {
   return days < 30 ? 'clr-r' : days < 60 ? 'clr-o' : 'clr-g';
@@ -95,33 +105,77 @@ function dangerLevel(batches, mkr_shvua) {
   batches.forEach(function(b) {
     if (b.qty <= 0) return;
     var weeksToExpiry = b.days / 7;
-    var weeksOfStock = mkr_shvua > 0 ? b.qty / mkr_shvua : 999;
-    // danger: have more stock than can sell before expiry, OR < 14 days left
-    if (b.days < 14 || weeksOfStock > weeksToExpiry) hasDanger = true;
-    else if (b.days < 30 || weeksOfStock > weeksToExpiry * 0.7) hasWarn = true;
+    var weeksOfStock  = mkr_shvua > 0 ? b.qty / mkr_shvua : 999;
+    if (b.days < 14 || weeksOfStock > weeksToExpiry)           hasDanger = true;
+    else if (b.days < 30 || weeksOfStock > weeksToExpiry * 0.7) hasWarn   = true;
   });
   return hasDanger ? 'danger' : (hasWarn ? 'warn' : 'ok');
 }
 
-function renderCards(data) {
-  var grid = document.getElementById('cards');
+function setLevelFilter(lvl) {
+  levelFilter = (levelFilter === lvl) ? null : lvl;
+  document.getElementById('btn-danger').classList.toggle('active', levelFilter === 'danger');
+  document.getElementById('btn-warn'  ).classList.toggle('active', levelFilter === 'warn');
+  renderCards();
+  updateSummary();
+}
+
+function setHebraFilter(hevra) {
+  hebraFilter = (hebraFilter === hevra) ? null : hevra;
+  document.querySelectorAll('.hevra-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.h === hebraFilter);
+  });
+  renderCards();
+  updateSummary();
+}
+
+function hideCard(mkt) {
+  hiddenSet.add(mkt);
+  document.getElementById('btn-reset').style.display = '';
+  renderCards();
+}
+
+function resetHidden() {
+  hiddenSet.clear();
+  document.getElementById('btn-reset').style.display = 'none';
+  renderCards();
+}
+
+function renderCards() {
+  var grid  = document.getElementById('cards');
   grid.innerHTML = '';
   var shown = 0;
-  data.forEach(function(c) {
-    if (showSakanaOnly && c.level === 'ok') return;
-    if (showSakanaOnly && c.level === 'warn') return;
+  allCards.forEach(function(c) {
+    if (hiddenSet.has(c.mkt)) return;
+    if (levelFilter === 'danger' && c.level !== 'danger') return;
+    if (levelFilter === 'warn'   && c.level !== 'warn'  ) return;
+    if (hebraFilter && c.hevra !== hebraFilter) return;
     shown++;
+
     var el = document.createElement('div');
     el.className = 'card' + (c.level === 'danger' ? ' is-danger' : c.level === 'warn' ? ' is-warn' : '');
+
+    // hide button
+    var hideBtn = document.createElement('button');
+    hideBtn.className = 'card-hide-btn no-print';
+    hideBtn.textContent = '✕';
+    hideBtn.title = 'הסתר לפני הדפסה';
+    hideBtn.setAttribute('onclick', 'hideCard("' + c.mkt + '")');
+    el.appendChild(hideBtn);
+
     // top
     var photoHtml = c.img
-      ? '<img class="card-photo" src="/mmd/img/' + encodeURIComponent(c.mkt) + '" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" loading="lazy"><div class="card-photo-placeholder" style="display:none">📦</div>'
-      : '<div class="card-photo-placeholder">📦</div>';
+      ? '<img class="card-photo" src="/mmd/img/' + encodeURIComponent(c.mkt) + '" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" loading="lazy"><div class="card-photo-ph" style="display:none">📦</div>'
+      : '<div class="card-photo-ph">📦</div>';
+    var yehidotBadge = (c.krat === 1) ? '<div><span class="badge-yehidot">★ יחידות</span></div>' : '';
     var top = document.createElement('div');
     top.className = 'card-top';
-    top.innerHTML = photoHtml + '<div><div class="card-name">' + c.taur + '</div><div class="card-sub">מק"ט ' + c.mkt + ' · ' + (c.mishpacha || '') + '</div></div>';
+    top.innerHTML = photoHtml + '<div style="flex:1;min-width:0"><div class="card-name">' + c.taur + '</div>'
+      + '<div class="card-sub">מק"ט ' + c.mkt + ' · ' + (c.mishpacha || '') + '</div>'
+      + yehidotBadge + '</div>';
     el.appendChild(top);
-    // body
+
+    // body — batch rows
     var body = document.createElement('div');
     body.className = 'card-body';
     var hdr = document.createElement('div');
@@ -133,13 +187,14 @@ function renderCards(data) {
       var row = document.createElement('div');
       row.className = 'batch-row';
       row.innerHTML = '<span class="bc date">' + b.dt + '</span>'
-        + '<span class="bc qty ' + cls + '">' + (b.qty > 0 ? b.qty : '<span style="color:#334">0</span>') + '</span>'
+        + '<span class="bc qty ' + cls + '">' + (b.qty > 0 ? b.qty : '<span style="color:#ccc">0</span>') + '</span>'
         + '<span class="bc days ' + cls + '">' + b.days + '</span>';
       body.appendChild(row);
     });
     el.appendChild(body);
+
     // footer
-    var wks = c.mkr_shvua != null ? (c.mkr_shvua).toFixed(1) : null;
+    var wks = c.mkr_shvua != null ? Number(c.mkr_shvua).toFixed(1) : null;
     var badgeHtml = c.level === 'danger' ? '<span class="badge-danger">⚠ סכנה</span>'
                   : c.level === 'warn'   ? '<span class="badge-warn">תשומת לב</span>'
                   : '<span class="badge-ok">✓ בסדר</span>';
@@ -147,29 +202,54 @@ function renderCards(data) {
     footer.className = 'card-footer';
     footer.innerHTML = '<span class="footer-sales">' + (wks ? 'מכר שבועי: ' + wks + ' קרט\'' : 'אין נתוני מכר') + '</span>' + badgeHtml;
     el.appendChild(footer);
+
     grid.appendChild(el);
   });
+
   if (shown === 0) {
-    grid.innerHTML = '<div class="empty">' + (showSakanaOnly ? 'אין מוצרים בסכנה' : 'אין מוצרים עם תוקף אילת') + '</div>';
+    grid.innerHTML = '<div class="empty">אין מוצרים להצגה</div>';
   }
   grid.style.display = '';
 }
 
-function toggleSakana() {
-  showSakanaOnly = !showSakanaOnly;
-  document.getElementById('btn-sakana').classList.toggle('active', showSakanaOnly);
-  renderCards(allCards);
-  updateSummary();
+function updateSummary() {
+  var visible = allCards.filter(function(c) {
+    if (hiddenSet.has(c.mkt)) return false;
+    if (hebraFilter && c.hevra !== hebraFilter) return false;
+    return true;
+  });
+  var danger = visible.filter(function(c){ return c.level === 'danger'; }).length;
+  var warn   = visible.filter(function(c){ return c.level === 'warn';   }).length;
+  var total  = visible.length;
+  document.getElementById('summary').textContent =
+    total + ' מוצרים עם מלאי תוקף'
+    + (danger ? ' · ⚠ ' + danger + ' בסכנה' : '')
+    + (warn   ? ' · 🔶 ' + warn + ' בתשומת לב' : '')
+    + (hiddenSet.size ? ' · ' + hiddenSet.size + ' מוסתרים' : '');
 }
 
-function updateSummary() {
-  var danger = allCards.filter(function(c) { return c.level === 'danger'; }).length;
-  var warn   = allCards.filter(function(c) { return c.level === 'warn'; }).length;
-  var total  = allCards.length;
-  document.getElementById('summary').textContent =
-    total + ' מוצרים עם מלאי תוקף' +
-    (danger ? ' · ⚠ ' + danger + ' בסכנה' : '') +
-    (warn   ? ' · ' + warn + ' בתשומת לב' : '');
+function buildHebraButtons(cards) {
+  var counts = {};
+  cards.forEach(function(c) {
+    if (c.hevra) counts[c.hevra] = (counts[c.hevra] || 0) + 1;
+  });
+  var wrap = document.getElementById('hevra-btns');
+  wrap.innerHTML = '';
+  // "כולם" button
+  var allBtn = document.createElement('button');
+  allBtn.className = 'hbtn hevra-btn active';
+  allBtn.dataset.h = '';
+  allBtn.textContent = 'כולם';
+  allBtn.onclick = function(){ setHebraFilter(null); };
+  wrap.appendChild(allBtn);
+  Object.keys(counts).sort().forEach(function(h) {
+    var b = document.createElement('button');
+    b.className = 'hbtn hevra-btn';
+    b.dataset.h = h;
+    b.textContent = h + ' · ' + counts[h];
+    b.onclick = function(){ setHebraFilter(h); };
+    wrap.appendChild(b);
+  });
 }
 
 fetch('./mmd-orders.json')
@@ -183,19 +263,23 @@ fetch('./mmd-orders.json')
         return { pke: p[0], dt: p[1], qty: parseInt(p[2], 10) || 0, days: parseInt(p[3], 10) || 0 };
       });
       var level = dangerLevel(batches, r.mkr_shvua);
-      return { mkt: r.mkt, taur: r.taur, mishpacha: r.mishpacha, img: r.img,
-               mkr_shvua: r.mkr_shvua, batches: batches, level: level };
+      return {
+        mkt: r.mkt, taur: r.taur, mishpacha: r.mishpacha,
+        hevra: r.hevra || '', img: r.img, krat: r.krat,
+        mkr_shvua: r.mkr_shvua, batches: batches, level: level
+      };
     });
-    // sort: danger → warn → ok, then by min days asc
+    // sort: danger → warn → ok, then min days asc
     allCards.sort(function(a, b) {
       var order = { danger: 0, warn: 1, ok: 2 };
       if (order[a.level] !== order[b.level]) return order[a.level] - order[b.level];
-      var aMin = Math.min.apply(null, a.batches.map(function(x) { return x.days; }));
-      var bMin = Math.min.apply(null, b.batches.map(function(x) { return x.days; }));
+      var aMin = Math.min.apply(null, a.batches.map(function(x){ return x.days; }));
+      var bMin = Math.min.apply(null, b.batches.map(function(x){ return x.days; }));
       return aMin - bMin;
     });
+    buildHebraButtons(allCards);
     updateSummary();
-    renderCards(allCards);
+    renderCards();
   })
   .catch(function(e) {
     document.getElementById('loading').textContent = 'שגיאה בטעינת נתונים: ' + e.message;
