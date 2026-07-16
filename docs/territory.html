@@ -31,8 +31,8 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .back-link{color:rgba(255,255,255,.8);font-size:12px;font-weight:700;text-decoration:none;padding:4px 10px;border:1.5px solid rgba(255,255,255,.35);border-radius:14px;white-space:nowrap;}
 
 /* FILTER BAR */
-.filter-bar{background:#fff;border-bottom:1px solid var(--sky-mid);padding:6px 10px;flex-shrink:0;display:flex;flex-direction:column;gap:5px;}
-.filter-row{display:flex;align-items:center;flex-wrap:wrap;gap:6px;}
+.filter-bar{background:#fff;border-bottom:1px solid var(--sky-mid);padding:4px 8px;flex-shrink:0;display:flex;flex-direction:column;gap:3px;}
+.filter-row{display:flex;align-items:center;flex-wrap:wrap;gap:5px;}
 .flt-label{font-size:10px;font-weight:700;color:var(--light);letter-spacing:.8px;text-transform:uppercase;flex-shrink:0;}
 
 /* City multi-select */
@@ -51,13 +51,13 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .city-count-badge{background:var(--blue);color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 7px;flex-shrink:0;}
 
 /* Day cards */
-.day-btns{display:flex;gap:5px;width:100%;}
+.day-btns{display:flex;gap:4px;width:100%;}
 .day-btn{
-  flex:1;border-radius:12px;background:#fff;
+  flex:1;border-radius:10px;background:#fff;
   border:2px solid var(--sky-mid);cursor:pointer;
   display:flex;flex-direction:column;align-items:stretch;
-  padding:7px 6px 6px;transition:all .18s;gap:0;
-  box-shadow:0 1px 4px rgba(21,101,192,.07);min-height:40px;
+  padding:5px 5px 4px;transition:all .18s;gap:0;
+  box-shadow:0 1px 4px rgba(21,101,192,.07);min-height:32px;
 }
 .day-btn:hover{border-color:var(--blue);}
 .day-btn.active{background:var(--blue);border-color:var(--blue-dark);box-shadow:0 3px 12px rgba(21,101,192,.35);}
@@ -65,11 +65,12 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .day-btn-undef .day-btn-label{color:#9E9E9E;}
 .day-btn-undef.active{background:#616161;border-color:#424242;box-shadow:0 3px 12px rgba(0,0,0,.25);}
 .day-btn-undef.active .day-btn-label{color:#fff;}
-.day-btn-label{font-size:28px;font-weight:900;color:var(--blue);text-align:center;line-height:1.1;padding-bottom:5px;}
+.day-btn-label{font-size:24px;font-weight:900;color:var(--blue);text-align:center;line-height:1.1;padding-bottom:3px;}
 .day-btn.active .day-btn-label{color:#fff;}
 /* inner mini-table — hidden until data */
 .day-card-body{display:none;flex-direction:column;gap:0;width:100%;}
-.day-btns.has-data .day-btn{height:150px;}
+.day-btns.has-data .day-btn{height:100px;}
+.day-btns.has-data .day-btn-label{font-size:18px;padding-bottom:1px;}
 .day-btns.has-data .day-card-body{display:flex;overflow:hidden;}
 /* totals row inside card */
 .dc-totals{
@@ -86,20 +87,20 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 /* per-agent mini-table rows */
 .dc-ag-tbl{display:table;width:100%;border-collapse:collapse;}
 .dc-ag-row{display:table-row;}
-.dc-ag-name{display:table-cell;font-size:11px;font-weight:700;color:var(--mid);padding:1px 0;white-space:nowrap;overflow:hidden;max-width:56px;text-overflow:ellipsis;text-align:right;}
+.dc-ag-name{display:table-cell;font-size:10px;font-weight:700;color:var(--mid);padding:0;white-space:nowrap;overflow:hidden;max-width:54px;text-overflow:ellipsis;text-align:right;}
 .day-btn.active .dc-ag-name{color:rgba(255,255,255,.75);}
-.dc-ag-cnt{display:table-cell;font-size:11px;font-weight:800;color:#333;padding:1px 5px;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.dc-ag-cnt{display:table-cell;font-size:10px;font-weight:800;color:#333;padding:0 4px;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap;}
 .day-btn.active .dc-ag-cnt{color:#fff;}
-.dc-ag-sales{display:table-cell;font-size:11px;font-weight:700;color:var(--green);padding:1px 0;text-align:left;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.dc-ag-sales{display:table-cell;font-size:10px;font-weight:700;color:var(--green);padding:0;text-align:left;font-variant-numeric:tabular-nums;white-space:nowrap;}
 .day-btn.active .dc-ag-sales{color:#B3E5FC;}
-.dc-ag-pct{display:table-cell;font-size:10px;font-weight:600;color:var(--mid);padding:1px 3px;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.dc-ag-pct{display:table-cell;font-size:9px;font-weight:600;color:var(--mid);padding:0 2px;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap;}
 .day-btn.active .dc-ag-pct{color:rgba(255,255,255,.6);}
 .dc-ag-pct-g{font-size:9px;opacity:.7;}
 .dc-pct-grand{font-size:10px;font-weight:700;color:var(--mid);}
 .day-btn.active .dc-pct-grand{color:rgba(255,255,255,.65);}
-.dc-total-row .dc-ag-name{font-weight:900;color:var(--text);font-size:10px;}
-.dc-total-row .dc-ag-cnt{font-size:13px;font-weight:900;}
-.dc-total-row .dc-ag-pct{font-weight:800;font-size:11px;}
+.dc-total-row .dc-ag-name{font-weight:900;color:var(--text);font-size:9px;}
+.dc-total-row .dc-ag-cnt{font-size:12px;font-weight:900;}
+.dc-total-row .dc-ag-pct{font-weight:800;font-size:10px;}
 .dc-total-row .dc-ag-sales{font-weight:800;}
 .dc-total-row{border-bottom:1px solid var(--sky-mid);padding-bottom:2px;margin-bottom:1px;}
 .day-btn.active .dc-total-row{border-color:rgba(255,255,255,.25);}
@@ -109,8 +110,8 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .day-btn.active .dc-total-row .dc-ag-sales{color:#B3E5FC;}
 
 /* Stats row */
-.stats-row{background:#fff;border-bottom:1px solid var(--sky-mid);padding:5px 12px;display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;}
-.stat-chip{padding:4px 12px;border-radius:14px;font-size:12px;font-weight:700;background:var(--sky-light);color:var(--blue-dark);white-space:nowrap;border:none;line-height:1.4;}
+.stats-row{background:#fff;border-bottom:1px solid var(--sky-mid);padding:3px 8px;display:flex;align-items:center;gap:5px;flex-shrink:0;flex-wrap:wrap;}
+.stat-chip{padding:2px 9px;border-radius:12px;font-size:11px;font-weight:700;background:var(--sky-light);color:var(--blue-dark);white-space:nowrap;border:none;line-height:1.4;}
 .stats-divider{width:1px;height:20px;background:var(--sky-mid);flex-shrink:0;margin:0 2px;}
 .nogps-btn,.nosales-btn,.nosales-btn180,.regular-btn,.ice-btn,.month-btn{
   cursor:pointer;transition:all .18s cubic-bezier(.4,0,.2,1);
@@ -135,15 +136,15 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 /* Agent legend */
 .agent-legend{display:flex;gap:4px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;padding-bottom:1px;}
 .agent-legend::-webkit-scrollbar{display:none;}
-.agent-chip{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:2px solid transparent;white-space:nowrap;flex:0 0 auto;opacity:.45;transition:all .15s;color:#fff;}
+.agent-chip{padding:2px 8px;border-radius:16px;font-size:10px;font-weight:700;cursor:pointer;border:2px solid transparent;white-space:nowrap;flex:0 0 auto;opacity:.45;transition:all .15s;color:#fff;}
 .agent-chip.on{opacity:1;box-shadow:0 2px 8px rgba(0,0,0,.18);}
-.agent-chip-count{font-size:9px;font-weight:800;margin-right:4px;opacity:.8;}
+.agent-chip-count{font-size:8px;font-weight:800;margin-right:3px;opacity:.8;}
 /* Sadran legend */
 .sadran-legend{display:flex;gap:4px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;padding-bottom:1px;}
 .sadran-legend::-webkit-scrollbar{display:none;}
-.sadran-chip{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:2px solid transparent;white-space:nowrap;flex:0 0 auto;opacity:.4;transition:all .15s;color:#fff;background:#7B1FA2;}
+.sadran-chip{padding:2px 8px;border-radius:16px;font-size:10px;font-weight:700;cursor:pointer;border:2px solid transparent;white-space:nowrap;flex:0 0 auto;opacity:.4;transition:all .15s;color:#fff;background:#7B1FA2;}
 .sadran-chip.on{opacity:1;box-shadow:0 2px 8px rgba(123,31,162,.3);}
-.sadran-chip-count{font-size:9px;font-weight:800;margin-right:4px;opacity:.8;}
+.sadran-chip-count{font-size:8px;font-weight:800;margin-right:3px;opacity:.8;}
 
 /* BODY */
 #route-body{display:flex;flex:1;overflow:hidden;flex-direction:column;}
@@ -718,14 +719,10 @@ function renderDayBtns(){
       const salesCell=ag.salesSum>0?`<span class="dc-ag-sales">${fmt(ag.salesSum)}</span>`:`<span class="dc-ag-sales"></span>`;
       return `<span class="dc-ag-row"><span class="dc-ag-name">${ag.name}</span><span class="dc-ag-cnt">${ag.count}</span><span class="dc-ag-pct">${pctDay}%</span>${salesCell}</span>`;
     }).join('');
-    const pie=miniPie(entries,totalCount);
     const pctGrandStr=grandTotal>0?`${pctGrandTotal}%`:'';
     const totalRow=`<span class="dc-ag-row dc-total-row"><span class="dc-ag-name">סה"כ</span><span class="dc-ag-cnt">${totalCount}</span><span class="dc-ag-pct">${pctGrandStr}</span><span class="dc-ag-sales">${totalSales>0?fmt(totalSales):''}</span></span>`;
     return `<div class="day-card-body">
-      <div style="display:flex;align-items:flex-start;gap:4px;width:100%;padding-top:4px">
-        ${pie}
-        <div class="dc-ag-tbl">${totalRow}${agRows}</div>
-      </div>
+      <div class="dc-ag-tbl" style="margin-top:2px">${totalRow}${agRows}</div>
     </div>`;
   }
 
