@@ -1418,19 +1418,27 @@ app.post('/api/export-route-xlsx', requireAuth, dataRateLimit, async (req, res) 
   wb.creator = 'Formula Road';
   const ws = wb.addWorksheet('מסלול', { views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
 
+  // Column indices (1-based):  1=pos 2=custId 3=name 4=company 5=day 6=dayOrig 7=agent 8=agentOrig 9=city 10=address 11=lat 12=lng 13=gps 14=priority
   const COLS = [
-    { name: 'סדר ביקור מתוקן',    width: 8  },
-    { name: 'מס. לקוח',           width: 14 },
-    { name: 'שם לקוח',            width: 28 },
-    { name: 'חברה',               width: 10 },
-    { name: 'יום',                 width: 10 },
-    { name: 'עיר',                 width: 16 },
-    { name: 'כתובת',               width: 26 },
-    { name: 'קו רוחב',             width: 13 },
-    { name: 'קו אורך',             width: 13 },
-    { name: 'GPS',                 width: 14 },
-    { name: 'סדר ביקור PRIORITY',  width: 15 },
+    { name: 'סדר ביקור מתוקן',   width: 8  },
+    { name: 'מס. לקוח',          width: 14 },
+    { name: 'שם לקוח',           width: 28 },
+    { name: 'חברה',              width: 10 },
+    { name: 'יום',               width: 10 },
+    { name: 'יום PBI',           width: 10 },
+    { name: 'סוכן',              width: 22 },
+    { name: 'סוכן PBI',          width: 22 },
+    { name: 'עיר',               width: 16 },
+    { name: 'כתובת',             width: 26 },
+    { name: 'קו רוחב',           width: 13 },
+    { name: 'קו אורך',           width: 13 },
+    { name: 'GPS',               width: 14 },
+    { name: 'סדר ביקור PRIORITY', width: 15 },
   ];
+  const COL_DAY        = 5;
+  const COL_DAY_ORIG   = 6;
+  const COL_AGENT      = 7;
+  const COL_AGENT_ORIG = 8;
 
   ws.addTable({
     name: 'RouteTable',
@@ -1439,61 +1447,69 @@ app.post('/api/export-route-xlsx', requireAuth, dataRateLimit, async (req, res) 
     totalsRow: false,
     style: { theme: 'TableStyleLight1', showRowStripes: false },
     columns: COLS.map(c => ({ name: c.name, filterButton: true })),
-    rows: rows.map(r => [
-      r.currentPos,
-      String(r.custId || ''),
-      r.custName || '',
-      r.hevra || 'FORMULA',
-      r.dayLabel || '',
-      r.city || '',
-      r.address || '',
-      r.lat ? Number(parseFloat(r.lat).toFixed(6)) : '',
-      r.lng ? Number(parseFloat(r.lng).toFixed(6)) : '',
-      (() => {
+    rows: rows.map(r => {
+      const gpsCell = (() => {
         if (!r.corrected) return r.lat && r.lng ? '✓' : 'חסר';
         if (r.pbiLat && r.pbiLng) return haversineDist(r.lat, r.lng, Number(r.pbiLat), Number(r.pbiLng)) <= 20 ? '✓' : '✓ CHANGED';
         return '✓ CHANGED';
-      })(),
-      r.noOrder ? 'חסר סדר ביקור' : (r.originalPos != null ? r.originalPos : ''),
-    ]),
+      })();
+      return [
+        r.currentPos,
+        String(r.custId || ''),
+        r.custName || '',
+        r.hevra || 'FORMULA',
+        r.dayLabel || '',
+        r.dayChanged ? (r.originalDayLabel || '') : '',
+        r.agentName || '',
+        r.agentChanged ? (r.originalAgentName || '') : '',
+        r.city || '',
+        r.address || '',
+        r.lat ? Number(parseFloat(r.lat).toFixed(6)) : '',
+        r.lng ? Number(parseFloat(r.lng).toFixed(6)) : '',
+        gpsCell,
+        r.noOrder ? 'חסר סדר ביקור' : (r.originalPos != null ? r.originalPos : ''),
+      ];
+    }),
   });
 
   COLS.forEach((c, i) => { ws.getColumn(i + 1).width = c.width; });
 
-  const FILL_GREEN1  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC8E6C9' } }; // corrected GPS (even)
-  const FILL_GREEN2  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFA5D6A7' } }; // corrected GPS (odd)
-  const FILL_ORANGE  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFCC80' } }; // doubtful GPS
-  const FILL_GRAY1   = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECEFF1' } }; // noOrder (even)
-  const FILL_GRAY2   = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } }; // noOrder (odd)
-  const FILL_STRIPE1 = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } }; // normal (even)
-  const FILL_STRIPE2 = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } }; // normal (odd)
-  const FILL_ICE1    = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB2DFDB' } }; // ICE client (even)
-  const FILL_ICE2    = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF80CBC4' } }; // ICE client (odd)
-  const FILL_YELLOW1 = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF9C4' } }; // changed day/agent (even)
-  const FILL_YELLOW2 = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF176' } }; // changed day/agent (odd)
-  const DOUBTFUL     = new Set(['geocoded', 'pbi-sibling-near', 'city-center', 'no-gps']);
+  const FILL_GREEN1       = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC8E6C9' } }; // corrected GPS even
+  const FILL_GREEN2       = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFA5D6A7' } }; // corrected GPS odd
+  const FILL_ORANGE       = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFCC80' } }; // doubtful GPS
+  const FILL_GRAY1        = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFECEFF1' } }; // noOrder even
+  const FILL_GRAY2        = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } }; // noOrder odd
+  const FILL_STRIPE1      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } }; // normal even
+  const FILL_STRIPE2      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } }; // normal odd
+  const FILL_ICE1         = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB2DFDB' } }; // ICE even
+  const FILL_ICE2         = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF80CBC4' } }; // ICE odd
+  const FILL_DAY_CHANGED  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF176' } }; // changed day cell
+  const FILL_AGENT_CHANGED = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFD54F' } }; // changed agent cell (amber)
+  const DOUBTFUL          = new Set(['geocoded', 'pbi-sibling-near', 'city-center', 'no-gps']);
 
   rows.forEach((r, i) => {
     const rowNum = i + 2;
-    let fill;
     const isGpsChanged = r.corrected && (
       !r.pbiLat || !r.pbiLng || haversineDist(r.lat, r.lng, Number(r.pbiLat), Number(r.pbiLng)) > 20
     );
-    const isOverrideChanged = !!(r.dayChanged || r.agentChanged);
-    if (isOverrideChanged) {
-      fill = i % 2 === 0 ? FILL_YELLOW1 : FILL_YELLOW2;
-    } else if (r.iceOnly) {
-      fill = i % 2 === 0 ? FILL_ICE1 : FILL_ICE2;
-    } else if (isGpsChanged) {
-      fill = i % 2 === 0 ? FILL_GREEN1 : FILL_GREEN2;
-    } else if (r.noOrder) {
-      fill = i % 2 === 0 ? FILL_GRAY1 : FILL_GRAY2;
-    } else if (DOUBTFUL.has(r.gpsSource)) {
-      fill = FILL_ORANGE;
-    } else {
-      fill = i % 2 === 0 ? FILL_STRIPE1 : FILL_STRIPE2;
+    // Row-level base fill (no longer yellow for overrides — handled per-cell below)
+    let rowFill;
+    if (r.iceOnly)                   rowFill = i % 2 === 0 ? FILL_ICE1   : FILL_ICE2;
+    else if (r.noOrder)              rowFill = i % 2 === 0 ? FILL_GRAY1  : FILL_GRAY2;
+    else if (isGpsChanged)           rowFill = i % 2 === 0 ? FILL_GREEN1 : FILL_GREEN2;
+    else if (DOUBTFUL.has(r.gpsSource)) rowFill = FILL_ORANGE;
+    else                             rowFill = i % 2 === 0 ? FILL_STRIPE1 : FILL_STRIPE2;
+    for (let col = 1; col <= COLS.length; col++) ws.getCell(rowNum, col).fill = rowFill;
+
+    // Cell-level override for changed day / agent
+    if (r.dayChanged) {
+      ws.getCell(rowNum, COL_DAY).fill      = FILL_DAY_CHANGED;
+      ws.getCell(rowNum, COL_DAY_ORIG).fill = FILL_DAY_CHANGED;
     }
-    for (let col = 1; col <= COLS.length; col++) ws.getCell(rowNum, col).fill = fill;
+    if (r.agentChanged) {
+      ws.getCell(rowNum, COL_AGENT).fill      = FILL_AGENT_CHANGED;
+      ws.getCell(rowNum, COL_AGENT_ORIG).fill = FILL_AGENT_CHANGED;
+    }
   });
 
   const today = new Date().toISOString().slice(0, 10);
@@ -1604,6 +1620,69 @@ app.post('/api/gps-sync-clean', requireAuth, (req, res) => {
   } catch (err) {
     console.error(err); res.status(500).json({ error: 'server_error' });
   }
+});
+
+// ── GPS VERSIONS — named snapshots of gps-corrections.json ──────────────────
+const GPS_VERSIONS_PATH = path.join(__dirname, '..', 'docs', 'gps-versions.json');
+function readGpsVersions() {
+  try { return JSON.parse(fs.readFileSync(GPS_VERSIONS_PATH, 'utf8')); } catch (_) { return []; }
+}
+function writeGpsVersions(arr) {
+  fs.writeFileSync(GPS_VERSIONS_PATH, JSON.stringify(arr, null, 2), 'utf8');
+}
+
+// POST /api/gps/save-version — save named snapshot of corrections + day/agent overrides
+app.post('/api/gps/save-version', requireAuth, (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name || typeof name !== 'string' || name.length > 80) return res.status(400).json({ error: 'invalid name' });
+    const correctionsPath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
+    let corrections = {};
+    try { corrections = JSON.parse(fs.readFileSync(correctionsPath, 'utf8')); } catch (_) {}
+    let overrides = {};
+    try { if (fs.existsSync(OVERRIDES_FILE)) overrides = JSON.parse(fs.readFileSync(OVERRIDES_FILE, 'utf8')); } catch (_) {}
+    const id = Date.now().toString();
+    const version = {
+      id, name: name.trim(), createdAt: new Date().toISOString(),
+      gpsCount: Object.keys(corrections).length,
+      overridesCount: Object.keys(overrides).length,
+      corrections, overrides
+    };
+    const versions = readGpsVersions();
+    versions.unshift(version);
+    if (versions.length > 30) versions.splice(30);
+    writeGpsVersions(versions);
+    writeLog({ ts: new Date().toISOString(), event: 'gps-version-save', name: name.trim(), gpsCount: version.gpsCount, overridesCount: version.overridesCount, ip: getRealIp(req) });
+    res.json({ ok: true, id, gpsCount: version.gpsCount, overridesCount: version.overridesCount, total: versions.length });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'server_error' }); }
+});
+
+// GET /api/gps/versions — list of saved versions (no body content)
+app.get('/api/gps/versions', requireAuth, (req, res) => {
+  const versions = readGpsVersions().map(({ id, name, createdAt, gpsCount, overridesCount, count }) => ({ id, name, createdAt, gpsCount: gpsCount ?? count ?? 0, overridesCount: overridesCount ?? 0 }));
+  res.json(versions);
+});
+
+// POST /api/gps/restore-version — restore corrections + overrides from a version
+app.post('/api/gps/restore-version', requireAuth, (req, res) => {
+  try {
+    const { id } = req.body;
+    if (!id) return res.status(400).json({ error: 'id required' });
+    const versions = readGpsVersions();
+    const v = versions.find(x => x.id === id);
+    if (!v) return res.status(404).json({ error: 'version not found' });
+    // Restore GPS corrections
+    const correctionsPath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
+    const json = JSON.stringify(v.corrections, null, 2);
+    fs.writeFileSync(correctionsPath, json, 'utf8');
+    pushGpsToGithub(json).catch(e => console.error('GitHub push failed:', e.message));
+    // Restore overrides if present
+    if (v.overrides && Object.keys(v.overrides).length) {
+      fs.writeFileSync(OVERRIDES_FILE, JSON.stringify(v.overrides, null, 2), 'utf8');
+    }
+    writeLog({ ts: new Date().toISOString(), event: 'gps-version-restore', id, name: v.name, ip: getRealIp(req) });
+    res.json({ ok: true, name: v.name, gpsCount: Object.keys(v.corrections).length, overridesCount: Object.keys(v.overrides || {}).length });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'server_error' }); }
 });
 
 // GET /api/gps-pending-xlsx — Excel of all corrections not yet in PBI

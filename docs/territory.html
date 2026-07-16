@@ -129,7 +129,28 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .ice-btn.active{background:#0277BD;color:#fff;border:1.5px solid #0277BD;box-shadow:inset 0 2px 5px rgba(0,0,0,.2);transform:scale(.97);}
 .stats-right{margin-right:auto;display:flex;gap:6px;align-items:center;}
 .export-btn{background:#1D6F42;color:#fff;border:none;border-radius:16px;padding:4px 12px;height:28px;font-size:11px;font-weight:800;cursor:pointer;}
+.version-btn{background:#5C6BC0;color:#fff;border:none;border-radius:16px;padding:4px 12px;height:28px;font-size:11px;font-weight:800;cursor:pointer;}
+.history-btn{background:#37474F;color:#fff;border:none;border-radius:16px;padding:4px 12px;height:28px;font-size:11px;font-weight:800;cursor:pointer;}
 .tab-inline{display:flex;gap:3px;}
+/* ─── Save/History modals ─── */
+.sv-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center;}
+.sv-modal-box{background:#fff;border-radius:14px;padding:24px;width:min(320px,90vw);box-shadow:0 8px 32px rgba(0,0,0,.25);}
+.sv-modal-title{font-size:15px;font-weight:900;color:#1565C0;margin-bottom:14px;}
+.sv-modal-input{width:100%;border:1.5px solid #BBDEFB;border-radius:8px;padding:9px 12px;font-size:13px;margin-bottom:10px;direction:rtl;font-family:inherit;}
+.sv-modal-status{font-size:11px;color:#546E7A;min-height:18px;margin-bottom:12px;}
+.sv-modal-actions{display:flex;gap:8px;justify-content:flex-end;}
+.sv-btn-cancel{background:#ECEFF1;color:#546E7A;border:none;border-radius:8px;padding:8px 16px;font-weight:700;cursor:pointer;font-size:12px;}
+.sv-btn-save{background:#5C6BC0;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-weight:900;cursor:pointer;font-size:12px;}
+.vh-modal-box{background:#fff;border-radius:14px;width:min(440px,96vw);max-height:80vh;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.25);display:flex;flex-direction:column;}
+.vh-modal-hdr{padding:14px 18px;border-bottom:1px solid #BBDEFB;display:flex;justify-content:space-between;align-items:center;}
+.vh-modal-hdr-title{font-size:14px;font-weight:900;color:#1565C0;}
+.vh-modal-close{background:none;border:none;font-size:18px;cursor:pointer;color:#546E7A;line-height:1;}
+.vh-modal-list{overflow-y:auto;flex:1;padding:4px 14px;}
+.vh-item{display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid #E3F2FD;}
+.vh-item-info{flex:1;min-width:0;}
+.vh-item-name{font-size:13px;font-weight:800;color:#1565C0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.vh-item-meta{font-size:10px;color:#90A4AE;margin-top:2px;}
+.vh-item-restore{background:#E8F5E9;color:#2E7D32;border:1px solid #A5D6A7;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:800;cursor:pointer;flex-shrink:0;}
 .tab-inline-btn{width:28px;height:28px;border-radius:7px;font-size:13px;cursor:pointer;background:none;border:1.5px solid var(--sky-mid);color:var(--mid);display:flex;align-items:center;justify-content:center;transition:all .15s;}
 .tab-inline-btn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
 
@@ -275,6 +296,9 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
     <span class="stat-chip" id="stat-changed" style="display:none;"></span>
     <div class="stats-right">
       <button type="button" class="visit-btn" id="visit-btn" onclick="toggleVisitMode()">🗺 ביקור</button>
+      <button class="version-btn" onclick="openSaveVersionModal()">💾 גרסה</button>
+      <button class="history-btn" onclick="openVersionHistory()">📚</button>
+      <button class="export-btn" onclick="exportAllDaysXLSX()">📥 כל הימים</button>
       <button class="export-btn" onclick="exportXLSX()">📥 Excel</button>
       <div class="tab-inline">
         <button class="tab-inline-btn active" id="tab-list" onclick="setTab('list')">📋</button>
@@ -1218,23 +1242,11 @@ async function exportXLSX(){
   const btn=document.querySelector('.export-btn');
   const orig=btn.innerHTML; btn.innerHTML='⏳...'; btn.disabled=true;
   try{
-    const rows=list.map((c,i)=>{
-      const ov=st.overrides[String(c.custId)]||{};
-      return {
-        currentPos:i+1, custId:c.custId||'', custName:c.custName||'',
-        hevra:c.hevra||'FORMULA', iceOnly:c.hevra==='ICE',
-        city:c.city||'', address:c.address||'',
-        agentCode:c.agentCode||'', agentName:c.agentName||'',
-        dayLabel:DAY_LBL[c.dayNum]||'', lat:c.lat||null, lng:c.lng||null,
-        gpsSource:c.gpsSource||null,
-        corrected:c.gpsSource==='correction',
-        noOrder:!c.dayNum,
-        dayChanged:ov.dayNum!==undefined, agentChanged:!!ov.agentCode,
-      };
-    });
+    const rows=buildExportRows(list);
+    const dayLblStr=[...st.activeDays].map(d=>DAY_LBL[d]||'').filter(Boolean).join('+');
     const r=await apiFetch(`${API}/api/export-route-xlsx`,{
       method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({rows, agentName:[...selectedCities].join(', ')||'', dayLabel:'כל הימים'}),
+      body:JSON.stringify({rows, agentName:[...selectedCities].join(', ')||'', dayLabel:dayLblStr||'כל הימים'}),
     });
     if(!r.ok) throw new Error(r.status);
     const blob=await r.blob();
@@ -1326,6 +1338,125 @@ function showToast(msg,ms=2500){
   t.textContent=msg;t.style.opacity='1';clearTimeout(t._to);t._to=setTimeout(()=>t.style.opacity='0',ms);
 }
 
+// ── SAVE VERSION ─────────────────────────────────────────────────────────
+function openSaveVersionModal(){
+  const d=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  const def=`${pad(d.getDate())}.${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  document.getElementById('sv-name-input').value=def;
+  document.getElementById('sv-status').textContent='';
+  document.getElementById('save-version-modal').style.display='flex';
+  setTimeout(()=>document.getElementById('sv-name-input').select(),80);
+}
+
+async function doSaveVersion(){
+  const name=document.getElementById('sv-name-input').value.trim();
+  if(!name) return;
+  const btn=document.getElementById('sv-save-btn');
+  const status=document.getElementById('sv-status');
+  btn.disabled=true; status.textContent='⏳ שומר...';
+  try{
+    const r=await apiFetch(`${API}/api/gps/save-version`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name})
+    });
+    if(!r.ok) throw new Error(r.status);
+    const j=await r.json();
+    status.textContent=`✅ נשמר — ${j.gpsCount||0} GPS · ${j.overridesCount||0} שינויים`;
+    setTimeout(()=>document.getElementById('save-version-modal').style.display='none',1400);
+  }catch(e){ status.textContent='❌ שגיאה: '+e.message; }
+  finally{ btn.disabled=false; }
+}
+
+async function openVersionHistory(){
+  document.getElementById('version-history-modal').style.display='flex';
+  const el=document.getElementById('version-list');
+  el.innerHTML='<div style="text-align:center;padding:20px;color:#90A4AE;">⏳ טוען...</div>';
+  try{
+    const r=await apiFetch(`${API}/api/gps/versions`);
+    if(!r.ok) throw new Error(r.status);
+    const list=await r.json();
+    if(!list.length){
+      el.innerHTML='<div style="text-align:center;padding:24px;color:#90A4AE;font-size:13px;">אין גרסאות שמורות</div>';
+      return;
+    }
+    const pad=n=>String(n).padStart(2,'0');
+    el.innerHTML=list.map(v=>{
+      const dt=new Date(v.createdAt);
+      const dtStr=`${pad(dt.getDate())}.${pad(dt.getMonth()+1)} ${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+      return `<div class="vh-item">
+        <div class="vh-item-info">
+          <div class="vh-item-name">${esc(v.name)}</div>
+          <div class="vh-item-meta">${dtStr} · GPS: ${v.gpsCount||0} · שינויים: ${v.overridesCount||0}</div>
+        </div>
+        <button type="button" class="vh-item-restore" onclick="restoreVersion('${esc(v.id)}')">שחזר</button>
+      </div>`;
+    }).join('');
+  }catch(e){
+    el.innerHTML=`<div style="text-align:center;padding:20px;color:#C62828;">❌ ${esc(String(e))}</div>`;
+  }
+}
+
+async function restoreVersion(id){
+  if(!confirm('לשחזר גרסה זו? השינויים הנוכחיים ידרסו.')) return;
+  try{
+    const r=await apiFetch(`${API}/api/gps/restore-version`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({id})
+    });
+    if(!r.ok) throw new Error(r.status);
+    document.getElementById('version-history-modal').style.display='none';
+    showToast('✅ גרסה שוחזרה — מרענן...',2000);
+    setTimeout(()=>location.reload(),1800);
+  }catch(e){ showToast('❌ שגיאה: '+e.message); }
+}
+
+// ── EXPORT ALL DAYS ───────────────────────────────────────────────────────
+async function exportAllDaysXLSX(){
+  // All clients regardless of active day filter
+  const activeDaysBak=new Set(st.activeDays);
+  st.activeDays=new Set([0,1,2,3,4,5,6]);
+  const list=displayClients();
+  st.activeDays=activeDaysBak;
+  if(!list.length) return;
+  const btn=Array.from(document.querySelectorAll('.export-btn')).find(b=>b.textContent.includes('כל'));
+  if(btn){const orig=btn.innerHTML;btn.innerHTML='⏳...';btn.disabled=true;setTimeout(()=>{btn.innerHTML=orig;btn.disabled=false;},8000);}
+  try{
+    const rows=buildExportRows(list);
+    const r=await apiFetch(`${API}/api/export-route-xlsx`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({rows, agentName:[...selectedCities].slice(0,2).join('_')||'territory', dayLabel:'כל הימים'}),
+    });
+    if(!r.ok) throw new Error(r.status);
+    const blob=await r.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url;
+    const cityStr=[...selectedCities].slice(0,2).join('_')||'territory';
+    a.download=`territory_${cityStr}_כל-הימים_${new Date().toISOString().slice(0,10)}.xlsx`;
+    a.click(); setTimeout(()=>URL.revokeObjectURL(url),5000);
+  }catch(e){ alert('שגיאה: '+e.message); }
+}
+
+function buildExportRows(list){
+  return list.map((c,i)=>{
+    const ov=st.overrides[String(c.custId)]||{};
+    const orig=st.allClients.find(x=>x.custId===c.custId)||c;
+    return {
+      currentPos:i+1, custId:c.custId||'', custName:c.custName||'',
+      hevra:c.hevra||'FORMULA', iceOnly:c.hevra==='ICE',
+      city:c.city||'', address:c.address||'',
+      agentCode:c.agentCode||'', agentName:c.agentName||'',
+      dayLabel:DAY_LBL[c.dayNum]||'', lat:c.lat||null, lng:c.lng||null,
+      gpsSource:c.gpsSource||null,
+      corrected:c.gpsSource==='correction',
+      noOrder:!c.dayNum,
+      dayChanged:ov.dayNum!==undefined, agentChanged:!!ov.agentCode,
+      originalDayLabel: ov.dayNum!==undefined ? (DAY_LBL[orig.dayNum]||'') : '',
+      originalAgentName: ov.agentCode ? (orig.agentName||'') : '',
+    };
+  });
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────
 async function init(){
   loadOverrides();
@@ -1339,5 +1470,31 @@ async function init(){
 }
 init();
 </script>
+
+<!-- SAVE VERSION MODAL -->
+<div id="save-version-modal" class="sv-modal-overlay">
+  <div class="sv-modal-box">
+    <div class="sv-modal-title">💾 שמור גרסה</div>
+    <input id="sv-name-input" type="text" class="sv-modal-input" placeholder="שם הגרסה"
+           onkeydown="if(event.key==='Enter')doSaveVersion()"/>
+    <div id="sv-status" class="sv-modal-status"></div>
+    <div class="sv-modal-actions">
+      <button type="button" class="sv-btn-cancel" onclick="document.getElementById('save-version-modal').style.display='none'">ביטול</button>
+      <button type="button" id="sv-save-btn" class="sv-btn-save" onclick="doSaveVersion()">שמור</button>
+    </div>
+  </div>
+</div>
+
+<!-- VERSION HISTORY MODAL -->
+<div id="version-history-modal" class="sv-modal-overlay">
+  <div class="vh-modal-box">
+    <div class="vh-modal-hdr">
+      <div class="vh-modal-hdr-title">📚 היסטוריית גרסאות</div>
+      <button type="button" class="vh-modal-close" onclick="document.getElementById('version-history-modal').style.display='none'">✕</button>
+    </div>
+    <div id="version-list" class="vh-modal-list"></div>
+  </div>
+</div>
+
 </body>
 </html>
