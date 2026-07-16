@@ -72,8 +72,8 @@ async function build() {
         "yamim",      MIN('תוקף FORM'[כמה ימים נשארו]),
         "eilat_yamim", MIN('EILATתוקף'[כמה ימים נשארו]),
         "eilat_tukuf_dt", MIN('EILATתוקף'[ת. תפוגת תוקף]),
-        "dist_active", CALCULATE([לקוחות פעילים], ${df}),
-        "cust_bought", CALCULATE([כמות לקוחות], ${df}),
+        "dist_active", CALCULATE([לקוחות פעילים], NOT 'לקוחות'[תאור סוג לקוח] IN { "סיטונאים", "מלונות", "פתאל מוסדי" }, ${df}),
+        "cust_bought", CALCULATE([כמות לקוחות], NOT 'לקוחות'[תאור סוג לקוח] IN { "סיטונאים", "מלונות", "פתאל מוסדי" }, ${df}),
         "eilat_batches", CONCATENATEX('EILATתוקף', 'EILATתוקף'[מנה/פק'ע] & "|" & FORMAT('EILATתוקף'[ת. תפוגת תוקף],"DD/MM/YYYY") & "|" & [קרטון מלאי תוקף] & "|" & 'EILATתוקף'[כמה ימים נשארו], ";", 'EILATתוקף'[ת. תפוגת תוקף], ASC)
       ),
       OR(OR('KARTIS PARIT'[ASHDOD KAARTON] > 0, 'KARTIS PARIT'[MMD KARTON] > 0), [מחסן מעבר] > 0)
