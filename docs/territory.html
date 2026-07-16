@@ -957,7 +957,7 @@ function selectClient(id){
   renderClientList();
   if(st.selectedId&&(st.tab==='map'||window.innerWidth>=700)){
     const c=displayClients().find(x=>x.custId===id);
-    if(c&&c.lat&&c.lng&&map) setTimeout(()=>map.flyTo([c.lat,c.lng],Math.min((map.getZoom()||10)+1,15),{duration:1}),50);
+    if(c&&c.lat&&c.lng&&map) setTimeout(()=>map.flyTo([c.lat,c.lng],17,{duration:1}),50);
     renderMap();
   }
 }
@@ -1128,7 +1128,7 @@ function renderMap(){
   list.forEach(c=>{
     const color=agentColor(c.agentCode);
     const isSel=st.selectedId===c.custId;
-    const sz=isSel?36:c._isNew?30:c.hevra==='ICE'?(mapVisitOrderMap[String(c.custId)]?32:28):26;
+    const sz=c._isNew?30:c.hevra==='ICE'?(mapVisitOrderMap[String(c.custId)]?32:28):26;
     const vNum=mapVisitOrderMap[String(c.custId)];
     const markerLabel=vNum?String(vNum):(DAY_LBL[c.dayNum]||'?');
     const markerInner=c._isNew
@@ -1148,7 +1148,7 @@ function renderMap(){
     }).join('');
     const gpsBtnHtml=`<button type="button" onclick="openGpsFixFromMap('${c.custId}','${safeName}')" style="margin-top:6px;width:100%;background:#1565C0;color:#fff;border:none;border-radius:8px;padding:5px;font-size:11px;font-weight:700;cursor:pointer">📍 תיקון מיקום</button>`;
     m.bindPopup(`<div style="min-width:160px;direction:rtl"><b>${safeName}</b><br><span style="color:${color};font-weight:700">${esc(c.agentName||c.agentCode||'')}</span>${c.address?'<br><span style="font-size:11px;color:#666">'+esc(c.address)+'</span>':''}<br><div style="display:flex;gap:3px;margin-top:5px">${dayBtnsHtml}</div>${gpsBtnHtml}</div>`);
-    if(isSel){m.addTo(map);m.openPopup();}else{markerCluster.addLayer(m);}
+    markerCluster.addLayer(m);
     mapMarkers.push(m);
     bounds.push([c.lat,c.lng]);
   });
