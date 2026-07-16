@@ -7,77 +7,63 @@
 <title>תוקף אילת — MMD ORDERS</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{color-scheme:only light}
-body{background:#f4f6fb!important;color:#222;font-family:'Segoe UI',sans-serif;min-height:100vh}
-
-/* ── Header (exactly like Mahsan Editor) ── */
-#hdr{display:flex;align-items:center;gap:8px;padding:10px 18px;background:#c62828;position:sticky;top:0;z-index:99;flex-wrap:wrap}
-.hdr-title{font-weight:bold;font-size:13px;color:#fff;flex:none}
-.hdr-sep{width:1px;height:20px;background:rgba(255,255,255,.3);margin:0 2px;flex-shrink:0}
-.hbtn{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.4);color:#fff;font-size:12px;font-weight:bold;cursor:pointer;border-radius:4px;padding:4px 10px;white-space:nowrap}
-.hbtn:hover{background:rgba(255,255,255,.3)}
-.hbtn.active{background:rgba(255,255,255,.9);color:#c62828;border-color:transparent}
-.hbtn-util{background:rgba(255,255,255,.2);border:none;color:#fff;font-size:12px;cursor:pointer;border-radius:4px;padding:4px 12px;white-space:nowrap}
-.hbtn-util:hover{background:rgba(255,255,255,.35)}
-.hbtn-reset{display:none;background:#fff3cd;border:none;color:#7a5c00;font-size:12px;font-weight:bold;cursor:pointer;border-radius:4px;padding:4px 12px}
+:root{color-scheme:only light;forced-color-adjust:none}
+/* ── Header ── */
+#hdr{display:flex;align-items:center;gap:8px;padding:10px 18px;background:#c62828 !important;position:sticky;top:0;z-index:99;flex-wrap:wrap;color:#fff}
+.hdr-title{font-weight:bold;font-size:15px;color:#fff !important;flex:none}
+.hdr-sep{width:1px;height:22px;background:rgba(255,255,255,.35);margin:0 3px;flex-shrink:0}
+.hbtn{background:rgba(255,255,255,.15) !important;border:1.5px solid rgba(255,255,255,.45);color:#fff !important;font-size:13px;font-weight:bold;cursor:pointer;border-radius:5px;padding:5px 14px;white-space:nowrap}
+.hbtn:hover{background:rgba(255,255,255,.3) !important}
+.hbtn.active{background:rgba(255,255,255,.92) !important;color:#c62828 !important;border-color:transparent}
+.hbtn-util{background:rgba(255,255,255,.2) !important;border:none;color:#fff !important;font-size:13px;cursor:pointer;border-radius:5px;padding:5px 14px;white-space:nowrap;font-weight:600}
+.hbtn-util:hover{background:rgba(255,255,255,.38) !important}
+.hbtn-reset{display:none;background:#fff3cd !important;border:none;color:#7a5c00 !important;font-size:13px;font-weight:bold;cursor:pointer;border-radius:5px;padding:5px 14px}
 .hdr-spacer{flex:1}
-
 /* ── Summary ── */
-#summary{padding:6px 18px;font-size:12px;color:#555;background:#fff;border-bottom:1px solid #dde0e8}
-
-/* ── Cards container (flex-wrap like Mahsan Editor) ── */
-#cards{display:flex;flex-wrap:wrap;gap:10px;padding:12px 16px;justify-content:flex-start}
-.empty-msg{padding:40px;text-align:center;color:#aaa;font-size:14px;width:100%}
-
+#summary{padding:7px 18px;font-size:13px;color:#444 !important;background:#fff !important;border-bottom:1px solid #dde0e8}
+/* ── Cards ── */
+#cards{display:flex;flex-wrap:wrap;gap:12px;padding:14px 18px;justify-content:flex-start;background:#f4f6fb !important;min-height:100vh}
+.empty-msg{padding:40px;text-align:center;color:#aaa;font-size:15px;width:100%}
 /* ── Card ── */
-.ec{background:#fff;border-radius:8px;border:1px solid #dde0e8;box-shadow:0 1px 4px rgba(0,0,0,.06);
-    padding:8px;width:300px;flex-shrink:0;display:flex;gap:8px;align-items:flex-start;position:relative}
-.ec.danger{border:2px solid #c62828}
-.ec.warn  {border:2px solid #e65100}
-
-/* hide button — exactly Mahsan Editor style */
-.ec-hide{position:absolute;top:4px;left:4px;background:rgba(0,0,0,.28);border:none;color:#fff;
-         font-size:10px;cursor:pointer;border-radius:3px;padding:2px 7px;z-index:10;line-height:1.5;font-weight:bold}
-.ec-hide:hover{background:rgba(0,0,0,.5)}
-
-/* photo column */
+.ec{background:#fff !important;border-radius:8px;border:1px solid #dde0e8;box-shadow:0 1px 5px rgba(0,0,0,.07);padding:10px;width:320px;flex-shrink:0;display:flex;gap:10px;align-items:flex-start;position:relative}
+.ec.danger{border:2px solid #c62828 !important}
+.ec.warn  {border:2px solid #e65100 !important}
+.ec-hide{position:absolute;top:5px;left:5px;background:rgba(0,0,0,.28) !important;border:none;color:#fff !important;font-size:11px;cursor:pointer;border-radius:3px;padding:2px 8px;z-index:10;line-height:1.5;font-weight:bold}
+.ec-hide:hover{background:rgba(0,0,0,.5) !important}
+/* photo */
 .ec-photo-col{flex-shrink:0;text-align:center}
-.ec-photo{width:60px;height:60px;object-fit:contain;border-radius:4px;border:1px solid #e0e0e0;background:#fff;display:block}
-.ec-photo-ph{width:60px;height:60px;background:#f0f0f0;border-radius:4px;border:1px solid #e0e0e0;display:flex;align-items:center;justify-content:center;font-size:1.6rem}
-.ec-mkt{font-size:9px;color:#1565C0;font-weight:bold;margin-top:2px}
-
-/* content column */
+.ec-photo{width:64px;height:64px;object-fit:contain;border-radius:4px;border:1px solid #e0e0e0;background:#fff !important;display:block}
+.ec-photo-ph{width:64px;height:64px;background:#f0f0f0 !important;border-radius:4px;border:1px solid #e0e0e0;display:flex;align-items:center;justify-content:center;font-size:1.8rem}
+.ec-mkt{font-size:10px;color:#1565C0 !important;font-weight:bold;margin-top:3px}
+/* content */
 .ec-content{flex:1;min-width:0}
-.ec-name{font-size:10px;font-weight:bold;color:#222;margin-bottom:4px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.ec-stock-badge{display:inline-block;font-size:11px;font-weight:bold;padding:2px 10px;border-radius:4px;background:#e3f2fd;color:#0d47a1;margin-bottom:5px}
-.ec-special-badge{display:inline-block;font-size:9px;font-weight:bold;padding:1px 6px;border-radius:3px;background:#6a1b9a;color:#fff;margin-right:4px;margin-bottom:5px;vertical-align:middle}
-
-/* batch table */
-.ec-tbl{width:100%;border-collapse:collapse;font-size:10px}
-.ec-tbl th{padding:3px 6px;font-size:9px;text-align:right;font-weight:bold}
-.th-danger{background:#c62828;color:#fff}
-.th-warn  {background:#e65100;color:#fff}
-.th-ok    {background:#f5f5f5;color:#555}
-.ec-tbl td{padding:3px 6px;border-bottom:1px solid #f0f0f0;text-align:right}
+.ec-name{font-size:11px;font-weight:bold;color:#222 !important;margin-bottom:5px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ec-badges{margin-bottom:6px}
+.ec-stock-badge{display:inline-block;font-size:12px;font-weight:bold;padding:2px 10px;border-radius:4px;background:#e3f2fd !important;color:#0d47a1 !important}
+.ec-special-badge{display:inline-block;font-size:10px;font-weight:bold;padding:1px 7px;border-radius:3px;background:#6a1b9a !important;color:#fff !important;margin-left:5px}
+/* table */
+.ec-tbl{width:100%;border-collapse:collapse;font-size:11px}
+.ec-tbl th{padding:4px 7px;font-size:10px;text-align:right;font-weight:bold}
+.th-danger{background:#c62828 !important;color:#fff !important}
+.th-warn  {background:#e65100 !important;color:#fff !important}
+.th-ok    {background:#f5f5f5 !important;color:#555 !important}
+.ec-tbl td{padding:3px 7px;border-bottom:1px solid #f0f0f0;color:#333 !important}
 .ec-tbl tr:last-child td{border-bottom:none}
-.ec-tbl tfoot td{padding:4px 6px;border-top:2px solid #e0e0e0;background:#f5f7fa;font-size:9px;color:#666}
-.clr-r{color:#c62828;font-weight:bold}
-.clr-o{color:#e65100;font-weight:bold}
-.clr-g{color:#2e7d32}
-
-#loading{padding:40px;text-align:center;color:#aaa}
-
+.ec-tbl tfoot td{padding:5px 7px;border-top:2px solid #e0e0e0;background:#f5f7fa !important;font-size:10px;color:#555 !important}
+.clr-r{color:#c62828 !important;font-weight:bold}
+.clr-o{color:#e65100 !important;font-weight:bold}
+.clr-g{color:#2e7d32 !important}
+#loading{padding:50px;text-align:center;color:#888;background:#f4f6fb !important;min-height:100vh}
 @media print{
   @page{size:A4 landscape;margin:7mm}
-  #hdr{position:static!important;padding:5px 12px}
+  #hdr{position:static!important}
   .hbtn,.hbtn-util,.hbtn-reset,.ec-hide,.no-print{display:none!important}
-  #summary{font-size:10px}
-  #cards{gap:6px!important;padding:6px!important}
-  .ec{width:280px!important;box-shadow:none!important}
+  #cards{padding:6px!important;gap:8px!important}
+  .ec{width:270px!important;box-shadow:none!important}
 }
 </style>
 </head>
-<body>
+<body style="background:#f4f6fb;margin:0;padding:0;font-family:'Segoe UI',sans-serif">
 
 <div id="hdr">
   <span class="hdr-title">📦 תוקף אילת</span>
@@ -89,12 +75,12 @@ body{background:#f4f6fb!important;color:#222;font-family:'Segoe UI',sans-serif;m
   <div class="hdr-spacer"></div>
   <button class="hbtn-reset no-print" id="btn-reset" onclick="resetHidden()">↩ איפוס</button>
   <button class="hbtn-util no-print" onclick="window.print()">🖨 הדפס</button>
-  <a href="/mmd/" style="background:rgba(255,255,255,.2);border:none;color:#fff;font-size:16px;cursor:pointer;border-radius:4px;padding:2px 10px;text-decoration:none;line-height:1.8">✕</a>
+  <a href="/mmd/" style="background:rgba(255,255,255,.2);border:none;color:#fff;font-size:18px;cursor:pointer;border-radius:5px;padding:2px 12px;text-decoration:none;line-height:2;font-weight:bold">✕</a>
 </div>
 
-<div id="summary"></div>
-<div id="loading">טוען נתונים...</div>
-<div id="cards" style="display:none"></div>
+<div id="summary" style="background:#fff;padding:7px 18px;font-size:13px;color:#444;border-bottom:1px solid #dde0e8"></div>
+<div id="loading" style="padding:50px;text-align:center;color:#888">טוען נתונים...</div>
+<div id="cards" style="display:none;background:#f4f6fb;min-height:100vh"></div>
 
 <script>
 var allCards   = [];
@@ -102,16 +88,15 @@ var levelFilter = null;
 var hebraFilter = null;
 var hiddenSet   = new Set();
 
-function clrClass(days){ return days<30?'clr-r':days<60?'clr-o':'clr-g'; }
+function clrClass(d){ return d<30?'clr-r':d<60?'clr-o':'clr-g'; }
 
-function dangerLevel(batches, mkr_shvua) {
+function dangerLevel(batches, wk) {
   var hasDanger=false, hasWarn=false;
   batches.forEach(function(b){
     if(b.qty<=0) return;
-    var weeksToExpiry = b.days/7;
-    var weeksOfStock  = mkr_shvua>0 ? b.qty/mkr_shvua : 999;
-    if(b.days<14 || weeksOfStock>weeksToExpiry)             hasDanger=true;
-    else if(b.days<30 || weeksOfStock>weeksToExpiry*0.7)    hasWarn=true;
+    var we=b.days/7, ws=wk>0?b.qty/wk:999;
+    if(b.days<14||ws>we)           hasDanger=true;
+    else if(b.days<30||ws>we*0.7)  hasWarn=true;
   });
   return hasDanger?'danger':(hasWarn?'warn':'ok');
 }
@@ -144,83 +129,82 @@ function render(){
   var shown=0;
   allCards.forEach(function(c){
     if(hiddenSet.has(c.mkt)) return;
-    if(levelFilter==='danger' && c.level!=='danger') return;
-    if(levelFilter==='warn'   && c.level!=='warn'  ) return;
-    if(hebraFilter && c.hevra!==hebraFilter) return;
+    if(levelFilter==='danger'&&c.level!=='danger') return;
+    if(levelFilter==='warn'  &&c.level!=='warn'  ) return;
+    if(hebraFilter&&c.hevra!==hebraFilter) return;
     shown++;
 
     var div=document.createElement('div');
     div.className='ec'+(c.level==='danger'?' danger':c.level==='warn'?' warn':'');
 
-    // ✕ hide button
     var hb=document.createElement('button');
     hb.className='ec-hide no-print'; hb.textContent='✕'; hb.title='הסתר לפני הדפסה';
     hb.setAttribute('onclick','hideCard("'+c.mkt+'")');
     div.appendChild(hb);
 
-    // photo column
-    var photoCol=document.createElement('div');
-    photoCol.className='ec-photo-col';
+    // photo col
+    var pcol=document.createElement('div');
+    pcol.className='ec-photo-col';
     if(c.img){
-      photoCol.innerHTML='<img class="ec-photo" src="/mmd/img/'+encodeURIComponent(c.mkt)+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" loading="lazy"><div class="ec-photo-ph" style="display:none">📦</div>';
+      pcol.innerHTML='<img class="ec-photo" src="/mmd/img/'+encodeURIComponent(c.mkt)+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" loading="lazy"><div class="ec-photo-ph" style="display:none">📦</div>';
     } else {
-      photoCol.innerHTML='<div class="ec-photo-ph">📦</div>';
+      pcol.innerHTML='<div class="ec-photo-ph">📦</div>';
     }
-    photoCol.innerHTML+='<div class="ec-mkt">'+c.mkt+'</div>';
-    div.appendChild(photoCol);
+    pcol.innerHTML+='<div class="ec-mkt">'+c.mkt+'</div>';
+    div.appendChild(pcol);
 
-    // content column
-    var content=document.createElement('div');
-    content.className='ec-content';
+    // content col
+    var cc=document.createElement('div');
+    cc.className='ec-content';
 
-    var nameDiv=document.createElement('div');
-    nameDiv.className='ec-name'; nameDiv.textContent=c.taur;
-    content.appendChild(nameDiv);
+    var nd=document.createElement('div');
+    nd.className='ec-name'; nd.textContent=c.taur;
+    cc.appendChild(nd);
 
-    // total stock badge + special badge for 664
     var totalQty=c.batches.reduce(function(s,b){return s+b.qty;},0);
-    var badges=document.createElement('div');
-    if(String(c.mkt)==='664'){
-      badges.innerHTML='<span class="ec-special-badge">×4 המלצה</span>';
-    }
-    badges.innerHTML+='<span class="ec-stock-badge">סה"כ מלאי: '+totalQty+' קרט</span>';
-    content.appendChild(badges);
+    var bd=document.createElement('div');
+    bd.className='ec-badges';
+    bd.innerHTML='<span class="ec-stock-badge">סה"כ: '+totalQty+' קרט</span>'
+      +(String(c.mkt)==='664'?'<span class="ec-special-badge">×4 המלצה</span>':'');
+    cc.appendChild(bd);
 
-    // batch table
     var thCls=c.level==='danger'?'th-danger':c.level==='warn'?'th-warn':'th-ok';
+    var thLabel='אילת — '+(c.mishpacha||'פק"ע');
     var rows='';
     c.batches.forEach(function(b){
       if(b.qty<=0) return;
-      var cls=clrClass(b.days);
-      rows+='<tr><td>'+b.dt+'</td><td class="'+cls+'">'+b.qty+' קרט</td><td class="'+cls+'">'+b.days+' ימים</td></tr>';
+      var cl=clrClass(b.days);
+      rows+='<tr>'
+        +'<td>'+b.dt+'</td>'
+        +'<td class="'+cl+'" style="text-align:center;font-weight:bold">'+b.qty+'</td>'
+        +'<td class="'+cl+'" style="text-align:center;font-weight:bold">'+b.days+'י\'</td>'
+        +'</tr>';
     });
     var wks=c.mkr_shvua!=null?Number(c.mkr_shvua).toFixed(1):null;
-    var footer=wks
-      ? '<div>ממוצע מכירה: <b style="color:#222">'+wks+' קרט/שבוע</b></div>'
-      : '<div style="color:#bbb">אין נתוני מכירה</div>';
+    var ftxt=wks?'ממוצע מכירה: <b style="color:#222">'+wks+' קרט/שבוע</b>':'<span style="color:#bbb">אין נתוני מכירה</span>';
 
     var tbl=document.createElement('table');
     tbl.className='ec-tbl';
-    tbl.innerHTML='<thead><tr><th colspan="3" class="'+thCls+'">אילת — '+(c.mishpacha||'פק"ע')+'</th></tr></thead>'
-      +'<tbody>'+(rows||'<tr><td colspan="3" style="color:#bbb;text-align:center">אין מלאי</td></tr>')+'</tbody>'
-      +'<tfoot><tr><td colspan="3">'+footer+'</td></tr></tfoot>';
-    content.appendChild(tbl);
-    div.appendChild(content);
+    tbl.innerHTML='<thead><tr><th colspan="3" class="'+thCls+'">'+thLabel+'</th></tr></thead>'
+      +'<tbody>'+(rows||'<tr><td colspan="3" style="text-align:center;color:#bbb">אין מלאי</td></tr>')+'</tbody>'
+      +'<tfoot><tr><td colspan="3">'+ftxt+'</td></tr></tfoot>';
+    cc.appendChild(tbl);
+    div.appendChild(cc);
     grid.appendChild(div);
   });
   if(shown===0) grid.innerHTML='<div class="empty-msg">אין מוצרים להצגה</div>';
-  grid.style.display='';
+  grid.style.display='flex';
 }
 
 function updateSummary(){
-  var vis=allCards.filter(function(c){ return !hiddenSet.has(c.mkt) && (!hebraFilter||c.hevra===hebraFilter); });
+  var vis=allCards.filter(function(c){return !hiddenSet.has(c.mkt)&&(!hebraFilter||c.hevra===hebraFilter);});
   var d=vis.filter(function(c){return c.level==='danger';}).length;
   var w=vis.filter(function(c){return c.level==='warn';  }).length;
-  document.getElementById('summary').textContent=
-    vis.length+' מוצרים עם מלאי תוקף'
-    +(d?' · ⚠ '+d+' בסכנה':'')
-    +(w?' · 🔶 '+w+' בתשומת לב':'')
-    +(hiddenSet.size?' · '+hiddenSet.size+' מוסתרים':'');
+  document.getElementById('summary').innerHTML=
+    '<b>'+vis.length+'</b> מוצרים עם מלאי תוקף'
+    +(d?' · <b style="color:#c62828">⚠ '+d+' בסכנה</b>':'')
+    +(w?' · <b style="color:#e65100">🔶 '+w+' בתשומת לב</b>':'')
+    +(hiddenSet.size?' · <span style="color:#888">'+hiddenSet.size+' מוסתרים</span>':'');
 }
 
 function buildHebraButtons(cards){
@@ -258,16 +242,16 @@ fetch('./mmd-orders.json')
     allCards.sort(function(a,b){
       var o={danger:0,warn:1,ok:2};
       if(o[a.level]!==o[b.level]) return o[a.level]-o[b.level];
-      var aMin=Math.min.apply(null,a.batches.map(function(x){return x.days;}));
-      var bMin=Math.min.apply(null,b.batches.map(function(x){return x.days;}));
-      return aMin-bMin;
+      var am=Math.min.apply(null,a.batches.map(function(x){return x.days;}));
+      var bm=Math.min.apply(null,b.batches.map(function(x){return x.days;}));
+      return am-bm;
     });
     buildHebraButtons(allCards);
     updateSummary();
     render();
   })
   .catch(function(e){
-    document.getElementById('loading').textContent='שגיאה בטעינת נתונים: '+e.message;
+    document.getElementById('loading').textContent='שגיאה: '+e.message;
   });
 </script>
 </body>
