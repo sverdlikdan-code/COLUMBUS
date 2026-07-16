@@ -285,13 +285,7 @@ SELECTCOLUMNS(
             iceOnly:       true,
           });
         }
-        const iceTotal = [...iceByAgent.values()].reduce((s,a)=>s+a.length,0);
-        const iceWithSales = [...iceByAgent.values()].flat().filter(c=>c.lastOrderDate).length;
-        const iceFirst3 = [...iceByAgent.values()].flat().slice(0,3).map(c=>`${c.custId}→${c.lastOrderDate||'null'}`);
-        console.log(`[PBI] ICE clients loaded: ${iceTotal} across ${iceByAgent.size} agents, ${iceWithSales} with lastOrderDate`);
-        console.log(`[PBI] ICE sample custIds: ${iceFirst3.join(', ')}`);
-        const salesSample = [...salesMap.keys()].slice(0,3);
-        console.log(`[PBI] salesMap sample keys: ${salesSample.join(', ')} (total: ${salesMap.size})`);
+        console.log(`[PBI] ICE clients loaded: ${[...iceByAgent.values()].reduce((s,a)=>s+a.length,0)} across ${iceByAgent.size} agents`);
       } catch (iceErr) {
         console.error('[PBI] ICE load error:', iceErr.message);
       }
@@ -1270,6 +1264,7 @@ app.get('/territory-clients', requireAuth, dataRateLimit, async (req, res) => {
       avg6Sales:     c.avg6Sales || 0,
       pct:           c.pct || 0,
       clientType:    c.clientType || '',
+      sadran:        c.sadran || '',
       hevra:         c.hevra || 'FORMULA',
       ...extra,
     });
