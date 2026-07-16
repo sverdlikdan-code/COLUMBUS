@@ -681,8 +681,7 @@ const st = {
   excluded: new Set(),
   aiGpsMode: true,
   iceFilter: false,
-  sadranList: [],
-  activeSadran: new Set(),
+  hasSadranFilter: false,
 };
 
 let map=null, mapMarkers=[], mapPolylines=[], markerCluster=null, sortable=null, mapBearing=0;
@@ -1365,14 +1364,11 @@ async function initRoute(){
       st.isDemo=true;
     }
   }
-  // Init sadran + ICE filter chips
+  // Init ICE + sadran filter chips
   st.iceFilter=false;
-  const _sMap=new Map();
-  (st.clients||[]).forEach(c=>{ if(c.sadran) _sMap.set(c.sadran,(_sMap.get(c.sadran)||0)+1); });
-  st.sadranList=[..._sMap.entries()].map(([name,count])=>({name,count})).sort((a,b)=>b.count-a.count);
-  st.activeSadran=new Set(_sMap.keys());
+  st.hasSadranFilter=false;
   renderFrIceBtn();
-  renderFrSadranLegend();
+  renderFrSadranBtn();
   // Enrich GPS from STATIC_DATA by custId — PBI GPS is more reliable than server geocoding
   if(STATIC_DATA?.routes && st.clients?.length){
     const gpsMap={};
@@ -1444,7 +1440,7 @@ function displayClients(){
   let list=base.filter(c=>!st.excluded.has(c.custId));
   if(st.selectedCities.length) list=list.filter(c=>st.selectedCities.includes(c.city));
   if(st.iceFilter) list=list.filter(c=>c.iceOnly);
-  if(st.sadranList.length>0) list=list.filter(c=>!c.sadran||st.activeSadran.has(c.sadran));
+  if(st.hasSadranFilter) list=list.filter(c=>c.sadran);
   return list;
 }
 
@@ -1688,15 +1684,16 @@ function renderFrIceBtn(){
   if(iceCount>0||st.sadranList.length>0) extraRow.style.display='';
   else extraRow.style.display='none';
 }
-function renderFrSadranLegend(){
+function renderFrSadranBtn(){
   const row=document.getElementById('fr-sadran-row');
   const el=document.getElementById('fr-sadran-legend');
   const extraRow=document.getElementById('km-extra-filters');
   if(!row||!el) return;
-  if(st.sadranList.length<1){ row.style.display='none'; return; }
+  const total=(st.clients||[]).filter(c=>c.sadran).length;
+  if(total===0){ row.style.display='none'; return; }
   row.style.display='';
   if(extraRow) extraRow.style.display='';
-  el.innerHTML=st.sadranList.map(s=>`<span class="fr-sadran-chip${st.activeSadran.has(s.name)?' on':''}" onclick="toggleFrSadran('${esc(s.name)}')"><span class="fr-sadran-chip-count">${s.count}</span>${esc(s.name)}</span>`).join('');
+  el.innerHTML=`<span class="fr-sadran-chip${st.hasSadranFilter?' on':''}" onclick="toggleFrSadranFilter()"><span class="fr-sadran-chip-count">${total}</span>עם סדרן</span>`;
 }
 function toggleFrIceFilter(){
   st.iceFilter=!st.iceFilter;
@@ -1704,9 +1701,9 @@ function toggleFrIceFilter(){
   renderClientList();
   renderMap();
 }
-function toggleFrSadran(name){
-  if(st.activeSadran.has(name)) st.activeSadran.delete(name); else st.activeSadran.add(name);
-  renderFrSadranLegend();
+function toggleFrSadranFilter(){
+  st.hasSadranFilter=!st.hasSadranFilter;
+  renderFrSadranBtn();
   renderClientList();
   renderMap();
 }
