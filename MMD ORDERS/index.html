@@ -1505,9 +1505,10 @@
         const _hamlMult = { '664': 4 };
         const hamlEff = haml * (_hamlMult[mk] || 1);
         const _hamlRnd0 = hamlEff > 0 ? Math.round(hamlEff) : 0;
-        // When no hamlatza, fall back to eilat_k × multiplier as default order
-        const _eilatDefaultMult = { '659': 2 };
-        const hamlRnd = _hamlRnd0 > 0 ? _hamlRnd0 : (_eilatDefaultMult[mk] ? Math.round(eil * (_eilatDefaultMult[mk] || 1)) : 0);
+        // 659: weeks_nf override = 3 (instead of 1 from PBI) — same formula as all products
+        const _weeksNfOvr = { '659': 3 };
+        const hamlRnd = _hamlRnd0 > 0 ? _hamlRnd0
+          : (_weeksNfOvr[mk] && mkr != null ? Math.max(0, Math.round(_weeksNfOvr[mk] * mkr - eil)) : 0);
         const _cap    = maavarMode ? mav : ash;
         const _rawOrd = s.k != null ? s.k : hamlRnd;
         const ordV    = (_rawOrd !== '' && _cap > 0 && Number(_rawOrd) > _cap) ? _cap : (s.k === 0 ? 0 : (_rawOrd || ''));
@@ -1688,9 +1689,9 @@
     const hamlEff  = haml * (hamlMult[mk] || 1);
     const hamlRnd  = hamlEff > 0 ? Math.round(hamlEff) : 0;
     if (hamlRnd > 0) return hamlRnd;
-    // Eilat-specific fallback
-    const eilatMult = { '659': 2 };
-    if (eilatMult[mk]) return Math.round((r.eilat_k ?? 0) * eilatMult[mk]);
+    // 659: weeks_nf override = 3 — same formula as all products
+    const weeksNfOvr = { '659': 3 };
+    if (weeksNfOvr[mk] && r.mkr_shvua != null) return Math.max(0, Math.round(weeksNfOvr[mk] * r.mkr_shvua - (r.eilat_k ?? 0)));
     return 0;
   }
 
