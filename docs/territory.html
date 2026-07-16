@@ -101,7 +101,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 /* Stats row */
 .stats-row{background:#fff;border-bottom:1px solid var(--sky-mid);padding:4px 10px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;}
 .stat-chip{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:var(--sky-light);color:var(--blue-dark);white-space:nowrap;border:none;}
-.nogps-btn,.nosales-btn,.nosales-btn180,.regular-btn{
+.nogps-btn,.nosales-btn,.nosales-btn180,.regular-btn,.month-btn{
   cursor:pointer;transition:all .18s cubic-bezier(.4,0,.2,1);
   position:relative;
 }
@@ -724,12 +724,13 @@ function displayClients(){
     if(st.activeDays.size<6 && !st.activeDays.has(dayNum||0)) return false;
     if(st.lassoIds!==null && !st.lassoIds.has(String(c.custId))) return false;
     if(st.noGpsFilter && c.lat && c.lng && c.gpsSource!=='no-gps') return false;
-    if(st.noSalesDays>0){
+    if(st.noSalesDays>0 && c.hevra!=='ICE'){
       const lo=c.lastOrderDate?new Date(c.lastOrderDate):null;
       const cutoff=new Date(Date.now()-st.noSalesDays*86400000);
       if(lo&&lo>=cutoff) return false;
     }
     if(st.regularFilter){
+      if(c.hevra==='ICE') return false; // ICE sales not in FORMULA system
       const lo=c.lastOrderDate?new Date(c.lastOrderDate):null;
       const cutoff60=new Date(Date.now()-60*86400000);
       if(!lo||lo<cutoff60) return false;
@@ -765,8 +766,8 @@ function updateStats(){
   const noGps=baseList.filter(c=>!c.lat||!c.lng||c.gpsSource==='no-gps').length;
   const now=Date.now();
   const cut60=new Date(now-60*86400000), cut180=new Date(now-180*86400000);
-  const noSales60=baseList.filter(c=>{ const lo=c.lastOrderDate?new Date(c.lastOrderDate):null; return !lo||lo<cut60; }).length;
-  const noSales180=baseList.filter(c=>{ const lo=c.lastOrderDate?new Date(c.lastOrderDate):null; return !lo||lo<cut180; }).length;
+  const noSales60=baseList.filter(c=>{ if(c.hevra==='ICE') return false; const lo=c.lastOrderDate?new Date(c.lastOrderDate):null; return !lo||lo<cut60; }).length;
+  const noSales180=baseList.filter(c=>{ if(c.hevra==='ICE') return false; const lo=c.lastOrderDate?new Date(c.lastOrderDate):null; return !lo||lo<cut180; }).length;
   const changed=Object.keys(st.overrides).length;
   document.getElementById('stat-total').textContent=`${list.length} לקוחות`;
   const lassoEl=document.getElementById('stat-lasso');
@@ -786,7 +787,7 @@ function updateStats(){
     ns180El.textContent=`🔴 ${noSales180} ללא מכר 180י`; ns180El.style.display='';
     ns180El.classList.toggle('active',st.noSalesDays===180);
   } else { ns180El.style.display='none'; if(st.noSalesDays===180) st.noSalesDays=0; }
-  const regular=baseList.filter(c=>{ const lo=c.lastOrderDate?new Date(c.lastOrderDate):null; const cut60=new Date(now-60*86400000); return lo&&lo>=cut60; }).length;
+  const regular=baseList.filter(c=>{ if(c.hevra==='ICE') return false; const lo=c.lastOrderDate?new Date(c.lastOrderDate):null; const cut60=new Date(now-60*86400000); return lo&&lo>=cut60; }).length;
   const regEl=document.getElementById('stat-regular');
   if(regular>0){ regEl.textContent=`📗 ${regular} לקוחות קבועים`; regEl.style.display=''; regEl.classList.toggle('active',st.regularFilter); }
   else { regEl.style.display='none'; st.regularFilter=false; }
