@@ -395,8 +395,7 @@ const st={
   noSalesDays: 0,
   regularFilter: false,
   iceFilter: false,
-  sadranList: [],
-  activeSadran: new Set(),
+  hasSadranFilter: false,
   overrides: {},
   selectedId: null,
   tab: 'list',
@@ -627,14 +626,8 @@ async function loadClients(cities){
   st.agents=[...agMap.values()].sort((a,b)=>(a.agentName||'').localeCompare(b.agentName||''));
   st.activeAgents=new Set(st.agents.map(a=>a.agentCode));
 
-  // Build sadran list
-  const sadranMap=new Map();
-  st.allClients.forEach(c=>{ if(c.sadran) sadranMap.set(c.sadran,(sadranMap.get(c.sadran)||0)+1); });
-  st.sadranList=[...sadranMap.entries()].map(([name,count])=>({name,count})).sort((a,b)=>b.count-a.count);
-  st.activeSadran=new Set(sadranMap.keys());
-
   renderAgentLegend();
-  renderSadranLegend();
+  renderSadranBtn();
   computeVisitOrder();
   const vBtn=document.getElementById('visit-btn');
   if(vBtn) vBtn.classList.add('active');
@@ -662,7 +655,7 @@ function renderDayBtns(){
       if(!lo||lo<cutoff60) return false;
     }
     if(st.iceFilter && c.hevra!=='ICE') return false;
-    if(st.sadranList.length>0 && c.sadran && !st.activeSadran.has(c.sadran)) return false;
+    if(st.hasSadranFilter && !c.sadran) return false;
     return true;
   });
 
@@ -773,7 +766,7 @@ function displayClients(){
       if(!lo||lo<cutoff60) return false;
     }
     if(st.iceFilter && c.hevra!=='ICE') return false;
-    if(st.sadranList.length>0 && c.sadran && !st.activeSadran.has(c.sadran)) return false;
+    if(st.hasSadranFilter && !c.sadran) return false;
     return true;
   }).map(c=>{
     const ov=st.overrides[String(c.custId)]||{};
@@ -845,7 +838,7 @@ function displayClientsAll(){
     if(!st.activeAgents.has(agentCode)) return false;
     if(st.activeDays.size<6 && !st.activeDays.has(dayNum||0)) return false;
     if(st.lassoIds!==null && !st.lassoIds.has(String(c.custId))) return false;
-    if(st.sadranList.length>0 && c.sadran && !st.activeSadran.has(c.sadran)) return false;
+    if(st.hasSadranFilter && !c.sadran) return false;
     return true;
   });
 }
@@ -886,22 +879,19 @@ function toggleAgent(code){
   renderAgentLegend(); renderAll();
 }
 
-// ── SADRAN LEGEND ─────────────────────────────────────────────────────────
-function renderSadranLegend(){
+// ── SADRAN BUTTON ─────────────────────────────────────────────────────────
+function renderSadranBtn(){
   const row=document.getElementById('sadran-row');
   const el=document.getElementById('sadran-legend');
   if(!row||!el) return;
-  if(st.sadranList.length<1){ row.style.display='none'; return; }
+  const total=st.allClients.filter(c=>c.sadran).length;
+  if(total===0){ row.style.display='none'; return; }
   row.style.display='';
-  el.innerHTML=st.sadranList.map(s=>`
-    <span class="sadran-chip${st.activeSadran.has(s.name)?' on':''}"
-          onclick="toggleSadran('${esc(s.name)}')">
-      <span class="sadran-chip-count">${s.count}</span>${esc(s.name)}
-    </span>`).join('');
+  el.innerHTML=`<span class="sadran-chip${st.hasSadranFilter?' on':''}" onclick="toggleSadranFilter()"><span class="sadran-chip-count">${total}</span>עם סדרן</span>`;
 }
-function toggleSadran(name){
-  if(st.activeSadran.has(name)) st.activeSadran.delete(name); else st.activeSadran.add(name);
-  renderSadranLegend(); renderAll();
+function toggleSadranFilter(){
+  st.hasSadranFilter=!st.hasSadranFilter;
+  renderSadranBtn(); renderAll();
 }
 
 // ── CARD RENDER ───────────────────────────────────────────────────────────
