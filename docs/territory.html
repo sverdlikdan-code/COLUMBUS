@@ -1101,6 +1101,7 @@ function renderMap(){
       gpsCorrectMode=false; gpsCorrectId=null;
       renderAll();
       showToast('✅ מיקום נשמר');
+      apiFetch(API+'/save-gps',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({custId:id,lat:la,lng:lo})}).catch(_=>{});
     });
   }
   mapMarkers.forEach(m=>m.remove()); mapMarkers=[];
@@ -1309,6 +1310,7 @@ async function submitGpsAddress(){
       gpsCorrections[id]={lat:d.lat,lng:d.lng};
       try{const loc=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');loc[id]={lat:d.lat,lng:d.lng};localStorage.setItem('fr_gps_local',JSON.stringify(loc));}catch(_){}
       st.allClients=st.allClients.map(c=>String(c.custId)===id?{...c,lat:d.lat,lng:d.lng,address:addr}:c);
+      apiFetch(API+'/save-gps',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({custId:id,lat:d.lat,lng:d.lng,address:addr})}).catch(_=>{});
       status.textContent=`✅ ${d.lat.toFixed(5)}, ${d.lng.toFixed(5)}`;
       setTimeout(()=>{ closeGpsModal(); renderAll(); },800);
     } else {
