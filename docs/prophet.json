@@ -1,5 +1,5 @@
 {
-  "ts": 1784184016045,
+  "ts": 1784212954669,
   "skus": {
     "1000": {
       "p4": 6.4,
@@ -139,8 +139,8 @@
       "prophet_order": 21.5,
       "weeks_nf": 3,
       "eilat_k": 7,
-      "hamlatza": null,
-      "delta_p4": null,
+      "hamlatza": 13.3,
+      "delta_p4": -3.8,
       "n_points": 14,
       "series": {
         "actual": [
@@ -314,7 +314,7 @@
       "p8": 54.6,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 3,
+      "eilat_k": 2,
       "hamlatza": 11.5,
       "delta_p4": -11.5,
       "n_points": 22,
@@ -402,9 +402,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 10,
-      "hamlatza": 5,
-      "delta_p4": -5.0,
+      "eilat_k": 8,
+      "hamlatza": 6,
+      "delta_p4": -6.0,
       "n_points": 22,
       "series": {
         "actual": [
@@ -650,7 +650,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 12,
+      "eilat_k": 10,
       "hamlatza": 8.5,
       "delta_p4": -8.5,
       "n_points": 26,
@@ -738,7 +738,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 18,
+      "eilat_k": 17,
       "hamlatza": 14.5,
       "delta_p4": -14.5,
       "n_points": 26,
@@ -914,9 +914,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 16,
-      "hamlatza": 15.5,
-      "delta_p4": -15.5,
+      "eilat_k": 13,
+      "hamlatza": 17.5,
+      "delta_p4": -17.5,
       "n_points": 26,
       "series": {
         "actual": [
@@ -1266,9 +1266,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 1,
-      "hamlatza": 7,
-      "delta_p4": -7.0,
+      "eilat_k": 0,
+      "hamlatza": 8,
+      "delta_p4": -8.0,
       "n_points": 24,
       "series": {
         "actual": [
@@ -1326,7 +1326,7 @@
             "w": "2026-07-12",
             "y": 7.1,
             "lo": 6.5,
-            "hi": 7.8
+            "hi": 7.7
           },
           {
             "w": "2026-07-19",
@@ -1354,9 +1354,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 4,
-      "hamlatza": 1.9,
-      "delta_p4": -1.9,
+      "eilat_k": 3,
+      "hamlatza": 2.9,
+      "delta_p4": -2.9,
       "n_points": 23,
       "series": {
         "actual": [
@@ -1431,8 +1431,8 @@
           {
             "w": "2026-08-02",
             "y": 2.7,
-            "lo": 2.0,
-            "hi": 3.3
+            "lo": 2.1,
+            "hi": 3.4
           }
         ]
       }
@@ -1502,7 +1502,7 @@
             "w": "2026-05-03",
             "y": 0.0,
             "lo": 0.0,
-            "hi": 0.0
+            "hi": 0.5
           },
           {
             "w": "2026-05-10",
@@ -1514,13 +1514,13 @@
             "w": "2026-05-17",
             "y": 0.0,
             "lo": 0.0,
-            "hi": 7.3
+            "hi": 6.8
           },
           {
             "w": "2026-05-24",
             "y": 30.3,
-            "lo": 21.9,
-            "hi": 37.9
+            "lo": 23.4,
+            "hi": 37.4
           }
         ]
       }
@@ -1607,7 +1607,7 @@
           {
             "w": "2026-05-24",
             "y": 50.9,
-            "lo": 50.8,
+            "lo": 50.7,
             "hi": 51.0
           }
         ]
@@ -1909,8 +1909,8 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 3,
-      "eilat_k": 7,
-      "hamlatza": 0.7,
+      "eilat_k": 6,
+      "hamlatza": 1.7,
       "delta_p4": null,
       "n_points": 23,
       "series": {
@@ -1987,7 +1987,7 @@
             "w": "2026-08-02",
             "y": 552.9,
             "lo": 552.7,
-            "hi": 553.1
+            "hi": 553.2
           }
         ]
       }
@@ -1997,9 +1997,9 @@
       "p8": 27.9,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 4,
-      "hamlatza": 4,
-      "delta_p4": -4.0,
+      "eilat_k": 3,
+      "hamlatza": 5,
+      "delta_p4": -5.0,
       "n_points": 20,
       "series": {
         "actual": [
@@ -2085,7 +2085,7 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 3,
-      "eilat_k": 4,
+      "eilat_k": 3,
       "hamlatza": 7.4,
       "delta_p4": null,
       "n_points": 16,
@@ -2173,7 +2173,7 @@
       "p8": 33.4,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 3,
+      "eilat_k": 2,
       "hamlatza": 7.2,
       "delta_p4": -7.2,
       "n_points": 17,
@@ -2261,9 +2261,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 18,
-      "hamlatza": 20,
-      "delta_p4": -20.0,
+      "eilat_k": 17,
+      "hamlatza": 21,
+      "delta_p4": -21.0,
       "n_points": 23,
       "series": {
         "actual": [
@@ -2321,7 +2321,7 @@
             "w": "2026-07-12",
             "y": 0.2,
             "lo": 0.0,
-            "hi": 3.2
+            "hi": 3.3
           },
           {
             "w": "2026-07-19",
@@ -2350,7 +2350,7 @@
       "prophet_order": null,
       "weeks_nf": 1,
       "eilat_k": 3,
-      "hamlatza": null,
+      "hamlatza": 1.4,
       "delta_p4": null,
       "n_points": 18,
       "series": {
@@ -2699,11 +2699,11 @@
     "1055": {
       "p4": 2.2,
       "p8": 5.6,
-      "prophet_order": 1.6,
+      "prophet_order": 2.6,
       "weeks_nf": 3,
-      "eilat_k": 5,
-      "hamlatza": 5,
-      "delta_p4": -2.8,
+      "eilat_k": 4,
+      "hamlatza": 6,
+      "delta_p4": -3.8,
       "n_points": 23,
       "series": {
         "actual": [
@@ -2760,20 +2760,20 @@
           {
             "w": "2026-07-12",
             "y": 4.0,
-            "lo": 3.2,
-            "hi": 4.8
+            "lo": 3.1,
+            "hi": 4.7
           },
           {
             "w": "2026-07-19",
             "y": 4.5,
-            "lo": 3.7,
+            "lo": 3.8,
             "hi": 5.3
           },
           {
             "w": "2026-07-26",
             "y": 2.0,
-            "lo": 1.2,
-            "hi": 2.9
+            "lo": 1.3,
+            "hi": 2.8
           },
           {
             "w": "2026-08-02",
@@ -3051,11 +3051,11 @@
     "1062": {
       "p4": 1.5,
       "p8": 0.0,
-      "prophet_order": null,
-      "weeks_nf": null,
+      "prophet_order": 1.5,
+      "weeks_nf": 1,
       "eilat_k": 0,
-      "hamlatza": null,
-      "delta_p4": null,
+      "hamlatza": 7,
+      "delta_p4": -5.5,
       "n_points": 15,
       "series": {
         "actual": [
@@ -3141,9 +3141,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 1,
-      "eilat_k": 8,
-      "hamlatza": 3.4,
-      "delta_p4": -3.4,
+      "eilat_k": 7,
+      "hamlatza": 4.4,
+      "delta_p4": -4.4,
       "n_points": 24,
       "series": {
         "actual": [
@@ -3288,26 +3288,26 @@
           {
             "w": "2026-07-12",
             "y": 21.1,
-            "lo": 18.7,
-            "hi": 23.2
+            "lo": 18.9,
+            "hi": 23.5
           },
           {
             "w": "2026-07-19",
             "y": 58.9,
-            "lo": 56.5,
-            "hi": 61.0
+            "lo": 56.7,
+            "hi": 61.2
           },
           {
             "w": "2026-07-26",
             "y": 277.2,
-            "lo": 275.0,
+            "lo": 274.9,
             "hi": 279.5
           },
           {
             "w": "2026-08-02",
             "y": 952.5,
             "lo": 950.3,
-            "hi": 954.9
+            "hi": 954.8
           }
         ]
       }
@@ -3757,9 +3757,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 54,
-      "hamlatza": 9,
-      "delta_p4": -9.0,
+      "eilat_k": 46,
+      "hamlatza": 11,
+      "delta_p4": -11.0,
       "n_points": 26,
       "series": {
         "actual": [
@@ -3845,9 +3845,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 14,
-      "hamlatza": 4.5,
-      "delta_p4": -4.5,
+      "eilat_k": 12,
+      "hamlatza": 5.5,
+      "delta_p4": -5.5,
       "n_points": 23,
       "series": {
         "actual": [
@@ -4928,8 +4928,8 @@
           {
             "w": "2026-07-12",
             "y": 30.9,
-            "lo": 28.7,
-            "hi": 33.1
+            "lo": 28.8,
+            "hi": 33.3
           },
           {
             "w": "2026-07-19",
@@ -4947,7 +4947,7 @@
             "w": "2026-08-02",
             "y": 1766.7,
             "lo": 1764.3,
-            "hi": 1769.1
+            "hi": 1768.8
           }
         ]
       }
@@ -4957,9 +4957,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 34,
-      "hamlatza": 4.5,
-      "delta_p4": -4.5,
+      "eilat_k": 31,
+      "hamlatza": 5.5,
+      "delta_p4": -5.5,
       "n_points": 25,
       "series": {
         "actual": [
@@ -5045,9 +5045,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 32,
-      "hamlatza": null,
-      "delta_p4": null,
+      "eilat_k": 28,
+      "hamlatza": 3,
+      "delta_p4": -3.0,
       "n_points": 26,
       "series": {
         "actual": [
@@ -5221,7 +5221,7 @@
       "p8": 53.5,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 5,
+      "eilat_k": 3,
       "hamlatza": 12,
       "delta_p4": -12.0,
       "n_points": 25,
@@ -5369,25 +5369,25 @@
             "w": "2026-07-12",
             "y": 0.0,
             "lo": 0.0,
-            "hi": 1.2
+            "hi": 1.3
           },
           {
             "w": "2026-07-19",
             "y": 4.0,
-            "lo": 1.8,
+            "lo": 1.7,
             "hi": 6.1
           },
           {
             "w": "2026-07-26",
             "y": 17.4,
             "lo": 15.3,
-            "hi": 19.6
+            "hi": 19.5
           },
           {
             "w": "2026-08-02",
             "y": 15.1,
-            "lo": 13.1,
-            "hi": 17.4
+            "lo": 12.9,
+            "hi": 17.3
           }
         ]
       }
@@ -5485,9 +5485,9 @@
       "p8": 840.9,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 12,
-      "hamlatza": 17.5,
-      "delta_p4": -17.5,
+      "eilat_k": 10,
+      "hamlatza": 19.5,
+      "delta_p4": -19.5,
       "n_points": 26,
       "series": {
         "actual": [
@@ -5573,9 +5573,9 @@
       "p8": 82.5,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 6,
-      "hamlatza": 9,
-      "delta_p4": -9.0,
+      "eilat_k": 3,
+      "hamlatza": 10,
+      "delta_p4": -10.0,
       "n_points": 25,
       "series": {
         "actual": [
@@ -5659,9 +5659,9 @@
     "1167": {
       "p4": 0.0,
       "p8": 594.2,
-      "prophet_order": 0,
+      "prophet_order": 2.0,
       "weeks_nf": 3,
-      "eilat_k": 0,
+      "eilat_k": -2,
       "hamlatza": 17.5,
       "delta_p4": -17.5,
       "n_points": 25,
@@ -5749,7 +5749,7 @@
       "p8": 45.8,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 7,
+      "eilat_k": 6,
       "hamlatza": 5.4,
       "delta_p4": -5.4,
       "n_points": 22,
@@ -5917,8 +5917,8 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 3,
-      "eilat_k": 2,
-      "hamlatza": 14.5,
+      "eilat_k": 1,
+      "hamlatza": 15.5,
       "delta_p4": null,
       "n_points": 7,
       "series": {
@@ -6080,8 +6080,8 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 3,
-      "eilat_k": 10,
-      "hamlatza": 9,
+      "eilat_k": 7,
+      "hamlatza": 10,
       "delta_p4": null,
       "n_points": 26,
       "series": {
@@ -6139,8 +6139,8 @@
           {
             "w": "2026-07-12",
             "y": 23.3,
-            "lo": 21.1,
-            "hi": 25.8
+            "lo": 20.8,
+            "hi": 25.9
           },
           {
             "w": "2026-07-19",
@@ -6151,13 +6151,13 @@
           {
             "w": "2026-07-26",
             "y": 85.4,
-            "lo": 82.8,
-            "hi": 87.9
+            "lo": 83.1,
+            "hi": 88.1
           },
           {
             "w": "2026-08-02",
             "y": 77.4,
-            "lo": 74.8,
+            "lo": 74.9,
             "hi": 80.0
           }
         ]
@@ -6168,9 +6168,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 11,
-      "hamlatza": 6.3,
-      "delta_p4": -6.3,
+      "eilat_k": 9,
+      "hamlatza": 7.3,
+      "delta_p4": -7.3,
       "n_points": 17,
       "series": {
         "actual": [
@@ -6256,7 +6256,7 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 3,
-      "eilat_k": 15,
+      "eilat_k": 14,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 25,
@@ -6315,26 +6315,26 @@
           {
             "w": "2026-07-12",
             "y": 1.8,
-            "lo": 0.0,
-            "hi": 3.8
+            "lo": 0.1,
+            "hi": 3.6
           },
           {
             "w": "2026-07-19",
             "y": 12.7,
-            "lo": 10.8,
-            "hi": 14.6
+            "lo": 11.0,
+            "hi": 14.4
           },
           {
             "w": "2026-07-26",
             "y": 22.7,
-            "lo": 20.9,
-            "hi": 24.5
+            "lo": 21.1,
+            "hi": 24.6
           },
           {
             "w": "2026-08-02",
             "y": 13.7,
             "lo": 12.0,
-            "hi": 15.6
+            "hi": 15.5
           }
         ]
       }
@@ -6437,19 +6437,19 @@
             "w": "2026-07-19",
             "y": 8.9,
             "lo": 8.1,
-            "hi": 9.8
+            "hi": 9.7
           },
           {
             "w": "2026-07-26",
             "y": 34.1,
             "lo": 33.2,
-            "hi": 34.8
+            "hi": 34.9
           },
           {
             "w": "2026-08-02",
             "y": 52.9,
-            "lo": 52.2,
-            "hi": 53.8
+            "lo": 52.1,
+            "hi": 53.7
           }
         ]
       }
@@ -6459,7 +6459,7 @@
       "p8": 0.3,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 17,
+      "eilat_k": 15,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 26,
@@ -6536,7 +6536,7 @@
           {
             "w": "2026-08-02",
             "y": 3.7,
-            "lo": 2.4,
+            "lo": 2.5,
             "hi": 4.9
           }
         ]
@@ -6547,7 +6547,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 20,
+      "eilat_k": 19,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 26,
@@ -6607,7 +6607,7 @@
             "w": "2026-07-12",
             "y": 0.6,
             "lo": 0.0,
-            "hi": 1.2
+            "hi": 1.3
           },
           {
             "w": "2026-07-19",
@@ -6618,8 +6618,8 @@
           {
             "w": "2026-07-26",
             "y": 3.1,
-            "lo": 2.4,
-            "hi": 3.7
+            "lo": 2.5,
+            "hi": 3.8
           },
           {
             "w": "2026-08-02",
@@ -6635,8 +6635,8 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 3,
-      "eilat_k": 8,
-      "hamlatza": 2.8,
+      "eilat_k": 7,
+      "hamlatza": 3.8,
       "delta_p4": null,
       "n_points": 23,
       "series": {
@@ -6694,26 +6694,26 @@
           {
             "w": "2026-07-05",
             "y": 16.9,
-            "lo": 15.3,
+            "lo": 15.4,
             "hi": 18.4
           },
           {
             "w": "2026-07-12",
             "y": 39.3,
             "lo": 37.8,
-            "hi": 40.8
+            "hi": 40.9
           },
           {
             "w": "2026-07-19",
             "y": 61.3,
-            "lo": 59.9,
-            "hi": 62.8
+            "lo": 59.8,
+            "hi": 62.7
           },
           {
             "w": "2026-07-26",
             "y": 60.4,
-            "lo": 58.8,
-            "hi": 61.9
+            "lo": 58.9,
+            "hi": 62.0
           }
         ]
       }
@@ -6723,9 +6723,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 17,
-      "hamlatza": 1.6,
-      "delta_p4": -1.6,
+      "eilat_k": 16,
+      "hamlatza": null,
+      "delta_p4": null,
       "n_points": 20,
       "series": {
         "actual": [
@@ -6811,7 +6811,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 22,
+      "eilat_k": 21,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 23,
@@ -6899,7 +6899,7 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 3,
-      "eilat_k": 24,
+      "eilat_k": 23,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 25,
@@ -6959,25 +6959,25 @@
             "w": "2026-07-12",
             "y": 3.2,
             "lo": 0.7,
-            "hi": 6.0
+            "hi": 5.9
           },
           {
             "w": "2026-07-19",
             "y": 72.7,
             "lo": 70.2,
-            "hi": 75.3
+            "hi": 75.1
           },
           {
             "w": "2026-07-26",
             "y": 269.8,
-            "lo": 267.2,
-            "hi": 272.4
+            "lo": 267.4,
+            "hi": 272.3
           },
           {
             "w": "2026-08-02",
             "y": 536.9,
             "lo": 534.3,
-            "hi": 539.3
+            "hi": 539.5
           }
         ]
       }
@@ -6987,7 +6987,7 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 3,
-      "eilat_k": 17,
+      "eilat_k": 16,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 19,
@@ -8102,7 +8102,7 @@
           {
             "w": "2026-07-12",
             "y": 52.3,
-            "lo": 52.1,
+            "lo": 52.0,
             "hi": 52.6
           },
           {
@@ -8114,14 +8114,14 @@
           {
             "w": "2026-07-26",
             "y": 551.3,
-            "lo": 551.1,
+            "lo": 551.0,
             "hi": 551.6
           },
           {
             "w": "2026-08-02",
             "y": 898.7,
             "lo": 898.3,
-            "hi": 898.9
+            "hi": 899.0
           }
         ]
       }
@@ -8651,7 +8651,7 @@
       "p8": 55.2,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 20,
+      "eilat_k": 19,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 26,
@@ -8739,7 +8739,7 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 3,
-      "eilat_k": 20,
+      "eilat_k": 19,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 22,
@@ -8915,7 +8915,7 @@
       "p8": 32.2,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 10,
+      "eilat_k": 8,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 22,
@@ -9355,9 +9355,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 6,
-      "hamlatza": null,
-      "delta_p4": null,
+      "eilat_k": 4,
+      "hamlatza": 2,
+      "delta_p4": -2.0,
       "n_points": 23,
       "series": {
         "actual": [
@@ -9949,7 +9949,7 @@
           {
             "w": "2026-04-19",
             "y": 39.1,
-            "lo": 39.1,
+            "lo": 39.0,
             "hi": 39.1
           },
           {
@@ -10131,8 +10131,8 @@
           {
             "w": "2026-08-02",
             "y": 18.6,
-            "lo": 17.9,
-            "hi": 19.1
+            "lo": 18.0,
+            "hi": 19.2
           }
         ]
       }
@@ -10673,7 +10673,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 4,
+      "eilat_k": 3,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 11,
@@ -10757,7 +10757,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 6,
+      "eilat_k": 5,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 25,
@@ -10933,9 +10933,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 1,
-      "hamlatza": null,
-      "delta_p4": null,
+      "eilat_k": 0,
+      "hamlatza": 0.9,
+      "delta_p4": -0.9,
       "n_points": 4,
       "series": {
         "actual": [
@@ -11065,7 +11065,7 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 3,
-      "eilat_k": 4,
+      "eilat_k": 3,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 15,
@@ -11153,9 +11153,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 3,
-      "hamlatza": null,
-      "delta_p4": null,
+      "eilat_k": 2,
+      "hamlatza": 0.4,
+      "delta_p4": 0.1,
       "n_points": 16,
       "series": {
         "actual": [
@@ -11241,7 +11241,7 @@
       "p8": 1.1,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 6,
+      "eilat_k": 5,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 15,
@@ -11415,11 +11415,11 @@
     "302426": {
       "p4": 2.2,
       "p8": 0.9,
-      "prophet_order": 2.6,
+      "prophet_order": 3.6,
       "weeks_nf": 3,
-      "eilat_k": 4,
-      "hamlatza": null,
-      "delta_p4": null,
+      "eilat_k": 3,
+      "hamlatza": 1,
+      "delta_p4": 1.2,
       "n_points": 10,
       "series": {
         "actual": [
@@ -11497,7 +11497,7 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 3,
-      "eilat_k": 5,
+      "eilat_k": 4,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 16,
@@ -11562,7 +11562,7 @@
           {
             "w": "2026-07-12",
             "y": 85.8,
-            "lo": 85.8,
+            "lo": 85.7,
             "hi": 85.8
           },
           {
@@ -11575,7 +11575,7 @@
             "w": "2026-07-26",
             "y": 235.0,
             "lo": 234.8,
-            "hi": 235.3
+            "hi": 235.2
           }
         ]
       }
@@ -11837,7 +11837,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 6,
+      "eilat_k": 5,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 11,
@@ -12865,7 +12865,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 32,
+      "eilat_k": 30,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 26,
@@ -12953,7 +12953,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 36,
+      "eilat_k": 35,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 26,
@@ -13041,7 +13041,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 33,
+      "eilat_k": 32,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 25,
@@ -13217,7 +13217,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 31,
+      "eilat_k": 30,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 26,
@@ -13276,8 +13276,8 @@
           {
             "w": "2026-07-12",
             "y": 4.0,
-            "lo": 0.0,
-            "hi": 8.1
+            "lo": 0.3,
+            "hi": 8.2
           },
           {
             "w": "2026-07-19",
@@ -14141,9 +14141,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 9,
-      "hamlatza": 2.5,
-      "delta_p4": -2.5,
+      "eilat_k": 8,
+      "hamlatza": 3.5,
+      "delta_p4": -3.5,
       "n_points": 25,
       "series": {
         "actual": [
@@ -14825,12 +14825,12 @@
             "w": "2026-07-19",
             "y": 40.0,
             "lo": 39.8,
-            "hi": 40.2
+            "hi": 40.3
           },
           {
             "w": "2026-07-26",
             "y": 56.9,
-            "lo": 56.5,
+            "lo": 56.6,
             "hi": 57.3
           }
         ]
@@ -15522,7 +15522,7 @@
           {
             "w": "2026-07-26",
             "y": 1.1,
-            "lo": 0.7,
+            "lo": 0.8,
             "hi": 1.5
           }
         ]
@@ -15619,11 +15619,11 @@
     "305018": {
       "p4": 5.9,
       "p8": 2.7,
-      "prophet_order": 11.7,
+      "prophet_order": 12.7,
       "weeks_nf": 3,
-      "eilat_k": 6,
-      "hamlatza": null,
-      "delta_p4": null,
+      "eilat_k": 5,
+      "hamlatza": 0,
+      "delta_p4": 5.9,
       "n_points": 12,
       "series": {
         "actual": [
@@ -15777,7 +15777,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 6,
+      "eilat_k": 5,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 9,
@@ -16181,8 +16181,8 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 3,
-      "eilat_k": 8,
-      "hamlatza": -0.5,
+      "eilat_k": 6,
+      "hamlatza": 1.5,
       "delta_p4": null,
       "n_points": 10,
       "series": {
@@ -16244,8 +16244,8 @@
           {
             "w": "2026-07-26",
             "y": 53.4,
-            "lo": 51.1,
-            "hi": 55.9
+            "lo": 51.2,
+            "hi": 55.8
           },
           {
             "w": "2026-08-02",
@@ -16261,7 +16261,7 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 3,
-      "eilat_k": 10,
+      "eilat_k": 9,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 10,
@@ -16589,7 +16589,7 @@
             "w": "2026-07-26",
             "y": 22.6,
             "lo": 21.8,
-            "hi": 23.4
+            "hi": 23.3
           },
           {
             "w": "2026-08-02",
@@ -17264,7 +17264,7 @@
       "p8": 375.1,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 30,
+      "eilat_k": 29,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 24,
@@ -17352,7 +17352,7 @@
       "p8": 108.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 34,
+      "eilat_k": 33,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 26,
@@ -18934,7 +18934,7 @@
       "p8": 20.4,
       "prophet_order": 0,
       "weeks_nf": 2,
-      "eilat_k": 14,
+      "eilat_k": 12,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 12,
@@ -19022,9 +19022,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 11,
-      "hamlatza": 9,
-      "delta_p4": -9.0,
+      "eilat_k": 9,
+      "hamlatza": 10,
+      "delta_p4": -10.0,
       "n_points": 24,
       "series": {
         "actual": [
@@ -19198,8 +19198,8 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 3,
-      "eilat_k": 2,
-      "hamlatza": 9.4,
+      "eilat_k": 0,
+      "hamlatza": 10.4,
       "delta_p4": null,
       "n_points": 23,
       "series": {
@@ -19257,8 +19257,8 @@
           {
             "w": "2026-07-12",
             "y": 0.6,
-            "lo": 0.1,
-            "hi": 1.2
+            "lo": 0.0,
+            "hi": 1.1
           },
           {
             "w": "2026-07-19",
@@ -19270,13 +19270,13 @@
             "w": "2026-07-26",
             "y": 134.3,
             "lo": 133.8,
-            "hi": 134.9
+            "hi": 134.8
           },
           {
             "w": "2026-08-02",
             "y": 262.2,
             "lo": 261.6,
-            "hi": 262.8
+            "hi": 262.7
           }
         ]
       }
@@ -19284,9 +19284,9 @@
     "403001": {
       "p4": 0.0,
       "p8": 0.0,
-      "prophet_order": 0,
+      "prophet_order": 5.0,
       "weeks_nf": 1,
-      "eilat_k": 0,
+      "eilat_k": -5,
       "hamlatza": 57.2,
       "delta_p4": -57.2,
       "n_points": 26,
@@ -19372,11 +19372,11 @@
     "403002": {
       "p4": 0.0,
       "p8": 3540.1,
-      "prophet_order": 0,
+      "prophet_order": 5.0,
       "weeks_nf": 1,
-      "eilat_k": 1,
-      "hamlatza": 28.5,
-      "delta_p4": -28.5,
+      "eilat_k": -5,
+      "hamlatza": 29.5,
+      "delta_p4": -29.5,
       "n_points": 26,
       "series": {
         "actual": [
@@ -19460,9 +19460,9 @@
     "403003": {
       "p4": 0.0,
       "p8": 94.2,
-      "prophet_order": 0,
+      "prophet_order": 2.0,
       "weeks_nf": 1,
-      "eilat_k": 0,
+      "eilat_k": -2,
       "hamlatza": 10.2,
       "delta_p4": -10.2,
       "n_points": 25,
@@ -19550,9 +19550,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 1,
-      "eilat_k": 3,
-      "hamlatza": 2.1,
-      "delta_p4": -2.1,
+      "eilat_k": 2,
+      "hamlatza": 3.1,
+      "delta_p4": -3.1,
       "n_points": 21,
       "series": {
         "actual": [
@@ -19627,8 +19627,8 @@
           {
             "w": "2026-08-02",
             "y": 84.0,
-            "lo": 82.5,
-            "hi": 85.5
+            "lo": 82.6,
+            "hi": 85.4
           }
         ]
       }
@@ -19638,9 +19638,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 1,
-      "eilat_k": 1,
-      "hamlatza": null,
-      "delta_p4": null,
+      "eilat_k": 0,
+      "hamlatza": 6,
+      "delta_p4": -6.0,
       "n_points": 18,
       "series": {
         "actual": [
@@ -19814,9 +19814,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 1,
-      "eilat_k": 1,
-      "hamlatza": null,
-      "delta_p4": null,
+      "eilat_k": 0,
+      "hamlatza": 6,
+      "delta_p4": -6.0,
       "n_points": 18,
       "series": {
         "actual": [
@@ -19900,11 +19900,11 @@
     "403008": {
       "p4": 0.0,
       "p8": 32.3,
-      "prophet_order": 0,
+      "prophet_order": 1.0,
       "weeks_nf": 1,
-      "eilat_k": 0,
-      "hamlatza": null,
-      "delta_p4": null,
+      "eilat_k": -1,
+      "hamlatza": 8,
+      "delta_p4": -8.0,
       "n_points": 17,
       "series": {
         "actual": [
@@ -19990,7 +19990,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 1,
-      "eilat_k": 2,
+      "eilat_k": 1,
       "hamlatza": 5.3,
       "delta_p4": -5.3,
       "n_points": 8,
@@ -20062,7 +20062,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 1,
-      "eilat_k": 8,
+      "eilat_k": 7,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 8,
@@ -20134,9 +20134,9 @@
       "p8": 18.5,
       "prophet_order": 0,
       "weeks_nf": 1,
-      "eilat_k": 3,
-      "hamlatza": 6,
-      "delta_p4": -6.0,
+      "eilat_k": 0,
+      "hamlatza": 8,
+      "delta_p4": -8.0,
       "n_points": 8,
       "series": {
         "actual": [
@@ -20206,8 +20206,8 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 1,
-      "eilat_k": 6,
-      "hamlatza": 4.3,
+      "eilat_k": 3,
+      "hamlatza": 6.3,
       "delta_p4": null,
       "n_points": 8,
       "series": {
@@ -20278,8 +20278,8 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 1,
-      "eilat_k": 8,
-      "hamlatza": 3.7,
+      "eilat_k": 4,
+      "hamlatza": 6.7,
       "delta_p4": null,
       "n_points": 8,
       "series": {
@@ -20350,7 +20350,7 @@
       "p8": 65.6,
       "prophet_order": 0,
       "weeks_nf": 1,
-      "eilat_k": 4,
+      "eilat_k": 3,
       "hamlatza": 2.7,
       "delta_p4": -2.7,
       "n_points": 9,
@@ -20426,8 +20426,8 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 1,
-      "eilat_k": 0,
-      "hamlatza": 12.5,
+      "eilat_k": -2,
+      "hamlatza": 13.5,
       "delta_p4": null,
       "n_points": 8,
       "series": {
@@ -20498,7 +20498,7 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 1,
-      "eilat_k": 8,
+      "eilat_k": 7,
       "hamlatza": 2.4,
       "delta_p4": null,
       "n_points": 9,
@@ -20574,8 +20574,8 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 1,
-      "eilat_k": 5,
-      "hamlatza": 2.5,
+      "eilat_k": 1,
+      "hamlatza": 4.5,
       "delta_p4": null,
       "n_points": 9,
       "series": {
@@ -20627,20 +20627,20 @@
           {
             "w": "2026-07-19",
             "y": 135.6,
-            "lo": 135.4,
+            "lo": 135.5,
             "hi": 135.8
           },
           {
             "w": "2026-07-26",
             "y": 608.4,
-            "lo": 607.0,
+            "lo": 607.1,
             "hi": 609.7
           },
           {
             "w": "2026-08-02",
             "y": 1331.8,
             "lo": 1327.6,
-            "hi": 1336.0
+            "hi": 1335.8
           }
         ]
       }
@@ -20650,7 +20650,7 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 1,
-      "eilat_k": 12,
+      "eilat_k": 8,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 9,
@@ -20726,7 +20726,7 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 1,
-      "eilat_k": 11,
+      "eilat_k": 5,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 9,
@@ -20802,7 +20802,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 1,
-      "eilat_k": 8,
+      "eilat_k": 5,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 8,
@@ -20874,7 +20874,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 1,
-      "eilat_k": 11,
+      "eilat_k": 10,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 9,
@@ -20950,7 +20950,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 1,
-      "eilat_k": 7,
+      "eilat_k": 6,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 9,
@@ -21175,7 +21175,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 1,
-      "eilat_k": 3,
+      "eilat_k": 2,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 8,
@@ -21300,20 +21300,20 @@
           {
             "w": "2026-07-19",
             "y": 81.1,
-            "lo": 81.0,
+            "lo": 80.9,
             "hi": 81.3
           },
           {
             "w": "2026-07-26",
             "y": 260.0,
-            "lo": 259.1,
-            "hi": 261.0
+            "lo": 259.0,
+            "hi": 260.9
           },
           {
             "w": "2026-08-02",
             "y": 469.0,
-            "lo": 466.6,
-            "hi": 471.7
+            "lo": 466.4,
+            "hi": 471.6
           }
         ]
       }
@@ -21323,7 +21323,7 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 1,
-      "eilat_k": 8,
+      "eilat_k": 7,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 9,
@@ -21399,7 +21399,7 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 1,
-      "eilat_k": 5,
+      "eilat_k": 4,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 9,
@@ -21447,7 +21447,7 @@
             "w": "2026-07-12",
             "y": 17.9,
             "lo": 17.9,
-            "hi": 17.9
+            "hi": 18.0
           },
           {
             "w": "2026-07-19",
@@ -21459,12 +21459,12 @@
             "w": "2026-07-26",
             "y": 81.1,
             "lo": 80.1,
-            "hi": 82.1
+            "hi": 82.2
           },
           {
             "w": "2026-08-02",
             "y": 68.0,
-            "lo": 65.9,
+            "lo": 65.8,
             "hi": 70.3
           }
         ]
@@ -21551,9 +21551,9 @@
       "p8": 25.8,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 16,
-      "hamlatza": 3,
-      "delta_p4": -3.0,
+      "eilat_k": 14,
+      "hamlatza": 5,
+      "delta_p4": -5.0,
       "n_points": 24,
       "series": {
         "actual": [
@@ -21637,11 +21637,11 @@
     "420002": {
       "p4": 3.8,
       "p8": 0.0,
-      "prophet_order": 0,
+      "prophet_order": 0.4,
       "weeks_nf": 3,
-      "eilat_k": 13,
-      "hamlatza": 2,
-      "delta_p4": 1.8,
+      "eilat_k": 11,
+      "hamlatza": 4,
+      "delta_p4": -0.2,
       "n_points": 25,
       "series": {
         "actual": [
@@ -21699,25 +21699,25 @@
             "w": "2026-07-12",
             "y": 0.0,
             "lo": 0.0,
-            "hi": 2.0
+            "hi": 2.1
           },
           {
             "w": "2026-07-19",
             "y": 3.8,
             "lo": 1.5,
-            "hi": 6.1
+            "hi": 6.0
           },
           {
             "w": "2026-07-26",
             "y": 9.2,
-            "lo": 6.6,
-            "hi": 11.7
+            "lo": 6.7,
+            "hi": 11.8
           },
           {
             "w": "2026-08-02",
             "y": 2.7,
-            "lo": 0.2,
-            "hi": 5.0
+            "lo": 0.5,
+            "hi": 5.2
           }
         ]
       }
@@ -21728,8 +21728,8 @@
       "prophet_order": 0,
       "weeks_nf": 3,
       "eilat_k": 2,
-      "hamlatza": null,
-      "delta_p4": null,
+      "hamlatza": 0.3,
+      "delta_p4": -0.3,
       "n_points": 14,
       "series": {
         "actual": [
@@ -21813,9 +21813,9 @@
     "420004": {
       "p4": 0.4,
       "p8": 0.0,
-      "prophet_order": 0,
+      "prophet_order": 0.2,
       "weeks_nf": 3,
-      "eilat_k": 2,
+      "eilat_k": 1,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 23,
@@ -21903,8 +21903,8 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 3,
-      "eilat_k": 5,
-      "hamlatza": null,
+      "eilat_k": 3,
+      "hamlatza": 2.3,
       "delta_p4": null,
       "n_points": 25,
       "series": {
@@ -21969,7 +21969,7 @@
             "w": "2026-07-19",
             "y": 36.3,
             "lo": 35.7,
-            "hi": 36.9
+            "hi": 37.0
           },
           {
             "w": "2026-07-26",
@@ -21980,8 +21980,8 @@
           {
             "w": "2026-08-02",
             "y": 47.2,
-            "lo": 46.6,
-            "hi": 47.8
+            "lo": 46.7,
+            "hi": 47.9
           }
         ]
       }
@@ -21989,11 +21989,11 @@
     "420006": {
       "p4": 3.4,
       "p8": 4.3,
-      "prophet_order": 7.2,
+      "prophet_order": 8.2,
       "weeks_nf": 3,
-      "eilat_k": 3,
-      "hamlatza": null,
-      "delta_p4": null,
+      "eilat_k": 2,
+      "hamlatza": 1,
+      "delta_p4": 2.4,
       "n_points": 9,
       "series": {
         "actual": [
@@ -22067,7 +22067,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 4,
+      "eilat_k": 3,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 9,
@@ -22143,9 +22143,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 3,
-      "eilat_k": 3,
-      "hamlatza": null,
-      "delta_p4": null,
+      "eilat_k": 2,
+      "hamlatza": 1,
+      "delta_p4": -1.0,
       "n_points": 9,
       "series": {
         "actual": [
@@ -22278,26 +22278,26 @@
           {
             "w": "2026-07-05",
             "y": 58.4,
-            "lo": 57.6,
+            "lo": 57.5,
             "hi": 59.3
           },
           {
             "w": "2026-07-12",
             "y": 294.8,
-            "lo": 293.8,
+            "lo": 293.9,
             "hi": 295.7
           },
           {
             "w": "2026-07-19",
             "y": 791.8,
-            "lo": 791.0,
+            "lo": 790.8,
             "hi": 792.7
           },
           {
             "w": "2026-07-26",
             "y": 1424.8,
             "lo": 1423.9,
-            "hi": 1425.8
+            "hi": 1425.7
           }
         ]
       }
@@ -22419,9 +22419,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 10,
-      "hamlatza": 3.3,
-      "delta_p4": -3.3,
+      "eilat_k": 9,
+      "hamlatza": 4.3,
+      "delta_p4": -4.3,
       "n_points": 22,
       "series": {
         "actual": [
@@ -22507,9 +22507,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 10,
-      "hamlatza": 2,
-      "delta_p4": -2.0,
+      "eilat_k": 11,
+      "hamlatza": null,
+      "delta_p4": null,
       "n_points": 18,
       "series": {
         "actual": [
@@ -22595,7 +22595,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 175,
+      "eilat_k": 168,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 26,
@@ -22683,7 +22683,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 100,
+      "eilat_k": 97,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 26,
@@ -22771,7 +22771,7 @@
       "p8": 2.1,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 115,
+      "eilat_k": 110,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 26,
@@ -22830,8 +22830,8 @@
           {
             "w": "2026-07-12",
             "y": 6.3,
-            "lo": 2.9,
-            "hi": 9.4
+            "lo": 3.0,
+            "hi": 9.6
           },
           {
             "w": "2026-07-19",
@@ -22843,13 +22843,13 @@
             "w": "2026-07-26",
             "y": 0.0,
             "lo": 0.0,
-            "hi": 0.2
+            "hi": 0.0
           },
           {
             "w": "2026-08-02",
             "y": 0.0,
             "lo": 0.0,
-            "hi": 0.6
+            "hi": 0.4
           }
         ]
       }
@@ -22859,8 +22859,8 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 4,
-      "eilat_k": 4,
-      "hamlatza": 8.8,
+      "eilat_k": 3,
+      "hamlatza": 9.8,
       "delta_p4": null,
       "n_points": 17,
       "series": {
@@ -22936,8 +22936,8 @@
           {
             "w": "2026-08-02",
             "y": 55.6,
-            "lo": 54.7,
-            "hi": 56.5
+            "lo": 54.6,
+            "hi": 56.6
           }
         ]
       }
@@ -22947,7 +22947,7 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 4,
-      "eilat_k": 115,
+      "eilat_k": 114,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 26,
@@ -23006,26 +23006,26 @@
           {
             "w": "2026-07-12",
             "y": 29.5,
-            "lo": 26.8,
+            "lo": 26.9,
             "hi": 31.8
           },
           {
             "w": "2026-07-19",
             "y": 75.0,
-            "lo": 72.6,
-            "hi": 77.4
+            "lo": 72.5,
+            "hi": 77.3
           },
           {
             "w": "2026-07-26",
             "y": 98.7,
-            "lo": 96.4,
-            "hi": 101.2
+            "lo": 96.3,
+            "hi": 101.0
           },
           {
             "w": "2026-08-02",
             "y": 40.3,
-            "lo": 37.8,
-            "hi": 42.9
+            "lo": 38.0,
+            "hi": 42.8
           }
         ]
       }
@@ -23035,7 +23035,7 @@
       "p8": 87.4,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 51,
+      "eilat_k": 50,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 26,
@@ -23123,7 +23123,7 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 4,
-      "eilat_k": 23,
+      "eilat_k": 22,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 25,
@@ -23195,13 +23195,13 @@
             "w": "2026-07-26",
             "y": 66.1,
             "lo": 65.2,
-            "hi": 66.8
+            "hi": 66.9
           },
           {
             "w": "2026-08-02",
             "y": 217.7,
-            "lo": 216.9,
-            "hi": 218.6
+            "lo": 217.0,
+            "hi": 218.5
           }
         ]
       }
@@ -23289,7 +23289,7 @@
             "w": "2026-07-26",
             "y": 263.0,
             "lo": 262.5,
-            "hi": 263.7
+            "hi": 263.6
           }
         ]
       }
@@ -23387,7 +23387,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 105,
+      "eilat_k": 102,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 17,
@@ -23475,7 +23475,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 118,
+      "eilat_k": 116,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 25,
@@ -23619,7 +23619,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 125,
+      "eilat_k": 123,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 25,
@@ -23679,7 +23679,7 @@
             "w": "2026-07-12",
             "y": 0.8,
             "lo": 0.0,
-            "hi": 4.4
+            "hi": 4.3
           },
           {
             "w": "2026-07-19",
@@ -23697,7 +23697,7 @@
             "w": "2026-08-02",
             "y": 0.0,
             "lo": 0.0,
-            "hi": 1.1
+            "hi": 1.0
           }
         ]
       }
@@ -23773,7 +23773,7 @@
             "w": "2026-06-28",
             "y": 1.3,
             "lo": 0.7,
-            "hi": 1.9
+            "hi": 2.0
           },
           {
             "w": "2026-07-05",
@@ -23795,7 +23795,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 64,
+      "eilat_k": 62,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 26,
@@ -23883,7 +23883,7 @@
       "p8": 23.2,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 69,
+      "eilat_k": 67,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 26,
@@ -23971,7 +23971,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 19,
+      "eilat_k": 18,
       "hamlatza": 3.7,
       "delta_p4": -3.7,
       "n_points": 24,
@@ -24059,7 +24059,7 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 4,
-      "eilat_k": 35,
+      "eilat_k": 34,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 25,
@@ -24131,13 +24131,13 @@
             "w": "2026-07-26",
             "y": 25.2,
             "lo": 22.7,
-            "hi": 27.8
+            "hi": 27.7
           },
           {
             "w": "2026-08-02",
             "y": 92.3,
             "lo": 89.7,
-            "hi": 94.8
+            "hi": 94.9
           }
         ]
       }
@@ -24174,7 +24174,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 177,
+      "eilat_k": 174,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 14,
@@ -24350,9 +24350,9 @@
       "p8": 948.2,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 151,
-      "hamlatza": 11,
-      "delta_p4": -11.0,
+      "eilat_k": 141,
+      "hamlatza": 18,
+      "delta_p4": -18.0,
       "n_points": 26,
       "series": {
         "actual": [
@@ -24438,7 +24438,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 29,
+      "eilat_k": 30,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 24,
@@ -24597,13 +24597,13 @@
           {
             "w": "2026-07-26",
             "y": 727.4,
-            "lo": 727.2,
+            "lo": 727.3,
             "hi": 727.6
           },
           {
             "w": "2026-08-02",
             "y": 1189.8,
-            "lo": 1189.3,
+            "lo": 1189.4,
             "hi": 1190.2
           }
         ]
@@ -24855,7 +24855,7 @@
           {
             "w": "2026-08-02",
             "y": 197.1,
-            "lo": 196.3,
+            "lo": 196.4,
             "hi": 197.9
           }
         ]
@@ -25102,7 +25102,7 @@
       "p8": 27.2,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 103,
+      "eilat_k": 101,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 25,
@@ -25162,7 +25162,7 @@
             "w": "2026-07-12",
             "y": 0.0,
             "lo": 0.0,
-            "hi": 1.4
+            "hi": 1.6
           },
           {
             "w": "2026-07-19",
@@ -25173,14 +25173,14 @@
           {
             "w": "2026-07-26",
             "y": 21.8,
-            "lo": 19.1,
+            "lo": 19.0,
             "hi": 24.4
           },
           {
             "w": "2026-08-02",
             "y": 69.1,
-            "lo": 66.4,
-            "hi": 71.8
+            "lo": 66.6,
+            "hi": 72.1
           }
         ]
       }
@@ -25262,13 +25262,13 @@
             "w": "2026-07-26",
             "y": 53.4,
             "lo": 52.1,
-            "hi": 54.6
+            "hi": 54.7
           },
           {
             "w": "2026-08-02",
             "y": 50.2,
-            "lo": 48.9,
-            "hi": 51.6
+            "lo": 49.0,
+            "hi": 51.5
           }
         ]
       }
@@ -25278,7 +25278,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 46,
+      "eilat_k": 47,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 24,
@@ -26054,9 +26054,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 45,
-      "hamlatza": null,
-      "delta_p4": null,
+      "eilat_k": 42,
+      "hamlatza": 1,
+      "delta_p4": -1.0,
       "n_points": 26,
       "series": {
         "actual": [
@@ -27010,7 +27010,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 2,
-      "eilat_k": 16,
+      "eilat_k": 15,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 22,
@@ -27098,7 +27098,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 2,
-      "eilat_k": 10,
+      "eilat_k": 9,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 22,
@@ -27362,9 +27362,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 2,
-      "eilat_k": 4,
-      "hamlatza": 4.5,
-      "delta_p4": -4.5,
+      "eilat_k": 3,
+      "hamlatza": 5.5,
+      "delta_p4": -5.5,
       "n_points": 16,
       "series": {
         "actual": [
@@ -27450,7 +27450,7 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 2,
-      "eilat_k": 12,
+      "eilat_k": 10,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 20,
@@ -27522,13 +27522,13 @@
             "w": "2026-07-26",
             "y": 1438.9,
             "lo": 1438.8,
-            "hi": 1438.9
+            "hi": 1439.0
           },
           {
             "w": "2026-08-02",
             "y": 2266.8,
             "lo": 2266.6,
-            "hi": 2266.9
+            "hi": 2267.0
           }
         ]
       }
@@ -27538,9 +27538,9 @@
       "p8": 60.2,
       "prophet_order": 0,
       "weeks_nf": 2,
-      "eilat_k": 6,
-      "hamlatza": 14.6,
-      "delta_p4": -14.6,
+      "eilat_k": 2,
+      "hamlatza": 18.6,
+      "delta_p4": -18.6,
       "n_points": 26,
       "series": {
         "actual": [
@@ -27626,7 +27626,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 2,
-      "eilat_k": 13,
+      "eilat_k": 12,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 14,
@@ -27802,7 +27802,7 @@
       "p8": 15.7,
       "prophet_order": 0,
       "weeks_nf": 2,
-      "eilat_k": 13,
+      "eilat_k": 12,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 18,
@@ -28066,7 +28066,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 25,
+      "eilat_k": 24,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 24,
@@ -28143,8 +28143,8 @@
           {
             "w": "2026-08-02",
             "y": 6.0,
-            "lo": 3.7,
-            "hi": 8.5
+            "lo": 3.8,
+            "hi": 8.4
           }
         ]
       }
@@ -28154,7 +28154,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 115,
+      "eilat_k": 111,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 26,
@@ -28242,7 +28242,7 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 2,
-      "eilat_k": 13,
+      "eilat_k": 12,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 5,
@@ -28422,7 +28422,7 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 2,
-      "eilat_k": 16,
+      "eilat_k": 15,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 5,
@@ -28846,9 +28846,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 14,
-      "hamlatza": 2,
-      "delta_p4": -2.0,
+      "eilat_k": 9,
+      "hamlatza": 7,
+      "delta_p4": -7.0,
       "n_points": 20,
       "series": {
         "actual": [
@@ -28934,8 +28934,8 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 4,
-      "eilat_k": 13,
-      "hamlatza": 3.7,
+      "eilat_k": 8,
+      "hamlatza": 8.7,
       "delta_p4": null,
       "n_points": 15,
       "series": {
@@ -29022,8 +29022,8 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 4,
-      "eilat_k": 6,
-      "hamlatza": null,
+      "eilat_k": 5,
+      "hamlatza": 0.6,
       "delta_p4": null,
       "n_points": 12,
       "series": {
@@ -29110,9 +29110,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 5,
-      "hamlatza": 1,
-      "delta_p4": -1.0,
+      "eilat_k": 3,
+      "hamlatza": 3,
+      "delta_p4": -3.0,
       "n_points": 20,
       "series": {
         "actual": [
@@ -29196,9 +29196,9 @@
     "503021": {
       "p4": 5.4,
       "p8": 0.5,
-      "prophet_order": 12.6,
+      "prophet_order": 13.6,
       "weeks_nf": 4,
-      "eilat_k": 9,
+      "eilat_k": 8,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 17,
@@ -29275,7 +29275,7 @@
           {
             "w": "2026-08-02",
             "y": 9.1,
-            "lo": 9.0,
+            "lo": 8.9,
             "hi": 9.2
           }
         ]
@@ -29286,7 +29286,7 @@
       "p8": 23.5,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 15,
+      "eilat_k": 14,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 22,
@@ -29374,8 +29374,8 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 4,
-      "eilat_k": 13,
-      "hamlatza": 1.7,
+      "eilat_k": 10,
+      "hamlatza": 4.7,
       "delta_p4": null,
       "n_points": 11,
       "series": {
@@ -29458,9 +29458,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 11,
-      "hamlatza": 2.3,
-      "delta_p4": -2.3,
+      "eilat_k": 10,
+      "hamlatza": 3.3,
+      "delta_p4": -3.3,
       "n_points": 14,
       "series": {
         "actual": [
@@ -29546,7 +29546,7 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 4,
-      "eilat_k": 16,
+      "eilat_k": 14,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 13,
@@ -29612,13 +29612,13 @@
             "w": "2026-07-19",
             "y": 202.7,
             "lo": 202.2,
-            "hi": 203.1
+            "hi": 203.2
           },
           {
             "w": "2026-07-26",
             "y": 278.6,
             "lo": 277.6,
-            "hi": 279.6
+            "hi": 279.7
           },
           {
             "w": "2026-08-02",
@@ -29634,7 +29634,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 23,
+      "eilat_k": 22,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 10,
@@ -29712,9 +29712,9 @@
     "503035": {
       "p4": 8.9,
       "p8": 0.0,
-      "prophet_order": 14.6,
+      "prophet_order": 16.6,
       "weeks_nf": 4,
-      "eilat_k": 21,
+      "eilat_k": 19,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 17,
@@ -29802,9 +29802,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 4,
-      "hamlatza": 16,
-      "delta_p4": -16.0,
+      "eilat_k": 2,
+      "hamlatza": 17,
+      "delta_p4": -17.0,
       "n_points": 10,
       "series": {
         "actual": [
@@ -29882,9 +29882,9 @@
       "p8": 18.2,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 14,
-      "hamlatza": 2.8,
-      "delta_p4": -2.8,
+      "eilat_k": 12,
+      "hamlatza": 4.8,
+      "delta_p4": -4.8,
       "n_points": 10,
       "series": {
         "actual": [
@@ -30658,9 +30658,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 26,
-      "hamlatza": 40.7,
-      "delta_p4": -40.7,
+      "eilat_k": 25,
+      "hamlatza": 41.7,
+      "delta_p4": -41.7,
       "n_points": 26,
       "series": {
         "actual": [
@@ -31606,7 +31606,7 @@
       "p8": 6.8,
       "prophet_order": 0,
       "weeks_nf": 2,
-      "eilat_k": 9,
+      "eilat_k": 8,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 17,
@@ -31866,7 +31866,7 @@
       "p8": 11.3,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 9,
+      "eilat_k": 8,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 19,
@@ -31954,9 +31954,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 7,
-      "hamlatza": 3,
-      "delta_p4": -2.6,
+      "eilat_k": 5,
+      "hamlatza": 5,
+      "delta_p4": -4.6,
       "n_points": 4,
       "series": {
         "actual": [
@@ -32130,7 +32130,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 74,
+      "eilat_k": 70,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 18,
@@ -32216,11 +32216,11 @@
     "624": {
       "p4": 2.4,
       "p8": 0.0,
-      "prophet_order": 0,
+      "prophet_order": 0.4,
       "weeks_nf": 1,
-      "eilat_k": 3,
-      "hamlatza": null,
-      "delta_p4": null,
+      "eilat_k": 2,
+      "hamlatza": 1.1,
+      "delta_p4": 1.3,
       "n_points": 13,
       "series": {
         "actual": [
@@ -32284,12 +32284,12 @@
             "w": "2026-07-12",
             "y": 0.4,
             "lo": 0.2,
-            "hi": 0.6
+            "hi": 0.7
           },
           {
             "w": "2026-07-19",
             "y": 5.0,
-            "lo": 4.3,
+            "lo": 4.4,
             "hi": 5.6
           },
           {
@@ -32394,9 +32394,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 1,
-      "eilat_k": 4,
-      "hamlatza": 2.2,
-      "delta_p4": -2.2,
+      "eilat_k": 3,
+      "hamlatza": 3.2,
+      "delta_p4": -3.2,
       "n_points": 23,
       "series": {
         "actual": [
@@ -32482,8 +32482,8 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 1,
-      "eilat_k": 3,
-      "hamlatza": 13.8,
+      "eilat_k": 0,
+      "hamlatza": 16.8,
       "delta_p4": null,
       "n_points": 26,
       "series": {
@@ -32541,20 +32541,20 @@
           {
             "w": "2026-07-12",
             "y": 107.9,
-            "lo": 106.5,
-            "hi": 109.2
+            "lo": 106.4,
+            "hi": 109.3
           },
           {
             "w": "2026-07-19",
             "y": 524.7,
             "lo": 523.3,
-            "hi": 526.2
+            "hi": 526.1
           },
           {
             "w": "2026-07-26",
             "y": 1399.3,
-            "lo": 1397.9,
-            "hi": 1400.8
+            "lo": 1398.0,
+            "hi": 1400.7
           },
           {
             "w": "2026-08-02",
@@ -32709,14 +32709,14 @@
           {
             "w": "2026-07-12",
             "y": 2.0,
-            "lo": 0.5,
-            "hi": 3.4
+            "lo": 0.6,
+            "hi": 3.2
           },
           {
             "w": "2026-07-19",
             "y": 0.0,
             "lo": 0.0,
-            "hi": 0.1
+            "hi": 0.0
           },
           {
             "w": "2026-07-26",
@@ -32727,8 +32727,8 @@
           {
             "w": "2026-08-02",
             "y": 5.0,
-            "lo": 3.7,
-            "hi": 6.3
+            "lo": 3.6,
+            "hi": 6.4
           }
         ]
       }
@@ -32738,9 +32738,9 @@
       "p8": 38.7,
       "prophet_order": 0,
       "weeks_nf": 1,
-      "eilat_k": 4,
-      "hamlatza": 6.2,
-      "delta_p4": -6.2,
+      "eilat_k": 3,
+      "hamlatza": 7.2,
+      "delta_p4": -7.2,
       "n_points": 26,
       "series": {
         "actual": [
@@ -32798,7 +32798,7 @@
             "w": "2026-07-12",
             "y": 2.5,
             "lo": 1.1,
-            "hi": 3.9
+            "hi": 3.8
           },
           {
             "w": "2026-07-19",
@@ -32816,7 +32816,7 @@
             "w": "2026-08-02",
             "y": 23.5,
             "lo": 22.2,
-            "hi": 24.9
+            "hi": 24.7
           }
         ]
       }
@@ -32885,7 +32885,7 @@
           {
             "w": "2026-07-12",
             "y": 12.9,
-            "lo": 10.7,
+            "lo": 10.8,
             "hi": 15.1
           },
           {
@@ -33082,7 +33082,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 1,
-      "eilat_k": 15,
+      "eilat_k": 13,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 26,
@@ -33405,25 +33405,25 @@
           {
             "w": "2026-07-12",
             "y": 70.3,
-            "lo": 69.5,
+            "lo": 69.4,
             "hi": 71.2
           },
           {
             "w": "2026-07-19",
             "y": 350.3,
-            "lo": 349.4,
-            "hi": 351.2
+            "lo": 349.3,
+            "hi": 351.1
           },
           {
             "w": "2026-07-26",
             "y": 880.6,
             "lo": 879.7,
-            "hi": 881.6
+            "hi": 881.5
           },
           {
             "w": "2026-08-02",
             "y": 1450.4,
-            "lo": 1449.6,
+            "lo": 1449.5,
             "hi": 1451.3
           }
         ]
@@ -33681,7 +33681,7 @@
           {
             "w": "2026-07-26",
             "y": 365.5,
-            "lo": 364.8,
+            "lo": 364.9,
             "hi": 366.2
           },
           {
@@ -33763,8 +33763,8 @@
           {
             "w": "2026-07-19",
             "y": 29.7,
-            "lo": 29.0,
-            "hi": 30.3
+            "lo": 29.1,
+            "hi": 30.2
           },
           {
             "w": "2026-07-26",
@@ -33845,26 +33845,26 @@
           {
             "w": "2026-07-12",
             "y": 7.0,
-            "lo": 5.7,
+            "lo": 5.8,
             "hi": 8.3
           },
           {
             "w": "2026-07-19",
             "y": 4.0,
-            "lo": 2.7,
+            "lo": 2.8,
             "hi": 5.3
           },
           {
             "w": "2026-07-26",
             "y": 0.0,
             "lo": 0.0,
-            "hi": 1.2
+            "hi": 1.3
           },
           {
             "w": "2026-08-02",
             "y": 0.5,
             "lo": 0.0,
-            "hi": 1.7
+            "hi": 1.8
           }
         ]
       }
@@ -34109,7 +34109,7 @@
           {
             "w": "2026-07-12",
             "y": 33.1,
-            "lo": 32.6,
+            "lo": 32.5,
             "hi": 33.6
           },
           {
@@ -34127,7 +34127,7 @@
           {
             "w": "2026-08-02",
             "y": 225.5,
-            "lo": 224.9,
+            "lo": 225.0,
             "hi": 226.0
           }
         ]
@@ -34138,8 +34138,8 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 3,
-      "eilat_k": 11,
-      "hamlatza": 10.5,
+      "eilat_k": 9,
+      "hamlatza": 12.5,
       "delta_p4": null,
       "n_points": 26,
       "series": {
@@ -34204,19 +34204,19 @@
             "w": "2026-07-19",
             "y": 366.9,
             "lo": 365.3,
-            "hi": 368.4
+            "hi": 368.3
           },
           {
             "w": "2026-07-26",
             "y": 1001.5,
-            "lo": 1000.0,
+            "lo": 999.9,
             "hi": 1003.0
           },
           {
             "w": "2026-08-02",
             "y": 1850.6,
-            "lo": 1849.0,
-            "hi": 1852.1
+            "lo": 1848.9,
+            "hi": 1852.2
           }
         ]
       }
@@ -34578,7 +34578,7 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 2,
-      "eilat_k": 9,
+      "eilat_k": 8,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 21,
@@ -34666,7 +34666,7 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 2,
-      "eilat_k": 52,
+      "eilat_k": 48,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 5,
@@ -34726,9 +34726,9 @@
       "p8": 21.3,
       "prophet_order": 0,
       "weeks_nf": 2,
-      "eilat_k": 14,
-      "hamlatza": -8.5,
-      "delta_p4": 12.4,
+      "eilat_k": 10,
+      "hamlatza": -4.1,
+      "delta_p4": 8.0,
       "n_points": 4,
       "series": {
         "actual": [
@@ -34782,7 +34782,7 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 2,
-      "eilat_k": 73,
+      "eilat_k": 68,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 5,
@@ -35018,7 +35018,7 @@
       "p8": null,
       "prophet_order": null,
       "weeks_nf": 2,
-      "eilat_k": 54,
+      "eilat_k": 49,
       "hamlatza": null,
       "delta_p4": null,
       "n_points": 2,
@@ -35068,9 +35068,9 @@
       "p8": 0.0,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 168,
-      "hamlatza": 75.6,
-      "delta_p4": -75.6,
+      "eilat_k": 155,
+      "hamlatza": 78.6,
+      "delta_p4": -78.6,
       "n_points": 25,
       "series": {
         "actual": [
@@ -35476,7 +35476,7 @@
       "p8": 17.0,
       "prophet_order": 0,
       "weeks_nf": 4,
-      "eilat_k": 13,
+      "eilat_k": 11,
       "hamlatza": 15.7,
       "delta_p4": -15.7,
       "n_points": 25,
@@ -35759,26 +35759,26 @@
           {
             "w": "2026-07-12",
             "y": 115.2,
-            "lo": 111.0,
-            "hi": 119.4
+            "lo": 111.5,
+            "hi": 119.2
           },
           {
             "w": "2026-07-19",
             "y": 313.1,
             "lo": 309.0,
-            "hi": 317.3
+            "hi": 317.0
           },
           {
             "w": "2026-07-26",
             "y": 532.0,
             "lo": 528.1,
-            "hi": 536.3
+            "hi": 536.0
           },
           {
             "w": "2026-08-02",
             "y": 593.1,
-            "lo": 589.1,
-            "hi": 597.1
+            "lo": 589.3,
+            "hi": 597.0
           }
         ]
       }
@@ -35847,26 +35847,26 @@
           {
             "w": "2026-07-12",
             "y": 40.7,
-            "lo": 36.1,
+            "lo": 35.8,
             "hi": 45.8
           },
           {
             "w": "2026-07-19",
             "y": 87.4,
-            "lo": 82.4,
-            "hi": 92.4
+            "lo": 82.9,
+            "hi": 92.6
           },
           {
             "w": "2026-07-26",
             "y": 137.4,
-            "lo": 132.7,
-            "hi": 142.7
+            "lo": 132.3,
+            "hi": 142.1
           },
           {
             "w": "2026-08-02",
             "y": 154.0,
-            "lo": 148.8,
-            "hi": 159.3
+            "lo": 149.1,
+            "hi": 158.7
           }
         ]
       }
@@ -35935,8 +35935,8 @@
           {
             "w": "2026-07-12",
             "y": 15.0,
-            "lo": 12.6,
-            "hi": 17.5
+            "lo": 12.5,
+            "hi": 17.3
           },
           {
             "w": "2026-07-19",
@@ -36023,26 +36023,26 @@
           {
             "w": "2026-07-12",
             "y": 139.1,
-            "lo": 134.2,
-            "hi": 143.9
+            "lo": 134.3,
+            "hi": 144.3
           },
           {
             "w": "2026-07-19",
             "y": 367.6,
-            "lo": 362.8,
-            "hi": 372.7
+            "lo": 363.0,
+            "hi": 372.5
           },
           {
             "w": "2026-07-26",
             "y": 544.2,
-            "lo": 539.3,
-            "hi": 549.1
+            "lo": 538.9,
+            "hi": 548.7
           },
           {
             "w": "2026-08-02",
             "y": 407.1,
-            "lo": 402.0,
-            "hi": 412.0
+            "lo": 402.2,
+            "hi": 412.1
           }
         ]
       }
