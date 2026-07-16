@@ -285,7 +285,13 @@ SELECTCOLUMNS(
             iceOnly:       true,
           });
         }
-        console.log(`[PBI] ICE clients loaded: ${[...iceByAgent.values()].reduce((s,a)=>s+a.length,0)} across ${iceByAgent.size} agents`);
+        const iceTotal = [...iceByAgent.values()].reduce((s,a)=>s+a.length,0);
+        const iceWithSales = [...iceByAgent.values()].flat().filter(c=>c.lastOrderDate).length;
+        const iceFirst3 = [...iceByAgent.values()].flat().slice(0,3).map(c=>`${c.custId}→${c.lastOrderDate||'null'}`);
+        console.log(`[PBI] ICE clients loaded: ${iceTotal} across ${iceByAgent.size} agents, ${iceWithSales} with lastOrderDate`);
+        console.log(`[PBI] ICE sample custIds: ${iceFirst3.join(', ')}`);
+        const salesSample = [...salesMap.keys()].slice(0,3);
+        console.log(`[PBI] salesMap sample keys: ${salesSample.join(', ')} (total: ${salesMap.size})`);
       } catch (iceErr) {
         console.error('[PBI] ICE load error:', iceErr.message);
       }
