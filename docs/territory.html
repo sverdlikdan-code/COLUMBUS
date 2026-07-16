@@ -953,11 +953,14 @@ function renderClientList(){
 
 // ── SELECT CLIENT ─────────────────────────────────────────────────────────
 function selectClient(id){
-  st.selectedId=st.selectedId===id?null:id;
+  const wasSelected=st.selectedId===id;
+  st.selectedId=wasSelected?null:id;
   renderClientList();
-  if(st.selectedId&&(st.tab==='map'||window.innerWidth>=700)){
-    const c=displayClients().find(x=>x.custId===id);
-    if(c&&c.lat&&c.lng&&map) setTimeout(()=>map.flyTo([c.lat,c.lng],17,{duration:1}),50);
+  if(st.tab==='map'||window.innerWidth>=700){
+    if(!wasSelected){
+      const c=displayClients().find(x=>x.custId===id);
+      if(c&&c.lat&&c.lng&&map) setTimeout(()=>map.flyTo([c.lat,c.lng],17,{duration:1}),50);
+    }
     renderMap();
   }
 }
