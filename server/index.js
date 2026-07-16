@@ -46,8 +46,9 @@ SELECTCOLUMNS(
 )
 `);
 
-    // C: Current month sales per customer from ALL_PARTS (FORM+ICE+INTER)
-    const salesRows = await executeDax(`
+    // C: Current month sales + overall last order date per customer from ALL_PARTS
+    const [salesRows, lastOrderRows] = await Promise.all([
+      executeDax(`
 EVALUATE
 CALCULATETABLE(
   ADDCOLUMNS(
@@ -58,7 +59,15 @@ CALCULATETABLE(
   MONTH(ALL_PARTS[תאריך]) = MONTH(TODAY()),
   YEAR(ALL_PARTS[תאריך])  = YEAR(TODAY())
 )
-`);
+`),
+      executeDax(`
+EVALUATE
+ADDCOLUMNS(
+  SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]),
+  "lastOrderDate", CALCULATE(MAX(ALL_PARTS[תאריך]))
+)
+`),
+    ]);
 
     // Build client map: custId → client object
     const clientMap = new Map();
@@ -92,14 +101,35 @@ CALCULATETABLE(
       });
     }
 
-    // Merge sales into clientMap
+    // Build lastOrderMap from all-time query (no month filter)
+    const lastOrderMap = new Map();
+    for (const r of (lastOrderRows || [])) {
+      const custId = String(r['ALL_PARTS[מספר לקוח]'] || '');
+      const d = r['[lastOrderDate]'];
+      if (custId && d) lastOrderMap.set(custId, new Date(d).toISOString().slice(0, 10));
+    }
+
+    // Build salesMap for all custIds (used for both FORMULA and ICE)
+    const salesMap = new Map();
     for (const r of salesRows) {
       const custId = String(r['ALL_PARTS[מספר לקוח]'] || '');
-      const c = clientMap.get(custId);
-      if (!c) continue;
-      c.monthlySales  = parseFloat(r['[monthlySales]']) || 0;
-      const d = r['[lastDate]'];
-      c.lastOrderDate = d ? new Date(d).toISOString().slice(0, 10) : null;
+      if (!custId) continue;
+      salesMap.set(custId, {
+        monthlySales: parseFloat(r['[monthlySales]']) || 0,
+        lastOrderDate: lastOrderMap.get(custId) || null,
+      });
+    }
+    // Also populate lastOrderDate for clients not in salesRows (no current month sales)
+    for (const [custId, lastDate] of lastOrderMap) {
+      if (!salesMap.has(custId)) salesMap.set(custId, { monthlySales: 0, lastOrderDate: lastDate });
+    }
+
+    // Merge sales into clientMap (FORMULA clients)
+    for (const [custId, c] of clientMap) {
+      const s = salesMap.get(custId);
+      if (!s) continue;
+      c.monthlySales  = s.monthlySales;
+      c.lastOrderDate = s.lastOrderDate;
     }
 
     // D: Avg sales + order days per client — last 6 complete months
@@ -248,8 +278,8 @@ SELECTCOLUMNS(
             priorityOrder: 9000,
             fullAddress:   [address, city, 'ישראל'].filter(Boolean).join(', '),
             target:        0,
-            monthlySales:  0,
-            lastOrderDate: null,
+            monthlySales:  salesMap.get(custId)?.monthlySales || 0,
+            lastOrderDate: salesMap.get(custId)?.lastOrderDate || null,
             pct:           0,
             hevra:         'ICE',
             iceOnly:       true,
