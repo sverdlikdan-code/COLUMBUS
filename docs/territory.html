@@ -33,7 +33,6 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 /* FILTER BAR */
 .filter-bar{background:#fff;border-bottom:1px solid var(--sky-mid);padding:4px 8px;flex-shrink:0;display:flex;flex-direction:column;gap:3px;}
 .filter-row{display:flex;align-items:center;flex-wrap:wrap;gap:5px;}
-.filter-row.top-row{flex-wrap:nowrap;align-items:flex-start;}
 .flt-label{font-size:10px;font-weight:700;color:var(--light);letter-spacing:.8px;text-transform:uppercase;flex-shrink:0;}
 
 /* City multi-select */
@@ -52,7 +51,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .city-count-badge{background:var(--blue);color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 7px;flex-shrink:0;}
 
 /* Day cards */
-.day-btns{display:flex;gap:4px;flex:1;min-width:0;overflow-x:auto;}
+.day-btns{display:flex;gap:4px;width:100%;}
 .day-btn{
   flex:1;border-radius:10px;background:#fff;
   border:2px solid var(--sky-mid);cursor:pointer;
@@ -128,7 +127,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .regular-btn.active{background:#2E7D32;color:#fff;border:1.5px solid #1B5E20;box-shadow:inset 0 2px 5px rgba(0,0,0,.2);transform:scale(.97);}
 .ice-btn{background:#E1F5FE;color:#0277BD;border:1.5px dashed #81D4FA;}
 .ice-btn.active{background:#0277BD;color:#fff;border:1.5px solid #0277BD;box-shadow:inset 0 2px 5px rgba(0,0,0,.2);transform:scale(.97);}
-.stats-right{display:flex;gap:4px;align-items:center;flex-shrink:0;align-self:flex-start;padding-top:2px;}
+.stats-right{margin-right:auto;display:flex;gap:6px;align-items:center;}
 .export-btn{background:#1D6F42;color:#fff;border:none;border-radius:16px;padding:4px 12px;height:28px;font-size:11px;font-weight:800;cursor:pointer;}
 .version-btn{background:#5C6BC0;color:#fff;border:none;border-radius:16px;padding:4px 12px;height:28px;font-size:11px;font-weight:800;cursor:pointer;}
 .history-btn{background:#37474F;color:#fff;border:none;border-radius:16px;padding:4px 12px;height:28px;font-size:11px;font-weight:800;cursor:pointer;}
@@ -177,7 +176,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 @media(min-width:700px){
   #route-body{flex-direction:row;}
   .tab-inline{display:none;}
-  #list-pane{display:block!important;flex:0 0 50%;border-left:1px solid var(--sky-mid);max-width:520px;}
+  #list-pane{display:block!important;flex:0 0 40%;border-left:1px solid var(--sky-mid);max-width:420px;}
   #map-pane{display:block!important;flex:1;}
 }
 
@@ -251,7 +250,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 
   <!-- FILTERS -->
   <div class="filter-bar">
-    <div class="filter-row top-row">
+    <div class="filter-row">
       <span class="flt-label">ערים</span>
       <div class="city-wrap" id="city-wrap">
         <button class="city-btn" id="city-btn" onclick="toggleCityDropdown(event)">
@@ -274,17 +273,6 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
         <button type="button" class="day-btn" onclick="selectDay(5)"><span class="day-btn-label">ה</span></button>
         <button type="button" class="day-btn day-btn-undef" onclick="selectDay(0)"><span class="day-btn-label">?</span></button>
       </div>
-      <div class="stats-right" id="stats-right-btns">
-        <button type="button" class="visit-btn" id="visit-btn" onclick="toggleVisitMode()">🗺 ביקור</button>
-        <button class="version-btn" onclick="openSaveVersionModal()">💾 גרסה</button>
-        <button class="history-btn" onclick="openVersionHistory()">📚</button>
-        <button class="export-btn" onclick="exportAllDaysXLSX()">📥 כל הימים</button>
-        <button class="export-btn" onclick="exportXLSX()">📥 Excel</button>
-        <div class="tab-inline">
-          <button class="tab-inline-btn active" id="tab-list" onclick="setTab('list')">📋</button>
-          <button class="tab-inline-btn" id="tab-map" onclick="setTab('map')">🗺</button>
-        </div>
-      </div>
     </div>
     <div class="filter-row">
       <div class="agent-legend" id="agent-legend"></div>
@@ -306,6 +294,17 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
     <button type="button" class="stat-chip regular-btn" id="stat-regular" style="display:none" onclick="toggleRegular()"></button>
     <button type="button" class="stat-chip ice-btn" id="stat-ice" style="display:none" onclick="toggleIceFilter()"></button>
     <span class="stat-chip" id="stat-changed" style="display:none;"></span>
+    <div class="stats-right">
+      <button type="button" class="visit-btn" id="visit-btn" onclick="toggleVisitMode()">🗺 ביקור</button>
+      <button type="button" class="version-btn" onclick="openSaveVersionModal()">💾 גרסה</button>
+      <button type="button" class="history-btn" onclick="openVersionHistory()">📚</button>
+      <button type="button" class="export-btn" onclick="exportAllDaysXLSX()">📥 כל הימים</button>
+      <button type="button" class="export-btn" onclick="exportXLSX()">📥 Excel</button>
+      <div class="tab-inline">
+        <button type="button" class="tab-inline-btn active" id="tab-list" onclick="setTab('list')">📋</button>
+        <button type="button" class="tab-inline-btn" id="tab-map" onclick="setTab('map')">🗺</button>
+      </div>
+    </div>
   </div>
 
   <!-- BODY -->
