@@ -956,10 +956,10 @@ function renderClientList(){
           :`<span style="font-size:14px;color:#bbb;line-height:1">⠿</span>`}
       </div>
       <div class="c-body">
-        <div class="c-name">${changedMark}${esc(c.custName||'')}${newBadge}${iceBadge}${salesBadge}</div>
+        <div class="c-name">${changedMark}${esc(c.custName||'')}${newBadge}${iceBadge}</div>
         <div class="c-sub">
           <span class="agent-badge" style="background:${color};cursor:pointer" onclick="openAgentPopup(event,'${c.custId}')">${esc(c.agentName||c.agentCode||'')}</span>
-          ${dayBadge}
+          ${dayBadge}${salesBadge}
           ${addrText?`<span style="color:var(--mid);margin-right:4px;font-size:9px">${addrText}</span>`:''}
         </div>
       </div>
