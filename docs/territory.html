@@ -99,9 +99,10 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .day-btn.active .dc-pct-grand{color:rgba(255,255,255,.65);}
 
 /* Stats row */
-.stats-row{background:#fff;border-bottom:1px solid var(--sky-mid);padding:4px 10px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;}
-.stat-chip{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:var(--sky-light);color:var(--blue-dark);white-space:nowrap;border:none;}
-.nogps-btn,.nosales-btn,.nosales-btn180,.regular-btn,.month-btn{
+.stats-row{background:#fff;border-bottom:1px solid var(--sky-mid);padding:5px 12px;display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;}
+.stat-chip{padding:4px 12px;border-radius:14px;font-size:12px;font-weight:700;background:var(--sky-light);color:var(--blue-dark);white-space:nowrap;border:none;line-height:1.4;}
+.stats-divider{width:1px;height:20px;background:var(--sky-mid);flex-shrink:0;margin:0 2px;}
+.nogps-btn,.nosales-btn,.nosales-btn180,.regular-btn,.ice-btn,.month-btn{
   cursor:pointer;transition:all .18s cubic-bezier(.4,0,.2,1);
   position:relative;
 }
@@ -113,6 +114,8 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .nosales-btn180.active{background:#880E4F;color:#fff;border:1.5px solid #880E4F;box-shadow:inset 0 2px 5px rgba(0,0,0,.2);transform:scale(.97);}
 .regular-btn{background:#E8F5E9;color:#1B5E20;border:1.5px dashed #A5D6A7;}
 .regular-btn.active{background:#2E7D32;color:#fff;border:1.5px solid #1B5E20;box-shadow:inset 0 2px 5px rgba(0,0,0,.2);transform:scale(.97);}
+.ice-btn{background:#E1F5FE;color:#0277BD;border:1.5px dashed #81D4FA;}
+.ice-btn.active{background:#0277BD;color:#fff;border:1.5px solid #0277BD;box-shadow:inset 0 2px 5px rgba(0,0,0,.2);transform:scale(.97);}
 .stats-right{margin-right:auto;display:flex;gap:6px;align-items:center;}
 .export-btn{background:#1D6F42;color:#fff;border:none;border-radius:16px;padding:4px 12px;height:28px;font-size:11px;font-weight:800;cursor:pointer;}
 .tab-inline{display:flex;gap:3px;}
@@ -242,10 +245,12 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
   <div class="stats-row" id="stats-row" style="display:none;">
     <span class="stat-chip" id="stat-total"></span>
     <span class="stat-chip" id="stat-lasso" style="display:none;background:#FFF3E0;color:#E65100;"></span>
+    <div class="stats-divider"></div>
     <button type="button" class="stat-chip nogps-btn" id="stat-nogps" style="display:none" onclick="toggleNoGpsFilter()"></button>
     <button type="button" class="stat-chip nosales-btn" id="stat-nosales60" style="display:none" onclick="toggleNoSales(60)"></button>
     <button type="button" class="stat-chip nosales-btn nosales-btn180" id="stat-nosales180" style="display:none" onclick="toggleNoSales(180)"></button>
     <button type="button" class="stat-chip regular-btn" id="stat-regular" style="display:none" onclick="toggleRegular()"></button>
+    <button type="button" class="stat-chip ice-btn" id="stat-ice" style="display:none" onclick="toggleIceFilter()"></button>
     <span class="stat-chip" id="stat-changed" style="display:none;"></span>
     <div class="stats-right">
       <button type="button" class="visit-btn" id="visit-btn" onclick="toggleVisitMode()">🗺 ביקור</button>
@@ -379,6 +384,7 @@ const st={
   noGpsFilter: false,
   noSalesDays: 0,
   regularFilter: false,
+  iceFilter: false,
   overrides: {},
   selectedId: null,
   tab: 'list',
@@ -620,11 +626,23 @@ async function loadClients(cities){
 
 function renderDayBtns(){
   const fmt=n=>n>=1000?`₪${(n/1000).toFixed(1)}K`:`₪${Math.round(n)}`;
-  // Apply agent + lasso filters (NOT day filter — each row IS a day)
+  // Apply agent + lasso + active stat filters (NOT day filter — each row IS a day)
   const baseCl=st.allClients.filter(c=>{
     const ov=st.overrides[String(c.custId)]||{};
     if(!st.activeAgents.has(ov.agentCode||c.agentCode)) return false;
     if(st.lassoIds!==null&&!st.lassoIds.has(String(c.custId))) return false;
+    if(st.noGpsFilter && c.lat && c.lng && c.gpsSource!=='no-gps') return false;
+    if(st.noSalesDays>0){
+      const lo=c.lastOrderDate?new Date(c.lastOrderDate):null;
+      const cutoff=new Date(Date.now()-st.noSalesDays*86400000);
+      if(lo&&lo>=cutoff) return false;
+    }
+    if(st.regularFilter){
+      const lo=c.lastOrderDate?new Date(c.lastOrderDate):null;
+      const cutoff60=new Date(Date.now()-60*86400000);
+      if(!lo||lo<cutoff60) return false;
+    }
+    if(st.iceFilter && c.hevra!=='ICE') return false;
     return true;
   });
 
@@ -681,7 +699,7 @@ function renderDayBtns(){
     const pie=miniPie(entries,totalCount);
     return `<div class="day-card-body">
       <div class="dc-totals">
-        <div class="dc-lq"><span>${totalCount}</span> לק' ${pctLabel}</div>
+        <div class="dc-lq"><span>${totalCount}</span> לקוחות ${pctLabel}</div>
         <div class="dc-mkr">${totalSales>0?fmt(totalSales):''}</div>
       </div>
       <div style="display:flex;align-items:center;gap:4px;width:100%;margin-top:2px">
@@ -734,6 +752,7 @@ function displayClients(){
       const cutoff60=new Date(Date.now()-60*86400000);
       if(!lo||lo<cutoff60) return false;
     }
+    if(st.iceFilter && c.hevra!=='ICE') return false;
     return true;
   }).map(c=>{
     const ov=st.overrides[String(c.custId)]||{};
@@ -761,7 +780,7 @@ function renderAll(){
 
 function updateStats(){
   const list=displayClients();
-  const baseList=(st.noGpsFilter||st.noSalesDays>0||st.regularFilter)?displayClientsAll():list;
+  const baseList=(st.noGpsFilter||st.noSalesDays>0||st.regularFilter||st.iceFilter)?displayClientsAll():list;
   const noGps=baseList.filter(c=>!c.lat||!c.lng||c.gpsSource==='no-gps').length;
   const now=Date.now();
   const cut60=new Date(now-60*86400000), cut180=new Date(now-180*86400000);
@@ -790,6 +809,10 @@ function updateStats(){
   const regEl=document.getElementById('stat-regular');
   if(regular>0){ regEl.textContent=`📗 ${regular} לקוחות קבועים`; regEl.style.display=''; regEl.classList.toggle('active',st.regularFilter); }
   else { regEl.style.display='none'; st.regularFilter=false; }
+  const iceCount=baseList.filter(c=>c.hevra==='ICE').length;
+  const iceEl=document.getElementById('stat-ice');
+  if(iceCount>0){iceEl.textContent=`❄️ ${iceCount} לקוחות ICE`;iceEl.style.display='';iceEl.classList.toggle('active',st.iceFilter);}
+  else{iceEl.style.display='none';st.iceFilter=false;}
   const chEl=document.getElementById('stat-changed');
   chEl.textContent=changed?`✏️ ${changed} שינויים`:''; chEl.style.display=changed?'':'none';
 }
@@ -816,6 +839,10 @@ function toggleNoSales(days){
 function toggleRegular(){
   st.regularFilter=!st.regularFilter;
   st.noSalesDays=0; // mutually exclusive
+  renderAll();
+}
+function toggleIceFilter(){
+  st.iceFilter=!st.iceFilter;
   renderAll();
 }
 
