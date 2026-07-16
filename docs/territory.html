@@ -101,12 +101,18 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 /* Stats row */
 .stats-row{background:#fff;border-bottom:1px solid var(--sky-mid);padding:4px 10px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;}
 .stat-chip{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;background:var(--sky-light);color:var(--blue-dark);white-space:nowrap;border:none;}
-.nogps-btn{background:#FBE9E7;color:#BF360C;border:1.5px solid #FFCCBC;cursor:pointer;}
-.nogps-btn.active{background:#D84315;color:#fff;border-color:#BF360C;}
-.nosales-btn{background:#FFF3E0;color:#E65100;border:1.5px solid #FFCC80;cursor:pointer;}
-.nosales-btn.active{background:#E65100;color:#fff;border-color:#BF360C;}
-.nosales-btn180{background:#FCE4EC;color:#880E4F;border-color:#F48FB1;}
-.nosales-btn180.active{background:#880E4F;color:#fff;border-color:#880E4F;}
+.nogps-btn,.nosales-btn,.nosales-btn180,.regular-btn{
+  cursor:pointer;transition:all .18s cubic-bezier(.4,0,.2,1);
+  position:relative;
+}
+.nogps-btn{background:#FBE9E7;color:#BF360C;border:1.5px dashed #FFCCBC;}
+.nogps-btn.active{background:#D84315;color:#fff;border:1.5px solid #BF360C;box-shadow:inset 0 2px 5px rgba(0,0,0,.2);transform:scale(.97);}
+.nosales-btn{background:#FFF3E0;color:#E65100;border:1.5px dashed #FFCC80;}
+.nosales-btn.active{background:#E65100;color:#fff;border:1.5px solid #BF360C;box-shadow:inset 0 2px 5px rgba(0,0,0,.2);transform:scale(.97);}
+.nosales-btn180{background:#FCE4EC;color:#880E4F;border:1.5px dashed #F48FB1;}
+.nosales-btn180.active{background:#880E4F;color:#fff;border:1.5px solid #880E4F;box-shadow:inset 0 2px 5px rgba(0,0,0,.2);transform:scale(.97);}
+.regular-btn{background:#E8F5E9;color:#1B5E20;border:1.5px dashed #A5D6A7;}
+.regular-btn.active{background:#2E7D32;color:#fff;border:1.5px solid #1B5E20;box-shadow:inset 0 2px 5px rgba(0,0,0,.2);transform:scale(.97);}
 .stats-right{margin-right:auto;display:flex;gap:6px;align-items:center;}
 .export-btn{background:#1D6F42;color:#fff;border:none;border-radius:16px;padding:4px 12px;height:28px;font-size:11px;font-weight:800;cursor:pointer;}
 .tab-inline{display:flex;gap:3px;}
@@ -239,6 +245,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
     <button type="button" class="stat-chip nogps-btn" id="stat-nogps" style="display:none" onclick="toggleNoGpsFilter()"></button>
     <button type="button" class="stat-chip nosales-btn" id="stat-nosales60" style="display:none" onclick="toggleNoSales(60)"></button>
     <button type="button" class="stat-chip nosales-btn nosales-btn180" id="stat-nosales180" style="display:none" onclick="toggleNoSales(180)"></button>
+    <button type="button" class="stat-chip regular-btn" id="stat-regular" style="display:none" onclick="toggleRegular()"></button>
     <span class="stat-chip" id="stat-changed" style="display:none;"></span>
     <div class="stats-right">
       <button type="button" class="visit-btn" id="visit-btn" onclick="toggleVisitMode()">🗺 ביקור</button>
@@ -371,6 +378,7 @@ const st={
   lassoIds: null,
   noGpsFilter: false,
   noSalesDays: 0,
+  regularFilter: false,
   overrides: {},
   selectedId: null,
   tab: 'list',
@@ -721,6 +729,11 @@ function displayClients(){
       const cutoff=new Date(Date.now()-st.noSalesDays*86400000);
       if(lo&&lo>=cutoff) return false;
     }
+    if(st.regularFilter){
+      const lo=c.lastOrderDate?new Date(c.lastOrderDate):null;
+      const cutoff60=new Date(Date.now()-60*86400000);
+      if(!lo||lo<cutoff60) return false;
+    }
     return true;
   }).map(c=>{
     const ov=st.overrides[String(c.custId)]||{};
@@ -748,7 +761,7 @@ function renderAll(){
 
 function updateStats(){
   const list=displayClients();
-  const baseList=(st.noGpsFilter||st.noSalesDays>0)?displayClientsAll():list;
+  const baseList=(st.noGpsFilter||st.noSalesDays>0||st.regularFilter)?displayClientsAll():list;
   const noGps=baseList.filter(c=>!c.lat||!c.lng||c.gpsSource==='no-gps').length;
   const now=Date.now();
   const cut60=new Date(now-60*86400000), cut180=new Date(now-180*86400000);
@@ -773,6 +786,10 @@ function updateStats(){
     ns180El.textContent=`🔴 ${noSales180} ללא מכר 180י`; ns180El.style.display='';
     ns180El.classList.toggle('active',st.noSalesDays===180);
   } else { ns180El.style.display='none'; if(st.noSalesDays===180) st.noSalesDays=0; }
+  const regular=baseList.filter(c=>{ const lo=c.lastOrderDate?new Date(c.lastOrderDate):null; const cut60=new Date(now-60*86400000); return lo&&lo>=cut60; }).length;
+  const regEl=document.getElementById('stat-regular');
+  if(regular>0){ regEl.textContent=`📗 ${regular} לקוחות קבועים`; regEl.style.display=''; regEl.classList.toggle('active',st.regularFilter); }
+  else { regEl.style.display='none'; st.regularFilter=false; }
   const chEl=document.getElementById('stat-changed');
   chEl.textContent=changed?`✏️ ${changed} שינויים`:''; chEl.style.display=changed?'':'none';
 }
@@ -793,6 +810,12 @@ function toggleNoGpsFilter(){
 }
 function toggleNoSales(days){
   st.noSalesDays=st.noSalesDays===days?0:days;
+  st.regularFilter=false; // mutually exclusive
+  renderAll();
+}
+function toggleRegular(){
+  st.regularFilter=!st.regularFilter;
+  st.noSalesDays=0; // mutually exclusive
   renderAll();
 }
 
