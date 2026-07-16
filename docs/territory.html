@@ -211,7 +211,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
     <img src="logo-diler-bmd.png" class="hdr-logo" alt="DILER BMD"/>
     <div class="hdr-title">TERRITORY</div>
     <div class="hdr-right">
-      <a href="/formula-road" class="back-link">← ROAD</a>
+      <a href="formula-road.html" class="back-link">← ROAD</a>
     </div>
   </div>
   <div class="sky-line"></div>
@@ -379,7 +379,7 @@ async function apiFetch(url, opts={}){
       const p=await fetch(API+'/auth/pbi',{credentials:'include'});
       if(p.ok){const j=await p.json();if(j.ok&&j.token){localStorage.setItem(TOKEN_KEY,j.token);hdrs['x-session']=j.token;return fetch(url,{...opts,headers:hdrs});}}
     }catch(_){}
-    location.href='/formula-road?next=/territory.html'; throw new Error('session_expired');
+    location.href='formula-road.html?next=territory.html'; throw new Error('session_expired');
   }
   return r;
 }
@@ -662,7 +662,7 @@ function renderDayBtns(){
       if(!lo||lo<cutoff60) return false;
     }
     if(st.iceFilter && c.hevra!=='ICE') return false;
-    if(st.sadranList.length>1 && c.sadran && !st.activeSadran.has(c.sadran)) return false;
+    if(st.sadranList.length>0 && c.sadran && !st.activeSadran.has(c.sadran)) return false;
     return true;
   });
 
@@ -773,7 +773,7 @@ function displayClients(){
       if(!lo||lo<cutoff60) return false;
     }
     if(st.iceFilter && c.hevra!=='ICE') return false;
-    if(st.sadranList.length>1 && c.sadran && !st.activeSadran.has(c.sadran)) return false;
+    if(st.sadranList.length>0 && c.sadran && !st.activeSadran.has(c.sadran)) return false;
     return true;
   }).map(c=>{
     const ov=st.overrides[String(c.custId)]||{};
@@ -845,7 +845,7 @@ function displayClientsAll(){
     if(!st.activeAgents.has(agentCode)) return false;
     if(st.activeDays.size<6 && !st.activeDays.has(dayNum||0)) return false;
     if(st.lassoIds!==null && !st.lassoIds.has(String(c.custId))) return false;
-    if(st.sadranList.length>1 && c.sadran && !st.activeSadran.has(c.sadran)) return false;
+    if(st.sadranList.length>0 && c.sadran && !st.activeSadran.has(c.sadran)) return false;
     return true;
   });
 }
@@ -891,7 +891,7 @@ function renderSadranLegend(){
   const row=document.getElementById('sadran-row');
   const el=document.getElementById('sadran-legend');
   if(!row||!el) return;
-  if(st.sadranList.length<2){ row.style.display='none'; return; }
+  if(st.sadranList.length<1){ row.style.display='none'; return; }
   row.style.display='';
   el.innerHTML=st.sadranList.map(s=>`
     <span class="sadran-chip${st.activeSadran.has(s.name)?' on':''}"
@@ -1131,13 +1131,13 @@ function renderMap(){
   list.forEach(c=>{
     const color=agentColor(c.agentCode);
     const isSel=st.selectedId===c.custId;
-    const sz=isSel?36:c._isNew?30:c.hevra==='ICE'?28:26;
+    const sz=isSel?36:c._isNew?30:c.hevra==='ICE'?(mapVisitOrderMap[String(c.custId)]?32:28):26;
     const vNum=mapVisitOrderMap[String(c.custId)];
     const markerLabel=vNum?String(vNum):(DAY_LBL[c.dayNum]||'?');
     const markerInner=c._isNew
       ?`<div style="background:#FF8F00;color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${sz>28?13:11}px;font-weight:900;border:3px solid #FFD600;box-shadow:0 2px 10px rgba(255,143,0,.6)">🆕</div>`
       :c.hevra==='ICE'
-      ?`<div style="background:#0288D1;color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${vNum?10:10}px;font-weight:900;border:3px solid #81D4FA;box-shadow:0 2px 10px rgba(2,136,209,.6)">${vNum?String(vNum):'❄️'}</div>`
+      ?`<div style="background:#0288D1;color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;border:3px solid #81D4FA;box-shadow:0 2px 10px rgba(2,136,209,.6);flex-direction:column;gap:0;line-height:1.1"><span style="font-size:${vNum?12:16}px;line-height:1">❄️</span>${vNum?`<span style="font-size:9px;font-weight:900;margin-top:-1px">${vNum}</span>`:''}</div>`
       :(()=>{const hasSadran=!!c.sadran;const sadranRing=hasSadran?',0 0 0 3px rgba(123,31,162,0.45)':'';const shadow=vNum?`0 2px 8px rgba(0,0,0,.4),0 0 0 2.5px #fff,0 0 0 5px #5C6BC0${sadranRing}`:`0 2px 8px rgba(0,0,0,.4)${sadranRing}`;return`<div style="background:${color};color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${isSel?12:10}px;font-weight:900;border:2.5px solid #fff;box-shadow:${shadow}">${markerLabel}</div>`;})();
     const icon=L.divIcon({className:'',html:markerInner,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
     const m=L.marker([c.lat,c.lng],{icon,zIndexOffset:isSel?1000:0});
@@ -1329,7 +1329,7 @@ function showToast(msg,ms=2500){
 async function init(){
   loadOverrides();
   try{const r=await fetch(API+'/auth/pbi',{credentials:'include'});if(r.ok){const j=await r.json();if(j.ok&&j.token)localStorage.setItem(TOKEN_KEY,j.token);}}catch(_){}
-  if(!getToken()){location.href='/formula-road?next=/territory.html';return;}
+  if(!getToken()){location.href='formula-road.html?next=territory.html';return;}
   await Promise.all([loadCities(), loadCorrections(), loadAiGps()]);
   if(!selectedCities.size){
     ['ירושלים','מעלה אדומים','מבשרת ציון'].forEach(c=>{ if(allCities.includes(c)) selectedCities.add(c); });
