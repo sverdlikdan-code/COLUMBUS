@@ -1420,27 +1420,30 @@ async function loadMaps() {
       if (hb.maxCols)     HALAVI_MAX.cols       = hb.maxCols;
       if (hb.maxRows)     HALAVI_MAX.rows       = hb.maxRows;
       if (hb.reserveStart) HALAVI_RESERVE_START = hb.reserveStart;
+      // Merge hb.picks into existing state — never wipe working bays.
+      // Reserve picks (reserveStart+) come from CI; working picks stay in localStorage.
       const savedHalaviV = localStorage.getItem('halavi_base_v');
       const freshHalaviV = hb.v || '';
+      const hbReserveStart = hb.reserveStart || 200;
+      for (const [pick, p] of Object.entries(hb.picks)) {
+        const k = parseInt(pick);
+        if (!p) {
+          state.halavi[k] = null;
+        } else if (!(k in state.halavi) || state.halavi[k] === null) {
+          state.halavi[k] = deepClone(p);
+        } else {
+          if (p.fam !== undefined)   state.halavi[k].fam   = p.fam;
+          if (p.name !== undefined)  state.halavi[k].name  = p.name;
+          if (p.haluka != null)      state.halavi[k].haluka = p.haluka;
+          if (p.printOrder != null && state.halavi[k].printOrder == null) state.halavi[k].printOrder = p.printOrder;
+        }
+      }
       if (freshHalaviV && savedHalaviV !== freshHalaviV) {
-        state.halavi = deepClone(hb.picks);
         localStorage.setItem('halavi_base_v', freshHalaviV);
         printOrder.halavi = null;
         localStorage.removeItem('mahsan_print_order_halavi');
         _anyVersionReset = true;
-        console.log(`halavi-base.json: version changed ${savedHalaviV} → ${freshHalaviV}, state reset`);
-      } else {
-        for (const [pick, p] of Object.entries(hb.picks)) {
-          if (!p) { state.halavi[pick] = null; }
-          else if (!(pick in state.halavi) || state.halavi[pick] === null) { state.halavi[pick] = { ...p }; }
-          else { if (p.fam  !== undefined) state.halavi[pick].fam  = p.fam;
-                 if (p.name !== undefined) state.halavi[pick].name = p.name;
-                 if (p.haluka != null) state.halavi[pick].haluka = p.haluka;
-                 if (p.printOrder != null && state.halavi[pick].printOrder == null) state.halavi[pick].printOrder = p.printOrder; }
-        }
-        for (const pick of Object.keys(state.halavi)) {
-          if (!(pick in hb.picks)) state.halavi[pick] = null;
-        }
+        console.log(`halavi-base.json: version changed ${savedHalaviV} → ${freshHalaviV}, picks merged`);
       }
       console.log(`halavi-base.json: ${Object.keys(hb.picks).length} picks, reserveStart=${hb.reserveStart}`);
     }
