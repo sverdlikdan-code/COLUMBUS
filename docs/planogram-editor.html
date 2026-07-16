@@ -1363,12 +1363,23 @@ async function loadMaps() {
       const savedYaveshV = localStorage.getItem('yavesh_base_v');
       const freshYaveshV = dy.v != null ? String(dy.v) : '';
       if (freshYaveshV && savedYaveshV !== freshYaveshV) {
-        state.yavesh = deepClone(dy.picks);
+        for (const [pick, p] of Object.entries(dy.picks)) {
+          if (!p) {
+            state.yavesh[pick] = null;
+          } else if (!(pick in state.yavesh) || state.yavesh[pick] === null) {
+            state.yavesh[pick] = deepClone(p);
+          } else {
+            if (p.fam  !== undefined) state.yavesh[pick].fam  = p.fam;
+            if (p.name !== undefined) state.yavesh[pick].name = p.name;
+            if (p.haluka != null) state.yavesh[pick].haluka = p.haluka;
+            if (p.printOrder != null && state.yavesh[pick].printOrder == null) state.yavesh[pick].printOrder = p.printOrder;
+          }
+        }
         localStorage.setItem('yavesh_base_v', freshYaveshV);
         printOrder.yavesh = null;
         localStorage.removeItem('mahsan_print_order_yavesh');
         _anyVersionReset = true;
-        console.log(`dagim-yavesh-base.json: version changed ${savedYaveshV} → ${freshYaveshV}, state reset`);
+        console.log(`dagim-yavesh-base.json: version changed ${savedYaveshV} → ${freshYaveshV}, reserve merged`);
       } else {
         for (const [pick, p] of Object.entries(dy.picks)) {
           if (!p) { state.yavesh[pick] = null; }
@@ -1458,12 +1469,23 @@ async function loadMaps() {
       const savedDagimV = localStorage.getItem('dagim_base_v');
       const freshDagimV = db.v || '';
       if (freshDagimV && savedDagimV !== freshDagimV) {
-        state.dagim = deepClone(db.picks);
+        for (const [pick, p] of Object.entries(db.picks)) {
+          if (!p) {
+            state.dagim[pick] = null;
+          } else if (!(pick in state.dagim) || state.dagim[pick] === null) {
+            state.dagim[pick] = deepClone(p);
+          } else {
+            if (p.fam  !== undefined) state.dagim[pick].fam  = p.fam;
+            if (p.name !== undefined) state.dagim[pick].name = p.name;
+            if (p.haluka != null) state.dagim[pick].haluka = p.haluka;
+            if (p.printOrder != null && state.dagim[pick].printOrder == null) state.dagim[pick].printOrder = p.printOrder;
+          }
+        }
         localStorage.setItem('dagim_base_v', freshDagimV);
         printOrder.dagim = null;
         localStorage.removeItem('mahsan_print_order_dagim');
         _anyVersionReset = true;
-        console.log(`dagim-base.json: version changed ${savedDagimV} → ${freshDagimV}, state reset`);
+        console.log(`dagim-base.json: version changed ${savedDagimV} → ${freshDagimV}, reserve merged`);
       } else {
         for (const [pick, p] of Object.entries(db.picks)) {
           if (!p) { state.dagim[pick] = null; }

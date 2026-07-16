@@ -33,11 +33,14 @@ function cleanFam(raw) {
 }
 
 (async () => {
-  // ── Step 1: Read layout from existing dagim-base.json ─────────────────────
+  // ── Step 1: Read layout + working picks from existing dagim-base.json ──────
   const existing = JSON.parse(fs.readFileSync(OUT_PATH, 'utf8'));
   const layout   = existing.layout;
-
-  console.log(`Layout: ${Object.keys(layout).length} positions`);
+  const existingWorkingPicks = {};
+  for (const [k, v] of Object.entries(existing.picks || {})) {
+    if (parseInt(k) < RESERVE_START) existingWorkingPicks[k] = v;
+  }
+  console.log(`Layout: ${Object.keys(layout).length} positions | working picks preserved: ${Object.keys(existingWorkingPicks).length}`);
   const missing = [];
   for (let i = 1; i <= TOTAL_SLOTS; i++) if (!layout[String(i)]) missing.push(i);
   if (missing.length) console.warn('⚠ Missing positions:', missing.join(','));
@@ -177,7 +180,12 @@ function cleanFam(raw) {
   if (added.length) console.log(`Added to reserve: ${added.join(', ')}`);
   console.log(`בררת מחדל FOR ALL: ${Object.keys(bdPicks).length} positions | new to reserve: ${newProducts.length} | cleaned: ${kCleaned}`);
 
-  // ── Step 4: Write dagim-base.json ─────────────────────────────────────────
+  // ── Step 4: Merge working picks back, then write dagim-base.json ───────────
+  for (const [k, v] of Object.entries(existingWorkingPicks)) {
+    if (!(k in picks)) picks[k] = v;
+  }
+  console.log(`Working picks merged back: ${Object.keys(existingWorkingPicks).length}`);
+
   const today = new Date().toISOString().slice(0, 16).replace('T','-').replace(':','');
   const result = {
     picks,

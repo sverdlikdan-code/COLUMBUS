@@ -940,7 +940,7 @@ function renderClientList(){
     const dayBadge=c.dayNum?`<span class="day-badge">${DAY_LBL[c.dayNum]||'?'}</span>`:'';
     const isIce=c.hevra==='ICE';
     const salesAmt=c.monthlySales>0?`₪${Math.round(c.monthlySales).toLocaleString()}`:'';
-    const salesBadge=salesAmt?`<span style="background:${isIce?'#E1F5FE':'#E8F5E9'};color:${isIce?'#0277BD':'#2E7D32'};font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;flex-shrink:0;margin-left:4px;border:1px solid ${isIce?'#81D4FA':'#A5D6A7'}">${isIce?'מכר ICE':'מכר FORMULA'} ${salesAmt}</span>`:'';
+    const salesBadge=salesAmt?`<span style="background:${isIce?'#E1F5FE':'#E8F5E9'};color:${isIce?'#0277BD':'#2E7D32'};font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;flex-shrink:0;margin-left:4px;border:1px solid ${isIce?'#81D4FA':'#A5D6A7'};white-space:nowrap">${salesAmt}</span>`:'';
     const changedMark=c._changed?`<span class="changed-badge">✏️</span>`:'';
     const newBadge=c._isNew?`<span style="background:#FF8F00;color:#fff;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;flex-shrink:0;margin-left:4px">🆕 חדש</span>`:'';
     const iceBadge=isIce?`<span style="background:#0288D1;color:#fff;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;flex-shrink:0;margin-left:4px">❄️ ICE</span>`:'';
