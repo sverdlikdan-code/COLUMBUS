@@ -97,6 +97,16 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .dc-ag-pct-g{font-size:9px;opacity:.7;}
 .dc-pct-grand{font-size:10px;font-weight:700;color:var(--mid);}
 .day-btn.active .dc-pct-grand{color:rgba(255,255,255,.65);}
+.dc-total-row .dc-ag-name{font-weight:900;color:var(--text);font-size:10px;}
+.dc-total-row .dc-ag-cnt{font-size:13px;font-weight:900;}
+.dc-total-row .dc-ag-pct{font-weight:800;font-size:11px;}
+.dc-total-row .dc-ag-sales{font-weight:800;}
+.dc-total-row{border-bottom:1px solid var(--sky-mid);padding-bottom:2px;margin-bottom:1px;}
+.day-btn.active .dc-total-row{border-color:rgba(255,255,255,.25);}
+.day-btn.active .dc-total-row .dc-ag-name{color:#fff;}
+.day-btn.active .dc-total-row .dc-ag-cnt{color:#fff;}
+.day-btn.active .dc-total-row .dc-ag-pct{color:rgba(255,255,255,.85);}
+.day-btn.active .dc-total-row .dc-ag-sales{color:#B3E5FC;}
 
 /* Stats row */
 .stats-row{background:#fff;border-bottom:1px solid var(--sky-mid);padding:5px 12px;display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;}
@@ -158,12 +168,12 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* CLIENT CARD */
-.client-card{background:#fff;border-radius:6px;padding:5px 8px;margin-bottom:1px;display:flex;align-items:center;gap:5px;box-shadow:0 1px 3px rgba(21,101,192,.06);cursor:pointer;border-right:4px solid transparent;transition:box-shadow .12s,border-color .12s;}
+.client-card{background:#fff;border-radius:7px;padding:6px 8px;margin-bottom:2px;display:flex;align-items:center;gap:5px;box-shadow:0 1px 3px rgba(21,101,192,.06);cursor:pointer;border-right:4px solid transparent;transition:box-shadow .12s,border-color .12s;}
 .client-card:hover{box-shadow:0 3px 10px rgba(21,101,192,.14);}
 .client-card.no-gps{background:#FFF8F0;}
 .client-card.selected{background:var(--sky-light);box-shadow:0 2px 10px rgba(21,101,192,.18);}
 .c-body{flex:1;min-width:0;}
-.c-name{font-size:12px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;}
+.c-name{font-size:12px;font-weight:800;color:var(--text);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .c-sub{font-size:10px;color:var(--mid);margin-top:2px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .c-actions{display:flex;align-items:center;gap:0;flex-shrink:0;}
 .c-id{font-size:8px;font-weight:700;color:#fff;background:#9e9e9e;border-radius:4px;padding:2px 5px;margin-bottom:2px;white-space:nowrap;}
@@ -708,16 +718,13 @@ function renderDayBtns(){
       const salesCell=ag.salesSum>0?`<span class="dc-ag-sales">${fmt(ag.salesSum)}</span>`:`<span class="dc-ag-sales"></span>`;
       return `<span class="dc-ag-row"><span class="dc-ag-name">${ag.name}</span><span class="dc-ag-cnt">${ag.count}</span><span class="dc-ag-pct">${pctDay}%</span>${salesCell}</span>`;
     }).join('');
-    const pctLabel=grandTotal>0?`<span class="dc-pct-grand">${pctGrandTotal}%</span>`:'';
     const pie=miniPie(entries,totalCount);
+    const pctGrandStr=grandTotal>0?`${pctGrandTotal}%`:'';
+    const totalRow=`<span class="dc-ag-row dc-total-row"><span class="dc-ag-name">סה"כ</span><span class="dc-ag-cnt">${totalCount}</span><span class="dc-ag-pct">${pctGrandStr}</span><span class="dc-ag-sales">${totalSales>0?fmt(totalSales):''}</span></span>`;
     return `<div class="day-card-body">
-      <div class="dc-totals">
-        <div class="dc-lq"><span>${totalCount}</span> לקוחות ${pctLabel}</div>
-        <div class="dc-mkr">${totalSales>0?fmt(totalSales):''}</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:4px;width:100%;margin-top:2px">
+      <div style="display:flex;align-items:flex-start;gap:4px;width:100%;padding-top:4px">
         ${pie}
-        <div class="dc-ag-tbl">${agRows}</div>
+        <div class="dc-ag-tbl">${totalRow}${agRows}</div>
       </div>
     </div>`;
   }
@@ -910,15 +917,16 @@ function renderClientList(){
     const noGps=!c.lat||!c.lng||c.gpsSource==='no-gps';
     const isSel=st.selectedId===c.custId;
     const dayBadge=c.dayNum?`<span class="day-badge">${DAY_LBL[c.dayNum]||'?'}</span>`:'';
-    const salesBadge=c.monthlySales>0?`<span style="color:var(--green);font-weight:700;font-size:10px"> · ₪${Math.round(c.monthlySales).toLocaleString()}</span>`:'';
+    const isIce=c.hevra==='ICE';
+    const salesAmt=c.monthlySales>0?`₪${Math.round(c.monthlySales).toLocaleString()}`:'';
+    const salesBadge=salesAmt?`<span style="background:${isIce?'#E1F5FE':'#E8F5E9'};color:${isIce?'#0277BD':'#2E7D32'};font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;flex-shrink:0;margin-left:4px;border:1px solid ${isIce?'#81D4FA':'#A5D6A7'}">${isIce?'מכר ICE':'מכר FORMULA'} ${salesAmt}</span>`:'';
     const changedMark=c._changed?`<span class="changed-badge">✏️</span>`:'';
     const newBadge=c._isNew?`<span style="background:#FF8F00;color:#fff;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;flex-shrink:0;margin-left:4px">🆕 חדש</span>`:'';
-    const iceBadge=c.hevra==='ICE'?`<span style="background:#0288D1;color:#fff;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;flex-shrink:0;margin-left:4px">❄️ ICE</span>`:'';
-    const sadranBadge=c.sadran?`<span style="background:#F3E5F5;color:#7B1FA2;font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;flex-shrink:0;margin-left:4px;border:1px solid #CE93D8">${esc(c.sadran)}</span>`:'';
+    const iceBadge=isIce?`<span style="background:#0288D1;color:#fff;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;flex-shrink:0;margin-left:4px">❄️ ICE</span>`:'';
     const addrText=esc(c.address||'');
     const vNum=visitOrderMap[String(c.custId)];
-    return `<div class="client-card${noGps?' no-gps':''}${isSel?' selected':''}${c._isNew?' new-client':''}${c.hevra==='ICE'?' ice-client':''}"
-          style="border-right-color:${color}${c._isNew?';border:1.5px solid #FFD600;border-right:4px solid #FF8F00':''}${c.hevra==='ICE'?';border:1.5px solid #81D4FA;border-right:4px solid #0288D1':''}"
+    return `<div class="client-card${noGps?' no-gps':''}${isSel?' selected':''}${c._isNew?' new-client':''}${isIce?' ice-client':''}"
+          style="border-right-color:${color}${c._isNew?';border:1.5px solid #FFD600;border-right:4px solid #FF8F00':''}${isIce?';border:1.5px solid #81D4FA;border-right:4px solid #0288D1':''}"
           data-id="${c.custId}" onclick="selectClient('${c.custId}')">
       <div class="c-drag" style="display:flex;align-items:center;justify-content:center;width:28px;flex-shrink:0;align-self:stretch;cursor:grab;touch-action:none;user-select:none">
         ${vNum
@@ -926,7 +934,7 @@ function renderClientList(){
           :`<span style="font-size:14px;color:#bbb;line-height:1">⠿</span>`}
       </div>
       <div class="c-body">
-        <div class="c-name">${changedMark}${esc(c.custName||'')}${newBadge}${iceBadge}${sadranBadge}${salesBadge}</div>
+        <div class="c-name">${changedMark}${esc(c.custName||'')}${newBadge}${iceBadge}${salesBadge}</div>
         <div class="c-sub">
           <span class="agent-badge" style="background:${color};cursor:pointer" onclick="openAgentPopup(event,'${c.custId}')">${esc(c.agentName||c.agentCode||'')}</span>
           ${dayBadge}
@@ -1102,13 +1110,15 @@ function renderMap(){
     maxClusterRadius:40,disableClusteringAtZoom:17,
     iconCreateFunction(cluster){
       const marks=cluster.getAllChildMarkers();
-      // Group by agent color inside cluster
       const colorMap={};
       marks.forEach(m=>{const c=m._agColor||'#999';colorMap[c]=(colorMap[c]||0)+1;});
       const colors=Object.keys(colorMap);
       const sz=38;
       const gradStop=colors.length===1?colors[0]:`conic-gradient(${colors.map((c,i)=>`${c} ${i/colors.length*360}deg ${(i+1)/colors.length*360}deg`).join(',')})`;
-      return L.divIcon({className:'',html:`<div style="background:${gradStop};color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2.5px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.35);font-size:12px;font-weight:900">${marks.length}</div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
+      const orders=marks.map(m=>m._visitNum||0).filter(n=>n>0);
+      const label=orders.length>1?`${Math.min(...orders)}-${Math.max(...orders)}`:orders.length===1?String(orders[0]):String(marks.length);
+      const fsize=label.length>4?9:label.length>2?11:13;
+      return L.divIcon({className:'',html:`<div style="background:${gradStop};color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2.5px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.35);font-size:${fsize}px;font-weight:900">${label}</div>`,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
     }
   });
 
@@ -1131,10 +1141,9 @@ function renderMap(){
       :(()=>{const hasSadran=!!c.sadran;const shadow=vNum?`0 2px 8px rgba(0,0,0,.4),0 0 0 2.5px #fff,0 0 0 5px #5C6BC0`:`0 2px 8px rgba(0,0,0,.4)`;const badge=hasSadran?`<div style="position:absolute;top:-6px;right:-6px;font-size:13px;line-height:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))">💪</div>`:'';return`<div style="position:relative;width:${sz}px;height:${sz}px"><div style="background:${color};color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${isSel?12:10}px;font-weight:900;border:2.5px solid #fff;box-shadow:${shadow}">${markerLabel}</div>${badge}</div>`;})();
     const icon=L.divIcon({className:'',html:markerInner,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
     const m=L.marker([c.lat,c.lng],{icon,zIndexOffset:isSel?1000:0});
-    m._agColor=color; m._custId=String(c.custId);
+    m._agColor=color; m._custId=String(c.custId); m._visitNum=vNum||0;
     const safeName=esc(c.custName||'');
-    const sadranTip=c.sadran?` · סדרן: ${esc(c.sadran)}`:'';
-    m.bindTooltip(`${esc(c.custName||'')} · ${esc(c.agentName||'')}${sadranTip}`,{permanent:false,direction:'right',opacity:1,className:'fr-tip'});
+    m.bindTooltip(`${esc(c.custName||'')} · ${esc(c.agentName||'')}`,{permanent:false,direction:'right',opacity:1,className:'fr-tip'});
     const curDay=st.overrides[String(c.custId)]?.dayNum??c.dayNum;
     const dayBtnsHtml=[1,2,3,4,5].map(d=>{
       const on=d===curDay;
