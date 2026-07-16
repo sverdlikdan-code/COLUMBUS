@@ -1698,19 +1698,23 @@
     const btn = document.querySelector('.btn-excel');
     if (btn) { btn.disabled = true; btn.textContent = '⏳ מכין...'; }
     try {
-      // Capture current visible input values into localStorage before building Excel
-      // so that users who accepted pre-filled recommendations without touching the field
-      // still get their order included (oninput only fires on actual keystrokes)
-      const svSnap = saved();
-      document.querySelectorAll('input.ei-n[data-mk]').forEach(el => {
-        const mk = el.dataset.mk;
-        const v  = Number(el.value);
-        if (v > 0 && (!svSnap[mk] || svSnap[mk].k == null)) {
-          if (!svSnap[mk]) svSnap[mk] = {};
-          svSnap[mk].k = v;
-        }
-      });
-      save(svSnap);
+      // Capture all effective order quantities from DATA (not DOM) so hidden/filtered rows
+      // are included. DOM-based capture missed rows hidden by active filters.
+      if (window._viewData === null) {
+        const svSnap = JSON.parse(localStorage.getItem(LS) || '{}');
+        filtered().forEach(r => {
+          const mk = String(r.mkt ?? '');
+          const s  = svSnap[mk] || {};
+          if (s.k == null) {
+            const v = _effOrd(r, s);
+            if (v > 0) {
+              if (!svSnap[mk]) svSnap[mk] = {};
+              svSnap[mk].k = v;
+            }
+          }
+        });
+        save(svSnap);
+      }
 
       const sv   = saved();
       const now  = new Date();
@@ -1915,6 +1919,25 @@
   }
 
   window.saveOrderNow = function() {
+    // Capture auto-fill values into localStorage before building history snapshot.
+    // Without this, items the user accepted without typing have qty=null in the saved snapshot.
+    if (window._viewData === null) {
+      const svSnap = JSON.parse(localStorage.getItem(LS) || '{}');
+      let anyNew = false;
+      filtered().forEach(r => {
+        const mk = String(r.mkt ?? '');
+        const s  = svSnap[mk] || {};
+        if (s.k == null) {
+          const v = _effOrd(r, s);
+          if (v > 0) {
+            if (!svSnap[mk]) svSnap[mk] = {};
+            svSnap[mk].k = v;
+            anyNew = true;
+          }
+        }
+      });
+      if (anyNew) save(svSnap);
+    }
     const items = _saveOrderToHistory();
     const btn = document.querySelector('.btn-save');
     if (btn) { btn.textContent = '✓ נשמר!'; setTimeout(() => { btn.textContent = '💾 שמור'; }, 1500); }

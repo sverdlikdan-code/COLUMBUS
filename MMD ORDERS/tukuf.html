@@ -12,6 +12,34 @@ header h1{font-size:.95rem;color:#c9a227;flex:1}
 .btn{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.07);color:#e8eaf0;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:.78rem}
 .btn.active{background:#c62828;border-color:#c62828;color:#fff;font-weight:bold}
 .btn-back{text-decoration:none;color:#8899aa;font-size:.78rem;border:1px solid #334;padding:5px 10px;border-radius:6px}
+.btn-print{background:rgba(201,162,39,.15);border:1px solid #c9a227;color:#c9a227;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:.78rem}
+.btn-print:hover{background:rgba(201,162,39,.3)}
+
+@media print {
+  @page { size: A4 landscape; margin: 8mm; }
+  header .btn, header .btn-print, header .btn-back { display: none !important; }
+  header { position: static; border-bottom: 2px solid #c9a227; background: #fff !important; padding: 6px 12px; }
+  header h1 { color: #7a5c00 !important; font-size: 1rem; }
+  #summary { color: #555 !important; font-size: .72rem; }
+  body { background: #fff !important; color: #111 !important; }
+  #cards { grid-template-columns: repeat(4, 1fr) !important; gap: 8px !important; padding: 8px !important; }
+  .card { background: #fff !important; border: 1px solid #ccc !important; break-inside: avoid; page-break-inside: avoid; }
+  .card.is-danger { border: 2px solid #c62828 !important; }
+  .card.is-warn   { border: 2px solid #e65100 !important; }
+  .card-top { background: #f5f5f5 !important; }
+  .card-name { color: #7a5c00 !important; }
+  .card-sub  { color: #777 !important; }
+  .card-body { background: #fff !important; }
+  .card-footer { background: #f9f9f9 !important; }
+  .footer-sales { color: #555 !important; }
+  .col-hdr span { color: #888 !important; }
+  .bc.date { color: #555 !important; }
+  .clr-r { color: #c62828 !important; }
+  .clr-o { color: #e65100 !important; }
+  .clr-g { color: #2e7d32 !important; }
+  .badge-ok { color: #2e7d32 !important; }
+  #loading { display: none !important; }
+}
 #summary{padding:8px 16px;font-size:.72rem;color:#556;direction:rtl}
 #cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;padding:12px 16px}
 .card{background:#0b1e35;border-radius:10px;border:1px solid rgba(255,255,255,.08);overflow:hidden;display:flex;flex-direction:column}
@@ -47,6 +75,7 @@ header h1{font-size:.95rem;color:#c9a227;flex:1}
 <header>
   <h1>תוקף אילת</h1>
   <button class="btn" id="btn-sakana" onclick="toggleSakana()">⚠ סכנה בלבד</button>
+  <button class="btn-print" onclick="window.print()">🖨 הדפסה</button>
   <a class="btn-back" href="/mmd/">← חזרה</a>
 </header>
 <div id="summary"></div>
