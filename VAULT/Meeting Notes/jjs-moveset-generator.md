@@ -61,3 +61,16 @@
 - Лендинговая страница → Generator / Library
 - Библиотека наполнена 10 стартовыми билдами (Sukuna, Gojo, Yuta...)
 - **Статус: CLOSED BETA готов к тестированию**
+
+### 2026-07-18 #security-hardening
+- **API token auth**: SHA-256 token (pass + 'jjs_api_v1'), requireToken middleware на всех /api роутах
+- **Rate limiting**: generalLimiter (120/15min), writeLimiter (10/15min), authLimiter (10/15min)
+- **Helmet.js**: CSP, X-Frame-Options, X-Content-Type-Options; trust proxy 1 для Railway
+- **Input validation**: json limit 100kb, zstd bomb check (>100k / >65k), max 50 moves, sort whitelist
+- **XSS fix**: escHtml() с экранированием кавычек; ALLOWED_TYPES whitelist в renderSlotCards
+- **Decode panel**: переделан с мелких строк на anime live-cards (тот же CSS что live preview)
+- **Generate Code fix**: handleUnauth() — 401 → редирект на / (старые сессии без токена)
+- **Footer disclaimer**: "Unofficial fan tool · Not affiliated with Shueisha, Roblox or game developers"
+- **CRIT-02 Supabase RLS**: политики пересозданы с `TO service_role` — anon-key заблокирован
+- Все CRIT + HIGH findings закрыты; MEDIUM (MED-01..04) отложены на после беты
+- **Статус: security hardening завершён ✅**

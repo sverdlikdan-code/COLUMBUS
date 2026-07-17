@@ -74,3 +74,4 @@
 - [[session-2026-07-15-mmd-fixes]] — Сессия 2026-07-15: VPS_URL TDZ crash (252 рестарта), Excel corruption fix (autoFilter+theme), _effOrd() unification, prophet week 27 analysis
 - [[jjs-moveset-generator]] — JJS Moveset Generator: Roblox Jujutsu Shenanigans инструмент, Railway деплой, Stripe $4.99, аффилиаты NATEZO/BAXTH/TECHYOP, 4 новых скилла
 - [[session-2026-07-17-jjs-skills]] — Сессия 2026-07-17: skill-creator создал 4 скилла для JJS — gaming-web-app-ui, stripe-one-time-unlock, affiliate-promo-codes, railway-deploy
+- [[session-2026-07-18-jjs-security]] — Сессия 2026-07-18: JJS security hardening — token auth, rate limit, Helmet, XSS fix, decode anime cards, Supabase RLS CRIT-02
