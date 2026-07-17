@@ -1,71 +1,63 @@
-# JJS Moveset Generator
+# JJS Moveset Generator — Pet Project
 
-**Статус:** #active
-**Дата старта:** 2026-07-10
-**Последнее обновление:** 2026-07-17
+## Статус: CLOSED BETA
 
----
+Полностью изолированный пет-проект. Никакого влияния на COLUMBUS VPS или рабочие агенты.
 
-## Что это
+## Архитектура
 
-Веб-инструмент для генерации кастомных moveset кодов в игре Jujutsu Shenanigans (Roblox).
-Единственный работающий генератор на рынке (конкуренты — только мокапы без функционала).
+- **GitHub**: `sverdlikdan-code/jjs-moveset-generator` (отдельный репо)
+- **Хостинг**: Railway (`jjs-moveset-generator-production.up.railway.app`)
+- **База данных**: Supabase (project: `jjs-generator`, ID: `karnkpgzgmvwgioowijp`)
+- **Стек**: Node.js / Express + @mongodb-js/zstd + @supabase/supabase-js
 
-**Репозиторий:** `JIUJITSU/` в COLUMBUS
-**Стек:** Node.js + Express + zstd + base64
+## Страницы
 
----
+| URL | Назначение |
+|-----|-----------|
+| `/` | Лендинг + password gate |
+| `/app.html` | Генератор кодов (15 языков i18n) |
+| `/library.html` | Галерея кодов сообщества |
 
-## Ключевые файлы
+## Доступ
 
-- `JIUJITSU/server.js` — Express сервер, `/api/generate` и `/api/decode` endpoints
-- `JIUJITSU/public/index.html` — UI (тёмная тема, purple акценты #7c3aed)
-- `JIUJITSU/BIZ-REPORT.md` — полный коммерческий анализ (удалён из текущего репо, см. git fa0f6e51)
+- **Пароль**: `JJS2026` (Railway env: BETA_PASSWORD)
+- **Closed Beta**: 2 пользователя, лимиты отключены
+- **Сессия**: 30 дней в localStorage
 
----
+## База данных (Supabase)
 
-## Бизнес-контекст
+Таблица `codes`: id, name, character, code (base64), tags[], author, likes, copies, created_at
 
-- Рынок: 6.14 млрд визитов в JJS, 145-200K concurrent daily
-- Монетизация: $4.99 разовый Pro unlock через Stripe
-- Аффилиаты: NATEZO, BAXTH, TECHYOP — 50% модель
-- Деплой: Railway (НЕ Columbus VPS — изолирован)
-- Аудитория: 10-17 лет, геймеры Roblox
-- YouTube канал: @RedInkJJS (13.1K подписчиков, 5.2M просмотров)
+## API
 
----
+| Endpoint | Метод | Описание |
+|----------|-------|---------|
+| `/api/auth` | POST | Проверка бета-пароля |
+| `/api/generate` | POST | Генерация JJS кода |
+| `/api/decode` | POST | Декодирование кода |
+| `/api/library` | GET | Список кодов (sort: likes/copies/new) |
+| `/api/library/:id` | GET | Один код + bump copies |
+| `/api/library/:id/like` | POST | Лайк |
+| `/api/library` | POST | Добавить код |
 
-## Конкуренты
+## Pending
 
-| Сайт | Генератор | Decode | Монетизация |
-|------|-----------|--------|-------------|
-| jjsbuilder.com | нет | нет | нет |
-| jjsskillbuilder.com | waitlist | нет | нет |
-| **Наш** | **работает** | **работает** | **Stripe $4.99** |
-
----
-
-## Скиллы для JJS (созданы 2026-07-17)
-
-| Скилл | Когда использовать |
-|-------|-------------------|
-| `gaming-web-app-ui` | Редизайн UI, gaming эстетика, glow, анимации |
-| `stripe-one-time-unlock` | Stripe Checkout, Pro unlock, webhook |
-| `affiliate-promo-codes` | Промокоды NATEZO/BAXTH/TECHYOP, трекинг |
-| `railway-deploy` | Деплой на Railway, env vars, custom domain |
-
----
-
-## P0 приоритеты (к 2026-07-17)
-
-- [ ] Railway деплой + домен
-- [ ] Rate limiting (express-rate-limit)
-- [ ] Stripe $4.99 Pro unlock
-- [ ] Пост в JJS Discord (165K участников)
+- Stripe $4.99 one-time unlock (после бета)
+- Free vs Pro лимиты (после бета)
+- Кастомный домен
+- Реальные коды от @RedInkJJS YouTube
 
 ---
 
 ## Сессии
 
-- **2026-07-10** — BIZ-REPORT написан, анализ рынка
-- **2026-07-17** — skill-creator создал 4 скилла (gaming-web-app-ui, stripe-one-time-unlock, affiliate-promo-codes, railway-deploy)
+### 2026-07-17 #closed-beta
+- Отдельный GitHub репо + Railway деплой (изолирован от COLUMBUS)
+- Gaming UI: тёмная тема, neon glow, scanlines, Rajdhani, slot badges
+- 15 языков i18n (EN PT-BR ES PH ID TR DE FR PL RU AR JA IT KO NL)
+- Password gate "CLOSED BETA" + Web Audio звуки
+- Supabase подключён, таблица codes создана через SQL Editor
+- Лендинговая страница → Generator / Library
+- Библиотека наполнена 10 стартовыми билдами (Sukuna, Gojo, Yuta...)
+- **Статус: CLOSED BETA готов к тестированию**
