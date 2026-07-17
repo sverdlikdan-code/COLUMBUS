@@ -4,6 +4,8 @@
 
 ## Темы
 
+- [[jjs-moveset-generator]] — JJS пет-проект: Railway + Supabase, closed beta, библиотека кодов
+
 - [[skills-folder-architecture]] — Структура папки SKILLS/ и конвенция написания навыков
 - [[skill-obsidian-bases]] — Навык для создания файлов Obsidian Bases (.base)
 - [[skill-obsidian-markdown]] — Навык для создания Obsidian Flavored Markdown
