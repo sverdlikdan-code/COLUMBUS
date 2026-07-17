@@ -70,4 +70,4 @@
 - [[session-2026-07-07-formula-road]] — Сессия 2026-07-07: geocode 2107 клиентов, google-gps.json, territory-planner, VPS deploy
 - [[session-2026-07-08-ai-analytics]] — Сессия 2026-07-08: AI кнопка на клиентах, Gemini 1.5 Flash, day briefing YoY, invite system, F5 restore, GPS priority
 - [[session-2026-07-15-mmd-fixes]] — Сессия 2026-07-15: VPS_URL TDZ crash (252 рестарта), Excel corruption fix (autoFilter+theme), _effOrd() unification, prophet week 27 analysis
-- [[jjs-moveset-generator]] — JJS Moveset Generator: Roblox Jujutsu Shenanigans инструмент, Railway деплой, Stripe $4.99, аффилиаты NATEZO/BAXTH/TECHYOP, 4 новых скилла
+- [[jjs-moveset-generator]] — JJS Moveset Generator: Railway деплой, EVASIVE/Blockable/ForceY, Umami, Edit This Build, тултипы, CSP fix
