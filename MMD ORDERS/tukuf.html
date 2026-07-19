@@ -191,10 +191,12 @@ function render(){
     var thCls=c.level==='danger'?'th-danger':c.level==='warn'?'th-warn':'th-ok';
     var thLabel=c.level==='danger'?'סכנה':c.level==='warn'?'תשומת לב':'OK';
     var colHdr='color:#666;font-size:9px;font-weight:600;padding:2px 5px;border-bottom:1px solid #eee;text-align:center;';
+    var _wk=c.mkr_shvua||0; var _sl=c.shelfLife||0;
     var rows='';
     c.batches.forEach(function(b){
       if(b.qty<=0) return;
-      var cl=clrClass(b.days);
+      var eff=b.days-_sl, we=eff/7, ws=_wk>0?b.qty/_wk:999;
+      var cl=(eff<=0||ws>we)?'clr-r':(eff<14||ws>we*0.7)?'clr-o':'clr-g';
       rows+='<tr>'
         +'<td>'+b.dt+'</td>'
         +'<td class="'+cl+'" style="text-align:center;font-weight:bold">'+b.qty+'</td>'
