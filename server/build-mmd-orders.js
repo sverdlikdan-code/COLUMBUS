@@ -113,6 +113,11 @@ async function build() {
     eilat_batches:  r['[eilat_batches]'] || null,
   }));
 
+  // Merge shelfLife from product-data.json (7/21/45 days per SKU — Mahsan Editor source)
+  const pdPath = path.join(__dirname, '..', 'docs', 'product-data.json');
+  const productData = fs.existsSync(pdPath) ? JSON.parse(fs.readFileSync(pdPath, 'utf8')) : {};
+  data.forEach(r => { r.shelfLife = productData[String(r.mkt)]?.shelfLife ?? null; });
+
   const refreshedAt = await getDatasetRefreshTime(MMD_DS);
   const out = { ok: true, data, ts: Date.now(), refreshedAt, period: { y1, m1, y2, m2 } };
 
