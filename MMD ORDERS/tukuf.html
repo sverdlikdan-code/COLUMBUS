@@ -180,11 +180,11 @@ function render(){
       rows+='<tr>'
         +'<td>'+b.dt+'</td>'
         +'<td class="'+cl+'" style="text-align:center;font-weight:bold">'+b.qty+'</td>'
-        +'<td class="'+cl+'" style="text-align:center;font-weight:bold">'+Math.round(b.days/7)+'</td>'
+        +'<td class="'+cl+'" style="text-align:center;font-weight:bold">'+(b.days/7).toFixed(1)+'</td>'
         +'</tr>';
     });
     var wks=c.mkr_shvua!=null?Number(c.mkr_shvua).toFixed(1):null;
-    var yspik=(wks&&totalQty>0)?Math.round(totalQty/c.mkr_shvua):null;
+    var yspik=(wks&&totalQty>0)?(totalQty/c.mkr_shvua).toFixed(1):null;
     var ftxt=wks
       ?'ממוצע מכירה: <b style="color:#222">'+wks+' קרט/שבוע</b>'
         +(yspik!=null?' &nbsp;·&nbsp; יספיק: <b style="color:#1a6b1a" dir="ltr">'+yspik+' שב\'</b>':'')
