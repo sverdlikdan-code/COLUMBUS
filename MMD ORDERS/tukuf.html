@@ -166,7 +166,7 @@ function render(){
     var pcol=document.createElement('div');
     pcol.className='ec-photo-col';
     if(c.img){
-      pcol.innerHTML='<img class="ec-photo" src="/mmd/img/'+encodeURIComponent(c.mkt)+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" loading="lazy"><div class="ec-photo-ph" style="display:none">📦</div>';
+      pcol.innerHTML='<img class="ec-photo" src="'+c.img+'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'" loading="lazy"><div class="ec-photo-ph" style="display:none">📦</div>';
     } else {
       pcol.innerHTML='<div class="ec-photo-ph">📦</div>';
     }
@@ -205,10 +205,12 @@ function render(){
     });
     var wks=c.mkr_shvua!=null?Number(c.mkr_shvua).toFixed(1):null;
     var yspik=(wks&&totalQty>0)?(totalQty/c.mkr_shvua).toFixed(1):null;
+    var slTxt=c.shelfLife!=null?'<span style="white-space:nowrap">מדף: <b style="color:#555">'+c.shelfLife+' י\'</b></span>':'';
     var ftxt=wks
       ?'ממוצע מכירה: <b style="color:#222">'+wks+' קרט/שבוע</b>'
         +(yspik!=null?' &nbsp;·&nbsp; <span style="white-space:nowrap">יספיק: <b style="color:#1a6b1a" dir="ltr">'+yspik+' שב\'</b></span>':'')
-      :'<span style="color:#bbb">אין נתוני מכירה</span>';
+        +(slTxt?' &nbsp;·&nbsp; '+slTxt:'')
+      :'<span style="color:#bbb">אין נתוני מכירה</span>'+(slTxt?' &nbsp;'+slTxt:'');
 
     var tbl=document.createElement('table');
     tbl.className='ec-tbl';
