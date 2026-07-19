@@ -2579,8 +2579,8 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
       )
     `);
 
-    // Query 2 — total carton sales per product in selected period
-    const [extRows, totRes] = await Promise.all([
+    // Query 2 — total carton sales + per-product branchy in selected period
+    const [extRows, totRes, branchyRows] = await Promise.all([
       executeDax(`
         EVALUATE
         CALCULATETABLE(
@@ -2600,6 +2600,17 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
           ${dateFilter}
         )
       `).catch(() => null),
+      executeDax(`
+        EVALUATE
+        CALCULATETABLE(
+          ADDCOLUMNS(
+            SUMMARIZE('ALL_PARTS', 'ALL_PARTS'[מק'ט]),
+            "branchy", CALCULATE([DIST COUNT מ.CAT 7], 'ALL_PARTS'[ASHMADOT] IN {"-מכר-"}, 'משטח'[סטטוס] IN {"פעיל"})
+          ),
+          'ALL_PARTS'[חברה] = "FORMULA",
+          ${dateFilter}
+        )
+      `).catch(() => null),
     ]);
 
     const totalBranchy = totRes?.[0]?.['[tot]'] ?? null;
@@ -2610,6 +2621,15 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
       for (const r of extRows) {
         const mk = r["ALL_PARTS[מק'ט]"];
         if (mk != null) extMap[String(mk)] = { mkrTk: r['[mkrTk]'] ?? null };
+      }
+    }
+    if (branchyRows) {
+      for (const r of branchyRows) {
+        const mk = r["ALL_PARTS[מק'ט]"];
+        if (mk != null) {
+          if (!extMap[String(mk)]) extMap[String(mk)] = {};
+          extMap[String(mk)].branchy = r['[branchy]'] ?? null;
+        }
       }
     }
 
