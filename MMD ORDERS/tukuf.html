@@ -180,17 +180,21 @@ function render(){
       rows+='<tr>'
         +'<td>'+b.dt+'</td>'
         +'<td class="'+cl+'" style="text-align:center;font-weight:bold">'+b.qty+'</td>'
-        +'<td class="'+cl+'" style="text-align:center;font-weight:bold">'+b.days+'י\'</td>'
+        +'<td class="'+cl+'" style="text-align:center;font-weight:bold">'+Math.round(b.days/7)+'שב\'</td>'
         +'</tr>';
     });
     var wks=c.mkr_shvua!=null?Number(c.mkr_shvua).toFixed(1):null;
-    var ftxt=wks?'ממוצע מכירה: <b style="color:#222">'+wks+' קרט/שבוע</b>':'<span style="color:#bbb">אין נתוני מכירה</span>';
+    var yspik=(wks&&totalQty>0)?Math.round(totalQty/c.mkr_shvua):null;
+    var ftxt=wks
+      ?'ממוצע מכירה: <b style="color:#222">'+wks+' קרט/שבוע</b>'
+        +(yspik!=null?' &nbsp;·&nbsp; יספיק: <b style="color:#1a6b1a">'+yspik+' שב\'</b>':'')
+      :'<span style="color:#bbb">אין נתוני מכירה</span>';
 
     var tbl=document.createElement('table');
     tbl.className='ec-tbl';
     tbl.innerHTML='<thead>'
       +'<tr><th colspan="3" class="'+thCls+'">'+thLabel+'</th></tr>'
-      +'<tr><th style="'+colHdr+'text-align:right">ת. תפוגה</th><th style="'+colHdr+'">קרט\'</th><th style="'+colHdr+'">ימים</th></tr>'
+      +'<tr><th style="'+colHdr+'text-align:right">ת. תפוגה</th><th style="'+colHdr+'">קרט\'</th><th style="'+colHdr+'">שב\'</th></tr>'
       +'</thead>'
       +'<tbody>'+(rows||'<tr><td colspan="3" style="text-align:center;color:#bbb">אין מלאי</td></tr>')+'</tbody>'
       +'<tfoot><tr><td colspan="3">'+ftxt+'</td></tr></tfoot>';
