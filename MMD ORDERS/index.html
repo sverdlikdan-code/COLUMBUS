@@ -1515,7 +1515,8 @@
         const eff     = Number(ordV) || 0;
 
         const yamim     = r.yamim ?? null;
-        const shavuot   = r.shavuot ?? null;
+        // client-side: mmd_k / mkr_shvua (mirrors Mahsan Editor daysStk = spo/daySales)
+        const shavuot   = (mmd > 0 && mkr != null && mkr > 0) ? mmd / mkr : null;
         const mkrTk     = r.mkr_tk ?? null;
         const weeksNf   = r.weeks_nf ?? null;
         const yamimHaya = r.yamim_haya ?? null;
