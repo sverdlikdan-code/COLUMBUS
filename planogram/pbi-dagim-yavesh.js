@@ -49,24 +49,15 @@ async function dax(token, query) {
 async function fetchDagimYaveshFromBI() {
   const t = await getToken();
 
-  const anchorSet = DAGIM_YAVESH_ANCHORS.map(m => `"${m}"`).join(',');
-
-  // Anchor-makat: all makatim in the same MLAY families as our anchors, filtered to פעיל only.
+  // Use KARTIS PARIT section filter — same reliable approach as build-dagim-yavesh-new.js
+  // Previous MLAY+anchor approach returned empty when anchors not found → stock=0 for all
   const famMakatim = `
-    INTERSECT(
-      SELECTCOLUMNS(
-        FILTER(MLAY,
-          CONTAINSROW(
-            SELECTCOLUMNS(
-              FILTER(MLAY, CONTAINSROW({${anchorSet}}, MLAY[מק'ט])),
-              "fc", MLAY[משפחת מוצר]
-            ),
-            MLAY[משפחת מוצר]
-          )
-        ),
-        "mk", MLAY[מק'ט]
+    SELECTCOLUMNS(
+      FILTER('KARTIS PARIT',
+        'KARTIS PARIT'[סטטוס] = "פעיל" &&
+        'KARTIS PARIT'[שם מחסן אשדוד] = "דג יבש 🐠"
       ),
-      CALCULATETABLE(VALUES('KARTIS PARIT'[מק"ט]), 'KARTIS PARIT'[סטטוס]="פעיל")
+      "mk", 'KARTIS PARIT'[מק"ט]
     )`;
 
   const [stockRows, salesRows, descRows, mlayDescRows, pakuaRows, salesAllRows, pakuaAllRows, nameEnRows,
