@@ -198,18 +198,17 @@ function render(){
       var eff=Math.max(0,b.days-_sl), we=eff/7, ws=_wk>0?b.qty/_wk:999;
       var isSakana=(eff<=0||ws>we);
       var cl=isSakana?'clr-r':(eff<14||ws>we*0.7)?'clr-o':'clr-g';
-      // לזריקה: cartons that won't be sold before effective expiry
+      // STOP SALE: ימים נשארו < shelfLife (past the buffer — can't sell at all)
+      // לזריקה: ימים >= shelfLife but stock won't sell fast enough
       var throwLine='';
-      if(isSakana&&_wk>0){
+      if(b.days<_sl){
+        throwLine='<div style="display:inline-block;font-size:8px;font-weight:bold;color:#fff;background:#6a1b9a;border-radius:3px;padding:1px 5px;margin-top:2px;">⛔ STOP SALE</div>';
+      } else if(isSakana&&_wk>0){
         var canSell=we*_wk;
         var throwAway=Math.ceil(Math.max(0,b.qty-canSell));
-        if(throwAway>=b.qty){
-          throwLine='<div style="display:inline-block;font-size:8px;font-weight:bold;color:#fff;background:#6a1b9a;border-radius:3px;padding:1px 5px;margin-top:2px;">⛔ STOP SALE</div>';
-        } else if(throwAway>0){
+        if(throwAway>0){
           throwLine='<div style="font-size:8px;font-weight:bold;color:#c62828;margin-top:2px;">~'+throwAway+' קרט לזריקה</div>';
         }
-      } else if(isSakana){
-        throwLine='<div style="font-size:8px;font-weight:bold;color:#6a1b9a;margin-top:2px;">⛔ STOP SALE</div>';
       }
       rows+='<tr>'
         +'<td>'+b.dt+(throwLine?'<br>'+throwLine:'')+'</td>'
