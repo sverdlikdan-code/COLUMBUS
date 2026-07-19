@@ -195,10 +195,24 @@ function render(){
     var rows='';
     c.batches.forEach(function(b){
       if(b.qty<=0) return;
-      var eff=b.days-_sl, we=eff/7, ws=_wk>0?b.qty/_wk:999;
-      var cl=(eff<=0||ws>we)?'clr-r':(eff<14||ws>we*0.7)?'clr-o':'clr-g';
+      var eff=Math.max(0,b.days-_sl), we=eff/7, ws=_wk>0?b.qty/_wk:999;
+      var isSakana=(eff<=0||ws>we);
+      var cl=isSakana?'clr-r':(eff<14||ws>we*0.7)?'clr-o':'clr-g';
+      // לזריקה: cartons that won't be sold before effective expiry
+      var throwLine='';
+      if(isSakana&&_wk>0){
+        var canSell=we*_wk;
+        var throwAway=Math.ceil(Math.max(0,b.qty-canSell));
+        if(throwAway>=b.qty){
+          throwLine='<div style="display:inline-block;font-size:8px;font-weight:bold;color:#fff;background:#6a1b9a;border-radius:3px;padding:1px 5px;margin-top:2px;">⛔ STOP SALE</div>';
+        } else if(throwAway>0){
+          throwLine='<div style="font-size:8px;font-weight:bold;color:#c62828;margin-top:2px;">~'+throwAway+' קרט לזריקה</div>';
+        }
+      } else if(isSakana){
+        throwLine='<div style="font-size:8px;font-weight:bold;color:#6a1b9a;margin-top:2px;">⛔ STOP SALE</div>';
+      }
       rows+='<tr>'
-        +'<td>'+b.dt+'</td>'
+        +'<td>'+b.dt+(throwLine?'<br>'+throwLine:'')+'</td>'
         +'<td class="'+cl+'" style="text-align:center;font-weight:bold">'+b.qty+'</td>'
         +'<td class="'+cl+'" style="text-align:center;font-weight:bold">'+(b.days/7).toFixed(1)+'</td>'
         +'</tr>';
