@@ -138,7 +138,6 @@ ADDCOLUMNS(
     const _d6e = new Date(_now.getFullYear(), _now.getMonth(), 0);
     const d6start = `DATE(${_d6s.getFullYear()},${_d6s.getMonth()+1},1)`;
     const d6end   = `DATE(${_d6e.getFullYear()},${_d6e.getMonth()+1},${_d6e.getDate()})`;
-    // avg6Sales = ICE MISH only (mishpahti gelida families — BiDi stored as יתחפשמ)
     const avg6Rows = await executeDax(`
 EVALUATE
 CALCULATETABLE(
@@ -148,8 +147,7 @@ CALCULATETABLE(
     "avg6Orders", DIVIDE(CALCULATE(DISTINCTCOUNT(ALL_PARTS[תאריך])), 6)
   ),
   ALL_PARTS[תאריך] >= ${d6start},
-  ALL_PARTS[תאריך] <= ${d6end},
-  SEARCH("יתחפשמ", ALL_PARTS[תאור משפחת מוצר], 1, 0) > 0
+  ALL_PARTS[תאריך] <= ${d6end}
 )
 `);
     for (const r of avg6Rows) {
