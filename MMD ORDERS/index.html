@@ -2396,11 +2396,11 @@ window.openInfoPanel = function(mk, taur) {
   sparkEl.innerHTML = '';
 
   if (series && Array.isArray(series.actual) && series.actual.length > 0) {
-    // Drop incomplete current week
+    // Drop incomplete current week — Sunday-based (Israeli calendar)
     (function(){
       var now = new Date(); now.setHours(0,0,0,0);
-      var dow = now.getDay() || 7;
-      now.setDate(now.getDate() - (dow - 1));
+      var dow = now.getDay(); // 0=Sun
+      now.setDate(now.getDate() - dow); // rewind to this week's Sunday
       window._sparkCutoff = now.toISOString().slice(0,10);
     })();
     const actual = series.actual
@@ -2413,11 +2413,12 @@ window.openInfoPanel = function(mk, taur) {
     const show12 = show6prev.concat(show6last);
 
     function isoWeekNum(ds) {
-      var d = new Date(Date.UTC(parseInt(ds.slice(0,4)), parseInt(ds.slice(5,7))-1, parseInt(ds.slice(8,10))));
-      var day = d.getUTCDay() || 7;
-      d.setUTCDate(d.getUTCDate() + 4 - day);
-      var y0 = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-      return Math.ceil(((d - y0) / 86400000 + 1) / 7);
+      // Israeli convention: week starts Sunday
+      var d = new Date(ds + 'T12:00:00');
+      var firstSun = new Date(d.getFullYear(), 0, 1);
+      var fd = firstSun.getDay();
+      if (fd > 0) firstSun.setDate(firstSun.getDate() - fd); // Sunday on or before Jan 1
+      return Math.floor((d - firstSun) / (7 * 86400000)) + 1;
     }
 
     const maxY12 = Math.max.apply(null, show12.map(function(d){return d.y;}), [1]);
