@@ -204,7 +204,7 @@ function render(){
         +'</tr>';
     });
     var wks=c.mkr_shvua!=null?Number(c.mkr_shvua).toFixed(1):null;
-    var yspik=(wks&&totalQty>0)?(totalQty/c.mkr_shvua).toFixed(1):null;
+    var yspik=(c.mkr_shvua>0&&totalQty>0)?(totalQty/c.mkr_shvua).toFixed(1):null;
     var slTxt=c.shelfLife!=null?'<span style="white-space:nowrap">חיי מדף: <b style="color:#555">'+(c.shelfLife/7).toFixed(1)+' שב\'</b></span>':'';
     var ftxt=wks
       ?'ממוצע מכירה: <b style="color:#222">'+wks+' קרט/שבוע</b>'
