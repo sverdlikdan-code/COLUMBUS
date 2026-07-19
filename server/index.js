@@ -3259,7 +3259,9 @@ app.use('/mmd', (req, res, next) => {
   const p = req.path;
   if (!IS_LOCAL && (p === '/' || p === '' || p.endsWith('.html')) && req.query.v !== MMD_BUILD_V) {
     res.set('Cache-Control', 'no-store');
-    return res.redirect(302, '/mmd' + (p || '/') + '?v=' + MMD_BUILD_V);
+    const q = new URLSearchParams(req.query); // preserve k=, r=, etc.
+    q.set('v', MMD_BUILD_V);
+    return res.redirect(302, '/mmd' + (p || '/') + '?' + q.toString());
   }
   next();
 });
