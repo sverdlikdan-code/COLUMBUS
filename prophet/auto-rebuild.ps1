@@ -26,6 +26,9 @@ try {
     & git commit -m "data: prophet auto-rebuild $ts2"
     if ($LASTEXITCODE -ne 0) { Log "Nothing to commit"; exit 0 }
 
+    & git pull --rebase origin master
+    if ($LASTEXITCODE -ne 0) { throw "git pull rebase failed" }
+
     & git push origin master
     if ($LASTEXITCODE -ne 0) { throw "git push failed" }
     Log "Pushed prophet.json OK"

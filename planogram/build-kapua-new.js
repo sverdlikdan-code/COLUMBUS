@@ -174,10 +174,15 @@ async function dax(token, query) {
   // ── Step 4: Merge working picks back, then write kapua-base.json ─────────
   // Working picks (1-61) are user-managed — restore them from existing file.
   // Reserve picks (62+) were just rebuilt from PBI/breira-default above.
+  // Skip working pick if its makat is already placed by breira-default (in a different bay)
+  let skippedDup = 0;
   for (const [k, v] of Object.entries(existingWorkingPicks)) {
-    if (!(k in picks)) picks[k] = v;
+    if (k in picks) continue;
+    if (v && bdMakatSet.has(String(v.makat))) { skippedDup++; continue; }
+    picks[k] = v;
   }
-  console.log(`Working picks merged back: ${Object.keys(existingWorkingPicks).length}`);
+  if (skippedDup > 0) console.log(`Skipped ${skippedDup} working picks (makat already in breira-default)`);
+  console.log(`Working picks merged back: ${Object.keys(existingWorkingPicks).length - skippedDup}`);
 
   const today = new Date().toISOString().slice(0, 16).replace('T','-').replace(':','');
   const newV  = `${today}-kapua`;
