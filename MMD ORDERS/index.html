@@ -1181,6 +1181,21 @@
       .map(d => '<span class="tk-d" dir="ltr">' + _fmtDate(d) + '</span>').join('');
   }
 
+  function eilatDangerLevel(r) {
+    if (!r.eilat_batches) return null;
+    const sl = r.shelfLife || 0, wk = r.mkr_shvua || 0;
+    let hasDanger = false, hasWarn = false;
+    r.eilat_batches.split(';').filter(Boolean).forEach(b => {
+      const p = b.split('|');
+      const qty = parseInt(p[2], 10) || 0, days = parseInt(p[3], 10) || 0;
+      if (qty <= 0) return;
+      const eff = days - sl, we = eff / 7, ws = wk > 0 ? qty / wk : 999;
+      if (eff <= 0 || ws > we)   hasDanger = true;
+      else if (ws > we * 0.7)   hasWarn   = true;
+    });
+    return hasDanger ? 'danger' : hasWarn ? 'warn' : 'ok';
+  }
+
   function buildPrtimCell(mk, tukuf, savedVal) {
     const opts = tukuf ? tukuf.split('/').map(d => d.trim()).filter(Boolean) : [];
     if (!opts.length) return '';
@@ -1533,6 +1548,7 @@
         // accumulate per-company
         if (eff > 0) coMap[r.hevra || '—'] = (coMap[r.hevra || '—'] || 0) + eff;
 
+        const _eilatLvl = eilatDangerLevel(r);
         const tr = document.createElement('tr');
         tr.className = 'drow' +
       (yamim != null && yamim < 10 ? ' danger' : '');
@@ -1547,7 +1563,10 @@
           '<td class="c-num col-g">' + (mkr != null && mkr > 0 ? mkr.toFixed(1) : '—') + '</td>' +
           '<td class="c-num ' + klass(ash) + '">' + ash + '</td>' +
           '<td class="c-num">' + mav + '</td>' +
-          '<td class="c-tukuf">' + formatTukuf(r.tukuf) + '</td>' +
+          '<td class="c-tukuf">' + formatTukuf(r.tukuf) +
+            (_eilatLvl === 'danger' ? '<br><span style="font-size:9px;font-weight:bold;color:#c62828">⚠ סכנה</span>' :
+             _eilatLvl === 'warn'   ? '<br><span style="font-size:9px;font-weight:bold;color:#e65100">🔶 תשומ\'</span>' : '') +
+          '</td>' +
           '<td class="c-num ' + yamimCls + '">' + yamimDisp + '</td>' +
           '<td class="c-num">' + (mkrTk != null ? mkrTk : '—') + '</td>' +
           '<td class="c-num ' + (shavuot != null && shavuot < 2 ? 'lo' : '') + '">' + (shavuot != null ? Math.round(shavuot) : '—') + '</td>' +

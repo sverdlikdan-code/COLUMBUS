@@ -197,7 +197,7 @@ function render(){
       if(b.qty<=0) return;
       var eff=Math.max(0,b.days-_sl), we=eff/7, ws=_wk>0?b.qty/_wk:999;
       var isSakana=(eff<=0||ws>we);
-      var cl=isSakana?'clr-r':(eff<14||ws>we*0.7)?'clr-o':'clr-g';
+      var cl=isSakana?'clr-r':(ws>we*0.7)?'clr-o':'clr-g';
       // STOP SALE: ימים נשארו < shelfLife (past the buffer — can't sell at all)
       // לזריקה: ימים >= shelfLife but stock won't sell fast enough
       var throwLine='';
@@ -210,10 +210,11 @@ function render(){
           throwLine='<div style="font-size:8px;font-weight:bold;color:#c62828;margin-top:2px;">~'+throwAway+' קרט לזריקה</div>';
         }
       }
+      var sellLine=_wk>0?'<div style="font-size:8px;color:#888;margin-top:1px;">למכירה: '+(b.qty/_wk).toFixed(1)+' שב\'</div>':'';
       rows+='<tr>'
         +'<td>'+b.dt+(throwLine?'<br>'+throwLine:'')+'</td>'
         +'<td class="'+cl+'" style="text-align:center;font-weight:bold">'+b.qty+'</td>'
-        +'<td class="'+cl+'" style="text-align:center;font-weight:bold">'+(b.days/7).toFixed(1)+'</td>'
+        +'<td class="'+cl+'" style="text-align:center;font-weight:bold">'+(b.days/7).toFixed(1)+(sellLine?'<br>'+sellLine:'')+'</td>'
         +'</tr>';
     });
     var wks=c.mkr_shvua!=null?Number(c.mkr_shvua).toFixed(1):null;
