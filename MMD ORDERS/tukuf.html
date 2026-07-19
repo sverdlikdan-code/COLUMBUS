@@ -90,6 +90,24 @@ var hiddenSet   = new Set();
 
 function clrClass(d){ return d<30?'clr-r':d<60?'clr-o':'clr-g'; }
 
+function fixProductName(s){
+  s=s.replace(/\)([^()]+)\(/g,'($1)');
+  s=s.replace(/\s*\([A-Za-z]{1,6}\d*\)\s*/g,' ').trim();
+  return s;
+}
+function _ltrWrap(s){
+  return s.split(/(\s+)/).map(function(tok){
+    return /[A-Za-z0-9]/.test(tok)?'<span dir="ltr">'+tok+'</span>':tok;
+  }).join('');
+}
+function shortName(s){
+  var m=s.match(/\d+\s*ג[.'׳]?/);
+  if(!m) return s;
+  var res=s.slice(0,s.indexOf(m[0])+m[0].length).trim();
+  res=res.replace(/(\d+)\s+(ג[.'׳]?)$/,'$1 $2');
+  return res;
+}
+
 function dangerLevel(batches, wk, shelfLifeDays) {
   var sl=shelfLifeDays||0, hasDanger=false, hasWarn=false;
   batches.forEach(function(b){
@@ -160,7 +178,7 @@ function render(){
     cc.className='ec-content';
 
     var nd=document.createElement('div');
-    nd.className='ec-name'; nd.textContent=c.taur;
+    nd.className='ec-name'; nd.innerHTML=_ltrWrap(shortName(fixProductName(c.taur)));
     cc.appendChild(nd);
 
     var totalQty=c.batches.reduce(function(s,b){return s+b.qty;},0);
