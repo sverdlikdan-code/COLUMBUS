@@ -210,11 +210,12 @@ function render(){
           throwLine='<div style="font-size:8px;font-weight:bold;color:#c62828;margin-top:2px;">~'+throwAway+' קרט לזריקה</div>';
         }
       }
-      var sellLine=_wk>0?'<div style="font-size:8px;color:#888;margin-top:1px;">למכירה: '+(b.qty/_wk).toFixed(1)+' שב\'</div>':'';
+      var sellWks=_wk>0?(b.qty/_wk).toFixed(1):null;
       rows+='<tr>'
         +'<td>'+b.dt+(throwLine?'<br>'+throwLine:'')+'</td>'
         +'<td class="'+cl+'" style="text-align:center;font-weight:bold">'+b.qty+'</td>'
-        +'<td class="'+cl+'" style="text-align:center;font-weight:bold">'+(b.days/7).toFixed(1)+(sellLine?'<br>'+sellLine:'')+'</td>'
+        +'<td class="'+cl+'" style="text-align:center;font-weight:bold">'+(b.days/7).toFixed(1)+'</td>'
+        +'<td class="'+cl+'" style="text-align:center;font-weight:bold">'+(sellWks||'—')+'</td>'
         +'</tr>';
     });
     var wks=c.mkr_shvua!=null?Number(c.mkr_shvua).toFixed(1):null;
@@ -229,11 +230,11 @@ function render(){
     var tbl=document.createElement('table');
     tbl.className='ec-tbl';
     tbl.innerHTML='<thead>'
-      +'<tr><th colspan="3" class="'+thCls+'">'+thLabel+'</th></tr>'
-      +'<tr><th style="'+colHdr+'text-align:right">ת. תפוגה</th><th style="'+colHdr+'">קרט\'</th><th style="'+colHdr+'">שבועות נשארו</th></tr>'
+      +'<tr><th colspan="4" class="'+thCls+'">'+thLabel+'</th></tr>'
+      +'<tr><th style="'+colHdr+'text-align:right">ת. תפוגה</th><th style="'+colHdr+'">קרט\'</th><th style="'+colHdr+'">שב\' נשארו</th><th style="'+colHdr+'">למכירה</th></tr>'
       +'</thead>'
-      +'<tbody>'+(rows||'<tr><td colspan="3" style="text-align:center;color:#bbb">אין מלאי</td></tr>')+'</tbody>'
-      +'<tfoot><tr><td colspan="3">'+ftxt+'</td></tr></tfoot>';
+      +'<tbody>'+(rows||'<tr><td colspan="4" style="text-align:center;color:#bbb">אין מלאי</td></tr>')+'</tbody>'
+      +'<tfoot><tr><td colspan="4">'+ftxt+'</td></tr></tfoot>';
     cc.appendChild(tbl);
     div.appendChild(cc);
     grid.appendChild(div);
