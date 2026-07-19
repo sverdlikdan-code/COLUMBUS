@@ -3232,6 +3232,8 @@ app.get('/mmd/period-data', mmdGuard, dataRateLimit, async (req, res) => {
 });
 
 const MMD_LOCAL_STUB = '<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>MMD Orders</title><style>body{font-family:sans-serif;background:#04111f;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;color:#fff}div{text-align:center}a{color:#4fc3f7;font-size:1.2rem;font-weight:700;display:block;margin-top:16px}</style></head><body><div><div style="font-size:3rem;margin-bottom:16px">📦</div><p>MMD Orders פועל בשרת</p><a href="https://api.sverdlik-apps.site/mmd/">פתח MMD Orders ←</a></div></body></html>';
+// Hourly version token — changes on every server restart/deploy, forces fresh HTML fetch
+const MMD_BUILD_V = String(Math.floor(Date.now() / 3600000));
 
 app.get('/mmd', (req, res, next) => {
   if (IS_LOCAL) return res.status(200).send(MMD_LOCAL_STUB);
@@ -3248,6 +3250,16 @@ app.get('/mmd/', (req, res, next) => {
     const q = new URLSearchParams(req.query);
     q.set('r', '2');
     return res.redirect(302, '/mmd/?' + q.toString());
+  }
+  next();
+});
+
+// Cache-bust: redirect HTML pages to versioned URL so browsers always get fresh content on deploy
+app.use('/mmd', (req, res, next) => {
+  const p = req.path;
+  if (!IS_LOCAL && (p === '/' || p === '' || p.endsWith('.html')) && req.query.v !== MMD_BUILD_V) {
+    res.set('Cache-Control', 'no-store');
+    return res.redirect(302, '/mmd' + (p || '/') + '?v=' + MMD_BUILD_V);
   }
   next();
 });
