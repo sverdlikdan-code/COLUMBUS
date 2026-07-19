@@ -205,7 +205,7 @@ function render(){
     var yspik=(wks&&totalQty>0)?(totalQty/c.mkr_shvua).toFixed(1):null;
     var ftxt=wks
       ?'ממוצע מכירה: <b style="color:#222">'+wks+' קרט/שבוע</b>'
-        +(yspik!=null?' &nbsp;·&nbsp; יספיק: <b style="color:#1a6b1a" dir="ltr">'+yspik+' שב\'</b>':'')
+        +(yspik!=null?' &nbsp;·&nbsp; <span style="white-space:nowrap">יספיק: <b style="color:#1a6b1a" dir="ltr">'+yspik+' שב\'</b></span>':'')
       :'<span style="color:#bbb">אין נתוני מכירה</span>';
 
     var tbl=document.createElement('table');
