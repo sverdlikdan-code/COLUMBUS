@@ -1045,13 +1045,34 @@ function _getPrintOrder(sec) {
       return oa - ob || +a - +b;
     });
   const saved = printOrder[sec];
-  if (!saved) return activePicks;
+  if (!saved) {
+    const seen = new Set();
+    return activePicks.filter(p => {
+      const mk = state[sec][p]?.makat;
+      if (!mk) return true;
+      const s = String(mk);
+      if (seen.has(s)) return false;
+      seen.add(s);
+      return true;
+    });
+  }
   // Keep saved order but re-sort by haluka (so manual moves stay within-zone)
   const activeSet = new Set(activePicks);
-  const filtered = saved.filter(p => activeSet.has(p));
+  const seenBays = new Set();
+  const filtered = saved.filter(p => activeSet.has(p) && !seenBays.has(p) && seenBays.add(p));
   activePicks.forEach(p => { if (!filtered.includes(p)) filtered.push(p); });
+  // Deduplicate by makat — defensive against localStorage state with same makat in two bays
+  const seenMakatim = new Set();
+  const deduped = filtered.filter(p => {
+    const mk = state[sec][p]?.makat;
+    if (!mk) return true;
+    const s = String(mk);
+    if (seenMakatim.has(s)) return false;
+    seenMakatim.add(s);
+    return true;
+  });
   // Re-apply haluka → printOrder sort (no haluka → bottom)
-  return filtered.sort((a, b) => {
+  return deduped.sort((a, b) => {
     const pa = state[sec][a], pb = state[sec][b];
     const ha = pa?.haluka ?? 999, hb = pb?.haluka ?? 999;
     if (ha !== hb) return ha - hb;
@@ -1060,6 +1081,7 @@ function _getPrintOrder(sec) {
     return oa - ob || +a - +b;
   });
 }
+
 function _savePrintOrder(sec, order) {
   printOrder[sec] = order;
   localStorage.setItem('mahsan_print_order_' + sec, JSON.stringify(order));
