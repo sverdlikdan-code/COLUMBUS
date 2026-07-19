@@ -90,13 +90,15 @@ var hiddenSet   = new Set();
 
 function clrClass(d){ return d<30?'clr-r':d<60?'clr-o':'clr-g'; }
 
-function dangerLevel(batches, wk) {
-  var hasDanger=false, hasWarn=false;
+function dangerLevel(batches, wk, shelfLifeDays) {
+  var sl=shelfLifeDays||0, hasDanger=false, hasWarn=false;
   batches.forEach(function(b){
     if(b.qty<=0) return;
-    var we=b.days/7, ws=wk>0?b.qty/wk:999;
-    if(b.days<14||ws>we)           hasDanger=true;
-    else if(b.days<30||ws>we*0.7)  hasWarn=true;
+    var eff=b.days-sl;                    // effective days after shelf-life buffer
+    var we=eff/7,                          // effective weeks
+        ws=wk>0?b.qty/wk:999;             // weeks of stock at current sales
+    if(eff<=0||ws>we)          hasDanger=true;
+    else if(eff<14||ws>we*0.7) hasWarn=true;
   });
   return hasDanger?'danger':(hasWarn?'warn':'ok');
 }
@@ -235,9 +237,10 @@ fetch('./mmd-orders.json')
         var p=b.split('|');
         return{pke:p[0],dt:p[1],qty:parseInt(p[2],10)||0,days:parseInt(p[3],10)||0};
       });
-      var level=dangerLevel(batches,r.mkr_shvua);
+      var sl=r.shelfLife||0;
+      var level=dangerLevel(batches,r.mkr_shvua,sl);
       return{mkt:r.mkt,taur:r.taur,mishpacha:r.mishpacha,hevra:r.hevra||'',
-             img:r.img,krat:r.krat,mkr_shvua:r.mkr_shvua,batches:batches,level:level};
+             img:r.img,krat:r.krat,mkr_shvua:r.mkr_shvua,shelfLife:sl,batches:batches,level:level};
     });
     allCards.sort(function(a,b){
       var o={danger:0,warn:1,ok:2};
