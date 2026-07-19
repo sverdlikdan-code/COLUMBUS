@@ -169,7 +169,7 @@ function render(){
     cc.appendChild(bd);
 
     var thCls=c.level==='danger'?'th-danger':c.level==='warn'?'th-warn':'th-ok';
-    var thLabel='אילת — '+(c.mishpacha||'פק"ע');
+    var thLabel='פק"ע אילת';
     var rows='';
     c.batches.forEach(function(b){
       if(b.qty<=0) return;
