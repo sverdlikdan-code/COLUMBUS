@@ -97,6 +97,7 @@ ADDCOLUMNS(
         monthlySales:  0,
         avg6Sales:     0,
         avg6Orders:    0,
+        avg6IceSales:  0,
         lastOrderDate: null,
       });
     }
@@ -156,6 +157,26 @@ CALCULATETABLE(
       if (!c) continue;
       c.avg6Sales  = parseFloat(r['[avg6Sales]'])  || 0;
       c.avg6Orders = parseFloat(r['[avg6Orders]']) || 0;
+    }
+
+    // E: ICE MISH avg6 — משפחתי גלידה families only (BiDi stored as יתחפשמ)
+    const avg6IceRows = await executeDax(`
+EVALUATE
+CALCULATETABLE(
+  ADDCOLUMNS(
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]),
+    "avg6IceSales", DIVIDE(CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)]), 6)
+  ),
+  ALL_PARTS[תאריך] >= ${d6start},
+  ALL_PARTS[תאריך] <= ${d6end},
+  SEARCH("יתחפשמ", ALL_PARTS[תאור משפחת מוצר], 1, 0) > 0
+)
+`);
+    for (const r of avg6IceRows) {
+      const custId = String(r['ALL_PARTS[מספר לקוח]'] || '');
+      const c = clientMap.get(custId);
+      if (!c) continue;
+      c.avg6IceSales = parseFloat(r['[avg6IceSales]']) || 0;
     }
 
     // Build schedule map: custId → [{dayNum, dayLabel, visitOrder}]
@@ -1262,6 +1283,7 @@ app.get('/territory-clients', requireAuth, dataRateLimit, async (req, res) => {
       lastOrderDate: c.lastOrderDate || null,
       monthlySales:  c.monthlySales || 0,
       avg6Sales:     c.avg6Sales || 0,
+      avg6IceSales:  c.avg6IceSales || 0,
       pct:           c.pct || 0,
       clientType:    c.clientType || '',
       sadran:        c.sadran || '',

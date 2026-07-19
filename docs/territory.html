@@ -941,7 +941,10 @@ function renderClientList(){
     const isIce=c.hevra==='ICE';
     const _s=c.avg6Sales>0?c.avg6Sales:0;
     const salesAmt=_s>0?(_s>=1000?`₪${(_s/1000).toFixed(1)}K`:`₪${Math.round(_s)}`):'';
-    const salesBadge=salesAmt?`<span style="background:${isIce?'#E1F5FE':'#E8F5E9'};color:${isIce?'#0277BD':'#2E7D32'};font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;flex-shrink:0;margin-left:4px;border:1px solid ${isIce?'#81D4FA':'#A5D6A7'};white-space:nowrap">${salesAmt}</span>`:'';
+    const salesBadge=salesAmt?`<span style="background:#E8F5E9;color:#2E7D32;font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;flex-shrink:0;margin-left:4px;border:1px solid #A5D6A7;white-space:nowrap">FORMULA ${salesAmt}</span>`:'';
+    const _ice=c.avg6IceSales>0?c.avg6IceSales:0;
+    const iceAmt=_ice>0?(_ice>=1000?`₪${(_ice/1000).toFixed(1)}K`:`₪${Math.round(_ice)}`):'';
+    const iceSalesBadge=iceAmt?`<span style="background:#E1F5FE;color:#0277BD;font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;flex-shrink:0;margin-left:4px;border:1px solid #81D4FA;white-space:nowrap">❄️ ${iceAmt}</span>`:'';
     const changedMark=c._changed?`<span class="changed-badge">✏️</span>`:'';
     const newBadge=c._isNew?`<span style="background:#FF8F00;color:#fff;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;flex-shrink:0;margin-left:4px">🆕 חדש</span>`:'';
     const iceBadge=isIce?`<span style="background:#0288D1;color:#fff;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;flex-shrink:0;margin-left:4px">❄️ ICE</span>`:'';
@@ -959,7 +962,7 @@ function renderClientList(){
         <div class="c-name">${changedMark}${esc(c.custName||'')}${newBadge}${iceBadge}</div>
         <div class="c-sub">
           <span class="agent-badge" style="background:${color};cursor:pointer" onclick="openAgentPopup(event,'${c.custId}')">${esc(c.agentName||c.agentCode||'')}</span>
-          ${dayBadge}${salesBadge}
+          ${dayBadge}${salesBadge}${iceSalesBadge}
           ${addrText?`<span style="color:var(--mid);margin-right:4px;font-size:9px">${addrText}</span>`:''}
         </div>
       </div>
