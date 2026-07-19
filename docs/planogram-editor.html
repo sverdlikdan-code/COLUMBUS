@@ -4067,10 +4067,7 @@ function buildExpiryPage() {
     const isBatchStop = (b, sales) => {
       if (!(b.cartons > 0)) return true; // empty = not counted
       const eff = Math.max(0, (b.daysLeft ?? 0) - shelfLife);
-      if (eff === 0) return true;        // past sell-by window → definitely can't sell
-      if (!(sales > 0)) return false;    // eff>0 but no sales → can't determine
-      const canSell = (eff / 1.4) * sales;
-      return Math.ceil(Math.max(0, b.cartons - canSell)) >= b.cartons;
+      return eff === 0; // STOP SALE only when daysLeft <= shelfLife
     };
     const mainHasStock = batches.main.some(b => b.cartons > 0);
     const zafnHasStock = batches.zafn.some(b => b.cartons > 0);
