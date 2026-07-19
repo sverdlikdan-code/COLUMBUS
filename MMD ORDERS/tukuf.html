@@ -171,6 +171,7 @@ function render(){
     cc.appendChild(bd);
 
     var thCls=c.level==='danger'?'th-danger':c.level==='warn'?'th-warn':'th-ok';
+    var thLabel=c.level==='danger'?'סכנה':c.level==='warn'?'תשומת לב':'OK';
     var colHdr='color:#666;font-size:9px;font-weight:600;padding:2px 5px;border-bottom:1px solid #eee;text-align:center;';
     var rows='';
     c.batches.forEach(function(b){
@@ -188,7 +189,7 @@ function render(){
     var tbl=document.createElement('table');
     tbl.className='ec-tbl';
     tbl.innerHTML='<thead>'
-      +'<tr><th colspan="3" class="'+thCls+'">אילת</th></tr>'
+      +'<tr><th colspan="3" class="'+thCls+'">'+thLabel+'</th></tr>'
       +'<tr><th style="'+colHdr+'text-align:right">ת. תפוגה</th><th style="'+colHdr+'">קרט\'</th><th style="'+colHdr+'">ימים</th></tr>'
       +'</thead>'
       +'<tbody>'+(rows||'<tr><td colspan="3" style="text-align:center;color:#bbb">אין מלאי</td></tr>')+'</tbody>'
