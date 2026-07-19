@@ -115,8 +115,8 @@ function dangerLevel(batches, wk, shelfLifeDays) {
     var eff=b.days-sl;                    // effective days after shelf-life buffer
     var we=eff/7,                          // effective weeks
         ws=wk>0?b.qty/wk:999;             // weeks of stock at current sales
-    if(eff<=0||ws>we)          hasDanger=true;
-    else if(eff<14||ws>we*0.7) hasWarn=true;
+    if(eff<=0||ws>we)  hasDanger=true;
+    else if(ws>we*0.7) hasWarn=true;
   });
   return hasDanger?'danger':(hasWarn?'warn':'ok');
 }
