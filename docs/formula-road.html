@@ -1684,7 +1684,8 @@ function renderFrIceBtn(){
     el.style.display='none';
     st.iceFilter=false;
   }
-  if(iceCount>0||st.sadranList.length>0) extraRow.style.display='';
+  const sadranCount=(st.clients||[]).filter(c=>c.sadran).length;
+  if(iceCount>0||sadranCount>0) extraRow.style.display='';
   else extraRow.style.display='none';
 }
 function renderFrSadranBtn(){
