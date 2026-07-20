@@ -46,19 +46,19 @@ async function dax(token, query) {
   return j.results?.[0]?.tables?.[0]?.rows || [];
 }
 
-async function fetchDagimYaveshFromBI() {
+async function fetchDagimYaveshFromBI(knownMakatim = []) {
   const t = await getToken();
 
-  // Use KARTIS PARIT section filter — same reliable approach as build-dagim-yavesh-new.js
-  // Previous MLAY+anchor approach returned empty when anchors not found → stock=0 for all
-  const famMakatim = `
-    SELECTCOLUMNS(
-      FILTER('KARTIS PARIT',
-        'KARTIS PARIT'[סטטוס] = "פעיל" &&
-        'KARTIS PARIT'[שם מחסן אשדוד] = "דג יבש 🐠"
-      ),
-      "mk", 'KARTIS PARIT'[מק"ט]
-    )`;
+  // Build famMakatim from known makatim list (passed from dagim-yavesh-base.json picks).
+  // Avoids emoji/encoding issues with section name filter in GitHub Actions CI.
+  // Falls back to KARTIS PARIT section filter if no makatim provided.
+  let famMakatim;
+  if (knownMakatim.length > 0) {
+    const mkList = knownMakatim.map(m => `"${m}"`).join(', ');
+    famMakatim = `SELECTCOLUMNS(FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] = "פעיל" && 'KARTIS PARIT'[מק"ט] IN {${mkList}}), "mk", 'KARTIS PARIT'[מק"ט])`;
+  } else {
+    famMakatim = `SELECTCOLUMNS(FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] = "פעיל"), "mk", 'KARTIS PARIT'[מק"ט])`;
+  }
 
   const [stockRows, salesRows, descRows, mlayDescRows, pakuaRows, salesAllRows, pakuaAllRows, nameEnRows,
          stockZafnRows, salesZafnRows, pakuaZafnRows, sales365Rows] = await Promise.all([
