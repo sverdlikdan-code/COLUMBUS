@@ -758,17 +758,6 @@
   <!-- Row 3: filter chips — light sky background like MMD Orders -->
   <div style="display:flex;align-items:center;gap:6px;padding:7px 14px;background:#E3F2FD;border-bottom:1px solid #BBDEFB;flex-shrink:0;" class="no-print">
     <button id="btn-order-only" onclick="toggleOrderOnly()" style="background:#fff;border:1.5px solid #BBDEFB;color:#0D47A1;font-size:11px;font-weight:700;cursor:pointer;border-radius:20px;padding:5px 14px;white-space:nowrap;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.12);transition:all 0.15s;">📋 הזמנה בלבד</button>
-    <div style="width:1px;height:18px;background:#BBDEFB;flex-shrink:0;margin:0 2px;"></div>
-    <!-- Season multiplier slider — applies only to manually-edited rows -->
-    <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;padding:3px 10px;background:#fff;border:1.5px solid #BBDEFB;border-radius:20px;box-shadow:0 2px 6px rgba(0,0,0,.08);" title="עונתי — הגדלה/הקטנה של הזמנות ידניות בלבד">
-      <span style="font-size:11px;color:#555;white-space:nowrap;">📅</span>
-      <input type="range" id="season-slider" min="-50" max="50" step="5" value="0"
-        oninput="_applySeasonSlider(this.value)"
-        style="width:80px;cursor:pointer;accent-color:#1565C0;">
-      <span id="season-pct-label" style="font-size:11px;font-weight:800;color:#1565C0;min-width:34px;text-align:center;">×1</span>
-      <button type="button" onclick="_resetSeasonSlider()" title="אפס" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:12px;padding:0;line-height:1;" id="season-reset-btn">✕</button>
-    </div>
-    <div style="width:1px;height:18px;background:#BBDEFB;flex-shrink:0;margin:0 2px;"></div>
     <div id="ord-fam-btns" style="display:flex;flex:1;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;"></div>
   </div>
 
@@ -3303,7 +3292,7 @@ function buildOrderPage() {
       <th style="padding:6px 4px;background:#4a148c;color:#fff;text-align:center;font-size:10px;white-space:nowrap;cursor:default;" title="מגמת מכר: חודש אחרון vs חודש לפניו — לחץ על תא לגרף חודשי">📊 מגמה</th>
       <th style="${_ths('periodSales','text-align:center;')}">מכר<br>בתקופה${_arr('periodSales')}</th>
       <th style="${_ths('daysStk','text-align:center;')}">לכמה<br>ימים${_arr('daysStk')}</th>
-      <th style="${_ths('orderK','text-align:center;')}">המלצה<br>KARTON${_arr('orderK')}</th>
+      <th style="${_ths('orderK','text-align:center;white-space:normal;')}">המלצה KARTON${_arr('orderK')}<div onclick="event.stopPropagation()" style="display:flex;align-items:center;justify-content:center;gap:3px;margin-top:4px;"><input type="range" id="season-slider" min="-50" max="50" step="5" value="${window._orderSeasonPct||0}" oninput="_applySeasonSlider(this.value)" style="width:56px;cursor:ew-resize;accent-color:#90CAF9;"><span id="season-pct-label" style="font-size:10px;font-weight:800;color:#fff;min-width:26px;text-align:center;">${((p)=>p===0?'×1':p>0?'+'+p+'%':p+'%')(window._orderSeasonPct||0)}</span><button type="button" onclick="_resetSeasonSlider()" id="season-reset-btn" title="אפס" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.55);font-size:11px;padding:0;line-height:1;">✕</button></div></th>
       <th style="${_th('text-align:center;')}">המלצה<br>PALLET</th>
       <th style="${_th('text-align:center;')}">PAL<br>ידני</th>
     </tr>
