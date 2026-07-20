@@ -1440,7 +1440,9 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
       };
     });
 
-    await geocodeBatch(clients);
+    // geocodeBatch can be slow (sequential external API calls per client).
+    // Cap at 7s so the response always arrives before the 12s client timeout.
+    await Promise.race([geocodeBatch(clients), new Promise(r => setTimeout(r, 7000))]);
     res.json(clients);
   } catch (err) {
     console.error('/customers error:', err.message);
@@ -2595,7 +2597,6 @@ app.get('/pbi/dagim-all-monthly', dataRateLimit, async (req, res) => {
           "mkr", [TOTAL מכר בקרטונים]
         ),
         'ALL_PARTS'[חברה] = "FORMULA",
-        'ALL_PARTS'[ASHMADOT] IN {"-מכר-"},
         ${dateFilter}
       )
       ORDER BY 'ALL_PARTS'[מק'ט], DIMCALENDAR[Year], DIMCALENDAR[Month]
