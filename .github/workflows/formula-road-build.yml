@@ -47,6 +47,15 @@ jobs:
         run: npm install
         working-directory: planogram
 
+      - name: Download GPS corrections from VPS (highest priority — applied in build)
+        run: |
+          echo "${{ secrets.VPS_SSH_KEY }}" > /tmp/vps_key
+          chmod 600 /tmp/vps_key
+          scp -o StrictHostKeyChecking=no -i /tmp/vps_key \
+            root@31.154.67.58:/root/COLUMBUS/docs/gps-corrections.json \
+            docs/gps-corrections.json 2>/dev/null || echo "No corrections file on VPS — continuing without"
+          rm /tmp/vps_key
+
       - name: Build formula-road-data.json
         run: node planogram/build-formula-road.js
 
@@ -70,7 +79,6 @@ jobs:
             docs/formula-road-data.json \
             docs/formula-road.html \
             docs/google-gps.json \
-            docs/gps-corrections.json \
             root@31.154.67.58:/root/COLUMBUS/docs/
           scp -o StrictHostKeyChecking=no -i /tmp/vps_key \
             server/index.js \
