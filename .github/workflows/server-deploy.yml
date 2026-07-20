@@ -8,6 +8,8 @@ on:
       - 'docs/formula-road.html'
       - 'docs/manifest.json'
       - 'docs/sw.js'
+      - 'MMD ORDERS/tukuf.html'
+      - 'MMD ORDERS/index.html'
 
 jobs:
   deploy:
@@ -28,5 +30,9 @@ jobs:
             docs/manifest.json \
             docs/sw.js \
             root@31.154.67.58:/root/COLUMBUS/docs/
+          scp -o StrictHostKeyChecking=no -i /tmp/vps_key \
+            "MMD ORDERS/tukuf.html" \
+            "MMD ORDERS/index.html" \
+            root@31.154.67.58:"/root/COLUMBUS/MMD ORDERS/"
           ssh -o StrictHostKeyChecking=no -i /tmp/vps_key root@31.154.67.58 "pm2 restart columbus-api"
           rm /tmp/vps_key
