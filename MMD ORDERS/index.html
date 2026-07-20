@@ -2327,15 +2327,18 @@ window.openInfoPanel = function(mk, taur) {
     if (r && r.eilat_batches) {
       var bRows = r.eilat_batches.split(';').filter(function(b) { return b.trim(); });
       // danger: batch won't sell before expiry → qty/mkr_shvua > days/7
+      var sl = r.shelfLife || 0;
       var hasDanger = false, hasWarn = false;
       bRows.forEach(function(b) {
         var parts = b.split('|');
         var qty = parseInt(parts[2], 10), days = parseInt(parts[3], 10);
         if (isNaN(qty) || isNaN(days) || qty <= 0) return;
+        var eff = days - sl;
+        if (eff <= 0) { hasDanger = true; return; }
         var weeksStock = r.mkr_shvua > 0 ? qty / r.mkr_shvua : 999;
-        var weeksExpiry = days / 7;
-        if (weeksStock > weeksExpiry || days < 14) hasDanger = true;
-        else if (weeksStock > weeksExpiry * 0.7 || days < 30) hasWarn = true;
+        var weeksExpiry = eff / 7;
+        if (weeksStock > weeksExpiry) hasDanger = true;
+        else if (weeksStock > weeksExpiry * 0.7) hasWarn = true;
       });
       var minDays = 9999;
       bRows.forEach(function(b) { var d = parseInt(b.split('|')[3], 10); if (!isNaN(d) && d < minDays) minDays = d; });
@@ -2350,11 +2353,11 @@ window.openInfoPanel = function(mk, taur) {
       badgeLbl.textContent = 'תוקף אילת';
       badgeLine.appendChild(badgeLbl);
       var eilatBadge = document.createElement('span');
-      if (minDays < 30) {
+      if (hasDanger) {
         eilatBadge.textContent = 'סכנה';
         eilatBadge.style.cssText = 'background:#c62828;color:#fff;font-size:.6rem;padding:1px 6px;border-radius:3px;font-weight:bold';
         badgeLine.appendChild(eilatBadge);
-      } else if (minDays < 60) {
+      } else if (hasWarn) {
         eilatBadge.textContent = 'תשומת לב';
         eilatBadge.style.cssText = 'background:#e65100;color:#fff;font-size:.6rem;padding:1px 6px;border-radius:3px';
         badgeLine.appendChild(eilatBadge);
