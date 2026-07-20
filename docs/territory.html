@@ -33,12 +33,12 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 /* FILTER BAR */
 .filter-bar{background:#fff;border-bottom:1px solid var(--sky-mid);padding:4px 8px;flex-shrink:0;display:flex;flex-direction:column;gap:3px;}
 .filter-row{display:flex;align-items:center;flex-wrap:wrap;gap:5px;}
-.flt-label{font-size:10px;font-weight:700;color:var(--light);letter-spacing:.8px;text-transform:uppercase;flex-shrink:0;}
+.flt-label{font-size:10px;font-weight:800;color:var(--mid);letter-spacing:.8px;text-transform:uppercase;flex-shrink:0;}
 
 /* City multi-select */
 .city-wrap{position:relative;flex:1;min-width:160px;max-width:300px;}
-.city-btn{width:100%;padding:6px 14px;border:1.5px solid var(--sky-mid);border-radius:20px;font-size:13px;font-weight:700;color:var(--text);background:#fff;cursor:pointer;outline:none;display:flex;align-items:center;gap:6px;}
-.city-btn:hover,.city-btn.open{border-color:var(--blue);background:var(--sky-light);}
+.city-btn{width:100%;padding:6px 14px;border:2px solid #90CAF9;border-radius:20px;font-size:12px;font-weight:700;color:var(--blue-dark);background:var(--sky-light);cursor:pointer;outline:none;display:flex;align-items:center;gap:6px;}
+.city-btn:hover,.city-btn.open{border-color:var(--blue);background:#BBDEFB;}
 .city-btn-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;}
 .city-dropdown{position:absolute;top:calc(100% + 4px);right:0;z-index:2000;background:#fff;border:1.5px solid var(--sky-mid);border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.16);min-width:200px;max-width:320px;max-height:320px;display:none;flex-direction:column;}
 .city-dropdown.open{display:flex;}
@@ -113,7 +113,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .stats-row{background:#fff;border-bottom:1px solid var(--sky-mid);padding:3px 8px;display:flex;align-items:center;gap:5px;flex-shrink:0;flex-wrap:wrap;}
 .stat-chip{padding:2px 9px;border-radius:12px;font-size:11px;font-weight:700;background:var(--sky-light);color:var(--blue-dark);white-space:nowrap;border:none;line-height:1.4;}
 .stats-divider{width:1px;height:20px;background:var(--sky-mid);flex-shrink:0;margin:0 2px;}
-.nogps-btn,.nosales-btn,.nosales-btn180,.regular-btn,.ice-btn,.month-btn{
+.nogps-btn,.nosales-btn,.nosales-btn180,.regular-btn,.ice-btn,.ice-mish-btn,.month-btn{
   cursor:pointer;transition:all .18s cubic-bezier(.4,0,.2,1);
   position:relative;
 }
@@ -127,6 +127,8 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .regular-btn.active{background:#2E7D32;color:#fff;border:1.5px solid #1B5E20;box-shadow:inset 0 2px 5px rgba(0,0,0,.2);transform:scale(.97);}
 .ice-btn{background:#E1F5FE;color:#0277BD;border:1.5px dashed #81D4FA;}
 .ice-btn.active{background:#0277BD;color:#fff;border:1.5px solid #0277BD;box-shadow:inset 0 2px 5px rgba(0,0,0,.2);transform:scale(.97);}
+.ice-mish-btn{background:#E3F2FD;color:#01579B;border:1.5px dashed #4FC3F7;}
+.ice-mish-btn.active{background:#01579B;color:#fff;border:1.5px solid #0D47A1;box-shadow:inset 0 2px 5px rgba(0,0,0,.2);transform:scale(.97);}
 .stats-right{margin-right:auto;display:flex;gap:6px;align-items:center;}
 .export-btn{background:#1D6F42;color:#fff;border:none;border-radius:16px;padding:4px 12px;height:28px;font-size:11px;font-weight:800;cursor:pointer;}
 .version-btn{background:#5C6BC0;color:#fff;border:none;border-radius:16px;padding:4px 12px;height:28px;font-size:11px;font-weight:800;cursor:pointer;}
@@ -196,7 +198,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .client-card.selected{background:var(--sky-light);box-shadow:0 2px 10px rgba(21,101,192,.18);}
 .c-body{flex:1;min-width:0;}
 .c-name{font-size:12px;font-weight:800;color:var(--text);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.c-sub{font-size:10px;color:var(--mid);margin-top:2px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.c-sub{font-size:10px;color:var(--mid);margin-top:2px;line-height:1.4;display:flex;align-items:center;overflow:hidden;gap:0;}
 .c-actions{display:flex;align-items:center;gap:0;flex-shrink:0;}
 .c-id{font-size:8px;font-weight:700;color:#fff;background:#9e9e9e;border-radius:4px;padding:2px 5px;margin-bottom:2px;white-space:nowrap;}
 .act-btn{font-size:14px;cursor:pointer;opacity:.35;transition:opacity .15s;min-width:34px;min-height:30px;display:flex;align-items:center;justify-content:center;}
@@ -261,6 +263,30 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
         <div class="city-dropdown" id="city-dropdown">
           <input class="city-search" id="city-search" placeholder="חפש עיר..." oninput="filterCityList()" onclick="event.stopPropagation()"/>
           <div class="city-items" id="city-items"></div>
+        </div>
+      </div>
+      <span class="flt-label">סוכן</span>
+      <div class="city-wrap" id="agent-wrap" style="min-width:120px;max-width:180px">
+        <button class="city-btn" id="agent-btn" onclick="toggleAgentDropdown(event)">
+          <span class="city-btn-text" id="agent-btn-text">-- כל הסוכנים --</span>
+          <span class="city-count-badge" id="agent-count-badge" style="display:none">0</span>
+          <span style="color:var(--light);font-size:11px">▾</span>
+        </button>
+        <div class="city-dropdown" id="agent-dropdown">
+          <input class="city-search" id="agent-search" placeholder="חפש סוכן..." oninput="filterAgentDropList()" onclick="event.stopPropagation()"/>
+          <div class="city-items" id="agent-items"></div>
+        </div>
+      </div>
+      <span class="flt-label">מנהל</span>
+      <div class="city-wrap" id="manager-wrap" style="min-width:120px;max-width:180px">
+        <button class="city-btn" id="manager-btn" onclick="toggleManagerDropdown(event)">
+          <span class="city-btn-text" id="manager-btn-text">-- כל המנהלים --</span>
+          <span class="city-count-badge" id="manager-count-badge" style="display:none">0</span>
+          <span style="color:var(--light);font-size:11px">▾</span>
+        </button>
+        <div class="city-dropdown" id="manager-dropdown">
+          <input class="city-search" id="manager-search" placeholder="חפש מנהל..." oninput="filterManagerDropList()" onclick="event.stopPropagation()"/>
+          <div class="city-items" id="manager-items"></div>
         </div>
       </div>
       <span class="flt-label">יום</span>
@@ -430,6 +456,7 @@ const st={
   noSalesDays: 0,
   regularFilter: false,
   iceFilter: false,
+  iceMishFilter: false,
   hasSadranFilter: false,
   overrides: {},
   selectedId: null,
@@ -592,14 +619,187 @@ function onCitiesChanged(){
   loadClients([...selectedCities]);
 }
 
-// Close dropdown on outside click
+// Close dropdowns on outside click
 document.addEventListener('click',e=>{
-  const wrap=document.getElementById('city-wrap');
-  if(wrap&&!wrap.contains(e.target)){
-    document.getElementById('city-dropdown')?.classList.remove('open');
-    document.getElementById('city-btn')?.classList.remove('open');
-  }
+  [['city-wrap','city-dropdown','city-btn'],['agent-wrap','agent-dropdown','agent-btn'],['manager-wrap','manager-dropdown','manager-btn']].forEach(([w,dd,btn])=>{
+    const wrap=document.getElementById(w);
+    if(wrap&&!wrap.contains(e.target)){document.getElementById(dd)?.classList.remove('open');document.getElementById(btn)?.classList.remove('open');}
+  });
 });
+
+// ── AGENT MULTI-SELECT DROPDOWN ───────────────────────────────────────────
+let allDropAgents=[], dropAgentFilter=new Set();
+
+async function loadDropAgents(){
+  try{
+    const r=await apiFetch(`${API}/all-agents`);
+    const data=await r.json();
+    allDropAgents=Array.isArray(data)?data:[];
+    renderAgentDropItems(allDropAgents);
+  }catch(e){ console.error('agents drop load failed',e); }
+}
+
+function renderAgentDropItems(agents){
+  const el=document.getElementById('agent-items');
+  if(!el) return;
+  const allChecked=agents.length>0&&agents.every(a=>dropAgentFilter.has(a.agentCode));
+  el.innerHTML=`<label class="city-item city-item-all">
+    <input type="checkbox" id="agent-all-chk" ${allChecked?'checked':''} onchange="toggleAllDropAgents(this.checked)"/>
+    <span>כולם (${allDropAgents.length})</span>
+  </label>`+
+  agents.map(a=>`<label class="city-item">
+    <input type="checkbox" value="${esc(a.agentCode)}" ${dropAgentFilter.has(a.agentCode)?'checked':''} onchange="toggleDropAgent('${esc(a.agentCode)}',this.checked)"/>
+    <span>${esc(a.agentName||a.agentCode)}</span>
+  </label>`).join('');
+}
+
+function filterAgentDropList(){
+  const q=(document.getElementById('agent-search').value||'').trim().toLowerCase();
+  renderAgentDropItems(q?allDropAgents.filter(a=>(a.agentName||a.agentCode).toLowerCase().includes(q)):allDropAgents);
+}
+
+function toggleAgentDropdown(event){
+  event.stopPropagation();
+  const dd=document.getElementById('agent-dropdown');
+  const btn=document.getElementById('agent-btn');
+  const open=dd.classList.toggle('open');
+  btn.classList.toggle('open',open);
+  if(open) setTimeout(()=>document.getElementById('agent-search')?.focus(),60);
+}
+
+function toggleAllDropAgents(checked){
+  if(checked) allDropAgents.forEach(a=>dropAgentFilter.add(a.agentCode));
+  else dropAgentFilter.clear();
+  renderAgentDropItems(allDropAgents);
+  updateAgentDropBtn();
+  onDropFilterChanged();
+}
+
+function toggleDropAgent(code, checked){
+  if(checked) dropAgentFilter.add(code); else dropAgentFilter.delete(code);
+  const allChk=document.getElementById('agent-all-chk');
+  if(allChk) allChk.checked=allDropAgents.every(a=>dropAgentFilter.has(a.agentCode));
+  updateAgentDropBtn();
+  onDropFilterChanged();
+}
+
+function updateAgentDropBtn(){
+  const n=dropAgentFilter.size;
+  const badge=document.getElementById('agent-count-badge');
+  const txt=document.getElementById('agent-btn-text');
+  if(n===0){ txt.textContent='-- כל הסוכנים --'; badge.style.display='none'; }
+  else if(n===1){const a=allDropAgents.find(x=>dropAgentFilter.has(x.agentCode));txt.textContent=a?a.agentName||a.agentCode:'סוכן 1';badge.style.display='none';}
+  else{ txt.textContent=`${n} סוכנים`; badge.textContent=n; badge.style.display=''; }
+}
+
+// ── MANAGER MULTI-SELECT DROPDOWN ─────────────────────────────────────────
+let allManagers=[], dropManagerFilter=new Set();
+
+async function loadManagers(){
+  try{
+    const r=await apiFetch(`${API}/managers`);
+    const data=await r.json();
+    allManagers=Array.isArray(data)?data.map(m=>m.managerCode||String(m)):[];
+    renderManagerDropItems(allManagers);
+  }catch(e){ console.error('managers load failed',e); }
+}
+
+function renderManagerDropItems(managers){
+  const el=document.getElementById('manager-items');
+  if(!el) return;
+  const allChecked=managers.length>0&&managers.every(m=>dropManagerFilter.has(m));
+  el.innerHTML=`<label class="city-item city-item-all">
+    <input type="checkbox" id="manager-all-chk" ${allChecked?'checked':''} onchange="toggleAllManagers(this.checked)"/>
+    <span>כולם (${allManagers.length})</span>
+  </label>`+
+  managers.map(m=>`<label class="city-item">
+    <input type="checkbox" value="${esc(m)}" ${dropManagerFilter.has(m)?'checked':''} onchange="toggleManager('${esc(m)}',this.checked)"/>
+    <span>${esc(m)}</span>
+  </label>`).join('');
+}
+
+function filterManagerDropList(){
+  const q=(document.getElementById('manager-search').value||'').trim().toLowerCase();
+  renderManagerDropItems(q?allManagers.filter(m=>m.toLowerCase().includes(q)):allManagers);
+}
+
+function toggleManagerDropdown(event){
+  event.stopPropagation();
+  const dd=document.getElementById('manager-dropdown');
+  const btn=document.getElementById('manager-btn');
+  const open=dd.classList.toggle('open');
+  btn.classList.toggle('open',open);
+  if(open) setTimeout(()=>document.getElementById('manager-search')?.focus(),60);
+}
+
+function toggleAllManagers(checked){
+  if(checked) allManagers.forEach(m=>dropManagerFilter.add(m));
+  else dropManagerFilter.clear();
+  renderManagerDropItems(allManagers);
+  updateManagerDropBtn();
+  onDropFilterChanged();
+}
+
+function toggleManager(name, checked){
+  if(checked) dropManagerFilter.add(name); else dropManagerFilter.delete(name);
+  const allChk=document.getElementById('manager-all-chk');
+  if(allChk) allChk.checked=allManagers.every(m=>dropManagerFilter.has(m));
+  updateManagerDropBtn();
+  onDropFilterChanged();
+}
+
+function updateManagerDropBtn(){
+  const n=dropManagerFilter.size;
+  const badge=document.getElementById('manager-count-badge');
+  const txt=document.getElementById('manager-btn-text');
+  if(n===0){ txt.textContent='-- כל המנהלים --'; badge.style.display='none'; }
+  else if(n===1){ txt.textContent=[...dropManagerFilter][0]; badge.style.display='none'; }
+  else{ txt.textContent=`${n} מנהלים`; badge.textContent=n; badge.style.display=''; }
+}
+
+async function onDropFilterChanged(){
+  if(!dropAgentFilter.size && !dropManagerFilter.size){
+    // Filters cleared — re-render existing data, restore full city list
+    renderCityItems(allCities);
+    if(st.allClients.length) renderAll();
+    return;
+  }
+  // Fetch cities for the selected agents/managers → auto-reload
+  try{
+    const params=[];
+    if(dropAgentFilter.size) params.push('agents='+[...dropAgentFilter].map(encodeURIComponent).join(','));
+    if(dropManagerFilter.size) params.push('managers='+[...dropManagerFilter].map(encodeURIComponent).join(','));
+    const r=await apiFetch(`${API}/agent-cities?${params.join('&')}`);
+    const agentCities=await r.json();
+    if(!Array.isArray(agentCities)||!agentCities.length){ clearView(); refreshCityDropFilter(); return; }
+    // Replace city selection with agent's cities
+    selectedCities.clear();
+    agentCities.forEach(c=>selectedCities.add(c));
+    const agentCitySet=new Set(agentCities);
+    renderCityItems(allCities.filter(c=>agentCitySet.has(c)));
+    updateCityBtn();
+    loadClients([...selectedCities]);
+  }catch(e){
+    console.error('agent-cities failed',e);
+    refreshCityDropFilter();
+    if(st.allClients.length) renderAll();
+  }
+}
+
+// Cross-filter: when agent/manager selected, city list shows only relevant cities
+function refreshCityDropFilter(){
+  if(!st.allClients.length||(!dropAgentFilter.size&&!dropManagerFilter.size)){
+    renderCityItems(allCities); return;
+  }
+  const relevant=new Set();
+  st.allClients.forEach(c=>{
+    if(dropAgentFilter.size>0&&!dropAgentFilter.has(c.agentCode)) return;
+    if(dropManagerFilter.size>0&&!dropManagerFilter.has(c.manager)) return;
+    if(c.city) relevant.add(c.city);
+  });
+  const filtered=allCities.filter(c=>relevant.has(c));
+  renderCityItems(filtered.length?filtered:allCities);
+}
 
 function clearView(){
   st.allClients=[]; st.agents=[]; st.activeAgents=new Set(); st.selectedId=null;
@@ -676,7 +876,10 @@ function renderDayBtns(){
   // Apply agent + lasso + active stat filters (NOT day filter — each row IS a day)
   const baseCl=st.allClients.filter(c=>{
     const ov=st.overrides[String(c.custId)]||{};
-    if(!st.activeAgents.has(ov.agentCode||c.agentCode)) return false;
+    const _agCode=ov.agentCode||c.agentCode;
+    if(!st.activeAgents.has(_agCode)) return false;
+    if(dropAgentFilter.size>0 && !dropAgentFilter.has(_agCode)) return false;
+    if(dropManagerFilter.size>0 && !dropManagerFilter.has(c.manager)) return false;
     if(st.lassoIds!==null&&!st.lassoIds.has(String(c.custId))) return false;
     if(st.noGpsFilter && c.lat && c.lng && c.gpsSource!=='no-gps') return false;
     if(st.noSalesDays>0){
@@ -690,6 +893,7 @@ function renderDayBtns(){
       if(!lo||lo<cutoff60) return false;
     }
     if(st.iceFilter && c.hevra!=='ICE') return false;
+    if(st.iceMishFilter && !(c.avg6IceSales>0)) return false;
     if(st.hasSadranFilter && !c.sadran) return false;
     return true;
   });
@@ -706,13 +910,15 @@ function renderDayBtns(){
     const agName=(ag?.agentName||agentCode).split(/[\s\-]/)[0].slice(0,8);
     // per-day (day 0 = no day)
     const dk=dayNum||0;
-    if(!byDay[dk][agentCode]) byDay[dk][agentCode]={name:agName,count:0,salesSum:0,code:agentCode};
+    if(!byDay[dk][agentCode]) byDay[dk][agentCode]={name:agName,count:0,salesSum:0,iceSalesSum:0,code:agentCode};
     byDay[dk][agentCode].count++;
     byDay[dk][agentCode].salesSum+=(c.avg6Sales||0);
+    byDay[dk][agentCode].iceSalesSum+=(c.avg6IceSales||0);
     // total
-    if(!totalByAgent[agentCode]) totalByAgent[agentCode]={name:agName,count:0,salesSum:0,code:agentCode};
+    if(!totalByAgent[agentCode]) totalByAgent[agentCode]={name:agName,count:0,salesSum:0,iceSalesSum:0,code:agentCode};
     totalByAgent[agentCode].count++;
     totalByAgent[agentCode].salesSum+=(c.avg6Sales||0);
+    totalByAgent[agentCode].iceSalesSum+=(c.avg6IceSales||0);
   });
 
   const grandTotal=baseCl.length;
@@ -736,6 +942,7 @@ function renderDayBtns(){
     const entries=Object.values(agMap).filter(a=>a.count>0).sort((a,b)=>b.count-a.count);
     const totalCount=entries.reduce((s,a)=>s+a.count,0);
     const totalSales=entries.reduce((s,a)=>s+a.salesSum,0);
+    const totalIceSales=entries.reduce((s,a)=>s+a.iceSalesSum,0);
     if(!totalCount) return '';
     const pctGrandTotal=grandTotal>0?Math.round(totalCount/grandTotal*100):0;
     const agRows=entries.map(ag=>{
@@ -744,7 +951,8 @@ function renderDayBtns(){
       return `<span class="dc-ag-row"><span class="dc-ag-name">${ag.name}</span><span class="dc-ag-cnt">${ag.count}</span><span class="dc-ag-pct">${pctDay}%</span>${salesCell}</span>`;
     }).join('');
     const pctGrandStr=grandTotal>0?`${pctGrandTotal}%`:'';
-    const totalRow=`<span class="dc-ag-row dc-total-row"><span class="dc-ag-name">סה"כ</span><span class="dc-ag-cnt">${totalCount}</span><span class="dc-ag-pct">${pctGrandStr}</span><span class="dc-ag-sales">${totalSales>0?fmt(totalSales):''}</span></span>`;
+    const iceSalesStr=totalIceSales>0?`<span style="color:#0277BD;font-size:9px;font-weight:700">❄️${fmt(totalIceSales)}</span>`:'';
+    const totalRow=`<span class="dc-ag-row dc-total-row"><span class="dc-ag-name">סה"כ</span><span class="dc-ag-cnt">${totalCount}</span><span class="dc-ag-pct">${pctGrandStr}</span><span class="dc-ag-sales" style="display:flex;gap:3px;align-items:center">${totalSales>0?fmt(totalSales):''}${iceSalesStr}</span></span>`;
     return `<div class="day-card-body">
       <div class="dc-ag-tbl" style="margin-top:2px">${totalRow}${agRows}</div>
     </div>`;
@@ -780,6 +988,8 @@ function displayClients(){
     const agentCode=ov.agentCode||c.agentCode;
     const dayNum=ov.dayNum!==undefined?ov.dayNum:c.dayNum;
     if(!st.activeAgents.has(agentCode)) return false;
+    if(dropAgentFilter.size>0 && !dropAgentFilter.has(agentCode)) return false;
+    if(dropManagerFilter.size>0 && !dropManagerFilter.has(c.manager)) return false;
     if(st.activeDays.size<6 && !st.activeDays.has(dayNum||0)) return false;
     if(st.lassoIds!==null && !st.lassoIds.has(String(c.custId))) return false;
     if(st.noGpsFilter && c.lat && c.lng && c.gpsSource!=='no-gps') return false;
@@ -794,6 +1004,7 @@ function displayClients(){
       if(!lo||lo<cutoff60) return false;
     }
     if(st.iceFilter && c.hevra!=='ICE') return false;
+    if(st.iceMishFilter && !(c.avg6IceSales>0)) return false;
     if(st.hasSadranFilter && !c.sadran) return false;
     return true;
   }).map(c=>{
@@ -822,7 +1033,7 @@ function renderAll(){
 
 function updateStats(){
   const list=displayClients();
-  const baseList=(st.noGpsFilter||st.noSalesDays>0||st.regularFilter||st.iceFilter)?displayClientsAll():list;
+  const baseList=(st.noGpsFilter||st.noSalesDays>0||st.regularFilter||st.iceFilter||st.iceMishFilter)?displayClientsAll():list;
   const noGps=baseList.filter(c=>!c.lat||!c.lng||c.gpsSource==='no-gps').length;
   const now=Date.now();
   const cut60=new Date(now-60*86400000), cut180=new Date(now-180*86400000);
@@ -864,6 +1075,8 @@ function displayClientsAll(){
     const agentCode=ov.agentCode||c.agentCode;
     const dayNum=ov.dayNum!==undefined?ov.dayNum:c.dayNum;
     if(!st.activeAgents.has(agentCode)) return false;
+    if(dropAgentFilter.size>0 && !dropAgentFilter.has(agentCode)) return false;
+    if(dropManagerFilter.size>0 && !dropManagerFilter.has(c.manager)) return false;
     if(st.activeDays.size<6 && !st.activeDays.has(dayNum||0)) return false;
     if(st.lassoIds!==null && !st.lassoIds.has(String(c.custId))) return false;
     if(st.hasSadranFilter && !c.sadran) return false;
@@ -888,13 +1101,30 @@ function toggleIceFilter(){
   st.iceFilter=!st.iceFilter;
   renderAll();
 }
+function toggleIceMishFilter(){
+  st.iceMishFilter=!st.iceMishFilter;
+  renderAll();
+}
 
 // ── AGENT LEGEND ──────────────────────────────────────────────────────────
+function getLegendAgents(){
+  const agentMgrMap={};
+  st.allClients.forEach(c=>{ if(c.agentCode&&c.manager) agentMgrMap[c.agentCode]=c.manager; });
+  return st.agents.filter(a=>{
+    if(dropAgentFilter.size>0 && !dropAgentFilter.has(a.agentCode)) return false;
+    if(dropManagerFilter.size>0 && !dropManagerFilter.has(agentMgrMap[a.agentCode])) return false;
+    return true;
+  });
+}
+
 function renderAgentLegend(){
   const el=document.getElementById('agent-legend');
   const countMap={};
   st.allClients.forEach(c=>{ const code=c.agentCode; if(code) countMap[code]=(countMap[code]||0)+1; });
-  el.innerHTML=st.agents.map(a=>`
+  const visible=getLegendAgents();
+  const allOn=visible.length>0&&visible.every(a=>st.activeAgents.has(a.agentCode));
+  const allChip=`<span class="agent-chip${allOn?' on':''}" style="background:#455A64;margin-left:4px" onclick="selectAllAgents()">✓ כולם</span>`;
+  el.innerHTML=allChip+visible.map(a=>`
     <span class="agent-chip${st.activeAgents.has(a.agentCode)?' on':''}"
           style="background:${a.color}"
           onclick="toggleAgent('${esc(a.agentCode)}')">
@@ -904,6 +1134,14 @@ function renderAgentLegend(){
 
 function toggleAgent(code){
   if(st.activeAgents.has(code)) st.activeAgents.delete(code); else st.activeAgents.add(code);
+  renderAgentLegend(); renderAll();
+}
+
+function selectAllAgents(){
+  const visible=getLegendAgents();
+  const allOn=visible.every(a=>st.activeAgents.has(a.agentCode));
+  if(allOn){ visible.forEach(a=>st.activeAgents.delete(a.agentCode)); }
+  else{ visible.forEach(a=>st.activeAgents.add(a.agentCode)); }
   renderAgentLegend(); renderAll();
 }
 
@@ -944,7 +1182,7 @@ function renderClientList(){
     const salesBadge=salesAmt?`<span style="background:#E8F5E9;color:#2E7D32;font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;flex-shrink:0;margin-left:4px;border:1px solid #A5D6A7;white-space:nowrap">FORMULA ${salesAmt}</span>`:'';
     const _ice=c.avg6IceSales>0?c.avg6IceSales:0;
     const iceAmt=_ice>0?(_ice>=1000?`₪${(_ice/1000).toFixed(1)}K`:`₪${Math.round(_ice)}`):'';
-    const iceSalesBadge=iceAmt?`<span style="background:#E1F5FE;color:#0277BD;font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;flex-shrink:0;margin-left:4px;border:1px solid #81D4FA;white-space:nowrap">❄️ ${iceAmt}</span>`:'';
+    const iceSalesBadge=iceAmt?`<span style="background:#EDE7F6;color:#4527A0;font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;flex-shrink:0;margin-left:4px;border:1px solid #B39DDB;white-space:nowrap">מש׳ ${iceAmt}</span>`:'';
     const changedMark=c._changed?`<span class="changed-badge">✏️</span>`:'';
     const newBadge=c._isNew?`<span style="background:#FF8F00;color:#fff;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;flex-shrink:0;margin-left:4px">🆕 חדש</span>`:'';
     const iceBadge=isIce?`<span style="background:#0288D1;color:#fff;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;flex-shrink:0;margin-left:4px">❄️ ICE</span>`:'';
@@ -963,7 +1201,7 @@ function renderClientList(){
         <div class="c-sub">
           <span class="agent-badge" style="background:${color};cursor:pointer" onclick="openAgentPopup(event,'${c.custId}')">${esc(c.agentName||c.agentCode||'')}</span>
           ${dayBadge}${salesBadge}${iceSalesBadge}
-          ${addrText?`<span style="color:var(--mid);margin-right:4px;font-size:9px">${addrText}</span>`:''}
+          ${addrText?`<span style="color:var(--mid);margin-right:4px;font-size:9px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${addrText}</span>`:''}
         </div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0">
@@ -1179,7 +1417,7 @@ function renderMap(){
       return `<button type="button" onclick="setClientDayFromMap('${c.custId}',${d})" style="width:28px;height:26px;border-radius:6px;background:${on?'#1565C0':'#E3F2FD'};color:${on?'#fff':'#1565C0'};border:1.5px solid #1565C0;font-size:12px;font-weight:900;cursor:pointer">${DAY_LBL[d]}</button>`;
     }).join('');
     const gpsBtnHtml=`<button type="button" onclick="openGpsFixFromMap('${c.custId}','${safeName}')" style="margin-top:6px;width:100%;background:#1565C0;color:#fff;border:none;border-radius:8px;padding:5px;font-size:11px;font-weight:700;cursor:pointer">📍 תיקון מיקום</button>`;
-    m.bindPopup(`<div style="min-width:160px;direction:rtl"><b>${safeName}</b><br><span style="color:${color};font-weight:700">${esc(c.agentName||c.agentCode||'')}</span>${c.address?'<br><span style="font-size:11px;color:#666">'+esc(c.address)+'</span>':''}<br><div style="display:flex;gap:3px;margin-top:5px">${dayBtnsHtml}</div>${gpsBtnHtml}</div>`);
+    m.bindPopup(`<div style="min-width:160px;direction:rtl"><b>${safeName}</b><br><span style="color:${color};font-weight:700">${esc(c.agentName||c.agentCode||'')}</span>${c.address?'<br><span style="font-size:11px;color:#666">'+esc(c.address)+'</span>':''}${c.city?'<br><span style="font-size:11px;color:#1565C0;font-weight:600">'+esc(c.city)+'</span>':''}<br><div style="display:flex;gap:3px;margin-top:5px">${dayBtnsHtml}</div>${gpsBtnHtml}</div>`);
     markerCluster.addLayer(m);
     mapMarkers.push(m);
     bounds.push([c.lat,c.lng]);
@@ -1466,7 +1704,7 @@ async function init(){
   loadOverrides();
   try{const r=await fetch(API+'/auth/pbi',{credentials:'include'});if(r.ok){const j=await r.json();if(j.ok&&j.token)localStorage.setItem(TOKEN_KEY,j.token);}}catch(_){}
   if(!getToken()){location.href=(location.hostname.includes('sverdlik-apps')?'/formula-road':('formula-road.html'))+'?next=territory.html';return;}
-  await Promise.all([loadCities(), loadCorrections(), loadAiGps()]);
+  await Promise.all([loadCities(), loadDropAgents(), loadManagers(), loadCorrections(), loadAiGps()]);
   if(!selectedCities.size){
     ['ירושלים','מעלה אדומים','מבשרת ציון'].forEach(c=>{ if(allCities.includes(c)) selectedCities.add(c); });
     if(selectedCities.size){ renderCityItems(allCities); updateCityBtn(); onCitiesChanged(); }
