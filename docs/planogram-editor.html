@@ -4396,6 +4396,8 @@ window.addEventListener('beforeprint', () => {
       const rows = Array.from(tbl.querySelectorAll('tbody tr'));
       let tables = '', chunk = '';
       rows.forEach(tr => {
+        // Sync input .value → attribute so outerHTML reflects manual edits
+        tr.querySelectorAll('input').forEach(inp => inp.setAttribute('value', inp.value));
         const isGroup = tr.children[0]?.colSpan === 2 && tr.textContent.includes('📦');
         if (isGroup && chunk) {
           tables += `<table style="${tblStyle}">${theadHTML}<tbody>${chunk}</tbody></table>`;
