@@ -37,9 +37,16 @@ async function build() {
   startOfWeek.setDate(now.getDate() - now.getDay()); // rewind to Sunday
   const sixWeeksBack = new Date(startOfWeek);
   sixWeeksBack.setDate(startOfWeek.getDate() - 42);
+  const twelveWeeksBack = new Date(startOfWeek);
+  twelveWeeksBack.setDate(startOfWeek.getDate() - 84);
   const y1 = sixWeeksBack.getFullYear(), m1 = sixWeeksBack.getMonth() + 1, d1 = sixWeeksBack.getDate();
+  const yp = twelveWeeksBack.getFullYear(), mp = twelveWeeksBack.getMonth() + 1, dp = twelveWeeksBack.getDate();
+  // sixWeeksBack - 1 day = last day of prev6 window
+  const prevEnd = new Date(sixWeeksBack); prevEnd.setDate(prevEnd.getDate() - 1);
+  const ye = prevEnd.getFullYear(), me = prevEnd.getMonth() + 1, de = prevEnd.getDate();
   const y2 = curY, m2 = curM;
-  const df = `DATESBETWEEN(DIMCALENDAR[Date], DATE(${y1},${m1},${d1}), DATE(${y2},${m2},${lastDay2}))`;
+  const df      = `DATESBETWEEN(DIMCALENDAR[Date], DATE(${y1},${m1},${d1}), DATE(${y2},${m2},${lastDay2}))`;
+  const df_prev = `DATESBETWEEN(DIMCALENDAR[Date], DATE(${yp},${mp},${dp}), DATE(${ye},${me},${de}))`;
 
   console.log(`Building MMD ORDERS: ${y1}-${String(m1).padStart(2,'0')}-${String(d1).padStart(2,'0')} → ${y2}-${String(m2).padStart(2,'0')}-${lastDay2}`);
 
@@ -58,6 +65,7 @@ async function build() {
         "eilat_k",    [מלאי בקרטון EILAT],
         "maavar",     [מחסן מעבר],
         "mkr_shvua",  CALCULATE([מכר ממוצע בשבוע קרטון], ${df}),
+        "mkr_prev6",  CALCULATE([מכר ממוצע בשבוע קרטון], ${df_prev}),
         "mkr_tk",     CALCULATE([מכר קרטון],              ${df}),
         "shavuot",    CALCULATE([לכמה שבועות יספיק המלאי], ${df}),
         "weeks_nf",   [WEEKS נפח הזמנה],
@@ -93,6 +101,7 @@ async function build() {
     eilat_k:    r['[eilat_k]'] ?? null,
     maavar:     r['[maavar]'] ?? null,
     mkr_shvua:  r['[mkr_shvua]']  != null ? Math.round(r['[mkr_shvua]']  * 10) / 10 : null,
+    mkr_prev6:  r['[mkr_prev6]']  != null ? Math.round(r['[mkr_prev6]']  * 10) / 10 : null,
     mkr_tk:     r['[mkr_tk]']     != null ? Math.round(r['[mkr_tk]'])              : null,
     shavuot:    r['[shavuot]']    != null ? Math.round(r['[shavuot]']  * 10) / 10 : null,
     weeks_nf:   r['[weeks_nf]']   != null ? Math.round(r['[weeks_nf]'])            : null,

@@ -1575,20 +1575,15 @@
           '<td class="c-num">' + (pctMkr != null ? pctMkr + '%' : '—') + '</td>' +
           '<td class="c-haml col-g">' + (haml > 0 ? Math.round(haml) : '') + '</td>' +
           (function(){
-            const p = window.prophetMap && window.prophetMap[mk];
-            const actualSorted = (p && p.series && p.series.actual ? [...p.series.actual] : []).sort((a,b)=>a.w.localeCompare(b.w));
-            const last4 = actualSorted.slice(-4);
-            const prev4 = actualSorted.slice(-8,-4);
-            const avg4  = last4.length  ? last4.reduce((s,x)=>s+x.y,0)/last4.length  : 0;
-            const avg8  = prev4.length  ? prev4.reduce((s,x)=>s+x.y,0)/prev4.length  : 0;
             let trendSpan = '';
-            if (avg8 > 0 && last4.length >= 2 && prev4.length >= 2) {
-              const trendPct = Math.round((avg4/avg8-1)*100);
+            const cur = r.mkr_shvua, prv = r.mkr_prev6;
+            if (cur != null && prv != null && prv > 0) {
+              const trendPct = Math.round((cur / prv - 1) * 100);
               if (trendPct > 10)       trendSpan = '<br><span style="font-size:.6rem;color:#2e7d32;font-weight:600">▲' + trendPct + '%</span>';
               else if (trendPct < -10) trendSpan = '<br><span style="font-size:.6rem;color:#c62828;font-weight:600">▼' + Math.abs(trendPct) + '%</span>';
             }
             const onclk = 'openInfoPanel(\'' + mk + '\',\'' + escJs(fixProductName(r.taur||'')) + '\')';
-            return '<td class="col-prophet" style="cursor:pointer;font-size:.85rem" data-mk="' + mk + '" onclick="' + onclk + '" title="נתוני מכירות">📊' + trendSpan + '</td>';
+            return '<td class="col-prophet" style="cursor:pointer;font-size:.85rem" data-mk="' + mk + '" onclick="' + onclk + '" title="% שינוי מכר 6 שב\' נוכחיות vs 6 שב\' קודמות">📊' + trendSpan + '</td>';
           })() +
           '<td class="c-num col-g"><input class="ei ei-n" type="number" min="0" step="1" value="' + ordV + '" data-mk="' + mk + '" data-ash="' + ash + '" data-mav="' + mav + '" data-f="k" oninput="inp(this)" placeholder="0"/></td>' +
           '<td class="col-g' + (yamim != null && yamim < 14 ? ' tk-lo' : '') + '">' + buildPrtimCell(mk, r.tukuf, nts) + '</td>';
@@ -2279,22 +2274,14 @@ window.openInfoPanel = function(mk, taur) {
   // Look up row data
   const _all = window._mmdGetAll ? window._mmdGetAll() : [];
   const r = _all.find(function(x){ return String(x.mkt ?? '') === mk; }) || null;
-  const p = window.prophetMap && window.prophetMap[mk];
-
   // ── Header ──────────────────────────────────────────────────────
   document.getElementById('pp-title').textContent    = taur || ('מק"ט ' + mk);
   document.getElementById('pp-subtitle').textContent = 'מק"ט ' + mk + (r ? ' · ' + (r.hevra || '') : '');
 
-  // ── Trend from series.actual ─────────────────────────────────────
-  const actualSorted = (p && p.series && p.series.actual ? [...p.series.actual] : [])
-    .sort(function(a, b){ return a.w.localeCompare(b.w); });
-  const last6 = actualSorted.slice(-6);
-  const prev6 = actualSorted.slice(-12, -6);
-  const avg6  = last6.length ? last6.reduce(function(s,x){return s+x.y;},0)/last6.length : 0;
-  const avgP6 = prev6.length ? prev6.reduce(function(s,x){return s+x.y;},0)/prev6.length : 0;
+  // ── Trend from PBI mkr_shvua (last 6w) vs mkr_prev6 (prev 6w) ──
   let trendPct = null;
-  if (avgP6 > 0 && last6.length >= 2 && prev6.length >= 2)
-    trendPct = Math.round((avg6 / avgP6 - 1) * 100);
+  if (r && r.mkr_shvua != null && r.mkr_prev6 != null && r.mkr_prev6 > 0)
+    trendPct = Math.round((r.mkr_shvua / r.mkr_prev6 - 1) * 100);
 
   // ── Trend badge ──────────────────────────────────────────────────
   const badge = document.getElementById('pp-trend-badge');
@@ -2407,6 +2394,7 @@ window.openInfoPanel = function(mk, taur) {
   }
 
   // ── n_points note ────────────────────────────────────────────────
+  const p = window.prophetMap && window.prophetMap[mk];
   const np = p ? (p.n_points ?? null) : null;
   document.getElementById('pp-np').textContent = np != null ? np + ' שבועות היסטוריה' : '';
 
@@ -2416,28 +2404,25 @@ window.openInfoPanel = function(mk, taur) {
   sparkEl.innerHTML = '';
 
   if (series && Array.isArray(series.actual) && series.actual.length > 0) {
-    // Drop incomplete current week — Sunday-based (Israeli calendar)
     (function(){
       var now = new Date(); now.setHours(0,0,0,0);
-      var dow = now.getDay(); // 0=Sun
-      now.setDate(now.getDate() - dow); // rewind to this week's Sunday
+      var dow = now.getDay();
+      now.setDate(now.getDate() - dow);
       window._sparkCutoff = now.toISOString().slice(0,10);
     })();
     const actual = series.actual
       .filter(function(d){ return d.w < window._sparkCutoff; })
       .sort(function(a,b){ return a.w < b.w ? -1 : 1; });
 
-    // 6+6 weeks used for trend
     const show6prev = actual.slice(-12, -6);
     const show6last = actual.slice(-6);
     const show12 = show6prev.concat(show6last);
 
     function isoWeekNum(ds) {
-      // Israeli convention: week starts Sunday
       var d = new Date(ds + 'T12:00:00');
       var firstSun = new Date(d.getFullYear(), 0, 1);
       var fd = firstSun.getDay();
-      if (fd > 0) firstSun.setDate(firstSun.getDate() - fd); // Sunday on or before Jan 1
+      if (fd > 0) firstSun.setDate(firstSun.getDate() - fd);
       return Math.floor((d - firstSun) / (7 * 86400000)) + 1;
     }
 
@@ -2471,7 +2456,6 @@ window.openInfoPanel = function(mk, taur) {
       sparkEl.appendChild(col);
     });
 
-    // Axis: week number under every bar
     (function() {
       var ax = document.getElementById('pp-spark-axis-dyn');
       if (!ax) return;
