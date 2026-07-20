@@ -3168,7 +3168,9 @@ function mmdGuard(req, res, next) {
   return res.status(403).send(`<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>גישה מוגבלת</title><style>body{font-family:sans-serif;background:#f0f2f5;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}div{text-align:center;background:#fff;padding:48px 40px;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.08)}h2{margin:0 0 12px;color:#1a1a2e;font-size:1.4rem}p{color:#666;margin:0}</style></head><body><div><div style="font-size:2.5rem;margin-bottom:16px">🔒</div><h2>גישה דרך Power BI בלבד</h2><p>יש לפתוח את האפליקציה מתוך לוח הבקרה ב-Power BI</p></div></body></html>`);
 }
 app.get('/mmd/mmd-orders.json', mmdGuard, (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'docs', 'mmd-orders.json'));
+  const livePath = path.join(__dirname, 'data', 'mmd-orders-live.json');
+  const fallback = path.join(__dirname, '..', 'docs', 'mmd-orders.json');
+  res.sendFile(fs.existsSync(livePath) ? livePath : fallback);
 });
 app.get('/mmd/prophet.json', mmdGuard, (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'prophet.json'));
@@ -3284,6 +3286,7 @@ app.get('/mmd/history-all', mmdGuard, dataRateLimit, (req, res) => {
   } catch { res.status(500).json({ error: 'server_error' }); }
 });
 
+const MMD_LIVE_PATH = path.join(__dirname, 'data', 'mmd-orders-live.json');
 let rebuildInProgress = false;
 app.post('/mmd/rebuild', mmdGuard, dataRateLimit, (req, res) => {
   if (rebuildInProgress) return res.json({ ok: false, busy: true });
@@ -3292,6 +3295,13 @@ app.post('/mmd/rebuild', mmdGuard, dataRateLimit, (req, res) => {
   execFile('node', [script], { timeout: 60000 }, (err, stdout) => {
     rebuildInProgress = false;
     if (err) return res.status(500).json({ ok: false, error: err.message });
+    // Copy result to live path (outside git tree) to avoid dirty working directory
+    try {
+      fs.mkdirSync(path.dirname(MMD_LIVE_PATH), { recursive: true });
+      fs.copyFileSync(path.join(__dirname, '..', 'docs', 'mmd-orders.json'), MMD_LIVE_PATH);
+      // Restore docs copy to keep git clean
+      require('child_process').execSync('git checkout -- docs/mmd-orders.json', { cwd: path.join(__dirname, '..') });
+    } catch(e) { /* non-fatal */ }
     const m = stdout.match(/Saved (\d+) products/);
     res.json({ ok: true, products: m ? Number(m[1]) : null });
   });

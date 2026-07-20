@@ -47,13 +47,14 @@ jobs:
           POWERBI_MMD_DATASET_ID: ${{ secrets.PBI_MMD_DATASET }}
         run: node server/build-mmd-orders.js
 
-      - name: Deploy JSON to VPS
+      - name: Deploy JSON to VPS (live path, outside git tree)
         run: |
           echo "${{ secrets.VPS_SSH_KEY }}" > /tmp/vps_key
           chmod 600 /tmp/vps_key
+          ssh -o StrictHostKeyChecking=no -i /tmp/vps_key root@31.154.67.58 "mkdir -p /root/COLUMBUS/server/data"
           scp -o StrictHostKeyChecking=no -i /tmp/vps_key \
             docs/mmd-orders.json \
-            root@31.154.67.58:/root/COLUMBUS/docs/
+            root@31.154.67.58:/root/COLUMBUS/server/data/mmd-orders-live.json
           rm /tmp/vps_key
 
       - name: Commit and push
