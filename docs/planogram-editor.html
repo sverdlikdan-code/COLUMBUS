@@ -3373,7 +3373,7 @@ function buildOrderPage() {
         <td style="padding:2px 4px;text-align:center;">${_donut(r.pizur, r.isStar)}</td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;">${r.daySales > 0 ? (r.daySales >= 1 ? Math.round(r.daySales) : r.daySales.toFixed(1)) : '—'}</td>
         <td class="ord-trend-cell" data-mk="${r.mk}" onclick="_openMonthChart(${r.mk},${JSON.stringify(r.name)})" style="padding:4px 6px;text-align:center;background:#f3e5f5;cursor:pointer;min-width:52px;" title="לחץ לגרף מכר חודשי">
-          <span id="ord-trend-${r.mk}" style="font-size:10px;font-weight:700;color:#7b1fa2;">⏳</span>
+          <span id="ord-trend-${r.mk}" style="font-size:10px;font-weight:700;color:#ce93d8;">·</span>
         </td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;font-weight:${r.periodSales ? '700' : '400'};color:${r.periodSales ? '#01579b' : '#bbb'};">${r.periodSales ? fmtK(r.periodSales) : '—'}</td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;font-weight:700;color:${dc};">${r.daysStk !== null ? Math.round(r.daysStk) : '—'}${r.deferredDemand ? ' <span title="ביקוש נדחה — מלאי מתחת למחצית מלאי הביטחון" style="cursor:help;">⚡</span>' : ''}</td>
@@ -4613,8 +4613,12 @@ window.addEventListener('afterprint', () => {
         if (span) span.innerHTML = _trendHtml(_computeTrend(months));
       });
     } catch (e) {
-      console.warn('[dagim-monthly] fetch failed:', e.message);
-      document.querySelectorAll('[id^="ord-trend-"]').forEach(s => { s.textContent = '—'; });
+      console.error('[dagim-monthly] fetch failed:', e.message);
+      document.querySelectorAll('[id^="ord-trend-"]').forEach(s => {
+        s.textContent = '!';
+        s.style.color = '#c62828';
+        s.title = e.message;
+      });
     }
   };
 
