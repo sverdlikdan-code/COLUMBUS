@@ -49,16 +49,17 @@ async function dax(token, query) {
 async function fetchDagimYaveshFromBI(knownMakatim = []) {
   const t = await getToken();
 
-  // Build famMakatim from known makatim list (passed from dagim-yavesh-base.json picks).
-  // Avoids emoji/encoding issues with section name filter in GitHub Actions CI.
-  // Falls back to KARTIS PARIT section filter if no makatim provided.
-  let famMakatim;
-  if (knownMakatim.length > 0) {
-    const mkList = knownMakatim.map(m => `"${m}"`).join(', ');
-    famMakatim = `SELECTCOLUMNS(FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] = "פעיל" && 'KARTIS PARIT'[מק"ט] IN {${mkList}}), "mk", 'KARTIS PARIT'[מק"ט])`;
-  } else {
-    famMakatim = `SELECTCOLUMNS(FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] = "פעיל"), "mk", 'KARTIS PARIT'[מק"ט])`;
-  }
+  // famMakatim: section-filter approach — auto-discovers new products when added to KARTIS PARIT.
+  // Use TREATAS (not CONTAINSROW) in all dependent queries — CONTAINSROW with SELECTCOLUMNS
+  // table silently returns empty in Fabric CI (type coercion issue); TREATAS handles it correctly.
+  const famMakatim = `
+    SELECTCOLUMNS(
+      FILTER('KARTIS PARIT',
+        'KARTIS PARIT'[סטטוס] = "פעיל" &&
+        'KARTIS PARIT'[שם מחסן אשדוד] = "דג יבש 🐠"
+      ),
+      "mk", 'KARTIS PARIT'[מק"ט]
+    )`;
 
   const [stockRows, salesRows, descRows, mlayDescRows, pakuaRows, salesAllRows, pakuaAllRows, nameEnRows,
          stockZafnRows, salesZafnRows, pakuaZafnRows, sales365Rows] = await Promise.all([
@@ -66,13 +67,13 @@ async function fetchDagimYaveshFromBI(knownMakatim = []) {
     // 1. Stock at Main (Ashdod)
     dax(t, `
       EVALUATE
-      SUMMARIZECOLUMNS(
-        'מלאי-תוקף'[מק"ט],
-        FILTER('מלאי-תוקף',
-          'מלאי-תוקף'[מחסן] = "Main" &&
-          CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
+      CALCULATETABLE(
+        SUMMARIZECOLUMNS(
+          'מלאי-תוקף'[מק"ט],
+          "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
         ),
-        "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+        'מלאי-תוקף'[מחסן] = "Main",
+        TREATAS(${famMakatim}, 'מלאי-תוקף'[מק"ט])
       )
     `),
 
@@ -94,38 +95,40 @@ async function fetchDagimYaveshFromBI(knownMakatim = []) {
     // 3. Desc from מלאי-תוקף Main
     dax(t, `
       EVALUATE
-      SUMMARIZECOLUMNS(
-        'מלאי-תוקף'[מק"ט],
-        'מלאי-תוקף'[תאור מוצר],
-        FILTER('מלאי-תוקף',
-          'מלאי-תוקף'[מחסן] = "Main" &&
-          CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
-        )
+      CALCULATETABLE(
+        SUMMARIZECOLUMNS(
+          'מלאי-תוקף'[מק"ט],
+          'מלאי-תוקף'[תאור מוצר]
+        ),
+        'מלאי-תוקף'[מחסן] = "Main",
+        TREATAS(${famMakatim}, 'מלאי-תוקף'[מק"ט])
       )
     `),
 
     // 4. Desc + family code fallback from MLAY master catalog
     dax(t, `
       EVALUATE
-      SUMMARIZECOLUMNS(
-        MLAY[מק'ט],
-        MLAY[תאור מוצר],
-        MLAY[משפחת מוצר],
-        FILTER(MLAY, CONTAINSROW(${famMakatim}, MLAY[מק'ט]))
+      CALCULATETABLE(
+        SUMMARIZECOLUMNS(
+          MLAY[מק'ט],
+          MLAY[תאור מוצר],
+          MLAY[משפחת מוצר]
+        ),
+        TREATAS(${famMakatim}, MLAY[מק'ט])
       )
     `),
 
     // 5. פק"ע batches at Main — planogram display
     dax(t, `
       EVALUATE
-      SUMMARIZECOLUMNS(
-        'מלאי-תוקף'[מק"ט],
-        'מלאי-תוקף'[ת. תפוגת תוקף],
-        FILTER('מלאי-תוקף',
-          'מלאי-תוקף'[מחסן] = "Main" &&
-          CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
+      CALCULATETABLE(
+        SUMMARIZECOLUMNS(
+          'מלאי-תוקף'[מק"ט],
+          'מלאי-תוקף'[ת. תפוגת תוקף],
+          "cartons", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
         ),
-        "cartons", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+        'מלאי-תוקף'[מחסן] = "Main",
+        TREATAS(${famMakatim}, 'מלאי-תוקף'[מק"ט])
       )
       ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
     `),
@@ -147,11 +150,13 @@ async function fetchDagimYaveshFromBI(knownMakatim = []) {
     // 7. פק"ע ALL warehouses — for סכנה calculation
     dax(t, `
       EVALUATE
-      SUMMARIZECOLUMNS(
-        'מלאי-תוקף'[מק"ט],
-        'מלאי-תוקף'[ת. תפוגת תוקף],
-        FILTER('מלאי-תוקף', CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])),
-        "cartons", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+      CALCULATETABLE(
+        SUMMARIZECOLUMNS(
+          'מלאי-תוקף'[מק"ט],
+          'מלאי-תוקף'[ת. תפוגת תוקף],
+          "cartons", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+        ),
+        TREATAS(${famMakatim}, 'מלאי-תוקף'[מק"ט])
       )
       ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
     `),
@@ -171,13 +176,13 @@ async function fetchDagimYaveshFromBI(knownMakatim = []) {
     // 9. Stock at Zafn (North)
     dax(t, `
       EVALUATE
-      SUMMARIZECOLUMNS(
-        'מלאי-תוקף'[מק"ט],
-        FILTER('מלאי-תוקף',
-          'מלאי-תוקף'[מחסן] = "Zafn" &&
-          CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
+      CALCULATETABLE(
+        SUMMARIZECOLUMNS(
+          'מלאי-תוקף'[מק"ט],
+          "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
         ),
-        "stock", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+        'מלאי-תוקף'[מחסן] = "Zafn",
+        TREATAS(${famMakatim}, 'מלאי-תוקף'[מק"ט])
       )
     `),
 
@@ -199,14 +204,14 @@ async function fetchDagimYaveshFromBI(knownMakatim = []) {
     // 11. פק"ע batches at Zafn
     dax(t, `
       EVALUATE
-      SUMMARIZECOLUMNS(
-        'מלאי-תוקף'[מק"ט],
-        'מלאי-תוקף'[ת. תפוגת תוקף],
-        FILTER('מלאי-תוקף',
-          'מלאי-תוקף'[מחסן] = "Zafn" &&
-          CONTAINSROW(${famMakatim}, 'מלאי-תוקף'[מק"ט])
+      CALCULATETABLE(
+        SUMMARIZECOLUMNS(
+          'מלאי-תוקף'[מק"ט],
+          'מלאי-תוקף'[ת. תפוגת תוקף],
+          "cartons", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
         ),
-        "cartons", SUM('מלאי-תוקף'[קרטון מלאי תוקף])
+        'מלאי-תוקף'[מחסן] = "Zafn",
+        TREATAS(${famMakatim}, 'מלאי-תוקף'[מק"ט])
       )
       ORDER BY 'מלאי-תוקף'[מק"ט], 'מלאי-תוקף'[ת. תפוגת תוקף]
     `),
