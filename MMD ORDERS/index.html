@@ -1459,10 +1459,11 @@
     let tAsh = 0, tEil = 0, tMav = 0, tMmd = 0, tMkr = 0, tHaml = 0, tOrd = 0, nOrd = 0;
     const coMap = {}; // per-company order totals
 
-    // Group by mishpacha
+    // Group by mishpacha (ICE bdd / ICE MISH / INTER → by param2 instead)
     const seen = [], grpMap = {};
     rows.forEach(r => {
-      const g = r.mishpacha || '—';
+      const useP2 = r.hevra === 'ICE bdd' || r.hevra === 'ICE MISH' || r.hevra === 'INTER';
+      const g = (useP2 ? r.param2 : null) || r.mishpacha || '—';
       if (!grpMap[g]) { grpMap[g] = []; seen.push(g); }
       grpMap[g].push(r);
     });
