@@ -2853,8 +2853,12 @@ function _applySeasonSlider(val) {
     inp.setAttribute('value', adjK);
     inp.style.borderColor = adjK > 0 ? '#1565C0' : '#ddd';
     inp.style.color       = adjK > 0 ? '#0d47a1' : '#555';
-    _recalcRowPal(inp);
+    // Update PAL cell directly — do NOT call _recalcRowPal which would overwrite _orderManualEdits base
+    const pal = krat > 0 ? Math.round(adjK / krat * 10) / 10 : 0;
+    const pCell = document.querySelector(`.ord-p-auto[data-mk="${mk}"]`);
+    if (pCell) pCell.textContent = adjK > 0 ? pal.toFixed(1) : '—';
   });
+  _recalcOrdTotal();
 }
 
 function _resetSeasonSlider() {
@@ -3372,7 +3376,7 @@ function buildOrderPage() {
         <td style="padding:4px 6px;text-align:center;font-size:11px;color:#777;">${(window._orderTotalBranchy||null) != null ? window._orderTotalBranchy.toLocaleString('en') : '—'}</td>
         <td style="padding:2px 4px;text-align:center;">${_donut(r.pizur, r.isStar)}</td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;">${r.daySales > 0 ? (r.daySales >= 1 ? Math.round(r.daySales) : r.daySales.toFixed(1)) : '—'}</td>
-        <td class="ord-trend-cell" data-mk="${r.mk}" onclick="_openMonthChart(${r.mk},${JSON.stringify(r.name)})" style="padding:4px 6px;text-align:center;background:#f3e5f5;cursor:pointer;min-width:52px;" title="לחץ לגרף מכר חודשי">
+        <td class="ord-trend-cell" data-mk="${r.mk}" data-name="${(r.name||'').replace(/"/g,'&quot;')}" onclick="_openMonthChart(this.dataset.mk,this.dataset.name)" style="padding:4px 6px;text-align:center;background:#f3e5f5;cursor:pointer;min-width:52px;" title="לחץ לגרף מכר חודשי">
           <span id="ord-trend-${r.mk}" style="font-size:10px;font-weight:700;color:#ce93d8;">·</span>
         </td>
         <td style="padding:4px 8px;text-align:center;font-size:12px;font-weight:${r.periodSales ? '700' : '400'};color:${r.periodSales ? '#01579b' : '#bbb'};">${r.periodSales ? fmtK(r.periodSales) : '—'}</td>
@@ -4642,8 +4646,12 @@ window.addEventListener('afterprint', () => {
     overlay.classList.add('open');
   };
 
-  document.getElementById('month-chart-overlay').addEventListener('click', _closeMonthChart);
   window._closeMonthChart = _closeMonthChart;
+  // Overlay click-to-close: popup div is rendered after this script, use setTimeout to defer
+  setTimeout(function() {
+    const ov = document.getElementById('month-chart-overlay');
+    if (ov) ov.addEventListener('click', _closeMonthChart);
+  }, 0);
 })();
 </script>
 
