@@ -156,12 +156,12 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .fr-sadran-chip{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:2px solid transparent;white-space:nowrap;flex:0 0 auto;opacity:.4;transition:all .15s;color:#fff;background:#7B1FA2;}
 .fr-sadran-chip.on{opacity:1;box-shadow:0 2px 8px rgba(123,31,162,.3);}
 .fr-sadran-chip-count{font-size:9px;font-weight:800;margin-right:4px;opacity:.8;}
-.excl-btn{font-size:14px;flex-shrink:0;cursor:pointer;opacity:.28;transition:opacity .15s;min-width:32px;min-height:32px;display:flex;align-items:center;justify-content:center;}
+.excl-btn{font-size:14px;flex-shrink:0;cursor:pointer;opacity:.28;transition:opacity .15s;width:32px;height:32px;display:flex;align-items:center;justify-content:center;}
 .excl-btn:hover,.client-card.excluded .excl-btn{opacity:.9;}
-.mekarer-btn{font-size:11px;flex-shrink:0;cursor:pointer;background:#E3F2FD;border:1.5px solid #90CAF9;border-radius:6px;padding:2px 5px;color:#1565C0;font-weight:800;line-height:1.3;text-align:center;transition:background .12s;min-width:32px;min-height:28px;display:flex;align-items:center;justify-content:center;}
-.mekarer-btn:hover{background:#BBDEFB;}
-.ai-insight-btn{font-size:10px;flex-shrink:0;cursor:pointer;background:#EDE7F6;border:1.5px solid #9575CD;border-radius:6px;padding:2px 6px;color:#4527A0;font-weight:900;line-height:1.3;text-align:center;transition:background .12s;min-height:28px;display:flex;align-items:center;justify-content:center;letter-spacing:.3px;}
-.ai-insight-btn:hover{background:#D1C4E9;}
+.mekarer-btn{font-size:11px;flex-shrink:0;cursor:pointer;background:#BBDEFB;border:1.5px solid #42A5F5;border-radius:6px;padding:2px 6px;color:#1565C0;font-weight:900;line-height:1.3;text-align:center;transition:background .12s;min-height:28px;display:flex;align-items:center;justify-content:center;}
+.mekarer-btn:hover{background:#90CAF9;}
+.ai-insight-btn{font-size:10px;flex-shrink:0;cursor:pointer;background:#D1C4E9;border:1.5px solid #9575CD;border-radius:6px;padding:2px 6px;color:#4527A0;font-weight:900;line-height:1.3;text-align:center;transition:background .12s;min-height:28px;display:flex;align-items:center;justify-content:center;letter-spacing:.3px;}
+.ai-insight-btn:hover{background:#B39DDB;}
 /* AI Analytics Modal */
 #ai-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px;}
 #ai-modal.open{display:flex;}
@@ -194,10 +194,9 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .c-sub{font-size:10px;color:var(--mid);margin-top:1px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .no-gps-icon{display:none;}
 .no-gps-badge{font-size:11px;font-weight:900;color:#fff;background:var(--red);padding:4px 10px;border-radius:8px;flex-shrink:0;cursor:pointer;letter-spacing:.5px;white-space:nowrap;}
-/* adapt: 44px touch zones for icon buttons */
-.gps-edit-btn{font-size:16px;flex-shrink:0;cursor:pointer;opacity:.4;transition:opacity .15s;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;}
+.gps-edit-btn{font-size:16px;flex-shrink:0;cursor:pointer;opacity:.4;transition:opacity .15s;width:32px;height:32px;display:flex;align-items:center;justify-content:center;}
 .gps-edit-btn:hover{opacity:.85;}
-.day-change-btn{font-size:16px;flex-shrink:0;cursor:pointer;opacity:.35;transition:opacity .15s;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;}
+.day-change-btn{font-size:16px;flex-shrink:0;cursor:pointer;opacity:.35;transition:opacity .15s;width:32px;height:32px;display:flex;align-items:center;justify-content:center;}
 .day-change-btn:hover{opacity:.9;}
 /* harden: prefers-reduced-motion */
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important;}}
@@ -1410,11 +1409,15 @@ async function initRoute(){
   });
 
   if(myId !== _initRouteId) return; // newer call in flight — discard stale results
-  st.aiClients=nearestNeighbor([..._aiGpsClients(st.clients)]);
-  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; triggerOsrm();
-  updateKmBar();
-  renderCityFilters();
-  renderClientList();
+  try {
+    st.aiClients=nearestNeighbor([..._aiGpsClients(st.clients)]);
+    st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; triggerOsrm();
+    updateKmBar();
+    renderCityFilters();
+  } catch(renderErr) {
+    console.error('[initRoute] pre-render error (day='+st.day+'):', renderErr);
+  }
+  renderClientList(); // always called — never leave spinner hanging
   // Road-optimal ordering via OSRM /trip (async, cached)
   const _snapId=myId, _snapAgent=st.agent?.code, _snapDay=st.day;
   osrmTripOrder([..._aiGpsClients(st.clients)], st.startLat, st.startLng).then(ordered=>{
@@ -1758,7 +1761,7 @@ function renderClientList(html){
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;">
         ${c.custId?`<span class="c-id-side">${c.custId}</span>`:''}
-        <div style="display:flex;align-items:center;gap:0;">
+        <div style="display:flex;align-items:center;gap:3px;">
           <span class="excl-btn" data-id="${c.custId}" onclick="toggleExclude('${c.custId}',event)" title="הוצא ממסלול">🚫</span>
           <span class="day-change-btn" data-id="${c.custId}" onclick="openDayPopup(event,this.dataset.id)">📅</span>
           <span class="mekarer-btn" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" data-city="${(c.city||'').replace(/"/g,'&quot;')}" onclick="openMekarerOrder(event,this.dataset.id,this.dataset.name,this.dataset.city)">🧊</span>
