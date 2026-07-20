@@ -759,6 +759,16 @@
   <div style="display:flex;align-items:center;gap:6px;padding:7px 14px;background:#E3F2FD;border-bottom:1px solid #BBDEFB;flex-shrink:0;" class="no-print">
     <button id="btn-order-only" onclick="toggleOrderOnly()" style="background:#fff;border:1.5px solid #BBDEFB;color:#0D47A1;font-size:11px;font-weight:700;cursor:pointer;border-radius:20px;padding:5px 14px;white-space:nowrap;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.12);transition:all 0.15s;">📋 הזמנה בלבד</button>
     <div style="width:1px;height:18px;background:#BBDEFB;flex-shrink:0;margin:0 2px;"></div>
+    <!-- Season multiplier slider — applies only to manually-edited rows -->
+    <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;padding:3px 10px;background:#fff;border:1.5px solid #BBDEFB;border-radius:20px;box-shadow:0 2px 6px rgba(0,0,0,.08);" title="עונתי — הגדלה/הקטנה של הזמנות ידניות בלבד">
+      <span style="font-size:11px;color:#555;white-space:nowrap;">📅</span>
+      <input type="range" id="season-slider" min="-50" max="50" step="5" value="0"
+        oninput="_applySeasonSlider(this.value)"
+        style="width:80px;cursor:pointer;accent-color:#1565C0;">
+      <span id="season-pct-label" style="font-size:11px;font-weight:800;color:#1565C0;min-width:34px;text-align:center;">×1</span>
+      <button type="button" onclick="_resetSeasonSlider()" title="אפס" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:12px;padding:0;line-height:1;" id="season-reset-btn">✕</button>
+    </div>
+    <div style="width:1px;height:18px;background:#BBDEFB;flex-shrink:0;margin:0 2px;"></div>
     <div id="ord-fam-btns" style="display:flex;flex:1;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;"></div>
   </div>
 
@@ -2819,6 +2829,39 @@ function toggleOrderPage() {
   }
 }
 
+// ── Season slider — multiplies only manually-edited rows ─────────────────
+window._orderSeasonPct = 0;
+
+function _applySeasonSlider(val) {
+  const pct = parseInt(val, 10);
+  window._orderSeasonPct = pct;
+  const label = document.getElementById('season-pct-label');
+  const resetBtn = document.getElementById('season-reset-btn');
+  if (label) label.textContent = pct === 0 ? '×1' : (pct > 0 ? '+' + pct + '%' : pct + '%');
+  if (label) label.style.color = pct > 0 ? '#1b5e20' : pct < 0 ? '#c62828' : '#1565C0';
+  if (resetBtn) resetBtn.style.color = pct !== 0 ? '#c62828' : '#aaa';
+
+  const manualEdits = window._orderManualEdits || {};
+  document.querySelectorAll('.ord-k-input[data-mk]').forEach(inp => {
+    const mk = String(inp.dataset.mk);
+    const edit = manualEdits[mk];
+    if (!edit) return;
+    const krat = parseInt(inp.dataset.krat, 10) || 1;
+    const baseK = edit.orderK;
+    const adjK = pct === 0 ? baseK : Math.max(0, Math.round(baseK * (1 + pct / 100) / krat) * krat);
+    inp.value = adjK;
+    inp.setAttribute('value', adjK);
+    inp.style.borderColor = adjK > 0 ? '#1565C0' : '#ddd';
+    inp.style.color       = adjK > 0 ? '#0d47a1' : '#555';
+    _recalcRowPal(inp);
+  });
+}
+
+function _resetSeasonSlider() {
+  const slider = document.getElementById('season-slider');
+  if (slider) { slider.value = 0; _applySeasonSlider(0); }
+}
+
 function setOrderFam(fam) {
   if (fam === '') {
     window._orderFams.clear();
@@ -2872,13 +2915,15 @@ function _orderFmtTs(iso) {
 }
 
 async function _orderSaveSnapshot() {
-  // Build snapshot from current rows (manual edits + recK fallback)
+  // Build snapshot — read from DOM inputs so slider-adjusted values are saved
   const rows  = window._orderCurrentRows || [];
   const edits = window._orderManualEdits || {};
   const snapshot = {};
   rows.forEach(r => {
     const mk = String(r.mk ?? r.makat ?? '');
-    const qty = edits[mk]?.orderK ?? r.recK ?? 0;
+    if (!edits[mk]) return; // save only manual rows
+    const inp = document.querySelector(`.ord-k-input[data-mk="${mk}"]`);
+    const qty = inp ? (parseInt(inp.value, 10) || 0) : (edits[mk]?.orderK ?? 0);
     if (qty > 0) snapshot[mk] = { orderK: qty };
   });
 
@@ -3385,6 +3430,9 @@ function buildOrderPage() {
     <div style="font-size:10px;color:#999;margin-top:10px;text-align:left;direction:ltr;">
       ${rows.length} מוצרים | בטחון: מצונן/פורל/סלמון = 10d | אחרים = 45d | קונטיינר = ${PALS_PER_CONT} PAL
     </div>`;
+
+  // Re-apply season slider if non-zero (DOM was rebuilt)
+  if (window._orderSeasonPct) _applySeasonSlider(window._orderSeasonPct);
 
   // Populate trend cells if monthly data already loaded
   if (window._dagimMonthlyData) {
