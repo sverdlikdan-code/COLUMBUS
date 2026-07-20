@@ -54,12 +54,18 @@
 .clr-o{color:#e65100 !important;font-weight:bold}
 .clr-g{color:#2e7d32 !important}
 #loading{padding:50px;text-align:center;color:#888;background:#f4f6fb !important;min-height:100vh}
+#tukuf-print-header{display:none}
 @media print{
-  @page{size:A4 landscape;margin:7mm}
-  #hdr{position:static!important}
-  .hbtn,.hbtn-util,.hbtn-reset,.ec-hide,.no-print{display:none!important}
-  #cards{padding:6px!important;gap:8px!important}
-  .ec{width:270px!important;box-shadow:none!important}
+  @page{size:A4 landscape;margin:6mm}
+  body{background:#fff;margin:0}
+  body.printing-tukuf>*:not(#cards):not(#tukuf-print-header){display:none!important}
+  body.printing-tukuf #tukuf-print-header{display:flex!important;justify-content:space-between;align-items:center;padding:4px 8px;font-size:11px;font-weight:bold;color:#333;border-bottom:1px solid #ccc;margin-bottom:4px}
+  body.printing-tukuf #cards{display:block!important;padding:0!important;gap:0!important;min-height:0!important;overflow:visible!important}
+  body.printing-tukuf .tukuf-page-group{display:grid!important;grid-template-columns:repeat(2,1fr)!important;grid-template-rows:repeat(2,1fr)!important;gap:4px!important;width:100%!important;height:190mm!important;overflow:hidden!important;break-after:page!important;page-break-after:always!important;box-sizing:border-box!important}
+  body.printing-tukuf .tukuf-page-group:last-child{break-after:auto!important;page-break-after:auto!important}
+  body.printing-tukuf .tukuf-page-group>.ec{overflow:hidden!important;min-height:0!important;height:100%!important;width:100%!important;box-sizing:border-box!important;border-radius:4px!important;box-shadow:none!important}
+  .ec-hide,.no-print{display:none!important}
+  -webkit-print-color-adjust:exact!important;print-color-adjust:exact!important
 }
 </style>
 </head>
@@ -79,6 +85,7 @@
 </div>
 
 <div id="summary" style="background:#fff;padding:7px 18px;font-size:13px;color:#444;border-bottom:1px solid #dde0e8"></div>
+<div id="tukuf-print-header"><span>דוח תוקף אילת — MMD FORMULA</span><span id="tukuf-print-date"></span></div>
 <div id="loading" style="padding:50px;text-align:center;color:#888">טוען נתונים...</div>
 <div id="cards" style="display:none;background:#f4f6fb;min-height:100vh"></div>
 
@@ -271,6 +278,54 @@ function buildHebraButtons(cards){
     wrap.appendChild(b);
   });
 }
+
+window.addEventListener('beforeprint', function() {
+  var cards = document.getElementById('cards');
+  if (!cards) return;
+  var cardEls = Array.from(cards.querySelectorAll(':scope > .ec'));
+  var heights = new Map(); var maxW = 0;
+  cardEls.forEach(function(c) {
+    heights.set(c, c.offsetHeight || 200);
+    maxW = Math.max(maxW, c.offsetWidth || 300);
+  });
+  document.body.classList.add('printing-tukuf');
+  document.title = 'דוח תוקף אילת — FORMULA';
+  var pd = document.getElementById('tukuf-print-date');
+  if (pd) pd.textContent = 'הדפסה: ' + new Date().toLocaleDateString('he-IL');
+  cards._printOrigHTML = cards.innerHTML;
+  cards.innerHTML = '';
+  for (var i = 0; i < cardEls.length; i += 4) {
+    var group = cardEls.slice(i, i + 4);
+    group.sort(function(a, b) { return (heights.get(a) || 200) - (heights.get(b) || 200); });
+    var grp = document.createElement('div');
+    grp.className = 'tukuf-page-group';
+    group.forEach(function(c) { grp.appendChild(c); });
+    while (grp.children.length < 4) grp.appendChild(document.createElement('div'));
+    cards.appendChild(grp);
+  }
+  // Per-row zoom: A4 landscape content ~285×198mm at 96dpi
+  var MM = 96 / 25.4;
+  var cellW = (285 * MM - 4) / 2;
+  var cellH = (198 * MM - 28 - 4) / 2;
+  var allCells = Array.from(document.querySelectorAll('.tukuf-page-group > .ec'));
+  for (var j = 0; j < allCells.length; j += 2) {
+    var row = allCells.slice(j, j + 2);
+    var rowMaxH = 0;
+    row.forEach(function(c) { var h = heights.get(c) || 0; if (h > rowMaxH) rowMaxH = h; });
+    if (rowMaxH === 0) rowMaxH = 200;
+    var s = Math.min(cellW / (maxW || 300), cellH / rowMaxH, 1.4);
+    row.forEach(function(c) { c.style.zoom = Math.max(0.4, Math.min(s, 3)).toFixed(3); });
+  }
+});
+window.addEventListener('afterprint', function() {
+  document.body.classList.remove('printing-tukuf');
+  document.title = 'תוקף אילת — MMD ORDERS';
+  var cards = document.getElementById('cards');
+  if (cards && cards._printOrigHTML !== undefined) {
+    cards.innerHTML = cards._printOrigHTML;
+    delete cards._printOrigHTML;
+  }
+});
 
 fetch('./mmd-orders.json')
   .then(function(r){return r.json();})

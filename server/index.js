@@ -301,6 +301,9 @@ SELECTCOLUMNS(
             target:        0,
             monthlySales:  salesMap.get(custId)?.monthlySales || 0,
             lastOrderDate: salesMap.get(custId)?.lastOrderDate || null,
+            avg6Sales:     0,
+            avg6Orders:    0,
+            avg6IceSales:  0,
             pct:           0,
             hevra:         'ICE',
             iceOnly:       true,
@@ -310,6 +313,25 @@ SELECTCOLUMNS(
       } catch (iceErr) {
         console.error('[PBI] ICE load error:', iceErr.message);
       }
+    }
+
+    // Patch avg6 sales into ICE-only clients using already-fetched FORMULA ALL_PARTS rows
+    const iceClientFlat = new Map();
+    for (const arr of iceByAgent.values()) {
+      for (const c of arr) iceClientFlat.set(c.custId, c);
+    }
+    for (const r of avg6Rows) {
+      const custId = String(r['ALL_PARTS[מספר לקוח]'] || '');
+      const c = iceClientFlat.get(custId);
+      if (!c) continue;
+      c.avg6Sales  = parseFloat(r['[avg6Sales]'])  || 0;
+      c.avg6Orders = parseFloat(r['[avg6Orders]']) || 0;
+    }
+    for (const r of avg6IceRows) {
+      const custId = String(r['ALL_PARTS[מספר לקוח]'] || '');
+      const c = iceClientFlat.get(custId);
+      if (!c) continue;
+      c.avg6IceSales = parseFloat(r['[avg6IceSales]']) || 0;
     }
 
     pbiCache = {
