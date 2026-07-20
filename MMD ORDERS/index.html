@@ -2312,7 +2312,7 @@ window.openInfoPanel = function(mk, taur) {
   document.getElementById('pp-pizur').textContent      = r ? fmtPct(r.pizur)          : '—';
   var psEl = document.getElementById('pp-pizur-sub');
   if (psEl) psEl.textContent = (r && r.cust_bought != null) ? r.cust_bought + ' / ' + (r.dist_active || '?') + ' לקוחות' : '';
-  document.getElementById('pp-tarif').textContent      = r ? fmt(r.tarif_mmd, 2)      : '—';
+  document.getElementById('pp-tarif').textContent      = (r && r.shelfLife != null) ? r.shelfLife + ' י' : '—';
   // eilat expiry
   const ey = r ? r.eilat_yamim : null;
   const eyEl = document.getElementById('pp-eilat-yamim');
@@ -2647,7 +2647,7 @@ window.toggleOvSakana = function() {
     </div>
     <div class="pp-metrics" style="grid-template-columns:repeat(3,1fr)">
       <div class="pp-metric"><div class="pp-metric-val purple" id="pp-pizur">—</div><div class="pp-metric-lbl">% פיזור לקוחות</div><div id="pp-pizur-sub" style="font-size:.62rem;color:#8899aa;margin-top:2px">— / —</div></div>
-      <div class="pp-metric"><div class="pp-metric-val green"  id="pp-tarif">—</div><div class="pp-metric-lbl">תאריף MMD ₪</div></div>
+      <div class="pp-metric"><div class="pp-metric-val green"  id="pp-tarif">—</div><div class="pp-metric-lbl">מדף מינ' ימים</div></div>
       <div class="pp-metric"><div class="pp-metric-val"        id="pp-eilat-yamim">—</div><div class="pp-metric-lbl">ימים לתוקף אילת</div></div>
     </div>
     <div id="pp-eilat-tukuf" style="font-size:.7rem;color:#8899aa;text-align:center;padding:4px 0 4px;direction:rtl"></div>
