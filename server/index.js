@@ -1275,6 +1275,22 @@ app.get('/territory-cities', requireAuth, async (req, res) => {
   res.json([...cities].sort((a,b) => a.localeCompare(b, 'he')));
 });
 
+// GET /agent-cities?agents=X,Y&managers=A,B — cities for specific agents/managers
+app.get('/agent-cities', requireAuth, async (req, res) => {
+  if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
+  const agentCodes  = req.query.agents   ? req.query.agents.split(',').map(s=>s.trim()).filter(Boolean)   : [];
+  const managerNames= req.query.managers ? req.query.managers.split(',').map(s=>s.trim()).filter(Boolean) : [];
+  const cities = new Set();
+  for (const [agentCode, clients] of pbiCache.byAgent) {
+    if (agentCodes.length && !agentCodes.includes(agentCode)) continue;
+    for (const c of clients) {
+      if (managerNames.length && !managerNames.includes(c.manager)) continue;
+      if (c.city) cities.add(c.city);
+    }
+  }
+  res.json([...cities].sort((a,b) => a.localeCompare(b, 'he')));
+});
+
 // GET /territory-clients?cities=CITY1,CITY2 — all clients in cities across all agents
 app.get('/territory-clients', requireAuth, dataRateLimit, async (req, res) => {
   const { city, cities } = req.query;
@@ -2554,6 +2570,51 @@ app.get('/pbi/formula-refresh', dataRateLimit, async (req, res) => {
     res.json({ ok: true, refreshedAt: t });
   } catch (err) {
     res.json({ ok: false, refreshedAt: null });
+  }
+});
+
+// GET /pbi/dagim-all-monthly — last 13 months carton sales for ALL dagim/halavi products (batch)
+// Used by הזמנה דגים trend column: loaded once on page open, cached client-side.
+app.get('/pbi/dagim-all-monthly', dataRateLimit, async (req, res) => {
+  const now = new Date();
+  const conds = [];
+  for (let i = 12; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    conds.push(`(DIMCALENDAR[Year]=${d.getFullYear()}&&DIMCALENDAR[Month]=${d.getMonth()+1})`);
+  }
+  const dateFilter = `FILTER(ALL(DIMCALENDAR[Date]),${conds.join('||')})`;
+
+  try {
+    const rows = await executeDax(`
+      EVALUATE
+      CALCULATETABLE(
+        SUMMARIZECOLUMNS(
+          'ALL_PARTS'[מק'ט],
+          DIMCALENDAR[Year],
+          DIMCALENDAR[Month],
+          "mkr", [TOTAL מכר בקרטונים]
+        ),
+        'ALL_PARTS'[חברה] = "FORMULA",
+        'ALL_PARTS'[ASHMADOT] IN {"-מכר-"},
+        ${dateFilter}
+      )
+      ORDER BY 'ALL_PARTS'[מק'ט], DIMCALENDAR[Year], DIMCALENDAR[Month]
+    `);
+
+    const byMk = {};
+    for (const r of rows) {
+      const mk = String(r["ALL_PARTS[מק'ט]"]);
+      if (!byMk[mk]) byMk[mk] = [];
+      byMk[mk].push({
+        year:  r['DIMCALENDAR[Year]'],
+        month: r['DIMCALENDAR[Month]'],
+        mkr:   Math.round(r['[mkr]'] || 0),
+      });
+    }
+    res.json({ ok: true, byMk });
+  } catch (err) {
+    console.error('[dagim-all-monthly]', err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
