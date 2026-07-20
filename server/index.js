@@ -2597,6 +2597,7 @@ app.get('/pbi/dagim-all-monthly', dataRateLimit, async (req, res) => {
           "mkr", [TOTAL מכר בקרטונים]
         ),
         'ALL_PARTS'[חברה] = "FORMULA",
+        'ALL_PARTS'[ASHMADOT] IN {"-מכר-"},
         ${dateFilter}
       )
       ORDER BY 'ALL_PARTS'[מק'ט], DIMCALENDAR[Year], DIMCALENDAR[Month]
