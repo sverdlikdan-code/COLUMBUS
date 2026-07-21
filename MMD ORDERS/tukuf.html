@@ -22,10 +22,10 @@
 /* ── Summary ── */
 #summary{padding:7px 18px;font-size:13px;color:#444 !important;background:#fff !important;border-bottom:1px solid #dde0e8}
 /* ── Cards ── */
-#cards{display:flex;flex-wrap:wrap;gap:12px;padding:14px 18px;align-content:flex-start;background:#f4f6fb !important;min-height:100vh}
+#cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:14px 18px;align-content:start;background:#f4f6fb !important;min-height:100vh}
 .empty-msg{padding:40px;text-align:center;color:#aaa;font-size:15px;width:100%}
 /* ── Card ── */
-.ec{background:#fff !important;border-radius:8px;border:1px solid #dde0e8;box-shadow:0 1px 5px rgba(0,0,0,.07);padding:10px;display:flex;gap:10px;align-items:flex-start;position:relative;width:calc(25% - 9px);flex-shrink:0;box-sizing:border-box}
+.ec{background:#fff !important;border-radius:8px;border:1px solid #dde0e8;box-shadow:0 1px 5px rgba(0,0,0,.07);padding:10px;display:flex;gap:10px;align-items:flex-start;position:relative}
 .ec.danger{border:2px solid #c62828 !important}
 .ec.warn  {border:2px solid #e65100 !important}
 .ec-hide{position:absolute;top:5px;left:5px;background:rgba(0,0,0,.28) !important;border:none;color:#fff !important;font-size:11px;cursor:pointer;border-radius:3px;padding:2px 8px;z-index:10;line-height:1.5;font-weight:bold}
