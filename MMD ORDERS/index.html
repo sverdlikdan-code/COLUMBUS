@@ -391,6 +391,10 @@
     tbody tr:nth-child(even) td { background: var(--card); }
     tbody tr:nth-child(odd)  td { background: var(--card); }
     tr.drow:hover td { background: var(--sky) !important; }
+    tr.active-row td { background: rgba(25,118,210,.09) !important; }
+    tr.active-row td:first-child { border-left: 2.5px solid #1976d2 !important; }
+    tr.active-row td:last-child  { border-right: 2.5px solid #1976d2 !important; }
+    tr.active-row td { border-top: 2px solid #1976d2 !important; border-bottom: 2px solid #1976d2 !important; }
     td {
       padding: 5px 9px;
       border-bottom: 1px solid var(--sky-mid);
@@ -1553,6 +1557,7 @@
         const tr = document.createElement('tr');
         tr.className = 'drow' +
       (yamim != null && yamim < 10 ? ' danger' : '');
+        tr.dataset.mk = mk;
         tr.innerHTML =
           '<td class="c-mkt">' + mk + '</td>' +
           '<td class="c-taur" dir="rtl" title="' + esc(r.taur) + '">' + (isPopular ? '<span class="pop-star">⭐</span> ' : '') + _ltrWrap(shortName(fixProductName(r.taur))) + '</td>' +
@@ -2272,6 +2277,11 @@ window.splashRebuild = async function() {
 
 // ── Prophet drill-down panel ────────────────────────────────
 window.openInfoPanel = function(mk, taur) {
+  // Highlight active row
+  document.querySelectorAll('tr.active-row').forEach(function(el){ el.classList.remove('active-row'); });
+  var _arow = document.querySelector('tr[data-mk="' + mk + '"]');
+  if (_arow) _arow.classList.add('active-row');
+
   // Look up row data
   const _all = window._mmdGetAll ? window._mmdGetAll() : [];
   const r = _all.find(function(x){ return String(x.mkt ?? '') === mk; }) || null;
@@ -2496,6 +2506,7 @@ window.openInfoPanel = function(mk, taur) {
 };
 
 window.closeProphetPanel = window.closeInfoPanel = function() {
+  document.querySelectorAll('tr.active-row').forEach(function(el){ el.classList.remove('active-row'); });
   document.getElementById('prophet-panel').classList.remove('open');
   document.getElementById('prophet-overlay').classList.remove('open');
 };
