@@ -416,8 +416,8 @@
     .c-co, th.h-co { display: none; }
     .c-num  { text-align: center; font-variant-numeric: tabular-nums; }
     .c-haml { text-align: center; font-weight: 800; color: inherit; }
-    .c-tukuf { max-width: 130px; font-size: .7rem; line-height: 1.6; }
-    .tk-d { display: block; white-space: nowrap; }
+    .c-tukuf { max-width: 130px; font-size: .7rem; line-height: 1.6; white-space: nowrap; overflow: hidden; }
+    .tk-d { display: inline; white-space: nowrap; }
     .lo { color: #d32f2f; font-weight: 800; }
     tr.danger .c-haml { color: #d32f2f !important; }
     tr.danger .ei-n { border-color: #d32f2f !important; color: #d32f2f !important; }
@@ -1185,8 +1185,10 @@
   }
   function formatTukuf(raw) {
     if (!raw) return '';
-    return raw.split('/').map(d => d.trim()).filter(Boolean)
-      .map(d => '<span class="tk-d" dir="ltr">' + _fmtDate(d) + '</span>').join('');
+    const parts = raw.split('/').map(d => d.trim()).filter(Boolean);
+    const spans = parts.map(d => '<span class="tk-d" dir="ltr">' + _fmtDate(d) + '</span>');
+    return spans.slice(0, 2).join('<span style="opacity:.4"> · </span>') +
+      (parts.length > 2 ? '<span style="opacity:.45;font-size:.6rem"> +' + (parts.length - 2) + '</span>' : '');
   }
 
   function eilatDangerLevel(r) {
@@ -1574,8 +1576,8 @@
           '<td class="c-num ' + klass(ash) + '">' + ash + '</td>' +
           '<td class="c-num">' + mav + '</td>' +
           '<td class="c-tukuf">' + formatTukuf(r.tukuf) +
-            (_eilatLvl === 'danger' ? '<br><span style="font-size:9px;font-weight:bold;color:#c62828">⚠ סכנה</span>' :
-             _eilatLvl === 'warn'   ? '<br><span style="font-size:9px;font-weight:bold;color:#e65100">🔶 תשומ\'</span>' : '') +
+            (_eilatLvl === 'danger' ? ' <span style="font-size:9px;font-weight:bold;color:#c62828">⚠</span>' :
+             _eilatLvl === 'warn'   ? ' <span style="font-size:9px;font-weight:bold;color:#e65100">🔶</span>' : '') +
           '</td>' +
           '<td class="c-num ' + yamimCls + '">' + yamimDisp + '</td>' +
           '<td class="c-num">' + (mkrTk != null ? mkrTk : '—') + '</td>' +
