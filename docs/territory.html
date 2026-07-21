@@ -462,7 +462,7 @@ const st={
   sortMode: 'visit',          // 'default' | 'visit'
   visitSource: 'computed',    // 'computed' | 'version'
   visitOrder: [],             // custIds in route order
-  loadedVersionOrder: [],     // visitOrder as saved in the loaded version
+  loadedVersionOrder: null,   // null=no version loaded; []=version without order; [...]= version with order
 };
 
 // ── ROUTING — ported from formula-road ────────────────────────────────────
@@ -526,7 +526,12 @@ function setVisitSource(source){
     if(source==='computed'){
       computeVisitOrder();
     } else {
-      if(!st.loadedVersionOrder.length){ showToast('לא נטענה גרסה עם סדר ביקור'); return; }
+      if(st.loadedVersionOrder===null){ showToast('לא נטענה גרסה עם סדר ביקור'); return; }
+      if(!st.loadedVersionOrder.length){
+        showToast('הגרסה שנטענה לא כוללת סדר ביקור שמור — שמור אותה מחדש');
+        st.sortMode='default'; st.visitOrder=[];
+        _updateVisitBtns(); return;
+      }
       st.visitOrder=[...st.loadedVersionOrder];
     }
   }
@@ -540,7 +545,7 @@ function _updateVisitBtns(){
   const vBtn=document.getElementById('visit-ver-btn');
   if(gBtn){ gBtn.classList.toggle('active',isVisit&&st.visitSource==='computed'); }
   if(vBtn){
-    vBtn.style.display=st.loadedVersionOrder.length?'':'none';
+    vBtn.style.display=st.loadedVersionOrder!==null?'':'none';
     vBtn.classList.toggle('active',isVisit&&st.visitSource==='version');
   }
 }
@@ -894,7 +899,8 @@ async function loadClients(cities){
         st.sortMode='visit';
         st.visitSource='version';
       } else {
-        computeVisitOrder(); // version saved before visitOrder feature — fallback to Google
+        st.loadedVersionOrder=[]; // version loaded but no order saved — button visible, Google fallback
+        computeVisitOrder();
       }
     }catch(_){ computeVisitOrder(); }
     localStorage.removeItem('ter_pending_visit_order');
@@ -1758,7 +1764,7 @@ async function doSaveVersion(){
   try{
     const r=await apiFetch(`${API}/api/gps/save-version`,{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({name, visitOrder: st.visitOrder})
+      body:JSON.stringify({name, visitOrder: st.visitOrder.length?st.visitOrder:displayClients().map(c=>String(c.custId))})
     });
     if(!r.ok) throw new Error(r.status);
     const j=await r.json();
@@ -1806,7 +1812,7 @@ async function restoreVersion(id){
     });
     if(!r.ok) throw new Error(r.status);
     const j=await r.json();
-    if(j.visitOrder&&j.visitOrder.length) try{localStorage.setItem('ter_pending_visit_order',JSON.stringify(j.visitOrder));}catch{}
+    try{localStorage.setItem('ter_pending_visit_order',JSON.stringify(j.visitOrder||[]));}catch{}
     document.getElementById('version-history-modal').style.display='none';
     showToast('✅ גרסה שוחזרה — מרענן...',2000);
     setTimeout(()=>location.reload(),1800);
