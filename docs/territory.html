@@ -1061,6 +1061,8 @@ function displayClients(){
   st.allClients.forEach(c=>{
     const ov=st.overrides[String(c.custId)]||{};
     if(ov.secondDay===undefined) return;
+    const primaryDay=ov.dayNum!==undefined?ov.dayNum:(c.dayNum||0);
+    if(ov.secondDay===primaryDay) return; // same as primary day → skip duplicate
     const agentCode=ov.agentCode||c.agentCode;
     if(!st.activeAgents.has(agentCode)) return;
     if(dropAgentFilter.size>0&&!dropAgentFilter.has(agentCode)) return;
