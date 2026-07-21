@@ -889,8 +889,10 @@ async function loadClients(cities){
         st.loadedVersionOrder=vo.map(String);
         st.sortMode='visit';
         st.visitSource='version';
+      } else {
+        computeVisitOrder(); // version saved before visitOrder feature — fallback to Google
       }
-    }catch(_){}
+    }catch(_){ computeVisitOrder(); }
     localStorage.removeItem('ter_pending_visit_order');
   } else {
     computeVisitOrder();
@@ -1547,8 +1549,30 @@ function renderMap(){
   });
 
   map.addLayer(markerCluster);
+  renderRoutePolyline();
   if(bounds.length) map.fitBounds(bounds,{padding:[10,10]});
   setTimeout(()=>map.invalidateSize(),100);
+}
+
+function renderRoutePolyline(){
+  mapPolylines.forEach(p=>p.remove()); mapPolylines=[];
+  if(!map) return;
+  if(st.sortMode!=='visit'||!st.visitOrder.length) return;
+  if(st.activeDays.size!==1) return; // only for single-day view
+  const list=displayClients().filter(c=>c.lat&&c.lng&&c.gpsSource!=='no-gps');
+  if(list.length<2) return;
+  // Only draw when exactly one agent is visible — multiple agents = messy
+  const agentSet=new Set(list.map(c=>c.agentCode));
+  if(agentSet.size!==1) return;
+  const color=st.visitSource==='version'?'#7B1FA2':'#1565C0';
+  for(let i=1;i<list.length;i++){
+    const prev=list[i-1],curr=list[i];
+    if(!prev.lat||!prev.lng||!curr.lat||!curr.lng) continue;
+    const p=L.polyline([[prev.lat,prev.lng],[curr.lat,curr.lng]],{
+      color,weight:2.5,opacity:.75,dashArray:'6,7'
+    }).addTo(map);
+    mapPolylines.push(p);
+  }
 }
 
 // ── LASSO ─────────────────────────────────────────────────────────────────
