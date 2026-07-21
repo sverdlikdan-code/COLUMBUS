@@ -283,6 +283,35 @@ const po  = (p4f != null && wn != null) ? Math.max(0, Math.round(p4f * wn - ek))
 
 **Коммиты:** `30d8e6f5` (панель), `c2783cda` (колонка)
 
+### 2026-07-21 #resolved ✅ Active row highlight + הזמנה אילת column + tukuf компактность
+
+**Active row highlight:**
+- При клике на 📊 (openInfoPanel) — строка подсвечивается синей рамкой (`.active-row`)
+- `tr.dataset.mk = mk` добавлен в рендер строки
+- `window.recalcTable = recalc` экспортирован из IIFE
+- При закрытии панели — рамка снимается
+
+**הזמנה אילת — колонка заказов Эйлата:**
+- Новая зелёная колонка в таблице (read-only, `col-eilat`)
+- `window._eilatDraft = {}` — загружается из `/mmd/draft/אילת` через `loadEilatDraft()`
+- Обновляется каждые 2 минуты + при первом входе через 4с
+- Пользователь Эйлат: при входе вводит имя "אילת" на сплэше → заказы авто-сохраняются
+- Footer показывает сумму заказов Эйлата (зелёный)
+
+**Eilat badge fix (⚠ inline):**
+- Убран `<br>` перед `⚠ סכנה` / `⚠ תשומ'` в ячейке תוקף
+- Badge идёт inline после дат, не расширяет строку
+- Tooltip `title="סכנה — אילת"` добавлен
+
+**tukuf.html — компактность:**
+- `throwLine` в батч-строках: убран `<br>` + `<div>`, теперь `<span>` inline
+- `⛔ STOP` и `~N🗑` идут в той же строке что и дата
+- `ec-tbl td`: padding уменьшен `3px 7px` → `2px 6px` + `white-space:nowrap`
+- Колонка "למכירה" переименована в "שב' למכירה סופית"
+- flex-wrap попытка → сломала RTL → откатили обратно на `display:grid`
+
+**Коммиты:** `689699ea`, `7f258a2d`, `6c12c592`, `d5c83b05`, `8df59662` (и серия между ними)
+
 ### 2026-07-20 #resolved ✅ tukuf grid + param2 + danger logic + архитектура JSON + eilat expiry
 
 **tukuf.html grid:**
