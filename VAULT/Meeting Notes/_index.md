@@ -72,3 +72,4 @@
 - [[session-2026-07-15-mmd-fixes]] — Сессия 2026-07-15: VPS_URL TDZ crash (252 рестарта), Excel corruption fix (autoFilter+theme), _effOrd() unification, prophet week 27 analysis
 - [[jjs-moveset-generator]] — JJS Moveset Generator: Railway деплой, EVASIVE/Blockable/ForceY, Umami, Edit This Build, тултипы, CSP fix
 - [[session-2026-07-20-territory-filters]] — Сессия 2026-07-20: Territory agent/manager dropdowns, city в popup, auto-reload городов, /agent-cities endpoint, unified кнопки
+- [[session-2026-07-21-dagim-order-fixes]] — Сессия 2026-07-21: slider all-rows, history dropdown position:fixed, pakuot 1166/1167 restore, security audit (ts innerHTML fix)
