@@ -231,6 +231,8 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .lasso-clear.visible{display:block;}
 .visit-btn{background:#5C6BC0;color:#fff;border:none;border-radius:16px;padding:0 12px;height:28px;font-size:11px;font-weight:800;cursor:pointer;transition:all .15s;white-space:nowrap;}
 .visit-btn.active{background:#283593;box-shadow:0 2px 8px rgba(40,53,147,.45);}
+.visit-btn.ver-mode{background:#7B1FA2;}
+.visit-btn.ver-mode.active{background:#4A148C;box-shadow:0 2px 8px rgba(74,20,140,.45);}
 .visit-num{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:5px;background:#5C6BC0;color:#fff;font-size:10px;font-weight:900;flex-shrink:0;margin-left:4px;}
 .leaflet-tooltip.fr-tip{background:rgba(0,0,0,.85)!important;color:#fff!important;border:none!important;font-size:12px!important;font-weight:700!important;direction:rtl!important;padding:5px 11px!important;border-radius:6px!important;box-shadow:0 2px 8px rgba(0,0,0,.45)!important;white-space:nowrap!important;pointer-events:none!important;}
 .leaflet-tooltip.fr-tip::before{display:none!important;}
@@ -321,7 +323,8 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
     <button type="button" class="stat-chip ice-btn" id="stat-ice" style="display:none" onclick="toggleIceFilter()"></button>
     <span class="stat-chip" id="stat-changed" style="display:none;"></span>
     <div class="stats-right">
-      <button type="button" class="visit-btn" id="visit-btn" onclick="toggleVisitMode()">🗺 ביקור</button>
+      <button type="button" class="visit-btn" id="visit-btn" onclick="setVisitSource('computed')">🗺 Google</button>
+      <button type="button" class="visit-btn ver-mode" id="visit-ver-btn" onclick="setVisitSource('version')" style="display:none">📋 גרסה</button>
       <button type="button" class="version-btn" onclick="openSaveVersionModal()">💾 גרסה</button>
       <button type="button" class="history-btn" onclick="openVersionHistory()">📚</button>
       <button type="button" class="export-btn" onclick="exportAllDaysXLSX()">📥 כל הימים</button>
@@ -461,8 +464,10 @@ const st={
   overrides: {},
   selectedId: null,
   tab: 'list',
-  sortMode: 'visit',     // 'default' | 'visit'
-  visitOrder: [],        // custIds in route order
+  sortMode: 'visit',          // 'default' | 'visit'
+  visitSource: 'computed',    // 'computed' | 'version'
+  visitOrder: [],             // custIds in route order
+  loadedVersionOrder: [],     // visitOrder as saved in the loaded version
 };
 
 // ── ROUTING — ported from formula-road ────────────────────────────────────
@@ -516,15 +521,35 @@ function computeVisitOrder(){
   });
   st.visitOrder=nearestNeighborFromTA(clients).map(c=>String(c.custId));
 }
-function toggleVisitMode(){
-  st.sortMode=st.sortMode==='visit'?'default':'visit';
-  if(st.sortMode==='visit') computeVisitOrder();
-  else st.visitOrder=[];
-  const btn=document.getElementById('visit-btn');
-  if(btn) btn.classList.toggle('active',st.sortMode==='visit');
+function setVisitSource(source){
+  // Clicking active source button → toggle off visit mode
+  if(st.sortMode==='visit'&&st.visitSource===source){
+    st.sortMode='default'; st.visitOrder=[];
+  } else {
+    st.sortMode='visit';
+    st.visitSource=source;
+    if(source==='computed'){
+      computeVisitOrder();
+    } else {
+      if(!st.loadedVersionOrder.length){ showToast('לא נטענה גרסה עם סדר ביקור'); return; }
+      st.visitOrder=[...st.loadedVersionOrder];
+    }
+  }
+  _updateVisitBtns();
   renderClientList();
   if(st.tab==='map'||window.innerWidth>=700) renderMap();
 }
+function _updateVisitBtns(){
+  const isVisit=st.sortMode==='visit';
+  const gBtn=document.getElementById('visit-btn');
+  const vBtn=document.getElementById('visit-ver-btn');
+  if(gBtn){ gBtn.classList.toggle('active',isVisit&&st.visitSource==='computed'); }
+  if(vBtn){
+    vBtn.style.display=st.loadedVersionOrder.length?'':'none';
+    vBtn.classList.toggle('active',isVisit&&st.visitSource==='version');
+  }
+}
+function toggleVisitMode(){ setVisitSource('computed'); }
 
 // ── OVERRIDES (local + server) ────────────────────────────────────────────
 function loadOverrides(){
@@ -868,14 +893,18 @@ async function loadClients(cities){
   if(_pendingVO){
     try{
       const vo=JSON.parse(_pendingVO);
-      if(Array.isArray(vo)&&vo.length){ st.visitOrder=vo.map(String); st.sortMode='visit'; }
+      if(Array.isArray(vo)&&vo.length){
+        st.visitOrder=vo.map(String);
+        st.loadedVersionOrder=vo.map(String);
+        st.sortMode='visit';
+        st.visitSource='version';
+      }
     }catch(_){}
     localStorage.removeItem('ter_pending_visit_order');
   } else {
     computeVisitOrder();
   }
-  const vBtn=document.getElementById('visit-btn');
-  if(vBtn) vBtn.classList.toggle('active',st.sortMode==='visit');
+  _updateVisitBtns();
   renderAll();
   document.getElementById('stats-row').style.display='';
   setupSortable();
@@ -902,7 +931,7 @@ function renderDayBtns(){
       const cutoff60=new Date(Date.now()-60*86400000);
       if(!lo||lo<cutoff60) return false;
     }
-    if(st.iceFilter && c.hevra!=='ICE') return false;
+    if(st.iceFilter && !c.iceOnly) return false;
     if(st.iceMishFilter && !(c.avg6IceSales>0)) return false;
     if(st.hasSadranFilter && !c.sadran) return false;
     return true;
@@ -1013,7 +1042,7 @@ function displayClients(){
       const cutoff60=new Date(Date.now()-60*86400000);
       if(!lo||lo<cutoff60) return false;
     }
-    if(st.iceFilter && c.hevra!=='ICE') return false;
+    if(st.iceFilter && !c.iceOnly) return false;
     if(st.iceMishFilter && !(c.avg6IceSales>0)) return false;
     if(st.hasSadranFilter && !c.sadran) return false;
     return true;
@@ -1027,13 +1056,20 @@ function displayClients(){
       _changed:  !!(ov.agentCode||ov.dayNum!==undefined),
     };
   });
-  // Inject second-visit clones for clients with secondDay override
+  // Inject second-visit clones — iterate allClients so clone shows even when original day is filtered out
   const secondClones=[];
-  result.forEach(c=>{
+  st.allClients.forEach(c=>{
     const ov=st.overrides[String(c.custId)]||{};
-    if(ov.secondDay!==undefined&&(st.activeDays.size>=6||st.activeDays.has(ov.secondDay))){
-      secondClones.push({...c, dayNum:ov.secondDay, _isSecondVisit:true});
-    }
+    if(ov.secondDay===undefined) return;
+    const agentCode=ov.agentCode||c.agentCode;
+    if(!st.activeAgents.has(agentCode)) return;
+    if(dropAgentFilter.size>0&&!dropAgentFilter.has(agentCode)) return;
+    if(dropManagerFilter.size>0&&!dropManagerFilter.has(c.manager)) return;
+    if(st.activeDays.size<6&&!st.activeDays.has(ov.secondDay)) return;
+    if(st.lassoIds!==null&&!st.lassoIds.has(String(c.custId))) return;
+    const agentName=ov.agentCode?(st.agents.find(a=>a.agentCode===ov.agentCode)?.agentName||ov.agentCode):c.agentName;
+    secondClones.push({...c, agentCode, agentName, dayNum:ov.secondDay,
+      _changed:!!(ov.agentCode||ov.dayNum!==undefined), _isSecondVisit:true});
   });
   result=[...result,...secondClones];
 
@@ -1082,7 +1118,7 @@ function updateStats(){
   const regEl=document.getElementById('stat-regular');
   if(regular>0){ regEl.textContent=`📗 ${regular} לקוחות קבועים`; regEl.style.display=''; regEl.classList.toggle('active',st.regularFilter); }
   else { regEl.style.display='none'; st.regularFilter=false; }
-  const iceCount=baseList.filter(c=>c.hevra==='ICE').length;
+  const iceCount=baseList.filter(c=>c.iceOnly===true).length;
   const iceEl=document.getElementById('stat-ice');
   if(iceCount>0){iceEl.textContent=`❄️ ${iceCount} לקוחות ICE`;iceEl.style.display='';iceEl.classList.toggle('active',st.iceFilter);}
   else{iceEl.style.display='none';st.iceFilter=false;}
@@ -1196,7 +1232,7 @@ function renderClientList(){
     const noGps=!c.lat||!c.lng||c.gpsSource==='no-gps';
     const isSel=st.selectedId===c.custId;
     const dayBadge=c.dayNum?`<span class="day-badge">${DAY_LBL[c.dayNum]||'?'}</span>`:'';
-    const isIce=c.hevra==='ICE';
+    const isIce=c.iceOnly===true;
     const _s=c.avg6Sales>0?c.avg6Sales:0;
     const salesAmt=_s>0?(_s>=1000?`₪${(_s/1000).toFixed(1)}K`:`₪${Math.round(_s)}`):'';
     const salesBadge=salesAmt?`<span style="background:#E8F5E9;color:#2E7D32;font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;flex-shrink:0;margin-left:4px;border:1px solid #A5D6A7;white-space:nowrap">FORMULA ${salesAmt}</span>`:'';
@@ -1481,7 +1517,7 @@ function renderMap(){
     const markerLabel=vNum?String(vNum):(DAY_LBL[c.dayNum]||'?');
     const markerInner=c._isNew
       ?`<div style="background:#FF8F00;color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;border:3px solid #FFD600;box-shadow:0 2px 10px rgba(255,143,0,.6)">🆕</div>`
-      :c.hevra==='ICE'
+      :c.iceOnly===true
       ?`<div style="background:#0288D1;color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;border:3px solid #81D4FA;box-shadow:0 2px 10px rgba(2,136,209,.6);flex-direction:column;gap:0;line-height:1.1"><span style="font-size:${vNum?12:14}px;line-height:1">❄️</span>${vNum?`<span style="font-size:9px;font-weight:900;margin-top:-1px">${vNum}</span>`:''}</div>`
       :(()=>{const hasSadran=!!c.sadran;const badge=hasSadran?`<div style="position:absolute;top:-6px;right:-6px;font-size:13px;line-height:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))">💪</div>`:'';return`<div style="position:relative;width:${sz}px;height:${sz}px"><div style="background:${color};color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4)">${markerLabel}</div>${badge}</div>`;})();
     const icon=L.divIcon({className:'',html:markerInner,iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
