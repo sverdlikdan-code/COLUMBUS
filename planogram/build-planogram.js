@@ -679,8 +679,11 @@ function cleanFam(s) {
 // MAIN
 // ═══════════════════════════════════════════════════════════════════════════
 async function main() {
-  // Trigger PBI dataset refresh before reading to ensure fresh data
-  await triggerAndWaitRefresh().catch(e => console.warn('⚠  triggerAndWaitRefresh error (non-fatal):', e.message));
+  // Trigger PBI refresh only when explicitly requested (SKIP_PBI_REFRESH=1 skips it).
+  // When PBI Service gateway refresh is configured, CI should read only — not trigger extra refreshes.
+  if (!process.env.SKIP_PBI_REFRESH) {
+    await triggerAndWaitRefresh().catch(e => console.warn('⚠  triggerAndWaitRefresh error (non-fatal):', e.message));
+  }
 
   // Load קפוא data from Power BI (replaces קפוא.xlsx)
   // stock = cartons at אשדוד only (מחסן Main, no צפון)

@@ -283,7 +283,40 @@ const po  = (p4f != null && wn != null) ? Math.max(0, Math.round(p4f * wn - ek))
 
 **Коммиты:** `30d8e6f5` (панель), `c2783cda` (колонка)
 
-### 2026-07-07 #resolved ✅ Заказ превышает млаי אשדוד при загрузке
+### 2026-07-20 #resolved ✅ tukuf grid + param2 + danger logic + архитектура JSON + eilat expiry
+
+**tukuf.html grid:**
+- `grid.style.display='flex'` (JS строка ~250) переопределял CSS grid → все карточки в одну строку. Фикс: `'flex'` → `'grid'`
+- `#cards` не имел `align-content:start` → 2 строки растягивались на весь `min-height:100vh`. Фикс: добавлен в CSS
+- tukuf.html не был в `server-deploy.yml` → VPS держал старый файл. Фикс: добавлен в paths + SCP step
+- Добавлен `workflow_dispatch:` в server-deploy.yml
+
+**param2 groupинг (ICE bdd / ICE MISH / INTER):**
+- Компании ICE/INTER группируются по `param2` вместо `mishpacha`
+- `build-mmd-orders.js`: добавлен `'KARTIS PARIT'[תאור פרמטר 2 למוצר]` в SUMMARIZECOLUMNS + маппинг `param2`
+- Данные появятся в JSON после следующего CI build (param2 не был в предыдущем JSON)
+
+**Info panel danger badge — исправлена логика:**
+- Было: `minDays < 30` → всегда danger для < 30 дней, независимо от скорости продаж
+- Стало: `ws > we` где `ws = qty/mkr_shvua` (недель запаса), `we = (days-shelfLife)/7` (эффективных недель до истечения)
+- Соответствует `eilatDangerLevel()` в tukuf
+
+**Архитектурный фикс — git dirty на VPS:**
+- Проблема: `rebuild` писал новый `docs/mmd-orders.json` прямо на VPS → `git status` dirty → `git pull` в других deploy CI блокировался
+- Решение: `server/data/mmd-orders-live.json` (вне git tree) — живой файл
+- `server/index.js` `/mmd/mmd-orders.json` → `sendFile(livePath || fallback)`
+- Rebuild: пишет в livePath, потом `git checkout -- docs/mmd-orders.json` (restore git state)
+- `mmd-orders-build.yml` CI: SCP JSON → `server/data/mmd-orders-live.json` на VPS (вместо `docs/`)
+- `.gitignore`: добавлен `server/data/mmd-orders-live.json`; `server/data/.gitkeep` в git
+
+**pp-tarif tile (было пустым — `tarif_mmd` не существует):**
+- Теперь показывает `eilat_tukuf_dt` (ближайший срок тугуф Эйлата) в формате DD/MM
+- Подзаголовок: `מדף מינ' N י'` (shelfLife из product-data.json)
+- Label: `ת.תפוגה אילת`
+
+**Коммиты этой сессии:** серия feat/fix(mmd) — tukuf grid, param2, danger, architecture, pp-tarif
+
+### 2026-07-07 #resolved ✅ Заказ превышает млאי אשדוד при загрузке
 
 **Проблема:** `ordV = s.k != null ? s.k : hamlRnd` — сохранённое из localStorage значение (напр. 6) ставилось в инпут без проверки cap. Cap-check `inp()` срабатывал только на `oninput`, не на initial render. Если מלאי אשדוד упал с 8 до 1 между сессиями — инпут всё равно показывал 6.
 
