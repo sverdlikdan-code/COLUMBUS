@@ -1696,7 +1696,7 @@ function writeGpsVersions(arr) {
 // POST /api/gps/save-version — save named snapshot of corrections + day/agent overrides
 app.post('/api/gps/save-version', requireAuth, (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, visitOrder } = req.body;
     if (!name || typeof name !== 'string' || name.length > 80) return res.status(400).json({ error: 'invalid name' });
     const correctionsPath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
     let corrections = {};
@@ -1708,7 +1708,8 @@ app.post('/api/gps/save-version', requireAuth, (req, res) => {
       id, name: name.trim(), createdAt: new Date().toISOString(),
       gpsCount: Object.keys(corrections).length,
       overridesCount: Object.keys(overrides).length,
-      corrections, overrides
+      corrections, overrides,
+      visitOrder: Array.isArray(visitOrder) ? visitOrder : []
     };
     const versions = readGpsVersions();
     versions.unshift(version);
@@ -1743,7 +1744,7 @@ app.post('/api/gps/restore-version', requireAuth, (req, res) => {
       fs.writeFileSync(OVERRIDES_FILE, JSON.stringify(v.overrides, null, 2), 'utf8');
     }
     writeLog({ ts: new Date().toISOString(), event: 'gps-version-restore', id, name: v.name, ip: getRealIp(req) });
-    res.json({ ok: true, name: v.name, gpsCount: Object.keys(v.corrections).length, overridesCount: Object.keys(v.overrides || {}).length });
+    res.json({ ok: true, name: v.name, gpsCount: Object.keys(v.corrections).length, overridesCount: Object.keys(v.overrides || {}).length, visitOrder: v.visitOrder || [] });
   } catch (err) { console.error(err); res.status(500).json({ error: 'server_error' }); }
 });
 

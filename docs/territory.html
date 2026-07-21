@@ -863,9 +863,19 @@ async function loadClients(cities){
 
   renderAgentLegend();
   renderSadranBtn();
-  computeVisitOrder();
+  // Restore visitOrder from version if pending (set by restoreVersion before reload)
+  const _pendingVO=localStorage.getItem('ter_pending_visit_order');
+  if(_pendingVO){
+    try{
+      const vo=JSON.parse(_pendingVO);
+      if(Array.isArray(vo)&&vo.length){ st.visitOrder=vo.map(String); st.sortMode='visit'; }
+    }catch(_){}
+    localStorage.removeItem('ter_pending_visit_order');
+  } else {
+    computeVisitOrder();
+  }
   const vBtn=document.getElementById('visit-btn');
-  if(vBtn) vBtn.classList.add('active');
+  if(vBtn) vBtn.classList.toggle('active',st.sortMode==='visit');
   renderAll();
   document.getElementById('stats-row').style.display='';
   setupSortable();
@@ -1017,6 +1027,16 @@ function displayClients(){
       _changed:  !!(ov.agentCode||ov.dayNum!==undefined),
     };
   });
+  // Inject second-visit clones for clients with secondDay override
+  const secondClones=[];
+  result.forEach(c=>{
+    const ov=st.overrides[String(c.custId)]||{};
+    if(ov.secondDay!==undefined&&(st.activeDays.size>=6||st.activeDays.has(ov.secondDay))){
+      secondClones.push({...c, dayNum:ov.secondDay, _isSecondVisit:true});
+    }
+  });
+  result=[...result,...secondClones];
+
   if(st.sortMode==='visit'&&st.visitOrder.length){
     const orderMap={}; st.visitOrder.forEach((id,i)=>orderMap[id]=i);
     result.sort((a,b)=>(orderMap[String(a.custId)]??9999)-(orderMap[String(b.custId)]??9999));
@@ -1186,6 +1206,15 @@ function renderClientList(){
     const changedMark=c._changed?`<span class="changed-badge">✏️</span>`:'';
     const newBadge=c._isNew?`<span style="background:#FF8F00;color:#fff;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;flex-shrink:0;margin-left:4px">🆕 חדש</span>`:'';
     const iceBadge=isIce?`<span style="background:#0288D1;color:#fff;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;flex-shrink:0;margin-left:4px">❄️ ICE</span>`:'';
+    const secondVisitBadge=c._isSecondVisit?`<span style="background:#7B1FA2;color:#fff;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;flex-shrink:0;margin-left:4px">🔁 ביקור שני</span>`:'';
+    const ov2=st.overrides[String(c.custId)]||{};
+    const hasSecondDay=ov2.secondDay!==undefined;
+    const addDayBtn=!c._isSecondVisit&&!hasSecondDay
+      ?`<span class="act-btn" onclick="openAddDayPicker(event,'${c.custId}')" title="להוסיף יום">➕</span>`:'';
+    const removeSecondBtn=!c._isSecondVisit&&hasSecondDay
+      ?`<span class="act-btn" style="color:#C62828" onclick="removeSecondDay('${c.custId}')" title="הסר ביקור שני">🔁✕</span>`:'';
+    const removeSecondVisitBtn=c._isSecondVisit
+      ?`<span class="act-btn" style="color:#C62828" onclick="removeSecondDay('${c.custId}')" title="הסר ביקור שני">✕</span>`:'';
     const addrText=esc(c.address||'');
     const vNum=visitOrderMap[String(c.custId)];
     return `<div class="client-card${noGps?' no-gps':''}${isSel?' selected':''}${c._isNew?' new-client':''}${isIce?' ice-client':''}"
@@ -1197,7 +1226,7 @@ function renderClientList(){
           :`<span style="font-size:14px;color:#bbb;line-height:1">⠿</span>`}
       </div>
       <div class="c-body">
-        <div class="c-name">${changedMark}${esc(c.custName||'')}${newBadge}${iceBadge}</div>
+        <div class="c-name">${changedMark}${esc(c.custName||'')}${newBadge}${iceBadge}${secondVisitBadge}</div>
         <div class="c-sub">
           <span class="agent-badge" style="background:${color};cursor:pointer" onclick="openAgentPopup(event,'${c.custId}')">${esc(c.agentName||c.agentCode||'')}</span>
           ${dayBadge}${salesBadge}${iceSalesBadge}
@@ -1207,10 +1236,12 @@ function renderClientList(){
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0">
         ${c.custId?`<span class="c-id">${c.custId}</span>`:''}
         <div class="c-actions">
-          <span class="act-btn" onclick="openDayPopup(event,'${c.custId}',${c.dayNum||'null'})" title="שנה יום">📅</span>
-          ${noGps
+          ${!c._isSecondVisit?`<span class="act-btn" onclick="openDayPopup(event,'${c.custId}',${c.dayNum||'null'})" title="שנה יום">📅</span>`:''}
+          ${addDayBtn}${removeSecondBtn}${removeSecondVisitBtn}
+          ${!c._isSecondVisit?(noGps
             ?`<span class="no-gps-badge" onclick="openGpsFix(event,'${c.custId}','${esc(c.custName||'')}','${esc(c.city||'')}','${esc(c.address||'')}')">📍 GPS</span>`
-            :`<span class="act-btn" onclick="openAddrModal(event,'${c.custId}','${esc(c.custName||'')}','${esc(c.city||'')}','${esc(c.address||'')}')" title="תיקון מיקום">📍</span>`}
+            :`<span class="act-btn" onclick="openAddrModal(event,'${c.custId}','${esc(c.custName||'')}','${esc(c.city||'')}','${esc(c.address||'')}')" title="תיקון מיקום">📍</span>`)
+          :''}
         </div>
       </div>
     </div>`;
@@ -1297,6 +1328,38 @@ function setClientDay(newDay){
   saveOverrides();
   renderAll();
   showToast(`📅 יום שונה ל‑${DAY_LBL[newDay]}`);
+}
+
+let _addDayCustId=null;
+function openAddDayPicker(event, custId){
+  event.stopPropagation();
+  _addDayCustId=custId;
+  const popup=document.getElementById('day-popup');
+  const curDay=(st.overrides[String(custId)]||{}).dayNum ?? (st.allClients.find(c=>String(c.custId)===String(custId))?.dayNum);
+  popup.innerHTML='<div style="font-size:10px;font-weight:700;color:#7B1FA2;margin-bottom:4px;text-align:center">🔁 בחר יום שני</div>'+
+    [1,2,3,4,5].filter(d=>d!==curDay).map(d=>
+      `<button class="day-pop-btn" onclick="addSecondDay('${custId}',${d})">${DAY_LBL[d]}</button>`
+    ).join('');
+  const r=event.target.getBoundingClientRect();
+  popup.style.top=(r.bottom+6)+'px';
+  popup.style.left=Math.max(6,r.left-60)+'px';
+  popup.classList.add('open');
+}
+function addSecondDay(custId, day){
+  closePops();
+  const id=String(custId);
+  if(!st.overrides[id]) st.overrides[id]={};
+  st.overrides[id].secondDay=day;
+  saveOverrides();
+  renderAll();
+  showToast(`🔁 ביקור שני נוסף ל‑${DAY_LBL[day]}`);
+}
+function removeSecondDay(custId){
+  const id=String(custId);
+  if(st.overrides[id]) delete st.overrides[id].secondDay;
+  saveOverrides();
+  renderAll();
+  showToast('🔁 ביקור שני הוסר');
 }
 
 function setClientDayFromMap(custId, newDay){
@@ -1615,7 +1678,7 @@ async function doSaveVersion(){
   try{
     const r=await apiFetch(`${API}/api/gps/save-version`,{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({name})
+      body:JSON.stringify({name, visitOrder: st.visitOrder})
     });
     if(!r.ok) throw new Error(r.status);
     const j=await r.json();
@@ -1662,6 +1725,8 @@ async function restoreVersion(id){
       body:JSON.stringify({id})
     });
     if(!r.ok) throw new Error(r.status);
+    const j=await r.json();
+    if(j.visitOrder&&j.visitOrder.length) try{localStorage.setItem('ter_pending_visit_order',JSON.stringify(j.visitOrder));}catch{}
     document.getElementById('version-history-modal').style.display='none';
     showToast('✅ גרסה שוחזרה — מרענן...',2000);
     setTimeout(()=>location.reload(),1800);
