@@ -1374,7 +1374,7 @@ function renderMap(){
   mapPolylines.forEach(p=>p.remove()); mapPolylines=[];
   if(markerCluster){markerCluster.clearLayers();map.removeLayer(markerCluster);}
   markerCluster=L.markerClusterGroup({
-    maxClusterRadius:40,disableClusteringAtZoom:17,
+    maxClusterRadius:40,disableClusteringAtZoom:14,
     iconCreateFunction(cluster){
       const marks=cluster.getAllChildMarkers();
       const colorMap={};
@@ -1393,9 +1393,24 @@ function renderMap(){
   // Re-index from filtered map list so visit numbers start at 1 for visible clients
   const mapVisitOrderMap={};
   if(st.sortMode==='visit'&&st.visitOrder.length) list.forEach((c,i)=>mapVisitOrderMap[String(c.custId)]=i+1);
+
+  // Jitter: spread markers that share exact GPS (2+ agents at same address)
+  const _cc={},_ci={};
+  list.forEach(c=>{const k=`${c.lat},${c.lng}`;_cc[k]=(_cc[k]||0)+1;});
+  const jList=list.map(c=>{
+    const k=`${c.lat},${c.lng}`;
+    if(_cc[k]>1){
+      const idx=_ci[k]=(_ci[k]||0)+1;
+      const angle=(idx/_cc[k])*2*Math.PI;
+      const r=0.00012; // ~13m radius
+      return{...c,lat:c.lat+r*Math.sin(angle),lng:c.lng+r*Math.cos(angle)};
+    }
+    return c;
+  });
+
   const bounds=[];
 
-  list.forEach(c=>{
+  jList.forEach(c=>{
     const color=agentColor(c.agentCode);
     const isSel=st.selectedId===c.custId;
     const sz=c._isNew?30:24;
