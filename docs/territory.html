@@ -71,9 +71,13 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .day-btn.active .day-btn-label{color:#0D47A1;}
 /* inner mini-table */
 .day-card-body{display:none;flex-direction:column;gap:0;width:100%;}
-.day-btns.has-data .day-btn{height:104px;}
 .day-btns.has-data .day-btn-label{font-size:15px;font-weight:900;padding-bottom:2px;}
-.day-btns.has-data .day-card-body{display:flex;overflow:hidden;}
+/* only expand cards that have actual data */
+.day-btns.has-data .day-btn.has-card-data{height:104px;}
+.day-btns.has-data .day-btn.has-card-data .day-card-body{display:flex;overflow:hidden;}
+/* כל button in default all-days mode — neutral, no ring */
+.day-btn.day-all-mode{border-color:#90B4E8;background:#F5F8FF;}
+.day-btn.day-all-mode .day-btn-label{color:#1565C0;}
 /* per-agent mini-table rows */
 .dc-ag-tbl{display:table;width:100%;border-collapse:collapse;}
 .dc-ag-row{display:table-row;}
@@ -1011,19 +1015,26 @@ function renderDayBtns(){
   wrap.classList.toggle('has-data', baseCl.length>0);
   const dayKeys=[null,1,2,3,4,5,0];
   const btnEls=wrap.querySelectorAll('.day-btn');
+  const isAllMode=st.activeDays.size===6;
   btnEls.forEach((btn,i)=>{
     const d=dayKeys[i];
-    btn.classList.toggle('active',d===null?st.activeDays.size===6:st.activeDays.has(d));
+    const cardData=d===null?totalByAgent:(byDay[d]||{});
+    const hasData=Object.keys(cardData).length>0;
+    btn.classList.toggle('active', d!==null && !isAllMode && st.activeDays.has(d));
+    btn.classList.toggle('day-all-mode', d===null && isAllMode);
+    btn.classList.toggle('has-card-data', hasData);
     const lbl=`<span class="day-btn-label">${d===null?'כל':d===0?'?':DAY_LBL[d]}</span>`;
-    btn.innerHTML=lbl+(d===null?buildCard(totalByAgent):buildCard(byDay[d]||{}));
+    btn.innerHTML=lbl+(hasData?buildCard(cardData):'');
   });
 }
 
 function selectDay(d){
   if(d===null){
-    if(st.activeDays.size===6) st.activeDays=new Set(); else st.activeDays=new Set([0,1,2,3,4,5]);
+    st.activeDays=new Set([0,1,2,3,4,5]); // כל always resets to all
   } else {
+    if(st.activeDays.size===6) st.activeDays=new Set(); // deselect all first
     if(st.activeDays.has(d)) st.activeDays.delete(d); else st.activeDays.add(d);
+    if(st.activeDays.size===0) st.activeDays=new Set([0,1,2,3,4,5]); // pressing same day twice → reset
   }
   renderDayBtns();
   renderAll();
