@@ -323,7 +323,7 @@ const po  = (p4f != null && wn != null) ? Math.max(0, Math.round(p4f * wn - ek))
 **param2 groupинг (ICE bdd / ICE MISH / INTER):**
 - Компании ICE/INTER группируются по `param2` вместо `mishpacha`
 - `build-mmd-orders.js`: добавлен `'KARTIS PARIT'[תאור פרמטר 2 למוצר]` в SUMMARIZECOLUMNS + маппинг `param2`
-- Данные появятся в JSON после следующего CI build (param2 не был в предыдущем JSON)
+- ✅ param2 в JSON с 2026-07-21 (CI отработал) — группировка ICE/INTER работает
 
 **Info panel danger badge — исправлена логика:**
 - Было: `minDays < 30` → всегда danger для < 30 дней, независимо от скорости продаж
