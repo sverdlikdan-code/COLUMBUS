@@ -959,6 +959,22 @@ function renderDayBtns(){
     totalByAgent[agentCode].salesSum+=(c.avg6Sales||0);
     totalByAgent[agentCode].iceSalesSum+=(c.avg6IceSales||0);
   });
+  // Count second-visit clients in their second day card (not in totals — already counted once)
+  baseCl.forEach(c=>{
+    const ov=st.overrides[String(c.custId)]||{};
+    if(ov.secondDay===undefined) return;
+    const primaryDay=ov.dayNum!==undefined?ov.dayNum:(c.dayNum||0);
+    if(ov.secondDay===primaryDay) return;
+    const agentCode=ov.agentCode||c.agentCode;
+    const ag=st.agents.find(a=>a.agentCode===agentCode);
+    const agName=(ag?.agentName||agentCode).split(/[\s\-]/)[0].slice(0,8);
+    const dk=ov.secondDay;
+    if(!byDay[dk]) byDay[dk]={};
+    if(!byDay[dk][agentCode]) byDay[dk][agentCode]={name:agName,count:0,salesSum:0,iceSalesSum:0,code:agentCode};
+    byDay[dk][agentCode].count++;
+    byDay[dk][agentCode].salesSum+=(c.avg6Sales||0);
+    byDay[dk][agentCode].iceSalesSum+=(c.avg6IceSales||0);
+  });
 
   const grandTotal=baseCl.length;
 
