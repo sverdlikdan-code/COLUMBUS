@@ -2818,7 +2818,7 @@ function toggleOrderPage() {
   }
 }
 
-// ── Season slider — multiplies only manually-edited rows ─────────────────
+// ── Season slider — multiplies all rows with orderK > 0 ─────────────────
 window._orderSeasonPct = 0;
 
 function _applySeasonSlider(val) {
@@ -2826,23 +2826,30 @@ function _applySeasonSlider(val) {
   window._orderSeasonPct = pct;
   const label = document.getElementById('season-pct-label');
   const resetBtn = document.getElementById('season-reset-btn');
-  if (label) label.textContent = pct === 0 ? '×1' : (pct > 0 ? '+' + pct + '%' : pct + '%');
+  if (label) label.textContent = pct === 0 ? '\xd71' : (pct > 0 ? '+' + pct + '%' : pct + '%');
   if (label) label.style.color = pct > 0 ? '#1b5e20' : pct < 0 ? '#c62828' : '#1565C0';
   if (resetBtn) resetBtn.style.color = pct !== 0 ? '#c62828' : '#aaa';
 
   const manualEdits = window._orderManualEdits || {};
   document.querySelectorAll('.ord-k-input[data-mk]').forEach(inp => {
     const mk = String(inp.dataset.mk);
-    const edit = manualEdits[mk];
-    if (!edit) return;
     const krat = parseInt(inp.dataset.krat, 10) || 1;
-    const baseK = edit.orderK;
+    // Base: manual edit base OR current value stored in data-base-k on first slider move
+    let baseK;
+    const edit = manualEdits[mk];
+    if (edit) {
+      baseK = edit.orderK;
+    } else {
+      const cur = parseInt(inp.value, 10) || 0;
+      if (!cur) return;
+      if (!inp.dataset.baseK) inp.dataset.baseK = cur;
+      baseK = parseInt(inp.dataset.baseK, 10) || cur;
+    }
     const adjK = pct === 0 ? baseK : Math.max(0, Math.round(baseK * (1 + pct / 100) / krat) * krat);
     inp.value = adjK;
     inp.setAttribute('value', adjK);
     inp.style.borderColor = adjK > 0 ? '#1565C0' : '#ddd';
     inp.style.color       = adjK > 0 ? '#0d47a1' : '#555';
-    // Update PAL cell directly — do NOT call _recalcRowPal which would overwrite _orderManualEdits base
     const pal = krat > 0 ? Math.round(adjK / krat * 10) / 10 : 0;
     const pCell = document.querySelector(`.ord-p-auto[data-mk="${mk}"]`);
     if (pCell) pCell.textContent = adjK > 0 ? pal.toFixed(1) : '—';
@@ -2949,6 +2956,12 @@ function _orderToggleHistory() {
   const dd = document.getElementById('order-history-dropdown');
   const open = dd.classList.toggle('open');
   if (open) {
+    const btn = document.getElementById('btn-order-history');
+    const r = btn.getBoundingClientRect();
+    dd.style.position = 'fixed';
+    dd.style.top = (r.bottom + 4) + 'px';
+    dd.style.right = (window.innerWidth - r.right) + 'px';
+    dd.style.left = 'auto';
     _orderRenderHistoryDropdown();
     setTimeout(() => document.addEventListener('click', _orderCloseHistoryOutside, { once: true }), 10);
   }
@@ -3630,6 +3643,12 @@ function _interToggleHistory() {
   const dd = document.getElementById('inter-history-dropdown');
   const open = dd.classList.toggle('open');
   if (open) {
+    const btn = document.getElementById('btn-inter-history');
+    const r = btn.getBoundingClientRect();
+    dd.style.position = 'fixed';
+    dd.style.top = (r.bottom + 4) + 'px';
+    dd.style.right = (window.innerWidth - r.right) + 'px';
+    dd.style.left = 'auto';
     _interRenderHistoryDropdown();
     setTimeout(() => document.addEventListener('click', _interCloseHistoryOutside, { once: true }), 10);
   }
