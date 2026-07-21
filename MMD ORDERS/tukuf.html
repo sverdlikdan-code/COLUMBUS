@@ -43,11 +43,11 @@
 .ec-special-badge{display:inline-block;font-size:10px;font-weight:bold;padding:1px 7px;border-radius:3px;background:#6a1b9a !important;color:#fff !important;margin-left:5px}
 /* table */
 .ec-tbl{width:100%;border-collapse:collapse;font-size:11px}
-.ec-tbl th{padding:4px 7px;font-size:10px;text-align:right;font-weight:bold}
+.ec-tbl th{padding:3px 6px;font-size:10px;text-align:right;font-weight:bold}
 .th-danger{background:#c62828 !important;color:#fff !important}
 .th-warn  {background:#e65100 !important;color:#fff !important}
 .th-ok    {background:#f5f5f5 !important;color:#555 !important}
-.ec-tbl td{padding:3px 7px;border-bottom:1px solid #f0f0f0;color:#333 !important}
+.ec-tbl td{padding:2px 6px;border-bottom:1px solid #f0f0f0;color:#333 !important;font-size:11px;white-space:nowrap}
 .ec-tbl tr:last-child td{border-bottom:none}
 .ec-tbl tfoot td{padding:5px 7px;border-top:2px solid #e0e0e0;background:#f5f7fa !important;font-size:10px;color:#555 !important}
 .clr-r{color:#c62828 !important;font-weight:bold}
@@ -209,17 +209,17 @@ function render(){
       // לזריקה: ימים >= shelfLife but stock won't sell fast enough
       var throwLine='';
       if(b.days<_sl){
-        throwLine='<div style="display:inline-block;font-size:8px;font-weight:bold;color:#fff;background:#6a1b9a;border-radius:3px;padding:1px 5px;margin-top:2px;">⛔ STOP SALE</div>';
+        throwLine=' <span style="display:inline-block;font-size:7px;font-weight:bold;color:#fff;background:#6a1b9a;border-radius:3px;padding:0 4px;vertical-align:middle;">⛔ STOP</span>';
       } else if(isSakana&&_wk>0){
         var canSell=we*_wk;
         var throwAway=Math.ceil(Math.max(0,b.qty-canSell));
         if(throwAway>0){
-          throwLine='<div style="font-size:8px;font-weight:bold;color:#c62828;margin-top:2px;">~'+throwAway+' קרט לזריקה</div>';
+          throwLine=' <span style="font-size:7px;font-weight:bold;color:#c62828">~'+throwAway+'🗑</span>';
         }
       }
       var sellWks=_wk>0?(b.qty/_wk).toFixed(1):null;
       rows+='<tr>'
-        +'<td>'+b.dt+(throwLine?'<br>'+throwLine:'')+'</td>'
+        +'<td>'+b.dt+throwLine+'</td>'
         +'<td class="'+cl+'" style="text-align:center;font-weight:bold">'+b.qty+'</td>'
         +'<td class="'+cl+'" style="text-align:center;font-weight:bold">'+(b.days/7).toFixed(1)+'</td>'
         +'<td class="'+cl+'" style="text-align:center;font-weight:bold">'+(sellWks||'—')+'</td>'
@@ -238,7 +238,7 @@ function render(){
     tbl.className='ec-tbl';
     tbl.innerHTML='<thead>'
       +'<tr><th colspan="4" class="'+thCls+'">'+thLabel+'</th></tr>'
-      +'<tr><th style="'+colHdr+'text-align:right">ת. תפוגה</th><th style="'+colHdr+'">קרט\'</th><th style="'+colHdr+'">שב\' נשארו</th><th style="'+colHdr+'">למכירה</th></tr>'
+      +'<tr><th style="'+colHdr+'text-align:right">ת. תפוגה</th><th style="'+colHdr+'">קרט\'</th><th style="'+colHdr+'">שב\' נשארו</th><th style="'+colHdr+'">שב\' למכירה</th></tr>'
       +'</thead>'
       +'<tbody>'+(rows||'<tr><td colspan="4" style="text-align:center;color:#bbb">אין מלאי</td></tr>')+'</tbody>'
       +'<tfoot><tr><td colspan="4">'+ftxt+'</td></tr></tfoot>';
