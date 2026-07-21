@@ -2997,7 +2997,7 @@ async function _orderRenderHistoryDropdown() {
   dd.innerHTML = (fromServer ? '' : `<div class="history-empty" style="color:#b45309;">⚠ במחשב זה בלבד</div>`) +
     versions.map((v, i) =>
       `<div class="history-item" onclick="_orderRestoreVersion(${i})">
-         <span class="h-ts">${v.ts.includes('T') ? _orderFmtTs(v.ts) : v.ts}</span>
+         <span class="h-ts">${_orderFmtTs(v.ts)}</span>
          <span class="h-restore">שחזר ↩</span>
        </div>`
     ).join('');
@@ -3006,7 +3006,7 @@ async function _orderRenderHistoryDropdown() {
 function _orderRestoreVersion(index) {
   const versions = window._orderHistoryCache?.versions || [];
   if (!versions[index]) return;
-  const label = versions[index].ts.includes('T') ? _orderFmtTs(versions[index].ts) : versions[index].ts;
+  const label = _orderFmtTs(versions[index].ts);
   if (!confirm(`לשחזר הזמנה מ-${label}?`)) return;
   window._orderManualEdits = deepClone(versions[index].edits);
   document.getElementById('order-history-dropdown').classList.remove('open');
