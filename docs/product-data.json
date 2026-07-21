@@ -330,13 +330,13 @@
     "yavesh": true
   },
   "604": {
-    "stock": 3760,
-    "daySales": 57.6,
+    "stock": 3555,
+    "daySales": 56.5,
     "kratnost": 180,
-    "palStock": 20.9,
-    "stockZafn": 303,
-    "palStockZafn": 1.7,
-    "daySalesZafn": 38,
+    "palStock": 19.8,
+    "stockZafn": 446,
+    "palStockZafn": 2.5,
+    "daySalesZafn": 39.2,
     "daysStock": null,
     "daysStockZafn": null,
     "stockTrnz": null,
@@ -345,8 +345,8 @@
     "weight": 0.2,
     "packFactor": 24,
     "weightCarton": 4.8,
-    "daySalesAll": 92.6,
-    "daysStockAll": 41,
+    "daySalesAll": 94.5,
+    "daysStockAll": 38,
     "nameEn": "חמאה200 ROSHEN 82.5% ג'",
     "fam": "חמאה רושן",
     "iksGroup": null,
@@ -354,20 +354,20 @@
     "pakuot": [
       {
         "date": "2027-06-01",
-        "daysLeft": 316,
-        "cartons": 3760
+        "daysLeft": 315,
+        "cartons": 3555
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-06-01",
-        "daysLeft": 316,
-        "cartons": 303
+        "daysLeft": 315,
+        "cartons": 446
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 4063,
+    "spo": 4001,
     "openOrders": null
   },
   "615": {
@@ -458,39 +458,33 @@
     "openOrders": null
   },
   "624": {
-    "stock": 17,
-    "daySales": 17.8,
+    "stock": 0,
+    "daySales": 17.7,
     "kratnost": 150,
-    "palStock": 0.1,
-    "stockZafn": 18,
-    "palStockZafn": 0.1,
-    "daySalesZafn": 9.6,
-    "daysStock": 1,
-    "daysStockZafn": 3,
+    "palStock": null,
+    "stockZafn": 7,
+    "palStockZafn": 0,
+    "daySalesZafn": 10.1,
+    "daysStock": 0,
+    "daysStockZafn": 1,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.5,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 25,
-    "daysStockAll": 1,
+    "daySalesAll": 26.2,
+    "daysStockAll": null,
     "nameEn": "קפיר500 ג'",
     "fam": "SVALIA שמנת/יוגורט/ דייסה",
     "iksGroup": null,
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-08-04",
-        "daysLeft": 15,
-        "cartons": 17
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2026-08-04",
-        "daysLeft": 15,
-        "cartons": 18
+        "daysLeft": 14,
+        "cartons": 7
       }
     ],
     "shelfLife": 7,
@@ -586,10 +580,10 @@
     "openOrders": null
   },
   "628": {
-    "stock": 2,
+    "stock": 0,
     "daySales": 35.1,
     "kratnost": 360,
-    "palStock": 0,
+    "palStock": null,
     "stockZafn": 0,
     "palStockZafn": null,
     "daySalesZafn": 18.6,
@@ -602,18 +596,12 @@
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 53.7,
-    "daysStockAll": 0,
+    "daysStockAll": null,
     "nameEn": "טבורוג250 5% ג'",
     "fam": "SVALIA למריחה גבינה/'קוטג/טבורוג",
     "iksGroup": null,
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-08-04",
-        "daysLeft": 15,
-        "cartons": 2
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 7,
     "stopSale": false,
@@ -621,14 +609,14 @@
     "openOrders": null
   },
   "630": {
-    "stock": 13,
-    "daySales": 31.2,
+    "stock": -1,
+    "daySales": 31.7,
     "kratnost": 75,
-    "palStock": 0.2,
-    "stockZafn": 6,
-    "palStockZafn": 0.1,
-    "daySalesZafn": 23.3,
-    "daysStock": 1,
+    "palStock": null,
+    "stockZafn": 0,
+    "palStockZafn": null,
+    "daySalesZafn": 22.7,
+    "daysStock": 0,
     "daysStockZafn": 0,
     "stockTrnz": 0,
     "palStockTrnz": null,
@@ -636,24 +624,53 @@
     "weight": 0.9,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 53.8,
-    "daysStockAll": 0,
+    "daySalesAll": 54.4,
+    "daysStockAll": null,
     "nameEn": "קפיר0.9 ל'",
+    "fam": "SVALIA שמנת/יוגורט/ דייסה",
+    "iksGroup": null,
+    "ashdodPalletCartons": null,
+    "pakuot": [],
+    "pakuotZafn": [],
+    "shelfLife": 7,
+    "stopSale": false,
+    "spo": null,
+    "openOrders": null
+  },
+  "631": {
+    "stock": 988,
+    "daySales": 50.3,
+    "kratnost": 252,
+    "palStock": 3.9,
+    "stockZafn": 250,
+    "palStockZafn": 1,
+    "daySalesZafn": 41.3,
+    "daysStock": 27,
+    "daysStockZafn": 8,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
+    "daySalesTrnz": null,
+    "weight": 0.5,
+    "packFactor": null,
+    "weightCarton": null,
+    "daySalesAll": 91.6,
+    "daysStockAll": 11,
+    "nameEn": "משקה חלבי0.5 ל'",
     "fam": "SVALIA שמנת/יוגורט/ דייסה",
     "iksGroup": null,
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-08-04",
-        "daysLeft": 15,
-        "cartons": 13
+        "date": "2026-08-09",
+        "daysLeft": 19,
+        "cartons": 988
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-04",
-        "daysLeft": 15,
-        "cartons": 6
+        "date": "2026-08-09",
+        "daysLeft": 19,
+        "cartons": 250
       }
     ],
     "shelfLife": 7,
@@ -661,62 +678,11 @@
     "spo": null,
     "openOrders": null
   },
-  "631": {
-    "stock": 1295,
-    "daySales": 51.4,
-    "kratnost": 252,
-    "palStock": 5.1,
-    "stockZafn": 362,
-    "palStockZafn": 1.4,
-    "daySalesZafn": 41.5,
-    "daysStock": 35,
-    "daysStockZafn": 12,
-    "stockTrnz": 0,
-    "palStockTrnz": null,
-    "daySalesTrnz": null,
-    "weight": 0.5,
-    "packFactor": null,
-    "weightCarton": null,
-    "daySalesAll": 92.8,
-    "daysStockAll": 14,
-    "nameEn": "משקה חלבי0.5 ל'",
-    "fam": "SVALIA שמנת/יוגורט/ דייסה",
-    "iksGroup": null,
-    "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-07-26",
-        "daysLeft": 6,
-        "cartons": 307
-      },
-      {
-        "date": "2026-08-09",
-        "daysLeft": 20,
-        "cartons": 988
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-07-26",
-        "daysLeft": 6,
-        "cartons": 110
-      },
-      {
-        "date": "2026-08-09",
-        "daysLeft": 20,
-        "cartons": 252
-      }
-    ],
-    "shelfLife": 7,
-    "stopSale": true,
-    "spo": null,
-    "openOrders": null
-  },
   "643": {
-    "stock": 1,
+    "stock": 0,
     "daySales": 22.3,
     "kratnost": 195,
-    "palStock": 0,
+    "palStock": null,
     "stockZafn": 0,
     "palStockZafn": null,
     "daySalesZafn": 13.9,
@@ -729,18 +695,12 @@
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 33.6,
-    "daysStockAll": 0,
+    "daysStockAll": null,
     "nameEn": "טבורוג 350 0.5% גרם",
     "fam": "SVALIA למריחה גבינה/'קוטג/טבורוג",
     "iksGroup": null,
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-08-09",
-        "daysLeft": 20,
-        "cartons": 1
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 7,
     "stopSale": false,
@@ -748,22 +708,22 @@
     "openOrders": null
   },
   "644": {
-    "stock": 48,
-    "daySales": 30.4,
+    "stock": 24,
+    "daySales": 30.1,
     "kratnost": 195,
-    "palStock": 0.2,
-    "stockZafn": 24,
-    "palStockZafn": 0.1,
-    "daySalesZafn": 18.2,
-    "daysStock": 2,
-    "daysStockZafn": 2,
+    "palStock": 0.1,
+    "stockZafn": 8,
+    "palStockZafn": 0,
+    "daySalesZafn": 18.1,
+    "daysStock": 1,
+    "daysStockZafn": 1,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.35,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 47.2,
+    "daySalesAll": 46.9,
     "daysStockAll": 1,
     "nameEn": "טבורוג 350 3% גרם",
     "fam": "SVALIA למריחה גבינה/'קוטג/טבורוג",
@@ -772,15 +732,15 @@
     "pakuot": [
       {
         "date": "2026-08-09",
-        "daysLeft": 20,
-        "cartons": 48
+        "daysLeft": 19,
+        "cartons": 24
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-08-09",
-        "daysLeft": 20,
-        "cartons": 24
+        "daysLeft": 19,
+        "cartons": 8
       }
     ],
     "shelfLife": 7,
@@ -789,74 +749,64 @@
     "openOrders": null
   },
   "645": {
-    "stock": 1056,
-    "daySales": 41.7,
+    "stock": 803,
+    "daySales": 41.1,
     "kratnost": 195,
-    "palStock": 5.4,
-    "stockZafn": 244,
-    "palStockZafn": 1.3,
-    "daySalesZafn": 28.3,
-    "daysStock": 35,
-    "daysStockZafn": 12,
+    "palStock": 4.1,
+    "stockZafn": 164,
+    "palStockZafn": 0.8,
+    "daySalesZafn": 28.1,
+    "daysStock": 27,
+    "daysStockZafn": 8,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.35,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 70,
-    "daysStockAll": 15,
+    "daySalesAll": 69.2,
+    "daysStockAll": 12,
     "nameEn": "טבורוג 350 5% גרם",
     "fam": "SVALIA למריחה גבינה/'קוטג/טבורוג",
     "iksGroup": null,
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-07-26",
-        "daysLeft": 6,
-        "cartons": 253
-      },
-      {
         "date": "2026-08-09",
-        "daysLeft": 20,
+        "daysLeft": 19,
         "cartons": 803
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-07-26",
-        "daysLeft": 6,
-        "cartons": 80
-      },
-      {
         "date": "2026-08-09",
-        "daysLeft": 20,
+        "daysLeft": 19,
         "cartons": 164
       }
     ],
     "shelfLife": 7,
-    "stopSale": true,
+    "stopSale": false,
     "spo": null,
     "openOrders": null
   },
   "646": {
-    "stock": 151,
-    "daySales": 52.5,
+    "stock": 105,
+    "daySales": 52.3,
     "kratnost": 144,
-    "palStock": 1,
-    "stockZafn": 134,
-    "palStockZafn": 0.9,
+    "palStock": 0.7,
+    "stockZafn": 100,
+    "palStockZafn": 0.7,
     "daySalesZafn": 31.4,
-    "daysStock": 4,
-    "daysStockZafn": 6,
+    "daysStock": 3,
+    "daysStockZafn": 4,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.8,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 83.9,
-    "daysStockAll": 2,
+    "daySalesAll": 83.8,
+    "daysStockAll": 1,
     "nameEn": "טבורוג 800 5% גרם",
     "fam": "SVALIA למריחה גבינה/'קוטג/טבורוג",
     "iksGroup": null,
@@ -864,15 +814,15 @@
     "pakuot": [
       {
         "date": "2026-08-09",
-        "daysLeft": 20,
-        "cartons": 151
+        "daysLeft": 19,
+        "cartons": 105
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-08-09",
-        "daysLeft": 20,
-        "cartons": 134
+        "daysLeft": 19,
+        "cartons": 100
       }
     ],
     "shelfLife": 7,
@@ -881,23 +831,23 @@
     "openOrders": null
   },
   "649": {
-    "stock": 348,
-    "daySales": 4.6,
+    "stock": 347,
+    "daySales": 4.4,
     "kratnost": 192,
     "palStock": 1.8,
-    "stockZafn": 79,
+    "stockZafn": 78,
     "palStockZafn": 0.4,
-    "daySalesZafn": 4.6,
-    "daysStock": 107,
-    "daysStockZafn": 24,
+    "daySalesZafn": 4.5,
+    "daysStock": 110,
+    "daysStockZafn": 25,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.15,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 7.3,
-    "daysStockAll": 47,
+    "daySalesAll": 7.2,
+    "daysStockAll": 48,
     "nameEn": "פרוסות גבינה 27% EMMENTAL שומן150 ג'",
     "fam": "SVALIA פרוסות גבינה",
     "iksGroup": null,
@@ -905,29 +855,29 @@
     "pakuot": [
       {
         "date": "2026-09-08",
-        "daysLeft": 50,
-        "cartons": 28
+        "daysLeft": 49,
+        "cartons": 27
       },
       {
         "date": "2026-10-20",
-        "daysLeft": 92,
+        "daysLeft": 91,
         "cartons": 128
       },
       {
         "date": "2026-11-17",
-        "daysLeft": 120,
+        "daysLeft": 119,
         "cartons": 192
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-09-08",
-        "daysLeft": 50,
-        "cartons": 15
+        "daysLeft": 49,
+        "cartons": 14
       },
       {
         "date": "2026-10-20",
-        "daysLeft": 92,
+        "daysLeft": 91,
         "cartons": 64
       }
     ],
@@ -937,49 +887,49 @@
     "openOrders": null
   },
   "650": {
-    "stock": 302,
+    "stock": 236,
     "daySales": 4.3,
     "kratnost": 192,
-    "palStock": 1.6,
-    "stockZafn": 40,
-    "palStockZafn": 0.2,
-    "daySalesZafn": 4.4,
-    "daysStock": 97,
-    "daysStockZafn": 13,
+    "palStock": 1.2,
+    "stockZafn": 103,
+    "palStockZafn": 0.5,
+    "daySalesZafn": 4.3,
+    "daysStock": 78,
+    "daysStockZafn": 34,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.15,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 7.4,
-    "daysStockAll": 41,
+    "daySalesAll": 7.2,
+    "daysStockAll": 33,
     "nameEn": "פרוסות גבינה 24.7% MAASDAM שומן150 ג'",
     "fam": "SVALIA פרוסות גבינה",
     "iksGroup": null,
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-09-08",
-        "daysLeft": 50,
-        "cartons": 1
-      },
-      {
         "date": "2026-10-20",
-        "daysLeft": 92,
-        "cartons": 109
+        "daysLeft": 91,
+        "cartons": 108
       },
       {
         "date": "2026-11-17",
-        "daysLeft": 120,
-        "cartons": 192
+        "daysLeft": 119,
+        "cartons": 128
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-20",
-        "daysLeft": 92,
-        "cartons": 40
+        "daysLeft": 91,
+        "cartons": 39
+      },
+      {
+        "date": "2026-11-17",
+        "daysLeft": 119,
+        "cartons": 64
       }
     ],
     "shelfLife": 21,
@@ -1220,23 +1170,23 @@
     "openOrders": null
   },
   "659": {
-    "stock": 2686,
-    "daySales": 31.7,
+    "stock": 2659,
+    "daySales": 31.5,
     "kratnost": 540,
-    "palStock": 5,
-    "stockZafn": 356,
-    "palStockZafn": 0.7,
-    "daySalesZafn": 15.3,
-    "daysStock": 119,
-    "daysStockZafn": 33,
+    "palStock": 4.9,
+    "stockZafn": 333,
+    "palStockZafn": 0.6,
+    "daySalesZafn": 15.6,
+    "daysStock": 118,
+    "daysStockZafn": 30,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.16,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 47,
-    "daysStockAll": 57,
+    "daySalesAll": 47.1,
+    "daysStockAll": 56,
     "nameEn": "גבינה מותכת 28%  שומן160 גרםSVALYA ",
     "fam": "SVALIA למריחה גבינה/'קוטג/טבורוג",
     "iksGroup": null,
@@ -1244,25 +1194,25 @@
     "pakuot": [
       {
         "date": "2026-11-03",
-        "daysLeft": 106,
-        "cartons": 526
+        "daysLeft": 105,
+        "cartons": 499
       },
       {
         "date": "2026-11-24",
-        "daysLeft": 127,
+        "daysLeft": 126,
         "cartons": 1080
       },
       {
         "date": "2026-12-21",
-        "daysLeft": 154,
+        "daysLeft": 153,
         "cartons": 1080
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-11-03",
-        "daysLeft": 106,
-        "cartons": 356
+        "daysLeft": 105,
+        "cartons": 333
       }
     ],
     "shelfLife": 7,
@@ -1271,23 +1221,23 @@
     "openOrders": null
   },
   "660": {
-    "stock": 378,
-    "daySales": 7.4,
+    "stock": 368,
+    "daySales": 7.7,
     "kratnost": 70,
-    "palStock": 5.4,
-    "stockZafn": 91,
+    "palStock": 5.3,
+    "stockZafn": 88,
     "palStockZafn": 1.3,
     "daySalesZafn": 4.6,
-    "daysStock": 72,
-    "daysStockZafn": 28,
+    "daysStock": 67,
+    "daysStockZafn": 27,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 1,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 11.6,
-    "daysStockAll": 33,
+    "daySalesAll": 12,
+    "daysStockAll": 31,
     "nameEn": " SVALYAגבינה אנלוגי5) LITA) ",
     "fam": "גבינה SVALIA",
     "iksGroup": null,
@@ -1295,29 +1245,29 @@
     "pakuot": [
       {
         "date": "2026-10-22",
-        "daysLeft": 94,
-        "cartons": 25
+        "daysLeft": 93,
+        "cartons": 15
       },
       {
         "date": "2026-11-19",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 138
       },
       {
         "date": "2026-12-17",
-        "daysLeft": 150,
+        "daysLeft": 149,
         "cartons": 215
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-22",
-        "daysLeft": 94,
-        "cartons": 12
+        "daysLeft": 93,
+        "cartons": 9
       },
       {
         "date": "2026-11-19",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 79
       }
     ],
@@ -1327,14 +1277,14 @@
     "openOrders": null
   },
   "661": {
-    "stock": 3,
+    "stock": 0,
     "daySales": 8.1,
     "kratnost": 70,
-    "palStock": 0,
+    "palStock": null,
     "stockZafn": 0,
     "palStockZafn": null,
     "daySalesZafn": 4.8,
-    "daysStock": 1,
+    "daysStock": 0,
     "daysStockZafn": 0,
     "stockTrnz": 0,
     "palStockTrnz": null,
@@ -1343,41 +1293,35 @@
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 10.7,
-    "daysStockAll": 0,
+    "daysStockAll": null,
     "nameEn": " DVAROגבינה אנלוגי5)  LITA) ",
     "fam": "גבינה SVALIA",
     "iksGroup": null,
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-07-23",
-        "daysLeft": 3,
-        "cartons": 3
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
-    "stopSale": true,
+    "stopSale": false,
     "spo": null,
     "openOrders": null
   },
   "662": {
-    "stock": 166,
-    "daySales": 11.8,
+    "stock": 156,
+    "daySales": 12.1,
     "kratnost": 70,
-    "palStock": 2.4,
-    "stockZafn": 119,
-    "palStockZafn": 1.7,
+    "palStock": 2.2,
+    "stockZafn": 112,
+    "palStockZafn": 1.6,
     "daySalesZafn": 8.3,
-    "daysStock": 20,
-    "daysStockZafn": 20,
+    "daysStock": 18,
+    "daysStockZafn": 19,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 1,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 19.8,
+    "daySalesAll": 20.4,
     "daysStockAll": 8,
     "nameEn": " ROSSIYSKIYגבינה אנלוגי5)  LITA) ",
     "fam": "גבינה SVALIA",
@@ -1386,24 +1330,24 @@
     "pakuot": [
       {
         "date": "2026-11-12",
-        "daysLeft": 115,
-        "cartons": 37
+        "daysLeft": 114,
+        "cartons": 27
       },
       {
         "date": "2026-12-17",
-        "daysLeft": 150,
+        "daysLeft": 149,
         "cartons": 129
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-11-12",
-        "daysLeft": 115,
-        "cartons": 22
+        "daysLeft": 114,
+        "cartons": 15
       },
       {
         "date": "2026-12-17",
-        "daysLeft": 150,
+        "daysLeft": 149,
         "cartons": 97
       }
     ],
@@ -1442,22 +1386,22 @@
     "openOrders": null
   },
   "664": {
-    "stock": 535,
-    "daySales": 9.2,
+    "stock": 529,
+    "daySales": 9.1,
     "kratnost": 180,
-    "palStock": 3,
-    "stockZafn": 98,
+    "palStock": 2.9,
+    "stockZafn": 94,
     "palStockZafn": 0.5,
     "daySalesZafn": 3.9,
     "daysStock": 81,
-    "daysStockZafn": 35,
+    "daysStockZafn": 33,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 1,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 13.1,
+    "daySalesAll": 13,
     "daysStockAll": 41,
     "nameEn": "גבינה אנלוגי מעושנת1 SNACKS ק\"ג4) LITA) ",
     "fam": "גבינה SVALIA",
@@ -1466,34 +1410,34 @@
     "pakuot": [
       {
         "date": "2026-11-05",
-        "daysLeft": 108,
-        "cartons": 57
+        "daysLeft": 107,
+        "cartons": 51
       },
       {
         "date": "2026-11-19",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 118
       },
       {
         "date": "2026-11-26",
-        "daysLeft": 129,
+        "daysLeft": 128,
         "cartons": 180
       },
       {
         "date": "2026-12-17",
-        "daysLeft": 150,
+        "daysLeft": 149,
         "cartons": 180
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-11-05",
-        "daysLeft": 108,
-        "cartons": 38
+        "daysLeft": 107,
+        "cartons": 34
       },
       {
         "date": "2026-11-19",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 60
       }
     ],
@@ -1503,15 +1447,15 @@
     "openOrders": null
   },
   "665": {
-    "stock": 344,
+    "stock": 337,
     "daySales": 6.8,
     "kratnost": 384,
     "palStock": 0.9,
-    "stockZafn": 198,
+    "stockZafn": 192,
     "palStockZafn": 0.5,
     "daySalesZafn": 5.9,
-    "daysStock": 71,
-    "daysStockZafn": 47,
+    "daysStock": 70,
+    "daysStockZafn": 45,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -1519,7 +1463,7 @@
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 12.5,
-    "daysStockAll": 28,
+    "daysStockAll": 27,
     "nameEn": "גבינה פרמזן200 PARNIDZIO ג'",
     "fam": "SVALIA פרוסות גבינה",
     "iksGroup": null,
@@ -1527,24 +1471,24 @@
     "pakuot": [
       {
         "date": "2026-10-20",
-        "daysLeft": 92,
-        "cartons": 100
+        "daysLeft": 91,
+        "cartons": 93
       },
       {
         "date": "2026-11-17",
-        "daysLeft": 120,
+        "daysLeft": 119,
         "cartons": 244
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-20",
-        "daysLeft": 92,
-        "cartons": 58
+        "daysLeft": 91,
+        "cartons": 52
       },
       {
         "date": "2026-11-17",
-        "daysLeft": 120,
+        "daysLeft": 119,
         "cartons": 140
       }
     ],
@@ -1583,23 +1527,23 @@
     "openOrders": null
   },
   "667": {
-    "stock": 1384,
+    "stock": 1241,
     "daySales": 15.5,
     "kratnost": 192,
-    "palStock": 7.2,
-    "stockZafn": 85,
-    "palStockZafn": 0.4,
-    "daySalesZafn": 13.2,
-    "daysStock": 125,
-    "daysStockZafn": 9,
+    "palStock": 6.5,
+    "stockZafn": 203,
+    "palStockZafn": 1.1,
+    "daySalesZafn": 13.1,
+    "daysStock": 112,
+    "daysStockZafn": 22,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.15,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 28.7,
-    "daysStockAll": 48,
+    "daySalesAll": 28.6,
+    "daysStockAll": 43,
     "nameEn": " SVALYAגבינה אנלוגי150 ג'",
     "fam": "SVALIA פרוסות גבינה",
     "iksGroup": null,
@@ -1607,30 +1551,30 @@
     "pakuot": [
       {
         "date": "2026-09-22",
-        "daysLeft": 64,
-        "cartons": 424
+        "daysLeft": 63,
+        "cartons": 281
       },
       {
         "date": "2026-10-06",
-        "daysLeft": 78,
+        "daysLeft": 77,
         "cartons": 384
       },
       {
         "date": "2026-10-20",
-        "daysLeft": 92,
+        "daysLeft": 91,
         "cartons": 192
       },
       {
         "date": "2026-11-17",
-        "daysLeft": 120,
+        "daysLeft": 119,
         "cartons": 384
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-09-22",
-        "daysLeft": 64,
-        "cartons": 85
+        "daysLeft": 63,
+        "cartons": 203
       }
     ],
     "shelfLife": 21,
@@ -1639,14 +1583,14 @@
     "openOrders": null
   },
   "668": {
-    "stock": 509,
+    "stock": 502,
     "daySales": 7.1,
     "kratnost": 192,
-    "palStock": 2.7,
+    "palStock": 2.6,
     "stockZafn": 57,
     "palStockZafn": 0.3,
     "daySalesZafn": 5.9,
-    "daysStock": 100,
+    "daysStock": 99,
     "daysStockZafn": 13,
     "stockTrnz": 0,
     "palStockTrnz": null,
@@ -1654,7 +1598,7 @@
     "weight": 0.15,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 12.1,
+    "daySalesAll": 11.9,
     "daysStockAll": 42,
     "nameEn": " DVAROגבינה אנלוגי150 ג'",
     "fam": "SVALIA פרוסות גבינה",
@@ -1663,24 +1607,24 @@
     "pakuot": [
       {
         "date": "2026-09-22",
-        "daysLeft": 64,
-        "cartons": 125
+        "daysLeft": 63,
+        "cartons": 118
       },
       {
         "date": "2026-10-13",
-        "daysLeft": 85,
+        "daysLeft": 84,
         "cartons": 192
       },
       {
         "date": "2026-11-17",
-        "daysLeft": 120,
+        "daysLeft": 119,
         "cartons": 192
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-09-22",
-        "daysLeft": 64,
+        "daysLeft": 63,
         "cartons": 57
       }
     ],
@@ -1690,23 +1634,23 @@
     "openOrders": null
   },
   "669": {
-    "stock": 1144,
-    "daySales": 18.2,
+    "stock": 1054,
+    "daySales": 18.5,
     "kratnost": 192,
-    "palStock": 6,
-    "stockZafn": 81,
-    "palStockZafn": 0.4,
+    "palStock": 5.5,
+    "stockZafn": 133,
+    "palStockZafn": 0.7,
     "daySalesZafn": 14.3,
-    "daysStock": 88,
-    "daysStockZafn": 8,
+    "daysStock": 80,
+    "daysStockZafn": 13,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.15,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 32.1,
-    "daysStockAll": 36,
+    "daySalesAll": 32.3,
+    "daysStockAll": 33,
     "nameEn": " ROSSIYSKIYגבינה אנלוגי150 ג'",
     "fam": "SVALIA פרוסות גבינה",
     "iksGroup": null,
@@ -1714,30 +1658,35 @@
     "pakuot": [
       {
         "date": "2026-10-06",
-        "daysLeft": 78,
-        "cartons": 189
+        "daysLeft": 77,
+        "cartons": 163
       },
       {
         "date": "2026-10-13",
-        "daysLeft": 85,
-        "cartons": 187
+        "daysLeft": 84,
+        "cartons": 123
       },
       {
         "date": "2026-10-20",
-        "daysLeft": 92,
+        "daysLeft": 91,
         "cartons": 192
       },
       {
         "date": "2026-11-17",
-        "daysLeft": 120,
+        "daysLeft": 119,
         "cartons": 576
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-06",
-        "daysLeft": 78,
-        "cartons": 81
+        "daysLeft": 77,
+        "cartons": 69
+      },
+      {
+        "date": "2026-10-13",
+        "daysLeft": 84,
+        "cartons": 64
       }
     ],
     "shelfLife": 21,
@@ -1746,14 +1695,14 @@
     "openOrders": null
   },
   "670": {
-    "stock": 115,
+    "stock": 112,
     "daySales": 1.9,
     "kratnost": 72,
     "palStock": 1.6,
-    "stockZafn": 18,
-    "palStockZafn": 0.3,
-    "daySalesZafn": 2.8,
-    "daysStock": 86,
+    "stockZafn": 17,
+    "palStockZafn": 0.2,
+    "daySalesZafn": 2.7,
+    "daysStock": 82,
     "daysStockZafn": 9,
     "stockTrnz": 0,
     "palStockTrnz": null,
@@ -1761,34 +1710,29 @@
     "weight": 0.6,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 3.6,
-    "daysStockAll": 32,
+    "daySalesAll": 3.7,
+    "daysStockAll": 30,
     "nameEn": " SVALYAגבינה אנלוגי600 ג'",
     "fam": "SVALIA פרוסות גבינה",
     "iksGroup": null,
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-09-15",
-        "daysLeft": 57,
-        "cartons": 1
-      },
-      {
         "date": "2026-10-06",
-        "daysLeft": 78,
-        "cartons": 42
+        "daysLeft": 77,
+        "cartons": 40
       },
       {
         "date": "2026-10-27",
-        "daysLeft": 99,
+        "daysLeft": 98,
         "cartons": 72
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-06",
-        "daysLeft": 78,
-        "cartons": 18
+        "daysLeft": 77,
+        "cartons": 17
       }
     ],
     "shelfLife": 21,
@@ -1826,14 +1770,14 @@
     "openOrders": null
   },
   "672": {
-    "stock": 110,
+    "stock": 108,
     "daySales": 1.8,
     "kratnost": 72,
     "palStock": 1.5,
-    "stockZafn": 25,
+    "stockZafn": 24,
     "palStockZafn": 0.3,
-    "daySalesZafn": 2.6,
-    "daysStock": 85,
+    "daySalesZafn": 2.5,
+    "daysStock": 82,
     "daysStockZafn": 13,
     "stockTrnz": 0,
     "palStockTrnz": null,
@@ -1841,8 +1785,8 @@
     "weight": 0.6,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 3.4,
-    "daysStockAll": 33,
+    "daySalesAll": 3.3,
+    "daysStockAll": 32,
     "nameEn": " ROSSIYSKIYגבינה אנלוגי600 ג'",
     "fam": "SVALIA פרוסות גבינה",
     "iksGroup": null,
@@ -1850,20 +1794,20 @@
     "pakuot": [
       {
         "date": "2026-10-06",
-        "daysLeft": 78,
-        "cartons": 38
+        "daysLeft": 77,
+        "cartons": 36
       },
       {
         "date": "2026-10-27",
-        "daysLeft": 99,
+        "daysLeft": 98,
         "cartons": 72
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-06",
-        "daysLeft": 78,
-        "cartons": 25
+        "daysLeft": 77,
+        "cartons": 24
       }
     ],
     "shelfLife": 21,
@@ -1872,14 +1816,14 @@
     "openOrders": null
   },
   "673": {
-    "stock": 173,
+    "stock": 170,
     "daySales": 3.4,
     "kratnost": 72,
     "palStock": 2.4,
     "stockZafn": 58,
     "palStockZafn": 0.8,
-    "daySalesZafn": 3.8,
-    "daysStock": 71,
+    "daySalesZafn": 3.6,
+    "daysStock": 70,
     "daysStockZafn": 22,
     "stockTrnz": 0,
     "palStockTrnz": null,
@@ -1887,7 +1831,7 @@
     "weight": 0.6,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 6.1,
+    "daySalesAll": 6,
     "daysStockAll": 28,
     "nameEn": " GURMANגבינה אנלוגי מעושנת600 ג'",
     "fam": "SVALIA פרוסות גבינה",
@@ -1896,24 +1840,24 @@
     "pakuot": [
       {
         "date": "2026-11-05",
-        "daysLeft": 108,
-        "cartons": 69
+        "daysLeft": 107,
+        "cartons": 66
       },
       {
         "date": "2026-11-26",
-        "daysLeft": 129,
+        "daysLeft": 128,
         "cartons": 104
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-11-05",
-        "daysLeft": 108,
+        "daysLeft": 107,
         "cartons": 18
       },
       {
         "date": "2026-11-26",
-        "daysLeft": 129,
+        "daysLeft": 128,
         "cartons": 40
       }
     ],
@@ -2010,23 +1954,23 @@
     "openOrders": null
   },
   "677": {
-    "stock": 1650,
+    "stock": 1488,
     "daySales": 33.3,
     "kratnost": 192,
-    "palStock": 8.6,
-    "stockZafn": 88,
-    "palStockZafn": 0.5,
-    "daySalesZafn": 23.8,
-    "daysStock": 69,
-    "daysStockZafn": 5,
+    "palStock": 7.8,
+    "stockZafn": 196,
+    "palStockZafn": 1,
+    "daySalesZafn": 23.7,
+    "daysStock": 63,
+    "daysStockZafn": 12,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.18,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 57.1,
-    "daysStockAll": 29,
+    "daySalesAll": 57,
+    "daysStockAll": 26,
     "nameEn": " GURMANגבינה אנלוגי מעושנת150 ג'",
     "fam": "SVALIA פרוסות גבינה",
     "iksGroup": null,
@@ -2034,35 +1978,40 @@
     "pakuot": [
       {
         "date": "2026-11-05",
-        "daysLeft": 108,
-        "cartons": 129
+        "daysLeft": 107,
+        "cartons": 95
       },
       {
         "date": "2026-11-12",
-        "daysLeft": 115,
-        "cartons": 369
+        "daysLeft": 114,
+        "cartons": 241
       },
       {
         "date": "2026-11-26",
-        "daysLeft": 129,
+        "daysLeft": 128,
         "cartons": 384
       },
       {
         "date": "2026-12-10",
-        "daysLeft": 143,
+        "daysLeft": 142,
         "cartons": 576
       },
       {
         "date": "2026-12-17",
-        "daysLeft": 150,
+        "daysLeft": 149,
         "cartons": 192
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-11-05",
-        "daysLeft": 108,
-        "cartons": 88
+        "daysLeft": 107,
+        "cartons": 68
+      },
+      {
+        "date": "2026-11-12",
+        "daysLeft": 114,
+        "cartons": 128
       }
     ],
     "shelfLife": 21,
@@ -2669,13 +2618,13 @@
     "yavesh": true
   },
   "732": {
-    "stock": 10787,
-    "daySales": 154.6,
+    "stock": 10676,
+    "daySales": 158,
     "kratnost": 220,
-    "palStock": 49,
-    "stockZafn": 813,
-    "palStockZafn": 3.7,
-    "daySalesZafn": 100.8,
+    "palStock": 48.5,
+    "stockZafn": 722,
+    "palStockZafn": 3.3,
+    "daySalesZafn": 103.6,
     "daysStock": null,
     "daysStockZafn": null,
     "stockTrnz": null,
@@ -2684,8 +2633,8 @@
     "weight": 0.2,
     "packFactor": 20,
     "weightCarton": 4,
-    "daySalesAll": 255.3,
-    "daysStockAll": 42,
+    "daySalesAll": 261.6,
+    "daysStockAll": 41,
     "nameEn": "חמאה200 FERMA 82.5% ג'",
     "fam": "חמאה FERMA",
     "iksGroup": null,
@@ -2693,35 +2642,35 @@
     "pakuot": [
       {
         "date": "2027-05-06",
-        "daysLeft": 290,
-        "cartons": 1227
+        "daysLeft": 289,
+        "cartons": 1116
       },
       {
         "date": "2027-05-27",
-        "daysLeft": 311,
+        "daysLeft": 310,
         "cartons": 4560
       },
       {
         "date": "2027-06-17",
-        "daysLeft": 332,
+        "daysLeft": 331,
         "cartons": 5000
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-05-06",
-        "daysLeft": 290,
-        "cartons": 373
+        "daysLeft": 289,
+        "cartons": 282
       },
       {
         "date": "2027-05-27",
-        "daysLeft": 311,
+        "daysLeft": 310,
         "cartons": 440
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 11600,
+    "spo": 11398,
     "openOrders": null
   },
   "735": {
@@ -2754,11 +2703,11 @@
     "openOrders": null
   },
   "736": {
-    "stock": 861,
+    "stock": 854,
     "daySales": 7.5,
     "kratnost": 240,
     "palStock": 3.6,
-    "stockZafn": 204,
+    "stockZafn": 201,
     "palStockZafn": 0.8,
     "daySalesZafn": 4.6,
     "daysStock": null,
@@ -2769,7 +2718,7 @@
     "weight": 0.2,
     "packFactor": 20,
     "weightCarton": 4,
-    "daySalesAll": 11.7,
+    "daySalesAll": 11.6,
     "daysStockAll": 74,
     "nameEn": "ממרח מחמאה 200 גרם20) KRESTYANSKAYA) ",
     "fam": "ממרחי חמאה",
@@ -2778,20 +2727,20 @@
     "pakuot": [
       {
         "date": "2027-03-12",
-        "daysLeft": 235,
-        "cartons": 861
+        "daysLeft": 234,
+        "cartons": 854
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-12",
-        "daysLeft": 235,
-        "cartons": 204
+        "daysLeft": 234,
+        "cartons": 201
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 1065,
+    "spo": 1055,
     "openOrders": null
   },
   "737": {
@@ -2853,13 +2802,13 @@
     "openOrders": null
   },
   "739": {
-    "stock": 767,
-    "daySales": 4.3,
+    "stock": 525,
+    "daySales": 4.2,
     "kratnost": 240,
-    "palStock": 3.2,
-    "stockZafn": 104,
-    "palStockZafn": 0.4,
-    "daySalesZafn": 4,
+    "palStock": 2.2,
+    "stockZafn": 342,
+    "palStockZafn": 1.4,
+    "daySalesZafn": 3.9,
     "daysStock": null,
     "daysStockZafn": null,
     "stockTrnz": null,
@@ -2868,8 +2817,8 @@
     "weight": 0.2,
     "packFactor": 20,
     "weightCarton": 4,
-    "daySalesAll": 6.5,
-    "daysStockAll": 118,
+    "daySalesAll": 6.4,
+    "daysStockAll": 82,
     "nameEn": "ממרח מחמאה 200 גרם20) TULCHINKA) ",
     "fam": "ממרחי חמאה",
     "iksGroup": null,
@@ -2877,29 +2826,29 @@
     "pakuot": [
       {
         "date": "2027-03-12",
-        "daysLeft": 235,
-        "cartons": 767
+        "daysLeft": 234,
+        "cartons": 525
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-12",
-        "daysLeft": 235,
-        "cartons": 104
+        "daysLeft": 234,
+        "cartons": 342
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 871,
+    "spo": 867,
     "openOrders": null
   },
   "740": {
-    "stock": 401,
+    "stock": 399,
     "daySales": 3.9,
     "kratnost": 112,
     "palStock": 3.6,
-    "stockZafn": 86,
-    "palStockZafn": 0.8,
+    "stockZafn": 83,
+    "palStockZafn": 0.7,
     "daySalesZafn": 3.7,
     "daysStock": null,
     "daysStockZafn": null,
@@ -2909,7 +2858,7 @@
     "weight": 0.4,
     "packFactor": 20,
     "weightCarton": 8,
-    "daySalesAll": 6.9,
+    "daySalesAll": 6.8,
     "daysStockAll": 58,
     "nameEn": "ממרח מחמאה 400 גרם20) KRESTYANSKAYA) ",
     "fam": "ממרחי חמאה",
@@ -2918,39 +2867,39 @@
     "pakuot": [
       {
         "date": "2027-03-12",
-        "daysLeft": 235,
-        "cartons": 401
+        "daysLeft": 234,
+        "cartons": 399
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-12",
-        "daysLeft": 235,
-        "cartons": 86
+        "daysLeft": 234,
+        "cartons": 83
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 487,
+    "spo": 482,
     "openOrders": null
   },
   "755": {
-    "stock": 1314,
-    "daySales": 18.7,
+    "stock": 1304,
+    "daySales": 18.4,
     "kratnost": 72,
-    "palStock": 18.3,
-    "stockZafn": 180,
-    "palStockZafn": 2.5,
+    "palStock": 18.1,
+    "stockZafn": 169,
+    "palStockZafn": 2.3,
     "daySalesZafn": 9.8,
     "daysStock": 99,
-    "daysStockZafn": 26,
+    "daysStockZafn": 24,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 1,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 28.4,
+    "daySalesAll": 28.2,
     "daysStockAll": 46,
     "nameEn": " GURMANגבינה אנלוגי מעושנת4)  LITA) ",
     "fam": "גבינה SVALIA",
@@ -2959,34 +2908,34 @@
     "pakuot": [
       {
         "date": "2026-10-26",
-        "daysLeft": 98,
-        "cartons": 159
+        "daysLeft": 97,
+        "cartons": 149
       },
       {
         "date": "2026-11-10",
-        "daysLeft": 113,
+        "daysLeft": 112,
         "cartons": 255
       },
       {
         "date": "2026-11-24",
-        "daysLeft": 127,
+        "daysLeft": 126,
         "cartons": 360
       },
       {
         "date": "2026-12-21",
-        "daysLeft": 154,
+        "daysLeft": 153,
         "cartons": 540
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-26",
-        "daysLeft": 98,
-        "cartons": 75
+        "daysLeft": 97,
+        "cartons": 64
       },
       {
         "date": "2026-11-10",
-        "daysLeft": 113,
+        "daysLeft": 112,
         "cartons": 105
       }
     ],
@@ -2996,11 +2945,11 @@
     "openOrders": null
   },
   "800": {
-    "stock": 8,
+    "stock": 0,
     "daySales": 59.2,
     "kratnost": 180,
-    "palStock": 0,
-    "stockZafn": 0,
+    "palStock": null,
+    "stockZafn": null,
     "palStockZafn": null,
     "daySalesZafn": 36.8,
     "daysStock": null,
@@ -3012,32 +2961,26 @@
     "packFactor": 24,
     "weightCarton": 4.8,
     "daySalesAll": 87.7,
-    "daysStockAll": 0,
+    "daysStockAll": null,
     "nameEn": "חמאה בד\"צ 82.5% רושן חדש200 ג'",
     "fam": "חמאה רושן",
     "iksGroup": null,
     "ashdodPalletCartons": 180,
-    "pakuot": [
-      {
-        "date": "2027-08-17",
-        "daysLeft": 393,
-        "cartons": 8
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 2,
+    "spo": null,
     "openOrders": null
   },
   "802": {
-    "stock": 327,
-    "daySales": 4.9,
+    "stock": 241,
+    "daySales": 5,
     "kratnost": 240,
-    "palStock": 1.4,
-    "stockZafn": 85,
-    "palStockZafn": 0.4,
-    "daySalesZafn": 4.1,
+    "palStock": 1,
+    "stockZafn": 163,
+    "palStockZafn": 0.7,
+    "daySalesZafn": 4,
     "daysStock": null,
     "daysStockZafn": null,
     "stockTrnz": null,
@@ -3047,7 +2990,7 @@
     "packFactor": 20,
     "weightCarton": 4,
     "daySalesAll": 8,
-    "daysStockAll": 41,
+    "daysStockAll": 30,
     "nameEn": "ממרח מחמאה 200 גרם20) LAKTIKA) ",
     "fam": "ממרחי חמאה",
     "iksGroup": null,
@@ -3055,30 +2998,30 @@
     "pakuot": [
       {
         "date": "2027-03-12",
-        "daysLeft": 235,
-        "cartons": 327
+        "daysLeft": 234,
+        "cartons": 241
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-12",
-        "daysLeft": 235,
-        "cartons": 85
+        "daysLeft": 234,
+        "cartons": 163
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 412,
+    "spo": 404,
     "openOrders": null
   },
   "803": {
-    "stock": 99,
+    "stock": 97,
     "daySales": 2.4,
     "kratnost": 240,
     "palStock": 0.4,
-    "stockZafn": 27,
+    "stockZafn": 26,
     "palStockZafn": 0.1,
-    "daySalesZafn": 3,
+    "daySalesZafn": 2.9,
     "daysStock": null,
     "daysStockZafn": null,
     "stockTrnz": null,
@@ -3096,29 +3039,29 @@
     "pakuot": [
       {
         "date": "2027-03-12",
-        "daysLeft": 235,
-        "cartons": 99
+        "daysLeft": 234,
+        "cartons": 97
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-12",
-        "daysLeft": 235,
-        "cartons": 27
+        "daysLeft": 234,
+        "cartons": 26
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 126,
+    "spo": 123,
     "openOrders": null
   },
   "815": {
-    "stock": 840,
-    "daySales": 61.3,
+    "stock": 4427,
+    "daySales": 63.2,
     "kratnost": 729,
-    "palStock": 1.2,
-    "stockZafn": 561,
-    "palStockZafn": 0.8,
+    "palStock": 6.1,
+    "stockZafn": 514,
+    "palStockZafn": 0.7,
     "daySalesZafn": 46.1,
     "daysStock": null,
     "daysStockZafn": null,
@@ -3128,8 +3071,8 @@
     "weight": 0.045,
     "packFactor": 18,
     "weightCarton": 0.81,
-    "daySalesAll": 106,
-    "daysStockAll": 8,
+    "daySalesAll": 109.3,
+    "daysStockAll": 41,
     "nameEn": "חטיף גבינה עם ריבת חלב45 ג'",
     "fam": "חטיף גבינה",
     "iksGroup": null,
@@ -3137,30 +3080,35 @@
     "pakuot": [
       {
         "date": "2027-04-15",
-        "daysLeft": 269,
-        "cartons": 840
+        "daysLeft": 268,
+        "cartons": 782
+      },
+      {
+        "date": "2027-06-01",
+        "daysLeft": 315,
+        "cartons": 3645
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-04-15",
-        "daysLeft": 269,
-        "cartons": 561
+        "daysLeft": 268,
+        "cartons": 514
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 5046,
-    "openOrders": 3645
+    "spo": 4941,
+    "openOrders": null
   },
   "816": {
-    "stock": 727,
-    "daySales": 51.6,
+    "stock": 3592,
+    "daySales": 53.2,
     "kratnost": 729,
-    "palStock": 1,
-    "stockZafn": 465,
+    "palStock": 4.9,
+    "stockZafn": 435,
     "palStockZafn": 0.6,
-    "daySalesZafn": 41.6,
+    "daySalesZafn": 41.2,
     "daysStock": null,
     "daysStockZafn": null,
     "stockTrnz": null,
@@ -3169,8 +3117,8 @@
     "weight": 0.045,
     "packFactor": 18,
     "weightCarton": 0.81,
-    "daySalesAll": 91.9,
-    "daysStockAll": 8,
+    "daySalesAll": 94.4,
+    "daysStockAll": 38,
     "nameEn": "חטיף גבינה תות שדה45 ג'",
     "fam": "חטיף גבינה",
     "iksGroup": null,
@@ -3178,30 +3126,35 @@
     "pakuot": [
       {
         "date": "2027-04-15",
-        "daysLeft": 269,
-        "cartons": 727
+        "daysLeft": 268,
+        "cartons": 676
+      },
+      {
+        "date": "2027-06-01",
+        "daysLeft": 315,
+        "cartons": 2916
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-04-15",
-        "daysLeft": 269,
-        "cartons": 465
+        "daysLeft": 268,
+        "cartons": 435
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 4108,
-    "openOrders": 2916
+    "spo": 4027,
+    "openOrders": null
   },
   "817": {
-    "stock": 749,
-    "daySales": 50.1,
+    "stock": 4352,
+    "daySales": 49.9,
     "kratnost": 729,
-    "palStock": 1,
-    "stockZafn": 499,
-    "palStockZafn": 0.7,
-    "daySalesZafn": 38.7,
+    "palStock": 6,
+    "stockZafn": 456,
+    "palStockZafn": 0.6,
+    "daySalesZafn": 40,
     "daysStock": null,
     "daysStockZafn": null,
     "stockTrnz": null,
@@ -3210,8 +3163,8 @@
     "weight": 0.045,
     "packFactor": 18,
     "weightCarton": 0.81,
-    "daySalesAll": 87.2,
-    "daysStockAll": 9,
+    "daySalesAll": 89.9,
+    "daysStockAll": 48,
     "nameEn": "חטיף גבינה בטעם שוקולד45 ג'",
     "fam": "חטיף גבינה",
     "iksGroup": null,
@@ -3219,30 +3172,35 @@
     "pakuot": [
       {
         "date": "2027-04-15",
-        "daysLeft": 269,
-        "cartons": 749
+        "daysLeft": 268,
+        "cartons": 707
+      },
+      {
+        "date": "2027-06-01",
+        "daysLeft": 315,
+        "cartons": 3645
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-04-15",
-        "daysLeft": 269,
-        "cartons": 499
+        "daysLeft": 268,
+        "cartons": 456
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 4893,
-    "openOrders": 3645
+    "spo": 4808,
+    "openOrders": null
   },
   "818": {
-    "stock": 3357,
-    "daySales": 114.3,
+    "stock": 9837,
+    "daySales": 113.3,
     "kratnost": 729,
-    "palStock": 4.6,
-    "stockZafn": 872,
-    "palStockZafn": 1.2,
-    "daySalesZafn": 84.6,
+    "palStock": 13.5,
+    "stockZafn": 787,
+    "palStockZafn": 1.1,
+    "daySalesZafn": 84.7,
     "daysStock": null,
     "daysStockZafn": null,
     "stockTrnz": null,
@@ -3251,8 +3209,8 @@
     "weight": 0.045,
     "packFactor": 18,
     "weightCarton": 0.81,
-    "daySalesAll": 199,
-    "daysStockAll": 17,
+    "daySalesAll": 197.9,
+    "daysStockAll": 50,
     "nameEn": "חטיף גבינה וניל45 ג'",
     "fam": "חטיף גבינה",
     "iksGroup": null,
@@ -3260,21 +3218,26 @@
     "pakuot": [
       {
         "date": "2027-04-15",
-        "daysLeft": 269,
-        "cartons": 3357
+        "daysLeft": 268,
+        "cartons": 3276
+      },
+      {
+        "date": "2027-06-01",
+        "daysLeft": 315,
+        "cartons": 6561
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-04-15",
-        "daysLeft": 269,
-        "cartons": 872
+        "daysLeft": 268,
+        "cartons": 787
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 10790,
-    "openOrders": 6561
+    "spo": 10624,
+    "openOrders": null
   },
   "819": {
     "stock": 0,
@@ -3451,14 +3414,14 @@
     "openOrders": null
   },
   "1000": {
-    "stock": 359,
-    "daySales": 18.4,
+    "stock": 355,
+    "daySales": 17.8,
     "kratnost": 192,
-    "palStock": 1.9,
-    "stockZafn": 168,
-    "palStockZafn": 0.9,
-    "daySalesZafn": 14,
-    "daysStock": 27,
+    "palStock": 1.8,
+    "stockZafn": 163,
+    "palStockZafn": 0.8,
+    "daySalesZafn": 13.6,
+    "daysStock": 28,
     "daysStockZafn": 17,
     "stockTrnz": 0,
     "palStockTrnz": null,
@@ -3466,8 +3429,8 @@
     "weight": 1.2,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 18.4,
-    "daysStockAll": 19,
+    "daySalesAll": 30.2,
+    "daysStockAll": 12,
     "nameEn": "פילה דג הרינג מומלח בשמן מצונן1200 ג(NP (3 '",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -3475,30 +3438,19 @@
     "pakuot": [
       {
         "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 106
+        "daysLeft": 95,
+        "cartons": 102
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 116,
+        "daysLeft": 115,
         "cartons": 253
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 40
-      },
-      {
-        "date": "2026-11-13",
-        "daysLeft": 116,
-        "cartons": 128
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 911,
+    "spo": 902,
     "openOrders": 384
   },
   "1001": {
@@ -3531,23 +3483,23 @@
     "openOrders": null
   },
   "1002": {
-    "stock": 222,
-    "daySales": 35.7,
+    "stock": 203,
+    "daySales": 34.7,
     "kratnost": 192,
-    "palStock": 1.2,
-    "stockZafn": 103,
-    "palStockZafn": 0.5,
-    "daySalesZafn": 21.6,
-    "daysStock": 9,
-    "daysStockZafn": 7,
+    "palStock": 1.1,
+    "stockZafn": 86,
+    "palStockZafn": 0.4,
+    "daySalesZafn": 21.3,
+    "daysStock": 8,
+    "daysStockZafn": 6,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": 10,
     "weight": 1.2,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 35.7,
-    "daysStockAll": 6,
+    "daySalesAll": 47.7,
+    "daysStockAll": 4,
     "nameEn": "חתיכות פילה דג הרינג מומלח בשמן מצונן1200 ג3) NP)'",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -3555,20 +3507,14 @@
     "pakuot": [
       {
         "date": "2026-11-13",
-        "daysLeft": 116,
-        "cartons": 222
+        "daysLeft": 115,
+        "cartons": 203
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-11-13",
-        "daysLeft": 116,
-        "cartons": 103
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 902,
+    "spo": 866,
     "openOrders": 576
   },
   "1003": {
@@ -3601,14 +3547,14 @@
     "openOrders": null
   },
   "1004": {
-    "stock": 175,
-    "daySales": 35.5,
+    "stock": 154,
+    "daySales": 34.5,
     "kratnost": 192,
-    "palStock": 0.9,
-    "stockZafn": 97,
-    "palStockZafn": 0.5,
-    "daySalesZafn": 25.2,
-    "daysStock": 7,
+    "palStock": 0.8,
+    "stockZafn": 81,
+    "palStockZafn": 0.4,
+    "daySalesZafn": 24.3,
+    "daysStock": 6,
     "daysStockZafn": 5,
     "stockTrnz": 0,
     "palStockTrnz": null,
@@ -3616,8 +3562,8 @@
     "weight": 1.2,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 35.5,
-    "daysStockAll": 5,
+    "daySalesAll": 46.8,
+    "daysStockAll": 3,
     "nameEn": "חתיכות פילה דג הרינג סקנדינבי מומלח בשמן מצונן1200 ג3) NP)'",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -3625,40 +3571,34 @@
     "pakuot": [
       {
         "date": "2026-11-13",
-        "daysLeft": 116,
-        "cartons": 175
+        "daysLeft": 115,
+        "cartons": 154
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-11-13",
-        "daysLeft": 116,
-        "cartons": 97
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 656,
+    "spo": 619,
     "openOrders": 384
   },
   "1005": {
-    "stock": 2763,
-    "daySales": 36.6,
+    "stock": 2724,
+    "daySales": 36.7,
     "kratnost": 200,
-    "palStock": 13.8,
-    "stockZafn": 157,
-    "palStockZafn": 0.8,
-    "daySalesZafn": 25.1,
-    "daysStock": 106,
-    "daysStockZafn": 9,
+    "palStock": 13.6,
+    "stockZafn": 115,
+    "palStockZafn": 0.6,
+    "daySalesZafn": 25.6,
+    "daysStock": 104,
+    "daysStockZafn": 6,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.4,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 36.6,
-    "daysStockAll": 75,
+    "daySalesAll": 62.3,
+    "daysStockAll": 44,
     "nameEn": "חתיכות פילה דג הרינג מלוח בשמן מצונן400 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -3666,41 +3606,35 @@
     "pakuot": [
       {
         "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 1565
+        "daysLeft": 95,
+        "cartons": 1526
       },
       {
         "date": "2026-11-06",
-        "daysLeft": 109,
+        "daysLeft": 108,
         "cartons": 599
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 116,
+        "daysLeft": 115,
         "cartons": 599
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 157
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 3320,
+    "spo": 3239,
     "openOrders": 400
   },
   "1006": {
-    "stock": 847,
-    "daySales": 17.7,
+    "stock": 840,
+    "daySales": 17.4,
     "kratnost": 192,
     "palStock": 4.4,
-    "stockZafn": 194,
+    "stockZafn": 188,
     "palStockZafn": 1,
-    "daySalesZafn": 12.2,
-    "daysStock": 67,
+    "daySalesZafn": 12,
+    "daysStock": 68,
     "daysStockZafn": 22,
     "stockTrnz": 0,
     "palStockTrnz": null,
@@ -3708,8 +3642,8 @@
     "weight": 1,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 17.7,
-    "daysStockAll": 48,
+    "daySalesAll": 29.3,
+    "daysStockAll": 29,
     "nameEn": "פילה דג הרינג מומלח בשמן מצונן1000 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -3717,25 +3651,19 @@
     "pakuot": [
       {
         "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 402
+        "daysLeft": 95,
+        "cartons": 395
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 116,
+        "daysLeft": 115,
         "cartons": 445
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 194
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 1489,
+    "spo": 1476,
     "openOrders": 448
   },
   "1007": {
@@ -3855,23 +3783,23 @@
     "openOrders": null
   },
   "1011": {
-    "stock": 1745,
-    "daySales": 36.6,
+    "stock": 1713,
+    "daySales": 36.5,
     "kratnost": 224,
-    "palStock": 7.8,
-    "stockZafn": 186,
-    "palStockZafn": 0.8,
+    "palStock": 7.6,
+    "stockZafn": 161,
+    "palStockZafn": 0.7,
     "daySalesZafn": 25.7,
-    "daysStock": 67,
-    "daysStockZafn": 10,
+    "daysStock": 66,
+    "daysStockZafn": 9,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.25,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 36.6,
-    "daysStockAll": 48,
+    "daySalesAll": 62.2,
+    "daysStockAll": 28,
     "nameEn": "פילה דג הרינג מלוח מצונן250 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -3879,50 +3807,44 @@
     "pakuot": [
       {
         "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 403
+        "daysLeft": 95,
+        "cartons": 371
       },
       {
         "date": "2026-11-06",
-        "daysLeft": 109,
+        "daysLeft": 108,
         "cartons": 671
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 116,
+        "daysLeft": 115,
         "cartons": 671
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 186
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 2828,
+    "spo": 2771,
     "openOrders": 896
   },
   "1012": {
-    "stock": 2004,
-    "daySales": 37.7,
+    "stock": 1963,
+    "daySales": 37.8,
     "kratnost": 240,
-    "palStock": 8.3,
-    "stockZafn": 279,
-    "palStockZafn": 1.2,
-    "daySalesZafn": 23.9,
-    "daysStock": 74,
-    "daysStockZafn": 16,
+    "palStock": 8.2,
+    "stockZafn": 236,
+    "palStockZafn": 1,
+    "daySalesZafn": 24.5,
+    "daysStock": 73,
+    "daysStockZafn": 13,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.26,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 37.7,
-    "daysStockAll": 53,
+    "daySalesAll": 62.3,
+    "daysStockAll": 31,
     "nameEn": "חתיכות פילה דג הרינג מלוח מצונן עם בצל260 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -3930,50 +3852,44 @@
     "pakuot": [
       {
         "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 566
+        "daysLeft": 95,
+        "cartons": 525
       },
       {
         "date": "2026-11-06",
-        "daysLeft": 109,
+        "daysLeft": 108,
         "cartons": 719
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 116,
+        "daysLeft": 115,
         "cartons": 719
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 279
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 2762,
+    "spo": 2678,
     "openOrders": 480
   },
   "1013": {
-    "stock": 1546,
-    "daySales": 27.2,
+    "stock": 1524,
+    "daySales": 27.1,
     "kratnost": 240,
-    "palStock": 6.4,
-    "stockZafn": 193,
-    "palStockZafn": 0.8,
-    "daySalesZafn": 19.9,
+    "palStock": 6.3,
+    "stockZafn": 153,
+    "palStockZafn": 0.6,
+    "daySalesZafn": 20.5,
     "daysStock": 79,
-    "daysStockZafn": 14,
+    "daysStockZafn": 10,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.26,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 27.2,
-    "daysStockAll": 57,
+    "daySalesAll": 46.3,
+    "daysStockAll": 33,
     "nameEn": "חתיכות פילה דג הרינג מלוח מצונן עם תבלין260 ג",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -3981,50 +3897,44 @@
     "pakuot": [
       {
         "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 588
+        "daysLeft": 95,
+        "cartons": 566
       },
       {
         "date": "2026-11-06",
-        "daysLeft": 109,
+        "daysLeft": 108,
         "cartons": 479
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 116,
+        "daysLeft": 115,
         "cartons": 479
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 193
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 2218,
+    "spo": 2156,
     "openOrders": 480
   },
   "1014": {
-    "stock": 1817,
-    "daySales": 61.8,
+    "stock": 1739,
+    "daySales": 62.3,
     "kratnost": 240,
-    "palStock": 7.6,
-    "stockZafn": 443,
-    "palStockZafn": 1.8,
-    "daySalesZafn": 39.8,
-    "daysStock": 41,
-    "daysStockZafn": 16,
+    "palStock": 7.2,
+    "stockZafn": 374,
+    "palStockZafn": 1.6,
+    "daySalesZafn": 40.7,
+    "daysStock": 39,
+    "daysStockZafn": 13,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.26,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 61.8,
-    "daysStockAll": 29,
+    "daySalesAll": 103,
+    "daysStockAll": 17,
     "nameEn": "חתיכות פילה דג הרינג מלוח מצונן260 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -4032,35 +3942,29 @@
     "pakuot": [
       {
         "date": "2026-11-06",
-        "daysLeft": 109,
-        "cartons": 858
+        "daysLeft": 108,
+        "cartons": 780
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 116,
+        "daysLeft": 115,
         "cartons": 959
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-11-06",
-        "daysLeft": 109,
-        "cartons": 443
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 3460,
+    "spo": 3313,
     "openOrders": 1200
   },
   "1015": {
-    "stock": 1170,
+    "stock": 1162,
     "daySales": 9.1,
     "kratnost": 357,
     "palStock": 3.3,
-    "stockZafn": 264,
+    "stockZafn": 259,
     "palStockZafn": 0.7,
-    "daySalesZafn": 8.2,
+    "daySalesZafn": 8.1,
     "daysStock": 179,
     "daysStockZafn": 45,
     "stockTrnz": 0,
@@ -4069,8 +3973,8 @@
     "weight": 0.18,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 9.1,
-    "daysStockAll": 128,
+    "daySalesAll": 15.6,
+    "daysStockAll": 74,
     "nameEn": "איקרה ביצי דג טרוטונית והרינג180 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "IKRA",
@@ -4078,25 +3982,19 @@
     "pakuot": [
       {
         "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 423
+        "daysLeft": 95,
+        "cartons": 415
       },
       {
         "date": "2027-01-30",
-        "daysLeft": 194,
+        "daysLeft": 193,
         "cartons": 747
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 264
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 1434,
+    "spo": 1421,
     "openOrders": null
   },
   "1016": {
@@ -4129,23 +4027,23 @@
     "openOrders": null
   },
   "1017": {
-    "stock": 1844,
-    "daySales": 26.1,
+    "stock": 1814,
+    "daySales": 25.9,
     "kratnost": 357,
-    "palStock": 5.2,
-    "stockZafn": 366,
+    "palStock": 5.1,
+    "stockZafn": 355,
     "palStockZafn": 1,
     "daySalesZafn": 22.4,
-    "daysStock": 99,
-    "daysStockZafn": 23,
+    "daysStock": 98,
+    "daysStockZafn": 22,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.18,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 26.1,
-    "daysStockAll": 71,
+    "daySalesAll": 48.3,
+    "daysStockAll": 38,
     "nameEn": "איקרה ביצי דג טרוטונית והרינג עם פורל וסלמון180 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "IKRA",
@@ -4153,50 +4051,39 @@
     "pakuot": [
       {
         "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 55
+        "daysLeft": 95,
+        "cartons": 25
       },
       {
         "date": "2027-01-30",
-        "daysLeft": 194,
+        "daysLeft": 193,
         "cartons": 1789
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 9
-      },
-      {
-        "date": "2027-01-30",
-        "daysLeft": 194,
-        "cartons": 357
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 2210,
+    "spo": 2169,
     "openOrders": null
   },
   "1018": {
-    "stock": 1686,
-    "daySales": 16.4,
+    "stock": 1679,
+    "daySales": 16.6,
     "kratnost": 357,
     "palStock": 4.7,
-    "stockZafn": 493,
-    "palStockZafn": 1.4,
-    "daySalesZafn": 16.6,
-    "daysStock": 144,
-    "daysStockZafn": 42,
+    "stockZafn": 481,
+    "palStockZafn": 1.3,
+    "daySalesZafn": 16.5,
+    "daysStock": 142,
+    "daysStockZafn": 41,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.18,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 16.4,
-    "daysStockAll": 103,
+    "daySalesAll": 32.5,
+    "daysStockAll": 52,
     "nameEn": "ביצי דג טרוטונית MOIVA עם חסילונים180 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "IKRA",
@@ -4204,50 +4091,39 @@
     "pakuot": [
       {
         "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 259
+        "daysLeft": 95,
+        "cartons": 252
       },
       {
         "date": "2027-01-30",
-        "daysLeft": 194,
+        "daysLeft": 193,
         "cartons": 1427
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 136
-      },
-      {
-        "date": "2027-01-30",
-        "daysLeft": 194,
-        "cartons": 357
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 2179,
+    "spo": 2160,
     "openOrders": null
   },
   "1019": {
-    "stock": 2041,
-    "daySales": 19.6,
+    "stock": 2023,
+    "daySales": 20.2,
     "kratnost": 336,
-    "palStock": 6.1,
-    "stockZafn": 539,
+    "palStock": 6,
+    "stockZafn": 524,
     "palStockZafn": 1.6,
     "daySalesZafn": 17.5,
-    "daysStock": 146,
-    "daysStockZafn": 43,
+    "daysStock": 140,
+    "daysStockZafn": 42,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.13,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 19.6,
-    "daysStockAll": 104,
+    "daySalesAll": 37.6,
+    "daysStockAll": 54,
     "nameEn": "ביצי דג זהבנון MINTAY מומלח מצונן130 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "IKRA",
@@ -4255,41 +4131,30 @@
     "pakuot": [
       {
         "date": "2026-08-25",
-        "daysLeft": 36,
-        "cartons": 375
+        "daysLeft": 35,
+        "cartons": 357
       },
       {
         "date": "2026-12-05",
-        "daysLeft": 138,
+        "daysLeft": 137,
         "cartons": 1666
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-08-25",
-        "daysLeft": 36,
-        "cartons": 205
-      },
-      {
-        "date": "2026-12-05",
-        "daysLeft": 138,
-        "cartons": 334
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 2580,
+    "spo": 2547,
     "openOrders": null
   },
   "1020": {
-    "stock": 1059,
-    "daySales": 11.7,
+    "stock": 1054,
+    "daySales": 11.5,
     "kratnost": 336,
-    "palStock": 3.2,
-    "stockZafn": 377,
+    "palStock": 3.1,
+    "stockZafn": 371,
     "palStockZafn": 1.1,
-    "daySalesZafn": 9.3,
-    "daysStock": 127,
+    "daySalesZafn": 9.2,
+    "daysStock": 129,
     "daysStockZafn": 57,
     "stockTrnz": 0,
     "palStockTrnz": null,
@@ -4297,8 +4162,8 @@
     "weight": 0.13,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 11.7,
-    "daysStockAll": 91,
+    "daySalesAll": 19.9,
+    "daysStockAll": 53,
     "nameEn": "ביצי דג שיבוט TRESKA מומלח מצונן130 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "IKRA",
@@ -4306,30 +4171,19 @@
     "pakuot": [
       {
         "date": "2026-08-24",
-        "daysLeft": 35,
-        "cartons": 62
+        "daysLeft": 34,
+        "cartons": 57
       },
       {
         "date": "2026-12-05",
-        "daysLeft": 138,
+        "daysLeft": 137,
         "cartons": 997
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-08-24",
-        "daysLeft": 35,
-        "cartons": 41
-      },
-      {
-        "date": "2026-12-05",
-        "daysLeft": 138,
-        "cartons": 336
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 1436,
+    "spo": 1425,
     "openOrders": null
   },
   "1021": {
@@ -4913,13 +4767,13 @@
     "openOrders": null
   },
   "1045": {
-    "stock": 1657,
+    "stock": 1586,
     "daySales": 9.4,
     "kratnost": 108,
-    "palStock": 15.3,
-    "stockZafn": 138,
-    "palStockZafn": 1.3,
-    "daySalesZafn": 9.1,
+    "palStock": 14.7,
+    "stockZafn": 193,
+    "palStockZafn": 1.8,
+    "daySalesZafn": 9,
     "daysStock": null,
     "daysStockZafn": null,
     "stockTrnz": null,
@@ -4928,8 +4782,8 @@
     "weight": 0.2,
     "packFactor": 30,
     "weightCarton": 6,
-    "daySalesAll": 17.9,
-    "daysStockAll": 93,
+    "daySalesAll": 17.8,
+    "daysStockAll": 89,
     "nameEn": "מקלות סורימי בטעם סרטן קפוא200 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": null,
@@ -4937,40 +4791,40 @@
     "pakuot": [
       {
         "date": "2027-08-01",
-        "daysLeft": 377,
-        "cartons": 217
+        "daysLeft": 376,
+        "cartons": 146
       },
       {
         "date": "2027-10-16",
-        "daysLeft": 453,
+        "daysLeft": 452,
         "cartons": 1440
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-08-01",
-        "daysLeft": 377,
-        "cartons": 30
+        "daysLeft": 376,
+        "cartons": 85
       },
       {
         "date": "2027-10-16",
-        "daysLeft": 453,
+        "daysLeft": 452,
         "cartons": 108
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 1795,
+    "spo": 1779,
     "openOrders": null
   },
   "1046": {
-    "stock": 1466,
+    "stock": 1461,
     "daySales": 5.7,
     "kratnost": 90,
-    "palStock": 16.3,
-    "stockZafn": 150,
-    "palStockZafn": 1.7,
-    "daySalesZafn": 5.7,
+    "palStock": 16.2,
+    "stockZafn": 148,
+    "palStockZafn": 1.6,
+    "daySalesZafn": 5.6,
     "daysStock": null,
     "daysStockZafn": null,
     "stockTrnz": null,
@@ -4979,7 +4833,7 @@
     "weight": 0.2,
     "packFactor": 30,
     "weightCarton": 6,
-    "daySalesAll": 10.7,
+    "daySalesAll": 10.6,
     "daysStockAll": 138,
     "nameEn": "נתחי סורימי בטעם סרטן קפוא200 ג'",
     "fam": "SANTA BREMOR דגים",
@@ -4988,45 +4842,45 @@
     "pakuot": [
       {
         "date": "2027-08-02",
-        "daysLeft": 378,
-        "cartons": 591
+        "daysLeft": 377,
+        "cartons": 586
       },
       {
         "date": "2027-10-16",
-        "daysLeft": 453,
+        "daysLeft": 452,
         "cartons": 875
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-08-02",
-        "daysLeft": 378,
-        "cartons": 150
+        "daysLeft": 377,
+        "cartons": 148
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 1616,
+    "spo": 1608,
     "openOrders": null
   },
   "1047": {
-    "stock": 594,
-    "daySales": 23.6,
+    "stock": 461,
+    "daySales": 23.3,
     "kratnost": 200,
-    "palStock": 3,
-    "stockZafn": 96,
-    "palStockZafn": 0.5,
+    "palStock": 2.3,
+    "stockZafn": 200,
+    "palStockZafn": 1,
     "daySalesZafn": 14.9,
-    "daysStock": 35,
-    "daysStockZafn": 9,
+    "daysStock": 28,
+    "daysStockZafn": 19,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.4,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 23.6,
-    "daysStockAll": 25,
+    "daySalesAll": 38.2,
+    "daysStockAll": 12,
     "nameEn": "חתיכות פילה דג הרינג מתובל מלוח בשמן400 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -5034,45 +4888,39 @@
     "pakuot": [
       {
         "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 195
+        "daysLeft": 95,
+        "cartons": 182
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 116,
-        "cartons": 399
+        "daysLeft": 115,
+        "cartons": 279
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 96
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 690,
+    "spo": 661,
     "openOrders": null
   },
   "1048": {
-    "stock": 1397,
-    "daySales": 23.5,
+    "stock": 1174,
+    "daySales": 23.4,
     "kratnost": 200,
-    "palStock": 7,
-    "stockZafn": 86,
-    "palStockZafn": 0.4,
+    "palStock": 5.9,
+    "stockZafn": 270,
+    "palStockZafn": 1.4,
     "daySalesZafn": 15.6,
-    "daysStock": 83,
-    "daysStockZafn": 8,
+    "daysStock": 70,
+    "daysStockZafn": 24,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.4,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 23.5,
-    "daysStockAll": 60,
+    "daySalesAll": 38.6,
+    "daysStockAll": 30,
     "nameEn": "חתיכות פילה דג הרינג סקנדינבי מלוח בשמן400 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -5080,50 +4928,44 @@
     "pakuot": [
       {
         "date": "2026-09-11",
-        "daysLeft": 53,
-        "cartons": 202
+        "daysLeft": 52,
+        "cartons": 179
       },
       {
         "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 796
+        "daysLeft": 95,
+        "cartons": 596
       },
       {
         "date": "2026-11-06",
-        "daysLeft": 109,
+        "daysLeft": 108,
         "cartons": 399
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-09-11",
-        "daysLeft": 53,
-        "cartons": 86
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 1883,
+    "spo": 1844,
     "openOrders": 400
   },
   "1049": {
-    "stock": 1363,
-    "daySales": 64.4,
+    "stock": 1285,
+    "daySales": 64.9,
     "kratnost": 240,
-    "palStock": 5.7,
-    "stockZafn": 342,
-    "palStockZafn": 1.4,
-    "daySalesZafn": 32.1,
-    "daysStock": 30,
-    "daysStockZafn": 15,
+    "palStock": 5.4,
+    "stockZafn": 272,
+    "palStockZafn": 1.1,
+    "daySalesZafn": 33.4,
+    "daysStock": 28,
+    "daysStockZafn": 11,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.26,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 64.4,
-    "daysStockAll": 21,
+    "daySalesAll": 93,
+    "daysStockAll": 14,
     "nameEn": "חתיכות פילה דג הרינג סקנדינבי מלוח מצונן260 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -5131,45 +4973,39 @@
     "pakuot": [
       {
         "date": "2026-11-06",
-        "daysLeft": 109,
-        "cartons": 644
+        "daysLeft": 108,
+        "cartons": 566
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 116,
+        "daysLeft": 115,
         "cartons": 719
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-11-06",
-        "daysLeft": 109,
-        "cartons": 342
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 2664,
+    "spo": 2516,
     "openOrders": 960
   },
   "1050": {
-    "stock": 330,
-    "daySales": 35.9,
+    "stock": 289,
+    "daySales": 37.3,
     "kratnost": 375,
-    "palStock": 0.9,
-    "stockZafn": 139,
-    "palStockZafn": 0.4,
-    "daySalesZafn": 27.8,
-    "daysStock": 13,
-    "daysStockZafn": 7,
+    "palStock": 0.8,
+    "stockZafn": 102,
+    "palStockZafn": 0.3,
+    "daySalesZafn": 28.2,
+    "daysStock": 11,
+    "daysStockZafn": 5,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.2,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 59.7,
-    "daysStockAll": 6,
+    "daySalesAll": 62.5,
+    "daysStockAll": 5,
     "nameEn": "דייסת שיבולת שועל200 ג'",
     "fam": "SVALIA שמנת/יוגורט/ דייסה",
     "iksGroup": null,
@@ -5177,15 +5013,15 @@
     "pakuot": [
       {
         "date": "2026-08-16",
-        "daysLeft": 27,
-        "cartons": 330
+        "daysLeft": 26,
+        "cartons": 289
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-08-16",
-        "daysLeft": 27,
-        "cartons": 139
+        "daysLeft": 26,
+        "cartons": 102
       }
     ],
     "shelfLife": 7,
@@ -5223,23 +5059,23 @@
     "openOrders": null
   },
   "1052": {
-    "stock": 82,
-    "daySales": 30,
+    "stock": 56,
+    "daySales": 31.1,
     "kratnost": 375,
-    "palStock": 0.2,
-    "stockZafn": 78,
-    "palStockZafn": 0.2,
-    "daySalesZafn": 21.8,
-    "daysStock": 4,
-    "daysStockZafn": 5,
+    "palStock": 0.1,
+    "stockZafn": 51,
+    "palStockZafn": 0.1,
+    "daySalesZafn": 22,
+    "daysStock": 3,
+    "daysStockZafn": 3,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.2,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 48.1,
-    "daysStockAll": 2,
+    "daySalesAll": 50.2,
+    "daysStockAll": 1,
     "nameEn": "דייסת סולת עם תותי בר200 ג'",
     "fam": "SVALIA שמנת/יוגורט/ דייסה",
     "iksGroup": null,
@@ -5247,15 +5083,15 @@
     "pakuot": [
       {
         "date": "2026-08-16",
-        "daysLeft": 27,
-        "cartons": 82
+        "daysLeft": 26,
+        "cartons": 56
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-08-16",
-        "daysLeft": 27,
-        "cartons": 78
+        "daysLeft": 26,
+        "cartons": 51
       }
     ],
     "shelfLife": 7,
@@ -5264,23 +5100,23 @@
     "openOrders": null
   },
   "1053": {
-    "stock": 420,
-    "daySales": 29.8,
+    "stock": 388,
+    "daySales": 30.8,
     "kratnost": 375,
-    "palStock": 1.1,
-    "stockZafn": 152,
-    "palStockZafn": 0.4,
-    "daySalesZafn": 24.5,
-    "daysStock": 20,
-    "daysStockZafn": 9,
+    "palStock": 1,
+    "stockZafn": 113,
+    "palStockZafn": 0.3,
+    "daySalesZafn": 25,
+    "daysStock": 18,
+    "daysStockZafn": 6,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.2,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 52.1,
-    "daysStockAll": 8,
+    "daySalesAll": 54.2,
+    "daysStockAll": 7,
     "nameEn": "דייסת אורז עם משמש200 ג'",
     "fam": "SVALIA שמנת/יוגורט/ דייסה",
     "iksGroup": null,
@@ -5288,15 +5124,15 @@
     "pakuot": [
       {
         "date": "2026-08-16",
-        "daysLeft": 27,
-        "cartons": 420
+        "daysLeft": 26,
+        "cartons": 388
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-08-16",
-        "daysLeft": 27,
-        "cartons": 152
+        "daysLeft": 26,
+        "cartons": 113
       }
     ],
     "shelfLife": 7,
@@ -5305,23 +5141,23 @@
     "openOrders": null
   },
   "1055": {
-    "stock": 626,
-    "daySales": 12.8,
+    "stock": 448,
+    "daySales": 12.7,
     "kratnost": 168,
-    "palStock": 3.7,
-    "stockZafn": 47,
-    "palStockZafn": 0.3,
-    "daySalesZafn": 8.3,
-    "daysStock": 68,
-    "daysStockZafn": 8,
+    "palStock": 2.7,
+    "stockZafn": 210,
+    "palStockZafn": 1.3,
+    "daySalesZafn": 8.2,
+    "daysStock": 49,
+    "daysStockZafn": 36,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.2,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 12.8,
-    "daysStockAll": 49,
+    "daySalesAll": 20.6,
+    "daysStockAll": 22,
     "nameEn": "סלט אצות ים מוחמצות200 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "KAPUSTA",
@@ -5329,45 +5165,39 @@
     "pakuot": [
       {
         "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 122
+        "daysLeft": 95,
+        "cartons": 112
       },
       {
         "date": "2026-11-02",
-        "daysLeft": 105,
-        "cartons": 504
+        "daysLeft": 104,
+        "cartons": 336
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 47
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 673,
+    "spo": 658,
     "openOrders": null
   },
   "1056": {
-    "stock": 544,
-    "daySales": 7.9,
+    "stock": 539,
+    "daySales": 7.8,
     "kratnost": 168,
     "palStock": 3.2,
-    "stockZafn": 76,
-    "palStockZafn": 0.5,
+    "stockZafn": 70,
+    "palStockZafn": 0.4,
     "daySalesZafn": 4.8,
     "daysStock": 96,
-    "daysStockZafn": 22,
+    "daysStockZafn": 20,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.2,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 7.9,
-    "daysStockAll": 69,
+    "daySalesAll": 12.3,
+    "daysStockAll": 44,
     "nameEn": "סלט אצות ים מוחמצות ומתובלות עם גזר200 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "KAPUSTA",
@@ -5375,45 +5205,39 @@
     "pakuot": [
       {
         "date": "2026-10-27",
-        "daysLeft": 99,
-        "cartons": 208
+        "daysLeft": 98,
+        "cartons": 203
       },
       {
         "date": "2026-11-01",
-        "daysLeft": 104,
+        "daysLeft": 103,
         "cartons": 336
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-10-27",
-        "daysLeft": 99,
-        "cartons": 76
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 620,
+    "spo": 609,
     "openOrders": null
   },
   "1057": {
-    "stock": 269,
-    "daySales": 5.2,
+    "stock": 261,
+    "daySales": 5.1,
     "kratnost": 168,
     "palStock": 1.6,
-    "stockZafn": 105,
-    "palStockZafn": 0.6,
+    "stockZafn": 110,
+    "palStockZafn": 0.7,
     "daySalesZafn": 3.5,
-    "daysStock": 72,
-    "daysStockZafn": 42,
+    "daysStock": 71,
+    "daysStockZafn": 44,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.2,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 5.2,
-    "daysStockAll": 52,
+    "daySalesAll": 7.7,
+    "daysStockAll": 34,
     "nameEn": "סלט אצות ים מוחמצות עם בצל ופפריקה מתוקה200 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "KAPUSTA",
@@ -5421,30 +5245,19 @@
     "pakuot": [
       {
         "date": "2026-10-28",
-        "daysLeft": 100,
-        "cartons": 29
+        "daysLeft": 99,
+        "cartons": 21
       },
       {
         "date": "2026-11-03",
-        "daysLeft": 106,
+        "daysLeft": 105,
         "cartons": 240
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-10-28",
-        "daysLeft": 100,
-        "cartons": 9
-      },
-      {
-        "date": "2026-11-03",
-        "daysLeft": 106,
-        "cartons": 96
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 374,
+    "spo": 371,
     "openOrders": null
   },
   "1060": {
@@ -5883,22 +5696,22 @@
     "openOrders": null
   },
   "1076": {
-    "stock": 1065,
-    "daySales": 68,
+    "stock": 997,
+    "daySales": 69.7,
     "kratnost": 160,
-    "palStock": 6.7,
-    "stockZafn": 206,
-    "palStockZafn": 1.3,
-    "daySalesZafn": 47.3,
-    "daysStock": 22,
-    "daysStockZafn": 6,
+    "palStock": 6.2,
+    "stockZafn": 179,
+    "palStockZafn": 1.1,
+    "daySalesZafn": 47.1,
+    "daysStock": 20,
+    "daysStockZafn": 5,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.2,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 113.8,
+    "daySalesAll": 116.8,
     "daysStockAll": 9,
     "nameEn": "שמנת 30% SMETANA שומן200 ג'",
     "fam": "SVALIA שמנת/יוגורט/ דייסה",
@@ -5907,24 +5720,24 @@
     "pakuot": [
       {
         "date": "2026-08-03",
-        "daysLeft": 14,
-        "cartons": 110
+        "daysLeft": 13,
+        "cartons": 42
       },
       {
         "date": "2026-08-14",
-        "daysLeft": 25,
+        "daysLeft": 24,
         "cartons": 955
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-08-03",
-        "daysLeft": 14,
-        "cartons": 46
+        "daysLeft": 13,
+        "cartons": 19
       },
       {
         "date": "2026-08-14",
-        "daysLeft": 25,
+        "daysLeft": 24,
         "cartons": 160
       }
     ],
@@ -5934,23 +5747,23 @@
     "openOrders": null
   },
   "1077": {
-    "stock": 1325,
-    "daySales": 52.4,
+    "stock": 1284,
+    "daySales": 52,
     "kratnost": 128,
-    "palStock": 10.4,
-    "stockZafn": 251,
-    "palStockZafn": 2,
-    "daySalesZafn": 37.2,
+    "palStock": 10,
+    "stockZafn": 218,
+    "palStockZafn": 1.7,
+    "daySalesZafn": 37,
     "daysStock": 35,
-    "daysStockZafn": 9,
+    "daysStockZafn": 8,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.35,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 89.6,
-    "daysStockAll": 15,
+    "daySalesAll": 89.1,
+    "daysStockAll": 14,
     "nameEn": "שמנת 15% SMETANA שומן350 ג'",
     "fam": "SVALIA שמנת/יוגורט/ דייסה",
     "iksGroup": null,
@@ -5958,24 +5771,24 @@
     "pakuot": [
       {
         "date": "2026-07-31",
-        "daysLeft": 11,
-        "cartons": 434
+        "daysLeft": 10,
+        "cartons": 393
       },
       {
         "date": "2026-08-17",
-        "daysLeft": 28,
+        "daysLeft": 27,
         "cartons": 891
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-07-31",
-        "daysLeft": 11,
-        "cartons": 123
+        "daysLeft": 10,
+        "cartons": 90
       },
       {
         "date": "2026-08-17",
-        "daysLeft": 28,
+        "daysLeft": 27,
         "cartons": 128
       }
     ],
@@ -6225,23 +6038,23 @@
     "yavesh": true
   },
   "1106": {
-    "stock": 4785,
-    "daySales": 102.6,
+    "stock": 6487,
+    "daySales": 102.5,
     "kratnost": 276,
-    "palStock": 17.3,
-    "stockZafn": 523,
-    "palStockZafn": 1.9,
-    "daySalesZafn": 57.8,
-    "daysStock": 65,
-    "daysStockZafn": 13,
+    "palStock": 23.5,
+    "stockZafn": 458,
+    "palStockZafn": 1.7,
+    "daySalesZafn": 58,
+    "daysStock": 89,
+    "daysStockZafn": 11,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.23,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 102.6,
-    "daysStockAll": 47,
+    "daySalesAll": 160.5,
+    "daysStockAll": 40,
     "nameEn": "בסגנון קוויאר אדום כדורי דג פורל230 ג'",
     "fam": "NORD PORT דגים",
     "iksGroup": "IKRA",
@@ -6249,40 +6062,39 @@
     "pakuot": [
       {
         "date": "2027-03-03",
-        "daysLeft": 226,
-        "cartons": 4785
-      }
-    ],
-    "pakuotZafn": [
+        "daysLeft": 225,
+        "cartons": 4685
+      },
       {
-        "date": "2027-03-03",
-        "daysLeft": 226,
-        "cartons": 523
+        "date": "2027-03-31",
+        "daysLeft": 253,
+        "cartons": 1802
       }
     ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 7110,
-    "openOrders": 1802
+    "spo": 6945,
+    "openOrders": null
   },
   "1107": {
-    "stock": 1342,
-    "daySales": 33.5,
+    "stock": 1872,
+    "daySales": 33.1,
     "kratnost": 276,
-    "palStock": 4.9,
-    "stockZafn": 351,
-    "palStockZafn": 1.3,
+    "palStock": 6.8,
+    "stockZafn": 332,
+    "palStockZafn": 1.2,
     "daySalesZafn": 19,
-    "daysStock": 56,
-    "daysStockZafn": 26,
+    "daysStock": 79,
+    "daysStockZafn": 25,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.23,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 33.5,
-    "daysStockAll": 40,
+    "daySalesAll": 51.1,
+    "daysStockAll": 37,
     "nameEn": "בסגנון קוויאר שחור כדורי דג פורל230 ג'",
     "fam": "NORD PORT דגים",
     "iksGroup": "IKRA",
@@ -6290,40 +6102,39 @@
     "pakuot": [
       {
         "date": "2027-03-03",
-        "daysLeft": 226,
-        "cartons": 1342
-      }
-    ],
-    "pakuotZafn": [
+        "daysLeft": 225,
+        "cartons": 1320
+      },
       {
-        "date": "2027-03-03",
-        "daysLeft": 226,
-        "cartons": 351
+        "date": "2027-03-31",
+        "daysLeft": 253,
+        "cartons": 552
       }
     ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 2245,
-    "openOrders": 552
+    "spo": 2204,
+    "openOrders": null
   },
   "1108": {
-    "stock": 285,
-    "daySales": 20.5,
+    "stock": 1089,
+    "daySales": 20.3,
     "kratnost": 408,
-    "palStock": 0.7,
-    "stockZafn": 181,
+    "palStock": 2.7,
+    "stockZafn": 168,
     "palStockZafn": 0.4,
     "daySalesZafn": 12.9,
-    "daysStock": 19,
-    "daysStockZafn": 20,
+    "daysStock": 75,
+    "daysStockZafn": 18,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.15,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 20.5,
-    "daysStockAll": 14,
+    "daySalesAll": 33.2,
+    "daysStockAll": 33,
     "nameEn": "סלט אצות ים-צ'וקה150 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "KAPUSTA",
@@ -6331,21 +6142,20 @@
     "pakuot": [
       {
         "date": "2026-09-11",
-        "daysLeft": 53,
-        "cartons": 285
-      }
-    ],
-    "pakuotZafn": [
+        "daysLeft": 52,
+        "cartons": 273
+      },
       {
-        "date": "2026-09-11",
-        "daysLeft": 53,
-        "cartons": 181
+        "date": "2026-12-04",
+        "daysLeft": 136,
+        "cartons": 816
       }
     ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 1282,
-    "openOrders": 816
+    "spo": 1257,
+    "openOrders": null
   },
   "1109": {
     "stock": 0,
@@ -6675,23 +6485,23 @@
     "yavesh": true
   },
   "1120": {
-    "stock": 1202,
-    "daySales": 41.4,
+    "stock": 1168,
+    "daySales": 41.2,
     "kratnost": 224,
-    "palStock": 5.4,
-    "stockZafn": 287,
-    "palStockZafn": 1.3,
-    "daySalesZafn": 21.3,
-    "daysStock": 41,
-    "daysStockZafn": 19,
+    "palStock": 5.2,
+    "stockZafn": 269,
+    "palStockZafn": 1.2,
+    "daySalesZafn": 21.2,
+    "daysStock": 40,
+    "daysStockZafn": 18,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.25,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 41.4,
-    "daysStockAll": 29,
+    "daySalesAll": 61.1,
+    "daysStockAll": 19,
     "nameEn": "פילה דג הרינג סקנדינבי מלוח מצונן250 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -6699,55 +6509,44 @@
     "pakuot": [
       {
         "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 84
+        "daysLeft": 95,
+        "cartons": 50
       },
       {
         "date": "2026-11-06",
-        "daysLeft": 109,
+        "daysLeft": 108,
         "cartons": 447
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 116,
+        "daysLeft": 115,
         "cartons": 671
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 63
-      },
-      {
-        "date": "2026-11-06",
-        "daysLeft": 109,
-        "cartons": 224
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 1937,
+    "spo": 1885,
     "openOrders": 448
   },
   "1122": {
-    "stock": 589,
-    "daySales": 23.4,
+    "stock": 1333,
+    "daySales": 22.8,
     "kratnost": 357,
-    "palStock": 1.6,
-    "stockZafn": 331,
+    "palStock": 3.7,
+    "stockZafn": 320,
     "palStockZafn": 0.9,
-    "daySalesZafn": 12,
-    "daysStock": 35,
-    "daysStockZafn": 39,
+    "daySalesZafn": 11.9,
+    "daysStock": 82,
+    "daysStockZafn": 38,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.18,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 23.4,
-    "daysStockAll": 25,
+    "daySalesAll": 32.9,
+    "daysStockAll": 40,
     "nameEn": "סלט איקרה לבנה 180 גרםNP ",
     "fam": "NORD PORT דגים",
     "iksGroup": "IKRA",
@@ -6755,50 +6554,44 @@
     "pakuot": [
       {
         "date": "2026-11-14",
-        "daysLeft": 117,
-        "cartons": 80
+        "daysLeft": 116,
+        "cartons": 73
       },
       {
         "date": "2027-01-02",
-        "daysLeft": 166,
+        "daysLeft": 165,
         "cartons": 509
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-11-14",
-        "daysLeft": 117,
-        "cartons": 79
       },
       {
-        "date": "2027-01-02",
-        "daysLeft": 166,
-        "cartons": 252
+        "date": "2027-01-30",
+        "daysLeft": 193,
+        "cartons": 751
       }
     ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 1671,
-    "openOrders": 751
+    "spo": 1653,
+    "openOrders": null
   },
   "1123": {
-    "stock": 1481,
-    "daySales": 48.2,
+    "stock": 2921,
+    "daySales": 48,
     "kratnost": 357,
-    "palStock": 4.1,
-    "stockZafn": 280,
-    "palStockZafn": 0.8,
+    "palStock": 8.2,
+    "stockZafn": 255,
+    "palStockZafn": 0.7,
     "daySalesZafn": 25.7,
-    "daysStock": 43,
-    "daysStockZafn": 15,
+    "daysStock": 85,
+    "daysStockZafn": 14,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.18,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 48.2,
-    "daysStockAll": 31,
+    "daySalesAll": 72.8,
+    "daysStockAll": 40,
     "nameEn": "סלט איקרה ורודה 180 גרםNP ",
     "fam": "NORD PORT דגים",
     "iksGroup": "IKRA",
@@ -6806,40 +6599,39 @@
     "pakuot": [
       {
         "date": "2027-01-02",
-        "daysLeft": 166,
+        "daysLeft": 165,
+        "cartons": 1440
+      },
+      {
+        "date": "2027-01-30",
+        "daysLeft": 193,
         "cartons": 1481
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2027-01-02",
-        "daysLeft": 166,
-        "cartons": 280
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 3242,
-    "openOrders": 1481
+    "spo": 3176,
+    "openOrders": null
   },
   "1124": {
-    "stock": 114,
-    "daySales": 28.8,
+    "stock": 1532,
+    "daySales": 28.2,
     "kratnost": 357,
-    "palStock": 0.3,
-    "stockZafn": 75,
+    "palStock": 4.3,
+    "stockZafn": 61,
     "palStockZafn": 0.2,
-    "daySalesZafn": 20.2,
-    "daysStock": 6,
-    "daysStockZafn": 5,
+    "daySalesZafn": 20,
+    "daysStock": 76,
+    "daysStockZafn": 4,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.18,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 28.8,
-    "daysStockAll": 4,
+    "daySalesAll": 46.3,
+    "daysStockAll": 33,
     "nameEn": "סלט איקרה עם פורל וסלמון מעושנים 180 גרםNP ",
     "fam": "NORD PORT דגים",
     "iksGroup": "IKRA",
@@ -6847,21 +6639,20 @@
     "pakuot": [
       {
         "date": "2027-01-02",
-        "daysLeft": 166,
-        "cartons": 114
-      }
-    ],
-    "pakuotZafn": [
+        "daysLeft": 165,
+        "cartons": 104
+      },
       {
-        "date": "2027-01-02",
-        "daysLeft": 166,
-        "cartons": 75
+        "date": "2027-01-30",
+        "daysLeft": 193,
+        "cartons": 1428
       }
     ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 1618,
-    "openOrders": 1428
+    "spo": 1593,
+    "openOrders": null
   },
   "1125": {
     "stock": 0,
@@ -6893,14 +6684,14 @@
     "openOrders": null
   },
   "1126": {
-    "stock": 0,
+    "stock": 48,
     "daySales": 1.7,
     "kratnost": 48,
-    "palStock": null,
+    "palStock": 1,
     "stockZafn": 0,
     "palStockZafn": null,
     "daySalesZafn": 1.5,
-    "daysStock": 0,
+    "daysStock": 39,
     "daysStockZafn": 0,
     "stockTrnz": 0,
     "palStockTrnz": null,
@@ -6908,28 +6699,34 @@
     "weight": 0.9,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 1.7,
-    "daysStockAll": null,
+    "daySalesAll": 2.5,
+    "daysStockAll": 19,
     "nameEn": "סלט איקרה ורודה 900 גרםNP ",
     "fam": "NORD PORT דגים",
     "iksGroup": "IKRA",
     "ashdodPalletCartons": null,
-    "pakuot": [],
+    "pakuot": [
+      {
+        "date": "2027-01-30",
+        "daysLeft": 193,
+        "cartons": 48
+      }
+    ],
     "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 48,
-    "openOrders": 48
+    "openOrders": null
   },
   "1127": {
-    "stock": 0,
+    "stock": 96,
     "daySales": 1.5,
     "kratnost": 48,
-    "palStock": null,
+    "palStock": 2,
     "stockZafn": 0,
     "palStockZafn": null,
     "daySalesZafn": 1.8,
-    "daysStock": 0,
+    "daysStock": 87,
     "daysStockZafn": 0,
     "stockTrnz": 0,
     "palStockTrnz": null,
@@ -6937,18 +6734,24 @@
     "weight": 0.9,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 1.5,
-    "daysStockAll": null,
+    "daySalesAll": 2.5,
+    "daysStockAll": 39,
     "nameEn": "סלט איקרה עם פורל וסלמון מעושנים 900 גרםNP ",
     "fam": "NORD PORT דגים",
     "iksGroup": "IKRA",
     "ashdodPalletCartons": null,
-    "pakuot": [],
+    "pakuot": [
+      {
+        "date": "2027-01-30",
+        "daysLeft": 193,
+        "cartons": 96
+      }
+    ],
     "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 96,
-    "openOrders": 96
+    "openOrders": null
   },
   "1154": {
     "stock": 0,
@@ -6980,23 +6783,23 @@
     "openOrders": null
   },
   "1157": {
-    "stock": 2025,
+    "stock": 2008,
     "daySales": 15.4,
     "kratnost": 273,
     "palStock": 7.4,
-    "stockZafn": 398,
-    "palStockZafn": 1.5,
-    "daySalesZafn": 10.1,
-    "daysStock": 185,
-    "daysStockZafn": 55,
+    "stockZafn": 393,
+    "palStockZafn": 1.4,
+    "daySalesZafn": 9.9,
+    "daysStock": 182,
+    "daysStockZafn": 56,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.4,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 15.4,
-    "daysStockAll": 132,
+    "daySalesAll": 25,
+    "daysStockAll": 80,
     "nameEn": "פילה הרינג בשמן400 ג'",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -7004,111 +6807,89 @@
     "pakuot": [
       {
         "date": "2026-08-28",
-        "daysLeft": 39,
-        "cartons": 317
+        "daysLeft": 38,
+        "cartons": 300
       },
       {
         "date": "2026-09-11",
-        "daysLeft": 53,
+        "daysLeft": 52,
         "cartons": 484
       },
       {
         "date": "2026-10-24",
-        "daysLeft": 96,
+        "daysLeft": 95,
         "cartons": 246
       },
       {
         "date": "2026-11-06",
-        "daysLeft": 109,
+        "daysLeft": 108,
         "cartons": 489
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 116,
+        "daysLeft": 115,
         "cartons": 489
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-08-28",
-        "daysLeft": 39,
-        "cartons": 155
-      },
-      {
-        "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 243
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 2422,
+    "spo": 2400,
     "openOrders": null
   },
   "1163": {
-    "stock": 506,
-    "daySales": 51.9,
+    "stock": 441,
+    "daySales": 52.3,
     "kratnost": 350,
-    "palStock": 1.4,
-    "stockZafn": 203,
-    "palStockZafn": 0.6,
-    "daySalesZafn": 30,
-    "daysStock": 14,
-    "daysStockZafn": 9,
+    "palStock": 1.3,
+    "stockZafn": 166,
+    "palStockZafn": 0.5,
+    "daySalesZafn": 30.2,
+    "daysStock": 12,
+    "daysStockZafn": 8,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.15,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 51.9,
-    "daysStockAll": 10,
+    "daySalesAll": 82.5,
+    "daysStockAll": 5,
     "nameEn": "חתיכות פילה דג הרינג מומלח בשמן מצונן150 ג'",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
     "pakuot": [
       {
-        "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 17
-      },
-      {
         "date": "2026-11-06",
-        "daysLeft": 109,
-        "cartons": 489
+        "daysLeft": 108,
+        "cartons": 441
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-11-06",
-        "daysLeft": 109,
-        "cartons": 203
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 1759,
+    "spo": 1657,
     "openOrders": 1050
   },
   "1164": {
-    "stock": 397,
-    "daySales": 29.3,
+    "stock": 359,
+    "daySales": 29.6,
     "kratnost": 350,
-    "palStock": 1.1,
-    "stockZafn": 129,
-    "palStockZafn": 0.4,
+    "palStock": 1,
+    "stockZafn": 112,
+    "palStockZafn": 0.3,
     "daySalesZafn": 16.4,
-    "daysStock": 19,
-    "daysStockZafn": 11,
+    "daysStock": 17,
+    "daysStockZafn": 10,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.15,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 29.3,
-    "daysStockAll": 14,
+    "daySalesAll": 44.6,
+    "daysStockAll": 8,
     "nameEn": "חתיכות פילה דג הרינג מומלח עם בצל בשמן מצונן150 ג'",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -7116,40 +6897,34 @@
     "pakuot": [
       {
         "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 397
+        "daysLeft": 95,
+        "cartons": 359
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 129
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 1226,
+    "spo": 1171,
     "openOrders": 700
   },
   "1165": {
-    "stock": 3699,
-    "daySales": 44,
+    "stock": 3661,
+    "daySales": 43.8,
     "kratnost": 273,
-    "palStock": 13.5,
-    "stockZafn": 354,
-    "palStockZafn": 1.3,
+    "palStock": 13.4,
+    "stockZafn": 330,
+    "palStockZafn": 1.2,
     "daySalesZafn": 26.7,
-    "daysStock": 118,
-    "daysStockZafn": 19,
+    "daysStock": 117,
+    "daysStockZafn": 17,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.4,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 44,
-    "daysStockAll": 84,
+    "daySalesAll": 70.4,
+    "daysStockAll": 52,
     "nameEn": "פילה דג הרינג מומלח בשמן מצונן400 ג'",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -7157,55 +6932,49 @@
     "pakuot": [
       {
         "date": "2026-09-11",
-        "daysLeft": 53,
-        "cartons": 528
+        "daysLeft": 52,
+        "cartons": 490
       },
       {
         "date": "2026-10-24",
-        "daysLeft": 96,
+        "daysLeft": 95,
         "cartons": 1703
       },
       {
         "date": "2026-11-06",
-        "daysLeft": 109,
+        "daysLeft": 108,
         "cartons": 734
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 116,
+        "daysLeft": 115,
         "cartons": 734
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-09-11",
-        "daysLeft": 53,
-        "cartons": 354
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 4052,
+    "spo": 3990,
     "openOrders": null
   },
   "1166": {
-    "stock": 4529,
-    "daySales": 31.7,
+    "stock": 4503,
+    "daySales": 31.5,
     "kratnost": 200,
-    "palStock": 22.6,
-    "stockZafn": 264,
-    "palStockZafn": 1.3,
-    "daySalesZafn": 19.2,
+    "palStock": 22.5,
+    "stockZafn": 246,
+    "palStockZafn": 1.2,
+    "daySalesZafn": 19.1,
     "daysStock": 200,
-    "daysStockZafn": 19,
+    "daysStockZafn": 18,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.5,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 31.7,
-    "daysStockAll": 143,
+    "daySalesAll": 50.6,
+    "daysStockAll": 89,
     "nameEn": "חתיכות פילה דג הרינג מומלח בשמן מצונן500 ג'",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -7213,61 +6982,50 @@
     "pakuot": [
       {
         "date": "2026-08-14",
-        "daysLeft": 25,
-        "cartons": 338
+        "daysLeft": 24,
+        "cartons": 312
       },
       {
         "date": "2026-08-28",
-        "daysLeft": 39,
+        "daysLeft": 38,
         "cartons": 796
       },
       {
         "date": "2026-09-11",
-        "daysLeft": 53,
+        "daysLeft": 52,
         "cartons": 599
       },
       {
         "date": "2026-10-25",
-        "daysLeft": 97,
+        "daysLeft": 96,
         "cartons": 1598
       },
       {
         "date": "2026-11-06",
-        "daysLeft": 109,
+        "daysLeft": 108,
         "cartons": 599
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 116,
+        "daysLeft": 115,
         "cartons": 599
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-08-14",
-        "daysLeft": 25,
-        "cartons": 64
-      },
-      {
-        "date": "2026-08-28",
-        "daysLeft": 39,
-        "cartons": 200
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 4791,
+    "spo": 4747,
     "openOrders": null
   },
   "1167": {
-    "stock": 3992,
-    "daySales": 30.7,
+    "stock": 3955,
+    "daySales": 30.9,
     "kratnost": 200,
-    "palStock": 20,
-    "stockZafn": 306,
+    "palStock": 19.8,
+    "stockZafn": 299,
     "palStockZafn": 1.5,
-    "daySalesZafn": 16.5,
-    "daysStock": 182,
+    "daySalesZafn": 16.2,
+    "daysStock": 179,
     "daysStockZafn": 26,
     "stockTrnz": 0,
     "palStockTrnz": null,
@@ -7275,8 +7033,8 @@
     "weight": 0.5,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 30.7,
-    "daysStockAll": 130,
+    "daySalesAll": 46.1,
+    "daysStockAll": 86,
     "nameEn": "חתיכות פילה דג הרינג סקנדינבי מומלח בשמן מצונן500 ג",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -7284,70 +7042,59 @@
     "pakuot": [
       {
         "date": "2026-08-14",
-        "daysLeft": 25,
-        "cartons": 403
+        "daysLeft": 24,
+        "cartons": 386
       },
       {
         "date": "2026-08-28",
-        "daysLeft": 39,
+        "daysLeft": 38,
         "cartons": 794
       },
       {
         "date": "2026-09-11",
-        "daysLeft": 53,
+        "daysLeft": 52,
         "cartons": 399
       },
       {
         "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 1198
+        "daysLeft": 95,
+        "cartons": 1178
       },
       {
         "date": "2026-11-06",
-        "daysLeft": 109,
+        "daysLeft": 108,
         "cartons": 599
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 116,
+        "daysLeft": 115,
         "cartons": 599
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-08-14",
-        "daysLeft": 25,
-        "cartons": 106
-      },
-      {
-        "date": "2026-08-28",
-        "daysLeft": 39,
-        "cartons": 200
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 4296,
+    "spo": 4252,
     "openOrders": null
   },
   "1168": {
-    "stock": 2205,
-    "daySales": 21.4,
+    "stock": 2179,
+    "daySales": 22.2,
     "kratnost": 200,
-    "palStock": 11,
-    "stockZafn": 299,
+    "palStock": 10.9,
+    "stockZafn": 292,
     "palStockZafn": 1.5,
-    "daySalesZafn": 11.6,
-    "daysStock": 144,
-    "daysStockZafn": 36,
+    "daySalesZafn": 11.9,
+    "daysStock": 137,
+    "daysStockZafn": 34,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.5,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 21.4,
-    "daysStockAll": 103,
+    "daySalesAll": 32.3,
+    "daysStockAll": 67,
     "nameEn": "חתיכות פילה דג הרינג מומלח בשמן מצונן עם תבלין500 ג",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -7355,45 +7102,34 @@
     "pakuot": [
       {
         "date": "2026-08-28",
-        "daysLeft": 39,
-        "cartons": 215
+        "daysLeft": 38,
+        "cartons": 204
       },
       {
         "date": "2026-09-11",
-        "daysLeft": 53,
+        "daysLeft": 52,
         "cartons": 393
       },
       {
         "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 399
+        "daysLeft": 95,
+        "cartons": 384
       },
       {
         "date": "2026-11-06",
-        "daysLeft": 109,
+        "daysLeft": 108,
         "cartons": 599
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 116,
+        "daysLeft": 115,
         "cartons": 599
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-08-28",
-        "daysLeft": 39,
-        "cartons": 99
-      },
-      {
-        "date": "2026-09-11",
-        "daysLeft": 53,
-        "cartons": 200
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 2503,
+    "spo": 2470,
     "openOrders": null
   },
   "1169": {
@@ -7426,10 +7162,10 @@
     "openOrders": null
   },
   "1170": {
-    "stock": 1,
-    "daySales": 27.1,
+    "stock": 0,
+    "daySales": 26,
     "kratnost": 255,
-    "palStock": 0,
+    "palStock": null,
     "stockZafn": 0,
     "palStockZafn": null,
     "daySalesZafn": 15.1,
@@ -7441,33 +7177,27 @@
     "weight": 0.29,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 27.1,
-    "daysStockAll": 0,
+    "daySalesAll": 37.3,
+    "daysStockAll": null,
     "nameEn": "חתיכות פילה דג הרינג מומלח בשמן מצונן290 ג'",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-09-11",
-        "daysLeft": 53,
-        "cartons": 1
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 1,
+    "spo": null,
     "openOrders": null
   },
   "1171": {
-    "stock": 170,
-    "daySales": 22,
+    "stock": 164,
+    "daySales": 21.5,
     "kratnost": 255,
-    "palStock": 0.7,
-    "stockZafn": 96,
+    "palStock": 0.6,
+    "stockZafn": 92,
     "palStockZafn": 0.4,
-    "daySalesZafn": 9.5,
+    "daySalesZafn": 9.3,
     "daysStock": 11,
     "daysStockZafn": 14,
     "stockTrnz": 0,
@@ -7476,8 +7206,8 @@
     "weight": 0.29,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 22,
-    "daysStockAll": 8,
+    "daySalesAll": 30.2,
+    "daysStockAll": 5,
     "nameEn": "חתיכות פילה דג הרינג מומלח בשמן מצונן עם בצל290 ג'",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -7485,20 +7215,14 @@
     "pakuot": [
       {
         "date": "2026-09-11",
-        "daysLeft": 53,
-        "cartons": 170
+        "daysLeft": 52,
+        "cartons": 164
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-09-11",
-        "daysLeft": 53,
-        "cartons": 96
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 266,
+    "spo": 256,
     "openOrders": null
   },
   "1172": {
@@ -7546,7 +7270,7 @@
     "weight": 0.29,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 31.7,
+    "daySalesAll": 39,
     "daysStockAll": null,
     "nameEn": "חתיכות פילה דג הרינג סקנדינבי מומלח בשמן מצונן290 ג",
     "fam": "NORD PORT דגים",
@@ -7560,23 +7284,23 @@
     "openOrders": null
   },
   "1174": {
-    "stock": 1695,
-    "daySales": 32.9,
+    "stock": 1449,
+    "daySales": 33,
     "kratnost": 300,
-    "palStock": 5.7,
-    "stockZafn": 241,
-    "palStockZafn": 0.8,
-    "daySalesZafn": 20.3,
-    "daysStock": 72,
-    "daysStockZafn": 17,
+    "palStock": 4.8,
+    "stockZafn": 436,
+    "palStockZafn": 1.5,
+    "daySalesZafn": 20.1,
+    "daysStock": 61,
+    "daysStockZafn": 30,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.3,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 32.9,
-    "daysStockAll": 51,
+    "daySalesAll": 53.1,
+    "daysStockAll": 27,
     "nameEn": "פילה דג הרינג מומלח XXL בשמן מצונן300 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -7584,36 +7308,30 @@
     "pakuot": [
       {
         "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 1106
+        "daysLeft": 95,
+        "cartons": 860
       },
       {
         "date": "2026-11-06",
-        "daysLeft": 109,
+        "daysLeft": 108,
         "cartons": 589
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 241
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 2536,
+    "spo": 2485,
     "openOrders": 600
   },
   "1175": {
-    "stock": 333,
-    "daySales": 18,
+    "stock": 320,
+    "daySales": 17.8,
     "kratnost": 192,
     "palStock": 1.7,
-    "stockZafn": 164,
-    "palStockZafn": 0.9,
-    "daySalesZafn": 12,
-    "daysStock": 26,
+    "stockZafn": 159,
+    "palStockZafn": 0.8,
+    "daySalesZafn": 11.7,
+    "daysStock": 25,
     "daysStockZafn": 19,
     "stockTrnz": 0,
     "palStockTrnz": null,
@@ -7621,8 +7339,8 @@
     "weight": 1,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 18,
-    "daysStockAll": 18,
+    "daySalesAll": 27.9,
+    "daysStockAll": 11,
     "nameEn": "פילה דג הרינג סקנדינבי מומלח בשמן מצונן1000 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -7630,30 +7348,19 @@
     "pakuot": [
       {
         "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 16
+        "daysLeft": 95,
+        "cartons": 3
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 116,
+        "daysLeft": 115,
         "cartons": 317
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 96,
-        "cartons": 36
-      },
-      {
-        "date": "2026-11-13",
-        "daysLeft": 116,
-        "cartons": 128
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 945,
+    "spo": 927,
     "openOrders": 448
   },
   "1176": {
@@ -7715,13 +7422,13 @@
     "openOrders": null
   },
   "1180": {
-    "stock": 470,
-    "daySales": 10.1,
+    "stock": 317,
+    "daySales": 10.2,
     "kratnost": 140,
-    "palStock": 3.4,
-    "stockZafn": 149,
-    "palStockZafn": 1.1,
-    "daySalesZafn": 6.7,
+    "palStock": 2.3,
+    "stockZafn": 286,
+    "palStockZafn": 2,
+    "daySalesZafn": 6.6,
     "daysStock": null,
     "daysStockZafn": null,
     "stockTrnz": null,
@@ -7731,7 +7438,7 @@
     "packFactor": 6,
     "weightCarton": 2.7,
     "daySalesAll": 15.5,
-    "daysStockAll": 30,
+    "daysStockAll": 20,
     "nameEn": "לביבות גבינת טבורוג מוקפאות450 ג'",
     "fam": "כיסונים",
     "iksGroup": null,
@@ -7739,25 +7446,30 @@
     "pakuot": [
       {
         "date": "2027-03-29",
-        "daysLeft": 252,
-        "cartons": 190
+        "daysLeft": 251,
+        "cartons": 177
       },
       {
         "date": "2027-05-18",
-        "daysLeft": 302,
-        "cartons": 280
+        "daysLeft": 301,
+        "cartons": 140
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-29",
-        "daysLeft": 252,
-        "cartons": 149
+        "daysLeft": 251,
+        "cartons": 146
+      },
+      {
+        "date": "2027-05-18",
+        "daysLeft": 301,
+        "cartons": 140
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 619,
+    "spo": 603,
     "openOrders": null
   },
   "1181": {
@@ -7790,12 +7502,12 @@
     "openOrders": null
   },
   "1182": {
-    "stock": 408,
-    "daySales": 14.3,
+    "stock": 396,
+    "daySales": 14.7,
     "kratnost": 140,
-    "palStock": 2.9,
-    "stockZafn": 189,
-    "palStockZafn": 1.4,
+    "palStock": 2.8,
+    "stockZafn": 178,
+    "palStockZafn": 1.3,
     "daySalesZafn": 9.5,
     "daysStock": null,
     "daysStockZafn": null,
@@ -7805,8 +7517,8 @@
     "weight": 0.45,
     "packFactor": 6,
     "weightCarton": 2.7,
-    "daySalesAll": 23.5,
-    "daysStockAll": 17,
+    "daySalesAll": 24.2,
+    "daysStockAll": 16,
     "nameEn": "כיסונים במילוי דובדבנים מוקפאים450 ג'",
     "fam": "כיסונים",
     "iksGroup": null,
@@ -7814,39 +7526,39 @@
     "pakuot": [
       {
         "date": "2027-04-28",
-        "daysLeft": 282,
-        "cartons": 128
+        "daysLeft": 281,
+        "cartons": 116
       },
       {
         "date": "2027-05-18",
-        "daysLeft": 302,
+        "daysLeft": 301,
         "cartons": 280
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-29",
-        "daysLeft": 252,
-        "cartons": 49
+        "daysLeft": 251,
+        "cartons": 38
       },
       {
         "date": "2027-04-28",
-        "daysLeft": 282,
+        "daysLeft": 281,
         "cartons": 140
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 597,
+    "spo": 574,
     "openOrders": null
   },
   "1184": {
-    "stock": 749,
-    "daySales": 9.6,
+    "stock": 742,
+    "daySales": 9.9,
     "kratnost": 140,
     "palStock": 5.3,
-    "stockZafn": 193,
-    "palStockZafn": 1.4,
+    "stockZafn": 186,
+    "palStockZafn": 1.3,
     "daySalesZafn": 6.8,
     "daysStock": null,
     "daysStockZafn": null,
@@ -7856,8 +7568,8 @@
     "weight": 0.45,
     "packFactor": 6,
     "weightCarton": 2.7,
-    "daySalesAll": 15.6,
-    "daysStockAll": 48,
+    "daySalesAll": 16,
+    "daysStockAll": 46,
     "nameEn": "כיסונים\" פרווה \"במילוי תפו\"א ופטריות מוקפאים450 ג'",
     "fam": "כיסונים",
     "iksGroup": null,
@@ -7865,45 +7577,45 @@
     "pakuot": [
       {
         "date": "2027-02-02",
-        "daysLeft": 197,
-        "cartons": 49
+        "daysLeft": 196,
+        "cartons": 42
       },
       {
         "date": "2027-03-29",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 420
       },
       {
         "date": "2027-04-28",
-        "daysLeft": 282,
+        "daysLeft": 281,
         "cartons": 280
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-02-02",
-        "daysLeft": 197,
-        "cartons": 53
+        "daysLeft": 196,
+        "cartons": 46
       },
       {
         "date": "2027-03-29",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 140
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 942,
+    "spo": 928,
     "openOrders": null
   },
   "1185": {
-    "stock": 851,
-    "daySales": 12.4,
+    "stock": 845,
+    "daySales": 12.2,
     "kratnost": 140,
-    "palStock": 6.1,
-    "stockZafn": 216,
+    "palStock": 6,
+    "stockZafn": 207,
     "palStockZafn": 1.5,
-    "daySalesZafn": 10,
+    "daySalesZafn": 9.9,
     "daysStock": null,
     "daysStockZafn": null,
     "stockTrnz": null,
@@ -7912,8 +7624,8 @@
     "weight": 0.45,
     "packFactor": 6,
     "weightCarton": 2.7,
-    "daySalesAll": 21,
-    "daysStockAll": 40,
+    "daySalesAll": 20.9,
+    "daysStockAll": 41,
     "nameEn": "כיסונים\" פרווה \"במילוי תפו\"א ובצל מוקפאים450 ג'",
     "fam": "כיסונים",
     "iksGroup": null,
@@ -7921,45 +7633,45 @@
     "pakuot": [
       {
         "date": "2027-03-01",
-        "daysLeft": 224,
-        "cartons": 151
+        "daysLeft": 223,
+        "cartons": 145
       },
       {
         "date": "2027-03-29",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 420
       },
       {
         "date": "2027-04-28",
-        "daysLeft": 282,
+        "daysLeft": 281,
         "cartons": 280
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-01",
-        "daysLeft": 224,
-        "cartons": 76
+        "daysLeft": 223,
+        "cartons": 67
       },
       {
         "date": "2027-03-29",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 140
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 1067,
+    "spo": 1052,
     "openOrders": null
   },
   "1187": {
-    "stock": 573,
+    "stock": 561,
     "daySales": 12,
     "kratnost": 140,
-    "palStock": 4.1,
-    "stockZafn": 253,
+    "palStock": 4,
+    "stockZafn": 247,
     "palStockZafn": 1.8,
-    "daySalesZafn": 8.2,
+    "daySalesZafn": 8.1,
     "daysStock": null,
     "daysStockZafn": null,
     "stockTrnz": null,
@@ -7969,7 +7681,7 @@
     "packFactor": 6,
     "weightCarton": 2.7,
     "daySalesAll": 19.9,
-    "daysStockAll": 29,
+    "daysStockAll": 28,
     "nameEn": "כיסונים במילוי גבינת טבורוג מוקפאים450 ג'",
     "fam": "כיסונים",
     "iksGroup": null,
@@ -7977,40 +7689,40 @@
     "pakuot": [
       {
         "date": "2027-03-29",
-        "daysLeft": 252,
-        "cartons": 153
+        "daysLeft": 251,
+        "cartons": 141
       },
       {
         "date": "2027-05-18",
-        "daysLeft": 302,
+        "daysLeft": 301,
         "cartons": 420
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-29",
-        "daysLeft": 252,
-        "cartons": 113
+        "daysLeft": 251,
+        "cartons": 107
       },
       {
         "date": "2027-05-18",
-        "daysLeft": 302,
+        "daysLeft": 301,
         "cartons": 140
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 825,
+    "spo": 807,
     "openOrders": null
   },
   "1190": {
-    "stock": 948,
-    "daySales": 11.2,
+    "stock": 942,
+    "daySales": 11,
     "kratnost": 140,
-    "palStock": 6.8,
-    "stockZafn": 216,
+    "palStock": 6.7,
+    "stockZafn": 206,
     "palStockZafn": 1.5,
-    "daySalesZafn": 7.1,
+    "daySalesZafn": 7.2,
     "daysStock": null,
     "daysStockZafn": null,
     "stockTrnz": null,
@@ -8020,7 +7732,7 @@
     "packFactor": 6,
     "weightCarton": 2.52,
     "daySalesAll": 16.7,
-    "daysStockAll": 57,
+    "daysStockAll": 56,
     "nameEn": "בלינצ'ס במילוי תפו\"א ופטריות מוקפא420 ג'",
     "fam": "בלינצס",
     "iksGroup": null,
@@ -8028,48 +7740,48 @@
     "pakuot": [
       {
         "date": "2027-02-02",
-        "daysLeft": 197,
-        "cartons": 7
+        "daysLeft": 196,
+        "cartons": 1
       },
       {
         "date": "2027-03-01",
-        "daysLeft": 224,
+        "daysLeft": 223,
         "cartons": 185
       },
       {
         "date": "2027-03-29",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 476
       },
       {
         "date": "2027-04-28",
-        "daysLeft": 282,
+        "daysLeft": 281,
         "cartons": 280
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-01",
-        "daysLeft": 224,
-        "cartons": 76
+        "daysLeft": 223,
+        "cartons": 66
       },
       {
         "date": "2027-03-29",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 140
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 1164,
+    "spo": 1148,
     "openOrders": null
   },
   "1191": {
-    "stock": 1102,
-    "daySales": 19.4,
+    "stock": 1092,
+    "daySales": 19.1,
     "kratnost": 140,
-    "palStock": 7.9,
-    "stockZafn": 216,
+    "palStock": 7.8,
+    "stockZafn": 204,
     "palStockZafn": 1.5,
     "daySalesZafn": 10.5,
     "daysStock": null,
@@ -8080,7 +7792,7 @@
     "weight": 0.36,
     "packFactor": 6,
     "weightCarton": 2.16,
-    "daySalesAll": 28,
+    "daySalesAll": 27.8,
     "daysStockAll": 39,
     "nameEn": "בלינצ'ס במילוי דובדבן מוקפא360 ג'",
     "fam": "בלינצס",
@@ -8089,40 +7801,40 @@
     "pakuot": [
       {
         "date": "2027-03-29",
-        "daysLeft": 252,
-        "cartons": 402
+        "daysLeft": 251,
+        "cartons": 392
       },
       {
         "date": "2027-04-28",
-        "daysLeft": 282,
+        "daysLeft": 281,
         "cartons": 420
       },
       {
         "date": "2027-05-18",
-        "daysLeft": 302,
+        "daysLeft": 301,
         "cartons": 280
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-29",
-        "daysLeft": 252,
-        "cartons": 216
+        "daysLeft": 251,
+        "cartons": 204
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 1318,
+    "spo": 1296,
     "openOrders": null
   },
   "1192": {
-    "stock": 1118,
-    "daySales": 33.7,
+    "stock": 993,
+    "daySales": 33.5,
     "kratnost": 140,
-    "palStock": 8,
-    "stockZafn": 133,
-    "palStockZafn": 0.9,
-    "daySalesZafn": 16,
+    "palStock": 7.1,
+    "stockZafn": 214,
+    "palStockZafn": 1.5,
+    "daySalesZafn": 16.1,
     "daysStock": null,
     "daysStockZafn": null,
     "stockTrnz": null,
@@ -8131,8 +7843,8 @@
     "weight": 0.36,
     "packFactor": 6,
     "weightCarton": 2.16,
-    "daySalesAll": 49.8,
-    "daysStockAll": 22,
+    "daySalesAll": 49.6,
+    "daysStockAll": 20,
     "nameEn": "בלינצ'ס במילוי גבינת טבורוג מוקפא360 ג'",
     "fam": "בלינצס",
     "iksGroup": null,
@@ -8140,35 +7852,35 @@
     "pakuot": [
       {
         "date": "2027-04-28",
-        "daysLeft": 282,
-        "cartons": 418
+        "daysLeft": 281,
+        "cartons": 293
       },
       {
         "date": "2027-05-18",
-        "daysLeft": 302,
+        "daysLeft": 301,
         "cartons": 700
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-04-28",
-        "daysLeft": 282,
-        "cartons": 133
+        "daysLeft": 281,
+        "cartons": 214
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 1251,
+    "spo": 1207,
     "openOrders": null
   },
   "1193": {
-    "stock": 619,
-    "daySales": 9.2,
+    "stock": 612,
+    "daySales": 9.4,
     "kratnost": 140,
     "palStock": 4.4,
-    "stockZafn": 137,
+    "stockZafn": 135,
     "palStockZafn": 1,
-    "daySalesZafn": 6.7,
+    "daySalesZafn": 6.6,
     "daysStock": null,
     "daysStockZafn": null,
     "stockTrnz": null,
@@ -8177,8 +7889,8 @@
     "weight": 0.36,
     "packFactor": 6,
     "weightCarton": 2.16,
-    "daySalesAll": 14.9,
-    "daysStockAll": 42,
+    "daySalesAll": 15.1,
+    "daysStockAll": 40,
     "nameEn": "בלינצ'ס במילוי תפו\"ע וקינמון מוקפא360 ג'",
     "fam": "בלינצס",
     "iksGroup": null,
@@ -8186,44 +7898,44 @@
     "pakuot": [
       {
         "date": "2027-03-01",
-        "daysLeft": 224,
-        "cartons": 67
+        "daysLeft": 223,
+        "cartons": 60
       },
       {
         "date": "2027-03-29",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 272
       },
       {
         "date": "2027-04-28",
-        "daysLeft": 282,
+        "daysLeft": 281,
         "cartons": 280
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-01",
-        "daysLeft": 224,
-        "cartons": 19
+        "daysLeft": 223,
+        "cartons": 17
       },
       {
         "date": "2027-03-29",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 118
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 756,
+    "spo": 747,
     "openOrders": null
   },
   "1194": {
-    "stock": 584,
+    "stock": 476,
     "daySales": 9.5,
     "kratnost": 120,
-    "palStock": 4.9,
-    "stockZafn": 167,
-    "palStockZafn": 1.4,
+    "palStock": 4,
+    "stockZafn": 262,
+    "palStockZafn": 2.2,
     "daySalesZafn": 5.3,
     "daysStock": null,
     "daysStockZafn": null,
@@ -8234,7 +7946,7 @@
     "packFactor": 10,
     "weightCarton": 3.2,
     "daySalesAll": 13.1,
-    "daysStockAll": 44,
+    "daysStockAll": 36,
     "nameEn": "עלי בלינצ'ס מוקפאים320 ג'",
     "fam": "עלי בלינצס",
     "iksGroup": null,
@@ -8242,34 +7954,39 @@
     "pakuot": [
       {
         "date": "2026-12-07",
-        "daysLeft": 140,
-        "cartons": 304
+        "daysLeft": 139,
+        "cartons": 296
       },
       {
         "date": "2027-05-18",
-        "daysLeft": 302,
-        "cartons": 280
+        "daysLeft": 301,
+        "cartons": 180
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-12-07",
-        "daysLeft": 140,
-        "cartons": 167
+        "daysLeft": 139,
+        "cartons": 162
+      },
+      {
+        "date": "2027-05-18",
+        "daysLeft": 301,
+        "cartons": 100
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 751,
+    "spo": 738,
     "openOrders": null
   },
   "1195": {
-    "stock": 1391,
-    "daySales": 12.5,
+    "stock": 1168,
+    "daySales": 12.8,
     "kratnost": 228,
-    "palStock": 6.1,
-    "stockZafn": 128,
-    "palStockZafn": 0.6,
+    "palStock": 5.1,
+    "stockZafn": 338,
+    "palStockZafn": 1.5,
     "daySalesZafn": 5.8,
     "daysStock": null,
     "daysStockZafn": null,
@@ -8279,8 +7996,8 @@
     "weight": 0.45,
     "packFactor": 7,
     "weightCarton": 3.15,
-    "daySalesAll": 17,
-    "daysStockAll": 82,
+    "daySalesAll": 17.4,
+    "daysStockAll": 67,
     "nameEn": "בצק שמרים מרודד מוקפא450 ג'",
     "fam": "בצק",
     "iksGroup": null,
@@ -8288,44 +8005,49 @@
     "pakuot": [
       {
         "date": "2027-03-01",
-        "daysLeft": 224,
-        "cartons": 95
+        "daysLeft": 223,
+        "cartons": 88
       },
       {
         "date": "2027-03-29",
-        "daysLeft": 252,
-        "cartons": 432
+        "daysLeft": 251,
+        "cartons": 216
       },
       {
         "date": "2027-04-28",
-        "daysLeft": 282,
+        "daysLeft": 281,
         "cartons": 432
       },
       {
         "date": "2027-05-18",
-        "daysLeft": 302,
+        "daysLeft": 301,
         "cartons": 432
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-01",
-        "daysLeft": 224,
-        "cartons": 128
+        "daysLeft": 223,
+        "cartons": 122
+      },
+      {
+        "date": "2027-03-29",
+        "daysLeft": 251,
+        "cartons": 216
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 1519,
+    "spo": 1506,
     "openOrders": null
   },
   "1196": {
-    "stock": 1072,
-    "daySales": 13.3,
+    "stock": 851,
+    "daySales": 13.5,
     "kratnost": 228,
-    "palStock": 4.7,
-    "stockZafn": 91,
-    "palStockZafn": 0.4,
+    "palStock": 3.7,
+    "stockZafn": 300,
+    "palStockZafn": 1.3,
     "daySalesZafn": 6.5,
     "daysStock": null,
     "daysStockZafn": null,
@@ -8335,8 +8057,8 @@
     "weight": 0.45,
     "packFactor": 7,
     "weightCarton": 3.15,
-    "daySalesAll": 19.2,
-    "daysStockAll": 56,
+    "daySalesAll": 19.6,
+    "daysStockAll": 43,
     "nameEn": "בצק עלים מרודד מוקפא450 ג'",
     "fam": "בצק",
     "iksGroup": null,
@@ -8344,33 +8066,38 @@
     "pakuot": [
       {
         "date": "2027-03-29",
-        "daysLeft": 252,
-        "cartons": 640
+        "daysLeft": 251,
+        "cartons": 419
       },
       {
         "date": "2027-04-28",
-        "daysLeft": 282,
+        "daysLeft": 281,
         "cartons": 432
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-01",
-        "daysLeft": 224,
-        "cartons": 91
+        "daysLeft": 223,
+        "cartons": 84
+      },
+      {
+        "date": "2027-03-29",
+        "daysLeft": 251,
+        "cartons": 216
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 1162,
+    "spo": 1150,
     "openOrders": null
   },
   "1197": {
-    "stock": 845,
-    "daySales": 11.8,
+    "stock": 840,
+    "daySales": 11.9,
     "kratnost": 228,
     "palStock": 3.7,
-    "stockZafn": 203,
+    "stockZafn": 197,
     "palStockZafn": 0.9,
     "daySalesZafn": 6.3,
     "daysStock": null,
@@ -8381,8 +8108,8 @@
     "weight": 0.45,
     "packFactor": 7,
     "weightCarton": 3.15,
-    "daySalesAll": 16.8,
-    "daysStockAll": 50,
+    "daySalesAll": 17.1,
+    "daysStockAll": 49,
     "nameEn": "בצק שמרים עלים מרודד מוקפא450 ג'",
     "fam": "בצק",
     "iksGroup": null,
@@ -8390,33 +8117,33 @@
     "pakuot": [
       {
         "date": "2027-03-29",
-        "daysLeft": 252,
-        "cartons": 413
+        "daysLeft": 251,
+        "cartons": 408
       },
       {
         "date": "2027-04-28",
-        "daysLeft": 282,
+        "daysLeft": 281,
         "cartons": 432
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-29",
-        "daysLeft": 252,
-        "cartons": 203
+        "daysLeft": 251,
+        "cartons": 197
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 1048,
+    "spo": 1037,
     "openOrders": null
   },
   "1198": {
-    "stock": 460,
-    "daySales": 9.5,
+    "stock": 455,
+    "daySales": 9.4,
     "kratnost": 140,
     "palStock": 3.3,
-    "stockZafn": 226,
+    "stockZafn": 220,
     "palStockZafn": 1.6,
     "daySalesZafn": 7.1,
     "daysStock": null,
@@ -8427,7 +8154,7 @@
     "weight": 0.36,
     "packFactor": 6,
     "weightCarton": 2.16,
-    "daySalesAll": 15.3,
+    "daySalesAll": 15.2,
     "daysStockAll": 30,
     "nameEn": "בלינצ'ס במילוי ממרח קקאו-אגוזי לוז מוקפא360 ג",
     "fam": "בלינצס",
@@ -8436,30 +8163,30 @@
     "pakuot": [
       {
         "date": "2027-04-28",
-        "daysLeft": 282,
-        "cartons": 180
+        "daysLeft": 281,
+        "cartons": 175
       },
       {
         "date": "2027-05-18",
-        "daysLeft": 302,
+        "daysLeft": 301,
         "cartons": 280
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-04-28",
-        "daysLeft": 282,
-        "cartons": 86
+        "daysLeft": 281,
+        "cartons": 80
       },
       {
         "date": "2027-05-18",
-        "daysLeft": 302,
+        "daysLeft": 301,
         "cartons": 140
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 686,
+    "spo": 674,
     "openOrders": null
   },
   "1200": {
@@ -8661,12 +8388,12 @@
     "pakuot": [
       {
         "date": "2026-12-07",
-        "daysLeft": 140,
+        "daysLeft": 139,
         "cartons": 48
       },
       {
         "date": "2027-03-01",
-        "daysLeft": 224,
+        "daysLeft": 223,
         "cartons": 126
       }
     ],
@@ -8996,23 +8723,23 @@
     "openOrders": null
   },
   "400001": {
-    "stock": 426,
-    "daySales": 49.9,
+    "stock": 386,
+    "daySales": 49.5,
     "kratnost": 200,
-    "palStock": 2.1,
-    "stockZafn": 204,
-    "palStockZafn": 1,
-    "daySalesZafn": 30.6,
-    "daysStock": 12,
-    "daysStockZafn": 9,
+    "palStock": 1.9,
+    "stockZafn": 169,
+    "palStockZafn": 0.8,
+    "daySalesZafn": 30.8,
+    "daysStock": 11,
+    "daysStockZafn": 8,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.5,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 49.9,
-    "daysStockAll": 9,
+    "daySalesAll": 79,
+    "daysStockAll": 5,
     "nameEn": "נתחי פילה הרינג עם בצל וזיתים מצונן\" פרובינציאל500  \"ג6)NP)",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -9020,30 +8747,24 @@
     "pakuot": [
       {
         "date": "2026-11-13",
-        "daysLeft": 116,
-        "cartons": 426
+        "daysLeft": 115,
+        "cartons": 386
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-11-13",
-        "daysLeft": 116,
-        "cartons": 204
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 1430,
+    "spo": 1355,
     "openOrders": 800
   },
   "400002": {
-    "stock": 127,
-    "daySales": 21.1,
+    "stock": 116,
+    "daySales": 21.4,
     "kratnost": 200,
     "palStock": 0.6,
-    "stockZafn": 62,
+    "stockZafn": 53,
     "palStockZafn": 0.3,
-    "daySalesZafn": 15.9,
+    "daySalesZafn": 15.7,
     "daysStock": 8,
     "daysStockZafn": 5,
     "stockTrnz": 0,
@@ -9052,8 +8773,8 @@
     "weight": 0.52,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 21.1,
-    "daysStockAll": 6,
+    "daySalesAll": 36.1,
+    "daysStockAll": 3,
     "nameEn": "נתחי פילה הרינג כבוש עם בצל מצונן520  ג6)NP)",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -9061,40 +8782,34 @@
     "pakuot": [
       {
         "date": "2026-10-25",
-        "daysLeft": 97,
-        "cartons": 127
+        "daysLeft": 96,
+        "cartons": 116
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-10-25",
-        "daysLeft": 97,
-        "cartons": 62
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 789,
+    "spo": 769,
     "openOrders": 600
   },
   "400003": {
-    "stock": 262,
-    "daySales": 16.6,
+    "stock": 255,
+    "daySales": 16.9,
     "kratnost": 200,
     "palStock": 1.3,
-    "stockZafn": 148,
+    "stockZafn": 139,
     "palStockZafn": 0.7,
-    "daySalesZafn": 11.5,
-    "daysStock": 22,
-    "daysStockZafn": 18,
+    "daySalesZafn": 11.4,
+    "daysStock": 21,
+    "daysStockZafn": 17,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.5,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 16.6,
-    "daysStockAll": 16,
+    "daySalesAll": 26.8,
+    "daysStockAll": 10,
     "nameEn": "נתחי פילה הרינג מומלח עם שמיר בשמן מצונן500 ג6)NP)",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -9102,50 +8817,39 @@
     "pakuot": [
       {
         "date": "2026-09-11",
-        "daysLeft": 53,
-        "cartons": 8
+        "daysLeft": 52,
+        "cartons": 1
       },
       {
         "date": "2026-10-25",
-        "daysLeft": 97,
+        "daysLeft": 96,
         "cartons": 254
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-09-11",
-        "daysLeft": 53,
-        "cartons": 8
-      },
-      {
-        "date": "2026-10-25",
-        "daysLeft": 97,
-        "cartons": 140
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 410,
+    "spo": 394,
     "openOrders": null
   },
   "403001": {
-    "stock": 1379,
-    "daySales": 196.5,
+    "stock": 1054,
+    "daySales": 197.4,
     "kratnost": 360,
-    "palStock": 3.8,
-    "stockZafn": 517,
+    "palStock": 2.9,
+    "stockZafn": 488,
     "palStockZafn": 1.4,
-    "daySalesZafn": 91.2,
-    "daysStock": 10,
-    "daysStockZafn": 8,
+    "daySalesZafn": 92.3,
+    "daysStock": 7,
+    "daysStockZafn": 7,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.1,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 196.5,
-    "daysStockAll": 7,
+    "daySalesAll": 289.7,
+    "daysStockAll": 4,
     "nameEn": "פילה סלמון מעושן פרוס מצונן100 גרםNP ",
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
@@ -9153,50 +8857,39 @@
     "pakuot": [
       {
         "date": "2026-08-22",
-        "daysLeft": 33,
-        "cartons": 658
+        "daysLeft": 32,
+        "cartons": 333
       },
       {
         "date": "2026-08-23",
-        "daysLeft": 34,
+        "daysLeft": 33,
         "cartons": 721
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-08-22",
-        "daysLeft": 33,
-        "cartons": 157
-      },
-      {
-        "date": "2026-08-23",
-        "daysLeft": 34,
-        "cartons": 360
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 7,
     "stopSale": false,
-    "spo": 4780,
+    "spo": 4426,
     "openOrders": 2884
   },
   "403002": {
-    "stock": 548,
-    "daySales": 89.2,
+    "stock": 419,
+    "daySales": 90.4,
     "kratnost": 360,
-    "palStock": 1.5,
-    "stockZafn": 201,
-    "palStockZafn": 0.6,
-    "daySalesZafn": 45.8,
-    "daysStock": 9,
-    "daysStockZafn": 6,
+    "palStock": 1.2,
+    "stockZafn": 129,
+    "palStockZafn": 0.4,
+    "daySalesZafn": 46.6,
+    "daysStock": 6,
+    "daysStockZafn": 4,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.1,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 89.2,
-    "daysStockAll": 6,
+    "daySalesAll": 132.8,
+    "daysStockAll": 3,
     "nameEn": "פילה פורל מעושן פרוס מצונן100 גרםNP ",
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
@@ -9204,40 +8897,34 @@
     "pakuot": [
       {
         "date": "2026-08-21",
-        "daysLeft": 32,
-        "cartons": 548
+        "daysLeft": 31,
+        "cartons": 419
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-08-21",
-        "daysLeft": 32,
-        "cartons": 201
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 7,
     "stopSale": false,
-    "spo": 2011,
+    "spo": 1810,
     "openOrders": 1262
   },
   "403003": {
-    "stock": 453,
-    "daySales": 38.5,
+    "stock": 434,
+    "daySales": 37.9,
     "kratnost": 180,
-    "palStock": 2.5,
-    "stockZafn": 196,
-    "palStockZafn": 1.1,
-    "daySalesZafn": 19.9,
+    "palStock": 2.4,
+    "stockZafn": 181,
+    "palStockZafn": 1,
+    "daySalesZafn": 19.7,
     "daysStock": 16,
-    "daysStockZafn": 14,
+    "daysStockZafn": 13,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.25,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 38.5,
-    "daysStockAll": 12,
+    "daySalesAll": 56.4,
+    "daysStockAll": 8,
     "nameEn": "פילה סלמון מעושן פרוס מצונן250 גרםNP ",
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
@@ -9245,40 +8932,29 @@
     "pakuot": [
       {
         "date": "2026-07-28",
-        "daysLeft": 8,
-        "cartons": 19
+        "daysLeft": 7,
+        "cartons": 8
       },
       {
         "date": "2026-08-22",
-        "daysLeft": 33,
-        "cartons": 434
+        "daysLeft": 32,
+        "cartons": 426
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-07-28",
-        "daysLeft": 8,
-        "cartons": 16
-      },
-      {
-        "date": "2026-08-22",
-        "daysLeft": 33,
-        "cartons": 180
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 7,
-    "stopSale": false,
-    "spo": 1281,
+    "stopSale": true,
+    "spo": 1247,
     "openOrders": 632
   },
   "403004": {
-    "stock": 332,
-    "daySales": 21.7,
+    "stock": 321,
+    "daySales": 21.3,
     "kratnost": 180,
     "palStock": 1.8,
-    "stockZafn": 139,
-    "palStockZafn": 0.8,
-    "daySalesZafn": 12.1,
+    "stockZafn": 133,
+    "palStockZafn": 0.7,
+    "daySalesZafn": 11.9,
     "daysStock": 21,
     "daysStockZafn": 16,
     "stockTrnz": 0,
@@ -9287,8 +8963,8 @@
     "weight": 0.25,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 21.7,
-    "daysStockAll": 15,
+    "daySalesAll": 31.7,
+    "daysStockAll": 10,
     "nameEn": "פילה פורל מעושן פרוס מצונן250 גרםNP ",
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
@@ -9296,50 +8972,39 @@
     "pakuot": [
       {
         "date": "2026-08-01",
-        "daysLeft": 12,
-        "cartons": 82
+        "daysLeft": 11,
+        "cartons": 73
       },
       {
         "date": "2026-08-21",
-        "daysLeft": 32,
-        "cartons": 250
+        "daysLeft": 31,
+        "cartons": 248
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-08-01",
-        "daysLeft": 12,
-        "cartons": 39
-      },
-      {
-        "date": "2026-08-21",
-        "daysLeft": 32,
-        "cartons": 100
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 7,
     "stopSale": false,
-    "spo": 833,
+    "spo": 816,
     "openOrders": 362
   },
   "403005": {
-    "stock": 112,
-    "daySales": 33,
+    "stock": 74,
+    "daySales": 33.2,
     "kratnost": 320,
-    "palStock": 0.3,
-    "stockZafn": 52,
-    "palStockZafn": 0.2,
-    "daySalesZafn": 17.3,
-    "daysStock": 5,
-    "daysStockZafn": 4,
+    "palStock": 0.2,
+    "stockZafn": 30,
+    "palStockZafn": 0.1,
+    "daySalesZafn": 17.5,
+    "daysStock": 3,
+    "daysStockZafn": 2,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.2,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 33,
-    "daysStockAll": 3,
+    "daySalesAll": 48.4,
+    "daysStockAll": 2,
     "nameEn": "פילה סלמון מעושן מצונן200 גרםNP ",
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
@@ -9347,40 +9012,34 @@
     "pakuot": [
       {
         "date": "2026-08-23",
-        "daysLeft": 34,
-        "cartons": 112
+        "daysLeft": 33,
+        "cartons": 74
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-08-23",
-        "daysLeft": 34,
-        "cartons": 52
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 7,
     "stopSale": false,
-    "spo": 641,
+    "spo": 581,
     "openOrders": 477
   },
   "403006": {
-    "stock": 255,
-    "daySales": 19,
+    "stock": 245,
+    "daySales": 18.7,
     "kratnost": 320,
     "palStock": 0.8,
-    "stockZafn": 120,
-    "palStockZafn": 0.4,
+    "stockZafn": 109,
+    "palStockZafn": 0.3,
     "daySalesZafn": 10.9,
-    "daysStock": 19,
-    "daysStockZafn": 15,
+    "daysStock": 18,
+    "daysStockZafn": 14,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.2,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 19,
-    "daysStockAll": 13,
+    "daySalesAll": 27.8,
+    "daysStockAll": 9,
     "nameEn": "פילה פורל מעושן מצונן200 גרםNP ",
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
@@ -9388,50 +9047,39 @@
     "pakuot": [
       {
         "date": "2026-08-02",
-        "daysLeft": 13,
-        "cartons": 37
+        "daysLeft": 12,
+        "cartons": 27
       },
       {
         "date": "2026-08-22",
-        "daysLeft": 33,
+        "daysLeft": 32,
         "cartons": 218
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-08-02",
-        "daysLeft": 13,
-        "cartons": 20
-      },
-      {
-        "date": "2026-08-22",
-        "daysLeft": 33,
-        "cartons": 100
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 7,
     "stopSale": false,
-    "spo": 703,
+    "spo": 682,
     "openOrders": 327
   },
   "403007": {
-    "stock": 134,
-    "daySales": 51,
+    "stock": 62,
+    "daySales": 51.9,
     "kratnost": 245,
-    "palStock": 0.5,
-    "stockZafn": 73,
-    "palStockZafn": 0.3,
-    "daySalesZafn": 26.3,
-    "daysStock": 4,
-    "daysStockZafn": 4,
+    "palStock": 0.3,
+    "stockZafn": 18,
+    "palStockZafn": 0.1,
+    "daySalesZafn": 27.7,
+    "daysStock": 2,
+    "daysStockZafn": 1,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.15,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 51,
-    "daysStockAll": 3,
+    "daySalesAll": 77.2,
+    "daysStockAll": 1,
     "nameEn": "פילה מקרל מומלח בעישון חם מצונן150 גרם8) NP) ",
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
@@ -9439,80 +9087,62 @@
     "pakuot": [
       {
         "date": "2026-08-12",
-        "daysLeft": 23,
-        "cartons": 134
+        "daysLeft": 22,
+        "cartons": 62
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-08-12",
-        "daysLeft": 23,
-        "cartons": 73
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 7,
     "stopSale": false,
-    "spo": 699,
+    "spo": 572,
     "openOrders": 492
   },
   "403008": {
-    "stock": 29,
-    "daySales": 37.9,
+    "stock": 0,
+    "daySales": 37.4,
     "kratnost": 245,
-    "palStock": 0.1,
-    "stockZafn": 27,
-    "palStockZafn": 0.1,
-    "daySalesZafn": 16.9,
-    "daysStock": 1,
-    "daysStockZafn": 2,
+    "palStock": null,
+    "stockZafn": 0,
+    "palStockZafn": null,
+    "daySalesZafn": 17.5,
+    "daysStock": 0,
+    "daysStockZafn": 0,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.15,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 37.9,
-    "daysStockAll": 1,
+    "daySalesAll": 48.2,
+    "daysStockAll": null,
     "nameEn": "פילה מקרל מומלח בעישון חם עם פלפל שחור גרוס150 גרם8) NP) ",
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-08-12",
-        "daysLeft": 23,
-        "cartons": 29
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-08-12",
-        "daysLeft": 23,
-        "cartons": 27
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 7,
     "stopSale": false,
-    "spo": 303,
+    "spo": 247,
     "openOrders": 247
   },
   "410000": {
-    "stock": 582,
-    "daySales": 35.7,
+    "stock": 578,
+    "daySales": 34.5,
     "kratnost": 264,
     "palStock": 2.2,
-    "stockZafn": 211,
+    "stockZafn": 204,
     "palStockZafn": 0.8,
-    "daySalesZafn": 19,
+    "daySalesZafn": 18.6,
     "daysStock": 23,
-    "daysStockZafn": 16,
+    "daysStockZafn": 15,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.18,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 54.7,
+    "daySalesAll": 53.1,
     "daysStockAll": 11,
     "nameEn": "שמנת חמוצה טבעית 15% שומן180 גרם8) PRESIDENT)",
     "fam": "PRESIDENT גבינות",
@@ -9521,15 +9151,15 @@
     "pakuot": [
       {
         "date": "2026-07-29",
-        "daysLeft": 9,
-        "cartons": 582
+        "daysLeft": 8,
+        "cartons": 578
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-07-29",
-        "daysLeft": 9,
-        "cartons": 211
+        "daysLeft": 8,
+        "cartons": 204
       }
     ],
     "shelfLife": 7,
@@ -9538,13 +9168,13 @@
     "openOrders": null
   },
   "410001": {
-    "stock": 550,
-    "daySales": 39.1,
+    "stock": 545,
+    "daySales": 37.9,
     "kratnost": 264,
     "palStock": 2.1,
-    "stockZafn": 192,
+    "stockZafn": 183,
     "palStockZafn": 0.7,
-    "daySalesZafn": 20.2,
+    "daySalesZafn": 19.8,
     "daysStock": 20,
     "daysStockZafn": 13,
     "stockTrnz": 0,
@@ -9553,7 +9183,7 @@
     "weight": 0.18,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 59.3,
+    "daySalesAll": 57.7,
     "daysStockAll": 9,
     "nameEn": "שמנת חמוצה טבעית 20% שומן180 גרם8) PRESIDENT)",
     "fam": "PRESIDENT גבינות",
@@ -9562,15 +9192,15 @@
     "pakuot": [
       {
         "date": "2026-07-29",
-        "daysLeft": 9,
-        "cartons": 550
+        "daysLeft": 8,
+        "cartons": 545
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-07-29",
-        "daysLeft": 9,
-        "cartons": 192
+        "daysLeft": 8,
+        "cartons": 183
       }
     ],
     "shelfLife": 7,
@@ -9579,13 +9209,13 @@
     "openOrders": null
   },
   "410002": {
-    "stock": 360,
-    "daySales": 30.5,
+    "stock": 356,
+    "daySales": 29.5,
     "kratnost": 168,
     "palStock": 2.1,
-    "stockZafn": 174,
+    "stockZafn": 163,
     "palStockZafn": 1,
-    "daySalesZafn": 17,
+    "daySalesZafn": 16.8,
     "daysStock": 17,
     "daysStockZafn": 14,
     "stockTrnz": 0,
@@ -9594,7 +9224,7 @@
     "weight": 0.3,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 47.5,
+    "daySalesAll": 46.3,
     "daysStockAll": 8,
     "nameEn": "שמנת חמוצה טבעית 15% שומן300 גרם8) PRESIDENT)",
     "fam": "PRESIDENT גבינות",
@@ -9603,15 +9233,15 @@
     "pakuot": [
       {
         "date": "2026-07-29",
-        "daysLeft": 9,
-        "cartons": 360
+        "daysLeft": 8,
+        "cartons": 356
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-07-29",
-        "daysLeft": 9,
-        "cartons": 174
+        "daysLeft": 8,
+        "cartons": 163
       }
     ],
     "shelfLife": 7,
@@ -9620,13 +9250,13 @@
     "openOrders": null
   },
   "410003": {
-    "stock": 333,
-    "daySales": 32.1,
+    "stock": 328,
+    "daySales": 31.2,
     "kratnost": 168,
     "palStock": 2,
-    "stockZafn": 175,
+    "stockZafn": 169,
     "palStockZafn": 1,
-    "daySalesZafn": 18.4,
+    "daySalesZafn": 18,
     "daysStock": 15,
     "daysStockZafn": 13,
     "stockTrnz": 0,
@@ -9635,7 +9265,7 @@
     "weight": 0.3,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 50.6,
+    "daySalesAll": 49.1,
     "daysStockAll": 7,
     "nameEn": "שמנת חמוצה טבעית 20% שומן300 גרם8) PRESIDENT)",
     "fam": "PRESIDENT גבינות",
@@ -9644,15 +9274,15 @@
     "pakuot": [
       {
         "date": "2026-07-29",
-        "daysLeft": 9,
-        "cartons": 333
+        "daysLeft": 8,
+        "cartons": 328
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-07-29",
-        "daysLeft": 9,
-        "cartons": 175
+        "daysLeft": 8,
+        "cartons": 169
       }
     ],
     "shelfLife": 7,
@@ -9661,23 +9291,23 @@
     "openOrders": null
   },
   "410004": {
-    "stock": 360,
-    "daySales": 35.8,
+    "stock": 288,
+    "daySales": 34.9,
     "kratnost": 168,
-    "palStock": 2.1,
-    "stockZafn": 99,
-    "palStockZafn": 0.6,
-    "daySalesZafn": 21.3,
-    "daysStock": 14,
-    "daysStockZafn": 7,
+    "palStock": 1.7,
+    "stockZafn": 146,
+    "palStockZafn": 0.9,
+    "daySalesZafn": 21,
+    "daysStock": 12,
+    "daysStockZafn": 10,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.3,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 57.1,
-    "daysStockAll": 6,
+    "daySalesAll": 55.9,
+    "daysStockAll": 5,
     "nameEn": "שמנת חמוצה טבעית 30% שומן300 גרם8) PRESIDENT)",
     "fam": "PRESIDENT גבינות",
     "iksGroup": null,
@@ -9685,15 +9315,15 @@
     "pakuot": [
       {
         "date": "2026-07-30",
-        "daysLeft": 10,
-        "cartons": 360
+        "daysLeft": 9,
+        "cartons": 288
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-07-30",
-        "daysLeft": 10,
-        "cartons": 99
+        "daysLeft": 9,
+        "cartons": 146
       }
     ],
     "shelfLife": 7,
@@ -9702,22 +9332,22 @@
     "openOrders": null
   },
   "411000": {
-    "stock": 367,
-    "daySales": 42,
+    "stock": 356,
+    "daySales": 40.9,
     "kratnost": 209,
-    "palStock": 1.8,
-    "stockZafn": 190,
-    "palStockZafn": 0.9,
-    "daySalesZafn": 23.4,
+    "palStock": 1.7,
+    "stockZafn": 171,
+    "palStockZafn": 0.8,
+    "daySalesZafn": 23.3,
     "daysStock": 12,
-    "daysStockZafn": 11,
+    "daysStockZafn": 10,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.22,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 65.5,
+    "daySalesAll": 64.2,
     "daysStockAll": 6,
     "nameEn": "טבורוג 5% שומן220 גרם12) PRESIDENT)",
     "fam": "PRESIDENT גבינות",
@@ -9726,15 +9356,15 @@
     "pakuot": [
       {
         "date": "2026-08-01",
-        "daysLeft": 12,
-        "cartons": 367
+        "daysLeft": 11,
+        "cartons": 356
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-08-01",
-        "daysLeft": 12,
-        "cartons": 190
+        "daysLeft": 11,
+        "cartons": 171
       }
     ],
     "shelfLife": 7,
@@ -9743,13 +9373,13 @@
     "openOrders": null
   },
   "411001": {
-    "stock": 559,
-    "daySales": 47.4,
+    "stock": 552,
+    "daySales": 46,
     "kratnost": 168,
     "palStock": 3.3,
-    "stockZafn": 170,
-    "palStockZafn": 1,
-    "daySalesZafn": 32.4,
+    "stockZafn": 149,
+    "palStockZafn": 0.9,
+    "daySalesZafn": 32,
     "daysStock": 17,
     "daysStockZafn": 7,
     "stockTrnz": 0,
@@ -9758,7 +9388,7 @@
     "weight": 0.3,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 77.6,
+    "daySalesAll": 75.9,
     "daysStockAll": 7,
     "nameEn": "טבורוג 5% שומן300 גרם9) PRESIDENT)",
     "fam": "PRESIDENT גבינות",
@@ -9767,32 +9397,32 @@
     "pakuot": [
       {
         "date": "2026-07-28",
-        "daysLeft": 8,
-        "cartons": 559
+        "daysLeft": 7,
+        "cartons": 552
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-07-28",
-        "daysLeft": 8,
-        "cartons": 170
+        "daysLeft": 7,
+        "cartons": 149
       }
     ],
     "shelfLife": 7,
-    "stopSale": false,
+    "stopSale": true,
     "spo": null,
     "openOrders": null
   },
   "411500": {
-    "stock": 1310,
-    "daySales": 22.8,
+    "stock": 1296,
+    "daySales": 22.5,
     "kratnost": 418,
     "palStock": 3.1,
-    "stockZafn": 696,
-    "palStockZafn": 1.7,
-    "daySalesZafn": 10.2,
+    "stockZafn": 678,
+    "palStockZafn": 1.6,
+    "daySalesZafn": 10.4,
     "daysStock": 80,
-    "daysStockZafn": 96,
+    "daysStockZafn": 91,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -9800,7 +9430,7 @@
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 33,
-    "daysStockAll": 40,
+    "daysStockAll": 39,
     "nameEn": "גבינת שמנת קלאסית 24.5% שומן180 גרם6)PRESIDENT)",
     "fam": "PRESIDENT גבינות",
     "iksGroup": null,
@@ -9808,24 +9438,24 @@
     "pakuot": [
       {
         "date": "2026-08-26",
-        "daysLeft": 37,
-        "cartons": 432
+        "daysLeft": 36,
+        "cartons": 418
       },
       {
         "date": "2026-09-16",
-        "daysLeft": 58,
+        "daysLeft": 57,
         "cartons": 878
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-08-26",
-        "daysLeft": 37,
-        "cartons": 264
+        "daysLeft": 36,
+        "cartons": 246
       },
       {
         "date": "2026-09-16",
-        "daysLeft": 58,
+        "daysLeft": 57,
         "cartons": 432
       }
     ],
@@ -9835,11 +9465,11 @@
     "openOrders": null
   },
   "412200": {
-    "stock": 2,
+    "stock": 0,
     "daySales": 17.7,
     "kratnost": 256,
-    "palStock": 0,
-    "stockZafn": -1,
+    "palStock": null,
+    "stockZafn": 0,
     "palStockZafn": null,
     "daySalesZafn": 9.3,
     "daysStock": 0,
@@ -9851,18 +9481,12 @@
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 25.4,
-    "daysStockAll": 0,
+    "daysStockAll": null,
     "nameEn": "גבינה מותכת CREAMY שומן70 14.1% גרם24) PRESIDENT) ",
     "fam": "PRESIDENT גבינות",
     "iksGroup": null,
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-09-19",
-        "daysLeft": 61,
-        "cartons": 2
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 7,
     "stopSale": false,
@@ -9870,23 +9494,23 @@
     "openOrders": null
   },
   "412201": {
-    "stock": 18,
-    "daySales": 14.7,
+    "stock": 5,
+    "daySales": 14.6,
     "kratnost": 256,
-    "palStock": 0.1,
-    "stockZafn": 6,
-    "palStockZafn": 0,
-    "daySalesZafn": 8.9,
-    "daysStock": 2,
-    "daysStockZafn": 1,
+    "palStock": 0,
+    "stockZafn": 0,
+    "palStockZafn": null,
+    "daySalesZafn": 8.8,
+    "daysStock": 0,
+    "daysStockZafn": 0,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.07,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 22.3,
-    "daysStockAll": 1,
+    "daySalesAll": 22.2,
+    "daysStockAll": 0,
     "nameEn": "גבינה מותכת HOLLAND שומן70 14% גרם24) PRESIDENT) ",
     "fam": "PRESIDENT גבינות",
     "iksGroup": null,
@@ -9894,17 +9518,11 @@
     "pakuot": [
       {
         "date": "2026-09-19",
-        "daysLeft": 61,
-        "cartons": 18
+        "daysLeft": 60,
+        "cartons": 5
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2026-09-19",
-        "daysLeft": 61,
-        "cartons": 6
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 7,
     "stopSale": false,
     "spo": null,
@@ -9940,13 +9558,13 @@
     "openOrders": null
   },
   "412500": {
-    "stock": 63,
-    "daySales": 13.9,
+    "stock": 55,
+    "daySales": 13.7,
     "kratnost": 176,
-    "palStock": 0.4,
-    "stockZafn": 13,
+    "palStock": 0.3,
+    "stockZafn": 9,
     "palStockZafn": 0.1,
-    "daySalesZafn": 7.8,
+    "daySalesZafn": 7.6,
     "daysStock": 6,
     "daysStockZafn": 2,
     "stockTrnz": 0,
@@ -9955,7 +9573,7 @@
     "weight": 0.15,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 21.7,
+    "daySalesAll": 21.3,
     "daysStockAll": 3,
     "nameEn": "גבינה מותכת  CREAMY שומן150 18.3% גרם12) PRESIDENT)",
     "fam": "PRESIDENT גבינות",
@@ -9964,15 +9582,15 @@
     "pakuot": [
       {
         "date": "2026-10-09",
-        "daysLeft": 81,
-        "cartons": 63
+        "daysLeft": 80,
+        "cartons": 55
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-09",
-        "daysLeft": 81,
-        "cartons": 13
+        "daysLeft": 80,
+        "cartons": 9
       }
     ],
     "shelfLife": 7,
@@ -9981,23 +9599,23 @@
     "openOrders": null
   },
   "412501": {
-    "stock": 12,
-    "daySales": 16,
+    "stock": 3,
+    "daySales": 15.7,
     "kratnost": 176,
-    "palStock": 0.1,
-    "stockZafn": 18,
+    "palStock": 0,
+    "stockZafn": 12,
     "palStockZafn": 0.1,
-    "daySalesZafn": 7.6,
-    "daysStock": 1,
-    "daysStockZafn": 3,
+    "daySalesZafn": 7.5,
+    "daysStock": 0,
+    "daysStockZafn": 2,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.15,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 23.5,
-    "daysStockAll": 1,
+    "daySalesAll": 23.2,
+    "daysStockAll": 0,
     "nameEn": "גבינה מותכת  GOUDA שומן150 17% גרם12) PRESIDENT)",
     "fam": "PRESIDENT גבינות",
     "iksGroup": null,
@@ -10005,15 +9623,15 @@
     "pakuot": [
       {
         "date": "2026-10-09",
-        "daysLeft": 81,
-        "cartons": 12
+        "daysLeft": 80,
+        "cartons": 3
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-09",
-        "daysLeft": 81,
-        "cartons": 18
+        "daysLeft": 80,
+        "cartons": 12
       }
     ],
     "shelfLife": 7,
@@ -10022,14 +9640,14 @@
     "openOrders": null
   },
   "412502": {
-    "stock": 58,
-    "daySales": 14.1,
+    "stock": 50,
+    "daySales": 13.9,
     "kratnost": 176,
     "palStock": 0.3,
-    "stockZafn": 21,
+    "stockZafn": 19,
     "palStockZafn": 0.1,
-    "daySalesZafn": 7.3,
-    "daysStock": 6,
+    "daySalesZafn": 7.1,
+    "daysStock": 5,
     "daysStockZafn": 4,
     "stockTrnz": 0,
     "palStockTrnz": null,
@@ -10037,8 +9655,8 @@
     "weight": 0.15,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 21.4,
-    "daysStockAll": 3,
+    "daySalesAll": 21,
+    "daysStockAll": 2,
     "nameEn": "גבינה מותכת  MAASDAM שומן150 17% גרם12) PRESIDENT)",
     "fam": "PRESIDENT גבינות",
     "iksGroup": null,
@@ -10046,15 +9664,15 @@
     "pakuot": [
       {
         "date": "2026-10-10",
-        "daysLeft": 82,
-        "cartons": 58
+        "daysLeft": 81,
+        "cartons": 50
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-10",
-        "daysLeft": 82,
-        "cartons": 21
+        "daysLeft": 81,
+        "cartons": 19
       }
     ],
     "shelfLife": 7,
@@ -10063,14 +9681,14 @@
     "openOrders": null
   },
   "413000": {
-    "stock": 32,
+    "stock": 31,
     "daySales": 0.5,
     "kratnost": 48,
-    "palStock": 0.7,
+    "palStock": 0.6,
     "stockZafn": 21,
     "palStockZafn": 0.4,
     "daySalesZafn": 0.5,
-    "daysStock": 88,
+    "daysStock": 84,
     "daysStockZafn": 61,
     "stockTrnz": 0,
     "palStockTrnz": null,
@@ -10079,7 +9697,7 @@
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 0.7,
-    "daysStockAll": 43,
+    "daysStockAll": 42,
     "nameEn": "גבינה קשה למחצה  HOLLAND שומן24.5% PRESIDENT ",
     "fam": "PRESIDENT גבינות",
     "iksGroup": null,
@@ -10087,14 +9705,14 @@
     "pakuot": [
       {
         "date": "2026-10-04",
-        "daysLeft": 76,
-        "cartons": 32
+        "daysLeft": 75,
+        "cartons": 31
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-04",
-        "daysLeft": 76,
+        "daysLeft": 75,
         "cartons": 21
       }
     ],
@@ -10104,23 +9722,23 @@
     "openOrders": null
   },
   "413001": {
-    "stock": 39,
+    "stock": 38,
     "daySales": 0.6,
     "kratnost": 48,
     "palStock": 0.8,
     "stockZafn": 15,
     "palStockZafn": 0.3,
     "daySalesZafn": 0.4,
-    "daysStock": 90,
-    "daysStockZafn": 56,
+    "daysStock": 85,
+    "daysStockZafn": 53,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": null,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 0.7,
-    "daysStockAll": 53,
+    "daySalesAll": 0.8,
+    "daysStockAll": 48,
     "nameEn": "גבינה קשה למחצה  GOUDA שומן28.5% PRESIDENT ",
     "fam": "PRESIDENT גבינות",
     "iksGroup": null,
@@ -10128,14 +9746,14 @@
     "pakuot": [
       {
         "date": "2026-10-04",
-        "daysLeft": 76,
-        "cartons": 39
+        "daysLeft": 75,
+        "cartons": 38
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-04",
-        "daysLeft": 76,
+        "daysLeft": 75,
         "cartons": 15
       }
     ],
@@ -10152,7 +9770,7 @@
     "stockZafn": 14,
     "palStockZafn": 0.3,
     "daySalesZafn": 0.6,
-    "daysStock": 117,
+    "daysStock": 120,
     "daysStockZafn": 35,
     "stockTrnz": 0,
     "palStockTrnz": null,
@@ -10161,7 +9779,7 @@
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 0.8,
-    "daysStockAll": 56,
+    "daysStockAll": 58,
     "nameEn": "גבינה קשה למחצה  TILZITER שומן28.5% PRESIDENT ",
     "fam": "PRESIDENT גבינות",
     "iksGroup": null,
@@ -10169,14 +9787,14 @@
     "pakuot": [
       {
         "date": "2026-10-04",
-        "daysLeft": 76,
+        "daysLeft": 75,
         "cartons": 46
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-04",
-        "daysLeft": 76,
+        "daysLeft": 75,
         "cartons": 14
       }
     ],
@@ -10186,7 +9804,7 @@
     "openOrders": null
   },
   "413200": {
-    "stock": 126,
+    "stock": 124,
     "daySales": 3.4,
     "kratnost": 288,
     "palStock": 0.4,
@@ -10201,7 +9819,7 @@
     "weight": 0.16,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 4.5,
+    "daySalesAll": 4.4,
     "daysStockAll": 28,
     "nameEn": "גבינה קשה למחצה HOLLAND שומן160 24.5%  גרם14) PRESIDENT) ",
     "fam": "PRESIDENT גבינות",
@@ -10210,14 +9828,14 @@
     "pakuot": [
       {
         "date": "2026-09-19",
-        "daysLeft": 61,
-        "cartons": 126
+        "daysLeft": 60,
+        "cartons": 124
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-09-19",
-        "daysLeft": 61,
+        "daysLeft": 60,
         "cartons": 58
       }
     ],
@@ -10227,14 +9845,14 @@
     "openOrders": null
   },
   "413201": {
-    "stock": 198,
-    "daySales": 4.2,
+    "stock": 195,
+    "daySales": 4.1,
     "kratnost": 288,
     "palStock": 0.7,
-    "stockZafn": 74,
+    "stockZafn": 73,
     "palStockZafn": 0.3,
-    "daySalesZafn": 3,
-    "daysStock": 67,
+    "daySalesZafn": 2.9,
+    "daysStock": 66,
     "daysStockZafn": 35,
     "stockTrnz": 0,
     "palStockTrnz": null,
@@ -10243,7 +9861,7 @@
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 5.2,
-    "daysStockAll": 38,
+    "daysStockAll": 37,
     "nameEn": "גבינה קשה למחצה GOUDA שומן160 28.5%  גרם14) PRESIDENT) ",
     "fam": "PRESIDENT גבינות",
     "iksGroup": null,
@@ -10251,15 +9869,15 @@
     "pakuot": [
       {
         "date": "2026-09-19",
-        "daysLeft": 61,
-        "cartons": 198
+        "daysLeft": 60,
+        "cartons": 195
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-09-19",
-        "daysLeft": 61,
-        "cartons": 74
+        "daysLeft": 60,
+        "cartons": 73
       }
     ],
     "shelfLife": 7,
@@ -10268,14 +9886,14 @@
     "openOrders": null
   },
   "413202": {
-    "stock": 169,
-    "daySales": 4.5,
+    "stock": 168,
+    "daySales": 4.3,
     "kratnost": 288,
     "palStock": 0.6,
     "stockZafn": 50,
     "palStockZafn": 0.2,
     "daySalesZafn": 2.1,
-    "daysStock": 53,
+    "daysStock": 55,
     "daysStockZafn": 34,
     "stockTrnz": 0,
     "palStockTrnz": null,
@@ -10283,8 +9901,8 @@
     "weight": 0.16,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 4.9,
-    "daysStockAll": 34,
+    "daySalesAll": 4.7,
+    "daysStockAll": 36,
     "nameEn": "גבינה קשה למחצה TILZITER שומן160 28.5%  גרם14) PRESIDENT) ",
     "fam": "PRESIDENT גבינות",
     "iksGroup": null,
@@ -10292,24 +9910,24 @@
     "pakuot": [
       {
         "date": "2026-08-25",
-        "daysLeft": 36,
-        "cartons": 20
+        "daysLeft": 35,
+        "cartons": 19
       },
       {
         "date": "2026-09-20",
-        "daysLeft": 62,
+        "daysLeft": 61,
         "cartons": 149
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-08-25",
-        "daysLeft": 36,
+        "daysLeft": 35,
         "cartons": 10
       },
       {
         "date": "2026-09-20",
-        "daysLeft": 62,
+        "daysLeft": 61,
         "cartons": 40
       }
     ],
@@ -10319,22 +9937,22 @@
     "openOrders": null
   },
   "413500": {
-    "stock": 585,
-    "daySales": 6.5,
+    "stock": 582,
+    "daySales": 6.3,
     "kratnost": 252,
     "palStock": 2.3,
-    "stockZafn": 88,
+    "stockZafn": 87,
     "palStockZafn": 0.3,
-    "daySalesZafn": 3.5,
-    "daysStock": 127,
-    "daysStockZafn": 35,
+    "daySalesZafn": 3.4,
+    "daysStock": 129,
+    "daysStockZafn": 36,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.135,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 7.8,
+    "daySalesAll": 7.7,
     "daysStockAll": 75,
     "nameEn": "פרוסות גבינה קשה למחצה HOLLAND שומן135 24.5% ג14)PRESIDENT)",
     "fam": "PRESIDENT גבינות",
@@ -10343,20 +9961,20 @@
     "pakuot": [
       {
         "date": "2026-09-18",
-        "daysLeft": 60,
-        "cartons": 159
+        "daysLeft": 59,
+        "cartons": 156
       },
       {
         "date": "2026-09-25",
-        "daysLeft": 67,
+        "daysLeft": 66,
         "cartons": 426
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-09-18",
-        "daysLeft": 60,
-        "cartons": 88
+        "daysLeft": 59,
+        "cartons": 87
       }
     ],
     "shelfLife": 7,
@@ -10365,15 +9983,15 @@
     "openOrders": null
   },
   "413501": {
-    "stock": 1169,
-    "daySales": 7.5,
+    "stock": 1165,
+    "daySales": 7.4,
     "kratnost": 252,
     "palStock": 4.6,
-    "stockZafn": 82,
+    "stockZafn": 79,
     "palStockZafn": 0.3,
-    "daySalesZafn": 3.5,
-    "daysStock": 217,
-    "daysStockZafn": 33,
+    "daySalesZafn": 3.4,
+    "daysStock": 220,
+    "daysStockZafn": 32,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -10389,25 +10007,20 @@
     "pakuot": [
       {
         "date": "2026-09-03",
-        "daysLeft": 45,
-        "cartons": 124
+        "daysLeft": 44,
+        "cartons": 120
       },
       {
         "date": "2026-09-24",
-        "daysLeft": 66,
+        "daysLeft": 65,
         "cartons": 1045
       }
     ],
     "pakuotZafn": [
       {
-        "date": "2026-08-28",
-        "daysLeft": 39,
-        "cartons": 2
-      },
-      {
         "date": "2026-09-03",
-        "daysLeft": 45,
-        "cartons": 80
+        "daysLeft": 44,
+        "cartons": 79
       }
     ],
     "shelfLife": 7,
@@ -10416,14 +10029,14 @@
     "openOrders": null
   },
   "413502": {
-    "stock": 983,
-    "daySales": 4.1,
+    "stock": 981,
+    "daySales": 4,
     "kratnost": 252,
     "palStock": 3.9,
     "stockZafn": 102,
     "palStockZafn": 0.4,
     "daySalesZafn": 3,
-    "daysStock": 333,
+    "daysStock": 339,
     "daysStockZafn": 47,
     "stockTrnz": 0,
     "palStockTrnz": null,
@@ -10431,8 +10044,8 @@
     "weight": 0.135,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 6,
-    "daysStockAll": 163,
+    "daySalesAll": 5.9,
+    "daysStockAll": 166,
     "nameEn": "פרוסות גבינה קשה למחצה TLZITER שומן135 28.5% ג14)PRESIDENT)",
     "fam": "PRESIDENT גבינות",
     "iksGroup": null,
@@ -10440,29 +10053,29 @@
     "pakuot": [
       {
         "date": "2026-08-27",
-        "daysLeft": 38,
-        "cartons": 9
+        "daysLeft": 37,
+        "cartons": 7
       },
       {
         "date": "2026-09-03",
-        "daysLeft": 45,
+        "daysLeft": 44,
         "cartons": 148
       },
       {
         "date": "2026-09-20",
-        "daysLeft": 62,
+        "daysLeft": 61,
         "cartons": 826
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-09-03",
-        "daysLeft": 45,
+        "daysLeft": 44,
         "cartons": 49
       },
       {
         "date": "2026-09-04",
-        "daysLeft": 46,
+        "daysLeft": 45,
         "cartons": 53
       }
     ],
@@ -10472,12 +10085,12 @@
     "openOrders": null
   },
   "420001": {
-    "stock": 250,
-    "daySales": 7.5,
+    "stock": 194,
+    "daySales": 7.3,
     "kratnost": 144,
-    "palStock": 1.7,
-    "stockZafn": 83,
-    "palStockZafn": 0.6,
+    "palStock": 1.3,
+    "stockZafn": 134,
+    "palStockZafn": 0.9,
     "daySalesZafn": 4.3,
     "daysStock": null,
     "daysStockZafn": null,
@@ -10487,8 +10100,8 @@
     "weight": 1,
     "packFactor": 4,
     "weightCarton": 4,
-    "daySalesAll": 11.5,
-    "daysStockAll": 22,
+    "daySalesAll": 11.3,
+    "daysStockAll": 17,
     "nameEn": "עוגת NAPOLEON שכבות בצק עלים וקרם וניל1 ק\"ג",
     "fam": "עוגות מוזיקה",
     "iksGroup": null,
@@ -10496,29 +10109,29 @@
     "pakuot": [
       {
         "date": "2028-04-29",
-        "daysLeft": 649,
-        "cartons": 250
+        "daysLeft": 648,
+        "cartons": 194
       }
     ],
     "pakuotZafn": [
       {
         "date": "2028-04-29",
-        "daysLeft": 649,
-        "cartons": 83
+        "daysLeft": 648,
+        "cartons": 134
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 981,
+    "spo": 976,
     "openOrders": 648
   },
   "420002": {
-    "stock": 484,
+    "stock": 372,
     "daySales": 4.3,
     "kratnost": 144,
-    "palStock": 3.4,
-    "stockZafn": 64,
-    "palStockZafn": 0.4,
+    "palStock": 2.6,
+    "stockZafn": 170,
+    "palStockZafn": 1.2,
     "daySalesZafn": 2.4,
     "daysStock": null,
     "daysStockZafn": null,
@@ -10529,7 +10142,7 @@
     "packFactor": 4,
     "weightCarton": 4,
     "daySalesAll": 5.8,
-    "daysStockAll": 84,
+    "daysStockAll": 65,
     "nameEn": "עוגת MEDOVIK שכבות בצק דבש וקרם וניל1 ק\"ג",
     "fam": "עוגות מוזיקה",
     "iksGroup": null,
@@ -10537,28 +10150,28 @@
     "pakuot": [
       {
         "date": "2028-04-28",
-        "daysLeft": 648,
-        "cartons": 484
+        "daysLeft": 647,
+        "cartons": 372
       }
     ],
     "pakuotZafn": [
       {
         "date": "2028-04-28",
-        "daysLeft": 648,
-        "cartons": 64
+        "daysLeft": 647,
+        "cartons": 170
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 836,
+    "spo": 831,
     "openOrders": 288
   },
   "420003": {
-    "stock": 36,
+    "stock": 34,
     "daySales": 1.4,
     "kratnost": 36,
-    "palStock": 1,
-    "stockZafn": 16,
+    "palStock": 0.9,
+    "stockZafn": 15,
     "palStockZafn": 0.4,
     "daySalesZafn": 1.3,
     "daysStock": null,
@@ -10570,7 +10183,7 @@
     "packFactor": 6,
     "weightCarton": 5.1,
     "daySalesAll": 2.1,
-    "daysStockAll": 17,
+    "daysStockAll": 16,
     "nameEn": "עוגת פראג0.85 ק\"ג",
     "fam": "עוגות רושן",
     "iksGroup": null,
@@ -10578,20 +10191,20 @@
     "pakuot": [
       {
         "date": "2027-01-27",
-        "daysLeft": 191,
-        "cartons": 36
+        "daysLeft": 190,
+        "cartons": 34
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-01-27",
-        "daysLeft": 191,
-        "cartons": 16
+        "daysLeft": 190,
+        "cartons": 15
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 52,
+    "spo": 50,
     "openOrders": null
   },
   "420004": {
@@ -10624,13 +10237,13 @@
     "openOrders": null
   },
   "420005": {
-    "stock": 1781,
+    "stock": 1776,
     "daySales": 6.6,
     "kratnost": 60,
-    "palStock": 29.7,
-    "stockZafn": 104,
-    "palStockZafn": 1.7,
-    "daySalesZafn": 6.2,
+    "palStock": 29.6,
+    "stockZafn": 94,
+    "palStockZafn": 1.6,
+    "daySalesZafn": 6.3,
     "daysStock": null,
     "daysStockZafn": null,
     "stockTrnz": null,
@@ -10639,8 +10252,8 @@
     "weight": 0.45,
     "packFactor": 6,
     "weightCarton": 2.7,
-    "daySalesAll": 12.2,
-    "daysStockAll": 146,
+    "daySalesAll": 12.3,
+    "daysStockAll": 144,
     "nameEn": "עוגת קייבסקי0.45 ק\"ג",
     "fam": "עוגות רושן",
     "iksGroup": null,
@@ -10648,34 +10261,34 @@
     "pakuot": [
       {
         "date": "2026-12-02",
-        "daysLeft": 135,
-        "cartons": 691
+        "daysLeft": 134,
+        "cartons": 686
       },
       {
         "date": "2026-12-11",
-        "daysLeft": 144,
+        "daysLeft": 143,
         "cartons": 1090
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-12-02",
-        "daysLeft": 135,
-        "cartons": 104
+        "daysLeft": 134,
+        "cartons": 94
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 1885,
+    "spo": 1869,
     "openOrders": null
   },
   "420006": {
     "stock": 447,
-    "daySales": 1.8,
+    "daySales": 1.7,
     "kratnost": 60,
     "palStock": 7.5,
-    "stockZafn": 40,
-    "palStockZafn": 0.7,
+    "stockZafn": 38,
+    "palStockZafn": 0.6,
     "daySalesZafn": 1.5,
     "daysStock": null,
     "daysStockZafn": null,
@@ -10686,7 +10299,7 @@
     "packFactor": 6,
     "weightCarton": 2.7,
     "daySalesAll": 2.3,
-    "daysStockAll": 198,
+    "daysStockAll": 197,
     "nameEn": "עוגת גריליאז0.45 'ק\"ג",
     "fam": "עוגות רושן",
     "iksGroup": null,
@@ -10694,25 +10307,25 @@
     "pakuot": [
       {
         "date": "2026-12-11",
-        "daysLeft": 144,
+        "daysLeft": 143,
         "cartons": 127
       },
       {
         "date": "2027-01-27",
-        "daysLeft": 191,
+        "daysLeft": 190,
         "cartons": 320
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-12-11",
-        "daysLeft": 144,
-        "cartons": 40
+        "daysLeft": 143,
+        "cartons": 38
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 487,
+    "spo": 485,
     "openOrders": null
   },
   "420007": {
@@ -10740,29 +10353,29 @@
     "pakuot": [
       {
         "date": "2026-12-02",
-        "daysLeft": 135,
+        "daysLeft": 134,
         "cartons": 69
       },
       {
         "date": "2026-12-11",
-        "daysLeft": 144,
+        "daysLeft": 143,
         "cartons": 140
       },
       {
         "date": "2027-01-28",
-        "daysLeft": 192,
+        "daysLeft": 191,
         "cartons": 200
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-12-02",
-        "daysLeft": 135,
+        "daysLeft": 134,
         "cartons": 27
       },
       {
         "date": "2026-12-11",
-        "daysLeft": 144,
+        "daysLeft": 143,
         "cartons": 60
       }
     ],
@@ -10796,24 +10409,24 @@
     "pakuot": [
       {
         "date": "2026-12-11",
-        "daysLeft": 144,
+        "daysLeft": 143,
         "cartons": 89
       },
       {
         "date": "2027-01-28",
-        "daysLeft": 192,
+        "daysLeft": 191,
         "cartons": 260
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-12-11",
-        "daysLeft": 144,
+        "daysLeft": 143,
         "cartons": 24
       },
       {
         "date": "2027-01-28",
-        "daysLeft": 192,
+        "daysLeft": 191,
         "cartons": 60
       }
     ],
