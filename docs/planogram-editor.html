@@ -3162,7 +3162,7 @@ function buildOrderPage() {
     if (seen.has(mk)) continue;
     seen.add(mk);
     const d        = productData[mk] || {};
-    const name     = p.name || d.nameEn || p.fam || mk;
+    const name     = d.nameEn || p.name || p.fam || mk;
     const fam      = d.fam  || p.fam   || '';
     const iksGroup = d.iksGroup || null;   // IKRA / SAL / KAPUS from KARTIS PARIT
     const openOrders = +(d.openOrders || 0);
@@ -4173,7 +4173,7 @@ function buildExpiryPage() {
   if (cards.length > 0) {
     const secLabel = SEC_NAMES[sec] || sec;
     const _cardHtmls = cards.map(({ pick, p, mk, d, salesMain, salesZafn, shelfLife, batches, sakanaMain, sakanaZafn }) => {
-    const name = p.name || d.nameEn || d.desc || p.fam || mk;
+    const name = d.nameEn || p.name || d.desc || p.fam || mk;
     // Product-level STOP SALE: ALL batches with stock are fully blocked (per PBI formula /1.4)
     const isBatchStop = (b, sales) => {
       if (!(b.cartons > 0)) return true; // empty = not counted
