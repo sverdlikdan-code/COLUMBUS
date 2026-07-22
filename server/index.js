@@ -786,6 +786,15 @@ function saveGeocodeCache() {
 
 // City bounding-box cache: city name → { minLat, maxLat, minLng, maxLng } | null
 const cityBBoxCache = new Map();
+// Pre-load from persistent file built by build-formula-road.js (survives server restarts)
+try {
+  const _bboxFile = path.join(__dirname, '..', 'docs', 'city-bbox-cache.json');
+  if (fs.existsSync(_bboxFile)) {
+    const _bboxData = JSON.parse(fs.readFileSync(_bboxFile, 'utf8'));
+    for (const [city, bbox] of Object.entries(_bboxData)) { cityBBoxCache.set(city, bbox); }
+    console.log(`[bbox] Loaded ${cityBBoxCache.size} cities from city-bbox-cache.json`);
+  }
+} catch (_) {}
 
 async function getCityBBox(city) {
   if (!city) return null;
@@ -1329,26 +1338,41 @@ app.get('/territory-clients', requireAuth, dataRateLimit, async (req, res) => {
       ...extra,
     });
   };
+  // Apply GPS corrections (same as /customers)
+  const corrPath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
+  const corrections = fs.existsSync(corrPath) ? JSON.parse(fs.readFileSync(corrPath, 'utf8')) : {};
+
+  const clientsForBatch = [];
   for (const [agentCode, clients] of pbiCache.byAgent) {
     for (const c of clients) {
       if (!c.city || !citySet.has(c.city)) continue;
-      pushClient(c, agentCode);
-      formulaCustIds.add(c.custId); // track all formula custIds for ICE dedup
+      const corr = corrections[String(c.custId)];
+      const enriched = corr
+        ? { ...c, lat: corr.lat, lng: corr.lng, gpsSource: 'correction' }
+        : { ...c, gpsSource: c.lat && c.lng ? 'pbi' : undefined };
+      clientsForBatch.push({ _agentCode: agentCode, _extra: {}, client: enriched });
+      formulaCustIds.add(c.custId);
     }
   }
-  // Include ICE-only clients — same logic as /customers:
-  // only where secondary agent (סוכן נוסף) matches a Formula agent AND custId not already in formula list
   if (pbiCache.iceByAgent) {
     for (const [agentCode, clients] of pbiCache.iceByAgent) {
-      if (!pbiCache.byAgent.has(agentCode)) continue; // skip ICE agents with no formula match
+      if (!pbiCache.byAgent.has(agentCode)) continue;
       const formulaClients = pbiCache.byAgent.get(agentCode);
       const agentName = formulaClients?.[0]?.agentName || agentCode;
       for (const c of clients) {
         if (!c.city || !citySet.has(c.city)) continue;
-        if (formulaCustIds.has(c.custId)) continue; // already in formula list, skip
-        pushClient(c, agentCode, { hevra: 'ICE', iceOnly: true, agentName });
+        if (formulaCustIds.has(c.custId)) continue;
+        clientsForBatch.push({ _agentCode: agentCode, _extra: { hevra: 'ICE', iceOnly: true, agentName }, client: { ...c } });
       }
     }
+  }
+
+  // geocodeBatch: bbox check + re-geocode for clients outside city bbox (same as /customers)
+  const rawClients = clientsForBatch.map(x => x.client);
+  await Promise.race([geocodeBatch(rawClients), new Promise(r => setTimeout(r, 7000))]);
+
+  for (const x of clientsForBatch) {
+    pushClient(x.client, x._agentCode, x._extra);
   }
   res.json(results);
 });
