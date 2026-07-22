@@ -26,6 +26,7 @@ SKILLS/<category>/<skill-name>/
 2. Навык не пишет код сам — описывает как Claude должен действовать
 3. Проверить существующий навык перед созданием нового (нет дублей)
 4. Формат: frontmatter + ## Trigger + ## Steps + ## Examples
+5. **Обязательный security-review перед финализацией любого нового или существенно изменённого skill** — вызвать `security-agent` (см. PRD/security-agent-prd.md) на сам SKILL.md и все bundled-скрипты. Вердикт APPROVED / APPROVED WITH FIXES / REJECTED. Пока ревью не APPROVED — skill не считается готовым к использованию. Правило введено пользователем 2026-07-21/22 (первый прецедент — excel-smart-reports skill).
 
 ## Weekly Routine
 - Каждый понедельник 08:00 Israel: автоматический scan рынка инструментов
