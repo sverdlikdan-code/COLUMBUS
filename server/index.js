@@ -2609,7 +2609,7 @@ app.get('/pbi/dagim-all-monthly', dataRateLimit, async (req, res) => {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     conds.push(`(DIMCALENDAR[Year]=${d.getFullYear()}&&DIMCALENDAR[Month]=${d.getMonth()+1})`);
   }
-  const dateFilter = `FILTER(ALL(DIMCALENDAR[Date]),${conds.join('||')})`;
+  const dateFilter = `FILTER(ALL(DIMCALENDAR),${conds.join('||')})`;
 
   try {
     const rows = await executeDax(`
