@@ -1434,9 +1434,13 @@ async function main() {
 
     // ── product-photos.json — makat → Priority photo URL ────────────────
     const photoUrls = await fetchPhotoUrls();
-    fs.writeFileSync(path.join(__dirname,'..','docs','product-photos.json'),
-      JSON.stringify(photoUrls, null, 2), 'utf8');
-    console.log(`product-photos.json: ${Object.keys(photoUrls).length} URLs`);
+    if (Object.keys(photoUrls).length > 0) {
+      fs.writeFileSync(path.join(__dirname,'..','docs','product-photos.json'),
+        JSON.stringify(photoUrls, null, 2), 'utf8');
+      console.log(`product-photos.json: ${Object.keys(photoUrls).length} URLs`);
+    } else {
+      console.warn('fetchPhotoUrls returned 0 — keeping existing product-photos.json');
+    }
 
     // ── kapua-base.json — all קפוא picks + layout for the HTML editor ────
     const EDITOR_COLS          = 19;
