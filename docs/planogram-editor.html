@@ -1235,7 +1235,7 @@ window.printPhotoA3 = function() {
   ];
   function _nameEmoji(name) {
     const found = _emojiMap.find(m => m.re.test(name));
-    return found ? found.e + ' ' + name : name;
+    return { emoji: found ? found.e : '', clean: name };
   }
 
   const items = picks.map(pick => {
@@ -1245,10 +1245,10 @@ window.printPhotoA3 = function() {
     const d  = productData[mk] || {};
     // nameEn from product-data.json is always in logical order; p.name may be visual/reversed
     const rawName = d.nameEn || p.name || d.desc || p.fam || mk;
-    const name = _nameEmoji(rawName || mk);
+    const { emoji, clean } = _nameEmoji(rawName || mk);
     const rawUrl = getPhotoUrl(mk);
     const photoUrl = rawUrl && rawUrl.startsWith('http') ? rawUrl : null;
-    return { mk, name, photoUrl };
+    return { mk, name: clean, emoji, photoUrl };
   }).filter(Boolean);
   const win = window.open('', '_blank');
   if (!win) { alert('אפשר חלונות קופצים עבור אתר זה'); return; }
@@ -1258,10 +1258,13 @@ window.printPhotoA3 = function() {
       : '';
     const noImg = !item.photoUrl ? `<div class="no-img">📷</div>` : `<div class="no-img" style="display:none">📷</div>`;
     const safeName = String(item.name).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const nameBlock = item.emoji
+      ? `<div class="name-row"><div class="name" dir="rtl">${safeName}</div><div class="big-emoji">${item.emoji}</div></div>`
+      : `<div class="name-row"><div class="name" dir="rtl">${safeName}</div></div>`;
     return `<div class="page">
       <div class="makat">${item.mk}</div>
       <div class="img-wrap">${img}${noImg}</div>
-      <div class="name" dir="rtl">${safeName}</div>
+      ${nameBlock}
     </div>`;
   }).join('');
   win.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"><title>פוטו A3 — ${sec}</title><style>
@@ -1272,7 +1275,9 @@ window.printPhotoA3 = function() {
     .img-wrap{flex:1;display:flex;align-items:center;justify-content:center;max-height:calc(100vh - 200px);width:100%}
     .img-wrap img{max-width:100%;max-height:100%;object-fit:contain}
     .no-img{width:180px;height:180px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:64px;border-radius:12px}
-    .name{font-size:44px;font-weight:bold;text-align:center;color:#111;max-width:100%;unicode-bidi:plaintext;line-height:1.3}
+    .name-row{display:flex;flex-direction:row;align-items:center;justify-content:center;width:100%;gap:24px}
+    .big-emoji{font-size:200px;line-height:1;flex-shrink:0}
+    .name{font-size:44px;font-weight:bold;text-align:center;color:#111;unicode-bidi:plaintext;line-height:1.3}
   </style></head><body>${pages}</body></html>`);
   win.document.close();
   win.focus();
