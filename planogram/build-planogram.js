@@ -1297,10 +1297,10 @@ async function main() {
     const dagyaveshBase  = JSON.parse(fs.readFileSync(
       path.join(__dirname, '..', 'docs', 'dagim-yavesh-base.json'), 'utf8'));
     const dagyaveshPicks = dagyaveshBase.picks || dagyaveshBase;
+    const dagyaveshMakatim = [...new Set(
+      Object.values(dagyaveshPicks).filter(Boolean).map(v => String(v.makat)).filter(Boolean)
+    )];
     {
-      const dagyaveshMakatim = [...new Set(
-        Object.values(dagyaveshPicks).filter(Boolean).map(v => String(v.makat)).filter(Boolean)
-      )];
       if (dagyaveshMakatim.length) {
         const [dyStockMap, dyShelfLifeMap] = await Promise.all([
           fetchStockMain(dagyaveshMakatim),
