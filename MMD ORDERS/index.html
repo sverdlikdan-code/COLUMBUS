@@ -1223,17 +1223,10 @@
     document.getElementById('ld').innerHTML = '<div class="spin"></div><div>טוען נתוני מלאי...</div>';
     st('טוען...');
     try {
-      const [r, rp] = await Promise.all([
-        fetch('./mmd-orders.json?_=' + Date.now()),
-        fetch('./prophet.json?_='    + Date.now()).catch(() => null)
-      ]);
+      const r = await fetch('./mmd-orders.json?_=' + Date.now());
       if (!r.ok) throw new Error('HTTP ' + r.status);
       const j = await r.json();
       if (!j.ok) throw new Error(j.error || 'API error');
-      if (rp && rp.ok) {
-        const jp = await rp.json();
-        window.prophetMap = jp.skus || {};
-      }
       baseAll = j.data;
       all = baseAll;
       buildPeriodBar();
@@ -2416,91 +2409,52 @@ window.openInfoPanel = function(mk, taur) {
     }
   }
 
-  // ── n_points note ────────────────────────────────────────────────
-  const p = window.prophetMap && window.prophetMap[mk];
-  const np = p ? (p.n_points ?? null) : null;
-  document.getElementById('pp-np').textContent = np != null ? np + ' שבועות היסטוריה' : '';
-
-  // ── Sparkline chart ─────────────────────────────────────────────
+  // ── Sparkline — DAX only: prev6 vs last6 ────────────────────────
   const sparkEl = document.getElementById('pp-spark');
-  const series  = p ? p.series : null;
+  const axDyn   = document.getElementById('pp-spark-axis-dyn');
   sparkEl.innerHTML = '';
+  if (axDyn) axDyn.innerHTML = '';
+  document.getElementById('pp-np').textContent = '';
 
-  if (series && Array.isArray(series.actual) && series.actual.length > 0) {
-    (function(){
-      var now = new Date(); now.setHours(0,0,0,0);
-      var dow = now.getDay();
-      now.setDate(now.getDate() - dow);
-      window._sparkCutoff = now.toISOString().slice(0,10);
-    })();
-    const actual = series.actual
-      .filter(function(d){ return d.w < window._sparkCutoff; })
-      .sort(function(a,b){ return a.w < b.w ? -1 : 1; });
+  const prv = r ? (r.mkr_prev6 ?? null) : null;
+  const cur = r ? (r.mkr_shvua ?? null) : null;
+  const fmtV = function(v){ return v != null ? (Number.isInteger(v) ? String(v) : v.toFixed(1)) : '—'; };
+  const maxV = Math.max(prv || 0, cur || 0, 0.1);
+  const BAR_MAX_H = 130;
 
-    const show6prev = actual.slice(-12, -6);
-    const show6last = actual.slice(-6);
-    const show12 = show6prev.concat(show6last);
+  [
+    { v: prv, lbl: '6 שב׳ קודמות', prev: true  },
+    { v: cur, lbl: '6 שב׳ אחרונות', prev: false }
+  ].forEach(function(it) {
+    var col = document.createElement('div');
+    col.className = 'pp-spark-col';
+    col.style.cssText = 'flex:0 0 44%;max-width:44%';
 
-    function isoWeekNum(ds) {
-      var d = new Date(ds + 'T12:00:00');
-      var firstSun = new Date(d.getFullYear(), 0, 1);
-      var fd = firstSun.getDay();
-      if (fd > 0) firstSun.setDate(firstSun.getDate() - fd);
-      return Math.floor((d - firstSun) / (7 * 86400000)) + 1;
-    }
+    var valEl = document.createElement('div');
+    valEl.className = 'pp-spark-val';
+    valEl.style.cssText = 'font-size:1.15rem;font-weight:700;min-height:1.4rem;color:' +
+      (it.prev ? '#667788' : '#c9a227');
+    valEl.textContent = fmtV(it.v);
 
-    const maxY12 = Math.max.apply(null, show12.map(function(d){return d.y;}), [1]);
+    var bar = document.createElement('div');
+    bar.className = 'pp-spark-bar' + (it.v === 0 ? ' zero' : '');
+    var h = it.v != null && it.v > 0 ? Math.max(4, Math.round(it.v / maxV * BAR_MAX_H)) : 4;
+    bar.style.height = h + 'px';
+    if (it.prev) bar.style.opacity = '0.38';
+    bar.title = it.lbl + ': ' + fmtV(it.v) + ' קרט/שב׳';
 
-    show12.forEach(function(d, i) {
-      if (i === 6) {
-        var div = document.createElement('div');
-        div.className = 'pp-spark-div';
-        sparkEl.appendChild(div);
-      }
-      const isPrev = i < 6;
-      const col = document.createElement('div');
-      col.className = 'pp-spark-col';
-      const lbl = document.createElement('div');
-      lbl.className = 'pp-spark-val';
-      if (isPrev) lbl.style.opacity = '0.55';
-      lbl.textContent = d.y > 0 ? String(Math.round(d.y)) : '';
-      const bar = document.createElement('div');
-      if (d.y === 0) {
-        bar.className = 'pp-spark-bar zero';
-        bar.style.height = '6px';
-      } else {
-        bar.className = 'pp-spark-bar';
-        if (isPrev) bar.style.opacity = '0.45';
-        bar.style.height = Math.max(4, Math.round(d.y / maxY12 * 100)) + '%';
-      }
-      bar.title = (d.y === 0 ? '0' : d.y) + ' קרט | שב' + isoWeekNum(d.w) + ' ' + d.w.slice(5,10) + (isPrev ? ' (קודם)' : '');
-      col.appendChild(lbl);
-      col.appendChild(bar);
-      sparkEl.appendChild(col);
-    });
+    var lblEl = document.createElement('div');
+    lblEl.style.cssText = 'font-size:.6rem;margin-top:5px;white-space:nowrap;text-align:center;color:' +
+      (it.prev ? '#556677' : '#8899cc');
+    lblEl.textContent = it.lbl;
 
-    (function() {
-      var ax = document.getElementById('pp-spark-axis-dyn');
-      if (!ax) return;
-      ax.innerHTML = '';
-      show12.forEach(function(d, i) {
-        if (i === 6) { var dv = document.createElement('div'); dv.className = 'ax-div'; ax.appendChild(dv); }
-        var sp = document.createElement('div');
-        sp.className = 'ax-lbl';
-        sp.style.opacity = i < 6 ? '0.5' : '1';
-        sp.textContent = 'שב' + isoWeekNum(d.w);
-        ax.appendChild(sp);
-      });
-    })();
+    col.appendChild(valEl);
+    col.appendChild(bar);
+    col.appendChild(lblEl);
+    sparkEl.appendChild(col);
+  });
 
-    document.getElementById('pp-spark-lbl').textContent =
-      show6prev.length + ' שב׳ קודמות + ' + show6last.length + ' שב׳ אחרונות';
-  } else {
-    sparkEl.innerHTML = '<div style="color:#8899aa;font-size:.75rem;padding:20px 0;text-align:center">אין נתוני מכירות שבועיים</div>';
-    document.getElementById('pp-spark-lbl').textContent = '';
-    const axDyn2 = document.getElementById('pp-spark-axis-dyn');
-    if (axDyn2) axDyn2.innerHTML = '';
-  }
+  document.getElementById('pp-spark-lbl').textContent = 'מכר ממוצע שבועי קרטון · DAX';
 
   document.getElementById('prophet-overlay').classList.add('open');
   document.getElementById('prophet-panel').classList.add('open');
