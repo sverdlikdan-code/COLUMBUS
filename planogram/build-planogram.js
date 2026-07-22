@@ -1336,7 +1336,7 @@ async function main() {
 
     // ── דג יבש — merge into product-data.json (cartons only, no pallets) ─────
     {
-      const { dagimYaveshData } = await fetchDagimYaveshFromBI();
+      const { dagimYaveshData } = await fetchDagimYaveshFromBI(dagyaveshMakatim);
       let yaveshAdded = 0;
       for (const [mk, d] of Object.entries(dagimYaveshData)) {
         if (d.stock <= 0 && !d.daySales365) continue; // keep if stock OR sold in last 365d

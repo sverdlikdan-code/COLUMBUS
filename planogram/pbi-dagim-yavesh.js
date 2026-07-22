@@ -49,17 +49,17 @@ async function dax(token, query) {
 async function fetchDagimYaveshFromBI(knownMakatim = []) {
   const t = await getToken();
 
-  // famMakatim: section-filter approach — auto-discovers new products when added to KARTIS PARIT.
-  // Use TREATAS (not CONTAINSROW) in all dependent queries — CONTAINSROW with SELECTCOLUMNS
-  // table silently returns empty in Fabric CI (type coercion issue); TREATAS handles it correctly.
-  const famMakatim = `
-    SELECTCOLUMNS(
-      FILTER('KARTIS PARIT',
-        'KARTIS PARIT'[סטטוס] = "פעיל" &&
-        'KARTIS PARIT'[שם מחסן אשדוד] = "דג יבש 🐠"
-      ),
-      "mk", 'KARTIS PARIT'[מק"ט]
-    )`;
+  // famMakatim: use explicit MK list from dagim-yavesh-base.json when provided.
+  // The KARTIS PARIT שם מחסן אשדוד filter was unreliable in CI (column empty → 0 rows → stock=0).
+  const famMakatim = knownMakatim.length
+    ? `{${knownMakatim.map(mk => `"${mk}"`).join(',')}}`
+    : `SELECTCOLUMNS(
+        FILTER('KARTIS PARIT',
+          'KARTIS PARIT'[סטטוס] = "פעיל" &&
+          'KARTIS PARIT'[שם מחסן אשדוד] = "דג יבש 🐠"
+        ),
+        "mk", 'KARTIS PARIT'[מק"ט]
+      )`;
 
   const [stockRows, salesRows, descRows, mlayDescRows, pakuaRows, salesAllRows, pakuaAllRows, nameEnRows,
          stockZafnRows, salesZafnRows, pakuaZafnRows, sales365Rows] = await Promise.all([
