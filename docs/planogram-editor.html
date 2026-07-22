@@ -2516,8 +2516,8 @@ function updateTable() {
       <td style="padding:2px 10px; text-align:center; font-weight:bold; color:#1565C0;">${(_SEC_BASE[sec]||0) + Number(pick)}</td>
       <td style="padding:2px 10px; text-align:center; color:#aaa; font-size:11px;">${pick}</td>
       <td style="padding:2px 10px;">${p.makat}</td>
-      <td style="padding:2px 10px; font-weight:bold;">${p.name || ''}</td>
-      <td style="padding:2px 10px; font-size:10px; color:#555;">${_cleanStr(p.fam) || ''}</td>
+      <td style="padding:2px 10px; font-weight:bold;" dir="rtl">${esc(productData[String(p.makat)]?.nameEn || p.name || '')}</td>
+      <td style="padding:2px 10px; font-size:10px; color:#555;" dir="rtl">${_cleanStr(p.fam) || ''}</td>
       <td style="padding:2px 10px; text-align:center; font-weight:bold; color:#3949ab; background:${p.haluka != null ? HALUKA_COLORS[(_tblHalukaIdx < 0 ? 0 : _tblHalukaIdx)] : 'transparent'};">${p.haluka ?? '—'}</td>
     </tr>`;
   });
