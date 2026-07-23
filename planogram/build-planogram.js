@@ -1339,11 +1339,10 @@ async function main() {
     // If product-data.json already has yavesh entries with pakuot (= first CI run already fetched fresh data),
     // reuse that data instead of hitting PBI again (second CI run has rate-limit risk from prior queries).
     {
-      const yaveshAlreadyFresh = Object.values(prevYaveshData).some(v => v.pakuot && v.pakuot.length > 0);
       let yaveshAdded = 0;
-      if (yaveshAlreadyFresh) {
+      if (process.env.SKIP_YAVESH_FETCH === '1') {
         for (const [mk, v] of Object.entries(prevYaveshData)) { prodData[mk] = v; yaveshAdded++; }
-        console.log(`דג יבש: reused ${yaveshAdded} fresh entries from product-data.json (skip re-fetch)`);
+        console.log(`דג יבש: SKIP_YAVESH_FETCH — reused ${yaveshAdded} entries from product-data.json`);
       } else {
         const { dagimYaveshData } = await fetchDagimYaveshFromBI(dagyaveshMakatim);
         for (const [mk, d] of Object.entries(dagimYaveshData)) {
