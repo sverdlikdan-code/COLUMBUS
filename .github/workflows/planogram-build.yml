@@ -70,7 +70,7 @@ jobs:
         continue-on-error: true
 
       - name: Run build-planogram (final XLSX with updated sections)
-        run: SKIP_PBI_REFRESH=1 node planogram/build-planogram.js
+        run: SKIP_PBI_REFRESH=1 SKIP_YAVESH_FETCH=1 node planogram/build-planogram.js
         continue-on-error: true
 
       - name: Run workflow-doctor
