@@ -1,6 +1,7 @@
 /**
  * Converts geocode-compare Excel → docs/google-gps.json
- * Cascade: Google (bbox validated) → Overpass (chains, bbox) → rejected
+ * Priority: PBI (when valid + Google disagrees >2000m) → Google (bbox validated) → Overpass → rejected
+ * Zero new Google requests — reads existing Excel columns only.
  */
 const path = require('path');
 const fs   = require('fs');
@@ -41,6 +42,11 @@ function inBBox(lat, lng, bbox) {
   return lat >= bbox.minLat-P && lat <= bbox.maxLat+P && lng >= bbox.minLng-P && lng <= bbox.maxLng+P;
 }
 function isValidIL(lat, lng) { return lat&&lng&&lat>29&&lat<34&&lng>33&&lng<36.5; }
+function haversine(lat1,lng1,lat2,lng2){
+  const R=6371000,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
+}
 
 // ── Overpass by name + city bbox ──────────────────────────────────────────────
 const ovCache = new Map();
@@ -71,12 +77,14 @@ async function main() {
 
   const hdr = {};
   ws.getRow(1).eachCell((cell, col) => { hdr[cell.text] = col; });
-  const idCol    = hdr['מס. לקוח'];
-  const nameCol  = hdr['שם לקוח'];
-  const cityCol  = hdr['עיר'];
-  const typeCol  = hdr['סוג'];
-  const gLatCol  = hdr['Google Lat'];
-  const gLngCol  = hdr['Google Lng'];
+  const idCol     = hdr['מס. לקוח'];
+  const nameCol   = hdr['שם לקוח'];
+  const cityCol   = hdr['עיר'];
+  const typeCol   = hdr['סוג'];
+  const pbiLatCol = hdr['PBI Lat'];
+  const pbiLngCol = hdr['PBI Lng'];
+  const gLatCol   = hdr['Google Lat'];
+  const gLngCol   = hdr['Google Lng'];
   if (!idCol||!gLatCol||!gLngCol) { console.error('Missing columns:', hdr); return; }
 
   const rows = [];
@@ -86,10 +94,12 @@ async function main() {
     const name     = String(row.getCell(nameCol).value||'').trim();
     const city     = String(row.getCell(cityCol).value||'').trim();
     const custType = String(row.getCell(typeCol).value||'').trim();
+    const pbiLat   = pbiLatCol ? parseFloat(row.getCell(pbiLatCol).value) : NaN;
+    const pbiLng   = pbiLngCol ? parseFloat(row.getCell(pbiLngCol).value) : NaN;
     const gLat     = parseFloat(row.getCell(gLatCol).value);
     const gLng     = parseFloat(row.getCell(gLngCol).value);
     if (!custId) return;
-    rows.push({ custId, name, city, custType, gLat, gLng, gOk: isValidIL(gLat, gLng) });
+    rows.push({ custId, name, city, custType, pbiLat, pbiLng, gLat, gLng, gOk: isValidIL(gLat, gLng) });
   });
   console.log(`Total rows: ${rows.length}`);
 
@@ -105,13 +115,25 @@ async function main() {
   console.log('\nBbox done.');
 
   const result = {};
-  let fromGoogle=0, fromOverpass=0, rejected=0;
+  let fromPbi=0, fromGoogle=0, fromOverpass=0, rejected=0;
 
-  // Step 1: Google + bbox
+  // Step 1: PBI wins when valid + Google is far (>2000m) — no API calls needed
+  // Otherwise: Google wins when within city bbox
   const needOverpass = [];
   for (const row of rows) {
+    const pbiOk = isValidIL(row.pbiLat, row.pbiLng);
+    const bbox  = bboxCache.get(row.city) ?? null;
+
+    if (pbiOk && row.gOk) {
+      const dist = haversine(row.pbiLat, row.pbiLng, row.gLat, row.gLng);
+      if (dist > 2000) {
+        // PBI and Google disagree significantly — trust PBI (Priority has branch-specific coords)
+        result[row.custId] = { aiLat:+row.pbiLat.toFixed(6), aiLng:+row.pbiLng.toFixed(6), src:'pbi' };
+        fromPbi++; continue;
+      }
+    }
+
     if (!row.gOk) { needOverpass.push(row); continue; }
-    const bbox = bboxCache.get(row.city) ?? null;
     if (inBBox(row.gLat, row.gLng, bbox)) {
       result[row.custId] = { aiLat:+row.gLat.toFixed(6), aiLng:+row.gLng.toFixed(6), src:'google' };
       fromGoogle++;
@@ -119,7 +141,7 @@ async function main() {
       needOverpass.push(row); // Google found but wrong city → try Overpass
     }
   }
-  console.log(`Google accepted: ${fromGoogle}, need Overpass: ${needOverpass.length}`);
+  console.log(`PBI preferred: ${fromPbi}, Google accepted: ${fromGoogle}, need Overpass: ${needOverpass.length}`);
 
   // Step 2: Overpass for remaining (chains + any with a name)
   const chainNames = [...new Set(needOverpass.filter(r=>r.name).map(r=>r.name))];
@@ -146,7 +168,7 @@ async function main() {
   }
 
   fs.writeFileSync(OUT, JSON.stringify(result, null, 2));
-  console.log(`\nDone. Google: ${fromGoogle}, Overpass: ${fromOverpass}, Rejected: ${rejected}`);
+  console.log(`\nDone. PBI: ${fromPbi}, Google: ${fromGoogle}, Overpass: ${fromOverpass}, Rejected: ${rejected}`);
   console.log(`Saved: ${OUT}`);
 }
 

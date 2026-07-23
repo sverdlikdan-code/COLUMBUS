@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "node .cursor/hooks/ceo-session-start.js"
+      }
+    ],
+    "sessionEnd": [
+      {
+        "command": "node .cursor/hooks/ceo-session-end.js"
+      }
+    ]
+  }
+}
