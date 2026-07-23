@@ -1167,13 +1167,14 @@ async function main() {
     // ── product-data.json ────────────────────────────────────────────────
     // Preserve stable fields from existing file — survives workflow errors/missing Fabric data
     const existingProdDataPath = path.join(__dirname,'..','docs','product-data.json');
-    let prevAshdod = {}, prevPackFactor = {}, prevWeightCarton = {};
+    let prevAshdod = {}, prevPackFactor = {}, prevWeightCarton = {}, prevYaveshData = {};
     try {
       const prev = JSON.parse(fs.readFileSync(existingProdDataPath, 'utf8'));
       for (const [mk, v] of Object.entries(prev)) {
         if (v && v.ashdodPalletCartons != null) prevAshdod[mk]     = v.ashdodPalletCartons;
         if (v && v.packFactor          != null) prevPackFactor[mk] = v.packFactor;
         if (v && v.weightCarton        != null) prevWeightCarton[mk] = v.weightCarton;
+        if (v && v.yavesh)                      prevYaveshData[mk]  = v;
       }
     } catch {}
 
@@ -1360,6 +1361,12 @@ async function main() {
         yaveshAdded++;
       }
       console.log(`דג יבש: ${yaveshAdded} מקטים → product-data.json`);
+
+      // Guard: if 0 yavesh products written but we had data before — restore (same pattern as photos guard)
+      if (yaveshAdded === 0 && dagyaveshMakatim.length > 0 && Object.keys(prevYaveshData).length > 0) {
+        for (const [mk, v] of Object.entries(prevYaveshData)) prodData[mk] = v;
+        console.warn(`דג יבש guard: API returned 0 — restored ${Object.keys(prevYaveshData).length} entries from previous product-data.json`);
+      }
 
       // Force yavesh:true on all base picks
       for (const [, item] of Object.entries(dagyaveshPicks)) {
