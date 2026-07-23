@@ -1260,12 +1260,12 @@ window.printPhotoA3 = function() {
       : '';
     const noImg = !item.photoUrl ? `<div class="no-img">📷</div>` : `<div class="no-img" style="display:none">📷</div>`;
     const safeName = String(item.name).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    const ean6Block = item.ean6 ? `<div class="ean6">${item.ean6}</div>` : '';
+    const ean6Block = item.ean6 ? `<div class="ean6"><span class="ean6-lbl">ברקוד</span> ${item.ean6}</div>` : '';
     return `<div class="page">
       <div class="makat">${item.mk}</div>
-      ${ean6Block}
       <div class="img-wrap">${img}${noImg}</div>
       <div class="name" dir="rtl">${safeName}</div>
+      ${ean6Block}
     </div>`;
   }).join('');
   win.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"><title>פוטו A3 — ${sec}</title><style>
@@ -1273,7 +1273,8 @@ window.printPhotoA3 = function() {
     .page{width:100%;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;page-break-after:always;padding:10mm 15mm;gap:8px}
     .page:last-child{page-break-after:auto}
     .makat{font-size:96px;font-weight:900;color:#111;letter-spacing:4px;line-height:1;text-align:center}
-    .ean6{font-size:72px;font-weight:700;color:#555;letter-spacing:8px;text-align:center;line-height:1.1}
+    .ean6{font-size:40px;font-weight:700;color:#555;letter-spacing:6px;text-align:center;line-height:1.2}
+    .ean6-lbl{font-size:22px;font-weight:400;color:#999;letter-spacing:1px;margin-left:8px}
     .img-wrap{flex:1;display:flex;align-items:center;justify-content:center;max-height:calc(100vh - 200px);width:100%}
     .img-wrap img{max-width:100%;max-height:100%;object-fit:contain}
     .no-img{width:180px;height:180px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:64px;border-radius:12px}
