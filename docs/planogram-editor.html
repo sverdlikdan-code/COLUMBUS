@@ -1248,7 +1248,9 @@ window.printPhotoA3 = function() {
     const name = _nameEmoji(rawName || mk);
     const rawUrl = getPhotoUrl(mk);
     const photoUrl = rawUrl && rawUrl.startsWith('http') ? rawUrl : null;
-    return { mk, name, photoUrl };
+    const eanFull = makatEan[mk] || '';
+    const ean6 = eanFull ? String(eanFull).replace(/\D/g,'').slice(-6) : '';
+    return { mk, name, photoUrl, ean6 };
   }).filter(Boolean);
   const win = window.open('', '_blank');
   if (!win) { alert('אפשר חלונות קופצים עבור אתר זה'); return; }
@@ -1258,8 +1260,10 @@ window.printPhotoA3 = function() {
       : '';
     const noImg = !item.photoUrl ? `<div class="no-img">📷</div>` : `<div class="no-img" style="display:none">📷</div>`;
     const safeName = String(item.name).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const ean6Block = item.ean6 ? `<div class="ean6">${item.ean6}</div>` : '';
     return `<div class="page">
       <div class="makat">${item.mk}</div>
+      ${ean6Block}
       <div class="img-wrap">${img}${noImg}</div>
       <div class="name" dir="rtl">${safeName}</div>
     </div>`;
@@ -1269,6 +1273,7 @@ window.printPhotoA3 = function() {
     .page{width:100%;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;page-break-after:always;padding:10mm 15mm;gap:8px}
     .page:last-child{page-break-after:auto}
     .makat{font-size:96px;font-weight:900;color:#111;letter-spacing:4px;line-height:1;text-align:center}
+    .ean6{font-size:72px;font-weight:700;color:#555;letter-spacing:8px;text-align:center;line-height:1.1}
     .img-wrap{flex:1;display:flex;align-items:center;justify-content:center;max-height:calc(100vh - 200px);width:100%}
     .img-wrap img{max-width:100%;max-height:100%;object-fit:contain}
     .no-img{width:180px;height:180px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:64px;border-radius:12px}
