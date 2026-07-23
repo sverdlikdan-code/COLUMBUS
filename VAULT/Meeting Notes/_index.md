@@ -74,4 +74,5 @@
 - [[session-2026-07-20-territory-filters]] — Сессия 2026-07-20: Territory agent/manager dropdowns, city в popup, auto-reload городов, /agent-cities endpoint, unified кнопки
 - [[session-2026-07-21-dagim-order-fixes]] — Сессия 2026-07-21: slider all-rows, history dropdown position:fixed, pakuot 1166/1167 restore, security audit (ts innerHTML fix)
 - [[session-2026-07-21-territory-visit-order]] — Сессия 2026-07-21: Visit order Google+גרסה, линии маршрута, ביקור שני, ICE badge iceOnly, редизайн day-cards, кнопка כל нейтральная
+- [[session-2026-07-22-gps-fix]] — Сессия 2026-07-22: PBI приоритет над Google (360 клиентов), מגה בעיר חיפה фикс, gps-corrections синхронизация VPS, bbox preload
 - [[session-2026-07-23-mahsan-print-yavesh]] — Сессия 2026-07-23: print cards EAN 6 цифр + emoji inline, yavesh תוקף fix (SKIP_YAVESH_FETCH CI флаг)
