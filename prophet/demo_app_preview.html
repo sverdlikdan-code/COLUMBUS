@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MMD ORDERS — Prophet Preview</title>
+<style>
+  :root {
+    --blue-dark: #0d47a1;
+    --blue:      #1565c0;
+    --sky:       #e8f0f8;
+    --sky-mid:   #d0dff0;
+    --card:      #ffffff;
+    --text:      #1a1a2e;
+    --radius:    10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(135deg,#0d47a1 0%,#1565c0 40%,#42a5f5 100%);
+    min-height: 100vh;
+    padding: 16px;
+    direction: rtl;
+  }
+
+  /* ── HEADER ── */
+  .app-header {
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(255,255,255,.12);
+    border-radius: var(--radius);
+    padding: 10px 16px;
+    margin-bottom: 12px;
+    color: #fff;
+  }
+  .app-title { font-size: 1.1rem; font-weight: 800; }
+  .app-sub   { font-size: .72rem; opacity: .7; margin-top: 1px; }
+  .badge-new {
+    background: #FFD54F; color: #1a1a2e;
+    font-size: .65rem; font-weight: 800;
+    padding: 2px 7px; border-radius: 20px;
+    margin-right: auto;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+
+  /* ── LEGEND ── */
+  .legend {
+    display: flex; gap: 16px; align-items: center;
+    background: rgba(255,255,255,.9);
+    border-radius: var(--radius);
+    padding: 8px 16px;
+    margin-bottom: 12px;
+    font-size: .75rem;
+    flex-wrap: wrap;
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── TABLE WRAPPER ── */
+  .tw { overflow-x: auto; border-radius: var(--radius); }
+  table {
+    width: 100%; border-collapse: collapse;
+    min-width: 1400px;
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: 0 1px 4px rgba(21,101,192,.08);
+  }
+  thead th {
+    background: var(--blue-dark);
+    color: #fff;
+    font-weight: 700;
+    font-size: .68rem;
+    padding: 8px 9px;
+    white-space: nowrap;
+    border-right: 1px solid rgba(255,255,255,.1);
+    position: sticky; top: 0; z-index: 10;
+    text-align: center;
+  }
+  thead th:first-child { text-align: right; }
+  td {
+    padding: 5px 9px;
+    border-bottom: 1px solid var(--sky-mid);
+    border-right: 1px solid #f0f4f8;
+    vertical-align: middle;
+    white-space: nowrap;
+    font-size: .8rem;
+  }
+  tr:hover td { background: var(--sky) !important; }
+
+  .c-num  { text-align: center; font-variant-numeric: tabular-nums; }
+  .c-mkt  { font-weight: 700; color: var(--blue-dark); font-size: .82rem; }
+  .c-taur { min-width: 170px; max-width: 250px; white-space: normal; line-height: 1.4; font-weight: 700; color: #1a1a2e; font-size: .75rem; }
+  .c-img  { width: 50px; text-align: center; padding: 3px 5px; }
+  .c-img img { width: 43px; height: 43px; object-fit: contain; border-radius: 3px; background: #e8edf2; }
+  .c-img .ni { width: 43px; height: 43px; background: var(--sky); border-radius: 3px; display: inline-block; }
+  .c-mmd  { font-weight: 900; font-size: 1.05rem; color: var(--blue-dark); text-align: center; }
+  .c-haml { text-align: center; font-weight: 800; }
+  .col-g  { background: #e8f0f8 !important; }
+  thead th.col-g { background: var(--blue-dark) !important; }
+  thead th.col-pair { border-bottom: 3px solid #FFD54F !important; }
+  .lo { color: #d32f2f; font-weight: 800; }
+
+  /* ── INPUT ── */
+  .ei {
+    background: #fff; border: 1.5px solid var(--sky-mid);
+    border-radius: 6px; color: var(--text);
+    padding: 3px 6px; font-size: .8rem;
+    width: 66px; text-align: center;
+    font-family: inherit;
+  }
+  .ei:focus { outline: none; border-color: var(--blue); background: var(--sky); }
+
+  /* ── FAM HEADER ROW ── */
+  tr.fam-hdr td {
+    background: var(--sky) !important;
+    color: var(--blue-dark); font-weight: 800;
+    font-size: .74rem; padding: 5px 12px;
+  }
+
+  /* ═══════════════════════════════════════════════════
+     PROPHET COLUMN — новые стили
+  ═══════════════════════════════════════════════════ */
+  thead th.col-prophet {
+    background: #4A148C !important;   /* фиолетовый — отличается от синего */
+    border-bottom: 3px solid #CE93D8 !important;
+  }
+  td.col-prophet {
+    background: #F3E5F5 !important;   /* очень светлый фиолетовый */
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  tr:hover td.col-prophet { background: #EDE7F6 !important; }
+
+  /* Prophet cell: число + дельта-бейдж */
+  .pr-wrap {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 2px;
+    line-height: 1.1;
+  }
+  .pr-val {
+    font-weight: 800;
+    font-size: .9rem;
+    color: #4A148C;
+  }
+  .pr-val.pr-null { color: #9e9e9e; font-weight: 400; font-size: .8rem; }
+
+  .pr-delta {
+    font-size: .62rem;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 10px;
+    display: inline-block;
+  }
+  .pr-delta.up   { background: #C8E6C9; color: #1B5E20; }
+  .pr-delta.down { background: #FFCDD2; color: #B71C1C; }
+  .pr-delta.same { background: #F5F5F5; color: #757575; }
+
+  /* tooltip при ховере на prophet cell */
+  td.col-prophet { position: relative; cursor: help; }
+  td.col-prophet .pr-tip {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 50%; transform: translateX(50%);
+    background: #1a1a2e;
+    color: #fff;
+    font-size: .68rem;
+    padding: 6px 10px;
+    border-radius: 7px;
+    white-space: nowrap;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0,0,0,.3);
+    line-height: 1.7;
+    text-align: right;
+    min-width: 160px;
+  }
+  td.col-prophet:hover .pr-tip { display: block; }
+  .pr-tip::before {
+    content: '';
+    position: absolute;
+    bottom: 100%; right: 50%; transform: translateX(50%);
+    border: 5px solid transparent;
+    border-bottom-color: #1a1a2e;
+  }
+
+  /* ── FOOTER ── */
+  tfoot td {
+    background: var(--sky) !important;
+    font-weight: 800;
+    font-size: .76rem;
+    padding: 7px 9px;
+    text-align: center;
+    border-top: 2px solid var(--sky-mid);
+  }
+  tfoot td.col-prophet { background: #EDE7F6 !important; color: #4A148C; }
+
+  /* ── NOTICE BANNER ── */
+  .notice {
+    background: #E8EAF6;
+    border-right: 4px solid #3F51B5;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    font-size: .76rem;
+    color: #1a237e;
+    display: flex; gap: 10px; align-items: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div>
+    <div class="app-title">📦 MMD ORDERS</div>
+    <div class="app-sub">נכון ל-30/06/2026 · עודכן 07:00</div>
+  </div>
+  <span class="badge-new">🔮 Prophet PILOT</span>
+</div>
+
+<div class="notice">
+  🔮 <span><strong>עמודת Prophet P4</strong> — תחזית צריכה שבועית ממוצעת ל-4 שבועות הבאים (מודל Prophet של Meta). מתעדכנת פעם בשבוע. <span style="opacity:.6">עמוד בבקשה — זו עדיין גרסת פיילוט.</span></span>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="dot" style="background:#4A148C"></div> עמודת Prophet (תחזית)</div>
+  <div class="legend-item"><div class="dot" style="background:#C8E6C9"></div> Prophet > המלצה נוכחית</div>
+  <div class="legend-item"><div class="dot" style="background:#FFCDD2"></div> Prophet < המלצה נוכחית</div>
+  <div class="legend-item"><div class="dot" style="background:#F3E5F5"></div> אין המלצה להשוואה</div>
+  <div style="margin-right:auto;opacity:.6;font-size:.68rem">hover על תא לפרטים</div>
+</div>
+
+<div class="tw">
+<table>
+  <thead>
+    <tr>
+      <th>מק"ט</th>
+      <th>שם מוצר</th>
+      <th></th>
+      <th class="col-pair col-g">מלאי<br>MMD</th>
+      <th class="col-pair col-g">מכר ממוצע<br>שבוע קרטון</th>
+      <th>מלאי<br>אשדוד</th>
+      <th>מחסן<br>מעבר</th>
+      <th>תוקף</th>
+      <th>ימים<br>נשארו</th>
+      <th>מכר קרטון<br>בתקופה</th>
+      <th>שבועות<br>יספיק</th>
+      <th>ימי מכר<br>%</th>
+      <th class="col-g">המלצה<br>קרטון</th>
+      <th class="col-prophet">🔮 Prophet<br>4 שבועות</th>
+      <th class="col-g">הזמנה<br>ידנית</th>
+      <th class="col-g">תוקף<br>נדרש</th>
+    </tr>
+  </thead>
+  <tbody>
+
+    <!-- FAM HEADER -->
+    <tr class="fam-hdr">
+      <td colspan="16">🐟 פילה דג — 2 פריטים</td>
+    </tr>
+
+    <!-- ROW 1: Prophet >> hamlatza — strong green -->
+    <tr>
+      <td class="c-mkt">403001</td>
+      <td class="c-taur" dir="ltr">פילה לוסוס NP (10) 100 גרם</td>
+      <td class="c-img"><div class="ni"></div></td>
+      <td class="c-mmd col-g">12</td>
+      <td class="c-num col-g">38.7</td>
+      <td class="c-num">40</td>
+      <td class="c-num">0</td>
+      <td style="font-size:.68rem;color:#555">15/08<br>22/09</td>
+      <td class="c-num">46</td>
+      <td class="c-num">580</td>
+      <td class="c-num">1.2</td>
+      <td class="c-num">94%</td>
+      <td class="c-haml col-g">28</td>
+      <td class="col-prophet">
+        <div class="pr-wrap">
+          <span class="pr-val">52</span>
+          <span class="pr-delta up">▲ +24</span>
+        </div>
+        <div class="pr-tip">
+          🔮 Prophet P4: <strong>52 קרטון/שבוע</strong><br>
+          📊 ממוצע 26w: 38.7<br>
+          📋 המלצה נוכחית: 28<br>
+          📈 דלתא: <strong style="color:#69f0ae">+24</strong> קרטון
+        </div>
+      </td>
+      <td class="c-num col-g"><input class="ei" type="number" value="52" min="0"></td>
+      <td class="c-num col-g">15/08</td>
+    </tr>
+
+    <!-- ROW 2: Prophet >> hamlatza — anomaly, warning -->
+    <tr>
+      <td class="c-mkt">403002</td>
+      <td class="c-taur" dir="ltr">פילה פורל NP (10) 100 גרם</td>
+      <td class="c-img"><div class="ni"></div></td>
+      <td class="c-mmd col-g">6</td>
+      <td class="c-num col-g">21.0</td>
+      <td class="c-num">18</td>
+      <td class="c-num">2</td>
+      <td style="font-size:.68rem;color:#555">10/07</td>
+      <td class="c-num lo">10</td>
+      <td class="c-num">420</td>
+      <td class="c-num lo">0.8</td>
+      <td class="c-num">79%</td>
+      <td class="c-haml col-g">7</td>
+      <td class="col-prophet">
+        <div class="pr-wrap">
+          <span class="pr-val" style="color:#e65100">107</span>
+          <span class="pr-delta up">▲ +100 ⚠️</span>
+        </div>
+        <div class="pr-tip">
+          🔮 Prophet P4: <strong>107 קרטון/שבוע</strong><br>
+          📊 ממוצע 26w: 21.0<br>
+          📋 המלצה נוכחית: 7<br>
+          ⚠️ <strong>אנומליה</strong> — Prophet זיהה<br>שינוי מגמה חד. בדוק raw data.
+        </div>
+      </td>
+      <td class="c-num col-g"><input class="ei" type="number" value="7" min="0"></td>
+      <td class="c-num col-g">10/07</td>
+    </tr>
+
+    <!-- FAM HEADER -->
+    <tr class="fam-hdr">
+      <td colspan="16">🧀 חטיפי גבינה — 1 פריט</td>
+    </tr>
+
+    <!-- ROW 3: Prophet > hamlatza — moderate green -->
+    <tr>
+      <td class="c-mkt">818</td>
+      <td class="c-taur" dir="ltr">חטיף גבינה יוני 45 גרם (18)</td>
+      <td class="c-img"><div class="ni"></div></td>
+      <td class="c-mmd col-g">4</td>
+      <td class="c-num col-g">17.4</td>
+      <td class="c-num">8</td>
+      <td class="c-num">0</td>
+      <td style="font-size:.68rem;color:#555">28/09</td>
+      <td class="c-num">90</td>
+      <td class="c-num">310</td>
+      <td class="c-num">3.1</td>
+      <td class="c-num">88%</td>
+      <td class="c-haml col-g">7</td>
+      <td class="col-prophet">
+        <div class="pr-wrap">
+          <span class="pr-val">15</span>
+          <span class="pr-delta up">▲ +8</span>
+        </div>
+        <div class="pr-tip">
+          🔮 Prophet P4: <strong>15 קרטון/שבוע</strong><br>
+          📊 ממוצע 26w: 17.4<br>
+          📋 המלצה נוכחית: 7<br>
+          📈 דלתא: <strong style="color:#69f0ae">+8</strong> קרטון
+        </div>
+      </td>
+      <td class="c-num col-g"><input class="ei" type="number" value="7" min="0"></td>
+      <td class="c-num col-g">28/09</td>
+    </tr>
+
+    <!-- FAM HEADER -->
+    <tr class="fam-hdr">
+      <td colspan="16">🥛 מוצרי חלב — 1 פריט</td>
+    </tr>
+
+    <!-- ROW 4: Prophet < hamlatza — red -->
+    <tr>
+      <td class="c-mkt">631</td>
+      <td class="c-taur" dir="ltr">משקה חלב (RIAZENKA) 0.5 ל (6)</td>
+      <td class="c-img"><div class="ni"></div></td>
+      <td class="c-mmd col-g">9</td>
+      <td class="c-num col-g">14.6</td>
+      <td class="c-num">12</td>
+      <td class="c-num">0</td>
+      <td style="font-size:.68rem;color:#555">15/07<br>20/08</td>
+      <td class="c-num">44</td>
+      <td class="c-num">186</td>
+      <td class="c-num">2.9</td>
+      <td class="c-num">91%</td>
+      <td class="c-haml col-g">15</td>
+      <td class="col-prophet">
+        <div class="pr-wrap">
+          <span class="pr-val">14</span>
+          <span class="pr-delta down">▼ -1</span>
+        </div>
+        <div class="pr-tip">
+          🔮 Prophet P4: <strong>14 קרטון/שבוע</strong><br>
+          📊 ממוצע 26w: 14.6<br>
+          📋 המלצה נוכחית: 15<br>
+          📉 דלתא: <strong style="color:#ff5252">-1</strong> קרטון<br>
+          <span style="opacity:.7">ביקוש יציב, אין שינוי</span>
+        </div>
+      </td>
+      <td class="c-num col-g"><input class="ei" type="number" value="15" min="0"></td>
+      <td class="c-num col-g">15/07</td>
+    </tr>
+
+    <!-- FAM HEADER -->
+    <tr class="fam-hdr">
+      <td colspan="16">🧈 חמאה — 2 פריטים</td>
+    </tr>
+
+    <!-- ROW 5: No hamlatza — gray, just forecast -->
+    <tr>
+      <td class="c-mkt">732</td>
+      <td class="c-taur" dir="ltr">חמאה FERMA 82.5% 200 גרם (20)</td>
+      <td class="c-img"><div class="ni"></div></td>
+      <td class="c-mmd col-g">18</td>
+      <td class="c-num col-g">40.1</td>
+      <td class="c-num">22</td>
+      <td class="c-num">4</td>
+      <td style="font-size:.68rem;color:#555">01/08</td>
+      <td class="c-num">32</td>
+      <td class="c-num">720</td>
+      <td class="c-num">2.1</td>
+      <td class="c-num">96%</td>
+      <td class="c-haml col-g">—</td>
+      <td class="col-prophet">
+        <div class="pr-wrap">
+          <span class="pr-val">42</span>
+          <span class="pr-delta same">ללא השוואה</span>
+        </div>
+        <div class="pr-tip">
+          🔮 Prophet P4: <strong>42 קרטון/שבוע</strong><br>
+          📊 ממוצע 26w: 40.1<br>
+          📋 המלצה נוכחית: אין<br>
+          <span style="opacity:.7">לא ניתן לחשב דלתא</span>
+        </div>
+      </td>
+      <td class="c-num col-g"><input class="ei" type="number" value="0" min="0"></td>
+      <td class="c-num col-g">—</td>
+    </tr>
+
+    <!-- ROW 6: No hamlatza — gray -->
+    <tr>
+      <td class="c-mkt">502210</td>
+      <td class="c-taur" dir="ltr">יונו פלומביר №1 1 ק"ג RUD (6)</td>
+      <td class="c-img"><div class="ni"></div></td>
+      <td class="c-mmd col-g">5</td>
+      <td class="c-num col-g">16.9</td>
+      <td class="c-num">10</td>
+      <td class="c-num">0</td>
+      <td style="font-size:.68rem;color:#555">20/07</td>
+      <td class="c-num">56</td>
+      <td class="c-num">285</td>
+      <td class="c-num">3.7</td>
+      <td class="c-num">83%</td>
+      <td class="c-haml col-g">9</td>
+      <td class="col-prophet">
+        <div class="pr-wrap">
+          <span class="pr-val">28</span>
+          <span class="pr-delta up">▲ +19</span>
+        </div>
+        <div class="pr-tip">
+          🔮 Prophet P4: <strong>28 קרטון/שבוע</strong><br>
+          📊 ממוצע 26w: 16.9<br>
+          📋 המלצה נוכחית: 9<br>
+          📈 דלתא: <strong style="color:#69f0ae">+19</strong> קרטון
+        </div>
+      </td>
+      <td class="c-num col-g"><input class="ei" type="number" value="9" min="0"></td>
+      <td class="c-num col-g">20/07</td>
+    </tr>
+
+  </tbody>
+  <tfoot>
+    <tr>
+      <td colspan="3" style="text-align:right">סה"כ (6 פריטים)</td>
+      <td class="col-g">54</td>
+      <td class="col-g">—</td>
+      <td>110</td>
+      <td>6</td>
+      <td colspan="5"></td>
+      <td class="col-g">66</td>
+      <td class="col-prophet" style="font-weight:800;color:#4A148C">~158</td>
+      <td class="col-g">95</td>
+      <td class="col-g"></td>
+    </tr>
+  </tfoot>
+</table>
+</div>
+
+<div style="margin-top:14px;text-align:center;font-size:.68rem;color:rgba(255,255,255,.5)">
+  Prophet pilot · top-10 SKU · data: PBI MMD · model fit: 2026-06-30 · forecast horizon: 4w
+</div>
+
+</body>
+</html>

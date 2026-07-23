@@ -1978,7 +1978,7 @@ app.get('/api/territory/clients', requireAuth, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/territory/jerusalem', cors({ origin: true }), async (req, res) => {
+app.get('/api/territory/jerusalem', requireAuth, async (req, res) => {
   try {
     if (!pbiCache) return res.json([]);
     const corrPath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
@@ -2083,7 +2083,7 @@ app.get('/api/territory/city', requireAuth, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/territory/geocode', cors({ origin: true }), async (req, res) => {
+app.post('/api/territory/geocode', requireAuth, dataRateLimit, async (req, res) => {
   try {
     const { q } = req.body;
     if (!q) return res.status(400).json({ error: 'q required' });
