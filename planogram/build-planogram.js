@@ -1336,36 +1336,38 @@ async function main() {
     }
 
     // ── דג יבש — merge into product-data.json (cartons only, no pallets) ─────
+    // If product-data.json already has yavesh entries with pakuot (= first CI run already fetched fresh data),
+    // reuse that data instead of hitting PBI again (second CI run has rate-limit risk from prior queries).
     {
-      const { dagimYaveshData } = await fetchDagimYaveshFromBI(dagyaveshMakatim);
+      const yaveshAlreadyFresh = Object.values(prevYaveshData).some(v => v.pakuot && v.pakuot.length > 0);
       let yaveshAdded = 0;
-      for (const [mk, d] of Object.entries(dagimYaveshData)) {
-        if (d.stock <= 0 && !d.daySales365) continue; // keep if stock OR sold in last 365d
-        const stockAll = d.pakuotAll.reduce((s, p) => s + (p.cartons || 0), 0);
-        prodData[mk] = {
-          stock:        d.stock        || 0,
-          daySales:     d.daySales     || null,
-          daySales365:  d.daySales365  || null,
-          pakuot:       d.pakuot       || [],
-          pakuotAll:    d.pakuotAll    || [],
-          daySalesAll:  d.daySalesAll  || null,
-          daysStockAll: (d.daySalesAll > 0 && stockAll > 0) ? Math.round(stockAll / d.daySalesAll) : null,
-          stockZafn:    d.stockZafn    || null,
-          daySalesZafn: d.daySalesZafn || null,
-          pakuotZafn:   d.pakuotZafn   || [],
-          nameEn:       d.nameEn ? fixVisualRTL(d.nameEn) : (d.desc ? fixVisualRTL(d.desc) : null),
-          desc:         d.desc  ? fixVisualRTL(d.desc)  : null,
-          shelfLife:    d.shelfLife    ?? null,
-          yavesh:       true,
-        };
-        yaveshAdded++;
-      }
-      console.log(`דג יבש: ${yaveshAdded} מקטים → product-data.json`);
-
-      // Guard: if 0 yavesh products written but we had data before — restore (same pattern as photos guard)
-      if (yaveshAdded === 0 && dagyaveshMakatim.length > 0 && Object.keys(prevYaveshData).length > 0) {
-        for (const [mk, v] of Object.entries(prevYaveshData)) prodData[mk] = v;
-        console.warn(`דג יבש guard: API returned 0 — restored ${Object.keys(prevYaveshData).length} entries from previous product-data.json`);
+      if (yaveshAlreadyFresh) {
+        for (const [mk, v] of Object.entries(prevYaveshData)) { prodData[mk] = v; yaveshAdded++; }
+        console.log(`דג יבש: reused ${yaveshAdded} fresh entries from product-data.json (skip re-fetch)`);
+      } else {
+        const { dagimYaveshData } = await fetchDagimYaveshFromBI(dagyaveshMakatim);
+        for (const [mk, d] of Object.entries(dagimYaveshData)) {
+          if (d.stock <= 0 && !d.daySales365) continue; // keep if stock OR sold in last 365d
+          const stockAll = d.pakuotAll.reduce((s, p) => s + (p.cartons || 0), 0);
+          prodData[mk] = {
+            stock:        d.stock        || 0,
+            daySales:     d.daySales     || null,
+            daySales365:  d.daySales365  || null,
+            pakuot:       d.pakuot       || [],
+            pakuotAll:    d.pakuotAll    || [],
+            daySalesAll:  d.daySalesAll  || null,
+            daysStockAll: (d.daySalesAll > 0 && stockAll > 0) ? Math.round(stockAll / d.daySalesAll) : null,
+            stockZafn:    d.stockZafn    || null,
+            daySalesZafn: d.daySalesZafn || null,
+            pakuotZafn:   d.pakuotZafn   || [],
+            nameEn:       d.nameEn ? fixVisualRTL(d.nameEn) : (d.desc ? fixVisualRTL(d.desc) : null),
+            desc:         d.desc  ? fixVisualRTL(d.desc)  : null,
+            shelfLife:    d.shelfLife    ?? null,
+            yavesh:       true,
+          };
+          yaveshAdded++;
+        }
+        console.log(`דג יבש: ${yaveshAdded} מקטים → product-data.json`);
       }
 
       // Force yavesh:true on all base picks
