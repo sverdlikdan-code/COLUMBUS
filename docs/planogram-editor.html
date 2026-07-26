@@ -2851,7 +2851,7 @@ function _applySeasonSlider(val) {
   const label = document.getElementById('season-pct-label');
   const resetBtn = document.getElementById('season-reset-btn');
   if (label) label.textContent = pct === 0 ? '\xd71' : (pct > 0 ? '+' + pct + '%' : pct + '%');
-  if (label) label.style.color = pct > 0 ? '#1b5e20' : pct < 0 ? '#c62828' : '#1565C0';
+  if (label) label.style.color = pct > 0 ? '#a5d6a7' : pct < 0 ? '#ef9a9a' : '#fff';
   if (resetBtn) resetBtn.style.color = pct !== 0 ? '#c62828' : '#aaa';
 
   const manualEdits = window._orderManualEdits || {};
@@ -3329,7 +3329,7 @@ function buildOrderPage() {
       <th style="padding:6px 4px;background:#4a148c;color:#fff;text-align:center;font-size:10px;white-space:nowrap;cursor:default;" title="מגמת מכר: חודש אחרון vs חודש לפניו — לחץ על תא לגרף חודשי">📊 מגמה</th>
       <th style="${_ths('periodSales','text-align:center;')}">מכר<br>בתקופה${_arr('periodSales')}</th>
       <th style="${_ths('daysStk','text-align:center;')}">לכמה<br>ימים${_arr('daysStk')}</th>
-      <th style="${_ths('orderK','text-align:center;white-space:normal;')}">המלצה KARTON${_arr('orderK')}<div onclick="event.stopPropagation()" style="display:flex;align-items:center;justify-content:center;gap:3px;margin-top:4px;"><input type="range" id="season-slider" min="-50" max="50" step="5" value="${window._orderSeasonPct||0}" oninput="_applySeasonSlider(this.value)" style="width:56px;cursor:ew-resize;accent-color:#90CAF9;"><span id="season-pct-label" style="font-size:10px;font-weight:800;color:#fff;min-width:26px;text-align:center;">${((p)=>p===0?'×1':p>0?'+'+p+'%':p+'%')(window._orderSeasonPct||0)}</span><button type="button" onclick="_resetSeasonSlider()" id="season-reset-btn" title="אפס" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.55);font-size:11px;padding:0;line-height:1;">✕</button></div></th>
+      <th style="${_ths('orderK','text-align:center;white-space:normal;')}">המלצה KARTON${_arr('orderK')}<div onclick="event.stopPropagation()" style="display:flex;align-items:center;justify-content:center;gap:3px;margin-top:4px;"><input type="range" id="season-slider" min="-50" max="50" step="5" value="${window._orderSeasonPct||0}" oninput="_applySeasonSlider(this.value)" style="width:56px;cursor:ew-resize;accent-color:#90CAF9;"><span id="season-pct-label" style="font-size:10px;font-weight:800;color:#fff;min-width:26px;text-align:center;">${((p)=>p===0?'×1':p>0?'+'+p+'%':p+'%')(window._orderSeasonPct||0)}</span><button type="button" onclick="_resetSeasonSlider()" id="season-reset-btn" title="אפס" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.85);font-size:11px;padding:0;line-height:1;">✕</button></div></th>
       <th style="${_th('text-align:center;')}">המלצה<br>PALLET</th>
       <th style="${_th('text-align:center;')}">PAL<br>ידני</th>
     </tr>
