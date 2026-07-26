@@ -318,7 +318,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
     <button type="button" class="stat-chip ice-btn" id="stat-ice" style="display:none" onclick="toggleIceFilter()"></button>
     <span class="stat-chip" id="stat-changed" style="display:none;"></span>
     <div class="stats-right">
-      <button type="button" class="visit-btn" id="visit-btn" onclick="setVisitSource('computed')">🗺 Google</button>
+      <button type="button" class="visit-btn" id="visit-btn" onclick="setVisitSource('computed')">🤖 סדר ביקור AI</button>
       <button type="button" class="visit-btn ver-mode" id="visit-ver-btn" onclick="setVisitSource('version')" style="display:none">📋 גרסה</button>
       <button type="button" class="version-btn" onclick="openSaveVersionModal()">💾 גרסה</button>
       <button type="button" class="history-btn" onclick="openVersionHistory()">📚</button>
@@ -463,6 +463,7 @@ const st={
   visitSource: 'computed',    // 'computed' | 'version'
   visitOrder: [],             // custIds in route order
   loadedVersionOrder: null,   // null=no version loaded; []=version without order; [...]= version with order
+  startCustId: null,          // custId pinned to position #1 (null = start from Tel Aviv)
 };
 
 // ── ROUTING — ported from formula-road ────────────────────────────────────
@@ -494,37 +495,49 @@ function twoOpt(route,sLat,sLng){
   }
   return best;
 }
-function nearestNeighborFromTA(clients){
+function nearestNeighborFrom(sLat,sLng,clients){
   const withGps=clients.filter(c=>c.lat&&c.lng);
   const noGps=clients.filter(c=>!c.lat||!c.lng);
   if(!withGps.length) return clients;
   const rem=[...withGps],result=[];
-  let curLat=TEL_AVIV_LAT,curLng=TEL_AVIV_LNG;
+  let curLat=sLat,curLng=sLng;
   while(rem.length){
     let bi=-1,bDist=Infinity;
     rem.forEach((c,i)=>{const d=haversineKm(curLat,curLng,c.lat,c.lng);if(d<bDist){bDist=d;bi=i;}});
     const ch=rem.splice(bi,1)[0];
     result.push(ch); curLat=ch.lat; curLng=ch.lng;
   }
-  return [...twoOpt(result,TEL_AVIV_LAT,TEL_AVIV_LNG),...noGps];
+  return [...twoOpt(result,sLat,sLng),...noGps];
 }
-function computeVisitOrder(){
-  const clients=displayClients().map(c=>{
+function computeVisitOrder(pinFirstCustId){
+  let clients=displayClients().map(c=>{
     if(c.gpsSource==='correction') return c;
     const ai=AI_GPS[String(c.custId)];
     return (ai?.aiLat&&ai?.aiLng)?{...c,lat:ai.aiLat,lng:ai.aiLng}:c;
   });
-  st.visitOrder=nearestNeighborFromTA(clients).map(c=>String(c.custId));
+  let sLat=TEL_AVIV_LAT, sLng=TEL_AVIV_LNG, pinnedFirst=null;
+  if(pinFirstCustId){
+    const pinned=clients.find(c=>String(c.custId)===String(pinFirstCustId));
+    if(pinned&&pinned.lat&&pinned.lng){
+      sLat=pinned.lat; sLng=pinned.lng;
+      clients=clients.filter(c=>String(c.custId)!==String(pinFirstCustId));
+      pinnedFirst=pinned;
+    }
+  }
+  const ordered=nearestNeighborFrom(sLat,sLng,clients);
+  const result=pinnedFirst?[pinnedFirst,...ordered]:ordered;
+  st.visitOrder=result.map(c=>String(c.custId));
+  st.startCustId=pinFirstCustId||null;
 }
 function setVisitSource(source){
   // Clicking active source button → toggle off visit mode
   if(st.sortMode==='visit'&&st.visitSource===source){
-    st.sortMode='default'; st.visitOrder=[];
+    st.sortMode='default'; st.visitOrder=[]; st.startCustId=null;
   } else {
     st.sortMode='visit';
     st.visitSource=source;
     if(source==='computed'){
-      computeVisitOrder();
+      computeVisitOrder(st.startCustId);
     } else {
       if(st.loadedVersionOrder===null){ showToast('לא נטענה גרסה עם סדר ביקור'); return; }
       if(!st.loadedVersionOrder.length){
@@ -1285,9 +1298,11 @@ function renderClientList(){
           style="border-right-color:${color}${c._isNew?';border:1.5px solid #FFD600;border-right:4px solid #FF8F00':''}${isIce?';border:1.5px solid #81D4FA;border-right:4px solid #0288D1':''}"
           data-id="${c.custId}" onclick="selectClient('${c.custId}')">
       <div class="c-drag" style="display:flex;align-items:center;justify-content:center;width:28px;flex-shrink:0;align-self:stretch;cursor:grab;touch-action:none;user-select:none">
-        ${vNum
-          ?`<span class="visit-num">${vNum}</span>`
-          :`<span style="font-size:14px;color:#bbb;line-height:1">⠿</span>`}
+        ${vNum===1&&st.startCustId===String(c.custId)
+          ?`<span class="visit-num" style="background:#E53935" title="נקודת התחלה">▶</span>`
+          :vNum
+            ?`<span class="visit-num">${vNum}</span>`
+            :`<span style="font-size:14px;color:#bbb;line-height:1">⠿</span>`}
       </div>
       <div class="c-body">
         <div class="c-name">${changedMark}${esc(c.custName||'')}${newBadge}${iceBadge}${secondVisitBadge}</div>
@@ -1679,7 +1694,15 @@ function setupSortable(){
       displayed.splice(e.newIndex,0,moved);
       const dispIds=new Set(displayed.map(c=>c.custId));
       st.allClients=[...displayed,...st.allClients.filter(c=>!dispIds.has(c.custId))];
-      if(st.sortMode==='visit') st.visitOrder=displayed.map(c=>String(c.custId));
+      if(st.sortMode==='visit'){
+        if(e.newIndex===0&&moved.lat&&moved.lng){
+          // Client pinned to #1 → becomes start point, re-compute rest from there
+          computeVisitOrder(String(moved.custId));
+          showToast('📍 סדר ביקור חושב מחדש — ' + (moved.name||moved.custId));
+        } else {
+          st.visitOrder=displayed.map(c=>String(c.custId));
+        }
+      }
       renderClientList();
       if(st.tab==='map'||window.innerWidth>=700) renderMap();
     }
@@ -1774,6 +1797,21 @@ async function doSaveVersion(){
   finally{ btn.disabled=false; }
 }
 
+function previewVersionOrder(orderJson, versionName){
+  try{
+    const order=JSON.parse(orderJson);
+    if(!order||!order.length){ showToast('הגרסה לא מכילה סדר ביקור'); return; }
+    st.loadedVersionOrder=order.map(String);
+    st.visitOrder=[...st.loadedVersionOrder];
+    st.sortMode='visit'; st.visitSource='version'; st.startCustId=null;
+    _updateVisitBtns();
+    renderClientList();
+    if(st.tab==='map'||window.innerWidth>=700) renderMap();
+    document.getElementById('version-history-modal').style.display='none';
+    showToast('📋 מציג סדר ביקור: '+versionName);
+  }catch(e){ showToast('שגיאה בטעינת הסדר'); }
+}
+
 async function openVersionHistory(){
   document.getElementById('version-history-modal').style.display='flex';
   const el=document.getElementById('version-list');
@@ -1790,12 +1828,17 @@ async function openVersionHistory(){
     el.innerHTML=list.map(v=>{
       const dt=new Date(v.createdAt);
       const dtStr=`${pad(dt.getDate())}.${pad(dt.getMonth()+1)} ${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+      const hasOrder=v.visitOrder&&v.visitOrder.length>0;
+      const orderJson=hasOrder?encodeURIComponent(JSON.stringify(v.visitOrder)):'';
       return `<div class="vh-item">
         <div class="vh-item-info">
           <div class="vh-item-name">${esc(v.name)}</div>
-          <div class="vh-item-meta">${dtStr} · GPS: ${v.gpsCount||0} · שינויים: ${v.overridesCount||0}</div>
+          <div class="vh-item-meta">${dtStr} · GPS: ${v.gpsCount||0} · שינויים: ${v.overridesCount||0}${hasOrder?' · 📍 '+v.visitOrder.length+' ביקורים':''}</div>
         </div>
-        <button type="button" class="vh-item-restore" onclick="restoreVersion('${esc(v.id)}')">שחזר</button>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          ${hasOrder?`<button type="button" class="vh-item-restore" style="background:#37474F" onclick="previewVersionOrder(decodeURIComponent('${orderJson}'), '${esc(v.name)}')" >👁 סדר</button>`:''}
+          <button type="button" class="vh-item-restore" onclick="restoreVersion('${esc(v.id)}')">שחזר</button>
+        </div>
       </div>`;
     }).join('');
   }catch(e){

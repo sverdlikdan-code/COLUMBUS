@@ -1746,7 +1746,7 @@ app.post('/api/gps/save-version', requireAuth, (req, res) => {
 
 // GET /api/gps/versions — list of saved versions (no body content)
 app.get('/api/gps/versions', requireAuth, (req, res) => {
-  const versions = readGpsVersions().map(({ id, name, createdAt, gpsCount, overridesCount, count }) => ({ id, name, createdAt, gpsCount: gpsCount ?? count ?? 0, overridesCount: overridesCount ?? 0 }));
+  const versions = readGpsVersions().map(({ id, name, createdAt, gpsCount, overridesCount, count, visitOrder }) => ({ id, name, createdAt, gpsCount: gpsCount ?? count ?? 0, overridesCount: overridesCount ?? 0, visitOrder: visitOrder || [] }));
   res.json(versions);
 });
 
