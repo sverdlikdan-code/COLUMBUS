@@ -98,7 +98,10 @@ function cleanFam(raw) {
         ),
         'ALL_PARTS'[חברה] = "FORMULA",
         'ALL_PARTS'[מחסן] = "Main",
-        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 365),
+        FILTER('ALL_PARTS',
+          'ALL_PARTS'[תאריך] >= TODAY() - WEEKDAY(TODAY(), 1) - 41 &&
+          'ALL_PARTS'[תאריך] <  TODAY() - WEEKDAY(TODAY(), 1) + 1
+        ),
         TREATAS(${sectionMakatim}, 'ALL_PARTS'[מק'ט])
       )
     `),

@@ -94,7 +94,10 @@ async function dax(token, query) {
           "mkr365", [TOTAL מכר בקרטונים ממוצע ביום]
         ),
         'ALL_PARTS'[חברה] = "FORMULA",
-        FILTER('ALL_PARTS', 'ALL_PARTS'[תאריך] >= TODAY() - 365),
+        FILTER('ALL_PARTS',
+          'ALL_PARTS'[תאריך] >= TODAY() - WEEKDAY(TODAY(), 1) - 41 &&
+          'ALL_PARTS'[תאריך] <  TODAY() - WEEKDAY(TODAY(), 1) + 1
+        ),
         TREATAS(${sectionMakatim}, 'ALL_PARTS'[מק'ט])
       )
     `),

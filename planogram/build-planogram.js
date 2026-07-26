@@ -1422,7 +1422,7 @@ async function main() {
       }
     }
 
-    // ── weekly sales trend (last 7 ISO-weeks) ────────────────────────────────
+    // ── weekly sales trend (last 6 full Israeli Sun-Sat weeks) ──────────────
     {
       const allMks = Object.keys(prodData);
       const weekMap = await fetchWeeklySales(allMks).catch(e => {
@@ -1431,7 +1431,11 @@ async function main() {
       });
       let wkCount = 0;
       for (const [mk, ws] of Object.entries(weekMap)) {
-        if (prodData[mk]) { prodData[mk].weekSales = ws; wkCount++; }
+        if (prodData[mk]) {
+          prodData[mk].weekSales = ws.totals;
+          prodData[mk].weekDates = ws.dates;
+          wkCount++;
+        }
       }
       console.log(`weekSales: ${wkCount} מקטים`);
     }
