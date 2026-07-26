@@ -2416,13 +2416,11 @@ window.openInfoPanel = function(mk, taur) {
   if (axDyn) axDyn.innerHTML = '';
   document.getElementById('pp-np').textContent = '';
 
-  const prv = r ? (r.mkr_prev6 ?? null) : null;
-  const cur = r ? (r.mkr_shvua ?? null) : null;
-  const fmtV = function(v){ return v != null ? (Number.isInteger(v) ? String(v) : v.toFixed(1)) : '—'; };
-  const maxV = Math.max(prv || 0, cur || 0, 0.1);
-  const BAR_MAX_H = 120;
+  const prv   = r ? (r.mkr_prev6 ?? null) : null;
+  const cur   = r ? (r.mkr_shvua ?? null) : null;
+  const wData = r ? (r.weeks    ?? null) : null; // [w1..w12] oldest→newest, null if no per-week data
+  const fmtV  = function(v){ return v != null ? (Number.isInteger(v) ? String(v) : v.toFixed(1)) : ''; };
 
-  // Compute ISO week numbers for last 12 weeks (prev6 first, then last6)
   (function() {
     var today = new Date();
     var sun = new Date(today); sun.setDate(today.getDate() - today.getDay());
@@ -2431,19 +2429,25 @@ window.openInfoPanel = function(mk, taur) {
       fs.setDate(fs.getDate() - fs.getDay());
       return Math.floor((d - fs) / 604800000) + 1;
     }
-    // weeks[0] = oldest (12w ago), weeks[11] = last completed week
-    var weeks = [];
+    // Build 12 ISO week numbers oldest→newest
+    var wNums = [];
     for (var i = 12; i >= 1; i--) {
       var wd = new Date(sun); wd.setDate(sun.getDate() - i * 7);
-      weeks.push(isoW(wd));
+      wNums.push(isoW(wd));
     }
-    var prev6weeks = weeks.slice(0, 6);   // older
-    var last6weeks = weeks.slice(6);      // recent
 
-    // RTL layout: last6 (bright) LEFT, divider, prev6 (faded) RIGHT
+    // Per-bar values: use r.weeks if available, else repeat period avg
+    var vals = wData
+      ? wData  // real per-week carton sales
+      : wNums.map(function(_, i){ return i < 6 ? prv : cur; }); // fallback: avg for all 6
+
+    var maxV = Math.max.apply(null, vals.map(function(v){ return v || 0; }).concat([0.1]));
+    var BAR_MAX_H = 110;
+
+    // RTL layout: last6 (bright) LEFT [indices 6-11], prev6 (faded) RIGHT [indices 0-5]
     var groups = [
-      { weeks: last6weeks, val: cur, isPrev: false },
-      { weeks: prev6weeks, val: prv, isPrev: true  }
+      { idxStart: 6, isPrev: false, periodVal: cur },
+      { idxStart: 0, isPrev: true,  periodVal: prv }
     ];
 
     groups.forEach(function(grp, gi) {
@@ -2451,22 +2455,29 @@ window.openInfoPanel = function(mk, taur) {
         var dv = document.createElement('div'); dv.className = 'pp-spark-div'; sparkEl.appendChild(dv);
         var dvAx = document.createElement('div'); dvAx.className = 'ax-div'; axDyn.appendChild(dvAx);
       }
-      var barH = grp.val != null && grp.val > 0 ? Math.max(4, Math.round(grp.val / maxV * BAR_MAX_H)) : 4;
-      grp.weeks.forEach(function(wNum, wi) {
+      for (var wi = 0; wi < 6; wi++) {
+        var idx = grp.idxStart + wi;
+        var v   = vals[idx];
+        var wNum = wNums[idx];
         var col = document.createElement('div'); col.className = 'pp-spark-col';
 
         var valEl = document.createElement('div'); valEl.className = 'pp-spark-val';
-        // Show the period average only above the middle bar of each group
-        if (wi === 2) {
-          valEl.style.cssText = 'font-size:.95rem;font-weight:700;color:' + (grp.isPrev ? '#667788' : '#c9a227');
-          valEl.textContent = fmtV(grp.val);
+        if (v != null && v > 0) {
+          valEl.textContent = fmtV(v);
+          if (grp.isPrev) valEl.style.opacity = '0.6';
+        }
+        // Period average: show above middle bar (wi===2) in bold color
+        if (wi === 2 && grp.periodVal != null) {
+          valEl.style.cssText = 'font-size:.9rem;font-weight:700;color:' + (grp.isPrev ? '#667788' : '#c9a227') + (grp.isPrev ? ';opacity:.8' : '');
+          valEl.textContent = fmtV(grp.periodVal) + ' ø';
         }
 
         var bar = document.createElement('div');
-        bar.className = 'pp-spark-bar' + (!grp.val ? ' zero' : '');
-        bar.style.height = barH + 'px';
-        if (grp.isPrev) bar.style.opacity = '0.42';
-        bar.title = 'שב' + wNum + ' · ' + fmtV(grp.val) + ' קרט/שב׳ (ממוצע)';
+        bar.className = 'pp-spark-bar' + (v === 0 || v == null ? ' zero' : '');
+        var h = v != null && v > 0 ? Math.max(4, Math.round(v / maxV * BAR_MAX_H)) : 4;
+        bar.style.height = h + 'px';
+        if (grp.isPrev) bar.style.opacity = '0.45';
+        bar.title = 'שב' + wNum + ': ' + (v != null ? fmtV(v) : '—') + ' קרט';
 
         col.appendChild(valEl); col.appendChild(bar);
         sparkEl.appendChild(col);
@@ -2475,10 +2486,12 @@ window.openInfoPanel = function(mk, taur) {
         if (grp.isPrev) axLbl.style.opacity = '0.5';
         axLbl.textContent = 'שב' + wNum;
         axDyn.appendChild(axLbl);
-      });
+      }
     });
 
-    document.getElementById('pp-spark-lbl').textContent = 'מכר ממוצע שבועי קרטון · DAX';
+    document.getElementById('pp-spark-lbl').textContent = wData
+      ? 'מכר שבועי קרטון · DAX  |  ø = ממוצע 6 שב׳'
+      : 'מכר ממוצע שבועי קרטון · DAX';
   })();
 
   document.getElementById('prophet-overlay').classList.add('open');

@@ -90,6 +90,42 @@ async function build() {
     ORDER BY 'KARTIS PARIT'[תאור משפחה] ASC, 'KARTIS PARIT'[מק"ט] ASC
   `, MMD_DS);
 
+  // ── Weekly breakdown: 12 individual weeks (oldest→newest) ───────
+  const weekRanges = [];
+  for (let i = 12; i >= 1; i--) {
+    const wS = new Date(startOfWeek); wS.setDate(startOfWeek.getDate() - i * 7);
+    const wE = new Date(wS);          wE.setDate(wS.getDate() + 6);
+    weekRanges.push({
+      ys: wS.getFullYear(), ms: wS.getMonth()+1, ds: wS.getDate(),
+      ye: wE.getFullYear(), me: wE.getMonth()+1, de: wE.getDate()
+    });
+  }
+  const wMeasures = weekRanges.map((w, i) =>
+    `"w${i+1}", CALCULATE([מכר קרטון], DATESBETWEEN(DIMCALENDAR[Date], DATE(${w.ys},${w.ms},${w.ds}), DATE(${w.ye},${w.me},${w.de})))`
+  ).join(',\n        ');
+
+  let weeklyMap = {};
+  try {
+    const weeklyRows = await executeDax(`
+      EVALUATE
+      SUMMARIZECOLUMNS(
+        'KARTIS PARIT'[מק"ט],
+        ${wMeasures}
+      )
+    `, MMD_DS);
+    weeklyRows.forEach(r => {
+      const mkt = String(r['KARTIS PARIT[מק"ט]']);
+      const arr = weekRanges.map((_, i) => {
+        const v = r[`[w${i+1}]`];
+        return v != null ? Math.round(v * 10) / 10 : null;
+      });
+      if (arr.some(v => v != null && v > 0)) weeklyMap[mkt] = arr;
+    });
+    console.log(`✓ Weekly breakdown: ${Object.keys(weeklyMap).length} SKUs`);
+  } catch (e) {
+    console.warn('⚠ Weekly breakdown failed (non-fatal):', e.message.slice(0, 120));
+  }
+
   const data = rows.map(r => ({
     mkt:        r['KARTIS PARIT[מק"ט]'],
     taur:       fixGimel(fixBiDi(r['KARTIS PARIT[תאור]'] || '')),
@@ -122,6 +158,7 @@ async function build() {
     dist_active:    r['[dist_active]']  != null ? Math.round(r['[dist_active]'])  : null,
     cust_bought:    r['[cust_bought]']  != null ? Math.round(r['[cust_bought]'])  : null,
     eilat_batches:  r['[eilat_batches]'] || null,
+    weeks:          weeklyMap[String(r['KARTIS PARIT[מק"ט]'])] || null,
   }));
 
   // Merge shelfLife from product-data.json (7/21/45 days per SKU — Mahsan Editor source)
