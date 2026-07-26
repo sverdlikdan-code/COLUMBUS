@@ -1282,7 +1282,7 @@ function renderClientList(){
     const iceSalesBadge=iceAmt?`<span style="background:#EDE7F6;color:#4527A0;font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;flex-shrink:0;margin-left:4px;border:1px solid #B39DDB;white-space:nowrap">מש׳ ${iceAmt}</span>`:'';
     const changedMark=c._changed?`<span class="changed-badge">✏️</span>`:'';
     const newBadge=c._isNew?`<span style="background:#FF8F00;color:#fff;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;flex-shrink:0;margin-left:4px">🆕 חדש</span>`:'';
-    const iceBadge=isIce?`<span style="background:#0288D1;color:#fff;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;flex-shrink:0;margin-left:4px">❄️ ICE</span>`:'';
+    const iceBadge=isIce?`<span style="background:#0288D1;color:#fff;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;flex-shrink:0;margin-left:4px;white-space:nowrap">❄️ ICE</span>`:'';
     const secondVisitBadge=c._isSecondVisit?`<span style="background:#7B1FA2;color:#fff;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;flex-shrink:0;margin-left:4px">🔁 ביקור שני</span>`:'';
     const ov2=st.overrides[String(c.custId)]||{};
     const hasSecondDay=ov2.secondDay!==undefined;
@@ -1305,10 +1305,10 @@ function renderClientList(){
             :`<span style="font-size:14px;color:#bbb;line-height:1">⠿</span>`}
       </div>
       <div class="c-body">
-        <div class="c-name">${changedMark}${esc(c.custName||'')}${newBadge}${iceBadge}${secondVisitBadge}</div>
+        <div class="c-name">${changedMark}${esc(c.custName||'')}${newBadge}${secondVisitBadge}</div>
         <div class="c-sub">
           <span class="agent-badge" style="background:${color};cursor:pointer" onclick="openAgentPopup(event,'${c.custId}')">${esc(c.agentName||c.agentCode||'')}</span>
-          ${dayBadge}${salesBadge}${iceSalesBadge}
+          ${iceBadge}${dayBadge}${salesBadge}${iceSalesBadge}
           ${addrText?`<span style="color:var(--mid);margin-right:4px;font-size:9px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${addrText}</span>`:''}
         </div>
       </div>
@@ -1836,7 +1836,7 @@ async function openVersionHistory(){
           <div class="vh-item-meta">${dtStr} · GPS: ${v.gpsCount||0} · שינויים: ${v.overridesCount||0}${hasOrder?' · 📍 '+v.visitOrder.length+' ביקורים':''}</div>
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0">
-          ${hasOrder?`<button type="button" class="vh-item-restore" style="background:#37474F" onclick="previewVersionOrder(decodeURIComponent('${orderJson}'), '${esc(v.name)}')" >👁 סדר</button>`:''}
+          ${hasOrder?`<button type="button" class="vh-item-restore" style="background:#37474F" onclick="previewVersionOrder(decodeURIComponent('${orderJson}'), '${esc(v.name)}')">👁 סדר ביקור לפי גרסה</button>`:''}
           <button type="button" class="vh-item-restore" onclick="restoreVersion('${esc(v.id)}')">שחזר</button>
         </div>
       </div>`;
