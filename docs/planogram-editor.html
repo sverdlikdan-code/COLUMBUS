@@ -1247,7 +1247,7 @@ window.printPhotoA3 = function() {
     const rawName = d.nameEn || p.name || d.desc || p.fam || mk;
     const name = _nameEmoji(rawName || mk);
     const rawUrl = getPhotoUrl(mk);
-    const photoUrl = rawUrl && rawUrl.startsWith('http') ? rawUrl : null;
+    const photoUrl = rawUrl ? new URL(rawUrl, location.href).href : null;
     const eanFull = makatEan[mk] || '';
     const ean6 = eanFull ? String(eanFull).replace(/\D/g,'').slice(-6) : '';
     return { mk, name, photoUrl, ean6 };
@@ -1270,7 +1270,7 @@ window.printPhotoA3 = function() {
   }).join('');
   win.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"><title>פוטו A3 — ${sec}</title><style>
     @page{size:A3 landscape;margin:8mm}*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif}
-    .page{width:100%;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;page-break-after:always;padding:10mm 15mm;gap:8px}
+    .page{width:100%;height:100vh;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;page-break-after:always;padding:10mm 15mm;gap:8px}
     .page:last-child{page-break-after:auto}
     .makat{font-size:96px;font-weight:900;color:#111;letter-spacing:4px;line-height:1;text-align:center}
     .ean6{font-size:40px;font-weight:700;color:#555;letter-spacing:6px;text-align:center;line-height:1.2}
