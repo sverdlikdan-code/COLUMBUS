@@ -686,7 +686,7 @@
     <span>במלאי היום: <b id="stat-instock" style="color:#2e7d32">—</b></span>
   </span>
   <span class="status" id="status" style="display:none;"></span>
-  <span class="no-print" style="margin-left:auto;font-size:11px;color:rgba(255,255,255,0.7);padding-right:12px;white-space:nowrap;">מכר ממוצע 45 יום</span>
+  <span class="no-print" style="margin-left:auto;font-size:11px;color:rgba(255,255,255,0.7);padding-right:12px;white-space:nowrap;">מכר ממוצע 6 שב' (א-ש)</span>
 </div>
 
 <div id="sec-kapua"  class="section active"><div id="grid-kapua"  class="warehouse-grid"></div></div>
@@ -4052,27 +4052,33 @@ function _expiryImgErr(img) {
   img.outerHTML = '<div style="width:72px;height:72px;background:#f0f0f0;border-radius:6px;border:1px solid #e0e0e0;display:flex;align-items:center;justify-content:center;font-size:20px;">📷</div>';
 }
 
-function _sparkSvg(weekSales) {
-  if (!weekSales || weekSales.length < 2) return '';
-  const W = 126, H = 32, PAD = 4;
-  const vals = weekSales.slice(-7);
-  while (vals.length < 7) vals.unshift(0);
-  const minV = Math.min(...vals), maxV = Math.max(...vals);
-  const range = maxV - minV || 1;
-  const pts = vals.map((v, i) => {
-    const x = PAD + (i / (vals.length - 1)) * (W - PAD * 2);
-    const y = H - PAD - ((v - minV) / range) * (H - PAD * 2 - 4);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
-  const [lx, ly] = pts.split(' ').pop().split(',');
-  const wkLabels = vals.map((v, i) => `שב${i + 1}: ${v.toFixed(1)}`).join(' | ');
-  return `<div class="week-spark-wrap" title="${wkLabels}">
-    <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" style="display:block;">
-      <polyline points="${pts}" fill="none" stroke="#90a4ae" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
-      <circle cx="${lx}" cy="${ly}" r="3" fill="#c62828"/>
-      <text x="${W - PAD}" y="${H - 1}" text-anchor="end" font-size="6" fill="#bbb" font-family="Arial">${vals[vals.length-1].toFixed(1)} קרט/י</text>
+function _sparkSvg(weekSales, weekDates) {
+  if (!weekSales || weekSales.length < 1) return '';
+  const vals  = weekSales.slice(-6);
+  const dates = weekDates ? weekDates.slice(-6) : [];
+  while (vals.length < 6)  { vals.unshift(0); dates.unshift(''); }
+  const maxV = Math.max(...vals, 1);
+  const N = 6, W = 240, BPAD = 6, LABEL_H = 14, BAR_AREA_H = 44, TOTAL_H = BAR_AREA_H + LABEL_H;
+  const barW = (W - BPAD * 2 - (N - 1) * 4) / N;
+  const bars = vals.map((v, i) => {
+    const x    = BPAD + i * (barW + 4);
+    const pct  = v / maxV;
+    const bh   = Math.max(2, Math.round(pct * (BAR_AREA_H - 10)));
+    const y    = BAR_AREA_H - bh;
+    const isLast = i === N - 1;
+    const fill = isLast ? '#ef8c00' : '#1e88e5';
+    const valTxt = v > 0 ? `<text x="${(x + barW/2).toFixed(1)}" y="${(y - 2).toFixed(1)}" text-anchor="middle" font-size="7" fill="${isLast ? '#ef8c00' : '#555'}" font-weight="700" font-family="Arial">${v}</text>` : '';
+    const lbl  = dates[i] || `שב${i+1}`;
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${bh}" rx="2" fill="${fill}" opacity="${isLast ? '1' : '0.75'}"/>
+    ${valTxt}
+    <text x="${(x + barW/2).toFixed(1)}" y="${TOTAL_H - 1}" text-anchor="middle" font-size="7" fill="#999" font-family="Arial">${lbl}</text>`;
+  }).join('');
+  const tooltip = vals.map((v,i) => `${dates[i]||('שב'+(i+1))}: ${v}`).join(' | ');
+  return `<div title="${tooltip}" style="margin-top:4px;">
+    <svg viewBox="0 0 ${W} ${TOTAL_H}" width="${W}" height="${TOTAL_H}" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible;">
+      ${bars}
     </svg>
-    <div style="font-size:6.5px;color:#aaa;text-align:center;letter-spacing:0.3px;margin-top:-1px;">7 שבועות אחרונים</div>
+    <div style="font-size:6.5px;color:#aaa;text-align:center;letter-spacing:0.3px;margin-top:1px;">6 שבועות אחרונים — קרטונים</div>
   </div>`;
 }
 
@@ -4323,7 +4329,7 @@ function buildExpiryPage() {
             <tbody>${batchRowsCombined}</tbody>
             <tfoot><tr><td style="padding:4px 8px;border-top:2px solid #e0e0e0;background:#f5f7fa;">
               ${combinedSales > 0 ? `<div style="font-size:9px;color:#666;">ממוצע מכירה כולל: <b style="color:#222;">${combinedSales.toFixed(1)} קרט/יום</b></div>` : '<div style="font-size:9px;color:#bbb;">אין נתוני מכירה</div>'}
-              ${_sparkSvg(productData[String(mk)]?.weekSales)}
+              ${_sparkSvg(productData[String(mk)]?.weekSales, productData[String(mk)]?.weekDates)}
             </td></tr></tfoot>
           </table>
         </div>
@@ -4372,7 +4378,7 @@ function buildExpiryPage() {
               }</td>
             </tr>
             <tr><td colspan="2" style="padding:3px 6px;background:#f5f7fa;border-top:1px solid #eee;">
-              ${_sparkSvg(productData[String(mk)]?.weekSales)}
+              ${_sparkSvg(productData[String(mk)]?.weekSales, productData[String(mk)]?.weekDates)}
             </td></tr>
           </tfoot>
         </table>
