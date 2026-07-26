@@ -124,17 +124,33 @@ async function main() {
     const pbiOk = isValidIL(row.pbiLat, row.pbiLng);
     const bbox  = bboxCache.get(row.city) ?? null;
 
+    const pbiInCity    = pbiOk  && inBBox(row.pbiLat, row.pbiLng, bbox);
+    const googleInCity = row.gOk && inBBox(row.gLat,  row.gLng,  bbox);
+
     if (pbiOk && row.gOk) {
       const dist = haversine(row.pbiLat, row.pbiLng, row.gLat, row.gLng);
       if (dist > 2000) {
-        // PBI and Google disagree significantly — trust PBI (Priority has branch-specific coords)
-        result[row.custId] = { aiLat:+row.pbiLat.toFixed(6), aiLng:+row.pbiLng.toFixed(6), src:'pbi' };
-        fromPbi++; continue;
+        if (pbiInCity && !googleInCity) {
+          // PBI in city, Google outside → PBI wins
+          result[row.custId] = { aiLat:+row.pbiLat.toFixed(6), aiLng:+row.pbiLng.toFixed(6), src:'pbi' };
+          fromPbi++; continue;
+        }
+        if (!pbiInCity && googleInCity) {
+          // PBI outside city, Google inside → Google wins (PBI has wrong city coords)
+          result[row.custId] = { aiLat:+row.gLat.toFixed(6), aiLng:+row.gLng.toFixed(6), src:'google' };
+          fromGoogle++; continue;
+        }
+        if (pbiInCity && googleInCity) {
+          // Both in city but disagree — PBI has branch-specific coords, trust it
+          result[row.custId] = { aiLat:+row.pbiLat.toFixed(6), aiLng:+row.pbiLng.toFixed(6), src:'pbi' };
+          fromPbi++; continue;
+        }
+        // Neither in city → fall through to Overpass
       }
     }
 
     if (!row.gOk) { needOverpass.push(row); continue; }
-    if (inBBox(row.gLat, row.gLng, bbox)) {
+    if (googleInCity) {
       result[row.custId] = { aiLat:+row.gLat.toFixed(6), aiLng:+row.gLng.toFixed(6), src:'google' };
       fromGoogle++;
     } else {
