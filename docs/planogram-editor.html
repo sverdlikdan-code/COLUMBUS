@@ -68,8 +68,9 @@
     .grid-page-break { display: none; }
     #expiry-print-header { display: none; }
 
-    /* Bar chart in expiry cards — screen hidden, print only for sakana */
+    /* Bar chart in expiry cards — visible only in sakana-filter mode or on print */
     .spark-only-print { display: none; }
+    body.sakana-active .spark-only-print { display: block; }
     body.printing-expiry .spark-only-print { display: block; }
     @media print { .spark-only-print { display: block; } }
 
@@ -4066,6 +4067,7 @@ function _syncFilterBtns() {
   const bz  = document.getElementById('btn-zafn-low-filter');
   const bcw = document.getElementById('btn-combined-wh');
   if (bs)  { bs.style.background  = window._expiryOnlySakana    ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)'; bs.style.color  = window._expiryOnlySakana    ? '#c62828' : '#fff'; }
+  document.body.classList.toggle('sakana-active', !!window._expiryOnlySakana);
   if (bsp) { bsp.style.background = window._expirySortSakanaPct ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)'; bsp.style.color = window._expirySortSakanaPct ? '#c62828' : '#fff'; }
   if (bz)  { bz.style.background  = window._expiryZafnLow       ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)'; bz.style.color  = window._expiryZafnLow       ? '#c62828' : '#fff'; }
   if (bcw) { bcw.style.background = window._expiryMauchad       ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)'; bcw.style.color = window._expiryMauchad       ? '#c62828' : '#fff'; }
