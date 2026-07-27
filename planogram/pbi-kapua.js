@@ -469,7 +469,6 @@ async function fetchWeeklySales(makatim) {
         "wk_avg", [מכר ממוצע ביום]
       ),
       'ALL_PARTS'[חברה] = "FORMULA",
-      'ALL_PARTS'[מחסן] = "Main",
       FILTER(ALL('ALL_PARTS'),
         'ALL_PARTS'[תאריך] >= TODAY() - WEEKDAY(TODAY(), 1) - 41 &&
         'ALL_PARTS'[תאריך] <  TODAY() - WEEKDAY(TODAY(), 1) + 1
