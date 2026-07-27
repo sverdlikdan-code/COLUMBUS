@@ -1415,6 +1415,15 @@ async function loadMaps() {
     photoMap      = pm;
     makatEan      = me;
     productData   = pd;
+    // Recalculate daysLeft from pak.date — stored value is from build time, may be stale
+    { const _t0 = Date.now();
+      for (const d of Object.values(productData)) {
+        for (const arr of [d.pakuot, d.pakuotZafn, d.pakuotAll]) {
+          if (!Array.isArray(arr)) continue;
+          for (const p of arr) { if (p && p.date) p.daysLeft = Math.round((new Date(p.date).getTime() - _t0) / 86400000); }
+        }
+      }
+    }
     productPhotos = pp;
     dyBase        = dy;
 
