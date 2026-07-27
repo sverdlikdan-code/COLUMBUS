@@ -1498,8 +1498,9 @@
       }
 
       let gAsh = 0, gEil = 0, gMav = 0, gMmd = 0, gMkr = 0, gHaml = 0, gOrd = 0;
+      let gSumCur = 0, gSumPrv = 0;
 
-      // Group header row
+      // Group header row — trend will be appended after rows accumulate
       const hdr = document.createElement('tr');
       hdr.className = 'fam-hdr';
       hdr.innerHTML = '<td colspan="14">📦 ' + esc(grp) + ' <span style="font-weight:400;opacity:.5;font-size:.68rem">(' + grpRows.length + ')</span></td>';
@@ -1543,6 +1544,7 @@
         if (mkr != null) gMkr += mkr;
         gHaml += haml;
         if (eff > 0) { gOrd += eff; nOrd++; }
+        if (r.mkr_shvua != null && r.mkr_prev6 != null && r.mkr_prev6 > 0) { gSumCur += r.mkr_shvua; gSumPrv += r.mkr_prev6; }
         // accumulate per-company
         if (eff > 0) coMap[r.hevra || '—'] = (coMap[r.hevra || '—'] || 0) + eff;
 
@@ -1588,6 +1590,16 @@
           '<td class="col-g' + (yamim != null && yamim < 14 ? ' tk-lo' : '') + '">' + buildPrtimCell(mk, r.tukuf, nts) + '</td>';
         tb.appendChild(tr);
       });
+
+      // Append group מגמה to header after accumulation
+      if (gSumPrv > 0) {
+        const gTrPct = Math.round((gSumCur / gSumPrv - 1) * 100);
+        const trClr  = gTrPct > 10 ? '#2e7d32' : gTrPct < -10 ? '#c62828' : '#b08c00';
+        const trArrow = gTrPct > 10 ? '▲' : gTrPct < -10 ? '▼' : '➡';
+        const trSign  = gTrPct > 0 && gTrPct <= 10 ? '+' : '';
+        hdr.querySelector('td').insertAdjacentHTML('beforeend',
+          ' <span style="color:' + trClr + ';font-weight:700;font-size:.78rem;margin-right:10px;letter-spacing:0.3px">' + trArrow + trSign + gTrPct + '% מגמה</span>');
+      }
 
       tAsh += gAsh; tEil += gEil; tMav += gMav; tMmd += gMmd;
       tMkr += gMkr; tHaml += gHaml; tOrd += gOrd;
