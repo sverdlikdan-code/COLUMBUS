@@ -393,7 +393,7 @@ let gpsCorrectMode = false, gpsCorrectId = null;
 
 async function loadCorrections(){
   try{
-    const r=await fetch('./gps-corrections.json?_='+Date.now());
+    const r=await apiFetch(API+'/gps-corrections.json');
     if(r.ok){
       gpsCorrections=await r.json();
     }
