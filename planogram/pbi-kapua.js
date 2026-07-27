@@ -455,9 +455,8 @@ async function fetchWeeklySales(makatim) {
   if (!makatim || !makatim.length) return {};
   const t = await getToken();
   const makatList = makatim.map(m => `"${String(m).replace(/"/g, '')}"`).join(',');
-  // WEEKNUM(date,1) = Sunday-based week number. Filter = 6 full weeks (42 days) ending last Saturday.
-  // TODAY() - WEEKDAY(TODAY(),1) + 1 = this Sunday. 6 weeks back = -42 from there.
-  // Filter: date >= thisWeekSunday - 42  AND  date < thisWeekSunday
+  // Use ALL_PARTS[שבוע] (built-in week column) + measure [TOTAL מכר בקרטונים ממוצע ביום].
+  // avg_day * 7 = weekly cartons. Filter = last 6 full Sun-Sat weeks (42 days ending last Saturday).
   const rows = await dax(t, `
     EVALUATE
     CALCULATETABLE(
@@ -465,10 +464,9 @@ async function fetchWeeklySales(makatim) {
         SUMMARIZE(
           'ALL_PARTS',
           'ALL_PARTS'[מק'ט],
-          "yr",  YEAR('ALL_PARTS'[תאריך]),
-          "wk",  WEEKNUM('ALL_PARTS'[תאריך], 1)
+          'ALL_PARTS'[שבוע]
         ),
-        "total_kart", CALCULATE(SUM('ALL_PARTS'[כמות בקרטונים]))
+        "avg_day", [TOTAL מכר בקרטונים ממוצע ביום]
       ),
       'ALL_PARTS'[חברה] = "FORMULA",
       'ALL_PARTS'[מחסן] = "Main",
@@ -478,37 +476,45 @@ async function fetchWeeklySales(makatim) {
       ),
       'ALL_PARTS'[מק'ט] IN {${makatList}}
     )
-    ORDER BY 'ALL_PARTS'[מק'ט], [yr], [wk]
+    ORDER BY 'ALL_PARTS'[מק'ט], 'ALL_PARTS'[שבוע]
   `).catch(e => { console.warn('fetchWeeklySales DAX error:', e.message); return []; });
 
-  // Compute Sunday date for a given (yr, wk) from WEEKNUM type 1
+  // Derive week start date from WEEKNUM type-1 (Sunday-based) — same as ALL_PARTS[שבוע].
+  // Since we filter to last 42 days, we try current year then previous year.
+  const today = new Date();
+  const windowStart = new Date(today.getTime() - (today.getDay() + 41) * 86400000);
   function weekStartDate(yr, wk) {
     const jan1 = new Date(yr, 0, 1);
-    const jan1dow = jan1.getDay(); // 0=Sun
-    const week1Sun = new Date(jan1.getTime() - jan1dow * 86400000);
+    const week1Sun = new Date(jan1.getTime() - jan1.getDay() * 86400000);
     return new Date(week1Sun.getTime() + (wk - 1) * 7 * 86400000);
+  }
+  function resolveWeekDate(wk) {
+    for (const yr of [today.getFullYear(), today.getFullYear() - 1]) {
+      const d = weekStartDate(yr, wk);
+      if (d >= windowStart && d <= today) return d;
+    }
+    return weekStartDate(today.getFullYear(), wk);
   }
 
   const byMakat = {};
   for (const r of rows) {
     const mk  = String(r["ALL_PARTS[מק'ט]"] ?? '');
-    const yr  = r['[yr]'];
-    const wk  = r['[wk]'];
-    const val = +(r['[total_kart]'] || 0);
-    if (!mk) continue;
+    const wk  = r["ALL_PARTS[שבוע]"];
+    const val = Math.round((+(r['[avg_day]'] || 0)) * 7);
+    if (!mk || !wk) continue;
     if (!byMakat[mk]) byMakat[mk] = [];
-    byMakat[mk].push({ yr, wk, val });
+    byMakat[mk].push({ wk, val });
   }
 
   const result = {};
   for (const [mk, weeks] of Object.entries(byMakat)) {
-    weeks.sort((a, b) => a.yr - b.yr || a.wk - b.wk);
+    weeks.sort((a, b) => a.wk - b.wk);
     const last6 = weeks.slice(-6);
-    while (last6.length < 6) last6.unshift({ yr: last6[0]?.yr || new Date().getFullYear(), wk: 0, val: 0 });
-    const totals = last6.map(w => Math.round(w.val));
+    while (last6.length < 6) last6.unshift({ wk: 0, val: 0 });
+    const totals = last6.map(w => w.val);
     const dates  = last6.map(w => {
       if (!w.wk) return '';
-      const d = weekStartDate(w.yr, w.wk);
+      const d = resolveWeekDate(w.wk);
       return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
     });
     result[mk] = { totals, dates };
