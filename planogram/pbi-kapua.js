@@ -512,11 +512,7 @@ async function fetchWeeklySales(makatim) {
     const last6 = weeks.slice(-6);
     while (last6.length < 6) last6.unshift({ wk: 0, val: 0 });
     const totals = last6.map(w => w.val);
-    const dates  = last6.map(w => {
-      if (!w.wk) return '';
-      const d = resolveWeekDate(w.wk);
-      return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
-    });
+    const dates  = last6.map(w => w.wk ? `שב${w.wk}` : '');
     result[mk] = { totals, dates };
   }
   return result;
