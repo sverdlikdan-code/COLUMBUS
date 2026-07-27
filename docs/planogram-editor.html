@@ -4102,10 +4102,10 @@ function _sparkSvg(weekSales, weekDates) {
     const bh   = Math.max(2, Math.round(pct * (BAR_AREA_H - 10)));
     const y    = BAR_AREA_H - bh;
     const isLast = i === N - 1;
-    const fill = isLast ? '#ef8c00' : '#1e88e5';
-    const valTxt = v > 0 ? `<text x="${(x + barW/2).toFixed(1)}" y="${(y - 2).toFixed(1)}" text-anchor="middle" font-size="7" fill="${isLast ? '#ef8c00' : '#555'}" font-weight="700" font-family="Arial">${v}</text>` : '';
+    const fill = isLast ? '#757575' : '#bdbdbd';
+    const valTxt = v > 0 ? `<text x="${(x + barW/2).toFixed(1)}" y="${(y - 2).toFixed(1)}" text-anchor="middle" font-size="7" fill="${isLast ? '#424242' : '#757575'}" font-weight="700" font-family="Arial">${v}</text>` : '';
     const lbl  = dates[i] || `שב${i+1}`;
-    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${bh}" rx="2" fill="${fill}" opacity="${isLast ? '1' : '0.75'}"/>
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${bh}" rx="2" fill="${fill}" opacity="${isLast ? '1' : '0.85'}"/>
     ${valTxt}
     <text x="${(x + barW/2).toFixed(1)}" y="${TOTAL_H - 1}" text-anchor="middle" font-size="7" fill="#999" font-family="Arial">${lbl}</text>`;
   }).join('');
@@ -4114,7 +4114,7 @@ function _sparkSvg(weekSales, weekDates) {
     <svg viewBox="0 0 ${W} ${TOTAL_H}" width="100%" height="${TOTAL_H}" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible;">
       ${bars}
     </svg>
-    <div style="font-size:6.5px;color:#aaa;text-align:center;letter-spacing:0.3px;margin-top:1px;">6 שבועות אחרונים — קרטונים</div>
+    <div style="font-size:6.5px;color:#aaa;text-align:center;letter-spacing:0.3px;margin-top:1px;">6 שבועות אחרונים — ממוצע קרטון/יום</div>
   </div>`;
 }
 

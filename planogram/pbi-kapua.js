@@ -455,7 +455,7 @@ async function fetchWeeklySales(makatim) {
   if (!makatim || !makatim.length) return {};
   const t = await getToken();
   const makatList = makatim.map(m => `"${String(m).replace(/"/g, '')}"`).join(',');
-  // Use [TOTAL מכר בקרטונים] — true total cartons per week (not average * 7).
+  // Use [מכר ממוצע ביום] — average daily cartons per week (avoids spike from large one-off orders).
   // Filter = last 6 full Sun-Sat weeks (42 days ending last Saturday).
   const rows = await dax(t, `
     EVALUATE
@@ -466,7 +466,7 @@ async function fetchWeeklySales(makatim) {
           'ALL_PARTS'[מק'ט],
           'ALL_PARTS'[שבוע]
         ),
-        "wk_krt", [TOTAL מכר בקרטונים]
+        "wk_avg", [מכר ממוצע ביום]
       ),
       'ALL_PARTS'[חברה] = "FORMULA",
       'ALL_PARTS'[מחסן] = "Main",
@@ -500,7 +500,7 @@ async function fetchWeeklySales(makatim) {
   for (const r of rows) {
     const mk  = String(r["ALL_PARTS[מק'ט]"] ?? '');
     const wk  = r["ALL_PARTS[שבוע]"];
-    const val = Math.round(+(r['[wk_krt]'] || 0));
+    const val = Math.round((+(r['[wk_avg]'] || 0)) * 10) / 10;
     if (!mk || !wk) continue;
     if (!byMakat[mk]) byMakat[mk] = [];
     byMakat[mk].push({ wk, val });
