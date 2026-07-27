@@ -2444,10 +2444,10 @@ window.openInfoPanel = function(mk, taur) {
     var maxV = Math.max.apply(null, vals.map(function(v){ return v || 0; }).concat([0.1]));
     var BAR_MAX_H = 110;
 
-    // RTL layout: last6 (bright) LEFT [indices 6-11], prev6 (faded) RIGHT [indices 0-5]
+    // RTL layout: prev6 (faded) RIGHT [indices 0-5], last6 (bright) LEFT [indices 6-11]
     var groups = [
-      { idxStart: 6, isPrev: false, periodVal: cur },
-      { idxStart: 0, isPrev: true,  periodVal: prv }
+      { idxStart: 0, isPrev: true,  periodVal: prv },
+      { idxStart: 6, isPrev: false, periodVal: cur }
     ];
 
     groups.forEach(function(grp, gi) {
