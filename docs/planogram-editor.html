@@ -70,6 +70,7 @@
 
     /* Bar chart in expiry cards — screen hidden, print only for sakana */
     .spark-only-print { display: none; }
+    body.printing-expiry .spark-only-print { display: block; }
     @media print { .spark-only-print { display: block; } }
 
     /* Print styles */
@@ -1290,7 +1291,7 @@ window.printPhotoA3 = function() {
     .img-wrap img{max-width:100%;max-height:100%;object-fit:contain}
     .no-img{width:180px;height:180px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:64px;border-radius:12px}
     .name{font-size:44px;font-weight:bold;text-align:center;color:#111;max-width:100%;unicode-bidi:plaintext;line-height:1.3}
-    .name-emoji{font-size:90px;text-align:center;line-height:1;margin-bottom:4px}
+    .name-emoji{font-size:200px;text-align:center;line-height:1;margin-bottom:0}
   </style></head><body>${pages}</body></html>`);
   win.document.close();
   win.focus();
