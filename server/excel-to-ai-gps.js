@@ -117,17 +117,30 @@ async function main() {
   const result = {};
   let fromPbi=0, fromGoogle=0, fromOverpass=0, rejected=0;
 
-  // Step 1: PBI wins when valid + Google is far (>2000m) — no API calls needed
+  // Detect PBI placeholder coordinates: if the same lat/lng appears for >2 clients it's a default
+  const pbiCoordFreq = new Map();
+  for (const row of rows) {
+    if (!isValidIL(row.pbiLat, row.pbiLng)) continue;
+    const key = `${row.pbiLat.toFixed(4)},${row.pbiLng.toFixed(4)}`;
+    pbiCoordFreq.set(key, (pbiCoordFreq.get(key) || 0) + 1);
+  }
+  function isPbiPlaceholder(lat, lng) {
+    const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+    return (pbiCoordFreq.get(key) || 0) > 2;
+  }
+
+  // Step 1: PBI wins when valid + Google is far (>2000m) + PBI is not a placeholder
   // Otherwise: Google wins when within city bbox
   const needOverpass = [];
   for (const row of rows) {
     const pbiOk = isValidIL(row.pbiLat, row.pbiLng);
     const bbox  = bboxCache.get(row.city) ?? null;
 
-    const pbiInCity    = pbiOk  && inBBox(row.pbiLat, row.pbiLng, bbox);
+    const pbiIsPlaceholder = pbiOk && isPbiPlaceholder(row.pbiLat, row.pbiLng);
+    const pbiInCity    = pbiOk  && !pbiIsPlaceholder && inBBox(row.pbiLat, row.pbiLng, bbox);
     const googleInCity = row.gOk && inBBox(row.gLat,  row.gLng,  bbox);
 
-    if (pbiOk && row.gOk) {
+    if (pbiOk && row.gOk && !pbiIsPlaceholder) {
       const dist = haversine(row.pbiLat, row.pbiLng, row.gLat, row.gLng);
       if (dist > 2000) {
         if (pbiInCity && !googleInCity) {
