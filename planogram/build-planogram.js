@@ -984,7 +984,9 @@ async function main() {
   }
 
   // ── EXTRA SHEETS: Trn (transit/blocked) + Zafn danger < 3 days ───────────
-  const { trn, zafn } = await fetchExtraSheets();
+  let trn = [], zafn = { under3: [], sakana: [] };
+  try { ({ trn, zafn } = await fetchExtraSheets()); }
+  catch (e) { console.warn('⚠ fetchExtraSheets failed:', e.message, '— skipping Trn/Zafn sheets'); }
 
   // Sheet: מחסן מעבר (Trn) — stock list, sorted by stock desc
   {
@@ -1340,33 +1342,40 @@ async function main() {
     // reuse that data instead of hitting PBI again (second CI run has rate-limit risk from prior queries).
     {
       let yaveshAdded = 0;
+      let dagimYaveshData = {}; // declared here so reserve-sync block below can reference it safely
       if (process.env.SKIP_YAVESH_FETCH === '1') {
         for (const [mk, v] of Object.entries(prevYaveshData)) { prodData[mk] = v; yaveshAdded++; }
         console.log(`דג יבש: SKIP_YAVESH_FETCH — reused ${yaveshAdded} entries from product-data.json`);
       } else {
-        const { dagimYaveshData } = await fetchDagimYaveshFromBI(dagyaveshMakatim);
-        for (const [mk, d] of Object.entries(dagimYaveshData)) {
-          if (d.stock <= 0 && !d.daySales365) continue; // keep if stock OR sold in last 365d
-          const stockAll = d.pakuotAll.reduce((s, p) => s + (p.cartons || 0), 0);
-          prodData[mk] = {
-            stock:        d.stock        || 0,
-            daySales:     d.daySales     || null,
-            daySales365:  d.daySales365  || null,
-            pakuot:       d.pakuot       || [],
-            pakuotAll:    d.pakuotAll    || [],
-            daySalesAll:  d.daySalesAll  || null,
-            daysStockAll: (d.daySalesAll > 0 && stockAll > 0) ? Math.round(stockAll / d.daySalesAll) : null,
-            stockZafn:    d.stockZafn    || null,
-            daySalesZafn: d.daySalesZafn || null,
-            pakuotZafn:   d.pakuotZafn   || [],
-            nameEn:       d.nameEn ? fixVisualRTL(d.nameEn) : (d.desc ? fixVisualRTL(d.desc) : null),
-            desc:         d.desc  ? fixVisualRTL(d.desc)  : null,
-            shelfLife:    d.shelfLife    ?? null,
-            yavesh:       true,
-          };
-          yaveshAdded++;
+        try {
+          const result = await fetchDagimYaveshFromBI(dagyaveshMakatim);
+          dagimYaveshData = result.dagimYaveshData;
+          for (const [mk, d] of Object.entries(dagimYaveshData)) {
+            if (d.stock <= 0 && !d.daySales365) continue; // keep if stock OR sold in last 365d
+            const stockAll = d.pakuotAll.reduce((s, p) => s + (p.cartons || 0), 0);
+            prodData[mk] = {
+              stock:        d.stock        || 0,
+              daySales:     d.daySales     || null,
+              daySales365:  d.daySales365  || null,
+              pakuot:       d.pakuot       || [],
+              pakuotAll:    d.pakuotAll    || [],
+              daySalesAll:  d.daySalesAll  || null,
+              daysStockAll: (d.daySalesAll > 0 && stockAll > 0) ? Math.round(stockAll / d.daySalesAll) : null,
+              stockZafn:    d.stockZafn    || null,
+              daySalesZafn: d.daySalesZafn || null,
+              pakuotZafn:   d.pakuotZafn   || [],
+              nameEn:       d.nameEn ? fixVisualRTL(d.nameEn) : (d.desc ? fixVisualRTL(d.desc) : null),
+              desc:         d.desc  ? fixVisualRTL(d.desc)  : null,
+              shelfLife:    d.shelfLife    ?? null,
+              yavesh:       true,
+            };
+            yaveshAdded++;
+          }
+          console.log(`דג יבש: ${yaveshAdded} מקטים → product-data.json`);
+        } catch (e) {
+          console.warn(`⚠ fetchDagimYaveshFromBI failed: ${e.message} — using Phase1 stock data only`);
+          // dagimYaveshData stays {}, Phase1 (fetchStockMain) data is already in prodData
         }
-        console.log(`דג יבש: ${yaveshAdded} מקטים → product-data.json`);
       }
 
       // Force yavesh:true on all base picks
@@ -1377,7 +1386,8 @@ async function main() {
       }
 
       // ── dagim-yavesh-base.json: auto-sync new products into reserve slots ──
-      {
+      // Only runs when fetchDagimYaveshFromBI succeeded (dagimYaveshData has entries)
+      if (Object.keys(dagimYaveshData).length > 0) {
         const ybPath = path.join(__dirname, '..', 'docs', 'dagim-yavesh-base.json');
         const yb = JSON.parse(fs.readFileSync(ybPath, 'utf8'));
         const ybPicks = yb.picks || yb;
