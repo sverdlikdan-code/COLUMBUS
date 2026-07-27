@@ -1169,7 +1169,7 @@ async function main() {
     // ── product-data.json ────────────────────────────────────────────────
     // Preserve stable fields from existing file — survives workflow errors/missing Fabric data
     const existingProdDataPath = path.join(__dirname,'..','docs','product-data.json');
-    let prevAshdod = {}, prevPackFactor = {}, prevWeightCarton = {}, prevYaveshData = {};
+    let prevAshdod = {}, prevPackFactor = {}, prevWeightCarton = {}, prevYaveshData = {}, prevWeekSales = {};
     try {
       const prev = JSON.parse(fs.readFileSync(existingProdDataPath, 'utf8'));
       for (const [mk, v] of Object.entries(prev)) {
@@ -1177,6 +1177,7 @@ async function main() {
         if (v && v.packFactor          != null) prevPackFactor[mk] = v.packFactor;
         if (v && v.weightCarton        != null) prevWeightCarton[mk] = v.weightCarton;
         if (v && v.yavesh)                      prevYaveshData[mk]  = v;
+        if (v && v.weekSales)                   prevWeekSales[mk]   = { weekSales: v.weekSales, weekDates: v.weekDates };
       }
     } catch {}
 
@@ -1435,6 +1436,19 @@ async function main() {
     // ── weekly sales trend (last 6 full Israeli Sun-Sat weeks) ──────────────
     {
       const allMks = Object.keys(prodData);
+      // Run 2 (SKIP_YAVESH_FETCH=1): kapua/halavi/dagim fetches may have hit rate limits.
+      // Restore weekSales from Run 1's product-data.json for any product missing it.
+      if (process.env.SKIP_YAVESH_FETCH === '1') {
+        let restored = 0;
+        for (const mk of allMks) {
+          if (!prodData[mk].weekSales && prevWeekSales[mk]) {
+            prodData[mk].weekSales = prevWeekSales[mk].weekSales;
+            prodData[mk].weekDates = prevWeekSales[mk].weekDates;
+            restored++;
+          }
+        }
+        if (restored > 0) console.log(`weekSales: restored ${restored} from prev (SKIP_YAVESH_FETCH)`);
+      }
       const weekMap = await fetchWeeklySales(allMks).catch(e => {
         console.warn('⚠ fetchWeeklySales (non-fatal):', e.message);
         return {};
