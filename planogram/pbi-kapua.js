@@ -456,7 +456,7 @@ async function fetchWeeklySales(makatim) {
   if (!makatim || !makatim.length) return {};
   const t = await getToken();
   const makatList = makatim.map(m => `"${String(m).replace(/"/g, '')}"`).join(',');
-  // Use [מכר ממוצע ביום] — average daily cartons per week (avoids spike from large one-off orders).
+  // Use [TOTAL מכר בקרטונים ממוצע ביום] — average daily cartons per week.
   // Filter = last 6 full Sun-Sat weeks (42 days ending last Saturday).
   const rows = await dax(t, `
     EVALUATE
@@ -467,7 +467,7 @@ async function fetchWeeklySales(makatim) {
           'ALL_PARTS'[מק'ט],
           'ALL_PARTS'[שבוע]
         ),
-        "wk_avg", [מכר ממוצע ביום]
+        "wk_avg", [TOTAL מכר בקרטונים ממוצע ביום]
       ),
       'ALL_PARTS'[חברה] = "FORMULA",
       FILTER(ALL('ALL_PARTS'),
