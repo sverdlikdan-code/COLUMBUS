@@ -4110,8 +4110,8 @@ function _sparkSvg(weekSales, weekDates) {
     <text x="${(x + barW/2).toFixed(1)}" y="${TOTAL_H - 1}" text-anchor="middle" font-size="7" fill="#999" font-family="Arial">${lbl}</text>`;
   }).join('');
   const tooltip = vals.map((v,i) => `${dates[i]||('שב'+(i+1))}: ${v}`).join(' | ');
-  return `<div title="${tooltip}" style="margin-top:4px;">
-    <svg viewBox="0 0 ${W} ${TOTAL_H}" width="${W}" height="${TOTAL_H}" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible;">
+  return `<div title="${tooltip}" style="margin-top:4px;width:100%;box-sizing:border-box;">
+    <svg viewBox="0 0 ${W} ${TOTAL_H}" width="100%" height="${TOTAL_H}" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible;">
       ${bars}
     </svg>
     <div style="font-size:6.5px;color:#aaa;text-align:center;letter-spacing:0.3px;margin-top:1px;">6 שבועות אחרונים — קרטונים</div>
