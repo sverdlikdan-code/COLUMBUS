@@ -4337,7 +4337,7 @@ function buildExpiryPage() {
             <thead><tr><th style="padding:2px 8px;background:${cThBg};font-size:9px;color:${cThClr};text-align:right;">${cThTxt}</th></tr></thead>
             <tbody>${batchRowsCombined}</tbody>
             <tfoot><tr><td style="padding:4px 8px;border-top:2px solid #e0e0e0;background:#f5f7fa;">
-              ${combinedSales > 0 ? `<div style="font-size:9px;color:#666;">ממוצע מכירה כולל: <b style="color:#222;">${combinedSales.toFixed(1)} קרט/יום</b></div>` : '<div style="font-size:9px;color:#bbb;">אין נתוני מכירה</div>'}
+              ${combinedSales > 0 ? `<div style="font-size:9px;color:#666;">ממוצע מכירה כולל: <b style="color:#222;">${combinedSales.toFixed(1)} קרט/יום</b> <span style="color:#aaa;font-size:8px;">(45 יום אחורה)</span></div>` : '<div style="font-size:9px;color:#bbb;">אין נתוני מכירה</div>'}
               ${_sparkSvg(productData[String(mk)]?.weekSales, productData[String(mk)]?.weekDates)}
             </td></tr></tfoot>
           </table>
@@ -4377,12 +4377,12 @@ function buildExpiryPage() {
             <tr>
               <td style="padding:4px 6px;border-top:2px solid #e0e0e0;background:#f5f7fa;line-height:1.7;">${
                 salesMain > 0
-                  ? `<div style="font-size:9px;color:#666;">ממוצע מכירה: <b style="color:#222;">${salesMain.toFixed(1)} קרט/יום</b></div>`
+                  ? `<div style="font-size:9px;color:#666;">ממוצע מכירה: <b style="color:#222;">${salesMain.toFixed(1)} קרט/יום</b> <span style="color:#aaa;font-size:8px;">(45 יום אחורה)</span></div>`
                   : '<div style="font-size:9px;color:#bbb;">אין נתוני מכירה</div>'
               }</td>
               <td style="padding:4px 6px;border-top:2px solid #e0e0e0;border-right:2px solid #e0e0e0;background:#f5f7fa;line-height:1.7;">${
                 salesZafn > 0
-                  ? `<div style="font-size:9px;color:#666;">ממוצע מכירה: <b style="color:#222;">${salesZafn.toFixed(1)} קרט/יום</b></div>`
+                  ? `<div style="font-size:9px;color:#666;">ממוצע מכירה: <b style="color:#222;">${salesZafn.toFixed(1)} קרט/יום</b> <span style="color:#aaa;font-size:8px;">(45 יום אחורה)</span></div>`
                   : '<div style="font-size:9px;color:#bbb;">אין נתוני מכירה</div>'
               }</td>
             </tr>
