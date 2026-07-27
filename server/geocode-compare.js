@@ -127,12 +127,10 @@ DISTINCT(SELECTCOLUMNS(
     i++;
     const pbiOk = isValidIL(c.pbiLat, c.pbiLng);
 
-    // Google: chains by name+city only (addresses from Priority are often garbled)
+    // Google: name+addr+city for all (chains too — address helps pick the right branch)
     // Normalize city for query (תל אביב יפו → תל אביב) but keep original for bbox
     const qCity = normCityQ(c.city);
-    const gq = c.custType === 'רשתות'
-      ? [c.name, qCity].filter(Boolean).join(', ')
-      : [c.name, c.addr, qCity].filter(Boolean).join(', ');
+    const gq = [c.name, c.addr, qCity].filter(Boolean).join(', ');
     const g = await googleQuery(gq);
     const gOk = g && isValidIL(g.lat, g.lng);
 
