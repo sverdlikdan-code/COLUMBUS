@@ -638,6 +638,10 @@
        style="height:52px; opacity:1; filter:brightness(0) invert(1);">
 </div>
 
+<div id="stale-banner" style="display:none;background:#b45309;color:#fff;font-size:13px;font-weight:bold;text-align:center;padding:6px 16px;letter-spacing:0.3px;">
+  ⚠ PBI данные устарели — последнее обновление: <span id="stale-banner-date"></span>. Обратитесь к администратору.
+</div>
+
 <div class="tabs">
   <button class="tab active" data-sec="kapua"  onclick="switchTab('kapua',this)"><span>❄️ קפוא</span><span class="tab-pal" id="tab-pal-kapua"></span></button>
   <button class="tab"        data-sec="halavi" onclick="switchTab('halavi',this)"><span>🥛 חלבי</span><span class="tab-pal" id="tab-pal-halavi"></span></button>
@@ -1575,6 +1579,20 @@ async function loadMaps() {
     if (ri && ri.label) {
       document.getElementById('refresh-badge').textContent = '🔄 ' + ri.label;
     }
+    // Stale data banner — show if PBI refresh > 36 hours ago
+    function _checkStaleBanner(isoStr) {
+      if (!isoStr) return;
+      const ageH = (Date.now() - new Date(isoStr).getTime()) / 3600000;
+      const banner = document.getElementById('stale-banner');
+      if (!banner) return;
+      if (ageH > 36) {
+        document.getElementById('stale-banner-date').textContent = ri?.label || isoStr;
+        banner.style.display = 'block';
+      } else {
+        banner.style.display = 'none';
+      }
+    }
+    _checkStaleBanner(ri?.iso);
 
     // Fetch real PBI refresh time (overrides static refresh-info.json date)
     const _frTok = localStorage.getItem('frToken') || '';
@@ -1591,6 +1609,7 @@ async function loadMaps() {
         if (ordBadge) ordBadge.textContent = '🔄 PBI ' + label;
         const spPbi = document.getElementById('splash-pbi-date');
         if (spPbi) spPbi.textContent = '🔄 PBI: ' + label;
+        _checkStaleBanner(j.refreshedAt);
       });
 
     // Persist reset state so ALL users see fresh layout without manual איפוס
