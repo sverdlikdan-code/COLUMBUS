@@ -1,6 +1,11 @@
 name: MAHSAN Planogram Build
 
 on:
+  push:
+    branches: [master]
+    paths:
+      - 'planogram/**'
+      - '.github/workflows/planogram-build.yml'
   schedule:
     # 06:00 Israel (UTC+3) = 03:00 UTC
     - cron: '0 3 * * *'
