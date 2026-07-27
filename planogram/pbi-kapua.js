@@ -1,3 +1,4 @@
+/** @updated 2026-07-27 */
 /**
  * Fetch קפוא live data from Power BI / Fabric (replaces קפוא.xlsx)
  * Returns: Map<makat, { desc, stock, daySales }>
