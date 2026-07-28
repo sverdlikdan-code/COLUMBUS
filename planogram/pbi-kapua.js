@@ -442,7 +442,12 @@ async function fetchKapuaFromBI(makatim) {
   for (const r of nameEnRows) {
     const mk   = String(r['KARTIS PARIT[מק"ט]'] || '');
     const name = r['KARTIS PARIT[תאור]'];
-    if (mk) nameEnMap[mk] = (name && name.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim()) || null;
+    if (!mk) continue;
+    // Prefer MLAY[תאור מוצר] (full name with brand) over KARTIS PARIT[תאור] (short generic name)
+    const mlayName = result[mk]?.desc;
+    nameEnMap[mk] = (mlayName && mlayName.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim())
+                 || (name   && name.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim())
+                 || null;
   }
 
   console.log(`Power BI קפוא: ${Object.keys(result).length} total (${newMks.length} new) | ${noStk} zero-stock | ${withSales} with sales`);
