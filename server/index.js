@@ -3476,7 +3476,7 @@ app.get('/territory-planner.html', (req, res) => {
 app.get('/territory.html', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'territory.html'));
 });
-app.get('/priority-gps.html', requireAuth, (req, res) => {
+app.get('/priority-gps.html', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'priority-gps.html'));
 });
 app.get('/priority-gps-cross.json', requireAuth, (req, res) => {
