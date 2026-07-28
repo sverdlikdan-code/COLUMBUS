@@ -4221,7 +4221,7 @@ function buildExpiryPage() {
   if (cards.length > 0) {
     const secLabel = SEC_NAMES[sec] || sec;
     const _cardHtmls = cards.map(({ pick, p, mk, d, salesMain, salesZafn, shelfLife, batches, sakanaMain, sakanaZafn }) => {
-    const name = d.nameEn || p.name || d.desc || p.fam || mk;
+    const name = p.name || d.desc || p.fam || d.nameEn || mk;
     // Product-level STOP SALE: ALL batches with stock are fully blocked (per PBI formula /1.4)
     const isBatchStop = (b, sales) => {
       if (!(b.cartons > 0)) return true; // empty = not counted
