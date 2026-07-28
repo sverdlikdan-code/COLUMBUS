@@ -115,6 +115,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .sort-btn.active-priority{color:var(--blue);border-color:var(--blue);background:var(--sky-light);box-shadow:0 2px 8px rgba(21,101,192,.18);}
 .sort-btn.active-ai{color:var(--green);border-color:var(--green);background:#E8F5E9;box-shadow:0 2px 8px rgba(27,123,52,.18);}
 .sort-btn.active-ai-google{color:#7B1FA2;border-color:#7B1FA2;background:#F3E5F5;box-shadow:0 2px 8px rgba(123,31,162,.18);}
+.sort-btn.active-tablet{color:#E65100;border-color:#E65100;background:#FFF3E0;box-shadow:0 2px 8px rgba(230,81,0,.18);}
 .day-switch{display:flex;gap:4px;flex-shrink:0;}
 .day-sw-btn{width:44px;height:44px;border-radius:12px;background:var(--sky-light);border:2px solid var(--sky-mid);font-size:19px;font-weight:900;color:var(--blue-dark);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;box-shadow:0 1px 4px rgba(21,101,192,.10);}
 .day-sw-btn:hover{background:var(--sky-mid);transform:translateY(-1px);}
@@ -421,6 +422,7 @@ body.gps-fs #map{height:100%!important;}
       <div class="sort-btns">
         <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')">לפי סדר ביקור</button>
         <button class="sort-btn active-ai-google" id="sort-btn-ai-google" onclick="toggleAiGps()">🤖 AI Google</button>
+        <button class="sort-btn" id="sort-btn-tablet" onclick="toggleTabletGps()">📱 GPS Tablet</button>
         <button class="sort-btn" id="day-briefing-btn" onclick="alert('כרגע בפיתוח 🔧')" title="ניתוח יום — TOP 10 לקוחות" style="background:#5C6BC0;color:#fff;border-color:#3F51B5;font-weight:900">📊 ניתוח</button>
         <div class="km-more-wrap">
           <button class="sort-btn km-more-btn" id="km-more-btn" onclick="toggleKmMore()" title="עוד פעולות">⋮</button>
@@ -629,6 +631,17 @@ async function loadAiGps(){
   }catch(_){}
 }
 
+let TABLET_GPS = {}; // custId → {lat, lng} from priority-gps-cross.json (order GPS)
+async function loadTabletGps(){
+  try{
+    const r=await fetch('/priority-gps-cross.json?_='+Date.now());
+    if(!r.ok) return;
+    const arr=await r.json();
+    arr.forEach(row=>{ if(row.cust&&row.lat&&row.lng) TABLET_GPS[String(row.cust)]={lat:row.lat,lng:row.lng}; });
+    console.log('Tablet GPS loaded:',Object.keys(TABLET_GPS).length,'clients');
+  }catch(_){}
+}
+
 let STATIC_DATA = null; // loaded from formula-road-data.json if available
 
 async function loadStaticData(){
@@ -679,6 +692,7 @@ const st = {
   roadKm:null, roadGeometry:null, priorityRoadKm:null,
   excluded: new Set(),
   aiGpsMode: true,
+  tabletGpsMode: false,
   iceFilter: false,
   hasSadranFilter: false,
 };
@@ -720,13 +734,14 @@ function haversineKm(la1,lo1,la2,lo2){
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
-// ── Apply AI GPS coords to client list when AI mode is active ───────────────
+// ── Apply AI/Tablet GPS coords to client list when respective mode is active ─
 function _aiGpsClients(clients){
-  if(!st.aiGpsMode) return clients;
+  if(!st.aiGpsMode&&!st.tabletGpsMode) return clients;
   return clients.map(c=>{
     if(c.gpsSource==='correction') return c;
-    const a=AI_GPS[String(c.custId)];
-    return (a?.aiLat&&a?.aiLng)?{...c,lat:a.aiLat,lng:a.aiLng}:c;
+    if(st.aiGpsMode){const a=AI_GPS[String(c.custId)];if(a?.aiLat&&a?.aiLng)return{...c,lat:a.aiLat,lng:a.aiLng};}
+    if(st.tabletGpsMode){const t=TABLET_GPS[String(c.custId)];if(t?.lat&&t?.lng)return{...c,lat:t.lat,lng:t.lng};}
+    return c;
   });
 }
 
@@ -872,10 +887,10 @@ async function osrmTripOrder(clients, startLat, startLng) {
 
 function triggerOsrm() {
   const snap = { clients:activeClients(), agentCode:st.agent?.code, day:st.day };
-  // 2-opt order: use AI GPS coords for sorting if AI mode is active
   const clientsForSort = snap.clients.map(c => {
     if(c.gpsSource==='correction') return c;
     if(st.aiGpsMode){const a=AI_GPS[String(c.custId)];if(a?.aiLat&&a?.aiLng)return{...c,lat:a.aiLat,lng:a.aiLng};}
+    if(st.tabletGpsMode){const t=TABLET_GPS[String(c.custId)];if(t?.lat&&t?.lng)return{...c,lat:t.lat,lng:t.lng};}
     return c;
   });
   const ordered = nearestNeighbor([...clientsForSort]);
@@ -966,6 +981,7 @@ async function initLogin(){
   await loadStaticData();
   await loadCorrections();
   await loadAiGps();
+  await loadTabletGps();
 
   // RLS: check saved session — if no token, force re-login
   const saved = _loadAuth();
@@ -1485,11 +1501,34 @@ function setSort(mode){
   if(st.tab==='map'||window.innerWidth>=700) renderMap();
 }
 
+function toggleTabletGps(){
+  st.tabletGpsMode=!st.tabletGpsMode;
+  const btn=document.getElementById('sort-btn-tablet');
+  if(btn) btn.className='sort-btn'+(st.tabletGpsMode?' active-tablet':'');
+  if(st.tabletGpsMode){
+    st.aiGpsMode=false;
+    document.getElementById('sort-btn-ai-google').className='sort-btn';
+    document.getElementById('sort-btn-priority').className='sort-btn';
+    st.sortMode='ai';
+    OSRM_CACHE.clear(); OSRM_TRIP_CACHE.clear();
+    showToast('📱 GPS: מצב Tablet (Priority) פעיל');
+    triggerOsrm();
+  } else {
+    st.sortMode='priority';
+    document.getElementById('sort-btn-priority').className='sort-btn active-priority';
+    showToast('📍 GPS: מצב רגיל');
+  }
+  renderCityFilters(); renderClientList();
+  if(st.tab==='map'||window.innerWidth>=700) renderMap();
+}
+
 function toggleAiGps(){
   st.aiGpsMode=!st.aiGpsMode;
   const btn=document.getElementById('sort-btn-ai-google');
   if(btn) btn.className='sort-btn'+(st.aiGpsMode?' active-ai-google':'');
   if(st.aiGpsMode){
+    st.tabletGpsMode=false;
+    document.getElementById('sort-btn-tablet').className='sort-btn';
     st.sortMode='ai';
     document.getElementById('sort-btn-priority').className='sort-btn';
     OSRM_CACHE.clear(); OSRM_TRIP_CACHE.clear();
@@ -1952,6 +1991,7 @@ function renderMap(){
   const _getCoord=(c)=>{
     if(c.gpsSource==='correction') return{lat:c.lat,lng:c.lng};
     if(st.aiGpsMode){const a=AI_GPS[String(c.custId)];if(a?.aiLat&&a?.aiLng)return{lat:a.aiLat,lng:a.aiLng};}
+    if(st.tabletGpsMode){const t=TABLET_GPS[String(c.custId)];if(t?.lat&&t?.lng)return{lat:t.lat,lng:t.lng};}
     return{lat:c.lat,lng:c.lng};
   };
   const list=displayClients().filter(c=>{const p=_getCoord(c);return p.lat&&p.lng;})
