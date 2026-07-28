@@ -156,3 +156,15 @@ curl https://api.sverdlik-apps.site/health  # ожидаем 404 за <1с (не
 2. Учитывать иврит-адреса и нормализацию адресных строк
 3. Соблюдать детерминированный порядок визитов
 4. При наличии данных учитывать дорожные ограничения/перекрытия
+
+## Priority ERP SQL — обязательный skill
+
+Для любых задач, где есть SQL к Priority ERP, Power BI M коды с источником Priority, поля IVDATE/CURDATE/QUANT, базы `form`/`diller`/`icecrea`/`mmdint` на `192.168.100.246`, **обязательно** загружай и применяй:
+
+- `.claude/SKILLS/priority-sql/SKILL.md`
+
+Минимальные правила применения:
+1. Все даты — int (минуты с 01.01.1988), пустая дата = 0 (не NULL)
+2. CURDATE фикс: `COALESCE(NULLIF(DOCUMENTS2.CURDATE, 0), [db].dbo.INVOICES.IVDATE)` — применять в SELECT ×3 и GROUP BY ×1
+3. QUANT делить на 1000
+4. Иврит в SELECT: `NCHAR(8237) + REVERSE(field) + NCHAR(8236)`
