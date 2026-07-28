@@ -1347,7 +1347,7 @@ async function selectDay(day){
 let _initRouteId = 0;
 async function initRoute(){
   const myId = ++_initRouteId;
-  st.sortMode=st.aiGpsMode?'ai':'priority'; st.selectedCities=[]; st.selectedId=null;
+  st.sortMode=(st.aiGpsMode||st.tabletGpsMode)?'ai':'priority'; st.selectedCities=[]; st.selectedId=null;
   st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null;
   st.excluded=loadExcluded(st.agent?.code, st.day);
   document.getElementById('route-title').textContent='DILER FORMULA';
@@ -1553,9 +1553,11 @@ function resetRoute(){
 
 function recalcRoute(){
   st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null;
-  st.sortMode='ai'; st.aiGpsMode=true;
+  st.sortMode='ai';
+  if(!st.tabletGpsMode){ st.aiGpsMode=true; }
   document.getElementById('sort-btn-priority').className='sort-btn';
-  document.getElementById('sort-btn-ai-google').className='sort-btn active-ai-google';
+  document.getElementById('sort-btn-ai-google').className='sort-btn'+(st.aiGpsMode?' active-ai-google':'');
+  document.getElementById('sort-btn-tablet').className='sort-btn'+(st.tabletGpsMode?' active-tablet':'');
   OSRM_CACHE.clear(); OSRM_TRIP_CACHE.clear();
   const _rcClients=_aiGpsClients(st.clients);
   st.aiClients=nearestNeighbor([..._rcClients]);
