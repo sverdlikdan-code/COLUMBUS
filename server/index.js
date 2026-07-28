@@ -3476,6 +3476,12 @@ app.get('/territory-planner.html', (req, res) => {
 app.get('/territory.html', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'territory.html'));
 });
+app.get('/priority-gps.html', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'docs', 'priority-gps.html'));
+});
+app.get('/priority-gps-cross.json', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'docs', 'priority-gps-cross.json'));
+});
 app.get('/sw.js', (req, res) => {
   res.setHeader('Content-Type', 'application/javascript');
   res.setHeader('Service-Worker-Allowed', '/');

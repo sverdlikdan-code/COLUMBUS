@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>PRIORITY GPS — ביקורת נקודות</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
+      integrity="sha384-pmjIAcz2bAn0xukfxADbZIb3t8oRT9Sv0rvO+BR5Csr6Dhqq+nZs59P0pPKQJkEV" crossorigin="anonymous"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
+      integrity="sha384-wgw+aLYNQ7dlhK47ZPK7FRACiq7ROZwgFNg0m04avm4CaXS+Z9Y7nMu8yNjBKYC+" crossorigin="anonymous"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --navy:#1A3558;--navy-d:#0D2137;--navy-dd:#071526;
+  --sky:#29B6F6;--sky-l:#E3F2FD;--sky-m:#BBDEFB;
+  --bg:#F0F5FF;--white:#FAFCFF;
+  --text:#0D2137;--mid:#546E7A;--light:#90A4AE;
+  --border:#BBDEFB;
+  --c3: #F9A825; --c3b:#FFF8E1; --c3t:#E65100;
+  --c2: #2E7D32; --c2b:#E8F5E9; --c2t:#1B5E20;
+  --cx: #E65100; --cxb:#FFF3E0; --cxt:#BF360C;
+  --c1: #546E7A; --c1b:#ECEFF1; --c1t:#37474F;
+}
+html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,sans-serif;direction:rtl;color:var(--text);}
+#app{height:100%;display:flex;flex-direction:column;overflow:hidden;}
+
+/* HEADER */
+.hdr{background:linear-gradient(135deg,var(--navy-dd) 0%,var(--navy-d) 55%,var(--navy) 100%);
+  color:#fff;padding:0 14px;height:50px;flex-shrink:0;
+  display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(7,21,38,.45);}
+.hdr-logo{height:30px;filter:brightness(0) invert(1);opacity:.88;flex-shrink:0;}
+.hdr-title{font-size:13px;font-weight:900;letter-spacing:3px;color:#fff;white-space:nowrap;}
+.hdr-sub{font-size:10px;color:rgba(255,255,255,.6);letter-spacing:1px;font-weight:600;}
+.hdr-right{margin-right:auto;display:flex;align-items:center;gap:8px;}
+.back-link{color:rgba(255,255,255,.8);font-size:11px;font-weight:700;text-decoration:none;
+  padding:4px 10px;border:1.5px solid rgba(255,255,255,.3);border-radius:14px;white-space:nowrap;}
+.back-link:hover{background:rgba(255,255,255,.12);}
+.sky-line{height:3px;background:linear-gradient(90deg,var(--sky),var(--navy));flex-shrink:0;}
+
+/* STATS BAR */
+.stats-bar{display:flex;gap:0;background:#fff;border-bottom:2px solid var(--sky-m);flex-shrink:0;overflow-x:auto;}
+.stat-chip{flex:1;min-width:80px;display:flex;flex-direction:column;align-items:center;
+  padding:7px 6px 6px;cursor:pointer;border-bottom:3px solid transparent;
+  transition:background .15s,border-color .15s;user-select:none;position:relative;}
+.stat-chip:hover{background:var(--sky-l);}
+.stat-chip.active{border-bottom-color:currentColor;}
+.stat-chip[data-tier="3"].active{border-bottom-color:var(--c3t);background:var(--c3b);}
+.stat-chip[data-tier="2"].active{border-bottom-color:var(--c2);background:var(--c2b);}
+.stat-chip[data-tier="x"].active{border-bottom-color:var(--cx);background:var(--cxb);}
+.stat-chip[data-tier="1"].active{border-bottom-color:var(--c1);background:var(--c1b);}
+.stat-dot{width:12px;height:12px;border-radius:50%;margin-bottom:2px;flex-shrink:0;}
+.stat-n{font-size:18px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;}
+.stat-lbl{font-size:9px;font-weight:700;color:var(--mid);letter-spacing:.5px;text-align:center;}
+.stat-chip[data-tier="3"] .stat-n{color:var(--c3t);}
+.stat-chip[data-tier="2"] .stat-n{color:var(--c2);}
+.stat-chip[data-tier="x"] .stat-n{color:var(--cx);}
+.stat-chip[data-tier="1"] .stat-n{color:var(--c1);}
+.stat-total{border-right:1px solid var(--border);flex:0 0 auto;min-width:72px;}
+.stat-total .stat-n{color:var(--navy);}
+.stat-sep{width:1px;background:var(--border);flex-shrink:0;}
+
+/* FILTER BAR */
+.filter-bar{background:#fff;border-bottom:1px solid var(--sky-m);padding:5px 10px;
+  flex-shrink:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.filter-label{font-size:10px;font-weight:800;color:var(--mid);letter-spacing:.8px;text-transform:uppercase;flex-shrink:0;}
+.co-chips{display:flex;gap:5px;flex-wrap:wrap;}
+.co-chip{padding:4px 12px;border-radius:16px;font-size:11px;font-weight:700;cursor:pointer;
+  border:2px solid transparent;transition:all .15s;user-select:none;}
+.co-chip[data-co="FORM"]{background:#E3F2FD;color:#0D47A1;border-color:#90CAF9;}
+.co-chip[data-co="ICE"]{background:#E8F5E9;color:#1B5E20;border-color:#A5D6A7;}
+.co-chip[data-co="INTER"]{background:#FFF3E0;color:#BF360C;border-color:#FFCC80;}
+.co-chip.off{opacity:.35;filter:grayscale(.7);}
+.co-chip:hover{filter:brightness(.95);}
+.filter-sep{width:1px;height:24px;background:var(--border);flex-shrink:0;}
+.search-wrap{flex:1;min-width:120px;max-width:200px;position:relative;}
+.search-inp{width:100%;padding:5px 10px 5px 28px;border:1.5px solid #90CAF9;border-radius:16px;
+  font-size:12px;color:var(--text);outline:none;background:#fff;direction:ltr;}
+.search-inp:focus{border-color:var(--navy);}
+.search-icon{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--light);}
+.found-badge{font-size:11px;font-weight:700;color:var(--mid);}
+
+/* MAP */
+#map{flex:1;min-height:0;}
+
+/* LOADING */
+.loading{position:fixed;inset:0;background:rgba(7,21,38,.7);display:flex;
+  align-items:center;justify-content:center;flex-direction:column;gap:14px;z-index:9999;color:#fff;}
+.loading-spinner{width:44px;height:44px;border:4px solid rgba(255,255,255,.2);
+  border-top-color:var(--sky);border-radius:50%;animation:spin .8s linear infinite;}
+.loading-text{font-size:13px;font-weight:700;letter-spacing:1px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* POPUP */
+.pop{min-width:220px;direction:rtl;font-family:'Segoe UI',sans-serif;}
+.pop-title{font-size:14px;font-weight:900;color:var(--navy-d);margin-bottom:8px;
+  border-bottom:2px solid var(--sky-m);padding-bottom:6px;}
+.pop-row{display:flex;justify-content:space-between;align-items:center;
+  padding:3px 0;font-size:12px;}
+.pop-key{color:var(--mid);font-weight:600;}
+.pop-val{font-weight:800;color:var(--text);}
+.pop-dist{font-size:11px;color:var(--mid);margin-top:8px;border-top:1px solid var(--border);padding-top:6px;}
+.pop-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:800;}
+
+/* Responsive */
+@media(max-width:480px){
+  .stats-bar{flex-wrap:nowrap;}
+  .stat-chip{padding:5px 4px;}
+  .stat-n{font-size:15px;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="hdr">
+    <img class="hdr-logo" src="/logo.png" onerror="this.style.display='none'">
+    <div>
+      <div class="hdr-title">PRIORITY GPS</div>
+      <div class="hdr-sub">נקודות GPS מהזמנות Priority ERP</div>
+    </div>
+    <div class="hdr-right">
+      <a class="back-link" href="/territory.html">← טריטוריה</a>
+    </div>
+  </div>
+  <div class="sky-line"></div>
+
+  <!-- STATS -->
+  <div class="stats-bar" id="statsBar">
+    <div class="stat-chip stat-total" data-tier="all" onclick="toggleTier('all')">
+      <div class="stat-n" id="statAll">—</div>
+      <div class="stat-lbl">סה"כ</div>
+    </div>
+    <div class="stat-sep"></div>
+    <div class="stat-chip active" data-tier="3" onclick="toggleTier('3')">
+      <div class="stat-dot" style="background:var(--c3);box-shadow:0 0 0 2px var(--c3t)22;"></div>
+      <div class="stat-n" id="stat3">—</div>
+      <div class="stat-lbl">3/3 חפיפה</div>
+    </div>
+    <div class="stat-chip active" data-tier="2" onclick="toggleTier('2')">
+      <div class="stat-dot" style="background:var(--c2);"></div>
+      <div class="stat-n" id="stat2">—</div>
+      <div class="stat-lbl">2/3 חפיפה</div>
+    </div>
+    <div class="stat-chip active" data-tier="x" onclick="toggleTier('x')">
+      <div class="stat-dot" style="background:var(--cx);"></div>
+      <div class="stat-n" id="statX">—</div>
+      <div class="stat-lbl">GPS שונה</div>
+    </div>
+    <div class="stat-chip active" data-tier="1" onclick="toggleTier('1')">
+      <div class="stat-dot" style="background:var(--c1);"></div>
+      <div class="stat-n" id="stat1">—</div>
+      <div class="stat-lbl">חברה אחת</div>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filter-bar">
+    <span class="filter-label">חברות:</span>
+    <div class="co-chips">
+      <div class="co-chip" data-co="FORM" onclick="toggleCo('FORM')">FORM</div>
+      <div class="co-chip" data-co="ICE"  onclick="toggleCo('ICE')">ICE</div>
+      <div class="co-chip" data-co="INTER" onclick="toggleCo('INTER')">INTER</div>
+    </div>
+    <div class="filter-sep"></div>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-inp" id="searchInp" type="text" placeholder="מס. לקוח..." oninput="onSearch(this.value)">
+    </div>
+    <span class="found-badge" id="foundBadge"></span>
+  </div>
+
+  <div id="map"></div>
+</div>
+
+<div class="loading" id="loadScreen">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">טוען נקודות GPS…</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"
+        integrity="sha384-cHMlBBM0e+Oaq2T35dJuPHgIimB6VCG5SG4Gt0IPHF/N+c60cP8iAGanpUd0Yrm+" crossorigin="anonymous"></script>
+<script>
+// ── Config ──────────────────────────────────────────────────────────────────
+const COLORS = {
+  3: '#F9A825', 2: '#2E7D32', x: '#E65100', 1: '#546E7A'
+};
+const RADII = { 3: 9, 2: 7, x: 6, 1: 5 };
+
+// ── State ────────────────────────────────────────────────────────────────────
+let allData = [];
+let activeTiers = new Set(['3','2','x','1']);
+let activeCos   = new Set(['FORM','ICE','INTER']);
+let searchCust  = '';
+let markerLayer, clusterLayer;
+
+// ── Map Init ─────────────────────────────────────────────────────────────────
+const map = L.map('map', {
+  center: [31.8, 34.9], zoom: 8,
+  zoomControl: true, attributionControl: false,
+});
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19, attribution: '© OpenStreetMap'
+}).addTo(map);
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function tierOf(r) {
+  if (r.match === 3) return '3';
+  if (r.match === 2) return '2';
+  if (r.count >= 2)  return 'x';
+  return '1';
+}
+
+function custMatchesCo(r, cos) {
+  for (const co of cos) {
+    if (r.sources && r.sources.includes(co)) return true;
+  }
+  return false;
+}
+
+function fmtDist(m) {
+  if (!m && m !== 0) return '—';
+  return m >= 1000 ? (m/1000).toFixed(1)+'ק"מ' : m+"מ'";
+}
+
+function buildPopup(r) {
+  const tier = tierOf(r);
+  const badgeStyle = {
+    '3': 'background:#FFF8E1;color:#E65100',
+    '2': 'background:#E8F5E9;color:#1B5E20',
+    'x': 'background:#FFF3E0;color:#BF360C',
+    '1': 'background:#ECEFF1;color:#37474F',
+  }[tier];
+  const badgeText = {
+    '3':'🏆 3/3 חפיפה מלאה','2':'✅ 2/3 חפיפה','x':'⚠️ GPS שונה','1':'📍 חברה אחת'
+  }[tier];
+
+  let distHtml = '';
+  if (r.distFI || r.distFN || r.distIN) {
+    distHtml = `<div class="pop-dist">
+      <div class="pop-row"><span class="pop-key">FORM↔ICE</span><span class="pop-val">${fmtDist(r.distFI)}</span></div>
+      <div class="pop-row"><span class="pop-key">FORM↔INTER</span><span class="pop-val">${fmtDist(r.distFN)}</span></div>
+      <div class="pop-row"><span class="pop-key">ICE↔INTER</span><span class="pop-val">${fmtDist(r.distIN)}</span></div>
+    </div>`;
+  }
+
+  return `<div class="pop">
+    <div class="pop-title">לקוח ${r.cust}</div>
+    <div class="pop-row"><span class="pop-key">מקורות</span><span class="pop-val">${r.sources||'—'}</span></div>
+    <div class="pop-row"><span class="pop-key">Lat</span><span class="pop-val" dir="ltr">${(+r.lat).toFixed(5)}</span></div>
+    <div class="pop-row"><span class="pop-key">Lng</span><span class="pop-val" dir="ltr">${(+r.lng).toFixed(5)}</span></div>
+    <div class="pop-row"><span class="pop-key">ביטחון</span>
+      <span class="pop-badge" style="${badgeStyle}">${badgeText}</span>
+    </div>
+    ${distHtml}
+    <div style="margin-top:8px;">
+      <a href="https://www.google.com/maps?q=${r.lat},${r.lng}" target="_blank"
+         style="font-size:11px;color:#1565C0;font-weight:700;">📍 פתח ב-Google Maps</a>
+    </div>
+  </div>`;
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render() {
+  if (clusterLayer) map.removeLayer(clusterLayer);
+
+  clusterLayer = L.markerClusterGroup({
+    maxClusterRadius: 40,
+    disableClusteringAtZoom: 14,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    iconCreateFunction: function(cluster) {
+      const n = cluster.getChildCount();
+      const size = n > 500 ? 44 : n > 100 ? 36 : n > 20 ? 30 : 24;
+      return L.divIcon({
+        html: `<div style="width:${size}px;height:${size}px;background:var(--navy);
+          border-radius:50%;color:#fff;font-weight:900;font-size:${size>36?13:11}px;
+          display:flex;align-items:center;justify-content:center;
+          border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);">${n>999?'1k+':n}</div>`,
+        className:'', iconSize:[size,size], iconAnchor:[size/2,size/2]
+      });
+    }
+  });
+
+  let shown = 0;
+  const sq = searchCust.trim();
+
+  for (const r of allData) {
+    if (!r.lat || !r.lng) continue;
+    const tier = tierOf(r);
+    if (!activeTiers.has(tier)) continue;
+    if (!custMatchesCo(r, activeCos)) continue;
+    if (sq && !String(r.cust).includes(sq)) continue;
+
+    const color = COLORS[tier];
+    const radius = RADII[tier];
+    const m = L.circleMarker([r.lat, r.lng], {
+      radius, color:'#fff', weight:1.5, fillColor:color, fillOpacity:.85
+    }).bindPopup(buildPopup(r), { maxWidth:280, className:'', autoPanPaddingTopLeft:[10,60] });
+    clusterLayer.addLayer(m);
+    shown++;
+  }
+
+  map.addLayer(clusterLayer);
+
+  const badge = document.getElementById('foundBadge');
+  if (sq) {
+    badge.textContent = shown > 0 ? `נמצא ${shown}` : 'לא נמצא';
+    badge.style.color = shown > 0 ? 'var(--navy)' : 'var(--cx)';
+  } else {
+    badge.textContent = '';
+  }
+}
+
+// ── UI handlers ───────────────────────────────────────────────────────────────
+function toggleTier(tier) {
+  const chip = document.querySelector(`.stat-chip[data-tier="${tier}"]`);
+  if (tier === 'all') {
+    const allOn = activeTiers.size === 4;
+    if (allOn) activeTiers.clear();
+    else activeTiers = new Set(['3','2','x','1']);
+    document.querySelectorAll('.stat-chip:not([data-tier="all"])').forEach(c => {
+      c.classList.toggle('active', !allOn);
+    });
+  } else {
+    if (activeTiers.has(tier)) activeTiers.delete(tier);
+    else activeTiers.add(tier);
+    chip.classList.toggle('active', activeTiers.has(tier));
+  }
+  render();
+}
+
+function toggleCo(co) {
+  const chip = document.querySelector(`.co-chip[data-co="${co}"]`);
+  if (activeCos.has(co)) {
+    if (activeCos.size === 1) return; // keep at least one
+    activeCos.delete(co);
+    chip.classList.add('off');
+  } else {
+    activeCos.add(co);
+    chip.classList.remove('off');
+  }
+  render();
+}
+
+function onSearch(val) {
+  searchCust = val;
+  render();
+  if (val.trim() && clusterLayer) {
+    const found = [];
+    clusterLayer.eachLayer(m => found.push(m));
+    if (found.length === 1) found[0].openPopup();
+    else if (found.length > 0 && found.length <= 20) {
+      const bounds = L.latLngBounds(found.map(m => m.getLatLng()));
+      map.fitBounds(bounds, { padding: [40, 40] });
+    }
+  }
+}
+
+// ── Load data ─────────────────────────────────────────────────────────────────
+fetch('/priority-gps-cross.json')
+  .then(r => r.json())
+  .then(data => {
+    allData = data;
+    const n3 = data.filter(r=>r.match===3).length;
+    const n2 = data.filter(r=>r.match===2).length;
+    const nx = data.filter(r=>r.count>=2&&r.match<2).length;
+    const n1 = data.filter(r=>r.count===1).length;
+
+    document.getElementById('statAll').textContent = data.length.toLocaleString();
+    document.getElementById('stat3').textContent = n3.toLocaleString();
+    document.getElementById('stat2').textContent = n2.toLocaleString();
+    document.getElementById('statX').textContent = nx.toLocaleString();
+    document.getElementById('stat1').textContent = n1.toLocaleString();
+
+    document.getElementById('loadScreen').style.display = 'none';
+    render();
+  })
+  .catch(err => {
+    document.querySelector('.loading-text').textContent = 'שגיאה בטעינה: ' + err.message;
+  });
+</script>
+</body>
+</html>

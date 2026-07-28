@@ -98,17 +98,21 @@ Columns: EXTFILEDES, EXTFILENUM, EXTFILENAME, SUFFIX, CURDATE, LINE, TYPE, USER,
 
 **Column FILENAME does NOT exist in EXTFILES** — it belongs to linked table FILENAMESTATUS.
 
-## GPS Coverage (2026, cross-company)
+## GPS Coverage (all-time, no year filter)
 
 From session 2026-07-28:
 | Company | Clients with GPS |
 |---------|-----------------|
-| FORM    | 1,371           |
-| ICE     | 1,119           |
-| INTER   | 835             |
-| Total unique | 2,562     |
+| FORM    | 3,295           |
+| ICE     | 2,451           |
+| INTER   | 3,079           |
+| Total unique | 4,985     |
 
-Cross-company match (±500m): 219 clients in 2+ companies → high confidence GPS.
+Cross-company match (±1000m): 498 clients 2/3, 4 clients 3/3 = high confidence GPS.
+Output: `ATA GPS FROM ORDERS/gps-cross-company.xlsx` + `docs/priority-gps-cross.json`
+Map page: `/priority-gps.html`
+
+**Note:** Removing the year filter (`AND O.CURDATE >= 20260101`) nearly doubled client count (2,562 → 4,985) because open orders rotate in/out on a 24-hour cycle.
 
 ## Common Gotchas
 
