@@ -76,3 +76,4 @@
 - [[session-2026-07-21-territory-visit-order]] — Сессия 2026-07-21: Visit order Google+גרסה, линии маршрута, ביקור שני, ICE badge iceOnly, редизайн day-cards, кнопка כל нейтральная
 - [[session-2026-07-22-gps-fix]] — Сессия 2026-07-22: PBI приоритет над Google (360 клиентов), מגה בעיר חיפה фикс, gps-corrections синхронизация VPS, bbox preload
 - [[session-2026-07-23-mahsan-print-yavesh]] — Сессия 2026-07-23: print cards EAN 6 цифр + emoji inline, yavesh תוקף fix (SKIP_YAVESH_FETCH CI флаг)
+- [[session-2026-07-28-mahsan-stale-fix]] — Сессия 2026-07-28: "עוגת לימון" stale localStorage фикс — makat-change detection в merge логике; priority-sql PRD+Vault; CURDATE фикс icecrea/form M коды
