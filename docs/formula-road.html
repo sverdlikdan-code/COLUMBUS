@@ -1792,7 +1792,7 @@ function renderClientList(html){
       +(shortName(c.custName,c.city)||esc(c.custName)||'')
       +(c.city?`<span style="font-weight:400;color:var(--mid);font-size:11px;"> · ${esc(c.city)}</span>`:'')
       +(c.address?`<span style="font-weight:400;color:var(--mid);font-size:11px;"> · ${esc(c.address)}</span>`:'');
-    return `<div class="${cls}" data-id="${c.custId}" ondblclick="selectClient('${c.custId}')">
+    return `<div class="${cls}" data-id="${c.custId}" onclick="selectClient('${c.custId}')">
       <div class="c-num-wrap c-drag">
         <span class="c-num${inWalk?' c-num-walk':''}">${i+1}</span>
         ${inWalk?`<span class="walk-icon">🚶</span>`:''}
@@ -1885,7 +1885,7 @@ function selectClient(id){
     renderMap();
     if(st.selectedId){
       const c=st.clients.find(x=>x.custId===st.selectedId)||st.aiClients.find(x=>x.custId===st.selectedId);
-      if(c&&c.lat&&c.lng) setTimeout(()=>map.flyTo([c.lat,c.lng],Math.min((map.getZoom()||10)+1,14),{duration:1.2}),50);
+      if(c&&c.lat&&c.lng) setTimeout(()=>map.flyTo([c.lat,c.lng],17,{duration:1}),50);
     }
   }
 }
@@ -1902,17 +1902,8 @@ function setupCardDoubleTap(listEl){
     const card=e.target.closest('.client-card');
     if(!card||e.target.closest('.day-change-btn,.no-gps-badge,.gps-edit-btn,.c-drag,.excl-btn,.mekarer-btn,.ai-insight-btn')) return;
     if(Math.abs(e.changedTouches[0].clientY-_dtapStartY)>12) return; // was scrolling
-    const id=card.dataset.id;
-    const now=Date.now();
-    if(now-_dtapTime<400&&_dtapId===id){
-      selectClient(id);
-      _dtapTime=0; _dtapId=null;
-    } else {
-      // First tap — briefly flash card so user knows tap registered
-      card.style.background='var(--sky-light)';
-      setTimeout(()=>{ if(card.isConnected) card.style.background=''; },200);
-      _dtapTime=now; _dtapId=id;
-    }
+    e.preventDefault(); // prevent synthetic click from also firing
+    selectClient(card.dataset.id);
   });
 }
 
