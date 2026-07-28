@@ -20,6 +20,16 @@ COALESCE(NULLIF(DOCUMENTS2.CURDATE, 0), [db].dbo.INVOICES.IVDATE)
 
 ## Сессии
 
+### 2026-07-28 #priority-gps-cross-company ✅
+- GPS из ORDERSB: выгружены все точки FORM (3358) + ICE (2525) + INTER (3144) → 5029 уникальных клиентов
+- Ключевое улучшение: SQL без GROUP BY rn=1, все точки на клиента → JS пулит после объединения компаний
+- Кластеризация 500м на общем пуле: 687 клиентов 2/3 (было 431), 6 клиентов 3/3
+- BBOX: 100% координат в Израиле (isValidIL lat<33.5 отсекает Бейрут)
+- Создана страница `/priority-gps.html` — интерактивная карта 5029 клиентов (Leaflet + MarkerCluster)
+- Создан `docs/priority-gps-cross.json` — данные для карты и Formula Road
+- Formula Road: кнопка 📱 GPS Tablet — переключатель на Priority orders GPS (взаимно исключает AI Google)
+- SKILL.md обновлён: покрытие без фильтра года (2562→5029 клиентов)
+
 ### 2026-07-28 #priority-sql-skill-created
 - Создан SKILL.md по архитектуре Priority SQL Server
 - Покрыты: формат дат, IVDATE vs CURDATE, JOIN-паттерны, BiDi иврит, курсы валют, REST API OData

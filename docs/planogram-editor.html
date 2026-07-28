@@ -1491,8 +1491,17 @@ async function loadMaps() {
         } else if (!(k in state.kapua) || state.kapua[k] === null) {
           state.kapua[k] = deepClone(p);
         } else {
-          if (p.haluka != null) state.kapua[k].haluka = p.haluka;
-          if (p.printOrder != null && state.kapua[k].printOrder == null) state.kapua[k].printOrder = p.printOrder;
+          const oldMk = String(state.kapua[k].makat || state.kapua[k].mk || '');
+          const newMk = String(p.makat || p.mk || '');
+          if (newMk && oldMk && oldMk !== newMk) {
+            // CI moved a different product to this position — force-replace, preserve user printOrder
+            const savedPO = state.kapua[k].printOrder;
+            state.kapua[k] = deepClone(p);
+            if (savedPO != null) state.kapua[k].printOrder = savedPO;
+          } else {
+            if (p.haluka != null) state.kapua[k].haluka = p.haluka;
+            if (p.printOrder != null && state.kapua[k].printOrder == null) state.kapua[k].printOrder = p.printOrder;
+          }
         }
       }
       if (freshVer && savedVer !== freshVer) {
@@ -1524,10 +1533,18 @@ async function loadMaps() {
         } else if (!(k in state.halavi) || state.halavi[k] === null) {
           state.halavi[k] = deepClone(p);
         } else {
-          if (p.fam !== undefined)   state.halavi[k].fam   = p.fam;
-          if (p.name !== undefined)  state.halavi[k].name  = p.name;
-          if (p.haluka != null)      state.halavi[k].haluka = p.haluka;
-          if (p.printOrder != null && state.halavi[k].printOrder == null) state.halavi[k].printOrder = p.printOrder;
+          const oldMkH = String(state.halavi[k].makat || state.halavi[k].mk || '');
+          const newMkH = String(p.makat || p.mk || '');
+          if (newMkH && oldMkH && oldMkH !== newMkH) {
+            const savedPOH = state.halavi[k].printOrder;
+            state.halavi[k] = deepClone(p);
+            if (savedPOH != null) state.halavi[k].printOrder = savedPOH;
+          } else {
+            if (p.fam !== undefined)   state.halavi[k].fam   = p.fam;
+            if (p.name !== undefined)  state.halavi[k].name  = p.name;
+            if (p.haluka != null)      state.halavi[k].haluka = p.haluka;
+            if (p.printOrder != null && state.halavi[k].printOrder == null) state.halavi[k].printOrder = p.printOrder;
+          }
         }
       }
       if (freshHalaviV && savedHalaviV !== freshHalaviV) {
@@ -1556,10 +1573,18 @@ async function loadMaps() {
           } else if (!(pick in state.dagim) || state.dagim[pick] === null) {
             state.dagim[pick] = deepClone(p);
           } else {
-            if (p.fam  !== undefined) state.dagim[pick].fam  = p.fam;
-            if (p.name !== undefined) state.dagim[pick].name = p.name;
-            if (p.haluka != null) state.dagim[pick].haluka = p.haluka;
-            if (p.printOrder != null && state.dagim[pick].printOrder == null) state.dagim[pick].printOrder = p.printOrder;
+            const oldMkD1 = String(state.dagim[pick].makat || state.dagim[pick].mk || '');
+            const newMkD1 = String(p.makat || p.mk || '');
+            if (newMkD1 && oldMkD1 && oldMkD1 !== newMkD1) {
+              const savedPOD1 = state.dagim[pick].printOrder;
+              state.dagim[pick] = deepClone(p);
+              if (savedPOD1 != null) state.dagim[pick].printOrder = savedPOD1;
+            } else {
+              if (p.fam  !== undefined) state.dagim[pick].fam  = p.fam;
+              if (p.name !== undefined) state.dagim[pick].name = p.name;
+              if (p.haluka != null) state.dagim[pick].haluka = p.haluka;
+              if (p.printOrder != null && state.dagim[pick].printOrder == null) state.dagim[pick].printOrder = p.printOrder;
+            }
           }
         }
         localStorage.setItem('dagim_base_v', freshDagimV);
@@ -1571,10 +1596,20 @@ async function loadMaps() {
         for (const [pick, p] of Object.entries(db.picks)) {
           if (!p) { state.dagim[pick] = null; }
           else if (!(pick in state.dagim) || state.dagim[pick] === null) { state.dagim[pick] = { ...p }; }
-          else { if (p.fam  !== undefined) state.dagim[pick].fam  = p.fam;
-                 if (p.name !== undefined) state.dagim[pick].name = p.name;
-                 if (p.haluka != null) state.dagim[pick].haluka = p.haluka;
-                 if (p.printOrder != null && state.dagim[pick].printOrder == null) state.dagim[pick].printOrder = p.printOrder; }
+          else {
+            const oldMkD2 = String(state.dagim[pick].makat || state.dagim[pick].mk || '');
+            const newMkD2 = String(p.makat || p.mk || '');
+            if (newMkD2 && oldMkD2 && oldMkD2 !== newMkD2) {
+              const savedPOD2 = state.dagim[pick].printOrder;
+              state.dagim[pick] = deepClone(p);
+              if (savedPOD2 != null) state.dagim[pick].printOrder = savedPOD2;
+            } else {
+              if (p.fam  !== undefined) state.dagim[pick].fam  = p.fam;
+              if (p.name !== undefined) state.dagim[pick].name = p.name;
+              if (p.haluka != null) state.dagim[pick].haluka = p.haluka;
+              if (p.printOrder != null && state.dagim[pick].printOrder == null) state.dagim[pick].printOrder = p.printOrder;
+            }
+          }
         }
         for (const pick of Object.keys(state.dagim)) {
           if (!(pick in db.picks)) state.dagim[pick] = null;
