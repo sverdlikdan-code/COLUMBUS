@@ -1498,6 +1498,7 @@ async function loadMaps() {
             const savedPO = state.kapua[k].printOrder;
             state.kapua[k] = deepClone(p);
             if (savedPO != null) state.kapua[k].printOrder = savedPO;
+            _anyVersionReset = true; // trigger localStorage save
           } else {
             if (p.haluka != null) state.kapua[k].haluka = p.haluka;
             if (p.printOrder != null && state.kapua[k].printOrder == null) state.kapua[k].printOrder = p.printOrder;
@@ -1539,6 +1540,7 @@ async function loadMaps() {
             const savedPOH = state.halavi[k].printOrder;
             state.halavi[k] = deepClone(p);
             if (savedPOH != null) state.halavi[k].printOrder = savedPOH;
+            _anyVersionReset = true;
           } else {
             if (p.fam !== undefined)   state.halavi[k].fam   = p.fam;
             if (p.name !== undefined)  state.halavi[k].name  = p.name;
@@ -1579,6 +1581,7 @@ async function loadMaps() {
               const savedPOD1 = state.dagim[pick].printOrder;
               state.dagim[pick] = deepClone(p);
               if (savedPOD1 != null) state.dagim[pick].printOrder = savedPOD1;
+              _anyVersionReset = true;
             } else {
               if (p.fam  !== undefined) state.dagim[pick].fam  = p.fam;
               if (p.name !== undefined) state.dagim[pick].name = p.name;
@@ -1603,6 +1606,7 @@ async function loadMaps() {
               const savedPOD2 = state.dagim[pick].printOrder;
               state.dagim[pick] = deepClone(p);
               if (savedPOD2 != null) state.dagim[pick].printOrder = savedPOD2;
+              _anyVersionReset = true;
             } else {
               if (p.fam  !== undefined) state.dagim[pick].fam  = p.fam;
               if (p.name !== undefined) state.dagim[pick].name = p.name;
