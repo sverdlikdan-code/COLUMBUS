@@ -226,6 +226,8 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .lasso-clear.visible{display:block;}
 .visit-btn{background:#5C6BC0;color:#fff;border:none;border-radius:16px;padding:0 12px;height:28px;font-size:11px;font-weight:800;cursor:pointer;transition:all .15s;white-space:nowrap;}
 .visit-btn.active{background:#283593;box-shadow:0 2px 8px rgba(40,53,147,.45);}
+.tablet-gps-btn{background:#fff;color:#E65100;border:1.5px solid #FFCC80;border-radius:16px;padding:0 12px;height:28px;font-size:11px;font-weight:800;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.tablet-gps-btn.active{background:#E65100;color:#fff;border-color:#BF360C;box-shadow:0 2px 8px rgba(230,81,0,.35);}
 .visit-btn.ver-mode{background:#7B1FA2;}
 .visit-btn.ver-mode.active{background:#4A148C;box-shadow:0 2px 8px rgba(74,20,140,.45);}
 .visit-num{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:5px;background:#5C6BC0;color:#fff;font-size:10px;font-weight:900;flex-shrink:0;margin-left:4px;}
@@ -318,6 +320,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
     <button type="button" class="stat-chip ice-btn" id="stat-ice" style="display:none" onclick="toggleIceFilter()"></button>
     <span class="stat-chip" id="stat-changed" style="display:none;"></span>
     <div class="stats-right">
+      <button type="button" class="tablet-gps-btn" id="tablet-gps-btn" onclick="toggleTabletGps()">📱 GPS Tablet</button>
       <button type="button" class="visit-btn" id="visit-btn" onclick="setVisitSource('computed')">🤖 סדר ביקור AI</button>
       <button type="button" class="visit-btn ver-mode" id="visit-ver-btn" onclick="setVisitSource('version')" style="display:none">📋 גרסה</button>
       <button type="button" class="version-btn" onclick="openSaveVersionModal()">💾 גרסה</button>
@@ -411,6 +414,41 @@ async function loadAiGps(){
     if(r.ok) AI_GPS=await r.json();
   }catch(_){}
 }
+
+let TABLET_GPS={};
+async function loadTabletGps(){
+  try{
+    const r=await fetch('/priority-gps-cross.json?_='+Date.now());
+    if(!r.ok) return;
+    const arr=await r.json();
+    arr.forEach(row=>{ if(row.cust&&row.lat&&row.lng) TABLET_GPS[String(row.cust)]={lat:row.lat,lng:row.lng}; });
+  }catch(_){}
+}
+
+function toggleTabletGps(){
+  st.tabletGpsMode=!st.tabletGpsMode;
+  const btn=document.getElementById('tablet-gps-btn');
+  if(btn) btn.classList.toggle('active',st.tabletGpsMode);
+
+  if(st.tabletGpsMode){
+    st.allClients=st.allClients.map(c=>{
+      if(c.gpsSource==='correction') return c;
+      const t=TABLET_GPS[String(c.custId)];
+      if(t?.lat&&t?.lng) return{...c,lat:t.lat,lng:t.lng,gpsSource:'tablet'};
+      return{...c,lat:c._pbiLat||c.lat,lng:c._pbiLng||c.lng};
+    });
+    showToast('📱 GPS: Tablet (Priority) פעיל');
+  } else {
+    st.allClients=st.allClients.map(c=>{
+      if(c.gpsSource==='correction') return c;
+      const ai=AI_GPS[String(c.custId)];
+      if(ai?.aiLat&&ai?.aiLng) return{...c,lat:ai.aiLat,lng:ai.aiLng,gpsSource:'ai'};
+      return{...c,lat:c._pbiLat||c.lat,lng:c._pbiLng||c.lng,gpsSource:c._pbiLat?'pbi':c.gpsSource};
+    });
+    showToast('📍 GPS: רגיל');
+  }
+  renderAll();
+}
 const DAY_LBL = {1:'א',2:'ב',3:'ג',4:'ד',5:'ה'};
 const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
@@ -451,6 +489,7 @@ const st={
   activeDays: new Set([0,1,2,3,4,5]),
   lassoIds: null,
   noGpsFilter: false,
+  tabletGpsMode: false,
   noSalesDays: 0,
   regularFilter: false,
   iceFilter: false,
@@ -879,6 +918,9 @@ async function loadClients(cities){
       return corr?{...c,lat:corr.lat,lng:corr.lng,gpsSource:'correction'}:c;
     });
   }catch(_){}
+
+  // Save original PBI coords before AI GPS override (needed for tablet GPS toggle)
+  st.allClients=st.allClients.map(c=>({...c,_pbiLat:c.lat,_pbiLng:c.lng}));
 
   // Apply AI GPS as fallback for clients without manual correction (same as formula-road)
   try{
@@ -1913,7 +1955,7 @@ async function init(){
   loadOverrides();
   try{const r=await fetch(API+'/auth/pbi',{credentials:'include'});if(r.ok){const j=await r.json();if(j.ok&&j.token)localStorage.setItem(TOKEN_KEY,j.token);}}catch(_){}
   if(!getToken()){location.href=(location.hostname.includes('sverdlik-apps')?'/formula-road':('formula-road.html'))+'?next=territory.html';return;}
-  await Promise.all([loadCities(), loadDropAgents(), loadManagers(), loadCorrections(), loadAiGps()]);
+  await Promise.all([loadCities(), loadDropAgents(), loadManagers(), loadCorrections(), loadAiGps(), loadTabletGps()]);
   if(!selectedCities.size){
     ['ירושלים','מעלה אדומים','מבשרת ציון'].forEach(c=>{ if(allCities.includes(c)) selectedCities.add(c); });
     if(selectedCities.size){ renderCityItems(allCities); updateCityBtn(); onCitiesChanged(); }
