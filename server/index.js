@@ -3479,7 +3479,7 @@ app.get('/territory.html', (req, res) => {
 app.get('/priority-gps.html', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'priority-gps.html'));
 });
-app.get('/priority-gps-cross.json', requireAuth, (req, res) => {
+app.get('/priority-gps-cross.json', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'priority-gps-cross.json'));
 });
 app.get('/sw.js', (req, res) => {
