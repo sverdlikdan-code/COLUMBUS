@@ -4272,8 +4272,8 @@
     "daySalesZafn": 9.7,
     "daysStock": 8,
     "daysStockZafn": 16,
-    "stockTrnz": 384,
-    "palStockTrnz": 2,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 1.2,
     "packFactor": null,
@@ -4291,7 +4291,13 @@
         "cartons": 117
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-11-13",
+        "daysLeft": 105,
+        "cartons": 111
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 1764,
@@ -4368,8 +4374,8 @@
     "daySalesZafn": 16.7,
     "daysStock": 0,
     "daysStockZafn": 1,
-    "stockTrnz": 384,
-    "palStockTrnz": 2,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": 10,
     "weight": 1.2,
     "packFactor": null,
@@ -4381,7 +4387,13 @@
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
     "pakuot": [],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-11-13",
+        "daysLeft": 105,
+        "cartons": 12
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 1356,
@@ -4458,8 +4470,8 @@
     "daySalesZafn": 17,
     "daysStock": 0,
     "daysStockZafn": 0,
-    "stockTrnz": 256,
-    "palStockTrnz": 1.3,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": 10,
     "weight": 1.2,
     "packFactor": null,
@@ -4509,8 +4521,8 @@
     "daySalesZafn": 23.4,
     "daysStock": 74,
     "daysStockZafn": 20,
-    "stockTrnz": 400,
-    "palStockTrnz": 2,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.4,
     "packFactor": null,
@@ -4538,7 +4550,13 @@
         "cartons": 599
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-10-24",
+        "daysLeft": 85,
+        "cartons": 326
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 3502,
@@ -4570,8 +4588,8 @@
     "daySalesZafn": 11.4,
     "daysStock": 50,
     "daysStockZafn": 28,
-    "stockTrnz": 448,
-    "palStockTrnz": 2.3,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 1,
     "packFactor": null,
@@ -4594,7 +4612,18 @@
         "cartons": 317
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-10-24",
+        "daysLeft": 85,
+        "cartons": 102
+      },
+      {
+        "date": "2026-11-13",
+        "daysLeft": 105,
+        "cartons": 128
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 1725,
@@ -4774,8 +4803,8 @@
     "daySalesZafn": 21.6,
     "daysStock": 51,
     "daysStockZafn": 17,
-    "stockTrnz": 896,
-    "palStockTrnz": 4,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.25,
     "packFactor": null,
@@ -4803,7 +4832,18 @@
         "cartons": 671
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-10-24",
+        "daysLeft": 85,
+        "cartons": 33
+      },
+      {
+        "date": "2026-11-06",
+        "daysLeft": 98,
+        "cartons": 222
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 3219,
@@ -4835,8 +4875,8 @@
     "daySalesZafn": 23.7,
     "daysStock": 49,
     "daysStockZafn": 20,
-    "stockTrnz": 480,
-    "palStockTrnz": 2,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.26,
     "packFactor": null,
@@ -4864,7 +4904,18 @@
         "cartons": 719
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-10-24",
+        "daysLeft": 85,
+        "cartons": 94
+      },
+      {
+        "date": "2026-11-06",
+        "daysLeft": 98,
+        "cartons": 238
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 3835,
@@ -4896,8 +4947,8 @@
     "daySalesZafn": 17.2,
     "daysStock": 51,
     "daysStockZafn": 25,
-    "stockTrnz": 480,
-    "palStockTrnz": 2,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.26,
     "packFactor": null,
@@ -4925,7 +4976,18 @@
         "cartons": 479
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-10-24",
+        "daysLeft": 85,
+        "cartons": 156
+      },
+      {
+        "date": "2026-11-06",
+        "daysLeft": 98,
+        "cartons": 156
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 2757,
@@ -4957,8 +5019,8 @@
     "daySalesZafn": 40.8,
     "daysStock": 18,
     "daysStockZafn": 12,
-    "stockTrnz": 1200,
-    "palStockTrnz": 5,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.26,
     "packFactor": null,
@@ -4981,7 +5043,18 @@
         "cartons": 719
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-11-06",
+        "daysLeft": 98,
+        "cartons": 107
+      },
+      {
+        "date": "2026-11-13",
+        "daysLeft": 105,
+        "cartons": 240
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 4084,
@@ -5037,7 +5110,13 @@
         "cartons": 747
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-10-24",
+        "daysLeft": 85,
+        "cartons": 217
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 1316,
@@ -5117,7 +5196,13 @@
         "cartons": 1589
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2027-01-30",
+        "daysLeft": 183,
+        "cartons": 191
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 1780,
@@ -5173,7 +5258,18 @@
         "cartons": 1427
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-10-24",
+        "daysLeft": 85,
+        "cartons": 50
+      },
+      {
+        "date": "2027-01-30",
+        "daysLeft": 183,
+        "cartons": 357
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 1925,
@@ -5229,7 +5325,18 @@
         "cartons": 1666
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-08-25",
+        "daysLeft": 25,
+        "cartons": 73
+      },
+      {
+        "date": "2026-12-05",
+        "daysLeft": 127,
+        "cartons": 334
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 2294,
@@ -5280,7 +5387,13 @@
         "cartons": 976
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-12-05",
+        "daysLeft": 127,
+        "cartons": 306
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 1282,
@@ -6157,7 +6270,18 @@
         "cartons": 279
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-10-24",
+        "daysLeft": 85,
+        "cartons": 27
+      },
+      {
+        "date": "2026-11-13",
+        "daysLeft": 105,
+        "cartons": 120
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 1257,
@@ -6189,8 +6313,8 @@
     "daySalesZafn": 13.4,
     "daysStock": 59,
     "daysStockZafn": 20,
-    "stockTrnz": 400,
-    "palStockTrnz": 2,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.4,
     "packFactor": null,
@@ -6213,7 +6337,13 @@
         "cartons": 399
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-10-24",
+        "daysLeft": 85,
+        "cartons": 189
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 2332,
@@ -6245,8 +6375,8 @@
     "daySalesZafn": 33.3,
     "daysStock": 9,
     "daysStockZafn": 9,
-    "stockTrnz": 960,
-    "palStockTrnz": 4,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.26,
     "packFactor": null,
@@ -6264,7 +6394,13 @@
         "cartons": 440
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-11-13",
+        "daysLeft": 105,
+        "cartons": 215
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 3055,
@@ -6496,7 +6632,18 @@
         "cartons": 335
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-10-24",
+        "daysLeft": 85,
+        "cartons": 3
+      },
+      {
+        "date": "2026-11-02",
+        "daysLeft": 94,
+        "cartons": 168
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 507,
@@ -6552,7 +6699,13 @@
         "cartons": 336
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-10-27",
+        "daysLeft": 88,
+        "cartons": 66
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 530,
@@ -6608,7 +6761,18 @@
         "cartons": 240
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-10-28",
+        "daysLeft": 89,
+        "cartons": 3
+      },
+      {
+        "date": "2026-11-03",
+        "daysLeft": 95,
+        "cartons": 96
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 340,
@@ -7585,7 +7749,13 @@
         "cartons": 1802
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2027-03-03",
+        "daysLeft": 215,
+        "cartons": 389
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 5839,
@@ -7641,7 +7811,13 @@
         "cartons": 552
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2027-03-03",
+        "daysLeft": 215,
+        "cartons": 476
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 1842,
@@ -7697,7 +7873,18 @@
         "cartons": 521
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-09-11",
+        "daysLeft": 42,
+        "cartons": 85
+      },
+      {
+        "date": "2026-12-04",
+        "daysLeft": 126,
+        "cartons": 280
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 1025,
@@ -8292,8 +8479,8 @@
     "daySalesZafn": 17.8,
     "daysStock": 34,
     "daysStockZafn": 8,
-    "stockTrnz": 224,
-    "palStockTrnz": 1,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.25,
     "packFactor": null,
@@ -8316,7 +8503,13 @@
         "cartons": 671
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-11-06",
+        "daysLeft": 98,
+        "cartons": 106
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 2531,
@@ -8372,7 +8565,18 @@
         "cartons": 751
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-11-14",
+        "daysLeft": 106,
+        "cartons": 3
+      },
+      {
+        "date": "2027-01-02",
+        "daysLeft": 155,
+        "cartons": 252
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 1447,
@@ -8428,7 +8632,13 @@
         "cartons": 1481
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2027-01-02",
+        "daysLeft": 155,
+        "cartons": 370
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 2712,
@@ -8479,7 +8689,13 @@
         "cartons": 1002
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2027-01-30",
+        "daysLeft": 183,
+        "cartons": 312
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 1314,
@@ -8553,7 +8769,13 @@
     "iksGroup": "IKRA",
     "ashdodPalletCartons": null,
     "pakuot": [],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2027-01-30",
+        "daysLeft": 183,
+        "cartons": 2
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 3,
@@ -8604,7 +8826,13 @@
         "cartons": 43
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2027-01-30",
+        "daysLeft": 183,
+        "cartons": 24
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 68,
@@ -8720,7 +8948,23 @@
         "cartons": 489
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-08-28",
+        "daysLeft": 28,
+        "cartons": 93
+      },
+      {
+        "date": "2026-09-11",
+        "daysLeft": 42,
+        "cartons": 210
+      },
+      {
+        "date": "2026-10-24",
+        "daysLeft": 85,
+        "cartons": 243
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 2229,
@@ -8752,8 +8996,8 @@
     "daySalesZafn": 27.5,
     "daysStock": 0,
     "daysStockZafn": 0,
-    "stockTrnz": 700,
-    "palStockTrnz": 2,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.15,
     "packFactor": null,
@@ -8771,7 +9015,13 @@
         "cartons": 6
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-11-06",
+        "daysLeft": 98,
+        "cartons": 6
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 2812,
@@ -8803,8 +9053,8 @@
     "daySalesZafn": 14.3,
     "daysStock": 4,
     "daysStockZafn": 7,
-    "stockTrnz": 455,
-    "palStockTrnz": 1.3,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.15,
     "packFactor": null,
@@ -8822,7 +9072,13 @@
         "cartons": 80
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-10-24",
+        "daysLeft": 85,
+        "cartons": 67
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 2247,
@@ -8888,7 +9144,18 @@
         "cartons": 734
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-09-11",
+        "daysLeft": 42,
+        "cartons": 113
+      },
+      {
+        "date": "2026-10-24",
+        "daysLeft": 85,
+        "cartons": 245
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 4337,
@@ -8959,7 +9226,13 @@
         "cartons": 599
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-08-28",
+        "daysLeft": 28,
+        "cartons": 186
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 4769,
@@ -9035,7 +9308,18 @@
         "cartons": 599
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-08-14",
+        "daysLeft": 14,
+        "cartons": 87
+      },
+      {
+        "date": "2026-08-28",
+        "daysLeft": 28,
+        "cartons": 200
+      }
+    ],
     "shelfLife": 21,
     "stopSale": true,
     "spo": 4364,
@@ -9106,7 +9390,18 @@
         "cartons": 599
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-08-28",
+        "daysLeft": 28,
+        "cartons": 23
+      },
+      {
+        "date": "2026-09-11",
+        "daysLeft": 42,
+        "cartons": 200
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 2583,
@@ -9231,7 +9526,13 @@
         "cartons": 85
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-09-11",
+        "daysLeft": 42,
+        "cartons": 65
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 150,
@@ -9353,8 +9654,8 @@
     "daySalesZafn": 18.8,
     "daysStock": 52,
     "daysStockZafn": 21,
-    "stockTrnz": 600,
-    "palStockTrnz": 2,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.3,
     "packFactor": null,
@@ -9377,7 +9678,13 @@
         "cartons": 589
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-10-24",
+        "daysLeft": 85,
+        "cartons": 276
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 2640,
@@ -9409,8 +9716,8 @@
     "daySalesZafn": 8.8,
     "daysStock": 21,
     "daysStockZafn": 14,
-    "stockTrnz": 448,
-    "palStockTrnz": 2.3,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 1,
     "packFactor": null,
@@ -9428,7 +9735,13 @@
         "cartons": 238
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-11-13",
+        "daysLeft": 105,
+        "cartons": 85
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 771,
@@ -11097,8 +11410,8 @@
     "daySalesZafn": 25.7,
     "daysStock": 1,
     "daysStockZafn": 2,
-    "stockTrnz": 600,
-    "palStockTrnz": 3,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.5,
     "packFactor": null,
@@ -11116,7 +11429,13 @@
         "cartons": 37
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-11-13",
+        "daysLeft": 105,
+        "cartons": 33
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 870,
@@ -11148,8 +11467,8 @@
     "daySalesZafn": 9.4,
     "daysStock": 1,
     "daysStockZafn": 2,
-    "stockTrnz": 400,
-    "palStockTrnz": 2,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.52,
     "packFactor": null,
@@ -11167,7 +11486,13 @@
         "cartons": 8
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-10-25",
+        "daysLeft": 86,
+        "cartons": 12
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 1406,
@@ -11218,7 +11543,13 @@
         "cartons": 165
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-10-25",
+        "daysLeft": 86,
+        "cartons": 78
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 1243,
@@ -11274,7 +11605,13 @@
         "cartons": 1441
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-09-01",
+        "daysLeft": 32,
+        "cartons": 305
+      }
+    ],
     "shelfLife": 7,
     "stopSale": false,
     "spo": 5543,
@@ -11325,7 +11662,13 @@
         "cartons": 810
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-09-05",
+        "daysLeft": 36,
+        "cartons": 334
+      }
+    ],
     "shelfLife": 7,
     "stopSale": false,
     "spo": 2583,
@@ -11381,7 +11724,18 @@
         "cartons": 451
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-08-22",
+        "daysLeft": 22,
+        "cartons": 38
+      },
+      {
+        "date": "2026-09-01",
+        "daysLeft": 32,
+        "cartons": 180
+      }
+    ],
     "shelfLife": 7,
     "stopSale": false,
     "spo": 1345,
@@ -11437,7 +11791,18 @@
         "cartons": 241
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-08-21",
+        "daysLeft": 21,
+        "cartons": 61
+      },
+      {
+        "date": "2026-09-05",
+        "daysLeft": 36,
+        "cartons": 120
+      }
+    ],
     "shelfLife": 7,
     "stopSale": false,
     "spo": 799,
@@ -11488,7 +11853,13 @@
         "cartons": 299
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-09-01",
+        "daysLeft": 32,
+        "cartons": 144
+      }
+    ],
     "shelfLife": 7,
     "stopSale": false,
     "spo": 920,
@@ -11544,7 +11915,18 @@
         "cartons": 225
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-08-22",
+        "daysLeft": 22,
+        "cartons": 57
+      },
+      {
+        "date": "2026-09-05",
+        "daysLeft": 36,
+        "cartons": 100
+      }
+    ],
     "shelfLife": 7,
     "stopSale": false,
     "spo": 781,
@@ -11595,7 +11977,13 @@
         "cartons": 308
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-08-26",
+        "daysLeft": 26,
+        "cartons": 121
+      }
+    ],
     "shelfLife": 7,
     "stopSale": false,
     "spo": 817,
@@ -11646,7 +12034,13 @@
         "cartons": 132
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-08-26",
+        "daysLeft": 26,
+        "cartons": 72
+      }
+    ],
     "shelfLife": 7,
     "stopSale": false,
     "spo": 452,
