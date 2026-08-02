@@ -4183,23 +4183,23 @@
     "openOrders": null
   },
   "1000": {
-    "stock": 117,
+    "stock": 501,
     "daySales": 20.7,
     "kratnost": 192,
-    "palStock": 0.6,
+    "palStock": 2.6,
     "stockZafn": 111,
     "palStockZafn": 0.6,
     "daySalesZafn": 9.9,
-    "daysStock": 8,
+    "daysStock": 34,
     "daysStockZafn": 16,
-    "stockTrnz": 384,
-    "palStockTrnz": 2,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 1.2,
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 28.2,
-    "daysStockAll": 4,
+    "daysStockAll": 18,
     "nameEn": "פילה דג הרינג מומלח בשמן מצונן1200 ג(NP (3 '",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -4209,6 +4209,11 @@
         "date": "2026-11-13",
         "daysLeft": 103,
         "cartons": 117
+      },
+      {
+        "date": "2026-12-04",
+        "daysLeft": 124,
+        "cartons": 384
       }
     ],
     "pakuotZafn": [
@@ -4269,33 +4274,44 @@
     "openOrders": null
   },
   "1002": {
-    "stock": -1,
+    "stock": 383,
     "daySales": 30,
     "kratnost": 192,
-    "palStock": null,
-    "stockZafn": 12,
-    "palStockZafn": 0.1,
+    "palStock": 2,
+    "stockZafn": 204,
+    "palStockZafn": 1.1,
     "daySalesZafn": 16.7,
-    "daysStock": 0,
-    "daysStockZafn": 1,
-    "stockTrnz": 384,
-    "palStockTrnz": 2,
-    "daySalesTrnz": null,
+    "daysStock": 18,
+    "daysStockZafn": 17,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
+    "daySalesTrnz": 10,
     "weight": 1.2,
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 41,
-    "daysStockAll": null,
+    "daysStockAll": 9,
     "nameEn": "חתיכות פילה דג הרינג מומלח בשמן מצונן1200 ג3) NP)'",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [],
+    "pakuot": [
+      {
+        "date": "2026-12-04",
+        "daysLeft": 124,
+        "cartons": 384
+      }
+    ],
     "pakuotZafn": [
       {
         "date": "2026-11-13",
         "daysLeft": 103,
         "cartons": 12
+      },
+      {
+        "date": "2026-12-04",
+        "daysLeft": 124,
+        "cartons": 192
       }
     ],
     "shelfLife": 21,
@@ -4349,23 +4365,23 @@
     "openOrders": null
   },
   "1004": {
-    "stock": 1,
+    "stock": 257,
     "daySales": 36.6,
     "kratnost": 192,
-    "palStock": 0,
-    "stockZafn": 0,
-    "palStockZafn": null,
+    "palStock": 1.3,
+    "stockZafn": 128,
+    "palStockZafn": 0.7,
     "daySalesZafn": 17,
-    "daysStock": 0,
-    "daysStockZafn": 0,
-    "stockTrnz": 256,
-    "palStockTrnz": 1.3,
-    "daySalesTrnz": null,
+    "daysStock": 10,
+    "daysStockZafn": 11,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
+    "daySalesTrnz": 10,
     "weight": 1.2,
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 42.3,
-    "daysStockAll": 0,
+    "daysStockAll": 6,
     "nameEn": "חתיכות פילה דג הרינג סקנדינבי מומלח בשמן מצונן1200 ג3) NP)'",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -4375,9 +4391,20 @@
         "date": "2026-11-13",
         "daysLeft": 103,
         "cartons": 1
+      },
+      {
+        "date": "2026-12-04",
+        "daysLeft": 124,
+        "cartons": 256
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-12-04",
+        "daysLeft": 124,
+        "cartons": 128
+      }
+    ],
     "shelfLife": 21,
     "stopSale": false,
     "spo": 1671,
@@ -4400,23 +4427,23 @@
     ]
   },
   "1005": {
-    "stock": 1976,
+    "stock": 2376,
     "daySales": 37.6,
     "kratnost": 200,
-    "palStock": 9.9,
+    "palStock": 11.9,
     "stockZafn": 326,
     "palStockZafn": 1.6,
     "daySalesZafn": 23.8,
-    "daysStock": 74,
+    "daysStock": 88,
     "daysStockZafn": 19,
-    "stockTrnz": 400,
-    "palStockTrnz": 2,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.4,
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 61.5,
-    "daysStockAll": 32,
+    "daysStockAll": 39,
     "nameEn": "חתיכות פילה דג הרינג מלוח בשמן מצונן400 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -4436,6 +4463,11 @@
         "date": "2026-11-13",
         "daysLeft": 103,
         "cartons": 599
+      },
+      {
+        "date": "2026-12-04",
+        "daysLeft": 124,
+        "cartons": 400
       }
     ],
     "pakuotZafn": [
@@ -4467,23 +4499,23 @@
     ]
   },
   "1006": {
-    "stock": 598,
+    "stock": 1046,
     "daySales": 16.1,
     "kratnost": 192,
-    "palStock": 3.1,
+    "palStock": 5.4,
     "stockZafn": 230,
     "palStockZafn": 1.2,
     "daySalesZafn": 11.6,
-    "daysStock": 52,
+    "daysStock": 91,
     "daysStockZafn": 28,
-    "stockTrnz": 448,
-    "palStockTrnz": 2.3,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 1,
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 27.8,
-    "daysStockAll": 22,
+    "daysStockAll": 38,
     "nameEn": "פילה דג הרינג מומלח בשמן מצונן1000 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -4498,6 +4530,11 @@
         "date": "2026-11-13",
         "daysLeft": 103,
         "cartons": 317
+      },
+      {
+        "date": "2026-12-04",
+        "daysLeft": 124,
+        "cartons": 448
       }
     ],
     "pakuotZafn": [
@@ -4650,23 +4687,23 @@
     "openOrders": null
   },
   "1011": {
-    "stock": 1171,
+    "stock": 2067,
     "daySales": 32.6,
     "kratnost": 224,
-    "palStock": 5.2,
+    "palStock": 9.2,
     "stockZafn": 255,
     "palStockZafn": 1.1,
     "daySalesZafn": 22,
-    "daysStock": 50,
+    "daysStock": 89,
     "daysStockZafn": 16,
-    "stockTrnz": 896,
-    "palStockTrnz": 4,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.25,
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 54.6,
-    "daysStockAll": 21,
+    "daysStockAll": 38,
     "nameEn": "פילה דג הרינג מלוח מצונן250 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -4686,6 +4723,11 @@
         "date": "2026-11-13",
         "daysLeft": 103,
         "cartons": 671
+      },
+      {
+        "date": "2026-12-04",
+        "daysLeft": 124,
+        "cartons": 896
       }
     ],
     "pakuotZafn": [
@@ -4722,23 +4764,23 @@
     ]
   },
   "1012": {
-    "stock": 1344,
+    "stock": 1824,
     "daySales": 38.6,
     "kratnost": 240,
-    "palStock": 5.6,
+    "palStock": 7.6,
     "stockZafn": 332,
     "palStockZafn": 1.4,
     "daySalesZafn": 23.5,
-    "daysStock": 49,
+    "daysStock": 66,
     "daysStockZafn": 20,
-    "stockTrnz": 480,
-    "palStockTrnz": 2,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.26,
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 62.1,
-    "daysStockAll": 22,
+    "daysStockAll": 29,
     "nameEn": "חתיכות פילה דג הרינג מלוח מצונן עם בצל260 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -4758,6 +4800,11 @@
         "date": "2026-11-13",
         "daysLeft": 103,
         "cartons": 719
+      },
+      {
+        "date": "2026-12-04",
+        "daysLeft": 124,
+        "cartons": 480
       }
     ],
     "pakuotZafn": [
@@ -4794,23 +4841,23 @@
     ]
   },
   "1013": {
-    "stock": 1006,
+    "stock": 1486,
     "daySales": 27.6,
     "kratnost": 240,
-    "palStock": 4.2,
+    "palStock": 6.2,
     "stockZafn": 312,
     "palStockZafn": 1.3,
     "daySalesZafn": 17.1,
-    "daysStock": 51,
+    "daysStock": 76,
     "daysStockZafn": 26,
-    "stockTrnz": 480,
-    "palStockTrnz": 2,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.26,
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 44.7,
-    "daysStockAll": 23,
+    "daysStockAll": 33,
     "nameEn": "חתיכות פילה דג הרינג מלוח מצונן עם תבלין260 ג",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -4830,6 +4877,11 @@
         "date": "2026-11-13",
         "daysLeft": 103,
         "cartons": 479
+      },
+      {
+        "date": "2026-12-04",
+        "daysLeft": 124,
+        "cartons": 480
       }
     ],
     "pakuotZafn": [
@@ -4866,23 +4918,23 @@
     ]
   },
   "1014": {
-    "stock": 857,
+    "stock": 2057,
     "daySales": 66.4,
     "kratnost": 240,
-    "palStock": 3.6,
+    "palStock": 8.6,
     "stockZafn": 347,
     "palStockZafn": 1.4,
     "daySalesZafn": 41.3,
-    "daysStock": 18,
+    "daysStock": 43,
     "daysStockZafn": 12,
-    "stockTrnz": 1200,
-    "palStockTrnz": 5,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.26,
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 107.6,
-    "daysStockAll": 8,
+    "daysStockAll": 19,
     "nameEn": "חתיכות פילה דג הרינג מלוח מצונן260 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -4897,6 +4949,11 @@
         "date": "2026-11-13",
         "daysLeft": 103,
         "cartons": 719
+      },
+      {
+        "date": "2026-12-04",
+        "daysLeft": 124,
+        "cartons": 1200
       }
     ],
     "pakuotZafn": [
@@ -6048,23 +6105,23 @@
     ]
   },
   "1048": {
-    "stock": 943,
+    "stock": 1343,
     "daySales": 22.7,
     "kratnost": 200,
-    "palStock": 4.7,
+    "palStock": 6.7,
     "stockZafn": 189,
     "palStockZafn": 0.9,
     "daySalesZafn": 13.7,
-    "daysStock": 58,
+    "daysStock": 83,
     "daysStockZafn": 19,
-    "stockTrnz": 400,
-    "palStockTrnz": 2,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.4,
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 36.5,
-    "daysStockAll": 26,
+    "daysStockAll": 37,
     "nameEn": "חתיכות פילה דג הרינג סקנדינבי מלוח בשמן400 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -6079,6 +6136,11 @@
         "date": "2026-11-06",
         "daysLeft": 96,
         "cartons": 399
+      },
+      {
+        "date": "2026-12-04",
+        "daysLeft": 124,
+        "cartons": 400
       }
     ],
     "pakuotZafn": [
@@ -6110,23 +6172,23 @@
     ]
   },
   "1049": {
-    "stock": 440,
+    "stock": 1400,
     "daySales": 70.5,
     "kratnost": 240,
-    "palStock": 1.8,
+    "palStock": 5.8,
     "stockZafn": 215,
     "palStockZafn": 0.9,
     "daySalesZafn": 34.2,
-    "daysStock": 9,
+    "daysStock": 28,
     "daysStockZafn": 9,
-    "stockTrnz": 960,
-    "palStockTrnz": 4,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.26,
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 102.4,
-    "daysStockAll": 4,
+    "daysStockAll": 14,
     "nameEn": "חתיכות פילה דג הרינג סקנדינבי מלוח מצונן260 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -6136,6 +6198,11 @@
         "date": "2026-11-13",
         "daysLeft": 103,
         "cartons": 440
+      },
+      {
+        "date": "2026-12-04",
+        "daysLeft": 124,
+        "cartons": 960
       }
     ],
     "pakuotZafn": [
@@ -8214,23 +8281,23 @@
     ]
   },
   "1120": {
-    "stock": 857,
+    "stock": 1081,
     "daySales": 35.9,
     "kratnost": 224,
-    "palStock": 3.8,
-    "stockZafn": 106,
-    "palStockZafn": 0.5,
+    "palStock": 4.8,
+    "stockZafn": 330,
+    "palStockZafn": 1.5,
     "daySalesZafn": 17.9,
-    "daysStock": 33,
-    "daysStockZafn": 8,
-    "stockTrnz": 224,
-    "palStockTrnz": 1,
+    "daysStock": 42,
+    "daysStockZafn": 26,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.25,
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 53.9,
-    "daysStockAll": 16,
+    "daysStockAll": 20,
     "nameEn": "פילה דג הרינג סקנדינבי מלוח מצונן250 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -8245,6 +8312,11 @@
         "date": "2026-11-13",
         "daysLeft": 103,
         "cartons": 671
+      },
+      {
+        "date": "2026-12-04",
+        "daysLeft": 124,
+        "cartons": 224
       }
     ],
     "pakuotZafn": [
@@ -8252,6 +8324,11 @@
         "date": "2026-11-06",
         "daysLeft": 96,
         "cartons": 106
+      },
+      {
+        "date": "2026-12-04",
+        "daysLeft": 124,
+        "cartons": 224
       }
     ],
     "shelfLife": 21,
@@ -8715,23 +8792,23 @@
     ]
   },
   "1163": {
-    "stock": 6,
+    "stock": 706,
     "daySales": 48.4,
     "kratnost": 350,
-    "palStock": 0,
-    "stockZafn": 6,
-    "palStockZafn": 0,
+    "palStock": 2,
+    "stockZafn": 356,
+    "palStockZafn": 1,
     "daySalesZafn": 28.2,
-    "daysStock": 0,
-    "daysStockZafn": 0,
-    "stockTrnz": 700,
-    "palStockTrnz": 2,
+    "daysStock": 20,
+    "daysStockZafn": 18,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.15,
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 76.6,
-    "daysStockAll": 0,
+    "daysStockAll": 9,
     "nameEn": "חתיכות פילה דג הרינג מומלח בשמן מצונן150 ג'",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -8741,6 +8818,11 @@
         "date": "2026-11-06",
         "daysLeft": 96,
         "cartons": 6
+      },
+      {
+        "date": "2026-12-04",
+        "daysLeft": 124,
+        "cartons": 700
       }
     ],
     "pakuotZafn": [
@@ -8748,6 +8830,11 @@
         "date": "2026-11-06",
         "daysLeft": 96,
         "cartons": 6
+      },
+      {
+        "date": "2026-12-04",
+        "daysLeft": 124,
+        "cartons": 350
       }
     ],
     "shelfLife": 21,
@@ -8772,23 +8859,23 @@
     ]
   },
   "1164": {
-    "stock": 80,
+    "stock": 535,
     "daySales": 26.6,
     "kratnost": 350,
-    "palStock": 0.2,
-    "stockZafn": 67,
-    "palStockZafn": 0.2,
+    "palStock": 1.5,
+    "stockZafn": 312,
+    "palStockZafn": 0.9,
     "daySalesZafn": 14.4,
-    "daysStock": 4,
-    "daysStockZafn": 7,
-    "stockTrnz": 455,
-    "palStockTrnz": 1.3,
+    "daysStock": 28,
+    "daysStockZafn": 30,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.15,
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 41,
-    "daysStockAll": 2,
+    "daysStockAll": 13,
     "nameEn": "חתיכות פילה דג הרינג מומלח עם בצל בשמן מצונן150 ג'",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -8798,6 +8885,11 @@
         "date": "2026-10-24",
         "daysLeft": 83,
         "cartons": 80
+      },
+      {
+        "date": "2026-12-04",
+        "daysLeft": 124,
+        "cartons": 455
       }
     ],
     "pakuotZafn": [
@@ -8805,6 +8897,11 @@
         "date": "2026-10-24",
         "daysLeft": 83,
         "cartons": 67
+      },
+      {
+        "date": "2026-12-04",
+        "daysLeft": 124,
+        "cartons": 245
       }
     ],
     "shelfLife": 21,
@@ -8987,19 +9084,19 @@
     "daySales": 23.1,
     "kratnost": 200,
     "palStock": 18.4,
-    "stockZafn": 277,
-    "palStockZafn": 1.4,
-    "daySalesZafn": 11.8,
+    "stockZafn": 257,
+    "palStockZafn": 1.3,
+    "daySalesZafn": 12.4,
     "daysStock": 223,
-    "daysStockZafn": 33,
+    "daysStockZafn": 29,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.5,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 34.2,
-    "daysStockAll": 108,
+    "daySalesAll": 34.8,
+    "daysStockAll": 106,
     "nameEn": "חתיכות פילה דג הרינג סקנדינבי מומלח בשמן מצונן500 ג",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -9040,7 +9137,7 @@
       {
         "date": "2026-08-14",
         "daysLeft": 12,
-        "cartons": 77
+        "cartons": 57
       },
       {
         "date": "2026-08-28",
@@ -9050,7 +9147,7 @@
     ],
     "shelfLife": 21,
     "stopSale": true,
-    "spo": 4354,
+    "spo": 4334,
     "openOrders": 400,
     "weekSales": [
       34.8,
@@ -9341,23 +9438,23 @@
     "openOrders": null
   },
   "1174": {
-    "stock": 1165,
+    "stock": 1765,
     "daySales": 31,
     "kratnost": 300,
-    "palStock": 3.9,
+    "palStock": 5.9,
     "stockZafn": 276,
     "palStockZafn": 0.9,
     "daySalesZafn": 19,
-    "daysStock": 53,
+    "daysStock": 80,
     "daysStockZafn": 20,
-    "stockTrnz": 600,
-    "palStockTrnz": 2,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.3,
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 49.4,
-    "daysStockAll": 24,
+    "daysStockAll": 36,
     "nameEn": "פילה דג הרינג מומלח XXL בשמן מצונן300 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -9372,6 +9469,11 @@
         "date": "2026-11-06",
         "daysLeft": 96,
         "cartons": 589
+      },
+      {
+        "date": "2026-12-04",
+        "daysLeft": 124,
+        "cartons": 600
       }
     ],
     "pakuotZafn": [
@@ -9403,23 +9505,23 @@
     ]
   },
   "1175": {
-    "stock": 238,
+    "stock": 686,
     "daySales": 14.8,
     "kratnost": 192,
-    "palStock": 1.2,
+    "palStock": 3.6,
     "stockZafn": 85,
     "palStockZafn": 0.4,
     "daySalesZafn": 8.8,
-    "daysStock": 23,
+    "daysStock": 65,
     "daysStockZafn": 13,
-    "stockTrnz": 448,
-    "palStockTrnz": 2.3,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 1,
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 23.6,
-    "daysStockAll": 10,
+    "daysStockAll": 29,
     "nameEn": "פילה דג הרינג סקנדינבי מומלח בשמן מצונן1000 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -9429,6 +9531,11 @@
         "date": "2026-11-13",
         "daysLeft": 103,
         "cartons": 238
+      },
+      {
+        "date": "2026-12-04",
+        "daysLeft": 124,
+        "cartons": 448
       }
     ],
     "pakuotZafn": [
@@ -11081,23 +11188,23 @@
     "openOrders": null
   },
   "400001": {
-    "stock": 37,
+    "stock": 637,
     "daySales": 44.2,
     "kratnost": 200,
-    "palStock": 0.2,
-    "stockZafn": 33,
-    "palStockZafn": 0.2,
+    "palStock": 3.2,
+    "stockZafn": 233,
+    "palStockZafn": 1.2,
     "daySalesZafn": 25,
-    "daysStock": 1,
-    "daysStockZafn": 2,
-    "stockTrnz": 600,
-    "palStockTrnz": 3,
+    "daysStock": 20,
+    "daysStockZafn": 13,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.5,
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 69.2,
-    "daysStockAll": 1,
+    "daysStockAll": 9,
     "nameEn": "נתחי פילה הרינג עם בצל וזיתים מצונן\" פרובינציאל500  \"ג6)NP)",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -11107,6 +11214,11 @@
         "date": "2026-11-13",
         "daysLeft": 103,
         "cartons": 37
+      },
+      {
+        "date": "2026-12-04",
+        "daysLeft": 124,
+        "cartons": 600
       }
     ],
     "pakuotZafn": [
@@ -11114,6 +11226,11 @@
         "date": "2026-11-13",
         "daysLeft": 103,
         "cartons": 33
+      },
+      {
+        "date": "2026-12-04",
+        "daysLeft": 124,
+        "cartons": 200
       }
     ],
     "shelfLife": 21,
@@ -11138,23 +11255,23 @@
     ]
   },
   "400002": {
-    "stock": 8,
+    "stock": 408,
     "daySales": 14.1,
     "kratnost": 200,
-    "palStock": 0,
-    "stockZafn": 12,
-    "palStockZafn": 0.1,
+    "palStock": 2,
+    "stockZafn": 212,
+    "palStockZafn": 1.1,
     "daySalesZafn": 8.7,
-    "daysStock": 1,
-    "daysStockZafn": 2,
-    "stockTrnz": 400,
-    "palStockTrnz": 2,
+    "daysStock": 41,
+    "daysStockZafn": 34,
+    "stockTrnz": 0,
+    "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.52,
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 22.8,
-    "daysStockAll": 0,
+    "daysStockAll": 18,
     "nameEn": "נתחי פילה הרינג כבוש עם בצל מצונן520  ג6)NP)",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -11164,6 +11281,11 @@
         "date": "2026-10-25",
         "daysLeft": 84,
         "cartons": 8
+      },
+      {
+        "date": "2026-12-04",
+        "daysLeft": 124,
+        "cartons": 400
       }
     ],
     "pakuotZafn": [
@@ -11171,6 +11293,11 @@
         "date": "2026-10-25",
         "daysLeft": 84,
         "cartons": 12
+      },
+      {
+        "date": "2026-12-04",
+        "daysLeft": 124,
+        "cartons": 200
       }
     ],
     "shelfLife": 21,
@@ -12140,19 +12267,19 @@
     "daySales": 23.4,
     "kratnost": 418,
     "palStock": 7.1,
-    "stockZafn": 564,
+    "stockZafn": 544,
     "palStockZafn": 1.3,
-    "daySalesZafn": 11,
+    "daySalesZafn": 11.6,
     "daysStock": 178,
-    "daysStockZafn": 72,
+    "daysStockZafn": 66,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.18,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 33.6,
-    "daysStockAll": 88,
+    "daySalesAll": 34.3,
+    "daysStockAll": 87,
     "nameEn": "גבינת שמנת קלאסית 24.5% שומן180 גרם6)PRESIDENT)",
     "fam": "PRESIDENT גבינות",
     "iksGroup": null,
@@ -12173,7 +12300,7 @@
       {
         "date": "2026-08-26",
         "daysLeft": 24,
-        "cartons": 132
+        "cartons": 112
       },
       {
         "date": "2026-09-16",
