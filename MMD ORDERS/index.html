@@ -1503,7 +1503,10 @@
       // Group header row — trend will be appended after rows accumulate
       const hdr = document.createElement('tr');
       hdr.className = 'fam-hdr';
-      hdr.innerHTML = '<td colspan="14">📦 ' + esc(grp) + ' <span style="font-weight:400;opacity:.5;font-size:.68rem">(' + grpRows.length + ')</span></td>';
+      hdr.innerHTML = '<td colspan="14">📦 ' + esc(grp) + ' <span style="font-weight:400;opacity:.5;font-size:.68rem">(' + grpRows.length + ')</span></td>' +
+        '<td></td><td></td>' +
+        '<td class="fam-trend" style="text-align:center;cursor:default"></td>' +
+        '<td></td><td></td>';
       tb.appendChild(hdr);
 
       grpRows.forEach(r => {
@@ -1597,8 +1600,8 @@
         const trClr  = gTrPct > 10 ? '#2e7d32' : gTrPct < -10 ? '#c62828' : '#b08c00';
         const trArrow = gTrPct > 10 ? '▲' : gTrPct < -10 ? '▼' : '➡';
         const trSign  = gTrPct > 0 && gTrPct <= 10 ? '+' : '';
-        hdr.querySelector('td').insertAdjacentHTML('beforeend',
-          ' <span style="color:' + trClr + ';font-weight:700;font-size:.78rem;margin-right:10px;letter-spacing:0.3px">' + trArrow + trSign + gTrPct + '% מגמה</span>');
+        hdr.querySelector('.fam-trend').innerHTML =
+          '<span style="color:' + trClr + ';font-weight:700;font-size:.8rem">' + trArrow + trSign + gTrPct + '%</span>';
       }
 
       tAsh += gAsh; tEil += gEil; tMav += gMav; tMmd += gMmd;
@@ -1664,7 +1667,7 @@
     let v = el.value.trim();
     if (f === 'k' && v !== '') {
       const cap = maavarMode ? Number(el.dataset.mav || 0) : Number(el.dataset.ash || 0);
-      if (Number(v) > cap) {
+      if (cap > 0 && Number(v) > cap) {
         el.value = cap;
         v = String(cap);
         el.style.outline = '2px solid #f59e0b';
@@ -1726,11 +1729,11 @@
     const btn = document.querySelector('.btn-excel');
     if (btn) { btn.disabled = true; btn.textContent = '⏳ מכין...'; }
     try {
-      // Capture all effective order quantities from DATA (not DOM) so hidden/filtered rows
-      // are included. DOM-based capture missed rows hidden by active filters.
+      // Capture all effective order quantities from ALL products — ignore active company/family
+      // filter so that ICE/INTER rows are never excluded by current view filter.
       if (window._viewData === null) {
         const svSnap = JSON.parse(localStorage.getItem(LS) || '{}');
-        filtered().forEach(r => {
+        all.forEach(r => {
           const mk = String(r.mkt ?? '');
           const s  = svSnap[mk] || {};
           if (s.k == null) {
@@ -1750,7 +1753,7 @@
       const timeStr    = now.toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'});
       const fileDateStr = dateStr.replace(/\//g, '-');
 
-      const orderedRows = filtered().filter(r => {
+      const orderedRows = all.filter(r => {
         const s = sv[String(r.mkt ?? '')] || {};
         return _effOrd(r, s) > 0;
       });
