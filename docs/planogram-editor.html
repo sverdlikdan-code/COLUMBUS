@@ -4330,11 +4330,11 @@ function buildExpiryPage() {
 
     // ── Combined warehouse view ───────────────────────────────────────────────
     if (window._expiryMauchad) {
-      const combinedSales = (salesMain || 0) + (salesZafn || 0) + (d.daySalesTrnz || 0);
-      const totalStock = (d.stock || 0) + (d.stockZafn || 0) + (d.stockTrnz || 0);
-      // merge batches by expiry date (Main + Zafn + Trnz/pakuotAll)
+      const combinedSales = (salesMain || 0) + (salesZafn || 0);
+      const totalStock = (d.stock || 0) + (d.stockZafn || 0);
+      // merge batches by expiry date
       const byDate = {};
-      for (const b of [...batches.main, ...batches.zafn, ...(d.pakuotAll || [])]) {
+      for (const b of [...batches.main, ...batches.zafn]) {
         const key = String(b.date || 'unknown');
         if (!byDate[key]) byDate[key] = { date: b.date, daysLeft: b.daysLeft, cartons: 0 };
         byDate[key].cartons += b.cartons || 0;
