@@ -1504,9 +1504,9 @@
       const hdr = document.createElement('tr');
       hdr.className = 'fam-hdr';
       hdr.innerHTML = '<td colspan="14">📦 ' + esc(grp) + ' <span style="font-weight:400;opacity:.5;font-size:.68rem">(' + grpRows.length + ')</span></td>' +
-        '<td></td><td></td>' +
+        '<td></td><td></td><td></td>' +
         '<td class="fam-trend" style="text-align:center;cursor:default"></td>' +
-        '<td></td><td></td>';
+        '<td></td>';
       tb.appendChild(hdr);
 
       grpRows.forEach(r => {
@@ -1579,17 +1579,20 @@
           '<td class="c-num">' + (pctMkr != null ? pctMkr + '%' : '—') + '</td>' +
           '<td class="c-haml col-g">' + (haml > 0 ? Math.round(haml) : '') + '</td>' +
           (function(){
-            let trendSpan = '';
+            const onclk = 'openInfoPanel(\'' + mk + '\',\'' + escJs(fixProductName(r.taur||'')) + '\')';
+            return '<td class="col-prophet" style="cursor:pointer;font-size:.85rem" data-mk="' + mk + '" onclick="' + onclk + '" title="פתח פאנל מידע מורחב">📊</td>';
+          })() +
+          (function(){
+            let trendBadge = '';
             const cur = r.mkr_shvua, prv = r.mkr_prev6;
             if (cur != null && prv != null && prv > 0) {
               const trendPct = Math.round((cur / prv - 1) * 100);
-              if (trendPct > 10)       trendSpan = '<br><span style="font-size:.6rem;color:#2e7d32;font-weight:600">▲' + trendPct + '%</span>';
-              else if (trendPct < -10) trendSpan = '<br><span style="font-size:.6rem;color:#c62828;font-weight:600">▼' + Math.abs(trendPct) + '%</span>';
+              const clr = trendPct > 0 ? '#2e7d32' : trendPct < 0 ? '#c62828' : '#888';
+              const arr = trendPct > 0 ? '▲' : trendPct < 0 ? '▼' : '➡';
+              trendBadge = '<div style="font-size:.55rem;font-weight:700;color:' + clr + ';line-height:1;margin-bottom:1px;text-align:center">' + arr + Math.abs(trendPct) + '%</div>';
             }
-            const onclk = 'openInfoPanel(\'' + mk + '\',\'' + escJs(fixProductName(r.taur||'')) + '\')';
-            return '<td class="col-prophet" style="cursor:pointer;font-size:.85rem" data-mk="' + mk + '" onclick="' + onclk + '" title="% שינוי מכר 6 שב\' נוכחיות vs 6 שב\' קודמות">📊' + trendSpan + '</td>';
+            return '<td class="c-num col-g">' + trendBadge + '<input class="ei ei-n" type="number" min="0" step="1" value="' + ordV + '" data-mk="' + mk + '" data-ash="' + ash + '" data-mav="' + mav + '" data-f="k" oninput="inp(this)" placeholder="0"/></td>';
           })() +
-          '<td class="c-num col-g"><input class="ei ei-n" type="number" min="0" step="1" value="' + ordV + '" data-mk="' + mk + '" data-ash="' + ash + '" data-mav="' + mav + '" data-f="k" oninput="inp(this)" placeholder="0"/></td>' +
           '<td class="col-g' + (yamim != null && yamim < 14 ? ' tk-lo' : '') + '">' + buildPrtimCell(mk, r.tukuf, nts) + '</td>';
         tb.appendChild(tr);
       });
@@ -1597,9 +1600,9 @@
       // Append group מגמה to header after accumulation
       if (gSumPrv > 0) {
         const gTrPct = Math.round((gSumCur / gSumPrv - 1) * 100);
-        const trClr  = gTrPct > 10 ? '#2e7d32' : gTrPct < -10 ? '#c62828' : '#b08c00';
-        const trArrow = gTrPct > 10 ? '▲' : gTrPct < -10 ? '▼' : '➡';
-        const trSign  = gTrPct > 0 && gTrPct <= 10 ? '+' : '';
+        const trClr  = gTrPct > 0 ? '#2e7d32' : gTrPct < 0 ? '#c62828' : '#888';
+        const trArrow = gTrPct > 0 ? '▲' : gTrPct < 0 ? '▼' : '➡';
+        const trSign  = gTrPct > 0 ? '+' : '';
         hdr.querySelector('.fam-trend').innerHTML =
           '<span style="color:' + trClr + ';font-weight:700;font-size:.8rem">' + trArrow + trSign + gTrPct + '%</span>';
       }
