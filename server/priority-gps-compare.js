@@ -121,18 +121,22 @@ async function main() {
     const cluster = bestCluster(allPts);
     const con = centroid(cluster);
     const clusterSources = new Set((cluster || []).map(p => p.source));
-    const consensusMatch = clusterSources.size;
+
+    // Agent-group independence: FORM+ICE = same agent (one group), INTER = separate agent
+    // Real independent agents in cluster:
+    const hasFormula = clusterSources.has('FORM') || clusterSources.has('ICE');
+    const hasInter   = clusterSources.has('INTER');
+    const agentMatch = (hasFormula ? 1 : 0) + (hasInter ? 1 : 0); // max 2
 
     const consensusLat = con ? +con.lat.toFixed(6) : '';
     const consensusLng = con ? +con.lng.toFixed(6) : '';
     const totalOrders  = allPts.reduce((s, p) => s + p.cnt, 0);
 
-    // Confidence
+    // Confidence based on independent agents (not raw company count)
     let confidence;
-    if (consensusMatch === 3)        confidence = '\u{1F3C6} 3/3 חפיפה מלאה';
-    else if (consensusMatch === 2)   confidence = '✅ 2/3 חפיפה';
-    else if (companyCount >= 2)      confidence = '⚠️ 2+ חברות אך GPS שונה';
-    else                             confidence = '\u{1F4CD} חברה אחת';
+    if (agentMatch === 2)          confidence = '\u{2705} 2 סוכנים עצמאיים';
+    else if (companyCount >= 2)    confidence = '\u{26A0}️ פורמולה+ICE (סוכן אחד)';
+    else                           confidence = '\u{1F4CD} חברה אחת';
 
     rows.push({
       cust,
@@ -153,24 +157,22 @@ async function main() {
       distIN:   distIN ?? '',
       consensusLat,
       consensusLng,
-      consensusMatch,
+      consensusMatch: agentMatch, // 2 = Formula+Inter confirmed, 1 = one agent only
       confidence,
     });
   }
 
-  // Sort: best confidence first
-  const order = { 3: 0, 2: 1 };
+  // Sort: best confidence first (agentMatch 2 → 1, then by orders)
   rows.sort((a, b) => {
-    const ca = a.consensusMatch === 3 ? 0 : a.consensusMatch === 2 ? 1 : a.companyCount >= 2 ? 2 : 3;
-    const cb = b.consensusMatch === 3 ? 0 : b.consensusMatch === 2 ? 1 : b.companyCount >= 2 ? 2 : 3;
+    const ca = a.consensusMatch === 2 ? 0 : a.companyCount >= 2 ? 1 : 2;
+    const cb = b.consensusMatch === 2 ? 0 : b.companyCount >= 2 ? 1 : 2;
     return ca - cb || b.totalOrders - a.totalOrders;
   });
 
-  const s3 = rows.filter(r => r.consensusMatch === 3).length;
-  const s2 = rows.filter(r => r.consensusMatch === 2).length;
-  const sX = rows.filter(r => r.companyCount >= 2 && r.consensusMatch < 2).length;
-  const s1 = rows.filter(r => r.companyCount === 1).length;
-  console.log(`\n3/3: ${s3} | 2/3: ${s2} | 2+ diff GPS: ${sX} | single co: ${s1}`);
+  const s2    = rows.filter(r => r.consensusMatch === 2).length;
+  const sForm = rows.filter(r => r.consensusMatch < 2 && r.companyCount >= 2).length;
+  const s1    = rows.filter(r => r.companyCount === 1).length;
+  console.log(`\n✅ 2 агента: ${s2} | ⚠️ только Formula+ICE: ${sForm} | 📍 1 компания: ${s1}`);
 
   // ── Excel ────────────────────────────────────────────────────────────────────
   const wb = new ExcelJS.Workbook();
@@ -225,7 +227,6 @@ async function main() {
       r.confidence,
     ]);
     const fill =
-      r.consensusMatch === 3 ? FILLS.GOLD :
       r.consensusMatch === 2 ? FILLS.GREEN :
       r.companyCount >= 2    ? FILLS.ORANGE :
       i % 2 === 0            ? FILLS.WHITE : FILLS.GRAY;
@@ -237,10 +238,9 @@ async function main() {
   const ws2 = wb.addWorksheet('סיכום');
   ws2.addRow(['ביטחון GPS', 'כמות לקוחות']);
   ws2.getRow(1).font = { bold: true };
-  ws2.addRow(['\u{1F3C6} 3/3 חפיפה מלאה', s3]);
-  ws2.addRow(['✅ 2/3 חפיפה', s2]);
-  ws2.addRow(['⚠️ 2+ חברות אך GPS שונה', sX]);
-  ws2.addRow(['\u{1F4CD} חברה אחת בלבד', s1]);
+  ws2.addRow(['✅ 2 סוכנים עצמאיים (Formula+Inter)', s2]);
+  ws2.addRow(['⚠️ רק Formula+ICE (סוכן אחד)', sForm]);
+  ws2.addRow(['📍 חברה אחת בלבד', s1]);
   ws2.addRow([]);
   ws2.addRow(['סה"כ', rows.length]);
   ws2.columns = [{ width: 30 }, { width: 16 }];
