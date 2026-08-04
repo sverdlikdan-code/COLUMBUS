@@ -4528,7 +4528,20 @@ window._currentSection = 'kapua';
 function splashEnter(sec) {
   if (!localStorage.getItem('frToken')) {
     window._pendingSplashSec = sec || null;
-    _showMahsanLogin();
+    // Try PBI auto-login (fr_ok cookie → manager session), then fall back to manual login
+    fetch('https://api.sverdlik-apps.site/auth/pbi', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(j => {
+        if (j && j.ok && j.token) {
+          localStorage.setItem('frToken', j.token);
+          const s = window._pendingSplashSec;
+          window._pendingSplashSec = undefined;
+          splashEnter(s);
+        } else {
+          _showMahsanLogin();
+        }
+      })
+      .catch(() => _showMahsanLogin());
     return;
   }
   const el = document.getElementById('app-splash');
