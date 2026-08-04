@@ -1221,6 +1221,13 @@ async function _doMahsanLogin() {
       document.getElementById('mahsan-login-modal')?.remove();
       window._orderPeriodFetchFailed = false;
       window._orderNeedsLogin = false;
+      // If login was triggered from splash gate → enter app now
+      if (window._pendingSplashSec !== undefined) {
+        const sec = window._pendingSplashSec;
+        window._pendingSplashSec = undefined;
+        splashEnter(sec);
+        return;
+      }
       if (window._orderSelectedPeriods?.size) _applyOrderPeriods();
     } else {
       if (err) err.textContent = 'קוד שגוי';
@@ -4519,6 +4526,11 @@ window._currentSection = 'kapua';
 })();
 
 function splashEnter(sec) {
+  if (!localStorage.getItem('frToken')) {
+    window._pendingSplashSec = sec || null;
+    _showMahsanLogin();
+    return;
+  }
   const el = document.getElementById('app-splash');
   if (el) {
     el.classList.add('hiding');
