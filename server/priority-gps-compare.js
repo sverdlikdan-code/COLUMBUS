@@ -1,7 +1,7 @@
 /**
  * Cross-company GPS comparison: FORM + ICE + INTER
- * v2: loads ALL GPS points per client, pools across companies FIRST, then finds consensus.
- * SQL must output: CUST, lat, lng, cnt (multiple rows per CUST allowed).
+ * v3: single combined CSV (חברה, CUST, lat, lng, cnt), no header row.
+ * Pools all GPS points per client across companies, then finds consensus cluster.
  */
 const fs   = require('fs');
 const path = require('path');
@@ -22,25 +22,40 @@ function isValidIL(lat, lng) {
   return lat && lng && lat > 29 && lat < 33.5 && lng > 33 && lng < 36.5;
 }
 
-// ── Load CSV — returns Map<cust, [{lat,lng,cnt}]> (all points per client) ────
-function loadCSV(filename, source) {
+// Normalize company name → canonical key
+const COMPANY_MAP = {
+  'ice': 'ICE', 'אייס': 'ICE', 'ice cream': 'ICE',
+  'פורמולה': 'FORM', 'formula': 'FORM', 'form': 'FORM',
+  'אינטר': 'INTER', 'inter': 'INTER', 'diller': 'INTER',
+};
+function normalizeCompany(raw) {
+  return COMPANY_MAP[raw.trim().toLowerCase()] || raw.trim().toUpperCase();
+}
+
+// ── Load single combined CSV (חברה, CUST, lat, lng, cnt) ─────────────────────
+function loadAllCSV(filename) {
   const file = path.join(DIR, filename);
-  if (!fs.existsSync(file)) { console.warn('Missing:', filename); return new Map(); }
+  if (!fs.existsSync(file)) { console.error('Missing:', filename); process.exit(1); }
   const lines = fs.readFileSync(file, 'utf8').replace(/^﻿/, '').split('\n');
-  const map = new Map();
+  // Maps: company → Map<cust, [{lat,lng,cnt,source}]>
+  const byCompany = { FORM: new Map(), ICE: new Map(), INTER: new Map() };
+  let skipped = 0;
   for (const line of lines) {
     const parts = line.trim().split(',');
-    if (parts.length < 3) continue;
-    const cust = String(parts[0]).trim();
-    const lat  = parseFloat(parts[1]);
-    const lng  = parseFloat(parts[2]);
-    const cnt  = parseInt(parts[3]) || 1;
+    if (parts.length < 4) continue;
+    const source = normalizeCompany(parts[0]);
+    const cust   = String(parts[1]).trim();
+    const lat    = parseFloat(parts[2]);
+    const lng    = parseFloat(parts[3]);
+    const cnt    = parseInt(parts[4]) || 1;
     if (!cust || isNaN(lat) || isNaN(lng)) continue;
-    if (!isValidIL(lat, lng)) continue;
-    if (!map.has(cust)) map.set(cust, []);
-    map.get(cust).push({ lat, lng, cnt, source });
+    if (!isValidIL(lat, lng)) { skipped++; continue; }
+    if (!byCompany[source]) byCompany[source] = new Map();
+    if (!byCompany[source].has(cust)) byCompany[source].set(cust, []);
+    byCompany[source].get(cust).push({ lat, lng, cnt, source });
   }
-  return map;
+  if (skipped) console.log(`Filtered out ${skipped} points outside Israel bbox`);
+  return byCompany;
 }
 
 // ── Weighted centroid of a set of points ─────────────────────────────────────
@@ -70,14 +85,12 @@ function bestCluster(allPts) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
-  const form  = loadCSV('priority-gps_FORM.csv',  'FORM');
-  const ice   = loadCSV('priority-gps_ICE.csv',   'ICE');
-  const inter = loadCSV('priority-gps_INTER.csv', 'INTER');
+  const byCompany = loadAllCSV('priority-gps_ALL FROM ORDERS.csv');
+  const form  = byCompany['FORM']  || new Map();
+  const ice   = byCompany['ICE']   || new Map();
+  const inter = byCompany['INTER'] || new Map();
 
-  const formUniq  = form.size;
-  const iceUniq   = ice.size;
-  const interUniq = inter.size;
-  console.log(`Loaded — FORM: ${formUniq} clients, ICE: ${iceUniq} clients, INTER: ${interUniq} clients`);
+  console.log(`Loaded — FORM: ${form.size} clients, ICE: ${ice.size} clients, INTER: ${inter.size} clients`);
 
   const allCusts = new Set([...form.keys(), ...ice.keys(), ...inter.keys()]);
   console.log(`Total unique clients: ${allCusts.size}`);
