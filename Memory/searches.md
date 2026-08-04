@@ -59,3 +59,29 @@
   - [Jujutsu Shenanigans Fandom Wiki Codes](https://jujutsu-shenanigans.fandom.com/wiki/Codes)
 - **Файл в Content:** `Content/jjs-moveset-codes-sources-2026-07-17.md`
 - **Качество источника:** высокое — jjsbuilder.com подтверждён как основная база 300+ кодов (base64-строки); GitHub репозиторий lilgatitodev с полной документацией кодека (JSON→zstd→base64); Discord/YouTube дополняют ссылками на готовые сборки
+
+---
+
+## 2026-08-04 — Jujutsu Shenanigans player community interests & market research
+
+- **Keywords:** JJS player interests tier lists meta builds, JJS content creators YouTube engagement, JJS Discord community 191k, player complaints balance patches, moveset tool demand, beginner learning curve, competitive PvP, TikTok trends
+- **Найденные источники:**
+  - [Beebom Tier List May 2026](https://beebom.com/jujutsu-shenanigans-tier-list/)
+  - [PocketGamer Tier List July 2026](https://www.pocketgamer.com/roblox/jujutsu-shenanigans-tier-list/)
+  - [Bloxspot Meta Guide 2026](https://bloxspot.com/jujutsu-shenanigans-tier-list-2026-best-characters-meta-guide/)
+  - [YouTube Ultimate Tier List](https://www.youtube.com/watch?v=eUzUn-ABV60)
+  - [YouTube Overpowered Custom Movesets](https://www.youtube.com/watch?v=rgnPJ_DS0_g)
+  - [Discord Official Server (191,066 members)](https://discord.com/invite/jujutsushenanigans)
+  - [JJS Skill Builder](https://jjsbuilder.com/)
+  - [JJS Wiki Character Guide](https://jujutsu-shenanigans.fandom.com/wiki/Characters)
+  - [Sportskeeda Balance Patch Notes](https://sportskeeda.com/roblox-news/jujutsu-shenanigans-v1-45-the-nothing-update-patch-notes)
+  - [TechWiser Beginner Guide](https://techwiser.com/jujutsu-shenanigans-beginner-guide/)
+  - [GAMES.GG Characters & Tier List](https://games.gg/roblox/guides/jujutsu-shenanigans-characters-roster-guide/)
+- **Файл в Content:** `Content/jjs-deep-search-2026-08-04.md`
+- **Качество источника:** высокое — официальные источники (Beebom, PocketGamer, Sportskeeda), подтверждённые цифры Discord (191k), свежие данные (май-июль 2026); 11 отдельных поисков по разным платформам (YouTube, TikTok, Reddit, Discord, Fandom, блоги)
+- **Ключевые выводы:** 
+  1. Топ-5 интересов игроков: метасборки/тайр-листы (#1), кастомные мувсеты (#2), баланс-патчи (#3), обучение для новичков (#4), конкурентный PvP (#5)
+  2. Основной инструмент: JJS Skill Builder (300+ сборок опубликовано)
+  3. YouTube доминирует контентом: тайр-листы → гайды → реакции на патчи
+  4. Discord: 191k активных игроков, основной канал обсуждения
+  5. Возможность: лучшая курация сборок (AI-рекомендации вместо бровзера из 300 вариантов)
