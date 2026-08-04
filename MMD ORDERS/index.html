@@ -1579,20 +1579,17 @@
           '<td class="c-num">' + (pctMkr != null ? pctMkr + '%' : '—') + '</td>' +
           '<td class="c-haml col-g">' + (haml > 0 ? Math.round(haml) : '') + '</td>' +
           (function(){
-            const onclk = 'openInfoPanel(\'' + mk + '\',\'' + escJs(fixProductName(r.taur||'')) + '\')';
-            return '<td class="col-prophet" style="cursor:pointer;font-size:.85rem" data-mk="' + mk + '" onclick="' + onclk + '" title="פתח פאנל מידע מורחב">📊</td>';
-          })() +
-          (function(){
-            let trendBadge = '';
+            let trendSpan = '';
             const cur = r.mkr_shvua, prv = r.mkr_prev6;
             if (cur != null && prv != null && prv > 0) {
               const trendPct = Math.round((cur / prv - 1) * 100);
-              const clr = trendPct > 0 ? '#2e7d32' : trendPct < 0 ? '#c62828' : '#888';
-              const arr = trendPct > 0 ? '▲' : trendPct < 0 ? '▼' : '➡';
-              trendBadge = '<div style="font-size:.55rem;font-weight:700;color:' + clr + ';line-height:1;margin-bottom:1px;text-align:center">' + arr + Math.abs(trendPct) + '%</div>';
+              if (trendPct > 10)       trendSpan = '<br><span style="font-size:.6rem;color:#2e7d32;font-weight:600">▲' + trendPct + '%</span>';
+              else if (trendPct < -10) trendSpan = '<br><span style="font-size:.6rem;color:#c62828;font-weight:600">▼' + Math.abs(trendPct) + '%</span>';
             }
-            return '<td class="c-num col-g">' + trendBadge + '<input class="ei ei-n" type="number" min="0" step="1" value="' + ordV + '" data-mk="' + mk + '" data-ash="' + ash + '" data-mav="' + mav + '" data-f="k" oninput="inp(this)" placeholder="0"/></td>';
+            const onclk = 'openInfoPanel(\'' + mk + '\',\'' + escJs(fixProductName(r.taur||'')) + '\')';
+            return '<td class="col-prophet" style="cursor:pointer;font-size:.85rem" data-mk="' + mk + '" onclick="' + onclk + '" title="% שינוי מכר 6 שב\' נוכחיות vs 6 שב\' קודמות">📊' + trendSpan + '</td>';
           })() +
+          '<td class="c-num col-g"><input class="ei ei-n" type="number" min="0" step="1" value="' + ordV + '" data-mk="' + mk + '" data-ash="' + ash + '" data-mav="' + mav + '" data-f="k" oninput="inp(this)" placeholder="0"/></td>' +
           '<td class="col-g' + (yamim != null && yamim < 14 ? ' tk-lo' : '') + '">' + buildPrtimCell(mk, r.tukuf, nts) + '</td>';
         tb.appendChild(tr);
       });
