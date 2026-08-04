@@ -432,6 +432,12 @@ function deviceType(ua) {
 // ── RATE LIMITER ────────────────────────────────────────────────────────────
 const loginAttempts = new Map();
 const generalRequests = new Map();
+// Cleanup expired rate-limit entries every 5 minutes to prevent memory leak
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, rec] of loginAttempts) { if (now > rec.resetAt) loginAttempts.delete(ip); }
+  for (const [ip, rec] of generalRequests) { if (now > rec.resetAt) generalRequests.delete(ip); }
+}, 5 * 60 * 1000);
 
 function checkRateLimit(ip) {
   const now = Date.now();
@@ -486,10 +492,14 @@ function loadSessions() {
   } catch (_) { /* no file yet or unreadable — start empty */ }
 }
 
+let _saveSessionsTimer = null;
 function saveSessions() {
-  try {
-    fs.writeFileSync(SESSIONS_FILE, JSON.stringify(Object.fromEntries(sessions)));
-  } catch (_) { /* best-effort — don't crash the request on disk issues */ }
+  if (_saveSessionsTimer) return;
+  _saveSessionsTimer = setTimeout(() => {
+    _saveSessionsTimer = null;
+    try { fs.writeFileSync(SESSIONS_FILE, JSON.stringify(Object.fromEntries(sessions))); }
+    catch (_) { /* best-effort */ }
+  }, 5000);
 }
 
 loadSessions();
@@ -566,7 +576,8 @@ app.post('/log-access', dataRateLimit, (req, res) => {
 });
 
 // ── Magic-link invite tokens (HMAC-SHA256, no external lib) ─────────────────
-const INVITE_SECRET = process.env.INVITE_SECRET || 'changeme';
+const INVITE_SECRET = process.env.INVITE_SECRET;
+if (!INVITE_SECRET) { console.error('FATAL: INVITE_SECRET not set in .env'); process.exit(1); }
 function signInvite(payload) {
   const data = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const sig = require('crypto').createHmac('sha256', INVITE_SECRET).update(data).digest('base64url');
@@ -602,7 +613,7 @@ app.get('/invite/:token', (req, res) => {
 });
 
 // GET /auth/pbi — auto-login as manager if opened via PBI (fr_ok cookie present)
-app.get('/auth/pbi', (req, res) => {
+app.get('/auth/pbi', dataRateLimit, (req, res) => {
   const cookies = req.headers.cookie || '';
   if (!/(?:^|;\s*)fr_ok=1/.test(cookies)) return res.status(401).json({ ok: false });
   return res.json({ ok: true, token: createSession(null, true) });
@@ -616,8 +627,8 @@ app.post('/auth', (req, res) => {
   const codeStr = String(code || '').trim();
 
   // Super-manager password (sees ALL managers + ALL agents)
-  const MANAGER_PASS = process.env.MANAGER_PASS || '1999';
-  if (codeStr === MANAGER_PASS) {
+  const MANAGER_PASS = process.env.MANAGER_PASS;
+  if (MANAGER_PASS && codeStr === MANAGER_PASS) {
     loginAttempts.delete(ip);
     return res.json({ ok: true, type: 'manager', token: createSession(null, true) });
   }
@@ -3084,7 +3095,7 @@ app.get('/api/photo-proxy', async (req, res) => {
 });
 
 // ── POSITION TABLE XLSX (מיקום + photos) ────────────────────────────────────
-app.post('/api/export-position-xlsx', dataRateLimit, async (req, res) => {
+app.post('/api/export-position-xlsx', requireAuth, dataRateLimit, async (req, res) => {
   try {
     const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
     if (!rows.length) return res.status(400).json({ error: 'missing rows' });
@@ -3182,7 +3193,7 @@ app.post('/api/export-position-xlsx', dataRateLimit, async (req, res) => {
 // ── MMD ORDERS ──────────────────────────────────────────────────────────────
 function mmdGuard(req, res, next) {
   const key = process.env.MMD_PBI_KEY;
-  if (!key) return next(); // no key configured → open access (dev mode)
+  if (!key) return res.status(503).end();
   const cookies = req.headers.cookie || '';
   const hasCookie = /(?:^|;\s*)pbi_ok=1/.test(cookies);
   if (req.query.k === key) {
@@ -3444,7 +3455,7 @@ app.use('/mmd', mmdGuard, express.static(path.join(__dirname, '..', 'MMD ORDERS'
 // ── FORMULA ROAD ─────────────────────────────────────────────────────────────
 function formulaRoadGuard(req, res, next) {
   const key = process.env.FORMULA_PBI_KEY;
-  if (!key) return next();
+  if (!key) return res.status(503).end();
   const cookies = req.headers.cookie || '';
   const hasCookie = /(?:^|;\s*)fr_ok=1/.test(cookies);
   if (req.query.k === key) {
@@ -3858,53 +3869,7 @@ ROW(
   }
 });
 
-// ── Admin: send ONE test invite — temporary, no auth, sends only to Dan's tablet ──
-app.get('/admin/send-test-invite', async (req, res) => {
-  const RESEND_KEY = process.env.RESEND_API_KEY || '';
-  if (!RESEND_KEY) return res.status(503).json({ ok: false, error: 'RESEND_API_KEY missing' });
-
-  const toEmail = 'dilerformula98@gmail.com';
-  const agentCode = '258'; const agentName = 'דוד גומרשטדט';
-  const token = signInvite({ code: agentCode, name: agentName, exp: Date.now() + 7 * 24 * 60 * 60 * 1000 });
-  const inviteUrl = `https://api.sverdlik-apps.site/invite/${token}`;
-
-  const html = `<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="utf-8"><style>
-body{margin:0;padding:0;background:#f0f4f8;font-family:Arial,sans-serif;direction:rtl}
-.wrap{max-width:480px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.12)}
-.header{background:#1A3F7C;padding:32px 24px;text-align:center}.header h1{color:#fff;margin:0;font-size:22px}
-.header p{color:#a8c4e8;margin:6px 0 0;font-size:13px}.body{padding:32px 28px}
-.greeting{font-size:18px;font-weight:700;color:#1A3F7C;margin-bottom:12px}
-.text{color:#444;font-size:15px;line-height:1.7;margin-bottom:24px}
-.btn{display:block;width:fit-content;margin:0 auto;background:#1A3F7C;color:#fff!important;text-decoration:none;padding:16px 40px;border-radius:12px;font-size:17px;font-weight:700;text-align:center}
-.note{color:#888;font-size:12px;text-align:center;margin-top:20px;line-height:1.6}
-.footer{background:#f8f9fb;padding:16px 24px;text-align:center;color:#aaa;font-size:11px;border-top:1px solid #eee}
-</style></head><body>
-<div class="wrap">
-  <div class="header"><h1>🗺️ Formula Roads</h1><p>מערכת ניהול מסלולים — בדיקת אימייל</p></div>
-  <div class="body">
-    <div class="greeting">שלום ${agentName}!</div>
-    <div class="text">זהו קישור בדיקה ל-<strong>Formula Roads</strong>. לחץ כדי להיכנס אוטומטית.</div>
-    <a class="btn" href="${inviteUrl}">כניסה ל-Formula Roads</a>
-    <div class="note">הקישור בתוקף ל-7 ימים.</div>
-  </div>
-  <div class="footer">Formula Distribution &bull; DILER FORMULA &bull; TEST EMAIL</div>
-</div></body></html>`;
-
-  const body = JSON.stringify({ from: 'Formula Roads <orders@sverdlik-apps.site>', to: [toEmail], subject: 'TEST — זימון ל-Formula Roads', html });
-  try {
-    const r = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${RESEND_KEY}` },
-      body,
-      signal: AbortSignal.timeout(10000),
-    });
-    const d = await r.json();
-    if (r.ok) res.json({ ok: true, to: toEmail, inviteUrl });
-    else res.status(500).json({ ok: false, error: d?.message || 'Resend error', status: r.status });
-  } catch(e) {
-    res.status(500).json({ ok: false, error: e.message });
-  }
-});
+// /admin/send-test-invite removed — was unauthenticated and returned valid session tokens
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
