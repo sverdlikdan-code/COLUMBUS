@@ -421,8 +421,8 @@ body.gps-fs #map{height:100%!important;}
       <div class="day-switch" id="day-switch"></div>
       <div class="sort-btns">
         <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')">לפי סדר ביקור</button>
-        <button class="sort-btn active-ai-google" id="sort-btn-ai-google" onclick="toggleAiGps()">🤖 AI Google</button>
-        <button class="sort-btn" id="sort-btn-tablet" onclick="toggleTabletGps()">📱 GPS Tablet</button>
+        <button class="sort-btn" id="sort-btn-ai-google" onclick="toggleAiGps()">🤖 AI Google</button>
+        <button class="sort-btn active-tablet" id="sort-btn-tablet" onclick="toggleTabletGps()">📱 GPS Tablet</button>
         <button class="sort-btn" id="day-briefing-btn" onclick="alert('כרגע בפיתוח 🔧')" title="ניתוח יום — TOP 10 לקוחות" style="background:#5C6BC0;color:#fff;border-color:#3F51B5;font-weight:900">📊 ניתוח</button>
         <div class="km-more-wrap">
           <button class="sort-btn km-more-btn" id="km-more-btn" onclick="toggleKmMore()" title="עוד פעולות">⋮</button>
@@ -691,8 +691,8 @@ const st = {
   addrClientId:null, isDemo:false,
   roadKm:null, roadGeometry:null, priorityRoadKm:null,
   excluded: new Set(),
-  aiGpsMode: true,
-  tabletGpsMode: false,
+  aiGpsMode: false,
+  tabletGpsMode: true,
   iceFilter: false,
   hasSadranFilter: false,
 };
