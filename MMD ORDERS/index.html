@@ -428,7 +428,10 @@
     /* ── Sparkline ── */
     .pp-spark-wrap { padding:12px 16px 6px; border-bottom:1px solid rgba(255,255,255,.06); }
     .pp-spark-lbl { font-size:.62rem; color:#8899aa; margin-bottom:5px; direction:rtl; }
-    .pp-spark { display:flex; align-items:stretch; gap:2px; height:200px; }
+    .pp-spark { display:flex; align-items:stretch; gap:2px; height:215px; }
+    .pp-spark-grp { flex:6; display:flex; flex-direction:column; }
+    .pp-spark-avg { text-align:center; font-size:.88rem; font-weight:700; line-height:1.5; padding-bottom:3px; }
+    .pp-spark-bars { display:flex; align-items:stretch; gap:2px; flex:1; }
     .pp-spark-col { display:flex; flex-direction:column; align-items:center; justify-content:flex-end; flex:1; min-width:3px; }
     .pp-spark-val { font-size:.44rem; color:#99aacc; line-height:1.2; min-height:.65rem; text-align:center; }
     .pp-spark-bar { width:100%; border-radius:2px 2px 0 0; background:rgba(93,140,200,.5); transition:background .2s; }
@@ -1504,9 +1507,9 @@
       const hdr = document.createElement('tr');
       hdr.className = 'fam-hdr';
       hdr.innerHTML = '<td colspan="14">📦 ' + esc(grp) + ' <span style="font-weight:400;opacity:.5;font-size:.68rem">(' + grpRows.length + ')</span></td>' +
-        '<td></td><td></td><td></td>' +
-        '<td class="fam-trend" style="text-align:center;cursor:default"></td>' +
-        '<td></td>';
+        '<td></td><td></td>' +
+        '<td class="fam-trend col-prophet" style="text-align:center;cursor:default"></td>' +
+        '<td></td><td></td>';
       tb.appendChild(hdr);
 
       grpRows.forEach(r => {
@@ -2470,6 +2473,19 @@ window.openInfoPanel = function(mk, taur) {
         var dv = document.createElement('div'); dv.className = 'pp-spark-div'; sparkEl.appendChild(dv);
         var dvAx = document.createElement('div'); dvAx.className = 'ax-div'; axDyn.appendChild(dvAx);
       }
+
+      // Group wrapper with ø average label on top, bars below
+      var grpWrap = document.createElement('div'); grpWrap.className = 'pp-spark-grp';
+      var avgEl = document.createElement('div'); avgEl.className = 'pp-spark-avg';
+      if (grp.periodVal != null) {
+        avgEl.textContent = fmtV(grp.periodVal) + ' ø';
+        avgEl.style.color = grp.isPrev ? '#667788' : '#c9a227';
+        if (grp.isPrev) avgEl.style.opacity = '0.8';
+      }
+      grpWrap.appendChild(avgEl);
+
+      var barsEl = document.createElement('div'); barsEl.className = 'pp-spark-bars';
+
       for (var wi = 0; wi < 6; wi++) {
         var idx = grp.idxStart + wi;
         var v   = vals[idx];
@@ -2481,11 +2497,6 @@ window.openInfoPanel = function(mk, taur) {
           valEl.textContent = fmtV(v);
           if (grp.isPrev) valEl.style.opacity = '0.6';
         }
-        // Period average: show above middle bar (wi===2) in bold color
-        if (wi === 2 && grp.periodVal != null) {
-          valEl.style.cssText = 'font-size:.9rem;font-weight:700;color:' + (grp.isPrev ? '#667788' : '#c9a227') + (grp.isPrev ? ';opacity:.8' : '');
-          valEl.textContent = fmtV(grp.periodVal) + ' ø';
-        }
 
         var bar = document.createElement('div');
         bar.className = 'pp-spark-bar' + (v === 0 || v == null ? ' zero' : '');
@@ -2495,13 +2506,16 @@ window.openInfoPanel = function(mk, taur) {
         bar.title = 'שב' + wNum + ': ' + (v != null ? fmtV(v) : '—') + ' קרט';
 
         col.appendChild(valEl); col.appendChild(bar);
-        sparkEl.appendChild(col);
+        barsEl.appendChild(col);
 
         var axLbl = document.createElement('div'); axLbl.className = 'ax-lbl';
         if (grp.isPrev) axLbl.style.opacity = '0.5';
         axLbl.textContent = 'שב' + wNum;
         axDyn.appendChild(axLbl);
       }
+
+      grpWrap.appendChild(barsEl);
+      sparkEl.appendChild(grpWrap);
     });
 
     document.getElementById('pp-spark-lbl').textContent = wData
