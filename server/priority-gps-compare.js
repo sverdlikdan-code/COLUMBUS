@@ -1,6 +1,7 @@
 /**
  * Cross-company GPS comparison: FORM + ICE + INTER
- * v3: single combined CSV (חברה, CUST, lat, lng, cnt), no header row.
+ * v4: single combined CSV (חברה, CUST, lat, lng, cnt), no header row.
+ * Hub filter: GPS point shared by 7+ different clients → agent hub (office/car) → excluded.
  * Pools all GPS points per client across companies, then finds consensus cluster.
  */
 const fs   = require('fs');
@@ -32,14 +33,22 @@ function normalizeCompany(raw) {
   return COMPANY_MAP[raw.trim().toLowerCase()] || raw.trim().toUpperCase();
 }
 
+const HUB_THRESHOLD = 7; // GPS shared by 7+ different clients → agent hub, not a client location
+
+// GPS key rounded to ~11m precision (4 decimal places)
+function gpsKey(lat, lng) {
+  return `${lat.toFixed(4)},${lng.toFixed(4)}`;
+}
+
 // ── Load single combined CSV (חברה, CUST, lat, lng, cnt) ─────────────────────
 function loadAllCSV(filename) {
   const file = path.join(DIR, filename);
   if (!fs.existsSync(file)) { console.error('Missing:', filename); process.exit(1); }
   const lines = fs.readFileSync(file, 'utf8').replace(/^﻿/, '').split('\n');
-  // Maps: company → Map<cust, [{lat,lng,cnt,source}]>
-  const byCompany = { FORM: new Map(), ICE: new Map(), INTER: new Map() };
-  let skipped = 0;
+
+  // Pass 1: collect all raw rows
+  const raw = [];
+  let skippedBbox = 0;
   for (const line of lines) {
     const parts = line.trim().split(',');
     if (parts.length < 4) continue;
@@ -49,12 +58,33 @@ function loadAllCSV(filename) {
     const lng    = parseFloat(parts[3]);
     const cnt    = parseInt(parts[4]) || 1;
     if (!cust || isNaN(lat) || isNaN(lng)) continue;
-    if (!isValidIL(lat, lng)) { skipped++; continue; }
-    if (!byCompany[source]) byCompany[source] = new Map();
-    if (!byCompany[source].has(cust)) byCompany[source].set(cust, []);
-    byCompany[source].get(cust).push({ lat, lng, cnt, source });
+    if (!isValidIL(lat, lng)) { skippedBbox++; continue; }
+    raw.push({ source, cust, lat, lng, cnt });
   }
-  if (skipped) console.log(`Filtered out ${skipped} points outside Israel bbox`);
+  if (skippedBbox) console.log(`Filtered out ${skippedBbox} points outside Israel bbox`);
+
+  // Pass 2: detect hubs — GPS locations shared by 7+ different clients
+  const gpsClients = new Map(); // gpsKey → Set of custs
+  for (const r of raw) {
+    const k = gpsKey(r.lat, r.lng);
+    if (!gpsClients.has(k)) gpsClients.set(k, new Set());
+    gpsClients.get(k).add(r.cust);
+  }
+  const hubs = new Set([...gpsClients.entries()]
+    .filter(([, custs]) => custs.size >= HUB_THRESHOLD)
+    .map(([k]) => k));
+  if (hubs.size) console.log(`Hub filter: removed ${hubs.size} shared GPS locations (${HUB_THRESHOLD}+ clients each)`);
+
+  // Pass 3: build byCompany maps, skipping hub points
+  const byCompany = { FORM: new Map(), ICE: new Map(), INTER: new Map() };
+  let skippedHub = 0;
+  for (const r of raw) {
+    if (hubs.has(gpsKey(r.lat, r.lng))) { skippedHub++; continue; }
+    if (!byCompany[r.source]) byCompany[r.source] = new Map();
+    if (!byCompany[r.source].has(r.cust)) byCompany[r.source].set(r.cust, []);
+    byCompany[r.source].get(r.cust).push({ lat: r.lat, lng: r.lng, cnt: r.cnt, source: r.source });
+  }
+  if (skippedHub) console.log(`Hub filter: skipped ${skippedHub} GPS rows for ${hubs.size} hub locations`);
   return byCompany;
 }
 
