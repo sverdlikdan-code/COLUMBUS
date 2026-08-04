@@ -44,3 +44,18 @@
   - [ClaudePluginHub — impeccable](https://www.claudepluginhub.com/plugins/pbakaus-impeccable)
 - **Файл в Content:** `Content/impeccable-research-2026-05-26.md`
 - **Качество источника:** высокое — официальный GitHub репозиторий автора (Paul Bakaus) + официальный сайт + README подтверждены напрямую
+
+---
+
+## 2026-07-17 — Jujutsu Shenanigans moveset codes sources & database format
+
+- **Keywords:** Jujutsu Shenanigans codes GitHub JSON CSV, jjsbuilder.com community codes, JJS Discord server, Reddit r/JujutsuShenanigans, YouTube NATEZO BAXTH codes
+- **Найденные источники:**
+  - [jjsbuilder.com/moveset-codes/ — основная база](https://jjsbuilder.com/moveset-codes/)
+  - [jjsbuilder.com/builds/ — 327+ коммьюнити-кодов](https://jjsbuilder.com/builds/)
+  - [GitHub lilgatitodev/claude-jjs-moveset-creator](https://github.com/lilgatitodev/claude-jjs-moveset-creator)
+  - [Discord официальный](https://discord.com/invite/jujutsushenanigans)
+  - [YouTube Moveset Codes JJS плейлист](https://www.youtube.com/playlist?list=PLiheD0UYIL1tBXcJa3HgSzCCCgYll_YSI)
+  - [Jujutsu Shenanigans Fandom Wiki Codes](https://jujutsu-shenanigans.fandom.com/wiki/Codes)
+- **Файл в Content:** `Content/jjs-moveset-codes-sources-2026-07-17.md`
+- **Качество источника:** высокое — jjsbuilder.com подтверждён как основная база 300+ кодов (base64-строки); GitHub репозиторий lilgatitodev с полной документацией кодека (JSON→zstd→base64); Discord/YouTube дополняют ссылками на готовые сборки
