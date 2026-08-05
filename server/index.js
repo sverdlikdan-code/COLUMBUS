@@ -506,7 +506,8 @@ loadSessions();
 
 function createSession(agentCode, isManager) {
   const token = crypto.randomUUID();
-  sessions.set(token, { agentCode, isManager, expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000 });
+  const TTL = isManager ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+  sessions.set(token, { agentCode, isManager, expiresAt: Date.now() + TTL });
   // Prune expired sessions when map grows large
   if (sessions.size > 500) {
     const now = Date.now();
@@ -521,7 +522,8 @@ function requireAuth(req, res, next) {
   const sess = sessions.get(token);
   if (!sess || Date.now() > sess.expiresAt) return res.status(401).json({ error: 'unauthorized' });
   // Rolling session: extend expiry on every use
-  sess.expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
+  const TTL = sess.isManager ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+  sess.expiresAt = Date.now() + TTL;
   saveSessions();
   req.session = sess;
   next();
@@ -556,10 +558,14 @@ function loadAgentList() {
 function esc(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+// Email HTML escape — prevent XSS in email templates
+function escEmail(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
 // POST /log-access — client sends login/logout events
 const LOG_EVENTS = new Set(['login', 'logout']);
-app.post('/log-access', dataRateLimit, (req, res) => {
+app.post('/log-access', requireAuth, dataRateLimit, (req, res) => {
   const { event, agentCode, agentName, isManager } = req.body || {};
   const ip = getRealIp(req);
   writeLog({
@@ -598,7 +604,7 @@ function verifyInvite(token) {
 
 // GET /invite/:token — magic link: verify → set cookie → redirect directly to formula-road with params
 // formula-road.html reads _inv/_ac/_an from URL params and sets localStorage itself (avoids Custom Tab context split)
-app.get('/invite/:token', (req, res) => {
+app.get('/invite/:token', dataRateLimit, (req, res) => {
   const payload = verifyInvite(req.params.token);
   if (!payload) return res.status(400).send(`<!DOCTYPE html><html><head><meta charset=utf-8><title>קישור לא בתוקף</title></head>
 <body style="font-family:Arial;text-align:center;padding:60px;background:#f5f5f5">
@@ -649,7 +655,7 @@ app.post('/auth', (req, res) => {
 });
 
 // GET /admin/logs?key=KEY — view access log
-app.get('/admin/logs', (req, res) => {
+app.get('/admin/logs', dataRateLimit, (req, res) => {
   const ADMIN_KEY = process.env.ADMIN_LOG_KEY || '';
   if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(403).json({ error: 'forbidden' });
   const log = readLog().slice(-300).reverse();
@@ -678,7 +684,7 @@ app.get('/admin/logs', (req, res) => {
 });
 
 // POST /admin/revoke?key=KEY&agentCode=CODE — invalidate all sessions for a specific agent
-app.post('/admin/revoke', (req, res) => {
+app.post('/admin/revoke', dataRateLimit, (req, res) => {
   const ADMIN_KEY = process.env.ADMIN_LOG_KEY || '';
   if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(403).json({ error: 'forbidden' });
   const code = String(req.query.agentCode || '').trim();
@@ -2368,21 +2374,21 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
 
           // ── HTML rows ────────────────────────────────────────────────
           const mekarerRows = order.mekarerim.map(m => {
-            const modelStr = m.newModel ? `${m.newModel}${m.newModelName && m.newModelName !== m.newModel ? ' — ' + m.newModelName : ''}` : '';
+            const modelStr = m.newModel ? `${escEmail(m.newModel)}${m.newModelName && m.newModelName !== m.newModel ? ' — ' + escEmail(m.newModelName) : ''}` : '';
             return `<tr>
-              <td style="padding:6px 8px;border-bottom:1px solid #eee">${m.action||''}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid #eee">${escEmail(m.action)}</td>
               <td style="padding:6px 8px;border-bottom:1px solid #eee">${modelStr}</td>
-              <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:center">${m.salot||0}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:center">${Number(m.salot||0)}</td>
               <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:center">${m.agala?'✓':''}</td>
-              <td style="padding:6px 8px;border-bottom:1px solid #eee">${m.supplyDate||''}</td>
-              <td style="padding:6px 8px;border-bottom:1px solid #eee">${m.fault||''}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid #eee">${escEmail(m.supplyDate)}</td>
+              <td style="padding:6px 8px;border-bottom:1px solid #eee">${escEmail(m.fault)}</td>
             </tr>`;
           }).join('');
 
           await resend.emails.send({
             from: process.env.RESEND_FROM || 'orders@sverdlik-apps.site',
             to: process.env.NOTIFY_EMAIL.split(',').map(e => e.trim()),
-            cc: ['natalia.a@DilerBMD.com'],
+            cc: process.env.NOTIFY_CC_EMAIL ? process.env.NOTIFY_CC_EMAIL.split(',').map(e => e.trim()) : [],
             subject: `הזמנת מקרר חדשה — ${order.custName} (${order.city})`,
             attachments: [{ filename: `mekarer-${safeDate}-${safeName}.xlsx`, content: xlsB64 }],
             html: `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
@@ -2602,7 +2608,7 @@ app.get('/api/bbox-audit-xlsx', async (req, res) => {
 });
 
 // GET /pbi/formula-refresh — last PBI dataset refresh time for FORMULA dataset
-app.get('/pbi/formula-refresh', dataRateLimit, async (req, res) => {
+app.get('/pbi/formula-refresh', requireAuth, dataRateLimit, async (req, res) => {
   try {
     const t = await getDatasetRefreshTime(process.env.POWERBI_DATASET_ID);
     res.json({ ok: true, refreshedAt: t });
@@ -2613,7 +2619,7 @@ app.get('/pbi/formula-refresh', dataRateLimit, async (req, res) => {
 
 // GET /pbi/dagim-all-monthly — last 13 months carton sales for ALL dagim/halavi products (batch)
 // Used by הזמנה דגים trend column: loaded once on page open, cached client-side.
-app.get('/pbi/dagim-all-monthly', dataRateLimit, async (req, res) => {
+app.get('/pbi/dagim-all-monthly', requireAuth, dataRateLimit, async (req, res) => {
   const now = new Date();
   const conds = [];
   for (let i = 12; i >= 0; i--) {
@@ -2658,7 +2664,7 @@ app.get('/pbi/dagim-all-monthly', dataRateLimit, async (req, res) => {
 
 // GET /pbi/dagim-sales?periods=2026-5,2026-6 — live sales for הזמנה period filter (combined period)
 // Legacy single-month form also supported: ?year=2026&month=5
-app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
+app.get('/pbi/dagim-sales', requireAuth, dataRateLimit, async (req, res) => {
   let dateFilter;
 
   if (req.query.periods) {
@@ -2770,11 +2776,11 @@ app.get('/pbi/dagim-sales', dataRateLimit, async (req, res) => {
 
 // GET /pbi/inter-sales?periods=2026-5,2026-6 — products + sales for INTER ordering page
 // Source: INTERNATIONAL CONTROL DESK (CONTROL workspace) — includes photo URL, ENG name, krat
-const INTER_WS = 'ee9e5fc6-bc10-4e7d-a8f3-b23c08d150ed';
-const INTER_DS = 'fb6691a0-9b2f-413b-b438-78d2982c4e70';
+const INTER_WS = process.env.POWERBI_INTER_WORKSPACE_ID || 'ee9e5fc6-bc10-4e7d-a8f3-b23c08d150ed';
+const INTER_DS = process.env.POWERBI_INTER_DATASET_ID   || 'fb6691a0-9b2f-413b-b438-78d2982c4e70';
 const INTER_DATA = `'DataIINא+F+I+MMD 25-23-24-22'`;
 
-app.get('/pbi/inter-sales', dataRateLimit, async (req, res) => {
+app.get('/pbi/inter-sales', requireAuth, dataRateLimit, async (req, res) => {
   if (!req.query.periods) return res.status(400).json({ error: 'periods param required' });
 
   const parts = String(req.query.periods).split(',').map(s => s.trim()).filter(Boolean);
@@ -3077,7 +3083,7 @@ app.post('/api/export-order-xlsx', requireAuth, dataRateLimit, async (req, res) 
 });
 
 // ── PHOTO PROXY (CORS bridge for github.io → priority.dilerbmd.com) ─────────
-app.get('/api/photo-proxy', async (req, res) => {
+app.get('/api/photo-proxy', requireAuth, dataRateLimit, async (req, res) => {
   const url = req.query.url;
   if (!isSafePhotoUrl(url)) return res.status(400).json({ error: 'invalid url' });
   try {
@@ -3088,7 +3094,7 @@ app.get('/api/photo-proxy', async (req, res) => {
     if (!r.ok) return res.status(r.status).end();
     const buf = Buffer.from(await r.arrayBuffer());
     res.setHeader('Content-Type', r.headers.get('content-type') || 'image/jpeg');
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Origin', 'https://sverdlikdan-code.github.io');
     res.setHeader('Cache-Control', 'public, max-age=86400');
     res.end(buf);
   } catch { res.status(502).end(); }
@@ -3480,8 +3486,7 @@ app.get('/formula-road', (req, res, next) => {
 app.get('/mekarer-order.html', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'mekarer-order.html'));
 });
-app.get('/territory-planner.html', (req, res) => {
-  if (!req.session?.agentCode && !req.session?.isManager) return res.redirect('/');
+app.get('/territory-planner.html', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'territory-planner.html'));
 });
 app.get('/territory.html', (req, res) => {
@@ -3490,7 +3495,7 @@ app.get('/territory.html', (req, res) => {
 app.get('/priority-gps.html', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'priority-gps.html'));
 });
-app.get('/priority-gps-cross.json', (req, res) => {
+app.get('/priority-gps-cross.json', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'priority-gps-cross.json'));
 });
 app.get('/sw.js', (req, res) => {
@@ -3591,7 +3596,7 @@ app.get('/pbi/mmd-orders', mmdGuard, dataRateLimit, async (req, res) => {
 });
 
 // GET /admin/debug-cache?key=KEY — временный диагностический endpoint
-app.get('/admin/debug-cache', async (req, res) => {
+app.get('/admin/debug-cache', dataRateLimit, async (req, res) => {
   const ADMIN_KEY = process.env.ADMIN_LOG_KEY || '';
   if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(403).json({ error: 'forbidden' });
   if (!pbiCache) return res.json({ error: 'no cache' });
@@ -3766,6 +3771,7 @@ ROW(
 app.get('/api/client-analytics/:custId', requireAuth, async (req, res) => {
   const custId = String(req.params.custId || '').trim();
   if (!custId) return res.status(400).json({ ok: false, error: 'custId required' });
+  if (!/^\d{1,15}$/.test(custId)) return res.status(400).json({ ok: false, error: 'invalid custId' });
   const lang = (req.query.lang || 'he').slice(0, 2);
   if (!GEMINI_API_KEY && !ANTHROPIC_API_KEY) return res.status(503).json({ ok: false, error: 'AI not configured' });
 
