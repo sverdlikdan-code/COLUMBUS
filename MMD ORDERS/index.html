@@ -1506,10 +1506,8 @@
       // Group header row — trend will be appended after rows accumulate
       const hdr = document.createElement('tr');
       hdr.className = 'fam-hdr';
-      hdr.innerHTML = '<td colspan="14">📦 ' + esc(grp) + ' <span style="font-weight:400;opacity:.5;font-size:.68rem">(' + grpRows.length + ')</span></td>' +
-        '<td></td>' +
-        '<td class="fam-trend col-prophet" style="text-align:center;cursor:default"></td>' +
-        '<td></td><td></td>';
+      const _famLbl = '📦 ' + esc(grp) + ' <span style="font-weight:400;opacity:.5;font-size:.68rem">(' + grpRows.length + ')</span>';
+      hdr.innerHTML = '<td colspan="18">' + _famLbl + '</td>';
       tb.appendChild(hdr);
 
       grpRows.forEach(r => {
@@ -1596,6 +1594,23 @@
           '<td class="col-g' + (yamim != null && yamim < 14 ? ' tk-lo' : '') + '">' + buildPrtimCell(mk, r.tukuf, nts) + '</td>';
         tb.appendChild(tr);
       });
+
+      // Rebuild hdr with correct colspan by reading actual col-prophet position from first data row
+      (function() {
+        var sib = hdr.nextElementSibling;
+        var cells = sib ? Array.from(sib.cells) : [];
+        var pi = cells.findIndex(function(td) { return td.classList.contains('col-prophet'); });
+        if (pi >= 0) {
+          hdr.innerHTML =
+            '<td colspan="' + pi + '">' + _famLbl + '</td>' +
+            '<td class="fam-trend col-prophet" style="text-align:center;cursor:default"></td>' +
+            '<td colspan="' + (cells.length - pi - 1) + '"></td>';
+        } else {
+          hdr.innerHTML = '<td colspan="14">' + _famLbl + '</td>' +
+            '<td></td><td class="fam-trend col-prophet" style="text-align:center;cursor:default"></td>' +
+            '<td></td><td></td>';
+        }
+      })();
 
       // Append group מגמה to header after accumulation
       if (gSumPrv > 0) {
