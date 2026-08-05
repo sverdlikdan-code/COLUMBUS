@@ -432,6 +432,7 @@ body.gps-fs #map{height:100%!important;}
             <hr class="km-more-sep">
             <button class="km-more-item" id="recalc-btn" onclick="recalcRoute();closeKmMore()">🔄 חישוב מסלול מחדש</button>
             <button class="km-more-item" onclick="resetRoute();closeKmMore()">↩ איפוס סדר היום</button>
+            <button class="km-more-item" onclick="openGoogleMaps();closeKmMore()" style="color:#1a73e8;font-weight:600">🗺 פתח ב-Google Maps</button>
             <hr class="km-more-sep">
             <div class="gps-hist-wrap">
               <button class="km-more-item" id="gps-hist-btn" onclick="toggleGpsHistory()">📍 תיקוני GPS</button>
@@ -450,6 +451,7 @@ body.gps-fs #map{height:100%!important;}
           <span class="km-val" style="color:var(--green)" id="km-ai">—</span>
           <span class="km-unit">km</span>
           <span id="km-saving-wrap" style="display:none" class="km-saving">חיסכון ↓<span id="km-saving">—</span> km</span>
+          <span id="km-duration" style="display:none;font-size:11px;color:var(--mid);margin-right:4px;margin-right:6px"></span>
         </div>
         <div class="tab-inline">
           <button class="tab-inline-btn active" id="tab-inline-list" onclick="setTab('list')" aria-label="רשימת לקוחות">📋</button>
@@ -689,7 +691,7 @@ const st = {
   sortMode:'ai', tab:'list',
   selectedCities:[], selectedId:null,
   addrClientId:null, isDemo:false,
-  roadKm:null, roadGeometry:null, priorityRoadKm:null,
+  roadKm:null, roadGeometry:null, priorityRoadKm:null, roadDuration:null,
   excluded: new Set(),
   aiGpsMode: false,
   tabletGpsMode: true,
@@ -823,6 +825,7 @@ async function osrmRoadData(clients) {
     const route = data.routes[0];
     const result = {
       roadKm: route.distance / 1000,
+      roadDuration: route.duration,
       roadGeometry: route.geometry.coordinates.map(([lon,lat]) => [lat,lon])
     };
     OSRM_CACHE.set(cacheKey, result);
@@ -904,6 +907,7 @@ function triggerOsrm() {
     if (!res) return;
     if (st.agent?.code !== snap.agentCode || st.day !== snap.day) return;
     st.roadKm = res.roadKm;
+    st.roadDuration = res.roadDuration;
     st.roadGeometry = res.roadGeometry;
     updateKmBar();
     if (window.innerWidth >= 700 || st.tab === 'map') renderMap();
@@ -1348,7 +1352,7 @@ let _initRouteId = 0;
 async function initRoute(){
   const myId = ++_initRouteId;
   st.sortMode=(st.aiGpsMode||st.tabletGpsMode)?'ai':'priority'; st.selectedCities=[]; st.selectedId=null;
-  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null;
+  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null;
   st.excluded=loadExcluded(st.agent?.code, st.day);
   document.getElementById('route-title').textContent='DILER FORMULA';
   document.getElementById('route-sub').textContent=`${st.agent.name} · ${st.day===0?'לא מוגדר':'יום '+DAY_LABELS[st.day]}`;
@@ -1427,7 +1431,7 @@ async function initRoute(){
   if(myId !== _initRouteId) return; // newer call in flight — discard stale results
   try {
     st.aiClients=nearestNeighbor([..._aiGpsClients(st.clients)]);
-    st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; triggerOsrm();
+    st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null; triggerOsrm();
     updateKmBar();
     renderCityFilters();
   } catch(renderErr) {
@@ -1552,7 +1556,7 @@ function resetRoute(){
 }
 
 function recalcRoute(){
-  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null;
+  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null;
   st.sortMode='ai';
   if(!st.tabletGpsMode){ st.aiGpsMode=true; }
   document.getElementById('sort-btn-priority').className='sort-btn';
@@ -1573,11 +1577,28 @@ function recalcRoute(){
     const withGps=(ordered||st.aiClients).filter(c=>c.lat&&c.lng);
     osrmRoadData(withGps).then(res=>{
       if(!res||st.agent?.code!==snap.agentCode||st.day!==snap.day) return;
-      st.roadKm=res.roadKm; st.roadGeometry=res.roadGeometry;
+      st.roadKm=res.roadKm; st.roadDuration=res.roadDuration; st.roadGeometry=res.roadGeometry;
       updateKmBar();
       if(st.tab==='map'||window.innerWidth>=700) renderMap();
     });
   });
+}
+
+function fmtDuration(sec){
+  if(!sec) return null;
+  const h=Math.floor(sec/3600), m=Math.round((sec%3600)/60);
+  return h>0 ? `${h}ש ${m}ד` : `${m}ד`;
+}
+
+function openGoogleMaps(){
+  const clients = (st.sortMode==='ai' ? st.aiClients : st.clients).filter(c => c.lat && c.lng);
+  if(!clients.length){ alert('אין לקוחות עם GPS במסלול זה'); return; }
+  const MAX_WAYPOINTS = 23;
+  const pts = clients.slice(0, MAX_WAYPOINTS);
+  let url = 'https://www.google.com/maps/dir/';
+  if(st.startLat && st.startLng) url += `${st.startLat},${st.startLng}/`;
+  url += pts.map(c => `${c.lat},${c.lng}`).join('/');
+  window.open(url, '_blank');
 }
 
 function updateKmBar(){
@@ -1596,6 +1617,12 @@ function updateKmBar(){
     savingWrap.style.display='';
   }else{
     savingWrap.style.display='none';
+  }
+  const durEl=document.getElementById('km-duration');
+  if(durEl){
+    const durTxt=!filtered&&st.roadDuration?fmtDuration(st.roadDuration):null;
+    durEl.textContent=durTxt?'⏱ '+durTxt:'';
+    durEl.style.display=durTxt?'':'none';
   }
 }
 
@@ -1843,12 +1870,12 @@ function resetExcluded(){
   st.excluded=new Set();
   saveExcluded(st.agent?.code, st.day);
   st.aiClients=nearestNeighbor([...activeClients()]);
-  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null;
+  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null;
   updateKmBar(); renderClientList(); renderMap();
   const withGps=activeClients().filter(c=>c.lat&&c.lng);
   osrmRoadData(withGps).then(res=>{
     if(!res)return;
-    st.roadKm=res.roadKm; st.roadGeometry=res.roadGeometry;
+    st.roadKm=res.roadKm; st.roadDuration=res.roadDuration; st.roadGeometry=res.roadGeometry;
     updateKmBar(); if(window.innerWidth>=700||st.tab==='map')renderMap();
   });
   showToast('↩️ כל הלקוחות הוחזרו למסלול');
@@ -1869,11 +1896,11 @@ function toggleExclude(custId,e){
   saveExcluded(st.agent?.code, st.day);
   const withGps=activeClients().filter(c=>c.lat&&c.lng);
   st.aiClients=nearestNeighbor([...activeClients()]);
-  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null;
+  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null;
   updateKmBar(); renderClientList(); renderMap();
   osrmRoadData(withGps).then(res=>{
     if(!res)return;
-    st.roadKm=res.roadKm; st.roadGeometry=res.roadGeometry;
+    st.roadKm=res.roadKm; st.roadDuration=res.roadDuration; st.roadGeometry=res.roadGeometry;
     updateKmBar(); if(window.innerWidth>=700||st.tab==='map')renderMap();
   });
 }
@@ -2152,7 +2179,7 @@ function _startMapPlace(id,c){
     const la=+lat.toFixed(6), lo=+lng.toFixed(6);
     st.clients=st.clients.map(x=>x.custId===id?{...x,lat:la,lng:lo}:x);
     st.aiClients=nearestNeighbor([...st.clients]);
-    st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; triggerOsrm();
+    st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null; triggerOsrm();
     saveRoute(st.agent.code,st.day,st.clients);
     updateKmBar(); renderClientList(); renderMap();
     showToast('✅ מיקום נשמר (מקומי)');
@@ -2204,7 +2231,7 @@ function detectAddrGps(){
         const cl=st.clients.find(x=>x.custId===id)||{};
         st.clients=st.clients.map(x=>x.custId===id?{...x,lat,lng,address:addr}:x);
         st.aiClients=nearestNeighbor([...st.clients]);
-        st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; triggerOsrm();
+        st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null; triggerOsrm();
         saveRoute(st.agent.code,st.day,st.clients);
         updateKmBar(); renderClientList();
         if(window.innerWidth>=700||st.tab==='map') renderMap();
@@ -2213,7 +2240,7 @@ function detectAddrGps(){
         const cl=st.clients.find(x=>x.custId===id)||{};
         st.clients=st.clients.map(x=>x.custId===id?{...x,lat,lng}:x);
         st.aiClients=nearestNeighbor([...st.clients]);
-        st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; triggerOsrm();
+        st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null; triggerOsrm();
         saveRoute(st.agent.code,st.day,st.clients);
         updateKmBar(); renderClientList();
         if(window.innerWidth>=700||st.tab==='map') renderMap();
@@ -2236,7 +2263,7 @@ async function submitAddress(){
     if(d&&d.lat){
       st.clients=st.clients.map(x=>x.custId===st.addrClientId?{...x,address:addr,lat:d.lat,lng:d.lng}:x);
       st.aiClients=nearestNeighbor([...st.clients]);
-      st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; triggerOsrm();
+      st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null; triggerOsrm();
       updateKmBar(); renderClientList();
     }
   }catch{}
@@ -2371,7 +2398,7 @@ function changeClientDay(custId,newDay){
   }
   st.clients=st.clients.filter(c=>String(c.custId)!==String(custId));
   st.aiClients=nearestNeighbor([...st.clients]);
-  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; triggerOsrm();
+  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null; triggerOsrm();
   saveRoute(st.agent.code,st.day,st.clients);
   updateKmBar(); renderClientList();
   if(window.innerWidth>=700||st.tab==='map') renderMap();
@@ -2620,7 +2647,7 @@ function startGpsCorrection(custId, custName){
     }).catch(()=>{});
     st.clients=st.clients.map(x=>String(x.custId)===String(custId)?{...x,lat:la,lng:lo}:x);
     st.aiClients=nearestNeighbor([...st.clients]);
-    st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; triggerOsrm();
+    st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null; triggerOsrm();
     saveRoute(st.agent.code,st.day,st.clients);
     updateKmBar(); renderClientList(); renderMap();
     showToast('✅ מיקום נשמר');
