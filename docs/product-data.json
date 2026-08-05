@@ -354,14 +354,14 @@
     "pakuot": [
       {
         "date": "2027-06-01",
-        "daysLeft": 301,
+        "daysLeft": 300,
         "cartons": 2953
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-06-01",
-        "daysLeft": 301,
+        "daysLeft": 300,
         "cartons": 234
       }
     ],
@@ -606,15 +606,15 @@
     "openOrders": null
   },
   "628": {
-    "stock": 703,
+    "stock": 495,
     "daySales": 38.1,
     "kratnost": 360,
-    "palStock": 2,
-    "stockZafn": 0,
-    "palStockZafn": null,
+    "palStock": 1.4,
+    "stockZafn": 204,
+    "palStockZafn": 0.6,
     "daySalesZafn": 15.4,
-    "daysStock": 26,
-    "daysStockZafn": 0,
+    "daysStock": 18,
+    "daysStockZafn": 18,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -622,7 +622,7 @@
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 44.4,
-    "daysStockAll": 16,
+    "daysStockAll": 11,
     "nameEn": "טבורוג250 5% ג'",
     "fam": "SVALIA למריחה גבינה/'קוטג/טבורוג",
     "iksGroup": null,
@@ -630,11 +630,17 @@
     "pakuot": [
       {
         "date": "2026-09-01",
-        "daysLeft": 28,
-        "cartons": 703
+        "daysLeft": 27,
+        "cartons": 495
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-09-01",
+        "daysLeft": 27,
+        "cartons": 204
+      }
+    ],
     "shelfLife": 7,
     "stopSale": false,
     "spo": null,
@@ -702,15 +708,15 @@
     ]
   },
   "631": {
-    "stock": 1137,
+    "stock": 883,
     "daySales": 50.2,
     "kratnost": 252,
-    "palStock": 4.5,
-    "stockZafn": 42,
-    "palStockZafn": 0.2,
+    "palStock": 3.5,
+    "stockZafn": 294,
+    "palStockZafn": 1.2,
     "daySalesZafn": 42.1,
-    "daysStock": 32,
-    "daysStockZafn": 1,
+    "daysStock": 25,
+    "daysStockZafn": 10,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -718,7 +724,7 @@
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 92.2,
-    "daysStockAll": 12,
+    "daysStockAll": 10,
     "nameEn": "משקה חלבי0.5 ל'",
     "fam": "SVALIA שמנת/יוגורט/ דייסה",
     "iksGroup": null,
@@ -726,20 +732,25 @@
     "pakuot": [
       {
         "date": "2026-08-09",
-        "daysLeft": 5,
-        "cartons": 129
+        "daysLeft": 4,
+        "cartons": 127
       },
       {
         "date": "2026-09-06",
-        "daysLeft": 33,
-        "cartons": 1008
+        "daysLeft": 32,
+        "cartons": 756
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-08-09",
-        "daysLeft": 5,
+        "daysLeft": 4,
         "cartons": 42
+      },
+      {
+        "date": "2026-09-06",
+        "daysLeft": 32,
+        "cartons": 252
       }
     ],
     "shelfLife": 7,
@@ -854,7 +865,7 @@
     ]
   },
   "645": {
-    "stock": 527,
+    "stock": 526,
     "daySales": 43.7,
     "kratnost": 195,
     "palStock": 2.7,
@@ -878,14 +889,14 @@
     "pakuot": [
       {
         "date": "2026-08-30",
-        "daysLeft": 26,
-        "cartons": 528
+        "daysLeft": 25,
+        "cartons": 527
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-08-30",
-        "daysLeft": 26,
+        "daysLeft": 25,
         "cartons": 132
       }
     ],
@@ -980,19 +991,19 @@
     "pakuot": [
       {
         "date": "2026-10-20",
-        "daysLeft": 77,
+        "daysLeft": 76,
         "cartons": 139
       },
       {
         "date": "2026-11-17",
-        "daysLeft": 105,
+        "daysLeft": 104,
         "cartons": 192
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-20",
-        "daysLeft": 77,
+        "daysLeft": 76,
         "cartons": 54
       }
     ],
@@ -1042,24 +1053,24 @@
     "pakuot": [
       {
         "date": "2026-10-20",
-        "daysLeft": 77,
+        "daysLeft": 76,
         "cartons": 54
       },
       {
         "date": "2026-11-17",
-        "daysLeft": 105,
+        "daysLeft": 104,
         "cartons": 128
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-20",
-        "daysLeft": 77,
+        "daysLeft": 76,
         "cartons": 29
       },
       {
         "date": "2026-11-17",
-        "daysLeft": 105,
+        "daysLeft": 104,
         "cartons": 64
       }
     ],
@@ -1341,29 +1352,29 @@
     "pakuot": [
       {
         "date": "2026-11-03",
-        "daysLeft": 91,
+        "daysLeft": 90,
         "cartons": 164
       },
       {
         "date": "2026-11-24",
-        "daysLeft": 112,
+        "daysLeft": 111,
         "cartons": 1080
       },
       {
         "date": "2026-12-21",
-        "daysLeft": 139,
+        "daysLeft": 138,
         "cartons": 1080
       },
       {
         "date": "2027-01-19",
-        "daysLeft": 168,
+        "daysLeft": 167,
         "cartons": 540
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-11-03",
-        "daysLeft": 91,
+        "daysLeft": 90,
         "cartons": 172
       }
     ],
@@ -1413,29 +1424,29 @@
     "pakuot": [
       {
         "date": "2026-11-19",
-        "daysLeft": 107,
+        "daysLeft": 106,
         "cartons": 86
       },
       {
         "date": "2026-12-17",
-        "daysLeft": 135,
+        "daysLeft": 134,
         "cartons": 123
       },
       {
         "date": "2027-01-07",
-        "daysLeft": 156,
+        "daysLeft": 155,
         "cartons": 214
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-11-19",
-        "daysLeft": 107,
+        "daysLeft": 106,
         "cartons": 40
       },
       {
         "date": "2026-12-17",
-        "daysLeft": 135,
+        "daysLeft": 134,
         "cartons": 92
       }
     ],
@@ -1530,24 +1541,24 @@
     "pakuot": [
       {
         "date": "2026-12-17",
-        "daysLeft": 135,
+        "daysLeft": 134,
         "cartons": 5
       },
       {
         "date": "2027-01-07",
-        "daysLeft": 156,
+        "daysLeft": 155,
         "cartons": 164
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-12-17",
-        "daysLeft": 135,
+        "daysLeft": 134,
         "cartons": 35
       },
       {
         "date": "2027-01-07",
-        "daysLeft": 156,
+        "daysLeft": 155,
         "cartons": 63
       }
     ],
@@ -1626,24 +1637,24 @@
     "pakuot": [
       {
         "date": "2026-11-19",
-        "daysLeft": 107,
+        "daysLeft": 106,
         "cartons": 78
       },
       {
         "date": "2026-11-26",
-        "daysLeft": 114,
+        "daysLeft": 113,
         "cartons": 180
       },
       {
         "date": "2026-12-17",
-        "daysLeft": 135,
+        "daysLeft": 134,
         "cartons": 180
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-11-19",
-        "daysLeft": 107,
+        "daysLeft": 106,
         "cartons": 49
       }
     ],
@@ -1669,15 +1680,15 @@
     ]
   },
   "665": {
-    "stock": 651,
+    "stock": 646,
     "daySales": 6,
     "kratnost": 384,
     "palStock": 1.7,
-    "stockZafn": 141,
+    "stockZafn": 146,
     "palStockZafn": 0.4,
     "daySalesZafn": 5.4,
-    "daysStock": 152,
-    "daysStockZafn": 36,
+    "daysStock": 151,
+    "daysStockZafn": 38,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -1685,7 +1696,7 @@
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 11.3,
-    "daysStockAll": 58,
+    "daysStockAll": 57,
     "nameEn": "גבינה פרמזן200 PARNIDZIO ג'",
     "fam": "SVALIA פרוסות גבינה",
     "iksGroup": null,
@@ -1693,29 +1704,29 @@
     "pakuot": [
       {
         "date": "2026-10-20",
-        "daysLeft": 77,
-        "cartons": 23
+        "daysLeft": 76,
+        "cartons": 18
       },
       {
         "date": "2026-11-17",
-        "daysLeft": 105,
+        "daysLeft": 104,
         "cartons": 244
       },
       {
         "date": "2026-12-08",
-        "daysLeft": 126,
+        "daysLeft": 125,
         "cartons": 384
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-20",
-        "daysLeft": 77,
-        "cartons": 1
+        "daysLeft": 76,
+        "cartons": 6
       },
       {
         "date": "2026-11-17",
-        "daysLeft": 105,
+        "daysLeft": 104,
         "cartons": 140
       }
     ],
@@ -1794,39 +1805,39 @@
     "pakuot": [
       {
         "date": "2026-09-22",
-        "daysLeft": 49,
+        "daysLeft": 48,
         "cartons": 123
       },
       {
         "date": "2026-10-06",
-        "daysLeft": 63,
+        "daysLeft": 62,
         "cartons": 251
       },
       {
         "date": "2026-10-20",
-        "daysLeft": 77,
+        "daysLeft": 76,
         "cartons": 192
       },
       {
         "date": "2026-11-17",
-        "daysLeft": 105,
+        "daysLeft": 104,
         "cartons": 384
       },
       {
         "date": "2026-12-08",
-        "daysLeft": 126,
+        "daysLeft": 125,
         "cartons": 192
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-09-22",
-        "daysLeft": 49,
+        "daysLeft": 48,
         "cartons": 64
       },
       {
         "date": "2026-10-06",
-        "daysLeft": 63,
+        "daysLeft": 62,
         "cartons": 128
       }
     ],
@@ -1852,7 +1863,7 @@
     ]
   },
   "668": {
-    "stock": 541,
+    "stock": 540,
     "daySales": 7.1,
     "kratnost": 192,
     "palStock": 2.8,
@@ -1876,34 +1887,34 @@
     "pakuot": [
       {
         "date": "2026-09-22",
-        "daysLeft": 49,
-        "cartons": 34
+        "daysLeft": 48,
+        "cartons": 33
       },
       {
         "date": "2026-10-13",
-        "daysLeft": 70,
+        "daysLeft": 69,
         "cartons": 123
       },
       {
         "date": "2026-11-17",
-        "daysLeft": 105,
+        "daysLeft": 104,
         "cartons": 192
       },
       {
         "date": "2026-12-08",
-        "daysLeft": 126,
+        "daysLeft": 125,
         "cartons": 192
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-09-22",
-        "daysLeft": 49,
+        "daysLeft": 48,
         "cartons": 11
       },
       {
         "date": "2026-10-13",
-        "daysLeft": 70,
+        "daysLeft": 69,
         "cartons": 64
       }
     ],
@@ -1953,34 +1964,34 @@
     "pakuot": [
       {
         "date": "2026-10-13",
-        "daysLeft": 70,
+        "daysLeft": 69,
         "cartons": 58
       },
       {
         "date": "2026-10-20",
-        "daysLeft": 77,
+        "daysLeft": 76,
         "cartons": 112
       },
       {
         "date": "2026-11-17",
-        "daysLeft": 105,
+        "daysLeft": 104,
         "cartons": 576
       },
       {
         "date": "2026-12-08",
-        "daysLeft": 126,
+        "daysLeft": 125,
         "cartons": 192
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-13",
-        "daysLeft": 70,
+        "daysLeft": 69,
         "cartons": 22
       },
       {
         "date": "2026-10-20",
-        "daysLeft": 77,
+        "daysLeft": 76,
         "cartons": 80
       }
     ],
@@ -2030,29 +2041,29 @@
     "pakuot": [
       {
         "date": "2026-10-06",
-        "daysLeft": 63,
+        "daysLeft": 62,
         "cartons": 7
       },
       {
         "date": "2026-10-27",
-        "daysLeft": 84,
+        "daysLeft": 83,
         "cartons": 48
       },
       {
         "date": "2026-12-08",
-        "daysLeft": 126,
+        "daysLeft": 125,
         "cartons": 72
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-06",
-        "daysLeft": 63,
+        "daysLeft": 62,
         "cartons": 6
       },
       {
         "date": "2026-10-27",
-        "daysLeft": 84,
+        "daysLeft": 83,
         "cartons": 24
       }
     ],
@@ -2131,29 +2142,29 @@
     "pakuot": [
       {
         "date": "2026-10-06",
-        "daysLeft": 63,
+        "daysLeft": 62,
         "cartons": 16
       },
       {
         "date": "2026-10-27",
-        "daysLeft": 84,
+        "daysLeft": 83,
         "cartons": 48
       },
       {
         "date": "2026-12-08",
-        "daysLeft": 126,
+        "daysLeft": 125,
         "cartons": 72
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-06",
-        "daysLeft": 63,
+        "daysLeft": 62,
         "cartons": 9
       },
       {
         "date": "2026-10-27",
-        "daysLeft": 84,
+        "daysLeft": 83,
         "cartons": 24
       }
     ],
@@ -2203,29 +2214,29 @@
     "pakuot": [
       {
         "date": "2026-11-05",
-        "daysLeft": 93,
+        "daysLeft": 92,
         "cartons": 8
       },
       {
         "date": "2026-11-26",
-        "daysLeft": 114,
+        "daysLeft": 113,
         "cartons": 104
       },
       {
         "date": "2027-01-14",
-        "daysLeft": 163,
+        "daysLeft": 162,
         "cartons": 72
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-11-05",
-        "daysLeft": 93,
+        "daysLeft": 92,
         "cartons": 4
       },
       {
         "date": "2026-11-26",
-        "daysLeft": 114,
+        "daysLeft": 113,
         "cartons": 40
       }
     ],
@@ -2338,7 +2349,7 @@
     "openOrders": null
   },
   "677": {
-    "stock": 1194,
+    "stock": 1192,
     "daySales": 32.7,
     "kratnost": 192,
     "palStock": 6.2,
@@ -2362,39 +2373,39 @@
     "pakuot": [
       {
         "date": "2026-11-26",
-        "daysLeft": 114,
-        "cartons": 202
+        "daysLeft": 113,
+        "cartons": 200
       },
       {
         "date": "2026-12-10",
-        "daysLeft": 128,
+        "daysLeft": 127,
         "cartons": 416
       },
       {
         "date": "2026-12-17",
-        "daysLeft": 135,
+        "daysLeft": 134,
         "cartons": 192
       },
       {
         "date": "2027-01-07",
-        "daysLeft": 156,
+        "daysLeft": 155,
         "cartons": 192
       },
       {
         "date": "2027-01-14",
-        "daysLeft": 163,
+        "daysLeft": 162,
         "cartons": 192
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-11-26",
-        "daysLeft": 114,
+        "daysLeft": 113,
         "cartons": 76
       },
       {
         "date": "2026-12-10",
-        "daysLeft": 128,
+        "daysLeft": 127,
         "cartons": 160
       }
     ],
@@ -2480,18 +2491,18 @@
   "701": {
     "stock": 109,
     "daySales": 0.9705128205128205,
-    "daySales365": 2.7799773755656108,
+    "daySales365": 2.775704493526276,
     "pakuot": [
       {
         "date": "2027-08-19T00:00:00.000Z",
-        "daysLeft": 380,
+        "daysLeft": 379,
         "cartons": 109
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-08-19T00:00:00.000Z",
-        "daysLeft": 380,
+        "daysLeft": 379,
         "cartons": 130
       }
     ],
@@ -2502,7 +2513,7 @@
     "pakuotZafn": [
       {
         "date": "2027-08-19T00:00:00.000Z",
-        "daysLeft": 380,
+        "daysLeft": 379,
         "cartons": 21
       }
     ],
@@ -2560,18 +2571,18 @@
   "711": {
     "stock": 63,
     "daySales": 0.7358974358974358,
-    "daySales365": 2.661646046261431,
+    "daySales365": 2.66319068255688,
     "pakuot": [
       {
         "date": "2027-08-23T00:00:00.000Z",
-        "daysLeft": 384,
+        "daysLeft": 383,
         "cartons": 63
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-08-23T00:00:00.000Z",
-        "daysLeft": 384,
+        "daysLeft": 383,
         "cartons": 89
       }
     ],
@@ -2582,7 +2593,7 @@
     "pakuotZafn": [
       {
         "date": "2027-08-23T00:00:00.000Z",
-        "daysLeft": 384,
+        "daysLeft": 383,
         "cartons": 26
       }
     ],
@@ -2610,18 +2621,18 @@
   "712": {
     "stock": 164,
     "daySales": 0.9512820512820513,
-    "daySales365": 2.7345914954610606,
+    "daySales365": 2.7295673076923075,
     "pakuot": [
       {
         "date": "2027-08-24T00:00:00.000Z",
-        "daysLeft": 385,
+        "daysLeft": 384,
         "cartons": 164
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-08-24T00:00:00.000Z",
-        "daysLeft": 385,
+        "daysLeft": 384,
         "cartons": 184
       }
     ],
@@ -2632,7 +2643,7 @@
     "pakuotZafn": [
       {
         "date": "2027-08-24T00:00:00.000Z",
-        "daysLeft": 385,
+        "daysLeft": 384,
         "cartons": 20
       }
     ],
@@ -2664,14 +2675,14 @@
     "pakuot": [
       {
         "date": "2027-08-18T00:00:00.000Z",
-        "daysLeft": 379,
+        "daysLeft": 378,
         "cartons": 70
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-08-18T00:00:00.000Z",
-        "daysLeft": 379,
+        "daysLeft": 378,
         "cartons": 100
       }
     ],
@@ -2682,7 +2693,7 @@
     "pakuotZafn": [
       {
         "date": "2027-08-18T00:00:00.000Z",
-        "daysLeft": 379,
+        "daysLeft": 378,
         "cartons": 30
       }
     ],
@@ -2806,14 +2817,14 @@
     "pakuot": [
       {
         "date": "2026-10-07T00:00:00.000Z",
-        "daysLeft": 64,
+        "daysLeft": 63,
         "cartons": 156
       }
     ],
     "pakuotAll": [
       {
         "date": "2026-10-07T00:00:00.000Z",
-        "daysLeft": 64,
+        "daysLeft": 63,
         "cartons": 181
       }
     ],
@@ -2824,7 +2835,7 @@
     "pakuotZafn": [
       {
         "date": "2026-10-07T00:00:00.000Z",
-        "daysLeft": 64,
+        "daysLeft": 63,
         "cartons": 25
       }
     ],
@@ -2856,14 +2867,14 @@
     "pakuot": [
       {
         "date": "2026-10-06T00:00:00.000Z",
-        "daysLeft": 63,
+        "daysLeft": 62,
         "cartons": 91
       }
     ],
     "pakuotAll": [
       {
         "date": "2026-10-06T00:00:00.000Z",
-        "daysLeft": 63,
+        "daysLeft": 62,
         "cartons": 141
       }
     ],
@@ -2874,7 +2885,7 @@
     "pakuotZafn": [
       {
         "date": "2026-10-06T00:00:00.000Z",
-        "daysLeft": 63,
+        "daysLeft": 62,
         "cartons": 50
       }
     ],
@@ -2936,14 +2947,14 @@
     "pakuot": [
       {
         "date": "2026-10-07T00:00:00.000Z",
-        "daysLeft": 64,
+        "daysLeft": 63,
         "cartons": 963
       }
     ],
     "pakuotAll": [
       {
         "date": "2026-10-07T00:00:00.000Z",
-        "daysLeft": 64,
+        "daysLeft": 63,
         "cartons": 1296
       }
     ],
@@ -2954,7 +2965,7 @@
     "pakuotZafn": [
       {
         "date": "2026-10-07T00:00:00.000Z",
-        "daysLeft": 64,
+        "daysLeft": 63,
         "cartons": 333
       }
     ],
@@ -3016,14 +3027,14 @@
     "pakuot": [
       {
         "date": "2026-09-06T00:00:00.000Z",
-        "daysLeft": 33,
+        "daysLeft": 32,
         "cartons": 417
       }
     ],
     "pakuotAll": [
       {
         "date": "2026-09-06T00:00:00.000Z",
-        "daysLeft": 33,
+        "daysLeft": 32,
         "cartons": 496
       }
     ],
@@ -3034,7 +3045,7 @@
     "pakuotZafn": [
       {
         "date": "2026-09-06T00:00:00.000Z",
-        "daysLeft": 33,
+        "daysLeft": 32,
         "cartons": 79
       }
     ],
@@ -3172,7 +3183,7 @@
     "yavesh": true
   },
   "732": {
-    "stock": 12802,
+    "stock": 12800,
     "daySales": 143.3,
     "kratnost": 220,
     "palStock": 58.2,
@@ -3196,30 +3207,30 @@
     "pakuot": [
       {
         "date": "2027-05-27",
-        "daysLeft": 296,
-        "cartons": 2802
+        "daysLeft": 295,
+        "cartons": 2800
       },
       {
         "date": "2027-06-17",
-        "daysLeft": 317,
+        "daysLeft": 316,
         "cartons": 5000
       },
       {
         "date": "2027-07-08",
-        "daysLeft": 338,
+        "daysLeft": 337,
         "cartons": 5000
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-05-27",
-        "daysLeft": 296,
+        "daysLeft": 295,
         "cartons": 921
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 13723,
+    "spo": 13721,
     "openOrders": null,
     "weekSales": [
       257,
@@ -3292,14 +3303,14 @@
     "pakuot": [
       {
         "date": "2027-03-12",
-        "daysLeft": 220,
+        "daysLeft": 219,
         "cartons": 785
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-12",
-        "daysLeft": 220,
+        "daysLeft": 219,
         "cartons": 145
       }
     ],
@@ -3383,10 +3394,10 @@
     "openOrders": null
   },
   "739": {
-    "stock": 493,
+    "stock": 492,
     "daySales": 3.4,
     "kratnost": 240,
-    "palStock": 2.1,
+    "palStock": 2,
     "stockZafn": 310,
     "palStockZafn": 1.3,
     "daySalesZafn": 3.1,
@@ -3407,20 +3418,20 @@
     "pakuot": [
       {
         "date": "2027-03-12",
-        "daysLeft": 220,
-        "cartons": 493
+        "daysLeft": 219,
+        "cartons": 492
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-12",
-        "daysLeft": 220,
+        "daysLeft": 219,
         "cartons": 310
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 803,
+    "spo": 802,
     "openOrders": null,
     "weekSales": [
       6.2,
@@ -3464,14 +3475,14 @@
     "pakuot": [
       {
         "date": "2027-03-12",
-        "daysLeft": 220,
+        "daysLeft": 219,
         "cartons": 280
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-12",
-        "daysLeft": 220,
+        "daysLeft": 219,
         "cartons": 108
       }
     ],
@@ -3497,10 +3508,10 @@
     ]
   },
   "755": {
-    "stock": 1451,
+    "stock": 1450,
     "daySales": 17.9,
     "kratnost": 72,
-    "palStock": 20.2,
+    "palStock": 20.1,
     "stockZafn": 84,
     "palStockZafn": 1.2,
     "daySalesZafn": 9.6,
@@ -3521,29 +3532,29 @@
     "pakuot": [
       {
         "date": "2026-11-10",
-        "daysLeft": 98,
-        "cartons": 191
+        "daysLeft": 97,
+        "cartons": 190
       },
       {
         "date": "2026-11-24",
-        "daysLeft": 112,
+        "daysLeft": 111,
         "cartons": 360
       },
       {
         "date": "2026-12-21",
-        "daysLeft": 139,
+        "daysLeft": 138,
         "cartons": 540
       },
       {
         "date": "2027-01-19",
-        "daysLeft": 168,
+        "daysLeft": 167,
         "cartons": 360
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-11-10",
-        "daysLeft": 98,
+        "daysLeft": 97,
         "cartons": 84
       }
     ],
@@ -3638,14 +3649,14 @@
     "pakuot": [
       {
         "date": "2027-03-12",
-        "daysLeft": 220,
+        "daysLeft": 219,
         "cartons": 177
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-12",
-        "daysLeft": 220,
+        "daysLeft": 219,
         "cartons": 142
       }
     ],
@@ -3695,14 +3706,14 @@
     "pakuot": [
       {
         "date": "2027-03-12",
-        "daysLeft": 220,
+        "daysLeft": 219,
         "cartons": 59
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-12",
-        "daysLeft": 220,
+        "daysLeft": 219,
         "cartons": 21
       }
     ],
@@ -3752,24 +3763,24 @@
     "pakuot": [
       {
         "date": "2027-04-15",
-        "daysLeft": 254,
+        "daysLeft": 253,
         "cartons": 132
       },
       {
         "date": "2027-06-01",
-        "daysLeft": 301,
+        "daysLeft": 300,
         "cartons": 2997
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-04-15",
-        "daysLeft": 254,
+        "daysLeft": 253,
         "cartons": 20
       },
       {
         "date": "2027-06-01",
-        "daysLeft": 301,
+        "daysLeft": 300,
         "cartons": 648
       }
     ],
@@ -3795,7 +3806,7 @@
     ]
   },
   "816": {
-    "stock": 2400,
+    "stock": 2399,
     "daySales": 51.3,
     "kratnost": 729,
     "palStock": 3.3,
@@ -3819,30 +3830,30 @@
     "pakuot": [
       {
         "date": "2027-04-15",
-        "daysLeft": 254,
-        "cartons": 132
+        "daysLeft": 253,
+        "cartons": 131
       },
       {
         "date": "2027-06-01",
-        "daysLeft": 301,
+        "daysLeft": 300,
         "cartons": 2268
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-04-15",
-        "daysLeft": 254,
+        "daysLeft": 253,
         "cartons": 12
       },
       {
         "date": "2027-06-01",
-        "daysLeft": 301,
+        "daysLeft": 300,
         "cartons": 648
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 3060,
+    "spo": 3059,
     "openOrders": null,
     "weekSales": [
       84.6,
@@ -3886,24 +3897,24 @@
     "pakuot": [
       {
         "date": "2027-04-15",
-        "daysLeft": 254,
+        "daysLeft": 253,
         "cartons": 171
       },
       {
         "date": "2027-06-01",
-        "daysLeft": 301,
+        "daysLeft": 300,
         "cartons": 2997
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-04-15",
-        "daysLeft": 254,
+        "daysLeft": 253,
         "cartons": 54
       },
       {
         "date": "2027-06-01",
-        "daysLeft": 301,
+        "daysLeft": 300,
         "cartons": 648
       }
     ],
@@ -3929,7 +3940,7 @@
     ]
   },
   "818": {
-    "stock": 7268,
+    "stock": 7263,
     "daySales": 110.8,
     "kratnost": 729,
     "palStock": 10,
@@ -3953,30 +3964,30 @@
     "pakuot": [
       {
         "date": "2027-04-15",
-        "daysLeft": 254,
-        "cartons": 1355
+        "daysLeft": 253,
+        "cartons": 1350
       },
       {
         "date": "2027-06-01",
-        "daysLeft": 301,
+        "daysLeft": 300,
         "cartons": 5913
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-04-15",
-        "daysLeft": 254,
+        "daysLeft": 253,
         "cartons": 535
       },
       {
         "date": "2027-06-01",
-        "daysLeft": 301,
+        "daysLeft": 300,
         "cartons": 648
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 8451,
+    "spo": 8446,
     "openOrders": null,
     "weekSales": [
       184.2,
@@ -4185,8 +4196,8 @@
     "weight": 1.2,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 27.8,
-    "daysStockAll": 12,
+    "daySalesAll": 19.6,
+    "daysStockAll": 17,
     "nameEn": "פילה דג הרינג מומלח בשמן מצונן1200 ג(NP (3 '",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -4194,24 +4205,24 @@
     "pakuot": [
       {
         "date": "2026-11-13",
-        "daysLeft": 101,
+        "daysLeft": 100,
         "cartons": 85
       },
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 253
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-11-13",
-        "daysLeft": 101,
+        "daysLeft": 100,
         "cartons": 91
       },
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 128
       }
     ],
@@ -4281,8 +4292,8 @@
     "weight": 1.2,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 40,
-    "daysStockAll": 8,
+    "daySalesAll": 28.6,
+    "daysStockAll": 11,
     "nameEn": "חתיכות פילה דג הרינג מומלח בשמן מצונן1200 ג3) NP)'",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -4290,14 +4301,14 @@
     "pakuot": [
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 325
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 165
       }
     ],
@@ -4367,8 +4378,8 @@
     "weight": 1.2,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 40,
-    "daysStockAll": 5,
+    "daySalesAll": 33.5,
+    "daysStockAll": 6,
     "nameEn": "חתיכות פילה דג הרינג סקנדינבי מומלח בשמן מצונן1200 ג3) NP)'",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -4376,14 +4387,14 @@
     "pakuot": [
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 199
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 105
       }
     ],
@@ -4409,7 +4420,7 @@
     ]
   },
   "1005": {
-    "stock": 2253,
+    "stock": 2250,
     "daySales": 38.3,
     "kratnost": 200,
     "palStock": 11.3,
@@ -4424,8 +4435,8 @@
     "weight": 0.4,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 62.6,
-    "daysStockAll": 36,
+    "daySalesAll": 38.3,
+    "daysStockAll": 59,
     "nameEn": "חתיכות פילה דג הרינג מלוח בשמן מצונן400 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -4433,35 +4444,35 @@
     "pakuot": [
       {
         "date": "2026-10-24",
-        "daysLeft": 81,
-        "cartons": 656
+        "daysLeft": 80,
+        "cartons": 653
       },
       {
         "date": "2026-11-06",
-        "daysLeft": 94,
+        "daysLeft": 93,
         "cartons": 599
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 101,
+        "daysLeft": 100,
         "cartons": 599
       },
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 399
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-24",
-        "daysLeft": 81,
+        "daysLeft": 80,
         "cartons": 248
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 3300,
+    "spo": 3297,
     "openOrders": 400,
     "weekSales": [
       43.6,
@@ -4481,23 +4492,23 @@
     ]
   },
   "1006": {
-    "stock": 1013,
+    "stock": 953,
     "daySales": 15.6,
     "kratnost": 192,
-    "palStock": 5.3,
-    "stockZafn": 197,
-    "palStockZafn": 1,
+    "palStock": 5,
+    "stockZafn": 257,
+    "palStockZafn": 1.3,
     "daySalesZafn": 11.7,
-    "daysStock": 91,
-    "daysStockZafn": 24,
+    "daysStock": 86,
+    "daysStockZafn": 31,
     "stockTrnz": 448,
     "palStockTrnz": 2.3,
     "daySalesTrnz": null,
     "weight": 1,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 27.3,
-    "daysStockAll": 37,
+    "daySalesAll": 15.6,
+    "daysStockAll": 61,
     "nameEn": "פילה דג הרינג מומלח בשמן מצונן1000 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -4505,29 +4516,29 @@
     "pakuot": [
       {
         "date": "2026-10-24",
-        "daysLeft": 81,
-        "cartons": 251
+        "daysLeft": 80,
+        "cartons": 191
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 101,
+        "daysLeft": 100,
         "cartons": 317
       },
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 445
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-24",
-        "daysLeft": 81,
-        "cartons": 69
+        "daysLeft": 80,
+        "cartons": 129
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 101,
+        "daysLeft": 100,
         "cartons": 128
       }
     ],
@@ -4669,7 +4680,7 @@
     "openOrders": null
   },
   "1011": {
-    "stock": 1962,
+    "stock": 1961,
     "daySales": 32.8,
     "kratnost": 224,
     "palStock": 8.8,
@@ -4684,8 +4695,8 @@
     "weight": 0.25,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 56,
-    "daysStockAll": 35,
+    "daySalesAll": 32.8,
+    "daysStockAll": 60,
     "nameEn": "פילה דג הרינג מלוח מצונן250 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -4693,30 +4704,30 @@
     "pakuot": [
       {
         "date": "2026-11-06",
-        "daysLeft": 94,
-        "cartons": 401
+        "daysLeft": 93,
+        "cartons": 400
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 101,
+        "daysLeft": 100,
         "cartons": 671
       },
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 895
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-11-06",
-        "daysLeft": 94,
+        "daysLeft": 93,
         "cartons": 161
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 3019,
+    "spo": 3018,
     "openOrders": 448,
     "weekSales": [
       44.4,
@@ -4736,7 +4747,7 @@
     ]
   },
   "1012": {
-    "stock": 1687,
+    "stock": 1686,
     "daySales": 38.9,
     "kratnost": 240,
     "palStock": 7,
@@ -4751,8 +4762,8 @@
     "weight": 0.26,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 64.8,
-    "daysStockAll": 26,
+    "daySalesAll": 38.9,
+    "daysStockAll": 43,
     "nameEn": "חתיכות פילה דג הרינג מלוח מצונן עם בצל260 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -4760,35 +4771,35 @@
     "pakuot": [
       {
         "date": "2026-10-24",
-        "daysLeft": 81,
-        "cartons": 8
+        "daysLeft": 80,
+        "cartons": 7
       },
       {
         "date": "2026-11-06",
-        "daysLeft": 94,
+        "daysLeft": 93,
         "cartons": 481
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 101,
+        "daysLeft": 100,
         "cartons": 719
       },
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 479
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-11-06",
-        "daysLeft": 94,
+        "daysLeft": 93,
         "cartons": 208
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 3574,
+    "spo": 3573,
     "openOrders": 960,
     "weekSales": [
       57.8,
@@ -4808,14 +4819,14 @@
     ]
   },
   "1013": {
-    "stock": 1396,
+    "stock": 1394,
     "daySales": 26.9,
     "kratnost": 240,
     "palStock": 5.8,
     "stockZafn": 235,
     "palStockZafn": 1,
     "daySalesZafn": 18,
-    "daysStock": 73,
+    "daysStock": 72,
     "daysStockZafn": 18,
     "stockTrnz": 480,
     "palStockTrnz": 2,
@@ -4823,8 +4834,8 @@
     "weight": 0.26,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 44.4,
-    "daysStockAll": 31,
+    "daySalesAll": 26.9,
+    "daysStockAll": 52,
     "nameEn": "חתיכות פילה דג הרינג מלוח מצונן עם תבלין260 ג",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -4832,40 +4843,40 @@
     "pakuot": [
       {
         "date": "2026-10-24",
-        "daysLeft": 81,
-        "cartons": 115
+        "daysLeft": 80,
+        "cartons": 113
       },
       {
         "date": "2026-11-06",
-        "daysLeft": 94,
+        "daysLeft": 93,
         "cartons": 323
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 101,
+        "daysLeft": 100,
         "cartons": 479
       },
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 479
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-24",
-        "daysLeft": 81,
+        "daysLeft": 80,
         "cartons": 94
       },
       {
         "date": "2026-11-06",
-        "daysLeft": 94,
+        "daysLeft": 93,
         "cartons": 141
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 2589,
+    "spo": 2587,
     "openOrders": 480,
     "weekSales": [
       43.8,
@@ -4885,7 +4896,7 @@
     ]
   },
   "1014": {
-    "stock": 1707,
+    "stock": 1705,
     "daySales": 66.6,
     "kratnost": 240,
     "palStock": 7.1,
@@ -4900,8 +4911,8 @@
     "weight": 0.26,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 109.5,
-    "daysStockAll": 16,
+    "daySalesAll": 66.6,
+    "daysStockAll": 26,
     "nameEn": "חתיכות פילה דג הרינג מלוח מצונן260 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -4909,25 +4920,25 @@
     "pakuot": [
       {
         "date": "2026-11-13",
-        "daysLeft": 101,
-        "cartons": 508
+        "daysLeft": 100,
+        "cartons": 506
       },
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 1199
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-11-13",
-        "daysLeft": 101,
+        "daysLeft": 100,
         "cartons": 341
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 3727,
+    "spo": 3725,
     "openOrders": 720,
     "weekSales": [
       102.2,
@@ -4947,14 +4958,14 @@
     ]
   },
   "1015": {
-    "stock": 1076,
+    "stock": 1074,
     "daySales": 7.6,
     "kratnost": 357,
     "palStock": 3,
     "stockZafn": 191,
     "palStockZafn": 0.5,
     "daySalesZafn": 6,
-    "daysStock": 199,
+    "daysStock": 198,
     "daysStockZafn": 44,
     "stockTrnz": 0,
     "palStockTrnz": null,
@@ -4962,8 +4973,8 @@
     "weight": 0.18,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 13.6,
-    "daysStockAll": 79,
+    "daySalesAll": 7.6,
+    "daysStockAll": 142,
     "nameEn": "איקרה ביצי דג טרוטונית והרינג180 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "IKRA",
@@ -4971,25 +4982,25 @@
     "pakuot": [
       {
         "date": "2026-10-24",
-        "daysLeft": 81,
-        "cartons": 329
+        "daysLeft": 80,
+        "cartons": 327
       },
       {
         "date": "2027-01-30",
-        "daysLeft": 179,
+        "daysLeft": 178,
         "cartons": 747
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-24",
-        "daysLeft": 81,
+        "daysLeft": 80,
         "cartons": 191
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 1267,
+    "spo": 1265,
     "openOrders": null,
     "weekSales": [
       8,
@@ -5038,7 +5049,7 @@
     "openOrders": null
   },
   "1017": {
-    "stock": 1143,
+    "stock": 1141,
     "daySales": 24.9,
     "kratnost": 357,
     "palStock": 3.2,
@@ -5053,8 +5064,8 @@
     "weight": 0.18,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 46,
-    "daysStockAll": 25,
+    "daySalesAll": 24.9,
+    "daysStockAll": 46,
     "nameEn": "איקרה ביצי דג טרוטונית והרינג עם פורל וסלמון180 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "IKRA",
@@ -5062,20 +5073,20 @@
     "pakuot": [
       {
         "date": "2027-01-30",
-        "daysLeft": 179,
-        "cartons": 1143
+        "daysLeft": 178,
+        "cartons": 1141
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-01-30",
-        "daysLeft": 179,
+        "daysLeft": 178,
         "cartons": 459
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 1602,
+    "spo": 1600,
     "openOrders": null,
     "weekSales": [
       32.8,
@@ -5095,23 +5106,23 @@
     ]
   },
   "1018": {
-    "stock": 1471,
+    "stock": 1455,
     "daySales": 15.8,
     "kratnost": 357,
     "palStock": 4.1,
-    "stockZafn": 347,
+    "stockZafn": 362,
     "palStockZafn": 1,
     "daySalesZafn": 15.4,
-    "daysStock": 131,
-    "daysStockZafn": 31,
+    "daysStock": 129,
+    "daysStockZafn": 33,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.18,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 31.2,
-    "daysStockAll": 47,
+    "daySalesAll": 15.8,
+    "daysStockAll": 92,
     "nameEn": "ביצי דג טרוטונית MOIVA עם חסילונים180 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "IKRA",
@@ -5119,25 +5130,30 @@
     "pakuot": [
       {
         "date": "2026-10-24",
-        "daysLeft": 81,
-        "cartons": 44
+        "daysLeft": 80,
+        "cartons": 28
       },
       {
         "date": "2027-01-30",
-        "daysLeft": 179,
+        "daysLeft": 178,
         "cartons": 1427
       }
     ],
     "pakuotZafn": [
       {
+        "date": "2026-10-24",
+        "daysLeft": 80,
+        "cartons": 15
+      },
+      {
         "date": "2027-01-30",
-        "daysLeft": 179,
+        "daysLeft": 178,
         "cartons": 347
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 1818,
+    "spo": 1816,
     "openOrders": null,
     "weekSales": [
       27,
@@ -5157,7 +5173,7 @@
     ]
   },
   "1019": {
-    "stock": 1802,
+    "stock": 1801,
     "daySales": 18.8,
     "kratnost": 336,
     "palStock": 5.4,
@@ -5172,8 +5188,8 @@
     "weight": 0.13,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 35.8,
-    "daysStockAll": 50,
+    "daySalesAll": 18.8,
+    "daysStockAll": 96,
     "nameEn": "ביצי דג זהבנון MINTAY מומלח מצונן130 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "IKRA",
@@ -5181,30 +5197,30 @@
     "pakuot": [
       {
         "date": "2026-08-25",
-        "daysLeft": 21,
-        "cartons": 136
+        "daysLeft": 20,
+        "cartons": 135
       },
       {
         "date": "2026-12-05",
-        "daysLeft": 123,
+        "daysLeft": 122,
         "cartons": 1666
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-08-25",
-        "daysLeft": 21,
+        "daysLeft": 20,
         "cartons": 39
       },
       {
         "date": "2026-12-05",
-        "daysLeft": 123,
+        "daysLeft": 122,
         "cartons": 334
       }
     ],
     "shelfLife": 21,
     "stopSale": true,
-    "spo": 2175,
+    "spo": 2174,
     "openOrders": null,
     "weekSales": [
       34.4,
@@ -5224,7 +5240,7 @@
     ]
   },
   "1020": {
-    "stock": 922,
+    "stock": 920,
     "daySales": 9.9,
     "kratnost": 336,
     "palStock": 2.7,
@@ -5239,8 +5255,8 @@
     "weight": 0.13,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 19.6,
-    "daysStockAll": 47,
+    "daySalesAll": 9.9,
+    "daysStockAll": 93,
     "nameEn": "ביצי דג שיבוט TRESKA מומלח מצונן130 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "IKRA",
@@ -5248,20 +5264,20 @@
     "pakuot": [
       {
         "date": "2026-12-05",
-        "daysLeft": 123,
-        "cartons": 922
+        "daysLeft": 122,
+        "cartons": 920
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-12-05",
-        "daysLeft": 123,
+        "daysLeft": 122,
         "cartons": 243
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 1165,
+    "spo": 1163,
     "openOrders": null,
     "weekSales": [
       17.2,
@@ -5885,24 +5901,24 @@
     "pakuot": [
       {
         "date": "2027-08-01",
-        "daysLeft": 362,
+        "daysLeft": 361,
         "cartons": 28
       },
       {
         "date": "2027-10-16",
-        "daysLeft": 438,
+        "daysLeft": 437,
         "cartons": 1440
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-08-01",
-        "daysLeft": 362,
+        "daysLeft": 361,
         "cartons": 11
       },
       {
         "date": "2027-10-16",
-        "daysLeft": 438,
+        "daysLeft": 437,
         "cartons": 86
       }
     ],
@@ -5952,19 +5968,19 @@
     "pakuot": [
       {
         "date": "2027-08-02",
-        "daysLeft": 363,
+        "daysLeft": 362,
         "cartons": 525
       },
       {
         "date": "2027-10-16",
-        "daysLeft": 438,
+        "daysLeft": 437,
         "cartons": 875
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-08-02",
-        "daysLeft": 363,
+        "daysLeft": 362,
         "cartons": 89
       }
     ],
@@ -5990,7 +6006,7 @@
     ]
   },
   "1047": {
-    "stock": 264,
+    "stock": 262,
     "daySales": 17.3,
     "kratnost": 200,
     "palStock": 1.3,
@@ -6005,8 +6021,8 @@
     "weight": 0.4,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 28.6,
-    "daysStockAll": 9,
+    "daySalesAll": 17.3,
+    "daysStockAll": 15,
     "nameEn": "חתיכות פילה דג הרינג מתובל מלוח בשמן400 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -6014,20 +6030,20 @@
     "pakuot": [
       {
         "date": "2026-11-13",
-        "daysLeft": 101,
-        "cartons": 264
+        "daysLeft": 100,
+        "cartons": 262
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-11-13",
-        "daysLeft": 101,
+        "daysLeft": 100,
         "cartons": 107
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 1172,
+    "spo": 1170,
     "openOrders": 400,
     "weekSales": [
       24.6,
@@ -6047,7 +6063,7 @@
     ]
   },
   "1048": {
-    "stock": 1276,
+    "stock": 1275,
     "daySales": 23,
     "kratnost": 200,
     "palStock": 6.4,
@@ -6062,8 +6078,8 @@
     "weight": 0.4,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 37.4,
-    "daysStockAll": 34,
+    "daySalesAll": 23,
+    "daysStockAll": 56,
     "nameEn": "חתיכות פילה דג הרינג סקנדינבי מלוח בשמן400 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -6071,30 +6087,30 @@
     "pakuot": [
       {
         "date": "2026-10-24",
-        "daysLeft": 81,
-        "cartons": 478
+        "daysLeft": 80,
+        "cartons": 477
       },
       {
         "date": "2026-11-06",
-        "daysLeft": 94,
+        "daysLeft": 93,
         "cartons": 399
       },
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 399
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-24",
-        "daysLeft": 81,
+        "daysLeft": 80,
         "cartons": 132
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 2208,
+    "spo": 2207,
     "openOrders": 400,
     "weekSales": [
       26.6,
@@ -6114,23 +6130,23 @@
     ]
   },
   "1049": {
-    "stock": 982,
+    "stock": 884,
     "daySales": 70,
     "kratnost": 240,
-    "palStock": 4.1,
-    "stockZafn": 285,
-    "palStockZafn": 1.2,
+    "palStock": 3.7,
+    "stockZafn": 381,
+    "palStockZafn": 1.6,
     "daySalesZafn": 36.2,
-    "daysStock": 20,
-    "daysStockZafn": 11,
+    "daysStock": 18,
+    "daysStockZafn": 15,
     "stockTrnz": 720,
     "palStockTrnz": 3,
     "daySalesTrnz": null,
     "weight": 0.26,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 103.9,
-    "daysStockAll": 9,
+    "daySalesAll": 70,
+    "daysStockAll": 13,
     "nameEn": "חתיכות פילה דג הרינג סקנדינבי מלוח מצונן260 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -6138,30 +6154,30 @@
     "pakuot": [
       {
         "date": "2026-11-13",
-        "daysLeft": 101,
-        "cartons": 261
+        "daysLeft": 100,
+        "cartons": 163
       },
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 721
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-11-13",
-        "daysLeft": 101,
-        "cartons": 47
+        "daysLeft": 100,
+        "cartons": 143
       },
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 238
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 2707,
+    "spo": 2705,
     "openOrders": 720,
     "weekSales": [
       101.6,
@@ -6325,7 +6341,7 @@
     "pakuotZafn": [
       {
         "date": "2026-08-16",
-        "daysLeft": 12,
+        "daysLeft": 11,
         "cartons": 1
       }
     ],
@@ -6351,7 +6367,7 @@
     ]
   },
   "1055": {
-    "stock": 285,
+    "stock": 284,
     "daySales": 12.5,
     "kratnost": 168,
     "palStock": 1.7,
@@ -6366,8 +6382,8 @@
     "weight": 0.2,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 20.4,
-    "daysStockAll": 14,
+    "daySalesAll": 12.5,
+    "daysStockAll": 23,
     "nameEn": "סלט אצות ים מוחמצות200 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "KAPUSTA",
@@ -6375,20 +6391,20 @@
     "pakuot": [
       {
         "date": "2026-11-02",
-        "daysLeft": 90,
-        "cartons": 285
+        "daysLeft": 89,
+        "cartons": 284
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-11-02",
-        "daysLeft": 90,
+        "daysLeft": 89,
         "cartons": 143
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 428,
+    "spo": 427,
     "openOrders": null,
     "weekSales": [
       18.2,
@@ -6408,14 +6424,14 @@
     ]
   },
   "1056": {
-    "stock": 437,
+    "stock": 436,
     "daySales": 7.2,
     "kratnost": 168,
     "palStock": 2.6,
     "stockZafn": 53,
     "palStockZafn": 0.3,
     "daySalesZafn": 4.8,
-    "daysStock": 86,
+    "daysStock": 85,
     "daysStockZafn": 15,
     "stockTrnz": 0,
     "palStockTrnz": null,
@@ -6423,8 +6439,8 @@
     "weight": 0.2,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 11.5,
-    "daysStockAll": 38,
+    "daySalesAll": 7.2,
+    "daysStockAll": 61,
     "nameEn": "סלט אצות ים מוחמצות ומתובלות עם גזר200 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "KAPUSTA",
@@ -6432,25 +6448,25 @@
     "pakuot": [
       {
         "date": "2026-10-27",
-        "daysLeft": 84,
-        "cartons": 101
+        "daysLeft": 83,
+        "cartons": 100
       },
       {
         "date": "2026-11-01",
-        "daysLeft": 89,
+        "daysLeft": 88,
         "cartons": 336
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-27",
-        "daysLeft": 84,
+        "daysLeft": 83,
         "cartons": 53
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 490,
+    "spo": 489,
     "openOrders": null,
     "weekSales": [
       10.8,
@@ -6470,14 +6486,14 @@
     ]
   },
   "1057": {
-    "stock": 232,
+    "stock": 231,
     "daySales": 3.8,
     "kratnost": 168,
     "palStock": 1.4,
     "stockZafn": 89,
     "palStockZafn": 0.5,
     "daySalesZafn": 2.7,
-    "daysStock": 85,
+    "daysStock": 84,
     "daysStockZafn": 46,
     "stockTrnz": 0,
     "palStockTrnz": null,
@@ -6485,8 +6501,8 @@
     "weight": 0.2,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 6.1,
-    "daysStockAll": 38,
+    "daySalesAll": 3.8,
+    "daysStockAll": 60,
     "nameEn": "סלט אצות ים מוחמצות עם בצל ופפריקה מתוקה200 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "KAPUSTA",
@@ -6494,20 +6510,20 @@
     "pakuot": [
       {
         "date": "2026-11-03",
-        "daysLeft": 91,
-        "cartons": 232
+        "daysLeft": 90,
+        "cartons": 231
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-11-03",
-        "daysLeft": 91,
+        "daysLeft": 90,
         "cartons": 89
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 321,
+    "spo": 320,
     "openOrders": null,
     "weekSales": [
       5.8,
@@ -6527,15 +6543,15 @@
     ]
   },
   "1060": {
-    "stock": 629,
+    "stock": 424,
     "daySales": 117.7,
     "kratnost": 345,
-    "palStock": 1.8,
-    "stockZafn": 0,
-    "palStockZafn": null,
+    "palStock": 1.2,
+    "stockZafn": 200,
+    "palStockZafn": 0.6,
     "daySalesZafn": 59.3,
-    "daysStock": 7,
-    "daysStockZafn": 0,
+    "daysStock": 5,
+    "daysStockZafn": 5,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -6543,7 +6559,7 @@
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 155.5,
-    "daysStockAll": 4,
+    "daysStockAll": 3,
     "nameEn": "יוגורט יווני200 ג'",
     "fam": "SVALIA שמנת/יוגורט/ דייסה",
     "iksGroup": null,
@@ -6551,11 +6567,17 @@
     "pakuot": [
       {
         "date": "2026-09-16",
-        "daysLeft": 43,
-        "cartons": 629
+        "daysLeft": 42,
+        "cartons": 424
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-09-16",
+        "daysLeft": 42,
+        "cartons": 200
+      }
+    ],
     "shelfLife": 7,
     "stopSale": false,
     "spo": null,
@@ -7000,15 +7022,15 @@
     "openOrders": null
   },
   "1076": {
-    "stock": 790,
+    "stock": 630,
     "daySales": 66.1,
     "kratnost": 160,
-    "palStock": 4.9,
-    "stockZafn": 4,
-    "palStockZafn": 0,
+    "palStock": 3.9,
+    "stockZafn": 164,
+    "palStockZafn": 1,
     "daySalesZafn": 44,
-    "daysStock": 17,
-    "daysStockZafn": 0,
+    "daysStock": 13,
+    "daysStockZafn": 5,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -7016,7 +7038,7 @@
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 110.2,
-    "daysStockAll": 7,
+    "daysStockAll": 6,
     "nameEn": "שמנת 30% SMETANA שומן200 ג'",
     "fam": "SVALIA שמנת/יוגורט/ דייסה",
     "iksGroup": null,
@@ -7024,15 +7046,20 @@
     "pakuot": [
       {
         "date": "2026-09-04",
-        "daysLeft": 31,
-        "cartons": 790
+        "daysLeft": 30,
+        "cartons": 630
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-08-14",
-        "daysLeft": 10,
+        "daysLeft": 9,
         "cartons": 4
+      },
+      {
+        "date": "2026-09-04",
+        "daysLeft": 30,
+        "cartons": 160
       }
     ],
     "shelfLife": 7,
@@ -7057,15 +7084,15 @@
     ]
   },
   "1077": {
-    "stock": 710,
+    "stock": 564,
     "daySales": 56,
     "kratnost": 128,
-    "palStock": 5.5,
-    "stockZafn": 0,
-    "palStockZafn": null,
+    "palStock": 4.4,
+    "stockZafn": 143,
+    "palStockZafn": 1.1,
     "daySalesZafn": 37.4,
-    "daysStock": 18,
-    "daysStockZafn": 0,
+    "daysStock": 14,
+    "daysStockZafn": 5,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -7073,7 +7100,7 @@
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 93.4,
-    "daysStockAll": 8,
+    "daysStockAll": 6,
     "nameEn": "שמנת 15% SMETANA שומן350 ג'",
     "fam": "SVALIA שמנת/יוגורט/ דייסה",
     "iksGroup": null,
@@ -7081,16 +7108,27 @@
     "pakuot": [
       {
         "date": "2026-08-17",
-        "daysLeft": 13,
-        "cartons": 70
+        "daysLeft": 12,
+        "cartons": 52
       },
       {
         "date": "2026-09-07",
-        "daysLeft": 34,
-        "cartons": 640
+        "daysLeft": 33,
+        "cartons": 512
       }
     ],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-08-17",
+        "daysLeft": 12,
+        "cartons": 15
+      },
+      {
+        "date": "2026-09-07",
+        "daysLeft": 33,
+        "cartons": 128
+      }
+    ],
     "shelfLife": 7,
     "stopSale": false,
     "spo": null,
@@ -7175,18 +7213,18 @@
   "1100": {
     "stock": 78,
     "daySales": 0.4849498327759197,
-    "daySales365": 2.6820135746606337,
+    "daySales365": 2.6828629949931724,
     "pakuot": [
       {
         "date": "2027-08-21T00:00:00.000Z",
-        "daysLeft": 382,
+        "daysLeft": 381,
         "cartons": 78
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-08-21T00:00:00.000Z",
-        "daysLeft": 382,
+        "daysLeft": 381,
         "cartons": 118
       }
     ],
@@ -7197,7 +7235,7 @@
     "pakuotZafn": [
       {
         "date": "2027-08-21T00:00:00.000Z",
-        "daysLeft": 382,
+        "daysLeft": 381,
         "cartons": 40
       }
     ],
@@ -7225,18 +7263,18 @@
   "1101": {
     "stock": 89,
     "daySales": 0.6843501326259946,
-    "daySales365": 2.8527123165851487,
+    "daySales365": 2.8552101967799643,
     "pakuot": [
       {
         "date": "2027-08-22T00:00:00.000Z",
-        "daysLeft": 383,
+        "daysLeft": 382,
         "cartons": 89
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-08-22T00:00:00.000Z",
-        "daysLeft": 383,
+        "daysLeft": 382,
         "cartons": 117
       }
     ],
@@ -7247,7 +7285,7 @@
     "pakuotZafn": [
       {
         "date": "2027-08-22T00:00:00.000Z",
-        "daysLeft": 383,
+        "daysLeft": 382,
         "cartons": 28
       }
     ],
@@ -7279,14 +7317,14 @@
     "pakuot": [
       {
         "date": "2027-08-20T00:00:00.000Z",
-        "daysLeft": 381,
+        "daysLeft": 380,
         "cartons": 94
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-08-20T00:00:00.000Z",
-        "daysLeft": 381,
+        "daysLeft": 380,
         "cartons": 130
       }
     ],
@@ -7297,7 +7335,7 @@
     "pakuotZafn": [
       {
         "date": "2027-08-20T00:00:00.000Z",
-        "daysLeft": 381,
+        "daysLeft": 380,
         "cartons": 36
       }
     ],
@@ -7355,18 +7393,18 @@
   "1104": {
     "stock": 128,
     "daySales": 0.5936724565756824,
-    "daySales365": 2.3359158826784725,
+    "daySales365": 2.3323578595317724,
     "pakuot": [
       {
         "date": "2027-08-17T00:00:00.000Z",
-        "daysLeft": 378,
+        "daysLeft": 377,
         "cartons": 128
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-08-17T00:00:00.000Z",
-        "daysLeft": 378,
+        "daysLeft": 377,
         "cartons": 153
       }
     ],
@@ -7377,7 +7415,7 @@
     "pakuotZafn": [
       {
         "date": "2027-08-17T00:00:00.000Z",
-        "daysLeft": 378,
+        "daysLeft": 377,
         "cartons": 25
       }
     ],
@@ -7409,14 +7447,14 @@
     "pakuot": [
       {
         "date": "2027-08-16T00:00:00.000Z",
-        "daysLeft": 377,
+        "daysLeft": 376,
         "cartons": 65
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-08-16T00:00:00.000Z",
-        "daysLeft": 377,
+        "daysLeft": 376,
         "cartons": 97
       }
     ],
@@ -7427,7 +7465,7 @@
     "pakuotZafn": [
       {
         "date": "2027-08-16T00:00:00.000Z",
-        "daysLeft": 377,
+        "daysLeft": 376,
         "cartons": 32
       }
     ],
@@ -7453,7 +7491,7 @@
     ]
   },
   "1106": {
-    "stock": 4939,
+    "stock": 4937,
     "daySales": 89.7,
     "kratnost": 276,
     "palStock": 17.9,
@@ -7468,8 +7506,8 @@
     "weight": 0.23,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 139.2,
-    "daysStockAll": 35,
+    "daySalesAll": 89.7,
+    "daysStockAll": 55,
     "nameEn": "בסגנון קוויאר אדום כדורי דג פורל230 ג'",
     "fam": "NORD PORT דגים",
     "iksGroup": "IKRA",
@@ -7477,25 +7515,25 @@
     "pakuot": [
       {
         "date": "2027-03-03",
-        "daysLeft": 211,
-        "cartons": 3137
+        "daysLeft": 210,
+        "cartons": 3135
       },
       {
         "date": "2027-03-31",
-        "daysLeft": 239,
+        "daysLeft": 238,
         "cartons": 1802
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-03",
-        "daysLeft": 211,
+        "daysLeft": 210,
         "cartons": 470
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 5409,
+    "spo": 5407,
     "openOrders": null,
     "weekSales": [
       120.3,
@@ -7530,8 +7568,8 @@
     "weight": 0.23,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 43.8,
-    "daysStockAll": 29,
+    "daySalesAll": 27.5,
+    "daysStockAll": 46,
     "nameEn": "בסגנון קוויאר שחור כדורי דג פורל230 ג'",
     "fam": "NORD PORT דגים",
     "iksGroup": "IKRA",
@@ -7539,19 +7577,19 @@
     "pakuot": [
       {
         "date": "2027-03-03",
-        "daysLeft": 211,
+        "daysLeft": 210,
         "cartons": 727
       },
       {
         "date": "2027-03-31",
-        "daysLeft": 239,
+        "daysLeft": 238,
         "cartons": 552
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-03",
-        "daysLeft": 211,
+        "daysLeft": 210,
         "cartons": 394
       }
     ],
@@ -7592,8 +7630,8 @@
     "weight": 0.15,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 32.3,
-    "daysStockAll": 18,
+    "daySalesAll": 19.5,
+    "daysStockAll": 30,
     "nameEn": "סלט אצות ים-צ'וקה150 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "KAPUSTA",
@@ -7601,24 +7639,24 @@
     "pakuot": [
       {
         "date": "2026-09-11",
-        "daysLeft": 38,
+        "daysLeft": 37,
         "cartons": 71
       },
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 521
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-09-11",
-        "daysLeft": 38,
+        "daysLeft": 37,
         "cartons": 34
       },
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 280
       }
     ],
@@ -7753,14 +7791,14 @@
     "pakuot": [
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 82
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 100
       }
     ],
@@ -7771,7 +7809,7 @@
     "pakuotZafn": [
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 18
       }
     ],
@@ -7803,24 +7841,24 @@
     "pakuot": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 186,
+        "daysLeft": 185,
         "cartons": 76
       },
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 240
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 186,
+        "daysLeft": 185,
         "cartons": 96
       },
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 240
       }
     ],
@@ -7831,7 +7869,7 @@
     "pakuotZafn": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 186,
+        "daysLeft": 185,
         "cartons": 20
       }
     ],
@@ -7863,24 +7901,24 @@
     "pakuot": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 186,
+        "daysLeft": 185,
         "cartons": 79
       },
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 200
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 186,
+        "daysLeft": 185,
         "cartons": 111
       },
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 200
       }
     ],
@@ -7891,7 +7929,7 @@
     "pakuotZafn": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 186,
+        "daysLeft": 185,
         "cartons": 32
       }
     ],
@@ -7923,24 +7961,24 @@
     "pakuot": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 186,
+        "daysLeft": 185,
         "cartons": 48
       },
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 230
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 186,
+        "daysLeft": 185,
         "cartons": 73
       },
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 230
       }
     ],
@@ -7951,7 +7989,7 @@
     "pakuotZafn": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 186,
+        "daysLeft": 185,
         "cartons": 25
       }
     ],
@@ -7983,14 +8021,14 @@
     "pakuot": [
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 75
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 96
       }
     ],
@@ -8001,7 +8039,7 @@
     "pakuotZafn": [
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 21
       }
     ],
@@ -8033,24 +8071,24 @@
     "pakuot": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 186,
+        "daysLeft": 185,
         "cartons": 104
       },
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 180
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 186,
+        "daysLeft": 185,
         "cartons": 151
       },
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 180
       }
     ],
@@ -8061,7 +8099,7 @@
     "pakuotZafn": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 186,
+        "daysLeft": 185,
         "cartons": 47
       }
     ],
@@ -8093,24 +8131,24 @@
     "pakuot": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 186,
+        "daysLeft": 185,
         "cartons": 36
       },
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 110
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 186,
+        "daysLeft": 185,
         "cartons": 58
       },
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 110
       }
     ],
@@ -8121,7 +8159,7 @@
     "pakuotZafn": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 186,
+        "daysLeft": 185,
         "cartons": 22
       }
     ],
@@ -8153,24 +8191,24 @@
     "pakuot": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 186,
+        "daysLeft": 185,
         "cartons": 68
       },
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 150
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 186,
+        "daysLeft": 185,
         "cartons": 89
       },
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 252,
+        "daysLeft": 251,
         "cartons": 150
       }
     ],
@@ -8181,7 +8219,7 @@
     "pakuotZafn": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 186,
+        "daysLeft": 185,
         "cartons": 21
       }
     ],
@@ -8207,7 +8245,7 @@
     ]
   },
   "1120": {
-    "stock": 740,
+    "stock": 739,
     "daySales": 36.1,
     "kratnost": 224,
     "palStock": 3.3,
@@ -8222,8 +8260,8 @@
     "weight": 0.25,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 54.3,
-    "daysStockAll": 14,
+    "daySalesAll": 36.1,
+    "daysStockAll": 20,
     "nameEn": "פילה דג הרינג סקנדינבי מלוח מצונן250 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -8231,40 +8269,40 @@
     "pakuot": [
       {
         "date": "2026-11-06",
-        "daysLeft": 94,
-        "cartons": 70
+        "daysLeft": 93,
+        "cartons": 69
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 101,
+        "daysLeft": 100,
         "cartons": 447
       },
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 223
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-11-06",
-        "daysLeft": 94,
+        "daysLeft": 93,
         "cartons": 45
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 101,
+        "daysLeft": 100,
         "cartons": 224
       },
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 224
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 2353,
+    "spo": 2352,
     "openOrders": 672,
     "weekSales": [
       43.8,
@@ -8299,8 +8337,8 @@
     "weight": 0.18,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 25.8,
-    "daysStockAll": 44,
+    "daySalesAll": 16.9,
+    "daysStockAll": 67,
     "nameEn": "סלט איקרה לבנה 180 גרםNP ",
     "fam": "NORD PORT דגים",
     "iksGroup": "IKRA",
@@ -8308,19 +8346,19 @@
     "pakuot": [
       {
         "date": "2027-01-02",
-        "daysLeft": 151,
+        "daysLeft": 150,
         "cartons": 387
       },
       {
         "date": "2027-01-30",
-        "daysLeft": 179,
+        "daysLeft": 178,
         "cartons": 751
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-01-02",
-        "daysLeft": 151,
+        "daysLeft": 150,
         "cartons": 218
       }
     ],
@@ -8346,7 +8384,7 @@
     ]
   },
   "1123": {
-    "stock": 2209,
+    "stock": 2208,
     "daySales": 40.3,
     "kratnost": 357,
     "palStock": 6.2,
@@ -8361,8 +8399,8 @@
     "weight": 0.18,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 61.1,
-    "daysStockAll": 36,
+    "daySalesAll": 40.3,
+    "daysStockAll": 55,
     "nameEn": "סלט איקרה ורודה 180 גרםNP ",
     "fam": "NORD PORT דגים",
     "iksGroup": "IKRA",
@@ -8370,25 +8408,25 @@
     "pakuot": [
       {
         "date": "2027-01-02",
-        "daysLeft": 151,
-        "cartons": 728
+        "daysLeft": 150,
+        "cartons": 727
       },
       {
         "date": "2027-01-30",
-        "daysLeft": 179,
+        "daysLeft": 178,
         "cartons": 1481
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-01-02",
-        "daysLeft": 151,
+        "daysLeft": 150,
         "cartons": 283
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 2492,
+    "spo": 2491,
     "openOrders": null,
     "weekSales": [
       52.4,
@@ -8423,8 +8461,8 @@
     "weight": 0.18,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 37.7,
-    "daysStockAll": 25,
+    "daySalesAll": 22.6,
+    "daysStockAll": 41,
     "nameEn": "סלט איקרה עם פורל וסלמון מעושנים 180 גרםNP ",
     "fam": "NORD PORT דגים",
     "iksGroup": "IKRA",
@@ -8432,14 +8470,14 @@
     "pakuot": [
       {
         "date": "2027-01-30",
-        "daysLeft": 179,
+        "daysLeft": 178,
         "cartons": 928
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-01-30",
-        "daysLeft": 179,
+        "daysLeft": 178,
         "cartons": 260
       }
     ],
@@ -8509,7 +8547,7 @@
     "weight": 0.9,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 3.3,
+    "daySalesAll": 2.6,
     "daysStockAll": null,
     "nameEn": "סלט איקרה ורודה 900 גרםNP ",
     "fam": "NORD PORT דגים",
@@ -8554,8 +8592,8 @@
     "weight": 0.9,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 2.7,
-    "daysStockAll": 13,
+    "daySalesAll": 1.8,
+    "daysStockAll": 21,
     "nameEn": "סלט איקרה עם פורל וסלמון מעושנים 900 גרםNP ",
     "fam": "NORD PORT דגים",
     "iksGroup": "IKRA",
@@ -8563,14 +8601,14 @@
     "pakuot": [
       {
         "date": "2027-01-30",
-        "daysLeft": 179,
+        "daysLeft": 178,
         "cartons": 37
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-01-30",
-        "daysLeft": 179,
+        "daysLeft": 178,
         "cartons": 20
       }
     ],
@@ -8625,10 +8663,10 @@
     "openOrders": null
   },
   "1157": {
-    "stock": 1626,
+    "stock": 1624,
     "daySales": 15,
     "kratnost": 273,
-    "palStock": 6,
+    "palStock": 5.9,
     "stockZafn": 526,
     "palStockZafn": 1.9,
     "daySalesZafn": 8.4,
@@ -8640,8 +8678,8 @@
     "weight": 0.4,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 23.4,
-    "daysStockAll": 70,
+    "daySalesAll": 15,
+    "daysStockAll": 108,
     "nameEn": "פילה הרינג בשמן400 ג'",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -8649,50 +8687,50 @@
     "pakuot": [
       {
         "date": "2026-08-28",
-        "daysLeft": 24,
-        "cartons": 134
+        "daysLeft": 23,
+        "cartons": 132
       },
       {
         "date": "2026-09-11",
-        "daysLeft": 38,
+        "daysLeft": 37,
         "cartons": 268
       },
       {
         "date": "2026-10-24",
-        "daysLeft": 81,
+        "daysLeft": 80,
         "cartons": 246
       },
       {
         "date": "2026-11-06",
-        "daysLeft": 94,
+        "daysLeft": 93,
         "cartons": 489
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 101,
+        "daysLeft": 100,
         "cartons": 489
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-08-28",
-        "daysLeft": 24,
+        "daysLeft": 23,
         "cartons": 73
       },
       {
         "date": "2026-09-11",
-        "daysLeft": 38,
+        "daysLeft": 37,
         "cartons": 210
       },
       {
         "date": "2026-10-24",
-        "daysLeft": 81,
+        "daysLeft": 80,
         "cartons": 243
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 2151,
+    "spo": 2149,
     "openOrders": null,
     "weekSales": [
       18.6,
@@ -8712,10 +8750,10 @@
     ]
   },
   "1163": {
-    "stock": 613,
+    "stock": 611,
     "daySales": 47,
     "kratnost": 350,
-    "palStock": 1.8,
+    "palStock": 1.7,
     "stockZafn": 266,
     "palStockZafn": 0.8,
     "daySalesZafn": 28.7,
@@ -8727,8 +8765,8 @@
     "weight": 0.15,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 75.8,
-    "daysStockAll": 8,
+    "daySalesAll": 47,
+    "daysStockAll": 13,
     "nameEn": "חתיכות פילה דג הרינג מומלח בשמן מצונן150 ג'",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -8736,20 +8774,20 @@
     "pakuot": [
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
-        "cartons": 613
+        "daysLeft": 121,
+        "cartons": 611
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 266
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 2629,
+    "spo": 2627,
     "openOrders": 1050,
     "weekSales": [
       70.8,
@@ -8769,7 +8807,7 @@
     ]
   },
   "1164": {
-    "stock": 482,
+    "stock": 481,
     "daySales": 25.9,
     "kratnost": 350,
     "palStock": 1.4,
@@ -8784,8 +8822,8 @@
     "weight": 0.15,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 39.6,
-    "daysStockAll": 12,
+    "daySalesAll": 25.9,
+    "daysStockAll": 19,
     "nameEn": "חתיכות פילה דג הרינג מומלח עם בצל בשמן מצונן150 ג'",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -8793,30 +8831,30 @@
     "pakuot": [
       {
         "date": "2026-10-24",
-        "daysLeft": 81,
-        "cartons": 28
+        "daysLeft": 80,
+        "cartons": 27
       },
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 454
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-24",
-        "daysLeft": 81,
+        "daysLeft": 80,
         "cartons": 10
       },
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 245
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 2138,
+    "spo": 2137,
     "openOrders": 700,
     "weekSales": [
       35.8,
@@ -8836,7 +8874,7 @@
     ]
   },
   "1165": {
-    "stock": 2898,
+    "stock": 2895,
     "daySales": 43.3,
     "kratnost": 273,
     "palStock": 10.6,
@@ -8851,8 +8889,8 @@
     "weight": 0.4,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 69.3,
-    "daysStockAll": 42,
+    "daySalesAll": 43.3,
+    "daysStockAll": 67,
     "nameEn": "פילה דג הרינג מומלח בשמן מצונן400 ג'",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -8860,30 +8898,30 @@
     "pakuot": [
       {
         "date": "2026-10-24",
-        "daysLeft": 81,
-        "cartons": 1430
+        "daysLeft": 80,
+        "cartons": 1427
       },
       {
         "date": "2026-11-06",
-        "daysLeft": 94,
+        "daysLeft": 93,
         "cartons": 734
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 101,
+        "daysLeft": 100,
         "cartons": 734
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-24",
-        "daysLeft": 81,
+        "daysLeft": 80,
         "cartons": 225
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 4102,
+    "spo": 4099,
     "openOrders": 490,
     "weekSales": [
       53.8,
@@ -8903,23 +8941,23 @@
     ]
   },
   "1166": {
-    "stock": 3861,
+    "stock": 3756,
     "daySales": 28.3,
     "kratnost": 200,
-    "palStock": 19.3,
-    "stockZafn": 288,
-    "palStockZafn": 1.4,
+    "palStock": 18.8,
+    "stockZafn": 388,
+    "palStockZafn": 1.9,
     "daySalesZafn": 20.5,
-    "daysStock": 191,
-    "daysStockZafn": 20,
+    "daysStock": 186,
+    "daysStockZafn": 26,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.5,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 48.8,
-    "daysStockAll": 79,
+    "daySalesAll": 28.3,
+    "daysStockAll": 133,
     "nameEn": "חתיכות פילה דג הרינג מומלח בשמן מצונן500 ג'",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -8927,45 +8965,45 @@
     "pakuot": [
       {
         "date": "2026-08-28",
-        "daysLeft": 24,
-        "cartons": 666
+        "daysLeft": 23,
+        "cartons": 561
       },
       {
         "date": "2026-09-11",
-        "daysLeft": 38,
+        "daysLeft": 37,
         "cartons": 399
       },
       {
         "date": "2026-10-25",
-        "daysLeft": 82,
+        "daysLeft": 81,
         "cartons": 1598
       },
       {
         "date": "2026-11-06",
-        "daysLeft": 94,
+        "daysLeft": 93,
         "cartons": 599
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 101,
+        "daysLeft": 100,
         "cartons": 599
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-08-28",
-        "daysLeft": 24,
-        "cartons": 88
+        "daysLeft": 23,
+        "cartons": 188
       },
       {
         "date": "2026-09-11",
-        "daysLeft": 38,
+        "daysLeft": 37,
         "cartons": 200
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 4547,
+    "spo": 4542,
     "openOrders": 400,
     "weekSales": [
       44.6,
@@ -9000,8 +9038,8 @@
     "weight": 0.5,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 37.9,
-    "daysStockAll": 91,
+    "daySalesAll": 24.3,
+    "daysStockAll": 141,
     "nameEn": "חתיכות פילה דג הרינג סקנדינבי מומלח בשמן מצונן500 ג",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -9009,49 +9047,49 @@
     "pakuot": [
       {
         "date": "2026-08-14",
-        "daysLeft": 10,
+        "daysLeft": 9,
         "cartons": 39
       },
       {
         "date": "2026-08-28",
-        "daysLeft": 24,
+        "daysLeft": 23,
         "cartons": 791
       },
       {
         "date": "2026-09-11",
-        "daysLeft": 38,
+        "daysLeft": 37,
         "cartons": 279
       },
       {
         "date": "2026-10-24",
-        "daysLeft": 81,
+        "daysLeft": 80,
         "cartons": 1128
       },
       {
         "date": "2026-11-06",
-        "daysLeft": 94,
+        "daysLeft": 93,
         "cartons": 599
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 101,
+        "daysLeft": 100,
         "cartons": 599
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-08-14",
-        "daysLeft": 10,
+        "daysLeft": 9,
         "cartons": 28
       },
       {
         "date": "2026-08-28",
-        "daysLeft": 24,
+        "daysLeft": 23,
         "cartons": 179
       },
       {
         "date": "2026-09-11",
-        "daysLeft": 38,
+        "daysLeft": 37,
         "cartons": 120
       }
     ],
@@ -9077,7 +9115,7 @@
     ]
   },
   "1168": {
-    "stock": 1799,
+    "stock": 1794,
     "daySales": 20.5,
     "kratnost": 200,
     "palStock": 9,
@@ -9092,8 +9130,8 @@
     "weight": 0.5,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 30.9,
-    "daysStockAll": 58,
+    "daySalesAll": 20.5,
+    "daysStockAll": 88,
     "nameEn": "חתיכות פילה דג הרינג מומלח בשמן מצונן עם תבלין500 ג",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -9101,40 +9139,40 @@
     "pakuot": [
       {
         "date": "2026-09-11",
-        "daysLeft": 38,
-        "cartons": 367
+        "daysLeft": 37,
+        "cartons": 362
       },
       {
         "date": "2026-10-24",
-        "daysLeft": 81,
+        "daysLeft": 80,
         "cartons": 234
       },
       {
         "date": "2026-11-06",
-        "daysLeft": 94,
+        "daysLeft": 93,
         "cartons": 599
       },
       {
         "date": "2026-11-13",
-        "daysLeft": 101,
+        "daysLeft": 100,
         "cartons": 599
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-09-11",
-        "daysLeft": 38,
+        "daysLeft": 37,
         "cartons": 185
       },
       {
         "date": "2026-10-24",
-        "daysLeft": 81,
+        "daysLeft": 80,
         "cartons": 100
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 2483,
+    "spo": 2478,
     "openOrders": 400,
     "weekSales": [
       21.8,
@@ -9198,7 +9236,7 @@
     "weight": 0.29,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 16.7,
+    "daySalesAll": 12.8,
     "daysStockAll": null,
     "nameEn": "חתיכות פילה דג הרינג מומלח בשמן מצונן290 ג'",
     "fam": "NORD PORT דגים",
@@ -9243,8 +9281,8 @@
     "weight": 0.29,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 17.2,
-    "daysStockAll": 3,
+    "daySalesAll": 12.7,
+    "daysStockAll": 5,
     "nameEn": "חתיכות פילה דג הרינג מומלח בשמן מצונן עם בצל290 ג'",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -9252,14 +9290,14 @@
     "pakuot": [
       {
         "date": "2026-09-11",
-        "daysLeft": 38,
+        "daysLeft": 37,
         "cartons": 60
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-09-11",
-        "daysLeft": 38,
+        "daysLeft": 37,
         "cartons": 52
       }
     ],
@@ -9343,14 +9381,14 @@
     "openOrders": null
   },
   "1174": {
-    "stock": 1658,
-    "daySales": 31.5,
+    "stock": 1656,
+    "daySales": 32.5,
     "kratnost": 300,
     "palStock": 5.5,
     "stockZafn": 212,
     "palStockZafn": 0.7,
     "daySalesZafn": 19.5,
-    "daysStock": 74,
+    "daysStock": 71,
     "daysStockZafn": 15,
     "stockTrnz": 600,
     "palStockTrnz": 2,
@@ -9358,8 +9396,8 @@
     "weight": 0.3,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 50.5,
-    "daysStockAll": 33,
+    "daySalesAll": 32.5,
+    "daysStockAll": 51,
     "nameEn": "פילה דג הרינג מומלח XXL בשמן מצונן300 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -9367,30 +9405,30 @@
     "pakuot": [
       {
         "date": "2026-10-24",
-        "daysLeft": 81,
-        "cartons": 470
+        "daysLeft": 80,
+        "cartons": 468
       },
       {
         "date": "2026-11-06",
-        "daysLeft": 94,
+        "daysLeft": 93,
         "cartons": 589
       },
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 599
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-24",
-        "daysLeft": 81,
+        "daysLeft": 80,
         "cartons": 212
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 2469,
+    "spo": 2467,
     "openOrders": null,
     "weekSales": [
       41,
@@ -9425,8 +9463,8 @@
     "weight": 1,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 23.6,
-    "daysStockAll": 27,
+    "daySalesAll": 14.5,
+    "daysStockAll": 43,
     "nameEn": "פילה דג הרינג סקנדינבי מומלח בשמן מצונן1000 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
@@ -9434,19 +9472,19 @@
     "pakuot": [
       {
         "date": "2026-11-13",
-        "daysLeft": 101,
+        "daysLeft": 100,
         "cartons": 186
       },
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 445
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-11-13",
-        "daysLeft": 101,
+        "daysLeft": 100,
         "cartons": 74
       }
     ],
@@ -9530,7 +9568,7 @@
     "openOrders": null
   },
   "1180": {
-    "stock": 231,
+    "stock": 229,
     "daySales": 8.6,
     "kratnost": 140,
     "palStock": 1.6,
@@ -9554,30 +9592,30 @@
     "pakuot": [
       {
         "date": "2027-03-29",
-        "daysLeft": 237,
-        "cartons": 91
+        "daysLeft": 236,
+        "cartons": 89
       },
       {
         "date": "2027-05-18",
-        "daysLeft": 287,
+        "daysLeft": 286,
         "cartons": 140
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-29",
-        "daysLeft": 237,
+        "daysLeft": 236,
         "cartons": 86
       },
       {
         "date": "2027-05-18",
-        "daysLeft": 287,
+        "daysLeft": 286,
         "cartons": 140
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 877,
+    "spo": 875,
     "openOrders": 420,
     "weekSales": [
       15.2,
@@ -9626,7 +9664,7 @@
     "openOrders": null
   },
   "1182": {
-    "stock": 206,
+    "stock": 205,
     "daySales": 13.9,
     "kratnost": 140,
     "palStock": 1.5,
@@ -9650,30 +9688,30 @@
     "pakuot": [
       {
         "date": "2027-04-28",
-        "daysLeft": 267,
-        "cartons": 26
+        "daysLeft": 266,
+        "cartons": 25
       },
       {
         "date": "2027-05-18",
-        "daysLeft": 287,
+        "daysLeft": 286,
         "cartons": 180
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-04-28",
-        "daysLeft": 267,
+        "daysLeft": 266,
         "cartons": 24
       },
       {
         "date": "2027-05-18",
-        "daysLeft": 287,
+        "daysLeft": 286,
         "cartons": 100
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 890,
+    "spo": 889,
     "openOrders": 560,
     "weekSales": [
       21.1,
@@ -9717,19 +9755,19 @@
     "pakuot": [
       {
         "date": "2027-03-29",
-        "daysLeft": 237,
+        "daysLeft": 236,
         "cartons": 303
       },
       {
         "date": "2027-04-28",
-        "daysLeft": 267,
+        "daysLeft": 266,
         "cartons": 280
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-29",
-        "daysLeft": 237,
+        "daysLeft": 236,
         "cartons": 177
       }
     ],
@@ -9779,29 +9817,29 @@
     "pakuot": [
       {
         "date": "2027-03-01",
-        "daysLeft": 209,
+        "daysLeft": 208,
         "cartons": 15
       },
       {
         "date": "2027-03-29",
-        "daysLeft": 237,
+        "daysLeft": 236,
         "cartons": 420
       },
       {
         "date": "2027-04-28",
-        "daysLeft": 267,
+        "daysLeft": 266,
         "cartons": 280
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-01",
-        "daysLeft": 209,
+        "daysLeft": 208,
         "cartons": 9
       },
       {
         "date": "2027-03-29",
-        "daysLeft": 237,
+        "daysLeft": 236,
         "cartons": 140
       }
     ],
@@ -9851,24 +9889,24 @@
     "pakuot": [
       {
         "date": "2027-03-29",
-        "daysLeft": 237,
+        "daysLeft": 236,
         "cartons": 23
       },
       {
         "date": "2027-05-18",
-        "daysLeft": 287,
+        "daysLeft": 286,
         "cartons": 420
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-29",
-        "daysLeft": 237,
+        "daysLeft": 236,
         "cartons": 28
       },
       {
         "date": "2027-05-18",
-        "daysLeft": 287,
+        "daysLeft": 286,
         "cartons": 140
       }
     ],
@@ -9918,29 +9956,29 @@
     "pakuot": [
       {
         "date": "2027-03-01",
-        "daysLeft": 209,
+        "daysLeft": 208,
         "cartons": 61
       },
       {
         "date": "2027-03-29",
-        "daysLeft": 237,
+        "daysLeft": 236,
         "cartons": 476
       },
       {
         "date": "2027-04-28",
-        "daysLeft": 267,
+        "daysLeft": 266,
         "cartons": 280
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-01",
-        "daysLeft": 209,
+        "daysLeft": 208,
         "cartons": 21
       },
       {
         "date": "2027-03-29",
-        "daysLeft": 237,
+        "daysLeft": 236,
         "cartons": 140
       }
     ],
@@ -9990,29 +10028,29 @@
     "pakuot": [
       {
         "date": "2027-03-29",
-        "daysLeft": 237,
+        "daysLeft": 236,
         "cartons": 238
       },
       {
         "date": "2027-04-28",
-        "daysLeft": 267,
+        "daysLeft": 266,
         "cartons": 280
       },
       {
         "date": "2027-05-18",
-        "daysLeft": 287,
+        "daysLeft": 286,
         "cartons": 280
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-29",
-        "daysLeft": 237,
+        "daysLeft": 236,
         "cartons": 90
       },
       {
         "date": "2027-04-28",
-        "daysLeft": 267,
+        "daysLeft": 266,
         "cartons": 140
       }
     ],
@@ -10062,24 +10100,24 @@
     "pakuot": [
       {
         "date": "2027-04-28",
-        "daysLeft": 267,
+        "daysLeft": 266,
         "cartons": 62
       },
       {
         "date": "2027-05-18",
-        "daysLeft": 287,
+        "daysLeft": 286,
         "cartons": 460
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-04-28",
-        "daysLeft": 267,
+        "daysLeft": 266,
         "cartons": 61
       },
       {
         "date": "2027-05-18",
-        "daysLeft": 287,
+        "daysLeft": 286,
         "cartons": 140
       }
     ],
@@ -10129,24 +10167,24 @@
     "pakuot": [
       {
         "date": "2027-03-29",
-        "daysLeft": 237,
+        "daysLeft": 236,
         "cartons": 248
       },
       {
         "date": "2027-04-28",
-        "daysLeft": 267,
+        "daysLeft": 266,
         "cartons": 180
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-29",
-        "daysLeft": 237,
+        "daysLeft": 236,
         "cartons": 83
       },
       {
         "date": "2027-04-28",
-        "daysLeft": 267,
+        "daysLeft": 266,
         "cartons": 100
       }
     ],
@@ -10196,24 +10234,24 @@
     "pakuot": [
       {
         "date": "2026-12-07",
-        "daysLeft": 125,
+        "daysLeft": 124,
         "cartons": 221
       },
       {
         "date": "2027-05-18",
-        "daysLeft": 287,
+        "daysLeft": 286,
         "cartons": 180
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-12-07",
-        "daysLeft": 125,
+        "daysLeft": 124,
         "cartons": 124
       },
       {
         "date": "2027-05-18",
-        "daysLeft": 287,
+        "daysLeft": 286,
         "cartons": 100
       }
     ],
@@ -10263,34 +10301,34 @@
     "pakuot": [
       {
         "date": "2027-03-01",
-        "daysLeft": 209,
+        "daysLeft": 208,
         "cartons": 20
       },
       {
         "date": "2027-03-29",
-        "daysLeft": 237,
+        "daysLeft": 236,
         "cartons": 216
       },
       {
         "date": "2027-04-28",
-        "daysLeft": 267,
+        "daysLeft": 266,
         "cartons": 432
       },
       {
         "date": "2027-05-18",
-        "daysLeft": 287,
+        "daysLeft": 286,
         "cartons": 432
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-01",
-        "daysLeft": 209,
+        "daysLeft": 208,
         "cartons": 25
       },
       {
         "date": "2027-03-29",
-        "daysLeft": 237,
+        "daysLeft": 236,
         "cartons": 216
       }
     ],
@@ -10316,7 +10354,7 @@
     ]
   },
   "1196": {
-    "stock": 746,
+    "stock": 745,
     "daySales": 12.2,
     "kratnost": 228,
     "palStock": 3.3,
@@ -10340,25 +10378,25 @@
     "pakuot": [
       {
         "date": "2027-03-29",
-        "daysLeft": 237,
-        "cartons": 314
+        "daysLeft": 236,
+        "cartons": 313
       },
       {
         "date": "2027-04-28",
-        "daysLeft": 267,
+        "daysLeft": 266,
         "cartons": 432
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-29",
-        "daysLeft": 237,
+        "daysLeft": 236,
         "cartons": 203
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 1596,
+    "spo": 1595,
     "openOrders": 648,
     "weekSales": [
       15,
@@ -10402,19 +10440,19 @@
     "pakuot": [
       {
         "date": "2027-03-29",
-        "daysLeft": 237,
+        "daysLeft": 236,
         "cartons": 308
       },
       {
         "date": "2027-04-28",
-        "daysLeft": 267,
+        "daysLeft": 266,
         "cartons": 432
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-03-29",
-        "daysLeft": 237,
+        "daysLeft": 236,
         "cartons": 132
       }
     ],
@@ -10464,24 +10502,24 @@
     "pakuot": [
       {
         "date": "2027-04-28",
-        "daysLeft": 267,
+        "daysLeft": 266,
         "cartons": 121
       },
       {
         "date": "2027-05-18",
-        "daysLeft": 287,
+        "daysLeft": 286,
         "cartons": 280
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-04-28",
-        "daysLeft": 267,
+        "daysLeft": 266,
         "cartons": 24
       },
       {
         "date": "2027-05-18",
-        "daysLeft": 287,
+        "daysLeft": 286,
         "cartons": 140
       }
     ],
@@ -10705,12 +10743,12 @@
     "pakuot": [
       {
         "date": "2026-12-07",
-        "daysLeft": 125,
+        "daysLeft": 124,
         "cartons": 46
       },
       {
         "date": "2027-03-01",
-        "daysLeft": 209,
+        "daysLeft": 208,
         "cartons": 126
       }
     ],
@@ -11103,8 +11141,8 @@
     "weight": 0.5,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 68,
-    "daysStockAll": 8,
+    "daySalesAll": 42.5,
+    "daysStockAll": 12,
     "nameEn": "נתחי פילה הרינג עם בצל וזיתים מצונן\" פרובינציאל500  \"ג6)NP)",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -11112,14 +11150,14 @@
     "pakuot": [
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 524
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 135
       }
     ],
@@ -11145,7 +11183,7 @@
     ]
   },
   "400002": {
-    "stock": 374,
+    "stock": 373,
     "daySales": 13.5,
     "kratnost": 200,
     "palStock": 1.9,
@@ -11160,8 +11198,8 @@
     "weight": 0.52,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 22.1,
-    "daysStockAll": 17,
+    "daySalesAll": 13.5,
+    "daysStockAll": 28,
     "nameEn": "נתחי פילה הרינג כבוש עם בצל מצונן520  ג6)NP)",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -11169,20 +11207,20 @@
     "pakuot": [
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
-        "cartons": 374
+        "daysLeft": 121,
+        "cartons": 373
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-12-04",
-        "daysLeft": 122,
+        "daysLeft": 121,
         "cartons": 182
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 1343,
+    "spo": 1342,
     "openOrders": 386,
     "weekSales": [
       25.4,
@@ -11202,7 +11240,7 @@
     ]
   },
   "400003": {
-    "stock": 127,
+    "stock": 126,
     "daySales": 12.7,
     "kratnost": 200,
     "palStock": 0.6,
@@ -11217,8 +11255,8 @@
     "weight": 0.5,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 20.8,
-    "daysStockAll": 6,
+    "daySalesAll": 12.7,
+    "daysStockAll": 10,
     "nameEn": "נתחי פילה הרינג מומלח עם שמיר בשמן מצונן500 ג6)NP)",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
@@ -11226,20 +11264,20 @@
     "pakuot": [
       {
         "date": "2026-10-25",
-        "daysLeft": 82,
-        "cartons": 127
+        "daysLeft": 81,
+        "cartons": 126
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-25",
-        "daysLeft": 82,
+        "daysLeft": 81,
         "cartons": 60
       }
     ],
     "shelfLife": 21,
     "stopSale": false,
-    "spo": 1187,
+    "spo": 1186,
     "openOrders": 400,
     "weekSales": [
       21.4,
@@ -11259,10 +11297,10 @@
     ]
   },
   "403001": {
-    "stock": 1242,
+    "stock": 1240,
     "daySales": 190.1,
     "kratnost": 360,
-    "palStock": 3.5,
+    "palStock": 3.4,
     "stockZafn": 364,
     "palStockZafn": 1,
     "daySalesZafn": 86.4,
@@ -11274,8 +11312,8 @@
     "weight": 0.1,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 270.6,
-    "daysStockAll": 5,
+    "daySalesAll": 190.1,
+    "daysStockAll": 7,
     "nameEn": "פילה סלמון מעושן פרוס מצונן100 גרםNP ",
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
@@ -11283,30 +11321,30 @@
     "pakuot": [
       {
         "date": "2026-09-01",
-        "daysLeft": 28,
-        "cartons": 160
+        "daysLeft": 27,
+        "cartons": 158
       },
       {
         "date": "2026-09-04",
-        "daysLeft": 31,
+        "daysLeft": 30,
         "cartons": 1082
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-09-01",
-        "daysLeft": 28,
+        "daysLeft": 27,
         "cartons": 5
       },
       {
         "date": "2026-09-04",
-        "daysLeft": 31,
+        "daysLeft": 30,
         "cartons": 359
       }
     ],
     "shelfLife": 7,
     "stopSale": false,
-    "spo": 4491,
+    "spo": 4489,
     "openOrders": 2884,
     "weekSales": [
       229,
@@ -11341,8 +11379,8 @@
     "weight": 0.1,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 117.9,
-    "daysStockAll": 4,
+    "daySalesAll": 79.4,
+    "daysStockAll": 6,
     "nameEn": "פילה פורל מעושן פרוס מצונן100 גרםNP ",
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
@@ -11350,14 +11388,14 @@
     "pakuot": [
       {
         "date": "2026-09-05",
-        "daysLeft": 32,
+        "daysLeft": 31,
         "cartons": 477
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-09-05",
-        "daysLeft": 32,
+        "daysLeft": 31,
         "cartons": 149
       }
     ],
@@ -11398,8 +11436,8 @@
     "weight": 0.25,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 50.5,
-    "daysStockAll": 8,
+    "daySalesAll": 33.7,
+    "daysStockAll": 12,
     "nameEn": "פילה סלמון מעושן פרוס מצונן250 גרםNP ",
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
@@ -11407,14 +11445,14 @@
     "pakuot": [
       {
         "date": "2026-09-01",
-        "daysLeft": 28,
+        "daysLeft": 27,
         "cartons": 396
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-09-01",
-        "daysLeft": 28,
+        "daysLeft": 27,
         "cartons": 153
       }
     ],
@@ -11440,10 +11478,10 @@
     ]
   },
   "403004": {
-    "stock": 315,
+    "stock": 314,
     "daySales": 17.4,
     "kratnost": 180,
-    "palStock": 1.8,
+    "palStock": 1.7,
     "stockZafn": 157,
     "palStockZafn": 0.9,
     "daySalesZafn": 11.7,
@@ -11455,8 +11493,8 @@
     "weight": 0.25,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 29.1,
-    "daysStockAll": 11,
+    "daySalesAll": 17.4,
+    "daysStockAll": 18,
     "nameEn": "פילה פורל מעושן פרוס מצונן250 גרםNP ",
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
@@ -11464,30 +11502,30 @@
     "pakuot": [
       {
         "date": "2026-08-21",
-        "daysLeft": 17,
-        "cartons": 74
+        "daysLeft": 16,
+        "cartons": 73
       },
       {
         "date": "2026-09-05",
-        "daysLeft": 32,
+        "daysLeft": 31,
         "cartons": 241
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-08-21",
-        "daysLeft": 17,
+        "daysLeft": 16,
         "cartons": 37
       },
       {
         "date": "2026-09-05",
-        "daysLeft": 32,
+        "daysLeft": 31,
         "cartons": 120
       }
     ],
     "shelfLife": 7,
     "stopSale": false,
-    "spo": 744,
+    "spo": 743,
     "openOrders": 272,
     "weekSales": [
       15,
@@ -11507,7 +11545,7 @@
     ]
   },
   "403005": {
-    "stock": 196,
+    "stock": 195,
     "daySales": 25,
     "kratnost": 320,
     "palStock": 0.6,
@@ -11522,8 +11560,8 @@
     "weight": 0.2,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 37.4,
-    "daysStockAll": 5,
+    "daySalesAll": 25,
+    "daysStockAll": 8,
     "nameEn": "פילה סלמון מעושן מצונן200 גרםNP ",
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
@@ -11531,20 +11569,20 @@
     "pakuot": [
       {
         "date": "2026-09-01",
-        "daysLeft": 28,
-        "cartons": 196
+        "daysLeft": 27,
+        "cartons": 195
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-09-01",
-        "daysLeft": 28,
+        "daysLeft": 27,
         "cartons": 82
       }
     ],
     "shelfLife": 7,
     "stopSale": false,
-    "spo": 755,
+    "spo": 754,
     "openOrders": 477,
     "weekSales": [
       28.6,
@@ -11579,8 +11617,8 @@
     "weight": 0.2,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 26.3,
-    "daysStockAll": 10,
+    "daySalesAll": 16.4,
+    "daysStockAll": 16,
     "nameEn": "פילה פורל מעושן מצונן200 גרםNP ",
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
@@ -11588,24 +11626,24 @@
     "pakuot": [
       {
         "date": "2026-08-22",
-        "daysLeft": 18,
+        "daysLeft": 17,
         "cartons": 43
       },
       {
         "date": "2026-09-05",
-        "daysLeft": 32,
+        "daysLeft": 31,
         "cartons": 225
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-08-22",
-        "daysLeft": 18,
+        "daysLeft": 17,
         "cartons": 28
       },
       {
         "date": "2026-09-05",
-        "daysLeft": 32,
+        "daysLeft": 31,
         "cartons": 100
       }
     ],
@@ -11646,8 +11684,8 @@
     "weight": 0.15,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 64.5,
-    "daysStockAll": 1,
+    "daySalesAll": 42.7,
+    "daysStockAll": 2,
     "nameEn": "פילה מקרל מומלח בעישון חם מצונן150 גרם8) NP) ",
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
@@ -11655,14 +11693,14 @@
     "pakuot": [
       {
         "date": "2026-08-26",
-        "daysLeft": 22,
+        "daysLeft": 21,
         "cartons": 92
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-08-26",
-        "daysLeft": 22,
+        "daysLeft": 21,
         "cartons": 41
       }
     ],
@@ -11703,7 +11741,7 @@
     "weight": 0.15,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 41.9,
+    "daySalesAll": 31.6,
     "daysStockAll": 0,
     "nameEn": "פילה מקרל מומלח בעישון חם עם פלפל שחור גרוס150 גרם8) NP) ",
     "fam": "NORD PORT מצונן פורל/סלמון",
@@ -11712,14 +11750,14 @@
     "pakuot": [
       {
         "date": "2026-08-26",
-        "daysLeft": 22,
+        "daysLeft": 21,
         "cartons": 10
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-08-26",
-        "daysLeft": 22,
+        "daysLeft": 21,
         "cartons": 16
       }
     ],
@@ -11770,12 +11808,12 @@
     "pakuotZafn": [
       {
         "date": "2026-08-12",
-        "daysLeft": 8,
+        "daysLeft": 7,
         "cartons": 1
       }
     ],
     "shelfLife": 7,
-    "stopSale": false,
+    "stopSale": true,
     "spo": null,
     "openOrders": null,
     "weekSales": [
@@ -11820,19 +11858,19 @@
     "pakuot": [
       {
         "date": "2026-08-12",
-        "daysLeft": 8,
+        "daysLeft": 7,
         "cartons": 1
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-08-12",
-        "daysLeft": 8,
+        "daysLeft": 7,
         "cartons": 1
       }
     ],
     "shelfLife": 7,
-    "stopSale": false,
+    "stopSale": true,
     "spo": null,
     "openOrders": null,
     "weekSales": [
@@ -11968,7 +12006,7 @@
     "pakuotZafn": [
       {
         "date": "2026-08-13",
-        "daysLeft": 9,
+        "daysLeft": 8,
         "cartons": 2
       }
     ],
@@ -11994,15 +12032,15 @@
     ]
   },
   "411000": {
-    "stock": 94,
+    "stock": 74,
     "daySales": 42.8,
     "kratnost": 209,
     "palStock": 0.4,
-    "stockZafn": 11,
+    "stockZafn": 31,
     "palStockZafn": 0.1,
     "daySalesZafn": 24.7,
-    "daysStock": 3,
-    "daysStockZafn": 1,
+    "daysStock": 2,
+    "daysStockZafn": 2,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -12018,15 +12056,15 @@
     "pakuot": [
       {
         "date": "2026-08-15",
-        "daysLeft": 11,
-        "cartons": 94
+        "daysLeft": 10,
+        "cartons": 74
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-08-15",
-        "daysLeft": 11,
-        "cartons": 11
+        "daysLeft": 10,
+        "cartons": 31
       }
     ],
     "shelfLife": 7,
@@ -12051,10 +12089,10 @@
     ]
   },
   "411001": {
-    "stock": 16,
+    "stock": -2,
     "daySales": 45.6,
     "kratnost": 168,
-    "palStock": 0.1,
+    "palStock": null,
     "stockZafn": 7,
     "palStockZafn": 0,
     "daySalesZafn": 30.6,
@@ -12067,22 +12105,16 @@
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 74.2,
-    "daysStockAll": 0,
+    "daysStockAll": null,
     "nameEn": "טבורוג 5% שומן300 גרם9) PRESIDENT)",
     "fam": "PRESIDENT גבינות",
     "iksGroup": null,
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-08-11",
-        "daysLeft": 7,
-        "cartons": 16
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2026-08-11",
-        "daysLeft": 7,
+        "daysLeft": 6,
         "cartons": 7
       }
     ],
@@ -12132,14 +12164,14 @@
     "pakuot": [
       {
         "date": "2026-09-16",
-        "daysLeft": 43,
+        "daysLeft": 42,
         "cartons": 2553
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-09-16",
-        "daysLeft": 43,
+        "daysLeft": 42,
         "cartons": 377
       }
     ],
@@ -12189,14 +12221,14 @@
     "pakuot": [
       {
         "date": "2026-11-28",
-        "daysLeft": 116,
+        "daysLeft": 115,
         "cartons": 185
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-11-28",
-        "daysLeft": 116,
+        "daysLeft": 115,
         "cartons": 50
       }
     ],
@@ -12246,14 +12278,14 @@
     "pakuot": [
       {
         "date": "2026-11-28",
-        "daysLeft": 116,
+        "daysLeft": 115,
         "cartons": 243
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-11-28",
-        "daysLeft": 116,
+        "daysLeft": 115,
         "cartons": 78
       }
     ],
@@ -12303,14 +12335,14 @@
     "pakuot": [
       {
         "date": "2026-11-28",
-        "daysLeft": 116,
+        "daysLeft": 115,
         "cartons": 172
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-11-28",
-        "daysLeft": 116,
+        "daysLeft": 115,
         "cartons": 48
       }
     ],
@@ -12360,14 +12392,14 @@
     "pakuot": [
       {
         "date": "2026-12-28",
-        "daysLeft": 146,
+        "daysLeft": 145,
         "cartons": 633
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-12-28",
-        "daysLeft": 146,
+        "daysLeft": 145,
         "cartons": 204
       }
     ],
@@ -12417,14 +12449,14 @@
     "pakuot": [
       {
         "date": "2026-12-28",
-        "daysLeft": 146,
+        "daysLeft": 145,
         "cartons": 517
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-12-28",
-        "daysLeft": 146,
+        "daysLeft": 145,
         "cartons": 223
       }
     ],
@@ -12474,14 +12506,14 @@
     "pakuot": [
       {
         "date": "2026-12-29",
-        "daysLeft": 147,
+        "daysLeft": 146,
         "cartons": 639
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-12-29",
-        "daysLeft": 147,
+        "daysLeft": 146,
         "cartons": 181
       }
     ],
@@ -12531,14 +12563,14 @@
     "pakuot": [
       {
         "date": "2026-10-04",
-        "daysLeft": 61,
+        "daysLeft": 60,
         "cartons": 28
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-04",
-        "daysLeft": 61,
+        "daysLeft": 60,
         "cartons": 20
       }
     ],
@@ -12588,14 +12620,14 @@
     "pakuot": [
       {
         "date": "2026-10-04",
-        "daysLeft": 61,
+        "daysLeft": 60,
         "cartons": 36
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-04",
-        "daysLeft": 61,
+        "daysLeft": 60,
         "cartons": 14
       }
     ],
@@ -12645,14 +12677,14 @@
     "pakuot": [
       {
         "date": "2026-10-04",
-        "daysLeft": 61,
+        "daysLeft": 60,
         "cartons": 31
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-10-04",
-        "daysLeft": 61,
+        "daysLeft": 60,
         "cartons": 25
       }
     ],
@@ -12702,14 +12734,14 @@
     "pakuot": [
       {
         "date": "2026-09-19",
-        "daysLeft": 46,
+        "daysLeft": 45,
         "cartons": 93
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-09-19",
-        "daysLeft": 46,
+        "daysLeft": 45,
         "cartons": 44
       }
     ],
@@ -12759,14 +12791,14 @@
     "pakuot": [
       {
         "date": "2026-09-19",
-        "daysLeft": 46,
+        "daysLeft": 45,
         "cartons": 148
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-09-19",
-        "daysLeft": 46,
+        "daysLeft": 45,
         "cartons": 57
       }
     ],
@@ -12816,14 +12848,14 @@
     "pakuot": [
       {
         "date": "2026-09-20",
-        "daysLeft": 47,
+        "daysLeft": 46,
         "cartons": 142
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-09-20",
-        "daysLeft": 47,
+        "daysLeft": 46,
         "cartons": 40
       }
     ],
@@ -12873,24 +12905,24 @@
     "pakuot": [
       {
         "date": "2026-09-18",
-        "daysLeft": 45,
+        "daysLeft": 44,
         "cartons": 57
       },
       {
         "date": "2026-09-25",
-        "daysLeft": 52,
+        "daysLeft": 51,
         "cartons": 392
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-09-18",
-        "daysLeft": 45,
+        "daysLeft": 44,
         "cartons": 39
       },
       {
         "date": "2026-09-25",
-        "daysLeft": 52,
+        "daysLeft": 51,
         "cartons": 120
       }
     ],
@@ -12940,24 +12972,24 @@
     "pakuot": [
       {
         "date": "2026-09-03",
-        "daysLeft": 30,
+        "daysLeft": 29,
         "cartons": 58
       },
       {
         "date": "2026-09-24",
-        "daysLeft": 51,
+        "daysLeft": 50,
         "cartons": 845
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-09-03",
-        "daysLeft": 30,
+        "daysLeft": 29,
         "cartons": 53
       },
       {
         "date": "2026-09-24",
-        "daysLeft": 51,
+        "daysLeft": 50,
         "cartons": 200
       }
     ],
@@ -13007,24 +13039,24 @@
     "pakuot": [
       {
         "date": "2026-09-03",
-        "daysLeft": 30,
+        "daysLeft": 29,
         "cartons": 111
       },
       {
         "date": "2026-09-20",
-        "daysLeft": 47,
+        "daysLeft": 46,
         "cartons": 843
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-09-03",
-        "daysLeft": 30,
+        "daysLeft": 29,
         "cartons": 34
       },
       {
         "date": "2026-09-04",
-        "daysLeft": 31,
+        "daysLeft": 30,
         "cartons": 53
       }
     ],
@@ -13074,14 +13106,14 @@
     "pakuot": [
       {
         "date": "2028-04-29",
-        "daysLeft": 634,
+        "daysLeft": 633,
         "cartons": 666
       }
     ],
     "pakuotZafn": [
       {
         "date": "2028-04-29",
-        "daysLeft": 634,
+        "daysLeft": 633,
         "cartons": 203
       }
     ],
@@ -13131,14 +13163,14 @@
     "pakuot": [
       {
         "date": "2028-04-28",
-        "daysLeft": 633,
+        "daysLeft": 632,
         "cartons": 605
       }
     ],
     "pakuotZafn": [
       {
         "date": "2028-04-28",
-        "daysLeft": 633,
+        "daysLeft": 632,
         "cartons": 153
       }
     ],
@@ -13188,20 +13220,20 @@
     "pakuot": [
       {
         "date": "2027-01-27",
-        "daysLeft": 176,
+        "daysLeft": 175,
         "cartons": 13
       }
     ],
     "pakuotZafn": [
       {
         "date": "2027-01-27",
-        "daysLeft": 176,
+        "daysLeft": 175,
         "cartons": 8
       }
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 22,
+    "spo": 21,
     "openOrders": null,
     "weekSales": [
       1.9,
@@ -13266,7 +13298,7 @@
     ]
   },
   "420005": {
-    "stock": 1639,
+    "stock": 1638,
     "daySales": 6.6,
     "kratnost": 60,
     "palStock": 27.3,
@@ -13290,19 +13322,19 @@
     "pakuot": [
       {
         "date": "2026-12-02",
-        "daysLeft": 120,
-        "cartons": 549
+        "daysLeft": 119,
+        "cartons": 548
       },
       {
         "date": "2026-12-11",
-        "daysLeft": 129,
+        "daysLeft": 128,
         "cartons": 1090
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-12-02",
-        "daysLeft": 120,
+        "daysLeft": 119,
         "cartons": 97
       }
     ],
@@ -13352,19 +13384,19 @@
     "pakuot": [
       {
         "date": "2026-12-11",
-        "daysLeft": 129,
+        "daysLeft": 128,
         "cartons": 92
       },
       {
         "date": "2027-01-27",
-        "daysLeft": 176,
+        "daysLeft": 175,
         "cartons": 320
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-12-11",
-        "daysLeft": 129,
+        "daysLeft": 128,
         "cartons": 49
       }
     ],
@@ -13414,29 +13446,29 @@
     "pakuot": [
       {
         "date": "2026-12-02",
-        "daysLeft": 120,
+        "daysLeft": 119,
         "cartons": 40
       },
       {
         "date": "2026-12-11",
-        "daysLeft": 129,
+        "daysLeft": 128,
         "cartons": 140
       },
       {
         "date": "2027-01-28",
-        "daysLeft": 177,
+        "daysLeft": 176,
         "cartons": 200
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-12-02",
-        "daysLeft": 120,
+        "daysLeft": 119,
         "cartons": 43
       },
       {
         "date": "2026-12-11",
-        "daysLeft": 129,
+        "daysLeft": 128,
         "cartons": 60
       }
     ],
@@ -13486,24 +13518,24 @@
     "pakuot": [
       {
         "date": "2026-12-11",
-        "daysLeft": 129,
+        "daysLeft": 128,
         "cartons": 80
       },
       {
         "date": "2027-01-28",
-        "daysLeft": 177,
+        "daysLeft": 176,
         "cartons": 260
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-12-11",
-        "daysLeft": 129,
+        "daysLeft": 128,
         "cartons": 19
       },
       {
         "date": "2027-01-28",
-        "daysLeft": 177,
+        "daysLeft": 176,
         "cartons": 60
       }
     ],
