@@ -12,7 +12,7 @@
 - **URL:** https://jjs-moveset-generator-production.up.railway.app
 - **Repo:** https://github.com/sverdlikdan-code/jjs-moveset-generator
 - **Платформа:** Railway (auto-deploy при push в master)
-- **Стек:** Node.js + Express + Helmet CSP + Supabase + zstd compression
+- **Стек:** Node.js + Express + Helmet CSP + Railway PostgreSQL + zstd compression
 
 ---
 
@@ -21,7 +21,7 @@
 - `server.js` — Express API: /api/generate, /api/decode, /api/library, /api/auth
 - `public/index.html` — Landing + Beta Gate (пароль JJS2026)
 - `public/app.html` — Generator + Decode Code + Live Preview
-- `public/library.html` — Community Movesets (Supabase)
+- `public/library.html` — Community Movesets (Railway PostgreSQL)
 
 ### Слоты (SLOT_TYPES)
 SKILL · MELEE · SPECIAL · CHASE · AWAKENING · EVASIVE
@@ -53,15 +53,18 @@ SKILL · MELEE · SPECIAL · CHASE · AWAKENING · EVASIVE
 
 ## Аффилиаты / партнёры
 
-- NATEZO, BAXTH, TECHYOP — YouTube каналы по JJS
+- **RedInk (Марк Свердлик)** — партнёр и сын. YouTube: https://www.youtube.com/@RedInkJJS — основной JJS-канал, монетизирован через рекламу. Ссылка добавлена в app.html.
+- NATEZO, BAXTH, TECHYOP — другие YouTube каналы по JJS
 
 ---
 
 ## Статус монетизации
 
-- [ ] Stripe $4.99 one-time unlock
+- [ ] Ko-fi аккаунт — создать и заменить placeholder `ko-fi.com/jjsbuilder`
+- [ ] Stripe $4.99 one-time unlock (будущее)
 - [ ] Custom domain
 - [x] Umami analytics установлен
+- [x] Payment modal UI — Free / $1 / $3, кнопка в хедере + авто-триггер после 3 генераций
 
 ---
 
@@ -79,3 +82,12 @@ SKILL · MELEE · SPECIAL · CHASE · AWAKENING · EVASIVE
 - Тултипы `data-tip` на всех 10 лейблах формы (hover CSS, без JS)
 - Slot Type тултип упрощён для аудитории 10-17 лет
 - Все изменения задеплоены на Railway (5 коммитов в этой сессии)
+
+### 2026-08-05 #status/done
+- **GSAP 3.12.5** подключён — stagger карточек библиотеки, bounce лайков, entrance анимации
+- **CSP** обновлён в server.js — добавлен `cdnjs.cloudflare.com`
+- **Фильтр по персонажам** в library.html — авто-чипы из загруженных кодов, toggle on/off
+- **Mobile header fix** — library.html: RedInk и субтайтл скрыты на 375px, Submit Code всегда виден
+- **Live Preview redesign** — заменён на Build Archetype (RUSH/SETUP/ZONER/AERIAL/BREAKER/BALANCED) + Combo Timeline с барами hit/stun/cd и chain hints между мувами
+- **Payment modal** — Free/$1/$3, кнопка 💜 Support в хедере, авто-триггер после 3-й генерации; Ko-fi placeholder `ko-fi.com/jjsbuilder` — нужен реальный аккаунт
+- Суммарно 6 коммитов (9764993)
