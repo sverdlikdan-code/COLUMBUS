@@ -424,6 +424,7 @@ body.gps-fs #map{height:100%!important;}
         <button class="sort-btn" id="sort-btn-ai-google" onclick="toggleAiGps()">🤖 AI Google</button>
         <button class="sort-btn active-tablet" id="sort-btn-tablet" onclick="toggleTabletGps()">📱 GPS Tablet</button>
         <button class="sort-btn" id="day-briefing-btn" onclick="alert('כרגע בפיתוח 🔧')" title="ניתוח יום — TOP 10 לקוחות" style="background:#5C6BC0;color:#fff;border-color:#3F51B5;font-weight:900">📊 ניתוח</button>
+        <button class="sort-btn" id="gmaps-btn" onclick="openGoogleMaps()" title="פתח מסלול ב-Google Maps" style="background:#1a73e8;color:#fff;border-color:#1558b0;font-weight:700">🗺 Google</button>
         <div class="km-more-wrap">
           <button class="sort-btn km-more-btn" id="km-more-btn" onclick="toggleKmMore()" title="עוד פעולות">⋮</button>
           <div class="km-more-dd" id="km-more-dd">
@@ -432,7 +433,6 @@ body.gps-fs #map{height:100%!important;}
             <hr class="km-more-sep">
             <button class="km-more-item" id="recalc-btn" onclick="recalcRoute();closeKmMore()">🔄 חישוב מסלול מחדש</button>
             <button class="km-more-item" onclick="resetRoute();closeKmMore()">↩ איפוס סדר היום</button>
-            <button class="km-more-item" onclick="openGoogleMaps();closeKmMore()" style="color:#1a73e8;font-weight:600">🗺 פתח ב-Google Maps</button>
             <hr class="km-more-sep">
             <div class="gps-hist-wrap">
               <button class="km-more-item" id="gps-hist-btn" onclick="toggleGpsHistory()">📍 תיקוני GPS</button>
@@ -1591,7 +1591,7 @@ function fmtDuration(sec){
 }
 
 function openGoogleMaps(){
-  const clients = (st.sortMode==='ai' ? st.aiClients : st.clients).filter(c => c.lat && c.lng);
+  const clients = displayClients().filter(c => c.lat && c.lng);
   if(!clients.length){ alert('אין לקוחות עם GPS במסלול זה'); return; }
   const MAX_WAYPOINTS = 23;
   const pts = clients.slice(0, MAX_WAYPOINTS);
