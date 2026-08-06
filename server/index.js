@@ -1874,8 +1874,13 @@ app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, re
   const { agentCode, agentName, dayOverrides = {}, savedOrders = {} } = req.body;
   if (!agentCode) return res.status(400).json({ error: 'agentCode required' });
   if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
-  const allClients = pbiCache.byAgent.get(agentCode) || [];
-  if (!allClients.length) return res.status(404).json({ error: 'no clients' });
+  const formulaClients = pbiCache.byAgent.get(agentCode) || [];
+  if (!formulaClients.length) return res.status(404).json({ error: 'no clients' });
+  // Merge ICE-only clients (same logic as /customers)
+  const allFormulaIds = new Set(formulaClients.map(c => c.custId));
+  const iceAll = pbiCache.iceByAgent?.get(agentCode) || [];
+  const iceOnly = iceAll.filter(c => !allFormulaIds.has(c.custId));
+  const allClients = [...formulaClients, ...iceOnly];
   const corrPath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
   const corrections = fs.existsSync(corrPath) ? JSON.parse(fs.readFileSync(corrPath, 'utf8')) : {};
   const aiGpsPath = path.join(__dirname, '..', 'docs', 'google-gps.json');
@@ -1916,6 +1921,7 @@ app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, re
     const ws = wb.addWorksheet(day, { views:[{ rightToLeft:true, state:'frozen', ySplit:1 }] });
     const COLS = [
       {name:'סדר ביקור מתוקן',width:8},{name:'מס. לקוח',width:14},{name:'שם לקוח',width:28},
+      {name:'חברה',width:10},
       {name:'עיר',width:16},{name:'כתובת',width:26},{name:'קו רוחב',width:13},{name:'קו אורך',width:13},
       {name:'GPS',width:14},{name:'סדר ביקור PRIORITY',width:15},
       {name:'קו רוחב Google',width:14},{name:'קו אורך Google',width:14},
@@ -1934,12 +1940,13 @@ app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, re
         gps = isChanged ? '✓ CHANGED' : '✓';
       }
       const ai = aiGps[String(c.custId)];
+      const hevra = c.iceOnly ? 'ICE' : 'FORMULA';
       return {
-        row:[i+1,String(c.custId||''),c.custName||'',c.city||'',c.address||'',
+        row:[i+1,String(c.custId||''),c.custName||'',hevra,c.city||'',c.address||'',
           lat?+parseFloat(lat).toFixed(6):'', lng?+parseFloat(lng).toFixed(6):'',
           gps, c.priorityOrder||'',
           ai?.aiLat||'', ai?.aiLng||''],
-        isChanged, gpsSource:c.gpsSource||null, noOrder:!c.priorityOrder, even:i%2===0,
+        isChanged, gpsSource:c.gpsSource||null, noOrder:!c.priorityOrder, even:i%2===0, isIce:!!c.iceOnly,
       };
     });
     ws.addTable({ name:`RouteTable_${day.charCodeAt(0)}`, ref:'A1', headerRow:true, totalsRow:false,
@@ -1955,10 +1962,13 @@ app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, re
       cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1565C0'}};
       cell.alignment={horizontal:'right',vertical:'middle'};
     }
+    const FILL_ICE1={type:'pattern',pattern:'solid',fgColor:{argb:'FFB2DFDB'}};
+    const FILL_ICE2={type:'pattern',pattern:'solid',fgColor:{argb:'FF80CBC4'}};
     rowData.forEach((r,i) => {
       const rowNum=i+2;
-      let f = r.isChanged ? (r.even?FILLS.G1:FILLS.G2)
-             : r.noOrder  ? (r.even?FILLS.GR1:FILLS.GR2)
+      let f = r.isIce      ? (r.even?FILL_ICE1:FILL_ICE2)
+             : r.isChanged ? (r.even?FILLS.G1:FILLS.G2)
+             : r.noOrder   ? (r.even?FILLS.GR1:FILLS.GR2)
              : DOUBTFUL.has(r.gpsSource) ? FILLS.OR
              : (r.even?FILLS.W:FILLS.S);
       const row=ws.getRow(rowNum); row.height=18;
