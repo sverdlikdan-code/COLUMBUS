@@ -1962,9 +1962,9 @@ async function init(){
   try{const r=await fetch(API+'/auth/pbi',{credentials:'include'});if(r.ok){const j=await r.json();if(j.ok&&j.token)localStorage.setItem(TOKEN_KEY,j.token);}}catch(_){}
   if(!getToken()){location.href=(location.hostname.includes('sverdlik-apps')?'/formula-road':('formula-road.html'))+'?next=territory.html';return;}
   await Promise.all([loadCities(), loadDropAgents(), loadManagers(), loadCorrections(), loadAiGps(), loadTabletGps()]);
-  if(!selectedCities.size){
-    ['ירושלים','מעלה אדומים','מבשרת ציון'].forEach(c=>{ if(allCities.includes(c)) selectedCities.add(c); });
-    if(selectedCities.size){ renderCityItems(allCities); updateCityBtn(); onCitiesChanged(); }
+  if(!selectedCities.size && allCities.length){
+    allCities.forEach(c=>selectedCities.add(c));
+    renderCityItems(allCities); updateCityBtn(); onCitiesChanged();
   }
 }
 init();
