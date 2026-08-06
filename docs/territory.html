@@ -900,7 +900,9 @@ async function loadClients(cities){
   document.getElementById('agent-legend').innerHTML='';
   const cityArr=Array.isArray(cities)?cities:[cities];
   try{
-    const param=cityArr.map(c=>encodeURIComponent(c)).join(',');
+    // If all cities selected → send "ALL" to avoid URL length limit with Hebrew city names
+    const isAll = cityArr.length >= allCities.length && allCities.length > 0;
+    const param = isAll ? 'ALL' : cityArr.map(c=>encodeURIComponent(c)).join(',');
     const r=await apiFetch(`${API}/territory-clients?cities=${param}`);
     if(!r.ok) throw new Error(r.status);
     const data=await r.json();
