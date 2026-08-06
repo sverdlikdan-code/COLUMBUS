@@ -283,6 +283,11 @@ SELECTCOLUMNS(
           const city    = expandCityAbbrev(fixBiDi(rawCity));
           const address = expandCityAbbrev(fixBiDiAddress(rawAddr));
 
+          // Inherit agentName + manager from Formula byAgent (same agentCode = מס.סוכן נוסף)
+          const _formulaAgentClients = byAgent.get(agentCode);
+          const _agentName = _formulaAgentClients?.[0]?.agentName || '';
+          const _manager   = _formulaAgentClients?.[0]?.manager   || '';
+
           if (!iceByAgent.has(agentCode)) iceByAgent.set(agentCode, []);
           iceByAgent.get(agentCode).push({
             custId,
@@ -292,8 +297,8 @@ SELECTCOLUMNS(
             lat:           null,
             lng:           null,
             agentCode,
-            agentName:     '',
-            manager:       '',
+            agentName:     _agentName,
+            manager:       _manager,
             dayNum,
             dayLabel:      dayLetter,
             priorityOrder: 9000,
