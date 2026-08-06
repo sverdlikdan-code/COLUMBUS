@@ -1436,9 +1436,7 @@
       }
       if (ordOnly && sv) {
         const s = sv[String(r.mkt ?? '')] || {};
-        const haml = r.hamlatza ?? 0;
-        const eff  = s.k != null ? Number(s.k) : (haml > 0 ? Math.round(haml) : 0);
-        if (eff <= 0) return false;
+        if (s.k == null || Number(s.k) <= 0) return false;
       }
       return true;
     });
