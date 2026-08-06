@@ -1948,11 +1948,13 @@ app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, re
       rows:rowData.map(r=>r.row),
     });
     COLS.forEach((c,i)=>{ ws.getColumn(i+1).width=c.width; });
-    const hdr=ws.getRow(1);
-    hdr.height=22;
-    hdr.font={bold:true,color:{argb:'FFFFFFFF'},size:10};
-    hdr.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1565C0'}};
-    hdr.eachCell(cell=>{ cell.alignment={horizontal:'right',vertical:'middle'}; });
+    ws.getRow(1).height=22;
+    for(let ci=1;ci<=COLS.length;ci++){
+      const cell=ws.getCell(1,ci);
+      cell.font={bold:true,color:{argb:'FFFFFFFF'},size:10};
+      cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1565C0'}};
+      cell.alignment={horizontal:'right',vertical:'middle'};
+    }
     rowData.forEach((r,i) => {
       const rowNum=i+2;
       let f = r.isChanged ? (r.even?FILLS.G1:FILLS.G2)
