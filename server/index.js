@@ -1328,7 +1328,9 @@ app.get('/territory-clients', requireAuth, dataRateLimit, async (req, res) => {
   const raw = cities || city;
   if (!raw) return res.status(400).json({ error: 'cities required' });
   if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
-  const citySet = new Set(raw.split(',').map(c => c.trim()).filter(Boolean));
+  const cityAll = raw.trim() === 'ALL';
+  const citySet = cityAll ? null : new Set(raw.split(',').map(c => c.trim()).filter(Boolean));
+  console.log(`[territory-clients] cities=${cityAll?'ALL':citySet?.size}, iceByAgent=${pbiCache.iceByAgent?.size||0}`);
   const results = [];
   const seen = new Set();
   const formulaCustIds = new Set(); // for ICE dedup: skip custIds already in formula list
@@ -1367,7 +1369,7 @@ app.get('/territory-clients', requireAuth, dataRateLimit, async (req, res) => {
   const clientsForBatch = [];
   for (const [agentCode, clients] of pbiCache.byAgent) {
     for (const c of clients) {
-      if (!c.city || !citySet.has(c.city)) continue;
+      if (!cityAll && (!c.city || !citySet.has(c.city))) continue;
       const corr = corrections[String(c.custId)];
       const enriched = corr
         ? { ...c, lat: corr.lat, lng: corr.lng, gpsSource: 'correction' }
@@ -1383,12 +1385,13 @@ app.get('/territory-clients', requireAuth, dataRateLimit, async (req, res) => {
         || clients.find(c => c.agentName)?.agentName
         || agentCode;
       for (const c of clients) {
-        if (!c.city || !citySet.has(c.city)) continue;
+        if (!cityAll && (!c.city || !citySet.has(c.city))) continue;
         if (formulaCustIds.has(c.custId)) continue;
         clientsForBatch.push({ _agentCode: agentCode, _extra: { hevra: 'ICE', iceOnly: true, agentName }, client: { ...c } });
       }
     }
   }
+  console.log(`[territory-clients] formula=${formulaCustIds.size}, ice=${clientsForBatch.filter(x=>x._extra.iceOnly).length}`);
 
   // geocodeBatch: bbox check + re-geocode for clients outside city bbox (same as /customers)
   const rawClients = clientsForBatch.map(x => x.client);
