@@ -2437,6 +2437,8 @@ async function exportXLSX(){
     noOrder:isNoOrder,
     custId:c.custId||'',
     custName:c.custName||'',
+    hevra:c.iceOnly?'ICE':(c.hevra||'FORMULA'),
+    iceOnly:!!c.iceOnly,
     dayLabel:c.dayLabel||DAY_LABELS[c.dayNum]||'',
     city:c.city||'',
     address:c.address||'',
