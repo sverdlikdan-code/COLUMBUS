@@ -1,6 +1,7 @@
 /**
- * GPS Source Comparison: Priority (tablet orders) vs Google AI vs GPS Corrections
- * Output: ATA GPS FROM ORDERS/gps-source-compare.xlsx
+ * GPS Source Comparison — полное сравнение всех источников GPS
+ * Tablet (ORDERSB) vs PBI (CUSTOMERS) vs AI Google vs ручные правки
+ * Выявляет клиентов где агенты работают по телефону (разброс GPS)
  */
 const fs   = require('fs');
 const path = require('path');
@@ -17,133 +18,146 @@ function haversine(lat1, lng1, lat2, lng2) {
   return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
 }
 
-function loadJson(filePath) {
-  if (!fs.existsSync(filePath)) { console.warn('Missing:', filePath); return null; }
-  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+function loadJson(p) {
+  if (!fs.existsSync(p)) { console.warn('Missing:', p); return null; }
+  return JSON.parse(fs.readFileSync(p, 'utf8'));
 }
 
 async function main() {
-  // ── Load sources ───────────────────────────────────────────────────────────
-  const priorityArr  = loadJson(path.join(ROOT, 'docs/priority-gps-cross.json')) || [];
-  const googleRaw    = loadJson(path.join(ROOT, 'docs/google-gps.json')) || {};
-  const corrections  = loadJson(path.join(ROOT, 'docs/gps-corrections.json')) || {};
+  const tabletArr  = loadJson(path.join(ROOT, 'docs/priority-gps-cross.json')) || [];
+  const pbiMap     = loadJson(path.join(ROOT, 'docs/gps-lookup.json'))          || {};
+  const googleMap  = loadJson(path.join(ROOT, 'docs/google-gps.json'))           || {};
+  const corrMap    = loadJson(path.join(ROOT, 'docs/gps-corrections.json'))      || {};
 
-  console.log(`Priority GPS: ${priorityArr.length} clients`);
-  console.log(`Google AI GPS: ${Object.keys(googleRaw).length} clients`);
-  console.log(`GPS Corrections: ${Object.keys(corrections).length} clients`);
+  console.log(`Tablet GPS: ${tabletArr.length} | PBI: ${Object.keys(pbiMap).length} | Google: ${Object.keys(googleMap).length} | Corrections: ${Object.keys(corrMap).length}`);
 
-  // ── Build priority map ─────────────────────────────────────────────────────
-  const priorityMap = {};
-  priorityArr.forEach(r => { priorityMap[String(r.cust)] = r; });
+  // Build tablet map
+  const tabletMap = {};
+  tabletArr.forEach(r => { tabletMap[String(r.cust)] = r; });
 
-  // ── All unique custIds across all sources ──────────────────────────────────
+  // All unique custIds
   const allIds = new Set([
-    ...Object.keys(priorityMap),
-    ...Object.keys(googleRaw),
-    ...Object.keys(corrections),
+    ...Object.keys(tabletMap),
+    ...Object.keys(pbiMap),
+    ...Object.keys(googleMap),
+    ...Object.keys(corrMap),
   ]);
   console.log(`Total unique clients: ${allIds.size}`);
 
   const rows = [];
 
   for (const cust of allIds) {
-    const p = priorityMap[cust];
-    const g = googleRaw[cust];
-    const c = corrections[cust];
+    const t = tabletMap[cust];
+    const p = pbiMap[cust];
+    const g = googleMap[cust];
+    const c = corrMap[cust];
 
-    const pLat = p?.lat  || null;
-    const pLng = p?.lng  || null;
+    const tLat = t?.lat   || null;
+    const tLng = t?.lng   || null;
+    const pLat = p?.lat   || null;
+    const pLng = p?.lng   || null;
     const gLat = g?.aiLat || null;
     const gLng = g?.aiLng || null;
-    const cLat = c?.lat  || null;
-    const cLng = c?.lng  || null;
+    const cLat = c?.lat   || null;
+    const cLng = c?.lng   || null;
 
-    // Distances
-    const distPG = (pLat&&gLat) ? haversine(pLat,pLng,gLat,gLng) : null;
-    const distPC = (pLat&&cLat) ? haversine(pLat,pLng,cLat,cLng) : null;
-    const distGC = (gLat&&cLat) ? haversine(gLat,gLng,cLat,cLng) : null;
+    const distTP = tLat && pLat ? haversine(tLat, tLng, pLat, pLng) : null;
+    const distTG = tLat && gLat ? haversine(tLat, tLng, gLat, gLng) : null;
+    const distPG = pLat && gLat ? haversine(pLat, pLng, gLat, gLng) : null;
 
-    // Assessment: Priority vs best available
-    const bestRefLat = cLat || gLat;
-    const bestRefLng = cLng || gLng;
-    const distVsBest = (pLat&&bestRefLat) ? haversine(pLat,pLng,bestRefLat,bestRefLng) : null;
+    // Best reference = correction > google > pbi
+    const refLat = cLat || gLat || pLat;
+    const refLng = cLng || gLng || pLng;
+    const refSource = cLat ? 'תיקון' : gLat ? 'Google AI' : pLat ? 'PBI' : null;
+    const distVsRef = tLat && refLat ? haversine(tLat, tLng, refLat, refLng) : null;
 
-    let verdict = '—';
-    if (pLat && bestRefLat) {
-      if (distVsBest < 100)       verdict = '✅ מעולה (<100מ)';
-      else if (distVsBest < 500)  verdict = '👍 טוב (<500מ)';
-      else if (distVsBest < 2000) verdict = '⚠️ סביר (<2ק"מ)';
-      else                        verdict = '❌ שונה (>2ק"מ)';
-    } else if (pLat && !bestRefLat) {
-      verdict = '📱 רק Tablet';
-    } else if (!pLat && bestRefLat) {
-      verdict = '🔵 אין ב-Tablet';
+    // GPS scatter verdict — main signal for "phone orders"
+    const clusterRatio  = t?.clusterRatio  ?? null;
+    const clusterOrders = t?.clusterOrders ?? null;
+    const totalOrders   = t?.orders        ?? null;
+    const agentMatch    = t?.match         ?? null;
+    const sources       = t?.sources       ?? null;
+
+    let phoneVerdict = '—';
+    if (tLat) {
+      if (clusterRatio !== null && clusterRatio < 50 && totalOrders >= 5) {
+        phoneVerdict = '📞 בטלפון — GPS מפוזר';
+      } else if (distVsRef !== null && distVsRef > 1000 && agentMatch < 2) {
+        phoneVerdict = '⚠️ שונה מהייחוס >1ק"מ';
+      } else if (clusterRatio !== null && clusterRatio < 75 && totalOrders >= 5) {
+        phoneVerdict = '🟡 GPS חלקי';
+      } else {
+        phoneVerdict = '✅ GPS יציב';
+      }
+    } else if (refLat) {
+      phoneVerdict = '🔵 אין ב-Tablet';
     }
-
-    // Priority match confidence
-    const matchLabel = !p ? '—' :
-      p.match === 3 ? '3/3' :
-      p.match === 2 ? '2/3' :
-      (p.count||1) >= 2 ? '2+ שונה' : '1 חברה';
 
     rows.push({
       cust,
+      tLat:  tLat  ? +tLat.toFixed(6)  : '',
+      tLng:  tLng  ? +tLng.toFixed(6)  : '',
       pLat:  pLat  ? +pLat.toFixed(6)  : '',
       pLng:  pLng  ? +pLng.toFixed(6)  : '',
-      pMatch: matchLabel,
-      pSources: p?.sources || '',
-      pOrders: p?.orders || '',
       gLat:  gLat  ? +gLat.toFixed(6)  : '',
       gLng:  gLng  ? +gLng.toFixed(6)  : '',
       cLat:  cLat  ? +cLat.toFixed(6)  : '',
       cLng:  cLng  ? +cLng.toFixed(6)  : '',
+      distTP: distTP ?? '',
+      distTG: distTG ?? '',
       distPG: distPG ?? '',
-      distPC: distPC ?? '',
-      distGC: distGC ?? '',
-      distVsBest: distVsBest ?? '',
-      verdict,
+      distVsRef: distVsRef ?? '',
+      refSource: refSource || '',
+      sources:      sources  || '',
+      agentMatch:   agentMatch ?? '',
+      totalOrders:  totalOrders ?? '',
+      clusterOrders:clusterOrders ?? '',
+      clusterRatio: clusterRatio !== null ? clusterRatio + '%' : '',
+      phoneVerdict,
     });
   }
 
-  // Sort: biggest difference first (most interesting)
+  // Sort: phone-verdict first (most problematic at top), then by totalOrders desc
+  const verdictOrder = { '📞 בטלפון — GPS מפוזר': 0, '⚠️ שונה מהייחוס >1ק"מ': 1, '🟡 GPS חלקי': 2, '✅ GPS יציב': 3, '🔵 אין ב-Tablet': 4, '—': 5 };
   rows.sort((a, b) => {
-    const va = typeof a.distVsBest === 'number' ? a.distVsBest : -1;
-    const vb = typeof b.distVsBest === 'number' ? b.distVsBest : -1;
-    return vb - va;
+    const va = verdictOrder[a.phoneVerdict] ?? 9;
+    const vb = verdictOrder[b.phoneVerdict] ?? 9;
+    return va - vb || (b.totalOrders || 0) - (a.totalOrders || 0);
   });
 
   // ── Stats ──────────────────────────────────────────────────────────────────
-  const withBoth   = rows.filter(r => r.pLat && (r.gLat || r.cLat));
-  const excellent  = withBoth.filter(r => r.distVsBest < 100).length;
-  const good       = withBoth.filter(r => r.distVsBest >= 100 && r.distVsBest < 500).length;
-  const ok         = withBoth.filter(r => r.distVsBest >= 500 && r.distVsBest < 2000).length;
-  const diff       = withBoth.filter(r => r.distVsBest >= 2000).length;
-  const tabletOnly = rows.filter(r => r.pLat && !r.gLat && !r.cLat).length;
-  const noTablet   = rows.filter(r => !r.pLat && (r.gLat || r.cLat)).length;
-
-  console.log(`\n✅ <100מ: ${excellent} | 👍 <500מ: ${good} | ⚠️ <2km: ${ok} | ❌ >2km: ${diff}`);
-  console.log(`📱 Tablet only: ${tabletOnly} | 🔵 No tablet: ${noTablet}`);
+  const phone     = rows.filter(r => r.phoneVerdict === '📞 בטלפון — GPS מפוזר').length;
+  const diff      = rows.filter(r => r.phoneVerdict === '⚠️ שונה מהייחוס >1ק"מ').length;
+  const partial   = rows.filter(r => r.phoneVerdict === '🟡 GPS חלקי').length;
+  const stable    = rows.filter(r => r.phoneVerdict === '✅ GPS יציב').length;
+  const noTablet  = rows.filter(r => r.phoneVerdict === '🔵 אין ב-Tablet').length;
+  console.log(`\n📞 Phone GPS: ${phone} | ⚠️ Diff >1km: ${diff} | 🟡 Partial: ${partial} | ✅ Stable: ${stable} | 🔵 No tablet: ${noTablet}`);
 
   // ── Excel ──────────────────────────────────────────────────────────────────
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('השוואת GPS', { views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
 
   ws.columns = [
-    { header: 'מס. לקוח',         key: 'cust',        width: 12 },
-    { header: 'Tablet Lat',        key: 'pLat',        width: 13 },
-    { header: 'Tablet Lng',        key: 'pLng',        width: 13 },
-    { header: 'Tablet חפיפה',     key: 'pMatch',       width: 10 },
-    { header: 'Tablet מקורות',    key: 'pSources',     width: 14 },
-    { header: 'Tablet הזמנות',    key: 'pOrders',      width: 10 },
-    { header: 'AI Google Lat',     key: 'gLat',        width: 13 },
-    { header: 'AI Google Lng',     key: 'gLng',        width: 13 },
-    { header: 'תיקון ידני Lat',   key: 'cLat',        width: 13 },
-    { header: 'תיקון ידני Lng',   key: 'cLng',        width: 13 },
-    { header: "Tablet↔AI (מ')",   key: 'distPG',      width: 13 },
-    { header: "Tablet↔תיקון (מ')", key: 'distPC',     width: 14 },
-    { header: "AI↔תיקון (מ')",    key: 'distGC',      width: 13 },
-    { header: "Tablet↔עדיף (מ')", key: 'distVsBest',  width: 14 },
-    { header: 'הערכה',            key: 'verdict',      width: 20 },
+    { header: 'מס. לקוח',           key: 'cust',         width: 12 },
+    { header: 'Tablet Lat',          key: 'tLat',         width: 13 },
+    { header: 'Tablet Lng',          key: 'tLng',         width: 13 },
+    { header: 'PBI Lat',             key: 'pLat',         width: 13 },
+    { header: 'PBI Lng',             key: 'pLng',         width: 13 },
+    { header: 'Google Lat',          key: 'gLat',         width: 13 },
+    { header: 'Google Lng',          key: 'gLng',         width: 13 },
+    { header: 'תיקון Lat',           key: 'cLat',         width: 13 },
+    { header: 'תיקון Lng',           key: 'cLng',         width: 13 },
+    { header: "Tablet↔PBI (מ')",     key: 'distTP',       width: 14 },
+    { header: "Tablet↔Google (מ')",  key: 'distTG',       width: 15 },
+    { header: "PBI↔Google (מ')",     key: 'distPG',       width: 14 },
+    { header: "Tablet↔ייחוס (מ')",  key: 'distVsRef',    width: 15 },
+    { header: 'ייחוס',              key: 'refSource',     width: 11 },
+    { header: 'מקורות Tablet',       key: 'sources',       width: 14 },
+    { header: 'סוכנים עצמ.',        key: 'agentMatch',    width: 12 },
+    { header: 'הזמנות סה"כ',        key: 'totalOrders',   width: 12 },
+    { header: 'הזמנות בקלאסטר',     key: 'clusterOrders', width: 15 },
+    { header: '% GPS יציב',         key: 'clusterRatio',  width: 12 },
+    { header: 'ניתוח GPS',           key: 'phoneVerdict',  width: 26 },
   ];
 
   ws.getRow(1).eachCell(cell => {
@@ -153,49 +167,46 @@ async function main() {
   });
   ws.getRow(1).height = 22;
 
-  const FILLS = {
-    GREEN:  { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } },
-    LIME:   { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F8E9' } },
-    ORANGE: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF3E0' } },
+  const F = {
     RED:    { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFEBEE' } },
+    ORANGE: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF3E0' } },
+    YELLOW: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFDE7' } },
+    GREEN:  { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } },
     BLUE:   { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE3F2FD' } },
-    GRAY:   { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } },
-    WHITE:  { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } },
+    W:      { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } },
+    GR:     { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } },
   };
 
   rows.forEach((r, i) => {
     const row = ws.addRow([
-      r.cust, r.pLat, r.pLng, r.pMatch, r.pSources, r.pOrders,
-      r.gLat, r.gLng, r.cLat, r.cLng,
-      r.distPG, r.distPC, r.distGC, r.distVsBest,
-      r.verdict,
+      r.cust, r.tLat, r.tLng, r.pLat, r.pLng, r.gLat, r.gLng, r.cLat, r.cLng,
+      r.distTP, r.distTG, r.distPG, r.distVsRef, r.refSource,
+      r.sources, r.agentMatch, r.totalOrders, r.clusterOrders, r.clusterRatio,
+      r.phoneVerdict,
     ]);
     const fill =
-      r.verdict.startsWith('✅') ? FILLS.GREEN :
-      r.verdict.startsWith('👍') ? FILLS.LIME  :
-      r.verdict.startsWith('⚠️') ? FILLS.ORANGE:
-      r.verdict.startsWith('❌') ? FILLS.RED   :
-      r.verdict.startsWith('📱') ? FILLS.BLUE  :
-      i % 2 === 0 ? FILLS.WHITE : FILLS.GRAY;
+      r.phoneVerdict.startsWith('📞') ? F.RED :
+      r.phoneVerdict.startsWith('⚠️') ? F.ORANGE :
+      r.phoneVerdict.startsWith('🟡') ? F.YELLOW :
+      r.phoneVerdict.startsWith('✅') ? F.GREEN :
+      r.phoneVerdict.startsWith('🔵') ? F.BLUE :
+      i % 2 === 0 ? F.W : F.GR;
     row.eachCell(cell => { cell.fill = fill; });
   });
 
-  ws.autoFilter = { from: 'A1', to: { row: 1, column: 15 } };
+  ws.autoFilter = { from: 'A1', to: { row: 1, column: 20 } };
 
   // ── Summary sheet ──────────────────────────────────────────────────────────
   const ws2 = wb.addWorksheet('סיכום');
-  ws2.addRow(['קטגוריה', 'לקוחות']);
-  ws2.getRow(1).font = { bold: true };
-  ws2.addRow(['✅ מעולה — Tablet vs עדיף <100מ', excellent]);
-  ws2.addRow(['👍 טוב — <500מ', good]);
-  ws2.addRow(['⚠️ סביר — <2ק"מ', ok]);
-  ws2.addRow(['❌ שונה — >2ק"מ', diff]);
-  ws2.addRow(['📱 רק ב-Tablet (אין AI/תיקון)', tabletOnly]);
-  ws2.addRow(['🔵 אין ב-Tablet (יש AI/תיקון)', noTablet]);
+  ws2.columns = [{ width: 36 }, { width: 14 }];
+  ws2.addRow(['קטגוריה', 'לקוחות']).font = { bold: true };
+  ws2.addRow(['📞 GPS מפוזר — עבודה בטלפון', phone]);
+  ws2.addRow(['⚠️ Tablet שונה מייחוס >1ק"מ', diff]);
+  ws2.addRow(['🟡 GPS חלקי (50-75% בקלאסטר)', partial]);
+  ws2.addRow(['✅ GPS יציב', stable]);
+  ws2.addRow(['🔵 אין נתוני Tablet', noTablet]);
   ws2.addRow([]);
   ws2.addRow(['סה"כ לקוחות', allIds.size]);
-  ws2.addRow(['לקוחות עם שני מקורות', withBoth.length]);
-  ws2.columns = [{ width: 35 }, { width: 14 }];
 
   const out = path.join(DIR, 'gps-source-compare.xlsx');
   await wb.xlsx.writeFile(out);
