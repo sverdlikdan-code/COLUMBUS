@@ -1630,16 +1630,16 @@ function printRoute(){
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:Arial,sans-serif;display:flex;flex-direction:column;height:100vh;overflow:hidden;}
 .hdr{background:#1A3F7C;color:#fff;padding:5px 10px;font-size:11px;font-weight:700;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
-.body{display:flex;flex:1;overflow:hidden;}
+.body{display:flex;flex:1;overflow:hidden;direction:ltr;}
 #map{flex:1;height:100%;}
-.list{width:40%;border-right:1px solid #ddd;overflow-y:auto;direction:rtl;}
-.row{display:flex;gap:4px;padding:3px 6px;font-size:10px;border-bottom:1px solid #eee;align-items:center;}
+.list{width:42%;border-left:1px solid #ddd;overflow-y:auto;direction:rtl;}
+.row{display:flex;gap:6px;padding:5px 8px;font-size:13px;border-bottom:1px solid #eee;align-items:center;}
 .row:nth-child(even){background:#f8f8f8;}
 .row.ice{background:#B2DFDB;}
-.num{font-weight:900;color:#1A3F7C;min-width:20px;text-align:center;font-size:11px;}
-.id{color:#999;min-width:58px;font-size:9px;}
+.num{font-weight:900;color:#1A3F7C;min-width:24px;text-align:center;font-size:13px;}
+.id{color:#999;min-width:60px;font-size:11px;}
 .name{flex:1;font-weight:600;}
-.city{color:#666;min-width:65px;font-size:9px;text-align:left;}
+.city{color:#555;min-width:70px;font-size:11px;text-align:left;}
 </style></head><body>
 <div class="hdr">
   <span>${agentName} · יום ${dayStr} · ${clients.length} לקוחות</span>
@@ -1647,7 +1647,7 @@ body{font-family:Arial,sans-serif;display:flex;flex-direction:column;height:100v
 </div>
 <div class="body">
   <div id="map"></div>
-  <div class="list">${listRows}</div>
+  <div class="list" dir="rtl">${listRows}</div>
 </div>
 <script>
 const pts=${JSON.stringify(pts)};
