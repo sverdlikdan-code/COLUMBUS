@@ -203,6 +203,26 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .day-change-btn:hover{opacity:.9;}
 /* harden: prefers-reduced-motion */
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important;}}
+/* ── PRINT ──────────────────────────────────────────────────────────────── */
+#print-header{display:none;}
+@media print{
+  @page{size:A4 landscape;margin:8mm;}
+  .top-bar,.km-bar,.map-tile-ctrl,.map-rotate-ctrl,.gps-cancel-btn,
+  .excl-btn,.day-change-btn,.mekarer-btn,.ai-insight-btn,.waze-btn,
+  .gps-edit-btn,.no-gps-badge,.ai-diff-badge,#day-popup{display:none!important;}
+  body,#app{height:auto!important;overflow:visible!important;}
+  #print-header{display:block!important;font-size:11px;font-weight:700;color:#333;padding:0 0 4px;border-bottom:1px solid #ccc;margin-bottom:4px;}
+  #route-body{display:flex!important;flex-direction:row!important;height:calc(100vh - 20px)!important;overflow:hidden!important;}
+  #list-pane{display:block!important;flex:0 0 43%!important;overflow:visible!important;padding:0 4px!important;border-left:1px solid #ddd!important;}
+  #map-pane{display:block!important;flex:1!important;height:100%!important;}
+  #map{height:100%!important;width:100%!important;}
+  .client-card{padding:3px 4px!important;min-height:0!important;font-size:10px!important;break-inside:avoid;}
+  .c-name{font-size:10px!important;}
+  .c-sub{font-size:9px!important;}
+  .c-num{font-size:10px!important;width:20px!important;height:20px!important;}
+  .c-num-wrap{width:24px!important;}
+  .walk-icon{display:none!important;}
+}
 #day-popup{position:fixed;background:#fff;border-radius:14px;box-shadow:0 6px 28px rgba(0,0,0,.18);padding:10px 12px;display:none;gap:7px;z-index:9999;align-items:center;}
 #day-popup.open{display:flex;}
 .day-pop-btn{width:42px;height:42px;border-radius:11px;background:var(--sky-light);border:2px solid var(--sky-mid);font-size:17px;font-weight:900;color:var(--blue-dark);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s;}
@@ -427,6 +447,7 @@ body.gps-fs #map{height:100%!important;}
         <button class="sort-btn active-tablet" id="sort-btn-tablet" onclick="toggleTabletGps()">📱 GPS Tablet</button>
         <button class="sort-btn" id="day-briefing-btn" onclick="alert('כרגע בפיתוח 🔧')" title="ניתוח יום — TOP 10 לקוחות" style="background:#5C6BC0;color:#fff;border-color:#3F51B5;font-weight:900">📊 ניתוח</button>
         <button class="sort-btn" id="gmaps-btn" onclick="openGoogleMaps()" title="פתח מסלול ב-Google Maps" style="background:#1a73e8;color:#fff;border-color:#1558b0;font-weight:700">🗺 Google</button>
+        <button class="sort-btn" id="print-btn" onclick="printRoute()" title="הדפסת מסלול — מפה + רשימה" style="background:#37474F;color:#fff;border-color:#263238;font-weight:700">🖨️</button>
         <div class="km-more-wrap">
           <button class="sort-btn km-more-btn" id="km-more-btn" onclick="toggleKmMore()" title="עוד פעולות">⋮</button>
           <div class="km-more-dd" id="km-more-dd">
@@ -472,6 +493,7 @@ body.gps-fs #map{height:100%!important;}
       </div>
     </div>
   </div>
+  <div id="print-header"></div>
   <div id="route-body">
     <div id="list-pane">
       <div id="client-list"></div>
@@ -1599,6 +1621,32 @@ function fmtDuration(sec){
   if(!sec) return null;
   const h=Math.floor(sec/3600), m=Math.round((sec%3600)/60);
   return h>0 ? `${h}ש ${m}ד` : `${m}ד`;
+}
+
+function printRoute(){
+  // Fill print header
+  const dateStr = new Date().toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const dayStr  = DAY_LABELS[st.day] || (st.day ? 'יום '+st.day : '');
+  const cnt     = displayClients().length;
+  document.getElementById('print-header').innerHTML =
+    `<span>${st.agent?.name||''}</span> · <span>${dayStr}</span> · <span>${cnt} לקוחות</span> · <span>${dateStr}</span>`;
+  // Ensure both panes are visible for print
+  const listPane = document.getElementById('list-pane');
+  const mapPane  = document.getElementById('map-pane');
+  const prevListDisplay = listPane.style.display;
+  const prevMapClass    = mapPane.className;
+  listPane.style.display = '';
+  mapPane.classList.add('active');
+  if (map) map.invalidateSize();
+  setTimeout(() => {
+    window.print();
+    // Restore after print dialog closes
+    setTimeout(() => {
+      listPane.style.display = prevListDisplay;
+      mapPane.className = prevMapClass;
+      if (map) map.invalidateSize();
+    }, 500);
+  }, 350);
 }
 
 function openGoogleMaps(){
