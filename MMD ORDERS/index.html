@@ -1436,7 +1436,9 @@
       }
       if (ordOnly && sv) {
         const s = sv[String(r.mkt ?? '')] || {};
-        if (s.k == null || Number(s.k) <= 0) return false;
+        const haml = r.hamlatza ?? 0;
+        const eff  = s.k != null ? Number(s.k) : (haml > 0 ? Math.round(haml) : 0);
+        if (eff <= 0) return false;
       }
       return true;
     });
@@ -1690,7 +1692,8 @@
         setTimeout(() => { el.style.outline = ''; }, 800);
       }
     }
-    if (v === '') delete sv[mk][f];
+    if (v === '' && f === 'k') sv[mk][f] = 0; // explicit zero — hide from הזמנה בלבד filter
+    else if (v === '') delete sv[mk][f];
     else sv[mk][f] = Number(v);
     if (sv[mk].k == null) delete sv[mk];
     save(sv);
