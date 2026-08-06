@@ -898,21 +898,30 @@ function triggerOsrm() {
     if(st.tabletGpsMode){const t=TABLET_GPS[String(c.custId)];if(t?.lat&&t?.lng)return{...c,lat:t.lat,lng:t.lng};}
     return c;
   });
-  const ordered = nearestNeighbor([...clientsForSort]);
+  // Show nearest-neighbor immediately (fast)
+  const nnOrdered = nearestNeighbor([...clientsForSort]);
   if (st.agent?.code === snap.agentCode && st.day === snap.day) {
-    st.aiClients = ordered;
+    st.aiClients = nnOrdered;
     if (st.sortMode === 'ai') renderClientList();
   }
-  // OSRM /route/ for road geometry with 2-opt order
-  const withGps = ordered.filter(c => c.lat && c.lng);
-  osrmRoadData(withGps).then(res => {
-    if (!res) return;
+  // OSRM /trip/ — true TSP optimization, refines order asynchronously
+  osrmTripOrder([...clientsForSort], st.startLat, st.startLng).then(tripOrdered => {
     if (st.agent?.code !== snap.agentCode || st.day !== snap.day) return;
-    st.roadKm = res.roadKm;
-    st.roadDuration = res.roadDuration;
-    st.roadGeometry = res.roadGeometry;
-    updateKmBar();
-    if (window.innerWidth >= 700 || st.tab === 'map') renderMap();
+    if (tripOrdered) {
+      st.aiClients = tripOrdered;
+      if (st.sortMode === 'ai') { updateKmBar(); renderClientList(); }
+    }
+    const finalOrder = tripOrdered || nnOrdered;
+    const withGps = finalOrder.filter(c => c.lat && c.lng);
+    osrmRoadData(withGps).then(res => {
+      if (!res) return;
+      if (st.agent?.code !== snap.agentCode || st.day !== snap.day) return;
+      st.roadKm = res.roadKm;
+      st.roadDuration = res.roadDuration;
+      st.roadGeometry = res.roadGeometry;
+      updateKmBar();
+      if (window.innerWidth >= 700 || st.tab === 'map') renderMap();
+    });
   });
   // priority km (fixed visit order)
   osrmRoute(snap.clients).then(km => {
