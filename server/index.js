@@ -2400,7 +2400,6 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
           await resend.emails.send({
             from: process.env.RESEND_FROM || 'orders@sverdlik-apps.site',
             to: process.env.NOTIFY_EMAIL.split(',').map(e => e.trim()),
-            cc: process.env.NOTIFY_CC_EMAIL ? process.env.NOTIFY_CC_EMAIL.split(',').map(e => e.trim()) : [],
             subject: `הזמנת מקרר חדשה — ${order.custName} (${order.city})`,
             attachments: [{ filename: `mekarer-${safeDate}-${safeName}.xlsx`, content: xlsB64 }],
             html: `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
