@@ -2,9 +2,16 @@
 // (Excel/PPTX normal/PPTX impeccable), чтобы не плодить копии fixBiDi/loadRows
 // (см. warning про 4 копии fixBiDi в hebrew-bidi skill — не повторять тот же паттерн здесь).
 const XLSX = require('xlsx');
+const fs = require('fs');
 const path = require('path');
 
 const SRC = 'C:\\Users\\d.sverdlik\\Desktop\\SADRAN.xlsx';
+// Кэш от fetch-sadran-data.js (прямой DAX из FORMULA PBI) — приоритетный источник,
+// если он есть. SADRAN.xlsx (ручной экспорт) остаётся резервным путём, если PBI недоступен
+// или кэш ещё не собран. См. project memory: методология с 2026-08-06 — YTD до последнего
+// закрытого месяца, год к году; суммы НЕ идентичны старому SADRAN.xlsx (разное окно дат),
+// это принято как новая база, не баг.
+const FETCH_CACHE = path.join(__dirname, 'sadran_fetch_cache.json');
 
 // fixBiDi — порт из server/index.js:2110 (hebrew-bidi skill).
 // Имена клиентов из PBI приходят обёрнутые в LRO/PDF-маркеры вокруг REVERSE()'нутой строки —
@@ -40,7 +47,23 @@ const DEPT_COMPANY = {
 const CUST_TYPE_DUMP = require('./cust_type_dump.json');
 const CUST_TYPE = new Map(CUST_TYPE_DUMP.map(r => [String(r['[custno]']).trim(), r['[custtype]'] || '(не указано)']));
 
-function loadRows() {
+function loadRowsFromCache() {
+  const cache = JSON.parse(fs.readFileSync(FETCH_CACHE, 'utf8'));
+  return cache.rows.map(r => {
+    const deptClean = (r.dept || '').trim();
+    return {
+      kosher: r.kosher || '(не указано)',
+      city: r.city, custno: r.custno, custname: fixBiDi(r.custname), sadran: r.sadran,
+      dept: deptClean,
+      company: DEPT_COMPANY[deptClean] || '(не определено)',
+      custtype: r.custtype || '(нет в PBI)',
+      lastYear: Number(r.lastYear) || 0,
+      now: Number(r.now) || 0,
+    };
+  });
+}
+
+function loadRowsFromXlsx() {
   const wb = XLSX.readFile(SRC);
   const ws = wb.Sheets['Export'];
   // Excel row 1 = пустой отступ, row 2 = заголовки, row 3+ = данные -> range:2 (0-indexed) начинает с первой строки данных
@@ -61,6 +84,18 @@ function loadRows() {
     });
   }
   return rows;
+}
+
+// loadRows — кэш от fetch-sadran-data.js (прямой DAX), если он есть; иначе SADRAN.xlsx
+// (ручной экспорт) как резервный путь. Не молчаливое автопереключение "на глаз" — печатает,
+// какой источник реально использован, чтобы не гадать при отладке.
+function loadRows() {
+  if (fs.existsSync(FETCH_CACHE)) {
+    console.log(`[sadran-data] источник: DAX-кэш (${FETCH_CACHE})`);
+    return loadRowsFromCache();
+  }
+  console.log(`[sadran-data] источник: ручной ${SRC} (кэш не найден)`);
+  return loadRowsFromXlsx();
 }
 
 function pctChange(ly, now) {
@@ -107,9 +142,13 @@ function isolateLatin(str) {
   if (!str) return str;
   return str.replace(/[A-Za-z0-9][A-Za-z0-9 .%-]*[A-Za-z0-9]|[A-Za-z0-9]/g, m => `\u2066${m}\u2069`);
 }
+function isolateHebrew(str) {
+  if (!str) return str;
+  return str.replace(/[א-ת][א-ת'"׳ ]*[א-ת]|[א-ת]/g, m => `⁧${m}⁩`);
+}
 function fmtPct(p) {
   if (p === null) return 'н/д';
   return (p >= 0 ? '+' : '') + (p * 100).toFixed(1) + '%';
 }
 
-module.exports = { loadRows, pctChange, aggBy, fmtILS, fmtPct, fixBiDi, DEPT_COMPANY, isolateLatin, getNewCustomerSet };
+module.exports = { loadRows, pctChange, aggBy, fmtILS, fmtPct, fixBiDi, DEPT_COMPANY, isolateLatin, isolateHebrew, getNewCustomerSet };
