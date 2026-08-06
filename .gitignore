@@ -41,4 +41,5 @@ server/data/mmd-orders-live.json
 
 # PBI data dumps used by ad-hoc report scripts — реальные данные клиентов, не для публичного репо
 scripts/*_dump.json
+scripts/*_cache.json
 scripts/__pycache__/
