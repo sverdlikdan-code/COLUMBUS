@@ -1557,6 +1557,7 @@ function toggleAiGps(){
     st.sortMode='priority';
     document.getElementById('sort-btn-priority').className='sort-btn active-priority';
     showToast('📍 GPS: מצב רגיל');
+    renderClientList();
   }
   if(st.tab==='map'||window.innerWidth>=700) renderMap();
 }

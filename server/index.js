@@ -1291,12 +1291,17 @@ app.get('/managers', requireAuth, async (req, res) => {
   res.json(pbiCache.managers.map(m => ({ managerCode: m })));
 });
 
-// GET /territory-cities — unique cities from PBI cache
+// GET /territory-cities — unique cities from PBI cache (Formula + ICE)
 app.get('/territory-cities', requireAuth, async (req, res) => {
   if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
   const cities = new Set();
   for (const clients of pbiCache.byAgent.values()) {
     for (const c of clients) { if (c.city) cities.add(c.city); }
+  }
+  if (pbiCache.iceByAgent) {
+    for (const clients of pbiCache.iceByAgent.values()) {
+      for (const c of clients) { if (c.city) cities.add(c.city); }
+    }
   }
   res.json([...cities].sort((a,b) => a.localeCompare(b, 'he')));
 });
@@ -1373,9 +1378,10 @@ app.get('/territory-clients', requireAuth, dataRateLimit, async (req, res) => {
   }
   if (pbiCache.iceByAgent) {
     for (const [agentCode, clients] of pbiCache.iceByAgent) {
-      if (!pbiCache.byAgent.has(agentCode)) continue;
       const formulaClients = pbiCache.byAgent.get(agentCode);
-      const agentName = formulaClients?.[0]?.agentName || agentCode;
+      const agentName = formulaClients?.[0]?.agentName
+        || clients.find(c => c.agentName)?.agentName
+        || agentCode;
       for (const c of clients) {
         if (!c.city || !citySet.has(c.city)) continue;
         if (formulaCustIds.has(c.custId)) continue;

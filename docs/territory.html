@@ -447,6 +447,8 @@ function toggleTabletGps(){
     });
     showToast('📍 GPS: רגיל');
   }
+  // recompute visit order with the new GPS source if AI-computed mode is active
+  if(st.sortMode==='visit'&&st.visitSource==='computed') computeVisitOrder(st.startCustId);
   renderAll();
 }
 const DAY_LBL = {1:'א',2:'ב',3:'ג',4:'ד',5:'ה'};
@@ -551,6 +553,10 @@ function nearestNeighborFrom(sLat,sLng,clients){
 function computeVisitOrder(pinFirstCustId){
   let clients=displayClients().map(c=>{
     if(c.gpsSource==='correction') return c;
+    if(st.tabletGpsMode){
+      const t=TABLET_GPS[String(c.custId)];
+      if(t?.lat&&t?.lng) return{...c,lat:t.lat,lng:t.lng};
+    }
     const ai=AI_GPS[String(c.custId)];
     return (ai?.aiLat&&ai?.aiLng)?{...c,lat:ai.aiLat,lng:ai.aiLng}:c;
   });
