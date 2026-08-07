@@ -128,9 +128,11 @@ async function main() {
     const hasInter   = clusterSources.has('INTER');
     const agentMatch = (hasFormula ? 1 : 0) + (hasInter ? 1 : 0); // max 2
 
-    const consensusLat = con ? +con.lat.toFixed(6) : '';
-    const consensusLng = con ? +con.lng.toFixed(6) : '';
-    const totalOrders  = allPts.reduce((s, p) => s + p.cnt, 0);
+    const consensusLat   = con ? +con.lat.toFixed(6) : '';
+    const consensusLng   = con ? +con.lng.toFixed(6) : '';
+    const totalOrders    = allPts.reduce((s, p) => s + p.cnt, 0);
+    const clusterOrders  = cluster ? cluster.reduce((s, p) => s + p.cnt, 0) : 0;
+    const clusterRatio   = totalOrders > 0 ? Math.round(clusterOrders / totalOrders * 100) : 0;
 
     // Confidence based on independent agents (not raw company count)
     let confidence;
@@ -157,7 +159,9 @@ async function main() {
       distIN:   distIN ?? '',
       consensusLat,
       consensusLng,
-      consensusMatch: agentMatch, // 2 = Formula+Inter confirmed, 1 = one agent only
+      consensusMatch: agentMatch,
+      clusterOrders,
+      clusterRatio,
       confidence,
     });
   }
@@ -259,7 +263,9 @@ async function main() {
       orders:  r.totalOrders,
       lat:     r.consensusLat,
       lng:     r.consensusLng,
-      match:   r.consensusMatch,
+      match:        r.consensusMatch,
+      clusterRatio: r.clusterRatio,
+      clusterOrders:r.clusterOrders,
       distFI:  r.distFI || null,
       distFN:  r.distFN || null,
       distIN:  r.distIN || null,
