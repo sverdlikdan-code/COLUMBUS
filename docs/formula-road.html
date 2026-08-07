@@ -203,6 +203,8 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .day-change-btn:hover{opacity:.9;}
 /* harden: prefers-reduced-motion */
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important;}}
+/* ── PRINT ── handled via popup window in printRoute() ──────────────────── */
+#print-header{display:none;}
 #day-popup{position:fixed;background:#fff;border-radius:14px;box-shadow:0 6px 28px rgba(0,0,0,.18);padding:10px 12px;display:none;gap:7px;z-index:9999;align-items:center;}
 #day-popup.open{display:flex;}
 .day-pop-btn{width:42px;height:42px;border-radius:11px;background:var(--sky-light);border:2px solid var(--sky-mid);font-size:17px;font-weight:900;color:var(--blue-dark);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s;}
@@ -427,6 +429,7 @@ body.gps-fs #map{height:100%!important;}
         <button class="sort-btn active-tablet" id="sort-btn-tablet" onclick="toggleTabletGps()">📱 GPS Tablet</button>
         <button class="sort-btn" id="day-briefing-btn" onclick="alert('כרגע בפיתוח 🔧')" title="ניתוח יום — TOP 10 לקוחות" style="background:#5C6BC0;color:#fff;border-color:#3F51B5;font-weight:900">📊 ניתוח</button>
         <button class="sort-btn" id="gmaps-btn" onclick="openGoogleMaps()" title="פתח מסלול ב-Google Maps" style="background:#1a73e8;color:#fff;border-color:#1558b0;font-weight:700">🗺 Google</button>
+        <button class="sort-btn" id="print-btn" onclick="printRoute()" title="הדפסת מסלול — מפה + רשימה" style="background:#37474F;color:#fff;border-color:#263238;font-weight:700">🖨️</button>
         <div class="km-more-wrap">
           <button class="sort-btn km-more-btn" id="km-more-btn" onclick="toggleKmMore()" title="עוד פעולות">⋮</button>
           <div class="km-more-dd" id="km-more-dd">
@@ -472,6 +475,7 @@ body.gps-fs #map{height:100%!important;}
       </div>
     </div>
   </div>
+  <div id="print-header"></div>
   <div id="route-body">
     <div id="list-pane">
       <div id="client-list"></div>
@@ -898,21 +902,30 @@ function triggerOsrm() {
     if(st.tabletGpsMode){const t=TABLET_GPS[String(c.custId)];if(t?.lat&&t?.lng)return{...c,lat:t.lat,lng:t.lng};}
     return c;
   });
-  const ordered = nearestNeighbor([...clientsForSort]);
+  // Show nearest-neighbor immediately (fast)
+  const nnOrdered = nearestNeighbor([...clientsForSort]);
   if (st.agent?.code === snap.agentCode && st.day === snap.day) {
-    st.aiClients = ordered;
+    st.aiClients = nnOrdered;
     if (st.sortMode === 'ai') renderClientList();
   }
-  // OSRM /route/ for road geometry with 2-opt order
-  const withGps = ordered.filter(c => c.lat && c.lng);
-  osrmRoadData(withGps).then(res => {
-    if (!res) return;
+  // OSRM /trip/ — true TSP optimization, refines order asynchronously
+  osrmTripOrder([...clientsForSort], st.startLat, st.startLng).then(tripOrdered => {
     if (st.agent?.code !== snap.agentCode || st.day !== snap.day) return;
-    st.roadKm = res.roadKm;
-    st.roadDuration = res.roadDuration;
-    st.roadGeometry = res.roadGeometry;
-    updateKmBar();
-    if (window.innerWidth >= 700 || st.tab === 'map') renderMap();
+    if (tripOrdered) {
+      st.aiClients = tripOrdered;
+      if (st.sortMode === 'ai') { updateKmBar(); renderClientList(); }
+    }
+    const finalOrder = tripOrdered || nnOrdered;
+    const withGps = finalOrder.filter(c => c.lat && c.lng);
+    osrmRoadData(withGps).then(res => {
+      if (!res) return;
+      if (st.agent?.code !== snap.agentCode || st.day !== snap.day) return;
+      st.roadKm = res.roadKm;
+      st.roadDuration = res.roadDuration;
+      st.roadGeometry = res.roadGeometry;
+      updateKmBar();
+      if (window.innerWidth >= 700 || st.tab === 'map') renderMap();
+    });
   });
   // priority km (fixed visit order)
   osrmRoute(snap.clients).then(km => {
@@ -1544,6 +1557,7 @@ function toggleAiGps(){
     st.sortMode='priority';
     document.getElementById('sort-btn-priority').className='sort-btn active-priority';
     showToast('📍 GPS: מצב רגיל');
+    renderClientList();
   }
   if(st.tab==='map'||window.innerWidth>=700) renderMap();
 }
@@ -1590,6 +1604,80 @@ function fmtDuration(sec){
   if(!sec) return null;
   const h=Math.floor(sec/3600), m=Math.round((sec%3600)/60);
   return h>0 ? `${h}ש ${m}ד` : `${m}ד`;
+}
+
+function printRoute(){
+  const clients   = displayClients();
+  const pts       = clients.filter(c=>c.lat&&c.lng).map(c=>[c.lat,c.lng]);
+  const dateStr   = new Date().toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const dayStr    = DAY_LABELS[st.day]||String(st.day||'');
+  const agentName = st.agent?.name||st.agent?.code||'';
+  const startPt   = (st.startLat&&st.startLng) ? [st.startLat,st.startLng] : null;
+
+  const listRows = clients.map((c,i)=>`
+    <div class="row${c.iceOnly?' ice':''}">
+      <span class="num">${i+1}</span>
+      <span class="id">${c.custId||''}</span>
+      <span class="name">${(c.custName||'').replace(/</g,'&lt;')}</span>
+      <span class="city">${(c.city||'').replace(/</g,'&lt;')}</span>
+    </div>`).join('');
+
+  const html=`<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8">
+<title>הדפסת מסלול</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
+<style>
+@page{size:A4 landscape;margin:6mm;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Arial,sans-serif;display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+.hdr{background:#1A3F7C;color:#fff;padding:5px 10px;font-size:11px;font-weight:700;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+.body{display:flex;flex:1;overflow:hidden;direction:ltr;}
+#map{flex:1;height:100%;}
+.list{width:42%;border-left:1px solid #ddd;overflow-y:auto;direction:rtl;}
+.row{display:flex;gap:6px;padding:5px 8px;font-size:13px;border-bottom:1px solid #eee;align-items:center;}
+.row:nth-child(even){background:#f8f8f8;}
+.row.ice{background:#B2DFDB;}
+.num{font-weight:900;color:#1A3F7C;min-width:24px;text-align:center;font-size:13px;}
+.id{color:#999;min-width:60px;font-size:11px;}
+.name{flex:1;font-weight:600;}
+.city{color:#555;min-width:70px;font-size:11px;text-align:left;}
+</style></head><body>
+<div class="hdr">
+  <span>${agentName} · יום ${dayStr} · ${clients.length} לקוחות</span>
+  <span>${dateStr}</span>
+</div>
+<div class="body">
+  <div id="map"></div>
+  <div class="list" dir="rtl">${listRows}</div>
+</div>
+<script>
+const pts=${JSON.stringify(pts)};
+const startPt=${JSON.stringify(startPt)};
+document.addEventListener('DOMContentLoaded',function(){
+  const map=L.map('map',{zoomControl:false});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:''}).addTo(map);
+  // invalidateSize AFTER layout engine has computed flex dimensions
+  setTimeout(function(){
+    map.invalidateSize();
+    if(pts.length){
+      const poly=L.polyline(pts,{color:'#1A3F7C',weight:2.5,opacity:.9}).addTo(map);
+      map.fitBounds(poly.getBounds(),{padding:[32,32]});
+      if(startPt) L.circleMarker(startPt,{radius:7,color:'#fff',fillColor:'#27AE60',fillOpacity:1,weight:2}).addTo(map);
+      pts.forEach(function(p,i){
+        L.marker(p,{icon:L.divIcon({className:'',html:'<div style="background:#1A3F7C;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)">'+(i+1)+'</div>',iconSize:[22,22],iconAnchor:[11,11]})}).addTo(map);
+      });
+    } else {
+      map.setView([32.0,34.9],11);
+    }
+    // wait for tiles to load then print
+    setTimeout(function(){window.print();},1800);
+  },150);
+});
+<\/script></body></html>`;
+
+  const win=window.open('','_blank','width=1280,height=720');
+  win.document.write(html);
+  win.document.close();
 }
 
 function openGoogleMaps(){
@@ -2428,6 +2516,8 @@ async function exportXLSX(){
     noOrder:isNoOrder,
     custId:c.custId||'',
     custName:c.custName||'',
+    hevra:c.iceOnly?'ICE':(c.hevra||'FORMULA'),
+    iceOnly:!!c.iceOnly,
     dayLabel:c.dayLabel||DAY_LABELS[c.dayNum]||'',
     city:c.city||'',
     address:c.address||'',

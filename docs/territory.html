@@ -447,6 +447,8 @@ function toggleTabletGps(){
     });
     showToast('📍 GPS: רגיל');
   }
+  // recompute visit order with the new GPS source if AI-computed mode is active
+  if(st.sortMode==='visit'&&st.visitSource==='computed') computeVisitOrder(st.startCustId);
   renderAll();
 }
 const DAY_LBL = {1:'א',2:'ב',3:'ג',4:'ד',5:'ה'};
@@ -551,6 +553,10 @@ function nearestNeighborFrom(sLat,sLng,clients){
 function computeVisitOrder(pinFirstCustId){
   let clients=displayClients().map(c=>{
     if(c.gpsSource==='correction') return c;
+    if(st.tabletGpsMode){
+      const t=TABLET_GPS[String(c.custId)];
+      if(t?.lat&&t?.lng) return{...c,lat:t.lat,lng:t.lng};
+    }
     const ai=AI_GPS[String(c.custId)];
     return (ai?.aiLat&&ai?.aiLng)?{...c,lat:ai.aiLat,lng:ai.aiLng}:c;
   });
@@ -894,7 +900,9 @@ async function loadClients(cities){
   document.getElementById('agent-legend').innerHTML='';
   const cityArr=Array.isArray(cities)?cities:[cities];
   try{
-    const param=cityArr.map(c=>encodeURIComponent(c)).join(',');
+    // If all cities selected → send "ALL" to avoid URL length limit with Hebrew city names
+    const isAll = cityArr.length >= allCities.length && allCities.length > 0;
+    const param = isAll ? 'ALL' : cityArr.map(c=>encodeURIComponent(c)).join(',');
     const r=await apiFetch(`${API}/territory-clients?cities=${param}`);
     if(!r.ok) throw new Error(r.status);
     const data=await r.json();
@@ -922,10 +930,14 @@ async function loadClients(cities){
   // Save original PBI coords before AI GPS override (needed for tablet GPS toggle)
   st.allClients=st.allClients.map(c=>({...c,_pbiLat:c.lat,_pbiLng:c.lng}));
 
-  // Apply AI GPS as fallback for clients without manual correction (same as formula-road)
+  // Apply Tablet or AI GPS depending on active mode
   try{
     st.allClients=st.allClients.map(c=>{
       if(c.gpsSource==='correction') return c;
+      if(st.tabletGpsMode){
+        const t=TABLET_GPS[String(c.custId)];
+        if(t?.lat&&t?.lng) return{...c,lat:t.lat,lng:t.lng,gpsSource:'tablet'};
+      }
       const ai=AI_GPS[String(c.custId)];
       if(ai?.aiLat&&ai?.aiLng) return{...c,lat:ai.aiLat,lng:ai.aiLng,gpsSource:'ai'};
       return c;
@@ -1956,9 +1968,13 @@ async function init(){
   try{const r=await fetch(API+'/auth/pbi',{credentials:'include'});if(r.ok){const j=await r.json();if(j.ok&&j.token)localStorage.setItem(TOKEN_KEY,j.token);}}catch(_){}
   if(!getToken()){location.href=(location.hostname.includes('sverdlik-apps')?'/formula-road':('formula-road.html'))+'?next=territory.html';return;}
   await Promise.all([loadCities(), loadDropAgents(), loadManagers(), loadCorrections(), loadAiGps(), loadTabletGps()]);
-  if(!selectedCities.size){
-    ['ירושלים','מעלה אדומים','מבשרת ציון'].forEach(c=>{ if(allCities.includes(c)) selectedCities.add(c); });
-    if(selectedCities.size){ renderCityItems(allCities); updateCityBtn(); onCitiesChanged(); }
+  // Default: Tablet GPS mode on
+  st.tabletGpsMode = true;
+  const _tBtn = document.getElementById('tablet-gps-btn');
+  if(_tBtn) _tBtn.classList.add('active');
+  if(!selectedCities.size && allCities.length){
+    allCities.forEach(c=>selectedCities.add(c));
+    renderCityItems(allCities); updateCityBtn(); onCitiesChanged();
   }
 }
 init();

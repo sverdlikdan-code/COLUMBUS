@@ -8,15 +8,14 @@
 // слайдах, тёплый off-white на содержательных, один сдержанный акцент (охра) для выделений.
 // Рост/падение — не дефолтный зелёный/серый, а приглушённый шалфей / глина.
 const pptxgenjs = require('pptxgenjs');
-const { loadRows, pctChange, aggBy, fmtILS, fmtPct, DEPT_COMPANY, isolateLatin, getNewCustomerSet } = require('./sadran-data');
+const { loadRows, pctChange, aggBy, fmtILS, fmtPct, DEPT_COMPANY, getNewCustomerSet, isolateHebrew } = require('./sadran-data');
 
 const OUT = 'C:\\Users\\d.sverdlik\\Desktop\\SADRAN_REPORT_IMPECCABLE.pptx';
 
 // --- palette (OKLCH-informed, tinted neutrals — не чистый #000/#fff) ---
 const INK = '1B2430';        // глубокий чернильный (не чёрный) — секционные слайды
-const INK_SOFT = '2A3644';   // чуть светлее чернильного, для панелей на INK
 const PAPER = 'FAF7F2';      // тёплый off-white — фон содержательных слайдов
-const PAPER_LINE = 'E4DDD1'; // тонкая линия на PAPER
+const PAPER_LINE = 'D9CFBF'; // линия на PAPER — чуть плотнее исходной (E4DDD1 сливалась с фоном)
 const INK_TEXT = '2A2620';   // текст на PAPER — тёплый почти-чёрный
 const MUTED = '7A7264';      // второстепенный текст
 const GOLD = 'B8863B';       // единственный акцент — приглушённая охра
@@ -33,6 +32,14 @@ function colorForPct(p) {
   if (p < -0.02) return CLAY;
   return FLAT;
 }
+
+// barChartSolid — общие настройки веса для всех горизонтальных bar-чартов: уже зазор между
+// столбцами (толще сам столбец — выглядит как плотный блок, не тонкая полоска) + тонкая
+// PAPER-обводка отделяет соседние столбцы друг от друга и от фона чётче, чем голая заливка.
+const barChartSolid = {
+  barGapWidthPct: 45,
+  dataBorder: { pt: 1, color: PAPER },
+};
 
 function main() {
   const rows = loadRows();
@@ -51,17 +58,124 @@ function main() {
   // FMCG-дистрибуции). Новых клиентов сдаранам назначают, они их не приводят сами.
   const rowsExBdd = rows.filter(r => r.company !== 'ICE BDD');
   const newCustSet = getNewCustomerSet(rowsExBdd);
-  const bySadran = aggBy(rowsExBdd.filter(r => !newCustSet.has(r.custno)), r => r.sadran);
+  const sameStoreRows = rowsExBdd.filter(r => !newCustSet.has(r.custno));
+  const newCustRows = rowsExBdd.filter(r => newCustSet.has(r.custno));
+  const bySadran = aggBy(sameStoreRows, r => r.sadran);
   const byKosher = aggBy(rows, r => r.kosher);
   const byCustType = aggBy(rows, r => r.custtype).filter(b => b.now > 20000 || b.lastYear > 20000).slice(0, 10);
+
+  // --- Отдельные разрезы FORMULA и ICE MISH — КАЖДЫЙ САМ ПО СЕБЕ, не общий пул FORMULA+ICE MISH ---
+  const custKeyFI = r => `${r.custno}|${r.custname}|${r.sadran}|${r.kosher}`;
+  function buildCompanyDeepDive(company, minRevenue) {
+    const companyRows = rowsExBdd.filter(r => r.company === company);
+    const byDeptC = aggBy(companyRows, r => r.dept).sort((a, b) => b.delta - a.delta);
+    const byCustTypeC = aggBy(companyRows, r => r.custtype)
+      .filter(b => b.now > minRevenue || b.lastYear > minRevenue)
+      .sort((a, b) => b.delta - a.delta)
+      .slice(0, 8);
+    // Топ-10 клиентов КАЖДОГО סוג לקוח по |Δ| в ₪ (не по %) — новые клиенты тоже участвуют,
+    // их вклад в ₪ реален и может быть крупнейшим движением типа сети.
+    const custTypeTopMovers = {};
+    for (const ct of byCustTypeC) {
+      const typeRows = companyRows.filter(r => r.custtype === ct.key);
+      const byCust = aggBy(typeRows, custKeyFI).map(c => {
+        const [custno, custname, sadran, kosher] = c.key.split('|');
+        return { ...c, custno, custname, sadran, kosher };
+      });
+      custTypeTopMovers[ct.key] = byCust.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta)).slice(0, 10);
+    }
+    return { byDept: byDeptC, byCustType: byCustTypeC, custTypeTopMovers };
+  }
+  const deepDiveFORMULA = buildCompanyDeepDive('FORMULA', 10000);
+  const deepDiveICEMISH = buildCompanyDeepDive('ICE MISH', 5000);
 
   const custKey = r => `${r.custno}|${r.custname}`;
   const byCustomer = aggBy(rowsExBdd, custKey).map(c => {
     const [custno, custname] = c.key.split('|');
     return { ...c, custno, custname };
   });
-  const topGrowth = byCustomer.slice(0, 6);
-  const topDecline = byCustomer.slice(-6).reverse();
+  // Топ роста/падения — ТОЛЬКО same-store (та же логика, что у сдаранов): у новых клиентов
+  // % от нуля не определён ("н/д"), их нельзя ранжировать в одном списке с реальным %.
+  const byCustomerSameStore = byCustomer.filter(c => !newCustSet.has(c.custno));
+  const topGrowth = byCustomerSameStore.slice(0, 6);
+  const topDecline = byCustomerSameStore.slice(-6).reverse();
+  const topNewCustomers = byCustomer.filter(c => newCustSet.has(c.custno)).sort((a, b) => b.now - a.now).slice(0, 6);
+
+  // Топ роста/падения клиентов — отдельно по חברה (клиенты разных компаний не сравнимы
+  // напрямую в одном рейтинге).
+  const topGrowthByCompany = {};
+  const topDeclineByCompany = {};
+  for (const company of ['FORMULA', 'INTER', 'ICE MISH']) {
+    const companyRows = rowsExBdd.filter(r => r.company === company);
+    const newSetC = getNewCustomerSet(companyRows);
+    const sameStoreC = companyRows.filter(r => !newSetC.has(r.custno));
+    const byCustC = aggBy(sameStoreC, custKey).map(c => {
+      const [custno, custname] = c.key.split('|');
+      return { ...c, custno, custname };
+    });
+    topGrowthByCompany[company] = byCustC.slice(0, 6);
+    topDeclineByCompany[company] = byCustC.slice(-6).reverse();
+  }
+
+  // --- Данные для по-компанийных "Наблюдений" (FORMULA / ICE MISH) — только реально
+  // вычисленные значения, без хардкода конкретных имён/цифр. ---
+  function paretoRisk(companyRows) {
+    const totals = new Map();
+    for (const r of companyRows) {
+      if (!totals.has(r.custno)) totals.set(r.custno, { lastYear: 0, now: 0 });
+      const c = totals.get(r.custno);
+      c.lastYear += r.lastYear;
+      c.now += r.now;
+    }
+    const grand = [...totals.values()].reduce((s, v) => s + v.now, 0);
+    const ranked = [...totals.entries()].sort((a, b) => b[1].now - a[1].now);
+    let cum = 0;
+    const paretoSet = new Set();
+    for (const [c, v] of ranked) {
+      cum += v.now;
+      paretoSet.add(c);
+      if (cum >= 0.70 * grand) break;
+    }
+    const deptByCust = new Map();
+    for (const r of companyRows) {
+      if (!paretoSet.has(r.custno)) continue;
+      if (!deptByCust.has(r.custno)) deptByCust.set(r.custno, new Map());
+      const dm = deptByCust.get(r.custno);
+      if (!dm.has(r.dept)) dm.set(r.dept, { lastYear: 0, now: 0 });
+      const d = dm.get(r.dept);
+      d.lastYear += r.lastYear;
+      d.now += r.now;
+    }
+    let flagCount = 0;
+    for (const custno of paretoSet) {
+      const dm = deptByCust.get(custno) || new Map();
+      let flagged = false;
+      for (const d of dm.values()) {
+        if (d.lastYear > 0 && d.now === 0) flagged = true;
+        else if (d.lastYear > 0 && d.now > 0 && (d.now - d.lastYear) / d.lastYear < -0.30) flagged = true;
+      }
+      if (flagged) flagCount++;
+    }
+    return { paretoCount: paretoSet.size, totalCount: totals.size, flagCount };
+  }
+  function companyInsightData(company, minRevenue) {
+    const companyRows = rows.filter(r => r.company === company);
+    const deptStats = aggBy(companyRows, r => r.dept).sort((a, b) => b.delta - a.delta);
+    const custTypeStats = aggBy(companyRows, r => r.custtype)
+      .filter(b => b.now > minRevenue || b.lastYear > minRevenue)
+      .sort((a, b) => b.delta - a.delta);
+    const custKeyC = r => `${r.custno}|${r.custname}|${r.sadran}|${r.kosher}`;
+    const custStats = aggBy(companyRows, custKeyC).map(c => {
+      const [custno, custname, sadran, kosher] = c.key.split('|');
+      return { ...c, custno, custname, sadran, kosher };
+    }).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+    return { deptStats, custTypeStats, topCustomer: custStats[0], pareto: paretoRisk(companyRows) };
+  }
+  const insightsFORMULA = companyInsightData('FORMULA', 10000);
+  const insightsICEMISH = companyInsightData('ICE MISH', 5000);
+  function signedILS(n) {
+    return (n >= 0 ? '+' : '−') + fmtILS(Math.abs(n));
+  }
 
   const custTotals = new Map();
   for (const r of rows) {
@@ -87,7 +201,7 @@ function main() {
     else if (ly > 0 && now > 0 && now <= ly) declineDelta += d;
     else otherDelta += d;
   }
-  const churnAndOther = churnDelta + otherDelta; // сворачиваем незначительный "other" (₪182) в отток
+  const churnAndOther = churnDelta + otherDelta; // сворачиваем незначительный "other" в отток
   const wf = [
     { label: 'Прошлый\nпериод', base: 0, value: totalLY, kind: 'end' },
     { label: 'Новые\nклиенты', base: totalLY, value: newDelta, kind: 'pos' },
@@ -122,9 +236,14 @@ function main() {
 
   function contentHeader(s, kicker, title) {
     s.background = { color: PAPER };
-    s.addText(kicker.toUpperCase(), {
-      x: 0.7, y: 0.5, w: 11.5, h: 0.35, fontSize: 11, color: GOLD, charSpacing: 2, bold: true, fontFace: SANS,
-    });
+    // Золотой якорь перед kicker — тот же уверенный акцент, что и на divider-слайдах
+    // (там gold-линия под заголовком), иначе content-слайды визуально "легче" divider-слайдов.
+    s.addShape('rect', { x: 0.7, y: 0.53, w: 0.09, h: 0.24, fill: { color: GOLD }, line: { type: 'none' } });
+    const kickerOpts = { x: 0.92, y: 0.5, w: 11.3, h: 0.35, fontSize: 11, color: GOLD, charSpacing: 2, bold: true, fontFace: SANS };
+    // Kicker иногда смешивает иврит с латинским разделителем ("סדרן x מחלקה") — без явного
+    // rtl+lang PowerPoint путает порядок слов вокруг нейтрального символа.
+    if (/[֐-׿]/.test(kicker)) { kickerOpts.rtlMode = true; kickerOpts.lang = 'he-IL'; }
+    s.addText(kicker.toUpperCase(), kickerOpts);
     s.addText(title, {
       x: 0.7, y: 0.82, w: 11.5, h: 0.7, fontSize: 26, color: INK_TEXT, fontFace: SERIF,
     });
@@ -170,6 +289,7 @@ function main() {
       plotArea: { border: { type: 'none' } },
       catGridLine: { style: 'none' }, valGridLine: { style: 'none' },
       border: { type: 'none' },
+      ...barChartSolid,
     });
     // подписи значений над столбцами (свои, а не встроенные — чтобы не подписывать невидимую базу
     // и явно показать знак: падение/отток — это МИНУС, даже если хранится как положительная величина)
@@ -182,7 +302,7 @@ function main() {
         color: w.kind === 'end' ? INK_TEXT : (w.kind === 'pos' ? SAGE : CLAY), fontFace: SANS,
       });
     });
-    s.addText('Валовые потоки (рост + новые ≈ ₪6.46M) в разы больше падения и оттока (≈ ₪2.0M) — чистый итог +15.8% прячет намного более динамичную картину под собой.', {
+    s.addText('Валовые потоки (рост + новые) в разы больше падения и оттока — чистый итог прячет намного более динамичную картину под собой.', {
       x: 0.7, y: 6.95, w: 11.9, h: 0.4, fontSize: 11, color: MUTED, fontFace: SANS, italic: true,
     });
   }
@@ -230,7 +350,7 @@ function main() {
   {
     const s = pptx.addSlide();
     contentHeader(s, 'מחלקה', 'Рост / падение по департаментам');
-    const chartData = [{ name: '% изменение', labels: byDept.map(b => isolateLatin(b.key)), values: byDept.map(b => Math.round((b.pct || 0) * 1000) / 10) }];
+    const chartData = [{ name: '% изменение', labels: byDept.map(b => b.key), values: byDept.map(b => Math.round((b.pct || 0) * 1000) / 10) }];
     s.addChart(pptx.ChartType.bar, chartData, {
       x: 0.6, y: 1.9, w: 12.1, h: 5.1, barDir: 'bar',
       chartColors: byDept.map(b => colorForPct(b.pct)),
@@ -241,6 +361,8 @@ function main() {
       catAxisLabelColor: INK_TEXT, valAxisLabelColor: MUTED,
       plotArea: { border: { type: 'none' } },
       catGridLine: { style: 'none' }, valGridLine: { color: PAPER_LINE, style: 'solid', size: 0.5 },
+      ...barChartSolid,
+      valAxisCrossesAt: 'min',
     });
   }
 
@@ -259,42 +381,42 @@ function main() {
       catAxisLabelColor: INK_TEXT, valAxisLabelColor: MUTED,
       plotArea: { border: { type: 'none' } },
       catGridLine: { style: 'none' }, valGridLine: { color: PAPER_LINE, style: 'solid', size: 0.5 },
+      ...barChartSolid,
+      valAxisCrossesAt: 'min',
     });
   }
 
-  // ---------- Slide — Сдаран x Департамент, same-store, крупнейшие сдвиги ----------
+  // ---------- Slides — Сдаран x חברה, same-store — без разбивки по מחלקה (лишняя детализация) ----------
   {
-    const s = pptx.addSlide();
-    contentHeader(s, 'סדרן x מחלקה', 'Крупнейшие сдвиги (same-store)');
-    const newSet2 = getNewCustomerSet(rowsExBdd);
-    const ssRows2 = rowsExBdd.filter(r => !newSet2.has(r.custno));
-    const newRows2 = rowsExBdd.filter(r => newSet2.has(r.custno));
-    const sdAll = aggBy(ssRows2, r => `${r.sadran}|${r.dept}`).map(b => {
-      const [sadran, dept] = b.key.split('|');
-      return { ...b, sadran, dept };
-    });
-    const sdNewMap = new Map(aggBy(newRows2, r => `${r.sadran}|${r.dept}`).map(b => [b.key, b.now]));
-    const sdMovers = [...sdAll].sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta)).slice(0, 12)
-      .sort((a, b) => b.delta - a.delta);
-    let ty = 1.9;
-    // заголовок таблицы вручную (редакторский стиль — тонкая линия, не заливка)
-    const cols = [0.6, 3.0, 5.6, 9.7, 11.1];
-    ['Сдаран', 'Департамент', 'Прошлый → Текущий', '%', '+ Новые'].forEach((h, i) => {
-      s.addText(h, { x: cols[i], y: ty, w: (cols[i + 1] || 12.5) - cols[i], h: 0.3, fontSize: 10, bold: true, color: GOLD, fontFace: SANS });
-    });
-    s.addShape('line', { x: 0.6, y: ty + 0.32, w: 11.9, h: 0, line: { color: PAPER_LINE, width: 1 } });
-    ty += 0.42;
-    sdMovers.forEach(b => {
-      const newVal = sdNewMap.get(`${b.sadran}|${b.dept}`) || 0;
-      s.addText(b.sadran, { x: cols[0], y: ty, w: cols[1] - cols[0], h: 0.32, fontSize: 10, color: INK_TEXT, fontFace: SANS });
-      s.addText(b.dept, { x: cols[1], y: ty, w: cols[2] - cols[1], h: 0.32, fontSize: 10, color: INK_TEXT, fontFace: SANS });
-      s.addText(`${fmtILS(b.lastYear)} → ${fmtILS(b.now)}`, { x: cols[2], y: ty, w: cols[3] - cols[2], h: 0.32, fontSize: 9.5, color: MUTED, fontFace: SANS });
-      s.addText(fmtPct(b.pct), { x: cols[3], y: ty, w: cols[4] - cols[3], h: 0.32, fontSize: 10, bold: true, color: colorForPct(b.pct), fontFace: SANS });
-      s.addText(newVal ? '+' + fmtILS(newVal) : '—', { x: cols[4], y: ty, w: 12.5 - cols[4], h: 0.32, fontSize: 9.5, color: GOLD, fontFace: SANS });
-      ty += 0.345;
-    });
-    s.addText('% — только клиенты с историей прошлого года (same-store). Новые клиенты — отдельно, вне %.', {
-      x: 0.7, y: 7.05, w: 11.9, h: 0.3, fontSize: 9.5, color: MUTED, fontFace: SANS, italic: true,
+    ['FORMULA', 'INTER', 'ICE MISH'].forEach(company => {
+      const companySameStore = sameStoreRows.filter(r => r.company === company);
+      const companyNew = newCustRows.filter(r => r.company === company);
+      const newBySadranC = new Map(aggBy(companyNew, r => r.sadran).map(b => [b.key, b.now]));
+      const sadranMovers = aggBy(companySameStore, r => r.sadran)
+        .sort((a, b) => b.delta - a.delta)
+        .map(b => ({ ...b, sadran: b.key, newVal: newBySadranC.get(b.key) || 0 }));
+      if (!sadranMovers.length) return;
+      const s = pptx.addSlide();
+      contentHeader(s, `סדרן x חברה · ${company}`, `Сдаран x חברה (same-store) — ${company}`);
+      let ty = 1.9;
+      // заголовок таблицы вручную (редакторский стиль — тонкая линия, не заливка)
+      const cols = [0.6, 4.6, 7.6, 9.7, 11.1];
+      ['Сдаран', 'Прошлый → Текущий', '%', '+ Новые'].forEach((h, i) => {
+        s.addText(h, { x: cols[i], y: ty, w: (cols[i + 1] || 12.5) - cols[i], h: 0.3, fontSize: 10, bold: true, color: GOLD, fontFace: SANS });
+      });
+      s.addShape('line', { x: 0.6, y: ty + 0.32, w: 11.9, h: 0, line: { color: PAPER_LINE, width: 1 } });
+      ty += 0.42;
+      sadranMovers.forEach(b => {
+        s.addText(b.sadran, { x: cols[0], y: ty, w: cols[1] - cols[0], h: 0.32, fontSize: 10, color: INK_TEXT, fontFace: SANS, rtlMode: true, lang: 'he-IL' });
+        s.addText(`${fmtILS(b.lastYear)} → ${fmtILS(b.now)}`, { x: cols[1], y: ty, w: cols[2] - cols[1], h: 0.32, fontSize: 9.5, color: MUTED, fontFace: SANS });
+        s.addText(fmtPct(b.pct), { x: cols[2], y: ty, w: cols[3] - cols[2], h: 0.32, fontSize: 10, bold: true, color: colorForPct(b.pct), fontFace: SANS });
+        s.addText(b.newVal ? '+' + fmtILS(b.newVal) : '—', { x: cols[3], y: ty, w: 12.5 - cols[3], h: 0.32, fontSize: 9.5, color: GOLD, fontFace: SANS });
+        s.addShape('line', { x: 0.6, y: ty + 0.34, w: 11.9, h: 0, line: { color: PAPER_LINE, width: 0.75 } });
+        ty += 0.4;
+      });
+      s.addText('% — только клиенты с историей прошлого года (same-store). Новые клиенты — отдельно, вне %.', {
+        x: 0.7, y: 7.05, w: 11.9, h: 0.3, fontSize: 9.5, color: MUTED, fontFace: SANS, italic: true,
+      });
     });
   }
 
@@ -313,45 +435,150 @@ function main() {
       catAxisLabelColor: INK_TEXT, valAxisLabelColor: MUTED,
       plotArea: { border: { type: 'none' } },
       catGridLine: { style: 'none' }, valGridLine: { color: PAPER_LINE, style: 'solid', size: 0.5 },
+      ...barChartSolid,
+      valAxisCrossesAt: 'min',
     });
+  }
+
+  // ---------- Разделы: FORMULA и ICE MISH — каждая компания полностью отдельно ----------
+  for (const [company, deep] of [['FORMULA', deepDiveFORMULA], ['ICE MISH', deepDiveICEMISH]]) {
+    divider('Разрез 2.5', `${company} отдельно`, 'Без остальных компаний — изолированный разрез');
+
+    // Пропускаем מחלקה chart для компаний с одним департаментом (ICE MISH — только mish גלידה):
+    // сравнивать не с чем, график из одного столбца бесполезен.
+    if (deep.byDept.length > 1) {
+      const s = pptx.addSlide();
+      contentHeader(s, `מחלקה · ${company}`, 'Рост / падение по департаментам');
+      const chartData = [{ name: '% изменение', labels: deep.byDept.map(b => b.key), values: deep.byDept.map(b => Math.round((b.pct || 0) * 1000) / 10) }];
+      s.addChart(pptx.ChartType.bar, chartData, {
+        x: 0.6, y: 1.9, w: 12.1, h: 5.1, barDir: 'bar',
+        chartColors: deep.byDept.map(b => colorForPct(b.pct)),
+        valAxisTitle: '% изменение', showValAxisTitle: true,
+        showLegend: false, showTitle: false,
+        dataLabelColor: INK_TEXT, showValue: true, dataLabelFormatCode: '+0.0"%";-0.0"%"',
+        catAxisLabelFontSize: 12, valAxisLabelFontSize: 10,
+        catAxisLabelColor: INK_TEXT, valAxisLabelColor: MUTED,
+        plotArea: { border: { type: 'none' } },
+        catGridLine: { style: 'none' }, valGridLine: { color: PAPER_LINE, style: 'solid', size: 0.5 },
+        ...barChartSolid,
+        valAxisCrossesAt: 'min',
+      });
+    }
+
+    // ---------- Slide — סוג לקוח chart ----------
+    {
+      const s = pptx.addSlide();
+      contentHeader(s, `סוג לקוח · ${company}`, 'Рост / падение по типу клиента');
+      const chartData = [{ name: '% изменение', labels: deep.byCustType.map(b => b.key), values: deep.byCustType.map(b => Math.round((b.pct || 0) * 1000) / 10) }];
+      s.addChart(pptx.ChartType.bar, chartData, {
+        x: 0.6, y: 1.9, w: 12.1, h: 5.1, barDir: 'bar',
+        chartColors: deep.byCustType.map(b => colorForPct(b.pct)),
+        valAxisTitle: '% изменение', showValAxisTitle: true,
+        showLegend: false, showTitle: false,
+        dataLabelColor: INK_TEXT, showValue: true, dataLabelFormatCode: '+0.0"%";-0.0"%"',
+        catAxisLabelFontSize: 11, valAxisLabelFontSize: 10,
+        catAxisLabelColor: INK_TEXT, valAxisLabelColor: MUTED,
+        plotArea: { border: { type: 'none' } },
+        catGridLine: { style: 'none' }, valGridLine: { color: PAPER_LINE, style: 'solid', size: 0.5 },
+        ...barChartSolid,
+        valAxisCrossesAt: 'min',
+      });
+      s.addText(`Только ${company}. Топ-8 типов по обороту.`, {
+        x: 0.7, y: 7.05, w: 11.9, h: 0.3, fontSize: 9.5, color: MUTED, fontFace: SANS, italic: true,
+      });
+    }
+
+    // ---------- Slides — топ-10 клиентов КАЖДОГО סוג לקוח по величине отклонения ----------
+    for (const ct of deep.byCustType) {
+      const list = deep.custTypeTopMovers[ct.key];
+      if (!list.length) continue;
+      const s = pptx.addSlide();
+      contentHeader(s, `סוג לקוח: ${ct.key} · ${company}`, 'Топ-10 отклонений');
+      let ty = 1.9;
+      const cols = [0.6, 5.3, 7.3, 9.3, 11.1];
+      ['Клиент', 'Сдаран', 'Прошлый → Текущий', '%'].forEach((h, i) => {
+        s.addText(h, { x: cols[i], y: ty, w: cols[i + 1] - cols[i], h: 0.3, fontSize: 10, bold: true, color: GOLD, fontFace: SANS });
+      });
+      s.addShape('line', { x: 0.6, y: ty + 0.32, w: 11.9, h: 0, line: { color: PAPER_LINE, width: 1 } });
+      ty += 0.42;
+      list.forEach(c => {
+        s.addText(String(c.custname || '').slice(0, 45), { x: cols[0], y: ty, w: cols[1] - cols[0], h: 0.32, fontSize: 9.5, color: INK_TEXT, fontFace: SANS, rtlMode: true, lang: 'he-IL' });
+        s.addText(c.sadran || '', { x: cols[1], y: ty, w: cols[2] - cols[1], h: 0.32, fontSize: 9.5, color: INK_TEXT, fontFace: SANS, rtlMode: true, lang: 'he-IL' });
+        s.addText(`${fmtILS(c.lastYear)} → ${fmtILS(c.now)}`, { x: cols[2], y: ty, w: cols[3] - cols[2], h: 0.32, fontSize: 9.5, color: MUTED, fontFace: SANS });
+        s.addText(fmtPct(c.pct), { x: cols[3], y: ty, w: 12.5 - cols[3], h: 0.32, fontSize: 10, bold: true, color: colorForPct(c.pct), fontFace: SANS });
+        s.addShape('line', { x: 0.6, y: ty + 0.34, w: 11.9, h: 0, line: { color: PAPER_LINE, width: 0.75 } });
+        ty += 0.42;
+      });
+      s.addText('Ранжировано по |Δ в ₪| (не по %) — новые клиенты (% "н/д") тоже могут быть крупнейшим движением.', {
+        x: 0.7, y: 7.05, w: 11.9, h: 0.3, fontSize: 9.5, color: MUTED, fontFace: SANS, italic: true,
+      });
+    }
   }
 
   // ---------- Divider: insights ----------
   divider('Разрез 3', 'Что заметно в данных', 'Паттерны, которые прячутся за средними цифрами');
 
-  // ---------- Slide — insight quotes (editorial, no bullets-as-cards) ----------
-  {
+  // ---------- Slides — наблюдения по FORMULA / ICE MISH отдельно (editorial, no bullets-as-cards) ----------
+  // Не общий кросс-компанийный слайд — INTER/ICE BDD сюда не попадают, они не сравнимы напрямую
+  // с FORMULA/ICE MISH. Все цифры — из реально вычисленных deptStats/custTypeStats/topCustomer/pareto.
+  function buildCompanyInsights(company, data) {
+    const items = [];
+    const paretoPct = data.pareto.totalCount ? (data.pareto.paretoCount / data.pareto.totalCount * 100).toFixed(0) : '0';
+    items.push({ k: 'Концентрация', t: `${data.pareto.paretoCount} клиентов (${paretoPct}% базы) дают 70% выручки — из них ${data.pareto.flagCount} уже проседают >=30% в отдельном מחלקה, даже если их общий итог положительный.`, c: GOLD });
+    if (data.deptStats.length > 1) {
+      const best = data.deptStats[0], worst = data.deptStats[data.deptStats.length - 1];
+      const worstLabel = worst.delta < 0 ? 'худший' : 'наименьший рост';
+      items.push({ k: 'מחלקה', t: `Лучший — ${best.key} (${fmtPct(best.pct)}, ${signedILS(best.delta)}), ${worstLabel} — ${worst.key} (${fmtPct(worst.pct)}, ${signedILS(worst.delta)}).`, c: worst.delta < 0 ? CLAY : SAGE });
+    }
+    if (data.custTypeStats.length > 1) {
+      const best = data.custTypeStats[0], worst = data.custTypeStats[data.custTypeStats.length - 1];
+      const worstLabel = worst.delta < 0 ? 'худший' : 'наименьший рост';
+      items.push({ k: 'סוג לקוח', t: `Лучший — ${best.key} (${fmtPct(best.pct)}, ${signedILS(best.delta)}), ${worstLabel} — ${worst.key} (${fmtPct(worst.pct)}, ${signedILS(worst.delta)}).`, c: worst.delta < 0 ? CLAY : SAGE });
+    }
+    if (data.topCustomer) {
+      const c = data.topCustomer;
+      const pctLabel = c.lastYear > 0 ? fmtPct(c.pct) : 'новый клиент';
+      items.push({ k: 'Клиент', t: `Крупнейшее движение: ${c.custname} (сдаран ${c.sadran}) — ${fmtILS(c.lastYear)} → ${fmtILS(c.now)} (${pctLabel}).`, c: c.delta >= 0 ? SAGE : CLAY });
+    }
+    return items.map(item => ({ ...item, t: isolateHebrew(item.t) }));
+  }
+  for (const [company, data] of [['FORMULA', insightsFORMULA], ['ICE MISH', insightsICEMISH]]) {
     const s = pptx.addSlide();
-    contentHeader(s, 'Наблюдения', 'Выводы и рекомендации');
-    const insights = [
-      { k: 'קשת טעמים', t: 'Шесть филиалов одной сети синхронно теряют מדף (-32%…-58%) — решение уровня закупки сети, не единичный случай.', c: CLAY },
-      { k: 'קפוא ❄', t: 'Компания в целом стабильна (+3.6%), но за этим средним — города вроде רעננה (-66%) и בת ים (+48%) гасят друг друга.', c: GOLD },
-      { k: 'ICE BDD', t: 'Падение (-3.3%) не от оттока клиентов, а от снижения объёма у активных — и товар идёт через OneSales, не через сдаранов.', c: CLAY },
-      { k: 'INTER', t: 'Рост +51.6% здоровый и широкий: same-store сам по себе +44.7%, без учёта новых точек.', c: SAGE },
-    ];
+    contentHeader(s, `Наблюдения · ${company}`, 'Выводы и рекомендации');
+    const items = buildCompanyInsights(company, data);
     let y = 2.0;
-    insights.forEach(item => {
-      s.addText(item.k, { x: 0.7, y, w: 2.6, h: 1.1, fontSize: 15, bold: true, color: item.c, fontFace: SANS, valign: 'top' });
+    items.forEach(item => {
+      const kOpts = { x: 0.7, y, w: 2.6, h: 1.1, fontSize: 15, bold: true, color: item.c, fontFace: SANS, valign: 'top' };
+      if (/[֐-׿]/.test(item.k)) { kOpts.rtlMode = true; kOpts.lang = 'he-IL'; }
+      s.addText(item.k, kOpts);
       s.addText(item.t, { x: 3.5, y, w: 9.1, h: 1.1, fontSize: 14, color: INK_TEXT, fontFace: SERIF, valign: 'top', wrap: true });
       y += 1.25;
     });
   }
 
   // ---------- Slide — top movers (editorial table, minimal chrome) ----------
-  function moversSlide(kicker, title, list, color) {
+  function moversSlide(kicker, title, list, color, isNew) {
     const s = pptx.addSlide();
     contentHeader(s, kicker, title);
     let y = 2.0;
     list.forEach(c => {
-      s.addText(c.custname || '', { x: 0.7, y, w: 8.3, h: 0.55, fontSize: 13, color: INK_TEXT, fontFace: SANS, valign: 'middle' });
+      s.addText(c.custname || '', { x: 0.7, y, w: 8.3, h: 0.55, fontSize: 13, color: INK_TEXT, fontFace: SANS, valign: 'middle', rtlMode: true, lang: 'he-IL' });
       s.addText(`${fmtILS(c.lastYear)} → ${fmtILS(c.now)}`, { x: 9.1, y, w: 2.3, h: 0.55, fontSize: 10.5, color: MUTED, fontFace: SANS, valign: 'middle' });
-      s.addText(fmtPct(c.pct), { x: 11.5, y, w: 1.1, h: 0.55, fontSize: 13, bold: true, color, align: 'right', fontFace: SANS, valign: 'middle' });
+      s.addText(isNew ? 'новый' : fmtPct(c.pct), { x: 11.5, y, w: 1.1, h: 0.55, fontSize: 13, bold: true, color, align: 'right', fontFace: SANS, valign: 'middle' });
       s.addShape('line', { x: 0.7, y: y + 0.5, w: 11.9, h: 0, line: { color: PAPER_LINE, width: 1 } });
       y += 0.58;
     });
+    if (isNew) {
+      s.addText('Клиенты без истории прошлого года — % не определён (рост от нуля). Не входят в same-store топ роста.', {
+        x: 0.7, y: 6.9, w: 11.9, h: 0.35, fontSize: 9.5, color: MUTED, fontFace: SANS, italic: true,
+      });
+    }
   }
-  moversSlide('Клиенты', 'Топ роста', topGrowth, SAGE);
-  moversSlide('Клиенты', 'Топ падения', topDecline, CLAY);
+  for (const company of ['FORMULA', 'INTER', 'ICE MISH']) {
+    if (topGrowthByCompany[company].length) moversSlide('Клиенты', `Топ роста · ${company}`, topGrowthByCompany[company], SAGE);
+    if (topDeclineByCompany[company].length) moversSlide('Клиенты', `Топ падения · ${company}`, topDeclineByCompany[company], CLAY);
+  }
+  if (topNewCustomers.length) moversSlide('Клиенты', 'Топ новых клиентов', topNewCustomers, GOLD, true);
 
   // ---------- Closing ----------
   {

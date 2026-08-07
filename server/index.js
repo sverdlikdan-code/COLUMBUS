@@ -283,6 +283,11 @@ SELECTCOLUMNS(
           const city    = expandCityAbbrev(fixBiDi(rawCity));
           const address = expandCityAbbrev(fixBiDiAddress(rawAddr));
 
+          // Inherit agentName + manager from Formula byAgent (same agentCode = מס.סוכן נוסף)
+          const _formulaAgentClients = byAgent.get(agentCode);
+          const _agentName = _formulaAgentClients?.[0]?.agentName || '';
+          const _manager   = _formulaAgentClients?.[0]?.manager   || '';
+
           if (!iceByAgent.has(agentCode)) iceByAgent.set(agentCode, []);
           iceByAgent.get(agentCode).push({
             custId,
@@ -292,8 +297,8 @@ SELECTCOLUMNS(
             lat:           null,
             lng:           null,
             agentCode,
-            agentName:     '',
-            manager:       '',
+            agentName:     _agentName,
+            manager:       _manager,
             dayNum,
             dayLabel:      dayLetter,
             priorityOrder: 9000,
@@ -1291,12 +1296,17 @@ app.get('/managers', requireAuth, async (req, res) => {
   res.json(pbiCache.managers.map(m => ({ managerCode: m })));
 });
 
-// GET /territory-cities — unique cities from PBI cache
+// GET /territory-cities — unique cities from PBI cache (Formula + ICE)
 app.get('/territory-cities', requireAuth, async (req, res) => {
   if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
   const cities = new Set();
   for (const clients of pbiCache.byAgent.values()) {
     for (const c of clients) { if (c.city) cities.add(c.city); }
+  }
+  if (pbiCache.iceByAgent) {
+    for (const clients of pbiCache.iceByAgent.values()) {
+      for (const c of clients) { if (c.city) cities.add(c.city); }
+    }
   }
   res.json([...cities].sort((a,b) => a.localeCompare(b, 'he')));
 });
@@ -1323,7 +1333,9 @@ app.get('/territory-clients', requireAuth, dataRateLimit, async (req, res) => {
   const raw = cities || city;
   if (!raw) return res.status(400).json({ error: 'cities required' });
   if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
-  const citySet = new Set(raw.split(',').map(c => c.trim()).filter(Boolean));
+  const cityAll = raw.trim() === 'ALL';
+  const citySet = cityAll ? null : new Set(raw.split(',').map(c => c.trim()).filter(Boolean));
+  console.log(`[territory-clients] cities=${cityAll?'ALL':citySet?.size}, iceByAgent=${pbiCache.iceByAgent?.size||0}`);
   const results = [];
   const seen = new Set();
   const formulaCustIds = new Set(); // for ICE dedup: skip custIds already in formula list
@@ -1362,7 +1374,7 @@ app.get('/territory-clients', requireAuth, dataRateLimit, async (req, res) => {
   const clientsForBatch = [];
   for (const [agentCode, clients] of pbiCache.byAgent) {
     for (const c of clients) {
-      if (!c.city || !citySet.has(c.city)) continue;
+      if (!cityAll && (!c.city || !citySet.has(c.city))) continue;
       const corr = corrections[String(c.custId)];
       const enriched = corr
         ? { ...c, lat: corr.lat, lng: corr.lng, gpsSource: 'correction' }
@@ -1373,16 +1385,18 @@ app.get('/territory-clients', requireAuth, dataRateLimit, async (req, res) => {
   }
   if (pbiCache.iceByAgent) {
     for (const [agentCode, clients] of pbiCache.iceByAgent) {
-      if (!pbiCache.byAgent.has(agentCode)) continue;
       const formulaClients = pbiCache.byAgent.get(agentCode);
-      const agentName = formulaClients?.[0]?.agentName || agentCode;
+      const agentName = formulaClients?.[0]?.agentName
+        || clients.find(c => c.agentName)?.agentName
+        || agentCode;
       for (const c of clients) {
-        if (!c.city || !citySet.has(c.city)) continue;
+        if (!cityAll && (!c.city || !citySet.has(c.city))) continue;
         if (formulaCustIds.has(c.custId)) continue;
         clientsForBatch.push({ _agentCode: agentCode, _extra: { hevra: 'ICE', iceOnly: true, agentName }, client: { ...c } });
       }
     }
   }
+  console.log(`[territory-clients] formula=${formulaCustIds.size}, ice=${clientsForBatch.filter(x=>x._extra.iceOnly).length}`);
 
   // geocodeBatch: bbox check + re-geocode for clients outside city bbox (same as /customers)
   const rawClients = clientsForBatch.map(x => x.client);
@@ -1874,8 +1888,13 @@ app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, re
   const { agentCode, agentName, dayOverrides = {}, savedOrders = {} } = req.body;
   if (!agentCode) return res.status(400).json({ error: 'agentCode required' });
   if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
-  const allClients = pbiCache.byAgent.get(agentCode) || [];
-  if (!allClients.length) return res.status(404).json({ error: 'no clients' });
+  const formulaClients = pbiCache.byAgent.get(agentCode) || [];
+  if (!formulaClients.length) return res.status(404).json({ error: 'no clients' });
+  // Merge ICE-only clients (same logic as /customers)
+  const allFormulaIds = new Set(formulaClients.map(c => c.custId));
+  const iceAll = pbiCache.iceByAgent?.get(agentCode) || [];
+  const iceOnly = iceAll.filter(c => !allFormulaIds.has(c.custId));
+  const allClients = [...formulaClients, ...iceOnly];
   const corrPath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
   const corrections = fs.existsSync(corrPath) ? JSON.parse(fs.readFileSync(corrPath, 'utf8')) : {};
   const aiGpsPath = path.join(__dirname, '..', 'docs', 'google-gps.json');
@@ -1916,6 +1935,7 @@ app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, re
     const ws = wb.addWorksheet(day, { views:[{ rightToLeft:true, state:'frozen', ySplit:1 }] });
     const COLS = [
       {name:'סדר ביקור מתוקן',width:8},{name:'מס. לקוח',width:14},{name:'שם לקוח',width:28},
+      {name:'חברה',width:10},
       {name:'עיר',width:16},{name:'כתובת',width:26},{name:'קו רוחב',width:13},{name:'קו אורך',width:13},
       {name:'GPS',width:14},{name:'סדר ביקור PRIORITY',width:15},
       {name:'קו רוחב Google',width:14},{name:'קו אורך Google',width:14},
@@ -1934,12 +1954,13 @@ app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, re
         gps = isChanged ? '✓ CHANGED' : '✓';
       }
       const ai = aiGps[String(c.custId)];
+      const hevra = c.iceOnly ? 'ICE' : 'FORMULA';
       return {
-        row:[i+1,String(c.custId||''),c.custName||'',c.city||'',c.address||'',
+        row:[i+1,String(c.custId||''),c.custName||'',hevra,c.city||'',c.address||'',
           lat?+parseFloat(lat).toFixed(6):'', lng?+parseFloat(lng).toFixed(6):'',
           gps, c.priorityOrder||'',
           ai?.aiLat||'', ai?.aiLng||''],
-        isChanged, gpsSource:c.gpsSource||null, noOrder:!c.priorityOrder, even:i%2===0,
+        isChanged, gpsSource:c.gpsSource||null, noOrder:!c.priorityOrder, even:i%2===0, isIce:!!c.iceOnly,
       };
     });
     ws.addTable({ name:`RouteTable_${day.charCodeAt(0)}`, ref:'A1', headerRow:true, totalsRow:false,
@@ -1948,15 +1969,20 @@ app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, re
       rows:rowData.map(r=>r.row),
     });
     COLS.forEach((c,i)=>{ ws.getColumn(i+1).width=c.width; });
-    const hdr=ws.getRow(1);
-    hdr.height=22;
-    hdr.font={bold:true,color:{argb:'FFFFFFFF'},size:10};
-    hdr.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1565C0'}};
-    hdr.eachCell(cell=>{ cell.alignment={horizontal:'right',vertical:'middle'}; });
+    ws.getRow(1).height=22;
+    for(let ci=1;ci<=COLS.length;ci++){
+      const cell=ws.getCell(1,ci);
+      cell.font={bold:true,color:{argb:'FFFFFFFF'},size:10};
+      cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1565C0'}};
+      cell.alignment={horizontal:'right',vertical:'middle'};
+    }
+    const FILL_ICE1={type:'pattern',pattern:'solid',fgColor:{argb:'FFB2DFDB'}};
+    const FILL_ICE2={type:'pattern',pattern:'solid',fgColor:{argb:'FF80CBC4'}};
     rowData.forEach((r,i) => {
       const rowNum=i+2;
-      let f = r.isChanged ? (r.even?FILLS.G1:FILLS.G2)
-             : r.noOrder  ? (r.even?FILLS.GR1:FILLS.GR2)
+      let f = r.isIce      ? (r.even?FILL_ICE1:FILL_ICE2)
+             : r.isChanged ? (r.even?FILLS.G1:FILLS.G2)
+             : r.noOrder   ? (r.even?FILLS.GR1:FILLS.GR2)
              : DOUBTFUL.has(r.gpsSource) ? FILLS.OR
              : (r.even?FILLS.W:FILLS.S);
       const row=ws.getRow(rowNum); row.height=18;
@@ -2388,7 +2414,6 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
           await resend.emails.send({
             from: process.env.RESEND_FROM || 'orders@sverdlik-apps.site',
             to: process.env.NOTIFY_EMAIL.split(',').map(e => e.trim()),
-            cc: process.env.NOTIFY_CC_EMAIL ? process.env.NOTIFY_CC_EMAIL.split(',').map(e => e.trim()) : [],
             subject: `הזמנת מקרר חדשה — ${order.custName} (${order.city})`,
             attachments: [{ filename: `mekarer-${safeDate}-${safeName}.xlsx`, content: xlsB64 }],
             html: `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
