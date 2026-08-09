@@ -2,10 +2,14 @@
 // Данные читаются через sadran-data.js: DAX-кэш от fetch-sadran-data.js (приоритет) или
 // SADRAN.xlsx (резерв, ручной экспорт), см. project memory про восстановленный 2026-08-06
 // data-pipeline (fetch-sadran-data.js читал ALL_PARTS + 'ADIFUT FOR DEILTA' напрямую).
+const path = require('path');
 const pptxgenjs = require('pptxgenjs');
 const { loadRows, pctChange, aggBy, fmtILS, fmtPct, DEPT_COMPANY, getNewCustomerSet, isolateHebrew } = require('./sadran-data');
 
-const OUT = 'C:\\Users\\d.sverdlik\\Desktop\\SADRAN_REPORT.pptx';
+// SADRAN_OUTPUT_DIR — задан на VPS (cron), не задан локально на Windows (дефолт — Desktop).
+const OUT = process.env.SADRAN_OUTPUT_DIR
+  ? path.join(process.env.SADRAN_OUTPUT_DIR, 'SADRAN_REPORT.pptx')
+  : 'C:\\Users\\d.sverdlik\\Desktop\\SADRAN_REPORT.pptx';
 
 // --- brand ---
 const NAVY = '1C3D6B', BLUE = '2E77B8', GREEN = '1A9E5C';
