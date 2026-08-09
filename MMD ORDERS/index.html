@@ -1774,7 +1774,7 @@
 
       const orderedRows = all.filter(r => {
         const s = sv[String(r.mkt ?? '')] || {};
-        return _effOrd(r, s) > 0;
+        return s.k != null && Number(s.k) > 0;
       });
 
       if (orderedRows.length === 0) {
