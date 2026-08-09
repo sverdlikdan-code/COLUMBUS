@@ -1756,7 +1756,9 @@
           const mk = String(r.mkt ?? '');
           const s  = svSnap[mk] || {};
           if (s.k == null) {
-            const v = _effOrd(r, s);
+            let v = _effOrd(r, s);
+            const cap = maavarMode ? (r.maavar ?? 0) : (r.ashdod_k ?? 0);
+            if (cap > 0 && v > cap) v = cap;
             if (v > 0) {
               if (!svSnap[mk]) svSnap[mk] = {};
               svSnap[mk].k = v;
