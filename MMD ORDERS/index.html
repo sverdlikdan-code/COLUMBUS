@@ -1773,8 +1773,9 @@
       const fileDateStr = dateStr.replace(/\//g, '-');
 
       const orderedRows = all.filter(r => {
+        if (cos.size && !cos.has(r.hevra)) return false;
         const s = sv[String(r.mkt ?? '')] || {};
-        return s.k != null && Number(s.k) > 0;
+        return _effOrd(r, s) > 0;
       });
 
       if (orderedRows.length === 0) {
