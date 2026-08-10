@@ -277,8 +277,11 @@
       font-family:'Segoe UI',sans-serif;display:none;
     }
     #month-chart-panel.open { display:block; }
+    #mc-header { display:flex;align-items:center;gap:12px;margin-bottom:4px; }
+    #mc-photo { width:60px;height:60px;object-fit:contain;border-radius:8px;background:#162840;flex-shrink:0;display:none; }
     #month-chart-panel h4 { margin:0 0 4px;font-size:.9rem;color:#c9a227;direction:rtl;unicode-bidi:plaintext;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%; }
     #month-chart-panel .mc-sub { font-size:.7rem;color:#556;margin-bottom:14px;direction:rtl; }
+    .mc-mkt { background:#1e3f6a;border:1px solid #2d5a9e;border-radius:4px;padding:1px 6px;font-size:.65rem;color:#7aa3d4;font-family:monospace; }
     #month-chart-panel .mc-close { position:absolute;top:12px;left:16px;background:transparent;border:none;color:#8899aa;font-size:1.1rem;cursor:pointer;line-height:1; }
     #month-chart-panel .mc-close:hover { color:#fff; }
     #month-chart-svg { display:block;width:100%;overflow:visible; }
@@ -2691,7 +2694,7 @@ async function exportPositionXlsx() {
       try {
         const ctrl = new AbortController();
         const tid = setTimeout(() => ctrl.abort(), 4000);
-        const resp = await fetch(PROXY + encodeURIComponent(r.photoUrl), { signal: ctrl.signal });
+        const resp = await fetch(PROXY + encodeURIComponent(r.photoUrl), { signal: ctrl.signal, headers: { 'X-Session': localStorage.getItem('frToken') || '' } });
         clearTimeout(tid);
         if (!resp.ok) return;
         const buf = await resp.arrayBuffer();
@@ -3677,7 +3680,7 @@ async function _applyInterPeriods() {
       if (shiuk) url += `&shiuk=${encodeURIComponent(shiuk)}`;
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 45000);
-      const resp = await fetch(url, { signal: ctrl.signal }).catch(() => null);
+      const resp = await fetch(url, { signal: ctrl.signal, headers: { 'X-Session': localStorage.getItem('frToken') || '' } }).catch(() => null);
       clearTimeout(timer);
       if (resp && resp.ok) {
         const j = await resp.json().catch(() => null);
@@ -4768,16 +4771,24 @@ window.addEventListener('afterprint', () => {
     const panel = document.getElementById('month-chart-panel');
     const overlay = document.getElementById('month-chart-overlay');
     document.getElementById('mc-title').textContent = name || ('מק"ט ' + mk);
-    document.getElementById('mc-sub').textContent = 'מק"ט ' + mk + ' · מכר קרטון 13 חודשים';
+
+    // Photo
+    const photoEl = document.getElementById('mc-photo');
+    const photoUrl = typeof getPhotoUrl === 'function' ? getPhotoUrl(mk) : null;
+    if (photoEl && photoUrl) { photoEl.src = photoUrl; photoEl.style.display = ''; }
+    else if (photoEl) { photoEl.style.display = 'none'; }
+
     const months = window._dagimMonthlyData && window._dagimMonthlyData[String(mk)];
     if (months) {
       const trendPct = _computeTrend(months);
       const trendStr = trendPct !== null
         ? (trendPct > 0 ? `▲+${trendPct}%` : `▼${trendPct}%`) + ' מול חודש קודם'
         : '';
-      document.getElementById('mc-sub').textContent = 'מק"ט ' + mk + (trendStr ? ' · ' + trendStr : '');
+      document.getElementById('mc-sub').innerHTML =
+        `<span class="mc-mkt">#${mk}</span>${trendStr ? ' · ' + trendStr : ''}`;
       document.getElementById('mc-body').innerHTML = _renderMonthChartSvg(months);
     } else {
+      document.getElementById('mc-sub').innerHTML = `<span class="mc-mkt">#${mk}</span>`;
       document.getElementById('mc-body').innerHTML = '<p style="color:#556;text-align:center;margin:20px 0">טוען...</p>';
     }
     panel.classList.add('open');
@@ -4797,8 +4808,13 @@ window.addEventListener('afterprint', () => {
 <div id="month-chart-overlay"></div>
 <div id="month-chart-panel">
   <button class="mc-close" onclick="_closeMonthChart()">✕</button>
-  <h4 id="mc-title"></h4>
-  <div id="mc-sub" class="mc-sub"></div>
+  <div id="mc-header">
+    <img id="mc-photo" onerror="this.style.display='none'">
+    <div style="min-width:0">
+      <h4 id="mc-title"></h4>
+      <div id="mc-sub" class="mc-sub"></div>
+    </div>
+  </div>
   <div id="mc-body"></div>
 </div>
 

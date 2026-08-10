@@ -70,6 +70,8 @@ select.agent-sel{width:100%;padding:5px 8px;border:1px solid #90A4AE;border-radi
 
 <script>
 const API = '';
+const _tok = () => localStorage.getItem('frToken') || '';
+const _hdr = () => ({ 'X-Session': _tok() });
 let map, agentLayers = {}, newLayer, newClients = [], agents = [];
 
 const AGENT_COLORS = ['#1565C0','#2E7D32','#C62828','#E65100','#6A1B9A','#00695C',
@@ -91,8 +93,8 @@ async function init() {
   document.getElementById('hdr-status').textContent = 'טוען לקוחות קיימים...';
   try {
     const [clientsRes, dataRes] = await Promise.all([
-      fetch(`${API}/api/territory/clients`),
-      fetch(`${API}/formula-road-data.json`)
+      fetch(`${API}/api/territory/clients`, { headers: _hdr() }),
+      fetch(`${API}/formula-road-data.json`, { headers: _hdr() })
     ]);
     if (clientsRes.status === 401) { location.href='/'; return; }
     const clients = await clientsRes.json();
@@ -179,7 +181,7 @@ async function geocodeAll() {
     const q = [c.name, c.addr, c.city, 'ישראל'].filter(Boolean).join(', ');
     try {
       const r = await fetch(`${API}/api/territory/geocode`, {
-        method:'POST', headers:{'Content-Type':'application/json'},
+        method:'POST', headers:{'Content-Type':'application/json', ..._hdr()},
         body: JSON.stringify({q})
       });
       const loc = await r.json();

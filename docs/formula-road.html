@@ -1138,7 +1138,7 @@ function _logAccess(event, agentCode, agentName, isManager){
   try{
     fetch(API+'/log-access',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'application/json','X-Session':localStorage.getItem('frToken')||''},
       body:JSON.stringify({event, agentCode, agentName, isManager})
     }).catch(()=>{});
   }catch(_){}
