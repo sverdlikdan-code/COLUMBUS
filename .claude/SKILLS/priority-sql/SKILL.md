@@ -86,10 +86,31 @@ ORDER BY CUST
 | Column    | Type    | Meaning                     |
 |-----------|---------|------------------------------|
 | ORD       | bigint  | Order ID (PK)                |
-| CUST      | bigint  | Customer ID                  |
+| CUST      | bigint  | **Internal auto-ID** (same as CUSTOMERS.CUST) — NOT the 7-digit business code |
 | CURDATE   | bigint  | Date YYYYMMDD                |
 | CLOSED    | nchar   | Never 'Y' — closed = deleted |
 | ORDSTATUS | bigint  | Order status code            |
+
+## CUSTOMERS Table — Two Different IDs (CRITICAL)
+
+**CUSTOMERS.CUST** = internal auto-increment ID (e.g. 5230, 1876, 803)
+**CUSTOMERS.CUSTNAME** = 7-digit business code visible to users (e.g. "1111040", "1130020")
+
+`ORDERS.CUST` = **CUSTOMERS.CUST** (the internal ID) — **NOT** the 7-digit code!
+
+To filter orders by 7-digit customer code:
+```sql
+-- WRONG: WHERE O.CUST = 1111040  (treats business code as internal ID — returns wrong data)
+
+-- CORRECT: join to CUSTOMERS
+SELECT C.CUSTNAME, C.CUSTDES, OB.GPSY, OB.GPSX
+FROM ORDERS O
+JOIN CUSTOMERS C ON C.CUST = O.CUST
+JOIN ORDERSB OB ON OB.ORD = O.ORD
+WHERE C.CUSTNAME = '1111040'
+```
+
+CUSTOMERS also has `CUSTDES` = Hebrew name of customer.
 
 ## EXTFILES — NOT GPS
 
