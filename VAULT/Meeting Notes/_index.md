@@ -77,3 +77,6 @@
 - [[session-2026-07-22-gps-fix]] — Сессия 2026-07-22: PBI приоритет над Google (360 клиентов), מגה בעיר חיפה фикс, gps-corrections синхронизация VPS, bbox preload
 - [[session-2026-07-23-mahsan-print-yavesh]] — Сессия 2026-07-23: print cards EAN 6 цифр + emoji inline, yavesh תוקף fix (SKIP_YAVESH_FETCH CI флаг)
 - [[session-2026-07-28-mahsan-stale-fix]] — Сессия 2026-07-28: "עוגת לימון" stale localStorage фикс — makat-change detection в merge логике; priority-sql PRD+Vault; CURDATE фикс icecrea/form M коды
+- [[session-2026-07-22-security-audit-3apps]] — Сессия 2026-07-22: read-only аудит Formula Road/Mahsan/MMD Orders, критичные CORS-находки пофикшены, PBI-гейт сверка, VPS .env проверен по SSH
+- [[diler-intelligence-pitch]] — Diler Intelligence (была DILL IT): питч о выделении IT+AI+BI-направления в отдельную структуру, статус и открытые вопросы
+- [[session-2026-08-05-security-audit]] — Сессия 2026-08-04/05/06: полный security audit, 13 фиксов, оценка 7→9/10, mahsan auth gate
