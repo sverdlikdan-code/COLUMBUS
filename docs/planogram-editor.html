@@ -3206,7 +3206,7 @@ async function _applyOrderPeriods() {
       window._orderPeriodFetchFailed = false;
     } else {
       const periodsParam = periods.join(',');
-      const resp = await fetch(`https://api.sverdlik-apps.site/pbi/dagim-sales?periods=${encodeURIComponent(periodsParam)}`)
+      const resp = await fetch(`https://api.sverdlik-apps.site/pbi/dagim-sales?periods=${encodeURIComponent(periodsParam)}`, { headers: { 'X-Session': localStorage.getItem('frToken') || '' } })
         .catch(e => { console.error('[ord-periods] network error:', e); return null; });
       if (!resp) {
         data = null; window._orderPeriodFetchFailed = true;
@@ -4743,7 +4743,7 @@ window.addEventListener('afterprint', () => {
   window._loadDagimMonthly = async function() {
     if (window._dagimMonthlyData) return; // already loaded
     try {
-      const r = await fetch('https://api.sverdlik-apps.site/pbi/dagim-all-monthly');
+      const r = await fetch('https://api.sverdlik-apps.site/pbi/dagim-all-monthly', { headers: { 'X-Session': localStorage.getItem('frToken') || '' } });
       const j = await r.json();
       if (!j.ok) throw new Error(j.error);
       window._dagimMonthlyData = j.byMk;
