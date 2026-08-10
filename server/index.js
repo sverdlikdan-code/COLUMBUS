@@ -3902,6 +3902,22 @@ ROW(
 
 // /admin/send-test-invite removed — was unauthenticated and returned valid session tokens
 
+// SADRAN reports (PPTX) — сгенерированы cron-джобом на VPS (fetch-sadran-data.js +
+// generate-sadran-report*.js в изолированном /root/COLUMBUS-ai-analitik). Whitelist
+// вместо req.params напрямую в path.join — иначе path traversal через имя файла.
+const SADRAN_OUTPUT_DIR = '/root/COLUMBUS-ai-analitik/output/sadran';
+const SADRAN_REPORT_FILES = new Set([
+  'SADRAN_REPORT.pptx',
+  'SADRAN_REPORT_IMPECCABLE.pptx',
+  'SADRAN_REPORT_IMPECCABLE_HE.pptx',
+]);
+app.get('/reports/sadran/:filename', requireAuth, dataRateLimit, (req, res) => {
+  if (!SADRAN_REPORT_FILES.has(req.params.filename)) return res.status(404).json({ error: 'not_found' });
+  const filePath = path.join(SADRAN_OUTPUT_DIR, req.params.filename);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'not_generated_yet' });
+  res.download(filePath, req.params.filename);
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
   console.log(`Columbus server running on port ${PORT}`);
