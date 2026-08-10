@@ -3119,7 +3119,6 @@ app.get('/api/photo-proxy', requireAuth, dataRateLimit, async (req, res) => {
     if (!r.ok) return res.status(r.status).end();
     const buf = Buffer.from(await r.arrayBuffer());
     res.setHeader('Content-Type', r.headers.get('content-type') || 'image/jpeg');
-    res.setHeader('Access-Control-Allow-Origin', 'https://sverdlikdan-code.github.io');
     res.setHeader('Cache-Control', 'public, max-age=86400');
     res.end(buf);
   } catch { res.status(502).end(); }
@@ -3511,7 +3510,7 @@ app.get('/formula-road', (req, res, next) => {
 app.get('/mekarer-order.html', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'mekarer-order.html'));
 });
-app.get('/territory-planner.html', requireAuth, (req, res) => {
+app.get('/territory-planner.html', formulaRoadGuard, (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'territory-planner.html'));
 });
 app.get('/territory.html', (req, res) => {
@@ -3520,7 +3519,7 @@ app.get('/territory.html', (req, res) => {
 app.get('/priority-gps.html', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'priority-gps.html'));
 });
-app.get('/priority-gps-cross.json', requireAuth, (req, res) => {
+app.get('/priority-gps-cross.json', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'priority-gps-cross.json'));
 });
 app.get('/sw.js', (req, res) => {
@@ -3907,4 +3906,10 @@ app.listen(PORT, async () => {
   console.log(`Columbus server running on port ${PORT}`);
   await loadPBICache();
   scheduleDailyPBIReload();
+});
+
+// Flush sessions to disk before pm2 restart/shutdown
+process.on('SIGTERM', () => {
+  try { fs.writeFileSync(SESSIONS_FILE, JSON.stringify(Object.fromEntries(sessions))); } catch (_) {}
+  process.exit(0);
 });
