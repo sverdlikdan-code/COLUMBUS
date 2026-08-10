@@ -369,6 +369,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
     <div style="font-size:15px;font-weight:800;color:var(--text)" id="gps-modal-title">תיקון מיקום</div>
     <input id="gps-addr-input" class="city-search" style="border-radius:8px;border:1.5px solid var(--sky-mid);padding:8px 12px;" placeholder="הכנס כתובת..." type="text"/>
     <div id="gps-modal-status" style="font-size:12px;color:var(--mid);min-height:16px;"></div>
+    <button type="button" id="gps-tablet-show-btn" onclick="useTabletGps()" style="width:100%;background:#E3F2FD;color:#1565C0;border:1.5px solid #90CAF9;border-radius:10px;padding:9px;font-weight:700;font-size:12px;cursor:pointer;display:none;">📱 הצג GPS מהטאבלט</button>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button onclick="submitGpsAddress()" style="flex:1;background:var(--blue);color:#fff;border:none;border-radius:10px;padding:10px;font-weight:800;font-size:13px;cursor:pointer;">🔍 גיאוקוד</button>
       <button onclick="closeGpsModal()" style="background:none;border:1.5px solid var(--sky-mid);border-radius:10px;padding:10px 16px;font-weight:700;font-size:13px;cursor:pointer;color:var(--mid);">ביטול</button>
@@ -1783,8 +1784,26 @@ function openAddrModal(event, custId, custName, city, address){
   document.getElementById('gps-modal-title').textContent=custName||'תיקון מיקום';
   document.getElementById('gps-addr-input').value=address||'';
   document.getElementById('gps-modal-status').textContent='';
+  const tabletBtn=document.getElementById('gps-tablet-show-btn');
+  if(tabletBtn){
+    const t=TABLET_GPS[String(custId)];
+    tabletBtn.style.display=t?'block':'none';
+    tabletBtn.textContent=t?`📱 GPS טאבלט: ${t.lat.toFixed(5)}, ${t.lng.toFixed(5)}`:'📱 הצג GPS מהטאבלט';
+  }
   document.getElementById('gps-modal').style.display='flex';
   setTimeout(()=>document.getElementById('gps-addr-input').focus(),80);
+}
+
+function useTabletGps(){
+  const t=TABLET_GPS[String(_gpsCustId)];
+  if(!t){document.getElementById('gps-modal-status').textContent='אין GPS טאבלט לקוח זה';return;}
+  const id=String(_gpsCustId);
+  gpsCorrections[id]={lat:t.lat,lng:t.lng};
+  try{const loc=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');loc[id]={lat:t.lat,lng:t.lng};localStorage.setItem('fr_gps_local',JSON.stringify(loc));}catch(_){}
+  st.allClients=st.allClients.map(c=>String(c.custId)===id?{...c,lat:t.lat,lng:t.lng,gpsSource:'correction'}:c);
+  apiFetch(API+'/save-gps',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({custId:id,lat:t.lat,lng:t.lng,address:'GPS Tablet'})}).catch(_=>{});
+  document.getElementById('gps-modal-status').textContent=`✅ ${t.lat.toFixed(5)}, ${t.lng.toFixed(5)}`;
+  setTimeout(()=>{ closeGpsModal(); renderAll(); },800);
 }
 
 function closeGpsModal(){
