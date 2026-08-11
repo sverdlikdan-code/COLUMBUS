@@ -960,7 +960,7 @@
         <th class="sortable" onclick="sortMMD('mkr_tk')">מכר קרטון<br>בתקופה<span id="sarr-mkr_tk"></span></th>
         <th class="sortable" onclick="sortMMD('shavuot')">לכמה שבועות<br>יספיק המלאי<span id="sarr-shavuot"></span></th>
         <th>נפח מלאי ביטחון<br>שבועות</th>
-        <th class="sortable" onclick="sortMMD('yamim_haya')">ימי מכר<span id="sarr-yamim_haya"></span></th>
+        <th class="sortable" onclick="sortMMD('cust_bought')">לקוחות<br>שקנו<span id="sarr-cust_bought"></span></th>
         <th class="sortable" onclick="sortMMD('pizur')">פיזור<br>%<span id="sarr-pizur"></span></th>
         <th class="col-g sortable" onclick="sortMMD('hamlatza')">המלצה להזמנה<br>קרטון<span id="sarr-hamlatza"></span></th>
         <th class="col-prophet" title="Prophet ML — תחזית ביקוש 4 שבועות">🔮 Prophet<br>הזמנה</th>
@@ -1537,7 +1537,7 @@
         const shavuot   = (mmd > 0 && mkr != null && mkr > 0) ? mmd / mkr : null;
         const mkrTk     = r.mkr_tk ?? null;
         const weeksNf   = r.weeks_nf ?? null;
-        const yamimHaya = r.yamim_haya ?? null;
+        const custBought = r.cust_bought ?? null;
         const pizurVal  = r.pizur ?? null;
         const yamimDisp = yamim == null ? '—' : yamim > 999 ? '999+' : (yamim < 10 ? '⚠ ' : '') + String(yamim);
         const yamimCls  = yamim == null ? '' : yamim < 10 ? 'lo' : yamim <= 30 ? 'md' : 'ok';
@@ -1576,7 +1576,7 @@
           '<td class="c-num">' + (mkrTk != null ? mkrTk : '—') + '</td>' +
           '<td class="c-num ' + (shavuot != null && shavuot < 2 ? 'lo' : '') + '">' + (shavuot != null ? Math.round(shavuot) : '—') + '</td>' +
           '<td class="c-num">' + (weeksNf != null ? weeksNf : '—') + '</td>' +
-          '<td class="c-num">' + (yamimHaya != null ? yamimHaya : '—') + '</td>' +
+          '<td class="c-num">' + (custBought != null ? custBought : '—') + '</td>' +
           '<td class="c-num">' + (pizurVal != null ? pizurVal + '%' : '—') + '</td>' +
           '<td class="c-haml col-g">' + (haml > 0 ? Math.round(haml) : '') + '</td>' +
           (function(){
@@ -1646,7 +1646,7 @@
     updateCoKPIs(coMap);
 
     // Update sort arrow indicators
-    ['mmd_k','mkr_shvua','ashdod_k','maavar','yamim','mkr_tk','shavuot','yamim_haya','pizur','hamlatza'].forEach(c => {
+    ['mmd_k','mkr_shvua','ashdod_k','maavar','yamim','mkr_tk','shavuot','cust_bought','pizur','hamlatza'].forEach(c => {
       const el = document.getElementById('sarr-' + c);
       if (!el) return;
       if (_sortCol === c) {
@@ -1804,7 +1804,7 @@
           resolve();
         };
         img.onerror = () => resolve();
-        img.src = '/mmd/img/' + mk;
+        img.src = '/mmd/img/' + mk + (r.img ? '?u=' + encodeURIComponent(r.img) : '');
       })));
 
       if (btn) btn.textContent = '⏳ בונה קובץ...';
@@ -2115,8 +2115,8 @@
       j.data.forEach(d => { map[String(d.mkt)] = d; });
       all = baseAll.map(row => {
         const pd = map[String(row.mkt)];
-        if (!pd) return Object.assign({}, row, { mkr_shvua:null, mkr_tk:null, shavuot:null, yamim_haya:null, pizur:null, hamlatza:null });
-        return Object.assign({}, row, { krat:pd.krat, img:pd.img, ashdod_k:pd.ashdod_k, mmd_k:pd.mmd_k, eilat_k:pd.eilat_k, maavar:pd.maavar, mkr_shvua:pd.mkr_shvua, mkr_prev6:pd.mkr_prev6, mkr_tk:pd.mkr_tk, shavuot:pd.shavuot, yamim_haya:pd.yamim_haya, pizur:pd.pizur, hamlatza:pd.hamlatza, tukuf:pd.tukuf, yamim:pd.yamim });
+        if (!pd) return Object.assign({}, row, { mkr_shvua:null, mkr_tk:null, shavuot:null, cust_bought:null, pizur:null, hamlatza:null });
+        return Object.assign({}, row, { krat:pd.krat, img:pd.img, ashdod_k:pd.ashdod_k, mmd_k:pd.mmd_k, eilat_k:pd.eilat_k, maavar:pd.maavar, mkr_shvua:pd.mkr_shvua, mkr_prev6:pd.mkr_prev6, mkr_tk:pd.mkr_tk, shavuot:pd.shavuot, cust_bought:pd.cust_bought, pizur:pd.pizur, hamlatza:pd.hamlatza, tukuf:pd.tukuf, yamim:pd.yamim });
       });
       _setPeriodLabel('📅 ' + periodLabel(p));
       st('📅 ' + periodLabel(p) + ' · ' + all.length + ' פריטים');
@@ -2600,7 +2600,7 @@ function _renderTukufCards() {
     el.style.cssText = 'background:#0b1e35;border-radius:10px;border:1px solid ' + borderClr + ';overflow:hidden;display:flex;flex-direction:column;width:210px;flex-shrink:0;';
     // top
     var imgTag = r.img
-      ? '<img src="/mmd/img/' + encodeURIComponent(r.mkt) + '" style="width:44px;height:44px;object-fit:contain;border-radius:4px;background:#0a1628;flex-shrink:0" onerror="this.style.display=\'none\'">'
+      ? '<img src="/mmd/img/' + encodeURIComponent(r.mkt) + (r.img ? '?u=' + encodeURIComponent(r.img) : '') + '" style="width:44px;height:44px;object-fit:contain;border-radius:4px;background:#0a1628;flex-shrink:0" onerror="this.style.display=\'none\'">'
       : '<div style="width:44px;height:44px;background:#0a1628;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#334;font-size:1.1rem;flex-shrink:0">📦</div>';
     var nameFull = fixProductName ? fixProductName(r.taur || '') : (r.taur || '');
     el.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(0,0,0,.2)">'

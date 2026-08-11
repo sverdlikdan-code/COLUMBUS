@@ -3245,7 +3245,14 @@ app.get('/mmd/prophet.json', mmdGuard, (req, res) => {
 app.get('/mmd/img/:mkt', mmdGuard, (req, res) => {
   const mkt = req.params.mkt.replace(/\D/g, '');
   if (!mkt) return res.status(400).end();
-  const imgUrl = `https://priority.dilerbmd.com/priimages/${mkt}.jpg`;
+  // Use the real img URL from product data when passed as ?u=, validate hostname
+  let imgUrl = `https://priority.dilerbmd.com/priimages/${mkt}.jpg`;
+  if (req.query.u) {
+    try {
+      const parsed = new URL(req.query.u);
+      if (parsed.hostname === 'priority.dilerbmd.com') imgUrl = req.query.u;
+    } catch (_) {}
+  }
   const req2 = https.get(imgUrl, imgRes => {
     if (imgRes.statusCode !== 200) return res.status(404).end();
     res.setHeader('Content-Type', 'image/jpeg');
@@ -3412,7 +3419,7 @@ app.get('/mmd/period-data', mmdGuard, dataRateLimit, async (req, res) => {
         "mkr_prev6",  CALCULATE([מכר ממוצע בשבוע קרטון], ${df_prev}),
         "mkr_tk",     CALCULATE([מכר קרטון],              ${df}),
         "shavuot",    CALCULATE([לכמה שבועות יספיק המלאי], ${df}),
-        "yamim_haya", CALCULATE([ימים שהיה בהם מלאי],    ${df}),
+        "cust_bought", CALCULATE([כמות לקוחות], NOT 'לקוחות'[תאור סוג לקוח] IN { "סיטונאים", "מלונות", "פתאל מוסדי" }, ${df}),
         "pizur",      CALCULATE([% לקוחות], NOT 'לקוחות'[תאור סוג לקוח] IN { "סיטונאים", "מלונות", "פתאל מוסדי" }, ${df}),
         "hamlatza_k", CALCULATE([המלצה להזמנה קרטון],     ${df}),
         "tukuf",      [List of ת. תפוגת תוקף values],
@@ -3431,7 +3438,7 @@ app.get('/mmd/period-data', mmdGuard, dataRateLimit, async (req, res) => {
       mkr_prev6:  r['[mkr_prev6]']  != null ? Math.round(r['[mkr_prev6]']  * 10) / 10 : null,
       mkr_tk:     r['[mkr_tk]']     != null ? Math.round(r['[mkr_tk]'])              : null,
       shavuot:    r['[shavuot]']    != null ? Math.round(r['[shavuot]']  * 10) / 10 : null,
-      yamim_haya: r['[yamim_haya]'] != null ? Math.round(r['[yamim_haya]'])          : null,
+      cust_bought: r['[cust_bought]'] != null ? Math.round(r['[cust_bought]'])         : null,
       pizur:      r['[pizur]']      != null ? Math.round(r['[pizur]']     * 100)     : null,
       hamlatza:   r['[hamlatza_k]'] != null ? Math.round(r['[hamlatza_k]'] * 10) / 10 : null,
       tukuf:      r['[tukuf]']      ?? null,
