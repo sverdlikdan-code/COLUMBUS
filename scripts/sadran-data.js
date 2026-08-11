@@ -121,6 +121,15 @@ function loadMomentum() {
   return cache.momentum || null;
 }
 
+// loadPeriods — реальный период отчёта (YTD 1 января -> последний закрытый месяц), НЕ
+// "текущий месяц" — нашли баг 2026-08-11: email-скрипт брал new Date() и писал "август" вместо
+// правильного диапазона (данные за январь-июль). Нет в SADRAN.xlsx-резерве — null.
+function loadPeriods() {
+  if (!fs.existsSync(FETCH_CACHE)) return null;
+  const cache = JSON.parse(fs.readFileSync(FETCH_CACHE, 'utf8'));
+  return cache.periods || null;
+}
+
 function pctChange(ly, now) {
   // ly <= 0 — не только "нет истории" (ly===0), но и отрицательный net (возвраты/кредиты
   // перекрыли продажи в периоде) — оба случая одинаково не дают осмысленный % от базы.
@@ -176,4 +185,4 @@ function fmtPct(p) {
   return (p >= 0 ? '+' : '') + Math.round(p * 100) + '%';
 }
 
-module.exports = { loadRows, loadIceBddBenchmark, loadMomentum, pctChange, aggBy, fmtILS, fmtPct, fixBiDi, DEPT_COMPANY, isolateLatin, isolateHebrew, getNewCustomerSet };
+module.exports = { loadRows, loadIceBddBenchmark, loadMomentum, loadPeriods, pctChange, aggBy, fmtILS, fmtPct, fixBiDi, DEPT_COMPANY, isolateLatin, isolateHebrew, getNewCustomerSet };
