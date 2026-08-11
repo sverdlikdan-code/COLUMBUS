@@ -153,6 +153,11 @@
     .btn-print  { background: rgba(255,255,255,.15); color: #fff; border: 1px solid rgba(255,255,255,.3); }
     .btn-reload { background: rgba(255,255,255,.15); color: #fff; border: 1px solid rgba(255,255,255,.3); }
     .btn-clear  { background: rgba(255,255,255,.12); color: #ffcdd2; border: 1px solid rgba(255,255,255,.25); font-size: .75rem; }
+    .btn-archive { background: rgba(255,255,255,.12); color: #ffe082; border: 1px solid rgba(255,200,80,.4); }
+    .btn-archive.on { background: #e65100; color: #fff; border-color: #bf360c; }
+    .c-arch { width: 28px; text-align: center; padding: 0 3px; }
+    .arch-btn { cursor: pointer; font-size: .9rem; opacity: .55; transition: opacity .12s; border: none; background: none; padding: 0; line-height: 1; }
+    .arch-btn:hover { opacity: 1; }
     .hist-wrap  { position: relative; display: inline-block; }
     @keyframes histIn { from { opacity:0; transform:translateY(-8px) scale(.97); } to { opacity:1; transform:translateY(0) scale(1); } }
     .hist-dd {
@@ -900,6 +905,7 @@
       </div>
       <span id="user-badge" style="font-size:.72rem;color:#90a4ae;padding:2px 6px;align-self:center;white-space:nowrap;cursor:pointer" title="לחץ לשינוי שם" onclick="promptChangeUser()"></span>
       <button class="btn btn-print" onclick="(()=>{document.querySelectorAll('.c-img img').forEach(img=>{img.removeAttribute('loading');if(!img.complete){const s=img.src;img.src='';img.src=s;}});setTimeout(()=>window.print(),80);})()">🖨 הדפסה</button>
+      <button class="btn btn-archive" id="btn-archive" onclick="togArchive()" title="הצג/הסתר מוצרים שנשלחו לארכיב">🗃 ארכיב</button>
     </div>
   </div>
 </div>
@@ -947,6 +953,7 @@
   <table id="t" style="display:none">
     <thead>
       <tr>
+        <th class="c-arch"></th>
         <th>מק"ט</th>
         <th>שם מוצר</th>
         <th></th>
@@ -1000,6 +1007,9 @@
   let ordOnly    = false;
   let noMkr      = false;
   let maavarMode = false;
+  const ARCHIVE_KEY = 'mmd_archive';
+  let archivedMkts = new Set(JSON.parse(localStorage.getItem(ARCHIVE_KEY) || '[]'));
+  let archiveMode  = false;
   const ashFilter = new Set(); // default: show all (including maavar-only products)
   const mmdFilter = new Set();
   const sessionP = {}; // תוקף נדרש — session-only, resets on page reload
@@ -1235,6 +1245,7 @@
       buildPeriodBar();
       buildChips();
       render();
+      refreshArchiveBtn();
       const ts = j.ts ? new Date(j.ts).toLocaleTimeString('he-IL') : '';
       st('נטענו ' + all.length + ' פריטים · ' + ts);
       _setPeriodLabel('📦 נתוני ברירת מחדל — בחר חודש לנתונים חיים');
@@ -1399,6 +1410,39 @@
     buildChips();
     render();
   };
+  function saveArchive() {
+    localStorage.setItem(ARCHIVE_KEY, JSON.stringify([...archivedMkts]));
+  }
+  function refreshArchiveBtn() {
+    const btn = document.getElementById('btn-archive');
+    if (!btn) return;
+    if (archiveMode) {
+      btn.textContent = '↩ ארכיב (' + archivedMkts.size + ')';
+    } else {
+      btn.textContent = archivedMkts.size > 0
+        ? '🗃 ארכיב (' + archivedMkts.size + ')'
+        : '🗃 ארכיב';
+    }
+  }
+  window.archiveItem = function(mk) {
+    archivedMkts.add(String(mk));
+    saveArchive();
+    refreshArchiveBtn();
+    render();
+  };
+  window.restoreItem = function(mk) {
+    archivedMkts.delete(String(mk));
+    saveArchive();
+    refreshArchiveBtn();
+    render();
+  };
+  window.togArchive = function() {
+    archiveMode = !archiveMode;
+    const btn = document.getElementById('btn-archive');
+    if (btn) btn.classList.toggle('on', archiveMode);
+    refreshArchiveBtn();
+    render();
+  };
   window.togMaavar = function() {
     maavarMode = !maavarMode;
     const el = document.getElementById('sk-maavar');
@@ -1407,8 +1451,12 @@
   };
 
   function filtered() {
+    if (archiveMode) {
+      return all.filter(r => archivedMkts.has(String(r.mkt)));
+    }
     const sv = ordOnly ? saved() : null;
     return all.filter(r => {
+      if (archivedMkts.has(String(r.mkt))) return false;
       if (maavarMode) {
         if (!r.maavar || r.maavar <= 0) return false;
         if (ashFilter.size) {
@@ -1558,6 +1606,11 @@
       (yamim != null && yamim < 10 ? ' danger' : '');
         tr.dataset.mk = mk;
         tr.innerHTML =
+          '<td class="c-arch">' +
+            (archiveMode
+              ? '<button class="arch-btn" onclick="restoreItem(\'' + mk + '\')" title="שחזר מארכיב">↩</button>'
+              : '<button class="arch-btn" onclick="archiveItem(\'' + mk + '\')" title="העבר לארכיב">🗃</button>') +
+          '</td>' +
           '<td class="c-mkt">' + mk + '</td>' +
           '<td class="c-taur" dir="rtl" title="' + esc(r.taur) + '">' + (isPopular ? '<span class="pop-star">⭐</span> ' : '') + _ltrWrap(shortName(fixProductName(r.taur))) + '</td>' +
           '<td class="c-img">' +
@@ -1630,7 +1683,7 @@
     const tf = document.getElementById('tf');
     tf.innerHTML =
       '<tr>' +
-        '<td colspan="4">סה"כ (' + rows.length + ' פריטים)</td>' +
+        '<td colspan="5">סה"כ (' + rows.length + ' פריטים)</td>' +
         '<td class="c-num">' + tMmd + '</td>' +
         '<td class="c-num">' + tMkr.toFixed(1) + '</td>' +
         '<td class="c-num">' + tAsh + '</td>' +
