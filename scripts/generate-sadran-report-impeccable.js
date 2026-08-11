@@ -332,18 +332,28 @@ function main() {
     const SHOW = 8;
     const shown = churnList.slice(0, SHOW);
     const rest = churnList.slice(SHOW);
-    let y = 1.85;
-    shown.forEach(c => {
-      s.addText(c.custname || '', { x: 0.7, y, w: 8.3, h: 0.32, fontSize: 12.5, color: INK_TEXT, fontFace: SANS, valign: 'bottom', rtlMode: true, lang: 'he-IL' });
-      s.addText(`${c.deptLabel} · сдаран ${c.sadran || ''} · агент ${c.sochen || ''}`, { x: 0.7, y: y + 0.3, w: 8.3, h: 0.26, fontSize: 9.5, color: MUTED, fontFace: SANS, valign: 'top', rtlMode: true, lang: 'he-IL' });
-      s.addText(`было ${fmtILS(c.lastYear)}`, { x: 9.4, y, w: 3.2, h: 0.55, fontSize: 12, bold: true, color: CLAY, align: 'right', fontFace: SANS, valign: 'middle' });
-      s.addShape('line', { x: 0.7, y: y + 0.54, w: 11.9, h: 0, line: { color: PAPER_LINE, width: 1 } });
-      y += 0.58;
+    // Колонки, не слитная строка (запрос пользователя 2026-08-11) — "сдаран" убран совсем,
+    // остаётся только имя агента, привязанное к конкретной паре клиент+компания (см.
+    // project_sadran_pbi_join memory: c.sochen уже корректно скопирован per-company).
+    const header = ['Клиент', 'Отдел', 'Агент', 'Было'].map(t => ({
+      text: t, options: { bold: true, fill: { color: INK }, color: PAPER, fontSize: 10.5, fontFace: SANS },
+    }));
+    const body = shown.map(c => ([
+      { text: c.custname || '', options: { fontSize: 10.5, color: INK_TEXT, fontFace: SANS, rtlMode: true, lang: 'he-IL' } },
+      { text: c.deptLabel || '', options: { fontSize: 10, color: MUTED, fontFace: SANS, rtlMode: true, lang: 'he-IL' } },
+      { text: c.sochen || '', options: { fontSize: 10, color: MUTED, fontFace: SANS, rtlMode: true, lang: 'he-IL' } },
+      { text: fmtILS(c.lastYear), options: { fontSize: 10.5, bold: true, color: CLAY, fontFace: SANS, align: 'right' } },
+    ]));
+    s.addTable([header, ...body], {
+      x: 0.7, y: 1.85, w: 11.9, h: 4.9,
+      colW: [4.6, 2.7, 2.8, 1.8],
+      border: { type: 'solid', color: PAPER_LINE, pt: 0.5 },
+      autoPage: false,
     });
     if (rest.length) {
       const restSum = rest.reduce((s2, c) => s2 + c.lastYear, 0);
       s.addText(`Ещё ${rest.length} строк оттока на ${fmtILS(restSum)} (мельче, каждая < ${fmtILS(shown[shown.length - 1].lastYear)}) — полный список в SADRAN_ANALYSIS.xlsx.`, {
-        x: 0.7, y, w: 11.9, h: 0.4, fontSize: 10, color: MUTED, fontFace: SANS, italic: true,
+        x: 0.7, y: 6.9, w: 11.9, h: 0.4, fontSize: 10, color: MUTED, fontFace: SANS, italic: true,
       });
     }
   }
