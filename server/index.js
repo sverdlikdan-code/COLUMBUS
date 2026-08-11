@@ -624,7 +624,7 @@ app.get('/invite/:token', dataRateLimit, (req, res) => {
 });
 
 // GET /auth/pbi — auto-login as manager if opened via PBI (fr_ok cookie present)
-app.get('/auth/pbi', dataRateLimit, (req, res) => {
+app.get('/auth/pbi', dataRateLimit, mahsanIpGuard, (req, res) => {
   const cookies = req.headers.cookie || '';
   if (!/(?:^|;\s*)fr_ok=1/.test(cookies)) return res.status(401).json({ ok: false });
   return res.json({ ok: true, token: createSession(null, true) });
@@ -2144,7 +2144,7 @@ app.post('/api/territory/geocode', requireAuth, dataRateLimit, async (req, res) 
 });
 
 // Save planogram base JSON back to docs/
-app.post('/save-kapua', requireAuth, (req, res) => {
+app.post('/save-kapua', requireAuth, mahsanIpGuard, (req, res) => {
   try {
     const data = req.body;
     if (!data || !data.picks) return res.status(400).json({ error: 'invalid payload' });
@@ -3495,6 +3495,18 @@ app.use('/mmd', mmdGuard, express.static(path.join(__dirname, '..', 'MMD ORDERS'
 }));
 
 // ── FORMULA ROAD ─────────────────────────────────────────────────────────────
+// ── MAHSAN IP WHITELIST ─────────────────────────────────────────────────────
+// MAHSAN_ALLOWED_IPS in .env — comma-separated IPv4/IPv6. Empty = allow all.
+function mahsanIpGuard(req, res, next) {
+  const raw = process.env.MAHSAN_ALLOWED_IPS || '';
+  if (!raw.trim()) return next(); // not configured → open
+  const allowed = raw.split(',').map(s => s.trim()).filter(Boolean);
+  const ip = getRealIp(req);
+  if (allowed.includes(ip)) return next();
+  writeLog({ ts: new Date().toISOString(), event: 'mahsan-blocked', ip, path: req.path, ua: (req.headers['user-agent'] || '').substring(0, 120) });
+  return res.status(403).json({ ok: false, error: 'access_denied' });
+}
+
 function formulaRoadGuard(req, res, next) {
   const key = process.env.FORMULA_PBI_KEY;
   if (!key) return res.status(503).end();
