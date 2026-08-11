@@ -3390,6 +3390,13 @@ app.get('/mmd/period-data', mmdGuard, dataRateLimit, async (req, res) => {
   const MMD_DS = process.env.POWERBI_MMD_DATASET_ID;
   if (!MMD_DS) return res.status(503).json({ ok: false, error: 'MMD dataset not configured' });
   const df = `DATESBETWEEN(DIMCALENDAR[Date], DATE(${y1},${m1},${day1}), DATE(${y2},${m2},${day2}))`;
+  // Previous period = same span length, immediately before d1
+  const spanMs = dateD2.getTime() - dateD1.getTime();
+  const prevD2 = new Date(dateD1.getTime() - 24*60*60*1000);
+  const prevD1 = new Date(prevD2.getTime() - spanMs);
+  const [yp1,mp1,dp1] = prevD1.toISOString().slice(0,10).split('-').map(Number);
+  const [yp2,mp2,dp2] = prevD2.toISOString().slice(0,10).split('-').map(Number);
+  const df_prev = `DATESBETWEEN(DIMCALENDAR[Date], DATE(${yp1},${mp1},${dp1}), DATE(${yp2},${mp2},${dp2}))`;
   try {
     const rows = await executeDax(`
       EVALUATE
@@ -3402,6 +3409,7 @@ app.get('/mmd/period-data', mmdGuard, dataRateLimit, async (req, res) => {
         "eilat_k",    [מלאי בקרטון EILAT],
         "maavar",     [מחסן מעבר],
         "mkr_shvua",  CALCULATE([מכר ממוצע בשבוע קרטון], ${df}),
+        "mkr_prev6",  CALCULATE([מכר ממוצע בשבוע קרטון], ${df_prev}),
         "mkr_tk",     CALCULATE([מכר קרטון],              ${df}),
         "shavuot",    CALCULATE([לכמה שבועות יספיק המלאי], ${df}),
         "yamim_haya", CALCULATE([ימים שהיה בהם מלאי],    ${df}),
@@ -3420,6 +3428,7 @@ app.get('/mmd/period-data', mmdGuard, dataRateLimit, async (req, res) => {
       eilat_k:    r['[eilat_k]']    ?? null,
       maavar:     r['[maavar]']     ?? null,
       mkr_shvua:  r['[mkr_shvua]']  != null ? Math.round(r['[mkr_shvua]']  * 10) / 10 : null,
+      mkr_prev6:  r['[mkr_prev6]']  != null ? Math.round(r['[mkr_prev6]']  * 10) / 10 : null,
       mkr_tk:     r['[mkr_tk]']     != null ? Math.round(r['[mkr_tk]'])              : null,
       shavuot:    r['[shavuot]']    != null ? Math.round(r['[shavuot]']  * 10) / 10 : null,
       yamim_haya: r['[yamim_haya]'] != null ? Math.round(r['[yamim_haya]'])          : null,
