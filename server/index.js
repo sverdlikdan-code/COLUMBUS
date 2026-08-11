@@ -3666,7 +3666,11 @@ app.post('/admin/reload-targets', requireAuth, async (req, res) => {
 // Metrics: current 3M total, prev-year same 3M total, order days, SKU count
 // 3 parallel DAX calls -> rank TOP 10 by current sales -> Gemini growth/failure analysis
 app.get('/api/day-briefing', requireAuth, async (req, res) => {
-  const agentCode = req.session.agentCode;
+  // Managers browsing an agent's route (ROADS) pass ?agent= explicitly, same as /customers;
+  // an agent's own session falls back to their session agentCode.
+  const queryAgent = req.query.agent ? String(req.query.agent) : null;
+  if (queryAgent && !validateAgentCode(queryAgent)) return res.status(400).json({ ok: false, error: 'invalid agent code' });
+  const agentCode = queryAgent || req.session.agentCode;
   if (!agentCode) return res.status(403).json({ ok: false, error: 'manager session -- no agent' });
   if (!pbiCache) return res.status(503).json({ ok: false, error: 'cache_loading' });
   if (!GEMINI_API_KEY) return res.status(503).json({ ok: false, error: 'AI not configured' });
@@ -3700,7 +3704,7 @@ EVALUATE
 CALCULATETABLE(
   ADDCOLUMNS(
     SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]),
-    "total",     CALCULATE([הכנסות כלליות (ללא זיכויים מרכזים)]),
+    "total",     CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)]),
     "orderDays", CALCULATE(DISTINCTCOUNT(ALL_PARTS[תאריך])),
     "skus",      CALCULATE(DISTINCTCOUNT(ALL_PARTS[מק'ט])),
     "lastOrder", CALCULATE(MAX(ALL_PARTS[תאריך]))
@@ -3716,7 +3720,7 @@ EVALUATE
 CALCULATETABLE(
   ADDCOLUMNS(
     SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]),
-    "prevTotal", CALCULATE([הכנסות כלליות (ללא זיכויים מרכזים)])
+    "prevTotal", CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)])
   ),
   ALL_PARTS[מספר לקוח] IN {${inList}},
   ALL_PARTS[ASHMADOT] = "-מכר-",
@@ -3728,7 +3732,7 @@ CALCULATETABLE(
 EVALUATE
 ROW(
   "avg", DIVIDE(
-    CALCULATE([הכנסות כלליות (ללא זיכויים מרכזים)],
+    CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)],
       ALL_PARTS[ASHMADOT] = "-מכר-",
       ALL_PARTS[תאריך] >= DATE(${curStart.year},${curStart.month},1),
       ALL_PARTS[תאריך] <= DATE(${curEnd.year},${curEnd.month},${curLastDay})

@@ -184,6 +184,23 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .ai-families-tbl .dropped{color:#C62828;font-style:italic;}
 .ai-analysis{background:#F8F4FF;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.7;color:#333;white-space:pre-wrap;direction:auto;}
 .ai-loading{text-align:center;padding:30px;color:#9C27B0;font-size:14px;}
+/* Day Briefing Modal (TOP10 clients + dormant list) */
+#day-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px;}
+#day-modal.open{display:flex;}
+#day-modal-box{background:#fff;border-radius:16px;width:100%;max-width:520px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.35);}
+#day-modal-head{background:#3F51B5;color:#fff;padding:14px 18px 12px;display:flex;align-items:center;gap:10px;}
+#day-modal-head .day-title{flex:1;font-size:15px;font-weight:800;}
+#day-modal-head .day-close{font-size:20px;cursor:pointer;opacity:.8;padding:0 4px;}
+#day-modal-head .day-close:hover{opacity:1;}
+#day-modal-body{overflow-y:auto;padding:14px 16px;flex:1;}
+.day-sub{font-size:11px;color:var(--mid);margin-bottom:10px;}
+.day-top10{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px;}
+.day-top10 th{background:#E8EAF6;color:#3F51B5;padding:5px 7px;text-align:right;font-weight:800;border-bottom:2px solid #9FA8DA;}
+.day-top10 td{padding:4px 7px;border-bottom:1px solid #E8EAF6;color:#333;}
+.day-top10 tr:last-child td{border-bottom:none;}
+.day-top10 .warn{color:#C62828;font-weight:700;}
+.day-dormant{background:#FFEBEE;border-radius:10px;padding:10px 12px;font-size:12px;color:#C62828;margin-bottom:14px;}
+.day-analysis{background:#EEF0FB;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.7;color:#333;white-space:pre-wrap;direction:auto;}
 .excl-section-lbl{padding:5px 10px 2px;font-size:10px;font-weight:700;color:var(--light);letter-spacing:1px;text-transform:uppercase;border-top:1px solid var(--sky-mid);margin-top:4px;}
 .c-num-wrap{display:flex;flex-direction:column;align-items:center;gap:1px;flex-shrink:0;min-width:28px;cursor:grab;touch-action:none;user-select:none;}
 .walk-icon{font-size:11px;line-height:1;}
@@ -429,7 +446,7 @@ body.gps-fs #map{height:100%!important;}
         <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')">לפי סדר ביקור</button>
         <button class="sort-btn" id="sort-btn-ai-google" onclick="toggleAiGps()">🤖 AI Google</button>
         <button class="sort-btn active-tablet" id="sort-btn-tablet" onclick="toggleTabletGps()">📱 GPS Tablet</button>
-        <button class="sort-btn" id="day-briefing-btn" onclick="alert('כרגע בפיתוח 🔧')" title="ניתוח יום — TOP 10 לקוחות" style="background:#5C6BC0;color:#fff;border-color:#3F51B5;font-weight:900">📊 ניתוח</button>
+        <button class="sort-btn" id="day-briefing-btn" onclick="openDayBriefing()" title="ניתוח יום — TOP 10 לקוחות" style="background:#5C6BC0;color:#fff;border-color:#3F51B5;font-weight:900">📊 ניתוח</button>
         <button class="sort-btn" id="gmaps-btn" onclick="openGoogleMaps()" title="פתח מסלול ב-Google Maps" style="background:#1a73e8;color:#fff;border-color:#1558b0;font-weight:700">🗺 Google</button>
         <button class="sort-btn" id="print-btn" onclick="printRoute()" title="הדפסת מסלול — מפה + רשימה" style="background:#37474F;color:#fff;border-color:#263238;font-weight:700">🖨️</button>
         <div class="km-more-wrap">
@@ -515,6 +532,18 @@ body.gps-fs #map{height:100%!important;}
       <button class="ai-lang-btn" data-lang="ru" onclick="switchAiLang(this,'ru')">Русский</button>
     </div>
     <div id="ai-modal-body"><div class="ai-loading">⏳ טוען...</div></div>
+  </div>
+</div>
+
+<!-- ── DAY BRIEFING MODAL (TOP10 + dormant) ── -->
+<div id="day-modal" onclick="if(event.target===this)closeDayBriefing()">
+  <div id="day-modal-box">
+    <div id="day-modal-head">
+      <span style="font-size:20px">📊</span>
+      <div class="day-title" id="day-modal-title">ניתוח יום</div>
+      <span class="day-close" onclick="closeDayBriefing()">✕</span>
+    </div>
+    <div id="day-modal-body"><div class="ai-loading">⏳ טוען...</div></div>
   </div>
 </div>
 
@@ -2511,6 +2540,52 @@ async function _fetchClientAI(lang) {
 
     const html = `${tbl}<div class="ai-analysis">${analysis.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
     _aiState.cache[cacheKey] = html;
+    body.innerHTML = html;
+  } catch(e) {
+    body.innerHTML = `<div class="ai-loading" style="color:#c62828">❌ ${e.message}</div>`;
+  }
+}
+
+// ── Day Briefing — TOP10 clients + dormant list for the current agent/day ────
+let _dayBriefingCache = {};
+function openDayBriefing() {
+  document.getElementById('day-modal-title').textContent = `${st.agent?.name||''} — ${st.day===0?'לא מוגדר':'יום '+DAY_LABELS[st.day]}`;
+  document.getElementById('day-modal').classList.add('open');
+  _fetchDayBriefing();
+}
+function closeDayBriefing() {
+  document.getElementById('day-modal').classList.remove('open');
+}
+async function _fetchDayBriefing() {
+  const agentCode = st.agent?.code;
+  const cacheKey = `${agentCode}_${st.day}`;
+  const body = document.getElementById('day-modal-body');
+  if (_dayBriefingCache[cacheKey]) { body.innerHTML = _dayBriefingCache[cacheKey]; return; }
+  body.innerHTML = '<div class="ai-loading">⏳ מחשב...</div>';
+  try {
+    const r = await apiFetch(`${API}/api/day-briefing?agent=${encodeURIComponent(agentCode)}&day=${st.day}&lang=he`);
+    if(!r.ok){ const t=await r.text(); throw new Error(t.slice(0,120)); }
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || 'אין מספיק נתונים ליום זה');
+
+    const { top10, dormant, companyAvg, monthStr, analysis } = data;
+
+    const sub = `<div class="day-sub">${monthStr} · ממוצע לקוח בחברה: ₪${companyAvg.toLocaleString()}</div>`;
+
+    let tbl = `<table class="day-top10"><thead><tr><th>#</th><th>לקוח</th><th>מכירות</th><th>YoY</th></tr></thead><tbody>`;
+    top10.forEach((c,i) => {
+      const yoyStr = c.yoy !== null && c.yoy !== undefined ? `${c.yoy>=0?'+':''}${c.yoy}%` : '—';
+      const warn = c.daysSince && c.daysSince > 21;
+      tbl += `<tr><td>${i+1}</td><td>${esc(c.name)}${warn?` <span class="warn">⚠️${c.daysSince}d</span>`:''}</td><td>₪${c.total.toLocaleString()}</td><td>${yoyStr}</td></tr>`;
+    });
+    tbl += '</tbody></table>';
+
+    const dormantHtml = (dormant && dormant.length)
+      ? `<div class="day-dormant">⚠️ לא הזמינו מעל 3 שבועות: ${dormant.map(c=>`${esc(c.name)} (${c.daysSince}d)`).join(', ')}</div>`
+      : '';
+
+    const html = `${sub}${tbl}${dormantHtml}<div class="day-analysis">${(analysis||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+    _dayBriefingCache[cacheKey] = html;
     body.innerHTML = html;
   } catch(e) {
     body.innerHTML = `<div class="ai-loading" style="color:#c62828">❌ ${e.message}</div>`;
