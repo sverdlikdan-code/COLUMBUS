@@ -151,6 +151,8 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .km-extra-filters{display:flex;align-items:center;gap:6px;padding:2px 8px 4px;flex-wrap:wrap;}
 .fr-ice-btn{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;background:#E1F5FE;color:#0277BD;border:1.5px dashed #81D4FA;transition:all .15s;}
 .fr-ice-btn.active{background:#0277BD;color:#fff;border:1.5px solid #0277BD;box-shadow:inset 0 2px 5px rgba(0,0,0,.2);}
+.fr-dormant-btn{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;background:#FFEBEE;color:#C62828;border:1.5px dashed #EF9A9A;transition:all .15s;}
+.fr-dormant-btn.active{background:#C62828;color:#fff;border:1.5px solid #C62828;box-shadow:inset 0 2px 5px rgba(0,0,0,.2);}
 .fr-sadran-row{display:flex;align-items:center;gap:4px;}
 .fr-flt-label{font-size:10px;font-weight:700;color:var(--light);letter-spacing:.8px;text-transform:uppercase;flex-shrink:0;}
 .fr-sadran-legend{display:flex;gap:4px;flex-wrap:wrap;}
@@ -469,6 +471,7 @@ body.gps-fs #map{height:100%!important;}
     <!-- Row 4: ICE + sadran filter chips -->
     <div class="km-extra-filters" id="km-extra-filters" style="display:none">
       <button type="button" class="fr-ice-btn" id="fr-stat-ice" style="display:none" onclick="toggleFrIceFilter()"></button>
+      <button type="button" class="fr-dormant-btn" id="fr-stat-dormant" style="display:none" onclick="toggleFrDormantFilter()"></button>
       <div class="fr-sadran-row" id="fr-sadran-row" style="display:none">
         <span class="fr-flt-label">סדרן</span>
         <div class="fr-sadran-legend" id="fr-sadran-legend"></div>
@@ -703,7 +706,16 @@ const st = {
   tabletGpsMode: true,
   iceFilter: false,
   hasSadranFilter: false,
+  dormantFilter: false,
 };
+
+// >14 days since last order (or never ordered) — same threshold as the red badge in the client card
+function isDormantClient(c){
+  if(!c.lastOrderDate) return true;
+  const d=new Date(c.lastOrderDate.slice(0,10));
+  const today=new Date(); today.setHours(0,0,0,0);
+  return Math.round((today-d)/86400000)>14;
+}
 
 let map=null, mapMarkers=[], mapPolylines=[], markerCluster=null, sortable=null, mapBearing=0;
 let baseTileLayer=null, gpsCorrectMode=false, gpsCorrectId=null;
@@ -1398,11 +1410,13 @@ async function initRoute(){
       st.isDemo=true;
     }
   }
-  // Init ICE + sadran filter chips
+  // Init ICE + sadran + dormant filter chips
   st.iceFilter=false;
   st.hasSadranFilter=false;
+  st.dormantFilter=false;
   renderFrIceBtn();
   renderFrSadranBtn();
+  renderFrDormantBtn();
   // Enrich GPS from STATIC_DATA by custId — PBI GPS is more reliable than server geocoding
   if(STATIC_DATA?.routes && st.clients?.length){
     const gpsMap={};
@@ -1479,6 +1493,7 @@ function displayClients(){
   if(st.selectedCities.length) list=list.filter(c=>st.selectedCities.includes(c.city));
   if(st.iceFilter) list=list.filter(c=>c.iceOnly);
   if(st.hasSadranFilter) list=list.filter(c=>c.sadran);
+  if(st.dormantFilter) list=list.filter(isDormantClient);
   return list;
 }
 
@@ -1843,8 +1858,30 @@ function renderFrIceBtn(){
     st.iceFilter=false;
   }
   const sadranCount=(st.clients||[]).filter(c=>c.sadran).length;
-  if(iceCount>0||sadranCount>0) extraRow.style.display='';
+  const dormantCount=(st.clients||[]).filter(isDormantClient).length;
+  if(iceCount>0||sadranCount>0||dormantCount>0) extraRow.style.display='';
   else extraRow.style.display='none';
+}
+function renderFrDormantBtn(){
+  const dormantCount=(st.clients||[]).filter(isDormantClient).length;
+  const el=document.getElementById('fr-stat-dormant');
+  const extraRow=document.getElementById('km-extra-filters');
+  if(!el||!extraRow) return;
+  if(dormantCount>0){
+    el.textContent=`⏰ ${dormantCount} יותר משבועיים ללא הזמנה`;
+    el.style.display='';
+    el.classList.toggle('active',st.dormantFilter);
+    extraRow.style.display='';
+  } else {
+    el.style.display='none';
+    st.dormantFilter=false;
+  }
+}
+function toggleFrDormantFilter(){
+  st.dormantFilter=!st.dormantFilter;
+  renderFrDormantBtn();
+  renderClientList();
+  renderMap();
 }
 function renderFrSadranBtn(){
   const row=document.getElementById('fr-sadran-row');
@@ -1898,7 +1935,7 @@ function renderClientList(html){
       const dd=String(d.getDate()).padStart(2,'0');
       const mm=String(d.getMonth()+1).padStart(2,'0');
       const label=`${dd}.${mm}`;
-      const old=days>14;
+      const old=isDormantClient(c);
       return `<span style="${old?'color:var(--red);font-weight:700':''}">הזמנה: ${label}${old?` (${days}d)`:''}</span>`;
     })();
     const sales='';

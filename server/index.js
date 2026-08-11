@@ -3812,8 +3812,10 @@ app.get('/api/client-analytics/:custId', requireAuth, async (req, res) => {
   const lastDay = new Date(end.year, end.month, 0).getDate();
   const SKIP_CATS = new Set(['ציוד', 'שאריות', 'תגמולים']);
 
-  // Also get company-wide average for same period (for comparison)
-  const daxClient = `
+  // One DAX query per month so the UI can show a per-family trend (not just a 3-month sum)
+  const daxPerMonth = months.map(m => {
+    const mLastDay = new Date(m.year, m.month, 0).getDate();
+    return `
 EVALUATE
 CALCULATETABLE(
   ADDCOLUMNS(
@@ -3824,9 +3826,10 @@ CALCULATETABLE(
   ),
   ALL_PARTS[מספר לקוח] = "${custId}",
   ALL_PARTS[ASHMADOT] = "-מכר-",
-  ALL_PARTS[תאריך] >= DATE(${start.year},${start.month},1),
-  ALL_PARTS[תאריך] <= DATE(${end.year},${end.month},${lastDay})
+  ALL_PARTS[תאריך] >= DATE(${m.year},${m.month},1),
+  ALL_PARTS[תאריך] <= DATE(${m.year},${m.month},${mLastDay})
 )`;
+  });
 
   const daxAvg = `
 EVALUATE
@@ -3846,30 +3849,36 @@ ROW(
 )`;
 
   try {
-    const [rows, avgRows] = await Promise.all([
-      executeDax(daxClient),
+    const [monthRowsArr, avgRows] = await Promise.all([
+      Promise.all(daxPerMonth.map(q => executeDax(q))),
       executeDax(daxAvg),
     ]);
 
     const companyAvg = Math.round(avgRows?.[0]?.['[avg_per_client]'] || 0);
 
-    // Pivot by מחלקה (not משפחת מוצר — use department level)
-    const byMachlaka = {};
+    // Pivot by מחלקה (not משפחת מוצר — use department level), nested by month label
+    const byMachlaka = {}; // { [מחלקה]: { [monthLabel]: total } }
+    const machlakaTotal = {}; // { [מחלקה]: 3-month sum } — used for sorting/analysis text
     let clientTotal = 0;
     let lastOrderDate = null;
-    for (const r of rows) {
-      const cat   = r['[מחלקה]'] || '';
-      const total = Math.round(r['[total]'] || 0);
-      const lo    = r['[lastOrder]'];
-      if (cat && !SKIP_CATS.has(cat) && total > 0) {
-        byMachlaka[cat] = (byMachlaka[cat] || 0) + total;
-        clientTotal += total;
+    monthRowsArr.forEach((rows, i) => {
+      const monthLabel = months[i].label;
+      for (const r of rows) {
+        const cat   = r['[מחלקה]'] || '';
+        const total = Math.round(r['[total]'] || 0);
+        const lo    = r['[lastOrder]'];
+        if (cat && !SKIP_CATS.has(cat) && total > 0) {
+          if (!byMachlaka[cat]) byMachlaka[cat] = {};
+          byMachlaka[cat][monthLabel] = (byMachlaka[cat][monthLabel] || 0) + total;
+          machlakaTotal[cat] = (machlakaTotal[cat] || 0) + total;
+          clientTotal += total;
+        }
+        if (lo && (!lastOrderDate || new Date(lo) > new Date(lastOrderDate))) lastOrderDate = lo;
       }
-      if (lo && (!lastOrderDate || new Date(lo) > new Date(lastOrderDate))) lastOrderDate = lo;
-    }
+    });
 
     const monthStr = months.map(m => m.label).join(' — ');
-    const lines = Object.entries(byMachlaka)
+    const lines = Object.entries(machlakaTotal)
       .sort(([, a], [, b]) => b - a)
       .map(([cat, total]) => `${cat}: ₪${total.toLocaleString()}`);
 
@@ -3893,7 +3902,16 @@ ROW(
 
     const analysis = await callGemini(prompts[lang] || prompts.he, 500);
 
-    res.json({ ok: true, months: months.map(m => m.label), families: byMachlaka, dropped: Array.from(SKIP_CATS), analysis });
+    res.json({
+      ok: true,
+      months: months.map(m => m.label),
+      families: byMachlaka,
+      dropped: Array.from(SKIP_CATS),
+      clientTotal,
+      companyAvg,
+      daysSinceOrder,
+      analysis,
+    });
   } catch(e) {
     res.status(500).json({ ok: false, error: e.message });
   }
