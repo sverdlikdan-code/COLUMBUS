@@ -303,18 +303,28 @@ function main() {
     const SHOW = 8;
     const shown = churnList.slice(0, SHOW);
     const rest = churnList.slice(SHOW);
-    let y = 1.85;
-    shown.forEach(c => {
-      s.addText(c.custname || '', he({ x: 0.7, y, w: 8.3, h: 0.32, fontSize: 12.5, color: INK_TEXT, fontFace: SANS, valign: 'bottom' }));
-      s.addText(`${c.deptLabel} · סדרן ${c.sadran || ''} · סוכן ${c.sochen || ''}`, he({ x: 0.7, y: y + 0.3, w: 8.3, h: 0.26, fontSize: 9.5, color: MUTED, fontFace: SANS, valign: 'top' }));
-      s.addText(`היה ${fmtILS(c.lastYear)}`, { x: 9.4, y, w: 3.2, h: 0.55, fontSize: 12, bold: true, color: CLAY, align: 'right', fontFace: SANS, valign: 'middle' });
-      s.addShape('line', { x: 0.7, y: y + 0.54, w: 11.9, h: 0, line: { color: PAPER_LINE, width: 1 } });
-      y += 0.58;
+    // Колонки, не слитная строка (запрос пользователя 2026-08-11) — "סדרן" убран совсем,
+    // остаётся только имя סוכן, привязанное к конкретной паре клиент+компания. Геометрия
+    // намеренно LTR-идентична русской версии (established decision) — переведён только текст.
+    const header = ['לקוח', 'מחלקה', 'סוכן', 'היה'].map(t => ({
+      text: t, options: { bold: true, fill: { color: INK }, color: PAPER, fontSize: 10.5, fontFace: SANS },
+    }));
+    const body = shown.map(c => ([
+      { text: c.custname || '', options: { fontSize: 10.5, color: INK_TEXT, fontFace: SANS, rtlMode: true, lang: 'he-IL' } },
+      { text: c.deptLabel || '', options: { fontSize: 10, color: MUTED, fontFace: SANS, rtlMode: true, lang: 'he-IL' } },
+      { text: c.sochen || '', options: { fontSize: 10, color: MUTED, fontFace: SANS, rtlMode: true, lang: 'he-IL' } },
+      { text: fmtILS(c.lastYear), options: { fontSize: 10.5, bold: true, color: CLAY, fontFace: SANS, align: 'right' } },
+    ]));
+    s.addTable([header, ...body], {
+      x: 0.7, y: 1.85, w: 11.9, h: 4.9,
+      colW: [4.6, 2.7, 2.8, 1.8],
+      border: { type: 'solid', color: PAPER_LINE, pt: 0.5 },
+      autoPage: false,
     });
     if (rest.length) {
       const restSum = rest.reduce((s2, c) => s2 + c.lastYear, 0);
       s.addText(`עוד ${rest.length} שורות נטישה על ${fmtILS(restSum)} (קטנות יותר, כל אחת < ${fmtILS(shown[shown.length - 1].lastYear)}) — רשימה מלאה ב-SADRAN_ANALYSIS.xlsx.`, he({
-        x: 0.7, y, w: 11.9, h: 0.4, fontSize: 10, color: MUTED, fontFace: SANS, italic: true,
+        x: 0.7, y: 6.9, w: 11.9, h: 0.4, fontSize: 10, color: MUTED, fontFace: SANS, italic: true,
       }));
     }
   }
