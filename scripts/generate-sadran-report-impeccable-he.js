@@ -4,7 +4,7 @@
 // (rtlMode + lang בכל תיבת טקסט עברית).
 const path = require('path');
 const pptxgenjs = require('pptxgenjs');
-const { loadRows, pctChange, aggBy, fmtILS, fmtPct, DEPT_COMPANY, getNewCustomerSet } = require('./sadran-data');
+const { loadRows, loadIceBddBenchmark, pctChange, aggBy, fmtILS, fmtPct, DEPT_COMPANY, getNewCustomerSet } = require('./sadran-data');
 
 // SADRAN_OUTPUT_DIR — задан на VPS (cron), не задан локально на Windows (дефолт — Desktop).
 const OUT = process.env.SADRAN_OUTPUT_DIR
@@ -49,6 +49,8 @@ function main() {
   const totalPct = pctChange(totalLY, totalNow);
 
   const byCompany = aggBy(rows, r => r.company);
+  const iceBdd = loadIceBddBenchmark();
+  const iceBddPct = iceBdd ? pctChange(iceBdd.lastYear, iceBdd.now) : undefined;
   const byDept = aggBy(rows, r => r.dept).sort((a, b) => {
     const ca = DEPT_COMPANY[a.key] || '', cb = DEPT_COMPANY[b.key] || '';
     if (ca !== cb) return ca.localeCompare(cb);
@@ -84,6 +86,9 @@ function main() {
   const deepDiveICEMISH = buildCompanyDeepDive('ICE MISH', 5000);
 
   const custKey = r => `${r.custno}|${r.custname}`;
+  // custKeySochen — только для per-company топов: שם סוכן стабилен для клиент+компания,
+  // но может отличаться МЕЖДУ компаниями того же клиента.
+  const custKeySochen = r => `${r.custno}|${r.custname}|${r.sochen || ''}`;
   const byCustomer = aggBy(rowsExBdd, custKey).map(c => {
     const [custno, custname] = c.key.split('|');
     return { ...c, custno, custname };
@@ -99,9 +104,9 @@ function main() {
     const companyRows = rowsExBdd.filter(r => r.company === company);
     const newSetC = getNewCustomerSet(companyRows);
     const sameStoreC = companyRows.filter(r => !newSetC.has(r.custno));
-    const byCustC = aggBy(sameStoreC, custKey).map(c => {
-      const [custno, custname] = c.key.split('|');
-      return { ...c, custno, custname };
+    const byCustC = aggBy(sameStoreC, custKeySochen).map(c => {
+      const [custno, custname, sochen] = c.key.split('|');
+      return { ...c, custno, custname, sochen };
     });
     topGrowthByCompany[company] = byCustC.slice(0, 6);
     topDeclineByCompany[company] = byCustC.slice(-6).reverse();
@@ -188,6 +193,11 @@ function main() {
     else otherDelta += d;
   }
   const churnAndOther = churnDelta + otherDelta;
+  // churnList — реальные строки за суммой "נטישה" (см. project_sadran_pbi_join memory,
+  // запрос пользователя 2026-08-11: бар оттока без имён нельзя объяснить руководству).
+  const churnList = rows.filter(r => r.lastYear > 0 && r.now <= 0)
+    .map(r => ({ ...r, deptLabel: `${r.company} · ${r.dept}` }))
+    .sort((a, b) => b.lastYear - a.lastYear);
   const wf = [
     { label: 'תקופה\nקודמת', base: 0, value: totalLY, kind: 'end' },
     { label: 'לקוחות\nחדשים', base: totalLY, value: newDelta, kind: 'pos' },
@@ -286,6 +296,29 @@ function main() {
     }));
   }
 
+  // ---------- Slide 2.5 — נטישה: מי בדיוק עזב ----------
+  if (churnList.length) {
+    const s = pptx.addSlide();
+    contentHeader(s, 'תמונה כללית', 'נטישה — מי בדיוק עזב');
+    const SHOW = 8;
+    const shown = churnList.slice(0, SHOW);
+    const rest = churnList.slice(SHOW);
+    let y = 1.85;
+    shown.forEach(c => {
+      s.addText(c.custname || '', he({ x: 0.7, y, w: 8.3, h: 0.32, fontSize: 12.5, color: INK_TEXT, fontFace: SANS, valign: 'bottom' }));
+      s.addText(`${c.deptLabel} · סדרן ${c.sadran || ''} · סוכן ${c.sochen || ''}`, he({ x: 0.7, y: y + 0.3, w: 8.3, h: 0.26, fontSize: 9.5, color: MUTED, fontFace: SANS, valign: 'top' }));
+      s.addText(`היה ${fmtILS(c.lastYear)}`, { x: 9.4, y, w: 3.2, h: 0.55, fontSize: 12, bold: true, color: CLAY, align: 'right', fontFace: SANS, valign: 'middle' });
+      s.addShape('line', { x: 0.7, y: y + 0.54, w: 11.9, h: 0, line: { color: PAPER_LINE, width: 1 } });
+      y += 0.58;
+    });
+    if (rest.length) {
+      const restSum = rest.reduce((s2, c) => s2 + c.lastYear, 0);
+      s.addText(`עוד ${rest.length} שורות נטישה על ${fmtILS(restSum)} (קטנות יותר, כל אחת < ${fmtILS(shown[shown.length - 1].lastYear)}) — רשימה מלאה ב-SADRAN_ANALYSIS.xlsx.`, he({
+        x: 0.7, y, w: 11.9, h: 0.4, fontSize: 10, color: MUTED, fontFace: SANS, italic: true,
+      }));
+    }
+  }
+
   // ---------- Slide 3 — Same-Store ----------
   {
     const s = pptx.addSlide();
@@ -304,7 +337,7 @@ function main() {
   }
 
   // ---------- Divider: by company ----------
-  divider('פילוח 1', 'לפי חברות', 'INTER · FORMULA · ICE MISH · ICE BDD');
+  divider('פילוח 1', 'לפי חברות', 'INTER · FORMULA · ICE MISH');
 
   // ---------- Slide — company rows ----------
   {
@@ -320,6 +353,13 @@ function main() {
       s.addText(fmtPct(b.pct), { x: 10.3, y, w: 2.3, h: 0.8, fontSize: 26, bold: true, color: colorForPct(b.pct), align: 'right', valign: 'middle', fontFace: SERIF });
       s.addShape('line', { x: 0.7, y: y + 0.95, w: 11.9, h: 0, line: { color: PAPER_LINE, width: 1 } });
     });
+    // ICE BDD — שורת השוואה אחת בלבד, נתונים גולמיים ללא סינון לפי לקוחות/שם סדרן.
+    if (iceBddPct !== undefined) {
+      const y = 2.0 + byCompany.length * 1.15 + 0.25;
+      s.addText(`להשוואה — ICE BDD (ערוץ OneSales, ללא סדרן): ${fmtILS(iceBdd.lastYear)} → ${fmtILS(iceBdd.now)} (${fmtPct(iceBddPct)})`, he({
+        x: 0.7, y, w: 11.9, h: 0.4, fontSize: 10.5, color: MUTED, fontFace: SANS, italic: true,
+      }));
+    }
   }
 
   // ---------- Divider: departments & sadran ----------
@@ -335,7 +375,7 @@ function main() {
       chartColors: byDept.map(b => colorForPct(b.pct)),
       valAxisTitle: '% שינוי', showValAxisTitle: true,
       showLegend: false, showTitle: false,
-      dataLabelColor: INK_TEXT, showValue: true, dataLabelFormatCode: '+0.0"%";-0.0"%"',
+      dataLabelColor: INK_TEXT, showValue: true, dataLabelFormatCode: '+0"%";-0"%"',
       catAxisLabelFontSize: 12, valAxisLabelFontSize: 10,
       catAxisLabelColor: INK_TEXT, valAxisLabelColor: MUTED,
       plotArea: { border: { type: 'none' } },
@@ -355,7 +395,7 @@ function main() {
       chartColors: bySadran.map(b => colorForPct(b.pct)),
       valAxisTitle: '% שינוי', showValAxisTitle: true,
       showLegend: false, showTitle: false,
-      dataLabelColor: INK_TEXT, showValue: true, dataLabelFormatCode: '+0.0"%";-0.0"%"',
+      dataLabelColor: INK_TEXT, showValue: true, dataLabelFormatCode: '+0"%";-0"%"',
       catAxisLabelFontSize: 12, valAxisLabelFontSize: 10,
       catAxisLabelColor: INK_TEXT, valAxisLabelColor: MUTED,
       plotArea: { border: { type: 'none' } },
@@ -408,7 +448,7 @@ function main() {
       chartColors: byCustType.map(b => colorForPct(b.pct)),
       valAxisTitle: '% שינוי', showValAxisTitle: true,
       showLegend: false, showTitle: false,
-      dataLabelColor: INK_TEXT, showValue: true, dataLabelFormatCode: '+0.0"%";-0.0"%"',
+      dataLabelColor: INK_TEXT, showValue: true, dataLabelFormatCode: '+0"%";-0"%"',
       catAxisLabelFontSize: 11, valAxisLabelFontSize: 10,
       catAxisLabelColor: INK_TEXT, valAxisLabelColor: MUTED,
       plotArea: { border: { type: 'none' } },
@@ -431,7 +471,7 @@ function main() {
         chartColors: deep.byDept.map(b => colorForPct(b.pct)),
         valAxisTitle: '% שינוי', showValAxisTitle: true,
         showLegend: false, showTitle: false,
-        dataLabelColor: INK_TEXT, showValue: true, dataLabelFormatCode: '+0.0"%";-0.0"%"',
+        dataLabelColor: INK_TEXT, showValue: true, dataLabelFormatCode: '+0"%";-0"%"',
         catAxisLabelFontSize: 12, valAxisLabelFontSize: 10,
         catAxisLabelColor: INK_TEXT, valAxisLabelColor: MUTED,
         plotArea: { border: { type: 'none' } },
@@ -450,7 +490,7 @@ function main() {
         chartColors: deep.byCustType.map(b => colorForPct(b.pct)),
         valAxisTitle: '% שינוי', showValAxisTitle: true,
         showLegend: false, showTitle: false,
-        dataLabelColor: INK_TEXT, showValue: true, dataLabelFormatCode: '+0.0"%";-0.0"%"',
+        dataLabelColor: INK_TEXT, showValue: true, dataLabelFormatCode: '+0"%";-0"%"',
         catAxisLabelFontSize: 11, valAxisLabelFontSize: 10,
         catAxisLabelColor: INK_TEXT, valAxisLabelColor: MUTED,
         plotArea: { border: { type: 'none' } },
@@ -527,16 +567,20 @@ function main() {
   }
 
   // ---------- Slide — top movers ----------
-  function moversSlide(kicker, title, list, color, isNew) {
+  function moversSlide(kicker, title, list, color, isNew, showAgent) {
     const s = pptx.addSlide();
     contentHeader(s, kicker, title);
     let y = 2.0;
+    const rowH = showAgent ? 0.72 : 0.58;
     list.forEach(c => {
-      s.addText(c.custname || '', he({ x: 0.7, y, w: 8.3, h: 0.55, fontSize: 13, color: INK_TEXT, fontFace: SANS, valign: 'middle' }));
+      s.addText(c.custname || '', he({ x: 0.7, y, w: 8.3, h: 0.4, fontSize: 13, color: INK_TEXT, fontFace: SANS, valign: 'bottom' }));
+      if (showAgent) {
+        s.addText(`סוכן: ${c.sochen || ''}`, he({ x: 0.7, y: y + 0.38, w: 8.3, h: 0.28, fontSize: 9.5, color: MUTED, fontFace: SANS, valign: 'top' }));
+      }
       s.addText(`${fmtILS(c.lastYear)} → ${fmtILS(c.now)}`, { x: 9.1, y, w: 2.3, h: 0.55, fontSize: 10.5, color: MUTED, fontFace: SANS, valign: 'middle' });
       s.addText(isNew ? 'חדש' : fmtPct(c.pct), { x: 11.5, y, w: 1.1, h: 0.55, fontSize: 13, bold: true, color, align: 'right', fontFace: SANS, valign: 'middle' });
-      s.addShape('line', { x: 0.7, y: y + 0.5, w: 11.9, h: 0, line: { color: PAPER_LINE, width: 1 } });
-      y += 0.58;
+      s.addShape('line', { x: 0.7, y: y + rowH - 0.08, w: 11.9, h: 0, line: { color: PAPER_LINE, width: 1 } });
+      y += rowH;
     });
     if (isNew) {
       s.addText('לקוחות ללא היסטוריה משנה קודמת — % לא מוגדר (צמיחה מאפס). לא נכללים בטופ הצמיחה של same-store.', he({
@@ -546,7 +590,7 @@ function main() {
   }
   for (const company of ['FORMULA', 'INTER', 'ICE MISH']) {
     if (topGrowthByCompany[company].length) moversSlide('לקוחות', `טופ צמיחה · ${company}`, topGrowthByCompany[company], SAGE);
-    if (topDeclineByCompany[company].length) moversSlide('לקוחות', `טופ ירידה · ${company}`, topDeclineByCompany[company], CLAY);
+    if (topDeclineByCompany[company].length) moversSlide('לקוחות', `טופ ירידה · ${company}`, topDeclineByCompany[company], CLAY, false, true);
   }
   if (topNewCustomers.length) moversSlide('לקוחות', 'טופ לקוחות חדשים', topNewCustomers, GOLD, true);
 

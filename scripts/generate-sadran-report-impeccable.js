@@ -9,7 +9,7 @@
 // Рост/падение — не дефолтный зелёный/серый, а приглушённый шалфей / глина.
 const path = require('path');
 const pptxgenjs = require('pptxgenjs');
-const { loadRows, pctChange, aggBy, fmtILS, fmtPct, DEPT_COMPANY, getNewCustomerSet, isolateHebrew } = require('./sadran-data');
+const { loadRows, loadIceBddBenchmark, pctChange, aggBy, fmtILS, fmtPct, DEPT_COMPANY, getNewCustomerSet } = require('./sadran-data');
 
 // SADRAN_OUTPUT_DIR — задан на VPS (cron), не задан локально на Windows (дефолт — Desktop).
 const OUT = process.env.SADRAN_OUTPUT_DIR
@@ -52,6 +52,8 @@ function main() {
   const totalPct = pctChange(totalLY, totalNow);
 
   const byCompany = aggBy(rows, r => r.company);
+  const iceBdd = loadIceBddBenchmark();
+  const iceBddPct = iceBdd ? pctChange(iceBdd.lastYear, iceBdd.now) : undefined;
   const byDept = aggBy(rows, r => r.dept).sort((a, b) => {
     const ca = DEPT_COMPANY[a.key] || '', cb = DEPT_COMPANY[b.key] || '';
     if (ca !== cb) return ca.localeCompare(cb);
@@ -94,6 +96,9 @@ function main() {
   const deepDiveICEMISH = buildCompanyDeepDive('ICE MISH', 5000);
 
   const custKey = r => `${r.custno}|${r.custname}`;
+  // custKeySochen — только для per-company топов: שם סוכן стабилен для клиент+компания,
+  // но может отличаться МЕЖДУ компаниями того же клиента — в кросс-компанийном custKey нельзя.
+  const custKeySochen = r => `${r.custno}|${r.custname}|${r.sochen || ''}`;
   const byCustomer = aggBy(rowsExBdd, custKey).map(c => {
     const [custno, custname] = c.key.split('|');
     return { ...c, custno, custname };
@@ -113,9 +118,9 @@ function main() {
     const companyRows = rowsExBdd.filter(r => r.company === company);
     const newSetC = getNewCustomerSet(companyRows);
     const sameStoreC = companyRows.filter(r => !newSetC.has(r.custno));
-    const byCustC = aggBy(sameStoreC, custKey).map(c => {
-      const [custno, custname] = c.key.split('|');
-      return { ...c, custno, custname };
+    const byCustC = aggBy(sameStoreC, custKeySochen).map(c => {
+      const [custno, custname, sochen] = c.key.split('|');
+      return { ...c, custno, custname, sochen };
     });
     topGrowthByCompany[company] = byCustC.slice(0, 6);
     topDeclineByCompany[company] = byCustC.slice(-6).reverse();
@@ -206,6 +211,13 @@ function main() {
     else otherDelta += d;
   }
   const churnAndOther = churnDelta + otherDelta; // сворачиваем незначительный "other" в отток
+  // churnList — реальные строки за суммой "Отток" на waterfall: без этого бар ₪126K не имеет
+  // имени и его нельзя объяснить руководству (пользователь явно попросил — 2026-08-11).
+  // По клиент×מחלקה, не по клиенту целиком: клиент может уйти из ОДНОГО מחלקה, продолжая
+  // покупать в других — это не потеря аккаунта целиком, но всё равно реальный отток строки.
+  const churnList = rows.filter(r => r.lastYear > 0 && r.now <= 0)
+    .map(r => ({ ...r, deptLabel: `${r.company} · ${r.dept}` }))
+    .sort((a, b) => b.lastYear - a.lastYear);
   const wf = [
     { label: 'Прошлый\nпериод', base: 0, value: totalLY, kind: 'end' },
     { label: 'Новые\nклиенты', base: totalLY, value: newDelta, kind: 'pos' },
@@ -311,6 +323,31 @@ function main() {
     });
   }
 
+  // ---------- Slide 2.5 — Отток: кто именно ушёл ----------
+  // Бар "Отток" на waterfall без имён нельзя объяснить руководству (явный запрос пользователя,
+  // 2026-08-11) — показываем крупнейшие строки поимённо, остальное — сумма + ссылка на Excel.
+  if (churnList.length) {
+    const s = pptx.addSlide();
+    contentHeader(s, 'Общая картина', 'Отток — кто именно ушёл');
+    const SHOW = 8;
+    const shown = churnList.slice(0, SHOW);
+    const rest = churnList.slice(SHOW);
+    let y = 1.85;
+    shown.forEach(c => {
+      s.addText(c.custname || '', { x: 0.7, y, w: 8.3, h: 0.32, fontSize: 12.5, color: INK_TEXT, fontFace: SANS, valign: 'bottom', rtlMode: true, lang: 'he-IL' });
+      s.addText(`${c.deptLabel} · сдаран ${c.sadran || ''} · агент ${c.sochen || ''}`, { x: 0.7, y: y + 0.3, w: 8.3, h: 0.26, fontSize: 9.5, color: MUTED, fontFace: SANS, valign: 'top', rtlMode: true, lang: 'he-IL' });
+      s.addText(`было ${fmtILS(c.lastYear)}`, { x: 9.4, y, w: 3.2, h: 0.55, fontSize: 12, bold: true, color: CLAY, align: 'right', fontFace: SANS, valign: 'middle' });
+      s.addShape('line', { x: 0.7, y: y + 0.54, w: 11.9, h: 0, line: { color: PAPER_LINE, width: 1 } });
+      y += 0.58;
+    });
+    if (rest.length) {
+      const restSum = rest.reduce((s2, c) => s2 + c.lastYear, 0);
+      s.addText(`Ещё ${rest.length} строк оттока на ${fmtILS(restSum)} (мельче, каждая < ${fmtILS(shown[shown.length - 1].lastYear)}) — полный список в SADRAN_ANALYSIS.xlsx.`, {
+        x: 0.7, y, w: 11.9, h: 0.4, fontSize: 10, color: MUTED, fontFace: SANS, italic: true,
+      });
+    }
+  }
+
   // ---------- Slide 3 — Same-Store editorial ----------
   {
     const s = pptx.addSlide();
@@ -329,7 +366,7 @@ function main() {
   }
 
   // ---------- Divider: by company ----------
-  divider('Разрез 1', 'По компаниям', 'INTER · FORMULA · ICE MISH · ICE BDD');
+  divider('Разрез 1', 'По компаниям', 'INTER · FORMULA · ICE MISH');
 
   // ---------- Slide — company rows ----------
   {
@@ -345,6 +382,16 @@ function main() {
       s.addText(fmtPct(b.pct), { x: 10.3, y, w: 2.3, h: 0.8, fontSize: 26, bold: true, color: colorForPct(b.pct), align: 'right', valign: 'middle', fontFace: SERIF });
       s.addShape('line', { x: 0.7, y: y + 0.95, w: 11.9, h: 0, line: { color: PAPER_LINE, width: 1 } });
     });
+    // ICE BDD — ОДНА референсная строка, сырые цифры без фильтра по клиентам/שם סדרן (не входит
+    // в byCompany выше и нигде больше в отчёте не используется). Канал OneSales — сдараны его
+    // не ведут, поэтому его динамика — естественный контроль "как растёт направление без
+    // участия сдарана" (запрос пользователя 2026-08-11).
+    if (iceBddPct !== undefined) {
+      const y = 2.0 + byCompany.length * 1.15 + 0.25;
+      s.addText(`Для сравнения — ICE BDD (канал OneSales, без участия сдарана): ${fmtILS(iceBdd.lastYear)} → ${fmtILS(iceBdd.now)} (${fmtPct(iceBddPct)})`, {
+        x: 0.7, y, w: 11.9, h: 0.4, fontSize: 10.5, color: MUTED, fontFace: SANS, italic: true,
+      });
+    }
   }
 
   // ---------- Divider: departments & sadran ----------
@@ -360,7 +407,7 @@ function main() {
       chartColors: byDept.map(b => colorForPct(b.pct)),
       valAxisTitle: '% изменение', showValAxisTitle: true,
       showLegend: false, showTitle: false,
-      dataLabelColor: INK_TEXT, showValue: true, dataLabelFormatCode: '+0.0"%";-0.0"%"',
+      dataLabelColor: INK_TEXT, showValue: true, dataLabelFormatCode: '+0"%";-0"%"',
       catAxisLabelFontSize: 12, valAxisLabelFontSize: 10,
       catAxisLabelColor: INK_TEXT, valAxisLabelColor: MUTED,
       plotArea: { border: { type: 'none' } },
@@ -380,7 +427,7 @@ function main() {
       chartColors: bySadran.map(b => colorForPct(b.pct)),
       valAxisTitle: '% изменение', showValAxisTitle: true,
       showLegend: false, showTitle: false,
-      dataLabelColor: INK_TEXT, showValue: true, dataLabelFormatCode: '+0.0"%";-0.0"%"',
+      dataLabelColor: INK_TEXT, showValue: true, dataLabelFormatCode: '+0"%";-0"%"',
       catAxisLabelFontSize: 12, valAxisLabelFontSize: 10,
       catAxisLabelColor: INK_TEXT, valAxisLabelColor: MUTED,
       plotArea: { border: { type: 'none' } },
@@ -434,7 +481,7 @@ function main() {
       chartColors: byCustType.map(b => colorForPct(b.pct)),
       valAxisTitle: '% изменение', showValAxisTitle: true,
       showLegend: false, showTitle: false,
-      dataLabelColor: INK_TEXT, showValue: true, dataLabelFormatCode: '+0.0"%";-0.0"%"',
+      dataLabelColor: INK_TEXT, showValue: true, dataLabelFormatCode: '+0"%";-0"%"',
       catAxisLabelFontSize: 11, valAxisLabelFontSize: 10,
       catAxisLabelColor: INK_TEXT, valAxisLabelColor: MUTED,
       plotArea: { border: { type: 'none' } },
@@ -459,7 +506,7 @@ function main() {
         chartColors: deep.byDept.map(b => colorForPct(b.pct)),
         valAxisTitle: '% изменение', showValAxisTitle: true,
         showLegend: false, showTitle: false,
-        dataLabelColor: INK_TEXT, showValue: true, dataLabelFormatCode: '+0.0"%";-0.0"%"',
+        dataLabelColor: INK_TEXT, showValue: true, dataLabelFormatCode: '+0"%";-0"%"',
         catAxisLabelFontSize: 12, valAxisLabelFontSize: 10,
         catAxisLabelColor: INK_TEXT, valAxisLabelColor: MUTED,
         plotArea: { border: { type: 'none' } },
@@ -479,7 +526,7 @@ function main() {
         chartColors: deep.byCustType.map(b => colorForPct(b.pct)),
         valAxisTitle: '% изменение', showValAxisTitle: true,
         showLegend: false, showTitle: false,
-        dataLabelColor: INK_TEXT, showValue: true, dataLabelFormatCode: '+0.0"%";-0.0"%"',
+        dataLabelColor: INK_TEXT, showValue: true, dataLabelFormatCode: '+0"%";-0"%"',
         catAxisLabelFontSize: 11, valAxisLabelFontSize: 10,
         catAxisLabelColor: INK_TEXT, valAxisLabelColor: MUTED,
         plotArea: { border: { type: 'none' } },
@@ -544,7 +591,7 @@ function main() {
       const pctLabel = c.lastYear > 0 ? fmtPct(c.pct) : 'новый клиент';
       items.push({ k: 'Клиент', t: `Крупнейшее движение: ${c.custname} (сдаран ${c.sadran}) — ${fmtILS(c.lastYear)} → ${fmtILS(c.now)} (${pctLabel}).`, c: c.delta >= 0 ? SAGE : CLAY });
     }
-    return items.map(item => ({ ...item, t: isolateHebrew(item.t) }));
+    return items;
   }
   for (const [company, data] of [['FORMULA', insightsFORMULA], ['ICE MISH', insightsICEMISH]]) {
     const s = pptx.addSlide();
@@ -561,16 +608,20 @@ function main() {
   }
 
   // ---------- Slide — top movers (editorial table, minimal chrome) ----------
-  function moversSlide(kicker, title, list, color, isNew) {
+  function moversSlide(kicker, title, list, color, isNew, showAgent) {
     const s = pptx.addSlide();
     contentHeader(s, kicker, title);
     let y = 2.0;
+    const rowH = showAgent ? 0.72 : 0.58;
     list.forEach(c => {
-      s.addText(c.custname || '', { x: 0.7, y, w: 8.3, h: 0.55, fontSize: 13, color: INK_TEXT, fontFace: SANS, valign: 'middle', rtlMode: true, lang: 'he-IL' });
+      s.addText(c.custname || '', { x: 0.7, y, w: 8.3, h: 0.4, fontSize: 13, color: INK_TEXT, fontFace: SANS, valign: 'bottom', rtlMode: true, lang: 'he-IL' });
+      if (showAgent) {
+        s.addText(`Агент: ${c.sochen || ''}`, { x: 0.7, y: y + 0.38, w: 8.3, h: 0.28, fontSize: 9.5, color: MUTED, fontFace: SANS, valign: 'top', rtlMode: true, lang: 'he-IL' });
+      }
       s.addText(`${fmtILS(c.lastYear)} → ${fmtILS(c.now)}`, { x: 9.1, y, w: 2.3, h: 0.55, fontSize: 10.5, color: MUTED, fontFace: SANS, valign: 'middle' });
       s.addText(isNew ? 'новый' : fmtPct(c.pct), { x: 11.5, y, w: 1.1, h: 0.55, fontSize: 13, bold: true, color, align: 'right', fontFace: SANS, valign: 'middle' });
-      s.addShape('line', { x: 0.7, y: y + 0.5, w: 11.9, h: 0, line: { color: PAPER_LINE, width: 1 } });
-      y += 0.58;
+      s.addShape('line', { x: 0.7, y: y + rowH - 0.08, w: 11.9, h: 0, line: { color: PAPER_LINE, width: 1 } });
+      y += rowH;
     });
     if (isNew) {
       s.addText('Клиенты без истории прошлого года — % не определён (рост от нуля). Не входят в same-store топ роста.', {
@@ -580,7 +631,7 @@ function main() {
   }
   for (const company of ['FORMULA', 'INTER', 'ICE MISH']) {
     if (topGrowthByCompany[company].length) moversSlide('Клиенты', `Топ роста · ${company}`, topGrowthByCompany[company], SAGE);
-    if (topDeclineByCompany[company].length) moversSlide('Клиенты', `Топ падения · ${company}`, topDeclineByCompany[company], CLAY);
+    if (topDeclineByCompany[company].length) moversSlide('Клиенты', `Топ падения · ${company}`, topDeclineByCompany[company], CLAY, false, true);
   }
   if (topNewCustomers.length) moversSlide('Клиенты', 'Топ новых клиентов', topNewCustomers, GOLD, true);
 
