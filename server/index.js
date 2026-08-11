@@ -3413,7 +3413,7 @@ app.get('/mmd/period-data', mmdGuard, dataRateLimit, async (req, res) => {
         "mkr_tk",     CALCULATE([מכר קרטון],              ${df}),
         "shavuot",    CALCULATE([לכמה שבועות יספיק המלאי], ${df}),
         "yamim_haya", CALCULATE([ימים שהיה בהם מלאי],    ${df}),
-        "pct_mkr",    CALCULATE([ימי מכר מכלל ימי עבודה %], ${df}),
+        "pizur",      CALCULATE([% לקוחות], NOT 'לקוחות'[תאור סוג לקוח] IN { "סיטונאים", "מלונות", "פתאל מוסדי" }, ${df}),
         "hamlatza_k", CALCULATE([המלצה להזמנה קרטון],     ${df}),
         "tukuf",      [List of ת. תפוגת תוקף values],
         "yamim",      MIN('תוקף FORM'[כמה ימים נשארו])
@@ -3432,7 +3432,7 @@ app.get('/mmd/period-data', mmdGuard, dataRateLimit, async (req, res) => {
       mkr_tk:     r['[mkr_tk]']     != null ? Math.round(r['[mkr_tk]'])              : null,
       shavuot:    r['[shavuot]']    != null ? Math.round(r['[shavuot]']  * 10) / 10 : null,
       yamim_haya: r['[yamim_haya]'] != null ? Math.round(r['[yamim_haya]'])          : null,
-      pct_mkr:    r['[pct_mkr]']   != null ? Math.round(r['[pct_mkr]'])             : null,
+      pizur:      r['[pizur]']      != null ? Math.round(r['[pizur]']     * 100)     : null,
       hamlatza:   r['[hamlatza_k]'] != null ? Math.round(r['[hamlatza_k]'] * 10) / 10 : null,
       tukuf:      r['[tukuf]']      ?? null,
       yamim:      r['[yamim]']      != null ? Math.round(r['[yamim]'])               : null,
