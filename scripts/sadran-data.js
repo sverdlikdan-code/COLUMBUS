@@ -58,6 +58,7 @@ function loadRowsFromCache() {
     return {
       kosher: r.kosher || '(не указано)',
       city: r.city, custno: r.custno, custname: fixBiDi(r.custname), sadran: r.sadran,
+      sochen: r.sochen ? fixBiDi(r.sochen) : '(не указан)',
       dept: deptClean,
       company: DEPT_COMPANY[deptClean] || '(не определено)',
       custtype: r.custtype || '(нет в PBI)',
@@ -102,8 +103,28 @@ function loadRows() {
   return loadRowsFromXlsx();
 }
 
+// loadIceBddBenchmark — сырой (без фильтра по שם סדרן) итог по ICE BDD, только для одной
+// референсной строки "канал без влияния сдарана" (запрос пользователя 2026-08-11). Нет в
+// SADRAN.xlsx-резерве (там его никогда не было) — возвращает null, а не бросает исключение.
+function loadIceBddBenchmark() {
+  if (!fs.existsSync(FETCH_CACHE)) return null;
+  const cache = JSON.parse(fs.readFileSync(FETCH_CACHE, 'utf8'));
+  return cache.iceBddBenchmark || null;
+}
+
+// loadMomentum — окна 3 и 6 полных месяцев (год к году), для сравнения "ускоряется рост или
+// тормозит" (запрос пользователя 2026-08-11, задел под будущую email-рассылку боссам). Нет в
+// SADRAN.xlsx-резерве — возвращает null, а не бросает исключение.
+function loadMomentum() {
+  if (!fs.existsSync(FETCH_CACHE)) return null;
+  const cache = JSON.parse(fs.readFileSync(FETCH_CACHE, 'utf8'));
+  return cache.momentum || null;
+}
+
 function pctChange(ly, now) {
-  if (ly) return (now - ly) / ly;
+  // ly <= 0 — не только "нет истории" (ly===0), но и отрицательный net (возвраты/кредиты
+  // перекрыли продажи в периоде) — оба случая одинаково не дают осмысленный % от базы.
+  if (ly > 0) return (now - ly) / ly;
   return null;
 }
 
@@ -152,7 +173,7 @@ function isolateHebrew(str) {
 }
 function fmtPct(p) {
   if (p === null) return 'н/д';
-  return (p >= 0 ? '+' : '') + (p * 100).toFixed(1) + '%';
+  return (p >= 0 ? '+' : '') + Math.round(p * 100) + '%';
 }
 
-module.exports = { loadRows, pctChange, aggBy, fmtILS, fmtPct, fixBiDi, DEPT_COMPANY, isolateLatin, isolateHebrew, getNewCustomerSet };
+module.exports = { loadRows, loadIceBddBenchmark, loadMomentum, pctChange, aggBy, fmtILS, fmtPct, fixBiDi, DEPT_COMPANY, isolateLatin, isolateHebrew, getNewCustomerSet };
