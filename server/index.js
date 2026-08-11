@@ -1025,7 +1025,7 @@ async function geocodeNominatim(query, city) {
 // Gemini Flash — used for AI analytics (Anthropic fallback for geocoding)
 async function callGemini(prompt, maxTokens = 500) {
   if (!GEMINI_API_KEY) throw new Error('AI not configured');
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
   const resp = await fetch(url, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
