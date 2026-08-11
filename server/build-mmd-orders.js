@@ -76,13 +76,13 @@ async function build() {
         "mkr_shach",  CALCULATE([ מכר brutto],             ${df}),
         "zikuy_shach",CALCULATE([זיכויים סך הכול],         ${df}),
         "pct_zikuy",  CALCULATE([% זיכויים סך הכול],       ${df}),
-        "pizur",      CALCULATE([% לקוחות], NOT 'לקוחות'[תאור סוג לקוח] IN { "סיטונאים", "מלונות", "פתאל מוסדי" }, ${df}),
+        "pizur",      CALCULATE([% לקוחות], NOT 'לקוחות'[תאור סוג לקוח] IN { "סיטונאים", "מלונות", "פתאל מוסדי", "אסטרל", "--", "רשות הטבע" }, ${df}),
         "tukuf",      [List of ת. תפוגת תוקף values],
         "yamim",      MIN('תוקף FORM'[כמה ימים נשארו]),
         "eilat_yamim", MIN('EILATתוקף'[כמה ימים נשארו]),
         "eilat_tukuf_dt", MIN('EILATתוקף'[ת. תפוגת תוקף]),
-        "dist_active", CALCULATE([לקוחות פעילים], NOT 'לקוחות'[תאור סוג לקוח] IN { "סיטונאים", "מלונות", "פתאל מוסדי" }, ${df}),
-        "cust_bought", CALCULATE([כמות לקוחות], NOT 'לקוחות'[תאור סוג לקוח] IN { "סיטונאים", "מלונות", "פתאל מוסדי" }, ${df}),
+        "dist_active", CALCULATE([לקוחות פעילים], NOT 'לקוחות'[תאור סוג לקוח] IN { "סיטונאים", "מלונות", "פתאל מוסדי", "אסטרל", "--", "רשות הטבע" }, ${df}),
+        "cust_bought", CALCULATE([כמות לקוחות], NOT 'לקוחות'[תאור סוג לקוח] IN { "סיטונאים", "מלונות", "פתאל מוסדי", "אסטרל", "--", "רשות הטבע" }, ${df}),
         "eilat_batches", CONCATENATEX('EILATתוקף', 'EILATתוקף'[מנה/פק'ע] & "|" & FORMAT('EILATתוקף'[ת. תפוגת תוקף],"DD/MM/YYYY") & "|" & [קרטון מלאי תוקף] & "|" & 'EILATתוקף'[כמה ימים נשארו], ";", 'EILATתוקף'[ת. תפוגת תוקף], ASC)
       ),
       OR(OR('KARTIS PARIT'[ASHDOD KAARTON] > 0, 'KARTIS PARIT'[MMD KARTON] > 0), [מחסן מעבר] > 0)
