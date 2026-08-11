@@ -3419,8 +3419,8 @@ app.get('/mmd/period-data', mmdGuard, dataRateLimit, async (req, res) => {
         "mkr_prev6",  CALCULATE([מכר ממוצע בשבוע קרטון], ${df_prev}),
         "mkr_tk",     CALCULATE([מכר קרטון],              ${df}),
         "shavuot",    CALCULATE([לכמה שבועות יספיק המלאי], ${df}),
-        "cust_bought", CALCULATE([כמות לקוחות], NOT 'לקוחות'[תאור סוג לקוח] IN { "סיטונאים", "מלונות", "פתאל מוסדי" }, ${df}),
-        "pizur",      CALCULATE([% לקוחות], NOT 'לקוחות'[תאור סוג לקוח] IN { "סיטונאים", "מלונות", "פתאל מוסדי" }, ${df}),
+        "cust_bought", CALCULATE([כמות לקוחות], NOT 'לקוחות'[תאור סוג לקוח] IN { "סיטונאים", "מלונות", "פתאל מוסדי", "אסטרל", "--", "רשות הטבע" }, ${df}),
+        "pizur",      CALCULATE([% לקוחות], NOT 'לקוחות'[תאור סוג לקוח] IN { "סיטונאים", "מלונות", "פתאל מוסדי", "אסטרל", "--", "רשות הטבע" }, ${df}),
         "hamlatza_k", CALCULATE([המלצה להזמנה קרטון],     ${df}),
         "tukuf",      [List of ת. תפוגת תוקף values],
         "yamim",      MIN('תוקף FORM'[כמה ימים נשארו])
