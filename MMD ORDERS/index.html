@@ -905,7 +905,7 @@
       </div>
       <span id="user-badge" style="font-size:.72rem;color:#90a4ae;padding:2px 6px;align-self:center;white-space:nowrap;cursor:pointer" title="לחץ לשינוי שם" onclick="promptChangeUser()"></span>
       <button class="btn btn-print" onclick="(()=>{document.querySelectorAll('.c-img img').forEach(img=>{img.removeAttribute('loading');if(!img.complete){const s=img.src;img.src='';img.src=s;}});setTimeout(()=>window.print(),80);})()">🖨 הדפסה</button>
-      <button class="btn btn-archive" id="btn-archive" onclick="togArchive()" title="הצג/הסתר מוצרים שנשלחו לארכיב">🗃 ארכיב</button>
+      <button class="btn btn-archive" id="btn-archive" onclick="togArchive()" title="הצג/הסתר מוצרים שנשלחו לארכיון">🗃 ארכיון</button>
     </div>
   </div>
 </div>
@@ -1417,11 +1417,11 @@
     const btn = document.getElementById('btn-archive');
     if (!btn) return;
     if (archiveMode) {
-      btn.textContent = '↩ ארכיב (' + archivedMkts.size + ')';
+      btn.textContent = '↩ ארכיון (' + archivedMkts.size + ')';
     } else {
       btn.textContent = archivedMkts.size > 0
-        ? '🗃 ארכיב (' + archivedMkts.size + ')'
-        : '🗃 ארכיב';
+        ? '🗃 ארכיון (' + archivedMkts.size + ')'
+        : '🗃 ארכיון';
     }
   }
   window.archiveItem = function(mk) {
@@ -1608,8 +1608,8 @@
         tr.innerHTML =
           '<td class="c-arch">' +
             (archiveMode
-              ? '<button class="arch-btn" onclick="restoreItem(\'' + mk + '\')" title="שחזר מארכיב">↩</button>'
-              : '<button class="arch-btn" onclick="archiveItem(\'' + mk + '\')" title="העבר לארכיב">🗃</button>') +
+              ? '<button class="arch-btn" onclick="restoreItem(\'' + mk + '\')" title="שחזר מארכיון">↩</button>'
+              : '<button class="arch-btn" onclick="archiveItem(\'' + mk + '\')" title="העבר לארכיון">🗃</button>') +
           '</td>' +
           '<td class="c-mkt">' + mk + '</td>' +
           '<td class="c-taur" dir="rtl" title="' + esc(r.taur) + '">' + (isPopular ? '<span class="pop-star">⭐</span> ' : '') + _ltrWrap(shortName(fixProductName(r.taur))) + '</td>' +
