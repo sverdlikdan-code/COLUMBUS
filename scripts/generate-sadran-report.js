@@ -4,7 +4,7 @@
 // data-pipeline (fetch-sadran-data.js читал ALL_PARTS + 'ADIFUT FOR DEILTA' напрямую).
 const path = require('path');
 const pptxgenjs = require('pptxgenjs');
-const { loadRows, pctChange, aggBy, fmtILS, fmtPct, DEPT_COMPANY, getNewCustomerSet, isolateHebrew } = require('./sadran-data');
+const { loadRows, pctChange, aggBy, fmtILS, fmtPct, DEPT_COMPANY, getNewCustomerSet } = require('./sadran-data');
 
 // SADRAN_OUTPUT_DIR — задан на VPS (cron), не задан локально на Windows (дефолт — Desktop).
 const OUT = process.env.SADRAN_OUTPUT_DIR
@@ -96,6 +96,10 @@ function main() {
 
   // Клиентские топы — тоже без ICE BDD (см. выше)
   const custKey = r => `${r.custno}|${r.custname}|${r.sadran}|${r.kosher}`;
+  // custKeySochen — только для per-company топов (topGrowthByCompany/topDeclineByCompany):
+  // שם סוכן стабилен для одной пары клиент+компания (см. fetch-sadran-data.js), но может
+  // отличаться МЕЖДУ компаниями одного клиента — в кросс-компанийном custKey его включать нельзя.
+  const custKeySochen = r => `${r.custno}|${r.custname}|${r.sadran}|${r.kosher}|${r.sochen || ''}`;
   const byCustomer = aggBy(rowsExBdd, custKey).map(c => {
     const [custno, custname, sadran, kosher] = c.key.split('|');
     return { ...c, custno, custname, sadran, kosher };
@@ -115,9 +119,9 @@ function main() {
     const companyRows = rowsExBdd.filter(r => r.company === company);
     const newSetC = getNewCustomerSet(companyRows);
     const sameStoreC = companyRows.filter(r => !newSetC.has(r.custno));
-    const byCustC = aggBy(sameStoreC, custKey).map(c => {
-      const [custno, custname, sadran, kosher] = c.key.split('|');
-      return { ...c, custno, custname, sadran, kosher };
+    const byCustC = aggBy(sameStoreC, custKeySochen).map(c => {
+      const [custno, custname, sadran, kosher, sochen] = c.key.split('|');
+      return { ...c, custno, custname, sadran, kosher, sochen };
     });
     topGrowthByCompany[company] = byCustC.slice(0, 8);
     topDeclineByCompany[company] = byCustC.slice(-8).reverse();
@@ -308,7 +312,7 @@ function main() {
       chartColors: byDept.map(b => colorForPct(b.pct)),
       valAxisTitle: '% изменение', showValAxisTitle: true,
       showLegend: false, showTitle: false,
-      dataLabelColor: '333333', showValue: true, dataLabelFormatCode: '+0.0"%";-0.0"%"',
+      dataLabelColor: '333333', showValue: true, dataLabelFormatCode: '+0"%";-0"%"',
       catAxisLabelFontSize: 12, valAxisLabelFontSize: 11,
       // Ось категорий по умолчанию пересекает ось значений в 0 (autoZero) — подписи
       // категорий садятся у нулевой отметки и наезжают на data label соседнего
@@ -332,7 +336,7 @@ function main() {
       chartColors: bySadran.map(b => colorForPct(b.pct)),
       valAxisTitle: '% изменение', showValAxisTitle: true,
       showLegend: false, showTitle: false,
-      dataLabelColor: '333333', showValue: true, dataLabelFormatCode: '+0.0"%";-0.0"%"',
+      dataLabelColor: '333333', showValue: true, dataLabelFormatCode: '+0"%";-0"%"',
       catAxisLabelFontSize: 12, valAxisLabelFontSize: 11,
       valAxisCrossesAt: 'min',
     });
@@ -389,7 +393,7 @@ function main() {
       chartColors: byCustType.map(b => colorForPct(b.pct)),
       valAxisTitle: '% изменение', showValAxisTitle: true,
       showLegend: false, showTitle: false,
-      dataLabelColor: '333333', showValue: true, dataLabelFormatCode: '+0.0"%";-0.0"%"',
+      dataLabelColor: '333333', showValue: true, dataLabelFormatCode: '+0"%";-0"%"',
       catAxisLabelFontSize: 11, valAxisLabelFontSize: 11,
       valAxisCrossesAt: 'min',
     });
@@ -416,7 +420,7 @@ function main() {
         chartColors: deep.byDept.map(b => colorForPct(b.pct)),
         valAxisTitle: '% изменение', showValAxisTitle: true,
         showLegend: false, showTitle: false,
-        dataLabelColor: '333333', showValue: true, dataLabelFormatCode: '+0.0"%";-0.0"%"',
+        dataLabelColor: '333333', showValue: true, dataLabelFormatCode: '+0"%";-0"%"',
         catAxisLabelFontSize: 12, valAxisLabelFontSize: 11,
         valAxisCrossesAt: 'min',
       });
@@ -437,7 +441,7 @@ function main() {
         chartColors: deep.byCustType.map(b => colorForPct(b.pct)),
         valAxisTitle: '% изменение', showValAxisTitle: true,
         showLegend: false, showTitle: false,
-        dataLabelColor: '333333', showValue: true, dataLabelFormatCode: '+0.0"%";-0.0"%"',
+        dataLabelColor: '333333', showValue: true, dataLabelFormatCode: '+0"%";-0"%"',
         catAxisLabelFontSize: 12, valAxisLabelFontSize: 11,
         valAxisCrossesAt: 'min',
       });
@@ -509,7 +513,7 @@ function main() {
         c: c.delta >= 0 ? GREEN : DECLINE,
       });
     }
-    return bullets.map(b => ({ ...b, t: isolateHebrew(b.t) }));
+    return bullets;
   }
   for (const [company, data] of [['FORMULA', insightsFORMULA], ['ICE MISH', insightsICEMISH]]) {
     const bullets = buildCompanyBullets(company, data);
@@ -533,23 +537,33 @@ function main() {
   }
 
   // Slide 5 — top growth / decline customers table
-  function customerTableSlide(title, list, color, isNew) {
+  function customerTableSlide(title, list, color, isNew, showAgent) {
     const s = pptx.addSlide();
     s.addText(title, { x: 0.5, y: 0.35, w: 12, h: 0.6, fontSize: 24, bold: true, color: NAVY, fontFace: 'Arial' });
-    const header = ['Клиент', 'Сдаран', 'Кошер', 'Прошлый', 'Текущий', '%'].map(t => ({
+    const cols = ['Клиент', 'Сдаран', 'Кошер'];
+    if (showAgent) cols.push('Агент');
+    cols.push('Прошлый', 'Текущий', '%');
+    const header = cols.map(t => ({
       text: t, options: { bold: true, fill: { color: NAVY }, color: WHITE, fontSize: 11 },
     }));
-    const body = list.map(c => ([
-      { text: String(c.custname || '').slice(0, 40), options: { fontSize: 10, rtlMode: true, lang: 'he-IL' } },
-      { text: c.sadran || '', options: { fontSize: 10, rtlMode: true, lang: 'he-IL' } },
-      { text: c.kosher || '', options: { fontSize: 10, rtlMode: true, lang: 'he-IL' } },
-      { text: fmtILS(c.lastYear), options: { fontSize: 10, align: 'right' } },
-      { text: fmtILS(c.now), options: { fontSize: 10, align: 'right' } },
-      { text: isNew ? 'новый' : fmtPct(c.pct), options: { fontSize: 10, align: 'right', bold: true, color } },
-    ]));
+    const body = list.map(c => {
+      const row = [
+        { text: String(c.custname || '').slice(0, 40), options: { fontSize: 10, rtlMode: true, lang: 'he-IL' } },
+        { text: c.sadran || '', options: { fontSize: 10, rtlMode: true, lang: 'he-IL' } },
+        { text: c.kosher || '', options: { fontSize: 10, rtlMode: true, lang: 'he-IL' } },
+      ];
+      if (showAgent) row.push({ text: c.sochen || '', options: { fontSize: 10, rtlMode: true, lang: 'he-IL' } });
+      row.push(
+        { text: fmtILS(c.lastYear), options: { fontSize: 10, align: 'right' } },
+        { text: fmtILS(c.now), options: { fontSize: 10, align: 'right' } },
+        { text: isNew ? 'новый' : fmtPct(c.pct), options: { fontSize: 10, align: 'right', bold: true, color } },
+      );
+      return row;
+    });
+    const colW = showAgent ? [3.3, 2.1, 1.1, 2.1, 1.3, 1.3, 1.1] : [4.3, 2.5, 1.3, 1.4, 1.4, 1.4];
     s.addTable([header, ...body], {
       x: 0.5, y: 1.2, w: 12.3, h: 5.8,
-      colW: [4.3, 2.5, 1.3, 1.4, 1.4, 1.4],
+      colW,
       border: { type: 'solid', color: 'E2E8F0', pt: 0.5 },
       autoPage: false,
     });
@@ -561,7 +575,7 @@ function main() {
   }
   for (const company of ['FORMULA', 'INTER', 'ICE MISH']) {
     if (topGrowthByCompany[company].length) customerTableSlide(`Топ клиентов — рост продаж — ${company}`, topGrowthByCompany[company], GREEN);
-    if (topDeclineByCompany[company].length) customerTableSlide(`Топ клиентов — падение продаж — ${company}`, topDeclineByCompany[company], DECLINE);
+    if (topDeclineByCompany[company].length) customerTableSlide(`Топ клиентов — падение продаж — ${company}`, topDeclineByCompany[company], DECLINE, false, true);
   }
   if (topNewCustomers.length) customerTableSlide('Топ новых клиентов', topNewCustomers, BLUE, true);
 
