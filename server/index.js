@@ -3889,9 +3889,15 @@ ROW(
 
     const companyAvg = Math.round(avgRows?.[0]?.['[avg_per_client]'] || 0);
 
-    // Pivot by מחלקה (not משפחת מוצר — use department level), nested by month label
+    // Pivot by מחלקה (not משפחת מוצר — use department level), nested by month label.
+    // 'מתוקים' comes through ALL_PARTS from the INTER company DB (separate sales channel,
+    // same mapping as scripts/sadran-data.js DEPT_COMPANY) — kept out of the main
+    // FORM/ICE breakdown and the AI context so it doesn't get analyzed as if it were
+    // part of the agent's own department mix; shown as its own block instead.
+    const INTER_CATS = new Set(['מתוקים  🍬']); // raw ADIFUT[מחלקה] value — verified live, has 2 spaces + emoji
     const byMachlaka = {}; // { [מחלקה]: { [monthLabel]: total } }
     const machlakaTotal = {}; // { [מחלקה]: 3-month sum } — used for sorting/analysis text
+    const byMachlakaInter = {}; // same shape, INTER-channel categories only
     let clientTotal = 0;
     let lastOrderDate = null;
     monthRowsArr.forEach((rows, i) => {
@@ -3901,10 +3907,15 @@ ROW(
         const total = Math.round(r['[total]'] || 0);
         const lo    = r['[lastOrder]'];
         if (cat && !SKIP_CATS.has(cat) && total > 0) {
-          if (!byMachlaka[cat]) byMachlaka[cat] = {};
-          byMachlaka[cat][monthLabel] = (byMachlaka[cat][monthLabel] || 0) + total;
-          machlakaTotal[cat] = (machlakaTotal[cat] || 0) + total;
-          clientTotal += total;
+          if (INTER_CATS.has(cat)) {
+            if (!byMachlakaInter[cat]) byMachlakaInter[cat] = {};
+            byMachlakaInter[cat][monthLabel] = (byMachlakaInter[cat][monthLabel] || 0) + total;
+          } else {
+            if (!byMachlaka[cat]) byMachlaka[cat] = {};
+            byMachlaka[cat][monthLabel] = (byMachlaka[cat][monthLabel] || 0) + total;
+            machlakaTotal[cat] = (machlakaTotal[cat] || 0) + total;
+            clientTotal += total;
+          }
         }
         if (lo && (!lastOrderDate || new Date(lo) > new Date(lastOrderDate))) lastOrderDate = lo;
       }
@@ -3927,10 +3938,11 @@ ROW(
 
     const context = `${monthStr}\n${lines.join('\n')}${avgNote}\n${clientNote}${dormantNote}`;
 
+    const scopeNote = 'הסוכן מבקר בחנות פיזית — הוא לא מתקשר לקונים/רוכשים ואינו יכול להפעיל "סמכות" ממחלקה אחרת. המלצות רק על פעולות שהוא יכול לבצע בביקור עצמו: הצעת מוצר/מבצע, כמות הזמנה, פייסינג במדף, תזכורת למוצר שלא הוזמן. בלי משפט פתיחה/ברכה — ישר לעניין.';
     const prompts = {
-      he: `אתה מנהל אזור של חברת הפצה. נתוני מכירות לפי מחלקה:\n${context}\n\nתן 3 תצפיות חדות + המלצה לסוכן. השווה לממוצע. ציין מחלקות חלשות. אם לא הזמין >3 שבועות — זה קריטי. מנהלי, ישיר.`,
-      uk: `Ти менеджер зони. Продажі по відділах:\n${context}\n\nДай 3 спостереження + рекомендацію. Порівняй із середнім. Відділи що відстають. Якщо >3 тижні без замовлення — критично. Прямо.`,
-      ru: `Ты менеджер зоны. Продажи по отделам:\n${context}\n\nДай 3 наблюдения + рекомендацию. Сравни со средним. Слабые отделы. Если >3 недель без заказа — критично. Прямо.`,
+      he: `אתה מנהל אזור של חברת הפצה. נתוני מכירות לפי מחלקה:\n${context}\n\nתן 3 תצפיות חדות + המלצה לסוכן. השווה לממוצע. ציין מחלקות חלשות. אם לא הזמין >3 שבועות — זה קריטי. ${scopeNote}`,
+      uk: `Ти менеджер зони. Продажі по відділах:\n${context}\n\nДай 3 спостереження + рекомендацію. Порівняй із середнім. Відділи що відстають. Якщо >3 тижні без замовлення — критично. Агент відвідує магазин особисто — не телефонує байєрам і не діє "авторитетом" іншого відділу. Рекомендації лише про дії під час візиту (пропозиція товару, кількість замовлення, фейсинг). Без привітання — одразу по суті.`,
+      ru: `Ты менеджер зоны. Продажи по отделам:\n${context}\n\nДай 3 наблюдения + рекомендацию. Сравни со средним. Слабые отделы. Если >3 недель без заказа — критично. Агент лично заходит в магазин — он не звонит байерам и не действует "авторитетом" другого отдела. Рекомендации только про действия в рамках визита (предложить товар, объём заказа, фейсинг на полке). Без приветствия — сразу по делу.`,
     };
 
     const analysis = await callGemini(prompts[lang] || prompts.he, 500);
@@ -3939,6 +3951,7 @@ ROW(
       ok: true,
       months: months.map(m => m.label),
       families: byMachlaka,
+      familiesInter: byMachlakaInter,
       dropped: Array.from(SKIP_CATS),
       clientTotal,
       companyAvg,

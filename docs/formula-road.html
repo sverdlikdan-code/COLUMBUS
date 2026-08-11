@@ -2520,7 +2520,7 @@ async function _fetchClientAI(lang) {
     const data = await r.json();
     if (!data.ok) throw new Error(data.error || 'שגיאה');
 
-    const { months, families, dropped, analysis } = data;
+    const { months, families, familiesInter, dropped, analysis } = data;
 
     // Build table
     let tbl = `<table class="ai-families-tbl"><thead><tr><th>משפחת מוצר</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>`;
@@ -2538,7 +2538,21 @@ async function _fetchClientAI(lang) {
     }
     tbl += '</tbody></table>';
 
-    const html = `${tbl}<div class="ai-analysis">${analysis.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+    // INTER channel (e.g. מתוקים) — separate company/source, kept out of the main table
+    let interTbl = '';
+    if (familiesInter && Object.keys(familiesInter).length) {
+      interTbl = `<div style="margin:10px 0 4px;font-size:11px;color:#8B6D00;font-weight:700">ערוץ נפרד (INTER)</div>`;
+      interTbl += `<table class="ai-families-tbl"><thead><tr><th>משפחת מוצר</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>`;
+      for (const [fam, byM] of Object.entries(familiesInter)) {
+        interTbl += `<tr><td>${fam}</td>${months.map(m=>{
+          const v = byM[m];
+          return `<td style="text-align:left">${v ? '₪'+v.toLocaleString() : '—'}</td>`;
+        }).join('')}</tr>`;
+      }
+      interTbl += '</tbody></table>';
+    }
+
+    const html = `${tbl}${interTbl}<div class="ai-analysis">${analysis.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
     _aiState.cache[cacheKey] = html;
     body.innerHTML = html;
   } catch(e) {
