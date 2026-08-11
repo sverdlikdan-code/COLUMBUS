@@ -3238,10 +3238,6 @@ app.get('/mmd/mmd-orders.json', mmdGuard, (req, res) => {
   const fallback = path.join(__dirname, '..', 'docs', 'mmd-orders.json');
   res.sendFile(fs.existsSync(livePath) ? livePath : fallback);
 });
-app.get('/mmd/prophet.json', mmdGuard, (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'docs', 'prophet.json'));
-});
-
 app.get('/mmd/img/:mkt', mmdGuard, (req, res) => {
   const mkt = req.params.mkt.replace(/\D/g, '');
   if (!mkt) return res.status(400).end();
