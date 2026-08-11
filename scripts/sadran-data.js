@@ -43,8 +43,12 @@ const DEPT_COMPANY = {
   'קפוא ❄': 'FORMULA',
 };
 
-// סוג לקוח — из FORMULA PBI dataset, таблица "לקוחות FORM+I+INT", join по מס. לקוח
-const CUST_TYPE_DUMP = require('./cust_type_dump.json');
+// סוג לקוח — из FORMULA PBI dataset, таблица "לקוחות FORM+I+INT", join по מס. לקוח.
+// Нужен только резервному пути loadRowsFromXlsx() — на кэш-пути (fetch-sadran-data.js,
+// VPS-крон) custtype уже приходит внутри кэша. Файл gitignored, на VPS его не будет —
+// без try/catch require() валит весь модуль ещё до того, как выяснится, что он не нужен.
+let CUST_TYPE_DUMP = [];
+try { CUST_TYPE_DUMP = require('./cust_type_dump.json'); } catch { /* нет дампа — ок для кэш-пути */ }
 const CUST_TYPE = new Map(CUST_TYPE_DUMP.map(r => [String(r['[custno]']).trim(), r['[custtype]'] || '(не указано)']));
 
 function loadRowsFromCache() {

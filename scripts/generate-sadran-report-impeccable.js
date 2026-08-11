@@ -7,10 +7,14 @@
 // Color strategy: Committed — один плотный чернильный цвет несёт реальный вес на секционных
 // слайдах, тёплый off-white на содержательных, один сдержанный акцент (охра) для выделений.
 // Рост/падение — не дефолтный зелёный/серый, а приглушённый шалфей / глина.
+const path = require('path');
 const pptxgenjs = require('pptxgenjs');
 const { loadRows, pctChange, aggBy, fmtILS, fmtPct, DEPT_COMPANY, getNewCustomerSet, isolateHebrew } = require('./sadran-data');
 
-const OUT = 'C:\\Users\\d.sverdlik\\Desktop\\SADRAN_REPORT_IMPECCABLE.pptx';
+// SADRAN_OUTPUT_DIR — задан на VPS (cron), не задан локально на Windows (дефолт — Desktop).
+const OUT = process.env.SADRAN_OUTPUT_DIR
+  ? path.join(process.env.SADRAN_OUTPUT_DIR, 'SADRAN_REPORT_IMPECCABLE.pptx')
+  : 'C:\\Users\\d.sverdlik\\Desktop\\SADRAN_REPORT_IMPECCABLE.pptx';
 
 // --- palette (OKLCH-informed, tinted neutrals — не чистый #000/#fff) ---
 const INK = '1B2430';        // глубокий чернильный (не чёрный) — секционные слайды

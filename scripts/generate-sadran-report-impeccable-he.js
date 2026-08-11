@@ -2,10 +2,14 @@
 // טקסט מתורגם לעברית + עוגני פריסה עיקריים (kicker/title/כותרות מדור) ממוקמים מימין.
 // טבלאות/שורות נתונים נשארות באותה גיאומטריה כמו בגרסה הרוסית — רק ה-BiDi של הטקסט העברי מתוקן
 // (rtlMode + lang בכל תיבת טקסט עברית).
+const path = require('path');
 const pptxgenjs = require('pptxgenjs');
 const { loadRows, pctChange, aggBy, fmtILS, fmtPct, DEPT_COMPANY, getNewCustomerSet } = require('./sadran-data');
 
-const OUT = 'C:\\Users\\d.sverdlik\\Desktop\\SADRAN_REPORT_IMPECCABLE_HE.pptx';
+// SADRAN_OUTPUT_DIR — задан на VPS (cron), не задан локально на Windows (дефолт — Desktop).
+const OUT = process.env.SADRAN_OUTPUT_DIR
+  ? path.join(process.env.SADRAN_OUTPUT_DIR, 'SADRAN_REPORT_IMPECCABLE_HE.pptx')
+  : 'C:\\Users\\d.sverdlik\\Desktop\\SADRAN_REPORT_IMPECCABLE_HE.pptx';
 
 // --- palette (זהה לגרסה הרוסית) ---
 const INK = '1B2430';
