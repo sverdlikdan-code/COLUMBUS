@@ -48,6 +48,21 @@ function main() {
   const totalNow = rows.reduce((s, r) => s + r.now, 0);
   const totalPct = pctChange(totalLY, totalNow);
 
+  // lowValueCandidates — кандидаты на снятие сдарана: точки с наименьшим тотал продаж.
+  // Тотал — по клиенту ЦЕЛИКОМ (сумма по всем компаниям).
+  const custTotalsAll = new Map();
+  for (const r of rows) {
+    if (!custTotalsAll.has(r.custno)) {
+      custTotalsAll.set(r.custno, { custname: r.custname, sadran: r.sadran, city: r.city, companies: new Set(), lastYear: 0, now: 0 });
+    }
+    const t = custTotalsAll.get(r.custno);
+    t.companies.add(r.company);
+    t.lastYear += r.lastYear;
+    t.now += r.now;
+  }
+  const grandNowAll = [...custTotalsAll.values()].reduce((s, v) => s + v.now, 0);
+  const lowValueCandidates = [...custTotalsAll.values()].sort((a, b) => a.now - b.now);
+
   const byCompany = aggBy(rows, r => r.company);
   const iceBdd = loadIceBddBenchmark();
   const iceBddPct = iceBdd ? pctChange(iceBdd.lastYear, iceBdd.now) : undefined;
@@ -603,6 +618,39 @@ function main() {
     if (topDeclineByCompany[company].length) moversSlide('לקוחות', `טופ ירידה · ${company}`, topDeclineByCompany[company], CLAY, false, true);
   }
   if (topNewCustomers.length) moversSlide('לקוחות', 'טופ לקוחות חדשים', topNewCustomers, GOLD, true);
+
+  // ---------- Divider: מועמדים לבחינה מחדש ----------
+  divider('פילוח 3', 'מועמדים לבחינה מחדש', 'נקודות עם מחזור מכירות נמוך ביותר — כדאיות הסדרן');
+
+  // ---------- Slide — מחזור נמוך: מועמדים להסרת סדרן ----------
+  if (lowValueCandidates.length) {
+    const s = pptx.addSlide();
+    contentHeader(s, 'תמונה כללית', 'מועמדים לבחינת כדאיות הסדרן');
+    const SHOW = 10;
+    const shown = lowValueCandidates.slice(0, SHOW);
+    const rest = lowValueCandidates.slice(SHOW);
+    const header = ['לקוח', 'עיר', 'סדרן', 'היה', 'עכשיו'].map(t => ({
+      text: t, options: { bold: true, fill: { color: INK }, color: PAPER, fontSize: 10.5, fontFace: SANS },
+    }));
+    const body = shown.map(c => ([
+      { text: c.custname || '', options: { fontSize: 10.5, color: INK_TEXT, fontFace: SANS, rtlMode: true, lang: 'he-IL' } },
+      { text: c.city || '', options: { fontSize: 10, color: MUTED, fontFace: SANS, rtlMode: true, lang: 'he-IL' } },
+      { text: c.sadran || '', options: { fontSize: 10, color: MUTED, fontFace: SANS, rtlMode: true, lang: 'he-IL' } },
+      { text: fmtILS(c.lastYear), options: { fontSize: 10, color: MUTED, fontFace: SANS, align: 'right' } },
+      { text: fmtILS(c.now), options: { fontSize: 10.5, bold: true, color: CLAY, fontFace: SANS, align: 'right' } },
+    ]));
+    s.addTable([header, ...body], {
+      x: 0.7, y: 1.85, w: 11.9, h: 4.9,
+      colW: [4.3, 2.3, 2.5, 1.4, 1.4],
+      border: { type: 'solid', color: PAPER_LINE, pt: 0.5 },
+      autoPage: false,
+    });
+    const bottomSum = shown.reduce((s2, c) => s2 + c.now, 0);
+    const restSum = rest.reduce((s2, c) => s2 + c.now, 0);
+    s.addText(`${SHOW} הנקודות האלה נותנות ${(bottomSum / grandNowAll * 100).toFixed(2)}% מהסך הכולל. עוד ${rest.length} נקודות קטנות יותר על ${fmtILS(restSum)} — רשימה מלאה ב-SADRAN_ANALYSIS.xlsx.`, he({
+      x: 0.7, y: 6.9, w: 11.9, h: 0.4, fontSize: 10, color: MUTED, fontFace: SANS, italic: true,
+    }));
+  }
 
   // ---------- Closing ----------
   {
