@@ -51,6 +51,24 @@ function main() {
   const totalNow = rows.reduce((s, r) => s + r.now, 0);
   const totalPct = pctChange(totalLY, totalNow);
 
+  // lowValueCandidates — кандидаты на снятие сдарана: точки с наименьшим тотал продаж
+  // (запрос пользователя 2026-08-11: "динамика по сдаранам не нужна — нужны кандидаты на
+  // то, чтоб убрать сдарана, нерентабельные точки для нас ушли, смотрим по тотал продаж").
+  // Тотал — по клиенту ЦЕЛИКОМ (сумма по всем компаниям), сдаран обслуживает физическую
+  // точку, не отдельную компанию. Источник уже без ICE BDD/תגמולים/בודדים (весь pipeline).
+  const custTotalsAll = new Map();
+  for (const r of rows) {
+    if (!custTotalsAll.has(r.custno)) {
+      custTotalsAll.set(r.custno, { custname: r.custname, sadran: r.sadran, city: r.city, companies: new Set(), lastYear: 0, now: 0 });
+    }
+    const t = custTotalsAll.get(r.custno);
+    t.companies.add(r.company);
+    t.lastYear += r.lastYear;
+    t.now += r.now;
+  }
+  const grandNowAll = [...custTotalsAll.values()].reduce((s, v) => s + v.now, 0);
+  const lowValueCandidates = [...custTotalsAll.values()].sort((a, b) => a.now - b.now);
+
   const byCompany = aggBy(rows, r => r.company);
   const iceBdd = loadIceBddBenchmark();
   const iceBddPct = iceBdd ? pctChange(iceBdd.lastYear, iceBdd.now) : undefined;
@@ -626,7 +644,9 @@ function main() {
     list.forEach(c => {
       s.addText(c.custname || '', { x: 0.7, y, w: 8.3, h: 0.4, fontSize: 13, color: INK_TEXT, fontFace: SANS, valign: 'bottom', rtlMode: true, lang: 'he-IL' });
       if (showAgent) {
-        s.addText(`Агент: ${c.sochen || ''}`, { x: 0.7, y: y + 0.38, w: 8.3, h: 0.28, fontSize: 9.5, color: MUTED, fontFace: SANS, valign: 'top', rtlMode: true, lang: 'he-IL' });
+        // Без подписи "Агент:" — кириллический LTR-лейбл в одном text run с ивритским RTL-именем
+        // ломается bidi-разворотом ("Агент:" -> "тнегA:", найдено 2026-08-11 через скриншот).
+        s.addText(c.sochen || '', { x: 0.7, y: y + 0.38, w: 8.3, h: 0.28, fontSize: 9.5, color: MUTED, fontFace: SANS, valign: 'top', rtlMode: true, lang: 'he-IL' });
       }
       s.addText(`${fmtILS(c.lastYear)} → ${fmtILS(c.now)}`, { x: 9.1, y, w: 2.3, h: 0.55, fontSize: 10.5, color: MUTED, fontFace: SANS, valign: 'middle' });
       s.addText(isNew ? 'новый' : fmtPct(c.pct), { x: 11.5, y, w: 1.1, h: 0.55, fontSize: 13, bold: true, color, align: 'right', fontFace: SANS, valign: 'middle' });
@@ -644,6 +664,39 @@ function main() {
     if (topDeclineByCompany[company].length) moversSlide('Клиенты', `Топ падения · ${company}`, topDeclineByCompany[company], CLAY, false, true);
   }
   if (topNewCustomers.length) moversSlide('Клиенты', 'Топ новых клиентов', topNewCustomers, GOLD, true);
+
+  // ---------- Divider: кандидаты на пересмотр ----------
+  divider('Разрез 3', 'Кандидаты на пересмотр', 'Точки с наименьшим тотал продаж — целесообразность сдарана');
+
+  // ---------- Slide — низкий тотал: кандидаты на снятие сдарана ----------
+  if (lowValueCandidates.length) {
+    const s = pptx.addSlide();
+    contentHeader(s, 'Общая картина', 'Кандидаты на пересмотр целесообразности сдарана');
+    const SHOW = 10;
+    const shown = lowValueCandidates.slice(0, SHOW);
+    const rest = lowValueCandidates.slice(SHOW);
+    const header = ['Клиент', 'Город', 'Сдаран', 'Было', 'Сейчас'].map(t => ({
+      text: t, options: { bold: true, fill: { color: INK }, color: PAPER, fontSize: 10.5, fontFace: SANS },
+    }));
+    const body = shown.map(c => ([
+      { text: c.custname || '', options: { fontSize: 10.5, color: INK_TEXT, fontFace: SANS, rtlMode: true, lang: 'he-IL' } },
+      { text: c.city || '', options: { fontSize: 10, color: MUTED, fontFace: SANS, rtlMode: true, lang: 'he-IL' } },
+      { text: c.sadran || '', options: { fontSize: 10, color: MUTED, fontFace: SANS, rtlMode: true, lang: 'he-IL' } },
+      { text: fmtILS(c.lastYear), options: { fontSize: 10, color: MUTED, fontFace: SANS, align: 'right' } },
+      { text: fmtILS(c.now), options: { fontSize: 10.5, bold: true, color: CLAY, fontFace: SANS, align: 'right' } },
+    ]));
+    s.addTable([header, ...body], {
+      x: 0.7, y: 1.85, w: 11.9, h: 4.9,
+      colW: [4.3, 2.3, 2.5, 1.4, 1.4],
+      border: { type: 'solid', color: PAPER_LINE, pt: 0.5 },
+      autoPage: false,
+    });
+    const bottomSum = shown.reduce((s2, c) => s2 + c.now, 0);
+    const restSum = rest.reduce((s2, c) => s2 + c.now, 0);
+    s.addText(`Эти ${SHOW} точек дают ${(bottomSum / grandNowAll * 100).toFixed(2)}% от общего тотала. Ещё ${rest.length} точек мельче на ${fmtILS(restSum)} — полный список в SADRAN_ANALYSIS.xlsx.`, {
+      x: 0.7, y: 6.9, w: 11.9, h: 0.4, fontSize: 10, color: MUTED, fontFace: SANS, italic: true,
+    });
+  }
 
   // ---------- Closing ----------
   {
