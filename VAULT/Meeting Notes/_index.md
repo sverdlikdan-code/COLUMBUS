@@ -4,6 +4,8 @@
 
 ## Темы
 
+- [[dylan-ai-assistant]] — AI ассистент Дилан: pre-visit brief для продажников, архитектура данных, SQL источники
+
 - [[skills-folder-architecture]] — Структура папки SKILLS/ и конвенция написания навыков
 - [[skill-obsidian-bases]] — Навык для создания файлов Obsidian Bases (.base)
 - [[skill-obsidian-markdown]] — Навык для создания Obsidian Flavored Markdown
@@ -80,3 +82,5 @@
 - [[session-2026-07-22-security-audit-3apps]] — Сессия 2026-07-22: read-only аудит Formula Road/Mahsan/MMD Orders, критичные CORS-находки пофикшены, PBI-гейт сверка, VPS .env проверен по SSH
 - [[diler-intelligence-pitch]] — Diler Intelligence (была DILL IT): питч о выделении IT+AI+BI-направления в отдельную структуру, статус и открытые вопросы
 - [[session-2026-08-05-security-audit]] — Сессия 2026-08-04/05/06: полный security audit, 13 фиксов, оценка 7→9/10, mahsan auth gate
+- [[session-2026-08-11-security-regression]] — Сессия 2026-08-11: security regression фиксы, popup фото+מקט badge, sticky header מגמה, auth flow clarification
+- [[mmd-orders-app]] — Сессия 2026-08-11 (вечер): Prophet trend fix (mkr_prev6 в period-data), пизур+cust_bought колонки, фото-прокси ?u=, фильтр 162 клиентов, архив ארכיון товаров
