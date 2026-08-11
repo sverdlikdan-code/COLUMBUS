@@ -44,6 +44,16 @@ const DEPT_NORMALIZE = {
   'mish גלידה 🍦': 'mish גלידה',
 };
 
+// DEPT_COMPANY (чистые ключи, после DEPT_NORMALIZE) -> компания. Дубль DEPT_COMPANY из
+// sadran-data.js (там — с эмодзи-версией нет, только чистые ключи; здесь то же самое, но
+// нужен на уровне модуля ДО normalize) — не объединяю в одну мапу, т.к. в sadran-data.js
+// её нельзя было импортировать сюда без circular require (fetch-sadran-data требует
+// fixBiDi ИЗ sadran-data.js).
+const DEPT_COMPANY = {
+  'mish גלידה': 'ICE MISH', 'מדף': 'INTER', 'מתוקים': 'INTER',
+  'דג יבש': 'FORMULA', 'דגים': 'FORMULA', 'חלבי': 'FORMULA', 'קפוא ❄': 'FORMULA',
+};
+
 function computePeriods(today = new Date()) {
   const y = today.getFullYear();
   const lastCompleteMonthEndExclusive = new Date(y, today.getMonth(), 1);
@@ -73,14 +83,20 @@ function daxDate(iso) {
 // [מספר לקוח קודם] — у части клиентов не совпадает с текущим) — джойн по custno
 // в таких случаях терял историю прошлого года и ошибочно помечал старого клиента
 // как "нового". KEY FOR CAT 7/KEY FOR DATA — официальный устойчивый ключ модели.
+// ALL_PARTS[שם סוכן] — берём агента с уровня ТРАНЗАКЦИИ, не с карточки клиента ('לקוחות
+// FORM+I+INT'[שם סוכן]). Найдено 2026-08-11: у ICE-клиентов карточка часто хранит один
+// устаревший/общий שם סוכן ("כללי - אייס - בודדים" — заглушка канала בודדים), тогда как
+// РЕАЛЬНЫЕ транзакции того же клиента в mish גלידה идут через 2-3 разных настоящих агента.
+// Доминирующий (по сумме ₪) агент на транзакциях — единственный надёжный источник.
 async function fetchSalesByCustDept(startIso, endExclusiveIso) {
   const q = `EVALUATE
 SUMMARIZECOLUMNS(
   ALL_PARTS[KEY FOR CAT 7],
   'ADIFUT FOR DEILTA'[מחלקה],
   ALL_PARTS[תאור משפחת מוצר],
+  ALL_PARTS[שם סוכן],
   FILTER(ALL_PARTS, ALL_PARTS[תאריך] >= ${daxDate(startIso)} && ALL_PARTS[תאריך] < ${daxDate(endExclusiveIso)}),
-  "amt", SUM(ALL_PARTS[סכום (ש'ח)])
+  "amt", [TOTAL SALES netto]
 )`;
   return executeDax(q);
 }
@@ -130,7 +146,7 @@ async function fetchIceBddBenchmark(periods) {
   const ICE_BDD_RAW = 'גלידה bdd🍦';
   async function totalFor(startIso, endExclusiveIso) {
     const q = `EVALUATE ROW(
-  "amt", CALCULATE(SUM(ALL_PARTS[סכום (ש'ח)]),
+  "amt", CALCULATE([TOTAL SALES netto],
     'ADIFUT FOR DEILTA'[מחלקה] = "${ICE_BDD_RAW}",
     ALL_PARTS[תאריך] >= ${daxDate(startIso)} && ALL_PARTS[תאריך] < ${daxDate(endExclusiveIso)})
 )`;
@@ -142,53 +158,81 @@ async function fetchIceBddBenchmark(periods) {
   return { lastYear, now };
 }
 
-// computeMomentumPeriods — окна 3 и 6 полных месяцев (та же граница "последний закрытый
-// месяц", что у computePeriods), год к году — momentum-сравнение (запрос пользователя
-// 2026-08-11: тормозит рост или ускоряется — 3-мес тренд против 6-мес).
+// computeMomentumPeriods — ДВА СОСЕДНИХ непересекающихся 3-месячных окна (recent = последние
+// 3 закрытых месяца, prior = 3 месяца непосредственно ПЕРЕД recent), каждое год-к-году.
+// Уточнение пользователя 2026-08-11: не "3 мес vs 6 мес" (6-мес окно включает в себя 3-мес,
+// пересечение размывает сигнал) — а темп роста recent-окна против темпа роста prior-окна,
+// отдельный индикатор для быстрой поимки резких спадов/ускорений.
 function computeMomentumPeriods(today = new Date()) {
-  const endExclusive = new Date(today.getFullYear(), today.getMonth(), 1);
+  const endExclusive = new Date(today.getFullYear(), today.getMonth(), 1); // последний закрытый месяц
   const fmt = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  function windowOf(months) {
-    const start = new Date(endExclusive.getFullYear(), endExclusive.getMonth() - months, 1);
+  const recentStart = new Date(endExclusive.getFullYear(), endExclusive.getMonth() - 3, 1);
+  const priorStart = new Date(endExclusive.getFullYear(), endExclusive.getMonth() - 6, 1);
+  function withLastYear(start, endEx) {
     const lyStart = new Date(start.getFullYear() - 1, start.getMonth(), 1);
-    const lyEndExclusive = new Date(endExclusive.getFullYear() - 1, endExclusive.getMonth(), 1);
+    const lyEndExclusive = new Date(endEx.getFullYear() - 1, endEx.getMonth(), 1);
     return {
-      now: { start: fmt(start), endExclusive: fmt(endExclusive) },
+      now: { start: fmt(start), endExclusive: fmt(endEx) },
       lastYear: { start: fmt(lyStart), endExclusive: fmt(lyEndExclusive) },
     };
   }
-  return { window3: windowOf(3), window6: windowOf(6) };
+  return {
+    recent: withLastYear(recentStart, endExclusive),
+    prior: withLastYear(priorStart, recentStart),
+  };
 }
 
-// fetchWindowTotal — скалярный итог за окно, тот же фильтр, что у aggregate() в main()
-// (сдаран-клиенты по KEY FOR CAT 7 + белый список מחלקה + без בודדים) — но без построения
-// полной таблицы строк, для momentum нужен только итог.
-async function fetchWindowTotal(startIso, endExclusiveIso, custDims) {
+// fetchWindowPerCustomer — скалярный итог за окно, тот же фильтр, что у aggregate() в main()
+// (сдаран-клиенты по KEY FOR CAT 7 + белый список מחלקה + без בודדים), сгруппированный по
+// клиенту x компания (ключ "keyForData|company" — нужно для same-store фильтра в
+// fetchWindowSameStoreTotal, и для per-company разбивки в sadran-store-alarm.js).
+async function fetchWindowPerCustomer(startIso, endExclusiveIso, custDims) {
   const daxRows = await fetchSalesByCustDept(startIso, endExclusiveIso);
-  let total = 0;
+  const perCust = new Map(); // "keyForData|company" -> amt
   for (const r of daxRows) {
     const keyForData = String(r['ALL_PARTS[KEY FOR CAT 7]'] || '').trim();
     if (!custDims.has(keyForData)) continue;
     const deptRaw = r['ADIFUT FOR DEILTA[מחלקה]'];
-    if (!DEPT_NORMALIZE[deptRaw]) continue;
+    const dept = DEPT_NORMALIZE[deptRaw];
+    if (!dept) continue;
     const familyRaw = r['ALL_PARTS[תאור משפחת מוצר]'];
     if (familyRaw && fixBiDi(familyRaw).includes('בודדים')) continue;
-    total += r['[amt]'] || 0;
+    const company = DEPT_COMPANY[dept] || '(?)';
+    const key = `${keyForData}|${company}`;
+    perCust.set(key, (perCust.get(key) || 0) + (r['[amt]'] || 0));
   }
-  return total;
+  return perCust;
+}
+
+// fetchMomentum — momentum СЧИТАЕТСЯ SAME-STORE (клиент с историей именно в этом конкретном
+// окне год назад), той же методологией, что и весь остальной отчёт (см. rowsExBdd/newCustSet
+// в PPTX-генераторах — "новый клиент искажает % роста, это не рост существующей базы").
+// Раньше здесь суммировалась ВСЯ выручка окна включая новых клиентов — несовместимо с
+// остальным отчётом и давало другой смысл % (нашли по вопросу пользователя 2026-08-11:
+// "как посчитано замедление роста — только same-store или все").
+async function fetchWindowSameStoreTotal(nowWindow, lyWindow, custDims) {
+  const [nowPerCust, lyPerCust] = await Promise.all([
+    fetchWindowPerCustomer(nowWindow.start, nowWindow.endExclusive, custDims),
+    fetchWindowPerCustomer(lyWindow.start, lyWindow.endExclusive, custDims),
+  ]);
+  let lastYear = 0, now = 0;
+  for (const [keyForData, lyAmt] of lyPerCust) {
+    if (lyAmt <= 0) continue; // same-store: должна быть реальная (положительная) история в ЭТОМ окне год назад
+    lastYear += lyAmt;
+    now += nowPerCust.get(keyForData) || 0;
+  }
+  return { lastYear, now };
 }
 
 async function fetchMomentum(custDims) {
-  const { window3, window6 } = computeMomentumPeriods();
-  const [w3Now, w3LY, w6Now, w6LY] = await Promise.all([
-    fetchWindowTotal(window3.now.start, window3.now.endExclusive, custDims),
-    fetchWindowTotal(window3.lastYear.start, window3.lastYear.endExclusive, custDims),
-    fetchWindowTotal(window6.now.start, window6.now.endExclusive, custDims),
-    fetchWindowTotal(window6.lastYear.start, window6.lastYear.endExclusive, custDims),
+  const { recent, prior } = computeMomentumPeriods();
+  const [recentTotal, priorTotal] = await Promise.all([
+    fetchWindowSameStoreTotal(recent.now, recent.lastYear, custDims),
+    fetchWindowSameStoreTotal(prior.now, prior.lastYear, custDims),
   ]);
   return {
-    window3: { start: window3.now.start, endExclusive: window3.now.endExclusive, lastYear: w3LY, now: w3Now },
-    window6: { start: window6.now.start, endExclusive: window6.now.endExclusive, lastYear: w6LY, now: w6Now },
+    recent: { start: recent.now.start, endExclusive: recent.now.endExclusive, lastYear: recentTotal.lastYear, now: recentTotal.now },
+    prior: { start: prior.now.start, endExclusive: prior.now.endExclusive, lastYear: priorTotal.lastYear, now: priorTotal.now },
   };
 }
 
@@ -212,6 +256,7 @@ async function main() {
   // у fetchSalesByCustDept/fetchCustomerDims про переприсвоение מספר לקוח во времени.
   function aggregate(daxRows) {
     const agg = new Map(); // keyForData|dept -> amt
+    const agentAgg = new Map(); // keyForData|dept -> Map(sochenRaw -> amt)
     let skippedDept = 0, skippedCust = 0, skippedBodedim = 0;
     for (const r of daxRows) {
       const keyForData = String(r['ALL_PARTS[KEY FOR CAT 7]'] || '').trim();
@@ -224,26 +269,51 @@ async function main() {
       if (familyRaw && fixBiDi(familyRaw).includes('בודדים')) { skippedBodedim++; continue; }
       const key = `${keyForData}|${dept}`;
       agg.set(key, (agg.get(key) || 0) + amt);
+      const sochenRaw = r['ALL_PARTS[שם סוכן]'] || '';
+      if (!agentAgg.has(key)) agentAgg.set(key, new Map());
+      const am = agentAgg.get(key);
+      am.set(sochenRaw, (am.get(sochenRaw) || 0) + amt);
     }
-    return { agg, skippedDept, skippedCust, skippedBodedim };
+    return { agg, agentAgg, skippedDept, skippedCust, skippedBodedim };
   }
-  const { agg: nowAgg, skippedDept: nowSkipDept, skippedCust: nowSkipCust, skippedBodedim: nowSkipBod } = aggregate(nowRaw);
-  const { agg: lyAgg, skippedDept: lySkipDept, skippedCust: lySkipCust, skippedBodedim: lySkipBod } = aggregate(lyRaw);
+  const { agg: nowAgg, agentAgg: nowAgentAgg, skippedDept: nowSkipDept, skippedCust: nowSkipCust, skippedBodedim: nowSkipBod } = aggregate(nowRaw);
+  const { agg: lyAgg, agentAgg: lyAgentAgg, skippedDept: lySkipDept, skippedCust: lySkipCust, skippedBodedim: lySkipBod } = aggregate(lyRaw);
   console.log(`  now: пропущено (dept/клиент/בודדים) = ${nowSkipDept}/${nowSkipCust}/${nowSkipBod}`);
   console.log(`  ly:  пропущено (dept/клиент/בודדים) = ${lySkipDept}/${lySkipCust}/${lySkipBod}`);
+
+  // dominantAgent — реальный агент с уровня транзакций (ALL_PARTS[שם סוכן]), не с карточки
+  // клиента: карточка клиента ('לקוחות FORM+I+INT'[שם סוכן]) для ICE иногда хранит один
+  // устаревший/общий "כללי - אייס - בודדים" на весь HEVRA-аккаунт, а реальные транзакции того
+  // же клиента в mish גלידה идут через 2-3 разных настоящих агента (найдено 2026-08-11).
+  // Берём агента с наибольшей суммой ₪ за оба периода вместе — самый представительный.
+  function dominantAgent(key) {
+    const combined = new Map();
+    for (const m of [nowAgentAgg.get(key), lyAgentAgg.get(key)]) {
+      if (!m) continue;
+      for (const [sochenRaw, amt] of m) combined.set(sochenRaw, (combined.get(sochenRaw) || 0) + amt);
+    }
+    let best = '', bestAmt = -Infinity;
+    for (const [sochenRaw, amt] of combined) {
+      if (amt > bestAmt) { best = sochenRaw; bestAmt = amt; }
+    }
+    return best;
+  }
 
   const allKeys = new Set([...nowAgg.keys(), ...lyAgg.keys()]);
   const outRows = [];
   for (const key of allKeys) {
     const [keyForData, dept] = key.split('|');
     const dim = custDims.get(keyForData);
+    const sochenRaw = dominantAgent(key);
     outRows.push({
       kosher: dim.kosher,
       city: dim.city,
       custno: dim.custno,
       custname: dim.custname,
       sadran: dim.sadran,
-      sochen: dim.sochen,
+      // сырой (не fixBiDi'нутый) — как и dim.sochen: sadran-data.js's loadRowsFromCache
+      // применяет fixBiDi один раз при загрузке, здесь применять нельзя (задвоение = порча текста).
+      sochen: sochenRaw || dim.sochen,
       dept,
       custtype: dim.custtype,
       lastYear: lyAgg.get(key) || 0,
@@ -258,10 +328,6 @@ async function main() {
 
   // Разбивка по компании для проверки на глаз
   const byCompany = new Map();
-  const DEPT_COMPANY = {
-    'mish גלידה': 'ICE MISH', 'מדף': 'INTER', 'מתוקים': 'INTER',
-    'דג יבש': 'FORMULA', 'דגים': 'FORMULA', 'חלבי': 'FORMULA', 'קפוא ❄': 'FORMULA',
-  };
   for (const r of outRows) {
     const c = DEPT_COMPANY[r.dept] || '(?)';
     if (!byCompany.has(c)) byCompany.set(c, { now: 0, ly: 0 });
@@ -279,14 +345,22 @@ async function main() {
 
   console.log('Тяну momentum (3 мес vs 6 мес, год к году)...');
   const momentum = await fetchMomentum(custDims);
-  const pct3 = momentum.window3.lastYear > 0 ? (momentum.window3.now / momentum.window3.lastYear - 1) * 100 : null;
-  const pct6 = momentum.window6.lastYear > 0 ? (momentum.window6.now / momentum.window6.lastYear - 1) * 100 : null;
-  console.log(`  3 мес (${momentum.window3.start} -> ${momentum.window3.endExclusive}): LY=${Math.round(momentum.window3.lastYear).toLocaleString('en-US')} -> NOW=${Math.round(momentum.window3.now).toLocaleString('en-US')} (${pct3 === null ? 'н/д' : pct3.toFixed(1) + '%'})`);
-  console.log(`  6 мес (${momentum.window6.start} -> ${momentum.window6.endExclusive}): LY=${Math.round(momentum.window6.lastYear).toLocaleString('en-US')} -> NOW=${Math.round(momentum.window6.now).toLocaleString('en-US')} (${pct6 === null ? 'н/д' : pct6.toFixed(1) + '%'})`);
+  const pctRecent = momentum.recent.lastYear > 0 ? (momentum.recent.now / momentum.recent.lastYear - 1) * 100 : null;
+  const pctPrior = momentum.prior.lastYear > 0 ? (momentum.prior.now / momentum.prior.lastYear - 1) * 100 : null;
+  console.log(`  recent 3 мес (${momentum.recent.start} -> ${momentum.recent.endExclusive}), same-store: LY=${Math.round(momentum.recent.lastYear).toLocaleString('en-US')} -> NOW=${Math.round(momentum.recent.now).toLocaleString('en-US')} (${pctRecent === null ? 'н/д' : pctRecent.toFixed(1) + '%'})`);
+  console.log(`  prior 3 мес  (${momentum.prior.start} -> ${momentum.prior.endExclusive}), same-store: LY=${Math.round(momentum.prior.lastYear).toLocaleString('en-US')} -> NOW=${Math.round(momentum.prior.now).toLocaleString('en-US')} (${pctPrior === null ? 'н/д' : pctPrior.toFixed(1) + '%'})`);
 
   const outPath = path.join(__dirname, 'sadran_fetch_cache.json');
   fs.writeFileSync(outPath, JSON.stringify({ periods, fetchedAt: new Date().toISOString(), rows: outRows, iceBddBenchmark, momentum }));
   console.log('\nСохранено:', outPath);
 }
 
-main().catch(e => { console.error('ERR:', e.message); process.exit(1); });
+if (require.main === module) {
+  main().catch(e => { console.error('ERR:', e.message); process.exit(1); });
+}
+
+// Экспорт для scripts/sadran-store-alarm.js — переиспользует джойн/фильтры, не дублирует.
+module.exports = {
+  DEPT_NORMALIZE, DEPT_COMPANY, computePeriods, computeMomentumPeriods, daxDate,
+  fetchSalesByCustDept, fetchCustomerDims, fetchWindowPerCustomer,
+};
