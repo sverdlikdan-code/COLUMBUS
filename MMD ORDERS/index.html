@@ -320,6 +320,9 @@
     #sk-no-mkr.on { background: #dc2626 !important; border-color: #dc2626 !important; color: #fff !important; }
     #sk-maavar { border-color: #7c3aed; color: #6d28d9; }
     #sk-maavar.on { background: #7c3aed !important; border-color: #6d28d9 !important; color: #fff !important; }
+    tr.maavar-only td { border-top: 1px dashed #7c3aed44; border-bottom: 1px dashed #7c3aed44; background: rgba(124,58,237,.04) !important; opacity: .72; }
+    tr.maavar-only td:first-child { border-left: 2px dashed #7c3aed; }
+    tr.maavar-only .ei { background: transparent !important; color: #999 !important; }
     #btn-tukuf-overlay { background: #c62828 !important; color: #fff !important; border-color: #7a1515 !important; letter-spacing: .02em; }
     #btn-tukuf-overlay:hover { background: #a31515 !important; }
     .flabel { font-size: .7rem; color: var(--mid); font-weight: 700; white-space: nowrap; }
@@ -1469,8 +1472,6 @@
         }
         return true;
       }
-      // Regular view: skip maavar-only items (no ashdod/mmd stock — order them via מחסן מעבר mode)
-      if ((r.ashdod_k ?? 0) <= 0 && (r.mmd_k ?? 0) <= 0) return false;
       if (fams.size && !fams.has(r.mishpacha)) return false;
       if (cos.size  && !cos.has(r.hevra))      return false;
       if (ashFilter.size) {
@@ -1579,7 +1580,10 @@
           : (_weeksNfOvr[mk] && mkr != null ? Math.max(0, Math.round(_weeksNfOvr[mk] * mkr - eil)) : 0);
         const _cap    = maavarMode ? mav : ash;
         const _rawOrd = s.k != null ? s.k : hamlRnd;
-        const ordV    = (_rawOrd !== '' && _cap > 0 && Number(_rawOrd) > _cap) ? _cap : (s.k === 0 ? 0 : (_rawOrd || ''));
+        const _ordVRaw = (_rawOrd !== '' && _cap > 0 && Number(_rawOrd) > _cap) ? _cap : (s.k === 0 ? 0 : (_rawOrd || ''));
+        // Maavar-only: visible in regular view but order locked at 0 — must use מחסן מעבר mode
+        const isMaavarOnly = !maavarMode && ash <= 0 && mmd <= 0 && mav > 0;
+        const ordV    = isMaavarOnly ? 0 : _ordVRaw;
         const eff     = Number(ordV) || 0;
 
         const yamim     = r.yamim ?? null;
@@ -1605,7 +1609,8 @@
         const _eilatLvl = eilatDangerLevel(r);
         const tr = document.createElement('tr');
         tr.className = 'drow' +
-      (yamim != null && yamim < 10 ? ' danger' : '');
+      (yamim != null && yamim < 10 ? ' danger' : '') +
+      (isMaavarOnly ? ' maavar-only' : '');
         tr.dataset.mk = mk;
         const mkSafe = String(mk).replace(/\D/g, '');
         tr.innerHTML =
@@ -1646,7 +1651,7 @@
             const onclk = 'openInfoPanel(\'' + mk + '\',\'' + escJs(fixProductName(r.taur||'')) + '\')';
             return '<td class="col-prophet" style="cursor:pointer;font-size:.85rem" data-mk="' + mk + '" onclick="' + onclk + '" title="% שינוי מכר 6 שב\' נוכחיות vs 6 שב\' קודמות">📊' + trendSpan + '</td>';
           })() +
-          '<td class="c-num col-g"><input class="ei ei-n" type="number" min="0" step="1" value="' + ordV + '" data-mk="' + mk + '" data-ash="' + ash + '" data-mav="' + mav + '" data-f="k" oninput="inp(this)" placeholder="0"/></td>' +
+          '<td class="c-num col-g"><input class="ei ei-n" type="number" min="0" step="1" value="' + ordV + '" data-mk="' + mk + '" data-ash="' + ash + '" data-mav="' + mav + '" data-f="k" oninput="inp(this)" placeholder="0"' + (isMaavarOnly ? ' disabled title="הזמן דרך מחסן מעבר הזמנה"' : '') + '/></td>' +
           '<td class="col-g' + (yamim != null && yamim < 14 ? ' tk-lo' : '') + '">' + buildPrtimCell(mk, r.tukuf, nts) + '</td>';
         tb.appendChild(tr);
       });
@@ -1811,6 +1816,7 @@
         all.forEach(r => {
           const mk = String(r.mkt ?? '');
           const s  = svSnap[mk] || {};
+          if (!maavarMode && (r.ashdod_k ?? 0) <= 0 && (r.mmd_k ?? 0) <= 0) return;
           if (s.k == null) {
             let v = _effOrd(r, s);
             const cap = maavarMode ? (r.maavar ?? 0) : (r.ashdod_k ?? 0);
@@ -2038,6 +2044,7 @@
       filtered().forEach(r => {
         const mk = String(r.mkt ?? '');
         const s  = svSnap[mk] || {};
+        if (!maavarMode && (r.ashdod_k ?? 0) <= 0 && (r.mmd_k ?? 0) <= 0) return;
         if (s.k == null) {
           const v = _effOrd(r, s);
           if (v > 0) {
