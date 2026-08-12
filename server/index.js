@@ -3852,6 +3852,12 @@ app.get('/api/client-analytics/:custId', requireAuth, async (req, res) => {
   const curStart = curMonths[0], curEnd = curMonths[2];
   const priorStart = priorMonths[0], priorEnd = priorMonths[2];
   const SKIP_CATS = new Set(['ציוד', 'שאריות', 'תגמולים']);
+  // 'מתוקים' comes through ALL_PARTS from the INTER company DB (separate sales channel,
+  // same mapping as scripts/sadran-data.js DEPT_COMPANY) — kept out of the main FORM/ICE
+  // breakdown so it doesn't get analyzed as if it were part of the agent's own department
+  // mix; shown as its own block instead. Also used below to classify dormant products by
+  // company (מחלקה itself encodes ICE's mish/bdd sub-brands — see classifyCompany).
+  const INTER_CATS = new Set(['מתוקים  🍬']); // raw ADIFUT[מחלקה] value — verified live, has 2 spaces + emoji
 
   try {
     // Client segment: kashrut flag, private-market vs chain ('משטח'[רשתות - פרטי]), and
@@ -3937,9 +3943,11 @@ ROW(
     // days (real sales only, ASHMADOT="-מכר-", not השמדות write-offs) — if the whole chain
     // never sold it, the buyer likely never approved it, and flagging a specific branch for
     // not ordering it would be a false "opportunity."
-    let dormantChainProducts = [];
+    let dormantChainProducts = { FORMULA: [], ICE_MISH: [], INTER: [], ICE_BDD: [] };
     let familyDeviation = [];
+    let companyGaps = [];
     if (isChain && chainInFilter) {
+      const MMD_DS = process.env.POWERBI_MMD_DATASET_ID;
       const daysAgo = (days) => {
         const d = new Date(Date.now() - days * 86400000);
         return { year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate() };
@@ -3947,11 +3955,23 @@ ROW(
       const d120 = daysAgo(120), d90 = daysAgo(90), today = daysAgo(0);
       const curLastDay = new Date(curEnd.year, curEnd.month, 0).getDate();
 
+      // Company classification mirrors scripts/sadran-data.js DEPT_COMPANY: the department
+      // name (מחלקה) itself encodes ICE's two sub-brands (מיש/bdd tag in the name), INTER
+      // is the sweets-only channel, everything else is FORMULA.
+      const classifyCompany = (machlaka) => {
+        if (!machlaka) return null;
+        if (machlaka.includes('mish')) return 'ICE_MISH';
+        if (machlaka.includes('bdd')) return 'ICE_BDD';
+        if (INTER_CATS.has(machlaka)) return 'INTER';
+        return 'FORMULA';
+      };
+
       const chainOpenDax = `
 EVALUATE
 CALCULATETABLE(
   ADDCOLUMNS(
-    SUMMARIZE(ALL_PARTS, ALL_PARTS[מק'ט], ALL_PARTS[תאור מוצר]),
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[מק'ט], ALL_PARTS[תאור מוצר], ALL_PARTS[תאור משפחת מוצר]),
+    "מחלקה", LOOKUPVALUE(ADIFUT[מחלקה], ADIFUT[תאור משפחה], ALL_PARTS[תאור משפחת מוצר]),
     "chainTotal", CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)])
   ),${chainInFilter}
   ALL_PARTS[ASHMADOT] = "-מכר-",${kosherFilter}
@@ -3972,6 +3992,7 @@ EVALUATE
 CALCULATETABLE(
   ADDCOLUMNS(
     SUMMARIZE(ALL_PARTS, ALL_PARTS[תאור משפחת מוצר]),
+    "מחלקה", LOOKUPVALUE(ADIFUT[מחלקה], ADIFUT[תאור משפחה], ALL_PARTS[תאור משפחת מוצר]),
     "total", CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)])
   ),${chainInFilter}
   ALL_PARTS[ASHMADOT] = "-מכר-",${kosherFilter}
@@ -3979,23 +4000,67 @@ CALCULATETABLE(
   ALL_PARTS[תאריך] <= DATE(${curEnd.year},${curEnd.month},${curLastDay})
 )`;
 
-      const [chainOpenRows, storeOrderedRows, chainFamRows] = await Promise.all([
+      const [chainOpenRows, storeOrderedRows, chainFamRows, stockForm, stockIce] = await Promise.all([
         executeDax(chainOpenDax),
         executeDax(storeOrderedDax),
         executeDax(chainFamDax),
+        executeDax(`EVALUATE SELECTCOLUMNS('זמינות FORM', "sku", 'זמינות FORM'[מק'ט], "stock", 'זמינות FORM'[מלאי זמין])`, MMD_DS),
+        executeDax(`EVALUATE SELECTCOLUMNS('זמינות ICE', "sku", 'זמינות ICE'[מק'ט], "stock", 'זמינות ICE'[מלאי זמין])`, MMD_DS),
       ]);
 
+      // Company-level totals (store vs chain, current period): flags whether this branch
+      // does ANY business with a company at all. chain>0 / store=0 for a whole company is a
+      // bigger signal than any single dormant SKU — worth understanding why before pitching
+      // individual products from a supplier line we may not even be servicing here.
+      const companyTotal = { FORMULA: { store: 0, chain: 0 }, ICE_MISH: { store: 0, chain: 0 }, INTER: { store: 0, chain: 0 }, ICE_BDD: { store: 0, chain: 0 } };
+      curRows.forEach(r => { const c = classifyCompany(r['[מחלקה]']); const v = Math.round(r['[total]'] || 0); if (c && v > 0) companyTotal[c].store += v; });
+      chainFamRows.forEach(r => { const c = classifyCompany(r['[מחלקה]']); const v = Math.round(r['[total]'] || 0); if (c && v > 0) companyTotal[c].chain += v; });
+      for (const co of ['FORMULA', 'ICE_MISH', 'INTER', 'ICE_BDD']) {
+        const { store, chain } = companyTotal[co];
+        if (chain > 0 && store === 0) companyGaps.push({ company: co, chainTotal: chain });
+      }
+
+      // Dormant SKUs, split by company. FORMULA/ICE_MISH get filtered to what's actually in
+      // stock right now (זמינות FORM/ICE in the MMD dataset, by SKU) — no point pitching
+      // something we can't fulfill. INTER skips the stock check (not tracked there) and
+      // ICE_BDD never gets item-level detail — only the company-gap flag above, if any.
+      const stockMap = new Map();
+      stockForm.forEach(r => stockMap.set(String(r['[sku]']), r['[stock]']));
+      stockIce.forEach(r => stockMap.set(String(r['[sku]']), r['[stock]']));
+      const inStock = (sku) => { const s = stockMap.get(String(sku)); return s === undefined ? true : s > 0; };
+
       const storeOrderedSkus = new Set(storeOrderedRows.map(r => String(r["ALL_PARTS[מק'ט]"] || '')));
-      dormantChainProducts = chainOpenRows
+      const dormantRaw = chainOpenRows
         .filter(r => !storeOrderedSkus.has(String(r["ALL_PARTS[מק'ט]"] || '')))
         .map(r => ({
           sku: r["ALL_PARTS[מק'ט]"],
           name: fixBiDi(r['ALL_PARTS[תאור מוצר]'] || ''),
           chainTotal: Math.round(r['[chainTotal]'] || 0),
+          company: classifyCompany(r['[מחלקה]']),
         }))
-        .filter(x => x.chainTotal > 0)
-        .sort((a, b) => b.chainTotal - a.chainTotal)
-        .slice(0, 15);
+        .filter(x => x.chainTotal > 0 && x.company);
+
+      for (const item of dormantRaw) {
+        if (item.company === 'ICE_BDD') continue;
+        if (item.company !== 'INTER' && !inStock(item.sku)) continue;
+        dormantChainProducts[item.company].push(item);
+      }
+      for (const co of ['FORMULA', 'ICE_MISH', 'INTER']) {
+        dormantChainProducts[co].sort((a, b) => b.chainTotal - a.chainTotal);
+        dormantChainProducts[co] = dormantChainProducts[co].slice(0, 10);
+      }
+
+      // INTER has no real "family" field of its own (it's essentially all one מתוקים
+      // department) — use KARTIS PARIT INTER's own פרמטר 2 sub-category instead, batched
+      // by SKU in one query rather than one LOOKUPVALUE call per item.
+      if (dormantChainProducts.INTER.length) {
+        const interSkus = dormantChainProducts.INTER.map(x => `"${x.sku}"`).join(',');
+        const p2Rows = await executeDax(
+          `EVALUATE SELECTCOLUMNS(FILTER('KARTIS PARIT INTER', 'KARTIS PARIT INTER'[מק"ט] IN {${interSkus}}), "sku", 'KARTIS PARIT INTER'[מק"ט], "p2", 'KARTIS PARIT INTER'[תאור פרמטר 2 למוצר])`
+        );
+        const p2Map = new Map(p2Rows.map(r => [String(r['[sku]']), fixBiDi(r['[p2]'] || '')]));
+        dormantChainProducts.INTER.forEach(x => { x.subFamily = p2Map.get(String(x.sku)) || ''; });
+      }
 
       const chainFamTotal = {}; let chainFamAll = 0;
       chainFamRows.forEach(r => {
@@ -4041,12 +4106,6 @@ CALCULATETABLE(
       }
       familyDeviation.push({ family: 'סה"כ', chainSharePct: 100, storeSharePct: 100, index: null, isTotal: true });
     }
-
-    // 'מתוקים' comes through ALL_PARTS from the INTER company DB (separate sales channel,
-    // same mapping as scripts/sadran-data.js DEPT_COMPANY) — kept out of the main
-    // FORM/ICE breakdown so it doesn't get analyzed as if it were part of the agent's
-    // own department mix; shown as its own block instead.
-    const INTER_CATS = new Set(['מתוקים  🍬']); // raw ADIFUT[מחלקה] value — verified live, has 2 spaces + emoji
 
     const collect = (rows) => {
       const byCat = {}, byCatInter = {};
@@ -4100,13 +4159,30 @@ CALCULATETABLE(
       + (clientDeltaPct !== null ? ` | לעומת ${priorLabel}: ₪${prior.total.toLocaleString()} (${clientDeltaPct > 0 ? '+' : ''}${clientDeltaPct}%)` : '');
     const kosherNote = isKosher ? `\nלקוח כשר — הנתונים וההשוואה כוללים רק מוצרים כשרים.` : '';
 
-    // Most important signal for a chain client: products the buyer HAS approved (the
-    // whole chain sold them in the last 120 days) that THIS branch hasn't ordered in 90+
-    // days — a real, buyer-authorized gap, not a guess. Only the top item goes into the
-    // prompt (keeps context terse); the full list ships in the JSON for the UI table.
-    const gapNote = dormantChainProducts.length
-      ? `\nמוצר שהרשת מוכרת (120 יום) והסניף לא הזמין 90+ יום: ${dormantChainProducts[0].name} (מכירות רשת ₪${dormantChainProducts[0].chainTotal.toLocaleString()}). סה"כ ${dormantChainProducts.length} מוצרים כאלה.`
+    const companyLabel = { FORMULA: 'FORMULA', ICE_MISH: 'ICE (מיש)', INTER: 'INTER (מתוקים)', ICE_BDD: 'ICE (BDD)' };
+
+    // Strongest possible signal: the branch does ZERO business with an entire company the
+    // rest of the chain buys from. Bigger than any single dormant SKU — worth understanding
+    // why before pitching individual products from a line we may not even carry here.
+    const companyGapNote = companyGaps.length
+      ? `\nהסניף לא עובד בכלל עם: ${companyGaps.map(g => `${companyLabel[g.company]} (רשת ₪${g.chainTotal.toLocaleString()})`).join(', ')} — כדאי לברר למה.`
       : '';
+
+    // Products the buyer HAS approved (the whole chain sold them in the last 120 days, and
+    // for FORMULA/ICE they're confirmed in stock right now) that THIS branch hasn't ordered
+    // in 90+ days — a real, buyer-authorized gap, not a guess. One line per company, in
+    // order FORMULA → ICE (מיש) → INTER; ICE BDD never gets item-level detail (only the
+    // company-gap flag above, if triggered).
+    const gapLines = [];
+    for (const co of ['FORMULA', 'ICE_MISH', 'INTER']) {
+      const items = dormantChainProducts[co];
+      if (items && items.length) {
+        const top = items[0];
+        const label = co === 'INTER' && top.subFamily ? `${top.subFamily} — ${top.name}` : top.name;
+        gapLines.push(`${companyLabel[co]}: ${label} (רשת ₪${top.chainTotal.toLocaleString()}, סה"כ ${items.length} מוצרים)`);
+      }
+    }
+    const gapNote = gapLines.length ? `\nמוצרים שהרשת מוכרת (120 יום) והסניף לא הזמין 90+ יום —\n${gapLines.join('\n')}` : '';
     // Both ends of the deviation, not just the weakest — an under-indexed family next to
     // an over-indexed one is often a brand-substitution pattern (agent/store pushing one
     // brand instead of another within the same category), which is a sharper, more useful
@@ -4119,22 +4195,23 @@ CALCULATETABLE(
     if (overIndexed && overIndexed.family !== underIndexed?.family) deviationLines.push(`חזק: ${overIndexed.family} (${overIndexed.storeSharePct}% מהסניף מול ${overIndexed.chainSharePct}% מהרשת, אינדקס ${overIndexed.index})`);
     const deviationNote = deviationLines.length ? `\nחריגה מפרופיל הרשת — ${deviationLines.join(' | ')}.` : '';
 
-    const context = `תקופה נוכחית: ${curLabel} | תקופה קודמת: ${priorLabel}\n${famLines.join('\n')}${avgNote}\n${clientNote}${dormantNote}${kosherNote}${gapNote}${deviationNote}`;
+    const context = `תקופה נוכחית: ${curLabel} | תקופה קודמת: ${priorLabel}\n${famLines.join('\n')}${avgNote}\n${clientNote}${dormantNote}${kosherNote}${companyGapNote}${gapNote}${deviationNote}`;
 
     const scopeNote = 'הסוכן מבקר בחנות פיזית — הוא לא מתקשר לקונים/רוכשים ואינו יכול להפעיל "סמכות" ממחלקה אחרת. המלצה רק על פעולה שהוא יכול לבצע בביקור עצמו: הצעת מוצר/מבצע, כמות הזמנה, פייסינג במדף, תזכורת למוצר שלא הוזמן.';
     const noFabNote = 'אסור להמציא מספרים, אחוזים או כמויות שלא מופיעים בנתונים למעלה. כל מספר שאתה כותב חייב להיות מבוסס ישירות על הנתונים.';
-    const priorityNote = { he: 'אם יש "מוצר שהרשת מוכרת והסניף לא הזמין" בנתונים — זו ההמלצה הכי חזקה, כי היא מוצר שהקניין כבר אישר לרשת. תעדף אותה על פני המלצה כללית על מחלקה.', uk: 'Якщо в даних є "товар, який мережа продає, а філія не замовляла" — це найсильніша рекомендація, бо байєр вже схвалив цей товар для мережі. Пріоритет над загальною рекомендацією по відділу.', ru: 'Если в данных есть "товар, который сеть продаёт, а филиал не заказывал" — это самая сильная рекомендация, потому что байер уже одобрил этот товар для сети. Приоритет над общей рекомендацией по отделу.' };
-    const substNote = { he: 'אם יש בנתונים משפחה "חלש" ומשפחה "חזק" מאותה קטגוריה (למשל שני מותגי גלידה) — זה כנראה תחליף בין מותגים בסניף הזה. אם המשפחות דומות מהותית, כתוב את זה כמסקנה אחת קצרה (משפט אחד): איזה מותג נדחק ואיזה תפס את מקומו. אל תמציא קשר בין משפחות שלא קשורות.', uk: 'Якщо в даних є "слабка" і "сильна" родина з тієї самої категорії (наприклад два бренди морозива) — це, ймовірно, заміщення між брендами саме в цій філії. Якщо родини справді споріднені, опиши це одним коротким реченням: який бренд витіснили і який зайняв його місце. Не вигадуй зв\'язок між непов\'язаними родинами.', ru: 'Если в данных есть "слабое" и "сильное" семейство из одной категории (например два бренда мороженого) — это, вероятно, замещение между брендами именно в этой точке. Если семейства действительно родственные, опиши это одним коротким предложением: какой бренд вытеснили и какой занял его место. Не выдумывай связь между несвязанными семействами.' };
+    const priorityNote = { he: 'סדר עדיפות להמלצה: 1) אם הסניף לא עובד בכלל עם חברה מסוימת שהרשת כן קונה ממנה — זו ההמלצה הכי חשובה, כי זה פער מבני ולא רק מוצר בודד. 2) אחרת, אם יש "מוצר שהרשת מוכרת והסניף לא הזמין" — זו ההמלצה הבאה, כי היא מוצר שהקניין כבר אישר לרשת. 3) רק אם אין אף אחד מהשניים — המלצה כללית על מחלקה.', uk: 'Пріоритет рекомендації: 1) якщо філія взагалі не працює з компанією, з якою купує мережа — це найважливіша рекомендація, бо це структурна прогалина, а не один товар. 2) інакше, якщо є "товар, який мережа продає, а філія не замовляла" — це наступна за важливістю. 3) лише якщо немає жодного з двох — загальна рекомендація по відділу.', ru: 'Приоритет рекомендации: 1) если филиал вообще не работает с компанией, у которой закупает сеть — это самая важная рекомендация, потому что это структурный пробел, а не один товар. 2) иначе, если есть "товар, который сеть продаёт, а филиал не заказывал" — это следующая по важности. 3) только если нет ни того ни другого — общая рекомендация по отделу.' };
+    const substNote = { he: 'אם יש בנתונים משפחה "חלש" ומשפחה "חזק" מאותה קטגוריה (למשל שני מותגי גלידה) — זו רק קורלציה בתקופה אחת, לא הוכחה. אם המשפחות דומות מהותית, אפשר לציין את זה כהשערה בלשון זהירה ("ייתכן ש...", "כדאי לבדוק אם...") — לעולם לא כקביעה ודאית כמו "מעיד על" או "מצביע על". אל תמציא קשר בין משפחות שלא קשורות.', uk: 'Якщо в даних є "слабка" і "сильна" родина з тієї самої категорії (наприклад два бренди морозива) — це лише кореляція за один період, не доказ. Якщо родини справді споріднені, можна згадати це як гіпотезу обережною мовою ("можливо...", "варто перевірити чи...") — ніколи як категоричне твердження. Не вигадуй зв\'язок між непов\'язаними родинами.', ru: 'Если в данных есть "слабое" и "сильное" семейство из одной категории (например два бренда мороженого) — это лишь корреляция за один период, а не доказательство. Если семейства действительно родственные, можно упомянуть это как гипотезу осторожным языком ("возможно...", "стоит проверить, не...") — никогда как категоричное утверждение вроде "указывает на" или "свидетельствует о". Не выдумывай связь между несвязанными семействами.' };
+    const hedgeNote = { he: 'בכל מקום שבו אתה מסיק קשר סיבתי מנתונים שמראים רק שינוי אחד (למשל "עלייה מעידה על ביקוש") — נסח כהשערה זהירה, לא כעובדה ודאית. שינוי אחוזים הוא עובדה; הפרשנות שלו היא השערה.', uk: 'Скрізь, де ти робиш причинний висновок із даних, які показують лише одну зміну (наприклад "зростання свідчить про попит") — формулюй як обережну гіпотезу, не як точний факт. Зміна відсотків — це факт; її інтерпретація — гіпотеза.', ru: 'Везде, где ты делаешь причинный вывод из данных, которые показывают только одно изменение (например "рост указывает на спрос") — формулируй как осторожную гипотезу, а не как точный факт. Изменение процентов — это факт; его интерпретация — гипотеза.' };
     const terseNote = { he: 'הסוכן קורא את זה בין לקוחות, בלחץ זמן. פורמט: עד 3 שורות תצפית + שורה אחת המלצה. כל שורה מתחילה במספר או באחוז. בלי משפט פתיחה, בלי ברכה, בלי ניסוח "מנהלי" מיותר — ישר לעובדה.', uk: 'Агент читає це між клієнтами, під тиском часу. Формат: до 3 рядків спостереження + 1 рядок рекомендації. Кожен рядок починається з цифри чи відсотка. Без вступу, без привітання, без зайвих слів.', ru: 'Агент читает это между клиентами, под давлением времени. Формат: до 3 строк наблюдения + 1 строка рекомендации. Каждая строка начинается с цифры или процента. Без вступления, без приветствия, без лишних слов.' };
     const noMdNote = { he: 'טקסט רגיל בלבד, בלי Markdown (בלי **, בלי #, בלי רשימות עם כוכביות).', uk: 'Лише звичайний текст, без Markdown (без **, без #, без списків із зірочками).', ru: 'Только обычный текст, без Markdown (без **, без #, без списков со звёздочками).' };
     const noTranslitNote = { uk: 'Назви відділів іврітом (наприклад דגים, קפוא, חלבי) залишай як є, івритом — не транслітеруй кирилицею.', ru: 'Названия отделов на иврите (например דגים, קפוא, חלבי) оставляй как есть, ивритом — не транслитерируй кириллицей.' };
     const prompts = {
-      he: `אתה מנהל אזור של חברת הפצה. נתוני מכירות לפי מחלקה, תקופה נוכחית מול קודמת:\n${context}\n\nתן עד 3 תצפיות חדות המבוססות על השינוי באחוזים בפועל + המלצה אחת. אם לא הזמין >3 שבועות — זה קריטי. ${scopeNote} ${priorityNote.he} ${substNote.he} ${noFabNote} ${terseNote.he} ${noMdNote.he}`,
-      uk: `Ти менеджер зони. Продажі по відділах, поточний період проти попереднього:\n${context}\n\nДай до 3 спостережень на основі реальної зміни у відсотках + одну рекомендацію. Якщо >3 тижні без замовлення — критично. Агент відвідує магазин особисто — не телефонує байєрам і не діє "авторитетом" іншого відділу. Заборонено вигадувати цифри, відсотки чи кількості, яких немає в даних вище. ${priorityNote.uk} ${substNote.uk} ${terseNote.uk} ${noMdNote.uk} ${noTranslitNote.uk}`,
-      ru: `Ты менеджер зоны. Продажи по отделам, текущий период против предыдущего:\n${context}\n\nДай до 3 наблюдений на основе реального изменения в процентах + одну рекомендацию. Если >3 недель без заказа — критично. Агент лично заходит в магазин — он не звонит байерам и не действует "авторитетом" другого отдела. Запрещено выдумывать цифры, проценты или количества, которых нет в данных выше. ${priorityNote.ru} ${substNote.ru} ${terseNote.ru} ${noMdNote.ru} ${noTranslitNote.ru}`,
+      he: `אתה מנהל אזור של חברת הפצה. נתוני מכירות לפי מחלקה, תקופה נוכחית מול קודמת:\n${context}\n\nתן עד 3 תצפיות חדות המבוססות על השינוי באחוזים בפועל + המלצה אחת. אם לא הזמין >3 שבועות — זה קריטי. ${scopeNote} ${priorityNote.he} ${substNote.he} ${hedgeNote.he} ${noFabNote} ${terseNote.he} ${noMdNote.he}`,
+      uk: `Ти менеджер зони. Продажі по відділах, поточний період проти попереднього:\n${context}\n\nДай до 3 спостережень на основі реальної зміни у відсотках + одну рекомендацію. Якщо >3 тижні без замовлення — критично. Агент відвідує магазин особисто — не телефонує байєрам і не діє "авторитетом" іншого відділу. Заборонено вигадувати цифри, відсотки чи кількості, яких немає в даних вище. ${priorityNote.uk} ${substNote.uk} ${hedgeNote.uk} ${terseNote.uk} ${noMdNote.uk} ${noTranslitNote.uk}`,
+      ru: `Ты менеджер зоны. Продажи по отделам, текущий период против предыдущего:\n${context}\n\nДай до 3 наблюдений на основе реального изменения в процентах + одну рекомендацию. Если >3 недель без заказа — критично. Агент лично заходит в магазин — он не звонит байерам и не действует "авторитетом" другого отдела. Запрещено выдумывать цифры, проценты или количества, которых нет в данных выше. ${priorityNote.ru} ${substNote.ru} ${hedgeNote.ru} ${terseNote.ru} ${noMdNote.ru} ${noTranslitNote.ru}`,
     };
 
-    const analysis = await callGemini(prompts[lang] || prompts.he, 220);
+    const analysis = await callGemini(prompts[lang] || prompts.he, 320);
 
     res.json({
       ok: true,
@@ -4149,6 +4226,7 @@ CALCULATETABLE(
       isChain,
       chainName,
       dormantChainProducts,
+      companyGaps,
       familyDeviation,
       daysSinceOrder,
       isKosher,
