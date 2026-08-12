@@ -3363,7 +3363,7 @@ app.post('/mmd/rebuild', mmdGuard, dataRateLimit, (req, res) => {
   const script = path.join(__dirname, 'build-mmd-orders.js');
   execFile('node', [script], { timeout: 60000 }, (err, stdout) => {
     rebuildInProgress = false;
-    if (err) return res.status(500).json({ ok: false, error: err.message });
+    if (err) { console.error('[rebuild]', err.message); return res.status(500).json({ ok: false, error: 'build_failed' }); }
     // Copy result to live path (outside git tree) to avoid dirty working directory
     try {
       fs.mkdirSync(path.dirname(MMD_LIVE_PATH), { recursive: true });
@@ -3442,7 +3442,8 @@ app.get('/mmd/period-data', mmdGuard, dataRateLimit, async (req, res) => {
     }));
     res.json({ ok: true, data });
   } catch(e) {
-    res.status(500).json({ ok: false, error: e.message });
+    console.error('[period-data]', e.message);
+    res.status(500).json({ ok: false, error: 'data_error' });
   }
 });
 
