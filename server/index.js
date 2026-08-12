@@ -3929,6 +3929,99 @@ ROW(
 
     const peerAvg = Math.round(avgRows?.[0]?.['[avg_per_client]'] || 0);
 
+    // Chain-only diagnostics: "is this product even open for purchase at this client"
+    // and "how does this store's mix compare to its own chain's". Both only make sense
+    // when there's a chain to check against — a private-market (שוק פרטי) store has none.
+    // "Open for purchase" is proxied as: the chain sold ≥1 unit somewhere in the last 120
+    // days (real sales only, ASHMADOT="-מכר-", not השמדות write-offs) — if the whole chain
+    // never sold it, the buyer likely never approved it, and flagging a specific branch for
+    // not ordering it would be a false "opportunity."
+    let dormantChainProducts = [];
+    let familyDeviation = [];
+    if (isChain && chainInFilter) {
+      const daysAgo = (days) => {
+        const d = new Date(Date.now() - days * 86400000);
+        return { year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate() };
+      };
+      const d120 = daysAgo(120), d90 = daysAgo(90), today = daysAgo(0);
+      const curLastDay = new Date(curEnd.year, curEnd.month, 0).getDate();
+
+      const chainOpenDax = `
+EVALUATE
+CALCULATETABLE(
+  ADDCOLUMNS(
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[מק'ט], ALL_PARTS[תאור מוצר]),
+    "chainTotal", CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)])
+  ),${chainInFilter}
+  ALL_PARTS[ASHMADOT] = "-מכר-",${kosherFilter}
+  ALL_PARTS[תאריך] >= DATE(${d120.year},${d120.month},${d120.day}),
+  ALL_PARTS[תאריך] <= DATE(${today.year},${today.month},${today.day})
+)`;
+      const storeOrderedDax = `
+EVALUATE
+CALCULATETABLE(
+  SUMMARIZE(ALL_PARTS, ALL_PARTS[מק'ט]),
+  ALL_PARTS[מספר לקוח] = "${custId}",
+  ALL_PARTS[ASHMADOT] = "-מכר-",
+  ALL_PARTS[תאריך] >= DATE(${d90.year},${d90.month},${d90.day}),
+  ALL_PARTS[תאריך] <= DATE(${today.year},${today.month},${today.day})
+)`;
+      const chainFamDax = `
+EVALUATE
+CALCULATETABLE(
+  ADDCOLUMNS(
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[תאור משפחת מוצר]),
+    "total", CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)])
+  ),${chainInFilter}
+  ALL_PARTS[ASHMADOT] = "-מכר-",${kosherFilter}
+  ALL_PARTS[תאריך] >= DATE(${curStart.year},${curStart.month},1),
+  ALL_PARTS[תאריך] <= DATE(${curEnd.year},${curEnd.month},${curLastDay})
+)`;
+
+      const [chainOpenRows, storeOrderedRows, chainFamRows] = await Promise.all([
+        executeDax(chainOpenDax),
+        executeDax(storeOrderedDax),
+        executeDax(chainFamDax),
+      ]);
+
+      const storeOrderedSkus = new Set(storeOrderedRows.map(r => String(r["ALL_PARTS[מק'ט]"] || '')));
+      dormantChainProducts = chainOpenRows
+        .filter(r => !storeOrderedSkus.has(String(r["ALL_PARTS[מק'ט]"] || '')))
+        .map(r => ({
+          sku: r["ALL_PARTS[מק'ט]"],
+          name: fixBiDi(r['ALL_PARTS[תאור מוצר]'] || ''),
+          chainTotal: Math.round(r['[chainTotal]'] || 0),
+        }))
+        .filter(x => x.chainTotal > 0)
+        .sort((a, b) => b.chainTotal - a.chainTotal)
+        .slice(0, 15);
+
+      const chainFamTotal = {}; let chainFamAll = 0;
+      chainFamRows.forEach(r => {
+        const v = Math.round(r['[total]'] || 0);
+        if (v > 0) { const fam = r['ALL_PARTS[תאור משפחת מוצר]']; chainFamTotal[fam] = v; chainFamAll += v; }
+      });
+      const storeFamTotal = {}; let storeFamAll = 0;
+      curRows.forEach(r => {
+        const v = Math.round(r['[total]'] || 0);
+        if (v > 0) { const fam = r['ALL_PARTS[תאור משפחת מוצר]']; storeFamTotal[fam] = v; storeFamAll += v; }
+      });
+      familyDeviation = Object.entries(chainFamTotal)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 7)
+        .map(([fam, chainV]) => {
+          const chainShare = chainFamAll > 0 ? chainV / chainFamAll : 0;
+          const storeV = storeFamTotal[fam] || 0;
+          const storeShare = storeFamAll > 0 ? storeV / storeFamAll : 0;
+          return {
+            family: fixBiDi(fam || ''),
+            chainSharePct: Math.round(chainShare * 1000) / 10,
+            storeSharePct: Math.round(storeShare * 1000) / 10,
+            index: chainShare > 0 ? Math.round((storeShare / chainShare) * 100) / 100 : null,
+          };
+        });
+    }
+
     // 'מתוקים' comes through ALL_PARTS from the INTER company DB (separate sales channel,
     // same mapping as scripts/sadran-data.js DEPT_COMPANY) — kept out of the main
     // FORM/ICE breakdown so it doesn't get analyzed as if it were part of the agent's
@@ -3987,17 +4080,30 @@ ROW(
       + (clientDeltaPct !== null ? ` | לעומת ${priorLabel}: ₪${prior.total.toLocaleString()} (${clientDeltaPct > 0 ? '+' : ''}${clientDeltaPct}%)` : '');
     const kosherNote = isKosher ? `\nלקוח כשר — הנתונים וההשוואה כוללים רק מוצרים כשרים.` : '';
 
-    const context = `תקופה נוכחית: ${curLabel} | תקופה קודמת: ${priorLabel}\n${famLines.join('\n')}${avgNote}\n${clientNote}${dormantNote}${kosherNote}`;
+    // Most important signal for a chain client: products the buyer HAS approved (the
+    // whole chain sold them in the last 120 days) that THIS branch hasn't ordered in 90+
+    // days — a real, buyer-authorized gap, not a guess. Only the top item goes into the
+    // prompt (keeps context terse); the full list ships in the JSON for the UI table.
+    const gapNote = dormantChainProducts.length
+      ? `\nמוצר שהרשת מוכרת (120 יום) והסניף לא הזמין 90+ יום: ${dormantChainProducts[0].name} (מכירות רשת ₪${dormantChainProducts[0].chainTotal.toLocaleString()}). סה"כ ${dormantChainProducts.length} מוצרים כאלה.`
+      : '';
+    const underIndexed = familyDeviation.filter(f => f.index !== null && f.index < 0.7).sort((a, b) => a.index - b.index)[0];
+    const deviationNote = underIndexed
+      ? `\nמשפחה חלשה יחסית לרשת: ${underIndexed.family} (${underIndexed.storeSharePct}% מהסניף מול ${underIndexed.chainSharePct}% מהרשת).`
+      : '';
+
+    const context = `תקופה נוכחית: ${curLabel} | תקופה קודמת: ${priorLabel}\n${famLines.join('\n')}${avgNote}\n${clientNote}${dormantNote}${kosherNote}${gapNote}${deviationNote}`;
 
     const scopeNote = 'הסוכן מבקר בחנות פיזית — הוא לא מתקשר לקונים/רוכשים ואינו יכול להפעיל "סמכות" ממחלקה אחרת. המלצה רק על פעולה שהוא יכול לבצע בביקור עצמו: הצעת מוצר/מבצע, כמות הזמנה, פייסינג במדף, תזכורת למוצר שלא הוזמן.';
     const noFabNote = 'אסור להמציא מספרים, אחוזים או כמויות שלא מופיעים בנתונים למעלה. כל מספר שאתה כותב חייב להיות מבוסס ישירות על הנתונים.';
+    const priorityNote = { he: 'אם יש "מוצר שהרשת מוכרת והסניף לא הזמין" בנתונים — זו ההמלצה הכי חזקה, כי היא מוצר שהקניין כבר אישר לרשת. תעדף אותה על פני המלצה כללית על מחלקה.', uk: 'Якщо в даних є "товар, який мережа продає, а філія не замовляла" — це найсильніша рекомендація, бо байєр вже схвалив цей товар для мережі. Пріоритет над загальною рекомендацією по відділу.', ru: 'Если в данных есть "товар, который сеть продаёт, а филиал не заказывал" — это самая сильная рекомендация, потому что байер уже одобрил этот товар для сети. Приоритет над общей рекомендацией по отделу.' };
     const terseNote = { he: 'הסוכן קורא את זה בין לקוחות, בלחץ זמן. פורמט: עד 3 שורות תצפית + שורה אחת המלצה. כל שורה מתחילה במספר או באחוז. בלי משפט פתיחה, בלי ברכה, בלי ניסוח "מנהלי" מיותר — ישר לעובדה.', uk: 'Агент читає це між клієнтами, під тиском часу. Формат: до 3 рядків спостереження + 1 рядок рекомендації. Кожен рядок починається з цифри чи відсотка. Без вступу, без привітання, без зайвих слів.', ru: 'Агент читает это между клиентами, под давлением времени. Формат: до 3 строк наблюдения + 1 строка рекомендации. Каждая строка начинается с цифры или процента. Без вступления, без приветствия, без лишних слов.' };
     const noMdNote = { he: 'טקסט רגיל בלבד, בלי Markdown (בלי **, בלי #, בלי רשימות עם כוכביות).', uk: 'Лише звичайний текст, без Markdown (без **, без #, без списків із зірочками).', ru: 'Только обычный текст, без Markdown (без **, без #, без списков со звёздочками).' };
     const noTranslitNote = { uk: 'Назви відділів іврітом (наприклад דגים, קפוא, חלבי) залишай як є, івритом — не транслітеруй кирилицею.', ru: 'Названия отделов на иврите (например דגים, קפוא, חלבי) оставляй как есть, ивритом — не транслитерируй кириллицей.' };
     const prompts = {
-      he: `אתה מנהל אזור של חברת הפצה. נתוני מכירות לפי מחלקה, תקופה נוכחית מול קודמת:\n${context}\n\nתן עד 3 תצפיות חדות המבוססות על השינוי באחוזים בפועל + המלצה אחת שקשורה למחלקה עם השינוי הכי משמעותי. אם לא הזמין >3 שבועות — זה קריטי. ${scopeNote} ${noFabNote} ${terseNote.he} ${noMdNote.he}`,
-      uk: `Ти менеджер зони. Продажі по відділах, поточний період проти попереднього:\n${context}\n\nДай до 3 спостережень на основі реальної зміни у відсотках + одну рекомендацію, пов'язану з відділом із найбільшою зміною. Якщо >3 тижні без замовлення — критично. Агент відвідує магазин особисто — не телефонує байєрам і не діє "авторитетом" іншого відділу. Заборонено вигадувати цифри, відсотки чи кількості, яких немає в даних вище. ${terseNote.uk} ${noMdNote.uk} ${noTranslitNote.uk}`,
-      ru: `Ты менеджер зоны. Продажи по отделам, текущий период против предыдущего:\n${context}\n\nДай до 3 наблюдений на основе реального изменения в процентах + одну рекомендацию, привязанную к отделу с самым значимым изменением. Если >3 недель без заказа — критично. Агент лично заходит в магазин — он не звонит байерам и не действует "авторитетом" другого отдела. Запрещено выдумывать цифры, проценты или количества, которых нет в данных выше. ${terseNote.ru} ${noMdNote.ru} ${noTranslitNote.ru}`,
+      he: `אתה מנהל אזור של חברת הפצה. נתוני מכירות לפי מחלקה, תקופה נוכחית מול קודמת:\n${context}\n\nתן עד 3 תצפיות חדות המבוססות על השינוי באחוזים בפועל + המלצה אחת. אם לא הזמין >3 שבועות — זה קריטי. ${scopeNote} ${priorityNote.he} ${noFabNote} ${terseNote.he} ${noMdNote.he}`,
+      uk: `Ти менеджер зони. Продажі по відділах, поточний період проти попереднього:\n${context}\n\nДай до 3 спостережень на основі реальної зміни у відсотках + одну рекомендацію. Якщо >3 тижні без замовлення — критично. Агент відвідує магазин особисто — не телефонує байєрам і не діє "авторитетом" іншого відділу. Заборонено вигадувати цифри, відсотки чи кількості, яких немає в даних вище. ${priorityNote.uk} ${terseNote.uk} ${noMdNote.uk} ${noTranslitNote.uk}`,
+      ru: `Ты менеджер зоны. Продажи по отделам, текущий период против предыдущего:\n${context}\n\nДай до 3 наблюдений на основе реального изменения в процентах + одну рекомендацию. Если >3 недель без заказа — критично. Агент лично заходит в магазин — он не звонит байерам и не действует "авторитетом" другого отдела. Запрещено выдумывать цифры, проценты или количества, которых нет в данных выше. ${priorityNote.ru} ${terseNote.ru} ${noMdNote.ru} ${noTranslitNote.ru}`,
     };
 
     const analysis = await callGemini(prompts[lang] || prompts.he, 220);
@@ -4014,6 +4120,8 @@ ROW(
       peerAvg,
       isChain,
       chainName,
+      dormantChainProducts,
+      familyDeviation,
       daysSinceOrder,
       isKosher,
       analysis,
