@@ -4113,7 +4113,7 @@ CALCULATETABLE(
     // read than either number alone.
     const realFamDev = familyDeviation.filter(f => !f.isRest && !f.isTotal && f.index !== null);
     const underIndexed = realFamDev.filter(f => f.index < 0.7).sort((a, b) => a.index - b.index)[0];
-    const overIndexed = realFamDev.filter(f => f.index > 1.3).sort((a, b) => b.index - a.index)[0];
+    const overIndexed = realFamDev.filter(f => f.index > 1.2).sort((a, b) => b.index - a.index)[0];
     const deviationLines = [];
     if (underIndexed) deviationLines.push(`חלש: ${underIndexed.family} (${underIndexed.storeSharePct}% מהסניף מול ${underIndexed.chainSharePct}% מהרשת, אינדקס ${underIndexed.index})`);
     if (overIndexed && overIndexed.family !== underIndexed?.family) deviationLines.push(`חזק: ${overIndexed.family} (${overIndexed.storeSharePct}% מהסניף מול ${overIndexed.chainSharePct}% מהרשת, אינדקס ${overIndexed.index})`);
