@@ -4007,13 +4007,15 @@ CALCULATETABLE(
         const v = Math.round(r['[total]'] || 0);
         if (v > 0) { const fam = r['ALL_PARTS[תאור משפחת מוצר]']; storeFamTotal[fam] = v; storeFamAll += v; }
       });
-      familyDeviation = Object.entries(chainFamTotal)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 7)
+      const famEntries = Object.entries(chainFamTotal).sort(([, a], [, b]) => b - a);
+      const topFamEntries = famEntries.slice(0, 7);
+      const topFamSet = new Set(topFamEntries.map(([fam]) => fam));
+      const shareOf = (v, all) => all > 0 ? v / all : 0;
+      familyDeviation = topFamEntries
         .map(([fam, chainV]) => {
-          const chainShare = chainFamAll > 0 ? chainV / chainFamAll : 0;
+          const chainShare = shareOf(chainV, chainFamAll);
           const storeV = storeFamTotal[fam] || 0;
-          const storeShare = storeFamAll > 0 ? storeV / storeFamAll : 0;
+          const storeShare = shareOf(storeV, storeFamAll);
           return {
             family: fixBiDi(fam || ''),
             chainSharePct: Math.round(chainShare * 1000) / 10,
@@ -4021,6 +4023,23 @@ CALCULATETABLE(
             index: chainShare > 0 ? Math.round((storeShare / chainShare) * 100) / 100 : null,
           };
         });
+
+      // "Rest of families" + explicit 100% total row — without this the shown top-7
+      // percentages silently add up to less than 100% and look like the whole picture.
+      const restChainV = famEntries.slice(7).reduce((s, [, v]) => s + v, 0);
+      const restStoreV = Object.entries(storeFamTotal).reduce((s, [fam, v]) => topFamSet.has(fam) ? s : s + v, 0);
+      if (restChainV > 0 || restStoreV > 0) {
+        const chainShare = shareOf(restChainV, chainFamAll);
+        const storeShare = shareOf(restStoreV, storeFamAll);
+        familyDeviation.push({
+          family: 'שאר המשפחות',
+          chainSharePct: Math.round(chainShare * 1000) / 10,
+          storeSharePct: Math.round(storeShare * 1000) / 10,
+          index: chainShare > 0 ? Math.round((storeShare / chainShare) * 100) / 100 : null,
+          isRest: true,
+        });
+      }
+      familyDeviation.push({ family: 'סה"כ', chainSharePct: 100, storeSharePct: 100, index: null, isTotal: true });
     }
 
     // 'מתוקים' comes through ALL_PARTS from the INTER company DB (separate sales channel,
@@ -4088,23 +4107,31 @@ CALCULATETABLE(
     const gapNote = dormantChainProducts.length
       ? `\nמוצר שהרשת מוכרת (120 יום) והסניף לא הזמין 90+ יום: ${dormantChainProducts[0].name} (מכירות רשת ₪${dormantChainProducts[0].chainTotal.toLocaleString()}). סה"כ ${dormantChainProducts.length} מוצרים כאלה.`
       : '';
-    const underIndexed = familyDeviation.filter(f => f.index !== null && f.index < 0.7).sort((a, b) => a.index - b.index)[0];
-    const deviationNote = underIndexed
-      ? `\nמשפחה חלשה יחסית לרשת: ${underIndexed.family} (${underIndexed.storeSharePct}% מהסניף מול ${underIndexed.chainSharePct}% מהרשת).`
-      : '';
+    // Both ends of the deviation, not just the weakest — an under-indexed family next to
+    // an over-indexed one is often a brand-substitution pattern (agent/store pushing one
+    // brand instead of another within the same category), which is a sharper, more useful
+    // read than either number alone.
+    const realFamDev = familyDeviation.filter(f => !f.isRest && !f.isTotal && f.index !== null);
+    const underIndexed = realFamDev.filter(f => f.index < 0.7).sort((a, b) => a.index - b.index)[0];
+    const overIndexed = realFamDev.filter(f => f.index > 1.3).sort((a, b) => b.index - a.index)[0];
+    const deviationLines = [];
+    if (underIndexed) deviationLines.push(`חלש: ${underIndexed.family} (${underIndexed.storeSharePct}% מהסניף מול ${underIndexed.chainSharePct}% מהרשת, אינדקס ${underIndexed.index})`);
+    if (overIndexed && overIndexed.family !== underIndexed?.family) deviationLines.push(`חזק: ${overIndexed.family} (${overIndexed.storeSharePct}% מהסניף מול ${overIndexed.chainSharePct}% מהרשת, אינדקס ${overIndexed.index})`);
+    const deviationNote = deviationLines.length ? `\nחריגה מפרופיל הרשת — ${deviationLines.join(' | ')}.` : '';
 
     const context = `תקופה נוכחית: ${curLabel} | תקופה קודמת: ${priorLabel}\n${famLines.join('\n')}${avgNote}\n${clientNote}${dormantNote}${kosherNote}${gapNote}${deviationNote}`;
 
     const scopeNote = 'הסוכן מבקר בחנות פיזית — הוא לא מתקשר לקונים/רוכשים ואינו יכול להפעיל "סמכות" ממחלקה אחרת. המלצה רק על פעולה שהוא יכול לבצע בביקור עצמו: הצעת מוצר/מבצע, כמות הזמנה, פייסינג במדף, תזכורת למוצר שלא הוזמן.';
     const noFabNote = 'אסור להמציא מספרים, אחוזים או כמויות שלא מופיעים בנתונים למעלה. כל מספר שאתה כותב חייב להיות מבוסס ישירות על הנתונים.';
     const priorityNote = { he: 'אם יש "מוצר שהרשת מוכרת והסניף לא הזמין" בנתונים — זו ההמלצה הכי חזקה, כי היא מוצר שהקניין כבר אישר לרשת. תעדף אותה על פני המלצה כללית על מחלקה.', uk: 'Якщо в даних є "товар, який мережа продає, а філія не замовляла" — це найсильніша рекомендація, бо байєр вже схвалив цей товар для мережі. Пріоритет над загальною рекомендацією по відділу.', ru: 'Если в данных есть "товар, который сеть продаёт, а филиал не заказывал" — это самая сильная рекомендация, потому что байер уже одобрил этот товар для сети. Приоритет над общей рекомендацией по отделу.' };
+    const substNote = { he: 'אם יש בנתונים משפחה "חלש" ומשפחה "חזק" מאותה קטגוריה (למשל שני מותגי גלידה) — זה כנראה תחליף בין מותגים בסניף הזה. אם המשפחות דומות מהותית, כתוב את זה כמסקנה אחת קצרה (משפט אחד): איזה מותג נדחק ואיזה תפס את מקומו. אל תמציא קשר בין משפחות שלא קשורות.', uk: 'Якщо в даних є "слабка" і "сильна" родина з тієї самої категорії (наприклад два бренди морозива) — це, ймовірно, заміщення між брендами саме в цій філії. Якщо родини справді споріднені, опиши це одним коротким реченням: який бренд витіснили і який зайняв його місце. Не вигадуй зв\'язок між непов\'язаними родинами.', ru: 'Если в данных есть "слабое" и "сильное" семейство из одной категории (например два бренда мороженого) — это, вероятно, замещение между брендами именно в этой точке. Если семейства действительно родственные, опиши это одним коротким предложением: какой бренд вытеснили и какой занял его место. Не выдумывай связь между несвязанными семействами.' };
     const terseNote = { he: 'הסוכן קורא את זה בין לקוחות, בלחץ זמן. פורמט: עד 3 שורות תצפית + שורה אחת המלצה. כל שורה מתחילה במספר או באחוז. בלי משפט פתיחה, בלי ברכה, בלי ניסוח "מנהלי" מיותר — ישר לעובדה.', uk: 'Агент читає це між клієнтами, під тиском часу. Формат: до 3 рядків спостереження + 1 рядок рекомендації. Кожен рядок починається з цифри чи відсотка. Без вступу, без привітання, без зайвих слів.', ru: 'Агент читает это между клиентами, под давлением времени. Формат: до 3 строк наблюдения + 1 строка рекомендации. Каждая строка начинается с цифры или процента. Без вступления, без приветствия, без лишних слов.' };
     const noMdNote = { he: 'טקסט רגיל בלבד, בלי Markdown (בלי **, בלי #, בלי רשימות עם כוכביות).', uk: 'Лише звичайний текст, без Markdown (без **, без #, без списків із зірочками).', ru: 'Только обычный текст, без Markdown (без **, без #, без списков со звёздочками).' };
     const noTranslitNote = { uk: 'Назви відділів іврітом (наприклад דגים, קפוא, חלבי) залишай як є, івритом — не транслітеруй кирилицею.', ru: 'Названия отделов на иврите (например דגים, קפוא, חלבי) оставляй как есть, ивритом — не транслитерируй кириллицей.' };
     const prompts = {
-      he: `אתה מנהל אזור של חברת הפצה. נתוני מכירות לפי מחלקה, תקופה נוכחית מול קודמת:\n${context}\n\nתן עד 3 תצפיות חדות המבוססות על השינוי באחוזים בפועל + המלצה אחת. אם לא הזמין >3 שבועות — זה קריטי. ${scopeNote} ${priorityNote.he} ${noFabNote} ${terseNote.he} ${noMdNote.he}`,
-      uk: `Ти менеджер зони. Продажі по відділах, поточний період проти попереднього:\n${context}\n\nДай до 3 спостережень на основі реальної зміни у відсотках + одну рекомендацію. Якщо >3 тижні без замовлення — критично. Агент відвідує магазин особисто — не телефонує байєрам і не діє "авторитетом" іншого відділу. Заборонено вигадувати цифри, відсотки чи кількості, яких немає в даних вище. ${priorityNote.uk} ${terseNote.uk} ${noMdNote.uk} ${noTranslitNote.uk}`,
-      ru: `Ты менеджер зоны. Продажи по отделам, текущий период против предыдущего:\n${context}\n\nДай до 3 наблюдений на основе реального изменения в процентах + одну рекомендацию. Если >3 недель без заказа — критично. Агент лично заходит в магазин — он не звонит байерам и не действует "авторитетом" другого отдела. Запрещено выдумывать цифры, проценты или количества, которых нет в данных выше. ${priorityNote.ru} ${terseNote.ru} ${noMdNote.ru} ${noTranslitNote.ru}`,
+      he: `אתה מנהל אזור של חברת הפצה. נתוני מכירות לפי מחלקה, תקופה נוכחית מול קודמת:\n${context}\n\nתן עד 3 תצפיות חדות המבוססות על השינוי באחוזים בפועל + המלצה אחת. אם לא הזמין >3 שבועות — זה קריטי. ${scopeNote} ${priorityNote.he} ${substNote.he} ${noFabNote} ${terseNote.he} ${noMdNote.he}`,
+      uk: `Ти менеджер зони. Продажі по відділах, поточний період проти попереднього:\n${context}\n\nДай до 3 спостережень на основі реальної зміни у відсотках + одну рекомендацію. Якщо >3 тижні без замовлення — критично. Агент відвідує магазин особисто — не телефонує байєрам і не діє "авторитетом" іншого відділу. Заборонено вигадувати цифри, відсотки чи кількості, яких немає в даних вище. ${priorityNote.uk} ${substNote.uk} ${terseNote.uk} ${noMdNote.uk} ${noTranslitNote.uk}`,
+      ru: `Ты менеджер зоны. Продажи по отделам, текущий период против предыдущего:\n${context}\n\nДай до 3 наблюдений на основе реального изменения в процентах + одну рекомендацию. Если >3 недель без заказа — критично. Агент лично заходит в магазин — он не звонит байерам и не действует "авторитетом" другого отдела. Запрещено выдумывать цифры, проценты или количества, которых нет в данных выше. ${priorityNote.ru} ${substNote.ru} ${terseNote.ru} ${noMdNote.ru} ${noTranslitNote.ru}`,
     };
 
     const analysis = await callGemini(prompts[lang] || prompts.he, 220);
