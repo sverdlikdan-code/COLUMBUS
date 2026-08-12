@@ -54,6 +54,14 @@ const DEPT_COMPANY = {
   'דג יבש': 'FORMULA', 'דגים': 'FORMULA', 'חלבי': 'FORMULA', 'קפוא ❄': 'FORMULA',
 };
 
+// COMPANY_HEVRA — компания (из DEPT_COMPANY) -> префикс HEVRA в KEY FOR CAT 7/KEY FOR DATA.
+// Найдено 2026-08-11 (сомнение пользователя про дублирование строк в оттоке): в ALL_PARTS
+// изредка встречаются строки, где KEY FOR CAT 7 привязан к ОДНОЙ компании (напр. FORMULA...),
+// а מחלקה — к ДРУГОЙ (напр. mish גלידה, т.е. ICE MISH) — кросс-компанийная аномалия данных
+// Priority (обычно amt=0, взаимозачёт). custDims её не отсеивает (валидный клиент), но она
+// создаёт лишнюю "пустышку" — фильтруем по несовпадению HEVRA-префикса и компании департамента.
+const COMPANY_HEVRA = { FORMULA: 'FORMULA', INTER: 'INTER', 'ICE MISH': 'ICE' };
+
 function computePeriods(today = new Date()) {
   const y = today.getFullYear();
   const lastCompleteMonthEndExclusive = new Date(y, today.getMonth(), 1);
@@ -257,7 +265,7 @@ async function main() {
   function aggregate(daxRows) {
     const agg = new Map(); // keyForData|dept -> amt
     const agentAgg = new Map(); // keyForData|dept -> Map(sochenRaw -> amt)
-    let skippedDept = 0, skippedCust = 0, skippedBodedim = 0;
+    let skippedDept = 0, skippedCust = 0, skippedBodedim = 0, skippedCrossHevra = 0;
     for (const r of daxRows) {
       const keyForData = String(r['ALL_PARTS[KEY FOR CAT 7]'] || '').trim();
       const deptRaw = r["ADIFUT FOR DEILTA[מחלקה]"];
@@ -267,6 +275,8 @@ async function main() {
       const dept = DEPT_NORMALIZE[deptRaw];
       if (!dept) { skippedDept++; continue; }
       if (familyRaw && fixBiDi(familyRaw).includes('בודדים')) { skippedBodedim++; continue; }
+      const expectedHevra = COMPANY_HEVRA[DEPT_COMPANY[dept]];
+      if (expectedHevra && !keyForData.startsWith(expectedHevra)) { skippedCrossHevra++; continue; }
       const key = `${keyForData}|${dept}`;
       agg.set(key, (agg.get(key) || 0) + amt);
       const sochenRaw = r['ALL_PARTS[שם סוכן]'] || '';
@@ -274,12 +284,12 @@ async function main() {
       const am = agentAgg.get(key);
       am.set(sochenRaw, (am.get(sochenRaw) || 0) + amt);
     }
-    return { agg, agentAgg, skippedDept, skippedCust, skippedBodedim };
+    return { agg, agentAgg, skippedDept, skippedCust, skippedBodedim, skippedCrossHevra };
   }
-  const { agg: nowAgg, agentAgg: nowAgentAgg, skippedDept: nowSkipDept, skippedCust: nowSkipCust, skippedBodedim: nowSkipBod } = aggregate(nowRaw);
-  const { agg: lyAgg, agentAgg: lyAgentAgg, skippedDept: lySkipDept, skippedCust: lySkipCust, skippedBodedim: lySkipBod } = aggregate(lyRaw);
-  console.log(`  now: пропущено (dept/клиент/בודדים) = ${nowSkipDept}/${nowSkipCust}/${nowSkipBod}`);
-  console.log(`  ly:  пропущено (dept/клиент/בודדים) = ${lySkipDept}/${lySkipCust}/${lySkipBod}`);
+  const { agg: nowAgg, agentAgg: nowAgentAgg, skippedDept: nowSkipDept, skippedCust: nowSkipCust, skippedBodedim: nowSkipBod, skippedCrossHevra: nowSkipCross } = aggregate(nowRaw);
+  const { agg: lyAgg, agentAgg: lyAgentAgg, skippedDept: lySkipDept, skippedCust: lySkipCust, skippedBodedim: lySkipBod, skippedCrossHevra: lySkipCross } = aggregate(lyRaw);
+  console.log(`  now: пропущено (dept/клиент/בודדים/кросс-HEVRA) = ${nowSkipDept}/${nowSkipCust}/${nowSkipBod}/${nowSkipCross}`);
+  console.log(`  ly:  пропущено (dept/клиент/בודדים/кросс-HEVRA) = ${lySkipDept}/${lySkipCust}/${lySkipBod}/${lySkipCross}`);
 
   // dominantAgent — реальный агент с уровня транзакций (ALL_PARTS[שם סוכן]), не с карточки
   // клиента: карточка клиента ('לקוחות FORM+I+INT'[שם סוכן]) для ICE иногда хранит один
