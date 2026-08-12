@@ -2520,37 +2520,47 @@ async function _fetchClientAI(lang) {
     const data = await r.json();
     if (!data.ok) throw new Error(data.error || 'שגיאה');
 
-    const { months, families, familiesInter, dropped, analysis } = data;
+    const { curLabel, priorLabel, families, familiesInter, dropped, clientTotal, clientTotalPrior, peerAvg, isChain, chainName, isKosher, analysis } = data;
 
-    // Build table
-    let tbl = `<table class="ai-families-tbl"><thead><tr><th>משפחת מוצר</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>`;
-    const sorted = Object.entries(families).sort((a,b)=>{
-      const totA = Object.values(a[1]).reduce((s,v)=>s+v,0);
-      const totB = Object.values(b[1]).reduce((s,v)=>s+v,0);
-      return totB - totA;
-    });
-    for (const [fam, byM] of sorted) {
+    const trendCell = (f) => {
+      const arrow = f.deltaPct === null ? '' : (f.deltaPct > 0 ? '▲' : f.deltaPct < 0 ? '▼' : '—');
+      const color = f.deltaPct === null ? '#999' : (f.deltaPct > 0 ? '#2E7D32' : f.deltaPct < 0 ? '#C62828' : '#999');
+      const pct = f.deltaPct === null ? '' : `${f.deltaPct > 0 ? '+' : ''}${f.deltaPct}%`;
+      return `<td style="text-align:left;color:${color};font-weight:700">${arrow} ${pct}</td>`;
+    };
+
+    // Build table: family | current 3mo | prior 3mo | Δ% — period-over-period trend,
+    // not a flat monthly breakdown (a monthly table doesn't show what's accelerating/slowing).
+    let tbl = `<table class="ai-families-tbl"><thead><tr><th>משפחת מוצר</th><th>${curLabel}</th><th>${priorLabel}</th><th>מגמה</th></tr></thead><tbody>`;
+    const sorted = Object.entries(families).sort((a,b) => b[1].current - a[1].current);
+    for (const [fam, f] of sorted) {
       const isDrop = dropped.includes(fam);
-      tbl += `<tr><td class="${isDrop?'dropped':''}">${fam}${isDrop?' ⚠️':''}</td>${months.map(m=>{
-        const v = byM[m];
-        return `<td style="text-align:left">${v ? '₪'+v.toLocaleString() : '—'}</td>`;
-      }).join('')}</tr>`;
+      tbl += `<tr><td class="${isDrop?'dropped':''}">${fam}${isDrop?' ⚠️':''}</td>`
+        + `<td style="text-align:left">₪${f.current.toLocaleString()}</td>`
+        + `<td style="text-align:left">${f.prior ? '₪'+f.prior.toLocaleString() : '—'}</td>`
+        + trendCell(f) + `</tr>`;
     }
     tbl += '</tbody></table>';
+
+    const peerLabel = isChain ? `ממוצע רשת ${chainName}` : 'ממוצע חברה';
+    const summaryLine = `<div style="margin:6px 0 10px;font-size:12px;color:#555">`
+      + `סה"כ לקוח: <b>₪${clientTotal.toLocaleString()}</b> (${curLabel}) | ${peerLabel}${isKosher?' (כשר)':''}: ₪${peerAvg.toLocaleString()}`
+      + `</div>`;
 
     // INTER channel (e.g. מתוקים) — separate company/source, kept out of the main table
     let interTbl = '';
     if (familiesInter && Object.keys(familiesInter).length) {
       interTbl = `<div style="margin:10px 0 4px;font-size:11px;color:#8B6D00;font-weight:700">ערוץ נפרד (INTER)</div>`;
-      interTbl += `<table class="ai-families-tbl"><thead><tr><th>משפחת מוצר</th>${months.map(m=>`<th>${m}</th>`).join('')}</tr></thead><tbody>`;
-      for (const [fam, byM] of Object.entries(familiesInter)) {
-        interTbl += `<tr><td>${fam}</td>${months.map(m=>{
-          const v = byM[m];
-          return `<td style="text-align:left">${v ? '₪'+v.toLocaleString() : '—'}</td>`;
-        }).join('')}</tr>`;
+      interTbl += `<table class="ai-families-tbl"><thead><tr><th>משפחת מוצר</th><th>${curLabel}</th><th>${priorLabel}</th><th>מגמה</th></tr></thead><tbody>`;
+      for (const [fam, f] of Object.entries(familiesInter)) {
+        interTbl += `<tr><td>${fam}</td>`
+          + `<td style="text-align:left">₪${f.current.toLocaleString()}</td>`
+          + `<td style="text-align:left">${f.prior ? '₪'+f.prior.toLocaleString() : '—'}</td>`
+          + trendCell(f) + `</tr>`;
       }
       interTbl += '</tbody></table>';
     }
+    tbl = summaryLine + tbl;
 
     const dir = lang === 'he' ? 'rtl' : 'ltr';
     const cleanAnalysis = analysis

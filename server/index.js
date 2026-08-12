@@ -3832,23 +3832,60 @@ app.get('/api/client-analytics/:custId', requireAuth, async (req, res) => {
   const lang = (req.query.lang || 'he').slice(0, 2);
   if (!GEMINI_API_KEY && !ANTHROPIC_API_KEY) return res.status(503).json({ ok: false, error: 'AI not configured' });
 
-  // Last 3 closed months
+  // Two 3-month windows: current (last 3 closed months) vs prior (the 3 before that) —
+  // period-over-period, not a monthly breakdown, so the agent sees what's accelerating
+  // vs slowing down at a glance.
   const now = new Date();
   const cm = now.getMonth() + 1, cy = now.getFullYear();
-  const months = [];
-  for (let i = 3; i >= 1; i--) {
-    let m = cm - i, y = cy;
-    if (m <= 0) { m += 12; y--; }
-    months.push({ year: y, month: m, label: `${m}/${y}` });
-  }
-  const start = months[0], end = months[2];
-  const lastDay = new Date(end.year, end.month, 0).getDate();
+  const periodMonths = (fromBack, toBack) => {
+    const arr = [];
+    for (let i = fromBack; i >= toBack; i--) {
+      let m = cm - i, y = cy;
+      if (m <= 0) { m += 12; y--; }
+      arr.push({ year: y, month: m, label: `${m}/${y}` });
+    }
+    return arr;
+  };
+  const curMonths = periodMonths(3, 1);
+  const priorMonths = periodMonths(6, 4);
+  const curStart = curMonths[0], curEnd = curMonths[2];
+  const priorStart = priorMonths[0], priorEnd = priorMonths[2];
   const SKIP_CATS = new Set(['ציוד', 'שאריות', 'תגמולים']);
 
-  // One DAX query per month so the UI can show a per-family trend (not just a 3-month sum)
-  const daxPerMonth = months.map(m => {
-    const mLastDay = new Date(m.year, m.month, 0).getDate();
-    return `
+  try {
+    // Client segment: kashrut flag, private-market vs chain ('משטח'[רשתות - פרטי]), and
+    // chain name ('משטח'[תאור סוג לקוח]) — same source fields as CUSTSPEC.SPEC11/SPEC3 in
+    // Priority, exposed directly on the PBI client table. A chain client's "average" only
+    // means something compared to its own chain, not the whole company (עוגה/מכולת mix
+    // would drown out the signal); kosher clients only compare against kosher-tagged sales.
+    const metaRows = await executeDax(`
+EVALUATE
+ROW(
+  "kosher", LOOKUPVALUE('משטח'[כשרות], 'משטח'[מס. לקוח], "${custId}"),
+  "segment", LOOKUPVALUE('משטח'[רשתות - פרטי], 'משטח'[מס. לקוח], "${custId}"),
+  "chainName", LOOKUPVALUE('משטח'[תאור סוג לקוח], 'משטח'[מס. לקוח], "${custId}")
+)`);
+    const meta = metaRows?.[0] || {};
+    const isKosher = meta['[kosher]'] === 'כן';
+    const isChain = meta['[segment]'] === 'רשתות';
+    const chainName = meta['[chainName]'] || '';
+    const kosherFilter = isKosher ? `\n  ALL_PARTS[כשרות] = "כן",` : '';
+
+    let chainInFilter = '';
+    if (isChain && chainName) {
+      const chainNameEsc = chainName.replace(/"/g, '""');
+      const chainCustRows = await executeDax(
+        `EVALUATE SELECTCOLUMNS(FILTER('משטח', 'משטח'[תאור סוג לקוח] = "${chainNameEsc}"), "cust", 'משטח'[מס. לקוח])`
+      );
+      const chainCustIds = chainCustRows.map(r => String(r['[cust]'] || '')).filter(Boolean);
+      if (chainCustIds.length) {
+        chainInFilter = `\n  ALL_PARTS[מספר לקוח] IN {${chainCustIds.map(id => `"${id}"`).join(',')}},`;
+      }
+    }
+
+    const famDax = (start, end) => {
+      const lastDay = new Date(end.year, end.month, 0).getDate();
+      return `
 EVALUATE
 CALCULATETABLE(
   ADDCOLUMNS(
@@ -3858,105 +3895,127 @@ CALCULATETABLE(
     "lastOrder", CALCULATE(MAX(ALL_PARTS[תאריך]))
   ),
   ALL_PARTS[מספר לקוח] = "${custId}",
-  ALL_PARTS[ASHMADOT] = "-מכר-",
-  ALL_PARTS[תאריך] >= DATE(${m.year},${m.month},1),
-  ALL_PARTS[תאריך] <= DATE(${m.year},${m.month},${mLastDay})
+  ALL_PARTS[ASHMADOT] = "-מכר-",${kosherFilter}
+  ALL_PARTS[תאריך] >= DATE(${start.year},${start.month},1),
+  ALL_PARTS[תאריך] <= DATE(${end.year},${end.month},${lastDay})
 )`;
-  });
+    };
 
-  const daxAvg = `
+    const daxAvg = (start, end) => {
+      const lastDay = new Date(end.year, end.month, 0).getDate();
+      return `
 EVALUATE
 ROW(
   "avg_per_client", DIVIDE(
     CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)],
-      ALL_PARTS[ASHMADOT] = "-מכר-",
+      ALL_PARTS[ASHMADOT] = "-מכר-",${kosherFilter}${chainInFilter}
       ALL_PARTS[תאריך] >= DATE(${start.year},${start.month},1),
       ALL_PARTS[תאריך] <= DATE(${end.year},${end.month},${lastDay})
     ),
     CALCULATE(DISTINCTCOUNT(ALL_PARTS[מספר לקוח]),
-      ALL_PARTS[ASHMADOT] = "-מכר-",
+      ALL_PARTS[ASHMADOT] = "-מכר-",${kosherFilter}${chainInFilter}
       ALL_PARTS[תאריך] >= DATE(${start.year},${start.month},1),
       ALL_PARTS[תאריך] <= DATE(${end.year},${end.month},${lastDay})
     )
   )
 )`;
+    };
 
-  try {
-    const [monthRowsArr, avgRows] = await Promise.all([
-      Promise.all(daxPerMonth.map(q => executeDax(q))),
-      executeDax(daxAvg),
+    const [curRows, priorRows, avgRows] = await Promise.all([
+      executeDax(famDax(curStart, curEnd)),
+      executeDax(famDax(priorStart, priorEnd)),
+      executeDax(daxAvg(curStart, curEnd)),
     ]);
 
-    const companyAvg = Math.round(avgRows?.[0]?.['[avg_per_client]'] || 0);
+    const peerAvg = Math.round(avgRows?.[0]?.['[avg_per_client]'] || 0);
 
-    // Pivot by מחלקה (not משפחת מוצר — use department level), nested by month label.
     // 'מתוקים' comes through ALL_PARTS from the INTER company DB (separate sales channel,
     // same mapping as scripts/sadran-data.js DEPT_COMPANY) — kept out of the main
-    // FORM/ICE breakdown and the AI context so it doesn't get analyzed as if it were
-    // part of the agent's own department mix; shown as its own block instead.
+    // FORM/ICE breakdown so it doesn't get analyzed as if it were part of the agent's
+    // own department mix; shown as its own block instead.
     const INTER_CATS = new Set(['מתוקים  🍬']); // raw ADIFUT[מחלקה] value — verified live, has 2 spaces + emoji
-    const byMachlaka = {}; // { [מחלקה]: { [monthLabel]: total } }
-    const machlakaTotal = {}; // { [מחלקה]: 3-month sum } — used for sorting/analysis text
-    const byMachlakaInter = {}; // same shape, INTER-channel categories only
-    let clientTotal = 0;
-    let lastOrderDate = null;
-    monthRowsArr.forEach((rows, i) => {
-      const monthLabel = months[i].label;
+
+    const collect = (rows) => {
+      const byCat = {}, byCatInter = {};
+      let total = 0, lastOrderDate = null;
       for (const r of rows) {
-        const cat   = r['[מחלקה]'] || '';
-        const total = Math.round(r['[total]'] || 0);
-        const lo    = r['[lastOrder]'];
-        if (cat && !SKIP_CATS.has(cat) && total > 0) {
-          if (INTER_CATS.has(cat)) {
-            if (!byMachlakaInter[cat]) byMachlakaInter[cat] = {};
-            byMachlakaInter[cat][monthLabel] = (byMachlakaInter[cat][monthLabel] || 0) + total;
-          } else {
-            if (!byMachlaka[cat]) byMachlaka[cat] = {};
-            byMachlaka[cat][monthLabel] = (byMachlaka[cat][monthLabel] || 0) + total;
-            machlakaTotal[cat] = (machlakaTotal[cat] || 0) + total;
-            clientTotal += total;
-          }
+        const cat = r['[מחלקה]'] || '';
+        const val = Math.round(r['[total]'] || 0);
+        const lo  = r['[lastOrder]'];
+        if (cat && !SKIP_CATS.has(cat) && val > 0) {
+          if (INTER_CATS.has(cat)) byCatInter[cat] = (byCatInter[cat] || 0) + val;
+          else { byCat[cat] = (byCat[cat] || 0) + val; total += val; }
         }
         if (lo && (!lastOrderDate || new Date(lo) > new Date(lastOrderDate))) lastOrderDate = lo;
       }
-    });
+      return { byCat, byCatInter, total, lastOrderDate };
+    };
+    const cur = collect(curRows);
+    const prior = collect(priorRows);
 
-    const monthStr = months.map(m => m.label).join(' — ');
-    const lines = Object.entries(machlakaTotal)
-      .sort(([, a], [, b]) => b - a)
-      .map(([cat, total]) => `${cat}: ₪${total.toLocaleString()}`);
-
-    const daysSinceOrder = lastOrderDate
-      ? Math.round((Date.now() - new Date(lastOrderDate)) / 86400000)
+    const daysSinceOrder = cur.lastOrderDate
+      ? Math.round((Date.now() - new Date(cur.lastOrderDate)) / 86400000)
       : null;
 
+    // Per-family current vs prior period, with % change — this is the actual "what's
+    // accelerating / what's slowing down" view, not a flat monthly table.
+    const allCats = new Set([...Object.keys(cur.byCat), ...Object.keys(prior.byCat)]);
+    const families = {};
+    for (const cat of allCats) {
+      const c = cur.byCat[cat] || 0, p = prior.byCat[cat] || 0;
+      families[cat] = { current: c, prior: p, deltaPct: p > 0 ? Math.round((c / p - 1) * 100) : null };
+    }
+    const familiesInter = {};
+    for (const cat of new Set([...Object.keys(cur.byCatInter), ...Object.keys(prior.byCatInter)])) {
+      const c = cur.byCatInter[cat] || 0, p = prior.byCatInter[cat] || 0;
+      familiesInter[cat] = { current: c, prior: p, deltaPct: p > 0 ? Math.round((c / p - 1) * 100) : null };
+    }
+
+    const curLabel = `${curMonths[0].label}–${curMonths[2].label}`;
+    const priorLabel = `${priorMonths[0].label}–${priorMonths[2].label}`;
+    const famLines = Object.entries(families)
+      .sort(([, a], [, b]) => b.current - a.current)
+      .map(([cat, f]) => `${cat}: ₪${f.current.toLocaleString()} (תקופה קודמת ₪${f.prior.toLocaleString()}${f.deltaPct !== null ? `, ${f.deltaPct > 0 ? '+' : ''}${f.deltaPct}%` : ''})`);
+
+    const clientDeltaPct = prior.total > 0 ? Math.round((cur.total / prior.total - 1) * 100) : null;
     const dormantNote = daysSinceOrder && daysSinceOrder > 21
       ? `\n⚠️ לא הזמין ${daysSinceOrder} ימים — דורש תשומת לב!`
       : '';
-    const avgNote = `\nממוצע לקוח בחברה לאותה תקופה: ₪${companyAvg.toLocaleString()}`;
-    const clientNote = `סה"כ לקוח: ₪${clientTotal.toLocaleString()} (${clientTotal > companyAvg ? '+' + Math.round((clientTotal/companyAvg-1)*100) : Math.round((clientTotal/companyAvg-1)*100)}% מהממוצע)`;
+    const peerLabel = isChain ? `ממוצע לקוח ברשת ${chainName}` : 'ממוצע לקוח בחברה';
+    const avgNote = `\n${peerLabel}${isKosher ? ' (רק מוצרים כשרים)' : ''} לתקופה ${curLabel}: ₪${peerAvg.toLocaleString()}`;
+    const clientNote = `סה"כ לקוח ${curLabel}: ₪${cur.total.toLocaleString()} (${cur.total > peerAvg ? '+' : ''}${peerAvg > 0 ? Math.round((cur.total/peerAvg-1)*100) : 0}% מהממוצע)`
+      + (clientDeltaPct !== null ? ` | לעומת ${priorLabel}: ₪${prior.total.toLocaleString()} (${clientDeltaPct > 0 ? '+' : ''}${clientDeltaPct}%)` : '');
+    const kosherNote = isKosher ? `\nלקוח כשר — הנתונים וההשוואה כוללים רק מוצרים כשרים.` : '';
 
-    const context = `${monthStr}\n${lines.join('\n')}${avgNote}\n${clientNote}${dormantNote}`;
+    const context = `תקופה נוכחית: ${curLabel} | תקופה קודמת: ${priorLabel}\n${famLines.join('\n')}${avgNote}\n${clientNote}${dormantNote}${kosherNote}`;
 
-    const scopeNote = 'הסוכן מבקר בחנות פיזית — הוא לא מתקשר לקונים/רוכשים ואינו יכול להפעיל "סמכות" ממחלקה אחרת. המלצות רק על פעולות שהוא יכול לבצע בביקור עצמו: הצעת מוצר/מבצע, כמות הזמנה, פייסינג במדף, תזכורת למוצר שלא הוזמן. בלי משפט פתיחה/ברכה — ישר לעניין.';
+    const scopeNote = 'הסוכן מבקר בחנות פיזית — הוא לא מתקשר לקונים/רוכשים ואינו יכול להפעיל "סמכות" ממחלקה אחרת. המלצה רק על פעולה שהוא יכול לבצע בביקור עצמו: הצעת מוצר/מבצע, כמות הזמנה, פייסינג במדף, תזכורת למוצר שלא הוזמן.';
+    const noFabNote = 'אסור להמציא מספרים, אחוזים או כמויות שלא מופיעים בנתונים למעלה. כל מספר שאתה כותב חייב להיות מבוסס ישירות על הנתונים.';
+    const terseNote = { he: 'הסוכן קורא את זה בין לקוחות, בלחץ זמן. פורמט: עד 3 שורות תצפית + שורה אחת המלצה. כל שורה מתחילה במספר או באחוז. בלי משפט פתיחה, בלי ברכה, בלי ניסוח "מנהלי" מיותר — ישר לעובדה.', uk: 'Агент читає це між клієнтами, під тиском часу. Формат: до 3 рядків спостереження + 1 рядок рекомендації. Кожен рядок починається з цифри чи відсотка. Без вступу, без привітання, без зайвих слів.', ru: 'Агент читает это между клиентами, под давлением времени. Формат: до 3 строк наблюдения + 1 строка рекомендации. Каждая строка начинается с цифры или процента. Без вступления, без приветствия, без лишних слов.' };
     const noMdNote = { he: 'טקסט רגיל בלבד, בלי Markdown (בלי **, בלי #, בלי רשימות עם כוכביות).', uk: 'Лише звичайний текст, без Markdown (без **, без #, без списків із зірочками).', ru: 'Только обычный текст, без Markdown (без **, без #, без списков со звёздочками).' };
+    const noTranslitNote = { uk: 'Назви відділів іврітом (наприклад דגים, קפוא, חלבי) залишай як є, івритом — не транслітеруй кирилицею.', ru: 'Названия отделов на иврите (например דגים, קפוא, חלבי) оставляй как есть, ивритом — не транслитерируй кириллицей.' };
     const prompts = {
-      he: `אתה מנהל אזור של חברת הפצה. נתוני מכירות לפי מחלקה:\n${context}\n\nתן 3 תצפיות חדות + המלצה לסוכן. השווה לממוצע. ציין מחלקות חלשות. אם לא הזמין >3 שבועות — זה קריטי. ${scopeNote} ${noMdNote.he}`,
-      uk: `Ти менеджер зони. Продажі по відділах:\n${context}\n\nДай 3 спостереження + рекомендацію. Порівняй із середнім. Відділи що відстають. Якщо >3 тижні без замовлення — критично. Агент відвідує магазин особисто — не телефонує байєрам і не діє "авторитетом" іншого відділу. Рекомендації лише про дії під час візиту (пропозиція товару, кількість замовлення, фейсинг). Без привітання — одразу по суті. ${noMdNote.uk}`,
-      ru: `Ты менеджер зоны. Продажи по отделам:\n${context}\n\nДай 3 наблюдения + рекомендацию. Сравни со средним. Слабые отделы. Если >3 недель без заказа — критично. Агент лично заходит в магазин — он не звонит байерам и не действует "авторитетом" другого отдела. Рекомендации только про действия в рамках визита (предложить товар, объём заказа, фейсинг на полке). Без приветствия — сразу по делу. ${noMdNote.ru}`,
+      he: `אתה מנהל אזור של חברת הפצה. נתוני מכירות לפי מחלקה, תקופה נוכחית מול קודמת:\n${context}\n\nתן עד 3 תצפיות חדות המבוססות על השינוי באחוזים בפועל + המלצה אחת שקשורה למחלקה עם השינוי הכי משמעותי. אם לא הזמין >3 שבועות — זה קריטי. ${scopeNote} ${noFabNote} ${terseNote.he} ${noMdNote.he}`,
+      uk: `Ти менеджер зони. Продажі по відділах, поточний період проти попереднього:\n${context}\n\nДай до 3 спостережень на основі реальної зміни у відсотках + одну рекомендацію, пов'язану з відділом із найбільшою зміною. Якщо >3 тижні без замовлення — критично. Агент відвідує магазин особисто — не телефонує байєрам і не діє "авторитетом" іншого відділу. Заборонено вигадувати цифри, відсотки чи кількості, яких немає в даних вище. ${terseNote.uk} ${noMdNote.uk} ${noTranslitNote.uk}`,
+      ru: `Ты менеджер зоны. Продажи по отделам, текущий период против предыдущего:\n${context}\n\nДай до 3 наблюдений на основе реального изменения в процентах + одну рекомендацию, привязанную к отделу с самым значимым изменением. Если >3 недель без заказа — критично. Агент лично заходит в магазин — он не звонит байерам и не действует "авторитетом" другого отдела. Запрещено выдумывать цифры, проценты или количества, которых нет в данных выше. ${terseNote.ru} ${noMdNote.ru} ${noTranslitNote.ru}`,
     };
 
-    const analysis = await callGemini(prompts[lang] || prompts.he, 500);
+    const analysis = await callGemini(prompts[lang] || prompts.he, 220);
 
     res.json({
       ok: true,
-      months: months.map(m => m.label),
-      families: byMachlaka,
-      familiesInter: byMachlakaInter,
+      curLabel,
+      priorLabel,
+      families,
+      familiesInter,
       dropped: Array.from(SKIP_CATS),
-      clientTotal,
-      companyAvg,
+      clientTotal: cur.total,
+      clientTotalPrior: prior.total,
+      peerAvg,
+      isChain,
+      chainName,
       daysSinceOrder,
+      isKosher,
       analysis,
     });
   } catch(e) {
