@@ -1081,17 +1081,7 @@ async function fetchDagimFromBI() {
       openOrders:    oo,
       spo:           stk + oo,
     });
-    result[mk].dayAvg = result[mk].daySales ?? result[mk].daySalesZafn;
-    // Pakuot fallback: if stock=0 but pakuot has cartons, sum pakuot as stock
-    if (!result[mk].stock && result[mk].pakuot.length > 0)
-      result[mk].stock = result[mk].pakuot.reduce((s, p) => s + (p.cartons || 0), 0);
-    if (!result[mk].stockZafn && result[mk].pakuotZafn.length > 0)
-      result[mk].stockZafn = result[mk].pakuotZafn.reduce((s, p) => s + (p.cartons || 0), 0);
-    // Sales fallback: if daySales null, use Zafn sales as proxy
-    if (result[mk].daySales == null && result[mk].daySalesZafn != null)
-      result[mk].daySales = result[mk].daySalesZafn;
-    if (result[mk].daySalesAll == null && result[mk].daySalesZafn != null)
-      result[mk].daySalesAll = result[mk].daySalesZafn;
+    result[mk].dayAvg = result[mk].daySales;
   }
 
   console.log(`fetchDagimFromBI: ${makatim.length} active דגים products from KARTIS PARIT`);
