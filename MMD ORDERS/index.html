@@ -1605,13 +1605,14 @@
         tr.className = 'drow' +
       (yamim != null && yamim < 10 ? ' danger' : '');
         tr.dataset.mk = mk;
+        const mkSafe = String(mk).replace(/\D/g, '');
         tr.innerHTML =
           '<td class="c-arch">' +
             (archiveMode
-              ? '<button class="arch-btn" onclick="restoreItem(\'' + mk + '\')" title="שחזר מארכיון">↩</button>'
-              : '<button class="arch-btn" onclick="archiveItem(\'' + mk + '\')" title="העבר לארכיון">🗃</button>') +
+              ? '<button class="arch-btn" onclick="restoreItem(\'' + mkSafe + '\')" title="שחזר מארכיון">↩</button>'
+              : '<button class="arch-btn" onclick="archiveItem(\'' + mkSafe + '\')" title="העבר לארכיון">🗃</button>') +
           '</td>' +
-          '<td class="c-mkt">' + mk + '</td>' +
+          '<td class="c-mkt">' + mkSafe + '</td>' +
           '<td class="c-taur" dir="rtl" title="' + esc(r.taur) + '">' + (isPopular ? '<span class="pop-star">⭐</span> ' : '') + _ltrWrap(shortName(fixProductName(r.taur))) + '</td>' +
           '<td class="c-img">' +
             (r.img ? '<img src="' + esc(r.img) + '" alt="" loading="lazy" onerror="this.outerHTML=\'<span class=ni></span>\'">' : '<span class="ni"></span>') +
@@ -2091,8 +2092,8 @@
       const time = h.time || (h.ts || '').split(' ')[1] || '';
       return `<div class="hist-item" onclick="restoreOrder(${i})">
         <div class="h-left">
-          <div class="h-date">${date}</div>
-          <div class="h-time">${time} · ${h.count} פריטים</div>
+          <div class="h-date">${esc(date)}</div>
+          <div class="h-time">${esc(time)} · ${h.count} פריטים</div>
         </div>
         <span class="h-cnt">שחזר ↩</span>
       </div>`;
@@ -2268,7 +2269,7 @@ window.loadOtherUsersSection = async function() {
         const d = s.ts ? new Date(s.ts).toLocaleString('he-IL', { hour12: false, hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : '';
         const item = document.createElement('div');
         item.className = 'hist-item';
-        item.innerHTML = '<div class="h-left"><div class="h-date">' + s.userId + '</div>' +
+        item.innerHTML = '<div class="h-left"><div class="h-date">' + esc(s.userId) + '</div>' +
           '<div class="h-time">' + d + ' · ' + s.count + ' פריטים</div></div>' +
           '<span class="h-cnt">שחזר ↩</span>';
         item.onclick = () => { document.getElementById('hist-dd').classList.remove('open'); restoreFromSnapshot(s.items); };
@@ -2287,7 +2288,7 @@ window.loadOtherUsersSection = async function() {
         const d = u.savedAt ? new Date(u.savedAt).toLocaleString('he-IL', { hour12: false, hour: '2-digit', minute: '2-digit' }) : '';
         const item = document.createElement('div');
         item.className = 'hist-item';
-        item.innerHTML = '<div class="h-left"><div class="h-date">' + u.userId + '</div>' +
+        item.innerHTML = '<div class="h-left"><div class="h-date">' + esc(u.userId) + '</div>' +
           '<div class="h-time">' + d + ' · ' + u.count + ' פריטים</div></div>' +
           '<span class="h-cnt" style="color:#607d8b">צפה</span>';
         item.onclick = () => { document.getElementById('hist-dd').classList.remove('open'); loadUserView(u.userId); };
