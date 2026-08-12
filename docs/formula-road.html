@@ -2610,9 +2610,14 @@ async function _fetchClientAI(lang) {
       .replace(/^---+$/gm, '');
     const html = `${tbl}${interTbl}${gapTbl}${devTbl}<div class="ai-analysis" dir="${dir}">${cleanAnalysis}</div>`;
     _aiState.cache[cacheKey] = html;
-    body.innerHTML = html;
+    // Guard against out-of-order responses: if the user switched client/language while
+    // this request was in flight, a slower earlier request can resolve AFTER a faster
+    // later one and overwrite the correct content with stale text in the wrong language.
+    if (_aiState.custId === custId && _aiState.lang === lang) body.innerHTML = html;
   } catch(e) {
-    body.innerHTML = `<div class="ai-loading" style="color:#c62828">❌ ${e.message}</div>`;
+    if (_aiState.custId === custId && _aiState.lang === lang) {
+      body.innerHTML = `<div class="ai-loading" style="color:#c62828">❌ ${e.message}</div>`;
+    }
   }
 }
 
