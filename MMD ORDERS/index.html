@@ -1469,6 +1469,8 @@
         }
         return true;
       }
+      // Regular view: skip maavar-only items (no ashdod/mmd stock — order them via מחסן מעבר mode)
+      if ((r.ashdod_k ?? 0) <= 0 && (r.mmd_k ?? 0) <= 0) return false;
       if (fams.size && !fams.has(r.mishpacha)) return false;
       if (cos.size  && !cos.has(r.hevra))      return false;
       if (ashFilter.size) {
@@ -1831,6 +1833,7 @@
       const orderedRows = all.filter(r => {
         if (archivedMkts.has(String(r.mkt))) return false;
         if (cos.size && !cos.has(r.hevra)) return false;
+        if (!maavarMode && (r.ashdod_k ?? 0) <= 0 && (r.mmd_k ?? 0) <= 0) return false;
         const s = sv[String(r.mkt ?? '')] || {};
         return _effOrd(r, s) > 0;
       });
