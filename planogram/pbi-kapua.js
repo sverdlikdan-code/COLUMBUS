@@ -1082,6 +1082,13 @@ async function fetchDagimFromBI() {
       spo:           stk + oo,
     });
     result[mk].dayAvg = result[mk].daySales;
+    // stock/stockZafn from SUMMARIZECOLUMNS returns 0 for dagim due to DAX blank-row removal.
+    // pakuot/pakuotZafn (grouped by makat+date) return correct values.
+    // Total stock = sum of all expiry batches — this is mathematically identical.
+    if (!result[mk].stock && result[mk].pakuot.length > 0)
+      result[mk].stock = result[mk].pakuot.reduce((s, p) => s + (p.cartons || 0), 0);
+    if (!result[mk].stockZafn && result[mk].pakuotZafn.length > 0)
+      result[mk].stockZafn = result[mk].pakuotZafn.reduce((s, p) => s + (p.cartons || 0), 0);
   }
 
   console.log(`fetchDagimFromBI: ${makatim.length} active דגים products from KARTIS PARIT`);
