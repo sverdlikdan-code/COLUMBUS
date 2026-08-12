@@ -1170,8 +1170,10 @@ async function main() {
     // Preserve stable fields from existing file — survives workflow errors/missing Fabric data
     const existingProdDataPath = path.join(__dirname,'..','docs','product-data.json');
     let prevAshdod = {}, prevPackFactor = {}, prevWeightCarton = {}, prevYaveshData = {}, prevWeekSales = {};
+    let prevProdDataAll = {};
     try {
       const prev = JSON.parse(fs.readFileSync(existingProdDataPath, 'utf8'));
+      prevProdDataAll = prev;
       for (const [mk, v] of Object.entries(prev)) {
         if (v && v.ashdodPalletCartons != null) prevAshdod[mk]     = v.ashdodPalletCartons;
         if (v && v.packFactor          != null) prevPackFactor[mk] = v.packFactor;
@@ -1295,6 +1297,17 @@ async function main() {
     for (const p of [...halaviProds, ...dagimProds]) {
       if (!p.makat) continue;
       prodData[String(p.makat)] = mkEntry(p);
+    }
+
+    // Fallback: KARTIS PARIT can return 0 rows during PBI dataset refresh.
+    // If dagimProds is empty, restore previous dagim entries to avoid wiping the section.
+    if (dagimProds.length === 0) {
+      const dagimMkSet = new Set(Object.values(_dagimBase.picks).filter(Boolean).map(p => String(p.makat)));
+      let dagimRestored = 0;
+      for (const [mk, v] of Object.entries(prevProdDataAll)) {
+        if (dagimMkSet.has(mk)) { prodData[mk] = v; dagimRestored++; }
+      }
+      if (dagimRestored > 0) console.warn(`⚠ dagim PBI returned 0 products (KARTIS PARIT during refresh?) — restored ${dagimRestored} from prev product-data.json`);
     }
 
     // ── דג יבש — fetch stock/sales from Fabric and add to prodData ──────────
@@ -1587,6 +1600,9 @@ async function main() {
     }
 
     // ── dagim-base.json: auto-sync new products into reserve slots ────────────
+    if (dagimProds.length === 0) {
+      console.warn('⚠ dagim-base.json sync skipped — dagimProds empty (KARTIS PARIT issue), preserving existing layout');
+    } else
     {
       const dbPath = path.join(__dirname, '..', 'docs', 'dagim-base.json');
       const db = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
