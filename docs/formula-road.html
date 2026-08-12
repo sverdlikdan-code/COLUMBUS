@@ -2580,7 +2580,7 @@ async function _fetchClientAI(lang) {
       devTbl = `<div style="margin:10px 0 4px;font-size:11px;color:#4A148C;font-weight:700">חלוקת משפחות מוצר — סניף מול רשת ${chainName}</div>`;
       devTbl += `<table class="ai-families-tbl"><thead><tr><th>משפחת מוצר</th><th>% מהרשת</th><th>% מהסניף</th><th>אינדקס</th></tr></thead><tbody>`;
       for (const d of familyDeviation) {
-        const idxColor = d.index === null ? '#999' : (d.index < 0.7 ? '#C62828' : d.index > 1.3 ? '#2E7D32' : '#666');
+        const idxColor = d.index === null ? '#999' : (d.index < 0.7 ? '#C62828' : d.index > 1.2 ? '#2E7D32' : '#666');
         const rowStyle = d.isTotal ? 'font-weight:700;border-top:2px solid #CE93D8' : (d.isRest ? 'color:#888;font-style:italic' : '');
         devTbl += `<tr style="${rowStyle}"><td>${d.family}</td><td style="text-align:left">${d.chainSharePct}%</td><td style="text-align:left">${d.storeSharePct}%</td><td style="text-align:left;color:${idxColor};font-weight:700">${d.index !== null ? d.index.toFixed(2) : '—'}</td></tr>`;
       }
