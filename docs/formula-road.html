@@ -2531,31 +2531,39 @@ async function _fetchClientAI(lang) {
 
     // Build table: family | current 3mo | prior 3mo | Δ% — period-over-period trend,
     // not a flat monthly breakdown (a monthly table doesn't show what's accelerating/slowing).
-    let tbl = `<table class="ai-families-tbl"><thead><tr><th>משפחת מוצר</th><th>${curLabel}</th><th>${priorLabel}</th><th>מגמה</th></tr></thead><tbody>`;
+    // Date ranges like "5/2026–7/2026" need an explicit LTR isolate — inside the page's
+    // RTL context the browser's bidi algorithm otherwise swaps which side of the en-dash
+    // renders first, so a table header can visually show "7/2026–5/2026" for a string that
+    // is actually stored as "5/2026–7/2026".
+    const ltr = (s) => `<span dir="ltr" style="unicode-bidi:isolate">${s}</span>`;
+    // Column order: family | prior | current | trend — in RTL reading order this puts the
+    // trend arrow directly beside the current-period number (old → new → change), instead
+    // of stranding it on the far side of the row away from what it's describing.
+    let tbl = `<table class="ai-families-tbl"><thead><tr><th>משפחת מוצר</th><th>${ltr(priorLabel)}</th><th>${ltr(curLabel)}</th><th>מגמה</th></tr></thead><tbody>`;
     const sorted = Object.entries(families).sort((a,b) => b[1].current - a[1].current);
     for (const [fam, f] of sorted) {
       const isDrop = dropped.includes(fam);
       tbl += `<tr><td class="${isDrop?'dropped':''}">${fam}${isDrop?' ⚠️':''}</td>`
-        + `<td style="text-align:left">₪${f.current.toLocaleString()}</td>`
         + `<td style="text-align:left">${f.prior ? '₪'+f.prior.toLocaleString() : '—'}</td>`
+        + `<td style="text-align:left">₪${f.current.toLocaleString()}</td>`
         + trendCell(f) + `</tr>`;
     }
     tbl += '</tbody></table>';
 
-    const peerLabel = isChain ? `ממוצע רשת ${chainName}` : 'ממוצע חברה';
+    const peerLabel = isChain ? `ממוצע רשת ${chainName}` : (chainName ? `ממוצע קטגוריית ${chainName}` : 'ממוצע חברה');
     const summaryLine = `<div style="margin:6px 0 10px;font-size:12px;color:#555">`
-      + `סה"כ לקוח: <b>₪${clientTotal.toLocaleString()}</b> (${curLabel}) | ${peerLabel}${isKosher?' (כשר)':''}: ₪${peerAvg.toLocaleString()}`
+      + `סה"כ לקוח: <b>₪${clientTotal.toLocaleString()}</b> (${ltr(curLabel)}) | ${peerLabel}${isKosher?' (כשר)':''}: ₪${peerAvg.toLocaleString()}`
       + `</div>`;
 
     // INTER channel (e.g. מתוקים) — separate company/source, kept out of the main table
     let interTbl = '';
     if (familiesInter && Object.keys(familiesInter).length) {
       interTbl = `<div style="margin:10px 0 4px;font-size:11px;color:#8B6D00;font-weight:700">ערוץ נפרד (INTER)</div>`;
-      interTbl += `<table class="ai-families-tbl"><thead><tr><th>משפחת מוצר</th><th>${curLabel}</th><th>${priorLabel}</th><th>מגמה</th></tr></thead><tbody>`;
+      interTbl += `<table class="ai-families-tbl"><thead><tr><th>משפחת מוצר</th><th>${ltr(priorLabel)}</th><th>${ltr(curLabel)}</th><th>מגמה</th></tr></thead><tbody>`;
       for (const [fam, f] of Object.entries(familiesInter)) {
         interTbl += `<tr><td>${fam}</td>`
-          + `<td style="text-align:left">₪${f.current.toLocaleString()}</td>`
           + `<td style="text-align:left">${f.prior ? '₪'+f.prior.toLocaleString() : '—'}</td>`
+          + `<td style="text-align:left">₪${f.current.toLocaleString()}</td>`
           + trendCell(f) + `</tr>`;
       }
       interTbl += '</tbody></table>';
@@ -2566,11 +2574,12 @@ async function _fetchClientAI(lang) {
     // the network in the last 120 days) that THIS branch hasn't ordered in 90+ days — a
     // real, authorized gap, not a guess. Grouped by company (FORMULA / ICE מיש / INTER);
     // ICE BDD never gets item-level detail — only the company-gap flag, if triggered.
+    const peerGroupWord = isChain ? 'רשת' : 'קטגוריה';
     let gapTbl = '';
     if (companyGaps && companyGaps.length) {
       const companyLabel = { FORMULA: 'FORMULA', ICE_MISH: 'ICE (מיש)', INTER: 'INTER (מתוקים)', ICE_BDD: 'ICE (BDD)' };
       gapTbl += `<div style="margin:6px 0;padding:8px 10px;background:#FFEBEE;border:1px solid #EF9A9A;border-radius:8px;font-size:12px;color:#B71C1C;font-weight:700">`
-        + `הסניף לא עובד בכלל עם: ${companyGaps.map(g => `${companyLabel[g.company]} (רשת ₪${g.chainTotal.toLocaleString()})`).join(', ')} — כדאי לברר למה.`
+        + `הסניף לא עובד בכלל עם: ${companyGaps.map(g => `${companyLabel[g.company]} (${peerGroupWord} ₪${g.chainTotal.toLocaleString()})`).join(', ')} — כדאי לברר למה.`
         + `</div>`;
     }
     const companyGroups = [
@@ -2578,20 +2587,32 @@ async function _fetchClientAI(lang) {
       { key: 'ICE_MISH', label: 'ICE (מיש)' },
       { key: 'INTER', label: 'INTER (מתוקים)' },
     ];
+    // Same truncation convention as MMD ORDERS' shortName(): cut right after the first
+    // "NNN ג" weight marker instead of showing the full packaging/supplier boilerplate.
+    const shortProductName = (s) => {
+      if (!s) return '';
+      const m = s.match(/\d+\s*ג[.'׳]?/);
+      if (!m) return s.length > 42 ? s.slice(0, 42) + '…' : s;
+      return s.slice(0, s.indexOf(m[0]) + m[0].length).trim();
+    };
     for (const { key, label } of companyGroups) {
       const items = dormantChainProducts && dormantChainProducts[key];
       if (!items || !items.length) continue;
-      gapTbl += `<div style="margin:10px 0 4px;font-size:11px;color:#B71C1C;font-weight:700">${label} — מוצרים שהרשת מוכרת (120 יום) והסניף לא הזמין 90+ יום</div>`;
+      gapTbl += `<div style="margin:10px 0 4px;font-size:11px;color:#B71C1C;font-weight:700">${label} — מוצרים ש${peerGroupWord} ${chainName} מוכרת (120 יום) והסניף לא הזמין 90+ יום</div>`;
       gapTbl += `<table class="ai-families-tbl"><thead><tr><th>מוצר</th><th>מכירות רשת (120 יום)</th></tr></thead><tbody>`;
       for (const p of items) {
-        const label2 = p.subFamily ? `${p.subFamily} — ${p.name}` : p.name;
-        gapTbl += `<tr><td>${label2}</td><td style="text-align:left">₪${p.chainTotal.toLocaleString()}</td></tr>`;
+        const shortName = shortProductName(p.name);
+        const label2 = p.subFamily ? `${p.subFamily} — ${shortName}` : shortName;
+        const photo = p.imgUrl
+          ? `<img src="${p.imgUrl}" style="width:26px;height:26px;object-fit:contain;border-radius:4px;background:#f5f5f5;vertical-align:middle;margin-inline-end:6px;flex-shrink:0" onerror="this.style.display='none'">`
+          : '';
+        gapTbl += `<tr><td title="${p.name}" style="display:flex;align-items:center;gap:0">${photo}<span>${label2}</span></td><td style="text-align:left">₪${p.chainTotal.toLocaleString()}</td></tr>`;
       }
       gapTbl += '</tbody></table>';
     }
     let devTbl = '';
     if (familyDeviation && familyDeviation.length) {
-      devTbl = `<div style="margin:10px 0 4px;font-size:11px;color:#4A148C;font-weight:700">חלוקת משפחות מוצר — סניף מול רשת ${chainName}</div>`;
+      devTbl = `<div style="margin:10px 0 4px;font-size:11px;color:#4A148C;font-weight:700">חלוקת משפחות מוצר — סניף מול ${isChain ? 'רשת' : 'קטגוריית'} ${chainName}</div>`;
       devTbl += `<table class="ai-families-tbl"><thead><tr><th>משפחת מוצר</th><th>% מהרשת</th><th>% מהסניף</th><th>אינדקס</th></tr></thead><tbody>`;
       for (const d of familyDeviation) {
         const idxColor = d.index === null ? '#999' : (d.index < 0.7 ? '#C62828' : d.index > 1.2 ? '#2E7D32' : '#666');

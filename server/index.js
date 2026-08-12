@@ -3861,10 +3861,12 @@ app.get('/api/client-analytics/:custId', requireAuth, async (req, res) => {
 
   try {
     // Client segment: kashrut flag, private-market vs chain ('משטח'[רשתות - פרטי]), and
-    // chain name ('משטח'[תאור סוג לקוח]) — same source fields as CUSTSPEC.SPEC11/SPEC3 in
-    // Priority, exposed directly on the PBI client table. A chain client's "average" only
-    // means something compared to its own chain, not the whole company (עוגה/מכולת mix
-    // would drown out the signal); kosher clients only compare against kosher-tagged sales.
+    // peer-group key ('משטח'[תאור סוג לקוח]) — same source fields as CUSTSPEC.SPEC11/SPEC3
+    // in Priority, exposed directly on the PBI client table. This peer-group field isn't
+    // chain-only: private-market (שוק פרטי) clients carry a value too (e.g. "חנויות" —
+    // generic small stores), so the same buyer-authorized-gap logic applies to them against
+    // that peer group instead of a real chain. Kosher clients only compare against
+    // kosher-tagged sales either way.
     const metaRows = await executeDax(`
 EVALUATE
 ROW(
@@ -3879,7 +3881,7 @@ ROW(
     const kosherFilter = isKosher ? `\n  ALL_PARTS[כשרות] = "כן",` : '';
 
     let chainInFilter = '';
-    if (isChain && chainName) {
+    if (chainName) {
       const chainNameEsc = chainName.replace(/"/g, '""');
       const chainCustRows = await executeDax(
         `EVALUATE SELECTCOLUMNS(FILTER('משטח', 'משטח'[תאור סוג לקוח] = "${chainNameEsc}"), "cust", 'משטח'[מס. לקוח])`
@@ -3940,13 +3942,15 @@ ROW(
     // and "how does this store's mix compare to its own chain's". Both only make sense
     // when there's a chain to check against — a private-market (שוק פרטי) store has none.
     // "Open for purchase" is proxied as: the chain sold ≥1 unit somewhere in the last 120
-    // days (real sales only, ASHMADOT="-מכר-", not השמדות write-offs) — if the whole chain
-    // never sold it, the buyer likely never approved it, and flagging a specific branch for
-    // not ordering it would be a false "opportunity."
+    // days (real sales only, ASHMADOT="-מכר-", not השמדות write-offs) — if the whole peer
+    // group never sold it, the buyer likely never approved it, and flagging a specific
+    // branch for not ordering it would be a false "opportunity." Runs for both chain
+    // clients (peer group = the chain) and private-market clients (peer group = same
+    // customer-type category, e.g. "חנויות") — chainInFilter covers both.
     let dormantChainProducts = { FORMULA: [], ICE_MISH: [], INTER: [], ICE_BDD: [] };
     let familyDeviation = [];
     let companyGaps = [];
-    if (isChain && chainInFilter) {
+    if (chainInFilter) {
       const MMD_DS = process.env.POWERBI_MMD_DATASET_ID;
       const daysAgo = (days) => {
         const d = new Date(Date.now() - days * 86400000);
@@ -4052,15 +4056,33 @@ CALCULATETABLE(
 
       // INTER has no real "family" field of its own (it's essentially all one מתוקים
       // department) — use KARTIS PARIT INTER's own פרמטר 2 sub-category instead, batched
-      // by SKU in one query rather than one LOOKUPVALUE call per item.
+      // by SKU in one query rather than one LOOKUPVALUE call per item. Same query also
+      // pulls the product photo URL (real DB field, not a guessed image-server pattern).
       if (dormantChainProducts.INTER.length) {
         const interSkus = dormantChainProducts.INTER.map(x => `"${x.sku}"`).join(',');
         const p2Rows = await executeDax(
-          `EVALUATE SELECTCOLUMNS(FILTER('KARTIS PARIT INTER', 'KARTIS PARIT INTER'[מק"ט] IN {${interSkus}}), "sku", 'KARTIS PARIT INTER'[מק"ט], "p2", 'KARTIS PARIT INTER'[תאור פרמטר 2 למוצר])`
+          `EVALUATE SELECTCOLUMNS(FILTER('KARTIS PARIT INTER', 'KARTIS PARIT INTER'[מק"ט] IN {${interSkus}}), "sku", 'KARTIS PARIT INTER'[מק"ט], "p2", 'KARTIS PARIT INTER'[תאור פרמטר 2 למוצר], "img", 'KARTIS PARIT INTER'[URL תמונה])`
         );
-        const p2Map = new Map(p2Rows.map(r => [String(r['[sku]']), fixBiDi(r['[p2]'] || '')]));
-        dormantChainProducts.INTER.forEach(x => { x.subFamily = p2Map.get(String(x.sku)) || ''; });
+        const p2Map = new Map(p2Rows.map(r => [String(r['[sku]']), { p2: fixBiDi(r['[p2]'] || ''), img: r['[img]'] || '' }]));
+        dormantChainProducts.INTER.forEach(x => { const m = p2Map.get(String(x.sku)); x.subFamily = m?.p2 || ''; x.imgUrl = m?.img || ''; });
       }
+
+      // Product photos: FORMULA and ICE each have their OWN KARTIS PARIT table (ICE SKUs
+      // aren't in the main 'KARTIS PARIT' at all — verified live, e.g. SKU 503061 returns
+      // nothing there but exists in 'KARTIS PARIT ICE'), mirroring the INTER split above.
+      const fetchPhotos = async (items, table) => {
+        if (!items.length) return;
+        const skuIn = items.map(x => `"${x.sku}"`).join(',');
+        const rows = await executeDax(
+          `EVALUATE SELECTCOLUMNS(FILTER('${table}', '${table}'[מק"ט] IN {${skuIn}}), "sku", '${table}'[מק"ט], "img", '${table}'[URL תמונה])`
+        );
+        const imgMap = new Map(rows.map(r => [String(r['[sku]']), r['[img]'] || '']));
+        items.forEach(x => { x.imgUrl = imgMap.get(String(x.sku)) || ''; });
+      };
+      await Promise.all([
+        fetchPhotos(dormantChainProducts.FORMULA, 'KARTIS PARIT'),
+        fetchPhotos(dormantChainProducts.ICE_MISH, 'KARTIS PARIT ICE'),
+      ]);
 
       const chainFamTotal = {}; let chainFamAll = 0;
       chainFamRows.forEach(r => {
@@ -4153,22 +4175,31 @@ CALCULATETABLE(
     const dormantNote = daysSinceOrder && daysSinceOrder > 21
       ? `\n⚠️ לא הזמין ${daysSinceOrder} ימים — דורש תשומת לב!`
       : '';
-    const peerLabel = isChain ? `ממוצע לקוח ברשת ${chainName}` : 'ממוצע לקוח בחברה';
+    const peerLabel = isChain ? `ממוצע לקוח ברשת ${chainName}`
+      : chainName ? `ממוצע לקוח בקטגוריה ${chainName}`
+      : 'ממוצע לקוח בחברה';
     const avgNote = `\n${peerLabel}${isKosher ? ' (רק מוצרים כשרים)' : ''} לתקופה ${curLabel}: ₪${peerAvg.toLocaleString()}`;
     const clientNote = `סה"כ לקוח ${curLabel}: ₪${cur.total.toLocaleString()} (${cur.total > peerAvg ? '+' : ''}${peerAvg > 0 ? Math.round((cur.total/peerAvg-1)*100) : 0}% מהממוצע)`
       + (clientDeltaPct !== null ? ` | לעומת ${priorLabel}: ₪${prior.total.toLocaleString()} (${clientDeltaPct > 0 ? '+' : ''}${clientDeltaPct}%)` : '');
     const kosherNote = isKosher ? `\nלקוח כשר — הנתונים וההשוואה כוללים רק מוצרים כשרים.` : '';
 
     const companyLabel = { FORMULA: 'FORMULA', ICE_MISH: 'ICE (מיש)', INTER: 'INTER (מתוקים)', ICE_BDD: 'ICE (BDD)' };
+    // "Peer group" = the real chain for a chain client, or the same customer-type category
+    // (e.g. "חנויות") for a private-market client — same underlying field either way.
+    // Bare noun ("רשת"/"קטגוריה") for standalone use ("X ₪..." / "מה-X") — the construct
+    // state "קטגוריית" only works followed by a name and breaks in the standalone spots.
+    const peerGroupWord = isChain ? 'רשת' : 'קטגוריה';
+    const peerGroupName = isChain ? `רשת ${chainName}` : `קטגוריית ${chainName}`;
 
     // Strongest possible signal: the branch does ZERO business with an entire company the
-    // rest of the chain buys from. Bigger than any single dormant SKU — worth understanding
-    // why before pitching individual products from a line we may not even carry here.
+    // rest of its peer group buys from. Bigger than any single dormant SKU — worth
+    // understanding why before pitching individual products from a line we may not even
+    // carry here.
     const companyGapNote = companyGaps.length
-      ? `\nהסניף לא עובד בכלל עם: ${companyGaps.map(g => `${companyLabel[g.company]} (רשת ₪${g.chainTotal.toLocaleString()})`).join(', ')} — כדאי לברר למה.`
+      ? `\nהסניף לא עובד בכלל עם: ${companyGaps.map(g => `${companyLabel[g.company]} (${peerGroupWord} ₪${g.chainTotal.toLocaleString()})`).join(', ')} — כדאי לברר למה.`
       : '';
 
-    // Products the buyer HAS approved (the whole chain sold them in the last 120 days, and
+    // Products the buyer HAS approved (the peer group sold them in the last 120 days, and
     // for FORMULA/ICE they're confirmed in stock right now) that THIS branch hasn't ordered
     // in 90+ days — a real, buyer-authorized gap, not a guess. One line per company, in
     // order FORMULA → ICE (מיש) → INTER; ICE BDD never gets item-level detail (only the
@@ -4179,10 +4210,10 @@ CALCULATETABLE(
       if (items && items.length) {
         const top = items[0];
         const label = co === 'INTER' && top.subFamily ? `${top.subFamily} — ${top.name}` : top.name;
-        gapLines.push(`${companyLabel[co]}: ${label} (רשת ₪${top.chainTotal.toLocaleString()}, סה"כ ${items.length} מוצרים)`);
+        gapLines.push(`${companyLabel[co]}: ${label} (${peerGroupWord} ₪${top.chainTotal.toLocaleString()}, סה"כ ${items.length} מוצרים)`);
       }
     }
-    const gapNote = gapLines.length ? `\nמוצרים שהרשת מוכרת (120 יום) והסניף לא הזמין 90+ יום —\n${gapLines.join('\n')}` : '';
+    const gapNote = gapLines.length ? `\nמוצרים ש${peerGroupName} מוכרת (120 יום) והסניף לא הזמין 90+ יום —\n${gapLines.join('\n')}` : '';
     // Both ends of the deviation, not just the weakest — an under-indexed family next to
     // an over-indexed one is often a brand-substitution pattern (agent/store pushing one
     // brand instead of another within the same category), which is a sharper, more useful
@@ -4191,9 +4222,9 @@ CALCULATETABLE(
     const underIndexed = realFamDev.filter(f => f.index < 0.7).sort((a, b) => a.index - b.index)[0];
     const overIndexed = realFamDev.filter(f => f.index > 1.2).sort((a, b) => b.index - a.index)[0];
     const deviationLines = [];
-    if (underIndexed) deviationLines.push(`חלש: ${underIndexed.family} (${underIndexed.storeSharePct}% מהסניף מול ${underIndexed.chainSharePct}% מהרשת, אינדקס ${underIndexed.index})`);
-    if (overIndexed && overIndexed.family !== underIndexed?.family) deviationLines.push(`חזק: ${overIndexed.family} (${overIndexed.storeSharePct}% מהסניף מול ${overIndexed.chainSharePct}% מהרשת, אינדקס ${overIndexed.index})`);
-    const deviationNote = deviationLines.length ? `\nחריגה מפרופיל הרשת — ${deviationLines.join(' | ')}.` : '';
+    if (underIndexed) deviationLines.push(`חלש: ${underIndexed.family} (${underIndexed.storeSharePct}% מהסניף מול ${underIndexed.chainSharePct}% מה${peerGroupWord}, אינדקס ${underIndexed.index})`);
+    if (overIndexed && overIndexed.family !== underIndexed?.family) deviationLines.push(`חזק: ${overIndexed.family} (${overIndexed.storeSharePct}% מהסניף מול ${overIndexed.chainSharePct}% מה${peerGroupWord}, אינדקס ${overIndexed.index})`);
+    const deviationNote = deviationLines.length ? `\nחריגה מפרופיל ה${peerGroupWord} — ${deviationLines.join(' | ')}.` : '';
 
     const context = `תקופה נוכחית: ${curLabel} | תקופה קודמת: ${priorLabel}\n${famLines.join('\n')}${avgNote}\n${clientNote}${dormantNote}${kosherNote}${companyGapNote}${gapNote}${deviationNote}`;
 
