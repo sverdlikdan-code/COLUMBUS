@@ -1082,13 +1082,20 @@ async function fetchDagimFromBI() {
       spo:           stk + oo,
     });
     result[mk].dayAvg = result[mk].daySales;
-    // stock/stockZafn from SUMMARIZECOLUMNS returns 0 for dagim due to DAX blank-row removal.
-    // pakuot/pakuotZafn (grouped by makat+date) return correct values.
-    // Total stock = sum of all expiry batches — this is mathematically identical.
+    // Fallback 1: SUMMARIZECOLUMNS (makat-only) drops dagim rows due to blank-row removal.
+    // pakuot/pakuotZafn (makat+date grouping) return correct values when available.
     if (!result[mk].stock && result[mk].pakuot.length > 0)
       result[mk].stock = result[mk].pakuot.reduce((s, p) => s + (p.cartons || 0), 0);
     if (!result[mk].stockZafn && result[mk].pakuotZafn.length > 0)
       result[mk].stockZafn = result[mk].pakuotZafn.reduce((s, p) => s + (p.cartons || 0), 0);
+    // Fallback 2: chilled dagim may not be in מחסן="Main" in מלאי-תוקף after PBI refresh.
+    // stockAllWh (from MLAY, all warehouses) is always reliable — use it when Main=0.
+    if (!result[mk].stock && result[mk].stockAllWh > 0) {
+      result[mk].stock = result[mk].stockAllWh;
+      // Use all-warehouse expiry batches when Main batches are missing
+      if (!result[mk].pakuot.length && result[mk].pakuotAll.length > 0)
+        result[mk].pakuot = result[mk].pakuotAll;
+    }
   }
 
   console.log(`fetchDagimFromBI: ${makatim.length} active דגים products from KARTIS PARIT`);
