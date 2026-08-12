@@ -2520,7 +2520,7 @@ async function _fetchClientAI(lang) {
     const data = await r.json();
     if (!data.ok) throw new Error(data.error || 'שגיאה');
 
-    const { curLabel, priorLabel, families, familiesInter, dropped, clientTotal, clientTotalPrior, peerAvg, isChain, chainName, isKosher, analysis } = data;
+    const { curLabel, priorLabel, families, familiesInter, dropped, clientTotal, clientTotalPrior, peerAvg, isChain, chainName, dormantChainProducts, familyDeviation, isKosher, analysis } = data;
 
     const trendCell = (f) => {
       const arrow = f.deltaPct === null ? '' : (f.deltaPct > 0 ? '▲' : f.deltaPct < 0 ? '▼' : '—');
@@ -2562,6 +2562,30 @@ async function _fetchClientAI(lang) {
     }
     tbl = summaryLine + tbl;
 
+    // Chain-only: products the buyer already approved for the chain (sold somewhere in
+    // the network in the last 120 days) that THIS branch hasn't ordered in 90+ days — a
+    // real, authorized gap, not a guess. Plus how this branch's family mix deviates from
+    // the chain's own top-selling families.
+    let gapTbl = '';
+    if (dormantChainProducts && dormantChainProducts.length) {
+      gapTbl = `<div style="margin:10px 0 4px;font-size:11px;color:#B71C1C;font-weight:700">מוצרים שהרשת מוכרת (120 יום) והסניף לא הזמין 90+ יום</div>`;
+      gapTbl += `<table class="ai-families-tbl"><thead><tr><th>מוצר</th><th>מכירות רשת (120 יום)</th></tr></thead><tbody>`;
+      for (const p of dormantChainProducts) {
+        gapTbl += `<tr><td>${p.name}</td><td style="text-align:left">₪${p.chainTotal.toLocaleString()}</td></tr>`;
+      }
+      gapTbl += '</tbody></table>';
+    }
+    let devTbl = '';
+    if (familyDeviation && familyDeviation.length) {
+      devTbl = `<div style="margin:10px 0 4px;font-size:11px;color:#4A148C;font-weight:700">חלוקת משפחות מוצר — סניף מול רשת ${chainName}</div>`;
+      devTbl += `<table class="ai-families-tbl"><thead><tr><th>משפחת מוצר</th><th>% מהרשת</th><th>% מהסניף</th><th>אינדקס</th></tr></thead><tbody>`;
+      for (const d of familyDeviation) {
+        const idxColor = d.index === null ? '#999' : (d.index < 0.7 ? '#C62828' : d.index > 1.3 ? '#2E7D32' : '#666');
+        devTbl += `<tr><td>${d.family}</td><td style="text-align:left">${d.chainSharePct}%</td><td style="text-align:left">${d.storeSharePct}%</td><td style="text-align:left;color:${idxColor};font-weight:700">${d.index !== null ? d.index.toFixed(2) : '—'}</td></tr>`;
+      }
+      devTbl += '</tbody></table>';
+    }
+
     const dir = lang === 'he' ? 'rtl' : 'ltr';
     const cleanAnalysis = analysis
       .replace(/</g,'&lt;').replace(/>/g,'&gt;')
@@ -2569,7 +2593,7 @@ async function _fetchClientAI(lang) {
       .replace(/\*\*(.+?)\*\*/g, '$1')
       .replace(/^[-*]\s+/gm, '• ')
       .replace(/^---+$/gm, '');
-    const html = `${tbl}${interTbl}<div class="ai-analysis" dir="${dir}">${cleanAnalysis}</div>`;
+    const html = `${tbl}${interTbl}${gapTbl}${devTbl}<div class="ai-analysis" dir="${dir}">${cleanAnalysis}</div>`;
     _aiState.cache[cacheKey] = html;
     body.innerHTML = html;
   } catch(e) {
