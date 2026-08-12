@@ -182,7 +182,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .ai-families-tbl td{padding:4px 7px;border-bottom:1px solid #F3E5F5;color:#333;}
 .ai-families-tbl tr:last-child td{border-bottom:none;}
 .ai-families-tbl .dropped{color:#C62828;font-style:italic;}
-.ai-analysis{background:#F8F4FF;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.7;color:#333;white-space:pre-wrap;direction:auto;}
+.ai-analysis{background:#F8F4FF;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.7;color:#333;white-space:pre-wrap;unicode-bidi:plaintext;}
 .ai-loading{text-align:center;padding:30px;color:#9C27B0;font-size:14px;}
 /* Day Briefing Modal (TOP10 clients + dormant list) */
 #day-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px;}
@@ -2552,7 +2552,14 @@ async function _fetchClientAI(lang) {
       interTbl += '</tbody></table>';
     }
 
-    const html = `${tbl}${interTbl}<div class="ai-analysis">${analysis.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+    const dir = lang === 'he' ? 'rtl' : 'ltr';
+    const cleanAnalysis = analysis
+      .replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/^#{1,6}\s*/gm, '')
+      .replace(/\*\*(.+?)\*\*/g, '$1')
+      .replace(/^[-*]\s+/gm, '• ')
+      .replace(/^---+$/gm, '');
+    const html = `${tbl}${interTbl}<div class="ai-analysis" dir="${dir}">${cleanAnalysis}</div>`;
     _aiState.cache[cacheKey] = html;
     body.innerHTML = html;
   } catch(e) {
