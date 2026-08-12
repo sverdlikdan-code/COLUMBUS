@@ -1,5 +1,21 @@
 ﻿# mahsan-planogram — MAHSAN PLANOGRAM (FORMULA cold storage)
 
+## Сессия 2026-08-12 #deployed
+
+### Dagim секция — двойной баг, двойной фикс
+
+**Баг 1:** `fetchStockMain()` (SUMMARIZECOLUMNS makat-only) выбрасывает строки дагим → stock=0.  
+Фикс: Fallback 1 в `pbi-kapua.js` — `stock = sum(pakuot.cartons)`.
+
+**Баг 2:** CI в 11:00 UTC попадает в PBI refresh → KARTIS PARIT пустой → dagimProds=[] → 81 продукт теряется из product-data.json.  
+Фикс: `prevProdDataAll` в `build-planogram.js` — восстанавливает дагим из предыдущего JSON при пустом ответе PBI.
+
+**Fallback 2 (pbi-kapua.js):** если stock=0 и stockAllWh > 0 (MLAY, все склады) → stock = stockAllWh. Защита от случая когда Main=0 но реальный товар есть.
+
+**Верифицировано:** CI 1abd535c — 403001: stock=2555, 403007: stock=193, все 8 дагим с pakuot ✓
+
+Детали: [[session-2026-08-12-dagim-stock-fix]]
+
 ## Сессия 2026-07-07 #done
 
 ### STOP SALE — исправление (combined view)
