@@ -3969,6 +3969,10 @@ ROW(
         if (INTER_CATS.has(machlaka)) return 'INTER';
         return 'FORMULA';
       };
+      // Excluded from ICE MISH recommendations entirely — branded ice cream (גלידות
+      // מותגים), all 3 pack-size variants. Raw ALL_PARTS[תאור משפחת מוצר] values, verified
+      // live via SUMMARIZE(FILTER(ALL_PARTS, ALL_PARTS[חברה]="ICE"), ...).
+      const ICE_EXCLUDED_FAMILIES = new Set(['‭םיזראמ םיגתומ הדילג‬', '‭יתחפשמ םיגתומ הדילג‬', '‭םידדוב םיגתומ הדילג‬']);
 
       const chainOpenDax = `
 EVALUATE
@@ -4031,11 +4035,17 @@ CALCULATETABLE(
       const stockMap = new Map();
       stockForm.forEach(r => stockMap.set(String(r['[sku]']), r['[stock]']));
       stockIce.forEach(r => stockMap.set(String(r['[sku]']), r['[stock]']));
-      const inStock = (sku) => { const s = stockMap.get(String(sku)); return s === undefined ? true : s > 0; };
+      // A SKU missing from the availability table entirely (not just 0) is NOT "assume
+      // it's fine" — verified live (SKU 800, חמאה ROSHEN בד"צ) that a real, actively-sold
+      // FORMULA item can be completely absent from 'זמינות FORM'. The whole point of this
+      // filter is "don't recommend what we can't confirm we can fulfill," so an unknown
+      // stock status must exclude the item, not default it to available.
+      const inStock = (sku) => (stockMap.get(String(sku)) || 0) > 0;
 
       const storeOrderedSkus = new Set(storeOrderedRows.map(r => String(r["ALL_PARTS[מק'ט]"] || '')));
       const dormantRaw = chainOpenRows
         .filter(r => !storeOrderedSkus.has(String(r["ALL_PARTS[מק'ט]"] || '')))
+        .filter(r => !ICE_EXCLUDED_FAMILIES.has(r['ALL_PARTS[תאור משפחת מוצר]']))
         .map(r => ({
           sku: r["ALL_PARTS[מק'ט]"],
           name: fixBiDi(r['ALL_PARTS[תאור מוצר]'] || ''),

@@ -168,21 +168,21 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 /* AI Analytics Modal */
 #ai-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px;}
 #ai-modal.open{display:flex;}
-#ai-modal-box{background:#fff;border-radius:16px;width:100%;max-width:520px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.35);}
+#ai-modal-box{background:#fff;border-radius:16px;width:100%;max-width:1040px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.35);}
 #ai-modal-head{background:#4A148C;color:#fff;padding:14px 18px 12px;display:flex;align-items:center;gap:10px;}
-#ai-modal-head .ai-title{flex:1;font-size:15px;font-weight:800;}
+#ai-modal-head .ai-title{flex:1;font-size:19px;font-weight:800;}
 #ai-modal-head .ai-close{font-size:20px;cursor:pointer;opacity:.8;padding:0 4px;}
 #ai-modal-head .ai-close:hover{opacity:1;}
 .ai-lang-bar{display:flex;gap:6px;padding:10px 14px 6px;background:#F8F4FF;border-bottom:1px solid #E8D8F8;}
 .ai-lang-btn{flex:1;padding:7px 4px;border-radius:8px;border:1.5px solid #CE93D8;background:#fff;font-size:13px;font-weight:700;color:#6A1B9A;cursor:pointer;text-align:center;transition:.12s;}
 .ai-lang-btn.active{background:#4A148C;color:#fff;border-color:#4A148C;}
-#ai-modal-body{overflow-y:auto;padding:14px 16px;flex:1;}
-.ai-families-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px;}
+#ai-modal-body{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:14px 16px;flex:1;}
+.ai-families-tbl{width:100%;border-collapse:collapse;font-size:15px;margin-bottom:14px;}
 .ai-families-tbl th{background:#F3E5F5;color:#4A148C;padding:5px 7px;text-align:right;font-weight:800;border-bottom:2px solid #CE93D8;}
 .ai-families-tbl td{padding:4px 7px;border-bottom:1px solid #F3E5F5;color:#333;}
 .ai-families-tbl tr:last-child td{border-bottom:none;}
 .ai-families-tbl .dropped{color:#C62828;font-style:italic;}
-.ai-analysis{background:#F8F4FF;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.7;color:#333;white-space:pre-wrap;unicode-bidi:plaintext;}
+.ai-analysis{background:#F8F4FF;border-radius:10px;padding:12px 14px;font-size:16px;line-height:1.7;color:#333;white-space:pre-wrap;unicode-bidi:plaintext;}
 .ai-loading{text-align:center;padding:30px;color:#9C27B0;font-size:14px;}
 /* Day Briefing Modal (TOP10 clients + dormant list) */
 #day-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px;}
@@ -2551,14 +2551,14 @@ async function _fetchClientAI(lang) {
     tbl += '</tbody></table>';
 
     const peerLabel = isChain ? `ממוצע רשת ${chainName}` : (chainName ? `ממוצע קטגוריית ${chainName}` : 'ממוצע חברה');
-    const summaryLine = `<div style="margin:6px 0 10px;font-size:12px;color:#555">`
+    const summaryLine = `<div style="margin:6px 0 10px;font-size:14px;color:#555">`
       + `סה"כ לקוח: <b>₪${clientTotal.toLocaleString()}</b> (${ltr(curLabel)}) | ${peerLabel}${isKosher?' (כשר)':''}: ₪${peerAvg.toLocaleString()}`
       + `</div>`;
 
     // INTER channel (e.g. מתוקים) — separate company/source, kept out of the main table
     let interTbl = '';
     if (familiesInter && Object.keys(familiesInter).length) {
-      interTbl = `<div style="margin:10px 0 4px;font-size:11px;color:#8B6D00;font-weight:700">ערוץ נפרד (INTER)</div>`;
+      interTbl = `<div style="margin:10px 0 4px;font-size:13px;color:#8B6D00;font-weight:700">ערוץ נפרד (INTER)</div>`;
       interTbl += `<table class="ai-families-tbl"><thead><tr><th>משפחת מוצר</th><th>${ltr(priorLabel)}</th><th>${ltr(curLabel)}</th><th>מגמה</th></tr></thead><tbody>`;
       for (const [fam, f] of Object.entries(familiesInter)) {
         interTbl += `<tr><td>${fam}</td>`
@@ -2598,7 +2598,7 @@ async function _fetchClientAI(lang) {
     for (const { key, label } of companyGroups) {
       const items = dormantChainProducts && dormantChainProducts[key];
       if (!items || !items.length) continue;
-      gapTbl += `<div style="margin:10px 0 4px;font-size:11px;color:#B71C1C;font-weight:700">${label} — מוצרים ש${peerGroupWord} ${chainName} מוכרת (120 יום) והסניף לא הזמין 90+ יום</div>`;
+      gapTbl += `<div style="margin:10px 0 4px;font-size:13px;color:#B71C1C;font-weight:700">${label} — מוצרים ש${peerGroupWord} ${chainName} מוכרת (120 יום) והסניף לא הזמין 90+ יום</div>`;
       gapTbl += `<table class="ai-families-tbl"><thead><tr><th>מוצר</th><th>מכירות רשת (120 יום)</th></tr></thead><tbody>`;
       for (const p of items) {
         const shortName = shortProductName(p.name);
@@ -2612,7 +2612,7 @@ async function _fetchClientAI(lang) {
     }
     let devTbl = '';
     if (familyDeviation && familyDeviation.length) {
-      devTbl = `<div style="margin:10px 0 4px;font-size:11px;color:#4A148C;font-weight:700">חלוקת משפחות מוצר — סניף מול ${isChain ? 'רשת' : 'קטגוריית'} ${chainName}</div>`;
+      devTbl = `<div style="margin:10px 0 4px;font-size:13px;color:#4A148C;font-weight:700">חלוקת משפחות מוצר — סניף מול ${isChain ? 'רשת' : 'קטגוריית'} ${chainName}</div>`;
       devTbl += `<table class="ai-families-tbl"><thead><tr><th>משפחת מוצר</th><th>% מהרשת</th><th>% מהסניף</th><th>אינדקס</th></tr></thead><tbody>`;
       for (const d of familyDeviation) {
         const idxColor = d.index === null ? '#999' : (d.index < 0.7 ? '#C62828' : d.index > 1.2 ? '#2E7D32' : '#666');
