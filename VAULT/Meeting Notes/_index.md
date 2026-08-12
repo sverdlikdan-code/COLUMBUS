@@ -83,4 +83,5 @@
 - [[diler-intelligence-pitch]] — Diler Intelligence (была DILL IT): питч о выделении IT+AI+BI-направления в отдельную структуру, статус и открытые вопросы
 - [[session-2026-08-05-security-audit]] — Сессия 2026-08-04/05/06: полный security audit, 13 фиксов, оценка 7→9/10, mahsan auth gate
 - [[session-2026-08-11-security-regression]] — Сессия 2026-08-11: security regression фиксы, popup фото+מקט badge, sticky header מגמה, auth flow clarification
+- [[session-2026-08-12-dagim-stock-fix]] — Сессия 2026-08-12: mahsan IP whitelist, gate logging, dagim stock=0 диагноз (pakuot fallback) и PBI refresh root cause
 - [[mmd-orders-app]] — Сессия 2026-08-11 (вечер): Prophet trend fix (mkr_prev6 в period-data), пизур+cust_bought колонки, фото-прокси ?u=, фильтр 162 клиентов, архив ארכיון товаров
