@@ -3568,6 +3568,9 @@ app.get('/formula-road', (req, res, next) => {
 app.get('/mekarer-order.html', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'mekarer-order.html'));
 });
+app.get('/zikuy-order.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'docs', 'zikuy-order.html'));
+});
 app.get('/territory-planner.html', formulaRoadGuard, (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'territory-planner.html'));
 });
