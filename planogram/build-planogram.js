@@ -1,5 +1,5 @@
 /**
- * MAHSAN PLANOGRAM BUILDER
+ * MAHSAN PLANOGRAM BUILDER v2026-08-13
  * Клонирует MAHSAN 8.xlsx (3 листа), заменяет числа-пики на данные товара.
  * Сохраняет точную компоновку оригинала.
  */
