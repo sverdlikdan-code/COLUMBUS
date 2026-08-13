@@ -3576,11 +3576,11 @@ app.get('/zikuy-order.html', (req, res) => {
 // Re-serves the same public product photo with Access-Control-Allow-Origin set.
 app.get('/api/img-proxy', async (req, res) => {
   const url = String(req.query.url || '');
-  if (!/^https:\/\/priority\.dilerbmd\.com\/[A-Za-z0-9_\-\/.]+\.(jpg|jpeg|png|gif|webp)$/i.test(url)) {
+  if (!/^https:\/\/priority\.dilerbmd\.com\/(?!.*\.\.)[A-Za-z0-9_\-\/.]+\.(jpg|jpeg|png|gif|webp)$/i.test(url)) {
     return res.status(400).send('invalid url');
   }
   try {
-    const upstream = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    const upstream = await fetch(url, { signal: AbortSignal.timeout(10000) });
     if (!upstream.ok) return res.status(502).send('upstream error');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Content-Type', upstream.headers.get('content-type') || 'image/jpeg');
