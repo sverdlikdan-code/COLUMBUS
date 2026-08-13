@@ -3928,6 +3928,8 @@ CALCULATETABLE(
       zikuyMap.set(sku, pos > 0 ? Math.round((Math.abs(neg) / pos) * 1000) / 10 : 0);
     });
 
+    // Scope: this return form only covers FORMULA and ICE MISH — INTER and ICE BDD
+    // don't go back to this warehouse, so they're dropped entirely, not just hidden.
     let products = histRows
       .filter(r => Math.round(r['[total365]'] || 0) > 0)
       .map(r => {
@@ -3944,19 +3946,7 @@ CALCULATETABLE(
           imgUrl: '',
         };
       })
-      .filter(p => p.company);
-
-    // INTER has no real family field of its own — use KARTIS PARIT INTER's own פרמטר 2
-    // sub-category instead, same convention as the dormant-products feature.
-    const interProducts = products.filter(p => p.company === 'INTER');
-    if (interProducts.length) {
-      const skuIn = interProducts.map(p => `"${p.sku}"`).join(',');
-      const p2Rows = await executeDax(
-        `EVALUATE SELECTCOLUMNS(FILTER('KARTIS PARIT INTER', 'KARTIS PARIT INTER'[מק"ט] IN {${skuIn}}), "sku", 'KARTIS PARIT INTER'[מק"ט], "p2", 'KARTIS PARIT INTER'[תאור פרמטר 2 למוצר], "img", 'KARTIS PARIT INTER'[URL תמונה])`
-      );
-      const p2Map = new Map(p2Rows.map(r => [String(r['[sku]']), { p2: fixBiDi(r['[p2]'] || ''), img: r['[img]'] || '' }]));
-      interProducts.forEach(p => { const m = p2Map.get(p.sku); if (m) { p.family = m.p2 || p.family; p.imgUrl = m.img || ''; } });
-    }
+      .filter(p => p.company === 'FORMULA' || p.company === 'ICE_MISH');
 
     // FORMULA and ICE each have their OWN KARTIS PARIT product-master table (ICE SKUs
     // aren't in the main KARTIS PARIT at all — verified live earlier this session).
@@ -3971,7 +3961,7 @@ CALCULATETABLE(
     };
     await Promise.all([
       fetchPhotosRet(products.filter(p => p.company === 'FORMULA'), 'KARTIS PARIT'),
-      fetchPhotosRet(products.filter(p => p.company === 'ICE_MISH' || p.company === 'ICE_BDD'), 'KARTIS PARIT ICE'),
+      fetchPhotosRet(products.filter(p => p.company === 'ICE_MISH'), 'KARTIS PARIT ICE'),
     ]);
 
     res.json({
