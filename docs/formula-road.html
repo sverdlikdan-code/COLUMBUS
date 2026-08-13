@@ -2484,7 +2484,12 @@ function openDayPopup(event,custId){
 function closeDayPopup(){document.getElementById('day-popup').classList.remove('open');}
 
 // ── AI Client Analytics ──────────────────────────────────────────────────────
-let _aiState = { custId: null, custName: null, lang: 'he', cache: {} };
+// No caching, deliberately: the underlying data changes throughout the day (PBI
+// dataset refreshes ~every 2h, orders keep coming in), and a field agent may
+// reopen the same client's card hours apart expecting current numbers, not a
+// stale snapshot from the first time they looked. A stale/wrong cached response
+// is also invisible — it looks identical to a fresh correct one.
+let _aiState = { custId: null, custName: null, lang: 'he' };
 
 function openClientAI(evt, custId, custName) {
   evt.stopPropagation();
@@ -2510,13 +2515,7 @@ function switchAiLang(btn, lang) {
 
 async function _fetchClientAI(lang) {
   const { custId } = _aiState;
-  const cacheKey = `${custId}_${lang}`;
   const body = document.getElementById('ai-modal-body');
-
-  if (_aiState.cache[cacheKey]) {
-    body.innerHTML = _aiState.cache[cacheKey];
-    return;
-  }
   body.innerHTML = '<div class="ai-loading">⏳ מחשב...</div>';
 
   try {
@@ -2635,7 +2634,6 @@ async function _fetchClientAI(lang) {
       .replace(/^[-*]\s+/gm, '• ')
       .replace(/^---+$/gm, '');
     const html = `${tbl}${interTbl}${gapTbl}${devTbl}<div class="ai-analysis" dir="${dir}">${cleanAnalysis}</div>`;
-    _aiState.cache[cacheKey] = html;
     // Guard against out-of-order responses: if the user switched client/language while
     // this request was in flight, a slower earlier request can resolve AFTER a faster
     // later one and overwrite the correct content with stale text in the wrong language.
