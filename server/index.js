@@ -1024,20 +1024,48 @@ async function geocodeNominatim(query, city) {
 
 // Gemini Flash — used for AI analytics (Anthropic fallback for geocoding)
 async function callGemini(prompt, maxTokens = 500) {
-  if (!GEMINI_API_KEY) throw new Error('AI not configured');
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${GEMINI_API_KEY}`;
-  const resp = await fetch(url, {
+  if (GEMINI_API_KEY) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${GEMINI_API_KEY}`;
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: maxTokens, temperature: 0.4 },
+        }),
+        signal: AbortSignal.timeout(20000),
+      });
+      const data = await resp.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (text) return text;
+      console.error('[callGemini] empty response, falling back to Claude:', data?.error?.message || JSON.stringify(data).slice(0, 200));
+    } catch (e) {
+      console.error('[callGemini] request failed, falling back to Claude:', e.message);
+    }
+  }
+  // Fallback: Claude Haiku, same prompt. Reuses the Anthropic dependency already paid
+  // for and working elsewhere in this file (normalizeAddressWithAI) — no new infra,
+  // just redundancy for when Gemini is rate-limited, down, or deprecated (2nd time
+  // this model string alone has gone away under us).
+  if (!ANTHROPIC_API_KEY) throw new Error('AI not configured');
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: {
+      'x-api-key': ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+    },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { maxOutputTokens: maxTokens, temperature: 0.4 },
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: maxTokens,
+      messages: [{ role: 'user', content: prompt }],
     }),
     signal: AbortSignal.timeout(20000),
   });
   const data = await resp.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error(data?.error?.message || 'Gemini returned empty');
+  const text = data?.content?.[0]?.text;
+  if (!text) throw new Error(data?.error?.message || 'Claude fallback returned empty');
   return text;
 }
 
