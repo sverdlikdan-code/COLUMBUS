@@ -46,25 +46,8 @@ function main() {
   // (территория/канал), они их не приводят сами — смешивать с ростом своей базы некорректно.
   const rowsExBdd = rows.filter(r => r.company !== 'ICE BDD');
   const newCustSet = getNewCustomerSet(rowsExBdd);
-  const sameStoreRows = rowsExBdd.filter(r => !newCustSet.has(r.custno));
-  const newCustRows = rowsExBdd.filter(r => newCustSet.has(r.custno));
-  const bySadran = aggBy(sameStoreRows, r => r.sadran);
-  const bySadranNewMap = new Map(aggBy(newCustRows, r => r.sadran).map(b => [b.key, b.now]));
   const byKosher = aggBy(rows, r => r.kosher);
   const byCustType = aggBy(rows, r => r.custtype).filter(b => b.now > 20000 || b.lastYear > 20000).slice(0, 12);
-
-  // Сдаран x חברה — same-store, агрегат по сдарану ЦЕЛИКОМ внутри каждой компании.
-  // Раньше здесь была разбивка ещё и по מחלקה (Сдаран x Департамент) — лишняя детализация:
-  // компании и так разделены, дробить дальше по департаменту не нужно.
-  const sadranByCompany = {};
-  for (const company of ['FORMULA', 'INTER', 'ICE MISH']) {
-    const companySameStore = sameStoreRows.filter(r => r.company === company);
-    const companyNew = newCustRows.filter(r => r.company === company);
-    const newBySadranC = new Map(aggBy(companyNew, r => r.sadran).map(b => [b.key, b.now]));
-    sadranByCompany[company] = aggBy(companySameStore, r => r.sadran)
-      .sort((a, b) => b.delta - a.delta)
-      .map(b => ({ ...b, sadran: b.key, newVal: newBySadranC.get(b.key) || 0 }));
-  }
 
   // --- Отдельные разрезы FORMULA и ICE MISH — КАЖДЫЙ САМ ПО СЕБЕ, не общий пул FORMULA+ICE MISH
   // (ошибочно смешивал разные компании в одном топ-10 по типу клиента). מחלקה/סוג לקוח % —
@@ -321,60 +304,50 @@ function main() {
     });
   }
 
-  // Slide 4 — by sadran (chart)
-  {
-    const s = pptx.addSlide();
-    s.addText('Рост / падение по мерчендайзерам (סדרן) — same-store', { x: 0.5, y: 0.35, w: 12, h: 0.6, fontSize: 24, bold: true, color: NAVY, fontFace: 'Arial' });
-    const chartData = [{
-      name: '% изменение',
-      labels: bySadran.map(b => b.key),
-      values: bySadran.map(b => Math.round((b.pct || 0) * 1000) / 10),
-    }];
-    s.addChart(pptx.ChartType.bar, chartData, {
-      x: 0.5, y: 1.2, w: 12.3, h: 5.3,
-      barDir: 'bar',
-      chartColors: bySadran.map(b => colorForPct(b.pct)),
-      valAxisTitle: '% изменение', showValAxisTitle: true,
-      showLegend: false, showTitle: false,
-      dataLabelColor: '333333', showValue: true, dataLabelFormatCode: '+0"%";-0"%"',
-      catAxisLabelFontSize: 12, valAxisLabelFontSize: 11,
-      valAxisCrossesAt: 'min',
-    });
-    s.addText('% считается только по клиентам с историей прошлого года (like-for-like) — новые клиенты не входят в %.', {
-      x: 0.5, y: 6.65, w: 12.3, h: 0.3, fontSize: 10, color: '8A9BA8', fontFace: 'Arial',
-    });
-    const newTop = [...bySadranNewMap.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
-    if (newTop.length) {
-      s.addText('Вклад новых клиентов (вне %): ' + newTop.map(([k, v]) => `${k} +${fmtILS(v)}`).join('  ·  '), {
-        x: 0.5, y: 6.95, w: 12.3, h: 0.3, fontSize: 10, color: BLUE, fontFace: 'Arial',
-      });
-    }
+  // Slide 4.1 — Магазинная диагностика: у топ-падающих точек каждой компании — в какой
+  // товарной группе (מחלקה) именно потери, плюс короткая рекомендация что проверить
+  // (запрос пользователя 2026-08-12: "упор на магазинную аналитику с рекомендациями типа
+  // проверить там где потери в каких группах товара"). Сдаранная статистика (график/таблица
+  // по мерчендайзерам) убрана целиком — сдаран остаётся только как контакт в колонке магазина.
+  function worstDeptForStore(custno, company) {
+    const deptRows = rowsExBdd
+      .filter(r => r.custno === custno && r.company === company && r.lastYear > 0)
+      .map(r => ({ dept: r.dept, lastYear: r.lastYear, now: r.now, delta: r.now - r.lastYear, pct: pctChange(r.lastYear, r.now) }))
+      .sort((a, b) => a.delta - b.delta);
+    return deptRows[0] || null;
   }
-
-  // Slide 4.2 — Сдаран x חברה (same-store), без разбивки по מחלקה
+  function recommendationFor(worst) {
+    if (!worst) return '—';
+    if (worst.now <= 0) return 'Группа полностью исчезла — проверить наличие и выкладку';
+    if (worst.pct !== null && worst.pct < -0.4) return 'Резкое падение — проверить остатки и выкладку на полке';
+    return 'Проверить наличие и выкладку товара';
+  }
   for (const company of ['FORMULA', 'INTER', 'ICE MISH']) {
-    const movers = sadranByCompany[company];
-    if (!movers.length) continue;
+    const list = topDeclineByCompany[company];
+    if (!list || !list.length) continue;
     const s = pptx.addSlide();
-    s.addText(`Сдаран x חברה (same-store) — ${company}`, { x: 0.5, y: 0.35, w: 12, h: 0.6, fontSize: 22, bold: true, color: NAVY, fontFace: 'Arial' });
-    const header = ['Сдаран', 'Прошлый', 'Текущий', '%', '+ Новые'].map(t => ({
+    s.addText(`Где потери — топ падающих точек (${company})`, { x: 0.5, y: 0.35, w: 12, h: 0.6, fontSize: 24, bold: true, color: NAVY, fontFace: 'Arial' });
+    const header = ['Магазин / сдаран', 'Проблемная группа (מחלקה)', 'Прошлый → Текущий', '%', 'Рекомендация'].map(t => ({
       text: t, options: { bold: true, fill: { color: NAVY }, color: WHITE, fontSize: 10.5 },
     }));
-    const body = movers.map(b => ([
-      { text: b.sadran, options: { fontSize: 9.5, rtlMode: true, lang: 'he-IL' } },
-      { text: fmtILS(b.lastYear), options: { fontSize: 9.5, align: 'right' } },
-      { text: fmtILS(b.now), options: { fontSize: 9.5, align: 'right' } },
-      { text: fmtPct(b.pct), options: { fontSize: 9.5, align: 'right', bold: true, color: colorForPct(b.pct) } },
-      { text: b.newVal ? '+' + fmtILS(b.newVal) : '—', options: { fontSize: 9.5, align: 'right', color: BLUE } },
-    ]));
+    const body = list.map(c => {
+      const worst = worstDeptForStore(c.custno, company);
+      return [
+        { text: `${String(c.custname || '').slice(0, 38)}\n${c.sadran || ''}`, options: { fontSize: 9.5, rtlMode: true, lang: 'he-IL' } },
+        { text: worst ? worst.dept : '—', options: { fontSize: 9.5, rtlMode: true, lang: 'he-IL' } },
+        { text: worst ? `${fmtILS(worst.lastYear)} → ${fmtILS(worst.now)}` : '', options: { fontSize: 9, align: 'right' } },
+        { text: worst ? fmtPct(worst.pct) : '', options: { fontSize: 9.5, align: 'right', bold: true, color: colorForPct(worst ? worst.pct : null) } },
+        { text: recommendationFor(worst), options: { fontSize: 9 } },
+      ];
+    });
     s.addTable([header, ...body], {
-      x: 0.5, y: 1.15, w: 12.3, h: 5.7,
-      colW: [4.0, 2.3, 2.3, 1.8, 1.9],
+      x: 0.5, y: 1.2, w: 12.3, h: 5.8,
+      colW: [3.2, 2.2, 2.3, 1.2, 3.4],
       border: { type: 'solid', color: 'E2E8F0', pt: 0.5 },
       autoPage: false,
     });
-    s.addText('% — только клиенты с историей прошлого года (same-store). Новые клиенты — отдельно, вне %.', {
-      x: 0.5, y: 6.95, w: 12.3, h: 0.3, fontSize: 9.5, color: '8A9BA8', fontFace: 'Arial',
+    s.addText('Проблемная группа — מחלקה с наибольшим падением у этой точки (только среди групп с историей прошлого года). Магазин может расти в целом, но проседать в одной группе.', {
+      x: 0.5, y: 7.05, w: 12.3, h: 0.35, fontSize: 9.5, color: '8A9BA8', fontFace: 'Arial',
     });
   }
 

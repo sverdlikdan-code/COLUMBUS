@@ -73,9 +73,6 @@ function main() {
   });
   const rowsExBdd = rows.filter(r => r.company !== 'ICE BDD');
   const newCustSet = getNewCustomerSet(rowsExBdd);
-  const sameStoreRows = rowsExBdd.filter(r => !newCustSet.has(r.custno));
-  const newCustRows = rowsExBdd.filter(r => newCustSet.has(r.custno));
-  const bySadran = aggBy(sameStoreRows, r => r.sadran);
   const byCustType = aggBy(rows, r => r.custtype).filter(b => b.now > 20000 || b.lastYear > 20000).slice(0, 10);
 
   const custKeyFI = r => `${r.custno}|${r.custname}|${r.sadran}|${r.kosher}`;
@@ -410,57 +407,50 @@ function main() {
     });
   }
 
-  // ---------- Slide — sadran chart ----------
-  {
-    const s = pptx.addSlide();
-    contentHeader(s, 'סדרן', 'עלייה / ירידה לפי סדרנים');
-    const chartData = [{ name: '% שינוי', labels: bySadran.map(b => b.key), values: bySadran.map(b => Math.round((b.pct || 0) * 1000) / 10) }];
-    s.addChart(pptx.ChartType.bar, chartData, {
-      x: 0.6, y: 1.9, w: 12.1, h: 5.1, barDir: 'bar',
-      chartColors: bySadran.map(b => colorForPct(b.pct)),
-      valAxisTitle: '% שינוי', showValAxisTitle: true,
-      showLegend: false, showTitle: false,
-      dataLabelColor: INK_TEXT, showValue: true, dataLabelFormatCode: '+0"%";-0"%"',
-      catAxisLabelFontSize: 12, valAxisLabelFontSize: 10,
-      catAxisLabelColor: INK_TEXT, valAxisLabelColor: MUTED,
-      plotArea: { border: { type: 'none' } },
-      catGridLine: { style: 'none' }, valGridLine: { color: PAPER_LINE, style: 'solid', size: 0.5 },
-      ...barChartSolid,
-      valAxisCrossesAt: 'min',
-    });
+  // ---------- Slides — אבחון חנויות: איפה בדיוק ההפסדים בטופ החנויות היורדות ----------
+  // סטטיסטיקת סדרנים (גרף/טבלה לפי סדרן) הוסרה כליל (בקשת המשתמש 2026-08-12: "לא צריך
+  // סטטיסטיקה לפי סדרן — דגש על אנליטיקת חנויות עם המלצות כמו לבדוק איפה ההפסדים ובאילו
+  // קבוצות מוצר"). הסדרן נשאר רק כשורת קשר מתחת לשם החנות.
+  function worstDeptForStore(custno, company) {
+    const deptRows = rowsExBdd
+      .filter(r => r.custno === custno && r.company === company && r.lastYear > 0)
+      .map(r => ({ dept: r.dept, lastYear: r.lastYear, now: r.now, delta: r.now - r.lastYear, pct: pctChange(r.lastYear, r.now) }))
+      .sort((a, b) => a.delta - b.delta);
+    return deptRows[0] || null;
   }
-
-  // ---------- Slides — Сдаран x חברה ----------
-  {
-    ['FORMULA', 'INTER', 'ICE MISH'].forEach(company => {
-      const companySameStore = sameStoreRows.filter(r => r.company === company);
-      const companyNew = newCustRows.filter(r => r.company === company);
-      const newBySadranC = new Map(aggBy(companyNew, r => r.sadran).map(b => [b.key, b.now]));
-      const sadranMovers = aggBy(companySameStore, r => r.sadran)
-        .sort((a, b) => b.delta - a.delta)
-        .map(b => ({ ...b, sadran: b.key, newVal: newBySadranC.get(b.key) || 0 }));
-      if (!sadranMovers.length) return;
-      const s = pptx.addSlide();
-      contentHeader(s, `סדרן x חברה · ${company}`, `סדרן x חברה (same-store) — ${company}`);
-      let ty = 1.9;
-      const cols = [0.6, 4.6, 7.6, 9.7, 11.1];
-      ['סדרן', 'קודם → נוכחי', '%', '+ חדשים'].forEach((h, i) => {
-        s.addText(h, he({ x: cols[i], y: ty, w: (cols[i + 1] || 12.5) - cols[i], h: 0.3, fontSize: 10, bold: true, color: GOLD, fontFace: SANS }));
-      });
-      s.addShape('line', { x: 0.6, y: ty + 0.32, w: 11.9, h: 0, line: { color: PAPER_LINE, width: 1 } });
-      ty += 0.42;
-      sadranMovers.forEach(b => {
-        s.addText(b.sadran, he({ x: cols[0], y: ty, w: cols[1] - cols[0], h: 0.32, fontSize: 10, color: INK_TEXT, fontFace: SANS }));
-        s.addText(`${fmtILS(b.lastYear)} → ${fmtILS(b.now)}`, { x: cols[1], y: ty, w: cols[2] - cols[1], h: 0.32, fontSize: 9.5, color: MUTED, fontFace: SANS });
-        s.addText(fmtPct(b.pct), { x: cols[2], y: ty, w: cols[3] - cols[2], h: 0.32, fontSize: 10, bold: true, color: colorForPct(b.pct), fontFace: SANS });
-        s.addText(b.newVal ? '+' + fmtILS(b.newVal) : '—', { x: cols[3], y: ty, w: 12.5 - cols[3], h: 0.32, fontSize: 9.5, color: GOLD, fontFace: SANS });
-        s.addShape('line', { x: 0.6, y: ty + 0.34, w: 11.9, h: 0, line: { color: PAPER_LINE, width: 0.75 } });
-        ty += 0.4;
-      });
-      s.addText('% — רק לקוחות עם היסטוריה משנה קודמת (same-store). לקוחות חדשים — בנפרד, מחוץ ל-%.', he({
-        x: 0.7, y: 7.05, w: 11.9, h: 0.3, fontSize: 9.5, color: MUTED, fontFace: SANS, italic: true,
-      }));
+  function recommendationForWorst(worst) {
+    if (!worst) return '—';
+    if (worst.now <= 0) return 'הקבוצה נעלמה — לבדוק מלאי ותצוגה';
+    if (worst.pct !== null && worst.pct < -0.4) return 'ירידה חדה — לבדוק מלאי ותצוגה במדף';
+    return 'לבדוק מלאי ותצוגת המוצר';
+  }
+  for (const company of ['FORMULA', 'INTER', 'ICE MISH']) {
+    const list = topDeclineByCompany[company];
+    if (!list || !list.length) continue;
+    const s = pptx.addSlide();
+    contentHeader(s, `אבחון חנויות · ${company}`, 'איפה ההפסדים — טופ החנויות היורדות');
+    const header = ['חנות', 'קבוצה בעייתית', 'היה → עכשיו', '%', 'המלצה'].map(t => ({
+      text: t, options: he({ bold: true, fill: { color: INK }, color: PAPER, fontSize: 10, fontFace: SANS }),
+    }));
+    const body = list.map(c => {
+      const worst = worstDeptForStore(c.custno, company);
+      return [
+        { text: `${c.custname || ''}\n${c.sadran || ''}`, options: he({ fontSize: 9.5, color: INK_TEXT, fontFace: SANS }) },
+        { text: worst ? worst.dept : '—', options: he({ fontSize: 9.5, color: INK_TEXT, fontFace: SANS }) },
+        { text: worst ? `${fmtILS(worst.lastYear)} → ${fmtILS(worst.now)}` : '', options: { fontSize: 9, color: MUTED, fontFace: SANS, align: 'right' } },
+        { text: worst ? fmtPct(worst.pct) : '', options: { fontSize: 9.5, bold: true, color: colorForPct(worst ? worst.pct : null), fontFace: SANS, align: 'right' } },
+        { text: recommendationForWorst(worst), options: he({ fontSize: 8.5, color: INK_TEXT, fontFace: SANS }) },
+      ];
     });
+    s.addTable([header, ...body], {
+      x: 0.7, y: 1.85, w: 11.9, h: 4.9,
+      colW: [2.8, 2.0, 2.2, 1.1, 3.8],
+      border: { type: 'solid', color: PAPER_LINE, pt: 0.5 },
+      autoPage: false,
+    });
+    s.addText('קבוצה בעייתית — מחלקה עם הירידה הגדולה ביותר בנקודה הזו (רק בין קבוצות עם היסטוריה משנה קודמת). החנות יכולה לצמוח בסך הכול אך לרדת בקבוצה אחת.', he({
+      x: 0.7, y: 6.9, w: 11.9, h: 0.4, fontSize: 9.5, color: MUTED, fontFace: SANS, italic: true,
+    }));
   }
 
   // ---------- Slide — customer type chart ----------
