@@ -2266,8 +2266,11 @@ function renderMap(){
       : '';
     const safeName=(c.custName||'').replace(/"/g,'&quot;');
     const fixBtn=`<br><button data-id="${c.custId}" data-name="${safeName}" onclick="startGpsCorrection(this.dataset.id,this.dataset.name)" style="margin-top:6px;background:#1565C0;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">📍 תקן מיקום</button>`;
+    const tabletBtn=TABLET_GPS[String(c.custId)]
+      ? `<button data-id="${c.custId}" data-name="${safeName}" onclick="reviewTabletGps(this.dataset.id,this.dataset.name)" style="margin-top:6px;margin-inline-start:4px;background:#00B894;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">📱 בדוק מיקום טאבלט</button>`
+      : '';
     const iceMark = isIce ? ' <span style="background:#00B894;color:#fff;font-size:9px;font-weight:800;padding:1px 4px;border-radius:3px">ICE</span>' : '';
-    m.bindPopup(`<b>${esc(_rawLabel)}${corrMark}</b>${iceMark}<br>${esc(c.city||'')}${c.address?'<br><span style="font-size:11px;color:#555">'+esc(c.address)+'</span>':''}${approxNote}${fixBtn}`);
+    m.bindPopup(`<b>${esc(_rawLabel)}${corrMark}</b>${iceMark}<br>${esc(c.city||'')}${c.address?'<br><span style="font-size:11px;color:#555">'+esc(c.address)+'</span>':''}${approxNote}${fixBtn}${tabletBtn}`);
     m.bindTooltip(_rawLabel,{permanent:false,direction:'right',opacity:1,className:'fr-tip'});
     if(isSel) m.openPopup();
     bounds.push([c.lat,c.lng]);
@@ -2921,6 +2924,55 @@ function cancelGpsCorrection(){
   renderMap();
   showToast('ביטול');
 }
+// Shared save path for any GPS correction (manual map-click or tablet-GPS review) —
+// keeps the write-through to gpsCorrections/localStorage/server/route-recalc in one
+// place so every correction source stays consistent with the sync/export tracking.
+function saveGpsCorrection(custId, custName, lat, lng){
+  const la=+lat.toFixed(6), lo=+lng.toFixed(6);
+  const cl=st.clients.find(x=>String(x.custId)===String(custId))||{};
+  const entry={lat:la,lng:lo,correctedAt:new Date().toISOString(),name:custName,city:cl.city||'',address:cl.address||''};
+  gpsCorrections[String(custId)]=entry;
+  const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
+  local[String(custId)]=entry;
+  localStorage.setItem('fr_gps_local',JSON.stringify(local));
+  updateGpsHistBtn();
+  apiFetch(`${API}/save-gps`,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({custId,lat:la,lng:lo,name:custName,city:cl.city||'',address:cl.address||''})
+  }).catch(()=>{});
+  st.clients=st.clients.map(x=>String(x.custId)===String(custId)?{...x,lat:la,lng:lo}:x);
+  st.aiClients=nearestNeighbor([...st.clients]);
+  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null; triggerOsrm();
+  saveRoute(st.agent.code,st.day,st.clients);
+  updateKmBar(); renderClientList(); renderMap();
+}
+
+// Per-client tablet-GPS review: 2 steps — show the tablet-recorded point as a marker
+// (agent visually confirms it looks right relative to the client), then approve to
+// save it as a correction. Goes through saveGpsCorrection, so it's tracked as
+// gpsSource:'correction' in the Excel export exactly like a manual map-click fix.
+let _tabletReviewMarker=null;
+function reviewTabletGps(custId, custName){
+  const t=TABLET_GPS[String(custId)];
+  if(!t||!t.lat||!t.lng){ showToast('❌ אין נתוני GPS מהטאבלט עבור לקוח זה'); return; }
+  const cl=st.clients.find(x=>String(x.custId)===String(custId));
+  if(_tabletReviewMarker){ map.removeLayer(_tabletReviewMarker); _tabletReviewMarker=null; }
+  map.closePopup();
+  map.panTo([t.lat,t.lng],{animate:true,duration:0.4});
+  _tabletReviewMarker=L.marker([t.lat,t.lng],{
+    icon:L.divIcon({className:'',html:'<div style="background:#00B894;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.5)">📱</div>',iconSize:[32,32],iconAnchor:[16,16]}),
+    zIndexOffset:2000,
+  }).addTo(map);
+  const distText=(cl&&cl.lat&&cl.lng)?` (${Math.round(haversineKm(cl.lat,cl.lng,t.lat,t.lng)*1000)} מ' מהמיקום הנוכחי)`:'';
+  const ok=confirm(`מיקום מהטאבלט עבור ${custName}${distText}.\nלאשר כמיקום נכון?`);
+  if(_tabletReviewMarker){ map.removeLayer(_tabletReviewMarker); _tabletReviewMarker=null; }
+  if(ok){
+    saveGpsCorrection(custId,custName,t.lat,t.lng);
+    showToast('✅ מיקום מהטאבלט אושר ונשמר');
+  } else {
+    renderMap();
+  }
+}
+
 function startGpsCorrection(custId, custName){
   gpsCorrectMode=true;
   gpsCorrectId=custId;
@@ -2943,22 +2995,7 @@ function startGpsCorrection(custId, custName){
     if(lat<IL.minLat||lat>IL.maxLat||lng<IL.minLng||lng>IL.maxLng){
       showToast('❌ מחוץ לגבולות ישראל'); renderMap(); return;
     }
-    const la=+lat.toFixed(6), lo=+lng.toFixed(6);
-    const cl=st.clients.find(x=>String(x.custId)===String(custId))||{};
-    const entry={lat:la,lng:lo,correctedAt:new Date().toISOString(),name:custName,city:cl.city||'',address:cl.address||''};
-    gpsCorrections[String(custId)]=entry;
-    const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
-    local[String(custId)]=entry;
-    localStorage.setItem('fr_gps_local',JSON.stringify(local));
-    updateGpsHistBtn();
-    apiFetch(`${API}/save-gps`,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({custId,lat:la,lng:lo,name:custName,city:cl.city||'',address:cl.address||''})
-    }).catch(()=>{});
-    st.clients=st.clients.map(x=>String(x.custId)===String(custId)?{...x,lat:la,lng:lo}:x);
-    st.aiClients=nearestNeighbor([...st.clients]);
-    st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null; triggerOsrm();
-    saveRoute(st.agent.code,st.day,st.clients);
-    updateKmBar(); renderClientList(); renderMap();
+    saveGpsCorrection(custId,custName,lat,lng);
     showToast('✅ מיקום נשמר');
   };
   map.on('click',_gpsClickHandler);
