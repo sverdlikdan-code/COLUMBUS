@@ -163,6 +163,8 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .excl-btn:hover,.client-card.excluded .excl-btn{opacity:.9;}
 .mekarer-btn{font-size:11px;flex-shrink:0;cursor:pointer;background:#BBDEFB;border:1.5px solid #42A5F5;border-radius:6px;padding:2px 6px;color:#1565C0;font-weight:900;line-height:1.3;text-align:center;transition:background .12s;min-height:28px;display:flex;align-items:center;justify-content:center;}
 .mekarer-btn:hover{background:#90CAF9;}
+.zikuy-btn{font-size:11px;flex-shrink:0;cursor:pointer;background:#FFCDD2;border:1.5px solid #EF5350;border-radius:6px;padding:2px 6px;color:#C62828;font-weight:900;line-height:1.3;text-align:center;transition:background .12s;min-height:28px;display:flex;align-items:center;justify-content:center;}
+.zikuy-btn:hover{background:#EF9A9A;}
 .ai-insight-btn{font-size:10px;flex-shrink:0;cursor:pointer;background:#D1C4E9;border:1.5px solid #9575CD;border-radius:6px;padding:2px 6px;color:#4527A0;font-weight:900;line-height:1.3;text-align:center;transition:background .12s;min-height:28px;display:flex;align-items:center;justify-content:center;letter-spacing:.3px;}
 .ai-insight-btn:hover{background:#B39DDB;}
 /* AI Analytics Modal */
@@ -1995,6 +1997,7 @@ function renderClientList(html){
           <span class="excl-btn" data-id="${c.custId}" onclick="toggleExclude('${c.custId}',event)" title="הוצא ממסלול">🚫</span>
           <span class="day-change-btn" data-id="${c.custId}" onclick="openDayPopup(event,this.dataset.id)">📅</span>
           <span class="mekarer-btn" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" data-city="${(c.city||'').replace(/"/g,'&quot;')}" onclick="openMekarerOrder(event,this.dataset.id,this.dataset.name,this.dataset.city)">🧊</span>
+          <span class="zikuy-btn" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" data-city="${(c.city||'').replace(/"/g,'&quot;')}" onclick="openZikuyOrder(event,this.dataset.id,this.dataset.name,this.dataset.city)" title="בקשת זיכוי">🔄</span>
           <span class="ai-insight-btn" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openClientAI(event,this.dataset.id,this.dataset.name)" title="ניתוח AI">AI</span>
           ${noGps
             ? `<span class="no-gps-badge" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name)">NO GPS</span>`
@@ -2057,6 +2060,15 @@ function openMekarerOrder(e,custId,custName,city){
   });
   window.open('mekarer-order.html?'+p.toString(),'_blank');
 }
+function openZikuyOrder(e,custId,custName,city){
+  if(e){e.stopPropagation();e.preventDefault();}
+  const agent=st.agent||{};
+  const p=new URLSearchParams({
+    custId,custName,city,
+    agentCode:agent.code||'',agentName:agent.name||'',
+  });
+  window.open('zikuy-order.html?'+p.toString(),'_blank');
+}
 function toggleExclude(custId,e){
   if(e){e.stopPropagation();e.preventDefault();}
   if(st.excluded.has(custId)) st.excluded.delete(custId); else st.excluded.add(custId);
@@ -2089,12 +2101,12 @@ let _dtapTime=0, _dtapId=null, _dtapStartY=0;
 function setupCardDoubleTap(listEl){
   listEl.addEventListener('touchstart',e=>{
     const card=e.target.closest('.client-card');
-    if(!card||e.target.closest('.day-change-btn,.no-gps-badge,.gps-edit-btn,.c-drag,.excl-btn,.mekarer-btn,.ai-insight-btn,.waze-btn')) return;
+    if(!card||e.target.closest('.day-change-btn,.no-gps-badge,.gps-edit-btn,.c-drag,.excl-btn,.mekarer-btn,.zikuy-btn,.ai-insight-btn,.waze-btn')) return;
     _dtapStartY=e.touches[0].clientY;
   },{passive:true});
   listEl.addEventListener('touchend',e=>{
     const card=e.target.closest('.client-card');
-    if(!card||e.target.closest('.day-change-btn,.no-gps-badge,.gps-edit-btn,.c-drag,.excl-btn,.mekarer-btn,.ai-insight-btn,.waze-btn')) return;
+    if(!card||e.target.closest('.day-change-btn,.no-gps-badge,.gps-edit-btn,.c-drag,.excl-btn,.mekarer-btn,.zikuy-btn,.ai-insight-btn,.waze-btn')) return;
     if(Math.abs(e.changedTouches[0].clientY-_dtapStartY)>12) return; // was scrolling
     e.preventDefault(); // prevent synthetic click from also firing
     selectClient(card.dataset.id);

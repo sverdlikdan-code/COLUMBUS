@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>בקשת זיכוי — FORMULA</title>
+<style>
+:root{
+  --blue:#1565C0;--blue-dark:#0D47A1;--sky:#E3F2FD;--sky-mid:#BBDEFB;
+  --green:#2E7D32;--orange:#E65100;--red:#C62828;
+  --text:#1A1A2E;--mid:#5C6BC0;--light:#90A4AE;
+  --bg:#F5F7FA;--card:#fff;--radius:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(--text);min-height:100vh;padding-bottom:90px;}
+.top-bar{background:linear-gradient(135deg,var(--blue-dark),var(--blue));color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2);}
+.back-btn{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;width:36px;height:36px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.top-title{font-size:16px;font-weight:800;flex:1;}
+.section{background:var(--card);border-radius:var(--radius);margin:12px;box-shadow:0 1px 4px rgba(21,101,192,.08);overflow:hidden;}
+.sec-head{background:var(--sky);padding:10px 14px;border-bottom:1px solid var(--sky-mid);display:flex;align-items:center;gap:8px;}
+.sec-title{font-size:14px;font-weight:800;color:var(--blue-dark);}
+.sec-body{padding:14px;}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.info-item{background:var(--sky);border-radius:8px;padding:8px 10px;}
+.info-lbl{font-size:10px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;}
+.info-val{font-size:13px;font-weight:700;color:var(--text);}
+.loading{text-align:center;padding:24px;color:var(--light);font-size:13px;}
+.chips{display:flex;flex-wrap:wrap;gap:6px;}
+.chip{padding:7px 14px;border-radius:20px;border:1.5px solid var(--sky-mid);background:#fff;font-size:13px;font-weight:700;cursor:pointer;color:var(--blue-dark);transition:all .15s;}
+.chip.on{background:var(--blue);color:#fff;border-color:var(--blue);}
+.crumb{font-size:12px;color:var(--mid);margin-bottom:10px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+.crumb b{color:var(--blue-dark);}
+.crumb .cr-back{cursor:pointer;color:var(--blue);text-decoration:underline;}
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px;margin-top:10px;}
+.photo-card{border:1.5px solid var(--sky-mid);border-radius:10px;padding:6px;text-align:center;cursor:pointer;background:#fff;transition:all .15s;}
+.photo-card:hover{border-color:var(--blue);box-shadow:0 2px 8px rgba(21,101,192,.15);}
+.photo-card.added{border-color:var(--green);background:#F1F8F1;}
+.photo-card img{width:100%;height:64px;object-fit:contain;border-radius:6px;background:#f5f5f5;margin-bottom:4px;}
+.photo-card .pname{font-size:10px;font-weight:700;color:var(--text);line-height:1.25;max-height:2.5em;overflow:hidden;}
+.photo-card .padd{font-size:9px;font-weight:800;color:var(--green);margin-top:2px;}
+.ret-tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.ret-tbl{border-collapse:collapse;width:100%;font-size:12px;min-width:640px;}
+.ret-tbl th{background:var(--blue-dark);color:#fff;font-weight:700;padding:7px 8px;white-space:nowrap;text-align:center;}
+.ret-tbl td{padding:5px 6px;border-bottom:1px solid var(--sky-mid);text-align:center;vertical-align:middle;}
+.ret-tbl td.prod-cell{text-align:right;display:flex;align-items:center;gap:6px;min-width:160px;}
+.ret-tbl td.prod-cell img{width:32px;height:32px;object-fit:contain;border-radius:4px;background:#f5f5f5;flex-shrink:0;}
+.ret-tbl input[type=number]{width:60px;padding:5px;border:1.5px solid var(--sky-mid);border-radius:6px;font-size:13px;text-align:center;}
+.ret-tbl input[type=date]{padding:5px;border:1.5px solid var(--sky-mid);border-radius:6px;font-size:12px;}
+.ret-tbl select{padding:5px;border:1.5px solid var(--sky-mid);border-radius:6px;font-size:12px;}
+.ret-empty{text-align:center;padding:16px;color:var(--light);font-size:12px;}
+.rm-btn{background:none;border:none;color:var(--red);font-size:16px;cursor:pointer;}
+.pct-hi{color:var(--red);font-weight:800;}
+.pct-lo{color:var(--mid);}
+.submit-bar{position:fixed;bottom:0;right:0;left:0;background:#fff;padding:12px 16px;box-shadow:0 -2px 12px rgba(0,0,0,.12);z-index:100;display:flex;gap:8px;}
+.submit-btn{flex:1;padding:14px;background:var(--green);color:#fff;border:none;border-radius:var(--radius);font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;}
+.submit-btn:disabled{background:var(--light);cursor:default;}
+.toast{position:fixed;bottom:90px;right:50%;transform:translateX(50%);background:#323232;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;z-index:9999;opacity:0;transition:opacity .3s;white-space:nowrap;}
+.toast.show{opacity:1;}
+#print-view{display:none;}
+@media print{
+  body *{visibility:hidden;}
+  #print-view,#print-view *{visibility:visible;}
+  #print-view{display:block;position:absolute;top:0;right:0;left:0;padding:20px;}
+  .no-print{display:none!important;}
+}
+.pv-tbl{border-collapse:collapse;width:100%;font-size:12px;margin-top:10px;}
+.pv-tbl th,.pv-tbl td{border:1px solid #999;padding:6px 8px;text-align:center;}
+.pv-tbl th{background:#eee;}
+</style>
+</head>
+<body>
+
+<div class="top-bar no-print">
+  <button class="back-btn" onclick="window.history.length>1?history.back():window.close()">→</button>
+  <div class="top-title">🔄 בקשת זיכוי</div>
+</div>
+
+<div class="section no-print">
+  <div class="sec-head"><span class="sec-title">👤 פרטי לקוח</span></div>
+  <div class="sec-body">
+    <div class="info-grid">
+      <div class="info-item"><div class="info-lbl">לקוח</div><div class="info-val" id="inf-name">—</div></div>
+      <div class="info-item"><div class="info-lbl">מס' לקוח</div><div class="info-val" id="inf-id">—</div></div>
+      <div class="info-item"><div class="info-lbl">עיר</div><div class="info-val" id="inf-city">—</div></div>
+      <div class="info-item"><div class="info-lbl">סוכן</div><div class="info-val" id="inf-agent">—</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="section no-print" id="browse-section">
+  <div class="sec-head"><span class="sec-title">📦 בחר מוצרים (FORMULA + ICE מיש בלבד, רק מוצרים שהלקוח קנה ב-365 יום)</span></div>
+  <div class="sec-body">
+    <div id="browse-loading" class="loading">⏳ טוען מוצרים...</div>
+    <div id="browse-body" style="display:none">
+      <div class="crumb" id="crumb"></div>
+      <div class="chips" id="chips"></div>
+      <div class="photo-grid" id="photo-grid"></div>
+    </div>
+  </div>
+</div>
+
+<div class="section no-print">
+  <div class="sec-head"><span class="sec-title">📋 טופס זיכוי</span></div>
+  <div class="sec-body">
+    <div class="ret-tbl-wrap">
+      <table class="ret-tbl">
+        <thead><tr>
+          <th>מוצר</th><th>% זיכויים 3 חודשים</th><th>כמות לזיכוי</th><th>תוקף</th><th>אופציה</th><th></th>
+        </tr></thead>
+        <tbody id="ret-tbody"></tbody>
+      </table>
+    </div>
+    <div class="ret-empty" id="ret-empty">לא נבחרו מוצרים עדיין — בחר מוצר מהרשימה למעלה</div>
+  </div>
+</div>
+
+<div class="submit-bar no-print">
+  <button class="submit-btn" id="ok-btn" onclick="buildProforma()" disabled>✅ OK — הפק בלנק</button>
+</div>
+
+<div id="print-view">
+  <h2 id="pv-title"></h2>
+  <div id="pv-meta" style="margin:8px 0;font-size:13px"></div>
+  <table class="pv-tbl">
+    <thead><tr><th>מוצר</th><th>כמות</th><th>תוקף</th><th>אופציה</th></tr></thead>
+    <tbody id="pv-tbody"></tbody>
+  </table>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'https://api.sverdlik-apps.site';
+const params = new URLSearchParams(location.search);
+const TOKEN = localStorage.getItem('frToken') || '';
+const custId = params.get('custId') || '';
+const custName = params.get('custName') || '';
+const city = params.get('city') || '';
+const agentCode = params.get('agentCode') || '';
+const agentName = params.get('agentName') || '';
+
+const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function showToast(msg,ms=2200){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),ms);
+}
+function apiFetch(path, opts = {}) {
+  return fetch(path.startsWith('http') ? path : API + path, {
+    ...opts, headers: { 'X-Session': TOKEN, ...(opts.headers || {}) },
+  });
+}
+
+let products = [];      // full 365-day history from server
+let curLabel = '';
+let selected = new Map(); // sku -> {product, qty, date, option}
+let navMachlaka = null; // currently drilled-into department
+let navFamily = null;   // currently drilled-into family
+
+// 6-month-back date bounds for the תוקף picker
+const today = new Date();
+const sixMonthsAgo = new Date(); sixMonthsAgo.setMonth(sixMonthsAgo.getMonth()-6);
+const dMax = today.toISOString().slice(0,10);
+const dMin = sixMonthsAgo.toISOString().slice(0,10);
+
+async function init(){
+  document.getElementById('inf-name').textContent = custName || '—';
+  document.getElementById('inf-id').textContent = custId || '—';
+  document.getElementById('inf-city').textContent = city || '—';
+  document.getElementById('inf-agent').textContent = agentName ? `${agentName} (${agentCode})` : (agentCode || '—');
+
+  if(!custId){ document.getElementById('browse-loading').textContent='❌ חסר מספר לקוח'; return; }
+  try{
+    const r = await apiFetch(`/api/client-returns/${custId}`);
+    const d = await r.json();
+    if(!d.ok) throw new Error(d.error||'שגיאה');
+    products = d.products||[]; curLabel = d.curLabel||'';
+    document.getElementById('browse-loading').style.display='none';
+    document.getElementById('browse-body').style.display='';
+    renderBrowse();
+  }catch(e){
+    document.getElementById('browse-loading').textContent='❌ '+e.message;
+  }
+}
+
+function renderBrowse(){
+  const chipsEl=document.getElementById('chips');
+  const gridEl=document.getElementById('photo-grid');
+  const crumbEl=document.getElementById('crumb');
+  gridEl.innerHTML='';
+
+  if(!navMachlaka){
+    crumbEl.innerHTML='<b>בחר מחלקה:</b>';
+    const machlakot=[...new Set(products.map(p=>p.machlaka).filter(Boolean))].sort();
+    chipsEl.innerHTML=machlakot.map(m=>`<span class="chip" data-m="${esc(m)}">${esc(m)}</span>`).join('');
+    chipsEl.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{navMachlaka=c.dataset.m;navFamily=null;renderBrowse();});
+    return;
+  }
+  if(!navFamily){
+    crumbEl.innerHTML=`<span class="cr-back" onclick="navMachlaka=null;renderBrowse()">↩ מחלקות</span> / <b>${esc(navMachlaka)}</b> — בחר משפחה:`;
+    const fams=[...new Set(products.filter(p=>p.machlaka===navMachlaka).map(p=>p.family).filter(Boolean))].sort();
+    chipsEl.innerHTML=fams.map(f=>`<span class="chip" data-f="${esc(f)}">${esc(f)}</span>`).join('');
+    chipsEl.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{navFamily=c.dataset.f;renderBrowse();});
+    return;
+  }
+  crumbEl.innerHTML=`<span class="cr-back" onclick="navMachlaka=null;navFamily=null;renderBrowse()">↩ מחלקות</span> / <span class="cr-back" onclick="navFamily=null;renderBrowse()">${esc(navMachlaka)}</span> / <b>${esc(navFamily)}</b>`;
+  chipsEl.innerHTML='';
+  const items=products.filter(p=>p.machlaka===navMachlaka&&p.family===navFamily);
+  gridEl.innerHTML=items.map(p=>{
+    const isAdded=selected.has(p.sku);
+    const img=p.imgUrl?`<img src="${esc(p.imgUrl)}" onerror="this.style.display='none'">`:'<div style="width:100%;height:64px;background:#f5f5f5;border-radius:6px;margin-bottom:4px"></div>';
+    return `<div class="photo-card ${isAdded?'added':''}" data-sku="${esc(p.sku)}">${img}<div class="pname">${esc(p.name)}</div>${isAdded?'<div class="padd">✓ נוסף</div>':''}</div>`;
+  }).join('');
+  gridEl.querySelectorAll('.photo-card').forEach(c=>c.onclick=()=>toggleProduct(c.dataset.sku));
+}
+
+function toggleProduct(sku){
+  if(selected.has(sku)){ selected.delete(sku); }
+  else{
+    const p=products.find(x=>x.sku===sku); if(!p) return;
+    selected.set(sku,{product:p,qty:1,date:dMax,option:'-50%'});
+  }
+  renderBrowse(); renderTable();
+}
+
+function renderTable(){
+  const tbody=document.getElementById('ret-tbody');
+  const empty=document.getElementById('ret-empty');
+  const okBtn=document.getElementById('ok-btn');
+  if(!selected.size){ tbody.innerHTML=''; empty.style.display=''; okBtn.disabled=true; return; }
+  empty.style.display='none'; okBtn.disabled=false;
+  tbody.innerHTML=[...selected.values()].map(row=>{
+    const p=row.product;
+    const pctClass=p.zikuyPct3mo>10?'pct-hi':'pct-lo';
+    const img=p.imgUrl?`<img src="${esc(p.imgUrl)}" onerror="this.style.display='none'">`:'';
+    return `<tr data-sku="${esc(p.sku)}">
+      <td class="prod-cell">${img}<span>${esc(p.name)}</span></td>
+      <td class="${pctClass}">${p.zikuyPct3mo}%</td>
+      <td><input type="number" min="1" value="${row.qty}" onchange="updateRow('${esc(p.sku)}','qty',this.value)"></td>
+      <td><input type="date" value="${row.date}" min="${dMin}" max="${dMax}" onchange="updateRow('${esc(p.sku)}','date',this.value)"></td>
+      <td><select onchange="updateRow('${esc(p.sku)}','option',this.value)">
+        <option value="-50%" ${row.option==='-50%'?'selected':''}>-50%</option>
+        <option value="אוטיל" ${row.option==='אוטיל'?'selected':''}>אוטיל</option>
+      </select></td>
+      <td><button class="rm-btn" onclick="toggleProduct('${esc(p.sku)}')">🗑</button></td>
+    </tr>`;
+  }).join('');
+}
+function updateRow(sku,field,val){
+  const row=selected.get(sku); if(!row) return;
+  row[field]= field==='qty' ? (parseInt(val,10)||1) : val;
+}
+
+function buildProforma(){
+  if(!selected.size){ showToast('בחר לפחות מוצר אחד'); return; }
+  const rows=[...selected.values()];
+  const now=new Date().toLocaleDateString('he-IL');
+  document.getElementById('pv-title').textContent=`בקשת זיכוי — ${custName} (${custId})`;
+  document.getElementById('pv-meta').innerHTML=`עיר: ${esc(city)} | סוכן: ${esc(agentName||agentCode)} | תאריך: ${now} | תקופת % זיכויים: ${esc(curLabel)}`;
+  document.getElementById('pv-tbody').innerHTML=rows.map(r=>
+    `<tr><td>${esc(r.product.name)}</td><td>${r.qty}</td><td>${r.date}</td><td>${esc(r.option)}</td></tr>`
+  ).join('');
+  window.print();
+  buildWhatsapp(rows,now);
+}
+
+function buildWhatsapp(rows,now){
+  let text=`🔄 בקשת זיכוי — ${custName} (${custId})\n${city} | סוכן: ${agentName||agentCode} | ${now}\n\n`;
+  rows.forEach(r=>{ text+=`• ${r.product.name} — כמות: ${r.qty} | תוקף: ${r.date} | ${r.option}\n`; });
+  const url='https://wa.me/?text='+encodeURIComponent(text);
+  const a=document.createElement('a');
+  a.href=url; a.target='_blank'; a.rel='noopener'; a.textContent='📱 פתח WhatsApp';
+  a.style.cssText='position:fixed;bottom:70px;left:16px;background:#25D366;color:#fff;padding:10px 18px;border-radius:10px;font-weight:800;text-decoration:none;z-index:9999;box-shadow:0 2px 10px rgba(0,0,0,.3)';
+  a.className='no-print';
+  document.body.appendChild(a);
+  showToast('הבלנק הוכן — פתח WhatsApp לשליחה');
+}
+
+init();
+</script>
+</body>
+</html>
