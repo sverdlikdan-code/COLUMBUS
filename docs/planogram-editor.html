@@ -4233,7 +4233,7 @@ function buildExpiryPage() {
     const mk = String(p.makat);
     const d  = productData[mk] || {};
     if (!(d.stock > 0) && !(d.stockZafn > 0) && !(d.stockTrnz > 0)) return null;
-    const salesMain = d.daySales || 0;
+    const salesMain = d.daySales ?? d.daySalesAll ?? 0;
     const salesZafn = d.daySalesZafn || 0;
     const shelfLife = d.shelfLife ?? 0;
     const batches   = { main: d.pakuot || [], zafn: d.pakuotZafn || [] };

@@ -1328,6 +1328,8 @@ async function main() {
         if (!d.pakuotZafn?.length && prev.pakuotZafn?.length) { d.pakuotZafn = _refreshBatches(prev.pakuotZafn); pakuotRestored++; }
         if (d.daySales    == null && prev.daySales    != null) { d.daySales    = prev.daySales;    salesRestored++; }
         if (d.daySalesZafn == null && prev.daySalesZafn != null) { d.daySalesZafn = prev.daySalesZafn; salesRestored++; }
+        if (d.daySalesTrnz == null && prev.daySalesTrnz != null) { d.daySalesTrnz = prev.daySalesTrnz; salesRestored++; }
+        if (d.daySalesAll  == null && prev.daySalesAll  != null) { d.daySalesAll  = prev.daySalesAll;  salesRestored++; }
         if (d.daysStock    == null && prev.daysStock    != null) d.daysStock    = prev.daysStock;
         if (d.daysStockZafn == null && prev.daysStockZafn != null) d.daysStockZafn = prev.daysStockZafn;
       }
