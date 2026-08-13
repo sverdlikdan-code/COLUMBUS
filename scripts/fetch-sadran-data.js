@@ -91,18 +91,22 @@ function daxDate(iso) {
 // [מספר לקוח קודם] — у части клиентов не совпадает с текущим) — джойн по custno
 // в таких случаях терял историю прошлого года и ошибочно помечал старого клиента
 // как "нового". KEY FOR CAT 7/KEY FOR DATA — официальный устойчивый ключ модели.
-// ALL_PARTS[שם סוכן] — берём агента с уровня ТРАНЗАКЦИИ, не с карточки клиента ('לקוחות
-// FORM+I+INT'[שם סוכן]). Найдено 2026-08-11: у ICE-клиентов карточка часто хранит один
-// устаревший/общий שם סוכן ("כללי - אייס - בודדים" — заглушка канала בודדים), тогда как
-// РЕАЛЬНЫЕ транзакции того же клиента в mish גלידה идут через 2-3 разных настоящих агента.
-// Доминирующий (по сумме ₪) агент на транзакциях — единственный надёжный источник.
+// Агент (שם סוכן) — берём с карточки клиента ('לקוחות FORM+I+INT'[שם סוכן]), не с уровня
+// транзакции (решение пользователя 2026-08-13). Раньше пробовали агента с транзакций
+// ALL_PARTS[שם סוכן] (найдено 2026-08-11: у ICE-клиентов карточка иногда хранит один
+// שם סוכן на весь HEVRA-аккаунт, хотя разные транзакции того же клиента идут через
+// разных людей) — но и обратная проблема реальна: у клиента 1162000 доминирующий
+// транзакционный агент для mish גלידה оказался человеком, который в остальных
+// транзакциях этого клиента ведёт другой канал (גלידה bdd/בודדים, не входит в отчёт).
+// Карточка клиента — единственное поле с ОДНИМ агентом на (клиента, компания), это и есть
+// официально закреплённый контакт, даже если он не всегда совпадает с тем, кто провёл
+// конкретную транзакцию.
 async function fetchSalesByCustDept(startIso, endExclusiveIso) {
   const q = `EVALUATE
 SUMMARIZECOLUMNS(
   ALL_PARTS[KEY FOR CAT 7],
   'ADIFUT FOR DEILTA'[מחלקה],
   ALL_PARTS[תאור משפחת מוצר],
-  ALL_PARTS[שם סוכן],
   FILTER(ALL_PARTS, ALL_PARTS[תאריך] >= ${daxDate(startIso)} && ALL_PARTS[תאריך] < ${daxDate(endExclusiveIso)}),
   "amt", [TOTAL SALES netto]
 )`;
@@ -264,7 +268,6 @@ async function main() {
   // у fetchSalesByCustDept/fetchCustomerDims про переприсвоение מספר לקוח во времени.
   function aggregate(daxRows) {
     const agg = new Map(); // keyForData|dept -> amt
-    const agentAgg = new Map(); // keyForData|dept -> Map(sochenRaw -> amt)
     let skippedDept = 0, skippedCust = 0, skippedBodedim = 0, skippedCrossHevra = 0;
     for (const r of daxRows) {
       const keyForData = String(r['ALL_PARTS[KEY FOR CAT 7]'] || '').trim();
@@ -279,51 +282,28 @@ async function main() {
       if (expectedHevra && !keyForData.startsWith(expectedHevra)) { skippedCrossHevra++; continue; }
       const key = `${keyForData}|${dept}`;
       agg.set(key, (agg.get(key) || 0) + amt);
-      const sochenRaw = r['ALL_PARTS[שם סוכן]'] || '';
-      if (!agentAgg.has(key)) agentAgg.set(key, new Map());
-      const am = agentAgg.get(key);
-      am.set(sochenRaw, (am.get(sochenRaw) || 0) + amt);
     }
-    return { agg, agentAgg, skippedDept, skippedCust, skippedBodedim, skippedCrossHevra };
+    return { agg, skippedDept, skippedCust, skippedBodedim, skippedCrossHevra };
   }
-  const { agg: nowAgg, agentAgg: nowAgentAgg, skippedDept: nowSkipDept, skippedCust: nowSkipCust, skippedBodedim: nowSkipBod, skippedCrossHevra: nowSkipCross } = aggregate(nowRaw);
-  const { agg: lyAgg, agentAgg: lyAgentAgg, skippedDept: lySkipDept, skippedCust: lySkipCust, skippedBodedim: lySkipBod, skippedCrossHevra: lySkipCross } = aggregate(lyRaw);
+  const { agg: nowAgg, skippedDept: nowSkipDept, skippedCust: nowSkipCust, skippedBodedim: nowSkipBod, skippedCrossHevra: nowSkipCross } = aggregate(nowRaw);
+  const { agg: lyAgg, skippedDept: lySkipDept, skippedCust: lySkipCust, skippedBodedim: lySkipBod, skippedCrossHevra: lySkipCross } = aggregate(lyRaw);
   console.log(`  now: пропущено (dept/клиент/בודדים/кросс-HEVRA) = ${nowSkipDept}/${nowSkipCust}/${nowSkipBod}/${nowSkipCross}`);
   console.log(`  ly:  пропущено (dept/клиент/בודדים/кросс-HEVRA) = ${lySkipDept}/${lySkipCust}/${lySkipBod}/${lySkipCross}`);
-
-  // dominantAgent — реальный агент с уровня транзакций (ALL_PARTS[שם סוכן]), не с карточки
-  // клиента: карточка клиента ('לקוחות FORM+I+INT'[שם סוכן]) для ICE иногда хранит один
-  // устаревший/общий "כללי - אייס - בודדים" на весь HEVRA-аккаунт, а реальные транзакции того
-  // же клиента в mish גלידה идут через 2-3 разных настоящих агента (найдено 2026-08-11).
-  // Берём агента с наибольшей суммой ₪ за оба периода вместе — самый представительный.
-  function dominantAgent(key) {
-    const combined = new Map();
-    for (const m of [nowAgentAgg.get(key), lyAgentAgg.get(key)]) {
-      if (!m) continue;
-      for (const [sochenRaw, amt] of m) combined.set(sochenRaw, (combined.get(sochenRaw) || 0) + amt);
-    }
-    let best = '', bestAmt = -Infinity;
-    for (const [sochenRaw, amt] of combined) {
-      if (amt > bestAmt) { best = sochenRaw; bestAmt = amt; }
-    }
-    return best;
-  }
 
   const allKeys = new Set([...nowAgg.keys(), ...lyAgg.keys()]);
   const outRows = [];
   for (const key of allKeys) {
     const [keyForData, dept] = key.split('|');
     const dim = custDims.get(keyForData);
-    const sochenRaw = dominantAgent(key);
     outRows.push({
       kosher: dim.kosher,
       city: dim.city,
       custno: dim.custno,
       custname: dim.custname,
       sadran: dim.sadran,
-      // сырой (не fixBiDi'нутый) — как и dim.sochen: sadran-data.js's loadRowsFromCache
-      // применяет fixBiDi один раз при загрузке, здесь применять нельзя (задвоение = порча текста).
-      sochen: sochenRaw || dim.sochen,
+      // сырой (не fixBiDi'нутый) — sadran-data.js's loadRowsFromCache применяет fixBiDi
+      // один раз при загрузке, здесь применять нельзя (задвоение = порча текста).
+      sochen: dim.sochen,
       dept,
       custtype: dim.custtype,
       lastYear: lyAgg.get(key) || 0,
