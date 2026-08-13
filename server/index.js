@@ -3852,6 +3852,138 @@ ROW(
   }
 });
 
+// ── Client Return Form (זיכוי) — products this client bought in the last 365 days,
+// each with a 3-closed-month return-rate (% זיכויים) and photo, for building a
+// physical-return proforma. Header (client/city/agent) comes from the URL query string
+// on the frontend page — this endpoint only needs to return the product list.
+app.get('/api/client-returns/:custId', requireAuth, async (req, res) => {
+  const custId = String(req.params.custId || '').trim();
+  if (!custId) return res.status(400).json({ ok: false, error: 'custId required' });
+  if (!/^\d{1,15}$/.test(custId)) return res.status(400).json({ ok: false, error: 'invalid custId' });
+
+  const now = new Date();
+  const cm = now.getMonth() + 1, cy = now.getFullYear();
+  const periodMonths = (fromBack, toBack) => {
+    const arr = [];
+    for (let i = fromBack; i >= toBack; i--) {
+      let m = cm - i, y = cy;
+      if (m <= 0) { m += 12; y--; }
+      arr.push({ year: y, month: m });
+    }
+    return arr;
+  };
+  const curMonths = periodMonths(3, 1);
+  const curStart = curMonths[0], curEnd = curMonths[2];
+  const curLastDay = new Date(curEnd.year, curEnd.month, 0).getDate();
+  const d365 = new Date(Date.now() - 365 * 86400000);
+  const INTER_CATS_RET = new Set(['מתוקים  🍬']);
+  const classifyCompanyRet = (machlaka) => {
+    if (!machlaka) return null;
+    if (machlaka.includes('mish')) return 'ICE_MISH';
+    if (machlaka.includes('bdd')) return 'ICE_BDD';
+    if (INTER_CATS_RET.has(machlaka)) return 'INTER';
+    return 'FORMULA';
+  };
+
+  try {
+    // 365-day purchase history — candidates for return (never show products the client
+    // never actually bought).
+    const histDax = `
+EVALUATE
+CALCULATETABLE(
+  ADDCOLUMNS(
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[מק'ט], ALL_PARTS[תאור מוצר], ALL_PARTS[תאור משפחת מוצר]),
+    "מחלקה", LOOKUPVALUE(ADIFUT[מחלקה], ADIFUT[תאור משפחה], ALL_PARTS[תאור משפחת מוצר]),
+    "total365", CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)])
+  ),
+  ALL_PARTS[מספר לקוח] = "${custId}",
+  ALL_PARTS[ASHMADOT] = "-מכר-",
+  ALL_PARTS[תאריך] >= DATE(${d365.getFullYear()},${d365.getMonth() + 1},${d365.getDate()})
+)`;
+    // 3-closed-month return % per SKU. The model's own [% זיכויים] measure exists but
+    // ignores SKU-level filters entirely (verified live: 3 different SKUs all returned
+    // the identical client-wide number) — it's built for client/company granularity, not
+    // per-product. Computed manually instead: positive vs negative raw amounts, same
+    // underlying concept as "TOTAL SALES (ללא זיכויים מרכזים)" excludes, just at SKU level.
+    const zikuyDax = `
+EVALUATE
+CALCULATETABLE(
+  ADDCOLUMNS(
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[מק'ט]),
+    "positive", CALCULATE(SUM(ALL_PARTS[סכום (ש'ח)]), ALL_PARTS[סכום (ש'ח)] > 0),
+    "negative", CALCULATE(SUM(ALL_PARTS[סכום (ש'ח)]), ALL_PARTS[סכום (ש'ח)] < 0)
+  ),
+  ALL_PARTS[מספר לקוח] = "${custId}",
+  ALL_PARTS[ASHMADOT] = "-מכר-",
+  ALL_PARTS[תאריך] >= DATE(${curStart.year},${curStart.month},1),
+  ALL_PARTS[תאריך] <= DATE(${curEnd.year},${curEnd.month},${curLastDay})
+)`;
+
+    const [histRows, zikuyRows] = await Promise.all([executeDax(histDax), executeDax(zikuyDax)]);
+
+    const zikuyMap = new Map();
+    zikuyRows.forEach(r => {
+      const sku = String(r["ALL_PARTS[מק'ט]"] || '');
+      const pos = r['[positive]'] || 0, neg = r['[negative]'] || 0;
+      zikuyMap.set(sku, pos > 0 ? Math.round((Math.abs(neg) / pos) * 1000) / 10 : 0);
+    });
+
+    let products = histRows
+      .filter(r => Math.round(r['[total365]'] || 0) > 0)
+      .map(r => {
+        const sku = String(r["ALL_PARTS[מק'ט]"] || '');
+        const machlaka = r['[מחלקה]'] || '';
+        return {
+          sku,
+          name: fixBiDi(r['ALL_PARTS[תאור מוצר]'] || ''),
+          family: fixBiDi(r['ALL_PARTS[תאור משפחת מוצר]'] || ''),
+          machlaka: fixBiDi(machlaka),
+          company: classifyCompanyRet(machlaka),
+          total365: Math.round(r['[total365]'] || 0),
+          zikuyPct3mo: zikuyMap.get(sku) || 0,
+          imgUrl: '',
+        };
+      })
+      .filter(p => p.company);
+
+    // INTER has no real family field of its own — use KARTIS PARIT INTER's own פרמטר 2
+    // sub-category instead, same convention as the dormant-products feature.
+    const interProducts = products.filter(p => p.company === 'INTER');
+    if (interProducts.length) {
+      const skuIn = interProducts.map(p => `"${p.sku}"`).join(',');
+      const p2Rows = await executeDax(
+        `EVALUATE SELECTCOLUMNS(FILTER('KARTIS PARIT INTER', 'KARTIS PARIT INTER'[מק"ט] IN {${skuIn}}), "sku", 'KARTIS PARIT INTER'[מק"ט], "p2", 'KARTIS PARIT INTER'[תאור פרמטר 2 למוצר], "img", 'KARTIS PARIT INTER'[URL תמונה])`
+      );
+      const p2Map = new Map(p2Rows.map(r => [String(r['[sku]']), { p2: fixBiDi(r['[p2]'] || ''), img: r['[img]'] || '' }]));
+      interProducts.forEach(p => { const m = p2Map.get(p.sku); if (m) { p.family = m.p2 || p.family; p.imgUrl = m.img || ''; } });
+    }
+
+    // FORMULA and ICE each have their OWN KARTIS PARIT product-master table (ICE SKUs
+    // aren't in the main KARTIS PARIT at all — verified live earlier this session).
+    const fetchPhotosRet = async (items, table) => {
+      if (!items.length) return;
+      const skuIn = items.map(p => `"${p.sku}"`).join(',');
+      const rows = await executeDax(
+        `EVALUATE SELECTCOLUMNS(FILTER('${table}', '${table}'[מק"ט] IN {${skuIn}}), "sku", '${table}'[מק"ט], "img", '${table}'[URL תמונה])`
+      );
+      const imgMap = new Map(rows.map(r => [String(r['[sku]']), r['[img]'] || '']));
+      items.forEach(p => { p.imgUrl = imgMap.get(p.sku) || ''; });
+    };
+    await Promise.all([
+      fetchPhotosRet(products.filter(p => p.company === 'FORMULA'), 'KARTIS PARIT'),
+      fetchPhotosRet(products.filter(p => p.company === 'ICE_MISH' || p.company === 'ICE_BDD'), 'KARTIS PARIT ICE'),
+    ]);
+
+    res.json({
+      ok: true,
+      products,
+      curLabel: `${curStart.month}/${curStart.year}-${curEnd.month}/${curEnd.year}`,
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // ── AI Client Analytics — per-customer sales by מחלקה, 3 closed months ──────
 // Uses main FORMULA dataset (POWERBI_DATASET_ID): ALL_PARTS + ADIFUT[מחלקה]
 app.get('/api/client-analytics/:custId', requireAuth, async (req, res) => {
