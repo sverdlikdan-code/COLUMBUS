@@ -3833,9 +3833,10 @@ app.get('/api/client-analytics/:custId', requireAuth, async (req, res) => {
   const lang = (req.query.lang || 'he').slice(0, 2);
   if (!GEMINI_API_KEY && !ANTHROPIC_API_KEY) return res.status(503).json({ ok: false, error: 'AI not configured' });
 
-  // Two 3-month windows: current (last 3 closed months) vs prior (the 3 before that) —
-  // period-over-period, not a monthly breakdown, so the agent sees what's accelerating
-  // vs slowing down at a glance.
+  // Two 3-month windows: current (last 3 closed months) vs the SAME 3 calendar months one
+  // year earlier — YoY, not a rolling prior-quarter comparison. Seasonal categories (e.g.
+  // ice cream in summer) would otherwise show a fake "decline" against the prior 3 months
+  // just because of the season, not real performance.
   const now = new Date();
   const cm = now.getMonth() + 1, cy = now.getFullYear();
   const periodMonths = (fromBack, toBack) => {
@@ -3848,7 +3849,7 @@ app.get('/api/client-analytics/:custId', requireAuth, async (req, res) => {
     return arr;
   };
   const curMonths = periodMonths(3, 1);
-  const priorMonths = periodMonths(6, 4);
+  const priorMonths = curMonths.map(m => ({ year: m.year - 1, month: m.month, label: `${m.month}/${m.year - 1}` }));
   const curStart = curMonths[0], curEnd = curMonths[2];
   const priorStart = priorMonths[0], priorEnd = priorMonths[2];
   const SKIP_CATS = new Set(['ציוד', 'שאריות', 'תגמולים']);
