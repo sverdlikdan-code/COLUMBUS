@@ -29,6 +29,8 @@
 - [[agent-mahsan]] — Агент Mahsan — планограмма холодного склада FORMULA, bay allocation, warehouse-plan.html
 - [[agent-skill-creator]] — Агент Skill Creator — создание, редактирование и оптимизация SKILL.md в системе COLUMBUS
 - [[agent-fin-agent]] — Агент Fin-Agent — мониторинг токенов Claude API, сравнение моделей, рекомендации по экономии
+- [[power-bi-agent]] — Агент Power BI — аудит и улучшение отчётов COLUMBUS, главный файл INTERNATIONAL CONTROL DESK.pbix
+- [[ceo-autostart]] — Автозапуск COLUMBUS при включении Windows + автоактивация CEO Agent через Cursor project hooks и Scheduled Task
 - [[session-2026-05-10]] — Сессия 2026-05-10: mahsan, skill-creator, fin-agent, CEO dispute mode, weekly market scan routine
 - [[marshrut-rud]] — Интерактивная карта маршрутов RUD: 2 дня, Ashdod + Rishon, деплой на api.sverdlik-apps.site/marshrut-rud
 - [[mahsan-planogram]] — MAHSAN PLANOGRAM build system + planogram-editor עמוד תוקף, per-warehouse sales/days, סכנה logic
@@ -57,28 +59,31 @@
 - [[session-2026-06-22]] — Сессия 2026-06-22: Formula Road session persistence, order-dagim xlsx фикс + стандарт отступов/Total для Excel, перенос на 2-й комп, мультикомпьютерный git-workflow
 - [[session-2026-06-23]] — Сессия 2026-06-23: Formula Road фикс 503 (два cloudflared), фикс loadAgentList (agentsByManager), config.yml ingress rule, git HEAD recover
 - [[session-2026-06-24]] — Сессия 2026-06-24: הזמנה header 3-row MMD redesign, donut star inside SVG, spo/חסר במלאי logic, krat xlsx fix, totalBranchy period-linked (1837 vs 2031)
-- [[session-2026-06-24b]] — Сессия 2026-06-24 (вечер): MMD ORDERS CI fix, SKU 1004, фильтр семейств, сплэш фото, fixBiDi имена продуктов
-- [[session-2026-06-25]] — Сессия 2026-06-25: Excel фото+умная таблица+скромные цвета, תוקף נדרש flag, חסר в maavarMode, export=filtered()
 - [[formula-road-app]] — Formula Road SQL Migration: /managers /manager-agents /customers → form.dbo, fixPriNumbers, Google Maps первый, bbox→null кэш
 - [[session-2026-06-26-security]] — Сессия 2026-06-26: еженедельный security scan + hardening — SSRF, auth guards, DAX injection, mekarer whitelist, rate limit fix
 - [[session-2026-06-28-print]] — Сессия 2026-06-28: תוקף print A4 landscape финальный фикс — per-row zoom, width 100%, symmetry, no blank page
 - [[session-2026-06-29]] — Сессия 2026-06-29: MMD ORDERS 3 бага чипов месяцев (IIFE scope, ReferenceError, off-by-one); fin-agent report; power-bi-dax skill v2; Prophet/Fabric исследование
 - [[session-2026-07-01-mekarer]] — Сессия 2026-07-01: הזמנת מקרר — root cause (рогатый локальный сервер), email Resend, Excel вложение, no-merge, Invalid Date fix, телефон RTL
 - [[session-2026-07-02-infra]] — Сессия 2026-07-02: туннель 579497d4 перенесён на VPS (cloudflared-api); GPS zoom fix; OSM тайл при תקן מיקום; IS_LOCAL loop fix
+- [[session-2026-07-05]] — Сессия 2026-07-05 (вечерняя): MMD кэш-баст [v07] редирект, Hebrew BiDi аудит, Prophet
 - [[migration-plan-vps]] — ПЛАН МИГРАЦИИ: анализ 6 ошибок Formula Road + чеклист для MMD Orders и Mahsan Editor
 - [[skill-hebrew-bidi]] — Скилл Hebrew BiDi: карта 5 функций (fixBiDi×4, fixVisualRTL×4, fixHebRTL×5), дерево решений, HTML RTL шаблоны
 - [[session-2026-07-07-prophet]] — Сессия 2026-07-07: Prophet stale eilat_k в таблице и панели — два фикса; cap ordV при рендере
 - [[session-2026-07-07-mahsan]] — Сессия 2026-07-07: MAHSAN STOP SALE фиолетовая рамка в combined view; isBatchStop; Excel סטנד open
 - [[session-2026-07-07-formula-road]] — Сессия 2026-07-07: geocode 2107 клиентов, google-gps.json, territory-planner, VPS deploy
 - [[session-2026-07-08-ai-analytics]] — Сессия 2026-07-08: AI кнопка на клиентах, Gemini 1.5 Flash, day briefing YoY, invite system, F5 restore, GPS priority
+- [[session-2026-07-14-pbi-refresh]] — Сессия 2026-07-14: PBI Refresh Management (FORMULA DASHBORD schedule отключён после ошибок) + MMD Credentials
 - [[session-2026-07-15-mmd-fixes]] — Сессия 2026-07-15: VPS_URL TDZ crash (252 рестарта), Excel corruption fix (autoFilter+theme), _effOrd() unification, prophet week 27 analysis
 - [[jjs-moveset-generator]] — JJS Moveset Generator: Railway деплой, EVASIVE/Blockable/ForceY, Umami, Edit This Build, тултипы, CSP fix
+- [[session-2026-07-19-cache-bust]] — Сессия 2026-07-19: tukuf.html redesign, SKU 659/664 фиксы, week numbering Sunday-based, cache-bust redirect
+- [[session-2026-07-19-mahsan-bugs]] — Сессия 2026-07-19: MAHSAN — двоение позиций + stock=0 для דג יבש
 - [[session-2026-07-20-territory-filters]] — Сессия 2026-07-20: Territory agent/manager dropdowns, city в popup, auto-reload городов, /agent-cities endpoint, unified кнопки
 - [[session-2026-07-21-dagim-order-fixes]] — Сессия 2026-07-21: slider all-rows, history dropdown position:fixed, pakuot 1166/1167 restore, security audit (ts innerHTML fix)
 - [[session-2026-07-21-territory-visit-order]] — Сессия 2026-07-21: Visit order Google+גרסה, линии маршрута, ביקור שני, ICE badge iceOnly, редизайн day-cards, кнопка כל нейтральная
 - [[session-2026-07-22-gps-fix]] — Сессия 2026-07-22: PBI приоритет над Google (360 клиентов), מגה בעיר חיפה фикс, gps-corrections синхронизация VPS, bbox preload
 - [[session-2026-07-23-mahsan-print-yavesh]] — Сессия 2026-07-23: print cards EAN 6 цифр + emoji inline, yavesh תוקף fix (SKIP_YAVESH_FETCH CI флаг)
 - [[session-2026-07-28-mahsan-stale-fix]] — Сессия 2026-07-28: "עוגת לימון" stale localStorage фикс — makat-change detection в merge логике; priority-sql PRD+Vault; CURDATE фикс icecrea/form M коды
+- [[skill-priority-sql]] — Скилл Priority SQL: работа с ERP через SQL Server 192.168.100.246 (form/diller/icecrea/mmdint) + REST API
 - [[session-2026-07-22-security-audit-3apps]] — Сессия 2026-07-22: read-only аудит Formula Road/Mahsan/MMD Orders, критичные CORS-находки пофикшены, PBI-гейт сверка, VPS .env проверен по SSH
 - [[diler-intelligence-pitch]] — Diler Intelligence (была DILL IT): питч о выделении IT+AI+BI-направления в отдельную структуру, статус и открытые вопросы
 - [[session-2026-08-05-security-audit]] — Сессия 2026-08-04/05/06: полный security audit, 13 фиксов, оценка 7→9/10, mahsan auth gate
