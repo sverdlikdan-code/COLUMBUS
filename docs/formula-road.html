@@ -179,6 +179,11 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 #ai-modal-body{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:14px 16px;flex:1;}
 .ai-families-tbl{width:100%;border-collapse:collapse;font-size:15px;margin-bottom:14px;}
 .ai-families-tbl th{background:#F3E5F5;color:#4A148C;padding:5px 7px;text-align:right;font-weight:800;border-bottom:2px solid #CE93D8;}
+/* Numeric/date columns (everything but the first, label, column) hold their values
+   left-aligned (see the inline text-align:left on those <td>s below) — the header
+   must sit over the same edge as its own values, not stay right-aligned like the
+   label column, or the header text visually floats away from the numbers it names. */
+.ai-families-tbl th:not(:first-child){text-align:left;}
 .ai-families-tbl td{padding:4px 7px;border-bottom:1px solid #F3E5F5;color:#333;}
 .ai-families-tbl tr:last-child td{border-bottom:none;}
 .ai-families-tbl .dropped{color:#C62828;font-style:italic;}
