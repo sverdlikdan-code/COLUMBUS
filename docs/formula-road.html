@@ -1416,7 +1416,7 @@ async function initRoute(){
   const myId = ++_initRouteId;
   st.sortMode=(st.aiGpsMode||st.tabletGpsMode)?'ai':'priority'; st.selectedCities=[]; st.selectedId=null;
   st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null;
-  st.excluded=loadExcluded(st.agent?.code, st.day);
+  st.excluded=new Set();
   document.getElementById('route-title').textContent='DILER FORMULA';
   document.getElementById('route-sub').textContent=`${st.agent.name} · ${st.day===0?'לא מוגדר':'יום '+DAY_LABELS[st.day]}`;
   document.getElementById('export-btn').classList.remove('visible');
@@ -2029,11 +2029,8 @@ function renderClientList(html){
   }
 }
 
-function saveExcluded(code,day){ localStorage.setItem(`excl_${code}_${day}`,JSON.stringify([...st.excluded])); }
-function loadExcluded(code,day){ try{return new Set(JSON.parse(localStorage.getItem(`excl_${code}_${day}`)||'[]'));}catch(_){return new Set();} }
 function resetExcluded(){
   st.excluded=new Set();
-  saveExcluded(st.agent?.code, st.day);
   st.aiClients=nearestNeighbor([...activeClients()]);
   st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null;
   updateKmBar(); renderClientList(); renderMap();
@@ -2072,7 +2069,6 @@ function openZikuyOrder(e,custId,custName,city){
 function toggleExclude(custId,e){
   if(e){e.stopPropagation();e.preventDefault();}
   if(st.excluded.has(custId)) st.excluded.delete(custId); else st.excluded.add(custId);
-  saveExcluded(st.agent?.code, st.day);
   const withGps=activeClients().filter(c=>c.lat&&c.lng);
   st.aiClients=nearestNeighbor([...activeClients()]);
   st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null;
