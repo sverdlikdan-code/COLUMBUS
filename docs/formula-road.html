@@ -1997,7 +1997,7 @@ function renderClientList(html){
           <span class="excl-btn" data-id="${c.custId}" onclick="toggleExclude('${c.custId}',event)" title="הוצא ממסלול">🚫</span>
           <span class="day-change-btn" data-id="${c.custId}" onclick="openDayPopup(event,this.dataset.id)">📅</span>
           <span class="mekarer-btn" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" data-city="${(c.city||'').replace(/"/g,'&quot;')}" onclick="openMekarerOrder(event,this.dataset.id,this.dataset.name,this.dataset.city)">🧊</span>
-          <span class="zikuy-btn" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" data-city="${(c.city||'').replace(/"/g,'&quot;')}" onclick="openZikuyOrder(event,this.dataset.id,this.dataset.name,this.dataset.city)" title="בקשת זיכוי">🔄</span>
+          <span class="zikuy-btn" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" data-city="${(c.city||'').replace(/"/g,'&quot;')}" onclick="openZikuyOrder(event,this.dataset.id,this.dataset.name,this.dataset.city)" title="בקשת זיכוי">זיכוי</span>
           <span class="ai-insight-btn" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openClientAI(event,this.dataset.id,this.dataset.name)" title="ניתוח AI">AI</span>
           ${noGps
             ? `<span class="no-gps-badge" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name)">NO GPS</span>`

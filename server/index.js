@@ -3571,6 +3571,25 @@ app.get('/mekarer-order.html', (req, res) => {
 app.get('/zikuy-order.html', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'zikuy-order.html'));
 });
+// Public, allowlisted image proxy: priority.dilerbmd.com sends no CORS headers,
+// so html2canvas can't capture hotlinked product photos into the zikuy WhatsApp share.
+// Re-serves the same public product photo with Access-Control-Allow-Origin set.
+app.get('/api/img-proxy', async (req, res) => {
+  const url = String(req.query.url || '');
+  if (!/^https:\/\/priority\.dilerbmd\.com\/[A-Za-z0-9_\-\/.]+\.(jpg|jpeg|png|gif|webp)$/i.test(url)) {
+    return res.status(400).send('invalid url');
+  }
+  try {
+    const upstream = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (!upstream.ok) return res.status(502).send('upstream error');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Content-Type', upstream.headers.get('content-type') || 'image/jpeg');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(Buffer.from(await upstream.arrayBuffer()));
+  } catch (e) {
+    res.status(502).send('fetch failed');
+  }
+});
 app.get('/territory-planner.html', formulaRoadGuard, (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'territory-planner.html'));
 });
