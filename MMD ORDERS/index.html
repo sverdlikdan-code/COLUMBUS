@@ -1817,6 +1817,7 @@
           const mk = String(r.mkt ?? '');
           const s  = svSnap[mk] || {};
           if (!maavarMode && (r.ashdod_k ?? 0) <= 0 && (r.mmd_k ?? 0) <= 0) return;
+          if (maavarMode && (r.maavar ?? 0) <= 0) return;
           if (s.k == null) {
             let v = _effOrd(r, s);
             const cap = maavarMode ? (r.maavar ?? 0) : (r.ashdod_k ?? 0);
@@ -1840,6 +1841,7 @@
         if (archivedMkts.has(String(r.mkt))) return false;
         if (cos.size && !cos.has(r.hevra)) return false;
         if (!maavarMode && (r.ashdod_k ?? 0) <= 0 && (r.mmd_k ?? 0) <= 0) return false;
+        if (maavarMode && (r.maavar ?? 0) <= 0) return false;
         const s = sv[String(r.mkt ?? '')] || {};
         return _effOrd(r, s) > 0;
       });
@@ -2045,6 +2047,7 @@
         const mk = String(r.mkt ?? '');
         const s  = svSnap[mk] || {};
         if (!maavarMode && (r.ashdod_k ?? 0) <= 0 && (r.mmd_k ?? 0) <= 0) return;
+        if (maavarMode && (r.maavar ?? 0) <= 0) return;
         if (s.k == null) {
           const v = _effOrd(r, s);
           if (v > 0) {
