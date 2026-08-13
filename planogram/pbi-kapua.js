@@ -1013,25 +1013,12 @@ async function fetchDagimFromBI() {
   }
 
   const mkSet = '{' + makatim.map(m => `"${m}"`).join(',') + '}';
-  const [stockMap, pakuotMap, pakuotZafnMap, pakuotAllMap, stopSaleMap, mlayStockRowsDag, openOrdersRowsDag] = await Promise.all([
+  const [stockMap, pakuotMap, pakuotZafnMap, pakuotAllMap, stopSaleMap, openOrdersRowsDag] = await Promise.all([
     fetchStockMain(makatim),
     fetchPakuotForMakats(makatim),
     fetchPakuotZafnForMakats(makatim),
     fetchPakuotAllForMakats(makatim),
     fetchStopSale(t, makatim),
-    // MLAY all-warehouse stock units + pack factor
-    dax(t, `
-      EVALUATE
-      ADDCOLUMNS(
-        SUMMARIZE(
-          FILTER(MLAY, CONTAINSROW(${mkSet}, MLAY[מק'ט]) && MLAY[חברה] = "FORMULA"),
-          MLAY[מק'ט],
-          "stockUnits", SUM(MLAY[מלאי זמין])
-        ),
-        "packFactor", LOOKUPVALUE('גורם אירוז'[תכולת האריזה למוצר], 'גורם אירוז'[מק"ט], MLAY[מק'ט])
-      )
-    `).catch(() => []),
-    // Open purchase orders in cartons
     dax(t, `
       EVALUATE
       SUMMARIZE(
@@ -1042,15 +1029,6 @@ async function fetchDagimFromBI() {
     `).catch(() => []),
   ]);
 
-  const mlayMapDag = {};
-  for (const r of (mlayStockRowsDag || [])) {
-    const mk = r["MLAY[מק'ט]"];
-    if (!mk) continue;
-    const units = r['[stockUnits]'] || 0;
-    const pf    = r['[packFactor]'] || 1;
-    mlayMapDag[String(mk)] = { stockAllWh: pf > 0 ? Math.round(units / pf) : 0 };
-  }
-
   const ooMapDag = {};
   for (const r of (openOrdersRowsDag || [])) {
     const mk = r['הזמנות רכש פתוחות[מק"ט]'];
@@ -1059,43 +1037,31 @@ async function fetchDagimFromBI() {
 
   for (const mk of makatim) {
     const fm  = stockMap[mk] || {};
-    const ml  = mlayMapDag[mk] || {};
-    const oo  = ooMapDag[mk]  || 0;
-    const stk = ml.stockAllWh ?? fm.stock ?? 0;
+    const oo  = ooMapDag[mk] || 0;
     Object.assign(result[mk], {
       stock:        fm.stock        ?? 0,
       daySales:     fm.daySales     ?? null,
       daySalesAll:  fm.daySalesAll  ?? null,
-      daySales180:   fm.daySales180   ?? null,
-      stockZafn:     fm.stockZafn     ?? 0,
-      daySalesZafn:  fm.daySalesZafn  ?? null,
-      daysStock:     fm.daysStock     ?? null,
-      daysStockZafn: fm.daysStockZafn ?? null,
-      stockTrnz:     fm.stockTrnz     ?? 0,
-      daySalesTrnz:  fm.daySalesTrnz  ?? null,
-      pakuot:        pakuotMap[mk]     || [],
-      pakuotZafn:    pakuotZafnMap[mk] || [],
-      pakuotAll:     pakuotAllMap[mk]  || [],
-      stopSale:      stopSaleMap[mk]   || false,
-      stockAllWh:    stk,
-      openOrders:    oo,
-      spo:           stk + oo,
+      daySales180:  fm.daySales180  ?? null,
+      stockZafn:    fm.stockZafn    ?? 0,
+      daySalesZafn: fm.daySalesZafn ?? null,
+      daysStock:    fm.daysStock    ?? null,
+      daysStockZafn:fm.daysStockZafn?? null,
+      stockTrnz:    fm.stockTrnz    ?? 0,
+      daySalesTrnz: fm.daySalesTrnz ?? null,
+      pakuot:       pakuotMap[mk]   || [],
+      pakuotZafn:   pakuotZafnMap[mk]|| [],
+      pakuotAll:    pakuotAllMap[mk] || [],
+      stopSale:     stopSaleMap[mk]  || false,
+      openOrders:   oo,
     });
     result[mk].dayAvg = result[mk].daySales;
-    // Fallback 1: SUMMARIZECOLUMNS (makat-only) drops dagim rows due to blank-row removal.
-    // pakuot/pakuotZafn (makat+date grouping) return correct values when available.
+    // stock/stockZafn from SUMMARIZECOLUMNS returns 0 when makat has no Main-warehouse rows.
+    // pakuot/pakuotZafn (grouped by makat+date) are reliable — use their sum as stock.
     if (!result[mk].stock && result[mk].pakuot.length > 0)
       result[mk].stock = result[mk].pakuot.reduce((s, p) => s + (p.cartons || 0), 0);
     if (!result[mk].stockZafn && result[mk].pakuotZafn.length > 0)
       result[mk].stockZafn = result[mk].pakuotZafn.reduce((s, p) => s + (p.cartons || 0), 0);
-    // Fallback 2: chilled dagim may not be in מחסן="Main" in מלאי-תוקף after PBI refresh.
-    // stockAllWh (from MLAY, all warehouses) is always reliable — use it when Main=0.
-    if (!result[mk].stock && result[mk].stockAllWh > 0) {
-      result[mk].stock = result[mk].stockAllWh;
-      // Use all-warehouse expiry batches when Main batches are missing
-      if (!result[mk].pakuot.length && result[mk].pakuotAll.length > 0)
-        result[mk].pakuot = result[mk].pakuotAll;
-    }
   }
 
   console.log(`fetchDagimFromBI: ${makatim.length} active דגים products from KARTIS PARIT`);
