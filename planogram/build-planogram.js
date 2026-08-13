@@ -1310,6 +1310,31 @@ async function main() {
       if (dagimRestored > 0) console.warn(`⚠ dagim PBI returned 0 products (KARTIS PARIT during refresh?) — restored ${dagimRestored} from prev product-data.json`);
     }
 
+    // Fallback: dagim present but with empty pakuot / null daySales (PBI partially pre-refresh).
+    // Same root cause as above — restore per-product fields from prev build that had complete data.
+    {
+      const dagimMkSet = new Set(Object.values(_dagimBase.picks).filter(Boolean).map(p => String(p.makat)));
+      let pakuotRestored = 0, salesRestored = 0;
+      const _today = Date.now();
+      const _refreshBatches = (batches) => batches.map(b => {
+        if (!b.date) return b;
+        return { ...b, daysLeft: Math.round((new Date(b.date).getTime() - _today) / 86400000) };
+      });
+      for (const mk of dagimMkSet) {
+        const d = prodData[mk];
+        const prev = prevProdDataAll[mk];
+        if (!d || !prev) continue;
+        if (!d.pakuot?.length    && prev.pakuot?.length)    { d.pakuot    = _refreshBatches(prev.pakuot);    pakuotRestored++; }
+        if (!d.pakuotZafn?.length && prev.pakuotZafn?.length) { d.pakuotZafn = _refreshBatches(prev.pakuotZafn); pakuotRestored++; }
+        if (d.daySales    == null && prev.daySales    != null) { d.daySales    = prev.daySales;    salesRestored++; }
+        if (d.daySalesZafn == null && prev.daySalesZafn != null) { d.daySalesZafn = prev.daySalesZafn; salesRestored++; }
+        if (d.daysStock    == null && prev.daysStock    != null) d.daysStock    = prev.daysStock;
+        if (d.daysStockZafn == null && prev.daysStockZafn != null) d.daysStockZafn = prev.daysStockZafn;
+      }
+      if (pakuotRestored > 0) console.warn(`⚠ dagim pakuot restored from prev for ${pakuotRestored} makats (PBI pre-refresh window)`);
+      if (salesRestored  > 0) console.warn(`⚠ dagim daySales restored from prev for ${salesRestored} makats (PBI pre-refresh window)`);
+    }
+
     // ── דג יבש — fetch stock/sales from Fabric and add to prodData ──────────
     const dagyaveshBase  = JSON.parse(fs.readFileSync(
       path.join(__dirname, '..', 'docs', 'dagim-yavesh-base.json'), 'utf8'));
