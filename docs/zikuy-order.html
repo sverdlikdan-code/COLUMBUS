@@ -199,10 +199,11 @@ let curLabel = '';
 let selected = new Map(); // sku -> {product, qty, date, option}
 let navMachlaka = null; // currently drilled-into department
 
-// 6-month-back date bounds for the תוקף picker
+// date bounds for the תוקף picker: 6 months back, 2 months ahead
 const today = new Date();
 const sixMonthsAgo = new Date(); sixMonthsAgo.setMonth(sixMonthsAgo.getMonth()-6);
-const dMax = today.toISOString().slice(0,10);
+const twoMonthsAhead = new Date(); twoMonthsAhead.setMonth(twoMonthsAhead.getMonth()+2);
+const dMax = twoMonthsAhead.toISOString().slice(0,10);
 const dMin = sixMonthsAgo.toISOString().slice(0,10);
 
 async function init(){
@@ -255,7 +256,7 @@ function toggleProduct(sku){
   if(selected.has(sku)){ selected.delete(sku); }
   else{
     const p=products.find(x=>x.sku===sku); if(!p) return;
-    selected.set(sku,{product:p,qty:1,date:dMax,option:'-50%'});
+    selected.set(sku,{product:p,qty:1,date:today.toISOString().slice(0,10),option:'-50%'});
   }
   renderBrowse(); renderTable();
 }
