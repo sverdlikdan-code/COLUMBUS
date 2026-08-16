@@ -3873,13 +3873,24 @@ CALCULATETABLE(
     SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]),
     "total",     CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)]),
     "orderDays", CALCULATE(DISTINCTCOUNT(ALL_PARTS[תאריך])),
-    "skus",      CALCULATE(DISTINCTCOUNT(ALL_PARTS[מק'ט])),
-    "lastOrder", CALCULATE(MAX(ALL_PARTS[תאריך]))
+    "skus",      CALCULATE(DISTINCTCOUNT(ALL_PARTS[מק'ט]))
   ),
   ALL_PARTS[מספר לקוח] IN {${inList}},
   ALL_PARTS[ASHMADOT] = "-מכר-",
   ALL_PARTS[תאריך] >= DATE(${curStart.year},${curStart.month},1),
   ALL_PARTS[תאריך] <= DATE(${curEnd.year},${curEnd.month},${curLastDay})
+)`;
+
+  // Real last-order date must NOT be limited to the "3 closed months" window (that
+  // window deliberately excludes the current in-progress month for fair sales
+  // comparison) — a client who ordered today would otherwise show their last
+  // May/June/July date and look dormant for weeks they were never actually gone.
+  const daxLastOrder = `
+EVALUATE
+CALCULATETABLE(
+  ADDCOLUMNS(SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]), "lastOrder", CALCULATE(MAX(ALL_PARTS[תאריך]))),
+  ALL_PARTS[מספר לקוח] IN {${inList}},
+  ALL_PARTS[ASHMADOT] = "-מכר-"
 )`;
 
   const daxPrev = `
@@ -3913,33 +3924,37 @@ ROW(
 )`;
 
   try {
-    const [curRows, prevRows, avgRows] = await Promise.all([
-      executeDax(daxCur), executeDax(daxPrev), executeDax(daxAvg),
+    const [curRows, prevRows, avgRows, lastOrderRows] = await Promise.all([
+      executeDax(daxCur), executeDax(daxPrev), executeDax(daxAvg), executeDax(daxLastOrder),
     ]);
     const companyAvg = Math.round(avgRows?.[0]?.['[avg]'] || 0);
 
-    const curMap = {}, prevMap = {};
+    const curMap = {}, prevMap = {}, lastOrderMap = {};
     for (const r of curRows) {
       const id = String(r[`ALL_PARTS[מספר לקוח]`] || r['[מספר לקוח]'] || '');
       if (id) curMap[id] = {
         total: Math.round(r['[total]'] || 0),
         orderDays: r['[orderDays]'] || 0,
         skus: r['[skus]'] || 0,
-        lastOrder: r['[lastOrder]'] || null,
       };
     }
     for (const r of prevRows) {
       const id = String(r[`ALL_PARTS[מספר לקוח]`] || r['[מספר לקוח]'] || '');
       if (id) prevMap[id] = Math.round(r['[prevTotal]'] || 0);
     }
+    for (const r of lastOrderRows) {
+      const id = String(r[`ALL_PARTS[מספר לקוח]`] || r['[מספר לקוח]'] || '');
+      if (id) lastOrderMap[id] = r['[lastOrder]'] || null;
+    }
 
     const enriched = dayClients.map(c => {
       const id = String(c.custId);
-      const s = curMap[id] || { total: 0, orderDays: 0, skus: 0, lastOrder: null };
+      const s = curMap[id] || { total: 0, orderDays: 0, skus: 0 };
       const prevTotal = prevMap[id] || 0;
       const yoy = prevTotal > 0 ? Math.round((s.total / prevTotal - 1) * 100) : null;
       const avgBasket = s.orderDays > 0 ? Math.round(s.total / s.orderDays) : 0;
-      const daysSince = s.lastOrder ? Math.round((Date.now() - new Date(s.lastOrder)) / 86400000) : null;
+      const lastOrder = lastOrderMap[id] || null;
+      const daysSince = lastOrder ? Math.round((Date.now() - new Date(lastOrder)) / 86400000) : null;
       return { custId: id, name: c.custName || id, city: c.city || '', total: s.total, prevTotal, yoy, orderDays: s.orderDays, skus: s.skus, avgBasket, daysSince };
     });
     enriched.sort((a, b) => b.total - a.total);
