@@ -1913,6 +1913,7 @@ app.get('/api/gps-pending-xlsx', requireAuth, async (req, res) => {
 
 // POST /api/export-all-days-xlsx — multi-sheet Excel, one sheet per day
 app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, res) => {
+  try {
   const { agentCode, agentName, dayOverrides = {}, savedOrders = {} } = req.body;
   if (!agentCode) return res.status(400).json({ error: 'agentCode required' });
   if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
@@ -1937,7 +1938,7 @@ app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, re
     if (!byDay[d]) byDay[d] = [];
     byDay[d].push(c);
   }
-  const days = DAY_ORDER.filter(d=>byDay[d]).concat(Object.keys(byDay).filter(d=>!DAY_ORDER.includes(d)));
+  const days = DAY_ORDER.filter(d=>byDay[d]).concat(Object.keys(byDay).filter(d=>d && !DAY_ORDER.includes(d)));
   const wb = new ExcelJS.Workbook(); wb.creator = 'Formula Road';
   const THRESH = 20;
   const DOUBTFUL = new Set(['geocoded','pbi-sibling-near','city-center','no-gps']);
@@ -2025,6 +2026,7 @@ app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, re
   res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition',`attachment; filename*=UTF-8''${encodeURIComponent(fname)}`);
   await wb.xlsx.write(res); res.end();
+  } catch (err) { console.error('[export-all-days-xlsx]', err); if (!res.headersSent) res.status(500).json({ error: 'export_failed' }); }
 });
 
 // ── Territory Planner (one-time) ──────────────────────────────────────────────
@@ -2715,6 +2717,10 @@ app.get('/pbi/dagim-all-monthly', requireAuth, dataRateLimit, async (req, res) =
   }
 });
 
+// Server-side cache for /pbi/dagim-sales — survives PBI 429 bursts (TTL: 60 min)
+const _dagimSalesCache = new Map(); // key → { data, totalBranchy, ts }
+const _DAGIM_SALES_TTL = 60 * 60 * 1000;
+
 // GET /pbi/dagim-sales?periods=2026-5,2026-6 — live sales for הזמנה period filter (combined period)
 // Legacy single-month form also supported: ?year=2026&month=5
 app.get('/pbi/dagim-sales', requireAuth, dataRateLimit, async (req, res) => {
@@ -2743,6 +2749,13 @@ app.get('/pbi/dagim-sales', requireAuth, dataRateLimit, async (req, res) => {
     dateFilter = month
       ? `FILTER(ALL('ALL_PARTS'[תאריך]),YEAR('ALL_PARTS'[תאריך])=${year}&&MONTH('ALL_PARTS'[תאריך])=${month})`
       : `FILTER(ALL('ALL_PARTS'[תאריך]),YEAR('ALL_PARTS'[תאריך])=${year})`;
+  }
+
+  // Serve from cache if fresh
+  const cacheKey = req.query.periods || `${req.query.year}-${req.query.month}`;
+  const cached = _dagimSalesCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < _DAGIM_SALES_TTL) {
+    return res.json({ ok: true, data: cached.data, totalBranchy: cached.totalBranchy, fromCache: true });
   }
 
   try {
@@ -2821,9 +2834,14 @@ app.get('/pbi/dagim-sales', requireAuth, dataRateLimit, async (req, res) => {
         ...(extMap[String(mk)] || {}),
       };
     }
+    _dagimSalesCache.set(cacheKey, { data, totalBranchy, ts: Date.now() });
     res.json({ ok: true, data, totalBranchy });
   } catch (err) {
-    console.error(err); res.status(500).json({ error: 'server_error' });
+    console.error(err);
+    // Return stale cache on PBI error rather than failing the user
+    const stale = _dagimSalesCache.get(cacheKey);
+    if (stale) return res.json({ ok: true, data: stale.data, totalBranchy: stale.totalBranchy, fromCache: true, stale: true });
+    res.status(500).json({ error: 'server_error' });
   }
 });
 
