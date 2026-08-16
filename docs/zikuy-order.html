@@ -338,9 +338,30 @@ function waitForImages(container){
   return Promise.race([loaded, new Promise(res=>setTimeout(res,4000))]);
 }
 
+// Truncate right after the first weight/volume unit (gram/liter) — same convention
+// as shortName() in MMD ORDERS (docs/mmd-orders.html, MMD ORDERS/index.html),
+// extended to also catch ל/מ"ל since zikuy products include liquids, not just גרם.
+function shortProdName(s){
+  const m=s.match(/\d+(?:\.\d+)?\s*(?:גרם|ג['׳]?|מ"?ל|ל(?![א-ת]))/);
+  if(!m) return s;
+  return s.slice(0, s.indexOf(m[0])+m[0].length).trim();
+}
+const shortYear=d=>d.replace(/(\d{1,2})\.(\d{1,2})\.(\d{4})/,(_,d1,m1,y)=>`${d1}.${m1}.${y.slice(2)}`);
+const isoShort=iso=>{ const[y,mo,d]=iso.split('-'); return `${+d}.${+mo}.${y.slice(2)}`; };
 function buildWaText(rows, now){
-  let text=`🔄 בקשת זיכוי — ${custName} ${isolate('('+custId+')')}\n${city} | סוכן: ${agentName||agentCode} | ${now}\n\n`;
-  rows.forEach(r=>{ text+=`• [${r.product.sku}] ${r.product.name} — כמות: ${r.qty} | תוקף: ${r.date} | ${r.option}\n`; });
+  const sameDate=rows.every(r=>r.date===rows[0].date);
+  const pad=(v,w)=>{ v=String(v); return v.length>=w?v:v+' '.repeat(w-v.length); };
+  const skuW=Math.max(6,...rows.map(r=>r.product.sku.length));
+  const qtyW=Math.max(4,...rows.map(r=>String(r.qty).length));
+  const optW=Math.max(4,...rows.map(r=>r.option.length));
+  let text=`🔄 בקשת זיכוי — ${custName} ${isolate('('+custId+')')}\n${city} | סוכן: ${agentName||agentCode} | ${shortYear(now)}\n`;
+  if(sameDate) text+=`תוקף לכולם: ${isoShort(rows[0].date)}\n`;
+  text+='```\n'+pad('מק"ט',skuW)+' '+pad('כמות',qtyW)+' '+pad('%',optW)+' מוצר\n';
+  rows.forEach(r=>{
+    const dateSuffix=sameDate?'':`  (${isoShort(r.date)})`;
+    text+=pad(r.product.sku,skuW)+' '+pad(r.qty,qtyW)+' '+pad(r.option,optW)+' '+shortProdName(r.product.name)+dateSuffix+'\n';
+  });
+  text+='```';
   return text;
 }
 
