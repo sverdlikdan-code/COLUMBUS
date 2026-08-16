@@ -111,10 +111,6 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .wd-num{font-size:15px;font-weight:900;color:#fff;line-height:1;}
 .wd-lbl{font-size:8px;color:rgba(255,255,255,.65);font-weight:600;white-space:nowrap;margin-top:2px;}
 .sort-btns{display:flex;flex-wrap:wrap;gap:5px;align-items:center;}
-/* Toolbar grouping wrapper — invisible (display:contents) below tablet breakpoint so
-   narrow/mobile layout is byte-for-byte the old flat button row; becomes a real
-   grouping box only at >=760px (see tablet media block). */
-.tb-group{display:contents;}
 .sort-btn{padding:6px 13px;border-radius:20px;font-size:12px;font-weight:800;cursor:pointer;border:2px solid var(--sky-mid);background:none;color:var(--mid);transition:all .15s;white-space:nowrap;height:34px;display:flex;align-items:center;}
 .sort-btn.active-priority{color:var(--blue);border-color:var(--blue);background:var(--sky-light);box-shadow:0 2px 8px rgba(21,101,192,.18);}
 .sort-btn.active-ai{color:var(--green);border-color:var(--green);background:#E8F5E9;box-shadow:0 2px 8px rgba(27,123,52,.18);}
@@ -215,13 +211,6 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .day-analysis{background:#EEF0FB;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.7;color:#333;white-space:pre-wrap;direction:auto;}
 .excl-section-lbl{padding:5px 10px 2px;font-size:10px;font-weight:700;color:var(--light);letter-spacing:1px;text-transform:uppercase;border-top:1px solid var(--sky-mid);margin-top:4px;}
 .c-num-wrap{display:flex;flex-direction:column;align-items:center;gap:1px;flex-shrink:0;min-width:28px;cursor:grab;touch-action:none;user-select:none;}
-.c-side-col{display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;}
-/* Per-client action icons — grouped into route/order/nav clusters. Below the tablet
-   breakpoint .c-act-grp collapses via display:contents so all icons render flat in a
-   single row exactly like the old markup; at >=760px each cluster becomes its own
-   flex group with a divider, see tablet media block. */
-.c-act-groups{display:flex;align-items:center;gap:3px;}
-.c-act-grp{display:contents;}
 .walk-icon{font-size:11px;line-height:1;}
 .c-num{width:21px;height:21px;border-radius:50%;background:var(--sky-light);border:1.5px solid var(--sky-mid);font-size:10px;font-weight:800;color:var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .c-num-walk{background:#E8F5E9;border-color:var(--green);color:var(--green);}
@@ -266,49 +255,6 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 body.map-hidden #map-pane{display:none!important;}
 body.map-hidden #list-pane{flex:1 1 100%!important;}
 body.map-hidden #tab-map,body.map-hidden #tab-inline-map{display:none!important;}
-
-/* Tablet refinement (Android tablet landscape — matches the touch-target/spacing
-   conventions established in zikuy-order.html's own min-width:760px block).
-   Pure visual polish: bigger tap targets, clearer grouping/hierarchy in the
-   toolbar and per-client action icons. No structural/JS behavior changes. */
-@media(min-width:760px){
-  .km-bar{padding:8px 14px 6px;gap:7px;}
-  .km-row-top{gap:10px;}
-  .sort-btns{gap:10px;}
-  .sort-btn{height:44px;padding:0 18px;font-size:13.5px;}
-  /* Sort-mode trio reads as one segmented control instead of 3 loose pills */
-  .tb-group{display:flex;align-items:center;}
-  .tb-group-sort{background:var(--sky-light);border:1.5px solid var(--sky-mid);border-radius:12px;padding:3px;gap:2px;}
-  .tb-group-sort .sort-btn{border-radius:9px;}
-  /* :not() keeps this below the .active-* rules' specificity so an active segment
-     (colored border/background set elsewhere) is never stripped back to transparent. */
-  .tb-group-sort .sort-btn:not(.active-priority):not(.active-ai-google):not(.active-tablet){border-color:transparent;background:transparent;box-shadow:none;}
-  .tb-group-sort .sort-btn.active-priority,
-  .tb-group-sort .sort-btn.active-ai-google,
-  .tb-group-sort .sort-btn.active-tablet{box-shadow:0 1px 5px rgba(13,71,161,.25);}
-  .tb-group-actions{gap:8px;}
-  .km-more-btn{height:44px;min-width:44px;font-size:21px;}
-  .km-more-dd{min-width:230px;}
-  .km-more-item{padding:13px 18px;font-size:14px;}
-  .day-sw-btn{width:48px;height:48px;font-size:20px;}
-  .tab-inline-btn{width:42px;height:42px;font-size:18px;}
-  .km-val{font-size:16px;}
-  .km-lbl,.km-unit{font-size:11px;}
-
-  /* Client card: roomier row + bigger, grouped action icons */
-  .client-card{padding:9px 14px;gap:12px;border-radius:10px;margin-bottom:5px;}
-  .c-num{width:27px;height:27px;font-size:12.5px;}
-  .c-name{font-size:14.5px;}
-  .c-sub{font-size:12px;}
-  .c-id-side{font-size:9px;padding:2px 6px;}
-  .c-side-col{gap:4px;}
-  .c-act-groups{gap:10px;}
-  .c-act-grp{display:flex;align-items:center;gap:7px;}
-  .c-act-grp+.c-act-grp{padding-inline-start:10px;border-inline-start:1.5px solid var(--sky-mid);}
-  .excl-btn,.gps-edit-btn,.day-change-btn{width:38px;height:38px;font-size:16px;}
-  .mekarer-btn,.zikuy-btn,.ai-insight-btn,.waze-btn{min-height:34px;padding:6px 12px;font-size:12.5px;border-radius:8px;}
-  .no-gps-badge{font-size:12px;padding:6px 12px;}
-}
 
 /* MODAL */
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(13,71,161,.45);z-index:1000;align-items:flex-end;justify-content:center;}
@@ -511,30 +457,26 @@ body.gps-fs #map{height:100%!important;}
     <div class="km-row-top">
       <div class="day-switch" id="day-switch"></div>
       <div class="sort-btns">
-        <div class="tb-group tb-group-sort" role="group" aria-label="מצב מיון מסלול">
-          <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')">לפי סדר ביקור</button>
-          <button class="sort-btn active-ai-google" id="sort-btn-ai-google" onclick="toggleAiGps()">🤖 AI Google</button>
-          <button class="sort-btn" id="sort-btn-tablet" onclick="toggleTabletGps()">📱 GPS Tablet</button>
-        </div>
-        <div class="tb-group tb-group-actions">
-          <button class="sort-btn" id="gmaps-btn" onclick="openGoogleMaps()" title="פתח מסלול ב-Google Maps" style="background:#1a73e8;color:#fff;border-color:#1558b0;font-weight:700">🗺 Google</button>
-          <button class="sort-btn" id="day-briefing-btn" onclick="openDayBriefing()" title="ניתוח יום — TOP 10 לקוחות" style="background:#5C6BC0;color:#fff;border-color:#3F51B5;font-weight:900">📊 ניתוח</button>
-          <div class="km-more-wrap">
-            <button class="sort-btn km-more-btn" id="km-more-btn" onclick="toggleKmMore()" title="עוד פעולות">⋮</button>
-            <div class="km-more-dd" id="km-more-dd">
-              <button class="km-more-item" id="print-btn" onclick="printRoute();closeKmMore()">🖨️ הדפסת מסלול</button>
-              <button class="km-more-item" id="map-toggle-btn" onclick="toggleMapHidden();closeKmMore()">🗺 הסתר מפה — עבודה עם רשימה בלבד</button>
-              <hr class="km-more-sep">
-              <button class="km-more-item export-btn" id="export-btn" onclick="exportXLSX();closeKmMore()">📥 שמור יום (XLS)</button>
-              <button class="km-more-item export-btn" id="export-all-btn" onclick="exportAllDaysXLSX();closeKmMore()">📊 כל הימים (XLS)</button>
-              <hr class="km-more-sep">
-              <button class="km-more-item" id="recalc-btn" onclick="recalcRoute();closeKmMore()">🔄 חישוב מסלול מחדש</button>
-              <button class="km-more-item" onclick="resetRoute();closeKmMore()">↩ איפוס סדר היום</button>
-              <hr class="km-more-sep">
-              <div class="gps-hist-wrap">
-                <button class="km-more-item" id="gps-hist-btn" onclick="toggleGpsHistory()">📍 תיקוני GPS</button>
-                <div class="gps-hist-dd" id="gps-hist-dd"></div>
-              </div>
+        <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')">לפי סדר ביקור</button>
+        <button class="sort-btn active-ai-google" id="sort-btn-ai-google" onclick="toggleAiGps()">🤖 AI Google</button>
+        <button class="sort-btn" id="sort-btn-tablet" onclick="toggleTabletGps()">📱 GPS Tablet</button>
+        <button class="sort-btn" id="day-briefing-btn" onclick="openDayBriefing()" title="ניתוח יום — TOP 10 לקוחות" style="background:#5C6BC0;color:#fff;border-color:#3F51B5;font-weight:900">📊 ניתוח</button>
+        <button class="sort-btn" id="gmaps-btn" onclick="openGoogleMaps()" title="פתח מסלול ב-Google Maps" style="background:#1a73e8;color:#fff;border-color:#1558b0;font-weight:700">🗺 Google</button>
+        <button class="sort-btn" id="print-btn" onclick="printRoute()" title="הדפסת מסלול — מפה + רשימה" style="background:#37474F;color:#fff;border-color:#263238;font-weight:700">🖨️</button>
+        <div class="km-more-wrap">
+          <button class="sort-btn km-more-btn" id="km-more-btn" onclick="toggleKmMore()" title="עוד פעולות">⋮</button>
+          <div class="km-more-dd" id="km-more-dd">
+            <button class="km-more-item" id="map-toggle-btn" onclick="toggleMapHidden();closeKmMore()">🗺 הסתר מפה — עבודה עם רשימה בלבד</button>
+            <hr class="km-more-sep">
+            <button class="km-more-item export-btn" id="export-btn" onclick="exportXLSX();closeKmMore()">📥 שמור יום (XLS)</button>
+            <button class="km-more-item export-btn" id="export-all-btn" onclick="exportAllDaysXLSX();closeKmMore()">📊 כל הימים (XLS)</button>
+            <hr class="km-more-sep">
+            <button class="km-more-item" id="recalc-btn" onclick="recalcRoute();closeKmMore()">🔄 חישוב מסלול מחדש</button>
+            <button class="km-more-item" onclick="resetRoute();closeKmMore()">↩ איפוס סדר היום</button>
+            <hr class="km-more-sep">
+            <div class="gps-hist-wrap">
+              <button class="km-more-item" id="gps-hist-btn" onclick="toggleGpsHistory()">📍 תיקוני GPS</button>
+              <div class="gps-hist-dd" id="gps-hist-dd"></div>
             </div>
           </div>
         </div>
@@ -2104,24 +2046,18 @@ function renderClientList(html){
         <div class="c-name">${nameLine}</div>
         <div class="c-sub">${[lastOrder,sales,pctPart,indicPart].filter(Boolean).join(SEP)}</div>
       </div>
-      <div class="c-side-col">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;">
         ${c.custId?`<span class="c-id-side">${c.custId}</span>`:''}
-        <div class="c-act-groups">
-          <div class="c-act-grp c-act-grp-route">
-            <span class="excl-btn" data-id="${c.custId}" onclick="toggleExclude('${c.custId}',event)" title="הוצא ממסלול">🚫</span>
-            <span class="day-change-btn" data-id="${c.custId}" onclick="openDayPopup(event,this.dataset.id)" title="שנה יום">📅</span>
-          </div>
-          <div class="c-act-grp c-act-grp-order">
-            <span class="mekarer-btn" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" data-city="${(c.city||'').replace(/"/g,'&quot;')}" onclick="openMekarerOrder(event,this.dataset.id,this.dataset.name,this.dataset.city)" title="הזמנת מקרר">🧊</span>
-            <span class="zikuy-btn" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" data-city="${(c.city||'').replace(/"/g,'&quot;')}" onclick="openZikuyOrder(event,this.dataset.id,this.dataset.name,this.dataset.city)" title="בקשת זיכוי">זיכוי</span>
-            <span class="ai-insight-btn" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openClientAI(event,this.dataset.id,this.dataset.name)" title="ניתוח AI">AI</span>
-          </div>
-          <div class="c-act-grp c-act-grp-nav">
-            ${noGps
-              ? `<span class="no-gps-badge" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name)">NO GPS</span>`
-              : `<span class="gps-edit-btn"  data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name)" title="ערוך מיקום">📍</span>
-                 <span class="waze-btn" onclick="openWaze(event,${c.lat},${c.lng})" title="נווט ב-Waze">W</span>`}
-          </div>
+        <div style="display:flex;align-items:center;gap:3px;">
+          <span class="excl-btn" data-id="${c.custId}" onclick="toggleExclude('${c.custId}',event)" title="הוצא ממסלול">🚫</span>
+          <span class="day-change-btn" data-id="${c.custId}" onclick="openDayPopup(event,this.dataset.id)">📅</span>
+          <span class="mekarer-btn" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" data-city="${(c.city||'').replace(/"/g,'&quot;')}" onclick="openMekarerOrder(event,this.dataset.id,this.dataset.name,this.dataset.city)">🧊</span>
+          <span class="zikuy-btn" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" data-city="${(c.city||'').replace(/"/g,'&quot;')}" onclick="openZikuyOrder(event,this.dataset.id,this.dataset.name,this.dataset.city)" title="בקשת זיכוי">זיכוי</span>
+          <span class="ai-insight-btn" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openClientAI(event,this.dataset.id,this.dataset.name)" title="ניתוח AI">AI</span>
+          ${noGps
+            ? `<span class="no-gps-badge" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name)">NO GPS</span>`
+            : `<span class="gps-edit-btn"  data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name)">📍</span>
+               <span class="waze-btn" onclick="openWaze(event,${c.lat},${c.lng})" title="נווט ב-Waze">W</span>`}
         </div>
       </div>
     </div>`;
