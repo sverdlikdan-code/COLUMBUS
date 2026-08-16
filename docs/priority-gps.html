@@ -360,7 +360,7 @@ function onSearch(val) {
 }
 
 // ── Load data ─────────────────────────────────────────────────────────────────
-fetch('/priority-gps-cross.json')
+fetch('./priority-gps-cross.json')
   .then(r => r.json())
   .then(data => {
     allData = data;

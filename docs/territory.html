@@ -419,7 +419,7 @@ async function loadAiGps(){
 let TABLET_GPS={};
 async function loadTabletGps(){
   try{
-    const r=await fetch('/priority-gps-cross.json?_='+Date.now());
+    const r=await fetch('./priority-gps-cross.json?_='+Date.now());
     if(!r.ok) return;
     const arr=await r.json();
     arr.forEach(row=>{ if(row.cust&&row.lat&&row.lng) TABLET_GPS[String(row.cust)]={lat:row.lat,lng:row.lng}; });
