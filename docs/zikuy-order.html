@@ -85,7 +85,16 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 }
 
 /* ── printable / shareable blank ─────────────────────────────────── */
+/* Default: off-screen, only used as the html2canvas capture source (WhatsApp
+   image share). #pv-overlay.show makes it a real full-screen view instead, so
+   the agent can just point their phone's camera at it directly — no dependency
+   on Web Share API / WhatsApp target availability at all. */
 #print-view{position:fixed;left:-10000px;top:0;width:800px;background:#fff;padding:22px;}
+#pv-overlay{display:none;}
+#pv-overlay.show{display:block;position:fixed;inset:0;z-index:20000;background:var(--bg);overflow-y:auto;padding:14px;}
+#pv-overlay-bar{display:flex;gap:10px;margin-bottom:14px;position:sticky;top:0;}
+#pv-close-btn{background:#37474F;color:#fff;border:none;border-radius:10px;padding:12px 20px;font-weight:800;font-size:14.5px;cursor:pointer;font-family:inherit;flex-shrink:0;}
+#pv-overlay.show #print-view{position:static;left:auto;width:100%;max-width:800px;margin:0 auto;box-shadow:0 2px 16px rgba(0,0,0,.15);border-radius:12px;}
 @media print{
   body *{visibility:hidden;}
   #print-view,#print-view *{visibility:visible;}
@@ -143,19 +152,24 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 
 <div class="submit-bar no-print">
   <button type="button" class="submit-btn" id="ok-btn" onclick="buildProforma()" disabled>✅ OK — הפק בלנק</button>
-  <a class="wa-btn" id="wa-btn" target="_blank" rel="noopener">📱 שלח ב-WhatsApp</a>
 </div>
 
-<div id="print-view">
-  <div id="pv-header">
-    <div id="pv-brand">FORMULA · בקשת זיכוי</div>
-    <div id="pv-title"></div>
+<div id="pv-overlay" class="no-print">
+  <div id="pv-overlay-bar">
+    <button type="button" id="pv-close-btn" onclick="hidePrintFullscreen()">✕ סגור</button>
+    <a class="wa-btn show" id="wa-btn" target="_blank" rel="noopener">📱 שלח ב-WhatsApp</a>
   </div>
-  <div id="pv-meta"></div>
-  <table class="pv-tbl">
-    <thead><tr><th>תמונה</th><th>מק"ט</th><th>מוצר</th><th>כמות</th><th>תוקף</th><th>אופציה</th></tr></thead>
-    <tbody id="pv-tbody"></tbody>
-  </table>
+  <div id="print-view">
+    <div id="pv-header">
+      <div id="pv-brand">FORMULA · בקשת זיכוי</div>
+      <div id="pv-title"></div>
+    </div>
+    <div id="pv-meta"></div>
+    <table class="pv-tbl">
+      <thead><tr><th>תמונה</th><th>מק"ט</th><th>מוצר</th><th>כמות</th><th>תוקף</th><th>אופציה</th></tr></thead>
+      <tbody id="pv-tbody"></tbody>
+    </table>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -266,11 +280,9 @@ function renderTable(){
   const tbody=document.getElementById('ret-tbody');
   const empty=document.getElementById('ret-empty');
   const okBtn=document.getElementById('ok-btn');
-  const waBtn=document.getElementById('wa-btn');
   if(!selected.size){
     tbody.innerHTML=''; empty.style.display='';
     okBtn.disabled=true; okBtn.textContent='✅ OK — הפק בלנק';
-    waBtn.classList.remove('show');
     return;
   }
   empty.style.display='none';
@@ -333,8 +345,16 @@ async function buildProforma(){
     const img=r.product.imgUrl?`<img src="${proxyImg(r.product.imgUrl)}" alt="">`:'';
     return `<tr><td>${img}</td><td>${esc(r.product.sku)}</td><td class="pv-name">${esc(r.product.name)}</td><td>${r.qty}</td><td>${r.date}</td><td>${esc(r.option)}</td></tr>`;
   }).join('') + `<tr class="pv-total"><td colspan="3">סה"כ</td><td>${totalQty}</td><td colspan="2"></td></tr>`;
-  await waitForImages(document.getElementById('print-view')); // still needed: html2canvas source below
-  await shareBlank(rows, now);
+  await waitForImages(document.getElementById('print-view'));
+  setupWaButton(rows, now);
+  showPrintFullscreen();
+}
+
+function showPrintFullscreen(){
+  document.getElementById('pv-overlay').classList.add('show');
+}
+function hidePrintFullscreen(){
+  document.getElementById('pv-overlay').classList.remove('show');
 }
 
 // Images are inserted into #print-view moments before html2canvas rasterizes it
@@ -371,43 +391,41 @@ function buildWaText(rows, now){
   return text;
 }
 
-// Tries to share the styled proforma as an actual image (photo of the blank) via the
-// native OS share sheet, so on Android with WhatsApp installed it lands as a picture,
-// not plain text. The wa.me text-only button is ALWAYS also shown as a guaranteed
-// fallback — the native share sheet's target list is OS/device-dependent (e.g. on
-// desktop Windows it offers Snip & Sketch/OneNote/etc., not WhatsApp at all), and
-// wa.me can't attach an image (WhatsApp's URL scheme is text-only by design), so
-// neither path alone is reliable enough to hide the other.
-// zikuy-order.html always opens as its own tab/window (window.open in formula-road's
-// openZikuyOrder) — once the agent has actually sent something, this tab's job is done
-// and the route screen underneath should get focus back automatically instead of the
-// agent having to close it by hand.
-function closeAfterSend(delayMs){
-  setTimeout(()=>{ window.close(); }, delayMs);
-}
-async function shareBlank(rows, now){
+// The blank is now shown full-screen (showPrintFullscreen) as the primary result —
+// the agent can just point their phone's camera at it, no dependency on any share
+// API at all. The WhatsApp button inside that view is a secondary, optional path:
+// on click it first tries to share the actual styled image (native OS share sheet,
+// so it lands in WhatsApp as a photo on Android) — preventDefault fires immediately
+// inside the click handler itself, before any await, to stay within the click's
+// transient-activation window. Falls back to opening the plain wa.me text link if
+// native image share isn't available or fails for any reason.
+function setupWaButton(rows, now){
   const waBtn=document.getElementById('wa-btn');
   const text=buildWaText(rows, now);
-  waBtn.href='https://wa.me/?text='+encodeURIComponent(text);
-  waBtn.classList.add('show');
-  waBtn.onclick=()=>closeAfterSend(1200); // wa-btn opens WhatsApp in a new tab (target=_blank) — this one can go
-  if (typeof html2canvas === 'function' && navigator.share && navigator.canShare) {
-    try{
-      const el=document.getElementById('print-view');
-      const canvas=await html2canvas(el,{useCORS:true,backgroundColor:'#ffffff',scale:2});
-      const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
-      if(blob){
-        const file=new File([blob],`zikuy-${custId}.png`,{type:'image/png'});
-        if(navigator.canShare({files:[file]})){
-          await navigator.share({files:[file], title:'בקשת זיכוי', text});
-          showToast('נשלח לשיתוף — חוזר למסלול...');
-          closeAfterSend(1200);
-          return;
-        }
+  const waLink='https://wa.me/?text='+encodeURIComponent(text);
+  waBtn.href=waLink;
+  waBtn.onclick=(e)=>{
+    if (typeof html2canvas === 'function' && navigator.share && navigator.canShare) {
+      e.preventDefault();
+      sendAsImage(text, waLink);
+    }
+  };
+}
+async function sendAsImage(text, waLink){
+  try{
+    const el=document.getElementById('print-view');
+    const canvas=await html2canvas(el,{useCORS:true,backgroundColor:'#ffffff',scale:2});
+    const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
+    if(blob){
+      const file=new File([blob],`zikuy-${custId}.png`,{type:'image/png'});
+      if(navigator.canShare({files:[file]})){
+        await navigator.share({files:[file], title:'בקשת זיכוי', text});
+        showToast('נשלח לשיתוף');
+        return;
       }
-    }catch(e){ console.warn('image share unavailable, falling back to text link', e); }
-  }
-  showToast('הבלנק מוכן — פתח WhatsApp לשליחה');
+    }
+  }catch(e){ console.warn('image share unavailable, falling back to text link', e); }
+  window.open(waLink, '_blank');
 }
 
 init();
