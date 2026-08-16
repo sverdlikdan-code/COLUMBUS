@@ -586,6 +586,15 @@ body.gps-fs #map{height:100%!important;}
   </div>
 </div>
 
+<!-- ── TABLET GPS REVIEW BAR (non-blocking — map stays visible/pannable underneath) ── -->
+<div id="tablet-gps-bar" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#fff;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.35);padding:16px 20px;z-index:10000;max-width:92vw;width:380px;text-align:center;border:2px solid #00B894">
+  <div style="font-size:12px;font-weight:800;color:#00B894;margin-bottom:6px">📱 מיקום מהטאבלט — תסתכל על המפה</div>
+  <div id="tablet-gps-bar-text" style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px"></div>
+  <div style="display:flex;gap:10px;justify-content:center">
+    <button onclick="confirmTabletGpsReview(false)" class="modal-btn cancel" style="min-width:110px">✕ ביטול</button>
+    <button onclick="confirmTabletGpsReview(true)" style="min-width:110px;background:#00B894;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:800;font-size:14px;cursor:pointer">✅ אשר מיקום</button>
+  </div>
+</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
@@ -2968,24 +2977,39 @@ function saveGpsCorrection(custId, custName, lat, lng){
 // (agent visually confirms it looks right relative to the client), then approve to
 // save it as a correction. Goes through saveGpsCorrection, so it's tracked as
 // gpsSource:'correction' in the Excel export exactly like a manual map-click fix.
-let _tabletReviewMarker=null;
+// Uses a non-blocking floating bar (not confirm()) so the map stays visible and
+// pannable while deciding — a synchronous confirm() fired right after closing the
+// address modal was stealing the repaint before the agent could actually see the pin.
+let _tabletReviewMarker=null, _tabletReviewPending=null;
 function reviewTabletGps(custId, custName){
   const t=TABLET_GPS[String(custId)];
   if(!t||!t.lat||!t.lng){ showToast('❌ אין נתוני GPS מהטאבלט עבור לקוח זה'); return; }
   if(!map) renderMap(); // list-only view (narrow screen) may never have initialized the map
-  const cl=st.clients.find(x=>String(x.custId)===String(custId));
+  if(window.innerWidth<700 && st.tab!=='map') setTab('map',true);
+  requestAnimationFrame(()=>{
+    const cl=st.clients.find(x=>String(x.custId)===String(custId));
+    if(_tabletReviewMarker){ map.removeLayer(_tabletReviewMarker); _tabletReviewMarker=null; }
+    map.closePopup();
+    map.setView([t.lat,t.lng],16,{animate:true});
+    _tabletReviewMarker=L.marker([t.lat,t.lng],{
+      icon:L.divIcon({className:'',html:'<div style="background:#00B894;color:#fff;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.5)">📱</div>',iconSize:[34,34],iconAnchor:[17,17]}),
+      zIndexOffset:2000,
+    }).addTo(map);
+    const distText=(cl&&cl.lat&&cl.lng)?` — ${Math.round(haversineKm(cl.lat,cl.lng,t.lat,t.lng)*1000)} מ' מהמיקום הנוכחי`:'';
+    _tabletReviewPending={custId,custName};
+    document.getElementById('tablet-gps-bar-text').textContent=`${custName}${distText}`;
+    document.getElementById('tablet-gps-bar').style.display='block';
+  });
+}
+
+function confirmTabletGpsReview(ok){
+  document.getElementById('tablet-gps-bar').style.display='none';
   if(_tabletReviewMarker){ map.removeLayer(_tabletReviewMarker); _tabletReviewMarker=null; }
-  map.closePopup();
-  map.panTo([t.lat,t.lng],{animate:true,duration:0.4});
-  _tabletReviewMarker=L.marker([t.lat,t.lng],{
-    icon:L.divIcon({className:'',html:'<div style="background:#00B894;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.5)">📱</div>',iconSize:[32,32],iconAnchor:[16,16]}),
-    zIndexOffset:2000,
-  }).addTo(map);
-  const distText=(cl&&cl.lat&&cl.lng)?` (${Math.round(haversineKm(cl.lat,cl.lng,t.lat,t.lng)*1000)} מ' מהמיקום הנוכחי)`:'';
-  const ok=confirm(`מיקום מהטאבלט עבור ${custName}${distText}.\nלאשר כמיקום נכון?`);
-  if(_tabletReviewMarker){ map.removeLayer(_tabletReviewMarker); _tabletReviewMarker=null; }
+  const pending=_tabletReviewPending; _tabletReviewPending=null;
+  if(!pending) return;
   if(ok){
-    saveGpsCorrection(custId,custName,t.lat,t.lng);
+    const t=TABLET_GPS[String(pending.custId)];
+    saveGpsCorrection(pending.custId,pending.custName,t.lat,t.lng);
     showToast('✅ מיקום מהטאבלט אושר ונשמר');
   } else {
     renderMap();
