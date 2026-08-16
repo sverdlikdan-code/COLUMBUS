@@ -781,6 +781,15 @@ function toggleMapHidden(){
   st.mapHidden=!st.mapHidden;
   try{ localStorage.setItem('fr_map_hidden', st.mapHidden?'1':'0'); }catch(_){}
   applyMapHidden();
+  if(!st.mapHidden){
+    // Container was display:none (renderMap() no-ops while hidden) — wait a frame
+    // for the CSS change to actually apply, then render fresh and force Leaflet to
+    // recompute its size now that the container has real dimensions again.
+    requestAnimationFrame(()=>{
+      renderMap();
+      if(map) map.invalidateSize();
+    });
+  }
   showToast(st.mapHidden?'📋 עובדים רק עם הרשימה — המפה כבויה':'🗺 המפה הוצגה מחדש');
 }
 applyMapHidden();
@@ -1573,7 +1582,7 @@ async function initRoute(){
   setupSortable();
   setupDragScroll(document.getElementById('list-pane'));
   setupCardDoubleTap(document.getElementById('list-pane'));
-  if(window.innerWidth>=700) setTimeout(()=>{ if(myId===_initRouteId) renderMap(); },200);
+  if(window.innerWidth>=700 && !st.mapHidden) setTimeout(()=>{ if(myId===_initRouteId) renderMap(); },200);
   setTimeout(autoSyncGpsClean, 3000); // silent cleanup after route loads
 }
 
@@ -2197,6 +2206,12 @@ function setupSortable(){
 
 // ── MAP ────────────────────────────────────────────────────────────────────
 function renderMap(){
+  // #map-pane is display:none while the map is hidden — initializing/resizing Leaflet
+  // against a zero-size hidden container corrupts its internal tile-size cache (gray,
+  // broken map once shown again). Every renderMap() call site would need this same
+  // guard, so it lives here once instead. toggleMapHidden() re-triggers a proper
+  // render + invalidateSize() when the map becomes visible again.
+  if(st.mapHidden) return;
   const neededKey=userTileKey;
   if(!map){
     map=L.map('map',{rotate:true,bearing:0,zoomControl:false}).setView([32.0,34.9],10);
