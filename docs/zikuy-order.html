@@ -243,11 +243,21 @@ function renderBrowse(){
   groupsEl.querySelectorAll('.photo-card').forEach(c=>c.onclick=()=>toggleProduct(c.dataset.sku));
 }
 
+// Warms the browser's HTTP cache for the proxied product photo as soon as it's
+// picked, not when the blank is built — navigator.share() must fire within a short
+// window of the user's click (transient activation), and waiting on a fresh image
+// fetch at that point was blowing past it, silently dropping to the text fallback.
+function preloadProxyImg(url){
+  if(!url) return;
+  const img=new Image();
+  img.src=proxyImg(url);
+}
 function toggleProduct(sku){
   if(selected.has(sku)){ selected.delete(sku); }
   else{
     const p=products.find(x=>x.sku===sku); if(!p) return;
     selected.set(sku,{product:p,qty:1,date:today.toISOString().slice(0,10),option:'-50%'});
+    preloadProxyImg(p.imgUrl);
   }
   renderBrowse(); renderTable();
 }
@@ -329,13 +339,16 @@ async function buildProforma(){
 
 // Images are inserted into #print-view moments before html2canvas rasterizes it
 // (in shareBlank) — without waiting, their network fetch (through /api/img-proxy)
-// hasn't finished yet and the capture comes out with blank photo cells. Wait for
-// load/error (or a timeout so one stuck image can't hang the whole share flow).
+// hasn't finished yet and the capture comes out with blank photo cells. Should
+// normally resolve near-instantly since toggleProduct() already preloads each
+// photo into the HTTP cache when it's picked, well before this point. The timeout
+// is kept short (not the earlier 4s) because navigator.share() right after this
+// needs to still be within the click's transient-activation window.
 function waitForImages(container){
   const imgs=[...container.querySelectorAll('img')];
   if(!imgs.length) return Promise.resolve();
   const loaded=Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(res=>{img.onload=img.onerror=res;})));
-  return Promise.race([loaded, new Promise(res=>setTimeout(res,4000))]);
+  return Promise.race([loaded, new Promise(res=>setTimeout(res,1200))]);
 }
 
 // Truncate right after the first weight/volume unit (gram/liter) — same convention
