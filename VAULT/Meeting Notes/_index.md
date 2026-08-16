@@ -35,6 +35,7 @@
 - [[marshrut-rud]] — Интерактивная карта маршрутов RUD: 2 дня, Ashdod + Rishon, деплой на api.sverdlik-apps.site/marshrut-rud
 - [[mahsan-planogram]] — MAHSAN PLANOGRAM build system + planogram-editor עמוד תוקף, per-warehouse sales/days, סכנה logic
 - [[agent-bug-agent]] — Агент Bug Agent — workflow-doctor, watchdog, GitHub Actions мониторинг
+- [[session-2026-08-16-bug-agent-rebuild]] — Сессия 2026-08-16: bug-agent rebuild (5-шаговый протокол), CEO mandatory routing, PM2 timestamps, server crash fix
 - [[agent-biz-analyst]] — Агент Biz Analyst — коммерческая оценка COLUMBUS, Excel delivery docs, ROI
 - [[session-2026-05-20]] — Сессия 2026-05-20: GitHub Actions fix, workflow conflict, doctor upgrade, PRD closure
 - [[session-2026-05-21]] — Сессия 2026-05-21: תוקף page complete — all warehouses, drag-scroll, print/PDF fix, PDF title fix
