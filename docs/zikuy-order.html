@@ -70,14 +70,11 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 .toast{position:fixed;bottom:96px;right:50%;transform:translateX(50%);background:#323232;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;z-index:9999;opacity:0;transition:opacity .3s;white-space:nowrap;}
 .toast.show{opacity:1;}
 
-/* ── tablet layout: return list is the primary surface (~80% width) ── */
+/* ── tablet sizing: portrait-only — stays single-column (stacked) at any width,
+   just bigger fonts/touch-targets. The app is used holding the tablet vertically;
+   no side-by-side desktop-style split. ── */
 @media (min-width:760px){
   body{font-size:16px;}
-  .layout{display:flex;flex-direction:row-reverse;gap:14px;align-items:flex-start;margin:12px;}
-  .layout .section{margin:0;flex:1 1 auto;}
-  #browse-section{flex:0 0 300px;max-width:300px;position:sticky;top:76px;max-height:calc(100vh - 96px);overflow-y:auto;}
-  #ret-section{flex:1 1 auto;min-width:0;}
-  #ret-section .sec-body{min-height:calc(100vh - 220px);}
   .sec-title{font-size:15px;}
   .ret-item-name{font-size:16px;}
   .ret-item-pct{font-size:13px;}
@@ -273,10 +270,11 @@ function renderTable(){
     const p=row.product;
     const pctClass=p.zikuyPct3mo>10?'pct-hi':'pct-lo';
     const img=p.imgUrl?`<img src="${esc(p.imgUrl)}" alt="${esc(p.name)}" onerror="this.style.display='none'">`:'';
+    const lastShip=p.lastShipDate?` · אספקה אחרונה: ${p.lastShipDate.split('-').reverse().join('.')} (${p.lastShipQty} יח')`:'';
     return `<div class="ret-item" data-sku="${esc(p.sku)}">
       <div class="ret-item-top">
         ${img}
-        <div class="ret-item-name">${esc(p.name)}<br><span class="ret-item-sku">מק"ט ${esc(p.sku)}</span></div>
+        <div class="ret-item-name">${esc(p.name)}<br><span class="ret-item-sku">מק"ט ${esc(p.sku)}${lastShip}</span></div>
         <div class="ret-item-pct ${pctClass}">זיכוי 3ח׳: ${p.zikuyPct3mo}%</div>
         <button type="button" class="rm-btn" aria-label="הסר מוצר" onclick="toggleProduct('${esc(p.sku)}')">🗑</button>
       </div>

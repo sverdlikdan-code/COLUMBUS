@@ -3744,6 +3744,61 @@ app.post('/admin/reload-targets', requireAuth, async (req, res) => {
   res.json({ ok: true, clients: pbiCache?.clientMap?.size || 0, loadedAt: pbiCache?.loadedAt });
 });
 
+// ── Day Top Sales — lightweight ranking (no AI call) for the 👑 crown badge on
+// the top 3-5 clients by last-3-closed-months sales within the selected day.
+// Deliberately skips Gemini — this runs automatically on every route load, unlike
+// /api/day-briefing which is only called on-demand from the "📊 ניתוח" button.
+app.get('/api/day-top-sales', requireAuth, async (req, res) => {
+  const queryAgent = req.query.agent ? String(req.query.agent) : null;
+  if (queryAgent && !validateAgentCode(queryAgent)) return res.status(400).json({ ok: false, error: 'invalid agent code' });
+  const agentCode = queryAgent || req.session.agentCode;
+  if (!agentCode) return res.status(403).json({ ok: false, error: 'manager session -- no agent' });
+  if (!pbiCache) return res.status(503).json({ ok: false, error: 'cache_loading' });
+
+  const dayNum = parseInt(req.query.day) || 0;
+  const allClients = pbiCache.byAgent.get(agentCode) || [];
+  const dayClients = dayNum ? allClients.filter(c => c.dayNum === dayNum) : allClients;
+  if (!dayClients.length) return res.json({ ok: true, top: [] });
+
+  const now = new Date();
+  const cm = now.getMonth() + 1, cy = now.getFullYear();
+  const months = [];
+  for (let i = 3; i >= 1; i--) {
+    let m = cm - i, y = cy;
+    if (m <= 0) { m += 12; y--; }
+    months.push({ year: y, month: m });
+  }
+  const curStart = months[0], curEnd = months[2];
+  const curLastDay = new Date(curEnd.year, curEnd.month, 0).getDate();
+  const custIds = [...new Set(dayClients.map(c => String(c.custId)))];
+  const inList = custIds.map(id => `"${id}"`).join(', ');
+
+  const dax = `
+EVALUATE
+CALCULATETABLE(
+  ADDCOLUMNS(
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]),
+    "total", CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)])
+  ),
+  ALL_PARTS[מספר לקוח] IN {${inList}},
+  ALL_PARTS[ASHMADOT] = "-מכר-",
+  ALL_PARTS[תאריך] >= DATE(${curStart.year},${curStart.month},1),
+  ALL_PARTS[תאריך] <= DATE(${curEnd.year},${curEnd.month},${curLastDay})
+)`;
+
+  try {
+    const rows = await executeDax(dax);
+    const ranked = rows
+      .map(r => ({ custId: String(r['ALL_PARTS[מספר לקוח]'] || r['[מספר לקוח]'] || ''), total: Math.round(r['[total]'] || 0) }))
+      .filter(r => r.custId && r.total > 0)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+    res.json({ ok: true, top: ranked });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // ── AI Day Briefing — TOP 10 clients of agent's day, YoY growth + failures ───
 // Metrics: current 3M total, prev-year same 3M total, order days, SKU count
 // 3 parallel DAX calls -> rank TOP 10 by current sales -> Gemini growth/failure analysis
@@ -3916,7 +3971,9 @@ app.get('/api/client-returns/:custId', requireAuth, async (req, res) => {
   const curStart = curMonths[0], curEnd = curMonths[2];
   const curLastDay = new Date(curEnd.year, curEnd.month, 0).getDate();
   const d365 = new Date(Date.now() - 365 * 86400000);
-  const INTER_CATS_RET = new Set(['מתוקים  🍬']);
+  // מדף + מתוקים = INTER company (approved mapping, scripts/sadran-data.js DEPT_COMPANY,
+  // user-approved 2026-07-21) — verified live against ADIFUT[מחלקה] raw values.
+  const INTER_CATS_RET = new Set(['מדף', 'מתוקים  🍬']);
   const classifyCompanyRet = (machlaka) => {
     if (!machlaka) return null;
     if (machlaka.includes('mish')) return 'ICE_MISH';
@@ -3959,13 +4016,36 @@ CALCULATETABLE(
   ALL_PARTS[תאריך] <= DATE(${curEnd.year},${curEnd.month},${curLastDay})
 )`;
 
-    const [histRows, zikuyRows] = await Promise.all([executeDax(histDax), executeDax(zikuyDax)]);
+    // Last shipment (date + qty in units) per SKU — real sales only (ASHMADOT="-מכר-"),
+    // same convention as the queries above, never destruction/ashmadot records.
+    const lastShipDax = `
+EVALUATE
+CALCULATETABLE(
+  ADDCOLUMNS(
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[מק'ט]),
+    "lastDate", CALCULATE(MAX(ALL_PARTS[תאריך])),
+    "lastQty", VAR _ld = CALCULATE(MAX(ALL_PARTS[תאריך])) RETURN CALCULATE(SUM(ALL_PARTS[כמות ביח' מפעל]), ALL_PARTS[תאריך] = _ld)
+  ),
+  ALL_PARTS[מספר לקוח] = "${custId}",
+  ALL_PARTS[ASHMADOT] = "-מכר-"
+)`;
+
+    const [histRows, zikuyRows, lastShipRows] = await Promise.all([
+      executeDax(histDax), executeDax(zikuyDax), executeDax(lastShipDax),
+    ]);
 
     const zikuyMap = new Map();
     zikuyRows.forEach(r => {
       const sku = String(r["ALL_PARTS[מק'ט]"] || '');
       const pos = r['[positive]'] || 0, neg = r['[negative]'] || 0;
       zikuyMap.set(sku, pos > 0 ? Math.round((Math.abs(neg) / pos) * 1000) / 10 : 0);
+    });
+
+    const lastShipMap = new Map();
+    lastShipRows.forEach(r => {
+      const sku = String(r["ALL_PARTS[מק'ט]"] || '');
+      const d = r['[lastDate]'];
+      lastShipMap.set(sku, { date: d ? String(d).slice(0, 10) : '', qty: Math.round(r['[lastQty]'] || 0) });
     });
 
     // Scope: this return form only covers FORMULA and ICE MISH — INTER and ICE BDD
@@ -3983,6 +4063,8 @@ CALCULATETABLE(
           company: classifyCompanyRet(machlaka),
           total365: Math.round(r['[total365]'] || 0),
           zikuyPct3mo: zikuyMap.get(sku) || 0,
+          lastShipDate: lastShipMap.get(sku)?.date || '',
+          lastShipQty: lastShipMap.get(sku)?.qty || 0,
           imgUrl: '',
         };
       })
