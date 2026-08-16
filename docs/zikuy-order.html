@@ -351,19 +351,10 @@ const monthWord=(d,m)=>`${d} ב${HEB_MONTHS[m-1]}`;
 const localeToWord=s=>{ const m=s.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/); return m?monthWord(+m[1],+m[2]):s; };
 const isoToWord=iso=>{ const[y,mo,d]=iso.split('-'); return monthWord(+d,+mo); };
 function buildWaText(rows, now){
-  const pad=(v,w)=>{ v=String(v); return v.length>=w?v:v+' '.repeat(w-v.length); };
-  const shortNames=rows.map(r=>shortProdName(r.product.name));
-  const dates=rows.map(r=>isoToWord(r.date));
-  const nameW=Math.max(4,...shortNames.map(n=>n.length));
-  const qtyW=Math.max(4,...rows.map(r=>String(r.qty).length));
-  const dateW=Math.max(6,...dates.map(d=>d.length));
-  const optW=Math.max(4,...rows.map(r=>r.option.length));
-  let text=`🔄 בקשת זיכוי — ${custName} ${isolate('('+custId+')')}\n${city} | סוכן: ${agentName||agentCode} | ${localeToWord(now)}\n`;
-  text+='```\n'+pad('מוצר',nameW)+' '+pad('כמות',qtyW)+' '+pad('תוקף',dateW)+' '+pad('%',optW)+' מק"ט\n';
-  rows.forEach((r,i)=>{
-    text+=pad(shortNames[i],nameW)+' '+pad(r.qty,qtyW)+' '+pad(dates[i],dateW)+' '+pad(r.option,optW)+' '+r.product.sku+'\n';
+  let text=`🔄 בקשת זיכוי — ${custName} ${isolate('('+custId+')')}\n${city} | סוכן: ${agentName||agentCode} | ${localeToWord(now)}\n\n`;
+  rows.forEach(r=>{
+    text+=`• ${shortProdName(r.product.name)} (מק"ט ${r.product.sku}) — כמות: ${r.qty} | תוקף: ${isoToWord(r.date)} | ${r.option}\n`;
   });
-  text+='```';
   return text;
 }
 
