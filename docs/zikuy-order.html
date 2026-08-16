@@ -21,10 +21,8 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 .sec-head{background:var(--sky);padding:11px 14px;border-bottom:1px solid var(--sky-mid);display:flex;align-items:center;gap:8px;}
 .sec-title{font-size:14px;font-weight:800;color:var(--blue-dark);}
 .sec-body{padding:14px;}
-.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.info-item{background:var(--sky);border-radius:8px;padding:8px 10px;}
-.info-lbl{font-size:10px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;}
-.info-val{font-size:13px;font-weight:700;color:var(--text);}
+.client-strip{background:var(--sky);border-radius:8px;margin:8px 12px;padding:6px 12px;font-size:12px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch;}
+.cs-sep{color:var(--mid);font-weight:400;}
 .loading{text-align:center;padding:24px;color:var(--light);font-size:13px;}
 
 /* ── product picker ─────────────────────────────────────────────── */
@@ -117,16 +115,12 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
   <div class="top-title">🔄 בקשת זיכוי</div>
 </div>
 
-<div class="section no-print">
-  <div class="sec-head"><span class="sec-title">👤 פרטי לקוח</span></div>
-  <div class="sec-body">
-    <div class="info-grid">
-      <div class="info-item"><div class="info-lbl">לקוח</div><div class="info-val" id="inf-name">—</div></div>
-      <div class="info-item"><div class="info-lbl">מס' לקוח</div><div class="info-val" id="inf-id">—</div></div>
-      <div class="info-item"><div class="info-lbl">עיר</div><div class="info-val" id="inf-city">—</div></div>
-      <div class="info-item"><div class="info-lbl">סוכן</div><div class="info-val" id="inf-agent">—</div></div>
-    </div>
-  </div>
+<div class="client-strip no-print">
+  <span>👤</span>
+  <span id="inf-name">—</span><span class="cs-sep">·</span>
+  <span id="inf-id">—</span><span class="cs-sep">·</span>
+  <span id="inf-city">—</span><span class="cs-sep">·</span>
+  <span id="inf-agent">—</span>
 </div>
 
 <div class="layout no-print">
