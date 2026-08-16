@@ -451,7 +451,6 @@ body.gps-fs #map{height:100%!important;}
       <div class="day-switch" id="day-switch"></div>
       <div class="sort-btns">
         <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')">לפי סדר ביקור</button>
-        <button class="sort-btn active-ai-google" id="sort-btn-ai-google" onclick="toggleAiGps()">🤖 AI Google</button>
         <button class="sort-btn" id="sort-btn-tablet" onclick="toggleTabletGps()">📱 GPS Tablet</button>
         <button class="sort-btn" id="day-briefing-btn" onclick="openDayBriefing()" title="ניתוח יום — TOP 10 לקוחות" style="background:#5C6BC0;color:#fff;border-color:#3F51B5;font-weight:900">📊 ניתוח</button>
         <button class="sort-btn" id="gmaps-btn" onclick="openGoogleMaps()" title="פתח מסלול ב-Google Maps" style="background:#1a73e8;color:#fff;border-color:#1558b0;font-weight:700">🗺 Google</button>
@@ -465,6 +464,9 @@ body.gps-fs #map{height:100%!important;}
             <button class="km-more-item" id="recalc-btn" onclick="recalcRoute();closeKmMore()">🔄 חישוב מסלול מחדש</button>
             <button class="km-more-item" onclick="resetRoute();closeKmMore()">↩ איפוס סדר היום</button>
             <hr class="km-more-sep">
+            <button class="km-more-item" id="ai-google-menu-item" onclick="toggleAiGps();closeKmMore()">
+              <span id="ai-google-check" style="width:14px;display:inline-block;color:#7B1FA2;font-weight:900">✓</span>🤖 מצב AI Google
+            </button>
             <div class="gps-hist-wrap">
               <button class="km-more-item" id="gps-hist-btn" onclick="toggleGpsHistory()">📍 תיקוני GPS</button>
               <div class="gps-hist-dd" id="gps-hist-dd"></div>
@@ -1577,7 +1579,7 @@ function toggleTabletGps(){
   if(btn) btn.className='sort-btn'+(st.tabletGpsMode?' active-tablet':'');
   if(st.tabletGpsMode){
     st.aiGpsMode=false;
-    document.getElementById('sort-btn-ai-google').className='sort-btn';
+    const aiChk0=document.getElementById('ai-google-check'); if(aiChk0) aiChk0.textContent='';
     document.getElementById('sort-btn-priority').className='sort-btn';
     st.sortMode='ai';
     OSRM_CACHE.clear(); OSRM_TRIP_CACHE.clear();
@@ -1594,8 +1596,8 @@ function toggleTabletGps(){
 
 function toggleAiGps(){
   st.aiGpsMode=!st.aiGpsMode;
-  const btn=document.getElementById('sort-btn-ai-google');
-  if(btn) btn.className='sort-btn'+(st.aiGpsMode?' active-ai-google':'');
+  const chk=document.getElementById('ai-google-check');
+  if(chk) chk.textContent=st.aiGpsMode?'✓':'';
   if(st.aiGpsMode){
     st.tabletGpsMode=false;
     document.getElementById('sort-btn-tablet').className='sort-btn';
@@ -1627,7 +1629,7 @@ function recalcRoute(){
   st.sortMode='ai';
   if(!st.tabletGpsMode){ st.aiGpsMode=true; }
   document.getElementById('sort-btn-priority').className='sort-btn';
-  document.getElementById('sort-btn-ai-google').className='sort-btn'+(st.aiGpsMode?' active-ai-google':'');
+  const aiChk1=document.getElementById('ai-google-check'); if(aiChk1) aiChk1.textContent=st.aiGpsMode?'✓':'';
   document.getElementById('sort-btn-tablet').className='sort-btn'+(st.tabletGpsMode?' active-tablet':'');
   OSRM_CACHE.clear(); OSRM_TRIP_CACHE.clear();
   const _rcClients=_aiGpsClients(st.clients);
