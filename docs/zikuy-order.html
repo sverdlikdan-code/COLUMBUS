@@ -372,11 +372,19 @@ function buildWaText(rows, now){
 // desktop Windows it offers Snip & Sketch/OneNote/etc., not WhatsApp at all), and
 // wa.me can't attach an image (WhatsApp's URL scheme is text-only by design), so
 // neither path alone is reliable enough to hide the other.
+// zikuy-order.html always opens as its own tab/window (window.open in formula-road's
+// openZikuyOrder) — once the agent has actually sent something, this tab's job is done
+// and the route screen underneath should get focus back automatically instead of the
+// agent having to close it by hand.
+function closeAfterSend(delayMs){
+  setTimeout(()=>{ window.close(); }, delayMs);
+}
 async function shareBlank(rows, now){
   const waBtn=document.getElementById('wa-btn');
   const text=buildWaText(rows, now);
   waBtn.href='https://wa.me/?text='+encodeURIComponent(text);
   waBtn.classList.add('show');
+  waBtn.onclick=()=>closeAfterSend(1200); // wa-btn opens WhatsApp in a new tab (target=_blank) — this one can go
   if (typeof html2canvas === 'function' && navigator.share && navigator.canShare) {
     try{
       const el=document.getElementById('print-view');
@@ -386,7 +394,8 @@ async function shareBlank(rows, now){
         const file=new File([blob],`zikuy-${custId}.png`,{type:'image/png'});
         if(navigator.canShare({files:[file]})){
           await navigator.share({files:[file], title:'בקשת זיכוי', text});
-          showToast('נשלח לשיתוף — או פתח WhatsApp למטה (טקסט בלבד)');
+          showToast('נשלח לשיתוף — חוזר למסלול...');
+          closeAfterSend(1200);
           return;
         }
       }
