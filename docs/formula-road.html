@@ -152,6 +152,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .client-card.excluded{background:#f0f0f0!important;opacity:.5;pointer-events:auto;}
 .client-card.ice-only{background:#E8FAF5;border-right:3px solid #00B894;}
 .ice-badge{display:inline-block;background:#00B894;color:#fff;font-size:9.5px;font-weight:800;letter-spacing:.06em;padding:1px 5px;border-radius:3px;margin-left:5px;vertical-align:middle;}
+.crown-badge{display:inline-block;font-size:13px;margin-left:3px;vertical-align:middle;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25));}
 .km-extra-filters{display:flex;align-items:center;gap:6px;padding:2px 8px 4px;flex-wrap:wrap;}
 .fr-ice-btn{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;background:#E1F5FE;color:#0277BD;border:1.5px dashed #81D4FA;transition:all .15s;}
 .fr-ice-btn.active{background:#0277BD;color:#fff;border:1.5px solid #0277BD;box-shadow:inset 0 2px 5px rgba(0,0,0,.2);}
@@ -816,6 +817,7 @@ const st = {
   addrClientId:null, isDemo:false,
   roadKm:null, roadGeometry:null, priorityRoadKm:null, roadDuration:null,
   excluded: new Set(),
+  topSalesIds: new Set(),
   aiGpsMode: true,
   tabletGpsMode: false,
   iceFilter: false,
@@ -1507,6 +1509,19 @@ async function selectDay(day){
 
 // ── ROUTE ──────────────────────────────────────────────────────────────────
 let _initRouteId = 0;
+// Top 3-5 clients by last-3-closed-months sales within the selected day, marked
+// with a 👑 crown badge — signals to the agent where deeper AI analysis pays off most.
+function fetchDayTopSales(myId){
+  const agentCode=st.agent?.code, day=st.day;
+  apiFetch(`${API}/api/day-top-sales?agent=${encodeURIComponent(agentCode)}&day=${day}`)
+    .then(r=>r.ok?r.json():null)
+    .then(d=>{
+      if(!d?.ok||myId!==_initRouteId) return;
+      st.topSalesIds=new Set((d.top||[]).map(x=>x.custId));
+      renderClientList();
+    }).catch(()=>{});
+}
+
 async function initRoute(){
   const myId = ++_initRouteId;
   st.sortMode=(st.aiGpsMode||st.tabletGpsMode)?'ai':'priority'; st.selectedCities=[]; st.selectedId=null;
@@ -1598,6 +1613,8 @@ async function initRoute(){
     console.error('[initRoute] pre-render error (day='+st.day+'):', renderErr);
   }
   renderClientList(); // always called — never leave spinner hanging
+  st.topSalesIds=new Set();
+  fetchDayTopSales(myId);
   // Road-optimal ordering via OSRM /trip (async, cached)
   const _snapId=myId, _snapAgent=st.agent?.code, _snapDay=st.day;
   osrmTripOrder([..._aiGpsClients(st.clients)], st.startLat, st.startLng).then(ordered=>{
@@ -2073,7 +2090,8 @@ function renderClientList(html){
     const pctPart='';
     const indicPart='';
     const SEP='<span style="color:var(--light)"> · </span>';
-    const nameLine=(c.iceOnly?'<span class="ice-badge">ICE</span>':'')
+    const nameLine=(st.topSalesIds.has(String(c.custId))?'<span class="crown-badge" title="TOP מכירות ב-3 חודשים — כדאי ניתוח AI מעמיק">👑</span>':'')
+      +(c.iceOnly?'<span class="ice-badge">ICE</span>':'')
       +(shortName(c.custName,c.city)||esc(c.custName)||'')
       +(c.city?`<span style="font-weight:400;color:var(--mid);font-size:11px;"> · ${esc(c.city)}</span>`:'')
       +(c.address?`<span style="font-weight:400;color:var(--mid);font-size:11px;"> · ${esc(c.address)}</span>`:'');
@@ -3026,10 +3044,18 @@ function deleteGpsCorrection(custId){
   delete local[String(custId)];
   delete gpsCorrections[String(custId)];
   localStorage.setItem('fr_gps_local',JSON.stringify(local));
+  st.clients=st.clients.map(x=>{
+    if(String(x.custId)!==String(custId)||x.gpsSource!=='correction') return x;
+    const {pbiLat,pbiLng,gpsSource,...rest}=x;
+    return (pbiLat&&pbiLng)?{...rest,lat:pbiLat,lng:pbiLng}:rest;
+  });
+  st.aiClients=nearestNeighbor([...st.clients]);
+  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null; triggerOsrm();
+  saveRoute(st.agent.code,st.day,st.clients);
   renderGpsHistory();
   updateGpsHistBtn();
-  renderMap();renderClientList();
-  showToast('🗑 תיקון נמחק');
+  updateKmBar(); renderMap();renderClientList();
+  showToast('🗑 תיקון נמחק — חזר למיקום המקורי');
 }
 let _tileBeforeGps=null;
 function cancelGpsCorrection(){
@@ -3055,7 +3081,7 @@ function saveGpsCorrection(custId, custName, lat, lng){
   apiFetch(`${API}/save-gps`,{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({custId,lat:la,lng:lo,name:custName,city:cl.city||'',address:cl.address||''})
   }).catch(()=>{});
-  st.clients=st.clients.map(x=>String(x.custId)===String(custId)?{...x,lat:la,lng:lo}:x);
+  st.clients=st.clients.map(x=>String(x.custId)===String(custId)?{...x,pbiLat:x.pbiLat??x.lat,pbiLng:x.pbiLng??x.lng,lat:la,lng:lo,gpsSource:'correction'}:x);
   st.aiClients=nearestNeighbor([...st.clients]);
   st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null; triggerOsrm();
   saveRoute(st.agent.code,st.day,st.clients);
