@@ -451,6 +451,7 @@ body.gps-fs #map{height:100%!important;}
       <div class="day-switch" id="day-switch"></div>
       <div class="sort-btns">
         <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')">לפי סדר ביקור</button>
+        <button class="sort-btn active-ai-google" id="sort-btn-ai-google" onclick="toggleAiGps()">🤖 AI Google</button>
         <button class="sort-btn" id="sort-btn-tablet" onclick="toggleTabletGps()">📱 GPS Tablet</button>
         <button class="sort-btn" id="day-briefing-btn" onclick="openDayBriefing()" title="ניתוח יום — TOP 10 לקוחות" style="background:#5C6BC0;color:#fff;border-color:#3F51B5;font-weight:900">📊 ניתוח</button>
         <button class="sort-btn" id="gmaps-btn" onclick="openGoogleMaps()" title="פתח מסלול ב-Google Maps" style="background:#1a73e8;color:#fff;border-color:#1558b0;font-weight:700">🗺 Google</button>
@@ -464,9 +465,6 @@ body.gps-fs #map{height:100%!important;}
             <button class="km-more-item" id="recalc-btn" onclick="recalcRoute();closeKmMore()">🔄 חישוב מסלול מחדש</button>
             <button class="km-more-item" onclick="resetRoute();closeKmMore()">↩ איפוס סדר היום</button>
             <hr class="km-more-sep">
-            <button class="km-more-item" id="ai-google-menu-item" onclick="toggleAiGps();closeKmMore()">
-              <span id="ai-google-check" style="width:14px;display:inline-block;color:#7B1FA2;font-weight:900">✓</span>🤖 מצב AI Google
-            </button>
             <div class="gps-hist-wrap">
               <button class="km-more-item" id="gps-hist-btn" onclick="toggleGpsHistory()">📍 תיקוני GPS</button>
               <div class="gps-hist-dd" id="gps-hist-dd"></div>
@@ -576,6 +574,9 @@ body.gps-fs #map{height:100%!important;}
     </button>
     <button class="gps-btn" onclick="placeOnMap()" style="margin-bottom:10px;border-color:var(--green);color:var(--green)">
       🗺 מקם על המפה באצבע
+    </button>
+    <button class="gps-btn" id="addr-tablet-btn" onclick="reviewTabletGpsFromModal()" style="margin-bottom:10px;display:none;border-color:#00B894;color:#00B894">
+      📱 בדוק מיקום טאבלט
     </button>
     <div id="addr-gps-status" style="font-size:12px;color:var(--mid);text-align:center;min-height:16px;margin-bottom:4px"></div>
     <div class="modal-btns">
@@ -1579,7 +1580,7 @@ function toggleTabletGps(){
   if(btn) btn.className='sort-btn'+(st.tabletGpsMode?' active-tablet':'');
   if(st.tabletGpsMode){
     st.aiGpsMode=false;
-    const aiChk0=document.getElementById('ai-google-check'); if(aiChk0) aiChk0.textContent='';
+    document.getElementById('sort-btn-ai-google').className='sort-btn';
     document.getElementById('sort-btn-priority').className='sort-btn';
     st.sortMode='ai';
     OSRM_CACHE.clear(); OSRM_TRIP_CACHE.clear();
@@ -1596,8 +1597,8 @@ function toggleTabletGps(){
 
 function toggleAiGps(){
   st.aiGpsMode=!st.aiGpsMode;
-  const chk=document.getElementById('ai-google-check');
-  if(chk) chk.textContent=st.aiGpsMode?'✓':'';
+  const btn=document.getElementById('sort-btn-ai-google');
+  if(btn) btn.className='sort-btn'+(st.aiGpsMode?' active-ai-google':'');
   if(st.aiGpsMode){
     st.tabletGpsMode=false;
     document.getElementById('sort-btn-tablet').className='sort-btn';
@@ -1629,7 +1630,7 @@ function recalcRoute(){
   st.sortMode='ai';
   if(!st.tabletGpsMode){ st.aiGpsMode=true; }
   document.getElementById('sort-btn-priority').className='sort-btn';
-  const aiChk1=document.getElementById('ai-google-check'); if(aiChk1) aiChk1.textContent=st.aiGpsMode?'✓':'';
+  document.getElementById('sort-btn-ai-google').className='sort-btn'+(st.aiGpsMode?' active-ai-google':'');
   document.getElementById('sort-btn-tablet').className='sort-btn'+(st.tabletGpsMode?' active-tablet':'');
   OSRM_CACHE.clear(); OSRM_TRIP_CACHE.clear();
   const _rcClients=_aiGpsClients(st.clients);
@@ -2382,7 +2383,14 @@ function openAddrModal(e,id,name){
   document.getElementById('addr-modal-title').textContent=name||'עדכן כתובת';
   const c=st.clients.find(x=>x.custId===id);
   document.getElementById('addr-input').value=c?.address||'';
+  document.getElementById('addr-tablet-btn').style.display=TABLET_GPS[String(id)]?'block':'none';
   document.getElementById('addr-modal').classList.add('open');
+}
+
+function reviewTabletGpsFromModal(){
+  const id=st.addrClientId, name=document.getElementById('addr-modal-title').textContent;
+  closeAddrModal();
+  reviewTabletGps(id,name);
 }
 
 function closeAddrModal(){
@@ -2964,6 +2972,7 @@ let _tabletReviewMarker=null;
 function reviewTabletGps(custId, custName){
   const t=TABLET_GPS[String(custId)];
   if(!t||!t.lat||!t.lng){ showToast('❌ אין נתוני GPS מהטאבלט עבור לקוח זה'); return; }
+  if(!map) renderMap(); // list-only view (narrow screen) may never have initialized the map
   const cl=st.clients.find(x=>String(x.custId)===String(custId));
   if(_tabletReviewMarker){ map.removeLayer(_tabletReviewMarker); _tabletReviewMarker=null; }
   map.closePopup();
