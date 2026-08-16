@@ -323,14 +323,14 @@ async function buildProforma(){
     const img=r.product.imgUrl?`<img src="${proxyImg(r.product.imgUrl)}" alt="">`:'';
     return `<tr><td>${img}</td><td>${esc(r.product.sku)}</td><td class="pv-name">${esc(r.product.name)}</td><td>${r.qty}</td><td>${r.date}</td><td>${esc(r.option)}</td></tr>`;
   }).join('') + `<tr class="pv-total"><td colspan="3">סה"כ</td><td>${totalQty}</td><td colspan="2"></td></tr>`;
-  await waitForImages(document.getElementById('print-view'));
-  window.print();
+  await waitForImages(document.getElementById('print-view')); // still needed: html2canvas source below
   await shareBlank(rows, now);
 }
 
-// window.print() freezes the tab synchronously — images inserted moments earlier
-// haven't had time to finish their network fetch, so the print snapshot captured
-// them blank. Wait for load/error (or a timeout so one stuck image can't hang print).
+// Images are inserted into #print-view moments before html2canvas rasterizes it
+// (in shareBlank) — without waiting, their network fetch (through /api/img-proxy)
+// hasn't finished yet and the capture comes out with blank photo cells. Wait for
+// load/error (or a timeout so one stuck image can't hang the whole share flow).
 function waitForImages(container){
   const imgs=[...container.querySelectorAll('img')];
   if(!imgs.length) return Promise.resolve();
