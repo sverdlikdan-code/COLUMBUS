@@ -346,20 +346,23 @@ function shortProdName(s){
   if(!m) return s;
   return s.slice(0, s.indexOf(m[0])+m[0].length).trim();
 }
-const shortYear=d=>d.replace(/(\d{1,2})\.(\d{1,2})\.(\d{4})/,(_,d1,m1,y)=>`${d1}.${m1}.${y.slice(2)}`);
-const isoShort=iso=>{ const[y,mo,d]=iso.split('-'); return `${+d}.${+mo}.${y.slice(2)}`; };
+const HEB_MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+const monthWord=(d,m)=>`${d} ב${HEB_MONTHS[m-1]}`;
+const localeToWord=s=>{ const m=s.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/); return m?monthWord(+m[1],+m[2]):s; };
+const isoToWord=iso=>{ const[y,mo,d]=iso.split('-'); return monthWord(+d,+mo); };
 function buildWaText(rows, now){
   const sameDate=rows.every(r=>r.date===rows[0].date);
   const pad=(v,w)=>{ v=String(v); return v.length>=w?v:v+' '.repeat(w-v.length); };
-  const skuW=Math.max(6,...rows.map(r=>r.product.sku.length));
+  const shortNames=rows.map(r=>shortProdName(r.product.name));
+  const nameW=Math.max(4,...shortNames.map(n=>n.length));
   const qtyW=Math.max(4,...rows.map(r=>String(r.qty).length));
   const optW=Math.max(4,...rows.map(r=>r.option.length));
-  let text=`🔄 בקשת זיכוי — ${custName} ${isolate('('+custId+')')}\n${city} | סוכן: ${agentName||agentCode} | ${shortYear(now)}\n`;
-  if(sameDate) text+=`תוקף לכולם: ${isoShort(rows[0].date)}\n`;
-  text+='```\n'+pad('מק"ט',skuW)+' '+pad('כמות',qtyW)+' '+pad('%',optW)+' מוצר\n';
-  rows.forEach(r=>{
-    const dateSuffix=sameDate?'':`  (${isoShort(r.date)})`;
-    text+=pad(r.product.sku,skuW)+' '+pad(r.qty,qtyW)+' '+pad(r.option,optW)+' '+shortProdName(r.product.name)+dateSuffix+'\n';
+  let text=`🔄 בקשת זיכוי — ${custName} ${isolate('('+custId+')')}\n${city} | סוכן: ${agentName||agentCode} | ${localeToWord(now)}\n`;
+  if(sameDate) text+=`תוקף לכולם: ${isoToWord(rows[0].date)}\n`;
+  text+='```\n'+pad('מוצר',nameW)+' '+pad('כמות',qtyW)+' '+pad('%',optW)+' מק"ט\n';
+  rows.forEach((r,i)=>{
+    const dateSuffix=sameDate?'':`  (${isoToWord(r.date)})`;
+    text+=pad(shortNames[i],nameW)+' '+pad(r.qty,qtyW)+' '+pad(r.option,optW)+' '+r.product.sku+dateSuffix+'\n';
   });
   text+='```';
   return text;
