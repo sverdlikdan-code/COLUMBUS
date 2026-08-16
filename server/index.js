@@ -607,20 +607,50 @@ function verifyInvite(token) {
   } catch(_) { return null; }
 }
 
-// GET /invite/:token — magic link: verify → set cookie → redirect directly to formula-road with params
-// formula-road.html reads _inv/_ac/_an from URL params and sets localStorage itself (avoids Custom Tab context split)
-app.get('/invite/:token', dataRateLimit, (req, res) => {
-  const payload = verifyInvite(req.params.token);
-  if (!payload) return res.status(400).send(`<!DOCTYPE html><html><head><meta charset=utf-8><title>קישור לא בתוקף</title></head>
-<body style="font-family:Arial;text-align:center;padding:60px;background:#f5f5f5">
-<h2 style="color:#c62828">הקישור פג תוקף</h2>
-<p style="color:#555">בקש קישור חדש מהמנהל.</p></body></html>`);
+function _inviteRedirect(payload, res) {
   const sessionToken = createSession(payload.code, false);
   const name = encodeURIComponent(payload.name || '');
   const code = encodeURIComponent(payload.code || '');
   const inv  = encodeURIComponent(sessionToken);
   res.setHeader('Set-Cookie', 'fr_ok=1; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000');
   return res.redirect(302, `https://api.sverdlik-apps.site/formula-road?_inv=${inv}&_ac=${code}&_an=${name}`);
+}
+const _inviteExpiredPage = `<!DOCTYPE html><html><head><meta charset=utf-8><title>קישור לא בתוקף</title></head>
+<body style="font-family:Arial;text-align:center;padding:60px;background:#f5f5f5">
+<h2 style="color:#c62828">הקישור פג תוקף</h2>
+<p style="color:#555">בקש קישור חדש מהמנהל.</p></body></html>`;
+
+// GET /invite/:token — magic link: verify → set cookie → redirect directly to formula-road with params
+// formula-road.html reads _inv/_ac/_an from URL params and sets localStorage itself (avoids Custom Tab context split)
+app.get('/invite/:token', dataRateLimit, (req, res) => {
+  const payload = verifyInvite(req.params.token);
+  if (!payload) return res.status(400).send(_inviteExpiredPage);
+  return _inviteRedirect(payload, res);
+});
+
+// GET /i/:code — short invite link. Same security properties as /invite/:token
+// (unguessable random code, server-stored, expires), just short enough to look
+// presentable in an email/WhatsApp message instead of a long base64 blob.
+const SHORT_INVITE_FILE = path.join(__dirname, 'data', 'short-invites.json');
+function loadShortInvites() {
+  try { return JSON.parse(fs.readFileSync(SHORT_INVITE_FILE, 'utf8')); } catch { return {}; }
+}
+function saveShortInvites(map) {
+  fs.mkdirSync(path.dirname(SHORT_INVITE_FILE), { recursive: true });
+  fs.writeFileSync(SHORT_INVITE_FILE, JSON.stringify(map, null, 2), 'utf8');
+}
+function makeShortInvite(code, name, days = 30) {
+  const map = loadShortInvites();
+  const short = crypto.randomBytes(5).toString('base64url'); // ~7 chars, URL-safe
+  map[short] = { code, name, exp: Date.now() + days * 24 * 60 * 60 * 1000 };
+  saveShortInvites(map);
+  return `https://api.sverdlik-apps.site/i/${short}`;
+}
+app.get('/i/:code', dataRateLimit, (req, res) => {
+  const map = loadShortInvites();
+  const payload = map[req.params.code];
+  if (!payload || Date.now() > payload.exp) return res.status(400).send(_inviteExpiredPage);
+  return _inviteRedirect(payload, res);
 });
 
 // GET /auth/pbi — auto-login as manager if opened via PBI (fr_ok cookie present)
