@@ -345,11 +345,17 @@ function buildWaText(rows, now){
 }
 
 // Tries to share the styled proforma as an actual image (photo of the blank) via the
-// native Android share sheet, so it lands in WhatsApp as a picture, not plain text.
-// Falls back to a plain wa.me text link on any failure or unsupported browser.
+// native OS share sheet, so on Android with WhatsApp installed it lands as a picture,
+// not plain text. The wa.me text-only button is ALWAYS also shown as a guaranteed
+// fallback — the native share sheet's target list is OS/device-dependent (e.g. on
+// desktop Windows it offers Snip & Sketch/OneNote/etc., not WhatsApp at all), and
+// wa.me can't attach an image (WhatsApp's URL scheme is text-only by design), so
+// neither path alone is reliable enough to hide the other.
 async function shareBlank(rows, now){
   const waBtn=document.getElementById('wa-btn');
   const text=buildWaText(rows, now);
+  waBtn.href='https://wa.me/?text='+encodeURIComponent(text);
+  waBtn.classList.add('show');
   if (typeof html2canvas === 'function' && navigator.share && navigator.canShare) {
     try{
       const el=document.getElementById('print-view');
@@ -359,14 +365,12 @@ async function shareBlank(rows, now){
         const file=new File([blob],`zikuy-${custId}.png`,{type:'image/png'});
         if(navigator.canShare({files:[file]})){
           await navigator.share({files:[file], title:'בקשת זיכוי', text});
-          showToast('נשלח לשיתוף');
+          showToast('נשלח לשיתוף — או פתח WhatsApp למטה (טקסט בלבד)');
           return;
         }
       }
     }catch(e){ console.warn('image share unavailable, falling back to text link', e); }
   }
-  waBtn.href='https://wa.me/?text='+encodeURIComponent(text);
-  waBtn.classList.add('show');
   showToast('הבלנק מוכן — פתח WhatsApp לשליחה');
 }
 
