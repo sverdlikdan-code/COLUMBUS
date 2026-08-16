@@ -463,11 +463,10 @@ body.gps-fs #map{height:100%!important;}
         <button class="sort-btn" id="day-briefing-btn" onclick="openDayBriefing()" title="ניתוח יום — TOP 10 לקוחות" style="background:#5C6BC0;color:#fff;border-color:#3F51B5;font-weight:900">📊 ניתוח</button>
         <button class="sort-btn" id="gmaps-btn" onclick="openGoogleMaps()" title="פתח מסלול ב-Google Maps" style="background:#1a73e8;color:#fff;border-color:#1558b0;font-weight:700">🗺 Google</button>
         <button class="sort-btn" id="print-btn" onclick="printRoute()" title="הדפסת מסלול — מפה + רשימה" style="background:#37474F;color:#fff;border-color:#263238;font-weight:700">🖨️</button>
+        <button class="sort-btn" id="map-toggle-btn" onclick="toggleMapHidden()" title="הסתר/הצג מפה — עבודה עם רשימה בלבד">🗺❌ הסתר מפה</button>
         <div class="km-more-wrap">
           <button class="sort-btn km-more-btn" id="km-more-btn" onclick="toggleKmMore()" title="עוד פעולות">⋮</button>
           <div class="km-more-dd" id="km-more-dd">
-            <button class="km-more-item" id="map-toggle-btn" onclick="toggleMapHidden();closeKmMore()">🗺 הסתר מפה — עבודה עם רשימה בלבד</button>
-            <hr class="km-more-sep">
             <button class="km-more-item export-btn" id="export-btn" onclick="exportXLSX();closeKmMore()">📥 שמור יום (XLS)</button>
             <button class="km-more-item export-btn" id="export-all-btn" onclick="exportAllDaysXLSX();closeKmMore()">📊 כל הימים (XLS)</button>
             <hr class="km-more-sep">
@@ -773,7 +772,10 @@ try{ st.mapHidden = localStorage.getItem('fr_map_hidden')==='1'; }catch(_){}
 function applyMapHidden(){
   document.body.classList.toggle('map-hidden', st.mapHidden);
   const btn=document.getElementById('map-toggle-btn');
-  if(btn) btn.textContent = st.mapHidden ? '🗺 הצג מפה מחדש' : '🗺 הסתר מפה — עבודה עם רשימה בלבד';
+  if(btn){
+    btn.textContent = st.mapHidden ? '🗺 הצג מפה' : '🗺❌ הסתר מפה';
+    btn.className = 'sort-btn'+(st.mapHidden?' active-priority':'');
+  }
   if(st.mapHidden && st.tab==='map') setTab('list');
 }
 function toggleMapHidden(){
