@@ -386,7 +386,7 @@ const isoToWord=iso=>{ const[y,mo,d]=iso.split('-'); return monthWord(+d,+mo); }
 function buildWaText(rows, now){
   let text=`🔄 בקשת זיכוי — ${custName} ${isolate('('+custId+')')}\n${city} | סוכן: ${agentName||agentCode} | ${localeToWord(now)}\n\n`;
   rows.forEach(r=>{
-    text+=`• ${shortProdName(r.product.name)} (מק"ט ${r.product.sku}) — כמות: ${r.qty} | תוקף: ${isoToWord(r.date)} | ${r.option}\n`;
+    text+=`• ${shortProdName(r.product.name)} (מק"ט *${r.product.sku}*) — כמות: *${r.qty}* | תוקף: ${isoToWord(r.date)} | ${r.option}\n`;
   });
   return text;
 }
