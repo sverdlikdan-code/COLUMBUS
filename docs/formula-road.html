@@ -21,6 +21,13 @@
       integrity="sha384-wgw+aLYNQ7dlhK47ZPK7FRACiq7ROZwgFNg0m04avm4CaXS+Z9Y7nMu8yNjBKYC+" crossorigin="anonymous"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+/* App-not-website feel: match the OS's own UI font instead of the browser default
+   (Arial), stop the browser's own rubber-band/pull-to-refresh at the edges, and
+   don't let a long-press select button/label text like it's a webpage. Inputs stay
+   selectable — this is about UI chrome, not data entry. 2026-08-17. */
+html,body{overscroll-behavior:none;}
+body{-webkit-user-select:none;user-select:none;}
+input,textarea,select{-webkit-user-select:text;user-select:text;}
 :root{
   --blue:#1565C0; --blue-dark:#0D47A1; --blue-deeper:#082D6E;
   --sky:#29B6F6;  --sky-light:#E3F2FD; --sky-mid:#BBDEFB;
@@ -215,6 +222,28 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .day-top10 .warn{color:#C62828;font-weight:700;}
 .day-dormant{background:#FFEBEE;border-radius:10px;padding:10px 12px;font-size:12px;color:#C62828;margin-bottom:14px;}
 .day-analysis{background:#EEF0FB;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.7;color:#333;white-space:pre-wrap;direction:auto;}
+.day-company{margin-bottom:20px;}
+.day-company:last-child{margin-bottom:0;}
+.day-company-head{display:flex;align-items:center;gap:8px;margin-bottom:2px;padding-bottom:6px;border-bottom:2px solid #E8EAF6;}
+.day-company-name{font-size:13.5px;font-weight:900;color:#3F51B5;letter-spacing:.3px;}
+/* Star rating replaces the raw ₪ figure in TOP10 — relative scale within the list
+   only, not the exact number of another store's sales. Grayscale + low opacity on
+   purpose ("не видно циферки, полупрозрачные ч/б звёздочки" — 2026-08-17). */
+.day-stars{color:#78909C;opacity:.8;letter-spacing:1px;font-size:13px;white-space:nowrap;}
+.day-highlights{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 12px;}
+.day-chip{font-size:11px;font-weight:700;padding:5px 10px;border-radius:14px;display:inline-flex;align-items:center;gap:4px;}
+.day-chip.growth{background:#E8F5E9;color:#2E7D32;}
+.day-chip.risk{background:#FFEBEE;color:#C62828;}
+.day-rec-list{display:flex;flex-direction:column;gap:8px;margin-bottom:4px;}
+.day-rec{background:#EEF0FB;border-radius:10px;padding:9px 11px;}
+.day-rec.priority-high{background:#FFF3E0;border-right:3px solid #E65100;}
+.day-rec-top{display:flex;align-items:flex-start;gap:8px;}
+.day-rec-text{flex:1;font-size:12.5px;line-height:1.5;color:#333;}
+.day-rec-client{font-weight:800;color:#3F51B5;}
+.day-rec-fb{display:flex;gap:4px;flex-shrink:0;}
+.day-rec-fb button{width:28px;height:28px;border-radius:8px;border:1.5px solid #D0D4E8;background:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
+.day-rec-fb button.picked{background:#3F51B5;border-color:#3F51B5;filter:none;}
+.day-rec-fb button.picked.down{background:#C62828;border-color:#C62828;}
 .excl-section-lbl{padding:5px 10px 2px;font-size:10px;font-weight:700;color:var(--light);letter-spacing:1px;text-transform:uppercase;border-top:1px solid var(--sky-mid);margin-top:4px;}
 .c-num-wrap{display:flex;flex-direction:column;align-items:center;gap:1px;flex-shrink:0;min-width:28px;cursor:grab;touch-action:none;user-select:none;}
 .walk-icon{font-size:11px;line-height:1;}
@@ -224,6 +253,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .c-id-side{font-size:8px;font-weight:700;color:#fff;background:#9e9e9e;border-radius:4px;padding:2px 5px;white-space:nowrap;flex-shrink:0;align-self:center;}
 .c-drag{cursor:grab;touch-action:none;user-select:none;}
 .c-body{flex:1;min-width:0;}
+.c-actions{display:flex;align-items:center;gap:3px;}
 .c-name{font-size:12px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25;}
 .c-sub{font-size:10px;color:var(--mid);margin-top:1px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .no-gps-icon{display:none;}
@@ -299,6 +329,19 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
   .day-card{border-radius:28px;padding:28px 16px;}
   .day-body{padding:28px;}
   .day-title{font-size:32px;margin-bottom:28px;}
+}
+
+/* Split view (list+map side by side, list-pane pinned to a % width) starves
+   .c-name of space once the row's action icons hit the ≥768px 44dp touch-target
+   sizing above — that icon cluster alone can exceed the entire narrow list column,
+   crushing the name (the only flexible, min-width:0 element) down to 1-2 visible
+   characters. Fix: let the icon row wrap to 2 lines instead of demanding its full
+   unwrapped width, and give the list column a bit more room. Only applies while
+   the map is actually showing next to the list — body.map-hidden already goes to
+   list:100% width where the bigger icons are fine as-is. 2026-08-17. */
+@media(min-width:700px){
+  body:not(.map-hidden) #list-pane{flex:0 0 48%;}
+  body:not(.map-hidden) .c-actions{flex-wrap:wrap;justify-content:flex-end;max-width:150px;}
 }
 
 /* Map fully disabled — agent works list-only (persisted, overrides the wide-screen
@@ -670,6 +713,10 @@ body.gps-fs #map{height:100%!important;}
 <script>
 const API = 'https://api.sverdlik-apps.site';
 const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+// Tiny haptic tick on key screen transitions (AI/zikuy open, day/agent switch, back
+// to menu) — Android only, navigator.vibrate doesn't exist on iOS Safari so this is
+// a silent no-op there, not a crash. 2026-08-17.
+function _tick(){ try{ navigator.vibrate && navigator.vibrate(10); }catch(_){} }
 const MAINTENANCE_MODE = false;
 
 (function(){
@@ -1793,7 +1840,7 @@ function printRoute(){
 <style>
 @page{size:A4 landscape;margin:6mm;}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:Arial,sans-serif;display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;display:flex;flex-direction:column;height:100vh;overflow:hidden;}
 .hdr{background:#1A3F7C;color:#fff;padding:5px 10px;font-size:11px;font-weight:700;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
 .body{display:flex;flex:1;overflow:hidden;direction:ltr;}
 #map{flex:1;height:100%;}
@@ -2100,7 +2147,7 @@ function renderClientList(html){
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;">
         ${c.custId?`<span class="c-id-side">${c.custId}</span>`:''}
-        <div style="display:flex;align-items:center;gap:3px;">
+        <div class="c-actions">
           <span class="excl-btn" data-id="${c.custId}" onclick="toggleExclude('${c.custId}',event)" title="הוצא ממסלול">🚫</span>
           <span class="day-change-btn" data-id="${c.custId}" onclick="openDayPopup(event,this.dataset.id)">📅</span>
           <span class="mekarer-btn" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" data-city="${(c.city||'').replace(/"/g,'&quot;')}" onclick="openMekarerOrder(event,this.dataset.id,this.dataset.name,this.dataset.city)">🧊</span>
@@ -2624,6 +2671,7 @@ let _aiState = { custId: null, custName: null, lang: 'he' };
 
 function openClientAI(evt, custId, custName) {
   evt.stopPropagation();
+  _tick();
   _aiState.custId   = custId;
   _aiState.custName = custName;
   document.getElementById('ai-modal-title').textContent = custName || custId;
@@ -2786,11 +2834,81 @@ function openDayBriefing() {
 function closeDayBriefing() {
   document.getElementById('day-modal').classList.remove('open');
 }
+// value/max only — ranks this client against the others in the SAME top10 list,
+// never shows or leaks the actual ₪ figure of another store.
+function _dayStars(value, max) {
+  if (!max || value <= 0) return '☆☆☆☆☆';
+  const n = Math.max(1, Math.min(5, Math.round((value / max) * 5)));
+  return '★'.repeat(n) + '☆'.repeat(5 - n);
+}
+
+let _dayRecStore = {};
+function dayRecFeedback(id, val, btnEl) {
+  const rec = _dayRecStore[id];
+  if (!rec) return;
+  btnEl.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('picked', 'down'));
+  btnEl.classList.add('picked');
+  if (val === 'down') btnEl.classList.add('down');
+  apiFetch(`${API}/api/ai-feedback`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ source: 'day-briefing', company: rec.company, day: st.day, client: rec.client, action: rec.action, feedback: val }),
+  }).catch(() => {});
+}
+
+function _renderDayCompany(key, label, data) {
+  if (!data || !data.top10 || !data.top10.length) {
+    return `<div class="day-company"><div class="day-company-head"><span class="day-company-name">${esc(label)}</span></div><div class="day-sub">אין נתונים בתקופה זו</div></div>`;
+  }
+  const maxTotal = data.top10[0].total || 1;
+  const sub = `<div class="day-sub">ממוצע לקוח בחברה: ₪${(data.companyAvg||0).toLocaleString()}</div>`;
+
+  let tbl = `<table class="day-top10"><thead><tr><th>#</th><th>לקוח</th><th>דירוג</th><th>YoY</th></tr></thead><tbody>`;
+  data.top10.forEach((c, i) => {
+    const yoyStr = c.yoy !== null && c.yoy !== undefined ? `${c.yoy>=0?'+':''}${c.yoy}%` : '—';
+    const warn = c.daysSince && c.daysSince > 21;
+    const crown = c.crown ? '👑 ' : '';
+    tbl += `<tr><td>${i+1}</td><td>${crown}${esc(c.name)}${warn?` <span class="warn">⚠️${c.daysSince}d</span>`:''}</td><td class="day-stars">${_dayStars(c.total, maxTotal)}</td><td>${yoyStr}</td></tr>`;
+  });
+  tbl += '</tbody></table>';
+
+  const dormantHtml = (data.dormant && data.dormant.length)
+    ? `<div class="day-dormant">⚠️ לא הזמינו מעל 3 שבועות: ${data.dormant.map(c=>`${esc(c.name)} (${c.daysSince}d)`).join(', ')}</div>`
+    : '';
+
+  const highlightsHtml = (data.highlights || []).length
+    ? `<div class="day-highlights">${data.highlights.map(h => {
+        const growth = h.type === 'growth';
+        return `<span class="day-chip ${growth?'growth':'risk'}">${growth?'📈':'⚠️'} <b>${esc(h.client||'')}</b> ${esc(h.note||'')}</span>`;
+      }).join('')}</div>`
+    : '';
+
+  const recsHtml = (data.recommendations || []).length
+    ? `<div class="day-rec-list">${data.recommendations.map((r, i) => {
+        const id = `${key}_${i}`;
+        _dayRecStore[id] = { company: key, client: r.client || '', action: r.action || '' };
+        return `<div class="day-rec${r.priority==='high'?' priority-high':''}">
+          <div class="day-rec-top">
+            <div class="day-rec-text">${r.client?`<span class="day-rec-client">${esc(r.client)}:</span> `:''}${esc(r.action||'')}</div>
+            <div class="day-rec-fb">
+              <button type="button" onclick="dayRecFeedback('${id}','up',this)">👍</button>
+              <button type="button" onclick="dayRecFeedback('${id}','down',this)">👎</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}</div>`
+    : '';
+
+  return `<div class="day-company">
+    <div class="day-company-head"><span class="day-company-name">${esc(label)}</span></div>
+    ${sub}${tbl}${dormantHtml}${highlightsHtml}${recsHtml}
+  </div>`;
+}
+
 async function _fetchDayBriefing() {
   const agentCode = st.agent?.code;
   const cacheKey = `${agentCode}_${st.day}`;
   const body = document.getElementById('day-modal-body');
-  if (_dayBriefingCache[cacheKey]) { body.innerHTML = _dayBriefingCache[cacheKey]; return; }
+  if (_dayBriefingCache[cacheKey]) { body.innerHTML = _dayBriefingCache[cacheKey].html; _dayRecStore = _dayBriefingCache[cacheKey].store; return; }
   body.innerHTML = '<div class="ai-loading">⏳ מחשב...</div>';
   try {
     const r = await apiFetch(`${API}/api/day-briefing?agent=${encodeURIComponent(agentCode)}&day=${st.day}&lang=he`);
@@ -2798,24 +2916,12 @@ async function _fetchDayBriefing() {
     const data = await r.json();
     if (!data.ok) throw new Error(data.error || 'אין מספיק נתונים ליום זה');
 
-    const { top10, dormant, companyAvg, monthStr, analysis } = data;
-
-    const sub = `<div class="day-sub">${monthStr} · ממוצע לקוח בחברה: ₪${companyAvg.toLocaleString()}</div>`;
-
-    let tbl = `<table class="day-top10"><thead><tr><th>#</th><th>לקוח</th><th>מכירות</th><th>YoY</th></tr></thead><tbody>`;
-    top10.forEach((c,i) => {
-      const yoyStr = c.yoy !== null && c.yoy !== undefined ? `${c.yoy>=0?'+':''}${c.yoy}%` : '—';
-      const warn = c.daysSince && c.daysSince > 21;
-      tbl += `<tr><td>${i+1}</td><td>${esc(c.name)}${warn?` <span class="warn">⚠️${c.daysSince}d</span>`:''}</td><td>₪${c.total.toLocaleString()}</td><td>${yoyStr}</td></tr>`;
-    });
-    tbl += '</tbody></table>';
-
-    const dormantHtml = (dormant && dormant.length)
-      ? `<div class="day-dormant">⚠️ לא הזמינו מעל 3 שבועות: ${dormant.map(c=>`${esc(c.name)} (${c.daysSince}d)`).join(', ')}</div>`
-      : '';
-
-    const html = `${sub}${tbl}${dormantHtml}<div class="day-analysis">${(analysis||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
-    _dayBriefingCache[cacheKey] = html;
+    _dayRecStore = {};
+    const subHead = `<div class="day-sub" style="margin-bottom:12px">${esc(data.monthStr||'')}</div>`;
+    const html = subHead
+      + _renderDayCompany('FORMULA', 'FORMULA', data.companies?.FORMULA)
+      + _renderDayCompany('ICE_MISH', 'ICE MISHPACHTI', data.companies?.ICE_MISH);
+    _dayBriefingCache[cacheKey] = { html, store: { ..._dayRecStore } };
     body.innerHTML = html;
   } catch(e) {
     body.innerHTML = `<div class="ai-loading" style="color:#c62828">❌ ${e.message}</div>`;
@@ -3165,31 +3271,39 @@ function getDemoClients(){
 }
 
 // ── PWA INSTALL PROMPT ─────────────────────────────────────────────────────
+// No permanent "no thanks" — keeps asking (once/day) until it's actually installed.
+// A previous version stored a one-shot 'dismissed'/'later' flag and relied on a
+// setTimeout to clear it 24h later, which only fires if the tab stays open a full
+// day straight — never happens on a phone that gets closed/reopened, so in practice
+// "later" behaved as "never again" too. Fixed by storing a timestamp and comparing
+// on each load instead. 2026-08-17.
+const PWA_ASK_COOLDOWN_MS = 24*60*60*1000;
+function _pwaShouldAsk(){
+  if(window.matchMedia('(display-mode: standalone)').matches) return false;
+  const last=parseInt(localStorage.getItem('fr_pwa_last')||'0',10);
+  return !last || (Date.now()-last)>PWA_ASK_COOLDOWN_MS;
+}
 let _pwaPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{
   e.preventDefault();
   _pwaPrompt=e;
-  // show banner only on first visit (not if already dismissed/installed)
-  const s=localStorage.getItem('fr_pwa');
-  if(!s && !window.matchMedia('(display-mode: standalone)').matches){
-    setTimeout(()=>document.getElementById('pwa-banner').classList.add('show'), 2000);
-  }
+  if(_pwaShouldAsk()) setTimeout(()=>document.getElementById('pwa-banner').classList.add('show'), 2000);
 });
 async function doPwaInstall(){
   document.getElementById('pwa-banner').classList.remove('show');
-  if(_pwaPrompt){ await _pwaPrompt.prompt(); const r=await _pwaPrompt.userChoice; localStorage.setItem('fr_pwa',r.outcome); }
+  if(_pwaPrompt){
+    await _pwaPrompt.prompt();
+    const r=await _pwaPrompt.userChoice;
+    if(r.outcome!=='accepted') localStorage.setItem('fr_pwa_last', String(Date.now()));
+  }
 }
-function dismissPwaBanner(permanent){
+function dismissPwaBanner(){
   document.getElementById('pwa-banner').classList.remove('show');
-  localStorage.setItem('fr_pwa', permanent?'dismissed':'later');
-  if(!permanent) setTimeout(()=>{
-    // show again next session if "later"
-    localStorage.removeItem('fr_pwa');
-  }, 24*60*60*1000);
+  localStorage.setItem('fr_pwa_last', String(Date.now()));
 }
-// iOS fallback — no beforeinstallprompt, show manual tip once
+// iOS fallback — no beforeinstallprompt, show manual tip (same daily cooldown)
 if(/iphone|ipad|ipod/i.test(navigator.userAgent) && !window.navigator.standalone){
-  if(!localStorage.getItem('fr_pwa')){
+  if(_pwaShouldAsk()){
     setTimeout(()=>{
       const b=document.getElementById('pwa-banner');
       b.querySelector('.pwa-sub').textContent='לחץ על 📤 ואז "הוסף למסך הבית"';

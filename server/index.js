@@ -3827,9 +3827,11 @@ CALCULATETABLE(
   }
 });
 
-// ── AI Day Briefing — TOP 10 clients of agent's day, YoY growth + failures ───
-// Metrics: current 3M total, prev-year same 3M total, order days, SKU count
-// 3 parallel DAX calls -> rank TOP 10 by current sales -> Gemini growth/failure analysis
+// ── AI Day Briefing — TOP 10 clients of agent's day, split by company (FORMULA vs
+// ICE MISHPACHTI — never mixed together; INTER/ICE BDD are out of scope for this
+// report). Per company: YoY growth/failures, structured highlights + an itemized
+// recommendation bank (not prose — the agent picks items off it and gives 👍/👎
+// feedback per item via /api/ai-feedback).
 app.get('/api/day-briefing', requireAuth, async (req, res) => {
   // Managers browsing an agent's route (ROADS) pass ?agent= explicitly, same as /customers;
   // an agent's own session falls back to their session agentCode.
@@ -3838,7 +3840,7 @@ app.get('/api/day-briefing', requireAuth, async (req, res) => {
   const agentCode = queryAgent || req.session.agentCode;
   if (!agentCode) return res.status(403).json({ ok: false, error: 'manager session -- no agent' });
   if (!pbiCache) return res.status(503).json({ ok: false, error: 'cache_loading' });
-  if (!GEMINI_API_KEY) return res.status(503).json({ ok: false, error: 'AI not configured' });
+  if (!GEMINI_API_KEY && !ANTHROPIC_API_KEY) return res.status(503).json({ ok: false, error: 'AI not configured' });
 
   const lang = (req.query.lang || 'he').slice(0, 2);
   const dayNum = parseInt(req.query.day) || 0;
@@ -3864,7 +3866,38 @@ app.get('/api/day-briefing', requireAuth, async (req, res) => {
   const custIds = [...new Set(dayClients.map(c => String(c.custId)))];
   const inList = custIds.map(id => `"${id}"`).join(', ');
 
-  const daxCur = `
+  // Same מחלקה→company classification used across the app (client-returns, sadran
+  // chain-products) — the department name itself encodes ICE's mish/bdd sub-brands.
+  const classifyDayCompany = (machlaka) => {
+    if (!machlaka) return null;
+    if (machlaka.includes('mish')) return 'ICE_MISH';
+    if (machlaka.includes('bdd')) return 'ICE_BDD';
+    return 'FORMULA';
+  };
+
+  // Small dimension lookup (family -> מחלקה) scoped to this day's clients/period —
+  // classified in JS, then used to build a family IN-list filter per company. Doing
+  // it this way (vs. re-classifying per fact row) means DISTINCTCOUNT(תאריך)/SKU
+  // below are computed on an already-filtered fact table, not double-counted.
+  const daxFamCompany = `
+EVALUATE
+CALCULATETABLE(
+  ADDCOLUMNS(
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[תאור משפחת מוצר]),
+    "מחלקה", LOOKUPVALUE(ADIFUT[מחלקה], ADIFUT[תאור משפחה], ALL_PARTS[תאור משפחת מוצר])
+  ),
+  ALL_PARTS[מספר לקוח] IN {${inList}},
+  ALL_PARTS[ASHMADOT] = "-מכר-",
+  ALL_PARTS[תאריך] >= DATE(${prevStart.year},${prevStart.month},1),
+  ALL_PARTS[תאריך] <= DATE(${curEnd.year},${curEnd.month},${curLastDay})
+)`;
+
+  const buildQueries = (familyList) => {
+    const esc = f => `"${String(f).replace(/"/g, '""')}"`;
+    const famFilter = familyList.length
+      ? `ALL_PARTS[תאור משפחת מוצר] IN {${familyList.map(esc).join(', ')}},`
+      : `ALL_PARTS[תאור משפחת מוצר] IN {"__none__"},`;
+    const daxCur = `
 EVALUATE
 CALCULATETABLE(
   ADDCOLUMNS(
@@ -3873,78 +3906,79 @@ CALCULATETABLE(
     "orderDays", CALCULATE(DISTINCTCOUNT(ALL_PARTS[תאריך])),
     "skus",      CALCULATE(DISTINCTCOUNT(ALL_PARTS[מק'ט]))
   ),
+  ${famFilter}
   ALL_PARTS[מספר לקוח] IN {${inList}},
   ALL_PARTS[ASHMADOT] = "-מכר-",
   ALL_PARTS[תאריך] >= DATE(${curStart.year},${curStart.month},1),
   ALL_PARTS[תאריך] <= DATE(${curEnd.year},${curEnd.month},${curLastDay})
 )`;
-
-  // Real last-order date must NOT be limited to the "3 closed months" window (that
-  // window deliberately excludes the current in-progress month for fair sales
-  // comparison) — a client who ordered today would otherwise show their last
-  // May/June/July date and look dormant for weeks they were never actually gone.
-  const daxLastOrder = `
+    // Real last-order date must NOT be limited to the "3 closed months" window (that
+    // window deliberately excludes the current in-progress month for fair sales
+    // comparison) — a client who ordered today would otherwise show their last
+    // May/June/July date and look dormant for weeks they were never actually gone.
+    const daxLastOrder = `
 EVALUATE
 CALCULATETABLE(
   ADDCOLUMNS(SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]), "lastOrder", CALCULATE(MAX(ALL_PARTS[תאריך]))),
+  ${famFilter}
   ALL_PARTS[מספר לקוח] IN {${inList}},
   ALL_PARTS[ASHMADOT] = "-מכר-"
 )`;
-
-  const daxPrev = `
+    const daxPrev = `
 EVALUATE
 CALCULATETABLE(
   ADDCOLUMNS(
     SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]),
     "prevTotal", CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)])
   ),
+  ${famFilter}
   ALL_PARTS[מספר לקוח] IN {${inList}},
   ALL_PARTS[ASHMADOT] = "-מכר-",
   ALL_PARTS[תאריך] >= DATE(${prevStart.year},${prevStart.month},1),
   ALL_PARTS[תאריך] <= DATE(${prevEnd.year},${prevEnd.month},${prevLastDay})
 )`;
-
-  const daxAvg = `
+    const daxAvg = `
 EVALUATE
 ROW(
   "avg", DIVIDE(
     CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)],
+      ${famFilter}
       ALL_PARTS[ASHMADOT] = "-מכר-",
       ALL_PARTS[תאריך] >= DATE(${curStart.year},${curStart.month},1),
       ALL_PARTS[תאריך] <= DATE(${curEnd.year},${curEnd.month},${curLastDay})
     ),
     CALCULATE(DISTINCTCOUNT(ALL_PARTS[מספר לקוח]),
+      ${famFilter}
       ALL_PARTS[ASHMADOT] = "-מכר-",
       ALL_PARTS[תאריך] >= DATE(${curStart.year},${curStart.month},1),
       ALL_PARTS[תאריך] <= DATE(${curEnd.year},${curEnd.month},${curLastDay})
     )
   )
 )`;
+    return { daxCur, daxLastOrder, daxPrev, daxAvg };
+  };
 
-  try {
+  // Per-company: rank TOP 10 by current sales, flag the top 3 as 👑 (crown — real
+  // money moves there, not on marginal accounts), list clients dormant >21 days.
+  const buildCompanyResult = async (familyList) => {
+    const { daxCur, daxLastOrder, daxPrev, daxAvg } = buildQueries(familyList);
     const [curRows, prevRows, avgRows, lastOrderRows] = await Promise.all([
       executeDax(daxCur), executeDax(daxPrev), executeDax(daxAvg), executeDax(daxLastOrder),
     ]);
     const companyAvg = Math.round(avgRows?.[0]?.['[avg]'] || 0);
-
     const curMap = {}, prevMap = {}, lastOrderMap = {};
     for (const r of curRows) {
-      const id = String(r[`ALL_PARTS[מספר לקוח]`] || r['[מספר לקוח]'] || '');
-      if (id) curMap[id] = {
-        total: Math.round(r['[total]'] || 0),
-        orderDays: r['[orderDays]'] || 0,
-        skus: r['[skus]'] || 0,
-      };
+      const id = String(r['ALL_PARTS[מספר לקוח]'] || r['[מספר לקוח]'] || '');
+      if (id) curMap[id] = { total: Math.round(r['[total]'] || 0), orderDays: r['[orderDays]'] || 0, skus: r['[skus]'] || 0 };
     }
     for (const r of prevRows) {
-      const id = String(r[`ALL_PARTS[מספר לקוח]`] || r['[מספר לקוח]'] || '');
+      const id = String(r['ALL_PARTS[מספר לקוח]'] || r['[מספר לקוח]'] || '');
       if (id) prevMap[id] = Math.round(r['[prevTotal]'] || 0);
     }
     for (const r of lastOrderRows) {
-      const id = String(r[`ALL_PARTS[מספר לקוח]`] || r['[מספר לקוח]'] || '');
+      const id = String(r['ALL_PARTS[מספר לקוח]'] || r['[מספר לקוח]'] || '');
       if (id) lastOrderMap[id] = r['[lastOrder]'] || null;
     }
-
     const enriched = dayClients.map(c => {
       const id = String(c.custId);
       const s = curMap[id] || { total: 0, orderDays: 0, skus: 0 };
@@ -3953,41 +3987,117 @@ ROW(
       const avgBasket = s.orderDays > 0 ? Math.round(s.total / s.orderDays) : 0;
       const lastOrder = lastOrderMap[id] || null;
       const daysSince = lastOrder ? Math.round((Date.now() - new Date(lastOrder)) / 86400000) : null;
-      return { custId: id, name: c.custName || id, city: c.city || '', total: s.total, prevTotal, yoy, orderDays: s.orderDays, skus: s.skus, avgBasket, daysSince };
+      return { custId: id, name: c.custName || id, city: c.city || '', total: s.total, prevTotal, yoy, orderDays: s.orderDays, skus: s.skus, avgBasket, daysSince, sadran: c.sadran || '' };
     });
     enriched.sort((a, b) => b.total - a.total);
-    const top10 = enriched.slice(0, 10);
+    const top10 = enriched.slice(0, 10).map((c, i) => ({ ...c, crown: i < 3 }));
     const dormant = enriched.filter(c => c.daysSince !== null && c.daysSince > 21 && !top10.find(t => t.custId === c.custId));
+    return { top10, dormant: dormant.slice(0, 5), companyAvg };
+  };
+
+  try {
+    const famRows = await executeDax(daxFamCompany);
+    const formulaFamilies = [], iceMishFamilies = [];
+    famRows.forEach(r => {
+      const fam = r['ALL_PARTS[תאור משפחת מוצר]'] || r['[תאור משפחת מוצר]'];
+      if (!fam) return;
+      const co = classifyDayCompany(r['[מחלקה]']);
+      if (co === 'FORMULA') formulaFamilies.push(fam);
+      else if (co === 'ICE_MISH') iceMishFamilies.push(fam);
+    });
+
+    const [formulaResult, iceMishResult] = await Promise.all([
+      buildCompanyResult(formulaFamilies),
+      buildCompanyResult(iceMishFamilies),
+    ]);
 
     const monthStr = `${months[0].month}/${months[0].year} — ${curEnd.month}/${curEnd.year}`;
     const prevStr  = `${prevMonths[0].month}/${prevMonths[0].year} — ${prevEnd.month}/${prevEnd.year}`;
 
-    const top10Lines = top10.map((c, i) => {
-      const vsAvg = companyAvg ? ` (${c.total >= companyAvg ? '+' : ''}${Math.round((c.total / companyAvg - 1) * 100)}% מממוצע)` : '';
-      const yoyStr = c.yoy !== null ? ` | YoY:${c.yoy >= 0 ? '+' : ''}${c.yoy}%` : ' | YoY:—';
-      const basketStr = c.avgBasket ? ` | סל:₪${c.avgBasket.toLocaleString()}` : '';
-      const skuStr = c.skus ? ` | SKU:${c.skus}` : '';
-      const dormFlag = c.daysSince > 21 ? ` ⚠️${c.daysSince}d` : '';
-      return `${i + 1}. ${c.name} (${c.city}): ₪${c.total.toLocaleString()}${vsAvg}${yoyStr}${basketStr}${skuStr}${dormFlag}`;
-    }).join('\n');
-
-    const dormantLines = dormant.length
-      ? '\nלא הזמינו >3 שבועות (לא בTOP10): ' + dormant.slice(0, 5).map(c => `${c.name}(${c.daysSince}d)`).join(', ')
-      : '';
-
-    const context = `תקופה נוכחית: ${monthStr} | תקופה מקבילה אשתקד: ${prevStr}\nממוצע לקוח בחברה: ₪${companyAvg.toLocaleString()}\n\nTOP 10 לקוחות היום:\n${top10Lines}${dormantLines}`;
-
-    const prompts = {
-      he: `אתה מנהל אזור. נתוני TOP 10 לקוחות של הסוכן להיום (מכירות, YoY%, סל ממוצע, SKU):\n${context}\n\n⚡ מצא: 1) זוני צמיחה — מי גדל YoY ומה ניתן להגדיל עוד 2) כשלים — מי יורד YoY / לא הזמין / סל קטן 3) המלצה חדה לסוכן. מנהלי, ישיר, 6-8 שורות. טקסט רגיל בלבד, בלי Markdown (בלי **, בלי #).`,
-      uk: `Ти менеджер зони. TOP 10 клієнтів на сьогодні:\n${context}\n\n⚡ Знайди: 1) Зони росту — хто зростає YoY 2) Провали — хто падає / не замовляв 3) Рекомендація. Прямо, 6-8 рядків. Лише звичайний текст, без Markdown (без **, без #).`,
-      ru: `Ты менеджер зоны. TOP 10 клиентов на сегодня:\n${context}\n\n⚡ Найди: 1) Зоны роста — кто растёт YoY 2) Провалы — кто падает / не заказывал 3) Рекомендация. Прямо, 6-8 строк. Только обычный текст, без Markdown (без **, без #).`,
+    const buildContext = (label, result) => {
+      if (!result.top10.length) return `${label}: אין נתונים בתקופה זו.`;
+      const lines = result.top10.map((c, i) => {
+        const vsAvg = result.companyAvg ? ` (${c.total >= result.companyAvg ? '+' : ''}${Math.round((c.total / result.companyAvg - 1) * 100)}% מממוצע)` : '';
+        const yoyStr = c.yoy !== null ? ` | YoY:${c.yoy >= 0 ? '+' : ''}${c.yoy}%` : ' | YoY:—';
+        const basketStr = c.avgBasket ? ` | סל:₪${c.avgBasket.toLocaleString()}` : '';
+        const dormFlag = c.daysSince > 21 ? ` ⚠️${c.daysSince}d` : '';
+        const crownFlag = c.crown ? ' 👑' : '';
+        const sadranFlag = c.sadran ? ' 💪(סדרן)' : '';
+        return `${i + 1}. ${c.name}${crownFlag}${sadranFlag} (${c.city}): ₪${c.total.toLocaleString()}${vsAvg}${yoyStr}${basketStr}${dormFlag}`;
+      }).join('\n');
+      const dormantLines = result.dormant.length
+        ? '\nלא הזמינו >3 שבועות: ' + result.dormant.map(c => `${c.name}(${c.daysSince}d)`).join(', ')
+        : '';
+      return `${label} — ממוצע לקוח: ₪${result.companyAvg.toLocaleString()}\n${lines}${dormantLines}`;
     };
 
-    const analysis = await callGemini(prompts[lang] || prompts.he, 700);
-    res.json({ ok: true, top10, dormant: dormant.slice(0, 5), companyAvg, monthStr, prevStr, analysis });
+    const context = `תקופה נוכחית: ${monthStr} | תקופה מקבילה אשתקד: ${prevStr}\n\n${buildContext('FORMULA', formulaResult)}\n\n${buildContext('ICE MISHPACHTI', iceMishResult)}`;
+
+    // Structured JSON, not prose — the agent picks individual recommendations off a
+    // list and gives feedback per item, so free text can't be the output format.
+    const jsonInstructions = {
+      he: `פלט אך ורק JSON תקין (בלי טקסט מסביב, בלי Markdown), במבנה הבא בדיוק:
+{"FORMULA":{"highlights":[{"type":"growth|risk","client":"שם","note":"משפט קצר"}],"recommendations":[{"client":"שם","action":"המלצה קונקרטית אחת שהסוכן יכול לבצע בביקור עצמו","priority":"high|medium"}]},"ICE_MISH":{...אותו מבנה...}}
+עד 5 highlights ועד 5 recommendations לכל חברה. תעדוף חד ל-👑 (TOP3 מכירות) — שם ההזדמנות/כשל שווה הכי הרבה כסף, לא לפזר על לקוחות שוליים. priority=high רק ל-👑 או ירידת YoY חדה.`,
+      ru: `Выведи ТОЛЬКО валидный JSON (без текста вокруг, без Markdown), строго в структуре:
+{"FORMULA":{"highlights":[{"type":"growth|risk","client":"имя","note":"короткая фраза"}],"recommendations":[{"client":"имя","action":"одна конкретная рекомендация, которую агент может выполнить прямо на визите","priority":"high|medium"}]},"ICE_MISH":{...та же структура...}}
+До 5 highlights и до 5 recommendations на компанию. Явный приоритет 👑-клиентам (TOP3 по продажам) — там решение сразу даёт заметные деньги, не распылять на второстепенных. priority=high только для 👑 или резкого падения YoY.`,
+      uk: `Виведи ТІЛЬКИ валідний JSON (без тексту навколо, без Markdown), рівно в структурі:
+{"FORMULA":{"highlights":[{"type":"growth|risk","client":"ім'я","note":"коротка фраза"}],"recommendations":[{"client":"ім'я","action":"одна конкретна рекомендація, яку агент може виконати під час візиту","priority":"high|medium"}]},"ICE_MISH":{...та сама структура...}}
+До 5 highlights і до 5 recommendations на компанію. Явний пріоритет 👑-клієнтам (TOP3 продажів). priority=high лише для 👑 або різкого падіння YoY.`,
+    };
+
+    const prompt = `${jsonInstructions[lang] || jsonInstructions.he}\n\nנתונים:\n${context}`;
+    const raw = await callGemini(prompt, 1200);
+    let parsed = null;
+    try {
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+    } catch (e) { /* fall through to fallback below */ }
+    const fallbackFor = () => ({ highlights: [], recommendations: [{ client: '', action: raw.slice(0, 400), priority: 'medium' }] });
+
+    res.json({
+      ok: true,
+      monthStr, prevStr,
+      companies: {
+        FORMULA: { ...formulaResult, ...(parsed?.FORMULA || fallbackFor()) },
+        ICE_MISH: { ...iceMishResult, ...(parsed?.ICE_MISH || fallbackFor()) },
+      },
+    });
   } catch(e) {
     res.status(500).json({ ok: false, error: e.message });
   }
+});
+
+// POST /api/ai-feedback — 👍/👎 on a single AI recommendation (day-briefing or
+// client-analytics). Append-only log, no auth-scoped read-back needed yet — this is
+// the seed dataset for eventually training which recommendations actually land.
+const AI_FEEDBACK_FILE = path.join(__dirname, 'data', 'ai-feedback.json');
+app.post('/api/ai-feedback', requireAuth, (req, res) => {
+  const { source, company, custId, client, action, feedback, day } = req.body || {};
+  if (!['up', 'down'].includes(feedback)) return res.status(400).json({ ok: false, error: 'feedback must be up/down' });
+  if (typeof action !== 'string' || !action.trim()) return res.status(400).json({ ok: false, error: 'action required' });
+  const entry = {
+    ts: new Date().toISOString(),
+    agentCode: req.session.agentCode || null,
+    source: String(source || 'day-briefing').slice(0, 40),
+    company: String(company || '').slice(0, 20),
+    day: Number.isInteger(day) ? day : null,
+    custId: custId ? String(custId).slice(0, 20) : null,
+    client: String(client || '').slice(0, 120),
+    action: String(action).slice(0, 400),
+    feedback,
+  };
+  let log = [];
+  try { log = JSON.parse(fs.readFileSync(AI_FEEDBACK_FILE, 'utf8')); } catch (_) {}
+  log.push(entry);
+  try {
+    fs.mkdirSync(path.dirname(AI_FEEDBACK_FILE), { recursive: true });
+    fs.writeFileSync(AI_FEEDBACK_FILE, JSON.stringify(log, null, 2), 'utf8');
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e.message });
+  }
+  res.json({ ok: true });
 });
 
 // ── Client Return Form (זיכוי) — products this client bought in the last 365 days,
