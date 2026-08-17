@@ -4325,20 +4325,24 @@ CALCULATETABLE(
           lastShipDate: lastShipMap.get(sku)?.date || '',
           lastShipQty: lastShipMap.get(sku)?.qty || 0,
           imgUrl: '',
+          ean: '',
         };
       })
       .filter(p => p.company === 'FORMULA' || p.company === 'ICE_MISH');
 
     // FORMULA and ICE each have their OWN KARTIS PARIT product-master table (ICE SKUs
     // aren't in the main KARTIS PARIT at all — verified live earlier this session).
+    // ean (ברקוד, full EAN-13) pulled the same pass as the photo — same table, same
+    // SKU filter, no extra round-trip. Used for the chain full-screen barcode-scan view.
     const fetchPhotosRet = async (items, table) => {
       if (!items.length) return;
       const skuIn = items.map(p => `"${p.sku}"`).join(',');
       const rows = await executeDax(
-        `EVALUATE SELECTCOLUMNS(FILTER('${table}', '${table}'[מק"ט] IN {${skuIn}}), "sku", '${table}'[מק"ט], "img", '${table}'[URL תמונה])`
+        `EVALUATE SELECTCOLUMNS(FILTER('${table}', '${table}'[מק"ט] IN {${skuIn}}), "sku", '${table}'[מק"ט], "img", '${table}'[URL תמונה], "ean", '${table}'[ברקוד])`
       );
       const imgMap = new Map(rows.map(r => [String(r['[sku]']), r['[img]'] || '']));
-      items.forEach(p => { p.imgUrl = imgMap.get(p.sku) || ''; });
+      const eanMap = new Map(rows.map(r => [String(r['[sku]']), r['[ean]'] || '']));
+      items.forEach(p => { p.imgUrl = imgMap.get(p.sku) || ''; p.ean = eanMap.get(p.sku) || ''; });
     };
     await Promise.all([
       fetchPhotosRet(products.filter(p => p.company === 'FORMULA'), 'KARTIS PARIT'),
@@ -4777,11 +4781,16 @@ CALCULATETABLE(
     const hedgeNote = { he: 'בכל מקום שבו אתה מסיק קשר סיבתי מנתונים שמראים רק שינוי אחד (למשל "עלייה מעידה על ביקוש") — נסח כהשערה זהירה, לא כעובדה ודאית. שינוי אחוזים הוא עובדה; הפרשנות שלו היא השערה.', uk: 'Скрізь, де ти робиш причинний висновок із даних, які показують лише одну зміну (наприклад "зростання свідчить про попит") — формулюй як обережну гіпотезу, не як точний факт. Зміна відсотків — це факт; її інтерпретація — гіпотеза.', ru: 'Везде, где ты делаешь причинный вывод из данных, которые показывают только одно изменение (например "рост указывает на спрос") — формулируй как осторожную гипотезу, а не как точный факт. Изменение процентов — это факт; его интерпретация — гипотеза.' };
     const terseNote = { he: 'הסוכן קורא את זה בין לקוחות, בלחץ זמן. פורמט: עד 3 שורות תצפית + שורה אחת המלצה. כל שורה מתחילה במספר או באחוז. בלי משפט פתיחה, בלי ברכה, בלי ניסוח "מנהלי" מיותר — ישר לעובדה.', uk: 'Агент читає це між клієнтами, під тиском часу. Формат: до 3 рядків спостереження + 1 рядок рекомендації. Кожен рядок починається з цифри чи відсотка. Без вступу, без привітання, без зайвих слів.', ru: 'Агент читает это между клиентами, под давлением времени. Формат: до 3 строк наблюдения + 1 строка рекомендации. Каждая строка начинается с цифры или процента. Без вступления, без приветствия, без лишних слов.' };
     const noMdNote = { he: 'טקסט רגיל בלבד, בלי Markdown (בלי **, בלי #, בלי רשימות עם כוכביות).', uk: 'Лише звичайний текст, без Markdown (без **, без #, без списків із зірочками).', ru: 'Только обычный текст, без Markdown (без **, без #, без списков со звёздочками).' };
+    // Frontend highlights signed percentages by regex-matching a literal +/- glyph —
+    // prose like "ירד ב-17%" or "снизились на 17%" has no such glyph to match, so
+    // nothing gets colored. Forcing the sign into the number itself makes it both
+    // human-scannable and machine-highlightable in one move.
+    const signNote = { he: 'לפני כל אחוז שינוי חובה לכתוב סימן + או - צמוד למספר (למשל "-17%" או "+123%"), גם כשהניסוח המילולי כבר מרמז על כיוון (למשל "ירד ל -17%-").', uk: 'Перед кожним відсотком зміни обов\'язково пиши знак + або - впритул до числа (наприклад "-17%" або "+123%"), навіть якщо слово вже натякає на напрямок.', ru: 'Перед каждым процентом изменения обязательно пиши знак + или - вплотную к числу (например "-17%" или "+123%"), даже если слово уже намекает на направление.' };
     const noTranslitNote = { uk: 'Назви відділів іврітом (наприклад דגים, קפוא, חלבי) залишай як є, івритом — не транслітеруй кирилицею.', ru: 'Названия отделов на иврите (например דגים, קפוא, חלבי) оставляй как есть, ивритом — не транслитерируй кириллицей.' };
     const prompts = {
-      he: `אתה מנהל אזור של חברת הפצה. נתוני מכירות לפי מחלקה, תקופה נוכחית מול קודמת:\n${context}\n\nתן עד 3 תצפיות חדות המבוססות על השינוי באחוזים בפועל + המלצה אחת. אם לא הזמין >3 שבועות — זה קריטי. ${scopeNote} ${priorityNote.he} ${substNote.he} ${hedgeNote.he} ${noFabNote} ${terseNote.he} ${noMdNote.he}`,
-      uk: `Ти менеджер зони. Продажі по відділах, поточний період проти попереднього:\n${context}\n\nДай до 3 спостережень на основі реальної зміни у відсотках + одну рекомендацію. Якщо >3 тижні без замовлення — критично. Агент відвідує магазин особисто — не телефонує байєрам і не діє "авторитетом" іншого відділу. Заборонено вигадувати цифри, відсотки чи кількості, яких немає в даних вище. ${priorityNote.uk} ${substNote.uk} ${hedgeNote.uk} ${terseNote.uk} ${noMdNote.uk} ${noTranslitNote.uk}`,
-      ru: `Ты менеджер зоны. Продажи по отделам, текущий период против предыдущего:\n${context}\n\nДай до 3 наблюдений на основе реального изменения в процентах + одну рекомендацию. Если >3 недель без заказа — критично. Агент лично заходит в магазин — он не звонит байерам и не действует "авторитетом" другого отдела. Запрещено выдумывать цифры, проценты или количества, которых нет в данных выше. ${priorityNote.ru} ${substNote.ru} ${hedgeNote.ru} ${terseNote.ru} ${noMdNote.ru} ${noTranslitNote.ru}`,
+      he: `אתה מנהל אזור של חברת הפצה. נתוני מכירות לפי מחלקה, תקופה נוכחית מול קודמת:\n${context}\n\nתן עד 3 תצפיות חדות המבוססות על השינוי באחוזים בפועל + המלצה אחת. אם לא הזמין >3 שבועות — זה קריטי. ${scopeNote} ${priorityNote.he} ${substNote.he} ${hedgeNote.he} ${noFabNote} ${terseNote.he} ${noMdNote.he} ${signNote.he}`,
+      uk: `Ти менеджер зони. Продажі по відділах, поточний період проти попереднього:\n${context}\n\nДай до 3 спостережень на основі реальної зміни у відсотках + одну рекомендацію. Якщо >3 тижні без замовлення — критично. Агент відвідує магазин особисто — не телефонує байєрам і не діє "авторитетом" іншого відділу. Заборонено вигадувати цифри, відсотки чи кількості, яких немає в даних вище. ${priorityNote.uk} ${substNote.uk} ${hedgeNote.uk} ${terseNote.uk} ${noMdNote.uk} ${noTranslitNote.uk} ${signNote.uk}`,
+      ru: `Ты менеджер зоны. Продажи по отделам, текущий период против предыдущего:\n${context}\n\nДай до 3 наблюдений на основе реального изменения в процентах + одну рекомендацию. Если >3 недель без заказа — критично. Агент лично заходит в магазин — он не звонит байерам и не действует "авторитетом" другого отдела. Запрещено выдумывать цифры, проценты или количества, которых нет в данных выше. ${priorityNote.ru} ${substNote.ru} ${hedgeNote.ru} ${terseNote.ru} ${noMdNote.ru} ${noTranslitNote.ru} ${signNote.ru}`,
     };
 
     const analysis = await callGemini(prompts[lang] || prompts.he, 320);

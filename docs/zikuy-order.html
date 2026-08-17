@@ -94,6 +94,8 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 #pv-overlay.show{display:block;position:fixed;inset:0;z-index:20000;background:var(--bg);overflow-y:auto;padding:14px;}
 #pv-overlay-bar{display:flex;gap:10px;margin-bottom:14px;position:sticky;top:0;}
 #pv-close-btn{background:#37474F;color:#fff;border:none;border-radius:10px;padding:12px 20px;font-weight:800;font-size:14.5px;cursor:pointer;font-family:inherit;flex-shrink:0;}
+#pv-barcode-btn{background:var(--blue);color:#fff;border:none;border-radius:10px;padding:12px 20px;font-weight:800;font-size:14.5px;cursor:pointer;font-family:inherit;flex-shrink:0;}
+#pv-barcode-btn.on{background:var(--green);}
 #pv-overlay.show #print-view{position:static;left:auto;width:100%;max-width:800px;margin:0 auto;box-shadow:0 2px 16px rgba(0,0,0,.15);border-radius:12px;}
 @media print{
   body *{visibility:hidden;}
@@ -112,6 +114,11 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 #pv-custid b{display:block;font-size:10px;font-weight:800;color:var(--blue);letter-spacing:.5px;}
 #pv-custid span{display:block;font-size:22px;font-weight:900;line-height:1.2;}
 #pv-meta{margin:0 0 14px;font-size:13px;color:var(--mid);font-weight:600;}
+/* Chain mode adds a drawn-barcode column at a fixed pixel width (needs to stay
+   legible/scannable, can't just shrink to fit) — table can end up wider than
+   the tablet screen, so it scrolls horizontally inside its own box instead of
+   breaking the page. */
+.pv-tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
 .pv-tbl{border-collapse:collapse;width:100%;font-size:13px;}
 .pv-tbl th,.pv-tbl td{border:1px solid var(--sky-mid);padding:8px;text-align:center;}
 .pv-tbl th{background:var(--blue-dark);color:#fff;font-size:12px;}
@@ -121,6 +128,24 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 .pv-total{font-weight:800;background:var(--sky-mid)!important;}
 .pv-tbl td.pv-lastship small{display:block;font-size:10px;color:var(--light);font-weight:600;margin-top:2px;}
 .pv-tbl td.pv-gap.gap-neg{color:var(--red);font-weight:800;}
+
+/* ── optional barcode mode (➕ ברקוד button, agent's own call — not tied to any
+   client segment: some chains don't need it, some private stores might) ──
+   Same table, scaled up + a drawn-barcode column so whoever's receiving the
+   return can scan it straight off the tablet screen. ── */
+.pv-ean-cell{white-space:nowrap;text-align:center;}
+.pv-ean-cell svg{display:block;margin:0 auto;}
+.pv-ean-none{color:var(--light);font-size:16px;}
+.pv-ean-digits{font-family:'Consolas',monospace;font-weight:800;direction:ltr;unicode-bidi:isolate;margin-top:2px;}
+#pv-overlay.barcode-mode #print-view{max-width:1180px;}
+#pv-overlay.barcode-mode .pv-tbl{font-size:17px;}
+#pv-overlay.barcode-mode .pv-tbl th{font-size:15px;padding:12px;}
+#pv-overlay.barcode-mode .pv-tbl td{padding:14px 10px;}
+#pv-overlay.barcode-mode .pv-tbl img{width:70px;height:70px;}
+#pv-overlay.barcode-mode .pv-ean-digits{font-size:13px;letter-spacing:.5px;}
+#pv-overlay.barcode-mode #pv-title{font-size:23px;}
+#pv-overlay.barcode-mode #pv-custid span{font-size:26px;}
+#pv-overlay.barcode-mode #pv-meta{font-size:15.5px;}
 </style>
 </head>
 <body>
@@ -166,6 +191,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 <div id="pv-overlay" class="no-print">
   <div id="pv-overlay-bar">
     <button type="button" id="pv-close-btn" onclick="hidePrintFullscreen()">✕ סגור</button>
+    <button type="button" id="pv-barcode-btn" onclick="toggleBarcodeMode()">➕ ברקוד</button>
     <a class="wa-btn show" id="wa-btn" target="_blank" rel="noopener">📱 שלח ב-WhatsApp</a>
   </div>
   <div id="print-view">
@@ -177,10 +203,12 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
       <div id="pv-custid"><b>מס' לקוח</b><span></span></div>
     </div>
     <div id="pv-meta"></div>
-    <table class="pv-tbl">
-      <thead><tr><th>תמונה</th><th>מק"ט</th><th>מוצר</th><th>כמות</th><th>תנועה אחרונה</th><th>ימי תוקף שלקוח קיבל</th><th>תוקף</th><th>אופציה</th></tr></thead>
-      <tbody id="pv-tbody"></tbody>
-    </table>
+    <div class="pv-tbl-wrap">
+      <table class="pv-tbl">
+        <thead><tr id="pv-thead-row"><th>תמונה</th><th>מק"ט</th><th>מוצר</th><th>כמות</th><th>תנועה אחרונה</th><th>ימי תוקף שלקוח קיבל</th><th>תוקף</th><th>אופציה</th></tr></thead>
+        <tbody id="pv-tbody"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -195,6 +223,7 @@ const custName = params.get('custName') || '';
 const city = params.get('city') || '';
 const agentCode = params.get('agentCode') || '';
 const agentName = params.get('agentName') || '';
+let barcodeMode = false; // agent's own toggle (➕ ברקוד button) — not tied to client segment
 
 const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 // Same convention as MMD ORDERS' shortName(): cut right after the first "NNN ג"
@@ -356,10 +385,19 @@ async function buildProforma(){
   if(!selected.size){ showToast('בחר לפחות מוצר אחד'); return; }
   const rows=[...selected.values()];
   const now=new Date().toLocaleDateString('he-IL');
+  document.getElementById('pv-overlay').classList.toggle('chain-mode', isChain);
   document.getElementById('pv-title').textContent=`בקשת זיכוי — ${custName}`;
   document.getElementById('pv-custid').querySelector('span').textContent=custId;
   document.getElementById('pv-meta').innerHTML=`עיר: ${esc(city)} | סוכן: ${esc(agentName||agentCode)} | תאריך: ${now} | תקופת % זיכויים: ${esc(curLabel)}`;
   const totalQty=rows.reduce((s,r)=>s+r.qty,0);
+  // Chain (רשתות) clients only: the network's own warehouse worker scans SKUs
+  // straight off the agent's tablet as they go through the return pile — same
+  // table everyone else gets, plus a real drawn EAN-13 the worker's handheld
+  // scanner can read off the screen. Private-market (חנויות) blank is unchanged.
+  const eanTh = isChain ? '<th>ברקוד</th>' : '';
+  document.getElementById('pv-thead-row').innerHTML = eanTh +
+    '<th>תמונה</th><th>מק"ט</th><th>מוצר</th><th>כמות</th><th>תנועה אחרונה</th><th>ימי תוקף שלקוח קיבל</th><th>תוקף</th><th>אופציה</th>';
+  const firstColspan = isChain ? 4 : 3;
   document.getElementById('pv-tbody').innerHTML=rows.map(r=>{
     const img=r.product.imgUrl?`<img src="${proxyImg(r.product.imgUrl)}" alt="">`:'';
     const lsDate=r.product.lastShipDate;
@@ -374,8 +412,9 @@ async function buildProforma(){
     const gapDays = lsDate ? Math.round((new Date(r.date) - new Date(lsDate)) / 86400000) : null;
     const gapCell = gapDays===null ? '—' : `${gapDays} ימים`;
     const gapClass = gapDays!==null && gapDays<0 ? 'pv-gap gap-neg' : 'pv-gap';
-    return `<tr><td>${img}</td><td>${esc(r.product.sku)}</td><td class="pv-name">${esc(shortName(r.product.name))}</td><td>${r.qty}</td><td class="pv-lastship">${lastShipCell}</td><td class="${gapClass}">${gapCell}</td><td>${r.date}</td><td>${esc(r.option)}</td></tr>`;
-  }).join('') + `<tr class="pv-total"><td colspan="3">סה"כ</td><td>${totalQty}</td><td colspan="4"></td></tr>`;
+    const eanTd = isChain ? `<td class="pv-ean-cell">${eanCellHtml(r.product.ean)}</td>` : '';
+    return `<tr>${eanTd}<td>${img}</td><td>${esc(r.product.sku)}</td><td class="pv-name">${esc(shortName(r.product.name))}</td><td>${r.qty}</td><td class="pv-lastship">${lastShipCell}</td><td class="${gapClass}">${gapCell}</td><td>${r.date}</td><td>${esc(r.option)}</td></tr>`;
+  }).join('') + `<tr class="pv-total"><td colspan="${firstColspan}">סה"כ</td><td>${totalQty}</td><td colspan="4"></td></tr>`;
   await waitForImages(document.getElementById('print-view'));
   setupWaButton();
   showPrintFullscreen();
@@ -427,13 +466,37 @@ async function sendAsImage(){
     // while the native share sheet is open, which is when the freeze/flicker on
     // return has been reported (Android WebView under memory pressure).
     canvas.width=0; canvas.height=0;
-    if(blob){
+    // navigator.share({files}) is real usage on the agent's phone/tablet (WhatsApp
+    // shows up as a direct target with the image attached) but on a real desktop
+    // it routes through the generic OS Share charm instead of WhatsApp Web — worse,
+    // not better, than just handing the user the file.
+    // Whitelisting "mobile" UAs is fragile — iPadOS 13+ spoofs a plain Macintosh
+    // UA by default (no "iPad" token at all) and would misfire as desktop, sending
+    // a real field tablet down the wrong path. Blacklisting desktop OSes instead:
+    // a genuine Mac has 0 touch points, so "Macintosh" + touch points is iPadOS in
+    // disguise, not desktop. Android UA always says "Android" even on tablets.
+    const ua=navigator.userAgent;
+    const isDesktop=/Windows NT/.test(ua)
+      || (/Macintosh/.test(ua) && navigator.maxTouchPoints===0)
+      || (/Linux/.test(ua) && !/Android/.test(ua));
+    if(blob && !isDesktop){
       const file=new File([blob],`zikuy-${custId}.png`,{type:'image/png'});
       if(navigator.canShare && navigator.canShare({files:[file]})){
         await navigator.share({files:[file], title:'בקשת זיכוי'});
         showToast('נשלח לשיתוף');
         return;
       }
+    }
+    if(blob){
+      // Desktop fallback: WhatsApp Web has no URL API to pre-attach a file (browser
+      // security), so download the image and open WhatsApp Web for a manual attach.
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url; a.download=`zikuy-${custId}.png`; a.click();
+      setTimeout(()=>URL.revokeObjectURL(url),5000);
+      window.open('https://web.whatsapp.com/','_blank');
+      showToast('התמונה הורדה — צרף אותה בשיחה בווטסאפ Web');
+      return;
     }
   }catch(e){ console.warn('image share unavailable', e); }
   showToast('שיתוף אוטומטי לא זמין — צלם את המסך עם המצלמה');
@@ -449,6 +512,38 @@ document.addEventListener('visibilitychange', () => {
     document.body.style.display = '';
   }
 });
+
+// ── EAN-13 barcode rendering (chain blank — ברקוד column) ───────────────────
+// Standard EAN-13 module tables — no external library. First digit isn't drawn
+// as bars itself; it selects the L/G parity pattern for the next 6 digits.
+const EAN_L = ['0001101','0011001','0010011','0111101','0100011','0110001','0101111','0111011','0110111','0001011'];
+const EAN_G = ['0100111','0110011','0011011','0100001','0011101','0111001','0000101','0010001','0001001','0010111'];
+const EAN_R = ['1110010','1100110','1101100','1000010','1011100','1001110','1010000','1000100','1001000','1110100'];
+const EAN_PARITY = ['LLLLLL','LLGLGG','LLGGLG','LLGGGL','LGLLGG','LGGLLG','LGGGLL','LGLGLG','LGLGGL','LGGLGL'];
+function ean13Bits(code){
+  const d=code.split('').map(Number);
+  const parity=EAN_PARITY[d[0]];
+  let bits='101';
+  for(let i=0;i<6;i++) bits += (parity[i]==='L'?EAN_L:EAN_G)[d[i+1]];
+  bits+='01010';
+  for(let i=0;i<6;i++) bits += EAN_R[d[i+7]];
+  return bits+'101';
+}
+function ean13SVG(code,barW,height){
+  const bits=ean13Bits(code);
+  const quiet=barW*10;
+  const totalW=bits.length*barW+quiet*2;
+  let rects='', x=quiet;
+  for(const b of bits){ if(b==='1') rects+=`<rect x="${x}" y="0" width="${barW}" height="${height}" fill="#000"/>`; x+=barW; }
+  return `<svg viewBox="0 0 ${totalW} ${height}" width="${totalW}" height="${height}" xmlns="http://www.w3.org/2000/svg" style="background:#fff">${rects}</svg>`;
+}
+// Sized for the ברקוד table cell (~230px drawn width) — big enough for a
+// handheld imager scanner to read straight off the tablet screen.
+function eanCellHtml(ean){
+  ean=String(ean||'').replace(/\D/g,'');
+  if(ean.length!==13) return '<div class="pv-ean-none">—</div>';
+  return ean13SVG(ean,2.2,80)+`<div class="pv-ean-digits">${ean[0]} ${ean.slice(1,7)} ${ean.slice(7)}</div>`;
+}
 
 init();
 </script>
