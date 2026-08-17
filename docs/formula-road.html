@@ -511,11 +511,11 @@ body.gps-fs #map{height:100%!important;}
           <button class="sort-btn active-ai-google" id="sort-btn-ai-google" onclick="toggleAiGps()">🤖 AI Google</button>
         </div>
         <button class="sort-btn" id="day-briefing-btn" onclick="openDayBriefing()" title="ניתוח יום — TOP 10 לקוחות" style="background:#5C6BC0;color:#fff;border-color:#3F51B5;font-weight:900">📊 ניתוח</button>
-        <button class="sort-btn icon-only" id="print-btn" onclick="printRoute()" title="הדפסת מסלול — מפה + רשימה" style="background:#37474F;color:#fff;border-color:#263238;">🖨️</button>
+        <button class="sort-btn" id="gmaps-btn" onclick="openGoogleMaps()" title="פתח מסלול ב-Google Maps" style="background:#1a73e8;color:#fff;border-color:#0d47a1;font-weight:900;box-shadow:0 2px 8px rgba(26,115,232,.35)">🗺 Google</button>
         <div class="km-more-wrap">
           <button class="sort-btn km-more-btn" id="km-more-btn" onclick="toggleKmMore()" title="עוד פעולות">⋮</button>
           <div class="km-more-dd" id="km-more-dd">
-            <button class="km-more-item" id="gmaps-btn" onclick="openGoogleMaps();closeKmMore()">🗺 פתח ב-Google Maps</button>
+            <button class="km-more-item" id="print-btn" onclick="printRoute();closeKmMore()">🖨️ הדפסת מסלול</button>
             <button class="km-more-item" id="map-toggle-btn" onclick="toggleMapHidden();closeKmMore()">🗺❌ הסתר מפה</button>
             <hr class="km-more-sep">
             <button class="km-more-item export-btn" id="export-btn" onclick="exportXLSX();closeKmMore()">📥 שמור יום (XLS)</button>
