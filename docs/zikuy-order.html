@@ -404,8 +404,12 @@ function setupWaButton(rows, now){
 async function sendAsImage(){
   try{
     const el=document.getElementById('print-view');
-    const canvas=await html2canvas(el,{useCORS:true,backgroundColor:'#ffffff',scale:2});
+    const canvas=await html2canvas(el,{useCORS:true,backgroundColor:'#ffffff',scale:1.5});
     const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
+    // Free the pixel buffer now — otherwise canvas+blob+File all stay alive together
+    // while the native share sheet is open, which is when the freeze/flicker on
+    // return has been reported (Android WebView under memory pressure).
+    canvas.width=0; canvas.height=0;
     if(blob){
       const file=new File([blob],`zikuy-${custId}.png`,{type:'image/png'});
       if(navigator.canShare && navigator.canShare({files:[file]})){
@@ -417,6 +421,17 @@ async function sendAsImage(){
   }catch(e){ console.warn('image share unavailable', e); }
   showToast('שיתוף אוטומטי לא זמין — צלם את המסך עם המצלמה');
 }
+
+// Android WebView sometimes leaves the page stuck in a stale-paint state after the
+// native share sheet (navigator.share) closes and focus returns to the tab — force
+// a reflow to recover instead of leaving the frozen/flickering frame on screen.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    document.body.style.display = 'none';
+    void document.body.offsetHeight;
+    document.body.style.display = '';
+  }
+});
 
 init();
 </script>
