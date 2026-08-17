@@ -71,17 +71,17 @@ jobs:
           git push origin master || \
             (git pull --no-rebase -X ours origin master && git push origin master)
 
-      - name: Deploy files to VPS
+      - name: Deploy to VPS (git pull — single source of truth)
         run: |
           echo "${{ secrets.VPS_SSH_KEY }}" > /tmp/vps_key
           chmod 600 /tmp/vps_key
-          scp -o StrictHostKeyChecking=no -i /tmp/vps_key \
-            docs/formula-road-data.json \
-            docs/formula-road.html \
-            docs/google-gps.json \
-            root@31.154.67.58:/root/COLUMBUS/docs/
-          scp -o StrictHostKeyChecking=no -i /tmp/vps_key \
-            server/index.js \
-            root@31.154.67.58:/root/COLUMBUS/server/
-          ssh -o StrictHostKeyChecking=no -i /tmp/vps_key root@31.154.67.58 "pm2 restart columbus-api"
+          ssh -o StrictHostKeyChecking=no -i /tmp/vps_key root@31.154.67.58 '
+            set -e
+            flock /root/COLUMBUS/.deploy.lock -c "
+              cd /root/COLUMBUS &&
+              git fetch origin master &&
+              git reset --hard origin/master &&
+              pm2 restart columbus-api
+            "
+          '
           rm /tmp/vps_key
