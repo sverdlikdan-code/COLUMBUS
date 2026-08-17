@@ -175,6 +175,37 @@ https://api.sverdlik-apps.site/formula-road?k=LN80v9eK7hEng5LagaHs2Feh
 - Обнаружено: GitHub Pages (`sverdlikdan-code.github.io/COLUMBUS/`) — реальный источник для агентов, отдельный от VPS/api.sverdlik-apps.site; у `loadTabletGps()` был баг с абсолютным путём `/priority-gps-cross.json`, ломавшимся под GH Pages subpath (`/COLUMBUS/`) — исправлено на относительный
 - **Важное открытие, не решено**: на VPS `git pull` регулярно натыкается на "фантомные" локальные изменения в `docs/*.html`, идентичные тому, что только что запушено — похоже, есть неизвестный процесс, синкающий файлы в обход git. Требует расследования отдельной сессией
 
+## Tablet UX + DESIGN.md — 2026-08-17 ✅
+
+**Задача:** Formula Road выглядел любительски на планшете — весь контент в телефонном масштабе растянут на широкий экран.
+
+### Диагноз
+- `client-card`: `padding:3px 7px`, шрифт имени 12px, адрес 10px, visit-badge 21px — всё мобильное
+- Не было ни одного `@media(min-width:768px)` блока для визуального скейлинга
+- `days-grid: repeat(5,1fr)` — на планшете 5 колонок в одну строку, каждая 140px, выглядело растянутым
+
+### Исправлено: добавлен `@media(min-width:768px)` в formula-road.html
+- `client-card`: padding `3px 7px → 9px 14px`, border-radius `6px → 10px`
+- `.c-name`: `12px → 15px`, `.c-sub`: `10px → 12px`, visit-badge: `21px → 30px`
+- Кнопки действий (мекарер, зикуй, Waze, AI): `28px → 38px` min-height
+- Sort-кнопки: `34px → 40px`, day-switch: `44px → 50px`, city-chips: крупнее
+- Header: лого `38px → 46px`, padding увеличен
+- `days-grid`: `repeat(5,1fr) → repeat(3,minmax(130px,210px)) + justify-content:center` — 2 ряда по 3
+- Задеплоено на VPS: коммит `16732b35`
+
+### Создан DESIGN.md (дизайн-система Formula Road)
+- North Star: "The Field Navigator" — инструмент поля, не SaaS-дашборд
+- Философия компонентов: "Уверенный и дышащий"
+- Зафиксированы: 15 цветовых токенов с названиями, 5 типографических уровней, 5 shadow-вариантов, все компоненты с правилами
+- Named Rules: The Single Voice Rule, The Canvas Tint Rule, The Flat-at-Rest Rule, The Weight-as-Hierarchy Rule
+- Запрет side-stripe borders зафиксирован явно в Do's and Don'ts
+- Создан `.impeccable/design.json` sidecar со 15 цветовыми ramps, 6 компонентными сниппетами (HTML+CSS), motion + breakpoints tokens
+- Коммит `986a5631`
+
+### Запланировано (не сделано)
+- Playwright MCP для автотестов после деплоя
+- Аудит `client-card.ice-only` — side-stripe `border-right:3px solid #00B894` нарушает DESIGN.md правило
+
 ## Что нужно сделать
 
 - [x] Phase 2: продажи + יעד $ в карточке клиента — ГОТОВО (2026-06-29)
