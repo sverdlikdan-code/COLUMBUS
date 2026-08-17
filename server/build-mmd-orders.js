@@ -169,6 +169,16 @@ async function build() {
   const refreshedAt = await getDatasetRefreshTime(MMD_DS);
   const out = { ok: true, data, ts: Date.now(), refreshedAt, period: { y1, m1, y2, m2 } };
 
+  // Live on-demand rebuild (server /mmd/rebuild) writes straight to the untracked
+  // live path — skips docs/ entirely so it never dirties the VPS git working tree.
+  const liveOutput = process.env.MMD_LIVE_OUTPUT;
+  if (liveOutput) {
+    fs.mkdirSync(path.dirname(liveOutput), { recursive: true });
+    fs.writeFileSync(liveOutput, JSON.stringify(out));
+    console.log(`✓ Saved ${data.length} products → ${liveOutput} (live path, docs/ untouched)`);
+    return;
+  }
+
   const outPath = path.join(__dirname, '..', 'docs', 'mmd-orders.json');
   fs.writeFileSync(outPath, JSON.stringify(out));
   console.log(`✓ Saved ${data.length} products → docs/mmd-orders.json`);
