@@ -114,6 +114,10 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .sort-btn.active-ai{color:var(--green);border-color:var(--green);background:#E8F5E9;box-shadow:0 2px 8px rgba(27,123,52,.18);}
 .sort-btn.active-ai-google{color:#7B1FA2;border-color:#7B1FA2;background:#F3E5F5;box-shadow:0 2px 8px rgba(123,31,162,.18);}
 .sort-btn.active-tablet{color:#E65100;border-color:#E65100;background:#FFF3E0;box-shadow:0 2px 8px rgba(230,81,0,.18);}
+.sort-btn.icon-only{padding:6px 10px;min-width:34px;justify-content:center;}
+.sort-toggle{display:flex;border:2px solid var(--sky-mid);border-radius:20px;overflow:hidden;flex-shrink:0;}
+.sort-toggle .sort-btn{border:none!important;border-radius:0!important;box-shadow:none!important;}
+.sort-toggle .sort-btn+.sort-btn{border-right:1.5px solid var(--sky-mid)!important;}
 .day-switch{display:flex;gap:4px;flex-shrink:0;}
 .day-sw-btn{width:44px;height:44px;border-radius:12px;background:var(--sky-light);border:2px solid var(--sky-mid);font-size:19px;font-weight:900;color:var(--blue-dark);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;box-shadow:0 1px 4px rgba(21,101,192,.10);}
 .day-sw-btn:hover{background:var(--sky-mid);transform:translateY(-1px);}
@@ -502,15 +506,18 @@ body.gps-fs #map{height:100%!important;}
     <div class="km-row-top">
       <div class="day-switch" id="day-switch"></div>
       <div class="sort-btns">
-        <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')">לפי סדר ביקור</button>
-        <button class="sort-btn active-ai-google" id="sort-btn-ai-google" onclick="toggleAiGps()">🤖 AI Google</button>
+        <div class="sort-toggle">
+          <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')">לפי ביקור</button>
+          <button class="sort-btn active-ai-google" id="sort-btn-ai-google" onclick="toggleAiGps()">🤖 AI Google</button>
+        </div>
         <button class="sort-btn" id="day-briefing-btn" onclick="openDayBriefing()" title="ניתוח יום — TOP 10 לקוחות" style="background:#5C6BC0;color:#fff;border-color:#3F51B5;font-weight:900">📊 ניתוח</button>
-        <button class="sort-btn" id="gmaps-btn" onclick="openGoogleMaps()" title="פתח מסלול ב-Google Maps" style="background:#1a73e8;color:#fff;border-color:#1558b0;font-weight:700">🗺 Google</button>
-        <button class="sort-btn" id="print-btn" onclick="printRoute()" title="הדפסת מסלול — מפה + רשימה" style="background:#37474F;color:#fff;border-color:#263238;font-weight:700">🖨️</button>
-        <button class="sort-btn" id="map-toggle-btn" onclick="toggleMapHidden()" title="הסתר/הצג מפה — עבודה עם רשימה בלבד">🗺❌ הסתר מפה</button>
+        <button class="sort-btn icon-only" id="print-btn" onclick="printRoute()" title="הדפסת מסלול — מפה + רשימה" style="background:#37474F;color:#fff;border-color:#263238;">🖨️</button>
         <div class="km-more-wrap">
           <button class="sort-btn km-more-btn" id="km-more-btn" onclick="toggleKmMore()" title="עוד פעולות">⋮</button>
           <div class="km-more-dd" id="km-more-dd">
+            <button class="km-more-item" id="gmaps-btn" onclick="openGoogleMaps();closeKmMore()">🗺 פתח ב-Google Maps</button>
+            <button class="km-more-item" id="map-toggle-btn" onclick="toggleMapHidden();closeKmMore()">🗺❌ הסתר מפה</button>
+            <hr class="km-more-sep">
             <button class="km-more-item export-btn" id="export-btn" onclick="exportXLSX();closeKmMore()">📥 שמור יום (XLS)</button>
             <button class="km-more-item export-btn" id="export-all-btn" onclick="exportAllDaysXLSX();closeKmMore()">📊 כל הימים (XLS)</button>
             <hr class="km-more-sep">
@@ -816,10 +823,7 @@ try{ st.mapHidden = localStorage.getItem('fr_map_hidden')!=='0'; }catch(_){ st.m
 function applyMapHidden(){
   document.body.classList.toggle('map-hidden', st.mapHidden);
   const btn=document.getElementById('map-toggle-btn');
-  if(btn){
-    btn.textContent = st.mapHidden ? '🗺 הצג מפה' : '🗺❌ הסתר מפה';
-    btn.className = 'sort-btn'+(st.mapHidden?' active-priority':'');
-  }
+  if(btn) btn.textContent = st.mapHidden ? '🗺 הצג מפה' : '🗺❌ הסתר מפה';
   if(st.mapHidden && st.tab==='map') setTab('list');
 }
 function toggleMapHidden(){
