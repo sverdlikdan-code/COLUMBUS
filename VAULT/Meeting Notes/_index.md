@@ -60,7 +60,7 @@
 - [[session-2026-06-22]] — Сессия 2026-06-22: Formula Road session persistence, order-dagim xlsx фикс + стандарт отступов/Total для Excel, перенос на 2-й комп, мультикомпьютерный git-workflow
 - [[session-2026-06-23]] — Сессия 2026-06-23: Formula Road фикс 503 (два cloudflared), фикс loadAgentList (agentsByManager), config.yml ingress rule, git HEAD recover
 - [[session-2026-06-24]] — Сессия 2026-06-24: הזמנה header 3-row MMD redesign, donut star inside SVG, spo/חסר במלאי logic, krat xlsx fix, totalBranchy period-linked (1837 vs 2031)
-- [[formula-road-app]] — Formula Road SQL Migration: /managers /manager-agents /customers → form.dbo, fixPriNumbers, Google Maps первый, bbox→null кэш
+- [[formula-road-app]] — Formula Road + zikuy: SQL migration, tablet UX iterations, WhatsApp-фото шеринг, day-briefing dormant-баг, короткие invite-ссылки (2026-08-16)
 - [[session-2026-06-26-security]] — Сессия 2026-06-26: еженедельный security scan + hardening — SSRF, auth guards, DAX injection, mekarer whitelist, rate limit fix
 - [[session-2026-06-28-print]] — Сессия 2026-06-28: תוקף print A4 landscape финальный фикс — per-row zoom, width 100%, symmetry, no blank page
 - [[session-2026-06-29]] — Сессия 2026-06-29: MMD ORDERS 3 бага чипов месяцев (IIFE scope, ReferenceError, off-by-one); fin-agent report; power-bi-dax skill v2; Prophet/Fabric исследование
