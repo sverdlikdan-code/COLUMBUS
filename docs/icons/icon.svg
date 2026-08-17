@@ -1,12 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="96" fill="#1A3F7C"/>
-  <!-- Road line -->
-  <path d="M 100 380 Q 180 260 256 200 Q 340 140 420 120" stroke="#009FFF" stroke-width="28" stroke-linecap="round" fill="none"/>
-  <!-- Pin at destination -->
-  <circle cx="420" cy="120" r="36" fill="#C9A84C"/>
-  <circle cx="420" cy="112" r="18" fill="#1A3F7C"/>
-  <path d="M420 144 L420 168" stroke="#C9A84C" stroke-width="10" stroke-linecap="round"/>
-  <!-- Start dot -->
-  <circle cx="100" cy="380" r="22" fill="#fff" opacity="0.9"/>
-  <circle cx="100" cy="380" r="12" fill="#009FFF"/>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1A3F7C"/>
+      <stop offset="1" stop-color="#0D2B5A"/>
+    </linearGradient>
+  </defs>
+  <!-- Full-bleed, unrounded — each platform (iOS/Android maskable) applies its own
+       corner/shape mask on top; baking in our own rx here would leave transparent
+       gaps under that mask instead of a clean edge-to-edge fill. -->
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <!-- "F" built as a route: stem+top arm, then a branch to the middle arm — nodes
+       at the turns/ends, echoing the road-pin motif of the rest of the app. -->
+  <path d="M 190 372 L 190 148 L 330 148" fill="none" stroke="#C9A84C" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 190 248 L 300 248" fill="none" stroke="#C9A84C" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="190" cy="372" r="26" fill="#fff" opacity=".92"/>
+  <circle cx="190" cy="372" r="13" fill="#009FFF"/>
+  <circle cx="330" cy="148" r="17" fill="#C9A84C"/>
+  <circle cx="300" cy="248" r="17" fill="#C9A84C"/>
 </svg>
