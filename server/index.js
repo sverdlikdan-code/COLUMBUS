@@ -3831,7 +3831,18 @@ CALCULATETABLE(
 // ICE MISHPACHTI — never mixed together; INTER/ICE BDD are out of scope for this
 // report). Per company: YoY growth/failures, structured highlights + an itemized
 // recommendation bank (not prose — the agent picks items off it and gives 👍/👎
-// feedback per item via /api/ai-feedback).
+// feedback per item via /api/ai-feedback). Result is fixed once/day per agent+day+
+// lang (see dayBriefingCache below) — deliberately NOT recomputed on every open.
+const DAY_BRIEFING_CACHE_FILE = path.join(__dirname, 'data', 'day-briefing-cache.json');
+function readDayBriefingCache() {
+  try { return JSON.parse(fs.readFileSync(DAY_BRIEFING_CACHE_FILE, 'utf8')); } catch (_) { return {}; }
+}
+function writeDayBriefingCache(cache) {
+  try {
+    fs.mkdirSync(path.dirname(DAY_BRIEFING_CACHE_FILE), { recursive: true });
+    fs.writeFileSync(DAY_BRIEFING_CACHE_FILE, JSON.stringify(cache, null, 2), 'utf8');
+  } catch (_) {}
+}
 app.get('/api/day-briefing', requireAuth, async (req, res) => {
   // Managers browsing an agent's route (ROADS) pass ?agent= explicitly, same as /customers;
   // an agent's own session falls back to their session agentCode.
@@ -3848,6 +3859,16 @@ app.get('/api/day-briefing', requireAuth, async (req, res) => {
   const allClients = pbiCache.byAgent.get(agentCode) || [];
   const dayClients = dayNum ? allClients.filter(c => c.dayNum === dayNum) : allClients;
   if (!dayClients.length) return res.json({ ok: false, error: 'no_clients' });
+
+  // Fixed once per Israel calendar day, reused statically for every agent/manager
+  // who opens this route/day for the rest of the day — avoids re-running the DAX+
+  // Gemini work (and the PBI 429s that come with it) on every single tap of "ניתוח".
+  const dayBriefingCacheKey = `${agentCode}_${dayNum}_${lang}`;
+  const todayIL = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' });
+  const dayBriefingCache = readDayBriefingCache();
+  if (dayBriefingCache[dayBriefingCacheKey]?.date === todayIL) {
+    return res.json(dayBriefingCache[dayBriefingCacheKey].payload);
+  }
 
   const now = new Date();
   const cm = now.getMonth() + 1, cy = now.getFullYear();
@@ -4056,14 +4077,17 @@ ROW(
     } catch (e) { /* fall through to fallback below */ }
     const fallbackFor = () => ({ highlights: [], recommendations: [{ client: '', action: raw.slice(0, 400), priority: 'medium' }] });
 
-    res.json({
+    const payload = {
       ok: true,
       monthStr, prevStr,
       companies: {
         FORMULA: { ...formulaResult, ...(parsed?.FORMULA || fallbackFor()) },
         ICE_MISH: { ...iceMishResult, ...(parsed?.ICE_MISH || fallbackFor()) },
       },
-    });
+    };
+    dayBriefingCache[dayBriefingCacheKey] = { date: todayIL, payload };
+    writeDayBriefingCache(dayBriefingCache);
+    res.json(payload);
   } catch(e) {
     res.status(500).json({ ok: false, error: e.message });
   }
