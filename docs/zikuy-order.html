@@ -101,9 +101,16 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
   #print-view{position:absolute;left:0;top:0;width:auto;padding:20px;}
   .no-print{display:none!important;}
 }
-#pv-header{background:linear-gradient(135deg,var(--blue-dark),var(--blue));color:#fff;padding:16px 20px;border-radius:10px;margin-bottom:14px;}
+#pv-header{background:linear-gradient(135deg,var(--blue-dark),var(--blue));color:#fff;padding:16px 20px;border-radius:10px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
 #pv-brand{font-size:12px;font-weight:800;letter-spacing:1px;opacity:.85;margin-bottom:4px;}
 #pv-title{font-size:19px;font-weight:800;}
+/* Operators re-key this into Priority by client number — it needs to read as one
+   clean number at a glance, not a parenthesized suffix riding inside RTL name text
+   where bidi mirroring could flip the parens visually. A separate high-contrast
+   badge, isolated from the surrounding Hebrew run, sidesteps that entirely. */
+#pv-custid{flex-shrink:0;background:#fff;color:var(--blue-dark);border-radius:10px;padding:6px 16px;text-align:center;direction:ltr;unicode-bidi:isolate;}
+#pv-custid b{display:block;font-size:10px;font-weight:800;color:var(--blue);letter-spacing:.5px;}
+#pv-custid span{display:block;font-size:22px;font-weight:900;line-height:1.2;}
 #pv-meta{margin:0 0 14px;font-size:13px;color:var(--mid);font-weight:600;}
 .pv-tbl{border-collapse:collapse;width:100%;font-size:13px;}
 .pv-tbl th,.pv-tbl td{border:1px solid var(--sky-mid);padding:8px;text-align:center;}
@@ -163,12 +170,15 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
   </div>
   <div id="print-view">
     <div id="pv-header">
-      <div id="pv-brand">FORMULA · בקשת זיכוי</div>
-      <div id="pv-title"></div>
+      <div>
+        <div id="pv-brand">FORMULA · בקשת זיכוי</div>
+        <div id="pv-title"></div>
+      </div>
+      <div id="pv-custid"><b>מס' לקוח</b><span></span></div>
     </div>
     <div id="pv-meta"></div>
     <table class="pv-tbl">
-      <thead><tr><th>תמונה</th><th>מק"ט</th><th>מוצר</th><th>כמות</th><th>תנועה אחרונה</th><th>תוקף</th><th>פער ימים</th><th>אופציה</th></tr></thead>
+      <thead><tr><th>תמונה</th><th>מק"ט</th><th>מוצר</th><th>כמות</th><th>תנועה אחרונה</th><th>ימי תוקף שלקוח קיבל</th><th>תוקף</th><th>אופציה</th></tr></thead>
       <tbody id="pv-tbody"></tbody>
     </table>
   </div>
@@ -187,9 +197,15 @@ const agentCode = params.get('agentCode') || '';
 const agentName = params.get('agentName') || '';
 
 const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-// Isolates a number/parenthesis run so it doesn't visually merge with an adjacent
-// number run from RTL text (e.g. client name ending in a branch number like "... - 5").
-const isolate = s => '⁦' + s + '⁩';
+// Same convention as MMD ORDERS' shortName(): cut right after the first "NNN ג"
+// weight marker instead of showing the full packaging/supplier boilerplate.
+function shortName(s) {
+  const m = s.match(/\d+\s*ג[.'׳]?/);
+  if (!m) return s;
+  let res = s.slice(0, s.indexOf(m[0]) + m[0].length).trim();
+  res = res.replace(/(\d+)\s+(ג[.'׳]?)$/, '$1 $2');
+  return res;
+}
 function showToast(msg,ms=2200){
   const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
   clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),ms);
@@ -252,7 +268,7 @@ function renderBrowse(){
     const cards = famItems.map(p=>{
       const isAdded=selected.has(p.sku);
       const img=p.imgUrl?`<img src="${esc(p.imgUrl)}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none'">`:'<div style="width:100%;height:64px;background:#f5f5f5;border-radius:6px;margin-bottom:4px"></div>';
-      return `<button type="button" class="photo-card ${isAdded?'added':''}" data-sku="${esc(p.sku)}">${img}<div class="pname">${esc(p.name)}</div>${isAdded?'<div class="padd">✓ נוסף</div>':''}</button>`;
+      return `<button type="button" class="photo-card ${isAdded?'added':''}" data-sku="${esc(p.sku)}">${img}<div class="pname">${esc(shortName(p.name))}</div>${isAdded?'<div class="padd">✓ נוסף</div>':''}</button>`;
     }).join('');
     return `<div class="fam-head">${esc(fam)}</div><div class="photo-grid">${cards}</div>`;
   }).join('');
@@ -298,7 +314,7 @@ function renderTable(){
     return `<div class="ret-item" data-sku="${esc(p.sku)}">
       <div class="ret-item-top">
         ${img}
-        <div class="ret-item-name">${esc(p.name)}<br><span class="ret-item-sku">מק"ט ${esc(p.sku)}${lastShip}</span></div>
+        <div class="ret-item-name">${esc(shortName(p.name))}<br><span class="ret-item-sku">מק"ט ${esc(p.sku)}${lastShip}</span></div>
         <div class="ret-item-pct ${pctClass}">זיכוי 3ח׳: ${p.zikuyPct3mo}%</div>
         <button type="button" class="rm-btn" aria-label="הסר מוצר" onclick="toggleProduct('${esc(p.sku)}')">🗑</button>
       </div>
@@ -340,7 +356,8 @@ async function buildProforma(){
   if(!selected.size){ showToast('בחר לפחות מוצר אחד'); return; }
   const rows=[...selected.values()];
   const now=new Date().toLocaleDateString('he-IL');
-  document.getElementById('pv-title').textContent=`בקשת זיכוי — ${custName} ${isolate('('+custId+')')}`;
+  document.getElementById('pv-title').textContent=`בקשת זיכוי — ${custName}`;
+  document.getElementById('pv-custid').querySelector('span').textContent=custId;
   document.getElementById('pv-meta').innerHTML=`עיר: ${esc(city)} | סוכן: ${esc(agentName||agentCode)} | תאריך: ${now} | תקופת % זיכויים: ${esc(curLabel)}`;
   const totalQty=rows.reduce((s,r)=>s+r.qty,0);
   document.getElementById('pv-tbody').innerHTML=rows.map(r=>{
@@ -357,7 +374,7 @@ async function buildProforma(){
     const gapDays = lsDate ? Math.round((new Date(r.date) - new Date(lsDate)) / 86400000) : null;
     const gapCell = gapDays===null ? '—' : `${gapDays} ימים`;
     const gapClass = gapDays!==null && gapDays<0 ? 'pv-gap gap-neg' : 'pv-gap';
-    return `<tr><td>${img}</td><td>${esc(r.product.sku)}</td><td class="pv-name">${esc(r.product.name)}</td><td>${r.qty}</td><td class="pv-lastship">${lastShipCell}</td><td>${r.date}</td><td class="${gapClass}">${gapCell}</td><td>${esc(r.option)}</td></tr>`;
+    return `<tr><td>${img}</td><td>${esc(r.product.sku)}</td><td class="pv-name">${esc(shortName(r.product.name))}</td><td>${r.qty}</td><td class="pv-lastship">${lastShipCell}</td><td class="${gapClass}">${gapCell}</td><td>${r.date}</td><td>${esc(r.option)}</td></tr>`;
   }).join('') + `<tr class="pv-total"><td colspan="3">סה"כ</td><td>${totalQty}</td><td colspan="4"></td></tr>`;
   await waitForImages(document.getElementById('print-view'));
   setupWaButton();
