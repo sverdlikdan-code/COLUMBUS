@@ -385,19 +385,35 @@ async function buildProforma(){
   if(!selected.size){ showToast('בחר לפחות מוצר אחד'); return; }
   const rows=[...selected.values()];
   const now=new Date().toLocaleDateString('he-IL');
-  document.getElementById('pv-overlay').classList.toggle('chain-mode', isChain);
   document.getElementById('pv-title').textContent=`בקשת זיכוי — ${custName}`;
   document.getElementById('pv-custid').querySelector('span').textContent=custId;
   document.getElementById('pv-meta').innerHTML=`עיר: ${esc(city)} | סוכן: ${esc(agentName||agentCode)} | תאריך: ${now} | תקופת % זיכויים: ${esc(curLabel)}`;
+  renderProformaTable(rows);
+  await waitForImages(document.getElementById('print-view'));
+  setupWaButton();
+  showPrintFullscreen();
+}
+
+// ➕ ברקוד button (in the open blank's top bar) — agent's own call, not tied to
+// any client segment (some chains need it, some don't, private stores sometimes
+// do too) — rebuilds the already-open blank in place: bigger everything + a
+// drawn EAN-13 column, so whoever's receiving the return can scan it straight
+// off the tablet screen instead of the agent dictating codes out loud.
+function toggleBarcodeMode(){
+  barcodeMode=!barcodeMode;
+  const btn=document.getElementById('pv-barcode-btn');
+  btn.classList.toggle('on',barcodeMode);
+  btn.textContent = barcodeMode ? '✓ ברקוד' : '➕ ברקוד';
+  renderProformaTable([...selected.values()]);
+}
+
+function renderProformaTable(rows){
+  document.getElementById('pv-overlay').classList.toggle('barcode-mode', barcodeMode);
   const totalQty=rows.reduce((s,r)=>s+r.qty,0);
-  // Chain (רשתות) clients only: the network's own warehouse worker scans SKUs
-  // straight off the agent's tablet as they go through the return pile — same
-  // table everyone else gets, plus a real drawn EAN-13 the worker's handheld
-  // scanner can read off the screen. Private-market (חנויות) blank is unchanged.
-  const eanTh = isChain ? '<th>ברקוד</th>' : '';
+  const eanTh = barcodeMode ? '<th>ברקוד</th>' : '';
   document.getElementById('pv-thead-row').innerHTML = eanTh +
     '<th>תמונה</th><th>מק"ט</th><th>מוצר</th><th>כמות</th><th>תנועה אחרונה</th><th>ימי תוקף שלקוח קיבל</th><th>תוקף</th><th>אופציה</th>';
-  const firstColspan = isChain ? 4 : 3;
+  const firstColspan = barcodeMode ? 4 : 3;
   document.getElementById('pv-tbody').innerHTML=rows.map(r=>{
     const img=r.product.imgUrl?`<img src="${proxyImg(r.product.imgUrl)}" alt="">`:'';
     const lsDate=r.product.lastShipDate;
@@ -412,12 +428,9 @@ async function buildProforma(){
     const gapDays = lsDate ? Math.round((new Date(r.date) - new Date(lsDate)) / 86400000) : null;
     const gapCell = gapDays===null ? '—' : `${gapDays} ימים`;
     const gapClass = gapDays!==null && gapDays<0 ? 'pv-gap gap-neg' : 'pv-gap';
-    const eanTd = isChain ? `<td class="pv-ean-cell">${eanCellHtml(r.product.ean)}</td>` : '';
+    const eanTd = barcodeMode ? `<td class="pv-ean-cell">${eanCellHtml(r.product.ean)}</td>` : '';
     return `<tr>${eanTd}<td>${img}</td><td>${esc(r.product.sku)}</td><td class="pv-name">${esc(shortName(r.product.name))}</td><td>${r.qty}</td><td class="pv-lastship">${lastShipCell}</td><td class="${gapClass}">${gapCell}</td><td>${r.date}</td><td>${esc(r.option)}</td></tr>`;
   }).join('') + `<tr class="pv-total"><td colspan="${firstColspan}">סה"כ</td><td>${totalQty}</td><td colspan="4"></td></tr>`;
-  await waitForImages(document.getElementById('print-view'));
-  setupWaButton();
-  showPrintFullscreen();
 }
 
 function showPrintFullscreen(){
