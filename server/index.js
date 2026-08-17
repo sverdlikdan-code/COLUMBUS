@@ -3834,6 +3834,7 @@ CALCULATETABLE(
 // feedback per item via /api/ai-feedback). Result is fixed once/day per agent+day+
 // lang (see dayBriefingCache below) — deliberately NOT recomputed on every open.
 const DAY_BRIEFING_CACHE_FILE = path.join(__dirname, 'data', 'day-briefing-cache.json');
+const DAY_BRIEFING_RATE_FILE = path.join(__dirname, 'data', 'day-briefing-rate.json');
 function readDayBriefingCache() {
   try { return JSON.parse(fs.readFileSync(DAY_BRIEFING_CACHE_FILE, 'utf8')); } catch (_) { return {}; }
 }
@@ -3843,32 +3844,34 @@ function writeDayBriefingCache(cache) {
     fs.writeFileSync(DAY_BRIEFING_CACHE_FILE, JSON.stringify(cache, null, 2), 'utf8');
   } catch (_) {}
 }
-app.get('/api/day-briefing', requireAuth, async (req, res) => {
-  // Managers browsing an agent's route (ROADS) pass ?agent= explicitly, same as /customers;
-  // an agent's own session falls back to their session agentCode.
-  const queryAgent = req.query.agent ? String(req.query.agent) : null;
-  if (queryAgent && !validateAgentCode(queryAgent)) return res.status(400).json({ ok: false, error: 'invalid agent code' });
-  const agentCode = queryAgent || req.session.agentCode;
-  if (!agentCode) return res.status(403).json({ ok: false, error: 'manager session -- no agent' });
-  if (!pbiCache) return res.status(503).json({ ok: false, error: 'cache_loading' });
-  if (!GEMINI_API_KEY && !ANTHROPIC_API_KEY) return res.status(503).json({ ok: false, error: 'AI not configured' });
+function todayIsraelDate() { return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' }); }
 
-  const lang = (req.query.lang || 'he').slice(0, 2);
-  const dayNum = parseInt(req.query.day) || 0;
+// 30 real computations/agent/day, resets at Israel midnight (see call site for why
+// this exists — not a rate-limit fix, just a floor against something pathological).
+function dayBriefingRateOk(agentCode, todayIL) {
+  let rate = {};
+  try { rate = JSON.parse(fs.readFileSync(DAY_BRIEFING_RATE_FILE, 'utf8')); } catch (_) {}
+  const key = `${agentCode}_${todayIL}`;
+  const count = (rate[key] || 0) + 1;
+  if (count > 30) return false;
+  // Drop yesterday's keys as we go, keep every agent's count for today — cheap way
+  // to stop the file growing forever without a separate cleanup job.
+  const kept = {};
+  for (const k in rate) if (k.endsWith(`_${todayIL}`)) kept[k] = rate[k];
+  kept[key] = count;
+  try {
+    fs.mkdirSync(path.dirname(DAY_BRIEFING_RATE_FILE), { recursive: true });
+    fs.writeFileSync(DAY_BRIEFING_RATE_FILE, JSON.stringify(kept), 'utf8');
+  } catch (_) {}
+  return true;
+}
 
+// Core computation for the on-demand endpoint below. Returns null for "no clients
+// that day" (not an error); throws on real failures (DAX/Gemini).
+async function computeDayBriefing(agentCode, dayNum, lang) {
   const allClients = pbiCache.byAgent.get(agentCode) || [];
   const dayClients = dayNum ? allClients.filter(c => c.dayNum === dayNum) : allClients;
-  if (!dayClients.length) return res.json({ ok: false, error: 'no_clients' });
-
-  // Fixed once per Israel calendar day, reused statically for every agent/manager
-  // who opens this route/day for the rest of the day — avoids re-running the DAX+
-  // Gemini work (and the PBI 429s that come with it) on every single tap of "ניתוח".
-  const dayBriefingCacheKey = `${agentCode}_${dayNum}_${lang}`;
-  const todayIL = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' });
-  const dayBriefingCache = readDayBriefingCache();
-  if (dayBriefingCache[dayBriefingCacheKey]?.date === todayIL) {
-    return res.json(dayBriefingCache[dayBriefingCacheKey].payload);
-  }
+  if (!dayClients.length) return null;
 
   const now = new Date();
   const cm = now.getMonth() + 1, cy = now.getFullYear();
@@ -4016,9 +4019,8 @@ ROW(
     return { top10, dormant: dormant.slice(0, 5), companyAvg };
   };
 
-  try {
-    const famRows = await executeDax(daxFamCompany);
-    const formulaFamilies = [], iceMishFamilies = [];
+  const famRows = await executeDax(daxFamCompany);
+  const formulaFamilies = [], iceMishFamilies = [];
     famRows.forEach(r => {
       const fam = r['ALL_PARTS[תאור משפחת מוצר]'] || r['[תאור משפחת מוצר]'];
       if (!fam) return;
@@ -4077,18 +4079,55 @@ ROW(
     } catch (e) { /* fall through to fallback below */ }
     const fallbackFor = () => ({ highlights: [], recommendations: [{ client: '', action: raw.slice(0, 400), priority: 'medium' }] });
 
-    const payload = {
-      ok: true,
-      monthStr, prevStr,
-      companies: {
-        FORMULA: { ...formulaResult, ...(parsed?.FORMULA || fallbackFor()) },
-        ICE_MISH: { ...iceMishResult, ...(parsed?.ICE_MISH || fallbackFor()) },
-      },
-    };
+  return {
+    ok: true,
+    monthStr, prevStr,
+    companies: {
+      FORMULA: { ...formulaResult, ...(parsed?.FORMULA || fallbackFor()) },
+      ICE_MISH: { ...iceMishResult, ...(parsed?.ICE_MISH || fallbackFor()) },
+    },
+  };
+}
+
+app.get('/api/day-briefing', requireAuth, async (req, res) => {
+  // Managers browsing an agent's route (ROADS) pass ?agent= explicitly, same as /customers;
+  // an agent's own session falls back to their session agentCode.
+  const queryAgent = req.query.agent ? String(req.query.agent) : null;
+  if (queryAgent && !validateAgentCode(queryAgent)) return res.status(400).json({ ok: false, error: 'invalid agent code' });
+  const agentCode = queryAgent || req.session.agentCode;
+  if (!agentCode) return res.status(403).json({ ok: false, error: 'manager session -- no agent' });
+  if (!pbiCache) return res.status(503).json({ ok: false, error: 'cache_loading' });
+  if (!GEMINI_API_KEY && !ANTHROPIC_API_KEY) return res.status(503).json({ ok: false, error: 'AI not configured' });
+
+  const lang = (req.query.lang || 'he').slice(0, 2);
+  const dayNum = parseInt(req.query.day) || 0;
+
+  // Fixed once per Israel calendar day, reused statically for every agent/manager
+  // who opens this route/day for the rest of the day — repeat clicks are free.
+  const dayBriefingCacheKey = `${agentCode}_${dayNum}_${lang}`;
+  const todayIL = todayIsraelDate();
+  const dayBriefingCache = readDayBriefingCache();
+  if (dayBriefingCache[dayBriefingCacheKey]?.date === todayIL) {
+    return res.json(dayBriefingCache[dayBriefingCacheKey].payload);
+  }
+
+  // Safety cap on actual computations (cache MISSES only — cache hits above are
+  // free) per agent per day: 30/day, resets at Israel midnight. Not a rate-limit
+  // fix (a human clicking a button isn't a real PBI-throttling risk — the cache
+  // above already caps the common case to ~1 compute/agent/day) — just a floor
+  // against something pathological (a bug, a loop, someone probing every day
+  // param) burning Gemini/PBI quota unbounded. 2026-08-17.
+  if (!dayBriefingRateOk(agentCode, todayIL)) {
+    return res.status(429).json({ ok: false, error: 'daily_limit', message: 'הגעת למכסת הבקשות היומית (30) — מתאפס מחר' });
+  }
+
+  try {
+    const payload = await computeDayBriefing(agentCode, dayNum, lang);
+    if (!payload) return res.json({ ok: false, error: 'no_clients' });
     dayBriefingCache[dayBriefingCacheKey] = { date: todayIL, payload };
     writeDayBriefingCache(dayBriefingCache);
     res.json(payload);
-  } catch(e) {
+  } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
 });
