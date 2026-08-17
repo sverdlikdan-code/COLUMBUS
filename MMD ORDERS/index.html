@@ -1583,7 +1583,8 @@
         const _ordVRaw = (_rawOrd !== '' && _cap > 0 && Number(_rawOrd) > _cap) ? _cap : (s.k === 0 ? 0 : (_rawOrd || ''));
         // Maavar-only: visible in regular view but order locked at 0 — must use מחסן מעבר mode
         const isMaavarOnly = !maavarMode && ash <= 0 && mmd <= 0 && mav > 0;
-        const ordV    = isMaavarOnly ? 0 : _ordVRaw;
+        // ash<=0: no stock in Ashdod — no hamlatza auto-fill; preserve only explicit manual k
+        const ordV = (!maavarMode && ash <= 0 && s.k == null) ? 0 : (isMaavarOnly ? 0 : _ordVRaw);
         const eff     = Number(ordV) || 0;
 
         const yamim     = r.yamim ?? null;
@@ -1745,10 +1746,12 @@
     if (!sv[mk]) sv[mk] = {};
     let v = el.value.trim();
     if (f === 'k' && v !== '') {
-      const cap = maavarMode ? Number(el.dataset.mav || 0) : Number(el.dataset.ash || 0);
-      if (cap > 0 && Number(v) > cap) {
-        el.value = cap;
-        v = String(cap);
+      const capRaw = maavarMode ? Number(el.dataset.mav || 0) : Number(el.dataset.ash || 0);
+      // ash<=0: no stock → block any order; ash>0: cap at ash value
+      if (capRaw <= 0) { el.value = 0; v = '0'; } else
+      if (Number(v) > capRaw) {
+        el.value = capRaw;
+        v = String(capRaw);
         el.style.outline = '2px solid #f59e0b';
         setTimeout(() => { el.style.outline = ''; }, 800);
       }
@@ -1793,6 +1796,8 @@
   // Compute effective order quantity — same logic as render() so table and Excel always match
   function _effOrd(r, s) {
     if (s && s.k != null) return Number(s.k);
+    // ash<=0: no stock in Ashdod → cannot auto-recommend
+    if (!maavarMode && (r.ashdod_k ?? 0) <= 0) return 0;
     const mk   = String(r.mkt ?? '');
     const haml = r.hamlatza ?? 0;
     const hamlMult = { '664': 4 };
