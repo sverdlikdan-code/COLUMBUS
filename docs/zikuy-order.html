@@ -112,6 +112,8 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 .pv-tbl img{width:44px;height:44px;object-fit:contain;border-radius:6px;background:#f5f5f5;}
 .pv-tbl td.pv-name{text-align:right;font-weight:700;}
 .pv-total{font-weight:800;background:var(--sky-mid)!important;}
+.pv-tbl td.pv-lastship small{display:block;font-size:10px;color:var(--light);font-weight:600;margin-top:2px;}
+.pv-tbl td.pv-gap.gap-neg{color:var(--red);font-weight:800;}
 </style>
 </head>
 <body>
@@ -166,7 +168,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
     </div>
     <div id="pv-meta"></div>
     <table class="pv-tbl">
-      <thead><tr><th>תמונה</th><th>מק"ט</th><th>מוצר</th><th>כמות</th><th>תוקף</th><th>אופציה</th></tr></thead>
+      <thead><tr><th>תמונה</th><th>מק"ט</th><th>מוצר</th><th>כמות</th><th>תנועה אחרונה</th><th>תוקף</th><th>פער ימים</th><th>אופציה</th></tr></thead>
       <tbody id="pv-tbody"></tbody>
     </table>
   </div>
@@ -343,8 +345,20 @@ async function buildProforma(){
   const totalQty=rows.reduce((s,r)=>s+r.qty,0);
   document.getElementById('pv-tbody').innerHTML=rows.map(r=>{
     const img=r.product.imgUrl?`<img src="${proxyImg(r.product.imgUrl)}" alt="">`:'';
-    return `<tr><td>${img}</td><td>${esc(r.product.sku)}</td><td class="pv-name">${esc(r.product.name)}</td><td>${r.qty}</td><td>${r.date}</td><td>${esc(r.option)}</td></tr>`;
-  }).join('') + `<tr class="pv-total"><td colspan="3">סה"כ</td><td>${totalQty}</td><td colspan="2"></td></tr>`;
+    const lsDate=r.product.lastShipDate;
+    const lastShipCell = lsDate
+      ? `${lsDate.split('-').reverse().join('.')}<small>${r.product.lastShipQty} יח'</small>`
+      : '—';
+    // Days between the expiry the agent entered (r.date) and the last time this
+    // exact client actually received this SKU (lsDate) — tells the agent whether the
+    // physical stock in front of them plausibly came from that last shipment (small
+    // gap) or has been sitting for a while (large gap). Negative = entered expiry is
+    // BEFORE the last shipment date, a data-entry red flag, highlighted.
+    const gapDays = lsDate ? Math.round((new Date(r.date) - new Date(lsDate)) / 86400000) : null;
+    const gapCell = gapDays===null ? '—' : `${gapDays} ימים`;
+    const gapClass = gapDays!==null && gapDays<0 ? 'pv-gap gap-neg' : 'pv-gap';
+    return `<tr><td>${img}</td><td>${esc(r.product.sku)}</td><td class="pv-name">${esc(r.product.name)}</td><td>${r.qty}</td><td class="pv-lastship">${lastShipCell}</td><td>${r.date}</td><td class="${gapClass}">${gapCell}</td><td>${esc(r.option)}</td></tr>`;
+  }).join('') + `<tr class="pv-total"><td colspan="3">סה"כ</td><td>${totalQty}</td><td colspan="4"></td></tr>`;
   await waitForImages(document.getElementById('print-view'));
   setupWaButton();
   showPrintFullscreen();
