@@ -275,6 +275,13 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 #day-popup.open{display:flex;}
 .day-pop-btn{width:42px;height:42px;border-radius:11px;background:var(--sky-light);border:2px solid var(--sky-mid);font-size:17px;font-weight:900;color:var(--blue-dark);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s;}
 .day-pop-btn:hover,.day-pop-btn.cur-day{background:var(--blue);color:#fff;border-color:var(--blue-dark);}
+/* Per-row action menu — replaces the inline .c-actions icon row in split view
+   (map showing next to the list), where the full row never fit without crushing
+   the client name. Same floating-popup mechanism as #day-popup. */
+#row-actions-popup{position:fixed;background:#fff;border-radius:14px;box-shadow:0 6px 28px rgba(0,0,0,.18);padding:8px;display:none;flex-wrap:wrap;gap:5px;z-index:9999;max-width:180px;align-items:center;justify-content:flex-end;}
+#row-actions-popup.open{display:flex;}
+.row-more-btn{width:32px;height:32px;border-radius:9px;background:var(--sky-light);border:1.5px solid var(--sky-mid);color:var(--blue-dark);font-size:19px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.row-more-btn:active{background:var(--sky-mid);}
 
 /* MAP */
 #map-pane{flex:1;display:none;min-width:0;}
@@ -336,27 +343,15 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 
 /* Split view (list+map side by side, list-pane pinned to a % width) starves
    .c-name of space once the row's action icons hit the ≥768px 44dp touch-target
-   sizing above — that icon cluster alone can exceed the entire narrow list column,
+   sizing — that icon cluster alone can exceed the entire narrow list column,
    crushing the name (the only flexible, min-width:0 element) down to 1-2 visible
-   characters. Fix: let the icon row wrap to 2 lines instead of demanding its full
-   unwrapped width, and give the list column a bit more room. Only applies while
-   the map is actually showing next to the list — body.map-hidden already goes to
-   list:100% width where the bigger icons are fine as-is. 2026-08-17. */
+   characters. First fix (shrink the icons in-place) still left names cramped;
+   superseded 2026-08-17 by collapsing the whole action row into a single "⋮"
+   trigger + popup (see .row-more-btn / #row-actions-popup) whenever the map is
+   actually showing next to the list — body.map-hidden already goes to list:100%
+   width where the full inline icon row is fine as-is. */
 @media(min-width:700px){
   body:not(.map-hidden) #list-pane{flex:0 0 48%;}
-  body:not(.map-hidden) .c-actions{flex-wrap:wrap;justify-content:flex-end;max-width:180px;gap:4px;}
-  /* The ≥768px 44dp button sizing below was tuned for the full-width list-only
-     view. In split view it no longer fits 2 rows inside the wrap cap above and
-     spills to 3, ballooning row height until only ~3 clients fit on a tablet
-     screen (reported 2026-08-17). Shrink just for map-on split view — full-width
-     view keeps the bigger touch targets untouched. */
-  body:not(.map-hidden) .mekarer-btn,
-  body:not(.map-hidden) .ai-insight-btn,
-  body:not(.map-hidden) .waze-btn{min-height:30px;padding:4px 8px;font-size:11px;}
-  body:not(.map-hidden) .zikuy-btn{min-height:30px;padding:4px 7px;font-size:11px;}
-  body:not(.map-hidden) .excl-btn,
-  body:not(.map-hidden) .gps-edit-btn,
-  body:not(.map-hidden) .day-change-btn{width:32px;height:32px;font-size:15px;}
 }
 
 /* Map fully disabled — agent works list-only (persisted, overrides the wide-screen
@@ -643,6 +638,7 @@ body.gps-fs #map{height:100%!important;}
 
 <!-- ── DAY POPUP ── -->
 <div id="day-popup"></div>
+<div id="row-actions-popup" onclick="event.stopPropagation()"></div>
 
 <!-- ── AI CLIENT ANALYTICS MODAL ── -->
 <div id="ai-modal" onclick="if(event.target===this)closeAiModal()">
@@ -901,6 +897,9 @@ function toggleMapHidden(){
   st.mapHidden=!st.mapHidden;
   try{ localStorage.setItem('fr_map_hidden', st.mapHidden?'1':'0'); }catch(_){}
   applyMapHidden();
+  // Card markup itself changes shape (inline icons vs "⋮" trigger) depending on
+  // map-on/off, not just CSS — a plain style toggle isn't enough here.
+  if(st.clients&&st.clients.length) renderClientList();
   if(!st.mapHidden){
     // Container was display:none (renderMap() no-ops while hidden) — wait a frame
     // for the CSS change to actually apply, then render fresh and force Leaflet to
@@ -2118,11 +2117,49 @@ function toggleFrSadranFilter(){
   renderMap();
 }
 
+// Row action buttons — shared markup for both the inline .c-actions row (full
+// width) and the per-row popup (split view, see openRowActions below). Every
+// handler ends in closeRowActionsPopup() — a harmless no-op when rendered inline
+// (popup was never open), but required when rendered inside the popup so picking
+// an action actually closes the menu instead of leaving it floating.
+function _clientActionsHtml(c,noGps){
+  const nm=(c.custName||'').replace(/"/g,'&quot;'), ct=(c.city||'').replace(/"/g,'&quot;');
+  return `<span class="excl-btn" data-id="${c.custId}" onclick="toggleExclude('${c.custId}',event);closeRowActionsPopup()" title="הוצא ממסלול">🚫</span>
+    <span class="day-change-btn" data-id="${c.custId}" onclick="openDayPopup(event,this.dataset.id);closeRowActionsPopup()">📅</span>
+    <span class="mekarer-btn" data-id="${c.custId}" data-name="${nm}" data-city="${ct}" onclick="openMekarerOrder(event,this.dataset.id,this.dataset.name,this.dataset.city);closeRowActionsPopup()">🧊</span>
+    <span class="zikuy-btn" data-id="${c.custId}" data-name="${nm}" data-city="${ct}" onclick="openZikuyOrder(event,this.dataset.id,this.dataset.name,this.dataset.city);closeRowActionsPopup()" title="בקשת זיכוי">זיכוי</span>
+    <span class="ai-insight-btn" data-id="${c.custId}" data-name="${nm}" onclick="openClientAI(event,this.dataset.id,this.dataset.name);closeRowActionsPopup()" title="ניתוח AI">AI</span>
+    ${noGps
+      ? `<span class="no-gps-badge" data-id="${c.custId}" data-name="${nm}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name);closeRowActionsPopup()">NO GPS</span>`
+      : `<span class="gps-edit-btn"  data-id="${c.custId}" data-name="${nm}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name);closeRowActionsPopup()">📍</span>
+         <span class="waze-btn" onclick="openWaze(event,${c.lat},${c.lng});closeRowActionsPopup()" title="נווט ב-Waze">W</span>`}`;
+}
+let _rowActionsStore={};
+function openRowActions(event,custId){
+  event.stopPropagation();
+  const popup=document.getElementById('row-actions-popup');
+  popup.innerHTML=_rowActionsStore[custId]||'';
+  const r=event.currentTarget.getBoundingClientRect();
+  const popupW=180;
+  popup.style.top=(r.bottom+6)+'px';
+  popup.style.left=Math.max(6,Math.min(r.left-popupW+r.width,window.innerWidth-popupW-6))+'px';
+  popup.classList.add('open');
+}
+function closeRowActionsPopup(){document.getElementById('row-actions-popup')?.classList.remove('open');}
+document.addEventListener('click',e=>{
+  const popup=document.getElementById('row-actions-popup');
+  if(popup&&popup.classList.contains('open')&&!popup.contains(e.target)&&!e.target.classList.contains('row-more-btn')) closeRowActionsPopup();
+});
+
 function renderClientList(html){
   const el=document.getElementById('client-list');
   if(html){el.innerHTML=html;return;}
   const list=displayClients();
   if(!list.length){el.innerHTML=`<div style="padding:40px 20px;text-align:center;color:var(--mid)"><div style="font-size:36px;margin-bottom:12px">📭</div><div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px">אין לקוחות ביום זה</div><div style="font-size:12px">נסה לשנות את הסינון או בחר יום אחר</div></div>`;return;}
+  // Split view (map showing, ≥700px) starves the row of width until the inline
+  // icon cluster crushes the client name — collapse to a single "⋮" trigger there.
+  const squeezed=!st.mapHidden&&window.innerWidth>=700;
+  _rowActionsStore={};
   el.innerHTML=list.map((c,i)=>{
     const noGps=!c.lat||!c.lng;
     const isSel=st.selectedId===c.custId;
@@ -2169,17 +2206,9 @@ function renderClientList(html){
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;">
         ${c.custId?`<span class="c-id-side">${c.custId}</span>`:''}
-        <div class="c-actions">
-          <span class="excl-btn" data-id="${c.custId}" onclick="toggleExclude('${c.custId}',event)" title="הוצא ממסלול">🚫</span>
-          <span class="day-change-btn" data-id="${c.custId}" onclick="openDayPopup(event,this.dataset.id)">📅</span>
-          <span class="mekarer-btn" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" data-city="${(c.city||'').replace(/"/g,'&quot;')}" onclick="openMekarerOrder(event,this.dataset.id,this.dataset.name,this.dataset.city)">🧊</span>
-          <span class="zikuy-btn" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" data-city="${(c.city||'').replace(/"/g,'&quot;')}" onclick="openZikuyOrder(event,this.dataset.id,this.dataset.name,this.dataset.city)" title="בקשת זיכוי">זיכוי</span>
-          <span class="ai-insight-btn" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openClientAI(event,this.dataset.id,this.dataset.name)" title="ניתוח AI">AI</span>
-          ${noGps
-            ? `<span class="no-gps-badge" data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name)">NO GPS</span>`
-            : `<span class="gps-edit-btn"  data-id="${c.custId}" data-name="${(c.custName||'').replace(/"/g,'&quot;')}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name)">📍</span>
-               <span class="waze-btn" onclick="openWaze(event,${c.lat},${c.lng})" title="נווט ב-Waze">W</span>`}
-        </div>
+        ${squeezed
+          ? (()=>{ _rowActionsStore[c.custId]=_clientActionsHtml(c,noGps); return `<span class="row-more-btn" onclick="openRowActions(event,'${c.custId}')" title="פעולות">⋮</span>`; })()
+          : `<div class="c-actions">${_clientActionsHtml(c,noGps)}</div>`}
       </div>
     </div>`;
   }).join('');
@@ -2769,7 +2798,9 @@ async function _fetchClientAI(lang) {
     const trendCell = (f) => {
       const arrow = f.deltaPct === null ? '' : (f.deltaPct > 0 ? '▲' : f.deltaPct < 0 ? '▼' : '—');
       const color = f.deltaPct === null ? '#999' : (f.deltaPct > 0 ? '#2E7D32' : f.deltaPct < 0 ? '#C62828' : '#999');
-      const pct = f.deltaPct === null ? '' : `${f.deltaPct > 0 ? '+' : ''}${f.deltaPct}%`;
+      // "+12%" is a plain sign+digit run — isolate it (same fix as the day-briefing
+      // YoY column) so the RTL row context can't reorder the sign away from the number.
+      const pct = f.deltaPct === null ? '' : `<span dir="ltr" style="unicode-bidi:isolate">${f.deltaPct > 0 ? '+' : ''}${f.deltaPct}%</span>`;
       return `<td style="text-align:left;color:${color};font-weight:700">${arrow} ${pct}</td>`;
     };
 
@@ -2842,6 +2873,10 @@ async function _fetchClientAI(lang) {
     for (const { key, label } of companyGroups) {
       const items = dormantChainProducts && dormantChainProducts[key];
       if (!items || !items.length) continue;
+      // Ranked stars, not the network's actual ₪ figure — same reasoning as the
+      // day-briefing TOP10 list: an agent reading this off a tablet in front of a
+      // client shouldn't be showing another branch's real revenue on screen.
+      const maxChainTotal = Math.max(...items.map(p => p.chainTotal || 0), 1);
       gapTbl += `<div style="margin:10px 0 4px;font-size:13px;color:#B71C1C;font-weight:700">${label} — מוצרים ש${peerGroupWord} ${chainName} מוכרת (120 יום) והסניף לא הזמין 90+ יום</div>`;
       gapTbl += `<table class="ai-families-tbl"><thead><tr><th>מוצר</th><th>מכירות רשת (120 יום)</th></tr></thead><tbody>`;
       for (const p of items) {
@@ -2850,7 +2885,7 @@ async function _fetchClientAI(lang) {
         const photo = p.imgUrl
           ? `<img src="${p.imgUrl}" style="width:26px;height:26px;object-fit:contain;border-radius:4px;background:#f5f5f5;vertical-align:middle;margin-inline-end:6px;flex-shrink:0" onerror="this.style.display='none'">`
           : '';
-        gapTbl += `<tr><td title="${p.name}" style="display:flex;align-items:center;gap:0">${photo}<span>${label2}</span></td><td style="text-align:left">₪${p.chainTotal.toLocaleString()}</td></tr>`;
+        gapTbl += `<tr><td title="${p.name}" style="display:flex;align-items:center;gap:0">${photo}<span>${label2}</span></td><td class="day-stars" style="text-align:left">${_dayStars(p.chainTotal, maxChainTotal)}</td></tr>`;
       }
       gapTbl += '</tbody></table>';
     }
@@ -2867,12 +2902,27 @@ async function _fetchClientAI(lang) {
     }
 
     const dir = lang === 'he' ? 'rtl' : 'ltr';
-    const cleanAnalysis = analysis
+    let cleanAnalysis = analysis
       .replace(/</g,'&lt;').replace(/>/g,'&gt;')
       .replace(/^#{1,6}\s*/gm, '')
       .replace(/\*\*(.+?)\*\*/g, '$1')
       .replace(/^[-*]\s+/gm, '• ')
       .replace(/^---+$/gm, '');
+    // Bold family/department names — matched against this same response's own
+    // families data, not guessed by regex over free text, so only real entities
+    // ever get bolded. Then color+isolate every signed percentage (the prompt now
+    // requires an explicit +/- on each one): red for a drop, green for growth,
+    // with an LTR isolate so the sign can't get visually reordered away from the
+    // digits inside Hebrew RTL prose (same bidi fix as the day-briefing YoY column).
+    const famNames = [...Object.keys(families||{}), ...Object.keys(familiesInter||{})]
+      .filter(Boolean).sort((a,b)=>b.length-a.length);
+    if (famNames.length) {
+      const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const famRe = new RegExp(famNames.map(escRe).join('|'), 'g');
+      cleanAnalysis = cleanAnalysis.replace(famRe, m => `<b>${m}</b>`);
+    }
+    cleanAnalysis = cleanAnalysis.replace(/([+-]\d+(?:\.\d+)?%)/g,
+      m => `<span dir="ltr" style="unicode-bidi:isolate;color:${m[0]==='-'?'#C62828':'#2E7D32'};font-weight:800">${m}</span>`);
     const html = `${tbl}${interTbl}${gapTbl}${devTbl}<div class="ai-analysis" dir="${dir}">${cleanAnalysis}</div>`;
     // Guard against out-of-order responses: if the user switched client/language while
     // this request was in flight, a slower earlier request can resolve AFTER a faster
@@ -2936,7 +2986,13 @@ function _renderDayCompany(key, label, data) {
 
   let tbl = `<table class="day-top10"><thead><tr><th>#</th><th>לקוח</th><th>דירוג</th><th>YoY</th></tr></thead><tbody>`;
   data.top10.forEach((c, i) => {
-    const yoyStr = c.yoy !== null && c.yoy !== undefined ? `${c.yoy>=0?'+':''}${c.yoy}%` : '—';
+    // "+12%"/"-4%" is a plain ASCII sign+digit run — inside an RTL row the browser's
+    // bidi algorithm reorders the weak +/- sign to the far side of the digits
+    // ("12%+"), same class of bug as the date-range bidi fix elsewhere in this file.
+    // An explicit LTR isolate keeps the sign glued to the number it belongs to.
+    const yoyRaw = c.yoy !== null && c.yoy !== undefined ? `${c.yoy>=0?'+':''}${c.yoy}%` : '—';
+    const yoyColor = c.yoy === null || c.yoy === undefined ? '#999' : (c.yoy > 0 ? '#2E7D32' : c.yoy < 0 ? '#C62828' : '#999');
+    const yoyStr = `<span dir="ltr" style="unicode-bidi:isolate;color:${yoyColor};font-weight:800">${yoyRaw}</span>`;
     const warn = c.daysSince && c.daysSince > 21;
     const crown = c.crown ? '👑 ' : '';
     tbl += `<tr><td>${i+1}</td><td>${crown}${esc(c.name)}${warn?` <span class="warn">⚠️${c.daysSince}d</span>`:''}</td><td class="day-stars">${_dayStars(c.total, maxTotal)}</td><td>${yoyStr}</td></tr>`;
