@@ -3437,16 +3437,14 @@ app.post('/mmd/rebuild', mmdGuard, dataRateLimit, (req, res) => {
   if (rebuildInProgress) return res.json({ ok: false, busy: true });
   rebuildInProgress = true;
   const script = path.join(__dirname, 'build-mmd-orders.js');
-  execFile('node', [script], { timeout: 60000 }, (err, stdout) => {
+  // MMD_LIVE_OUTPUT makes the script write straight to the untracked live path —
+  // docs/ is never touched, so the VPS git working tree never gets dirtied.
+  execFile('node', [script], {
+    timeout: 60000,
+    env: { ...process.env, MMD_LIVE_OUTPUT: MMD_LIVE_PATH },
+  }, (err, stdout) => {
     rebuildInProgress = false;
     if (err) { console.error('[rebuild]', err.message); return res.status(500).json({ ok: false, error: 'build_failed' }); }
-    // Copy result to live path (outside git tree) to avoid dirty working directory
-    try {
-      fs.mkdirSync(path.dirname(MMD_LIVE_PATH), { recursive: true });
-      fs.copyFileSync(path.join(__dirname, '..', 'docs', 'mmd-orders.json'), MMD_LIVE_PATH);
-      // Restore docs copy to keep git clean
-      require('child_process').execSync('git checkout -- docs/mmd-orders.json', { cwd: path.join(__dirname, '..') });
-    } catch(e) { /* non-fatal */ }
     const m = stdout.match(/Saved (\d+) products/);
     res.json({ ok: true, products: m ? Number(m[1]) : null });
   });
