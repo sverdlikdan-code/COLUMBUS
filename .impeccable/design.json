@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-17T00:00:00Z",
+  "title": "Design System: Formula Road",
+  "extensions": {
+    "colorMeta": {
+      "command-blue":       { "role": "primary",   "displayName": "Command Blue",       "canonical": "#1565C0", "tonalRamp": ["#091d3a","#102d58","#174077","#1f559a","#1565C0","#3d84d4","#74aee3","#b3d3f1","#ddeeff"] },
+      "command-blue-deep":  { "role": "primary",   "displayName": "Command Blue Deep",  "canonical": "#0D47A1", "tonalRamp": ["#071a3a","#0d2a62","#0d3c87","#0D47A1","#1a5cbf","#4a84d0","#84b0e2","#bcd3f3","#e0edfc"] },
+      "command-blue-night": { "role": "primary",   "displayName": "Command Blue Night", "canonical": "#082D6E", "tonalRamp": ["#040f26","#081c47","#082D6E","#123d8a","#2057aa","#5284c4","#8fb5de","#c4d9f2","#e6f0fb"] },
+      "horizon-sky":        { "role": "secondary", "displayName": "Horizon Sky",        "canonical": "#29B6F6", "tonalRamp": ["#0a3a52","#0f5a7a","#1480a8","#1ea3d4","#29B6F6","#63ccf8","#96dcfa","#c5ecfd","#e5f6ff"] },
+      "sky-wash":           { "role": "neutral",   "displayName": "Sky Wash",           "canonical": "#E3F2FD", "tonalRamp": ["#0d2135","#1a3f5c","#2e6585","#4a90b0","#7dbcda","#a8d5ee","#c8e8f7","#E3F2FD","#f3faff"] },
+      "sky-border":         { "role": "neutral",   "displayName": "Sky Border",         "canonical": "#BBDEFB", "tonalRamp": ["#0c1e35","#163656","#265a7e","#3d83ad","#70aed2","#BBDEFB","#d4ecfc","#e8f5fe","#f4fbff"] },
+      "canvas":             { "role": "neutral",   "displayName": "Canvas",             "canonical": "#F0F5FF", "tonalRamp": ["#0b1220","#162038","#263355","#3c4e72","#647192","#9aa5bc","#c4ccd8","#dce3ee","#F0F5FF"] },
+      "field-text":         { "role": "neutral",   "displayName": "Field Text",         "canonical": "#0D2137", "tonalRamp": ["#0D2137","#173050","#21436b","#3a5e87","#5e82a8","#8aaac8","#b5cce0","#d8e7f3","#edf4fb"] },
+      "asphalt":            { "role": "neutral",   "displayName": "Asphalt",            "canonical": "#546E7A", "tonalRamp": ["#1a2428","#283539","#37484e","#546E7A","#6d8894","#90a8b2","#b5c9d0","#d5e3e7","#edf4f6"] },
+      "dust":               { "role": "neutral",   "displayName": "Dust",               "canonical": "#90A4AE", "tonalRamp": ["#1e2c30","#2e4248","#435c64","#5f7880","#90A4AE","#b0c2ca","#cad6db","#dfe7ea","#f1f5f6"] },
+      "target-gold":        { "role": "tertiary",  "displayName": "Target Gold",        "canonical": "#C9A84C", "tonalRamp": ["#2e2100","#4a3600","#705200","#977000","#be9028","#C9A84C","#dcc47a","#ecdb9f","#f8f0d0"] },
+      "delivery-green":     { "role": "tertiary",  "displayName": "Delivery Green",     "canonical": "#1B7B34", "tonalRamp": ["#081e0e","#0f3118","#174824","#1B7B34","#259544","#47b562","#7cce90","#b2e5be","#d8f3e1"] },
+      "alert-red":          { "role": "tertiary",  "displayName": "Alert Red",          "canonical": "#C62828", "tonalRamp": ["#2a0606","#4a0a0a","#710f0f","#9e1818","#C62828","#db5555","#ec8888","#f7bcbc","#fce8e8"] },
+      "caution-orange":     { "role": "tertiary",  "displayName": "Caution Orange",     "canonical": "#E65100", "tonalRamp": ["#2a1000","#4a1c00","#723000","#9e4700","#c75e00","#E65100","#ff7c33","#ffae80","#ffd8c0"] },
+      "ice-teal":           { "role": "tertiary",  "displayName": "Ice Teal",           "canonical": "#00B894", "tonalRamp": ["#002e25","#004d3d","#007358","#009c78","#00B894","#33cca9","#66ddc0","#99edd8","#ccf5eb"] }
+    },
+    "shadows": [
+      { "name": "card-resting",  "value": "0 1px 3px rgba(21,101,192,.06)",  "purpose": "Client card at default. Nearly invisible — signals surface, not prominence." },
+      { "name": "card-hover",    "value": "0 3px 12px rgba(21,101,192,.14)", "purpose": "Card on hover or keyboard focus." },
+      { "name": "card-selected", "value": "0 2px 10px rgba(21,101,192,.18)", "purpose": "Active card or active sort button." },
+      { "name": "header",        "value": "0 2px 8px rgba(13,71,161,.35)",   "purpose": "Fixed top bar — stronger to establish permanence above scrolling content." },
+      { "name": "overlay",       "value": "0 8px 32px rgba(0,0,0,.35)",      "purpose": "Modals and dropdown menus. Neutral dark to read clearly as above-canvas." },
+      { "name": "button-primary","value": "0 4px 14px rgba(21,101,192,.35)", "purpose": "Primary CTA button resting state." }
+    ],
+    "motion": [
+      { "name": "state-transition", "value": "0.12s ease-out", "purpose": "Default for color/shadow state changes on cards and buttons." },
+      { "name": "hover-lift",       "value": "transform 0.12s ease-out, box-shadow 0.12s ease-out", "purpose": "Card and day-picker hover elevation." },
+      { "name": "day-card-hover",   "value": "transform 0.12s ease-out", "purpose": "translateY(-5px) on day picker card hover — the one choreographed moment." }
+    ],
+    "breakpoints": [
+      { "name": "split-view", "value": "700px",  "purpose": "List + map split view activates. Below this: single-pane mobile." },
+      { "name": "tablet",     "value": "768px",  "purpose": "Visual scaling breakpoint — font sizes, padding, touch targets, day grid columns all increase." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Full-width CTA — city confirmation, route start. Always full-width within its container.",
+      "html": "<button class=\"ds-btn-primary\">המשך לבניית מסלול ←</button>",
+      "css": ".ds-btn-primary { display: block; width: 100%; max-width: 420px; background: linear-gradient(135deg, #0D47A1, #1565C0); color: #fff; border: none; border-radius: 20px; padding: 14px 0; font-size: 16px; font-weight: 700; letter-spacing: 0.5px; cursor: pointer; box-shadow: 0 4px 14px rgba(21,101,192,.35); direction: rtl; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; transition: background 0.12s ease-out; } .ds-btn-primary:hover { background: linear-gradient(135deg, #082D6E, #0D47A1); } .ds-btn-primary:active { transform: scale(0.98); } .ds-btn-primary:disabled { background: #90A4AE; box-shadow: none; cursor: default; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary action — GPS detect, cancel. White background, Command Blue stroke.",
+      "html": "<button class=\"ds-btn-ghost\">📍 זהה מיקום אוטומטית</button>",
+      "css": ".ds-btn-ghost { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; max-width: 420px; background: #fff; border: 2px solid #1565C0; border-radius: 12px; padding: 12px 0; font-size: 15px; font-weight: 700; color: #1565C0; cursor: pointer; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; transition: background 0.15s; direction: rtl; } .ds-btn-ghost:hover { background: #E3F2FD; } .ds-btn-ghost:disabled { border-color: #90A4AE; color: #90A4AE; cursor: default; }"
+    },
+    {
+      "name": "Sort Button",
+      "kind": "button",
+      "refersTo": "sort-btn",
+      "description": "Toolbar sort/filter trigger. Four active-state variants — priority, AI-route, AI-Google, tablet-sort.",
+      "html": "<button class=\"ds-sort-btn ds-sort-active-priority\">סדר ביקור</button>",
+      "css": ".ds-sort-btn { padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 800; cursor: pointer; border: 2px solid #BBDEFB; background: none; color: #546E7A; height: 40px; display: flex; align-items: center; white-space: nowrap; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; transition: all 0.15s; } .ds-sort-active-priority { color: #1565C0; border-color: #1565C0; background: #E3F2FD; box-shadow: 0 2px 8px rgba(21,101,192,.18); } .ds-sort-active-ai { color: #1B7B34; border-color: #1B7B34; background: #E8F5E9; } .ds-sort-active-google { color: #7B1FA2; border-color: #7B1FA2; background: #F3E5F5; }"
+    },
+    {
+      "name": "City Filter Chip",
+      "kind": "chip",
+      "refersTo": "chip-filter",
+      "description": "City filter in route toolbar. Default and active states. Includes a client count badge.",
+      "html": "<button class=\"ds-chip\">תל אביב <span class=\"ds-chip-count\">12</span></button>",
+      "css": ".ds-chip { padding: 7px 15px; border-radius: 22px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1.5px solid #90CAF9; background: #F8FBFF; color: #1565C0; display: flex; align-items: center; gap: 5px; white-space: nowrap; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; transition: all 0.15s; box-shadow: 0 1px 3px rgba(0,0,0,.08); } .ds-chip:hover { background: #E3F2FD; border-color: #42A5F5; } .ds-chip.on { background: #1565C0; color: #fff; border-color: #1565C0; box-shadow: 0 2px 6px rgba(21,101,192,.3); } .ds-chip-count { font-size: 11px; font-weight: 700; background: rgba(21,101,192,.12); border-radius: 10px; padding: 2px 7px; } .ds-chip.on .ds-chip-count { background: rgba(255,255,255,.25); }"
+    },
+    {
+      "name": "Client Card",
+      "kind": "card",
+      "refersTo": "client-card",
+      "description": "Primary list row — visit number, client name, address, action buttons. RTL layout.",
+      "html": "<div class=\"ds-client-card\"><div class=\"ds-c-num-wrap\"><div class=\"ds-c-num\">3</div></div><span class=\"ds-c-id\">1234</span><div class=\"ds-c-body\"><div class=\"ds-c-name\">סופרמרקט כהן</div><div class=\"ds-c-sub\">תל אביב · הרצל 45</div></div><button class=\"ds-waze-btn\">🗺 Waze</button></div>",
+      "css": ".ds-client-card { background: #fff; border-radius: 10px; padding: 9px 14px 9px 10px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; box-shadow: 0 1px 3px rgba(21,101,192,.06); cursor: pointer; direction: rtl; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; transition: box-shadow 0.12s; } .ds-client-card:hover { box-shadow: 0 3px 12px rgba(21,101,192,.14); } .ds-client-card.selected { background: #E3F2FD; box-shadow: 0 2px 10px rgba(21,101,192,.18); } .ds-c-num-wrap { display: flex; flex-direction: column; align-items: center; min-width: 38px; } .ds-c-num { width: 30px; height: 30px; border-radius: 50%; background: #E3F2FD; border: 1.5px solid #BBDEFB; font-size: 14px; font-weight: 800; color: #1565C0; display: flex; align-items: center; justify-content: center; } .selected .ds-c-num { background: #1565C0; color: #fff; border-color: #1565C0; } .ds-c-id { font-size: 9px; font-weight: 700; color: #fff; background: #9e9e9e; border-radius: 4px; padding: 3px 7px; white-space: nowrap; align-self: center; } .ds-c-body { flex: 1; min-width: 0; } .ds-c-name { font-size: 15px; font-weight: 800; color: #0D2137; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-c-sub { font-size: 12px; color: #546E7A; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-waze-btn { font-size: 13px; min-height: 38px; padding: 6px 12px; border-radius: 9px; cursor: pointer; background: #E3F9F1; border: 1.5px solid #00BAAB; color: #007A73; font-weight: 900; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; transition: background 0.12s; } .ds-waze-btn:hover { background: #B2EEDD; }"
+    },
+    {
+      "name": "Day Picker Card",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Full-screen day selection. 3-column grid on tablet (2 rows of 3). Horizon Sky top accent.",
+      "html": "<div class=\"ds-day-card\"><div class=\"ds-day-letter\">ב</div><div class=\"ds-day-name\">שני</div></div>",
+      "css": ".ds-day-card { background: #fff; border-radius: 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 20px rgba(21,101,192,.14); border-top: 6px solid #29B6F6; gap: 10px; padding: 28px 16px; transition: transform 0.12s ease-out, box-shadow 0.12s ease-out; } .ds-day-card:hover { transform: translateY(-5px); box-shadow: 0 10px 32px rgba(21,101,192,.24); } .ds-day-letter { font-size: 60px; font-weight: 900; color: #0D47A1; line-height: 1; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; } .ds-day-name { font-size: 16px; color: #546E7A; font-weight: 700; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Field Navigator",
+    "overview": "Formula Road is a precision instrument, not an interface. It exists to answer one question per glance: who is next, how far, and how well is this route going to hit target. The design must disappear into the task — a sales agent running 40 client visits on a hot Tuesday in Hadera should never think about the UI.\n\nThe system is built for the field: tablet screens tilted in passenger seats, phones mounted on dashboards, quick thumb taps between stops. Typography is bold and unambiguous; color communicates state, not decoration; touch targets accommodate gloves, sunlight, and speed.\n\nThis is not a SaaS dashboard, not a CRM, not a consumer app. It is closer in spirit to a cockpit display than a website — RTL Hebrew text, dense data rows, a three-color state vocabulary, and a map that shares the screen with a ranked client list.",
+    "keyCharacteristics": [
+      "Bold, heavy type (weight 800–900) for all data labels — readable in direct sunlight",
+      "Semantic color vocabulary: blue for navigation/selection, green for success/walk-routes, red for errors/alerts, gold for targets",
+      "Flat canvas with disciplined shadow use: cards at rest are quiet; hover and selected states become visible",
+      "Touch targets 38px or taller on tablet; no small interactive areas",
+      "RTL-first layout — Hebrew is the primary reading direction"
+    ],
+    "rules": [
+      { "name": "The Single Voice Rule",    "body": "Command Blue and its three named shades are the only colors that carry interactive states. Tertiary colors communicate data categories — they never appear on buttons, chips, or interactive surfaces outside their defined semantic roles.", "section": "colors" },
+      { "name": "The Canvas Tint Rule",     "body": "The app background is never pure white. It carries a perceptible blue tint (#F0F5FF) that visually connects white cards to the same color family.", "section": "colors" },
+      { "name": "The Weight-as-Hierarchy Rule", "body": "All hierarchy within a type size step is carried by weight (800 vs 400), never by introducing a new font size.", "section": "typography" },
+      { "name": "The No-Display-Font Rule", "body": "No decorative or display typeface is ever introduced. The system sans is the only typeface.", "section": "typography" },
+      { "name": "The Flat-at-Rest Rule",    "body": "Client cards at default carry a barely perceptible shadow. Shadow increases only with state (hover, selected). All shadows are blue-tinted — never neutral grey.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use weight 800–900 for any data label the agent must read at a glance in the field.",
+      "Do keep touch targets 38px or taller on tablet, 28px or taller on phone.",
+      "Do tint shadows with Command Blue on cards — never use neutral grey shadows.",
+      "Do keep the Canvas background tinted (#F0F5FF).",
+      "Do use background-tint states to communicate card state — not side stripes.",
+      "Do keep Ice Teal (#00B894) exclusive to ICE/BDD channel clients.",
+      "Do add a @media(min-width:768px) block for any new screen."
+    ],
+    "donts": [
+      "Don't use border-left or border-right greater than 1px as a colored accent stripe on cards or list items.",
+      "Don't use SaaS cream or white-plus-teal enterprise dashboard aesthetics.",
+      "Don't use dark mode or neon accents.",
+      "Don't use gradient text (background-clip: text).",
+      "Don't use identical card grids.",
+      "Don't introduce a new color for a new state without documenting it in DESIGN.md.",
+      "Don't animate CSS layout properties — only transform, box-shadow, and opacity.",
+      "Don't render any UI text at less than 10px.",
+      "Don't use nested cards."
+    ]
+  }
+}
