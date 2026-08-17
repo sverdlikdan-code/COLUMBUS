@@ -344,7 +344,19 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
    list:100% width where the bigger icons are fine as-is. 2026-08-17. */
 @media(min-width:700px){
   body:not(.map-hidden) #list-pane{flex:0 0 48%;}
-  body:not(.map-hidden) .c-actions{flex-wrap:wrap;justify-content:flex-end;max-width:150px;}
+  body:not(.map-hidden) .c-actions{flex-wrap:wrap;justify-content:flex-end;max-width:180px;gap:4px;}
+  /* The ≥768px 44dp button sizing below was tuned for the full-width list-only
+     view. In split view it no longer fits 2 rows inside the wrap cap above and
+     spills to 3, ballooning row height until only ~3 clients fit on a tablet
+     screen (reported 2026-08-17). Shrink just for map-on split view — full-width
+     view keeps the bigger touch targets untouched. */
+  body:not(.map-hidden) .mekarer-btn,
+  body:not(.map-hidden) .ai-insight-btn,
+  body:not(.map-hidden) .waze-btn{min-height:30px;padding:4px 8px;font-size:11px;}
+  body:not(.map-hidden) .zikuy-btn{min-height:30px;padding:4px 7px;font-size:11px;}
+  body:not(.map-hidden) .excl-btn,
+  body:not(.map-hidden) .gps-edit-btn,
+  body:not(.map-hidden) .day-change-btn{width:32px;height:32px;font-size:15px;}
 }
 
 /* Map fully disabled — agent works list-only (persisted, overrides the wide-screen
@@ -560,11 +572,11 @@ body.gps-fs #map{height:100%!important;}
         </div>
         <button class="sort-btn" id="day-briefing-btn" onclick="openDayBriefing()" title="ניתוח יום — TOP 10 לקוחות" style="background:#5C6BC0;color:#fff;border-color:#3F51B5;font-weight:900">📊 ניתוח</button>
         <button class="sort-btn" id="gmaps-btn" onclick="openGoogleMaps()" title="פתח מסלול ב-Google Maps" style="background:#1a73e8;color:#fff;border-color:#0d47a1;font-weight:900;box-shadow:0 2px 8px rgba(26,115,232,.35)">🗺 Google</button>
+        <button class="sort-btn icon-only" id="map-toggle-btn" onclick="toggleMapHidden()" title="הסתר מפה">🗺❌</button>
         <div class="km-more-wrap">
           <button class="sort-btn km-more-btn" id="km-more-btn" onclick="toggleKmMore()" title="עוד פעולות">⋮</button>
           <div class="km-more-dd" id="km-more-dd">
             <button class="km-more-item" id="print-btn" onclick="printRoute();closeKmMore()">🖨️ הדפסת מסלול</button>
-            <button class="km-more-item" id="map-toggle-btn" onclick="toggleMapHidden();closeKmMore()">🗺❌ הסתר מפה</button>
             <hr class="km-more-sep">
             <button class="km-more-item export-btn" id="export-btn" onclick="exportXLSX();closeKmMore()">📥 שמור יום (XLS)</button>
             <button class="km-more-item export-btn" id="export-all-btn" onclick="exportAllDaysXLSX();closeKmMore()">📊 כל הימים (XLS)</button>
@@ -882,7 +894,7 @@ try{ st.mapHidden = localStorage.getItem('fr_map_hidden')!=='0'; }catch(_){ st.m
 function applyMapHidden(){
   document.body.classList.toggle('map-hidden', st.mapHidden);
   const btn=document.getElementById('map-toggle-btn');
-  if(btn) btn.textContent = st.mapHidden ? '🗺 הצג מפה' : '🗺❌ הסתר מפה';
+  if(btn){ btn.textContent = st.mapHidden ? '🗺' : '🗺❌'; btn.title = st.mapHidden ? 'הצג מפה' : 'הסתר מפה'; }
   if(st.mapHidden && st.tab==='map') setTab('list');
 }
 function toggleMapHidden(){

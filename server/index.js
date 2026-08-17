@@ -509,10 +509,10 @@ function saveSessions() {
 
 loadSessions();
 
-function createSession(agentCode, isManager) {
+function createSession(agentCode, isManager, viaPbi = false) {
   const token = crypto.randomUUID();
   const TTL = isManager ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
-  sessions.set(token, { agentCode, isManager, expiresAt: Date.now() + TTL });
+  sessions.set(token, { agentCode, isManager, viaPbi, expiresAt: Date.now() + TTL });
   // Prune expired sessions when map grows large
   if (sessions.size > 500) {
     const now = Date.now();
@@ -529,6 +529,40 @@ function requireAuth(req, res, next) {
   // Rolling session: extend expiry on every use
   const TTL = sess.isManager ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
   sess.expiresAt = Date.now() + TTL;
+
+  // Soft device fingerprint — warn, never block. IP alone is useless as a signal
+  // here: a field agent's IP legitimately rotates all day (cell tower handoffs
+  // between client visits), so IP-based blocking would either lock out real
+  // agents constantly or, if lenient, catch nothing. User-Agent is stable per
+  // device/browser and is the actual "is this a different device" signal — a
+  // forwarded invite link or shared agent code opened elsewhere shows up as a
+  // UA change. First authenticated request on a session sets the baseline;
+  // later mismatches log once and adopt the new UA as the baseline, so a
+  // genuine device switch (new phone) doesn't spam the log on every request after.
+  // Skipped entirely for viaPbi sessions — that door is deliberately wide open
+  // (anyone who clicks through the PBI report button, from whatever device is
+  // on hand in the office, is meant to get in with zero friction).
+  if (!sess.viaPbi) {
+    const ua = (req.headers['user-agent'] || '').substring(0, 120);
+    const ip = getRealIp(req);
+    if (!sess.ua) {
+      sess.ua = ua;
+      sess.ip = ip;
+    } else if (sess.ua !== ua) {
+      writeLog({
+        ts: new Date().toISOString(),
+        event: 'device_mismatch',
+        agentCode: sess.agentCode || null,
+        isManager: !!sess.isManager,
+        prevUa: sess.ua, newUa: ua,
+        prevIp: sess.ip || null, newIp: ip,
+        device: deviceType(ua),
+      });
+      sess.ua = ua;
+      sess.ip = ip;
+    }
+  }
+
   saveSessions();
   req.session = sess;
   next();
@@ -657,7 +691,7 @@ app.get('/i/:code', dataRateLimit, (req, res) => {
 app.get('/auth/pbi', dataRateLimit, mahsanIpGuard, (req, res) => {
   const cookies = req.headers.cookie || '';
   if (!/(?:^|;\s*)fr_ok=1/.test(cookies)) return res.status(401).json({ ok: false });
-  return res.json({ ok: true, token: createSession(null, true) });
+  return res.json({ ok: true, token: createSession(null, true, true) });
 });
 
 // POST /auth — unified login: manager password OR agent code → returns session token
@@ -699,6 +733,15 @@ app.get('/admin/logs', dataRateLimit, (req, res) => {
     const rows = log.map(e => {
       const d = new Date(e.ts);
       const local = d.toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem', hour12: false });
+      if (e.event === 'device_mismatch') {
+        return `<tr class="warn-row">
+          <td>${esc(local)}</td>
+          <td>⚠️ device_mismatch</td>
+          <td>${e.isManager ? '👑 מנהל' : ''} ${e.agentCode ? `(${esc(e.agentCode)})` : ''}</td>
+          <td>${esc(e.prevIp || '')} → ${esc(e.newIp || '')}</td>
+          <td title="${esc(e.prevUa || '')} → ${esc(e.newUa || '')}">${esc(e.device)} (UA שונה)</td>
+        </tr>`;
+      }
       return `<tr>
         <td>${esc(local)}</td>
         <td>${e.event === 'logout' ? '🚪' : '🟢'} ${esc(e.event)}</td>
@@ -710,7 +753,7 @@ app.get('/admin/logs', dataRateLimit, (req, res) => {
     return res.send(`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><title>Access Log</title>
       <style>body{font-family:Arial;padding:20px;direction:rtl}table{border-collapse:collapse;width:100%}
       th,td{border:1px solid #ddd;padding:8px;font-size:13px}th{background:#1A3F7C;color:#fff}
-      tr:nth-child(even){background:#f5f5f5}h2{color:#1A3F7C}</style></head>
+      tr:nth-child(even){background:#f5f5f5}tr.warn-row{background:#FFF3E0}h2{color:#1A3F7C}</style></head>
       <body><h2>Formula Road — Access Log (${log.length} entries)</h2>
       <table><thead><tr><th>זמן</th><th>אירוע</th><th>משתמש</th><th>IP</th><th>מכשיר</th></tr></thead>
       <tbody>${rows}</tbody></table></body></html>`);
