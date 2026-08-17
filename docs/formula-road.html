@@ -250,6 +250,51 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
   #map-pane{display:block!important;flex:1;}
 }
 
+/* Tablet visual scaling ≥ 768 px — content was phone-density, not tablet-density */
+@media(min-width:768px){
+  /* Header */
+  .hdr{padding:12px 20px;}
+  .hdr-logo{height:46px;}
+  .hdr-title{font-size:15px;letter-spacing:4px;}
+  .hdr-back{font-size:15px;padding:8px 18px;}
+
+  /* List pane — room to breathe */
+  #list-pane{padding:10px 14px 28px;}
+
+  /* Client card — scale up from phone density */
+  .client-card{padding:9px 14px 9px 10px;border-radius:10px;margin-bottom:4px;gap:8px;}
+  .c-num-wrap{min-width:38px;}
+  .c-num{width:30px;height:30px;font-size:14px;}
+  .c-name{font-size:15px;}
+  .c-sub{font-size:12px;margin-top:2px;}
+  .c-id-side{font-size:9px;padding:3px 7px;}
+  .ice-badge{font-size:11px;padding:2px 7px;}
+  .crown-badge{font-size:15px;}
+
+  /* Action buttons — 44 dp touch target minimum */
+  .mekarer-btn,.zikuy-btn,.ai-insight-btn,.waze-btn{
+    font-size:13px;min-height:38px;padding:6px 12px;border-radius:9px;
+  }
+  .excl-btn,.gps-edit-btn,.day-change-btn{width:42px;height:42px;font-size:18px;}
+  .no-gps-badge{font-size:13px;padding:6px 14px;border-radius:9px;}
+
+  /* Toolbar */
+  .km-bar{padding:9px 16px 8px;}
+  .km-val{font-size:18px;}
+  .km-lbl,.km-unit{font-size:11px;}
+  .sort-btn{height:40px;font-size:13px;padding:8px 16px;}
+  .day-sw-btn{width:50px;height:50px;font-size:22px;border-radius:14px;}
+  .city-chip{font-size:13px;padding:7px 15px;border-radius:22px;}
+  .chip-count{font-size:11px;padding:2px 7px;}
+  .fr-ice-btn,.fr-dormant-btn,.fr-sadran-chip{font-size:13px;padding:5px 13px;}
+
+  /* Day picker — 5 narrow columns looks stretched on tablet, 3 feels native */
+  .days-grid{grid-template-columns:repeat(3,minmax(130px,210px));justify-content:center;gap:20px;}
+  .day-card{border-radius:28px;padding:28px 16px;}
+  .day-body{padding:28px;}
+  .day-title{font-size:32px;margin-bottom:28px;}
+}
+
 /* Map fully disabled — agent works list-only (persisted, overrides the wide-screen
    split view too, not just the narrow-screen tab toggle). */
 body.map-hidden #map-pane{display:none!important;}
