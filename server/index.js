@@ -642,12 +642,17 @@ function verifyInvite(token) {
 }
 
 function _inviteRedirect(payload, res) {
-  const sessionToken = createSession(payload.code, false);
+  // Manager invites (payload.isManager) create a real manager session — full
+  // access, not scoped to any single agentCode — same as the /auth/pbi path.
+  // payload.code for a manager invite is whatever placeholder was on their row
+  // (not a real routable agent), so it's never passed to createSession here.
+  const isManager = !!payload.isManager;
+  const sessionToken = createSession(isManager ? null : payload.code, isManager);
   const name = encodeURIComponent(payload.name || '');
   const code = encodeURIComponent(payload.code || '');
   const inv  = encodeURIComponent(sessionToken);
   res.setHeader('Set-Cookie', 'fr_ok=1; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000');
-  return res.redirect(302, `https://api.sverdlik-apps.site/formula-road?_inv=${inv}&_ac=${code}&_an=${name}`);
+  return res.redirect(302, `https://api.sverdlik-apps.site/formula-road?_inv=${inv}&_ac=${code}&_an=${name}&_im=${isManager ? '1' : '0'}`);
 }
 const _inviteExpiredPage = `<!DOCTYPE html><html><head><meta charset=utf-8><title>קישור לא בתוקף</title></head>
 <body style="font-family:Arial;text-align:center;padding:60px;background:#f5f5f5">
@@ -673,10 +678,10 @@ function saveShortInvites(map) {
   fs.mkdirSync(path.dirname(SHORT_INVITE_FILE), { recursive: true });
   fs.writeFileSync(SHORT_INVITE_FILE, JSON.stringify(map, null, 2), 'utf8');
 }
-function makeShortInvite(code, name, days = 30) {
+function makeShortInvite(code, name, days = 30, isManager = false) {
   const map = loadShortInvites();
   const short = crypto.randomBytes(5).toString('base64url'); // ~7 chars, URL-safe
-  map[short] = { code, name, exp: Date.now() + days * 24 * 60 * 60 * 1000 };
+  map[short] = { code, name, exp: Date.now() + days * 24 * 60 * 60 * 1000, isManager };
   saveShortInvites(map);
   return `https://api.sverdlik-apps.site/i/${short}`;
 }

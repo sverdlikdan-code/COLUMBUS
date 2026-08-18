@@ -1196,10 +1196,15 @@ async function initLogin(){
   let _fromInvite = false;
   {
     const _up = new URLSearchParams(window.location.search);
-    const _inv = _up.get('_inv'), _ac = _up.get('_ac'), _an = _up.get('_an');
+    const _inv = _up.get('_inv'), _ac = _up.get('_ac'), _an = _up.get('_an'), _im = _up.get('_im') === '1';
     if (_inv && _ac) {
       try {
-        localStorage.setItem('frAgent', JSON.stringify({isManager:false, code:_ac, name:_an||''}));
+        // Manager invites (_im=1) get a real manager identity — code:'mgr' matches
+        // the /auth/pbi manager flow exactly, so the same downstream branch (picker,
+        // last-route-agent restore) applies regardless of which door they came in.
+        localStorage.setItem('frAgent', JSON.stringify(_im
+          ? {isManager:true, code:'mgr', name:_an||'מנהל'}
+          : {isManager:false, code:_ac, name:_an||''}));
         localStorage.setItem('frToken', _inv);
         _fromInvite = true;
       } catch(_){}
