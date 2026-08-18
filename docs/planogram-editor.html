@@ -4535,6 +4535,14 @@ window._currentSection = 'kapua';
   };
 })();
 
+// ── Deep link — e.g. ?open=dagim-order — skip splash click, land straight on
+// the הזמנת דגים order page (used for one-click links sent by email/WhatsApp)
+window._deepLinkOpen = new URLSearchParams(location.search).get('open');
+if (window._deepLinkOpen) {
+  const dlSec = window._deepLinkOpen === 'dagim-order' ? 'dagim' : window._deepLinkOpen;
+  splashEnter(dlSec);
+}
+
 function splashEnter(sec) {
   if (!localStorage.getItem('frToken')) {
     window._pendingSplashSec = sec || null;
@@ -4562,6 +4570,10 @@ function splashEnter(sec) {
   if (sec) {
     const tab = document.querySelector(`.tab[data-sec="${sec}"]`);
     if (tab) switchTab(sec, tab);
+  }
+  if (window._deepLinkOpen === 'dagim-order') {
+    window._deepLinkOpen = null; // consume once — don't re-trigger on later splashEnter calls (e.g. after login)
+    toggleOrderPage();
   }
 }
 
