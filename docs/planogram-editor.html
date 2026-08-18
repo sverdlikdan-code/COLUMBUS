@@ -4795,25 +4795,34 @@ window.addEventListener('afterprint', () => {
     const last6Idx = nonCurrentIdx.slice(-6);
     const first3Idx = nonCurrentIdx.slice(0, 3);
     if (last6Idx.length === 6) {
-      const group = (idxs, color) => {
+      const group = (idxs, tickColor, isMax) => {
         const sum = idxs.reduce((s, i) => s + (months[i].mkr || 0), 0);
         const x1 = barX[idxs[0]];
         const x2 = barX[idxs[idxs.length - 1]] + barW;
+        const xMid = ((x1 + x2) / 2).toFixed(1);
         const y = 15, tick = 4;
-        return `<g opacity="0.6">
-          <path d="M${x1.toFixed(1)},${y+tick} L${x1.toFixed(1)},${y} L${x2.toFixed(1)},${y} L${x2.toFixed(1)},${y+tick}" fill="none" stroke="${color}" stroke-width="1"/>
-          <text x="${((x1+x2)/2).toFixed(1)}" y="${y-2}" text-anchor="middle" fill="${color}" font-size="7.5" font-weight="600">${sum}</text>
+        const label = (isMax ? '⭐' : '') + sum;
+        return `<line x1="${xMid}" y1="${(y+tick).toFixed(1)}" x2="${xMid}" y2="${(PAD_T+chartH).toFixed(1)}" stroke="${tickColor}" stroke-width="0.75" stroke-dasharray="1,3" opacity="0.2"/>
+        <g opacity="0.85">
+          <path d="M${x1.toFixed(1)},${y+tick} L${x1.toFixed(1)},${y} L${x2.toFixed(1)},${y} L${x2.toFixed(1)},${y+tick}" fill="none" stroke="${tickColor}" stroke-width="1"/>
+          <text x="${xMid}" y="${y-4}" text-anchor="middle" fill="#aac8ff" font-size="12" font-weight="800">${label}</text>
         </g>`;
       };
       const prev3Sum = last6Idx.slice(0, 3).reduce((s, i) => s + (months[i].mkr || 0), 0);
       const recent3Sum = last6Idx.slice(3, 6).reduce((s, i) => s + (months[i].mkr || 0), 0);
       const trendColor = recent3Sum >= prev3Sum ? '#2e7d32' : '#c62828';
-      brackets = group(last6Idx.slice(0, 3), '#7a8699') + group(last6Idx.slice(3, 6), trendColor);
 
-      if (first3Idx.length === 3 && first3Idx[2] < last6Idx[0]) {
-        const yoyPriorSum = first3Idx.reduce((s, i) => s + (months[i].mkr || 0), 0);
+      let yoyPriorSum = null;
+      const hasYoy = first3Idx.length === 3 && first3Idx[2] < last6Idx[0];
+      if (hasYoy) yoyPriorSum = first3Idx.reduce((s, i) => s + (months[i].mkr || 0), 0);
+      const maxSum = Math.max(prev3Sum, recent3Sum, ...(hasYoy ? [yoyPriorSum] : []));
+
+      brackets = group(last6Idx.slice(0, 3), '#7a8699', prev3Sum === maxSum)
+               + group(last6Idx.slice(3, 6), trendColor, recent3Sum === maxSum);
+
+      if (hasYoy) {
         const yoyColor = recent3Sum >= yoyPriorSum ? '#2e7d32' : '#c62828';
-        brackets += group(first3Idx, yoyColor);
+        brackets += group(first3Idx, yoyColor, yoyPriorSum === maxSum);
       }
     }
 
