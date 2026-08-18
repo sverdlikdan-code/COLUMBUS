@@ -2892,11 +2892,26 @@ async function _fetchClientAI(lang) {
     if (familyDeviation && familyDeviation.length) {
       devTbl = `<div style="margin:10px 0 4px;font-size:13px;color:#4A148C;font-weight:700">חלוקת משפחות מוצר — סניף מול ${isChain ? 'רשת' : 'קטגוריית'} ${chainName}</div>`;
       devTbl += `<table class="ai-families-tbl"><thead><tr><th>משפחת מוצר</th><th>% מהרשת</th><th>% מהסניף</th><th>אינדקס</th></tr></thead><tbody>`;
-      for (const d of familyDeviation) {
+      familyDeviation.forEach((d, idx) => {
         const idxColor = d.index === null ? '#999' : (d.index < 0.7 ? '#C62828' : d.index > 1.2 ? '#2E7D32' : '#666');
+        const hasSub = d.isRest && d.subFamilies && d.subFamilies.length > 1;
+        const groupId = `fgDev${idx}`;
         const rowStyle = d.isTotal ? 'font-weight:700;border-top:2px solid #CE93D8' : (d.isRest ? 'color:#888;font-style:italic' : '');
-        devTbl += `<tr style="${rowStyle}"><td>${d.family}</td><td style="text-align:left">${d.chainSharePct}%</td><td style="text-align:left">${d.storeSharePct}%</td><td style="text-align:left;color:${idxColor};font-weight:700">${d.index !== null ? d.index.toFixed(2) : '—'}</td></tr>`;
-      }
+        const rowClass = hasSub ? 'fam-row-expandable' : '';
+        devTbl += `<tr class="${rowClass}" style="${rowStyle}"${hasSub ? ` onclick="toggleFamGroup('${groupId}')"` : ''}>`
+          + `<td>${hasSub ? `<span class="fam-caret" id="car-${groupId}">▸</span> ` : ''}${d.family}</td>`
+          + `<td style="text-align:left">${d.chainSharePct}%</td><td style="text-align:left">${d.storeSharePct}%</td>`
+          + `<td style="text-align:left;color:${idxColor};font-weight:700">${d.index !== null ? d.index.toFixed(2) : '—'}</td></tr>`;
+        if (hasSub) {
+          for (const sf of d.subFamilies) {
+            const sIdxColor = sf.index === null ? '#999' : (sf.index < 0.7 ? '#C62828' : sf.index > 1.2 ? '#2E7D32' : '#666');
+            devTbl += `<tr class="fam-sub-row" data-group="${groupId}" style="display:none">`
+              + `<td style="padding-inline-start:24px;color:#777;font-weight:400;font-style:normal">${esc(sf.family)}</td>`
+              + `<td style="text-align:left;color:#777">${sf.chainSharePct}%</td><td style="text-align:left;color:#777">${sf.storeSharePct}%</td>`
+              + `<td style="text-align:left;color:${sIdxColor};font-weight:700">${sf.index !== null ? sf.index.toFixed(2) : '—'}</td></tr>`;
+          }
+        }
+      });
       devTbl += '</tbody></table>';
     }
 

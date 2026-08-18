@@ -4700,17 +4700,34 @@ CALCULATETABLE(
 
       // "Rest of families" + explicit 100% total row — without this the shown top-7
       // percentages silently add up to less than 100% and look like the whole picture.
+      // subFamilies on this row is the same per-family breakdown one level down
+      // (everything past the top 7), for the expand-on-click drilldown — same
+      // mechanism as the main families table above.
       const restChainV = famEntries.slice(7).reduce((s, [, v]) => s + v, 0);
       const restStoreV = Object.entries(storeFamTotal).reduce((s, [fam, v]) => topFamSet.has(fam) ? s : s + v, 0);
       if (restChainV > 0 || restStoreV > 0) {
         const chainShare = shareOf(restChainV, chainFamAll);
         const storeShare = shareOf(restStoreV, storeFamAll);
+        const restSubFamilies = famEntries.slice(7)
+          .map(([fam, chainV]) => {
+            const fChainShare = shareOf(chainV, chainFamAll);
+            const storeV = storeFamTotal[fam] || 0;
+            const fStoreShare = shareOf(storeV, storeFamAll);
+            return {
+              family: fixBiDi(fam || ''),
+              chainSharePct: Math.round(fChainShare * 1000) / 10,
+              storeSharePct: Math.round(fStoreShare * 1000) / 10,
+              index: fChainShare > 0 ? Math.round((fStoreShare / fChainShare) * 100) / 100 : null,
+            };
+          })
+          .sort((a, b) => b.chainSharePct - a.chainSharePct);
         familyDeviation.push({
           family: 'שאר המשפחות',
           chainSharePct: Math.round(chainShare * 1000) / 10,
           storeSharePct: Math.round(storeShare * 1000) / 10,
           index: chainShare > 0 ? Math.round((storeShare / chainShare) * 100) / 100 : null,
           isRest: true,
+          subFamilies: restSubFamilies,
         });
       }
       familyDeviation.push({ family: 'סה"כ', chainSharePct: 100, storeSharePct: 100, index: null, isTotal: true });
