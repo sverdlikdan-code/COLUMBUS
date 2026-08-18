@@ -212,21 +212,22 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 /* Day Briefing Modal (TOP10 clients + dormant list) */
 #day-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px;}
 #day-modal.open{display:flex;}
-#day-modal-box{background:#fff;border-radius:16px;width:100%;max-width:520px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.35);}
+#day-modal-box{background:#fff;border-radius:16px;width:100%;max-width:660px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.35);}
 #day-modal-head{background:#3F51B5;color:#fff;padding:14px 18px 12px;display:flex;align-items:center;gap:10px;}
 #day-modal-head .day-title{flex:1;font-size:15px;font-weight:800;}
 #day-modal-head .day-close{font-size:20px;cursor:pointer;opacity:.8;padding:0 4px;}
 #day-modal-head .day-close:hover{opacity:1;}
 #day-modal-body{overflow-y:auto;padding:14px 16px;flex:1;}
 .day-sub{font-size:11px;color:var(--mid);margin-bottom:10px;}
-.day-top10{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px;}
+.day-tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.day-top10{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px;white-space:nowrap;}
 .day-top10 th{background:#E8EAF6;color:#3F51B5;padding:5px 7px;text-align:right;font-weight:800;border-bottom:2px solid #9FA8DA;}
 .day-top10 td{padding:4px 7px;border-bottom:1px solid #E8EAF6;color:#333;}
 .day-top10 tr:last-child td{border-bottom:none;}
 .day-top10 .warn{color:#C62828;font-weight:700;}
-.day-dormant-head{display:flex;align-items:center;justify-content:space-between;background:#FFEBEE;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;color:#C62828;margin-bottom:2px;cursor:pointer;}
-.day-dormant-head .fam-caret{color:#C62828;}
-.day-dormant{background:#FFEBEE;border-radius:0 0 10px 10px;padding:8px 12px 10px;font-size:12px;color:#C62828;margin-bottom:14px;}
+.day-total-row td{font-weight:800;background:#F8F4FF;border-top:2px solid #CE93D8;}
+.day-section-head{font-size:12px;font-weight:800;color:#3F51B5;margin:14px 0 6px;padding-top:10px;border-top:1px solid #E8EAF6;}
+.day-dormant-tbl{margin-bottom:14px;}
 .day-analysis{background:#EEF0FB;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.7;color:#333;white-space:pre-wrap;direction:auto;}
 .day-company{margin-bottom:20px;}
 .day-company:last-child{margin-bottom:0;}
@@ -644,7 +645,6 @@ body.gps-fs #map{height:100%!important;}
     </div>
     <div class="ai-lang-bar">
       <button class="ai-lang-btn active" data-lang="he" onclick="switchAiLang(this,'he')">עברית</button>
-      <button class="ai-lang-btn" data-lang="uk" onclick="switchAiLang(this,'uk')">Українська</button>
       <button class="ai-lang-btn" data-lang="ru" onclick="switchAiLang(this,'ru')">Русский</button>
     </div>
     <div id="ai-modal-body"><div class="ai-loading">⏳ טוען...</div></div>
@@ -661,7 +661,6 @@ body.gps-fs #map{height:100%!important;}
     </div>
     <div class="ai-lang-bar">
       <button class="ai-lang-btn day-lang-btn active" data-lang="he" onclick="switchDayLang(this,'he')">עברית</button>
-      <button class="ai-lang-btn day-lang-btn" data-lang="uk" onclick="switchDayLang(this,'uk')">Українська</button>
       <button class="ai-lang-btn day-lang-btn" data-lang="ru" onclick="switchDayLang(this,'ru')">Русский</button>
     </div>
     <div id="day-modal-body"><div class="ai-loading">⏳ טוען...</div></div>
@@ -2975,15 +2974,26 @@ function _dayStars(value, max) {
 
 let _dayRecStore = {};
 
+// Pace-aware target color: red <70%, orange 70-99%, green ≥100% — same bands the
+// 🚀/😕 INDICATION icon (from the model's own measure) uses more precisely.
+function _dayPctColor(pct){
+  return pct === null || pct === undefined ? '#999' : (pct >= 100 ? '#2E7D32' : pct >= 70 ? '#E65100' : '#C62828');
+}
+
 function _renderDayCompany(key, label, data) {
-  if (!data || !data.top10 || !data.top10.length) {
+  if (!data || !data.clients || !data.clients.length) {
     return `<div class="day-company"><div class="day-company-head"><span class="day-company-name">${esc(label)}</span></div><div class="day-sub">אין נתונים בתקופה זו</div></div>`;
   }
-  const maxTotal = data.top10[0].total || 1;
   const sub = `<div class="day-sub">ממוצע לקוח בחברה: ₪${(data.companyAvg||0).toLocaleString()}</div>`;
 
-  let tbl = `<table class="day-top10"><thead><tr><th>#</th><th>לקוח</th><th>דירוג</th><th>YoY</th></tr></thead><tbody>`;
-  data.top10.forEach((c, i) => {
+  // Every scheduled client for the day, not a top slice — כתר still marks the top
+  // 3 by sales (that alone answers "who matters most today"), ❄️ flags ICE clients
+  // (משטח[HEVRA]), 💪 flags a client with our own סדרן on-site (same badge/meaning
+  // as TERRITORY's map marker). יעד/מכר/% + INDICATION (🚀/😕, model's own pacing
+  // measure) replace the old דירוג star column — stars ranked within an artificial
+  // top-10, this is the client's own number against its own target instead.
+  let tbl = `<div class="day-tbl-wrap"><table class="day-top10"><thead><tr><th>#</th><th>לקוח</th><th>יעד</th><th>מכר</th><th>%</th><th></th><th>YoY</th></tr></thead><tbody>`;
+  data.clients.forEach((c, i) => {
     // "+12%"/"-4%" is a plain ASCII sign+digit run — inside an RTL row the browser's
     // bidi algorithm reorders the weak +/- sign to the far side of the digits
     // ("12%+"), same class of bug as the date-range bidi fix elsewhere in this file.
@@ -2993,34 +3003,52 @@ function _renderDayCompany(key, label, data) {
     const yoyStr = `<span dir="ltr" style="unicode-bidi:isolate;color:${yoyColor};font-weight:800">${yoyRaw}</span>`;
     const warn = c.daysSince && c.daysSince > 21;
     const crown = c.crown ? '👑 ' : '';
-    // Current-month target achievement — always the calendar month in progress
-    // (same מ שטח[יעד $] + monthlySales already cached server-side), matching the
-    // משטח+יעד PBI page. Skipped when the client has no target set at all.
-    const targetColor = c.pctTarget === null ? '#999' : (c.pctTarget >= 100 ? '#2E7D32' : c.pctTarget >= 70 ? '#E65100' : '#C62828');
-    const targetBadge = c.pctTarget !== null
-      ? ` <span style="color:${targetColor};font-weight:700">🎯<span dir="ltr" style="unicode-bidi:isolate">${c.pctTarget}%</span></span>`
-      : '';
-    tbl += `<tr><td>${i+1}</td><td>${crown}${esc(c.name)}${targetBadge}${warn?` <span class="warn">⚠️${c.daysSince}d</span>`:''}</td><td class="day-stars">${_dayStars(c.total, maxTotal)}</td><td>${yoyStr}</td></tr>`;
+    const iceFlag = c.isIce ? '❄️ ' : '';
+    const sadranFlag = c.sadran ? ' 💪' : '';
+    const pctColor = _dayPctColor(c.pctTarget);
+    const pctStr = c.pctTarget !== null
+      ? `<span dir="ltr" style="unicode-bidi:isolate;color:${pctColor};font-weight:800">${c.pctTarget}%</span>`
+      : '—';
+    tbl += `<tr>
+      <td>${i+1}</td>
+      <td>${iceFlag}${crown}${esc(c.name)}${sadranFlag}${warn?` <span class="warn">⚠️${c.daysSince}d</span>`:''}</td>
+      <td style="text-align:left">${c.target ? '₪'+c.target.toLocaleString() : '—'}</td>
+      <td style="text-align:left">₪${c.monthlySales.toLocaleString()}</td>
+      <td style="text-align:left">${pctStr}</td>
+      <td>${c.indication || ''}</td>
+      <td>${yoyStr}</td>
+    </tr>`;
   });
-  tbl += '</tbody></table>';
+  if (data.totalTarget > 0) {
+    const totalColor = _dayPctColor(data.totalPct);
+    tbl += `<tr class="day-total-row">
+      <td colspan="2">סה"כ יום</td>
+      <td style="text-align:left">₪${data.totalTarget.toLocaleString()}</td>
+      <td style="text-align:left">₪${data.totalSales.toLocaleString()}</td>
+      <td style="text-align:left" colspan="3"><span dir="ltr" style="unicode-bidi:isolate;color:${totalColor}">${data.totalPct}%</span></td>
+    </tr>`;
+  }
+  tbl += '</tbody></table></div>';
 
-  // Collapsed by default (clock icon + count) — a wall of names was the least
-  // actionable part of the screen for the space it took. Click to reveal.
+  // Open by default, tabular — same columns as the main list, not a paragraph of
+  // names. This is the day's own clients filtered to daysSince>21, so no separate
+  // custId lookup needed for the ❄️/💪 flags.
   const dormantHtml = (data.dormant && data.dormant.length)
-    ? `<div class="day-dormant-head" onclick="const el=this.nextElementSibling;const open=el.style.display!=='block';el.style.display=open?'block':'none';this.querySelector('.fam-caret').textContent=open?'▾':'▸';">
-        <span>⏰ ${data.dormant.length} לא הזמינו מעל 3 שבועות</span><span class="fam-caret">▸</span>
-      </div>
-      <div class="day-dormant" style="display:none">${data.dormant.map(c=>`${esc(c.name)} (${c.daysSince}d)`).join(', ')}</div>`
+    ? `<div class="day-section-head">⏰ לא הזמינו מעל 3 שבועות (${data.dormant.length})</div>
+      <div class="day-tbl-wrap"><table class="day-top10 day-dormant-tbl"><thead><tr><th>לקוח</th><th>ימים</th></tr></thead><tbody>
+        ${data.dormant.map(c=>`<tr><td>${c.isIce?'❄️ ':''}${esc(c.name)}${c.sadran?' 💪':''}</td><td style="text-align:left;color:#C62828;font-weight:700">${c.daysSince}d</td></tr>`).join('')}
+      </tbody></table></div>`
     : '';
 
   // One insight per row instead of wrapped chips — each links straight into that
   // client's own AI analysis when we can resolve their custId (matched against
-  // this company's top10/dormant lists); plain text otherwise rather than a
-  // broken/guessed link.
+  // this company's client/dormant lists); plain text otherwise rather than a
+  // broken/guessed link. Wrapped with its own heading so it doesn't visually
+  // bleed into the dormant table above it.
   const highlightsHtml = (data.highlights || []).length
-    ? data.highlights.map(h => {
+    ? `<div class="day-section-head">💡 תובנות</div>` + data.highlights.map(h => {
         const growth = h.type === 'growth';
-        const match = [...(data.top10||[]), ...(data.dormant||[])].find(c => c.name === h.client);
+        const match = [...(data.clients||[]), ...(data.dormant||[])].find(c => c.name === h.client);
         const body = `${growth?'📈':'⚠️'} <b>${esc(h.client||'')}</b> ${esc(h.note||'')}`;
         if (!match) return `<div class="day-insight-row ${growth?'growth':'risk'}">${body}</div>`;
         return `<div class="day-insight-row ${growth?'growth':'risk'}" data-id="${match.custId}" data-name="${esc(match.name).replace(/"/g,'&quot;')}" onclick="openClientAI(event,this.dataset.id,this.dataset.name)">

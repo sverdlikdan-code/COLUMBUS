@@ -4025,8 +4025,15 @@ ROW(
     return { daxCur, daxLastOrder, daxPrev, daxAvg };
   };
 
-  // Per-company: rank TOP 10 by current sales, flag the top 3 as 👑 (crown — real
-  // money moves there, not on marginal accounts), list clients dormant >21 days.
+  // Fraction of this month's working days elapsed so far — fetched from the
+  // model's own [ימי עבודה %] measure (MEASURES TABLE.tmdl) rather than
+  // reimplemented in JS, so the Fri/Sat + holiday-list logic never drifts out of
+  // sync with the source of truth. Assigned before buildCompanyResult runs below.
+  let workDaysPct = 0;
+
+  // Per company: every scheduled client for this agent/day (not just a top slice),
+  // flag the top 3 by current sales as 👑 (crown — real money moves there), list
+  // clients dormant >21 days.
   const buildCompanyResult = async (familyList) => {
     const { daxCur, daxLastOrder, daxPrev, daxAvg } = buildQueries(familyList);
     const [curRows, prevRows, avgRows, lastOrderRows] = await Promise.all([
@@ -4054,20 +4061,39 @@ ROW(
       const avgBasket = s.orderDays > 0 ? Math.round(s.total / s.orderDays) : 0;
       const lastOrder = lastOrderMap[id] || null;
       const daysSince = lastOrder ? Math.round((Date.now() - new Date(lastOrder)) / 86400000) : null;
-      // Target achievement — same מ שטח[יעד $] + current-calendar-month sales already
-      // cached in pbiCache at startup (loadPBICache), not a fresh DAX call. Per user
-      // request: always current month, matching the משטח+יעד PBI page it mirrors.
+      // Target achievement — same משטח[יעד $] + current-calendar-month sales already
+      // cached in pbiCache at startup (loadPBICache), not a fresh DAX call. Mirrors
+      // the משטח+יעד PBI page (always current month).
       const target = c.target || 0;
-      const pctTarget = target > 0 ? Math.round(((c.monthlySales || 0) / target) * 100) : null;
-      return { custId: id, name: c.custName || id, city: c.city || '', total: s.total, prevTotal, yoy, orderDays: s.orderDays, skus: s.skus, avgBasket, daysSince, sadran: c.sadran || '', target, monthlySales: c.monthlySales || 0, pctTarget };
+      const monthlySales = c.monthlySales || 0;
+      const pctTarget = target > 0 ? Math.round((monthlySales / target) * 100) : null;
+      // Same pacing logic as the model's own INDICATION measure: behind if actual
+      // achievement trails the fraction of working days elapsed by >5pp — a client
+      // at 33% of target on day 10 of a 30-working-day month is ON PACE, not behind.
+      const indication = target > 0
+        ? ((monthlySales / target) - workDaysPct < -0.05 ? '😕' : '🚀')
+        : null;
+      return {
+        custId: id, name: c.custName || id, city: c.city || '', total: s.total, prevTotal, yoy,
+        orderDays: s.orderDays, skus: s.skus, avgBasket, daysSince,
+        sadran: c.sadran || '', isIce: c.hevra === 'ICE',
+        target, monthlySales, pctTarget, indication,
+      };
     });
     enriched.sort((a, b) => b.total - a.total);
-    const top10 = enriched.slice(0, 10).map((c, i) => ({ ...c, crown: i < 3 }));
-    const dormant = enriched.filter(c => c.daysSince !== null && c.daysSince > 21 && !top10.find(t => t.custId === c.custId));
-    return { top10, dormant: dormant.slice(0, 5), companyAvg };
+    const clients = enriched.map((c, i) => ({ ...c, crown: i < 3 }));
+    const dormant = enriched.filter(c => c.daysSince !== null && c.daysSince > 21);
+    const totalTarget = enriched.reduce((s, c) => s + c.target, 0);
+    const totalSales = enriched.reduce((s, c) => s + c.monthlySales, 0);
+    const totalPct = totalTarget > 0 ? Math.round((totalSales / totalTarget) * 100) : null;
+    return { clients, dormant, companyAvg, totalTarget, totalSales, totalPct };
   };
 
-  const famRows = await executeDax(daxFamCompany);
+  const [famRows, workDaysRows] = await Promise.all([
+    executeDax(daxFamCompany),
+    executeDax('EVALUATE ROW("pct", [ימי עבודה %])'),
+  ]);
+  workDaysPct = parseFloat(workDaysRows?.[0]?.['[pct]']) || 0;
   const formulaFamilies = [], iceMishFamilies = [];
     famRows.forEach(r => {
       const fam = r['ALL_PARTS[תאור משפחת מוצר]'] || r['[תאור משפחת מוצר]'];
@@ -4085,9 +4111,13 @@ ROW(
     const monthStr = `${months[0].month}/${months[0].year} — ${curEnd.month}/${curEnd.year}`;
     const prevStr  = `${prevMonths[0].month}/${prevMonths[0].year} — ${prevEnd.month}/${prevEnd.year}`;
 
+    // Gemini context stays capped to the top 10 by sales (token budget, focused
+    // insights) even though result.clients itself now holds the whole day's route
+    // for the frontend table — the AI doesn't need all 20+ clients to spot what
+    // actually moves money.
     const buildContext = (label, result) => {
-      if (!result.top10.length) return `${label}: אין נתונים בתקופה זו.`;
-      const lines = result.top10.map((c, i) => {
+      if (!result.clients.length) return `${label}: אין נתונים בתקופה זו.`;
+      const lines = result.clients.slice(0, 10).map((c, i) => {
         const vsAvg = result.companyAvg ? ` (${c.total >= result.companyAvg ? '+' : ''}${Math.round((c.total / result.companyAvg - 1) * 100)}% מממוצע)` : '';
         const yoyStr = c.yoy !== null ? ` | YoY:${c.yoy >= 0 ? '+' : ''}${c.yoy}%` : ' | YoY:—';
         const basketStr = c.avgBasket ? ` | סל:₪${c.avgBasket.toLocaleString()}` : '';
@@ -4097,7 +4127,7 @@ ROW(
         return `${i + 1}. ${c.name}${crownFlag}${sadranFlag} (${c.city}): ₪${c.total.toLocaleString()}${vsAvg}${yoyStr}${basketStr}${dormFlag}`;
       }).join('\n');
       const dormantLines = result.dormant.length
-        ? '\nלא הזמינו >3 שבועות: ' + result.dormant.map(c => `${c.name}(${c.daysSince}d)`).join(', ')
+        ? '\nלא הזמינו >3 שבועות: ' + result.dormant.slice(0, 5).map(c => `${c.name}(${c.daysSince}d)`).join(', ')
         : '';
       return `${label} — ממוצע לקוח: ₪${result.companyAvg.toLocaleString()}\n${lines}${dormantLines}`;
     };
