@@ -4683,6 +4683,43 @@ window.addEventListener('afterprint', () => {
     document.getElementById('month-chart-panel').classList.remove('open');
   }
 
+  // API omits months with zero sales (SUMMARIZECOLUMNS drops empty groups) — rebuild the full
+  // contiguous window (matches server's `for i=15..0` range, 16 months) so no month silently vanishes.
+  function _fillMonthGaps(months, span) {
+    span = span || 16;
+    const now = new Date();
+    const map = {};
+    (months || []).forEach(m => { map[m.year + '-' + m.month] = m.mkr; });
+    const full = [];
+    for (let i = span - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const y = d.getFullYear(), mo = d.getMonth() + 1;
+      full.push({ year: y, month: mo, mkr: map[y + '-' + mo] || 0 });
+    }
+    return full;
+  }
+
+  // YoY: last 3 closed months vs the same 3 calendar months a year earlier
+  window._computeYoY = function _computeYoY(months) {
+    if (!months || months.length < 16) return null;
+    const map = {};
+    months.forEach(m => { map[m.year + '-' + m.month] = m.mkr; });
+    const now = new Date();
+    const base = new Date(now.getFullYear(), now.getMonth(), 1);
+    let thisYear = 0, lastYear = 0;
+    for (let i = 1; i <= 3; i++) {
+      const d = new Date(base.getFullYear(), base.getMonth() - i, 1);
+      const dPrev = new Date(base.getFullYear() - 1, base.getMonth() - i, 1);
+      const key = d.getFullYear() + '-' + (d.getMonth() + 1);
+      const keyPrev = dPrev.getFullYear() + '-' + (dPrev.getMonth() + 1);
+      if (map[key] === undefined || map[keyPrev] === undefined) return null;
+      thisYear += map[key] || 0;
+      lastYear += map[keyPrev] || 0;
+    }
+    if (!lastYear) return null;
+    return { thisYear, lastYear, pct: Math.round((thisYear / lastYear - 1) * 100) };
+  }
+
   // Compute trend: last 3 complete months vs the 3 before them (exclude current incomplete month)
   window._computeTrend = function _computeTrend(months) {
     if (!months || months.length < 6) return null;
@@ -4698,6 +4735,9 @@ window.addEventListener('afterprint', () => {
 
   window._trendHtml = function _trendHtml(pct) {
     if (pct === null) return '<span style="color:#556;font-size:9px;">—</span>';
+    if (Math.abs(pct) <= 10) {
+      return `<span style="color:#8a95a8;font-size:12px;" title="${pct > 0 ? '+' : ''}${pct}% — יציב">●</span>`;
+    }
     const arrow = pct > 0 ? '▲' : '▼';
     const clr   = pct > 0 ? '#2e7d32' : pct < 0 ? '#c62828' : '#888';
     const abs   = Math.abs(pct);
@@ -4706,7 +4746,7 @@ window.addEventListener('afterprint', () => {
 
   function _renderMonthChartSvg(months) {
     if (!months || !months.length) return '<p style="color:#556;text-align:center;margin:20px 0">אין נתוני מכר</p>';
-    const W = 480, H = 150, PAD_L = 32, PAD_R = 10, PAD_T = 20, PAD_B = 32;
+    const W = 480, H = 150, PAD_L = 32, PAD_R = 10, PAD_T = 27, PAD_B = 32;
     const maxV = Math.max(...months.map(m => m.mkr), 1);
     const n = months.length;
     const slot = (W - PAD_L - PAD_R) / n;
@@ -4724,6 +4764,7 @@ window.addEventListener('afterprint', () => {
         <text x="${PAD_L-3}" y="${y+3}" text-anchor="end" fill="#4a5568" font-size="8">${lv}</text>`;
     });
 
+    const barX = [];
     months.forEach((m, i) => {
       const x = PAD_L + i * slot + (slot - barW) / 2;
       const bh = m.mkr > 0 ? Math.max(4, Math.round(m.mkr / maxV * chartH)) : 0;
@@ -4736,10 +4777,33 @@ window.addEventListener('afterprint', () => {
       const lbl = HE_MONTHS[m.month] + (showYear ? "'" + String(m.year).slice(2) : '');
       labels += `<text x="${(x+barW/2).toFixed(1)}" y="${H-4}" text-anchor="middle" fill="#667" font-size="8.5">${lbl}</text>`;
       if (m.mkr > 0) values += `<text x="${(x+barW/2).toFixed(1)}" y="${by-3}" text-anchor="middle" fill="${isCurrent?'#f59e0b':'#aac8ff'}" font-size="8.5" font-weight="700">${m.mkr}</text>`;
+      barX.push(x);
     });
 
+    // Subtle brackets over the two 3-month groups used for the trend calc (prev3 vs recent3)
+    let brackets = '';
+    const nonCurrentIdx = [];
+    months.forEach((m, i) => { if (m.year * 100 + m.month < curYM) nonCurrentIdx.push(i); });
+    const last6Idx = nonCurrentIdx.slice(-6);
+    if (last6Idx.length === 6) {
+      const group = (idxs, color) => {
+        const sum = idxs.reduce((s, i) => s + (months[i].mkr || 0), 0);
+        const x1 = barX[idxs[0]];
+        const x2 = barX[idxs[idxs.length - 1]] + barW;
+        const y = 15, tick = 4;
+        return `<g opacity="0.6">
+          <path d="M${x1.toFixed(1)},${y+tick} L${x1.toFixed(1)},${y} L${x2.toFixed(1)},${y} L${x2.toFixed(1)},${y+tick}" fill="none" stroke="${color}" stroke-width="1"/>
+          <text x="${((x1+x2)/2).toFixed(1)}" y="${y-2}" text-anchor="middle" fill="${color}" font-size="7.5" font-weight="600">${sum}</text>
+        </g>`;
+      };
+      const prev3Sum = last6Idx.slice(0, 3).reduce((s, i) => s + (months[i].mkr || 0), 0);
+      const recent3Sum = last6Idx.slice(3, 6).reduce((s, i) => s + (months[i].mkr || 0), 0);
+      const trendColor = recent3Sum >= prev3Sum ? '#2e7d32' : '#c62828';
+      brackets = group(last6Idx.slice(0, 3), '#7a8699') + group(last6Idx.slice(3, 6), trendColor);
+    }
+
     return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block;overflow:visible">
-      ${yLines}${bars}${labels}${values}
+      ${yLines}${bars}${labels}${values}${brackets}
       <line x1="${PAD_L}" y1="${PAD_T+chartH}" x2="${W-PAD_R}" y2="${PAD_T+chartH}" stroke="#334" stroke-width="1.5"/>
     </svg>`;
   }
@@ -4753,6 +4817,9 @@ window.addEventListener('afterprint', () => {
       const j = await r.json();
       if (!j.ok) throw new Error(j.error);
       window._dagimMonthlyData = j.byMk;
+      Object.keys(window._dagimMonthlyData).forEach(mk => {
+        window._dagimMonthlyData[mk] = _fillMonthGaps(window._dagimMonthlyData[mk]);
+      });
       // Update trend cells for all visible products
       document.querySelectorAll('.ord-trend-cell[data-mk]').forEach(td => {
         const mk = td.dataset.mk;
@@ -4781,18 +4848,28 @@ window.addEventListener('afterprint', () => {
     if (photoEl && photoUrl) { photoEl.src = photoUrl; photoEl.style.display = 'block'; }
     else if (photoEl) { photoEl.style.display = 'none'; }
 
-    const months = window._dagimMonthlyData && window._dagimMonthlyData[String(mk)];
-    if (months) {
-      const trendPct = _computeTrend(months);
+    const fullMonths = window._dagimMonthlyData && window._dagimMonthlyData[String(mk)];
+    const yoyEl = document.getElementById('mc-yoy');
+    if (fullMonths) {
+      const chartMonths = fullMonths.slice(-13);
+      const trendPct = _computeTrend(chartMonths);
       const trendStr = trendPct !== null
         ? (trendPct > 0 ? `▲+${trendPct}%` : `▼${trendPct}%`) + ' מול 3 החודשים הקודמים'
         : '';
       document.getElementById('mc-sub').innerHTML =
         `<span class="mc-mkt">#${mk}</span>${trendStr ? ' · ' + trendStr : ''}`;
-      document.getElementById('mc-body').innerHTML = _renderMonthChartSvg(months);
+      document.getElementById('mc-body').innerHTML = _renderMonthChartSvg(chartMonths);
+
+      if (yoyEl) {
+        const yoy = _computeYoY(fullMonths);
+        yoyEl.innerHTML = yoy
+          ? `<span style="color:${yoy.pct >= 0 ? '#2e7d32' : '#c62828'};font-weight:800;">${yoy.pct >= 0 ? '▲+' : '▼'}${Math.abs(yoy.pct)}%</span> לעומת אשתקד (אותם 3 חודשים): ${yoy.thisYear} מול ${yoy.lastYear}`
+          : '';
+      }
     } else {
       document.getElementById('mc-sub').innerHTML = `<span class="mc-mkt">#${mk}</span>`;
       document.getElementById('mc-body').innerHTML = '<p style="color:#556;text-align:center;margin:20px 0">טוען...</p>';
+      if (yoyEl) yoyEl.innerHTML = '';
     }
     panel.classList.add('open');
     overlay.classList.add('open');
@@ -4816,6 +4893,7 @@ window.addEventListener('afterprint', () => {
     <div style="min-width:0">
       <h4 id="mc-title"></h4>
       <div id="mc-sub" class="mc-sub"></div>
+      <div id="mc-yoy" style="font-size:9.5px;color:#8a95a8;margin-top:1px;"></div>
     </div>
   </div>
   <div id="mc-body"></div>

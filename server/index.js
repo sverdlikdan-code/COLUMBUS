@@ -2745,12 +2745,12 @@ app.get('/pbi/formula-refresh', requireAuth, dataRateLimit, async (req, res) => 
   }
 });
 
-// GET /pbi/dagim-all-monthly — last 13 months carton sales for ALL dagim/halavi products (batch)
-// Used by הזמנה דגים trend column: loaded once on page open, cached client-side.
+// GET /pbi/dagim-all-monthly — last 16 months carton sales for ALL dagim/halavi products (batch)
+// Used by הזמנה דגים trend column (last 13 shown in chart) + YoY comparison (needs same 3 months last year).
 app.get('/pbi/dagim-all-monthly', requireAuth, dataRateLimit, async (req, res) => {
   const now = new Date();
   const conds = [];
-  for (let i = 12; i >= 0; i--) {
+  for (let i = 15; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     conds.push(`(DIMCALENDAR[Year]=${d.getFullYear()}&&DIMCALENDAR[Month]=${d.getMonth()+1})`);
   }
