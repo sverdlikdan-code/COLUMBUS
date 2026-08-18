@@ -2992,8 +2992,6 @@ function _renderDayCompany(key, label, data) {
   if (!data || !data.clients || !data.clients.length) {
     return `<div class="day-company"><div class="day-company-head"><span class="day-company-name">${esc(label)}</span></div><div class="day-sub">אין נתונים בתקופה זו</div></div>`;
   }
-  const sub = `<div class="day-sub">ממוצע לקוח בחברה: ₪${(data.companyAvg||0).toLocaleString()}</div>`;
-
   // Every scheduled client for the day, not a top slice — כתר still marks the top
   // 3 by sales (that alone answers "who matters most today"), ❄️ flags ICE clients
   // (משטח[HEVRA]), 💪 flags a client with our own סדרן on-site (same badge/meaning
@@ -3067,7 +3065,7 @@ function _renderDayCompany(key, label, data) {
 
   return `<div class="day-company">
     <div class="day-company-head"><span class="day-company-name">${esc(label)}</span></div>
-    ${sub}${tbl}${dormantHtml}${highlightsHtml}
+    ${tbl}${dormantHtml}${highlightsHtml}
   </div>`;
 }
 
