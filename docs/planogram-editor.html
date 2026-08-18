@@ -3410,7 +3410,7 @@ function buildOrderPage() {
       <th style="${_th('text-align:center;')}">לקוחות<br>מופעלים</th>
       <th style="${_ths('pizur','text-align:center;')}">פיזור<br>%${_arr('pizur')}</th>
       <th style="${_ths('daySales','text-align:center;')}">KARTON<br>PER DAY${_arr('daySales')}</th>
-      <th style="position:sticky;top:0;z-index:5;padding:6px 4px;background:#4a148c;color:#fff;text-align:center;font-size:10px;font-weight:700;white-space:nowrap;cursor:default;border-bottom:2px solid #3a0080;border-right:1px solid rgba(255,255,255,0.1);" title="מגמת מכר: חודש אחרון vs חודש לפניו — לחץ על תא לגרף חודשי">📊 מגמה</th>
+      <th style="position:sticky;top:0;z-index:5;padding:6px 4px;background:#4a148c;color:#fff;text-align:center;font-size:10px;font-weight:700;white-space:nowrap;cursor:default;border-bottom:2px solid #3a0080;border-right:1px solid rgba(255,255,255,0.1);" title="מגמת מכר: 3 חודשים אחרונים vs 3 חודשים שלפניהם — לחץ על תא לגרף חודשי">📊 מגמה</th>
       <th style="${_ths('periodSales','text-align:center;')}">מכר<br>בתקופה${_arr('periodSales')}</th>
       <th style="${_ths('daysStk','text-align:center;')}">לכמה<br>ימים${_arr('daysStk')}</th>
       <th style="${_ths('orderK','text-align:center;white-space:normal;')}">המלצה KARTON${_arr('orderK')}<div onclick="event.stopPropagation()" style="display:flex;align-items:center;justify-content:center;gap:3px;margin-top:4px;"><input type="range" id="season-slider" min="-50" max="50" step="5" value="${window._orderSeasonPct||0}" oninput="_applySeasonSlider(this.value)" style="width:56px;cursor:ew-resize;accent-color:#90CAF9;"><span id="season-pct-label" style="font-size:10px;font-weight:800;color:#fff;min-width:26px;text-align:center;">${((p)=>p===0?'×1':p>0?'+'+p+'%':p+'%')(window._orderSeasonPct||0)}</span><button type="button" onclick="_resetSeasonSlider()" id="season-reset-btn" title="אפס" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.85);font-size:11px;padding:0;line-height:1;">✕</button></div></th>
@@ -4683,14 +4683,17 @@ window.addEventListener('afterprint', () => {
     document.getElementById('month-chart-panel').classList.remove('open');
   }
 
-  // Compute trend: last 2 complete months (exclude current incomplete month)
+  // Compute trend: last 3 complete months vs the 3 before them (exclude current incomplete month)
   window._computeTrend = function _computeTrend(months) {
-    if (!months || months.length < 2) return null;
+    if (!months || months.length < 6) return null;
     const now = new Date();
     const curYM = now.getFullYear() * 100 + (now.getMonth() + 1);
-    const full = months.filter(m => m.year * 100 + m.month < curYM).slice(-2);
-    if (full.length < 2 || !full[0].mkr) return null;
-    return Math.round((full[1].mkr / full[0].mkr - 1) * 100);
+    const full = months.filter(m => m.year * 100 + m.month < curYM).slice(-6);
+    if (full.length < 6) return null;
+    const prev3 = full.slice(0, 3).reduce((s, m) => s + (m.mkr || 0), 0);
+    const recent3 = full.slice(3, 6).reduce((s, m) => s + (m.mkr || 0), 0);
+    if (!prev3) return null;
+    return Math.round((recent3 / prev3 - 1) * 100);
   }
 
   window._trendHtml = function _trendHtml(pct) {
@@ -4775,14 +4778,14 @@ window.addEventListener('afterprint', () => {
     // Photo
     const photoEl = document.getElementById('mc-photo');
     const photoUrl = typeof getPhotoUrl === 'function' ? getPhotoUrl(mk) : null;
-    if (photoEl && photoUrl) { photoEl.src = photoUrl; photoEl.style.display = ''; }
+    if (photoEl && photoUrl) { photoEl.src = photoUrl; photoEl.style.display = 'block'; }
     else if (photoEl) { photoEl.style.display = 'none'; }
 
     const months = window._dagimMonthlyData && window._dagimMonthlyData[String(mk)];
     if (months) {
       const trendPct = _computeTrend(months);
       const trendStr = trendPct !== null
-        ? (trendPct > 0 ? `▲+${trendPct}%` : `▼${trendPct}%`) + ' מול חודש קודם'
+        ? (trendPct > 0 ? `▲+${trendPct}%` : `▼${trendPct}%`) + ' מול 3 החודשים הקודמים'
         : '';
       document.getElementById('mc-sub').innerHTML =
         `<span class="mc-mkt">#${mk}</span>${trendStr ? ' · ' + trendStr : ''}`;
