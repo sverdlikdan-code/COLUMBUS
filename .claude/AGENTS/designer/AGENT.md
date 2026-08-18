@@ -100,6 +100,10 @@ Designer report:
 
 **Для мобильных задач** используй `designer-mobile-ux` skill — там конкретные правила для RTL, touch targets, брендинг DILLER.
 
+**Для print-CSS** (`@page`, `page-break-inside`, `break-before` и т.п. в `docs/*.html` — например печать заказа הזמנה דגים, planogram) обычный puppeteer-скриншот НЕ показывает разрыв страниц — это проявляется только при реальной пагинации PDF. Используй портативный poppler:
+`C:\Users\d.sverdlik\.claude\tools\poppler-26.02.0\Library\bin\pdftoppm.exe` (не в PATH — вызывать по полному пути; без прав администратора, отдельно от репозитория).
+Процесс: собери `.scratch/`-харнесс → puppeteer `page.emulateMediaType('print')` + `page.pdf()` → растеризуй каждую страницу через `pdftoppm.exe -png -r 100 file.pdf page` → `Read` PNG-файлы глазами → удали scratch-файлы. Подробности: memory `reference_poppler_print_verify`.
+
 ---
 
 ## Антипаттерны

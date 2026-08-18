@@ -110,6 +110,7 @@ async function main() {
         await resend.emails.send({
           from: process.env.RESEND_FROM || 'orders@sverdlik-apps.site',
           to: r.email,
+          cc: 'd.sverdlik@DilerBMD.com',
           subject: 'FORMULA ROAD — כלי עבודה חדש לסוכני השטח',
           html: emailHtml({ name: r.agentName, link, isManager: r.isManager }),
         });
