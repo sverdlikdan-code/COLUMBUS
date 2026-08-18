@@ -562,7 +562,7 @@ body.gps-fs #map{height:100%!important;}
         </div>
         <button class="sort-btn" id="day-briefing-btn" onclick="openDayBriefing()" title="ניתוח יום — TOP 10 לקוחות" style="background:#5C6BC0;color:#fff;border-color:#3F51B5;font-weight:900">📊 ניתוח</button>
         <button class="sort-btn" id="gmaps-btn" onclick="openGoogleMaps()" title="פתח מסלול ב-Google Maps" style="background:#1a73e8;color:#fff;border-color:#0d47a1;font-weight:900;box-shadow:0 2px 8px rgba(26,115,232,.35)">🗺 Google</button>
-        <button class="sort-btn icon-only" id="map-toggle-btn" onclick="toggleMapHidden()" title="הסתר מפה">🗺❌</button>
+        <button class="sort-btn" id="map-toggle-btn" onclick="toggleMapHidden()" title="הצג מפה">🗺 הצג</button>
         <div class="km-more-wrap">
           <button class="sort-btn km-more-btn" id="km-more-btn" onclick="toggleKmMore()" title="עוד פעולות">⋮</button>
           <div class="km-more-dd" id="km-more-dd">
@@ -881,7 +881,10 @@ try{ st.mapHidden = localStorage.getItem('fr_map_hidden')!=='0'; }catch(_){ st.m
 function applyMapHidden(){
   document.body.classList.toggle('map-hidden', st.mapHidden);
   const btn=document.getElementById('map-toggle-btn');
-  if(btn){ btn.textContent = st.mapHidden ? '🗺' : '🗺❌'; btn.title = st.mapHidden ? 'הצג מפה' : 'הסתר מפה'; }
+  // Icon-only ("🗺❌" alone) relied on the title tooltip for meaning — invisible on
+  // touch, nobody could tell what it did (live agent feedback). Short label text
+  // instead, same as every other toolbar button.
+  if(btn){ btn.textContent = st.mapHidden ? '🗺 הצג' : '🗺❌ הסתר'; btn.title = st.mapHidden ? 'הצג מפה' : 'הסתר מפה'; }
   if(st.mapHidden && st.tab==='map') setTab('list');
 }
 function toggleMapHidden(){
