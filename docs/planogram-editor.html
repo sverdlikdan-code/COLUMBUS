@@ -273,16 +273,18 @@
     #month-chart-panel {
       position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
       z-index:9991;background:#0d1f3a;color:#e8eaf0;border-radius:14px;
-      box-shadow:0 8px 40px rgba(0,0,0,.7);padding:20px 24px 16px;min-width:520px;max-width:90vw;
+      box-shadow:0 8px 40px rgba(0,0,0,.7);padding:28px 34px 22px;min-width:730px;max-width:90vw;
       font-family:'Segoe UI',sans-serif;display:none;
     }
     #month-chart-panel.open { display:block; }
-    #mc-header { display:flex;align-items:center;gap:12px;margin-bottom:4px; }
-    #mc-photo { width:60px;height:60px;object-fit:contain;border-radius:8px;background:#162840;flex-shrink:0;display:none; }
-    #month-chart-panel h4 { margin:0 0 4px;font-size:.9rem;color:#c9a227;direction:rtl;unicode-bidi:plaintext;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%; }
-    #month-chart-panel .mc-sub { font-size:.7rem;color:#556;margin-bottom:14px;direction:rtl; }
-    .mc-mkt { background:#1e3f6a;border:1px solid #2d5a9e;border-radius:4px;padding:1px 6px;font-size:.65rem;color:#7aa3d4;font-family:monospace; }
-    #month-chart-panel .mc-close { position:absolute;top:12px;left:16px;background:transparent;border:none;color:#8899aa;font-size:1.1rem;cursor:pointer;line-height:1; }
+    #mc-header { display:flex;align-items:center;gap:16px;margin-bottom:6px; }
+    #mc-photo { width:84px;height:84px;object-fit:contain;border-radius:10px;background:#162840;flex-shrink:0;display:none; }
+    #month-chart-panel h4 { margin:0 0 6px;font-size:1.25rem;color:#c9a227;direction:rtl;unicode-bidi:plaintext;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%; }
+    #month-chart-panel .mc-sub, #month-chart-panel .mc-yoy { font-size:15px;color:#8a95a8;direction:rtl;line-height:1.6; }
+    #month-chart-panel .mc-sub { margin-bottom:2px; }
+    #month-chart-panel .mc-trend-arrow, #month-chart-panel .mc-yoy b { font-weight:800; }
+    .mc-mkt { background:#1e3f6a;border:1px solid #2d5a9e;border-radius:5px;padding:2px 8px;font-size:.85rem;color:#7aa3d4;font-family:monospace; }
+    #month-chart-panel .mc-close { position:absolute;top:16px;left:22px;background:transparent;border:none;color:#8899aa;font-size:1.4rem;cursor:pointer;line-height:1; }
     #month-chart-panel .mc-close:hover { color:#fff; }
     #month-chart-svg { display:block;width:100%;overflow:visible; }
     .ord-fam-btn {
@@ -4853,17 +4855,17 @@ window.addEventListener('afterprint', () => {
     if (fullMonths) {
       const chartMonths = fullMonths.slice(-13);
       const trendPct = _computeTrend(chartMonths);
-      const trendStr = trendPct !== null
-        ? (trendPct > 0 ? `▲+${trendPct}%` : `▼${trendPct}%`) + ' מול 3 החודשים הקודמים'
+      const trendHtml = trendPct !== null
+        ? `<span class="mc-trend-arrow" style="color:${trendPct >= 0 ? '#2e7d32' : '#c62828'}">${trendPct >= 0 ? '▲+' : '▼'}${Math.abs(trendPct)}%</span> מול 3 החודשים הקודמים`
         : '';
       document.getElementById('mc-sub').innerHTML =
-        `<span class="mc-mkt">#${mk}</span>${trendStr ? ' · ' + trendStr : ''}`;
+        `<span class="mc-mkt">#${mk}</span>${trendHtml ? ' · ' + trendHtml : ''}`;
       document.getElementById('mc-body').innerHTML = _renderMonthChartSvg(chartMonths);
 
       if (yoyEl) {
         const yoy = _computeYoY(fullMonths);
         yoyEl.innerHTML = yoy
-          ? `<span style="color:${yoy.pct >= 0 ? '#2e7d32' : '#c62828'};font-weight:800;">${yoy.pct >= 0 ? '▲+' : '▼'}${Math.abs(yoy.pct)}%</span> לעומת אשתקד (אותם 3 חודשים): ${yoy.thisYear} מול ${yoy.lastYear}`
+          ? `<b style="color:${yoy.pct >= 0 ? '#2e7d32' : '#c62828'}">${yoy.pct >= 0 ? '▲+' : '▼'}${Math.abs(yoy.pct)}%</b> לעומת אשתקד (אותם 3 חודשים): ${yoy.thisYear} מול ${yoy.lastYear}`
           : '';
       }
     } else {
@@ -4893,7 +4895,7 @@ window.addEventListener('afterprint', () => {
     <div style="min-width:0">
       <h4 id="mc-title"></h4>
       <div id="mc-sub" class="mc-sub"></div>
-      <div id="mc-yoy" style="font-size:9.5px;color:#8a95a8;margin-top:1px;"></div>
+      <div id="mc-yoy" class="mc-yoy"></div>
     </div>
   </div>
   <div id="mc-body"></div>
