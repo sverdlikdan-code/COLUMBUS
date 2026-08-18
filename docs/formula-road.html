@@ -3006,7 +3006,14 @@ function _renderDayCompany(key, label, data) {
     const yoyStr = `<span dir="ltr" style="unicode-bidi:isolate;color:${yoyColor};font-weight:800">${yoyRaw}</span>`;
     const warn = c.daysSince && c.daysSince > 21;
     const crown = c.crown ? '👑 ' : '';
-    tbl += `<tr><td>${i+1}</td><td>${crown}${esc(c.name)}${warn?` <span class="warn">⚠️${c.daysSince}d</span>`:''}</td><td class="day-stars">${_dayStars(c.total, maxTotal)}</td><td>${yoyStr}</td></tr>`;
+    // Current-month target achievement — always the calendar month in progress
+    // (same מ שטח[יעד $] + monthlySales already cached server-side), matching the
+    // משטח+יעד PBI page. Skipped when the client has no target set at all.
+    const targetColor = c.pctTarget === null ? '#999' : (c.pctTarget >= 100 ? '#2E7D32' : c.pctTarget >= 70 ? '#E65100' : '#C62828');
+    const targetBadge = c.pctTarget !== null
+      ? ` <span style="color:${targetColor};font-weight:700">🎯<span dir="ltr" style="unicode-bidi:isolate">${c.pctTarget}%</span></span>`
+      : '';
+    tbl += `<tr><td>${i+1}</td><td>${crown}${esc(c.name)}${targetBadge}${warn?` <span class="warn">⚠️${c.daysSince}d</span>`:''}</td><td class="day-stars">${_dayStars(c.total, maxTotal)}</td><td>${yoyStr}</td></tr>`;
   });
   tbl += '</tbody></table>';
 
