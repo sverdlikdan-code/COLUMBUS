@@ -91,3 +91,4 @@
 - [[session-2026-08-11-security-regression]] — Сессия 2026-08-11: security regression фиксы, popup фото+מקט badge, sticky header מגמה, auth flow clarification
 - [[session-2026-08-12-dagim-stock-fix]] — Сессия 2026-08-12: mahsan IP whitelist, gate logging, dagim stock=0 диагноз (pakuot fallback) и PBI refresh root cause
 - [[mmd-orders-app]] — Сессия 2026-08-11 (вечер): Prophet trend fix (mkr_prev6 в period-data), пизур+cust_bought колонки, фото-прокси ?u=, фильтр 162 клиентов, архив ארכיון товаров
+- [[session-2026-08-18-scratch-cleanup]] — Сессия 2026-08-18: удалено 71 неотслеживаемых диагностических скрипта (check_/test_/find_/bdd_/deep_gps_ investigation burst 2026-08-12/13), zikuy-мера подтверждена в проде, GPS-кластер оставлен активным, правило capture-discipline для скретч-скриптов
