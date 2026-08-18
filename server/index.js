@@ -4109,7 +4109,12 @@ ROW(
 
   const [famRows, workDaysRows] = await Promise.all([
     executeDax(daxFamCompany),
-    executeDax('EVALUATE ROW("pct", [ימי עבודה %])'),
+    // Without a date filter, [ימי עבודה %]'s own DIMCALENDAR-based ratio spans the
+    // whole calendar table (years), not "this month" — it only comes out right inside
+    // a report page where a month slicer already narrows DIMCALENDAR. Same
+    // MONTH(TODAY())/YEAR(TODAY()) filter as monthlySales above so both sides of the
+    // INDICATION comparison mean "this calendar month".
+    executeDax('EVALUATE CALCULATETABLE(ROW("pct", [ימי עבודה %]), MONTH(DIMCALENDAR[Date]) = MONTH(TODAY()), YEAR(DIMCALENDAR[Date]) = YEAR(TODAY()))'),
   ]);
   workDaysPct = parseFloat(workDaysRows?.[0]?.['[pct]']) || 0;
   const formulaFamilies = [], iceMishFamilies = [];
