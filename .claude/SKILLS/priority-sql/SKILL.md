@@ -37,9 +37,8 @@ GPS is captured by the mobile app when an order is created.
 - `CUSTOMERS` — customer master (CUST + GPSX + GPSY) — same source as PBI
 
 **Critical facts:**
-- `ORDERSB.GPSX` = **longitude** (~34.x for Israel)
-- `ORDERSB.GPSY` = **latitude** (~31–33.x for Israel)
-- `CUSTOMERS.GPSX/GPSY` = same data as Power BI — already used as PBI source
+- `ORDERSB.GPSX` = **longitude** (~34.x for Israel), `ORDERSB.GPSY` = **latitude** (~31–33.x) — same for `ADCCONTROLLERLOG.GPSX/GPSY`
+- **`CUSTOMERS.GPSX/GPSY` is REVERSED**: `CUSTOMERS.GPSX` = **latitude** (~31–33.x), `CUSTOMERS.GPSY` = **longitude** (~34.x) — opposite axis order from ORDERSB/ADCCONTROLLERLOG. Verified 2026-08-18 against known-city customers (Ashdod, Afula). Swap before using if code elsewhere assumes the ORDERSB convention.
 - `ORDERS` contains ONLY open orders — closed orders are **deleted** from ORDERS
 - Closed-order GPS exists in ORDERSB but the CUST is lost (no archive table)
 - `ORDERSB.IVDESTCODE` = always 0, NOT the customer code
@@ -141,5 +140,6 @@ Map page: `/priority-gps.html`
 2. **GPS columns are nvarchar** — always `CAST(GPSX AS float)` before math
 3. **Closed orders** have no CUST — only 57,745 open orders have GPS+CUST via JOIN
 4. **ORDERSB has 187,526 GPS records** but only 57,745 match ORDERS (rest are closed/archived)
-5. **CUSTOMERS.GPSX** = same as PBI source, already used — not new data
+5. **CUSTOMERS.GPSX/GPSY axis order is reversed** vs ORDERSB/ADCCONTROLLERLOG — GPSX=lat, GPSY=lng here (see GPS section above)
+7. **ADCCONTROLLERLOG spoofed GPS**: rows dated ~Oct 2023–Nov 2024 for northern-Israel customers may contain IDF defensive GPS-spoofing artifacts (fake coords near Beirut airport 33.82,35.49 or a second cluster ~31.72,35.999 shared identically across dozens of unrelated CUST). Detect via: exact-rounded coordinate shared by >3 distinct CUST = spoofing/junk signature, exclude before aggregating.
 6. **INFORMATION_SCHEMA search** for GPS columns: search LAT/LONG/GPS/GEO/COORD/LOCAT
