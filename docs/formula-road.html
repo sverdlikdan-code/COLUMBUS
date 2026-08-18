@@ -2815,13 +2815,28 @@ async function _fetchClientAI(lang) {
       + `</div>`;
 
     // INTER channel (e.g. מתוקים) — separate company/source, kept out of the main table
+    // Same collapse-on-click pattern as the main table's per-family drilldown
+    // (reuses .fam-row-expandable/.fam-caret/toggleFamGroup) — header row shows
+    // the channel total right there (no more digging for it), ranked largest
+    // param2 first, collapsed by default since it's the least-used section.
     let interTbl = '';
     if (familiesInter && Object.keys(familiesInter).length) {
-      interTbl = `<div style="margin:10px 0 4px;font-size:13px;color:#8B6D00;font-weight:700">ערוץ נפרד (INTER)</div>`;
+      const interEntries = Object.entries(familiesInter).sort((a, b) => b[1].current - a[1].current);
+      const interCur = interEntries.reduce((s, [, f]) => s + f.current, 0);
+      const interPrior = interEntries.reduce((s, [, f]) => s + f.prior, 0);
+      const interDelta = interPrior > 0 ? Math.round((interCur / interPrior - 1) * 100) : null;
+      const hasSub = interEntries.length > 1;
+      const groupId = 'fgInter';
+      const interDeltaStr = interDelta === null ? '' : ` (<span dir="ltr" style="unicode-bidi:isolate">${interDelta > 0 ? '+' : ''}${interDelta}%</span>)`;
+      interTbl = `<div class="${hasSub ? 'fam-row-expandable' : ''}" style="margin:10px 0 4px;font-size:13px;color:#8B6D00;font-weight:700;display:flex;align-items:center;justify-content:space-between;padding:5px 6px;border-radius:6px;"${hasSub ? ` onclick="toggleFamGroup('${groupId}')"` : ''}>`
+        + `<span>${hasSub ? `<span class="fam-caret" id="car-${groupId}">▸</span> ` : ''}ערוץ נפרד (INTER)</span>`
+        + `<span>₪${interCur.toLocaleString()}${interDeltaStr}</span>`
+        + `</div>`;
       interTbl += `<table class="ai-families-tbl"><thead><tr><th>משפחת מוצר</th><th>${ltr(priorLabel)}</th><th>${ltr(curLabel)}</th><th>מגמה</th></tr></thead><tbody>`;
-      for (const [fam, f] of Object.entries(familiesInter)) {
-        interTbl += `<tr><td>${fam}</td>`
-          + `<td style="text-align:left">${f.prior ? '₪'+f.prior.toLocaleString() : '—'}</td>`
+      for (const [p2, f] of interEntries) {
+        interTbl += `<tr class="fam-sub-row" data-group="${groupId}" style="${hasSub ? 'display:none' : ''}">`
+          + `<td>${esc(p2)}</td>`
+          + `<td style="text-align:left">${f.prior ? '₪' + f.prior.toLocaleString() : '—'}</td>`
           + `<td style="text-align:left">₪${f.current.toLocaleString()}</td>`
           + trendCell(f) + `</tr>`;
       }
