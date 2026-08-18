@@ -4787,11 +4787,13 @@ window.addEventListener('afterprint', () => {
       barX.push(x);
     });
 
-    // Subtle brackets over the two 3-month groups used for the trend calc (prev3 vs recent3)
+    // Subtle brackets: prev3 vs recent3 (trend), and — when the chart spans the full
+    // 16-month window — recent3 vs the same 3 calendar months a year earlier (YoY)
     let brackets = '';
     const nonCurrentIdx = [];
     months.forEach((m, i) => { if (m.year * 100 + m.month < curYM) nonCurrentIdx.push(i); });
     const last6Idx = nonCurrentIdx.slice(-6);
+    const first3Idx = nonCurrentIdx.slice(0, 3);
     if (last6Idx.length === 6) {
       const group = (idxs, color) => {
         const sum = idxs.reduce((s, i) => s + (months[i].mkr || 0), 0);
@@ -4807,6 +4809,12 @@ window.addEventListener('afterprint', () => {
       const recent3Sum = last6Idx.slice(3, 6).reduce((s, i) => s + (months[i].mkr || 0), 0);
       const trendColor = recent3Sum >= prev3Sum ? '#2e7d32' : '#c62828';
       brackets = group(last6Idx.slice(0, 3), '#7a8699') + group(last6Idx.slice(3, 6), trendColor);
+
+      if (first3Idx.length === 3 && first3Idx[2] < last6Idx[0]) {
+        const yoyPriorSum = first3Idx.reduce((s, i) => s + (months[i].mkr || 0), 0);
+        const yoyColor = recent3Sum >= yoyPriorSum ? '#2e7d32' : '#c62828';
+        brackets += group(first3Idx, yoyColor);
+      }
     }
 
     return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block;overflow:visible">
@@ -4858,7 +4866,7 @@ window.addEventListener('afterprint', () => {
     const fullMonths = window._dagimMonthlyData && window._dagimMonthlyData[String(mk)];
     const yoyEl = document.getElementById('mc-yoy');
     if (fullMonths) {
-      const chartMonths = fullMonths.slice(-13);
+      const chartMonths = fullMonths; // full 16-month window — lets the SVG show both the recent-trend and YoY brackets
       const trendPct = _computeTrend(chartMonths);
       const trendHtml = trendPct !== null
         ? `<span class="mc-trend-arrow" style="color:${trendPct >= 0 ? '#2e7d32' : '#c62828'}">${trendPct >= 0 ? '▲+' : '▼'}${Math.abs(trendPct)}%</span> מול 3 החודשים הקודמים`
