@@ -203,6 +203,10 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .ai-families-tbl td{padding:4px 7px;border-bottom:1px solid #F3E5F5;color:#333;}
 .ai-families-tbl tr:last-child td{border-bottom:none;}
 .ai-families-tbl .dropped{color:#C62828;font-style:italic;}
+.ai-families-tbl .fam-row-expandable{cursor:pointer;}
+.ai-families-tbl .fam-row-expandable:hover{background:#F8F4FF;}
+.ai-families-tbl .fam-caret{display:inline-block;width:11px;font-size:10px;color:#9C27B0;}
+.ai-families-tbl .fam-sub-row td{font-size:13px;}
 .ai-analysis{background:#F8F4FF;border-radius:10px;padding:12px 14px;font-size:16px;line-height:1.7;color:#333;white-space:pre-wrap;unicode-bidi:plaintext;}
 .ai-loading{text-align:center;padding:30px;color:#9C27B0;font-size:14px;}
 /* Day Briefing Modal (TOP10 clients + dormant list) */
@@ -2738,6 +2742,15 @@ function switchAiLang(btn, lang) {
   _fetchClientAI(lang);
 }
 
+function toggleFamGroup(groupId){
+  const rows = document.querySelectorAll(`tr.fam-sub-row[data-group="${groupId}"]`);
+  if (!rows.length) return;
+  const willShow = rows[0].style.display === 'none';
+  rows.forEach(r => r.style.display = willShow ? '' : 'none');
+  const caret = document.getElementById('car-'+groupId);
+  if (caret) caret.textContent = willShow ? '▾' : '▸';
+}
+
 async function _fetchClientAI(lang) {
   const { custId } = _aiState;
   const body = document.getElementById('ai-modal-body');
@@ -2772,13 +2785,28 @@ async function _fetchClientAI(lang) {
     // of stranding it on the far side of the row away from what it's describing.
     let tbl = `<table class="ai-families-tbl"><thead><tr><th>משפחת מוצר</th><th>${ltr(priorLabel)}</th><th>${ltr(curLabel)}</th><th>מגמה</th></tr></thead><tbody>`;
     const sorted = Object.entries(families).sort((a,b) => b[1].current - a[1].current);
-    for (const [fam, f] of sorted) {
+    // Each מחלקה row can expand into the real ALL_PARTS[תאור משפחת מוצר] families
+    // that make it up — a single underlying family is just the row itself again,
+    // not worth a click. Sub-rows render collapsed inline, toggled by data-group.
+    sorted.forEach(([fam, f], idx) => {
       const isDrop = dropped.includes(fam);
-      tbl += `<tr><td class="${isDrop?'dropped':''}">${fam}${isDrop?' ⚠️':''}</td>`
+      const hasSub = f.subFamilies && f.subFamilies.length > 1;
+      const groupId = `fg${idx}`;
+      tbl += `<tr class="${hasSub?'fam-row-expandable':''}"${hasSub?` onclick="toggleFamGroup('${groupId}')"`:''}>`
+        + `<td class="${isDrop?'dropped':''}">${hasSub?`<span class="fam-caret" id="car-${groupId}">▸</span> `:''}${fam}${isDrop?' ⚠️':''}</td>`
         + `<td style="text-align:left">${f.prior ? '₪'+f.prior.toLocaleString() : '—'}</td>`
         + `<td style="text-align:left">₪${f.current.toLocaleString()}</td>`
         + trendCell(f) + `</tr>`;
-    }
+      if (hasSub) {
+        for (const sf of f.subFamilies) {
+          tbl += `<tr class="fam-sub-row" data-group="${groupId}" style="display:none">`
+            + `<td style="padding-inline-start:24px;color:#777;font-weight:400">${esc(sf.name)||'—'}</td>`
+            + `<td style="text-align:left;color:#777">${sf.prior ? '₪'+sf.prior.toLocaleString() : '—'}</td>`
+            + `<td style="text-align:left;color:#777">₪${sf.current.toLocaleString()}</td>`
+            + trendCell(sf) + `</tr>`;
+        }
+      }
+    });
     tbl += '</tbody></table>';
 
     const peerLabel = isChain ? `ממוצע רשת ${chainName}` : (chainName ? `ממוצע קטגוריית ${chainName}` : 'ממוצע חברה');
