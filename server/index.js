@@ -4750,8 +4750,8 @@ CALCULATETABLE(
           const storeShare = shareOf(storeV, storeFamAll);
           return {
             family: fixBiDi(fam || ''),
-            chainSharePct: Math.round(chainShare * 1000) / 10,
-            storeSharePct: Math.round(storeShare * 1000) / 10,
+            chainSharePct: Math.round(chainShare * 100),
+            storeSharePct: Math.round(storeShare * 100),
             index: chainShare > 0 ? Math.round((storeShare / chainShare) * 100) / 100 : null,
           };
         });
@@ -4773,16 +4773,16 @@ CALCULATETABLE(
             const fStoreShare = shareOf(storeV, storeFamAll);
             return {
               family: fixBiDi(fam || ''),
-              chainSharePct: Math.round(fChainShare * 1000) / 10,
-              storeSharePct: Math.round(fStoreShare * 1000) / 10,
+              chainSharePct: Math.round(fChainShare * 100),
+              storeSharePct: Math.round(fStoreShare * 100),
               index: fChainShare > 0 ? Math.round((fStoreShare / fChainShare) * 100) / 100 : null,
             };
           })
           .sort((a, b) => b.chainSharePct - a.chainSharePct);
         familyDeviation.push({
           family: 'שאר המשפחות',
-          chainSharePct: Math.round(chainShare * 1000) / 10,
-          storeSharePct: Math.round(storeShare * 1000) / 10,
+          chainSharePct: Math.round(chainShare * 100),
+          storeSharePct: Math.round(storeShare * 100),
           index: chainShare > 0 ? Math.round((storeShare / chainShare) * 100) / 100 : null,
           isRest: true,
           subFamilies: restSubFamilies,
