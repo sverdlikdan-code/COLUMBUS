@@ -4466,10 +4466,34 @@ ROW(
 )`;
     };
 
-    const [curRows, priorRows, avgRows] = await Promise.all([
+    // Per-SKU totals, cur+prior — only actually needed for the INTER breakdown
+    // (see familiesInter below): INTER has no real תאור משפחת מוצר texture of its
+    // own (famDax's SUMMARIZE collapses it to one bucket), so its sub-breakdown
+    // has to come from KARTIS PARIT INTER's own פרמטר 2 field instead, which is
+    // keyed by SKU, not family — same join pattern already used for the dormant
+    // chain-products list above.
+    const skuDax = (start, end) => {
+      const lastDay = new Date(end.year, end.month, 0).getDate();
+      return `
+EVALUATE
+CALCULATETABLE(
+  ADDCOLUMNS(
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[מק'ט]),
+    "total", CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)])
+  ),
+  ALL_PARTS[מספר לקוח] = "${custId}",
+  ALL_PARTS[ASHMADOT] = "-מכר-",${kosherFilter}
+  ALL_PARTS[תאריך] >= DATE(${start.year},${start.month},1),
+  ALL_PARTS[תאריך] <= DATE(${end.year},${end.month},${lastDay})
+)`;
+    };
+
+    const [curRows, priorRows, avgRows, curSkuRows, priorSkuRows] = await Promise.all([
       executeDax(famDax(curStart, curEnd)),
       executeDax(famDax(priorStart, priorEnd)),
       executeDax(daxAvg(curStart, curEnd)),
+      executeDax(skuDax(curStart, curEnd)),
+      executeDax(skuDax(priorStart, priorEnd)),
     ]);
 
     const peerAvg = Math.round(avgRows?.[0]?.['[avg_per_client]'] || 0);
@@ -4675,20 +4699,26 @@ CALCULATETABLE(
       familyDeviation.push({ family: 'סה"כ', chainSharePct: 100, storeSharePct: 100, index: null, isTotal: true });
     }
 
+    // FORMULA/ICE rows already carry their real, granular ALL_PARTS[תאור משפחת
+    // מוצר] alongside the computed מחלקה (famDax SUMMARIZEs by it) — bucket by
+    // (מחלקה, family) so each department row can expand into what it's made of.
     const collect = (rows) => {
-      const byCat = {}, byCatInter = {};
+      const byCat = {}, byCatFam = {};
       let total = 0, lastOrderDate = null;
       for (const r of rows) {
         const cat = r['[מחלקה]'] || '';
+        const fam = r['ALL_PARTS[תאור משפחת מוצר]'] || '';
         const val = Math.round(r['[total]'] || 0);
         const lo  = r['[lastOrder]'];
-        if (cat && !SKIP_CATS.has(cat) && val > 0) {
-          if (INTER_CATS.has(cat)) byCatInter[cat] = (byCatInter[cat] || 0) + val;
-          else { byCat[cat] = (byCat[cat] || 0) + val; total += val; }
+        if (cat && !SKIP_CATS.has(cat) && val > 0 && !INTER_CATS.has(cat)) {
+          byCat[cat] = (byCat[cat] || 0) + val;
+          total += val;
+          byCatFam[cat] = byCatFam[cat] || {};
+          if (fam) byCatFam[cat][fam] = (byCatFam[cat][fam] || 0) + val;
         }
         if (lo && (!lastOrderDate || new Date(lo) > new Date(lastOrderDate))) lastOrderDate = lo;
       }
-      return { byCat, byCatInter, total, lastOrderDate };
+      return { byCat, byCatFam, total, lastOrderDate };
     };
     const cur = collect(curRows);
     const prior = collect(priorRows);
@@ -4698,17 +4728,59 @@ CALCULATETABLE(
       : null;
 
     // Per-family current vs prior period, with % change — this is the actual "what's
-    // accelerating / what's slowing down" view, not a flat monthly table.
+    // accelerating / what's slowing down" view, not a flat monthly table. subFamilies
+    // is the same current-vs-prior shape one level down (ALL_PARTS[תאור משפחת מוצר]),
+    // for the expand-on-click drilldown under each department row.
     const allCats = new Set([...Object.keys(cur.byCat), ...Object.keys(prior.byCat)]);
     const families = {};
     for (const cat of allCats) {
       const c = cur.byCat[cat] || 0, p = prior.byCat[cat] || 0;
-      families[cat] = { current: c, prior: p, deltaPct: p > 0 ? Math.round((c / p - 1) * 100) : null };
+      const curFam = cur.byCatFam[cat] || {}, priorFam = prior.byCatFam[cat] || {};
+      const subFamilies = [...new Set([...Object.keys(curFam), ...Object.keys(priorFam)])]
+        .map(fam => {
+          const fc = curFam[fam] || 0, fp = priorFam[fam] || 0;
+          return { name: fixBiDi(fam), current: fc, prior: fp, deltaPct: fp > 0 ? Math.round((fc / fp - 1) * 100) : null };
+        })
+        .sort((a, b) => b.current - a.current);
+      families[cat] = { current: c, prior: p, deltaPct: p > 0 ? Math.round((c / p - 1) * 100) : null, subFamilies };
     }
+
+    // INTER breakdown by KARTIS PARIT INTER's own פרמטר 2 (per user request —
+    // INTER has no real family field, ALL_PARTS[מחלקה] collapses everything to one
+    // "מתוקים" bucket). SKU-level totals joined against param2 by SKU, same pattern
+    // as the dormant-products param2 lookup above. SKUs not found in KARTIS PARIT
+    // INTER simply aren't INTER's — dropped rather than guessed at.
+    const skuTotals = (rows) => {
+      const m = {};
+      for (const r of rows) {
+        const sku = String(r["ALL_PARTS[מק'ט]"] || '');
+        const val = Math.round(r['[total]'] || 0);
+        if (sku && val > 0) m[sku] = (m[sku] || 0) + val;
+      }
+      return m;
+    };
+    const curSku = skuTotals(curSkuRows), priorSku = skuTotals(priorSkuRows);
     const familiesInter = {};
-    for (const cat of new Set([...Object.keys(cur.byCatInter), ...Object.keys(prior.byCatInter)])) {
-      const c = cur.byCatInter[cat] || 0, p = prior.byCatInter[cat] || 0;
-      familiesInter[cat] = { current: c, prior: p, deltaPct: p > 0 ? Math.round((c / p - 1) * 100) : null };
+    const interSkuList = [...new Set([...Object.keys(curSku), ...Object.keys(priorSku)])];
+    if (interSkuList.length) {
+      const skuInFilter = interSkuList.map(s => `"${s}"`).join(',');
+      const p2Rows = await executeDax(
+        `EVALUATE SELECTCOLUMNS(FILTER('KARTIS PARIT INTER', 'KARTIS PARIT INTER'[מק"ט] IN {${skuInFilter}}), "sku", 'KARTIS PARIT INTER'[מק"ט], "p2", 'KARTIS PARIT INTER'[תאור פרמטר 2 למוצר])`
+      );
+      const sku2p2 = new Map(p2Rows.map(r => [String(r['[sku]']), fixBiDi(r['[p2]'] || '')]));
+      const p2Cur = {}, p2Prior = {};
+      for (const [sku, val] of Object.entries(curSku)) {
+        const p2 = sku2p2.get(sku); if (!p2) continue;
+        p2Cur[p2] = (p2Cur[p2] || 0) + val;
+      }
+      for (const [sku, val] of Object.entries(priorSku)) {
+        const p2 = sku2p2.get(sku); if (!p2) continue;
+        p2Prior[p2] = (p2Prior[p2] || 0) + val;
+      }
+      for (const p2 of new Set([...Object.keys(p2Cur), ...Object.keys(p2Prior)])) {
+        const c = p2Cur[p2] || 0, p = p2Prior[p2] || 0;
+        familiesInter[p2] = { current: c, prior: p, deltaPct: p > 0 ? Math.round((c / p - 1) * 100) : null };
+      }
     }
 
     const curLabel = `${curMonths[0].label}–${curMonths[2].label}`;
