@@ -4504,9 +4504,7 @@ CALCULATETABLE(
 )`;
     };
 
-    // Deprioritized 2026-08-18 (see familiesInter below) — skip the extra SKU-level
-    // DAX round-trip on every client-AI open while the feature is gated off.
-    const INTER_P2_BREAKDOWN_ENABLED = false;
+    const INTER_P2_BREAKDOWN_ENABLED = true;
     const [curRows, priorRows, avgRows, curSkuRows, priorSkuRows] = await Promise.all([
       executeDax(famDax(curStart, curEnd)),
       executeDax(famDax(priorStart, priorEnd)),
@@ -4764,12 +4762,11 @@ CALCULATETABLE(
       families[cat] = { current: c, prior: p, deltaPct: p > 0 ? Math.round((c / p - 1) * 100) : null, subFamilies };
     }
 
-    // INTER breakdown by KARTIS PARIT INTER's own פרמטר 2 — deprioritized
-    // 2026-08-18, not needed for now (INTER_P2_BREAKDOWN_ENABLED flag set above,
-    // next to the skuDax queries it also gates). Root cause of the inflated
-    // numbers IS fixed (see skuDax comment above, verified live against custId
-    // 1130037), but kept off rather than spending more time closing the small
-    // residual rounding gap for a feature that isn't wanted right now.
+    // INTER breakdown by KARTIS PARIT INTER's own פרמטר 2. Root cause of the
+    // inflated numbers is fixed (see skuDax comment above, verified live against
+    // custId 1130037) — flag lives next to the skuDax queries it also gates.
+    // Known: totals sum a few % short of the reference total (rounding across
+    // ~100 SKU rows, not re-chased further).
     const familiesInter = {};
     if (INTER_P2_BREAKDOWN_ENABLED) {
       const skuTotals = (rows) => {
