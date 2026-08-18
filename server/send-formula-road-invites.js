@@ -98,8 +98,21 @@ async function main() {
     });
   });
 
-  const targets = ONLY_TO ? rows.filter(r => r.email.toLowerCase() === ONLY_TO.toLowerCase()) : rows;
-  console.log(`${SHOULD_SEND ? 'SENDING' : 'DRY RUN'} — ${targets.length} recipient(s) (${rows.filter(r=>r.isManager).length} managers, ${rows.filter(r=>!r.isManager).length} agents in full list)`);
+  // Skip rows sharing an email with another row — sending both means neither agent
+  // reliably gets their own invite, and the roster (EMAIL + PASSWORD.xlsx) currently
+  // has 2 such pairs from what looks like copy-paste errors. Print them so they don't
+  // silently go missing from the batch.
+  const emailCounts = new Map();
+  for (const r of rows) emailCounts.set(r.email.toLowerCase(), (emailCounts.get(r.email.toLowerCase()) || 0) + 1);
+  const duplicates = rows.filter(r => emailCounts.get(r.email.toLowerCase()) > 1);
+  if (duplicates.length) {
+    console.log(`SKIPPING ${duplicates.length} row(s) with duplicate emails in the roster:`);
+    duplicates.forEach(r => console.log(`  ${r.agentName} <${r.email}>`));
+  }
+  const deduped = rows.filter(r => emailCounts.get(r.email.toLowerCase()) === 1);
+
+  const targets = ONLY_TO ? deduped.filter(r => r.email.toLowerCase() === ONLY_TO.toLowerCase()) : deduped;
+  console.log(`${SHOULD_SEND ? 'SENDING' : 'DRY RUN'} — ${targets.length} recipient(s) (${deduped.filter(r=>r.isManager).length} managers, ${deduped.filter(r=>!r.isManager).length} agents after dedup)`);
 
   for (const r of targets) {
     const link = makeShortInvite(r.agentCode, r.agentName, 30, r.isManager);
