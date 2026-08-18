@@ -4472,6 +4472,21 @@ ROW(
     // has to come from KARTIS PARIT INTER's own פרמטר 2 field instead, which is
     // keyed by SKU, not family — same join pattern already used for the dormant
     // chain-products list above.
+    //
+    // Deliberately NOT using the named measure [TOTAL SALES (ללא זיכויים מרכזים)]
+    // here (unlike famDax) — verified live against custId 1130037 that it returns
+    // the SAME client-wide total on every single SKU row (104 rows, one figure
+    // repeated 104×) instead of a per-SKU number. Root cause: the measure's own
+    // definition has NOT(ALL_PARTS[מק'ט] IN ExcludedProducts) as a CALCULATE filter
+    // argument on the exact column SUMMARIZE groups by — an explicit filter on a
+    // column REPLACES row-context's filter on that same column (DAX filter-argument
+    // semantics), instead of intersecting with it, so the per-row SKU restriction
+    // from context transition gets silently thrown away. Works fine grouped by
+    // family (a different column) — famDax above is unaffected. Fix: replicate the
+    // exclusion as a CALCULATETABLE-level filter (applied once, before SUMMARIZE
+    // groups rows) instead of inside the per-row CALCULATE, and sum the raw column
+    // directly — same fix shape as the already-working zikuyDax/lastShipDax queries
+    // elsewhere in this file, which never routed through this measure either.
     const skuDax = (start, end) => {
       const lastDay = new Date(end.year, end.month, 0).getDate();
       return `
@@ -4479,21 +4494,25 @@ EVALUATE
 CALCULATETABLE(
   ADDCOLUMNS(
     SUMMARIZE(ALL_PARTS, ALL_PARTS[מק'ט]),
-    "total", CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)])
+    "total", CALCULATE(SUM(ALL_PARTS[סכום (ש'ח)]))
   ),
   ALL_PARTS[מספר לקוח] = "${custId}",
   ALL_PARTS[ASHMADOT] = "-מכר-",${kosherFilter}
+  NOT(ALL_PARTS[מק'ט] IN {"0","915001","915002","916000","916001","916002","916003","916004","916005","916006","916007","916008","916009","916010","916011"}),
   ALL_PARTS[תאריך] >= DATE(${start.year},${start.month},1),
   ALL_PARTS[תאריך] <= DATE(${end.year},${end.month},${lastDay})
 )`;
     };
 
+    // Deprioritized 2026-08-18 (see familiesInter below) — skip the extra SKU-level
+    // DAX round-trip on every client-AI open while the feature is gated off.
+    const INTER_P2_BREAKDOWN_ENABLED = false;
     const [curRows, priorRows, avgRows, curSkuRows, priorSkuRows] = await Promise.all([
       executeDax(famDax(curStart, curEnd)),
       executeDax(famDax(priorStart, priorEnd)),
       executeDax(daxAvg(curStart, curEnd)),
-      executeDax(skuDax(curStart, curEnd)),
-      executeDax(skuDax(priorStart, priorEnd)),
+      INTER_P2_BREAKDOWN_ENABLED ? executeDax(skuDax(curStart, curEnd)) : Promise.resolve([]),
+      INTER_P2_BREAKDOWN_ENABLED ? executeDax(skuDax(priorStart, priorEnd)) : Promise.resolve([]),
     ]);
 
     const peerAvg = Math.round(avgRows?.[0]?.['[avg_per_client]'] || 0);
@@ -4745,15 +4764,12 @@ CALCULATETABLE(
       families[cat] = { current: c, prior: p, deltaPct: p > 0 ? Math.round((c / p - 1) * 100) : null, subFamilies };
     }
 
-    // INTER breakdown by KARTIS PARIT INTER's own פרמטר 2 — DISABLED 2026-08-18.
-    // Numbers came back wildly inflated (single param2 buckets bigger than the
-    // client's entire cross-company total) despite the exact same custId filter
-    // pattern that works correctly in famDax above — looks like a DAX fan-out when
-    // ALL_PARTS is grouped by SKU specifically (a relationship multiplying rows),
-    // not a scoping bug in this query text. Needs live verification via Tabular
-    // Editor/DAX Studio against custId 1130037 before re-enabling — showing nothing
-    // beats showing a wrong ₪ figure to an agent standing in front of a client.
-    const INTER_P2_BREAKDOWN_ENABLED = false;
+    // INTER breakdown by KARTIS PARIT INTER's own פרמטר 2 — deprioritized
+    // 2026-08-18, not needed for now (INTER_P2_BREAKDOWN_ENABLED flag set above,
+    // next to the skuDax queries it also gates). Root cause of the inflated
+    // numbers IS fixed (see skuDax comment above, verified live against custId
+    // 1130037), but kept off rather than spending more time closing the small
+    // residual rounding gap for a feature that isn't wanted right now.
     const familiesInter = {};
     if (INTER_P2_BREAKDOWN_ENABLED) {
       const skuTotals = (rows) => {
