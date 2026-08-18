@@ -93,7 +93,7 @@ ADDCOLUMNS(
         agentName: fixBiDi(r['משטח[שם סוכן]'] || ''),
         manager:   r['משטח[קבוצה]']   || '',
         sadran:    r['משטח[שם סדרן]'] || '',
-        target:    parseFloat(r['[target]']) || 0,
+        target:    Math.round(parseFloat(r['[target]']) || 0),
         monthlySales:  0,
         avg6Sales:     0,
         avg6Orders:    0,
@@ -116,7 +116,7 @@ ADDCOLUMNS(
       const custId = String(r['ALL_PARTS[מספר לקוח]'] || '');
       if (!custId) continue;
       salesMap.set(custId, {
-        monthlySales: parseFloat(r['[monthlySales]']) || 0,
+        monthlySales: Math.round(parseFloat(r['[monthlySales]']) || 0),
         lastOrderDate: lastOrderMap.get(custId) || null,
       });
     }
@@ -155,8 +155,8 @@ CALCULATETABLE(
       const custId = String(r['ALL_PARTS[מספר לקוח]'] || '');
       const c = clientMap.get(custId);
       if (!c) continue;
-      c.avg6Sales  = parseFloat(r['[avg6Sales]'])  || 0;
-      c.avg6Orders = parseFloat(r['[avg6Orders]']) || 0;
+      c.avg6Sales  = Math.round(parseFloat(r['[avg6Sales]'])  || 0);
+      c.avg6Orders = Math.round(parseFloat(r['[avg6Orders]']) || 0);
     }
 
     // E: ICE MISH avg6 — משפחתי גלידה families only (BiDi stored as יתחפשמ)
@@ -176,7 +176,7 @@ CALCULATETABLE(
       const custId = String(r['ALL_PARTS[מספר לקוח]'] || '');
       const c = clientMap.get(custId);
       if (!c) continue;
-      c.avg6IceSales = parseFloat(r['[avg6IceSales]']) || 0;
+      c.avg6IceSales = Math.round(parseFloat(r['[avg6IceSales]']) || 0);
     }
 
     // Build schedule map: custId → [{dayNum, dayLabel, visitOrder}]
@@ -329,14 +329,14 @@ SELECTCOLUMNS(
       const custId = String(r['ALL_PARTS[מספר לקוח]'] || '');
       const c = iceClientFlat.get(custId);
       if (!c) continue;
-      c.avg6Sales  = parseFloat(r['[avg6Sales]'])  || 0;
-      c.avg6Orders = parseFloat(r['[avg6Orders]']) || 0;
+      c.avg6Sales  = Math.round(parseFloat(r['[avg6Sales]'])  || 0);
+      c.avg6Orders = Math.round(parseFloat(r['[avg6Orders]']) || 0);
     }
     for (const r of avg6IceRows) {
       const custId = String(r['ALL_PARTS[מספר לקוח]'] || '');
       const c = iceClientFlat.get(custId);
       if (!c) continue;
-      c.avg6IceSales = parseFloat(r['[avg6IceSales]']) || 0;
+      c.avg6IceSales = Math.round(parseFloat(r['[avg6IceSales]']) || 0);
     }
 
     pbiCache = {
