@@ -2471,8 +2471,8 @@
   },
   "701": {
     "stock": 101,
-    "daySales": 1.0033156498673739,
-    "daySales365": 2.6250898634076205,
+    "daySales": 0.9698717948717948,
+    "daySales365": 2.6007834757834756,
     "pakuot": [
       {
         "date": "2027-08-19T00:00:00.000Z",
@@ -2487,8 +2487,8 @@
         "cartons": 118
       }
     ],
-    "daySalesAll": 1.4651442307692308,
-    "daysStockAll": 81,
+    "daySalesAll": 1.4207459207459208,
+    "daysStockAll": 83,
     "stockZafn": 17,
     "daySalesZafn": 0.5738213399503722,
     "pakuotZafn": [
@@ -2651,8 +2651,8 @@
   },
   "713": {
     "stock": 59,
-    "daySales": 1.2866004962779156,
-    "daySales365": 3.2454866562009417,
+    "daySales": 1.2463942307692308,
+    "daySales365": 3.2127039627039626,
     "pakuot": [
       {
         "date": "2027-08-18T00:00:00.000Z",
@@ -2667,8 +2667,8 @@
         "cartons": 82
       }
     ],
-    "daySalesAll": 2.048076923076923,
-    "daysStockAll": 40,
+    "daySalesAll": 1.9860139860139858,
+    "daysStockAll": 41,
     "stockZafn": 23,
     "daySalesZafn": 0.8275434243176178,
     "pakuotZafn": [
@@ -3152,8 +3152,8 @@
     "yavesh": true
   },
   "732": {
-    "stock": 11062,
-    "daySales": 142.6,
+    "stock": 11061,
+    "daySales": 138.3,
     "kratnost": 220,
     "palStock": 50.3,
     "stockZafn": 726,
@@ -3167,8 +3167,8 @@
     "weight": 0.2,
     "packFactor": 20,
     "weightCarton": 4,
-    "daySalesAll": 231.6,
-    "daysStockAll": 48,
+    "daySalesAll": 224.6,
+    "daysStockAll": 49,
     "nameEn": "חמאה200 FERMA 82.5% ג'",
     "fam": "חמאה FERMA",
     "iksGroup": null,
@@ -3177,7 +3177,7 @@
       {
         "date": "2027-05-27",
         "daysLeft": 282,
-        "cartons": 1062
+        "cartons": 1061
       },
       {
         "date": "2027-06-17",
@@ -3199,7 +3199,7 @@
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 11788,
+    "spo": 11787,
     "openOrders": null,
     "weekSales": [
       223.8,
@@ -3554,12 +3554,12 @@
     ]
   },
   "800": {
-    "stock": 0,
+    "stock": 3780,
     "daySales": 51.7,
     "kratnost": 180,
-    "palStock": null,
-    "stockZafn": null,
-    "palStockZafn": null,
+    "palStock": 21,
+    "stockZafn": 360,
+    "palStockZafn": 2,
     "daySalesZafn": 34,
     "daysStock": null,
     "daysStockZafn": null,
@@ -3570,16 +3570,28 @@
     "packFactor": 24,
     "weightCarton": 4.8,
     "daySalesAll": 72,
-    "daysStockAll": null,
+    "daysStockAll": 52,
     "nameEn": "חמאה בד\"צ 82.5% רושן חדש200 ג'",
     "fam": "חמאה רושן",
     "iksGroup": null,
     "ashdodPalletCartons": null,
-    "pakuot": [],
-    "pakuotZafn": [],
+    "pakuot": [
+      {
+        "date": "2027-12-09",
+        "daysLeft": 478,
+        "cartons": 3780
+      }
+    ],
+    "pakuotZafn": [
+      {
+        "date": "2027-12-09",
+        "daysLeft": 478,
+        "cartons": 360
+      }
+    ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": null,
+    "spo": 4140,
     "openOrders": null,
     "weekSales": [
       0,
@@ -4131,9 +4143,9 @@
     "palStock": 4.3,
     "stockZafn": 137,
     "palStockZafn": 0.7,
-    "daySalesZafn": 8.1,
+    "daySalesZafn": null,
     "daysStock": 65,
-    "daysStockZafn": 24,
+    "daysStockZafn": null,
     "stockTrnz": 576,
     "palStockTrnz": 3,
     "daySalesTrnz": null,
@@ -4146,30 +4158,8 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 245
-      },
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 573
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-11-13",
-        "daysLeft": 87,
-        "cartons": 9
-      },
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 128
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -4227,9 +4217,9 @@
     "palStock": 2,
     "stockZafn": 186,
     "palStockZafn": 1,
-    "daySalesZafn": 13.5,
+    "daySalesZafn": null,
     "daysStock": 24,
-    "daysStockZafn": 19,
+    "daysStockZafn": null,
     "stockTrnz": 384,
     "palStockTrnz": 2,
     "daySalesTrnz": null,
@@ -4242,30 +4232,8 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 134
-      },
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 253
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 58
-      },
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 128
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -4323,9 +4291,9 @@
     "palStock": 2.7,
     "stockZafn": 197,
     "palStockZafn": 1,
-    "daySalesZafn": 11.7,
+    "daySalesZafn": null,
     "daysStock": 30,
-    "daysStockZafn": 23,
+    "daysStockZafn": null,
     "stockTrnz": 518,
     "palStockTrnz": 2.7,
     "daySalesTrnz": null,
@@ -4338,25 +4306,8 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 523
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 5
-      },
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 192
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -4385,9 +4336,9 @@
     "palStock": 9.9,
     "stockZafn": 290,
     "palStockZafn": 1.4,
-    "daySalesZafn": 25.8,
+    "daySalesZafn": null,
     "daysStock": 64,
-    "daysStockZafn": 16,
+    "daysStockZafn": null,
     "stockTrnz": 400,
     "palStockTrnz": 2,
     "daySalesTrnz": null,
@@ -4400,45 +4351,8 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 67,
-        "cartons": 175
-      },
-      {
-        "date": "2026-11-06",
-        "daysLeft": 80,
-        "cartons": 399
-      },
-      {
-        "date": "2026-11-13",
-        "daysLeft": 87,
-        "cartons": 599
-      },
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 399
-      },
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 399
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 67,
-        "cartons": 90
-      },
-      {
-        "date": "2026-11-06",
-        "daysLeft": 80,
-        "cartons": 200
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -4467,9 +4381,9 @@
     "palStock": 6.7,
     "stockZafn": 157,
     "palStockZafn": 0.8,
-    "daySalesZafn": 11.1,
+    "daySalesZafn": null,
     "daysStock": 136,
-    "daysStockZafn": 20,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -4482,40 +4396,8 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 67,
-        "cartons": 72
-      },
-      {
-        "date": "2026-11-13",
-        "daysLeft": 87,
-        "cartons": 317
-      },
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 445
-      },
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 445
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 67,
-        "cartons": 29
-      },
-      {
-        "date": "2026-11-13",
-        "daysLeft": 87,
-        "cartons": 128
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -4660,9 +4542,9 @@
     "palStock": 7.9,
     "stockZafn": 190,
     "palStockZafn": 0.8,
-    "daySalesZafn": 25.6,
+    "daySalesZafn": null,
     "daysStock": 67,
-    "daysStockZafn": 10,
+    "daysStockZafn": null,
     "stockTrnz": 448,
     "palStockTrnz": 2,
     "daySalesTrnz": null,
@@ -4675,30 +4557,8 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-11-13",
-        "daysLeft": 87,
-        "cartons": 419
-      },
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 895
-      },
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 447
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-11-13",
-        "daysLeft": 87,
-        "cartons": 190
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -4722,60 +4582,28 @@
   },
   "1012": {
     "stock": 1757,
-    "daySales": 39.2,
+    "daySales": 38,
     "kratnost": 240,
     "palStock": 7.3,
     "stockZafn": 260,
     "palStockZafn": 1.1,
-    "daySalesZafn": 27.9,
-    "daysStock": 63,
-    "daysStockZafn": 13,
+    "daySalesZafn": null,
+    "daysStock": 65,
+    "daysStockZafn": null,
     "stockTrnz": 960,
     "palStockTrnz": 4,
     "daySalesTrnz": null,
     "weight": 0.26,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 67,
-    "daysStockAll": 26,
+    "daySalesAll": 65,
+    "daysStockAll": 27,
     "nameEn": "חתיכות פילה דג הרינג מלוח מצונן עם בצל260 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-11-06",
-        "daysLeft": 80,
-        "cartons": 80
-      },
-      {
-        "date": "2026-11-13",
-        "daysLeft": 87,
-        "cartons": 479
-      },
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 479
-      },
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 719
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-11-06",
-        "daysLeft": 80,
-        "cartons": 20
-      },
-      {
-        "date": "2026-11-13",
-        "daysLeft": 87,
-        "cartons": 240
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -4804,9 +4632,9 @@
     "palStock": 6.3,
     "stockZafn": 252,
     "palStockZafn": 1.1,
-    "daySalesZafn": 17.8,
+    "daySalesZafn": null,
     "daysStock": 82,
-    "daysStockZafn": 20,
+    "daysStockZafn": null,
     "stockTrnz": 480,
     "palStockTrnz": 2,
     "daySalesTrnz": null,
@@ -4819,40 +4647,8 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-11-06",
-        "daysLeft": 80,
-        "cartons": 223
-      },
-      {
-        "date": "2026-11-13",
-        "daysLeft": 87,
-        "cartons": 323
-      },
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 479
-      },
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 479
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-11-06",
-        "daysLeft": 80,
-        "cartons": 96
-      },
-      {
-        "date": "2026-11-13",
-        "daysLeft": 87,
-        "cartons": 156
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -4881,9 +4677,9 @@
     "palStock": 6.6,
     "stockZafn": 379,
     "palStockZafn": 1.6,
-    "daySalesZafn": 45.8,
+    "daySalesZafn": null,
     "daysStock": 32,
-    "daysStockZafn": 12,
+    "daysStockZafn": null,
     "stockTrnz": 720,
     "palStockTrnz": 3,
     "daySalesTrnz": null,
@@ -4896,25 +4692,8 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 620
-      },
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 959
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 379
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -4943,9 +4722,9 @@
     "palStock": 2.1,
     "stockZafn": 392,
     "palStockZafn": 1.1,
-    "daySalesZafn": 6.3,
+    "daySalesZafn": null,
     "daysStock": 127,
-    "daysStockZafn": 87,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -4958,30 +4737,8 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "IKRA",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 67,
-        "cartons": 259
-      },
-      {
-        "date": "2027-01-30",
-        "daysLeft": 165,
-        "cartons": 495
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 67,
-        "cartons": 140
-      },
-      {
-        "date": "2027-01-30",
-        "daysLeft": 165,
-        "cartons": 252
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -5033,41 +4790,29 @@
     "openOrders": null
   },
   "1017": {
-    "stock": 900,
-    "daySales": 27.1,
+    "stock": 901,
+    "daySales": 26.2,
     "kratnost": 357,
     "palStock": 2.5,
     "stockZafn": 242,
     "palStockZafn": 0.7,
-    "daySalesZafn": 23.1,
-    "daysStock": 47,
-    "daysStockZafn": 15,
+    "daySalesZafn": null,
+    "daysStock": 48,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.18,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 50.2,
-    "daysStockAll": 18,
+    "daySalesAll": 48.7,
+    "daysStockAll": 19,
     "nameEn": "איקרה ביצי דג טרוטונית והרינג עם פורל וסלמון180 ג'",
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "IKRA",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2027-01-30",
-        "daysLeft": 165,
-        "cartons": 900
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2027-01-30",
-        "daysLeft": 165,
-        "cartons": 242
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -5096,9 +4841,9 @@
     "palStock": 3.6,
     "stockZafn": 212,
     "palStockZafn": 0.6,
-    "daySalesZafn": 16.2,
+    "daySalesZafn": null,
     "daysStock": 105,
-    "daysStockZafn": 18,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -5111,20 +4856,8 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "IKRA",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2027-01-30",
-        "daysLeft": 165,
-        "cartons": 1293
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2027-01-30",
-        "daysLeft": 165,
-        "cartons": 212
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -5153,9 +4886,9 @@
     "palStock": 4.4,
     "stockZafn": 195,
     "palStockZafn": 0.6,
-    "daySalesZafn": 19,
+    "daySalesZafn": null,
     "daysStock": 90,
-    "daysStockZafn": 14,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -5168,20 +4901,8 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "IKRA",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-12-05",
-        "daysLeft": 109,
-        "cartons": 1467
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-12-05",
-        "daysLeft": 109,
-        "cartons": 195
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -5210,9 +4931,9 @@
     "palStock": 2.2,
     "stockZafn": 102,
     "palStockZafn": 0.3,
-    "daySalesZafn": 11.8,
+    "daySalesZafn": null,
     "daysStock": 78,
-    "daysStockZafn": 12,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -5225,20 +4946,8 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "IKRA",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-12-05",
-        "daysLeft": 109,
-        "cartons": 741
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-12-05",
-        "daysLeft": 109,
-        "cartons": 102
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -6038,9 +5747,9 @@
     "palStock": 1.8,
     "stockZafn": 152,
     "palStockZafn": 0.8,
-    "daySalesZafn": 11.5,
+    "daySalesZafn": null,
     "daysStock": 28,
-    "daysStockZafn": 18,
+    "daysStockZafn": null,
     "stockTrnz": 400,
     "palStockTrnz": 2,
     "daySalesTrnz": null,
@@ -6053,30 +5762,8 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-11-13",
-        "daysLeft": 87,
-        "cartons": 80
-      },
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 279
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-11-13",
-        "daysLeft": 87,
-        "cartons": 32
-      },
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 120
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -6105,9 +5792,9 @@
     "palStock": 6,
     "stockZafn": 172,
     "palStockZafn": 0.9,
-    "daySalesZafn": 15.5,
+    "daySalesZafn": null,
     "daysStock": 63,
-    "daysStockZafn": 16,
+    "daysStockZafn": null,
     "stockTrnz": 400,
     "palStockTrnz": 2,
     "daySalesTrnz": null,
@@ -6120,40 +5807,8 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 67,
-        "cartons": 131
-      },
-      {
-        "date": "2026-11-06",
-        "daysLeft": 80,
-        "cartons": 279
-      },
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 399
-      },
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 399
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 67,
-        "cartons": 52
-      },
-      {
-        "date": "2026-11-06",
-        "daysLeft": 80,
-        "cartons": 120
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -6182,9 +5837,9 @@
     "palStock": 2.8,
     "stockZafn": 376,
     "palStockZafn": 1.6,
-    "daySalesZafn": 39.5,
+    "daySalesZafn": null,
     "daysStock": 13,
-    "daysStockZafn": 13,
+    "daysStockZafn": null,
     "stockTrnz": 720,
     "palStockTrnz": 3,
     "daySalesTrnz": null,
@@ -6197,30 +5852,8 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 201
-      },
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 479
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 136
-      },
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 240
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -6431,9 +6064,9 @@
     "palStock": 1,
     "stockZafn": 53,
     "palStockZafn": 0.3,
-    "daySalesZafn": 8.6,
+    "daySalesZafn": null,
     "daysStock": 17,
-    "daysStockZafn": 9,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -6446,20 +6079,8 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "KAPUSTA",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-11-02",
-        "daysLeft": 76,
-        "cartons": 163
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-11-02",
-        "daysLeft": 76,
-        "cartons": 53
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -6488,9 +6109,9 @@
     "palStock": 1.8,
     "stockZafn": 86,
     "palStockZafn": 0.5,
-    "daySalesZafn": 4.7,
+    "daySalesZafn": null,
     "daysStock": 64,
-    "daysStockZafn": 25,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -6503,30 +6124,8 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "KAPUSTA",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-10-27",
-        "daysLeft": 70,
-        "cartons": 45
-      },
-      {
-        "date": "2026-11-01",
-        "daysLeft": 75,
-        "cartons": 264
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-10-27",
-        "daysLeft": 70,
-        "cartons": 14
-      },
-      {
-        "date": "2026-11-01",
-        "daysLeft": 75,
-        "cartons": 72
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -6555,9 +6154,9 @@
     "palStock": 1,
     "stockZafn": 86,
     "palStockZafn": 0.5,
-    "daySalesZafn": 2.9,
+    "daySalesZafn": null,
     "daysStock": 61,
-    "daysStockZafn": 41,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -6570,20 +6169,8 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "KAPUSTA",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-11-03",
-        "daysLeft": 77,
-        "cartons": 175
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-11-03",
-        "daysLeft": 77,
-        "cartons": 86
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -7130,15 +6717,15 @@
     ]
   },
   "1077": {
-    "stock": 460,
+    "stock": 420,
     "daySales": 59.9,
     "kratnost": 128,
-    "palStock": 3.6,
-    "stockZafn": 69,
-    "palStockZafn": 0.5,
+    "palStock": 3.3,
+    "stockZafn": 109,
+    "palStockZafn": 0.9,
     "daySalesZafn": 43.3,
-    "daysStock": 11,
-    "daysStockZafn": 2,
+    "daysStock": 10,
+    "daysStockZafn": 4,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -7146,7 +6733,7 @@
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 101.8,
-    "daysStockAll": 5,
+    "daysStockAll": 4,
     "nameEn": "שמנת 15% SMETANA שומן350 ג'",
     "fam": "SVALIA שמנת/יוגורט/ דייסה",
     "iksGroup": null,
@@ -7155,14 +6742,14 @@
       {
         "date": "2026-09-21",
         "daysLeft": 34,
-        "cartons": 460
+        "cartons": 420
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-09-21",
         "daysLeft": 34,
-        "cartons": 69
+        "cartons": 109
       }
     ],
     "shelfLife": 7,
@@ -7533,9 +7120,9 @@
     "palStock": 13,
     "stockZafn": 504,
     "palStockZafn": 1.8,
-    "daySalesZafn": 53.6,
+    "daySalesZafn": null,
     "daysStock": 55,
-    "daysStockZafn": 13,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -7548,30 +7135,8 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "IKRA",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2027-03-03",
-        "daysLeft": 197,
-        "cartons": 2065
-      },
-      {
-        "date": "2027-03-31",
-        "daysLeft": 225,
-        "cartons": 1526
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2027-03-03",
-        "daysLeft": 197,
-        "cartons": 228
-      },
-      {
-        "date": "2027-03-31",
-        "daysLeft": 225,
-        "cartons": 276
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -7600,9 +7165,9 @@
     "palStock": 3.7,
     "stockZafn": 231,
     "palStockZafn": 0.8,
-    "daySalesZafn": 17.2,
+    "daySalesZafn": null,
     "daysStock": 49,
-    "daysStockZafn": 19,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -7615,25 +7180,8 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "IKRA",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2027-03-03",
-        "daysLeft": 197,
-        "cartons": 462
-      },
-      {
-        "date": "2027-03-31",
-        "daysLeft": 225,
-        "cartons": 552
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2027-03-03",
-        "daysLeft": 197,
-        "cartons": 231
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -7662,9 +7210,9 @@
     "palStock": 1,
     "stockZafn": 173,
     "palStockZafn": 0.4,
-    "daySalesZafn": 14.1,
+    "daySalesZafn": null,
     "daysStock": 28,
-    "daysStockZafn": 17,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -7677,20 +7225,8 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "KAPUSTA",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 410
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 173
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -8287,9 +7823,9 @@
     "palStock": 3.6,
     "stockZafn": 294,
     "palStockZafn": 1.3,
-    "daySalesZafn": 20.2,
+    "daySalesZafn": null,
     "daysStock": 29,
-    "daysStockZafn": 20,
+    "daysStockZafn": null,
     "stockTrnz": 672,
     "palStockTrnz": 3,
     "daySalesTrnz": null,
@@ -8302,35 +7838,8 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-11-13",
-        "daysLeft": 87,
-        "cartons": 134
-      },
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 223
-      },
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 447
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-11-13",
-        "daysLeft": 87,
-        "cartons": 70
-      },
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 224
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -8359,9 +7868,9 @@
     "palStock": 1.9,
     "stockZafn": 376,
     "palStockZafn": 1.1,
-    "daySalesZafn": 9.4,
+    "daySalesZafn": null,
     "daysStock": 50,
-    "daysStockZafn": 56,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -8374,30 +7883,8 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "IKRA",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2027-01-02",
-        "daysLeft": 137,
-        "cartons": 175
-      },
-      {
-        "date": "2027-01-30",
-        "daysLeft": 165,
-        "cartons": 499
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2027-01-02",
-        "daysLeft": 137,
-        "cartons": 124
-      },
-      {
-        "date": "2027-01-30",
-        "daysLeft": 165,
-        "cartons": 252
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -8426,9 +7913,9 @@
     "palStock": 3.8,
     "stockZafn": 485,
     "palStockZafn": 1.4,
-    "daySalesZafn": 23.2,
+    "daySalesZafn": null,
     "daysStock": 44,
-    "daysStockZafn": 29,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -8441,30 +7928,8 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "IKRA",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2027-01-02",
-        "daysLeft": 137,
-        "cartons": 217
-      },
-      {
-        "date": "2027-01-30",
-        "daysLeft": 165,
-        "cartons": 1124
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2027-01-02",
-        "daysLeft": 137,
-        "cartons": 128
-      },
-      {
-        "date": "2027-01-30",
-        "daysLeft": 165,
-        "cartons": 357
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -8493,9 +7958,9 @@
     "palStock": 1.9,
     "stockZafn": 115,
     "palStockZafn": 0.3,
-    "daySalesZafn": 15.7,
+    "daySalesZafn": null,
     "daysStock": 37,
-    "daysStockZafn": 10,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -8508,20 +7973,8 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "IKRA",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2027-01-30",
-        "daysLeft": 165,
-        "cartons": 661
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2027-01-30",
-        "daysLeft": 165,
-        "cartons": 115
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -8579,9 +8032,9 @@
     "palStock": null,
     "stockZafn": 0,
     "palStockZafn": null,
-    "daySalesZafn": 2,
+    "daySalesZafn": null,
     "daysStock": 0,
-    "daysStockZafn": 0,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -8624,9 +8077,9 @@
     "palStock": 0.6,
     "stockZafn": 8,
     "palStockZafn": 0.2,
-    "daySalesZafn": 1.6,
+    "daySalesZafn": null,
     "daysStock": 24,
-    "daysStockZafn": 7,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -8639,20 +8092,8 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "IKRA",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2027-01-30",
-        "daysLeft": 165,
-        "cartons": 27
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2027-01-30",
-        "daysLeft": 165,
-        "cartons": 8
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -8704,15 +8145,15 @@
     "openOrders": null
   },
   "1157": {
-    "stock": 1514,
+    "stock": 1504,
     "daySales": 15.3,
     "kratnost": 273,
     "palStock": 5.5,
-    "stockZafn": 391,
-    "palStockZafn": 1.4,
-    "daySalesZafn": 10.7,
-    "daysStock": 139,
-    "daysStockZafn": 51,
+    "stockZafn": 401,
+    "palStockZafn": 1.5,
+    "daySalesZafn": null,
+    "daysStock": 138,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -8725,45 +8166,8 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-08-28",
-        "daysLeft": 10,
-        "cartons": 28
-      },
-      {
-        "date": "2026-09-11",
-        "daysLeft": 24,
-        "cartons": 262
-      },
-      {
-        "date": "2026-10-24",
-        "daysLeft": 67,
-        "cartons": 246
-      },
-      {
-        "date": "2026-11-06",
-        "daysLeft": 80,
-        "cartons": 489
-      },
-      {
-        "date": "2026-11-13",
-        "daysLeft": 87,
-        "cartons": 489
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-09-11",
-        "daysLeft": 24,
-        "cartons": 148
-      },
-      {
-        "date": "2026-10-24",
-        "daysLeft": 67,
-        "cartons": 243
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": true,
     "spo": null,
@@ -8792,9 +8196,9 @@
     "palStock": 1.4,
     "stockZafn": 267,
     "palStockZafn": 0.8,
-    "daySalesZafn": 31.2,
+    "daySalesZafn": null,
     "daysStock": 14,
-    "daysStockZafn": 12,
+    "daysStockZafn": null,
     "stockTrnz": 1050,
     "palStockTrnz": 3,
     "daySalesTrnz": null,
@@ -8807,30 +8211,8 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 52
-      },
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 454
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 22
-      },
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 245
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -8859,9 +8241,9 @@
     "palStock": 2.2,
     "stockZafn": 344,
     "palStockZafn": 1,
-    "daySalesZafn": 14.5,
+    "daySalesZafn": null,
     "daysStock": 40,
-    "daysStockZafn": 33,
+    "daysStockZafn": null,
     "stockTrnz": 700,
     "palStockTrnz": 2,
     "daySalesTrnz": null,
@@ -8874,30 +8256,8 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 264
-      },
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 489
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 134
-      },
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 210
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -8921,55 +8281,28 @@
   },
   "1165": {
     "stock": 2721,
-    "daySales": 47,
+    "daySales": 45.6,
     "kratnost": 273,
     "palStock": 10,
     "stockZafn": 179,
     "palStockZafn": 0.7,
-    "daySalesZafn": 29.1,
-    "daysStock": 81,
-    "daysStockZafn": 9,
+    "daySalesZafn": null,
+    "daysStock": 84,
+    "daysStockZafn": null,
     "stockTrnz": 490,
     "palStockTrnz": 1.8,
     "daySalesTrnz": null,
     "weight": 0.4,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 76.1,
-    "daysStockAll": 36,
+    "daySalesAll": 73.8,
+    "daysStockAll": 37,
     "nameEn": "פילה דג הרינג מומלח בשמן מצונן400 ג'",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 67,
-        "cartons": 764
-      },
-      {
-        "date": "2026-11-06",
-        "daysLeft": 80,
-        "cartons": 734
-      },
-      {
-        "date": "2026-11-13",
-        "daysLeft": 87,
-        "cartons": 734
-      },
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 489
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 67,
-        "cartons": 179
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -8998,9 +8331,9 @@
     "palStock": 16.7,
     "stockZafn": 255,
     "palStockZafn": 1.3,
-    "daySalesZafn": 21.2,
+    "daySalesZafn": null,
     "daysStock": 153,
-    "daysStockZafn": 17,
+    "daysStockZafn": null,
     "stockTrnz": 400,
     "palStockTrnz": 2,
     "daySalesTrnz": null,
@@ -9013,45 +8346,8 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-08-28",
-        "daysLeft": 10,
-        "cartons": 172
-      },
-      {
-        "date": "2026-09-11",
-        "daysLeft": 24,
-        "cartons": 383
-      },
-      {
-        "date": "2026-10-25",
-        "daysLeft": 68,
-        "cartons": 1595
-      },
-      {
-        "date": "2026-11-06",
-        "daysLeft": 80,
-        "cartons": 599
-      },
-      {
-        "date": "2026-11-13",
-        "daysLeft": 87,
-        "cartons": 599
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-08-28",
-        "daysLeft": 10,
-        "cartons": 57
-      },
-      {
-        "date": "2026-09-11",
-        "daysLeft": 24,
-        "cartons": 198
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": true,
     "spo": null,
@@ -9080,9 +8376,9 @@
     "palStock": 16.1,
     "stockZafn": 230,
     "palStockZafn": 1.1,
-    "daySalesZafn": 14,
+    "daySalesZafn": null,
     "daysStock": 200,
-    "daysStockZafn": 23,
+    "daysStockZafn": null,
     "stockTrnz": 400,
     "palStockTrnz": 2,
     "daySalesTrnz": null,
@@ -9095,45 +8391,8 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-08-28",
-        "daysLeft": 10,
-        "cartons": 628
-      },
-      {
-        "date": "2026-09-11",
-        "daysLeft": 24,
-        "cartons": 266
-      },
-      {
-        "date": "2026-10-24",
-        "daysLeft": 67,
-        "cartons": 1126
-      },
-      {
-        "date": "2026-11-06",
-        "daysLeft": 80,
-        "cartons": 599
-      },
-      {
-        "date": "2026-11-13",
-        "daysLeft": 87,
-        "cartons": 599
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-08-28",
-        "daysLeft": 10,
-        "cartons": 111
-      },
-      {
-        "date": "2026-09-11",
-        "daysLeft": 24,
-        "cartons": 119
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": true,
     "spo": null,
@@ -9162,9 +8421,9 @@
     "palStock": 7.4,
     "stockZafn": 136,
     "palStockZafn": 0.7,
-    "daySalesZafn": 12.4,
+    "daySalesZafn": null,
     "daysStock": 81,
-    "daysStockZafn": 15,
+    "daysStockZafn": null,
     "stockTrnz": 400,
     "palStockTrnz": 2,
     "daySalesTrnz": null,
@@ -9177,40 +8436,8 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-09-11",
-        "daysLeft": 24,
-        "cartons": 58
-      },
-      {
-        "date": "2026-10-24",
-        "daysLeft": 67,
-        "cartons": 223
-      },
-      {
-        "date": "2026-11-06",
-        "daysLeft": 80,
-        "cartons": 599
-      },
-      {
-        "date": "2026-11-13",
-        "daysLeft": 87,
-        "cartons": 599
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-09-11",
-        "daysLeft": 24,
-        "cartons": 36
-      },
-      {
-        "date": "2026-10-24",
-        "daysLeft": 67,
-        "cartons": 100
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -9268,9 +8495,9 @@
     "palStock": null,
     "stockZafn": 0,
     "palStockZafn": null,
-    "daySalesZafn": 4.9,
+    "daySalesZafn": null,
     "daysStock": 0,
-    "daysStockZafn": 0,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -9313,9 +8540,9 @@
     "palStock": 0,
     "stockZafn": 18,
     "palStockZafn": 0.1,
-    "daySalesZafn": 4.6,
+    "daySalesZafn": null,
     "daysStock": 1,
-    "daysStockZafn": 6,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -9328,20 +8555,8 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-09-11",
-        "daysLeft": 24,
-        "cartons": 7
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-09-11",
-        "daysLeft": 24,
-        "cartons": 18
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -9428,9 +8643,9 @@
     "palStock": 5.6,
     "stockZafn": 258,
     "palStockZafn": 0.9,
-    "daySalesZafn": 20.9,
+    "daySalesZafn": null,
     "daysStock": 67,
-    "daysStockZafn": 17,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -9443,40 +8658,8 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 67,
-        "cartons": 116
-      },
-      {
-        "date": "2026-11-06",
-        "daysLeft": 80,
-        "cartons": 379
-      },
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 599
-      },
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 599
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-10-24",
-        "daysLeft": 67,
-        "cartons": 48
-      },
-      {
-        "date": "2026-11-06",
-        "daysLeft": 80,
-        "cartons": 210
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -9505,9 +8688,9 @@
     "palStock": 2.1,
     "stockZafn": 145,
     "palStockZafn": 0.8,
-    "daySalesZafn": 7.9,
+    "daySalesZafn": null,
     "daysStock": 44,
-    "daysStockZafn": 26,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -9520,30 +8703,8 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-11-13",
-        "daysLeft": 87,
-        "cartons": 89
-      },
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 317
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-11-13",
-        "daysLeft": 87,
-        "cartons": 17
-      },
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 128
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -10098,7 +9259,7 @@
   },
   "1192": {
     "stock": 232,
-    "daySales": 34.1,
+    "daySales": 33.1,
     "kratnost": 140,
     "palStock": 1.7,
     "stockZafn": 136,
@@ -10112,7 +9273,7 @@
     "weight": 0.36,
     "packFactor": 6,
     "weightCarton": 2.16,
-    "daySalesAll": 47.5,
+    "daySalesAll": 46.1,
     "daysStockAll": 5,
     "nameEn": "בלינצ'ס במילוי גבינת טבורוג מוקפא360 ג'",
     "fam": "בלינצס",
@@ -10221,8 +9382,8 @@
     ]
   },
   "1194": {
-    "stock": 323,
-    "daySales": 7.3,
+    "stock": 324,
+    "daySales": 7,
     "kratnost": 120,
     "palStock": 2.7,
     "stockZafn": 179,
@@ -10236,8 +9397,8 @@
     "weight": 0.32,
     "packFactor": 10,
     "weightCarton": 3.2,
-    "daySalesAll": 11.2,
-    "daysStockAll": 29,
+    "daySalesAll": 10.9,
+    "daysStockAll": 30,
     "nameEn": "עלי בלינצ'ס מוקפאים320 ג'",
     "fam": "עלי בלינצס",
     "iksGroup": null,
@@ -10246,7 +9407,7 @@
       {
         "date": "2026-12-07",
         "daysLeft": 111,
-        "cartons": 143
+        "cartons": 144
       },
       {
         "date": "2027-05-18",
@@ -10268,7 +9429,7 @@
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 1482,
+    "spo": 1483,
     "openOrders": 980,
     "weekSales": [
       10,
@@ -10356,7 +9517,7 @@
   },
   "1196": {
     "stock": 653,
-    "daySales": 11.7,
+    "daySales": 11.4,
     "kratnost": 228,
     "palStock": 2.9,
     "stockZafn": 150,
@@ -10370,8 +9531,8 @@
     "weight": 0.45,
     "packFactor": 7,
     "weightCarton": 3.15,
-    "daySalesAll": 17.6,
-    "daysStockAll": 37,
+    "daySalesAll": 17,
+    "daysStockAll": 38,
     "nameEn": "בצק עלים מרודד מוקפא450 ג'",
     "fam": "בצק",
     "iksGroup": null,
@@ -11118,9 +10279,9 @@
     "palStock": null,
     "stockZafn": 7,
     "palStockZafn": 0,
-    "daySalesZafn": 24.3,
+    "daySalesZafn": null,
     "daysStock": 0,
-    "daysStockZafn": 0,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -11134,13 +10295,7 @@
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
     "pakuot": [],
-    "pakuotZafn": [
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 7
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -11163,46 +10318,29 @@
     ]
   },
   "400002": {
-    "stock": 621,
-    "daySales": 13.6,
+    "stock": 622,
+    "daySales": 13.2,
     "kratnost": 200,
     "palStock": 3.1,
     "stockZafn": 113,
     "palStockZafn": 0.6,
-    "daySalesZafn": 8.1,
-    "daysStock": 64,
-    "daysStockZafn": 19,
+    "daySalesZafn": null,
+    "daysStock": 66,
+    "daysStockZafn": null,
     "stockTrnz": 386,
     "palStockTrnz": 1.9,
     "daySalesTrnz": null,
     "weight": 0.52,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 21.8,
-    "daysStockAll": 29,
+    "daySalesAll": 21.1,
+    "daysStockAll": 30,
     "nameEn": "נתחי פילה הרינג כבוש עם בצל מצונן520  ג6)NP)",
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 222
-      },
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 399
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-12-04",
-        "daysLeft": 108,
-        "cartons": 113
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -11231,9 +10369,9 @@
     "palStock": 1.8,
     "stockZafn": 152,
     "palStockZafn": 0.8,
-    "daySalesZafn": 8.8,
+    "daySalesZafn": null,
     "daysStock": 35,
-    "daysStockZafn": 24,
+    "daysStockZafn": null,
     "stockTrnz": 400,
     "palStockTrnz": 2,
     "daySalesTrnz": null,
@@ -11246,20 +10384,8 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 352
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-12-18",
-        "daysLeft": 122,
-        "cartons": 152
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -11317,9 +10443,9 @@
     "palStock": 3.8,
     "stockZafn": 340,
     "palStockZafn": 0.9,
-    "daySalesZafn": 95.2,
+    "daySalesZafn": null,
     "daysStock": 9,
-    "daysStockZafn": 5,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -11332,20 +10458,8 @@
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-09-19",
-        "daysLeft": 32,
-        "cartons": 1359
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-09-19",
-        "daysLeft": 32,
-        "cartons": 340
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 7,
     "stopSale": false,
     "spo": null,
@@ -11374,9 +10488,9 @@
     "palStock": 1.7,
     "stockZafn": 274,
     "palStockZafn": 0.8,
-    "daySalesZafn": 48.2,
+    "daySalesZafn": null,
     "daysStock": 10,
-    "daysStockZafn": 8,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -11389,20 +10503,8 @@
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-09-15",
-        "daysLeft": 28,
-        "cartons": 600
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-09-15",
-        "daysLeft": 28,
-        "cartons": 274
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 7,
     "stopSale": false,
     "spo": null,
@@ -11431,9 +10533,9 @@
     "palStock": 2.8,
     "stockZafn": 214,
     "palStockZafn": 1.2,
-    "daySalesZafn": 17.8,
+    "daySalesZafn": null,
     "daysStock": 20,
-    "daysStockZafn": 17,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -11446,30 +10548,8 @@
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-09-01",
-        "daysLeft": 14,
-        "cartons": 54
-      },
-      {
-        "date": "2026-09-18",
-        "daysLeft": 31,
-        "cartons": 447
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-09-01",
-        "daysLeft": 14,
-        "cartons": 34
-      },
-      {
-        "date": "2026-09-18",
-        "daysLeft": 31,
-        "cartons": 180
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 7,
     "stopSale": false,
     "spo": null,
@@ -11498,9 +10578,9 @@
     "palStock": 2.7,
     "stockZafn": 107,
     "palStockZafn": 0.6,
-    "daySalesZafn": 11.8,
+    "daySalesZafn": null,
     "daysStock": 41,
-    "daysStockZafn": 13,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -11513,25 +10593,8 @@
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-09-05",
-        "daysLeft": 18,
-        "cartons": 219
-      },
-      {
-        "date": "2026-09-15",
-        "daysLeft": 28,
-        "cartons": 270
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-09-05",
-        "daysLeft": 18,
-        "cartons": 107
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 7,
     "stopSale": true,
     "spo": null,
@@ -11560,9 +10623,9 @@
     "palStock": 0.8,
     "stockZafn": 96,
     "palStockZafn": 0.3,
-    "daySalesZafn": 13.8,
+    "daySalesZafn": null,
     "daysStock": 14,
-    "daysStockZafn": 10,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -11575,20 +10638,8 @@
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-09-19",
-        "daysLeft": 32,
-        "cartons": 267
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-09-19",
-        "daysLeft": 32,
-        "cartons": 96
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 7,
     "stopSale": false,
     "spo": null,
@@ -11617,9 +10668,9 @@
     "palStock": 1.3,
     "stockZafn": 148,
     "palStockZafn": 0.5,
-    "daySalesZafn": 9.6,
+    "daySalesZafn": null,
     "daysStock": 34,
-    "daysStockZafn": 22,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -11632,30 +10683,8 @@
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-09-05",
-        "daysLeft": 18,
-        "cartons": 165
-      },
-      {
-        "date": "2026-09-15",
-        "daysLeft": 28,
-        "cartons": 240
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-09-05",
-        "daysLeft": 18,
-        "cartons": 68
-      },
-      {
-        "date": "2026-09-15",
-        "daysLeft": 28,
-        "cartons": 80
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 7,
     "stopSale": false,
     "spo": null,
@@ -11678,41 +10707,29 @@
     ]
   },
   "403007": {
-    "stock": 3,
-    "daySales": 47.1,
+    "stock": 13,
+    "daySales": 44.4,
     "kratnost": 245,
-    "palStock": 0,
+    "palStock": 0.1,
     "stockZafn": 5,
     "palStockZafn": 0,
-    "daySalesZafn": 25.9,
+    "daySalesZafn": null,
     "daysStock": 0,
-    "daysStockZafn": 0,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.15,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 71.7,
+    "daySalesAll": 67.8,
     "daysStockAll": 0,
     "nameEn": "פילה מקרל מומלח בעישון חם מצונן150 גרם8) NP) ",
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-09-09",
-        "daysLeft": 22,
-        "cartons": 3
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-09-09",
-        "daysLeft": 22,
-        "cartons": 5
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 7,
     "stopSale": false,
     "spo": null,
@@ -11735,41 +10752,29 @@
     ]
   },
   "403008": {
-    "stock": 8,
-    "daySales": 33.1,
+    "stock": 16,
+    "daySales": 30.6,
     "kratnost": 245,
-    "palStock": 0,
+    "palStock": 0.1,
     "stockZafn": 10,
     "palStockZafn": 0,
-    "daySalesZafn": 14.1,
-    "daysStock": 0,
-    "daysStockZafn": 1,
+    "daySalesZafn": null,
+    "daysStock": 1,
+    "daysStockZafn": null,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
     "weight": 0.15,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 42.5,
+    "daySalesAll": 39.7,
     "daysStockAll": 0,
     "nameEn": "פילה מקרל מומלח בעישון חם עם פלפל שחור גרוס150 גרם8) NP) ",
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
     "ashdodPalletCartons": null,
-    "pakuot": [
-      {
-        "date": "2026-09-09",
-        "daysLeft": 22,
-        "cartons": 8
-      }
-    ],
-    "pakuotZafn": [
-      {
-        "date": "2026-09-09",
-        "daysLeft": 22,
-        "cartons": 10
-      }
-    ],
+    "pakuot": [],
+    "pakuotZafn": [],
     "shelfLife": 7,
     "stopSale": false,
     "spo": null,
@@ -11838,7 +10843,7 @@
   },
   "410001": {
     "stock": 0,
-    "daySales": 43.7,
+    "daySales": 42,
     "kratnost": 264,
     "palStock": null,
     "stockZafn": 0,
@@ -11852,7 +10857,7 @@
     "weight": 0.18,
     "packFactor": null,
     "weightCarton": null,
-    "daySalesAll": 63.9,
+    "daySalesAll": 61.5,
     "daysStockAll": null,
     "nameEn": "שמנת חמוצה טבעית 20% שומן180 גרם8) PRESIDENT)",
     "fam": "PRESIDENT גבינות",
@@ -12984,15 +11989,15 @@
     ]
   },
   "413501": {
-    "stock": 870,
+    "stock": 860,
     "daySales": 5,
     "kratnost": 252,
-    "palStock": 3.5,
-    "stockZafn": 201,
+    "palStock": 3.4,
+    "stockZafn": 211,
     "palStockZafn": 0.8,
     "daySalesZafn": 4,
-    "daysStock": 244,
-    "daysStockZafn": 70,
+    "daysStock": 242,
+    "daysStockZafn": 73,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -13000,7 +12005,7 @@
     "packFactor": null,
     "weightCarton": null,
     "daySalesAll": 8,
-    "daysStockAll": 109,
+    "daysStockAll": 107,
     "nameEn": "פרוסות גבינה קשה למחצה GOUDA שומן135 28.5% ג14)PRESIDENT)",
     "fam": "PRESIDENT גבינות",
     "iksGroup": null,
@@ -13009,7 +12014,7 @@
       {
         "date": "2026-09-03",
         "daysLeft": 16,
-        "cartons": 26
+        "cartons": 16
       },
       {
         "date": "2026-09-24",
@@ -13021,7 +12026,7 @@
       {
         "date": "2026-09-03",
         "daysLeft": 16,
-        "cartons": 1
+        "cartons": 11
       },
       {
         "date": "2026-09-24",
