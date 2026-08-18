@@ -3696,8 +3696,21 @@ app.get('/sw.js', (req, res) => {
   res.setHeader('Service-Worker-Allowed', '/');
   res.sendFile(path.join(__dirname, '..', 'docs', 'sw.js'));
 });
+// docs/manifest.json's start_url ("./formula-road.html") is correct for the
+// GitHub Pages static host it's normally served from, but resolves relative to
+// THIS route's own URL (/manifest.json → /formula-road.html) when fetched here
+// on the VPS — a route that doesn't exist (only the guarded /formula-road does),
+// so a PWA installed via the Power BI / invite-link flow 404s every time it's
+// reopened from the home-screen icon. Same file, rewritten start_url for this
+// origin only — GitHub Pages keeps serving the static file untouched.
 app.get('/manifest.json', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'docs', 'manifest.json'));
+  try {
+    const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'docs', 'manifest.json'), 'utf8'));
+    manifest.start_url = '/formula-road';
+    res.json(manifest);
+  } catch (_) {
+    res.sendFile(path.join(__dirname, '..', 'docs', 'manifest.json'));
+  }
 });
 // Static data files referenced via relative fetch in formula-road.html
 app.get('/gps-corrections.json', formulaRoadGuard, (req, res) => {
