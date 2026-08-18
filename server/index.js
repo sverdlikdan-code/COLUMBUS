@@ -4745,41 +4745,47 @@ CALCULATETABLE(
       families[cat] = { current: c, prior: p, deltaPct: p > 0 ? Math.round((c / p - 1) * 100) : null, subFamilies };
     }
 
-    // INTER breakdown by KARTIS PARIT INTER's own פרמטר 2 (per user request —
-    // INTER has no real family field, ALL_PARTS[מחלקה] collapses everything to one
-    // "מתוקים" bucket). SKU-level totals joined against param2 by SKU, same pattern
-    // as the dormant-products param2 lookup above. SKUs not found in KARTIS PARIT
-    // INTER simply aren't INTER's — dropped rather than guessed at.
-    const skuTotals = (rows) => {
-      const m = {};
-      for (const r of rows) {
-        const sku = String(r["ALL_PARTS[מק'ט]"] || '');
-        const val = Math.round(r['[total]'] || 0);
-        if (sku && val > 0) m[sku] = (m[sku] || 0) + val;
-      }
-      return m;
-    };
-    const curSku = skuTotals(curSkuRows), priorSku = skuTotals(priorSkuRows);
+    // INTER breakdown by KARTIS PARIT INTER's own פרמטר 2 — DISABLED 2026-08-18.
+    // Numbers came back wildly inflated (single param2 buckets bigger than the
+    // client's entire cross-company total) despite the exact same custId filter
+    // pattern that works correctly in famDax above — looks like a DAX fan-out when
+    // ALL_PARTS is grouped by SKU specifically (a relationship multiplying rows),
+    // not a scoping bug in this query text. Needs live verification via Tabular
+    // Editor/DAX Studio against custId 1130037 before re-enabling — showing nothing
+    // beats showing a wrong ₪ figure to an agent standing in front of a client.
+    const INTER_P2_BREAKDOWN_ENABLED = false;
     const familiesInter = {};
-    const interSkuList = [...new Set([...Object.keys(curSku), ...Object.keys(priorSku)])];
-    if (interSkuList.length) {
-      const skuInFilter = interSkuList.map(s => `"${s}"`).join(',');
-      const p2Rows = await executeDax(
-        `EVALUATE SELECTCOLUMNS(FILTER('KARTIS PARIT INTER', 'KARTIS PARIT INTER'[מק"ט] IN {${skuInFilter}}), "sku", 'KARTIS PARIT INTER'[מק"ט], "p2", 'KARTIS PARIT INTER'[תאור פרמטר 2 למוצר])`
-      );
-      const sku2p2 = new Map(p2Rows.map(r => [String(r['[sku]']), fixBiDi(r['[p2]'] || '')]));
-      const p2Cur = {}, p2Prior = {};
-      for (const [sku, val] of Object.entries(curSku)) {
-        const p2 = sku2p2.get(sku); if (!p2) continue;
-        p2Cur[p2] = (p2Cur[p2] || 0) + val;
-      }
-      for (const [sku, val] of Object.entries(priorSku)) {
-        const p2 = sku2p2.get(sku); if (!p2) continue;
-        p2Prior[p2] = (p2Prior[p2] || 0) + val;
-      }
-      for (const p2 of new Set([...Object.keys(p2Cur), ...Object.keys(p2Prior)])) {
-        const c = p2Cur[p2] || 0, p = p2Prior[p2] || 0;
-        familiesInter[p2] = { current: c, prior: p, deltaPct: p > 0 ? Math.round((c / p - 1) * 100) : null };
+    if (INTER_P2_BREAKDOWN_ENABLED) {
+      const skuTotals = (rows) => {
+        const m = {};
+        for (const r of rows) {
+          const sku = String(r["ALL_PARTS[מק'ט]"] || '');
+          const val = Math.round(r['[total]'] || 0);
+          if (sku && val > 0) m[sku] = (m[sku] || 0) + val;
+        }
+        return m;
+      };
+      const curSku = skuTotals(curSkuRows), priorSku = skuTotals(priorSkuRows);
+      const interSkuList = [...new Set([...Object.keys(curSku), ...Object.keys(priorSku)])];
+      if (interSkuList.length) {
+        const skuInFilter = interSkuList.map(s => `"${s}"`).join(',');
+        const p2Rows = await executeDax(
+          `EVALUATE SELECTCOLUMNS(FILTER('KARTIS PARIT INTER', 'KARTIS PARIT INTER'[מק"ט] IN {${skuInFilter}}), "sku", 'KARTIS PARIT INTER'[מק"ט], "p2", 'KARTIS PARIT INTER'[תאור פרמטר 2 למוצר])`
+        );
+        const sku2p2 = new Map(p2Rows.map(r => [String(r['[sku]']), fixBiDi(r['[p2]'] || '')]));
+        const p2Cur = {}, p2Prior = {};
+        for (const [sku, val] of Object.entries(curSku)) {
+          const p2 = sku2p2.get(sku); if (!p2) continue;
+          p2Cur[p2] = (p2Cur[p2] || 0) + val;
+        }
+        for (const [sku, val] of Object.entries(priorSku)) {
+          const p2 = sku2p2.get(sku); if (!p2) continue;
+          p2Prior[p2] = (p2Prior[p2] || 0) + val;
+        }
+        for (const p2 of new Set([...Object.keys(p2Cur), ...Object.keys(p2Prior)])) {
+          const c = p2Cur[p2] || 0, p = p2Prior[p2] || 0;
+          familiesInter[p2] = { current: c, prior: p, deltaPct: p > 0 ? Math.round((c / p - 1) * 100) : null };
+        }
       }
     }
 
