@@ -224,7 +224,9 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .day-top10 td{padding:4px 7px;border-bottom:1px solid #E8EAF6;color:#333;}
 .day-top10 tr:last-child td{border-bottom:none;}
 .day-top10 .warn{color:#C62828;font-weight:700;}
-.day-dormant{background:#FFEBEE;border-radius:10px;padding:10px 12px;font-size:12px;color:#C62828;margin-bottom:14px;}
+.day-dormant-head{display:flex;align-items:center;justify-content:space-between;background:#FFEBEE;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;color:#C62828;margin-bottom:2px;cursor:pointer;}
+.day-dormant-head .fam-caret{color:#C62828;}
+.day-dormant{background:#FFEBEE;border-radius:0 0 10px 10px;padding:8px 12px 10px;font-size:12px;color:#C62828;margin-bottom:14px;}
 .day-analysis{background:#EEF0FB;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.7;color:#333;white-space:pre-wrap;direction:auto;}
 .day-company{margin-bottom:20px;}
 .day-company:last-child{margin-bottom:0;}
@@ -234,20 +236,11 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
    only, not the exact number of another store's sales. Grayscale + low opacity on
    purpose ("не видно циферки, полупрозрачные ч/б звёздочки" — 2026-08-17). */
 .day-stars{color:#78909C;opacity:.8;letter-spacing:1px;font-size:13px;white-space:nowrap;}
-.day-highlights{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 12px;}
-.day-chip{font-size:11px;font-weight:700;padding:5px 10px;border-radius:14px;display:inline-flex;align-items:center;gap:4px;}
-.day-chip.growth{background:#E8F5E9;color:#2E7D32;}
-.day-chip.risk{background:#FFEBEE;color:#C62828;}
-.day-rec-list{display:flex;flex-direction:column;gap:8px;margin-bottom:4px;}
-.day-rec{background:#EEF0FB;border-radius:10px;padding:9px 11px;}
-.day-rec.priority-high{background:#FFF3E0;border-right:3px solid #E65100;}
-.day-rec-top{display:flex;align-items:flex-start;gap:8px;}
-.day-rec-text{flex:1;font-size:12.5px;line-height:1.5;color:#333;}
-.day-rec-client{font-weight:800;color:#3F51B5;}
-.day-rec-fb{display:flex;gap:4px;flex-shrink:0;}
-.day-rec-fb button{width:28px;height:28px;border-radius:8px;border:1.5px solid #D0D4E8;background:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
-.day-rec-fb button.picked{background:#3F51B5;border-color:#3F51B5;filter:none;}
-.day-rec-fb button.picked.down{background:#C62828;border-color:#C62828;}
+.day-insight-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;font-weight:600;padding:8px 10px;border-radius:8px;margin-bottom:6px;line-height:1.4;}
+.day-insight-row.growth{background:#E8F5E9;color:#2E7D32;}
+.day-insight-row.risk{background:#FFEBEE;color:#C62828;}
+.day-insight-row[data-id]{cursor:pointer;}
+.day-insight-go{font-size:11px;font-weight:800;color:#3F51B5;background:#fff;padding:3px 8px;border-radius:10px;flex-shrink:0;white-space:nowrap;}
 .excl-section-lbl{padding:5px 10px 2px;font-size:10px;font-weight:700;color:var(--light);letter-spacing:1px;text-transform:uppercase;border-top:1px solid var(--sky-mid);margin-top:4px;}
 .c-num-wrap{display:flex;flex-direction:column;align-items:center;gap:1px;flex-shrink:0;min-width:28px;cursor:grab;touch-action:none;user-select:none;}
 .walk-icon{font-size:11px;line-height:1;}
@@ -2976,17 +2969,6 @@ function _dayStars(value, max) {
 }
 
 let _dayRecStore = {};
-function dayRecFeedback(id, val, btnEl) {
-  const rec = _dayRecStore[id];
-  if (!rec) return;
-  btnEl.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('picked', 'down'));
-  btnEl.classList.add('picked');
-  if (val === 'down') btnEl.classList.add('down');
-  apiFetch(`${API}/api/ai-feedback`, {
-    method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ source: 'day-briefing', company: rec.company, day: st.day, client: rec.client, action: rec.action, feedback: val }),
-  }).catch(() => {});
-}
 
 function _renderDayCompany(key, label, data) {
   if (!data || !data.top10 || !data.top10.length) {
@@ -3017,36 +2999,34 @@ function _renderDayCompany(key, label, data) {
   });
   tbl += '</tbody></table>';
 
+  // Collapsed by default (clock icon + count) — a wall of names was the least
+  // actionable part of the screen for the space it took. Click to reveal.
   const dormantHtml = (data.dormant && data.dormant.length)
-    ? `<div class="day-dormant">⚠️ לא הזמינו מעל 3 שבועות: ${data.dormant.map(c=>`${esc(c.name)} (${c.daysSince}d)`).join(', ')}</div>`
+    ? `<div class="day-dormant-head" onclick="const el=this.nextElementSibling;const open=el.style.display!=='block';el.style.display=open?'block':'none';this.querySelector('.fam-caret').textContent=open?'▾':'▸';">
+        <span>⏰ ${data.dormant.length} לא הזמינו מעל 3 שבועות</span><span class="fam-caret">▸</span>
+      </div>
+      <div class="day-dormant" style="display:none">${data.dormant.map(c=>`${esc(c.name)} (${c.daysSince}d)`).join(', ')}</div>`
     : '';
 
+  // One insight per row instead of wrapped chips — each links straight into that
+  // client's own AI analysis when we can resolve their custId (matched against
+  // this company's top10/dormant lists); plain text otherwise rather than a
+  // broken/guessed link.
   const highlightsHtml = (data.highlights || []).length
-    ? `<div class="day-highlights">${data.highlights.map(h => {
+    ? data.highlights.map(h => {
         const growth = h.type === 'growth';
-        return `<span class="day-chip ${growth?'growth':'risk'}">${growth?'📈':'⚠️'} <b>${esc(h.client||'')}</b> ${esc(h.note||'')}</span>`;
-      }).join('')}</div>`
-    : '';
-
-  const recsHtml = (data.recommendations || []).length
-    ? `<div class="day-rec-list">${data.recommendations.map((r, i) => {
-        const id = `${key}_${i}`;
-        _dayRecStore[id] = { company: key, client: r.client || '', action: r.action || '' };
-        return `<div class="day-rec${r.priority==='high'?' priority-high':''}">
-          <div class="day-rec-top">
-            <div class="day-rec-text">${r.client?`<span class="day-rec-client">${esc(r.client)}:</span> `:''}${esc(r.action||'')}</div>
-            <div class="day-rec-fb">
-              <button type="button" onclick="dayRecFeedback('${id}','up',this)">👍</button>
-              <button type="button" onclick="dayRecFeedback('${id}','down',this)">👎</button>
-            </div>
-          </div>
+        const match = [...(data.top10||[]), ...(data.dormant||[])].find(c => c.name === h.client);
+        const body = `${growth?'📈':'⚠️'} <b>${esc(h.client||'')}</b> ${esc(h.note||'')}`;
+        if (!match) return `<div class="day-insight-row ${growth?'growth':'risk'}">${body}</div>`;
+        return `<div class="day-insight-row ${growth?'growth':'risk'}" data-id="${match.custId}" data-name="${esc(match.name).replace(/"/g,'&quot;')}" onclick="openClientAI(event,this.dataset.id,this.dataset.name)">
+          <span>${body}</span><span class="day-insight-go">AI ›</span>
         </div>`;
-      }).join('')}</div>`
+      }).join('')
     : '';
 
   return `<div class="day-company">
     <div class="day-company-head"><span class="day-company-name">${esc(label)}</span></div>
-    ${sub}${tbl}${dormantHtml}${highlightsHtml}${recsHtml}
+    ${sub}${tbl}${dormantHtml}${highlightsHtml}
   </div>`;
 }
 
