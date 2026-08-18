@@ -192,9 +192,6 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .ai-lang-bar{display:flex;gap:6px;padding:10px 14px 6px;background:#F8F4FF;border-bottom:1px solid #E8D8F8;}
 .ai-lang-btn{flex:1;padding:7px 4px;border-radius:8px;border:1.5px solid #CE93D8;background:#fff;font-size:13px;font-weight:700;color:#6A1B9A;cursor:pointer;text-align:center;transition:.12s;}
 .ai-lang-btn.active{background:#4A148C;color:#fff;border-color:#4A148C;}
-.tts-btn{font-size:19px;cursor:pointer;opacity:.85;padding:0 4px;background:none;border:none;color:inherit;line-height:1;}
-.tts-btn:hover{opacity:1;}
-.tts-btn.speaking{opacity:1;color:#FFD54F;}
 #ai-modal-body{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:14px 16px;flex:1;}
 .ai-families-tbl{width:100%;border-collapse:collapse;font-size:15px;margin-bottom:14px;}
 .ai-families-tbl th{background:#F3E5F5;color:#4A148C;padding:5px 7px;text-align:right;font-weight:800;border-bottom:2px solid #CE93D8;}
@@ -646,7 +643,6 @@ body.gps-fs #map{height:100%!important;}
     <div id="ai-modal-head">
       <span style="font-size:20px">📊</span>
       <div class="ai-title" id="ai-modal-title">ניתוח לקוח</div>
-      <span class="tts-btn" id="ai-tts-btn" onclick="toggleAiTts(this)" title="הקראה">🔊</span>
       <span class="ai-close" onclick="closeAiModal()">✕</span>
     </div>
     <div class="ai-lang-bar">
@@ -664,7 +660,6 @@ body.gps-fs #map{height:100%!important;}
     <div id="day-modal-head">
       <span style="font-size:20px">📊</span>
       <div class="day-title" id="day-modal-title">ניתוח יום</div>
-      <span class="tts-btn" id="day-tts-btn" onclick="toggleDayTts(this)" title="הקראה">🔊</span>
       <span class="day-close" onclick="closeDayBriefing()">✕</span>
     </div>
     <div class="ai-lang-bar">
@@ -2712,42 +2707,6 @@ function openDayPopup(event,custId){
 }
 function closeDayPopup(){document.getElementById('day-popup').classList.remove('open');}
 
-// ── Text-to-Speech (browser SpeechSynthesis — free, no server call) ─────────
-// Reads whatever text is currently on screen in whichever language is currently
-// selected (he/uk/ru) — translation itself is handled upstream by the existing
-// per-modal language switcher, this just gives it a voice for a field agent
-// who's driving/holding a box and can't read the screen.
-const TTS_VOICE_LANG = { he: 'he-IL', ru: 'ru-RU', uk: 'uk-UA' };
-function _ttsStop(btnEl) {
-  if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-  if (btnEl) { btnEl.textContent = '🔊'; btnEl.classList.remove('speaking'); }
-}
-function _ttsToggle(btnEl, lang, text) {
-  if (!('speechSynthesis' in window)) return;
-  if (window.speechSynthesis.speaking) { _ttsStop(btnEl); return; }
-  if (!text) return;
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = TTS_VOICE_LANG[lang] || 'he-IL';
-  u.onend = u.onerror = () => { btnEl.textContent = '🔊'; btnEl.classList.remove('speaking'); };
-  window.speechSynthesis.speak(u);
-  btnEl.textContent = '⏹';
-  btnEl.classList.add('speaking');
-}
-function toggleAiTts(btnEl) {
-  const el = document.querySelector('#ai-modal-body .ai-analysis');
-  _ttsToggle(btnEl, _aiState.lang, el ? el.innerText.trim() : '');
-}
-function toggleDayTts(btnEl) {
-  const body = document.getElementById('day-modal-body');
-  const parts = [];
-  body.querySelectorAll('.day-company').forEach(comp => {
-    const name = comp.querySelector('.day-company-name');
-    if (name) parts.push(name.textContent);
-    comp.querySelectorAll('.day-chip, .day-rec-text').forEach(el => parts.push(el.innerText.trim()));
-  });
-  _ttsToggle(btnEl, _dayLang, parts.join('. '));
-}
-
 // ── AI Client Analytics ──────────────────────────────────────────────────────
 // No caching, deliberately: the underlying data changes throughout the day (PBI
 // dataset refreshes ~every 2h, orders keep coming in), and a field agent may
@@ -2765,20 +2724,17 @@ function openClientAI(evt, custId, custName) {
   document.getElementById('ai-modal').classList.add('open');
   // reset lang buttons
   document.querySelectorAll('#ai-modal .ai-lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === _aiState.lang));
-  _ttsStop(document.getElementById('ai-tts-btn'));
   _fetchClientAI(_aiState.lang);
 }
 
 function closeAiModal() {
   document.getElementById('ai-modal').classList.remove('open');
-  _ttsStop(document.getElementById('ai-tts-btn'));
 }
 
 function switchAiLang(btn, lang) {
   document.querySelectorAll('#ai-modal .ai-lang-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   _aiState.lang = lang;
-  _ttsStop(document.getElementById('ai-tts-btn'));
   _fetchClientAI(lang);
 }
 
@@ -2942,18 +2898,15 @@ function openDayBriefing() {
   document.getElementById('day-modal-title').textContent = `${st.agent?.name||''} — ${st.day===0?'לא מוגדר':'יום '+DAY_LABELS[st.day]}`;
   document.getElementById('day-modal').classList.add('open');
   document.querySelectorAll('.day-lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === _dayLang));
-  _ttsStop(document.getElementById('day-tts-btn'));
   _fetchDayBriefing();
 }
 function closeDayBriefing() {
   document.getElementById('day-modal').classList.remove('open');
-  _ttsStop(document.getElementById('day-tts-btn'));
 }
 function switchDayLang(btn, lang) {
   document.querySelectorAll('.day-lang-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   _dayLang = lang;
-  _ttsStop(document.getElementById('day-tts-btn'));
   _fetchDayBriefing();
 }
 // value/max only — ranks this client against the others in the SAME top10 list,
