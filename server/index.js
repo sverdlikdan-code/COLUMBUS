@@ -4054,7 +4054,12 @@ ROW(
       const avgBasket = s.orderDays > 0 ? Math.round(s.total / s.orderDays) : 0;
       const lastOrder = lastOrderMap[id] || null;
       const daysSince = lastOrder ? Math.round((Date.now() - new Date(lastOrder)) / 86400000) : null;
-      return { custId: id, name: c.custName || id, city: c.city || '', total: s.total, prevTotal, yoy, orderDays: s.orderDays, skus: s.skus, avgBasket, daysSince, sadran: c.sadran || '' };
+      // Target achievement — same מ שטח[יעד $] + current-calendar-month sales already
+      // cached in pbiCache at startup (loadPBICache), not a fresh DAX call. Per user
+      // request: always current month, matching the משטח+יעד PBI page it mirrors.
+      const target = c.target || 0;
+      const pctTarget = target > 0 ? Math.round(((c.monthlySales || 0) / target) * 100) : null;
+      return { custId: id, name: c.custName || id, city: c.city || '', total: s.total, prevTotal, yoy, orderDays: s.orderDays, skus: s.skus, avgBasket, daysSince, sadran: c.sadran || '', target, monthlySales: c.monthlySales || 0, pctTarget };
     });
     enriched.sort((a, b) => b.total - a.total);
     const top10 = enriched.slice(0, 10).map((c, i) => ({ ...c, crown: i < 3 }));
