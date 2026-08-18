@@ -238,6 +238,11 @@
         padding: 0 !important;
       }
       body.printing-order #order-page > div:first-child { display: none !important; }
+      /* one <table> per category (split in JS) — keep each category whole, push to next page instead of splitting rows across pages */
+      body.printing-order #print-split-tables > table {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
       body.printing-order #order-table-wrap table { font-size: 9px !important; }
       body.printing-order #order-table-wrap td, body.printing-order #order-table-wrap th { padding: 3px 5px !important; }
       /* grand total row — white + bold border for print */
