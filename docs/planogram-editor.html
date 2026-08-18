@@ -4542,12 +4542,10 @@ window._currentSection = 'kapua';
 })();
 
 // ── Deep link — e.g. ?open=dagim-order — skip splash click, land straight on
-// the הזמנת דגים order page (used for one-click links sent by email/WhatsApp)
+// the הזמנת דגים order page (used for one-click links sent by email/WhatsApp).
+// Parsed here, but NOT triggered yet — DAGIM_BASE/productData are still empty
+// until loadMaps() resolves below; triggering early renders "אין מוצרים".
 window._deepLinkOpen = new URLSearchParams(location.search).get('open');
-if (window._deepLinkOpen) {
-  const dlSec = window._deepLinkOpen === 'dagim-order' ? 'dagim' : window._deepLinkOpen;
-  splashEnter(dlSec);
-}
 
 function splashEnter(sec) {
   if (!localStorage.getItem('frToken')) {
@@ -4697,6 +4695,11 @@ window.addEventListener('afterprint', () => {
   updateTabPalTotals();
   updateSectionStats();
   if (window._updateSplashKPI) window._updateSplashKPI();
+  // Deep link (?open=dagim-order) — data is ready now, safe to auto-enter
+  if (window._deepLinkOpen) {
+    const dlSec = window._deepLinkOpen === 'dagim-order' ? 'dagim' : window._deepLinkOpen;
+    splashEnter(dlSec);
+  }
 })();
 
 // ── Month-chart popup for הזמנה דגים ──────────────────────────────────────
