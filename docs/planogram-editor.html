@@ -278,18 +278,18 @@
     #month-chart-panel {
       position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
       z-index:9991;background:#0d1f3a;color:#e8eaf0;border-radius:14px;
-      box-shadow:0 8px 40px rgba(0,0,0,.7);padding:28px 34px 22px;min-width:730px;max-width:90vw;
+      box-shadow:0 8px 40px rgba(0,0,0,.7);padding:31px 38px 25px;min-width:820px;max-width:90vw;
       font-family:'Segoe UI',sans-serif;display:none;
     }
     #month-chart-panel.open { display:block; }
-    #mc-header { display:flex;align-items:center;gap:16px;margin-bottom:6px; }
-    #mc-photo { width:84px;height:84px;object-fit:contain;border-radius:10px;background:#162840;flex-shrink:0;display:none; }
-    #month-chart-panel h4 { margin:0 0 6px;font-size:1.25rem;color:#c9a227;direction:rtl;unicode-bidi:plaintext;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%; }
-    #month-chart-panel .mc-sub, #month-chart-panel .mc-yoy { font-size:15px;color:#8a95a8;direction:rtl;line-height:1.6; }
+    #mc-header { display:flex;align-items:center;gap:18px;margin-bottom:7px; }
+    #mc-photo { width:94px;height:94px;object-fit:contain;border-radius:11px;background:#162840;flex-shrink:0;display:none; }
+    #month-chart-panel h4 { margin:0 0 7px;font-size:1.4rem;color:#c9a227;direction:rtl;unicode-bidi:plaintext;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%; }
+    #month-chart-panel .mc-sub, #month-chart-panel .mc-yoy { font-size:17px;color:#8a95a8;direction:rtl;line-height:1.6; }
     #month-chart-panel .mc-sub { margin-bottom:2px; }
-    #month-chart-panel .mc-trend-arrow, #month-chart-panel .mc-yoy b { font-weight:800;font-size:20px; }
-    .mc-mkt { background:#1e3f6a;border:1px solid #2d5a9e;border-radius:5px;padding:2px 8px;font-size:.85rem;color:#7aa3d4;font-family:monospace; }
-    #month-chart-panel .mc-close { position:absolute;top:16px;left:22px;background:transparent;border:none;color:#8899aa;font-size:1.4rem;cursor:pointer;line-height:1; }
+    #month-chart-panel .mc-trend-arrow, #month-chart-panel .mc-yoy b { font-weight:800;font-size:22px; }
+    .mc-mkt { background:#1e3f6a;border:1px solid #2d5a9e;border-radius:6px;padding:2px 9px;font-size:.95rem;color:#7aa3d4;font-family:monospace; }
+    #month-chart-panel .mc-close { position:absolute;top:18px;left:24px;background:transparent;border:none;color:#8899aa;font-size:1.55rem;cursor:pointer;line-height:1; }
     #month-chart-panel .mc-close:hover { color:#fff; }
     #month-chart-svg { display:block;width:100%;overflow:visible; }
     .ord-fam-btn {
@@ -4753,7 +4753,7 @@ window.addEventListener('afterprint', () => {
 
   function _renderMonthChartSvg(months) {
     if (!months || !months.length) return '<p style="color:#556;text-align:center;margin:20px 0">אין נתוני מכר</p>';
-    const W = 480, H = 150, PAD_L = 32, PAD_R = 10, PAD_T = 27, PAD_B = 32;
+    const W = 480, H = 320, PAD_L = 32, PAD_R = 10, PAD_T = 27, PAD_B = 32;
     const maxV = Math.max(...months.map(m => m.mkr), 1);
     const n = months.length;
     const slot = (W - PAD_L - PAD_R) / n;
