@@ -746,12 +746,12 @@ function _saveToken(t){ if(t) localStorage.setItem('frToken', t); }
 
 let _sessionExpiredShown = false;
 
-async function apiFetch(url, opts={}){
+async function apiFetch(url, opts={}, timeoutMs=12000){
   const token = _getToken();
   const headers = { ...(opts.headers || {}) };
   if(token) headers['X-Session'] = token;
   const controller = new AbortController();
-  const tid = setTimeout(() => controller.abort(), 12000);
+  const tid = setTimeout(() => controller.abort(), timeoutMs);
   let r;
   try {
     r = await fetch(url, { ...opts, headers, signal: controller.signal });
@@ -2750,7 +2750,12 @@ async function _fetchClientAI(lang) {
   body.innerHTML = '<div class="ai-loading">⏳ מחשב...</div>';
 
   try {
-    const r = await apiFetch(`${API}/api/client-analytics/${custId}?lang=${lang}`);
+    // Longer timeout than the 12s default — this endpoint chains ~6-10 DAX
+    // round-trips (family + SKU + param2 + chain-comparison queries) then a
+    // Gemini/Claude call for the analysis text; 12s stopped being enough once
+    // the INTER SKU/param2 breakdown queries were added (2026-08-18, real
+    // "signal is aborted without reason" reports from chain clients).
+    const r = await apiFetch(`${API}/api/client-analytics/${custId}?lang=${lang}`, {}, 25000);
     if(!r.ok){ const t=await r.text(); throw new Error(t.slice(0,120)); }
     const data = await r.json();
     if (!data.ok) throw new Error(data.error || 'שגיאה');
