@@ -2782,11 +2782,16 @@ async function _fetchClientAI(lang) {
     const { curLabel, priorLabel, families, familiesInter, dropped, clientTotal, clientTotalPrior, peerAvg, isChain, chainName, dormantChainProducts, companyGaps, familyDeviation, isKosher, analysis } = data;
 
     const trendCell = (f) => {
-      const arrow = f.deltaPct === null ? '' : (f.deltaPct > 0 ? '▲' : f.deltaPct < 0 ? '▼' : '—');
-      const color = f.deltaPct === null ? '#999' : (f.deltaPct > 0 ? '#2E7D32' : f.deltaPct < 0 ? '#C62828' : '#999');
+      // null (no prior-period baseline, e.g. a family with 0 sales last period) rendered
+      // as a fully blank cell before — indistinguishable from a rendering bug next to
+      // rows that show "—" for a missing ₪ value. An explicit dash reads as "no
+      // comparison possible", not "something broke". Bug found live 2026-08-19.
+      if (f.deltaPct === null) return `<td style="text-align:left;color:#999">—</td>`;
+      const arrow = f.deltaPct > 0 ? '▲' : f.deltaPct < 0 ? '▼' : '—';
+      const color = f.deltaPct > 0 ? '#2E7D32' : f.deltaPct < 0 ? '#C62828' : '#999';
       // "+12%" is a plain sign+digit run — isolate it (same fix as the day-briefing
       // YoY column) so the RTL row context can't reorder the sign away from the number.
-      const pct = f.deltaPct === null ? '' : `<span dir="ltr" style="unicode-bidi:isolate">${f.deltaPct > 0 ? '+' : ''}${f.deltaPct}%</span>`;
+      const pct = `<span dir="ltr" style="unicode-bidi:isolate">${f.deltaPct > 0 ? '+' : ''}${f.deltaPct}%</span>`;
       return `<td style="text-align:left;color:${color};font-weight:700">${arrow} ${pct}</td>`;
     };
 
@@ -2824,6 +2829,20 @@ async function _fetchClientAI(lang) {
         }
       }
     });
+    // Total row — same 4-column shape as everything else, reuses .day-total-row (already
+    // the app's one "total row" style, from the day-briefing table) instead of a new class.
+    // Missing before: user had to add up 3-4 family rows by hand to see the client's real
+    // period-over-period total. Bug found live 2026-08-19 (user screenshot, "где тоталы").
+    {
+      const totCur = sorted.reduce((s, [, f]) => s + f.current, 0);
+      const totPrior = sorted.reduce((s, [, f]) => s + f.prior, 0);
+      const totDelta = totPrior > 0 ? Math.round((totCur / totPrior - 1) * 100) : null;
+      tbl += `<tr class="day-total-row">`
+        + `<td>סה"כ</td>`
+        + `<td style="text-align:left">${totPrior ? '₪' + totPrior.toLocaleString() : '—'}</td>`
+        + `<td style="text-align:left">₪${totCur.toLocaleString()}</td>`
+        + trendCell({ deltaPct: totDelta }) + `</tr>`;
+    }
     tbl += '</tbody></table>';
 
     const peerLabel = isChain ? `ממוצע רשת ${chainName}` : (chainName ? `ממוצע קטגוריית ${chainName}` : 'ממוצע חברה');
