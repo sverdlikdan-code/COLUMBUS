@@ -4040,7 +4040,27 @@ ROW(
     )
   )
 )`;
-    return { daxCur, daxLastOrder, daxPrev, daxAvg };
+    // Company-scoped current-calendar-month sales — same MONTH(TODAY())/YEAR(TODAY())
+    // semantics as monthlySales in loadPBICache, but restricted to this company's own
+    // families. Plain monthlySales (loadPBICache) is client-wide across ALL companies
+    // combined, so it can't be reused as-is for a per-company מכר column — a client who
+    // also buys ICE Mishpachti would show FORMULA's total inflated by their ICE spend.
+    // Bug found 2026-08-19: FORMULA table was showing all-company מכר against a
+    // FORMULA-only יעד, inflating % ביצוע.
+    const daxCurMonth = `
+EVALUATE
+CALCULATETABLE(
+  ADDCOLUMNS(
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]),
+    "curMonthSales", CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)])
+  ),
+  ${famFilter}
+  ALL_PARTS[מספר לקוח] IN {${inList}},
+  ALL_PARTS[ASHMADOT] = "-מכר-",
+  MONTH(ALL_PARTS[תאריך]) = MONTH(TODAY()),
+  YEAR(ALL_PARTS[תאריך]) = YEAR(TODAY())
+)`;
+    return { daxCur, daxLastOrder, daxPrev, daxAvg, daxCurMonth };
   };
 
   // Fraction of this month's working days elapsed so far — fetched from the
@@ -4053,12 +4073,12 @@ ROW(
   // flag the top 3 by current sales as 👑 (crown — real money moves there), list
   // clients dormant >21 days.
   const buildCompanyResult = async (familyList) => {
-    const { daxCur, daxLastOrder, daxPrev, daxAvg } = buildQueries(familyList);
-    const [curRows, prevRows, avgRows, lastOrderRows] = await Promise.all([
-      executeDax(daxCur), executeDax(daxPrev), executeDax(daxAvg), executeDax(daxLastOrder),
+    const { daxCur, daxLastOrder, daxPrev, daxAvg, daxCurMonth } = buildQueries(familyList);
+    const [curRows, prevRows, avgRows, lastOrderRows, curMonthRows] = await Promise.all([
+      executeDax(daxCur), executeDax(daxPrev), executeDax(daxAvg), executeDax(daxLastOrder), executeDax(daxCurMonth),
     ]);
     const companyAvg = Math.round(avgRows?.[0]?.['[avg]'] || 0);
-    const curMap = {}, prevMap = {}, lastOrderMap = {};
+    const curMap = {}, prevMap = {}, lastOrderMap = {}, curMonthMap = {};
     for (const r of curRows) {
       const id = String(r['ALL_PARTS[מספר לקוח]'] || r['[מספר לקוח]'] || '');
       if (id) curMap[id] = { total: Math.round(r['[total]'] || 0), orderDays: r['[orderDays]'] || 0, skus: r['[skus]'] || 0 };
@@ -4071,6 +4091,10 @@ ROW(
       const id = String(r['ALL_PARTS[מספר לקוח]'] || r['[מספר לקוח]'] || '');
       if (id) lastOrderMap[id] = r['[lastOrder]'] || null;
     }
+    for (const r of curMonthRows) {
+      const id = String(r['ALL_PARTS[מספר לקוח]'] || r['[מספר לקוח]'] || '');
+      if (id) curMonthMap[id] = Math.round(r['[curMonthSales]'] || 0);
+    }
     const enriched = dayClients.map(c => {
       const id = String(c.custId);
       const s = curMap[id] || { total: 0, orderDays: 0, skus: 0 };
@@ -4079,11 +4103,11 @@ ROW(
       const avgBasket = s.orderDays > 0 ? Math.round(s.total / s.orderDays) : 0;
       const lastOrder = lastOrderMap[id] || null;
       const daysSince = lastOrder ? Math.round((Date.now() - new Date(lastOrder)) / 86400000) : null;
-      // Target achievement — same משטח[יעד $] + current-calendar-month sales already
-      // cached in pbiCache at startup (loadPBICache), not a fresh DAX call. Mirrors
-      // the משטח+יעד PBI page (always current month).
+      // Target achievement — משטח[יעד $] (FORMULA's own target) against this family's
+      // OWN current-calendar-month sales (curMonthMap), not the client-wide monthlySales
+      // from loadPBICache — that one spans every company the client buys from combined.
       const target = c.target || 0;
-      const monthlySales = c.monthlySales || 0;
+      const monthlySales = curMonthMap[id] || 0;
       const pctTarget = target > 0 ? Math.round((monthlySales / target) * 100) : null;
       // Same pacing logic as the model's own INDICATION measure: behind if actual
       // achievement trails the fraction of working days elapsed by >5pp — a client
@@ -4118,74 +4142,77 @@ ROW(
   ]);
   workDaysPct = parseFloat(workDaysRows?.[0]?.['[pct]']) || 0;
   const formulaFamilies = [], iceMishFamilies = [];
-    famRows.forEach(r => {
-      const fam = r['ALL_PARTS[תאור משפחת מוצר]'] || r['[תאור משפחת מוצר]'];
-      if (!fam) return;
-      const co = classifyDayCompany(r['[מחלקה]']);
-      if (co === 'FORMULA') formulaFamilies.push(fam);
-      else if (co === 'ICE_MISH') iceMishFamilies.push(fam);
-    });
+  famRows.forEach(r => {
+    const fam = r['ALL_PARTS[תאור משפחת מוצר]'] || r['[תאור משפחת מוצר]'];
+    if (!fam) return;
+    const co = classifyDayCompany(r['[מחלקה]']);
+    if (co === 'FORMULA') formulaFamilies.push(fam);
+    else if (co === 'ICE_MISH') iceMishFamilies.push(fam);
+  });
 
-    const [formulaResult, iceMishResult] = await Promise.all([
-      buildCompanyResult(formulaFamilies),
-      buildCompanyResult(iceMishFamilies),
-    ]);
+  // ICE MISHPACHTI only needs its dormant list here (⏰ לא הזמינו מעל 3 שבועות) — no
+  // company-specific יעד exists in the model to build a sales/target table against,
+  // and no AI highlights are requested for it (see prompt below, FORMULA-only).
+  const [formulaResult, iceMishResult] = await Promise.all([
+    buildCompanyResult(formulaFamilies),
+    buildCompanyResult(iceMishFamilies),
+  ]);
 
-    const monthStr = `${months[0].month}/${months[0].year} — ${curEnd.month}/${curEnd.year}`;
-    const prevStr  = `${prevMonths[0].month}/${prevMonths[0].year} — ${prevEnd.month}/${prevEnd.year}`;
+  const monthStr = `${months[0].month}/${months[0].year} — ${curEnd.month}/${curEnd.year}`;
+  const prevStr  = `${prevMonths[0].month}/${prevMonths[0].year} — ${prevEnd.month}/${prevEnd.year}`;
 
-    // Gemini context stays capped to the top 10 by sales (token budget, focused
-    // insights) even though result.clients itself now holds the whole day's route
-    // for the frontend table — the AI doesn't need all 20+ clients to spot what
-    // actually moves money.
-    const buildContext = (label, result) => {
-      if (!result.clients.length) return `${label}: אין נתונים בתקופה זו.`;
-      const lines = result.clients.slice(0, 10).map((c, i) => {
-        const vsAvg = result.companyAvg ? ` (${c.total >= result.companyAvg ? '+' : ''}${Math.round((c.total / result.companyAvg - 1) * 100)}% מממוצע)` : '';
-        const yoyStr = c.yoy !== null ? ` | YoY:${c.yoy >= 0 ? '+' : ''}${c.yoy}%` : ' | YoY:—';
-        const basketStr = c.avgBasket ? ` | סל:₪${c.avgBasket.toLocaleString()}` : '';
-        const dormFlag = c.daysSince > 21 ? ` ⚠️${c.daysSince}d` : '';
-        const crownFlag = c.crown ? ' 👑' : '';
-        const sadranFlag = c.sadran ? ' 💪(סדרן)' : '';
-        return `${i + 1}. ${c.name}${crownFlag}${sadranFlag} (${c.city}): ₪${c.total.toLocaleString()}${vsAvg}${yoyStr}${basketStr}${dormFlag}`;
-      }).join('\n');
-      const dormantLines = result.dormant.length
-        ? '\nלא הזמינו >3 שבועות: ' + result.dormant.slice(0, 5).map(c => `${c.name}(${c.daysSince}d)`).join(', ')
-        : '';
-      return `${label} — ממוצע לקוח: ₪${result.companyAvg.toLocaleString()}\n${lines}${dormantLines}`;
-    };
+  // Gemini context stays capped to the top 10 by sales (token budget, focused
+  // insights) even though result.clients itself now holds the whole day's route
+  // for the frontend table — the AI doesn't need all 20+ clients to spot what
+  // actually moves money.
+  const buildContext = (label, result) => {
+    if (!result.clients.length) return `${label}: אין נתונים בתקופה זו.`;
+    const lines = result.clients.slice(0, 10).map((c, i) => {
+      const vsAvg = result.companyAvg ? ` (${c.total >= result.companyAvg ? '+' : ''}${Math.round((c.total / result.companyAvg - 1) * 100)}% מממוצע)` : '';
+      const yoyStr = c.yoy !== null ? ` | YoY:${c.yoy >= 0 ? '+' : ''}${c.yoy}%` : ' | YoY:—';
+      const basketStr = c.avgBasket ? ` | סל:₪${c.avgBasket.toLocaleString()}` : '';
+      const dormFlag = c.daysSince > 21 ? ` ⚠️${c.daysSince}d` : '';
+      const crownFlag = c.crown ? ' 👑' : '';
+      const sadranFlag = c.sadran ? ' 💪(סדרן)' : '';
+      return `${i + 1}. ${c.name}${crownFlag}${sadranFlag} (${c.city}): ₪${c.total.toLocaleString()}${vsAvg}${yoyStr}${basketStr}${dormFlag}`;
+    }).join('\n');
+    const dormantLines = result.dormant.length
+      ? '\nלא הזמינו >3 שבועות: ' + result.dormant.slice(0, 5).map(c => `${c.name}(${c.daysSince}d)`).join(', ')
+      : '';
+    return `${label} — ממוצע לקוח: ₪${result.companyAvg.toLocaleString()}\n${lines}${dormantLines}`;
+  };
 
-    const context = `תקופה נוכחית: ${monthStr} | תקופה מקבילה אשתקד: ${prevStr}\n\n${buildContext('FORMULA', formulaResult)}\n\n${buildContext('ICE MISHPACHTI', iceMishResult)}`;
+  const context = `תקופה נוכחית: ${monthStr} | תקופה מקבילה אשתקד: ${prevStr}\n\n${buildContext('FORMULA', formulaResult)}`;
 
-    // Structured JSON, not prose — the agent picks individual recommendations off a
-    // list and gives feedback per item, so free text can't be the output format.
-    const jsonInstructions = {
-      he: `פלט אך ורק JSON תקין (בלי טקסט מסביב, בלי Markdown), במבנה הבא בדיוק:
-{"FORMULA":{"highlights":[{"type":"growth|risk","client":"שם","note":"משפט קצר"}],"recommendations":[{"client":"שם","action":"המלצה קונקרטית אחת שהסוכן יכול לבצע בביקור עצמו","priority":"high|medium"}]},"ICE_MISH":{...אותו מבנה...}}
-עד 5 highlights ועד 5 recommendations לכל חברה. תעדוף חד ל-👑 (TOP3 מכירות) — שם ההזדמנות/כשל שווה הכי הרבה כסף, לא לפזר על לקוחות שוליים. priority=high רק ל-👑 או ירידת YoY חדה.`,
-      ru: `Выведи ТОЛЬКО валидный JSON (без текста вокруг, без Markdown), строго в структуре:
-{"FORMULA":{"highlights":[{"type":"growth|risk","client":"имя","note":"короткая фраза"}],"recommendations":[{"client":"имя","action":"одна конкретная рекомендация, которую агент может выполнить прямо на визите","priority":"high|medium"}]},"ICE_MISH":{...та же структура...}}
-До 5 highlights и до 5 recommendations на компанию. Явный приоритет 👑-клиентам (TOP3 по продажам) — там решение сразу даёт заметные деньги, не распылять на второстепенных. priority=high только для 👑 или резкого падения YoY.`,
-      uk: `Виведи ТІЛЬКИ валідний JSON (без тексту навколо, без Markdown), рівно в структурі:
-{"FORMULA":{"highlights":[{"type":"growth|risk","client":"ім'я","note":"коротка фраза"}],"recommendations":[{"client":"ім'я","action":"одна конкретна рекомендація, яку агент може виконати під час візиту","priority":"high|medium"}]},"ICE_MISH":{...та сама структура...}}
-До 5 highlights і до 5 recommendations на компанію. Явний пріоритет 👑-клієнтам (TOP3 продажів). priority=high лише для 👑 або різкого падіння YoY.`,
-    };
+  // Structured JSON, not prose — the agent picks individual recommendations off a
+  // list and gives feedback per item, so free text can't be the output format.
+  const jsonInstructions = {
+    he: `פלט אך ורק JSON תקין (בלי טקסט מסביב, בלי Markdown), במבנה הבא בדיוק:
+{"FORMULA":{"highlights":[{"type":"growth|risk","client":"שם","note":"משפט קצר"}],"recommendations":[{"client":"שם","action":"המלצה קונקרטית אחת שהסוכן יכול לבצע בביקור עצמו","priority":"high|medium"}]}}
+עד 5 highlights ועד 5 recommendations. תעדוף חד ל-👑 (TOP3 מכירות) — שם ההזדמנות/כשל שווה הכי הרבה כסף, לא לפזר על לקוחות שוליים. priority=high רק ל-👑 או ירידת YoY חדה.`,
+    ru: `Выведи ТОЛЬКО валидный JSON (без текста вокруг, без Markdown), строго в структуре:
+{"FORMULA":{"highlights":[{"type":"growth|risk","client":"имя","note":"короткая фраза"}],"recommendations":[{"client":"имя","action":"одна конкретная рекомендация, которую агент может выполнить прямо на визите","priority":"high|medium"}]}}
+До 5 highlights и до 5 recommendations. Явный приоритет 👑-клиентам (TOP3 по продажам) — там решение сразу даёт заметные деньги, не распылять на второстепенных. priority=high только для 👑 или резкого падения YoY.`,
+    uk: `Виведи ТІЛЬКИ валідний JSON (без тексту навколо, без Markdown), рівно в структурі:
+{"FORMULA":{"highlights":[{"type":"growth|risk","client":"ім'я","note":"коротка фраза"}],"recommendations":[{"client":"ім'я","action":"одна конкретна рекомендація, яку агент може виконати під час візиту","priority":"high|medium"}]}}
+До 5 highlights і до 5 recommendations. Явний пріоритет 👑-клієнтам (TOP3 продажів). priority=high лише для 👑 або різкого падіння YoY.`,
+  };
 
-    const prompt = `${jsonInstructions[lang] || jsonInstructions.he}\n\nנתונים:\n${context}`;
-    const raw = await callGemini(prompt, 1200);
-    let parsed = null;
-    try {
-      const jsonMatch = raw.match(/\{[\s\S]*\}/);
-      parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
-    } catch (e) { /* fall through to fallback below */ }
-    const fallbackFor = () => ({ highlights: [], recommendations: [{ client: '', action: raw.slice(0, 400), priority: 'medium' }] });
+  const prompt = `${jsonInstructions[lang] || jsonInstructions.he}\n\nנתונים:\n${context}`;
+  const raw = await callGemini(prompt, 1200);
+  let parsed = null;
+  try {
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+  } catch (e) { /* fall through to fallback below */ }
+  const fallbackFor = () => ({ highlights: [], recommendations: [{ client: '', action: raw.slice(0, 400), priority: 'medium' }] });
 
   return {
     ok: true,
     monthStr, prevStr,
     companies: {
       FORMULA: { ...formulaResult, ...(parsed?.FORMULA || fallbackFor()) },
-      ICE_MISH: { ...iceMishResult, ...(parsed?.ICE_MISH || fallbackFor()) },
+      ICE_MISH: { dormant: iceMishResult.dormant },
     },
   };
 }
