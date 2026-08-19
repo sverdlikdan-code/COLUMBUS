@@ -2833,28 +2833,30 @@ async function _fetchClientAI(lang) {
 
     // INTER channel (e.g. מתוקים) — separate company/source, kept out of the main table
     // Same collapse-on-click pattern as the main table's per-family drilldown
-    // (reuses .fam-row-expandable/.fam-caret/toggleFamGroup) — header row shows
-    // the channel total right there (no more digging for it), ranked largest
-    // param2 first, collapsed by default since it's the least-used section.
+    // (reuses .fam-row-expandable/.fam-caret/toggleFamGroup). The channel-total row is
+    // a real row of the SAME 4-column table as everything else (not a separate flex-div
+    // outside it) — a flex-div with only 2 spans doesn't line up under the period
+    // headers, and it dropped interPrior entirely (only current+delta shown). Both
+    // period totals now render in their own columns, symmetric with the main table.
+    // Bug found live 2026-08-19 (user screenshot, hand-annotated misalignment).
     let interTbl = '';
     if (familiesInter && Object.keys(familiesInter).length) {
       const interEntries = Object.entries(familiesInter).sort((a, b) => b[1].current - a[1].current);
       const interCur = interEntries.reduce((s, [, f]) => s + f.current, 0);
       const interPrior = interEntries.reduce((s, [, f]) => s + f.prior, 0);
-      const interDelta = interPrior > 0 ? Math.round((interCur / interPrior - 1) * 100) : null;
       const hasSub = interEntries.length > 1;
       const groupId = 'fgInter';
-      const interDeltaStr = interDelta === null ? '' : ` (<span dir="ltr" style="unicode-bidi:isolate">${interDelta > 0 ? '+' : ''}${interDelta}%</span>)`;
-      interTbl = `<div class="${hasSub ? 'fam-row-expandable' : ''}" style="margin:10px 0 4px;font-size:13px;color:#8B6D00;font-weight:700;display:flex;align-items:center;justify-content:space-between;padding:5px 6px;border-radius:6px;"${hasSub ? ` onclick="toggleFamGroup('${groupId}')"` : ''}>`
-        + `<span>${hasSub ? `<span class="fam-caret" id="car-${groupId}">▸</span> ` : ''}ערוץ נפרד (INTER)</span>`
-        + `<span>₪${interCur.toLocaleString()}${interDeltaStr}</span>`
-        + `</div>`;
-      interTbl += `<table class="ai-families-tbl"><thead><tr><th>משפחת מוצר</th><th>${ltr(priorLabel)}</th><th>${ltr(curLabel)}</th><th>מגמה</th></tr></thead><tbody>`;
+      interTbl = `<table class="ai-families-tbl"><thead><tr><th>משפחת מוצר</th><th>${ltr(priorLabel)}</th><th>${ltr(curLabel)}</th><th>מגמה</th></tr></thead><tbody>`;
+      interTbl += `<tr class="${hasSub ? 'fam-row-expandable' : ''}" style="font-weight:700;color:#8B6D00"${hasSub ? ` onclick="toggleFamGroup('${groupId}')"` : ''}>`
+        + `<td>${hasSub ? `<span class="fam-caret" id="car-${groupId}">▸</span> ` : ''}ערוץ נפרד (INTER)</td>`
+        + `<td style="text-align:left">${interPrior ? '₪' + interPrior.toLocaleString() : '—'}</td>`
+        + `<td style="text-align:left">₪${interCur.toLocaleString()}</td>`
+        + trendCell({ deltaPct: interPrior > 0 ? Math.round((interCur / interPrior - 1) * 100) : null }) + `</tr>`;
       for (const [p2, f] of interEntries) {
         interTbl += `<tr class="fam-sub-row" data-group="${groupId}" style="${hasSub ? 'display:none' : ''}">`
-          + `<td>${esc(p2)}</td>`
-          + `<td style="text-align:left">${f.prior ? '₪' + f.prior.toLocaleString() : '—'}</td>`
-          + `<td style="text-align:left">₪${f.current.toLocaleString()}</td>`
+          + `<td style="padding-inline-start:24px;color:#777;font-weight:400">${esc(p2)}</td>`
+          + `<td style="text-align:left;color:#777">${f.prior ? '₪' + f.prior.toLocaleString() : '—'}</td>`
+          + `<td style="text-align:left;color:#777">₪${f.current.toLocaleString()}</td>`
           + trendCell(f) + `</tr>`;
       }
       interTbl += '</tbody></table>';
