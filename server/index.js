@@ -4479,20 +4479,33 @@ app.get('/api/client-analytics/:custId', requireAuth, async (req, res) => {
   const INTER_CATS = new Set(['מתוקים  🍬']); // raw ADIFUT[מחלקה] value — verified live, has 2 spaces + emoji
 
   try {
-    // Client segment: kashrut flag, private-market vs chain ('משטח'[רשתות - פרטי]), and
-    // peer-group key ('משטח'[תאור סוג לקוח]) — same source fields as CUSTSPEC.SPEC11/SPEC3
-    // in Priority, exposed directly on the PBI client table. This peer-group field isn't
+    // Client segment: kashrut flag, private-market vs chain, and peer-group key. FORMULA
+    // clients live in 'משטח' ('משטח'[רשתות - פרטי] / 'משטח'[תאור סוג לקוח] — same source
+    // fields as CUSTSPEC.SPEC11/SPEC3 in Priority). ICE-only clients (badge "ICE" in the
+    // UI, not in pbiCache.clientMap — see loadPBICache) never had a row in 'משטח' at all,
+    // so this LOOKUPVALUE silently returned blank for them and every downstream chain/
+    // kosher section (companyGaps, dormant chain products) just came up empty — not
+    // "no data", the data lives in a separate dataset (POWERBI_ICE_DATASET_ID) that this
+    // query never looked at. 'MISHPAHTI ICE MISHTAH' carries the same three fields under
+    // different names, confirmed live 2026-08-19 ([רשת  - חנות] has the exact same two
+    // values 'רשתות'/'שוק פרטי' as FORMULA's segment field). This peer-group field isn't
     // chain-only: private-market (שוק פרטי) clients carry a value too (e.g. "חנויות" —
     // generic small stores), so the same buyer-authorized-gap logic applies to them against
     // that peer group instead of a real chain. Kosher clients only compare against
     // kosher-tagged sales either way.
+    const isIceOnlyClient = !pbiCache?.clientMap?.has(custId);
+    const ICE_DS = process.env.POWERBI_ICE_DATASET_ID;
+    const [metaTable, metaKosherCol, metaSegmentCol, metaChainCol, metaCustCol, metaDataset] =
+      (isIceOnlyClient && ICE_DS)
+        ? ["'MISHPAHTI ICE MISHTAH'", 'כשרות', 'רשת  - חנות', 'תאור סוג לקוח', 'מס. לקוח', ICE_DS]
+        : ["'משטח'", 'כשרות', 'רשתות - פרטי', 'תאור סוג לקוח', 'מס. לקוח', undefined];
     const metaRows = await executeDax(`
 EVALUATE
 ROW(
-  "kosher", LOOKUPVALUE('משטח'[כשרות], 'משטח'[מס. לקוח], "${custId}"),
-  "segment", LOOKUPVALUE('משטח'[רשתות - פרטי], 'משטח'[מס. לקוח], "${custId}"),
-  "chainName", LOOKUPVALUE('משטח'[תאור סוג לקוח], 'משטח'[מס. לקוח], "${custId}")
-)`);
+  "kosher", LOOKUPVALUE(${metaTable}[${metaKosherCol}], ${metaTable}[${metaCustCol}], "${custId}"),
+  "segment", LOOKUPVALUE(${metaTable}[${metaSegmentCol}], ${metaTable}[${metaCustCol}], "${custId}"),
+  "chainName", LOOKUPVALUE(${metaTable}[${metaChainCol}], ${metaTable}[${metaCustCol}], "${custId}")
+)`, metaDataset);
     const meta = metaRows?.[0] || {};
     const isKosher = meta['[kosher]'] === 'כן';
     const isChain = meta['[segment]'] === 'רשתות';
@@ -4503,7 +4516,8 @@ ROW(
     if (chainName) {
       const chainNameEsc = chainName.replace(/"/g, '""');
       const chainCustRows = await executeDax(
-        `EVALUATE SELECTCOLUMNS(FILTER('משטח', 'משטח'[תאור סוג לקוח] = "${chainNameEsc}"), "cust", 'משטח'[מס. לקוח])`
+        `EVALUATE SELECTCOLUMNS(FILTER(${metaTable}, ${metaTable}[${metaChainCol}] = "${chainNameEsc}"), "cust", ${metaTable}[${metaCustCol}])`,
+        metaDataset
       );
       const chainCustIds = chainCustRows.map(r => String(r['[cust]'] || '')).filter(Boolean);
       if (chainCustIds.length) {
