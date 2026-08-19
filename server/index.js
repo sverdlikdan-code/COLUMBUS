@@ -4022,24 +4022,6 @@ CALCULATETABLE(
   ALL_PARTS[תאריך] >= DATE(${prevStart.year},${prevStart.month},1),
   ALL_PARTS[תאריך] <= DATE(${prevEnd.year},${prevEnd.month},${prevLastDay})
 )`;
-    const daxAvg = `
-EVALUATE
-ROW(
-  "avg", DIVIDE(
-    CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)],
-      ${famFilter}
-      ALL_PARTS[ASHMADOT] = "-מכר-",
-      ALL_PARTS[תאריך] >= DATE(${curStart.year},${curStart.month},1),
-      ALL_PARTS[תאריך] <= DATE(${curEnd.year},${curEnd.month},${curLastDay})
-    ),
-    CALCULATE(DISTINCTCOUNT(ALL_PARTS[מספר לקוח]),
-      ${famFilter}
-      ALL_PARTS[ASHMADOT] = "-מכר-",
-      ALL_PARTS[תאריך] >= DATE(${curStart.year},${curStart.month},1),
-      ALL_PARTS[תאריך] <= DATE(${curEnd.year},${curEnd.month},${curLastDay})
-    )
-  )
-)`;
     // Company-scoped current-calendar-month sales — same MONTH(TODAY())/YEAR(TODAY())
     // semantics as monthlySales in loadPBICache, but restricted to this company's own
     // families. Plain monthlySales (loadPBICache) is client-wide across ALL companies
@@ -4060,7 +4042,7 @@ CALCULATETABLE(
   MONTH(ALL_PARTS[תאריך]) = MONTH(TODAY()),
   YEAR(ALL_PARTS[תאריך]) = YEAR(TODAY())
 )`;
-    return { daxCur, daxLastOrder, daxPrev, daxAvg, daxCurMonth };
+    return { daxCur, daxLastOrder, daxPrev, daxCurMonth };
   };
 
   // Fraction of this month's working days elapsed so far — fetched from the
@@ -4073,11 +4055,10 @@ CALCULATETABLE(
   // flag the top 3 by current sales as 👑 (crown — real money moves there), list
   // clients dormant >21 days.
   const buildCompanyResult = async (familyList) => {
-    const { daxCur, daxLastOrder, daxPrev, daxAvg, daxCurMonth } = buildQueries(familyList);
-    const [curRows, prevRows, avgRows, lastOrderRows, curMonthRows] = await Promise.all([
-      executeDax(daxCur), executeDax(daxPrev), executeDax(daxAvg), executeDax(daxLastOrder), executeDax(daxCurMonth),
+    const { daxCur, daxLastOrder, daxPrev, daxCurMonth } = buildQueries(familyList);
+    const [curRows, prevRows, lastOrderRows, curMonthRows] = await Promise.all([
+      executeDax(daxCur), executeDax(daxPrev), executeDax(daxLastOrder), executeDax(daxCurMonth),
     ]);
-    const companyAvg = Math.round(avgRows?.[0]?.['[avg]'] || 0);
     const curMap = {}, prevMap = {}, lastOrderMap = {}, curMonthMap = {};
     for (const r of curRows) {
       const id = String(r['ALL_PARTS[מספר לקוח]'] || r['[מספר לקוח]'] || '');
@@ -4128,7 +4109,7 @@ CALCULATETABLE(
     const totalTarget = enriched.reduce((s, c) => s + c.target, 0);
     const totalSales = enriched.reduce((s, c) => s + c.monthlySales, 0);
     const totalPct = totalTarget > 0 ? Math.round((totalSales / totalTarget) * 100) : null;
-    return { clients, dormant, companyAvg, totalTarget, totalSales, totalPct };
+    return { clients, dormant, totalTarget, totalSales, totalPct };
   };
 
   const [famRows, workDaysRows] = await Promise.all([
@@ -4168,18 +4149,17 @@ CALCULATETABLE(
   const buildContext = (label, result) => {
     if (!result.clients.length) return `${label}: אין נתונים בתקופה זו.`;
     const lines = result.clients.slice(0, 10).map((c, i) => {
-      const vsAvg = result.companyAvg ? ` (${c.total >= result.companyAvg ? '+' : ''}${Math.round((c.total / result.companyAvg - 1) * 100)}% מממוצע)` : '';
       const yoyStr = c.yoy !== null ? ` | YoY:${c.yoy >= 0 ? '+' : ''}${c.yoy}%` : ' | YoY:—';
       const basketStr = c.avgBasket ? ` | סל:₪${c.avgBasket.toLocaleString()}` : '';
       const dormFlag = c.daysSince > 21 ? ` ⚠️${c.daysSince}d` : '';
       const crownFlag = c.crown ? ' 👑' : '';
       const sadranFlag = c.sadran ? ' 💪(סדרן)' : '';
-      return `${i + 1}. ${c.name}${crownFlag}${sadranFlag} (${c.city}): ₪${c.total.toLocaleString()}${vsAvg}${yoyStr}${basketStr}${dormFlag}`;
+      return `${i + 1}. ${c.name}${crownFlag}${sadranFlag} (${c.city}): ₪${c.total.toLocaleString()}${yoyStr}${basketStr}${dormFlag}`;
     }).join('\n');
     const dormantLines = result.dormant.length
       ? '\nלא הזמינו >3 שבועות: ' + result.dormant.slice(0, 5).map(c => `${c.name}(${c.daysSince}d)`).join(', ')
       : '';
-    return `${label} — ממוצע לקוח: ₪${result.companyAvg.toLocaleString()}\n${lines}${dormantLines}`;
+    return `${label}:\n${lines}${dormantLines}`;
   };
 
   const context = `תקופה נוכחית: ${monthStr} | תקופה מקבילה אשתקד: ${prevStr}\n\n${buildContext('FORMULA', formulaResult)}`;
