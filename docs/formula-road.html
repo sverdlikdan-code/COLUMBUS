@@ -2998,6 +2998,10 @@ function _renderDayCompany(key, label, data) {
   // as TERRITORY's map marker). יעד/מכר/% + INDICATION (🚀/😕, model's own pacing
   // measure) replace the old דירוג star column — stars ranked within an artificial
   // top-10, this is the client's own number against its own target instead.
+  //
+  // מכר here is company-scoped to this table's own family list (curMonthMap on the
+  // server), not the client-wide monthlySales — a client who also buys ICE Mishpachti
+  // would otherwise inflate FORMULA's own % ביצוע. Bug found 2026-08-19.
   let tbl = `<div class="day-tbl-wrap"><table class="day-top10"><thead><tr><th>#</th><th>לקוח</th><th>יעד</th><th>מכר</th><th>%</th><th></th><th>YoY</th></tr></thead><tbody>`;
   data.clients.forEach((c, i) => {
     // "+12%"/"-4%" is a plain ASCII sign+digit run — inside an RTL row the browser's
@@ -3069,6 +3073,25 @@ function _renderDayCompany(key, label, data) {
   </div>`;
 }
 
+// ICE MISHPACHTI has no company-specific יעד in the model (only FORMULA's own
+// משטח[יעד $]) — a sales/target table here would need to show either wrong or
+// borrowed numbers. Only the dormant list (⏰ לא הזמינו מעל 3 שבועות) is real,
+// company-scoped data for ICE, so that's all this shows. Bug found 2026-08-19:
+// ICE MISHPACHTI table was rendering FORMULA's own יעד+מכר+% verbatim.
+function _renderIceDormant(label, data) {
+  const dormant = data?.dormant || [];
+  const body = dormant.length
+    ? `<div class="day-section-head">⏰ לא הזמינו מעל 3 שבועות (${dormant.length})</div>
+      <div class="day-tbl-wrap"><table class="day-top10 day-dormant-tbl"><thead><tr><th>לקוח</th><th>ימים</th></tr></thead><tbody>
+        ${dormant.map(c=>`<tr><td>${c.isIce?'❄️ ':''}${esc(c.name)}${c.sadran?' 💪':''}</td><td style="text-align:left;color:#C62828;font-weight:700">${c.daysSince}d</td></tr>`).join('')}
+      </tbody></table></div>`
+    : `<div class="day-sub">אין לקוחות שלא הזמינו מעל 3 שבועות</div>`;
+  return `<div class="day-company">
+    <div class="day-company-head"><span class="day-company-name">${esc(label)}</span></div>
+    ${body}
+  </div>`;
+}
+
 async function _fetchDayBriefing() {
   const agentCode = st.agent?.code;
   const lang = _dayLang;
@@ -3087,7 +3110,7 @@ async function _fetchDayBriefing() {
     const subHead = `<div class="day-sub" style="margin-bottom:12px">${esc(data.monthStr||'')}</div>`;
     const html = `<div dir="${dir}">${subHead
       + _renderDayCompany('FORMULA', 'FORMULA', data.companies?.FORMULA)
-      + _renderDayCompany('ICE_MISH', 'ICE MISHPACHTI', data.companies?.ICE_MISH)}</div>`;
+      + _renderIceDormant('ICE MISHPACHTI', data.companies?.ICE_MISH)}</div>`;
     _dayBriefingCache[cacheKey] = { html, store: { ..._dayRecStore } };
     // Guard against out-of-order responses, same reasoning as _fetchClientAI: if the
     // user switched language while this request was in flight, a slower earlier
