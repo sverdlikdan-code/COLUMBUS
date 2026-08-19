@@ -1212,6 +1212,18 @@ async function initLogin(){
     }
   }
 
+  // PBI entry (?k=... on the guarded /formula-road route, see formulaRoadGuard in
+  // server/index.js) must always land on the full manager picker — passwordless by
+  // design, only managers open it this way. Without this, a manager who'd earlier
+  // logged in as a specific agent (e.g. to spot-check their route) keeps getting
+  // silently dropped back into that ONE agent's view forever, because the saved-
+  // session check below runs before any PBI/auth logic and just trusts whatever
+  // identity is already in localStorage. Bug found live 2026-08-19.
+  if (new URLSearchParams(window.location.search).get('k')) {
+    try { localStorage.removeItem('frAgent'); localStorage.removeItem('frRouteAgent'); } catch(_){}
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
   await loadStaticData();
   await loadCorrections();
   await loadAiGps();
