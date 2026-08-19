@@ -23,9 +23,29 @@ const DAY_HE_TO_NUM = { 'א': 1, 'ב': 2, 'ג': 3, 'ד': 4, 'ה': 5, 'ראשון
 
 let pbiCache = null; // set by loadPBICache()
 
+// One retry after a long pause, not a hammering loop — Power BI has bitten us with
+// 429 rate-limits before (see PM2 logs, 2026-08-17), so a fast retry burst risks
+// making a real overload worse instead of recovering from a transient 500 like the
+// one that left pbiCache null for 27 minutes on 2026-08-19. If the retry also fails,
+// give up exactly like before (next scheduled reload at 06:00, or /admin/reload-cache).
 async function loadPBICache() {
-  console.log('[PBI] Loading cache...');
   try {
+    await _loadPBICacheAttempt();
+  } catch (err) {
+    console.error('[PBI] Cache load error (attempt 1):', err.message);
+    console.log('[PBI] Retrying in 35s...');
+    await new Promise(r => setTimeout(r, 35000));
+    try {
+      await _loadPBICacheAttempt();
+    } catch (err2) {
+      console.error('[PBI] Cache load error (retry failed):', err2.message);
+    }
+  }
+}
+
+async function _loadPBICacheAttempt() {
+  console.log('[PBI] Loading cache...');
+  {
     // A: All active clients + targets from 'משטח'
     const clientRows = await executeDax(`
 EVALUATE
@@ -360,8 +380,6 @@ SELECTCOLUMNS(
         console.log(`[PBI] ICE geocode: ${done}/${_allIce.length} with GPS`);
       }).catch(() => {});
     }
-  } catch (err) {
-    console.error('[PBI] Cache load error:', err.message);
   }
 }
 
