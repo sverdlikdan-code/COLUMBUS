@@ -3035,7 +3035,7 @@ function _renderDayCompany(key, label, data) {
   // מכר here is company-scoped to this table's own family list (curMonthMap on the
   // server), not the client-wide monthlySales — a client who also buys ICE Mishpachti
   // would otherwise inflate FORMULA's own % ביצוע. Bug found 2026-08-19.
-  let tbl = `<div class="day-tbl-wrap"><table class="day-top10"><thead><tr><th>#</th><th>לקוח</th><th>יעד</th><th>מכר</th><th>%</th><th></th></tr></thead><tbody>`;
+  let tbl = `<div class="day-tbl-wrap"><table class="day-top10"><thead><tr><th>#</th><th>לקוח</th><th style="text-align:left">יעד</th><th style="text-align:left">מכר</th><th style="text-align:left">%</th><th></th></tr></thead><tbody>`;
   data.clients.forEach((c, i) => {
     const warn = c.daysSince && c.daysSince > 21;
     const crown = c.crown ? '👑 ' : '';
@@ -3071,7 +3071,7 @@ function _renderDayCompany(key, label, data) {
   // custId lookup needed for the ❄️/💪 flags.
   const dormantHtml = (data.dormant && data.dormant.length)
     ? `<div class="day-section-head">⏰ לא הזמינו מעל 3 שבועות (${data.dormant.length})</div>
-      <div class="day-tbl-wrap"><table class="day-top10 day-dormant-tbl"><thead><tr><th>לקוח</th><th>ימים</th></tr></thead><tbody>
+      <div class="day-tbl-wrap"><table class="day-top10 day-dormant-tbl"><thead><tr><th>לקוח</th><th style="text-align:left">ימים</th></tr></thead><tbody>
         ${data.dormant.map(c=>`<tr><td>${c.isIce?'❄️ ':''}${esc(c.name)}${c.sadran?' 💪':''}</td><td style="text-align:left;color:#C62828;font-weight:700">${c.daysSince}d</td></tr>`).join('')}
       </tbody></table></div>`
     : '';
@@ -3108,7 +3108,7 @@ function _renderIceDormant(label, data) {
   const dormant = data?.dormant || [];
   const body = dormant.length
     ? `<div class="day-section-head">⏰ לא הזמינו מעל 3 שבועות (${dormant.length})</div>
-      <div class="day-tbl-wrap"><table class="day-top10 day-dormant-tbl"><thead><tr><th>לקוח</th><th>ימים</th></tr></thead><tbody>
+      <div class="day-tbl-wrap"><table class="day-top10 day-dormant-tbl"><thead><tr><th>לקוח</th><th style="text-align:left">ימים</th></tr></thead><tbody>
         ${dormant.map(c=>`<tr><td>${c.isIce?'❄️ ':''}${esc(c.name)}${c.sadran?' 💪':''}</td><td style="text-align:left;color:#C62828;font-weight:700">${c.daysSince}d</td></tr>`).join('')}
       </tbody></table></div>`
     : `<div class="day-sub">אין לקוחות שלא הזמינו מעל 3 שבועות</div>`;
