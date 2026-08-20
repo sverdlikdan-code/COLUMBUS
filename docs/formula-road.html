@@ -3035,15 +3035,8 @@ function _renderDayCompany(key, label, data) {
   // מכר here is company-scoped to this table's own family list (curMonthMap on the
   // server), not the client-wide monthlySales — a client who also buys ICE Mishpachti
   // would otherwise inflate FORMULA's own % ביצוע. Bug found 2026-08-19.
-  let tbl = `<div class="day-tbl-wrap"><table class="day-top10"><thead><tr><th>#</th><th>לקוח</th><th>יעד</th><th>מכר</th><th>%</th><th></th><th>YoY</th></tr></thead><tbody>`;
+  let tbl = `<div class="day-tbl-wrap"><table class="day-top10"><thead><tr><th>#</th><th>לקוח</th><th>יעד</th><th>מכר</th><th>%</th><th></th></tr></thead><tbody>`;
   data.clients.forEach((c, i) => {
-    // "+12%"/"-4%" is a plain ASCII sign+digit run — inside an RTL row the browser's
-    // bidi algorithm reorders the weak +/- sign to the far side of the digits
-    // ("12%+"), same class of bug as the date-range bidi fix elsewhere in this file.
-    // An explicit LTR isolate keeps the sign glued to the number it belongs to.
-    const yoyRaw = c.yoy !== null && c.yoy !== undefined ? `${c.yoy>=0?'+':''}${c.yoy}%` : '—';
-    const yoyColor = c.yoy === null || c.yoy === undefined ? '#999' : (c.yoy > 0 ? '#2E7D32' : c.yoy < 0 ? '#C62828' : '#999');
-    const yoyStr = `<span dir="ltr" style="unicode-bidi:isolate;color:${yoyColor};font-weight:800">${yoyRaw}</span>`;
     const warn = c.daysSince && c.daysSince > 21;
     const crown = c.crown ? '👑 ' : '';
     const iceFlag = c.isIce ? '❄️ ' : '';
@@ -3059,7 +3052,6 @@ function _renderDayCompany(key, label, data) {
       <td style="text-align:left">₪${c.monthlySales.toLocaleString()}</td>
       <td style="text-align:left">${pctStr}</td>
       <td>${c.indication || ''}</td>
-      <td>${yoyStr}</td>
     </tr>`;
   });
   if (data.totalTarget > 0) {
@@ -3068,7 +3060,7 @@ function _renderDayCompany(key, label, data) {
       <td colspan="2">סה"כ יום</td>
       <td style="text-align:left">₪${data.totalTarget.toLocaleString()}</td>
       <td style="text-align:left">₪${data.totalSales.toLocaleString()}</td>
-      <td style="text-align:left" colspan="3"><span dir="ltr" style="unicode-bidi:isolate;color:${totalColor}">${data.totalPct}%</span></td>
+      <td style="text-align:left" colspan="2"><span dir="ltr" style="unicode-bidi:isolate;color:${totalColor}">${data.totalPct}%</span></td>
     </tr>`;
   }
   tbl += '</tbody></table></div>';
