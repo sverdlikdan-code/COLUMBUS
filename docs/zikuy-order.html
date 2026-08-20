@@ -151,7 +151,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 <body>
 
 <div class="top-bar no-print">
-  <button class="back-btn" aria-label="חזרה" onclick="window.history.length>1?history.back():window.close()">→</button>
+  <button class="back-btn" aria-label="חזרה" onclick="window.close()">→</button>
   <div class="top-title">🔄 בקשת זיכוי</div>
 </div>
 
@@ -250,12 +250,12 @@ let products = [];      // full 365-day history from server
 let selected = new Map(); // sku -> {product, qty, date, option}
 let navMachlaka = null; // currently drilled-into department
 
-// date bounds for the תוקף picker: 6 months back, 2 months ahead
+// date bounds for the תוקף picker: 1 year back, 3 years ahead
 const today = new Date();
-const sixMonthsAgo = new Date(); sixMonthsAgo.setMonth(sixMonthsAgo.getMonth()-6);
-const twoMonthsAhead = new Date(); twoMonthsAhead.setMonth(twoMonthsAhead.getMonth()+2);
-const dMax = twoMonthsAhead.toISOString().slice(0,10);
-const dMin = sixMonthsAgo.toISOString().slice(0,10);
+const oneYearAgo = new Date(); oneYearAgo.setFullYear(oneYearAgo.getFullYear()-1);
+const threeYearsAhead = new Date(); threeYearsAhead.setFullYear(threeYearsAhead.getFullYear()+3);
+const dMax = threeYearsAhead.toISOString().slice(0,10);
+const dMin = oneYearAgo.toISOString().slice(0,10);
 
 async function init(){
   document.getElementById('inf-name').textContent = custName || '—';
@@ -434,10 +434,17 @@ function renderProformaTable(rows){
 
 function showPrintFullscreen(){
   document.getElementById('pv-overlay').classList.add('show');
+  // Pushes a same-document history entry so the device/browser "back" gesture
+  // just fires popstate below instead of navigating the tab away (which was
+  // wiping the in-memory `selected` Map — the agent's edits looked "lost").
+  history.pushState({pv:1},'');
 }
 function hidePrintFullscreen(){
   document.getElementById('pv-overlay').classList.remove('show');
 }
+window.addEventListener('popstate', ()=>{
+  document.getElementById('pv-overlay').classList.remove('show');
+});
 
 // Images are inserted into #print-view moments before html2canvas rasterizes it
 // (in shareBlank) — without waiting, their network fetch (through /api/img-proxy)
@@ -472,7 +479,26 @@ function setupWaButton(rows, now){
 async function sendAsImage(){
   try{
     const el=document.getElementById('print-view');
-    const canvas=await html2canvas(el,{useCORS:true,backgroundColor:'#ffffff',scale:1.5});
+    // #pv-overlay.show #print-view shrinks to viewport width on phones (CSS
+    // rule above), so capturing it as-is gives a tall/narrow canvas that
+    // WhatsApp letterboxes/crops. Force the full 1100px design width for the
+    // capture only, then restore.
+    const prevWidth=el.style.width, prevMaxWidth=el.style.maxWidth;
+    el.style.width='1100px'; el.style.maxWidth='1100px';
+    let canvas=await html2canvas(el,{useCORS:true,backgroundColor:'#ffffff',scale:1.5});
+    el.style.width=prevWidth; el.style.maxWidth=prevMaxWidth;
+    // Still portrait with a long product list (table taller than 1100px wide) —
+    // rotate into landscape so WhatsApp never crops it.
+    if(canvas.height>canvas.width){
+      const rotated=document.createElement('canvas');
+      rotated.width=canvas.height; rotated.height=canvas.width;
+      const ctx=rotated.getContext('2d');
+      ctx.translate(rotated.width/2,rotated.height/2);
+      ctx.rotate(Math.PI/2);
+      ctx.drawImage(canvas,-canvas.width/2,-canvas.height/2);
+      canvas.width=0; canvas.height=0;
+      canvas=rotated;
+    }
     const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
     // Free the pixel buffer now — otherwise canvas+blob+File all stay alive together
     // while the native share sheet is open, which is when the freeze/flicker on
