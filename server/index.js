@@ -1035,9 +1035,11 @@ function fixBiDiAddress(str) {
   const hasLROverride = /[‪‭]/.test(str);
   let clean = str.replace(/[‎‏‪-‮]/g, '');
   if (hasLROverride) {
-    clean = clean.replace(/[֐-׿יִ-ﭏ]+/g, seg =>
-      seg.split('').reverse().join('')
-    );
+    clean = clean.split(/\s+/).reverse()
+      .map(w => /[֐-׿יִ-ﭏ]/.test(w)
+        ? w.split('').reverse().join('').replace(/\d+/g, mm => mm.split('').reverse().join(''))
+        : w)
+      .join(' ');
   }
   return clean.trim();
 }
