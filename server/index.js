@@ -1565,6 +1565,18 @@ app.get('/agent-exists', requireAuth, async (req, res) => {
   res.json({ exists, count: exists ? pbiCache.byAgent.get(agent).length : 0 });
 });
 
+// GET /agent-manager?agent=CODE — team/קבוצה this agent belongs to, for picking
+// the right yedaim.png (2026-08-20) — same מנהל/קבוצה every other agent-scoped
+// endpoint here already reads off pbiCache, just surfaced for the client.
+app.get('/agent-manager', requireAuth, async (req, res) => {
+  const { agent } = req.query;
+  if (!agent || !validateAgentCode(agent)) return res.json({ manager: null });
+  if (!pbiCache) return res.json({ manager: null, reason: 'loading' });
+  const clients = pbiCache.byAgent.get(agent);
+  const manager = clients?.find(c => c.manager)?.manager || null;
+  res.json({ manager });
+});
+
 // GET /customers?agent=CODE&day=1 — from PBI cache
 app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
   const { agent, day } = req.query;
@@ -3684,6 +3696,18 @@ app.get('/mekarer-order.html', (req, res) => {
 });
 app.get('/zikuy-order.html', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'zikuy-order.html'));
+});
+// GET /yedaim/:team.png — daily snapshot of the FORMULA DASHBORD "יעדים" PBI
+// page, one per קבוצה team (2026-08-20). Whitelisted slugs only — no path
+// traversal via req.params. requireAuth: real sales figures per team.
+const YEDAIM_SLUGS = new Set(['alexey', 'anatol', 'natalya', 'sadran-plus', 'sveta', 'vlad']);
+app.get('/yedaim/:team.png', requireAuth, (req, res) => {
+  const slug = String(req.params.team || '');
+  if (!YEDAIM_SLUGS.has(slug)) return res.status(404).end();
+  res.set('Cache-Control', 'no-store');
+  res.sendFile(path.join(__dirname, 'data', `yedaim-${slug}.png`), err => {
+    if (err) res.status(404).end();
+  });
 });
 // Public, allowlisted image proxy: priority.dilerbmd.com sends no CORS headers,
 // so html2canvas can't capture hotlinked product photos into the zikuy WhatsApp share.
