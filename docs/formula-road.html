@@ -2954,28 +2954,35 @@ async function _fetchClientAI(lang) {
     }
 
     const dir = lang === 'he' ? 'rtl' : 'ltr';
-    let cleanAnalysis = analysis
-      .replace(/</g,'&lt;').replace(/>/g,'&gt;')
-      .replace(/^#{1,6}\s*/gm, '')
-      .replace(/\*\*(.+?)\*\*/g, '$1')
-      .replace(/^[-*]\s+/gm, '• ')
-      .replace(/^---+$/gm, '');
-    // Bold family/department names — matched against this same response's own
-    // families data, not guessed by regex over free text, so only real entities
-    // ever get bolded. Then color+isolate every signed percentage (the prompt now
-    // requires an explicit +/- on each one): red for a drop, green for growth,
-    // with an LTR isolate so the sign can't get visually reordered away from the
-    // digits inside Hebrew RTL prose (same bidi fix as the day-briefing YoY column).
-    const famNames = [...Object.keys(families||{}), ...Object.keys(familiesInter||{})]
-      .filter(Boolean).sort((a,b)=>b.length-a.length);
-    if (famNames.length) {
-      const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const famRe = new RegExp(famNames.map(escRe).join('|'), 'g');
-      cleanAnalysis = cleanAnalysis.replace(famRe, m => `<b>${m}</b>`);
+    // analysis is null while the Gemini commentary is disabled (2026-08-20) — the
+    // tables above already carry the trend visually, so just skip the text block
+    // instead of rendering an empty/broken one.
+    let analysisHtml = '';
+    if (analysis) {
+      let cleanAnalysis = analysis
+        .replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/^#{1,6}\s*/gm, '')
+        .replace(/\*\*(.+?)\*\*/g, '$1')
+        .replace(/^[-*]\s+/gm, '• ')
+        .replace(/^---+$/gm, '');
+      // Bold family/department names — matched against this same response's own
+      // families data, not guessed by regex over free text, so only real entities
+      // ever get bolded. Then color+isolate every signed percentage (the prompt now
+      // requires an explicit +/- on each one): red for a drop, green for growth,
+      // with an LTR isolate so the sign can't get visually reordered away from the
+      // digits inside Hebrew RTL prose (same bidi fix as the day-briefing YoY column).
+      const famNames = [...Object.keys(families||{}), ...Object.keys(familiesInter||{})]
+        .filter(Boolean).sort((a,b)=>b.length-a.length);
+      if (famNames.length) {
+        const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const famRe = new RegExp(famNames.map(escRe).join('|'), 'g');
+        cleanAnalysis = cleanAnalysis.replace(famRe, m => `<b>${m}</b>`);
+      }
+      cleanAnalysis = cleanAnalysis.replace(/([+-]\d+(?:\.\d+)?%)/g,
+        m => `<span dir="ltr" style="unicode-bidi:isolate;color:${m[0]==='-'?'#C62828':'#2E7D32'};font-weight:800">${m}</span>`);
+      analysisHtml = `<div class="ai-analysis" dir="${dir}">${cleanAnalysis}</div>`;
     }
-    cleanAnalysis = cleanAnalysis.replace(/([+-]\d+(?:\.\d+)?%)/g,
-      m => `<span dir="ltr" style="unicode-bidi:isolate;color:${m[0]==='-'?'#C62828':'#2E7D32'};font-weight:800">${m}</span>`);
-    const html = `${tbl}${interTbl}${gapTbl}${devTbl}<div class="ai-analysis" dir="${dir}">${cleanAnalysis}</div>`;
+    const html = `${tbl}${interTbl}${gapTbl}${devTbl}${analysisHtml}`;
     // Guard against out-of-order responses: if the user switched client/language while
     // this request was in flight, a slower earlier request can resolve AFTER a faster
     // later one and overwrite the correct content with stale text in the wrong language.

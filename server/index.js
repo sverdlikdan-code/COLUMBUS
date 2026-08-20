@@ -5015,7 +5015,11 @@ CALCULATETABLE(
       ru: `Ты менеджер зоны. Продажи по отделам, текущий период против предыдущего:\n${context}\n\nДай до 3 наблюдений на основе реального изменения в процентах + одну рекомендацию. Если >3 недель без заказа — критично. Агент лично заходит в магазин — он не звонит байерам и не действует "авторитетом" другого отдела. Запрещено выдумывать цифры, проценты или количества, которых нет в данных выше. ${priorityNote.ru} ${substNote.ru} ${hedgeNote.ru} ${terseNote.ru} ${noMdNote.ru} ${noTranslitNote.ru} ${signNote.ru}`,
     };
 
-    const analysis = await callGemini(prompts[lang] || prompts.he, 320);
+    // Gemini prose commentary dropped 2026-08-20 — the tables/numbers below already
+    // show the trend visually (colors, arrows, %), and the LLM round-trip added
+    // latency for little extra value. Prompt-building above is left in place so
+    // this is a one-line restore if the panel gets a real ask for it later.
+    const analysis = null;
 
     res.json({
       ok: true,
