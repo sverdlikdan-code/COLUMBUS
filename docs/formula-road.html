@@ -643,10 +643,6 @@ body.gps-fs #map{height:100%!important;}
       <div class="ai-title" id="ai-modal-title">ניתוח לקוח</div>
       <span class="ai-close" onclick="closeAiModal()">✕</span>
     </div>
-    <div class="ai-lang-bar">
-      <button class="ai-lang-btn active" data-lang="he" onclick="switchAiLang(this,'he')">עברית</button>
-      <button class="ai-lang-btn" data-lang="ru" onclick="switchAiLang(this,'ru')">Русский</button>
-    </div>
     <div id="ai-modal-body"><div class="ai-loading">⏳ טוען...</div></div>
   </div>
 </div>
@@ -2736,6 +2732,11 @@ function openClientAI(evt, custId, custName) {
   _tick();
   _aiState.custId   = custId;
   _aiState.custName = custName;
+  // Opening client AI from inside the day-briefing panel left day-modal's .open
+  // class in place — same z-index, ai-modal sits earlier in the DOM, so it
+  // rendered invisibly behind day-modal's still-open backdrop. Closing it here
+  // makes this a real transition instead of a silent no-op.
+  document.getElementById('day-modal').classList.remove('open');
   document.getElementById('ai-modal-title').textContent = custName || custId;
   document.getElementById('ai-modal').classList.add('open');
   // reset lang buttons
