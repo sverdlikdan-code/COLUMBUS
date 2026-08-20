@@ -131,6 +131,12 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
    being one option among several — demoted to a plain outline below. */
 .sort-btn.primary-action{background:#4A148C;color:#fff;border-color:#4A148C;font-weight:900;}
 .sort-btn.primary-action:hover{background:#38106B;}
+/* Map is OFF by default (agents work from the list, not the map) — this is
+   the one control that turns it on, and agent feedback twice now said the
+   small pill made that unclear. Bumped up in size/weight so it reads as its
+   own thing, not one more chip among a dozen others. */
+.sort-btn.map-toggle-cta{height:40px;padding:8px 18px;font-size:14px;font-weight:900;border-width:2.5px;color:#00695C;border-color:#00695C;background:#E0F2F1;}
+.sort-btn.map-toggle-cta:hover{background:#B2DFDB;}
 .sort-toggle{display:flex;border:2px solid var(--sky-mid);border-radius:20px;overflow:hidden;flex-shrink:0;}
 .sort-toggle .sort-btn{border:none!important;border-radius:0!important;box-shadow:none!important;}
 .sort-toggle .sort-btn+.sort-btn{border-right:1.5px solid var(--sky-mid)!important;}
@@ -583,7 +589,7 @@ body.gps-fs #map{height:100%!important;}
         <button class="sort-btn primary-action" id="day-briefing-btn" onclick="openDayBriefing()" title="ניתוח יום — TOP 10 לקוחות">📊 ניתוח</button>
         <button class="sort-btn primary-action" id="yedaim-btn" onclick="openYedaim()" title="יעדים — סטטוס הקבוצה">יעדים 🎩</button>
         <button class="sort-btn" id="gmaps-btn" onclick="openGoogleMaps()" title="פתח מסלול ב-Google Maps" style="color:#1a73e8;border-color:#1a73e8;">🗺 Google</button>
-        <button class="sort-btn" id="map-toggle-btn" onclick="toggleMapHidden()" title="הצג מפה">🗺 הצג</button>
+        <button class="sort-btn map-toggle-cta" id="map-toggle-btn" onclick="toggleMapHidden()" title="הצג מפה">🗺 הצג מפה</button>
         <div class="km-more-wrap">
           <button class="sort-btn km-more-btn" id="km-more-btn" onclick="toggleKmMore()" title="עוד פעולות">⋮</button>
           <div class="km-more-dd" id="km-more-dd">
@@ -909,7 +915,7 @@ function applyMapHidden(){
   // Icon-only ("🗺❌" alone) relied on the title tooltip for meaning — invisible on
   // touch, nobody could tell what it did (live agent feedback). Short label text
   // instead, same as every other toolbar button.
-  if(btn){ btn.textContent = st.mapHidden ? '🗺 הצג' : '🗺❌ הסתר'; btn.title = st.mapHidden ? 'הצג מפה' : 'הסתר מפה'; }
+  if(btn){ btn.textContent = st.mapHidden ? '🗺 הצג מפה' : '🗺❌ הסתר מפה'; btn.title = st.mapHidden ? 'הצג מפה' : 'הסתר מפה'; }
   if(st.mapHidden && st.tab==='map') setTab('list');
 }
 function toggleMapHidden(){
