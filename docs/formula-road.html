@@ -197,7 +197,10 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 /* Yedaim (team targets snapshot) Modal */
 #yedaim-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px;}
 #yedaim-modal.open{display:flex;}
-#yedaim-modal-box{background:#fff;border-radius:16px;width:100%;max-width:1040px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.35);}
+/* The snapshot itself is a wide PBI dashboard screenshot (~1900x1100) — the
+   1040px box other modals use (sized for text/tables) crushed it down.
+   Near-fullscreen instead so it's actually readable. */
+#yedaim-modal-box{background:#fff;border-radius:16px;width:100%;max-width:98vw;height:96vh;max-height:96vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.35);}
 #yedaim-modal-head{background:#4A148C;color:#fff;padding:14px 18px 12px;display:flex;align-items:center;gap:10px;}
 #yedaim-modal-head .yedaim-title{flex:1;font-size:19px;font-weight:800;}
 #yedaim-modal-head .yedaim-close{font-size:20px;cursor:pointer;opacity:.8;padding:0 4px;}
@@ -2834,15 +2837,23 @@ async function _loadYedaimImage(slug, name) {
   const body = document.getElementById('yedaim-modal-body');
   document.getElementById('yedaim-modal-title').textContent = `יעדים — ${name}`;
   body.innerHTML = '<div class="ai-loading">⏳ טוען...</div>';
+  // Managers reach a specific team's image via the 6-team picker — give them a
+  // way back to it instead of only "close the whole modal and start over".
+  // Regular agents never see the picker (auto-resolved to their own team), so
+  // there's nowhere meaningful to go back to for them.
+  const auth = _loadAuth();
+  const backBtn = (auth && auth.isManager)
+    ? `<button class="yedaim-pick-btn" style="margin-bottom:10px" onclick="_renderYedaimPicker()">⬅ חזרה לבחירת קבוצה</button>`
+    : '';
   try {
     const r = await apiFetch(`${API}/yedaim/${slug}.png`, {}, 15000);
     if (!r.ok) throw new Error('לא נמצא');
     const blob = await r.blob();
     if (_yedaimObjectUrl) URL.revokeObjectURL(_yedaimObjectUrl);
     _yedaimObjectUrl = URL.createObjectURL(blob);
-    body.innerHTML = `<img src="${_yedaimObjectUrl}" alt="${name}">`;
+    body.innerHTML = `${backBtn}<img src="${_yedaimObjectUrl}" alt="${name}">`;
   } catch (e) {
-    body.innerHTML = `<div class="ai-loading" style="color:#c62828">❌ ${e.message}</div>`;
+    body.innerHTML = `${backBtn}<div class="ai-loading" style="color:#c62828">❌ ${e.message}</div>`;
   }
 }
 
