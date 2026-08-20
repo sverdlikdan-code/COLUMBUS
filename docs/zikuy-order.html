@@ -58,6 +58,14 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 .qty-stepper input[type=number]{width:52px;height:44px;border:none;text-align:center;font-size:16px;font-family:inherit;-moz-appearance:textfield;appearance:textfield;}
 .qty-stepper input[type=number]::-webkit-outer-spin-button,.qty-stepper input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
 .ret-field input[type=date],.ret-field select{padding:9px 10px;min-height:44px;min-width:132px;border:1.5px solid var(--sky-mid);border-radius:10px;font-size:14.5px;font-family:inherit;color:var(--text);background:#fff;}
+/* -50% vs השמדה — two very different outcomes for the return, easy to fat-finger
+   as a <select> on a tablet. A toggle keeps both options visible at once and
+   color-codes them so which one is active reads at a glance, not just from text. */
+.opt-toggle{display:flex;min-height:44px;min-width:150px;border:1.5px solid var(--sky-mid);border-radius:10px;overflow:hidden;}
+.opt-btn{flex:1;border:none;background:#fff;font-family:inherit;font-size:13px;font-weight:800;color:var(--mid);cursor:pointer;-webkit-appearance:none;appearance:none;padding:0 6px;white-space:nowrap;}
+.opt-btn:not(:last-child){border-inline-end:1.5px solid var(--sky-mid);}
+.opt-btn.opt-50.on{background:var(--blue);color:#fff;}
+.opt-btn.opt-destroy.on{background:var(--red);color:#fff;}
 .ret-empty{text-align:center;padding:20px;color:var(--light);font-size:13px;}
 .rm-btn{width:40px;height:40px;flex-shrink:0;background:none;border:none;color:var(--red);font-size:19px;cursor:pointer;border-radius:8px;display:flex;align-items:center;justify-content:center;}
 .rm-btn:active{background:#FFEBEE;}
@@ -81,6 +89,8 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
   .qty-stepper .qty-btn{width:48px;height:48px;font-size:22px;}
   .qty-stepper input[type=number]{width:60px;height:48px;font-size:17px;}
   .ret-field input[type=date],.ret-field select{min-height:48px;font-size:15.5px;}
+  .opt-toggle{min-height:48px;min-width:170px;}
+  .opt-btn{font-size:14.5px;}
   .submit-btn,.wa-btn{font-size:17px;min-height:58px;}
 }
 
@@ -361,10 +371,10 @@ function renderTable(){
         </div>
         <div class="ret-field">
           <label>אופציה</label>
-          <select aria-label="אופציה" onchange="updateRow('${esc(p.sku)}','option',this.value)">
-            <option value="-50%" ${row.option==='-50%'?'selected':''}>-50%</option>
-            <option value="השמדה" ${row.option==='השמדה'?'selected':''}>השמדה</option>
-          </select>
+          <div class="opt-toggle" role="group" aria-label="אופציה">
+            <button type="button" class="opt-btn opt-50 ${row.option==='-50%'?'on':''}" onclick="setOption('${esc(p.sku)}','-50%')">-50%</button>
+            <button type="button" class="opt-btn opt-destroy ${row.option==='השמדה'?'on':''}" onclick="setOption('${esc(p.sku)}','השמדה')">🗑 השמדה</button>
+          </div>
         </div>
       </div>
     </div>`;
@@ -373,6 +383,11 @@ function renderTable(){
 function updateRow(sku,field,val){
   const row=selected.get(sku); if(!row) return;
   row[field]= field==='qty' ? (parseInt(val,10)||1) : val;
+}
+function setOption(sku,val){
+  const row=selected.get(sku); if(!row) return;
+  row.option=val;
+  renderTable();
 }
 function stepQty(sku,delta){
   const row=selected.get(sku); if(!row) return;
