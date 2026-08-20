@@ -1579,7 +1579,8 @@
         const hamlRnd = _hamlRnd0 > 0 ? _hamlRnd0
           : (_weeksNfOvr[mk] && mkr != null ? Math.max(0, Math.round(_weeksNfOvr[mk] * mkr - eil)) : 0);
         const _cap    = maavarMode ? mav : ash;
-        const _rawOrd = s.k != null ? s.k : hamlRnd;
+        // maavar: no auto-fill from regular hamlatza formula — manual quantity only
+        const _rawOrd = s.k != null ? s.k : (maavarMode ? '' : hamlRnd);
         const _ordVRaw = (_rawOrd !== '' && _cap > 0 && Number(_rawOrd) > _cap) ? _cap : (s.k === 0 ? 0 : (_rawOrd || ''));
         // Maavar-only: visible in regular view but order locked at 0 — must use מחסן מעבר mode
         const isMaavarOnly = !maavarMode && ash <= 0 && mmd <= 0 && mav > 0;
@@ -1796,8 +1797,10 @@
   // Compute effective order quantity — same logic as render() so table and Excel always match
   function _effOrd(r, s) {
     if (s && s.k != null) return Number(s.k);
+    // maavar: no auto-fill from regular hamlatza formula — manual quantity only
+    if (maavarMode) return 0;
     // ash<=0: no stock in Ashdod → cannot auto-recommend
-    if (!maavarMode && (r.ashdod_k ?? 0) <= 0) return 0;
+    if ((r.ashdod_k ?? 0) <= 0) return 0;
     const mk   = String(r.mkt ?? '');
     const haml = r.hamlatza ?? 0;
     const hamlMult = { '664': 4 };

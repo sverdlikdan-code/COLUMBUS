@@ -1287,7 +1287,8 @@
         const mkr  = r.mkr_shvua != null ? r.mkr_shvua : null;
         const haml = r.hamlatza  ?? 0;
         const hamlRnd = haml > 0 ? Math.round(haml) : 0;
-        const ordV    = s.k != null ? s.k : hamlRnd || '';
+        // maavar: no auto-fill from regular hamlatza formula — manual quantity only
+        const ordV    = s.k != null ? s.k : (maavarMode ? '' : (hamlRnd || ''));
         const eff     = Number(ordV) || 0;
 
         const yamim     = r.yamim ?? null;
@@ -1587,13 +1588,13 @@
     const time = now.toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'});
     const orderedRows = rows.filter(r => {
       const s = sv[String(r.mkt ?? '')] || {};
-      const eff = s.k != null ? s.k : ((r.hamlatza ?? 0) > 0 ? Math.round(r.hamlatza) : 0);
+      const eff = s.k != null ? s.k : (maavarMode ? 0 : ((r.hamlatza ?? 0) > 0 ? Math.round(r.hamlatza) : 0));
       return eff > 0;
     });
     const items = orderedRows.map(r => {
       const mk = String(r.mkt ?? '');
       const s  = sv[mk] || {};
-      const eff = s.k != null ? Number(s.k) : ((r.hamlatza ?? 0) > 0 ? Math.round(r.hamlatza) : 0);
+      const eff = s.k != null ? Number(s.k) : (maavarMode ? 0 : ((r.hamlatza ?? 0) > 0 ? Math.round(r.hamlatza) : 0));
       const tukuf = sessionP[mk] || (r.tukuf || '').split('/')[0]?.trim() || '';
       return { mk, taur: r.taur, mmd: r.mmd_k ?? 0, ash: r.ashdod_k ?? 0, qty: eff, tukuf };
     });
