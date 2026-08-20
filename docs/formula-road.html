@@ -181,6 +181,19 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .zikuy-btn:hover{background:#EF9A9A;}
 .ai-insight-btn{font-size:10px;flex-shrink:0;cursor:pointer;background:#D1C4E9;border:1.5px solid #9575CD;border-radius:6px;padding:2px 6px;color:#4527A0;font-weight:900;line-height:1.3;text-align:center;transition:background .12s;min-height:28px;display:flex;align-items:center;justify-content:center;letter-spacing:.3px;}
 .ai-insight-btn:hover{background:#B39DDB;}
+/* Yedaim (team targets snapshot) Modal */
+#yedaim-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px;}
+#yedaim-modal.open{display:flex;}
+#yedaim-modal-box{background:#fff;border-radius:16px;width:100%;max-width:1040px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.35);}
+#yedaim-modal-head{background:#4A148C;color:#fff;padding:14px 18px 12px;display:flex;align-items:center;gap:10px;}
+#yedaim-modal-head .yedaim-title{flex:1;font-size:19px;font-weight:800;}
+#yedaim-modal-head .yedaim-close{font-size:20px;cursor:pointer;opacity:.8;padding:0 4px;}
+#yedaim-modal-head .yedaim-close:hover{opacity:1;}
+#yedaim-modal-body{overflow:auto;padding:14px;text-align:center;}
+#yedaim-modal-body img{max-width:100%;border-radius:8px;}
+.yedaim-pick-bar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:20px;}
+.yedaim-pick-btn{padding:12px 20px;border-radius:10px;border:1.5px solid #CE93D8;background:#fff;font-size:14px;font-weight:800;color:#4A148C;cursor:pointer;}
+.yedaim-pick-btn:hover{background:#F8F4FF;}
 /* AI Analytics Modal */
 #ai-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px;}
 #ai-modal.open{display:flex;}
@@ -561,6 +574,7 @@ body.gps-fs #map{height:100%!important;}
           <button class="sort-btn active-ai-google" id="sort-btn-ai-google" onclick="toggleAiGps()">🤖 AI Google</button>
         </div>
         <button class="sort-btn" id="day-briefing-btn" onclick="openDayBriefing()" title="ניתוח יום — TOP 10 לקוחות" style="background:#5C6BC0;color:#fff;border-color:#3F51B5;font-weight:900">📊 ניתוח</button>
+        <button class="sort-btn" id="yedaim-btn" onclick="openYedaim()" title="יעדים — סטטוס הקבוצה" style="background:#4A148C;color:#fff;border-color:#4A148C;font-weight:900">יעדים 🎩</button>
         <button class="sort-btn" id="gmaps-btn" onclick="openGoogleMaps()" title="פתח מסלול ב-Google Maps" style="background:#1a73e8;color:#fff;border-color:#0d47a1;font-weight:900;box-shadow:0 2px 8px rgba(26,115,232,.35)">🗺 Google</button>
         <button class="sort-btn" id="map-toggle-btn" onclick="toggleMapHidden()" title="הצג מפה">🗺 הצג</button>
         <div class="km-more-wrap">
@@ -634,6 +648,18 @@ body.gps-fs #map{height:100%!important;}
 <!-- ── DAY POPUP ── -->
 <div id="day-popup"></div>
 <div id="row-actions-popup" onclick="event.stopPropagation()"></div>
+
+<!-- ── YEDAIM (team targets snapshot) MODAL ── -->
+<div id="yedaim-modal" onclick="if(event.target===this)closeYedaim()">
+  <div id="yedaim-modal-box">
+    <div id="yedaim-modal-head">
+      <span style="font-size:20px">🎩</span>
+      <div class="yedaim-title" id="yedaim-modal-title">יעדים</div>
+      <span class="yedaim-close" onclick="closeYedaim()">✕</span>
+    </div>
+    <div id="yedaim-modal-body"><div class="ai-loading">⏳ טוען...</div></div>
+  </div>
+</div>
 
 <!-- ── AI CLIENT ANALYTICS MODAL ── -->
 <div id="ai-modal" onclick="if(event.target===this)closeAiModal()">
@@ -2742,6 +2768,65 @@ function openClientAI(evt, custId, custName) {
 
 function closeAiModal() {
   document.getElementById('ai-modal').classList.remove('open');
+}
+
+// יעדים snapshot modal (2026-08-20) — shows the daily PNG of FORMULA DASHBORD's
+// יעדים page for the agent's own team. /yedaim/:team.png needs the X-Session
+// header (requireAuth), so a plain <img src> won't carry it — fetched as a
+// blob through apiFetch instead, same as every other authed call in this file.
+const YEDAIM_TEAMS = [
+  { name: 'ALEXEY', slug: 'alexey' },
+  { name: 'ANATOL', slug: 'anatol' },
+  { name: 'NATALYA', slug: 'natalya' },
+  { name: 'SADRAN+', slug: 'sadran-plus' },
+  { name: 'SVETA', slug: 'sveta' },
+  { name: 'VLAD', slug: 'vlad' },
+];
+let _yedaimObjectUrl = null;
+
+async function openYedaim() {
+  document.getElementById('yedaim-modal').classList.add('open');
+  const body = document.getElementById('yedaim-modal-body');
+  body.innerHTML = '<div class="ai-loading">⏳ טוען...</div>';
+
+  // Managers aren't scoped to one team — let them pick. Regular agents get
+  // their own team resolved automatically via their real agentCode.
+  if (_auth && _auth.isManager) return _renderYedaimPicker();
+
+  try {
+    const r = await apiFetch(`${API}/agent-manager?agent=${encodeURIComponent(st.agent?.code || '')}`, {}, 10000);
+    const j = await r.json();
+    const team = YEDAIM_TEAMS.find(t => t.name === j.manager);
+    if (team) return _loadYedaimImage(team.slug, team.name);
+  } catch (_) { /* fall through to picker */ }
+  _renderYedaimPicker();
+}
+
+function _renderYedaimPicker() {
+  const body = document.getElementById('yedaim-modal-body');
+  body.innerHTML = '<div class="yedaim-pick-bar">' +
+    YEDAIM_TEAMS.map(t => `<button class="yedaim-pick-btn" onclick="_loadYedaimImage('${t.slug}','${t.name}')">${t.name}</button>`).join('') +
+    '</div>';
+}
+
+async function _loadYedaimImage(slug, name) {
+  const body = document.getElementById('yedaim-modal-body');
+  document.getElementById('yedaim-modal-title').textContent = `יעדים — ${name}`;
+  body.innerHTML = '<div class="ai-loading">⏳ טוען...</div>';
+  try {
+    const r = await apiFetch(`${API}/yedaim/${slug}.png`, {}, 15000);
+    if (!r.ok) throw new Error('לא נמצא');
+    const blob = await r.blob();
+    if (_yedaimObjectUrl) URL.revokeObjectURL(_yedaimObjectUrl);
+    _yedaimObjectUrl = URL.createObjectURL(blob);
+    body.innerHTML = `<img src="${_yedaimObjectUrl}" alt="${name}">`;
+  } catch (e) {
+    body.innerHTML = `<div class="ai-loading" style="color:#c62828">❌ ${e.message}</div>`;
+  }
+}
+
+function closeYedaim() {
+  document.getElementById('yedaim-modal').classList.remove('open');
 }
 
 function switchAiLang(btn, lang) {
