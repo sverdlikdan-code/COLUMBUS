@@ -124,6 +124,13 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .sort-btn.active-ai-google{color:#7B1FA2;border-color:#7B1FA2;background:#F3E5F5;box-shadow:0 2px 8px rgba(123,31,162,.18);}
 .sort-btn.active-tablet{color:#E65100;border-color:#E65100;background:#FFF3E0;box-shadow:0 2px 8px rgba(230,81,0,.18);}
 .sort-btn.icon-only{padding:6px 10px;min-width:34px;justify-content:center;}
+/* The two real primary actions on this screen (day analysis, team targets) —
+   solid fill is reserved for these two only, so it reads as "do a thing" and
+   never gets confused with the light-tint .active-* toggle-state buttons
+   above. Google Maps used to share this same solid-fill treatment despite
+   being one option among several — demoted to a plain outline below. */
+.sort-btn.primary-action{background:#4A148C;color:#fff;border-color:#4A148C;font-weight:900;}
+.sort-btn.primary-action:hover{background:#38106B;}
 .sort-toggle{display:flex;border:2px solid var(--sky-mid);border-radius:20px;overflow:hidden;flex-shrink:0;}
 .sort-toggle .sort-btn{border:none!important;border-radius:0!important;box-shadow:none!important;}
 .sort-toggle .sort-btn+.sort-btn{border-right:1.5px solid var(--sky-mid)!important;}
@@ -573,9 +580,9 @@ body.gps-fs #map{height:100%!important;}
           <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')">לפי ביקור</button>
           <button class="sort-btn active-ai-google" id="sort-btn-ai-google" onclick="toggleAiGps()">🤖 AI Google</button>
         </div>
-        <button class="sort-btn" id="day-briefing-btn" onclick="openDayBriefing()" title="ניתוח יום — TOP 10 לקוחות" style="background:#5C6BC0;color:#fff;border-color:#3F51B5;font-weight:900">📊 ניתוח</button>
-        <button class="sort-btn" id="yedaim-btn" onclick="openYedaim()" title="יעדים — סטטוס הקבוצה" style="background:#4A148C;color:#fff;border-color:#4A148C;font-weight:900">יעדים 🎩</button>
-        <button class="sort-btn" id="gmaps-btn" onclick="openGoogleMaps()" title="פתח מסלול ב-Google Maps" style="background:#1a73e8;color:#fff;border-color:#0d47a1;font-weight:900;box-shadow:0 2px 8px rgba(26,115,232,.35)">🗺 Google</button>
+        <button class="sort-btn primary-action" id="day-briefing-btn" onclick="openDayBriefing()" title="ניתוח יום — TOP 10 לקוחות">📊 ניתוח</button>
+        <button class="sort-btn primary-action" id="yedaim-btn" onclick="openYedaim()" title="יעדים — סטטוס הקבוצה">יעדים 🎩</button>
+        <button class="sort-btn" id="gmaps-btn" onclick="openGoogleMaps()" title="פתח מסלול ב-Google Maps" style="color:#1a73e8;border-color:#1a73e8;">🗺 Google</button>
         <button class="sort-btn" id="map-toggle-btn" onclick="toggleMapHidden()" title="הצג מפה">🗺 הצג</button>
         <div class="km-more-wrap">
           <button class="sort-btn km-more-btn" id="km-more-btn" onclick="toggleKmMore()" title="עוד פעולות">⋮</button>
@@ -2789,17 +2796,25 @@ async function openYedaim() {
   const body = document.getElementById('yedaim-modal-body');
   body.innerHTML = '<div class="ai-loading">⏳ טוען...</div>';
 
-  // Managers aren't scoped to one team — let them pick. Regular agents get
-  // their own team resolved automatically via their real agentCode.
-  if (_auth && _auth.isManager) return _renderYedaimPicker();
-
   try {
+    // Managers aren't scoped to one team — let them pick. Regular agents get
+    // their own team resolved automatically via their real agentCode.
+    // _auth is not a global here (it's a local const inside a different
+    // function) — reading it as one threw a silent ReferenceError before the
+    // try/catch even existed, leaving the spinner stuck forever. Whole
+    // function is now wrapped so any future mistake like that surfaces an
+    // error instead of hanging.
+    const auth = _loadAuth();
+    if (auth && auth.isManager) return _renderYedaimPicker();
+
     const r = await apiFetch(`${API}/agent-manager?agent=${encodeURIComponent(st.agent?.code || '')}`, {}, 10000);
     const j = await r.json();
     const team = YEDAIM_TEAMS.find(t => t.name === j.manager);
     if (team) return _loadYedaimImage(team.slug, team.name);
-  } catch (_) { /* fall through to picker */ }
-  _renderYedaimPicker();
+    _renderYedaimPicker();
+  } catch (e) {
+    body.innerHTML = `<div class="ai-loading" style="color:#c62828">❌ ${e.message}</div>`;
+  }
 }
 
 function _renderYedaimPicker() {
