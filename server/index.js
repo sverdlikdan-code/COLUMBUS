@@ -4453,6 +4453,14 @@ app.get('/api/client-analytics/:custId', requireAuth, async (req, res) => {
   const lang = (req.query.lang || 'he').slice(0, 2);
   if (!GEMINI_API_KEY && !ANTHROPIC_API_KEY) return res.status(503).json({ ok: false, error: 'AI not configured' });
 
+  // Temporarily disabled 2026-08-20: this single endpoint chains ~12 executeDax
+  // calls per click (family/SKU/param2/chain-comparison + Gemini) against the
+  // same PBI service principal every other formula-road endpoint shares — a
+  // burst of clicks tripped Power BI API 429 for all agents app-wide. Remove
+  // this early return once the PBI rate-limit window has cleared and the call
+  // count here has been reduced.
+  return res.json({ ok: false, error: 'ניתוח AI מושבת זמנית — נחזור בקרוב', disabledTemporarily: true });
+
   // Two 3-month windows: current (last 3 closed months) vs the SAME 3 calendar months one
   // year earlier — YoY, not a rolling prior-quarter comparison. Seasonal categories (e.g.
   // ice cream in summer) would otherwise show a fake "decline" against the prior 3 months
