@@ -2173,7 +2173,7 @@ function _clientActionsHtml(c,noGps){
     <span class="day-change-btn" data-id="${c.custId}" onclick="openDayPopup(event,this.dataset.id);closeRowActionsPopup()">📅</span>
     <span class="mekarer-btn" data-id="${c.custId}" data-name="${nm}" data-city="${ct}" onclick="openMekarerOrder(event,this.dataset.id,this.dataset.name,this.dataset.city);closeRowActionsPopup()">🧊</span>
     <span class="zikuy-btn" data-id="${c.custId}" data-name="${nm}" data-city="${ct}" onclick="openZikuyOrder(event,this.dataset.id,this.dataset.name,this.dataset.city);closeRowActionsPopup()" title="בקשת זיכוי">זיכוי</span>
-    <span class="ai-insight-btn" data-id="${c.custId}" data-name="${nm}" onclick="openClientAI(event,this.dataset.id,this.dataset.name);closeRowActionsPopup()" title="ניתוח AI">AI</span>
+    <span class="ai-insight-btn" data-id="${c.custId}" data-name="${nm}" onclick="openClientAI(event,this.dataset.id,this.dataset.name);closeRowActionsPopup()" title="ניתוח מעמק — משפחות, פערים, השוואה לרשת">🔍 ניתוח מעמק</span>
     ${noGps
       ? `<span class="no-gps-badge" data-id="${c.custId}" data-name="${nm}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name);closeRowActionsPopup()">NO GPS</span>`
       : `<span class="gps-edit-btn"  data-id="${c.custId}" data-name="${nm}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name);closeRowActionsPopup()">📍</span>
