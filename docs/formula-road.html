@@ -3076,12 +3076,19 @@ async function _fetchClientAI(lang) {
       // day-briefing TOP10 list: an agent reading this off a tablet in front of a
       // client shouldn't be showing another branch's real revenue on screen.
       const maxChainTotal = Math.max(...items.map(p => p.chainTotal || 0), 1);
-      // Collapsed by default (toggleCollapse) — a 10-row product list per company adds
-      // up to real scroll length; the agent opens the one(s) they actually need. 2026-08-23.
+      // Collapsed by default — INTER only (toggleCollapse). Its list runs long (10 rows
+      // of confectionery SKUs) and per explicit user correction 2026-08-23, FORMULA/
+      // ICE_MISH stay always-expanded as before — only INTER gets the fold.
+      const isInter = key === 'INTER';
       const gapId = `gapTbl-${key}`;
-      gapTbl += `<div class="fam-row-expandable" style="margin:10px 0 4px;font-size:13px;color:#B71C1C;font-weight:700" onclick="toggleCollapse('${gapId}')">`
-        + `<span class="fam-caret" id="car-${gapId}">▸</span> ${label} — מוצרים ש${peerGroupWord} ${chainName} מוכרת (120 יום) והסניף לא הזמין 90+ יום</div>`;
-      gapTbl += `<table class="ai-families-tbl" id="${gapId}" style="display:none"><thead><tr><th>מוצר</th><th>מכירות רשת (120 יום)</th></tr></thead><tbody>`;
+      if (isInter) {
+        gapTbl += `<div class="fam-row-expandable" style="margin:10px 0 4px;font-size:13px;color:#B71C1C;font-weight:700" onclick="toggleCollapse('${gapId}')">`
+          + `<span class="fam-caret" id="car-${gapId}">▸</span> ${label} — מוצרים ש${peerGroupWord} ${chainName} מוכרת (120 יום) והסניף לא הזמין 90+ יום</div>`;
+        gapTbl += `<table class="ai-families-tbl" id="${gapId}" style="display:none"><thead><tr><th>מוצר</th><th>מכירות רשת (120 יום)</th></tr></thead><tbody>`;
+      } else {
+        gapTbl += `<div style="margin:10px 0 4px;font-size:13px;color:#B71C1C;font-weight:700">${label} — מוצרים ש${peerGroupWord} ${chainName} מוכרת (120 יום) והסניף לא הזמין 90+ יום</div>`;
+        gapTbl += `<table class="ai-families-tbl"><thead><tr><th>מוצר</th><th>מכירות רשת (120 יום)</th></tr></thead><tbody>`;
+      }
       for (const p of items) {
         const shortName = shortProductName(p.name);
         const label2 = p.subFamily ? `${p.subFamily} — ${shortName}` : shortName;
