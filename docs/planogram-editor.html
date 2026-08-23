@@ -786,6 +786,10 @@
     <button id="btn-order-only" onclick="toggleOrderOnly()" style="background:#fff;border:1.5px solid #BBDEFB;color:#0D47A1;font-size:11px;font-weight:700;cursor:pointer;border-radius:20px;padding:5px 14px;white-space:nowrap;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.12);transition:all 0.15s;">📋 הזמנה בלבד</button>
     <div id="ord-fam-btns" style="display:flex;flex:1;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;"></div>
   </div>
+  <div style="display:flex;align-items:center;gap:8px;padding:5px 14px;background:#F0F8FF;border-bottom:1px solid #BBDEFB;flex-shrink:0;" class="no-print">
+    <span style="font-size:10px;font-weight:700;color:#5b7fa6;white-space:nowrap;flex-shrink:0;">📦 סוג אריזה (הרינג):</span>
+    <select id="ord-pack-select" onchange="setOrderPackLine(this.value)" style="font-size:12px;font-weight:700;color:#00695C;background:#fff;border:1.5px solid #B2DFDB;border-radius:8px;padding:4px 10px;cursor:pointer;"></select>
+  </div>
 
   <div id="order-table-wrap" style="flex:1;min-height:0;overflow:auto;padding:0 12px 16px;background:#F5F7FA;"></div>
 </div>
@@ -2812,8 +2816,24 @@ function _initTableDrag(tbody) {
 // ── Order page (דגים הזמנה) ─────────────────────────────────────────────────
 
 window._orderFams = new Set();
+window._orderPackLine = '';
 window._orderZero = false;
 window._orderManualEdits = window._orderManualEdits || {};
+
+// Line = physical packaging within HERRING only (verified against product photos in docs/photos/) —
+// iksGroup HERRING mixes jar/tub/vacuum SKUs that behave differently for ordering.
+// IKRA/KAPUSTA not covered — not needed there for now.
+const ORDER_PACK_LINE = {
+  // צנצנת זכוכית — round glass jar, metal twist lid (MATIES small-format chunks)
+  1012:'jar', 1013:'jar', 1014:'jar', 1049:'jar', 1170:'jar', 1171:'jar', 1172:'jar', 1173:'jar',
+  // קופסה — rigid plastic tub/tray with peel lid (500g+ הרינג tubs)
+  1166:'tub', 1167:'tub', 1168:'tub', 1157:'tub', 400001:'tub', 400002:'tub', 400003:'tub', 400004:'tub',
+  // ואקום — flexible vacuum pouch, whole/sliced/chunked fillet (MATIES portrait-pack + smoked salmon/trout)
+  1000:'vac', 1001:'vac', 1002:'vac', 1004:'vac', 1005:'vac', 1006:'vac', 1009:'vac', 1010:'vac', 1011:'vac',
+  1047:'vac', 1048:'vac', 1120:'vac', 1154:'vac', 1163:'vac', 1164:'vac', 1165:'vac', 1174:'vac', 1175:'vac',
+  403001:'vac', 403002:'vac', 403003:'vac', 403004:'vac', 403005:'vac', 403006:'vac', 403007:'vac', 403008:'vac',
+};
+const ORDER_PACK_LINE_LABEL = { jar: 'צנצנת זכוכית', tub: 'קופסה', vac: 'ואקום פילה' };
 
 function _recalcOrdTotal() {
   const fmtK = n => Math.round(n || 0).toLocaleString('en');
@@ -2990,6 +3010,11 @@ function setOrderFam(fam) {
     if (window._orderFams.has(fam)) window._orderFams.delete(fam);
     else window._orderFams.add(fam);
   }
+  buildOrderPage();
+}
+
+function setOrderPackLine(line) {
+  window._orderPackLine = line;
   buildOrderPage();
 }
 
@@ -3301,7 +3326,8 @@ function buildOrderPage() {
     const totalB  = window._orderTotalBranchy || null;
     const pizur   = branchy != null && totalB > 0 ? Math.round(branchy / totalB * 100) : null;
     const isStar  = pizur != null && pizur >= 60;
-    allRows.push({ mk, name, fam, iksGroup, stock, stockTrnz, stockZafn, spo, palSpo, openOrders, daySales, periodSales, daysStk, krat, safetyDays, safetyK, orderK, orderP, deferredDemand, branchy, pizur, isStar });
+    const packLine = ORDER_PACK_LINE[mk] || null;
+    allRows.push({ mk, name, fam, iksGroup, packLine, stock, stockTrnz, stockZafn, spo, palSpo, openOrders, daySales, periodSales, daysStk, krat, safetyDays, safetyK, orderK, orderP, deferredDemand, branchy, pizur, isStar });
   }
 
   // Group key: iksGroup (IKRA/SAL/KAPUS/HERRING) if available, else fam
@@ -3322,6 +3348,16 @@ function buildOrderPage() {
       `<span style="width:1px;height:26px;background:#BBDEFB;margin:0 8px;align-self:center;display:inline-block;flex-shrink:0;"></span>` +
       `<button onclick="toggleOrderZero()" style="${window._orderZero ? chipZeroAct : chipZeroDef}">⚠ חסר במלאי${window._orderZero ? ' ✓' : ''}</button>`;
     famBtns.querySelectorAll('.ord-fam-btn').forEach(btn => btn.addEventListener('click', () => setOrderFam(btn.dataset.fam)));
+  }
+
+  // Populate packaging-line dropdown (jar/tub/vacuum) — independent second filter dimension
+  const packSelect = document.getElementById('ord-pack-select');
+  if (packSelect) {
+    const packKeys = ['jar', 'tub', 'vac'].filter(k => allRows.some(r => r.packLine === k));
+    packSelect.innerHTML =
+      `<option value="">כולם</option>` +
+      packKeys.map(k => `<option value="${k}">${esc(ORDER_PACK_LINE_LABEL[k])}</option>`).join('');
+    packSelect.value = window._orderPackLine;
   }
 
   // Build period buttons — professional timeline
@@ -3368,6 +3404,7 @@ function buildOrderPage() {
 
   // Filter
   let rows = window._orderFams.size > 0 ? allRows.filter(r => window._orderFams.has(getGrp(r))) : allRows;
+  if (window._orderPackLine) rows = rows.filter(r => r.packLine === window._orderPackLine);
   if (window._orderZero) rows = rows.filter(r => (+(r.stock||0) + +(r.stockTrnz||0) + +(r.stockZafn||0)) <= 0);
   if (window._orderOnlyMode) rows = rows.filter(r => r.orderK > 0);
   window._orderCurrentRows = rows;
