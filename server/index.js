@@ -4387,23 +4387,28 @@ CALCULATETABLE(
           lastShipQty: lastShipMap.get(sku)?.qty || 0,
           imgUrl: '',
           ean: '',
+          famCode: '',
         };
       })
       .filter(p => p.company === 'FORMULA' || p.company === 'ICE_MISH');
 
     // FORMULA and ICE each have their OWN KARTIS PARIT product-master table (ICE SKUs
     // aren't in the main KARTIS PARIT at all — verified live earlier this session).
-    // ean (ברקוד, full EAN-13) pulled the same pass as the photo — same table, same
-    // SKU filter, no extra round-trip. Used for the chain full-screen barcode-scan view.
+    // ean (ברקוד, full EAN-13) and famCode (משפחת מוצר, numeric family code e.g. "025" —
+    // stable across renames/typos, unlike the free-text ALL_PARTS[תאור משפחת מוצר];
+    // used by the frontend to flag weight-sold products, see GRAM_FAM_CODES in
+    // zikuy-order.html) pulled the same pass as the photo — same table, same SKU
+    // filter, no extra round-trip.
     const fetchPhotosRet = async (items, table) => {
       if (!items.length) return;
       const skuIn = items.map(p => `"${p.sku}"`).join(',');
       const rows = await executeDax(
-        `EVALUATE SELECTCOLUMNS(FILTER('${table}', '${table}'[מק"ט] IN {${skuIn}}), "sku", '${table}'[מק"ט], "img", '${table}'[URL תמונה], "ean", '${table}'[ברקוד])`
+        `EVALUATE SELECTCOLUMNS(FILTER('${table}', '${table}'[מק"ט] IN {${skuIn}}), "sku", '${table}'[מק"ט], "img", '${table}'[URL תמונה], "ean", '${table}'[ברקוד], "famCode", '${table}'[משפחת מוצר])`
       );
       const imgMap = new Map(rows.map(r => [String(r['[sku]']), r['[img]'] || '']));
       const eanMap = new Map(rows.map(r => [String(r['[sku]']), r['[ean]'] || '']));
-      items.forEach(p => { p.imgUrl = imgMap.get(p.sku) || ''; p.ean = eanMap.get(p.sku) || ''; });
+      const famCodeMap = new Map(rows.map(r => [String(r['[sku]']), String(r['[famCode]'] ?? '')]));
+      items.forEach(p => { p.imgUrl = imgMap.get(p.sku) || ''; p.ean = eanMap.get(p.sku) || ''; p.famCode = famCodeMap.get(p.sku) || ''; });
     };
     await Promise.all([
       fetchPhotosRet(products.filter(p => p.company === 'FORMULA'), 'KARTIS PARIT'),
