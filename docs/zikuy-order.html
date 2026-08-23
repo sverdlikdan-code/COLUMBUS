@@ -62,6 +62,10 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
    at a time). Styled as a button, not a disabled input, so it still looks tappable. */
 .qty-kg-btn{width:64px;height:44px;border:none;background:#fff;text-align:center;font-size:15px;font-family:inherit;color:var(--blue-dark);font-weight:700;cursor:pointer;}
 .qty-kg-btn:active{background:var(--sky);}
+/* No plausible-looking default weight sits here until the agent actually opens
+   the modal and types a real number — a silent "1.000" that nobody touched is
+   exactly the kind of quantity error that only surfaces after the blank is sent. */
+.qty-kg-btn.qty-kg-missing{background:#FFF3E0;color:var(--red);font-size:13px;}
 #qty-modal{position:fixed;inset:0;z-index:9000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.5);padding:16px;}
 #qty-modal.show{display:flex;}
 #qty-modal-box{background:#fff;border-radius:16px;width:100%;max-width:320px;padding:20px;box-shadow:0 8px 32px rgba(0,0,0,.35);text-align:center;}
@@ -217,7 +221,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
   <div id="qty-modal-box">
     <div class="qm-title">משקל לזיכוי</div>
     <div class="qm-sub">הקלד ק"ג (נקודה או פסיק, למשל 0.5)</div>
-    <input type="text" inputmode="decimal" id="qty-modal-input" onkeydown="if(event.key==='Enter')confirmQtyModal()">
+    <input type="text" inputmode="decimal" id="qty-modal-input" placeholder="0.5" onkeydown="if(event.key==='Enter')confirmQtyModal()">
     <div class="qm-btns">
       <button type="button" class="qm-cancel" onclick="closeQtyModal()">ביטול</button>
       <button type="button" class="qm-ok" onclick="confirmQtyModal()">אישור</button>
@@ -367,7 +371,12 @@ function toggleProduct(sku){
   if(selected.has(sku)){ selected.delete(sku); }
   else{
     const p=products.find(x=>x.sku===sku); if(!p) return;
-    selected.set(sku,{product:p,qty:1,date:today.toISOString().slice(0,10),option:'-50%'});
+    // Weight products start with no qty at all (not a plausible-looking "1") — a
+    // silent default kg the agent never actually looked at is exactly the kind of
+    // real quantity error that's easy to miss until the blank's already sent.
+    // buildProforma() below blocks OK until every weight row has a real value.
+    const initQty = isGramsProduct(p) ? null : 1;
+    selected.set(sku,{product:p,qty:initQty,date:today.toISOString().slice(0,10),option:'-50%'});
     preloadProxyImg(p.imgUrl);
   }
   renderBrowse(); renderTable();
@@ -403,7 +412,7 @@ function renderTable(){
           <div class="qty-stepper">
             <button type="button" class="qty-btn" aria-label="הפחת" onclick="stepQty('${esc(p.sku)}',-1)">−</button>
             ${isGramsProduct(p)
-              ? `<button type="button" class="qty-kg-btn" aria-label="הקלד משקל לזיכוי בק&quot;ג" onclick="openQtyModal('${esc(p.sku)}')">${row.qty.toFixed(3)}</button>`
+              ? `<button type="button" class="qty-kg-btn ${row.qty==null?'qty-kg-missing':''}" aria-label="הקלד משקל לזיכוי בק&quot;ג" onclick="openQtyModal('${esc(p.sku)}')">${row.qty==null?'⚠ הקלד':row.qty.toFixed(3)}</button>`
               : `<input type="number" min="1" value="${row.qty}" inputmode="numeric" aria-label="כמות לזיכוי" onchange="updateRow('${esc(p.sku)}','qty',this.value)">`}
             <button type="button" class="qty-btn" aria-label="הוסף" onclick="stepQty('${esc(p.sku)}',1)">+</button>
           </div>
@@ -439,7 +448,8 @@ function stepQty(sku,delta){
   if(isGramsProduct(row.product)){
     // Round to 3 decimals (grams), not 1 — the modal allows entering e.g. 0.755kg,
     // and rounding a +0.1 nudge to tenths would silently destroy that precision.
-    row.qty=Math.max(0.1,Math.round((row.qty+delta*0.1)*1000)/1000);
+    // (row.qty||0) — qty starts at null (no default weight) until entered.
+    row.qty=Math.max(0.1,Math.round(((row.qty||0)+delta*0.1)*1000)/1000);
   }else{
     row.qty=Math.max(1,(row.qty||1)+delta);
   }
@@ -452,7 +462,7 @@ function openQtyModal(sku){
   const row=selected.get(sku); if(!row) return;
   _qtyModalSku=sku;
   const input=document.getElementById('qty-modal-input');
-  input.value=String(row.qty);
+  input.value=row.qty==null?'':String(row.qty);
   document.getElementById('qty-modal').classList.add('show');
   setTimeout(()=>{input.focus();input.select();},50);
 }
@@ -473,6 +483,11 @@ function confirmQtyModal(){
 
 async function buildProforma(){
   if(!selected.size){ showToast('בחר לפחות מוצר אחד'); return; }
+  // Weight products start with no qty at all (see toggleProduct) — block here
+  // instead of letting a never-touched row silently reach the printed blank as
+  // some plausible-looking default weight.
+  const missing=[...selected.values()].find(row=>isGramsProduct(row.product)&&row.qty==null);
+  if(missing){ showToast(`הקלד משקל עבור ${shortName(missing.product.name)}`); openQtyModal(missing.product.sku); return; }
   const rows=[...selected.values()];
   const now=new Date().toLocaleDateString('he-IL');
   document.getElementById('pv-title').textContent=`בקשת זיכוי — ${custName}`;
