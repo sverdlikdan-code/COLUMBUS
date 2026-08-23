@@ -4149,7 +4149,14 @@ CALCULATETABLE(
     const totalTarget = enriched.reduce((s, c) => s + c.target, 0);
     const totalSales = enriched.reduce((s, c) => s + c.monthlySales, 0);
     const totalPct = totalTarget > 0 ? Math.round((totalSales / totalTarget) * 100) : null;
-    return { clients, dormant, totalTarget, totalSales, totalPct };
+    // Same pacing rule as each client's own `indication` — the סה"כ row needs it too,
+    // otherwise the frontend has no pace signal for the total and can only fall back
+    // to a flat %-of-target threshold (the exact thing that made almost every client
+    // row red/orange regardless of how far into the month it was). 2026-08-23.
+    const totalIndication = totalTarget > 0
+      ? ((totalSales / totalTarget) - workDaysPct < -0.05 ? '😕' : '🚀')
+      : null;
+    return { clients, dormant, totalTarget, totalSales, totalPct, totalIndication };
   };
 
   const [famRows, workDaysRows] = await Promise.all([

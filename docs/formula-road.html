@@ -3174,8 +3174,14 @@ let _dayRecStore = {};
 
 // Pace-aware target color: red <70%, orange 70-99%, green ≥100% — same bands the
 // 🚀/😕 INDICATION icon (from the model's own measure) uses more precisely.
-function _dayPctColor(pct){
-  return pct === null || pct === undefined ? '#999' : (pct >= 100 ? '#2E7D32' : pct >= 70 ? '#E65100' : '#C62828');
+// Colors by pace (same 🚀/😕 the indication icon already uses — behind the
+// fraction of the month's working days elapsed by >5pp), not by raw %-of-target.
+// A client at 34% on day 10 of a 30-working-day month is on pace, not red — the
+// old flat >=100/>=70 thresholds painted almost every row orange/red regardless
+// of how far into the month it was. 2026-08-23.
+function _dayPctColor(pct, indication){
+  if(pct === null || pct === undefined) return '#999';
+  return indication === '😕' ? '#C62828' : '#2E7D32';
 }
 
 function _renderDayCompany(key, label, data) {
@@ -3198,7 +3204,7 @@ function _renderDayCompany(key, label, data) {
     const crown = c.crown ? '👑 ' : '';
     const iceFlag = c.isIce ? '❄️ ' : '';
     const sadranFlag = c.sadran ? ' 💪' : '';
-    const pctColor = _dayPctColor(c.pctTarget);
+    const pctColor = _dayPctColor(c.pctTarget, c.indication);
     const pctStr = c.pctTarget !== null
       ? `<span dir="ltr" style="unicode-bidi:isolate;color:${pctColor};font-weight:800">${c.pctTarget}%</span>`
       : '—';
@@ -3212,7 +3218,7 @@ function _renderDayCompany(key, label, data) {
     </tr>`;
   });
   if (data.totalTarget > 0) {
-    const totalColor = _dayPctColor(data.totalPct);
+    const totalColor = _dayPctColor(data.totalPct, data.totalIndication);
     tbl += `<tr class="day-total-row">
       <td colspan="2">סה"כ יום</td>
       <td style="text-align:left">₪${data.totalTarget.toLocaleString()}</td>
