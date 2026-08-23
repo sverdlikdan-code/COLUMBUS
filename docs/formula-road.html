@@ -2983,7 +2983,7 @@ async function _fetchClientAI(lang) {
     const data = await r.json();
     if (!data.ok) throw new Error(data.error || 'שגיאה');
 
-    const { curLabel, priorLabel, families, familiesInter, dropped, clientTotal, clientTotalPrior, peerAvg, isChain, chainName, dormantChainProducts, companyGaps, familyDeviation, isKosher, analysis } = data;
+    const { curLabel, priorLabel, families, familiesInter, familiesBdd, dropped, clientTotal, clientTotalPrior, peerAvg, isChain, chainName, dormantChainProducts, companyGaps, familyDeviation, isKosher, analysis } = data;
 
     const trendCell = (f) => {
       // null (no prior-period baseline, e.g. a family with 0 sales last period) rendered
@@ -3062,28 +3062,34 @@ async function _fetchClientAI(lang) {
     // headers, and it dropped interPrior entirely (only current+delta shown). Both
     // period totals now render in their own columns, symmetric with the main table.
     // Bug found live 2026-08-19 (user screenshot, hand-annotated misalignment).
-    let interTbl = '';
-    if (familiesInter && Object.keys(familiesInter).length) {
-      const interEntries = Object.entries(familiesInter).sort((a, b) => b[1].current - a[1].current);
-      const interCur = interEntries.reduce((s, [, f]) => s + f.current, 0);
-      const interPrior = interEntries.reduce((s, [, f]) => s + f.prior, 0);
-      const hasSub = interEntries.length > 1;
-      const groupId = 'fgInter';
-      interTbl = `<table class="ai-families-tbl"><thead><tr><th>משפחת מוצר</th><th>${ltr(priorLabel)}</th><th>${ltr(curLabel)}</th><th>מגמה</th></tr></thead><tbody>`;
-      interTbl += `<tr class="${hasSub ? 'fam-row-expandable' : ''}" style="font-weight:700;color:#8B6D00"${hasSub ? ` onclick="toggleFamGroup('${groupId}')"` : ''}>`
-        + `<td>${hasSub ? `<span class="fam-caret" id="car-${groupId}">▸</span> ` : ''}ערוץ נפרד (INTER)</td>`
-        + `<td style="text-align:left">${interPrior ? '₪' + interPrior.toLocaleString() : '—'}</td>`
-        + `<td style="text-align:left">₪${interCur.toLocaleString()}</td>`
-        + trendCell({ deltaPct: interPrior > 0 ? Math.round((interCur / interPrior - 1) * 100) : null }) + `</tr>`;
-      for (const [p2, f] of interEntries) {
-        interTbl += `<tr class="fam-sub-row" data-group="${groupId}" style="${hasSub ? 'display:none' : ''}">`
-          + `<td style="padding-inline-start:24px;color:#777;font-weight:400">${esc(p2)}</td>`
+    // Same shape for both — a small "separate channel" table (own current-vs-prior
+    // trend), kept out of the main FORMULA/ICE_MISH table above because it's a
+    // different company/department entirely. INTER needs SKU/Parameter-2 grouping
+    // (its own ALL_PARTS family field collapses to the machlaka name itself);
+    // BDD's real family text is granular enough on its own — see collectBdd server-side.
+    const renderChannelTable = (data, label, groupId, color) => {
+      if (!data || !Object.keys(data).length) return '';
+      const entries = Object.entries(data).sort((a, b) => b[1].current - a[1].current);
+      const cur = entries.reduce((s, [, f]) => s + f.current, 0);
+      const prior = entries.reduce((s, [, f]) => s + f.prior, 0);
+      const hasSub = entries.length > 1;
+      let out = `<table class="ai-families-tbl"><thead><tr><th>משפחת מוצר</th><th>${ltr(priorLabel)}</th><th>${ltr(curLabel)}</th><th>מגמה</th></tr></thead><tbody>`;
+      out += `<tr class="${hasSub ? 'fam-row-expandable' : ''}" style="font-weight:700;color:${color}"${hasSub ? ` onclick="toggleFamGroup('${groupId}')"` : ''}>`
+        + `<td>${hasSub ? `<span class="fam-caret" id="car-${groupId}">▸</span> ` : ''}ערוץ נפרד (${label})</td>`
+        + `<td style="text-align:left">${prior ? '₪' + prior.toLocaleString() : '—'}</td>`
+        + `<td style="text-align:left">₪${cur.toLocaleString()}</td>`
+        + trendCell({ deltaPct: prior > 0 ? Math.round((cur / prior - 1) * 100) : null }) + `</tr>`;
+      for (const [fam, f] of entries) {
+        out += `<tr class="fam-sub-row" data-group="${groupId}" style="${hasSub ? 'display:none' : ''}">`
+          + `<td style="padding-inline-start:24px;color:#777;font-weight:400">${esc(fam)}</td>`
           + `<td style="text-align:left;color:#777">${f.prior ? '₪' + f.prior.toLocaleString() : '—'}</td>`
           + `<td style="text-align:left;color:#777">₪${f.current.toLocaleString()}</td>`
           + trendCell(f) + `</tr>`;
       }
-      interTbl += '</tbody></table>';
-    }
+      return out + '</tbody></table>';
+    };
+    const interTbl = renderChannelTable(familiesInter, 'INTER', 'fgInter', '#8B6D00');
+    const bddTbl = renderChannelTable(familiesBdd, 'ICE BDD', 'fgBdd', '#00695C');
     tbl = summaryLine + tbl;
 
     // Chain-only: products the buyer already approved for the chain (sold somewhere in
@@ -3209,7 +3215,7 @@ async function _fetchClientAI(lang) {
         m => `<span dir="ltr" style="unicode-bidi:isolate;color:${m[0]==='-'?'#C62828':'#2E7D32'};font-weight:800">${m}</span>`);
       analysisHtml = `<div class="ai-analysis" dir="${dir}">${cleanAnalysis}</div>`;
     }
-    const html = `${tbl}${interTbl}${gapTbl}${devTbl}${analysisHtml}`;
+    const html = `${tbl}${interTbl}${bddTbl}${gapTbl}${devTbl}${analysisHtml}`;
     // Guard against out-of-order responses: if the user switched client/language while
     // this request was in flight, a slower earlier request can resolve AFTER a faster
     // later one and overwrite the correct content with stale text in the wrong language.
