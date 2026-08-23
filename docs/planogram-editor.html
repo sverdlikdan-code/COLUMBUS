@@ -2826,14 +2826,15 @@ window._orderManualEdits = window._orderManualEdits || {};
 const ORDER_PACK_LINE = {
   // צנצנת זכוכית — round glass jar, metal twist lid (MATIES small-format chunks)
   1012:'jar', 1013:'jar', 1014:'jar', 1049:'jar', 1170:'jar', 1171:'jar', 1172:'jar', 1173:'jar',
-  // קופסה — rigid plastic tub/tray with peel lid (500g+ הרינג tubs)
-  1166:'tub', 1167:'tub', 1168:'tub', 1157:'tub', 400001:'tub', 400002:'tub', 400003:'tub', 400004:'tub',
+  // צלחת — rigid plastic tub/tray with peel lid (500g+ הרינג tubs)
+  1166:'tub', 1167:'tub', 1168:'tub', 400001:'tub', 400002:'tub', 400003:'tub', 400004:'tub',
+  1005:'tub', 1047:'tub', 1048:'tub',
   // ואקום — flexible vacuum pouch, whole/sliced/chunked fillet (MATIES portrait-pack + smoked salmon/trout)
-  1000:'vac', 1001:'vac', 1002:'vac', 1004:'vac', 1005:'vac', 1006:'vac', 1009:'vac', 1010:'vac', 1011:'vac',
-  1047:'vac', 1048:'vac', 1120:'vac', 1154:'vac', 1163:'vac', 1164:'vac', 1165:'vac', 1174:'vac', 1175:'vac',
+  1000:'vac', 1001:'vac', 1002:'vac', 1004:'vac', 1006:'vac', 1009:'vac', 1010:'vac', 1011:'vac',
+  1120:'vac', 1154:'vac', 1157:'vac', 1163:'vac', 1164:'vac', 1165:'vac', 1174:'vac', 1175:'vac',
   403001:'vac', 403002:'vac', 403003:'vac', 403004:'vac', 403005:'vac', 403006:'vac', 403007:'vac', 403008:'vac',
 };
-const ORDER_PACK_LINE_LABEL = { jar: 'צנצנת זכוכית', tub: 'קופסה', vac: 'ואקום פילה' };
+const ORDER_PACK_LINE_LABEL = { jar: 'צנצנת זכוכית', tub: 'צלחת', vac: 'ואקום פילה' };
 
 function _recalcOrdTotal() {
   const fmtK = n => Math.round(n || 0).toLocaleString('en');
