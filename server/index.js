@@ -1059,7 +1059,6 @@ const AZURE_MAPS_KEY    = process.env.AZURE_MAPS_KEY    || '';
 const GOOGLE_MAPS_KEY   = process.env.GOOGLE_MAPS_KEY   || '';  // REQUEST_DENIED — billing not enabled
 const LOCATIONIQ_KEY    = process.env.LOCATIONIQ_KEY    || '';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
-const GEMINI_API_KEY    = process.env.GEMINI_API_KEY    || '';
 
 // LocationIQ — OSM-based, works well for Israel, no billing required
 async function geocodeLocationIQ(query) {
@@ -1120,52 +1119,6 @@ async function geocodeNominatim(query, city) {
   return null;
 }
 
-// Gemini Flash — used for AI analytics (Anthropic fallback for geocoding)
-async function callGemini(prompt, maxTokens = 500) {
-  if (GEMINI_API_KEY) {
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${GEMINI_API_KEY}`;
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: maxTokens, temperature: 0.4 },
-        }),
-        signal: AbortSignal.timeout(20000),
-      });
-      const data = await resp.json();
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (text) return text;
-      console.error('[callGemini] empty response, falling back to Claude:', data?.error?.message || JSON.stringify(data).slice(0, 200));
-    } catch (e) {
-      console.error('[callGemini] request failed, falling back to Claude:', e.message);
-    }
-  }
-  // Fallback: Claude Haiku, same prompt. Reuses the Anthropic dependency already paid
-  // for and working elsewhere in this file (normalizeAddressWithAI) — no new infra,
-  // just redundancy for when Gemini is rate-limited, down, or deprecated (2nd time
-  // this model string alone has gone away under us).
-  if (!ANTHROPIC_API_KEY) throw new Error('AI not configured');
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: maxTokens,
-      messages: [{ role: 'user', content: prompt }],
-    }),
-    signal: AbortSignal.timeout(20000),
-  });
-  const data = await resp.json();
-  const text = data?.content?.[0]?.text;
-  if (!text) throw new Error(data?.error?.message || 'Claude fallback returned empty');
-  return text;
-}
 
 // Haiku parses messy Hebrew addresses when all else fails (~$0.001/address)
 async function normalizeAddressWithAI(address, city) {
@@ -3971,8 +3924,51 @@ function dayBriefingRateOk(agentCode, todayIL) {
   return true;
 }
 
+// Deterministic תובנות — Gemini commentary dropped here too, same call as the
+// client-analytics panel 2026-08-20 (b399de2a): the table below already shows
+// growth/decline/dormancy in numbers, and the LLM round-trip was intermittently
+// unparseable JSON (a client name with a literal Hebrew geresh like ר"ג broke
+// string escaping, or the model ignored the compact-JSON instruction and got
+// truncated by maxTokens) — silently landing as an empty highlights list for
+// whichever agent got unlucky that day. This can't fail to parse; same 5-item
+// cap and crown(TOP3)-first priority the old prompt asked for.
+const dayInsightText = {
+  he: {
+    growth:  c => `${c.crown ? '👑 TOP לקוח, ' : ''}צמיחה של ${c.yoy}% לעומת אשתקד (₪${c.total.toLocaleString()})`,
+    risk:    c => `${c.crown ? '👑 TOP לקוח, ' : ''}ירידה של ${Math.abs(c.yoy)}% לעומת אשתקד`,
+    dormant: c => `לא הזמין כבר ${c.daysSince} ימים`,
+  },
+  ru: {
+    growth:  c => `${c.crown ? '👑 TOP-клиент, ' : ''}рост ${c.yoy}% к прошлому году (₪${c.total.toLocaleString()})`,
+    risk:    c => `${c.crown ? '👑 TOP-клиент, ' : ''}падение ${Math.abs(c.yoy)}% к прошлому году`,
+    dormant: c => `Не заказывал уже ${c.daysSince} дней`,
+  },
+  uk: {
+    growth:  c => `${c.crown ? '👑 TOP-клієнт, ' : ''}зростання ${c.yoy}% до минулого року (₪${c.total.toLocaleString()})`,
+    risk:    c => `${c.crown ? '👑 TOP-клієнт, ' : ''}падіння ${Math.abs(c.yoy)}% до минулого року`,
+    dormant: c => `Не замовляв уже ${c.daysSince} днів`,
+  },
+};
+function buildDeterministicHighlights(result, lang) {
+  const t = dayInsightText[lang] || dayInsightText.he;
+  const top = result.clients.slice(0, 10);
+  const candidates = [];
+  for (const c of top) {
+    if (c.yoy != null && c.yoy > 5) candidates.push({ type: 'growth', client: c.name, note: t.growth(c), crown: !!c.crown, score: c.yoy });
+    else if (c.yoy != null && c.yoy < -10) candidates.push({ type: 'risk', client: c.name, note: t.risk(c), crown: !!c.crown, score: -c.yoy });
+  }
+  for (const d of result.dormant) {
+    const inTop = top.find(c => c.custId === d.custId);
+    if (inTop && !candidates.some(x => x.client === d.name)) {
+      candidates.push({ type: 'risk', client: d.name, note: t.dormant(d), crown: !!inTop.crown, score: d.daysSince });
+    }
+  }
+  candidates.sort((a, b) => (Number(b.crown) - Number(a.crown)) || (b.score - a.score));
+  return candidates.slice(0, 5).map(({ type, client, note }) => ({ type, client, note }));
+}
+
 // Core computation for the on-demand endpoint below. Returns null for "no clients
-// that day" (not an error); throws on real failures (DAX/Gemini).
+// that day" (not an error); throws on real failures (DAX).
 async function computeDayBriefing(agentCode, dayNum, lang) {
   const allClients = pbiCache.byAgent.get(agentCode) || [];
   const dayClients = dayNum ? allClients.filter(c => c.dayNum === dayNum) : allClients;
@@ -4186,56 +4182,13 @@ CALCULATETABLE(
   const monthStr = `${months[0].month}/${months[0].year} — ${curEnd.month}/${curEnd.year}`;
   const prevStr  = `${prevMonths[0].month}/${prevMonths[0].year} — ${prevEnd.month}/${prevEnd.year}`;
 
-  // Gemini context stays capped to the top 10 by sales (token budget, focused
-  // insights) even though result.clients itself now holds the whole day's route
-  // for the frontend table — the AI doesn't need all 20+ clients to spot what
-  // actually moves money.
-  const buildContext = (label, result) => {
-    if (!result.clients.length) return `${label}: אין נתונים בתקופה זו.`;
-    const lines = result.clients.slice(0, 10).map((c, i) => {
-      const yoyStr = c.yoy !== null ? ` | YoY:${c.yoy >= 0 ? '+' : ''}${c.yoy}%` : ' | YoY:—';
-      const basketStr = c.avgBasket ? ` | סל:₪${c.avgBasket.toLocaleString()}` : '';
-      const dormFlag = c.daysSince > 21 ? ` ⚠️${c.daysSince}d` : '';
-      const crownFlag = c.crown ? ' 👑' : '';
-      const sadranFlag = c.sadran ? ' 💪(סדרן)' : '';
-      return `${i + 1}. ${c.name}${crownFlag}${sadranFlag} (${c.city}): ₪${c.total.toLocaleString()}${yoyStr}${basketStr}${dormFlag}`;
-    }).join('\n');
-    const dormantLines = result.dormant.length
-      ? '\nלא הזמינו >3 שבועות: ' + result.dormant.slice(0, 5).map(c => `${c.name}(${c.daysSince}d)`).join(', ')
-      : '';
-    return `${label}:\n${lines}${dormantLines}`;
-  };
-
-  const context = `תקופה נוכחית: ${monthStr} | תקופה מקבילה אשתקד: ${prevStr}\n\n${buildContext('FORMULA', formulaResult)}`;
-
-  // Structured JSON, not prose — the agent picks individual recommendations off a
-  // list and gives feedback per item, so free text can't be the output format.
-  const jsonInstructions = {
-    he: `פלט אך ורק JSON תקין (בלי טקסט מסביב, בלי Markdown), במבנה הבא בדיוק:
-{"FORMULA":{"highlights":[{"type":"growth|risk","client":"שם","note":"משפט קצר"}],"recommendations":[{"client":"שם","action":"המלצה קונקרטית אחת שהסוכן יכול לבצע בביקור עצמו","priority":"high|medium"}]}}
-עד 5 highlights ועד 5 recommendations. תעדוף חד ל-👑 (TOP3 מכירות) — שם ההזדמנות/כשל שווה הכי הרבה כסף, לא לפזר על לקוחות שוליים. priority=high רק ל-👑 או ירידת YoY חדה.`,
-    ru: `Выведи ТОЛЬКО валидный JSON (без текста вокруг, без Markdown), строго в структуре:
-{"FORMULA":{"highlights":[{"type":"growth|risk","client":"имя","note":"короткая фраза"}],"recommendations":[{"client":"имя","action":"одна конкретная рекомендация, которую агент может выполнить прямо на визите","priority":"high|medium"}]}}
-До 5 highlights и до 5 recommendations. Явный приоритет 👑-клиентам (TOP3 по продажам) — там решение сразу даёт заметные деньги, не распылять на второстепенных. priority=high только для 👑 или резкого падения YoY.`,
-    uk: `Виведи ТІЛЬКИ валідний JSON (без тексту навколо, без Markdown), рівно в структурі:
-{"FORMULA":{"highlights":[{"type":"growth|risk","client":"ім'я","note":"коротка фраза"}],"recommendations":[{"client":"ім'я","action":"одна конкретна рекомендація, яку агент може виконати під час візиту","priority":"high|medium"}]}}
-До 5 highlights і до 5 recommendations. Явний пріоритет 👑-клієнтам (TOP3 продажів). priority=high лише для 👑 або різкого падіння YoY.`,
-  };
-
-  const prompt = `${jsonInstructions[lang] || jsonInstructions.he}\n\nנתונים:\n${context}`;
-  const raw = await callGemini(prompt, 1200);
-  let parsed = null;
-  try {
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
-  } catch (e) { /* fall through to fallback below */ }
-  const fallbackFor = () => ({ highlights: [], recommendations: [{ client: '', action: raw.slice(0, 400), priority: 'medium' }] });
+  const highlights = buildDeterministicHighlights(formulaResult, lang);
 
   return {
     ok: true,
     monthStr, prevStr,
     companies: {
-      FORMULA: { ...formulaResult, ...(parsed?.FORMULA || fallbackFor()) },
+      FORMULA: { ...formulaResult, highlights },
       ICE_MISH: { dormant: iceMishResult.dormant },
     },
   };
@@ -4249,7 +4202,6 @@ app.get('/api/day-briefing', requireAuth, async (req, res) => {
   const agentCode = queryAgent || req.session.agentCode;
   if (!agentCode) return res.status(403).json({ ok: false, error: 'manager session -- no agent' });
   if (!pbiCache) return res.status(503).json({ ok: false, error: 'cache_loading' });
-  if (!GEMINI_API_KEY && !ANTHROPIC_API_KEY) return res.status(503).json({ ok: false, error: 'AI not configured' });
 
   const lang = (req.query.lang || 'he').slice(0, 2);
   const dayNum = parseInt(req.query.day) || 0;
@@ -4268,7 +4220,7 @@ app.get('/api/day-briefing', requireAuth, async (req, res) => {
   // fix (a human clicking a button isn't a real PBI-throttling risk — the cache
   // above already caps the common case to ~1 compute/agent/day) — just a floor
   // against something pathological (a bug, a loop, someone probing every day
-  // param) burning Gemini/PBI quota unbounded. 2026-08-17.
+  // param) burning PBI quota unbounded. 2026-08-17.
   if (!dayBriefingRateOk(agentCode, todayIL)) {
     return res.status(429).json({ ok: false, error: 'daily_limit', message: 'הגעת למכסת הבקשות היומית (30) — מתאפס מחר' });
   }
