@@ -1213,7 +1213,16 @@ function goBack(from){
     }
   }
   else if(from==='s-day'){show('s-city');}
-  else if(from==='s-route'){show('s-city');}
+  else if(from==='s-route'){
+    // Manager/multi-line users skip the city screen on every agent switch (see
+    // selectAgent — the start point persists across agents this session), so
+    // "back" from the route has nothing city-related to undo for them; it should
+    // return to their own team roster instead. Regular agents still go to s-city
+    // as before — they never had a separate "team" screen to go back to.
+    const auth=_loadAuth();
+    if(auth&&auth.isManager){ st.step='agent'; renderLogin(); show('s-login'); }
+    else{ show('s-city'); }
+  }
 }
 
 // ── LOGIN ──────────────────────────────────────────────────────────────────
