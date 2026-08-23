@@ -1,6 +1,6 @@
 ---
 name: power-bi-dax
-description: Полная автоматизация Power BI без GUI — pbi-cli, Tabular Editor CLI, XMLA, TMDL, DAX-оптимизация, аудит PBIX, Fabric Git. Для агента power-bi в COLUMBUS.
+description: Полная автоматизация Power BI без GUI — Tabular Editor 2 (реально установлен), XMLA (только dedicated capacity, см. таблицу workspace), TMDL, DAX-оптимизация, аудит PBIX, Fabric Git. Для агента power-bi в COLUMBUS.
 trigger: Активировать при любой задаче с DAX, аудитом PBIX, мерами, страницами PBI, темой, симметрией, INTERNATIONAL CONTROL DESK.pbix, автоматизацией Power BI
 ---
 
@@ -14,40 +14,17 @@ trigger: Активировать при любой задаче с DAX, ауд�
 
 ## Инструменты — иерархия (hands-off приоритет)
 
-### 1. pbi-cli — AI-first, без Desktop (NEW, июнь 2026)
+**⚠️ Проверено 2026-08-23:** `pbi-cli` и `te3` CLI ниже — НЕ существующие/не подтверждённые инструменты. На машине не установлен pip-пакет `pbi-cli` (в PyPI такого нет), команда `te3` нигде не найдена. Разделы оставлены зачёркнутыми как антипаттерн — не пытаться ставить.
 
-Python-инструмент специально для AI агентов + PBI. Прямой .NET interop через TOM/ADOMD.NET.
-Sub-second выполнение. Power BI Desktop НЕ нужен.
+### ~~1. pbi-cli~~ — ФИКЦИЯ, не устанавливать
 
-```bash
-pip install pbi-cli
-pbi connect --workspace "COLUMBUS"
-pbi measure list
-pbi measure add --name "מכר ממוצע ביום" --table "KARTIS PARIT" \
-  --expression "DIVIDE([מכר קרטון], [ימים שהיה בהם מכר])"
-pbi measure delete --name "Unused Measure 1"
-pbi deploy
-```
+~~Python-инструмент специально для AI агентов + PBI...~~ — не существует. Не тратить время на `pip install pbi-cli`.
 
-### 2. Tabular Editor CLI (preview 2025-2026)
+### ~~2. Tabular Editor CLI (`te3 connect` / `te3 script`)~~ — ФИКЦИЯ, не устанавливать
 
-Кросс-платформа. 50+ команд. Без GUI. XMLA или файл.
+Такой команды `te3` не существует. Реальный CLI — это сам `TabularEditor.exe` (см. п.6 ниже), а не отдельная утилита `te3`.
 
-```bash
-# Подключение к workspace через XMLA
-te3 connect --xmla "powerbi://api.powerbi.com/v1.0/myorg/COLUMBUS"
-
-# Аудит — список всех мер
-te3 model show measures --format json > measures.json
-
-# Удалить список мер из файла
-te3 script run delete-unused.cs
-
-# Деплой изменений
-te3 deploy --target "powerbi://api.powerbi.com/v1.0/myorg/COLUMBUS"
-```
-
-C# скрипт для удаления 153 мер (`delete-unused.cs`):
+Реальный C# скрипт для удаления 153 мер (`delete-unused.cs`) — синтаксис ниже актуален для запуска через `TabularEditor.exe модель.bim -S delete-unused.cs`:
 ```csharp
 var list = System.IO.File.ReadAllLines(@"C:\tmp\unused-measures.txt");
 foreach (var name in list)
@@ -102,13 +79,35 @@ pbi-tools compile "INTERNATIONAL CONTROL DESK"
 pbi-tools deploy manifest.json
 ```
 
-### 6. Tabular Editor 3 (Desktop — когда PBI открыт)
+### 6. Tabular Editor 2 (реально установлен 2026-08-23, бесплатный, MIT)
+
+**⚠️ Tabular Editor 3 НЕ установлен** (AGENT.md/PRD от 01.06 утверждали обратное — не проверено на тот момент, ошибка). Вместо него поставлен **Tabular Editor 2** через winget (`TabularEditor.TabularEditor.2`) — бесплатный навсегда, полный C#-скриптинг, свои AMO/TOM-библиотеки в комплекте (системный ADOMD.NET/.NET SDK не нужен).
+
+Путь: `C:\Users\d.sverdlik\AppData\Local\Microsoft\WinGet\Packages\TabularEditor.TabularEditor.2_Microsoft.Winget.Source_8wekyb3d8bbwe\TabularEditor.exe`
 
 ```powershell
-Start-Process "C:\Program Files\Tabular Editor 3\TabularEditor3.exe" -ArgumentList "localhost:65428"
+# Вариант A — PBI Desktop открыт локально (localhost SSAS)
+& "...\TabularEditor.exe" "localhost:65428" "INTERNATIONAL CONTROL DESK" -S script.cs
+
+# Вариант B — напрямую в Fabric/Premium workspace через XMLA, app-only auth (без Desktop)
+# Работает ТОЛЬКО если workspace на dedicated capacity — см. таблицу ниже
+& "...\TabularEditor.exe" `
+  "Provider=MSOLAP;Data Source=powerbi://api.powerbi.com/v1.0/myorg/CONTROL;User ID=app:$AZURE_CLIENT_ID@$AZURE_TENANT_ID;Password=$AZURE_CLIENT_SECRET;" `
+  "INTERNATIONAL CONTROL DESK" -S script.cs
 ```
 
 Список неиспользуемых мер: `C:\tmp\unused-measures.txt` (153 меры, аудит 2026-06-01)
+
+### Workspace capacity — проверено 2026-08-23 через REST API (важно для XMLA)
+
+XMLA read/write работает только на dedicated (Premium/Fabric/PPU) capacity. На Pro workspace — только `executeQueries` (read-only DAX через REST), никакого XMLA.
+
+| Workspace | ID | isOnDedicatedCapacity | Что там | Вывод |
+|---|---|---|---|---|
+| `DASHBORDS -ICE-INTER-FORMULA` | `fa961d5f-21c6-4faa-aab6-12964ab3bf5b` | ❌ false (Pro) | FORMULA/ICE/INTER датасеты (analytics-агент) | Только read через `executeQueries` (уже работает). Hands-free запись мер невозможна без апгрейда capacity |
+| `CONTROL` | `ee9e5fc6-bc10-4e7d-a8f3-b23c08d150ed` | ✅ true, `capacityId: EF543920-8F20-4843-B5E6-405205385E3D` | `INTERNATIONAL CONTROL DESK` (id `fb6691a0-9b2f-413b-b438-78d2982c4e70`), `isOnPremGatewayRequired: true` | XMLA read/write в принципе доступен — не проверялся живым коннектом (риск для прод-отчёта 27 пользователей/день, нужно подтверждение перед первым тестовым write) |
+
+Сервис-принципал (`AZURE_CLIENT_ID`/`AZURE_TENANT_ID`/`AZURE_CLIENT_SECRET` в корневом `.env`, НЕ в `server/.env`) — токен реально получается и REST API отвечает 200. Права на XMLA endpoint конкретно для этого SP не подтверждены (нужен live-тест).
 
 ### 7. Power BI REST API — датасеты, рефреш, запросы
 
