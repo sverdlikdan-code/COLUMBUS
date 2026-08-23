@@ -67,14 +67,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 #qty-modal-box{background:#fff;border-radius:16px;width:100%;max-width:320px;padding:20px;box-shadow:0 8px 32px rgba(0,0,0,.35);text-align:center;}
 #qty-modal-box .qm-title{font-size:15px;font-weight:800;color:var(--blue-dark);margin-bottom:4px;}
 #qty-modal-box .qm-sub{font-size:12.5px;color:#777;margin-bottom:14px;}
-/* Two plain number fields joined by a real, statically-styled "." — not a live-typed
-   character inside one text field, which can't be selectively bolded without a
-   transparent-input overlay hack that risks the caret visually drifting from the
-   digit it's actually next to. A static dot has no such risk and can be as bold/big
-   as asked. 2026-08-23. */
-.qm-kg-inputs{display:flex;align-items:center;justify-content:center;gap:2px;}
-.qm-kg-inputs .qm-part{width:76px;height:56px;font-size:26px;text-align:center;border:2px solid var(--sky-mid);border-radius:12px;font-family:inherit;box-sizing:border-box;}
-.qm-kg-inputs .qm-dot{font-size:46px;font-weight:900;color:var(--blue-dark);line-height:1;padding:0 3px;}
+#qty-modal-box input{width:100%;height:56px;font-size:26px;text-align:center;border:2px solid var(--sky-mid);border-radius:12px;font-family:inherit;box-sizing:border-box;}
 #qty-modal-box .qm-btns{display:flex;gap:10px;margin-top:16px;}
 #qty-modal-box .qm-btns button{flex:1;height:46px;border:none;border-radius:10px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;}
 #qty-modal-box .qm-cancel{background:var(--sky);color:var(--blue-dark);}
@@ -223,12 +216,8 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 <div id="qty-modal" class="no-print" onclick="if(event.target===this)closeQtyModal()">
   <div id="qty-modal-box">
     <div class="qm-title">משקל לזיכוי</div>
-    <div class="qm-sub">ק"ג . גרם</div>
-    <div class="qm-kg-inputs" dir="ltr">
-      <input type="text" inputmode="numeric" maxlength="3" id="qty-modal-kg" class="qm-part" placeholder="0" oninput="_qmKgInput(this)" onkeydown="if(event.key==='Enter')confirmQtyModal()">
-      <span class="qm-dot">.</span>
-      <input type="text" inputmode="numeric" maxlength="3" id="qty-modal-g" class="qm-part" placeholder="000" oninput="_qmGInput(this)" onkeydown="if(event.key==='Enter')confirmQtyModal()">
-    </div>
+    <div class="qm-sub">הקלד ק"ג (נקודה או פסיק, למשל 0.5)</div>
+    <input type="text" inputmode="decimal" id="qty-modal-input" onkeydown="if(event.key==='Enter')confirmQtyModal()">
     <div class="qm-btns">
       <button type="button" class="qm-cancel" onclick="closeQtyModal()">ביטול</button>
       <button type="button" class="qm-ok" onclick="confirmQtyModal()">אישור</button>
@@ -458,41 +447,24 @@ function stepQty(sku,delta){
 }
 
 // ── QTY MODAL — precise kg entry for weight products ────────────────────────
-// Two plain-digit fields (ק"ג / גרם) joined by the static bold dot in the HTML,
-// instead of one free-text field the user types "1.150" into — keeps the dot
-// styling trivial and avoids any real/typed-text mismatch.
 let _qtyModalSku=null;
 function openQtyModal(sku){
   const row=selected.get(sku); if(!row) return;
   _qtyModalSku=sku;
-  const kgPart=Math.trunc(row.qty);
-  const gPart=Math.round((row.qty-kgPart)*1000);
-  document.getElementById('qty-modal-kg').value=String(kgPart);
-  document.getElementById('qty-modal-g').value=String(gPart).padStart(3,'0');
+  const input=document.getElementById('qty-modal-input');
+  input.value=String(row.qty);
   document.getElementById('qty-modal').classList.add('show');
-  const kgInput=document.getElementById('qty-modal-kg');
-  setTimeout(()=>{kgInput.focus();kgInput.select();},50);
+  setTimeout(()=>{input.focus();input.select();},50);
 }
 function closeQtyModal(){
   document.getElementById('qty-modal').classList.remove('show');
   _qtyModalSku=null;
 }
-// Strips anything non-digit (some mobile keyboards let inputmode=numeric through
-// with a "-" or "," anyway) and, for the ק"ג field, auto-advances to גרם once 3
-// digits are in — one less tap for the common case of typing straight through.
-function _qmKgInput(el){
-  el.value=el.value.replace(/\D/g,'').slice(0,3);
-  if(el.value.length>=3) document.getElementById('qty-modal-g').focus();
-}
-function _qmGInput(el){
-  el.value=el.value.replace(/\D/g,'').slice(0,3);
-}
 function confirmQtyModal(){
   if(!_qtyModalSku) return;
   const row=selected.get(_qtyModalSku); if(!row) return;
-  const kgPart=parseInt(document.getElementById('qty-modal-kg').value,10)||0;
-  const gPart=parseInt(document.getElementById('qty-modal-g').value,10)||0;
-  const val=kgPart+gPart/1000;
+  const raw=document.getElementById('qty-modal-input').value.trim().replace(',','.');
+  const val=parseFloat(raw);
   if(!isFinite(val)||val<=0){ showToast('משקל לא תקין'); return; }
   row.qty=Math.round(val*1000)/1000;
   closeQtyModal();
