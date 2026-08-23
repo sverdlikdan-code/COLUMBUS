@@ -261,11 +261,17 @@ let selected = new Map(); // sku -> {product, qty, date, option}
 let navMachlaka = null; // currently drilled-into department
 
 // Sold by weight, not by unit — these families and SKUs need the return
-// quantity entered in grams instead of pieces. 2026-08-23.
-const GRAMS_FAMILIES = new Set(['גבינות SVALYA', 'דגים KAZAHSTAN', 'דגים RUSSIA']);
-const GRAMS_SKUS = new Set(['413000', '413001', '413002']);
+// quantity entered in grams instead of pieces. Matched by 'KARTIS PARIT'[משפחת
+// מוצר] — the numeric family code (e.g. "025") — not by the free-text family
+// name: that text comes from a different table (ALL_PARTS[תאור משפחת מוצר])
+// and a spelling/pluralization mismatch there ('גבינות SVALYA' vs the real
+// 'גבינה SVALIA') silently dropped the whole SVALIA cheese line out of this
+// list on 2026-08-23. The numeric code is the same value regardless of which
+// table or transliteration reads it. 2026-08-23.
+const GRAM_FAM_CODES = new Set([25, 3, 31]); // SVALIA cheese, KAZAHSTAN fish, RUSSIA fish
+const GRAMS_SKUS = new Set(['413000', '413001', '413002']); // PRESIDENT cheese
 function isGramsProduct(p){
-  return GRAMS_FAMILIES.has(p.family) || GRAMS_SKUS.has(String(p.sku));
+  return GRAM_FAM_CODES.has(parseInt(p.famCode, 10)) || GRAMS_SKUS.has(String(p.sku));
 }
 
 // date bounds for the תוקף picker: 1 year back, 3 years ahead
@@ -453,7 +459,7 @@ function renderProformaTable(rows){
     const gapCell = gapDays===null ? '—' : `${gapDays} ימים`;
     const gapClass = gapDays!==null && gapDays<0 ? 'pv-gap gap-neg' : 'pv-gap';
     const eanTd = barcodeMode ? `<td class="pv-ean-cell">${eanCellHtml(r.product.ean)}</td>` : '';
-    const qtyCell = isGramsProduct(r.product) ? `${r.qty} גרם` : r.qty;
+    const qtyCell = isGramsProduct(r.product) ? (r.qty/1000).toFixed(3) : r.qty;
     return `<tr>${eanTd}<td>${img}</td><td>${esc(r.product.sku)}</td><td class="pv-name">${esc(shortName(r.product.name))}</td><td>${qtyCell}</td><td class="pv-lastship">${lastShipCell}</td><td class="${gapClass}">${gapCell}</td><td>${r.date}</td><td>${esc(r.option)}</td></tr>`;
   }).join('') + `<tr class="pv-total"><td colspan="${firstColspan}">סה"כ</td><td>${totalQty}</td><td colspan="4"></td></tr>`;
 }

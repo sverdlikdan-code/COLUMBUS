@@ -1291,11 +1291,18 @@ async function initLogin(){
         try{const ra=JSON.parse(localStorage.getItem('frRouteAgent')||'null');if(ra?.code)st.agent=ra;}catch(_){}
       }
       document.getElementById('logout-btn').style.display='';
-      // F5 state restore: if last day+city are saved, skip city screen and go straight to route
+      // F5 state restore: if last day+city are saved, skip city screen and go straight to route.
+      // Coordinates restored alongside the name — without them, initRoute()/osrmTripOrder()
+      // fall back to the first client's own GPS as "start point" (see startLat/startLng use
+      // below), silently routing from the wrong place on every refresh even though the city
+      // name still looked right. 2026-08-23.
       const _lastDay  = parseInt(localStorage.getItem('frLastDay') || '0');
       const _lastCity = localStorage.getItem('frLastCity') || '';
+      const _lastLat  = parseFloat(localStorage.getItem('frLastLat'));
+      const _lastLng  = parseFloat(localStorage.getItem('frLastLng'));
       if(_lastDay && _lastCity){
         st.startCity = _lastCity;
+        if(!isNaN(_lastLat) && !isNaN(_lastLng)){ st.startLat = _lastLat; st.startLng = _lastLng; }
         await selectDay(_lastDay);
         return;
       }
@@ -1530,6 +1537,16 @@ async function selectManager(mgr){
 function selectAgent(code,name){
   st.agent={code,name};
   localStorage.setItem('frRouteAgent', JSON.stringify({code,name}));
+  // Manager/multi-line users only (regular agents never reach this function) —
+  // the start point is "where the manager is", not something tied to whichever
+  // agent's route they're looking at. Once it's set this session, switching
+  // agents reuses it instead of re-asking; same day they were already viewing,
+  // or today's if this is the first agent picked. Only an explicit city change
+  // (← חזור from the route screen) or 🔄 חישוב מסלול מחדש should touch it. 2026-08-23.
+  if(st.startCity && st.startLat && st.startLng){
+    selectDay(st.day || _todayRouteDay());
+    return;
+  }
   document.getElementById('city-agent-label').textContent=name;
   buildCityChips();
   show('s-city');
@@ -1609,9 +1626,13 @@ async function confirmCity(){
       if(d&&d.lat){ st.startLat=d.lat; st.startLng=d.lng; }
     }catch(e){}
   }
+  selectDay(_todayRouteDay());
+}
+
+// Sunday..Thursday map to route days 1..5 (Friday/Saturday fall back to Sunday's).
+function _todayRouteDay(){
   const wd = new Date().getDay();
-  const todayDay = wd === 0 ? 1 : wd <= 4 ? wd + 1 : 1;
-  selectDay(todayDay);
+  return wd === 0 ? 1 : wd <= 4 ? wd + 1 : 1;
 }
 
 // ── DAY ────────────────────────────────────────────────────────────────────
@@ -1619,6 +1640,15 @@ async function selectDay(day){
   st.day=day;
   localStorage.setItem('frLastDay', String(day));
   if(st.startCity) localStorage.setItem('frLastCity', st.startCity);
+  // Always keep lat/lng in sync with the city being saved above — stale coordinates
+  // from a previous city (e.g. this city's geocode failed) would otherwise survive
+  // and get paired with the new city name on the next F5 restore.
+  if(st.startLat && st.startLng){
+    localStorage.setItem('frLastLat', String(st.startLat));
+    localStorage.setItem('frLastLng', String(st.startLng));
+  } else {
+    localStorage.removeItem('frLastLat'); localStorage.removeItem('frLastLng');
+  }
   show('s-route');
   initRoute();
 }
