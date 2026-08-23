@@ -2898,6 +2898,18 @@ function switchAiLang(btn, lang) {
   _fetchClientAI(lang);
 }
 
+// Generic show/hide-by-id toggle with a paired caret (id "car-"+id) — same ▸/▾
+// visual language as toggleFamGroup, but for a whole block (header+table) instead
+// of table sub-rows. Used to collapse the per-company dormant-products lists.
+function toggleCollapse(id){
+  const el = document.getElementById(id);
+  if (!el) return;
+  const willShow = el.style.display === 'none';
+  el.style.display = willShow ? '' : 'none';
+  const caret = document.getElementById('car-'+id);
+  if (caret) caret.textContent = willShow ? '▾' : '▸';
+}
+
 function toggleFamGroup(groupId){
   const rows = document.querySelectorAll(`tr.fam-sub-row[data-group="${groupId}"]`);
   if (!rows.length) return;
@@ -3064,8 +3076,12 @@ async function _fetchClientAI(lang) {
       // day-briefing TOP10 list: an agent reading this off a tablet in front of a
       // client shouldn't be showing another branch's real revenue on screen.
       const maxChainTotal = Math.max(...items.map(p => p.chainTotal || 0), 1);
-      gapTbl += `<div style="margin:10px 0 4px;font-size:13px;color:#B71C1C;font-weight:700">${label} — מוצרים ש${peerGroupWord} ${chainName} מוכרת (120 יום) והסניף לא הזמין 90+ יום</div>`;
-      gapTbl += `<table class="ai-families-tbl"><thead><tr><th>מוצר</th><th>מכירות רשת (120 יום)</th></tr></thead><tbody>`;
+      // Collapsed by default (toggleCollapse) — a 10-row product list per company adds
+      // up to real scroll length; the agent opens the one(s) they actually need. 2026-08-23.
+      const gapId = `gapTbl-${key}`;
+      gapTbl += `<div class="fam-row-expandable" style="margin:10px 0 4px;font-size:13px;color:#B71C1C;font-weight:700" onclick="toggleCollapse('${gapId}')">`
+        + `<span class="fam-caret" id="car-${gapId}">▸</span> ${label} — מוצרים ש${peerGroupWord} ${chainName} מוכרת (120 יום) והסניף לא הזמין 90+ יום</div>`;
+      gapTbl += `<table class="ai-families-tbl" id="${gapId}" style="display:none"><thead><tr><th>מוצר</th><th>מכירות רשת (120 יום)</th></tr></thead><tbody>`;
       for (const p of items) {
         const shortName = shortProductName(p.name);
         const label2 = p.subFamily ? `${p.subFamily} — ${shortName}` : shortName;
@@ -3076,14 +3092,20 @@ async function _fetchClientAI(lang) {
       }
       gapTbl += '</tbody></table>';
     }
+    // One table per company (FORMULA/ICE_MISH/INTER) instead of a single flat list —
+    // mixing e.g. an INTER "מתוקים" row with a FORMULA "SVALIA" row read as if they
+    // shared the same % base, when each company's chain/store split is independent.
+    // Per user request 2026-08-23.
     let devTbl = '';
-    if (familyDeviation && familyDeviation.length) {
-      devTbl = `<div style="margin:10px 0 4px;font-size:13px;color:#4A148C;font-weight:700">חלוקת משפחות מוצר — סניף מול ${isChain ? 'רשת' : 'קטגוריית'} ${chainName}</div>`;
+    for (const { key, label } of companyGroups) {
+      const rows = familyDeviation && familyDeviation[key];
+      if (!rows || !rows.length) continue;
+      devTbl += `<div style="margin:10px 0 4px;font-size:13px;color:#4A148C;font-weight:700">${label} — חלוקת משפחות מוצר, סניף מול ${isChain ? 'רשת' : 'קטגוריית'} ${chainName}</div>`;
       devTbl += `<table class="ai-families-tbl"><thead><tr><th>משפחת מוצר</th><th>% מהרשת</th><th>% מהסניף</th><th>אינדקס</th></tr></thead><tbody>`;
-      familyDeviation.forEach((d, idx) => {
+      rows.forEach((d, idx) => {
         const idxColor = d.index === null ? '#999' : (d.index < 0.7 ? '#C62828' : d.index > 1.2 ? '#2E7D32' : '#666');
         const hasSub = d.isRest && d.subFamilies && d.subFamilies.length > 1;
-        const groupId = `fgDev${idx}`;
+        const groupId = `fgDev-${key}-${idx}`;
         const rowStyle = d.isTotal ? 'font-weight:700;border-top:2px solid #CE93D8' : (d.isRest ? 'color:#888;font-style:italic' : '');
         const rowClass = hasSub ? 'fam-row-expandable' : '';
         devTbl += `<tr class="${rowClass}" style="${rowStyle}"${hasSub ? ` onclick="toggleFamGroup('${groupId}')"` : ''}>`

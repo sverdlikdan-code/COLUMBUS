@@ -4625,7 +4625,11 @@ CALCULATETABLE(
     // clients (peer group = the chain) and private-market clients (peer group = same
     // customer-type category, e.g. "חנויות") — chainInFilter covers both.
     let dormantChainProducts = { FORMULA: [], ICE_MISH: [], INTER: [], ICE_BDD: [] };
-    let familyDeviation = [];
+    // Keyed by company (only companies that actually have chain data get a key) — the
+    // deviation table used to be one flat list mixing FORMULA/ICE_MISH/INTER families
+    // together (a INTER "מתוקים" row sitting next to a FORMULA "SVALIA" row read as if
+    // they were the same comparison base), split per user request 2026-08-23.
+    let familyDeviation = {};
     let companyGaps = [];
     if (chainInFilter) {
       const MMD_DS = process.env.POWERBI_MMD_DATASET_ID;
@@ -4778,22 +4782,36 @@ CALCULATETABLE(
         fetchPhotos(dormantChainProducts.ICE_MISH, 'KARTIS PARIT ICE'),
       ]);
 
-      const chainFamTotal = {}; let chainFamAll = 0;
-      chainFamRows.forEach(r => {
-        const v = Math.round(r['[total]'] || 0);
-        if (v > 0) { const fam = r['ALL_PARTS[תאור משפחת מוצר]']; chainFamTotal[fam] = v; chainFamAll += v; }
-      });
-      const storeFamTotal = {}; let storeFamAll = 0;
-      curRows.forEach(r => {
-        const v = Math.round(r['[total]'] || 0);
-        if (v > 0) { const fam = r['ALL_PARTS[תאור משפחת מוצר]']; storeFamTotal[fam] = v; storeFamAll += v; }
-      });
-      const famEntries = Object.entries(chainFamTotal).sort(([, a], [, b]) => b - a);
-      const topFamEntries = famEntries.slice(0, 7);
-      const topFamSet = new Set(topFamEntries.map(([fam]) => fam));
+      // Bucket both chain-side and store-side totals per (company, family) — chainFamRows/
+      // curRows already carry [מחלקה] per row (same SUMMARIZE+LOOKUPVALUE pattern used
+      // everywhere else in this file), classified with the same classifyCompany used for
+      // companyGaps/dormantChainProducts above, so all three stay consistent.
       const shareOf = (v, all) => all > 0 ? v / all : 0;
-      familyDeviation = topFamEntries
-        .map(([fam, chainV]) => {
+      const DEV_COMPANIES = ['FORMULA', 'ICE_MISH', 'INTER'];
+      const bucketByCompanyFam = (rows) => {
+        const byCo = { FORMULA: {}, ICE_MISH: {}, INTER: {} };
+        const allByCo = { FORMULA: 0, ICE_MISH: 0, INTER: 0 };
+        rows.forEach(r => {
+          const co = classifyCompany(r['[מחלקה]']);
+          if (!co || !byCo[co]) return;
+          const v = Math.round(r['[total]'] || 0);
+          if (v <= 0) return;
+          const fam = r['ALL_PARTS[תאור משפחת מוצר]'];
+          byCo[co][fam] = (byCo[co][fam] || 0) + v;
+          allByCo[co] += v;
+        });
+        return { byCo, allByCo };
+      };
+      const chainBuckets = bucketByCompanyFam(chainFamRows);
+      const storeBuckets = bucketByCompanyFam(curRows);
+
+      // Same top-7 + "rest of families" + 100% total row shape as before, just built
+      // once per company instead of once across all of them mixed together.
+      const buildDeviationRows = (chainFamTotal, chainFamAll, storeFamTotal, storeFamAll) => {
+        const famEntries = Object.entries(chainFamTotal).sort(([, a], [, b]) => b - a);
+        const topFamEntries = famEntries.slice(0, 7);
+        const topFamSet = new Set(topFamEntries.map(([fam]) => fam));
+        const rows = topFamEntries.map(([fam, chainV]) => {
           const chainShare = shareOf(chainV, chainFamAll);
           const storeV = storeFamTotal[fam] || 0;
           const storeShare = shareOf(storeV, storeFamAll);
@@ -4805,39 +4823,49 @@ CALCULATETABLE(
           };
         });
 
-      // "Rest of families" + explicit 100% total row — without this the shown top-7
-      // percentages silently add up to less than 100% and look like the whole picture.
-      // subFamilies on this row is the same per-family breakdown one level down
-      // (everything past the top 7), for the expand-on-click drilldown — same
-      // mechanism as the main families table above.
-      const restChainV = famEntries.slice(7).reduce((s, [, v]) => s + v, 0);
-      const restStoreV = Object.entries(storeFamTotal).reduce((s, [fam, v]) => topFamSet.has(fam) ? s : s + v, 0);
-      if (restChainV > 0 || restStoreV > 0) {
-        const chainShare = shareOf(restChainV, chainFamAll);
-        const storeShare = shareOf(restStoreV, storeFamAll);
-        const restSubFamilies = famEntries.slice(7)
-          .map(([fam, chainV]) => {
-            const fChainShare = shareOf(chainV, chainFamAll);
-            const storeV = storeFamTotal[fam] || 0;
-            const fStoreShare = shareOf(storeV, storeFamAll);
-            return {
-              family: fixBiDi(fam || ''),
-              chainSharePct: Math.round(fChainShare * 100),
-              storeSharePct: Math.round(fStoreShare * 100),
-              index: fChainShare > 0 ? Math.round((fStoreShare / fChainShare) * 100) / 100 : null,
-            };
-          })
-          .sort((a, b) => b.chainSharePct - a.chainSharePct);
-        familyDeviation.push({
-          family: 'שאר המשפחות',
-          chainSharePct: Math.round(chainShare * 100),
-          storeSharePct: Math.round(storeShare * 100),
-          index: chainShare > 0 ? Math.round((storeShare / chainShare) * 100) / 100 : null,
-          isRest: true,
-          subFamilies: restSubFamilies,
-        });
+        // "Rest of families" + explicit 100% total row — without this the shown top-7
+        // percentages silently add up to less than 100% and look like the whole picture.
+        // subFamilies on this row is the same per-family breakdown one level down
+        // (everything past the top 7), for the expand-on-click drilldown.
+        const restChainV = famEntries.slice(7).reduce((s, [, v]) => s + v, 0);
+        const restStoreV = Object.entries(storeFamTotal).reduce((s, [fam, v]) => topFamSet.has(fam) ? s : s + v, 0);
+        if (restChainV > 0 || restStoreV > 0) {
+          const chainShare = shareOf(restChainV, chainFamAll);
+          const storeShare = shareOf(restStoreV, storeFamAll);
+          const restSubFamilies = famEntries.slice(7)
+            .map(([fam, chainV]) => {
+              const fChainShare = shareOf(chainV, chainFamAll);
+              const storeV = storeFamTotal[fam] || 0;
+              const fStoreShare = shareOf(storeV, storeFamAll);
+              return {
+                family: fixBiDi(fam || ''),
+                chainSharePct: Math.round(fChainShare * 100),
+                storeSharePct: Math.round(fStoreShare * 100),
+                index: fChainShare > 0 ? Math.round((fStoreShare / fChainShare) * 100) / 100 : null,
+              };
+            })
+            .sort((a, b) => b.chainSharePct - a.chainSharePct);
+          rows.push({
+            family: 'שאר המשפחות',
+            chainSharePct: Math.round(chainShare * 100),
+            storeSharePct: Math.round(storeShare * 100),
+            index: chainShare > 0 ? Math.round((storeShare / chainShare) * 100) / 100 : null,
+            isRest: true,
+            subFamilies: restSubFamilies,
+          });
+        }
+        rows.push({ family: 'סה"כ', chainSharePct: 100, storeSharePct: 100, index: null, isTotal: true });
+        return rows;
+      };
+
+      for (const co of DEV_COMPANIES) {
+        if (chainBuckets.allByCo[co] > 0) {
+          familyDeviation[co] = buildDeviationRows(
+            chainBuckets.byCo[co], chainBuckets.allByCo[co],
+            storeBuckets.byCo[co], storeBuckets.allByCo[co],
+          );
+        }
       }
-      familyDeviation.push({ family: 'סה"כ', chainSharePct: 100, storeSharePct: 100, index: null, isTotal: true });
     }
 
     // FORMULA/ICE rows already carry their real, granular ALL_PARTS[תאור משפחת
@@ -4979,7 +5007,7 @@ CALCULATETABLE(
     // an over-indexed one is often a brand-substitution pattern (agent/store pushing one
     // brand instead of another within the same category), which is a sharper, more useful
     // read than either number alone.
-    const realFamDev = familyDeviation.filter(f => !f.isRest && !f.isTotal && f.index !== null);
+    const realFamDev = Object.values(familyDeviation).flat().filter(f => !f.isRest && !f.isTotal && f.index !== null);
     const underIndexed = realFamDev.filter(f => f.index < 0.7).sort((a, b) => a.index - b.index)[0];
     const overIndexed = realFamDev.filter(f => f.index > 1.2).sort((a, b) => b.index - a.index)[0];
     const deviationLines = [];
