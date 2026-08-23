@@ -260,6 +260,14 @@ let products = [];      // full 365-day history from server
 let selected = new Map(); // sku -> {product, qty, date, option}
 let navMachlaka = null; // currently drilled-into department
 
+// Sold by weight, not by unit — these families and SKUs need the return
+// quantity entered in grams instead of pieces. 2026-08-23.
+const GRAMS_FAMILIES = new Set(['גבינות SVALYA', 'דגים KAZAHSTAN', 'דגים RUSSIA']);
+const GRAMS_SKUS = new Set(['413000', '413001', '413002']);
+function isGramsProduct(p){
+  return GRAMS_FAMILIES.has(p.family) || GRAMS_SKUS.has(String(p.sku));
+}
+
 // date bounds for the תוקף picker: 1 year back, 3 years ahead
 const today = new Date();
 const oneYearAgo = new Date(); oneYearAgo.setFullYear(oneYearAgo.getFullYear()-1);
@@ -358,11 +366,11 @@ function renderTable(){
       </div>
       <div class="ret-item-controls">
         <div class="ret-field">
-          <label>כמות לזיכוי</label>
+          <label>${isGramsProduct(p) ? 'משקל לזיכוי (גרם)' : 'כמות לזיכוי'}</label>
           <div class="qty-stepper">
-            <button type="button" class="qty-btn" aria-label="הפחת כמות" onclick="stepQty('${esc(p.sku)}',-1)">−</button>
-            <input type="number" min="1" value="${row.qty}" inputmode="numeric" aria-label="כמות לזיכוי" onchange="updateRow('${esc(p.sku)}','qty',this.value)">
-            <button type="button" class="qty-btn" aria-label="הוסף כמות" onclick="stepQty('${esc(p.sku)}',1)">+</button>
+            <button type="button" class="qty-btn" aria-label="הפחת" onclick="stepQty('${esc(p.sku)}',-1)">−</button>
+            <input type="number" min="1" value="${row.qty}" inputmode="numeric" aria-label="${isGramsProduct(p) ? 'משקל לזיכוי בגרם' : 'כמות לזיכוי'}" onchange="updateRow('${esc(p.sku)}','qty',this.value)">
+            <button type="button" class="qty-btn" aria-label="הוסף" onclick="stepQty('${esc(p.sku)}',1)">+</button>
           </div>
         </div>
         <div class="ret-field">
@@ -423,7 +431,9 @@ function toggleBarcodeMode(){
 
 function renderProformaTable(rows){
   document.getElementById('pv-overlay').classList.toggle('barcode-mode', barcodeMode);
-  const totalQty=rows.reduce((s,r)=>s+r.qty,0);
+  // Grams and pieces don't sum to a meaningful number together — total only
+  // counts piece-based rows.
+  const totalQty=rows.reduce((s,r)=>s+(isGramsProduct(r.product)?0:r.qty),0);
   const eanTh = barcodeMode ? '<th>ברקוד</th>' : '';
   document.getElementById('pv-thead-row').innerHTML = eanTh +
     '<th>תמונה</th><th>מק"ט</th><th>מוצר</th><th>כמות</th><th>תנועה אחרונה</th><th>ימי תוקף שלקוח קיבל</th><th>תוקף</th><th>אופציה</th>';
@@ -443,7 +453,8 @@ function renderProformaTable(rows){
     const gapCell = gapDays===null ? '—' : `${gapDays} ימים`;
     const gapClass = gapDays!==null && gapDays<0 ? 'pv-gap gap-neg' : 'pv-gap';
     const eanTd = barcodeMode ? `<td class="pv-ean-cell">${eanCellHtml(r.product.ean)}</td>` : '';
-    return `<tr>${eanTd}<td>${img}</td><td>${esc(r.product.sku)}</td><td class="pv-name">${esc(shortName(r.product.name))}</td><td>${r.qty}</td><td class="pv-lastship">${lastShipCell}</td><td class="${gapClass}">${gapCell}</td><td>${r.date}</td><td>${esc(r.option)}</td></tr>`;
+    const qtyCell = isGramsProduct(r.product) ? `${r.qty} גרם` : r.qty;
+    return `<tr>${eanTd}<td>${img}</td><td>${esc(r.product.sku)}</td><td class="pv-name">${esc(shortName(r.product.name))}</td><td>${qtyCell}</td><td class="pv-lastship">${lastShipCell}</td><td class="${gapClass}">${gapCell}</td><td>${r.date}</td><td>${esc(r.option)}</td></tr>`;
   }).join('') + `<tr class="pv-total"><td colspan="${firstColspan}">סה"כ</td><td>${totalQty}</td><td colspan="4"></td></tr>`;
 }
 
