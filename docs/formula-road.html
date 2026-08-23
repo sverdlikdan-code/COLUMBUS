@@ -105,7 +105,14 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .tab-bar{display:none !important;}
 .tab-btn{display:none;}
 .km-bar{display:flex;flex-direction:column;gap:5px;padding:6px 10px 5px;background:#fff;border-bottom:1px solid var(--sky-mid);font-size:13px;color:var(--mid);flex-shrink:0;}
-.km-row-top{display:flex;align-items:center;gap:6px;}
+/* No wrap here meant day-switch (fixed-width, flex-shrink:0) and sort-btns shared
+   one line on narrow phones — sort-btns then had almost no width left to wrap
+   its own buttons into, so most of them fell one-per-line and ran off the right
+   edge of the screen entirely (confirmed live at 390px). Letting THIS row wrap
+   too means day-switch drops to its own line first when needed, and sort-btns
+   gets the full width on the line(s) after it — 2-3 buttons per row instead of
+   one, nothing pushed off-screen. Found during toolbar redesign, 2026-08-23. */
+.km-row-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 .km-row-actions{display:flex;align-items:flex-start;flex-wrap:wrap;gap:4px;}
 .km-cities{display:flex;gap:4px;flex-wrap:nowrap;flex-shrink:0;}
 .km-right{display:flex;align-items:center;gap:8px;margin-right:auto;}
