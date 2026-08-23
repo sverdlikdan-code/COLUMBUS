@@ -1802,8 +1802,43 @@ function displayClients(){
 
 function buildDaySwitcher(){
   const el=document.getElementById('day-switch');
-  el.innerHTML=[1,2,3,4,5].map(d=>`<button class="day-sw-btn${d===st.day?' active':''}" onclick="switchDay(${d})">${DAY_LABELS[d]}</button>`).join('')
+  // Only offer days that actually have a client scheduled — st.dayCounts is filled
+  // in by ensureDayCounts() below; null (not loaded yet, or the fetch failed) falls
+  // back to showing all 5, same as before this existed. The "?" (unscheduled) button
+  // stays unconditional — /customers without &day= doesn't return the unscheduled-
+  // Formula bucket, so computing its presence here would be a guess, not a fact.
+  // A pending agent switch must drop the PREVIOUS agent's day availability before
+  // computing `days` below, not after — ensureDayCounts() clearing it at the end
+  // of this same call is one render too late, and briefly shows the wrong agent's
+  // days. Checked here, synchronously, before the filter runs.
+  if(st._dayCountsAgent!==st.agent?.code) st.dayCounts=null;
+  const days=st.dayCounts?[1,2,3,4,5].filter(d=>st.dayCounts.has(d)):[1,2,3,4,5];
+  el.innerHTML=days.map(d=>`<button class="day-sw-btn${d===st.day?' active':''}" onclick="switchDay(${d})">${DAY_LABELS[d]}</button>`).join('')
     +`<button class="day-sw-btn day-sw-undef${st.day===0?' active':''}" onclick="switchDay(0)">?</button>`;
+  ensureDayCounts();
+}
+
+// Fetches once per agent (no &day= → server returns every scheduled day at once,
+// see /customers) which of days 1-5 actually have a client, so buildDaySwitcher
+// above can drop the empty ones instead of offering a day the agent will just find
+// blank. Re-renders the switcher when it resolves; a failed fetch leaves
+// st.dayCounts null so the switcher keeps showing all 5 (safe fallback, not a
+// hidden-route risk).
+async function ensureDayCounts(){
+  const code=st.agent?.code;
+  if(!code||st._dayCountsAgent===code) return;
+  st._dayCountsAgent=code;
+  try{
+    const r=await apiFetch(`${API}/customers?agent=${encodeURIComponent(code)}`);
+    if(!r.ok) throw new Error();
+    const all=await r.json();
+    if(st.agent?.code!==code) return; // agent switched again while this was in flight
+    st.dayCounts=new Set((all||[]).map(c=>c.dayNum).filter(d=>d>=1&&d<=5));
+    buildDaySwitcher();
+  }catch(e){
+    st.dayCounts=null;
+    st._dayCountsAgent=null;
+  }
 }
 
 function switchDay(d){
