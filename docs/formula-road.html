@@ -3021,7 +3021,13 @@ async function _fetchClientAI(lang) {
       if (!m) return s.length > 42 ? s.slice(0, 42) + '…' : s;
       return s.slice(0, s.indexOf(m[0]) + m[0].length).trim();
     };
+    // A company already flagged in companyGaps (store buys ₪0 from it, full stop)
+    // doesn't need its own "missing products" list too — of course the store
+    // hasn't ordered any of them, it doesn't work with that company at all. The
+    // banner above already says so; repeating it as 10 dormant-SKU rows is noise.
+    const gapCompanies = new Set((companyGaps || []).map(g => g.company));
     for (const { key, label } of companyGroups) {
+      if (gapCompanies.has(key)) continue;
       const items = dormantChainProducts && dormantChainProducts[key];
       if (!items || !items.length) continue;
       // Ranked stars, not the network's actual ₪ figure — same reasoning as the

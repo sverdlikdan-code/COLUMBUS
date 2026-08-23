@@ -4763,8 +4763,15 @@ CALCULATETABLE(
         }))
         .filter(x => x.chainTotal > 0 && x.company);
 
+      // A company already in companyGaps (store buys ₪0 from it) doesn't need its
+      // own dormant-SKU list — the company-gap flag already says "doesn't work
+      // with this company", listing 10 products it also hasn't ordered is just
+      // restating that. Skips the INTER subFamily/photo lookups below too when
+      // it applies, one less DAX round-trip on a company we already know is a gap.
+      const gapCompanySet = new Set(companyGaps.map(g => g.company));
       for (const item of dormantRaw) {
         if (item.company === 'ICE_BDD') continue;
+        if (gapCompanySet.has(item.company)) continue;
         if (item.company !== 'INTER' && !inStock(item.sku)) continue;
         dormantChainProducts[item.company].push(item);
       }
