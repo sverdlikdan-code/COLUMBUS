@@ -4720,10 +4720,21 @@ CALCULATETABLE(
       // does ANY business with a company at all. chain>0 / store=0 for a whole company is a
       // bigger signal than any single dormant SKU — worth understanding why before pitching
       // individual products from a supplier line we may not even be servicing here.
+      // A client that isn't in the main FORMULA client map at all (isIceOnlyClient,
+      // computed above from pbiCache.clientMap) is an ICE-only account by nature —
+      // it never had a relationship with FORMULA/INTER to begin with, so "doesn't
+      // work with FORMULA/INTER" isn't a gap worth flagging (there's nothing to
+      // "find out why" about), and every FORMULA/INTER block below (dormant list,
+      // חלוקת משפחות index) would just be a wash of 0%-מהסניף noise repeating the
+      // same non-fact. Scope every one of those blocks to ICE_MISH/ICE_BDD only for
+      // this client type. 2026-08-23.
+      const RELEVANT_COMPANIES = isIceOnlyClient
+        ? new Set(['ICE_MISH', 'ICE_BDD'])
+        : new Set(['FORMULA', 'ICE_MISH', 'INTER', 'ICE_BDD']);
       const companyTotal = { FORMULA: { store: 0, chain: 0 }, ICE_MISH: { store: 0, chain: 0 }, INTER: { store: 0, chain: 0 }, ICE_BDD: { store: 0, chain: 0 } };
       curRows.forEach(r => { const c = classifyCompany(r['[מחלקה]']); const v = Math.round(r['[total]'] || 0); if (c && v > 0) companyTotal[c].store += v; });
       chainFamRows.forEach(r => { const c = classifyCompany(r['[מחלקה]']); const v = Math.round(r['[total]'] || 0); if (c && v > 0) companyTotal[c].chain += v; });
-      for (const co of ['FORMULA', 'ICE_MISH', 'INTER', 'ICE_BDD']) {
+      for (const co of RELEVANT_COMPANIES) {
         const { store, chain } = companyTotal[co];
         if (chain > 0 && store === 0) companyGaps.push({ company: co, chainTotal: chain });
       }
@@ -4762,6 +4773,7 @@ CALCULATETABLE(
       const gapCompanySet = new Set(companyGaps.map(g => g.company));
       for (const item of dormantRaw) {
         if (item.company === 'ICE_BDD') continue;
+        if (!RELEVANT_COMPANIES.has(item.company)) continue;
         if (gapCompanySet.has(item.company)) continue;
         if (item.company !== 'INTER' && !inStock(item.sku)) continue;
         dormantChainProducts[item.company].push(item);
@@ -4806,7 +4818,7 @@ CALCULATETABLE(
       // everywhere else in this file), classified with the same classifyCompany used for
       // companyGaps/dormantChainProducts above, so all three stay consistent.
       const shareOf = (v, all) => all > 0 ? v / all : 0;
-      const DEV_COMPANIES = ['FORMULA', 'ICE_MISH', 'INTER'];
+      const DEV_COMPANIES = ['FORMULA', 'ICE_MISH', 'INTER'].filter(co => RELEVANT_COMPANIES.has(co));
       const bucketByCompanyFam = (rows) => {
         const byCo = { FORMULA: {}, ICE_MISH: {}, INTER: {} };
         const allByCo = { FORMULA: 0, ICE_MISH: 0, INTER: 0 };
@@ -4905,7 +4917,7 @@ CALCULATETABLE(
       const chainSkuTotal = skuTotalMap(chainSkuRows);
       const storeSkuTotalDev = skuTotalMap(curSkuRows);
       const interSkuUniverse = [...new Set([...Object.keys(chainSkuTotal), ...Object.keys(storeSkuTotalDev)])];
-      if (interSkuUniverse.length) {
+      if (RELEVANT_COMPANIES.has('INTER') && interSkuUniverse.length) {
         const skuInList = interSkuUniverse.map(s => `"${s}"`).join(',');
         const p2Rows = await executeDax(
           `EVALUATE SELECTCOLUMNS(FILTER('KARTIS PARIT INTER', 'KARTIS PARIT INTER'[מק"ט] IN {${skuInList}}), "sku", 'KARTIS PARIT INTER'[מק"ט], "p2", 'KARTIS PARIT INTER'[תאור פרמטר 2 למוצר])`
@@ -4938,12 +4950,12 @@ CALCULATETABLE(
         const fam = r['ALL_PARTS[תאור משפחת מוצר]'] || '';
         const val = Math.round(r['[total]'] || 0);
         const lo  = r['[lastOrder]'];
-        // ICE BDD (e.g. "גלידה bdd") is its own separate channel, same as INTER —
-        // classifyCompany elsewhere in this file treats it that way (company-gap
-        // flag only, no item-level detail); this table used a plain SKIP/INTER set
-        // check instead of classifyCompany, so bdd slipped through into the main
-        // FORMULA family breakdown. 2026-08-23.
-        if (cat && !SKIP_CATS.has(cat) && val > 0 && !INTER_CATS.has(cat) && !cat.includes('bdd')) {
+        // ICE BDD (e.g. "גלידה bdd") is its own separate channel from FORMULA's own
+        // departments, same as INTER — excluded from a FORMULA client's own family
+        // breakdown for the same reason. But for an ICE-only client (isIceOnlyClient)
+        // BDD IS one of their own departments, not a foreign channel — it belongs in
+        // their table, not hidden from it. 2026-08-23.
+        if (cat && !SKIP_CATS.has(cat) && val > 0 && !INTER_CATS.has(cat) && (isIceOnlyClient || !cat.includes('bdd'))) {
           byCat[cat] = (byCat[cat] || 0) + val;
           total += val;
           byCatFam[cat] = byCatFam[cat] || {};
@@ -5015,6 +5027,33 @@ CALCULATETABLE(
           const c = p2Cur[p2] || 0, p = p2Prior[p2] || 0;
           familiesInter[p2] = { current: c, prior: p, deltaPct: p > 0 ? Math.round((c / p - 1) * 100) : null };
         }
+      }
+    }
+
+    // ICE BDD gets the same "ערוץ נפרד" treatment as INTER above — its own small
+    // current-vs-prior table for a REGULAR (non-ICE-only) client. Unlike INTER,
+    // BDD's real ALL_PARTS[תאור משפחת מוצר] is granular on its own (not just the
+    // machlaka name repeated), so this reuses curRows/priorRows directly — no
+    // extra SKU/Parameter-2 lookup needed. Skipped entirely for an ICE-only
+    // client: bdd is already inside `families` for them (see collect() above),
+    // not a foreign channel to call out separately. 2026-08-23.
+    const familiesBdd = {};
+    if (!isIceOnlyClient) {
+      const collectBdd = (rows) => {
+        const m = {};
+        for (const r of rows) {
+          const cat = r['[מחלקה]'] || '';
+          if (!cat.includes('bdd')) continue;
+          const fam = r['ALL_PARTS[תאור משפחת מוצר]'] || cat;
+          const val = Math.round(r['[total]'] || 0);
+          if (val > 0) m[fam] = (m[fam] || 0) + val;
+        }
+        return m;
+      };
+      const curBdd = collectBdd(curRows), priorBdd = collectBdd(priorRows);
+      for (const fam of new Set([...Object.keys(curBdd), ...Object.keys(priorBdd)])) {
+        const c = curBdd[fam] || 0, p = priorBdd[fam] || 0;
+        familiesBdd[fixBiDi(fam)] = { current: c, prior: p, deltaPct: p > 0 ? Math.round((c / p - 1) * 100) : null };
       }
     }
 
@@ -5119,6 +5158,7 @@ CALCULATETABLE(
       priorLabel,
       families,
       familiesInter,
+      familiesBdd,
       dropped: Array.from(SKIP_CATS),
       clientTotal: cur.total,
       clientTotalPrior: prior.total,
