@@ -4689,10 +4689,29 @@ CALCULATETABLE(
   ALL_PARTS[תאריך] <= DATE(${curEnd.year},${curEnd.month},${curLastDay})
 )`;
 
-      const [chainOpenRows, storeOrderedRows, chainFamRows, stockForm, stockIce] = await Promise.all([
+      // SKU-level chain totals, same period as chainFamDax — needed only for INTER's
+      // own breakdown below (KARTIS PARIT INTER's פרמטר 2, keyed by SKU, not family).
+      // Raw SUM, not the named [TOTAL SALES...] measure — same context-transition bug
+      // as skuDax above (grouping by the exact column the measure filters on repeats
+      // one client-wide total across every SKU row).
+      const chainSkuDax = `
+EVALUATE
+CALCULATETABLE(
+  ADDCOLUMNS(
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[מק'ט]),
+    "total", CALCULATE(SUM(ALL_PARTS[סכום (ש'ח)]))
+  ),${chainInFilter}
+  ALL_PARTS[ASHMADOT] = "-מכר-",${kosherFilter}
+  NOT(ALL_PARTS[מק'ט] IN {"0","915001","915002","916000","916001","916002","916003","916004","916005","916006","916007","916008","916009","916010","916011"}),
+  ALL_PARTS[תאריך] >= DATE(${curStart.year},${curStart.month},1),
+  ALL_PARTS[תאריך] <= DATE(${curEnd.year},${curEnd.month},${curLastDay})
+)`;
+
+      const [chainOpenRows, storeOrderedRows, chainFamRows, chainSkuRows, stockForm, stockIce] = await Promise.all([
         executeDax(chainOpenDax),
         executeDax(storeOrderedDax),
         executeDax(chainFamDax),
+        executeDax(chainSkuDax),
         executeDax(`EVALUATE SELECTCOLUMNS('זמינות FORM', "sku", 'זמינות FORM'[מק'ט], "stock", 'זמינות FORM'[מלאי זמין])`, MMD_DS),
         executeDax(`EVALUATE SELECTCOLUMNS('זמינות ICE', "sku", 'זמינות ICE'[מק'ט], "stock", 'זמינות ICE'[מלאי זמין])`, MMD_DS),
       ]);
@@ -4859,11 +4878,51 @@ CALCULATETABLE(
       };
 
       for (const co of DEV_COMPANIES) {
+        if (co === 'INTER') continue; // handled separately below, by SKU/פרמטר 2
         if (chainBuckets.allByCo[co] > 0) {
           familyDeviation[co] = buildDeviationRows(
             chainBuckets.byCo[co], chainBuckets.allByCo[co],
             storeBuckets.byCo[co], storeBuckets.allByCo[co],
           );
+        }
+      }
+
+      // INTER's own ALL_PARTS[תאור משפחת מוצר] is just the מחלקה name itself
+      // (מתוקים/מדף) — not real sub-categories, so the text-based bucketing above
+      // would only ever show 2 near-useless rows. Same fix as familiesInter/dormant-
+      // products INTER breakdown: KARTIS PARIT INTER's own פרמטר 2 field, keyed by
+      // SKU. Store-side reuses curSkuRows (already fetched above for familiesInter,
+      // same custId+period); chain-side needs its own SKU-level query (chainSkuRows).
+      const skuTotalMap = (rows) => {
+        const m = {};
+        for (const r of rows) {
+          const sku = String(r["ALL_PARTS[מק'ט]"] || '');
+          const v = Math.round(r['[total]'] || 0);
+          if (sku && v > 0) m[sku] = (m[sku] || 0) + v;
+        }
+        return m;
+      };
+      const chainSkuTotal = skuTotalMap(chainSkuRows);
+      const storeSkuTotalDev = skuTotalMap(curSkuRows);
+      const interSkuUniverse = [...new Set([...Object.keys(chainSkuTotal), ...Object.keys(storeSkuTotalDev)])];
+      if (interSkuUniverse.length) {
+        const skuInList = interSkuUniverse.map(s => `"${s}"`).join(',');
+        const p2Rows = await executeDax(
+          `EVALUATE SELECTCOLUMNS(FILTER('KARTIS PARIT INTER', 'KARTIS PARIT INTER'[מק"ט] IN {${skuInList}}), "sku", 'KARTIS PARIT INTER'[מק"ט], "p2", 'KARTIS PARIT INTER'[תאור פרמטר 2 למוצר])`
+        );
+        const sku2p2Dev = new Map(p2Rows.map(r => [String(r['[sku]']), r['[p2]'] || '']));
+        const interP2Chain = {}, interP2Store = {};
+        let interP2ChainAll = 0, interP2StoreAll = 0;
+        for (const [sku, v] of Object.entries(chainSkuTotal)) {
+          const p2 = sku2p2Dev.get(sku); if (!p2) continue;
+          interP2Chain[p2] = (interP2Chain[p2] || 0) + v; interP2ChainAll += v;
+        }
+        for (const [sku, v] of Object.entries(storeSkuTotalDev)) {
+          const p2 = sku2p2Dev.get(sku); if (!p2) continue;
+          interP2Store[p2] = (interP2Store[p2] || 0) + v; interP2StoreAll += v;
+        }
+        if (interP2ChainAll > 0) {
+          familyDeviation.INTER = buildDeviationRows(interP2Chain, interP2ChainAll, interP2Store, interP2StoreAll);
         }
       }
     }
