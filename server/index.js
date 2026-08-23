@@ -4475,7 +4475,11 @@ app.get('/api/client-analytics/:custId', requireAuth, async (req, res) => {
   // breakdown so it doesn't get analyzed as if it were part of the agent's own department
   // mix; shown as its own block instead. Also used below to classify dormant products by
   // company (מחלקה itself encodes ICE's mish/bdd sub-brands — see classifyCompany).
-  const INTER_CATS = new Set(['מתוקים  🍬']); // raw ADIFUT[מחלקה] value — verified live, has 2 spaces + emoji
+  // מדף + מתוקים = INTER company (approved mapping, scripts/sadran-data.js DEPT_COMPANY,
+  // user-approved 2026-07-21) — same set already used by classifyCompanyRet for
+  // client-returns; this endpoint's own copy was missing 'מדף', so its מכר/מגמה leaked
+  // into the main FORMULA family table instead of the ערוץ נפרד (INTER) block below.
+  const INTER_CATS = new Set(['מדף', 'מתוקים  🍬']); // raw ADIFUT[מחלקה] values — verified live, has 2 spaces + emoji
 
   try {
     // Client segment: kashrut flag, private-market vs chain, and peer-group key. FORMULA
