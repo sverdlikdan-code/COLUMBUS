@@ -57,6 +57,21 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 .qty-stepper .qty-btn:active{background:var(--sky-mid);}
 .qty-stepper input[type=number]{width:52px;height:44px;border:none;text-align:center;font-size:16px;font-family:inherit;-moz-appearance:textfield;appearance:textfield;}
 .qty-stepper input[type=number]::-webkit-outer-spin-button,.qty-stepper input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+/* Weight-product qty — tapping the number opens #qty-modal for precise kg entry
+   (typing "0.5"/"0,5" on a numeric keypad beats nudging a stepper by 0.1 one tap
+   at a time). Styled as a button, not a disabled input, so it still looks tappable. */
+.qty-kg-btn{width:64px;height:44px;border:none;background:#fff;text-align:center;font-size:15px;font-family:inherit;color:var(--blue-dark);font-weight:700;cursor:pointer;}
+.qty-kg-btn:active{background:var(--sky);}
+#qty-modal{position:fixed;inset:0;z-index:9000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.5);padding:16px;}
+#qty-modal.show{display:flex;}
+#qty-modal-box{background:#fff;border-radius:16px;width:100%;max-width:320px;padding:20px;box-shadow:0 8px 32px rgba(0,0,0,.35);text-align:center;}
+#qty-modal-box .qm-title{font-size:15px;font-weight:800;color:var(--blue-dark);margin-bottom:4px;}
+#qty-modal-box .qm-sub{font-size:12.5px;color:#777;margin-bottom:14px;}
+#qty-modal-box input{width:100%;height:56px;font-size:26px;text-align:center;border:2px solid var(--sky-mid);border-radius:12px;font-family:inherit;box-sizing:border-box;}
+#qty-modal-box .qm-btns{display:flex;gap:10px;margin-top:16px;}
+#qty-modal-box .qm-btns button{flex:1;height:46px;border:none;border-radius:10px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;}
+#qty-modal-box .qm-cancel{background:var(--sky);color:var(--blue-dark);}
+#qty-modal-box .qm-ok{background:var(--blue);color:#fff;}
 .ret-field input[type=date],.ret-field select{padding:9px 10px;min-height:44px;min-width:132px;border:1.5px solid var(--sky-mid);border-radius:10px;font-size:14.5px;font-family:inherit;color:var(--text);background:#fff;}
 /* -50% vs השמדה — two very different outcomes for the return, easy to fat-finger
    as a <select> on a tablet. A toggle keeps both options visible at once and
@@ -196,6 +211,18 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 
 <div class="submit-bar no-print">
   <button type="button" class="submit-btn" id="ok-btn" onclick="buildProforma()" disabled>✅ OK — הפק בלנק</button>
+</div>
+
+<div id="qty-modal" class="no-print" onclick="if(event.target===this)closeQtyModal()">
+  <div id="qty-modal-box">
+    <div class="qm-title">משקל לזיכוי</div>
+    <div class="qm-sub">הקלד ק"ג (נקודה או פסיק, למשל 0.5)</div>
+    <input type="text" inputmode="decimal" id="qty-modal-input" onkeydown="if(event.key==='Enter')confirmQtyModal()">
+    <div class="qm-btns">
+      <button type="button" class="qm-cancel" onclick="closeQtyModal()">ביטול</button>
+      <button type="button" class="qm-ok" onclick="confirmQtyModal()">אישור</button>
+    </div>
+  </div>
 </div>
 
 <div id="pv-overlay" class="no-print">
@@ -372,10 +399,12 @@ function renderTable(){
       </div>
       <div class="ret-item-controls">
         <div class="ret-field">
-          <label>${isGramsProduct(p) ? 'משקל לזיכוי (גרם)' : 'כמות לזיכוי'}</label>
+          <label>${isGramsProduct(p) ? 'משקל לזיכוי (ק"ג)' : 'כמות לזיכוי'}</label>
           <div class="qty-stepper">
             <button type="button" class="qty-btn" aria-label="הפחת" onclick="stepQty('${esc(p.sku)}',-1)">−</button>
-            <input type="number" min="1" value="${row.qty}" inputmode="numeric" aria-label="${isGramsProduct(p) ? 'משקל לזיכוי בגרם' : 'כמות לזיכוי'}" onchange="updateRow('${esc(p.sku)}','qty',this.value)">
+            ${isGramsProduct(p)
+              ? `<button type="button" class="qty-kg-btn" aria-label="הקלד משקל לזיכוי בק&quot;ג" onclick="openQtyModal('${esc(p.sku)}')">${row.qty.toFixed(3)}</button>`
+              : `<input type="number" min="1" value="${row.qty}" inputmode="numeric" aria-label="כמות לזיכוי" onchange="updateRow('${esc(p.sku)}','qty',this.value)">`}
             <button type="button" class="qty-btn" aria-label="הוסף" onclick="stepQty('${esc(p.sku)}',1)">+</button>
           </div>
         </div>
@@ -405,7 +434,40 @@ function setOption(sku,val){
 }
 function stepQty(sku,delta){
   const row=selected.get(sku); if(!row) return;
-  row.qty=Math.max(1,(row.qty||1)+delta);
+  // Weight products step by 0.1kg (100g) — a whole-kg nudge is too coarse once
+  // entry moved from grams to kg; round(x*10) avoids 0.1+0.2=0.30000000000000004.
+  if(isGramsProduct(row.product)){
+    // Round to 3 decimals (grams), not 1 — the modal allows entering e.g. 0.755kg,
+    // and rounding a +0.1 nudge to tenths would silently destroy that precision.
+    row.qty=Math.max(0.1,Math.round((row.qty+delta*0.1)*1000)/1000);
+  }else{
+    row.qty=Math.max(1,(row.qty||1)+delta);
+  }
+  renderTable();
+}
+
+// ── QTY MODAL — precise kg entry for weight products ────────────────────────
+let _qtyModalSku=null;
+function openQtyModal(sku){
+  const row=selected.get(sku); if(!row) return;
+  _qtyModalSku=sku;
+  const input=document.getElementById('qty-modal-input');
+  input.value=String(row.qty);
+  document.getElementById('qty-modal').classList.add('show');
+  setTimeout(()=>{input.focus();input.select();},50);
+}
+function closeQtyModal(){
+  document.getElementById('qty-modal').classList.remove('show');
+  _qtyModalSku=null;
+}
+function confirmQtyModal(){
+  if(!_qtyModalSku) return;
+  const row=selected.get(_qtyModalSku); if(!row) return;
+  const raw=document.getElementById('qty-modal-input').value.trim().replace(',','.');
+  const val=parseFloat(raw);
+  if(!isFinite(val)||val<=0){ showToast('משקל לא תקין'); return; }
+  row.qty=Math.round(val*1000)/1000;
+  closeQtyModal();
   renderTable();
 }
 
@@ -459,7 +521,7 @@ function renderProformaTable(rows){
     const gapCell = gapDays===null ? '—' : `${gapDays} ימים`;
     const gapClass = gapDays!==null && gapDays<0 ? 'pv-gap gap-neg' : 'pv-gap';
     const eanTd = barcodeMode ? `<td class="pv-ean-cell">${eanCellHtml(r.product.ean)}</td>` : '';
-    const qtyCell = isGramsProduct(r.product) ? (r.qty/1000).toFixed(3) : r.qty;
+    const qtyCell = isGramsProduct(r.product) ? r.qty.toFixed(3) : r.qty;
     return `<tr>${eanTd}<td>${img}</td><td>${esc(r.product.sku)}</td><td class="pv-name">${esc(shortName(r.product.name))}</td><td>${qtyCell}</td><td class="pv-lastship">${lastShipCell}</td><td class="${gapClass}">${gapCell}</td><td>${r.date}</td><td>${esc(r.option)}</td></tr>`;
   }).join('') + `<tr class="pv-total"><td colspan="${firstColspan}">סה"כ</td><td>${totalQty}</td><td colspan="4"></td></tr>`;
 }
