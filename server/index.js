@@ -4879,7 +4879,12 @@ CALCULATETABLE(
         const fam = r['ALL_PARTS[תאור משפחת מוצר]'] || '';
         const val = Math.round(r['[total]'] || 0);
         const lo  = r['[lastOrder]'];
-        if (cat && !SKIP_CATS.has(cat) && val > 0 && !INTER_CATS.has(cat)) {
+        // ICE BDD (e.g. "גלידה bdd") is its own separate channel, same as INTER —
+        // classifyCompany elsewhere in this file treats it that way (company-gap
+        // flag only, no item-level detail); this table used a plain SKIP/INTER set
+        // check instead of classifyCompany, so bdd slipped through into the main
+        // FORMULA family breakdown. 2026-08-23.
+        if (cat && !SKIP_CATS.has(cat) && val > 0 && !INTER_CATS.has(cat) && !cat.includes('bdd')) {
           byCat[cat] = (byCat[cat] || 0) + val;
           total += val;
           byCatFam[cat] = byCatFam[cat] || {};
