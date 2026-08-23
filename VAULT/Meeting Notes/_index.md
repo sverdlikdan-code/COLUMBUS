@@ -34,6 +34,7 @@
 - [[session-2026-05-10]] — Сессия 2026-05-10: mahsan, skill-creator, fin-agent, CEO dispute mode, weekly market scan routine
 - [[marshrut-rud]] — Интерактивная карта маршрутов RUD: 2 дня, Ashdod + Rishon, деплой на api.sverdlik-apps.site/marshrut-rud
 - [[mahsan-planogram]] — MAHSAN PLANOGRAM build system + planogram-editor עמוד תוקף, per-warehouse sales/days, סכנה logic
+- [[mahsan-planogram-archive]] — Архив сессий 2026-05-12 – 2026-07-07 (вынесено из mahsan-planogram для читаемости)
 - [[agent-bug-agent]] — Агент Bug Agent — workflow-doctor, watchdog, GitHub Actions мониторинг
 - [[session-2026-08-16-bug-agent-rebuild]] — Сессия 2026-08-16: bug-agent rebuild (5-шаговый протокол), CEO mandatory routing, PM2 timestamps, server crash fix
 - [[agent-biz-analyst]] — Агент Biz Analyst — коммерческая оценка COLUMBUS, Excel delivery docs, ROI
@@ -61,6 +62,7 @@
 - [[session-2026-06-23]] — Сессия 2026-06-23: Formula Road фикс 503 (два cloudflared), фикс loadAgentList (agentsByManager), config.yml ingress rule, git HEAD recover
 - [[session-2026-06-24]] — Сессия 2026-06-24: הזמנה header 3-row MMD redesign, donut star inside SVG, spo/חסר במלאי logic, krat xlsx fix, totalBranchy period-linked (1837 vs 2031)
 - [[formula-road-app]] — Formula Road + zikuy: SQL migration, tablet UX, DESIGN.md (2026-08-17); TTS built+removed, family drilldown, DAX context-transition баг в INTER, יעד-таргет, day-briefing редизайн, конкурентные git-сессии, менеджерский инвайт + рассылка 40 писем, баг INDICATION (месячный фильтр), округление до целых везде (2026-08-18); ניתוח יום מכר company-scope баг (ICE_MISH показывал FORMULA-данные) — company-scoped current-month מכר, ICE-таблица сведена к dormant-списку, companyAvg убран из AI-контекста (2026-08-19)
+- [[formula-road-app-archive]] — Архив сессий 2026-05-01 – 2026-06-25 (APK/EAS сборка, Cloudflare tunnel, PBI Guard, геокодинг, SQL-миграция) — вынесено из formula-road-app для читаемости
 - [[session-2026-06-26-security]] — Сессия 2026-06-26: еженедельный security scan + hardening — SSRF, auth guards, DAX injection, mekarer whitelist, rate limit fix
 - [[session-2026-06-28-print]] — Сессия 2026-06-28: תוקף print A4 landscape финальный фикс — per-row zoom, width 100%, symmetry, no blank page
 - [[session-2026-06-29]] — Сессия 2026-06-29: MMD ORDERS 3 бага чипов месяцев (IIFE scope, ReferenceError, off-by-one); fin-agent report; power-bi-dax skill v2; Prophet/Fabric исследование
@@ -70,7 +72,6 @@
 - [[migration-plan-vps]] — ПЛАН МИГРАЦИИ: анализ 6 ошибок Formula Road + чеклист для MMD Orders и Mahsan Editor
 - [[skill-hebrew-bidi]] — Скилл Hebrew BiDi: карта 5 функций (fixBiDi×4, fixVisualRTL×4, fixHebRTL×5), дерево решений, HTML RTL шаблоны
 - [[session-2026-07-07-prophet]] — Сессия 2026-07-07: Prophet stale eilat_k в таблице и панели — два фикса; cap ordV при рендере
-- [[session-2026-07-07-mahsan]] — Сессия 2026-07-07: MAHSAN STOP SALE фиолетовая рамка в combined view; isBatchStop; Excel סטנד open
 - [[session-2026-07-07-formula-road]] — Сессия 2026-07-07: geocode 2107 клиентов, google-gps.json, territory-planner, VPS deploy
 - [[session-2026-07-08-ai-analytics]] — Сессия 2026-07-08: AI кнопка на клиентах, Gemini 1.5 Flash, day briefing YoY, invite system, F5 restore, GPS priority
 - [[session-2026-07-14-pbi-refresh]] — Сессия 2026-07-14: PBI Refresh Management (FORMULA DASHBORD schedule отключён после ошибок) + MMD Credentials
