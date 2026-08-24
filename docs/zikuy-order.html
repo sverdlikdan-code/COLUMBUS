@@ -883,7 +883,9 @@ async function sendAsImage(){
     if(blob && !isDesktop){
       const file=new File([blob],`zikuy-${custId}.png`,{type:'image/png'});
       if(navigator.canShare && navigator.canShare({files:[file]})){
-        await navigator.share({files:[file], title:'בקשת זיכוי'});
+        // No title/text — WhatsApp attaches it as a visible caption under the
+        // image, redundant with the blank's own header. Live complaint 2026-08-24.
+        await navigator.share({files:[file]});
         showToast('נשלח לשיתוף');
         return;
       }
