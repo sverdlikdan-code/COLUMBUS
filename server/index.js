@@ -3719,20 +3719,49 @@ app.get('/yedaim/:team.png', requireAuth, (req, res) => {
   });
 });
 // Public, allowlisted image proxy: priority.dilerbmd.com sends no CORS headers,
-// so html2canvas can't capture hotlinked product photos into the zikuy WhatsApp share.
-// Re-serves the same public product photo with Access-Control-Allow-Origin set.
+// so html2canvas/snapDOM can't capture hotlinked product photos into the zikuy
+// WhatsApp share. Re-serves the same public product photo with
+// Access-Control-Allow-Origin set.
+//
+// Disk-cached 2026-08-24 — product photos essentially never change once
+// uploaded to Priority per SKU, so every repeat request for the same photo
+// was paying a full round-trip to priority.dilerbmd.com for nothing. Cache
+// key is the URL path itself: already safe to reuse as a relative disk path
+// because the regex below rejects '..' and restricts the charset before this
+// point ever runs. First request for a photo fetches+caches it; every
+// request after that is served straight off disk, no upstream dependency at
+// all — also means a slow/down Priority server no longer affects photos
+// we've already seen once.
+const IMG_CACHE_DIR = path.join(__dirname, 'data', 'img-cache');
+const IMG_MIME_BY_EXT = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' };
 app.get('/api/img-proxy', async (req, res) => {
   const url = String(req.query.url || '');
   if (!/^https:\/\/priority\.dilerbmd\.com\/(?!.*\.\.)[A-Za-z0-9_\-\/.]+\.(jpg|jpeg|png|gif|webp)$/i.test(url)) {
     return res.status(400).send('invalid url');
   }
+  const relPath = url.slice('https://priority.dilerbmd.com/'.length);
+  const cachePath = path.join(IMG_CACHE_DIR, relPath);
+  const ext = path.extname(cachePath).slice(1).toLowerCase();
   try {
+    const cached = await fs.promises.readFile(cachePath).catch(() => null);
+    if (cached) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Content-Type', IMG_MIME_BY_EXT[ext] || 'image/jpeg');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      return res.send(cached);
+    }
     const upstream = await fetch(url, { signal: AbortSignal.timeout(10000) });
     if (!upstream.ok) return res.status(502).send('upstream error');
+    const buf = Buffer.from(await upstream.arrayBuffer());
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Content-Type', upstream.headers.get('content-type') || 'image/jpeg');
     res.setHeader('Cache-Control', 'public, max-age=86400');
-    res.send(Buffer.from(await upstream.arrayBuffer()));
+    res.send(buf);
+    // Fire-and-forget write, after the response is already sent — a failed
+    // cache write must never delay or break serving the photo itself.
+    fs.promises.mkdir(path.dirname(cachePath), { recursive: true })
+      .then(() => fs.promises.writeFile(cachePath, buf))
+      .catch(e => console.warn('[img-proxy] cache write failed', e.message));
   } catch (e) {
     res.status(502).send('fetch failed');
   }
