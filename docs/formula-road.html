@@ -344,13 +344,13 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
   body.tb-collapsed .km-bar{display:none!important;}
 }
 
-/* Wide: split view. Needs min-height too, not just min-width — a phone
-   rotated to landscape reports ~800px+ width (tablet territory by width
-   alone) but only ~390-430px of height, nowhere near enough to show list
-   and map side by side. Real tablets/desktops are comfortably over 700px
-   on both axes in any orientation, so this cleanly excludes landscape
-   phones without excluding actual split-view devices. 2026-08-24. */
-@media(min-width:700px) and (min-height:700px){
+/* Wide: split view. Two ways in: a real tablet/desktop (comfortably over
+   700px on both axes, any orientation), OR a phone physically rotated to
+   landscape (width crosses 700px, height stays ~390-430px) — by explicit
+   request 2026-08-24, that should look like the tablet split view (map +
+   client cards side by side) rather than map-only fullscreen. body.map-hidden
+   below still wins over either branch when the agent has the map off. */
+@media (min-width:700px) and (min-height:700px), (min-width:700px) and (orientation:landscape){
   #route-body{flex-direction:row;}
   #list-pane{display:block!important;flex:0 0 42%;border-left:1px solid var(--sky-mid);}
   #map-pane{display:block!important;flex:1;}
@@ -408,7 +408,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
    characters. Since 2026-08-24 the row only ever shows 2 primary buttons
    (זיכוי/ניתוח) + "⋮" inline (see .row-more-btn / #row-actions-popup, .c-actions)
    regardless of width, so this mainly still matters for the list-pane % itself. */
-@media(min-width:700px){
+@media (min-width:700px) and (min-height:700px), (min-width:700px) and (orientation:landscape){
   body:not(.map-hidden) #list-pane{flex:0 0 48%;}
 }
 
