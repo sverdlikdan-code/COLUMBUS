@@ -789,6 +789,9 @@
   <div style="display:flex;align-items:center;gap:8px;padding:5px 14px;background:#F0F8FF;border-bottom:1px solid #BBDEFB;flex-shrink:0;" class="no-print">
     <span style="font-size:10px;font-weight:700;color:#5b7fa6;white-space:nowrap;flex-shrink:0;">📦 סוג אריזה (הרינג):</span>
     <select id="ord-pack-select" onchange="setOrderPackLine(this.value)" style="font-size:12px;font-weight:700;color:#00695C;background:#fff;border:1.5px solid #B2DFDB;border-radius:8px;padding:4px 10px;cursor:pointer;"></select>
+    <span style="width:1px;height:20px;background:#BBDEFB;margin:0 4px;flex-shrink:0;"></span>
+    <span style="font-size:10px;font-weight:700;color:#5b7fa6;white-space:nowrap;flex-shrink:0;">🏷️ מותג:</span>
+    <select id="ord-motag-select" onchange="setOrderMotag(this.value)" style="font-size:12px;font-weight:700;color:#6a1b9a;background:#fff;border:1.5px solid #ce93d8;border-radius:8px;padding:4px 10px;cursor:pointer;"></select>
   </div>
 
   <div id="order-table-wrap" style="flex:1;min-height:0;overflow:auto;padding:0 12px 16px;background:#F5F7FA;"></div>
@@ -2817,6 +2820,7 @@ function _initTableDrag(tbody) {
 
 window._orderFams = new Set();
 window._orderPackLine = '';
+window._orderMotag = '';
 window._orderZero = false;
 window._orderManualEdits = window._orderManualEdits || {};
 
@@ -3016,6 +3020,11 @@ function setOrderFam(fam) {
 
 function setOrderPackLine(line) {
   window._orderPackLine = line;
+  buildOrderPage();
+}
+
+function setOrderMotag(motag) {
+  window._orderMotag = motag;
   buildOrderPage();
 }
 
@@ -3328,7 +3337,9 @@ function buildOrderPage() {
     const pizur   = branchy != null && totalB > 0 ? Math.round(branchy / totalB * 100) : null;
     const isStar  = pizur != null && pizur >= 60;
     const packLine = ORDER_PACK_LINE[mk] || null;
-    allRows.push({ mk, name, fam, iksGroup, packLine, stock, stockTrnz, stockZafn, spo, palSpo, openOrders, daySales, periodSales, daysStk, krat, safetyDays, safetyK, orderK, orderP, deferredDemand, branchy, pizur, isStar });
+    const motag = /NORD PORT/.test(fam) ? 'NORD PORT' : /SANTA BREMOR/.test(fam) ? 'SANTA BREMOR' : null;
+    const weight = +(d.weight || 0);
+    allRows.push({ mk, name, fam, iksGroup, packLine, motag, weight, stock, stockTrnz, stockZafn, spo, palSpo, openOrders, daySales, periodSales, daysStk, krat, safetyDays, safetyK, orderK, orderP, deferredDemand, branchy, pizur, isStar });
   }
 
   // Group key: iksGroup (IKRA/SAL/KAPUS/HERRING) if available, else fam
@@ -3359,6 +3370,16 @@ function buildOrderPage() {
       `<option value="">כולם</option>` +
       packKeys.map(k => `<option value="${k}">${esc(ORDER_PACK_LINE_LABEL[k])}</option>`).join('');
     packSelect.value = window._orderPackLine;
+  }
+
+  // Populate brand dropdown (SANTA BREMOR / NORD PORT, derived from fam — sourced from KARTIS PARIT)
+  const motagSelect = document.getElementById('ord-motag-select');
+  if (motagSelect) {
+    const motagKeys = ['NORD PORT', 'SANTA BREMOR'].filter(m => allRows.some(r => r.motag === m));
+    motagSelect.innerHTML =
+      `<option value="">כולם</option>` +
+      motagKeys.map(m => `<option value="${m}">${esc(m)}</option>`).join('');
+    motagSelect.value = window._orderMotag;
   }
 
   // Build period buttons — professional timeline
@@ -3406,6 +3427,7 @@ function buildOrderPage() {
   // Filter
   let rows = window._orderFams.size > 0 ? allRows.filter(r => window._orderFams.has(getGrp(r))) : allRows;
   if (window._orderPackLine) rows = rows.filter(r => r.packLine === window._orderPackLine);
+  if (window._orderMotag) rows = rows.filter(r => r.motag === window._orderMotag);
   if (window._orderZero) rows = rows.filter(r => (+(r.stock||0) + +(r.stockTrnz||0) + +(r.stockZafn||0)) <= 0);
   if (window._orderOnlyMode) rows = rows.filter(r => r.orderK > 0);
   window._orderCurrentRows = rows;
@@ -3428,7 +3450,7 @@ function buildOrderPage() {
   };
   for (const g of Object.values(groups)) {
     if (_sc) g.sort(_numSort(_sc, _sd === 'asc'));
-    else     g.sort((a, b) => String(a.name).localeCompare(String(b.name), 'he'));
+    else     g.sort((a, b) => (a.weight || 0) - (b.weight || 0) || String(a.name).localeCompare(String(b.name), 'he'));
   }
   // Keep the export (window._orderCurrentRows) in the exact same order as the table below
   window._orderCurrentRows = grpOrder.flatMap(g => groups[g] || []);
