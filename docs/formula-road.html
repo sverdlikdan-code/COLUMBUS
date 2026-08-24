@@ -292,11 +292,21 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .c-drag{cursor:grab;touch-action:none;user-select:none;}
 .c-body{flex:1;min-width:0;}
 .c-actions{display:flex;align-items:center;gap:3px;}
-/* Address in the client row costs the name column its remaining width in
-   portrait (the common phone-in-hand orientation) — hide it there, keep it
-   in landscape where there's room. 2026-08-24. */
-@media(orientation:portrait){ .c-addr{display:none;} }
-.c-name{font-size:12px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25;}
+/* Address costs .c-name its remaining width (the only flexible element in
+   the row) — collapsed behind a tap-to-reveal arrow instead of always shown,
+   on any orientation. 2026-08-24 (superseded the orientation-only version
+   from earlier today — user wanted it available everywhere, on demand).
+   Own line, not inline in .c-name/.c-sub — both of those are single-line
+   ellipsis-truncated, so toggling display inside them just gets clipped
+   away invisibly instead of actually revealing anything. */
+.c-addr{display:none;font-size:11px;color:var(--mid);margin-top:2px;white-space:normal;line-height:1.3;}
+.c-addr.open{display:block;}
+.c-addr-toggle{cursor:pointer;padding:0 3px;color:var(--mid);font-size:9px;display:inline-block;flex-shrink:0;}
+/* Flex row, not a plain truncated block — the address-toggle arrow needs to
+   sit OUTSIDE the ellipsis-truncated part (.c-name-text) or a long name+city
+   just clips the arrow away with everything else, making it untappable. */
+.c-name{font-size:12px;font-weight:800;color:var(--text);line-height:1.25;display:flex;align-items:center;min-width:0;}
+.c-name-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
 .c-sub{font-size:10px;color:var(--mid);margin-top:1px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .no-gps-icon{display:none;}
 .no-gps-badge{font-size:11px;font-weight:900;color:#fff;background:var(--red);padding:4px 10px;border-radius:8px;flex-shrink:0;cursor:pointer;letter-spacing:.5px;white-space:nowrap;}
@@ -2425,16 +2435,17 @@ function renderClientList(html){
     const nameLine=(st.topSalesIds.has(String(c.custId))?'<span class="crown-badge" title="TOP מכירות ב-3 חודשים — כדאי ניתוח AI מעמיק">👑</span>':'')
       +(c.iceOnly?'<span class="ice-badge">ICE</span>':'')
       +(shortName(c.custName,c.city)||esc(c.custName)||'')
-      +(c.city?`<span style="font-weight:400;color:var(--mid);font-size:11px;"> · ${esc(c.city)}</span>`:'')
-      +(c.address?`<span class="c-addr" style="font-weight:400;color:var(--mid);font-size:11px;"> · ${esc(c.address)}</span>`:'');
+      +(c.city?`<span style="font-weight:400;color:var(--mid);font-size:11px;"> · ${esc(c.city)}</span>`:'');
+    const addrToggle=c.address?`<span class="c-addr-toggle" onclick="event.stopPropagation();this.closest('.c-body').querySelector('.c-addr').classList.toggle('open');" title="הצג/הסתר כתובת">▾</span>`:'';
     return `<div class="${cls}" data-id="${c.custId}" onclick="selectClient('${c.custId}')">
       <div class="c-num-wrap c-drag">
         <span class="c-num${inWalk?' c-num-walk':''}">${i+1}</span>
         ${inWalk?`<span class="walk-icon">🚶</span>`:''}
       </div>
       <div class="c-body">
-        <div class="c-name">${nameLine}</div>
+        <div class="c-name"><span class="c-name-text">${nameLine}</span>${addrToggle}</div>
         <div class="c-sub">${[lastOrder,sales,pctPart,indicPart].filter(Boolean).join(SEP)}</div>
+        ${c.address?`<div class="c-addr">${esc(c.address)}</div>`:''}
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;">
         ${c.custId?`<span class="c-id-side">${c.custId}</span>`:''}
