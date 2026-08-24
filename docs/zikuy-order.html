@@ -105,7 +105,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
    blank is open (that's exactly when the WhatsApp buttons live) used to render
    invisibly behind it: agent taps, share silently fails, sees literally nothing.
    Live iPhone complaint 2026-08-24 ("кнопка не реагирует"). */
-.toast{position:fixed;bottom:96px;right:50%;transform:translateX(50%);background:#323232;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;z-index:20001;opacity:0;transition:opacity .3s;white-space:nowrap;}
+.toast{position:fixed;top:50%;right:50%;transform:translate(50%,-50%);background:#323232;color:#fff;padding:18px 26px;border-radius:14px;font-size:17px;font-weight:700;z-index:20001;opacity:0;transition:opacity .3s;white-space:nowrap;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.3);}
 .toast.show{opacity:1;}
 
 /* ── tablet sizing: portrait-only — stays single-column (stacked) at any width,
@@ -522,6 +522,7 @@ async function buildProforma(){
   await waitForImages(document.getElementById('print-view'));
   setupWaButton();
   showPrintFullscreen();
+  prewarmShareImage(); // start capturing now — agent needs a few seconds to review the blank anyway, so by the time they tap share it's already ready
 }
 
 // ➕ ברקוד button (in the open blank's top bar) — agent's own call, not tied to
@@ -535,6 +536,7 @@ function toggleBarcodeMode(){
   btn.classList.toggle('on',barcodeMode);
   btn.textContent = barcodeMode ? '✓ ברקוד' : '➕ ברקוד';
   renderProformaTable([...selected.values()]);
+  prewarmShareImage(); // content changed — the cached capture from before is stale now
 }
 
 function renderProformaTable(rows){
@@ -612,22 +614,29 @@ function setupWaButton(rows, now){
 }
 // Capture #print-view as a landscape PNG blob — shared by both the native-share
 // path (sendAsImage) and the manual WhatsApp Web fallback (sendViaWhatsAppWeb).
+// Captures a detached CLONE, not the live on-screen element: #print-view is
+// what the agent is actually looking at while #pv-overlay is open, so forcing
+// its width to 1100px in place (the old approach) would visibly flash/resize
+// the blank they're reading — becomes a real problem once this runs proactively
+// in the background (see prewarmShareImage) while the overlay is still open.
 async function captureShareImage(){
-  const el=document.getElementById('print-view');
-  // #pv-overlay.show #print-view shrinks to viewport width on phones (CSS
-  // rule above), so capturing it as-is gives a tall/narrow canvas that
-  // WhatsApp letterboxes/crops. Force the full 1100px design width for the
-  // capture only, then restore.
-  const prevWidth=el.style.width, prevMaxWidth=el.style.maxWidth;
+  const live=document.getElementById('print-view');
+  const el=live.cloneNode(true);
+  el.style.position='fixed'; el.style.left='-10000px'; el.style.top='0';
   el.style.width='1100px'; el.style.maxWidth='1100px';
+  document.body.appendChild(el);
   // scale:1 (was 1.5) — each row's product photo comes through /api/img-proxy
   // at its original upstream resolution (proxy is CORS-passthrough only, no
   // resize), so html2canvas is already decoding/drawing full-size images for a
   // 44px on-screen thumbnail; 1.5x on top of that multiplies real work for a
   // WhatsApp-shared image where the extra sharpness isn't the point. Live
   // complaint 2026-08-24 — generation "spinning" a long time on-device.
-  let canvas=await html2canvas(el,{useCORS:true,backgroundColor:'#ffffff',scale:1});
-  el.style.width=prevWidth; el.style.maxWidth=prevMaxWidth;
+  let canvas;
+  try{
+    canvas=await html2canvas(el,{useCORS:true,backgroundColor:'#ffffff',scale:1});
+  }finally{
+    el.remove();
+  }
   // Still portrait with a long product list (table taller than 1100px wide) —
   // rotate into landscape so WhatsApp never crops it.
   if(canvas.height>canvas.width){
@@ -647,16 +656,39 @@ async function captureShareImage(){
   canvas.width=0; canvas.height=0;
   return blob;
 }
+// Live complaint 2026-08-24: tapping "WhatsApp" often just opened the app with
+// no image attached. Root cause is almost certainly iOS's transient-activation
+// window — html2canvas takes real time, and by the time navigator.share()
+// finally fires, Safari may no longer treat the call as a trusted user gesture
+// and degrades the share silently instead of throwing. Fix: capture the image
+// in the BACKGROUND as soon as the blank is shown (agent needs a few seconds to
+// review it anyway), so by the time they actually tap share, the blob is
+// already sitting in memory and share() fires essentially synchronously with
+// the tap. Re-armed whenever the blank's content changes (barcode toggle).
+let _shareBlobPromise=null;
+function prewarmShareImage(){
+  _shareBlobPromise=captureShareImage().catch(e=>{ console.warn('prewarm capture failed',e); return null; });
+}
+function getShareImage(){
+  if(!_shareBlobPromise) prewarmShareImage();
+  return _shareBlobPromise;
+}
 // Desktop fallback / manual WhatsApp Web path: WhatsApp Web has no URL API to
 // pre-attach a file (browser security), so download the image and open
-// WhatsApp Web for a manual attach.
+// WhatsApp Web for a manual attach. window.open() genuinely lands on the web
+// page on a real desktop, but is unreliable on a phone: web.whatsapp.com is
+// registered as a universal link, so with the native app installed iOS/Android
+// silently redirect this into the app instead of the actual website — no way
+// to override that from JS (only the user long-pressing "Open in Safari" can).
+// The download always works regardless, so the toast stays device-neutral
+// instead of promising "WhatsApp Web" specifically. Live complaint 2026-08-24.
 function downloadAndOpenWaWeb(blob){
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url; a.download=`zikuy-${custId}.png`; a.click();
   setTimeout(()=>URL.revokeObjectURL(url),5000);
   window.open('https://web.whatsapp.com/','_blank');
-  showToast('התמונה הורדה — צרף אותה בשיחה בווטסאפ Web');
+  showToast('התמונה הורדה ל-Downloads — פתח את WhatsApp וצרף אותה מהגלריה');
 }
 // Neither button was guarded against repeat taps — html2canvas is genuinely
 // slow (real complaint 2026-08-24: "spinning a long time"), and with no
@@ -672,13 +704,13 @@ function _setShareButtonsBusy(busy){
   // other feedback on screen, and an agent seeing nothing happen taps again.
   // Long timeout (15s) is just a safety net; the real success/error toast at
   // the end always overwrites this one immediately once generation finishes.
-  if(busy) showToast('⏳ רגע, מכינים את הקובץ... בלי לחץ 😌',15000);
+  if(busy) showToast('⏳ רגע, מכינים את הקובץ... בלי לחץ ❤️😌',15000);
 }
 async function sendAsImage(){
   if(_shareInFlight) return;
   _setShareButtonsBusy(true);
   try{
-    const blob=await captureShareImage();
+    const blob=await getShareImage();
     // navigator.share({files}) is real usage on the agent's phone/tablet (WhatsApp
     // shows up as a direct target with the image attached) but on a real desktop
     // it routes through the generic OS Share charm instead of WhatsApp Web — worse,
@@ -716,7 +748,7 @@ async function sendViaWhatsAppWeb(){
   if(_shareInFlight) return;
   _setShareButtonsBusy(true);
   try{
-    const blob=await captureShareImage();
+    const blob=await getShareImage();
     if(blob){ downloadAndOpenWaWeb(blob); return; }
     showToast('שיתוף אוטומטי לא זמין — צלם את המסך עם המצלמה');
   }catch(e){
