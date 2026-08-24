@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>בקשת זיכוי — FORMULA</title>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://unpkg.com/@zumer/snapdom/dist/snapdom.js"></script>
 <style>
 :root{
   --blue:#1565C0;--blue-dark:#0D47A1;--sky:#E3F2FD;--sky-mid:#BBDEFB;
@@ -125,7 +125,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 }
 
 /* ── printable / shareable blank ─────────────────────────────────── */
-/* Default: off-screen, only used as the html2canvas capture source (WhatsApp
+/* Default: off-screen, only used as the snapDOM capture source (WhatsApp
    image share). #pv-overlay.show makes it a real full-screen view instead, so
    the agent can just point their phone's camera at it directly — no dependency
    on Web Share API / WhatsApp target availability at all. */
@@ -305,9 +305,16 @@ function showToast(msg,ms=2200){
   const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
   clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),ms);
 }
+// No timeout here used to mean a stalled mobile connection could hang this
+// fetch forever with zero error/rejection — found diagnosing the WhatsApp
+// share hang (real device, agent 234): even the diagnostic _logShareTiming
+// call below went through this same function, so a stuck network silently
+// swallowed the timeout/error report too. 15s covers every real call site
+// (data load, share-timing beacon) without masking a genuinely slow reply.
 function apiFetch(path, opts = {}) {
   return fetch(path.startsWith('http') ? path : API + path, {
     ...opts, headers: { 'X-Session': TOKEN, ...(opts.headers || {}) },
+    signal: opts.signal || AbortSignal.timeout(15000),
   });
 }
 function proxyImg(url){ return url ? `${API}/api/img-proxy?url=${encodeURIComponent(url)}` : ''; }
@@ -582,7 +589,7 @@ window.addEventListener('popstate', ()=>{
   document.getElementById('pv-overlay').classList.remove('show');
 });
 
-// Images are inserted into #print-view moments before html2canvas rasterizes it
+// Images are inserted into #print-view moments before snapDOM rasterizes it
 // (in shareBlank) — without waiting, their network fetch (through /api/img-proxy)
 // hasn't finished yet and the capture comes out with blank photo cells. Should
 // normally resolve near-instantly since toggleProduct() already preloads each
@@ -614,65 +621,54 @@ function setupWaButton(rows, now){
 }
 // Capture #print-view as a landscape PNG blob — shared by both the native-share
 // path (sendAsImage) and the manual WhatsApp Web fallback (sendViaWhatsAppWeb).
-// Captures a detached CLONE, not the live on-screen element: #print-view is
-// what the agent is actually looking at while #pv-overlay is open, so forcing
-// its width to 1100px in place (the old approach) would visibly flash/resize
-// the blank they're reading — becomes a real problem once this runs proactively
-// in the background (see prewarmShareImage) while the overlay is still open.
-// TEMPORARY — live complaint 2026-08-24: on some devices generation hangs
-// for minutes with zero visibility into why (html2canvas is entirely
-// client-side, nothing about a hang reaches the server on its own). Fires a
-// 'start' beacon immediately and a 'done'/'error' one when it actually
-// finishes — a real hang shows up in the log as a start with no matching
-// done, a real-but-slow case shows up as a large ms value. Failures here are
-// swallowed on purpose: this must never be why an agent's share fails.
-// Remove once the root cause is confirmed and fixed.
+// Captures the LIVE on-screen element, not a detached clone — a clone was
+// tried during the hang investigation below and made no difference, and it
+// cost a visible width-flash whenever this ran proactively in the background
+// (see prewarmShareImage) while the overlay was still open.
+// Diagnostic beacon kept (not removed after the snapDOM/timeout fix below) —
+// cheap insurance to confirm on real devices the hang is actually gone
+// rather than just assuming it from the diagnosis. Fires a 'start' beacon
+// immediately and a 'capture_done'/'capture_error'/'capture_timeout' one
+// when it actually finishes — a real hang still shows up as a start with
+// nothing after; failures here are swallowed on purpose, this must never be
+// why an agent's share fails.
 function _logShareTiming(phase, extra){
   try{
     apiFetch('/api/share-timing',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({phase, custId, ...extra})}).catch(()=>{});
   }catch(_){}
 }
+// Switched from html2canvas to snapDOM 2026-08-24 — root cause of the
+// real-device hang (agent 234, both her iPhone AND her Samsung tablet,
+// reproducing with a single product photo) traced to two compounding gaps,
+// not a single library bug: (1) plain fetch() with no timeout anywhere in
+// this file — a stalled mobile TCP connection hangs a fetch() forever with
+// no error (fixed above, apiFetch now has AbortSignal.timeout); (2)
+// html2canvas re-fetches every <img> itself under crossOrigin="anonymous"
+// regardless of whether the browser already loaded it — a long-standing,
+// unresolved WebKit bug where that second CORS-mode request against the
+// same URL can hang indefinitely (niklasvh/html2canvas #3240, #2864).
+// snapDOM doesn't re-fetch — it serializes what the browser already
+// rendered/loaded, so this class of hang doesn't apply. It also degrades a
+// genuinely failed image to a placeholder instead of hanging (placeholders
+// option, default on) rather than needing an external timeout to survive
+// one bad photo. The 20s race below is kept anyway as cheap insurance.
 async function captureShareImage(){
   const t0=performance.now();
-  // Reverted to capturing the LIVE element (not a detached clone) 2026-08-24 —
-  // confirmed via real-device share-timing beacon (agent 234, real iPhone,
-  // iOS 18.7 Safari): html2canvas genuinely HANGS indefinitely with the clone
-  // approach, even with a single product photo (imgCount:1, 'start' logged,
-  // no 'done'/'error' ever followed). The clone was introduced this same
-  // session purely to avoid a cosmetic width-flash during background
-  // prewarming — not worth an unrecoverable hang. Back to the version that
-  // "worked for days" before today's changes.
   const el=document.getElementById('print-view');
   const imgCount=el.querySelectorAll('img').length;
   _logShareTiming('start',{imgCount});
   const prevWidth=el.style.width, prevMaxWidth=el.style.maxWidth;
   el.style.width='1100px'; el.style.maxWidth='1100px';
-  // scale:1 (was 1.5) — each row's product photo comes through /api/img-proxy
-  // at its original upstream resolution (proxy is CORS-passthrough only, no
-  // resize), so html2canvas is already decoding/drawing full-size images for a
-  // 44px on-screen thumbnail; 1.5x on top of that multiplies real work for a
-  // WhatsApp-shared image where the extra sharpness isn't the point. Live
-  // complaint 2026-08-24 — generation "spinning" a long time on-device.
-  // Reverting clone→live did NOT fix the hang either (confirmed: same agent,
-  // same 'start'-with-no-'done' pattern on the very next attempts, live device,
-  // 2026-08-24) — whatever is actually stuck lives inside html2canvas's own
-  // internals on this WebKit build, not in how this code invokes it. A 20s
-  // race is the honest mitigation available without being able to reproduce
-  // the WebKit bug directly: better a clear error after a bounded wait than
-  // an indefinite hang with zero feedback. The full-screen blank itself
-  // (already open, see showPrintFullscreen) needs no html2canvas at all —
-  // the agent can just point their camera at it, which is why the timeout
-  // message below points there instead of asking them to retry the same thing.
   let canvas;
   try{
     canvas=await Promise.race([
-      html2canvas(el,{useCORS:true,backgroundColor:'#ffffff',scale:1}),
-      new Promise((_,rej)=>setTimeout(()=>rej(new Error('html2canvas_timeout')),20000)),
+      snapdom.toCanvas(el,{backgroundColor:'#ffffff',scale:1,placeholders:true}),
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error('snapdom_timeout')),20000)),
     ]);
-    _logShareTiming('html2canvas_done',{ms:performance.now()-t0,imgCount});
+    _logShareTiming('capture_done',{ms:performance.now()-t0,imgCount});
   }catch(e){
-    _logShareTiming(e.message==='html2canvas_timeout'?'html2canvas_timeout':'html2canvas_error',{ms:performance.now()-t0,imgCount});
+    _logShareTiming(e.message==='snapdom_timeout'?'capture_timeout':'capture_error',{ms:performance.now()-t0,imgCount});
     throw e;
   }finally{
     el.style.width=prevWidth; el.style.maxWidth=prevMaxWidth;
@@ -699,7 +695,7 @@ async function captureShareImage(){
 }
 // Live complaint 2026-08-24: tapping "WhatsApp" often just opened the app with
 // no image attached. Root cause is almost certainly iOS's transient-activation
-// window — html2canvas takes real time, and by the time navigator.share()
+// window — capture takes real time, and by the time navigator.share()
 // finally fires, Safari may no longer treat the call as a trusted user gesture
 // and degrades the share silently instead of throwing. Fix: capture the image
 // in the BACKGROUND as soon as the blank is shown (agent needs a few seconds to
@@ -731,8 +727,8 @@ function downloadAndOpenWaWeb(blob){
   window.open('https://web.whatsapp.com/','_blank');
   showToast('התמונה הורדה ל-Downloads — פתח את WhatsApp וצרף אותה מהגלריה');
 }
-// Neither button was guarded against repeat taps — html2canvas is genuinely
-// slow (real complaint 2026-08-24: "spinning a long time"), and with no
+// Neither button was guarded against repeat taps — capture is genuinely
+// slow on a loaded device (real complaint 2026-08-24: "spinning a long time"), and with no
 // visible progress cue an agent who doesn't realize it's still working taps
 // again, stacking a second concurrent capture on top of the first (slower
 // still) and potentially firing two share sheets / two downloads at once.
@@ -741,7 +737,7 @@ function _setShareButtonsBusy(busy){
   _shareInFlight=busy;
   const waBtn=document.getElementById('wa-btn'), waWebBtn=document.getElementById('wa-web-btn');
   [waBtn,waWebBtn].forEach(b=>{ if(b){ b.style.opacity=busy?'.5':''; b.style.pointerEvents=busy?'none':''; } });
-  // Reassurance toast — html2canvas can genuinely take a few seconds with no
+  // Reassurance toast — capture can genuinely take a few seconds with no
   // other feedback on screen, and an agent seeing nothing happen taps again.
   // Long timeout (15s) is just a safety net; the real success/error toast at
   // the end always overwrites this one immediately once generation finishes.
