@@ -2822,6 +2822,7 @@ window._orderFams = new Set();
 window._orderPackLine = '';
 window._orderMotag = '';
 window._orderZero = false;
+window._orderHideNoSales6mo = true;  // hide SKUs with zero real sales in the last 6 complete months
 window._orderManualEdits = window._orderManualEdits || {};
 
 // Line = physical packaging within HERRING only (verified against product photos in docs/photos/) —
@@ -3028,6 +3029,11 @@ function setOrderMotag(motag) {
   buildOrderPage();
 }
 
+function toggleOrderHideNoSales6mo() {
+  window._orderHideNoSales6mo = !window._orderHideNoSales6mo;
+  buildOrderPage();
+}
+
 function toggleOrderZero() {
   window._orderZero = !window._orderZero;
   buildOrderPage();
@@ -3181,7 +3187,7 @@ async function exportOrderCsv() {
   const payloadRows = rows.map(r => {
     const photo = getPhotoUrl(r.mk);
     return {
-      name: r.name, mk: r.mk, fam: r.fam,
+      name: r.name, nameForeign: r.nameForeign || '', mk: r.mk, fam: r.fam,
       ean: (typeof makatEan !== 'undefined' ? makatEan[String(r.mk)] : '') || '',
       photoUrl: photo ? new URL(photo, location.href).href : '',
       krat: r.krat,
@@ -3339,7 +3345,9 @@ function buildOrderPage() {
     const packLine = ORDER_PACK_LINE[mk] || null;
     const motag = /NORD PORT/.test(fam) ? 'NORD PORT' : /SANTA BREMOR/.test(fam) ? 'SANTA BREMOR' : null;
     const weight = +(d.weight || 0);
-    allRows.push({ mk, name, fam, iksGroup, packLine, motag, weight, stock, stockTrnz, stockZafn, spo, palSpo, openOrders, daySales, periodSales, daysStk, krat, safetyDays, safetyK, orderK, orderP, deferredDemand, branchy, pizur, isStar });
+    const noSales6mo = window._dagimMonthlyData ? _hasNoSales6mo(window._dagimMonthlyData[mk]) : false;
+    const nameForeign = d.nameForeign || null;  // English name for supplier POs, from KARTIS PARIT תאור לועזי
+    allRows.push({ mk, name, fam, iksGroup, packLine, motag, weight, noSales6mo, nameForeign, stock, stockTrnz, stockZafn, spo, palSpo, openOrders, daySales, periodSales, daysStk, krat, safetyDays, safetyK, orderK, orderP, deferredDemand, branchy, pizur, isStar });
   }
 
   // Group key: iksGroup (IKRA/SAL/KAPUS/HERRING) if available, else fam
@@ -3358,7 +3366,8 @@ function buildOrderPage() {
       `<button class="ord-fam-btn" data-fam="" style="${window._orderFams.size === 0 ? chipAct : chipDef}">כולם</button>` +
       grpKeys.map(f => `<button class="ord-fam-btn" data-fam="${esc(f)}" style="${window._orderFams.has(f) ? chipAct : chipDef}">${esc(grpLabel(f))}</button>`).join('') +
       `<span style="width:1px;height:26px;background:#BBDEFB;margin:0 8px;align-self:center;display:inline-block;flex-shrink:0;"></span>` +
-      `<button onclick="toggleOrderZero()" style="${window._orderZero ? chipZeroAct : chipZeroDef}">⚠ חסר במלאי${window._orderZero ? ' ✓' : ''}</button>`;
+      `<button onclick="toggleOrderZero()" style="${window._orderZero ? chipZeroAct : chipZeroDef}">⚠ חסר במלאי${window._orderZero ? ' ✓' : ''}</button>` +
+      `<button onclick="toggleOrderHideNoSales6mo()" title="הסתר/הצג מוצרים ללא מכר אמיתי ב-6 חודשים אחרונים" style="${window._orderHideNoSales6mo ? chipDef : chipZeroAct}">🚫 ללא מכר 6 חודשים${window._orderHideNoSales6mo ? ' מוסתר' : ' — מוצג'}</button>`;
     famBtns.querySelectorAll('.ord-fam-btn').forEach(btn => btn.addEventListener('click', () => setOrderFam(btn.dataset.fam)));
   }
 
@@ -3428,6 +3437,7 @@ function buildOrderPage() {
   let rows = window._orderFams.size > 0 ? allRows.filter(r => window._orderFams.has(getGrp(r))) : allRows;
   if (window._orderPackLine) rows = rows.filter(r => r.packLine === window._orderPackLine);
   if (window._orderMotag) rows = rows.filter(r => r.motag === window._orderMotag);
+  if (window._orderHideNoSales6mo) rows = rows.filter(r => !r.noSales6mo);
   if (window._orderZero) rows = rows.filter(r => (+(r.stock||0) + +(r.stockTrnz||0) + +(r.stockZafn||0)) <= 0);
   if (window._orderOnlyMode) rows = rows.filter(r => r.orderK > 0);
   window._orderCurrentRows = rows;
@@ -3475,7 +3485,7 @@ function buildOrderPage() {
   const thead = `<thead>
     <tr>
       <th style="${_th('text-align:right;')}" dir="rtl">תאור</th>
-      <th style="${_th('width:46px;')}"></th>
+      <th style="${_ths('weight','width:46px;text-align:center;')}" title="מיין לפי משקל ליחידה">⚖${_arr('weight')}</th>
       <th style="${_ths('spo','text-align:center;')}">מלאי זמין<br>+ הזמנות${_arr('spo')}</th>
       <th style="${_th('text-align:center;')}">PAL</th>
       <th style="${_ths('openOrders','text-align:center;')}">הזמנות<br>פתוחות${_arr('openOrders')}</th>
@@ -3494,13 +3504,13 @@ function buildOrderPage() {
 
   const fmtK = n => Math.round(n || 0).toLocaleString('en');
   let tbRows = '';
-  let gtSpo = 0, gtPalSpo = 0, gtOpenOrders = 0, gtOrder = 0, gtPal = 0, gtPeriodSales = 0, gtDaySales = 0, gtPizurSum = 0, gtPizurCnt = 0, gtBranchy = 0;
+  let gtSpo = 0, gtPalSpo = 0, gtOpenOrders = 0, gtOrder = 0, gtPal = 0, gtPeriodSales = 0, gtDaySales = 0, gtPizurSum = 0, gtPizurCnt = 0;
 
   let gIdx = -1;
   for (const grp of grpOrder) {
     gIdx++;
     const gr = groups[grp] || [];
-    let fSpo = 0, fPalSpo = 0, fOpenOrders = 0, fOrder = 0, fPal = 0, fPeriodSales = 0, fDaySales = 0, fPizurSum = 0, fPizurCnt = 0, fBranchy = 0;
+    let fSpo = 0, fPalSpo = 0, fOpenOrders = 0, fOrder = 0, fPal = 0, fPeriodSales = 0, fDaySales = 0, fPizurSum = 0, fPizurCnt = 0;
     for (const r of gr) {
       fSpo         += r.spo;
       fPalSpo      += r.palSpo;
@@ -3509,11 +3519,10 @@ function buildOrderPage() {
       fPal         += r.orderK > 0 ? r.orderP : 0;
       fPeriodSales += r.periodSales || 0;
       fDaySales    += r.daySales || 0;
-      fBranchy     += r.branchy || 0;
       if (r.pizur != null) { fPizurSum += r.pizur; fPizurCnt++; }
     }
     const fPizurAvg = fPizurCnt > 0 ? Math.round(fPizurSum / fPizurCnt) : null;
-    gtSpo += fSpo; gtPalSpo += fPalSpo; gtOpenOrders += fOpenOrders; gtOrder += fOrder; gtPal += fPal; gtPeriodSales += fPeriodSales; gtDaySales += fDaySales; gtPizurSum += fPizurSum; gtPizurCnt += fPizurCnt; gtBranchy += fBranchy;
+    gtSpo += fSpo; gtPalSpo += fPalSpo; gtOpenOrders += fOpenOrders; gtOrder += fOrder; gtPal += fPal; gtPeriodSales += fPeriodSales; gtDaySales += fDaySales; gtPizurSum += fPizurSum; gtPizurCnt += fPizurCnt;
     const fDaysStk = fDaySales > 0 ? fSpo / fDaySales * 1.4 : null;
 
     const fContFull = Math.floor(fPal / 20);
@@ -3531,7 +3540,7 @@ function buildOrderPage() {
       <td style="padding:6px 8px;text-align:center;font-size:12px;font-weight:700;">${fmtK(fSpo)}</td>
       <td style="padding:6px 8px;text-align:center;font-size:11px;opacity:0.8;">${fPalSpo.toFixed(1)}</td>
       <td style="padding:6px 8px;text-align:center;font-size:11px;">${fOpenOrders > 0 ? fmtK(fOpenOrders) : '—'}</td>
-      <td style="padding:6px 8px;text-align:center;font-size:11px;">${fBranchy > 0 ? fBranchy.toLocaleString('en') : '—'}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:11px;color:#ccc;" title="לקוחות שקנו הוא ספירת לקוחות ייחודיים לכל מוצר — לא ניתן לחבר בין מוצרים">—</td>
       <td style="padding:6px 8px;"></td>
       <td style="padding:6px 8px;text-align:center;font-size:11px;">${fPizurAvg != null ? fPizurAvg + '%' : '—'}</td>
       <td style="padding:6px 8px;text-align:center;font-size:11px;">${fDaySales > 0 ? Math.round(fDaySales).toLocaleString('en') : '—'}</td>
@@ -3582,7 +3591,7 @@ function buildOrderPage() {
     <td style="padding:7px 6px;text-align:center;font-size:13px;font-weight:700;">${fmtK(gtSpo)}</td>
     <td style="padding:7px 6px;text-align:center;font-size:12px;font-weight:700;">${gtPalSpo.toFixed(1)}</td>
     <td style="padding:7px 6px;text-align:center;font-size:13px;font-weight:700;color:#a5d6a7;">${gtOpenOrders > 0 ? fmtK(gtOpenOrders) : '—'}</td>
-    <td style="padding:7px 6px;text-align:center;font-size:12px;font-weight:700;">${gtBranchy > 0 ? gtBranchy.toLocaleString('en') : '—'}</td>
+    <td style="padding:7px 6px;text-align:center;font-size:12px;font-weight:700;color:#666;" title="לקוחות שקנו הוא ספירת לקוחות ייחודיים לכל מוצר — לא ניתן לחבר בין מוצרים">—</td>
     <td style="padding:7px 6px;text-align:center;font-size:11px;color:#90caf9;">${(window._orderTotalBranchy||null) != null ? window._orderTotalBranchy.toLocaleString('en') : '—'}</td>
     <td style="padding:7px 6px;text-align:center;font-size:12px;font-weight:700;">${gtPizurCnt > 0 ? Math.round(gtPizurSum / gtPizurCnt) + '%' : '—'}</td>
     <td style="padding:7px 6px;text-align:center;font-size:12px;font-weight:700;">${gtDaySales > 0 ? Math.round(gtDaySales).toLocaleString('en') : '—'}</td>
@@ -4856,6 +4865,17 @@ window.addEventListener('afterprint', () => {
     return Math.round((recent3 / prev3 - 1) * 100);
   }
 
+  // No real sales in the last 6 complete calendar months (excludes the current partial month).
+  // Returns false (don't hide) when there isn't enough history yet to judge — never hide on missing data.
+  window._hasNoSales6mo = function _hasNoSales6mo(months) {
+    if (!months) return false;
+    const now = new Date();
+    const curYM = now.getFullYear() * 100 + (now.getMonth() + 1);
+    const last6 = months.filter(m => m.year * 100 + m.month < curYM).slice(-6);
+    if (last6.length < 6) return false;
+    return last6.every(m => !m.mkr);
+  }
+
   window._trendHtml = function _trendHtml(pct) {
     if (pct === null) return '<span style="color:#556;font-size:9px;">—</span>';
     if (Math.abs(pct) <= 10) {
@@ -4960,13 +4980,9 @@ window.addEventListener('afterprint', () => {
       Object.keys(window._dagimMonthlyData).forEach(mk => {
         window._dagimMonthlyData[mk] = _fillMonthGaps(window._dagimMonthlyData[mk]);
       });
-      // Update trend cells for all visible products
-      document.querySelectorAll('.ord-trend-cell[data-mk]').forEach(td => {
-        const mk = td.dataset.mk;
-        const months = window._dagimMonthlyData[mk];
-        const span = document.getElementById('ord-trend-' + mk);
-        if (span) span.innerHTML = _trendHtml(_computeTrend(months));
-      });
+      // Full rebuild — trend cells populate AND the "no sales 6mo" filter can now apply
+      // (it depends on this monthly data, which wasn't available on the first render)
+      if (typeof buildOrderPage === 'function' && document.getElementById('order-table-wrap')) buildOrderPage();
     } catch (e) {
       console.error('[dagim-monthly] fetch failed:', e.message);
       document.querySelectorAll('[id^="ord-trend-"]').forEach(s => {

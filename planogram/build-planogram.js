@@ -710,6 +710,7 @@ async function main() {
     if(src) {
       if(!p.desc && src.desc)   p.desc        = src.desc;
       if(src.nameEn)            p.nameEn      = src.nameEn;
+      if(src.weight != null)    p.weight      = src.weight;
       if(src.daySales != null)  p.daySales    = src.daySales;
       p.stock        = src.stock;
       p.stockZafn    = src.stockZafn    ?? null;
@@ -743,7 +744,7 @@ async function main() {
       daysStock: d.daysStock ?? null, daysStockZafn: d.daysStockZafn ?? null,
       stockTrnz: d.stockTrnz ?? null, daySalesTrnz: d.daySalesTrnz ?? null,
       pakuot: d.pakuot || [], pakuotAll: d.pakuotAll || [],
-      dayAvg: d.daySales || null, weight: null, ss: null,
+      dayAvg: d.daySales || null, weight: d.weight ?? null, ss: null,
       spo: d.spo ?? null, openOrders: d.openOrders ?? null,
     }));
   // Sort: with sales first (daySales desc), then no-sales at end
@@ -1186,7 +1187,7 @@ async function main() {
     const mkEntry = (p) => {
       const mk  = String(p.makat);
       const krat = palletMap[mk] || 0;
-      const wt   = weightMap[mk] || null;
+      const wt   = p.weight || weightMap[mk] || null;  // KARTIS PARIT משקל ליחידה is authoritative; FORMULA PALLETS.xlsx only fills gaps
       const dsa  = p.daySalesAll != null ? p.daySalesAll : p.daySales;
       const kd   = kapuaData[mk];
       const pf   = kd?.packFactor || prevPackFactor[mk]   || null;
@@ -1256,7 +1257,7 @@ async function main() {
         }
         if (!prodData[mk]) {
           const kd = kapuaData[mk] || {};
-          prodData[mk] = mkEntry({ ...p, stock: kd.stock ?? 0, daySales: kd.daySales ?? null, daySalesAll: kd.daySalesAll ?? null, stockZafn: kd.stockZafn ?? null, daySalesZafn: kd.daySalesZafn ?? null, daysStock: kd.daysStock ?? null, daysStockZafn: kd.daysStockZafn ?? null, stockTrnz: kd.stockTrnz ?? null, daySalesTrnz: kd.daySalesTrnz ?? null, pakuot: kd.pakuot || [], pakuotAll: kd.pakuotAll || [], spo: kd.spo ?? null, openOrders: kd.openOrders ?? null });
+          prodData[mk] = mkEntry({ ...p, stock: kd.stock ?? 0, daySales: kd.daySales ?? null, daySalesAll: kd.daySalesAll ?? null, stockZafn: kd.stockZafn ?? null, daySalesZafn: kd.daySalesZafn ?? null, daysStock: kd.daysStock ?? null, daysStockZafn: kd.daysStockZafn ?? null, stockTrnz: kd.stockTrnz ?? null, daySalesTrnz: kd.daySalesTrnz ?? null, pakuot: kd.pakuot || [], pakuotAll: kd.pakuotAll || [], spo: kd.spo ?? null, openOrders: kd.openOrders ?? null, weight: kd.weight ?? p.weight ?? null });
         }
       }
       if (kbDupCleaned > 0) {

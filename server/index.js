@@ -3100,8 +3100,8 @@ app.post('/api/export-order-xlsx', requireAuth, dataRateLimit, async (req, res) 
     ws.getColumn(1).width = 10;
     ws.getRow(1).height = 22;
 
-    // Merge title across all 14 data columns (B–O) so text is visible
-    const LAST_COL_LETTER = 'O'; // 14 columns: B(photo)..O(last)
+    // Merge title across all 15 data columns (B–P) so text is visible
+    const LAST_COL_LETTER = 'P'; // 15 columns: B(photo)..P(last)
     ws.mergeCells(`B2:${LAST_COL_LETTER}2`);
 
     const titleCell = ws.getCell('B2');
@@ -3118,6 +3118,7 @@ app.post('/api/export-order-xlsx', requireAuth, dataRateLimit, async (req, res) 
     const tableCols = [
       { name: 'תמונה',             width: 14, totalsRowFunction: 'none' },
       { name: 'תאור',              width: 38, totalsRowFunction: 'none', totalsRowLabel: 'Total' },
+      { name: 'English Name',      width: 38, totalsRowFunction: 'none' },
       { name: 'מק"ט',             width: 11, totalsRowFunction: 'none' },
       { name: 'ברקוד EAN',         width: 18, totalsRowFunction: 'none' },
       { name: 'משפחה',             width: 18, totalsRowFunction: 'none' },
@@ -3136,6 +3137,7 @@ app.post('/api/export-order-xlsx', requireAuth, dataRateLimit, async (req, res) 
     const tableRows = rows.map(r => [
       '',  // photo placeholder
       r.name || '',
+      r.nameForeign || '',
       r.mk != null && r.mk !== '' ? (isNaN(Number(r.mk)) ? r.mk : Number(r.mk)) : '',
       r.ean != null && r.ean !== '' ? (isNaN(Number(r.ean)) ? r.ean : Number(r.ean)) : '',
       r.fam || '',
@@ -3166,8 +3168,8 @@ app.post('/api/export-order-xlsx', requireAuth, dataRateLimit, async (req, res) 
 
     // Center-align all table cells (header + data + totals)
     const TAUR_COL  = PHOTO_COL + 1; // תאור — right-aligned RTL
-    const MAKAT_COL = PHOTO_COL + 2; // מק"ט
-    const EAN_COL   = PHOTO_COL + 3; // ברקוד EAN
+    const MAKAT_COL = PHOTO_COL + 3; // מק"ט (English Name column now sits between תאור and מק"ט)
+    const EAN_COL   = PHOTO_COL + 4; // ברקוד EAN
     for (let ri = 0; ri <= tableRows.length + 1; ri++) {
       const row = ws.getRow(HEADER_ROW + ri);
       row.eachCell({ includeEmpty: false }, (cell, colNum) => {
