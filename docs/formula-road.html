@@ -49,7 +49,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .hdr-back:hover{background:rgba(255,255,255,.3);}
 .hdr-center{position:absolute;left:0;right:0;text-align:center;pointer-events:none;}
 .hdr-title{font-size:13px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:#fff;}
-.hdr-sub{font-size:11px;color:rgba(255,255,255,.7);margin-top:1px;}
+.hdr-sub{font-size:11px;color:rgba(255,255,255,.7);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 80px;}
 .sky-line{height:3px;background:linear-gradient(90deg,var(--sky),var(--blue));flex-shrink:0;}
 .demo-banner{background:#c0392b;color:#fff;text-align:center;padding:8px 14px;font-size:13px;font-weight:800;direction:rtl;flex-shrink:0;}
 .demo-tag{font-size:9px;background:rgba(41,182,246,.25);color:var(--sky);padding:2px 8px;border-radius:10px;letter-spacing:1px;border:1px solid rgba(41,182,246,.4);}
@@ -1855,11 +1855,12 @@ function fetchDayTopSales(myId){
 
 async function initRoute(){
   const myId = ++_initRouteId;
+  checkPbiFreshness(); // fire-and-forget, throttled internally
   st.sortMode=(st.aiGpsMode||st.tabletGpsMode)?'ai':'priority'; st.selectedCities=[]; st.selectedId=null;
   st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null;
   st.excluded=new Set();
   document.getElementById('route-title').textContent='DILER FORMULA';
-  document.getElementById('route-sub').textContent=`${st.agent.name} · ${st.day===0?'לא מוגדר':'יום '+DAY_LABELS[st.day]}`;
+  document.getElementById('route-sub').textContent=_routeSubBase();
   document.getElementById('export-btn').classList.remove('visible');
   document.getElementById('export-all-btn').classList.remove('visible');
   setTab('list', true); // true = skip renderMap (data not ready yet)
@@ -1968,6 +1969,35 @@ async function initRoute(){
   setTimeout(autoSyncGpsClean, 3000); // silent cleanup after route loads
 }
 
+// ── PBI data date ── appended to the existing route-sub line (agent name · day),
+// no new toolbar element. Plain date, no color-coded status — real dataset-refresh
+// timestamp from Power BI's REST API (not derived from data content), so a silently
+// stuck scheduled refresh is visible as an old date instead of only showing up as
+// "wrong numbers" downstream. Throttled client-side (10min) since /pbi/formula-refresh
+// is a live Power BI admin-API call, not a free cache read.
+let _pbiRefreshedAt=null, _pbiStatusFetchedAt=0;
+function _routeSubBase(){
+  return `${st.agent.name} · ${st.day===0?'לא מוגדר':'יום '+DAY_LABELS[st.day]}`;
+}
+async function checkPbiFreshness(force){
+  // Still re-render on a throttled call (e.g. day switch resets route-sub to the
+  // bare base text) — only the network re-fetch itself is skipped, not the redraw.
+  if(!force && Date.now()-_pbiStatusFetchedAt<10*60*1000){ _renderPbiDateInHeader(); return; }
+  _pbiStatusFetchedAt=Date.now();
+  try{
+    const r=await apiFetch(`${API}/pbi/formula-refresh`);
+    const d=await r.json();
+    _pbiRefreshedAt=d.refreshedAt?new Date(d.refreshedAt):null;
+  }catch(e){ _pbiRefreshedAt=null; }
+  _renderPbiDateInHeader();
+}
+function _renderPbiDateInHeader(){
+  const el=document.getElementById('route-sub');
+  if(!el||!_pbiRefreshedAt) return;
+  const df=_pbiRefreshedAt.toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit'});
+  el.textContent=`${_routeSubBase()} · ${df}`;
+}
+
 function activeClients(){ return st.clients.filter(c=>!st.excluded.has(c.custId)); }
 function displayClients(){
   const base=st.sortMode==='ai'?st.aiClients:st.clients;
@@ -2023,9 +2053,8 @@ async function ensureDayCounts(){
 function switchDay(d){
   if(d===st.day)return;
   st.day=d;
-  document.getElementById('route-sub').textContent=`${st.agent.name} · ${d===0?'לא מוגדר':'יום '+DAY_LABELS[d]}`;
   buildDaySwitcher();
-  initRoute();
+  initRoute(); // resets route-sub itself (_routeSubBase), no need to duplicate here
 }
 
 function setTab(t, skipMap=false){

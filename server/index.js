@@ -24,6 +24,20 @@ const DAY_HE_TO_NUM = { 'א': 1, 'ב': 2, 'ג': 3, 'ד': 4, 'ה': 5, 'ראשון
 
 let pbiCache = null; // set by loadPBICache()
 
+// Per-client zikuy/return-form data (products, 3mo return%, last shipment) —
+// safe to cache for a full day: today's sales can't affect what a client can
+// return (can't return what hasn't shipped yet, confirmed by user 2026-08-24).
+// Cleared only on a SUCCESSFUL daily pbiCache reload (see _loadPBICacheAttempt)
+// so a failed/retrying reload doesn't wipe still-valid cached returns data.
+const clientReturnsCache = new Map(); // custId -> { data, at: Date }
+
+// Per-client ניתוח לקוח (family breakdown, YoY trend, chain gaps) — same reasoning
+// as clientReturnsCache: this app has no real-time data source anywhere (the PBI
+// dataset itself only refreshes on its own schedule), so a live DAX call here never
+// returns anything fresher than what's already cached until the next daily reload.
+// Confirmed by user 2026-08-24. Cleared on the same successful-reload hook.
+const clientAnalyticsCache = new Map(); // `${custId}_${lang}` -> { data, at: Date }
+
 // One retry after a long pause, not a hammering loop — Power BI has bitten us with
 // 429 rate-limits before (see PM2 logs, 2026-08-17), so a fast retry burst risks
 // making a real overload worse instead of recovering from a transient 500 like the
@@ -370,6 +384,8 @@ SELECTCOLUMNS(
       managerAgents,
       loadedAt: new Date(),
     };
+    clientReturnsCache.clear();
+    clientAnalyticsCache.clear();
     console.log(`[PBI] Cache loaded: ${clientMap.size} clients, ${byAgent.size} agents, ${managers.size} managers, ${managerAgents.size} manager-agents`);
 
     // Geocode ICE clients in background — updates pbiCache.iceByAgent objects in-place
@@ -4468,6 +4484,9 @@ app.get('/api/client-returns/:custId', requireAuth, async (req, res) => {
   if (!custId) return res.status(400).json({ ok: false, error: 'custId required' });
   if (!/^\d{1,15}$/.test(custId)) return res.status(400).json({ ok: false, error: 'invalid custId' });
 
+  const cached = clientReturnsCache.get(custId);
+  if (cached) return res.json(cached.data);
+
   const now = new Date();
   const cm = now.getMonth() + 1, cy = now.getFullYear();
   const periodMonths = (fromBack, toBack) => {
@@ -4607,11 +4626,13 @@ CALCULATETABLE(
       fetchPhotosRet(products.filter(p => p.company === 'ICE_MISH'), 'KARTIS PARIT ICE'),
     ]);
 
-    res.json({
+    const responseData = {
       ok: true,
       products,
       curLabel: `${curStart.month}/${curStart.year}-${curEnd.month}/${curEnd.year}`,
-    });
+    };
+    clientReturnsCache.set(custId, { data: responseData, at: new Date() });
+    res.json(responseData);
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
@@ -4624,6 +4645,11 @@ app.get('/api/client-analytics/:custId', requireAuth, async (req, res) => {
   if (!custId) return res.status(400).json({ ok: false, error: 'custId required' });
   if (!/^\d{1,15}$/.test(custId)) return res.status(400).json({ ok: false, error: 'invalid custId' });
   const lang = (req.query.lang || 'he').slice(0, 2);
+
+  const analyticsCacheKey = `${custId}_${lang}`;
+  const cachedAnalytics = clientAnalyticsCache.get(analyticsCacheKey);
+  if (cachedAnalytics) return res.json(cachedAnalytics.data);
+
   // GEMINI/ANTHROPIC key gate removed 2026-08-20 — the LLM commentary itself
   // was dropped (see `const analysis = null` below), so this endpoint no
   // longer calls either provider and doesn't need a key to function.
@@ -5337,7 +5363,7 @@ CALCULATETABLE(
     // this is a one-line restore if the panel gets a real ask for it later.
     const analysis = null;
 
-    res.json({
+    const analyticsResponseData = {
       ok: true,
       curLabel,
       priorLabel,
@@ -5356,7 +5382,9 @@ CALCULATETABLE(
       daysSinceOrder,
       isKosher,
       analysis,
-    });
+    };
+    clientAnalyticsCache.set(analyticsCacheKey, { data: analyticsResponseData, at: new Date() });
+    res.json(analyticsResponseData);
   } catch(e) {
     res.status(500).json({ ok: false, error: e.message });
   }
