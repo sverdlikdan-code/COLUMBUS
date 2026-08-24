@@ -3472,13 +3472,13 @@ function buildOrderPage() {
 
   const fmtK = n => Math.round(n || 0).toLocaleString('en');
   let tbRows = '';
-  let gtSpo = 0, gtPalSpo = 0, gtOpenOrders = 0, gtOrder = 0, gtPal = 0, gtPeriodSales = 0;
+  let gtSpo = 0, gtPalSpo = 0, gtOpenOrders = 0, gtOrder = 0, gtPal = 0, gtPeriodSales = 0, gtDaySales = 0, gtPizurSum = 0, gtPizurCnt = 0, gtBranchy = 0;
 
   let gIdx = -1;
   for (const grp of grpOrder) {
     gIdx++;
     const gr = groups[grp] || [];
-    let fSpo = 0, fPalSpo = 0, fOpenOrders = 0, fOrder = 0, fPal = 0, fPeriodSales = 0;
+    let fSpo = 0, fPalSpo = 0, fOpenOrders = 0, fOrder = 0, fPal = 0, fPeriodSales = 0, fDaySales = 0, fPizurSum = 0, fPizurCnt = 0, fBranchy = 0;
     for (const r of gr) {
       fSpo         += r.spo;
       fPalSpo      += r.palSpo;
@@ -3486,8 +3486,13 @@ function buildOrderPage() {
       fOrder       += r.orderK;
       fPal         += r.orderK > 0 ? r.orderP : 0;
       fPeriodSales += r.periodSales || 0;
+      fDaySales    += r.daySales || 0;
+      fBranchy     += r.branchy || 0;
+      if (r.pizur != null) { fPizurSum += r.pizur; fPizurCnt++; }
     }
-    gtSpo += fSpo; gtPalSpo += fPalSpo; gtOpenOrders += fOpenOrders; gtOrder += fOrder; gtPal += fPal; gtPeriodSales += fPeriodSales;
+    const fPizurAvg = fPizurCnt > 0 ? Math.round(fPizurSum / fPizurCnt) : null;
+    gtSpo += fSpo; gtPalSpo += fPalSpo; gtOpenOrders += fOpenOrders; gtOrder += fOrder; gtPal += fPal; gtPeriodSales += fPeriodSales; gtDaySales += fDaySales; gtPizurSum += fPizurSum; gtPizurCnt += fPizurCnt; gtBranchy += fBranchy;
+    const fDaysStk = fDaySales > 0 ? fSpo / fDaySales * 1.4 : null;
 
     const fContFull = Math.floor(fPal / 20);
     const fContRem  = Math.round(fPal) % 20;
@@ -3504,13 +3509,13 @@ function buildOrderPage() {
       <td style="padding:6px 8px;text-align:center;font-size:12px;font-weight:700;">${fmtK(fSpo)}</td>
       <td style="padding:6px 8px;text-align:center;font-size:11px;opacity:0.8;">${fPalSpo.toFixed(1)}</td>
       <td style="padding:6px 8px;text-align:center;font-size:11px;">${fOpenOrders > 0 ? fmtK(fOpenOrders) : '—'}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:11px;">${fBranchy > 0 ? fBranchy.toLocaleString('en') : '—'}</td>
       <td style="padding:6px 8px;"></td>
-      <td style="padding:6px 8px;"></td>
-      <td style="padding:6px 8px;"></td>
-      <td style="padding:6px 8px;"></td>
-      <td style="padding:6px 8px;background:rgba(74,20,140,.15);"></td>
-      <td style="padding:6px 8px;"></td>
-      <td style="padding:6px 8px;"></td>
+      <td style="padding:6px 8px;text-align:center;font-size:11px;">${fPizurAvg != null ? fPizurAvg + '%' : '—'}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:11px;">${fDaySales > 0 ? Math.round(fDaySales).toLocaleString('en') : '—'}</td>
+      <td id="ord-grp-trend-${gIdx}" style="padding:6px 8px;text-align:center;font-size:10px;font-weight:700;background:rgba(74,20,140,.15);">·</td>
+      <td style="padding:6px 8px;text-align:center;font-size:11px;">${fPeriodSales > 0 ? fmtK(fPeriodSales) : '—'}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:11px;">${fDaysStk !== null ? Math.round(fDaysStk) : '—'}</td>
       <td id="ord-grp-k-${gIdx}" style="padding:6px 8px;text-align:center;font-size:13px;font-weight:800;">${fmtK(fOrder)}</td>
       <td id="ord-grp-pal-${gIdx}" style="padding:6px 8px;text-align:center;font-size:12px;font-weight:700;">${fPal.toFixed(1)}</td>
       <td id="ord-grp-manual-pal-${gIdx}" style="padding:6px 8px;text-align:center;font-size:12px;font-weight:700;background:rgba(0,0,0,0.15);">${fPal.toFixed(1)}</td>
@@ -3555,12 +3560,13 @@ function buildOrderPage() {
     <td style="padding:7px 6px;text-align:center;font-size:13px;font-weight:700;">${fmtK(gtSpo)}</td>
     <td style="padding:7px 6px;text-align:center;font-size:12px;font-weight:700;">${gtPalSpo.toFixed(1)}</td>
     <td style="padding:7px 6px;text-align:center;font-size:13px;font-weight:700;color:#a5d6a7;">${gtOpenOrders > 0 ? fmtK(gtOpenOrders) : '—'}</td>
-    <td style="padding:7px 6px;"></td>
+    <td style="padding:7px 6px;text-align:center;font-size:12px;font-weight:700;">${gtBranchy > 0 ? gtBranchy.toLocaleString('en') : '—'}</td>
     <td style="padding:7px 6px;text-align:center;font-size:11px;color:#90caf9;">${(window._orderTotalBranchy||null) != null ? window._orderTotalBranchy.toLocaleString('en') : '—'}</td>
-    <td style="padding:7px 6px;"></td>
-    <td style="padding:7px 6px;"></td>
+    <td style="padding:7px 6px;text-align:center;font-size:12px;font-weight:700;">${gtPizurCnt > 0 ? Math.round(gtPizurSum / gtPizurCnt) + '%' : '—'}</td>
+    <td style="padding:7px 6px;text-align:center;font-size:12px;font-weight:700;">${gtDaySales > 0 ? Math.round(gtDaySales).toLocaleString('en') : '—'}</td>
+    <td id="ord-gt-trend-cell" style="padding:7px 6px;text-align:center;font-size:11px;font-weight:700;">·</td>
     <td style="padding:7px 6px;text-align:center;font-size:13px;font-weight:800;color:#b3e5fc;">${gtPeriodSales > 0 ? fmtK(gtPeriodSales) : '—'}</td>
-    <td style="padding:7px 6px;"></td>
+    <td style="padding:7px 6px;text-align:center;font-size:12px;font-weight:700;">${gtDaySales > 0 ? Math.round(gtSpo / gtDaySales * 1.4) : '—'}</td>
     <td id="ord-gt-karton-cell" style="padding:7px 6px;text-align:center;font-size:16px;font-weight:800;color:#ffcc02;">${fmtK(gtOrder)}</td>
     <td id="ord-gt-pallet-cell" style="padding:7px 6px;text-align:center;font-size:13px;font-weight:700;">${Math.round(gtPal)}</td>
     <td id="ord-pal-gt-cell" style="padding:7px 6px;text-align:center;font-size:14px;font-weight:900;color:#a5d6a7;background:#1b5e20;">${Math.round(gtPal)}</td>
@@ -3607,6 +3613,15 @@ function buildOrderPage() {
       const span = document.getElementById('ord-trend-' + mk);
       if (span) span.innerHTML = _trendHtml(_computeTrend(months));
     });
+    // Aggregate trend per group + grand total (same prev3-vs-recent3, summed across visible SKUs)
+    let gi = -1;
+    for (const grp of grpOrder) {
+      gi++;
+      const cell = document.getElementById(`ord-grp-trend-${gi}`);
+      if (cell) cell.innerHTML = _trendHtml(_computeAggTrend((groups[grp] || []).map(r => r.mk)));
+    }
+    const gtCell = document.getElementById('ord-gt-trend-cell');
+    if (gtCell) gtCell.innerHTML = _trendHtml(_computeAggTrend(rows.map(r => r.mk)));
   }
 }
 
@@ -4796,6 +4811,26 @@ window.addEventListener('afterprint', () => {
     const prev3 = full.slice(0, 3).reduce((s, m) => s + (m.mkr || 0), 0);
     const recent3 = full.slice(3, 6).reduce((s, m) => s + (m.mkr || 0), 0);
     if (!prev3) return null;
+    return Math.round((recent3 / prev3 - 1) * 100);
+  }
+
+  // Same prev3-vs-recent3 logic, summed across a group of SKUs (for group/grand-total footer rows)
+  window._computeAggTrend = function _computeAggTrend(mkList) {
+    const data = window._dagimMonthlyData;
+    if (!data) return null;
+    const now = new Date();
+    const curYM = now.getFullYear() * 100 + (now.getMonth() + 1);
+    let prev3 = 0, recent3 = 0, any = false;
+    for (const mk of mkList) {
+      const months = data[mk];
+      if (!months || months.length < 6) continue;
+      const full = months.filter(m => m.year * 100 + m.month < curYM).slice(-6);
+      if (full.length < 6) continue;
+      prev3   += full.slice(0, 3).reduce((s, m) => s + (m.mkr || 0), 0);
+      recent3 += full.slice(3, 6).reduce((s, m) => s + (m.mkr || 0), 0);
+      any = true;
+    }
+    if (!any || !prev3) return null;
     return Math.round((recent3 / prev3 - 1) * 100);
   }
 
