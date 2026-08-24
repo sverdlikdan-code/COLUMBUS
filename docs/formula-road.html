@@ -989,12 +989,17 @@ function toggleMapHidden(){
       renderMap();
       if(map) map.invalidateSize();
     });
-    if(Math.min(window.innerWidth, window.innerHeight)<700) tryAutoRotateLandscape();
-  } else if(document.fullscreenElement){
-    document.exitFullscreen().catch(()=>{});
-    try{ screen.orientation && screen.orientation.unlock && screen.orientation.unlock(); }catch(_){}
   }
-  showToast(st.mapHidden?'📋 עובדים רק עם הרשימה — המפה כבויה':'🗺 המפה הוצגה מחדש');
+  // Phone: no forced fullscreen/orientation.lock() — live agent feedback called
+  // that jarring. Map only actually shows once the agent rotates the device
+  // themselves (handleOrientationForMobileMap reacts to the real rotation) —
+  // this replaces the normal "map shown" toast with a rotate nudge instead of
+  // firing both (showToast only holds one message at a time, second wins).
+  const needsRotateNudge = !st.mapHidden && Math.min(window.innerWidth, window.innerHeight)<700
+    && !window.matchMedia('(orientation: landscape)').matches;
+  showToast(needsRotateNudge ? '🔄 סובב את המכשיר לרוחב כדי לראות את המפה'
+    : st.mapHidden ? '📋 עובדים רק עם הרשימה — המפה כבויה' : '🗺 המפה הוצגה מחדש',
+    needsRotateNudge ? 3500 : 2500);
   handleOrientationForMobileMap();
 }
 applyMapHidden();
@@ -1031,19 +1036,6 @@ try{
     resetLandscapeToolbarCollapse();
   });
 }catch(_){}
-
-// Chrome/Android only — screen.orientation.lock() requires fullscreen and
-// iOS Safari doesn't implement the Orientation Lock API at all (no site can
-// force-rotate an iPhone). Fails silently into a toast telling the agent to
-// rotate manually themselves — same end state, one extra hand movement.
-async function tryAutoRotateLandscape(){
-  try{
-    if(document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
-    if(screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape');
-  }catch(_){
-    showToast('🔄 סובב את המכשיר לרוחב כדי לראות את המפה', 3500);
-  }
-}
 
 // >14 days since last order (or never ordered) — same threshold as the red badge in the client card
 function isDormantClient(c){
