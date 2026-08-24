@@ -2434,9 +2434,11 @@ function renderClientList(html){
     const SEP='<span style="color:var(--light)"> · </span>';
     const nameLine=(st.topSalesIds.has(String(c.custId))?'<span class="crown-badge" title="TOP מכירות ב-3 חודשים — כדאי ניתוח AI מעמיק">👑</span>':'')
       +(c.iceOnly?'<span class="ice-badge">ICE</span>':'')
-      +(shortName(c.custName,c.city)||esc(c.custName)||'')
-      +(c.city?`<span style="font-weight:400;color:var(--mid);font-size:11px;"> · ${esc(c.city)}</span>`:'');
-    const addrToggle=c.address?`<span class="c-addr-toggle" onclick="event.stopPropagation();this.closest('.c-body').querySelector('.c-addr').classList.toggle('open');" title="הצג/הסתר כתובת">▾</span>`:'';
+      +(shortName(c.custName,c.city)||esc(c.custName)||'');
+    // City AND address both moved behind the arrow now — city alone still ate
+    // enough width to look like a stray truncated fragment next to a long name.
+    const addrToggle=(c.city||c.address)?`<span class="c-addr-toggle" onclick="event.stopPropagation();this.closest('.c-body').querySelector('.c-addr').classList.toggle('open');" title="הצג/הסתר עיר וכתובת">▾</span>`:'';
+    const addrDetail=[c.city,c.address].filter(Boolean).join(' · ');
     return `<div class="${cls}" data-id="${c.custId}" onclick="selectClient('${c.custId}')">
       <div class="c-num-wrap c-drag">
         <span class="c-num${inWalk?' c-num-walk':''}">${i+1}</span>
@@ -2445,7 +2447,7 @@ function renderClientList(html){
       <div class="c-body">
         <div class="c-name"><span class="c-name-text">${nameLine}</span>${addrToggle}</div>
         <div class="c-sub">${[lastOrder,sales,pctPart,indicPart].filter(Boolean).join(SEP)}</div>
-        ${c.address?`<div class="c-addr">${esc(c.address)}</div>`:''}
+        ${addrDetail?`<div class="c-addr">${esc(addrDetail)}</div>`:''}
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;">
         ${c.custId?`<span class="c-id-side">${c.custId}</span>`:''}
