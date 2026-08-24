@@ -2814,11 +2814,21 @@ app.get('/pbi/dagim-sales', requireAuth, dataRateLimit, async (req, res) => {
       : `FILTER(ALL('ALL_PARTS'[תאריך]),YEAR('ALL_PARTS'[תאריך])=${year})`;
   }
 
+  // Optional: distinct-count of customers who bought ANY of these מק"ט in the period
+  // (the currently visible/filtered subset on the client) — same measure as totalBranchy,
+  // just scoped to a makat list instead of all דגים products.
+  let visibleMakatim = null;
+  if (req.query.makat) {
+    visibleMakatim = String(req.query.makat).split(',').map(s => s.trim()).filter(s => /^\d+$/.test(s));
+    if (!visibleMakatim.length) return res.status(400).json({ error: 'invalid makat list' });
+  }
+
   // Serve from cache if fresh
-  const cacheKey = req.query.periods || `${req.query.year}-${req.query.month}`;
+  const cacheKey = (req.query.periods || `${req.query.year}-${req.query.month}`) +
+    (visibleMakatim ? '|' + visibleMakatim.slice().sort().join(',') : '');
   const cached = _dagimSalesCache.get(cacheKey);
   if (cached && Date.now() - cached.ts < _DAGIM_SALES_TTL) {
-    return res.json({ ok: true, data: cached.data, totalBranchy: cached.totalBranchy, fromCache: true });
+    return res.json({ ok: true, data: cached.data, totalBranchy: cached.totalBranchy, visibleBranchy: cached.visibleBranchy, fromCache: true });
   }
 
   try {
@@ -2835,8 +2845,10 @@ app.get('/pbi/dagim-sales', requireAuth, dataRateLimit, async (req, res) => {
       )
     `);
 
+    const visibleMakatSet = visibleMakatim ? '{' + visibleMakatim.map(m => `"${m}"`).join(',') + '}' : null;
+
     // Query 2 — total carton sales + per-product branchy in selected period
-    const [extRows, totRes, branchyRows] = await Promise.all([
+    const [extRows, totRes, branchyRows, visibleBranchyRes] = await Promise.all([
       executeDax(`
         EVALUATE
         CALCULATETABLE(
@@ -2867,9 +2879,19 @@ app.get('/pbi/dagim-sales', requireAuth, dataRateLimit, async (req, res) => {
           ${dateFilter}
         )
       `).catch(() => null),
+      visibleMakatSet ? executeDax(`
+        EVALUATE
+        CALCULATETABLE(
+          ROW("tot", CALCULATE([DIST COUNT מ.CAT 7], 'ALL_PARTS'[ASHMADOT] IN {"-מכר-"}, 'משטח'[סטטוס] IN {"פעיל"})),
+          'ALL_PARTS'[חברה] = "FORMULA",
+          ${dateFilter},
+          TREATAS(${visibleMakatSet}, 'ALL_PARTS'[מק'ט])
+        )
+      `).catch(() => null) : Promise.resolve(null),
     ]);
 
     const totalBranchy = totRes?.[0]?.['[tot]'] ?? null;
+    const visibleBranchy = visibleBranchyRes?.[0]?.['[tot]'] ?? null;
 
     // Build ext lookup by מק"ט
     const extMap = {};
@@ -2897,13 +2919,13 @@ app.get('/pbi/dagim-sales', requireAuth, dataRateLimit, async (req, res) => {
         ...(extMap[String(mk)] || {}),
       };
     }
-    _dagimSalesCache.set(cacheKey, { data, totalBranchy, ts: Date.now() });
-    res.json({ ok: true, data, totalBranchy });
+    _dagimSalesCache.set(cacheKey, { data, totalBranchy, visibleBranchy, ts: Date.now() });
+    res.json({ ok: true, data, totalBranchy, visibleBranchy });
   } catch (err) {
     console.error(err);
     // Return stale cache on PBI error rather than failing the user
     const stale = _dagimSalesCache.get(cacheKey);
-    if (stale) return res.json({ ok: true, data: stale.data, totalBranchy: stale.totalBranchy, fromCache: true, stale: true });
+    if (stale) return res.json({ ok: true, data: stale.data, totalBranchy: stale.totalBranchy, visibleBranchy: stale.visibleBranchy, fromCache: true, stale: true });
     res.status(500).json({ error: 'server_error' });
   }
 });

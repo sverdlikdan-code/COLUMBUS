@@ -3591,7 +3591,7 @@ function buildOrderPage() {
     <td style="padding:7px 6px;text-align:center;font-size:13px;font-weight:700;">${fmtK(gtSpo)}</td>
     <td style="padding:7px 6px;text-align:center;font-size:12px;font-weight:700;">${gtPalSpo.toFixed(1)}</td>
     <td style="padding:7px 6px;text-align:center;font-size:13px;font-weight:700;color:#a5d6a7;">${gtOpenOrders > 0 ? fmtK(gtOpenOrders) : '—'}</td>
-    <td style="padding:7px 6px;text-align:center;font-size:12px;font-weight:700;color:#666;" title="לקוחות שקנו הוא ספירת לקוחות ייחודיים לכל מוצר — לא ניתן לחבר בין מוצרים">—</td>
+    <td id="ord-gt-branchy-cell" style="padding:7px 6px;text-align:center;font-size:12px;font-weight:700;color:#666;" title="לקוחות ייחודיים שקנו לפחות אחד מהמוצרים המוצגים כרגע (DISTINCT COUNT)">…</td>
     <td style="padding:7px 6px;text-align:center;font-size:11px;color:#90caf9;">${(window._orderTotalBranchy||null) != null ? window._orderTotalBranchy.toLocaleString('en') : '—'}</td>
     <td style="padding:7px 6px;text-align:center;font-size:12px;font-weight:700;">${gtPizurCnt > 0 ? Math.round(gtPizurSum / gtPizurCnt) + '%' : '—'}</td>
     <td style="padding:7px 6px;text-align:center;font-size:12px;font-weight:700;">${gtDaySales > 0 ? Math.round(gtDaySales).toLocaleString('en') : '—'}</td>
@@ -3653,6 +3653,38 @@ function buildOrderPage() {
     }
     const gtCell = document.getElementById('ord-gt-trend-cell');
     if (gtCell) gtCell.innerHTML = _trendHtml(_computeAggTrend(rows.map(r => r.mk)));
+  }
+
+  _fetchVisibleBranchy(rows.map(r => r.mk));
+}
+
+// Distinct-count of customers who bought ANY of the currently visible/filtered SKUs —
+// real DAX DISTINCTCOUNT scoped to this makat set (same measure as לקוחות מופעלים,
+// just filtered). Re-fetched whenever the visible set or period changes.
+window._visibleBranchyReqId = 0;
+async function _fetchVisibleBranchy(mkList) {
+  const cell = document.getElementById('ord-gt-branchy-cell');
+  if (!cell || !mkList.length) return;
+  const periods = [...(window._orderSelectedPeriods || [])].sort().join(',');
+  const key = periods + '|' + mkList.slice().sort().join(',');
+  if (window._orderVisibleBranchyKey === key) {
+    cell.textContent = window._orderVisibleBranchy != null ? window._orderVisibleBranchy.toLocaleString('en') : '—';
+    return;
+  }
+  const reqId = ++window._visibleBranchyReqId;
+  cell.textContent = '…';
+  try {
+    const url = `https://api.sverdlik-apps.site/pbi/dagim-sales?periods=${encodeURIComponent(periods)}&makat=${encodeURIComponent(mkList.join(','))}`;
+    const resp = await fetch(url, { headers: { 'X-Session': localStorage.getItem('frToken') || '' } });
+    const j = await resp.json().catch(() => null);
+    if (reqId !== window._visibleBranchyReqId) return; // stale response — a newer filter click superseded this
+    const vb = (j && j.ok) ? (j.visibleBranchy ?? null) : null;
+    window._orderVisibleBranchy = vb;
+    window._orderVisibleBranchyKey = key;
+    cell.textContent = vb != null ? vb.toLocaleString('en') : '—';
+  } catch (e) {
+    if (reqId !== window._visibleBranchyReqId) return;
+    cell.textContent = '—';
   }
 }
 
