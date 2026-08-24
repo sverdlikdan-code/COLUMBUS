@@ -1034,6 +1034,13 @@ try{
   window.matchMedia('(orientation: landscape)').addEventListener('change', ()=>{
     handleOrientationForMobileMap();
     resetLandscapeToolbarCollapse();
+    // Rotating phone->landscape resizes #map-pane (list-only fullscreen → split
+    // pane, or the reverse) — Leaflet's fitBounds/zoom math inside renderMap()
+    // (called from handleOrientationForMobileMap→setTab) runs against whatever
+    // container size it had cached BEFORE this resize actually reflows, giving
+    // a wild/wrong zoom level. Same fix already used in toggleMapHidden(): wait
+    // a frame for the CSS to settle, then invalidateSize() + re-render.
+    if(map) requestAnimationFrame(()=>{ map.invalidateSize(); renderMap(); });
   });
 }catch(_){}
 
