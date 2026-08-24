@@ -115,7 +115,10 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .km-row-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 .km-row-actions{display:flex;align-items:flex-start;flex-wrap:wrap;gap:4px;}
 .km-cities{display:flex;gap:4px;flex-wrap:nowrap;flex-shrink:0;}
-.km-right{display:flex;align-items:center;gap:8px;margin-right:auto;}
+/* List/map switching on phone is now automatic by orientation (see
+   handleOrientationForMobileMap) — the manual toggle icons this wrapped are
+   gone, so the wrapper itself is always hidden. 2026-08-24. */
+.km-right{display:none;}
 .km-info{display:flex;align-items:center;gap:4px;flex-shrink:0;}
 .km-lbl{font-size:10px;color:var(--light);font-weight:600;}
 .km-val{font-weight:900;color:var(--blue-dark);font-size:15px;}
@@ -150,7 +153,11 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .day-sw-btn.active{background:var(--blue);color:#fff;border-color:var(--blue-dark);box-shadow:0 2px 8px rgba(21,101,192,.38);}
 .day-sw-undef{border-color:#00B894;color:#00B894;font-size:16px;}
 .day-sw-undef.active{background:#00B894;border-color:#00B894;color:#fff;}
-.tab-inline{display:flex;gap:3px;}
+/* List/map manual switcher — replaced by automatic orientation switching on
+   phone (handleOrientationForMobileMap), .km-right (its wrapper) is always
+   hidden now. Kept in the DOM (not deleted) because setTab() still toggles
+   its .active class every call — harmless when invisible. 2026-08-24. */
+.tab-inline{display:none;}
 .tab-inline-btn{width:34px;height:34px;border-radius:8px;font-size:15px;cursor:pointer;background:none;border:1.5px solid var(--sky-mid);color:var(--mid);display:flex;align-items:center;justify-content:center;transition:all .15s;}
 .tab-inline-btn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
 
@@ -320,10 +327,31 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 #map-pane.active{display:block;}
 #map{height:100%;width:100%;}
 
-/* Wide: split view */
-@media(min-width:700px){
+/* Landscape phone: .hdr + .km-bar together eat over half the screen height
+   on a device this short (live agent complaint, screenshot 2026-08-24) —
+   collapse both by default, a small floating toggle brings them back for
+   whoever actually needs the day-switcher/city-chips mid-route. Hidden
+   entirely outside this state (tablet/desktop/portrait keep the toolbar). */
+#landscape-toolbar-toggle{display:none;}
+@media(orientation:landscape) and (max-height:699px){
+  #landscape-toolbar-toggle{
+    display:flex;position:fixed;top:6px;left:6px;z-index:10001;
+    width:32px;height:32px;border-radius:50%;background:var(--blue-dark);color:#fff;
+    border:none;align-items:center;justify-content:center;font-size:15px;
+    box-shadow:0 2px 8px rgba(0,0,0,.35);cursor:pointer;
+  }
+  body.tb-collapsed .hdr,
+  body.tb-collapsed .km-bar{display:none!important;}
+}
+
+/* Wide: split view. Needs min-height too, not just min-width — a phone
+   rotated to landscape reports ~800px+ width (tablet territory by width
+   alone) but only ~390-430px of height, nowhere near enough to show list
+   and map side by side. Real tablets/desktops are comfortably over 700px
+   on both axes in any orientation, so this cleanly excludes landscape
+   phones without excluding actual split-view devices. 2026-08-24. */
+@media(min-width:700px) and (min-height:700px){
   #route-body{flex-direction:row;}
-  .tab-inline{display:none;}
   #list-pane{display:block!important;flex:0 0 42%;border-left:1px solid var(--sky-mid);}
   #map-pane{display:block!important;flex:1;}
 }
@@ -592,6 +620,7 @@ body.gps-fs #map{height:100%!important;}
     <div class="wd-bar" id="wd-bar" style="margin-right:auto;"></div>
     <button id="logout-btn" onclick="logout()" style="display:none;background:none;border:none;color:rgba(255,255,255,.7);font-size:11px;font-weight:700;cursor:pointer;padding:4px 8px;letter-spacing:.5px;" title="יציאה">✕ יציאה</button>
   </div>
+  <button id="landscape-toolbar-toggle" onclick="toggleLandscapeToolbar()" title="הצג/הסתר סרגל כלים" aria-label="הצג/הסתר סרגל כלים">☰</button>
   <div class="sky-line"></div>
   <div class="demo-banner" id="demo-banner" style="display:none">⚠️ אין חיבור לשרת — אלו נתוני דמו לדוגמה, לא הלקוחות האמיתיים</div>
   <div class="tab-bar">
@@ -961,10 +990,61 @@ function toggleMapHidden(){
       renderMap();
       if(map) map.invalidateSize();
     });
+    if(Math.min(window.innerWidth, window.innerHeight)<700) tryAutoRotateLandscape();
+  } else if(document.fullscreenElement){
+    document.exitFullscreen().catch(()=>{});
+    try{ screen.orientation && screen.orientation.unlock && screen.orientation.unlock(); }catch(_){}
   }
   showToast(st.mapHidden?'📋 עובדים רק עם הרשימה — המפה כבויה':'🗺 המפה הוצגה מחדש');
+  handleOrientationForMobileMap();
 }
 applyMapHidden();
+
+// Manual list/map switch (📋/🗺 icons) removed — on a phone the map is now
+// shown automatically by physically rotating the device to landscape, list
+// otherwise. Requires no explicit user action to "switch" — setTab() (which
+// still drives #list-pane/#map-pane visibility + renderMap gating throughout
+// the file) is just called for us here instead of from a button click.
+function handleOrientationForMobileMap(){
+  // innerWidth alone breaks here: an iPhone in landscape reports ~844px wide,
+  // same ballpark as a real tablet — the device's SHORTER side stays roughly
+  // constant across rotation, so that's what actually distinguishes "phone" from
+  // "tablet/desktop" (which already gets the split-view via CSS, untouched here).
+  if(Math.min(window.innerWidth, window.innerHeight)>=700) return;
+  const isLandscape = window.matchMedia('(orientation: landscape)').matches;
+  setTab(!st.mapHidden && isLandscape ? 'map' : 'list');
+}
+// Toolbar auto-collapse is deliberately separate from handleOrientationForMobileMap
+// above — that function runs on every map-toggle/route-load too, not just real
+// rotations, and re-collapsing a toolbar the agent just manually opened (still
+// in the same landscape orientation) on an unrelated call would be annoying.
+// This one only resets on an actual orientation flip.
+function resetLandscapeToolbarCollapse(){
+  if(Math.min(window.innerWidth, window.innerHeight)>=700) return;
+  document.body.classList.toggle('tb-collapsed', window.matchMedia('(orientation: landscape)').matches);
+}
+function toggleLandscapeToolbar(){
+  document.body.classList.toggle('tb-collapsed');
+}
+try{
+  window.matchMedia('(orientation: landscape)').addEventListener('change', ()=>{
+    handleOrientationForMobileMap();
+    resetLandscapeToolbarCollapse();
+  });
+}catch(_){}
+
+// Chrome/Android only — screen.orientation.lock() requires fullscreen and
+// iOS Safari doesn't implement the Orientation Lock API at all (no site can
+// force-rotate an iPhone). Fails silently into a toast telling the agent to
+// rotate manually themselves — same end state, one extra hand movement.
+async function tryAutoRotateLandscape(){
+  try{
+    if(document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
+    if(screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape');
+  }catch(_){
+    showToast('🔄 סובב את המכשיר לרוחב כדי לראות את המפה', 3500);
+  }
+}
 
 // >14 days since last order (or never ordered) — same threshold as the red badge in the client card
 function isDormantClient(c){
@@ -1793,6 +1873,8 @@ async function initRoute(){
     console.error('[initRoute] pre-render error (day='+st.day+'):', renderErr);
   }
   renderClientList(); // always called — never leave spinner hanging
+  handleOrientationForMobileMap(); // phone: show map if already landscape + enabled
+  resetLandscapeToolbarCollapse(); // phone: start collapsed if already landscape
   st.topSalesIds=new Set();
   fetchDayTopSales(myId);
   // Road-optimal ordering via OSRM /trip (async, cached)
@@ -1882,7 +1964,11 @@ function setTab(t, skipMap=false){
   const im=document.getElementById('tab-inline-map');
   if(il) il.classList.toggle('active',t==='list');
   if(im) im.classList.toggle('active',t==='map');
-  if(window.innerWidth<700){
+  // min(width,height) not width alone — a phone rotated to landscape reports
+  // ~800px+ innerWidth, tablet territory by raw width, but it's still a phone
+  // with no room for list+map side by side. Found 2026-08-24 chasing the same
+  // bug in handleOrientationForMobileMap() below.
+  if(Math.min(window.innerWidth, window.innerHeight)<700){
     document.getElementById('list-pane').style.display=t==='list'?'block':'none';
     document.getElementById('map-pane').classList.toggle('active',t==='map');
   }
@@ -3688,7 +3774,7 @@ function reviewTabletGps(custId, custName){
   const t=TABLET_GPS[String(custId)];
   if(!t||!t.lat||!t.lng){ showToast('❌ אין נתוני GPS מהטאבלט עבור לקוח זה'); return; }
   if(!map) renderMap(); // list-only view (narrow screen) may never have initialized the map
-  if(window.innerWidth<700 && st.tab!=='map') setTab('map',true);
+  if(Math.min(window.innerWidth,window.innerHeight)<700 && st.tab!=='map') setTab('map',true);
   requestAnimationFrame(()=>{
     const cl=st.clients.find(x=>String(x.custId)===String(custId));
     if(_tabletReviewMarker){ map.removeLayer(_tabletReviewMarker); _tabletReviewMarker=null; }
