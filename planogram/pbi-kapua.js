@@ -381,6 +381,7 @@ async function fetchKapuaFromBI(makatim) {
     ensure(mk);
     result[mk].shelfLife = r['[shelfLife]'] ?? null;
     result[mk].stopSale  = r['[stopSale]'] === 'STOP ⛔';
+    result[mk].weight    = r['KARTIS PARIT[משקל ליחידה]'] ?? null;
     const kpName = r['KARTIS PARIT[תאור]'];
     if (kpName) result[mk].nameEn = kpName.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim() || null;
   }
@@ -1062,6 +1063,26 @@ async function fetchDagimFromBI() {
       result[mk].stock = result[mk].pakuot.reduce((s, p) => s + (p.cartons || 0), 0);
     if (!result[mk].stockZafn && result[mk].pakuotZafn.length > 0)
       result[mk].stockZafn = result[mk].pakuotZafn.reduce((s, p) => s + (p.cartons || 0), 0);
+  }
+
+  // English name for supplier POs — isolated query: if the column is wrong/missing
+  // in this Fabric model, this must NOT fail the rest of the דגים fetch.
+  try {
+    const foreignRows = await dax(t, `
+      EVALUATE
+      SELECTCOLUMNS(
+        FILTER('KARTIS PARIT', CONTAINSROW(${mkSet}, 'KARTIS PARIT'[מק"ט])),
+        "makat", 'KARTIS PARIT'[מק"ט],
+        "nameForeign", 'KARTIS PARIT'[תאור לועזי]
+      )
+    `);
+    for (const r of foreignRows) {
+      const mk = String(r['[makat]'] || '');
+      const nf = r['[nameForeign]'];
+      if (mk && result[mk]) result[mk].nameForeign = (nf && nf.trim()) || null;
+    }
+  } catch (e) {
+    console.warn(`fetchDagimFromBI: תאור לועזי query failed (${e.message}) — nameForeign left null`);
   }
 
   console.log(`fetchDagimFromBI: ${makatim.length} active דגים products from KARTIS PARIT`);
