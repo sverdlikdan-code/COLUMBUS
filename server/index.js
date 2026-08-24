@@ -6,6 +6,7 @@ const path = require('path');
 const https = require('https');
 const { execFile } = require('child_process');
 const ExcelJS = require('exceljs');
+const puppeteer = require('puppeteer');
 const { executeDax, getDatasetRefreshTime } = require('./powerbi');
 const { Resend } = require('resend');
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
@@ -455,6 +456,7 @@ function deviceType(ua) {
 // ── RATE LIMITER ────────────────────────────────────────────────────────────
 const loginAttempts = new Map();
 const generalRequests = new Map();
+const renderRequests = new Map();
 // Cleanup expired rate-limit entries every 5 minutes to prevent memory leak
 setInterval(() => {
   const now = Date.now();
@@ -483,6 +485,22 @@ function checkGeneralLimit(ip) {
 
 const dataRateLimit = (req, res, next) => {
   if (checkGeneralLimit(getRealIp(req))) return res.status(429).json({ error: 'rate_limit' });
+  next();
+};
+
+// Each request here launches a real headless-browser page (server-side share
+// image render) — far more expensive than a typical data endpoint, so the
+// generous 60/min general limit above isn't tight enough on its own.
+function checkRenderLimit(ip) {
+  const now = Date.now();
+  let rec = renderRequests.get(ip) || { count: 0, resetAt: now + 60_000 };
+  if (now > rec.resetAt) rec = { count: 0, resetAt: now + 60_000 };
+  rec.count++;
+  renderRequests.set(ip, rec);
+  return rec.count > 10;
+}
+const renderRateLimit = (req, res, next) => {
+  if (checkRenderLimit(getRealIp(req))) return res.status(429).json({ error: 'rate_limit' });
   next();
 };
 
@@ -1809,6 +1827,83 @@ app.post('/api/share-timing', requireAuth, dataRateLimit, (req, res) => {
     });
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: 'server_error' }); }
+});
+
+// ── Server-side render of the zikuy share blank ─────────────────────────────
+// 2026-08-24 — three separate client-side fixes (html2canvas→snapDOM, paint-
+// wait, concurrent-capture guard) each closed a real, confirmed bug and each
+// still left iOS Safari specifically (never Android) producing a blank table
+// in the shared image, unreproducible in any test harness. Root cause is
+// "phones are an unbounded set of timing/memory/WebKit-version edge cases,"
+// not any single bug — so the fix moves the actual rasterization off the
+// phone entirely. Opens docs/zikuy-order.html itself (same file, same CSS,
+// same snapDOM capture code) in a real, controlled headless Chromium on this
+// VPS via a `_shareData` param the page reads on load (see initRenderMode()
+// in that file) — the agent's phone never runs any of it, just receives the
+// finished PNG. One warm browser instance is reused across requests (each
+// request still gets its own fresh page/tab — no state shared between
+// captures) to avoid paying the ~1s browser-launch cost on every share.
+let _renderBrowser = null;
+async function getRenderBrowser() {
+  if (!_renderBrowser) {
+    _renderBrowser = puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    _renderBrowser.catch(() => { _renderBrowser = null; }); // launch itself failed — allow retry next call
+  }
+  try {
+    return await _renderBrowser;
+  } catch (e) {
+    _renderBrowser = null;
+    throw e;
+  }
+}
+app.post('/api/render-share-image', requireAuth, renderRateLimit, async (req, res) => {
+  const { custId, custName, city, agentCode, agentName, barcodeMode, items } = req.body || {};
+  if (!custId || !Array.isArray(items) || !items.length) return res.status(400).json({ error: 'invalid payload' });
+  if (items.length > 200) return res.status(400).json({ error: 'too many items' });
+  // qty must actually be numeric — this used to be guaranteed by the interactive
+  // qty-stepper widget alone; now that it can arrive as raw JSON, reject bad
+  // shapes here instead of coercing to a string (renderProformaTable() also
+  // escapes it client-side as defense in depth, but the boundary is here).
+  if (items.some(it => !Number.isFinite(it.qty))) return res.status(400).json({ error: 'invalid qty' });
+  const payload = Buffer.from(JSON.stringify({
+    items: items.slice(0, 200).map(it => ({
+      sku: String(it.sku || '').slice(0, 30), name: String(it.name || '').slice(0, 200),
+      imgUrl: String(it.imgUrl || '').slice(0, 300), lastShipDate: it.lastShipDate || null,
+      lastShipQty: Number.isFinite(it.lastShipQty) ? it.lastShipQty : null,
+      ean: String(it.ean || '').slice(0, 20), famCode: String(it.famCode || '').slice(0, 10),
+      qty: it.qty, date: String(it.date || '').slice(0, 20),
+      option: String(it.option || '').slice(0, 40),
+    })),
+    barcodeMode: !!barcodeMode,
+  })).toString('base64');
+  const qs = new URLSearchParams({
+    custId: String(custId).slice(0, 20), custName: String(custName || '').slice(0, 100),
+    city: String(city || '').slice(0, 50), agentCode: String(agentCode || '').slice(0, 20),
+    agentName: String(agentName || '').slice(0, 50), _shareData: payload,
+  });
+  let page;
+  try {
+    const browser = await getRenderBrowser();
+    page = await browser.newPage();
+    await page.setViewport({ width: 1200, height: 1600 });
+    await page.goto(`http://localhost:${PORT}/zikuy-order.html?${qs}`, { waitUntil: 'load', timeout: 15000 });
+    const base64 = await page.evaluate(async () => {
+      if (!window.__renderReady) throw new Error('not_in_render_mode');
+      const blob = await window.__renderReady;
+      if (!blob) throw new Error('capture_failed');
+      const buf = await blob.arrayBuffer();
+      let binary = ''; const bytes = new Uint8Array(buf);
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      return btoa(binary);
+    });
+    res.setHeader('Content-Type', 'image/png');
+    res.send(Buffer.from(base64, 'base64'));
+  } catch (e) {
+    console.error('[render-share-image]', e.message);
+    res.status(500).json({ error: 'render_failed' });
+  } finally {
+    if (page) await page.close().catch(() => {});
+  }
 });
 
 // ── GPS Sync Check: compare corrections vs PBI coords ───────────────────────

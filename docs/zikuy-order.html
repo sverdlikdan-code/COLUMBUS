@@ -295,6 +295,10 @@ const custName = params.get('custName') || '';
 const city = params.get('city') || '';
 const agentCode = params.get('agentCode') || '';
 const agentName = params.get('agentName') || '';
+// Present only when the server's /api/render-share-image opens THIS page via
+// Puppeteer instead of a real agent using it interactively — see initRenderMode()
+// and captureShareImage() below. base64 JSON: {items, barcodeMode}.
+const _shareDataParam = params.get('_shareData') || '';
 let barcodeMode = false; // agent's own toggle (➕ ברקוד button) — not tied to client segment
 
 const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -351,6 +355,7 @@ const dMax = threeYearsAhead.toISOString().slice(0,10);
 const dMin = oneYearAgo.toISOString().slice(0,10);
 
 async function init(){
+  if(_shareDataParam){ return initRenderMode(); }
   document.getElementById('inf-name').textContent = custName || '—';
   document.getElementById('inf-id').textContent = custId || '—';
   document.getElementById('inf-city').textContent = city || '—';
@@ -368,6 +373,36 @@ async function init(){
   }catch(e){
     document.getElementById('browse-loading').textContent='❌ '+e.message;
   }
+}
+
+// Server-side render mode 2026-08-24 — /api/render-share-image opens this exact
+// page via Puppeteer instead of relying on the agent's own (often iOS Safari)
+// browser to rasterize the blank. Skips the product browser entirely, seeds
+// `selected` from the payload the agent's device already built (same shape as
+// what fetchServerRenderedImage() below sends), and drives straight to a real
+// capture. window.__renderReady is what the server side awaits for the PNG —
+// getShareImage()/captureShareImage() do the actual work, same code that was
+// already running client-side, just now inside a controlled desktop Chromium
+// instead of an unpredictable phone.
+async function initRenderMode(){
+  // atob() decodes base64 into a byte-per-char binary string, NOT UTF-8 text —
+  // product names (Hebrew) came through as garbage until this went through
+  // TextDecoder too. Found live: everything from URL params (custName/city/
+  // agentName) rendered fine since URLSearchParams IS UTF-8 aware, only the
+  // base64 payload's Hebrew was corrupted. 2026-08-24.
+  const _bytes=Uint8Array.from(atob(_shareDataParam),c=>c.charCodeAt(0));
+  const payload=JSON.parse(new TextDecoder('utf-8').decode(_bytes));
+  for(const it of payload.items){
+    selected.set(it.sku,{product:it,qty:it.qty,date:it.date,option:it.option});
+  }
+  if(payload.barcodeMode) barcodeMode=true;
+  document.getElementById('pv-title').textContent=`בקשת זיכוי — ${custName}`;
+  document.getElementById('pv-custid').querySelector('span').textContent=custId;
+  document.getElementById('pv-meta').innerHTML=`עיר: ${esc(city)} | סוכן: ${esc(agentName||agentCode)} | תאריך: ${new Date().toLocaleDateString('he-IL')}`;
+  renderProformaTable([...selected.values()]);
+  await waitForImages(document.getElementById('print-view'));
+  showPrintFullscreen();
+  window.__renderReady=getShareImage();
 }
 
 // Single-level hierarchy: pick a מחלקה, then see all its photos at once,
@@ -564,8 +599,12 @@ function renderProformaTable(rows){
   document.getElementById('pv-tbody').innerHTML=rows.map(r=>{
     const img=r.product.imgUrl?`<img src="${proxyImg(r.product.imgUrl)}" alt="">`:'';
     const lsDate=r.product.lastShipDate;
+    // esc() on every piece here (not just the obviously-freeform ones) — these
+    // rows can now originate from /api/render-share-image's JSON body, not
+    // only the interactive date/qty picker widgets that used to guarantee
+    // safe values. 2026-08-24.
     const lastShipCell = lsDate
-      ? `${lsDate.split('-').reverse().join('.')}<small>${r.product.lastShipQty} יח'</small>`
+      ? `${esc(String(lsDate).split('-').reverse().join('.'))}<small>${esc(String(r.product.lastShipQty))} יח'</small>`
       : '—';
     // Days between the expiry the agent entered (r.date) and the last time this
     // exact client actually received this SKU (lsDate) — tells the agent whether the
@@ -577,7 +616,7 @@ function renderProformaTable(rows){
     const gapClass = gapDays!==null && gapDays<0 ? 'pv-gap gap-neg' : 'pv-gap';
     const eanTd = barcodeMode ? `<td class="pv-ean-cell">${eanCellHtml(r.product.ean)}</td>` : '';
     const qtyCell = isGramsProduct(r.product) ? r.qty.toFixed(3) : r.qty;
-    return `<tr>${eanTd}<td>${img}</td><td class="pv-sku">${esc(r.product.sku)}</td><td class="pv-name">${esc(shortName(r.product.name))}</td><td class="pv-qty">${qtyCell}</td><td class="pv-lastship">${lastShipCell}</td><td class="${gapClass}">${gapCell}</td><td>${r.date}</td><td>${esc(r.option)}</td></tr>`;
+    return `<tr>${eanTd}<td>${img}</td><td class="pv-sku">${esc(r.product.sku)}</td><td class="pv-name">${esc(shortName(r.product.name))}</td><td class="pv-qty">${esc(String(qtyCell))}</td><td class="pv-lastship">${lastShipCell}</td><td class="${gapClass}">${gapCell}</td><td>${esc(r.date)}</td><td>${esc(r.option)}</td></tr>`;
   }).join('') + `<tr class="pv-total"><td colspan="${firstColspan}">סה"כ</td><td>${totalQty}</td><td colspan="4"></td></tr>`;
 }
 
@@ -750,12 +789,38 @@ async function _captureShareImageInner(){
 // already sitting in memory and share() fires essentially synchronously with
 // the tap. Re-armed whenever the blank's content changes (barcode toggle).
 let _shareBlobPromise=null;
+// On a real agent's device this now fetches a server-rendered PNG instead of
+// capturing locally — captureShareImage() (snapDOM) stays in place ONLY for
+// render mode (see initRenderMode() above), where it runs inside a controlled
+// Puppeteer/Chromium instance on the VPS rather than the agent's own phone.
+// 2026-08-24: three separate client-side capture fixes (html2canvas→snapDOM,
+// paint-wait, concurrent-capture guard) each fixed a real, confirmed bug and
+// each still left a real device (iOS Safari specifically — Android has never
+// had this problem) producing a blank table. Moving the actual rasterization
+// off the phone entirely removes that whole category of device-specific
+// timing bug rather than chasing a fourth variant of it.
 function prewarmShareImage(){
-  _shareBlobPromise=captureShareImage().catch(e=>{ console.warn('prewarm capture failed',e); return null; });
+  _shareBlobPromise=(_shareDataParam?captureShareImage():fetchServerRenderedImage()).catch(e=>{ console.warn('prewarm capture failed',e); return null; });
 }
 function getShareImage(){
   if(!_shareBlobPromise) prewarmShareImage();
   return _shareBlobPromise;
+}
+async function fetchServerRenderedImage(){
+  const t0=performance.now();
+  const items=[...selected.values()].map(r=>({
+    sku:r.product.sku, name:r.product.name, imgUrl:r.product.imgUrl||'',
+    lastShipDate:r.product.lastShipDate||null, lastShipQty:r.product.lastShipQty||null,
+    ean:r.product.ean||'', famCode:r.product.famCode||'',
+    qty:r.qty, date:r.date, option:r.option,
+  }));
+  _logShareTiming('ssr_start',{imgCount:items.filter(i=>i.imgUrl).length});
+  const res=await apiFetch('/api/render-share-image',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({custId,custName,city,agentCode,agentName,barcodeMode,items})});
+  if(!res.ok){ _logShareTiming('ssr_error',{ms:performance.now()-t0}); throw new Error('render_failed_'+res.status); }
+  const blob=await res.blob();
+  _logShareTiming('ssr_complete',{ms:performance.now()-t0});
+  return blob;
 }
 // Desktop fallback / manual WhatsApp Web path: WhatsApp Web has no URL API to
 // pre-attach a file (browser security), so download the image and open
