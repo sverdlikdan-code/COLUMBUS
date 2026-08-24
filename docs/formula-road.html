@@ -498,6 +498,22 @@ body.map-hidden #tab-map,body.map-hidden #tab-inline-map{display:none!important;
      fits day-switch + the two primary CTAs (ניתוח / הצג מפה) without
      wrapping onto 2+ lines. Portrait-toolbar decluttering, 2026-08-24. */
   .mob-collapse{display:none!important;}
+  /* ניתוח יום modal — fullscreen sheet on phone (was a fixed 660px-max box that
+     left the 6-col table (#/לקוח/יעד/מכר/%/action) squeezed into ~340px, forcing
+     horizontal scroll that hid columns). table-layout:fixed + % widths + wrapping
+     the name column instead of nowrap makes all columns fit without side-scroll. */
+  #day-modal{padding:0;}
+  #day-modal-box{max-width:100%;width:100%;height:100%;max-height:100%;border-radius:0;}
+  #day-modal-body{padding:10px 8px;}
+  .day-top10:not(.day-dormant-tbl){table-layout:fixed;white-space:normal;}
+  .day-top10:not(.day-dormant-tbl) th:nth-child(1),.day-top10:not(.day-dormant-tbl) td:nth-child(1){width:8%;}
+  .day-top10:not(.day-dormant-tbl) th:nth-child(2),.day-top10:not(.day-dormant-tbl) td:nth-child(2){width:36%;word-break:break-word;}
+  .day-top10:not(.day-dormant-tbl) th:nth-child(3),.day-top10:not(.day-dormant-tbl) td:nth-child(3){width:19%;}
+  .day-top10:not(.day-dormant-tbl) th:nth-child(4),.day-top10:not(.day-dormant-tbl) td:nth-child(4){width:19%;}
+  .day-top10:not(.day-dormant-tbl) th:nth-child(5),.day-top10:not(.day-dormant-tbl) td:nth-child(5){width:12%;}
+  .day-top10:not(.day-dormant-tbl) th:nth-child(6),.day-top10:not(.day-dormant-tbl) td:nth-child(6){width:6%;}
+  .day-top10{font-size:10.5px;}
+  .day-top10 th,.day-top10 td{padding:4px 3px;}
 }
 .gps-hist-item{padding:10px 14px;border-bottom:1px solid #f0f6ff;font-size:12px;display:flex;flex-direction:column;gap:2px;}
 .gps-hist-item:last-child{border-bottom:none;}
@@ -3328,6 +3344,7 @@ async function _fetchClientAI(lang) {
     // Per user request 2026-08-23.
     let devTbl = '';
     for (const { key, label } of companyGroups) {
+      if (gapCompanies.has(key)) continue;
       const rows = familyDeviation && familyDeviation[key];
       if (!rows || !rows.length) continue;
       devTbl += `<div style="margin:10px 0 4px;font-size:13px;color:#4A148C;font-weight:700">${label} — חלוקת משפחות מוצר, סניף מול ${isChain ? 'רשת' : 'קטגוריית'} ${chainName}</div>`;
