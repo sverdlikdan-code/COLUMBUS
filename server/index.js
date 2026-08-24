@@ -4490,6 +4490,60 @@ app.post('/api/ai-feedback', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+// POST/GET /api/zikuy-history — append-only log of finalized זיכוי blanks (only
+// logged at actual send-time — see docs/zikuy-order.html's sendAsImage()/
+// downloadAndOpenWaWeb() call sites, NOT at prewarm/preview time, so opening a
+// blank and closing it without sending doesn't pollute the history). Each
+// agent only ever sees their own entries — agentCode/agentName are resolved
+// server-side from the session, never trusted from the request body. Kept for
+// ~3 months, pruned on every write.
+const BLANK_HISTORY_FILE = path.join(__dirname, 'data', 'blank-history.json');
+const BLANK_HISTORY_MAX_AGE_MS = 92 * 24 * 3600 * 1000;
+function readBlankHistory() {
+  try { return JSON.parse(fs.readFileSync(BLANK_HISTORY_FILE, 'utf8')); } catch (_) { return []; }
+}
+function writeBlankHistory(arr) {
+  const cutoff = Date.now() - BLANK_HISTORY_MAX_AGE_MS;
+  const pruned = arr.filter(e => new Date(e.ts).getTime() >= cutoff);
+  try {
+    fs.mkdirSync(path.dirname(BLANK_HISTORY_FILE), { recursive: true });
+    fs.writeFileSync(BLANK_HISTORY_FILE, JSON.stringify(pruned, null, 2), 'utf8');
+  } catch (_) {}
+  return pruned;
+}
+app.post('/api/zikuy-history', requireAuth, dataRateLimit, (req, res) => {
+  const { custId, custName, city, items } = req.body || {};
+  if (!custId || !Array.isArray(items) || !items.length) return res.status(400).json({ ok: false, error: 'invalid payload' });
+  if (items.length > 200) return res.status(400).json({ ok: false, error: 'too many items' });
+  const agentCode = req.session.agentCode || null;
+  const agentName = (loadAgentList()[agentCode] || {}).name || '';
+  const entry = {
+    id: crypto.randomUUID(),
+    ts: new Date().toISOString(),
+    agentCode, agentName,
+    custId: String(custId).slice(0, 20),
+    custName: String(custName || '').slice(0, 100),
+    city: String(city || '').slice(0, 50),
+    items: items.slice(0, 200).map(it => ({
+      sku: String(it.sku || '').slice(0, 30), name: String(it.name || '').slice(0, 200),
+      qty: Number.isFinite(it.qty) ? it.qty : 0,
+      date: String(it.date || '').slice(0, 20),
+      option: String(it.option || '').slice(0, 40),
+    })),
+  };
+  const log = readBlankHistory();
+  log.push(entry);
+  writeBlankHistory(log);
+  res.json({ ok: true });
+});
+app.get('/api/zikuy-history', requireAuth, dataRateLimit, (req, res) => {
+  const cutoff = Date.now() - BLANK_HISTORY_MAX_AGE_MS;
+  const entries = readBlankHistory().filter(e =>
+    e.agentCode === req.session.agentCode && new Date(e.ts).getTime() >= cutoff
+  );
+  res.json({ ok: true, entries });
+});
+
 // ── Client Return Form (זיכוי) — products this client bought in the last 365 days,
 // each with a 3-closed-month return-rate (% זיכויים) and photo, for building a
 // physical-return proforma. Header (client/city/agent) comes from the URL query string

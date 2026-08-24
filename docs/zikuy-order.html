@@ -829,6 +829,19 @@ async function fetchServerRenderedImage(){
   _logShareTiming('ssr_complete',{ms:performance.now()-t0});
   return blob;
 }
+// Logs a finalized blank for the "היסטוריית בלנקים" screen in formula-road.html
+// — fired only from the two real send actions below (native share success,
+// WhatsApp-Web download fallback), never from the background prewarm/render
+// paths, so previewing a blank without sending it doesn't create a history
+// entry. Fire-and-forget: never blocks or fails the actual send. 2026-08-25.
+function logBlankHistory(){
+  if(!selected.size) return;
+  const items=[...selected.values()].map(r=>({
+    sku:r.product.sku, name:r.product.name, qty:r.qty, date:r.date, option:r.option,
+  }));
+  apiFetch('/api/zikuy-history',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({custId,custName,city,items})}).catch(e=>console.warn('blank history log failed',e));
+}
 // Desktop fallback / manual WhatsApp Web path: WhatsApp Web has no URL API to
 // pre-attach a file (browser security), so download the image and open
 // WhatsApp Web for a manual attach. window.open() genuinely lands on the web
@@ -845,6 +858,7 @@ function downloadAndOpenWaWeb(blob){
   setTimeout(()=>URL.revokeObjectURL(url),5000);
   window.open('https://web.whatsapp.com/','_blank');
   showToast('התמונה הורדה ל-Downloads — פתח את WhatsApp וצרף אותה מהגלריה');
+  logBlankHistory();
 }
 // Neither button was guarded against repeat taps — capture is genuinely
 // slow on a loaded device (real complaint 2026-08-24: "spinning a long time"), and with no
@@ -887,6 +901,7 @@ async function sendAsImage(){
         // image, redundant with the blank's own header. Live complaint 2026-08-24.
         await navigator.share({files:[file]});
         showToast('נשלח לשיתוף');
+        logBlankHistory();
         return;
       }
     }
