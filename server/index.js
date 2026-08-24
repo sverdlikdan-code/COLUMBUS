@@ -1788,6 +1788,29 @@ app.post('/save-gps', requireAuth, dataRateLimit, async (req, res) => {
   }
 });
 
+// TEMPORARY diagnostic endpoint — live complaint 2026-08-24: zikuy WhatsApp
+// share hangs for minutes on some devices with no error, no visibility into
+// why (html2canvas runs entirely client-side, nothing else about it reaches
+// the server). Client posts a beacon at capture start and at each phase
+// finishing so a real hang shows up as a 'start' with no matching 'done' in
+// the log, and a real slow-but-working case shows up as large ms values.
+// Remove once the root cause is confirmed and fixed.
+app.post('/api/share-timing', requireAuth, dataRateLimit, (req, res) => {
+  try {
+    const { phase, ms, imgCount, custId } = req.body || {};
+    if (!phase || typeof phase !== 'string' || phase.length > 40) return res.status(400).json({ error: 'invalid phase' });
+    writeLog({
+      ts: new Date().toISOString(), event: 'share-timing', phase,
+      ms: Number.isFinite(ms) ? Math.round(ms) : null,
+      imgCount: Number.isFinite(imgCount) ? imgCount : null,
+      custId: custId ? String(custId).slice(0, 20) : null,
+      agentCode: req.session?.agentCode || null, ip: getRealIp(req),
+      ua: req.headers['user-agent'] || null,
+    });
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'server_error' }); }
+});
+
 // ── GPS Sync Check: compare corrections vs PBI coords ───────────────────────
 function haversineDist(lat1, lng1, lat2, lng2) {
   const R = 6371000;
