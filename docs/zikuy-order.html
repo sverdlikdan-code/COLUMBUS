@@ -125,6 +125,12 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 #pv-close-btn{background:#37474F;color:#fff;border:none;border-radius:10px;padding:12px 20px;font-weight:800;font-size:14.5px;cursor:pointer;font-family:inherit;flex-shrink:0;}
 #pv-barcode-btn{background:var(--blue);color:#fff;border:none;border-radius:10px;padding:12px 20px;font-weight:800;font-size:14.5px;cursor:pointer;font-family:inherit;flex-shrink:0;}
 #pv-barcode-btn.on{background:var(--green);}
+/* Manual backup path — always available regardless of native share support.
+   Needed for tablets that only have WhatsApp Web bookmarked in the browser,
+   not the native app installed: navigator.share()'s share sheet can only ever
+   list installed apps, so on those devices the primary wa-btn's native share
+   silently has nothing WhatsApp-shaped to offer. */
+#wa-web-btn{background:#fff;color:#128C7E;border:1.5px solid #25D366;border-radius:10px;padding:12px 16px;font-weight:800;font-size:14.5px;cursor:pointer;font-family:inherit;flex-shrink:0;white-space:nowrap;}
 #pv-overlay.show #print-view{position:static;left:auto;width:100%;max-width:1100px;margin:0 auto;box-shadow:0 2px 16px rgba(0,0,0,.15);border-radius:12px;}
 @media print{
   body *{visibility:hidden;}
@@ -234,6 +240,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
     <button type="button" id="pv-close-btn" onclick="hidePrintFullscreen()">✕ סגור</button>
     <button type="button" id="pv-barcode-btn" onclick="toggleBarcodeMode()">➕ ברקוד</button>
     <a class="wa-btn show" id="wa-btn" target="_blank" rel="noopener">📱 שלח ב-WhatsApp</a>
+    <button type="button" id="wa-web-btn" onclick="sendViaWhatsAppWeb()" title="גיבוי אם WhatsApp לא מותקן במכשיר — מוריד תמונה ופותח WhatsApp Web">💻 Web</button>
   </div>
   <div id="print-view">
     <div id="pv-header">
@@ -585,34 +592,51 @@ function setupWaButton(rows, now){
     sendAsImage();
   };
 }
+// Capture #print-view as a landscape PNG blob — shared by both the native-share
+// path (sendAsImage) and the manual WhatsApp Web fallback (sendViaWhatsAppWeb).
+async function captureShareImage(){
+  const el=document.getElementById('print-view');
+  // #pv-overlay.show #print-view shrinks to viewport width on phones (CSS
+  // rule above), so capturing it as-is gives a tall/narrow canvas that
+  // WhatsApp letterboxes/crops. Force the full 1100px design width for the
+  // capture only, then restore.
+  const prevWidth=el.style.width, prevMaxWidth=el.style.maxWidth;
+  el.style.width='1100px'; el.style.maxWidth='1100px';
+  let canvas=await html2canvas(el,{useCORS:true,backgroundColor:'#ffffff',scale:1.5});
+  el.style.width=prevWidth; el.style.maxWidth=prevMaxWidth;
+  // Still portrait with a long product list (table taller than 1100px wide) —
+  // rotate into landscape so WhatsApp never crops it.
+  if(canvas.height>canvas.width){
+    const rotated=document.createElement('canvas');
+    rotated.width=canvas.height; rotated.height=canvas.width;
+    const ctx=rotated.getContext('2d');
+    ctx.translate(rotated.width/2,rotated.height/2);
+    ctx.rotate(Math.PI/2);
+    ctx.drawImage(canvas,-canvas.width/2,-canvas.height/2);
+    canvas.width=0; canvas.height=0;
+    canvas=rotated;
+  }
+  const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
+  // Free the pixel buffer now — otherwise canvas+blob+File all stay alive together
+  // while the native share sheet is open, which is when the freeze/flicker on
+  // return has been reported (Android WebView under memory pressure).
+  canvas.width=0; canvas.height=0;
+  return blob;
+}
+// Desktop fallback / manual WhatsApp Web path: WhatsApp Web has no URL API to
+// pre-attach a file (browser security), so download the image and open
+// WhatsApp Web for a manual attach.
+function downloadAndOpenWaWeb(blob){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`zikuy-${custId}.png`; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
+  window.open('https://web.whatsapp.com/','_blank');
+  showToast('התמונה הורדה — צרף אותה בשיחה בווטסאפ Web');
+}
 async function sendAsImage(){
   try{
-    const el=document.getElementById('print-view');
-    // #pv-overlay.show #print-view shrinks to viewport width on phones (CSS
-    // rule above), so capturing it as-is gives a tall/narrow canvas that
-    // WhatsApp letterboxes/crops. Force the full 1100px design width for the
-    // capture only, then restore.
-    const prevWidth=el.style.width, prevMaxWidth=el.style.maxWidth;
-    el.style.width='1100px'; el.style.maxWidth='1100px';
-    let canvas=await html2canvas(el,{useCORS:true,backgroundColor:'#ffffff',scale:1.5});
-    el.style.width=prevWidth; el.style.maxWidth=prevMaxWidth;
-    // Still portrait with a long product list (table taller than 1100px wide) —
-    // rotate into landscape so WhatsApp never crops it.
-    if(canvas.height>canvas.width){
-      const rotated=document.createElement('canvas');
-      rotated.width=canvas.height; rotated.height=canvas.width;
-      const ctx=rotated.getContext('2d');
-      ctx.translate(rotated.width/2,rotated.height/2);
-      ctx.rotate(Math.PI/2);
-      ctx.drawImage(canvas,-canvas.width/2,-canvas.height/2);
-      canvas.width=0; canvas.height=0;
-      canvas=rotated;
-    }
-    const blob=await new Promise(res=>canvas.toBlob(res,'image/png'));
-    // Free the pixel buffer now — otherwise canvas+blob+File all stay alive together
-    // while the native share sheet is open, which is when the freeze/flicker on
-    // return has been reported (Android WebView under memory pressure).
-    canvas.width=0; canvas.height=0;
+    const blob=await captureShareImage();
     // navigator.share({files}) is real usage on the agent's phone/tablet (WhatsApp
     // shows up as a direct target with the image attached) but on a real desktop
     // it routes through the generic OS Share charm instead of WhatsApp Web — worse,
@@ -634,18 +658,20 @@ async function sendAsImage(){
         return;
       }
     }
-    if(blob){
-      // Desktop fallback: WhatsApp Web has no URL API to pre-attach a file (browser
-      // security), so download the image and open WhatsApp Web for a manual attach.
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement('a');
-      a.href=url; a.download=`zikuy-${custId}.png`; a.click();
-      setTimeout(()=>URL.revokeObjectURL(url),5000);
-      window.open('https://web.whatsapp.com/','_blank');
-      showToast('התמונה הורדה — צרף אותה בשיחה בווטסאפ Web');
-      return;
-    }
+    if(blob){ downloadAndOpenWaWeb(blob); return; }
   }catch(e){ console.warn('image share unavailable', e); }
+  showToast('שיתוף אוטומטי לא זמין — צלם את המסך עם המצלמה');
+}
+// Manual backup — always goes straight to download+web.whatsapp.com, skipping
+// the native-share attempt entirely. For tablets where the native share sheet
+// has no WhatsApp target (no app installed, only WhatsApp Web bookmarked),
+// sendAsImage's navigator.share() succeeds but silently shows no WhatsApp
+// option — this button is the deterministic way off that dead end.
+async function sendViaWhatsAppWeb(){
+  try{
+    const blob=await captureShareImage();
+    if(blob){ downloadAndOpenWaWeb(blob); return; }
+  }catch(e){ console.warn('whatsapp web share unavailable', e); }
   showToast('שיתוף אוטומטי לא זמין — צלם את המסך עם המצלמה');
 }
 
