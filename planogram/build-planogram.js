@@ -1311,6 +1311,18 @@ async function main() {
       if (dagimRestored > 0) console.warn(`⚠ dagim PBI returned 0 products (KARTIS PARIT during refresh?) — restored ${dagimRestored} from prev product-data.json`);
     }
 
+    // Same fallback for חלבי — had no protection at all, unlike דגים above.
+    // Caused a real incident 2026-08-24: PBI returned incomplete/empty rows for
+    // SVALIA/PRESIDENT, and they simply vanished from product-data.json.
+    if (halaviProds.length === 0) {
+      const halaviMkSet = new Set(Object.values(_halaviBase.picks).filter(Boolean).map(p => String(p.makat)));
+      let halaviRestored = 0;
+      for (const [mk, v] of Object.entries(prevProdDataAll)) {
+        if (halaviMkSet.has(mk)) { prodData[mk] = v; halaviRestored++; }
+      }
+      if (halaviRestored > 0) console.warn(`⚠ halavi PBI returned 0 products (KARTIS PARIT during refresh?) — restored ${halaviRestored} from prev product-data.json`);
+    }
+
     // ── דג יבש — fetch stock/sales from Fabric and add to prodData ──────────
     const dagyaveshBase  = JSON.parse(fs.readFileSync(
       path.join(__dirname, '..', 'docs', 'dagim-yavesh-base.json'), 'utf8'));
