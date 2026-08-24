@@ -659,7 +659,27 @@ function _logShareTiming(phase, extra){
 // genuinely failed image to a placeholder instead of hanging (placeholders
 // option, default on) rather than needing an external timeout to survive
 // one bad photo. The 20s race below is kept anyway as cheap insurance.
+// Serializes captureShareImage() calls against each other — prewarmShareImage()
+// fires again on every content change (toggleBarcodeMode, a new buildProforma)
+// without cancelling or awaiting whatever capture it already had in flight, so
+// two calls could previously run concurrently against the SAME #print-view
+// node while a later renderProformaTable() mutates it mid-capture. A new call
+// now always waits for the prior one to fully settle (success or fail) before
+// it starts reading the DOM, so no capture ever reads a node being mutated by
+// another capture's caller. 2026-08-24, closing a second plausible cause of
+// the blank-table bug alongside the paint-wait fix below.
+let _captureQueue=Promise.resolve();
 async function captureShareImage(){
+  const myTurn=_captureQueue.catch(()=>{});
+  let release; _captureQueue=new Promise(res=>{release=res;});
+  await myTurn;
+  try{
+    return await _captureShareImageInner();
+  }finally{
+    release();
+  }
+}
+async function _captureShareImageInner(){
   const t0=performance.now();
   const el=document.getElementById('print-view');
   const imgCount=el.querySelectorAll('img').length;
@@ -674,9 +694,19 @@ async function captureShareImage(){
   // styles regardless of paint state, so a table that just became visible in
   // the same tick (and whose rows were just written via innerHTML moments
   // earlier in buildProforma) can still be captured before the browser has
-  // run a layout/paint pass for it. Double rAF forces one full frame to
-  // render before snapDOM starts reading the DOM.
-  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+  // run a layout/paint pass for it.
+  // A fixed double-rAF wait was tried first and did NOT fix it on a real
+  // iPhone (confirmed live, same blank table, same client, after that fix
+  // was already deployed) — a frame COUNT is a guess at how long painting
+  // takes, not a guarantee. Poll the table's actual rendered height instead:
+  // wait until it's genuinely non-zero (what we actually need), not for an
+  // assumed number of frames. Falls through anyway after ~800ms so a table
+  // that's legitimately empty (0 selected products, shouldn't happen given
+  // the buildProforma() guard, but just in case) doesn't hang forever.
+  const tbody=document.getElementById('pv-tbody');
+  for(let i=0;i<50 && tbody && tbody.getBoundingClientRect().height===0;i++){
+    await new Promise(r=>requestAnimationFrame(r));
+  }
   let canvas;
   try{
     canvas=await Promise.race([
