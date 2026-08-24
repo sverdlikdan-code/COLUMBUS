@@ -1290,6 +1290,15 @@ async function geocodeBatch(clients) {
 
   // save Priority GPS and mark source before any overwrite
   for (const c of clients) {
+    // Manual corrections are authoritative — callers (/customers, /api/territory/clients)
+    // apply gps-corrections.json onto c.lat/c.lng/c.gpsSource BEFORE calling this function.
+    // Re-running the bbox check on an already-corrected point defeats the entire point of
+    // correcting it: the correction usually exists precisely because PBI/bbox placement was
+    // wrong, so a real fix is disproportionately likely to land outside the (possibly also
+    // wrong) bbox and get silently discarded here. Bug found 2026-08-24 — custId 1112017's
+    // correction was being wiped on every /customers load.
+    if (c.gpsSource === 'correction') continue;
+
     c.pbiLat = c.lat || null;
     c.pbiLng = c.lng || null;
 
