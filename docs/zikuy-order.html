@@ -654,12 +654,25 @@ async function captureShareImage(){
   // 44px on-screen thumbnail; 1.5x on top of that multiplies real work for a
   // WhatsApp-shared image where the extra sharpness isn't the point. Live
   // complaint 2026-08-24 — generation "spinning" a long time on-device.
+  // Reverting clone→live did NOT fix the hang either (confirmed: same agent,
+  // same 'start'-with-no-'done' pattern on the very next attempts, live device,
+  // 2026-08-24) — whatever is actually stuck lives inside html2canvas's own
+  // internals on this WebKit build, not in how this code invokes it. A 20s
+  // race is the honest mitigation available without being able to reproduce
+  // the WebKit bug directly: better a clear error after a bounded wait than
+  // an indefinite hang with zero feedback. The full-screen blank itself
+  // (already open, see showPrintFullscreen) needs no html2canvas at all —
+  // the agent can just point their camera at it, which is why the timeout
+  // message below points there instead of asking them to retry the same thing.
   let canvas;
   try{
-    canvas=await html2canvas(el,{useCORS:true,backgroundColor:'#ffffff',scale:1});
+    canvas=await Promise.race([
+      html2canvas(el,{useCORS:true,backgroundColor:'#ffffff',scale:1}),
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error('html2canvas_timeout')),20000)),
+    ]);
     _logShareTiming('html2canvas_done',{ms:performance.now()-t0,imgCount});
   }catch(e){
-    _logShareTiming('html2canvas_error',{ms:performance.now()-t0,imgCount});
+    _logShareTiming(e.message==='html2canvas_timeout'?'html2canvas_timeout':'html2canvas_error',{ms:performance.now()-t0,imgCount});
     throw e;
   }finally{
     el.style.width=prevWidth; el.style.maxWidth=prevMaxWidth;
