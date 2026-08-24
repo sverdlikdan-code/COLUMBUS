@@ -2251,7 +2251,7 @@ function _clientActionsHtml(c,noGps){
     <span class="day-change-btn" data-id="${c.custId}" onclick="openDayPopup(event,this.dataset.id);closeRowActionsPopup()">📅</span>
     <span class="mekarer-btn" data-id="${c.custId}" data-name="${nm}" data-city="${ct}" onclick="openMekarerOrder(event,this.dataset.id,this.dataset.name,this.dataset.city);closeRowActionsPopup()">🧊</span>
     <span class="zikuy-btn" data-id="${c.custId}" data-name="${nm}" data-city="${ct}" onclick="openZikuyOrder(event,this.dataset.id,this.dataset.name,this.dataset.city);closeRowActionsPopup()" title="בקשת זיכוי">זיכוי</span>
-    <span class="ai-insight-btn" data-id="${c.custId}" data-name="${nm}" onclick="openClientAI(event,this.dataset.id,this.dataset.name);closeRowActionsPopup()" title="ניתוח מעמק — משפחות, פערים, השוואה לרשת">🔍 ניתוח מעמק</span>
+    <span class="ai-insight-btn" data-id="${c.custId}" data-name="${nm}" onclick="openClientAI(event,this.dataset.id,this.dataset.name);closeRowActionsPopup()" title="ניתוח מעמק — משפחות, פערים, השוואה לרשת">🔍 ניתוח</span>
     ${noGps
       ? `<span class="no-gps-badge" data-id="${c.custId}" data-name="${nm}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name);closeRowActionsPopup()">NO GPS</span>`
       : `<span class="gps-edit-btn"  data-id="${c.custId}" data-name="${nm}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name);closeRowActionsPopup()">📍</span>
@@ -2279,9 +2279,12 @@ function renderClientList(html){
   if(html){el.innerHTML=html;return;}
   const list=displayClients();
   if(!list.length){el.innerHTML=`<div style="padding:40px 20px;text-align:center;color:var(--mid)"><div style="font-size:36px;margin-bottom:12px">📭</div><div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px">אין לקוחות ביום זה</div><div style="font-size:12px">נסה לשנות את הסינון או בחר יום אחר</div></div>`;return;}
-  // Split view (map showing, ≥700px) starves the row of width until the inline
-  // icon cluster crushes the client name — collapse to a single "⋮" trigger there.
-  const squeezed=!st.mapHidden&&window.innerWidth>=700;
+  // Phones (<700px) never get the split-view width the old condition assumed —
+  // map-hidden frees no space there since split view itself only exists ≥700px.
+  // Squeeze always on phone; on tablet/desktop only when the map is actually
+  // showing next to the list (2026-08-23, was crushing names on phones regardless
+  // of map state).
+  const squeezed=window.innerWidth<700||!st.mapHidden;
   _rowActionsStore={};
   el.innerHTML=list.map((c,i)=>{
     const noGps=!c.lat||!c.lng;
