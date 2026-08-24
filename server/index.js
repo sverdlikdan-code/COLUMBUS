@@ -1880,6 +1880,11 @@ app.post('/api/render-share-image', requireAuth, renderRateLimit, async (req, re
     custId: String(custId).slice(0, 20), custName: String(custName || '').slice(0, 100),
     city: String(city || '').slice(0, 50), agentCode: String(agentCode || '').slice(0, 20),
     agentName: String(agentName || '').slice(0, 50), _shareData: payload,
+    // Keeps this internal render instance's own API calls (img-proxy included)
+    // on loopback instead of round-tripping through the public domain/Cloudflare
+    // — live symptom: table rendered fine, product photos came through blank
+    // (headless-Chrome UA getting blocked/challenged at the edge). 2026-08-24.
+    _apiBase: `http://localhost:${PORT}`,
   });
   let page;
   try {

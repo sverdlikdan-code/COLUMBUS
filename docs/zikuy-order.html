@@ -287,8 +287,15 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 <div class="toast" id="toast"></div>
 
 <script>
-const API = 'https://api.sverdlik-apps.site';
 const params = new URLSearchParams(location.search);
+// _apiBase is set (to http://localhost:PORT) only by /api/render-share-image
+// when it opens this page for server-side rendering — keeps that instance
+// talking to itself over loopback instead of going out through the public
+// domain/Cloudflare, where a headless-Chrome UA can get silently blocked.
+// Live symptom that led here 2026-08-24: table rendered correctly, product
+// photo came through blank — text has no external dependency, the image
+// fetch through /api/img-proxy on the public domain did.
+const API = params.get('_apiBase') || 'https://api.sverdlik-apps.site';
 const TOKEN = localStorage.getItem('frToken') || '';
 const custId = params.get('custId') || '';
 const custName = params.get('custName') || '';
