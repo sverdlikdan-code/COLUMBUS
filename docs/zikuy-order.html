@@ -13,7 +13,14 @@
   --bg:#F5F7FA;--card:#fff;--radius:12px;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(--text);min-height:100vh;padding-bottom:96px;font-size:15px;}
+/* overscroll-behavior-y:contain — without it, scrolling past the top of the
+   page triggers the browser's native pull-to-refresh, reloading the page and
+   wiping everything held only in JS memory (selected products, qty, dates,
+   option toggles — none of this form is persisted anywhere). Live complaint
+   2026-08-24: an accidental scroll while building a return silently lost all
+   of it. contain stops the scroll chain from reaching the browser without
+   otherwise changing in-page scroll feel. */
+body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(--text);min-height:100vh;padding-bottom:96px;font-size:15px;overscroll-behavior-y:contain;}
 .top-bar{background:linear-gradient(135deg,var(--blue-dark),var(--blue));color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2);}
 .back-btn{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;width:40px;height:40px;font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .top-title{font-size:17px;font-weight:800;flex:1;}
@@ -613,7 +620,13 @@ async function captureShareImage(){
   // capture only, then restore.
   const prevWidth=el.style.width, prevMaxWidth=el.style.maxWidth;
   el.style.width='1100px'; el.style.maxWidth='1100px';
-  let canvas=await html2canvas(el,{useCORS:true,backgroundColor:'#ffffff',scale:1.5});
+  // scale:1 (was 1.5) — each row's product photo comes through /api/img-proxy
+  // at its original upstream resolution (proxy is CORS-passthrough only, no
+  // resize), so html2canvas is already decoding/drawing full-size images for a
+  // 44px on-screen thumbnail; 1.5x on top of that multiplies real work for a
+  // WhatsApp-shared image where the extra sharpness isn't the point. Live
+  // complaint 2026-08-24 — generation "spinning" a long time on-device.
+  let canvas=await html2canvas(el,{useCORS:true,backgroundColor:'#ffffff',scale:1});
   el.style.width=prevWidth; el.style.maxWidth=prevMaxWidth;
   // Still portrait with a long product list (table taller than 1100px wide) —
   // rotate into landscape so WhatsApp never crops it.
@@ -645,7 +658,25 @@ function downloadAndOpenWaWeb(blob){
   window.open('https://web.whatsapp.com/','_blank');
   showToast('התמונה הורדה — צרף אותה בשיחה בווטסאפ Web');
 }
+// Neither button was guarded against repeat taps — html2canvas is genuinely
+// slow (real complaint 2026-08-24: "spinning a long time"), and with no
+// visible progress cue an agent who doesn't realize it's still working taps
+// again, stacking a second concurrent capture on top of the first (slower
+// still) and potentially firing two share sheets / two downloads at once.
+let _shareInFlight=false;
+function _setShareButtonsBusy(busy){
+  _shareInFlight=busy;
+  const waBtn=document.getElementById('wa-btn'), waWebBtn=document.getElementById('wa-web-btn');
+  [waBtn,waWebBtn].forEach(b=>{ if(b){ b.style.opacity=busy?'.5':''; b.style.pointerEvents=busy?'none':''; } });
+  // Reassurance toast — html2canvas can genuinely take a few seconds with no
+  // other feedback on screen, and an agent seeing nothing happen taps again.
+  // Long timeout (15s) is just a safety net; the real success/error toast at
+  // the end always overwrites this one immediately once generation finishes.
+  if(busy) showToast('⏳ רגע, מכינים את הקובץ... בלי לחץ 😌',15000);
+}
 async function sendAsImage(){
+  if(_shareInFlight) return;
+  _setShareButtonsBusy(true);
   try{
     const blob=await captureShareImage();
     // navigator.share({files}) is real usage on the agent's phone/tablet (WhatsApp
@@ -670,8 +701,11 @@ async function sendAsImage(){
       }
     }
     if(blob){ downloadAndOpenWaWeb(blob); return; }
-  }catch(e){ console.warn('image share unavailable', e); }
-  showToast('שיתוף אוטומטי לא זמין — צלם את המסך עם המצלמה');
+    showToast('שיתוף אוטומטי לא זמין — צלם את המסך עם המצלמה');
+  }catch(e){
+    console.warn('image share unavailable', e);
+    showToast('שיתוף אוטומטי לא זמין — צלם את המסך עם המצלמה');
+  }finally{ _setShareButtonsBusy(false); }
 }
 // Manual backup — always goes straight to download+web.whatsapp.com, skipping
 // the native-share attempt entirely. For tablets where the native share sheet
@@ -679,11 +713,16 @@ async function sendAsImage(){
 // sendAsImage's navigator.share() succeeds but silently shows no WhatsApp
 // option — this button is the deterministic way off that dead end.
 async function sendViaWhatsAppWeb(){
+  if(_shareInFlight) return;
+  _setShareButtonsBusy(true);
   try{
     const blob=await captureShareImage();
     if(blob){ downloadAndOpenWaWeb(blob); return; }
-  }catch(e){ console.warn('whatsapp web share unavailable', e); }
-  showToast('שיתוף אוטומטי לא זמין — צלם את המסך עם המצלמה');
+    showToast('שיתוף אוטומטי לא זמין — צלם את המסך עם המצלמה');
+  }catch(e){
+    console.warn('whatsapp web share unavailable', e);
+    showToast('שיתוף אוטומטי לא זמין — צלם את המסך עם המצלמה');
+  }finally{ _setShareButtonsBusy(false); }
 }
 
 // Android WebView sometimes leaves the page stuck in a stale-paint state after the
