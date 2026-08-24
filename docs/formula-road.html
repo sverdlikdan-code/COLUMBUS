@@ -49,7 +49,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .hdr-back:hover{background:rgba(255,255,255,.3);}
 .hdr-center{position:absolute;left:0;right:0;text-align:center;pointer-events:none;}
 .hdr-title{font-size:13px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:#fff;}
-.hdr-sub{font-size:11px;color:rgba(255,255,255,.7);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 80px;}
+.hdr-sub{font-size:11px;color:rgba(255,255,255,.7);margin-top:1px;}
 .sky-line{height:3px;background:linear-gradient(90deg,var(--sky),var(--blue));flex-shrink:0;}
 .demo-banner{background:#c0392b;color:#fff;text-align:center;padding:8px 14px;font-size:13px;font-weight:800;direction:rtl;flex-shrink:0;}
 .demo-tag{font-size:9px;background:rgba(41,182,246,.25);color:var(--sky);padding:2px 8px;border-radius:10px;letter-spacing:1px;border:1px solid rgba(41,182,246,.4);}
@@ -254,7 +254,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 #day-modal.open{display:flex;}
 #day-modal-box{background:#fff;border-radius:16px;width:100%;max-width:660px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.35);}
 #day-modal-head{background:#3F51B5;color:#fff;padding:14px 18px 12px;display:flex;align-items:center;gap:10px;}
-#day-modal-head .day-title{flex:1;font-size:15px;font-weight:800;}
+#day-modal-head .day-title{flex:1;font-size:15px;font-weight:800;color:#fff;}
 #day-modal-head .day-close{font-size:20px;cursor:pointer;opacity:.8;padding:0 4px;}
 #day-modal-head .day-close:hover{opacity:1;}
 #day-modal-body{overflow-y:auto;padding:14px 16px;flex:1;}
@@ -1969,19 +1969,28 @@ async function initRoute(){
   setTimeout(autoSyncGpsClean, 3000); // silent cleanup after route loads
 }
 
-// ── PBI data date ── appended to the existing route-sub line (agent name · day),
-// no new toolbar element. Plain date, no color-coded status — real dataset-refresh
-// timestamp from Power BI's REST API (not derived from data content), so a silently
-// stuck scheduled refresh is visible as an old date instead of only showing up as
-// "wrong numbers" downstream. Throttled client-side (10min) since /pbi/formula-refresh
-// is a live Power BI admin-API call, not a free cache read.
+// ── PBI data date ── shown in the ניתוח יום modal title, not route-sub: putting it
+// next to "יום א" in the route header read as if the date described that day-of-week
+// button, not data freshness (user feedback 2026-08-25). Real latest-sale-date across
+// the whole company (pbiCache.latestSaleDate, see server _loadPBICacheAttempt), not a
+// REST "refresh completed" timestamp — a silently stuck PBI scheduled refresh shows up
+// as an old date here instead of only as "wrong numbers" downstream. Throttled
+// client-side (10min) since /pbi/formula-refresh reflects the once-daily server reload.
 let _pbiRefreshedAt=null, _pbiStatusFetchedAt=0;
 function _routeSubBase(){
   return `${st.agent.name} · ${st.day===0?'לא מוגדר':'יום '+DAY_LABELS[st.day]}`;
 }
+function _dayModalTitleText(){
+  let txt=`${st.agent?.name||''} — ${st.day===0?'לא מוגדר':'יום '+DAY_LABELS[st.day]}`;
+  if(_pbiRefreshedAt){
+    const df=_pbiRefreshedAt.toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit'});
+    txt+=` · נתונים: ${df}`;
+  }
+  return txt;
+}
 async function checkPbiFreshness(force){
-  // Still re-render on a throttled call (e.g. day switch resets route-sub to the
-  // bare base text) — only the network re-fetch itself is skipped, not the redraw.
+  // Still re-render on a throttled call — only the network re-fetch itself is
+  // skipped, not the redraw (e.g. day switch needs the title text refreshed).
   if(!force && Date.now()-_pbiStatusFetchedAt<10*60*1000){ _renderPbiDateInHeader(); return; }
   _pbiStatusFetchedAt=Date.now();
   try{
@@ -1992,10 +2001,12 @@ async function checkPbiFreshness(force){
   _renderPbiDateInHeader();
 }
 function _renderPbiDateInHeader(){
-  const el=document.getElementById('route-sub');
-  if(!el||!_pbiRefreshedAt) return;
-  const df=_pbiRefreshedAt.toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit'});
-  el.textContent=`${_routeSubBase()} · ${df}`;
+  // Only touch the title while the day-briefing modal is actually open — openDayBriefing()
+  // itself sets the full title (incl. date, if known) whenever it's opened.
+  const modal=document.getElementById('day-modal');
+  if(modal && modal.classList.contains('open')){
+    document.getElementById('day-modal-title').textContent=_dayModalTitleText();
+  }
 }
 
 function activeClients(){ return st.clients.filter(c=>!st.excluded.has(c.custId)); }
@@ -3446,7 +3457,7 @@ async function _fetchClientAI(lang) {
 let _dayBriefingCache = {};
 let _dayLang = 'he';
 function openDayBriefing() {
-  document.getElementById('day-modal-title').textContent = `${st.agent?.name||''} — ${st.day===0?'לא מוגדר':'יום '+DAY_LABELS[st.day]}`;
+  document.getElementById('day-modal-title').textContent = _dayModalTitleText();
   document.getElementById('day-modal').classList.add('open');
   document.querySelectorAll('.day-lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === _dayLang));
   _fetchDayBriefing();
