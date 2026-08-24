@@ -1068,14 +1068,21 @@ async function fetchDagimFromBI() {
   // English name for supplier POs — isolated query: if the column is wrong/missing
   // in this Fabric model, this must NOT fail the rest of the דגים fetch.
   try {
+    // Same filter shape as the main kpRows query above (סטטוס + שם מחסן אשדוד) —
+    // proven to work — instead of CONTAINSROW(mkSet,...), which may silently
+    // return 0 rows if מק"ט is typed differently than the string set literal.
     const foreignRows = await dax(t, `
       EVALUATE
       SELECTCOLUMNS(
-        FILTER('KARTIS PARIT', CONTAINSROW(${mkSet}, 'KARTIS PARIT'[מק"ט])),
+        FILTER('KARTIS PARIT',
+          'KARTIS PARIT'[סטטוס] = "פעיל" &&
+          'KARTIS PARIT'[שם מחסן אשדוד] = "דגים 🐟"
+        ),
         "makat", 'KARTIS PARIT'[מק"ט],
         "nameForeign", 'KARTIS PARIT'[תאור לועזי]
       )
     `);
+    console.log(`fetchDagimFromBI: תאור לועזי query returned ${foreignRows.length} rows`);
     for (const r of foreignRows) {
       const mk = String(r['[makat]'] || '');
       const nf = r['[nameForeign]'];
