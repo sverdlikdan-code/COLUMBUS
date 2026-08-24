@@ -374,6 +374,22 @@ SELECTCOLUMNS(
       c.avg6IceSales = Math.round(parseFloat(r['[avg6IceSales]']) || 0);
     }
 
+    // Latest real sale date across the WHOLE company (no client filter) — the actual
+    // content-freshness signal, not a REST "last refresh completed" timestamp. If this
+    // date stops advancing, either Power BI's own scheduled refresh stalled or nobody
+    // actually sold anything, both worth surfacing to the app. Confirmed 2026-08-25:
+    // this is what should drive the app's cache-freshness display, not /pbi/formula-refresh.
+    let latestSaleDate = null;
+    try {
+      const maxDateRows = await executeDax(`
+EVALUATE
+ROW("maxDate", CALCULATE(MAX(ALL_PARTS[תאריך]), ALL_PARTS[ASHMADOT] = "-מכר-"))
+`);
+      latestSaleDate = maxDateRows[0]?.['[maxDate]'] || null;
+    } catch (e) {
+      console.error('[PBI] latestSaleDate query failed:', e.message);
+    }
+
     pbiCache = {
       clientMap,
       byAgent,
@@ -383,6 +399,7 @@ SELECTCOLUMNS(
       agentsByManager: new Map([...agentsByManager].map(([k, v]) => [k, [...v.values()]])),
       managerAgents,
       loadedAt: new Date(),
+      latestSaleDate,
     };
     clientReturnsCache.clear();
     clientAnalyticsCache.clear();
@@ -2873,14 +2890,12 @@ app.get('/api/bbox-audit-xlsx', async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: 'server_error' }); }
 });
 
-// GET /pbi/formula-refresh — last PBI dataset refresh time for FORMULA dataset
+// GET /pbi/formula-refresh — latest real sale date across the whole company (from
+// pbiCache.latestSaleDate, computed once per daily reload — see _loadPBICacheAttempt).
+// Content-freshness signal, not a REST "refresh completed" timestamp (switched
+// 2026-08-25 per user: this is what the app's cache-freshness display should use).
 app.get('/pbi/formula-refresh', requireAuth, dataRateLimit, async (req, res) => {
-  try {
-    const t = await getDatasetRefreshTime(process.env.POWERBI_DATASET_ID);
-    res.json({ ok: true, refreshedAt: t });
-  } catch (err) {
-    res.json({ ok: false, refreshedAt: null });
-  }
+  res.json({ ok: true, refreshedAt: pbiCache?.latestSaleDate || null });
 });
 
 // GET /pbi/dagim-all-monthly — last 16 months carton sales for ALL dagim/halavi products (batch)
