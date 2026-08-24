@@ -666,6 +666,17 @@ async function captureShareImage(){
   _logShareTiming('start',{imgCount});
   const prevWidth=el.style.width, prevMaxWidth=el.style.maxWidth;
   el.style.width='1100px'; el.style.maxWidth='1100px';
+  // Live complaint 2026-08-24 (agent 234, real device): header rendered fine
+  // but the product table came through completely blank. prewarmShareImage()
+  // calls this synchronously right after showPrintFullscreen() flips
+  // #pv-overlay from display:none to visible — snapDOM serializes what the
+  // browser has actually PAINTED, unlike html2canvas which walks computed
+  // styles regardless of paint state, so a table that just became visible in
+  // the same tick (and whose rows were just written via innerHTML moments
+  // earlier in buildProforma) can still be captured before the browser has
+  // run a layout/paint pass for it. Double rAF forces one full frame to
+  // render before snapDOM starts reading the DOM.
+  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
   let canvas;
   try{
     canvas=await Promise.race([
