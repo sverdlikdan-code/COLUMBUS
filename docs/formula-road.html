@@ -3542,7 +3542,7 @@ async function openBlankHistory() {
   if (_blankHistoryData === null) {
     document.getElementById('hist-list').innerHTML = '<div class="ai-loading">⏳ טוען...</div>';
     try {
-      const r = await apiFetch(`${API}/api/zikuy-history`);
+      const r = await apiFetch(`${API}/api/zikuy-history?agent=${st.agent.code}`);
       const d = await r.json();
       _blankHistoryData = d.ok ? d.entries : [];
     } catch (e) {

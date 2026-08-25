@@ -4553,9 +4553,20 @@ app.post('/api/zikuy-history', requireAuth, dataRateLimit, (req, res) => {
   res.json({ ok: true });
 });
 app.get('/api/zikuy-history', requireAuth, dataRateLimit, (req, res) => {
+  // Same convention as /customers and /api/day-briefing: a manager viewing a
+  // specific agent's line passes ?agent= explicitly (their own session has no
+  // agentCode — createSession(null, true), see _inviteRedirect), an agent's
+  // own session falls back to their session agentCode. Live feedback
+  // 2026-08-25: "manager sees literally everyone" was the wrong model — a
+  // manager on agent X's line should see agent X's blanks, not the whole
+  // team's mixed together.
+  const queryAgent = req.query.agent ? String(req.query.agent) : null;
+  if (queryAgent && !validateAgentCode(queryAgent)) return res.status(400).json({ ok: false, error: 'invalid agent code' });
+  const agentCode = queryAgent || req.session.agentCode;
+  if (!agentCode) return res.status(403).json({ ok: false, error: 'manager session -- no agent' });
   const cutoff = Date.now() - BLANK_HISTORY_MAX_AGE_MS;
   const entries = readBlankHistory().filter(e =>
-    e.agentCode === req.session.agentCode && new Date(e.ts).getTime() >= cutoff
+    e.agentCode === agentCode && new Date(e.ts).getTime() >= cutoff
   );
   res.json({ ok: true, entries });
 });
