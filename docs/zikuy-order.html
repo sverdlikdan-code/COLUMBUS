@@ -108,6 +108,33 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 .toast{position:fixed;top:50%;right:50%;transform:translate(50%,-50%);background:#323232;color:#fff;padding:18px 26px;border-radius:14px;font-size:17px;font-weight:700;z-index:20001;opacity:0;transition:opacity .3s;white-space:nowrap;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.3);}
 .toast.show{opacity:1;}
 
+/* ── phone sizing: trims vertical chrome (header/banners/margins) to fit an
+   extra row of product photos above the fold without scrolling — touch
+   targets (chips, back-btn, qty controls) stay at their existing floor, only
+   pure whitespace/padding/font-size shrinks. Live request 2026-08-25:
+   screenshot showed only 2 photo rows visible before the family header eats
+   ~265px of pure chrome. Measured via .scratch/test-zikuy-space.js. ── */
+@media (max-width:759px){
+  .top-bar{padding:6px 14px;}
+  .back-btn{width:36px;height:36px;font-size:17px;}
+  .top-title{font-size:15px;}
+  .client-strip{margin:4px 12px 3px;padding:4px 10px;font-size:11px;}
+  .section{margin:6px 10px;}
+  .sec-head{padding:6px 14px;}
+  .sec-title{font-size:13px;}
+  /* Instructional banner (product-picker rules) — pure caption text, no
+     interactive element, so it can shrink further than sec-head's shared
+     baseline. Explicit "as small as possible" request 2026-08-25. */
+  #browse-section .sec-head{padding:4px 12px;}
+  #browse-section .sec-title{font-size:10px;line-height:1.3;font-weight:700;}
+  .sec-body{padding:8px 10px 6px;}
+  .fam-head{margin:6px 0 4px;font-size:11.5px;}
+  .fam-head:first-of-type{margin-top:2px;}
+  .photo-grid{gap:8px;}
+  .photo-card{padding:5px;}
+  .photo-card img{height:52px;margin-bottom:3px;}
+}
+
 /* ── tablet sizing: portrait-only — stays single-column (stacked) at any width,
    just bigger fonts/touch-targets. The app is used holding the tablet vertically;
    no side-by-side desktop-style split. ── */
