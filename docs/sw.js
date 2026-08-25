@@ -1,6 +1,6 @@
 // Minimal service worker — enables PWA installability in Chrome
 // Does not cache API calls, only enables beforeinstallprompt
-const CACHE = 'fr-v23';
+const CACHE = 'fr-v24';
 const STATIC = ['./formula-road.html', './manifest.json'];
 
 self.addEventListener('install', e => {
