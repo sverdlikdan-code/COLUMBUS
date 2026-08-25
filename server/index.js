@@ -3930,6 +3930,10 @@ app.get('/sw.js', (req, res) => {
   res.setHeader('Service-Worker-Allowed', '/');
   res.sendFile(path.join(__dirname, '..', 'docs', 'sw.js'));
 });
+// manifest.json's icons[] and apple-touch-icon in formula-road.html use paths
+// relative to this origin ("./icons/icon-180.png") — without this route they
+// 404 here, so iOS falls back to a generic letter icon on "Add to Home Screen".
+app.use('/icons', express.static(path.join(__dirname, '..', 'docs', 'icons')));
 // docs/manifest.json's start_url ("./formula-road.html") is correct for the
 // GitHub Pages static host it's normally served from, but resolves relative to
 // THIS route's own URL (/manifest.json → /formula-road.html) when fetched here
