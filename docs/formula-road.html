@@ -2682,9 +2682,11 @@ function openMekarerOrder(e,custId,custName,city){
 function openZikuyOrder(e,custId,custName,city){
   if(e){e.stopPropagation();e.preventDefault();}
   const agent=st.agent||{};
+  const auth=_loadAuth();
   const p=new URLSearchParams({
     custId,custName,city,
     agentCode:agent.code||'',agentName:agent.name||'',
+    isManager: auth&&auth.isManager ? '1' : '',
   });
   window.open('zikuy-order.html?'+p.toString(),'_blank');
 }
