@@ -53,9 +53,17 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 .ret-item-top img{width:48px;height:48px;object-fit:contain;border-radius:8px;background:#f5f5f5;flex-shrink:0;}
 .ret-item-name{flex:1;font-size:14.5px;font-weight:700;color:var(--text);line-height:1.3;}
 .ret-item-sku{font-size:11px;font-weight:700;color:var(--light);}
-.ret-item-pct{font-size:11.5px;font-weight:800;white-space:nowrap;padding:5px 9px;border-radius:8px;background:var(--sky);}
+.ret-item-pct{font-size:11.5px;font-weight:800;white-space:nowrap;padding:5px 9px;border-radius:8px;background:var(--sky);border:none;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:4px;-webkit-appearance:none;appearance:none;}
 .ret-item-pct.pct-hi{color:var(--red);}
 .ret-item-pct.pct-lo{color:var(--blue-dark);}
+.ret-item-pct .pct-chevron{font-size:8px;transition:transform .15s;}
+.ret-item-pct.open .pct-chevron{transform:rotate(180deg);}
+.ash-hist{display:none;margin-top:10px;padding:8px 10px;background:var(--bg);border-radius:8px;font-size:12px;}
+.ash-hist.open{display:block;}
+.ash-hist-title{font-size:10.5px;font-weight:800;color:var(--mid);text-transform:uppercase;letter-spacing:.3px;margin-bottom:5px;}
+.ash-hist-row{display:flex;justify-content:space-between;padding:4px 0;color:var(--text);}
+.ash-hist-row:not(:last-child){border-bottom:1px solid var(--sky-mid);}
+.ash-hist-empty{color:var(--light);text-align:center;padding:4px 0;}
 .ret-item-controls{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px;}
 .ret-field{display:flex;flex-direction:column;gap:5px;}
 .ret-field label{font-size:11px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.3px;}
@@ -528,6 +536,13 @@ function toggleProduct(sku){
   renderBrowse(); renderTable(); saveDraft();
 }
 
+function toggleAshHist(btn){
+  const open=btn.classList.toggle('open');
+  btn.setAttribute('aria-expanded',open?'true':'false');
+  const panel=btn.parentElement.nextElementSibling;
+  if(panel && panel.classList.contains('ash-hist')) panel.classList.toggle('open',open);
+}
+
 function renderTable(){
   const tbody=document.getElementById('ret-tbody');
   const empty=document.getElementById('ret-empty');
@@ -545,13 +560,16 @@ function renderTable(){
     const pctClass=p.zikuyPct90d>10?'pct-hi':'pct-lo';
     const img=p.imgUrl?`<img src="${esc(p.imgUrl)}" alt="${esc(p.name)}" onerror="this.style.display='none'">`:'';
     const lastShip=p.lastShipDate?` · אספקה אחרונה: ${p.lastShipDate.split('-').reverse().join('.')} (${p.lastShipQty} יח')`:'';
+    const ashRows=(p.ashmadotHist||[]).map(h=>`<div class="ash-hist-row"><span>${h.date.split('-').reverse().join('.')}</span><span>${h.qty} יח'</span></div>`).join('')
+      || `<div class="ash-hist-empty">אין השמדות ב-90 הימים האחרונים</div>`;
     return `<div class="ret-item" data-sku="${esc(p.sku)}">
       <div class="ret-item-top">
         ${img}
         <div class="ret-item-name">${esc(shortName(p.name))}<br><span class="ret-item-sku">מק"ט ${esc(p.sku)}${lastShip}</span></div>
-        <div class="ret-item-pct ${pctClass}">% זיכויים 90 יום: ${p.zikuyPct90d}%</div>
+        <button type="button" class="ret-item-pct ${pctClass}" aria-expanded="false" onclick="toggleAshHist(this)">% זיכויים 90 יום: ${p.zikuyPct90d}%<span class="pct-chevron">▾</span></button>
         <button type="button" class="rm-btn" aria-label="הסר מוצר" onclick="toggleProduct('${esc(p.sku)}')">🗑</button>
       </div>
+      <div class="ash-hist"><div class="ash-hist-title">היסטוריית השמדות — 6 אחרונות</div>${ashRows}</div>
       <div class="ret-item-controls">
         <div class="ret-field">
           <label>${isGramsProduct(p) ? 'משקל לזיכוי (ק"ג)' : 'כמות לזיכוי'}</label>
