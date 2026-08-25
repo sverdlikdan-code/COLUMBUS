@@ -4658,9 +4658,6 @@ app.get('/api/client-returns/:custId', requireAuth, async (req, res) => {
     }
     return arr;
   };
-  const curMonths = periodMonths(3, 1);
-  const curStart = curMonths[0], curEnd = curMonths[2];
-  const curLastDay = new Date(curEnd.year, curEnd.month, 0).getDate();
   const d365 = new Date(Date.now() - 365 * 86400000);
   // מדף + מתוקים = INTER company (approved mapping, scripts/sadran-data.js DEPT_COMPANY,
   // user-approved 2026-07-21) — verified live against ADIFUT[מחלקה] raw values.
@@ -4688,23 +4685,33 @@ CALCULATETABLE(
   ALL_PARTS[ASHMADOT] = "-מכר-",
   ALL_PARTS[תאריך] >= DATE(${d365.getFullYear()},${d365.getMonth() + 1},${d365.getDate()})
 )`;
-    // 3-closed-month return % per SKU. The model's own [% זיכויים] measure exists but
-    // ignores SKU-level filters entirely (verified live: 3 different SKUs all returned
-    // the identical client-wide number) — it's built for client/company granularity, not
-    // per-product. Computed manually instead: positive vs negative raw amounts, same
-    // underlying concept as "TOTAL SALES (ללא זיכויים מרכזים)" excludes, just at SKU level.
+    // Official model semantics for '% זיכויים NOW' = DIVIDE([זיכויים], [TOTAL SALES brutto]):
+    //   [זיכויים]           = SUM(סכום) where ASHMADOT="השמדות", excluding ExcludedProducts SKUs
+    //                         and (agent IN {יוסי אליאב, כללי} OR blank agent) on those rows
+    //   [TOTAL SALES brutto] = SUM(סכום) where ASHMADOT="-מכר-" (no agent/SKU filter)
+    // Can't call the named measure per-SKU: [זיכויים]'s own CALCULATE filters NOT(מק'ט IN
+    // ExcludedProducts) on the SAME column used for SUMMARIZE grouping below — an explicit
+    // CALCULATE filter on a column already fixed by row-context transition REPLACES that
+    // transition instead of intersecting with it (identical trap already hit in famDax/skuDax,
+    // see 2026-08-18 INTER bug), so every row would get the sum across all SKUs, not its own.
+    // Fix: SKU exclusion moved to the outer CALCULATETABLE (removes those SKUs' rows entirely
+    // before grouping); agent exclusion stays inline since [שם סוכן] isn't the grouping column.
+    // Window changed from "3 closed months" to today-90..today per user request 2026-08-25.
+    const d90 = new Date(Date.now() - 90 * 86400000);
+    const todayD = new Date();
+    const ZIKUY_EXCLUDED_SKUS = ['0', '915001', '915002', '916000', '916001', '916002', '916003', '916004', '916005', '916006', '916007', '916008', '916009', '916010', '916011'];
     const zikuyDax = `
 EVALUATE
 CALCULATETABLE(
   ADDCOLUMNS(
     SUMMARIZE(ALL_PARTS, ALL_PARTS[מק'ט]),
-    "positive", CALCULATE(SUM(ALL_PARTS[סכום (ש'ח)]), ALL_PARTS[סכום (ש'ח)] > 0),
-    "negative", CALCULATE(SUM(ALL_PARTS[סכום (ש'ח)]), ALL_PARTS[סכום (ש'ח)] < 0)
+    "zikuy", CALCULATE(SUM(ALL_PARTS[סכום (ש'ח)]), ALL_PARTS[ASHMADOT] = "השמדות", NOT(ALL_PARTS[שם סוכן] IN {"‭באילא יסוי‬", "‭יללכ‬"}), NOT(ISBLANK(ALL_PARTS[שם סוכן]))),
+    "brutto", CALCULATE(SUM(ALL_PARTS[סכום (ש'ח)]), ALL_PARTS[ASHMADOT] = "-מכר-")
   ),
   ALL_PARTS[מספר לקוח] = "${custId}",
-  ALL_PARTS[ASHMADOT] = "-מכר-",
-  ALL_PARTS[תאריך] >= DATE(${curStart.year},${curStart.month},1),
-  ALL_PARTS[תאריך] <= DATE(${curEnd.year},${curEnd.month},${curLastDay})
+  NOT(ALL_PARTS[מק'ט] IN {${ZIKUY_EXCLUDED_SKUS.map(s => `"${s}"`).join(', ')}}),
+  ALL_PARTS[תאריך] >= DATE(${d90.getFullYear()},${d90.getMonth() + 1},${d90.getDate()}),
+  ALL_PARTS[תאריך] <= DATE(${todayD.getFullYear()},${todayD.getMonth() + 1},${todayD.getDate()})
 )`;
 
     // Last shipment (date + qty in units) per SKU — real sales only (ASHMADOT="-מכר-"),
@@ -4728,8 +4735,8 @@ CALCULATETABLE(
     const zikuyMap = new Map();
     zikuyRows.forEach(r => {
       const sku = String(r["ALL_PARTS[מק'ט]"] || '');
-      const pos = r['[positive]'] || 0, neg = r['[negative]'] || 0;
-      zikuyMap.set(sku, pos > 0 ? Math.round((Math.abs(neg) / pos) * 1000) / 10 : 0);
+      const zikuy = r['[zikuy]'] || 0, brutto = r['[brutto]'] || 0;
+      zikuyMap.set(sku, brutto > 0 ? Math.round((zikuy / brutto) * 1000) / 10 : 0);
     });
 
     const lastShipMap = new Map();
@@ -4753,7 +4760,7 @@ CALCULATETABLE(
           machlaka: fixBiDi(machlaka),
           company: classifyCompanyRet(machlaka),
           total365: Math.round(r['[total365]'] || 0),
-          zikuyPct3mo: zikuyMap.get(sku) || 0,
+          zikuyPct90d: zikuyMap.get(sku) || 0,
           lastShipDate: lastShipMap.get(sku)?.date || '',
           lastShipQty: lastShipMap.get(sku)?.qty || 0,
           imgUrl: '',
@@ -4789,7 +4796,7 @@ CALCULATETABLE(
     const responseData = {
       ok: true,
       products,
-      curLabel: `${curStart.month}/${curStart.year}-${curEnd.month}/${curEnd.year}`,
+      curLabel: `${d90.toLocaleDateString('he-IL')}-${todayD.toLocaleDateString('he-IL')}`,
     };
     clientReturnsCache.set(custId, { data: responseData, at: new Date() });
     res.json(responseData);
