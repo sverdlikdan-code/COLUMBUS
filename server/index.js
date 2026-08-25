@@ -417,14 +417,30 @@ ROW("maxDate", CALCULATE(MAX(ALL_PARTS[תאריך]), ALL_PARTS[ASHMADOT] = "-מ�
   }
 }
 
-// Schedule daily reload at 06:00 (server local time)
-function scheduleDailyPBIReload() {
+// Schedule daily reload at 06:00 Israel wall-clock time. The VPS OS clock runs in
+// UTC, so a naive setHours(6,0,0,0) on a plain Date fired at 06:00 UTC = 09:00
+// Israel in summer DST (confirmed live 2026-08-25) — agents started their morning
+// route on yesterday's data for the first 3 hours of the day. Reads Israel's
+// current wall-clock hour/minute via Intl (same 'Asia/Jerusalem' pattern as
+// todayIsraelDate()) instead of assuming a fixed UTC offset, and reschedules
+// itself with a fresh setTimeout after every run (not setInterval) so a DST
+// transition self-corrects the next day instead of drifting by an hour.
+function msUntilNextIsraelSixAM() {
   const now = new Date();
-  const next = new Date(now);
-  next.setHours(6, 0, 0, 0);
-  if (next <= now) next.setDate(next.getDate() + 1);
-  const ms = next - now;
-  setTimeout(() => { loadPBICache(); setInterval(loadPBICache, 24 * 60 * 60 * 1000); }, ms);
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+  }).formatToParts(now).reduce((o, p) => (o[p.type] = p.value, o), {});
+  const nowIsraelMs = (+parts.hour) * 3600000 + (+parts.minute) * 60000 + (+parts.second) * 1000;
+  const sixAmMs = 6 * 3600000;
+  let diff = sixAmMs - nowIsraelMs;
+  if (diff <= 0) diff += 24 * 3600000;
+  return diff;
+}
+function scheduleDailyPBIReload() {
+  setTimeout(() => {
+    loadPBICache();
+    scheduleDailyPBIReload();
+  }, msUntilNextIsraelSixAM());
 }
 
 const app = express();
