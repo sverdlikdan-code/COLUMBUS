@@ -56,12 +56,16 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 .ret-item{border:1.5px solid var(--sky-mid);border-radius:12px;padding:10px;background:#fff;}
 .ret-item-top{display:flex;align-items:flex-start;gap:8px;}
 .ret-item-top img{width:42px;height:42px;object-fit:contain;border-radius:8px;background:#f5f5f5;flex-shrink:0;}
-/* ret-item-main: name+sku+pct-badge+its dropdown stack in their own column so the
-   badge never shares a row (and therefore never competes for width) with the
-   product name — that competition is what caused the "name сожрало ширину" bug
-   on real long names (2026-08-25). min-width:0 lets this flex child actually
-   shrink/wrap instead of ballooning to its content's natural width. */
+/* ret-item-main: name+sku only — min-width:0 lets this flex child actually
+   shrink/wrap instead of ballooning to its content's natural width (fixes the
+   "name сожрало ширину" bug, 2026-08-25). The % badge used to live in here too
+   but moved into .ret-item-side (own column above the trash button) per user
+   request 2026-08-25: "цифра зикуим строкой над мусорником". */
 .ret-item-main{flex:1;min-width:0;}
+/* pct badge + delete button, stacked as one visual unit — the trash icon is
+   also where the company-average outlier signal lives (.rm-outlier below), so
+   the % that explains it sits directly above. */
+.ret-item-side{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;}
 .ret-item-name{font-size:14.5px;font-weight:700;color:var(--text);line-height:1.3;}
 /* Extra safety-net clamp for the product-name TEXT only (not the sku/last-ship
    sub-line below it) — shortName() cuts at a "N ג" weight token, but when that
@@ -73,41 +77,13 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
    render and is untouched by this. */
 .ret-item-name-text{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .ret-item-sku{display:block;margin-top:2px;font-size:11px;font-weight:700;color:var(--light);}
-/* Bordered + lightly elevated like the app's other filter/toolbar chips (see
-   .chip-filter in DESIGN.md) rather than a flat text label — a flat tint alone
-   didn't read as tappable ("кликабельность... не понятна"). Border style, not
-   a side-stripe accent, per DESIGN.md's stripe ban.
-   Label-over-value stack (2026-08-25, live phone annotation) — same pattern
-   already applied to .ash-hist-head/.ash-hist-qty and well-received there:
-   a small caption label on top, the loud bold number below it. Turns the
-   badge from one wide single-line string into a narrow two-line block. */
-.ret-item-pct{margin-top:5px;padding:4px 9px;border-radius:8px;background:var(--sky);border:1.5px solid var(--sky-mid);font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:5px;-webkit-appearance:none;appearance:none;max-width:100%;box-shadow:0 1px 3px rgba(21,101,192,.15);transition:box-shadow .15s,transform .1s;}
-.ret-item-pct:active{transform:scale(.97);}
-.ret-item-pct.open{box-shadow:none;border-color:var(--blue);}
-.pct-stack{display:flex;flex-direction:column;align-items:flex-start;line-height:1.15;}
-.pct-label{font-size:8px;font-weight:800;color:var(--mid);text-transform:uppercase;letter-spacing:.2px;white-space:nowrap;}
-.pct-value{font-size:13.5px;font-weight:900;white-space:nowrap;}
+/* Static info chip — just the number (removed 2026-08-25 per user request:
+   dropdown removed entirely, label text "זיכויים 90 יום" removed too, "именно
+   сама цифра должна быть"). Not interactive. */
+.ret-item-pct{padding:3px 8px;border-radius:8px;background:var(--sky);display:inline-flex;align-items:center;}
+.pct-value{font-size:12.5px;font-weight:900;white-space:nowrap;}
 .ret-item-pct.pct-hi .pct-value{color:var(--red);}
 .ret-item-pct.pct-lo .pct-value{color:var(--blue-dark);}
-.ret-item-pct .pct-chevron{font-size:8px;transition:transform .15s;flex-shrink:0;}
-.ret-item-pct.open .pct-chevron{transform:rotate(180deg);}
-/* Compact dropdown, right under the badge that opens it (not a full-width
-   list under the whole card) — explicit ask 2026-08-25: "ашмדות меленько
-   должны открываться прям под названием". Corrected 2026-08-25: this is a
-   real 2-COLUMN TABLE for the whole history (date column | יח' column, one
-   header row, up to 6 data rows stacked under it) — NOT a tile grid of
-   date+qty pairs. יח' is the column header (label sits above the values it
-   labels); each row's qty is the loud, bold, primary value — negative sign is
-   intentional data, kept as-is per explicit confirmation "так и надо". */
-.ash-hist{display:none;margin-top:5px;padding:5px 7px;background:var(--bg);border-radius:8px;}
-.ash-hist.open{display:block;}
-.ash-hist-title{font-size:9.5px;font-weight:800;color:var(--mid);text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;}
-.ash-hist-table{display:grid;grid-template-columns:1fr auto;column-gap:12px;}
-.ash-hist-head{font-size:9px;font-weight:800;color:var(--mid);text-transform:uppercase;letter-spacing:.4px;padding-bottom:3px;border-bottom:1px solid var(--sky-mid);margin-bottom:2px;}
-.ash-hist-head:last-child{text-align:center;}
-.ash-hist-date{font-size:11.5px;font-weight:600;color:var(--text);padding:2px 0;align-self:center;}
-.ash-hist-qty{font-size:15px;font-weight:900;color:var(--red);text-align:center;padding:1px 0;align-self:center;}
-.ash-hist-empty{color:var(--light);text-align:center;font-size:11px;padding:3px 0;}
 .ret-item-controls{display:flex;flex-wrap:wrap;gap:10px;margin-top:9px;}
 .ret-field{display:flex;flex-direction:column;gap:5px;}
 .ret-field label{font-size:11px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.3px;}
@@ -158,6 +134,15 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 .rm-btn{width:40px;height:40px;flex-shrink:0;background:none;border:none;color:var(--red);font-size:19px;cursor:pointer;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
 .rm-btn:active{background:#FFEBEE;}
 .rm-btn.rm-confirm{width:auto;min-width:52px;height:40px;padding:0 9px;background:var(--red);color:#fff;font-size:12px;font-weight:800;white-space:nowrap;}
+/* "Hot" trash-can outlier signal (2026-08-25, "обыгрыш мусорника") — this
+   client's write-off rate for this SKU is >2pp worse than the company average
+   (real agents only, see server pctOutlier). Pulses twice on render then
+   settles into a steady light-red tint — a title= tooltip carries the actual
+   numbers since nothing else on the resting card shows the average. Suppressed
+   once armed for delete (.rm-confirm already reads as maximally alarming on
+   its own — stacking a pulse on top of it would be noise). */
+.rm-btn.rm-outlier:not(.rm-confirm){background:#FFEBEE;animation:rm-pulse 1.6s ease-out 2;}
+@keyframes rm-pulse{0%{box-shadow:0 0 0 0 rgba(198,40,40,.5);}70%{box-shadow:0 0 0 7px rgba(198,40,40,0);}100%{box-shadow:0 0 0 0 rgba(198,40,40,0);}}
 
 .submit-bar{position:fixed;bottom:0;right:0;left:0;background:#fff;padding:12px 16px;box-shadow:0 -2px 12px rgba(0,0,0,.12);z-index:100;display:flex;gap:8px;}
 .submit-btn{flex:1;padding:15px;background:var(--green);color:#fff;border:none;border-radius:var(--radius);font-size:15.5px;font-weight:800;cursor:pointer;font-family:inherit;min-height:52px;}
@@ -205,7 +190,6 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
   body{font-size:16px;}
   .sec-title{font-size:15px;}
   .ret-item-name{font-size:16px;}
-  .pct-label{font-size:9px;}
   .pct-value{font-size:15px;}
   .qty-stepper .qty-btn{width:48px;height:48px;font-size:22px;}
   .qty-stepper input[type=number]{width:60px;height:48px;font-size:17px;}
@@ -614,13 +598,6 @@ function handleRemoveClick(btn, sku){
   },3000);
 }
 
-function toggleAshHist(btn){
-  const open=btn.classList.toggle('open');
-  btn.setAttribute('aria-expanded',open?'true':'false');
-  const panel=btn.nextElementSibling;
-  if(panel && panel.classList.contains('ash-hist')) panel.classList.toggle('open',open);
-}
-
 function renderTable(){
   const tbody=document.getElementById('ret-tbody');
   const empty=document.getElementById('ret-empty');
@@ -635,22 +612,25 @@ function renderTable(){
   okBtn.textContent=`✅ OK — הפק בלנק (${selected.size})`;
   tbody.innerHTML=[...selected.values()].map(row=>{
     const p=row.product;
-    const pctClass=p.zikuyPct90d>10?'pct-hi':'pct-lo';
+    const pctClass=Math.abs(p.zikuyPct90d)>10?'pct-hi':'pct-lo';
     const img=p.imgUrl?`<img src="${esc(p.imgUrl)}" alt="${esc(p.name)}" onerror="this.style.display='none'">`:'';
-    const lastShip=p.lastShipDate?` · אספקה אחרונה: ${p.lastShipDate.split('-').reverse().join('.')} (${p.lastShipQty} יח')`:'';
-    const ashRows=(p.ashmadotHist||[]).map(h=>`<div class="ash-hist-date">${h.date.split('-').reverse().join('.')}</div><div class="ash-hist-qty">${h.qty}</div>`).join('');
-    const ashBody=ashRows
-      ? `<div class="ash-hist-table"><div class="ash-hist-head">תאריך</div><div class="ash-hist-head">יח'</div>${ashRows}</div>`
-      : `<div class="ash-hist-empty">אין השמדות ב-90 הימים האחרונים</div>`;
+    const lastShip=p.lastShipDate?` · Last sale: ${p.lastShipDate.split('-').reverse().join('.')} (${p.lastShipQty} יח')`:'';
+    // Outlier: this client's write-off rate for this SKU is >2pp worse (by
+    // magnitude — both values are negative raw ERP amounts) than the company
+    // average among real field agents. "Hot" trash-icon treatment per user
+    // 2026-08-25 ("обыгрыш мусорника"), title carries the actual numbers since
+    // there's no permanent on-screen average display.
+    const outlierTitle=p.pctOutlier?`מעל הממוצע: ${Math.abs(p.zikuyPct90d)}% מול ממוצע ${Math.abs(p.companyAvgPct90d)}%`:'הסר מוצר';
     return `<div class="ret-item" data-sku="${esc(p.sku)}">
       <div class="ret-item-top">
         ${img}
         <div class="ret-item-main">
           <div class="ret-item-name"><span class="ret-item-name-text">${esc(shortName(p.name))}</span><span class="ret-item-sku">מק"ט ${esc(p.sku)}${lastShip}</span></div>
-          <button type="button" class="ret-item-pct ${pctClass}" aria-expanded="false" onclick="toggleAshHist(this)"><span class="pct-stack"><span class="pct-label">זיכויים 90 יום</span><span class="pct-value">${p.zikuyPct90d}%</span></span><span class="pct-chevron">▾</span></button>
-          <div class="ash-hist"><div class="ash-hist-title">היסטוריית השמדות — 6 אחרונות</div>${ashBody}</div>
         </div>
-        <button type="button" class="rm-btn" aria-label="הסר מוצר" onclick="handleRemoveClick(this,'${esc(p.sku)}')">🗑</button>
+        <div class="ret-item-side">
+          <div class="ret-item-pct ${pctClass}"><span class="pct-value">${p.zikuyPct90d}%</span></div>
+          <button type="button" class="rm-btn ${p.pctOutlier?'rm-outlier':''}" aria-label="הסר מוצר" title="${esc(outlierTitle)}" onclick="handleRemoveClick(this,'${esc(p.sku)}')">🗑</button>
+        </div>
       </div>
       <div class="ret-item-controls">
         <div class="ret-field">

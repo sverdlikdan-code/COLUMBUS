@@ -3393,7 +3393,11 @@ async function _fetchClientAI(lang) {
     }
     tbl += '</tbody></table>';
 
-    const peerLabel = isChain ? `ממוצע רשת ${chainName}` : (chainName ? `ממוצע קטגוריית ${chainName}` : 'ממוצע חברה');
+    // Private-market peer group (not a real chain) uses a MEDIAN server-side, not a
+    // mean — that category is wide/heterogeneous, a plain average gets pulled way up
+    // by a handful of large accounts (verified live 2026-08-25: mean ₪23,892 vs median
+    // ₪14,456 for "חנויות"). Label says חציון here so it isn't presented as a mean.
+    const peerLabel = isChain ? `ממוצע רשת ${chainName}` : (chainName ? `חציון קטגוריית ${chainName}` : 'חציון חברה');
     const summaryLine = `<div style="margin:6px 0 10px;font-size:14px;color:#555">`
       + `סה"כ לקוח: <b>₪${clientTotal.toLocaleString()}</b> (${ltr(curLabel)}) | ${peerLabel}${isKosher?' (כשר)':''}: ₪${peerAvg.toLocaleString()}`
       + `</div>`;

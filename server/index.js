@@ -4728,42 +4728,9 @@ CALCULATETABLE(
   ALL_PARTS[ASHMADOT] = "-מכר-"
 )`;
 
-    // Per-SKU ashmadot (השמדות) event log — one row per SKU+date, same exclusions as
-    // zikuyDax above (same window, same agent/SKU scope). Grouped client-side into the
-    // last 6 events per SKU for the '% זיכויים 90 יום' badge dropdown.
-    const ashmadotHistDax = `
-EVALUATE
-CALCULATETABLE(
-  ADDCOLUMNS(
-    SUMMARIZE(ALL_PARTS, ALL_PARTS[מק'ט], ALL_PARTS[תאריך]),
-    "qty", CALCULATE(SUM(ALL_PARTS[כמות ביח' מפעל]))
-  ),
-  ALL_PARTS[מספר לקוח] = "${custId}",
-  ALL_PARTS[ASHMADOT] = "השמדות",
-  NOT(ALL_PARTS[שם סוכן] IN {"‭באילא יסוי‬", "‭יללכ‬"}),
-  NOT(ISBLANK(ALL_PARTS[שם סוכן])),
-  NOT(ALL_PARTS[מק'ט] IN {${ZIKUY_EXCLUDED_SKUS.map(s => `"${s}"`).join(', ')}}),
-  ALL_PARTS[תאריך] >= DATE(${d90.getFullYear()},${d90.getMonth() + 1},${d90.getDate()}),
-  ALL_PARTS[תאריך] <= DATE(${todayD.getFullYear()},${todayD.getMonth() + 1},${todayD.getDate()})
-)`;
-
-    const [histRows, zikuyRows, lastShipRows, ashmadotHistRows] = await Promise.all([
-      executeDax(histDax), executeDax(zikuyDax), executeDax(lastShipDax), executeDax(ashmadotHistDax),
+    const [histRows, zikuyRows, lastShipRows] = await Promise.all([
+      executeDax(histDax), executeDax(zikuyDax), executeDax(lastShipDax),
     ]);
-
-    // Last 6 ashmadot events per SKU, most recent first — powers the badge dropdown.
-    const ashmadotHistMap = new Map();
-    ashmadotHistRows.forEach(r => {
-      const sku = String(r["ALL_PARTS[מק'ט]"] || '');
-      const d = r['ALL_PARTS[תאריך]'];
-      if (!d) return;
-      if (!ashmadotHistMap.has(sku)) ashmadotHistMap.set(sku, []);
-      ashmadotHistMap.get(sku).push({ date: String(d).slice(0, 10), qty: Math.round(r['[qty]'] || 0) });
-    });
-    ashmadotHistMap.forEach(list => {
-      list.sort((a, b) => b.date.localeCompare(a.date));
-      if (list.length > 6) list.length = 6;
-    });
 
     const zikuyMap = new Map();
     zikuyRows.forEach(r => {
@@ -4771,6 +4738,33 @@ CALCULATETABLE(
       const zikuy = r['[zikuy]'] || 0, brutto = r['[brutto]'] || 0;
       zikuyMap.set(sku, brutto > 0 ? Math.round((zikuy / brutto) * 1000) / 10 : 0);
     });
+
+    // Company-wide average % זיכויים per SKU (same formula/window as zikuyDax, no
+    // client filter — "agents with a manager" = the same real-agent population
+    // already used everywhere else in this model, per user decision 2026-08-25.
+    // Scoped to only the SKUs this client actually has, to keep the query small.
+    const returnSkus = [...new Set(histRows.map(r => String(r["ALL_PARTS[מק'ט]"] || '')).filter(Boolean))];
+    let companyAvgMap = new Map();
+    if (returnSkus.length) {
+      const companyAvgDax = `
+EVALUATE
+CALCULATETABLE(
+  ADDCOLUMNS(
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[מק'ט]),
+    "zikuy", CALCULATE(SUM(ALL_PARTS[סכום (ש'ח)]), ALL_PARTS[ASHMADOT] = "השמדות", NOT(ALL_PARTS[שם סוכן] IN {"‭באילא יסוי‬", "‭יללכ‬"}), NOT(ISBLANK(ALL_PARTS[שם סוכן]))),
+    "brutto", CALCULATE(SUM(ALL_PARTS[סכום (ש'ח)]), ALL_PARTS[ASHMADOT] = "-מכר-", NOT(ALL_PARTS[שם סוכן] IN {"‭באילא יסוי‬", "‭יללכ‬"}), NOT(ISBLANK(ALL_PARTS[שם סוכן])))
+  ),
+  ALL_PARTS[מק'ט] IN {${returnSkus.map(s => `"${s}"`).join(', ')}},
+  ALL_PARTS[תאריך] >= DATE(${d90.getFullYear()},${d90.getMonth() + 1},${d90.getDate()}),
+  ALL_PARTS[תאריך] <= DATE(${todayD.getFullYear()},${todayD.getMonth() + 1},${todayD.getDate()})
+)`;
+      const companyAvgRows = await executeDax(companyAvgDax);
+      companyAvgRows.forEach(r => {
+        const sku = String(r["ALL_PARTS[מק'ט]"] || '');
+        const zikuy = r['[zikuy]'] || 0, brutto = r['[brutto]'] || 0;
+        companyAvgMap.set(sku, brutto > 0 ? Math.round((zikuy / brutto) * 1000) / 10 : 0);
+      });
+    }
 
     const lastShipMap = new Map();
     lastShipRows.forEach(r => {
@@ -4794,7 +4788,11 @@ CALCULATETABLE(
           company: classifyCompanyRet(machlaka),
           total365: Math.round(r['[total365]'] || 0),
           zikuyPct90d: zikuyMap.get(sku) || 0,
-          ashmadotHist: ashmadotHistMap.get(sku) || [],
+          companyAvgPct90d: companyAvgMap.get(sku) || 0,
+          // Magnitude compare, not raw compare — both values are negative (raw
+          // ERP sign for השמדות amounts), so "worse than average" means further
+          // from zero, not numerically smaller. Threshold: >2pp, per user 2026-08-25.
+          pctOutlier: Math.abs(zikuyMap.get(sku) || 0) - Math.abs(companyAvgMap.get(sku) || 0) > 2,
           lastShipDate: lastShipMap.get(sku)?.date || '',
           lastShipQty: lastShipMap.get(sku)?.qty || 0,
           imgUrl: '',
@@ -4958,8 +4956,49 @@ CALCULATETABLE(
 )`;
     };
 
+    // Private-market (שוק פרטי / "חנויות") peer group is wide and heterogeneous —
+    // verified live 2026-08-25 on the חנויות category, May-Jul 2026: 710 clients,
+    // mean ₪23,892 vs median ₪14,456 (top account alone did ₪356,400 — a long
+    // tail of large accounts pulls the mean well above what a typical small
+    // private store actually does). Chain peer groups (isChain) don't have this
+    // problem — a named chain's branches are much more homogeneous — so they
+    // keep the plain mean. User decision 2026-08-25: median only for private-market.
     const daxAvg = (start, end) => {
       const lastDay = new Date(end.year, end.month, 0).getDate();
+      if (!isChain) {
+        // MEDIANX per-client. IMPORTANT: ASHMADOT/date/kosher filters must be
+        // repeated INSIDE the per-row CALCULATE, not just on the outer
+        // CALCULATETABLE that builds the client list — filters used to build a
+        // table argument don't persist as ambient context for expressions
+        // evaluated per-row via MEDIANX's context transition. Verified live
+        // (probe-median-dax-verify.js, 2026-08-25): omitting them gave ₪145,799
+        // (wrong — sums ALL ASHMADOT types/all dates per client), repeating them
+        // gave ₪14,501 (matches independent JS median calc, ₪14,456). The
+        // client-list filter (chainInFilter) is the opposite case — it targets
+        // the SAME column MEDIANX groups by, so it must stay OUTER-ONLY (repeating
+        // it inside would replace the per-row context transition instead of
+        // intersecting with it — the same trap documented earlier in this file
+        // for famDax/zikuyDax/skuDax).
+        return `
+EVALUATE
+ROW(
+  "avg_per_client",
+  MEDIANX(
+    CALCULATETABLE(
+      SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]),
+      ALL_PARTS[ASHMADOT] = "-מכר-",${kosherFilter}${chainInFilter}
+      ALL_PARTS[תאריך] >= DATE(${start.year},${start.month},1),
+      ALL_PARTS[תאריך] <= DATE(${end.year},${end.month},${lastDay})
+    ),
+    CALCULATE(
+      SUM(ALL_PARTS[סכום (ש'ח)]),
+      ALL_PARTS[ASHMADOT] = "-מכר-",${kosherFilter}
+      ALL_PARTS[תאריך] >= DATE(${start.year},${start.month},1),
+      ALL_PARTS[תאריך] <= DATE(${end.year},${end.month},${lastDay})
+    )
+  )
+)`;
+      }
       return `
 EVALUATE
 ROW(
@@ -5479,11 +5518,15 @@ CALCULATETABLE(
     const dormantNote = daysSinceOrder && daysSinceOrder > 21
       ? `\n⚠️ לא הזמין ${daysSinceOrder} ימים — דורש תשומת לב!`
       : '';
+    // Private-market (non-chain) peerAvg is a MEDIAN, not a mean — see daxAvg
+    // above for why (wide/heterogeneous category, mean skewed by large accounts,
+    // verified live 2026-08-25). Label/wording says חציון there, not ממוצע.
+    const peerWord = isChain ? 'ממוצע' : 'חציון';
     const peerLabel = isChain ? `ממוצע לקוח ברשת ${chainName}`
-      : chainName ? `ממוצע לקוח בקטגוריה ${chainName}`
-      : 'ממוצע לקוח בחברה';
+      : chainName ? `חציון לקוח בקטגוריה ${chainName}`
+      : 'חציון לקוח בחברה';
     const avgNote = `\n${peerLabel}${isKosher ? ' (רק מוצרים כשרים)' : ''} לתקופה ${curLabel}: ₪${peerAvg.toLocaleString()}`;
-    const clientNote = `סה"כ לקוח ${curLabel}: ₪${cur.total.toLocaleString()} (${cur.total > peerAvg ? '+' : ''}${peerAvg > 0 ? Math.round((cur.total/peerAvg-1)*100) : 0}% מהממוצע)`
+    const clientNote = `סה"כ לקוח ${curLabel}: ₪${cur.total.toLocaleString()} (${cur.total > peerAvg ? '+' : ''}${peerAvg > 0 ? Math.round((cur.total/peerAvg-1)*100) : 0}% מה${peerWord})`
       + (clientDeltaPct !== null ? ` | לעומת ${priorLabel}: ₪${prior.total.toLocaleString()} (${clientDeltaPct > 0 ? '+' : ''}${clientDeltaPct}%)` : '');
     const kosherNote = isKosher ? `\nלקוח כשר — הנתונים וההשוואה כוללים רק מוצרים כשרים.` : '';
 
