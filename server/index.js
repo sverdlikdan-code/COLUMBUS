@@ -81,6 +81,37 @@ SELECTCOLUMNS(
 )
 `);
 
+    // Family → company classification (FORMULA/ICE_MISH/INTER/ICE_BDD) — same מחלקה
+    // substring pattern already used elsewhere (day-briefing, sadran chain-products).
+    // lastOrderDate below must stay scoped to FORMULA+ICE_MISH only: an ICE בודדים
+    // (ICE_BDD) purchase is a different channel/agent entirely and shouldn't make a
+    // FORMULA/ICE-MISH client look recently active on the route list. Live bug found
+    // 2026-08-25: נורית נבון showed "24.08" sourced from an ICE_BDD invoice while her
+    // real FORMULA/ICE-MISH last order was 14.06 — the unscoped MAX(ALL_PARTS[תאריך])
+    // below had no family filter at all, unlike every other last-order query in this
+    // file (see daxLastOrder in the day-briefing section, which already does this).
+    const famRows = await executeDax(`
+EVALUATE
+ADDCOLUMNS(
+  SUMMARIZE(ALL_PARTS, ALL_PARTS[תאור משפחת מוצר]),
+  "מחלקה", LOOKUPVALUE(ADIFUT[מחלקה], ADIFUT[תאור משפחה], ALL_PARTS[תאור משפחת מוצר])
+)
+`);
+    const LASTORDER_INTER_CATS = new Set(['מדף', 'מתוקים  🍬']);
+    const classifyLastOrderCompany = (machlaka) => {
+      if (!machlaka) return null;
+      if (machlaka.includes('mish')) return 'ICE_MISH';
+      if (machlaka.includes('bdd')) return 'ICE_BDD';
+      if (LASTORDER_INTER_CATS.has(machlaka)) return 'INTER';
+      return 'FORMULA';
+    };
+    const lastOrderFamilies = famRows
+      .filter(r => ['FORMULA', 'ICE_MISH'].includes(classifyLastOrderCompany(r['[מחלקה]'] || '')))
+      .map(r => r['ALL_PARTS[תאור משפחת מוצר]'])
+      .filter(Boolean);
+    const escFam = f => `"${String(f).replace(/"/g, '""')}"`;
+    const lastOrderFamFilter = `ALL_PARTS[תאור משפחת מוצר] IN {${(lastOrderFamilies.length ? lastOrderFamilies : ['__none__']).map(escFam).join(', ')}}`;
+
     // C: Current month sales + overall last order date per customer from ALL_PARTS
     const [salesRows, lastOrderRows] = await Promise.all([
       executeDax(`
@@ -97,9 +128,13 @@ CALCULATETABLE(
 `),
       executeDax(`
 EVALUATE
-ADDCOLUMNS(
-  SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]),
-  "lastOrderDate", CALCULATE(MAX(ALL_PARTS[תאריך]))
+CALCULATETABLE(
+  ADDCOLUMNS(
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]),
+    "lastOrderDate", CALCULATE(MAX(ALL_PARTS[תאריך]))
+  ),
+  ${lastOrderFamFilter},
+  ALL_PARTS[ASHMADOT] = "-מכר-"
 )
 `),
     ]);
