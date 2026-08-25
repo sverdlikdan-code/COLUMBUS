@@ -4728,9 +4728,42 @@ CALCULATETABLE(
   ALL_PARTS[ASHMADOT] = "-מכר-"
 )`;
 
-    const [histRows, zikuyRows, lastShipRows] = await Promise.all([
-      executeDax(histDax), executeDax(zikuyDax), executeDax(lastShipDax),
+    // Per-SKU ashmadot (השמדות) event log — one row per SKU+date, same exclusions as
+    // zikuyDax above (same window, same agent/SKU scope). Grouped client-side into the
+    // last 6 events per SKU for the '% זיכויים 90 יום' badge dropdown.
+    const ashmadotHistDax = `
+EVALUATE
+CALCULATETABLE(
+  ADDCOLUMNS(
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[מק'ט], ALL_PARTS[תאריך]),
+    "qty", CALCULATE(SUM(ALL_PARTS[כמות ביח' מפעל]))
+  ),
+  ALL_PARTS[מספר לקוח] = "${custId}",
+  ALL_PARTS[ASHMADOT] = "השמדות",
+  NOT(ALL_PARTS[שם סוכן] IN {"‭באילא יסוי‬", "‭יללכ‬"}),
+  NOT(ISBLANK(ALL_PARTS[שם סוכן])),
+  NOT(ALL_PARTS[מק'ט] IN {${ZIKUY_EXCLUDED_SKUS.map(s => `"${s}"`).join(', ')}}),
+  ALL_PARTS[תאריך] >= DATE(${d90.getFullYear()},${d90.getMonth() + 1},${d90.getDate()}),
+  ALL_PARTS[תאריך] <= DATE(${todayD.getFullYear()},${todayD.getMonth() + 1},${todayD.getDate()})
+)`;
+
+    const [histRows, zikuyRows, lastShipRows, ashmadotHistRows] = await Promise.all([
+      executeDax(histDax), executeDax(zikuyDax), executeDax(lastShipDax), executeDax(ashmadotHistDax),
     ]);
+
+    // Last 6 ashmadot events per SKU, most recent first — powers the badge dropdown.
+    const ashmadotHistMap = new Map();
+    ashmadotHistRows.forEach(r => {
+      const sku = String(r["ALL_PARTS[מק'ט]"] || '');
+      const d = r['ALL_PARTS[תאריך]'];
+      if (!d) return;
+      if (!ashmadotHistMap.has(sku)) ashmadotHistMap.set(sku, []);
+      ashmadotHistMap.get(sku).push({ date: String(d).slice(0, 10), qty: Math.round(r['[qty]'] || 0) });
+    });
+    ashmadotHistMap.forEach(list => {
+      list.sort((a, b) => b.date.localeCompare(a.date));
+      if (list.length > 6) list.length = 6;
+    });
 
     const zikuyMap = new Map();
     zikuyRows.forEach(r => {
@@ -4761,6 +4794,7 @@ CALCULATETABLE(
           company: classifyCompanyRet(machlaka),
           total365: Math.round(r['[total365]'] || 0),
           zikuyPct90d: zikuyMap.get(sku) || 0,
+          ashmadotHist: ashmadotHistMap.get(sku) || [],
           lastShipDate: lastShipMap.get(sku)?.date || '',
           lastShipQty: lastShipMap.get(sku)?.qty || 0,
           imgUrl: '',
