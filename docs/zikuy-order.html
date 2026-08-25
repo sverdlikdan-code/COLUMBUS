@@ -49,21 +49,53 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 /* ── return-request list (the main work surface) ───────────────── */
 .ret-list{display:flex;flex-direction:column;gap:12px;}
 .ret-item{border:1.5px solid var(--sky-mid);border-radius:12px;padding:12px;background:#fff;}
-.ret-item-top{display:flex;align-items:center;gap:10px;}
+.ret-item-top{display:flex;align-items:flex-start;gap:10px;}
 .ret-item-top img{width:48px;height:48px;object-fit:contain;border-radius:8px;background:#f5f5f5;flex-shrink:0;}
-.ret-item-name{flex:1;font-size:14.5px;font-weight:700;color:var(--text);line-height:1.3;}
-.ret-item-sku{font-size:11px;font-weight:700;color:var(--light);}
-.ret-item-pct{font-size:11.5px;font-weight:800;white-space:nowrap;padding:5px 9px;border-radius:8px;background:var(--sky);border:none;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:4px;-webkit-appearance:none;appearance:none;}
+/* ret-item-main: name+sku+pct-badge+its dropdown stack in their own column so the
+   badge never shares a row (and therefore never competes for width) with the
+   product name — that competition is what caused the "name сожрало ширину" bug
+   on real long names (2026-08-25). min-width:0 lets this flex child actually
+   shrink/wrap instead of ballooning to its content's natural width. */
+.ret-item-main{flex:1;min-width:0;}
+.ret-item-name{font-size:14.5px;font-weight:700;color:var(--text);line-height:1.3;}
+/* Extra safety-net clamp for the product-name TEXT only (not the sku/last-ship
+   sub-line below it) — shortName() cuts at a "N ג" weight token, but when that
+   token is the LAST word (e.g. "...100 גרם") there's nothing left to cut and
+   long names could still run long. line-clamp catches that case with an
+   ellipsis instead of ballooning card height. Feedback 2026-08-25: "названия
+   товара тоже можно тут подсократить но не жестко". Card-display-only — the
+   WhatsApp/print blank (renderProformaTable, #pv-tbody) has its own separate
+   render and is untouched by this. */
+.ret-item-name-text{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.ret-item-sku{display:block;margin-top:2px;font-size:11px;font-weight:700;color:var(--light);}
+/* Bordered + lightly elevated like the app's other filter/toolbar chips (see
+   .chip-filter in DESIGN.md) rather than a flat text label — a flat tint alone
+   didn't read as tappable ("кликабельность... не понятна"). Border style, not
+   a side-stripe accent, per DESIGN.md's stripe ban. */
+.ret-item-pct{margin-top:6px;font-size:11.5px;font-weight:800;white-space:nowrap;padding:5px 9px;border-radius:8px;background:var(--sky);border:1.5px solid var(--sky-mid);font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:4px;-webkit-appearance:none;appearance:none;max-width:100%;box-shadow:0 1px 3px rgba(21,101,192,.15);transition:box-shadow .15s,transform .1s;}
+.ret-item-pct:active{transform:scale(.97);}
+.ret-item-pct.open{box-shadow:none;border-color:var(--blue);}
 .ret-item-pct.pct-hi{color:var(--red);}
 .ret-item-pct.pct-lo{color:var(--blue-dark);}
-.ret-item-pct .pct-chevron{font-size:8px;transition:transform .15s;}
+.ret-item-pct .pct-chevron{font-size:8px;transition:transform .15s;flex-shrink:0;}
 .ret-item-pct.open .pct-chevron{transform:rotate(180deg);}
-.ash-hist{display:none;margin-top:10px;padding:8px 10px;background:var(--bg);border-radius:8px;font-size:12px;}
+/* Compact dropdown, right under the badge that opens it (not a full-width
+   list under the whole card) — explicit ask 2026-08-25: "ашмדות меленько
+   должны открываться прям под названием". Corrected 2026-08-25: this is a
+   real 2-COLUMN TABLE for the whole history (date column | יח' column, one
+   header row, up to 6 data rows stacked under it) — NOT a tile grid of
+   date+qty pairs. יח' is the column header (label sits above the values it
+   labels); each row's qty is the loud, bold, primary value — negative sign is
+   intentional data, kept as-is per explicit confirmation "так и надо". */
+.ash-hist{display:none;margin-top:6px;padding:6px 8px;background:var(--bg);border-radius:8px;}
 .ash-hist.open{display:block;}
-.ash-hist-title{font-size:10.5px;font-weight:800;color:var(--mid);text-transform:uppercase;letter-spacing:.3px;margin-bottom:5px;}
-.ash-hist-row{display:flex;justify-content:space-between;padding:4px 0;color:var(--text);}
-.ash-hist-row:not(:last-child){border-bottom:1px solid var(--sky-mid);}
-.ash-hist-empty{color:var(--light);text-align:center;padding:4px 0;}
+.ash-hist-title{font-size:9.5px;font-weight:800;color:var(--mid);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px;}
+.ash-hist-table{display:grid;grid-template-columns:1fr auto;column-gap:12px;}
+.ash-hist-head{font-size:9px;font-weight:800;color:var(--mid);text-transform:uppercase;letter-spacing:.4px;padding-bottom:3px;border-bottom:1px solid var(--sky-mid);margin-bottom:2px;}
+.ash-hist-head:last-child{text-align:center;}
+.ash-hist-date{font-size:11.5px;font-weight:600;color:var(--text);padding:3px 0;align-self:center;}
+.ash-hist-qty{font-size:15px;font-weight:900;color:var(--red);text-align:center;padding:2px 0;align-self:center;}
+.ash-hist-empty{color:var(--light);text-align:center;font-size:11px;padding:4px 0;}
 .ret-item-controls{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px;}
 .ret-field{display:flex;flex-direction:column;gap:5px;}
 .ret-field label{font-size:11px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.3px;}
@@ -539,7 +571,7 @@ function toggleProduct(sku){
 function toggleAshHist(btn){
   const open=btn.classList.toggle('open');
   btn.setAttribute('aria-expanded',open?'true':'false');
-  const panel=btn.parentElement.nextElementSibling;
+  const panel=btn.nextElementSibling;
   if(panel && panel.classList.contains('ash-hist')) panel.classList.toggle('open',open);
 }
 
@@ -560,16 +592,20 @@ function renderTable(){
     const pctClass=p.zikuyPct90d>10?'pct-hi':'pct-lo';
     const img=p.imgUrl?`<img src="${esc(p.imgUrl)}" alt="${esc(p.name)}" onerror="this.style.display='none'">`:'';
     const lastShip=p.lastShipDate?` · אספקה אחרונה: ${p.lastShipDate.split('-').reverse().join('.')} (${p.lastShipQty} יח')`:'';
-    const ashRows=(p.ashmadotHist||[]).map(h=>`<div class="ash-hist-row"><span>${h.date.split('-').reverse().join('.')}</span><span>${h.qty} יח'</span></div>`).join('')
-      || `<div class="ash-hist-empty">אין השמדות ב-90 הימים האחרונים</div>`;
+    const ashRows=(p.ashmadotHist||[]).map(h=>`<div class="ash-hist-date">${h.date.split('-').reverse().join('.')}</div><div class="ash-hist-qty">${h.qty}</div>`).join('');
+    const ashBody=ashRows
+      ? `<div class="ash-hist-table"><div class="ash-hist-head">תאריך</div><div class="ash-hist-head">יח'</div>${ashRows}</div>`
+      : `<div class="ash-hist-empty">אין השמדות ב-90 הימים האחרונים</div>`;
     return `<div class="ret-item" data-sku="${esc(p.sku)}">
       <div class="ret-item-top">
         ${img}
-        <div class="ret-item-name">${esc(shortName(p.name))}<br><span class="ret-item-sku">מק"ט ${esc(p.sku)}${lastShip}</span></div>
-        <button type="button" class="ret-item-pct ${pctClass}" aria-expanded="false" onclick="toggleAshHist(this)">% זיכויים 90 יום: ${p.zikuyPct90d}%<span class="pct-chevron">▾</span></button>
+        <div class="ret-item-main">
+          <div class="ret-item-name"><span class="ret-item-name-text">${esc(shortName(p.name))}</span><span class="ret-item-sku">מק"ט ${esc(p.sku)}${lastShip}</span></div>
+          <button type="button" class="ret-item-pct ${pctClass}" aria-expanded="false" onclick="toggleAshHist(this)">% זיכויים 90 יום: ${p.zikuyPct90d}%<span class="pct-chevron">▾</span></button>
+          <div class="ash-hist"><div class="ash-hist-title">היסטוריית השמדות — 6 אחרונות</div>${ashBody}</div>
+        </div>
         <button type="button" class="rm-btn" aria-label="הסר מוצר" onclick="toggleProduct('${esc(p.sku)}')">🗑</button>
       </div>
-      <div class="ash-hist"><div class="ash-hist-title">היסטוריית השמדות — 6 אחרונות</div>${ashRows}</div>
       <div class="ret-item-controls">
         <div class="ret-field">
           <label>${isGramsProduct(p) ? 'משקל לזיכוי (ק"ג)' : 'כמות לזיכוי'}</label>
