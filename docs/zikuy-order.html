@@ -47,10 +47,15 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 .photo-card .padd{font-size:10px;font-weight:800;color:var(--green);margin-top:2px;}
 
 /* ── return-request list (the main work surface) ───────────────── */
-.ret-list{display:flex;flex-direction:column;gap:12px;}
-.ret-item{border:1.5px solid var(--sky-mid);border-radius:12px;padding:12px;background:#fff;}
-.ret-item-top{display:flex;align-items:flex-start;gap:10px;}
-.ret-item-top img{width:48px;height:48px;object-fit:contain;border-radius:8px;background:#f5f5f5;flex-shrink:0;}
+/* Density pass 2026-08-25: explicit ask — "важно чтоб больше строк влезало
+   на екран" / "эргономика в пользу колличества позиций на одном екране".
+   Tightened list gap, card padding, photo size and control spacing below.
+   Nothing here goes under the 44px touch-target floor (qty-stepper,
+   opt-toggle, date input all untouched) — only pure whitespace/photo size. */
+.ret-list{display:flex;flex-direction:column;gap:9px;}
+.ret-item{border:1.5px solid var(--sky-mid);border-radius:12px;padding:10px;background:#fff;}
+.ret-item-top{display:flex;align-items:flex-start;gap:8px;}
+.ret-item-top img{width:42px;height:42px;object-fit:contain;border-radius:8px;background:#f5f5f5;flex-shrink:0;}
 /* ret-item-main: name+sku+pct-badge+its dropdown stack in their own column so the
    badge never shares a row (and therefore never competes for width) with the
    product name — that competition is what caused the "name сожрало ширину" bug
@@ -71,12 +76,19 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 /* Bordered + lightly elevated like the app's other filter/toolbar chips (see
    .chip-filter in DESIGN.md) rather than a flat text label — a flat tint alone
    didn't read as tappable ("кликабельность... не понятна"). Border style, not
-   a side-stripe accent, per DESIGN.md's stripe ban. */
-.ret-item-pct{margin-top:6px;font-size:11.5px;font-weight:800;white-space:nowrap;padding:5px 9px;border-radius:8px;background:var(--sky);border:1.5px solid var(--sky-mid);font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:4px;-webkit-appearance:none;appearance:none;max-width:100%;box-shadow:0 1px 3px rgba(21,101,192,.15);transition:box-shadow .15s,transform .1s;}
+   a side-stripe accent, per DESIGN.md's stripe ban.
+   Label-over-value stack (2026-08-25, live phone annotation) — same pattern
+   already applied to .ash-hist-head/.ash-hist-qty and well-received there:
+   a small caption label on top, the loud bold number below it. Turns the
+   badge from one wide single-line string into a narrow two-line block. */
+.ret-item-pct{margin-top:5px;padding:4px 9px;border-radius:8px;background:var(--sky);border:1.5px solid var(--sky-mid);font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:5px;-webkit-appearance:none;appearance:none;max-width:100%;box-shadow:0 1px 3px rgba(21,101,192,.15);transition:box-shadow .15s,transform .1s;}
 .ret-item-pct:active{transform:scale(.97);}
 .ret-item-pct.open{box-shadow:none;border-color:var(--blue);}
-.ret-item-pct.pct-hi{color:var(--red);}
-.ret-item-pct.pct-lo{color:var(--blue-dark);}
+.pct-stack{display:flex;flex-direction:column;align-items:flex-start;line-height:1.15;}
+.pct-label{font-size:8px;font-weight:800;color:var(--mid);text-transform:uppercase;letter-spacing:.2px;white-space:nowrap;}
+.pct-value{font-size:13.5px;font-weight:900;white-space:nowrap;}
+.ret-item-pct.pct-hi .pct-value{color:var(--red);}
+.ret-item-pct.pct-lo .pct-value{color:var(--blue-dark);}
 .ret-item-pct .pct-chevron{font-size:8px;transition:transform .15s;flex-shrink:0;}
 .ret-item-pct.open .pct-chevron{transform:rotate(180deg);}
 /* Compact dropdown, right under the badge that opens it (not a full-width
@@ -87,16 +99,16 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
    date+qty pairs. יח' is the column header (label sits above the values it
    labels); each row's qty is the loud, bold, primary value — negative sign is
    intentional data, kept as-is per explicit confirmation "так и надо". */
-.ash-hist{display:none;margin-top:6px;padding:6px 8px;background:var(--bg);border-radius:8px;}
+.ash-hist{display:none;margin-top:5px;padding:5px 7px;background:var(--bg);border-radius:8px;}
 .ash-hist.open{display:block;}
-.ash-hist-title{font-size:9.5px;font-weight:800;color:var(--mid);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px;}
+.ash-hist-title{font-size:9.5px;font-weight:800;color:var(--mid);text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;}
 .ash-hist-table{display:grid;grid-template-columns:1fr auto;column-gap:12px;}
 .ash-hist-head{font-size:9px;font-weight:800;color:var(--mid);text-transform:uppercase;letter-spacing:.4px;padding-bottom:3px;border-bottom:1px solid var(--sky-mid);margin-bottom:2px;}
 .ash-hist-head:last-child{text-align:center;}
-.ash-hist-date{font-size:11.5px;font-weight:600;color:var(--text);padding:3px 0;align-self:center;}
-.ash-hist-qty{font-size:15px;font-weight:900;color:var(--red);text-align:center;padding:2px 0;align-self:center;}
-.ash-hist-empty{color:var(--light);text-align:center;font-size:11px;padding:4px 0;}
-.ret-item-controls{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px;}
+.ash-hist-date{font-size:11.5px;font-weight:600;color:var(--text);padding:2px 0;align-self:center;}
+.ash-hist-qty{font-size:15px;font-weight:900;color:var(--red);text-align:center;padding:1px 0;align-self:center;}
+.ash-hist-empty{color:var(--light);text-align:center;font-size:11px;padding:3px 0;}
+.ret-item-controls{display:flex;flex-wrap:wrap;gap:10px;margin-top:9px;}
 .ret-field{display:flex;flex-direction:column;gap:5px;}
 .ret-field label{font-size:11px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.3px;}
 .qty-stepper{display:flex;align-items:center;border:1.5px solid var(--sky-mid);border-radius:10px;overflow:hidden;}
@@ -133,8 +145,19 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 .opt-btn.opt-50.on{background:var(--blue);color:#fff;}
 .opt-btn.opt-destroy.on{background:var(--red);color:#fff;}
 .ret-empty{text-align:center;padding:20px;color:var(--light);font-size:13px;}
-.rm-btn{width:40px;height:40px;flex-shrink:0;background:none;border:none;color:var(--red);font-size:19px;cursor:pointer;border-radius:8px;display:flex;align-items:center;justify-content:center;}
+/* Two-tap delete confirm (2026-08-25, live phone annotation: "красная с
+   перевопросом — вы уверены?") — no native confirm() (blocks the thread,
+   looks foreign to the app). First tap arms a visibly different state (solid
+   red fill + "מחק?" text replacing the icon) for 3s; a second tap inside that
+   window actually removes the row via the SAME toggleProduct() used for
+   add — untouched. No tap = auto-reverts, nothing lost (qty/date/option
+   still live in `selected` the whole time, only re-rendered on real removal).
+   Handled at the call site (handleRemoveClick, below) — NOT inside
+   toggleProduct() itself, which the photo-card add path also calls and must
+   stay confirm-free. */
+.rm-btn{width:40px;height:40px;flex-shrink:0;background:none;border:none;color:var(--red);font-size:19px;cursor:pointer;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
 .rm-btn:active{background:#FFEBEE;}
+.rm-btn.rm-confirm{width:auto;min-width:52px;height:40px;padding:0 9px;background:var(--red);color:#fff;font-size:12px;font-weight:800;white-space:nowrap;}
 
 .submit-bar{position:fixed;bottom:0;right:0;left:0;background:#fff;padding:12px 16px;box-shadow:0 -2px 12px rgba(0,0,0,.12);z-index:100;display:flex;gap:8px;}
 .submit-btn{flex:1;padding:15px;background:var(--green);color:#fff;border:none;border-radius:var(--radius);font-size:15.5px;font-weight:800;cursor:pointer;font-family:inherit;min-height:52px;}
@@ -182,7 +205,8 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
   body{font-size:16px;}
   .sec-title{font-size:15px;}
   .ret-item-name{font-size:16px;}
-  .ret-item-pct{font-size:13px;}
+  .pct-label{font-size:9px;}
+  .pct-value{font-size:15px;}
   .qty-stepper .qty-btn{width:48px;height:48px;font-size:22px;}
   .qty-stepper input[type=number]{width:60px;height:48px;font-size:17px;}
   .ret-field input[type=date],.ret-field select{min-height:48px;font-size:15.5px;}
@@ -568,6 +592,28 @@ function toggleProduct(sku){
   renderBrowse(); renderTable(); saveDraft();
 }
 
+// Two-tap delete confirm for the review-list 🗑 only (photo-card add path
+// keeps calling toggleProduct() directly, unconfirmed — see .rm-btn CSS
+// comment). First tap arms the button (red fill, "מחק?" label) for 3s; a
+// second tap within that window performs the real removal; no second tap
+// and it silently reverts — nothing in `selected` was ever touched while
+// armed, so there's no data loss to undo.
+function handleRemoveClick(btn, sku){
+  if(btn.classList.contains('rm-confirm')){
+    clearTimeout(btn._rmTimer);
+    toggleProduct(sku);
+    return;
+  }
+  btn.classList.add('rm-confirm');
+  btn.textContent='מחק?';
+  btn.setAttribute('aria-label','לחץ שוב תוך 3 שניות כדי לאשר מחיקה');
+  btn._rmTimer=setTimeout(()=>{
+    btn.classList.remove('rm-confirm');
+    btn.textContent='🗑';
+    btn.setAttribute('aria-label','הסר מוצר');
+  },3000);
+}
+
 function toggleAshHist(btn){
   const open=btn.classList.toggle('open');
   btn.setAttribute('aria-expanded',open?'true':'false');
@@ -601,10 +647,10 @@ function renderTable(){
         ${img}
         <div class="ret-item-main">
           <div class="ret-item-name"><span class="ret-item-name-text">${esc(shortName(p.name))}</span><span class="ret-item-sku">מק"ט ${esc(p.sku)}${lastShip}</span></div>
-          <button type="button" class="ret-item-pct ${pctClass}" aria-expanded="false" onclick="toggleAshHist(this)">% זיכויים 90 יום: ${p.zikuyPct90d}%<span class="pct-chevron">▾</span></button>
+          <button type="button" class="ret-item-pct ${pctClass}" aria-expanded="false" onclick="toggleAshHist(this)"><span class="pct-stack"><span class="pct-label">זיכויים 90 יום</span><span class="pct-value">${p.zikuyPct90d}%</span></span><span class="pct-chevron">▾</span></button>
           <div class="ash-hist"><div class="ash-hist-title">היסטוריית השמדות — 6 אחרונות</div>${ashBody}</div>
         </div>
-        <button type="button" class="rm-btn" aria-label="הסר מוצר" onclick="toggleProduct('${esc(p.sku)}')">🗑</button>
+        <button type="button" class="rm-btn" aria-label="הסר מוצר" onclick="handleRemoveClick(this,'${esc(p.sku)}')">🗑</button>
       </div>
       <div class="ret-item-controls">
         <div class="ret-field">
