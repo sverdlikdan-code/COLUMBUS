@@ -228,6 +228,39 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 #pv-overlay.barcode-mode .pv-tbl img{width:70px;height:70px;}
 #pv-overlay.barcode-mode .pv-tbl td.pv-sku{font-size:20px;}
 #pv-overlay.barcode-mode .pv-tbl td.pv-qty{font-size:22px;}
+
+/* Phone preview of the printable blank — table has no fixed column widths, so on
+   a narrow screen it either overflows horizontally (.pv-tbl-wrap scrolls, hiding
+   columns off-screen) or the long product name wraps 6-7 lines tall. table-layout
+   fixed + explicit % widths guarantees every column stays visible without side-
+   scroll; pv-name gets the biggest share and a 3-line clamp as a backstop (SKU +
+   photo already anchor identity, so a clipped name doesn't lose information that
+   matters). Barcode mode is untouched — it's a deliberately bigger/scan-friendly
+   layout, not this default preview. This ONLY affects the on-screen preview: the
+   actual shared image is rendered server-side at a fixed 1200px desktop viewport
+   (see /api/render-share-image), so the sent blank's layout is unaffected.
+   Live request 2026-08-25. */
+@media (max-width:759px){
+  #pv-overlay:not(.barcode-mode) .pv-tbl{table-layout:fixed;font-size:10.5px;}
+  #pv-overlay:not(.barcode-mode) .pv-tbl th,
+  #pv-overlay:not(.barcode-mode) .pv-tbl td{padding:4px 2px;word-break:break-word;}
+  #pv-overlay:not(.barcode-mode) .pv-tbl th:nth-child(1),#pv-overlay:not(.barcode-mode) .pv-tbl td:nth-child(1){width:10%;}
+  #pv-overlay:not(.barcode-mode) .pv-tbl th:nth-child(2),#pv-overlay:not(.barcode-mode) .pv-tbl td:nth-child(2){width:8%;}
+  #pv-overlay:not(.barcode-mode) .pv-tbl th:nth-child(3),#pv-overlay:not(.barcode-mode) .pv-tbl td:nth-child(3){width:38%;}
+  #pv-overlay:not(.barcode-mode) .pv-tbl th:nth-child(4),#pv-overlay:not(.barcode-mode) .pv-tbl td:nth-child(4){width:7%;}
+  #pv-overlay:not(.barcode-mode) .pv-tbl th:nth-child(5),#pv-overlay:not(.barcode-mode) .pv-tbl td:nth-child(5){width:11%;}
+  #pv-overlay:not(.barcode-mode) .pv-tbl th:nth-child(6),#pv-overlay:not(.barcode-mode) .pv-tbl td:nth-child(6){width:7%;}
+  #pv-overlay:not(.barcode-mode) .pv-tbl th:nth-child(7),#pv-overlay:not(.barcode-mode) .pv-tbl td:nth-child(7){width:11%;}
+  #pv-overlay:not(.barcode-mode) .pv-tbl th:nth-child(8),#pv-overlay:not(.barcode-mode) .pv-tbl td:nth-child(8){width:8%;}
+  #pv-overlay:not(.barcode-mode) .pv-tbl img{width:28px;height:28px;}
+  /* 2-line clamp, not 3 — "максимально" compressed per follow-up request. SKU +
+     photo stay fully visible as the real identifiers; a clipped 3rd line of
+     marketing text costs nothing an operator actually needs. */
+  #pv-overlay:not(.barcode-mode) .pv-tbl td.pv-name{font-size:9.5px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  #pv-overlay:not(.barcode-mode) .pv-tbl td.pv-sku{font-size:12px;}
+  #pv-overlay:not(.barcode-mode) .pv-tbl td.pv-qty{font-size:13px;}
+  #pv-overlay:not(.barcode-mode) .pv-tbl td.pv-lastship small{font-size:8.5px;}
+}
 #pv-overlay.barcode-mode .pv-ean-digits{font-size:13px;letter-spacing:.5px;}
 #pv-overlay.barcode-mode #pv-title{font-size:23px;}
 #pv-overlay.barcode-mode #pv-custid span{font-size:26px;}
@@ -367,6 +400,43 @@ let products = [];      // full 365-day history from server
 let selected = new Map(); // sku -> {product, qty, date, option}
 let navMachlaka = null; // currently drilled-into department
 
+// ── Draft autosave (localStorage) ────────────────────────────────────────
+// Live complaint 2026-08-25: agent starts a return, walks into the cold-storage
+// room (no signal), the app drops/closes/gets backgrounded — everything in
+// `selected` lived only in JS memory, so re-opening the same client meant
+// starting over. Per-client key, same-calendar-day only (a stale draft from
+// last week silently resurrecting on the wrong day would be worse than no
+// draft at all) — cleared the moment the blank actually gets sent.
+function _draftKey(){ return `zikuy_draft_${custId}`; }
+function saveDraft(){
+  if(!custId) return;
+  if(!selected.size){ localStorage.removeItem(_draftKey()); return; }
+  const items=[...selected.values()].map(r=>({sku:r.product.sku,qty:r.qty,date:r.date,option:r.option}));
+  try{ localStorage.setItem(_draftKey(), JSON.stringify({savedAt:Date.now(), items})); }catch(e){}
+}
+function clearDraft(){
+  if(custId) try{ localStorage.removeItem(_draftKey()); }catch(e){}
+}
+function restoreDraft(){
+  if(!custId) return;
+  let draft;
+  try{
+    const raw=localStorage.getItem(_draftKey());
+    if(!raw) return;
+    draft=JSON.parse(raw);
+  }catch(e){ return; }
+  const sameDay = new Date(draft.savedAt).toLocaleDateString('en-CA') === new Date().toLocaleDateString('en-CA');
+  if(!sameDay){ clearDraft(); return; }
+  let restored=0;
+  for(const it of draft.items||[]){
+    const p=products.find(x=>x.sku===it.sku);
+    if(!p) continue;
+    selected.set(it.sku,{product:p, qty:it.qty, date:it.date, option:it.option});
+    restored++;
+  }
+  if(restored) showToast(`📋 שוחזרה טיוטה קודמת (${restored} מוצרים)`, 3500);
+}
+
 // Sold by weight, not by unit — these families and SKUs need the return
 // quantity entered in grams instead of pieces. Matched by 'KARTIS PARIT'[משפחת
 // מוצר] — the numeric family code (e.g. "025") — not by the free-text family
@@ -401,9 +471,11 @@ async function init(){
     const d = await r.json();
     if(!d.ok) throw new Error(d.error||'שגיאה');
     products = d.products||[];
+    restoreDraft();
     document.getElementById('browse-loading').style.display='none';
     document.getElementById('browse-body').style.display='';
     renderBrowse();
+    renderTable();
   }catch(e){
     document.getElementById('browse-loading').textContent='❌ '+e.message;
   }
@@ -486,7 +558,7 @@ function toggleProduct(sku){
     selected.set(sku,{product:p,qty:initQty,date:today.toISOString().slice(0,10),option:'-50%'});
     preloadProxyImg(p.imgUrl);
   }
-  renderBrowse(); renderTable();
+  renderBrowse(); renderTable(); saveDraft();
 }
 
 function renderTable(){
@@ -542,11 +614,12 @@ function renderTable(){
 function updateRow(sku,field,val){
   const row=selected.get(sku); if(!row) return;
   row[field]= field==='qty' ? (parseInt(val,10)||1) : val;
+  saveDraft();
 }
 function setOption(sku,val){
   const row=selected.get(sku); if(!row) return;
   row.option=val;
-  renderTable();
+  renderTable(); saveDraft();
 }
 function stepQty(sku,delta){
   const row=selected.get(sku); if(!row) return;
@@ -560,7 +633,7 @@ function stepQty(sku,delta){
   }else{
     row.qty=Math.max(1,(row.qty||1)+delta);
   }
-  renderTable();
+  renderTable(); saveDraft();
 }
 
 // ── QTY MODAL — precise kg entry for weight products ────────────────────────
@@ -585,7 +658,7 @@ function confirmQtyModal(){
   if(!isFinite(val)||val<=0){ showToast('משקל לא תקין'); return; }
   row.qty=Math.round(val*1000)/1000;
   closeQtyModal();
-  renderTable();
+  renderTable(); saveDraft();
 }
 
 async function buildProforma(){
@@ -885,7 +958,7 @@ function downloadAndOpenWaWeb(blob){
   setTimeout(()=>URL.revokeObjectURL(url),5000);
   window.open('https://web.whatsapp.com/','_blank');
   showToast('התמונה הורדה ל-Downloads — פתח את WhatsApp וצרף אותה מהגלריה');
-  logBlankHistory();
+  logBlankHistory(); clearDraft();
 }
 // Neither button was guarded against repeat taps — capture is genuinely
 // slow on a loaded device (real complaint 2026-08-24: "spinning a long time"), and with no
@@ -928,7 +1001,7 @@ async function sendAsImage(){
         // image, redundant with the blank's own header. Live complaint 2026-08-24.
         await navigator.share({files:[file]});
         showToast('נשלח לשיתוף');
-        logBlankHistory();
+        logBlankHistory(); clearDraft();
         return;
       }
     }
