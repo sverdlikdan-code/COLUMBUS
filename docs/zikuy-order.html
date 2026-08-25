@@ -228,39 +228,6 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 #pv-overlay.barcode-mode .pv-tbl img{width:70px;height:70px;}
 #pv-overlay.barcode-mode .pv-tbl td.pv-sku{font-size:20px;}
 #pv-overlay.barcode-mode .pv-tbl td.pv-qty{font-size:22px;}
-
-/* Phone preview of the printable blank — table has no fixed column widths, so on
-   a narrow screen it either overflows horizontally (.pv-tbl-wrap scrolls, hiding
-   columns off-screen) or the long product name wraps 6-7 lines tall. table-layout
-   fixed + explicit % widths guarantees every column stays visible without side-
-   scroll; pv-name gets the biggest share and a 3-line clamp as a backstop (SKU +
-   photo already anchor identity, so a clipped name doesn't lose information that
-   matters). Barcode mode is untouched — it's a deliberately bigger/scan-friendly
-   layout, not this default preview. This ONLY affects the on-screen preview: the
-   actual shared image is rendered server-side at a fixed 1200px desktop viewport
-   (see /api/render-share-image), so the sent blank's layout is unaffected.
-   Live request 2026-08-25. */
-@media (max-width:759px){
-  #pv-overlay:not(.barcode-mode) .pv-tbl{table-layout:fixed;font-size:10.5px;}
-  #pv-overlay:not(.barcode-mode) .pv-tbl th,
-  #pv-overlay:not(.barcode-mode) .pv-tbl td{padding:4px 2px;word-break:break-word;}
-  #pv-overlay:not(.barcode-mode) .pv-tbl th:nth-child(1),#pv-overlay:not(.barcode-mode) .pv-tbl td:nth-child(1){width:10%;}
-  #pv-overlay:not(.barcode-mode) .pv-tbl th:nth-child(2),#pv-overlay:not(.barcode-mode) .pv-tbl td:nth-child(2){width:8%;}
-  #pv-overlay:not(.barcode-mode) .pv-tbl th:nth-child(3),#pv-overlay:not(.barcode-mode) .pv-tbl td:nth-child(3){width:38%;}
-  #pv-overlay:not(.barcode-mode) .pv-tbl th:nth-child(4),#pv-overlay:not(.barcode-mode) .pv-tbl td:nth-child(4){width:7%;}
-  #pv-overlay:not(.barcode-mode) .pv-tbl th:nth-child(5),#pv-overlay:not(.barcode-mode) .pv-tbl td:nth-child(5){width:11%;}
-  #pv-overlay:not(.barcode-mode) .pv-tbl th:nth-child(6),#pv-overlay:not(.barcode-mode) .pv-tbl td:nth-child(6){width:7%;}
-  #pv-overlay:not(.barcode-mode) .pv-tbl th:nth-child(7),#pv-overlay:not(.barcode-mode) .pv-tbl td:nth-child(7){width:11%;}
-  #pv-overlay:not(.barcode-mode) .pv-tbl th:nth-child(8),#pv-overlay:not(.barcode-mode) .pv-tbl td:nth-child(8){width:8%;}
-  #pv-overlay:not(.barcode-mode) .pv-tbl img{width:28px;height:28px;}
-  /* 2-line clamp, not 3 — "максимально" compressed per follow-up request. SKU +
-     photo stay fully visible as the real identifiers; a clipped 3rd line of
-     marketing text costs nothing an operator actually needs. */
-  #pv-overlay:not(.barcode-mode) .pv-tbl td.pv-name{font-size:9.5px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-  #pv-overlay:not(.barcode-mode) .pv-tbl td.pv-sku{font-size:12px;}
-  #pv-overlay:not(.barcode-mode) .pv-tbl td.pv-qty{font-size:13px;}
-  #pv-overlay:not(.barcode-mode) .pv-tbl td.pv-lastship small{font-size:8.5px;}
-}
 #pv-overlay.barcode-mode .pv-ean-digits{font-size:13px;letter-spacing:.5px;}
 #pv-overlay.barcode-mode #pv-title{font-size:23px;}
 #pv-overlay.barcode-mode #pv-custid span{font-size:26px;}
@@ -694,8 +661,17 @@ function toggleBarcodeMode(){
   prewarmShareImage(); // content changed — the cached capture from before is stale now
 }
 
+// Phone on-screen preview only — max 2 words, so a row doesn't wrap into a wall
+// of text before the agent even taps send. Gated on window width (real send
+// goes through server-side render at a fixed 1200px viewport, so this never
+// touches the actual WhatsApp image — see fetchServerRenderedImage()). Live
+// request 2026-08-25: "ничего не менять кроме этого, максимум 2 слова".
+function previewShortName(name){
+  return String(name||'').trim().split(/\s+/).slice(0,2).join(' ');
+}
 function renderProformaTable(rows){
   document.getElementById('pv-overlay').classList.toggle('barcode-mode', barcodeMode);
+  const isPhonePreview = window.innerWidth <= 759;
   // Grams and pieces don't sum to a meaningful number together — total only
   // counts piece-based rows.
   const totalQty=rows.reduce((s,r)=>s+(isGramsProduct(r.product)?0:r.qty),0);
@@ -723,7 +699,8 @@ function renderProformaTable(rows){
     const gapClass = gapDays!==null && gapDays<0 ? 'pv-gap gap-neg' : 'pv-gap';
     const eanTd = barcodeMode ? `<td class="pv-ean-cell">${eanCellHtml(r.product.ean)}</td>` : '';
     const qtyCell = isGramsProduct(r.product) ? r.qty.toFixed(3) : r.qty;
-    return `<tr>${eanTd}<td>${img}</td><td class="pv-sku">${esc(r.product.sku)}</td><td class="pv-name">${esc(shortName(r.product.name))}</td><td class="pv-qty">${esc(String(qtyCell))}</td><td class="pv-lastship">${lastShipCell}</td><td class="${gapClass}">${gapCell}</td><td>${esc(r.date)}</td><td>${esc(r.option)}</td></tr>`;
+    const nameText = isPhonePreview ? previewShortName(shortName(r.product.name)) : shortName(r.product.name);
+    return `<tr>${eanTd}<td>${img}</td><td class="pv-sku">${esc(r.product.sku)}</td><td class="pv-name">${esc(nameText)}</td><td class="pv-qty">${esc(String(qtyCell))}</td><td class="pv-lastship">${lastShipCell}</td><td class="${gapClass}">${gapCell}</td><td>${esc(r.date)}</td><td>${esc(r.option)}</td></tr>`;
   }).join('') + `<tr class="pv-total"><td colspan="${firstColspan}">סה"כ</td><td>${totalQty}</td><td colspan="4"></td></tr>`;
 }
 
