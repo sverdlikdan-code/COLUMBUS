@@ -1968,6 +1968,11 @@ async function initRoute(){
   const demoBanner=document.getElementById('demo-banner');
   if(demoBanner) demoBanner.style.display=st.isDemo?'':'none';
 
+  // Pull server-persisted route order/day-moves into localStorage BEFORE the
+  // existing readers below run — see syncRouteOverridesFromServer() for why
+  // this doesn't touch loadSavedRoute()/getDayOverrides() themselves.
+  await syncRouteOverridesFromServer();
+
   // Merge with localStorage
   const saved=loadSavedRoute(st.agent.code,st.day);
   if(saved) st.clients=mergeWithSaved(st.clients,saved);
@@ -2199,6 +2204,12 @@ function toggleAiGps(){
 function resetRoute(){
   const dayLabel=DAY_LABELS[st.day]||st.day;
   if(!confirm(`לאפס יום ${dayLabel}?\nכל השינויים יימחקו והסדר המקורי של Priority יוחזר`)) return;
+  // Clear server-side too, or the next syncRouteOverridesFromServer() (fires
+  // right at the top of the initRoute() call below) would see the server still
+  // holding the old data and restore it right back — silently undoing this reset.
+  pushRouteOrder(st.day,[]);
+  const ov=getDayOverrides(st.agent.code);
+  Object.entries(ov).forEach(([custId,day])=>pushDayMove(custId,day,null));
   try{ localStorage.removeItem(`fr_${st.agent.code}_${st.day}`); }catch{}
   try{ localStorage.removeItem(`fr_dayov_${st.agent.code}`); }catch{}
   try{ localStorage.removeItem(`fr_dayov_clients_${st.agent.code}`); }catch{}
@@ -3075,6 +3086,13 @@ async function submitAddress(){
 // ── LOCALSTORAGE ───────────────────────────────────────────────────────────
 function saveRoute(code,day,clients){
   try{localStorage.setItem(`fr_${code}_${day}`,JSON.stringify(clients.map(c=>({custId:c.custId,lat:c.lat,lng:c.lng}))));}catch{}
+  // Every real mutation goes through this single function (7 call sites) — baking
+  // the server push in here once, instead of at each call site, is what keeps
+  // the audit trail complete without having to remember to add it every time a
+  // new reorder path gets added later. Safe: the PULL path (syncRouteOverrides
+  // FromServer) writes localStorage directly and never calls saveRoute(), so
+  // this can't create a push-back-what-the-server-just-sent loop.
+  pushRouteOrder(day,clients.map(c=>c.custId));
 }
 function loadSavedRoute(code,day){
   try{const s=localStorage.getItem(`fr_${code}_${day}`);return s?JSON.parse(s):null;}catch{return null;}
@@ -3091,6 +3109,48 @@ function mergeWithSaved(fromServer,saved){
   // Add new from server
   fromServer.forEach(c=>{if(!savedIds.includes(c.custId))ordered.push(c);});
   return ordered.length?ordered:fromServer;
+}
+
+// ── Server sync for route order / day-move ──────────────────────────────────
+// Was localStorage-only — lost on device switch/cache clear, no audit trail.
+// Deliberately doesn't touch any of the existing readers above (loadSavedRoute,
+// getDayOverrides, getDayOverrideClients) — this just keeps localStorage itself
+// in sync with the server, so everything downstream keeps working unchanged.
+// Server wins if it already has data for this agent; otherwise whatever's
+// already in localStorage gets pushed up once (one-time migration per agent).
+// Live concern 2026-08-25: need to know who changed a route/day and when.
+function pushRouteOrder(day,order){
+  apiFetch(`${API}/api/route-order`,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({day,order})}).catch(()=>{});
+}
+function pushDayMove(custId,day,client){
+  apiFetch(`${API}/api/route-day-move`,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({custId,day,client})}).catch(()=>{});
+}
+async function syncRouteOverridesFromServer(){
+  if(!st.agent?.code) return;
+  let d;
+  try{
+    const r=await apiFetch(`${API}/api/route-overrides?agent=${st.agent.code}`);
+    d=await r.json();
+  }catch(e){ return; } // offline/error — localStorage stays the only source, as before
+  if(!d?.ok) return;
+  const hasServerData=Object.keys(d.order||{}).length||Object.keys(d.dayMoves||{}).length;
+  if(hasServerData){
+    Object.entries(d.order||{}).forEach(([day,ids])=>{
+      try{localStorage.setItem(`fr_${st.agent.code}_${day}`,JSON.stringify(ids.map(custId=>({custId}))));}catch(e){}
+    });
+    setDayOverrides(st.agent.code,Object.fromEntries(Object.entries(d.dayMoves||{}).map(([id,v])=>[id,v.day])));
+    setDayOverrideClients(st.agent.code,Object.fromEntries(Object.entries(d.dayMoves||{}).map(([id,v])=>[id,v.client])));
+  }else{
+    for(let day=1;day<=5;day++){
+      const saved=loadSavedRoute(st.agent.code,day);
+      if(saved?.length) pushRouteOrder(day,saved.map(s=>s.custId));
+    }
+    const ov=getDayOverrides(st.agent.code);
+    const ovClients=getDayOverrideClients(st.agent.code);
+    Object.entries(ov).forEach(([custId,day])=>pushDayMove(custId,day,ovClients[custId]));
+  }
 }
 
 // ── DAY OVERRIDES ──────────────────────────────────────────────────────────
@@ -3755,6 +3815,7 @@ function changeClientDay(custId,newDay){
     const store=getDayOverrideClients(st.agent.code);
     store[String(custId)]={...clientData};
     setDayOverrideClients(st.agent.code,store);
+    pushDayMove(String(custId),newDay,clientData);
   }
   st.clients=st.clients.filter(c=>String(c.custId)!==String(custId));
   st.aiClients=nearestNeighbor([...st.clients]);

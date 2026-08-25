@@ -4571,6 +4571,66 @@ app.get('/api/zikuy-history', requireAuth, dataRateLimit, (req, res) => {
   res.json({ ok: true, entries });
 });
 
+// ── Route order / day-move — server-persisted per agent, audited via writeLog() ──
+// Was localStorage-only (fr_${code}_${day}, fr_dayov_${code}) — lost on device
+// switch/cache clear, and no way to see who changed a route or revert it (live
+// concern 2026-08-25: sensitive before an agent's departure). Same audit
+// approach already proven for gps-corrections — snapshot/restore explicitly
+// NOT wanted for this (user confirmed), just persistence + who/when.
+const ROUTE_OVERRIDES_FILE = path.join(__dirname, 'data', 'route-overrides.json');
+function readRouteOverrides() {
+  try { return JSON.parse(fs.readFileSync(ROUTE_OVERRIDES_FILE, 'utf8')); } catch (_) { return {}; }
+}
+function writeRouteOverrides(data) {
+  try {
+    fs.mkdirSync(path.dirname(ROUTE_OVERRIDES_FILE), { recursive: true });
+    fs.writeFileSync(ROUTE_OVERRIDES_FILE, JSON.stringify(data, null, 2), 'utf8');
+  } catch (_) {}
+}
+app.post('/api/route-order', requireAuth, dataRateLimit, (req, res) => {
+  const agentCode = req.session.agentCode;
+  if (!agentCode) return res.status(403).json({ ok: false, error: 'manager session -- no agent' });
+  const { day, order } = req.body || {};
+  const dayNum = parseInt(day, 10);
+  if (!Number.isInteger(dayNum) || dayNum < 1 || dayNum > 5) return res.status(400).json({ ok: false, error: 'invalid day' });
+  if (!Array.isArray(order) || order.length > 500) return res.status(400).json({ ok: false, error: 'invalid order' });
+  const data = readRouteOverrides();
+  if (!data[agentCode]) data[agentCode] = { order: {}, dayMoves: {} };
+  data[agentCode].order[dayNum] = order.map(id => String(id).slice(0, 20));
+  writeRouteOverrides(data);
+  writeLog({ ts: new Date().toISOString(), event: 'route-order-change', agentCode, day: dayNum, count: order.length, ip: getRealIp(req) });
+  res.json({ ok: true });
+});
+app.post('/api/route-day-move', requireAuth, dataRateLimit, (req, res) => {
+  const agentCode = req.session.agentCode;
+  if (!agentCode) return res.status(403).json({ ok: false, error: 'manager session -- no agent' });
+  const { custId, day, client } = req.body || {};
+  if (!custId || typeof custId !== 'string') return res.status(400).json({ ok: false, error: 'invalid custId' });
+  const dayNum = parseInt(day, 10);
+  if (!Number.isInteger(dayNum) || dayNum < 1 || dayNum > 5) return res.status(400).json({ ok: false, error: 'invalid day' });
+  const data = readRouteOverrides();
+  if (!data[agentCode]) data[agentCode] = { order: {}, dayMoves: {} };
+  const id = String(custId).slice(0, 20);
+  if (client && typeof client === 'object') {
+    data[agentCode].dayMoves[id] = { day: dayNum, client, movedAt: new Date().toISOString() };
+  } else {
+    // No client payload = override cleared (client moved back to its original day).
+    delete data[agentCode].dayMoves[id];
+  }
+  writeRouteOverrides(data);
+  writeLog({ ts: new Date().toISOString(), event: 'route-day-move', agentCode, custId: id, day: dayNum, ip: getRealIp(req) });
+  res.json({ ok: true });
+});
+app.get('/api/route-overrides', requireAuth, dataRateLimit, (req, res) => {
+  const queryAgent = req.query.agent ? String(req.query.agent) : null;
+  if (queryAgent && !validateAgentCode(queryAgent)) return res.status(400).json({ ok: false, error: 'invalid agent code' });
+  const agentCode = queryAgent || req.session.agentCode;
+  if (!agentCode) return res.status(403).json({ ok: false, error: 'manager session -- no agent' });
+  const data = readRouteOverrides();
+  const entry = data[agentCode] || { order: {}, dayMoves: {} };
+  res.json({ ok: true, order: entry.order || {}, dayMoves: entry.dayMoves || {} });
+});
+
 // ── Client Return Form (זיכוי) — products this client bought in the last 365 days,
 // each with a 3-closed-month return-rate (% זיכויים) and photo, for building a
 // physical-return proforma. Header (client/city/agent) comes from the URL query string
