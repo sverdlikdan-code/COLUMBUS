@@ -184,6 +184,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .client-card.ice-only{background:#E8FAF5;border-right:3px solid #00B894;}
 .ice-badge{display:inline-block;background:#00B894;color:#fff;font-size:9.5px;font-weight:800;letter-spacing:.06em;padding:1px 5px;border-radius:3px;margin-left:5px;vertical-align:middle;}
 .crown-badge{display:inline-block;font-size:13px;margin-left:3px;vertical-align:middle;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25));}
+.today-order-badge{display:inline-block;font-size:12px;margin-left:3px;vertical-align:middle;filter:drop-shadow(0 1px 1px rgba(0,0,0,.2));}
 .km-filters-row{display:flex;align-items:center;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;scrollbar-width:none;}
 .km-filters-row::-webkit-scrollbar{display:none;}
 .km-extra-filters{display:flex;align-items:center;gap:6px;padding:2px 8px 4px 0;flex-wrap:nowrap;flex-shrink:0;}
@@ -1075,6 +1076,8 @@ const st = {
   hasSadranFilter: false,
   dormantFilter: false,
   mapHidden: false,
+  todayOrdersFormula: new Set(),
+  todayOrdersIce: new Set(),
 };
 
 try{ st.mapHidden = localStorage.getItem('fr_map_hidden')!=='0'; }catch(_){ st.mapHidden=true; } // default: hidden
@@ -1912,6 +1915,80 @@ function fetchDayTopSales(myId){
     }).catch(()=>{});
 }
 
+// ✔️ "פתוח היום" — deliberately NOT part of the PBI-cached client data: PBI refreshes
+// 2x/day and can't see an order opened an hour ago. Polls a lightweight endpoint
+// (server-side cached, direct-to-Priority — see server/priority-db.js) only while the
+// agent is looking at TODAY's day; other days can't have "today" orders by definition.
+let _todayOrdersTimer=null, _todayOrdersSeen=new Set();
+function stopTodayOrdersPolling(){
+  if(_todayOrdersTimer){ clearInterval(_todayOrdersTimer); _todayOrdersTimer=null; }
+}
+// "🎉 הישג" pick (user A/B'd 4 options live on a phone, 2026-08-26): 4-note fast
+// ascending run (C5 E5 G5 C6) + a tiny high sparkle right after it lands.
+function _playTodayOrderSound(){
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    [523.25,659.25,783.99,1046.5].forEach((freq,i)=>{
+      const t=ctx.currentTime+i*0.08;
+      const osc=ctx.createOscillator(), gain=ctx.createGain();
+      osc.type='triangle'; osc.frequency.value=freq;
+      gain.gain.setValueAtTime(0,t);
+      gain.gain.linearRampToValueAtTime(0.20,t+0.012);
+      gain.gain.exponentialRampToValueAtTime(0.001,t+0.22);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(t); osc.stop(t+0.23);
+    });
+    const t2=ctx.currentTime+0.34;
+    const osc2=ctx.createOscillator(), gain2=ctx.createGain();
+    osc2.type='sine'; osc2.frequency.setValueAtTime(1568,t2);
+    osc2.frequency.exponentialRampToValueAtTime(2093,t2+0.12);
+    gain2.gain.setValueAtTime(0.09,t2);
+    gain2.gain.exponentialRampToValueAtTime(0.001,t2+0.2);
+    osc2.connect(gain2); gain2.connect(ctx.destination);
+    osc2.start(t2); osc2.stop(t2+0.21);
+  }catch(e){}
+}
+// speechSynthesis dropped (2026-08-26): tested on a real phone with zero he-IL AND
+// zero en-US voices speaking — the API itself was non-functional in that viewing
+// context, not a Hebrew-specific gap, with no reliable way to detect that in advance.
+// A toast is the same personalization with a delivery mechanism that always works —
+// reuses the app's existing showToast() (see zikuy-order.html precedent: isManager
+// check, since a manager viewing someone else's route would see a name that isn't
+// theirs).
+function _announceTodayOrder(){
+  try{
+    if(_loadAuth()?.isManager) return;
+    const firstName=(st.agent?.name||'').trim().split(/\s+/)[0];
+    if(!firstName) return;
+    showToast(`😎 כל הכבוד ${firstName}, הזמנה נכנסה!`, 3000);
+  }catch(e){}
+}
+function startTodayOrdersPolling(myId){
+  stopTodayOrdersPolling();
+  if(st.day!==_todayRouteDay()) return; // only today's view can have "today" orders
+  _todayOrdersSeen=new Set(); // fresh day/agent view — don't replay the sound for already-open orders
+  let firstPoll=true;
+  const poll=async()=>{
+    if(myId!==_initRouteId){ stopTodayOrdersPolling(); return; } // stale view (agent/day changed since)
+    try{
+      const r=await apiFetch(`${API}/api/today-orders`);
+      const d=await r.json();
+      if(!d?.ok||myId!==_initRouteId) return;
+      st.todayOrdersFormula=new Set((d.formula||[]).map(String));
+      st.todayOrdersIce=new Set((d.iceMish||[]).map(String));
+      const shown=new Set(displayClients().map(c=>String(c.custId)));
+      let hasNew=false;
+      const markSeen=(ids,tag)=>{ for(const id of ids){ if(!shown.has(id))continue; const key=tag+id; if(!_todayOrdersSeen.has(key)){ _todayOrdersSeen.add(key); if(!firstPoll) hasNew=true; } } };
+      markSeen(st.todayOrdersFormula,'F_'); markSeen(st.todayOrdersIce,'I_');
+      firstPoll=false;
+      renderClientList();
+      if(hasNew){ _playTodayOrderSound(); _announceTodayOrder(); }
+    }catch(e){ /* Priority/network hiccup — badges just stay as they were this cycle */ }
+  };
+  poll();
+  _todayOrdersTimer=setInterval(poll,75000);
+}
+
 async function initRoute(){
   const myId = ++_initRouteId;
   checkPbiFreshness(); // fire-and-forget, throttled internally
@@ -2014,6 +2091,7 @@ async function initRoute(){
   resetPortraitToolbarCollapse(); // phone: start collapsed in portrait too
   st.topSalesIds=new Set();
   fetchDayTopSales(myId);
+  startTodayOrdersPolling(myId);
   // Road-optimal ordering via OSRM /trip (async, cached)
   const _snapId=myId, _snapAgent=st.agent?.code, _snapDay=st.day;
   osrmTripOrder([..._aiGpsClients(st.clients)], st.startLat, st.startLng).then(ordered=>{
@@ -2615,7 +2693,9 @@ function renderClientList(html){
     const pctPart='';
     const indicPart='';
     const SEP='<span style="color:var(--light)"> · </span>';
+    const hasOrderToday=(c.iceOnly?st.todayOrdersIce:st.todayOrdersFormula).has(String(c.custId));
     const nameLine=(st.topSalesIds.has(String(c.custId))?'<span class="crown-badge" title="TOP מכירות ב-3 חודשים — כדאי ניתוח AI מעמיק">👑</span>':'')
+      +(hasOrderToday?'<span class="today-order-badge" title="הזמנה פתוחה נפתחה היום">✔️</span>':'')
       +(c.iceOnly?'<span class="ice-badge">ICE</span>':'')
       +(shortName(c.custName,c.city)||esc(c.custName)||'');
     // City AND address both moved behind the arrow now — city alone still ate

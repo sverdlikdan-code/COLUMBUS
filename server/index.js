@@ -8,6 +8,7 @@ const { execFile } = require('child_process');
 const ExcelJS = require('exceljs');
 const puppeteer = require('puppeteer');
 const { executeDax, getDatasetRefreshTime } = require('./powerbi');
+const { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday } = require('./priority-db');
 const { Resend } = require('resend');
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -4532,6 +4533,28 @@ app.get('/api/day-briefing', requireAuth, async (req, res) => {
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
+});
+
+// GET /api/today-orders — direct-to-Priority (deliberately NOT PBI: PBI refreshes
+// 2x/day and can't see an order opened an hour ago). Global cache shared by every
+// poller — one query pair per TODAY_ORDERS_CACHE_MS total, not one per agent per
+// poll. Never 500s: Priority being slow/down just means the ✔️ badge doesn't light
+// up this cycle, nothing else on the route breaks (see server/priority-db.js).
+const TODAY_ORDERS_CACHE_MS = 75 * 1000;
+let todayOrdersCache = { date: null, at: 0, formula: [], iceMish: [] };
+
+app.get('/api/today-orders', requireAuth, dataRateLimit, async (req, res) => {
+  const todayIL = todayIsraelDate();
+  const fresh = todayOrdersCache.date === todayIL && (Date.now() - todayOrdersCache.at) < TODAY_ORDERS_CACHE_MS;
+  if (!fresh) {
+    const [formulaSet, iceSet] = await Promise.all([
+      custIdsWithOpenOrderToday(process.env.DB_NAME || 'form', todayIL),
+      iceMishCustIdsWithOpenOrderToday(process.env.DB_ICECREA || 'icecrea', todayIL),
+    ]);
+    // null (query failed) -> empty, not stale cross-day data from a previous cache entry.
+    todayOrdersCache = { date: todayIL, at: Date.now(), formula: formulaSet ? [...formulaSet] : [], iceMish: iceSet ? [...iceSet] : [] };
+  }
+  res.json({ ok: true, formula: todayOrdersCache.formula, iceMish: todayOrdersCache.iceMish });
 });
 
 // POST /api/ai-feedback — 👍/👎 on a single AI recommendation (day-briefing or

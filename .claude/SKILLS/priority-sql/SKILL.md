@@ -18,10 +18,24 @@ Server: `192.168.100.246` (ReadOnlyUser)
 
 ## Date Format
 
-`CURDATE`, `UDATE`, `LFROMDATE` etc. are stored as **bigint YYYYMMDD**:
+`CURDATE`, `UDATE`, `LFROMDATE` etc. are **NOT** `bigint YYYYMMDD` — despite looking like it at
+a glance (values like `20260101` and real CURDATE values both happen to land in the same ~20
+million range, which is a coincidence, not a match). Verified empirically 2026-08-25
+(`server/probe-today-orders.js`): it's **whole days since 1988-01-01, times 1440** (the "minutes
+since 01.01.1988" convention, but always a multiple of 1440 — no time-of-day component). Filtering
+with a literal `YYYYMMDD` number (e.g. `O.CURDATE >= 20260101`) silently returns wrong/empty
+results — no error, just quietly incorrect data.
+
+```js
+// Convert an Israel-calendar-date to the CURDATE encoding:
+const [y, m, d] = '2026-08-25'.split('-').map(Number);
+const daysSince1988 = (Date.UTC(y, m - 1, d) - Date.UTC(1988, 0, 1)) / 86400000;
+const curdate = daysSince1988 * 1440; // e.g. 20327040 for 2026-08-25
+```
+
 ```sql
--- Filter 2026 only:
-AND O.CURDATE >= 20260101
+-- Filter to one exact date (pass curdate computed as above):
+AND O.CURDATE = @curdate
 
 -- All time (no filter):
 -- just omit the condition
