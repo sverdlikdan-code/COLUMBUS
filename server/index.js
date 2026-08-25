@@ -1878,6 +1878,26 @@ app.post('/api/share-timing', requireAuth, dataRateLimit, (req, res) => {
   } catch (err) { res.status(500).json({ error: 'server_error' }); }
 });
 
+// Lightweight funnel events (zikuy_form_started/submitted/abandoned) — one
+// line per event, append-only. Starter scope per Vault research note
+// 2026-08-25 ("behavioral analytics for internal B2B apps"): only the zikuy
+// form funnel for now, not the full category list from that research —
+// expand events.jsonl consumers if more categories are needed later.
+const EVENTS_FILE = path.join(__dirname, 'data', 'events.jsonl');
+app.post('/api/event', requireAuth, dataRateLimit, (req, res) => {
+  try {
+    const { event, custId, itemCount } = req.body || {};
+    if (!event || typeof event !== 'string' || event.length > 40) return res.status(400).json({ error: 'invalid event' });
+    fs.appendFileSync(EVENTS_FILE, JSON.stringify({
+      ts: new Date().toISOString(), event,
+      custId: custId ? String(custId).slice(0, 20) : null,
+      itemCount: Number.isFinite(itemCount) ? itemCount : null,
+      agentCode: req.session?.agentCode || null,
+    }) + '\n', 'utf8');
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'server_error' }); }
+});
+
 // ── Server-side render of the zikuy share blank ─────────────────────────────
 // 2026-08-24 — three separate client-side fixes (html2canvas→snapDOM, paint-
 // wait, concurrent-capture guard) each closed a real, confirmed bug and each
