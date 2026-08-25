@@ -370,6 +370,28 @@ let products = [];      // full 365-day history from server
 let selected = new Map(); // sku -> {product, qty, date, option}
 let navMachlaka = null; // currently drilled-into department
 
+// ── Funnel events (started/submitted/abandoned) ─────────────────────────────
+// Fire-and-forget beacon to /api/event, see server/index.js. keepalive:true
+// (not sendBeacon) so the abandoned-on-unload call still carries the X-Session
+// auth header — sendBeacon can't set custom headers. 2026-08-25.
+let _formStarted = false, _formSubmitted = false;
+function logEvent(event, extra){
+  try{
+    apiFetch('/api/event',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({event, custId, ...extra})}).catch(()=>{});
+  }catch(_){}
+}
+function _markFormStarted(){
+  if(_formStarted || !selected.size) return;
+  _formStarted = true;
+  logEvent('zikuy_form_started', {itemCount: selected.size});
+}
+window.addEventListener('pagehide', () => {
+  if(_formStarted && !_formSubmitted && selected.size){
+    logEvent('zikuy_form_abandoned', {itemCount: selected.size});
+  }
+});
+
 // ── Draft autosave (localStorage) ────────────────────────────────────────
 // Live complaint 2026-08-25: agent starts a return, walks into the cold-storage
 // room (no signal), the app drops/closes/gets backgrounded — everything in
@@ -405,6 +427,7 @@ function restoreDraft(){
     restored++;
   }
   if(restored) showToast(`📋 שוחזרה טיוטה קודמת (${restored} מוצרים)`, 3500);
+  _markFormStarted();
 }
 
 // Sold by weight, not by unit — these families and SKUs need the return
@@ -528,7 +551,7 @@ function toggleProduct(sku){
     selected.set(sku,{product:p,qty:initQty,date:today.toISOString().slice(0,10),option:'-50%'});
     preloadProxyImg(p.imgUrl);
   }
-  renderBrowse(); renderTable(); saveDraft();
+  renderBrowse(); renderTable(); saveDraft(); _markFormStarted();
 }
 
 // Two-tap delete confirm for the review-list 🗑 only (photo-card add path
@@ -953,6 +976,8 @@ function logBlankHistory(){
   }));
   apiFetch('/api/zikuy-history',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({custId,custName,city,items})}).catch(e=>console.warn('blank history log failed',e));
+  _formSubmitted = true;
+  logEvent('zikuy_form_submitted', {itemCount: items.length});
 }
 // Desktop fallback / manual WhatsApp Web path: WhatsApp Web has no URL API to
 // pre-attach a file (browser security), so download the image and open
