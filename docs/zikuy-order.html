@@ -332,6 +332,7 @@ const custName = params.get('custName') || '';
 const city = params.get('city') || '';
 const agentCode = params.get('agentCode') || '';
 const agentName = params.get('agentName') || '';
+const isManager = params.get('isManager') === '1';
 // Present only when the server's /api/render-share-image opens THIS page via
 // Puppeteer instead of a real agent using it interactively — see initRenderMode()
 // and captureShareImage() below. base64 JSON: {items, barcodeMode}.
@@ -1011,7 +1012,12 @@ function _setShareButtonsBusy(busy){
   // other feedback on screen, and an agent seeing nothing happen taps again.
   // Long timeout (15s) is just a safety net; the real success/error toast at
   // the end always overwrites this one immediately once generation finishes.
-  if(busy) showToast('⏳ רגע, מכינים את הקובץ... בלי לחץ ❤️😌',15000);
+  // Personalized by first name for agents only — a manager can be browsing any
+  // agent's client, so agentName here would name someone else, not the viewer.
+  if(busy){
+    const first = (!isManager && agentName) ? agentName.trim().split(/\s+/)[0] : '';
+    showToast(first ? `⏳ רגע ${first}, מכינים את הקובץ... בלי לחץ ❤️😌` : '⏳ רגע, מכינים את הקובץ... בלי לחץ ❤️😌', 15000);
+  }
 }
 async function sendAsImage(){
   if(_shareInFlight) return;
