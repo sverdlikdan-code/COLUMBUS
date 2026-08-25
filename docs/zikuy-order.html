@@ -542,14 +542,14 @@ function renderTable(){
   okBtn.textContent=`✅ OK — הפק בלנק (${selected.size})`;
   tbody.innerHTML=[...selected.values()].map(row=>{
     const p=row.product;
-    const pctClass=p.zikuyPct3mo>10?'pct-hi':'pct-lo';
+    const pctClass=p.zikuyPct90d>10?'pct-hi':'pct-lo';
     const img=p.imgUrl?`<img src="${esc(p.imgUrl)}" alt="${esc(p.name)}" onerror="this.style.display='none'">`:'';
     const lastShip=p.lastShipDate?` · אספקה אחרונה: ${p.lastShipDate.split('-').reverse().join('.')} (${p.lastShipQty} יח')`:'';
     return `<div class="ret-item" data-sku="${esc(p.sku)}">
       <div class="ret-item-top">
         ${img}
         <div class="ret-item-name">${esc(shortName(p.name))}<br><span class="ret-item-sku">מק"ט ${esc(p.sku)}${lastShip}</span></div>
-        <div class="ret-item-pct ${pctClass}">זיכוי 3ח׳: ${p.zikuyPct3mo}%</div>
+        <div class="ret-item-pct ${pctClass}">% זיכויים 90 יום: ${p.zikuyPct90d}%</div>
         <button type="button" class="rm-btn" aria-label="הסר מוצר" onclick="toggleProduct('${esc(p.sku)}')">🗑</button>
       </div>
       <div class="ret-item-controls">
