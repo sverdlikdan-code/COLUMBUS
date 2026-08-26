@@ -4615,17 +4615,19 @@ app.get('/api/day-closing', requireAuth, dataRateLimit, async (req, res) => {
   const agentCode = String(req.query.agentCode || '').trim();
   const type = req.query.type === 'ice' ? 'ice' : 'formula';
   if (!agentCode) return res.status(400).json({ ok: false, error: 'agentCode required' });
+  // agentCode is passed to dayClosingSummary/Sellout as a fallback too — a
+  // brand-new client isn't in the PBI-cached roster yet (refreshes once a
+  // day), so custIds alone can't catch their order. See priority-db.js.
   const custIds = getAllCustIdsForAgent(agentCode);
-  if (!custIds.length) return res.status(400).json({ ok: false, error: 'no clients found for this agent' });
   const todayIL = todayIsraelDate();
   try {
     if (type === 'ice') {
-      const summary = await dayClosingSummary(process.env.DB_ICECREA || 'icecrea', todayIL, custIds, { iceMishOnly: true });
+      const summary = await dayClosingSummary(process.env.DB_ICECREA || 'icecrea', todayIL, custIds, agentCode, { iceMishOnly: true });
       return res.json({ ok: true, type, ...summary, items: [] });
     }
     const [summary, items, imgMap] = await Promise.all([
-      dayClosingSummary(process.env.DB_NAME || 'form', todayIL, custIds, {}),
-      dayClosingSellout(process.env.DB_NAME || 'form', todayIL, custIds, DAY_CLOSING_SELLOUT_SKUS),
+      dayClosingSummary(process.env.DB_NAME || 'form', todayIL, custIds, agentCode),
+      dayClosingSellout(process.env.DB_NAME || 'form', todayIL, custIds, agentCode, DAY_CLOSING_SELLOUT_SKUS),
       fetchSelloutPhotos(DAY_CLOSING_SELLOUT_SKUS),
     ]);
     items.forEach(it => { it.imgUrl = imgMap.get(it.sku) || ''; });

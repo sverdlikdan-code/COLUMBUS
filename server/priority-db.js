@@ -94,21 +94,46 @@ async function iceMishCustIdsWithOpenOrderToday(dbName, dateStr) {
 // DISPRICE (not TOTPRICE) — sum without VAT, per live request 2026-08-26.
 // TOTPRICE = DISPRICE + VAT (confirmed on a real row earlier this session).
 //
-// ICE mishpachti branch does NOT use plain ORDERS.DISPRICE at all — confirmed
-// live 2026-08-26 (David/agent 258 case): 6 of 137 ICE orders that day mixed
-// בודדים AND מישפחתי line items in the SAME order. An order-level EXISTS
-// filter (the ✔️ badge's approach, fine there since it's a yes/no per order)
-// correctly flags such an order as "has a מישפחתי line", but O.DISPRICE is
-// the WHOLE order's total — summing it would silently fold the בודדים portion
-// into a total that's supposed to be מישפחתי-only. Sums OI.QPRICE (confirmed
-// line-level price ex-VAT, e.g. QUANT=6000/PRICE=15.3 -> QPRICE=91.8 = 6*15.3)
-// per line instead, filtered to non-בודדים lines only — both the count and
-// the sum are now built from the same line-level grain.
-async function dayClosingSummary(dbName, dateStr, custIds, { iceMishOnly } = {}) {
-  if (!custIds.length) return { custCount: 0, sum: 0 };
+// ICE mishpachti branch filters PRODUCT-family בודדים lines out (not the
+// same "בודדים" as the CUSTOMER/channel meaning in OPEN_ICE_MISH_ORDERS_QUERY
+// below — see that comment) but does it at LINE level via ORDERITEMS.QPRICE,
+// not by excluding the whole ORDERS.DISPRICE. Confirmed live 2026-08-26
+// (David/agent 258 case): 6 of 137 ICE orders that day mixed בודדים- and
+// מישפחתי-labeled PRODUCT lines in the SAME order — an order-level filter/sum
+// would fold the בודדים portion into a total that's supposed to be
+// מישפחתי-only (measured ~45% inflation on the affected clients: 27,170.79
+// order-level vs 14,958.86 line-level for the same 6-client test set).
+// User's final call after seeing both product-family lines exist for real
+// reasons: keep the per-line filter, just do it correctly at line grain.
+//
+// agentCode fallback: custIds comes from the PBI roster cache, which only
+// refreshes once a day — a client created TODAY isn't in ANYONE's roster yet
+// and would be invisible no matter who's viewing. Live call 2026-08-26: also
+// match orders whose ORDERS.AGENT resolves to the CURRENTLY VIEWED agentCode,
+// so a brand-new client's order still lands on the right line even before
+// tomorrow's PBI refresh picks them up. In 'form' ORDERS.AGENT stores the
+// AGENTCODE directly; in 'icecrea' it stores AGENTS' internal AGENT id
+// instead (confirmed live: order AGENT='145' in icecrea maps to AGENTCODE=
+// '286', not literally 286) — resolved via a subquery against AGENTS.
+// Doesn't reopen the earlier agent-code-matching problem (stale ownership
+// after a real reassignment, e.g. Andrey/100 → David) because the roster
+// already catches those; this only ever ADDS rows the roster missed.
+async function dayClosingSummary(dbName, dateStr, custIds, agentCode, { iceMishOnly } = {}) {
+  if (!custIds.length && !agentCode) return { custCount: 0, sum: 0 };
   const pool = await getPool(dbName);
   const req = pool.request().input('today', sql.BigInt, curdateFor(dateStr));
-  const custInList = custIds.map((c, i) => { req.input(`cust${i}`, sql.NVarChar, String(c)); return `@cust${i}`; }).join(',');
+  const custInList = custIds.length
+    ? custIds.map((c, i) => { req.input(`cust${i}`, sql.NVarChar, String(c)); return `@cust${i}`; }).join(',')
+    : null;
+  const orParts = [];
+  if (custInList) orParts.push(`C.CUSTNAME IN (${custInList})`);
+  if (agentCode) {
+    req.input('agentCode', sql.NVarChar, String(agentCode));
+    orParts.push(iceMishOnly
+      ? `O.AGENT = (SELECT TOP 1 AGENT FROM AGENTS WHERE AGENTCODE = @agentCode)`
+      : `O.AGENT = @agentCode`);
+  }
+  const orClause = orParts.join(' OR ');
   const query = iceMishOnly ? `
     SELECT COUNT(DISTINCT O.CUST) AS custCount, SUM(OI.QPRICE) AS sumPrice
     FROM ORDERS O
@@ -116,12 +141,12 @@ async function dayClosingSummary(dbName, dateStr, custIds, { iceMishOnly } = {})
     JOIN ORDERITEMS OI ON OI.ORD = O.ORD
     JOIN PART P ON P.PART = OI.PART
     JOIN FAMILY F ON F.FAMILY = P.FAMILY
-    WHERE O.CURDATE = @today AND C.CUSTNAME IN (${custInList}) AND F.FAMILYDES NOT LIKE N'%בודדים%'
+    WHERE O.CURDATE = @today AND (${orClause}) AND F.FAMILYDES NOT LIKE N'%בודדים%'
   ` : `
     SELECT COUNT(DISTINCT O.CUST) AS custCount, SUM(O.DISPRICE) AS sumPrice
     FROM ORDERS O
     JOIN CUSTOMERS C ON C.CUST = O.CUST
-    WHERE O.CURDATE = @today AND C.CUSTNAME IN (${custInList})
+    WHERE O.CURDATE = @today AND (${orClause})
   `;
   const result = await req.query(query);
   const row = result.recordset[0] || {};
@@ -130,13 +155,23 @@ async function dayClosingSummary(dbName, dateStr, custIds, { iceMishOnly } = {})
 
 // Sellout table for "סגירת יום פורמולה" — fixed makat list (given by the user, not
 // agent-selected), quantity summed from today's ORDERITEMS for the viewed
-// agent's full client roster (same custIds/CUSTNAME scoping as dayClosingSummary).
+// agent's full client roster (same custIds/CUSTNAME/agentCode-fallback scoping
+// as dayClosingSummary — 'form' only, so ORDERS.AGENT=agentCode directly).
 // QUANT/1000 per the project's Priority-SQL convention (CLAUDE.md).
-async function dayClosingSellout(dbName, dateStr, custIds, skuList) {
-  if (!skuList.length || !custIds.length) return [];
+async function dayClosingSellout(dbName, dateStr, custIds, agentCode, skuList) {
+  if (!skuList.length || (!custIds.length && !agentCode)) return [];
   const pool = await getPool(dbName);
   const req = pool.request().input('today', sql.BigInt, curdateFor(dateStr));
-  const custInList = custIds.map((c, i) => { req.input(`cust${i}`, sql.NVarChar, String(c)); return `@cust${i}`; }).join(',');
+  const custInList = custIds.length
+    ? custIds.map((c, i) => { req.input(`cust${i}`, sql.NVarChar, String(c)); return `@cust${i}`; }).join(',')
+    : null;
+  const orParts = [];
+  if (custInList) orParts.push(`C.CUSTNAME IN (${custInList})`);
+  if (agentCode) {
+    req.input('agentCode', sql.NVarChar, String(agentCode));
+    orParts.push(`O.AGENT = @agentCode`);
+  }
+  const orClause = orParts.join(' OR ');
   const skuInList = skuList.map((s, i) => { req.input(`sku${i}`, sql.NVarChar, String(s)); return `@sku${i}`; }).join(',');
   const result = await req.query(`
     SELECT P.PARTNAME AS sku, P.PARTDES AS name, SUM(OI.QUANT) AS sumQuant
@@ -144,7 +179,7 @@ async function dayClosingSellout(dbName, dateStr, custIds, skuList) {
     JOIN CUSTOMERS C ON C.CUST = O.CUST
     JOIN ORDERITEMS OI ON OI.ORD = O.ORD
     JOIN PART P ON P.PART = OI.PART
-    WHERE O.CURDATE = @today AND C.CUSTNAME IN (${custInList}) AND P.PARTNAME IN (${skuInList})
+    WHERE O.CURDATE = @today AND (${orClause}) AND P.PARTNAME IN (${skuInList})
     GROUP BY P.PARTNAME, P.PARTDES
   `);
   const bySku = new Map(result.recordset.map(r => [String(r.sku), { name: String(r.name || ''), qty: Number(r.sumQuant) / 1000 }]));
