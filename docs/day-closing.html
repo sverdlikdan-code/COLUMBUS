@@ -36,10 +36,12 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
    which everything below is scoped under. */
 #dc-header{background:linear-gradient(135deg,#4FC3F7,#0288D1);color:#fff;padding:14px 18px;border-radius:10px;margin-bottom:14px;}
 #print-view.formula #dc-header{background:linear-gradient(135deg,#66BB6A,#2E7D32);}
-#dc-title{font-size:19px;font-weight:800;}
-/* Agent name — was easy to miss (13px, 90% opacity) against a busy header;
-   bumped to read at a glance. Live request 2026-08-26. */
-#dc-agent{font-size:16px;font-weight:800;margin-top:2px;}
+/* Agent name is the dominant line now, not the type label — whose line this
+   report is FOR is the single most important glance in the header, more so
+   than "FORMULA vs ICE" which the card's own color already signals. Live
+   request 2026-08-26: was 16px next to a 19px title, easy to miss. */
+#dc-title{font-size:13px;font-weight:700;opacity:.85;}
+#dc-agent{font-size:28px;font-weight:900;line-height:1.15;margin-top:3px;}
 #dc-date{font-size:12px;font-weight:600;opacity:.8;margin-top:4px;}
 
 /* Solid fill + white text (not the earlier light-tint/dark-text pair) — live
