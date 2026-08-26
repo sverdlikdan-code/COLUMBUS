@@ -111,13 +111,16 @@ async function iceMishCustIdsWithOpenOrderToday(dbName, dateStr) {
 // and would be invisible no matter who's viewing. Live call 2026-08-26: also
 // match orders whose ORDERS.AGENT resolves to the CURRENTLY VIEWED agentCode,
 // so a brand-new client's order still lands on the right line even before
-// tomorrow's PBI refresh picks them up. In 'form' ORDERS.AGENT stores the
-// AGENTCODE directly; in 'icecrea' it stores AGENTS' internal AGENT id
-// instead (confirmed live: order AGENT='145' in icecrea maps to AGENTCODE=
-// '286', not literally 286) — resolved via a subquery against AGENTS.
-// Doesn't reopen the earlier agent-code-matching problem (stale ownership
-// after a real reassignment, e.g. Andrey/100 → David) because the roster
-// already catches those; this only ever ADDS rows the roster missed.
+// tomorrow's PBI refresh picks them up. ORDERS.AGENT stores AGENTS' internal
+// AGENT id in BOTH databases, never the AGENTCODE directly — confirmed live
+// 2026-08-26 the hard way: an earlier version of this compared O.AGENT to the
+// AGENTCODE literally for 'form', which happened to silently "work" for one
+// test case (agent 258's orders showed AGENT='100', which is ALSO agent 100's
+// own AGENTCODE — a coincidence of two different fields landing on the same
+// digits) and hid the bug. David's own internal AGENT id is actually '100'
+// too (AGENTCODE=258 -> AGENT=100), unrelated to Andrey's AGENTCODE=100 — two
+// different people, same string, different columns. Always resolve through
+// AGENTS regardless of database.
 async function dayClosingSummary(dbName, dateStr, custIds, agentCode, { iceMishOnly } = {}) {
   if (!custIds.length && !agentCode) return { custCount: 0, sum: 0 };
   const pool = await getPool(dbName);
@@ -129,9 +132,7 @@ async function dayClosingSummary(dbName, dateStr, custIds, agentCode, { iceMishO
   if (custInList) orParts.push(`C.CUSTNAME IN (${custInList})`);
   if (agentCode) {
     req.input('agentCode', sql.NVarChar, String(agentCode));
-    orParts.push(iceMishOnly
-      ? `O.AGENT = (SELECT TOP 1 AGENT FROM AGENTS WHERE AGENTCODE = @agentCode)`
-      : `O.AGENT = @agentCode`);
+    orParts.push(`O.AGENT = (SELECT TOP 1 AGENT FROM AGENTS WHERE AGENTCODE = @agentCode)`);
   }
   const orClause = orParts.join(' OR ');
   // "new" = matched only via the agentCode fallback, not in the PBI roster —
@@ -171,7 +172,9 @@ async function dayClosingSummary(dbName, dateStr, custIds, agentCode, { iceMishO
 // Sellout table for "סגירת יום פורמולה" — fixed makat list (given by the user, not
 // agent-selected), quantity summed from today's ORDERITEMS for the viewed
 // agent's full client roster (same custIds/CUSTNAME/agentCode-fallback scoping
-// as dayClosingSummary — 'form' only, so ORDERS.AGENT=agentCode directly).
+// as dayClosingSummary — ORDERS.AGENT is AGENTS' internal id, not AGENTCODE,
+// resolved via the same subquery (see dayClosingSummary's comment for the
+// live bug this fixed).
 // QUANT/1000 per the project's Priority-SQL convention (CLAUDE.md).
 async function dayClosingSellout(dbName, dateStr, custIds, agentCode, skuList) {
   if (!skuList.length || (!custIds.length && !agentCode)) return [];
@@ -184,7 +187,7 @@ async function dayClosingSellout(dbName, dateStr, custIds, agentCode, skuList) {
   if (custInList) orParts.push(`C.CUSTNAME IN (${custInList})`);
   if (agentCode) {
     req.input('agentCode', sql.NVarChar, String(agentCode));
-    orParts.push(`O.AGENT = @agentCode`);
+    orParts.push(`O.AGENT = (SELECT TOP 1 AGENT FROM AGENTS WHERE AGENTCODE = @agentCode)`);
   }
   const orClause = orParts.join(' OR ');
   const skuInList = skuList.map((s, i) => { req.input(`sku${i}`, sql.NVarChar, String(s)); return `@sku${i}`; }).join(',');
