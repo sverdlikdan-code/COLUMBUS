@@ -29,16 +29,18 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 #pv-overlay-bar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;position:sticky;top:0;background:var(--bg);z-index:1;padding-bottom:4px;}
 .pv-close{background:var(--card);border:1.5px solid var(--sky-mid);border-radius:10px;padding:10px 16px;font-weight:800;font-size:14px;color:var(--text);cursor:pointer;font-family:inherit;}
 
-#dc-header{background:linear-gradient(135deg,var(--blue-dark),var(--blue));color:#fff;padding:14px 18px;border-radius:10px;margin-bottom:14px;}
-#dc-header.formula{background:linear-gradient(135deg,#FF7043,var(--orange));}
+/* ICE brand — light/sky blue, distinct from the app's navy chrome.
+   FORMULA brand — corporate green. Live request 2026-08-26. */
+#dc-header{background:linear-gradient(135deg,#4FC3F7,#0288D1);color:#fff;padding:14px 18px;border-radius:10px;margin-bottom:14px;}
+#dc-header.formula{background:linear-gradient(135deg,#66BB6A,#2E7D32);}
 #dc-title{font-size:19px;font-weight:800;}
 #dc-agent{font-size:13px;font-weight:600;opacity:.9;margin-top:2px;}
 #dc-date{font-size:12px;font-weight:600;opacity:.8;margin-top:4px;}
 
-#dc-stats{display:flex;gap:10px;margin-bottom:16px;}
-.dc-stat{flex:1;background:var(--sky);border-radius:10px;padding:16px 10px;text-align:center;}
-.dc-stat .dc-num{font-size:30px;font-weight:900;color:var(--blue-dark);line-height:1.1;}
-.dc-stat .dc-lbl{font-size:12px;font-weight:700;color:var(--mid);margin-top:4px;}
+#dc-stats{display:flex;gap:8px;margin-bottom:14px;}
+.dc-stat{flex:1;background:var(--sky);border-radius:9px;padding:9px 8px;text-align:center;}
+.dc-stat .dc-num{font-size:20px;font-weight:900;color:var(--blue-dark);line-height:1.1;}
+.dc-stat .dc-lbl{font-size:10.5px;font-weight:700;color:var(--mid);margin-top:2px;}
 
 .dc-tbl{border-collapse:collapse;width:100%;font-size:13px;}
 .dc-tbl th,.dc-tbl td{border:1px solid var(--sky-mid);padding:7px;text-align:center;}
@@ -56,7 +58,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 
 @media (min-width:760px){
   body{font-size:16px;}
-  .dc-stat .dc-num{font-size:36px;}
+  .dc-stat .dc-num{font-size:24px;}
   .wa-btn{font-size:17px;min-height:58px;}
 }
 </style>
