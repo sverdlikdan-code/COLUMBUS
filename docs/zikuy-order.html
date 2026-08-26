@@ -540,9 +540,21 @@ function preloadProxyImg(url){
   const img=new Image();
   img.src=proxyImg(url);
 }
+// Above this many rows the shared blank rotates to landscape to avoid a
+// WhatsApp crop (see the height>width rotate in _captureShareImageInner) —
+// capping the order here instead keeps the printed blank portrait and
+// pushes a long return into a second zikuy rather than a sideways image.
+const MAX_ZIKUY_ITEMS = 18;
 function toggleProduct(sku){
   if(selected.has(sku)){ selected.delete(sku); }
   else{
+    if(selected.size>=MAX_ZIKUY_ITEMS){
+      const first=(!isManager && agentName) ? agentName.trim().split(/\s+/)[0] : '';
+      showToast(first
+        ? `הגעת למגבלה של ${MAX_ZIKUY_ITEMS} שורות, ${first} — שלח/י את הבקשה הזו ופתח/י בקשה חדשה`
+        : `הגעת למגבלה של ${MAX_ZIKUY_ITEMS} שורות — שלח/י את הבקשה הזו ופתח/י בקשה חדשה`, 4000);
+      return;
+    }
     const p=products.find(x=>x.sku===sku); if(!p) return;
     // Weight products start with no qty at all (not a plausible-looking "1") — a
     // silent default kg the agent never actually looked at is exactly the kind of
