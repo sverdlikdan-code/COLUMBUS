@@ -240,9 +240,13 @@ function renderBlank(d){
       // קג quantities come straight from QUANT/1000 and can land on ugly
       // decimals (e.g. 4.567) — 1 decimal place is all that's meaningful for
       // a weight total, not the raw division result. Live request 2026-08-26.
+      // DOM order flipped from the number-then-label version — live report
+      // 2026-08-26 ("קג ושט לא מהצד הזה"): RTL renders the FIRST inline node
+      // on the right, so unit-label-first puts the label to the number's
+      // right (reads label-then-number) — swapped to put the number first.
       const qtyText = KG_SKUS.has(String(it.sku))
-        ? `${esc(Number(it.qty).toFixed(1))} <small>ק"ג</small>`
-        : `${esc(it.qty)} <small>יחידות</small>`;
+        ? `<small>ק"ג</small> ${esc(Number(it.qty).toFixed(1))}`
+        : `<small>יחידות</small> ${esc(it.qty)}`;
       // DOM order is qty, sku, img (not the visual order) — RTL renders the
       // FIRST cell on the right, so to get photo|makat|quantity reading
       // left-to-right, quantity has to be first in markup. Live request
