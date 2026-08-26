@@ -38,18 +38,19 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
    cyan/candy-green read as "game design", not a business report. Same hue
    family (ICE=blue, FORMULA=green per the color-strategy already committed
    to), just pulled toward the dark end instead of the light end. */
-#dc-header{background:linear-gradient(135deg,#0277BD,#01579B);color:#fff;padding:24px 26px;border-radius:10px;margin-bottom:14px;}
+#dc-header{background:linear-gradient(135deg,#0277BD,#01579B);color:#fff;padding:24px 26px;border-radius:10px;margin-bottom:14px;position:relative;display:flex;align-items:center;justify-content:center;min-height:34px;}
 #print-view.formula #dc-header{background:linear-gradient(135deg,#2E7D32,#1B5E20);}
-/* Header distilled to two elements, live request 2026-08-26: no more
-   "ICE — סגירת יום" title line and no date (both dropped — WhatsApp's own
-   message timestamp already carries the date, and the card's own fill color
-   already signals ICE vs FORMULA). Agent name is the ONLY thing that needs
-   reading at a glance — the whole point of the card is "whose line is this" —
-   so it alone is large and spans the full width. dc-type survives only as a
-   small corner tag ("ICE"/"FORMULA" plain word, no icon, no extra wording),
-   not a competing line. */
-#dc-type{font-size:13px;font-weight:800;opacity:.75;letter-spacing:.5px;}
-#dc-agent{font-size:34px;font-weight:900;line-height:1.15;margin-top:6px;}
+/* One line, live request 2026-08-26: agent name centered across the FULL
+   header width (not just sharing a row with the type tag) — dc-type is
+   pulled out of flow (position:absolute) so it doesn't skew the centering,
+   and sits as a small corner tag ("ICE"/"FORMULA" plain word) rather than a
+   second competing line. No more "ICE — סגירת יום" title and no date —
+   WhatsApp's own message timestamp already carries the date, and the card's
+   fill color already signals ICE vs FORMULA. Agent name is the one thing that
+   needs reading at a glance — the whole point of the card is "whose line is
+   this" — so it alone is large. */
+#dc-type{position:absolute;top:24px;right:26px;font-size:13px;font-weight:800;opacity:.75;letter-spacing:.5px;}
+#dc-agent{font-size:34px;font-weight:900;line-height:1.15;text-align:center;}
 
 /* Solid fill + white text (not the earlier light-tint/dark-text pair) — live
    request 2026-08-26: the card is shared as a WhatsApp photo next to plain-
@@ -250,8 +251,14 @@ async function captureShareImage(){
 async function _captureShareImageInner(){
   const el=document.getElementById('print-view');
   await waitForImages(el);
+  // 600px, not 900 — messaging-app chat bubbles scale a photo to a fixed
+  // bubble WIDTH and cap height, so a wide/short image (900px was ~3:1 for
+  // ICE, no table) gets compressed hardest vertically — the least-square
+  // aspect ratio of the two. Narrower capture width keeps the same content
+  // but lands closer to a ratio WhatsApp doesn't have to squash as much.
+  // Live request 2026-08-26 ("читалось все в вотсапе без открытия").
   const prevWidth=el.style.width, prevMaxWidth=el.style.maxWidth;
-  el.style.width='900px'; el.style.maxWidth='900px';
+  el.style.width='600px'; el.style.maxWidth='600px';
   let canvas;
   try{
     canvas=await Promise.race([
