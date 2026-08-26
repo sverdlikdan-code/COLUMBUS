@@ -109,7 +109,6 @@ const agentName = params.get('agentName') || '';
 const isManager = params.get('isManager') === '1';
 const type = params.get('type') === 'ice' ? 'ice' : 'formula';
 const custIds = params.get('custIds') || '';
-const ownAgentCode = params.get('ownAgentCode') || '';
 
 const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 function showToast(msg,ms=2200){
@@ -127,12 +126,12 @@ function proxyImg(url){ return url ? `${API}/api/img-proxy?url=${encodeURICompon
 document.getElementById('page-title').textContent = type==='ice' ? 'סגירת יום ICE' : 'סגירת יום פורמולה';
 
 async function init(){
-  if(!custIds && !ownAgentCode){
+  if(!custIds){
     document.getElementById('root-body').innerHTML = `<div class="err-box">חסרה רשימת לקוחות — פתח מתוך הדף הראשי</div>`;
     return;
   }
   try{
-    const res = await apiFetch(`/api/day-closing?custIds=${encodeURIComponent(custIds)}&ownAgentCode=${encodeURIComponent(ownAgentCode)}&type=${type}`);
+    const res = await apiFetch(`/api/day-closing?custIds=${encodeURIComponent(custIds)}&type=${type}`);
     if(!res.ok) throw new Error('http_'+res.status);
     const d = await res.json();
     if(!d.ok) throw new Error(d.error||'unknown');
