@@ -79,4 +79,51 @@ async function iceMishCustIdsWithOpenOrderToday(dbName, dateStr) {
   }
 }
 
-module.exports = { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, curdateFor };
+// "סגירת יום" (day close) button — one agent's own today, not the whole company's.
+// EXISTS instead of a JOIN to FAMILY/ORDERITEMS: a plain JOIN fans an order out to
+// one row per matching line item, which would multiply-count TOTPRICE (order-level,
+// not line-level) for any order with more than one מארז-family line today.
+async function dayClosingSummary(dbName, dateStr, agentCode, { iceMishOnly } = {}) {
+  const famClause = iceMishOnly ? `AND EXISTS (
+    SELECT 1 FROM ORDERITEMS OI JOIN PART P ON P.PART = OI.PART JOIN FAMILY F ON F.FAMILY = P.FAMILY
+    WHERE OI.ORD = O.ORD AND F.FAMILYDES NOT LIKE N'%בודדים%'
+  )` : '';
+  const query = `
+    SELECT COUNT(DISTINCT O.CUST) AS custCount, SUM(O.TOTPRICE) AS sumPrice
+    FROM ORDERS O
+    WHERE O.CURDATE = @today AND O.AGENT = @agent ${famClause}
+  `;
+  const pool = await getPool(dbName);
+  const result = await pool.request()
+    .input('today', sql.BigInt, curdateFor(dateStr))
+    .input('agent', sql.NVarChar, String(agentCode))
+    .query(query);
+  const row = result.recordset[0] || {};
+  return { custCount: Number(row.custCount) || 0, sum: Math.round((Number(row.sumPrice) || 0) * 100) / 100 };
+}
+
+// Sellout table for "סגירת יום פורמולה" — fixed makat list (given by the user, not
+// agent-selected), quantity summed straight from today's ORDERITEMS for this agent.
+// QUANT/1000 per the project's Priority-SQL convention (CLAUDE.md).
+async function dayClosingSellout(dbName, dateStr, agentCode, skuList) {
+  if (!skuList.length) return [];
+  const pool = await getPool(dbName);
+  const req = pool.request()
+    .input('today', sql.BigInt, curdateFor(dateStr))
+    .input('agent', sql.NVarChar, String(agentCode));
+  const inList = skuList.map((s, i) => { req.input(`sku${i}`, sql.NVarChar, String(s)); return `@sku${i}`; }).join(',');
+  const result = await req.query(`
+    SELECT P.PARTNAME AS sku, P.PARTDES AS name, SUM(OI.QUANT) AS sumQuant
+    FROM ORDERS O
+    JOIN ORDERITEMS OI ON OI.ORD = O.ORD
+    JOIN PART P ON P.PART = OI.PART
+    WHERE O.CURDATE = @today AND O.AGENT = @agent AND P.PARTNAME IN (${inList})
+    GROUP BY P.PARTNAME, P.PARTDES
+  `);
+  const bySku = new Map(result.recordset.map(r => [String(r.sku), { name: String(r.name || ''), qty: Number(r.sumQuant) / 1000 }]));
+  // Every requested SKU appears in the report even with 0 sold today — an agent
+  // needs to see "0" as much as a number, not have the row silently vanish.
+  return skuList.map(sku => ({ sku, name: bySku.get(sku)?.name || '', qty: bySku.get(sku)?.qty || 0 }));
+}
+
+module.exports = { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, curdateFor };

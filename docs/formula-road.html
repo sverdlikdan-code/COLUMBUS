@@ -308,6 +308,17 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .day-insight-row[data-id]{cursor:pointer;}
 .day-insight-go{font-size:11px;font-weight:800;color:#3F51B5;background:#fff;padding:3px 8px;border-radius:10px;flex-shrink:0;white-space:nowrap;}
 .excl-section-lbl{padding:5px 10px 2px;font-size:10px;font-weight:700;color:var(--light);letter-spacing:1px;text-transform:uppercase;border-top:1px solid var(--sky-mid);margin-top:4px;}
+/* Day-closing buttons — end of the client list, after the last client (and
+   after the excluded section, if any). Deliberately loud/high-contrast
+   against the blue-dominant list above it — "яркие и заметные", live request
+   2026-08-26 — this is the one action that ends the whole route, not another
+   row-level action, so it needs to read as different at a glance, not blend
+   into the scroll. */
+.day-closing-bar{display:flex;flex-direction:column;gap:8px;padding:14px 12px 18px;margin-top:6px;border-top:2px dashed var(--sky-mid);}
+.day-closing-btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;border:none;border-radius:12px;font-size:14.5px;font-weight:900;color:#fff;cursor:pointer;font-family:inherit;box-shadow:0 3px 10px rgba(0,0,0,.2);min-height:52px;}
+.day-closing-btn.ice{background:linear-gradient(135deg,#00BCD4,#0097A7);}
+.day-closing-btn.formula{background:linear-gradient(135deg,#FF7043,var(--orange));}
+.day-closing-btn:active{filter:brightness(.92);}
 .c-num-wrap{display:flex;flex-direction:column;align-items:center;gap:1px;flex-shrink:0;min-width:28px;cursor:grab;touch-action:pan-y;user-select:none;}
 .walk-icon{font-size:11px;line-height:1;}
 .c-num{width:21px;height:21px;border-radius:50%;background:var(--sky-light);border:1.5px solid var(--sky-mid);font-size:10px;font-weight:800;color:var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -2739,6 +2750,21 @@ function renderClientList(html){
         </div>
       </div>`).join('');
   }
+  el.innerHTML+=`<div class="day-closing-bar">
+    <button type="button" class="day-closing-btn ice" onclick="openDayClosing('ice')">❄️ סגירת יום ICE</button>
+    <button type="button" class="day-closing-btn formula" onclick="openDayClosing('formula')">🌙 סגירת יום פורמולה</button>
+  </div>`;
+}
+
+function openDayClosing(type){
+  const agent=st.agent||{};
+  const auth=_loadAuth();
+  const p=new URLSearchParams({
+    agentCode:agent.code||'',agentName:agent.name||'',
+    isManager: auth&&auth.isManager ? '1' : '',
+    type,
+  });
+  window.open('day-closing.html?'+p.toString(),'_blank');
 }
 
 function resetExcluded(){
