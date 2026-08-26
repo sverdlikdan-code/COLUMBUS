@@ -2756,13 +2756,33 @@ function renderClientList(html){
   </div>`;
 }
 
+// The manager login has no real Priority agent code of its own (auth.code is
+// the literal string 'mgr') — but a manager covering someone else's route
+// today places orders under their OWN real code, which day-closing needs to
+// catch off-route orders (see server/priority-db.js dayClosingSummary comment).
+// Asked once, persisted — re-asking every "סגירת יום" tap would be obnoxious.
+function _ownAgentCodeForDayClosing(){
+  const auth=_loadAuth();
+  if(!auth || !auth.isManager) return (st.agent||{}).code||'';
+  let saved=localStorage.getItem('frOwnAgentCode')||'';
+  if(!saved){
+    saved=(prompt('קוד הסוכן האמיתי שלך ב-Priority (למקרה שתזין הזמנות היום) — ריק אם לא רלוונטי:')||'').trim();
+    if(saved) localStorage.setItem('frOwnAgentCode', saved);
+  }
+  return saved;
+}
 function openDayClosing(type){
   const agent=st.agent||{};
   const auth=_loadAuth();
+  // custIds catches today's route clients even when a substitute placed the
+  // order under their own code; ownAgentCode catches orders from clients OFF
+  // today's planned route (walk-in/phone order) — the two are ORed server-side.
+  const custIds=activeClients().map(c=>c.custId).filter(Boolean).join(',');
+  const ownAgentCode=_ownAgentCodeForDayClosing();
   const p=new URLSearchParams({
     agentCode:agent.code||'',agentName:agent.name||'',
     isManager: auth&&auth.isManager ? '1' : '',
-    type,
+    custIds, ownAgentCode, type,
   });
   window.open('day-closing.html?'+p.toString(),'_blank');
 }

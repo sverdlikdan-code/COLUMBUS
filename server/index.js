@@ -4565,20 +4565,47 @@ app.get('/api/today-orders', requireAuth, dataRateLimit, async (req, res) => {
 // this array when the tracked SKUs change; no UI for it yet.
 const DAY_CLOSING_SELLOUT_SKUS = ['721', '724', '413000', '413001', '413002', '403004', '403006'];
 
+// Same product-photo source as zikuy-order.html's fetchPhotosRet() (KARTIS
+// PARIT[URL תמונה] via DAX) — not a guessed priority.dilerbmd.com/priimages/
+// URL. Live correction 2026-08-26: that guess 404s for two of the seven fixed
+// SKUs (721/724, confirmed no such file exists there at all) while this exact
+// DAX path is what already renders their photos correctly in zikuy/mahsan.
+async function fetchSelloutPhotos(skus) {
+  if (!skus.length) return new Map();
+  try {
+    const skuIn = skus.map(s => `"${s}"`).join(',');
+    const rows = await executeDax(
+      `EVALUATE SELECTCOLUMNS(FILTER('KARTIS PARIT', 'KARTIS PARIT'[מק"ט] IN {${skuIn}}), "sku", 'KARTIS PARIT'[מק"ט], "img", 'KARTIS PARIT'[URL תמונה])`
+    );
+    return new Map(rows.map(r => [String(r['[sku]']), r['[img]'] || '']));
+  } catch (e) {
+    console.error('[day-closing] photo fetch failed:', e.message);
+    return new Map();
+  }
+}
+
 app.get('/api/day-closing', requireAuth, dataRateLimit, async (req, res) => {
-  const agentCode = String(req.query.agentCode || '').trim();
+  // custIds catches today's route clients (right even when a substitute placed
+  // the order); ownAgentCode catches orders from clients OFF today's planned
+  // route (right only for whoever is actually driving today — their own real
+  // Priority code, not the "viewing as" agent). Both live corrections 2026-08-26
+  // — see dayClosingSummary's comment in priority-db.js for the full case.
+  const custIds = String(req.query.custIds || '').split(',').map(s => s.trim()).filter(Boolean);
+  const ownAgentCode = String(req.query.ownAgentCode || '').trim();
   const type = req.query.type === 'ice' ? 'ice' : 'formula';
-  if (!agentCode) return res.status(400).json({ ok: false, error: 'agentCode required' });
+  if (!custIds.length && !ownAgentCode) return res.status(400).json({ ok: false, error: 'custIds or ownAgentCode required' });
   const todayIL = todayIsraelDate();
   try {
     if (type === 'ice') {
-      const summary = await dayClosingSummary(process.env.DB_ICECREA || 'icecrea', todayIL, agentCode, { iceMishOnly: true });
+      const summary = await dayClosingSummary(process.env.DB_ICECREA || 'icecrea', todayIL, custIds, ownAgentCode, { iceMishOnly: true });
       return res.json({ ok: true, type, ...summary, items: [] });
     }
-    const [summary, items] = await Promise.all([
-      dayClosingSummary(process.env.DB_NAME || 'form', todayIL, agentCode, {}),
-      dayClosingSellout(process.env.DB_NAME || 'form', todayIL, agentCode, DAY_CLOSING_SELLOUT_SKUS),
+    const [summary, items, imgMap] = await Promise.all([
+      dayClosingSummary(process.env.DB_NAME || 'form', todayIL, custIds, ownAgentCode, {}),
+      dayClosingSellout(process.env.DB_NAME || 'form', todayIL, custIds, ownAgentCode, DAY_CLOSING_SELLOUT_SKUS),
+      fetchSelloutPhotos(DAY_CLOSING_SELLOUT_SKUS),
     ]);
+    items.forEach(it => { it.imgUrl = imgMap.get(it.sku) || ''; });
     res.json({ ok: true, type, ...summary, items });
   } catch (e) {
     console.error('[day-closing] failed:', e.message);
