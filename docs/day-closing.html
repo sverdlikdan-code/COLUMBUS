@@ -49,7 +49,11 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
    fill color already signals ICE vs FORMULA. Agent name is the one thing that
    needs reading at a glance — the whole point of the card is "whose line is
    this" — so it alone is large. */
-#dc-type{position:absolute;top:24px;right:26px;font-size:13px;font-weight:800;opacity:.75;letter-spacing:.5px;}
+/* top:50%+translateY (not a fixed top offset) — centers on the header's
+   actual vertical middle, the same center the flex-centered agent name uses,
+   so the two sit on one visual line instead of the tag pinned to the top
+   edge while the name floats lower. Live request 2026-08-26. */
+#dc-type{position:absolute;top:50%;right:26px;transform:translateY(-50%);font-size:13px;font-weight:800;opacity:.75;letter-spacing:.5px;}
 #dc-agent{font-size:34px;font-weight:900;line-height:1.15;text-align:center;}
 
 /* Solid fill + white text (not the earlier light-tint/dark-text pair) — live
