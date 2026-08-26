@@ -91,26 +91,39 @@ async function iceMishCustIdsWithOpenOrderToday(dbName, dateStr) {
 // ORDERS.CUST directly against a CUSTNAME value matched nothing even for a
 // client with a real order that day, because they're different columns with
 // different value spaces. Must join CUSTOMERS and filter on C.CUSTNAME.
-// EXISTS instead of a JOIN to FAMILY/ORDERITEMS: a plain JOIN fans an order out to
-// one row per matching line item, which would multiply-count DISPRICE (order-level,
-// not line-level) for any order with more than one מארז-family line today.
 // DISPRICE (not TOTPRICE) — sum without VAT, per live request 2026-08-26.
 // TOTPRICE = DISPRICE + VAT (confirmed on a real row earlier this session).
+//
+// ICE mishpachti branch does NOT use plain ORDERS.DISPRICE at all — confirmed
+// live 2026-08-26 (David/agent 258 case): 6 of 137 ICE orders that day mixed
+// בודדים AND מישפחתי line items in the SAME order. An order-level EXISTS
+// filter (the ✔️ badge's approach, fine there since it's a yes/no per order)
+// correctly flags such an order as "has a מישפחתי line", but O.DISPRICE is
+// the WHOLE order's total — summing it would silently fold the בודדים portion
+// into a total that's supposed to be מישפחתי-only. Sums OI.QPRICE (confirmed
+// line-level price ex-VAT, e.g. QUANT=6000/PRICE=15.3 -> QPRICE=91.8 = 6*15.3)
+// per line instead, filtered to non-בודדים lines only — both the count and
+// the sum are now built from the same line-level grain.
 async function dayClosingSummary(dbName, dateStr, custIds, { iceMishOnly } = {}) {
   if (!custIds.length) return { custCount: 0, sum: 0 };
-  const famClause = iceMishOnly ? `AND EXISTS (
-    SELECT 1 FROM ORDERITEMS OI JOIN PART P ON P.PART = OI.PART JOIN FAMILY F ON F.FAMILY = P.FAMILY
-    WHERE OI.ORD = O.ORD AND F.FAMILYDES NOT LIKE N'%בודדים%'
-  )` : '';
   const pool = await getPool(dbName);
   const req = pool.request().input('today', sql.BigInt, curdateFor(dateStr));
   const custInList = custIds.map((c, i) => { req.input(`cust${i}`, sql.NVarChar, String(c)); return `@cust${i}`; }).join(',');
-  const result = await req.query(`
+  const query = iceMishOnly ? `
+    SELECT COUNT(DISTINCT O.CUST) AS custCount, SUM(OI.QPRICE) AS sumPrice
+    FROM ORDERS O
+    JOIN CUSTOMERS C ON C.CUST = O.CUST
+    JOIN ORDERITEMS OI ON OI.ORD = O.ORD
+    JOIN PART P ON P.PART = OI.PART
+    JOIN FAMILY F ON F.FAMILY = P.FAMILY
+    WHERE O.CURDATE = @today AND C.CUSTNAME IN (${custInList}) AND F.FAMILYDES NOT LIKE N'%בודדים%'
+  ` : `
     SELECT COUNT(DISTINCT O.CUST) AS custCount, SUM(O.DISPRICE) AS sumPrice
     FROM ORDERS O
     JOIN CUSTOMERS C ON C.CUST = O.CUST
-    WHERE O.CURDATE = @today AND C.CUSTNAME IN (${custInList}) ${famClause}
-  `);
+    WHERE O.CURDATE = @today AND C.CUSTNAME IN (${custInList})
+  `;
+  const result = await req.query(query);
   const row = result.recordset[0] || {};
   return { custCount: Number(row.custCount) || 0, sum: Math.round((Number(row.sumPrice) || 0) * 100) / 100 };
 }
