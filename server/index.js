@@ -8,7 +8,7 @@ const { execFile } = require('child_process');
 const ExcelJS = require('exceljs');
 const puppeteer = require('puppeteer');
 const { executeDax, getDatasetRefreshTime } = require('./powerbi');
-const { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday } = require('./priority-db');
+const { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout } = require('./priority-db');
 const { Resend } = require('resend');
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -4555,6 +4555,32 @@ app.get('/api/today-orders', requireAuth, dataRateLimit, async (req, res) => {
     todayOrdersCache = { date: todayIL, at: Date.now(), formula: formulaSet ? [...formulaSet] : [], iceMish: iceSet ? [...iceSet] : [] };
   }
   res.json({ ok: true, formula: todayOrdersCache.formula, iceMish: todayOrdersCache.iceMish });
+});
+
+// "סגירת יום" (day close) — fixed sellout makat list, set directly in code (not
+// agent-selected/persisted — user explicitly simplified this 2026-08-26). Update
+// this array when the tracked SKUs change; no UI for it yet.
+const DAY_CLOSING_SELLOUT_SKUS = ['721', '724', '413000', '413001', '413002', '403004', '403006'];
+
+app.get('/api/day-closing', requireAuth, dataRateLimit, async (req, res) => {
+  const agentCode = String(req.query.agentCode || '').trim();
+  const type = req.query.type === 'ice' ? 'ice' : 'formula';
+  if (!agentCode) return res.status(400).json({ ok: false, error: 'agentCode required' });
+  const todayIL = todayIsraelDate();
+  try {
+    if (type === 'ice') {
+      const summary = await dayClosingSummary(process.env.DB_ICECREA || 'icecrea', todayIL, agentCode, { iceMishOnly: true });
+      return res.json({ ok: true, type, ...summary, items: [] });
+    }
+    const [summary, items] = await Promise.all([
+      dayClosingSummary(process.env.DB_NAME || 'form', todayIL, agentCode, {}),
+      dayClosingSellout(process.env.DB_NAME || 'form', todayIL, agentCode, DAY_CLOSING_SELLOUT_SKUS),
+    ]);
+    res.json({ ok: true, type, ...summary, items });
+  } catch (e) {
+    console.error('[day-closing] failed:', e.message);
+    res.status(502).json({ ok: false, error: 'priority query failed' });
+  }
 });
 
 // POST /api/ai-feedback — 👍/👎 on a single AI recommendation (day-briefing or
