@@ -79,24 +79,21 @@ async function iceMishCustIdsWithOpenOrderToday(dbName, dateStr) {
   }
 }
 
-// "סגירת יום" (day close) button — today's orders for the clients on THIS route,
-// not "whatever Priority's ORDERS.AGENT field says". Filtering by AGENT broke for
-// a real substitution case (2026-08-26): an agent covering a colleague's route
-// while she's on vacation places the orders under their OWN Priority agent code,
-// not hers — so filtering by the covered agent's code found zero orders even
-// though her clients genuinely ordered today. The route's client list is the one
-// thing that's actually true regardless of who's driving it.
+// "סגירת יום" (day close) button — scoped by the currently-viewed agent's full
+// client roster (custIds — every client across all their route days, not just
+// today's), never by ORDERS.AGENT. Live clarification 2026-08-26: whoever is
+// physically logged in doesn't matter — "sitting in Galina" and pressing
+// סגירת יום means every open order today from one of GALINA's clients counts,
+// regardless of which real Priority agent code ended up on that order.
+// custIds are the app's custId values, which are Priority's CUSTOMERS.CUSTNAME
+// (the customer-facing code, e.g. "1136710") — NOT CUSTOMERS.CUST (the
+// internal surrogate key, e.g. "5243"). Confirmed live 2026-08-26: filtering
+// ORDERS.CUST directly against a CUSTNAME value matched nothing even for a
+// client with a real order that day, because they're different columns with
+// different value spaces. Must join CUSTOMERS and filter on C.CUSTNAME.
 // EXISTS instead of a JOIN to FAMILY/ORDERITEMS: a plain JOIN fans an order out to
 // one row per matching line item, which would multiply-count TOTPRICE (order-level,
 // not line-level) for any order with more than one מארז-family line today.
-// Scoped by the currently-viewed agent's full client roster (custIds — every
-// client across all their route days, not just today's), never by
-// ORDERS.AGENT. Live clarification 2026-08-26: whoever is physically logged
-// in doesn't matter — "sitting in Galina" and pressing סגירת יום means every
-// open order today from one of GALINA's clients counts, regardless of which
-// real Priority agent code ended up on that order. An earlier version of this
-// tried to also OR in the viewer's own agent code for off-roster orders — that
-// was solving a problem the user didn't actually have; dropped.
 async function dayClosingSummary(dbName, dateStr, custIds, { iceMishOnly } = {}) {
   if (!custIds.length) return { custCount: 0, sum: 0 };
   const famClause = iceMishOnly ? `AND EXISTS (
@@ -109,7 +106,8 @@ async function dayClosingSummary(dbName, dateStr, custIds, { iceMishOnly } = {})
   const result = await req.query(`
     SELECT COUNT(DISTINCT O.CUST) AS custCount, SUM(O.TOTPRICE) AS sumPrice
     FROM ORDERS O
-    WHERE O.CURDATE = @today AND O.CUST IN (${custInList}) ${famClause}
+    JOIN CUSTOMERS C ON C.CUST = O.CUST
+    WHERE O.CURDATE = @today AND C.CUSTNAME IN (${custInList}) ${famClause}
   `);
   const row = result.recordset[0] || {};
   return { custCount: Number(row.custCount) || 0, sum: Math.round((Number(row.sumPrice) || 0) * 100) / 100 };
@@ -117,7 +115,7 @@ async function dayClosingSummary(dbName, dateStr, custIds, { iceMishOnly } = {})
 
 // Sellout table for "סגירת יום פורמולה" — fixed makat list (given by the user, not
 // agent-selected), quantity summed from today's ORDERITEMS for the viewed
-// agent's full client roster (same custIds scoping as dayClosingSummary).
+// agent's full client roster (same custIds/CUSTNAME scoping as dayClosingSummary).
 // QUANT/1000 per the project's Priority-SQL convention (CLAUDE.md).
 async function dayClosingSellout(dbName, dateStr, custIds, skuList) {
   if (!skuList.length || !custIds.length) return [];
@@ -128,9 +126,10 @@ async function dayClosingSellout(dbName, dateStr, custIds, skuList) {
   const result = await req.query(`
     SELECT P.PARTNAME AS sku, P.PARTDES AS name, SUM(OI.QUANT) AS sumQuant
     FROM ORDERS O
+    JOIN CUSTOMERS C ON C.CUST = O.CUST
     JOIN ORDERITEMS OI ON OI.ORD = O.ORD
     JOIN PART P ON P.PART = OI.PART
-    WHERE O.CURDATE = @today AND O.CUST IN (${custInList}) AND P.PARTNAME IN (${skuInList})
+    WHERE O.CURDATE = @today AND C.CUSTNAME IN (${custInList}) AND P.PARTNAME IN (${skuInList})
     GROUP BY P.PARTNAME, P.PARTDES
   `);
   const bySku = new Map(result.recordset.map(r => [String(r.sku), { name: String(r.name || ''), qty: Number(r.sumQuant) / 1000 }]));
