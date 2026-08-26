@@ -3987,6 +3987,12 @@ app.get('/priority-gps-cross.json', (req, res) => {
 app.get('/sw.js', (req, res) => {
   res.setHeader('Content-Type', 'application/javascript');
   res.setHeader('Service-Worker-Allowed', '/');
+  // Without this, Cloudflare's default browser-cache-ttl (max-age=14400, seen
+  // live 2026-08-26) fills the gap — a device's SW update-check can be served
+  // a 4-hour-stale sw.js from Cloudflare's edge, delaying every fix INSIDE the
+  // service worker itself (like the formula-road.html network-first fix
+  // earlier today) by up to 4h even after this file is redeployed.
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.sendFile(path.join(__dirname, '..', 'docs', 'sw.js'));
 });
 // manifest.json's icons[] and apple-touch-icon in formula-road.html use paths
