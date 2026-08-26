@@ -57,7 +57,13 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 #dc-brand{position:absolute;top:50%;right:26px;transform:translateY(-50%);display:flex;align-items:center;gap:7px;}
 #dc-logo{height:20px;filter:brightness(0) invert(1);opacity:.95;}
 #dc-type{font-size:12px;font-weight:800;opacity:.7;letter-spacing:.5px;}
-#dc-agent{font-size:38px;font-weight:900;line-height:1.15;text-align:center;}
+/* Always 1 line — live request 2026-08-27: a wrapped 2-line name bled past
+   the header's bottom edge (font-size was fixed regardless of name length).
+   min-width:0 lets a flex item actually shrink for nowrap/ellipsis to kick
+   in instead of blowing out the flex row; fitAgentNameOneLine() (below) sets
+   the real font-size per name via canvas measurement, ellipsis is only the
+   last-resort safety net if that measurement is ever off. */
+#dc-agent{font-size:38px;font-weight:900;line-height:1.15;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
 
 /* Live feedback 2026-08-26: filled colored tiles with white text read as
    "game design", not a business report — reverted to plain white cards with
@@ -256,8 +262,38 @@ function renderBlank(d){
   }
 }
 
+// Shrinks #dc-agent's font until the name fits the header on one line —
+// reserves space on both sides equal to the corner logo/tag zone since the
+// name is centered across the FULL header width (see #dc-agent CSS comment),
+// so a name that's merely "not wider than the header" can still run into the
+// logo before it runs into the header edge. Live request 2026-08-27.
+function fitAgentNameOneLine(){
+  const el = document.getElementById('dc-agent');
+  const header = document.getElementById('dc-header');
+  const text = el.textContent;
+  if(!text) return;
+  const cs = getComputedStyle(el);
+  const headerPad = 52; // #dc-header padding: 24px 26px -> 26+26
+  const cornerReserve = 190; // #dc-brand corner (logo + FORMULA/ICE tag), mirrored since name is centered
+  const avail = Math.max(60, header.clientWidth - headerPad - cornerReserve);
+  const canvas = fitAgentNameOneLine._canvas || (fitAgentNameOneLine._canvas = document.createElement('canvas'));
+  const ctx = canvas.getContext('2d');
+  const maxSize = 38, minSize = 18;
+  let size = maxSize;
+  while(size > minSize){
+    ctx.font = `900 ${size}px ${cs.fontFamily}`;
+    if(ctx.measureText(text).width <= avail) break;
+    size -= 1;
+  }
+  el.style.fontSize = size + 'px';
+}
+
 function showPrintFullscreen(){
   document.getElementById('pv-overlay').classList.add('show');
+  // Only here, not in renderBlank() — #pv-overlay is still display:none at
+  // render time, so #dc-header.clientWidth reads 0 there and the fit would
+  // always collapse to the minimum size. Live bug found 2026-08-27.
+  fitAgentNameOneLine();
   history.pushState({pv:1},'');
 }
 function hidePrintFullscreen(){
@@ -298,7 +334,10 @@ async function _captureShareImageInner(){
   // but lands closer to a ratio WhatsApp doesn't have to squash as much.
   // Live request 2026-08-26 ("читалось все в вотсапе без открытия").
   const prevWidth=el.style.width, prevMaxWidth=el.style.maxWidth;
+  const agentEl=document.getElementById('dc-agent');
+  const prevAgentFontSize=agentEl.style.fontSize;
   el.style.width='600px'; el.style.maxWidth='600px';
+  fitAgentNameOneLine(); // header is narrower at capture width than on-screen — refit
   let canvas;
   try{
     canvas=await Promise.race([
@@ -307,6 +346,7 @@ async function _captureShareImageInner(){
     ]);
   }finally{
     el.style.width=prevWidth; el.style.maxWidth=prevMaxWidth;
+    agentEl.style.fontSize=prevAgentFontSize;
   }
   return await new Promise(res=>canvas.toBlob(res,'image/png'));
 }
