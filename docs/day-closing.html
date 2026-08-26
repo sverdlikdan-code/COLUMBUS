@@ -29,25 +29,37 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 #pv-overlay-bar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;position:sticky;top:0;background:var(--bg);z-index:1;padding-bottom:4px;}
 .pv-close{background:var(--card);border:1.5px solid var(--sky-mid);border-radius:10px;padding:10px 16px;font-weight:800;font-size:14px;color:var(--text);cursor:pointer;font-family:inherit;}
 
-/* ICE brand — light/sky blue, distinct from the app's navy chrome.
-   FORMULA brand — corporate green. Live request 2026-08-26. */
+/* ICE brand — light/sky blue, distinct from the app's navy chrome. FORMULA
+   brand — corporate green. Applied to header, stat tiles AND the table now
+   (not just the header) — live request 2026-08-26: "плашки и таблица тоже в
+   корпорат цветах". Toggled via .formula on #print-view (renderBlank()),
+   which everything below is scoped under. */
 #dc-header{background:linear-gradient(135deg,#4FC3F7,#0288D1);color:#fff;padding:14px 18px;border-radius:10px;margin-bottom:14px;}
-#dc-header.formula{background:linear-gradient(135deg,#66BB6A,#2E7D32);}
+#print-view.formula #dc-header{background:linear-gradient(135deg,#66BB6A,#2E7D32);}
 #dc-title{font-size:19px;font-weight:800;}
-#dc-agent{font-size:13px;font-weight:600;opacity:.9;margin-top:2px;}
+/* Agent name — was easy to miss (13px, 90% opacity) against a busy header;
+   bumped to read at a glance. Live request 2026-08-26. */
+#dc-agent{font-size:16px;font-weight:800;margin-top:2px;}
 #dc-date{font-size:12px;font-weight:600;opacity:.8;margin-top:4px;}
 
 #dc-stats{display:flex;gap:8px;margin-bottom:14px;}
-.dc-stat{flex:1;background:var(--sky);border-radius:9px;padding:9px 8px;text-align:center;}
-.dc-stat .dc-num{font-size:20px;font-weight:900;color:var(--blue-dark);line-height:1.1;}
+.dc-stat{flex:1;background:#E1F5FE;border-radius:9px;padding:9px 8px;text-align:center;}
+.dc-stat .dc-num{font-size:20px;font-weight:900;color:#0288D1;line-height:1.1;}
 .dc-stat .dc-lbl{font-size:10.5px;font-weight:700;color:var(--mid);margin-top:2px;}
+#print-view.formula .dc-stat{background:#E8F5E9;}
+#print-view.formula .dc-stat .dc-num{color:#2E7D32;}
 
 .dc-tbl{border-collapse:collapse;width:100%;font-size:13px;}
 .dc-tbl th,.dc-tbl td{border:1px solid var(--sky-mid);padding:7px;text-align:center;}
-.dc-tbl th{background:var(--blue-dark);color:#fff;font-size:12px;}
-.dc-tbl tbody tr:nth-child(even){background:var(--sky);}
+.dc-tbl th{background:#0288D1;color:#fff;font-size:12px;}
+.dc-tbl tbody tr:nth-child(even){background:#E1F5FE;}
+#print-view.formula .dc-tbl th{background:#2E7D32;}
+#print-view.formula .dc-tbl tbody tr:nth-child(even){background:#E8F5E9;}
 .dc-tbl img{width:32px;height:32px;object-fit:contain;border-radius:5px;background:#f5f5f5;}
 .dc-tbl td.dc-name{text-align:right;font-weight:700;font-size:12px;}
+/* מק"ט — the field an agent actually reads off this table, bumped up from
+   the table's base 13px. Live request 2026-08-26. */
+.dc-tbl td.dc-sku{font-size:19px;font-weight:900;color:var(--text);}
 .dc-tbl td.dc-qty{font-size:16px;font-weight:900;color:var(--blue-dark);}
 
 .wa-btn{flex:1;padding:15px;background:#25D366;color:#fff;border:none;border-radius:var(--radius);font-size:15.5px;font-weight:800;cursor:pointer;font-family:inherit;text-align:center;display:none;align-items:center;justify-content:center;min-height:52px;}
@@ -145,8 +157,9 @@ async function init(){
 
 function renderBlank(d){
   const first = (!isManager && agentName) ? agentName.trim() : '';
-  const header = document.getElementById('dc-header');
-  header.classList.toggle('formula', type==='formula');
+  // .formula on #print-view (not just the header) — header, stat tiles and
+  // the table are all scoped under it, see the CSS block above.
+  document.getElementById('print-view').classList.toggle('formula', type==='formula');
   document.getElementById('dc-title').textContent = type==='ice' ? '❄️ סגירת יום — ICE' : '🌙 סגירת יום — FORMULA';
   document.getElementById('dc-agent').textContent = first ? `סוכן: ${first}` : '';
   document.getElementById('dc-date').textContent = new Date().toLocaleDateString('he-IL');
@@ -156,7 +169,7 @@ function renderBlank(d){
     document.getElementById('dc-tbl-wrap').style.display='';
     document.getElementById('dc-tbody').innerHTML = d.items.map(it=>{
       const img = it.imgUrl ? `<img src="${proxyImg(it.imgUrl)}" alt="" onerror="this.style.display='none'">` : '';
-      return `<tr><td>${img}</td><td>${esc(it.sku)}</td><td class="dc-qty">${esc(it.qty)}</td></tr>`;
+      return `<tr><td>${img}</td><td class="dc-sku">${esc(it.sku)}</td><td class="dc-qty">${esc(it.qty)}</td></tr>`;
     }).join('');
   }
 }
