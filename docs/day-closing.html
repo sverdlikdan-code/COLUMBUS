@@ -138,6 +138,17 @@ function proxyImg(url){ return url ? `${API}/api/img-proxy?url=${encodeURICompon
 
 document.getElementById('page-title').textContent = type==='ice' ? 'סגירת יום ICE' : 'סגירת יום פורמולה';
 
+// Kept for the WhatsApp share text (see shareCaptionText below) — the image
+// alone showed up unreadably tiny as a thumbnail in the group next to every
+// other agent's plain-text line ("5 - 5600 / Новых - 0"). Live request
+// 2026-08-26: match that same glanceable format as a caption alongside the image.
+let _lastData = null;
+function shareCaptionText(){
+  if(!_lastData) return '';
+  const sum = Math.round(_lastData.sum||0).toLocaleString('he-IL');
+  return `${_lastData.custCount} - ${sum}\nНовых - ${_lastData.newCustCount||0}`;
+}
+
 async function init(){
   if(!agentCode){
     document.getElementById('root-body').innerHTML = `<div class="err-box">חסר קוד סוכן — פתח מתוך הדף הראשי</div>`;
@@ -148,6 +159,7 @@ async function init(){
     if(!res.ok) throw new Error('http_'+res.status);
     const d = await res.json();
     if(!d.ok) throw new Error(d.error||'unknown');
+    _lastData = d;
     renderBlank(d);
     document.getElementById('root-body').innerHTML = '';
     showPrintFullscreen();
@@ -289,7 +301,7 @@ async function sendAsImage(){
     if(blob && !isDesktop){
       const file=new File([blob],`sgirat-yom-${type}-${agentCode}.png`,{type:'image/png'});
       if(navigator.canShare && navigator.canShare({files:[file]})){
-        await navigator.share({files:[file]});
+        await navigator.share({files:[file], text:shareCaptionText()});
         showToast('נשלח לשיתוף');
         return;
       }
