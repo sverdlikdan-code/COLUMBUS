@@ -3909,6 +3909,9 @@ app.get('/mekarer-order.html', (req, res) => {
 app.get('/zikuy-order.html', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'zikuy-order.html'));
 });
+app.get('/day-closing.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'docs', 'day-closing.html'));
+});
 // GET /yedaim/:team.png — daily snapshot of the FORMULA DASHBORD "יעדים" PBI
 // page, one per קבוצה team (2026-08-20). Whitelisted slugs only — no path
 // traversal via req.params. requireAuth: real sales figures per team.
