@@ -102,7 +102,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
       </div>
       <div id="dc-stats">
         <div class="dc-stat"><div class="dc-num" id="dc-cust-count">—</div><div class="dc-lbl">לקוחות</div></div>
-        <div class="dc-stat"><div class="dc-num" id="dc-sum">—</div><div class="dc-lbl">₪ סה"כ (ללא מע"מ)</div></div>
+        <div class="dc-stat"><div class="dc-num" id="dc-sum">—</div></div>
       </div>
       <div id="dc-new-line" style="display:none"></div>
       <div id="dc-tbl-wrap" style="display:none">
@@ -173,7 +173,7 @@ function renderBlank(d){
   document.getElementById('dc-agent').textContent = first ? `סוכן: ${first}` : '';
   document.getElementById('dc-date').textContent = new Date().toLocaleDateString('he-IL');
   document.getElementById('dc-cust-count').textContent = d.custCount;
-  document.getElementById('dc-sum').textContent = Number(d.sum||0).toLocaleString('he-IL',{maximumFractionDigits:0});
+  document.getElementById('dc-sum').textContent = '₪' + Number(d.sum||0).toLocaleString('he-IL',{maximumFractionDigits:0});
   // "מתוכם לקוחות חדשים" — clients caught only via the agentCode fallback (not
   // yet in the PBI roster, refreshes once a day) — only shown when non-zero,
   // no reason to clutter the report on an ordinary day. Live request 2026-08-26.
