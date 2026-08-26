@@ -2756,36 +2756,20 @@ function renderClientList(html){
   </div>`;
 }
 
-// custIds needs this agent's WHOLE client roster, not just today's route day —
-// live correction 2026-08-26: a client routed for e.g. Wednesday can still call
-// in an order today (any weekday), and that should count same as an order from
-// someone on today's planned route. STATIC_DATA.routes is keyed per agent+day
-// (same source the manager-tile client-count already unions across days 1-5,
-// see line ~1718 above) — union it here instead of reading only st.clients
-// (which activeClients() filters from, day-scoped by the /api/customers call
-// in loadClients()). Falls back to today's day only if STATIC_DATA isn't loaded.
-function _allDaysClientIdsForAgent(agentCode){
-  if(STATIC_DATA?.routes){
-    const uniq=new Set();
-    [1,2,3,4,5].forEach(d=>{
-      (STATIC_DATA.routes[`${agentCode}_${d}`]||[]).forEach(c=>{ if(c.custId) uniq.add(c.custId); });
-    });
-    if(uniq.size) return [...uniq];
-  }
-  return activeClients().map(c=>c.custId).filter(Boolean);
-}
 function openDayClosing(type){
   const agent=st.agent||{};
   const auth=_loadAuth();
   // Whoever is physically logged in doesn't matter — only which agent's
-  // clients are being viewed (st.agent) when the button is pressed. custIds
-  // covers that agent's full roster regardless of which day they're routed
-  // for. Live clarification 2026-08-26.
-  const custIds=_allDaysClientIdsForAgent(agent.code||'').join(',');
+  // clients are being viewed (st.agent) when the button is pressed. Roster
+  // resolution (all route days, not just today's) now happens server-side in
+  // /api/day-closing — an earlier client-side attempt at this unioned
+  // STATIC_DATA.routes[agent_1..5], but that key doesn't exist in
+  // formula-road-data.json at all, so it silently fell back to today's day
+  // only every time. Live fix 2026-08-26.
   const p=new URLSearchParams({
     agentCode:agent.code||'',agentName:agent.name||'',
     isManager: auth&&auth.isManager ? '1' : '',
-    custIds, type,
+    type,
   });
   window.open('day-closing.html?'+p.toString(),'_blank');
 }

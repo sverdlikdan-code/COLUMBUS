@@ -4590,14 +4590,33 @@ async function fetchSelloutPhotos(skus) {
   }
 }
 
+// Full client roster for an agent — every scheduled day + unscheduled ("לא
+// מוגדר") formula clients + ICE-only clients, no day filter at all. Mirrors
+// /customers' pieces but skips its day-scoping entirely (that endpoint's
+// dayNum=null branch actually EXCLUDES noScheduleByAgent — only dayNum===0
+// includes it — so it can't be reused as-is for "give me every client this
+// agent has, period"). Built for day-closing: pressing "סגירת יום" must catch
+// an order from any of the agent's clients regardless of which day they're
+// routed for. Previously the frontend tried to build this itself by unioning
+// STATIC_DATA.routes[agent_1..5] — that key doesn't exist in
+// formula-road-data.json at all (confirmed live 2026-08-26), so it silently
+// fell back to just today's day every time. Resolving it here server-side
+// removes that whole fragile path.
+function getAllCustIdsForAgent(agentCode) {
+  if (!pbiCache) return [];
+  const scheduled = pbiCache.byAgent?.get(agentCode) || [];
+  const unscheduled = pbiCache.noScheduleByAgent?.get(agentCode) || [];
+  const ice = pbiCache.iceByAgent?.get(agentCode) || [];
+  const ids = new Set([...scheduled, ...unscheduled, ...ice].map(c => c.custId).filter(Boolean));
+  return [...ids];
+}
+
 app.get('/api/day-closing', requireAuth, dataRateLimit, async (req, res) => {
-  // custIds is the viewed agent's full client roster (all route days, not just
-  // today's) — see dayClosingSummary's comment in priority-db.js. Whoever is
-  // actually logged in doesn't matter, only which agent's clients are being
-  // viewed when the button is pressed.
-  const custIds = String(req.query.custIds || '').split(',').map(s => s.trim()).filter(Boolean);
+  const agentCode = String(req.query.agentCode || '').trim();
   const type = req.query.type === 'ice' ? 'ice' : 'formula';
-  if (!custIds.length) return res.status(400).json({ ok: false, error: 'custIds required' });
+  if (!agentCode) return res.status(400).json({ ok: false, error: 'agentCode required' });
+  const custIds = getAllCustIdsForAgent(agentCode);
+  if (!custIds.length) return res.status(400).json({ ok: false, error: 'no clients found for this agent' });
   const todayIL = todayIsraelDate();
   try {
     if (type === 'ice') {
