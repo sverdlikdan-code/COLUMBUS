@@ -61,6 +61,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
    the table's base 13px. Live request 2026-08-26. */
 .dc-tbl td.dc-sku{font-size:19px;font-weight:900;color:var(--text);}
 .dc-tbl td.dc-qty{font-size:16px;font-weight:900;color:var(--blue-dark);}
+.dc-tbl td.dc-qty small{display:block;font-size:10px;font-weight:700;color:var(--mid);}
 
 .wa-btn{flex:1;padding:15px;background:#25D366;color:#fff;border:none;border-radius:var(--radius);font-size:15.5px;font-weight:800;cursor:pointer;font-family:inherit;text-align:center;display:none;align-items:center;justify-content:center;min-height:52px;}
 .wa-btn.show{display:flex;}
@@ -179,7 +180,9 @@ function renderBlank(d){
     const KG_SKUS = new Set(['721','724']);
     document.getElementById('dc-tbody').innerHTML = d.items.map(it=>{
       const img = it.imgUrl ? `<img src="${proxyImg(it.imgUrl)}" alt="" onerror="this.style.display='none'">` : '';
-      const qtyText = KG_SKUS.has(String(it.sku)) ? `${esc(it.qty)} ק"ג` : esc(it.qty);
+      const qtyText = KG_SKUS.has(String(it.sku))
+        ? `${esc(it.qty)}<small>ק"ג</small>`
+        : `${esc(it.qty)}<small>יחידות</small>`;
       return `<tr><td>${img}</td><td class="dc-sku">${esc(it.sku)}</td><td class="dc-qty">${qtyText}</td></tr>`;
     }).join('');
   }
