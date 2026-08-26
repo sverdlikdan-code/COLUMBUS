@@ -172,9 +172,15 @@ function renderBlank(d){
   document.getElementById('dc-sum').textContent = Number(d.sum||0).toLocaleString('he-IL',{maximumFractionDigits:0});
   if(type==='formula' && Array.isArray(d.items) && d.items.length){
     document.getElementById('dc-tbl-wrap').style.display='';
+    // 721/724 (dried/smoked fish) are weight-sold with no "גרם" in their own
+    // name (unlike 403004/403006, which spell out their weight already) — קג
+    // label added so the number doesn't read as a piece count. Live request
+    // 2026-08-26.
+    const KG_SKUS = new Set(['721','724']);
     document.getElementById('dc-tbody').innerHTML = d.items.map(it=>{
       const img = it.imgUrl ? `<img src="${proxyImg(it.imgUrl)}" alt="" onerror="this.style.display='none'">` : '';
-      return `<tr><td>${img}</td><td class="dc-sku">${esc(it.sku)}</td><td class="dc-qty">${esc(it.qty)}</td></tr>`;
+      const qtyText = KG_SKUS.has(String(it.sku)) ? `${esc(it.qty)} ק"ג` : esc(it.qty);
+      return `<tr><td>${img}</td><td class="dc-sku">${esc(it.sku)}</td><td class="dc-qty">${qtyText}</td></tr>`;
     }).join('');
   }
 }
