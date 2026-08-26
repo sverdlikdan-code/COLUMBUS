@@ -28,7 +28,12 @@ self.addEventListener('fetch', e => {
   // an explicit sw.js edit, an already-installed PWA could keep serving a page
   // from months ago indefinitely, silently missing every deploy in between
   // (caught 2026-08-26 — an agent's installed PWA had zero of that day's fixes).
-  if (url.includes('formula-road-data.json') || url.includes('google-gps.json') || url.endsWith('formula-road.html') || url.endsWith('/')) {
+  // 2026-08-26 (same day, second bug): the fix above only matched
+  // '...formula-road.html' and never matched manifest.json's actual start_url
+  // '/formula-road' (no extension) — so a home-screen-installed shortcut, which
+  // launches at start_url, fell straight through to the cache-first branch
+  // below and kept showing a stale app shell even after this exact fix shipped.
+  if (url.includes('formula-road-data.json') || url.includes('google-gps.json') || url.endsWith('formula-road.html') || url.endsWith('/formula-road') || url.endsWith('/')) {
     e.respondWith(fetch(e.request).then(res => {
       caches.open(CACHE).then(c => c.put(e.request, res.clone()));
       return res;
