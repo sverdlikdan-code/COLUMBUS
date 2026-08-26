@@ -2810,12 +2810,12 @@ let _dtapTime=0, _dtapId=null, _dtapStartY=0;
 function setupCardDoubleTap(listEl){
   listEl.addEventListener('touchstart',e=>{
     const card=e.target.closest('.client-card');
-    if(!card||e.target.closest('.day-change-btn,.no-gps-badge,.gps-edit-btn,.c-drag,.excl-btn,.mekarer-btn,.zikuy-btn,.ai-insight-btn,.waze-btn,.row-more-btn')) return;
+    if(!card||e.target.closest('.day-change-btn,.no-gps-badge,.gps-edit-btn,.c-drag,.excl-btn,.mekarer-btn,.zikuy-btn,.ai-insight-btn,.waze-btn,.row-more-btn,.c-addr-toggle')) return;
     _dtapStartY=e.touches[0].clientY;
   },{passive:true});
   listEl.addEventListener('touchend',e=>{
     const card=e.target.closest('.client-card');
-    if(!card||e.target.closest('.day-change-btn,.no-gps-badge,.gps-edit-btn,.c-drag,.excl-btn,.mekarer-btn,.zikuy-btn,.ai-insight-btn,.waze-btn,.row-more-btn')) return;
+    if(!card||e.target.closest('.day-change-btn,.no-gps-badge,.gps-edit-btn,.c-drag,.excl-btn,.mekarer-btn,.zikuy-btn,.ai-insight-btn,.waze-btn,.row-more-btn,.c-addr-toggle')) return;
     if(Math.abs(e.changedTouches[0].clientY-_dtapStartY)>12) return; // was scrolling
     e.preventDefault(); // prevent synthetic click from also firing
     selectClient(card.dataset.id);
