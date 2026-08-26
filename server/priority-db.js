@@ -134,8 +134,16 @@ async function dayClosingSummary(dbName, dateStr, custIds, agentCode, { iceMishO
       : `O.AGENT = @agentCode`);
   }
   const orClause = orParts.join(' OR ');
+  // "new" = matched only via the agentCode fallback, not in the PBI roster —
+  // reported as a separate מתוכם ("of which") line so an agent can see a new
+  // client contributed, not just a bigger total with no explanation. A client
+  // with an empty roster (custInList null) is "new" by definition — NOT IN ()
+  // is invalid SQL, so that case just hardcodes the flag true.
+  const notInRoster = custInList ? `C.CUSTNAME NOT IN (${custInList})` : '1=1';
   const query = iceMishOnly ? `
-    SELECT COUNT(DISTINCT O.CUST) AS custCount, SUM(OI.QPRICE) AS sumPrice
+    SELECT COUNT(DISTINCT O.CUST) AS custCount, SUM(OI.QPRICE) AS sumPrice,
+      COUNT(DISTINCT CASE WHEN ${notInRoster} THEN O.CUST END) AS newCustCount,
+      SUM(CASE WHEN ${notInRoster} THEN OI.QPRICE ELSE 0 END) AS newSumPrice
     FROM ORDERS O
     JOIN CUSTOMERS C ON C.CUST = O.CUST
     JOIN ORDERITEMS OI ON OI.ORD = O.ORD
@@ -143,14 +151,21 @@ async function dayClosingSummary(dbName, dateStr, custIds, agentCode, { iceMishO
     JOIN FAMILY F ON F.FAMILY = P.FAMILY
     WHERE O.CURDATE = @today AND (${orClause}) AND F.FAMILYDES NOT LIKE N'%בודדים%'
   ` : `
-    SELECT COUNT(DISTINCT O.CUST) AS custCount, SUM(O.DISPRICE) AS sumPrice
+    SELECT COUNT(DISTINCT O.CUST) AS custCount, SUM(O.DISPRICE) AS sumPrice,
+      COUNT(DISTINCT CASE WHEN ${notInRoster} THEN O.CUST END) AS newCustCount,
+      SUM(CASE WHEN ${notInRoster} THEN O.DISPRICE ELSE 0 END) AS newSumPrice
     FROM ORDERS O
     JOIN CUSTOMERS C ON C.CUST = O.CUST
     WHERE O.CURDATE = @today AND (${orClause})
   `;
   const result = await req.query(query);
   const row = result.recordset[0] || {};
-  return { custCount: Number(row.custCount) || 0, sum: Math.round((Number(row.sumPrice) || 0) * 100) / 100 };
+  return {
+    custCount: Number(row.custCount) || 0,
+    sum: Math.round((Number(row.sumPrice) || 0) * 100) / 100,
+    newCustCount: Number(row.newCustCount) || 0,
+    newSum: Math.round((Number(row.newSumPrice) || 0) * 100) / 100,
+  };
 }
 
 // Sellout table for "סגירת יום פורמולה" — fixed makat list (given by the user, not
