@@ -4585,24 +4585,22 @@ async function fetchSelloutPhotos(skus) {
 }
 
 app.get('/api/day-closing', requireAuth, dataRateLimit, async (req, res) => {
-  // custIds catches today's route clients (right even when a substitute placed
-  // the order); ownAgentCode catches orders from clients OFF today's planned
-  // route (right only for whoever is actually driving today — their own real
-  // Priority code, not the "viewing as" agent). Both live corrections 2026-08-26
-  // — see dayClosingSummary's comment in priority-db.js for the full case.
+  // custIds is the viewed agent's full client roster (all route days, not just
+  // today's) — see dayClosingSummary's comment in priority-db.js. Whoever is
+  // actually logged in doesn't matter, only which agent's clients are being
+  // viewed when the button is pressed.
   const custIds = String(req.query.custIds || '').split(',').map(s => s.trim()).filter(Boolean);
-  const ownAgentCode = String(req.query.ownAgentCode || '').trim();
   const type = req.query.type === 'ice' ? 'ice' : 'formula';
-  if (!custIds.length && !ownAgentCode) return res.status(400).json({ ok: false, error: 'custIds or ownAgentCode required' });
+  if (!custIds.length) return res.status(400).json({ ok: false, error: 'custIds required' });
   const todayIL = todayIsraelDate();
   try {
     if (type === 'ice') {
-      const summary = await dayClosingSummary(process.env.DB_ICECREA || 'icecrea', todayIL, custIds, ownAgentCode, { iceMishOnly: true });
+      const summary = await dayClosingSummary(process.env.DB_ICECREA || 'icecrea', todayIL, custIds, { iceMishOnly: true });
       return res.json({ ok: true, type, ...summary, items: [] });
     }
     const [summary, items, imgMap] = await Promise.all([
-      dayClosingSummary(process.env.DB_NAME || 'form', todayIL, custIds, ownAgentCode, {}),
-      dayClosingSellout(process.env.DB_NAME || 'form', todayIL, custIds, ownAgentCode, DAY_CLOSING_SELLOUT_SKUS),
+      dayClosingSummary(process.env.DB_NAME || 'form', todayIL, custIds, {}),
+      dayClosingSellout(process.env.DB_NAME || 'form', todayIL, custIds, DAY_CLOSING_SELLOUT_SKUS),
       fetchSelloutPhotos(DAY_CLOSING_SELLOUT_SKUS),
     ]);
     items.forEach(it => { it.imgUrl = imgMap.get(it.sku) || ''; });

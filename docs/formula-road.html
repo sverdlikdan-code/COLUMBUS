@@ -2756,21 +2756,6 @@ function renderClientList(html){
   </div>`;
 }
 
-// The manager login has no real Priority agent code of its own (auth.code is
-// the literal string 'mgr') — but a manager covering someone else's route
-// today places orders under their OWN real code, which day-closing needs to
-// catch off-route orders (see server/priority-db.js dayClosingSummary comment).
-// Asked once, persisted — re-asking every "סגירת יום" tap would be obnoxious.
-function _ownAgentCodeForDayClosing(){
-  const auth=_loadAuth();
-  if(!auth || !auth.isManager) return (st.agent||{}).code||'';
-  let saved=localStorage.getItem('frOwnAgentCode')||'';
-  if(!saved){
-    saved=(prompt('קוד הסוכן האמיתי שלך ב-Priority (למקרה שתזין הזמנות היום) — ריק אם לא רלוונטי:')||'').trim();
-    if(saved) localStorage.setItem('frOwnAgentCode', saved);
-  }
-  return saved;
-}
 // custIds needs this agent's WHOLE client roster, not just today's route day —
 // live correction 2026-08-26: a client routed for e.g. Wednesday can still call
 // in an order today (any weekday), and that should count same as an order from
@@ -2792,16 +2777,15 @@ function _allDaysClientIdsForAgent(agentCode){
 function openDayClosing(type){
   const agent=st.agent||{};
   const auth=_loadAuth();
-  // custIds catches this agent's clients regardless of which day they're
-  // routed for (see _allDaysClientIdsForAgent above); ownAgentCode catches
-  // orders from clients not in that roster at all (walk-in/phone order) — the
-  // two are ORed server-side.
+  // Whoever is physically logged in doesn't matter — only which agent's
+  // clients are being viewed (st.agent) when the button is pressed. custIds
+  // covers that agent's full roster regardless of which day they're routed
+  // for. Live clarification 2026-08-26.
   const custIds=_allDaysClientIdsForAgent(agent.code||'').join(',');
-  const ownAgentCode=_ownAgentCodeForDayClosing();
   const p=new URLSearchParams({
     agentCode:agent.code||'',agentName:agent.name||'',
     isManager: auth&&auth.isManager ? '1' : '',
-    custIds, ownAgentCode, type,
+    custIds, type,
   });
   window.open('day-closing.html?'+p.toString(),'_blank');
 }
