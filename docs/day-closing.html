@@ -156,7 +156,13 @@ async function init(){
 }
 
 function renderBlank(d){
-  const first = (!isManager && agentName) ? agentName.trim() : '';
+  // Unlike the "please wait" toast below (addressed to whoever's physically
+  // waiting — ambiguous for a manager, who could be viewing any agent), this
+  // header labels WHICH LINE is being closed. agentName here is always
+  // st.agent.name from formula-road.html — the route being viewed, e.g.
+  // "גליה" when a manager is covering her route — so it must show regardless
+  // of isManager. Live correction 2026-08-26: was wrongly blank for managers.
+  const first = agentName ? agentName.trim() : '';
   // .formula on #print-view (not just the header) — header, stat tiles and
   // the table are all scoped under it, see the CSS block above.
   document.getElementById('print-view').classList.toggle('formula', type==='formula');
