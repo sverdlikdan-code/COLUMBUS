@@ -92,8 +92,10 @@ async function iceMishCustIdsWithOpenOrderToday(dbName, dateStr) {
 // client with a real order that day, because they're different columns with
 // different value spaces. Must join CUSTOMERS and filter on C.CUSTNAME.
 // EXISTS instead of a JOIN to FAMILY/ORDERITEMS: a plain JOIN fans an order out to
-// one row per matching line item, which would multiply-count TOTPRICE (order-level,
+// one row per matching line item, which would multiply-count DISPRICE (order-level,
 // not line-level) for any order with more than one מארז-family line today.
+// DISPRICE (not TOTPRICE) — sum without VAT, per live request 2026-08-26.
+// TOTPRICE = DISPRICE + VAT (confirmed on a real row earlier this session).
 async function dayClosingSummary(dbName, dateStr, custIds, { iceMishOnly } = {}) {
   if (!custIds.length) return { custCount: 0, sum: 0 };
   const famClause = iceMishOnly ? `AND EXISTS (
@@ -104,7 +106,7 @@ async function dayClosingSummary(dbName, dateStr, custIds, { iceMishOnly } = {})
   const req = pool.request().input('today', sql.BigInt, curdateFor(dateStr));
   const custInList = custIds.map((c, i) => { req.input(`cust${i}`, sql.NVarChar, String(c)); return `@cust${i}`; }).join(',');
   const result = await req.query(`
-    SELECT COUNT(DISTINCT O.CUST) AS custCount, SUM(O.TOTPRICE) AS sumPrice
+    SELECT COUNT(DISTINCT O.CUST) AS custCount, SUM(O.DISPRICE) AS sumPrice
     FROM ORDERS O
     JOIN CUSTOMERS C ON C.CUST = O.CUST
     WHERE O.CURDATE = @today AND C.CUSTNAME IN (${custInList}) ${famClause}
