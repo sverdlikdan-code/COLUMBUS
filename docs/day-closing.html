@@ -48,6 +48,8 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 .dc-stat .dc-lbl{font-size:10.5px;font-weight:700;color:var(--mid);margin-top:2px;}
 #print-view.formula .dc-stat{background:#E8F5E9;}
 #print-view.formula .dc-stat .dc-num{color:#2E7D32;}
+#dc-new-line{text-align:center;font-size:12px;font-weight:700;color:var(--mid);margin:-6px 0 14px;}
+#dc-new-line b{color:var(--text);font-weight:900;}
 
 .dc-tbl{border-collapse:collapse;width:100%;font-size:13px;}
 .dc-tbl th,.dc-tbl td{border:1px solid var(--sky-mid);padding:7px;text-align:center;}
@@ -102,6 +104,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
         <div class="dc-stat"><div class="dc-num" id="dc-cust-count">—</div><div class="dc-lbl">לקוחות</div></div>
         <div class="dc-stat"><div class="dc-num" id="dc-sum">—</div><div class="dc-lbl">₪ סה"כ (ללא מע"מ)</div></div>
       </div>
+      <div id="dc-new-line" style="display:none"></div>
       <div id="dc-tbl-wrap" style="display:none">
         <table class="dc-tbl">
           <thead><tr><th>תמונה</th><th>מק"ט</th><th>כמות</th></tr></thead>
@@ -171,6 +174,17 @@ function renderBlank(d){
   document.getElementById('dc-date').textContent = new Date().toLocaleDateString('he-IL');
   document.getElementById('dc-cust-count').textContent = d.custCount;
   document.getElementById('dc-sum').textContent = Number(d.sum||0).toLocaleString('he-IL',{maximumFractionDigits:0});
+  // "מתוכם לקוחות חדשים" — clients caught only via the agentCode fallback (not
+  // yet in the PBI roster, refreshes once a day) — only shown when non-zero,
+  // no reason to clutter the report on an ordinary day. Live request 2026-08-26.
+  const newLine = document.getElementById('dc-new-line');
+  if(d.newCustCount > 0){
+    newLine.style.display = '';
+    const newSumText = Number(d.newSum||0).toLocaleString('he-IL',{maximumFractionDigits:0});
+    newLine.innerHTML = `מתוכם לקוחות חדשים: <b>${d.newCustCount}</b> — ₪<b>${newSumText}</b>`;
+  } else {
+    newLine.style.display = 'none';
+  }
   if(type==='formula' && Array.isArray(d.items) && d.items.length){
     document.getElementById('dc-tbl-wrap').style.display='';
     // 721/724 (dried/smoked fish) are weight-sold with no "גרם" in their own
