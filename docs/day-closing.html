@@ -42,12 +42,15 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 #dc-agent{font-size:16px;font-weight:800;margin-top:2px;}
 #dc-date{font-size:12px;font-weight:600;opacity:.8;margin-top:4px;}
 
+/* Solid fill + white text (not the earlier light-tint/dark-text pair) — live
+   request 2026-08-26: the card is shared as a WhatsApp photo next to plain-
+   text messages from other agents ("5 - 5600"); a filled, high-contrast tile
+   reads at thumbnail size where a pale-blue-on-white number didn't. */
 #dc-stats{display:flex;gap:8px;margin-bottom:14px;}
-.dc-stat{flex:1;background:#E1F5FE;border-radius:9px;padding:9px 8px;text-align:center;}
-.dc-stat .dc-num{font-size:20px;font-weight:900;color:#0288D1;line-height:1.1;}
-.dc-stat .dc-lbl{font-size:10.5px;font-weight:700;color:var(--mid);margin-top:2px;}
-#print-view.formula .dc-stat{background:#E8F5E9;}
-#print-view.formula .dc-stat .dc-num{color:#2E7D32;}
+.dc-stat{flex:1;background:#0288D1;border-radius:9px;padding:12px 8px;text-align:center;box-shadow:0 3px 10px rgba(2,136,209,.35);}
+.dc-stat .dc-num{font-size:38px;font-weight:900;color:#fff;line-height:1.1;}
+.dc-stat .dc-lbl{font-size:11px;font-weight:800;color:rgba(255,255,255,.85);margin-top:2px;letter-spacing:.5px;}
+#print-view.formula .dc-stat{background:#2E7D32;box-shadow:0 3px 10px rgba(46,125,50,.35);}
 #dc-new-line{text-align:center;font-size:12px;font-weight:700;color:var(--mid);margin:-6px 0 14px;}
 #dc-new-line b{color:var(--text);font-weight:900;}
 
@@ -73,7 +76,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 
 @media (min-width:760px){
   body{font-size:16px;}
-  .dc-stat .dc-num{font-size:24px;}
+  .dc-stat .dc-num{font-size:44px;}
   .wa-btn{font-size:17px;min-height:58px;}
 }
 </style>
@@ -138,17 +141,6 @@ function proxyImg(url){ return url ? `${API}/api/img-proxy?url=${encodeURICompon
 
 document.getElementById('page-title').textContent = type==='ice' ? 'סגירת יום ICE' : 'סגירת יום פורמולה';
 
-// Kept for the WhatsApp share text (see shareCaptionText below) — the image
-// alone showed up unreadably tiny as a thumbnail in the group next to every
-// other agent's plain-text line ("5 - 5600 / Новых - 0"). Live request
-// 2026-08-26: match that same glanceable format as a caption alongside the image.
-let _lastData = null;
-function shareCaptionText(){
-  if(!_lastData) return '';
-  const sum = Math.round(_lastData.sum||0).toLocaleString('he-IL');
-  return `${_lastData.custCount} - ${sum}\nНовых - ${_lastData.newCustCount||0}`;
-}
-
 async function init(){
   if(!agentCode){
     document.getElementById('root-body').innerHTML = `<div class="err-box">חסר קוד סוכן — פתח מתוך הדף הראשי</div>`;
@@ -159,7 +151,6 @@ async function init(){
     if(!res.ok) throw new Error('http_'+res.status);
     const d = await res.json();
     if(!d.ok) throw new Error(d.error||'unknown');
-    _lastData = d;
     renderBlank(d);
     document.getElementById('root-body').innerHTML = '';
     showPrintFullscreen();
@@ -301,7 +292,7 @@ async function sendAsImage(){
     if(blob && !isDesktop){
       const file=new File([blob],`sgirat-yom-${type}-${agentCode}.png`,{type:'image/png'});
       if(navigator.canShare && navigator.canShare({files:[file]})){
-        await navigator.share({files:[file], text:shareCaptionText()});
+        await navigator.share({files:[file]});
         showToast('נשלח לשיתוף');
         return;
       }
