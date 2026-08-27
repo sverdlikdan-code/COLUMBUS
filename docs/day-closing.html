@@ -252,7 +252,7 @@ function renderBlank(d){
     byAgentEl.style.display = '';
     byAgentEl.innerHTML = byAgent
       .sort((a,b) => b.sum - a.sum)
-      .map(a => `<div class="dc-ba-row"><b>₪${Number(a.sum||0).toLocaleString('he-IL',{maximumFractionDigits:0})}</b><span>${esc(a.agentName)} (${a.custCount})</span></div>`)
+      .map(a => `<div class="dc-ba-row"><b>₪${Number(a.sum||0).toLocaleString('he-IL',{maximumFractionDigits:0})}</b><span>(${a.custCount}) ${esc(a.agentName)}</span></div>`)
       .join('');
   } else {
     byAgentEl.style.display = 'none';
@@ -367,6 +367,13 @@ async function _captureShareImageInner(){
   const prevWidth=el.style.width, prevMaxWidth=el.style.maxWidth;
   const agentEl=document.getElementById('dc-agent');
   const prevAgentFontSize=agentEl.style.fontSize;
+  // fitAgentNameOneLine() also sets #dc-agent's own maxWidth (sized for
+  // whatever width #print-view has AT THAT MOMENT) — captured here too and
+  // restored below, alongside fontSize. Missing this left the ON-SCREEN name
+  // stuck with the WIDE 600px-capture maxWidth after this async prewarm ran,
+  // so it silently overflowed into the FORMULA/ICE badge post-load. Live bug
+  // 2026-08-28 (found testing longer agent names, e.g. מרגריטה מאקארצ׳בה).
+  const prevAgentMaxWidth=agentEl.style.maxWidth;
   el.style.width='600px'; el.style.maxWidth='600px';
   fitAgentNameOneLine(); // header is narrower at capture width than on-screen — refit
   let canvas;
@@ -378,6 +385,7 @@ async function _captureShareImageInner(){
   }finally{
     el.style.width=prevWidth; el.style.maxWidth=prevMaxWidth;
     agentEl.style.fontSize=prevAgentFontSize;
+    agentEl.style.maxWidth=prevAgentMaxWidth;
   }
   return await new Promise(res=>canvas.toBlob(res,'image/png'));
 }
