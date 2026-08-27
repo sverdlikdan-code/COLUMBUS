@@ -630,10 +630,10 @@ function saveSessions() {
 
 loadSessions();
 
-function createSession(agentCode, isManager, viaPbi = false) {
+function createSession(agentCode, isManager, viaPbi = false, pbiUser = null) {
   const token = crypto.randomUUID();
   const TTL = isManager ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
-  sessions.set(token, { agentCode, isManager, viaPbi, expiresAt: Date.now() + TTL });
+  sessions.set(token, { agentCode, isManager, viaPbi, pbiUser, expiresAt: Date.now() + TTL });
   // Prune expired sessions when map grows large
   if (sessions.size > 500) {
     const now = Date.now();
@@ -817,7 +817,14 @@ app.get('/i/:code', dataRateLimit, (req, res) => {
 app.get('/auth/pbi', dataRateLimit, mahsanIpGuard, (req, res) => {
   const cookies = req.headers.cookie || '';
   if (!/(?:^|;\s*)fr_ok=1/.test(cookies)) return res.status(401).json({ ok: false });
-  return res.json({ ok: true, token: createSession(null, true, true) });
+  // fr_pbiu is set by formulaRoadGuard from the report button's own ?u= param
+  // (meant to carry USERPRINCIPALNAME() from a DAX-built deep link) — lets us
+  // attribute an anonymous PBI-manager session to a real viewer, not just an IP.
+  const m = cookies.match(/(?:^|;\s*)fr_pbiu=([^;]+)/);
+  const pbiUser = m ? decodeURIComponent(m[1]) : null;
+  const token = createSession(null, true, true, pbiUser);
+  writeLog({ ts: new Date().toISOString(), event: 'login-pbi', pbiUser, ip: getRealIp(req) });
+  return res.json({ ok: true, token });
 });
 
 // POST /auth — unified login: manager password OR agent code → returns session token
@@ -3884,8 +3891,15 @@ function formulaRoadGuard(req, res, next) {
     // GitHub Pages, a different origin than this API, so the cookie must be
     // sendable on cross-site fetch() calls (Lax blocks those, only allows
     // top-level navigation).
-    res.setHeader('Set-Cookie', 'fr_ok=1; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000');
-    writeLog({ ts: new Date().toISOString(), event: 'gate-pbi', ip: getRealIp(req), path: req.path, device: deviceType(req.headers['user-agent'] || '') });
+    // ?u= is optional — a DAX measure on the report's button can append
+    // USERPRINCIPALNAME() to the deep link so we know WHO clicked through,
+    // not just that someone did. Carried via its own cookie to /auth/pbi,
+    // which is called separately (no query params) by the client JS.
+    const pbiUser = req.query.u ? String(req.query.u).slice(0, 100) : '';
+    const setCookies = ['fr_ok=1; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000'];
+    if (pbiUser) setCookies.push(`fr_pbiu=${encodeURIComponent(pbiUser)}; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000`);
+    res.setHeader('Set-Cookie', setCookies);
+    writeLog({ ts: new Date().toISOString(), event: 'gate-pbi', ip: getRealIp(req), path: req.path, device: deviceType(req.headers['user-agent'] || ''), pbiUser: pbiUser || null });
     return next();
   }
   if (hasCookie) {
