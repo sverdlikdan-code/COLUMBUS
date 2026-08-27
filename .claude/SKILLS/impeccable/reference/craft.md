@@ -52,6 +52,8 @@ When the original prompt + PRODUCT.md already answer scope, content, and visual 
 
 If the harness has native image generation (Codex), a compact shape's "confirm or override" advances to **Step 3 and the codex.md flow**, not to Step 4. Phrase the closing line accordingly: "Confirm or override; once we lock direction, I'll run a couple of palette and reference questions before generating any mocks." This stops the model from reading shape confirmation as code-green.
 
+**Taste-only tweak to an existing element** (nudge/resize/realign one already-built piece — no scope ambiguity, the whole question is "which of two visual outcomes do you want"): skip shape/references/gates entirely. Ask the one distinguishing question up front ("dark fill + light text, or light bg + dark text — which?"), then iterate as a tight edit→screenshot→show loop. Burning 5+ rounds of live back-and-forth without that opening question is the dominant failure mode here — one precise question is cheaper than five wrong guesses shown to the user.
+
 ## Step 2: Load References
 
 Based on the design brief's "Recommended References" section, consult the relevant impeccable reference files. At minimum, always consult:
