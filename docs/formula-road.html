@@ -164,6 +164,19 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 /* CLIENT LIST */
 #route-body{display:flex;flex:1;overflow:hidden;flex-direction:column;}
 #list-pane{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 6px 18px;min-width:0;background:var(--bg);}
+
+/* FORMULA today-progress banner — sticky at the top of the client list.
+   Live request 2026-08-28: agent count + ₪ + % of today's FORMULA line that
+   already ordered, always visible, "modern and bold". ICE-only clients (see
+   c.iceOnly) never count toward either the numerator or denominator — this
+   is a FORMULA-specific metric by explicit request. */
+.fpb{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:14px;background:#fff;border-radius:14px;padding:10px 16px;margin:2px 2px 10px;box-shadow:0 4px 14px rgba(0,0,0,.1);}
+.fpb-ring{flex:0 0 auto;}
+.fpb-ring circle{transition:stroke-dasharray .6s ease;}
+.fpb-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.fpb-main{font-size:19px;font-weight:900;color:var(--text);}
+.fpb-main .fpb-of{font-size:13px;font-weight:700;color:var(--mid);}
+.fpb-sub{font-size:13px;font-weight:800;color:#2E7D32;}
 .city-chip{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #90CAF9;background:#F8FBFF;color:#1565C0;white-space:nowrap;flex:0 0 auto;display:flex;align-items:center;gap:5px;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,.08);}
 .city-chip:hover{background:#E3F2FD;border-color:#42A5F5;}
 .city-chip.on{background:#1565C0;color:#fff;border-color:#1565C0;box-shadow:0 2px 6px rgba(21,101,192,.3);}
@@ -653,7 +666,7 @@ body.gps-fs #map{height:100%!important;}
     <img src="logo-diler-bmd.png" class="login-logo" alt="DILER BMD"/>
     <div class="login-app-name">Formula Road</div>
     <div class="login-tagline" id="login-sub">מערכת ניהול מסלולים</div>
-    <div id="data-time" style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px;letter-spacing:0.5px;"></div>
+    <div id="data-time" style="font-size:11px;color:rgba(255,200,80,.75);margin-top:4px;letter-spacing:0.5px;"></div>
     <span class="demo-tag" id="demo-tag" style="display:none">DEMO</span>
   </div>
   <div class="login-sky-bar"></div>
@@ -803,6 +816,7 @@ body.gps-fs #map{height:100%!important;}
   <div id="print-header"></div>
   <div id="route-body">
     <div id="list-pane">
+      <div id="formula-progress-banner" class="fpb" style="display:none"></div>
       <div id="client-list"></div>
     </div>
     <div id="map-pane" style="position:relative">
@@ -936,6 +950,26 @@ body.gps-fs #map{height:100%!important;}
 <script>
 const API = 'https://api.sverdlik-apps.site';
 const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+// Client-side crash reporting — before this, a JS error on an agent's phone
+// was invisible to us entirely unless they happened to describe it. Fires on
+// both uncaught throws and unhandled promise rejections. Capped at 5 reports
+// per page load (a broken loop shouldn't flood the log) and uses raw fetch,
+// not apiFetch — must survive even if apiFetch itself is what's broken.
+// Live request 2026-08-28.
+let _errReportCount = 0;
+function _reportClientError(message, stack){
+  if(_errReportCount++ >= 5) return;
+  try{
+    fetch(API + '/api/client-error', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Session': _getToken ? _getToken() : '' },
+      body: JSON.stringify({ message: String(message||'').slice(0,300), stack: stack ? String(stack).slice(0,1000) : null, url: location.href, page: 'formula-road' }),
+      keepalive: true,
+    }).catch(()=>{});
+  }catch(_){}
+}
+window.addEventListener('error', e => _reportClientError(e.message, e.error && e.error.stack));
+window.addEventListener('unhandledrejection', e => _reportClientError('unhandledrejection: ' + (e.reason && e.reason.message || e.reason), e.reason && e.reason.stack));
 // Tiny haptic tick on key screen transitions (AI/zikuy open, day/agent switch, back
 // to menu) — Android only, navigator.vibrate doesn't exist on iOS Safari so this is
 // a silent no-op there, not a crash. 2026-08-17.
@@ -1465,6 +1499,7 @@ function show(id){
 }
 
 function goBack(from){
+  _tick();
   if(from==='s-city'){
     const auth=_loadAuth();
     if(auth&&!auth.isManager){
@@ -1585,9 +1620,15 @@ async function initLogin(){
         await selectDay(_lastDay);
         return;
       }
-      document.getElementById('city-agent-label').textContent=saved.name;
-      buildCityChips();
-      show('s-city');
+      // Any fresh entry with no saved route yet (first invite click, or just a
+      // new day with nothing restored) — greet by name on the branded s-login
+      // shell with an explicit "enter" tap, instead of dropping them cold on
+      // an input field. Live request 2026-08-28 ("и последующие тоже").
+      st._welcomeName = saved.name;
+      st.step = 'agent-welcome';
+      renderLogin();
+      show('s-login');
+      return;
     }
     return;
   }
@@ -1673,6 +1714,13 @@ async function doLogin(code){
   if(btn) btn.disabled=false;
 }
 
+function _continueFromWelcome(){
+  const saved=_loadAuth();
+  document.getElementById('city-agent-label').textContent=saved?.name||'';
+  buildCityChips();
+  show('s-city');
+}
+
 function logout(){
   const auth=_loadAuth();
   if(auth) _logAccess('logout', auth.code||null, auth.name||null, !!auth.isManager);
@@ -1745,6 +1793,22 @@ function renderLogin(){
         }
       });
     }
+  }else if(st.step==='agent-welcome'){
+    // First-ever open via an agent's own invite link — same branded s-login
+    // shell managers get (logo/app name already in #login-hero), but instead
+    // of the mgr-grid a personal greeting takes its place. Previously an
+    // agent's first click skipped s-login entirely and landed cold on the
+    // city-picker with zero context. Live request 2026-08-28.
+    sub.textContent='';
+    body.innerHTML=`
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;gap:16px;">
+        <div style="font-size:26px;font-weight:900;">שלום, ${esc(st._welcomeName||'')}! 👋</div>
+        <div style="width:56px;height:2px;background:linear-gradient(90deg,transparent,#D89830,transparent);"></div>
+        <div style="font-size:15px;color:#555;line-height:1.7;max-width:320px;">
+          כאן תמצא/י את מסלול הביקורים היומי שלך, ניתוח AI ללקוחות, ובקשות זיכוי מהירות — הכל במקום אחד.
+        </div>
+        <button onclick="_continueFromWelcome()" style="background:linear-gradient(135deg,#F0B84E,#D89830);color:#1A3F7C;border:none;border-radius:24px;padding:13px 34px;font-size:16px;font-weight:900;cursor:pointer;box-shadow:0 4px 14px rgba(216,152,48,.4);">כניסה למערכת ←</button>
+      </div>`;
   }else{
     sub.textContent=`${st.manager}`;
     const agents=st._agents||[];
@@ -1814,6 +1878,7 @@ async function selectManager(mgr){
 }
 
 function selectAgent(code,name){
+  _tick();
   st.agent={code,name};
   localStorage.setItem('frRouteAgent', JSON.stringify({code,name}));
   // Manager/multi-line users only (regular agents never reach this function) —
@@ -1995,9 +2060,57 @@ function _announceTodayOrder(){
     showToast(`😎 כל הכבוד ${firstName}, הזמנה נכנסה!`, 3000);
   }catch(e){}
 }
+// FORMULA today-progress banner (ring + count + ₪ + %). ICE-only clients are
+// excluded from both numerator and denominator by explicit request — this
+// reads st.clients (the unfiltered day list, not displayClients()) so city-
+// chip/search filters an agent has toggled don't change what "today's line"
+// means here. Sum comes from the same /api/day-closing FORMULA endpoint the
+// סגירת יום blank uses — single source of truth, not recomputed separately.
+let _fpbSum = 0;
+async function _updateFormulaBanner(){
+  const agentCode = st.agent?.code;
+  if(!agentCode) return;
+  try{
+    const r = await apiFetch(`${API}/api/day-closing?agentCode=${encodeURIComponent(agentCode)}&type=formula`);
+    const d = await r.json();
+    if(d?.ok) _fpbSum = d.sum || 0;
+  }catch(e){ /* keep last known sum on a hiccup — not worth blanking the banner */ }
+  _renderFormulaBanner();
+}
+function _renderFormulaBanner(){
+  const el = document.getElementById('formula-progress-banner');
+  if(!el) return;
+  if(st.day !== _todayRouteDay()){ el.style.display='none'; return; } // only meaningful for today's own route
+  const todayFormula = (st.clients||[]).filter(c => !st.excluded.has(c.custId) && !c.iceOnly);
+  const denom = todayFormula.length;
+  if(!denom){ el.style.display='none'; return; }
+  const ordered = st.todayOrdersFormula || new Set();
+  const numer = todayFormula.filter(c => ordered.has(String(c.custId))).length;
+  const pct = Math.round(numer/denom*100);
+  const color = pct>=70 ? '#2E7D32' : pct>=40 ? '#F9A825' : '#C62828';
+  const R=22, C=Math.round(2*Math.PI*R);
+  const dash = Math.round(C*pct/100);
+  el.style.display='flex';
+  el.innerHTML=`
+    <svg width="56" height="56" viewBox="0 0 56 56" class="fpb-ring">
+      <circle cx="28" cy="28" r="${R}" fill="none" stroke="#E3E8EF" stroke-width="6"/>
+      <circle cx="28" cy="28" r="${R}" fill="none" stroke="${color}" stroke-width="6" stroke-linecap="round"
+        stroke-dasharray="${dash} ${C}" transform="rotate(-90 28 28)"/>
+      <text x="28" y="33" text-anchor="middle" font-size="15" font-weight="900" fill="${color}">${pct}%</text>
+    </svg>
+    <div class="fpb-info">
+      <div class="fpb-main">${numer} <span class="fpb-of">מתוך ${denom} הזמינו היום</span></div>
+      <div class="fpb-sub">₪${Math.round(_fpbSum).toLocaleString('he-IL')}</div>
+    </div>`;
+}
+
 function startTodayOrdersPolling(myId){
   stopTodayOrdersPolling();
-  if(st.day!==_todayRouteDay()) return; // only today's view can have "today" orders
+  if(st.day!==_todayRouteDay()){
+    const bEl=document.getElementById('formula-progress-banner');
+    if(bEl) bEl.style.display='none';
+    return; // only today's view can have "today" orders
+  }
   _todayOrdersSeen=new Set(); // fresh day/agent view — don't replay the sound for already-open orders
   let firstPoll=true;
   const poll=async()=>{
@@ -2014,6 +2127,7 @@ function startTodayOrdersPolling(myId){
       markSeen(st.todayOrdersFormula,'F_'); markSeen(st.todayOrdersIce,'I_');
       firstPoll=false;
       renderClientList();
+      _updateFormulaBanner();
       if(hasNew){ _playTodayOrderSound(); _announceTodayOrder(); }
     }catch(e){ /* Priority/network hiccup — badges just stay as they were this cycle */ }
   };
@@ -2246,6 +2360,7 @@ async function ensureDayCounts(){
 
 function switchDay(d){
   if(d===st.day)return;
+  _tick();
   st.day=d;
   buildDaySwitcher();
   initRoute(); // resets route-sub itself (_routeSubBase), no need to duplicate here
@@ -2824,6 +2939,7 @@ function openMekarerOrder(e,custId,custName,city){
 }
 function openZikuyOrder(e,custId,custName,city){
   if(e){e.stopPropagation();e.preventDefault();}
+  _tick();
   const agent=st.agent||{};
   const auth=_loadAuth();
   const p=new URLSearchParams({
