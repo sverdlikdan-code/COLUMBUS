@@ -3265,12 +3265,17 @@ function mergeWithSaved(fromServer,saved){
 // already in localStorage gets pushed up once (one-time migration per agent).
 // Live concern 2026-08-25: need to know who changed a route/day and when.
 function pushRouteOrder(day,order){
+  // agentCode: manager sessions have no session.agentCode of their own (see
+  // requireAuth) — st.agent.code is the line actually being viewed/edited
+  // (self for an agent, the picked agent for a manager), server only trusts
+  // it as a manager-session fallback. Live bug 2026-08-27: manager edits
+  // silently never saved without this.
   apiFetch(`${API}/api/route-order`,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({day,order})}).catch(()=>{});
+    body:JSON.stringify({day,order,agentCode:st.agent?.code})}).catch(()=>{});
 }
 function pushDayMove(custId,day,client){
   apiFetch(`${API}/api/route-day-move`,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({custId,day,client})}).catch(()=>{});
+    body:JSON.stringify({custId,day,client,agentCode:st.agent?.code})}).catch(()=>{});
 }
 async function syncRouteOverridesFromServer(){
   if(!st.agent?.code) return;
