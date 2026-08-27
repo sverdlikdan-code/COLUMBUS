@@ -4751,23 +4751,13 @@ function writeRouteOverrides(data) {
   } catch (_) {}
 }
 app.post('/api/route-order', requireAuth, dataRateLimit, (req, res) => {
-  // A manager viewing an agent's line always has session.agentCode:null (by
-  // design — see requireAuth), so this endpoint 403'd for every manager edit
-  // regardless of session health, unlike the GET counterpart which already
-  // accepts an explicit ?agent=. Client already knows the viewed agent as
-  // st.agent.code (used for every read) — trust it from the body only when
-  // there's no session agentCode of our own, i.e. only for a manager acting
-  // on someone else's line, never letting a real agent session override its
-  // own identity. Live bug 2026-08-27 (manager's day-move edits silently
-  // never saved, reverted to "?" on next sync).
-  const { day, order, agentCode: bodyAgentCode } = req.body || {};
-  let agentCode = req.session.agentCode;
-  if (!agentCode && req.session.isManager && bodyAgentCode) {
-    const a = String(bodyAgentCode);
-    if (!validateAgentCode(a)) return res.status(400).json({ ok: false, error: 'invalid agent code' });
-    agentCode = a;
-  }
+  // Deliberately session-only, no manager-on-behalf-of-agent fallback (unlike
+  // route-day-move below) — live decision 2026-08-27: within-day client
+  // ordering is a personal working view, a manager's drag-reorder while
+  // looking at someone's line shouldn't overwrite the agent's own route.
+  const agentCode = req.session.agentCode;
   if (!agentCode) return res.status(403).json({ ok: false, error: 'manager session -- no agent' });
+  const { day, order } = req.body || {};
   const dayNum = parseInt(day, 10);
   if (!Number.isInteger(dayNum) || dayNum < 1 || dayNum > 5) return res.status(400).json({ ok: false, error: 'invalid day' });
   if (!Array.isArray(order) || order.length > 500) return res.status(400).json({ ok: false, error: 'invalid order' });
