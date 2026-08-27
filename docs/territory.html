@@ -391,6 +391,23 @@ const MAAYAN_DATA=[{id:0,name:"כל טוב-רכס",city:"ירושלים",addr:"�
 
 const API = 'https://api.sverdlik-apps.site';
 const TOKEN_KEY = 'frToken';
+
+// Client-side crash reporting, same as formula-road.html — see that file's
+// comment for why raw fetch and the 5-report cap. Live request 2026-08-28.
+let _errReportCount = 0;
+function _reportClientError(message, stack){
+  if(_errReportCount++ >= 5) return;
+  try{
+    fetch(API + '/api/client-error', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Session': localStorage.getItem(TOKEN_KEY) || '' },
+      body: JSON.stringify({ message: String(message||'').slice(0,300), stack: stack ? String(stack).slice(0,1000) : null, url: location.href, page: 'territory' }),
+      keepalive: true,
+    }).catch(()=>{});
+  }catch(_){}
+}
+window.addEventListener('error', e => _reportClientError(e.message, e.error && e.error.stack));
+window.addEventListener('unhandledrejection', e => _reportClientError('unhandledrejection: ' + (e.reason && e.reason.message || e.reason), e.reason && e.reason.stack));
+
 let gpsCorrections = {}; // custId → {lat,lng} — from gps-corrections.json + localStorage
 let AI_GPS = {}; // custId → {aiLat,aiLng} — from google-gps.json (same as formula-road)
 let gpsCorrectMode = false, gpsCorrectId = null;

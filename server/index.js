@@ -1921,6 +1921,32 @@ app.post('/api/share-timing', requireAuth, dataRateLimit, (req, res) => {
   } catch (err) { res.status(500).json({ error: 'server_error' }); }
 });
 
+// POST /api/client-error — window.onerror/unhandledrejection reporter. No
+// requireAuth on purpose: a crash during/before login is exactly the kind of
+// failure we most want to see, and requiring a valid session would silently
+// drop those. dataRateLimit (60/min/IP) is the abuse guard instead. Soft
+// session lookup (no 401 if missing/expired) just enriches the log entry
+// with agentCode when we have it. Live request 2026-08-28 ("если что-то
+// ломается в JS прямо на телефоне агента — мы не узнаём").
+app.post('/api/client-error', dataRateLimit, (req, res) => {
+  try {
+    const { message, stack, url, page } = req.body || {};
+    if (!message || typeof message !== 'string') return res.status(400).json({ error: 'invalid message' });
+    const sess = sessions.get((req.headers['x-session'] || '').trim());
+    writeLog({
+      ts: new Date().toISOString(), event: 'client-error',
+      message: String(message).slice(0, 300),
+      stack: stack ? String(stack).slice(0, 1000) : null,
+      url: url ? String(url).slice(0, 300) : null,
+      page: page ? String(page).slice(0, 60) : null,
+      agentCode: sess?.agentCode || null, isManager: !!sess?.isManager,
+      ip: getRealIp(req), device: deviceType(req.headers['user-agent'] || ''),
+      ua: (req.headers['user-agent'] || '').substring(0, 150),
+    });
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'server_error' }); }
+});
+
 // Lightweight funnel events (zikuy_form_started/submitted/abandoned) — one
 // line per event, append-only. Starter scope per Vault research note
 // 2026-08-25 ("behavioral analytics for internal B2B apps"): only the zikuy
