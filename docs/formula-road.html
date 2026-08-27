@@ -151,8 +151,13 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .day-sw-btn{width:44px;height:44px;border-radius:12px;background:var(--sky-light);border:2px solid var(--sky-mid);font-size:19px;font-weight:900;color:var(--blue-dark);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;box-shadow:0 1px 4px rgba(21,101,192,.10);}
 .day-sw-btn:hover{background:var(--sky-mid);transform:translateY(-1px);}
 .day-sw-btn.active{background:var(--blue);color:#fff;border-color:var(--blue-dark);box-shadow:0 2px 8px rgba(21,101,192,.38);}
-.day-sw-undef{border-color:#00B894;color:#00B894;font-size:16px;}
-.day-sw-undef.active{background:#00B894;border-color:#00B894;color:#fff;}
+.day-sw-undef{border-color:#00B894;color:#00B894;font-size:16px;animation:day-sw-undef-blink 2.4s ease-in-out infinite;}
+.day-sw-undef.active{background:#00B894;border-color:#00B894;color:#fff;animation:none;}
+/* Periodic wink, not a constant pulse — draws the eye without being
+   annoying/distracting for a button an agent might look at for hours. Live
+   request 2026-08-28. Only shown at all when st.hasUndefDay is true (see
+   buildDaySwitcher), so "visible" already implies "has clients". */
+@keyframes day-sw-undef-blink{0%,80%,100%{box-shadow:none;}84%{box-shadow:0 0 0 4px rgba(0,184,148,.35);}88%{box-shadow:none;}92%{box-shadow:0 0 0 4px rgba(0,184,148,.35);}96%{box-shadow:none;}}
 /* List/map manual switcher — replaced by automatic orientation switching on
    phone (handleOrientationForMobileMap), .km-right (its wrapper) is always
    hidden now. Kept in the DOM (not deleted) because setTab() still toggles
@@ -170,13 +175,15 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
    already ordered, always visible, "modern and bold". ICE-only clients (see
    c.iceOnly) never count toward either the numerator or denominator — this
    is a FORMULA-specific metric by explicit request. */
-.fpb{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:14px;background:#fff;border-radius:14px;padding:10px 16px;margin:2px 2px 10px;box-shadow:0 4px 14px rgba(0,0,0,.1);}
-.fpb-ring{flex:0 0 auto;}
-.fpb-ring circle{transition:stroke-dasharray .6s ease;}
-.fpb-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
-.fpb-main{font-size:19px;font-weight:900;color:var(--text);}
-.fpb-main .fpb-of{font-size:13px;font-weight:700;color:var(--mid);}
-.fpb-sub{font-size:13px;font-weight:800;color:#2E7D32;}
+.fpb{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;background:#fff;border-radius:14px;padding:10px 16px;margin:2px 2px 10px;box-shadow:0 4px 14px rgba(0,0,0,.1);}
+.fpb-bar-wrap{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:4px;width:30px;}
+.fpb-pct{font-size:12px;font-weight:900;white-space:nowrap;}
+.fpb-bar-track{width:10px;height:38px;background:#E3E8EF;border-radius:5px;overflow:hidden;display:flex;align-items:flex-end;}
+.fpb-bar-fill{width:100%;border-radius:5px;transition:height .6s ease;}
+.fpb-info{flex:1;min-width:0;display:flex;align-items:baseline;gap:8px;flex-wrap:nowrap;overflow:hidden;}
+.fpb-main{font-size:18px;font-weight:900;color:var(--text);white-space:nowrap;}
+.fpb-main .fpb-of{font-size:12px;font-weight:700;color:var(--mid);}
+.fpb-sub{font-size:14px;font-weight:800;color:#2E7D32;white-space:nowrap;}
 .city-chip{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #90CAF9;background:#F8FBFF;color:#1565C0;white-space:nowrap;flex:0 0 auto;display:flex;align-items:center;gap:5px;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,.08);}
 .city-chip:hover{background:#E3F2FD;border-color:#42A5F5;}
 .city-chip.on{background:#1565C0;color:#fff;border-color:#1565C0;box-shadow:0 2px 6px rgba(21,101,192,.3);}
@@ -603,6 +610,31 @@ body.gps-fs #map{height:100%!important;}
 
 /* LOGIN HERO */
 .login-hero{background:linear-gradient(160deg,var(--blue-deeper) 0%,var(--blue-dark) 50%,var(--blue) 100%);padding:28px 20px 22px;display:flex;flex-direction:column;align-items:center;gap:10px;flex-shrink:0;}
+/* Welcome screen — full-screen color fill instead of white body below the
+   hero, greeting sits in a raised/embossed card on top. Live request
+   2026-08-28 ("выпуклые блоки и заливка всей страницы"). Scoped to a class
+   toggled only for the agent-welcome step — manager picker / code-entry
+   keep the plain white body untouched. */
+#s-login.welcome-mode{background:linear-gradient(165deg,var(--blue-deeper) 0%,var(--blue-dark) 55%,var(--blue) 100%);position:relative;overflow:hidden;}
+.welcome-card{background:#fff;border-radius:22px;padding:34px 26px;box-shadow:0 16px 44px rgba(0,0,0,.32),0 3px 10px rgba(0,0,0,.18);}
+/* Per-agent easter egg on the welcome screen — live request 2026-08-28, three
+   named agents by their own request. Keyed by agentCode (stable), not name
+   (agentName has spelling variants). Purely decorative, never blocks the
+   real "כניסה למערכת" button underneath — pointer-events:none. */
+.welcome-egg{position:absolute;font-size:42px;z-index:2;pointer-events:none;}
+.welcome-egg.egg-rappel{top:-60px;left:18%;animation:egg-rappel 2.4s ease-in forwards;}
+.welcome-egg.egg-cyclist{top:38%;right:-60px;animation:egg-cyclist 2.8s linear forwards;}
+.welcome-egg.egg-car{top:58%;right:-80px;animation:egg-car 1.1s cubic-bezier(.3,.6,.25,1) forwards;}
+.welcome-egg.egg-smoke{bottom:-50px;font-size:38px;animation:egg-smoke 3.2s ease-out forwards;}
+.welcome-egg.egg-smoke-1{right:38%;animation-delay:0s;}
+.welcome-egg.egg-smoke-2{right:50%;animation-delay:.5s;font-size:46px;}
+.welcome-egg.egg-smoke-3{right:62%;animation-delay:1s;}
+.welcome-egg.egg-bouquet{bottom:22px;left:22px;font-size:46px;opacity:0;animation:egg-bouquet-in 1s .3s cubic-bezier(.34,1.56,.64,1) forwards;}
+@keyframes egg-rappel{0%{top:-60px;}100%{top:112%;}}
+@keyframes egg-cyclist{0%{right:-60px;}100%{right:112%;}}
+@keyframes egg-car{0%{right:-80px;}100%{right:118%;}}
+@keyframes egg-smoke{0%{bottom:-50px;opacity:1;transform:scale(.8);}100%{bottom:112%;opacity:0;transform:scale(1.3);}}
+@keyframes egg-bouquet-in{0%{opacity:0;transform:scale(.3) rotate(-18deg);}100%{opacity:1;transform:scale(1) rotate(-8deg);}}
 .login-logo{height:72px;filter:brightness(0) invert(1);opacity:.95;}
 .login-app-name{font-size:22px;font-weight:900;letter-spacing:4px;color:#fff;text-transform:uppercase;}
 .login-tagline{font-size:12px;color:rgba(255,255,255,.6);letter-spacing:1px;}
@@ -1714,6 +1746,51 @@ async function doLogin(code){
   if(btn) btn.disabled=false;
 }
 
+// Specific agents asked for this by name (2026-08-28) — keyed by agentCode
+// since names have spelling variants (e.g. אלכסי/אלכסיי). Purely decorative
+// flourish on the welcome card, runs once per screen show. `stay:true` means
+// the element holds its end-of-animation state instead of being removed
+// (for a static "settled" decoration, vs. a one-shot fly-across).
+const WELCOME_EGGS = {
+  // Rita (Margarita) — rappelling climber. A second, corner-decoration
+  // bouquet was tried too (live request "ещё букетище") but removed again
+  // right after ("1 букет лишний") — kept only as the greeting emoji below.
+  '234': [{ emoji:'🧗', cls:'egg-rappel' }],
+  '123': [{ emoji:'🚴', cls:'egg-cyclist' }],   // Kostya (Konstantin) — passing cyclist
+  '149': [{ emoji:'🏎️', cls:'egg-car' }],       // Zhenya Afanasyev — sports car flying by
+  // Tolik Basraev — went through 🪶 (tofu), 💨 (read as fart), ♨️ (too
+  // abstract), 🚬 (live veto — smoke yes, cigarette object no) → 🌫️ fog/haze,
+  // pure atmosphere with no object attached.
+  '138': [
+    { emoji:'🌫️', cls:'egg-smoke egg-smoke-1' },
+    { emoji:'🌫️', cls:'egg-smoke egg-smoke-2' },
+    { emoji:'🌫️', cls:'egg-smoke egg-smoke-3' },
+  ],
+};
+// Per-agent override for the "שלום, {name}! 👋" emoji — live request
+// 2026-08-28 (bouquet instead of the wave, for Rita).
+const WELCOME_GREET_EMOJI = { '234': '💐' };
+// Live request 2026-08-28: "בוקר טוב" before noon, "שלום" after — device's
+// own clock (the agent's actual local time), not server time.
+function _welcomeGreeting(){
+  return new Date().getHours() < 12 ? 'בוקר טוב' : 'שלום';
+}
+function _welcomeGreetEmoji(agentCode){
+  return WELCOME_GREET_EMOJI[agentCode] || '👋';
+}
+function _renderWelcomeEasterEgg(agentCode){
+  const eggs = WELCOME_EGGS[agentCode];
+  const host = document.getElementById('s-login');
+  if(!eggs || !host) return;
+  eggs.forEach(egg => {
+    const el = document.createElement('div');
+    el.className = 'welcome-egg ' + egg.cls;
+    el.textContent = egg.emoji;
+    host.appendChild(el);
+    if(!egg.stay) el.addEventListener('animationend', () => el.remove());
+  });
+}
+
 function _continueFromWelcome(){
   const saved=_loadAuth();
   document.getElementById('city-agent-label').textContent=saved?.name||'';
@@ -1742,6 +1819,7 @@ function _logAccess(event, agentCode, agentName, isManager){
 function renderLogin(){
   const body=document.getElementById('login-body');
   const sub=document.getElementById('login-sub');
+  document.getElementById('s-login').classList.remove('welcome-mode'); // reset — only the agent-welcome branch below re-adds it
   // If no auth at all — show code entry screen
   if(!_loadAuth()){
     sub.textContent='הזן מספר סוכן';
@@ -1800,15 +1878,19 @@ function renderLogin(){
     // agent's first click skipped s-login entirely and landed cold on the
     // city-picker with zero context. Live request 2026-08-28.
     sub.textContent='';
+    document.getElementById('s-login').classList.add('welcome-mode');
     body.innerHTML=`
-      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;gap:16px;">
-        <div style="font-size:26px;font-weight:900;">שלום, ${esc(st._welcomeName||'')}! 👋</div>
-        <div style="width:56px;height:2px;background:linear-gradient(90deg,transparent,#D89830,transparent);"></div>
-        <div style="font-size:15px;color:#555;line-height:1.7;max-width:320px;">
-          כאן תמצא/י את מסלול הביקורים היומי שלך, ניתוח AI ללקוחות, ובקשות זיכוי מהירות — הכל במקום אחד.
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;">
+        <div class="welcome-card" style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:16px;max-width:340px;">
+          <div style="font-size:26px;font-weight:900;">${_welcomeGreeting()}, ${esc(st._welcomeName||'')}! ${_welcomeGreetEmoji(st.agent?.code)}</div>
+          <div style="width:56px;height:2px;background:linear-gradient(90deg,transparent,#D89830,transparent);"></div>
+          <div style="font-size:15px;color:#555;line-height:1.7;">
+            כאן תמצא/י את מסלול הביקורים היומי שלך, ניתוח AI ללקוחות, ובקשות זיכוי מהירות — הכל במקום אחד.
+          </div>
+          <button onclick="_continueFromWelcome()" style="background:linear-gradient(135deg,#F5C670,#D89830);color:#1A3F7C;border:none;border-radius:30px;padding:16px 30px;font-size:30px;font-weight:900;cursor:pointer;box-shadow:0 8px 0 #A9740F,0 12px 20px rgba(0,0,0,.35),inset 0 2px 3px rgba(255,255,255,.5);">כניסה למערכת ←</button>
         </div>
-        <button onclick="_continueFromWelcome()" style="background:linear-gradient(135deg,#F0B84E,#D89830);color:#1A3F7C;border:none;border-radius:24px;padding:13px 34px;font-size:16px;font-weight:900;cursor:pointer;box-shadow:0 4px 14px rgba(216,152,48,.4);">כניסה למערכת ←</button>
       </div>`;
+    _renderWelcomeEasterEgg(st.agent?.code);
   }else{
     sub.textContent=`${st.manager}`;
     const agents=st._agents||[];
@@ -2088,16 +2170,12 @@ function _renderFormulaBanner(){
   const numer = todayFormula.filter(c => ordered.has(String(c.custId))).length;
   const pct = Math.round(numer/denom*100);
   const color = pct>=70 ? '#2E7D32' : pct>=40 ? '#F9A825' : '#C62828';
-  const R=22, C=Math.round(2*Math.PI*R);
-  const dash = Math.round(C*pct/100);
   el.style.display='flex';
   el.innerHTML=`
-    <svg width="56" height="56" viewBox="0 0 56 56" class="fpb-ring">
-      <circle cx="28" cy="28" r="${R}" fill="none" stroke="#E3E8EF" stroke-width="6"/>
-      <circle cx="28" cy="28" r="${R}" fill="none" stroke="${color}" stroke-width="6" stroke-linecap="round"
-        stroke-dasharray="${dash} ${C}" transform="rotate(-90 28 28)"/>
-      <text x="28" y="33" text-anchor="middle" font-size="15" font-weight="900" fill="${color}">${pct}%</text>
-    </svg>
+    <div class="fpb-bar-wrap">
+      <div class="fpb-pct" style="color:${color}">${pct}%</div>
+      <div class="fpb-bar-track"><div class="fpb-bar-fill" style="height:${pct}%;background:${color}"></div></div>
+    </div>
     <div class="fpb-info">
       <div class="fpb-main">${numer} <span class="fpb-of">מתוך ${denom} הזמינו היום</span></div>
       <div class="fpb-sub">₪${Math.round(_fpbSum).toLocaleString('he-IL')}</div>
@@ -4095,6 +4173,12 @@ function changeClientDay(custId,newDay){
   saveRoute(st.agent.code,st.day,st.clients);
   updateKmBar(); renderClientList();
   if(window.innerWidth>=700||st.tab==='map') renderMap();
+  // A move in/out of a day (especially out of "?", day 0) can change which
+  // days actually have clients — ensureDayCounts() only fetches once per
+  // agent, so without this it kept showing "?" after the last unscheduled
+  // client was corrected onto a real day. Live report 2026-08-28 (agent 123).
+  st._dayCountsAgent=null;
+  buildDaySwitcher();
 }
 
 // ── EXPORT XLSX ─────────────────────────────────────────────────────────────
