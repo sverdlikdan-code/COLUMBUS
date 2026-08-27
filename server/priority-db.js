@@ -141,10 +141,18 @@ async function dayClosingSummary(dbName, dateStr, custIds, agentCode, { iceMishO
   // with an empty roster (custInList null) is "new" by definition — NOT IN ()
   // is invalid SQL, so that case just hardcodes the flag true.
   const notInRoster = custInList ? `C.CUSTNAME NOT IN (${custInList})` : '1=1';
+  // OI.QPRICE is the PRE-discount line price — O.T$PERCENT is the document-level
+  // discount % that DISPRICE already bakes in for the non-ICE branch below. Found
+  // live 2026-08-27 (Zoya/agent 257 case): summing raw QPRICE overstated the ICE
+  // total by exactly each order's discount (e.g. order 120821: line QPRICE sum
+  // 812.6 vs the real DISPRICE 694.77 = 812.6*(1-14.5/100)) — tablet's native
+  // Priority report shows DISPRICE-equivalent (post-discount), so the line-level
+  // sum here must apply the same % per order to match. Verified the corrected
+  // formula reproduces the tablet's total exactly (5,318.70) for that day/agent.
   const query = iceMishOnly ? `
-    SELECT COUNT(DISTINCT O.CUST) AS custCount, SUM(OI.QPRICE) AS sumPrice,
+    SELECT COUNT(DISTINCT O.CUST) AS custCount, SUM(OI.QPRICE * (1 - O.T$PERCENT/100.0)) AS sumPrice,
       COUNT(DISTINCT CASE WHEN ${notInRoster} THEN O.CUST END) AS newCustCount,
-      SUM(CASE WHEN ${notInRoster} THEN OI.QPRICE ELSE 0 END) AS newSumPrice
+      SUM(CASE WHEN ${notInRoster} THEN OI.QPRICE * (1 - O.T$PERCENT/100.0) ELSE 0 END) AS newSumPrice
     FROM ORDERS O
     JOIN CUSTOMERS C ON C.CUST = O.CUST
     JOIN ORDERITEMS OI ON OI.ORD = O.ORD
