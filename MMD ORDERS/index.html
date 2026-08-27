@@ -1487,9 +1487,7 @@
       }
       if (ordOnly && sv) {
         const s = sv[String(r.mkt ?? '')] || {};
-        const haml = r.hamlatza ?? 0;
-        const eff  = s.k != null ? Number(s.k) : (haml > 0 ? Math.round(haml) : 0);
-        if (eff <= 0) return false;
+        if (_effOrd(r, s) <= 0) return false;
       }
       return true;
     });
@@ -1773,8 +1771,7 @@
     const coMap = {};
     rows.forEach(r => {
       const s = sv[String(r.mkt ?? '')] || {};
-      const haml = r.hamlatza ?? 0;
-      const eff  = s.k != null ? s.k : (haml > 0 ? Math.round(haml) : 0);
+      const eff = _effOrd(r, s);
       if (eff > 0) {
         ord += eff; items++;
         const co = r.hevra || '—';
