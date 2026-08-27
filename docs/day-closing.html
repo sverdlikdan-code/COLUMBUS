@@ -49,14 +49,13 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
    fill color already signals ICE vs FORMULA. Agent name is the one thing that
    needs reading at a glance — the whole point of the card is "whose line is
    this" — so it alone is large. */
-/* top:50%+translateY (not a fixed top offset) — centers on the header's
-   actual vertical middle, the same center the flex-centered agent name uses,
-   so the two sit on one visual line instead of the tag pinned to the top
-   edge while the name floats lower. Live request 2026-08-26. */
-/* Logo + type tag as one row now, not stacked — live request 2026-08-26. */
-#dc-brand{position:absolute;top:50%;right:26px;transform:translateY(-50%);display:flex;align-items:center;gap:7px;}
-#dc-logo{height:20px;filter:brightness(0) invert(1);opacity:.95;}
-#dc-type{font-size:12px;font-weight:800;opacity:.7;letter-spacing:.5px;}
+/* Live request 2026-08-28: logo 2x bigger, type word stacked ABOVE it (tiny,
+   near-illegible on purpose) in the corner — decouples "how big can the logo
+   be" from "how much horizontal room the name gets", since the corner's
+   width is now just the logo's, not logo+FORMULA/ICE side by side. */
+#dc-brand{position:absolute;top:50%;right:26px;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;}
+#dc-logo{height:40px;filter:brightness(0) invert(1);opacity:.95;}
+#dc-type{font-size:6px;font-weight:800;opacity:.6;letter-spacing:.5px;}
 /* Always 1 line — live request 2026-08-27: a wrapped 2-line name bled past
    the header's bottom edge (font-size was fixed regardless of name length).
    min-width:0 lets a flex item actually shrink for nowrap/ellipsis to kick
@@ -144,8 +143,8 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
     <div id="print-view">
       <div id="dc-header">
         <div id="dc-brand">
-          <img src="logo-diler-bmd.png" id="dc-logo" alt="DILER">
           <div id="dc-type"></div>
+          <img src="logo-diler-bmd.png" id="dc-logo" alt="DILER">
         </div>
         <div id="dc-agent"></div>
       </div>
@@ -297,7 +296,7 @@ function fitAgentNameOneLine(){
   if(!text) return;
   const cs = getComputedStyle(el);
   const headerPad = 52; // #dc-header padding: 24px 26px -> 26+26
-  const cornerReserve = 190; // #dc-brand corner (logo + FORMULA/ICE tag), mirrored since name is centered
+  const cornerReserve = 120; // #dc-logo corner (2x bigger, ~40px, but alone now — FORMULA/ICE moved above the name), mirrored since name is centered
   const avail = Math.max(60, header.clientWidth - headerPad - cornerReserve);
   const canvas = fitAgentNameOneLine._canvas || (fitAgentNameOneLine._canvas = document.createElement('canvas'));
   const ctx = canvas.getContext('2d');
