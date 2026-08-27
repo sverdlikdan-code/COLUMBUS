@@ -286,6 +286,14 @@ function fitAgentNameOneLine(){
     size -= 1;
   }
   el.style.fontSize = size + 'px';
+  // Hard cap even after the shrink loop — a name that still doesn't fit at
+  // minSize (long name, narrow phone header) used to render at natural width
+  // with nothing to actually stop it running into the corner tag: #dc-agent
+  // has no max-width, so CSS's overflow:hidden/text-overflow:ellipsis had
+  // nothing to clip against and never engaged. Live bug 2026-08-27 ("FORMULA"
+  // overlapping the agent name). This makes the already-declared ellipsis
+  // fallback real instead of decorative.
+  el.style.maxWidth = avail + 'px';
 }
 
 function showPrintFullscreen(){
