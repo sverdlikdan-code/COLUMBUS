@@ -1,0 +1,8 @@
+{
+  "minLines": 2,
+  "minTokens": 15,
+  "reporters": ["console"],
+  "absolute": false,
+  "gitignore": true,
+  "ignore": ["**/node_modules/**", "**/docs/*.json", "**/server/data/**"]
+}
