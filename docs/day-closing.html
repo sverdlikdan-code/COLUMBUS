@@ -83,6 +83,11 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 #dc-new-line{text-align:center;font-size:18px;font-weight:800;color:#546E7A;background:#fff;border-radius:9px;padding:11px 8px;margin:0 0 14px;box-shadow:0 5px 16px rgba(1,87,155,.28),0 1px 3px rgba(1,87,155,.12);}
 #print-view.formula #dc-new-line{box-shadow:0 5px 16px rgba(27,94,32,.28),0 1px 3px rgba(27,94,32,.12);}
 #dc-new-line b{color:#0D2137;font-weight:900;}
+#dc-by-agent{text-align:center;font-size:15px;font-weight:700;color:#546E7A;background:#fff;border-radius:9px;padding:9px 10px;margin:0 0 14px;box-shadow:0 5px 16px rgba(1,87,155,.28),0 1px 3px rgba(1,87,155,.12);}
+#print-view.formula #dc-by-agent{box-shadow:0 5px 16px rgba(27,94,32,.28),0 1px 3px rgba(27,94,32,.12);}
+#dc-by-agent .dc-ba-row{display:flex;justify-content:space-between;gap:8px;padding:2px 4px;}
+#dc-by-agent .dc-ba-row+.dc-ba-row{border-top:1px solid #ECEFF1;}
+#dc-by-agent b{color:#0D2137;font-weight:900;}
 
 .dc-tbl{border-collapse:collapse;width:100%;font-size:13px;}
 .dc-tbl th,.dc-tbl td{border:1px solid var(--sky-mid);padding:7px;text-align:center;}
@@ -149,6 +154,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
         <div class="dc-stat"><div class="dc-num" id="dc-cust-count">—</div></div>
       </div>
       <div id="dc-new-line" style="display:none"></div>
+      <div id="dc-by-agent" style="display:none"></div>
       <div id="dc-tbl-wrap" style="display:none">
         <table class="dc-tbl">
           <thead><tr><th>כמות</th><th>מק"ט</th><th>תמונה</th></tr></thead>
@@ -233,6 +239,23 @@ function renderBlank(d){
     newLine.innerHTML = `מתוכם לקוחות חדשים: <b>${d.newCustCount}</b> — ₪<b>${newSumText}</b>`;
   } else {
     newLine.style.display = 'none';
+  }
+  // Subtotal by whoever actually entered the order in Priority — often not the
+  // roster-owning agent themselves (a manager or another rep placing the order
+  // for that client, live case 2026-08-28: agent 53 entered most of agent 110's
+  // orders). Only shown when there's more than one distinct entering agent —
+  // a normal single-agent day doesn't need the breakdown. No agent CODE shown
+  // here on purpose (live request), just names.
+  const byAgentEl = document.getElementById('dc-by-agent');
+  const byAgent = Array.isArray(d.byAgent) ? d.byAgent.filter(a => a.agentName) : [];
+  if(byAgent.length > 1){
+    byAgentEl.style.display = '';
+    byAgentEl.innerHTML = byAgent
+      .sort((a,b) => b.sum - a.sum)
+      .map(a => `<div class="dc-ba-row"><span>${esc(a.agentName)}</span><b>₪${Number(a.sum||0).toLocaleString('he-IL',{maximumFractionDigits:0})}</b></div>`)
+      .join('');
+  } else {
+    byAgentEl.style.display = 'none';
   }
   if(type==='formula' && Array.isArray(d.items) && d.items.length){
     document.getElementById('dc-tbl-wrap').style.display='';
