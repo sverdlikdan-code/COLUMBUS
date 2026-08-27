@@ -3728,15 +3728,19 @@ function switchDayLang(btn, lang) {
 let _blankHistoryData = null;
 async function openBlankHistory() {
   document.getElementById('history-modal').classList.add('open');
-  if (_blankHistoryData === null) {
-    document.getElementById('hist-list').innerHTML = '<div class="ai-loading">⏳ טוען...</div>';
-    try {
-      const r = await apiFetch(`${API}/api/zikuy-history?agent=${st.agent.code}`);
-      const d = await r.json();
-      _blankHistoryData = d.ok ? d.entries : [];
-    } catch (e) {
-      _blankHistoryData = [];
-    }
+  // Always refetch — PWA sessions stay open all day, so a one-shot cache here
+  // permanently froze the list at whatever it was on first open (2026-08-27
+  // live bug: agent sends blanks all day, history modal never shows them).
+  // On failure, keep whatever we already have rather than wiping it — a
+  // transient network blip on the road shouldn't blank out a working list.
+  document.getElementById('hist-list').innerHTML = '<div class="ai-loading">⏳ טוען...</div>';
+  try {
+    const r = await apiFetch(`${API}/api/zikuy-history?agent=${st.agent.code}`);
+    const d = await r.json();
+    if (d.ok) _blankHistoryData = d.entries;
+    else if (_blankHistoryData === null) _blankHistoryData = [];
+  } catch (e) {
+    if (_blankHistoryData === null) _blankHistoryData = [];
   }
   renderBlankHistory();
 }
