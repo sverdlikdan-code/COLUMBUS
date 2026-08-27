@@ -169,11 +169,52 @@ async function dayClosingSummary(dbName, dateStr, custIds, agentCode, { iceMishO
   `;
   const result = await req.query(query);
   const row = result.recordset[0] || {};
+
+  // Subtotal by whoever actually keyed the order into Priority (O.AGENT resolved
+  // to AGENTCODE) — found live 2026-08-28 (Alexey Brilov/agent 53 case): the
+  // roster owner and the entering agent are often different people (a manager or
+  // another rep placing the order for someone else's client), so a client asking
+  // "who sold what" needs this breakdown, not just the combined total. Same
+  // WHERE clause as the main query, just grouped by the entering agent instead
+  // of collapsed. Only meaningful (and only rendered client-side) when there's
+  // more than one distinct entering agent — a single-agent day doesn't need it.
+  const byAgentReq = pool.request().input('today', sql.BigInt, curdateFor(dateStr));
+  if (custInList) custIds.forEach((c, i) => byAgentReq.input(`cust${i}`, sql.NVarChar, String(c)));
+  if (agentCode) byAgentReq.input('agentCode', sql.NVarChar, String(agentCode));
+  const byAgentQuery = iceMishOnly ? `
+    SELECT (SELECT AGENTCODE FROM AGENTS WHERE AGENT = O.AGENT) AS enteringAgentCode,
+      (SELECT AGENTNAME FROM AGENTS WHERE AGENT = O.AGENT) AS enteringAgentName,
+      COUNT(DISTINCT O.CUST) AS custCount, SUM(OI.QPRICE * (1 - O.T$PERCENT/100.0)) AS sumPrice
+    FROM ORDERS O
+    JOIN CUSTOMERS C ON C.CUST = O.CUST
+    JOIN ORDERITEMS OI ON OI.ORD = O.ORD
+    JOIN PART P ON P.PART = OI.PART
+    JOIN FAMILY F ON F.FAMILY = P.FAMILY
+    WHERE O.CURDATE = @today AND (${orClause}) AND F.FAMILYDES NOT LIKE N'%בודדים%'
+    GROUP BY O.AGENT
+  ` : `
+    SELECT (SELECT AGENTCODE FROM AGENTS WHERE AGENT = O.AGENT) AS enteringAgentCode,
+      (SELECT AGENTNAME FROM AGENTS WHERE AGENT = O.AGENT) AS enteringAgentName,
+      COUNT(DISTINCT O.CUST) AS custCount, SUM(O.DISPRICE) AS sumPrice
+    FROM ORDERS O
+    JOIN CUSTOMERS C ON C.CUST = O.CUST
+    WHERE O.CURDATE = @today AND (${orClause})
+    GROUP BY O.AGENT
+  `;
+  const byAgentResult = await byAgentReq.query(byAgentQuery);
+  const byAgent = byAgentResult.recordset.map(r => ({
+    agentCode: r.enteringAgentCode || null,
+    agentName: r.enteringAgentName || '',
+    custCount: Number(r.custCount) || 0,
+    sum: Math.round((Number(r.sumPrice) || 0) * 100) / 100,
+  }));
+
   return {
     custCount: Number(row.custCount) || 0,
     sum: Math.round((Number(row.sumPrice) || 0) * 100) / 100,
     newCustCount: Number(row.newCustCount) || 0,
     newSum: Math.round((Number(row.newSumPrice) || 0) * 100) / 100,
+    byAgent,
   };
 }
 
