@@ -972,18 +972,38 @@ async function apiFetch(url, opts={}, timeoutMs=12000){
     clearTimeout(tid);
   }
   if(r.status === 401){
-    // Try silent PBI re-auth before showing error
+    // Silent re-auth before showing error. A real agent (frAgent has a non-
+    // manager code) re-logs in as THAT agent via /auth — restores the exact
+    // same session identity, no typing needed since the code is already
+    // known client-side. /auth/pbi is a manager-only door (always mints
+    // agentCode:null) and used to be called here for EVERY 401 regardless —
+    // since the fr_ok cookie it needs is also set on ordinary invite-link
+    // logins (not just PBI), a field agent's expired 7-day token silently
+    // demoted them to "manager with no agent": reads that pass ?agent=
+    // explicitly kept working, but writes relying on req.session.agentCode
+    // (route-order, route-day-move, zikuy-history) got silently rejected or
+    // saved under agentCode:null — invisible history entries, day-move edits
+    // that looked saved but vanished on next sync. Live bug 2026-08-27.
     try {
-      const pbi = await fetch(API+'/auth/pbi', { credentials: 'include' });
-      if(pbi.ok){
-        const j = await pbi.json();
-        if(j.ok && j.token){
-          localStorage.setItem('frToken', j.token);
-          // Retry original request with new token
-          const newHeaders = { ...headers, 'x-session': j.token };
-          const retry = await fetch(url, { ...opts, headers: newHeaders });
-          if(retry.status !== 401) return retry;
-        }
+      const savedAuth = _loadAuth();
+      let j = null;
+      if(savedAuth && !savedAuth.isManager && savedAuth.code){
+        const re = await fetch(API+'/auth', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ code: savedAuth.code }),
+        });
+        if(re.ok) j = await re.json();
+      }
+      if(!j || !j.ok){
+        const pbi = await fetch(API+'/auth/pbi', { credentials: 'include' });
+        if(pbi.ok) j = await pbi.json();
+      }
+      if(j && j.ok && j.token){
+        localStorage.setItem('frToken', j.token);
+        // Retry original request with new token
+        const newHeaders = { ...headers, 'x-session': j.token };
+        const retry = await fetch(url, { ...opts, headers: newHeaders });
+        if(retry.status !== 401) return retry;
       }
     } catch(_){}
     localStorage.removeItem('frAgent');
