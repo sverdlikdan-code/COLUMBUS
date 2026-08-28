@@ -1,0 +1,41 @@
+name: Health monitor
+
+# Внешний пинг api.sverdlik-apps.site — узнаём о падении раньше, чем это
+# сделает агент в поле. Не проверяет данные (PBI-кеш), только "жив ли сервер".
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check /health
+        id: check
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 --retry 2 --retry-delay 5 https://api.sverdlik-apps.site/health || echo "000")
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          # /health has no route — a 404 means the server answered, that's "alive"
+          # per the recovery procedure in CLAUDE.md. 000/5xx means it didn't.
+          if [ "$code" = "000" ] || [ "${code:0:1}" = "5" ]; then
+            echo "down=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "down=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Alert by email
+        if: steps.check.outputs.down == '1'
+        env:
+          CODE: ${{ steps.check.outputs.code }}
+          NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: |
+          NOW=$(date -u '+%Y-%m-%d %H:%M UTC')
+          HTML="<p>api.sverdlik-apps.site/health вернул код <b>${CODE}</b> (или таймаут) в ${NOW}.</p><p>Процедура восстановления — см. CLAUDE.md, раздел «Восстановление Formula Road API».</p>"
+          PAYLOAD=$(jq -n --arg to "$NOTIFY_EMAIL" --arg html "$HTML" \
+            '{from:"alerts@sverdlik-apps.site", to:[$to], subject:"ALERT: Formula Road API не отвечает", html:$html}')
+          curl -s -X POST https://api.resend.com/emails \
+            -H "Authorization: Bearer ${RESEND_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD"
