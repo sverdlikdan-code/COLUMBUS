@@ -176,10 +176,14 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
    c.iceOnly) never count toward either the numerator or denominator — this
    is a FORMULA-specific metric by explicit request. */
 .fpb{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;background:#fff;border-radius:14px;padding:10px 16px;margin:2px 2px 10px;box-shadow:0 4px 14px rgba(0,0,0,.1);}
-.fpb-bar-wrap{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:4px;width:30px;}
-.fpb-pct{font-size:12px;font-weight:900;white-space:nowrap;}
-.fpb-bar-track{width:10px;height:38px;background:#E3E8EF;border-radius:5px;overflow:hidden;display:flex;align-items:flex-end;}
-.fpb-bar-fill{width:100%;border-radius:5px;transition:height .6s ease;}
+/* Flat horizontal underline-bar, not a tall column — live request 2026-08-28
+   ("визуалка другого типа чтоб высоту не жрала", after the vertical bar
+   still ate ~40px of row height). Whole thing is ~20px tall total, fits
+   inside the single banner row instead of forcing it taller. */
+.fpb-bar-wrap{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;width:44px;}
+.fpb-pct{font-size:15px;font-weight:900;white-space:nowrap;line-height:1;}
+.fpb-bar-track{width:44px;height:5px;background:#E3E8EF;border-radius:3px;overflow:hidden;}
+.fpb-bar-fill{height:100%;border-radius:3px;transition:width .6s ease;}
 .fpb-info{flex:1;min-width:0;display:flex;align-items:baseline;gap:8px;flex-wrap:nowrap;overflow:hidden;}
 .fpb-main{font-size:18px;font-weight:900;color:var(--text);white-space:nowrap;}
 .fpb-main .fpb-of{font-size:12px;font-weight:700;color:var(--mid);}
@@ -2174,7 +2178,7 @@ function _renderFormulaBanner(){
   el.innerHTML=`
     <div class="fpb-bar-wrap">
       <div class="fpb-pct" style="color:${color}">${pct}%</div>
-      <div class="fpb-bar-track"><div class="fpb-bar-fill" style="height:${pct}%;background:${color}"></div></div>
+      <div class="fpb-bar-track"><div class="fpb-bar-fill" style="width:${pct}%;background:${color}"></div></div>
     </div>
     <div class="fpb-info">
       <div class="fpb-main">${numer} <span class="fpb-of">מתוך ${denom} הזמינו היום</span></div>
