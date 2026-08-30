@@ -3548,9 +3548,24 @@ function pushRouteOrder(day,order){
   apiFetch(`${API}/api/route-order`,{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({day,order})}).catch(()=>{});
 }
-function pushDayMove(custId,day,client){
-  apiFetch(`${API}/api/route-day-move`,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({custId,day,client,agentCode:st.agent?.code})}).catch(()=>{});
+// Silently swallowed failures here (rate-limit, dropped connection) used to leave
+// a client stuck on the server's old day forever — the move looked saved (optimistic
+// local UI update) but syncRouteOverridesFromServer() overwrites local state with
+// the server's version on next load, so an unsent move quietly reverts. One retry
+// + a visible toast on final failure so the agent knows to try again. Live bug
+// 2026-08-30/31 (ICE clients agents moved off "?" kept reappearing there).
+async function pushDayMove(custId,day,client,_isRetry){
+  let r;
+  try{
+    r=await apiFetch(`${API}/api/route-day-move`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({custId,day,client,agentCode:st.agent?.code})});
+  }catch(e){ r=null; }
+  if(r&&r.ok) return;
+  if(!_isRetry){
+    await new Promise(res=>setTimeout(res,800));
+    return pushDayMove(custId,day,client,true);
+  }
+  showToast(`⚠ שינוי היום ל-${esc(client?.custName||custId)} לא נשמר בשרת — נסה שוב`,5000);
 }
 async function syncRouteOverridesFromServer(){
   if(!st.agent?.code) return;
