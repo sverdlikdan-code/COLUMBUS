@@ -453,17 +453,15 @@ function toggleTabletGps(){
       if(c.gpsSource==='correction') return c;
       const t=TABLET_GPS[String(c.custId)];
       if(t?.lat&&t?.lng) return{...c,lat:t.lat,lng:t.lng,gpsSource:'tablet'};
-      return{...c,lat:c._pbiLat||c.lat,lng:c._pbiLng||c.lng,gpsSource:c._pbiGpsSource||c.gpsSource};
+      return{...c,lat:c._pbiLat||c.lat,lng:c._pbiLng||c.lng};
     });
     showToast('📱 GPS: Tablet (Priority) פעיל');
   } else {
-    // Used to fall through to AI_GPS (google-gps.json) here too — removed
-    // 2026-09-01, same reason as the loadClients() pass above: the server
-    // resolution is trusted, restore it exactly via the _pbi* snapshot
-    // instead of guessing 'ai'/'pbi'.
     st.allClients=st.allClients.map(c=>{
       if(c.gpsSource==='correction') return c;
-      return{...c,lat:c._pbiLat||c.lat,lng:c._pbiLng||c.lng,gpsSource:c._pbiGpsSource||c.gpsSource};
+      const ai=AI_GPS[String(c.custId)];
+      if(ai?.aiLat&&ai?.aiLng) return{...c,lat:ai.aiLat,lng:ai.aiLng,gpsSource:'ai'};
+      return{...c,lat:c._pbiLat||c.lat,lng:c._pbiLng||c.lng,gpsSource:c._pbiLat?'pbi':c.gpsSource};
     });
     showToast('📍 GPS: רגיל');
   }
@@ -556,14 +554,6 @@ function twoOpt(route,sLat,sLng){
   }
   return best;
 }
-// geocoded/city-center clients DO have real (if imprecise) coordinates and are
-// routed normally here — only clients with NO coordinates at all go to the end.
-// Route order pushing ~46% of ICE clients to the end regardless of actual
-// location made real routes nonsensical for agents driving them — reverted
-// after live complaint 2026-08-30. DOUBTFUL_GPS is still used for the visual
-// "⚠ imprecise" card highlight/toast below, just not for order.
-const DOUBTFUL_GPS=new Set(['geocoded','city-center','no-gps']);
-
 function nearestNeighborFrom(sLat,sLng,clients){
   const withGps=clients.filter(c=>c.lat&&c.lng);
   const noGps=clients.filter(c=>!c.lat||!c.lng);
@@ -579,21 +569,14 @@ function nearestNeighborFrom(sLat,sLng,clients){
   return [...twoOpt(result,sLat,sLng),...noGps];
 }
 function computeVisitOrder(pinFirstCustId){
-  // Used to fall through to AI_GPS (google-gps.json) unconditionally whenever
-  // present — no toggle gate at all, unlike formula-road's aiGpsMode. That
-  // silently overrode the server's tablet-order/geocoded/pbi resolution
-  // (server/index.js geocodeBatch, 2026-09-01) with a stale snapshot for any
-  // client the old dataset happened to cover. Live report 2026-09-01: card
-  // click zoomed to the correct area but the marker/visit-number stayed on
-  // the old point. Server data is now trusted by default; tabletGpsMode
-  // remains an explicit manual override.
   let clients=displayClients().map(c=>{
     if(c.gpsSource==='correction') return c;
     if(st.tabletGpsMode){
       const t=TABLET_GPS[String(c.custId)];
       if(t?.lat&&t?.lng) return{...c,lat:t.lat,lng:t.lng};
     }
-    return c;
+    const ai=AI_GPS[String(c.custId)];
+    return (ai?.aiLat&&ai?.aiLng)?{...c,lat:ai.aiLat,lng:ai.aiLng}:c;
   });
   let sLat=TEL_AVIV_LAT, sLng=TEL_AVIV_LNG, pinnedFirst=null;
   if(pinFirstCustId){
@@ -962,17 +945,10 @@ async function loadClients(cities){
     });
   }catch(_){}
 
-  // Save original server-resolved coords+source before the tablet-mode toggle
-  // can override them, so toggling back off restores the real value instead
-  // of falling back to a hardcoded 'ai'/'pbi' guess.
-  st.allClients=st.allClients.map(c=>({...c,_pbiLat:c.lat,_pbiLng:c.lng,_pbiGpsSource:c.gpsSource}));
+  // Save original PBI coords before AI GPS override (needed for tablet GPS toggle)
+  st.allClients=st.allClients.map(c=>({...c,_pbiLat:c.lat,_pbiLng:c.lng}));
 
-  // Used to fall through to AI_GPS (google-gps.json) unconditionally here —
-  // no toggle gate on the AI branch, unlike tabletGpsMode. Ran on every page
-  // load, permanently overwriting the server's tablet-order/geocoded/pbi
-  // resolution (server/index.js geocodeBatch, 2026-09-01) in st.allClients
-  // before the user touched anything. Live report 2026-09-01. Server data is
-  // now trusted by default; tabletGpsMode remains an explicit manual override.
+  // Apply Tablet or AI GPS depending on active mode
   try{
     st.allClients=st.allClients.map(c=>{
       if(c.gpsSource==='correction') return c;
@@ -980,6 +956,8 @@ async function loadClients(cities){
         const t=TABLET_GPS[String(c.custId)];
         if(t?.lat&&t?.lng) return{...c,lat:t.lat,lng:t.lng,gpsSource:'tablet'};
       }
+      const ai=AI_GPS[String(c.custId)];
+      if(ai?.aiLat&&ai?.aiLng) return{...c,lat:ai.aiLat,lng:ai.aiLng,gpsSource:'ai'};
       return c;
     });
   }catch(_){}
@@ -1352,7 +1330,6 @@ function toggleSadranFilter(){
 }
 
 // ── CARD RENDER ───────────────────────────────────────────────────────────
-let _lastDoubtfulGpsSig=null;
 function renderClientList(){
   const el=document.getElementById('client-list');
   const list=displayClients();
@@ -1360,19 +1337,12 @@ function renderClientList(){
     el.innerHTML='<div class="placeholder"><div class="placeholder-icon">📭</div><div class="placeholder-text">אין לקוחות</div><div class="placeholder-sub">נסה לשנות את הסינון</div></div>';
     return;
   }
-  // Toast once per distinct set of doubtful/no-gps clients in the visible list —
-  // not on every re-render (renderAll fires constantly). Live request 2026-09-01.
-  const doubtfulIds=list.filter(c=>!c.lat||!c.lng||DOUBTFUL_GPS.has(c.gpsSource)).map(c=>c.custId).sort().join(',');
-  if(doubtfulIds && doubtfulIds!==_lastDoubtfulGpsSig){
-    showToast('📍 יש לקוחות עם מיקום לא ודאי בסוף הרשימה — יש לתקן ידנית על המפה', 4500);
-  }
-  _lastDoubtfulGpsSig=doubtfulIds;
   // Re-index from filtered list so numbers start at 1 regardless of active filters
   const visitOrderMap={};
   if(st.sortMode==='visit'&&st.visitOrder.length) list.forEach((c,i)=>visitOrderMap[String(c.custId)]=i+1);
   el.innerHTML=list.map((c,i)=>{
     const color=agentColor(c.agentCode);
-    const noGps=!c.lat||!c.lng||DOUBTFUL_GPS.has(c.gpsSource);
+    const noGps=!c.lat||!c.lng||c.gpsSource==='no-gps';
     const isSel=st.selectedId===c.custId;
     const dayBadge=c.dayNum?`<span class="day-badge">${DAY_LBL[c.dayNum]||'?'}</span>`:'';
     const isIce=c.iceOnly===true;

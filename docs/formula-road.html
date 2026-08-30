@@ -1194,13 +1194,7 @@ const st = {
   roadKm:null, roadGeometry:null, priorityRoadKm:null, roadDuration:null,
   excluded: new Set(),
   topSalesIds: new Set(),
-  // Was true — silently overrode every client's server-resolved coordinate
-  // (tablet-order/geocoded/pbi, see server/index.js geocodeBatch 2026-09-01)
-  // with the old google-gps.json snapshot, even for clients gpsSource already
-  // marked trusted. Map pin showed stale location while card-click zoom used
-  // the fresh one from st.clients — live report 2026-09-01. AI Google GPS is
-  // still available as a manual toggle, just no longer forced on by default.
-  aiGpsMode: false,
+  aiGpsMode: true,
   tabletGpsMode: false,
   iceFilter: false,
   hasSadranFilter: false,
@@ -1366,16 +1360,6 @@ function _aiGpsClients(clients){
 }
 
 // ── Nearest Neighbor sort ──────────────────────────────────────────────────
-// geocoded/city-center clients DO have real (if imprecise) coordinates and are
-// routed normally here — only clients with NO coordinates at all go to the end.
-// Route order pushing ~46% of ICE clients (whichever source dominates there) to
-// the end regardless of actual location made real routes nonsensical for agents
-// driving them — reverted after live complaint 2026-08-30. DOUBTFUL_GPS is still
-// used for the visual "⚠ imprecise" card highlight/toast below, just not for order.
-// DOUBTFUL_GPS is declared later in this file (existing constant, reused here —
-// same scope, already initialized by the time these functions run).
-let _lastDoubtfulGpsSig = null;
-
 function nearestNeighbor(clients){
   const withGps = clients.filter(c=>c.lat&&c.lng);
   const noGps   = clients.filter(c=>!c.lat||!c.lng);
@@ -2624,10 +2608,7 @@ function resetRoute(){
 function recalcRoute(){
   st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null;
   st.sortMode='ai';
-  // Used to force aiGpsMode=true here regardless of the user's current toggle —
-  // recompute now respects whatever mode (server-resolved / AI Google / Tablet)
-  // was already active instead of silently switching to the stale AI Google
-  // source on every recalc. Live report 2026-09-01.
+  if(!st.tabletGpsMode){ st.aiGpsMode=true; }
   document.getElementById('sort-btn-priority').className='sort-btn';
   document.getElementById('sort-btn-ai-google').className='sort-btn'+(st.aiGpsMode?' active-ai-google':'');
   OSRM_CACHE.clear(); OSRM_TRIP_CACHE.clear();
@@ -2983,22 +2964,9 @@ function renderClientList(html){
   if(html){el.innerHTML=html;return;}
   const list=displayClients();
   if(!list.length){el.innerHTML=`<div style="padding:40px 20px;text-align:center;color:var(--mid)"><div style="font-size:36px;margin-bottom:12px">📭</div><div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px">אין לקוחות ביום זה</div><div style="font-size:12px">נסה לשנות את הסינון או בחר יום אחר</div></div>`;return;}
-  // Toast once per distinct set of doubtful/no-gps clients in the visible list —
-  // not on every re-render (recalc fires constantly). Signature = sorted custIds,
-  // so it re-fires on day/agent switch but stays silent across unrelated
-  // recalcs of the same list. Live request 2026-09-01.
-  const doubtfulIds=list.filter(c=>!c.lat||!c.lng||DOUBTFUL_GPS.has(c.gpsSource)).map(c=>c.custId).sort().join(',');
-  if(doubtfulIds && doubtfulIds!==_lastDoubtfulGpsSig){
-    showToast('📍 יש לקוחות עם מיקום לא ודאי בסוף הרשימה — יש לתקן ידנית על המפה', 4500);
-  }
-  _lastDoubtfulGpsSig=doubtfulIds;
   _rowActionsStore={};
   el.innerHTML=list.map((c,i)=>{
-    // "сомнительный" GPS — geocoded/city-center считаются наравне с полным
-    // отсутствием координат: та же подсветка карточки, тот же уход в конец
-    // маршрута (nearestNeighbor). tablet-order(-live)/pbi/correction/form-i-int
-    // остаются доверенными. Живой запрос 2026-09-01.
-    const noGps=!c.lat||!c.lng||DOUBTFUL_GPS.has(c.gpsSource);
+    const noGps=!c.lat||!c.lng;
     const isSel=st.selectedId===c.custId;
     const isAiDiff=st.sortMode==='priority'&&st.aiClients[i]&&st.aiClients[i].custId!==c.custId;
     const prev=i>0?list[i-1]:null;
@@ -4297,7 +4265,7 @@ function changeClientDay(custId,newDay){
 }
 
 // ── EXPORT XLSX ─────────────────────────────────────────────────────────────
-const DOUBTFUL_GPS=new Set(['geocoded','city-center','no-gps']);
+const DOUBTFUL_GPS=new Set(['geocoded','pbi-sibling-near','city-center','no-gps']);
 async function exportXLSX(){
   const list=displayClients();
   if(!list.length)return;
