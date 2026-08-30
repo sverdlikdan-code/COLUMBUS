@@ -45,7 +45,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 /* HEADER */
 .hdr{background:linear-gradient(135deg,var(--blue-deeper) 0%,var(--blue-dark) 60%,var(--blue) 100%);color:#fff;padding:10px 14px;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(13,71,161,.35);}
 .hdr-logo{height:38px;filter:brightness(0) invert(1);opacity:.92;flex-shrink:0;}
-.hdr-back{background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.45);color:#fff;font-size:16px;font-weight:800;cursor:pointer;padding:6px 14px;border-radius:20px;line-height:1;display:flex;align-items:center;gap:5px;white-space:nowrap;letter-spacing:.3px;transition:background .15s;}
+.hdr-back{background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.45);color:#fff;font-size:16px;font-weight:800;cursor:pointer;padding:10px 16px;border-radius:20px;line-height:1;display:flex;align-items:center;gap:5px;white-space:nowrap;letter-spacing:.3px;transition:background .15s;}
 .hdr-back:hover{background:rgba(255,255,255,.3);}
 .hdr-center{position:absolute;left:0;right:0;text-align:center;pointer-events:none;}
 .hdr-title{font-size:13px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:#fff;}
@@ -1735,6 +1735,7 @@ function _setupManagerPicker(){
 }
 
 async function doLogin(code){
+  _tick();
   code=String(code||'').trim();
   const err=document.getElementById('login-err');
   const btn=document.querySelector('.code-entry-btn');
