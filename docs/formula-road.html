@@ -631,14 +631,6 @@ body.gps-fs #map{height:100%!important;}
 
 /* LOGIN HERO */
 .login-hero{background:linear-gradient(160deg,var(--blue-deeper) 0%,var(--blue-dark) 50%,var(--blue) 100%);padding:28px 20px 22px;display:flex;flex-direction:column;align-items:center;gap:10px;flex-shrink:0;}
-/* Compact variant for the manager-picker step — live request 2026-08-31: all
-   6 team tiles must fit on screen without scrolling. Only #s-login when
-   st.step==='manager' gets .compact-hero (toggled in renderLogin()); the
-   code-entry and agent-welcome screens keep the full-size hero. */
-#s-login.compact-hero .login-hero{padding:12px 20px 10px;gap:4px;}
-#s-login.compact-hero .login-logo{height:38px;}
-#s-login.compact-hero .login-app-name{font-size:16px;letter-spacing:2px;}
-#s-login.compact-hero .login-tagline,#s-login.compact-hero #data-time{display:none;}
 /* Welcome screen — full-screen color fill instead of white body below the
    hero, greeting sits in a raised/embossed card on top. Live request
    2026-08-28 ("выпуклые блоки и заливка всей страницы"). Scoped to a class
@@ -1871,7 +1863,6 @@ function renderLogin(){
   const body=document.getElementById('login-body');
   const sub=document.getElementById('login-sub');
   document.getElementById('s-login').classList.remove('welcome-mode'); // reset — only the agent-welcome branch below re-adds it
-  document.getElementById('s-login').classList.toggle('compact-hero', st.step==='manager'); // shrink header only on the 6-tile team picker
   stopTeamStatsPolling(); // only the 'manager'/'agent' branches below restart it — every other step must not keep polling in the background
   // If no auth at all — show code entry screen
   if(!_loadAuth()){
