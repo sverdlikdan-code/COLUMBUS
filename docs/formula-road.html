@@ -663,8 +663,10 @@ body.gps-fs #map{height:100%!important;}
 /* Live per-manager FORMULA order dynamics, replacing the old static agent
    count (live request 2026-08-30). Bar sits on the dark tile background, so
    it needs its own (lighter) palette instead of reusing .fpb-bar-track as-is. */
-.mgr-tile-bar-track{width:70%;height:4px;background:rgba(255,255,255,.25);border-radius:3px;overflow:hidden;}
+.mgr-tile-bar-row{display:flex;align-items:center;gap:6px;width:78%;}
+.mgr-tile-bar-track{flex:1;height:4px;background:rgba(255,255,255,.25);border-radius:3px;overflow:hidden;}
 .mgr-tile-bar-fill{height:100%;background:#C9A84C;border-radius:3px;transition:width .6s ease;}
+.mgr-tile-pct{font-size:10px;font-weight:900;color:#C9A84C;flex-shrink:0;}
 
 /* CODE ENTRY (RLS login) */
 .code-entry{display:flex;flex-direction:column;align-items:center;gap:20px;padding:40px 24px;flex:1;justify-content:center;}
@@ -2179,7 +2181,10 @@ function _renderFormulaBanner(){
 function _mgrTileStatsHtml(numer, denom, sum){
   const pct = denom ? Math.round(numer/denom*100) : 0;
   return `<div class="mgr-tile-s1">${numer} מתוך ${denom}</div>
-    <div class="mgr-tile-bar-track"><div class="mgr-tile-bar-fill" style="width:${pct}%"></div></div>
+    <div class="mgr-tile-bar-row">
+      <div class="mgr-tile-bar-track"><div class="mgr-tile-bar-fill" style="width:${pct}%"></div></div>
+      <div class="mgr-tile-pct">${pct}%</div>
+    </div>
     <div class="mgr-tile-s2">₪${Math.round(sum).toLocaleString('he-IL')}</div>`;
 }
 
