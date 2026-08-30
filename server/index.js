@@ -2526,19 +2526,21 @@ function fixBiDi(raw) {
   return fixed.replace(/\(/g, '\x01').replace(/\)/g, '(').replace(/\x01/g, ')');
 }
 
-// GET /api/mekarer-parts — product names for the 4 refrigerator codes
+// GET /api/mekarer-parts — product names for the 6 refrigerator codes.
+// Was 4 (901301/302/401/402, all chest-freezer "אמבטיה" models) — missed 901303
+// (also chest) and 901405 (the only upright/"עומד" model) since the feature was
+// first built (ae7dfecd, 2026-06-04), copied straight from the catalog without
+// checking completeness. Found live 2026-09-01: the original 4 codes have ZERO
+// sales in ALL_PARTS ever, while both missing ones have real recent sales
+// (901405 last 2025-05-27, 901303 last 2025-09-28) — the form was offering
+// unordered models and hiding the ones agents actually sell.
 app.get('/api/mekarer-parts', requireAuth, async (req, res) => {
   try {
     const rows = await executeDax(`
 EVALUATE
 FILTER(
   SELECTCOLUMNS('KARTIS PARIT', "makat", 'KARTIS PARIT'[מק"ט], "name", 'KARTIS PARIT'[תאור]),
-  OR(OR(OR(
-    [makat] = "901401",
-    [makat] = "901402"),
-    [makat] = "901301"),
-    [makat] = "901302"
-  )
+  [makat] IN {"901301", "901302", "901303", "901401", "901402", "901405"}
 )
 `);
     const parts = rows.map(r => ({
