@@ -2939,17 +2939,17 @@ function toggleFrSadranFilter(){
 function _primaryActionsHtml(c,noGps){
   const nm=(c.custName||'').replace(/"/g,'&quot;'), ct=(c.city||'').replace(/"/g,'&quot;');
   return `<span class="zikuy-btn" data-id="${c.custId}" data-name="${nm}" data-city="${ct}" onclick="openZikuyOrder(event,this.dataset.id,this.dataset.name,this.dataset.city)" title="בקשת זיכוי">זיכוי</span>
-    <span class="ai-insight-btn" data-id="${c.custId}" data-name="${nm}" onclick="openClientAI(event,this.dataset.id,this.dataset.name)" title="ניתוח מעמק — משפחות, פערים, השוואה לרשת">🔍 ניתוח</span>`;
+    <span class="excl-btn" data-id="${c.custId}" onclick="toggleExclude('${c.custId}',event)" title="הוצא ממסלול">🚫</span>
+    ${noGps ? '' : `<span class="waze-btn" onclick="openWaze(event,${c.lat},${c.lng})" title="נווט ב-Waze">W</span>`}
+    <span class="ai-insight-btn" data-id="${c.custId}" data-name="${nm}" onclick="openClientAI(event,this.dataset.id,this.dataset.name)" title="ניתוח מעמק — משפחות, פערים, השוואה לרשת">🔍</span>`;
 }
 function _secondaryActionsHtml(c,noGps){
   const nm=(c.custName||'').replace(/"/g,'&quot;'), ct=(c.city||'').replace(/"/g,'&quot;');
-  return `<span class="excl-btn" data-id="${c.custId}" onclick="toggleExclude('${c.custId}',event);closeRowActionsPopup()" title="הוצא ממסלול">🚫</span>
-    <span class="day-change-btn" data-id="${c.custId}" onclick="openDayPopup(event,this.dataset.id);closeRowActionsPopup()">📅</span>
+  return `<span class="day-change-btn" data-id="${c.custId}" onclick="openDayPopup(event,this.dataset.id);closeRowActionsPopup()">📅</span>
     <span class="mekarer-btn" data-id="${c.custId}" data-name="${nm}" data-city="${ct}" onclick="openMekarerOrder(event,this.dataset.id,this.dataset.name,this.dataset.city);closeRowActionsPopup()">🧊</span>
     ${noGps
       ? `<span class="no-gps-badge" data-id="${c.custId}" data-name="${nm}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name);closeRowActionsPopup()">NO GPS</span>`
-      : `<span class="gps-edit-btn"  data-id="${c.custId}" data-name="${nm}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name);closeRowActionsPopup()">📍</span>
-         <span class="waze-btn" onclick="openWaze(event,${c.lat},${c.lng});closeRowActionsPopup()" title="נווט ב-Waze">W</span>`}`;
+      : `<span class="gps-edit-btn"  data-id="${c.custId}" data-name="${nm}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name);closeRowActionsPopup()">📍</span>`}`;
 }
 let _rowActionsStore={};
 function openRowActions(event,custId){
