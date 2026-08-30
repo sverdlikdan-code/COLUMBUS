@@ -1366,17 +1366,19 @@ function _aiGpsClients(clients){
 }
 
 // ── Nearest Neighbor sort ──────────────────────────────────────────────────
-// Same "doubtful" classification as server/index.js's DOUBTFUL/DOUBTFUL_SOURCES
-// sets (Excel export) — geocoded/city-center are text-address guesses, not a
-// real GPS fix. Treated like no-gps everywhere client-side: route order and
-// card highlight (live request 2026-09-01).
+// geocoded/city-center clients DO have real (if imprecise) coordinates and are
+// routed normally here — only clients with NO coordinates at all go to the end.
+// Route order pushing ~46% of ICE clients (whichever source dominates there) to
+// the end regardless of actual location made real routes nonsensical for agents
+// driving them — reverted after live complaint 2026-08-30. DOUBTFUL_GPS is still
+// used for the visual "⚠ imprecise" card highlight/toast below, just not for order.
 // DOUBTFUL_GPS is declared later in this file (existing constant, reused here —
 // same scope, already initialized by the time these functions run).
 let _lastDoubtfulGpsSig = null;
 
 function nearestNeighbor(clients){
-  const withGps = clients.filter(c=>c.lat&&c.lng&&!DOUBTFUL_GPS.has(c.gpsSource));
-  const noGps   = clients.filter(c=>!c.lat||!c.lng||DOUBTFUL_GPS.has(c.gpsSource));
+  const withGps = clients.filter(c=>c.lat&&c.lng);
+  const noGps   = clients.filter(c=>!c.lat||!c.lng);
   if(!withGps.length) return clients;
   const startLat = st.startLat || withGps[0].lat;
   const startLng = st.startLng || withGps[0].lng;
@@ -3544,13 +3546,19 @@ function loadSavedRoute(code,day){
   try{const s=localStorage.getItem(`fr_${code}_${day}`);return s?JSON.parse(s):null;}catch{return null;}
 }
 function mergeWithSaved(fromServer,saved){
-  const savedMap=Object.fromEntries(saved.map(s=>[s.custId,s]));
   const savedIds=saved.map(s=>s.custId);
   const ordered=[];
-  // Keep saved order, merge with server data
+  // Keep saved ORDER only — lat/lng always come from the fresh server payload.
+  // Used to carry over saved.lat/lng too, which froze whatever GPS a client had
+  // at the last local save (any drag/day-move/address-submit) forever after —
+  // route order kept re-sorting on stale coordinates even once the server's GPS
+  // was fixed, while name/address looked current because those DID come from
+  // fromServer. Live complaint 2026-08-30 (route jumping city→city illogically
+  // despite correct-looking cards). Real manual GPS corrections are a separate,
+  // deliberate mechanism (gpsCorrections/gpsSource:'correction') and still apply.
   savedIds.forEach(id=>{
     const s=fromServer.find(c=>c.custId===id);
-    if(s){const sv=savedMap[id];ordered.push({...s,lat:sv.lat||s.lat,lng:sv.lng||s.lng});}
+    if(s) ordered.push(s);
   });
   // Add new from server
   fromServer.forEach(c=>{if(!savedIds.includes(c.custId))ordered.push(c);});

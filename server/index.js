@@ -356,7 +356,16 @@ SELECTCOLUMNS(
           const rawCity = r['[city]'] || '';
           const rawAddr = r['[address]'] || '';
           const city    = expandCityAbbrev(fixBiDi(rawCity));
-          const address = expandCityAbbrev(fixBiDiAddress(rawAddr));
+          // 'MISHPAHTI ICE MISHTAH' (unlike 'משטח') carries no LRO markers, so
+          // fixBiDiAddress's word-reversal branch never runs — but the source
+          // still stores house-number digit runs pre-reversed (e.g. "180"→"081",
+          // confirmed live 2026-08-30 on 251/2922 rows via the leading-zero tell;
+          // the rest are equally corrupted, just undetectable from the pattern
+          // alone). Un-reverse digits here only when there's no LRO marker —
+          // if one IS present, fixBiDiAddress already re-reversed them correctly.
+          const hasLRO  = /[‪‭]/.test(rawAddr);
+          let   address = expandCityAbbrev(fixBiDiAddress(rawAddr));
+          if (!hasLRO) address = address.replace(/\d+/g, mm => mm.split('').reverse().join(''));
 
           // Inherit agentName + manager from Formula byAgent (same agentCode = מס.סוכן נוסף)
           const _formulaAgentClients = byAgent.get(agentCode);
