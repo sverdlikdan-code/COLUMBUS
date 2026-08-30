@@ -1045,6 +1045,29 @@ function saveGeocodeCache() {
   } catch (_) {}
 }
 
+// Tablet-from-orders GPS (docs/priority-gps-cross.json, built by gps-build-combined.js) —
+// real observed position at order-creation time, custId → {lat,lng,cluster_pct,...}. Used
+// in geocodeBatch as a fallback tier AFTER a client's own PBI coordinate (only when PBI has
+// none/invalid) — not ahead of it. Being tried as the FIRST/unconditional source for every
+// client (overriding already-good PBI coordinates) caused a cascade of live routing bugs
+// 2026-08-30/31 and was rolled back same day (commit 43279a5e); this narrower re-add can
+// only help a client with no PBI coordinate, never override one that already has a good
+// one. File is a plain array (build script output), keyed here by its `cust` field.
+// Live request 2026-08-31.
+const tabletGpsCache = new Map();
+try {
+  const _tabletFile = path.join(__dirname, '..', 'docs', 'priority-gps-cross.json');
+  if (fs.existsSync(_tabletFile)) {
+    const _tabletData = JSON.parse(fs.readFileSync(_tabletFile, 'utf8'));
+    for (const row of _tabletData) {
+      if (row?.cust && Number.isFinite(row.lat) && Number.isFinite(row.lng)) {
+        tabletGpsCache.set(String(row.cust), { lat: row.lat, lng: row.lng, cluster_pct: row.cluster_pct });
+      }
+    }
+    console.log(`[tablet-gps] loaded ${tabletGpsCache.size} clients from priority-gps-cross.json`);
+  }
+} catch (_) {}
+
 // City bounding-box cache: city name → { minLat, maxLat, minLng, maxLng } | null
 const cityBBoxCache = new Map();
 // Pre-load from persistent file built by build-formula-road.js (survives server restarts)
@@ -1463,9 +1486,24 @@ async function geocodeBatch(clients) {
   }
 
   // geocode clients still missing valid coords
-  const needsGeocode = clients.filter(c => !isValidIL(c.lat, c.lng) && (c.address || c.city));
+  const needsGeocode = clients.filter(c => !isValidIL(c.lat, c.lng));
   let resolved = 0;
   for (const c of needsGeocode) {
+    // Step -1: tablet-from-orders — real observed position, tried before the
+    // address-geocoding tiers below since an actual visit beats guessing from
+    // text, but only here (after PBI's own coordinate already had its chance
+    // above) so it can never override a client that already has a good PBI fix.
+    const tablet = tabletGpsCache.get(String(c.custId));
+    if (tablet) {
+      const bbox = cityBBoxCache.get(c.city) ?? null;
+      if (isWithinCityBBox(tablet.lat, tablet.lng, bbox)) {
+        c.lat = tablet.lat; c.lng = tablet.lng;
+        c.gpsSource = 'tablet-order';
+        resolved++;
+        continue;
+      }
+    }
+
     // Step 0a: exact custId GPS lookup against 'לקוחות FORM+I+INT' —
     // verified per-client coordinates, more reliable than re-geocoding text
     const exact = await findFormIIntGPS(c.custId);
