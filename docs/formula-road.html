@@ -176,6 +176,9 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
    c.iceOnly) never count toward either the numerator or denominator — this
    is a FORMULA-specific metric by explicit request. */
 .fpb{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;background:#fff;border-radius:14px;padding:10px 16px;margin:2px 2px 10px;box-shadow:0 4px 14px rgba(0,0,0,.1);}
+/* Team-total variant of the same banner, on the manager's "בחר סוכן" screen
+   (not inside #list-pane, so no sticky-scroll behavior needed there). */
+.fpb-static{position:static;}
 /* Flat horizontal underline-bar, not a tall column — live request 2026-08-28
    ("визуалка другого типа чтоб высоту не жрала", after the vertical bar
    still ate ~40px of row height). Whole thing is ~20px tall total, fits
@@ -654,9 +657,14 @@ body.gps-fs #map{height:100%!important;}
 .mgr-tile:active{transform:scale(.96);}
 .mgr-tile-av{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);color:#fff;font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:center;letter-spacing:.5px;}
 .mgr-tile-name{font-size:15px;font-weight:900;color:#fff;letter-spacing:.3px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
-.mgr-tile-stats{display:flex;flex-direction:column;align-items:center;gap:1px;margin-top:2px;}
+.mgr-tile-stats{display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:2px;width:100%;min-height:14px;}
 .mgr-tile-s1{font-size:11px;font-weight:800;color:#C9A84C;letter-spacing:.2px;}
 .mgr-tile-s2{font-size:10px;font-weight:700;color:rgba(255,255,255,.65);}
+/* Live per-manager FORMULA order dynamics, replacing the old static agent
+   count (live request 2026-08-30). Bar sits on the dark tile background, so
+   it needs its own (lighter) palette instead of reusing .fpb-bar-track as-is. */
+.mgr-tile-bar-track{width:70%;height:4px;background:rgba(255,255,255,.25);border-radius:3px;overflow:hidden;}
+.mgr-tile-bar-fill{height:100%;background:#C9A84C;border-radius:3px;transition:width .6s ease;}
 
 /* CODE ENTRY (RLS login) */
 .code-entry{display:flex;flex-direction:column;align-items:center;gap:20px;padding:40px 24px;flex:1;justify-content:center;}
@@ -672,14 +680,25 @@ body.gps-fs #map{height:100%!important;}
 /* AGENT LIST */
 .agent-wrap{display:flex;flex-direction:column;padding:10px 14px 16px;flex:1;}
 .agent-list{display:flex;flex-direction:column;gap:0;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(26,63,124,.13);}
-.agent-row{display:flex;align-items:center;gap:14px;padding:13px 16px;border-bottom:1px solid #e8f4ff;cursor:pointer;transition:background .15s;background:#fdfdff;}
+.agent-row{display:flex;flex-direction:column;gap:6px;padding:12px 16px;border-bottom:1px solid #e8f4ff;cursor:pointer;transition:background .15s;background:#fdfdff;}
 .agent-row:last-child{border-bottom:none;}
 .agent-row:hover{background:#e8f9ff;}
 .agent-row:active{background:#d0f0ff;}
+.agent-row-top{display:flex;align-items:center;gap:14px;}
 .agent-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(145deg,#1A3F7C,#50A0D0);color:#fff;font-size:14px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(26,63,124,.2);}
 .agent-row-name{flex:1;font-size:15px;font-weight:800;color:#1A3F7C;}
-.agent-row-count{font-size:12px;color:#50A0D0;font-weight:600;}
 .agent-chevron{color:#009FFF;font-size:18px;line-height:1;opacity:.7;}
+/* Live per-agent order snapshot — replaces the old static "X לקוחות" count
+   (live request 2026-08-30: manager wants online dynamics per agent, not a
+   flat roster size). Reuses the .fpb-* pieces from the FORMULA progress
+   banner, just shrunk to fit a list row. */
+.agent-row-stats{display:flex;align-items:center;gap:10px;padding-inline-start:54px;min-height:16px;}
+.agent-row-stats .fpb-bar-wrap{width:34px;gap:2px;}
+.agent-row-stats .fpb-bar-track{width:34px;height:4px;}
+.agent-row-stats .fpb-pct{font-size:11px;}
+.agent-row-stats .fpb-main{font-size:13px;}
+.agent-row-stats .fpb-main .fpb-of{font-size:10px;}
+.agent-row-stats .fpb-sub{font-size:12px;}
 
 /* legacy agent-count used elsewhere */
 .agent-count{font-size:11px;color:var(--mid);min-height:16px;}
@@ -1824,6 +1843,7 @@ function renderLogin(){
   const body=document.getElementById('login-body');
   const sub=document.getElementById('login-sub');
   document.getElementById('s-login').classList.remove('welcome-mode'); // reset — only the agent-welcome branch below re-adds it
+  stopTeamStatsPolling(); // only the 'manager'/'agent' branches below restart it — every other step must not keep polling in the background
   // If no auth at all — show code entry screen
   if(!_loadAuth()){
     sub.textContent='הזן מספר סוכן';
@@ -1849,32 +1869,12 @@ function renderLogin(){
             return `<div class="mgr-tile" onclick="selectManager('${m}')" role="button" aria-label="${m}">
               <div class="mgr-tile-av">${initials}</div>
               <div class="mgr-tile-name">${m}</div>
-              <div class="mgr-tile-stats">
-                <div class="mgr-tile-s1" id="mc-ag-${m}"></div>
-                <div class="mgr-tile-s2" id="mc-cl-${m}"></div>
-              </div>
+              <div class="mgr-tile-stats" id="mc-stats-${m}"></div>
             </div>`;
           }).join('')}</div>
         </div>
       </div>`;
-    // fill manager tile stats
-    if(STATIC_DATA?.agentsByManager){
-      DEMO_MANAGERS.forEach(m=>{
-        const elAg=document.getElementById('mc-ag-'+m);
-        const elCl=document.getElementById('mc-cl-'+m);
-        const agents=STATIC_DATA.agentsByManager[m]||[];
-        if(elAg) elAg.textContent=agents.length?agents.length+' סוכנים':'';
-        if(elCl&&STATIC_DATA.routes){
-          const uniq=new Set();
-          agents.forEach(a=>{
-            [1,2,3,4,5].forEach(d=>{
-              (STATIC_DATA.routes[`${a.agentCode}_${d}`]||[]).forEach(c=>uniq.add(c.custId));
-            });
-          });
-          if(uniq.size) elCl.textContent=uniq.size+' לקוחות פעילים';
-        }
-      });
-    }
+    startTeamStatsPolling();
   }else if(st.step==='agent-welcome'){
     // First-ever open via an agent's own invite link — same branded s-login
     // shell managers get (logo/app name already in #login-hero), but instead
@@ -1905,41 +1905,22 @@ function renderLogin(){
             <button onclick="goBack('s-city')" style="background:#e8f4ff;border:1.5px solid #50A0D0;color:#1A3F7C;font-size:13px;font-weight:800;cursor:pointer;padding:7px 14px;border-radius:20px;display:flex;align-items:center;gap:4px;min-height:36px;">← חזור</button>
             <span style="font-size:11px;font-weight:700;color:#50A0D0;letter-spacing:1.2px;text-transform:uppercase;flex:1;">בחר סוכן</span>
           </div>
+          <div id="agent-list-team-banner" class="fpb fpb-static" style="display:none"></div>
           <div class="agent-list">${agents.map(a=>{
             const initials=a.agentName.replace(/[^A-Za-zא-ת]/g,'').slice(0,2).toUpperCase()||a.agentName.slice(0,2).toUpperCase();
             return `<div class="agent-row" onclick="selectAgent('${a.agentCode}','${a.agentName.replace(/'/g,"\\'")}')">
-              <div class="agent-avatar">${initials}</div>
-              <div class="agent-row-name">${a.agentName}</div>
-              <div class="agent-row-count" id="cnt-${a.agentCode}"></div>
-              <div class="agent-chevron">›</div>
+              <div class="agent-row-top">
+                <div class="agent-avatar">${initials}</div>
+                <div class="agent-row-name">${a.agentName}</div>
+                <div class="agent-chevron">›</div>
+              </div>
+              <div class="agent-row-stats" id="cnt-${a.agentCode}"></div>
             </div>`;
           }).join('')}</div>
           <button onclick="window.open('territory.html','_blank')" style="position:fixed;bottom:24px;right:24px;background:linear-gradient(135deg,#1A3F7C,#2E6FAD);border:none;color:#fff;font-size:13px;font-weight:800;cursor:pointer;padding:10px 18px;border-radius:24px;display:flex;align-items:center;gap:6px;box-shadow:0 4px 16px rgba(26,63,124,.45);z-index:500;white-space:nowrap;">🗺 ALL AGENTS</button>
         </div>
       </div>`;
-    (async()=>{
-      for(const a of agents){
-        const el=document.getElementById('cnt-'+a.agentCode);
-        if(!el)continue;
-        if(STATIC_DATA?.routes){
-          const total=[1,2,3,4,5].reduce((s,d)=>{
-            return s+(STATIC_DATA.routes[`${a.agentCode}_${d}`]?.length||0);
-          },0);
-          el.textContent=total?total+' לקוחות':'';
-        }else{
-          // Один запрос за раз — параллельный залп по всем агентам перегружал
-          // Power BI dataset и из-за этого основной /customers при выборе агента
-          // вылетал по таймауту (12с) и откатывался на демо-клиентов.
-          try{
-            const r=await apiFetch(`${API}/customers?agent=${encodeURIComponent(a.agentCode)}`);
-            const d=await r.json();
-            if(el)el.textContent=Array.isArray(d)?d.length+' לקוחות':'';
-          }catch(_){
-            if(el)el.textContent='';
-          }
-        }
-      }
-    })();
+    startTeamStatsPolling();
   }
 }
 
@@ -2163,6 +2144,22 @@ async function _updateFormulaBanner(){
   }catch(e){ /* keep last known sum on a hiccup — not worth blanking the banner */ }
   _renderFormulaBanner();
 }
+// Shared by the single-agent banner (#formula-progress-banner) and the
+// manager agent-picker's per-row + team-total blocks (_refreshTeamStats) —
+// same "X מתוך Y הזמינו היום + ₪ sum" shape everywhere it's shown.
+function _fpbPieceHtml(numer, denom, sum){
+  const pct = denom ? Math.round(numer/denom*100) : 0;
+  const color = pct>=70 ? '#2E7D32' : pct>=40 ? '#F9A825' : '#C62828';
+  return `
+    <div class="fpb-bar-wrap">
+      <div class="fpb-pct" style="color:${color}">${pct}%</div>
+      <div class="fpb-bar-track"><div class="fpb-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+    </div>
+    <div class="fpb-info">
+      <div class="fpb-main">${numer} <span class="fpb-of">מתוך ${denom} הזמינו היום</span></div>
+      <div class="fpb-sub">₪${Math.round(sum).toLocaleString('he-IL')}</div>
+    </div>`;
+}
 function _renderFormulaBanner(){
   const el = document.getElementById('formula-progress-banner');
   if(!el) return;
@@ -2172,18 +2169,67 @@ function _renderFormulaBanner(){
   if(!denom){ el.style.display='none'; return; }
   const ordered = st.todayOrdersFormula || new Set();
   const numer = todayFormula.filter(c => ordered.has(String(c.custId))).length;
-  const pct = Math.round(numer/denom*100);
-  const color = pct>=70 ? '#2E7D32' : pct>=40 ? '#F9A825' : '#C62828';
   el.style.display='flex';
-  el.innerHTML=`
-    <div class="fpb-bar-wrap">
-      <div class="fpb-pct" style="color:${color}">${pct}%</div>
-      <div class="fpb-bar-track"><div class="fpb-bar-fill" style="width:${pct}%;background:${color}"></div></div>
-    </div>
-    <div class="fpb-info">
-      <div class="fpb-main">${numer} <span class="fpb-of">מתוך ${denom} הזמינו היום</span></div>
-      <div class="fpb-sub">₪${Math.round(_fpbSum).toLocaleString('he-IL')}</div>
-    </div>`;
+  el.innerHTML=_fpbPieceHtml(numer, denom, _fpbSum);
+}
+
+// Compact FORMULA order-dynamics block for a dark manager tile (mgr-grid) —
+// separate markup from _fpbPieceHtml because that one assumes a light
+// background; this reuses the tile's existing gold/white palette instead.
+function _mgrTileStatsHtml(numer, denom, sum){
+  const pct = denom ? Math.round(numer/denom*100) : 0;
+  return `<div class="mgr-tile-s1">${numer} מתוך ${denom}</div>
+    <div class="mgr-tile-bar-track"><div class="mgr-tile-bar-fill" style="width:${pct}%"></div></div>
+    <div class="mgr-tile-s2">₪${Math.round(sum).toLocaleString('he-IL')}</div>`;
+}
+
+// Live FORMULA order dynamics for the manager-facing screens — mgr-grid tiles
+// (per manager, aggregated) and the "בחר סוכן" agent list (per agent + a
+// team-total banner). One shared /api/team-order-stats call feeds both,
+// instead of one /customers round-trip per agent — that endpoint already
+// computes denom from the in-memory PBI schedule cache, so this is cheap
+// enough to poll every 75s. Started/stopped from renderLogin() as the manager
+// moves between steps (see its stopTeamStatsPolling() call at the top).
+// Live request 2026-08-30: manager wants online dynamics on every screen, not
+// just inside one agent's own route.
+let _teamStatsTimer=null;
+function stopTeamStatsPolling(){
+  if(_teamStatsTimer){ clearInterval(_teamStatsTimer); _teamStatsTimer=null; }
+}
+function startTeamStatsPolling(){
+  stopTeamStatsPolling();
+  _refreshTeamStats();
+  _teamStatsTimer=setInterval(_refreshTeamStats,75000);
+}
+async function _refreshTeamStats(){
+  let d;
+  try{
+    const r=await apiFetch(`${API}/api/team-order-stats`);
+    d=await r.json();
+  }catch(e){ return; } // hiccup — leave whatever numbers are already on screen
+  if(!d?.ok) return;
+  if(st.step==='manager'){
+    DEMO_MANAGERS.forEach(m=>{
+      const el=document.getElementById('mc-stats-'+m);
+      if(!el) return;
+      const s=d.byManager?.[m];
+      el.innerHTML=(s&&s.denom)?_mgrTileStatsHtml(s.numer,s.denom,s.sum):'';
+    });
+  }else if(st.step==='agent'){
+    const agents=st._agents||[];
+    let teamNumer=0, teamDenom=0, teamSum=0;
+    agents.forEach(a=>{
+      const el=document.getElementById('cnt-'+a.agentCode);
+      const s=d.byAgent?.[a.agentCode];
+      if(el) el.innerHTML=(s&&s.denom)?_fpbPieceHtml(s.numer,s.denom,s.sum):'';
+      if(s){ teamNumer+=s.numer; teamDenom+=s.denom; teamSum+=s.sum; }
+    });
+    const teamEl=document.getElementById('agent-list-team-banner');
+    if(teamEl){
+      if(teamDenom){ teamEl.style.display='flex'; teamEl.innerHTML=_fpbPieceHtml(teamNumer,teamDenom,teamSum); }
+      else teamEl.style.display='none';
+    }
+  }
 }
 
 function startTodayOrdersPolling(myId){

@@ -8,7 +8,7 @@ const { execFile } = require('child_process');
 const ExcelJS = require('exceljs');
 const puppeteer = require('puppeteer');
 const { executeDax, getDatasetRefreshTime } = require('./powerbi');
-const { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout } = require('./priority-db');
+const { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByAgentAll } = require('./priority-db');
 const { Resend } = require('resend');
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -4602,7 +4602,10 @@ app.get('/api/day-briefing', requireAuth, async (req, res) => {
 const TODAY_ORDERS_CACHE_MS = 75 * 1000;
 let todayOrdersCache = { date: null, at: 0, formula: [], iceMish: [] };
 
-app.get('/api/today-orders', requireAuth, dataRateLimit, async (req, res) => {
+// Factored out of the /api/today-orders handler so /api/team-order-stats below
+// can reuse the exact same 75s cache instead of making its own HTTP round-trip
+// back into this server or duplicating the Priority queries.
+async function getTodayOrdersSets() {
   const todayIL = todayIsraelDate();
   const fresh = todayOrdersCache.date === todayIL && (Date.now() - todayOrdersCache.at) < TODAY_ORDERS_CACHE_MS;
   if (!fresh) {
@@ -4613,7 +4616,77 @@ app.get('/api/today-orders', requireAuth, dataRateLimit, async (req, res) => {
     // null (query failed) -> empty, not stale cross-day data from a previous cache entry.
     todayOrdersCache = { date: todayIL, at: Date.now(), formula: formulaSet ? [...formulaSet] : [], iceMish: iceSet ? [...iceSet] : [] };
   }
-  res.json({ ok: true, formula: todayOrdersCache.formula, iceMish: todayOrdersCache.iceMish });
+  return todayOrdersCache;
+}
+
+app.get('/api/today-orders', requireAuth, dataRateLimit, async (req, res) => {
+  const c = await getTodayOrdersSets();
+  res.json({ ok: true, formula: c.formula, iceMish: c.iceMish });
+});
+
+// GET /api/day-closing-team — FORMULA order sum/count TODAY for every agent at
+// once (grouped by entering agent), used by the manager's agent-picker screens
+// so each row/tile can show a live order snapshot without one Priority query
+// per agent. Same 75s-cache shape as /api/today-orders and for the same reason
+// — cheap to share across every manager viewing the screen concurrently.
+const DAY_CLOSING_TEAM_CACHE_MS = 75 * 1000;
+let dayClosingTeamCache = { date: null, at: 0, byAgent: [] };
+
+async function getDayClosingTeamSums() {
+  const todayIL = todayIsraelDate();
+  const fresh = dayClosingTeamCache.date === todayIL && (Date.now() - dayClosingTeamCache.at) < DAY_CLOSING_TEAM_CACHE_MS;
+  if (!fresh) {
+    const byAgent = await dayClosingByAgentAll(process.env.DB_NAME || 'form', todayIL);
+    dayClosingTeamCache = { date: todayIL, at: Date.now(), byAgent: byAgent || [] };
+  }
+  return dayClosingTeamCache;
+}
+
+app.get('/api/day-closing-team', requireAuth, dataRateLimit, async (req, res) => {
+  const c = await getDayClosingTeamSums();
+  res.json({ ok: true, byAgent: c.byAgent });
+});
+
+// Route day (Sun=1..Thu=5, Fri/Sat collapse to Sunday's) — mirrors the client's
+// _todayRouteDay() exactly so "today" means the same day on both sides.
+function todayRouteDay() {
+  const wd = new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Jerusalem', weekday: 'short' });
+  return { Sun: 1, Mon: 2, Tue: 3, Wed: 4, Thu: 5, Fri: 1, Sat: 1 }[wd] || 1;
+}
+
+// GET /api/team-order-stats — FORMULA "today" order dynamics (denom/numer/sum)
+// for every agent AND aggregated per manager, built entirely from data already
+// in memory: pbiCache's schedule (no extra Priority query) plus the two caches
+// above. Powers the manager-tile screen, the agent-picker list rows, and its
+// team-total banner with one shared cheap call instead of one /customers
+// round-trip per agent. Live request 2026-08-30: manager wants live order
+// dynamics on every screen, not just inside one agent's own route.
+app.get('/api/team-order-stats', requireAuth, dataRateLimit, async (req, res) => {
+  if (!pbiCache) return res.status(503).json({ ok: false, error: 'cache_loading' });
+  const [ordersSets, sumsCache] = await Promise.all([getTodayOrdersSets(), getDayClosingTeamSums()]);
+  const orderedSet = new Set(ordersSets.formula);
+  const sumByAgent = new Map(sumsCache.byAgent.map(a => [a.agentCode, a.sum]));
+  const todayDay = todayRouteDay();
+
+  const byAgent = {};
+  for (const [agentCode, clients] of pbiCache.byAgent) {
+    const today = clients.filter(c => c.dayNum === todayDay);
+    const numer = today.filter(c => orderedSet.has(String(c.custId))).length;
+    byAgent[agentCode] = { denom: today.length, numer, sum: sumByAgent.get(agentCode) || 0 };
+  }
+
+  const byManager = {};
+  for (const [manager, agents] of pbiCache.agentsByManager) {
+    const acc = { denom: 0, numer: 0, sum: 0 };
+    for (const a of agents) {
+      const s = byAgent[a.agentCode];
+      if (!s) continue;
+      acc.denom += s.denom; acc.numer += s.numer; acc.sum += s.sum;
+    }
+    byManager[manager] = acc;
+  }
+
+  res.json({ ok: true, byAgent, byManager });
 });
 
 // "סגירת יום" (day close) — fixed sellout makat list, set directly in code (not
