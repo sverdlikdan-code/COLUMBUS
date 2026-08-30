@@ -631,6 +631,14 @@ body.gps-fs #map{height:100%!important;}
 
 /* LOGIN HERO */
 .login-hero{background:linear-gradient(160deg,var(--blue-deeper) 0%,var(--blue-dark) 50%,var(--blue) 100%);padding:28px 20px 22px;display:flex;flex-direction:column;align-items:center;gap:10px;flex-shrink:0;}
+/* Compact variant for the manager-picker step — live request 2026-08-31: all
+   6 team tiles must fit on screen without scrolling. Only #s-login when
+   st.step==='manager' gets .compact-hero (toggled in renderLogin()); the
+   code-entry and agent-welcome screens keep the full-size hero. */
+#s-login.compact-hero .login-hero{padding:12px 20px 10px;gap:4px;}
+#s-login.compact-hero .login-logo{height:38px;}
+#s-login.compact-hero .login-app-name{font-size:16px;letter-spacing:2px;}
+#s-login.compact-hero .login-tagline,#s-login.compact-hero #data-time{display:none;}
 /* Welcome screen — full-screen color fill instead of white body below the
    hero, greeting sits in a raised/embossed card on top. Live request
    2026-08-28 ("выпуклые блоки и заливка всей страницы"). Scoped to a class
@@ -662,10 +670,10 @@ body.gps-fs #map{height:100%!important;}
 .login-sky-bar{height:4px;background:linear-gradient(90deg,var(--sky),var(--blue));flex-shrink:0;}
 .login-section{padding:16px 14px 6px;font-size:11px;font-weight:800;color:var(--sky);letter-spacing:2px;text-transform:uppercase;}
 /* MANAGER LIST — brand palette from logo */
-.mgr-wrap{display:flex;flex-direction:column;padding:10px 14px 16px;flex:1;}
-.mgr-label{font-size:11px;font-weight:700;color:#50A0D0;letter-spacing:1.2px;text-transform:uppercase;padding:0 2px 10px;text-align:right;}
-.mgr-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.mgr-tile{background:linear-gradient(150deg,#1A3F7C 0%,#2E6FAD 100%);border-radius:18px;padding:18px 10px 14px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;transition:transform .12s,box-shadow .12s;box-shadow:0 3px 14px rgba(26,63,124,.22);position:relative;overflow:hidden;}
+.mgr-wrap{display:flex;flex-direction:column;padding:8px 14px 12px;flex:1;}
+.mgr-label{font-size:11px;font-weight:700;color:#50A0D0;letter-spacing:1.2px;text-transform:uppercase;padding:0 2px 6px;text-align:right;}
+.mgr-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.mgr-tile{background:linear-gradient(150deg,#1A3F7C 0%,#2E6FAD 100%);border-radius:16px;padding:12px 10px 10px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;transition:transform .12s,box-shadow .12s;box-shadow:0 3px 14px rgba(26,63,124,.22);position:relative;overflow:hidden;}
 .mgr-tile::before{content:'';position:absolute;top:-20px;right:-20px;width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,.06);}
 .mgr-tile:hover{transform:translateY(-2px);box-shadow:0 7px 22px rgba(26,63,124,.32);}
 .mgr-tile:active{transform:scale(.96);}
@@ -678,8 +686,8 @@ body.gps-fs #map{height:100%!important;}
    horizontal bar (live request 2026-08-30: "может в эту страницу как раз
    эпл вотч был бы красиво"). One person = one ring, so unlike the .fpb-ring
    used in lists, this one is worth the extra vertical room a ring needs. */
-.mgr-tile-ring-wrap{position:relative;width:64px;height:64px;display:flex;align-items:center;justify-content:center;}
-.mgr-tile-ring{position:absolute;inset:0;width:64px;height:64px;transform:rotate(-90deg);}
+.mgr-tile-ring-wrap{position:relative;width:52px;height:52px;display:flex;align-items:center;justify-content:center;}
+.mgr-tile-ring{position:absolute;inset:0;width:52px;height:52px;transform:rotate(-90deg);}
 .mgr-tile-ring-track{fill:none;stroke:rgba(255,255,255,.18);stroke-width:5;}
 .mgr-tile-ring-fill{fill:none;stroke:#C9A84C;stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .6s ease,stroke .3s ease;}
 
@@ -1863,6 +1871,7 @@ function renderLogin(){
   const body=document.getElementById('login-body');
   const sub=document.getElementById('login-sub');
   document.getElementById('s-login').classList.remove('welcome-mode'); // reset — only the agent-welcome branch below re-adds it
+  document.getElementById('s-login').classList.toggle('compact-hero', st.step==='manager'); // shrink header only on the 6-tile team picker
   stopTeamStatsPolling(); // only the 'manager'/'agent' branches below restart it — every other step must not keep polling in the background
   // If no auth at all — show code entry screen
   if(!_loadAuth()){
@@ -2153,21 +2162,26 @@ function _announceTodayOrder(){
     showToast(`😎 כל הכבוד ${firstName}, הזמנה נכנסה!`, 3000);
   }catch(e){}
 }
-// FORMULA today-progress banner (ring + count + ₪ + %). ICE-only clients are
-// excluded from both numerator and denominator by explicit request — this
-// reads st.clients (the unfiltered day list, not displayClients()) so city-
-// chip/search filters an agent has toggled don't change what "today's line"
-// means here. Sum comes from the same /api/day-closing FORMULA endpoint the
+// FORMULA today-progress banner (ring + count + ₪ + %). Denominator excludes
+// ICE-only clients and reads st.clients (the unfiltered day list, not
+// displayClients()) so city-chip/search filters an agent has toggled don't
+// change what "today's line" means here — it's route-day-scoped by design.
+// numer + sum both come from the same /api/day-closing FORMULA endpoint the
 // סגירת יום blank uses — single source of truth, not recomputed separately.
-let _fpbSum = 0;
+// Live correction 2026-08-31: numer used to be recomputed client-side by
+// intersecting st.clients (today's route only) with today's global order set
+// — an agent visiting a client a day early/late showed 0 done despite a real
+// order, because that client isn't in today's roster. numer is a count of
+// orders actually made today, unfiltered by schedule day, same as sum.
+let _fpbSum = 0, _fpbNumer = 0;
 async function _updateFormulaBanner(){
   const agentCode = st.agent?.code;
   if(!agentCode) return;
   try{
     const r = await apiFetch(`${API}/api/day-closing?agentCode=${encodeURIComponent(agentCode)}&type=formula`);
     const d = await r.json();
-    if(d?.ok) _fpbSum = d.sum || 0;
-  }catch(e){ /* keep last known sum on a hiccup — not worth blanking the banner */ }
+    if(d?.ok){ _fpbSum = d.sum || 0; _fpbNumer = d.custCount || 0; }
+  }catch(e){ /* keep last known numbers on a hiccup — not worth blanking the banner */ }
   _renderFormulaBanner();
 }
 // Shared by the single-agent banner (#formula-progress-banner) and the
@@ -2199,10 +2213,8 @@ function _renderFormulaBanner(){
   const todayFormula = (st.clients||[]).filter(c => !st.excluded.has(c.custId) && !c.iceOnly);
   const denom = todayFormula.length;
   if(!denom){ el.style.display='none'; return; }
-  const ordered = st.todayOrdersFormula || new Set();
-  const numer = todayFormula.filter(c => ordered.has(String(c.custId))).length;
   el.style.display='flex';
-  el.innerHTML=_fpbPieceHtml(numer, denom, _fpbSum);
+  el.innerHTML=_fpbPieceHtml(_fpbNumer, denom, _fpbSum);
 }
 
 // Compact FORMULA order-dynamics block for a dark manager tile (mgr-grid) —
