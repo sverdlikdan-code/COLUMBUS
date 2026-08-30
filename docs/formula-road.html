@@ -436,6 +436,15 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
     font-size:12px;font-weight:800;cursor:pointer;flex-shrink:0;
   }
   body.km-collapsed .km-bar{display:none!important;}
+  /* #wd-bar (work-days-in-month stat) sits in the same flex row as .hdr-center,
+     which is position:absolute;left:0;right:0 and centers its text across the
+     WHOLE header regardless of what else is there — on a narrow phone the two
+     always physically overlap (measured 214×28px intersection). Latent since
+     May 2026 (88d378de/c14ea40f), just never screenshotted at the right moment
+     until now. Simplest fix on the narrow viewport where it actually collides:
+     drop the stat instead of fighting the layout — live request 2026-08-31.
+     Wide/landscape still show it, room isn't tight there. */
+  #wd-bar{display:none!important;}
 }
 
 /* Wide: split view. Two ways in: a real tablet/desktop (comfortably over
