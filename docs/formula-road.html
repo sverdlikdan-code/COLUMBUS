@@ -1194,7 +1194,13 @@ const st = {
   roadKm:null, roadGeometry:null, priorityRoadKm:null, roadDuration:null,
   excluded: new Set(),
   topSalesIds: new Set(),
-  aiGpsMode: true,
+  // Was true — silently overrode every client's server-resolved coordinate
+  // (tablet-order/geocoded/pbi, see server/index.js geocodeBatch 2026-09-01)
+  // with the old google-gps.json snapshot, even for clients gpsSource already
+  // marked trusted. Map pin showed stale location while card-click zoom used
+  // the fresh one from st.clients — live report 2026-09-01. AI Google GPS is
+  // still available as a manual toggle, just no longer forced on by default.
+  aiGpsMode: false,
   tabletGpsMode: false,
   iceFilter: false,
   hasSadranFilter: false,
@@ -2616,7 +2622,10 @@ function resetRoute(){
 function recalcRoute(){
   st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null;
   st.sortMode='ai';
-  if(!st.tabletGpsMode){ st.aiGpsMode=true; }
+  // Used to force aiGpsMode=true here regardless of the user's current toggle —
+  // recompute now respects whatever mode (server-resolved / AI Google / Tablet)
+  // was already active instead of silently switching to the stale AI Google
+  // source on every recalc. Live report 2026-09-01.
   document.getElementById('sort-btn-priority').className='sort-btn';
   document.getElementById('sort-btn-ai-google').className='sort-btn'+(st.aiGpsMode?' active-ai-google':'');
   OSRM_CACHE.clear(); OSRM_TRIP_CACHE.clear();
