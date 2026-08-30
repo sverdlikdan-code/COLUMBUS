@@ -1045,6 +1045,9 @@ window.addEventListener('unhandledrejection', e => _reportClientError('unhandled
 // to menu) — Android only, navigator.vibrate doesn't exist on iOS Safari so this is
 // a silent no-op there, not a crash. 2026-08-17.
 function _tick(){ try{ navigator.vibrate && navigator.vibrate(10); }catch(_){} }
+// Live request 2026-08-31: haptic on every button tap, not just the 6 screen
+// transitions above — one delegated listener instead of touching every button.
+document.addEventListener('click', e => { if(e.target.closest('button:not(:disabled)')) _tick(); });
 const MAINTENANCE_MODE = false;
 
 (function(){
