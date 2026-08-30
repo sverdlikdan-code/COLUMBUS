@@ -8,7 +8,7 @@ const { execFile } = require('child_process');
 const ExcelJS = require('exceljs');
 const puppeteer = require('puppeteer');
 const { executeDax, getDatasetRefreshTime } = require('./powerbi');
-const { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByAgentAll } = require('./priority-db');
+const { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByAgentAll, liveOrderGpsForNewClient } = require('./priority-db');
 const { Resend } = require('resend');
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -555,6 +555,7 @@ function deviceType(ua) {
 const loginAttempts = new Map();
 const generalRequests = new Map();
 const renderRequests = new Map();
+const dayMoveRequests = new Map();
 // Cleanup expired rate-limit entries every 5 minutes to prevent memory leak
 setInterval(() => {
   const now = Date.now();
@@ -599,6 +600,25 @@ function checkRenderLimit(ip) {
 }
 const renderRateLimit = (req, res, next) => {
   if (checkRenderLimit(getRealIp(req))) return res.status(429).json({ error: 'rate_limit' });
+  next();
+};
+
+// route-day-move used to share the 60/min general limit with GET /customers polling —
+// an agent bulk-moving a whole day's clients (confirmed live: 16 moves in 250ms) plus
+// the app's own background polling could blow through 60/min, and the client silently
+// swallowed the 429 (fixed separately in pushDayMove) — a moved client would then
+// look "stuck" back on its old day next time the page loaded. This is a small JSON
+// write, not worth rationing as tightly as the general budget. Live bug 2026-08-30/31.
+function checkDayMoveLimit(ip) {
+  const now = Date.now();
+  let rec = dayMoveRequests.get(ip) || { count: 0, resetAt: now + 60_000 };
+  if (now > rec.resetAt) rec = { count: 0, resetAt: now + 60_000 };
+  rec.count++;
+  dayMoveRequests.set(ip, rec);
+  return rec.count > 300;
+}
+const dayMoveRateLimit = (req, res, next) => {
+  if (checkDayMoveLimit(getRealIp(req))) return res.status(429).json({ error: 'rate_limit' });
   next();
 };
 
@@ -1485,6 +1505,23 @@ async function geocodeBatch(clients) {
         if (c.address && c.address !== cleaned) geocodeCache.set(c.address + cityStr + ', ישראל', null);
       }
     }
+    // Last resort, only reached if PBI + FORM+I+INT + PBI-sibling + address geocoding
+    // ALL failed: live 30-day order GPS lookup, for clients too new to have any of the
+    // above yet. Deliberately last in line, not first — this is a per-request live SQL
+    // query (slow, and a single order's GPS ping is less reliable than a full address
+    // match), so it only runs for the minority of clients nothing else resolved. Live
+    // request 2026-08-31.
+    if (!isValidIL(c.lat, c.lng)) {
+      const live = await liveOrderGpsForNewClient(c.custId, 30).catch(() => null);
+      if (live) {
+        const bbox = cityBBoxCache.get(c.city) ?? null;
+        if (isWithinCityBBox(live.lat, live.lng, bbox)) {
+          c.lat = live.lat; c.lng = live.lng;
+          c.gpsSource = 'tablet-order-live';
+          resolved++;
+        }
+      }
+    }
     if (!isValidIL(c.lat, c.lng)) c.gpsSource = 'no-gps';
   }
   if (resolved > 0) { saveGeocodeCache(); console.log(`geocodeBatch: resolved ${resolved}/${needsGeocode.length}`); }
@@ -1682,23 +1719,29 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
     const allFormulaIds  = new Set([...allForAgent, ...noSchedFormula].map(c => c.custId));
     console.log(`[/customers] agent=${agent} day=${dayNum} scheduled=${allForAgent.length} noSched=${noSchedFormula.length}`);
 
-    // "לא מוגדר" (day=0) reflects Priority's own schedule, which a manual
-    // drag-to-a-day in the app never touches (that only writes a local
-    // route-overrides.json entry — see /api/route-day-move below). Without
-    // this, the "?" button/tab kept showing clients the agent had already
-    // moved off it, because the server-side unscheduled check never knew
-    // about the override. Live complaint 2026-08-30.
-    const movedAwayIds = dayNum === 0
-      ? new Set(Object.keys(readRouteOverrides()[agent]?.dayMoves || {}))
-      : null;
+    // route-overrides.json reflects a manual drag-to-a-day in the app (Priority's
+    // own schedule never changes from that). Every dayNum branch below now checks
+    // it both ways — anyone with a dayMoves entry leaves their PBI-schedule bucket
+    // (movedAwayIds), and anyone moved INTO the requested day gets added even
+    // though PBI never put them there (movedInIds). Previously only the day=0
+    // ("?") branch subtracted moves, and only for FORMULA's noSchedFormula — a
+    // client moved OFF a specific weekday (not off "?") or any ICE client moved
+    // between days never reflected server-side, so it either stuck to its old
+    // PBI day forever or (for ICE moved off "?") vanished from every tab, only
+    // "found" again if the agent happened to revisit "?". Live complaint
+    // 2026-08-30/31 (ICE clients kept reappearing under "?" after being moved).
+    const dayMoves = readRouteOverrides()[agent]?.dayMoves || {};
+    const movedAwayIds = new Set(Object.keys(dayMoves));
+    const movedInIds = dayNum ? Object.keys(dayMoves).filter(id => dayMoves[id]?.day === dayNum) : [];
 
     let clients;
     if (dayNum === 0) {
       // "לא מוגדר": Formula unscheduled + ICE with no day, minus anything the agent already moved to a day
       clients = noSchedFormula.filter(c => !movedAwayIds.has(String(c.custId)));
+    } else if (dayNum) {
+      clients = allForAgent.filter(c => c.dayNum === dayNum && !movedAwayIds.has(String(c.custId)));
     } else {
       clients = allForAgent.slice();
-      if (dayNum) clients = clients.filter(c => c.dayNum === dayNum);
     }
 
     // Merge ICE-only clients (not in any Formula list)
@@ -1706,12 +1749,27 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
     let iceForDay;
     if (dayNum === 0) {
       iceForDay = iceAll.filter(c => c.dayNum === null && !allFormulaIds.has(c.custId) && !movedAwayIds.has(String(c.custId)));
+    } else if (dayNum) {
+      iceForDay = iceAll.filter(c => c.dayNum === dayNum && !allFormulaIds.has(c.custId) && !movedAwayIds.has(String(c.custId)));
     } else {
-      iceForDay = iceAll.filter(c => (!dayNum || c.dayNum === dayNum) && !allFormulaIds.has(c.custId));
+      iceForDay = iceAll.filter(c => !allFormulaIds.has(c.custId));
     }
     if (iceForDay.length) console.log(`[/customers] +${iceForDay.length} ICE-only clients`);
     clients = [...clients, ...iceForDay];
-    console.log(`[/customers] after day filter + ICE: ${clients.length}`);
+
+    // Add clients moved INTO this specific day from somewhere else (any other day,
+    // "?", or a different PBI bucket entirely) — search every pool we have, then
+    // fall back to the snapshot pushDayMove sent at move time so a client is never
+    // silently dropped just because the PBI cache doesn't carry them under this id.
+    for (const id of movedInIds) {
+      if (clients.some(c => String(c.custId) === id)) continue;
+      const found = allForAgent.find(c => String(c.custId) === id)
+        || noSchedFormula.find(c => String(c.custId) === id)
+        || iceAll.find(c => String(c.custId) === id)
+        || (dayMoves[id]?.client ? { ...dayMoves[id].client, custId: id } : null);
+      if (found) clients.push({ ...found, dayNum, priorityOrder: 9500 });
+    }
+    console.log(`[/customers] after day filter + ICE + moves: ${clients.length}`);
 
     // Apply GPS corrections from local file
     const correctionsPath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
@@ -4927,7 +4985,7 @@ app.post('/api/route-order', requireAuth, dataRateLimit, (req, res) => {
   writeLog({ ts: new Date().toISOString(), event: 'route-order-change', agentCode, day: dayNum, count: order.length, ip: getRealIp(req) });
   res.json({ ok: true });
 });
-app.post('/api/route-day-move', requireAuth, dataRateLimit, (req, res) => {
+app.post('/api/route-day-move', requireAuth, dayMoveRateLimit, (req, res) => {
   // See /api/route-order above for why the body-agentCode fallback exists.
   const { custId, day, client, agentCode: bodyAgentCode } = req.body || {};
   let agentCode = req.session.agentCode;
