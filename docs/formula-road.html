@@ -210,6 +210,12 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .client-card.walk-bottom{border-radius:4px 4px 10px 10px;margin-top:0;}
 .client-card.excluded{background:#f0f0f0!important;opacity:.5;pointer-events:auto;}
 .client-card.ice-only{background:#E8FAF5;border-right:3px solid #00B894;}
+/* Clients who haven't ordered yet today (no ✔️ today-order-badge) get a
+   stronger, "lifted" shadow so they visually pop out of the flat list —
+   live request 2026-08-31 ("без галочек чуть более выпукло"). Only on
+   today's own route — the badge/comparison is meaningless on other days. */
+.client-card.no-order-today{box-shadow:0 3px 10px rgba(0,0,0,.16);}
+.client-card.no-order-today:hover{box-shadow:0 4px 14px rgba(0,0,0,.22);}
 .ice-badge{display:inline-block;background:#00B894;color:#fff;font-size:9.5px;font-weight:800;letter-spacing:.06em;padding:1px 5px;border-radius:3px;margin-left:5px;vertical-align:middle;}
 .crown-badge{display:inline-block;font-size:13px;margin-left:3px;vertical-align:middle;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25));}
 .today-order-badge{display:inline-block;font-size:17px;margin-left:4px;vertical-align:middle;filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));}
@@ -2984,10 +2990,12 @@ function renderClientList(html){
     const walkNext=!!(next&&next.lat&&next.lng&&c.lat&&c.lng&&haversineM(c.lat,c.lng,next.lat,next.lng)<=400);
     const inWalk=walkPrev||walkNext;
     const walkTop=walkNext&&!walkPrev, walkBottom=walkPrev&&!walkNext, walkMid=walkPrev&&walkNext;
+    const hasOrderToday=(c.iceOnly?st.todayOrdersIce:st.todayOrdersFormula).has(String(c.custId));
     const cls=['client-card',
       noGps?'no-gps':'',isSel?'selected':'',isAiDiff?'ai-diff':'',
       inWalk?'walk-card':'',walkTop?'walk-top':'',walkBottom?'walk-bottom':'',walkMid?'walk-mid':'',
-      c.iceOnly?'ice-only':''
+      c.iceOnly?'ice-only':'',
+      (!hasOrderToday&&st.day===_todayRouteDay())?'no-order-today':''
     ].filter(Boolean).join(' ');
     const lastOrder=(()=>{
       if(!c.lastOrderDate) return `<span style="color:var(--red);font-weight:700">לא הזמין</span>`;
@@ -3004,7 +3012,6 @@ function renderClientList(html){
     const pctPart='';
     const indicPart='';
     const SEP='<span style="color:var(--light)"> · </span>';
-    const hasOrderToday=(c.iceOnly?st.todayOrdersIce:st.todayOrdersFormula).has(String(c.custId));
     const nameLine=(st.topSalesIds.has(String(c.custId))?'<span class="crown-badge" title="TOP מכירות ב-3 חודשים — כדאי ניתוח AI מעמיק">👑</span>':'')
       +(hasOrderToday?'<span class="today-order-badge" title="הזמנה פתוחה נפתחה היום">✔️</span>':'')
       +(c.iceOnly?'<span class="ice-badge">ICE</span>':'')
