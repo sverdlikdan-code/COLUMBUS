@@ -255,4 +255,38 @@ async function dayClosingSellout(dbName, dateStr, custIds, agentCode, skuList) {
   return skuList.map(sku => ({ sku, name: bySku.get(sku)?.name || '', qty: bySku.get(sku)?.qty || 0 }));
 }
 
-module.exports = { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, curdateFor };
+// Team-wide FORMULA order totals for TODAY, grouped by the entering agent
+// (O.AGENT resolved to AGENTCODE) — ONE query for the whole team instead of
+// one dayClosingSummary call per agent, which is exactly the PBI-overload
+// mistake the /customers sequential-fetch comment in server/index.js already
+// learned from, just at the SQL layer this time. Used by the manager's
+// agent-picker screen for a live per-agent glance.
+// ponytail: entering-agent grouping only (same as dayClosingSummary's byAgent
+// sub-query), not the fuller roster-OR-entering-agent scoping dayClosingSummary
+// uses for the real day-closing send. Good enough for a live overview number;
+// upgrade to roster-scoped (needs a per-agent custId roster join) only if a
+// manager reports this not matching the real day-closing sum for some agent.
+async function dayClosingByAgentAll(dbName, dateStr) {
+  try {
+    const pool = await getPool(dbName);
+    const result = await pool.request().input('today', sql.BigInt, curdateFor(dateStr)).query(`
+      SELECT (SELECT AGENTCODE FROM AGENTS WHERE AGENT = O.AGENT) AS agentCode,
+        COUNT(DISTINCT O.CUST) AS custCount, SUM(O.DISPRICE) AS sumPrice
+      FROM ORDERS O
+      WHERE O.CURDATE = @today
+      GROUP BY O.AGENT
+    `);
+    return result.recordset
+      .filter(r => r.agentCode)
+      .map(r => ({
+        agentCode: String(r.agentCode),
+        custCount: Number(r.custCount) || 0,
+        sum: Math.round((Number(r.sumPrice) || 0) * 100) / 100,
+      }));
+  } catch (e) {
+    console.error(`[priority-db] ${dbName} day-closing-team query failed: ${e.message}`);
+    return null;
+  }
+}
+
+module.exports = { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByAgentAll, curdateFor };
