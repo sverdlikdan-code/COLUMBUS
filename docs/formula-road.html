@@ -204,10 +204,6 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .client-card.no-gps{background:#FFF8F0;}
 .client-card.selected{background:var(--sky-light);box-shadow:0 2px 10px rgba(21,101,192,.18);}
 .client-card.ai-diff{background:#F1FBF4;}
-.client-card.walk-card{background:#F1FBF4;}
-.client-card.walk-top{margin-bottom:2px;border-radius:10px 10px 4px 4px;}
-.client-card.walk-mid{margin-bottom:2px;border-radius:4px;margin-top:0;}
-.client-card.walk-bottom{border-radius:4px 4px 10px 10px;margin-top:0;}
 .client-card.excluded{background:#f0f0f0!important;opacity:.5;pointer-events:auto;}
 .client-card.ice-only{background:#E8FAF5;border-right:3px solid #00B894;}
 /* Clients who ALREADY ordered today (✔️ today-order-badge) get muted back —
@@ -355,9 +351,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .day-closing-btn.formula{background:linear-gradient(135deg,#66BB6A,#2E7D32);}
 .day-closing-btn:active{filter:brightness(.92);}
 .c-num-wrap{display:flex;flex-direction:column;align-items:center;gap:1px;flex-shrink:0;min-width:28px;cursor:grab;touch-action:pan-y;user-select:none;}
-.walk-icon{font-size:11px;line-height:1;}
 .c-num{width:21px;height:21px;border-radius:50%;background:var(--sky-light);border:1.5px solid var(--sky-mid);font-size:10px;font-weight:800;color:var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.c-num-walk{background:#E8F5E9;border-color:var(--green);color:var(--green);}
 .selected .c-num{background:var(--blue);color:#fff;border-color:var(--blue);}
 .c-id-side{font-size:10px;font-weight:900;font-variant-numeric:tabular-nums;color:#fff;background:var(--blue);border-radius:4px;padding:2px 6px;white-space:nowrap;flex-shrink:0;align-self:center;}
 .c-drag{cursor:grab;touch-action:pan-y;user-select:none;}
@@ -2985,16 +2979,9 @@ function renderClientList(html){
     const noGps=!c.lat||!c.lng;
     const isSel=st.selectedId===c.custId;
     const isAiDiff=st.sortMode==='priority'&&st.aiClients[i]&&st.aiClients[i].custId!==c.custId;
-    const prev=i>0?list[i-1]:null;
-    const next=i<list.length-1?list[i+1]:null;
-    const walkPrev=!!(prev&&prev.lat&&prev.lng&&c.lat&&c.lng&&haversineM(prev.lat,prev.lng,c.lat,c.lng)<=400);
-    const walkNext=!!(next&&next.lat&&next.lng&&c.lat&&c.lng&&haversineM(c.lat,c.lng,next.lat,next.lng)<=400);
-    const inWalk=walkPrev||walkNext;
-    const walkTop=walkNext&&!walkPrev, walkBottom=walkPrev&&!walkNext, walkMid=walkPrev&&walkNext;
     const hasOrderToday=(c.iceOnly?st.todayOrdersIce:st.todayOrdersFormula).has(String(c.custId));
     const cls=['client-card',
       noGps?'no-gps':'',isSel?'selected':'',isAiDiff?'ai-diff':'',
-      inWalk?'walk-card':'',walkTop?'walk-top':'',walkBottom?'walk-bottom':'',walkMid?'walk-mid':'',
       c.iceOnly?'ice-only':'',
       (hasOrderToday&&st.day===_todayRouteDay())?'order-done':''
     ].filter(Boolean).join(' ');
@@ -3023,8 +3010,7 @@ function renderClientList(html){
     const addrDetail=[c.city,c.address].filter(Boolean).join(' · ');
     return `<div class="${cls}" data-id="${c.custId}" onclick="selectClient('${c.custId}')">
       <div class="c-num-wrap c-drag">
-        <span class="c-num${inWalk?' c-num-walk':''}">${i+1}</span>
-        ${inWalk?`<span class="walk-icon">🚶</span>`:''}
+        <span class="c-num">${i+1}</span>
       </div>
       <div class="c-body">
         <div class="c-name"><span class="c-name-text">${nameLine}</span>${addrToggle}</div>
