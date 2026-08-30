@@ -2534,16 +2534,37 @@ function fixBiDi(raw) {
 // sales in ALL_PARTS ever, while both missing ones have real recent sales
 // (901405 last 2025-05-27, 901303 last 2025-09-28) — the form was offering
 // unordered models and hiding the ones agents actually sell.
+//
+// 901303/901405 are NOT in 'KARTIS PARIT' (verified live, two independent ways —
+// exact IN-filter and a full-table CONTAINSSTRING scan both come back empty) even
+// though they're real, sold SKUs — they only exist in ALL_PARTS (the sales/fact
+// table). So this is two queries, not one: the master-catalog table for the
+// original 4, plus a direct makat lookup against ALL_PARTS for the 2 that the
+// catalog is missing. ALL_PARTS uses a different SKU column name/quote style
+// ([מק'ט], not KARTIS PARIT's [מק"ט]) and a different name column ([תאור מוצר],
+// not [תאור]) — confirmed live, not guessed.
 app.get('/api/mekarer-parts', requireAuth, async (req, res) => {
   try {
-    const rows = await executeDax(`
+    const [catalogRows, allPartsRows] = await Promise.all([
+      executeDax(`
 EVALUATE
 FILTER(
   SELECTCOLUMNS('KARTIS PARIT', "makat", 'KARTIS PARIT'[מק"ט], "name", 'KARTIS PARIT'[תאור]),
-  [makat] IN {"901301", "901302", "901303", "901401", "901402", "901405"}
+  [makat] IN {"901301", "901302", "901401", "901402"}
 )
-`);
-    const parts = rows.map(r => ({
+`),
+      executeDax(`
+EVALUATE
+DISTINCT(
+  SELECTCOLUMNS(
+    FILTER(ALL_PARTS, ALL_PARTS[מק'ט] = "901303" || ALL_PARTS[מק'ט] = "901405"),
+    "makat", ALL_PARTS[מק'ט],
+    "name", ALL_PARTS[תאור מוצר]
+  )
+)
+`),
+    ]);
+    const parts = [...catalogRows, ...allPartsRows].map(r => ({
       makat: r['[makat]'],
       name: fixBiDi(r['[name]']),
     }));
