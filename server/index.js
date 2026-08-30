@@ -257,6 +257,10 @@ CALCULATETABLE(
       if (!custId) continue;
       const day = fixBiDi(r['[day]'] || '');
       const dayNum = DAY_HE_TO_NUM[day] || null;
+      // Priority day "ש" (Saturday) isn't a Formula Road work day (Sun-Thu only) —
+      // clients with only a Saturday schedule row must fall through to the "?"
+      // (noScheduleByAgent) bucket below, not disappear from every day tab.
+      if (dayNum === null) continue;
       if (!schedMap.has(custId)) schedMap.set(custId, []);
       schedMap.get(custId).push({ dayNum, dayLabel: day, visitOrder: parseInt(r['[visitOrder]']) || 999 });
     }
