@@ -1669,10 +1669,20 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
     const allFormulaIds  = new Set([...allForAgent, ...noSchedFormula].map(c => c.custId));
     console.log(`[/customers] agent=${agent} day=${dayNum} scheduled=${allForAgent.length} noSched=${noSchedFormula.length}`);
 
+    // "לא מוגדר" (day=0) reflects Priority's own schedule, which a manual
+    // drag-to-a-day in the app never touches (that only writes a local
+    // route-overrides.json entry — see /api/route-day-move below). Without
+    // this, the "?" button/tab kept showing clients the agent had already
+    // moved off it, because the server-side unscheduled check never knew
+    // about the override. Live complaint 2026-08-30.
+    const movedAwayIds = dayNum === 0
+      ? new Set(Object.keys(readRouteOverrides()[agent]?.dayMoves || {}))
+      : null;
+
     let clients;
     if (dayNum === 0) {
-      // "לא מוגדר": Formula unscheduled + ICE with no day
-      clients = noSchedFormula.slice();
+      // "לא מוגדר": Formula unscheduled + ICE with no day, minus anything the agent already moved to a day
+      clients = noSchedFormula.filter(c => !movedAwayIds.has(String(c.custId)));
     } else {
       clients = allForAgent.slice();
       if (dayNum) clients = clients.filter(c => c.dayNum === dayNum);
@@ -1682,7 +1692,7 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
     const iceAll = pbiCache.iceByAgent?.get(agent) || [];
     let iceForDay;
     if (dayNum === 0) {
-      iceForDay = iceAll.filter(c => c.dayNum === null && !allFormulaIds.has(c.custId));
+      iceForDay = iceAll.filter(c => c.dayNum === null && !allFormulaIds.has(c.custId) && !movedAwayIds.has(String(c.custId)));
     } else {
       iceForDay = iceAll.filter(c => (!dayNum || c.dayNum === dayNum) && !allFormulaIds.has(c.custId));
     }
