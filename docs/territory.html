@@ -554,9 +554,15 @@ function twoOpt(route,sLat,sLng){
   }
   return best;
 }
+// Same "doubtful" classification as server/index.js's DOUBTFUL/DOUBTFUL_SOURCES
+// sets (Excel export) — geocoded/city-center are text-address guesses, not a
+// real GPS fix. Treated like no-gps everywhere client-side: route order and
+// card highlight (live request 2026-09-01).
+const DOUBTFUL_GPS=new Set(['geocoded','city-center','no-gps']);
+
 function nearestNeighborFrom(sLat,sLng,clients){
-  const withGps=clients.filter(c=>c.lat&&c.lng);
-  const noGps=clients.filter(c=>!c.lat||!c.lng);
+  const withGps=clients.filter(c=>c.lat&&c.lng&&!DOUBTFUL_GPS.has(c.gpsSource));
+  const noGps=clients.filter(c=>!c.lat||!c.lng||DOUBTFUL_GPS.has(c.gpsSource));
   if(!withGps.length) return clients;
   const rem=[...withGps],result=[];
   let curLat=sLat,curLng=sLng;
@@ -1330,6 +1336,7 @@ function toggleSadranFilter(){
 }
 
 // ── CARD RENDER ───────────────────────────────────────────────────────────
+let _lastDoubtfulGpsSig=null;
 function renderClientList(){
   const el=document.getElementById('client-list');
   const list=displayClients();
@@ -1337,12 +1344,19 @@ function renderClientList(){
     el.innerHTML='<div class="placeholder"><div class="placeholder-icon">📭</div><div class="placeholder-text">אין לקוחות</div><div class="placeholder-sub">נסה לשנות את הסינון</div></div>';
     return;
   }
+  // Toast once per distinct set of doubtful/no-gps clients in the visible list —
+  // not on every re-render (renderAll fires constantly). Live request 2026-09-01.
+  const doubtfulIds=list.filter(c=>!c.lat||!c.lng||DOUBTFUL_GPS.has(c.gpsSource)).map(c=>c.custId).sort().join(',');
+  if(doubtfulIds && doubtfulIds!==_lastDoubtfulGpsSig){
+    showToast('📍 יש לקוחות עם מיקום לא ודאי בסוף הרשימה — יש לתקן ידנית על המפה', 4500);
+  }
+  _lastDoubtfulGpsSig=doubtfulIds;
   // Re-index from filtered list so numbers start at 1 regardless of active filters
   const visitOrderMap={};
   if(st.sortMode==='visit'&&st.visitOrder.length) list.forEach((c,i)=>visitOrderMap[String(c.custId)]=i+1);
   el.innerHTML=list.map((c,i)=>{
     const color=agentColor(c.agentCode);
-    const noGps=!c.lat||!c.lng||c.gpsSource==='no-gps';
+    const noGps=!c.lat||!c.lng||DOUBTFUL_GPS.has(c.gpsSource);
     const isSel=st.selectedId===c.custId;
     const dayBadge=c.dayNum?`<span class="day-badge">${DAY_LBL[c.dayNum]||'?'}</span>`:'';
     const isIce=c.iceOnly===true;

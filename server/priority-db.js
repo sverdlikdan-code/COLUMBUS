@@ -289,4 +289,76 @@ async function dayClosingByAgentAll(dbName, dateStr) {
   }
 }
 
-module.exports = { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByAgentAll, curdateFor };
+// Live GPS-from-orders for ONE client not yet covered by the periodic tablet-GPS
+// build (docs/priority-gps-cross.json, rebuilt manually via server/gps-build-combined.js —
+// see that file for the full-history/all-companies version of this same idea).
+// Used as a fallback tier in geocodeBatch (server/index.js) for brand-new clients:
+// last `daysBack` days, all 3 companies, same ~100m clustering convention as the
+// periodic build. AGENT exclusions per live request 2026-08-31/09-01: house/admin
+// codes whose orders don't reflect a real field visit — no agent (0/NULL), any
+// generic-agent name containing "כללי" (כללי / כללי פורמולה / כללי משפחתי / etc,
+// one per company/type — pattern match, not a fixed list), and named individual
+// exclusions (currently just יוסי אלייב).
+const EXCLUDED_LIVE_AGENT_PATTERN = '%כללי%';
+const EXCLUDED_LIVE_AGENT_EXACT = ['יוסי אלייב'];
+const IL_BBOX_SQL = `
+  AND TRY_CAST(OB.GPSY AS float) BETWEEN 29.5 AND 33.5
+  AND TRY_CAST(OB.GPSX AS float) BETWEEN 34.0 AND 36.2
+`;
+
+async function liveOrderGpsForNewClient(custId, daysBack = 30) {
+  const since = curdateFor(new Date(Date.now() - daysBack * 86400000).toISOString().slice(0, 10));
+  const dbs = ['form', 'icecrea', 'diller'];
+  const perDb = await Promise.all(dbs.map(async (dbName) => {
+    try {
+      const pool = await getPool(dbName);
+      const req = pool.request()
+        .input('custId', sql.NVarChar, String(custId))
+        .input('since', sql.BigInt, since)
+        .input('agentPattern', sql.NVarChar, EXCLUDED_LIVE_AGENT_PATTERN);
+      const exactInList = EXCLUDED_LIVE_AGENT_EXACT.map((n, i) => { req.input(`ag${i}`, sql.NVarChar, n); return `@ag${i}`; }).join(',');
+      const result = await req.query(`
+        SELECT OB.GPSX AS lng, OB.GPSY AS lat, COUNT(*) AS cnt
+        FROM ORDERS O
+        JOIN CUSTOMERS C ON C.CUST = O.CUST
+        JOIN ORDERSB OB ON OB.ORD = O.ORD
+        WHERE C.CUSTNAME = @custId
+          AND O.CURDATE >= @since
+          AND O.AGENT IS NOT NULL AND O.AGENT <> 0
+          AND O.AGENT NOT IN (SELECT AGENT FROM AGENTS WHERE AGENTNAME LIKE @agentPattern OR AGENTNAME IN (${exactInList}))
+          AND OB.GPSX IS NOT NULL AND OB.GPSX NOT IN ('','0')
+          AND OB.GPSY IS NOT NULL AND OB.GPSY NOT IN ('','0')
+          ${IL_BBOX_SQL}
+          -- equipment/sample/other non-sale orders (no real qty or price on any
+          -- line) don't reflect an actual product visit — same exclusion as
+          -- gps-build-combined.js, per user request 2026-09-01
+          AND EXISTS (
+            SELECT 1 FROM ORDERITEMS OI
+            WHERE OI.ORD = O.ORD AND (ISNULL(OI.QUANT, 0) <> 0 OR ISNULL(OI.QPRICE, 0) <> 0)
+          )
+        GROUP BY OB.GPSX, OB.GPSY
+      `);
+      return result.recordset.map(r => ({ lat: parseFloat(r.lat), lng: parseFloat(r.lng), cnt: Number(r.cnt) }));
+    } catch (e) {
+      console.error(`[priority-db] live GPS lookup failed (${dbName}, cust=${custId}): ${e.message}`);
+      return [];
+    }
+  }));
+
+  const points = perDb.flat().filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+  if (!points.length) return null;
+
+  // cluster by ~100m rounding (same convention as gps-build-combined.js), weighted centroid of the biggest bucket
+  const buckets = new Map();
+  for (const p of points) {
+    const key = `${p.lat.toFixed(3)}|${p.lng.toFixed(3)}`;
+    const b = buckets.get(key) || { latSum: 0, lngSum: 0, cnt: 0 };
+    b.latSum += p.lat * p.cnt; b.lngSum += p.lng * p.cnt; b.cnt += p.cnt;
+    buckets.set(key, b);
+  }
+  let best = null;
+  for (const b of buckets.values()) if (!best || b.cnt > best.cnt) best = b;
+  return best ? { lat: best.latSum / best.cnt, lng: best.lngSum / best.cnt, orders: best.cnt } : null;
+}
+
+module.exports = { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByAgentAll, curdateFor, liveOrderGpsForNewClient };
