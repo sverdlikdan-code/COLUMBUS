@@ -356,7 +356,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .c-num-wrap{display:flex;flex-direction:column;align-items:center;gap:1px;flex-shrink:0;min-width:28px;cursor:grab;touch-action:pan-y;user-select:none;}
 .c-num{width:21px;height:21px;border-radius:50%;background:var(--sky-light);border:1.5px solid var(--sky-mid);font-size:10px;font-weight:800;color:var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .selected .c-num{background:var(--blue);color:#fff;border-color:var(--blue);}
-.c-id-side{font-size:13px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--blue);background:#E8F4FF;border:1.5px solid #50A0D0;border-radius:4px;padding:2.5px 8px;white-space:nowrap;flex-shrink:0;direction:ltr;unicode-bidi:isolate;}
+.c-id-side{font-size:10px;font-weight:900;font-variant-numeric:tabular-nums;color:#fff;background:var(--blue);border-radius:4px;padding:2px 6px;white-space:nowrap;flex-shrink:0;align-self:center;}
 .c-drag{cursor:grab;touch-action:pan-y;user-select:none;}
 .c-body{flex:1;min-width:0;}
 .c-actions{display:flex;align-items:center;gap:3px;}
@@ -3020,8 +3020,8 @@ function renderClientList(html){
         <div class="c-sub">${[lastOrder,sales,pctPart,indicPart].filter(Boolean).join(SEP)}</div>
         ${addrDetail?`<div class="c-addr">${esc(addrDetail)}</div>`:''}
       </div>
-      <div style="display:flex;flex-direction:column;align-items:stretch;gap:2px;flex-shrink:0;">
-        ${c.custId?`<span class="c-id-side" style="text-align:center">${String(c.custId).replace(/^(\d{3})(\d+)/,'$1 $2')}</span>`:''}
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;">
+        ${c.custId?`<span class="c-id-side">${c.custId}</span>`:''}
         ${(()=>{ _rowActionsStore[c.custId]=_secondaryActionsHtml(c,noGps); return `<div class="c-actions">${_primaryActionsHtml(c,noGps)}<span class="row-more-btn" onclick="openRowActions(event,'${c.custId}')" title="פעולות נוספות">⋮</span></div>`; })()}
       </div>
     </div>`;
