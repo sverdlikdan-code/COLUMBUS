@@ -8,7 +8,7 @@ const { execFile } = require('child_process');
 const ExcelJS = require('exceljs');
 const puppeteer = require('puppeteer');
 const { executeDax, getDatasetRefreshTime } = require('./powerbi');
-const { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByAgentAll, liveOrderGpsForNewClient } = require('./priority-db');
+const { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByAgentAll } = require('./priority-db');
 const { Resend } = require('resend');
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -1025,25 +1025,6 @@ function saveGeocodeCache() {
   } catch (_) {}
 }
 
-// ── Tablet-from-orders GPS (docs/priority-gps-cross.json) ─────────────────────
-// GPS captured by the mobile app at order-creation time (ORDERS+ORDERSB, built
-// offline by server/gps-build-combined.js). Primary source in geocodeBatch as of
-// 2026-08-30 — reflects where the agent actually stood, ahead of PBI. Static file,
-// loaded once at startup; re-run the build script and restart to refresh coverage
-// for clients whose first order came after the last build.
-const TABLET_GPS_PATH = path.join(__dirname, '..', 'docs', 'priority-gps-cross.json');
-const tabletGpsCache = new Map();
-
-(function loadTabletGpsCache() {
-  try {
-    const arr = JSON.parse(fs.readFileSync(TABLET_GPS_PATH, 'utf8'));
-    for (const r of arr) {
-      if (r.cust && isValidIL(r.lat, r.lng)) tabletGpsCache.set(String(r.cust), { lat: r.lat, lng: r.lng });
-    }
-    console.log(`tablet GPS cache loaded: ${tabletGpsCache.size} clients`);
-  } catch (_) {}
-})();
-
 // City bounding-box cache: city name → { minLat, maxLat, minLng, maxLng } | null
 const cityBBoxCache = new Map();
 // Pre-load from persistent file built by build-formula-road.js (survives server restarts)
@@ -1348,6 +1329,62 @@ async function geocodeAddressCascade(address, city) {
   return null;
 }
 
+// ── PBI Sibling Lookup ────────────────────────────────────────────────────────
+// Finds clients in PBI with GPS at the same address (or same street ±10 houses)
+// to use their coordinates instead of geocoding from scratch.
+
+function getPBISiblingData() {
+  if (!pbiCache) return [];
+  const result = [];
+  for (const [, c] of pbiCache.clientMap) {
+    if (c.lat && c.lng && isValidIL(c.lat, c.lng)) {
+      result.push({ addr: c.address || '', city: c.city || '', lat: c.lat, lng: c.lng });
+    }
+  }
+  return result;
+}
+
+async function loadPBISiblingData() {
+  return getPBISiblingData();
+}
+
+function parseAddrParts(addr) {
+  // "הציונות 41" or "41 הציונות" → { street, num }
+  const m1 = addr.match(/^([֐-׿\s"'\-]+?)\s+(\d+)\s*$/);
+  if (m1) return { street: m1[1].trim(), num: parseInt(m1[2]) };
+  const m2 = addr.match(/^(\d+)\s+([֐-׿\s"'\-]+?)\s*$/);
+  if (m2) return { street: m2[2].trim(), num: parseInt(m2[1]) };
+  return { street: addr.trim(), num: null };
+}
+
+async function findPBISibling(address, city) {
+  if (!address || !city) return null;
+  const siblings = await loadPBISiblingData();
+  const clean = fixBiDiAddress(address).trim();
+  const norm = s => s.replace(/\s+/g, ' ').trim();
+
+  // Step 1: exact address match in same city
+  const exact = siblings.find(s =>
+    s.city === city && norm(s.addr) === norm(clean)
+  );
+  if (exact) return { lat: exact.lat, lng: exact.lng, source: 'pbi-sibling' };
+
+  // Step 2: same city + same street + house number ±10
+  const { street, num } = parseAddrParts(clean);
+  if (street && num !== null) {
+    const nearby = siblings.find(s => {
+      if (s.city !== city) return false;
+      const p = parseAddrParts(s.addr);
+      if (!p.street || p.num === null) return false;
+      if (!p.street.includes(street) && !street.includes(p.street)) return false;
+      return Math.abs(p.num - num) <= 10;
+    });
+    if (nearby) return { lat: nearby.lat, lng: nearby.lng, source: 'pbi-sibling-near' };
+  }
+
+  return null;
+}
+
 // ── FORM+I+INT Client GPS Lookup ────────────────────────────────────────────
 // 'לקוחות FORM+I+INT' carries verified per-client GPS (custId match) for ~58%
 // of all clients — far more reliable than re-geocoding a messy free-text
@@ -1374,86 +1411,83 @@ async function geocodeBatch(clients) {
   const allCities = [...new Set(clients.map(c => c.city).filter(Boolean))];
   await Promise.all(allCities.map(city => cityBBoxCache.has(city) ? null : getCityBBox(city)));
 
-  let tabletHits = 0, geocoded = 0, pbiFallback = 0, noGps = 0;
-
+  // save Priority GPS and mark source before any overwrite
   for (const c of clients) {
     // Manual corrections are authoritative — callers (/customers, /api/territory/clients)
     // apply gps-corrections.json onto c.lat/c.lng/c.gpsSource BEFORE calling this function.
-    // Re-running the tiers below on an already-corrected point defeats the entire point of
-    // correcting it: the correction usually exists precisely because every other source was
-    // wrong, so a "better" tier result is disproportionately likely to overwrite it with the
-    // same class of error. Bug found 2026-08-24 — custId 1112017's correction was being wiped.
+    // Re-running the bbox check on an already-corrected point defeats the entire point of
+    // correcting it: the correction usually exists precisely because PBI/bbox placement was
+    // wrong, so a real fix is disproportionately likely to land outside the (possibly also
+    // wrong) bbox and get silently discarded here. Bug found 2026-08-24 — custId 1112017's
+    // correction was being wiped on every /customers load.
     if (c.gpsSource === 'correction') continue;
 
-    // Stash the original PBI coordinate (CUSTOMERS.GPSX/GPSY) as the final-resort fallback
-    // tier below — also the reference the Excel drift/sync-check columns compare against
-    // elsewhere in this file, so don't repurpose c.pbiLat/pbiLng for anything else.
     c.pbiLat = c.lat || null;
     c.pbiLng = c.lng || null;
-    c.lat = null; c.lng = null;
 
-    const bbox = cityBBoxCache.get(c.city) ?? null;
-
-    // Tier 1: tablet-from-orders GPS — captured by the mobile app at order-creation
-    // time, reflects where the agent actually stood. Primary source (2026-08-30).
-    const tablet = tabletGpsCache.get(String(c.custId));
-    if (tablet && isWithinCityBBox(tablet.lat, tablet.lng, bbox)) {
-      c.lat = tablet.lat; c.lng = tablet.lng; c.gpsSource = 'tablet-order';
-      tabletHits++;
-      continue;
+    const la = parseFloat(c.lat), lo = parseFloat(c.lng);
+    if (isValidIL(la, lo)) {
+      const bbox = cityBBoxCache.get(c.city) ?? null;
+      if (isWithinCityBBox(la, lo, bbox)) {
+        c.lat = la; c.lng = lo;
+        c.gpsSource = 'pbi';
+      } else {
+        // PBI coords valid Israel but outside city bbox — re-geocode
+        c.lat = null; c.lng = null;
+        c.gpsSource = 'geocoded';
+        console.log(`[bbox] custId=${c.custId} city=${c.city} pbi=(${la},${lo}) outside bbox → re-geocode`);
+      }
+    } else {
+      c.gpsSource = 'geocoded';
     }
+  }
 
-    // Tier 1b: client missing from the periodic tablet build (rebuilt manually,
-    // not on a schedule) — try a live 30-day order lookup instead of falling
-    // straight to text geocoding. Same source as Tier 1, just fetched on demand
-    // for clients too new to be in the last build. Live request 2026-08-31/09-01.
-    if (!tablet) {
-      const live = await liveOrderGpsForNewClient(c.custId, 30);
-      if (live && isWithinCityBBox(live.lat, live.lng, bbox)) {
-        c.lat = live.lat; c.lng = live.lng; c.gpsSource = 'tablet-order-live';
-        tabletHits++;
+  // geocode clients still missing valid coords
+  const needsGeocode = clients.filter(c => !isValidIL(c.lat, c.lng) && (c.address || c.city));
+  let resolved = 0;
+  for (const c of needsGeocode) {
+    // Step 0a: exact custId GPS lookup against 'לקוחות FORM+I+INT' —
+    // verified per-client coordinates, more reliable than re-geocoding text
+    const exact = await findFormIIntGPS(c.custId);
+    if (exact) {
+      const bbox = cityBBoxCache.get(c.city) ?? null;
+      if (isWithinCityBBox(exact.lat, exact.lng, bbox)) {
+        c.lat = exact.lat; c.lng = exact.lng;
+        c.gpsSource = exact.source;
+        resolved++;
         continue;
       }
     }
 
-    // Tier 2: normalize address (fixBiDiAddress word/letter reversal + house-number
-    // fraction strip, via cleanAddressForGeocoding inside the cascade) and geocode.
-    if (c.address || c.city) {
-      const result = await geocodeAddressCascade(c.address, c.city);
-      if (result && isWithinCityBBox(result.lat, result.lng, bbox)) {
-        c.lat = result.lat; c.lng = result.lng;
-        c.gpsSource = result.cityCenter ? 'city-center' : 'geocoded';
-        geocoded++;
+    // Step 0b: PBI sibling lookup (accurate, no external API)
+    const sibling = await findPBISibling(c.address, c.city);
+    if (sibling) {
+      const bbox = cityBBoxCache.get(c.city) ?? null;
+      if (isWithinCityBBox(sibling.lat, sibling.lng, bbox)) {
+        c.lat = sibling.lat; c.lng = sibling.lng;
+        c.gpsSource = sibling.source;
+        resolved++;
         continue;
-      } else if (result) {
-        // geocoded but outside bbox — cache as null so it doesn't replay the same bad query
+      }
+    }
+
+    const result = await geocodeAddressCascade(c.address, c.city);
+    if (result) {
+      const bbox = cityBBoxCache.get(c.city) ?? null;
+      if (isWithinCityBBox(result.lat, result.lng, bbox)) {
+        c.lat = result.lat; c.lng = result.lng; resolved++;
+        c.gpsSource = result.cityCenter ? 'city-center' : 'geocoded';
+      } else {
+        // result outside city bbox — mark queries as null so cache doesn't replay bad coords
         const cityStr = c.city ? `, ${c.city}` : '';
         const cleaned = cleanAddressForGeocoding(c.address);
         if (cleaned) geocodeCache.set(cleaned + cityStr + ', ישראל', null);
         if (c.address && c.address !== cleaned) geocodeCache.set(c.address + cityStr + ', ישראל', null);
       }
     }
-
-    // Tier 3: PBI fallback, last resort — exact custId match against 'לקוחות FORM+I+INT'
-    // first (verified per-client GPS, ~58% coverage), then the plain CUSTOMERS coordinate.
-    const exact = await findFormIIntGPS(c.custId);
-    if (exact && isWithinCityBBox(exact.lat, exact.lng, bbox)) {
-      c.lat = exact.lat; c.lng = exact.lng; c.gpsSource = exact.source;
-      pbiFallback++;
-      continue;
-    }
-    if (isValidIL(c.pbiLat, c.pbiLng) && isWithinCityBBox(c.pbiLat, c.pbiLng, bbox)) {
-      c.lat = c.pbiLat; c.lng = c.pbiLng; c.gpsSource = 'pbi';
-      pbiFallback++;
-      continue;
-    }
-
-    c.gpsSource = 'no-gps';
-    noGps++;
+    if (!isValidIL(c.lat, c.lng)) c.gpsSource = 'no-gps';
   }
-
-  if (geocoded > 0) saveGeocodeCache();
-  console.log(`geocodeBatch: tablet=${tabletHits} geocoded=${geocoded} pbi-fallback=${pbiFallback} no-gps=${noGps}`);
+  if (resolved > 0) { saveGeocodeCache(); console.log(`geocodeBatch: resolved ${resolved}/${needsGeocode.length}`); }
   return clients;
 }
 
@@ -1801,7 +1835,7 @@ app.post('/api/export-route-xlsx', requireAuth, dataRateLimit, async (req, res) 
   const FILL_ICE2         = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF80CBC4' } }; // ICE odd
   const FILL_DAY_CHANGED  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF176' } }; // changed day cell
   const FILL_AGENT_CHANGED = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFD54F' } }; // changed agent cell (amber)
-  const DOUBTFUL          = new Set(['geocoded', 'city-center', 'no-gps']);
+  const DOUBTFUL          = new Set(['geocoded', 'pbi-sibling-near', 'city-center', 'no-gps']);
 
   rows.forEach((r, i) => {
     const rowNum = i + 2;
@@ -2195,7 +2229,7 @@ app.get('/api/gps-pending-xlsx', requireAuth, async (req, res) => {
   pending.forEach((_, i) => { const r=ws.getRow(i+2); r.fill = i%2===0?F1:F2; r.eachCell(c=>{c.fill=i%2===0?F1:F2;}); });
 
   // ── Sheet 2: חסר GPS (no-gps — outside IL bounds or truly missing) ──
-  const DOUBTFUL_SOURCES = new Set(['geocoded','city-center','no-gps']);
+  const DOUBTFUL_SOURCES = new Set(['geocoded','pbi-sibling-near','city-center','no-gps']);
   const seen = new Set();
   const noGpsClients = [], doubtfulClients = [];
   for (const [, c] of pbiCache.clientMap) {
@@ -2263,7 +2297,7 @@ app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, re
   const days = DAY_ORDER.filter(d=>byDay[d]).concat(Object.keys(byDay).filter(d=>d && !DAY_ORDER.includes(d)));
   const wb = new ExcelJS.Workbook(); wb.creator = 'Formula Road';
   const THRESH = 20;
-  const DOUBTFUL = new Set(['geocoded','city-center','no-gps']);
+  const DOUBTFUL = new Set(['geocoded','pbi-sibling-near','city-center','no-gps']);
   const FILLS = {
     G1:{type:'pattern',pattern:'solid',fgColor:{argb:'FFC8E6C9'}}, G2:{type:'pattern',pattern:'solid',fgColor:{argb:'FFA5D6A7'}},
     OR:{type:'pattern',pattern:'solid',fgColor:{argb:'FFFFCC80'}},

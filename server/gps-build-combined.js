@@ -28,21 +28,10 @@ async function queryDB(db, q) {
 function buildGpsQuery() {
   return `
     WITH order_lines AS (
-      -- Equipment/sample/other non-sale lines (QUANT=0 and QPRICE=0) don't reflect
-      -- a real product visit and can be delivered from a different vehicle/location —
-      -- excluded per user request 2026-09-01, same as the live lookup below.
-      SELECT ORD, COUNT(DISTINCT KLINE) AS line_cnt
-      FROM ORDERITEMS
-      WHERE ISNULL(QUANT, 0) <> 0 OR ISNULL(QPRICE, 0) <> 0
-      GROUP BY ORD
+      SELECT ORD, COUNT(DISTINCT KLINE) AS line_cnt FROM ORDERITEMS GROUP BY ORD
     ),
     filtered AS (
-      -- Agent exclusions per user request 2026-09-01: no agent (0/NULL), any
-      -- generic-agent name containing "כללי" (one per company/type — pattern,
-      -- not a fixed list), and named individuals whose orders don't reflect a
-      -- real field visit (currently just יוסי אלייב). Same rule as the live
-      -- lookup in priority-db.js::liveOrderGpsForNewClient.
-      SELECT O.CUST, OB.GPSX, OB.GPSY, O.CURDATE
+      SELECT O.CUST, OB.GPSX, OB.GPSY
       FROM ORDERS O
       JOIN ORDERSB     OB ON OB.ORD = O.ORD
       JOIN order_lines OL ON OL.ORD = O.ORD
@@ -51,10 +40,6 @@ function buildGpsQuery() {
         AND OB.GPSY IS NOT NULL AND OB.GPSY NOT IN ('','0')
         AND TRY_CAST(OB.GPSY AS float) BETWEEN 29.5 AND 33.5
         AND TRY_CAST(OB.GPSX AS float) BETWEEN 34.0 AND 36.2
-        AND O.AGENT IS NOT NULL AND O.AGENT <> 0
-        AND O.AGENT NOT IN (
-          SELECT AGENT FROM AGENTS WHERE AGENTNAME LIKE N'%כללי%' OR AGENTNAME = N'יוסי אלייב'
-        )
     )
     SELECT
       C.CUSTNAME AS custname,
@@ -62,8 +47,7 @@ function buildGpsQuery() {
       CAST(ROUND(CAST(F.GPSX AS float), ${BUCKET}) AS float) AS lng_bucket,
       AVG(CAST(F.GPSY AS float)) AS lat_avg,
       AVG(CAST(F.GPSX AS float)) AS lng_avg,
-      COUNT(*) AS cnt,
-      MAX(F.CURDATE) AS last_date
+      COUNT(*) AS cnt
     FROM filtered F
     JOIN CUSTOMERS C ON C.CUST = F.CUST
     GROUP BY
@@ -106,7 +90,6 @@ async function main() {
         lat_wsum:   row.lat_avg * row.cnt,
         lng_wsum:   row.lng_avg * row.cnt,
         total_cnt:  row.cnt,
-        last_date:  row.last_date,
         sources:    new Set([row.src]),
       });
     } else {
@@ -114,7 +97,6 @@ async function main() {
       c.lat_wsum  += row.lat_avg * row.cnt;
       c.lng_wsum  += row.lng_avg * row.cnt;
       c.total_cnt += row.cnt;
-      if (row.last_date > c.last_date) c.last_date = row.last_date;
       c.sources.add(row.src);
     }
   }
@@ -129,20 +111,7 @@ async function main() {
   const output = [];
   for (const [custname, clusters] of byCustomer) {
     const totalOrders = clusters.reduce((s, c) => s + c.total_cnt, 0);
-    // Tie-break chain: count desc, then most recent order desc, then bucket key
-    // asc as a final deterministic fallback. Without a total order here, a
-    // straight count-only sort depends on SQL row-return order (no ORDER BY,
-    // not guaranteed), which flips arbitrarily between runs whenever two
-    // clusters tie on both count AND last_date (same day). Found live
-    // 2026-09-01: custId 1151361 (Eilat) had two 3-order clusters tied 3-3 —
-    // count+recency alone still left 9/4492 clients flip-flopping between two
-    // back-to-back runs of identical code; the bucket-key fallback below closes
-    // that gap completely (verified: 0 diffs across a third run).
-    clusters.sort((a, b) =>
-      b.total_cnt - a.total_cnt ||
-      b.last_date - a.last_date ||
-      (`${a.lat_bucket}|${a.lng_bucket}`).localeCompare(`${b.lat_bucket}|${b.lng_bucket}`)
-    );
+    clusters.sort((a, b) => b.total_cnt - a.total_cnt);
     const best = clusters[0];
 
     const lat = best.lat_wsum / best.total_cnt;
