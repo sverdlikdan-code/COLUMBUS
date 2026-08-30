@@ -453,15 +453,17 @@ function toggleTabletGps(){
       if(c.gpsSource==='correction') return c;
       const t=TABLET_GPS[String(c.custId)];
       if(t?.lat&&t?.lng) return{...c,lat:t.lat,lng:t.lng,gpsSource:'tablet'};
-      return{...c,lat:c._pbiLat||c.lat,lng:c._pbiLng||c.lng};
+      return{...c,lat:c._pbiLat||c.lat,lng:c._pbiLng||c.lng,gpsSource:c._pbiGpsSource||c.gpsSource};
     });
     showToast('📱 GPS: Tablet (Priority) פעיל');
   } else {
+    // Used to fall through to AI_GPS (google-gps.json) here too — removed
+    // 2026-09-01, same reason as the loadClients() pass above: the server
+    // resolution is trusted, restore it exactly via the _pbi* snapshot
+    // instead of guessing 'ai'/'pbi'.
     st.allClients=st.allClients.map(c=>{
       if(c.gpsSource==='correction') return c;
-      const ai=AI_GPS[String(c.custId)];
-      if(ai?.aiLat&&ai?.aiLng) return{...c,lat:ai.aiLat,lng:ai.aiLng,gpsSource:'ai'};
-      return{...c,lat:c._pbiLat||c.lat,lng:c._pbiLng||c.lng,gpsSource:c._pbiLat?'pbi':c.gpsSource};
+      return{...c,lat:c._pbiLat||c.lat,lng:c._pbiLng||c.lng,gpsSource:c._pbiGpsSource||c.gpsSource};
     });
     showToast('📍 GPS: רגיל');
   }
@@ -575,14 +577,21 @@ function nearestNeighborFrom(sLat,sLng,clients){
   return [...twoOpt(result,sLat,sLng),...noGps];
 }
 function computeVisitOrder(pinFirstCustId){
+  // Used to fall through to AI_GPS (google-gps.json) unconditionally whenever
+  // present — no toggle gate at all, unlike formula-road's aiGpsMode. That
+  // silently overrode the server's tablet-order/geocoded/pbi resolution
+  // (server/index.js geocodeBatch, 2026-09-01) with a stale snapshot for any
+  // client the old dataset happened to cover. Live report 2026-09-01: card
+  // click zoomed to the correct area but the marker/visit-number stayed on
+  // the old point. Server data is now trusted by default; tabletGpsMode
+  // remains an explicit manual override.
   let clients=displayClients().map(c=>{
     if(c.gpsSource==='correction') return c;
     if(st.tabletGpsMode){
       const t=TABLET_GPS[String(c.custId)];
       if(t?.lat&&t?.lng) return{...c,lat:t.lat,lng:t.lng};
     }
-    const ai=AI_GPS[String(c.custId)];
-    return (ai?.aiLat&&ai?.aiLng)?{...c,lat:ai.aiLat,lng:ai.aiLng}:c;
+    return c;
   });
   let sLat=TEL_AVIV_LAT, sLng=TEL_AVIV_LNG, pinnedFirst=null;
   if(pinFirstCustId){
@@ -951,10 +960,17 @@ async function loadClients(cities){
     });
   }catch(_){}
 
-  // Save original PBI coords before AI GPS override (needed for tablet GPS toggle)
-  st.allClients=st.allClients.map(c=>({...c,_pbiLat:c.lat,_pbiLng:c.lng}));
+  // Save original server-resolved coords+source before the tablet-mode toggle
+  // can override them, so toggling back off restores the real value instead
+  // of falling back to a hardcoded 'ai'/'pbi' guess.
+  st.allClients=st.allClients.map(c=>({...c,_pbiLat:c.lat,_pbiLng:c.lng,_pbiGpsSource:c.gpsSource}));
 
-  // Apply Tablet or AI GPS depending on active mode
+  // Used to fall through to AI_GPS (google-gps.json) unconditionally here —
+  // no toggle gate on the AI branch, unlike tabletGpsMode. Ran on every page
+  // load, permanently overwriting the server's tablet-order/geocoded/pbi
+  // resolution (server/index.js geocodeBatch, 2026-09-01) in st.allClients
+  // before the user touched anything. Live report 2026-09-01. Server data is
+  // now trusted by default; tabletGpsMode remains an explicit manual override.
   try{
     st.allClients=st.allClients.map(c=>{
       if(c.gpsSource==='correction') return c;
@@ -962,8 +978,6 @@ async function loadClients(cities){
         const t=TABLET_GPS[String(c.custId)];
         if(t?.lat&&t?.lng) return{...c,lat:t.lat,lng:t.lng,gpsSource:'tablet'};
       }
-      const ai=AI_GPS[String(c.custId)];
-      if(ai?.aiLat&&ai?.aiLng) return{...c,lat:ai.aiLat,lng:ai.aiLng,gpsSource:'ai'};
       return c;
     });
   }catch(_){}
