@@ -1360,9 +1360,17 @@ function _aiGpsClients(clients){
 }
 
 // ── Nearest Neighbor sort ──────────────────────────────────────────────────
+// Same "doubtful" classification as server/index.js's DOUBTFUL/DOUBTFUL_SOURCES
+// sets (Excel export) — geocoded/city-center are text-address guesses, not a
+// real GPS fix. Treated like no-gps everywhere client-side: route order and
+// card highlight (live request 2026-09-01).
+// DOUBTFUL_GPS is declared later in this file (existing constant, reused here —
+// same scope, already initialized by the time these functions run).
+let _lastDoubtfulGpsSig = null;
+
 function nearestNeighbor(clients){
-  const withGps = clients.filter(c=>c.lat&&c.lng);
-  const noGps   = clients.filter(c=>!c.lat||!c.lng);
+  const withGps = clients.filter(c=>c.lat&&c.lng&&!DOUBTFUL_GPS.has(c.gpsSource));
+  const noGps   = clients.filter(c=>!c.lat||!c.lng||DOUBTFUL_GPS.has(c.gpsSource));
   if(!withGps.length) return clients;
   const startLat = st.startLat || withGps[0].lat;
   const startLng = st.startLng || withGps[0].lng;
@@ -2963,9 +2971,22 @@ function renderClientList(html){
   if(html){el.innerHTML=html;return;}
   const list=displayClients();
   if(!list.length){el.innerHTML=`<div style="padding:40px 20px;text-align:center;color:var(--mid)"><div style="font-size:36px;margin-bottom:12px">📭</div><div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px">אין לקוחות ביום זה</div><div style="font-size:12px">נסה לשנות את הסינון או בחר יום אחר</div></div>`;return;}
+  // Toast once per distinct set of doubtful/no-gps clients in the visible list —
+  // not on every re-render (recalc fires constantly). Signature = sorted custIds,
+  // so it re-fires on day/agent switch but stays silent across unrelated
+  // recalcs of the same list. Live request 2026-09-01.
+  const doubtfulIds=list.filter(c=>!c.lat||!c.lng||DOUBTFUL_GPS.has(c.gpsSource)).map(c=>c.custId).sort().join(',');
+  if(doubtfulIds && doubtfulIds!==_lastDoubtfulGpsSig){
+    showToast('📍 יש לקוחות עם מיקום לא ודאי בסוף הרשימה — יש לתקן ידנית על המפה', 4500);
+  }
+  _lastDoubtfulGpsSig=doubtfulIds;
   _rowActionsStore={};
   el.innerHTML=list.map((c,i)=>{
-    const noGps=!c.lat||!c.lng;
+    // "сомнительный" GPS — geocoded/city-center считаются наравне с полным
+    // отсутствием координат: та же подсветка карточки, тот же уход в конец
+    // маршрута (nearestNeighbor). tablet-order(-live)/pbi/correction/form-i-int
+    // остаются доверенными. Живой запрос 2026-09-01.
+    const noGps=!c.lat||!c.lng||DOUBTFUL_GPS.has(c.gpsSource);
     const isSel=st.selectedId===c.custId;
     const isAiDiff=st.sortMode==='priority'&&st.aiClients[i]&&st.aiClients[i].custId!==c.custId;
     const prev=i>0?list[i-1]:null;
@@ -4258,7 +4279,7 @@ function changeClientDay(custId,newDay){
 }
 
 // ── EXPORT XLSX ─────────────────────────────────────────────────────────────
-const DOUBTFUL_GPS=new Set(['geocoded','pbi-sibling-near','city-center','no-gps']);
+const DOUBTFUL_GPS=new Set(['geocoded','city-center','no-gps']);
 async function exportXLSX(){
   const list=displayClients();
   if(!list.length)return;
