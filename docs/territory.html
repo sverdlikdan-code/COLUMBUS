@@ -556,15 +556,17 @@ function twoOpt(route,sLat,sLng){
   }
   return best;
 }
-// Same "doubtful" classification as server/index.js's DOUBTFUL/DOUBTFUL_SOURCES
-// sets (Excel export) — geocoded/city-center are text-address guesses, not a
-// real GPS fix. Treated like no-gps everywhere client-side: route order and
-// card highlight (live request 2026-09-01).
+// geocoded/city-center clients DO have real (if imprecise) coordinates and are
+// routed normally here — only clients with NO coordinates at all go to the end.
+// Route order pushing ~46% of ICE clients to the end regardless of actual
+// location made real routes nonsensical for agents driving them — reverted
+// after live complaint 2026-08-30. DOUBTFUL_GPS is still used for the visual
+// "⚠ imprecise" card highlight/toast below, just not for order.
 const DOUBTFUL_GPS=new Set(['geocoded','city-center','no-gps']);
 
 function nearestNeighborFrom(sLat,sLng,clients){
-  const withGps=clients.filter(c=>c.lat&&c.lng&&!DOUBTFUL_GPS.has(c.gpsSource));
-  const noGps=clients.filter(c=>!c.lat||!c.lng||DOUBTFUL_GPS.has(c.gpsSource));
+  const withGps=clients.filter(c=>c.lat&&c.lng);
+  const noGps=clients.filter(c=>!c.lat||!c.lng);
   if(!withGps.length) return clients;
   const rem=[...withGps],result=[];
   let curLat=sLat,curLng=sLng;
