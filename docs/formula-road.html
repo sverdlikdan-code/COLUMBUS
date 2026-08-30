@@ -179,14 +179,15 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 /* Team-total variant of the same banner, on the manager's "בחר סוכן" screen
    (not inside #list-pane, so no sticky-scroll behavior needed there). */
 .fpb-static{position:static;}
-/* Flat horizontal underline-bar, not a tall column — live request 2026-08-28
-   ("визуалка другого типа чтоб высоту не жрала", after the vertical bar
-   still ate ~40px of row height). Whole thing is ~20px tall total, fits
-   inside the single banner row instead of forcing it taller. */
-.fpb-bar-wrap{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;width:44px;}
-.fpb-pct{font-size:15px;font-weight:900;white-space:nowrap;line-height:1;}
-.fpb-bar-track{width:44px;height:5px;background:#E3E8EF;border-radius:3px;overflow:hidden;}
-.fpb-bar-fill{height:100%;border-radius:3px;transition:width .6s ease;}
+/* Apple Watch-style activity ring, not a bar — live request 2026-08-30
+   ("может в эту страницу как раз эпл вотч был бы красиво"). Fixed 44x44
+   viewBox lets .agent-row-stats scale the rendered size via plain width/
+   height without recomputing the stroke-dasharray math per call site. */
+.fpb-bar-wrap{flex:0 0 auto;width:44px;}
+.fpb-ring{display:block;width:44px;height:44px;}
+.fpb-ring-track{fill:none;stroke:#E3E8EF;stroke-width:4;}
+.fpb-ring-fill{fill:none;stroke-width:4;stroke-linecap:round;transition:stroke-dashoffset .6s ease,stroke .3s ease;}
+.fpb-ring-text{font-size:11px;font-weight:900;font-family:inherit;}
 .fpb-info{flex:1;min-width:0;display:flex;align-items:baseline;gap:8px;flex-wrap:nowrap;overflow:hidden;}
 .fpb-main{font-size:18px;font-weight:900;color:var(--text);white-space:nowrap;}
 .fpb-main .fpb-of{font-size:12px;font-weight:700;color:var(--mid);}
@@ -655,18 +656,19 @@ body.gps-fs #map{height:100%!important;}
 .mgr-tile::before{content:'';position:absolute;top:-20px;right:-20px;width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,.06);}
 .mgr-tile:hover{transform:translateY(-2px);box-shadow:0 7px 22px rgba(26,63,124,.32);}
 .mgr-tile:active{transform:scale(.96);}
-.mgr-tile-av{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);color:#fff;font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:center;letter-spacing:.5px;}
-.mgr-tile-name{font-size:15px;font-weight:900;color:#fff;letter-spacing:.3px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+.mgr-tile-av{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);color:#fff;font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:center;letter-spacing:.5px;position:relative;z-index:1;}
+.mgr-tile-name{font-size:15px;font-weight:900;color:#fff;letter-spacing:.3px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;margin-top:4px;}
 .mgr-tile-stats{display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:2px;width:100%;min-height:14px;}
 .mgr-tile-s1{font-size:11px;font-weight:800;color:#C9A84C;letter-spacing:.2px;}
 .mgr-tile-s2{font-size:10px;font-weight:700;color:rgba(255,255,255,.65);}
-/* Live per-manager FORMULA order dynamics, replacing the old static agent
-   count (live request 2026-08-30). Bar sits on the dark tile background, so
-   it needs its own (lighter) palette instead of reusing .fpb-bar-track as-is. */
-.mgr-tile-bar-row{display:flex;align-items:center;gap:6px;width:78%;}
-.mgr-tile-bar-track{flex:1;height:4px;background:rgba(255,255,255,.25);border-radius:3px;overflow:hidden;}
-.mgr-tile-bar-fill{height:100%;background:#C9A84C;border-radius:3px;transition:width .6s ease;}
-.mgr-tile-pct{font-size:10px;font-weight:900;color:#C9A84C;flex-shrink:0;}
+/* Apple Watch-style activity ring around the avatar, replacing the old
+   horizontal bar (live request 2026-08-30: "может в эту страницу как раз
+   эпл вотч был бы красиво"). One person = one ring, so unlike the .fpb-ring
+   used in lists, this one is worth the extra vertical room a ring needs. */
+.mgr-tile-ring-wrap{position:relative;width:64px;height:64px;display:flex;align-items:center;justify-content:center;}
+.mgr-tile-ring{position:absolute;inset:0;width:64px;height:64px;transform:rotate(-90deg);}
+.mgr-tile-ring-track{fill:none;stroke:rgba(255,255,255,.18);stroke-width:5;}
+.mgr-tile-ring-fill{fill:none;stroke:#C9A84C;stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .6s ease,stroke .3s ease;}
 
 /* CODE ENTRY (RLS login) */
 .code-entry{display:flex;flex-direction:column;align-items:center;gap:20px;padding:40px 24px;flex:1;justify-content:center;}
@@ -695,9 +697,8 @@ body.gps-fs #map{height:100%!important;}
    flat roster size). Reuses the .fpb-* pieces from the FORMULA progress
    banner, just shrunk to fit a list row. */
 .agent-row-stats{display:flex;align-items:center;gap:10px;padding-inline-start:54px;min-height:16px;}
-.agent-row-stats .fpb-bar-wrap{width:34px;gap:2px;}
-.agent-row-stats .fpb-bar-track{width:34px;height:4px;}
-.agent-row-stats .fpb-pct{font-size:11px;}
+.agent-row-stats .fpb-bar-wrap{width:34px;}
+.agent-row-stats .fpb-ring{width:34px;height:34px;}
 .agent-row-stats .fpb-main{font-size:13px;}
 .agent-row-stats .fpb-main .fpb-of{font-size:10px;}
 .agent-row-stats .fpb-sub{font-size:12px;}
@@ -1869,7 +1870,13 @@ function renderLogin(){
           <div class="mgr-grid">${DEMO_MANAGERS.map(m=>{
             const initials=m.replace(/[^A-Za-zא-ת]/g,'').slice(0,2).toUpperCase()||m.slice(0,2).toUpperCase();
             return `<div class="mgr-tile" onclick="selectManager('${m}')" role="button" aria-label="${m}">
-              <div class="mgr-tile-av">${initials}</div>
+              <div class="mgr-tile-ring-wrap">
+                <svg class="mgr-tile-ring" viewBox="0 0 64 64">
+                  <circle class="mgr-tile-ring-track" cx="32" cy="32" r="28"/>
+                  <circle class="mgr-tile-ring-fill" id="mc-ring-${m}" cx="32" cy="32" r="28" stroke-dasharray="175.93" stroke-dashoffset="175.93"/>
+                </svg>
+                <div class="mgr-tile-av">${initials}</div>
+              </div>
               <div class="mgr-tile-name">${m}</div>
               <div class="mgr-tile-stats" id="mc-stats-${m}"></div>
             </div>`;
@@ -2149,14 +2156,20 @@ async function _updateFormulaBanner(){
 // Shared by the single-agent banner (#formula-progress-banner) and the
 // manager agent-picker's per-row + team-total blocks (_refreshTeamStats) —
 // same "X מתוך Y הזמינו היום + ₪ sum" shape everywhere it's shown.
+function _fpbRingSvg(pct, color){
+  const r = 19, c = 2 * Math.PI * r;
+  const offset = c * (1 - pct / 100);
+  return `<svg class="fpb-ring" viewBox="0 0 44 44">
+      <circle class="fpb-ring-track" cx="22" cy="22" r="${r}"/>
+      <circle class="fpb-ring-fill" cx="22" cy="22" r="${r}" stroke="${color}" stroke-dasharray="${c}" stroke-dashoffset="${offset}" transform="rotate(-90 22 22)"/>
+      <text class="fpb-ring-text" x="22" y="22" dy=".35em" text-anchor="middle" fill="${color}">${pct}%</text>
+    </svg>`;
+}
 function _fpbPieceHtml(numer, denom, sum){
   const pct = denom ? Math.round(numer/denom*100) : 0;
   const color = pct>=70 ? '#2E7D32' : pct>=40 ? '#F9A825' : '#C62828';
   return `
-    <div class="fpb-bar-wrap">
-      <div class="fpb-pct" style="color:${color}">${pct}%</div>
-      <div class="fpb-bar-track"><div class="fpb-bar-fill" style="width:${pct}%;background:${color}"></div></div>
-    </div>
+    <div class="fpb-bar-wrap">${_fpbRingSvg(pct, color)}</div>
     <div class="fpb-info">
       <div class="fpb-main">${numer} <span class="fpb-of">מתוך ${denom} הזמינו היום</span></div>
       <div class="fpb-sub">₪${Math.round(sum).toLocaleString('he-IL')}</div>
@@ -2180,11 +2193,7 @@ function _renderFormulaBanner(){
 // background; this reuses the tile's existing gold/white palette instead.
 function _mgrTileStatsHtml(numer, denom, sum){
   const pct = denom ? Math.round(numer/denom*100) : 0;
-  return `<div class="mgr-tile-s1">${numer} מתוך ${denom}</div>
-    <div class="mgr-tile-bar-row">
-      <div class="mgr-tile-bar-track"><div class="mgr-tile-bar-fill" style="width:${pct}%"></div></div>
-      <div class="mgr-tile-pct">${pct}%</div>
-    </div>
+  return `<div class="mgr-tile-s1">${numer} מתוך ${denom} · ${pct}%</div>
     <div class="mgr-tile-s2">₪${Math.round(sum).toLocaleString('he-IL')}</div>`;
 }
 
@@ -2217,8 +2226,20 @@ async function _refreshTeamStats(){
     DEMO_MANAGERS.forEach(m=>{
       const el=document.getElementById('mc-stats-'+m);
       if(!el) return;
+      const ring=document.getElementById('mc-ring-'+m);
       const s=d.byManager?.[m];
-      el.innerHTML=(s&&s.denom)?_mgrTileStatsHtml(s.numer,s.denom,s.sum):'';
+      if(s&&s.denom){
+        el.innerHTML=_mgrTileStatsHtml(s.numer,s.denom,s.sum);
+        if(ring){
+          const pct=Math.round(s.numer/s.denom*100);
+          const c=175.93; // 2*PI*28, matches the r=28 circle in the tile markup
+          ring.style.strokeDashoffset=c*(1-pct/100);
+          ring.style.stroke=pct>=70?'#2E7D32':pct>=40?'#F9A825':'#C62828';
+        }
+      }else{
+        el.innerHTML='';
+        if(ring) ring.style.strokeDashoffset=175.93;
+      }
     });
   }else if(st.step==='agent'){
     const agents=st._agents||[];
