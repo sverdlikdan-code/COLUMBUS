@@ -3546,13 +3546,19 @@ function loadSavedRoute(code,day){
   try{const s=localStorage.getItem(`fr_${code}_${day}`);return s?JSON.parse(s):null;}catch{return null;}
 }
 function mergeWithSaved(fromServer,saved){
-  const savedMap=Object.fromEntries(saved.map(s=>[s.custId,s]));
   const savedIds=saved.map(s=>s.custId);
   const ordered=[];
-  // Keep saved order, merge with server data
+  // Keep saved ORDER only — lat/lng always come from the fresh server payload.
+  // Used to carry over saved.lat/lng too, which froze whatever GPS a client had
+  // at the last local save (any drag/day-move/address-submit) forever after —
+  // route order kept re-sorting on stale coordinates even once the server's GPS
+  // was fixed, while name/address looked current because those DID come from
+  // fromServer. Live complaint 2026-08-30 (route jumping city→city illogically
+  // despite correct-looking cards). Real manual GPS corrections are a separate,
+  // deliberate mechanism (gpsCorrections/gpsSource:'correction') and still apply.
   savedIds.forEach(id=>{
     const s=fromServer.find(c=>c.custId===id);
-    if(s){const sv=savedMap[id];ordered.push({...s,lat:sv.lat||s.lat,lng:sv.lng||s.lng});}
+    if(s) ordered.push(s);
   });
   // Add new from server
   fromServer.forEach(c=>{if(!savedIds.includes(c.custId))ordered.push(c);});
