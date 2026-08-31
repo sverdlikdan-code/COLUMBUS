@@ -2851,7 +2851,7 @@ window._orderFams = new Set();
 window._orderPackLine = '';
 window._orderMotag = '';
 window._orderZero = false;
-window._orderHideNoSales6mo = true;  // hide SKUs with zero real sales in the last 6 complete months
+window._orderHideNoSales6mo = true;  // hide SKUs with zero real sales in the last 3 complete months
 window._orderManualEdits = window._orderManualEdits || {};
 
 // Line = physical packaging within HERRING only (verified against product photos in docs/photos/) —
@@ -3396,7 +3396,7 @@ function buildOrderPage() {
       grpKeys.map(f => `<button class="ord-fam-btn" data-fam="${esc(f)}" style="${window._orderFams.has(f) ? chipAct : chipDef}">${esc(grpLabel(f))}</button>`).join('') +
       `<span style="width:1px;height:26px;background:#BBDEFB;margin:0 8px;align-self:center;display:inline-block;flex-shrink:0;"></span>` +
       `<button onclick="toggleOrderZero()" style="${window._orderZero ? chipZeroAct : chipZeroDef}">⚠ חסר במלאי${window._orderZero ? ' ✓' : ''}</button>` +
-      `<button onclick="toggleOrderHideNoSales6mo()" title="הסתר/הצג מוצרים ללא מכר אמיתי ב-6 חודשים אחרונים" style="${window._orderHideNoSales6mo ? chipDef : chipZeroAct}">🚫 ללא מכר 6 חודשים${window._orderHideNoSales6mo ? ' מוסתר' : ' — מוצג'}</button>`;
+      `<button onclick="toggleOrderHideNoSales6mo()" title="הסתר/הצג מוצרים ללא מכר אמיתי ב-3 חודשים אחרונים" style="${window._orderHideNoSales6mo ? chipDef : chipZeroAct}">🚫 ללא מכר 3 חודשים${window._orderHideNoSales6mo ? ' מוסתר' : ' — מוצג'}</button>`;
     famBtns.querySelectorAll('.ord-fam-btn').forEach(btn => btn.addEventListener('click', () => setOrderFam(btn.dataset.fam)));
   }
 
@@ -4926,15 +4926,15 @@ window.addEventListener('afterprint', () => {
     return Math.round((recent3 / prev3 - 1) * 100);
   }
 
-  // No real sales in the last 6 complete calendar months (excludes the current partial month).
+  // No real sales in the last 3 complete calendar months (excludes the current partial month).
   // Returns false (don't hide) when there isn't enough history yet to judge — never hide on missing data.
   window._hasNoSales6mo = function _hasNoSales6mo(months) {
     if (!months) return false;
     const now = new Date();
     const curYM = now.getFullYear() * 100 + (now.getMonth() + 1);
-    const last6 = months.filter(m => m.year * 100 + m.month < curYM).slice(-6);
-    if (last6.length < 6) return false;
-    return last6.every(m => !m.mkr);
+    const last3 = months.filter(m => m.year * 100 + m.month < curYM).slice(-3);
+    if (last3.length < 3) return false;
+    return last3.every(m => !m.mkr);
   }
 
   window._trendHtml = function _trendHtml(pct) {
