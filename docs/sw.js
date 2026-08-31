@@ -1,6 +1,6 @@
 // Minimal service worker — enables PWA installability in Chrome
 // Does not cache API calls, only enables beforeinstallprompt
-const CACHE = 'fr-v25';
+const CACHE = 'fr-v26';
 const STATIC = ['./formula-road.html', './manifest.json'];
 
 self.addEventListener('install', e => {
@@ -33,7 +33,9 @@ self.addEventListener('fetch', e => {
   // '/formula-road' (no extension) — so a home-screen-installed shortcut, which
   // launches at start_url, fell straight through to the cache-first branch
   // below and kept showing a stale app shell even after this exact fix shipped.
-  if (url.includes('formula-road-data.json') || url.includes('google-gps.json') || url.endsWith('formula-road.html') || url.endsWith('/formula-road') || url.endsWith('/')) {
+  if (url.includes('formula-road-data.json') || url.includes('google-gps.json') || url.endsWith('formula-road.html') || url.endsWith('/formula-road') || url.endsWith('/')
+    || url.includes('dagim-base.json') || url.includes('dagim-yavesh-base.json') || url.includes('kapua-base.json') || url.includes('halavi-base.json')
+    || url.includes('product-data.json') || url.endsWith('planogram-editor.html')) {
     e.respondWith(fetch(e.request).then(res => {
       caches.open(CACHE).then(c => c.put(e.request, res.clone()));
       return res;
