@@ -3396,7 +3396,7 @@ function buildOrderPage() {
       grpKeys.map(f => `<button class="ord-fam-btn" data-fam="${esc(f)}" style="${window._orderFams.has(f) ? chipAct : chipDef}">${esc(grpLabel(f))}</button>`).join('') +
       `<span style="width:1px;height:26px;background:#BBDEFB;margin:0 8px;align-self:center;display:inline-block;flex-shrink:0;"></span>` +
       `<button onclick="toggleOrderZero()" style="${window._orderZero ? chipZeroAct : chipZeroDef}">⚠ חסר במלאי${window._orderZero ? ' ✓' : ''}</button>` +
-      `<button onclick="toggleOrderHideNoSales6mo()" title="הסתר/הצג מוצרים ללא מכר אמיתי ב-3 חודשים אחרונים" style="${window._orderHideNoSales6mo ? chipDef : chipZeroAct}">🚫 ללא מכר 3 חודשים${window._orderHideNoSales6mo ? ' מוסתר' : ' — מוצג'}</button>`;
+      `<button onclick="toggleOrderHideNoSales6mo()" title="הסתר/הצג מוצרים ללא מכר אמיתי ב-3 חודשים אחרונים" style="${window._orderHideNoSales6mo ? chipZeroAct : chipZeroDef}">🚫 ללא מכר 3 חודשים${window._orderHideNoSales6mo ? ' ✓ מוסתר' : ''}</button>`;
     famBtns.querySelectorAll('.ord-fam-btn').forEach(btn => btn.addEventListener('click', () => setOrderFam(btn.dataset.fam)));
   }
 
