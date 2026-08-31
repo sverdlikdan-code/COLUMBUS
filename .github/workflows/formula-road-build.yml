@@ -4,8 +4,8 @@ on:
   schedule:
     # 07:30 Israel (UTC+3) = 04:30 UTC
     - cron: '30 4 * * *'
-    # 21:00 Israel (UTC+3) = 18:00 UTC
-    - cron: '0 18 * * *'
+    # ~21:42 Israel (UTC+3) = 18:42 UTC — off :00, see 2026-08-31 scheduler note
+    - cron: '42 18 * * *'
   workflow_dispatch:
 
 jobs:

@@ -8,7 +8,9 @@ name: Yedaim watchdog
 # zalivaet ikh sam + shlyot alert chto srabotala straxovka.
 on:
   schedule:
-    - cron: '0 8 * * *'
+    # Off :00 since 2026-08-31 — see yedaim-build.yml comment: top-of-hour is
+    # GitHub's documented peak load window for scheduled events.
+    - cron: '27 8 * * *'
   workflow_dispatch: {}
 
 jobs:
