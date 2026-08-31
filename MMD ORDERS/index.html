@@ -423,6 +423,8 @@
     .c-haml { text-align: center; font-weight: 800; color: inherit; }
     .c-tukuf { max-width: 130px; font-size: .7rem; line-height: 1.6; }
     .tk-d { display: block; white-space: nowrap; }
+    .tk-d.tk-near { font-weight: 800; color: #1b5e20; }
+    .tk-d.tk-next { font-weight: 400; color: #90a4ae; font-size: .9em; }
     .lo { color: #d32f2f; font-weight: 800; }
     tr.danger .c-haml { color: #d32f2f !important; }
     tr.danger .ei-n { border-color: #d32f2f !important; color: #d32f2f !important; }
@@ -1197,8 +1199,10 @@
   }
   function formatTukuf(raw) {
     if (!raw) return '';
-    return raw.split('/').map(d => d.trim()).filter(Boolean)
-      .map(d => '<span class="tk-d" dir="ltr">' + _fmtDate(d) + '</span>').join('');
+    const parts = raw.split('/').map(d => d.trim()).filter(Boolean);
+    return parts.map((d, i) =>
+      '<span class="tk-d ' + (i === 0 ? 'tk-near' : 'tk-next') + '" dir="ltr">' + _fmtDate(d) + '</span>'
+    ).join('');
   }
 
   function eilatDangerLevel(r) {
