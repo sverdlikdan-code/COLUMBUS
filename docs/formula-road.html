@@ -119,10 +119,6 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
    handleOrientationForMobileMap) — the manual toggle icons this wrapped are
    gone, so the wrapper itself is always hidden. 2026-08-24. */
 .km-right{display:none;}
-.km-info{display:flex;align-items:center;gap:4px;flex-shrink:0;}
-.km-lbl{font-size:10px;color:var(--light);font-weight:600;}
-.km-val{font-weight:900;color:var(--blue-dark);font-size:15px;}
-.km-unit{font-size:10px;color:var(--light);}
 .wd-bar{display:flex;gap:14px;align-items:center;flex-shrink:0;padding:0 10px;}
 .wd-item{display:flex;flex-direction:column;align-items:center;min-width:28px;}
 .wd-num{font-size:15px;font-weight:900;color:#fff;line-height:1;}
@@ -494,8 +490,6 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 
   /* Toolbar */
   .km-bar{padding:9px 16px 8px;}
-  .km-val{font-size:18px;}
-  .km-lbl,.km-unit{font-size:11px;}
   .sort-btn{height:40px;font-size:13px;padding:8px 16px;}
   .day-sw-btn{width:50px;height:50px;font-size:22px;border-radius:14px;}
   .city-chip{font-size:13px;padding:7px 15px;border-radius:22px;}
@@ -828,17 +822,6 @@ body.gps-fs #map{height:100%!important;}
         <div class="km-more-wrap">
           <button class="sort-btn km-more-btn icon-only" id="km-more-btn" onclick="toggleKmMore()" title="עוד פעולות">⋮</button>
           <div class="km-more-dd" id="km-more-dd">
-            <div class="km-more-item" style="cursor:default;justify-content:space-between;">
-              <span class="km-lbl">ביקור</span>
-              <span class="km-val" id="km-val">—</span>
-              <span class="km-unit">km</span>
-              <span style="color:var(--light);margin:0 3px">|</span>
-              <span class="km-lbl" id="km-ai-lbl">AI</span>
-              <span class="km-val" style="color:var(--green)" id="km-ai">—</span>
-              <span class="km-unit">km</span>
-              <span id="km-duration" style="display:none;font-size:11px;color:var(--mid);margin-right:4px"></span>
-            </div>
-            <hr class="km-more-sep">
             <!-- Phone-only duplicates of the sort-toggle above (hidden ≤699px, see
                  .mob-only media rule) so the toggle itself can move out of row 1
                  without losing the ability to switch sort mode on a phone. -->
@@ -1207,7 +1190,6 @@ const st = {
   sortMode:'ai', tab:'list',
   selectedCities:[], selectedId:null,
   addrClientId:null, isDemo:false,
-  roadKm:null, roadGeometry:null, priorityRoadKm:null, roadDuration:null,
   excluded: new Set(),
   topSalesIds: new Set(),
   aiGpsMode: true,
@@ -1435,54 +1417,6 @@ function twoOpt(route,startLat,startLng){
 const OSRM_CACHE = new Map();
 const OSRM_TRIP_CACHE = new Map();
 
-async function osrmRoadData(clients) {
-  if (clients.length < 2) return null;
-  const hasStart = !!(st.startLat && st.startLng);
-  const startPt = hasStart ? `${st.startLng},${st.startLat};` : '';
-  const coords = startPt + clients.map(c=>`${c.lng},${c.lat}`).join(';');
-  const cacheKey = 'geom|'+(hasStart?`${st.startLat.toFixed(4)},${st.startLng.toFixed(4)}|`:'')+
-    clients.map(c=>`${c.custId}:${(c.lat||0).toFixed(4)},${(c.lng||0).toFixed(4)}`).join('|');
-  if (OSRM_CACHE.has(cacheKey)) return OSRM_CACHE.get(cacheKey);
-  try {
-    const r = await fetch(
-      `https://router.project-osrm.org/route/v1/driving/${coords}?geometries=geojson&overview=full&steps=false`,
-      { signal: AbortSignal.timeout(10000) }
-    );
-    const data = await r.json();
-    if (data.code !== 'Ok' || !data.routes?.length) return null;
-    const route = data.routes[0];
-    const result = {
-      roadKm: route.distance / 1000,
-      roadDuration: route.duration,
-      roadGeometry: route.geometry.coordinates.map(([lon,lat]) => [lat,lon])
-    };
-    OSRM_CACHE.set(cacheKey, result);
-    return result;
-  } catch (_) { return null; }
-}
-
-async function osrmRoute(clients) {
-  const withGps = clients.filter(c => c.lat && c.lng);
-  if (withGps.length < 2) return null;
-  const hasStart = !!(st.startLat && st.startLng);
-  const startPt = hasStart ? `${st.startLng},${st.startLat};` : '';
-  const coords = startPt + withGps.map(c => `${c.lng},${c.lat}`).join(';');
-  const cacheKey = 'route|' + (hasStart ? `${st.startLat.toFixed(4)},${st.startLng.toFixed(4)}|` : '') +
-    withGps.map(c => `${c.custId}:${(c.lat||0).toFixed(4)},${(c.lng||0).toFixed(4)}`).join('|');
-  if (OSRM_CACHE.has(cacheKey)) return OSRM_CACHE.get(cacheKey);
-  try {
-    const r = await fetch(
-      `https://router.project-osrm.org/route/v1/driving/${coords}?overview=false`,
-      { signal: AbortSignal.timeout(10000) }
-    );
-    const data = await r.json();
-    if (data.code !== 'Ok' || !data.routes?.length) return null;
-    const km = data.routes[0].distance / 1000;
-    OSRM_CACHE.set(cacheKey, km);
-    return km;
-  } catch (_) { return null; }
-}
-
 // ── OSRM /trip — road-optimal ordering with cache ───────────────────────────
 async function osrmTripOrder(clients, startLat, startLng) {
   const withGps = clients.filter(c => c.lat && c.lng);
@@ -1535,35 +1469,9 @@ function triggerOsrm() {
     if (st.agent?.code !== snap.agentCode || st.day !== snap.day) return;
     if (tripOrdered) {
       st.aiClients = tripOrdered;
-      if (st.sortMode === 'ai') { updateKmBar(); renderClientList(); }
+      if (st.sortMode === 'ai') renderClientList();
     }
-    const finalOrder = tripOrdered || nnOrdered;
-    const withGps = finalOrder.filter(c => c.lat && c.lng);
-    osrmRoadData(withGps).then(res => {
-      if (!res) return;
-      if (st.agent?.code !== snap.agentCode || st.day !== snap.day) return;
-      st.roadKm = res.roadKm;
-      st.roadDuration = res.roadDuration;
-      st.roadGeometry = res.roadGeometry;
-      updateKmBar();
-      if (window.innerWidth >= 700 || st.tab === 'map') renderMap();
-    });
   });
-  // priority km (fixed visit order)
-  osrmRoute(snap.clients).then(km => {
-    if (km == null) return;
-    if (st.agent?.code !== snap.agentCode || st.day !== snap.day) return;
-    st.priorityRoadKm = km;
-    updateKmBar();
-  });
-}
-
-function totalKm(clients){
-  const wg=clients.filter(c=>c.lat&&c.lng);
-  if(!wg.length)return null;
-  let km=0, la=st.startLat||wg[0].lat, lo=st.startLng||wg[0].lng;
-  for(const c of wg){km+=haversineKm(la,lo,c.lat,c.lng);la=c.lat;lo=c.lng;}
-  return km;
 }
 
 // ── Screen nav ──────────────────────────────────────────────────────────────
@@ -2313,7 +2221,6 @@ async function initRoute(){
   const myId = ++_initRouteId;
   checkPbiFreshness(); // fire-and-forget, throttled internally
   st.sortMode=(st.aiGpsMode||st.tabletGpsMode)?'ai':'priority'; st.selectedCities=[]; st.selectedId=null;
-  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null;
   st.excluded=new Set();
   document.getElementById('route-title').textContent='DILER FORMULA';
   document.getElementById('route-sub').textContent=_routeSubBase();
@@ -2326,7 +2233,6 @@ async function initRoute(){
   const _auth=_loadAuth();
   document.getElementById('logout-btn').style.display=(_auth&&!_auth.isManager)?'':'none';
   renderClientList('<div class="spinner"><div class="spin"></div><span>טוען לקוחות...</span></div>');
-  document.getElementById('km-val').textContent='—';
 
   st.isDemo=false;
   try{
@@ -2399,7 +2305,7 @@ async function initRoute(){
   if(myId !== _initRouteId) return; // newer call in flight — discard stale results
   try {
     st.aiClients=nearestNeighbor([..._aiGpsClients(st.clients)]);
-    st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null; triggerOsrm();
+    triggerOsrm();
     updateKmBar();
     renderCityFilters();
   } catch(renderErr) {
@@ -2625,7 +2531,6 @@ function resetRoute(){
 }
 
 function recalcRoute(){
-  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null;
   st.sortMode='ai';
   if(!st.tabletGpsMode){ st.aiGpsMode=true; }
   document.getElementById('sort-btn-priority').className='sort-btn';
@@ -2641,21 +2546,8 @@ function recalcRoute(){
   osrmTripOrder([..._rcClients], st.startLat, st.startLng).then(ordered=>{
     btn.disabled=false; btn.textContent='🔄 חשב מחדש';
     if(st.agent?.code!==snap.agentCode||st.day!==snap.day||st.sortMode!=='ai') return;
-    if(ordered){ st.aiClients=ordered; updateKmBar(); renderClientList(); }
-    const withGps=(ordered||st.aiClients).filter(c=>c.lat&&c.lng);
-    osrmRoadData(withGps).then(res=>{
-      if(!res||st.agent?.code!==snap.agentCode||st.day!==snap.day) return;
-      st.roadKm=res.roadKm; st.roadDuration=res.roadDuration; st.roadGeometry=res.roadGeometry;
-      updateKmBar();
-      if(st.tab==='map'||window.innerWidth>=700) renderMap();
-    });
+    if(ordered){ st.aiClients=ordered; renderClientList(); }
   });
-}
-
-function fmtDuration(sec){
-  if(!sec) return null;
-  const h=Math.floor(sec/3600), m=Math.round((sec%3600)/60);
-  return h>0 ? `${h}ש ${m}ד` : `${m}ד`;
 }
 
 function printRoute(){
@@ -2743,23 +2635,7 @@ function openGoogleMaps(){
   window.open(url, '_blank');
 }
 
-function updateKmBar(){
-  const filtered=st.selectedCities.length>0;
-  const shownPriority=filtered?st.clients.filter(c=>st.selectedCities.includes(c.city)):st.clients;
-  const shownAi=filtered?st.aiClients.filter(c=>st.selectedCities.includes(c.city)):st.aiClients;
-  const priorityKm=filtered?totalKm(shownPriority):(st.priorityRoadKm!=null?st.priorityRoadKm:totalKm(st.clients));
-  const aiKm=filtered?totalKm(shownAi):(st.roadKm!=null?st.roadKm:totalKm(st.aiClients));
-  document.getElementById('km-val').textContent=priorityKm!=null?priorityKm.toFixed(1):'—';
-  document.getElementById('km-ai').textContent=aiKm!=null?aiKm.toFixed(1):'—';
-  const aiLbl=document.getElementById('km-ai-lbl');
-  if(aiLbl) aiLbl.textContent=st.roadKm!=null?'🛣':'AI';
-  const durEl=document.getElementById('km-duration');
-  if(durEl){
-    const durTxt=!filtered&&st.roadDuration?fmtDuration(st.roadDuration):null;
-    durEl.textContent=durTxt?'⏱ '+durTxt:'';
-    durEl.style.display=durTxt?'':'none';
-  }
-}
+function updateKmBar(){}
 
 function renderCityFilters(){
   const cities=[...new Set(st.clients.map(c=>c.city).filter(Boolean))].sort();
@@ -3079,14 +2955,7 @@ function openDayClosing(type){
 function resetExcluded(){
   st.excluded=new Set();
   st.aiClients=nearestNeighbor([...activeClients()]);
-  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null;
-  updateKmBar(); renderClientList(); renderMap();
-  const withGps=activeClients().filter(c=>c.lat&&c.lng);
-  osrmRoadData(withGps).then(res=>{
-    if(!res)return;
-    st.roadKm=res.roadKm; st.roadDuration=res.roadDuration; st.roadGeometry=res.roadGeometry;
-    updateKmBar(); if(window.innerWidth>=700||st.tab==='map')renderMap();
-  });
+  renderClientList(); renderMap();
   showToast('↩️ כל הלקוחות הוחזרו למסלול');
 }
 function openWaze(e, lat, lng){
@@ -3119,15 +2988,8 @@ function openZikuyOrder(e,custId,custName,city){
 function toggleExclude(custId,e){
   if(e){e.stopPropagation();e.preventDefault();}
   if(st.excluded.has(custId)) st.excluded.delete(custId); else st.excluded.add(custId);
-  const withGps=activeClients().filter(c=>c.lat&&c.lng);
   st.aiClients=nearestNeighbor([...activeClients()]);
-  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null;
-  updateKmBar(); renderClientList(); renderMap();
-  osrmRoadData(withGps).then(res=>{
-    if(!res)return;
-    st.roadKm=res.roadKm; st.roadDuration=res.roadDuration; st.roadGeometry=res.roadGeometry;
-    updateKmBar(); if(window.innerWidth>=700||st.tab==='map')renderMap();
-  });
+  renderClientList(); renderMap();
 }
 
 function selectClient(id){
@@ -3414,7 +3276,7 @@ function _startMapPlace(id,c){
     const la=+lat.toFixed(6), lo=+lng.toFixed(6);
     st.clients=st.clients.map(x=>x.custId===id?{...x,lat:la,lng:lo}:x);
     st.aiClients=nearestNeighbor([...st.clients]);
-    st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null; triggerOsrm();
+    triggerOsrm();
     saveRoute(st.agent.code,st.day,st.clients);
     updateKmBar(); renderClientList(); renderMap();
     showToast('✅ מיקום נשמר (מקומי)');
@@ -3473,7 +3335,7 @@ function detectAddrGps(){
         const cl=st.clients.find(x=>x.custId===id)||{};
         st.clients=st.clients.map(x=>x.custId===id?{...x,lat,lng,address:addr}:x);
         st.aiClients=nearestNeighbor([...st.clients]);
-        st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null; triggerOsrm();
+        triggerOsrm();
         saveRoute(st.agent.code,st.day,st.clients);
         updateKmBar(); renderClientList();
         if(window.innerWidth>=700||st.tab==='map') renderMap();
@@ -3482,7 +3344,7 @@ function detectAddrGps(){
         const cl=st.clients.find(x=>x.custId===id)||{};
         st.clients=st.clients.map(x=>x.custId===id?{...x,lat,lng}:x);
         st.aiClients=nearestNeighbor([...st.clients]);
-        st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null; triggerOsrm();
+        triggerOsrm();
         saveRoute(st.agent.code,st.day,st.clients);
         updateKmBar(); renderClientList();
         if(window.innerWidth>=700||st.tab==='map') renderMap();
@@ -3505,7 +3367,7 @@ async function submitAddress(){
     if(d&&d.lat){
       st.clients=st.clients.map(x=>x.custId===st.addrClientId?{...x,address:addr,lat:d.lat,lng:d.lng}:x);
       st.aiClients=nearestNeighbor([...st.clients]);
-      st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null; triggerOsrm();
+      triggerOsrm();
       updateKmBar(); renderClientList();
     }
   }catch{}
@@ -4279,7 +4141,7 @@ function changeClientDay(custId,newDay){
   }
   st.clients=st.clients.filter(c=>String(c.custId)!==String(custId));
   st.aiClients=nearestNeighbor([...st.clients]);
-  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null; triggerOsrm();
+  triggerOsrm();
   saveRoute(st.agent.code,st.day,st.clients);
   updateKmBar(); renderClientList();
   if(window.innerWidth>=700||st.tab==='map') renderMap();
@@ -4493,7 +4355,7 @@ function deleteGpsCorrection(custId){
     return (pbiLat&&pbiLng)?{...rest,lat:pbiLat,lng:pbiLng}:rest;
   });
   st.aiClients=nearestNeighbor([...st.clients]);
-  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null; triggerOsrm();
+  triggerOsrm();
   saveRoute(st.agent.code,st.day,st.clients);
   renderGpsHistory();
   updateGpsHistBtn();
@@ -4526,7 +4388,7 @@ function saveGpsCorrection(custId, custName, lat, lng){
   }).catch(()=>{});
   st.clients=st.clients.map(x=>String(x.custId)===String(custId)?{...x,pbiLat:x.pbiLat??x.lat,pbiLng:x.pbiLng??x.lng,lat:la,lng:lo,gpsSource:'correction'}:x);
   st.aiClients=nearestNeighbor([...st.clients]);
-  st.roadKm=null; st.roadGeometry=null; st.priorityRoadKm=null; st.roadDuration=null; triggerOsrm();
+  triggerOsrm();
   saveRoute(st.agent.code,st.day,st.clients);
   updateKmBar(); renderClientList(); renderMap();
 }
