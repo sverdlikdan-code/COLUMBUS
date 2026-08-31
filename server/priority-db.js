@@ -289,6 +289,37 @@ async function dayClosingByAgentAll(dbName, dateStr) {
   }
 }
 
+// Raw per-order rows for TODAY, no grouping — the "upgrade to roster-scoped"
+// promised in dayClosingByAgentAll's comment above, needed live 2026-08-31:
+// Oleg Gladkikh's tile showed 0 מתוך 22 while his own banner showed 2, because
+// both of his day's orders were entered under Alexey Brilov's code (AGENT 53)
+// for Oleg's roster clients — dayClosingByAgentAll only ever credits the
+// entering agent, never the roster owner. The caller (server/index.js, which
+// has pbiCache in memory) cross-references custId against each agent's roster
+// and credits BOTH the roster owner and the entering agent when they differ —
+// same roster-OR-entering-agent rule dayClosingSummary already uses per-agent,
+// just computed for the whole team in one pass instead of one query per agent.
+async function dayClosingOrdersToday(dbName, dateStr) {
+  try {
+    const pool = await getPool(dbName);
+    const result = await pool.request().input('today', sql.BigInt, curdateFor(dateStr)).query(`
+      SELECT C.CUSTNAME AS custId, O.DISPRICE AS dispPrice,
+        (SELECT AGENTCODE FROM AGENTS WHERE AGENT = O.AGENT) AS enteringAgentCode
+      FROM ORDERS O
+      JOIN CUSTOMERS C ON C.CUST = O.CUST
+      WHERE O.CURDATE = @today
+    `);
+    return result.recordset.map(r => ({
+      custId: String(r.custId),
+      dispPrice: Number(r.dispPrice) || 0,
+      enteringAgentCode: r.enteringAgentCode ? String(r.enteringAgentCode) : null,
+    }));
+  } catch (e) {
+    console.error(`[priority-db] ${dbName} day-closing-orders query failed: ${e.message}`);
+    return null;
+  }
+}
+
 // Used as a last-resort fallback tier in geocodeBatch (server/index.js) for brand-new
 // clients that have no PBI coordinate and failed address geocoding: last `daysBack`
 // days, all 3 companies, same ~100m clustering convention as gps-build-combined.js.
@@ -363,4 +394,4 @@ async function liveOrderGpsForNewClient(custId, daysBack = 30) {
   return best ? { lat: best.latSum / best.cnt, lng: best.lngSum / best.cnt, orders: best.cnt } : null;
 }
 
-module.exports = { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByAgentAll, curdateFor, liveOrderGpsForNewClient };
+module.exports = { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByAgentAll, dayClosingOrdersToday, curdateFor, liveOrderGpsForNewClient };

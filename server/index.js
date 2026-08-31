@@ -8,7 +8,7 @@ const { execFile } = require('child_process');
 const ExcelJS = require('exceljs');
 const puppeteer = require('puppeteer');
 const { executeDax, getDatasetRefreshTime } = require('./powerbi');
-const { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByAgentAll, liveOrderGpsForNewClient } = require('./priority-db');
+const { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByAgentAll, dayClosingOrdersToday, liveOrderGpsForNewClient } = require('./priority-db');
 const { Resend } = require('resend');
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -4786,6 +4786,34 @@ function todayRouteDay() {
   return { Sun: 1, Mon: 2, Tue: 3, Wed: 4, Thu: 5, Fri: 1, Sat: 1 }[wd] || 1;
 }
 
+// Raw per-order rows for TODAY (custId/dispPrice/enteringAgentCode, no
+// grouping) — same 75s-cache shape as the other today-scoped caches above.
+const DAY_CLOSING_ORDERS_CACHE_MS = 75 * 1000;
+let dayClosingOrdersCache = { date: null, at: 0, rows: [] };
+
+async function getDayClosingOrdersToday() {
+  const todayIL = todayIsraelDate();
+  const fresh = dayClosingOrdersCache.date === todayIL && (Date.now() - dayClosingOrdersCache.at) < DAY_CLOSING_ORDERS_CACHE_MS;
+  if (!fresh) {
+    const rows = await dayClosingOrdersToday(process.env.DB_NAME || 'form', todayIL);
+    dayClosingOrdersCache = { date: todayIL, at: Date.now(), rows: rows || [] };
+  }
+  return dayClosingOrdersCache;
+}
+
+// custId → roster-owner agentCode, built fresh from pbiCache each call (cheap:
+// pbiCache only refreshes once a day, this is a plain in-memory Map build).
+function custIdToRosterAgent() {
+  const map = new Map();
+  for (const src of [pbiCache.byAgent, pbiCache.noScheduleByAgent]) {
+    if (!src) continue;
+    for (const [agentCode, clients] of src) {
+      for (const c of clients) if (!map.has(c.custId)) map.set(c.custId, agentCode);
+    }
+  }
+  return map;
+}
+
 // GET /api/team-order-stats — FORMULA "today" order dynamics (denom/numer/sum)
 // for every agent AND aggregated per manager, built entirely from data already
 // in memory: pbiCache's schedule (no extra Priority query) plus the cache
@@ -4794,24 +4822,42 @@ function todayRouteDay() {
 // round-trip per agent. Live request 2026-08-30: manager wants live order
 // dynamics on every screen, not just inside one agent's own route.
 //
-// numer is a COUNT OF ORDERS MADE today, full stop — NOT filtered by whether
-// the ordering client's PBI route-day happens to be today. Live correction
-// 2026-08-31: an agent visiting a client a day early/late (real, common) was
-// showing numer=0 even with a real ₪ sum on the same tile, because numer used
-// to be today-roster-filtered same as denom. denom stays route-day-scoped
-// (it's "how many of today's clients"); numer/sum both now read real activity
-// off dayClosingByAgentAll's custCount/sum, unfiltered by schedule day.
+// numer/sum use the same roster-OR-entering-agent rule as the single-agent
+// banner's dayClosingSummary, computed for the whole team in one pass over
+// today's raw orders instead of one query per agent. Live correction
+// 2026-08-31: Oleg Gladkikh (110) showed "0 מתוך 22" with a real ₪0 while his
+// own banner showed "2 מתוך 22, ₪6,396" — both his day's orders were entered
+// under Alexey Brilov's code (53) for Oleg's roster clients. The previous
+// version only credited whoever entered the order (dayClosingByAgentAll,
+// GROUP BY entering agent) — never the roster owner — so a client's own agent
+// could show zero activity even with real sales on their clients today.
+// denom stays route-day-scoped (it's "how many of today's scheduled clients").
 app.get('/api/team-order-stats', requireAuth, dataRateLimit, async (req, res) => {
   if (!pbiCache) return res.status(503).json({ ok: false, error: 'cache_loading' });
-  const sumsCache = await getDayClosingTeamSums();
-  const numerByAgent = new Map(sumsCache.byAgent.map(a => [a.agentCode, a.custCount]));
-  const sumByAgent = new Map(sumsCache.byAgent.map(a => [a.agentCode, a.sum]));
+  const ordersCache = await getDayClosingOrdersToday();
+  const rosterAgentByCust = custIdToRosterAgent();
   const todayDay = todayRouteDay();
+
+  const custSetByAgent = new Map(); // agentCode -> Set(custId)
+  const sumByAgent = new Map(); // agentCode -> number
+  for (const row of ordersCache.rows) {
+    const credited = new Set();
+    const rosterAgent = rosterAgentByCust.get(row.custId);
+    if (rosterAgent) credited.add(rosterAgent);
+    if (row.enteringAgentCode) credited.add(row.enteringAgentCode);
+    for (const ag of credited) {
+      if (!custSetByAgent.has(ag)) custSetByAgent.set(ag, new Set());
+      custSetByAgent.get(ag).add(row.custId);
+      sumByAgent.set(ag, (sumByAgent.get(ag) || 0) + row.dispPrice);
+    }
+  }
 
   const byAgent = {};
   for (const [agentCode, clients] of pbiCache.byAgent) {
     const today = clients.filter(c => c.dayNum === todayDay);
-    byAgent[agentCode] = { denom: today.length, numer: numerByAgent.get(agentCode) || 0, sum: sumByAgent.get(agentCode) || 0 };
+    const numer = custSetByAgent.get(agentCode)?.size || 0;
+    const sum = Math.round((sumByAgent.get(agentCode) || 0) * 100) / 100;
+    byAgent[agentCode] = { denom: today.length, numer, sum };
   }
 
   const byManager = {};
