@@ -31,11 +31,16 @@ async function getPool(dbName) {
   return pools[dbName];
 }
 
+// ORDSTATUS -6 = 'מבוטלת' (cancelled, office soft-delete — CANCELFLAG='Y' in the
+// ORDSTATUS lookup table). Priority never removes the row, just flips this flag,
+// so without excluding it a cancelled order looks identical to an active one.
+// Found live 2026-08-31 (Zoya/agent 257, ORD 121153): our day-closing sum
+// included a cancelled order the tablet's native report correctly excludes.
 const OPEN_ORDERS_QUERY = `
   SELECT DISTINCT C.CUSTNAME
   FROM ORDERS O
   JOIN CUSTOMERS C ON C.CUST = O.CUST
-  WHERE O.CURDATE = @today
+  WHERE O.CURDATE = @today AND O.ORDSTATUS <> -6
 `;
 
 // ICE only: בודדים (singles) sell van-sale — invoiced directly off the truck, never
@@ -52,7 +57,7 @@ const OPEN_ICE_MISH_ORDERS_QUERY = `
   JOIN ORDERITEMS OI ON OI.ORD = O.ORD
   JOIN PART P ON P.PART = OI.PART
   JOIN FAMILY F ON F.FAMILY = P.FAMILY
-  WHERE O.CURDATE = @today AND F.FAMILYDES NOT LIKE N'%בודדים%'
+  WHERE O.CURDATE = @today AND O.ORDSTATUS <> -6 AND F.FAMILYDES NOT LIKE N'%בודדים%'
 `;
 
 // Returns Set<CUSTNAME string> or null on any failure — caller decides what "no data" means.
@@ -158,14 +163,14 @@ async function dayClosingSummary(dbName, dateStr, custIds, agentCode, { iceMishO
     JOIN ORDERITEMS OI ON OI.ORD = O.ORD
     JOIN PART P ON P.PART = OI.PART
     JOIN FAMILY F ON F.FAMILY = P.FAMILY
-    WHERE O.CURDATE = @today AND (${orClause}) AND F.FAMILYDES NOT LIKE N'%בודדים%'
+    WHERE O.CURDATE = @today AND O.ORDSTATUS <> -6 AND (${orClause}) AND F.FAMILYDES NOT LIKE N'%בודדים%'
   ` : `
     SELECT COUNT(DISTINCT O.CUST) AS custCount, SUM(O.DISPRICE) AS sumPrice,
       COUNT(DISTINCT CASE WHEN ${notInRoster} THEN O.CUST END) AS newCustCount,
       SUM(CASE WHEN ${notInRoster} THEN O.DISPRICE ELSE 0 END) AS newSumPrice
     FROM ORDERS O
     JOIN CUSTOMERS C ON C.CUST = O.CUST
-    WHERE O.CURDATE = @today AND (${orClause})
+    WHERE O.CURDATE = @today AND O.ORDSTATUS <> -6 AND (${orClause})
   `;
   const result = await req.query(query);
   const row = result.recordset[0] || {};
@@ -190,7 +195,7 @@ async function dayClosingSummary(dbName, dateStr, custIds, agentCode, { iceMishO
     JOIN ORDERITEMS OI ON OI.ORD = O.ORD
     JOIN PART P ON P.PART = OI.PART
     JOIN FAMILY F ON F.FAMILY = P.FAMILY
-    WHERE O.CURDATE = @today AND (${orClause}) AND F.FAMILYDES NOT LIKE N'%בודדים%'
+    WHERE O.CURDATE = @today AND O.ORDSTATUS <> -6 AND (${orClause}) AND F.FAMILYDES NOT LIKE N'%בודדים%'
     GROUP BY O.AGENT
   ` : `
     SELECT (SELECT AGENTCODE FROM AGENTS WHERE AGENT = O.AGENT) AS enteringAgentCode,
@@ -198,7 +203,7 @@ async function dayClosingSummary(dbName, dateStr, custIds, agentCode, { iceMishO
       COUNT(DISTINCT O.CUST) AS custCount, SUM(O.DISPRICE) AS sumPrice
     FROM ORDERS O
     JOIN CUSTOMERS C ON C.CUST = O.CUST
-    WHERE O.CURDATE = @today AND (${orClause})
+    WHERE O.CURDATE = @today AND O.ORDSTATUS <> -6 AND (${orClause})
     GROUP BY O.AGENT
   `;
   const byAgentResult = await byAgentReq.query(byAgentQuery);
@@ -246,7 +251,7 @@ async function dayClosingSellout(dbName, dateStr, custIds, agentCode, skuList) {
     JOIN CUSTOMERS C ON C.CUST = O.CUST
     JOIN ORDERITEMS OI ON OI.ORD = O.ORD
     JOIN PART P ON P.PART = OI.PART
-    WHERE O.CURDATE = @today AND (${orClause}) AND P.PARTNAME IN (${skuInList})
+    WHERE O.CURDATE = @today AND O.ORDSTATUS <> -6 AND (${orClause}) AND P.PARTNAME IN (${skuInList})
     GROUP BY P.PARTNAME, P.PARTDES
   `);
   const bySku = new Map(result.recordset.map(r => [String(r.sku), { name: String(r.name || ''), qty: Number(r.sumQuant) / 1000 }]));
@@ -273,7 +278,7 @@ async function dayClosingByAgentAll(dbName, dateStr) {
       SELECT (SELECT AGENTCODE FROM AGENTS WHERE AGENT = O.AGENT) AS agentCode,
         COUNT(DISTINCT O.CUST) AS custCount, SUM(O.DISPRICE) AS sumPrice
       FROM ORDERS O
-      WHERE O.CURDATE = @today
+      WHERE O.CURDATE = @today AND O.ORDSTATUS <> -6
       GROUP BY O.AGENT
     `);
     return result.recordset
@@ -307,7 +312,7 @@ async function dayClosingOrdersToday(dbName, dateStr) {
         (SELECT AGENTCODE FROM AGENTS WHERE AGENT = O.AGENT) AS enteringAgentCode
       FROM ORDERS O
       JOIN CUSTOMERS C ON C.CUST = O.CUST
-      WHERE O.CURDATE = @today
+      WHERE O.CURDATE = @today AND O.ORDSTATUS <> -6
     `);
     return result.recordset.map(r => ({
       custId: String(r.custId),
