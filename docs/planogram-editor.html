@@ -3390,13 +3390,14 @@ function buildOrderPage() {
     const chipDef     = 'font-size:15px;padding:7px 22px;border-radius:22px;cursor:pointer;font-weight:700;border:2px solid #BBDEFB;background:#fff;color:#1565C0;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.13),0 1px 3px rgba(21,101,192,.08);letter-spacing:.01em;';
     const chipZeroAct = 'font-size:15px;padding:7px 22px;border-radius:22px;cursor:pointer;font-weight:800;border:2px solid #bf360c;background:#e65100;color:#fff;white-space:nowrap;box-shadow:0 4px 18px rgba(230,81,0,.55),0 0 0 3px rgba(230,81,0,.18),inset 0 1px 0 rgba(255,255,255,.2);letter-spacing:.01em;';
     const chipZeroDef = 'font-size:15px;padding:7px 22px;border-radius:22px;cursor:pointer;font-weight:700;border:2px solid #BBDEFB;background:#fff;color:#1565C0;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.13);letter-spacing:.01em;';
+    const chipMuteAct = 'font-size:15px;padding:7px 22px;border-radius:22px;cursor:pointer;font-weight:800;border:2px solid #37474F;background:#607D8B;color:#fff;white-space:nowrap;box-shadow:0 4px 18px rgba(96,125,139,.45),0 0 0 3px rgba(96,125,139,.15),inset 0 1px 0 rgba(255,255,255,.2);letter-spacing:.01em;';
     const grpKeys = [...new Set(allRows.map(getGrp).filter(Boolean))].sort();
     famBtns.innerHTML =
       `<button class="ord-fam-btn" data-fam="" style="${window._orderFams.size === 0 ? chipAct : chipDef}">כולם</button>` +
       grpKeys.map(f => `<button class="ord-fam-btn" data-fam="${esc(f)}" style="${window._orderFams.has(f) ? chipAct : chipDef}">${esc(grpLabel(f))}</button>`).join('') +
       `<span style="width:1px;height:26px;background:#BBDEFB;margin:0 8px;align-self:center;display:inline-block;flex-shrink:0;"></span>` +
       `<button onclick="toggleOrderZero()" style="${window._orderZero ? chipZeroAct : chipZeroDef}">⚠ חסר במלאי${window._orderZero ? ' ✓' : ''}</button>` +
-      `<button onclick="toggleOrderHideNoSales6mo()" title="הסתר/הצג מוצרים ללא מכר אמיתי ב-3 חודשים אחרונים" style="${window._orderHideNoSales6mo ? chipZeroAct : chipZeroDef}">🚫 ללא מכר 3 חודשים${window._orderHideNoSales6mo ? ' ✓ מוסתר' : ''}</button>`;
+      `<button onclick="toggleOrderHideNoSales6mo()" title="הסתר/הצג מוצרים ללא מכר אמיתי ב-3 חודשים אחרונים" style="${window._orderHideNoSales6mo ? chipMuteAct : chipZeroDef}">🚫 ללא מכר 3 חודשים${window._orderHideNoSales6mo ? ' ✓ מוסתר' : ''}</button>`;
     famBtns.querySelectorAll('.ord-fam-btn').forEach(btn => btn.addEventListener('click', () => setOrderFam(btn.dataset.fam)));
   }
 
