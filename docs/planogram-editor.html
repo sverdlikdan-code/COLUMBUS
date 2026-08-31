@@ -1671,14 +1671,27 @@ async function loadMaps() {
     if (ri && ri.label) {
       document.getElementById('refresh-badge').textContent = '🔄 ' + ri.label;
     }
-    // Stale data banner — show if PBI refresh > 36 hours ago
-    function _checkStaleBanner(isoStr) {
+    // Stale data banner — dateOnly=false: real build timestamp, hour-based (>36h). dateOnly=true: latestSaleDate
+    // has day granularity only (always 00:00) — compare by calendar day, not raw hours, or "yesterday's sales
+    // not synced yet" false-triggers every afternoon.
+    function _checkStaleBanner(isoStr, dateOnly) {
       if (!isoStr) return;
-      const ageH = (Date.now() - new Date(isoStr).getTime()) / 3600000;
       const banner = document.getElementById('stale-banner');
       if (!banner) return;
-      if (ageH > 36) {
-        document.getElementById('stale-banner-date').textContent = ri?.label || isoStr;
+      const d = new Date(isoStr);
+      let stale;
+      if (dateOnly) {
+        const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
+        const startOfD = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        const daysDiff = Math.floor((startOfToday - startOfD) / 86400000);
+        stale = daysDiff >= 2; // 1 day behind = today's sales not synced yet (normal); 2+ = actually stale
+      } else {
+        stale = (Date.now() - d.getTime()) / 3600000 > 36;
+      }
+      if (stale) {
+        const label = d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' })
+          + (dateOnly ? '' : ' ' + d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }));
+        document.getElementById('stale-banner-date').textContent = label;
         banner.style.display = 'block';
       } else {
         banner.style.display = 'none';
@@ -1701,7 +1714,7 @@ async function loadMaps() {
         if (ordBadge) ordBadge.textContent = '🔄 PBI ' + label;
         const spPbi = document.getElementById('splash-pbi-date');
         if (spPbi) spPbi.textContent = '🔄 PBI: ' + label;
-        _checkStaleBanner(j.refreshedAt);
+        _checkStaleBanner(j.refreshedAt, true);
       });
 
     // Persist reset state so ALL users see fresh layout without manual איפוס
