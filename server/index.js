@@ -4877,7 +4877,7 @@ app.get('/api/team-order-stats', requireAuth, dataRateLimit, async (req, res) =>
 // "סגירת יום" (day close) — fixed sellout makat list, set directly in code (not
 // agent-selected/persisted — user explicitly simplified this 2026-08-26). Update
 // this array when the tracked SKUs change; no UI for it yet.
-const DAY_CLOSING_SELLOUT_SKUS = ['721', '724', '413000', '413001', '413002', '403004', '403006'];
+const DAY_CLOSING_SELLOUT_SKUS = ['413000', '413001', '413002', '413500', '413501', '413502', '403004', '403006'];
 
 // Same product-photo source as zikuy-order.html's fetchPhotosRet() (KARTIS
 // PARIT[URL תמונה] via DAX) — not a guessed priority.dilerbmd.com/priimages/
