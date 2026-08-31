@@ -7,13 +7,15 @@ on:
       - 'planogram/**'
       - '.github/workflows/planogram-build.yml'
   schedule:
-    # 06:00 Israel (UTC+3) = 03:00 UTC
-    - cron: '0 3 * * *'
-    # Дневные запуски каждые 2ч: 08:00/10:00/12:00/14:00 Israel = 05:00/07:00/09:00/11:00 UTC
-    # 11:00 UTC = 14:00 Israel — ловит PBI refresh 13:46
-    - cron: '0 5,7,9,11 * * *'
-    # 16:00–23:00 Israel = 13:00–20:00 UTC — каждый час вечером
-    - cron: '0 13,14,15,16,17,18,19,20 * * *'
+    # Минуты сдвинуты с :00 2026-08-31 — см. yedaim-build.yml: top-of-hour
+    # был причиной перегрузки GitHub Actions scheduler для всего репо.
+    # ~06:21 Israel (UTC+3) = 03:21 UTC
+    - cron: '21 3 * * *'
+    # Дневные запуски каждые 2ч: ~08:21/10:21/12:21/14:21 Israel = 05:21/07:21/09:21/11:21 UTC
+    # 11:21 UTC ~= 14:21 Israel — ловит PBI refresh 13:46
+    - cron: '21 5,7,9,11 * * *'
+    # 16:21–23:21 Israel = 13:21–20:21 UTC — каждый час вечером
+    - cron: '21 13,14,15,16,17,18,19,20 * * *'
   workflow_dispatch:
 
 jobs:

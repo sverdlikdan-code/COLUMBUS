@@ -2,20 +2,22 @@ name: MMD Orders Build
 
 on:
   schedule:
-    # 07:00 Israel (UTC+3) = 04:00 UTC
-    - cron: '0 4 * * *'
-    # 13:00 Israel (UTC+3) = 10:00 UTC
-    - cron: '0 10 * * *'
+    # Минуты сдвинуты с :00 2026-08-31 — см. yedaim-build.yml: top-of-hour
+    # был причиной перегрузки GitHub Actions scheduler для всего репо.
+    # ~07:12 Israel (UTC+3) = 04:12 UTC
+    - cron: '12 4 * * *'
+    # ~13:22 Israel (UTC+3) = 10:22 UTC
+    - cron: '22 10 * * *'
     # 14:10 Israel (UTC+3) = 11:10 UTC
     - cron: '10 11 * * *'
-    # 15:00 Israel (UTC+3) = 12:00 UTC
-    - cron: '0 12 * * *'
-    # 16:00 Israel (UTC+3) = 13:00 UTC
-    - cron: '0 13 * * *'
-    # 18:00 Israel (UTC+3) = 15:00 UTC
-    - cron: '0 15 * * *'
-    # 19:00 Israel (UTC+3) = 16:00 UTC
-    - cron: '0 16 * * *'
+    # ~15:32 Israel (UTC+3) = 12:32 UTC
+    - cron: '32 12 * * *'
+    # ~16:42 Israel (UTC+3) = 13:42 UTC
+    - cron: '42 13 * * *'
+    # ~18:52 Israel (UTC+3) = 15:52 UTC
+    - cron: '52 15 * * *'
+    # ~19:17 Israel (UTC+3) = 16:17 UTC
+    - cron: '17 16 * * *'
   workflow_dispatch:
 
 jobs:

@@ -2,12 +2,14 @@ name: Yedaim Build
 
 on:
   schedule:
-    # 07:00 Israel (UTC+3 summer) = 04:00 UTC. Was 05:30 Israel — moved later
-    # 2026-08-25 after confirming live that the FORMULA DASHBORD PBI dataset's
-    # own scheduled refresh didn't finish until 06:17 Israel that day, so the
-    # 05:30 run was screenshotting yesterday's numbers. This leaves ~40min
-    # margin after a typical refresh completion, not just the observed one.
-    - cron: '0 4 * * *'
+    # ~07:07 Israel (UTC+3 summer) = 04:07 UTC. Was 04:00 UTC exactly — moved
+    # off the top of the hour 2026-08-31 after bug-agent traced 3 nights of
+    # "cron didn't fire" (27/28/31.08) to repo-wide GitHub Actions scheduler
+    # overload, confirmed by planogram-build.yml (13 non-:00 slots/day) and
+    # health-monitor.yml (*/5min) collapsing on the exact same dates — not a
+    # collision with mmd-orders-build.yml's own 0 4 slot as first suspected.
+    # GitHub docs: top-of-hour is documented peak load for scheduled events.
+    - cron: '7 4 * * *'
   workflow_dispatch:
 
 jobs:
