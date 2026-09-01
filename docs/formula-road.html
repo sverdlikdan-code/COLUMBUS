@@ -2143,13 +2143,41 @@ function startTeamStatsPolling(){
   _refreshTeamStats();
   _teamStatsTimer=setInterval(_refreshTeamStats,75000);
 }
+// Israel calendar date of the last CONFIRMED (successful, ok:true) tile update — mirrors
+// server's todayIsraelDate(). Bug found live 2026-09-01: NATALYA group's tile kept showing
+// agent 129's real order count from the PREVIOUS day because that device's poll hadn't
+// succeeded since before midnight — the "leave stale numbers on a hiccup" rule below never
+// distinguished "just a network blip" from "this number is from yesterday". Once the local
+// day has visibly moved on, blank the tiles immediately instead of waiting on the fetch.
+let _teamStatsDay=null;
+function _todayIsraelDate(){ return new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Jerusalem'}); }
+function _clearTeamStatsTiles(){
+  if(st.step==='manager'){
+    DEMO_MANAGERS.forEach(m=>{
+      const el=document.getElementById('mc-stats-'+m);
+      if(el) el.innerHTML='';
+      const ring=document.getElementById('mc-ring-'+m);
+      if(ring) ring.style.strokeDashoffset=175.93;
+    });
+  }else if(st.step==='agent'){
+    (st._agents||[]).forEach(a=>{
+      const el=document.getElementById('cnt-'+a.agentCode);
+      if(el) el.innerHTML='';
+    });
+    const teamEl=document.getElementById('agent-list-team-banner');
+    if(teamEl) teamEl.style.display='none';
+  }
+}
 async function _refreshTeamStats(){
+  const nowDay=_todayIsraelDate();
+  if(_teamStatsDay!==null && _teamStatsDay!==nowDay) _clearTeamStatsTiles();
   let d;
   try{
     const r=await apiFetch(`${API}/api/team-order-stats`);
     d=await r.json();
-  }catch(e){ return; } // hiccup — leave whatever numbers are already on screen
+  }catch(e){ return; } // hiccup — leave whatever numbers are already on screen (already blanked above if the day rolled over)
   if(!d?.ok) return;
+  _teamStatsDay=nowDay;
   if(st.step==='manager'){
     DEMO_MANAGERS.forEach(m=>{
       const el=document.getElementById('mc-stats-'+m);
