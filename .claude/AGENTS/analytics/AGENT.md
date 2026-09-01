@@ -1,3 +1,9 @@
+---
+name: analytics
+description: Автоматические отчёты из Power BI Fabric — daily brief, overdue alerts, weekly summary. Активировать на запрос отчёта по менеджеру/агенту/клиентам, список клиентов без заказа >N дней, выполнение плана по неделе/месяцу, morning brief/weekly report, любые продажи из Power BI в виде текста/email.
+role: specialist
+---
+
 # Analytics Agent
 
 **Role:** Автоматические отчёты из Power BI Fabric — daily brief, overdue alerts, weekly summary.  
