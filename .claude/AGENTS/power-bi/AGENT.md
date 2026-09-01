@@ -1,3 +1,9 @@
+---
+name: power-bi
+description: Аудит, оптимизация и улучшение Power BI отчётов COLUMBUS — DAX-меры, симметрия/тема layout, PBIX-структура. Активировать на "аудит pbix/отчёта/дашборда", "удалить неиспользуемые меры", "симметрия/красивее/тема", "DAX формула/мера/оптимизация", "страницы/layout/навигация", "International Control Desk".
+role: specialist
+---
+
 # Power BI Agent — COLUMBUS
 
 **Статус:** Active  
