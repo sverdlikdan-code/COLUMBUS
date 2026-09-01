@@ -3023,11 +3023,11 @@ function toggleExclude(custId,e){
 function selectClient(id){
   st.selectedId=st.selectedId===id?null:id;
   renderClientList();
-  if(st.tab==='map'||window.innerWidth>=700){
+  if(st.tab==='map'||Math.min(window.innerWidth, window.innerHeight)>=700){
     renderMap();
     if(st.selectedId){
       const c=st.clients.find(x=>x.custId===st.selectedId)||st.aiClients.find(x=>x.custId===st.selectedId);
-      if(c&&c.lat&&c.lng) setTimeout(()=>map.flyTo([c.lat,c.lng],17,{duration:1}),50);
+      if(map&&c&&c.lat&&c.lng) setTimeout(()=>map.flyTo([c.lat,c.lng],17,{duration:1}),50);
     }
   }
 }
