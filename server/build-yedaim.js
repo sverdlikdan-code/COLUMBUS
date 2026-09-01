@@ -24,6 +24,20 @@ const OUT_DIR = path.join(__dirname, 'data');
 const VIEWPORT = { width: 1900, height: 1150 };
 const TRIAL_BANNER_HEIGHT = 38;
 
+// The "יעדים" page has its own Month/Year slicers (DIMCALENDAR[Month Name] /
+// DIMCALENDAR[Year] — confirmed via Report/definition/pages/.../visuals JSON,
+// ordinary advancedSlicerVisual bound to real model columns, not a bookmark
+// or field parameter) whose selection is just whatever was last saved in the
+// report in PBI Service — never today's month. Compute the real current
+// month/year on Israel time so every daily run pins the slicer itself,
+// instead of relying on someone re-saving the report state by hand.
+function currentIsraelMonthYear() {
+  const now = new Date();
+  const monthName = now.toLocaleString('en-US', { month: 'long', timeZone: 'Asia/Jerusalem' });
+  const year = Number(now.toLocaleString('en-US', { year: 'numeric', timeZone: 'Asia/Jerusalem' }));
+  return { monthName, year };
+}
+
 async function generateEmbedToken(aadToken, workspaceId) {
   const res = await fetch(`https://api.powerbi.com/v1.0/myorg/groups/${workspaceId}/reports/${REPORT_ID}/GenerateToken`, {
     method: 'POST',
@@ -35,7 +49,7 @@ async function generateEmbedToken(aadToken, workspaceId) {
   return data.token;
 }
 
-function harnessHtml({ embedUrl, embedToken, reportId, pageName, firstTeam }) {
+function harnessHtml({ embedUrl, embedToken, reportId, pageName, firstTeam, monthName, year }) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>html,body{margin:0;padding:0;background:#fff;overflow:hidden;} #report{width:${VIEWPORT.width}px;height:${VIEWPORT.height}px;}</style>
 <script src="https://cdn.jsdelivr.net/npm/powerbi-client@2.23.1/dist/powerbi.min.js"></script>
@@ -66,6 +80,30 @@ function teamFilters(team) {
     }
   ];
 }
+// Pins the page's own Month/Year slicers (DIMCALENDAR[Month Name] text like
+// "September", DIMCALENDAR[Year] numeric like 2026) to today's Israel date —
+// see currentIsraelMonthYear() in the Node half of this file for why.
+const MONTH_NAME = ${JSON.stringify(monthName)};
+const YEAR = ${JSON.stringify(year)};
+function monthFilters() {
+  return [
+    {
+      $schema: "http://powerbi.com/product/schema#basic",
+      target: { table: "DIMCALENDAR", column: "Month Name" },
+      operator: "In",
+      values: [MONTH_NAME]
+    },
+    {
+      $schema: "http://powerbi.com/product/schema#basic",
+      target: { table: "DIMCALENDAR", column: "Year" },
+      operator: "In",
+      values: [YEAR]
+    }
+  ];
+}
+function allFilters(team) {
+  return [...teamFilters(team), ...monthFilters()];
+}
 const config = {
   type: 'report',
   tokenType: models.TokenType.Embed,
@@ -73,7 +111,7 @@ const config = {
   embedUrl: ${JSON.stringify(embedUrl)},
   id: ${JSON.stringify(reportId)},
   pageName: ${JSON.stringify(pageName)},
-  filters: teamFilters(${JSON.stringify(firstTeam)}),
+  filters: allFilters(${JSON.stringify(firstTeam)}),
   settings: {
     panes: { filters: { visible: false }, pageNavigation: { visible: false } },
     navContentPaneEnabled: false,
@@ -85,7 +123,7 @@ report.on('rendered', () => { window.__ready = true; });
 report.on('error', (e) => { window.__error = JSON.stringify(e.detail); });
 window.__setTeamFilter = async (team) => {
   window.__ready = false;
-  await report.setFilters(teamFilters(team));
+  await report.setFilters(allFilters(team));
 };
 </script>
 </body></html>`;
@@ -114,7 +152,9 @@ async function waitReady(page, timeoutMs = 45000) {
   const page = await browser.newPage();
   await page.setViewport(VIEWPORT);
 
-  const html = harnessHtml({ embedUrl, embedToken, reportId: REPORT_ID, pageName: PAGE_NAME, firstTeam: TEAMS[0].name });
+  const { monthName, year } = currentIsraelMonthYear();
+  console.log(`Pinning month/year slicer to ${monthName} ${year} (Asia/Jerusalem).`);
+  const html = harnessHtml({ embedUrl, embedToken, reportId: REPORT_ID, pageName: PAGE_NAME, firstTeam: TEAMS[0].name, monthName, year });
   await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
   console.log('Waiting for initial render...');
   await waitReady(page, 60000);
