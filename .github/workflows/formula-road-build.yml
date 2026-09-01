@@ -79,8 +79,10 @@ jobs:
             set -e
             flock /root/COLUMBUS/.deploy.lock -c "
               cd /root/COLUMBUS &&
+              cp -f docs/gps-corrections.json /tmp/gps-corrections-live.json 2>/dev/null || true &&
               git fetch origin master &&
               git reset --hard origin/master &&
+              cp -f /tmp/gps-corrections-live.json docs/gps-corrections.json 2>/dev/null || true &&
               pm2 restart columbus-api
             "
           '
