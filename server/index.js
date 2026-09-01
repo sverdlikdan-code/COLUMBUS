@@ -1966,32 +1966,6 @@ app.post('/api/export-route-xlsx', requireAuth, dataRateLimit, async (req, res) 
   res.end();
 });
 
-// Push gps-corrections.json to GitHub so GitHub Actions build picks it up
-async function pushGpsToGithub(content) {
-  const token = process.env.GITHUB_TOKEN;
-  if (!token) return;
-  const owner = 'sverdlikdan-code';
-  const repo  = 'COLUMBUS';
-  const filePath = 'docs/gps-corrections.json';
-  const apiBase = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
-  const headers = {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json',
-    'Accept': 'application/vnd.github+json',
-  };
-  // Get current SHA
-  const getRes = await fetch(apiBase, { headers });
-  const getJson = await getRes.json();
-  const sha = getJson.sha;
-  const body = JSON.stringify({
-    message: `chore(gps): update correction for ${new Date().toISOString().slice(0,10)}`,
-    content: Buffer.from(content, 'utf8').toString('base64'),
-    sha,
-    committer: { name: 'COLUMBUS Bot', email: 'columbus-bot@diler.co.il' },
-  });
-  await fetch(apiBase, { method: 'PUT', headers, body });
-}
-
 // Save GPS correction — shared across all users via gps-corrections.json
 app.post('/save-gps', requireAuth, dataRateLimit, async (req, res) => {
   try {
@@ -2009,8 +1983,6 @@ app.post('/save-gps', requireAuth, dataRateLimit, async (req, res) => {
     // Audit log
     writeLog({ ts: new Date().toISOString(), event: 'gps-correction', custId: String(custId),
       agentCode: req.session?.agentCode || null, ip: getRealIp(req) });
-    // Push to GitHub so next build picks up the correction
-    pushGpsToGithub(json).catch(e => console.error('GitHub push failed:', e.message));
     res.json({ ok: true, total: Object.keys(current).length });
   } catch (err) {
     console.error(err); res.status(500).json({ error: 'server_error' });
@@ -2212,7 +2184,6 @@ app.post('/api/gps-sync-clean', requireAuth, (req, res) => {
     const json = JSON.stringify(corrections, null, 2);
     fs.writeFileSync(filePath, json, 'utf8');
     writeLog({ ts: new Date().toISOString(), event: 'gps-sync-clean', removed, ip: getRealIp(req) });
-    pushGpsToGithub(json).catch(e => console.error('GitHub push failed:', e.message));
     res.json({ ok: true, removed: removed.length, remaining: Object.keys(corrections).length });
   } catch (err) {
     console.error(err); res.status(500).json({ error: 'server_error' });
@@ -2273,7 +2244,6 @@ app.post('/api/gps/restore-version', requireAuth, (req, res) => {
     const correctionsPath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
     const json = JSON.stringify(v.corrections, null, 2);
     fs.writeFileSync(correctionsPath, json, 'utf8');
-    pushGpsToGithub(json).catch(e => console.error('GitHub push failed:', e.message));
     // Restore overrides if present
     if (v.overrides && Object.keys(v.overrides).length) {
       fs.writeFileSync(OVERRIDES_FILE, JSON.stringify(v.overrides, null, 2), 'utf8');
