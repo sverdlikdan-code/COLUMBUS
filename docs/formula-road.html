@@ -169,7 +169,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
    styles below, and _renderFormulaBanner() in the JS. */
 .sort-toggle{
   position:relative;display:flex;align-items:center;gap:6px;flex-shrink:0;
-  padding:4px 6px;border-radius:12px;min-width:91px;justify-content:center;
+  padding:4px 6px;border-radius:12px;min-width:91px;
   background:var(--sky-light);border:1.5px solid var(--sky-mid);
 }
 /* min-width:91px — fixes a real layout bug found live with REAL progress
@@ -190,14 +190,42 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
    supposed to be never actually applied; ring+numbers were silently
    stacking as two block rows instead of sitting side by side, which read
    as "asymmetric"/"crooked" once real numbers made the mis-stacking
-   obvious. Fixed directly in the HTML (class added). */
+   obvious. Fixed directly in the HTML (class added).
+   NOTE: no justify-content here (deliberately removed 2026-09-02, 4th live
+   report same day) — see the .sort-btn comment right below for why. */
 .sort-toggle .sort-btn{
-  position:absolute;top:0;bottom:0;width:50%;height:100%;
+  position:absolute;top:0;bottom:0;height:100%;
   border:none!important;background:transparent!important;box-shadow:none!important;
   padding:0;margin:0;border-radius:0!important;cursor:pointer;z-index:2;
 }
-.sort-toggle #sort-btn-priority{right:0;}
-.sort-toggle #sort-btn-ai-google{left:0;}
+/* Real live bug (2026-09-02, 4th report): tapping the AI side of the visual
+   switch often did nothing — only tapping the TEXT LABEL reliably worked.
+   Root cause, confirmed by measuring rendered rects, not guessed: the
+   previous pass added .sort-toggle{justify-content:center} so the min-width
+   floor above wouldn't visually squash the track+label group to one side —
+   but centering means the group's position SHIFTS with the label's width,
+   which differs by state ("AI" ~10px vs "הגרסה שלי" ~50px). The two hit-zone
+   buttons below, meanwhile, still split .sort-toggle's OUTER box 50/50 at a
+   FIXED midpoint that never moved. Net effect: in "priority" state the
+   entire visual track ends up sitting fully inside the priority half — the
+   AI half was only reachable by tapping into the label text/blank space
+   left of the track, never the track itself. Fix: track is no longer part
+   of a centered, variably-positioned group — .sort-toggle now uses the
+   default packing (flex-start doubling as visual-content-hugs-the-track's-
+   own edge in this RTL layout, see .toggle-visual below), so the track sits
+   at a FIXED offset from .sort-toggle's own edge in every state. The two
+   hit-zone buttons are pinned to that same fixed offset (padding + half the
+   track's own width, in px, matching the 28px/16px→ or 34/16px track at
+   each breakpoint) instead of an arbitrary 50%, so the zone boundary now
+   always falls exactly on the track's own midline — tapping ANYWHERE on the
+   capsule (both track halves, thumb included, plus the label) hits the side
+   it visually looks like it should, like a normal iOS switch. #sort-btn-ai-
+   google uses left+right (not a width) so it still stretches to cover any
+   extra remaining space — including the wider toggle-only banner context,
+   where nothing here changes since that context's own hit zones were never
+   the ones reported broken. */
+.sort-toggle #sort-btn-priority{right:0;width:23px;}
+.sort-toggle #sort-btn-ai-google{left:0;right:23px;}
 .toggle-visual{position:relative;display:flex;align-items:center;gap:6px;pointer-events:none;z-index:1;}
 .toggle-track{
   --thumb-x:0px;
@@ -690,6 +718,11 @@ body.map-hidden #tab-map,body.map-hidden #tab-inline-map{display:none!important;
   .toggle-track{width:28px;height:14px;}
   .toggle-thumb{width:10px;height:10px;}
   .sort-toggle .sort-btn.active-priority~.toggle-visual .toggle-track{--thumb-x:14px;} /* 28-10-2*2px padding */
+  /* hit-zone boundary at this breakpoint: right-padding(5px) + half the 28px
+     track(14px) = 19px — must stay in sync with .toggle-track's width above,
+     see the #sort-btn-priority/-ai-google comment near .sort-toggle. */
+  .sort-toggle #sort-btn-priority{width:19px;}
+  .sort-toggle #sort-btn-ai-google{right:19px;}
   .sort-toggle-label{font-size:9px;} /* stays readable, just smaller — no longer hidden (2026-09-02) */
   .km-more-dd .mob-only{display:flex!important;}
   /* יעדים / Google Maps — lower-frequency toolbar actions, collapsed into
