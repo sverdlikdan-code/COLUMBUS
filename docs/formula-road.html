@@ -155,7 +155,14 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
    -ai-google) stay invisible left/right click zones under this artwork —
    every existing JS reference to them (setSort/toggleAiGps/toggleTabletGps/
    initRoute/recalcRoute) keeps working unchanged; only what's painted
-   changed (again). 2026-09-02. */
+   changed (again). 2026-09-02.
+   RELOCATED 2026-09-02 (same day, later request): no longer lives in the
+   km-row-top toolbar — moved into #formula-progress-banner (the sticky
+   progress card above the client list), to the left of the %-ring, per
+   explicit user decision after screenshot review. Markup/JS untouched
+   (still the same two real buttons + painted beam), only its DOM parent
+   changed — see the .fpb-content / .fpb-toggle-only rules near the banner
+   styles below, and _renderFormulaBanner() in the JS. */
 .sort-toggle{
   position:relative;display:flex;align-items:center;gap:6px;flex-shrink:0;
   padding:4px 6px;border-radius:12px;
@@ -168,7 +175,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 }
 .sort-toggle #sort-btn-priority{right:0;}
 .sort-toggle #sort-btn-ai-google{left:0;}
-.toggle-visual{position:relative;display:flex;align-items:center;pointer-events:none;z-index:1;}
+.toggle-visual{position:relative;display:flex;align-items:center;gap:6px;pointer-events:none;z-index:1;}
 .toggle-beam{
   --beam-rot:-9deg;
   display:flex;align-items:center;width:34px;height:16px;border-radius:8px;overflow:hidden;
@@ -187,14 +194,29 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .sort-toggle-label{
   color:var(--mid);font-size:11px;font-weight:800;white-space:nowrap;pointer-events:none;
 }
-.sort-toggle-label::before{content:'AI Google';}
+.sort-toggle-label::before{content:'AI';}
 .sort-toggle .sort-btn.active-priority~.sort-toggle-label::before{content:'הגרסה שלי';}
-/* Compact on phone — see the 699px breakpoint below: hides the text label
-   entirely, meaning must carry purely via lever angle + jewel glow there
-   (plus the toast/ringed-circles feedback elsewhere in the UI). Live
-   placement request 2026-09-02 (user screenshot, agent Konstantin, day ד) —
-   was previously hidden entirely on phone (moved into the ⋮ menu as plain
-   text); now shown compactly in the same row instead. */
+/* Text label kept ON at every width, including phone — the whole point of
+   this pass (live request 2026-09-02) was a readable state name, not just
+   color/tilt. "AI Google" shortened to plain "AI" here (still the same
+   ::before swap) purely so the label fits the banner's tight width next to
+   the ring+numbers; the button's own aria-label/title keep saying "AI
+   Google" in full. See the 699px breakpoint below for the phone-only
+   font-size trim (no longer a display:none).
+   Two label styles, one toggle, picked by context (live request 2026-09-02,
+   same day): next to the progress numbers (today, tight — .sort-toggle-label
+   above) only the ACTIVE side is named, to save width. Inside a toggle-only
+   banner (any other day, roomy — no ring/numbers competing for space) BOTH
+   sides get named at once instead, via the two .toggle-side-label spans
+   flanking the beam below — explicit "which side is which", not just
+   color/tilt, since a first-time glance has no active-state memory to lean
+   on. Switched by the .fpb-toggle-only ancestor class that
+   _renderFormulaBanner() already sets/clears — no separate component. */
+.toggle-side-label{display:none;font-size:10px;font-weight:800;color:var(--mid);white-space:nowrap;pointer-events:none;}
+.fpb-toggle-only .sort-toggle-label{display:none;}
+.fpb-toggle-only .toggle-side-label{display:inline-block;}
+.sort-toggle .sort-btn.active-priority~.toggle-visual .side-label-priority{color:var(--blue);}
+.sort-toggle .sort-btn.active-ai-google~.toggle-visual .side-label-ai{color:#7B1FA2;}
 .day-switch{display:flex;gap:4px;flex-shrink:0;}
 .day-sw-btn{width:44px;height:44px;border-radius:12px;background:var(--sky-light);border:2px solid var(--sky-mid);font-size:19px;font-weight:900;color:var(--blue-dark);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;box-shadow:0 1px 4px rgba(21,101,192,.10);}
 .day-sw-btn:hover{background:var(--sky-mid);transform:translateY(-1px);}
@@ -222,8 +244,21 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
    Live request 2026-08-28: agent count + ₪ + % of today's FORMULA line that
    already ordered, always visible, "modern and bold". ICE-only clients (see
    c.iceOnly) never count toward either the numerator or denominator — this
-   is a FORMULA-specific metric by explicit request. */
+   is a FORMULA-specific metric by explicit request.
+   2026-09-02: also hosts the AI/"הגרסה שלי" sort-toggle now (moved in from
+   the toolbar, see .sort-toggle comment above) — #fpb-content wraps the
+   ring+numbers piece so the static toggle markup can sit beside it as a
+   sibling without getting wiped out by _renderFormulaBanner()'s innerHTML
+   writes (only #fpb-content's innerHTML is replaced, never the banner
+   root). The card itself is ALWAYS shown now (never display:none) once
+   initRoute has run: on the agent's own today it holds progress+toggle; on
+   any other day, or today with zero scheduled clients (denom=0, nothing to
+   divide), there is no progress data to show at all — not "0 מתוך 0", it's
+   simply absent — so the card shrinks to just the toggle, centered via
+   .fpb-toggle-only. See _renderFormulaBanner() in JS for the branch. */
 .fpb{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;background:#fff;border-radius:14px;padding:10px 16px;margin:2px 2px 10px;box-shadow:0 4px 14px rgba(0,0,0,.1);}
+.fpb-content{display:flex;align-items:center;gap:12px;flex:1;min-width:0;}
+.fpb.fpb-toggle-only{justify-content:center;}
 /* Team-total variant of the same banner, on the manager's "בחר סוכן" screen
    (not inside #list-pane, so no sticky-scroll behavior needed there). */
 .fpb-static{position:static;}
@@ -604,9 +639,7 @@ body.map-hidden #tab-map,body.map-hidden #tab-inline-map{display:none!important;
 .km-more-btn{min-width:32px;padding:6px 9px;font-size:19px;font-weight:900;letter-spacing:0;line-height:1;}
 /* right:0 (not left:0) — the "⋮" trigger sits near the row's right edge in this
    RTL toolbar; anchoring the dropdown's right edge instead of its left one makes
-   it grow back onto the screen instead of off the right edge. Became load-bearing
-   2026-08-24 once the sort-toggle moved in here on phones (previously only held
-   lower-priority items like print/export, an off-screen menu went unnoticed). */
+   it grow back onto the screen instead of off the right edge. */
 .km-more-dd{display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:200px;background:#fff;border-radius:14px;box-shadow:0 6px 24px rgba(26,63,124,.2);border:1px solid var(--sky-mid);z-index:9999;overflow:hidden;}
 .km-more-dd.open{display:block;}
 .km-more-item{display:flex!important;width:100%;text-align:right;padding:11px 16px;border:none;background:none;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;gap:8px;align-items:center;direction:rtl;white-space:nowrap;}
@@ -618,15 +651,14 @@ body.map-hidden #tab-map,body.map-hidden #tab-inline-map{display:none!important;
 .km-more-dd .gps-hist-dd{position:static;box-shadow:none;border:none;border-radius:0;max-height:200px;}
 /* יעדים / Google Maps / History duplicates inside the "⋮" menu — those three
    get collapsed off row 1 on phones (.mob-collapse below), so they're
-   duplicated here instead. The sort-toggle itself used to have its own pair
-   of duplicates here too (removed 2026-09-02) — it's shown directly in row 1
-   on phone now instead (compact, no text label — see .sort-toggle-label
-   below), so a separate menu path for it was redundant. */
+   duplicated here instead. The sort-toggle no longer lives in this toolbar
+   at all (moved into #formula-progress-banner, 2026-09-02) so it never
+   needed a menu duplicate here. */
 .km-more-dd .mob-only{display:none!important;}
 @media(max-width:699px){
   .sort-toggle{padding:3px 5px;gap:0;}
   .toggle-beam{width:28px;height:14px;}
-  .sort-toggle-label{display:none;}
+  .sort-toggle-label{font-size:9px;} /* stays readable, just smaller — no longer hidden (2026-09-02) */
   .km-more-dd .mob-only{display:flex!important;}
   /* יעדים / Google Maps — lower-frequency toolbar actions, collapsed into
      the ⋮ menu on phone (duplicated there via .mob-only above) so row 1
@@ -873,21 +905,13 @@ body.gps-fs #map{height:100%!important;}
     <div class="km-row-top">
       <div class="day-switch" id="day-switch"></div>
       <div class="sort-btns">
-        <div class="sort-toggle">
-          <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')" aria-label="הגרסה שלי" title="הגרסה שלי"></button>
-          <button class="sort-btn active-ai-google" id="sort-btn-ai-google" onclick="toggleAiGps()" aria-label="AI Google" title="AI Google"></button>
-          <!-- RTL flex: first DOM child renders on the visual RIGHT (matching
-               #sort-btn-priority{right:0} above), so half-priority comes
-               first here to line up over its own click zone. -->
-          <span class="toggle-visual" aria-hidden="true">
-            <span class="toggle-beam">
-              <span class="toggle-beam-half half-priority"></span>
-              <span class="toggle-beam-half half-ai"></span>
-            </span>
-            <span class="toggle-pivot"></span>
-          </span>
-          <span class="sort-toggle-label" aria-hidden="true"></span>
-        </div>
+        <!-- The AI/"הגרסה שלי" sort-toggle used to live here (a .sort-toggle
+             div, first child of this row) — moved into #formula-progress-banner
+             on 2026-09-02 per explicit user decision, see the CSS comment on
+             .fpb above and _renderFormulaBanner() in JS. Its two real buttons
+             (sort-btn-priority/-ai-google) and every setSort/toggleAiGps/
+             toggleTabletGps/initRoute reference to them are unchanged — only
+             the DOM parent moved. -->
         <button class="sort-btn primary-action" id="day-briefing-btn" onclick="openDayBriefing()" title="ניתוח יום — TOP 10 לקוחות">📊 ניתוח</button>
         <button class="sort-btn mob-collapse" id="yedaim-btn" onclick="openYedaim()" title="יעדים — סטטוס הקבוצה">יעדים 🎩</button>
         <button class="sort-btn mob-collapse" id="gmaps-btn" onclick="openGoogleMaps()" title="פתח מסלול ב-Google Maps">🗺 Google</button>
@@ -897,9 +921,10 @@ body.gps-fs #map{height:100%!important;}
           <button class="sort-btn km-more-btn icon-only" id="km-more-btn" onclick="toggleKmMore()" title="עוד פעולות">⋮</button>
           <div class="km-more-dd" id="km-more-dd">
             <!-- Phone-only duplicates of the collapsed row-1 actions (hidden
-                 ≤699px, see .mob-only media rule). The sort-toggle itself is
-                 shown directly in row 1 on phone now (compact icon-only), so
-                 it no longer needs a duplicate here — removed 2026-09-02. -->
+                 ≤699px, see .mob-only media rule). The sort-toggle isn't in
+                 this toolbar at all any more (moved into
+                 #formula-progress-banner, 2026-09-02), so it was never a
+                 candidate for a duplicate here. -->
             <button class="km-more-item mob-only" onclick="openYedaim();closeKmMore()">יעדים 🎩</button>
             <button class="km-more-item mob-only" onclick="openGoogleMaps();closeKmMore()">🗺 Google Maps</button>
             <button class="km-more-item mob-only" onclick="openBlankHistory();closeKmMore()">📜 היסטוריית בלנקים</button>
@@ -942,7 +967,31 @@ body.gps-fs #map{height:100%!important;}
   <div id="print-header"></div>
   <div id="route-body">
     <div id="list-pane">
-      <div id="formula-progress-banner" class="fpb" style="display:none"></div>
+      <div id="formula-progress-banner" class="fpb" style="display:none">
+        <div id="fpb-content"></div>
+        <div class="sort-toggle">
+          <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')" aria-label="הגרסה שלי" title="הגרסה שלי"></button>
+          <button class="sort-btn active-ai-google" id="sort-btn-ai-google" onclick="toggleAiGps()" aria-label="AI Google" title="AI Google"></button>
+          <!-- RTL flex: first DOM child renders on the visual RIGHT (matching
+               #sort-btn-priority{right:0} above), so half-priority (and its
+               own side-label) comes first here to line up over its own
+               click zone; half-ai/its label come last, on the left. The two
+               .toggle-side-label spans only ever show in the roomy
+               toggle-only banner context (see .fpb-toggle-only CSS) — the
+               tight today-with-numbers context uses .sort-toggle-label
+               instead (active side only, further below). -->
+          <span class="toggle-visual" aria-hidden="true">
+            <span class="toggle-side-label side-label-priority">הגרסה שלי</span>
+            <span class="toggle-beam">
+              <span class="toggle-beam-half half-priority"></span>
+              <span class="toggle-beam-half half-ai"></span>
+            </span>
+            <span class="toggle-side-label side-label-ai">AI</span>
+            <span class="toggle-pivot"></span>
+          </span>
+          <span class="sort-toggle-label" aria-hidden="true"></span>
+        </div>
+      </div>
       <div id="client-list"></div>
     </div>
     <div id="map-pane" style="position:relative">
@@ -2200,15 +2249,31 @@ function _fpbPieceHtml(numer, denom, sum){
       <div class="fpb-sub">₪${Math.round(sum).toLocaleString('he-IL')}</div>
     </div>`;
 }
+// The card is always shown (never display:none) once this has run at least
+// once — only its CONTENT toggles between "progress + sort-toggle" (today,
+// with a non-empty FORMULA line) and "sort-toggle only" (any other day, or
+// today with zero scheduled clients — there's no denom to divide, so no
+// fake "0 מתוך 0", the progress piece is just absent). #fpb-content is a
+// separate child from the static .sort-toggle sibling specifically so this
+// innerHTML write never touches (and never has to recreate) the toggle's
+// real buttons — see the .fpb CSS comment above.
 function _renderFormulaBanner(){
   const el = document.getElementById('formula-progress-banner');
-  if(!el) return;
-  if(st.day !== _todayRouteDay()){ el.style.display='none'; return; } // only meaningful for today's own route
-  const todayFormula = (st.clients||[]).filter(c => !st.excluded.has(c.custId) && !c.iceOnly);
-  const denom = todayFormula.length;
-  if(!denom){ el.style.display='none'; return; }
+  const content = document.getElementById('fpb-content');
+  if(!el || !content) return;
   el.style.display='flex';
-  el.innerHTML=_fpbPieceHtml(_fpbNumer, denom, _fpbSum);
+  const isToday = st.day === _todayRouteDay();
+  const todayFormula = isToday ? (st.clients||[]).filter(c => !st.excluded.has(c.custId) && !c.iceOnly) : [];
+  const denom = todayFormula.length;
+  if(isToday && denom){
+    el.classList.remove('fpb-toggle-only');
+    content.style.display='';
+    content.innerHTML=_fpbPieceHtml(_fpbNumer, denom, _fpbSum);
+  }else{
+    el.classList.add('fpb-toggle-only');
+    content.style.display='none';
+    content.innerHTML='';
+  }
 }
 
 // Compact FORMULA order-dynamics block for a dark manager tile (mgr-grid) —
@@ -2312,8 +2377,7 @@ async function _refreshTeamStats(){
 function startTodayOrdersPolling(myId){
   stopTodayOrdersPolling();
   if(st.day!==_todayRouteDay()){
-    const bEl=document.getElementById('formula-progress-banner');
-    if(bEl) bEl.style.display='none';
+    _renderFormulaBanner(); // not today — card stays visible, sort-toggle only (no progress data for another day)
     return; // only today's view can have "today" orders
   }
   _todayOrdersSeen=new Set(); // fresh day/agent view — don't replay the sound for already-open orders
