@@ -169,9 +169,28 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
    styles below, and _renderFormulaBanner() in the JS. */
 .sort-toggle{
   position:relative;display:flex;align-items:center;gap:6px;flex-shrink:0;
-  padding:4px 6px;border-radius:12px;
+  padding:4px 6px;border-radius:12px;min-width:91px;justify-content:center;
   background:var(--sky-light);border:1.5px solid var(--sky-mid);
 }
+/* min-width:91px — fixes a real layout bug found live with REAL progress
+   numbers (2026-09-02, third live report): in the tight "today" context the
+   single .sort-toggle-label swaps between "AI" (~2 chars) and "הגרסה שלי"
+   (~9 chars), so .sort-toggle's own natural width used to jump ~50px→~91px
+   between the two states. With short demo numbers (0%/₪0) that jump was
+   invisible; with real multi-digit numbers ("83%"/"₪32,303"/"15 מתוך 18")
+   the wider state squeezed #fpb-content enough to visibly clip the ₪ sum.
+   Pinning .sort-toggle to the WORST-CASE (longer-label) width, measured at
+   the 390px/phone breakpoint, means #fpb-content's available space is now
+   constant regardless of which side is active — no more state-dependent
+   layout shift. (91px only ever acts as a floor: the toggle-only banner
+   context, showing both side-labels at once, is naturally wider than this
+   already and is unaffected.) See .fpb-content CSS below for the OTHER,
+   larger bug fixed in the same pass — #fpb-content was missing its own
+   class="fpb-content" attribute in the markup, so the flex row it was
+   supposed to be never actually applied; ring+numbers were silently
+   stacking as two block rows instead of sitting side by side, which read
+   as "asymmetric"/"crooked" once real numbers made the mis-stacking
+   obvious. Fixed directly in the HTML (class added). */
 .sort-toggle .sort-btn{
   position:absolute;top:0;bottom:0;width:50%;height:100%;
   border:none!important;background:transparent!important;box-shadow:none!important;
@@ -275,9 +294,17 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .fpb-ring-fill{fill:none;stroke-width:4;stroke-linecap:round;transition:stroke-dashoffset .6s ease,stroke .3s ease;}
 .fpb-ring-text{font-size:11px;font-weight:900;font-family:inherit;}
 .fpb-info{flex:1;min-width:0;display:flex;align-items:baseline;gap:8px;flex-wrap:nowrap;overflow:hidden;}
-.fpb-main{font-size:18px;font-weight:900;color:var(--text);white-space:nowrap;}
+.fpb-main{font-size:18px;font-weight:900;color:var(--text);white-space:nowrap;flex-shrink:2;min-width:0;overflow:hidden;text-overflow:ellipsis;}
 .fpb-main .fpb-of{font-size:12px;font-weight:700;color:var(--mid);}
-.fpb-sub{font-size:14px;font-weight:800;color:#2E7D32;white-space:nowrap;}
+/* fpb-sub (the ₪ sum) never shrinks/ellipsizes — it's the number an agent
+   actually needs to read at a glance; if anything has to give room under a
+   tight real-data squeeze it's the longer, lower-priority "X מתוך Y הזמינו
+   היום" wording in .fpb-main (flex-shrink:2 above, so it gives up space
+   twice as readily), not the ₪ figure. Both still get an ellipsis/overflow
+   safety net (not a hard mid-glyph cut like the bug found live 2026-09-02 —
+   ₪ itself was getting chopped) in case a genuinely extreme real value ever
+   needs it despite the .sort-toggle min-width fix above. */
+.fpb-sub{font-size:14px;font-weight:800;color:#2E7D32;white-space:nowrap;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;}
 .city-chip{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #90CAF9;background:#F8FBFF;color:#1565C0;white-space:nowrap;flex:0 0 auto;display:flex;align-items:center;gap:5px;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,.08);}
 .city-chip:hover{background:#E3F2FD;border-color:#42A5F5;}
 .city-chip.on{background:#1565C0;color:#fff;border-color:#1565C0;box-shadow:0 2px 6px rgba(21,101,192,.3);}
@@ -973,7 +1000,7 @@ body.gps-fs #map{height:100%!important;}
   <div id="route-body">
     <div id="list-pane">
       <div id="formula-progress-banner" class="fpb" style="display:none">
-        <div id="fpb-content"></div>
+        <div id="fpb-content" class="fpb-content"></div>
         <div class="sort-toggle">
           <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')" aria-label="הגרסה שלי" title="הגרסה שלי"></button>
           <button class="sort-btn active-ai-google" id="sort-btn-ai-google" onclick="toggleAiGps()" aria-label="AI Google" title="AI Google"></button>
