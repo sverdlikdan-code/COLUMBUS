@@ -3372,29 +3372,17 @@ function detectAddrGps(){
     const lat=pos.coords.latitude, lng=pos.coords.longitude;
     status.textContent=`✅ ${lat.toFixed(5)}, ${lng.toFixed(5)} — שומר...`;
     const id=st.addrClientId;
-    // reverse geocode to get address string
-    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=he`)
-      .then(r=>r.json()).then(d=>{
-        const a=d?.address||{};
-        const addr=[a.road,a.house_number].filter(Boolean).join(' ')||d.display_name||`${lat.toFixed(5)},${lng.toFixed(5)}`;
-        const cl=st.clients.find(x=>x.custId===id)||{};
-        st.clients=st.clients.map(x=>x.custId===id?{...x,lat,lng,address:addr}:x);
-        st.aiClients=nearestNeighbor([...st.clients]);
-        triggerOsrm();
-        saveRoute(st.agent.code,st.day,st.clients);
-        updateKmBar(); renderClientList();
-        if(window.innerWidth>=700||st.tab==='map') renderMap();
-        closeAddrModal();
-      }).catch(()=>{
-        const cl=st.clients.find(x=>x.custId===id)||{};
-        st.clients=st.clients.map(x=>x.custId===id?{...x,lat,lng}:x);
-        st.aiClients=nearestNeighbor([...st.clients]);
-        triggerOsrm();
-        saveRoute(st.agent.code,st.day,st.clients);
-        updateKmBar(); renderClientList();
-        if(window.innerWidth>=700||st.tab==='map') renderMap();
-        closeAddrModal();
-      });
+    const custName=document.getElementById('addr-modal-title').textContent;
+    // Route through the same shared save path as the map-click and tablet-review
+    // GPS corrections (saveGpsCorrection -> /save-gps -> gps-corrections.json).
+    // This used to mutate st.clients directly and call saveRoute() instead —
+    // never reached the server's GPS-correction store at all, and never set
+    // gpsSource:'correction', so the very next triggerOsrm() call (inside
+    // saveGpsCorrection now, guarded) used to get silently replaced by AI Google
+    // coordinates. Live bug 2026-09-02, confirmed via gps-corrections.json/
+    // access-log on VPS: zero gps-correction events ever logged from this button.
+    saveGpsCorrection(id,custName,lat,lng);
+    closeAddrModal();
   },err=>{
     btn.disabled=false;
     status.textContent=err.code===1?'❌ GPS חסום — אפשר גישה למיקום':'❌ שגיאת GPS';
