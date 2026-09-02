@@ -1,0 +1,467 @@
+<!doctype html>
+<title>Три пути для заказов</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,800;0,900;1,700;1,900&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg:         #0f172a;
+  --bg-card:    #1e2540;
+  --amber:      #f59e0b;
+  --amber-dim:  rgba(245,158,11,0.12);
+  --amber-border: rgba(245,158,11,0.25);
+  --text:       #f1f5f9;
+  --muted:      rgba(241,245,249,0.45);
+  --faint:      rgba(241,245,249,0.07);
+  --border:     rgba(241,245,249,0.1);
+  --green:      #22c55e;
+  --red:        #ef4444;
+  --blue:       #60a5fa;
+}
+
+body {
+  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+}
+
+.progress-bar { position: fixed; top: 0; left: 0; height: 2px; background: var(--amber);
+  transition: width 0.45s cubic-bezier(0.22,1,0.36,1); z-index: 100; }
+
+.deck { width: 100%; height: 100vh; position: relative; }
+
+.slide {
+  position: absolute; inset: 0; padding: 60px 80px;
+  display: flex; flex-direction: column; justify-content: center;
+  opacity: 0; pointer-events: none; transform: translateY(18px);
+  transition: opacity 0.45s cubic-bezier(0.22,1,0.36,1), transform 0.45s cubic-bezier(0.22,1,0.36,1);
+  overflow-y: auto;
+}
+.slide.active { opacity: 1; pointer-events: auto; transform: translateY(0); }
+
+.nav { position: fixed; bottom: 30px; right: 36px; display: flex; gap: 8px; z-index: 99; }
+.nav button {
+  width: 38px; height: 38px; background: transparent; border: 1px solid var(--border);
+  color: var(--muted); border-radius: 50%; font-size: 15px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color 0.2s, color 0.2s;
+}
+.nav button:hover { border-color: var(--amber); color: var(--amber); }
+.nav button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+.counter { position: fixed; bottom: 36px; left: 36px; font-size: 11px; letter-spacing: 2px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+h1 {
+  font-family: 'Barlow Condensed', sans-serif; font-size: clamp(56px, 7.5vw, 96px);
+  font-weight: 900; line-height: 0.94; text-transform: uppercase; color: var(--text);
+  text-wrap: balance;
+}
+h1 em { font-style: italic; color: var(--amber); }
+
+h2 {
+  font-family: 'Barlow Condensed', sans-serif; font-size: clamp(38px, 5vw, 60px);
+  font-weight: 800; line-height: 1.02; text-transform: uppercase; color: var(--text);
+  margin-bottom: 32px; text-wrap: balance;
+}
+h2 em { font-style: italic; color: var(--amber); }
+
+.eyebrow { font-size: 10px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--amber); margin-bottom: 18px; }
+
+.tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 32px; }
+.tag {
+  border: 1px solid var(--amber-border); color: rgba(217,119,6,0.8);
+  padding: 4px 12px; border-radius: 2px; font-size: 10px; font-weight: 600;
+  letter-spacing: 1.5px; text-transform: uppercase;
+}
+
+/* COVER */
+.slide-cover { background: linear-gradient(135deg, #0f172a 0%, #1e2d4a 100%); align-items: flex-start; }
+.slide-cover .sub { font-size: 17px; color: var(--muted); max-width: 560px; line-height: 1.7; margin-top: 26px; }
+
+/* NUMBERED LIST */
+.num-list { display: flex; flex-direction: column; max-width: 840px; }
+.num-row { display: flex; gap: 28px; align-items: flex-start; padding: 18px 0; border-bottom: 1px solid var(--border); }
+.num-row:first-child { border-top: 1px solid var(--border); }
+.num-row .n { font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 900; color: rgba(217,119,6,0.2); min-width: 40px; padding-top: 1px; }
+.num-row h3 { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.num-row p  { font-size: 14.5px; color: var(--muted); line-height: 1.55; max-width: 640px; }
+.num-row .tag-sm { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--amber); border: 1px solid var(--amber-border); padding: 2px 8px; border-radius: 2px; margin-top: 8px; }
+
+/* WARNING ROW */
+.warn-list { display: flex; flex-direction: column; gap: 14px; max-width: 780px; }
+.warn-row { display: flex; gap: 16px; align-items: flex-start; }
+.warn-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); margin-top: 7px; flex-shrink: 0; }
+.warn-row h3 { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+.warn-row p { font-size: 14px; color: var(--muted); line-height: 1.55; }
+.warn-row .src { font-size: 11px; color: rgba(96,165,250,0.7); font-family: monospace; margin-top: 4px; }
+
+/* PROJECT / TERMINAL */
+.project-split { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; max-width: 980px; }
+.project-num { font-family: 'Barlow Condensed', sans-serif; font-size: 100px; font-weight: 900; color: rgba(217,119,6,0.07); line-height: 1; margin-bottom: -18px; }
+.project-name { font-family: 'Barlow Condensed', sans-serif; font-size: 36px; font-weight: 800; text-transform: uppercase; color: var(--text); margin-bottom: 8px; }
+.project-desc { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 22px; max-width: 380px; }
+.feat-list { list-style: none; display: flex; flex-direction: column; gap: 9px; margin-bottom: 20px; }
+.feat-list li { font-size: 14.5px; color: rgba(241,245,249,0.75); line-height: 1.4; padding-left: 16px; position: relative; }
+.feat-list li::before { content: ''; position: absolute; left: 0; top: 7px; width: 5px; height: 5px; background: var(--amber); border-radius: 50%; }
+
+.terminal { background: #0a0f1e; border: 1px solid rgba(245,158,11,0.2); border-radius: 6px; overflow: hidden; }
+.terminal-bar { background: rgba(217,119,6,0.07); border-bottom: 1px solid rgba(217,119,6,0.12); padding: 9px 16px;
+  font-size: 10px; color: rgba(217,119,6,0.45); letter-spacing: 1.5px; font-family: monospace; text-transform: uppercase; }
+.terminal-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+.t-row { display: flex; align-items: center; gap: 12px; font-size: 12.5px; font-family: monospace; }
+.t-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.t-green { background: var(--green); } .t-amber { background: var(--amber); } .t-red { background: var(--red); } .t-blue { background: var(--blue); }
+.t-row .t-label { color: var(--muted); flex: 1; }
+.t-row .t-val { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* THREE PATHS */
+.paths { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1040px; }
+.path-card { border: 1px solid var(--border); border-radius: 6px; padding: 22px 20px; display: flex; flex-direction: column; gap: 12px; }
+.path-card.reject { opacity: 0.55; }
+.path-card.pick { border-color: var(--amber-border); background: var(--amber-dim); }
+.path-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+.path-card.pick .path-label { color: var(--amber); }
+.path-title { font-family: 'Barlow Condensed', sans-serif; font-size: 24px; font-weight: 800; text-transform: uppercase; color: var(--text); line-height: 1.05; }
+.path-verdict { font-size: 12px; font-weight: 700; letter-spacing: 0.5px; }
+.path-verdict.no { color: var(--red); } .path-verdict.yes { color: var(--green); }
+.path-notes { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.path-notes li { font-size: 12.5px; color: var(--muted); line-height: 1.45; padding-left: 13px; position: relative; }
+.path-notes li::before { content: '–'; position: absolute; left: 0; color: var(--muted); }
+
+/* RESULTS */
+.results-list { display: flex; flex-direction: column; max-width: 880px; margin-bottom: 28px; }
+.result-row { display: flex; gap: 20px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border); }
+.result-row:first-child { border-top: 1px solid var(--border); }
+.result-before { flex: 1; font-size: 13.5px; color: rgba(241,245,249,0.28); text-decoration: line-through; text-decoration-color: rgba(241,245,249,0.12); line-height: 1.4; }
+.result-arrow { color: rgba(245,158,11,0.5); font-size: 17px; flex-shrink: 0; }
+.result-after { flex: 1; font-size: 14.5px; font-weight: 600; color: var(--text); line-height: 1.4; }
+
+.metrics-line { font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 700; color: var(--muted); letter-spacing: 0.02em; text-transform: uppercase; }
+.metrics-line strong { color: var(--amber); font-weight: 900; }
+
+/* PRICE */
+.price-line { display: flex; gap: 32px; align-items: center; padding: 20px 26px; border: 1px solid var(--amber-border);
+  border-radius: 4px; max-width: 640px; background: var(--amber-dim); flex-wrap: wrap; }
+.price-line .divider { width: 1px; height: 44px; background: var(--amber-border); flex-shrink: 0; }
+.pl-amount { font-family: 'Barlow Condensed', sans-serif; font-size: 34px; font-weight: 900; color: var(--amber); font-variant-numeric: tabular-nums; }
+.pl-sub { font-size: 11px; color: var(--muted); line-height: 1.5; margin-top: 2px; }
+.price-line.neutral { border-color: var(--border); background: transparent; }
+.price-line.neutral .pl-amount { color: var(--text); }
+
+/* CONTACT / ASKS */
+.slide-contact { background: linear-gradient(150deg, #0f172a 0%, #1a2540 60%, #0f1f3d 100%); align-items: flex-start; }
+.contact-head { font-family: 'Barlow Condensed', sans-serif; font-size: clamp(44px, 5.5vw, 72px); font-weight: 900;
+  text-transform: uppercase; line-height: 0.96; max-width: 760px; margin-bottom: 32px; text-wrap: balance; }
+.contact-head em { font-style: italic; color: var(--amber); }
+.ask-list { display: flex; flex-direction: column; gap: 16px; max-width: 700px; }
+.ask-row { display: flex; gap: 18px; align-items: baseline; }
+.ask-n { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 900; color: var(--amber); min-width: 30px; }
+.ask-row p { font-size: 15px; color: rgba(241,245,249,0.85); line-height: 1.5; }
+
+.he { font-family: 'Hanken Grotesk', sans-serif; unicode-bidi: isolate; }
+</style>
+
+<div class="progress-bar" id="pb"></div>
+
+<div class="deck">
+
+  <!-- 1. COVER -->
+  <div class="slide slide-cover active">
+    <div class="eyebrow">Formula Road · Решение для руководства</div>
+    <h1>Заказы в поле —<br>своё <em>решение</em></h1>
+    <div class="sub">60 агентов, внешний вендор — 147,890₪ в год по факту оплат в самой Priority. Разбор трёх путей: остаться, собрать самим в конструкторе Priority, или достроить Formula Road.</div>
+    <div class="tags">
+      <span class="tag">Priority SQL — живые данные</span>
+      <span class="tag">2026-09-02</span>
+    </div>
+  </div>
+
+  <!-- 2. REAL COST -->
+  <div class="slide">
+    <div class="eyebrow">Сколько стоит сейчас</div>
+    <h2>Не то, что <em>думали</em></h2>
+    <div class="price-line">
+      <div>
+        <div class="pl-amount">147,890₪ / год</div>
+        <div class="pl-sub">≈ $40,000 · найдено в תשלומים לספקים самой Priority, не со слов вендора</div>
+      </div>
+    </div>
+    <div style="height:28px"></div>
+    <div class="terminal">
+      <div class="terminal-bar">Priority · FNCTRANS · SUP 83 · последние 12 мес</div>
+      <div class="terminal-body">
+        <div class="t-row"><span class="t-dot t-amber"></span><span class="t-label he">רישוי מכירות שטח</span><span class="t-val">13,216₪ + 9,912₪ + 6,608₪</span></div>
+        <div class="t-row"><span class="t-dot t-red"></span><span class="t-label he">חוזה שרות</span><span class="t-val">60,348₪ + 56,819₪</span></div>
+        <div class="t-row"><span class="t-dot t-blue"></span><span class="t-label he">תוספת לחוזה</span><span class="t-val">508₪ + 479₪</span></div>
+        <div class="t-row"><span class="t-dot t-green"></span><span class="t-label">На агента / месяц</span><span class="t-val">≈ 205–246₪</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. SCALE -->
+  <div class="slide">
+    <div class="eyebrow">Масштаб задачи — вся группа, не только FORMULA</div>
+    <h2>Не гипотеза —<br><em>живые цифры</em></h2>
+    <div class="num-list">
+      <div class="num-row"><div class="n">70</div><div><h3>реально активных агентов</h3><p>FORMULA + ICE + INTER вместе. SQL по коду агента даёт 104–110 — шире, потому что ловит и не-полевые роли; 70 — калибровка по факту бизнеса.</p></div></div>
+      <div class="num-row"><div class="n">642</div><div><h3>заказов в день на всю группу</h3><p>FORMULA ≈220 + ICE ≈325 + INTER ≈96. Часть агентов работает сразу в нескольких компаниях.</p></div></div>
+      <div class="num-row"><div class="n">662</div><div><h3>SKU в каталоге FORMULA</h3><p>229 реально в обороте за 30 дней — вот с чем должна уметь работать корзина. У ICE/INTER — свой каталог, тот же порядок величины.</p></div></div>
+    </div>
+  </div>
+
+  <!-- 4. THREE PATHS -->
+  <div class="slide">
+    <div class="eyebrow">Три пути</div>
+    <h2>Один из них уже<br><em>наполовину готов</em></h2>
+    <div class="paths">
+      <div class="path-card reject">
+        <div class="path-label">Путь 1</div>
+        <div class="path-title">Soft Solutions</div>
+        <div class="path-verdict no">Остаться как есть</div>
+        <ul class="path-notes">
+          <li>147,890₪/год, растёт с 2013</li>
+          <li>Фикс бага — ждём вендора</li>
+          <li>Работает, но это весь плюс</li>
+        </ul>
+      </div>
+      <div class="path-card reject">
+        <div class="path-label">Путь 2</div>
+        <div class="path-title">מחולל Priority</div>
+        <div class="path-verdict no">Собрать самим в конструкторе</div>
+        <ul class="path-notes">
+          <li>Soft Solutions — дочка Priority с 2022</li>
+          <li>Официальный гайд: реально мощнее, чем думали (каталог, offline, подпись, оплата)</li>
+          <li>Цена по-прежнему не подтверждена письменно</li>
+        </ul>
+      </div>
+      <div class="path-card pick">
+        <div class="path-label">Путь 3</div>
+        <div class="path-title">Formula Road</div>
+        <div class="path-verdict yes">Достроить своё</div>
+        <ul class="path-notes">
+          <li>Карта/маршруты уже в проде у 50+ агентов</li>
+          <li>Свой сервер уже куплен</li>
+          <li>Баг чиним за часы, не недели</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. WHY NOT PATH 2 -->
+  <div class="slide">
+    <div class="eyebrow">Почему не конструктор Priority</div>
+    <h2>Независимая проверка<br>не <em>подтвердила</em></h2>
+    <div class="warn-list">
+      <div class="warn-row"><div class="warn-dot"></div><div>
+        <h3>Конфликт интересов</h3>
+        <p>Soft Solutions куплена Priority в 2022 за ~50 млн₪. Продавец предлагает обойти продукт собственной дочерней компании.</p>
+      </div></div>
+      <div class="warn-row"><div class="warn-dot"></div><div>
+        <h3>Разработчики Priority предупреждают о том же риске, что и мы</h3>
+        <p>«Выглядит дёшево сначала, разрастается в большую систему, в итоге платишь вендору по-крупному» — форум practitioners, не маркетинг.</p>
+        <div class="src">источник: priority-forums.com, ветка «מחולל אפליקציות»</div>
+      </div></div>
+      <div class="warn-row"><div class="warn-dot"></div><div>
+        <h3>Честное обновление — конструктор мощнее, чем мы думали</h3>
+        <p>Официальный гайд Priority (июнь '26, не форум 2020) показывает: каталог с упаковками, offline-режим, e-signature, приём оплаты картой — уже встроены. Устаревшее "только для простых задач" из старого форума здесь не подтверждается.</p>
+      </div></div>
+      <div class="warn-row"><div class="warn-dot"></div><div>
+        <h3>Но главный вопрос тот же — цена неизвестна</h3>
+        <p>Гайд — это инструкция, не прайс-лист. Приложения пишут документы через нативные экраны Priority, не через отдельный API — возможно, дешевле, чем мы боялись, но письменного подтверждения от Priority по-прежнему нет.</p>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- 5.5 INDEPENDENCE -->
+  <div class="slide">
+    <div class="eyebrow">Вопрос не только сегодняшней цены</div>
+    <h2>Мы не управляем<br>чужой <em>ценовой политикой</em></h2>
+    <div class="warn-list">
+      <div class="warn-row"><div class="warn-dot"></div><div>
+        <h3>Priority сама переходит на построчную тарификацию</h3>
+        <p>С версии 18 — оплата за транзакцию, пакетами по 10K. Ровно та же модель, что у Soft Solutions уже сейчас. Куда это пойдёт дальше — решает не Diler.</p>
+      </div></div>
+      <div class="warn-row"><div class="warn-dot"></div><div>
+        <h3>Оба внешних пути — заложники чужого прайса</h3>
+        <p>Soft Solutions и מחולל — оба сидят на той же API-инфраструктуре Priority. Если Priority поднимет тариф — поднимется и наш счёт, и мы узнаём об этом постфактум, из счёта.</p>
+      </div></div>
+      <div class="warn-row"><div class="warn-dot"></div><div>
+        <h3>Formula Road не убирает Priority — убирает посредника</h3>
+        <p>От write-API самой Priority никуда не деться — это ERP. Но мы платим за него один раз, напрямую, без наценки перепродавца, и сами решаем, как оптимизировать вызовы под свой тариф.</p>
+      </div></div>
+    </div>
+    <div style="height:20px"></div>
+    <div class="metrics-line">Один внешний партнёр по цене (<strong>Priority</strong>) — вместо <strong>двух-трёх</strong> слоёв наценки, каждый со своей политикой</div>
+  </div>
+
+  <!-- 6. WHY FORMULA ROAD -->
+  <div class="slide">
+    <div class="eyebrow">Почему Formula Road</div>
+    <h2>Было <em>Станет</em></h2>
+    <div class="results-list">
+      <div class="result-row"><div class="result-before">Карта и маршруты — отдельно, заказы — у стороннего вендора</div><div class="result-arrow">→</div><div class="result-after">Один инструмент на телефоне агента</div></div>
+      <div class="result-row"><div class="result-before">Баг чинится неделями через тикет вендору</div><div class="result-arrow">→</div><div class="result-after">Баг с картой у агента починен в ту же ночь (сегодня, 00:04)</div></div>
+      <div class="result-row"><div class="result-before">Инфраструктура — вопрос открыт</div><div class="result-arrow">→</div><div class="result-after">Сервер уже куплен и простаивает под это</div></div>
+      <div class="result-row"><div class="result-before">147,890₪/год уходят внешнему вендору</div><div class="result-arrow">→</div><div class="result-after">Разовая разработка, дальше — наш код</div></div>
+    </div>
+    <div class="metrics-line">Инфраструктура — <strong>₪0</strong> сверху &nbsp;·&nbsp; уже <strong>50+</strong> агентов в проде &nbsp;·&nbsp; фикс за <strong>часы</strong>, не недели</div>
+  </div>
+
+  <!-- 6.5a THIN MODULE INTRO -->
+  <div class="slide">
+    <div class="eyebrow">За что именно 147,890₪/год</div>
+    <h2>Три экрана —<br><em>и всё</em></h2>
+    <div class="project-desc" style="max-width:600px;font-size:15px">Весь функционал Soft Solutions для агента — это по сути голый модуль ввода заказа. Ничего для менеджера, ничего сверх этого.</div>
+    <ul class="feat-list" style="max-width:500px">
+      <li>Фото товара</li>
+      <li>Ввод תוקף (срок годности)</li>
+      <li>Окно количества по клиенту</li>
+      <li>Сумма долга и история — и это весь функционал</li>
+    </ul>
+    <div style="height:8px"></div>
+    <div class="metrics-line">На следующих двух слайдах — что уже есть у Formula Road <strong>сверх</strong> этого, для агента и отдельно для менеджера</div>
+  </div>
+
+  <!-- 6.5b AGENT SIDE, EXPANDED -->
+  <div class="slide">
+    <div class="eyebrow">Сторона агента · уже в проде</div>
+    <h2>Не голый ввод —<br><em>рабочий день целиком</em></h2>
+    <div class="project-split">
+      <div>
+        <div class="project-desc">Formula Road ведёт агента от утра до конца дня, а не только в момент оформления заказа.</div>
+        <ul class="feat-list">
+          <li>Маршрут на день — 🤖 AI Google геокодинг + ближайший сосед, либо порядок визитов по PBI</li>
+          <li>GPS-коррекция клиентов в реальном времени, каскад приоритетов (ручная правка → Google → PBI fallback)</li>
+          <li>Карточка клиента — история, долг, контакты, навигация одним тапом</li>
+          <li>Бланки מקרר и זיכוי — уже 165 отправлено за первые 8 дней</li>
+        </ul>
+        <div class="stack-row" style="display:flex;flex-wrap:wrap;gap:6px">
+          <span class="tag">PWA — без App Store</span>
+          <span class="tag">Работает на любом телефоне</span>
+        </div>
+      </div>
+      <div class="terminal">
+        <div class="terminal-bar">Formula Road · Агент · Live</div>
+        <div class="terminal-body">
+          <div class="t-row"><span class="t-dot t-green"></span><span class="t-label">Маршрут на сегодня</span><span class="t-val">14/18 визитов</span></div>
+          <div class="t-row"><span class="t-dot t-green"></span><span class="t-label">Режим GPS</span><span class="t-val">🤖 AI Google</span></div>
+          <div class="t-row"><span class="t-dot t-amber"></span><span class="t-label">Следующий клиент</span><span class="t-val">2.4 км</span></div>
+          <div class="t-row"><span class="t-dot t-green"></span><span class="t-label">Зикуй сегодня</span><span class="t-val">3 бланка</span></div>
+          <div class="t-row"><span class="t-dot t-blue"></span><span class="t-label">GPS-коррекций</span><span class="t-val">актуальны</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6.5c MANAGER SIDE, EXPANDED -->
+  <div class="slide">
+    <div class="eyebrow">Сторона менеджера · то, чего у Soft Solutions нет вообще</div>
+    <h2>Видит всех агентов —<br><em>не звонит узнавать</em></h2>
+    <div class="project-split">
+      <div>
+        <div class="project-desc">У Soft Solutions для менеджера нет ничего. Formula Road уже сегодня даёт полную видимость по всей команде.</div>
+        <ul class="feat-list">
+          <li>Карта всех агентов одновременно — кто где, маршрут активен или нет</li>
+          <li>Day-closing отчёты — выполнение плана визитов и продаж на конец дня</li>
+          <li>KPI по агенту и по команде — без звонков и Excel вручную</li>
+          <li>Выбор агента для просмотра — палитра по логотипу, единый интерфейс</li>
+        </ul>
+      </div>
+      <div class="terminal">
+        <div class="terminal-bar">Formula Road · Менеджер · Live</div>
+        <div class="terminal-body">
+          <div class="t-row"><span class="t-dot t-green"></span><span class="t-label">Агент А</span><span class="t-val">14/18 визитов</span></div>
+          <div class="t-row"><span class="t-dot t-amber"></span><span class="t-label">Агент Б</span><span class="t-val">11/15 визитов</span></div>
+          <div class="t-row"><span class="t-dot t-blue"></span><span class="t-label">Агент В</span><span class="t-val">маршрут активен</span></div>
+          <div class="t-row"><span class="t-dot t-green"></span><span class="t-label">KPI команды сегодня</span><span class="t-val">87%</span></div>
+          <div class="t-row"><span class="t-dot t-amber"></span><span class="t-label">Запись заказа</span><span class="t-val">полшага</span></div>
+        </div>
+      </div>
+    </div>
+    <div style="height:12px"></div>
+    <div class="metrics-line">Soft Solutions закрывает <strong>только агента</strong> и только ввод. Formula Road уже закрывает <strong>агента и менеджера</strong> — не хватает одного модуля, не всей платформы</div>
+  </div>
+
+  <!-- 7. PLAN -->
+  <div class="slide">
+    <div class="eyebrow">План разработки</div>
+    <h2>4–6 недель,<br>один <em>открытый вопрос</em></h2>
+    <div class="num-list">
+      <div class="num-row"><div class="n">00</div><div><h3>Пилот API — на зикуй, не на заказе</h3><p>Зикуй уже живой (165 бланков, 8 агентов), структура данных проще заказа. Один write-API пилот закрывает сразу два дела: тестируем механизм записи И убираем ручной ввод зикуй в офисе (Волна 2 из части 2) — не разовый тест ради теста.</p><div class="tag-sm">3–5 дней · внешняя зависимость</div></div></div>
+      <div class="num-row"><div class="n">01</div><div><h3>Каталог и корзина</h3><p>662 SKU, поиск, добавление — переиспользуем паттерны mekarer-order.</p></div></div>
+      <div class="num-row"><div class="n">02</div><div><h3>Цены и остатки</h3><p>Персональные цены клиента, скидки, минимумы — реальная бизнес-логика Priority.</p></div></div>
+      <div class="num-row"><div class="n">03</div><div><h3>Запись заказа + offline-очередь</h3><p>Самая рискованная часть — зависит от фазы 00.</p></div></div>
+      <div class="num-row"><div class="n">04</div><div><h3>Пилот на 3–5 агентах</h3><p>Живые баги вместо гипотез, прежде чем катить на все 50–60.</p></div></div>
+    </div>
+  </div>
+
+  <!-- 8. ECONOMICS -->
+  <div class="slide">
+    <div class="eyebrow">Экономика решения</div>
+    <h2>147,890₪/год<br>против <em>разового вложения</em></h2>
+    <div class="price-line">
+      <div><div class="pl-amount">147,890₪</div><div class="pl-sub">сейчас, на всю группу, централизованно через diller</div></div>
+      <div class="divider"></div>
+      <div><div class="pl-amount">₪0</div><div class="pl-sub">инфраструктура — сервер уже куплен</div></div>
+    </div>
+    <div style="height:20px"></div>
+    <div class="price-line neutral">
+      <div><div class="pl-amount">≤ 147,890₪?</div><div class="pl-sub">write-API Priority — отдельной строки в бюджете ещё нет, потому что интеграции записи ещё нет. Soft Solutions уже пишет заказы в рамках той же суммы — значит потолок известен. Точная цифра — после письменного ответа Priority.</div></div>
+    </div>
+  </div>
+
+  <!-- 9. ASKS -->
+  <div class="slide slide-contact">
+    <div class="contact-head">Три шага,<br>чтобы <em>решить</em></div>
+    <div class="ask-list">
+      <div class="ask-row"><div class="ask-n">01</div><p>Получить от Priority письменный ответ по стоимости write-API для записи заказов</p></div>
+      <div class="ask-row"><div class="ask-n">02</div><p>Запустить фазу 00 — один тестовый заказ через API, до вложений в остальное</p></div>
+      <div class="ask-row"><div class="ask-n">03</div><p>Утвердить пилот на 3–5 агентах перед решением о полном переходе</p></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="counter" id="counter">1 / 13</div>
+<div class="nav">
+  <button onclick="prev()" aria-label="Предыдущий слайд">&#8592;</button>
+  <button onclick="next()" aria-label="Следующий слайд">&#8594;</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const pb      = document.getElementById('pb');
+  const counter = document.getElementById('counter');
+  let cur = 0;
+
+  function show(n) {
+    slides[cur].classList.remove('active');
+    cur = (n + slides.length) % slides.length;
+    slides[cur].classList.add('active');
+    pb.style.width = ((cur + 1) / slides.length * 100) + '%';
+    counter.textContent = (cur + 1) + ' / ' + slides.length;
+  }
+
+  function next() { show(cur + 1); }
+  function prev() { show(cur - 1); }
+
+  pb.style.width = (1 / slides.length * 100) + '%';
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next();
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   prev();
+  });
+
+  let tx = 0;
+  document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; });
+  document.addEventListener('touchend',   e => {
+    const dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 50) { dx < 0 ? next() : prev(); }
+  });
+</script>
