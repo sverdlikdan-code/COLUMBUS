@@ -140,27 +140,31 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
    kebab) is the same plain ghost outline as "לפי ביקור" below. */
 .sort-btn.primary-action,.sort-btn.map-toggle-cta{background:linear-gradient(135deg,#0D47A1,#1565C0);color:#fff;border-color:#0D47A1;font-weight:900;box-shadow:0 3px 10px rgba(21,101,192,.35);}
 .sort-btn.primary-action:hover,.sort-btn.map-toggle-cta:hover{background:linear-gradient(135deg,#082D6E,#0D47A1);}
-/* "הגרסה שלי" / AI toggle — third pass. First was a flat two-segment pill;
-   second was a vintage chrome+jewel amp switch, which the user liked in
-   concept but found illegible at this small toolbar scale (chrome/glow read
-   as mush at ~60px wide). This version is fully flat and DESIGN.md-compliant
-   — no gradients, no glow, existing semantic colors only (priority=Command
-   Blue, AI-Google=purple, straight from DESIGN.md's own Sort/Toolbar Buttons
-   mapping). The one remaining physical cue is a seesaw tilt: a single beam
-   (.toggle-beam) split into two flat-colored halves that rotates around its
-   center via transform:rotate(), so the active side visibly dips while the
-   other rises — like a real seesaw. transform is an explicitly permitted
-   transition property under DESIGN.md's animation rule, so this is no
-   longer an exception to anything. The two REAL buttons (sort-btn-priority/
-   -ai-google) stay invisible left/right click zones under this artwork —
-   every existing JS reference to them (setSort/toggleAiGps/toggleTabletGps/
-   initRoute/recalcRoute) keeps working unchanged; only what's painted
-   changed (again). 2026-09-02.
-   RELOCATED 2026-09-02 (same day, later request): no longer lives in the
+/* "הגרסה שלי" / AI toggle — fourth pass. First was a flat two-segment pill;
+   second was a vintage chrome+jewel amp switch (illegible at toolbar scale);
+   third was a flat seesaw beam that tilted via transform:rotate() — live
+   user feedback 2026-09-02 (after the banner relocation below) called that
+   tilt "косая" / "непонятная" — a rotated bar reads as decoration, not as a
+   state. Replaced with the single most universally-recognized toggle
+   pattern instead: a plain iOS-style switch — a pill track (.toggle-track)
+   with a round white thumb (.toggle-thumb) that SLIDES via
+   transform:translateX() (no rotate at all) between the two click zones.
+   Track color carries the active state (Command Blue = priority, purple =
+   AI-Google, same DESIGN.md tokens as before); thumb position carries it a
+   second, redundant way — no ambiguity about "what's happening here" left.
+   translateX is direction-agnostic (always moves toward physical screen-
+   right for positive values, regardless of dir="rtl"), so the thumb slides
+   toward whichever real button — sort-btn-priority (right:0) or
+   sort-btn-ai-google (left:0) — is currently active; see --thumb-x below.
+   The two REAL buttons stay invisible left/right click zones under this
+   artwork — every existing JS reference to them (setSort/toggleAiGps/
+   toggleTabletGps/initRoute/recalcRoute) keeps working unchanged; only
+   what's painted changed (again). 2026-09-02.
+   RELOCATED 2026-09-02 (same day, earlier request): no longer lives in the
    km-row-top toolbar — moved into #formula-progress-banner (the sticky
    progress card above the client list), to the left of the %-ring, per
    explicit user decision after screenshot review. Markup/JS untouched
-   (still the same two real buttons + painted beam), only its DOM parent
+   (still the same two real buttons + painted switch), only its DOM parent
    changed — see the .fpb-content / .fpb-toggle-only rules near the banner
    styles below, and _renderFormulaBanner() in the JS. */
 .sort-toggle{
@@ -176,21 +180,20 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .sort-toggle #sort-btn-priority{right:0;}
 .sort-toggle #sort-btn-ai-google{left:0;}
 .toggle-visual{position:relative;display:flex;align-items:center;gap:6px;pointer-events:none;z-index:1;}
-.toggle-beam{
-  --beam-rot:-9deg;
-  display:flex;align-items:center;width:34px;height:16px;border-radius:8px;overflow:hidden;
-  transform:rotate(var(--beam-rot));transition:transform .18s cubic-bezier(.34,1.56,.64,1);
+.toggle-track{
+  --thumb-x:0px;
+  position:relative;width:34px;height:16px;border-radius:8px;
+  background:#7B1FA2;transition:background .18s;
 }
-.toggle-beam-half{flex:1;height:100%;background:var(--sky-mid);transition:background .18s;}
-.sort-toggle .sort-btn.active-priority~.toggle-visual .toggle-beam{--beam-rot:9deg;}
-.sort-toggle .sort-btn.active-priority~.toggle-visual .half-priority{background:var(--blue);}
-.sort-toggle .sort-btn.active-ai-google~.toggle-visual .half-ai{background:#7B1FA2;}
-.toggle-pivot{
-  position:absolute;left:50%;top:50%;width:5px;height:5px;border-radius:50%;
-  background:var(--mid);transform:translate(-50%,-50%);z-index:2;
+.toggle-thumb{
+  position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);
+  transform:translateX(var(--thumb-x));transition:transform .18s cubic-bezier(.34,1.56,.64,1);
 }
-@keyframes beam-press{0%{transform:rotate(var(--beam-rot)) scale(1);}40%{transform:rotate(var(--beam-rot)) scale(.85);}100%{transform:rotate(var(--beam-rot)) scale(1);}}
-.sort-toggle:active .toggle-beam{animation:beam-press .22s ease-out;}
+.sort-toggle .sort-btn.active-priority~.toggle-visual .toggle-track{--thumb-x:18px;background:var(--blue);}
+.sort-toggle .sort-btn.active-ai-google~.toggle-visual .toggle-track{background:#7B1FA2;}
+@keyframes thumb-press{0%{transform:translateX(var(--thumb-x)) scale(1);}40%{transform:translateX(var(--thumb-x)) scale(.78);}100%{transform:translateX(var(--thumb-x)) scale(1);}}
+.sort-toggle:active .toggle-thumb{animation:thumb-press .22s ease-out;}
 .sort-toggle-label{
   color:var(--mid);font-size:11px;font-weight:800;white-space:nowrap;pointer-events:none;
 }
@@ -657,7 +660,9 @@ body.map-hidden #tab-map,body.map-hidden #tab-inline-map{display:none!important;
 .km-more-dd .mob-only{display:none!important;}
 @media(max-width:699px){
   .sort-toggle{padding:3px 5px;gap:0;}
-  .toggle-beam{width:28px;height:14px;}
+  .toggle-track{width:28px;height:14px;}
+  .toggle-thumb{width:10px;height:10px;}
+  .sort-toggle .sort-btn.active-priority~.toggle-visual .toggle-track{--thumb-x:14px;} /* 28-10-2*2px padding */
   .sort-toggle-label{font-size:9px;} /* stays readable, just smaller — no longer hidden (2026-09-02) */
   .km-more-dd .mob-only{display:flex!important;}
   /* יעדים / Google Maps — lower-frequency toolbar actions, collapsed into
@@ -973,21 +978,21 @@ body.gps-fs #map{height:100%!important;}
           <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')" aria-label="הגרסה שלי" title="הגרסה שלי"></button>
           <button class="sort-btn active-ai-google" id="sort-btn-ai-google" onclick="toggleAiGps()" aria-label="AI Google" title="AI Google"></button>
           <!-- RTL flex: first DOM child renders on the visual RIGHT (matching
-               #sort-btn-priority{right:0} above), so half-priority (and its
-               own side-label) comes first here to line up over its own
-               click zone; half-ai/its label come last, on the left. The two
-               .toggle-side-label spans only ever show in the roomy
-               toggle-only banner context (see .fpb-toggle-only CSS) — the
-               tight today-with-numbers context uses .sort-toggle-label
-               instead (active side only, further below). -->
+               #sort-btn-priority{right:0} above), so the priority side-label
+               comes first here to sit over its own click zone; the AI label
+               comes last, on the left. The two .toggle-side-label spans only
+               ever show in the roomy toggle-only banner context (see
+               .fpb-toggle-only CSS) — the tight today-with-numbers context
+               uses .sort-toggle-label instead (active side only, further
+               below). .toggle-track/.toggle-thumb are the plain iOS-style
+               switch itself — no rotate, thumb just translateX()s between
+               the two sides (see the .toggle-track CSS comment above). -->
           <span class="toggle-visual" aria-hidden="true">
             <span class="toggle-side-label side-label-priority">הגרסה שלי</span>
-            <span class="toggle-beam">
-              <span class="toggle-beam-half half-priority"></span>
-              <span class="toggle-beam-half half-ai"></span>
+            <span class="toggle-track">
+              <span class="toggle-thumb"></span>
             </span>
             <span class="toggle-side-label side-label-ai">AI</span>
-            <span class="toggle-pivot"></span>
           </span>
           <span class="sort-toggle-label" aria-hidden="true"></span>
         </div>
