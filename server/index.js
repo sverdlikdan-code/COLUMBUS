@@ -4586,8 +4586,11 @@ CALCULATETABLE(
       // Same pacing logic as the model's own INDICATION measure: behind if actual
       // achievement trails the fraction of working days elapsed by >5pp — a client
       // at 33% of target on day 10 of a 30-working-day month is ON PACE, not behind.
+      // Zero sales gets its own icon — early in the month (${workDaysPct} tiny) the
+      // pacing math doesn't flag 0 as "behind" yet, so it fell into the same 🚀 as a
+      // genuinely growing client. Live confusion 2026-09-02.
       const indication = target > 0
-        ? ((monthlySales / target) - workDaysPct < -0.05 ? '😕' : '🚀')
+        ? (monthlySales === 0 ? '⚪' : ((monthlySales / target) - workDaysPct < -0.05 ? '😕' : '🚀'))
         : null;
       return {
         custId: id, name: c.custName || id, city: c.city || '', total: s.total, prevTotal, yoy,
@@ -4607,7 +4610,7 @@ CALCULATETABLE(
     // to a flat %-of-target threshold (the exact thing that made almost every client
     // row red/orange regardless of how far into the month it was). 2026-08-23.
     const totalIndication = totalTarget > 0
-      ? ((totalSales / totalTarget) - workDaysPct < -0.05 ? '😕' : '🚀')
+      ? (totalSales === 0 ? '⚪' : ((totalSales / totalTarget) - workDaysPct < -0.05 ? '😕' : '🚀'))
       : null;
     return { clients, dormant, totalTarget, totalSales, totalPct, totalIndication };
   };

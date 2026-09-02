@@ -2697,12 +2697,6 @@ function _workDaysFrac() {
   return totalWork ? passedWork / totalWork : 0;
 }
 
-function calcIndication(monthlySales, target) {
-  if (!target) return '';
-  const daysPct = _workDaysFrac();
-  return (monthlySales / target - daysPct) < -0.05 ? '😕' : '🚀';
-}
-
 function gaugeIcon(sales, target) {
   if (!target) return '';
   const raw = (sales || 0) / target;
