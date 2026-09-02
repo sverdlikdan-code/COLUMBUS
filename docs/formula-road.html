@@ -140,9 +140,45 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
    kebab) is the same plain ghost outline as "לפי ביקור" below. */
 .sort-btn.primary-action,.sort-btn.map-toggle-cta{background:linear-gradient(135deg,#0D47A1,#1565C0);color:#fff;border-color:#0D47A1;font-weight:900;box-shadow:0 3px 10px rgba(21,101,192,.35);}
 .sort-btn.primary-action:hover,.sort-btn.map-toggle-cta:hover{background:linear-gradient(135deg,#082D6E,#0D47A1);}
-.sort-toggle{display:flex;border:2px solid var(--sky-mid);border-radius:20px;overflow:hidden;flex-shrink:0;}
-.sort-toggle .sort-btn{border:none!important;border-radius:0!important;box-shadow:none!important;}
-.sort-toggle .sort-btn+.sort-btn{border-right:1.5px solid var(--sky-mid)!important;}
+/* "הגרסה שלי" / AI rocker — a deliberate, one-off exception to DESIGN.md's
+   Flat-at-Rest Rule for exactly this control (explicit user request
+   2026-09-02, confirmed after raising the rule during scoping — every other
+   element in the system stays flat). Styled as a vintage tube-amplifier
+   toggle: chromed metal housing, layered 3D shadows, a warm amber "pilot
+   lamp" dot on whichever side is active (VU-meter spirit), tactile press
+   bounce. Active-state COLORS still borrow the existing semantic mapping
+   (priority=Command Blue, AI-Google=purple) from DESIGN.md's Sort/Toolbar
+   Buttons section — only the housing/glow/motion are new, and scoped to
+   .sort-toggle only so nothing else in the app inherits this look. */
+.sort-toggle{
+  display:flex;gap:3px;flex-shrink:0;padding:3px;border-radius:22px;
+  background:linear-gradient(165deg,#eef1f4 0%,#c7ced7 45%,#eef1f4 100%);
+  border:1px solid #a9b1bb;
+  box-shadow:0 3px 8px rgba(20,30,45,.32),inset 0 1px 1px rgba(255,255,255,.85),inset 0 -2px 3px rgba(20,30,45,.22);
+}
+.sort-toggle .sort-btn{
+  border:none!important;border-radius:18px!important;box-shadow:none!important;
+  position:relative;transition:background .18s,box-shadow .18s;
+}
+.sort-toggle .sort-btn.active-priority,
+.sort-toggle .sort-btn.active-ai-google{
+  box-shadow:0 1px 3px rgba(0,0,0,.22),inset 0 1px 1px rgba(255,255,255,.5)!important;
+}
+.sort-toggle .sort-btn.active-priority::after,
+.sort-toggle .sort-btn.active-ai-google::after{
+  content:'';position:absolute;top:4px;left:50%;transform:translateX(-50%);
+  width:6px;height:6px;border-radius:50%;
+  background:#FFB74D;box-shadow:0 0 7px 2px rgba(255,171,64,.85);
+}
+@keyframes lamp-rocker-press{0%{transform:scale(1);}40%{transform:scale(.90);}100%{transform:scale(1);}}
+.sort-toggle .sort-btn:active{animation:lamp-rocker-press .22s ease-out;}
+/* Full text (tablet/desktop) vs icon-only compact label (phone, see below) —
+   .lbl-compact stays hidden until the phone media query below swaps them, so
+   the rocker can sit in row 1 next to ⋮/מפה/ניתוח without dominating its
+   height/width. Live placement request 2026-09-02 (user screenshot, agent
+   Konstantin, day ד) — was previously hidden entirely on phone (moved into
+   the ⋮ menu as plain text); now shown compactly in the same row instead. */
+.sort-toggle .lbl-compact{display:none;}
 .day-switch{display:flex;gap:4px;flex-shrink:0;}
 .day-sw-btn{width:44px;height:44px;border-radius:12px;background:var(--sky-light);border:2px solid var(--sky-mid);font-size:19px;font-weight:900;color:var(--blue-dark);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;box-shadow:0 1px 4px rgba(21,101,192,.10);}
 .day-sw-btn:hover{background:var(--sky-mid);transform:translateY(-1px);}
@@ -564,11 +600,18 @@ body.map-hidden #tab-map,body.map-hidden #tab-inline-map{display:none!important;
 .km-more-dd .export-btn{display:flex!important;}
 .km-more-dd .gps-hist-wrap{position:static;border-top:1px solid var(--sky-mid);}
 .km-more-dd .gps-hist-dd{position:static;box-shadow:none;border:none;border-radius:0;max-height:200px;}
-/* Sort-toggle duplicates inside the "⋮" menu — only needed once the toggle
-   itself is hidden from row 1 on phones, see @media(max-width:699px) below. */
+/* יעדים / Google Maps / History duplicates inside the "⋮" menu — those three
+   get collapsed off row 1 on phones (.mob-collapse below), so they're
+   duplicated here instead. The sort-toggle itself used to have its own pair
+   of duplicates here too (removed 2026-09-02) — it's shown directly in row 1
+   on phone now instead (compact icon-only labels, see .lbl-compact above and
+   the phone sizing below), so a separate menu path for it was redundant. */
 .km-more-dd .mob-only{display:none!important;}
 @media(max-width:699px){
-  .sort-toggle{display:none;}
+  .sort-toggle{padding:2px;gap:2px;border-radius:16px;}
+  .sort-toggle .sort-btn{padding:0 7px;height:28px;font-size:15px;min-width:28px;justify-content:center;}
+  .sort-toggle .lbl-full{display:none;}
+  .sort-toggle .lbl-compact{display:inline;}
   .km-more-dd .mob-only{display:flex!important;}
   /* יעדים / Google Maps — lower-frequency toolbar actions, collapsed into
      the ⋮ menu on phone (duplicated there via .mob-only above) so row 1
@@ -816,8 +859,8 @@ body.gps-fs #map{height:100%!important;}
       <div class="day-switch" id="day-switch"></div>
       <div class="sort-btns">
         <div class="sort-toggle">
-          <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')">הגרסה שלי</button>
-          <button class="sort-btn active-ai-google" id="sort-btn-ai-google" onclick="toggleAiGps()">🤖 AI Google</button>
+          <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')"><span class="lbl-full">הגרסה שלי</span><span class="lbl-compact">📍</span></button>
+          <button class="sort-btn active-ai-google" id="sort-btn-ai-google" onclick="toggleAiGps()"><span class="lbl-full">🤖 AI Google</span><span class="lbl-compact">🤖</span></button>
         </div>
         <button class="sort-btn primary-action" id="day-briefing-btn" onclick="openDayBriefing()" title="ניתוח יום — TOP 10 לקוחות">📊 ניתוח</button>
         <button class="sort-btn mob-collapse" id="yedaim-btn" onclick="openYedaim()" title="יעדים — סטטוס הקבוצה">יעדים 🎩</button>
@@ -827,12 +870,10 @@ body.gps-fs #map{height:100%!important;}
         <div class="km-more-wrap">
           <button class="sort-btn km-more-btn icon-only" id="km-more-btn" onclick="toggleKmMore()" title="עוד פעולות">⋮</button>
           <div class="km-more-dd" id="km-more-dd">
-            <!-- Phone-only duplicates of the sort-toggle above (hidden ≤699px, see
-                 .mob-only media rule) so the toggle itself can move out of row 1
-                 without losing the ability to switch sort mode on a phone. -->
-            <button class="km-more-item mob-only" onclick="setSort('priority');closeKmMore()">📍 הגרסה שלי</button>
-            <button class="km-more-item mob-only" onclick="toggleAiGps();closeKmMore()">🤖 AI Google</button>
-            <hr class="km-more-sep mob-only">
+            <!-- Phone-only duplicates of the collapsed row-1 actions (hidden
+                 ≤699px, see .mob-only media rule). The sort-toggle itself is
+                 shown directly in row 1 on phone now (compact icon-only), so
+                 it no longer needs a duplicate here — removed 2026-09-02. -->
             <button class="km-more-item mob-only" onclick="openYedaim();closeKmMore()">יעדים 🎩</button>
             <button class="km-more-item mob-only" onclick="openGoogleMaps();closeKmMore()">🗺 Google Maps</button>
             <button class="km-more-item mob-only" onclick="openBlankHistory();closeKmMore()">📜 היסטוריית בלנקים</button>
@@ -2051,6 +2092,29 @@ function _playTodayOrderSound(){
     osc2.start(t2); osc2.stop(t2+0.21);
   }catch(e){}
 }
+// Lamp-rocker click — same synthesis approach as _playTodayOrderSound above
+// (fresh AudioContext per call, no external audio file). A mechanical-switch
+// "clack": a sharp high snap immediately followed by a lower, softer settle a
+// few ms later — square wave + near-instant exponential decay for a
+// percussive click rather than a tone. Always created inside the toggle's own
+// click handler (setSort()/toggleAiGps()), which is itself the user gesture
+// mobile browsers require to start an AudioContext — no separate unlock
+// needed. Live request 2026-09-02 (tactile lamp-amplifier feel for the sort
+// toggle).
+function _playRockerClick(){
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    [[1400,0,0.018,0.05],[420,0.028,0.015,0.035]].forEach(([freq,delay,dur,vol])=>{
+      const t=ctx.currentTime+delay;
+      const osc=ctx.createOscillator(), gain=ctx.createGain();
+      osc.type='square'; osc.frequency.value=freq;
+      gain.gain.setValueAtTime(vol,t);
+      gain.gain.exponentialRampToValueAtTime(0.001,t+dur);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(t); osc.stop(t+dur+0.01);
+    });
+  }catch(e){}
+}
 // speechSynthesis dropped (2026-08-26): tested on a real phone with zero he-IL AND
 // zero en-US voices speaking — the API itself was non-functional in that viewing
 // context, not a Hebrew-specific gap, with no reliable way to detect that in advance.
@@ -2518,7 +2582,18 @@ function setTab(t, skipMap=false){
 
 function setSort(mode){
   if(st.sortMode===mode)return;
+  _playRockerClick();
   st.sortMode=mode;
+  if(mode==='priority'){
+    // Only ever called with 'priority' in practice (the "הגרסה שלי" pill).
+    // Leaving AI mode here must also clear the AI-Google button's own active
+    // class/flags — otherwise it (and its lamp-rocker glow) stays lit next to
+    // this one after tapping AI-Google then "הגרסה שלי" straight after. Found
+    // via the lamp-rocker puppeteer verification 2026-09-02: both "lamps" were
+    // on at once.
+    st.aiGpsMode=false; st.tabletGpsMode=false;
+    document.getElementById('sort-btn-ai-google').className='sort-btn';
+  }
   saveSortModePref(st.agent.code,mode);
   document.getElementById('sort-btn-priority').className='sort-btn'+(mode==='priority'?' active-priority':'');
   if(mode==='priority') _showMyVersionToast();
@@ -2550,6 +2625,7 @@ function toggleTabletGps(){
 }
 
 function toggleAiGps(){
+  _playRockerClick();
   st.aiGpsMode=!st.aiGpsMode;
   const btn=document.getElementById('sort-btn-ai-google');
   if(btn) btn.className='sort-btn'+(st.aiGpsMode?' active-ai-google':'');
