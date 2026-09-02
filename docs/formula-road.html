@@ -140,45 +140,76 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
    kebab) is the same plain ghost outline as "לפי ביקור" below. */
 .sort-btn.primary-action,.sort-btn.map-toggle-cta{background:linear-gradient(135deg,#0D47A1,#1565C0);color:#fff;border-color:#0D47A1;font-weight:900;box-shadow:0 3px 10px rgba(21,101,192,.35);}
 .sort-btn.primary-action:hover,.sort-btn.map-toggle-cta:hover{background:linear-gradient(135deg,#082D6E,#0D47A1);}
-/* "הגרסה שלי" / AI rocker — a deliberate, one-off exception to DESIGN.md's
+/* "הגרסה שלי" / AI toggle — a deliberate, one-off exception to DESIGN.md's
    Flat-at-Rest Rule for exactly this control (explicit user request
    2026-09-02, confirmed after raising the rule during scoping — every other
-   element in the system stays flat). Styled as a vintage tube-amplifier
-   toggle: chromed metal housing, layered 3D shadows, a warm amber "pilot
-   lamp" dot on whichever side is active (VU-meter spirit), tactile press
-   bounce. Active-state COLORS still borrow the existing semantic mapping
-   (priority=Command Blue, AI-Google=purple) from DESIGN.md's Sort/Toolbar
-   Buttons section — only the housing/glow/motion are new, and scoped to
-   .sort-toggle only so nothing else in the app inherits this look. */
+   element in the system stays flat). Modeled on a real vintage-amplifier
+   toggle switch: a chromed metal PADDLE that physically tilts between two
+   positions via rotate() — not a flat two-segment pill — sitting in a dark
+   metal bezel, with round glass "pilot jewel" indicators (the Fender/vintage-
+   amp pilot-light look) that glow amber on whichever side is active. A first
+   pass used emoji (🤖/📍) as the state icons and got fair pushback — emoji
+   can't read as metal or glass. This version has none: state reads from
+   lever angle + jewel glow + the text label beside it (tablet; derived
+   purely via CSS ::before off the existing active-* classes, no extra JS)
+   and, on phone, from the toast + ringed visit circles elsewhere already.
+   The two REAL buttons (sort-btn-priority/-ai-google) become invisible
+   left/right click zones stacked under this artwork (position:absolute,
+   transparent) — every existing JS reference to them (setSort/toggleAiGps/
+   initRoute/...) keeps working unchanged; only what's painted changed. */
 .sort-toggle{
-  display:flex;gap:3px;flex-shrink:0;padding:3px;border-radius:22px;
-  background:linear-gradient(165deg,#eef1f4 0%,#c7ced7 45%,#eef1f4 100%);
-  border:1px solid #a9b1bb;
-  box-shadow:0 3px 8px rgba(20,30,45,.32),inset 0 1px 1px rgba(255,255,255,.85),inset 0 -2px 3px rgba(20,30,45,.22);
+  position:relative;display:flex;align-items:center;gap:5px;flex-shrink:0;
+  padding:5px 7px;border-radius:12px;
+  background:linear-gradient(165deg,#3a4048 0%,#20242a 55%,#3a4048 100%);
+  box-shadow:0 3px 8px rgba(0,0,0,.4),inset 0 1px 1px rgba(255,255,255,.15),inset 0 -1px 2px rgba(0,0,0,.5);
 }
 .sort-toggle .sort-btn{
-  border:none!important;border-radius:18px!important;box-shadow:none!important;
-  position:relative;transition:background .18s,box-shadow .18s;
+  position:absolute;top:0;bottom:0;width:50%;height:100%;
+  border:none!important;background:transparent!important;box-shadow:none!important;
+  padding:0;margin:0;border-radius:0!important;cursor:pointer;z-index:2;
 }
-.sort-toggle .sort-btn.active-priority,
-.sort-toggle .sort-btn.active-ai-google{
-  box-shadow:0 1px 3px rgba(0,0,0,.22),inset 0 1px 1px rgba(255,255,255,.5)!important;
+.sort-toggle #sort-btn-priority{right:0;}
+.sort-toggle #sort-btn-ai-google{left:0;}
+.toggle-visual{position:relative;display:flex;align-items:center;gap:5px;pointer-events:none;z-index:1;}
+.pilot-jewel{
+  width:6px;height:6px;border-radius:50%;flex-shrink:0;
+  background:radial-gradient(circle at 30% 30%,#5a5f66,#2a2d32);
+  box-shadow:inset 0 0 1px rgba(0,0,0,.6);
+  transition:background .2s,box-shadow .2s;
 }
-.sort-toggle .sort-btn.active-priority::after,
-.sort-toggle .sort-btn.active-ai-google::after{
-  content:'';position:absolute;top:4px;left:50%;transform:translateX(-50%);
-  width:6px;height:6px;border-radius:50%;
-  background:#FFB74D;box-shadow:0 0 7px 2px rgba(255,171,64,.85);
+.sort-toggle .sort-btn.active-priority~.toggle-visual .jewel-priority,
+.sort-toggle .sort-btn.active-ai-google~.toggle-visual .jewel-ai{
+  background:radial-gradient(circle at 30% 30%,#ffcc80,#e65100);
+  box-shadow:0 0 7px 2px rgba(230,81,0,.75),0 0 2px rgba(255,204,128,.9);
 }
-@keyframes lamp-rocker-press{0%{transform:scale(1);}40%{transform:scale(.90);}100%{transform:scale(1);}}
-.sort-toggle .sort-btn:active{animation:lamp-rocker-press .22s ease-out;}
-/* Full text (tablet/desktop) vs icon-only compact label (phone, see below) —
-   .lbl-compact stays hidden until the phone media query below swaps them, so
-   the rocker can sit in row 1 next to ⋮/מפה/ניתוח without dominating its
-   height/width. Live placement request 2026-09-02 (user screenshot, agent
-   Konstantin, day ד) — was previously hidden entirely on phone (moved into
-   the ⋮ menu as plain text); now shown compactly in the same row instead. */
-.sort-toggle .lbl-compact{display:none;}
+.toggle-lever-track{
+  width:34px;height:16px;border-radius:8px;flex-shrink:0;
+  background:linear-gradient(180deg,#0c0e11,#1c1f24);
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.7);
+  display:flex;align-items:center;justify-content:center;
+}
+.toggle-lever{
+  --lever-rot:-16deg;
+  width:26px;height:9px;border-radius:5px;
+  background:linear-gradient(180deg,#f4f6f8 0%,#c2c8d0 35%,#8b929c 60%,#c2c8d0 100%);
+  box-shadow:0 1px 2px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.9);
+  transform:rotate(var(--lever-rot));
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1);
+}
+.sort-toggle .sort-btn.active-priority~.toggle-visual .toggle-lever{--lever-rot:16deg;}
+@keyframes lever-press{0%{transform:rotate(var(--lever-rot)) scale(1);}40%{transform:rotate(var(--lever-rot)) scale(.82);}100%{transform:rotate(var(--lever-rot)) scale(1);}}
+.sort-toggle:active .toggle-lever{animation:lever-press .22s ease-out;}
+.sort-toggle-label{
+  color:#e8ecf0;font-size:11px;font-weight:800;white-space:nowrap;pointer-events:none;
+}
+.sort-toggle-label::before{content:'AI Google';}
+.sort-toggle .sort-btn.active-priority~.sort-toggle-label::before{content:'הגרסה שלי';}
+/* Compact on phone — see the 699px breakpoint below: hides the text label
+   entirely, meaning must carry purely via lever angle + jewel glow there
+   (plus the toast/ringed-circles feedback elsewhere in the UI). Live
+   placement request 2026-09-02 (user screenshot, agent Konstantin, day ד) —
+   was previously hidden entirely on phone (moved into the ⋮ menu as plain
+   text); now shown compactly in the same row instead. */
 .day-switch{display:flex;gap:4px;flex-shrink:0;}
 .day-sw-btn{width:44px;height:44px;border-radius:12px;background:var(--sky-light);border:2px solid var(--sky-mid);font-size:19px;font-weight:900;color:var(--blue-dark);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;box-shadow:0 1px 4px rgba(21,101,192,.10);}
 .day-sw-btn:hover{background:var(--sky-mid);transform:translateY(-1px);}
@@ -604,14 +635,14 @@ body.map-hidden #tab-map,body.map-hidden #tab-inline-map{display:none!important;
    get collapsed off row 1 on phones (.mob-collapse below), so they're
    duplicated here instead. The sort-toggle itself used to have its own pair
    of duplicates here too (removed 2026-09-02) — it's shown directly in row 1
-   on phone now instead (compact icon-only labels, see .lbl-compact above and
-   the phone sizing below), so a separate menu path for it was redundant. */
+   on phone now instead (compact, no text label — see .sort-toggle-label
+   below), so a separate menu path for it was redundant. */
 .km-more-dd .mob-only{display:none!important;}
 @media(max-width:699px){
-  .sort-toggle{padding:2px;gap:2px;border-radius:16px;}
-  .sort-toggle .sort-btn{padding:0 7px;height:28px;font-size:15px;min-width:28px;justify-content:center;}
-  .sort-toggle .lbl-full{display:none;}
-  .sort-toggle .lbl-compact{display:inline;}
+  .sort-toggle{padding:4px 6px;gap:4px;}
+  .toggle-lever-track{width:28px;height:14px;}
+  .toggle-lever{width:21px;height:8px;}
+  .sort-toggle-label{display:none;}
   .km-more-dd .mob-only{display:flex!important;}
   /* יעדים / Google Maps — lower-frequency toolbar actions, collapsed into
      the ⋮ menu on phone (duplicated there via .mob-only above) so row 1
@@ -859,8 +890,17 @@ body.gps-fs #map{height:100%!important;}
       <div class="day-switch" id="day-switch"></div>
       <div class="sort-btns">
         <div class="sort-toggle">
-          <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')"><span class="lbl-full">הגרסה שלי</span><span class="lbl-compact">📍</span></button>
-          <button class="sort-btn active-ai-google" id="sort-btn-ai-google" onclick="toggleAiGps()"><span class="lbl-full">🤖 AI Google</span><span class="lbl-compact">🤖</span></button>
+          <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')" aria-label="הגרסה שלי" title="הגרסה שלי"></button>
+          <button class="sort-btn active-ai-google" id="sort-btn-ai-google" onclick="toggleAiGps()" aria-label="AI Google" title="AI Google"></button>
+          <!-- RTL flex: first DOM child renders on the visual RIGHT (matching
+               #sort-btn-priority{right:0} below), so jewel-priority comes
+               first here to line up over its own click zone. -->
+          <span class="toggle-visual" aria-hidden="true">
+            <span class="pilot-jewel jewel-priority"></span>
+            <span class="toggle-lever-track"><span class="toggle-lever"></span></span>
+            <span class="pilot-jewel jewel-ai"></span>
+          </span>
+          <span class="sort-toggle-label" aria-hidden="true"></span>
         </div>
         <button class="sort-btn primary-action" id="day-briefing-btn" onclick="openDayBriefing()" title="ניתוח יום — TOP 10 לקוחות">📊 ניתוח</button>
         <button class="sort-btn mob-collapse" id="yedaim-btn" onclick="openYedaim()" title="יעדים — סטטוס הקבוצה">יעדים 🎩</button>
