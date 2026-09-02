@@ -350,8 +350,13 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .day-closing-btn.formula{background:linear-gradient(135deg,#66BB6A,#2E7D32);}
 .day-closing-btn:active{filter:brightness(.92);}
 .c-num-wrap{display:flex;flex-direction:column;align-items:center;gap:1px;flex-shrink:0;min-width:28px;cursor:grab;touch-action:pan-y;user-select:none;}
-.c-num{width:21px;height:21px;border-radius:50%;background:var(--sky-light);border:1.5px solid var(--sky-mid);font-size:10px;font-weight:800;color:var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.c-num{width:21px;height:21px;border-radius:50%;background:var(--sky-light);border:1.5px solid var(--sky-mid);font-size:10px;font-weight:800;color:var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:box-shadow .18s,border-color .18s;}
 .selected .c-num{background:var(--blue);color:#fff;border-color:var(--blue);}
+/* "הגרסה שלי" mode — ring the visit-number circles in Command Blue (the same
+   color the toggle itself uses for its own active state, per DESIGN.md's
+   priority=Command Blue mapping) as a drag affordance signal. Kept as a ring,
+   not a solid fill, so .selected (solid blue) stays visually stronger. 2026-09-02. */
+#client-list.mode-manual .c-num{border-color:var(--blue);box-shadow:0 0 0 3px rgba(21,101,192,.18);}
 .c-id-side{font-size:15px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--blue);background:none;border:none;padding:0 2px;white-space:nowrap;flex-shrink:0;text-align:center;direction:ltr;unicode-bidi:isolate;}
 .c-drag{cursor:grab;touch-action:pan-y;user-select:none;}
 .c-body{flex:1;min-width:0;}
@@ -2516,6 +2521,7 @@ function setSort(mode){
   st.sortMode=mode;
   saveSortModePref(st.agent.code,mode);
   document.getElementById('sort-btn-priority').className='sort-btn'+(mode==='priority'?' active-priority':'');
+  if(mode==='priority') _showMyVersionToast();
   renderCityFilters();
   renderClientList();
   if(st.tab==='map'||window.innerWidth>=700) renderMap();
@@ -2536,7 +2542,7 @@ function toggleTabletGps(){
   } else {
     st.sortMode='priority';
     document.getElementById('sort-btn-priority').className='sort-btn active-priority';
-    showToast('📍 GPS: מצב רגיל');
+    if(!_showMyVersionToast()) showToast('📍 GPS: מצב רגיל');
   }
   saveSortModePref(st.agent.code,st.sortMode);
   renderCityFilters(); renderClientList();
@@ -2557,7 +2563,7 @@ function toggleAiGps(){
   } else {
     st.sortMode='priority';
     document.getElementById('sort-btn-priority').className='sort-btn active-priority';
-    showToast('📍 GPS: מצב רגיל');
+    if(!_showMyVersionToast()) showToast('📍 GPS: מצב רגיל');
     renderClientList();
   }
   saveSortModePref(st.agent.code,st.sortMode);
@@ -2899,6 +2905,7 @@ document.addEventListener('click',e=>{
 
 function renderClientList(html){
   const el=document.getElementById('client-list');
+  el.classList.toggle('mode-manual',st.sortMode==='priority');
   if(html){el.innerHTML=html;return;}
   const list=displayClients();
   if(!list.length){el.innerHTML=`<div style="padding:40px 20px;text-align:center;color:var(--mid)"><div style="font-size:36px;margin-bottom:12px">📭</div><div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px">אין לקוחות ביום זה</div><div style="font-size:12px">נסה לשנות את הסינון או בחר יום אחר</div></div>`;return;}
@@ -3437,6 +3444,23 @@ function loadSortModePref(code){
 }
 function saveSortModePref(code,mode){
   try{localStorage.setItem(`fr_${code}_sortMode`,mode);}catch{}
+}
+// Encouraging nudge the first time an agent switches to "הגרסה שלי" per day —
+// same cooldown-by-timestamp pattern as the PWA install banner (_pwaShouldAsk()
+// above), so it survives the tab closing/reopening instead of relying on a
+// setTimeout that only fires if the tab stays open. Returns true if it showed
+// (caller skips the generic toast in that case). 2026-09-02.
+const MYVERSION_TOAST_COOLDOWN_MS=24*60*60*1000;
+function _showMyVersionToast(){
+  const code=st.agent?.code;
+  if(!code) return false;
+  const key=`fr_${code}_myversion_toast_last`;
+  const last=parseInt(localStorage.getItem(key)||'0',10);
+  if(last&&(Date.now()-last)<MYVERSION_TOAST_COOLDOWN_MS) return false;
+  const firstName=(st.agent?.name||'').trim().split(/\s+/)[0];
+  showToast(firstName?`✋ ${firstName}, זו הגרסה שלך — גרור לקוחות כדי לסדר כרצונך`:'✋ זו הגרסה שלך — גרור לקוחות כדי לסדר כרצונך',3500);
+  try{localStorage.setItem(key,String(Date.now()));}catch{}
+  return true;
 }
 function mergeWithSaved(fromServer,saved){
   const savedIds=saved.map(s=>s.custId);
