@@ -2331,9 +2331,24 @@ async function initRoute(){
   });
 
   if(myId !== _initRouteId) return; // newer call in flight — discard stale results
+  // A saved per-day order (manual drag reorder, restored here via
+  // syncRouteOverridesFromServer() -> loadSavedRoute() above) is the agent's
+  // explicit choice. Recomputing nearestNeighbor/OSRM unconditionally on every
+  // load used to silently overwrite it the moment the page reopened — the drag
+  // looked saved, then reverted on the next visit (live bug 2026-09-02). Respect
+  // it until the agent explicitly hits "recalc route" (recalcRoute() always
+  // forces a fresh computation regardless of this flag). An explicitly reset day
+  // (resetRoute() pushes an empty order) must NOT count as "saved" here, hence
+  // the length check, not just truthiness.
+  const _savedDayOrder=loadSavedRoute(st.agent.code,st.day);
+  const _hasSavedDayOrder=!!(_savedDayOrder&&_savedDayOrder.length);
   try {
-    st.aiClients=nearestNeighbor([..._aiGpsClients(st.clients)]);
-    triggerOsrm();
+    if(_hasSavedDayOrder){
+      st.aiClients=[...st.clients];
+    }else{
+      st.aiClients=nearestNeighbor([..._aiGpsClients(st.clients)]);
+      triggerOsrm();
+    }
     updateKmBar();
     renderCityFilters();
   } catch(renderErr) {
@@ -2346,15 +2361,18 @@ async function initRoute(){
   st.topSalesIds=new Set();
   fetchDayTopSales(myId);
   startTodayOrdersPolling(myId);
-  // Road-optimal ordering via OSRM /trip (async, cached)
-  const _snapId=myId, _snapAgent=st.agent?.code, _snapDay=st.day;
-  osrmTripOrder([..._aiGpsClients(st.clients)], st.startLat, st.startLng).then(ordered=>{
-    if(!ordered||myId!==_snapId||st.agent?.code!==_snapAgent||st.day!==_snapDay||st.sortMode!=='ai') return;
-    st.aiClients=ordered;
-    renderClientList(); updateKmBar();
-    if(window.innerWidth>=700||st.tab==='map') renderMap();
-    showToast('🛣️ סדר עודכן לפי כביש');
-  });
+  // Road-optimal ordering via OSRM /trip (async, cached) — skipped when a saved
+  // manual order exists for this day, same reasoning as above.
+  if(!_hasSavedDayOrder){
+    const _snapId=myId, _snapAgent=st.agent?.code, _snapDay=st.day;
+    osrmTripOrder([..._aiGpsClients(st.clients)], st.startLat, st.startLng).then(ordered=>{
+      if(!ordered||myId!==_snapId||st.agent?.code!==_snapAgent||st.day!==_snapDay||st.sortMode!=='ai') return;
+      st.aiClients=ordered;
+      renderClientList(); updateKmBar();
+      if(window.innerWidth>=700||st.tab==='map') renderMap();
+      showToast('🛣️ סדר עודכן לפי כביש');
+    });
+  }
   document.getElementById('export-btn').classList.add('visible');
   document.getElementById('export-all-btn').classList.add('visible');
   updateGpsHistBtn();
@@ -3075,7 +3093,12 @@ function setupSortable(){
       list.splice(e.newIndex,0,moved);
       if(st.sortMode==='ai') st.aiClients=[...list,...st.clients.filter(c=>!list.find(x=>x.custId===c.custId))];
       else st.clients=[...list,...st.clients.filter(c=>!list.find(x=>x.custId===c.custId))];
-      saveRoute(st.agent.code,st.day,st.clients);
+      // Live bug 2026-09-02: this used to always save st.clients, even when the
+      // drag just happened in AI mode (updates st.aiClients — the array actually
+      // shown, since displayClients() returns aiClients while sortMode==='ai').
+      // The edit looked saved in the UI but the server got the untouched pre-drag
+      // order, so it silently reverted on the agent's next visit.
+      saveRoute(st.agent.code,st.day,st.sortMode==='ai'?st.aiClients:st.clients);
       updateKmBar();
       renderClientList();
       if(st.tab==='map'||window.innerWidth>=700) renderMap();
