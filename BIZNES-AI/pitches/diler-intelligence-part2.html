@@ -1,0 +1,311 @@
+<!doctype html>
+<title>Diler Intelligence: доказательство</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,700;0,800;0,900;1,700;1,900&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg:         #0f172a;
+  --bg-card:    #1e2540;
+  --amber:      #f59e0b;
+  --amber-dim:  rgba(245,158,11,0.12);
+  --amber-border: rgba(245,158,11,0.25);
+  --text:       #f1f5f9;
+  --muted:      rgba(241,245,249,0.45);
+  --faint:      rgba(241,245,249,0.07);
+  --border:     rgba(241,245,249,0.1);
+  --green:      #22c55e;
+  --red:        #ef4444;
+  --blue:       #60a5fa;
+}
+
+body { font-family: 'Hanken Grotesk', system-ui, sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+
+.progress-bar { position: fixed; top: 0; left: 0; height: 2px; background: var(--amber); transition: width 0.45s cubic-bezier(0.22,1,0.36,1); z-index: 100; }
+.deck { width: 100%; height: 100vh; position: relative; }
+.slide { position: absolute; inset: 0; padding: 60px 80px; display: flex; flex-direction: column; justify-content: center;
+  opacity: 0; pointer-events: none; transform: translateY(18px);
+  transition: opacity 0.45s cubic-bezier(0.22,1,0.36,1), transform 0.45s cubic-bezier(0.22,1,0.36,1); overflow-y: auto; }
+.slide.active { opacity: 1; pointer-events: auto; transform: translateY(0); }
+
+.nav { position: fixed; bottom: 30px; right: 36px; display: flex; gap: 8px; z-index: 99; }
+.nav button { width: 38px; height: 38px; background: transparent; border: 1px solid var(--border); color: var(--muted);
+  border-radius: 50%; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: border-color 0.2s, color 0.2s; }
+.nav button:hover { border-color: var(--amber); color: var(--amber); }
+.nav button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.counter { position: fixed; bottom: 36px; left: 36px; font-size: 11px; letter-spacing: 2px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.part-badge { position: fixed; top: 30px; right: 36px; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--amber); z-index: 99; }
+
+h1 { font-family: 'Barlow Condensed', sans-serif; font-size: clamp(52px, 7vw, 92px); font-weight: 900; line-height: 0.94; text-transform: uppercase; color: var(--text); text-wrap: balance; }
+h1 em { font-style: italic; color: var(--amber); }
+h2 { font-family: 'Barlow Condensed', sans-serif; font-size: clamp(36px, 4.8vw, 58px); font-weight: 800; line-height: 1.02; text-transform: uppercase; color: var(--text); margin-bottom: 32px; text-wrap: balance; }
+h2 em { font-style: italic; color: var(--amber); }
+.eyebrow { font-size: 10px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--amber); margin-bottom: 18px; }
+.tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 32px; }
+.tag { border: 1px solid var(--amber-border); color: rgba(217,119,6,0.8); padding: 4px 12px; border-radius: 2px; font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+.slide-cover { background: linear-gradient(135deg, #0f172a 0%, #1e2d4a 100%); align-items: flex-start; }
+.slide-cover .sub { font-size: 17px; color: var(--muted); max-width: 580px; line-height: 1.7; margin-top: 26px; }
+
+/* WORLD EXAMPLES */
+.world-list { display: flex; flex-direction: column; max-width: 920px; }
+.world-row { display: grid; grid-template-columns: 140px 1fr 200px; gap: 28px; align-items: center; padding: 22px 0; border-bottom: 1px solid var(--border); }
+.world-row:first-child { border-top: 1px solid var(--border); }
+.world-name { font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 900; text-transform: uppercase; color: var(--text); line-height: 1; }
+.world-from { font-size: 10px; color: var(--muted); letter-spacing: 0.5px; margin-top: 4px; }
+.world-desc h3 { font-size: 14.5px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.world-desc p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+.world-stat { text-align: right; }
+.world-stat .v { font-family: 'Barlow Condensed', sans-serif; font-size: 24px; font-weight: 900; color: var(--amber); line-height: 1; font-variant-numeric: tabular-nums; }
+.world-stat .l { font-size: 10px; color: var(--muted); margin-top: 4px; line-height: 1.3; }
+
+.thesis-line { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 0.01em; margin-top: 8px; }
+.thesis-line em { font-style: italic; color: var(--amber); }
+
+/* PROJECT / TERMINAL (reused) */
+.project-split { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; max-width: 980px; }
+.project-desc { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 22px; max-width: 400px; }
+.feat-list { list-style: none; display: flex; flex-direction: column; gap: 9px; margin-bottom: 20px; }
+.feat-list li { font-size: 14.5px; color: rgba(241,245,249,0.75); line-height: 1.4; padding-left: 16px; position: relative; }
+.feat-list li::before { content: ''; position: absolute; left: 0; top: 7px; width: 5px; height: 5px; background: var(--amber); border-radius: 50%; }
+.terminal { background: #0a0f1e; border: 1px solid rgba(245,158,11,0.2); border-radius: 6px; overflow: hidden; }
+.terminal-bar { background: rgba(217,119,6,0.07); border-bottom: 1px solid rgba(217,119,6,0.12); padding: 9px 16px; font-size: 10px; color: rgba(217,119,6,0.45); letter-spacing: 1.5px; font-family: monospace; text-transform: uppercase; }
+.terminal-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+.t-row { display: flex; align-items: center; gap: 12px; font-size: 12.5px; font-family: monospace; }
+.t-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.t-green { background: var(--green); } .t-amber { background: var(--amber); } .t-red { background: var(--red); } .t-blue { background: var(--blue); }
+.t-row .t-label { color: var(--muted); flex: 1; }
+.t-row .t-val { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* PRICE */
+.price-line { display: flex; gap: 32px; align-items: center; padding: 20px 26px; border: 1px solid var(--amber-border); border-radius: 4px; max-width: 660px; background: var(--amber-dim); flex-wrap: wrap; }
+.price-line .divider { width: 1px; height: 44px; background: var(--amber-border); flex-shrink: 0; }
+.pl-amount { font-family: 'Barlow Condensed', sans-serif; font-size: 32px; font-weight: 900; color: var(--amber); font-variant-numeric: tabular-nums; }
+.pl-sub { font-size: 11px; color: var(--muted); line-height: 1.5; margin-top: 2px; }
+
+/* NUM LIST */
+.num-list { display: flex; flex-direction: column; max-width: 840px; }
+.num-row { display: flex; gap: 28px; align-items: flex-start; padding: 16px 0; border-bottom: 1px solid var(--border); }
+.num-row:first-child { border-top: 1px solid var(--border); }
+.num-row .n { font-family: 'Barlow Condensed', sans-serif; font-size: 24px; font-weight: 900; color: rgba(217,119,6,0.2); min-width: 36px; padding-top: 1px; }
+.num-row h3 { font-size: 15.5px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.num-row p  { font-size: 13.5px; color: var(--muted); line-height: 1.5; max-width: 620px; }
+
+/* LINK-OUT CARD */
+.exhibit { border: 1px solid var(--amber-border); background: var(--amber-dim); border-radius: 6px; padding: 24px 28px; max-width: 620px; display: flex; flex-direction: column; gap: 10px; }
+.exhibit .lbl { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--amber); }
+.exhibit .ttl { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 800; text-transform: uppercase; color: var(--text); }
+.exhibit p { font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+
+.metrics-line { font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 700; color: var(--muted); letter-spacing: 0.02em; text-transform: uppercase; }
+.metrics-line strong { color: var(--amber); font-weight: 900; }
+
+.slide-contact { background: linear-gradient(150deg, #0f172a 0%, #1a2540 60%, #0f1f3d 100%); align-items: flex-start; }
+.contact-head { font-family: 'Barlow Condensed', sans-serif; font-size: clamp(42px, 5.2vw, 68px); font-weight: 900; text-transform: uppercase; line-height: 0.96; max-width: 760px; margin-bottom: 32px; text-wrap: balance; }
+.contact-head em { font-style: italic; color: var(--amber); }
+.ask-list { display: flex; flex-direction: column; gap: 16px; max-width: 700px; }
+.ask-row { display: flex; gap: 18px; align-items: baseline; }
+.ask-n { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 900; color: var(--amber); min-width: 30px; }
+.ask-row p { font-size: 15px; color: rgba(241,245,249,0.85); line-height: 1.5; }
+</style>
+
+<div class="progress-bar" id="pb"></div>
+<div class="part-badge">Diler Intelligence · Часть 2</div>
+
+<div class="deck">
+
+  <!-- 1. COVER -->
+  <div class="slide slide-cover active">
+    <div class="eyebrow">От идеи — к доказательству</div>
+    <h1>Это не гипотеза.<br>Это <em>proven pattern</em>.</h1>
+    <div class="sub">В части 1 — идея выделить IT/AI/BI-направление в отдельную структуру. Здесь — три мировых примера, что этот путь уже проходили, и один живой кейс, где то же самое случилось у нас на прошлой неделе.</div>
+    <div class="tags">
+      <span class="tag">Продолжение питча</span>
+      <span class="tag">2026-09-02</span>
+    </div>
+  </div>
+
+  <!-- 2. WORLD EXAMPLES -->
+  <div class="slide">
+    <div class="eyebrow">Мировая практика</div>
+    <h2>Внутренний отдел →<br>отдельный <em>бизнес</em></h2>
+    <div class="world-list">
+      <div class="world-row">
+        <div><div class="world-name">AWS</div><div class="world-from">из Amazon</div></div>
+        <div class="world-desc"><h3>Внутренняя инфраструктура для интернет-магазина</h3><p>Джефф Безос называл это «undifferentiated heavy lifting» — команда тонула в инфраструктуре вместо продукта. Решение упаковали как сервис для всех.</p></div>
+        <div class="world-stat"><div class="v">$128.7B</div><div class="l">выручка 2025 · 57% всей операционной прибыли Amazon</div></div>
+      </div>
+      <div class="world-row">
+        <div><div class="world-name">dunnhumby</div><div class="world-from">из Tesco</div></div>
+        <div class="world-desc"><h3>Аналитика программы лояльности Tesco Clubcard</h3><p>Начали в 1994 с одного ритейлера, к 2010 — полностью встроены в группу. Сегодня работают на рынок, а не только на Tesco.</p></div>
+        <div class="world-stat"><div class="v">30+ стран</div><div class="l">18 млрд записей данных в неделю</div></div>
+      </div>
+      <div class="world-row">
+        <div><div class="world-name">84.51°</div><div class="world-from">из Kroger</div></div>
+        <div class="world-desc"><h3>Внутренняя дата-аналитика ритейлера</h3><p>В 2015 оформлена как отдельная структура (название — координаты штаб-квартиры). Тот же профиль бизнеса, что у Diler: дистрибуция + бренды-поставщики.</p></div>
+        <div class="world-stat"><div class="v">1,400+</div><div class="l">брендов-клиентов CPG</div></div>
+      </div>
+      <div class="world-row">
+        <div><div class="world-name">Lufthansa<br>Systems</div><div class="world-from">из Lufthansa</div></div>
+        <div class="world-desc"><h3>Собственный IT-отдел авиакомпании</h3><p>1995 — выделен в отдельную структуру. Первый внешний клиент — LOT Polish Airlines, другая авиакомпания. Точная параллель: Diler → ASCOMI.</p></div>
+        <div class="world-stat"><div class="v">350+</div><div class="l">клиентов по всей отрасли</div></div>
+      </div>
+    </div>
+    <div class="thesis-line">Во всех четырёх — <em>внутренняя необходимость</em> стала внешним продуктом. Не наоборот.</div>
+  </div>
+
+  <!-- 3. BRIDGE -->
+  <div class="slide">
+    <div class="eyebrow">У нас — то же самое, на шаг раньше</div>
+    <h2>Только это уже<br><em>случилось</em></h2>
+    <div class="project-split">
+      <div>
+        <div class="project-desc">84.51° начали с внутренней задачи Kroger. У Diler внутренняя задача — точно такая же: 60 агентов в поле, ERP на Priority, склад, план продаж. Разница — они формализовали это в 2015. Мы формализуем сейчас, но код уже пишется.</div>
+        <ul class="feat-list">
+          <li>Formula Road — маршрутизация, в проде у 50+ агентов</li>
+          <li>Mahsan Editor — живая планограмма склада</li>
+          <li>MMD Orders — заказы международного направления</li>
+          <li>Собственный выделенный сервер — уже куплен и работает</li>
+        </ul>
+      </div>
+      <div class="terminal">
+        <div class="terminal-bar">Diler Intelligence · Что уже готово</div>
+        <div class="terminal-body">
+          <div class="t-row"><span class="t-dot t-green"></span><span class="t-label">Formula Road</span><span class="t-val">в проде</span></div>
+          <div class="t-row"><span class="t-dot t-green"></span><span class="t-label">Mahsan Editor</span><span class="t-val">в проде</span></div>
+          <div class="t-row"><span class="t-dot t-green"></span><span class="t-label">MMD Orders</span><span class="t-val">в проде</span></div>
+          <div class="t-row"><span class="t-dot t-green"></span><span class="t-label">Сервер</span><span class="t-val">куплен</span></div>
+          <div class="t-row"><span class="t-dot t-amber"></span><span class="t-label">Структура</span><span class="t-val">обсуждается сегодня</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. NEW EXHIBIT: SOFT SOLUTIONS CASE -->
+  <div class="slide">
+    <div class="eyebrow">Новое доказательство — на этой неделе</div>
+    <h2>Один вопрос — <em>147,890₪</em><br>найденной ясности</h2>
+    <div class="exhibit">
+      <div class="lbl">Live-кейс · 2026-09-02</div>
+      <div class="ttl">Soft Solutions: заменить или нет?</div>
+      <p>Реальная стоимость агентского приложения нашлась не в договоре с вендором, а в собственной бухгалтерии Priority — за один вечер работы. Полный разбор с реальными SQL-данными, тремя путями и рекомендацией — отдельная презентация, ссылка ниже.</p>
+    </div>
+    <div style="height:24px"></div>
+    <div class="price-line">
+      <div><div class="pl-amount">147,890₪/год</div><div class="pl-sub">реальная стоимость вендора, найдена за один вечер работы</div></div>
+    </div>
+    <div style="height:16px"></div>
+    <div class="metrics-line">Это тот самый <strong>анализ → решение</strong>, который в 84.51° и dunnhumby делают на потоке для внешних клиентов</div>
+  </div>
+
+  <!-- 4.5 ZIKUY DEEP DIVE -->
+  <div class="slide">
+    <div class="eyebrow">Один маленький блок · Две волны экономии</div>
+    <h2>165 бланков —<br><em>не гипотеза</em></h2>
+    <div class="project-split">
+      <div>
+        <div class="project-name" style="font-size:22px;margin-bottom:14px">Волна 1 · Сторона агента</div>
+        <div class="price-line" style="max-width:100%;margin-bottom:14px">
+          <div><div class="pl-amount">~99 ч</div><div class="pl-sub">экономии в месяц на всю группу зикуй-агентов</div></div>
+        </div>
+        <div class="price-line" style="max-width:100%">
+          <div><div class="pl-amount">~110,770₪</div><div class="pl-sub">в год — сопоставимо со всем счётом Soft Solutions</div></div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:14px;line-height:1.6">
+          Было 5–7 мин вручную → ~45 сек в приложении. 165 бланков за первые 8 дней, активны 8 из 20 целевых агентов — экстраполировано на полный охват. Ставка 94.4₪/ч (14,000₪ нетто + 3,000₪ авто, 180ч/мес).
+        </div>
+      </div>
+      <div>
+        <div class="project-name" style="font-size:22px;margin-bottom:14px">Волна 2 · Сторона офиса</div>
+        <div class="terminal">
+          <div class="terminal-bar">Офис · До и после блока зикуй</div>
+          <div class="terminal-body">
+            <div class="t-row"><span class="t-dot t-green"></span><span class="t-label">Уточнения у агентов</span><span class="t-val">меньше</span></div>
+            <div class="t-row"><span class="t-dot t-green"></span><span class="t-label">Звонки סגירת יום за מק"ט</span><span class="t-val">исчезли</span></div>
+            <div class="t-row"><span class="t-dot t-green"></span><span class="t-label">Ошибки в номере / מק"ט</span><span class="t-val">невозможны</span></div>
+            <div class="t-row"><span class="t-dot t-amber"></span><span class="t-label">Ручной ввод зикуй в Priority</span><span class="t-val">после API</span></div>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:14px;line-height:1.6">
+          Первые три пункта — уже сегодня, качественно (часы не считаем, чтобы не подгонять цифру). Четвёртый — то же полшага до API, что и в кейсе заказов: девочки в офисе просто проводят готовый зикуй, ничего не набивают.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4.7 IT BUDGET ALREADY EXISTS -->
+  <div class="slide">
+    <div class="eyebrow">Бюджет отдела уже существует — просто разбросан</div>
+    <h2>IT по всей группе:<br><em>+210% за два года</em></h2>
+    <div class="price-line">
+      <div><div class="pl-amount">819,690₪</div><div class="pl-sub">2023</div></div>
+      <div class="divider"></div>
+      <div><div class="pl-amount">3,107,194₪</div><div class="pl-sub">2024</div></div>
+      <div class="divider"></div>
+      <div><div class="pl-amount">2,542,798₪</div><div class="pl-sub">2025</div></div>
+    </div>
+    <div style="height:20px"></div>
+    <div class="thesis-line">Это не бюджет одного проекта — это <em>совокупный IT-расход</em> FORMULA + INTER + ICE + MMD INT, посчитанный напрямую из Priority (без зарплат). Он уже растёт быстрее выручки, только без единой стратегии — как если бы отдел уже существовал, просто без названия и без координации между четырьмя компаниями.</div>
+  </div>
+
+  <!-- 5. WHAT IT MEANS -->
+  <div class="slide">
+    <div class="eyebrow">Что это значит для группы</div>
+    <h2>Один вопрос закрыт.<br>Сколько таких <em>ещё</em>?</h2>
+    <div class="num-list">
+      <div class="num-row"><div class="n">01</div><div><h3>Это была одна проверка, не проект</h3><p>Один вечер работы вскрыл реальную стоимость вендора и путь без него — на масштабе одной компании из восьми в группе.</p></div></div>
+      <div class="num-row"><div class="n">02</div><div><h3>5 дистрибуционных + 3 импортёрских компании</h3><p>Каждая — свои вендорские договоры, свои «платим, потому что привыкли». Никто их не сверял с תשלומים לספקים так, как сегодня.</p></div></div>
+      <div class="num-row"><div class="n">03</div><div><h3>Именно это и продаёт 84.51° клиентам</h3><p>Не абстрактный AI — доступ к собственным данным, о которых компания не знала, что они уже есть.</p></div></div>
+    </div>
+  </div>
+
+  <!-- 6. ASK -->
+  <div class="slide slide-contact">
+    <div class="contact-head">Мир уже <em>прошёл</em><br>этот путь</div>
+    <div class="ask-list">
+      <div class="ask-row"><div class="ask-n">01</div><p>Посмотреть разбор Soft Solutions как рабочий пример — не теория, а то, что уже сделано</p></div>
+      <div class="ask-row"><div class="ask-n">02</div><p>Вернуться к структуре из части 1 — с учётом, что первое доказательство уже есть</p></div>
+      <div class="ask-row"><div class="ask-n">03</div><p>Назначить дату — сервер и продукты уже ждут, вопрос теперь организационный, не технический</p></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="counter" id="counter">1 / 8</div>
+<div class="nav">
+  <button onclick="prev()" aria-label="Предыдущий слайд">&#8592;</button>
+  <button onclick="next()" aria-label="Следующий слайд">&#8594;</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const pb      = document.getElementById('pb');
+  const counter = document.getElementById('counter');
+  let cur = 0;
+
+  function show(n) {
+    slides[cur].classList.remove('active');
+    cur = (n + slides.length) % slides.length;
+    slides[cur].classList.add('active');
+    pb.style.width = ((cur + 1) / slides.length * 100) + '%';
+    counter.textContent = (cur + 1) + ' / ' + slides.length;
+  }
+  function next() { show(cur + 1); }
+  function prev() { show(cur - 1); }
+  pb.style.width = (1 / slides.length * 100) + '%';
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next();
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   prev();
+  });
+
+  let tx = 0;
+  document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; });
+  document.addEventListener('touchend',   e => {
+    const dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 50) { dx < 0 ? next() : prev(); }
+  });
+</script>
