@@ -267,6 +267,34 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .fpb-toggle-only .toggle-side-label{display:inline-block;}
 .sort-toggle .sort-btn.active-priority~.toggle-visual .side-label-priority{color:var(--blue);}
 .sort-toggle .sort-btn.active-ai-google~.toggle-visual .side-label-ai{color:#7B1FA2;}
+/* TEMP: remove after 2026-09-09 — one-week onboarding callout introducing the
+   AI/"הגרסה שלי" toggle to agents who haven't tried it yet (live request
+   2026-09-02, same day as the toggle's hit-area fix). A small speech bubble
+   pointing at the toggle itself — not the generic bottom-of-screen
+   showToast() — so it visually calls out the exact control it's announcing.
+   position:fixed (not absolute inside .sort-toggle) and appended to <body>,
+   with top/right set from JS via the toggle's live getBoundingClientRect():
+   #formula-progress-banner is position:sticky;top:0 inside a scrolling
+   #list-pane, which sits right at the very top of the screen — an
+   absolutely-positioned bubble anchored "above" it has essentially no room
+   and gets clipped by the scroll container's own overflow. Fixed
+   positioning escapes that entirely. _showToggleOnboardTip() also flips the
+   bubble BELOW the toggle (.below variant, arrow flipped to point up) when
+   there isn't ~70px of room above it in the viewport — same idea, doesn't
+   assume where in the layout the toggle happens to sit. */
+.toggle-onboard-tip{
+  position:fixed;max-width:200px;
+  background:#1565C0;color:#fff;padding:8px 12px;border-radius:12px;
+  font-size:12px;font-weight:700;line-height:1.4;text-align:center;
+  box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:10000;
+  opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;transform:translateY(4px);
+}
+.toggle-onboard-tip.show{opacity:1;transform:translateY(0);}
+.toggle-onboard-tip::after{
+  content:'';position:absolute;top:100%;right:14px;
+  border:6px solid transparent;border-top-color:#1565C0;
+}
+.toggle-onboard-tip.below::after{top:auto;bottom:100%;border-top-color:transparent;border-bottom-color:#1565C0;}
 .day-switch{display:flex;gap:4px;flex-shrink:0;}
 .day-sw-btn{width:44px;height:44px;border-radius:12px;background:var(--sky-light);border:2px solid var(--sky-mid);font-size:19px;font-weight:900;color:var(--blue-dark);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;box-shadow:0 1px 4px rgba(21,101,192,.10);}
 .day-sw-btn:hover{background:var(--sky-mid);transform:translateY(-1px);}
@@ -2605,6 +2633,7 @@ async function initRoute(){
   setupCardDoubleTap(document.getElementById('list-pane'));
   if(window.innerWidth>=700 && !st.mapHidden) setTimeout(()=>{ if(myId===_initRouteId) renderMap(); },200);
   setTimeout(autoSyncGpsClean, 3000); // silent cleanup after route loads
+  setTimeout(()=>{ if(myId===_initRouteId) _showToggleOnboardTip(); },1500); // TEMP: remove after 2026-09-09 (see _showToggleOnboardTip)
 }
 
 // ── PBI data date ── shown in the ניתוח יום modal title, not route-sub: putting it
@@ -3692,6 +3721,49 @@ function _showMyVersionToast(){
   showToast(firstName?`✋ ${firstName}, זו הגרסה שלך — גרור לקוחות כדי לסדר כרצונך`:'✋ זו הגרסה שלך — גרור לקוחות כדי לסדר כרצונך',3500);
   try{localStorage.setItem(key,String(Date.now()));}catch{}
   return true;
+}
+// TEMP: remove after 2026-09-09 — one-week announcement for agents who
+// haven't discovered the AI/"הגרסה שלי" toggle yet (live request 2026-09-02,
+// same session as the toggle's hit-area fix). Distinct from
+// _showMyVersionToast() above: that one is REACTIVE (fires after an agent
+// already switches to priority mode, congratulating them); this one is
+// PROACTIVE (fires on route load, for agents who may never have touched the
+// toggle at all) and renders as a callout bubble anchored to the toggle
+// itself (.toggle-onboard-tip, see its CSS above) instead of the generic
+// bottom-of-screen showToast() — it needs to visually point at the specific
+// control it's introducing. Same 24h cooldown-by-timestamp pattern as every
+// other one-shot-per-day nudge in this file. Hard cutoff date instead of a
+// permanent feature flag because this is a temporary launch announcement,
+// not a lasting UI element — delete this whole function + its call site +
+// the .toggle-onboard-tip CSS block once 2026-09-09 has passed.
+const TOGGLE_ONBOARD_CUTOFF_MS=new Date('2026-09-09').getTime(); // TEMP: remove after 2026-09-09
+const TOGGLE_ONBOARD_COOLDOWN_MS=24*60*60*1000;
+function _showToggleOnboardTip(){
+  if(Date.now()>=TOGGLE_ONBOARD_CUTOFF_MS) return; // TEMP: remove after 2026-09-09
+  const code=st.agent?.code;
+  if(!code) return;
+  const key=`fr_${code}_toggle_onboard_last`;
+  const last=parseInt(localStorage.getItem(key)||'0',10);
+  if(last&&(Date.now()-last)<TOGGLE_ONBOARD_COOLDOWN_MS) return;
+  const toggleEl=document.querySelector('#formula-progress-banner .sort-toggle');
+  if(!toggleEl||!toggleEl.offsetParent) return; // banner not visible yet — skip silently, will retry next load
+  document.querySelectorAll('.toggle-onboard-tip').forEach(n=>n.remove()); // never stack two
+  const firstName=(st.agent?.name||'').trim().split(/\s+/)[0];
+  const msg=firstName
+    ? `${firstName}, לעריכה ידנית של סדר הביקורים — עבור למצב "הגרסה שלי" 👇`
+    : `לעריכה ידנית של סדר הביקורים — עבור למצב "הגרסה שלי" 👇`;
+  const r=toggleEl.getBoundingClientRect();
+  const gap=9, flipBelow=r.top<70; // not enough room above the toggle — show below instead
+  const tip=document.createElement('div');
+  tip.className='toggle-onboard-tip'+(flipBelow?' below':'');
+  tip.textContent=msg;
+  tip.style.right=(window.innerWidth-r.right)+'px';
+  if(flipBelow) tip.style.top=(r.bottom+gap)+'px';
+  else tip.style.bottom=(window.innerHeight-r.top+gap)+'px';
+  document.body.appendChild(tip); // not toggleEl — .fpb is position:sticky in a scrolling ancestor, see CSS comment above
+  requestAnimationFrame(()=>tip.classList.add('show'));
+  setTimeout(()=>{ tip.classList.remove('show'); setTimeout(()=>tip.remove(),300); },6000);
+  try{localStorage.setItem(key,String(Date.now()));}catch{}
 }
 function mergeWithSaved(fromServer,saved){
   const savedIds=saved.map(s=>s.custId);
