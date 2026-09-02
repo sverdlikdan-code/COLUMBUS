@@ -148,6 +148,89 @@ Map page: `/priority-gps.html`
 
 **Note:** Removing the year filter (`AND O.CURDATE >= 20260101`) nearly doubled client count (2,562 → 4,985) because open orders rotate in/out on a 24-hour cycle.
 
+## Financial Statements / Chart of Accounts (P&L, Balance Sheet)
+
+Explored 2026-09-02 while trying to build a full P&L from FNCTRANS. The structure is real and
+documented below — but the naive query built from it produced **numbers that fail basic sanity
+checks**, and that failure is the most important thing to carry forward, not the structure itself.
+
+**The real classification tables:**
+
+- `TRIALBAL` — master P&L/Balance-Sheet categories. Top-level single-digit codes: `1`=Assets,
+  `2`=Liabilities & Equity, `3`=Equity Capital, `4`=Income (Revenue), `5`=Cost of Goods Sold,
+  `6`=Expenses. Two-digit sub-codes refine these (seen: `60`=Operating Costs/Payroll,
+  `61`=General & Administrative Expenses). `TRIALBALDES`/`ETRIALBALDES` give Hebrew/English labels.
+- `SECTIONS` — finer-grained account grouping (`SECNAME`/`ESECNAME`), e.g. `-300`=Accounts
+  Receivable, `-1`=Accounts Payable, `100`=Primary Cashier, `154`=Equipment. More granular than
+  TRIALBAL, same idea.
+- `ACCOUNTS.TRIALBAL` — **every account row carries its own TRIALBAL code**, so joining
+  `FNCTRANS.ACCOUNT1`/`ACCOUNT2` → `ACCOUNTS.ACCOUNT` → `ACCOUNTS.TRIALBAL` looks like the
+  obvious way to bucket every transaction into Revenue/COGS/Expenses.
+
+**Why the obvious query is wrong — verified, unsolved:**
+
+A query that classifies each `FNCTRANS` row by `LEFT(TRIALBAL,1)` on whichever leg
+(`ACCOUNT1`/`ACCOUNT2`) matches `4`/`5`/`6`, summed by year, produces for every company:
+- **COGS near-zero or literally absent** in most years (a food distributor's cost of goods should
+  be one of the *largest* lines, not near-zero) — cost recognition for this business apparently
+  does **not** flow through simple `TRIALBAL='5'` FNCTRANS postings the way the chart implies.
+- **"Expenses" (TRIALBAL 6) exceeding Revenue (TRIALBAL 4) by 30–50%** most years — would mean the
+  business is chronically deeply unprofitable at the operating line, which contradicts it being a
+  live, growing business.
+
+Do **not** trust or present a P&L/Revenue/COGS number built this way without first resolving why —
+candidate causes, none yet confirmed: double-counting when both legs of a row happen to match
+different P&L buckets; COGS being recognized via `INVOICEITEMS.IVCOST` at time of sale rather than
+via a GL posting at all (this table has `IVCOST`/`PRICE`/`QPRICE`/`QUANT`/`VPRICE` — worth trying as
+an independent Revenue/COGS source and cross-checking against the TRIALBAL-based number before
+trusting either); a customization of this specific chart of accounts that doesn't follow the
+standard `4=Income/5=COGS/6=Expenses` convention as cleanly as `TRIALBAL` suggests.
+
+**Before ever presenting a full P&L externally:** get it validated against a controller/accountant
+who knows this Priority instance's actual setup, or reconcile the computed Revenue number against
+a number Priority's own standard reports would show for the same period — don't publish a
+self-built P&L on SQL-inference alone the way the GPS/scale/vendor-cost numbers elsewhere in this
+skill can be (those are lower-stakes and were cross-checked against real observed behavior).
+
+What *is* safe and already validated (see COLUMBUS session 2026-09-02): categorizing a *narrow,
+named* set of `ACCOUNTS` by keyword in `ACCDES` (e.g. "IT", "Rent") and summing `FNCTRANS.SUM1`
+for just those specific accounts — filtering out `AR_FLAG='Y'` (customer sub-ledger accounts) is
+essential, since dozens of real customers/suppliers have category-like words in their own trade
+name (e.g. many Israeli food distributors literally have "שיווק"=marketing/distribution in their
+company name — a naive keyword match without the AR_FLAG filter pulls in hundreds of unrelated
+customer accounts). This narrow-category approach is reliable; the full-P&L rollup is not, yet.
+
+**Revenue & COGS — a second, independent, VALIDATED path that actually works:**
+`INVOICEITEMS.QPRICE` summed by year = sane Revenue; `INVOICEITEMS.IVCOST` summed by year (raw,
+**do not** multiply by `QUANT` — both `QPRICE` and `IVCOST` are already extended/line-total values,
+not per-unit — multiplying by `QUANT` again inflates them by orders of magnitude, easy to catch by
+eyeballing a few sample rows first) = sane COGS. Cross-checked 2026-09-02 across all 4 companies,
+3 years: gives a believable, positive, thin gross margin (1–10%, consistent with a low-margin food
+distributor) every year in every company — unlike the TRIALBAL-based Revenue/COGS above, which
+disagreed with this and with itself. **Use this INVOICEITEMS path for Revenue/COGS, not FNCTRANS.**
+
+**Expenses (TRIALBAL=6) — ruled OUT one theory, root cause still unknown, don't reuse the ruled-out one:**
+Tested the obvious theory that summing both legs of FNCTRANS double-counts each expense (one row
+for the vendor invoice, `IVNUM LIKE 'GI%'`, one for its payment, `IVNUM LIKE 'BT%'`/`'CH%'` — this
+pairing is real and confirmed elsewhere, see the Soft Solutions vendor-cost pattern below). Excluding
+BT/CH legs from the TRIALBAL=6 sum barely moved the total (a few % at most, not the ~2x a real
+duplicate-counting theory would predict) — **so that is NOT the explanation, don't retest it.**
+The real picture: TRIALBAL=6 rows carry dozens of distinct `IVNUM` prefixes (`VI`, `99`, `GI`, and
+~80 others, varying by company) — far more transaction types than plain vendor expense invoices,
+likely including COGS-adjacent or inter-company postings that this specific chart-of-accounts
+customization routes through "expense" rather than the "5" COGS bucket. Interpreting those prefixes
+needs either Priority's own document-type reference or an accountant familiar with this instance —
+not something to keep guessing at via SQL alone.
+
+**Confirmed real pattern — invoice+payment as two linked FNCTRANS rows sharing one SUM1 amount:**
+When tracing a single vendor's cost (Soft Solutions/Priority licensing, session 2026-09-02), every
+real invoice event produced *two* `FNCTRANS` rows with the *same* `SUM1`: one `IVNUM LIKE 'GI%'`
+(the invoice/recognition) and one `IVNUM LIKE 'BT%'` or `'CH%'` (bank transfer / check — the
+payment settling it). **Filter to `IVNUM LIKE 'GI%'` only** when tallying what was actually billed
+by one named supplier over time — summing all rows for that `SUP` without this filter double-counts.
+This pattern is confirmed for vendor-level cost tracing; it is a distinct, narrower case from the
+account-level TRIALBAL=6 rollup above, where excluding BT/CH did *not* fix the sanity-check failure.
+
 ## Common Gotchas
 
 1. **USE db; WITH ...** fails — add semicolon: `USE diller;`
