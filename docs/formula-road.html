@@ -2503,17 +2503,19 @@ async function initRoute(){
   // Restore this agent's last-picked sort mode (AI vs "הגרסה שלי") — read fresh
   // on every call, keyed to whichever agent is currently being viewed (st.agent.code
   // is already set by selectAgent()/selectDay() before initRoute() runs, so this
-  // also picks up the right value when a manager switches between agents). Only
-  // overrides aiGpsMode when the saved pick is 'priority' — default for anyone who
-  // never touched the toggle stays AI (2026-09-03: briefly changed to default to
-  // "הגרסה שלי" for new agents, reverted same day — without any manual drag,
-  // "הגרסה שלי" is just Priority's own סדר ביקור field, not GPS-optimized, so it's
-  // not actually a safer default than AI). An in-session explicit Tablet GPS
-  // toggle is left alone. setSort()/toggleAiGps()/toggleTabletGps() persist the
-  // choice immediately, so this stays in sync across day switches too.
+  // also picks up the right value when a manager switches between agents). Default
+  // for anyone who never touched the toggle stays AI (2026-09-03: briefly changed to
+  // default to "הגרסה שלי" for new agents, reverted same day — without any manual
+  // drag, "הגרסה שלי" is just Priority's own סדר ביקור field, not GPS-optimized, so
+  // it's not actually a safer default than AI). setSort()/toggleAiGps()/
+  // toggleTabletGps() persist the choice immediately, so this stays in sync across
+  // day switches too.
+  // This must NOT touch st.aiGpsMode — that independently picks the map's GPS
+  // coordinate source (_getCoord()). Forcing it off for saved 'priority' was a
+  // 2026-09-02 regression (commit 00e7d9eb) that downgraded map pins to raw/
+  // city-center coords for every agent using "הגרסה שלי" (bug found 2026-09-03).
   const _savedSortMode=loadSortModePref(st.agent.code);
-  if(_savedSortMode==='priority' && !st.tabletGpsMode) st.aiGpsMode=false;
-  st.sortMode=(st.aiGpsMode||st.tabletGpsMode)?'ai':'priority'; st.selectedCities=[]; st.selectedId=null;
+  st.sortMode=(_savedSortMode==='priority' && !st.tabletGpsMode)?'priority':'ai'; st.selectedCities=[]; st.selectedId=null;
   document.getElementById('sort-btn-priority').className='sort-btn'+(st.sortMode==='priority'?' active-priority':'');
   document.getElementById('sort-btn-ai-google').className='sort-btn'+(st.aiGpsMode?' active-ai-google':'');
   st.excluded=new Set();
@@ -2772,16 +2774,12 @@ function setSort(mode){
   if(st.sortMode===mode)return;
   _playRockerClick();
   st.sortMode=mode;
-  if(mode==='priority'){
-    // Only ever called with 'priority' in practice (the "הגרסה שלי" pill).
-    // Leaving AI mode here must also clear the AI-Google button's own active
-    // class/flags — otherwise it (and its lamp-rocker glow) stays lit next to
-    // this one after tapping AI-Google then "הגרסה שלי" straight after. Found
-    // via the lamp-rocker puppeteer verification 2026-09-02: both "lamps" were
-    // on at once.
-    st.aiGpsMode=false; st.tabletGpsMode=false;
-    document.getElementById('sort-btn-ai-google').className='sort-btn';
-  }
+  // Only ever called with 'priority' in practice (the "הגרסה שלי" pill).
+  // Do NOT touch st.aiGpsMode/st.tabletGpsMode here — those pick the GPS
+  // coordinate source (_getCoord(), renderMap) and are independent of
+  // visit-order sort mode. Resetting them here (2026-09-02, commit 00e7d9eb)
+  // was a regression that silently downgraded map pins + route lines to
+  // raw/city-center coords whenever an agent used "הגרסה שלי" (found 2026-09-03).
   saveSortModePref(st.agent.code,mode);
   document.getElementById('sort-btn-priority').className='sort-btn'+(mode==='priority'?' active-priority':'');
   if(mode==='priority') _showMyVersionToast();
