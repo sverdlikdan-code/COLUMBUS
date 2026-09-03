@@ -2526,6 +2526,37 @@ function startTodayOrdersPolling(myId){
   _todayOrdersTimer=setInterval(poll,75000);
 }
 
+// Zikuy offline prewarm (live request 2026-09-03): agents lose signal inside
+// storage rooms; if a client's zikuy product list + photos were never fetched
+// at least once today while online, offline zikuy has nothing to show for
+// them. Quietly warms sw.js's cache (see docs/sw.js — /api/client-returns/ and
+// /api/img-proxy both cache-fill now) for every client on today's route,
+// sequentially in the background, right after the route itself finishes
+// loading (while the agent still has signal). One pass per agent+day per
+// session — re-opening the same day doesn't re-warm it. Silent by design: a
+// failed prewarm just means that one client falls back to a live network
+// fetch when zikuy is actually opened for them, same as before this existed.
+const _zikuyPrewarmDone=new Set();
+async function prewarmZikuyOffline(){
+  const agentCode=st.agent?.code, day=st.day;
+  if(!agentCode) return;
+  const key=`${agentCode}_${day}`;
+  if(_zikuyPrewarmDone.has(key)) return;
+  _zikuyPrewarmDone.add(key);
+  const custIds=[...new Set(st.clients.map(c=>c.custId))];
+  for(const custId of custIds){
+    if(st.agent?.code!==agentCode||st.day!==day) return; // agent/day switched — abort the rest
+    try{
+      const r=await apiFetch(`${API}/api/client-returns/${custId}`);
+      const d=await r.json();
+      for(const p of (d.products||[])){
+        if(!p.imgUrl) continue;
+        try{ await fetch(`${API}/api/img-proxy?url=${encodeURIComponent(p.imgUrl)}`); }catch{}
+      }
+    }catch{}
+  }
+}
+
 async function initRoute(){
   const myId = ++_initRouteId;
   checkPbiFreshness(); // fire-and-forget, throttled internally
@@ -2663,6 +2694,7 @@ async function initRoute(){
   if(window.innerWidth>=700 && !st.mapHidden) setTimeout(()=>{ if(myId===_initRouteId) renderMap(); },200);
   setTimeout(autoSyncGpsClean, 3000); // silent cleanup after route loads
   setTimeout(()=>{ if(myId===_initRouteId) _showToggleOnboardTip(); },1500); // TEMP: remove after 2026-09-09 (see _showToggleOnboardTip)
+  setTimeout(()=>{ if(myId===_initRouteId) prewarmZikuyOffline(); },4000); // low-priority, after the critical route work settles
 }
 
 // ── PBI data date ── shown in the ניתוח יום modal title, not route-sub: putting it
