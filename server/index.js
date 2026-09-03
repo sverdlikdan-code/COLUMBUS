@@ -1966,6 +1966,20 @@ app.post('/api/export-route-xlsx', requireAuth, dataRateLimit, async (req, res) 
   res.end();
 });
 
+// gps-corrections.json is read-modify-written by /save-gps and /api/gps/restore-
+// version below. Without serializing those, two corrections submitted close
+// together (e.g. an agent rapid-fire fixing a batch of pins) each read the file
+// before the other's write lands, and the later write clobbers the earlier one's
+// change — silent lost update, confirmed live 2026-09-03 (3 corrections vanished
+// out of a batch of ~10 submitted within a few minutes). Single pm2 fork process,
+// so an in-process promise-chain mutex is enough — no cross-process file lock needed.
+let _gpsCorrectionsLock = Promise.resolve();
+function withGpsCorrectionsLock(fn) {
+  const result = _gpsCorrectionsLock.then(fn, fn);
+  _gpsCorrectionsLock = result.catch(() => {});
+  return result;
+}
+
 // Save GPS correction — shared across all users via gps-corrections.json
 app.post('/save-gps', requireAuth, dataRateLimit, async (req, res) => {
   try {
@@ -1975,15 +1989,17 @@ app.post('/save-gps', requireAuth, dataRateLimit, async (req, res) => {
     if (lat < IL.minLat || lat > IL.maxLat || lng < IL.minLng || lng > IL.maxLng) {
       return res.status(400).json({ error: 'coordinates outside Israel' });
     }
-    const filePath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
-    const current  = fs.existsSync(filePath) ? JSON.parse(fs.readFileSync(filePath, 'utf8')) : {};
-    current[String(custId)] = { lat, lng, correctedAt: new Date().toISOString(), name: name || '', city: city || '', address: address || '' };
-    const json = JSON.stringify(current, null, 2);
-    fs.writeFileSync(filePath, json, 'utf8');
+    const total = await withGpsCorrectionsLock(() => {
+      const filePath = path.join(__dirname, '..', 'docs', 'gps-corrections.json');
+      const current  = fs.existsSync(filePath) ? JSON.parse(fs.readFileSync(filePath, 'utf8')) : {};
+      current[String(custId)] = { lat, lng, correctedAt: new Date().toISOString(), name: name || '', city: city || '', address: address || '' };
+      fs.writeFileSync(filePath, JSON.stringify(current, null, 2), 'utf8');
+      return Object.keys(current).length;
+    });
     // Audit log
     writeLog({ ts: new Date().toISOString(), event: 'gps-correction', custId: String(custId),
       agentCode: req.session?.agentCode || null, ip: getRealIp(req) });
-    res.json({ ok: true, total: Object.keys(current).length });
+    res.json({ ok: true, total });
   } catch (err) {
     console.error(err); res.status(500).json({ error: 'server_error' });
   }
