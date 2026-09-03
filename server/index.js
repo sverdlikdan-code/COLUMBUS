@@ -665,7 +665,7 @@ loadSessions();
 
 function createSession(agentCode, isManager, viaPbi = false, pbiUser = null) {
   const token = crypto.randomUUID();
-  const TTL = isManager ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+  const TTL = 30 * 24 * 60 * 60 * 1000; // matches fr_ok cookie Max-Age — no point outliving the auto-login cookie
   sessions.set(token, { agentCode, isManager, viaPbi, pbiUser, expiresAt: Date.now() + TTL });
   // Prune expired sessions when map grows large
   if (sessions.size > 500) {
@@ -681,7 +681,7 @@ function requireAuth(req, res, next) {
   const sess = sessions.get(token);
   if (!sess || Date.now() > sess.expiresAt) return res.status(401).json({ error: 'unauthorized' });
   // Rolling session: extend expiry on every use
-  const TTL = sess.isManager ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+  const TTL = 30 * 24 * 60 * 60 * 1000; // matches fr_ok cookie Max-Age
   sess.expiresAt = Date.now() + TTL;
 
   // Soft device fingerprint — warn, never block. IP alone is useless as a signal

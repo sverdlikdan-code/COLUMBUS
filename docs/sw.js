@@ -1,6 +1,6 @@
 // Minimal service worker — enables PWA installability in Chrome
 // Does not cache API calls, only enables beforeinstallprompt
-const CACHE = 'fr-v26';
+const CACHE = 'fr-v27';
 const STATIC = ['./formula-road.html', './manifest.json'];
 
 self.addEventListener('install', e => {
@@ -37,7 +37,8 @@ self.addEventListener('fetch', e => {
     || url.includes('dagim-base.json') || url.includes('dagim-yavesh-base.json') || url.includes('kapua-base.json') || url.includes('halavi-base.json')
     || url.includes('product-data.json') || url.endsWith('planogram-editor.html')) {
     e.respondWith(fetch(e.request).then(res => {
-      caches.open(CACHE).then(c => c.put(e.request, res.clone()));
+      const resClone = res.clone(); // clone synchronously — caches.open() is async and by
+      caches.open(CACHE).then(c => c.put(e.request, resClone)); // then res.body may already be read
       return res;
     }).catch(() => caches.match(e.request)));
     return;

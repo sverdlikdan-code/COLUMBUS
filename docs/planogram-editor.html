@@ -887,6 +887,38 @@
 const API = 'https://api.sverdlik-apps.site';
 const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
+// ── Auto session-refresh: the PBI-issued frToken (X-Session) expires after
+// the server-side TTL of inactivity. Without this, any 401 left the UI stuck
+// (e.g. מגמה modal frozen on "טוען...", red "שגיאת שרת" banner) until someone
+// manually cleared localStorage.frToken — because splashEnter() only re-runs
+// the PBI auto-login when frToken is ABSENT, never when it's merely expired.
+// Patches window.fetch once, globally, instead of adding retry logic to each
+// of the ~15 call sites that send X-Session. 2026-09-03.
+(function() {
+  const _origFetch = window.fetch.bind(window);
+  let _refreshPromise = null;
+  window.fetch = async function(input, init) {
+    const res = await _origFetch(input, init);
+    const url = typeof input === 'string' ? input : (input && input.url) || '';
+    const hadSession = init && init.headers && init.headers['X-Session'];
+    if (res.status === 401 && url.includes('api.sverdlik-apps.site') && !url.includes('/auth/pbi') && hadSession) {
+      if (!_refreshPromise) {
+        _refreshPromise = _origFetch(API + '/auth/pbi', { credentials: 'include' })
+          .then(r => r.ok ? r.json() : null)
+          .then(j => (j && j.ok && j.token) ? j.token : null)
+          .catch(() => null)
+          .finally(() => { _refreshPromise = null; });
+      }
+      const newToken = await _refreshPromise;
+      if (newToken) {
+        localStorage.setItem('frToken', newToken);
+        return _origFetch(input, { ...init, headers: { ...init.headers, 'X-Session': newToken } });
+      }
+    }
+    return res;
+  };
+})();
+
 // Client-side crash reporting, same as formula-road.html — see that file's
 // comment for why raw fetch and the 5-report cap. Live request 2026-08-28.
 let _errReportCount = 0;
