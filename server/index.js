@@ -1045,6 +1045,35 @@ function saveGeocodeCache() {
   } catch (_) {}
 }
 
+// ── Persistent per-custId resolution cache for geocodeBatch()'s FALLBACK
+// cascade only (tablet-order, FORM+I+INT, PBI-sibling, address geocoding,
+// live-order-GPS) — NOT the PBI tier, which geocodeBatch() always re-checks
+// live since Priority's own field can change. Before this, a client that fell
+// through to the fallback cascade got RE-resolved from scratch on every single
+// /customers request — same tiers re-tried, same external calls (cache-hit,
+// but still redundant work), and any tiny instability in an upstream input
+// (bbox cache refresh, geocode API returning a slightly different point) could
+// flip which tier won and move the pin between requests with no user action.
+// Live request 2026-09-03 ("запомнить координаты тех что есть — только по
+// новым делать геокодинг"): once a custId resolves via the fallback cascade,
+// remember it here so only genuinely new/never-resolved clients pay that cost.
+const GEOCODE_RESOLVED_PATH = path.join(__dirname, 'geocode-resolved-cache.json');
+const geocodeResolvedCache = new Map();
+(function loadGeocodeResolvedCache() {
+  try {
+    const data = JSON.parse(fs.readFileSync(GEOCODE_RESOLVED_PATH, 'utf8'));
+    for (const [k, v] of Object.entries(data)) geocodeResolvedCache.set(k, v);
+    console.log(`geocode-resolved cache loaded: ${geocodeResolvedCache.size} entries`);
+  } catch (_) {}
+})();
+function saveGeocodeResolvedCache() {
+  try {
+    const obj = {};
+    for (const [k, v] of geocodeResolvedCache) obj[k] = v;
+    fs.writeFileSync(GEOCODE_RESOLVED_PATH, JSON.stringify(obj), 'utf8');
+  } catch (_) {}
+}
+
 // Tablet-from-orders GPS (docs/priority-gps-cross.json, built by gps-build-combined.js) —
 // real observed position at order-creation time, custId → {lat,lng,cluster_pct,...}. Used
 // in geocodeBatch as a fallback tier AFTER a client's own PBI coordinate (only when PBI has
@@ -1488,7 +1517,21 @@ async function geocodeBatch(clients) {
   // geocode clients still missing valid coords
   const needsGeocode = clients.filter(c => !isValidIL(c.lat, c.lng));
   let resolved = 0;
+  let newlyCached = 0;
   for (const c of needsGeocode) {
+    // Reuse a previous fallback-cascade resolution for this custId — see
+    // geocodeResolvedCache above. Skips tablet-order/FORM+I+INT/PBI-sibling/
+    // address-geocoding/live-GPS entirely; only a client never resolved this
+    // way before pays that cost. (PBI's own coordinate, checked above this
+    // loop, is NOT cached here — it stays live every request since it can
+    // change in Priority.) Live request 2026-09-03.
+    const cachedResolve = geocodeResolvedCache.get(String(c.custId));
+    if (cachedResolve) {
+      c.lat = cachedResolve.lat; c.lng = cachedResolve.lng; c.gpsSource = cachedResolve.gpsSource;
+      resolved++;
+      continue;
+    }
+
     // Step -1: tablet-from-orders — real observed position, tried before the
     // address-geocoding tiers below since an actual visit beats guessing from
     // text, but only here (after PBI's own coordinate already had its chance
@@ -1499,7 +1542,8 @@ async function geocodeBatch(clients) {
       if (isWithinCityBBox(tablet.lat, tablet.lng, bbox)) {
         c.lat = tablet.lat; c.lng = tablet.lng;
         c.gpsSource = 'tablet-order';
-        resolved++;
+        geocodeResolvedCache.set(String(c.custId), { lat: c.lat, lng: c.lng, gpsSource: c.gpsSource });
+        resolved++; newlyCached++;
         continue;
       }
     }
@@ -1512,7 +1556,8 @@ async function geocodeBatch(clients) {
       if (isWithinCityBBox(exact.lat, exact.lng, bbox)) {
         c.lat = exact.lat; c.lng = exact.lng;
         c.gpsSource = exact.source;
-        resolved++;
+        geocodeResolvedCache.set(String(c.custId), { lat: c.lat, lng: c.lng, gpsSource: c.gpsSource });
+        resolved++; newlyCached++;
         continue;
       }
     }
@@ -1524,7 +1569,8 @@ async function geocodeBatch(clients) {
       if (isWithinCityBBox(sibling.lat, sibling.lng, bbox)) {
         c.lat = sibling.lat; c.lng = sibling.lng;
         c.gpsSource = sibling.source;
-        resolved++;
+        geocodeResolvedCache.set(String(c.custId), { lat: c.lat, lng: c.lng, gpsSource: c.gpsSource });
+        resolved++; newlyCached++;
         continue;
       }
     }
@@ -1535,6 +1581,8 @@ async function geocodeBatch(clients) {
       if (isWithinCityBBox(result.lat, result.lng, bbox)) {
         c.lat = result.lat; c.lng = result.lng; resolved++;
         c.gpsSource = result.cityCenter ? 'city-center' : 'geocoded';
+        geocodeResolvedCache.set(String(c.custId), { lat: c.lat, lng: c.lng, gpsSource: c.gpsSource });
+        newlyCached++;
       } else {
         // result outside city bbox — mark queries as null so cache doesn't replay bad coords
         const cityStr = c.city ? `, ${c.city}` : '';
@@ -1556,13 +1604,15 @@ async function geocodeBatch(clients) {
         if (isWithinCityBBox(live.lat, live.lng, bbox)) {
           c.lat = live.lat; c.lng = live.lng;
           c.gpsSource = 'tablet-order-live';
-          resolved++;
+          geocodeResolvedCache.set(String(c.custId), { lat: c.lat, lng: c.lng, gpsSource: c.gpsSource });
+          resolved++; newlyCached++;
         }
       }
     }
     if (!isValidIL(c.lat, c.lng)) c.gpsSource = 'no-gps';
   }
   if (resolved > 0) { saveGeocodeCache(); console.log(`geocodeBatch: resolved ${resolved}/${needsGeocode.length}`); }
+  if (newlyCached > 0) { saveGeocodeResolvedCache(); console.log(`geocodeBatch: cached ${newlyCached} new fallback resolutions`); }
   return clients;
 }
 
