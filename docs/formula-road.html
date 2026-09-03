@@ -2503,12 +2503,16 @@ async function initRoute(){
   // Restore this agent's last-picked sort mode (AI vs "הגרסה שלי") — read fresh
   // on every call, keyed to whichever agent is currently being viewed (st.agent.code
   // is already set by selectAgent()/selectDay() before initRoute() runs, so this
-  // also picks up the right value when a manager switches between agents). Only
-  // overrides aiGpsMode when the saved pick is 'priority' — an in-session explicit
-  // Tablet GPS toggle is left alone. setSort()/toggleAiGps()/toggleTabletGps()
-  // persist the choice immediately, so this stays in sync across day switches too.
+  // also picks up the right value when a manager switches between agents). Overrides
+  // aiGpsMode to false (→ "הגרסה שלי") when the saved pick is 'priority', OR when
+  // there is no saved pick at all (agent never touched the toggle) — new agents
+  // default to their own configured visit order, not AI, per user decision
+  // 2026-09-03. An agent who has explicitly chosen 'ai' before stays on AI. An
+  // in-session explicit Tablet GPS toggle is left alone. setSort()/toggleAiGps()/
+  // toggleTabletGps() persist the choice immediately, so this stays in sync across
+  // day switches too.
   const _savedSortMode=loadSortModePref(st.agent.code);
-  if(_savedSortMode==='priority' && !st.tabletGpsMode) st.aiGpsMode=false;
+  if((_savedSortMode==='priority'||!_savedSortMode) && !st.tabletGpsMode) st.aiGpsMode=false;
   st.sortMode=(st.aiGpsMode||st.tabletGpsMode)?'ai':'priority'; st.selectedCities=[]; st.selectedId=null;
   document.getElementById('sort-btn-priority').className='sort-btn'+(st.sortMode==='priority'?' active-priority':'');
   document.getElementById('sort-btn-ai-google').className='sort-btn'+(st.aiGpsMode?' active-ai-google':'');
