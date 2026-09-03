@@ -1680,12 +1680,23 @@ function triggerOsrm() {
     st.aiClients = nnOrdered;
     if (st.sortMode === 'ai') renderClientList();
   }
-  // OSRM /trip/ — true TSP optimization, refines order asynchronously
+  // OSRM /trip/ — true TSP optimization, refines order asynchronously. This
+  // used to be duplicated by a second, independent osrmTripOrder() call in
+  // initRoute() (added 2026-09-02, commit c5a19f28) that raced this one for
+  // the same result and additionally called renderMap() — two concurrent
+  // requests to router.project-osrm.org resolving at unpredictable times,
+  // each re-rendering, looked like the map/toggle had a third, in-between
+  // state (found 2026-09-03). Removed the duplicate; this is now the single
+  // place that refines + re-renders the map for AI mode.
   osrmTripOrder([...clientsForSort], st.startLat, st.startLng).then(tripOrdered => {
     if (st.agent?.code !== snap.agentCode || st.day !== snap.day) return;
     if (tripOrdered) {
       st.aiClients = tripOrdered;
-      if (st.sortMode === 'ai') renderClientList();
+      if (st.sortMode === 'ai') {
+        renderClientList();
+        if(window.innerWidth>=700||st.tab==='map') renderMap();
+        showToast('🛣️ סדר עודכן לפי כביש');
+      }
     }
   });
 }
@@ -2625,15 +2636,8 @@ async function initRoute(){
   st.topSalesIds=new Set();
   fetchDayTopSales(myId);
   startTodayOrdersPolling(myId);
-  // Road-optimal ordering via OSRM /trip (async, cached)
-  const _snapId=myId, _snapAgent=st.agent?.code, _snapDay=st.day;
-  osrmTripOrder([..._aiGpsClients(st.clients)], st.startLat, st.startLng).then(ordered=>{
-    if(!ordered||myId!==_snapId||st.agent?.code!==_snapAgent||st.day!==_snapDay||st.sortMode!=='ai') return;
-    st.aiClients=ordered;
-    renderClientList(); updateKmBar();
-    if(window.innerWidth>=700||st.tab==='map') renderMap();
-    showToast('🛣️ סדר עודכן לפי כביש');
-  });
+  // Road-optimal ordering via OSRM /trip already triggered above (triggerOsrm()
+  // at the top of this function) — it's the single source now, see its comment.
   document.getElementById('export-btn').classList.add('visible');
   document.getElementById('export-all-btn').classList.add('visible');
   updateGpsHistBtn();
