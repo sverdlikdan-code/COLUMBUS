@@ -482,6 +482,23 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 #history-modal-body{overflow-y:auto;padding:14px 16px;flex:1;}
 .hist-filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
 .hist-filters input{border:1.5px solid var(--sky-mid);border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit;background:#F8F9FC;}
+/* Client search across all days — live request 2026-09-03. Same modal shell as
+   #history-modal (box/head/body triplet), same .hist-filters input styling —
+   only the result rows below are new. */
+#client-search-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px;}
+#client-search-modal.open{display:flex;}
+#client-search-modal-box{background:#fff;border-radius:16px;width:100%;max-width:520px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.35);}
+#client-search-modal-head{background:#3F51B5;color:#fff;padding:14px 18px 12px;display:flex;align-items:center;gap:10px;}
+#client-search-modal-head .day-title{flex:1;font-size:15px;font-weight:800;color:#fff;}
+#client-search-modal-head .day-close{font-size:20px;cursor:pointer;opacity:.8;padding:0 4px;}
+#client-search-modal-head .day-close:hover{opacity:1;}
+#client-search-modal-body{overflow-y:auto;padding:14px 16px;flex:1;}
+.cs-result{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px solid var(--sky-mid);border-radius:10px;margin-bottom:8px;cursor:pointer;background:#F8F9FC;}
+.cs-result:hover{border-color:var(--blue);background:#EEF3FC;}
+.cs-result-name{flex:1;font-size:13.5px;font-weight:700;color:var(--text);}
+.cs-result-city{font-size:11.5px;color:var(--mid);}
+.cs-day-badge{flex-shrink:0;background:#1565C0;color:#fff;font-size:11px;font-weight:800;padding:3px 9px;border-radius:12px;}
+.cs-empty{text-align:center;color:var(--mid);padding:24px 0;font-size:13px;}
 #hist-search{flex-basis:100%;}
 .hist-date-range{display:flex;align-items:center;gap:5px;flex:1;}
 .hist-date-range input{flex:1;min-width:0;}
@@ -1023,6 +1040,8 @@ body.gps-fs #map{height:100%!important;}
             <button class="km-more-item mob-only" onclick="openGoogleMaps();closeKmMore()">🗺 Google Maps</button>
             <button class="km-more-item mob-only" onclick="openBlankHistory();closeKmMore()">📜 היסטוריית בלנקים</button>
             <hr class="km-more-sep mob-only">
+            <button class="km-more-item" onclick="openClientSearch();closeKmMore()">🔍 חיפוש לקוח — כל השבוע</button>
+            <hr class="km-more-sep">
             <button class="km-more-item" id="print-btn" onclick="printRoute();closeKmMore()">🖨️ הדפסת מסלול</button>
             <hr class="km-more-sep">
             <button class="km-more-item export-btn" id="export-btn" onclick="exportXLSX();closeKmMore()">📥 שמור יום (XLS)</button>
@@ -1162,6 +1181,22 @@ body.gps-fs #map{height:100%!important;}
         </div>
       </div>
       <div id="hist-list"><div class="ai-loading">⏳ טוען...</div></div>
+    </div>
+  </div>
+</div>
+
+<div id="client-search-modal" onclick="if(event.target===this)closeClientSearch()">
+  <div id="client-search-modal-box">
+    <div id="client-search-modal-head">
+      <span style="font-size:20px">🔍</span>
+      <div class="day-title" id="client-search-modal-title">חיפוש לקוח — כל השבוע</div>
+      <span class="day-close" onclick="closeClientSearch()">✕</span>
+    </div>
+    <div id="client-search-modal-body">
+      <div class="hist-filters">
+        <input type="search" id="cs-search" placeholder="שם לקוח" oninput="renderClientSearch()">
+      </div>
+      <div id="cs-results"></div>
     </div>
   </div>
 </div>
@@ -2790,12 +2825,88 @@ async function ensureDayCounts(){
     if(st.agent?.code!==code) return; // agent switched again while this was in flight
     st.dayCounts=new Set((all||[]).map(c=>c.dayNum).filter(d=>d>=1&&d<=5));
     st.hasUndefDay=(undef||[]).length>0;
+    // Kept for the cross-day client search (openClientSearch()) — same response
+    // this function was already fetching just to read dayNum off it, no extra
+    // request. 2026-09-03.
+    st.allDaysClients=all||[];
     buildDaySwitcher();
   }catch(e){
     st.dayCounts=null;
     st.hasUndefDay=null;
     st._dayCountsAgent=null;
+    st.allDaysClients=null;
   }
+}
+
+// Client search across all days (live request 2026-09-03): agent's own day-
+// by-day route only shows today's/selected day's clients — no way to jump
+// straight to a client scheduled on a different day without switching through
+// each one. Reuses st.allDaysClients (already fetched by ensureDayCounts()
+// above, no extra request) — filters by name as you type, and jumping to a
+// result switches the day + highlights + scrolls to that client's card, same
+// as clicking it normally (selectClient()).
+function openClientSearch(){
+  document.getElementById('client-search-modal').classList.add('open');
+  document.getElementById('cs-search').value='';
+  renderClientSearch();
+  setTimeout(()=>document.getElementById('cs-search').focus(),50);
+}
+function closeClientSearch(){
+  document.getElementById('client-search-modal').classList.remove('open');
+}
+function renderClientSearch(){
+  const box=document.getElementById('cs-results');
+  const q=document.getElementById('cs-search').value.trim();
+  if(!st.allDaysClients){
+    box.innerHTML='<div class="cs-empty">⏳ טוען...</div>';
+    return;
+  }
+  if(!q){
+    box.innerHTML='<div class="cs-empty">הקלד שם לקוח לחיפוש</div>';
+    return;
+  }
+  const matches=st.allDaysClients.filter(c=>(c.custName||'').includes(q)).slice(0,30);
+  if(!matches.length){
+    box.innerHTML='<div class="cs-empty">לא נמצא לקוח</div>';
+    return;
+  }
+  box.innerHTML=matches.map(c=>`
+    <div class="cs-result" onclick="jumpToClient('${c.custId}',${c.dayNum})">
+      <div>
+        <div class="cs-result-name">${esc(c.custName||'')}</div>
+        <div class="cs-result-city">${esc(c.city||'')}</div>
+      </div>
+      <span class="cs-day-badge">${esc(DAY_LABELS[c.dayNum]||'?')}</span>
+    </div>
+  `).join('');
+}
+function jumpToClient(custId,dayNum){
+  closeClientSearch();
+  const go=()=>{
+    st.selectedId=custId;
+    renderClientList();
+    const card=document.querySelector(`.client-card[data-id="${custId}"]`);
+    if(card) card.scrollIntoView({behavior:'smooth',block:'center'});
+    if(st.tab==='map'||Math.min(window.innerWidth,window.innerHeight)>=700){
+      renderMap();
+      const c=st.clients.find(x=>x.custId===custId)||st.aiClients.find(x=>x.custId===custId);
+      if(map&&c&&c.lat&&c.lng) setTimeout(()=>map.flyTo([c.lat,c.lng],17,{duration:1}),50);
+    }
+  };
+  if(dayNum===st.day){ go(); return; }
+  switchDay(dayNum);
+  // initRoute() inside switchDay() is async and re-renders the list itself —
+  // wait for that render before selecting/scrolling, same pattern _initRouteId
+  // uses elsewhere to detect "the route this jump was for is now loaded".
+  const myId=_initRouteId;
+  const wait=setInterval(()=>{
+    if(_initRouteId!==myId){ clearInterval(wait); return; } // another switch happened, abandon
+    if(document.querySelector(`.client-card[data-id="${custId}"]`)){
+      clearInterval(wait);
+      go();
+    }
+  },150);
+  setTimeout(()=>clearInterval(wait),8000); // give up quietly if the client never renders (excluded, bad data, etc.)
 }
 
 function switchDay(d){
