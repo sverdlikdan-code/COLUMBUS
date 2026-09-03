@@ -1,6 +1,6 @@
 // Minimal service worker — enables PWA installability in Chrome
 // Does not cache API calls, only enables beforeinstallprompt
-const CACHE = 'fr-v27';
+const CACHE = 'fr-v28';
 const STATIC = ['./formula-road.html', './manifest.json'];
 
 self.addEventListener('install', e => {
@@ -18,6 +18,42 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = e.request.url;
+  // Zikuy offline (live request 2026-09-03): agents lose signal inside
+  // storage rooms and need the product list + photos for a client they've
+  // already opened today, even with zero connectivity. Carved out of the
+  // API pass-through below, even though both live on a different origin
+  // (api.sverdlik-apps.site) than this SW's own page.
+  // /api/client-returns/ — network-first (still fresh whenever there IS
+  // signal, same philosophy as the data files further down), cache as
+  // fallback when offline. Prewarmed proactively for the whole day's route
+  // by formula-road.html's prewarmZikuyOffline() while the agent still has
+  // signal, not just opportunistically when zikuy happens to be opened.
+  if (url.includes('/api/client-returns/')) {
+    e.respondWith(fetch(e.request).then(res => {
+      const resClone = res.clone();
+      caches.open(CACHE).then(c => c.put(e.request, resClone));
+      return res;
+    }).catch(() => caches.match(e.request)));
+    return;
+  }
+  // /api/img-proxy — cache-first: a product's photo essentially never
+  // changes once uploaded to Priority (same assumption server/index.js's
+  // disk cache already makes for this same endpoint), so serving instantly
+  // from cache and refreshing in the background beats re-fetching every
+  // time, and it's what actually makes offline browsing possible at all.
+  if (url.includes('/api/img-proxy')) {
+    e.respondWith(
+      caches.match(e.request).then(cached => {
+        const network = fetch(e.request).then(res => {
+          const resClone = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, resClone));
+          return res;
+        }).catch(() => cached);
+        return cached || network;
+      })
+    );
+    return;
+  }
   // Pass through API calls and external requests
   if (url.includes('api.sverdlik-apps.site') || url.includes('maps') || !url.startsWith(self.location.origin)) {
     return;
