@@ -1562,11 +1562,20 @@ function haversineKm(la1,lo1,la2,lo2){
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
+// GPS sources trusted enough that neither the AI Google nor Tablet override
+// layers below should touch them: a manual correction, and a real observed
+// device GPS from an actual order visit (server-computed — see 'tablet-order'/
+// 'tablet-order-live' in geocodeBatch(), server/index.js). An actual position
+// beats a text-address geocode. Found 2026-09-03: AI_GPS was silently
+// overriding tablet-order pins even though the server pipeline itself ranks
+// tablet-order above address geocoding.
+const TRUSTED_GPS_SOURCES=new Set(['correction','tablet-order','tablet-order-live']);
+
 // ── Apply AI/Tablet GPS coords to client list when respective mode is active ─
 function _aiGpsClients(clients){
   if(!st.aiGpsMode&&!st.tabletGpsMode) return clients;
   return clients.map(c=>{
-    if(c.gpsSource==='correction') return c;
+    if(TRUSTED_GPS_SOURCES.has(c.gpsSource)) return c;
     if(st.aiGpsMode){const a=AI_GPS[String(c.custId)];if(a?.aiLat&&a?.aiLng)return{...c,lat:a.aiLat,lng:a.aiLng};}
     if(st.tabletGpsMode){const t=TABLET_GPS[String(c.custId)];if(t?.lat&&t?.lng)return{...c,lat:t.lat,lng:t.lng};}
     return c;
@@ -1669,7 +1678,7 @@ async function osrmTripOrder(clients, startLat, startLng) {
 function triggerOsrm() {
   const snap = { clients:activeClients(), agentCode:st.agent?.code, day:st.day };
   const clientsForSort = snap.clients.map(c => {
-    if(c.gpsSource==='correction') return c;
+    if(TRUSTED_GPS_SOURCES.has(c.gpsSource)) return c;
     if(st.aiGpsMode){const a=AI_GPS[String(c.custId)];if(a?.aiLat&&a?.aiLng)return{...c,lat:a.aiLat,lng:a.aiLng};}
     if(st.tabletGpsMode){const t=TABLET_GPS[String(c.custId)];if(t?.lat&&t?.lng)return{...c,lat:t.lat,lng:t.lng};}
     return c;
@@ -3417,9 +3426,10 @@ function renderMap(){
         iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
     }
   });
-  // priority: manual correction > AI Google > PBI
+  // priority: manual correction / tablet-order > AI Google > PBI — see
+  // TRUSTED_GPS_SOURCES.
   const _getCoord=(c)=>{
-    if(c.gpsSource==='correction') return{lat:c.lat,lng:c.lng};
+    if(TRUSTED_GPS_SOURCES.has(c.gpsSource)) return{lat:c.lat,lng:c.lng};
     if(st.aiGpsMode){const a=AI_GPS[String(c.custId)];if(a?.aiLat&&a?.aiLng)return{lat:a.aiLat,lng:a.aiLng};}
     if(st.tabletGpsMode){const t=TABLET_GPS[String(c.custId)];if(t?.lat&&t?.lng)return{lat:t.lat,lng:t.lng};}
     return{lat:c.lat,lng:c.lng};
