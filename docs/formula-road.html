@@ -1028,6 +1028,7 @@ body.gps-fs #map{height:100%!important;}
         <button class="sort-btn mob-collapse" id="gmaps-btn" onclick="openGoogleMaps()" title="פתח מסלול ב-Google Maps">🗺 Google</button>
         <button class="sort-btn mob-collapse" id="blank-history-btn" onclick="openBlankHistory()" title="היסטוריית בלנקים שנשלחו">📜 היסטוריה</button>
         <button class="sort-btn map-toggle-cta" id="map-toggle-btn" onclick="toggleMapHidden()" title="הצג מפה">🗺 הצג מפה</button>
+        <button class="sort-btn icon-only mob-collapse" id="client-search-btn" onclick="openClientSearch()" title="חיפוש לקוח — כל השבוע">🔍</button>
         <div class="km-more-wrap">
           <button class="sort-btn km-more-btn icon-only" id="km-more-btn" onclick="toggleKmMore()" title="עוד פעולות">⋮</button>
           <div class="km-more-dd" id="km-more-dd">
@@ -1039,9 +1040,8 @@ body.gps-fs #map{height:100%!important;}
             <button class="km-more-item mob-only" onclick="openYedaim();closeKmMore()">יעדים 🎩</button>
             <button class="km-more-item mob-only" onclick="openGoogleMaps();closeKmMore()">🗺 Google Maps</button>
             <button class="km-more-item mob-only" onclick="openBlankHistory();closeKmMore()">📜 היסטוריית בלנקים</button>
+            <button class="km-more-item mob-only" onclick="openClientSearch();closeKmMore()">🔍 חיפוש לקוח — כל השבוע</button>
             <hr class="km-more-sep mob-only">
-            <button class="km-more-item" onclick="openClientSearch();closeKmMore()">🔍 חיפוש לקוח — כל השבוע</button>
-            <hr class="km-more-sep">
             <button class="km-more-item" id="print-btn" onclick="printRoute();closeKmMore()">🖨️ הדפסת מסלול</button>
             <hr class="km-more-sep">
             <button class="km-more-item export-btn" id="export-btn" onclick="exportXLSX();closeKmMore()">📥 שמור יום (XLS)</button>
