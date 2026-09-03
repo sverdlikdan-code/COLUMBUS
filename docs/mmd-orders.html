@@ -1196,6 +1196,24 @@
     render();
   };
 
+  // Compute effective order quantity — same logic as production MMD ORDERS/index.html
+  // (ported 2026-09-03: this file never received the 06.08/27.08 _effOrd fixes, so
+  // "הזמנה בלבד" kept filtering on hamlatza fallback instead of the user's real input)
+  function _effOrd(r, s) {
+    if (s && s.k != null) return Number(s.k);
+    if (maavarMode) return 0;
+    if ((r.ashdod_k ?? 0) <= 0) return 0;
+    const mk   = String(r.mkt ?? '');
+    const haml = r.hamlatza ?? 0;
+    const hamlMult = { '664': 4 };
+    const hamlEff  = haml * (hamlMult[mk] || 1);
+    const hamlRnd  = hamlEff > 0 ? Math.round(hamlEff) : 0;
+    if (hamlRnd > 0) return hamlRnd;
+    const weeksNfOvr = { '659': 3 };
+    if (weeksNfOvr[mk] && r.mkr_shvua != null) return Math.max(0, Math.round(weeksNfOvr[mk] * r.mkr_shvua - (r.eilat_k ?? 0)));
+    return 0;
+  }
+
   function filtered() {
     const sv = ordOnly ? saved() : null;
     return all.filter(r => {
@@ -1218,9 +1236,7 @@
       }
       if (ordOnly && sv) {
         const s = sv[String(r.mkt ?? '')] || {};
-        const haml = r.hamlatza ?? 0;
-        const eff  = s.k != null ? Number(s.k) : (haml > 0 ? Math.round(haml) : 0);
-        if (eff <= 0) return false;
+        if (_effOrd(r, s) <= 0) return false;
       }
       return true;
     });
@@ -1290,10 +1306,8 @@
         const mmd  = r.mmd_k    ?? 0;
         const mkr  = r.mkr_shvua != null ? r.mkr_shvua : null;
         const haml = r.hamlatza  ?? 0;
-        const hamlRnd = haml > 0 ? Math.round(haml) : 0;
-        // maavar: no auto-fill from regular hamlatza formula — manual quantity only
-        const ordV    = s.k != null ? s.k : (maavarMode ? '' : (hamlRnd || ''));
-        const eff     = Number(ordV) || 0;
+        const eff     = _effOrd(r, s);
+        const ordV    = s.k === 0 ? 0 : (eff || '');
 
         const yamim     = r.yamim ?? null;
         const shavuot   = r.shavuot ?? null;
@@ -1396,7 +1410,8 @@
         setTimeout(() => { el.style.outline = ''; }, 800);
       }
     }
-    if (v === '') delete sv[mk][f];
+    if (v === '' && f === 'k') sv[mk][f] = 0; // explicit zero — hide from הזמנה בלבד filter
+    else if (v === '') delete sv[mk][f];
     else sv[mk][f] = Number(v);
     if (sv[mk].k == null) delete sv[mk];
     save(sv);
@@ -1410,8 +1425,7 @@
     const coMap = {};
     rows.forEach(r => {
       const s = sv[String(r.mkt ?? '')] || {};
-      const haml = r.hamlatza ?? 0;
-      const eff  = s.k != null ? s.k : (haml > 0 ? Math.round(haml) : 0);
+      const eff  = _effOrd(r, s);
       if (eff > 0) {
         ord += eff; items++;
         const co = r.hevra || '—';
@@ -1425,10 +1439,12 @@
 
   window.clearAll = function() {
     if (!confirm('למחוק את כל ההזמנות השמורות?')) return;
-    localStorage.removeItem(LS);
-    document.querySelectorAll('.ei-n').forEach(i => { i.value = ''; });
-    document.querySelectorAll('.ei-p').forEach(i => { i.value = ''; });
-    recalc();
+    // Explicit zero per SKU (not delete) — matches inp() single-field-clear semantics,
+    // so hamlatza fallback doesn't re-populate "הזמנה בלבד" right after a bulk clear.
+    const sv = {};
+    all.forEach(r => { sv[String(r.mkt ?? '')] = { k: 0 }; });
+    save(sv);
+    render();
   };
 
   window.exportXL = async function() {
@@ -1444,7 +1460,7 @@
 
       const orderedRows = rows.filter(r => {
         const s = sv[String(r.mkt ?? '')] || {};
-        return s.k != null && Number(s.k) > 0;
+        return _effOrd(r, s) > 0;
       });
 
       _saveOrderToHistory();
@@ -1464,17 +1480,17 @@
         return { top:e, bottom:e, left:e, right:e };
       };
 
-      // 8 data columns A–H
+      // 9 data columns A–I
       ws.columns = [
         {width:13},{width:20},{width:15},{width:44},
-        {width:15},{width:15},{width:17},{width:16}
+        {width:15},{width:15},{width:17},{width:20},{width:16}
       ];
 
       // Row 1: empty top margin
       ws.getRow(1).height = 8;
 
       // Row 2: Title
-      ws.mergeCells(2,1,2,8);
+      ws.mergeCells(2,1,2,9);
       const t = ws.getCell(2,1);
       t.value     = '🚚  הזמנה MMD · אילת';
       t.font      = { bold:true, size:17, color:{ argb:'FFFFFFFF' }, name:'Segoe UI' };
@@ -1483,7 +1499,7 @@
       ws.getRow(2).height = 38;
 
       // Row 3: Date
-      ws.mergeCells(3,1,3,8);
+      ws.mergeCells(3,1,3,9);
       const d = ws.getCell(3,1);
       d.value     = dateStr + '  |  ' + timeStr + '   ·   DILER BMD';
       d.font      = { size:9, italic:true, color:{ argb:'FF445577' } };
@@ -1492,7 +1508,7 @@
       ws.getRow(3).height = 18;
 
       // Row 4: spacer
-      ws.mergeCells(4,1,4,8); ws.getCell(4,1).fill = solid('EEF3FB');
+      ws.mergeCells(4,1,4,9); ws.getCell(4,1).fill = solid('EEF3FB');
       ws.getRow(4).height = 5;
 
       // Build data rows
@@ -1500,19 +1516,20 @@
       const tableData = orderedRows.map(r => {
         const mk  = String(r.mkt ?? '');
         const s   = sv[mk] || {};
-        const eff = Number(s.k);
+        const eff = _effOrd(r, s);
         totalK += eff;
         // תוקף נדרש: אופציה אחת — נבחרת אוטומטית; כמה אופציות בלי בחירה — נשארת ריקה ותסומן באדום בלולאת העיצוב
         const opts = r.tukuf ? String(r.tukuf).split('/').map(x => x.trim()).filter(Boolean) : [];
+        const tukufAshdod = opts.map(_fmtDate).join(' / ');
         const tukufVal = sessionP[mk] || (opts.length === 1 ? opts[0] : '');
-        return [mk, r.mishpacha||'', r.hevra||'', '‏'+(r.taur||''), r.mmd_k??0, r.ashdod_k??0, eff, tukufVal];
+        return [mk, r.mishpacha||'', r.hevra||'', '‏'+(r.taur||''), r.mmd_k??0, r.ashdod_k??0, eff, tukufAshdod, tukufVal];
       });
 
       // Header + filterable data at A5 — manual header/autoFilter instead of ws.addTable().
       // ws.addTable({totalsRow:false}) still writes totalsRowShown="1" in xl/tables/table1.xml
       // (exceljs@4.4.0 table-xform.js bug: the ternary is inverted) without reserving the extra
       // row in `ref`, which Excel's file-validation strips ("Removed Feature: Table/AutoFilter").
-      const headers = ['מק"ט','משפחת מוצר','חברה','שם מוצר','מלאי MMD','מלאי אשדוד','הזמנה קרטון','תוקף נדרש'];
+      const headers = ['מק"ט','משפחת מוצר','חברה','שם מוצר','מלאי MMD','מלאי אשדוד','הזמנה קרטון','תוקף אשדוד','תוקף נדרש'];
       const headerRow = ws.getRow(5);
       headerRow.height = 26;
       headers.forEach((h, i) => {
@@ -1523,7 +1540,7 @@
         cell.border    = bdr('thin','2F528F');
         cell.alignment = { horizontal:'center', vertical:'middle', readingOrder:'rightToLeft' };
       });
-      ws.autoFilter = { from: { row:5, column:1 }, to: { row: 5 + tableData.length, column:8 } };
+      ws.autoFilter = { from: { row:5, column:1 }, to: { row: 5 + tableData.length, column:9 } };
 
       tableData.forEach((vals, i) => {
         const row = ws.getRow(6 + i);
@@ -1534,12 +1551,12 @@
       orderedRows.forEach((r, i) => {
         const mk   = String(r.mkt ?? '');
         const s    = sv[mk] || {};
-        const eff  = s.k != null ? Number(s.k) : ((r.hamlatza??0)>0 ? Math.round(r.hamlatza):0);
+        const eff  = _effOrd(r, s);
         const mmdK = r.mmd_k ?? 0;
         const ashK = r.ashdod_k ?? 0;
         const row  = ws.getRow(6 + i); row.height = 20;
         if (i % 2 === 1) row.eachCell({ includeEmpty:true }, cell => { cell.fill = solid('F2F5FB'); });
-        for (let ci = 1; ci <= 8; ci++) {
+        for (let ci = 1; ci <= 9; ci++) {
           row.getCell(ci).alignment = { vertical:'middle', readingOrder:'rightToLeft',
             horizontal: ci === 4 ? 'right' : 'center' };
         }
@@ -1547,12 +1564,14 @@
         row.getCell(6).font = { size:10, color:{ argb:ashK>0?'FF1B5E20':'FFB71C1C' } };
         row.getCell(7).font = { size:11, bold:true, color:{ argb:eff>0?'FFE65100':'FF999999' } };
         if (eff > 0) row.getCell(7).border = bdr('medium','E65100');
+        row.getCell(8).font = { size:9, color:{ argb:'FF455A64' } };
+        row.getCell(8).alignment = { vertical:'middle', horizontal:'center', readingOrder:'ltr' };
         // יותר מאופציה אחת ב"תוקף אשדוד" ואין בחירת משתמש — לסמן את תא תוקף נדרש באדום
         const tOpts = r.tukuf ? String(r.tukuf).split('/').map(x => x.trim()).filter(Boolean) : [];
         if (tOpts.length > 1 && !sessionP[mk]) {
-          row.getCell(8).fill   = solid('FFCDD2');
-          row.getCell(8).font   = { size:10, bold:true, color:{ argb:'FFB71C1C' } };
-          row.getCell(8).border = bdr('medium','D32F2F');
+          row.getCell(9).fill   = solid('FFCDD2');
+          row.getCell(9).font   = { size:10, bold:true, color:{ argb:'FFB71C1C' } };
+          row.getCell(9).border = bdr('medium','D32F2F');
         }
       });
 
@@ -1592,13 +1611,12 @@
     const time = now.toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'});
     const orderedRows = rows.filter(r => {
       const s = sv[String(r.mkt ?? '')] || {};
-      const eff = s.k != null ? s.k : (maavarMode ? 0 : ((r.hamlatza ?? 0) > 0 ? Math.round(r.hamlatza) : 0));
-      return eff > 0;
+      return _effOrd(r, s) > 0;
     });
     const items = orderedRows.map(r => {
       const mk = String(r.mkt ?? '');
       const s  = sv[mk] || {};
-      const eff = s.k != null ? Number(s.k) : (maavarMode ? 0 : ((r.hamlatza ?? 0) > 0 ? Math.round(r.hamlatza) : 0));
+      const eff = _effOrd(r, s);
       const tukuf = sessionP[mk] || (r.tukuf || '').split('/')[0]?.trim() || '';
       return { mk, taur: r.taur, mmd: r.mmd_k ?? 0, ash: r.ashdod_k ?? 0, qty: eff, tukuf };
     });
