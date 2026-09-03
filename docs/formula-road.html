@@ -157,9 +157,10 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
    toward whichever real button — sort-btn-priority (right:0) or
    sort-btn-ai-google (left:0) — is currently active; see --thumb-x below.
    The two REAL buttons stay invisible left/right click zones under this
-   artwork — every existing JS reference to them (setSort/toggleAiGps/
-   toggleTabletGps/initRoute/recalcRoute) keeps working unchanged; only
-   what's painted changed (again). 2026-09-02.
+   artwork — every existing JS reference to them (setSort/toggleTabletGps/
+   initRoute/recalcRoute) keeps working unchanged; only what's painted
+   changed (again). 2026-09-02. (Both buttons now call setSort() — see its
+   comment, 2026-09-03.)
    RELOCATED 2026-09-02 (same day, earlier request): no longer lives in the
    km-row-top toolbar — moved into #formula-progress-banner (the sticky
    progress card above the client list), to the left of the %-ring, per
@@ -1002,9 +1003,9 @@ body.gps-fs #map{height:100%!important;}
              div, first child of this row) — moved into #formula-progress-banner
              on 2026-09-02 per explicit user decision, see the CSS comment on
              .fpb above and _renderFormulaBanner() in JS. Its two real buttons
-             (sort-btn-priority/-ai-google) and every setSort/toggleAiGps/
-             toggleTabletGps/initRoute reference to them are unchanged — only
-             the DOM parent moved. -->
+             (sort-btn-priority/-ai-google) and every setSort/toggleTabletGps/
+             initRoute reference to them are unchanged — only the DOM parent
+             moved. Both buttons now call setSort() (2026-09-03). -->
         <button class="sort-btn primary-action" id="day-briefing-btn" onclick="openDayBriefing()" title="ניתוח יום — TOP 10 לקוחות">📊 ניתוח</button>
         <button class="sort-btn mob-collapse" id="yedaim-btn" onclick="openYedaim()" title="יעדים — סטטוס הקבוצה">יעדים 🎩</button>
         <button class="sort-btn mob-collapse" id="gmaps-btn" onclick="openGoogleMaps()" title="פתח מסלול ב-Google Maps">🗺 Google</button>
@@ -1028,6 +1029,7 @@ body.gps-fs #map{height:100%!important;}
             <button class="km-more-item export-btn" id="export-all-btn" onclick="exportAllDaysXLSX();closeKmMore()">📊 כל הימים (XLS)</button>
             <hr class="km-more-sep">
             <button class="km-more-item" id="recalc-btn" onclick="recalcRoute();closeKmMore()">🔄 חישוב מסלול מחדש</button>
+            <button class="km-more-item" onclick="saveCurrentRoute();closeKmMore()">💾 שמור סדר ביקור</button>
             <button class="km-more-item" onclick="resetRoute();closeKmMore()">↩ איפוס סדר היום</button>
             <hr class="km-more-sep">
             <div class="gps-hist-wrap">
@@ -1064,7 +1066,7 @@ body.gps-fs #map{height:100%!important;}
         <div id="fpb-content" class="fpb-content"></div>
         <div class="sort-toggle">
           <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')" aria-label="הגרסה שלי" title="הגרסה שלי"></button>
-          <button class="sort-btn active-ai-google" id="sort-btn-ai-google" onclick="toggleAiGps()" aria-label="AI Google" title="AI Google"></button>
+          <button class="sort-btn active-ai-google" id="sort-btn-ai-google" onclick="setSort('ai')" aria-label="AI Google" title="AI Google"></button>
           <!-- RTL flex: first DOM child renders on the visual RIGHT (matching
                #sort-btn-priority{right:0} above), so the priority side-label
                comes first here to sit over its own click zone; the AI label
@@ -2265,7 +2267,7 @@ function _playTodayOrderSound(){
 // "clack": a sharp high snap immediately followed by a lower, softer settle a
 // few ms later — square wave + near-instant exponential decay for a
 // percussive click rather than a tone. Always created inside the toggle's own
-// click handler (setSort()/toggleAiGps()), which is itself the user gesture
+// click handler (setSort(), both sides), which is itself the user gesture
 // mobile browsers require to start an AudioContext — no separate unlock
 // needed. Live request 2026-09-02 (tactile lamp-amplifier feel for the sort
 // toggle).
@@ -2507,17 +2509,18 @@ async function initRoute(){
   // for anyone who never touched the toggle stays AI (2026-09-03: briefly changed to
   // default to "הגרסה שלי" for new agents, reverted same day — without any manual
   // drag, "הגרסה שלי" is just Priority's own סדר ביקור field, not GPS-optimized, so
-  // it's not actually a safer default than AI). setSort()/toggleAiGps()/
-  // toggleTabletGps() persist the choice immediately, so this stays in sync across
-  // day switches too.
+  // it's not actually a safer default than AI). setSort() persists the choice
+  // immediately, so this stays in sync across day switches too.
   // This must NOT touch st.aiGpsMode — that independently picks the map's GPS
   // coordinate source (_getCoord()). Forcing it off for saved 'priority' was a
   // 2026-09-02 regression (commit 00e7d9eb) that downgraded map pins to raw/
-  // city-center coords for every agent using "הגרסה שלי" (bug found 2026-09-03).
+  // city-center coords for every agent using "הגרסה שלי" (bug found 2026-09-03);
+  // the button's active class below used to read st.aiGpsMode instead of
+  // st.sortMode for the same reason and stayed lit even in priority mode.
   const _savedSortMode=loadSortModePref(st.agent.code);
   st.sortMode=(_savedSortMode==='priority' && !st.tabletGpsMode)?'priority':'ai'; st.selectedCities=[]; st.selectedId=null;
   document.getElementById('sort-btn-priority').className='sort-btn'+(st.sortMode==='priority'?' active-priority':'');
-  document.getElementById('sort-btn-ai-google').className='sort-btn'+(st.aiGpsMode?' active-ai-google':'');
+  document.getElementById('sort-btn-ai-google').className='sort-btn'+(st.sortMode==='ai'?' active-ai-google':'');
   st.excluded=new Set();
   document.getElementById('route-title').textContent='DILER FORMULA';
   document.getElementById('route-sub').textContent=_routeSubBase();
@@ -2774,15 +2777,24 @@ function setSort(mode){
   if(st.sortMode===mode)return;
   _playRockerClick();
   st.sortMode=mode;
-  // Only ever called with 'priority' in practice (the "הגרסה שלי" pill).
+  // Handles both rocker halves ('priority' = "הגרסה שלי", 'ai' = AI Google).
   // Do NOT touch st.aiGpsMode/st.tabletGpsMode here — those pick the GPS
-  // coordinate source (_getCoord(), renderMap) and are independent of
-  // visit-order sort mode. Resetting them here (2026-09-02, commit 00e7d9eb)
-  // was a regression that silently downgraded map pins + route lines to
-  // raw/city-center coords whenever an agent used "הגרסה שלי" (found 2026-09-03).
+  // coordinate source (_getCoord(), _aiGpsClients(), renderMap) and are
+  // independent of visit-order sort mode; map geo must stay identical in
+  // both modes, only the order/connecting lines change. Coupling them here
+  // (2026-09-02, commit 00e7d9eb) — and again inside the old toggleAiGps()
+  // (found 2026-09-03) — silently downgraded map pins to raw/city-center
+  // coords whenever an agent switched sort mode either direction.
   saveSortModePref(st.agent.code,mode);
   document.getElementById('sort-btn-priority').className='sort-btn'+(mode==='priority'?' active-priority':'');
-  if(mode==='priority') _showMyVersionToast();
+  document.getElementById('sort-btn-ai-google').className='sort-btn'+(mode==='ai'?' active-ai-google':'');
+  if(mode==='priority'){
+    if(!_showMyVersionToast()) showToast('📍 GPS: מצב רגיל');
+  } else {
+    OSRM_CACHE.clear(); OSRM_TRIP_CACHE.clear();
+    showToast('🤖 GPS: מצב AI Google פעיל');
+    triggerOsrm();
+  }
   renderCityFilters();
   renderClientList();
   if(st.tab==='map'||window.innerWidth>=700) renderMap();
@@ -2807,28 +2819,6 @@ function toggleTabletGps(){
   }
   saveSortModePref(st.agent.code,st.sortMode);
   renderCityFilters(); renderClientList();
-  if(st.tab==='map'||window.innerWidth>=700) renderMap();
-}
-
-function toggleAiGps(){
-  _playRockerClick();
-  st.aiGpsMode=!st.aiGpsMode;
-  const btn=document.getElementById('sort-btn-ai-google');
-  if(btn) btn.className='sort-btn'+(st.aiGpsMode?' active-ai-google':'');
-  if(st.aiGpsMode){
-    st.tabletGpsMode=false;
-    st.sortMode='ai';
-    document.getElementById('sort-btn-priority').className='sort-btn';
-    OSRM_CACHE.clear(); OSRM_TRIP_CACHE.clear();
-    showToast('🤖 GPS: מצב AI Google פעיל');
-    triggerOsrm();
-  } else {
-    st.sortMode='priority';
-    document.getElementById('sort-btn-priority').className='sort-btn active-priority';
-    if(!_showMyVersionToast()) showToast('📍 GPS: מצב רגיל');
-    renderClientList();
-  }
-  saveSortModePref(st.agent.code,st.sortMode);
   if(st.tab==='map'||window.innerWidth>=700) renderMap();
 }
 
@@ -3681,6 +3671,16 @@ async function submitAddress(){
       updateKmBar(); renderClientList();
     }
   }catch{}
+}
+
+// Explicit "save order" affordance over the drag autosave in setupSortable()'s
+// onEnd() (which already persists on every drag in priority mode) — requested
+// as a visible confirmation on top of the silent autosave, 2026-09-03.
+function saveCurrentRoute(){
+  if(st.sortMode!=='ai'){
+    saveRoute(st.agent.code,st.day,st.clients);
+  }
+  showToast('💾 סדר הביקור נשמר');
 }
 
 // ── LOCALSTORAGE ───────────────────────────────────────────────────────────
