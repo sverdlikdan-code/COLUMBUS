@@ -444,11 +444,9 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .yedaim-section.headline{margin-bottom:20px;}
 .yedaim-section-title{font-size:12px;font-weight:800;color:#4A148C;margin-bottom:6px;padding-inline-start:2px;}
 .yedaim-lb-row{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;margin-bottom:4px;background:#FAFAFA;}
-.yedaim-lb-row.me{background:#F3E5F5;border:1.5px solid #4A148C;}
 .yedaim-lb-rank{width:20px;text-align:center;font-size:12px;font-weight:800;color:#bbb;flex-shrink:0;}
 .yedaim-lb-row.rank1 .yedaim-lb-rank{color:#F9A825;}
 .yedaim-lb-name{flex:1;font-size:13px;font-weight:700;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.yedaim-lb-row.me .yedaim-lb-name{color:#4A148C;}
 .yedaim-lb-pace{font-size:11px;font-weight:800;margin-inline-start:4px;white-space:nowrap;}
 .yedaim-lb-bar-mini{width:52px;height:6px;border-radius:3px;background:#EEE;overflow:hidden;flex-shrink:0;}
 .yedaim-lb-bar-mini .fill{height:100%;border-radius:3px;}
@@ -457,7 +455,6 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .yedaim-lb-val.na{color:#ccc;font-weight:600;}
 .yedaim-headline .yedaim-lb-row{padding:9px 12px;}
 .yedaim-headline .yedaim-lb-val{font-size:15px;width:66px;}
-.yedaim-me-badge{display:inline-block;background:#4A148C;color:#fff;font-size:9px;font-weight:800;border-radius:6px;padding:1px 5px;margin-inline-start:5px;vertical-align:1px;}
 /* AI Analytics Modal */
 #ai-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px;}
 #ai-modal.open{display:flex;}
@@ -4292,7 +4289,6 @@ async function _loadYedaimTeam(team) {
     const j = await r.json();
     if (!r.ok || !j.ok) throw new Error(j.error || 'שגיאה בטעינה');
     document.getElementById('yedaim-modal-title').textContent = `יעדים — ${j.team}`;
-    const myName = (st.agent?.name || '').trim();
     const rows = (j.rows || []).filter(row => row['TEAMS FORM[שם סוכן ]']);
     const monthHe = YEDAIM_MONTH_HE[j.monthName] || j.monthName;
     // Days-worked strip is calendar-based, same across the whole team — read
@@ -4305,8 +4301,8 @@ async function _loadYedaimTeam(team) {
     // TOTAL BONUS first as the headline ranking, then every category from
     // the server's config in whatever order it lists them.
     const sections = [
-      _yedaimSection({ key: 'TOTAL_BONUS', label: '🏆 TOTAL BONUS + נקודות', money: true, headline: true, pace: true }, rows, myName),
-      ...(j.categories || []).map(cat => _yedaimSection({ key: cat.key + '_PCT', bonusKey: cat.key + '_BONUS', label: cat.label, pace: cat.key === 'YAAD' }, rows, myName)),
+      _yedaimSection({ key: 'TOTAL_BONUS', label: '🏆 TOTAL BONUS + נקודות', money: true, headline: true, pace: true }, rows),
+      ...(j.categories || []).map(cat => _yedaimSection({ key: cat.key + '_PCT', bonusKey: cat.key + '_BONUS', label: cat.label, pace: cat.key === 'YAAD' }, rows)),
     ].join('');
     body.innerHTML = `${backBtn}<div class="yedaim-month">${monthHe} ${j.year}</div>${workDaysHtml}${sections || '<div class="ai-loading">אין נתונים</div>'}`;
   } catch (e) {
@@ -4338,7 +4334,7 @@ function _yedaimPaceBadge(row) {
 // new metric next month is a server/data/yedaim-categories.json edit, not a
 // change here — this function only knows field-name conventions, not any
 // specific measure.
-function _yedaimSection(cat, rows, myName) {
+function _yedaimSection(cat, rows) {
   const withVal = rows.map(row => ({ row, val: _yedaimNum(row[`[${cat.key}]`]) }));
   withVal.sort((a, b) => {
     if ((a.val === null) !== (b.val === null)) return a.val === null ? 1 : -1;
@@ -4347,15 +4343,14 @@ function _yedaimSection(cat, rows, myName) {
   const maxVal = withVal.find(x => x.val !== null)?.val || 1;
   const rowsHtml = withVal.map(({ row, val }, i) => {
     const name = row['TEAMS FORM[שם סוכן ]'];
-    const isMe = name === myName;
     const bonusVal = cat.money ? val : _yedaimNum(row[`[${cat.bonusKey}]`]);
     const bonusOk = bonusVal !== null;
     const barPct = val === null ? 4 : Math.max(4, Math.round((val / maxVal) * 100));
     const valTxt = val === null ? '—' : (cat.money ? _yedaimMoney(val) : _yedaimPct(val));
     const color = bonusOk ? 'linear-gradient(90deg,#66BB6A,#2E7D32)' : 'linear-gradient(90deg,#CE93D8,#8E24AA)';
-    return `<div class="yedaim-lb-row${isMe ? ' me' : ''}${i === 0 ? ' rank1' : ''}">
+    return `<div class="yedaim-lb-row${i === 0 ? ' rank1' : ''}">
       <div class="yedaim-lb-rank">${i + 1}</div>
-      <div class="yedaim-lb-name">${esc(name)}${isMe ? '<span class="yedaim-me-badge">אתה</span>' : ''}${cat.pace ? _yedaimPaceBadge(row) : ''}</div>
+      <div class="yedaim-lb-name">${esc(name)}${cat.pace ? _yedaimPaceBadge(row) : ''}</div>
       <div class="yedaim-lb-bar-mini"><div class="fill" style="width:${barPct}%;background:${color}"></div></div>
       <div class="yedaim-lb-val${bonusOk ? ' money' : (val === null ? ' na' : '')}">${valTxt}</div>
     </div>`;
