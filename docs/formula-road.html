@@ -406,11 +406,11 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .excl-btn:hover,.client-card.excluded .excl-btn{opacity:.9;}
 .mekarer-btn{font-size:11px;flex-shrink:0;cursor:pointer;background:#BBDEFB;border:1.5px solid #42A5F5;border-radius:6px;padding:2px 6px;color:#1565C0;font-weight:900;line-height:1.3;text-align:center;transition:background .12s;min-height:28px;display:flex;align-items:center;justify-content:center;}
 .mekarer-btn:hover{background:#90CAF9;}
-.zikuy-btn{font-size:11px;flex-shrink:0;cursor:pointer;background:#FFCDD2;border:1.5px solid #EF5350;border-radius:6px;padding:2px 6px;color:#C62828;font-weight:900;line-height:1.3;text-align:center;transition:background .12s;min-height:28px;display:flex;align-items:center;justify-content:center;}
+.zikuy-btn{font-size:10px;flex-shrink:0;cursor:pointer;background:#FFCDD2;border:1.5px solid #EF5350;border-radius:6px;padding:2px 5px;color:#C62828;font-weight:900;line-height:1.3;text-align:center;transition:background .12s;min-height:28px;display:flex;align-items:center;justify-content:center;}
 .zikuy-btn:hover{background:#EF9A9A;}
 .ai-insight-btn{font-size:10px;flex-shrink:0;cursor:pointer;background:#D1C4E9;border:1.5px solid #9575CD;border-radius:6px;padding:2px 6px;color:#4527A0;font-weight:900;line-height:1.3;text-align:center;transition:background .12s;min-height:28px;display:flex;align-items:center;justify-content:center;letter-spacing:.3px;}
 .ai-insight-btn:hover{background:#B39DDB;}
-.promo-btn{font-size:11px;flex-shrink:0;cursor:pointer;background:#FFE0B2;border:1.5px solid #FFA726;border-radius:6px;padding:2px 6px;color:#E65100;font-weight:900;line-height:1.3;text-align:center;transition:background .12s;min-height:28px;display:flex;align-items:center;justify-content:center;}
+.promo-btn{font-size:10px;flex-shrink:0;cursor:pointer;background:#FFE0B2;border:1.5px solid #FFA726;border-radius:6px;padding:2px 5px;color:#E65100;font-weight:900;line-height:1.3;text-align:center;transition:background .12s;min-height:28px;display:flex;align-items:center;justify-content:center;}
 .promo-btn:hover{background:#FFCC80;}
 /* Yedaim (team targets snapshot) Modal */
 #yedaim-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px;}
@@ -699,8 +699,15 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
   .today-order-badge{font-size:20px;}
 
   /* Action buttons — 44 dp touch target minimum */
-  .mekarer-btn,.zikuy-btn,.ai-insight-btn,.promo-btn,.waze-btn{
+  .mekarer-btn,.ai-insight-btn,.waze-btn{
     font-size:13px;min-height:38px;padding:6px 12px;border-radius:9px;
+  }
+  /* זיכוי/מבצע carry a text label (wider than the icon-only buttons above) —
+     kept a bit tighter so the client name next to them has room to breathe,
+     per live request 2026-09-06. Still a real touch target (36px), just not
+     as padded. */
+  .zikuy-btn,.promo-btn{
+    font-size:12px;min-height:36px;padding:5px 8px;border-radius:9px;
   }
   .excl-btn,.gps-edit-btn,.day-change-btn{width:42px;height:42px;font-size:18px;}
   .no-gps-badge{font-size:13px;padding:6px 14px;border-radius:9px;}
@@ -3342,11 +3349,15 @@ function toggleFrSadranFilter(){
 // screen size (2026-08-24 — was previously all-or-nothing based on width).
 function _primaryActionsHtml(c,noGps){
   const nm=(c.custName||'').replace(/"/g,'&quot;'), ct=(c.city||'').replace(/"/g,'&quot;');
+  // Live request 2026-09-06: a client with an active promo shouldn't offer the
+  // "exclude from route" button in that same slot — visual symmetry (מבצע takes
+  // the spot instead), and it discourages skipping a client worth visiting.
+  const hasPromo=PROMO_CUST_IDS.has(String(c.custId));
   return `<span class="zikuy-btn" data-id="${c.custId}" data-name="${nm}" data-city="${ct}" onclick="openZikuyOrder(event,this.dataset.id,this.dataset.name,this.dataset.city)" title="בקשת זיכוי">זיכוי</span>
-    <span class="excl-btn" data-id="${c.custId}" onclick="toggleExclude('${c.custId}',event)" title="הוצא ממסלול">🚫</span>
+    ${hasPromo ? '' : `<span class="excl-btn" data-id="${c.custId}" onclick="toggleExclude('${c.custId}',event)" title="הוצא ממסלול">🚫</span>`}
     ${noGps ? '' : `<span class="waze-btn" onclick="openWaze(event,${c.lat},${c.lng})" title="נווט ב-Waze">W</span>`}
     <span class="ai-insight-btn" data-id="${c.custId}" data-name="${nm}" onclick="openClientAI(event,this.dataset.id,this.dataset.name)" title="ניתוח מעמק — משפחות, פערים, השוואה לרשת">🔍</span>
-    ${PROMO_CUST_IDS.has(String(c.custId)) ? `<span class="promo-btn" data-id="${c.custId}" data-name="${nm}" onclick="openPromoModal(event,this.dataset.id,this.dataset.name)" title="מבצעים פעילים">מבצע</span>` : ''}`;
+    ${hasPromo ? `<span class="promo-btn" data-id="${c.custId}" data-name="${nm}" onclick="openPromoModal(event,this.dataset.id,this.dataset.name)" title="מבצעים פעילים">מבצע</span>` : ''}`;
 }
 function _secondaryActionsHtml(c,noGps){
   const nm=(c.custName||'').replace(/"/g,'&quot;'), ct=(c.city||'').replace(/"/g,'&quot;');
