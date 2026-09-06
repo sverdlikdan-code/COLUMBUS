@@ -4243,18 +4243,26 @@ app.get('/api/yedaim-live', requireAuth, dataRateLimit, async (req, res) => {
       if (!team) return res.status(404).json({ error: 'team_not_found' });
     }
     const categories = loadYedaimCategories();
+    // gateByTeam overrides the default gate for one team (e.g. SADRAN+'s
+    // financial gate is 0.799, everyone else's is 0.89 — confirmed empirically
+    // against real August results, not from any PBIX-extracted DAX text, see
+    // Vault formula-road-app.md) — resolve to a flat "gate" per category before
+    // sending to the client, which doesn't need to know team-branching exists.
+    const resolvedCategories = categories.map(c => ({
+      key: c.key, label: c.label, gate: c.gateByTeam?.[team] ?? c.gate ?? null,
+    }));
     const { monthName, year } = currentIsraelMonthYear();
     const cacheKey = `${team}|${monthName}|${year}`;
     const cached = _yedaimLiveCache.get(cacheKey);
     if (cached) {
-      return res.json({ ok: true, team, monthName, year, categories, rows: cached.rows, cached: true });
+      return res.json({ ok: true, team, monthName, year, categories: resolvedCategories, rows: cached.rows, cached: true });
     }
     // Cache miss (server just restarted, or that day's prefetch failed for this
     // team) — fall back to a live call so the button still works, instead of
     // making the agent wait for tomorrow's 06:00 reload.
     const rows = await executeDax(buildYedaimDax(team, monthName, year, categories));
     _yedaimLiveCache.set(cacheKey, { at: Date.now(), rows });
-    res.json({ ok: true, team, monthName, year, categories, rows, cached: false });
+    res.json({ ok: true, team, monthName, year, categories: resolvedCategories, rows, cached: false });
   } catch (err) {
     console.error('[yedaim-live]', err.message);
     res.status(500).json({ error: 'server_error' });
