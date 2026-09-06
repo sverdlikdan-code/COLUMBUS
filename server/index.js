@@ -8,7 +8,7 @@ const { execFile } = require('child_process');
 const ExcelJS = require('exceljs');
 const puppeteer = require('puppeteer');
 const { executeDax, getDatasetRefreshTime } = require('./powerbi');
-const { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByAgentAll, dayClosingOrdersToday, liveOrderGpsForNewClient } = require('./priority-db');
+const { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByAgentAll, dayClosingOrdersToday, liveOrderGpsForNewClient, clientPromosByCustId } = require('./priority-db');
 const { Resend } = require('resend');
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -31,6 +31,12 @@ let pbiCache = null; // set by loadPBICache()
 // Cleared only on a SUCCESSFUL daily pbiCache reload (see _loadPBICacheAttempt)
 // so a failed/retrying reload doesn't wipe still-valid cached returns data.
 const clientReturnsCache = new Map(); // custId -> { data, at: Date }
+
+// Per-client מבצע (SOF_PRICEREC live from Priority, not PBI) — cached per day same
+// as clientReturnsCache: window is [начало месяца; today+1mo], doesn't shift within
+// a single day, so a live re-query wouldn't show anything new until tomorrow anyway.
+// Cleared on the same successful-reload hook.
+const clientPromosCache = new Map(); // custId -> { data, at: Date }
 
 // Per-client ניתוח לקוח (family breakdown, YoY trend, chain gaps) — same reasoning
 // as clientReturnsCache: this app has no real-time data source anywhere (the PBI
@@ -452,6 +458,7 @@ ROW("maxDate", CALCULATE(MAX(ALL_PARTS[תאריך]), ALL_PARTS[ASHMADOT] = "-מ�
     };
     clientReturnsCache.clear();
     clientAnalyticsCache.clear();
+    clientPromosCache.clear();
     console.log(`[PBI] Cache loaded: ${clientMap.size} clients, ${byAgent.size} agents, ${managers.size} managers, ${managerAgents.size} manager-agents`);
 
     // Geocode ICE clients in background — updates pbiCache.iceByAgent objects in-place
@@ -5351,6 +5358,45 @@ CALCULATETABLE(
       curLabel: `${d90.toLocaleDateString('he-IL')}-${todayD.toLocaleDateString('he-IL')}`,
     };
     clientReturnsCache.set(custId, { data: responseData, at: new Date() });
+    res.json(responseData);
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ── Client Promos (מבצע button) — live from Priority SOF_PRICEREC, not PBI ────
+// FORMULA + ICE MISH only (SOF_PRICEREC exists in diller/mmdint too, but this
+// button only serves the two companies formula-road.html actually sells for).
+// Photos come from the same PBI KARTIS PARIT / KARTIS PARIT ICE tables already
+// used by /api/client-returns (see fetchPhotosRet above) — same SKU-keyed lookup,
+// just a second call site.
+app.get('/api/client-promos/:custId', requireAuth, async (req, res) => {
+  const custId = String(req.params.custId || '').trim();
+  if (!custId) return res.status(400).json({ ok: false, error: 'custId required' });
+  if (!/^\d{1,15}$/.test(custId)) return res.status(400).json({ ok: false, error: 'invalid custId' });
+
+  const cached = clientPromosCache.get(custId);
+  if (cached) return res.json(cached.data);
+
+  try {
+    const promos = await clientPromosByCustId(custId);
+
+    const fetchPhotos = async (items, table) => {
+      if (!items.length) return;
+      const skuIn = items.map(p => `"${p.sku}"`).join(',');
+      const rows = await executeDax(
+        `EVALUATE SELECTCOLUMNS(FILTER('${table}', '${table}'[מק"ט] IN {${skuIn}}), "sku", '${table}'[מק"ט], "img", '${table}'[URL תמונה])`
+      );
+      const imgMap = new Map(rows.map(r => [String(r['[sku]']), r['[img]'] || '']));
+      items.forEach(p => { p.imgUrl = imgMap.get(p.sku) || ''; });
+    };
+    await Promise.all([
+      fetchPhotos(promos.filter(p => p.company === 'FORMULA'), 'KARTIS PARIT'),
+      fetchPhotos(promos.filter(p => p.company === 'ICE_MISH'), 'KARTIS PARIT ICE'),
+    ]);
+
+    const responseData = { ok: true, promos };
+    clientPromosCache.set(custId, { data: responseData, at: new Date() });
     res.json(responseData);
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
