@@ -4301,7 +4301,7 @@ async function _loadYedaimTeam(team) {
     // TOTAL BONUS first as the headline ranking, then every category from
     // the server's config in whatever order it lists them.
     const sections = [
-      _yedaimSection({ key: 'TOTAL_BONUS', label: '🏆 TOTAL BONUS + נקודות', money: true, headline: true, pace: true }, rows),
+      _yedaimSection({ key: 'TOTAL_BONUS', label: '🏆 TOTAL BONUS', money: true, headline: true, pace: true }, rows),
       ...(j.categories || []).map(cat => _yedaimSection({ key: cat.key + '_PCT', bonusKey: cat.key + '_BONUS', label: cat.label, pace: cat.key === 'YAAD' }, rows)),
     ].join('');
     body.innerHTML = `${backBtn}<div class="yedaim-month">${monthHe} ${j.year}</div>${workDaysHtml}${sections || '<div class="ai-loading">אין נתונים</div>'}`;
