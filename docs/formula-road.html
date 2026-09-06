@@ -481,6 +481,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 #promo-modal-body{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:14px 16px;flex:1;}
 .promo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
 .promo-card{border:1.5px solid #FFD180;border-radius:10px;overflow:hidden;background:#FFF8F0;display:flex;flex-direction:column;}
+.promo-card.promo-stale{border:2.5px solid #E53935;box-shadow:0 0 0 1px rgba(229,57,53,.25);}
 .promo-card img{width:100%;height:82px;object-fit:contain;background:#fff;}
 .promo-card .promo-noimg{width:100%;height:82px;display:flex;align-items:center;justify-content:center;background:#fff;color:#ccc;font-size:28px;}
 .promo-card-cap{padding:5px 7px;font-size:12px;color:#333;text-align:center;}
@@ -4158,8 +4159,12 @@ async function _fetchClientPromos(custId) {
     // "מבצע" is the generic/default promo-type label — showing it back to the
     // agent adds nothing ("promo" on a promo card). Only a MORE SPECIFIC type
     // (קופון/מועדון/1+1/פרסום/תצוגה etc.) is worth a line — live request 2026-09-06.
+    // Red frame = on promo but this client hasn't bought it in 90+ days
+    // (server-computed notBoughtIn90d, same ASHMADOT="-מכר-"/MAX(תאריך)
+    // convention as client-returns' lastShipDate) — live request 2026-09-06:
+    // an opportunity worth pointing out, not an error state.
     const cardHtml = p => `
-      <div class="promo-card">
+      <div class="promo-card${p.notBoughtIn90d ? ' promo-stale' : ''}">
         ${p.imgUrl ? `<img src="${p.imgUrl}" alt="${(p.name || '').replace(/"/g, '&quot;')}" loading="lazy">` : '<div class="promo-noimg">📦</div>'}
         <div class="promo-card-cap">
           <span class="promo-name">${p.sku}</span>
