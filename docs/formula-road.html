@@ -1291,13 +1291,13 @@ body.gps-fs #map{height:100%!important;}
   </div>
 </div>
 
-<!-- ── TABLET GPS REVIEW BAR (non-blocking — map stays visible/pannable underneath) ── -->
+<!-- ── GPS REVIEW BAR (tablet or Google source — non-blocking, map stays visible/pannable underneath) ── -->
 <div id="tablet-gps-bar" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#fff;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.35);padding:16px 20px;z-index:10000;max-width:92vw;width:380px;text-align:center;border:2px solid #00B894">
-  <div style="font-size:12px;font-weight:800;color:#00B894;margin-bottom:6px">📱 מיקום מהטאבלט — תסתכל על המפה</div>
+  <div id="gps-review-title" style="font-size:12px;font-weight:800;color:#00B894;margin-bottom:6px">📱 מיקום מהטאבלט — תסתכל על המפה</div>
   <div id="tablet-gps-bar-text" style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px"></div>
   <div style="display:flex;gap:10px;justify-content:center">
-    <button onclick="confirmTabletGpsReview(false)" class="modal-btn cancel" style="min-width:110px">✕ ביטול</button>
-    <button onclick="confirmTabletGpsReview(true)" style="min-width:110px;background:#00B894;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:800;font-size:14px;cursor:pointer">✅ אשר מיקום</button>
+    <button onclick="confirmGpsReview(false)" class="modal-btn cancel" style="min-width:110px">✕ ביטול</button>
+    <button id="gps-review-confirm-btn" onclick="confirmGpsReview(true)" style="min-width:110px;background:#00B894;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:800;font-size:14px;cursor:pointer">✅ אשר מיקום</button>
   </div>
 </div>
 
@@ -3735,8 +3735,12 @@ function renderMap(){
     const tabletBtn=TABLET_GPS[String(c.custId)]
       ? `<button data-id="${c.custId}" data-name="${safeName}" onclick="reviewTabletGps(this.dataset.id,this.dataset.name)" style="margin-top:6px;margin-inline-start:4px;background:#00B894;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">📱 בדוק מיקום טאבלט</button>`
       : '';
+    const googleGpsData=AI_GPS[String(c.custId)];
+    const googleBtn=googleGpsData&&googleGpsData.aiLat&&googleGpsData.aiLng
+      ? `<button data-id="${c.custId}" data-name="${safeName}" onclick="reviewGoogleGps(this.dataset.id,this.dataset.name)" style="margin-top:6px;margin-inline-start:4px;background:#7B1FA2;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">🤖 בדוק מיקום גוגל</button>`
+      : '';
     const iceMark = isIce ? ' <span style="background:#00B894;color:#fff;font-size:9px;font-weight:800;padding:1px 4px;border-radius:3px">ICE</span>' : '';
-    m.bindPopup(`<b>${esc(_rawLabel)}${corrMark}</b>${iceMark}<br>${esc(c.city||'')}${c.address?'<br><span style="font-size:11px;color:#555">'+esc(c.address)+'</span>':''}${approxNote}${fixBtn}${tabletBtn}`);
+    m.bindPopup(`<b>${esc(_rawLabel)}${corrMark}</b>${iceMark}<br>${esc(c.city||'')}${c.address?'<br><span style="font-size:11px;color:#555">'+esc(c.address)+'</span>':''}${approxNote}${fixBtn}${tabletBtn}${googleBtn}`,{maxWidth:340,minWidth:260});
     m.bindTooltip(_rawLabel,{permanent:false,direction:'right',opacity:1,className:'fr-tip'});
     if(isSel) m.openPopup();
     bounds.push([c.lat,c.lng]);
@@ -5180,37 +5184,51 @@ function saveGpsCorrection(custId, custName, lat, lng){
 // Uses a non-blocking floating bar (not confirm()) so the map stays visible and
 // pannable while deciding — a synchronous confirm() fired right after closing the
 // address modal was stealing the repaint before the agent could actually see the pin.
-let _tabletReviewMarker=null, _tabletReviewPending=null;
-function reviewTabletGps(custId, custName){
-  const t=TABLET_GPS[String(custId)];
-  if(!t||!t.lat||!t.lng){ showToast('❌ אין נתוני GPS מהטאבלט עבור לקוח זה'); return; }
+// Same review-bar UI drives both sources — tablet-from-orders and Google/AI
+// geocode — since only one review can be in flight at a time anyway. Added
+// google source 2026-09-06 alongside the map-popup button (user request).
+let _reviewMarker=null, _reviewPending=null;
+const GPS_REVIEW_SOURCES={
+  tablet:{cache:()=>TABLET_GPS,latKey:'lat',lngKey:'lng',color:'#00B894',icon:'📱',title:'📱 מיקום מהטאבלט — תסתכל על המפה',missingMsg:'❌ אין נתוני GPS מהטאבלט עבור לקוח זה',okMsg:'✅ מיקום מהטאבלט אושר ונשמר'},
+  google:{cache:()=>AI_GPS,latKey:'aiLat',lngKey:'aiLng',color:'#7B1FA2',icon:'🤖',title:'🤖 מיקום מ-Google — תסתכל על המפה',missingMsg:'❌ אין נתוני GPS מ-Google עבור לקוח זה',okMsg:'✅ מיקום מ-Google אושר ונשמר'},
+};
+function _reviewGpsSource(source, custId, custName){
+  const cfg=GPS_REVIEW_SOURCES[source];
+  const raw=cfg.cache()[String(custId)];
+  const lat=raw&&raw[cfg.latKey], lng=raw&&raw[cfg.lngKey];
+  if(!lat||!lng){ showToast(cfg.missingMsg); return; }
   if(!map) renderMap(); // list-only view (narrow screen) may never have initialized the map
   if(Math.min(window.innerWidth,window.innerHeight)<700 && st.tab!=='map') setTab('map',true);
   requestAnimationFrame(()=>{
     const cl=st.clients.find(x=>String(x.custId)===String(custId));
-    if(_tabletReviewMarker){ map.removeLayer(_tabletReviewMarker); _tabletReviewMarker=null; }
+    if(_reviewMarker){ map.removeLayer(_reviewMarker); _reviewMarker=null; }
     map.closePopup();
-    map.setView([t.lat,t.lng],16,{animate:true});
-    _tabletReviewMarker=L.marker([t.lat,t.lng],{
-      icon:L.divIcon({className:'',html:'<div style="background:#00B894;color:#fff;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.5)">📱</div>',iconSize:[34,34],iconAnchor:[17,17]}),
+    map.setView([lat,lng],16,{animate:true});
+    _reviewMarker=L.marker([lat,lng],{
+      icon:L.divIcon({className:'',html:`<div style="background:${cfg.color};color:#fff;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.5)">${cfg.icon}</div>`,iconSize:[34,34],iconAnchor:[17,17]}),
       zIndexOffset:2000,
     }).addTo(map);
-    const distText=(cl&&cl.lat&&cl.lng)?` — ${Math.round(haversineKm(cl.lat,cl.lng,t.lat,t.lng)*1000)} מ' מהמיקום הנוכחי`:'';
-    _tabletReviewPending={custId,custName};
+    const distText=(cl&&cl.lat&&cl.lng)?` — ${Math.round(haversineKm(cl.lat,cl.lng,lat,lng)*1000)} מ' מהמיקום הנוכחי`:'';
+    _reviewPending={custId,custName,lat,lng,okMsg:cfg.okMsg};
+    document.getElementById('gps-review-title').textContent=cfg.title;
+    document.getElementById('gps-review-title').style.color=cfg.color;
     document.getElementById('tablet-gps-bar-text').textContent=`${custName}${distText}`;
+    document.getElementById('tablet-gps-bar').style.borderColor=cfg.color;
+    document.getElementById('gps-review-confirm-btn').style.background=cfg.color;
     document.getElementById('tablet-gps-bar').style.display='block';
   });
 }
+function reviewTabletGps(custId, custName){ _reviewGpsSource('tablet', custId, custName); }
+function reviewGoogleGps(custId, custName){ _reviewGpsSource('google', custId, custName); }
 
-function confirmTabletGpsReview(ok){
+function confirmGpsReview(ok){
   document.getElementById('tablet-gps-bar').style.display='none';
-  if(_tabletReviewMarker){ map.removeLayer(_tabletReviewMarker); _tabletReviewMarker=null; }
-  const pending=_tabletReviewPending; _tabletReviewPending=null;
+  if(_reviewMarker){ map.removeLayer(_reviewMarker); _reviewMarker=null; }
+  const pending=_reviewPending; _reviewPending=null;
   if(!pending) return;
   if(ok){
-    const t=TABLET_GPS[String(pending.custId)];
-    saveGpsCorrection(pending.custId,pending.custName,t.lat,t.lng);
-    showToast('✅ מיקום מהטאבלט אושר ונשמר');
+    saveGpsCorrection(pending.custId,pending.custName,pending.lat,pending.lng);
+    showToast(pending.okMsg);
   } else {
     renderMap();
   }
