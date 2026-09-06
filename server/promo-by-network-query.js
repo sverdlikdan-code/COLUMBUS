@@ -34,10 +34,10 @@ const cfg = {
   requestTimeout: 30000,
 };
 
-// Акции по сети, действующие в окне "текущий месяц + месяц вперёд от сегодня" (частичное
-// совпадение по имени клиента). Окно = [начало текущего месяца; сегодня + 1 месяц (rolling,
-// не конец календарного месяца)], условие — пересечение периода акции с этим окном.
-// Без фильтра по @network — вернёт все акции по всем сетям компании в этом окне.
+// Акции по сети (частичное совпадение по имени клиента), окно (живой запрос
+// пользователя 2026-09-06, заменил более широкое "весь месяц+след.месяц"):
+// TODAY внутри [FROMDATE,TODATE] (идёт прямо сейчас) ИЛИ FROMDATE в пределах
+// ближайших 18 дней (скоро начнётся). Без фильтра по @network — все сети компании.
 const QUERY = `
 SELECT
   C.CUSTNAME                                             AS cust_code,
@@ -54,8 +54,14 @@ JOIN CUSTOMERS C        ON C.CUST = SP.CUST
 JOIN PART P             ON P.PART = SP.PART
 LEFT JOIN SOF_PRICEDESC PD ON PD.PRICEDESID = SP.PRICEDESID
 WHERE (@network = '' OR C.CUSTDES LIKE '%' + @network + '%')
-  AND CAST(DATEADD(MINUTE, SP.FROMDATE, '19880101') AS date) <= DATEADD(MONTH, 1, CAST(GETDATE() AS date))
-  AND CAST(DATEADD(MINUTE, SP.TODATE,   '19880101') AS date) >= DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1)
+  AND YEAR(CAST(DATEADD(MINUTE, SP.FROMDATE, '19880101') AS date)) = YEAR(GETDATE())
+  AND (
+    (CAST(DATEADD(MINUTE, SP.FROMDATE, '19880101') AS date) <= CAST(GETDATE() AS date)
+     AND CAST(DATEADD(MINUTE, SP.TODATE, '19880101') AS date) >= CAST(GETDATE() AS date))
+    OR
+    (CAST(DATEADD(MINUTE, SP.FROMDATE, '19880101') AS date) > CAST(GETDATE() AS date)
+     AND CAST(DATEADD(MINUTE, SP.FROMDATE, '19880101') AS date) <= DATEADD(DAY, 18, CAST(GETDATE() AS date)))
+  )
 ORDER BY C.CUSTDES, P.PARTDES
 `;
 
@@ -64,7 +70,7 @@ async function run() {
   const result = await pool.request()
     .input('network', sql.NVarChar, networkFilter)
     .query(QUERY);
-  console.log(`Компания: ${company} | Сеть: "${networkFilter || '(все)'}" | Акций в окне тек.месяц + месяц вперёд от сегодня: ${result.recordset.length}`);
+  console.log(`Компания: ${company} | Сеть: "${networkFilter || '(все)'}" | Акций (идут сейчас или стартуют в ближайшие 18 дней): ${result.recordset.length}`);
   console.table(result.recordset);
   await pool.close();
 }
