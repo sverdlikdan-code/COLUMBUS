@@ -4121,6 +4121,20 @@ function formulaRoadGuard(req, res, next) {
     writeLog({ ts: new Date().toISOString(), event: 'gate-cookie', ip: getRealIp(req), path: req.path, device: deviceType(req.headers['user-agent'] || '') });
     return next();
   }
+  // Fallback for cross-browser hand-offs where the fr_ok cookie can't follow
+  // (e.g. Samsung Internet -> Chrome via intent://, or an in-app browser like
+  // WhatsApp's — separate app, separate cookie jar on Android, so the cookie
+  // set on the first hop never reaches the second). _inv carries the same
+  // session token already used by requireAuth() via the x-session header —
+  // it's independently verifiable server-side, not a new trust boundary.
+  const invToken = req.query._inv ? String(req.query._inv) : '';
+  if (invToken) {
+    const sess = sessions.get(invToken);
+    if (sess && Date.now() <= sess.expiresAt) {
+      writeLog({ ts: new Date().toISOString(), event: 'gate-inv', ip: getRealIp(req), path: req.path, device: deviceType(req.headers['user-agent'] || '') });
+      return next();
+    }
+  }
   writeLog({ ts: new Date().toISOString(), event: 'gate-blocked', ip: getRealIp(req), path: req.path, device: deviceType(req.headers['user-agent'] || ''), ua: (req.headers['user-agent'] || '').substring(0, 120) });
   return res.status(403).send(`<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>גישה מוגבלת</title><style>body{font-family:sans-serif;background:#f0f2f5;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}div{text-align:center;background:#fff;padding:48px 40px;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.08)}h2{margin:0 0 12px;color:#1a1a2e;font-size:1.4rem}p{color:#666;margin:0}</style></head><body><div><div style="font-size:2.5rem;margin-bottom:16px">🔒</div><h2>גישה דרך Power BI בלבד</h2><p>יש לפתוח את האפליקציה מתוך לוח הבקרה ב-Power BI</p></div></body></html>`);
 }
