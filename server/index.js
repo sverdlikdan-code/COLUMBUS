@@ -460,6 +460,8 @@ ROW("maxDate", CALCULATE(MAX(ALL_PARTS[תאריך]), ALL_PARTS[ASHMADOT] = "-מ�
     clientAnalyticsCache.clear();
     clientPromosCache.clear();
     promoCustIdsCache = { date: null, formula: [], iceMish: [] };
+    _yedaimLiveCache.clear();
+    prefetchYedaimLive().catch(err => console.error('[yedaim-prefetch]', err.message));
     console.log(`[PBI] Cache loaded: ${clientMap.size} clients, ${byAgent.size} agents, ${managers.size} managers, ${managerAgents.size} manager-agents`);
 
     // Geocode ICE clients in background — updates pbiCache.iceByAgent objects in-place
@@ -4208,10 +4210,27 @@ CALCULATETABLE(
 ORDER BY 'TEAMS FORM'[שם סוכן ]
 `;
 }
-// 10-min in-memory cache per team+month — every agent on the same team hitting
-// the button independently would otherwise each pay a live DAX round-trip.
+// In-memory cache per team+month, warmed once a day (see prefetchYedaimLive(),
+// hooked into the same 06:00 Israel reload as pbiCache/clientReturnsCache
+// etc.) instead of a short TTL — the underlying PBI dataset itself only
+// refreshes on its own daily schedule, so a live re-query mid-day would never
+// show anything newer anyway (same reasoning already applied to
+// clientReturnsCache/clientPromosCache/clientAnalyticsCache above). Live
+// request 2026-09-06: don't hit PBI during the day at all if avoidable.
 const _yedaimLiveCache = new Map(); // key -> { at, rows }
-const YEDAIM_LIVE_TTL_MS = 10 * 60 * 1000;
+async function prefetchYedaimLive() {
+  const categories = loadYedaimCategories();
+  const { monthName, year } = currentIsraelMonthYear();
+  for (const team of YEDAIM_TEAM_NAMES) {
+    try {
+      const rows = await executeDax(buildYedaimDax(team, monthName, year, categories));
+      _yedaimLiveCache.set(`${team}|${monthName}|${year}`, { at: Date.now(), rows });
+    } catch (err) {
+      console.error(`[yedaim-prefetch] ${team} failed:`, err.message);
+    }
+  }
+  console.log(`[yedaim-prefetch] done, ${_yedaimLiveCache.size}/${YEDAIM_TEAM_NAMES.size} teams cached`);
+}
 app.get('/api/yedaim-live', requireAuth, dataRateLimit, async (req, res) => {
   try {
     let team = req.query.team ? String(req.query.team) : null;
@@ -4227,9 +4246,12 @@ app.get('/api/yedaim-live', requireAuth, dataRateLimit, async (req, res) => {
     const { monthName, year } = currentIsraelMonthYear();
     const cacheKey = `${team}|${monthName}|${year}`;
     const cached = _yedaimLiveCache.get(cacheKey);
-    if (cached && Date.now() - cached.at < YEDAIM_LIVE_TTL_MS) {
+    if (cached) {
       return res.json({ ok: true, team, monthName, year, categories, rows: cached.rows, cached: true });
     }
+    // Cache miss (server just restarted, or that day's prefetch failed for this
+    // team) — fall back to a live call so the button still works, instead of
+    // making the agent wait for tomorrow's 06:00 reload.
     const rows = await executeDax(buildYedaimDax(team, monthName, year, categories));
     _yedaimLiveCache.set(cacheKey, { at: Date.now(), rows });
     res.json({ ok: true, team, monthName, year, categories, rows, cached: false });
