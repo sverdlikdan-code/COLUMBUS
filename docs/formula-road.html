@@ -4163,9 +4163,13 @@ async function _fetchClientPromos(custId) {
     // (server-computed notBoughtIn90d, same ASHMADOT="-מכר-"/MAX(תאריך)
     // convention as client-returns' lastShipDate) — live request 2026-09-06:
     // an opportunity worth pointing out, not an error state.
+    // Routed through the same /api/img-proxy disk-cache zikuy already uses
+    // (bug-agent finding 2026-09-06: raw priority.dilerbmd.com hotlinks meant
+    // every card open re-downloaded full-size originals — 71 photos = 32MB —
+    // with zero reuse across agents/opens) instead of a bare <img src>.
     const cardHtml = p => `
       <div class="promo-card${p.notBoughtIn90d ? ' promo-stale' : ''}">
-        ${p.imgUrl ? `<img src="${p.imgUrl}" alt="${(p.name || '').replace(/"/g, '&quot;')}" loading="lazy">` : '<div class="promo-noimg">📦</div>'}
+        ${p.imgUrl ? `<img src="${API}/api/img-proxy?url=${encodeURIComponent(p.imgUrl)}" alt="${(p.name || '').replace(/"/g, '&quot;')}" loading="lazy">` : '<div class="promo-noimg">📦</div>'}
         <div class="promo-card-cap">
           <span class="promo-name">${p.sku}</span>
           ${p.promoType && p.promoType !== 'מבצע' ? `<span class="promo-type">${p.promoType}</span>` : ''}
