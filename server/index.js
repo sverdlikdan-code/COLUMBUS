@@ -4196,7 +4196,7 @@ CALCULATETABLE(
     SUMMARIZECOLUMNS(
         'TEAMS FORM'[שם סוכן ],
         ${cols},
-        "TOTAL_BONUS", [TOTAL BONUS סוכן], "NEKUDOT", [נקודות מכול היעדים 🆕],
+        "TOTAL_BONUS", [TOTAL BONUS סוכן],
         "WORK_DAYS_TOTAL", [ימי עבודה 1], "WORK_DAYS_PASSED", [ימי עבודה שעברו], "WORK_DAYS_PCT", [ימי עבודה %],
         "DAILY_PLAN", [DAILY PLAN], "SALES_LAST_DAY", [SALES LAST DAY], "PACE_INDICATION", [INDICATION]
     ),
