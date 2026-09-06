@@ -439,16 +439,18 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
    instead of one long single-column scroll. */
 .yedaim-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 @media (max-width:560px){.yedaim-grid{grid-template-columns:1fr;}}
-.yedaim-section{margin-bottom:0;min-width:0;}
-.yedaim-section-title{font-size:12px;font-weight:800;color:#4A148C;margin-bottom:5px;padding-inline-start:2px;}
+/* PBI-matrix look (user reference, 2026-09-06): solid header bar per section,
+   full grid lines on every cell (not just row dividers), shaded Total row —
+   card look alone still let 4 quadrants blur together at a glance. */
+.yedaim-section{margin-bottom:0;min-width:0;border:1.5px solid #C9A6E8;border-radius:8px;background:#fff;overflow:hidden;}
+.yedaim-section-title{font-size:12px;font-weight:800;color:#fff;background:#7B1FA2;padding:6px 8px;text-align:center;}
 .yedaim-table{width:100%;border-collapse:collapse;font-size:12px;}
-.yedaim-table th{font-size:10px;font-weight:700;color:#999;text-align:center;padding:3px 4px;border-bottom:1.5px solid #eee;}
+.yedaim-table th{font-size:10px;font-weight:700;color:#666;text-align:center;padding:4px;background:#F3E5FA;border:1px solid #D8B8F0;}
 .yedaim-table th:first-child,.yedaim-table td:first-child{text-align:start;}
-.yedaim-table td{padding:5px 4px;text-align:center;border-bottom:1px solid #f3f3f3;white-space:nowrap;}
+.yedaim-table td{padding:5px 4px;text-align:center;border:1px solid #E4D4F0;white-space:nowrap;}
 .yedaim-table td.yedaim-name{text-align:start;font-weight:700;color:#333;max-width:1px;overflow:hidden;text-overflow:ellipsis;}
-.yedaim-table tr.yedaim-total{font-weight:800;background:#FAF5FF;}
-.yedaim-table tr.yedaim-total td{border-bottom:none;border-top:1.5px solid #D8B8F0;}
-.yedaim-table td.ok{color:#2E7D32;font-weight:800;}
+.yedaim-table tr.yedaim-total td{font-weight:800;background:#7B1FA2;color:#fff;border-color:#7B1FA2;}
+.yedaim-table td.ok{color:#2E7D32;font-weight:800;background:#E8F5E9;}
 .yedaim-table td.bad{color:#8E24AA;}
 /* AI Analytics Modal */
 #ai-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px;}
