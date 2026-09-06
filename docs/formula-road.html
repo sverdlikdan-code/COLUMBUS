@@ -471,7 +471,9 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .promo-card .promo-noimg{width:100%;height:120px;display:flex;align-items:center;justify-content:center;background:#fff;color:#ccc;font-size:32px;}
 .promo-card-cap{padding:6px 8px;font-size:12px;color:#333;text-align:center;}
 .promo-card-cap .promo-name{display:block;font-size:11px;color:#777;margin-bottom:3px;line-height:1.3;max-height:2.6em;overflow:hidden;}
+.promo-card-cap .promo-type{display:inline-block;font-size:10px;font-weight:800;color:#fff;background:#FFA726;border-radius:4px;padding:1px 6px;margin-bottom:3px;}
 .promo-card-cap .promo-deal{display:block;font-weight:900;color:#E65100;font-size:14px;direction:ltr;unicode-bidi:isolate;}
+.promo-card-cap .promo-deal-checkreg{direction:rtl;unicode-bidi:isolate;font-size:11px;}
 .promo-card-cap .promo-dates{display:block;color:#999;font-size:10.5px;margin-top:2px;direction:ltr;unicode-bidi:isolate;}
 /* Day Briefing Modal (TOP10 clients + dormant list) */
 #day-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px;}
@@ -1422,6 +1424,22 @@ async function loadTabletGps(){
     const arr=await r.json();
     arr.forEach(row=>{ if(row.cust&&row.lat&&row.lng) TABLET_GPS[String(row.cust)]={lat:row.lat,lng:row.lng}; });
     console.log('Tablet GPS loaded:',Object.keys(TABLET_GPS).length,'clients');
+  }catch(_){}
+}
+
+// custId set with an active promo right now — loaded once per session (changes
+// at most once/day, server caches it the same way). Only ~1% of clients have
+// one at any moment (live-verified 2026-09-06), so the מבצע button only renders
+// for custIds in this set instead of showing on every row and mostly leading
+// to "אין מבצעים" when tapped.
+let PROMO_CUST_IDS = new Set();
+async function loadPromoCustIds(){
+  try{
+    const r=await apiFetch(`${API}/api/promo-cust-ids`);
+    const j=await r.json();
+    if(!j?.ok) return;
+    PROMO_CUST_IDS=new Set([...(j.formula||[]),...(j.iceMish||[])].map(String));
+    console.log('Promo cust-ids loaded:',PROMO_CUST_IDS.size,'clients');
   }catch(_){}
 }
 
@@ -2562,7 +2580,12 @@ async function _refreshTeamStats(){
   }
 }
 
+let _promoCustIdsLoaded=false;
 function startTodayOrdersPolling(myId){
+  // One-shot, not polled like today-orders — piggybacks on this function only
+  // because it's the first authenticated per-session hook after login, same
+  // reasoning as loading TABLET_GPS once at startup rather than per client row.
+  if(!_promoCustIdsLoaded){ _promoCustIdsLoaded=true; loadPromoCustIds().then(renderClientList); }
   stopTodayOrdersPolling();
   if(st.day!==_todayRouteDay()){
     _renderFormulaBanner(); // not today — card stays visible, sort-toggle only (no progress data for another day)
@@ -3323,7 +3346,7 @@ function _primaryActionsHtml(c,noGps){
     <span class="excl-btn" data-id="${c.custId}" onclick="toggleExclude('${c.custId}',event)" title="הוצא ממסלול">🚫</span>
     ${noGps ? '' : `<span class="waze-btn" onclick="openWaze(event,${c.lat},${c.lng})" title="נווט ב-Waze">W</span>`}
     <span class="ai-insight-btn" data-id="${c.custId}" data-name="${nm}" onclick="openClientAI(event,this.dataset.id,this.dataset.name)" title="ניתוח מעמק — משפחות, פערים, השוואה לרשת">🔍</span>
-    <span class="promo-btn" data-id="${c.custId}" data-name="${nm}" onclick="openPromoModal(event,this.dataset.id,this.dataset.name)" title="מבצעים פעילים">מבצע</span>`;
+    ${PROMO_CUST_IDS.has(String(c.custId)) ? `<span class="promo-btn" data-id="${c.custId}" data-name="${nm}" onclick="openPromoModal(event,this.dataset.id,this.dataset.name)" title="מבצעים פעילים">מבצע</span>` : ''}`;
 }
 function _secondaryActionsHtml(c,noGps){
   const nm=(c.custName||'').replace(/"/g,'&quot;'), ct=(c.city||'').replace(/"/g,'&quot;');
@@ -4134,12 +4157,18 @@ async function _fetchClientPromos(custId) {
       body.innerHTML = '<div class="ai-loading">אין מבצעים פעילים החודש</div>';
       return;
     }
+    // "מבצע" is the generic/default promo-type label — showing it back to the
+    // agent adds nothing ("promo" on a promo card). Only a MORE SPECIFIC type
+    // (קופון/מועדון/1+1/פרסום/תצוגה etc.) is worth a line — live request 2026-09-06.
     body.innerHTML = `<div class="promo-grid">${j.promos.map(p => `
       <div class="promo-card">
         ${p.imgUrl ? `<img src="${p.imgUrl}" alt="${(p.name || '').replace(/"/g, '&quot;')}" loading="lazy">` : '<div class="promo-noimg">📦</div>'}
         <div class="promo-card-cap">
           <span class="promo-name">${p.name || ''}</span>
-          <span class="promo-deal">${p.qty}*${p.price}</span>
+          ${p.promoType && p.promoType !== 'מבצע' ? `<span class="promo-type">${p.promoType}</span>` : ''}
+          ${p.price > 0
+            ? `<span class="promo-deal">${p.qty}*${p.price}</span>`
+            : '<span class="promo-deal promo-deal-checkreg">לבדוק בקופה אצל לקוח</span>'}
           <span class="promo-dates">${_fmtPromoDate(p.fromDate)}-${_fmtPromoDate(p.toDate)}</span>
         </div>
       </div>`).join('')}</div>`;

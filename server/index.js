@@ -8,7 +8,7 @@ const { execFile } = require('child_process');
 const ExcelJS = require('exceljs');
 const puppeteer = require('puppeteer');
 const { executeDax, getDatasetRefreshTime } = require('./powerbi');
-const { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByAgentAll, dayClosingOrdersToday, liveOrderGpsForNewClient, clientPromosByCustId } = require('./priority-db');
+const { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByAgentAll, dayClosingOrdersToday, liveOrderGpsForNewClient, clientPromosByCustId, custIdsWithActivePromo } = require('./priority-db');
 const { Resend } = require('resend');
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -459,6 +459,7 @@ ROW("maxDate", CALCULATE(MAX(ALL_PARTS[תאריך]), ALL_PARTS[ASHMADOT] = "-מ�
     clientReturnsCache.clear();
     clientAnalyticsCache.clear();
     clientPromosCache.clear();
+    promoCustIdsCache = { date: null, formula: [], iceMish: [] };
     console.log(`[PBI] Cache loaded: ${clientMap.size} clients, ${byAgent.size} agents, ${managers.size} managers, ${managerAgents.size} manager-agents`);
 
     // Geocode ICE clients in background — updates pbiCache.iceByAgent objects in-place
@@ -5401,6 +5402,28 @@ app.get('/api/client-promos/:custId', requireAuth, async (req, res) => {
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
+});
+
+// GET /api/promo-cust-ids — bulk set of every custId with an active promo right
+// now, so the frontend can hide the מבצע button for clients with nothing to show
+// instead of the agent tapping it and finding "אין מבצעים" every time (live
+// finding 2026-09-06: only ~1% of clients have an active row at any moment).
+// Cached for the whole day — the date window only shifts once/day, same
+// reasoning as clientPromosCache — cleared on the same successful PBI reload.
+let promoCustIdsCache = { date: null, formula: [], iceMish: [] };
+async function getPromoCustIdsSets() {
+  const todayIL = todayIsraelDate();
+  if (promoCustIdsCache.date === todayIL) return promoCustIdsCache;
+  const [formulaSet, iceSet] = await Promise.all([
+    custIdsWithActivePromo(process.env.DB_NAME || 'form'),
+    custIdsWithActivePromo(process.env.DB_ICECREA || 'icecrea'),
+  ]);
+  promoCustIdsCache = { date: todayIL, formula: formulaSet ? [...formulaSet] : [], iceMish: iceSet ? [...iceSet] : [] };
+  return promoCustIdsCache;
+}
+app.get('/api/promo-cust-ids', requireAuth, dataRateLimit, async (req, res) => {
+  const c = await getPromoCustIdsSets();
+  res.json({ ok: true, formula: c.formula, iceMish: c.iceMish });
 });
 
 // ── AI Client Analytics — per-customer sales by מחלקה, 3 closed months ──────
