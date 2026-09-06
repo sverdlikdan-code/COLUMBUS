@@ -5300,7 +5300,18 @@ let _pwaPrompt=null;
 // install banner there is the safe one.
 const _isSamsungInternet=/SamsungBrowser/i.test(navigator.userAgent);
 function _openInChrome(){
-  const full=location.href;
+  // location.href here is already the bare /formula-road (formula-road.html:1894
+  // strips _inv/_ac/_an right after first load) — Chrome is a separate app with
+  // its own cookie jar, so fr_ok never makes it across this hand-off. Re-attach
+  // the session token from localStorage as _inv so formulaRoadGuard's gate-inv
+  // fallback (server/index.js) can let Chrome in without the cookie. If frToken
+  // is missing for some reason, fall back to the old bare-URL behavior — no
+  // worse than before this fix.
+  let full=location.href;
+  const frToken=localStorage.getItem('frToken')||'';
+  if(frToken){
+    full+=(full.includes('?')?'&':'?')+'_inv='+encodeURIComponent(frToken);
+  }
   const url=full.replace(/^https?:\/\//,'');
   location.href=`intent://${url}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(full)};end`;
 }
