@@ -49,7 +49,7 @@ async function generateEmbedToken(aadToken, workspaceId) {
   return data.token;
 }
 
-function harnessHtml({ embedUrl, embedToken, reportId, pageName, firstTeam, monthName, year }) {
+function harnessHtml({ embedUrl, embedToken, reportId, pageName, monthName, year }) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>html,body{margin:0;padding:0;background:#fff;overflow:hidden;} #report{width:${VIEWPORT.width}px;height:${VIEWPORT.height}px;}</style>
 <script src="https://cdn.jsdelivr.net/npm/powerbi-client@2.23.1/dist/powerbi.min.js"></script>
@@ -111,7 +111,6 @@ const config = {
   embedUrl: ${JSON.stringify(embedUrl)},
   id: ${JSON.stringify(reportId)},
   pageName: ${JSON.stringify(pageName)},
-  filters: allFilters(${JSON.stringify(firstTeam)}),
   settings: {
     panes: { filters: { visible: false }, pageNavigation: { visible: false } },
     navContentPaneEnabled: false,
@@ -121,9 +120,22 @@ const el = document.getElementById('report');
 const report = window.powerbi.embed(el, config);
 report.on('rendered', () => { window.__ready = true; });
 report.on('error', (e) => { window.__error = JSON.stringify(e.detail); });
+// report.setFilters() only touches report-scope filters. A stale filter left
+// on the PAGE (Filters pane "This page") or a visual — from someone manually
+// filtering this same report open in PBI Service — lives in a different SDK
+// scope and silently ANDs with ours, producing an empty intersection for
+// every team except whichever one they last filtered to. Confirmed via
+// network capture of the actual DAX queries (live bug 2026-09-04): every
+// pivot query carried both our team condition AND a leftover
+// משטח[קבוצה] IN {team-someone-else-picked}. Clearing/setting at both page
+// and report scope, for every team including the first, makes the daily
+// render immune to whatever was last left in the Filters pane.
 window.__setTeamFilter = async (team) => {
   window.__ready = false;
-  await report.setFilters(allFilters(team));
+  const filters = allFilters(team);
+  const page = await report.getActivePage();
+  await page.setFilters(filters);
+  await report.setFilters(filters);
 };
 </script>
 </body></html>`;
@@ -154,20 +166,22 @@ async function waitReady(page, timeoutMs = 45000) {
 
   const { monthName, year } = currentIsraelMonthYear();
   console.log(`Pinning month/year slicer to ${monthName} ${year} (Asia/Jerusalem).`);
-  const html = harnessHtml({ embedUrl, embedToken, reportId: REPORT_ID, pageName: PAGE_NAME, firstTeam: TEAMS[0].name, monthName, year });
+  const html = harnessHtml({ embedUrl, embedToken, reportId: REPORT_ID, pageName: PAGE_NAME, monthName, year });
   await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
   console.log('Waiting for initial render...');
   await waitReady(page, 60000);
   await new Promise(r => setTimeout(r, 1500)); // let final chart animations settle
 
   for (const team of TEAMS) {
-    if (team !== TEAMS[0]) {
-      await page.evaluate((t) => window.__setTeamFilter(t), team.name);
-      // A single 'rendered' event isn't reliably the *final* one after a filter
-      // change — caught screenshots mid-transition. The extra settle delay below
-      // confirms it actually landed before saving.
-      await waitReady(page);
-    }
+    // Every team, including the first, goes through __setTeamFilter (page+report
+    // scope) — the initial embed's own default filter state is whatever was last
+    // left in the Filters pane (see __setTeamFilter's comment above) and can't be
+    // trusted even for TEAMS[0].
+    await page.evaluate((t) => window.__setTeamFilter(t), team.name);
+    // A single 'rendered' event isn't reliably the *final* one after a filter
+    // change — caught screenshots mid-transition. The extra settle delay below
+    // confirms it actually landed before saving.
+    await waitReady(page);
     await new Promise(r => setTimeout(r, 3000));
     const el = await page.$('#report');
     const box = await el.boundingBox();
