@@ -399,4 +399,53 @@ async function liveOrderGpsForNewClient(custId, daysBack = 30) {
   return best ? { lat: best.latSum / best.cnt, lng: best.lngSum / best.cnt, orders: best.cnt } : null;
 }
 
-module.exports = { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByAgentAll, dayClosingOrdersToday, curdateFor, liveOrderGpsForNewClient };
+// Акции (SOF_PRICEREC) для кнопки מבצע на карточке клиента — FORMULA + ICE MISH.
+// custId = CUSTOMERS.CUSTNAME (business code), same convention as everywhere else
+// in this file — join CUSTOMERS on that, never the internal CUST surrogate key.
+// Window: [начало текущего месяца; сегодня + 1 месяц] (rolling от TODAY, не конец
+// календарного месяца — live-запрос пользователя 2026-09-06). PRICEREC=0 rows are
+// display/listing entries with no real promo price (verified live 2026-09-06 —
+// dozens of SOF_PRICEREC rows carry PRICEREC=0 for pure "on display" listings) —
+// excluded, since the UI shows a qty*price caption that needs a real price.
+async function clientPromosByCustId(custId) {
+  const dbs = [{ db: 'form', company: 'FORMULA' }, { db: 'icecrea', company: 'ICE_MISH' }];
+  const perDb = await Promise.all(dbs.map(async ({ db, company }) => {
+    try {
+      const pool = await getPool(db);
+      const result = await pool.request()
+        .input('custId', sql.NVarChar, String(custId))
+        .query(`
+          SELECT
+            P.PARTNAME                                              AS sku,
+            P.PARTDES                                               AS name,
+            SP.PRICEREC                                             AS price,
+            SP.QUANTPRICE / 1000.0                                  AS qty,
+            CAST(DATEADD(MINUTE, SP.FROMDATE, '19880101') AS date)  AS fromDate,
+            CAST(DATEADD(MINUTE, SP.TODATE,   '19880101') AS date)  AS toDate
+          FROM SOF_PRICEREC SP
+          JOIN CUSTOMERS C ON C.CUST = SP.CUST
+          JOIN PART P      ON P.PART = SP.PART
+          WHERE C.CUSTNAME = @custId
+            AND SP.PRICEREC > 0
+            AND CAST(DATEADD(MINUTE, SP.FROMDATE, '19880101') AS date) <= DATEADD(MONTH, 1, CAST(GETDATE() AS date))
+            AND CAST(DATEADD(MINUTE, SP.TODATE,   '19880101') AS date) >= DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1)
+          ORDER BY P.PARTDES
+        `);
+      return result.recordset.map(r => ({
+        company,
+        sku: String(r.sku),
+        name: String(r.name || ''),
+        price: Number(r.price) || 0,
+        qty: Number(r.qty) || 0,
+        fromDate: r.fromDate ? new Date(r.fromDate).toISOString().slice(0, 10) : '',
+        toDate: r.toDate ? new Date(r.toDate).toISOString().slice(0, 10) : '',
+      }));
+    } catch (e) {
+      console.error(`[priority-db] ${db} promo lookup failed (cust=${custId}): ${e.message}`);
+      return [];
+    }
+  }));
+  return perDb.flat();
+}
+
+module.exports = { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByAgentAll, dayClosingOrdersToday, curdateFor, liveOrderGpsForNewClient, clientPromosByCustId };
