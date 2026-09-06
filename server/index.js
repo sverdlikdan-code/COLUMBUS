@@ -7,6 +7,7 @@ const https = require('https');
 const { execFile } = require('child_process');
 const ExcelJS = require('exceljs');
 const puppeteer = require('puppeteer');
+const sharp = require('sharp');
 const { executeDax, getDatasetRefreshTime } = require('./powerbi');
 const { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByAgentAll, dayClosingOrdersToday, liveOrderGpsForNewClient, clientPromosByCustId, custIdsWithActivePromo } = require('./priority-db');
 const { Resend } = require('resend');
@@ -4312,9 +4313,26 @@ app.get('/api/img-proxy', async (req, res) => {
     }
     const upstream = await fetch(url, { signal: AbortSignal.timeout(10000) });
     if (!upstream.ok) return res.status(502).send('upstream error');
-    const buf = Buffer.from(await upstream.arrayBuffer());
+    const rawBuf = Buffer.from(await upstream.arrayBuffer());
+    // Priority's own originals run ~440KB average, up to 4MB, for photos
+    // every caller here displays at well under 100px — bug-agent finding
+    // 2026-09-06 (מבצע modal: 71 photos = 32MB per open, none of it ever
+    // needed at that resolution). Resize once, on the cache-miss path only —
+    // every later request serves the already-shrunk file straight off disk.
+    // 300px comfortably covers 2-3x pixel density above any on-screen size
+    // used today (zikuy/promo/day-closing cards are all ≤100px); withoutEnlargement
+    // leaves already-small source images untouched instead of upscaling them.
+    // No explicit .jpeg()/.png() — sharp preserves the source format on
+    // toBuffer(), so the cached file's real bytes always match its extension
+    // (cachePath keeps the upstream extension) and Content-Type below.
+    let buf = rawBuf;
+    try {
+      buf = await sharp(rawBuf).resize({ width: 300, withoutEnlargement: true }).toBuffer();
+    } catch (e) {
+      console.warn('[img-proxy] resize failed, serving original:', e.message);
+    }
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Content-Type', upstream.headers.get('content-type') || 'image/jpeg');
+    res.setHeader('Content-Type', upstream.headers.get('content-type') || IMG_MIME_BY_EXT[ext] || 'image/jpeg');
     res.setHeader('Cache-Control', 'public, max-age=86400');
     res.send(buf);
     // Fire-and-forget write, after the response is already sent — a failed
