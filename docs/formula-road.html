@@ -437,20 +437,15 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
    2026-09-06 after replacing the earlier one-card-per-agent draft, which lost
    that entirely. */
 .yedaim-section{margin-bottom:16px;}
-.yedaim-section.headline{margin-bottom:20px;}
 .yedaim-section-title{font-size:12px;font-weight:800;color:#4A148C;margin-bottom:6px;padding-inline-start:2px;}
 .yedaim-lb-row{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;margin-bottom:4px;background:#FAFAFA;}
 .yedaim-lb-rank{width:20px;text-align:center;font-size:12px;font-weight:800;color:#bbb;flex-shrink:0;}
 .yedaim-lb-row.rank1 .yedaim-lb-rank{color:#F9A825;}
 .yedaim-lb-name{flex:1;font-size:13px;font-weight:700;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .yedaim-lb-pace{font-size:11px;font-weight:800;margin-inline-start:4px;white-space:nowrap;}
-.yedaim-lb-bar-mini{width:52px;height:6px;border-radius:3px;background:#EEE;overflow:hidden;flex-shrink:0;}
-.yedaim-lb-bar-mini .fill{height:100%;border-radius:3px;}
 .yedaim-lb-val{width:58px;text-align:end;font-size:12px;font-weight:800;color:#555;flex-shrink:0;}
 .yedaim-lb-val.money{color:#2E7D32;}
 .yedaim-lb-val.na{color:#ccc;font-weight:600;}
-.yedaim-headline .yedaim-lb-row{padding:9px 12px;}
-.yedaim-headline .yedaim-lb-val{font-size:15px;width:66px;}
 /* AI Analytics Modal */
 #ai-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px;}
 #ai-modal.open{display:flex;}
@@ -4262,12 +4257,11 @@ async function _loadYedaimTeam(team) {
     // One ranked list per metric — same shape as the original PBI page (a
     // separate table per metric, everyone in it), not one card per agent —
     // that's what actually carries the "don't want to be last" pressure.
-    // TOTAL BONUS first as the headline ranking, then every category from
-    // the server's config in whatever order it lists them.
-    const sections = [
-      _yedaimSection({ key: 'TOTAL_BONUS', label: '🏆 TOTAL BONUS', money: true, headline: true, pace: true }, rows),
-      ...(j.categories || []).map(cat => _yedaimSection({ key: cat.key + '_PCT', bonusKey: cat.key + '_BONUS', label: cat.label, pace: cat.key === 'YAAD' }, rows)),
-    ].join('');
+    // No overall TOTAL BONUS leaderboard — user removed it twice (2026-09-06),
+    // just the per-category rankings from the server's config.
+    const sections = (j.categories || [])
+      .map(cat => _yedaimSection({ key: cat.key + '_PCT', bonusKey: cat.key + '_BONUS', label: cat.label, pace: cat.key === 'YAAD', gate: cat.gate }, rows))
+      .join('');
     body.innerHTML = `${backBtn}<div class="yedaim-month">${monthHe} ${j.year}</div>${workDaysHtml}${sections || '<div class="ai-loading">אין נתונים</div>'}`;
   } catch (e) {
     body.innerHTML = `${backBtn}<div class="ai-loading" style="color:#c62828">❌ ${e.message}</div>`;
@@ -4275,21 +4269,59 @@ async function _loadYedaimTeam(team) {
 }
 
 function _yedaimNum(v) { return Number.isFinite(v) ? v : null; }
-function _yedaimMoney(v) { const n = _yedaimNum(v); return n === null ? '—' : `₪${Math.round(n).toLocaleString('he-IL')}`; }
 function _yedaimPct(v) { const n = _yedaimNum(v); return n === null ? '—' : Math.round(n * 100) + '%'; }
 
-// Pace badge (🚀/😕 from the model's own INDICATION measure, ±5% gate) plus
-// the actual gap in percentage points vs. calendar pace — user ask
-// 2026-09-06: an emoji alone doesn't say HOW far ahead/behind, just that a
-// line was crossed.
+// Pace badge — just the model's own INDICATION measure (🚀/😕, ±5% gate vs.
+// calendar pace). User asked for the numeric gap alongside it (2026-09-06),
+// then asked for it removed again same day — emoji only.
 function _yedaimPaceBadge(row) {
   const ind = row['[PACE_INDICATION]'];
-  if (!ind) return '';
-  const yaad = _yedaimNum(row['[YAAD_PCT]']), wd = _yedaimNum(row['[WORK_DAYS_PCT]']);
-  if (yaad === null || wd === null) return ` <span class="yedaim-lb-pace">${ind}</span>`;
-  const gap = Math.round((yaad - wd) * 100);
-  const color = ind === '😕' ? '#C62828' : '#2E7D32';
-  return ` <span class="yedaim-lb-pace" style="color:${color}">${ind} ${gap >= 0 ? '+' : ''}${gap}%</span>`;
+  return ind ? ` <span class="yedaim-lb-pace">${ind}</span>` : '';
+}
+
+// Compact speedometer per row (2026-09-06, user ask) — same semi-circle-arc
+// math as gaugeIcon() elsewhere in this file (client sales-vs-target icon),
+// reused here for visual consistency rather than inventing a second gauge
+// style. Dial scale is 0–130% (SCALE) since real ratios routinely land in
+// the 100–140% range; a tick mark shows the gate — the minimum % needed to
+// qualify for this specific bonus. Gates are empirically measured from real
+// August payouts (where the bonus flips from blank to non-blank), NOT read
+// out of any PBIX file — every DAX-text extraction attempted during this
+// investigation turned out stale relative to the live model (see Vault
+// formula-road-app.md). Color follows the row's own real BONUS field
+// (bonusOk), not a recomputed pct-vs-gate comparison, so it stays correct
+// even for teams a given bonus doesn't apply to (SADRAN+ on SB/NP/PRES/זמינות
+// always shows blank bonus regardless of pct — the gauge should read that as
+// "not qualified" too, which comparing the live bonus field does naturally).
+function _yedaimGaugeSvg(pct, gate, bonusOk) {
+  const SCALE = 1.3;
+  const cx = 19, cy = 19, r = 15;
+  const pctVal = Math.min(Math.max(_yedaimNum(pct) ?? 0, 0) / SCALE, 1);
+  const angle = Math.PI * (1 - pctVal);
+  const ex = (cx + r * Math.cos(angle)).toFixed(2);
+  const ey = (cy - r * Math.sin(angle)).toFixed(2);
+  // Fixed start point at θ=180°, sweeping to θ=angle — that sweep is always
+  // ≤180° by construction (θ never goes negative), so large-arc-flag is
+  // always 0. (gaugeIcon() above uses `pctVal>0.5?1:0` for this same shape —
+  // copying that here drew the arc the long way around for anything over
+  // 50%, off-canvas through the bottom half. Fixed only here, not touching
+  // that function.)
+  const color = bonusOk ? '#2E7D32' : '#8E24AA';
+  const trackColor = bonusOk ? '#A5D6A7' : '#E0D0E8';
+  const bg = `M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${cx + r} ${cy}`;
+  const fillPath = pctVal > 0.01 ? `M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${ex} ${ey}` : '';
+  let gateTick = '';
+  if (Number.isFinite(gate)) {
+    const gAngle = Math.PI * (1 - Math.min(gate / SCALE, 1));
+    const gx1 = (cx + (r - 4) * Math.cos(gAngle)).toFixed(2), gy1 = (cy - (r - 4) * Math.sin(gAngle)).toFixed(2);
+    const gx2 = (cx + (r + 4) * Math.cos(gAngle)).toFixed(2), gy2 = (cy - (r + 4) * Math.sin(gAngle)).toFixed(2);
+    gateTick = `<line x1="${gx1}" y1="${gy1}" x2="${gx2}" y2="${gy2}" stroke="#E65100" stroke-width="2.5"/>`;
+  }
+  return `<svg width="40" height="23" viewBox="0 0 40 23" style="display:block;flex-shrink:0;width:40px;height:23px;">
+    <path d="${bg}" stroke="${trackColor}" stroke-width="4" fill="none" stroke-linecap="round"/>
+    ${fillPath ? `<path d="${fillPath}" stroke="${color}" stroke-width="4" fill="none" stroke-linecap="round"/>` : ''}
+    ${gateTick}
+  </svg>`;
 }
 
 // Renders one ranked list (everyone on the team, sorted by this metric) —
@@ -4304,22 +4336,18 @@ function _yedaimSection(cat, rows) {
     if ((a.val === null) !== (b.val === null)) return a.val === null ? 1 : -1;
     return (b.val ?? 0) - (a.val ?? 0);
   });
-  const maxVal = withVal.find(x => x.val !== null)?.val || 1;
   const rowsHtml = withVal.map(({ row, val }, i) => {
     const name = row['TEAMS FORM[שם סוכן ]'];
-    const bonusVal = cat.money ? val : _yedaimNum(row[`[${cat.bonusKey}]`]);
-    const bonusOk = bonusVal !== null;
-    const barPct = val === null ? 4 : Math.max(4, Math.round((val / maxVal) * 100));
-    const valTxt = val === null ? '—' : (cat.money ? _yedaimMoney(val) : _yedaimPct(val));
-    const color = bonusOk ? 'linear-gradient(90deg,#66BB6A,#2E7D32)' : 'linear-gradient(90deg,#CE93D8,#8E24AA)';
+    const bonusOk = _yedaimNum(row[`[${cat.bonusKey}]`]) !== null;
+    const valTxt = _yedaimPct(val);
     return `<div class="yedaim-lb-row${i === 0 ? ' rank1' : ''}">
       <div class="yedaim-lb-rank">${i + 1}</div>
       <div class="yedaim-lb-name">${esc(name)}${cat.pace ? _yedaimPaceBadge(row) : ''}</div>
-      <div class="yedaim-lb-bar-mini"><div class="fill" style="width:${barPct}%;background:${color}"></div></div>
+      ${_yedaimGaugeSvg(val, cat.gate, bonusOk)}
       <div class="yedaim-lb-val${bonusOk ? ' money' : (val === null ? ' na' : '')}">${valTxt}</div>
     </div>`;
   }).join('');
-  return `<div class="yedaim-section${cat.headline ? ' headline' : ''}">
+  return `<div class="yedaim-section">
     <div class="yedaim-section-title">${esc(cat.label)}</div>
     ${rowsHtml}
   </div>`;
