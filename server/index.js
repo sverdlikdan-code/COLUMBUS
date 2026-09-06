@@ -4190,7 +4190,16 @@ function loadYedaimCategories() {
 }
 function buildYedaimDax(team, monthName, year, categories) {
   const cols = categories
-    .map(c => `"${c.key}_PCT", [${c.pctMeasure}], "${c.key}_BONUS", [${c.bonusMeasure}]`)
+    .map(c => {
+      let col = `"${c.key}_PCT", [${c.pctMeasure}], "${c.key}_BONUS", [${c.bonusMeasure}]`;
+      // salesMeasure/targetMeasure are optional — only the ₪-based categories
+      // (financial + the 3 brand ones) have them; the 3 availability ratios
+      // have no natural "amount", so they stay percentage-only on the gauge.
+      if (c.salesMeasure && c.targetMeasure) {
+        col += `, "${c.key}_SALES", [${c.salesMeasure}], "${c.key}_TARGET", [${c.targetMeasure}]`;
+      }
+      return col;
+    })
     .join(',\n        ');
   return `
 EVALUATE
@@ -4250,6 +4259,7 @@ app.get('/api/yedaim-live', requireAuth, dataRateLimit, async (req, res) => {
     // sending to the client, which doesn't need to know team-branching exists.
     const resolvedCategories = categories.map(c => ({
       key: c.key, label: c.label, gate: c.gateByTeam?.[team] ?? c.gate ?? null,
+      hasAmount: !!(c.salesMeasure && c.targetMeasure),
     }));
     const { monthName, year } = currentIsraelMonthYear();
     const cacheKey = `${team}|${monthName}|${year}`;

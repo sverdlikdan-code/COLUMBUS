@@ -4260,7 +4260,12 @@ async function _loadYedaimTeam(team) {
     // No overall TOTAL BONUS leaderboard — user removed it twice (2026-09-06),
     // just the per-category rankings from the server's config.
     const sections = (j.categories || [])
-      .map(cat => _yedaimSection({ key: cat.key + '_PCT', bonusKey: cat.key + '_BONUS', label: cat.label, pace: cat.key === 'YAAD', gate: cat.gate }, rows))
+      .map(cat => _yedaimSection({
+        key: cat.key + '_PCT', bonusKey: cat.key + '_BONUS', label: cat.label,
+        pace: cat.key === 'YAAD', gate: cat.gate,
+        salesKey: cat.hasAmount ? cat.key + '_SALES' : null,
+        targetKey: cat.hasAmount ? cat.key + '_TARGET' : null,
+      }, rows))
       .join('');
     body.innerHTML = `${backBtn}<div class="yedaim-month">${monthHe} ${j.year}</div>${workDaysHtml}${sections || '<div class="ai-loading">אין נתונים</div>'}`;
   } catch (e) {
@@ -4270,6 +4275,15 @@ async function _loadYedaimTeam(team) {
 
 function _yedaimNum(v) { return Number.isFinite(v) ? v : null; }
 function _yedaimPct(v) { const n = _yedaimNum(v); return n === null ? '—' : Math.round(n * 100) + '%'; }
+function _yedaimMoneyShort(v) {
+  const n = _yedaimNum(v);
+  if (n === null) return '—';
+  const sign = n < 0 ? '-' : '';
+  const abs = Math.abs(n);
+  if (abs >= 1000000) return sign + (abs / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  if (abs >= 1000) return sign + Math.round(abs / 1000) + 'K';
+  return sign + Math.round(abs);
+}
 
 // Pace badge — just the model's own INDICATION measure (🚀/😕, ±5% gate vs.
 // calendar pace). User asked for the numeric gap alongside it (2026-09-06),
@@ -4279,68 +4293,40 @@ function _yedaimPaceBadge(row) {
   return ind ? ` <span class="yedaim-lb-pace">${ind}</span>` : '';
 }
 
-// Compact speedometer per row (2026-09-06, user ask) — same semi-circle-arc
-// math as gaugeIcon() elsewhere in this file (client sales-vs-target icon),
-// reused here for visual consistency rather than inventing a second gauge
-// style. Dial scale is 0–130% (SCALE) since real ratios routinely land in
-// the 100–140% range; a tick mark shows the gate — the minimum % needed to
-// qualify for this specific bonus. Gates are empirically measured from real
-// August payouts (where the bonus flips from blank to non-blank), NOT read
-// out of any PBIX file — every DAX-text extraction attempted during this
-// investigation turned out stale relative to the live model (see Vault
-// formula-road-app.md). Color follows the row's own real BONUS field
-// (bonusOk), not a recomputed pct-vs-gate comparison, so it stays correct
-// even for teams a given bonus doesn't apply to (SADRAN+ on SB/NP/PRES/זמינות
-// always shows blank bonus regardless of pct — the gauge should read that as
-// "not qualified" too, which comparing the live bonus field does naturally).
-// Real speedometer, not just a thin progress arc (user: "писюны" — the first
-// cut read as illegible squiggles at this size, not a recognizable dial).
-// Track is split into two colored ZONES at the gate position — red/pink
-// below it, green above — like a car speedometer's redline, so the gate
-// reads visually even before you look at the needle. A needle (radial line +
-// hub circle) points at the actual value, same math as before (fixed θ=180°
-// start, large-arc-flag always 0 — see prior commit, gaugeIcon() above still
-// has the copy-paste version of this bug, not touched). Gate % also shown as
-// plain text next to the dial per explicit ask — a tick alone didn't say
-// WHAT number it was.
-function _yedaimGaugeSvg(pct, gate, bonusOk) {
-  const SCALE = 1.3;
+// Compact speedometer per row — reference is a real PBI gauge visual the user
+// screenshotted (SANTA BREMOR, filled arc + dark target tick + big numbers),
+// not the two earlier drafts (thin progress bar, then a needle+zones dial)
+// that came before it. Filled arc from 0 to the current value, flat grey for
+// the rest, a dark tick marking the target/gate position. Same fixed-θ=180°-
+// start arc math as gaugeIcon() elsewhere in this file, but with
+// large-arc-flag correctly always 0 (gaugeIcon()'s `pctVal>0.5?1:0` draws the
+// long way round past 50% — not touched, only this function was ever fixed).
+// `max` is the dial's own 100% mark: for ₪-based categories the caller passes
+// something above both sales and target so the target tick isn't pinned to
+// the far right edge; for %-based ones (availability, no ₪ concept) it's a
+// fixed 130% since real ratios routinely run 100–140%.
+function _yedaimGaugeSvg(value, max, gatePos, bonusOk) {
   const cx = 21, cy = 21, r = 17;
-  const pctVal = Math.min(Math.max(_yedaimNum(pct) ?? 0, 0) / SCALE, 1);
-  const gateVal = Number.isFinite(gate) ? Math.min(gate / SCALE, 1) : null;
+  const val = _yedaimNum(value) ?? 0;
+  const pctVal = max > 0 ? Math.min(Math.max(val, 0) / max, 1) : 0;
   const angle = Math.PI * (1 - pctVal);
-  const needleColor = bonusOk ? '#2E7D32' : '#4A148C';
-
-  let zones;
-  if (gateVal === null) {
-    zones = `<path d="M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${cx + r} ${cy}" stroke="#E0E0E0" stroke-width="5" fill="none" stroke-linecap="round"/>`;
-  } else {
-    const gAngle = Math.PI * (1 - gateVal);
-    const gx = (cx + r * Math.cos(gAngle)).toFixed(2), gy = (cy - r * Math.sin(gAngle)).toFixed(2);
-    // Below-gate zone: θ from 180° down to gate angle (large-arc depends on
-    // whether that span exceeds 180°, which it never does — same reasoning
-    // as the needle arc).
-    zones = `<path d="M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${gx} ${gy}" stroke="#F3C6DA" stroke-width="5" fill="none" stroke-linecap="round"/>
-    <path d="M ${gx} ${gy} A ${r} ${r} 0 0 0 ${cx + r} ${cy}" stroke="#A5D6A7" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+  const ex = (cx + r * Math.cos(angle)).toFixed(2), ey = (cy - r * Math.sin(angle)).toFixed(2);
+  const color = bonusOk ? '#2E7D32' : '#8E24AA';
+  const bg = `M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${cx + r} ${cy}`;
+  const fillPath = pctVal > 0.01 ? `M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${ex} ${ey}` : '';
+  let tick = '';
+  if (Number.isFinite(gatePos) && max > 0) {
+    const gVal = Math.min(Math.max(gatePos, 0) / max, 1);
+    const gAngle = Math.PI * (1 - gVal);
+    const gx1 = (cx + (r - 4) * Math.cos(gAngle)).toFixed(2), gy1 = (cy - (r - 4) * Math.sin(gAngle)).toFixed(2);
+    const gx2 = (cx + (r + 4) * Math.cos(gAngle)).toFixed(2), gy2 = (cy - (r + 4) * Math.sin(gAngle)).toFixed(2);
+    tick = `<line x1="${gx1}" y1="${gy1}" x2="${gx2}" y2="${gy2}" stroke="#333" stroke-width="2.5"/>`;
   }
-
-  const needleLen = r - 3;
-  const nx = (cx + needleLen * Math.cos(angle)).toFixed(2), ny = (cy - needleLen * Math.sin(angle)).toFixed(2);
-  const needle = pctVal > 0.005
-    ? `<line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="${needleColor}" stroke-width="2.5" stroke-linecap="round"/>
-       <circle cx="${cx}" cy="${cy}" r="2.5" fill="${needleColor}"/>`
-    : `<circle cx="${cx}" cy="${cy}" r="2.5" fill="${needleColor}"/>`;
-
-  const gateLabel = gateVal !== null
-    ? `<div style="font-size:8px;color:#999;font-weight:700;text-align:center;line-height:1;margin-top:1px;">מינ׳ ${Math.round(gate * 100)}%</div>`
-    : '';
-  return `<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
-    <svg width="44" height="25" viewBox="0 0 44 25" style="display:block;width:44px;height:25px;">
-      ${zones}
-      ${needle}
-    </svg>
-    ${gateLabel}
-  </div>`;
+  return `<svg width="44" height="24" viewBox="0 0 44 24" style="display:block;flex-shrink:0;width:44px;height:24px;">
+    <path d="${bg}" stroke="#E4E4E4" stroke-width="5" fill="none" stroke-linecap="round"/>
+    ${fillPath ? `<path d="${fillPath}" stroke="${color}" stroke-width="5" fill="none" stroke-linecap="round"/>` : ''}
+    ${tick}
+  </svg>`;
 }
 
 // Renders one ranked list (everyone on the team, sorted by this metric) —
@@ -4348,21 +4334,41 @@ function _yedaimGaugeSvg(pct, gate, bonusOk) {
 // server-side for category metrics; TOTAL_BONUS is its own field). Adding a
 // new metric next month is a server/data/yedaim-categories.json edit, not a
 // change here — this function only knows field-name conventions, not any
-// specific measure.
+// specific measure. Ranking always sorts by % achieved (fair across agents
+// with different-sized territories) even for categories that then DISPLAY
+// real ₪ (salesKey/targetKey) instead of the percentage.
 function _yedaimSection(cat, rows) {
   const withVal = rows.map(row => ({ row, val: _yedaimNum(row[`[${cat.key}]`]) }));
   withVal.sort((a, b) => {
     if ((a.val === null) !== (b.val === null)) return a.val === null ? 1 : -1;
     return (b.val ?? 0) - (a.val ?? 0);
   });
+  const hasAmount = !!(cat.salesKey && cat.targetKey);
   const rowsHtml = withVal.map(({ row, val }, i) => {
     const name = row['TEAMS FORM[שם סוכן ]'];
     const bonusOk = _yedaimNum(row[`[${cat.bonusKey}]`]) !== null;
-    const valTxt = _yedaimPct(val);
+    let gaugeSvg, valTxt, gateLabel;
+    if (hasAmount) {
+      const sales = _yedaimNum(row[`[${cat.salesKey}]`]);
+      const target = _yedaimNum(row[`[${cat.targetKey}]`]);
+      const max = Math.max(sales ?? 0, target ?? 0) * 1.15 || 1;
+      gaugeSvg = _yedaimGaugeSvg(sales, max, target, bonusOk);
+      valTxt = _yedaimMoneyShort(sales);
+      const gatePct = Number.isFinite(cat.gate) ? Math.ceil(cat.gate * 100 / 5) * 5 : null;
+      gateLabel = target !== null ? `יעד ${_yedaimMoneyShort(target)}${gatePct !== null ? ` (${gatePct}%)` : ''}` : '';
+    } else {
+      const gate = Number.isFinite(cat.gate) ? cat.gate : null;
+      gaugeSvg = _yedaimGaugeSvg(val, 1.3, gate, bonusOk);
+      valTxt = _yedaimPct(val);
+      gateLabel = gate !== null ? `מינ׳ ${Math.ceil(gate * 100 / 5) * 5}%` : '';
+    }
     return `<div class="yedaim-lb-row${i === 0 ? ' rank1' : ''}">
       <div class="yedaim-lb-rank">${i + 1}</div>
       <div class="yedaim-lb-name">${esc(name)}${cat.pace ? _yedaimPaceBadge(row) : ''}</div>
-      ${_yedaimGaugeSvg(val, cat.gate, bonusOk)}
+      <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
+        ${gaugeSvg}
+        ${gateLabel ? `<div style="font-size:8px;color:#999;font-weight:700;text-align:center;line-height:1;margin-top:1px;">${gateLabel}</div>` : ''}
+      </div>
       <div class="yedaim-lb-val${bonusOk ? ' money' : (val === null ? ' na' : '')}">${valTxt}</div>
     </div>`;
   }).join('');
