@@ -5508,17 +5508,26 @@ app.get('/api/client-promos/:custId', requireAuth, async (req, res) => {
   if (cached) return res.json(cached.data);
 
   try {
-    const promos = await clientPromosByCustId(custId);
+    let promos = await clientPromosByCustId(custId);
     const ICE_DS = process.env.POWERBI_ICE_DATASET_ID;
 
+    // "תאור משפחה" also pulled here (same table, same SKU list, no extra
+    // round-trip) so single-serve גלידה בודדים families can be dropped from
+    // מבצע entirely — live request 2026-09-06. Stored BiDi-reversed like every
+    // other Hebrew column in this dataset (see hebrew-bidi skill) — matching
+    // the reversed substring "םידדוב" directly is simpler and just as
+    // reliable as fixBiDi-ing 49 family names first, since we only need a
+    // yes/no membership check, never to display this value.
+    const YEDAIM_BODEDIM_MARKER = 'םידדוב';
     const fetchPhotos = async (items, table) => {
       if (!items.length) return;
       const skuIn = items.map(p => `"${p.sku}"`).join(',');
       const rows = await executeDax(
-        `EVALUATE SELECTCOLUMNS(FILTER('${table}', '${table}'[מק"ט] IN {${skuIn}}), "sku", '${table}'[מק"ט], "img", '${table}'[URL תמונה])`
+        `EVALUATE SELECTCOLUMNS(FILTER('${table}', '${table}'[מק"ט] IN {${skuIn}}), "sku", '${table}'[מק"ט], "img", '${table}'[URL תמונה], "fam", '${table}'[תאור משפחה])`
       );
       const imgMap = new Map(rows.map(r => [String(r['[sku]']), r['[img]'] || '']));
-      items.forEach(p => { p.imgUrl = imgMap.get(p.sku) || ''; });
+      const famMap = new Map(rows.map(r => [String(r['[sku]']), r['[fam]'] || '']));
+      items.forEach(p => { p.imgUrl = imgMap.get(p.sku) || ''; p._fam = famMap.get(p.sku) || ''; });
     };
     // MLAY[מלאי זמין] (available stock) — table exists separately per company
     // (FORMULA dataset's own MLAY has zero ICE rows, confirmed live 2026-09-06),
@@ -5534,12 +5543,41 @@ app.get('/api/client-promos/:custId', requireAuth, async (req, res) => {
       const stockMap = new Map(rows.map(r => [String(r['[sku]']), Number(r['[stock]']) || 0]));
       items.forEach(p => { p.stock = stockMap.get(p.sku) || 0; });
     };
+    // Last real purchase date per SKU (ASHMADOT="-מכר-" only, same convention
+    // as client-returns' lastShipDax) — lets the frontend flag "on promo but
+    // this client hasn't bought it in 90+ days" (live request 2026-09-06),
+    // same 90-day window already used for the זיכוי outlier check above.
+    const fetchLastShip = async () => {
+      if (!promos.length) return;
+      const skuIn = promos.map(p => `"${p.sku}"`).join(',');
+      const rows = await executeDax(`
+EVALUATE
+CALCULATETABLE(
+  ADDCOLUMNS(SUMMARIZE(ALL_PARTS, ALL_PARTS[מק'ט]), "lastDate", CALCULATE(MAX(ALL_PARTS[תאריך]))),
+  ALL_PARTS[מספר לקוח] = "${custId}",
+  ALL_PARTS[ASHMADOT] = "-מכר-",
+  ALL_PARTS[מק'ט] IN {${skuIn}}
+)`);
+      const lastMap = new Map(rows.map(r => [String(r["ALL_PARTS[מק'ט]"] || ''), r['[lastDate]']]));
+      const cutoff = Date.now() - 90 * 86400000;
+      promos.forEach(p => {
+        const d = lastMap.get(p.sku);
+        p.lastShipDate = d ? String(d).slice(0, 10) : '';
+        p.notBoughtIn90d = !d || new Date(d).getTime() < cutoff;
+      });
+    };
     await Promise.all([
       fetchPhotos(promos.filter(p => p.company === 'FORMULA'), 'KARTIS PARIT'),
       fetchPhotos(promos.filter(p => p.company === 'ICE_MISH'), 'KARTIS PARIT ICE'),
       fetchStock(promos.filter(p => p.company === 'FORMULA'), undefined),
       fetchStock(promos.filter(p => p.company === 'ICE_MISH'), ICE_DS),
+      fetchLastShip(),
     ]);
+
+    // Drop single-serve "גלידה X בודדים" families entirely (live request
+    // 2026-09-06) — not just hidden, gone before the client ever sees them.
+    promos = promos.filter(p => !String(p._fam || '').includes(YEDAIM_BODEDIM_MARKER));
+    promos.forEach(p => { delete p._fam; });
 
     // Out-of-stock items (< 1 unit — live rule 2026-09-06) sink to the bottom
     // instead of competing for the agent's attention at the top of the grid;
