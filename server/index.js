@@ -5381,6 +5381,7 @@ app.get('/api/client-promos/:custId', requireAuth, async (req, res) => {
 
   try {
     const promos = await clientPromosByCustId(custId);
+    const ICE_DS = process.env.POWERBI_ICE_DATASET_ID;
 
     const fetchPhotos = async (items, table) => {
       if (!items.length) return;
@@ -5391,10 +5392,31 @@ app.get('/api/client-promos/:custId', requireAuth, async (req, res) => {
       const imgMap = new Map(rows.map(r => [String(r['[sku]']), r['[img]'] || '']));
       items.forEach(p => { p.imgUrl = imgMap.get(p.sku) || ''; });
     };
+    // MLAY[מלאי זמין] (available stock) — table exists separately per company
+    // (FORMULA dataset's own MLAY has zero ICE rows, confirmed live 2026-09-06),
+    // same split as the photo lookup above. A SKU missing from MLAY entirely
+    // (no row at all, not just 0) means genuinely no stock record — treat as 0.
+    const fetchStock = async (items, datasetId) => {
+      if (!items.length) return;
+      const skuIn = items.map(p => `"${p.sku}"`).join(',');
+      const rows = await executeDax(
+        `EVALUATE SELECTCOLUMNS(FILTER(MLAY, MLAY[מק'ט] IN {${skuIn}}), "sku", MLAY[מק'ט], "stock", MLAY[מלאי זמין])`,
+        datasetId
+      );
+      const stockMap = new Map(rows.map(r => [String(r['[sku]']), Number(r['[stock]']) || 0]));
+      items.forEach(p => { p.stock = stockMap.get(p.sku) || 0; });
+    };
     await Promise.all([
       fetchPhotos(promos.filter(p => p.company === 'FORMULA'), 'KARTIS PARIT'),
       fetchPhotos(promos.filter(p => p.company === 'ICE_MISH'), 'KARTIS PARIT ICE'),
+      fetchStock(promos.filter(p => p.company === 'FORMULA'), undefined),
+      fetchStock(promos.filter(p => p.company === 'ICE_MISH'), ICE_DS),
     ]);
+
+    // Out-of-stock items (< 1 unit — live rule 2026-09-06) sink to the bottom
+    // instead of competing for the agent's attention at the top of the grid;
+    // frontend renders a "אין במלאי כרגע" subheader before the first one.
+    promos.sort((a, b) => (a.stock >= 1 ? 0 : 1) - (b.stock >= 1 ? 0 : 1));
 
     const responseData = { ok: true, promos };
     clientPromosCache.set(custId, { data: responseData, at: new Date() });
