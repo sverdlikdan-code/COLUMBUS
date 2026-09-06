@@ -4138,17 +4138,86 @@ app.get('/zikuy-order.html', (req, res) => {
 app.get('/day-closing.html', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'day-closing.html'));
 });
-// GET /yedaim/:team.png — daily snapshot of the FORMULA DASHBORD "יעדים" PBI
-// page, one per קבוצה team (2026-08-20). Whitelisted slugs only — no path
-// traversal via req.params. requireAuth: real sales figures per team.
-const YEDAIM_SLUGS = new Set(['alexey', 'anatol', 'natalya', 'sadran-plus', 'sveta', 'vlad']);
-app.get('/yedaim/:team.png', requireAuth, (req, res) => {
-  const slug = String(req.params.team || '');
-  if (!YEDAIM_SLUGS.has(slug)) return res.status(404).end();
-  res.set('Cache-Control', 'no-store');
-  res.sendFile(path.join(__dirname, 'data', `yedaim-${slug}.png`), err => {
-    if (err) res.status(404).end();
-  });
+
+// GET /api/yedaim-live?agent=CODE (or ?team=NAME for a manager) — native
+// replacement for the /yedaim/:team.png screenshot above. That Puppeteer/embed
+// pipeline turned out structurally unreliable (live bug 2026-09-04/06: some
+// value outside the report/page/visual filters API — most likely a slicer's
+// own persisted Service-side state — silently overrides whatever team we ask
+// for, so 5 of 6 teams render blank on a given day and WHICH team "wins" isn't
+// even the same team from day to day). Calling the same named DAX measures
+// directly sidesteps the embed entirely. Measure names/formula for TOTAL
+// BONUS סוכן confirmed against the live model by the user directly in PBI
+// Desktop on 2026-09-06 — do not "simplify" by re-deriving them from any
+// PBIX file (every PBIX snapshot touched during this investigation, including
+// ones downloaded the same week, turned out to already be stale — see Vault
+// formula-road-app.md).
+const YEDAIM_TEAM_NAMES = new Set(['ALEXEY', 'ANATOL', 'NATALYA', 'SADRAN+', 'SVETA', 'VLAD']);
+const YEDAIM_FAMILY_EXCLUDE = [
+  'דלתא-לא נכנס לחישוב', 'הפרש מחיר-לא נכנס לחישוב', 'הפרש מחיר-נכנס לחישוב',
+  'נכנס לחישוב', 'סטנד', 'פרסום קידום-נכנס לחישוב', 'פתיחת סניף/מוצר-נכנס לחישוב',
+  'לא נכנס לחישוב', 'משפחת מוצר כללית',
+].map(v => `"${v}"`).join(',');
+function currentIsraelMonthYear() {
+  const now = new Date();
+  const monthName = now.toLocaleString('en-US', { month: 'long', timeZone: 'Asia/Jerusalem' });
+  const year = Number(now.toLocaleString('en-US', { year: 'numeric', timeZone: 'Asia/Jerusalem' }));
+  return { monthName, year };
+}
+function buildYedaimDax(team, monthName, year) {
+  return `
+EVALUATE
+CALCULATETABLE(
+    SUMMARIZECOLUMNS(
+        'TEAMS FORM'[שם סוכן ],
+        "יעד_פעיל", [יעד $ для פעיל],
+        "TOTAL_SALES", [TOTAL SALES (ללא זיכויים מרכזים)],
+        "PCT_YAAD", [% יעד כספי ביצוע],
+        "BONUS_KASPI", [BONUS - כספי+],
+        "SB_SALES", [TOTAL SALES (ללא זיכויים מרכזים) for SANTA BREMOR], "YAAD_SB", [יעד SB], "PCT_SB", [% S.B.], "BONUS_SB", [BONUS SB],
+        "NP_SALES", [TOTAL SALES (ללא זיכויים מרכזים) for NORD PORT], "YAAD_NP", [יעד NP], "PCT_NP", [% N.P.], "BONUS_NP", [BONUS NP],
+        "PRES_SALES", [SALES  PRES], "YAAD_PRES", [יעד PRES], "PCT_PRES", [% PRES], "BONUS_PRES", [BONUS PRES],
+        "ZMIN_403001", [זמינות מוצר for 403001], "BONUS_ZMIN_403001", [BONUS זמינות 403001],
+        "ZMIN_403002", [זמינות מוצר for 403002], "BONUS_ZMIN_403002", [BONUS זמינות 403002],
+        "ZMIN_PRES", [זמינות  PRESIDENT], "BONUS_ZMIN_PRES", [BONUS זמינות PRES],
+        "TOTAL_BONUS", [TOTAL BONUS סוכן], "NEKUDOT", [נקודות מכול היעדים 🆕]
+    ),
+    TREATAS({"${team}"}, 'TEAMS FORM'[קבוצה]),
+    TREATAS({"FORMULA"}, ALL_PARTS[חברה]),
+    FILTER(ALL(ALL_PARTS[תאור משפחת מוצר]), NOT ALL_PARTS[תאור משפחת מוצר] IN {${YEDAIM_FAMILY_EXCLUDE}}),
+    FILTER(ALL('DIMCALENDAR'), 'DIMCALENDAR'[Month Name] = "${monthName}" && 'DIMCALENDAR'[Year] = ${year})
+)
+ORDER BY 'TEAMS FORM'[שם סוכן ]
+`;
+}
+// 10-min in-memory cache per team+month — every agent on the same team hitting
+// the button independently would otherwise each pay a live DAX round-trip.
+const _yedaimLiveCache = new Map(); // key -> { at, rows }
+const YEDAIM_LIVE_TTL_MS = 10 * 60 * 1000;
+app.get('/api/yedaim-live', requireAuth, dataRateLimit, async (req, res) => {
+  try {
+    let team = req.query.team ? String(req.query.team) : null;
+    if (team && !YEDAIM_TEAM_NAMES.has(team)) return res.status(400).json({ error: 'invalid team' });
+    if (!team) {
+      const agentCode = req.session.agentCode;
+      if (!agentCode || !pbiCache) return res.status(400).json({ error: 'team required' });
+      const clients = pbiCache.byAgent.get(agentCode);
+      team = clients?.find(c => c.manager && YEDAIM_TEAM_NAMES.has(c.manager))?.manager || null;
+      if (!team) return res.status(404).json({ error: 'team_not_found' });
+    }
+    const { monthName, year } = currentIsraelMonthYear();
+    const cacheKey = `${team}|${monthName}|${year}`;
+    const cached = _yedaimLiveCache.get(cacheKey);
+    if (cached && Date.now() - cached.at < YEDAIM_LIVE_TTL_MS) {
+      return res.json({ ok: true, team, monthName, year, rows: cached.rows, cached: true });
+    }
+    const rows = await executeDax(buildYedaimDax(team, monthName, year));
+    _yedaimLiveCache.set(cacheKey, { at: Date.now(), rows });
+    res.json({ ok: true, team, monthName, year, rows, cached: false });
+  } catch (err) {
+    console.error('[yedaim-live]', err.message);
+    res.status(500).json({ error: 'server_error' });
+  }
 });
 // Public, allowlisted image proxy: priority.dilerbmd.com sends no CORS headers,
 // so html2canvas/snapDOM can't capture hotlinked product photos into the zikuy
