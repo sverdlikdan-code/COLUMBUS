@@ -401,12 +401,22 @@ async function liveOrderGpsForNewClient(custId, daysBack = 30) {
 
 // Акции (SOF_PRICEREC) для кнопки מבצע на карточке клиента — FORMULA + ICE MISH.
 // custId = CUSTOMERS.CUSTNAME (business code), same convention as everywhere else
-// in this file — join CUSTOMERS on that, never the internal CUST surrogate key.
+// in this file.
 // Window: [начало текущего месяца; сегодня + 1 месяц] (rolling от TODAY, не конец
-// календарного месяца — live-запрос пользователя 2026-09-06). PRICEREC=0 rows are
-// display/listing entries with no real promo price (verified live 2026-09-06 —
-// dozens of SOF_PRICEREC rows carry PRICEREC=0 for pure "on display" listings) —
-// excluded, since the UI shows a qty*price caption that needs a real price.
+// календарного месяца — live-запрос пользователя 2026-09-06).
+// PRICEREC=0/NULL rows are NOT excluded (an earlier version did — wrong, per
+// user 2026-09-06): a promo still exists, the chain itself sets the register
+// price rather than Priority carrying a fixed one. Frontend shows "לבדוק בקופה
+// אצל לקוח" instead of a qty*price caption for these — see _fetchClientPromos.
+//
+// CUST vs MCUST — found live 2026-09-06 (user caught this, first version was
+// wrong): a promo is entered ONCE against a chain's central/hub customer record
+// (CUSTOMERS.MCUST = "לקוח מרכז"), not per individual branch. Filtering only on
+// the branch's own CUST found promos for just ~1% of clients (55/5318 FORMULA,
+// 43/6585 ICE); resolving through MCUST too raised that to ~21%/15% (1122/1015).
+// A branch can ALSO carry its own direct rows (e.g. cust 1103001 יוחננוף itself
+// has 105 direct rows AND separately serves as MCUST hub for other branches) —
+// so this checks CUST IN (own, own MCUST), not an either/or.
 async function clientPromosByCustId(custId) {
   const dbs = [{ db: 'form', company: 'FORMULA' }, { db: 'icecrea', company: 'ICE_MISH' }];
   const perDb = await Promise.all(dbs.map(async ({ db, company }) => {
@@ -421,12 +431,16 @@ async function clientPromosByCustId(custId) {
             SP.PRICEREC                                             AS price,
             SP.QUANTPRICE / 1000.0                                  AS qty,
             CAST(DATEADD(MINUTE, SP.FROMDATE, '19880101') AS date)  AS fromDate,
-            CAST(DATEADD(MINUTE, SP.TODATE,   '19880101') AS date)  AS toDate
+            CAST(DATEADD(MINUTE, SP.TODATE,   '19880101') AS date)  AS toDate,
+            PD.PRICEDESCDESC                                        AS promoType
           FROM SOF_PRICEREC SP
-          JOIN CUSTOMERS C ON C.CUST = SP.CUST
           JOIN PART P      ON P.PART = SP.PART
-          WHERE C.CUSTNAME = @custId
-            AND SP.PRICEREC > 0
+          LEFT JOIN SOF_PRICEDESC PD ON PD.PRICEDESID = SP.PRICEDESID
+          WHERE SP.CUST IN (
+              SELECT CUST FROM CUSTOMERS WHERE CUSTNAME = @custId
+              UNION
+              SELECT MCUST FROM CUSTOMERS WHERE CUSTNAME = @custId AND MCUST IS NOT NULL AND MCUST <> 0
+            )
             AND CAST(DATEADD(MINUTE, SP.FROMDATE, '19880101') AS date) <= DATEADD(MONTH, 1, CAST(GETDATE() AS date))
             AND CAST(DATEADD(MINUTE, SP.TODATE,   '19880101') AS date) >= DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1)
           ORDER BY P.PARTDES
@@ -439,6 +453,7 @@ async function clientPromosByCustId(custId) {
         qty: Number(r.qty) || 0,
         fromDate: r.fromDate ? new Date(r.fromDate).toISOString().slice(0, 10) : '',
         toDate: r.toDate ? new Date(r.toDate).toISOString().slice(0, 10) : '',
+        promoType: String(r.promoType || ''),
       }));
     } catch (e) {
       console.error(`[priority-db] ${db} promo lookup failed (cust=${custId}): ${e.message}`);
@@ -448,4 +463,35 @@ async function clientPromosByCustId(custId) {
   return perDb.flat();
 }
 
-module.exports = { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByAgentAll, dayClosingOrdersToday, curdateFor, liveOrderGpsForNewClient, clientPromosByCustId };
+// Bulk "which clients have an active promo right now" — ONE query per company,
+// not one per row, so the מבצע button can hide itself for clients with nothing
+// active. Same CUST-or-MCUST resolution as clientPromosByCustId above (see its
+// comment for the live numbers that proved MCUST needed to be included too) —
+// a branch's own CUSTNAME comes back here whenever ITS OWN cust or its central
+// customer (MCUST) has an active row, matching what clientPromosByCustId would
+// actually return for that branch.
+async function custIdsWithActivePromo(dbName) {
+  try {
+    const pool = await getPool(dbName);
+    const result = await pool.request().query(`
+      SELECT DISTINCT C.CUSTNAME
+      FROM CUSTOMERS C
+      WHERE C.CUST IN (
+          SELECT DISTINCT CUST FROM SOF_PRICEREC
+            WHERE CAST(DATEADD(MINUTE, FROMDATE, '19880101') AS date) <= DATEADD(MONTH, 1, CAST(GETDATE() AS date))
+              AND CAST(DATEADD(MINUTE, TODATE,   '19880101') AS date) >= DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1)
+        )
+        OR C.MCUST IN (
+          SELECT DISTINCT CUST FROM SOF_PRICEREC
+            WHERE CAST(DATEADD(MINUTE, FROMDATE, '19880101') AS date) <= DATEADD(MONTH, 1, CAST(GETDATE() AS date))
+              AND CAST(DATEADD(MINUTE, TODATE,   '19880101') AS date) >= DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1)
+        )
+    `);
+    return new Set(result.recordset.map(r => String(r.CUSTNAME)));
+  } catch (e) {
+    console.error(`[priority-db] ${dbName} promo-cust-ids query failed: ${e.message}`);
+    return null;
+  }
+}
+
+module.exports = { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByAgentAll, dayClosingOrdersToday, curdateFor, liveOrderGpsForNewClient, clientPromosByCustId, custIdsWithActivePromo };
