@@ -4293,35 +4293,54 @@ function _yedaimPaceBadge(row) {
 // even for teams a given bonus doesn't apply to (SADRAN+ on SB/NP/PRES/זמינות
 // always shows blank bonus regardless of pct — the gauge should read that as
 // "not qualified" too, which comparing the live bonus field does naturally).
+// Real speedometer, not just a thin progress arc (user: "писюны" — the first
+// cut read as illegible squiggles at this size, not a recognizable dial).
+// Track is split into two colored ZONES at the gate position — red/pink
+// below it, green above — like a car speedometer's redline, so the gate
+// reads visually even before you look at the needle. A needle (radial line +
+// hub circle) points at the actual value, same math as before (fixed θ=180°
+// start, large-arc-flag always 0 — see prior commit, gaugeIcon() above still
+// has the copy-paste version of this bug, not touched). Gate % also shown as
+// plain text next to the dial per explicit ask — a tick alone didn't say
+// WHAT number it was.
 function _yedaimGaugeSvg(pct, gate, bonusOk) {
   const SCALE = 1.3;
-  const cx = 19, cy = 19, r = 15;
+  const cx = 21, cy = 21, r = 17;
   const pctVal = Math.min(Math.max(_yedaimNum(pct) ?? 0, 0) / SCALE, 1);
+  const gateVal = Number.isFinite(gate) ? Math.min(gate / SCALE, 1) : null;
   const angle = Math.PI * (1 - pctVal);
-  const ex = (cx + r * Math.cos(angle)).toFixed(2);
-  const ey = (cy - r * Math.sin(angle)).toFixed(2);
-  // Fixed start point at θ=180°, sweeping to θ=angle — that sweep is always
-  // ≤180° by construction (θ never goes negative), so large-arc-flag is
-  // always 0. (gaugeIcon() above uses `pctVal>0.5?1:0` for this same shape —
-  // copying that here drew the arc the long way around for anything over
-  // 50%, off-canvas through the bottom half. Fixed only here, not touching
-  // that function.)
-  const color = bonusOk ? '#2E7D32' : '#8E24AA';
-  const trackColor = bonusOk ? '#A5D6A7' : '#E0D0E8';
-  const bg = `M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${cx + r} ${cy}`;
-  const fillPath = pctVal > 0.01 ? `M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${ex} ${ey}` : '';
-  let gateTick = '';
-  if (Number.isFinite(gate)) {
-    const gAngle = Math.PI * (1 - Math.min(gate / SCALE, 1));
-    const gx1 = (cx + (r - 4) * Math.cos(gAngle)).toFixed(2), gy1 = (cy - (r - 4) * Math.sin(gAngle)).toFixed(2);
-    const gx2 = (cx + (r + 4) * Math.cos(gAngle)).toFixed(2), gy2 = (cy - (r + 4) * Math.sin(gAngle)).toFixed(2);
-    gateTick = `<line x1="${gx1}" y1="${gy1}" x2="${gx2}" y2="${gy2}" stroke="#E65100" stroke-width="2.5"/>`;
+  const needleColor = bonusOk ? '#2E7D32' : '#4A148C';
+
+  let zones;
+  if (gateVal === null) {
+    zones = `<path d="M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${cx + r} ${cy}" stroke="#E0E0E0" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+  } else {
+    const gAngle = Math.PI * (1 - gateVal);
+    const gx = (cx + r * Math.cos(gAngle)).toFixed(2), gy = (cy - r * Math.sin(gAngle)).toFixed(2);
+    // Below-gate zone: θ from 180° down to gate angle (large-arc depends on
+    // whether that span exceeds 180°, which it never does — same reasoning
+    // as the needle arc).
+    zones = `<path d="M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${gx} ${gy}" stroke="#F3C6DA" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <path d="M ${gx} ${gy} A ${r} ${r} 0 0 0 ${cx + r} ${cy}" stroke="#A5D6A7" stroke-width="5" fill="none" stroke-linecap="round"/>`;
   }
-  return `<svg width="40" height="23" viewBox="0 0 40 23" style="display:block;flex-shrink:0;width:40px;height:23px;">
-    <path d="${bg}" stroke="${trackColor}" stroke-width="4" fill="none" stroke-linecap="round"/>
-    ${fillPath ? `<path d="${fillPath}" stroke="${color}" stroke-width="4" fill="none" stroke-linecap="round"/>` : ''}
-    ${gateTick}
-  </svg>`;
+
+  const needleLen = r - 3;
+  const nx = (cx + needleLen * Math.cos(angle)).toFixed(2), ny = (cy - needleLen * Math.sin(angle)).toFixed(2);
+  const needle = pctVal > 0.005
+    ? `<line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="${needleColor}" stroke-width="2.5" stroke-linecap="round"/>
+       <circle cx="${cx}" cy="${cy}" r="2.5" fill="${needleColor}"/>`
+    : `<circle cx="${cx}" cy="${cy}" r="2.5" fill="${needleColor}"/>`;
+
+  const gateLabel = gateVal !== null
+    ? `<div style="font-size:8px;color:#999;font-weight:700;text-align:center;line-height:1;margin-top:1px;">מינ׳ ${Math.round(gate * 100)}%</div>`
+    : '';
+  return `<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
+    <svg width="44" height="25" viewBox="0 0 44 25" style="display:block;width:44px;height:25px;">
+      ${zones}
+      ${needle}
+    </svg>
+    ${gateLabel}
+  </div>`;
 }
 
 // Renders one ranked list (everyone on the team, sorted by this metric) —
