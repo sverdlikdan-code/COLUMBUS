@@ -410,7 +410,11 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .zikuy-btn:hover{background:#EF9A9A;}
 .ai-insight-btn{font-size:10px;flex-shrink:0;cursor:pointer;background:#D1C4E9;border:1.5px solid #9575CD;border-radius:6px;padding:2px 6px;color:#4527A0;font-weight:900;line-height:1.3;text-align:center;transition:background .12s;min-height:28px;display:flex;align-items:center;justify-content:center;letter-spacing:.3px;}
 .ai-insight-btn:hover{background:#B39DDB;}
-.promo-btn{font-size:10px;flex-shrink:0;cursor:pointer;background:#FFE0B2;border:1.5px solid #FFA726;border-radius:6px;padding:2px 5px;color:#E65100;font-weight:900;line-height:1.3;text-align:center;transition:background .12s;min-height:28px;display:flex;align-items:center;justify-content:center;}
+/* Same footprint as .excl-btn (32px square) on purpose — this button replaces
+   .excl-btn in the exact same row slot when a client has an active promo (see
+   _primaryActionsHtml), so the two must be pixel-identical in size or the row
+   visibly shifts/re-flows on the swap. Live request 2026-09-06. */
+.promo-btn{font-size:15px;flex-shrink:0;cursor:pointer;background:#FFE0B2;border:1.5px solid #FFA726;border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;transition:background .12s;}
 .promo-btn:hover{background:#FFCC80;}
 /* Yedaim (team targets snapshot) Modal */
 #yedaim-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px;}
@@ -470,11 +474,13 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .promo-card img{width:100%;height:82px;object-fit:contain;background:#fff;}
 .promo-card .promo-noimg{width:100%;height:82px;display:flex;align-items:center;justify-content:center;background:#fff;color:#ccc;font-size:28px;}
 .promo-card-cap{padding:5px 7px;font-size:12px;color:#333;text-align:center;}
-.promo-card-cap .promo-name{display:block;font-size:10.5px;color:#777;margin-bottom:2px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.promo-card-cap .promo-name{display:block;font-size:11.5px;font-weight:700;color:#555;margin-bottom:2px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:ltr;unicode-bidi:isolate;}
 .promo-card-cap .promo-type{display:inline-block;font-size:10px;font-weight:800;color:#fff;background:#FFA726;border-radius:4px;padding:1px 6px;margin-bottom:2px;}
 .promo-card-cap .promo-deal{display:block;font-weight:900;color:#E65100;font-size:14px;direction:ltr;unicode-bidi:isolate;}
 .promo-card-cap .promo-deal-checkreg{direction:rtl;unicode-bidi:isolate;font-size:11px;}
 .promo-card-cap .promo-dates{display:block;color:#BF360C;font-weight:800;font-size:12px;margin-top:2px;direction:ltr;unicode-bidi:isolate;}
+.promo-oos-header{margin:14px 0 8px;padding-top:10px;border-top:1.5px dashed #ccc;font-size:13px;font-weight:800;color:#888;text-align:center;}
+.promo-oos-header + .promo-grid .promo-card{opacity:.35;filter:grayscale(60%);}
 /* Day Briefing Modal (TOP10 clients + dormant list) */
 #day-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px;}
 #day-modal.open{display:flex;}
@@ -702,14 +708,16 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
   .mekarer-btn,.ai-insight-btn,.waze-btn{
     font-size:13px;min-height:38px;padding:6px 12px;border-radius:9px;
   }
-  /* זיכוי/מבצע carry a text label (wider than the icon-only buttons above) —
-     kept a bit tighter so the client name next to them has room to breathe,
-     per live request 2026-09-06. Still a real touch target (36px), just not
-     as padded. */
-  .zikuy-btn,.promo-btn{
+  /* זיכוי carries a text label (wider than the icon-only buttons above) — kept
+     a bit tighter so the client name next to it has room to breathe, per live
+     request 2026-09-06. Still a real touch target (36px), just not as padded. */
+  .zikuy-btn{
     font-size:12px;min-height:36px;padding:5px 8px;border-radius:9px;
   }
-  .excl-btn,.gps-edit-btn,.day-change-btn{width:42px;height:42px;font-size:18px;}
+  /* promo-btn grouped with excl-btn (not zikuy-btn above) — it REPLACES excl-btn
+     in the same row slot when a client has an active promo, so the two must
+     stay pixel-identical in size or the row visibly re-flows on the swap. */
+  .excl-btn,.gps-edit-btn,.day-change-btn,.promo-btn{width:42px;height:42px;font-size:18px;}
   .no-gps-badge{font-size:13px;padding:6px 14px;border-radius:9px;}
 
   /* Toolbar */
@@ -3357,7 +3365,7 @@ function _primaryActionsHtml(c,noGps){
     ${hasPromo ? '' : `<span class="excl-btn" data-id="${c.custId}" onclick="toggleExclude('${c.custId}',event)" title="הוצא ממסלול">🚫</span>`}
     ${noGps ? '' : `<span class="waze-btn" onclick="openWaze(event,${c.lat},${c.lng})" title="נווט ב-Waze">W</span>`}
     <span class="ai-insight-btn" data-id="${c.custId}" data-name="${nm}" onclick="openClientAI(event,this.dataset.id,this.dataset.name)" title="ניתוח מעמק — משפחות, פערים, השוואה לרשת">🔍</span>
-    ${hasPromo ? `<span class="promo-btn" data-id="${c.custId}" data-name="${nm}" onclick="openPromoModal(event,this.dataset.id,this.dataset.name)" title="מבצעים פעילים">מבצע</span>` : ''}`;
+    ${hasPromo ? `<span class="promo-btn" data-id="${c.custId}" data-name="${nm}" onclick="openPromoModal(event,this.dataset.id,this.dataset.name)" title="מבצעים פעילים">🏷️</span>` : ''}`;
 }
 function _secondaryActionsHtml(c,noGps){
   const nm=(c.custName||'').replace(/"/g,'&quot;'), ct=(c.city||'').replace(/"/g,'&quot;');
@@ -4172,18 +4180,28 @@ async function _fetchClientPromos(custId) {
     // "מבצע" is the generic/default promo-type label — showing it back to the
     // agent adds nothing ("promo" on a promo card). Only a MORE SPECIFIC type
     // (קופון/מועדון/1+1/פרסום/תצוגה etc.) is worth a line — live request 2026-09-06.
-    body.innerHTML = `<div class="promo-grid">${j.promos.map(p => `
+    const cardHtml = p => `
       <div class="promo-card">
         ${p.imgUrl ? `<img src="${p.imgUrl}" alt="${(p.name || '').replace(/"/g, '&quot;')}" loading="lazy">` : '<div class="promo-noimg">📦</div>'}
         <div class="promo-card-cap">
-          <span class="promo-name">מק"ט ${p.sku}</span>
+          <span class="promo-name">${p.sku}</span>
           ${p.promoType && p.promoType !== 'מבצע' ? `<span class="promo-type">${p.promoType}</span>` : ''}
           ${p.price > 0
             ? `<span class="promo-deal">${p.qty}*${p.price}</span>`
             : '<span class="promo-deal promo-deal-checkreg">לבדוק בקופה אצל לקוח</span>'}
           <span class="promo-dates">${_fmtPromoDate(p.fromDate)}-${_fmtPromoDate(p.toDate)}</span>
         </div>
-      </div>`).join('')}</div>`;
+      </div>`;
+    // Server already sorts in-stock first (stock>=1) — out-of-stock items sink
+    // below a subheader instead of competing for attention, live request 2026-09-06.
+    const inStock = j.promos.filter(p => p.stock >= 1);
+    const outOfStock = j.promos.filter(p => p.stock < 1);
+    body.innerHTML = `
+      <div class="promo-grid">${inStock.map(cardHtml).join('')}</div>
+      ${outOfStock.length ? `
+        <div class="promo-oos-header">אין במלאי כרגע</div>
+        <div class="promo-grid">${outOfStock.map(cardHtml).join('')}</div>
+      ` : ''}`;
   } catch (e) {
     body.innerHTML = `<div class="ai-loading" style="color:#c62828">❌ ${e.message}</div>`;
   }
