@@ -119,10 +119,6 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
    handleOrientationForMobileMap) — the manual toggle icons this wrapped are
    gone, so the wrapper itself is always hidden. 2026-08-24. */
 .km-right{display:none;}
-.wd-bar{display:flex;gap:14px;align-items:center;flex-shrink:0;padding:0 10px;}
-.wd-item{display:flex;flex-direction:column;align-items:center;min-width:28px;}
-.wd-num{font-size:15px;font-weight:900;color:#fff;line-height:1;}
-.wd-lbl{font-size:8px;color:rgba(255,255,255,.65);font-weight:600;white-space:nowrap;margin-top:2px;}
 .sort-btns{display:flex;flex-wrap:wrap;gap:5px;align-items:center;}
 .sort-btn{padding:6px 13px;border-radius:20px;font-size:12px;font-weight:800;cursor:pointer;border:2px solid var(--sky-mid);background:none;color:var(--mid);transition:all .15s;white-space:nowrap;height:34px;display:flex;align-items:center;}
 .sort-btn.active-priority{color:var(--blue);border-color:var(--blue);background:var(--sky-light);box-shadow:0 2px 8px rgba(21,101,192,.18);}
@@ -682,15 +678,6 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
     font-size:12px;font-weight:800;cursor:pointer;flex-shrink:0;
   }
   body.km-collapsed .km-bar{display:none!important;}
-  /* #wd-bar (work-days-in-month stat) sits in the same flex row as .hdr-center,
-     which is position:absolute;left:0;right:0 and centers its text across the
-     WHOLE header regardless of what else is there — on a narrow phone the two
-     always physically overlap (measured 214×28px intersection). Latent since
-     May 2026 (88d378de/c14ea40f), just never screenshotted at the right moment
-     until now. Simplest fix on the narrow viewport where it actually collides:
-     drop the stat instead of fighting the layout — live request 2026-08-31.
-     Wide/landscape still show it, room isn't tight there. */
-  #wd-bar{display:none!important;}
 }
 
 /* Wide: split view. Two ways in: a real tablet/desktop (comfortably over
@@ -1059,7 +1046,6 @@ body.gps-fs #map{height:100%!important;}
       <div class="hdr-title" id="route-title">FORMULA ROAD</div>
       <div class="hdr-sub" id="route-sub"></div>
     </div>
-    <div class="wd-bar" id="wd-bar" style="margin-right:auto;"></div>
     <button id="logout-btn" onclick="logout()" style="display:none;background:none;border:none;color:rgba(255,255,255,.7);font-size:11px;font-weight:700;cursor:pointer;padding:4px 8px;letter-spacing:.5px;" title="יציאה">✕ יציאה</button>
   </div>
   <button id="landscape-toolbar-toggle" onclick="toggleLandscapeToolbar()" title="הצג/הסתר סרגל כלים" aria-label="הצג/הסתר סרגל כלים">☰</button>
@@ -2713,7 +2699,6 @@ async function initRoute(){
   document.getElementById('export-all-btn').classList.remove('visible');
   setTab('list', true); // true = skip renderMap (data not ready yet)
   buildDaySwitcher();
-  fillWorkDaysBar();
   // Show logout button only for RLS-authenticated agents (not managers using picker)
   const _auth=_loadAuth();
   document.getElementById('logout-btn').style.display=(_auth&&!_auth.isManager)?'':'none';
@@ -3260,27 +3245,6 @@ function gaugeIcon(sales, target) {
     ${dot}
     <text x="${cx}" y="${cy+1}" text-anchor="middle" font-size="7" font-weight="900" fill="${color}" font-family="Segoe UI,Arial">${pctDisplay}%</text>
   </svg>`;
-}
-
-function fillWorkDaysBar() {
-  const now = new Date();
-  const yesterday = now.getDate() - 1;
-  const y = now.getFullYear(), m = now.getMonth();
-  const dim = new Date(y, m + 1, 0).getDate();
-  let totalWork = 0, passedWork = 0;
-  for (let d = 1; d <= dim; d++) {
-    if (new Date(y, m, d).getDay() <= 4) {
-      totalWork++;
-      if (d <= yesterday) passedWork++;
-    }
-  }
-  const pct = totalWork ? Math.round(passedWork / totalWork * 100) : 0;
-  const el = document.getElementById('wd-bar');
-  if (!el) return;
-  el.innerHTML =
-    `<div class="wd-item"><span class="wd-num">${totalWork}</span><span class="wd-lbl">ימי עבודה החודש</span></div>` +
-    `<div class="wd-item"><span class="wd-num">${passedWork}</span><span class="wd-lbl">ימי עבודה שעברו</span></div>` +
-    `<div class="wd-item"><span class="wd-num">${pct}%</span><span class="wd-lbl">% ימים שעברו</span></div>`;
 }
 
 function shortName(name, city) {
