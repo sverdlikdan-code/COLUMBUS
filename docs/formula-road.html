@@ -5267,13 +5267,43 @@ function _pwaShouldAsk(){
   return !last || (Date.now()-last)>PWA_ASK_COOLDOWN_MS;
 }
 let _pwaPrompt=null;
+// Samsung Internet fires beforeinstallprompt too (it's Chromium-based) and
+// _pwaPrompt.prompt() happily "succeeds" there — but the WebAPK it mints
+// carries an outdated targetSdkVersion, which Google Play Protect then
+// blocks on Android 14+ with a scary "suspicious app" dialog (live incident
+// 2026-09-06, אולג בלז' — confirmed via VPS access-log UA strings + Samsung
+// Internet's own tracked issue, see Vault formula-road-app.md). Chrome's own
+// WebAPK minting doesn't have this problem. Since our button IS what hands
+// the agent into whichever browser's install flow, route Samsung Internet
+// users to Chrome first via an Android intent:// link instead of calling
+// .prompt() directly — same URL, forced into Chrome, where the native
+// install banner there is the safe one.
+const _isSamsungInternet=/SamsungBrowser/i.test(navigator.userAgent);
+function _openInChrome(){
+  const full=location.href;
+  const url=full.replace(/^https?:\/\//,'');
+  location.href=`intent://${url}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(full)};end`;
+}
 window.addEventListener('beforeinstallprompt',e=>{
   e.preventDefault();
   _pwaPrompt=e;
-  if(_pwaShouldAsk()) setTimeout(()=>document.getElementById('pwa-banner').classList.add('show'), 2000);
+  if(_pwaShouldAsk()){
+    setTimeout(()=>{
+      if(_isSamsungInternet){
+        const b=document.getElementById('pwa-banner');
+        b.querySelector('.pwa-sub').textContent='להתקנה תקינה יש לפתוח ב-Chrome';
+        b.querySelector('.pwa-install').textContent='🌐 פתח ב-Chrome';
+      }
+      document.getElementById('pwa-banner').classList.add('show');
+    }, 2000);
+  }
 });
 async function doPwaInstall(){
   document.getElementById('pwa-banner').classList.remove('show');
+  if(_isSamsungInternet){
+    _openInChrome();
+    return;
+  }
   if(_pwaPrompt){
     await _pwaPrompt.prompt();
     const r=await _pwaPrompt.userChoice;
