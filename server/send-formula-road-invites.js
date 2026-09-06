@@ -70,8 +70,11 @@ function emailHtml({ name, link, isManager }) {
       פתח את FORMULA ROAD ←
     </a>
   </div>
-  <p style="font-size:11px;color:#999;text-align:center;margin:0">
+  <p style="font-size:11px;color:#999;text-align:center;margin:0 0 14px">
     הקישור בתוקף 30 יום — מומלץ לשמור במועדפים לגישה מהירה
+  </p>
+  <p style="font-size:11px;line-height:1.6;color:#999;text-align:center;background:#F8FBFF;border-radius:8px;padding:10px 12px;margin:0">
+    📱 <b>שמירה על מסך הבית:</b> יש לפתוח את הקישור דווקא ב-<b>Chrome</b> (לא בדפדפן Samsung Internet) — אחרת מכשירי Samsung מסוימים עלולים להציג התראת "אפליקציה חשודה נחסמה" של Google Play Protect. זו לא בעיה באפליקציה עצמה, רק דרישה של הדפדפן.
   </p>
 </div>
 </div>`;
