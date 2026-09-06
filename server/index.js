@@ -5252,10 +5252,19 @@ function writeBlankHistory(arr) {
   return pruned;
 }
 app.post('/api/zikuy-history', requireAuth, dataRateLimit, (req, res) => {
-  const { custId, custName, city, items } = req.body || {};
+  const { custId, custName, city, items, agentCode: bodyAgentCode } = req.body || {};
   if (!custId || !Array.isArray(items) || !items.length) return res.status(400).json({ ok: false, error: 'invalid payload' });
   if (items.length > 200) return res.status(400).json({ ok: false, error: 'too many items' });
-  const agentCode = req.session.agentCode || null;
+  // Manager-covers-for-agent fallback — same pattern as /api/route-order and
+  // /api/route-day-move above: a manager session has no session.agentCode, so
+  // without this every blank a manager sends on behalf of an absent agent was
+  // silently logged as agentCode:null — unreachable by anyone afterward (live
+  // bug 2026-09-06: 58 orphaned null entries, agent's own history stayed empty).
+  let agentCode = req.session.agentCode || null;
+  if (!agentCode && req.session.isManager && bodyAgentCode) {
+    const a = String(bodyAgentCode);
+    if (validateAgentCode(a)) agentCode = a;
+  }
   const agentName = (loadAgentList()[agentCode] || {}).name || '';
   const entry = {
     id: crypto.randomUUID(),

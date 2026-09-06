@@ -1004,7 +1004,7 @@ function logBlankHistory(){
     sku:r.product.sku, name:r.product.name, qty:r.qty, date:r.date, option:r.option,
   }));
   apiFetch('/api/zikuy-history',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({custId,custName,city,items})}).catch(e=>console.warn('blank history log failed',e));
+    body:JSON.stringify({custId,custName,city,items,agentCode})}).catch(e=>console.warn('blank history log failed',e));
   _formSubmitted = true;
   logEvent('zikuy_form_submitted', {itemCount: items.length});
 }
