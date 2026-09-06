@@ -4164,23 +4164,41 @@ function currentIsraelMonthYear() {
   const year = Number(now.toLocaleString('en-US', { year: 'numeric', timeZone: 'Asia/Jerusalem' }));
   return { monthName, year };
 }
-function buildYedaimDax(team, monthName, year) {
+// The bonus program itself changes month to month — SKUs/brands rotate in and
+// out of the availability program, thresholds get tuned, sometimes a whole
+// category is added or dropped (see server/index.js history: SB/NP/PRES were
+// hardcoded here once too, before this got extracted). Every one of those is
+// a one-line edit to server/data/yedaim-categories.json, not a code change —
+// this function and the client's rendering both just iterate whatever's in
+// that file. Only structural changes (a genuinely new AGGREGATE like "TOTAL
+// BONUS" itself, or a new baseline filter) need an actual code edit here.
+const YEDAIM_CATEGORIES_FILE = path.join(__dirname, 'data', 'yedaim-categories.json');
+let _yedaimCategoriesCache = null; // { mtimeMs, categories }
+function loadYedaimCategories() {
+  const stat = fs.statSync(YEDAIM_CATEGORIES_FILE);
+  if (_yedaimCategoriesCache && _yedaimCategoriesCache.mtimeMs === stat.mtimeMs) {
+    return _yedaimCategoriesCache.categories;
+  }
+  const categories = JSON.parse(fs.readFileSync(YEDAIM_CATEGORIES_FILE, 'utf8'));
+  for (const c of categories) {
+    if (!/^[A-Za-z0-9_]+$/.test(c.key)) throw new Error(`invalid category key in yedaim-categories.json: ${c.key}`);
+  }
+  _yedaimCategoriesCache = { mtimeMs: stat.mtimeMs, categories };
+  return categories;
+}
+function buildYedaimDax(team, monthName, year, categories) {
+  const cols = categories
+    .map(c => `"${c.key}_PCT", [${c.pctMeasure}], "${c.key}_BONUS", [${c.bonusMeasure}]`)
+    .join(',\n        ');
   return `
 EVALUATE
 CALCULATETABLE(
     SUMMARIZECOLUMNS(
         'TEAMS FORM'[שם סוכן ],
-        "יעד_פעיל", [יעד $ для פעיל],
-        "TOTAL_SALES", [TOTAL SALES (ללא זיכויים מרכזים)],
-        "PCT_YAAD", [% יעד כספי ביצוע],
-        "BONUS_KASPI", [BONUS - כספי+],
-        "SB_SALES", [TOTAL SALES (ללא זיכויים מרכזים) for SANTA BREMOR], "YAAD_SB", [יעד SB], "PCT_SB", [% S.B.], "BONUS_SB", [BONUS SB],
-        "NP_SALES", [TOTAL SALES (ללא זיכויים מרכזים) for NORD PORT], "YAAD_NP", [יעד NP], "PCT_NP", [% N.P.], "BONUS_NP", [BONUS NP],
-        "PRES_SALES", [SALES  PRES], "YAAD_PRES", [יעד PRES], "PCT_PRES", [% PRES], "BONUS_PRES", [BONUS PRES],
-        "ZMIN_403001", [זמינות מוצר for 403001], "BONUS_ZMIN_403001", [BONUS זמינות 403001],
-        "ZMIN_403002", [זמינות מוצר for 403002], "BONUS_ZMIN_403002", [BONUS זמינות 403002],
-        "ZMIN_PRES", [זמינות  PRESIDENT], "BONUS_ZMIN_PRES", [BONUS זמינות PRES],
-        "TOTAL_BONUS", [TOTAL BONUS סוכן], "NEKUDOT", [נקודות מכול היעדים 🆕]
+        ${cols},
+        "TOTAL_BONUS", [TOTAL BONUS סוכן], "NEKUDOT", [נקודות מכול היעדים 🆕],
+        "WORK_DAYS_TOTAL", [ימי עבודה 1], "WORK_DAYS_PASSED", [ימי עבודה שעברו], "WORK_DAYS_PCT", [ימי עבודה %],
+        "DAILY_PLAN", [DAILY PLAN], "SALES_LAST_DAY", [SALES LAST DAY], "PACE_INDICATION", [INDICATION]
     ),
     TREATAS({"${team}"}, 'TEAMS FORM'[קבוצה]),
     TREATAS({"FORMULA"}, ALL_PARTS[חברה]),
@@ -4205,15 +4223,16 @@ app.get('/api/yedaim-live', requireAuth, dataRateLimit, async (req, res) => {
       team = clients?.find(c => c.manager && YEDAIM_TEAM_NAMES.has(c.manager))?.manager || null;
       if (!team) return res.status(404).json({ error: 'team_not_found' });
     }
+    const categories = loadYedaimCategories();
     const { monthName, year } = currentIsraelMonthYear();
     const cacheKey = `${team}|${monthName}|${year}`;
     const cached = _yedaimLiveCache.get(cacheKey);
     if (cached && Date.now() - cached.at < YEDAIM_LIVE_TTL_MS) {
-      return res.json({ ok: true, team, monthName, year, rows: cached.rows, cached: true });
+      return res.json({ ok: true, team, monthName, year, categories, rows: cached.rows, cached: true });
     }
-    const rows = await executeDax(buildYedaimDax(team, monthName, year));
+    const rows = await executeDax(buildYedaimDax(team, monthName, year, categories));
     _yedaimLiveCache.set(cacheKey, { at: Date.now(), rows });
-    res.json({ ok: true, team, monthName, year, rows, cached: false });
+    res.json({ ok: true, team, monthName, year, categories, rows, cached: false });
   } catch (err) {
     console.error('[yedaim-live]', err.message);
     res.status(500).json({ error: 'server_error' });

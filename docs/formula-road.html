@@ -432,28 +432,32 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .yedaim-pick-bar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:20px;}
 .yedaim-pick-btn{padding:12px 20px;border-radius:10px;border:1.5px solid #CE93D8;background:#fff;font-size:14px;font-weight:800;color:#4A148C;cursor:pointer;}
 .yedaim-pick-btn:hover{background:#F8F4FF;}
-.yedaim-month{text-align:center;font-size:12px;font-weight:700;color:#8E24AA;margin-bottom:12px;}
-.yedaim-card{background:#fff;border:1.5px solid #E1BEE7;border-radius:14px;padding:14px 16px;margin-bottom:12px;}
-.yedaim-card.me{border-color:#4A148C;border-width:2px;background:#FAF5FF;box-shadow:0 2px 10px rgba(74,20,140,.12);}
-.yedaim-card-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #F0E4FA;}
-.yedaim-card-name{font-weight:800;font-size:15px;color:#4A148C;}
-.yedaim-me-badge{display:inline-block;background:#4A148C;color:#fff;font-size:10px;font-weight:800;border-radius:6px;padding:2px 6px;margin-inline-start:6px;vertical-align:1px;}
-.yedaim-total-bonus{font-weight:900;font-size:19px;color:#2E7D32;white-space:nowrap;}
-.yedaim-total-bonus.na{color:#aaa;font-size:15px;font-weight:700;}
-.yedaim-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
-.yedaim-row-label{width:76px;font-size:11px;font-weight:700;color:#666;flex-shrink:0;}
-.yedaim-bar-track{flex:1;height:8px;border-radius:4px;background:#F3E5F5;overflow:hidden;}
-.yedaim-bar-fill{height:100%;border-radius:4px;transition:width .3s;}
-.yedaim-row-pct{width:36px;text-align:end;font-size:12px;font-weight:700;color:#555;flex-shrink:0;}
-.yedaim-row-bonus{width:54px;text-align:end;font-size:11px;font-weight:800;color:#2E7D32;flex-shrink:0;}
-.yedaim-row-bonus.na{color:#bbb;font-weight:600;}
-.yedaim-zmin-row{display:flex;gap:6px;margin-top:9px;}
-.yedaim-zmin-chip{flex:1;background:#F8F4FF;border-radius:9px;padding:6px 4px;text-align:center;}
-.yedaim-zmin-chip .lbl{font-size:9px;color:#8E24AA;font-weight:800;letter-spacing:.2px;}
-.yedaim-zmin-chip .pct{font-size:13px;font-weight:800;color:#4A148C;margin-top:1px;}
-.yedaim-zmin-chip .bns{font-size:10px;color:#2E7D32;font-weight:700;margin-top:1px;}
-.yedaim-zmin-chip .bns.na{color:#bbb;}
-.yedaim-nekudot{text-align:center;font-size:11px;color:#999;margin-top:9px;}
+.yedaim-month{text-align:center;font-size:12px;font-weight:700;color:#8E24AA;margin-bottom:4px;}
+.yedaim-workdays{text-align:center;font-size:11px;color:#999;margin-bottom:14px;}
+.yedaim-workdays b{color:#666;}
+/* One ranked list per category — same structure the PBI page itself used (a
+   separate table per metric, everyone in it) so the "nobody wants to be at
+   the bottom" competitive effect survives the move off screenshots. Rebuilt
+   2026-09-06 after replacing the earlier one-card-per-agent draft, which lost
+   that entirely. */
+.yedaim-section{margin-bottom:16px;}
+.yedaim-section.headline{margin-bottom:20px;}
+.yedaim-section-title{font-size:12px;font-weight:800;color:#4A148C;margin-bottom:6px;padding-inline-start:2px;}
+.yedaim-lb-row{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;margin-bottom:4px;background:#FAFAFA;}
+.yedaim-lb-row.me{background:#F3E5F5;border:1.5px solid #4A148C;}
+.yedaim-lb-rank{width:20px;text-align:center;font-size:12px;font-weight:800;color:#bbb;flex-shrink:0;}
+.yedaim-lb-row.rank1 .yedaim-lb-rank{color:#F9A825;}
+.yedaim-lb-name{flex:1;font-size:13px;font-weight:700;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.yedaim-lb-row.me .yedaim-lb-name{color:#4A148C;}
+.yedaim-lb-pace{font-size:11px;font-weight:800;margin-inline-start:4px;white-space:nowrap;}
+.yedaim-lb-bar-mini{width:52px;height:6px;border-radius:3px;background:#EEE;overflow:hidden;flex-shrink:0;}
+.yedaim-lb-bar-mini .fill{height:100%;border-radius:3px;}
+.yedaim-lb-val{width:58px;text-align:end;font-size:12px;font-weight:800;color:#555;flex-shrink:0;}
+.yedaim-lb-val.money{color:#2E7D32;}
+.yedaim-lb-val.na{color:#ccc;font-weight:600;}
+.yedaim-headline .yedaim-lb-row{padding:9px 12px;}
+.yedaim-headline .yedaim-lb-val{font-size:15px;width:66px;}
+.yedaim-me-badge{display:inline-block;background:#4A148C;color:#fff;font-size:9px;font-weight:800;border-radius:6px;padding:1px 5px;margin-inline-start:5px;vertical-align:1px;}
 /* AI Analytics Modal */
 #ai-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px;}
 #ai-modal.open{display:flex;}
@@ -4290,65 +4294,75 @@ async function _loadYedaimTeam(team) {
     document.getElementById('yedaim-modal-title').textContent = `יעדים — ${j.team}`;
     const myName = (st.agent?.name || '').trim();
     const rows = (j.rows || []).filter(row => row['TEAMS FORM[שם סוכן ]']);
-    // Leaderboard order: the viewer's own card first (if they're an agent on
-    // this team), then teammates sorted by total bonus so far — matches the
-    // "see yourself and your team" ask, not an arbitrary/alphabetical list.
-    rows.sort((a, b) => {
-      const aMe = a['TEAMS FORM[שם סוכן ]'] === myName, bMe = b['TEAMS FORM[שם סוכן ]'] === myName;
-      if (aMe !== bMe) return aMe ? -1 : 1;
-      return (b['[TOTAL_BONUS]'] ?? -1) - (a['[TOTAL_BONUS]'] ?? -1);
-    });
     const monthHe = YEDAIM_MONTH_HE[j.monthName] || j.monthName;
-    const cards = rows.map(row => _yedaimCard(row, row['TEAMS FORM[שם סוכן ]'] === myName)).join('');
-    body.innerHTML = `${backBtn}<div class="yedaim-month">${monthHe} ${j.year}</div>${cards || '<div class="ai-loading">אין נתונים</div>'}`;
+    // Days-worked strip is calendar-based, same across the whole team — read
+    // once off any row instead of repeating it in every leaderboard.
+    const wd = rows[0];
+    const workDaysHtml = wd ? `<div class="yedaim-workdays">📅 <b>${wd['[WORK_DAYS_PASSED]'] ?? '—'}/${wd['[WORK_DAYS_TOTAL]'] ?? '—'}</b> ימי עבודה · ${_yedaimPct(wd['[WORK_DAYS_PCT]'])}</div>` : '';
+    // One ranked list per metric — same shape as the original PBI page (a
+    // separate table per metric, everyone in it), not one card per agent —
+    // that's what actually carries the "don't want to be last" pressure.
+    // TOTAL BONUS first as the headline ranking, then every category from
+    // the server's config in whatever order it lists them.
+    const sections = [
+      _yedaimSection({ key: 'TOTAL_BONUS', label: '🏆 TOTAL BONUS + נקודות', money: true, headline: true, pace: true }, rows, myName),
+      ...(j.categories || []).map(cat => _yedaimSection({ key: cat.key + '_PCT', bonusKey: cat.key + '_BONUS', label: cat.label, pace: cat.key === 'YAAD' }, rows, myName)),
+    ].join('');
+    body.innerHTML = `${backBtn}<div class="yedaim-month">${monthHe} ${j.year}</div>${workDaysHtml}${sections || '<div class="ai-loading">אין נתונים</div>'}`;
   } catch (e) {
     body.innerHTML = `${backBtn}<div class="ai-loading" style="color:#c62828">❌ ${e.message}</div>`;
   }
 }
 
 function _yedaimNum(v) { return Number.isFinite(v) ? v : null; }
-function _yedaimMoney(v) { const n = _yedaimNum(v); return n === null ? '<span class="na">—</span>' : `₪${Math.round(n).toLocaleString('he-IL')}`; }
+function _yedaimMoney(v) { const n = _yedaimNum(v); return n === null ? '—' : `₪${Math.round(n).toLocaleString('he-IL')}`; }
+function _yedaimPct(v) { const n = _yedaimNum(v); return n === null ? '—' : Math.round(n * 100) + '%'; }
 
-function _yedaimRow(label, pct, bonus) {
-  const pctNum = _yedaimNum(pct);
-  const barPct = pctNum === null ? 0 : Math.min(100, Math.max(0, Math.round(pctNum * 100)));
-  const bonusOk = _yedaimNum(bonus) !== null;
-  const color = bonusOk ? 'linear-gradient(90deg,#66BB6A,#2E7D32)' : 'linear-gradient(90deg,#CE93D8,#8E24AA)';
-  return `<div class="yedaim-row">
-    <div class="yedaim-row-label">${esc(label)}</div>
-    <div class="yedaim-bar-track"><div class="yedaim-bar-fill" style="width:${barPct}%;background:${color}"></div></div>
-    <div class="yedaim-row-pct">${pctNum === null ? '—' : Math.round(pctNum * 100) + '%'}</div>
-    <div class="yedaim-row-bonus${bonusOk ? '' : ' na'}">${bonusOk ? _yedaimMoney(bonus) : '—'}</div>
-  </div>`;
+// Pace badge (🚀/😕 from the model's own INDICATION measure, ±5% gate) plus
+// the actual gap in percentage points vs. calendar pace — user ask
+// 2026-09-06: an emoji alone doesn't say HOW far ahead/behind, just that a
+// line was crossed.
+function _yedaimPaceBadge(row) {
+  const ind = row['[PACE_INDICATION]'];
+  if (!ind) return '';
+  const yaad = _yedaimNum(row['[YAAD_PCT]']), wd = _yedaimNum(row['[WORK_DAYS_PCT]']);
+  if (yaad === null || wd === null) return ` <span class="yedaim-lb-pace">${ind}</span>`;
+  const gap = Math.round((yaad - wd) * 100);
+  const color = ind === '😕' ? '#C62828' : '#2E7D32';
+  return ` <span class="yedaim-lb-pace" style="color:${color}">${ind} ${gap >= 0 ? '+' : ''}${gap}%</span>`;
 }
 
-function _yedaimZminChip(label, pct, bonus) {
-  const pctNum = _yedaimNum(pct);
-  const bonusOk = _yedaimNum(bonus) !== null;
-  return `<div class="yedaim-zmin-chip">
-    <div class="lbl">${esc(label)}</div>
-    <div class="pct">${pctNum === null ? '—' : Math.round(pctNum * 100) + '%'}</div>
-    <div class="bns${bonusOk ? '' : ' na'}">${bonusOk ? _yedaimMoney(bonus) : '—'}</div>
-  </div>`;
-}
-
-function _yedaimCard(row, isMe) {
-  const name = row['TEAMS FORM[שם סוכן ]'] || '—';
-  const totalBonus = _yedaimNum(row['[TOTAL_BONUS]']);
-  return `<div class="yedaim-card${isMe ? ' me' : ''}">
-    <div class="yedaim-card-head">
-      <div class="yedaim-card-name">${esc(name)}${isMe ? '<span class="yedaim-me-badge">אתה</span>' : ''}</div>
-      <div class="yedaim-total-bonus${totalBonus === null ? ' na' : ''}">${totalBonus === null ? '—' : _yedaimMoney(totalBonus)}</div>
-    </div>
-    ${_yedaimRow('כספי 💰', row['[PCT_YAAD]'], row['[BONUS_KASPI]'])}
-    ${_yedaimRow('SANTA BREM', row['[PCT_SB]'], row['[BONUS_SB]'])}
-    ${_yedaimRow('NORD PORT', row['[PCT_NP]'], row['[BONUS_NP]'])}
-    ${_yedaimRow('PRESIDENT', row['[PCT_PRES]'], row['[BONUS_PRES]'])}
-    <div class="yedaim-zmin-row">
-      ${_yedaimZminChip('403001', row['[ZMIN_403001]'], row['[BONUS_ZMIN_403001]'])}
-      ${_yedaimZminChip('403002', row['[ZMIN_403002]'], row['[BONUS_ZMIN_403002]'])}
-      ${_yedaimZminChip('PRESIDENT', row['[ZMIN_PRES]'], row['[BONUS_ZMIN_PRES]'])}
-    </div>
+// Renders one ranked list (everyone on the team, sorted by this metric) —
+// cat.key/cat.bonusKey are the row field names (already suffixed _PCT/_BONUS
+// server-side for category metrics; TOTAL_BONUS is its own field). Adding a
+// new metric next month is a server/data/yedaim-categories.json edit, not a
+// change here — this function only knows field-name conventions, not any
+// specific measure.
+function _yedaimSection(cat, rows, myName) {
+  const withVal = rows.map(row => ({ row, val: _yedaimNum(row[`[${cat.key}]`]) }));
+  withVal.sort((a, b) => {
+    if ((a.val === null) !== (b.val === null)) return a.val === null ? 1 : -1;
+    return (b.val ?? 0) - (a.val ?? 0);
+  });
+  const maxVal = withVal.find(x => x.val !== null)?.val || 1;
+  const rowsHtml = withVal.map(({ row, val }, i) => {
+    const name = row['TEAMS FORM[שם סוכן ]'];
+    const isMe = name === myName;
+    const bonusVal = cat.money ? val : _yedaimNum(row[`[${cat.bonusKey}]`]);
+    const bonusOk = bonusVal !== null;
+    const barPct = val === null ? 4 : Math.max(4, Math.round((val / maxVal) * 100));
+    const valTxt = val === null ? '—' : (cat.money ? _yedaimMoney(val) : _yedaimPct(val));
+    const color = bonusOk ? 'linear-gradient(90deg,#66BB6A,#2E7D32)' : 'linear-gradient(90deg,#CE93D8,#8E24AA)';
+    return `<div class="yedaim-lb-row${isMe ? ' me' : ''}${i === 0 ? ' rank1' : ''}">
+      <div class="yedaim-lb-rank">${i + 1}</div>
+      <div class="yedaim-lb-name">${esc(name)}${isMe ? '<span class="yedaim-me-badge">אתה</span>' : ''}${cat.pace ? _yedaimPaceBadge(row) : ''}</div>
+      <div class="yedaim-lb-bar-mini"><div class="fill" style="width:${barPct}%;background:${color}"></div></div>
+      <div class="yedaim-lb-val${bonusOk ? ' money' : (val === null ? ' na' : '')}">${valTxt}</div>
+    </div>`;
+  }).join('');
+  return `<div class="yedaim-section${cat.headline ? ' headline' : ''}">
+    <div class="yedaim-section-title">${esc(cat.label)}</div>
+    ${rowsHtml}
   </div>`;
 }
 
