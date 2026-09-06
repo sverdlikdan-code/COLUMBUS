@@ -1508,6 +1508,42 @@ async function geocodeBatch(clients) {
     c.pbiLat = c.lat || null;
     c.pbiLng = c.lng || null;
 
+    // ICE clients (iceByAgent, server/index.js:383-406) keep the ORIGINAL
+    // PBI-first order untouched, per explicit user instruction 2026-09-06 —
+    // only non-ICE (FORMULA) clients get the tablet-priority cascade below.
+    // Marker: iceOnly/hevra are set directly on the client object in
+    // iceByAgent (lines 404-405) and survive every {...c} spread down to
+    // here at all 4 geocodeBatch() call sites — verified, not guessed.
+    const isIceClient = c.iceOnly === true || c.hevra === 'ICE';
+
+    // Step 1 (non-ICE only): tablet-from-orders — real observed position
+    // from the agent's device on past visits (docs/priority-gps-cross.json,
+    // built by gps-build-combined.js). Takes priority over PBI: an actual
+    // GPS fix beats whatever coordinate happens to be on file in Priority.
+    // Checked live every request straight from tabletGpsCache (in-memory
+    // Map, no API cost) rather than persisted to geocodeResolvedCache —
+    // same reasoning as PBI below: priority-gps-cross.json gets rebuilt
+    // periodically and a stale cached resolution would ignore updates.
+    // Bug found 2026-09-06: PBI was checked first here, so a client with
+    // ANY bbox-valid PBI coordinate never reached this tablet check at all
+    // — restored to tablet-priority → bbox → PBI/geocode fallback → bbox
+    // for FORMULA, per the design agreed before the 2026-08-30 revert
+    // (43279a5e). ICE explicitly excluded — see isIceClient above.
+    if (!isIceClient) {
+      const tablet = tabletGpsCache.get(String(c.custId));
+      if (tablet) {
+        const bbox = cityBBoxCache.get(c.city) ?? null;
+        if (isWithinCityBBox(tablet.lat, tablet.lng, bbox)) {
+          c.lat = tablet.lat; c.lng = tablet.lng;
+          c.gpsSource = 'tablet-order';
+          continue;
+        }
+      }
+    }
+
+    // Step 2: PBI's own coordinate — for ICE always tried first (unchanged
+    // behavior); for FORMULA, fallback when tablet has no observed position
+    // for this client, or its position fell outside the city bbox.
     const la = parseFloat(c.lat), lo = parseFloat(c.lng);
     if (isValidIL(la, lo)) {
       const bbox = cityBBoxCache.get(c.city) ?? null;
@@ -1533,9 +1569,11 @@ async function geocodeBatch(clients) {
     // Reuse a previous fallback-cascade resolution for this custId — see
     // geocodeResolvedCache above. Skips tablet-order/FORM+I+INT/PBI-sibling/
     // address-geocoding/live-GPS entirely; only a client never resolved this
-    // way before pays that cost. (PBI's own coordinate, checked above this
-    // loop, is NOT cached here — it stays live every request since it can
-    // change in Priority.) Live request 2026-09-03.
+    // way before pays that cost. (PBI's own coordinate, and — for non-ICE —
+    // tablet-order, are both checked live every request in the loop above
+    // this one and are NOT cached here, since both can change: PBI on the
+    // next Priority update, tablet data on the next gps-build-combined.js
+    // rebuild.) Live request 2026-09-03.
     const cachedResolve = geocodeResolvedCache.get(String(c.custId));
     if (cachedResolve) {
       c.lat = cachedResolve.lat; c.lng = cachedResolve.lng; c.gpsSource = cachedResolve.gpsSource;
@@ -1545,8 +1583,12 @@ async function geocodeBatch(clients) {
 
     // Step -1: tablet-from-orders — real observed position, tried before the
     // address-geocoding tiers below since an actual visit beats guessing from
-    // text, but only here (after PBI's own coordinate already had its chance
-    // above) so it can never override a client that already has a good PBI fix.
+    // text. For ICE clients this is their ONLY chance at a tablet fix (loop
+    // above skips tablet entirely for ICE, see isIceClient); for non-ICE
+    // clients that reach this point, the loop above already tried and either
+    // found nothing or failed bbox, so this re-check is a harmless no-op —
+    // kept unconditional so ICE behavior here stays byte-identical to before
+    // this fix (2026-09-06), per explicit instruction not to change ICE.
     const tablet = tabletGpsCache.get(String(c.custId));
     if (tablet) {
       const bbox = cityBBoxCache.get(c.city) ?? null;
