@@ -5,7 +5,8 @@
 // из MIVCAIIM TABLET.xlsx). Проверено вживую 2026-09-06 (см. VAULT/Meeting Notes/formula-road-app.md).
 // "Сеть" = CUSTOMERS.CUSTDES — отдельного поля с брендом сети в Priority нет.
 // Есть также в diller/icecrea/mmdint — заменить "form" на нужную БД для другой компании.
-// Окно акций: текущий месяц + месяц вперёд от сегодня (rolling, не конец календарного месяца).
+// Окно акций (2026-09-06): TODAY внутри [FROMDATE,TODATE] (идёт прямо сейчас)
+// ИЛИ FROMDATE в пределах ближайших 18 дней (скоро начнётся).
 // PRICEREC=0/NULL — акция реальна, цену ставит сама сеть на кассе, не фильтровать (2026-09-06).
 // ВАЖНО: акция часто заведена один раз на CUSTOMERS.MCUST ("לקוח מרכז" — головной клиент
 // сети), не на каждый филиал. Эта таблица показывает CUST напрямую — филиал с акцией на
@@ -28,8 +29,14 @@ FROM form.dbo.SOF_PRICEREC sp
 JOIN form.dbo.CUSTOMERS c          ON c.CUST = sp.CUST
 JOIN form.dbo.PART p               ON p.PART = sp.PART
 LEFT JOIN form.dbo.SOF_PRICEDESC pd ON pd.PRICEDESID = sp.PRICEDESID
-WHERE CAST(DATEADD(MINUTE, sp.FROMDATE, '19880101') AS date) <= DATEADD(MONTH, 1, CAST(GETDATE() AS date))
-  AND CAST(DATEADD(MINUTE, sp.TODATE,   '19880101') AS date) >= DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1)
+WHERE YEAR(CAST(DATEADD(MINUTE, sp.FROMDATE, '19880101') AS date)) = YEAR(GETDATE())
+  AND (
+    (CAST(DATEADD(MINUTE, sp.FROMDATE, '19880101') AS date) <= CAST(GETDATE() AS date)
+     AND CAST(DATEADD(MINUTE, sp.TODATE, '19880101') AS date) >= CAST(GETDATE() AS date))
+    OR
+    (CAST(DATEADD(MINUTE, sp.FROMDATE, '19880101') AS date) > CAST(GETDATE() AS date)
+     AND CAST(DATEADD(MINUTE, sp.FROMDATE, '19880101') AS date) <= DATEADD(DAY, 18, CAST(GETDATE() AS date)))
+  )
 ORDER BY c.CUSTDES, p.PARTDES
 
 "])

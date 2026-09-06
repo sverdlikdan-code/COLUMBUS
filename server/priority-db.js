@@ -402,8 +402,11 @@ async function liveOrderGpsForNewClient(custId, daysBack = 30) {
 // Акции (SOF_PRICEREC) для кнопки מבצע на карточке клиента — FORMULA + ICE MISH.
 // custId = CUSTOMERS.CUSTNAME (business code), same convention as everywhere else
 // in this file.
-// Window: [начало текущего месяца; сегодня + 1 месяц] (rolling от TODAY, не конец
-// календарного месяца — live-запрос пользователя 2026-09-06).
+// Window (live-запрос пользователя 2026-09-06, заменил более широкое "весь текущий
+// + весь следующий месяц"): показываем акцию, если TODAY внутри [FROMDATE,TODATE]
+// (реально идёт прямо сейчас), ИЛИ она ещё не началась, но FROMDATE — в пределах
+// ближайших 18 дней (агент видит, что скоро начнётся). Акции, которые либо уже
+// закончились, либо стартуют позже, чем через 2 недели, не показываем.
 // PRICEREC=0/NULL rows are NOT excluded (an earlier version did — wrong, per
 // user 2026-09-06): a promo still exists, the chain itself sets the register
 // price rather than Priority carrying a fixed one. Frontend shows "לבדוק בקופה
@@ -441,8 +444,14 @@ async function clientPromosByCustId(custId) {
               UNION
               SELECT MCUST FROM CUSTOMERS WHERE CUSTNAME = @custId AND MCUST IS NOT NULL AND MCUST <> 0
             )
-            AND CAST(DATEADD(MINUTE, SP.FROMDATE, '19880101') AS date) <= DATEADD(MONTH, 1, CAST(GETDATE() AS date))
-            AND CAST(DATEADD(MINUTE, SP.TODATE,   '19880101') AS date) >= DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1)
+            AND YEAR(CAST(DATEADD(MINUTE, SP.FROMDATE, '19880101') AS date)) = YEAR(GETDATE())
+            AND (
+              (CAST(DATEADD(MINUTE, SP.FROMDATE, '19880101') AS date) <= CAST(GETDATE() AS date)
+               AND CAST(DATEADD(MINUTE, SP.TODATE, '19880101') AS date) >= CAST(GETDATE() AS date))
+              OR
+              (CAST(DATEADD(MINUTE, SP.FROMDATE, '19880101') AS date) > CAST(GETDATE() AS date)
+               AND CAST(DATEADD(MINUTE, SP.FROMDATE, '19880101') AS date) <= DATEADD(DAY, 18, CAST(GETDATE() AS date)))
+            )
           ORDER BY P.PARTDES
         `);
       return result.recordset.map(r => ({
@@ -478,13 +487,23 @@ async function custIdsWithActivePromo(dbName) {
       FROM CUSTOMERS C
       WHERE C.CUST IN (
           SELECT DISTINCT CUST FROM SOF_PRICEREC
-            WHERE CAST(DATEADD(MINUTE, FROMDATE, '19880101') AS date) <= DATEADD(MONTH, 1, CAST(GETDATE() AS date))
-              AND CAST(DATEADD(MINUTE, TODATE,   '19880101') AS date) >= DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1)
+            WHERE YEAR(CAST(DATEADD(MINUTE, FROMDATE, '19880101') AS date)) = YEAR(GETDATE())
+              AND (
+                (CAST(DATEADD(MINUTE, FROMDATE, '19880101') AS date) <= CAST(GETDATE() AS date)
+                 AND CAST(DATEADD(MINUTE, TODATE, '19880101') AS date) >= CAST(GETDATE() AS date))
+                OR (CAST(DATEADD(MINUTE, FROMDATE, '19880101') AS date) > CAST(GETDATE() AS date)
+                    AND CAST(DATEADD(MINUTE, FROMDATE, '19880101') AS date) <= DATEADD(DAY, 18, CAST(GETDATE() AS date)))
+              )
         )
         OR C.MCUST IN (
           SELECT DISTINCT CUST FROM SOF_PRICEREC
-            WHERE CAST(DATEADD(MINUTE, FROMDATE, '19880101') AS date) <= DATEADD(MONTH, 1, CAST(GETDATE() AS date))
-              AND CAST(DATEADD(MINUTE, TODATE,   '19880101') AS date) >= DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1)
+            WHERE YEAR(CAST(DATEADD(MINUTE, FROMDATE, '19880101') AS date)) = YEAR(GETDATE())
+              AND (
+                (CAST(DATEADD(MINUTE, FROMDATE, '19880101') AS date) <= CAST(GETDATE() AS date)
+                 AND CAST(DATEADD(MINUTE, TODATE, '19880101') AS date) >= CAST(GETDATE() AS date))
+                OR (CAST(DATEADD(MINUTE, FROMDATE, '19880101') AS date) > CAST(GETDATE() AS date)
+                    AND CAST(DATEADD(MINUTE, FROMDATE, '19880101') AS date) <= DATEADD(DAY, 18, CAST(GETDATE() AS date)))
+              )
         )
     `);
     return new Set(result.recordset.map(r => String(r.CUSTNAME)));
