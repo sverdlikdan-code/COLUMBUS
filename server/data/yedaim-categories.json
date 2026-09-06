@@ -1,9 +1,9 @@
 [
-  { "key": "YAAD", "label": "כספי 💰", "pctMeasure": "% יעד כספי ביצוע", "bonusMeasure": "BONUS - כספי+", "gate": 0.89, "gateByTeam": { "SADRAN+": 0.799 } },
-  { "key": "SB", "label": "SANTA BREMOR", "pctMeasure": "% S.B.", "bonusMeasure": "BONUS SB", "gate": 0.89 },
-  { "key": "NP", "label": "NORD PORT", "pctMeasure": "% N.P.", "bonusMeasure": "BONUS NP", "gate": 0.89 },
-  { "key": "PRES", "label": "PRESIDENT", "pctMeasure": "% PRES", "bonusMeasure": "BONUS PRES", "gate": 0.89 },
+  { "key": "YAAD", "label": "כספי 💰", "pctMeasure": "% יעד כספי ביצוע", "bonusMeasure": "BONUS - כספי+", "salesMeasure": "TOTAL SALES (ללא זיכויים מרכזים)", "targetMeasure": "יעד $ для פעיל", "gate": 0.89, "gateByTeam": { "SADRAN+": 0.799 } },
+  { "key": "SB", "label": "SANTA BREMOR", "pctMeasure": "% S.B.", "bonusMeasure": "BONUS SB", "salesMeasure": "TOTAL SALES (ללא זיכויים מרכזים) for SANTA BREMOR", "targetMeasure": "יעד SB", "gate": 0.89 },
+  { "key": "NP", "label": "NORD PORT", "pctMeasure": "% N.P.", "bonusMeasure": "BONUS NP", "salesMeasure": "TOTAL SALES (ללא זיכויים מרכזים) for NORD PORT", "targetMeasure": "יעד NP", "gate": 0.89 },
+  { "key": "PRES", "label": "PRESIDENT", "pctMeasure": "% PRES", "bonusMeasure": "BONUS PRES", "salesMeasure": "SALES  PRES", "targetMeasure": "יעד PRES", "gate": 0.89 },
+  { "key": "ZMIN_PRES", "label": "זמינות PRESIDENT", "pctMeasure": "זמינות  PRESIDENT", "bonusMeasure": "BONUS זמינות PRES", "gate": 0.64 },
   { "key": "ZMIN_403001", "label": "זמינות 403001", "pctMeasure": "זמינות מוצר for 403001", "bonusMeasure": "BONUS זמינות 403001", "gate": 0.74 },
-  { "key": "ZMIN_403002", "label": "זמינות 403002", "pctMeasure": "זמינות מוצר for 403002", "bonusMeasure": "BONUS זמינות 403002", "gate": 0.74 },
-  { "key": "ZMIN_PRES", "label": "זמינות PRESIDENT", "pctMeasure": "זמינות  PRESIDENT", "bonusMeasure": "BONUS זמינות PRES", "gate": 0.64 }
+  { "key": "ZMIN_403002", "label": "זמינות 403002", "pctMeasure": "זמינות מוצר for 403002", "bonusMeasure": "BONUS זמינות 403002", "gate": 0.74 }
 ]
