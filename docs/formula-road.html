@@ -410,8 +410,8 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
    .excl-btn in the exact same row slot when a client has an active promo (see
    _primaryActionsHtml), so the two must be pixel-identical in size or the row
    visibly shifts/re-flows on the swap. Live request 2026-09-06. */
-.promo-btn{font-size:15px;flex-shrink:0;cursor:pointer;background:#FFE0B2;border:1.5px solid #FFA726;border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;transition:background .12s;}
-.promo-btn:hover{background:#FFCC80;}
+.promo-btn{font-size:15px;flex-shrink:0;cursor:pointer;background:#E3F2FD;border:1.5px solid #90CAF9;border-radius:6px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;transition:background .12s;}
+.promo-btn:hover{background:#BBDEFB;}
 /* Yedaim (team targets snapshot) Modal */
 #yedaim-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px;}
 #yedaim-modal.open{display:flex;}
@@ -431,17 +431,25 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .yedaim-month{text-align:center;font-size:12px;font-weight:700;color:#8E24AA;margin-bottom:4px;}
 .yedaim-workdays{text-align:center;font-size:11px;color:#999;margin-bottom:14px;}
 .yedaim-workdays b{color:#666;}
-/* One ranked list per category — same structure the PBI page itself used (a
-   separate table per metric, everyone in it) so the "nobody wants to be at
-   the bottom" competitive effect survives the move off screenshots. Rebuilt
-   2026-09-06 after replacing the earlier one-card-per-agent draft, which lost
-   that entirely. */
-.yedaim-section{margin-bottom:16px;}
-.yedaim-section-title{font-size:12px;font-weight:800;color:#4A148C;margin-bottom:6px;padding-inline-start:2px;}
-.yedaim-lb-row{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:9px;margin-bottom:4px;background:#FAFAFA;}
-.yedaim-lb-rank{width:20px;text-align:center;font-size:12px;font-weight:800;color:#bbb;flex-shrink:0;}
-.yedaim-lb-row.rank1 .yedaim-lb-rank{color:#F9A825;}
-.yedaim-lb-name{flex:1;font-size:13px;font-weight:700;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* Plain tables, 2-up grid — user rejected the gauge visual entirely
+   ("фиолетовые писюны — полная херь", 2026-09-06) after 4 rounds of visual
+   iteration on it. Back to what the original PBI page actually was: a table
+   per metric, everyone in it (competitive ranking still lives in row order —
+   sorted by % — just no SVG). Grid-of-2 so ~4 tables fit on one screen
+   instead of one long single-column scroll. */
+.yedaim-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media (max-width:560px){.yedaim-grid{grid-template-columns:1fr;}}
+.yedaim-section{margin-bottom:0;min-width:0;}
+.yedaim-section-title{font-size:12px;font-weight:800;color:#4A148C;margin-bottom:5px;padding-inline-start:2px;}
+.yedaim-table{width:100%;border-collapse:collapse;font-size:12px;}
+.yedaim-table th{font-size:10px;font-weight:700;color:#999;text-align:center;padding:3px 4px;border-bottom:1.5px solid #eee;}
+.yedaim-table th:first-child,.yedaim-table td:first-child{text-align:start;}
+.yedaim-table td{padding:5px 4px;text-align:center;border-bottom:1px solid #f3f3f3;white-space:nowrap;}
+.yedaim-table td.yedaim-name{text-align:start;font-weight:700;color:#333;max-width:1px;overflow:hidden;text-overflow:ellipsis;}
+.yedaim-table tr.yedaim-total{font-weight:800;background:#FAF5FF;}
+.yedaim-table tr.yedaim-total td{border-bottom:none;border-top:1.5px solid #D8B8F0;}
+.yedaim-table td.ok{color:#2E7D32;font-weight:800;}
+.yedaim-table td.bad{color:#8E24AA;}
 /* AI Analytics Modal */
 #ai-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px;}
 #ai-modal.open{display:flex;}
@@ -474,22 +482,22 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 #promo-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px;}
 #promo-modal.open{display:flex;}
 #promo-modal-box{background:#fff;border-radius:16px;width:100%;max-width:1040px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.35);}
-#promo-modal-head{background:#E65100;color:#fff;padding:14px 18px 12px;display:flex;align-items:center;gap:10px;}
+#promo-modal-head{background:var(--blue);color:#fff;padding:14px 18px 12px;display:flex;align-items:center;gap:10px;}
 #promo-modal-head .promo-title{flex:1;font-size:19px;font-weight:800;}
 #promo-modal-head .promo-close{font-size:20px;cursor:pointer;opacity:.8;padding:0 4px;}
 #promo-modal-head .promo-close:hover{opacity:1;}
 #promo-modal-body{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:14px 16px;flex:1;}
 .promo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
-.promo-card{border:1.5px solid #FFD180;border-radius:10px;overflow:hidden;background:#FFF8F0;display:flex;flex-direction:column;}
+.promo-card{border:1.5px solid #E0E0E0;border-radius:10px;overflow:hidden;background:#FAFAFA;display:flex;flex-direction:column;}
 .promo-card.promo-stale{border:2.5px solid #E53935;box-shadow:0 0 0 1px rgba(229,57,53,.25);}
 .promo-card img{width:100%;height:82px;object-fit:contain;background:#fff;}
 .promo-card .promo-noimg{width:100%;height:82px;display:flex;align-items:center;justify-content:center;background:#fff;color:#ccc;font-size:28px;}
 .promo-card-cap{padding:5px 7px;font-size:12px;color:#333;text-align:center;}
 .promo-card-cap .promo-name{display:block;font-size:11.5px;font-weight:700;color:#555;margin-bottom:2px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:ltr;unicode-bidi:isolate;}
-.promo-card-cap .promo-type{display:inline-block;font-size:10px;font-weight:800;color:#fff;background:#FFA726;border-radius:4px;padding:1px 6px;margin-bottom:2px;}
-.promo-card-cap .promo-deal{display:block;font-weight:900;color:#E65100;font-size:14px;direction:ltr;unicode-bidi:isolate;}
+.promo-card-cap .promo-type{display:inline-block;font-size:10px;font-weight:800;color:#fff;background:#78909C;border-radius:4px;padding:1px 6px;margin-bottom:2px;}
+.promo-card-cap .promo-deal{display:block;font-weight:900;color:var(--blue-dark);font-size:14px;direction:ltr;unicode-bidi:isolate;}
 .promo-card-cap .promo-deal-checkreg{direction:rtl;unicode-bidi:isolate;font-size:11px;}
-.promo-card-cap .promo-dates{display:block;color:#BF360C;font-weight:800;font-size:12px;margin-top:2px;direction:ltr;unicode-bidi:isolate;}
+.promo-card-cap .promo-dates{display:block;color:#666;font-weight:800;font-size:12px;margin-top:2px;direction:ltr;unicode-bidi:isolate;}
 .promo-oos-header{margin:14px 0 8px;padding-top:10px;border-top:1.5px dashed #ccc;font-size:13px;font-weight:800;color:#888;text-align:center;}
 .promo-oos-header + .promo-grid .promo-card{opacity:.35;filter:grayscale(60%);}
 /* Day Briefing Modal (TOP10 clients + dormant list) */
@@ -4272,7 +4280,7 @@ async function _loadYedaimTeam(team) {
         targetKey: cat.hasAmount ? cat.key + '_TARGET' : null,
       }, rows))
       .join('');
-    body.innerHTML = `${backBtn}<div class="yedaim-month">${monthHe} ${j.year}</div>${workDaysHtml}${sections || '<div class="ai-loading">אין נתונים</div>'}`;
+    body.innerHTML = `${backBtn}<div class="yedaim-month">${monthHe} ${j.year}</div>${workDaysHtml}<div class="yedaim-grid">${sections || '<div class="ai-loading">אין נתונים</div>'}</div>`;
   } catch (e) {
     body.innerHTML = `${backBtn}<div class="ai-loading" style="color:#c62828">❌ ${e.message}</div>`;
   }
@@ -4290,57 +4298,17 @@ function _yedaimMoneyShort(v) {
   return sign + Math.round(abs);
 }
 
-// Speedometer per row — one consolidated visual per user's own sketch
-// 2026-09-06 (dropped the pace emoji badge entirely — "к чёрту самолётики" —
-// and moved both numbers ONTO the dial instead of a separate table column,
-// current value top-left of the arc, target/gate top-right, same layout the
-// sketch drew). Filled arc from 0 to the current value, flat grey for the
-// rest, a dark tick marking the target/gate position. Same fixed-θ=180°-start
-// arc math as gaugeIcon() elsewhere in this file, but with large-arc-flag
-// correctly always 0 (gaugeIcon()'s `pctVal>0.5?1:0` draws the long way round
-// past 50% — not touched, only this function was ever fixed). `max` is the
-// dial's own 100% mark: for ₪-based categories the caller passes something
-// above both sales and target so the target tick isn't pinned to the far
-// right edge; for %-based ones (availability, no ₪ concept) it's a fixed
-// 130% since real ratios routinely run 100–140%.
-function _yedaimGaugeSvg(value, max, gatePos, bonusOk, valTxt, gateTxt) {
-  const cx = 48, cy = 46, r = 40;
-  const val = _yedaimNum(value) ?? 0;
-  const pctVal = max > 0 ? Math.min(Math.max(val, 0) / max, 1) : 0;
-  const angle = Math.PI * (1 - pctVal);
-  const ex = (cx + r * Math.cos(angle)).toFixed(2), ey = (cy - r * Math.sin(angle)).toFixed(2);
-  const color = bonusOk ? '#2E7D32' : '#8E24AA';
-  const bg = `M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${cx + r} ${cy}`;
-  const fillPath = pctVal > 0.01 ? `M ${cx - r} ${cy} A ${r} ${r} 0 0 0 ${ex} ${ey}` : '';
-  let tick = '';
-  if (Number.isFinite(gatePos) && max > 0) {
-    const gVal = Math.min(Math.max(gatePos, 0) / max, 1);
-    const gAngle = Math.PI * (1 - gVal);
-    const gx1 = (cx + (r - 6) * Math.cos(gAngle)).toFixed(2), gy1 = (cy - (r - 6) * Math.sin(gAngle)).toFixed(2);
-    const gx2 = (cx + (r + 6) * Math.cos(gAngle)).toFixed(2), gy2 = (cy - (r + 6) * Math.sin(gAngle)).toFixed(2);
-    tick = `<line x1="${gx1}" y1="${gy1}" x2="${gx2}" y2="${gy2}" stroke="#333" stroke-width="2.5"/>`;
-  }
-  // Gauge box is wider than the arc itself (arc occupies the left ~100px,
-  // cx/cy/r unchanged) so the current-value text (big, over the arc) and the
-  // target/gate text (small, far right) have room to not collide — they did,
-  // badly, back when the whole box was only 96px wide for both.
-  return `<svg width="180" height="54" viewBox="0 0 180 54" direction="ltr" style="display:block;flex-shrink:0;width:180px;height:54px;direction:ltr;">
-    <path d="${bg}" stroke="#E4E4E4" stroke-width="6" fill="none" stroke-linecap="round"/>
-    ${fillPath ? `<path d="${fillPath}" stroke="${color}" stroke-width="6" fill="none" stroke-linecap="round"/>` : ''}
-    ${tick}
-    <text x="6" y="14" font-size="16" font-weight="900" fill="${color}" direction="ltr" style="direction:ltr;unicode-bidi:isolate;">${esc(valTxt)}</text>
-    ${gateTxt ? `<text x="174" y="14" font-size="10" font-weight="700" fill="#999" text-anchor="end" direction="ltr" style="direction:ltr;unicode-bidi:isolate;">${esc(gateTxt)}</text>` : ''}
-  </svg>`;
-}
-
-// Renders one ranked list (everyone on the team, sorted by this metric) —
+// Plain table per category (2026-09-06, replaced the gauge entirely — "эти
+// фиолетовые писюны — полная херь" after 4 rounds trying to make it read
+// well). Money categories (SB/NP/PRES/כספי): יעד / מכירות / % columns.
+// Availability (403001/403002/PRESIDENT-זמינות, no ₪ concept): % done / %
+// required. Every table gets a total row — sum for money, plain average for
+// availability (not a true weighted branches-bought/branches-open average —
+// we only ever get the ratio per agent from DAX, not its two components, so
+// an exact team-wide ratio isn't something this data can reconstruct).
 // cat.key/cat.bonusKey are the row field names (already suffixed _PCT/_BONUS
-// server-side for category metrics; TOTAL_BONUS is its own field). Adding a
-// new metric next month is a server/data/yedaim-categories.json edit, not a
-// change here — this function only knows field-name conventions, not any
-// specific measure. Ranking always sorts by % achieved (fair across agents
-// with different-sized territories) even for categories that then DISPLAY
-// real ₪ (salesKey/targetKey) instead of the percentage.
+// server-side for category metrics). Adding a new metric next month is a
+// server/data/yedaim-categories.json edit, not a change here.
 function _yedaimSection(cat, rows) {
   const withVal = rows.map(row => ({ row, val: _yedaimNum(row[`[${cat.key}]`]) }));
   withVal.sort((a, b) => {
@@ -4348,31 +4316,58 @@ function _yedaimSection(cat, rows) {
     return (b.val ?? 0) - (a.val ?? 0);
   });
   const hasAmount = !!(cat.salesKey && cat.targetKey);
-  const rowsHtml = withVal.map(({ row, val }, i) => {
-    const name = row['TEAMS FORM[שם סוכן ]'];
-    const bonusOk = _yedaimNum(row[`[${cat.bonusKey}]`]) !== null;
-    let gaugeSvg;
-    if (hasAmount) {
+  let bodyRows, totalRow;
+  if (hasAmount) {
+    let sumSales = 0, sumTarget = 0;
+    bodyRows = withVal.map(({ row }) => {
+      const name = row['TEAMS FORM[שם סוכן ]'];
       const sales = _yedaimNum(row[`[${cat.salesKey}]`]);
       const target = _yedaimNum(row[`[${cat.targetKey}]`]);
-      const max = Math.max(sales ?? 0, target ?? 0) * 1.15 || 1;
-      const gatePct = Number.isFinite(cat.gate) ? Math.ceil(cat.gate * 100 / 5) * 5 : null;
-      const gateTxt = target !== null ? `יעד ${_yedaimMoneyShort(target)}${gatePct !== null ? ` (${gatePct}%)` : ''}` : '';
-      gaugeSvg = _yedaimGaugeSvg(sales, max, target, bonusOk, _yedaimMoneyShort(sales), gateTxt);
-    } else {
-      const gate = Number.isFinite(cat.gate) ? cat.gate : null;
-      const gateTxt = gate !== null ? `מינ׳ ${Math.ceil(gate * 100 / 5) * 5}%` : '';
-      gaugeSvg = _yedaimGaugeSvg(val, 1.3, gate, bonusOk, _yedaimPct(val), gateTxt);
-    }
-    return `<div class="yedaim-lb-row${i === 0 ? ' rank1' : ''}">
-      <div class="yedaim-lb-rank">${i + 1}</div>
-      <div class="yedaim-lb-name">${esc(name)}</div>
-      ${gaugeSvg}
+      const bonusOk = _yedaimNum(row[`[${cat.bonusKey}]`]) !== null;
+      const pct = sales !== null && target ? sales / target : null;
+      sumSales += sales || 0; sumTarget += target || 0;
+      return `<tr>
+        <td class="yedaim-name">${esc(name)}</td>
+        <td>${_yedaimMoneyShort(target)}</td>
+        <td>${_yedaimMoneyShort(sales)}</td>
+        <td class="${bonusOk ? 'ok' : ''}">${_yedaimPct(pct)}</td>
+      </tr>`;
+    }).join('');
+    const totalPct = sumTarget ? sumSales / sumTarget : null;
+    totalRow = `<tr class="yedaim-total">
+      <td>סה"כ</td><td>${_yedaimMoneyShort(sumTarget)}</td><td>${_yedaimMoneyShort(sumSales)}</td><td>${_yedaimPct(totalPct)}</td>
+    </tr>`;
+    const gatePct = Number.isFinite(cat.gate) ? Math.ceil(cat.gate * 100 / 5) * 5 : null;
+    return `<div class="yedaim-section">
+      <div class="yedaim-section-title">${esc(cat.label)}${gatePct !== null ? ` · עובר מ-${gatePct}%` : ''}</div>
+      <table class="yedaim-table">
+        <thead><tr><th>שם סוכן</th><th>יעד</th><th>מכירות</th><th>%</th></tr></thead>
+        <tbody>${bodyRows}${totalRow}</tbody>
+      </table>
     </div>`;
+  }
+  const gate = Number.isFinite(cat.gate) ? cat.gate : null;
+  const gatePct = gate !== null ? Math.ceil(gate * 100 / 5) * 5 : null;
+  let sumPct = 0, cntPct = 0;
+  bodyRows = withVal.map(({ row, val }) => {
+    const name = row['TEAMS FORM[שם סוכן ]'];
+    const bonusOk = _yedaimNum(row[`[${cat.bonusKey}]`]) !== null;
+    if (val !== null) { sumPct += val; cntPct++; }
+    return `<tr>
+      <td class="yedaim-name">${esc(name)}</td>
+      <td class="${bonusOk ? 'ok' : ''}">${_yedaimPct(val)}</td>
+      <td>${gatePct !== null ? gatePct + '%' : '—'}</td>
+    </tr>`;
   }).join('');
+  totalRow = `<tr class="yedaim-total">
+    <td>ממוצע</td><td>${cntPct ? _yedaimPct(sumPct / cntPct) : '—'}</td><td>${gatePct !== null ? gatePct + '%' : '—'}</td>
+  </tr>`;
   return `<div class="yedaim-section">
     <div class="yedaim-section-title">${esc(cat.label)}</div>
-    ${rowsHtml}
+    <table class="yedaim-table">
+      <thead><tr><th>שם סוכן</th><th>% בוצע</th><th>% עובר</th></tr></thead>
+      <tbody>${bodyRows}${totalRow}</tbody>
+    </table>
   </div>`;
 }
 
