@@ -887,6 +887,22 @@
 const API = 'https://api.sverdlik-apps.site';
 const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
+// Mahsan invite magic-link (?_inv=): same pattern as formula-road.html's agent
+// invites — token travels in the URL and lands straight in localStorage
+// (first-party storage on this GitHub Pages origin), not a cookie. Added
+// because the previous silent-login path (/auth/pbi's fr_ok cookie) is set on
+// a DIFFERENT origin (api.sverdlik-apps.site) and mobile browsers increasingly
+// block that as a third-party cookie — no IP allowlist or retry logic can fix
+// a cookie that never arrives. Read before splashEnter() ever runs so it skips
+// the cookie-based auto-login entirely once a token is already stored. 2026-09-08.
+(function() {
+  const inv = new URLSearchParams(location.search).get('_inv');
+  if (inv) {
+    try { localStorage.setItem('frToken', inv); } catch(_) {}
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+})();
+
 // ── Auto session-refresh + transient-failure retry: the PBI-issued frToken
 // (X-Session) expires after the server-side TTL of inactivity. Without this,
 // any 401 left the UI stuck (e.g. מגמה modal frozen on "טוען...", red
