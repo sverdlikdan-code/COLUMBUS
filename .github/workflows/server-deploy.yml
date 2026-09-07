@@ -8,6 +8,9 @@ on:
       - 'server/index.js'
       - 'server/priority-db.js'
       - 'server/powerbi.js'
+      - 'server/events-db.js'
+      - 'server/package.json'
+      - 'server/package-lock.json'
       - 'docs/formula-road.html'
       - 'docs/manifest.json'
       - 'docs/sw.js'
@@ -34,6 +37,7 @@ jobs:
               cd /root/COLUMBUS &&
               git fetch origin master &&
               git reset --hard origin/master &&
+              cd server && npm install --omit=dev && cd .. &&
               pm2 restart columbus-api
             "
           '
