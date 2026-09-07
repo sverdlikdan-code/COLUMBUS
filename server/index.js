@@ -5427,20 +5427,23 @@ function getClientNameMap(agentCode) {
   return map;
 }
 
-// custName + otherAgents (entering agent(s) that aren't the line's own agent)
-// onto each dayClosingByClient row. otherAgents only gets populated when the
-// DAY as a whole had more than one entering agent (reuses dayClosingSummary's
-// own byAgent, already computed) — live request 2026-09-07: "имя агента там
-// нужно только когда исполнителей больше 1", a normal single-agent day
-// shouldn't show an agent name on every row for no reason.
+// custName + a single dominant entering agent onto each dayClosingByClient
+// row, so the client can group rows into one table per agent instead of
+// repeating an agent name on every row — live request 2026-09-07 ("не надо в
+// каждую строчку писать имя — делим на 2 таблицы... в заголовке пишем один
+// раз"). Only resolved on a multi-agent day (reuses dayClosingSummary's own
+// byAgent, already computed) — a normal single-agent day leaves
+// enteringAgentCode null on every row, so the client renders one plain table,
+// no headers (per "если один то похуй"). A client split across two entering
+// agents in one day is rare — picking whichever contributed the larger sum is
+// simple and good enough; not chasing that edge case further.
 function finalizeByClient(byClient, nameMap, agentCode, summary) {
   const multiAgentDay = Array.isArray(summary.byAgent) && summary.byAgent.length > 1;
   byClient.forEach(c => {
     c.custName = nameMap.get(c.custId) || c.custId;
-    c.otherAgents = multiAgentDay
-      ? (c.agents || []).filter(a => a.agentCode && a.agentCode !== agentCode)
-        .map(a => ({ agentName: a.agentName, sum: a.sum }))
-      : [];
+    const top = multiAgentDay ? (c.agents || []).slice().sort((a, b) => b.sum - a.sum)[0] : null;
+    c.enteringAgentCode = top?.agentCode || null;
+    c.enteringAgentName = top?.agentName || null;
     delete c.agents;
   });
   return byClient;
