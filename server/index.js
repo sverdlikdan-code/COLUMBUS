@@ -995,7 +995,7 @@ app.get('/auth/pbi', dataRateLimit, mahsanIpGuard, (req, res) => {
   const managerMeta = findManagerByPbiEmail(pbiUser);
   const token = createSession(null, true, true, pbiUser, managerMeta);
   writeLog({ ts: new Date().toISOString(), event: 'login-pbi', pbiUser, managerRole: managerMeta?.role || null, ip: getRealIp(req) });
-  return res.json({ ok: true, token });
+  return res.json({ ok: true, managerName: managerMeta ? (managerMeta.nameHe || managerMeta.name) : null, token });
 });
 
 // POST /auth — unified login: manager password OR agent code → returns session token
@@ -1011,7 +1011,7 @@ app.post('/auth', (req, res) => {
   const rosterManager = findManagerByCode(codeStr);
   if (rosterManager) {
     loginAttempts.delete(ip);
-    return res.json({ ok: true, type: 'manager', token: createSession(null, true, false, null, rosterManager) });
+    return res.json({ ok: true, type: 'manager', managerName: rosterManager.nameHe || rosterManager.name, token: createSession(null, true, false, null, rosterManager) });
   }
 
   // Agent code check — validate against formula-road-data.json
@@ -1021,7 +1021,7 @@ app.post('/auth', (req, res) => {
     loginAttempts.delete(ip);
     // If this agent's clients have no manager (empty קבוצה) → they ARE a manager → see everything
     if (pbiCache?.managerAgents?.has(codeStr)) {
-      return res.json({ ok: true, type: 'manager', token: createSession(null, true) });
+      return res.json({ ok: true, type: 'manager', managerName: agent.name, token: createSession(null, true) });
     }
     return res.json({ ok: true, type: 'agent', agentCode: codeStr, agentName: agent.name, token: createSession(codeStr, false) });
   }

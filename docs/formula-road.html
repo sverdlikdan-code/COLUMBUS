@@ -2011,8 +2011,9 @@ async function initLogin(){
       const j = await r.json();
       if(j.ok && j.token){
         _saveToken(j.token);
-        localStorage.setItem('frAgent', JSON.stringify({code:'mgr',name:'מנהל',isManager:true}));
-        _logAccess('login',null,'מנהל',true);
+        const _mgrName = j.managerName || 'מנהל';
+        localStorage.setItem('frAgent', JSON.stringify({code:'mgr',name:_mgrName,isManager:true}));
+        _logAccess('login',null,_mgrName,true);
         _setupManagerPicker();
         st.step='manager';
         renderLogin();
@@ -2062,8 +2063,9 @@ async function doLogin(code){
         return;
       }
       if(j.type==='manager'){
-        localStorage.setItem('frAgent',JSON.stringify({code:'mgr',name:'מנהל',isManager:true}));
-        _logAccess('login',null,'מנהל',true);
+        const _mgrName = j.managerName || 'מנהל';
+        localStorage.setItem('frAgent',JSON.stringify({code:'mgr',name:_mgrName,isManager:true}));
+        _logAccess('login',null,_mgrName,true);
         _setupManagerPicker();
         st.step='manager';
         renderLogin();
