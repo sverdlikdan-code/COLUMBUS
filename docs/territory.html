@@ -443,6 +443,27 @@ async function loadTabletGps(){
   }catch(_){}
 }
 
+// ICE clients' tablet-from-orders GPS is less reliable than Formula clients' —
+// same rule as formula-road.html's _isTrustedGps() (live request 2026-09-03):
+// tabletGpsMode never applies to them, AI Google always gets first crack
+// instead. Single source of truth for the marker (checks both iceOnly, the
+// boolean set server-side in iceByAgent, and hevra as fallback — same dual
+// check used for the equivalent decision in server/index.js/geocodeBatch),
+// used by every automatic GPS-mode switch below instead of copy-pasting the
+// check 3 times. Found 2026-09-06: territory.html had 3 independent
+// tablet/AI switches with no ICE exception at all, unlike formula-road.html.
+function _isIceClient(c){ return c.iceOnly===true || c.hevra==='ICE'; }
+
+// Best non-tablet coordinate for a client: AI Google if available, else its
+// original PBI fix. Shared by toggleTabletGps()'s "AI mode" branch and by
+// the ICE override inside its "tablet mode" branch — both want the exact
+// same fallback shape.
+function _aiOrPbiGps(c){
+  const ai=AI_GPS[String(c.custId)];
+  if(ai?.aiLat&&ai?.aiLng) return{...c,lat:ai.aiLat,lng:ai.aiLng,gpsSource:'ai'};
+  return{...c,lat:c._pbiLat||c.lat,lng:c._pbiLng||c.lng,gpsSource:c._pbiLat?'pbi':c.gpsSource};
+}
+
 function toggleTabletGps(){
   st.tabletGpsMode=!st.tabletGpsMode;
   const btn=document.getElementById('tablet-gps-btn');
@@ -451,6 +472,10 @@ function toggleTabletGps(){
   if(st.tabletGpsMode){
     st.allClients=st.allClients.map(c=>{
       if(c.gpsSource==='correction') return c;
+      // ICE: tabletGpsMode never applies — always prefer AI Google instead
+      // (see _isIceClient above). Non-ICE fallback (no tablet fix found)
+      // is unchanged: revert to PBI, do not attempt AI here.
+      if(_isIceClient(c)) return _aiOrPbiGps(c);
       const t=TABLET_GPS[String(c.custId)];
       if(t?.lat&&t?.lng) return{...c,lat:t.lat,lng:t.lng,gpsSource:'tablet'};
       return{...c,lat:c._pbiLat||c.lat,lng:c._pbiLng||c.lng};
@@ -459,9 +484,7 @@ function toggleTabletGps(){
   } else {
     st.allClients=st.allClients.map(c=>{
       if(c.gpsSource==='correction') return c;
-      const ai=AI_GPS[String(c.custId)];
-      if(ai?.aiLat&&ai?.aiLng) return{...c,lat:ai.aiLat,lng:ai.aiLng,gpsSource:'ai'};
-      return{...c,lat:c._pbiLat||c.lat,lng:c._pbiLng||c.lng,gpsSource:c._pbiLat?'pbi':c.gpsSource};
+      return _aiOrPbiGps(c);
     });
     showToast('📍 GPS: רגיל');
   }
@@ -571,7 +594,9 @@ function nearestNeighborFrom(sLat,sLng,clients){
 function computeVisitOrder(pinFirstCustId){
   let clients=displayClients().map(c=>{
     if(c.gpsSource==='correction') return c;
-    if(st.tabletGpsMode){
+    // ICE: tabletGpsMode never applies (see _isIceClient) — falls straight
+    // to the AI check below, same as when tabletGpsMode is off for anyone.
+    if(st.tabletGpsMode&&!_isIceClient(c)){
       const t=TABLET_GPS[String(c.custId)];
       if(t?.lat&&t?.lng) return{...c,lat:t.lat,lng:t.lng};
     }
@@ -952,7 +977,9 @@ async function loadClients(cities){
   try{
     st.allClients=st.allClients.map(c=>{
       if(c.gpsSource==='correction') return c;
-      if(st.tabletGpsMode){
+      // ICE: tabletGpsMode never applies (see _isIceClient) — falls straight
+      // to the AI check below, same as when tabletGpsMode is off for anyone.
+      if(st.tabletGpsMode&&!_isIceClient(c)){
         const t=TABLET_GPS[String(c.custId)];
         if(t?.lat&&t?.lng) return{...c,lat:t.lat,lng:t.lng,gpsSource:'tablet'};
       }
