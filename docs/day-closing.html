@@ -297,7 +297,7 @@ function renderBlank(d){
     byAgentEl.style.display = '';
     byAgentEl.innerHTML = byAgent
       .sort((a,b) => b.sum - a.sum)
-      .map(a => `<div class="dc-ba-row"><b>₪${Number(a.sum||0).toLocaleString('he-IL',{maximumFractionDigits:0})}</b><span>(${a.custCount}) ${esc(a.agentName.replace(/\s*\([^)]*\)\s*$/, ''))}</span></div>`)
+      .map(a => `<div class="dc-ba-row"><b>₪${Number(a.sum||0).toLocaleString('he-IL',{maximumFractionDigits:0})}</b><span>(${a.custCount}) ${esc(a.agentName.replace(/\s*[)(][^()]*[)(]\s*$/, ''))}</span></div>`)
       .join('');
   } else {
     byAgentEl.style.display = 'none';
@@ -321,7 +321,7 @@ function renderBlank(d){
     }
     const multi = groups.size > 1;
     document.getElementById('dc-bc-groups').innerHTML = [...groups.values()].map(g => {
-      const head = multi ? `<div class="dc-bc-group-head">${esc((g.agentName||'').replace(/\s*\([^)]*\)\s*$/, '')) || agentName}</div>` : '';
+      const head = multi ? `<div class="dc-bc-group-head">${esc((g.agentName||'').replace(/\s*[)(][^()]*[)(]\s*$/, '')) || agentName}</div>` : '';
       const rows = g.rows.map((c, i) => `<tr>
         <td>${i + 1}</td>
         <td class="dc-bc-name">${esc(c.custName || c.custId)}</td>
