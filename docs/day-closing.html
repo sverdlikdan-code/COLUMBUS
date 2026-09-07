@@ -111,6 +111,19 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 .dc-tbl td.dc-qty small{font-size:13px;font-weight:700;color:#01579B;}
 #print-view.formula .dc-tbl td.dc-qty small{color:#1B5E20;}
 
+/* Per-client breakdown — on-screen only (see the HTML comment above the
+   markup for why it's excluded from the WhatsApp capture). Deliberately
+   dense: "весь список можно мелко, главное чтоб на экран влезало" — live
+   request 2026-09-07. */
+#dc-by-client-wrap{width:100%;max-width:900px;margin:14px auto 0;}
+#dc-bc-note{background:#FFF8E1;border:1px solid #FFE082;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:11px;font-weight:700;color:#795548;line-height:1.6;}
+.dc-bc-tbl{border-collapse:collapse;width:100%;font-size:11px;}
+.dc-bc-tbl th,.dc-bc-tbl td{border:1px solid #E0E0E0;padding:3px 6px;text-align:center;}
+.dc-bc-tbl th{background:#F5F5F5;color:#666;font-size:10px;}
+.dc-bc-tbl td.dc-bc-name{text-align:start;font-weight:700;color:#333;}
+.dc-bc-tbl td.dc-bc-sum{font-weight:800;color:#0D2137;white-space:nowrap;}
+.dc-bc-tbl tbody tr:nth-child(even){background:#FAFAFA;}
+
 .wa-btn{flex:1;padding:15px;background:#25D366;color:#fff;border:none;border-radius:var(--radius);font-size:15.5px;font-weight:800;cursor:pointer;font-family:inherit;text-align:center;display:none;align-items:center;justify-content:center;min-height:52px;}
 .wa-btn.show{display:flex;}
 #wa-web-btn{min-width:64px;flex:0 0 auto;background:#fff;color:var(--blue-dark);border:1.5px solid var(--sky-mid);border-radius:var(--radius);font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;}
@@ -160,6 +173,20 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
           <tbody id="dc-tbody"></tbody>
         </table>
       </div>
+    </div>
+    <!-- Per-client breakdown (2026-09-07) — deliberately OUTSIDE #print-view:
+         captureShareImage() below only snapshots #print-view, so this block
+         never reaches the WhatsApp image by construction, not by filtering it
+         out at share time. See dayClosingByClient in priority-db.js. -->
+    <div id="dc-by-client-wrap" style="display:none">
+      <div id="dc-bc-note">
+        <div>🇷🇺 Список ниже не отправляется в WhatsApp — только для вас</div>
+        <div dir="rtl">🇮🇱 הרשימה למטה לא נשלחת ב-WhatsApp — רק בשבילך</div>
+      </div>
+      <table class="dc-bc-tbl">
+        <thead><tr><th>#</th><th>לקוח</th><th>סכום</th></tr></thead>
+        <tbody id="dc-bc-tbody"></tbody>
+      </table>
     </div>
   </div>
 
@@ -272,6 +299,20 @@ function renderBlank(d){
       .join('');
   } else {
     byAgentEl.style.display = 'none';
+  }
+  // Per-client breakdown — both FORMULA and ICE, unlike dc-tbl-wrap below
+  // (SKU sellout, FORMULA-only). Lives outside #print-view, see the HTML.
+  const byClientWrap = document.getElementById('dc-by-client-wrap');
+  const byClient = Array.isArray(d.byClient) ? d.byClient : [];
+  if(byClient.length){
+    byClientWrap.style.display = '';
+    document.getElementById('dc-bc-tbody').innerHTML = byClient.map((c, i) => `<tr>
+      <td>${i + 1}</td>
+      <td class="dc-bc-name">${esc(c.custName || c.custId)}</td>
+      <td class="dc-bc-sum">₪${Number(c.sum || 0).toLocaleString('he-IL', {maximumFractionDigits:0})}</td>
+    </tr>`).join('');
+  } else {
+    byClientWrap.style.display = 'none';
   }
   if(type==='formula' && Array.isArray(d.items) && d.items.length){
     document.getElementById('dc-tbl-wrap').style.display='';

@@ -9,7 +9,7 @@ const ExcelJS = require('exceljs');
 const puppeteer = require('puppeteer');
 const sharp = require('sharp');
 const { executeDax, getDatasetRefreshTime } = require('./powerbi');
-const { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByAgentAll, dayClosingOrdersToday, liveOrderGpsForNewClient, clientPromosByCustId, custIdsWithActivePromo } = require('./priority-db');
+const { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByClient, dayClosingByAgentAll, dayClosingOrdersToday, liveOrderGpsForNewClient, clientPromosByCustId, custIdsWithActivePromo } = require('./priority-db');
 const { Resend } = require('resend');
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -5410,6 +5410,23 @@ function getAllCustIdsForAgent(agentCode) {
   return [...ids];
 }
 
+// custId -> display name for this agent's own roster (same three PBI-cached
+// lists as getAllCustIdsForAgent above) — used to label dayClosingByClient's
+// rows. Priority's own CUSTNAME column is the client's ID, not a name (see
+// dayClosingByClient in priority-db.js), so the name comes from here instead
+// of a second SQL round-trip.
+function getClientNameMap(agentCode) {
+  if (!pbiCache) return new Map();
+  const scheduled = pbiCache.byAgent?.get(agentCode) || [];
+  const unscheduled = pbiCache.noScheduleByAgent?.get(agentCode) || [];
+  const ice = pbiCache.iceByAgent?.get(agentCode) || [];
+  const map = new Map();
+  for (const c of [...scheduled, ...unscheduled, ...ice]) {
+    if (c.custId && !map.has(c.custId)) map.set(c.custId, c.custName || '');
+  }
+  return map;
+}
+
 app.get('/api/day-closing', requireAuth, dataRateLimit, async (req, res) => {
   const agentCode = String(req.query.agentCode || '').trim();
   const type = req.query.type === 'ice' ? 'ice' : 'formula';
@@ -5418,19 +5435,26 @@ app.get('/api/day-closing', requireAuth, dataRateLimit, async (req, res) => {
   // brand-new client isn't in the PBI-cached roster yet (refreshes once a
   // day), so custIds alone can't catch their order. See priority-db.js.
   const custIds = getAllCustIdsForAgent(agentCode);
+  const nameMap = getClientNameMap(agentCode);
   const todayIL = todayIsraelDate();
   try {
     if (type === 'ice') {
-      const summary = await dayClosingSummary(process.env.DB_ICECREA || 'icecrea', todayIL, custIds, agentCode, { iceMishOnly: true });
-      return res.json({ ok: true, type, ...summary, items: [] });
+      const [summary, byClient] = await Promise.all([
+        dayClosingSummary(process.env.DB_ICECREA || 'icecrea', todayIL, custIds, agentCode, { iceMishOnly: true }),
+        dayClosingByClient(process.env.DB_ICECREA || 'icecrea', todayIL, custIds, agentCode, { iceMishOnly: true }),
+      ]);
+      byClient.forEach(c => { c.custName = nameMap.get(c.custId) || c.custId; });
+      return res.json({ ok: true, type, ...summary, items: [], byClient });
     }
-    const [summary, items, imgMap] = await Promise.all([
+    const [summary, items, imgMap, byClient] = await Promise.all([
       dayClosingSummary(process.env.DB_NAME || 'form', todayIL, custIds, agentCode),
       dayClosingSellout(process.env.DB_NAME || 'form', todayIL, custIds, agentCode, DAY_CLOSING_SELLOUT_SKUS),
       fetchSelloutPhotos(DAY_CLOSING_SELLOUT_SKUS),
+      dayClosingByClient(process.env.DB_NAME || 'form', todayIL, custIds, agentCode),
     ]);
     items.forEach(it => { it.imgUrl = imgMap.get(it.sku) || ''; });
-    res.json({ ok: true, type, ...summary, items });
+    byClient.forEach(c => { c.custName = nameMap.get(c.custId) || c.custId; });
+    res.json({ ok: true, type, ...summary, items, byClient });
   } catch (e) {
     console.error('[day-closing] failed:', e.message);
     res.status(502).json({ ok: false, error: 'priority query failed' });
