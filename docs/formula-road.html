@@ -439,19 +439,22 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
    instead of one long single-column scroll. */
 .yedaim-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 @media (max-width:560px){.yedaim-grid{grid-template-columns:1fr;}}
-/* PBI-matrix look (user reference, 2026-09-06): solid header bar per section,
-   full grid lines on every cell (not just row dividers), shaded Total row —
-   card look alone still let 4 quadrants blur together at a glance. */
-.yedaim-section{margin-bottom:0;min-width:0;border:1.5px solid #C9A6E8;border-radius:8px;background:#fff;overflow:hidden;}
-.yedaim-section-title{font-size:12px;font-weight:800;color:#fff;background:#7B1FA2;padding:6px 8px;text-align:center;}
+/* Muted matrix look (2026-09-07, replaced the solid-purple everywhere version —
+   user: "детский сад", pointed back at the original PBI screenshot's own
+   conditional formatting instead): light neutral header/border, per-column
+   rank highlight (best value blue, worst pink) like PBI's color scale, gate
+   clearance shown as a small checkmark instead of a solid cell fill. */
+.yedaim-section{margin-bottom:0;min-width:0;border:1px solid #DDD;border-radius:8px;background:#fff;overflow:hidden;}
+.yedaim-section-title{font-size:12px;font-weight:800;color:#4A148C;background:#F5F3F7;padding:6px 8px;text-align:center;border-bottom:1px solid #DDD;}
 .yedaim-table{width:100%;border-collapse:collapse;font-size:12px;}
-.yedaim-table th{font-size:10px;font-weight:700;color:#666;text-align:center;padding:4px;background:#F3E5FA;border:1px solid #D8B8F0;}
+.yedaim-table th{font-size:10px;font-weight:700;color:#777;text-align:center;padding:4px;background:#FAFAFA;border:1px solid #EEE;}
 .yedaim-table th:first-child,.yedaim-table td:first-child{text-align:start;}
-.yedaim-table td{padding:5px 4px;text-align:center;border:1px solid #E4D4F0;white-space:nowrap;}
-.yedaim-table td.yedaim-name{text-align:start;font-weight:700;color:#333;max-width:1px;overflow:hidden;text-overflow:ellipsis;}
-.yedaim-table tr.yedaim-total td{font-weight:800;background:#7B1FA2;color:#fff;border-color:#7B1FA2;}
-.yedaim-table td.ok{color:#2E7D32;font-weight:800;background:#E8F5E9;}
-.yedaim-table td.bad{color:#8E24AA;}
+.yedaim-table td{padding:5px 4px;text-align:center;border:1px solid #EEE;white-space:nowrap;}
+.yedaim-table td.yedaim-name{text-align:start;font-weight:700;color:#333;white-space:normal;word-break:break-word;overflow:hidden;text-overflow:ellipsis;}
+.yedaim-table tr.yedaim-total td{font-weight:800;background:#F0F0F0;color:#333;border-color:#DDD;}
+.yedaim-table td.hi-max{background:#E3F2FD;color:#1565C0;font-weight:800;}
+.yedaim-table td.hi-min{background:#FCE4EC;color:#AD1457;font-weight:800;}
+.yedaim-table .bonus-ok{color:#2E7D32;font-weight:800;margin-inline-start:3px;}
 /* AI Analytics Modal */
 #ai-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px;}
 #ai-modal.open{display:flex;}
@@ -4360,56 +4363,69 @@ function _yedaimSection(cat, rows) {
     return (b.val ?? 0) - (a.val ?? 0);
   });
   const hasAmount = !!(cat.salesKey && cat.targetKey);
+  const gate = Number.isFinite(cat.gate) ? cat.gate : null;
+  const gatePct = gate !== null ? Math.ceil(gate * 100 / 5) * 5 : null;
+  const titleSuffix = gatePct !== null ? ` · עובר מ-${gatePct}%` : '';
   let bodyRows, totalRow;
   if (hasAmount) {
-    let sumSales = 0, sumTarget = 0;
-    bodyRows = withVal.map(({ row }) => {
+    const items = withVal.map(({ row }) => {
       const name = row['TEAMS FORM[שם סוכן ]'];
       const sales = _yedaimNum(row[`[${cat.salesKey}]`]);
       const target = _yedaimNum(row[`[${cat.targetKey}]`]);
       const bonusOk = _yedaimNum(row[`[${cat.bonusKey}]`]) !== null;
       const pct = sales !== null && target ? sales / target : null;
+      return { name, sales, target, pct, bonusOk };
+    });
+    const pctVals = items.map(i => i.pct).filter(v => v !== null);
+    const maxPct = pctVals.length ? Math.max(...pctVals) : null;
+    const minPct = pctVals.length ? Math.min(...pctVals) : null;
+    let sumSales = 0, sumTarget = 0;
+    bodyRows = items.map(({ name, sales, target, pct, bonusOk }) => {
       sumSales += sales || 0; sumTarget += target || 0;
+      const hi = pct === null || maxPct === minPct ? '' : pct === maxPct ? 'hi-max' : pct === minPct ? 'hi-min' : '';
       return `<tr>
         <td class="yedaim-name">${esc(name)}</td>
         <td>${_yedaimMoneyShort(target)}</td>
         <td>${_yedaimMoneyShort(sales)}</td>
-        <td class="${bonusOk ? 'ok' : ''}">${_yedaimPct(pct)}</td>
+        <td class="${hi}">${_yedaimPct(pct)}${bonusOk ? '<span class="bonus-ok">✓</span>' : ''}</td>
       </tr>`;
     }).join('');
     const totalPct = sumTarget ? sumSales / sumTarget : null;
     totalRow = `<tr class="yedaim-total">
       <td>סה"כ</td><td>${_yedaimMoneyShort(sumTarget)}</td><td>${_yedaimMoneyShort(sumSales)}</td><td>${_yedaimPct(totalPct)}</td>
     </tr>`;
-    const gatePct = Number.isFinite(cat.gate) ? Math.ceil(cat.gate * 100 / 5) * 5 : null;
     return `<div class="yedaim-section">
-      <div class="yedaim-section-title">${esc(cat.label)}${gatePct !== null ? ` · עובר מ-${gatePct}%` : ''}</div>
+      <div class="yedaim-section-title">${esc(cat.label)}${titleSuffix}</div>
       <table class="yedaim-table">
         <thead><tr><th>שם סוכן</th><th>יעד</th><th>מכירות</th><th>%</th></tr></thead>
         <tbody>${bodyRows}${totalRow}</tbody>
       </table>
     </div>`;
   }
-  const gate = Number.isFinite(cat.gate) ? cat.gate : null;
-  const gatePct = gate !== null ? Math.ceil(gate * 100 / 5) * 5 : null;
+  // Availability categories (403001/403002/PRESIDENT-זמינות): gate used to be
+  // its own "% עובר" column repeating the same number on every row — folded
+  // into the title suffix instead (2026-09-07), matching the money tables above.
+  const vals = withVal.map(v => v.val).filter(v => v !== null);
+  const maxVal = vals.length ? Math.max(...vals) : null;
+  const minVal = vals.length ? Math.min(...vals) : null;
   let sumPct = 0, cntPct = 0;
   bodyRows = withVal.map(({ row, val }) => {
     const name = row['TEAMS FORM[שם סוכן ]'];
     const bonusOk = _yedaimNum(row[`[${cat.bonusKey}]`]) !== null;
     if (val !== null) { sumPct += val; cntPct++; }
+    const hi = val === null || maxVal === minVal ? '' : val === maxVal ? 'hi-max' : val === minVal ? 'hi-min' : '';
     return `<tr>
       <td class="yedaim-name">${esc(name)}</td>
-      <td class="${bonusOk ? 'ok' : ''}">${_yedaimPct(val)}</td>
-      <td>${gatePct !== null ? gatePct + '%' : '—'}</td>
+      <td class="${hi}">${_yedaimPct(val)}${bonusOk ? '<span class="bonus-ok">✓</span>' : ''}</td>
     </tr>`;
   }).join('');
   totalRow = `<tr class="yedaim-total">
-    <td>ממוצע</td><td>${cntPct ? _yedaimPct(sumPct / cntPct) : '—'}</td><td>${gatePct !== null ? gatePct + '%' : '—'}</td>
+    <td>ממוצע</td><td>${cntPct ? _yedaimPct(sumPct / cntPct) : '—'}</td>
   </tr>`;
   return `<div class="yedaim-section">
-    <div class="yedaim-section-title">${esc(cat.label)}</div>
+    <div class="yedaim-section-title">${esc(cat.label)}${titleSuffix}</div>
     <table class="yedaim-table">
-      <thead><tr><th>שם סוכן</th><th>% בוצע</th><th>% עובר</th></tr></thead>
+      <thead><tr><th>שם סוכן</th><th>% בוצע</th></tr></thead>
       <tbody>${bodyRows}${totalRow}</tbody>
     </table>
   </div>`;
