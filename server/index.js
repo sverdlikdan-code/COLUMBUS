@@ -674,10 +674,17 @@ function saveSessions() {
 
 loadSessions();
 
-function createSession(agentCode, isManager, viaPbi = false, pbiUser = null) {
+function createSession(agentCode, isManager, viaPbi = false, pbiUser = null, managerMeta = null) {
   const token = crypto.randomUUID();
   const TTL = 30 * 24 * 60 * 60 * 1000; // matches fr_ok cookie Max-Age — no point outliving the auto-login cookie
-  sessions.set(token, { agentCode, isManager, viaPbi, pbiUser, expiresAt: Date.now() + TTL });
+  const sess = { agentCode, isManager, viaPbi, pbiUser, expiresAt: Date.now() + TTL };
+  if (managerMeta) {
+    sess.managerId = managerMeta.id;
+    sess.managerName = managerMeta.name;
+    sess.managerRole = managerMeta.role;
+    sess.managerTeam = managerMeta.team;
+  }
+  sessions.set(token, sess);
   // Prune expired sessions when map grows large
   if (sessions.size > 500) {
     const now = Date.now();
@@ -758,6 +765,51 @@ function loadAgentList() {
   } catch { return {}; }
 }
 
+// Manager roster — replaces the single shared MANAGER_PASS with per-manager
+// identity: personal login code (typed or magic-link name match) and/or PBI
+// USERPRINCIPALNAME(), each carrying a role that controls write access.
+// role: 'super' (read+write everywhere, e.g. the owner) | 'team' (read
+// everywhere, write only within their own PBI group/קבוצה) | 'readonly'
+// (read everywhere, write nothing). Session stays isManager:true regardless
+// of role — "sees everything" is unchanged, only mutation is gated by role.
+let managerRosterCache = null;
+function loadManagerRoster() {
+  if (managerRosterCache) return managerRosterCache;
+  try {
+    managerRosterCache = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'managers.json'), 'utf8'));
+  } catch { managerRosterCache = []; }
+  return managerRosterCache;
+}
+function findManagerByCode(code) {
+  if (!code) return null;
+  return loadManagerRoster().find(m => m.code === String(code)) || null;
+}
+function findManagerByName(name) {
+  if (!name) return null;
+  return loadManagerRoster().find(m => m.name === name || m.nameHe === name) || null;
+}
+function findManagerByPbiEmail(email) {
+  if (!email) return null;
+  const e = String(email).toLowerCase();
+  return loadManagerRoster().find(m => (m.pbiEmails || []).some(x => x.toLowerCase() === e)) || null;
+}
+// Legacy/unidentified manager sessions (no roster match — old MANAGER_PASS
+// login, or a PBI click from an email not yet in the roster) keep the
+// pre-existing unrestricted behavior: role undefined reads as "super" by
+// managerCanWrite() below, so nobody who already had access loses it.
+function managerCanWrite(session, targetAgentCode) {
+  if (!session?.isManager) return false;
+  const role = session.managerRole;
+  if (!role || role === 'super') return true;
+  if (role === 'readonly') return false;
+  if (role === 'team') {
+    if (!targetAgentCode || !pbiCache) return false;
+    const clients = pbiCache.byAgent.get(String(targetAgentCode));
+    return !!clients?.length && clients[0].manager === session.managerTeam;
+  }
+  return false;
+}
+
 // HTML escape helper for log output
 function esc(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -812,7 +864,12 @@ function _inviteRedirect(payload, res) {
   // payload.code for a manager invite is whatever placeholder was on their row
   // (not a real routable agent), so it's never passed to createSession here.
   const isManager = !!payload.isManager;
-  const sessionToken = createSession(isManager ? null : payload.code, isManager);
+  // Matched by name against the roster (payload.code is a placeholder for
+  // managers, not a real routable code) — carries role/team into the session
+  // so the magic-link path, which is how managers actually log in day to day,
+  // gets the same identity/permission resolution as the typed-code and PBI paths.
+  const managerMeta = isManager ? findManagerByName(payload.name) : null;
+  const sessionToken = createSession(isManager ? null : payload.code, isManager, false, null, managerMeta);
   const name = encodeURIComponent(payload.name || '');
   const code = encodeURIComponent(payload.code || '');
   const inv  = encodeURIComponent(sessionToken);
@@ -866,8 +923,9 @@ app.get('/auth/pbi', dataRateLimit, mahsanIpGuard, (req, res) => {
   // attribute an anonymous PBI-manager session to a real viewer, not just an IP.
   const m = cookies.match(/(?:^|;\s*)fr_pbiu=([^;]+)/);
   const pbiUser = m ? decodeURIComponent(m[1]) : null;
-  const token = createSession(null, true, true, pbiUser);
-  writeLog({ ts: new Date().toISOString(), event: 'login-pbi', pbiUser, ip: getRealIp(req) });
+  const managerMeta = findManagerByPbiEmail(pbiUser);
+  const token = createSession(null, true, true, pbiUser, managerMeta);
+  writeLog({ ts: new Date().toISOString(), event: 'login-pbi', pbiUser, managerRole: managerMeta?.role || null, ip: getRealIp(req) });
   return res.json({ ok: true, token });
 });
 
@@ -878,7 +936,18 @@ app.post('/auth', (req, res) => {
   const { code } = req.body || {};
   const codeStr = String(code || '').trim();
 
-  // Super-manager password (sees ALL managers + ALL agents)
+  // Personal manager code (server/data/managers.json) — checked before the
+  // shared MANAGER_PASS so each manager typing their own code gets identified
+  // (role/team), not lumped into one anonymous "manager" bucket.
+  const rosterManager = findManagerByCode(codeStr);
+  if (rosterManager) {
+    loginAttempts.delete(ip);
+    return res.json({ ok: true, type: 'manager', token: createSession(null, true, false, null, rosterManager) });
+  }
+
+  // Legacy shared manager password — kept as a fallback so nobody still using
+  // it gets locked out mid-migration; unidentified (no role) reads as
+  // unrestricted in managerCanWrite().
   const MANAGER_PASS = process.env.MANAGER_PASS;
   if (MANAGER_PASS && codeStr === MANAGER_PASS) {
     loginAttempts.delete(ip);
@@ -2719,7 +2788,7 @@ app.post('/save-kapua', requireAuth, mahsanIpGuard, (req, res) => {
   try {
     const data = req.body;
     if (!data || !data.picks) return res.status(400).json({ error: 'invalid payload' });
-    if (!req.session?.isManager) return res.status(403).json({ error: 'managers only' });
+    if (!req.session?.isManager || req.session.managerRole === 'readonly') return res.status(403).json({ error: 'managers only' });
     const dest = path.join(__dirname, '..', 'docs', 'kapua-base.json');
     fs.writeFileSync(dest, JSON.stringify(data, null, 2), 'utf8');
     // Audit log
@@ -4568,14 +4637,14 @@ app.get('/admin/debug-cache', dataRateLimit, async (req, res) => {
 
 // POST /admin/reload-cache — перезагрузить PBI кэш без перезапуска
 app.post('/admin/reload-cache', requireAuth, async (req, res) => {
-  if (!req.session.isManager) return res.status(403).json({ error: 'forbidden' });
+  if (!req.session.isManager || req.session.managerRole === 'readonly') return res.status(403).json({ error: 'forbidden' });
   await loadPBICache();
   res.json({ ok: true, clients: pbiCache?.clientMap?.size || 0, loadedAt: pbiCache?.loadedAt });
 });
 
 // Keep old endpoint for backward compat (redirects to new)
 app.post('/admin/reload-targets', requireAuth, async (req, res) => {
-  if (!req.session.isManager) return res.status(403).json({ error: 'forbidden' });
+  if (!req.session.isManager || req.session.managerRole === 'readonly') return res.status(403).json({ error: 'forbidden' });
   await loadPBICache();
   res.json({ ok: true, clients: pbiCache?.clientMap?.size || 0, loadedAt: pbiCache?.loadedAt });
 });
@@ -5284,7 +5353,9 @@ app.post('/api/zikuy-history', requireAuth, dataRateLimit, (req, res) => {
   let agentCode = req.session.agentCode || null;
   if (!agentCode && req.session.isManager && bodyAgentCode) {
     const a = String(bodyAgentCode);
-    if (validateAgentCode(a)) agentCode = a;
+    if (!validateAgentCode(a)) return res.status(400).json({ ok: false, error: 'invalid agent code' });
+    if (!managerCanWrite(req.session, a)) return res.status(403).json({ ok: false, error: 'forbidden' });
+    agentCode = a;
   }
   const agentName = (loadAgentList()[agentCode] || {}).name || '';
   const entry = {
@@ -5366,6 +5437,7 @@ app.post('/api/route-day-move', requireAuth, dayMoveRateLimit, (req, res) => {
   if (!agentCode && req.session.isManager && bodyAgentCode) {
     const a = String(bodyAgentCode);
     if (!validateAgentCode(a)) return res.status(400).json({ ok: false, error: 'invalid agent code' });
+    if (!managerCanWrite(req.session, a)) return res.status(403).json({ ok: false, error: 'forbidden' });
     agentCode = a;
   }
   if (!agentCode) return res.status(403).json({ ok: false, error: 'manager session -- no agent' });
