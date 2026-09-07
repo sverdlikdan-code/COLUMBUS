@@ -117,12 +117,17 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
    request 2026-09-07. */
 #dc-by-client-wrap{width:100%;max-width:900px;margin:14px auto 0;}
 #dc-bc-note{background:#FFF8E1;border:1px solid #FFE082;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:11px;font-weight:700;color:#795548;line-height:1.6;}
-.dc-bc-tbl{border-collapse:collapse;width:100%;font-size:11px;}
+.dc-bc-tbl{border-collapse:collapse;width:100%;font-size:11px;table-layout:fixed;}
 .dc-bc-tbl th,.dc-bc-tbl td{border:1px solid #E0E0E0;padding:3px 6px;text-align:center;}
 .dc-bc-tbl th{background:#F5F5F5;color:#666;font-size:10px;}
-.dc-bc-tbl td.dc-bc-name{text-align:start;font-weight:700;color:#333;}
-.dc-bc-tbl td.dc-bc-sum{font-weight:800;color:#0D2137;white-space:nowrap;}
+.dc-bc-tbl th:first-child,.dc-bc-tbl td:first-child{width:20px;padding-left:2px;padding-right:2px;color:#999;}
+.dc-bc-tbl th:last-child,.dc-bc-tbl td:last-child{width:58px;}
+.dc-bc-tbl td.dc-bc-name{text-align:start;font-weight:700;color:#333;overflow-wrap:break-word;}
+/* Sum shrunk in favor of the name column — live request 2026-09-07
+   ("суммы можно мельче в пользу имени клиента"). */
+.dc-bc-tbl td.dc-bc-sum{font-size:10px;font-weight:800;color:#0D2137;white-space:nowrap;}
 .dc-bc-tbl tbody tr:nth-child(even){background:#FAFAFA;}
+.dc-bc-other-agent{font-size:9.5px;font-weight:600;color:#8D6E63;margin-top:1px;}
 
 .wa-btn{flex:1;padding:15px;background:#25D366;color:#fff;border:none;border-radius:var(--radius);font-size:15.5px;font-weight:800;cursor:pointer;font-family:inherit;text-align:center;display:none;align-items:center;justify-content:center;min-height:52px;}
 .wa-btn.show{display:flex;}
@@ -180,8 +185,8 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
          out at share time. See dayClosingByClient in priority-db.js. -->
     <div id="dc-by-client-wrap" style="display:none">
       <div id="dc-bc-note">
-        <div>🇷🇺 Список ниже не отправляется в WhatsApp — только для вас</div>
-        <div dir="rtl">🇮🇱 הרשימה למטה לא נשלחת ב-WhatsApp — רק בשבילך</div>
+        <div>Список ниже не отправляется в WhatsApp — только для вас</div>
+        <div dir="rtl">הרשימה למטה לא נשלחת ב-WhatsApp — רק בשבילך</div>
       </div>
       <table class="dc-bc-tbl">
         <thead><tr><th>#</th><th>לקוח</th><th>סכום</th></tr></thead>
@@ -306,11 +311,20 @@ function renderBlank(d){
   const byClient = Array.isArray(d.byClient) ? d.byClient : [];
   if(byClient.length){
     byClientWrap.style.display = '';
-    document.getElementById('dc-bc-tbody').innerHTML = byClient.map((c, i) => `<tr>
+    // otherAgents is only ever non-empty on a multi-agent day (server-side
+    // gate, see finalizeByClient in index.js) — a normal single-entering-agent
+    // day never renders this line. Live request 2026-09-07.
+    document.getElementById('dc-bc-tbody').innerHTML = byClient.map((c, i) => {
+      const others = Array.isArray(c.otherAgents) ? c.otherAgents : [];
+      const otherLine = others.length
+        ? `<div class="dc-bc-other-agent">↳ ${others.map(a => esc((a.agentName||'').replace(/\s*\([^)]*\)\s*$/, ''))).join(', ')}</div>`
+        : '';
+      return `<tr>
       <td>${i + 1}</td>
-      <td class="dc-bc-name">${esc(c.custName || c.custId)}</td>
+      <td class="dc-bc-name">${esc(c.custName || c.custId)}${otherLine}</td>
       <td class="dc-bc-sum">₪${Number(c.sum || 0).toLocaleString('he-IL', {maximumFractionDigits:0})}</td>
-    </tr>`).join('');
+    </tr>`;
+    }).join('');
   } else {
     byClientWrap.style.display = 'none';
   }

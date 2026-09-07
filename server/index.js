@@ -5427,6 +5427,25 @@ function getClientNameMap(agentCode) {
   return map;
 }
 
+// custName + otherAgents (entering agent(s) that aren't the line's own agent)
+// onto each dayClosingByClient row. otherAgents only gets populated when the
+// DAY as a whole had more than one entering agent (reuses dayClosingSummary's
+// own byAgent, already computed) — live request 2026-09-07: "имя агента там
+// нужно только когда исполнителей больше 1", a normal single-agent day
+// shouldn't show an agent name on every row for no reason.
+function finalizeByClient(byClient, nameMap, agentCode, summary) {
+  const multiAgentDay = Array.isArray(summary.byAgent) && summary.byAgent.length > 1;
+  byClient.forEach(c => {
+    c.custName = nameMap.get(c.custId) || c.custId;
+    c.otherAgents = multiAgentDay
+      ? (c.agents || []).filter(a => a.agentCode && a.agentCode !== agentCode)
+        .map(a => ({ agentName: a.agentName, sum: a.sum }))
+      : [];
+    delete c.agents;
+  });
+  return byClient;
+}
+
 app.get('/api/day-closing', requireAuth, dataRateLimit, async (req, res) => {
   const agentCode = String(req.query.agentCode || '').trim();
   const type = req.query.type === 'ice' ? 'ice' : 'formula';
@@ -5443,7 +5462,7 @@ app.get('/api/day-closing', requireAuth, dataRateLimit, async (req, res) => {
         dayClosingSummary(process.env.DB_ICECREA || 'icecrea', todayIL, custIds, agentCode, { iceMishOnly: true }),
         dayClosingByClient(process.env.DB_ICECREA || 'icecrea', todayIL, custIds, agentCode, { iceMishOnly: true }),
       ]);
-      byClient.forEach(c => { c.custName = nameMap.get(c.custId) || c.custId; });
+      finalizeByClient(byClient, nameMap, agentCode, summary);
       return res.json({ ok: true, type, ...summary, items: [], byClient });
     }
     const [summary, items, imgMap, byClient] = await Promise.all([
@@ -5453,7 +5472,7 @@ app.get('/api/day-closing', requireAuth, dataRateLimit, async (req, res) => {
       dayClosingByClient(process.env.DB_NAME || 'form', todayIL, custIds, agentCode),
     ]);
     items.forEach(it => { it.imgUrl = imgMap.get(it.sku) || ''; });
-    byClient.forEach(c => { c.custName = nameMap.get(c.custId) || c.custId; });
+    finalizeByClient(byClient, nameMap, agentCode, summary);
     res.json({ ok: true, type, ...summary, items, byClient });
   } catch (e) {
     console.error('[day-closing] failed:', e.message);
