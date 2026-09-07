@@ -936,22 +936,13 @@ app.post('/auth', (req, res) => {
   const { code } = req.body || {};
   const codeStr = String(code || '').trim();
 
-  // Personal manager code (server/data/managers.json) — checked before the
-  // shared MANAGER_PASS so each manager typing their own code gets identified
-  // (role/team), not lumped into one anonymous "manager" bucket.
+  // Personal manager code (server/data/managers.json) — the shared MANAGER_PASS
+  // ("1999" for everyone) is retired as of 2026-09-07; every manager who needs
+  // to type a code manually now has their own, tied to a role/team.
   const rosterManager = findManagerByCode(codeStr);
   if (rosterManager) {
     loginAttempts.delete(ip);
     return res.json({ ok: true, type: 'manager', token: createSession(null, true, false, null, rosterManager) });
-  }
-
-  // Legacy shared manager password — kept as a fallback so nobody still using
-  // it gets locked out mid-migration; unidentified (no role) reads as
-  // unrestricted in managerCanWrite().
-  const MANAGER_PASS = process.env.MANAGER_PASS;
-  if (MANAGER_PASS && codeStr === MANAGER_PASS) {
-    loginAttempts.delete(ip);
-    return res.json({ ok: true, type: 'manager', token: createSession(null, true) });
   }
 
   // Agent code check — validate against formula-road-data.json
