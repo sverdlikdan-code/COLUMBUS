@@ -980,7 +980,13 @@ app.get('/auth/pbi', dataRateLimit, mahsanIpGuard, (req, res) => {
   // (security-audit finding, 2026-09-07). fr_pbi_seen is set ONLY in
   // formulaRoadGuard's ?k= branch, never for agent invites — require it here
   // so this door only opens for browsers that actually came through PBI.
-  if (!/(?:^|;\s*)fr_pbi_seen=1/.test(cookies)) return res.status(401).json({ ok: false });
+  // Mahsan (planogram-editor.html) has no ?k= entry point of its own to ever
+  // set fr_pbi_seen — it never touches formulaRoadGuard. Its real security
+  // boundary is the IP allowlist above (mahsanIpGuard, MAHSAN_ALLOWED_IPS on
+  // the VPS) — a request that already cleared that is trusted without the
+  // cookie. Without this, every server restart permanently broke Mahsan's
+  // silent auto-login (bug found 2026-09-07, same day as the fr_pbi_seen fix).
+  if (!req._mahsanIpVerified && !/(?:^|;\s*)fr_pbi_seen=1/.test(cookies)) return res.status(401).json({ ok: false });
   // fr_pbiu is set by formulaRoadGuard from the report button's own ?u= param
   // (meant to carry USERPRINCIPALNAME() from a DAX-built deep link) — lets us
   // attribute an anonymous PBI-manager session to a real viewer, not just an IP.
@@ -4350,7 +4356,15 @@ function mahsanIpGuard(req, res, next) {
   if (!raw.trim()) return next(); // not configured → open
   const allowed = raw.split(',').map(s => s.trim()).filter(Boolean);
   const ip = getRealIp(req);
-  if (allowed.includes(ip)) return next();
+  if (allowed.includes(ip)) {
+    // Marks the request as already IP-verified against a real, configured
+    // allowlist — a stronger trust signal than fr_pbi_seen (which
+    // planogram-editor.html has no way to ever obtain, having no ?k= entry
+    // point of its own like formulaRoadGuard's). /auth/pbi uses this to let
+    // Mahsan's silent auto-login through without requiring that cookie.
+    req._mahsanIpVerified = true;
+    return next();
+  }
   writeLog({ ts: new Date().toISOString(), event: 'mahsan-blocked', ip, path: req.path, ua: (req.headers['user-agent'] || '').substring(0, 120) });
   return res.status(403).json({ ok: false, error: 'access_denied' });
 }
