@@ -127,7 +127,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
    ("суммы можно мельче в пользу имени клиента"). */
 .dc-bc-tbl td.dc-bc-sum{font-size:10px;font-weight:800;color:#0D2137;white-space:nowrap;}
 .dc-bc-tbl tbody tr:nth-child(even){background:#FAFAFA;}
-.dc-bc-other-agent{font-size:9.5px;font-weight:600;color:#8D6E63;margin-top:1px;}
+.dc-bc-group-head{font-size:11px;font-weight:800;color:#546E7A;padding:0 2px 3px;margin-top:10px;}
 
 .wa-btn{flex:1;padding:15px;background:#25D366;color:#fff;border:none;border-radius:var(--radius);font-size:15.5px;font-weight:800;cursor:pointer;font-family:inherit;text-align:center;display:none;align-items:center;justify-content:center;min-height:52px;}
 .wa-btn.show{display:flex;}
@@ -188,10 +188,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
         <div>Список ниже не отправляется в WhatsApp — только для вас</div>
         <div dir="rtl">הרשימה למטה לא נשלחת ב-WhatsApp — רק בשבילך</div>
       </div>
-      <table class="dc-bc-tbl">
-        <thead><tr><th>#</th><th>לקוח</th><th>סכום</th></tr></thead>
-        <tbody id="dc-bc-tbody"></tbody>
-      </table>
+      <div id="dc-bc-groups"></div>
     </div>
   </div>
 
@@ -311,19 +308,26 @@ function renderBlank(d){
   const byClient = Array.isArray(d.byClient) ? d.byClient : [];
   if(byClient.length){
     byClientWrap.style.display = '';
-    // otherAgents is only ever non-empty on a multi-agent day (server-side
-    // gate, see finalizeByClient in index.js) — a normal single-entering-agent
-    // day never renders this line. Live request 2026-09-07.
-    document.getElementById('dc-bc-tbody').innerHTML = byClient.map((c, i) => {
-      const others = Array.isArray(c.otherAgents) ? c.otherAgents : [];
-      const otherLine = others.length
-        ? `<div class="dc-bc-other-agent">↳ ${others.map(a => esc((a.agentName||'').replace(/\s*\([^)]*\)\s*$/, ''))).join(', ')}</div>`
-        : '';
-      return `<tr>
-      <td>${i + 1}</td>
-      <td class="dc-bc-name">${esc(c.custName || c.custId)}${otherLine}</td>
-      <td class="dc-bc-sum">₪${Number(c.sum || 0).toLocaleString('he-IL', {maximumFractionDigits:0})}</td>
-    </tr>`;
+    // enteringAgentCode is only ever set on a multi-agent day (server-side
+    // gate, see finalizeByClient in index.js) — on a normal single-agent day
+    // every row has it null, groups collapse to one, no header renders.
+    // Live request 2026-09-07: split into one table per entering agent
+    // instead of repeating a name on every row.
+    const groups = new Map();
+    for(const c of byClient){
+      const key = c.enteringAgentCode || '';
+      if(!groups.has(key)) groups.set(key, { agentName: c.enteringAgentName, rows: [] });
+      groups.get(key).rows.push(c);
+    }
+    const multi = groups.size > 1;
+    document.getElementById('dc-bc-groups').innerHTML = [...groups.values()].map(g => {
+      const head = multi ? `<div class="dc-bc-group-head">${esc((g.agentName||'').replace(/\s*\([^)]*\)\s*$/, '')) || agentName}</div>` : '';
+      const rows = g.rows.map((c, i) => `<tr>
+        <td>${i + 1}</td>
+        <td class="dc-bc-name">${esc(c.custName || c.custId)}</td>
+        <td class="dc-bc-sum">₪${Number(c.sum || 0).toLocaleString('he-IL', {maximumFractionDigits:0})}</td>
+      </tr>`).join('');
+      return `${head}<table class="dc-bc-tbl"><thead><tr><th>#</th><th>לקוח</th><th>סכום</th></tr></thead><tbody>${rows}</tbody></table>`;
     }).join('');
   } else {
     byClientWrap.style.display = 'none';
