@@ -231,6 +231,16 @@ function apiFetch(path, opts = {}) {
 }
 function proxyImg(url){ return url ? `${API}/api/img-proxy?url=${encodeURIComponent(url)}` : ''; }
 
+// Fire-and-forget beacon to /api/event, same pattern as zikuy-order.html's
+// funnel events — this screen had 0% tracking coverage before 2026-09-07.
+let _dcCustCount = null;
+function logEvent(event, extra){
+  try{
+    apiFetch('/api/event',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({event, itemCount:_dcCustCount, ...extra})}).catch(()=>{});
+  }catch(_){}
+}
+
 document.getElementById('page-title').textContent = type==='ice' ? 'סגירת יום ICE' : 'סגירת יום פורמולה';
 
 async function init(){
@@ -243,6 +253,8 @@ async function init(){
     if(!res.ok) throw new Error('http_'+res.status);
     const d = await res.json();
     if(!d.ok) throw new Error(d.error||'unknown');
+    _dcCustCount = Number.isFinite(d.custCount) ? d.custCount : null;
+    logEvent('day_closing_opened_'+type);
     renderBlank(d);
     document.getElementById('root-body').innerHTML = '';
     showPrintFullscreen();
@@ -493,6 +505,7 @@ function downloadAndOpenWaWeb(blob){
 }
 async function sendAsImage(){
   if(_shareInFlight) return;
+  logEvent('day_closing_share_app_'+type);
   _setShareButtonsBusy(true);
   try{
     const blob=await getShareImage();
@@ -517,6 +530,7 @@ async function sendAsImage(){
 }
 async function sendViaWhatsAppWeb(){
   if(_shareInFlight) return;
+  logEvent('day_closing_share_web_'+type);
   _setShareButtonsBusy(true);
   try{
     const blob=await getShareImage();
