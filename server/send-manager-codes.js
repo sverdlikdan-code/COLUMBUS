@@ -71,7 +71,7 @@ async function main() {
       if (!resend) { console.error('  RESEND_API_KEY not configured, skipping send'); continue; }
       try {
         await resend.emails.send({
-          from: `ИИ ассистент аналитика <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
+          from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
           to: t.email,
           cc: 'd.sverdlik@DilerBMD.com',
           subject: 'FORMULA ROAD — הקוד האישי החדש שלך',
