@@ -1425,9 +1425,19 @@ async function apiFetch(url, opts={}, timeoutMs=12000){
   return r;
 }
 
+// Same cross-app cookie loss as _openInChrome() below (fr_ok never reaches
+// the server), but for the page's own data fetches — the initial /formula-road
+// load already carries _inv as a URL param and passes formulaRoadGuard's
+// gate-inv fallback, yet these plain-path fetches carried none of that and
+// were blocked outright (live case: אולג בלז', 2026-09-07). Re-attach the
+// same frToken the invite flow already stored.
+function _withInv(url){
+  const frToken=localStorage.getItem('frToken')||'';
+  return frToken ? url+'&_inv='+encodeURIComponent(frToken) : url;
+}
 async function loadCorrections(){
   try{
-    const r=await fetch('./gps-corrections.json?_='+Date.now());
+    const r=await fetch(_withInv('./gps-corrections.json?_='+Date.now()));
     if(r.ok){
       gpsCorrections=await r.json();
       // merge local corrections on top
@@ -1440,7 +1450,7 @@ async function loadCorrections(){
 let AI_GPS = {}; // custId → {aiLat, aiLng} from google-gps.json
 async function loadAiGps(){
   try{
-    const r=await fetch('./google-gps.json?_='+Date.now());
+    const r=await fetch(_withInv('./google-gps.json?_='+Date.now()));
     if(r.ok) AI_GPS=await r.json();
   }catch(_){}
 }
@@ -1476,7 +1486,7 @@ let STATIC_DATA = null; // loaded from formula-road-data.json if available
 
 async function loadStaticData(){
   try{
-    const r=await fetch('./formula-road-data.json?_='+Date.now());
+    const r=await fetch(_withInv('./formula-road-data.json?_='+Date.now()));
     if(r.ok){
       STATIC_DATA=await r.json();
       const dt=document.getElementById('data-time');
