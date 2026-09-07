@@ -537,18 +537,12 @@ app.use((req, res, next) => {
 });
 
 // ── ACCESS LOGGING ─────────────────────────────────────────────────────────
-const ACCESS_LOG = path.join(__dirname, 'access-log.json');
-
-function readLog() {
-  try { return JSON.parse(fs.readFileSync(ACCESS_LOG, 'utf8')); } catch { return []; }
-}
-
-function writeLog(entry) {
-  const log = readLog();
-  log.push(entry);
-  if (log.length > 2000) log.splice(0, log.length - 2000);
-  try { fs.writeFileSync(ACCESS_LOG, JSON.stringify(log, null, 2), 'utf8'); } catch (_) {}
-}
+// Backed by SQLite (server/db.js) as of 2026-09-07 — was a flat JSON array
+// capped at 2000 entries (~6 days of real traffic), rewritten whole-file on
+// every single event. Same writeLog(entry)/readLog() contract as before, so
+// none of the ~30 call sites elsewhere in this file needed to change.
+const { logEvent, readLog } = require('./events-db');
+function writeLog(entry) { logEvent(entry); }
 
 function getRealIp(req) {
   return req.headers['cf-connecting-ip'] ||
@@ -801,7 +795,14 @@ function findManagerByPbiEmail(email) {
 function managerCanWrite(session, targetAgentCode) {
   if (!session?.isManager) return false;
   const role = session.managerRole;
-  if (!role || role === 'super') return true;
+  // Fail-closed: a session with no resolved role (unmatched PBI email, name
+  // mismatch between managers.json and the invite roster, or anything else
+  // that fell through identification) gets NO write access, not full access.
+  // Every legitimate legacy no-role session was purged from .sessions.json
+  // during the 2026-09-07 migration, so "no role" from here on only means
+  // "identification didn't work" — never a real, already-approved manager.
+  if (!role) return false;
+  if (role === 'super') return true;
   if (role === 'readonly') return false;
   if (role === 'team') {
     if (!targetAgentCode || !pbiCache) return false;
@@ -919,6 +920,13 @@ app.get('/i/:code', dataRateLimit, (req, res) => {
 app.get('/auth/pbi', dataRateLimit, mahsanIpGuard, (req, res) => {
   const cookies = req.headers.cookie || '';
   if (!/(?:^|;\s*)fr_ok=1/.test(cookies)) return res.status(401).json({ ok: false });
+  // fr_ok alone is NOT proof of a PBI visit — it's the same cookie set by
+  // agent invite links (_inviteRedirect), so any field agent hitting this URL
+  // directly used to walk away with an unrestricted isManager:true session
+  // (security-audit finding, 2026-09-07). fr_pbi_seen is set ONLY in
+  // formulaRoadGuard's ?k= branch, never for agent invites — require it here
+  // so this door only opens for browsers that actually came through PBI.
+  if (!/(?:^|;\s*)fr_pbi_seen=1/.test(cookies)) return res.status(401).json({ ok: false });
   // fr_pbiu is set by formulaRoadGuard from the report button's own ?u= param
   // (meant to carry USERPRINCIPALNAME() from a DAX-built deep link) — lets us
   // attribute an anonymous PBI-manager session to a real viewer, not just an IP.
@@ -2223,17 +2231,20 @@ app.post('/api/client-error', dataRateLimit, (req, res) => {
 // 2026-08-25 ("behavioral analytics for internal B2B apps"): only the zikuy
 // form funnel for now, not the full category list from that research —
 // expand events.jsonl consumers if more categories are needed later.
-const EVENTS_FILE = path.join(__dirname, 'data', 'events.jsonl');
+// Generic client-side event sink — was events.jsonl (zikuy-funnel-only),
+// now the same events.db table as writeLog()/gate-*/etc, so a single query
+// covers both server-observed and client-reported events. Same request
+// contract (event/custId/itemCount in the body) — no client-side changes.
 app.post('/api/event', requireAuth, dataRateLimit, (req, res) => {
   try {
     const { event, custId, itemCount } = req.body || {};
     if (!event || typeof event !== 'string' || event.length > 40) return res.status(400).json({ error: 'invalid event' });
-    fs.appendFileSync(EVENTS_FILE, JSON.stringify({
-      ts: new Date().toISOString(), event,
+    logEvent({
+      event,
       custId: custId ? String(custId).slice(0, 20) : null,
       itemCount: Number.isFinite(itemCount) ? itemCount : null,
       agentCode: req.session?.agentCode || null,
-    }) + '\n', 'utf8');
+    });
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: 'server_error' }); }
 });

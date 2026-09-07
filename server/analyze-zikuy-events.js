@@ -1,13 +1,17 @@
-// Reads server/data/events.jsonl (pulled from VPS via scp) and reports
+// Reads server/data/events.db (pulled from VPS via scp) and reports
 // zikuy-form usage stats: fill time, abandonment rate, per-agent activity.
 // Run manually: node server/analyze-zikuy-events.js
-// Refresh the data first: scp root@31.154.67.58:/root/COLUMBUS/server/data/events.jsonl server/data/events.jsonl
-const fs = require('fs');
+// Refresh the data first: scp root@31.154.67.58:/root/COLUMBUS/server/data/events.db server/data/events.db
+// Migrated off events.jsonl 2026-09-07 when /api/event moved to SQLite (db.js)
+// — same three event types, now queried from the shared events table instead
+// of a dedicated append-only file.
 const path = require('path');
+const Database = require('better-sqlite3');
 
-const FILE = path.join(__dirname, 'data', 'events.jsonl');
-const lines = fs.readFileSync(FILE, 'utf8').trim().split('\n').filter(Boolean);
-const events = lines.map(l => JSON.parse(l));
+const db = new Database(path.join(__dirname, 'data', 'events.db'), { readonly: true });
+const ZIKUY_TYPES = ['zikuy_form_started', 'zikuy_form_submitted', 'zikuy_form_abandoned'];
+const eventRows = db.prepare(`SELECT props FROM events WHERE event_type IN (${ZIKUY_TYPES.map(() => '?').join(',')})`).all(...ZIKUY_TYPES);
+const events = eventRows.map(r => JSON.parse(r.props));
 
 // Group by custId, sorted by time — sessions are short (minutes), so
 // pairing "started" with the next terminal event for the same custId is
