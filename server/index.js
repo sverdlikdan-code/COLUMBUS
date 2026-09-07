@@ -782,7 +782,8 @@ function loadManagerRoster() {
 }
 function findManagerByCode(code) {
   if (!code) return null;
-  return loadManagerRoster().find(m => m.code === String(code)) || null;
+  const c = String(code).toUpperCase();
+  return loadManagerRoster().find(m => m.code && m.code.toUpperCase() === c) || null;
 }
 function findManagerByName(name) {
   if (!name) return null;
