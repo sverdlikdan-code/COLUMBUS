@@ -72,4 +72,26 @@ function readLog(limit = 2000) {
   } catch (_) { return []; }
 }
 
-module.exports = { logEvent, readLog, db };
+// Aggregates for /admin/tracking-dashboard — all bounded by a date-range WHERE
+// clause pushed to SQLite, never loading raw rows into Node for the rollups.
+function getDashboardStats(days = 30) {
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const totalActivities = db.prepare(`SELECT COUNT(*) c FROM events WHERE ts >= ?`).get(since).c;
+  const activeUsers = db.prepare(`SELECT COUNT(DISTINCT agent_code) c FROM events WHERE ts >= ? AND agent_code IS NOT NULL`).get(since).c;
+  const byDate = db.prepare(`
+    SELECT substr(ts,1,10) day, COUNT(*) total, COUNT(DISTINCT agent_code) users
+    FROM events WHERE ts >= ? GROUP BY day ORDER BY day
+  `).all(since);
+  const byType = db.prepare(`
+    SELECT event_type, COUNT(*) c FROM events WHERE ts >= ? GROUP BY event_type ORDER BY c DESC LIMIT 15
+  `).all(since);
+  const byAgent = db.prepare(`
+    SELECT agent_code, COUNT(*) c FROM events WHERE ts >= ? AND agent_code IS NOT NULL GROUP BY agent_code ORDER BY c DESC LIMIT 15
+  `).all(since);
+  const byManager = db.prepare(`
+    SELECT manager_id, COUNT(*) c FROM events WHERE ts >= ? AND manager_id IS NOT NULL GROUP BY manager_id ORDER BY c DESC LIMIT 15
+  `).all(since);
+  return { totalActivities, activeUsers, byDate, byType, byAgent, byManager };
+}
+
+module.exports = { logEvent, readLog, getDashboardStats, db };

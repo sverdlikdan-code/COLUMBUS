@@ -595,7 +595,7 @@ app.use((req, res, next) => {
 // capped at 2000 entries (~6 days of real traffic), rewritten whole-file on
 // every single event. Same writeLog(entry)/readLog() contract as before, so
 // none of the ~30 call sites elsewhere in this file needed to change.
-const { logEvent, readLog } = require('./events-db');
+const { logEvent, readLog, getDashboardStats } = require('./events-db');
 function writeLog(entry) { logEvent(entry); }
 
 function getRealIp(req) {
@@ -1059,6 +1059,97 @@ app.get('/admin/logs', dataRateLimit, (req, res) => {
       <tbody>${rows}</tbody></table></body></html>`);
   }
   res.json(log);
+});
+
+// GET /admin/tracking-dashboard?key=KEY&days=30 — deep-tracking overview
+// (Total activities/Active users/by-date/by-type/by-agent), same events.db
+// that backs /admin/logs. Chart.js from jsdelivr — already whitelisted in the
+// CSP script-src above, no header changes needed.
+app.get('/admin/tracking-dashboard', dataRateLimit, (req, res) => {
+  const ADMIN_KEY = process.env.ADMIN_LOG_KEY || '';
+  if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(403).json({ error: 'forbidden' });
+  const days = Math.min(parseInt(req.query.days) || 30, 365);
+  const stats = getDashboardStats(days);
+  const agents = loadAgentList();
+  const managers = loadManagerRoster();
+  const managerNameById = new Map(managers.map(m => [m.id, m.name]));
+  const byAgentNamed = stats.byAgent.map(r => ({ code: r.agent_code, name: agents[r.agent_code]?.name || r.agent_code, c: r.c }));
+  const byManagerNamed = stats.byManager.map(r => ({ name: managerNameById.get(r.manager_id) || r.manager_id, c: r.c }));
+
+  const dates = stats.byDate.map(r => r.day);
+  const totals = stats.byDate.map(r => r.total);
+  const usersPerDay = stats.byDate.map(r => r.users);
+
+  res.send(`<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8">
+  <title>Formula Road — Tracking Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <style>
+    body{font-family:Arial,sans-serif;background:#f0f2f5;margin:0;padding:24px;color:#1a1a2e}
+    h2{color:#1A3F7C;margin:0 0 20px}
+    .top{display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+    .card{background:#fff;border-radius:10px;padding:16px 20px;box-shadow:0 1px 4px rgba(0,0,0,.08);flex:1;min-width:160px}
+    .card .n{font-size:28px;font-weight:800;color:#1A3F7C}
+    .card .l{font-size:13px;color:#666;margin-bottom:4px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .panel{background:#fff;border-radius:10px;padding:16px 20px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+    .panel h3{margin:0 0 12px;font-size:15px;color:#1A3F7C}
+    canvas{max-height:280px}
+    .filters{margin-bottom:16px}
+    .filters a{margin-right:8px;padding:6px 14px;border-radius:6px;background:#fff;color:#1A3F7C;text-decoration:none;font-size:13px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+    .filters a.active{background:#1A3F7C;color:#fff}
+    @media (max-width:800px){.grid{grid-template-columns:1fr}}
+  </style></head>
+  <body>
+    <h2>📊 Formula Road — Tracking Dashboard</h2>
+    <div class="filters">
+      ${[7, 30, 90].map(d => `<a href="?key=${esc(req.query.key)}&days=${d}" class="${d === days ? 'active' : ''}">${d} дней</a>`).join('')}
+    </div>
+    <div class="top">
+      <div class="card"><div class="l">Total activities</div><div class="n">${stats.totalActivities}</div></div>
+      <div class="card"><div class="l">Active users</div><div class="n">${stats.activeUsers}</div></div>
+      <div class="card"><div class="l">Period</div><div class="n">${days}d</div></div>
+    </div>
+    <div class="grid">
+      <div class="panel" style="grid-column:1/-1"><h3>Total activities and users by date</h3><canvas id="byDate"></canvas></div>
+      <div class="panel"><h3>Most active event types</h3><canvas id="byType"></canvas></div>
+      <div class="panel"><h3>Most active agents</h3><canvas id="byAgent"></canvas></div>
+      <div class="panel" style="grid-column:1/-1"><h3>Most active managers</h3><canvas id="byManager"></canvas></div>
+    </div>
+    <script>
+      const dates = ${JSON.stringify(dates)};
+      const totals = ${JSON.stringify(totals)};
+      const usersPerDay = ${JSON.stringify(usersPerDay)};
+      const byType = ${JSON.stringify(stats.byType)};
+      const byAgent = ${JSON.stringify(byAgentNamed)};
+      const byManager = ${JSON.stringify(byManagerNamed)};
+      const teal = '#1A3F7C', tealLight = '#8fb3e0';
+      new Chart(document.getElementById('byDate'), {
+        data: {
+          labels: dates,
+          datasets: [
+            { type: 'bar', label: 'Total activities', data: totals, backgroundColor: tealLight, order: 2 },
+            { type: 'line', label: 'Active users', data: usersPerDay, borderColor: teal, yAxisID: 'y1', order: 1 },
+          ],
+        },
+        options: { scales: { y1: { position: 'right', grid: { drawOnChartArea: false } } } },
+      });
+      new Chart(document.getElementById('byType'), {
+        type: 'bar',
+        data: { labels: byType.map(r => r.event_type), datasets: [{ label: 'Events', data: byType.map(r => r.c), backgroundColor: teal }] },
+        options: { indexAxis: 'y' },
+      });
+      new Chart(document.getElementById('byAgent'), {
+        type: 'bar',
+        data: { labels: byAgent.map(r => r.name), datasets: [{ label: 'Events', data: byAgent.map(r => r.c), backgroundColor: teal }] },
+        options: { indexAxis: 'y' },
+      });
+      new Chart(document.getElementById('byManager'), {
+        type: 'bar',
+        data: { labels: byManager.map(r => r.name), datasets: [{ label: 'Events', data: byManager.map(r => r.c), backgroundColor: teal }] },
+        options: { indexAxis: 'y' },
+      });
+    </script>
+  </body></html>`);
 });
 
 // POST /admin/revoke?key=KEY&agentCode=CODE — invalidate all sessions for a specific agent
