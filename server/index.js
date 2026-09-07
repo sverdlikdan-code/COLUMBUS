@@ -36,8 +36,39 @@ const clientReturnsCache = new Map(); // custId -> { data, at: Date }
 // Per-client מבצע (SOF_PRICEREC live from Priority, not PBI) — cached per day same
 // as clientReturnsCache: window is [начало месяца; today+1mo], doesn't shift within
 // a single day, so a live re-query wouldn't show anything new until tomorrow anyway.
-// Cleared on the same successful-reload hook.
+// Persisted to disk (unlike clientReturnsCache/clientAnalyticsCache) — 2026-09-07
+// incident: the in-memory-only version got wiped by two pbiCache reloads 27s apart
+// (crash-loop from an unrelated deploy), each one a plain process restart, not an
+// actual new day — the promo data was still 100% valid but got refetched from
+// live PBI right when its API quota was already exhausted, causing a 429 in the
+// client-facing modal. pruneStaleClientPromos() (used both at load and on every
+// pbiCache reload) drops entries only when the calendar day actually changed, so
+// a same-day restart no longer throws away still-valid data.
+const CLIENT_PROMOS_CACHE_FILE = path.join(__dirname, 'data', 'client-promos-cache.json');
 const clientPromosCache = new Map(); // custId -> { data, at: Date }
+function pruneStaleClientPromos() {
+  const today = todayIsraelDate();
+  for (const [custId, entry] of clientPromosCache) {
+    const entryDay = new Date(entry.at).toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' });
+    if (entryDay !== today) clientPromosCache.delete(custId);
+  }
+}
+try {
+  const raw = JSON.parse(fs.readFileSync(CLIENT_PROMOS_CACHE_FILE, 'utf8'));
+  for (const [custId, entry] of Object.entries(raw)) clientPromosCache.set(custId, { data: entry.data, at: new Date(entry.at) });
+  pruneStaleClientPromos();
+} catch (_) { /* no file yet, or unreadable — start empty */ }
+let _saveClientPromosTimer = null;
+function saveClientPromosCache() {
+  if (_saveClientPromosTimer) return;
+  _saveClientPromosTimer = setTimeout(() => {
+    _saveClientPromosTimer = null;
+    try {
+      const obj = Object.fromEntries([...clientPromosCache].map(([k, v]) => [k, { data: v.data, at: v.at.toISOString() }]));
+      fs.writeFileSync(CLIENT_PROMOS_CACHE_FILE, JSON.stringify(obj));
+    } catch (_) { /* best-effort */ }
+  }, 5000);
+}
 
 // Per-client ניתוח לקוח (family breakdown, YoY trend, chain gaps) — same reasoning
 // as clientReturnsCache: this app has no real-time data source anywhere (the PBI
@@ -51,7 +82,30 @@ const clientAnalyticsCache = new Map(); // `${custId}_${lang}` -> { data, at: Da
 // making a real overload worse instead of recovering from a transient 500 like the
 // one that left pbiCache null for 27 minutes on 2026-08-19. If the retry also fails,
 // give up exactly like before (next scheduled reload at 06:00, or /admin/reload-cache).
+// Guard against a rapid-succession crash-loop hammering PBI's quota: a full
+// loadPBICache() run also fires prefetchYedaimLive() (6 more DAX queries), so
+// two full server starts seconds apart (2026-09-07 incident: a bad native
+// dependency crash-looped the process, two starts 27s apart burned enough of
+// the quota that an unrelated live lookup got a 429) cost ~30 DAX queries in
+// under a minute. Persists the last-attempt timestamp to disk (not memory)
+// since the whole point is surviving a process restart, not just repeat
+// calls within one process's lifetime.
+const PBI_LOAD_GUARD_FILE = path.join(__dirname, 'data', '.pbi-last-load-attempt');
+const PBI_LOAD_MIN_GAP_MS = 20000;
+async function pbiLoadStartupGuard() {
+  let lastAttempt = 0;
+  try { lastAttempt = parseInt(fs.readFileSync(PBI_LOAD_GUARD_FILE, 'utf8'), 10) || 0; } catch (_) {}
+  const now = Date.now();
+  try { fs.mkdirSync(path.dirname(PBI_LOAD_GUARD_FILE), { recursive: true }); fs.writeFileSync(PBI_LOAD_GUARD_FILE, String(now)); } catch (_) {}
+  const elapsed = now - lastAttempt;
+  if (lastAttempt && elapsed < PBI_LOAD_MIN_GAP_MS) {
+    const wait = PBI_LOAD_MIN_GAP_MS - elapsed;
+    console.log(`[PBI] Last load attempt ${elapsed}ms ago — waiting ${wait}ms before hitting PBI again (crash-loop guard)`);
+    await new Promise(r => setTimeout(r, wait));
+  }
+}
 async function loadPBICache() {
+  await pbiLoadStartupGuard();
   try {
     await _loadPBICacheAttempt();
   } catch (err) {
@@ -459,7 +513,7 @@ ROW("maxDate", CALCULATE(MAX(ALL_PARTS[תאריך]), ALL_PARTS[ASHMADOT] = "-מ�
     };
     clientReturnsCache.clear();
     clientAnalyticsCache.clear();
-    clientPromosCache.clear();
+    pruneStaleClientPromos(); // persisted cache — drop only if the calendar day actually changed
     promoCustIdsCache = { date: null, formula: [], iceMish: [] };
     _yedaimLiveCache.clear();
     prefetchYedaimLive().catch(err => console.error('[yedaim-prefetch]', err.message));
@@ -5684,7 +5738,9 @@ app.get('/api/client-promos/:custId', requireAuth, async (req, res) => {
   if (!/^\d{1,15}$/.test(custId)) return res.status(400).json({ ok: false, error: 'invalid custId' });
 
   const cached = clientPromosCache.get(custId);
-  if (cached) return res.json(cached.data);
+  if (cached && new Date(cached.at).toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' }) === todayIsraelDate()) {
+    return res.json(cached.data);
+  }
 
   try {
     let promos = await clientPromosByCustId(custId);
@@ -5765,6 +5821,7 @@ CALCULATETABLE(
 
     const responseData = { ok: true, promos };
     clientPromosCache.set(custId, { data: responseData, at: new Date() });
+    saveClientPromosCache();
     res.json(responseData);
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
