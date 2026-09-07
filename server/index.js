@@ -973,7 +973,10 @@ app.get('/i/:code', dataRateLimit, (req, res) => {
 // GET /auth/pbi — auto-login as manager if opened via PBI (fr_ok cookie present)
 app.get('/auth/pbi', dataRateLimit, mahsanIpGuard, (req, res) => {
   const cookies = req.headers.cookie || '';
-  if (!/(?:^|;\s*)fr_ok=1/.test(cookies)) return res.status(401).json({ ok: false });
+  if (!/(?:^|;\s*)fr_ok=1/.test(cookies)) {
+    writeLog({ ts: new Date().toISOString(), event: 'auth-pbi-rejected', reason: 'no_fr_ok', ip: getRealIp(req), ua: (req.headers['user-agent'] || '').substring(0, 120) });
+    return res.status(401).json({ ok: false });
+  }
   // fr_ok alone is NOT proof of a PBI visit — it's the same cookie set by
   // agent invite links (_inviteRedirect), so any field agent hitting this URL
   // directly used to walk away with an unrestricted isManager:true session
@@ -986,7 +989,10 @@ app.get('/auth/pbi', dataRateLimit, mahsanIpGuard, (req, res) => {
   // the VPS) — a request that already cleared that is trusted without the
   // cookie. Without this, every server restart permanently broke Mahsan's
   // silent auto-login (bug found 2026-09-07, same day as the fr_pbi_seen fix).
-  if (!req._mahsanIpVerified && !/(?:^|;\s*)fr_pbi_seen=1/.test(cookies)) return res.status(401).json({ ok: false });
+  if (!req._mahsanIpVerified && !/(?:^|;\s*)fr_pbi_seen=1/.test(cookies)) {
+    writeLog({ ts: new Date().toISOString(), event: 'auth-pbi-rejected', reason: 'no_fr_pbi_seen_no_ip', ip: getRealIp(req), ua: (req.headers['user-agent'] || '').substring(0, 120) });
+    return res.status(401).json({ ok: false });
+  }
   // fr_pbiu is set by formulaRoadGuard from the report button's own ?u= param
   // (meant to carry USERPRINCIPALNAME() from a DAX-built deep link) — lets us
   // attribute an anonymous PBI-manager session to a real viewer, not just an IP.
