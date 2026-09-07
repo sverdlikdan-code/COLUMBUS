@@ -4153,14 +4153,35 @@ function formulaRoadGuard(req, res, next) {
     // not just that someone did. Carried via its own cookie to /auth/pbi,
     // which is called separately (no query params) by the client JS.
     const pbiUser = req.query.u ? String(req.query.u).slice(0, 100) : '';
-    const setCookies = ['fr_ok=1; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000'];
+    // fr_pbi_seen marks "this browser really came in through the PBI ?k=
+    // gate" — separate from fr_ok (shared with agent invite links) so a
+    // repeat visit can be recognized as "known PBI device" even on the runs
+    // where the button didn't carry ?u= (e.g. a report button not yet wired
+    // to USERPRINCIPALNAME()). Never set for agent invite-link sessions,
+    // which never pass through this branch — so it can't affect their access.
+    const setCookies = [
+      'fr_ok=1; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000',
+      'fr_pbi_seen=1; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000',
+    ];
     if (pbiUser) setCookies.push(`fr_pbiu=${encodeURIComponent(pbiUser)}; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000`);
     res.setHeader('Set-Cookie', setCookies);
     writeLog({ ts: new Date().toISOString(), event: 'gate-pbi', ip: getRealIp(req), path: req.path, device: deviceType(req.headers['user-agent'] || ''), pbiUser: pbiUser || null });
     return next();
   }
   if (hasCookie) {
-    writeLog({ ts: new Date().toISOString(), event: 'gate-cookie', ip: getRealIp(req), path: req.path, device: deviceType(req.headers['user-agent'] || '') });
+    // fr_pbiu (if present) rides along on every repeat visit too (30-day
+    // cookie, same as fr_ok) — read it here so gate-cookie entries carry the
+    // same pbiUser attribution as the initial gate-pbi hit instead of going
+    // back to being anonymous the moment the query param is gone.
+    const m = cookies.match(/(?:^|;\s*)fr_pbiu=([^;]+)/);
+    const pbiUser = m ? decodeURIComponent(m[1]) : null;
+    // pbiSeen without pbiUser = a browser that genuinely came in through the
+    // PBI ?k= gate at some point but never captured an identity (report
+    // button not wired to USERPRINCIPALNAME(), or visited before that button
+    // existed) — the population to chase down for re-identification, as
+    // opposed to agent invite-link sessions which never set fr_pbi_seen.
+    const pbiSeen = /(?:^|;\s*)fr_pbi_seen=1/.test(cookies);
+    writeLog({ ts: new Date().toISOString(), event: 'gate-cookie', ip: getRealIp(req), path: req.path, device: deviceType(req.headers['user-agent'] || ''), pbiUser, pbiSeen });
     return next();
   }
   // Fallback for cross-browser hand-offs where the fr_ok cookie can't follow
