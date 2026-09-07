@@ -1672,6 +1672,39 @@ function haversineKm(la1,lo1,la2,lo2){
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
+// ICE clients have no סדר ביקור in Priority at all (server/index.js hardcodes
+// priorityOrder:9000 for every one of them, since there's nothing real to put
+// there) — left alone, that always sorts them dead last in "הגרסה שלי" mode,
+// every single day, until the agent manually drags them somewhere sane. Live
+// request 2026-09-07: instead of always-last, slot each ICE client right after
+// its geographically nearest FORMULA client — same idea as a human agent doing
+// "oh, this ICE stop is basically next door to my 3rd FORMULA visit" while
+// reading the list top to bottom. Deliberately anchors ONLY to FORMULA clients
+// (not to other already-inserted ICE ones) so a bad GPS fix on one ICE client
+// can't drag a second one along with it by chaining.
+// Only touches ORDER, never GPS/any other field — and runs on st.clients
+// before mergeWithSaved() picks it up, so it's purely the smarter *default*:
+// a saved manual placement for a given custId still wins exactly as before,
+// this only improves where a client that was never manually placed lands.
+function interleaveIceByProximity(clients){
+  const ice=clients.filter(c=>c.iceOnly);
+  const anchors=clients.filter(c=>!c.iceOnly && c.lat && c.lng);
+  if(!ice.length || !anchors.length) return clients;
+  const result=clients.filter(c=>!c.iceOnly);
+  ice.forEach(iceClient=>{
+    if(!iceClient.lat || !iceClient.lng){ result.push(iceClient); return; } // no GPS yet — keep old dead-last behavior, can't place intelligently
+    let bestIdx=-1, bestDist=Infinity;
+    result.forEach((c,i)=>{
+      if(c.iceOnly || !c.lat || !c.lng) return; // anchor to FORMULA only — see comment above
+      const d=haversineKm(iceClient.lat,iceClient.lng,c.lat,c.lng);
+      if(d<bestDist){ bestDist=d; bestIdx=i; }
+    });
+    if(bestIdx===-1){ result.push(iceClient); return; }
+    result.splice(bestIdx+1,0,iceClient);
+  });
+  return result;
+}
+
 // GPS sources trusted enough that the AI Google override layer below should
 // leave them alone: a manual correction (always, every client), and — for
 // regular (non-ICE) clients only — a real observed device GPS from an actual
@@ -2742,6 +2775,11 @@ async function initRoute(){
   }
   const demoBanner=document.getElementById('demo-banner');
   if(demoBanner) demoBanner.style.display=st.isDemo?'':'none';
+
+  // Smarter default order for ICE clients (server sends them dead-last, see
+  // interleaveIceByProximity() above) — before mergeWithSaved so a real manual
+  // placement still always wins, this only improves the fallback.
+  st.clients=interleaveIceByProximity(st.clients);
 
   // Pull server-persisted route order/day-moves into localStorage BEFORE the
   // existing readers below run — see syncRouteOverridesFromServer() for why
