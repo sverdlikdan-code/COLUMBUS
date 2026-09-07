@@ -932,6 +932,16 @@ function _inviteRedirect(payload, res) {
   res.setHeader('Set-Cookie', 'fr_ok=1; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000');
   return res.redirect(302, `https://api.sverdlik-apps.site/formula-road?_inv=${inv}&_ac=${code}&_an=${name}&_im=${isManager ? '1' : '0'}`);
 }
+// Mahsan invite: same session-in-URL pattern as _inviteRedirect above, but for
+// planogram-editor.html (GitHub Pages, different origin than the API) — no
+// fr_ok cookie set/needed, since Mahsan's client now reads _inv straight into
+// localStorage and never depends on that cross-site cookie. Session is a
+// manager/viaPbi session (same shape /auth/pbi issues), so it inherits the
+// same permission profile Mahsan already had. 2026-09-08.
+function _mahsanInviteRedirect(res) {
+  const token = createSession(null, true, true, null, null);
+  return res.redirect(302, `https://sverdlikdan-code.github.io/COLUMBUS/planogram-editor.html?_inv=${encodeURIComponent(token)}`);
+}
 const _inviteExpiredPage = `<!DOCTYPE html><html><head><meta charset=utf-8><title>קישור לא בתוקף</title></head>
 <body style="font-family:Arial;text-align:center;padding:60px;background:#f5f5f5">
 <h2 style="color:#c62828">הקישור פג תוקף</h2>
@@ -956,10 +966,10 @@ function saveShortInvites(map) {
   fs.mkdirSync(path.dirname(SHORT_INVITE_FILE), { recursive: true });
   fs.writeFileSync(SHORT_INVITE_FILE, JSON.stringify(map, null, 2), 'utf8');
 }
-function makeShortInvite(code, name, days = 30, isManager = false) {
+function makeShortInvite(code, name, days = 30, isManager = false, target = null) {
   const map = loadShortInvites();
   const short = crypto.randomBytes(5).toString('base64url'); // ~7 chars, URL-safe
-  map[short] = { code, name, exp: Date.now() + days * 24 * 60 * 60 * 1000, isManager };
+  map[short] = { code, name, exp: Date.now() + days * 24 * 60 * 60 * 1000, isManager, target };
   saveShortInvites(map);
   return `https://api.sverdlik-apps.site/i/${short}`;
 }
@@ -967,6 +977,7 @@ app.get('/i/:code', dataRateLimit, (req, res) => {
   const map = loadShortInvites();
   const payload = map[req.params.code];
   if (!payload || Date.now() > payload.exp) return res.status(400).send(_inviteExpiredPage);
+  if (payload.target === 'mahsan') return _mahsanInviteRedirect(res);
   return _inviteRedirect(payload, res);
 });
 
