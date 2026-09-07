@@ -260,6 +260,49 @@ async function dayClosingSellout(dbName, dateStr, custIds, agentCode, skuList) {
   return skuList.map(sku => ({ sku, name: bySku.get(sku)?.name || '', qty: bySku.get(sku)?.qty || 0 }));
 }
 
+// Per-client breakdown for "סגירת יום" (2026-09-07) — same today/custIds/
+// agentCode scoping as dayClosingSummary, just GROUP BY the client instead of
+// collapsed to one total. Names aren't pulled from Priority here — C.CUSTNAME
+// is the client's ID (this project's confusing Priority naming, see
+// dayClosingSummary above), the actual display name is already cached
+// per-agent in pbiCache from PBI (see getClientNameMap in index.js) — no
+// reason to add a second Hebrew-text SQL round-trip just for a name.
+async function dayClosingByClient(dbName, dateStr, custIds, agentCode, { iceMishOnly } = {}) {
+  if (!custIds.length && !agentCode) return [];
+  const pool = await getPool(dbName);
+  const req = pool.request().input('today', sql.BigInt, curdateFor(dateStr));
+  const custInList = custIds.length
+    ? custIds.map((c, i) => { req.input(`cust${i}`, sql.NVarChar, String(c)); return `@cust${i}`; }).join(',')
+    : null;
+  const orParts = [];
+  if (custInList) orParts.push(`C.CUSTNAME IN (${custInList})`);
+  if (agentCode) {
+    req.input('agentCode', sql.NVarChar, String(agentCode));
+    orParts.push(`O.AGENT = (SELECT TOP 1 AGENT FROM AGENTS WHERE AGENTCODE = @agentCode)`);
+  }
+  const orClause = orParts.join(' OR ');
+  const query = iceMishOnly ? `
+    SELECT C.CUSTNAME AS custId, SUM(OI.QPRICE * (1 - O.T$PERCENT/100.0)) AS sumPrice
+    FROM ORDERS O
+    JOIN CUSTOMERS C ON C.CUST = O.CUST
+    JOIN ORDERITEMS OI ON OI.ORD = O.ORD
+    JOIN PART P ON P.PART = OI.PART
+    JOIN FAMILY F ON F.FAMILY = P.FAMILY
+    WHERE O.CURDATE = @today AND O.ORDSTATUS <> -6 AND (${orClause}) AND F.FAMILYDES NOT LIKE N'%בודדים%'
+    GROUP BY C.CUSTNAME
+  ` : `
+    SELECT C.CUSTNAME AS custId, SUM(O.DISPRICE) AS sumPrice
+    FROM ORDERS O
+    JOIN CUSTOMERS C ON C.CUST = O.CUST
+    WHERE O.CURDATE = @today AND O.ORDSTATUS <> -6 AND (${orClause})
+    GROUP BY C.CUSTNAME
+  `;
+  const result = await req.query(query);
+  return result.recordset
+    .map(r => ({ custId: String(r.custId), sum: Math.round((Number(r.sumPrice) || 0) * 100) / 100 }))
+    .sort((a, b) => b.sum - a.sum);
+}
+
 // Team-wide FORMULA order totals for TODAY, grouped by the entering agent
 // (O.AGENT resolved to AGENTCODE) — ONE query for the whole team instead of
 // one dayClosingSummary call per agent, which is exactly the PBI-overload
@@ -513,4 +556,4 @@ async function custIdsWithActivePromo(dbName) {
   }
 }
 
-module.exports = { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByAgentAll, dayClosingOrdersToday, curdateFor, liveOrderGpsForNewClient, clientPromosByCustId, custIdsWithActivePromo };
+module.exports = { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByClient, dayClosingByAgentAll, dayClosingOrdersToday, curdateFor, liveOrderGpsForNewClient, clientPromosByCustId, custIdsWithActivePromo };
