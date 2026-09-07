@@ -261,12 +261,17 @@ async function dayClosingSellout(dbName, dateStr, custIds, agentCode, skuList) {
 }
 
 // Per-client breakdown for "סגירת יום" (2026-09-07) — same today/custIds/
-// agentCode scoping as dayClosingSummary, just GROUP BY the client instead of
-// collapsed to one total. Names aren't pulled from Priority here — C.CUSTNAME
-// is the client's ID (this project's confusing Priority naming, see
-// dayClosingSummary above), the actual display name is already cached
-// per-agent in pbiCache from PBI (see getClientNameMap in index.js) — no
-// reason to add a second Hebrew-text SQL round-trip just for a name.
+// agentCode scoping as dayClosingSummary, GROUP BY client AND entering agent
+// (not collapsed to one total) — live request the same day: flag, per client,
+// when whoever actually keyed the order into Priority isn't the agent whose
+// line is being closed (same "entering agent may not be the roster owner"
+// case dayClosingSummary's byAgent already covers for the whole day, just at
+// client granularity here instead of a day-wide subtotal). Names aren't
+// pulled from Priority here — C.CUSTNAME is the client's ID (this project's
+// confusing Priority naming, see dayClosingSummary above), the actual display
+// name is already cached per-agent in pbiCache from PBI (see
+// getClientNameMap in index.js) — no reason to add a second Hebrew-text SQL
+// round-trip just for a name.
 async function dayClosingByClient(dbName, dateStr, custIds, agentCode, { iceMishOnly } = {}) {
   if (!custIds.length && !agentCode) return [];
   const pool = await getPool(dbName);
@@ -281,26 +286,50 @@ async function dayClosingByClient(dbName, dateStr, custIds, agentCode, { iceMish
     orParts.push(`O.AGENT = (SELECT TOP 1 AGENT FROM AGENTS WHERE AGENTCODE = @agentCode)`);
   }
   const orClause = orParts.join(' OR ');
+  // MIN(O.ORD) as the order-entry sequence — CURDATE is day-only (whole days
+  // since 1988, see curdateFor above), no intra-day time on ORDERS, but ORD
+  // is Priority's own auto-incrementing document number, assigned in creation
+  // order — the closest thing to "the order the orders were placed in" this
+  // table actually has. Live request 2026-09-07: sort the client list that
+  // way instead of by sum.
   const query = iceMishOnly ? `
-    SELECT C.CUSTNAME AS custId, SUM(OI.QPRICE * (1 - O.T$PERCENT/100.0)) AS sumPrice
+    SELECT C.CUSTNAME AS custId,
+      (SELECT AGENTCODE FROM AGENTS WHERE AGENT = O.AGENT) AS enteringAgentCode,
+      (SELECT AGENTNAME FROM AGENTS WHERE AGENT = O.AGENT) AS enteringAgentName,
+      SUM(OI.QPRICE * (1 - O.T$PERCENT/100.0)) AS sumPrice, MIN(O.ORD) AS firstOrd
     FROM ORDERS O
     JOIN CUSTOMERS C ON C.CUST = O.CUST
     JOIN ORDERITEMS OI ON OI.ORD = O.ORD
     JOIN PART P ON P.PART = OI.PART
     JOIN FAMILY F ON F.FAMILY = P.FAMILY
     WHERE O.CURDATE = @today AND O.ORDSTATUS <> -6 AND (${orClause}) AND F.FAMILYDES NOT LIKE N'%בודדים%'
-    GROUP BY C.CUSTNAME
+    GROUP BY C.CUSTNAME, O.AGENT
   ` : `
-    SELECT C.CUSTNAME AS custId, SUM(O.DISPRICE) AS sumPrice
+    SELECT C.CUSTNAME AS custId,
+      (SELECT AGENTCODE FROM AGENTS WHERE AGENT = O.AGENT) AS enteringAgentCode,
+      (SELECT AGENTNAME FROM AGENTS WHERE AGENT = O.AGENT) AS enteringAgentName,
+      SUM(O.DISPRICE) AS sumPrice, MIN(O.ORD) AS firstOrd
     FROM ORDERS O
     JOIN CUSTOMERS C ON C.CUST = O.CUST
     WHERE O.CURDATE = @today AND O.ORDSTATUS <> -6 AND (${orClause})
-    GROUP BY C.CUSTNAME
+    GROUP BY C.CUSTNAME, O.AGENT
   `;
   const result = await req.query(query);
-  return result.recordset
-    .map(r => ({ custId: String(r.custId), sum: Math.round((Number(r.sumPrice) || 0) * 100) / 100 }))
-    .sort((a, b) => b.sum - a.sum);
+  // Collapse the (client, entering agent) rows down to one row per client —
+  // most clients have exactly one entering agent and this is just their sum,
+  // but a client split across agents keeps each contributor in `agents` so
+  // index.js can flag the ones that aren't the line's own agent.
+  const byClient = new Map();
+  for (const r of result.recordset) {
+    const custId = String(r.custId);
+    if (!byClient.has(custId)) byClient.set(custId, { custId, sum: 0, agents: [], firstOrd: Infinity });
+    const c = byClient.get(custId);
+    const sum = Math.round((Number(r.sumPrice) || 0) * 100) / 100;
+    c.sum = Math.round((c.sum + sum) * 100) / 100;
+    c.agents.push({ agentCode: r.enteringAgentCode || null, agentName: r.enteringAgentName || '', sum });
+    c.firstOrd = Math.min(c.firstOrd, Number(r.firstOrd) || Infinity);
+  }
+  return [...byClient.values()].sort((a, b) => a.firstOrd - b.firstOrd);
 }
 
 // Team-wide FORMULA order totals for TODAY, grouped by the entering agent
