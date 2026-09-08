@@ -293,7 +293,7 @@ async function dayClosingByClient(dbName, dateStr, custIds, agentCode, { iceMish
   // table actually has. Live request 2026-09-07: sort the client list that
   // way instead of by sum.
   const query = iceMishOnly ? `
-    SELECT C.CUSTNAME AS custId,
+    SELECT C.CUSTNAME AS custId, C.CUSTDES AS orderName,
       (SELECT AGENTCODE FROM AGENTS WHERE AGENT = O.AGENT) AS enteringAgentCode,
       (SELECT AGENTNAME FROM AGENTS WHERE AGENT = O.AGENT) AS enteringAgentName,
       SUM(OI.QPRICE * (1 - O.T$PERCENT/100.0)) AS sumPrice, MIN(O.ORD) AS firstOrd
@@ -303,26 +303,30 @@ async function dayClosingByClient(dbName, dateStr, custIds, agentCode, { iceMish
     JOIN PART P ON P.PART = OI.PART
     JOIN FAMILY F ON F.FAMILY = P.FAMILY
     WHERE O.CURDATE = @today AND O.ORDSTATUS <> -6 AND (${orClause}) AND F.FAMILYDES NOT LIKE N'%בודדים%'
-    GROUP BY C.CUSTNAME, O.AGENT
+    GROUP BY C.CUSTNAME, C.CUSTDES, O.AGENT
   ` : `
-    SELECT C.CUSTNAME AS custId,
+    SELECT C.CUSTNAME AS custId, C.CUSTDES AS orderName,
       (SELECT AGENTCODE FROM AGENTS WHERE AGENT = O.AGENT) AS enteringAgentCode,
       (SELECT AGENTNAME FROM AGENTS WHERE AGENT = O.AGENT) AS enteringAgentName,
       SUM(O.DISPRICE) AS sumPrice, MIN(O.ORD) AS firstOrd
     FROM ORDERS O
     JOIN CUSTOMERS C ON C.CUST = O.CUST
     WHERE O.CURDATE = @today AND O.ORDSTATUS <> -6 AND (${orClause})
-    GROUP BY C.CUSTNAME, O.AGENT
+    GROUP BY C.CUSTNAME, C.CUSTDES, O.AGENT
   `;
   const result = await req.query(query);
   // Collapse the (client, entering agent) rows down to one row per client —
   // most clients have exactly one entering agent and this is just their sum,
   // but a client split across agents keeps each contributor in `agents` so
   // index.js can flag the ones that aren't the line's own agent.
+  // orderName (CUSTDES) is Priority's own name for the client, straight off
+  // this order — used by finalizeByClient in index.js as a fallback for
+  // brand-new clients not yet in the PBI-cached roster/name map (that cache
+  // only refreshes once a day, see getClientNameMap there).
   const byClient = new Map();
   for (const r of result.recordset) {
     const custId = String(r.custId);
-    if (!byClient.has(custId)) byClient.set(custId, { custId, sum: 0, agents: [], firstOrd: Infinity });
+    if (!byClient.has(custId)) byClient.set(custId, { custId, orderName: String(r.orderName || '').trim(), sum: 0, agents: [], firstOrd: Infinity });
     const c = byClient.get(custId);
     const sum = Math.round((Number(r.sumPrice) || 0) * 100) / 100;
     c.sum = Math.round((c.sum + sum) * 100) / 100;

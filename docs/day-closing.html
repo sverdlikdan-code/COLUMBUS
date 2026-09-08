@@ -336,7 +336,7 @@ function renderBlank(d){
       const head = multi ? `<div class="dc-bc-group-head">${esc((g.agentName||'').replace(/\s*[)(][^()]*[)(]\s*$/, '')) || agentName}</div>` : '';
       const rows = g.rows.map((c, i) => `<tr>
         <td>${i + 1}</td>
-        <td class="dc-bc-name">${esc(c.custName || c.custId)}</td>
+        <td class="dc-bc-name">${c.isNew ? '🆕 ' : ''}${esc(c.custName || c.custId)}</td>
         <td class="dc-bc-sum">₪${Number(c.sum || 0).toLocaleString('he-IL', {maximumFractionDigits:0})}</td>
       </tr>`).join('');
       return `${head}<table class="dc-bc-tbl"><thead><tr><th>#</th><th>לקוח</th><th>סכום</th></tr></thead><tbody>${rows}</tbody></table>`;

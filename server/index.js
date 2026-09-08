@@ -5414,19 +5414,34 @@ function getAllCustIdsForAgent(agentCode) {
   return [...ids];
 }
 
-// custId -> display name for this agent's own roster (same three PBI-cached
-// lists as getAllCustIdsForAgent above) — used to label dayClosingByClient's
-// rows. Priority's own CUSTNAME column is the client's ID, not a name (see
+// custId -> display name across every agent under the same manager as
+// agentCode (same three PBI-cached lists as getAllCustIdsForAgent above,
+// merged over the whole team) — used to label dayClosingByClient's rows.
+// Priority's own CUSTNAME column is the client's ID, not a name (see
 // dayClosingByClient in priority-db.js), so the name comes from here instead
-// of a second SQL round-trip.
+// of a second SQL round-trip. Team-wide (not just agentCode's own roster) —
+// live case 2026-09-08: Vyacheslav Shulkin (238) closed two orders for
+// clients 1124011/1130050, both actually on teammate Maria Malishev's (293)
+// roster in the same ANATOL group — he covered for her, the clients aren't
+// new, they just aren't on HIS roster. Same roster-crediting pattern as
+// team-order-stats above (Oleg/Alexey case).
 function getClientNameMap(agentCode) {
   if (!pbiCache) return new Map();
-  const scheduled = pbiCache.byAgent?.get(agentCode) || [];
-  const unscheduled = pbiCache.noScheduleByAgent?.get(agentCode) || [];
-  const ice = pbiCache.iceByAgent?.get(agentCode) || [];
+  let teamAgentCodes = [agentCode];
+  for (const agents of pbiCache.agentsByManager.values()) {
+    if (agents.some(a => a.agentCode === agentCode)) {
+      teamAgentCodes = agents.map(a => a.agentCode);
+      break;
+    }
+  }
   const map = new Map();
-  for (const c of [...scheduled, ...unscheduled, ...ice]) {
-    if (c.custId && !map.has(c.custId)) map.set(c.custId, c.custName || '');
+  for (const code of teamAgentCodes) {
+    const scheduled = pbiCache.byAgent?.get(code) || [];
+    const unscheduled = pbiCache.noScheduleByAgent?.get(code) || [];
+    const ice = pbiCache.iceByAgent?.get(code) || [];
+    for (const c of [...scheduled, ...unscheduled, ...ice]) {
+      if (c.custId && !map.has(c.custId)) map.set(c.custId, c.custName || '');
+    }
   }
   return map;
 }
@@ -5444,7 +5459,12 @@ function getClientNameMap(agentCode) {
 function finalizeByClient(byClient, nameMap, agentCode, summary) {
   const multiAgentDay = Array.isArray(summary.byAgent) && summary.byAgent.length > 1;
   byClient.forEach(c => {
-    c.custName = nameMap.get(c.custId) || c.custId;
+    // Not yet in the PBI-cached roster (refreshes once a day) — the client is
+    // brand-new today. Fall back to Priority's own CUSTDES (orderName) instead
+    // of the bare ID, and flag it so the client can show a 🆕 badge.
+    c.isNew = !nameMap.has(c.custId);
+    c.custName = nameMap.get(c.custId) || c.orderName || c.custId;
+    delete c.orderName;
     const top = multiAgentDay ? (c.agents || []).slice().sort((a, b) => b.sum - a.sum)[0] : null;
     c.enteringAgentCode = top?.agentCode || null;
     c.enteringAgentName = top?.agentName || null;
