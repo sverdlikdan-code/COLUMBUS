@@ -1274,3 +1274,15 @@ v12→v13 (коммит `0fea1fa7`) — после первого бампа (v1
 **Фикс** (коммит `0e90ceff`): добавлен `_withInv()`-хелпер (`docs/formula-road.html`), дописывает `&_inv=<frToken из localStorage>` к URL — применён во всех трёх `fetch()`. Синтаксис проверен (`new Function()` на извлечённом script-блоке), задеплоено, `pm2` чистый рестарт без 429.
 
 Коммиты сессии: `a161a487` (см. выше), `fb7aff3f`/`96d849d4`/`8ca22537`/`0686a7ab` (роли менеджеров), `e0408482` (критичная дыра), `68245ca2` (пин better-sqlite3), `ad123b82` (CI npm install), `fd96eeaa` (PBI 429 фикс), `f89987ce` (дашборд), `c6c43cc6`/`59b26358`/`7f614e25` (sender name).
+
+## Баг: managerId не доходил до events.db в 3 диагностических эндпоинтах — 2026-09-08 ✅ [shipped]
+
+**Триггер:** пользователь попросил статистику за 08.09 по юзерам Formula Road. Запрос напрямую к `events.db` на VPS (не через дашборд — нужна была разбивка по `manager_id`/`agent_code`/`event_type` за календарный день по Израилю) показал 82 события, из них 48 без `agent_code`. Пользователь спросил, откуда берутся "неатрибутированные".
+
+**Диагностика чтением кода (не предположение):** 48 событий распались на два разных класса.
+- 31 — **по дизайну, не баг**: `gate-cookie` (22), `auth-pbi-rejected` (6), `mahsan-blocked` (3) — все пишутся ДО установления сессии (гейт/auth guard), identity физически ещё не существует в момент записи.
+- 17 — **реальный пробел**: `share-timing` (8), `zikuy_form_started`/`submitted` (7 суммарно), `client-error` (2). Эти 3 роута идут через `requireAuth`/soft-lookup, то есть `req.session`/`sess` в момент записи уже содержит `managerId` (кладётся в сессию в `createSession()` при менеджерском входе — PBI-кнопка, invite-ссылка, Mahsan) — но `writeLog()`/`logEvent()` в них читали только `agentCode` (у менеджерских сессий он всегда `null` по конструкции), про `managerId` просто забыли. Это тот же класс пробела, что уже чинили 2026-09-07 (см. предыдущий пункт выше), только там недоставало `managerName` в HTTP-ответе для клиента, а здесь — на сервере, в самой записи лога.
+
+**Fix scope:** пользователь явно уточнил, трогает ли фикс что-то кроме Formula Road — проверено грепом по `docs/*.html`: `/api/share-timing` и `/api/event` вызываются только со страниц Formula Road (`day-closing.html`, `zikuy-order.html`, `mekarer-order.html`), а `/api/client-error` — общий сток для JS-ошибок, дергается ещё и из `planogram-editor.html` (Mahsan). Пользователь выбрал не разносить по коммитам — правка чисто аддитивная (одно новое поле в лог-записи, не меняет ответ/поведение/авторизацию ни одного роута), риска для Mahsan нет.
+
+**Фикс** (коммит `b379b1b0`, `server/index.js`): добавлен `managerId: req.session?.managerId || null` (в `client-error` — `sess?.managerId`) в writeLog/logEvent-вызовы трёх роутов (`/api/share-timing`, `/api/client-error`, `/api/event`). `node --check` пройден, задеплоено (`git push` + `git fetch && reset --hard` на VPS + `pm2 restart`), `/health` отдал 404 (живой сервер) после рестарта.
