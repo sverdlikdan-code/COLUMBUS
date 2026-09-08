@@ -9,7 +9,8 @@ const ExcelJS = require('exceljs');
 const puppeteer = require('puppeteer');
 const sharp = require('sharp');
 const { executeDax, getDatasetRefreshTime } = require('./powerbi');
-const { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByClient, dayClosingByAgentAll, dayClosingOrdersToday, liveOrderGpsForNewClient, clientPromosByCustId, custIdsWithActivePromo } = require('./priority-db');
+const { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByClient, dayClosingByAgentAll, dayClosingOrdersToday, dayClosingIceOrdersRaw, openOrderIdsToday, liveOrderGpsForNewClient, clientPromosByCustId, custIdsWithActivePromo } = require('./priority-db');
+const dayClosingDedup = require('./day-closing-dedup');
 const { Resend } = require('resend');
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -544,14 +545,14 @@ ROW("maxDate", CALCULATE(MAX(ALL_PARTS[תאריך]), ALL_PARTS[ASHMADOT] = "-מ�
 // todayIsraelDate()) instead of assuming a fixed UTC offset, and reschedules
 // itself with a fresh setTimeout after every run (not setInterval) so a DST
 // transition self-corrects the next day instead of drifting by an hour.
-function msUntilNextIsraelSixAM() {
+function msUntilNextIsraelTime(hour, minute = 0) {
   const now = new Date();
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
   }).formatToParts(now).reduce((o, p) => (o[p.type] = p.value, o), {});
   const nowIsraelMs = (+parts.hour) * 3600000 + (+parts.minute) * 60000 + (+parts.second) * 1000;
-  const sixAmMs = 6 * 3600000;
-  let diff = sixAmMs - nowIsraelMs;
+  const targetMs = hour * 3600000 + minute * 60000;
+  let diff = targetMs - nowIsraelMs;
   if (diff <= 0) diff += 24 * 3600000;
   return diff;
 }
@@ -559,7 +560,34 @@ function scheduleDailyPBIReload() {
   setTimeout(() => {
     loadPBICache();
     scheduleDailyPBIReload();
-  }, msUntilNextIsraelSixAM());
+  }, msUntilNextIsraelTime(6, 0));
+}
+
+// Snapshots every still-open ICE order number once daily near end-of-day —
+// live case 2026-09-08: ICE orders left open by logistics delays get
+// re-counted on every day they're still sitting open (see
+// dayClosingIceOrdersRaw's comment in priority-db.js for the root cause).
+// 22:30 Israel time = user's own proposed cutoff ("ближе к 22-23:00"), late
+// enough to catch the day's real order volume, early enough that pm2's
+// occasional restart doesn't risk skipping it entirely. Recorded ORDs get
+// excluded from any LATER day's day-closing count (see
+// server/day-closing-dedup.js) — an order first seen today still counts
+// today, same-day "close day" reruns are unaffected.
+async function snapshotIceOpenOrders() {
+  try {
+    const todayIL = todayIsraelDate();
+    const ordIds = await openOrderIdsToday(process.env.DB_ICECREA || 'icecrea', todayIL);
+    dayClosingDedup.recordCounted(ordIds, todayIL);
+    console.log(`[ice-snapshot] recorded ${ordIds.length} open ICE orders for ${todayIL}`);
+  } catch (e) {
+    console.error('[ice-snapshot] failed:', e.message);
+  }
+}
+function scheduleDailyIceOrderSnapshot() {
+  setTimeout(() => {
+    snapshotIceOpenOrders();
+    scheduleDailyIceOrderSnapshot();
+  }, msUntilNextIsraelTime(22, 30));
 }
 
 const app = express();
@@ -5446,6 +5474,49 @@ function getClientNameMap() {
   return map;
 }
 
+// Builds the same {summary, byClient} shape dayClosingSummary + dayClosingByClient
+// used to produce, but from already-deduped raw per-order ICE rows (see
+// dayClosingIceOrdersRaw in priority-db.js + day-closing-dedup.js) instead of
+// two separate SQL aggregate queries — the exclusion of logistics-delayed
+// re-counted orders has to happen BEFORE aggregating into totals, which SQL
+// can't do without hitting the parameter-limit problem the old NOT-IN
+// approach ran into. FORMULA doesn't have this open-order rotation problem
+// (live report 2026-09-08: only ICE), so it keeps the original SQL-side
+// aggregation untouched.
+function buildIceDayClosingSummary(orders) {
+  const byClientMap = new Map();
+  const byAgentMap = new Map();
+  let sum = 0;
+  const custSet = new Set();
+  for (const o of orders) {
+    sum += o.sum;
+    custSet.add(o.custId);
+    if (!byClientMap.has(o.custId)) {
+      byClientMap.set(o.custId, { custId: o.custId, orderName: o.orderName, sum: 0, agents: [], firstOrd: Infinity });
+    }
+    const c = byClientMap.get(o.custId);
+    c.sum = Math.round((c.sum + o.sum) * 100) / 100;
+    c.agents.push({ agentCode: o.enteringAgentCode, agentName: o.enteringAgentName || '', sum: o.sum });
+    c.firstOrd = Math.min(c.firstOrd, Number(o.ord) || Infinity);
+
+    const agentKey = o.enteringAgentCode || '';
+    if (!byAgentMap.has(agentKey)) {
+      byAgentMap.set(agentKey, { agentCode: o.enteringAgentCode, agentName: o.enteringAgentName || '', custSet: new Set(), sum: 0 });
+    }
+    const a = byAgentMap.get(agentKey);
+    a.custSet.add(o.custId);
+    a.sum = Math.round((a.sum + o.sum) * 100) / 100;
+  }
+  const byClient = [...byClientMap.values()].sort((a, b) => a.firstOrd - b.firstOrd);
+  const byAgent = [...byAgentMap.values()].map(a => ({
+    agentCode: a.agentCode, agentName: a.agentName, custCount: a.custSet.size, sum: a.sum,
+  }));
+  return {
+    summary: { custCount: custSet.size, sum: Math.round(sum * 100) / 100, byAgent },
+    byClient,
+  };
+}
+
 // custName + a single dominant entering agent onto each dayClosingByClient
 // row, so the client can group rows into one table per agent instead of
 // repeating an agent name on every row — live request 2026-09-07 ("не надо в
@@ -5499,10 +5570,9 @@ app.get('/api/day-closing', requireAuth, dataRateLimit, async (req, res) => {
   const todayIL = todayIsraelDate();
   try {
     if (type === 'ice') {
-      const [summary, byClient] = await Promise.all([
-        dayClosingSummary(process.env.DB_ICECREA || 'icecrea', todayIL, custIds, agentCode, { iceMishOnly: true }),
-        dayClosingByClient(process.env.DB_ICECREA || 'icecrea', todayIL, custIds, agentCode, { iceMishOnly: true }),
-      ]);
+      const rawOrders = await dayClosingIceOrdersRaw(process.env.DB_ICECREA || 'icecrea', todayIL, custIds, agentCode);
+      const orders = dayClosingDedup.filterUncounted(rawOrders, todayIL);
+      const { summary, byClient } = buildIceDayClosingSummary(orders);
       finalizeByClient(byClient, nameMap, agentCode, summary);
       return res.json({ ok: true, type, ...summary, items: [], byClient });
     }
@@ -6846,6 +6916,7 @@ app.listen(PORT, async () => {
   console.log(`Columbus server running on port ${PORT}`);
   await loadPBICache();
   scheduleDailyPBIReload();
+  scheduleDailyIceOrderSnapshot();
 });
 
 // Flush sessions to disk before pm2 restart/shutdown
