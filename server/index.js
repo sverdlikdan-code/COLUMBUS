@@ -2363,6 +2363,7 @@ app.post('/api/share-timing', requireAuth, dataRateLimit, (req, res) => {
       custId: custId ? String(custId).slice(0, 20) : null,
       agentCode: req.session?.agentCode || null, ip: getRealIp(req),
       ua: req.headers['user-agent'] || null,
+      managerId: req.session?.managerId || null,
     });
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: 'server_error' }); }
@@ -2387,6 +2388,7 @@ app.post('/api/client-error', dataRateLimit, (req, res) => {
       url: url ? String(url).slice(0, 300) : null,
       page: page ? String(page).slice(0, 60) : null,
       agentCode: sess?.agentCode || null, isManager: !!sess?.isManager,
+      managerId: sess?.managerId || null,
       ip: getRealIp(req), device: deviceType(req.headers['user-agent'] || ''),
       ua: (req.headers['user-agent'] || '').substring(0, 150),
     });
@@ -2412,6 +2414,7 @@ app.post('/api/event', requireAuth, dataRateLimit, (req, res) => {
       custId: custId ? String(custId).slice(0, 20) : null,
       itemCount: Number.isFinite(itemCount) ? itemCount : null,
       agentCode: req.session?.agentCode || null,
+      managerId: req.session?.managerId || null,
     });
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: 'server_error' }); }
