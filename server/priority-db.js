@@ -584,4 +584,68 @@ async function custIdsWithActivePromo(dbName) {
   }
 }
 
-module.exports = { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByClient, dayClosingByAgentAll, dayClosingOrdersToday, curdateFor, liveOrderGpsForNewClient, clientPromosByCustId, custIdsWithActivePromo };
+// ICE-only raw per-ORDER rows (not grouped) for "סגירת יום ICE" — needed
+// instead of dayClosingSummary/dayClosingByClient's SQL-side aggregation
+// because ICE orders can stay open across multiple days when logistics
+// delays a shipment: ORDERS only holds open orders, and an order left open
+// gets its CURDATE bumped forward each day it's still sitting there (see
+// .claude/SKILLS/priority-sql/SKILL.md, "open orders rotate in/out on a
+// 24-hour cycle" — confirmed live 2026-09-08 querying icecrea directly:
+// orders with CURDATE=today had O.ORD numbers overlapping orders whose
+// CURDATE was 2 days earlier). SUM-ing by CURDATE=@today alone re-counts
+// that same order every day it stays open. O.ORD itself is stable (assigned
+// once at creation, confirmed elsewhere in this file), so the caller
+// (server/index.js's dedupIceOrders) can exclude any ORD already counted on
+// an earlier day using its own SQLite log — something only possible with
+// per-order rows, not pre-aggregated sums. Same roster-OR-entering-agent
+// WHERE-clause scoping as dayClosingSummary/dayClosingByClient.
+async function dayClosingIceOrdersRaw(dbName, dateStr, custIds, agentCode) {
+  const pool = await getPool(dbName);
+  const req = pool.request().input('today', sql.BigInt, curdateFor(dateStr));
+  const custInList = custIds.length
+    ? custIds.map((c, i) => { req.input(`cust${i}`, sql.NVarChar, String(c)); return `@cust${i}`; }).join(',')
+    : null;
+  const orParts = [];
+  if (custInList) orParts.push(`C.CUSTNAME IN (${custInList})`);
+  if (agentCode) {
+    req.input('agentCode', sql.NVarChar, String(agentCode));
+    orParts.push(`O.AGENT = (SELECT TOP 1 AGENT FROM AGENTS WHERE AGENTCODE = @agentCode)`);
+  }
+  const orClause = orParts.join(' OR ');
+  const result = await req.query(`
+    SELECT O.ORD AS ord, C.CUSTNAME AS custId, C.CUSTDES AS orderName,
+      (SELECT AGENTCODE FROM AGENTS WHERE AGENT = O.AGENT) AS enteringAgentCode,
+      (SELECT AGENTNAME FROM AGENTS WHERE AGENT = O.AGENT) AS enteringAgentName,
+      SUM(OI.QPRICE * (1 - O.T$PERCENT/100.0)) AS sumPrice
+    FROM ORDERS O
+    JOIN CUSTOMERS C ON C.CUST = O.CUST
+    JOIN ORDERITEMS OI ON OI.ORD = O.ORD
+    JOIN PART P ON P.PART = OI.PART
+    JOIN FAMILY F ON F.FAMILY = P.FAMILY
+    WHERE O.CURDATE = @today AND O.ORDSTATUS <> -6 AND (${orClause}) AND F.FAMILYDES NOT LIKE N'%בודדים%'
+    GROUP BY O.ORD, C.CUSTNAME, C.CUSTDES, O.AGENT
+  `);
+  return result.recordset.map(r => ({
+    ord: String(r.ord),
+    custId: String(r.custId),
+    orderName: String(r.orderName || '').trim(),
+    enteringAgentCode: r.enteringAgentCode ? String(r.enteringAgentCode) : null,
+    enteringAgentName: r.enteringAgentName || '',
+    sum: Math.round((Number(r.sumPrice) || 0) * 100) / 100,
+  }));
+}
+
+// Every open order number for today, company-wide — no agent/custId scoping
+// and no family/בודדים exclusion, since this is an identity snapshot (which
+// ORDs exist), not a sum. Run once daily near end-of-day by index.js's
+// scheduleDailyIceOrderSnapshot to populate the "already counted" dedup log
+// dayClosingIceOrdersRaw's callers use (see its comment above).
+async function openOrderIdsToday(dbName, dateStr) {
+  const pool = await getPool(dbName);
+  const result = await pool.request().input('today', sql.BigInt, curdateFor(dateStr)).query(`
+    SELECT ORD FROM ORDERS WHERE CURDATE = @today AND ORDSTATUS <> -6
+  `);
+  return result.recordset.map(r => String(r.ORD));
+}
+
+module.exports = { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByClient, dayClosingByAgentAll, dayClosingOrdersToday, dayClosingIceOrdersRaw, openOrderIdsToday, curdateFor, liveOrderGpsForNewClient, clientPromosByCustId, custIdsWithActivePromo };
