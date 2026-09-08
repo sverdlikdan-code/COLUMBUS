@@ -5482,18 +5482,22 @@ app.get('/api/day-closing', requireAuth, dataRateLimit, async (req, res) => {
   // day), so custIds alone can't catch their order. See priority-db.js.
   const custIds = getAllCustIdsForAgent(agentCode);
   const nameMap = getClientNameMap(agentCode);
+  // nameMap is already team-wide (see getClientNameMap above) — its keys are
+  // every custId across the whole manager group, reused here so "new client"
+  // matches the same team roster the name/🆕 badge already uses.
+  const rosterCustIds = [...nameMap.keys()];
   const todayIL = todayIsraelDate();
   try {
     if (type === 'ice') {
       const [summary, byClient] = await Promise.all([
-        dayClosingSummary(process.env.DB_ICECREA || 'icecrea', todayIL, custIds, agentCode, { iceMishOnly: true }),
+        dayClosingSummary(process.env.DB_ICECREA || 'icecrea', todayIL, custIds, agentCode, { iceMishOnly: true, rosterCustIds }),
         dayClosingByClient(process.env.DB_ICECREA || 'icecrea', todayIL, custIds, agentCode, { iceMishOnly: true }),
       ]);
       finalizeByClient(byClient, nameMap, agentCode, summary);
       return res.json({ ok: true, type, ...summary, items: [], byClient });
     }
     const [summary, items, imgMap, byClient] = await Promise.all([
-      dayClosingSummary(process.env.DB_NAME || 'form', todayIL, custIds, agentCode),
+      dayClosingSummary(process.env.DB_NAME || 'form', todayIL, custIds, agentCode, { rosterCustIds }),
       dayClosingSellout(process.env.DB_NAME || 'form', todayIL, custIds, agentCode, DAY_CLOSING_SELLOUT_SKUS),
       fetchSelloutPhotos(DAY_CLOSING_SELLOUT_SKUS),
       dayClosingByClient(process.env.DB_NAME || 'form', todayIL, custIds, agentCode),

@@ -126,7 +126,7 @@ async function iceMishCustIdsWithOpenOrderToday(dbName, dateStr) {
 // too (AGENTCODE=258 -> AGENT=100), unrelated to Andrey's AGENTCODE=100 — two
 // different people, same string, different columns. Always resolve through
 // AGENTS regardless of database.
-async function dayClosingSummary(dbName, dateStr, custIds, agentCode, { iceMishOnly } = {}) {
+async function dayClosingSummary(dbName, dateStr, custIds, agentCode, { iceMishOnly, rosterCustIds } = {}) {
   if (!custIds.length && !agentCode) return { custCount: 0, sum: 0 };
   const pool = await getPool(dbName);
   const req = pool.request().input('today', sql.BigInt, curdateFor(dateStr));
@@ -140,12 +140,20 @@ async function dayClosingSummary(dbName, dateStr, custIds, agentCode, { iceMishO
     orParts.push(`O.AGENT = (SELECT TOP 1 AGENT FROM AGENTS WHERE AGENTCODE = @agentCode)`);
   }
   const orClause = orParts.join(' OR ');
-  // "new" = matched only via the agentCode fallback, not in the PBI roster —
-  // reported as a separate מתוכם ("of which") line so an agent can see a new
-  // client contributed, not just a bigger total with no explanation. A client
-  // with an empty roster (custInList null) is "new" by definition — NOT IN ()
-  // is invalid SQL, so that case just hardcodes the flag true.
-  const notInRoster = custInList ? `C.CUSTNAME NOT IN (${custInList})` : '1=1';
+  // "new" = not on the roster — but the roster checked here is the whole TEAM's
+  // (rosterCustIds, every agent under the same manager), not just agentCode's
+  // own custIds used for orClause above. Live case 2026-09-08: Vyacheslav
+  // Shulkin (238) closed 2 clients actually on teammate Maria Malishev's (293)
+  // roster (same ANATOL group) — covering for her, not new clients — and the
+  // old custIds-only check flagged them "new" anyway. Falls back to custIds
+  // when the caller doesn't pass a team roster. A client with an empty roster
+  // (rosterInList null) is "new" by definition — NOT IN () is invalid SQL, so
+  // that case just hardcodes the flag true.
+  const rosterList = rosterCustIds || custIds;
+  const rosterInList = rosterList.length
+    ? rosterList.map((c, i) => { req.input(`roster${i}`, sql.NVarChar, String(c)); return `@roster${i}`; }).join(',')
+    : null;
+  const notInRoster = rosterInList ? `C.CUSTNAME NOT IN (${rosterInList})` : '1=1';
   // OI.QPRICE is the PRE-discount line price — O.T$PERCENT is the document-level
   // discount % that DISPRICE already bakes in for the non-ICE branch below. Found
   // live 2026-08-27 (Zoya/agent 257 case): summing raw QPRICE overstated the ICE
