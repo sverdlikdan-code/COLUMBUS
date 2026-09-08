@@ -14,7 +14,7 @@ if (!process.env.PBI_TENANT && process.env.AZURE_TENANT_ID) {
 const fs      = require('fs');
 const path    = require('path');
 const ExcelJS = require('exceljs');
-const { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchHalaviFromBI, fetchDagimFromBI, fetchPhotoUrls, triggerAndWaitRefresh, fetchWeeklySales } = require('./pbi-kapua');
+const { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchHalaviFromBI, fetchDagimFromBI, fetchDagimMonthlyTrend, fetchPhotoUrls, triggerAndWaitRefresh, fetchWeeklySales } = require('./pbi-kapua');
 const { fetchExtraSheets }   = require('./pbi-extra-sheets');
 const { fetchDagimYaveshFromBI } = require('./pbi-dagim-yavesh');
 
@@ -775,6 +775,22 @@ async function main() {
   }
 
   console.log(`חלבי: ${halaviProds.length} active (from PBI) | דגים: ${dagimProds.length} active (from PBI)`);
+
+  // מגמה (16-month trend) for the דגים order page — batched here instead of a
+  // live per-click DAX call from the client (see pbi-kapua.js:fetchDagimMonthlyTrend
+  // for why). Failure here must never break the rest of the planogram build —
+  // stale trend data for a day is a non-issue, a broken planogram build is not.
+  try {
+    const dagimMonthlyTrend = await fetchDagimMonthlyTrend();
+    fs.writeFileSync(
+      path.join(__dirname, '..', 'docs', 'dagim-monthly-trend.json'),
+      JSON.stringify({ ok: true, byMk: dagimMonthlyTrend }),
+      'utf8'
+    );
+    console.log(`מגמה: monthly trend written for ${Object.keys(dagimMonthlyTrend).length} דגים SKUs`);
+  } catch (e) {
+    console.warn(`⚠ fetchDagimMonthlyTrend failed (${e.message}) — dagim-monthly-trend.json left untouched`);
+  }
 
   // Grand total ORD/day across all three sections
   const kapuaOrdForGrand  = Object.values(KAPUA_PICKS).reduce((s,p)=>s+(p.dayAvg||0),0);

@@ -5104,16 +5104,23 @@ window.addEventListener('afterprint', () => {
     </svg>`;
   }
 
-  // Load batch monthly data for all dagim products when order page opens
+  // Load batch monthly data for all dagim products when order page opens.
+  // Static file (docs/dagim-monthly-trend.json), built hourly by planogram-build.yml
+  // (pbi-kapua.js:fetchDagimMonthlyTrend) — NOT a live per-click PBI call anymore.
+  // A 16-month sales trend has no business need to be fresher than the hourly
+  // build, and the old live call was the one Mahsan feature that needed a
+  // session token, making it the single point of failure for every cross-site-
+  // cookie/IP/quota issue that hit /auth/pbi (2026-09-08 מגמה/דגים outage —
+  // see VAULT mahsan-planogram.md). Same-origin static fetch needs none of that.
   window._dagimMonthlyData = null;
   window._loadDagimMonthly = async function() {
     if (window._dagimMonthlyData) return; // already loaded
     let _httpStatus = null;
     try {
-      const r = await fetch('https://api.sverdlik-apps.site/pbi/dagim-all-monthly', { headers: { 'X-Session': localStorage.getItem('frToken') || '' } });
+      const r = await fetch('./dagim-monthly-trend.json?t=' + Date.now());
       _httpStatus = r.status;
       const j = await r.json();
-      if (!j.ok) throw new Error(j.error);
+      if (!j.ok) throw new Error(j.error || 'bad response');
       window._dagimMonthlyData = j.byMk;
       Object.keys(window._dagimMonthlyData).forEach(mk => {
         window._dagimMonthlyData[mk] = _fillMonthGaps(window._dagimMonthlyData[mk]);
@@ -5123,10 +5130,6 @@ window.addEventListener('afterprint', () => {
       if (typeof buildOrderPage === 'function' && document.getElementById('order-table-wrap')) buildOrderPage();
     } catch (e) {
       console.error('[dagim-monthly] fetch failed:', e.message);
-      // Reported server-side (not just console) because this exact failure has
-      // recurred across sessions with no hard evidence to diagnose from —
-      // status code turns the next occurrence into a readable log line instead
-      // of another guess. 2026-09-08.
       _reportClientError('[dagim-monthly] load failed (http ' + _httpStatus + '): ' + e.message, e.stack);
       document.querySelectorAll('[id^="ord-trend-"]').forEach(s => {
         s.textContent = '!';

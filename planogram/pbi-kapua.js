@@ -1200,4 +1200,53 @@ async function triggerAndWaitRefresh(maxWaitMs = 40 * 60 * 1000) {
   console.warn('⚠  PBI refresh timed out — proceeding with possibly stale data');
 }
 
-module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchStopSale, fetchHalaviFromBI, fetchDagimFromBI, fetchPhotoUrls, getToken, triggerAndWaitRefresh, fetchWeeklySales };
+// 16-month monthly sales trend per דגים מק"ט, for the מגמה column/chart in
+// planogram-editor.html. Historical-only (nothing here needs same-hour
+// freshness — the comparison is 3mo-vs-3mo and YoY), so it belongs in this
+// hourly batch build, not a live per-click DAX call. Moved out of
+// server/index.js's /pbi/dagim-all-monthly (same DAX query) because that
+// endpoint fired on every single page open/click with zero caching, hitting
+// live PBI on an unbounded schedule — worse for the PBI API quota than one
+// query per scheduled build run, and it made מגמה the one Mahsan feature that
+// depended on a live session token (root cause of the 2026-09-08 מגמה/דגים
+// cross-site-cookie outage, see VAULT mahsan-planogram.md).
+async function fetchDagimMonthlyTrend() {
+  const t = await getToken();
+  const now = new Date();
+  const conds = [];
+  for (let i = 15; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    conds.push(`(DIMCALENDAR[Year]=${d.getFullYear()}&&DIMCALENDAR[Month]=${d.getMonth() + 1})`);
+  }
+  const dateFilter = `FILTER(ALL(DIMCALENDAR),${conds.join('||')})`;
+
+  const rows = await dax(t, `
+    EVALUATE
+    CALCULATETABLE(
+      SUMMARIZECOLUMNS(
+        'ALL_PARTS'[מק'ט],
+        DIMCALENDAR[Year],
+        DIMCALENDAR[Month],
+        "mkr", [TOTAL מכר בקרטונים]
+      ),
+      'ALL_PARTS'[חברה] = "FORMULA",
+      'ALL_PARTS'[ASHMADOT] IN {"-מכר-"},
+      ${dateFilter}
+    )
+    ORDER BY 'ALL_PARTS'[מק'ט], DIMCALENDAR[Year], DIMCALENDAR[Month]
+  `);
+
+  const byMk = {};
+  for (const r of rows) {
+    const mk = String(r["ALL_PARTS[מק'ט]"]);
+    if (!byMk[mk]) byMk[mk] = [];
+    byMk[mk].push({
+      year:  r['DIMCALENDAR[Year]'],
+      month: r['DIMCALENDAR[Month]'],
+      mkr:   Math.round(r['[mkr]'] || 0),
+    });
+  }
+  return byMk;
+}
+
+module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchStopSale, fetchHalaviFromBI, fetchDagimFromBI, fetchDagimMonthlyTrend, fetchPhotoUrls, getToken, triggerAndWaitRefresh, fetchWeeklySales };
