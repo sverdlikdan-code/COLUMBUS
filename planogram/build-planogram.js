@@ -780,14 +780,26 @@ async function main() {
   // live per-click DAX call from the client (see pbi-kapua.js:fetchDagimMonthlyTrend
   // for why). Failure here must never break the rest of the planogram build —
   // stale trend data for a day is a non-issue, a broken planogram build is not.
+  //
+  // MIN_TREND_SKUS guard (added 2026-09-08, same day as the feature): the very
+  // first scheduled run after shipping this wrote {"ok":true,"byMk":{}} — PBI
+  // returned zero rows without the request itself throwing, so the try/catch
+  // alone did nothing and the empty response silently overwrote a good file.
+  // Identical failure class to the 2026-08-18 דגים data wipe (see VAULT
+  // mahsan-planogram.md Open Questions — "нет guard на аномальную долю
+  // null-данных"). Normal is ~229 SKUs; anything far below that is PBI
+  // hiccuping, not a real data change — keep the last good file instead.
   try {
     const dagimMonthlyTrend = await fetchDagimMonthlyTrend();
-    fs.writeFileSync(
-      path.join(__dirname, '..', 'docs', 'dagim-monthly-trend.json'),
-      JSON.stringify({ ok: true, byMk: dagimMonthlyTrend }),
-      'utf8'
-    );
-    console.log(`מגמה: monthly trend written for ${Object.keys(dagimMonthlyTrend).length} דגים SKUs`);
+    const trendSkuCount = Object.keys(dagimMonthlyTrend).length;
+    const MIN_TREND_SKUS = 100;
+    const trendOutPath = path.join(__dirname, '..', 'docs', 'dagim-monthly-trend.json');
+    if (trendSkuCount < MIN_TREND_SKUS) {
+      console.warn(`⚠ fetchDagimMonthlyTrend returned only ${trendSkuCount} SKUs (expected ~229) — PBI hiccup, NOT overwriting dagim-monthly-trend.json`);
+    } else {
+      fs.writeFileSync(trendOutPath, JSON.stringify({ ok: true, byMk: dagimMonthlyTrend }), 'utf8');
+      console.log(`מגמה: monthly trend written for ${trendSkuCount} דגים SKUs`);
+    }
   } catch (e) {
     console.warn(`⚠ fetchDagimMonthlyTrend failed (${e.message}) — dagim-monthly-trend.json left untouched`);
   }
