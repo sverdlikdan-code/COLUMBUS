@@ -3474,50 +3474,15 @@ app.get('/pbi/formula-refresh', requireAuth, dataRateLimit, async (req, res) => 
   res.json({ ok: true, refreshedAt: pbiCache?.latestSaleDate || null });
 });
 
-// GET /pbi/dagim-all-monthly — last 16 months carton sales for ALL dagim/halavi products (batch)
-// Used by הזמנה דגים trend column (last 13 shown in chart) + YoY comparison (needs same 3 months last year).
-app.get('/pbi/dagim-all-monthly', requireAuth, dataRateLimit, async (req, res) => {
-  const now = new Date();
-  const conds = [];
-  for (let i = 15; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    conds.push(`(DIMCALENDAR[Year]=${d.getFullYear()}&&DIMCALENDAR[Month]=${d.getMonth()+1})`);
-  }
-  const dateFilter = `FILTER(ALL(DIMCALENDAR),${conds.join('||')})`;
-
-  try {
-    const rows = await executeDax(`
-      EVALUATE
-      CALCULATETABLE(
-        SUMMARIZECOLUMNS(
-          'ALL_PARTS'[מק'ט],
-          DIMCALENDAR[Year],
-          DIMCALENDAR[Month],
-          "mkr", [TOTAL מכר בקרטונים]
-        ),
-        'ALL_PARTS'[חברה] = "FORMULA",
-        'ALL_PARTS'[ASHMADOT] IN {"-מכר-"},
-        ${dateFilter}
-      )
-      ORDER BY 'ALL_PARTS'[מק'ט], DIMCALENDAR[Year], DIMCALENDAR[Month]
-    `);
-
-    const byMk = {};
-    for (const r of rows) {
-      const mk = String(r["ALL_PARTS[מק'ט]"]);
-      if (!byMk[mk]) byMk[mk] = [];
-      byMk[mk].push({
-        year:  r['DIMCALENDAR[Year]'],
-        month: r['DIMCALENDAR[Month]'],
-        mkr:   Math.round(r['[mkr]'] || 0),
-      });
-    }
-    res.json({ ok: true, byMk });
-  } catch (err) {
-    console.error('[dagim-all-monthly]', err.message);
-    res.status(500).json({ error: err.message });
-  }
-});
+// /pbi/dagim-all-monthly removed 2026-09-08 — the מגמה trend it powered is
+// historical-only (16-month carton sales, 3mo-vs-3mo + YoY comparison) with
+// no need to be fresher than an hourly batch build. Moved to
+// planogram/pbi-kapua.js:fetchDagimMonthlyTrend, written to the static
+// docs/dagim-monthly-trend.json by build-planogram.js. This live endpoint was
+// the one Mahsan feature requiring a session token, making it the single
+// point of failure behind the 2026-09-08 מגמה/דגים cross-site-cookie outage
+// (see VAULT mahsan-planogram.md) — removed rather than left as dead code
+// since nothing calls it anymore (grep confirmed before deletion).
 
 // Server-side cache for /pbi/dagim-sales — survives PBI 429 bursts (TTL: 60 min)
 const _dagimSalesCache = new Map(); // key → { data, totalBranchy, ts }

@@ -90,7 +90,7 @@ jobs:
           git config user.name "COLUMBUS Bot"
           for f in docs/kapua-base.json docs/halavi-base.json docs/dagim-base.json \
                    docs/dagim-yavesh-base.json docs/product-data.json docs/refresh-info.json \
-                   docs/product-photos.json docs/health-report.json; do
+                   docs/product-photos.json docs/health-report.json docs/dagim-monthly-trend.json; do
             [ -f "$f" ] && git add "$f" || true
           done
           git diff --cached --quiet && echo "No changes." || \
