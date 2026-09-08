@@ -1575,8 +1575,8 @@ function toggleMapHidden(){
   // firing both (showToast only holds one message at a time, second wins).
   const needsRotateNudge = !st.mapHidden && Math.min(window.innerWidth, window.innerHeight)<700
     && !window.matchMedia('(orientation: landscape)').matches;
-  showToast(needsRotateNudge ? '🔄 סובב את המכשיר לרוחב כדי לראות את המפה'
-    : st.mapHidden ? '📋 עובדים רק עם הרשימה — המפה כבויה' : '🗺 המפה הוצגה מחדש',
+  showToast(needsRotateNudge ? '🔄 Поверни телефон горизонтально, чтобы увидеть карту'
+    : st.mapHidden ? '📋 Работаем только со списком — карта выключена' : '🗺 Карта снова показана',
     needsRotateNudge ? 3500 : 2500);
   handleOrientationForMobileMap();
 }
@@ -1867,7 +1867,7 @@ function triggerOsrm() {
       if (st.sortMode === 'ai') {
         renderClientList();
         if(window.innerWidth>=700||st.tab==='map') renderMap();
-        showToast('🛣️ סדר עודכן לפי כביש');
+        showToast('🛣️ Порядок обновлён по дороге');
       }
     }
   });
@@ -2125,7 +2125,7 @@ const WELCOME_GREET_EMOJI = { '234': '💐' };
 // Live request 2026-08-28: "בוקר טוב" before noon, "שלום" after — device's
 // own clock (the agent's actual local time), not server time.
 function _welcomeGreeting(){
-  return new Date().getHours() < 12 ? 'בוקר טוב' : 'שלום';
+  return new Date().getHours() < 12 ? 'Доброе утро' : 'Привет';
 }
 function _welcomeGreetEmoji(agentCode){
   return WELCOME_GREET_EMOJI[agentCode] || '👋';
@@ -2224,9 +2224,9 @@ function renderLogin(){
           <div style="font-size:26px;font-weight:900;">${_welcomeGreeting()}, ${esc(st._welcomeName||'')}! ${_welcomeGreetEmoji(st.agent?.code)}</div>
           <div style="width:56px;height:2px;background:linear-gradient(90deg,transparent,#D89830,transparent);"></div>
           <div style="font-size:15px;color:#555;line-height:1.7;">
-            כאן תמצא/י את מסלול הביקורים היומי שלך, ניתוח AI ללקוחות, ובקשות זיכוי מהירות — הכל במקום אחד.
+            Здесь найдёшь свой ежедневный маршрут визитов, AI-анализ клиентов и быстрые заявки на зачёт — всё в одном месте.
           </div>
-          <button onclick="_continueFromWelcome()" style="background:linear-gradient(135deg,#F5C670,#D89830);color:#1A3F7C;border:none;border-radius:30px;padding:16px 30px;font-size:30px;font-weight:900;cursor:pointer;box-shadow:0 8px 0 #A9740F,0 12px 20px rgba(0,0,0,.35),inset 0 2px 3px rgba(255,255,255,.5);">כניסה למערכת ←</button>
+          <button onclick="_continueFromWelcome()" style="background:linear-gradient(135deg,#F5C670,#D89830);color:#1A3F7C;border:none;border-radius:30px;padding:16px 30px;font-size:30px;font-weight:900;cursor:pointer;box-shadow:0 8px 0 #A9740F,0 12px 20px rgba(0,0,0,.35),inset 0 2px 3px rgba(255,255,255,.5);">Войти в систему ←</button>
         </div>
       </div>`;
     _renderWelcomeEasterEgg(st.agent?.code);
@@ -2482,7 +2482,7 @@ function _announceTodayOrder(){
     if(_loadAuth()?.isManager) return;
     const firstName=(st.agent?.name||'').trim().split(/\s+/)[0];
     if(!firstName) return;
-    showToast(`😎 כל הכבוד ${firstName}, הזמנה נכנסה!`, 3000);
+    showToast(`😎 Молодец, ${firstName}, заказ принят!`, 3000);
   }catch(e){}
 }
 // FORMULA today-progress banner (ring + count + ₪ + %). Denominator excludes
@@ -3084,10 +3084,10 @@ function setSort(mode){
   document.getElementById('sort-btn-priority').className='sort-btn'+(mode==='priority'?' active-priority':'');
   document.getElementById('sort-btn-ai-google').className='sort-btn'+(mode==='ai'?' active-ai-google':'');
   if(mode==='priority'){
-    if(!_showMyVersionToast()) showToast('📍 GPS: מצב רגיל');
+    if(!_showMyVersionToast()) showToast('📍 GPS: обычный режим');
   } else {
     OSRM_CACHE.clear(); OSRM_TRIP_CACHE.clear();
-    showToast('🤖 GPS: מצב AI Google פעיל');
+    showToast('🤖 GPS: режим AI Google активен');
     triggerOsrm();
   }
   renderCityFilters();
@@ -3105,12 +3105,12 @@ function toggleTabletGps(){
     document.getElementById('sort-btn-priority').className='sort-btn';
     st.sortMode='ai';
     OSRM_CACHE.clear(); OSRM_TRIP_CACHE.clear();
-    showToast('📱 GPS: מצב Tablet (Priority) פעיל');
+    showToast('📱 GPS: режим Tablet (Priority) активен');
     triggerOsrm();
   } else {
     st.sortMode='priority';
     document.getElementById('sort-btn-priority').className='sort-btn active-priority';
-    if(!_showMyVersionToast()) showToast('📍 GPS: מצב רגיל');
+    if(!_showMyVersionToast()) showToast('📍 GPS: обычный режим');
   }
   saveSortModePref(st.agent.code,st.sortMode);
   renderCityFilters(); renderClientList();
@@ -3537,7 +3537,7 @@ function resetExcluded(){
   st.excluded=new Set();
   st.aiClients=nearestNeighbor([...activeClients()]);
   renderClientList(); renderMap();
-  showToast('↩️ כל הלקוחות הוחזרו למסלול');
+  showToast('↩️ Все клиенты возвращены на маршрут');
 }
 function openWaze(e, lat, lng){
   if(e){e.stopPropagation();e.preventDefault();}
@@ -3863,7 +3863,7 @@ function placeOnMap(){
 function _startMapPlace(id,c){
   gpsCorrectMode=true; gpsCorrectId=id; st.selectedId=id;
   renderMap();
-  showToast('👆 הקש על המפה למיקום '+c.custName, 5000);
+  showToast('👆 Нажми на карту для позиции '+c.custName, 5000);
   map.getContainer().style.cursor='crosshair';
   map.once('click', async(e)=>{
     map.getContainer().style.cursor='';
@@ -3871,7 +3871,7 @@ function _startMapPlace(id,c){
     const {lat,lng}=e.latlng;
     const IL={minLat:29.3,maxLat:33.5,minLng:34.2,maxLng:35.9};
     if(lat<IL.minLat||lat>IL.maxLat||lng<IL.minLng||lng>IL.maxLng){
-      showToast('❌ מחוץ לגבולות ישראל'); renderMap(); return;
+      showToast('❌ За пределами Израиля'); renderMap(); return;
     }
     const la=+lat.toFixed(6), lo=+lng.toFixed(6);
     st.clients=st.clients.map(x=>x.custId===id?{...x,lat:la,lng:lo}:x);
@@ -3879,7 +3879,7 @@ function _startMapPlace(id,c){
     triggerOsrm();
     saveRoute(st.agent.code,st.day,st.clients);
     updateKmBar(); renderClientList(); renderMap();
-    showToast('✅ מיקום נשמר (מקומי)');
+    showToast('✅ Позиция сохранена (локально)');
   });
 }
 
@@ -3968,7 +3968,7 @@ function saveCurrentRoute(){
   if(st.sortMode!=='ai'){
     saveRoute(st.agent.code,st.day,st.clients);
   }
-  showToast('💾 סדר הביקור נשמר');
+  showToast('💾 Порядок визита сохранён');
 }
 
 // ── LOCALSTORAGE ───────────────────────────────────────────────────────────
@@ -4008,7 +4008,7 @@ function _showMyVersionToast(){
   const last=parseInt(localStorage.getItem(key)||'0',10);
   if(last&&(Date.now()-last)<MYVERSION_TOAST_COOLDOWN_MS) return false;
   const firstName=(st.agent?.name||'').trim().split(/\s+/)[0];
-  showToast(firstName?`✋ ${firstName}, זו הגרסה שלך — גרור לקוחות כדי לסדר כרצונך`:'✋ זו הגרסה שלך — גרור לקוחות כדי לסדר כרצונך',3500);
+  showToast(firstName?`✋ ${firstName}, это твоя версия — перетаскивай клиентов, чтобы расставить как хочешь`:'✋ Это твоя версия — перетаскивай клиентов, чтобы расставить как хочешь',3500);
   try{localStorage.setItem(key,String(Date.now()));}catch{}
   return true;
 }
@@ -4107,7 +4107,7 @@ async function pushDayMove(custId,day,client,_isRetry){
     await new Promise(res=>setTimeout(res,800));
     return pushDayMove(custId,day,client,true);
   }
-  showToast(`⚠ שינוי היום ל-${esc(client?.custName||custId)} לא נשמר בשרת — נסה שוב`,5000);
+  showToast(`⚠ Изменение на сегодня для ${esc(client?.custName||custId)} не сохранено на сервере — попробуй снова`,5000);
 }
 async function syncRouteOverridesFromServer(){
   if(!st.agent?.code) return;
@@ -5173,7 +5173,7 @@ async function confirmGpsSyncClean(custIds){
     const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
     custIds.forEach(id=>{delete local[id]; delete gpsCorrections[id];});
     localStorage.setItem('fr_gps_local',JSON.stringify(local));
-    showToast(`🗑 ${d.removed} תיקונים הוסרו`);
+    showToast(`🗑 ${d.removed} исправлений удалено`);
     renderGpsHistory(); updateGpsHistBtn(); renderMap(); renderClientList();
   }catch(e){el.textContent='❌ שגיאה: '+e.message;}
 }
@@ -5210,7 +5210,7 @@ function deleteGpsCorrection(custId){
   renderGpsHistory();
   updateGpsHistBtn();
   updateKmBar(); renderMap();renderClientList();
-  showToast('🗑 תיקון נמחק — חזר למיקום המקורי');
+  showToast('🗑 Исправление удалено — вернулось на исходное место');
 }
 let _tileBeforeGps=null;
 function cancelGpsCorrection(){
@@ -5219,7 +5219,7 @@ function cancelGpsCorrection(){
   gpsCorrectMode=false; gpsCorrectId=null;
   if(_tileBeforeGps){ setTile(_tileBeforeGps); userTileKey=_tileBeforeGps; _tileBeforeGps=null; }
   renderMap();
-  showToast('ביטול');
+  showToast('Отмена');
 }
 // Shared save path for any GPS correction (manual map-click or tablet-GPS review) —
 // keeps the write-through to gpsCorrections/localStorage/server/route-recalc in one
@@ -5255,8 +5255,8 @@ function saveGpsCorrection(custId, custName, lat, lng){
 // google source 2026-09-06 alongside the map-popup button (user request).
 let _reviewMarker=null, _reviewPending=null;
 const GPS_REVIEW_SOURCES={
-  tablet:{cache:()=>TABLET_GPS,latKey:'lat',lngKey:'lng',color:'#00B894',icon:'📱',title:'📱 מיקום מהטאבלט — תסתכל על המפה',missingMsg:'❌ אין נתוני GPS מהטאבלט עבור לקוח זה',okMsg:'✅ מיקום מהטאבלט אושר ונשמר'},
-  google:{cache:()=>AI_GPS,latKey:'aiLat',lngKey:'aiLng',color:'#7B1FA2',icon:'🤖',title:'🤖 מיקום מ-Google — תסתכל על המפה',missingMsg:'❌ אין נתוני GPS מ-Google עבור לקוח זה',okMsg:'✅ מיקום מ-Google אושר ונשמר'},
+  tablet:{cache:()=>TABLET_GPS,latKey:'lat',lngKey:'lng',color:'#00B894',icon:'📱',title:'📱 מיקום מהטאבלט — תסתכל על המפה',missingMsg:'❌ Нет данных GPS с планшета для этого клиента',okMsg:'✅ Позиция с планшета подтверждена и сохранена'},
+  google:{cache:()=>AI_GPS,latKey:'aiLat',lngKey:'aiLng',color:'#7B1FA2',icon:'🤖',title:'🤖 מיקום מ-Google — תסתכל על המפה',missingMsg:'❌ Нет данных GPS от Google для этого клиента',okMsg:'✅ Позиция от Google подтверждена и сохранена'},
 };
 function _reviewGpsSource(source, custId, custName){
   const cfg=GPS_REVIEW_SOURCES[source];
@@ -5310,7 +5310,7 @@ function startGpsCorrection(custId, custName){
   renderMap();
   const _cl=st.clients.find(x=>String(x.custId)===String(custId));
   if(_cl&&_cl.lat&&_cl.lng) map.panTo([_cl.lat,_cl.lng],{animate:true,duration:0.4});
-  showToast('📍 לחץ על המפה לקביעת מיקום חדש עבור: '+custName, 4000);
+  showToast('📍 Нажми на карту, чтобы задать новую позицию для: '+custName, 4000);
   map.getContainer().style.cursor='crosshair';
   _gpsClickHandler=(e)=>{
     map.off('click',_gpsClickHandler); _gpsClickHandler=null;
@@ -5320,10 +5320,10 @@ function startGpsCorrection(custId, custName){
     const {lat,lng}=e.latlng;
     const IL={minLat:29.3,maxLat:33.5,minLng:34.2,maxLng:35.9};
     if(lat<IL.minLat||lat>IL.maxLat||lng<IL.minLng||lng>IL.maxLng){
-      showToast('❌ מחוץ לגבולות ישראל'); renderMap(); return;
+      showToast('❌ За пределами Израиля'); renderMap(); return;
     }
     saveGpsCorrection(custId,custName,lat,lng);
-    showToast('✅ מיקום נשמר');
+    showToast('✅ Позиция сохранена');
   };
   map.on('click',_gpsClickHandler);
 }
