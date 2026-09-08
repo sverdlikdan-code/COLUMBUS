@@ -4238,7 +4238,7 @@ async function _fetchClientPromos(custId) {
       <div class="promo-card${p.notBoughtIn90d ? ' promo-stale' : ''}">
         ${p.imgUrl ? `<img src="${API}/api/img-proxy?url=${encodeURIComponent(p.imgUrl)}" alt="${(p.name || '').replace(/"/g, '&quot;')}" loading="lazy">` : '<div class="promo-noimg">📦</div>'}
         <div class="promo-card-cap">
-          <span class="promo-name">${p.sku}</span>
+          <span class="promo-name">${p.ean || p.sku}</span>
           ${p.promoType && p.promoType !== 'מבצע' ? `<span class="promo-type">${p.promoType}</span>` : ''}
           ${p.price > 0
             ? `<span class="promo-deal">${p.qty}*${p.price}</span>`
