@@ -402,11 +402,24 @@ function fitAgentNameOneLine(){
   if(!text) return;
   const cs = getComputedStyle(el);
   const headerPad = 52; // #dc-header padding: 24px 26px -> 26+26
-  const cornerReserve = 120; // #dc-logo corner (2x bigger, ~40px, but alone now — FORMULA/ICE moved above the name), mirrored since name is centered
+  // #dc-logo is a 40x40 square (logo-diler-bmd.png is 826x826, rendered at
+  // height:40px) sitting at right:26px — real corner footprint is ~66px
+  // (26 gap + 40 logo). Live request 2026-09-08 ("вроде место есть") after a
+  // long name (קונסטנטין קפוסטינסקי) truncated on a real phone despite this
+  // same name fitting fine in a desktop headless-Chrome measurement — the old
+  // 120 reserve (nearly 2x the actual logo) was real wasted width, tightened
+  // to 90 (adds ~24px margin over the 66px footprint, not the bare minimum).
+  const cornerReserve = 90;
   const avail = Math.max(60, header.clientWidth - headerPad - cornerReserve);
   const canvas = fitAgentNameOneLine._canvas || (fitAgentNameOneLine._canvas = document.createElement('canvas'));
   const ctx = canvas.getContext('2d');
-  const maxSize = 38, minSize = 18;
+  // minSize lowered 18->14 alongside the reserve fix above — canvas
+  // measureText() estimates the font width used to pick a size, but actual
+  // glyph metrics vary a bit per device/OS Hebrew font fallback (same CSS
+  // font-family resolves differently on phone vs desktop). A lower floor
+  // gives the shrink loop more room to compensate before giving up and
+  // falling back to the CSS ellipsis truncation.
+  const maxSize = 38, minSize = 14;
   let size = maxSize;
   while(size > minSize){
     ctx.font = `900 ${size}px ${cs.fontFamily}`;
