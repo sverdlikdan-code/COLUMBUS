@@ -126,7 +126,7 @@ async function iceMishCustIdsWithOpenOrderToday(dbName, dateStr) {
 // too (AGENTCODE=258 -> AGENT=100), unrelated to Andrey's AGENTCODE=100 — two
 // different people, same string, different columns. Always resolve through
 // AGENTS regardless of database.
-async function dayClosingSummary(dbName, dateStr, custIds, agentCode, { iceMishOnly, rosterCustIds } = {}) {
+async function dayClosingSummary(dbName, dateStr, custIds, agentCode, { iceMishOnly } = {}) {
   if (!custIds.length && !agentCode) return { custCount: 0, sum: 0 };
   const pool = await getPool(dbName);
   const req = pool.request().input('today', sql.BigInt, curdateFor(dateStr));
@@ -140,20 +140,13 @@ async function dayClosingSummary(dbName, dateStr, custIds, agentCode, { iceMishO
     orParts.push(`O.AGENT = (SELECT TOP 1 AGENT FROM AGENTS WHERE AGENTCODE = @agentCode)`);
   }
   const orClause = orParts.join(' OR ');
-  // "new" = not on the roster — but the roster checked here is the whole TEAM's
-  // (rosterCustIds, every agent under the same manager), not just agentCode's
-  // own custIds used for orClause above. Live case 2026-09-08: Vyacheslav
-  // Shulkin (238) closed 2 clients actually on teammate Maria Malishev's (293)
-  // roster (same ANATOL group) — covering for her, not new clients — and the
-  // old custIds-only check flagged them "new" anyway. Falls back to custIds
-  // when the caller doesn't pass a team roster. A client with an empty roster
-  // (rosterInList null) is "new" by definition — NOT IN () is invalid SQL, so
-  // that case just hardcodes the flag true.
-  const rosterList = rosterCustIds || custIds;
-  const rosterInList = rosterList.length
-    ? rosterList.map((c, i) => { req.input(`roster${i}`, sql.NVarChar, String(c)); return `@roster${i}`; }).join(',')
-    : null;
-  const notInRoster = rosterInList ? `C.CUSTNAME NOT IN (${rosterInList})` : '1=1';
+  // newCustCount/newSum used to be computed here via a "C.CUSTNAME NOT IN
+  // (...)" roster check — fine for one agent's own ~100-client roster, but
+  // once that roster became company-wide (2026-09-08, ~2100 clients) it blew
+  // past SQL Server's 2100-parameter-per-request limit and broke day-closing
+  // entirely ("too many parameters"). newCustCount/newSum are now derived in
+  // index.js from byClient's per-client isNew flag instead (same in-memory
+  // Map lookup, no SQL params) — see the /api/day-closing route.
   // OI.QPRICE is the PRE-discount line price — O.T$PERCENT is the document-level
   // discount % that DISPRICE already bakes in for the non-ICE branch below. Found
   // live 2026-08-27 (Zoya/agent 257 case): summing raw QPRICE overstated the ICE
@@ -163,9 +156,7 @@ async function dayClosingSummary(dbName, dateStr, custIds, agentCode, { iceMishO
   // sum here must apply the same % per order to match. Verified the corrected
   // formula reproduces the tablet's total exactly (5,318.70) for that day/agent.
   const query = iceMishOnly ? `
-    SELECT COUNT(DISTINCT O.CUST) AS custCount, SUM(OI.QPRICE * (1 - O.T$PERCENT/100.0)) AS sumPrice,
-      COUNT(DISTINCT CASE WHEN ${notInRoster} THEN O.CUST END) AS newCustCount,
-      SUM(CASE WHEN ${notInRoster} THEN OI.QPRICE * (1 - O.T$PERCENT/100.0) ELSE 0 END) AS newSumPrice
+    SELECT COUNT(DISTINCT O.CUST) AS custCount, SUM(OI.QPRICE * (1 - O.T$PERCENT/100.0)) AS sumPrice
     FROM ORDERS O
     JOIN CUSTOMERS C ON C.CUST = O.CUST
     JOIN ORDERITEMS OI ON OI.ORD = O.ORD
@@ -173,9 +164,7 @@ async function dayClosingSummary(dbName, dateStr, custIds, agentCode, { iceMishO
     JOIN FAMILY F ON F.FAMILY = P.FAMILY
     WHERE O.CURDATE = @today AND O.ORDSTATUS <> -6 AND (${orClause}) AND F.FAMILYDES NOT LIKE N'%בודדים%'
   ` : `
-    SELECT COUNT(DISTINCT O.CUST) AS custCount, SUM(O.DISPRICE) AS sumPrice,
-      COUNT(DISTINCT CASE WHEN ${notInRoster} THEN O.CUST END) AS newCustCount,
-      SUM(CASE WHEN ${notInRoster} THEN O.DISPRICE ELSE 0 END) AS newSumPrice
+    SELECT COUNT(DISTINCT O.CUST) AS custCount, SUM(O.DISPRICE) AS sumPrice
     FROM ORDERS O
     JOIN CUSTOMERS C ON C.CUST = O.CUST
     WHERE O.CURDATE = @today AND O.ORDSTATUS <> -6 AND (${orClause})
@@ -225,8 +214,6 @@ async function dayClosingSummary(dbName, dateStr, custIds, agentCode, { iceMishO
   return {
     custCount: Number(row.custCount) || 0,
     sum: Math.round((Number(row.sumPrice) || 0) * 100) / 100,
-    newCustCount: Number(row.newCustCount) || 0,
-    newSum: Math.round((Number(row.newSumPrice) || 0) * 100) / 100,
     byAgent,
   };
 }

@@ -5476,6 +5476,14 @@ function finalizeByClient(byClient, nameMap, agentCode, summary) {
     c.enteringAgentName = top?.agentName || null;
     delete c.agents;
   });
+  // newCustCount/newSum derived from byClient's own isNew flag (cheap in-memory
+  // Map lookup, done above) instead of a SQL "NOT IN (...)" roster check —
+  // that check used to live in dayClosingSummary, but once the roster went
+  // company-wide (~2100 clients) it blew past SQL Server's per-request
+  // parameter limit. See priority-db.js's dayClosingSummary comment.
+  const newRows = byClient.filter(c => c.isNew);
+  summary.newCustCount = newRows.length;
+  summary.newSum = Math.round(newRows.reduce((s, c) => s + (Number(c.sum) || 0), 0) * 100) / 100;
   return byClient;
 }
 
@@ -5488,22 +5496,18 @@ app.get('/api/day-closing', requireAuth, dataRateLimit, async (req, res) => {
   // day), so custIds alone can't catch their order. See priority-db.js.
   const custIds = getAllCustIdsForAgent(agentCode);
   const nameMap = getClientNameMap();
-  // nameMap is already company-wide (see getClientNameMap above) — its keys
-  // are every custId across every team, reused here so "new client" matches
-  // the same global roster the name/🆕 badge and rosterAgentName already use.
-  const rosterCustIds = [...nameMap.keys()];
   const todayIL = todayIsraelDate();
   try {
     if (type === 'ice') {
       const [summary, byClient] = await Promise.all([
-        dayClosingSummary(process.env.DB_ICECREA || 'icecrea', todayIL, custIds, agentCode, { iceMishOnly: true, rosterCustIds }),
+        dayClosingSummary(process.env.DB_ICECREA || 'icecrea', todayIL, custIds, agentCode, { iceMishOnly: true }),
         dayClosingByClient(process.env.DB_ICECREA || 'icecrea', todayIL, custIds, agentCode, { iceMishOnly: true }),
       ]);
       finalizeByClient(byClient, nameMap, agentCode, summary);
       return res.json({ ok: true, type, ...summary, items: [], byClient });
     }
     const [summary, items, imgMap, byClient] = await Promise.all([
-      dayClosingSummary(process.env.DB_NAME || 'form', todayIL, custIds, agentCode, { rosterCustIds }),
+      dayClosingSummary(process.env.DB_NAME || 'form', todayIL, custIds, agentCode),
       dayClosingSellout(process.env.DB_NAME || 'form', todayIL, custIds, agentCode, DAY_CLOSING_SELLOUT_SKUS),
       fetchSelloutPhotos(DAY_CLOSING_SELLOUT_SKUS),
       dayClosingByClient(process.env.DB_NAME || 'form', todayIL, custIds, agentCode),
