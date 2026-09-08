@@ -5899,11 +5899,12 @@ app.get('/api/client-promos/:custId', requireAuth, async (req, res) => {
       if (!items.length) return;
       const skuIn = items.map(p => `"${p.sku}"`).join(',');
       const rows = await executeDax(
-        `EVALUATE SELECTCOLUMNS(FILTER('${table}', '${table}'[מק"ט] IN {${skuIn}}), "sku", '${table}'[מק"ט], "img", '${table}'[URL תמונה], "fam", '${table}'[תאור משפחה])`
+        `EVALUATE SELECTCOLUMNS(FILTER('${table}', '${table}'[מק"ט] IN {${skuIn}}), "sku", '${table}'[מק"ט], "img", '${table}'[URL תמונה], "fam", '${table}'[תאור משפחה], "ean", '${table}'[ברקוד])`
       );
       const imgMap = new Map(rows.map(r => [String(r['[sku]']), r['[img]'] || '']));
       const famMap = new Map(rows.map(r => [String(r['[sku]']), r['[fam]'] || '']));
-      items.forEach(p => { p.imgUrl = imgMap.get(p.sku) || ''; p._fam = famMap.get(p.sku) || ''; });
+      const eanMap = new Map(rows.map(r => [String(r['[sku]']), r['[ean]'] || '']));
+      items.forEach(p => { p.imgUrl = imgMap.get(p.sku) || ''; p._fam = famMap.get(p.sku) || ''; p.ean = eanMap.get(p.sku) || ''; });
     };
     // MLAY[מלאי זמין] (available stock) — table exists separately per company
     // (FORMULA dataset's own MLAY has zero ICE rows, confirmed live 2026-09-06),
