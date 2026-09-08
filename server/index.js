@@ -5414,33 +5414,33 @@ function getAllCustIdsForAgent(agentCode) {
   return [...ids];
 }
 
-// custId -> display name across every agent under the same manager as
-// agentCode (same three PBI-cached lists as getAllCustIdsForAgent above,
-// merged over the whole team) — used to label dayClosingByClient's rows.
-// Priority's own CUSTNAME column is the client's ID, not a name (see
-// dayClosingByClient in priority-db.js), so the name comes from here instead
-// of a second SQL round-trip. Team-wide (not just agentCode's own roster) —
-// live case 2026-09-08: Vyacheslav Shulkin (238) closed two orders for
-// clients 1124011/1130050, both actually on teammate Maria Malishev's (293)
-// roster in the same ANATOL group — he covered for her, the clients aren't
-// new, they just aren't on HIS roster. Same roster-crediting pattern as
-// team-order-stats above (Oleg/Alexey case).
-function getClientNameMap(agentCode) {
+// custId -> {custName, agentCode, agentName} of the client's REAL roster
+// owner, searched across every agent in every team (same three PBI-cached
+// lists as getAllCustIdsForAgent above, merged over the whole company) —
+// used to label dayClosingByClient's rows. Priority's own CUSTNAME column is
+// the client's ID, not a name (see dayClosingByClient in priority-db.js), so
+// the name comes from here instead of a second SQL round-trip. Global, not
+// just agentCode's own team — live case 2026-09-08: Vyacheslav Shulkin (238)
+// closed two orders for clients 1124011/1130050, both actually on teammate
+// Maria Malishev's (293) roster in the same ANATOL group — he covered for
+// her, the clients aren't new, they just aren't on HIS roster. First tried
+// scoping this to just agentCode's own manager group, but agents sometimes
+// cover clients outside their own team too — widened to every agent
+// company-wide the same day. Same roster-crediting pattern as
+// team-order-stats above (Oleg/Alexey case). The agentCode/agentName on each
+// entry let the caller (finalizeByClient) flag rows that belong to someone
+// else entirely, for a "belongs to X" sub-table instead of just a name.
+function getClientNameMap() {
   if (!pbiCache) return new Map();
-  let teamAgentCodes = [agentCode];
-  for (const agents of pbiCache.agentsByManager.values()) {
-    if (agents.some(a => a.agentCode === agentCode)) {
-      teamAgentCodes = agents.map(a => a.agentCode);
-      break;
-    }
-  }
   const map = new Map();
-  for (const code of teamAgentCodes) {
-    const scheduled = pbiCache.byAgent?.get(code) || [];
-    const unscheduled = pbiCache.noScheduleByAgent?.get(code) || [];
-    const ice = pbiCache.iceByAgent?.get(code) || [];
-    for (const c of [...scheduled, ...unscheduled, ...ice]) {
-      if (c.custId && !map.has(c.custId)) map.set(c.custId, c.custName || '');
+  for (const src of [pbiCache.byAgent, pbiCache.noScheduleByAgent, pbiCache.iceByAgent]) {
+    if (!src) continue;
+    for (const [code, clients] of src) {
+      for (const c of clients) {
+        if (c.custId && !map.has(c.custId)) {
+          map.set(c.custId, { custName: c.custName || '', agentCode: code, agentName: c.agentName || '' });
+        }
+      }
     }
   }
   return map;
@@ -5459,11 +5459,17 @@ function getClientNameMap(agentCode) {
 function finalizeByClient(byClient, nameMap, agentCode, summary) {
   const multiAgentDay = Array.isArray(summary.byAgent) && summary.byAgent.length > 1;
   byClient.forEach(c => {
+    const roster = nameMap.get(c.custId);
     // Not yet in the PBI-cached roster (refreshes once a day) — the client is
     // brand-new today. Fall back to Priority's own CUSTDES (orderName) instead
     // of the bare ID, and flag it so the client can show a 🆕 badge.
-    c.isNew = !nameMap.has(c.custId);
-    c.custName = nameMap.get(c.custId) || c.orderName || c.custId;
+    c.isNew = !roster;
+    c.custName = roster?.custName || c.orderName || c.custId;
+    // Set only when the client's real roster owner isn't this closing agent —
+    // frontend uses it to split these rows into a "belongs to X" sub-table
+    // instead of mixing them into the agent's own count. Live request
+    // 2026-09-08.
+    c.rosterAgentName = (roster && roster.agentCode !== agentCode) ? roster.agentName : null;
     delete c.orderName;
     const top = multiAgentDay ? (c.agents || []).slice().sort((a, b) => b.sum - a.sum)[0] : null;
     c.enteringAgentCode = top?.agentCode || null;
@@ -5481,10 +5487,10 @@ app.get('/api/day-closing', requireAuth, dataRateLimit, async (req, res) => {
   // brand-new client isn't in the PBI-cached roster yet (refreshes once a
   // day), so custIds alone can't catch their order. See priority-db.js.
   const custIds = getAllCustIdsForAgent(agentCode);
-  const nameMap = getClientNameMap(agentCode);
-  // nameMap is already team-wide (see getClientNameMap above) — its keys are
-  // every custId across the whole manager group, reused here so "new client"
-  // matches the same team roster the name/🆕 badge already uses.
+  const nameMap = getClientNameMap();
+  // nameMap is already company-wide (see getClientNameMap above) — its keys
+  // are every custId across every team, reused here so "new client" matches
+  // the same global roster the name/🆕 badge and rosterAgentName already use.
   const rosterCustIds = [...nameMap.keys()];
   const todayIL = todayIsraelDate();
   try {
