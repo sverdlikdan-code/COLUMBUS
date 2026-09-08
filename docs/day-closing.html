@@ -332,14 +332,32 @@ function renderBlank(d){
       groups.get(key).rows.push(c);
     }
     const multi = groups.size > 1;
-    document.getElementById('dc-bc-groups').innerHTML = [...groups.values()].map(g => {
-      const head = multi ? `<div class="dc-bc-group-head">${esc((g.agentName||'').replace(/\s*[)(][^()]*[)(]\s*$/, '')) || agentName}</div>` : '';
-      const rows = g.rows.map((c, i) => `<tr>
+    const bcTbl = rows => `<table class="dc-bc-tbl"><thead><tr><th>#</th><th>לקוח</th><th>סכום</th></tr></thead><tbody>${
+      rows.map((c, i) => `<tr>
         <td>${i + 1}</td>
         <td class="dc-bc-name">${c.isNew ? '🆕 ' : ''}${esc(c.custName || c.custId)}</td>
         <td class="dc-bc-sum">₪${Number(c.sum || 0).toLocaleString('he-IL', {maximumFractionDigits:0})}</td>
-      </tr>`).join('');
-      return `${head}<table class="dc-bc-tbl"><thead><tr><th>#</th><th>לקוח</th><th>סכום</th></tr></thead><tbody>${rows}</tbody></table>`;
+      </tr>`).join('')
+    }</tbody></table>`;
+    document.getElementById('dc-bc-groups').innerHTML = [...groups.values()].map(g => {
+      const head = multi ? `<div class="dc-bc-group-head">${esc((g.agentName||'').replace(/\s*[)(][^()]*[)(]\s*$/, '')) || agentName}</div>` : '';
+      // Rows whose real roster owner isn't this line's own agent (rosterAgentName
+      // set server-side, see finalizeByClient in index.js) split into their own
+      // "belongs to X" sub-table instead of mixing into the main count — these
+      // are covered-for clients (agent helped a colleague), not this agent's
+      // own sales. Live request 2026-09-08.
+      const ownRows = g.rows.filter(c => !c.rosterAgentName);
+      const foreign = new Map();
+      for (const c of g.rows) {
+        if (!c.rosterAgentName) continue;
+        if (!foreign.has(c.rosterAgentName)) foreign.set(c.rosterAgentName, []);
+        foreign.get(c.rosterAgentName).push(c);
+      }
+      let html = head + (ownRows.length ? bcTbl(ownRows) : '');
+      for (const [ownerName, rows] of foreign) {
+        html += `<div class="dc-bc-group-head">לקוחות ששייכים ל-${esc(ownerName)}</div>${bcTbl(rows)}`;
+      }
+      return html;
     }).join('');
   } else {
     byClientWrap.style.display = 'none';
