@@ -6170,15 +6170,16 @@ CALCULATETABLE(
     // 2026-09-06) — not just hidden, gone before the client ever sees them.
     promos = promos.filter(p => !String(p._fam || '').includes(YEDAIM_BODEDIM_MARKER));
 
-    // FORMULA first, then ICE_MISH, then group by משפחה within it — simplified
-    // 2026-09-09 after live feedback that grouping by מחלקה first (dropped)
-    // produced a confusing order; משפחה alone reads cleaner in the grid.
+    // FORMULA first, then ICE_MISH, then by מק"ט within it — went through two
+    // rounds of live feedback 2026-09-09: מחלקה+משפחה felt off, then משפחה
+    // alone still didn't read right; מק"ט (numeric where possible, so barcode-
+    // style SKUs sort in numeric order, not lexical) is what stuck.
     // Done here, before the stock re-sort below, so Array#sort's stability
     // (guaranteed in Node/V8) preserves this grouping within each in-stock/
     // out-of-stock bucket instead of the two sorts fighting each other.
     const COMPANY_ORDER = { FORMULA: 0, ICE_MISH: 1 };
     promos.sort((a, b) => (COMPANY_ORDER[a.company] ?? 9) - (COMPANY_ORDER[b.company] ?? 9)
-      || String(a._fam || '').localeCompare(String(b._fam || '')));
+      || (Number(a.sku) - Number(b.sku) || String(a.sku).localeCompare(String(b.sku))));
     promos.forEach(p => { delete p._fam; });
 
     // Out-of-stock items (< 1 unit — live rule 2026-09-06) sink to the bottom
