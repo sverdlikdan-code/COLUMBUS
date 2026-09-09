@@ -4992,14 +4992,19 @@ function buildDeterministicHighlights(result, lang) {
 // no crash-loop involved — see VAULT day-briefing note for that date). This
 // covers the retry half of that fix; computeDayBriefing below is now also fully
 // sequential (no more Promise.all bursts) for the other half.
-async function executeDaxRetry(dax) {
+// Reused 2026-09-09 by /api/client-analytics/:custId (client-level "🔍 ניתוח
+// מעמק" panel, separate from day-briefing but sharing the same 📊 icon and the
+// same class of bug — see VAULT day-briefing note, second incident) — same day,
+// same fix shape, so this takes datasetId/workspaceIdOverride through too
+// (executeDax's own signature) instead of the day-briefing-only single-arg form.
+async function executeDaxRetry(dax, datasetId, workspaceIdOverride) {
   try {
-    return await executeDax(dax);
+    return await executeDax(dax, datasetId, workspaceIdOverride);
   } catch (err) {
-    console.error('[day-briefing] DAX call failed (attempt 1):', err.message);
-    console.log('[day-briefing] Retrying in 35s...');
+    console.error('[dax-retry] DAX call failed (attempt 1):', err.message);
+    console.log('[dax-retry] Retrying in 35s...');
     await new Promise(r => setTimeout(r, 35000));
-    return await executeDax(dax);
+    return await executeDax(dax, datasetId, workspaceIdOverride);
   }
 }
 
@@ -6229,6 +6234,12 @@ app.get('/api/client-analytics/:custId', requireAuth, async (req, res) => {
 
   const analyticsCacheKey = `${custId}_${lang}`;
   const cachedAnalytics = clientAnalyticsCache.get(analyticsCacheKey);
+  // GET requests were entirely unlogged before 2026-09-09 (only POST hits the
+  // access-log middleware above) — a 429 investigation had no way to see how
+  // many uncached clients got hit back-to-back before the quota tripped. Logs
+  // only on a real (uncached) computation, not the cheap cache-hit path below,
+  // so this doubles as a rough DAX-burst counter.
+  console.log(`[client-analytics] custId=${custId} lang=${lang} agent=${req.session.agentCode || 'none'} manager=${req.session.isManager ? (req.session.managerId || 'yes') : 'no'} cached=${!!cachedAnalytics} sess=${(req.headers['x-session'] || '').slice(0,8)}`);
   if (cachedAnalytics) return res.json(cachedAnalytics.data);
 
   // GEMINI/ANTHROPIC key gate removed 2026-08-20 — the LLM commentary itself
@@ -6294,7 +6305,7 @@ app.get('/api/client-analytics/:custId', requireAuth, async (req, res) => {
       (isIceOnlyClient && ICE_DS)
         ? ["'MISHPAHTI ICE MISHTAH'", 'כשרות', 'רשת  - חנות', 'תאור סוג לקוח', 'מס. לקוח', ICE_DS]
         : ["'משטח'", 'כשרות', 'רשתות - פרטי', 'תאור סוג לקוח', 'מס. לקוח', undefined];
-    const metaRows = await executeDax(`
+    const metaRows = await executeDaxRetry(`
 EVALUATE
 ROW(
   "kosher", LOOKUPVALUE(${metaTable}[${metaKosherCol}], ${metaTable}[${metaCustCol}], "${custId}"),
@@ -6310,7 +6321,7 @@ ROW(
     let chainInFilter = '';
     if (chainName) {
       const chainNameEsc = chainName.replace(/"/g, '""');
-      const chainCustRows = await executeDax(
+      const chainCustRows = await executeDaxRetry(
         `EVALUATE SELECTCOLUMNS(FILTER(${metaTable}, ${metaTable}[${metaChainCol}] = "${chainNameEsc}"), "cust", ${metaTable}[${metaCustCol}])`,
         metaDataset
       );
@@ -6438,13 +6449,15 @@ CALCULATETABLE(
     };
 
     const INTER_P2_BREAKDOWN_ENABLED = true;
-    const [curRows, priorRows, avgRows, curSkuRows, priorSkuRows] = await Promise.all([
-      executeDax(famDax(curStart, curEnd)),
-      executeDax(famDax(priorStart, priorEnd)),
-      executeDax(daxAvg(curStart, curEnd)),
-      INTER_P2_BREAKDOWN_ENABLED ? executeDax(skuDax(curStart, curEnd)) : Promise.resolve([]),
-      INTER_P2_BREAKDOWN_ENABLED ? executeDax(skuDax(priorStart, priorEnd)) : Promise.resolve([]),
-    ]);
+    // Sequential, not Promise.all — same fix as day-briefing's computeDayBriefing
+    // (2026-09-09): 5 DAX calls fired at once here was part of the ~12/click burst
+    // that tripped Power BI's 429 for this endpoint specifically (see executeDaxRetry
+    // comment above).
+    const curRows = await executeDaxRetry(famDax(curStart, curEnd));
+    const priorRows = await executeDaxRetry(famDax(priorStart, priorEnd));
+    const avgRows = await executeDaxRetry(daxAvg(curStart, curEnd));
+    const curSkuRows = INTER_P2_BREAKDOWN_ENABLED ? await executeDaxRetry(skuDax(curStart, curEnd)) : [];
+    const priorSkuRows = INTER_P2_BREAKDOWN_ENABLED ? await executeDaxRetry(skuDax(priorStart, priorEnd)) : [];
 
     const peerAvg = Math.round(avgRows?.[0]?.['[avg_per_client]'] || 0);
 
@@ -6540,14 +6553,14 @@ CALCULATETABLE(
   ALL_PARTS[תאריך] <= DATE(${curEnd.year},${curEnd.month},${curLastDay})
 )`;
 
-      const [chainOpenRows, storeOrderedRows, chainFamRows, chainSkuRows, stockForm, stockIce] = await Promise.all([
-        executeDax(chainOpenDax),
-        executeDax(storeOrderedDax),
-        executeDax(chainFamDax),
-        executeDax(chainSkuDax),
-        executeDax(`EVALUATE SELECTCOLUMNS('זמינות FORM', "sku", 'זמינות FORM'[מק'ט], "stock", 'זמינות FORM'[מלאי זמין])`, MMD_DS),
-        executeDax(`EVALUATE SELECTCOLUMNS('זמינות ICE', "sku", 'זמינות ICE'[מק'ט], "stock", 'זמינות ICE'[מלאי זמין])`, MMD_DS),
-      ]);
+      // Sequential, not Promise.all — same reasoning as curRows/priorRows/avgRows
+      // above (2026-09-09 client-analytics 429 fix): 6 DAX calls at once here.
+      const chainOpenRows = await executeDaxRetry(chainOpenDax);
+      const storeOrderedRows = await executeDaxRetry(storeOrderedDax);
+      const chainFamRows = await executeDaxRetry(chainFamDax);
+      const chainSkuRows = await executeDaxRetry(chainSkuDax);
+      const stockForm = await executeDaxRetry(`EVALUATE SELECTCOLUMNS('זמינות FORM', "sku", 'זמינות FORM'[מק'ט], "stock", 'זמינות FORM'[מלאי זמין])`, MMD_DS);
+      const stockIce = await executeDaxRetry(`EVALUATE SELECTCOLUMNS('זמינות ICE', "sku", 'זמינות ICE'[מק'ט], "stock", 'זמינות ICE'[מלאי זמין])`, MMD_DS);
 
       // Company-level totals (store vs chain, current period): flags whether this branch
       // does ANY business with a company at all. chain>0 / store=0 for a whole company is a
@@ -6622,7 +6635,7 @@ CALCULATETABLE(
       // pulls the product photo URL (real DB field, not a guessed image-server pattern).
       if (dormantChainProducts.INTER.length) {
         const interSkus = dormantChainProducts.INTER.map(x => `"${x.sku}"`).join(',');
-        const p2Rows = await executeDax(
+        const p2Rows = await executeDaxRetry(
           `EVALUATE SELECTCOLUMNS(FILTER('KARTIS PARIT INTER', 'KARTIS PARIT INTER'[מק"ט] IN {${interSkus}}), "sku", 'KARTIS PARIT INTER'[מק"ט], "p2", 'KARTIS PARIT INTER'[תאור פרמטר 2 למוצר], "img", 'KARTIS PARIT INTER'[URL תמונה])`
         );
         const p2Map = new Map(p2Rows.map(r => [String(r['[sku]']), { p2: fixBiDi(r['[p2]'] || ''), img: r['[img]'] || '' }]));
@@ -6635,16 +6648,15 @@ CALCULATETABLE(
       const fetchPhotos = async (items, table) => {
         if (!items.length) return;
         const skuIn = items.map(x => `"${x.sku}"`).join(',');
-        const rows = await executeDax(
+        const rows = await executeDaxRetry(
           `EVALUATE SELECTCOLUMNS(FILTER('${table}', '${table}'[מק"ט] IN {${skuIn}}), "sku", '${table}'[מק"ט], "img", '${table}'[URL תמונה])`
         );
         const imgMap = new Map(rows.map(r => [String(r['[sku]']), r['[img]'] || '']));
         items.forEach(x => { x.imgUrl = imgMap.get(String(x.sku)) || ''; });
       };
-      await Promise.all([
-        fetchPhotos(dormantChainProducts.FORMULA, 'KARTIS PARIT'),
-        fetchPhotos(dormantChainProducts.ICE_MISH, 'KARTIS PARIT ICE'),
-      ]);
+      // Sequential, not Promise.all — same 2026-09-09 fix as the two blocks above.
+      await fetchPhotos(dormantChainProducts.FORMULA, 'KARTIS PARIT');
+      await fetchPhotos(dormantChainProducts.ICE_MISH, 'KARTIS PARIT ICE');
 
       // Bucket both chain-side and store-side totals per (company, family) — chainFamRows/
       // curRows already carry [מחלקה] per row (same SUMMARIZE+LOOKUPVALUE pattern used
@@ -6752,7 +6764,7 @@ CALCULATETABLE(
       const interSkuUniverse = [...new Set([...Object.keys(chainSkuTotal), ...Object.keys(storeSkuTotalDev)])];
       if (RELEVANT_COMPANIES.has('INTER') && interSkuUniverse.length) {
         const skuInList = interSkuUniverse.map(s => `"${s}"`).join(',');
-        const p2Rows = await executeDax(
+        const p2Rows = await executeDaxRetry(
           `EVALUATE SELECTCOLUMNS(FILTER('KARTIS PARIT INTER', 'KARTIS PARIT INTER'[מק"ט] IN {${skuInList}}), "sku", 'KARTIS PARIT INTER'[מק"ט], "p2", 'KARTIS PARIT INTER'[תאור פרמטר 2 למוצר])`
         );
         const sku2p2Dev = new Map(p2Rows.map(r => [String(r['[sku]']), r['[p2]'] || '']));
@@ -6843,7 +6855,7 @@ CALCULATETABLE(
       const interSkuList = [...new Set([...Object.keys(curSku), ...Object.keys(priorSku)])];
       if (interSkuList.length) {
         const skuInFilter = interSkuList.map(s => `"${s}"`).join(',');
-        const p2Rows = await executeDax(
+        const p2Rows = await executeDaxRetry(
           `EVALUATE SELECTCOLUMNS(FILTER('KARTIS PARIT INTER', 'KARTIS PARIT INTER'[מק"ט] IN {${skuInFilter}}), "sku", 'KARTIS PARIT INTER'[מק"ט], "p2", 'KARTIS PARIT INTER'[תאור פרמטר 2 למוצר])`
         );
         const sku2p2 = new Map(p2Rows.map(r => [String(r['[sku]']), fixBiDi(r['[p2]'] || '')]));
@@ -7012,6 +7024,11 @@ CALCULATETABLE(
     clientAnalyticsCache.set(analyticsCacheKey, { data: analyticsResponseData, at: new Date() });
     res.json(analyticsResponseData);
   } catch(e) {
+    // Was silent before 2026-09-09 — a 429 here (client-analytics never got the
+    // day-briefing fix's logging) left zero trace in error.log, so the second
+    // 429 incident today (client ליישס רשת מעדניות) couldn't be confirmed from
+    // logs at all. Same console.error shape as /api/day-briefing's catch above.
+    console.error(`[client-analytics] custId=${custId} lang=${lang} failed:`, e.message);
     res.status(500).json({ ok: false, error: e.message });
   }
 });
