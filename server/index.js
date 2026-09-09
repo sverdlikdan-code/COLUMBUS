@@ -4966,6 +4966,25 @@ function buildDeterministicHighlights(result, lang) {
   return candidates.slice(0, 5).map(({ type, client, note }) => ({ type, client, note }));
 }
 
+// One retry after a pause on a failed DAX call — same reasoning as loadPBICache's
+// own retry (see pbiLoadStartupGuard above): a fast retry burst risks making a
+// real 429 overload worse, so wait it out instead. Added 2026-09-09: a single
+// agent's click on "📊 ניתוח" fired ~10 DAX queries via nested Promise.all with
+// zero retry and tripped Power BI's per-minute throttle on its own (no deploy,
+// no crash-loop involved — see VAULT day-briefing note for that date). This
+// covers the retry half of that fix; computeDayBriefing below is now also fully
+// sequential (no more Promise.all bursts) for the other half.
+async function executeDaxRetry(dax) {
+  try {
+    return await executeDax(dax);
+  } catch (err) {
+    console.error('[day-briefing] DAX call failed (attempt 1):', err.message);
+    console.log('[day-briefing] Retrying in 35s...');
+    await new Promise(r => setTimeout(r, 35000));
+    return await executeDax(dax);
+  }
+}
+
 // Core computation for the on-demand endpoint below. Returns null for "no clients
 // that day" (not an error); throws on real failures (DAX).
 async function computeDayBriefing(agentCode, dayNum, lang) {
@@ -5095,9 +5114,13 @@ CALCULATETABLE(
   // clients dormant >21 days.
   const buildCompanyResult = async (familyList) => {
     const { daxCur, daxLastOrder, daxPrev, daxCurMonth } = buildQueries(familyList);
-    const [curRows, prevRows, lastOrderRows, curMonthRows] = await Promise.all([
-      executeDax(daxCur), executeDax(daxPrev), executeDax(daxLastOrder), executeDax(daxCurMonth),
-    ]);
+    // Sequential, not Promise.all — 4 DAX queries fired at once per company (×2
+    // companies below) is exactly the burst that tripped Power BI's throttle
+    // 2026-09-09. One at a time costs wall-clock time, not quota risk.
+    const curRows = await executeDaxRetry(daxCur);
+    const prevRows = await executeDaxRetry(daxPrev);
+    const lastOrderRows = await executeDaxRetry(daxLastOrder);
+    const curMonthRows = await executeDaxRetry(daxCurMonth);
     const curMap = {}, prevMap = {}, lastOrderMap = {}, curMonthMap = {};
     for (const r of curRows) {
       const id = String(r['ALL_PARTS[מספר לקוח]'] || r['[מספר לקוח]'] || '');
@@ -5161,15 +5184,14 @@ CALCULATETABLE(
     return { clients, dormant, totalTarget, totalSales, totalPct, totalIndication };
   };
 
-  const [famRows, workDaysRows] = await Promise.all([
-    executeDax(daxFamCompany),
-    // Without a date filter, [ימי עבודה %]'s own DIMCALENDAR-based ratio spans the
-    // whole calendar table (years), not "this month" — it only comes out right inside
-    // a report page where a month slicer already narrows DIMCALENDAR. Same
-    // MONTH(TODAY())/YEAR(TODAY()) filter as monthlySales above so both sides of the
-    // INDICATION comparison mean "this calendar month".
-    executeDax('EVALUATE CALCULATETABLE(ROW("pct", [ימי עבודה %]), MONTH(DIMCALENDAR[Date]) = MONTH(TODAY()), YEAR(DIMCALENDAR[Date]) = YEAR(TODAY()))'),
-  ]);
+  // Sequential (see buildCompanyResult above for why) — was Promise.all.
+  const famRows = await executeDaxRetry(daxFamCompany);
+  // Without a date filter, [ימי עבודה %]'s own DIMCALENDAR-based ratio spans the
+  // whole calendar table (years), not "this month" — it only comes out right inside
+  // a report page where a month slicer already narrows DIMCALENDAR. Same
+  // MONTH(TODAY())/YEAR(TODAY()) filter as monthlySales above so both sides of the
+  // INDICATION comparison mean "this calendar month".
+  const workDaysRows = await executeDaxRetry('EVALUATE CALCULATETABLE(ROW("pct", [ימי עבודה %]), MONTH(DIMCALENDAR[Date]) = MONTH(TODAY()), YEAR(DIMCALENDAR[Date]) = YEAR(TODAY()))');
   workDaysPct = parseFloat(workDaysRows?.[0]?.['[pct]']) || 0;
   const formulaFamilies = [], iceMishFamilies = [];
   famRows.forEach(r => {
@@ -5183,10 +5205,9 @@ CALCULATETABLE(
   // ICE MISHPACHTI only needs its dormant list here (⏰ לא הזמינו מעל 3 שבועות) — no
   // company-specific יעד exists in the model to build a sales/target table against,
   // and no AI highlights are requested for it (see prompt below, FORMULA-only).
-  const [formulaResult, iceMishResult] = await Promise.all([
-    buildCompanyResult(formulaFamilies),
-    buildCompanyResult(iceMishFamilies),
-  ]);
+  // Sequential (see buildCompanyResult above for why) — was Promise.all.
+  const formulaResult = await buildCompanyResult(formulaFamilies);
+  const iceMishResult = await buildCompanyResult(iceMishFamilies);
 
   const monthStr = `${months[0].month}/${months[0].year} — ${curEnd.month}/${curEnd.year}`;
   const prevStr  = `${prevMonths[0].month}/${prevMonths[0].year} — ${prevEnd.month}/${prevEnd.year}`;
@@ -5235,15 +5256,82 @@ app.get('/api/day-briefing', requireAuth, async (req, res) => {
   }
 
   try {
-    const payload = await computeDayBriefing(agentCode, dayNum, lang);
+    const payload = await computeAndCacheDayBriefing(agentCode, dayNum, lang);
     if (!payload) return res.json({ ok: false, error: 'no_clients' });
-    dayBriefingCache[dayBriefingCacheKey] = { date: todayIL, payload };
-    writeDayBriefingCache(dayBriefingCache);
     res.json(payload);
   } catch (e) {
+    // Was silent (no log line) until 2026-09-09 — a live 429 here surfaced only
+    // as a raw error string in the agent's modal, invisible in error.log. See
+    // VAULT day-briefing note for that date's investigation.
+    console.error(`[day-briefing] agent=${agentCode} day=${dayNum} lang=${lang} failed:`, e.message);
     res.status(500).json({ ok: false, error: e.message });
   }
 });
+
+// Actually computes + persists one agent/day/lang combo — no cache-hit shortcut,
+// no rate limiting (those stay call-site concerns, see the route above). Shared
+// by the route (first real click of the day, cache miss) and the morning
+// prewarm cron below (scheduleDailyDayBriefingPrewarm), which exists precisely
+// so that first click almost never happens live during business hours anymore.
+async function computeAndCacheDayBriefing(agentCode, dayNum, lang) {
+  const payload = await computeDayBriefing(agentCode, dayNum, lang);
+  if (!payload) return null;
+  const dayBriefingCache = readDayBriefingCache();
+  dayBriefingCache[`${agentCode}_${dayNum}_${lang}`] = { date: todayIsraelDate(), payload };
+  writeDayBriefingCache(dayBriefingCache);
+  return payload;
+}
+
+// ── Morning day-briefing prewarm — computes every agent's day-briefing (lang
+// 'he' only, the default and vast majority of real usage — ponytail: not worth
+// tripling the DAX volume to also prewarm ru/en on the off chance someone
+// switches) right after the 06:00 pbiCache reload, so agents' "📊 ניתוח" click
+// almost always hits the cache instead of firing a live DAX burst. Root-cause
+// fix for 2026-09-09: a single agent's single click fired ~10 DAX queries via
+// nested Promise.all with no retry and tripped Power BI's own throttle, with
+// no deploy or crash-loop involved (unlike the 2026-09-07 incidents). This
+// doesn't reduce total DAX volume — it moves it to a quiet pre-market window
+// and paces it one call at a time (computeDayBriefing is now fully sequential,
+// see executeDaxRetry above) instead of one bursty click at a time all day.
+// Idempotent — skips combos already cached for today, safe to invoke more than
+// once (e.g. after a mid-day restart) without recomputing everything.
+const DAY_BRIEFING_PREWARM_GAP_MS = 4000;
+async function prewarmDayBriefings() {
+  if (!pbiCache) { console.log('[day-briefing-prewarm] skipped — pbiCache not loaded'); return; }
+  const todayIL = todayIsraelDate();
+  const combos = [];
+  for (const [agentCode, clients] of pbiCache.byAgent) {
+    const days = new Set(clients.map(c => c.dayNum).filter(d => d >= 1 && d <= 5));
+    for (const dayNum of days) combos.push({ agentCode, dayNum });
+  }
+  console.log(`[day-briefing-prewarm] starting — ${combos.length} agent/day combos`);
+  const cache = readDayBriefingCache();
+  let computed = 0, skipped = 0, failed = 0;
+  for (const { agentCode, dayNum } of combos) {
+    if (cache[`${agentCode}_${dayNum}_he`]?.date === todayIL) { skipped++; continue; }
+    try {
+      await computeAndCacheDayBriefing(agentCode, dayNum, 'he');
+      computed++;
+    } catch (e) {
+      failed++;
+      console.error(`[day-briefing-prewarm] agent=${agentCode} day=${dayNum} failed:`, e.message);
+    }
+    await new Promise(r => setTimeout(r, DAY_BRIEFING_PREWARM_GAP_MS));
+  }
+  console.log(`[day-briefing-prewarm] done — ${computed} computed, ${skipped} already cached, ${failed} failed`);
+}
+// Same self-rescheduling setTimeout pattern as scheduleDailyPBIReload (DST-safe,
+// see msUntilNextIsraelTime above) — offset 15 min after the 06:00 pbiCache
+// reload so pbiCache.byAgent is guaranteed fresh before this reads it. NOT run
+// at server startup (unlike loadPBICache) — a redeploy must never trigger this,
+// or every push to server/*.js would burn the exact quota this fix protects
+// (see project_pbi_429_incident in memory: deploy series is a known trigger).
+function scheduleDailyDayBriefingPrewarm() {
+  setTimeout(() => {
+    prewarmDayBriefings();
+    scheduleDailyDayBriefingPrewarm();
+  }, msUntilNextIsraelTime(6, 15));
+}
 
 // GET /api/today-orders — direct-to-Priority (deliberately NOT PBI: PBI refreshes
 // 2x/day and can't see an order opened an hour ago). Global cache shared by every
@@ -6917,6 +7005,7 @@ app.listen(PORT, async () => {
   await loadPBICache();
   scheduleDailyPBIReload();
   scheduleDailyIceOrderSnapshot();
+  scheduleDailyDayBriefingPrewarm();
 });
 
 // Flush sessions to disk before pm2 restart/shutdown
