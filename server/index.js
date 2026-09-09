@@ -6110,23 +6110,16 @@ app.get('/api/client-promos/:custId', requireAuth, async (req, res) => {
     // reliable as fixBiDi-ing 49 family names first, since we only need a
     // yes/no membership check, never to display this value.
     const YEDAIM_BODEDIM_MARKER = 'םידדוב';
-    // "מחלקה" via LOOKUPVALUE(ADIFUT[מחלקה], ADIFUT[תאור משפחה], ...) — same join
-    // pattern used everywhere else in this file (client-analytics, day-briefing
-    // etc.) against the fact table's family column; here joined against KARTIS
-    // PARIT's own [תאור משפחה] instead since we already have it per row. KARTIS
-    // PARIT has no [מחלקה] column of its own — confirmed live (probe 2026-09-09,
-    // DatasetExecuteQueriesError "column cannot be found") before relying on it.
     const fetchPhotos = async (items, table) => {
       if (!items.length) return;
       const skuIn = items.map(p => `"${p.sku}"`).join(',');
       const rows = await executeDax(
-        `EVALUATE ADDCOLUMNS(SELECTCOLUMNS(FILTER('${table}', '${table}'[מק"ט] IN {${skuIn}}), "sku", '${table}'[מק"ט], "img", '${table}'[URL תמונה], "fam", '${table}'[תאור משפחה], "ean", '${table}'[ברקוד]), "mah", LOOKUPVALUE(ADIFUT[מחלקה], ADIFUT[תאור משפחה], [fam]))`
+        `EVALUATE SELECTCOLUMNS(FILTER('${table}', '${table}'[מק"ט] IN {${skuIn}}), "sku", '${table}'[מק"ט], "img", '${table}'[URL תמונה], "fam", '${table}'[תאור משפחה], "ean", '${table}'[ברקוד])`
       );
       const imgMap = new Map(rows.map(r => [String(r['[sku]']), r['[img]'] || '']));
       const famMap = new Map(rows.map(r => [String(r['[sku]']), r['[fam]'] || '']));
       const eanMap = new Map(rows.map(r => [String(r['[sku]']), r['[ean]'] || '']));
-      const mahMap = new Map(rows.map(r => [String(r['[sku]']), r['[mah]'] || '']));
-      items.forEach(p => { p.imgUrl = imgMap.get(p.sku) || ''; p._fam = famMap.get(p.sku) || ''; p.ean = eanMap.get(p.sku) || ''; p._mah = mahMap.get(p.sku) || ''; });
+      items.forEach(p => { p.imgUrl = imgMap.get(p.sku) || ''; p._fam = famMap.get(p.sku) || ''; p.ean = eanMap.get(p.sku) || ''; });
     };
     // MLAY[מלאי זמין] (available stock) — table exists separately per company
     // (FORMULA dataset's own MLAY has zero ICE rows, confirmed live 2026-09-06),
@@ -6177,16 +6170,16 @@ CALCULATETABLE(
     // 2026-09-06) — not just hidden, gone before the client ever sees them.
     promos = promos.filter(p => !String(p._fam || '').includes(YEDAIM_BODEDIM_MARKER));
 
-    // FORMULA first, then ICE_MISH (live correction 2026-09-09 — grid was
-    // opening on ICE first), then group by מחלקה, then by משפחה within it.
+    // FORMULA first, then ICE_MISH, then group by משפחה within it — simplified
+    // 2026-09-09 after live feedback that grouping by מחלקה first (dropped)
+    // produced a confusing order; משפחה alone reads cleaner in the grid.
     // Done here, before the stock re-sort below, so Array#sort's stability
     // (guaranteed in Node/V8) preserves this grouping within each in-stock/
     // out-of-stock bucket instead of the two sorts fighting each other.
     const COMPANY_ORDER = { FORMULA: 0, ICE_MISH: 1 };
     promos.sort((a, b) => (COMPANY_ORDER[a.company] ?? 9) - (COMPANY_ORDER[b.company] ?? 9)
-      || String(a._mah || '').localeCompare(String(b._mah || ''))
       || String(a._fam || '').localeCompare(String(b._fam || '')));
-    promos.forEach(p => { delete p._fam; delete p._mah; });
+    promos.forEach(p => { delete p._fam; });
 
     // Out-of-stock items (< 1 unit — live rule 2026-09-06) sink to the bottom
     // instead of competing for the agent's attention at the top of the grid;
