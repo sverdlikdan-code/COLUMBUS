@@ -77,7 +77,7 @@ Stop-Process -Id <PID> -Force
 # PowerShell: ssh -o StrictHostKeyChecking=no root@31.154.67.58 "pm2 restart columbus-api"
 
 # 4. Проверить что API живой
-curl https://api.sverdlik-apps.site/health  # ожидаем 404 за <1с (нет endpoint, но отвечает)
+curl https://api.sverdlik-apps.site/health  # ожидаем 200 JSON {ok:true, uptimeSeconds, pbiCache:{loaded,ageMinutes}} за <1с (с 2026-09-09 — реальный health-check, не 404-заглушка)
 ```
 
 **Признаки зависания:** LISTENING на 3000 + соединения CLOSE_WAIT + HTTP timeout.  
