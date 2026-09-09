@@ -950,10 +950,21 @@ async function loadClients(cities){
     if(!r.ok) throw new Error(r.status);
     const data=await r.json();
     if(myId!==_loadId) return;
-    // Filter out "כללי" (catch-all unassigned, not route agents)
-    // Mark מעיין 2000 clients with _isNew flag
+    // Keep only clients whose team (c.manager) is one of the real managed teams
+    // (ALEXEY/ANATOL/NATALYA/SADRAN+/SVETA/VLAD, from /managers — same list that
+    // fills the manager dropdown). Replaces the old "כללי" substring filter:
+    // every catch-all/unassigned agent code (Formula 000/920, ICE 931/000, and
+    // any stray ICE secondary-agent code with no Formula-team match) has
+    // c.manager==='' , which is never in this set — so it's covered too, and
+    // more completely than matching on the literal word "כללי" was. Confirmed
+    // live 2026-09-09: every non-empty c.manager value in production data is
+    // exactly one of these 6 team names, nothing else, so this can't hide a
+    // legitimate team that's simply missing from the allowlist by accident.
+    // If /managers failed to load (allManagers empty), skip the filter rather
+    // than blanking the whole map.
+    const TEAM_SET=new Set(allManagers);
     st.allClients=(Array.isArray(data)?data:[])
-      .filter(c=>!String(c.agentName||'').includes('כללי'))
+      .filter(c=>TEAM_SET.size===0||TEAM_SET.has(c.manager))
       .map(c=>String(c.clientType||'').includes('מעין')?{...c,_isNew:true}:c);
   }catch(e){
     if(myId!==_loadId) return;
