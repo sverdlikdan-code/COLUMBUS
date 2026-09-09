@@ -623,6 +623,24 @@ app.use((req, res, next) => {
   next();
 });
 
+// ── HEALTH CHECK ───────────────────────────────────────────────────────────
+// Real signal, not just "Express is listening" — the VPS-recovery procedure
+// (CLAUDE.md) used to curl this and treat any response (even a bare 404, since
+// no route existed) as "alive". That only proves the HTTP layer is up, not that
+// the app actually works: pbiCache could have failed to load hours ago and
+// every PBI-backed endpoint would be silently broken while this still "passed".
+// Deliberately makes zero live PBI/SQL calls of its own — a health check that
+// itself burns DAX quota (or gets hit by a monitoring loop) would recreate the
+// exact 429 class of bug fixed 2026-09-09 (see project_pbi_429_incident).
+app.get('/health', (req, res) => {
+  const pbiAgeMinutes = pbiCache ? Math.round((Date.now() - pbiCache.loadedAt) / 60000) : null;
+  res.json({
+    ok: true,
+    uptimeSeconds: Math.round(process.uptime()),
+    pbiCache: { loaded: !!pbiCache, ageMinutes: pbiAgeMinutes },
+  });
+});
+
 // ── ACCESS LOGGING ─────────────────────────────────────────────────────────
 // Backed by SQLite (server/db.js) as of 2026-09-07 — was a flat JSON array
 // capped at 2000 entries (~6 days of real traffic), rewritten whole-file on
