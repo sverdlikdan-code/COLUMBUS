@@ -4190,10 +4190,23 @@ function closeAiModal() {
   document.getElementById('ai-modal').classList.remove('open');
 }
 
+// Fire-and-forget usage tracking via the same /api/event sink zikuy/day-closing
+// already use (server/index.js) — added 2026-09-09 so "who opened ניתוח/מבצעים"
+// is answerable directly instead of only inferable from the day-briefing
+// rate-limit file's side effect. No server change needed, /api/event already
+// accepts any {event, custId}.
+function _trackEvent(event, custId) {
+  try {
+    apiFetch(`${API}/api/event`, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event, custId: custId || null }) }).catch(() => {});
+  } catch (_) {}
+}
+
 // ── Promo Modal (מבצע) — live from Priority SOF_PRICEREC, server-cached per day ─
 function openPromoModal(evt, custId, custName) {
   evt.stopPropagation();
   _tick();
+  _trackEvent('promo_opened', custId);
   document.getElementById('promo-modal-title').textContent = custName || custId;
   document.getElementById('promo-modal').classList.add('open');
   _fetchClientPromos(custId);
@@ -4744,6 +4757,7 @@ async function _fetchClientAI(lang) {
 let _dayBriefingCache = {};
 let _dayLang = 'he';
 function openDayBriefing() {
+  _trackEvent('nituach_yom_opened');
   document.getElementById('day-modal-title').textContent = _dayModalTitleText();
   document.getElementById('day-modal').classList.add('open');
   document.querySelectorAll('.day-lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === _dayLang));
