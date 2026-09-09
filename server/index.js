@@ -6172,11 +6172,15 @@ CALCULATETABLE(
     // 2026-09-06) — not just hidden, gone before the client ever sees them.
     promos = promos.filter(p => !String(p._fam || '').includes(YEDAIM_BODEDIM_MARKER));
 
-    // Group by מחלקה, then by משפחה within it (live request 2026-09-09) —
-    // done here, before the stock re-sort below, so Array#sort's stability
+    // FORMULA first, then ICE_MISH (live correction 2026-09-09 — grid was
+    // opening on ICE first), then group by מחלקה, then by משפחה within it.
+    // Done here, before the stock re-sort below, so Array#sort's stability
     // (guaranteed in Node/V8) preserves this grouping within each in-stock/
     // out-of-stock bucket instead of the two sorts fighting each other.
-    promos.sort((a, b) => String(a._mah || '').localeCompare(String(b._mah || '')) || String(a._fam || '').localeCompare(String(b._fam || '')));
+    const COMPANY_ORDER = { FORMULA: 0, ICE_MISH: 1 };
+    promos.sort((a, b) => (COMPANY_ORDER[a.company] ?? 9) - (COMPANY_ORDER[b.company] ?? 9)
+      || String(a._mah || '').localeCompare(String(b._mah || ''))
+      || String(a._fam || '').localeCompare(String(b._fam || '')));
     promos.forEach(p => { delete p._fam; delete p._mah; });
 
     // Out-of-stock items (< 1 unit — live rule 2026-09-06) sink to the bottom
