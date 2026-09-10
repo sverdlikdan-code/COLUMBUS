@@ -82,6 +82,11 @@ async function fetchCompanyClassification() {
 }
 
 async function fetchUtilization() {
+  // Только готовые меры модели — [% ניצול OBLIGO], [OBLIGO מנוצל], [OBLIGO רב חברתי].
+  // Никакого ручного SUM/сложения по сырым колонкам: проверено 2026-09-10, что готовые
+  // меры дают ТЕ ЖЕ числа, что отчёт (Total: 61,945,216 / 73,988,000; שופרסל אקספרס:
+  // 6,638,149 / 5,500,000; טיב טעם: 3,429,626 / 3,100,000) — самодельная агрегация не нужна
+  // и рискует повторить баг из OBLIGO ALL M-кода (List.Sum вместо List.Max, сессия 2026-09-09).
   const rows = await executeDax(`
     EVALUATE
     FILTER(
@@ -89,7 +94,9 @@ async function fetchUtilization() {
         'HOVOT ALL'[מס' חברה],
         'HOVOT ALL'[תאור סוג לקוח],
         'HOVOT ALL'[שם לקוח],
-        "util", [% ניצול OBLIGO]
+        "util", [% ניצול OBLIGO],
+        "usedILS", [OBLIGO מנוצל],
+        "limitILS", [OBLIGO רב חברתי]
       ),
       NOT ISBLANK([util])
     )
@@ -100,21 +107,43 @@ async function fetchUtilization() {
     type: r['HOVOT ALL[תאור סוג לקוח]'],
     custName: fixBiDi(r['HOVOT ALL[שם לקוח]']),
     util: r['[util]'],
+    limitILS: r['[limitILS]'] || 0,
+    usedILS: r['[usedILS]'] || 0,
   }));
 }
 
+// HOVOT ALL — грань компании, но несколько компаний могут делить одно название
+// תאור סוג לקוח (пример 2026-09-10: "דהן" — 5 разных юрлиц-франчайзи под ответственным
+// מקסים, каждое со своим лимитом). Отчёт при группировке по סוג לקוח их суммирует
+// (620,000 = 250k+10k+10k+200k+150k, used 1,093,016 ≈ сумма used — сверено с DELTA живьём) —
+// плоский список по компаниям без агрегации давал по 5 фиктивных "דהן" с дикими %.
+// Агрегируем по (אחראי, имя): сумма used, сумма limit, % пересчитан из сумм.
 async function fetchRows() {
   const [classification, utilization] = await Promise.all([fetchCompanyClassification(), fetchUtilization()]);
-  return utilization.map(row => {
+  const perCompany = utilization.map(row => {
     const cls = classification.get(row.company) || {};
     const isChain = cls.market === 'רשתות';
     return {
       name: isChain ? row.type : row.custName,
       market: cls.market || '—',
       resp: cls.resp || '—',
-      util: row.util,
+      limitILS: row.limitILS,
+      usedILS: row.usedILS,
     };
   }).filter(r => r.name);
+
+  const grouped = new Map(); // "resp||name" -> aggregate
+  for (const r of perCompany) {
+    const key = `${r.resp}||${r.name}`;
+    if (!grouped.has(key)) grouped.set(key, { name: r.name, market: r.market, resp: r.resp, limitILS: 0, usedILS: 0 });
+    const g = grouped.get(key);
+    g.limitILS += r.limitILS;
+    g.usedILS += r.usedILS;
+  }
+
+  return [...grouped.values()]
+    .filter(g => g.limitILS > 0)
+    .map(g => ({ ...g, util: g.usedILS / g.limitILS }));
 }
 
 function pctColor(util) {
@@ -123,33 +152,104 @@ function pctColor(util) {
   return '#1A9E5C';
 }
 
-function buildEmailHtml(crossed) {
-  const rowsHtml = crossed.map(c => `
+function fmtILS(n) {
+  return '₪' + Math.round(n).toLocaleString('en-US');
+}
+
+const AMOUNT_HEAD_CELLS = `
+        <th style="padding:0 10px 8px;text-align:left;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">אובליגו מנוצל</th>
+        <th style="padding:0 10px 8px;text-align:left;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">אובליגו רב חברתי</th>
+        <th style="padding:0 10px 8px;text-align:left;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">% ניצול</th>`;
+
+const TABLE_HEAD_WITH_RESP = `
+      <tr dir="rtl">
+        <th style="padding:0 10px 8px;text-align:right;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">שם</th>
+        <th style="padding:0 10px 8px;text-align:right;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">אחראי</th>
+        ${AMOUNT_HEAD_CELLS}
+      </tr>`;
+
+const TABLE_HEAD_NO_RESP = `
+      <tr dir="rtl">
+        <th style="padding:0 10px 8px;text-align:right;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">שם</th>
+        ${AMOUNT_HEAD_CELLS}
+      </tr>`;
+
+const amountCellsHtml = c => `
+      <td style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:12px;color:#6B7280;text-align:left" dir="ltr">${fmtILS(c.usedILS)}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:12px;color:#6B7280;text-align:left" dir="ltr">${fmtILS(c.limitILS)}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;color:${pctColor(c.util)};text-align:left">${Math.round(c.util * 100)}%</td>`;
+
+function rowWithResp(c) {
+  return `
     <tr>
       <td dir="rtl" style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:13px;color:#2A2620;font-weight:bold">${c.name}</td>
-      <td dir="rtl" style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:12px;color:#6B7280">${c.market}</td>
-      <td dir="rtl" style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:12px;color:#6B7280">${c.resp}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;color:${pctColor(c.util)};text-align:left">${Math.round(c.util * 100)}%</td>
-    </tr>`).join('');
+      <td dir="rtl" style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:12px;color:#6B7280">${c.resp}</td>${amountCellsHtml(c)}
+    </tr>`;
+}
+
+function rowNoResp(c) {
+  return `
+    <tr>
+      <td dir="rtl" style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:13px;color:#2A2620;font-weight:bold">${c.name}</td>${amountCellsHtml(c)}
+    </tr>`;
+}
+
+function buildTable(title, rows) {
+  if (rows.length === 0) return '';
+  return `
+  <tr><td dir="rtl" style="padding:22px 20px 6px;text-align:right">
+    <div style="font-family:Georgia,serif;font-size:16px;color:#1C3D6B;font-weight:bold">${title} (${rows.length})</div>
+  </td></tr>
+  <tr><td style="padding:0 20px 4px">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      ${TABLE_HEAD_WITH_RESP}
+      ${rows.map(rowWithResp).join('')}
+    </table>
+  </td></tr>`;
+}
+
+// Сети (רשתות) — отдельный блок таблицы на каждого אחראי, а не общий список.
+function buildGroupedByResp(title, rows) {
+  if (rows.length === 0) return '';
+  const byResp = new Map();
+  for (const r of rows) {
+    if (!byResp.has(r.resp)) byResp.set(r.resp, []);
+    byResp.get(r.resp).push(r);
+  }
+  // "לא מוגדר" — в конец, остальные по алфавиту
+  const resps = [...byResp.keys()].sort((a, b) => (a === 'לא מוגדר') - (b === 'לא מוגדר') || a.localeCompare(b, 'he'));
+
+  const blocks = resps.map(resp => `
+  <tr><td dir="rtl" style="padding:14px 20px 4px;text-align:right">
+    <div style="font-family:Arial,sans-serif;font-size:13px;color:#B8863B;font-weight:bold">${resp} (${byResp.get(resp).length})</div>
+  </td></tr>
+  <tr><td style="padding:0 20px 4px">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      ${TABLE_HEAD_NO_RESP}
+      ${byResp.get(resp).map(rowNoResp).join('')}
+    </table>
+  </td></tr>`).join('');
+
+  return `
+  <tr><td dir="rtl" style="padding:22px 20px 0;text-align:right">
+    <div style="font-family:Georgia,serif;font-size:16px;color:#1C3D6B;font-weight:bold">${title} (${rows.length})</div>
+  </td></tr>
+  ${blocks}`;
+}
+
+function buildEmailHtml(crossed) {
+  const chains = crossed.filter(c => c.market === 'רשתות');
+  const privateMarket = crossed.filter(c => c.market !== 'רשתות');
 
   return `<!doctype html>
 <html lang="he"><body style="margin:0;padding:24px;background:#f0eee9;font-family:Arial,sans-serif">
-<table role="presentation" align="center" width="680" cellpadding="0" cellspacing="0" style="width:680px;max-width:680px;margin:0 auto;background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #E5E0D8">
+<table role="presentation" align="center" width="700" cellpadding="0" cellspacing="0" style="width:700px;max-width:700px;margin:0 auto;background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #E5E0D8">
   <tr><td dir="rtl" style="background:#1C3D6B;padding:26px 24px;text-align:right">
     <div style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:2px;color:#B8863B;font-weight:bold;text-transform:uppercase">OBLIGO ALERT</div>
     <div style="padding-top:6px;font-family:Georgia,serif;font-size:20px;color:#ffffff">${crossed.length} לקוחות/רשתות חצו סף ${Math.round(THRESHOLD * 100)}% ניצול אובליגו</div>
   </td></tr>
-  <tr><td style="padding:18px 20px 4px">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-      <tr dir="rtl">
-        <th style="padding:0 10px 8px;text-align:right;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">שם</th>
-        <th style="padding:0 10px 8px;text-align:right;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">סוג שוק</th>
-        <th style="padding:0 10px 8px;text-align:right;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">אחראי</th>
-        <th style="padding:0 10px 8px;text-align:left;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">% ניצול</th>
-      </tr>
-      ${rowsHtml}
-    </table>
-  </td></tr>
+  ${buildGroupedByResp('רשתות', chains)}
+  ${buildTable('שוק פרטי', privateMarket)}
   <tr><td dir="rtl" style="padding:20px 24px 28px;text-align:right">
     <div style="font-family:Arial,sans-serif;font-size:12px;color:#6B7280;line-height:1.6">
       נשלח אוטומטית פעם בשבוע (ימי ראשון). כל לקוח/רשת מדווח פעם אחת בעת החצייה של הסף,
@@ -164,7 +264,7 @@ async function sendAlert(crossed, recipients) {
   if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY не найден в .env');
   const resend = new Resend(process.env.RESEND_API_KEY);
   const subject = `OBLIGO ALERT: ${crossed.length} ${crossed.length === 1 ? 'חצה' : 'חצו'} סף ${Math.round(THRESHOLD * 100)}%`;
-  const text = crossed.map(c => `${c.name} (${c.market}, אחראי: ${c.resp}): ${Math.round(c.util * 100)}%`).join('\n');
+  const text = crossed.map(c => `${c.name} (${c.market}, אחראי: ${c.resp}): ${fmtILS(c.usedILS)}/${fmtILS(c.limitILS)} = ${Math.round(c.util * 100)}%`).join('\n');
   return resend.emails.send({
     from: `OBLIGO Alert <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
     to: recipients,
@@ -180,15 +280,18 @@ async function main() {
   const crossed = [];
 
   for (const row of rows) {
-    const wasOver = !!state[row.name]?.overThreshold;
+    // resp+name, не только name — один и тот же סוג לקוח может стоять под разными
+    // אחראי как отдельные строки (после агрегации по компаниям внутри каждой пары).
+    const key = `${row.resp}||${row.name}`;
+    const wasOver = !!state[key]?.overThreshold;
     const isOver = row.util >= THRESHOLD;
     if (isOver && !wasOver) crossed.push(row);
-    state[row.name] = { overThreshold: isOver };
+    state[key] = { overThreshold: isOver };
   }
   crossed.sort((a, b) => b.util - a.util);
 
   console.log(`Проверено ${rows.length} записей, порог ${Math.round(THRESHOLD * 100)}%, новых превышений: ${crossed.length}`);
-  for (const c of crossed) console.log(`  ${c.name} (${c.market}, אחראי: ${c.resp}): ${Math.round(c.util * 100)}%`);
+  for (const c of crossed) console.log(`  ${c.name} (${c.market}, אחראי: ${c.resp}): ${fmtILS(c.usedILS)}/${fmtILS(c.limitILS)} = ${Math.round(c.util * 100)}%`);
 
   if (crossed.length === 0) {
     saveState(state);
