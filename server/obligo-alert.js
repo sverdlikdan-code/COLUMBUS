@@ -220,10 +220,13 @@ function fmtILS(n) {
 // (лимит, רב חברתי) -> ניצול אובליגו (использовано, מנוצל) -> %.
 const TH = `padding:0 10px 10px;font-family:Arial,sans-serif;font-size:10px;letter-spacing:.5px;color:${MUTED};text-transform:uppercase;border-bottom:2px solid ${NAVY}`;
 
+// Ширина колонок с числами — фиксированная (не auto), иначе у каждого блока (своя
+// <table>) ширина колонок пересчитывается от своего же содержимого и цифры "гуляют"
+// по вертикали между блоками — не симметрично (пользователь 2026-09-10, скриншот).
 const AMOUNT_HEAD_CELLS = `
-        <th style="${TH};text-align:left">אובליגו</th>
-        <th style="${TH};text-align:left">ניצול אובליגו</th>
-        <th style="${TH};text-align:left">%</th>`;
+        <th style="${TH};text-align:right;width:100px">אובליגו</th>
+        <th style="${TH};text-align:right;width:100px">ניצול אובליגו</th>
+        <th style="${TH};text-align:right;width:64px">%</th>`;
 
 const TABLE_HEAD_CHAINS = `
       <tr dir="rtl">
@@ -239,10 +242,10 @@ const TABLE_HEAD_PRIVATE = `
       </tr>`;
 
 const amountCellsHtml = (c, bg) => `
-      <td style="padding:10px;border-bottom:1px solid ${LINE};background:${bg};font-family:Arial,sans-serif;font-size:12px;color:${MUTED};text-align:left" dir="ltr">${fmtILS(c.limitILS)}</td>
-      <td style="padding:10px;border-bottom:1px solid ${LINE};background:${bg};font-family:Arial,sans-serif;font-size:12px;color:${MUTED};text-align:left" dir="ltr">${fmtILS(c.usedILS)}</td>
-      <td style="padding:10px;border-bottom:1px solid ${LINE};background:${bg};text-align:left">
-        <span style="display:inline-block;padding:3px 9px;border-radius:20px;background:${pctBg(c.util)};font-family:Arial,sans-serif;font-size:12px;font-weight:bold;color:${pctColor(c.util)}">${Math.round(c.util * 100)}%</span>
+      <td style="padding:10px;border-bottom:1px solid ${LINE};background:${bg};font-family:Arial,sans-serif;font-size:12px;color:${MUTED};text-align:right;width:100px" dir="ltr">${fmtILS(c.limitILS)}</td>
+      <td style="padding:10px;border-bottom:1px solid ${LINE};background:${bg};font-family:Arial,sans-serif;font-size:12px;color:${MUTED};text-align:right;width:100px" dir="ltr">${fmtILS(c.usedILS)}</td>
+      <td style="padding:10px;border-bottom:1px solid ${LINE};background:${bg};text-align:right;width:64px">
+        <span style="display:inline-block;min-width:44px;padding:3px 9px;border-radius:20px;background:${pctBg(c.util)};font-family:Arial,sans-serif;font-size:12px;font-weight:bold;color:${pctColor(c.util)};text-align:center">${Math.round(c.util * 100)}%</span>
       </td>`;
 
 function rowChain(c, i) {
@@ -312,13 +315,11 @@ function buildEmailHtml(crossed, greetName) {
 <html lang="he"><body style="margin:0;padding:28px 16px;background:${PAPER};font-family:Arial,sans-serif">
 <table role="presentation" align="center" width="700" cellpadding="0" cellspacing="0" style="width:700px;max-width:700px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid ${LINE};box-shadow:0 2px 16px rgba(28,61,107,.08)">
 
-  <tr><td style="background:${PAPER};padding:22px 24px;text-align:center;border-bottom:1px solid ${LINE}">
-    <img src="cid:diler-logo" width="52" height="52" alt="DILER B.M.D" style="display:inline-block" />
-  </td></tr>
-
-  <tr><td dir="rtl" style="background:linear-gradient(135deg, ${NAVY} 0%, ${NAVY_DEEP} 100%);padding:28px 28px;text-align:right">
-    <div style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:2px;color:${GOLD};font-weight:bold;text-transform:uppercase">דוח שבועי &middot; אובליגו</div>
-    <div style="padding-top:8px;font-family:Georgia,serif;font-size:22px;color:#ffffff;line-height:1.3">${crossed.length} ${crossed.length === 1 ? 'לקוח/רשת חצה' : 'לקוחות/רשתות חצו'} סף ${Math.round(THRESHOLD * 100)}% ניצול</div>
+  <tr><td dir="rtl" style="background-color:${NAVY};padding:36px 28px 30px;text-align:center">
+    <img src="cid:diler-logo-white" width="100" height="100" alt="DILER B.M.D" style="display:block;margin:0 auto 18px" />
+    <div style="font-family:Arial,sans-serif;font-size:24px;font-weight:900;color:#ffffff;letter-spacing:.3px">התראת אובליגו</div>
+    <div style="padding-top:8px;font-family:Arial,sans-serif;font-size:13px;color:#AFC1DC">${crossed.length} ${crossed.length === 1 ? 'לקוח/רשת חצה' : 'לקוחות/רשתות חצו'} סף ${Math.round(THRESHOLD * 100)}% ניצול אובליגו</div>
+    <div style="padding-top:10px;font-family:Arial,sans-serif;font-size:11px;color:${GOLD};letter-spacing:.5px">דוח שבועי &middot; ${new Date().toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
   </td></tr>
 
   <tr><td dir="rtl" style="padding:20px 28px 0;text-align:right">
@@ -342,9 +343,11 @@ async function sendAlert(crossed, recipients) {
   if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY не найден в .env');
   const resend = new Resend(process.env.RESEND_API_KEY);
   const subject = `דוח שבועי — אובליגו: ${crossed.length} ${crossed.length === 1 ? 'חצה' : 'חצו'} סף ${Math.round(THRESHOLD * 100)}%`;
-  const logoPath = path.join(__dirname, '..', 'docs', 'logo-diler-bmd.png');
+  // Белая версия лого (сплошной силуэт, brightness(0)+invert(1) от оригинала — сгенерирована
+  // sharp'ом 2026-09-10) — на navy-фоне шапки, как в Formula Road (референс пользователя).
+  const logoPath = path.join(__dirname, '..', 'docs', 'logo-diler-bmd-white.png');
   const attachments = fs.existsSync(logoPath)
-    ? [{ filename: 'logo.png', content: fs.readFileSync(logoPath).toString('base64'), contentId: 'diler-logo' }]
+    ? [{ filename: 'logo-white.png', content: fs.readFileSync(logoPath).toString('base64'), contentId: 'diler-logo-white' }]
     : [];
 
   // Личное письмо на каждого получателя — с обращением по имени, а не один "to" на всех.
