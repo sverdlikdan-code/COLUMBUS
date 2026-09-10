@@ -322,7 +322,7 @@ function buildEmailHtml(crossed, greetName) {
   </td></tr>
 
   <tr><td dir="rtl" style="padding:20px 28px 0;text-align:right">
-    <div style="font-family:Arial,sans-serif;font-size:14px;color:${INK}">${greeting} מצורף עדכון האובליגו השבועי — נשלח אחד בשבוע.</div>
+    <div style="font-family:Arial,sans-serif;font-size:14px;color:${INK}">${greeting} מצורף עדכון האובליגו השבועי — תקבלו אותו כל יום חמישי.</div>
   </td></tr>
 
   ${buildGroupedBlocks('רשתות', chains, 'resp', TABLE_HEAD_CHAINS, rowChain)}
@@ -353,7 +353,7 @@ async function sendAlert(crossed, recipients) {
     const greetName = RECIPIENT_NAMES[recipient.toLowerCase()];
     const greeting = greetName ? `שלום ${greetName},` : 'שלום,';
     const outro = '\n\nהערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.';
-    const text = `${greeting} מצורף עדכון האובליגו השבועי — נשלח אחד בשבוע.\n\n`
+    const text = `${greeting} מצורף עדכון האובליגו השבועי — תקבלו אותו כל יום חמישי.\n\n`
       + crossed.map(c => `${c.name} (${c.market}, אחראי: ${c.resp}): ${fmtILS(c.usedILS)}/${fmtILS(c.limitILS)} = ${Math.round(c.util * 100)}%`).join('\n')
       + outro;
     const res = await resend.emails.send({
