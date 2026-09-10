@@ -8,8 +8,8 @@ name: Obligo Alert
 # паттерн, что formula-road-build.yml использует для своих ежедневных данных.
 on:
   schedule:
-    # Четверг 08:30 Israel (UTC+3) = 05:30 UTC — после ночного refresh датасета (~06:07 UTC замечен 2026-09-10)
-    - cron: '30 5 * * 4'
+    # Четверг 09:00 Israel (UTC+3) = 06:00 UTC — после ночного refresh датасета (~06:07 UTC замечен 2026-09-10)
+    - cron: '0 6 * * 4'
   workflow_dispatch:
 
 jobs:
