@@ -521,6 +521,7 @@ ROW("maxDate", CALCULATE(MAX(ALL_PARTS[תאריך]), ALL_PARTS[ASHMADOT] = "-מ�
     clientAnalyticsCache.clear();
     pruneStaleClientPromos(); // persisted cache — drop only if the calendar day actually changed
     promoCustIdsCache = { date: null, formula: [], iceMish: [] };
+    gpsReportCache = { date: null, rows: null };
     _yedaimLiveCache.clear();
     prefetchYedaimLive().catch(err => console.error('[yedaim-prefetch]', err.message));
     console.log(`[PBI] Cache loaded: ${clientMap.size} clients, ${byAgent.size} agents, ${managers.size} managers, ${managerAgents.size} manager-agents`);
@@ -1242,10 +1243,18 @@ app.post('/admin/revoke', dataRateLimit, (req, res) => {
 });
 
 // GET /manager/gps-report — CSV: clients where our GPS differs from Priority (manager session only)
+// PBI rows cached per calendar day (Israel) — same date-gated pattern as promoCustIdsCache/
+// clientPromosCache, also reset on the daily pbiCache reload below. Before this fix the route
+// had zero caching and hit executeDax live on every single call — a manager re-downloading the
+// CSV a few times in a row (or opening it right when the day's DAX quota is already tight, per
+// the 2026-09-07 429 incident) could throw a 429 for no reason (found 2026-09-10).
+let gpsReportCache = { date: null, rows: null };
 app.get('/manager/gps-report', requireAuth, async (req, res) => {
   if (!req.session.isManager) return res.status(403).json({ error: 'forbidden' });
   try {
-    const rows = await executeDax(`
+    const todayIL = todayIsraelDate();
+    if (gpsReportCache.date !== todayIL) {
+      const rows = await executeDax(`
 EVALUATE
 SELECTCOLUMNS(
   FILTER('משטח', 'משטח'[סטטוס] = "פעיל" && 'משטח'[תאור סוג לקוח] <> "מעיין 0002"),
@@ -1259,9 +1268,11 @@ SELECTCOLUMNS(
   "agentName", 'משטח'[שם סוכן]
 )
 ORDER BY 'משטח'[מס. לקוח] ASC
-    `);
+      `);
+      gpsReportCache = { date: todayIL, rows };
+    }
 
-    const clients = rows.map(r => ({
+    const clients = gpsReportCache.rows.map(r => ({
       custId:    r['[custId]'],
       custName:  r['[custName]'] || '',
       city:      r['[city]']    || '',
