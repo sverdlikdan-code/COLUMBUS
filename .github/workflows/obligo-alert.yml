@@ -1,0 +1,53 @@
+name: Obligo Alert
+
+# Ежедневный алярм топ-менеджменту о сетях/клиентах, приближающихся к лимиту облиго
+# (>= 90% ניצול OBLIGO). Источник — HOVOT ALL в датасете FORMULA DASHBORD.
+# Отдельный GitHub Actions job, не PM2-крон на VPS — рестарты/деплои VPS уже дважды
+# сажали PBI-квоту в 429 (см. VAULT project_pbi_429_incident), этот job живой сервер
+# не трогает вообще. State (кто уже был уведомлён) коммитится в репозиторий — тот же
+# паттерн, что formula-road-build.yml использует для своих ежедневных данных.
+on:
+  schedule:
+    # 08:30 Israel (UTC+3) = 05:30 UTC — после ночного refresh датасета (~06:07 UTC замечен 2026-09-10)
+    - cron: '30 5 * * *'
+  workflow_dispatch:
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install server dependencies
+        run: npm install
+        working-directory: server
+
+      - name: Run obligo-alert
+        run: node obligo-alert.js
+        working-directory: server
+        env:
+          AZURE_TENANT_ID: ${{ secrets.PBI_TENANT }}
+          AZURE_CLIENT_ID: ${{ secrets.PBI_CLIENT }}
+          AZURE_CLIENT_SECRET: ${{ secrets.PBI_SECRET }}
+          POWERBI_DATASET_ID: ${{ secrets.PBI_DATASET }}
+          POWERBI_WORKSPACE_ID: ${{ secrets.PBI_WORKSPACE }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          OBLIGO_ALERT_RECIPIENTS: ${{ secrets.OBLIGO_ALERT_RECIPIENTS }}
+
+      - name: Commit updated state
+        run: |
+          git config user.email "columbus-bot@diler.co.il"
+          git config user.name "COLUMBUS Bot"
+          git add server/data/obligo-alert-state.json
+          git diff --cached --quiet && echo "No state change." || \
+            git commit -m "chore: obligo-alert state $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push origin master || \
+            (git pull --no-rebase -X ours origin master && git push origin master)
