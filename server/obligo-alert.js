@@ -189,10 +189,27 @@ async function fetchRows() {
     }));
 }
 
+// Brand — та же executive-палитра, что send-sadran-digest-he.js (навигация, золото,
+// пергамент), плюс лого DILER B.M.D в шапке — официальный бланк, не голый текст.
+const NAVY = '#1C3D6B';
+const NAVY_DEEP = '#0F2647';
+const GOLD = '#B8863B';
+const INK = '#2A2620';
+const MUTED = '#6B7280';
+const PAPER = '#FAF7F2';
+const LINE = '#E5E0D8';
+const ZEBRA = '#FAFAF8';
+
 function pctColor(util) {
   if (util >= 1) return '#B00020';
-  if (util >= THRESHOLD) return '#B8863B';
+  if (util >= THRESHOLD) return GOLD;
   return '#1A9E5C';
+}
+
+function pctBg(util) {
+  if (util >= 1) return '#FBEAEC';
+  if (util >= THRESHOLD) return '#F7EFDF';
+  return '#E9F7EF';
 }
 
 function fmtILS(n) {
@@ -201,41 +218,47 @@ function fmtILS(n) {
 
 // Порядок колонок (пользователь 2026-09-10): מס' לקוח (только שוק פרטי) -> שם -> אובליגו
 // (лимит, רב חברתי) -> ניצול אובליגו (использовано, מנוצל) -> %.
+const TH = `padding:0 10px 10px;font-family:Arial,sans-serif;font-size:10px;letter-spacing:.5px;color:${MUTED};text-transform:uppercase;border-bottom:2px solid ${NAVY}`;
+
 const AMOUNT_HEAD_CELLS = `
-        <th style="padding:0 10px 8px;text-align:left;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">אובליגו</th>
-        <th style="padding:0 10px 8px;text-align:left;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">ניצול אובליגו</th>
-        <th style="padding:0 10px 8px;text-align:left;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">%</th>`;
+        <th style="${TH};text-align:left">אובליגו</th>
+        <th style="${TH};text-align:left">ניצול אובליגו</th>
+        <th style="${TH};text-align:left">%</th>`;
 
 const TABLE_HEAD_CHAINS = `
       <tr dir="rtl">
-        <th style="padding:0 10px 8px;text-align:right;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">רשת</th>
+        <th style="${TH};text-align:right">רשת</th>
         ${AMOUNT_HEAD_CELLS}
       </tr>`;
 
 const TABLE_HEAD_PRIVATE = `
       <tr dir="rtl">
-        <th style="padding:0 10px 8px;text-align:right;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">מס' לקוח</th>
-        <th style="padding:0 10px 8px;text-align:right;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">שם</th>
+        <th style="${TH};text-align:right">מס' לקוח</th>
+        <th style="${TH};text-align:right">שם</th>
         ${AMOUNT_HEAD_CELLS}
       </tr>`;
 
-const amountCellsHtml = c => `
-      <td style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:12px;color:#6B7280;text-align:left" dir="ltr">${fmtILS(c.limitILS)}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:12px;color:#6B7280;text-align:left" dir="ltr">${fmtILS(c.usedILS)}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;color:${pctColor(c.util)};text-align:left">${Math.round(c.util * 100)}%</td>`;
+const amountCellsHtml = (c, bg) => `
+      <td style="padding:10px;border-bottom:1px solid ${LINE};background:${bg};font-family:Arial,sans-serif;font-size:12px;color:${MUTED};text-align:left" dir="ltr">${fmtILS(c.limitILS)}</td>
+      <td style="padding:10px;border-bottom:1px solid ${LINE};background:${bg};font-family:Arial,sans-serif;font-size:12px;color:${MUTED};text-align:left" dir="ltr">${fmtILS(c.usedILS)}</td>
+      <td style="padding:10px;border-bottom:1px solid ${LINE};background:${bg};text-align:left">
+        <span style="display:inline-block;padding:3px 9px;border-radius:20px;background:${pctBg(c.util)};font-family:Arial,sans-serif;font-size:12px;font-weight:bold;color:${pctColor(c.util)}">${Math.round(c.util * 100)}%</span>
+      </td>`;
 
-function rowChain(c) {
+function rowChain(c, i) {
+  const bg = i % 2 ? ZEBRA : '#ffffff';
   return `
     <tr>
-      <td dir="rtl" style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:13px;color:#2A2620;font-weight:bold">${c.name}</td>${amountCellsHtml(c)}
+      <td dir="rtl" style="padding:10px;border-bottom:1px solid ${LINE};background:${bg};font-family:Arial,sans-serif;font-size:13px;color:${INK};font-weight:bold">${c.name}</td>${amountCellsHtml(c, bg)}
     </tr>`;
 }
 
-function rowPrivate(c) {
+function rowPrivate(c, i) {
+  const bg = i % 2 ? ZEBRA : '#ffffff';
   return `
     <tr>
-      <td dir="ltr" style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:12px;color:#6B7280;text-align:right">${c.custno}</td>
-      <td dir="rtl" style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:13px;color:#2A2620;font-weight:bold">${c.name}</td>${amountCellsHtml(c)}
+      <td dir="ltr" style="padding:10px;border-bottom:1px solid ${LINE};background:${bg};font-family:Arial,sans-serif;font-size:12px;color:${MUTED};text-align:right">${c.custno}</td>
+      <td dir="rtl" style="padding:10px;border-bottom:1px solid ${LINE};background:${bg};font-family:Arial,sans-serif;font-size:13px;color:${INK};font-weight:bold">${c.name}</td>${amountCellsHtml(c, bg)}
     </tr>`;
 }
 
@@ -254,43 +277,60 @@ function buildGroupedBlocks(title, rows, groupField, tableHead, rowRenderer) {
   const keys = [...byGroup.keys()].sort((a, b) => (undefinedLast(a) - undefinedLast(b)) || a.localeCompare(b, 'he'));
 
   const blocks = keys.map(k => `
-  <tr><td dir="rtl" style="padding:14px 20px 4px;text-align:right">
-    <div style="font-family:Arial,sans-serif;font-size:13px;color:#B8863B;font-weight:bold">${k}</div>
+  <tr><td dir="rtl" style="padding:16px 24px 6px;text-align:right;background:${PAPER}">
+    <div style="font-family:Arial,sans-serif;font-size:13px;color:${NAVY};font-weight:bold">${k}</div>
   </td></tr>
-  <tr><td style="padding:0 20px 4px">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+  <tr><td style="padding:0 24px 4px">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-radius:8px;overflow:hidden;border:1px solid ${LINE}">
       ${tableHead}
       ${byGroup.get(k).map(rowRenderer).join('')}
     </table>
   </td></tr>`).join('');
 
   return `
-  <tr><td dir="rtl" style="padding:22px 20px 0;text-align:right">
-    <div style="font-family:Georgia,serif;font-size:16px;color:#1C3D6B;font-weight:bold">${title}</div>
+  <tr><td dir="rtl" style="padding:26px 24px 0;text-align:right">
+    <div style="font-family:Georgia,serif;font-size:17px;color:${NAVY};font-weight:bold;display:inline-block;border-bottom:2px solid ${GOLD};padding-bottom:4px">${title}</div>
   </td></tr>
   ${blocks}`;
 }
 
-function buildEmailHtml(crossed) {
+// Кому имя известно — обращение по имени в письме (пользователь 2026-09-10: "и так не
+// говорят", письмо без адресата звучит как спам-бот). Кого нет в списке — просто "שלום,".
+const RECIPIENT_NAMES = {
+  'yuval.e@dilerbmd.com': 'יובל',
+  'yosiel@dilerbmd.com': 'יוסי',
+  'dima@dilerbmd.com': 'דימה',
+  'maxim@dilerbmd.com': 'מקסים',
+};
+
+function buildEmailHtml(crossed, greetName) {
   const chains = crossed.filter(c => c.market === 'רשתות');
   const privateMarket = crossed.filter(c => c.market !== 'רשתות');
+  const greeting = greetName ? `שלום ${greetName},` : 'שלום,';
 
   return `<!doctype html>
-<html lang="he"><body style="margin:0;padding:24px;background:#f0eee9;font-family:Arial,sans-serif">
-<table role="presentation" align="center" width="700" cellpadding="0" cellspacing="0" style="width:700px;max-width:700px;margin:0 auto;background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #E5E0D8">
-  <tr><td dir="rtl" style="background:#1C3D6B;padding:26px 24px;text-align:right">
-    <div style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:2px;color:#B8863B;font-weight:bold;text-transform:uppercase">OBLIGO ALERT</div>
-    <div style="padding-top:6px;font-family:Georgia,serif;font-size:20px;color:#ffffff">${crossed.length} לקוחות/רשתות חצו סף ${Math.round(THRESHOLD * 100)}% ניצול אובליגו</div>
+<html lang="he"><body style="margin:0;padding:28px 16px;background:${PAPER};font-family:Arial,sans-serif">
+<table role="presentation" align="center" width="700" cellpadding="0" cellspacing="0" style="width:700px;max-width:700px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid ${LINE};box-shadow:0 2px 16px rgba(28,61,107,.08)">
+
+  <tr><td style="background:${PAPER};padding:22px 24px;text-align:center;border-bottom:1px solid ${LINE}">
+    <img src="cid:diler-logo" width="52" height="52" alt="DILER B.M.D" style="display:inline-block" />
   </td></tr>
-  <tr><td dir="rtl" style="padding:16px 24px 0;text-align:right">
-    <div style="font-family:Arial,sans-serif;font-size:13px;color:#6B7280">שלום, אני העוזר האנליטי האוטומטי של המערכת, והדוח הזה נשלח אחת לשבוע.</div>
+
+  <tr><td dir="rtl" style="background:linear-gradient(135deg, ${NAVY} 0%, ${NAVY_DEEP} 100%);padding:28px 28px;text-align:right">
+    <div style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:2px;color:${GOLD};font-weight:bold;text-transform:uppercase">דוח שבועי &middot; אובליגו</div>
+    <div style="padding-top:8px;font-family:Georgia,serif;font-size:22px;color:#ffffff;line-height:1.3">${crossed.length} ${crossed.length === 1 ? 'לקוח/רשת חצה' : 'לקוחות/רשתות חצו'} סף ${Math.round(THRESHOLD * 100)}% ניצול</div>
   </td></tr>
+
+  <tr><td dir="rtl" style="padding:20px 28px 0;text-align:right">
+    <div style="font-family:Arial,sans-serif;font-size:14px;color:${INK}">${greeting} מצורף עדכון האובליגו השבועי — נשלח אחד בשבוע.</div>
+  </td></tr>
+
   ${buildGroupedBlocks('רשתות', chains, 'resp', TABLE_HEAD_CHAINS, rowChain)}
   ${buildGroupedBlocks('שוק פרטי', privateMarket, 'agent', TABLE_HEAD_PRIVATE, rowPrivate)}
-  <tr><td dir="rtl" style="padding:20px 24px 28px;text-align:right">
-    <div style="font-family:Arial,sans-serif;font-size:12px;color:#6B7280;line-height:1.6">
-      נשלח אוטומטית פעם בשבוע (ימי ראשון). כל לקוח/רשת מדווח פעם אחת בעת החצייה של הסף,
-      לא נשלח שוב כל עוד הוא נשאר מעליו.<br>
+
+  <tr><td dir="rtl" style="padding:24px 28px 28px;text-align:right;border-top:1px solid ${LINE}">
+    <div style="font-family:Arial,sans-serif;font-size:12px;color:${MUTED};line-height:1.7;padding-top:20px">
+      כל לקוח/רשת מדווח פעם אחת בעת החצייה של הסף, לא נשלח שוב כל עוד הוא נשאר מעליו.<br>
       הערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.
     </div>
   </td></tr>
@@ -302,16 +342,31 @@ async function sendAlert(crossed, recipients) {
   if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY не найден в .env');
   const resend = new Resend(process.env.RESEND_API_KEY);
   const subject = `דוח שבועי — אובליגו: ${crossed.length} ${crossed.length === 1 ? 'חצה' : 'חצו'} סף ${Math.round(THRESHOLD * 100)}%`;
-  const intro = 'שלום, אני העוזר האנליטי האוטומטי של המערכת, והדוח הזה נשלח אחת לשבוע.\n\n';
-  const outro = '\n\nהערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.';
-  const text = intro + crossed.map(c => `${c.name} (${c.market}, אחראי: ${c.resp}): ${fmtILS(c.usedILS)}/${fmtILS(c.limitILS)} = ${Math.round(c.util * 100)}%`).join('\n') + outro;
-  return resend.emails.send({
-    from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
-    to: recipients,
-    subject,
-    html: buildEmailHtml(crossed),
-    text,
-  });
+  const logoPath = path.join(__dirname, '..', 'docs', 'logo-diler-bmd.png');
+  const attachments = fs.existsSync(logoPath)
+    ? [{ filename: 'logo.png', content: fs.readFileSync(logoPath).toString('base64'), contentId: 'diler-logo' }]
+    : [];
+
+  // Личное письмо на каждого получателя — с обращением по имени, а не один "to" на всех.
+  const results = [];
+  for (const recipient of recipients) {
+    const greetName = RECIPIENT_NAMES[recipient.toLowerCase()];
+    const greeting = greetName ? `שלום ${greetName},` : 'שלום,';
+    const outro = '\n\nהערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.';
+    const text = `${greeting} מצורף עדכון האובליגו השבועי — נשלח אחד בשבוע.\n\n`
+      + crossed.map(c => `${c.name} (${c.market}, אחראי: ${c.resp}): ${fmtILS(c.usedILS)}/${fmtILS(c.limitILS)} = ${Math.round(c.util * 100)}%`).join('\n')
+      + outro;
+    const res = await resend.emails.send({
+      from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
+      to: [recipient],
+      subject,
+      html: buildEmailHtml(crossed, greetName),
+      text,
+      attachments,
+    });
+    results.push(res);
+  }
+  return results;
 }
 
 async function main() {
