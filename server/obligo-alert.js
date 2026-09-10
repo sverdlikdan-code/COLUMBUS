@@ -26,6 +26,10 @@ const THRESHOLD = 0.90;
 const STATE_PATH = path.join(__dirname, 'data', 'obligo-alert-state.json');
 const DRY_RUN = process.argv.includes('--dry-run');
 
+// Внутренние/дочерние компании — не внешний кредитный риск, не алармить.
+// מ.מ.ד.אינטרנשיונל אילת — своя дочерняя компания (пользователь подтвердил 2026-09-10).
+const EXCLUDED_NAMES = new Set(['מ.מ.ד.אינטרנשיונל אילת']);
+
 // PBI оборачивает иврит в BiDi-марки, символы/цифры идут в визуальном (обратном) порядке —
 // снять марки и развернуть обратно в логический порядок. Та же функция, что в
 // export-promo-no-price.js и других серверных скриптах, читающих иврит из PBI.
@@ -159,7 +163,7 @@ async function fetchRows() {
   }
 
   return [...grouped.values()]
-    .filter(g => g.limitILS > 0)
+    .filter(g => g.limitILS > 0 && !EXCLUDED_NAMES.has(g.name))
     .map(g => ({
       name: g.name, market: g.market, resp: g.resp, limitILS: g.limitILS, usedILS: g.usedILS,
       util: g.usedILS / g.limitILS,
