@@ -282,12 +282,16 @@ function buildEmailHtml(crossed) {
     <div style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:2px;color:#B8863B;font-weight:bold;text-transform:uppercase">OBLIGO ALERT</div>
     <div style="padding-top:6px;font-family:Georgia,serif;font-size:20px;color:#ffffff">${crossed.length} לקוחות/רשתות חצו סף ${Math.round(THRESHOLD * 100)}% ניצול אובליגו</div>
   </td></tr>
+  <tr><td dir="rtl" style="padding:16px 24px 0;text-align:right">
+    <div style="font-family:Arial,sans-serif;font-size:13px;color:#6B7280">שלום, אני העוזר האנליטי האוטומטי של המערכת, והדוח הזה נשלח אחת לשבוע.</div>
+  </td></tr>
   ${buildGroupedBlocks('רשתות', chains, 'resp', TABLE_HEAD_CHAINS, rowChain)}
   ${buildGroupedBlocks('שוק פרטי', privateMarket, 'agent', TABLE_HEAD_PRIVATE, rowPrivate)}
   <tr><td dir="rtl" style="padding:20px 24px 28px;text-align:right">
     <div style="font-family:Arial,sans-serif;font-size:12px;color:#6B7280;line-height:1.6">
       נשלח אוטומטית פעם בשבוע (ימי ראשון). כל לקוח/רשת מדווח פעם אחת בעת החצייה של הסף,
-      לא נשלח שוב כל עוד הוא נשאר מעליו.
+      לא נשלח שוב כל עוד הוא נשאר מעליו.<br>
+      הערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.
     </div>
   </td></tr>
 </table>
@@ -297,8 +301,10 @@ function buildEmailHtml(crossed) {
 async function sendAlert(crossed, recipients) {
   if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY не найден в .env');
   const resend = new Resend(process.env.RESEND_API_KEY);
-  const subject = `OBLIGO ALERT: ${crossed.length} ${crossed.length === 1 ? 'חצה' : 'חצו'} סף ${Math.round(THRESHOLD * 100)}%`;
-  const text = crossed.map(c => `${c.name} (${c.market}, אחראי: ${c.resp}): ${fmtILS(c.usedILS)}/${fmtILS(c.limitILS)} = ${Math.round(c.util * 100)}%`).join('\n');
+  const subject = `דוח שבועי — אובליגו: ${crossed.length} ${crossed.length === 1 ? 'חצה' : 'חצו'} סף ${Math.round(THRESHOLD * 100)}%`;
+  const intro = 'שלום, אני העוזר האנליטי האוטומטי של המערכת, והדוח הזה נשלח אחת לשבוע.\n\n';
+  const outro = '\n\nהערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.';
+  const text = intro + crossed.map(c => `${c.name} (${c.market}, אחראי: ${c.resp}): ${fmtILS(c.usedILS)}/${fmtILS(c.limitILS)} = ${Math.round(c.util * 100)}%`).join('\n') + outro;
   return resend.emails.send({
     from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
     to: recipients,
