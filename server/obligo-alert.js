@@ -49,7 +49,10 @@ function saveState(state) {
   fs.writeFileSync(STATE_PATH, JSON.stringify(state, null, 2));
 }
 
-// Компания -> {market, resp} по большинству голосов среди её клиентских счетов.
+// Компания -> {market, resp, custno} по большинству голосов среди её клиентских счетов.
+// custno (מס. לקוח) нужен только для שוק פרטי (пользователь просил номер клиента в этой
+// таблице) — для רשתות он бессмысленен (после агрегации несколько компаний под одним
+// именем, единого номера клиента нет).
 async function fetchCompanyClassification() {
   const rows = await executeDax(`
     EVALUATE
@@ -57,6 +60,8 @@ async function fetchCompanyClassification() {
       'לקוחות FORM+I+INT'[מס חברה],
       'לקוחות FORM+I+INT'[שוק פרטי / רשתות],
       'לקוחות FORM+I+INT'[אחראי],
+      'לקוחות FORM+I+INT'[מס. לקוח],
+      'לקוחות FORM+I+INT'[שם סוכן],
       "n", COUNTROWS('לקוחות FORM+I+INT')
     )
   `);
@@ -66,17 +71,19 @@ async function fetchCompanyClassification() {
     const co = r['לקוחות FORM+I+INT[מס חברה]'];
     if (!co) continue;
     const n = r['[n]'];
-    if (!byCompany.has(co)) byCompany.set(co, { market: new Map(), resp: new Map() });
+    if (!byCompany.has(co)) byCompany.set(co, { market: new Map(), resp: new Map(), custno: new Map(), agent: new Map() });
     const bucket = byCompany.get(co);
     const bump = (map, val) => { if (val) map.set(val, (map.get(val) || 0) + n); };
     bump(bucket.market, r['לקוחות FORM+I+INT[שוק פרטי / רשתות]']);
     bump(bucket.resp, r['לקוחות FORM+I+INT[אחראי]']);
+    bump(bucket.custno, r['לקוחות FORM+I+INT[מס. לקוח]']);
+    bump(bucket.agent, fixBiDi(r['לקוחות FORM+I+INT[שם סוכן]']));
   }
 
   const mode = map => { let best = null, bestN = -1; for (const [k, n] of map) if (n > bestN) { best = k; bestN = n; } return best; };
   const result = new Map();
   for (const [co, bucket] of byCompany) {
-    result.set(co, { market: mode(bucket.market), resp: mode(bucket.resp) });
+    result.set(co, { market: mode(bucket.market), resp: mode(bucket.resp), custno: mode(bucket.custno), agent: mode(bucket.agent) });
   }
   return result;
 }
@@ -127,23 +134,38 @@ async function fetchRows() {
       name: isChain ? row.type : row.custName,
       market: cls.market || '—',
       resp: cls.resp || '—',
+      agent: cls.agent || '—',
+      custno: cls.custno || '—',
       limitILS: row.limitILS,
       usedILS: row.usedILS,
     };
   }).filter(r => r.name);
 
+  const mode = map => { let best = null, bestN = -1; for (const [k, n] of map) if (n > bestN) { best = k; bestN = n; } return best; };
   const grouped = new Map(); // "resp||name" -> aggregate
   for (const r of perCompany) {
     const key = `${r.resp}||${r.name}`;
-    if (!grouped.has(key)) grouped.set(key, { name: r.name, market: r.market, resp: r.resp, limitILS: 0, usedILS: 0 });
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        name: r.name, market: r.market, resp: r.resp, limitILS: 0, usedILS: 0,
+        agentVotes: new Map(), custnoVotes: new Map(),
+      });
+    }
     const g = grouped.get(key);
     g.limitILS += r.limitILS;
     g.usedILS += r.usedILS;
+    g.agentVotes.set(r.agent, (g.agentVotes.get(r.agent) || 0) + 1);
+    g.custnoVotes.set(r.custno, (g.custnoVotes.get(r.custno) || 0) + 1);
   }
 
   return [...grouped.values()]
     .filter(g => g.limitILS > 0)
-    .map(g => ({ ...g, util: g.usedILS / g.limitILS }));
+    .map(g => ({
+      name: g.name, market: g.market, resp: g.resp, limitILS: g.limitILS, usedILS: g.usedILS,
+      util: g.usedILS / g.limitILS,
+      agent: mode(g.agentVotes),
+      custno: mode(g.custnoVotes),
+    }));
 }
 
 function pctColor(util) {
@@ -161,16 +183,16 @@ const AMOUNT_HEAD_CELLS = `
         <th style="padding:0 10px 8px;text-align:left;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">אובליגו רב חברתי</th>
         <th style="padding:0 10px 8px;text-align:left;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">% ניצול</th>`;
 
-const TABLE_HEAD_WITH_RESP = `
+const TABLE_HEAD_CHAINS = `
       <tr dir="rtl">
         <th style="padding:0 10px 8px;text-align:right;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">שם</th>
-        <th style="padding:0 10px 8px;text-align:right;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">אחראי</th>
         ${AMOUNT_HEAD_CELLS}
       </tr>`;
 
-const TABLE_HEAD_NO_RESP = `
+const TABLE_HEAD_PRIVATE = `
       <tr dir="rtl">
         <th style="padding:0 10px 8px;text-align:right;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">שם</th>
+        <th style="padding:0 10px 8px;text-align:right;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">מס' לקוח</th>
         ${AMOUNT_HEAD_CELLS}
       </tr>`;
 
@@ -179,54 +201,43 @@ const amountCellsHtml = c => `
       <td style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:12px;color:#6B7280;text-align:left" dir="ltr">${fmtILS(c.limitILS)}</td>
       <td style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;color:${pctColor(c.util)};text-align:left">${Math.round(c.util * 100)}%</td>`;
 
-function rowWithResp(c) {
-  return `
-    <tr>
-      <td dir="rtl" style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:13px;color:#2A2620;font-weight:bold">${c.name}</td>
-      <td dir="rtl" style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:12px;color:#6B7280">${c.resp}</td>${amountCellsHtml(c)}
-    </tr>`;
-}
-
-function rowNoResp(c) {
+function rowChain(c) {
   return `
     <tr>
       <td dir="rtl" style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:13px;color:#2A2620;font-weight:bold">${c.name}</td>${amountCellsHtml(c)}
     </tr>`;
 }
 
-function buildTable(title, rows) {
-  if (rows.length === 0) return '';
+function rowPrivate(c) {
   return `
-  <tr><td dir="rtl" style="padding:22px 20px 6px;text-align:right">
-    <div style="font-family:Georgia,serif;font-size:16px;color:#1C3D6B;font-weight:bold">${title} (${rows.length})</div>
-  </td></tr>
-  <tr><td style="padding:0 20px 4px">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-      ${TABLE_HEAD_WITH_RESP}
-      ${rows.map(rowWithResp).join('')}
-    </table>
-  </td></tr>`;
+    <tr>
+      <td dir="rtl" style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:13px;color:#2A2620;font-weight:bold">${c.name}</td>
+      <td dir="ltr" style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:12px;color:#6B7280;text-align:right">${c.custno}</td>${amountCellsHtml(c)}
+    </tr>`;
 }
 
-// Сети (רשתות) — отдельный блок таблицы на каждого אחראי, а не общий список.
-function buildGroupedByResp(title, rows) {
+// Общий блок-группировщик: и רשתות (блоки по אחראי), и שוק פרטי (блоки по שם סוכן)
+// делятся на отдельные под-таблицы вместо одного общего списка.
+function buildGroupedBlocks(title, rows, groupField, tableHead, rowRenderer) {
   if (rows.length === 0) return '';
-  const byResp = new Map();
+  const byGroup = new Map();
   for (const r of rows) {
-    if (!byResp.has(r.resp)) byResp.set(r.resp, []);
-    byResp.get(r.resp).push(r);
+    const key = r[groupField];
+    if (!byGroup.has(key)) byGroup.set(key, []);
+    byGroup.get(key).push(r);
   }
-  // "לא מוגדר" — в конец, остальные по алфавиту
-  const resps = [...byResp.keys()].sort((a, b) => (a === 'לא מוגדר') - (b === 'לא מוגדר') || a.localeCompare(b, 'he'));
+  // "לא מוגדר" / "—" — в конец, остальные по алфавиту
+  const undefinedLast = k => k === 'לא מוגדר' || k === '—';
+  const keys = [...byGroup.keys()].sort((a, b) => (undefinedLast(a) - undefinedLast(b)) || a.localeCompare(b, 'he'));
 
-  const blocks = resps.map(resp => `
+  const blocks = keys.map(k => `
   <tr><td dir="rtl" style="padding:14px 20px 4px;text-align:right">
-    <div style="font-family:Arial,sans-serif;font-size:13px;color:#B8863B;font-weight:bold">${resp} (${byResp.get(resp).length})</div>
+    <div style="font-family:Arial,sans-serif;font-size:13px;color:#B8863B;font-weight:bold">${k} (${byGroup.get(k).length})</div>
   </td></tr>
   <tr><td style="padding:0 20px 4px">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-      ${TABLE_HEAD_NO_RESP}
-      ${byResp.get(resp).map(rowNoResp).join('')}
+      ${tableHead}
+      ${byGroup.get(k).map(rowRenderer).join('')}
     </table>
   </td></tr>`).join('');
 
@@ -248,8 +259,8 @@ function buildEmailHtml(crossed) {
     <div style="font-family:Arial,sans-serif;font-size:11px;letter-spacing:2px;color:#B8863B;font-weight:bold;text-transform:uppercase">OBLIGO ALERT</div>
     <div style="padding-top:6px;font-family:Georgia,serif;font-size:20px;color:#ffffff">${crossed.length} לקוחות/רשתות חצו סף ${Math.round(THRESHOLD * 100)}% ניצול אובליגו</div>
   </td></tr>
-  ${buildGroupedByResp('רשתות', chains)}
-  ${buildTable('שוק פרטי', privateMarket)}
+  ${buildGroupedBlocks('רשתות', chains, 'resp', TABLE_HEAD_CHAINS, rowChain)}
+  ${buildGroupedBlocks('שוק פרטי', privateMarket, 'agent', TABLE_HEAD_PRIVATE, rowPrivate)}
   <tr><td dir="rtl" style="padding:20px 24px 28px;text-align:right">
     <div style="font-family:Arial,sans-serif;font-size:12px;color:#6B7280;line-height:1.6">
       נשלח אוטומטית פעם בשבוע (ימי ראשון). כל לקוח/רשת מדווח פעם אחת בעת החצייה של הסף,
@@ -266,7 +277,7 @@ async function sendAlert(crossed, recipients) {
   const subject = `OBLIGO ALERT: ${crossed.length} ${crossed.length === 1 ? 'חצה' : 'חצו'} סף ${Math.round(THRESHOLD * 100)}%`;
   const text = crossed.map(c => `${c.name} (${c.market}, אחראי: ${c.resp}): ${fmtILS(c.usedILS)}/${fmtILS(c.limitILS)} = ${Math.round(c.util * 100)}%`).join('\n');
   return resend.emails.send({
-    from: `OBLIGO Alert <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
+    from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
     to: recipients,
     subject,
     html: buildEmailHtml(crossed),
