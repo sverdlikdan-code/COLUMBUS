@@ -53,10 +53,12 @@ function saveState(state) {
   fs.writeFileSync(STATE_PATH, JSON.stringify(state, null, 2));
 }
 
-// Компания -> {market, resp, custno} по большинству голосов среди её клиентских счетов.
-// custno (מס. לקוח) нужен только для שוק פרטי (пользователь просил номер клиента в этой
-// таблице) — для רשתות он бессмысленен (после агрегации несколько компаний под одним
-// именем, единого номера клиента нет).
+// Компания -> {market, resp, custno, formAgent, iceAgent, interAgent} по большинству
+// голосов среди её клиентских счетов. custno нужен только для שוק פרטי (пользователь
+// просил номер клиента) — для רשתות он бессмысленен (несколько компаний под одним именем
+// после агрегации, единого номера клиента нет). Агент — отдельно по каждой из 3 систем
+// (HEVRA: FORMULA/ICE/INTER): группировка שוק פרטי по агенту с приоритетом
+// FORMULA -> ICE -> INTER (пользователь 2026-09-10).
 async function fetchCompanyClassification() {
   const rows = await executeDax(`
     EVALUATE
@@ -65,6 +67,7 @@ async function fetchCompanyClassification() {
       'לקוחות FORM+I+INT'[שוק פרטי / רשתות],
       'לקוחות FORM+I+INT'[אחראי],
       'לקוחות FORM+I+INT'[מס. לקוח],
+      'לקוחות FORM+I+INT'[HEVRA],
       'לקוחות FORM+I+INT'[שם סוכן],
       "n", COUNTROWS('לקוחות FORM+I+INT')
     )
@@ -75,19 +78,31 @@ async function fetchCompanyClassification() {
     const co = r['לקוחות FORM+I+INT[מס חברה]'];
     if (!co) continue;
     const n = r['[n]'];
-    if (!byCompany.has(co)) byCompany.set(co, { market: new Map(), resp: new Map(), custno: new Map(), agent: new Map() });
+    if (!byCompany.has(co)) {
+      byCompany.set(co, {
+        market: new Map(), resp: new Map(), custno: new Map(),
+        formAgent: new Map(), iceAgent: new Map(), interAgent: new Map(),
+      });
+    }
     const bucket = byCompany.get(co);
     const bump = (map, val) => { if (val) map.set(val, (map.get(val) || 0) + n); };
     bump(bucket.market, r['לקוחות FORM+I+INT[שוק פרטי / רשתות]']);
     bump(bucket.resp, r['לקוחות FORM+I+INT[אחראי]']);
     bump(bucket.custno, r['לקוחות FORM+I+INT[מס. לקוח]']);
-    bump(bucket.agent, fixBiDi(r['לקוחות FORM+I+INT[שם סוכן]']));
+    const hevra = r['לקוחות FORM+I+INT[HEVRA]'];
+    const agentName = fixBiDi(r['לקוחות FORM+I+INT[שם סוכן]']);
+    if (hevra === 'FORMULA') bump(bucket.formAgent, agentName);
+    else if (hevra === 'ICE') bump(bucket.iceAgent, agentName);
+    else if (hevra === 'INTER') bump(bucket.interAgent, agentName);
   }
 
   const mode = map => { let best = null, bestN = -1; for (const [k, n] of map) if (n > bestN) { best = k; bestN = n; } return best; };
   const result = new Map();
   for (const [co, bucket] of byCompany) {
-    result.set(co, { market: mode(bucket.market), resp: mode(bucket.resp), custno: mode(bucket.custno), agent: mode(bucket.agent) });
+    result.set(co, {
+      market: mode(bucket.market), resp: mode(bucket.resp), custno: mode(bucket.custno),
+      formAgent: mode(bucket.formAgent), iceAgent: mode(bucket.iceAgent), interAgent: mode(bucket.interAgent),
+    });
   }
   return result;
 }
@@ -134,11 +149,13 @@ async function fetchRows() {
   const perCompany = utilization.map(row => {
     const cls = classification.get(row.company) || {};
     const isChain = cls.market === 'רשתות';
+    // Группировка שוק פרטי — по агенту: приоритет FORMULA, потом ICE, потом INTER.
+    const groupAgent = cls.formAgent || cls.iceAgent || cls.interAgent || 'לא מוגדר';
     return {
       name: isChain ? row.type : row.custName,
       market: cls.market || '—',
       resp: cls.resp || '—',
-      agent: cls.agent || '—',
+      agent: groupAgent,
       custno: cls.custno || '—',
       limitILS: row.limitILS,
       usedILS: row.usedILS,
@@ -182,27 +199,29 @@ function fmtILS(n) {
   return '₪' + Math.round(n).toLocaleString('en-US');
 }
 
+// Порядок колонок (пользователь 2026-09-10): מס' לקוח (только שוק פרטי) -> שם -> אובליגו
+// (лимит, רב חברתי) -> ניצול אובליגו (использовано, מנוצל) -> %.
 const AMOUNT_HEAD_CELLS = `
-        <th style="padding:0 10px 8px;text-align:left;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">אובליגו מנוצל</th>
-        <th style="padding:0 10px 8px;text-align:left;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">אובליגו רב חברתי</th>
-        <th style="padding:0 10px 8px;text-align:left;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">% ניצול</th>`;
+        <th style="padding:0 10px 8px;text-align:left;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">אובליגו</th>
+        <th style="padding:0 10px 8px;text-align:left;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">ניצול אובליגו</th>
+        <th style="padding:0 10px 8px;text-align:left;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">%</th>`;
 
 const TABLE_HEAD_CHAINS = `
       <tr dir="rtl">
-        <th style="padding:0 10px 8px;text-align:right;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">שם</th>
+        <th style="padding:0 10px 8px;text-align:right;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">רשת</th>
         ${AMOUNT_HEAD_CELLS}
       </tr>`;
 
 const TABLE_HEAD_PRIVATE = `
       <tr dir="rtl">
-        <th style="padding:0 10px 8px;text-align:right;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">שם</th>
         <th style="padding:0 10px 8px;text-align:right;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">מס' לקוח</th>
+        <th style="padding:0 10px 8px;text-align:right;font-family:Arial,sans-serif;font-size:11px;color:#6B7280;text-transform:uppercase;border-bottom:2px solid #1C3D6B">שם</th>
         ${AMOUNT_HEAD_CELLS}
       </tr>`;
 
 const amountCellsHtml = c => `
-      <td style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:12px;color:#6B7280;text-align:left" dir="ltr">${fmtILS(c.usedILS)}</td>
       <td style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:12px;color:#6B7280;text-align:left" dir="ltr">${fmtILS(c.limitILS)}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:12px;color:#6B7280;text-align:left" dir="ltr">${fmtILS(c.usedILS)}</td>
       <td style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;color:${pctColor(c.util)};text-align:left">${Math.round(c.util * 100)}%</td>`;
 
 function rowChain(c) {
@@ -215,8 +234,8 @@ function rowChain(c) {
 function rowPrivate(c) {
   return `
     <tr>
-      <td dir="rtl" style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:13px;color:#2A2620;font-weight:bold">${c.name}</td>
-      <td dir="ltr" style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:12px;color:#6B7280;text-align:right">${c.custno}</td>${amountCellsHtml(c)}
+      <td dir="ltr" style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:12px;color:#6B7280;text-align:right">${c.custno}</td>
+      <td dir="rtl" style="padding:8px 10px;border-bottom:1px solid #E5E0D8;font-family:Arial,sans-serif;font-size:13px;color:#2A2620;font-weight:bold">${c.name}</td>${amountCellsHtml(c)}
     </tr>`;
 }
 
@@ -236,7 +255,7 @@ function buildGroupedBlocks(title, rows, groupField, tableHead, rowRenderer) {
 
   const blocks = keys.map(k => `
   <tr><td dir="rtl" style="padding:14px 20px 4px;text-align:right">
-    <div style="font-family:Arial,sans-serif;font-size:13px;color:#B8863B;font-weight:bold">${k} (${byGroup.get(k).length})</div>
+    <div style="font-family:Arial,sans-serif;font-size:13px;color:#B8863B;font-weight:bold">${k}</div>
   </td></tr>
   <tr><td style="padding:0 20px 4px">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
@@ -247,7 +266,7 @@ function buildGroupedBlocks(title, rows, groupField, tableHead, rowRenderer) {
 
   return `
   <tr><td dir="rtl" style="padding:22px 20px 0;text-align:right">
-    <div style="font-family:Georgia,serif;font-size:16px;color:#1C3D6B;font-weight:bold">${title} (${rows.length})</div>
+    <div style="font-family:Georgia,serif;font-size:16px;color:#1C3D6B;font-weight:bold">${title}</div>
   </td></tr>
   ${blocks}`;
 }
