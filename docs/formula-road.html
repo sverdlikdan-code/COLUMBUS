@@ -1082,6 +1082,8 @@ body.gps-fs #map{height:100%!important;}
         <div class="km-more-wrap">
           <button class="sort-btn km-more-btn icon-only" id="km-more-btn" onclick="toggleKmMore()" title="עוד פעולות">⋮</button>
           <div class="km-more-dd" id="km-more-dd">
+            <button class="km-more-item" onclick="openGuide();closeKmMore()">❓ מדריך שימוש</button>
+            <hr class="km-more-sep">
             <!-- Phone-only duplicates of the collapsed row-1 actions (hidden
                  ≤699px, see .mob-only media rule). The sort-toggle isn't in
                  this toolbar at all any more (moved into
@@ -1290,6 +1292,19 @@ body.gps-fs #map{height:100%!important;}
     <div class="modal-btns">
       <button class="modal-btn cancel" onclick="closeAddrModal()">ביטול</button>
       <button class="modal-btn confirm" onclick="submitAddress()">עדכן</button>
+    </div>
+  </div>
+</div>
+
+<!-- First-3-opens prompt to check out the tutorial — after that, the ❓ item
+     in the ⋮ menu is the only way in (live request 2026-09-11). -->
+<div class="modal-bg" id="guide-modal">
+  <div class="modal">
+    <div class="modal-title">📖 מדריך שימוש</div>
+    <div style="font-size:14px;line-height:1.6;color:var(--text);text-align:center;margin-bottom:16px">יש מדריך מלא עם הסברים על כל מסך — כדאי להעיף בו מבט</div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeGuidePrompt()">אחר כך</button>
+      <button class="modal-btn confirm" onclick="openGuideFromPrompt()">📖 פתח מדריך</button>
     </div>
   </div>
 </div>
@@ -2723,6 +2738,7 @@ async function prewarmZikuyOffline(){
 async function initRoute(){
   const myId = ++_initRouteId;
   checkPbiFreshness(); // fire-and-forget, throttled internally
+  maybeShowGuidePrompt(); // once per page load, at most 3 times ever — see definition above
   // Restore this agent's last-picked sort mode (AI vs "הגרסה שלי") — read fresh
   // on every call, keyed to whichever agent is currently being viewed (st.agent.code
   // is already set by selectAgent()/selectDay() before initRoute() runs, so this
@@ -3909,6 +3925,24 @@ function reviewTabletGpsFromModal(){
   reviewTabletGps(id,name);
 }
 
+function openGuide(){ window.open('TUTORIALS/index.html','_blank'); }
+function closeGuidePrompt(){ document.getElementById('guide-modal').classList.remove('open'); }
+function openGuideFromPrompt(){ closeGuidePrompt(); openGuide(); }
+// Shown at most 3 times ever (across days/devices sharing this browser), once
+// per page load — after that the ❓ item in the ⋮ menu is the only way in.
+// _guidePromptShown guards against initRoute() re-firing this on every day/
+// agent switch within the same session (initRoute runs on each of those, this
+// prompt should only ever fire once per page load).
+let _guidePromptShown=false;
+function maybeShowGuidePrompt(){
+  if(_guidePromptShown) return;
+  _guidePromptShown=true;
+  let n=0;
+  try{ n=parseInt(localStorage.getItem('frGuidePromptCount')||'0',10)||0; }catch(_){}
+  if(n>=3) return;
+  try{ localStorage.setItem('frGuidePromptCount', String(n+1)); }catch(_){}
+  document.getElementById('guide-modal').classList.add('open');
+}
 function closeAddrModal(){
   document.getElementById('addr-modal').classList.remove('open');
   document.getElementById('addr-gps-status').textContent='';
