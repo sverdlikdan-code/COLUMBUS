@@ -2518,21 +2518,31 @@ app.post('/api/event', requireAuth, dataRateLimit, (req, res) => {
   } catch (err) { res.status(500).json({ error: 'server_error' }); }
 });
 
-// POST /api/guide-event — anonymous section-click tracking for docs/TUTORIALS
-// (the guide page itself). No requireAuth: unlike the main app, the guide has
-// no login/session at all (it's a plain public page), so there's no agent
-// identity to attach — this only answers "which sections get clicked, how
-// often", not "by whom". Section id whitelisted against the guide's own 8
-// nav-grid anchors so this endpoint can't be used to write arbitrary
-// event_type strings into events.db. event_type encodes the section
-// (guide_section_<id>) so it rolls up for free in the existing
-// /admin/tracking-dashboard byType breakdown — no new dashboard code needed.
+// POST /api/guide-event — section-click tracking for TUTORIALS-GUIDE (the
+// guide page itself). No requireAuth middleware — the guide has no real login
+// UI of its own, X-Session isn't available there — but the page DOES carry
+// the same ?sess= token tutorialsGuard already validated to let the visitor
+// in at all (see openGuide() in formula-road.html), so it's passed through in
+// the body here and resolved against the same `sessions` Map by hand. A
+// direct cookie re-entry (no fresh ?sess= in the URL) still gets tracked,
+// just anonymously — best-effort, not required for the endpoint to work.
+// Section id whitelisted against the guide's own 8 nav-grid anchors so this
+// endpoint can't be used to write arbitrary event_type strings into
+// events.db. event_type encodes the section (guide_section_<id>) so it rolls
+// up for free in the existing /admin/tracking-dashboard byType breakdown.
 const GUIDE_SECTIONS = new Set(['s-philosophy', 's-login', 's-route', 's-daycheck', 's-daychange', 's-exclude', 's-zikuy', 's-closing']);
 app.post('/api/guide-event', dataRateLimit, (req, res) => {
   try {
     const section = String(req.body?.section || '');
     if (!GUIDE_SECTIONS.has(section)) return res.status(400).json({ error: 'invalid section' });
-    logEvent({ event: 'guide_section_' + section });
+    const sess = sessions.get(String(req.body?.sess || '').trim());
+    const identified = sess && Date.now() <= sess.expiresAt;
+    logEvent({
+      event: 'guide_section_' + section,
+      agentCode: identified ? sess.agentCode : null,
+      isManager: identified ? sess.isManager : false,
+      managerId: identified ? sess.managerId : null,
+    });
     res.json({ ok: true });
   } catch (err) { res.status(500).json({ error: 'server_error' }); }
 });
