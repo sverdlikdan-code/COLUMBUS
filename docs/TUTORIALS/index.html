@@ -1,64 +1,52 @@
 <!DOCTYPE html>
-<html dir="rtl" lang="he">
+<html dir="ltr" lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FORMULA ROAD — מדריך למשתמש</title>
+<title>FORMULA ROAD — гайд для пользователя</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #0D2137; }
 
-  /* ── Language visibility ── */
-  .ru { display: none; }
-  html.ru-mode .ru { display: initial; }
-  html.ru-mode .he { display: none; }
-  span.ru { display: none; }
-  html.ru-mode span.ru { display: inline; }
-  html.ru-mode span.he { display: none; }
+  .ru { display: initial; }
+  .he { display: none; }
+  html.he-mode .ru { display: none; }
+  html.he-mode .he { display: initial; }
+  html.he-mode { direction: rtl; }
 
-  /* ── Language overlay ── */
-  #lang-overlay {
-    position: fixed; inset: 0; z-index: 1000;
-    background: linear-gradient(135deg, #1A3F7C 0%, #1565C0 100%);
-    display: flex; align-items: center; justify-content: center;
-  }
-  #lang-overlay.gone { display: none; }
-  .lang-box {
-    text-align: center; padding: 48px 44px;
-    background: rgba(255,255,255,.09); border-radius: 20px;
-    border: 1px solid rgba(255,255,255,.2);
-  }
-  .lang-logo { font-size: 26px; font-weight: 900; letter-spacing: 2px; color: #fff; margin-bottom: 5px; }
-  .lang-rule  { width: 40px; height: 2px; background: #C9A84C; margin: 10px auto 22px; }
-  .lang-hint  { font-size: 14px; color: rgba(255,255,255,.7); margin-bottom: 22px; letter-spacing: .04em; }
-  .lang-btns  { display: flex; gap: 14px; justify-content: center; }
-  .lang-btn {
-    padding: 11px 30px; border-radius: 50px; font-size: 15px; font-weight: 700;
-    cursor: pointer; border: 2px solid rgba(255,255,255,.45); color: #fff;
-    background: rgba(255,255,255,.1); transition: background .15s, border-color .15s;
-    letter-spacing: .06em;
-  }
-  .lang-btn:hover { background: rgba(255,255,255,.22); border-color: #C9A84C; }
-
-  /* ── Floating toggle ── */
   #lang-toggle {
-    position: fixed; top: 12px; left: 16px; z-index: 500;
+    position: fixed; top: 12px; right: 16px; z-index: 500;
     background: rgba(21,101,192,.12); border: 1.5px solid rgba(21,101,192,.28);
     border-radius: 50px; padding: 5px 14px; font-size: 12px; font-weight: 800;
-    cursor: pointer; color: #1565C0; transition: background .15s;
-    backdrop-filter: blur(4px); user-select: none;
+    cursor: pointer; color: #1565C0; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); -webkit-user-select: none; user-select: none;
   }
-  html.ru-mode #lang-toggle { left: auto; right: 16px; }
+  html.he-mode #lang-toggle { right: auto; left: 16px; }
   #lang-toggle:hover { background: rgba(21,101,192,.22); }
 
   header {
     background: linear-gradient(135deg, #1A3F7C 0%, #1565C0 100%);
     color: #fff; padding: 32px 24px 28px; text-align: center;
   }
-  header h1 { font-size: 28px; font-weight: 900; letter-spacing: 2px; margin-bottom: 6px; }
-  header p  { font-size: 14px; opacity: .75; }
+  header h1 { font-size: 26px; font-weight: 900; letter-spacing: 2px; margin-bottom: 6px; }
+  header p  { font-size: 14px; opacity: .8; }
 
-  .steps { max-width: 860px; margin: 32px auto; padding: 0 16px 48px; display: flex; flex-direction: column; gap: 32px; }
+  nav.toc {
+    max-width: 860px; margin: 20px auto 0; padding: 0 16px;
+    display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+  }
+  nav.toc a {
+    font-size: 12.5px; font-weight: 700; color: #1565C0; text-decoration: none;
+    background: #fff; border: 1.5px solid #D6E4F0; border-radius: 20px; padding: 6px 13px;
+  }
+  nav.toc a:hover { background: #EEF5FF; }
+
+  .section-title {
+    max-width: 860px; margin: 44px auto 4px; padding: 0 16px;
+    font-size: 13px; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase;
+    color: #90A4AE;
+  }
+
+  .steps { max-width: 860px; margin: 8px auto; padding: 0 16px 48px; display: flex; flex-direction: column; gap: 32px; }
 
   .step { background: #fff; border-radius: 14px; box-shadow: 0 2px 12px rgba(21,101,192,.1); overflow: hidden; }
 
@@ -68,48 +56,174 @@
   .step-sub   { font-size: 13px; color: #546E7A; margin-top: 2px; }
 
   .step-body { padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 14px; }
-  .step-img  { border-radius: 10px; border: 1px solid #D6E4F0; width: 100%; display: block; }
+
+  .shot-wrap { position: relative; border-radius: 10px; border: 1px solid #D6E4F0; overflow: hidden; background: #f5f7fa; }
+  .shot-wrap img { display: block; width: 100%; }
+  .shot-fallback {
+    display: none; align-items: center; justify-content: center; flex-direction: column; gap: 8px;
+    min-height: 220px; padding: 20px; text-align: center; color: #90A4AE; font-size: 13px;
+  }
+  .shot-wrap img.broken { display: none; }
+  .shot-wrap img.broken + .shot-fallback { display: flex; }
+  .shot-wrap img.broken ~ .toast-pin, .shot-wrap img.broken ~ .target-ring { display: none; }
+
+  /* Toast callout — pinned NEXT TO (never over) the exact spot on the
+     screenshot, connected to it with a bright arrow + a highlight ring
+     sitting exactly on the real button/element. */
+  .toast-pin {
+    position: absolute; max-width: 46%;
+    background: #1A2B4A; color: #fff; font-size: 12.5px; font-weight: 700; line-height: 1.45;
+    padding: 8px 11px; border-radius: 10px; box-shadow: 0 4px 14px rgba(0,0,0,.45);
+    border: 1.5px solid #FFCA28; z-index: 6;
+  }
+  .toast-pin b { color: #FFCA28; }
+  .toast-pin::after {
+    content: ''; position: absolute; width: 0; height: 0; border: 11px solid transparent;
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,.3));
+  }
+  .toast-pin[data-dir="down"]::after { bottom: -20px; left: 16px; border-top-color: #FFCA28; }
+  .toast-pin[data-dir="up"]::after   { top: -20px; left: 16px; border-bottom-color: #FFCA28; }
+  .toast-pin[data-dir="up-right"]::after   { top: -20px; right: 16px; left: auto; border-bottom-color: #FFCA28; }
+  .toast-pin[data-dir="down-right"]::after { bottom: -20px; right: 16px; left: auto; border-top-color: #FFCA28; }
+
+  /* Target ring — a glowing marker placed at the EXACT spot of the real
+     button/icon being explained, so the toast text can sit safely beside
+     it instead of covering it. Center the ring on its top/left coordinate. */
+  .target-ring {
+    position: absolute; width: 34px; height: 34px; border-radius: 50%;
+    border: 3px solid #FFCA28; box-shadow: 0 0 0 4px rgba(255,202,44,.35), 0 2px 8px rgba(0,0,0,.4);
+    transform: translate(-50%, -50%); z-index: 5; pointer-events: none;
+    animation: ring-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes ring-pulse {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(255,202,44,.35), 0 2px 8px rgba(0,0,0,.4); }
+    50% { box-shadow: 0 0 0 8px rgba(255,202,44,.15), 0 2px 8px rgba(0,0,0,.4); }
+  }
 
   .step-desc { font-size: 14px; line-height: 1.7; color: #334; }
   .step-desc strong { color: #1565C0; }
+  .step-desc ul { margin: 6px 0 0 18px; }
+  html.he-mode .step-desc ul { margin: 6px 18px 0 0; }
 
   .tip {
     background: #EEF5FF; border-inline-start: 3px solid #009FFF;
     border-radius: 0 8px 8px 0; padding: 10px 14px;
     font-size: 13px; color: #1A3F7C; line-height: 1.6;
   }
-  html.ru-mode .tip { border-radius: 8px 0 0 8px; }
+  .tip.warn { background: #FFF8E1; border-inline-start-color: #F9A825; }
 
   footer { text-align: center; padding: 24px; font-size: 12px; color: #90A4AE; }
+
+  /* ── Hero (mirrors the app's own login header) ── */
+  .hero {
+    background: linear-gradient(135deg, #1A3F7C 0%, #1565C0 100%);
+    color: #fff; padding: 40px 24px 34px; text-align: center;
+  }
+  .hero img { height: 64px; margin-bottom: 12px; opacity: .96; }
+  .hero h1 { font-size: 26px; font-weight: 900; letter-spacing: 3px; margin-bottom: 6px; }
+  .hero p { font-size: 13px; opacity: .78; }
+
+  /* ── Nav grid — 8 tiles, same look as the app's own manager-picker tiles
+       (.mgr-tile in formula-road.html): gradient navy tile, ringed circle
+       icon, bold white label underneath. ── */
+  .navgrid {
+    max-width: 640px; margin: 22px auto 0; padding: 0 16px;
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+  }
+  @media (min-width: 520px) { .navgrid { grid-template-columns: repeat(4, 1fr); } }
+  .navgrid a {
+    position: relative; overflow: hidden; text-decoration: none;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    background: linear-gradient(160deg, #2E6FAD 0%, #1A3F7C 100%);
+    border-radius: 16px; padding: 20px 8px 16px;
+    box-shadow: 0 4px 14px rgba(21,101,192,.3);
+  }
+  .navgrid a::after {
+    content: ''; position: absolute; top: -18px; right: -18px;
+    width: 60px; height: 60px; border-radius: 50%; background: rgba(255,255,255,.08);
+  }
+  .navgrid .nav-ring {
+    width: 52px; height: 52px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.45); background: rgba(255,255,255,.08);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .navgrid .nav-label { font-size: 12.5px; font-weight: 800; color: #fff; text-align: center; line-height: 1.3; }
+  .navgrid .nav-num {
+    position: absolute; top: 8px; inset-inline-start: 10px;
+    font-size: 10px; font-weight: 900; color: rgba(255,255,255,.6);
+    letter-spacing: .5px;
+  }
+
+  /* ── Philosophy section ── */
+  .philosophy {
+    max-width: 640px; margin: 40px auto 8px; padding: 0 20px;
+  }
+  .philosophy h2 { font-size: 19px; font-weight: 900; color: #1A3F7C; margin-bottom: 14px; text-align: center; }
+  .philosophy .p-card {
+    background: #fff; border-radius: 14px; padding: 20px 22px; box-shadow: 0 2px 12px rgba(21,101,192,.1);
+    font-size: 14.5px; line-height: 1.8; color: #334; margin-bottom: 14px;
+  }
+  .philosophy .p-card strong { color: #1565C0; }
+  .philosophy .p-quote {
+    background: linear-gradient(135deg, #1A3F7C, #1565C0); color: #fff;
+    border-radius: 14px; padding: 18px 22px; font-size: 14px; line-height: 1.75;
+    font-style: italic; margin-bottom: 14px;
+  }
+  .philosophy .p-quote cite { display: block; margin-top: 10px; font-style: normal; font-size: 12px; opacity: .75; }
 </style>
 </head>
 <body>
 
-<!-- Language overlay -->
-<div id="lang-overlay">
-  <div class="lang-box">
-    <div class="lang-logo">FORMULA ROAD</div>
-    <div class="lang-rule"></div>
-    <p class="lang-hint">בחר שפה / Выберите язык</p>
-    <div class="lang-btns">
-      <button class="lang-btn" onclick="chooseLang('he')">עברית</button>
-      <button class="lang-btn" onclick="chooseLang('ru')">Русский</button>
-    </div>
+<button id="lang-toggle" onclick="toggleLang()">
+  <span class="ru">עב</span><span class="he">RU</span>
+</button>
+
+<div class="hero">
+  <img src="../logo-diler-bmd-white.png" alt="DILER B.M.D.">
+  <h1>FORMULA ROAD</h1>
+  <p>
+    <span class="ru">Полное руководство пользователя · DILER BMD</span>
+    <span class="he">מדריך שימוש מלא · DILER BMD</span>
+  </p>
+</div>
+
+<nav class="navgrid">
+  <a href="#s-philosophy"><span class="nav-num">1</span><span class="nav-ring">🧭</span><span class="nav-label"><span class="ru">Зачем создан</span><span class="he">למה נוצר</span></span></a>
+  <a href="#s-login"><span class="nav-num">2</span><span class="nav-ring">🔑</span><span class="nav-label"><span class="ru">Вход</span><span class="he">כניסה</span></span></a>
+  <a href="#s-route"><span class="nav-num">3</span><span class="nav-ring">🗺️</span><span class="nav-label"><span class="ru">Маршрут и день</span><span class="he">מסלול ויום</span></span></a>
+  <a href="#s-daycheck"><span class="nav-num">4</span><span class="nav-ring">❓</span><span class="nav-label"><span class="ru">Проверка дней</span><span class="he">בדיקת ימים</span></span></a>
+  <a href="#s-daychange"><span class="nav-num">5</span><span class="nav-ring">📅</span><span class="nav-label"><span class="ru">Смена дня визита</span><span class="he">שינוי יום ביקור</span></span></a>
+  <a href="#s-exclude"><span class="nav-num">6</span><span class="nav-ring">🚫</span><span class="nav-label"><span class="ru">Убрать/вернуть</span><span class="he">הוצא/החזר</span></span></a>
+  <a href="#s-zikuy"><span class="nav-num">7</span><span class="nav-ring">🧾</span><span class="nav-label"><span class="ru">Зикуй</span><span class="he">זיכוי</span></span></a>
+  <a href="#s-closing"><span class="nav-num">8</span><span class="nav-ring">🌙</span><span class="nav-label"><span class="ru">Закрытие дня</span><span class="he">סגירת יום</span></span></a>
+</nav>
+
+<div class="philosophy" id="s-philosophy">
+  <h2><span class="ru">Во что мы верим</span><span class="he">במה אנחנו מאמינים</span></h2>
+  <div class="p-card">
+    <span class="ru">Formula Road вырос из четырёх вещей, на которых стоит компания: <strong>доверие, помощь, амбиции, эффективность</strong>. Это не лозунг на стене — время и ресурсы вложены в этот инструмент именно ради них. Он существует не над тобой, а рядом — как та же команда, только считающая быстрее.</span>
+    <span class="he">Formula Road צמח מתוך ארבעה דברים שעליהם עומדת החברה: <strong>אמון, עזרה, שאיפה, יעילות</strong>. זה לא סיסמה על הקיר — זמן ומשאבים הושקעו בכלי הזה בדיוק בשבילם. הוא לא עומד מעליך, אלא לצידך — אותה קבוצה, רק כזו שסופרת מהר יותר.</span>
+  </div>
+  <div class="p-quote">
+    <span class="ru"><strong>Доверие.</strong> Ты и менеджер смотрите на одни и те же цифры — маршрут, план, факт, зачёты. Ничего не подкручено ни в одну сторону. Решения получаются честнее, когда все опираются на одну реальность, а не на её удобную версию (идея из книги «Принципы», Рэй Далио).</span>
+    <span class="he"><strong>אמון.</strong> אתה והמנהל רואים את אותם המספרים בדיוק — מסלול, תוכנית, ביצוע, זיכויים. שום דבר לא מסולף לאף כיוון. החלטות יוצאות הוגנות יותר כשכולם מסתכלים על אותה מציאות, לא על הגרסה הנוחה שלה (רעיון מהספר "עקרונות", ריי דאליו).</span>
+  </div>
+  <div class="p-quote">
+    <span class="ru"><strong>Помощь.</strong> Маршрут посчитан, километраж пересчитан на лету, клиенты без дня подсвечены сами, товары для зачёта отфильтрованы под конкретного клиента. Вся рутина, которая раньше съедала внимание, теперь не твоя забота — она освобождает силы для того, что реально требует тебя: разговора и полки.</span>
+    <span class="he"><strong>עזרה.</strong> המסלול מחושב, הק"מ מתעדכן תוך כדי תנועה, לקוחות בלי יום מודגשים לבד, המוצרים לזיכוי מסוננים לפי הלקוח הספציפי. כל השגרה שפעם גזלה תשומת לב כבר לא הדאגה שלך — היא משחררת כוח למה שבאמת דורש אותך: השיחה והמדף.</span>
+  </div>
+  <div class="p-quote">
+    <span class="ru"><strong>Амбиции.</strong> Простая формула: <em>боль + осмысление = прогресс</em>. День, где что-то не сложилось — не повод себя корить, а материал для роста, если честно на него посмотреть. "Анализ дня" и разбор по клиенту существуют не чтобы найти виноватого, а чтобы было на что опереться, планируя следующий шаг.</span>
+    <span class="he"><strong>שאיפה.</strong> נוסחה פשוטה: <em>כאב + הפקת לקחים = התקדמות</em>. יום שבו משהו לא הסתדר הוא לא סיבה להלקות את עצמך, אלא חומר לצמיחה — אם מסתכלים עליו בכנות. "ניתוח יום" והפירוט לפי לקוח לא קיימים כדי למצוא אשם, אלא כדי שיהיה על מה להישען בתכנון הצעד הבא.</span>
+  </div>
+  <div class="p-card">
+    <span class="ru"><strong>Эффективность.</strong> 10 минут утром на маршрут — способ начать день с ясной головой вместо перегруженной. Меньше хаоса — больше энергии на то, что реально двигает продажи. Твоя эффективность на дороге не абстракция — она напрямую превращается в селлаут и бонус в конце месяца.</span>
+    <span class="he"><strong>יעילות.</strong> 10 דקות בבוקר על המסלול — דרך להתחיל את היום עם ראש פנוי במקום עמוס. פחות כאוס — יותר אנרגיה למה שבאמת מניע מכירות. היעילות שלך בדרך היא לא מופשטת — היא הופכת ישירות לסלאאוט ולבונוס בסוף החודש.</span>
   </div>
 </div>
 
-<button id="lang-toggle" onclick="toggleLang()">
-  <span class="he">RU</span><span class="ru">עב</span>
-</button>
-
-<header>
-  <h1>FORMULA ROAD</h1>
-  <p>
-    <span class="he">מדריך שימוש למסלולי ביקור · DILER BMD</span>
-    <span class="ru">Руководство пользователя · DILER BMD</span>
-  </p>
-</header>
-
+<div class="section-title" id="s-login"><span class="ru">Вход в систему</span><span class="he">כניסה למערכת</span></div>
 <div class="steps">
 
   <!-- Step 1 -->
@@ -117,19 +231,49 @@
     <div class="step-header">
       <div class="step-num">1</div>
       <div>
-        <div class="step-title"><span class="he">כניסה למערכת — בחר מנהל</span><span class="ru">Вход — выбор менеджера</span></div>
-        <div class="step-sub"><span class="he">מסך הפתיחה של FORMULA ROAD</span><span class="ru">Главный экран FORMULA ROAD</span></div>
+        <div class="step-title"><span class="ru">Вход по коду (если нет сохранённой ссылки)</span><span class="he">כניסה עם קוד (אם אין קישור שמור)</span></div>
+        <div class="step-sub"><span class="ru">Новое устройство или потерянная ссылка</span><span class="he">מכשיר חדש או קישור שאבד</span></div>
       </div>
     </div>
     <div class="step-body">
-      <img class="step-img" src="Screenshot 2026-05-27 122852.jpg" alt="מסך כניסה">
-      <div class="step-desc">
-        <span class="he">פתח את הכתובת של FORMULA ROAD בדפדפן.<br>תראה רשימת <strong>מנהלים</strong> — לחץ על הכרטיס של המנהל הרלוונטי.</span>
-        <span class="ru">Откройте адрес FORMULA ROAD в браузере.<br>Вы увидите список <strong>менеджеров</strong> — нажмите на карточку нужного менеджера.</span>
+      <div class="shot-wrap">
+        <img src="screens/01-login-code.png" alt="Вход" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <span class="target-ring" style="top:56%;left:50%"></span>
+        <div class="toast-pin" data-dir="up" style="top:73%;left:10%">
+          <span class="ru">Введи свой <b>личный код</b> и нажми "כניסה"</span>
+          <span class="he">הזן <b>קוד אישי</b> ולחץ "כניסה"</span>
+        </div>
       </div>
-      <div class="tip">
-        <span class="he">💡 אם אתה סוכן — הקלד את <strong>קוד הסוכן</strong> שלך בשדה הכניסה.</span>
-        <span class="ru">💡 Если вы агент — введите свой <strong>код агента</strong> в поле входа.</span>
+      <div class="step-desc">
+        <span class="ru">В обычный день ничего этого делать не нужно: у менеджеров и агентов есть сохранённая ссылка (ярлык на телефоне или кнопка в Power BI) — она сама открывает нужный экран без ввода кода. Этот экран — <strong>запасной вариант</strong>: новый телефон, ссылка потерялась, или зашли вручную. Код персональный — у каждого свой (менеджеры получили новые коды на email после отмены общего "1999").</span>
+        <span class="he">ביום רגיל אין צורך בכלום מזה: למנהלים ולסוכנים יש קישור שמור (קיצור דרך בטלפון או כפתור ב-Power BI) — הוא פותח את המסך הנכון לבד בלי הזנת קוד. המסך הזה הוא <strong>גיבוי</strong>: טלפון חדש, קישור שאבד, או כניסה ידנית. הקוד אישי — לכל אחד משלו (מנהלים קיבלו קודים חדשים במייל אחרי ביטול הסיסמה הכללית "1999").</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 1b — agent path -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">1b</div>
+      <div>
+        <div class="step-title"><span class="ru">Путь агента — личное приветствие</span><span class="he">מסלול הסוכן — ברכה אישית</span></div>
+        <div class="step-sub"><span class="ru">Своя ссылка, без кода и без выбора менеджера</span><span class="he">קישור אישי, בלי קוד ובלי בחירת מנהל</span></div>
+      </div>
+    </div>
+    <div class="step-body">
+      <div class="shot-wrap">
+        <img src="screens/28-agent-welcome.png" alt="Приветствие агента" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <span class="target-ring" style="top:70%;left:50%"></span>
+        <div class="toast-pin" data-dir="up" style="top:83%;left:5%">
+          <span class="ru">Нажми <b>"Войти в систему"</b> — попадёшь сразу на свой маршрут</span>
+          <span class="he">לחץ <b>"כניסה למערכת"</b> — תעבור ישר למסלול שלך</span>
+        </div>
+      </div>
+      <div class="step-desc">
+        <span class="ru">Это то, что видит <strong>обычный агент</strong> (не менеджер) — экран менеджера и выбор команды (шаги 2-3 ниже) агенту вообще не показываются. Приветствие по имени появляется <strong>при первом заходе в этот день</strong> — не единожды, а каждый день заново, пока не выбран сегодняшний маршрут.</span>
+        <span class="he">זה מה שרואה <strong>סוכן רגיל</strong> (לא מנהל) — מסך המנהל ובחירת הצוות (שלבים 2-3 למטה) לא מוצגים לסוכן בכלל. הברכה בשם מופיעה <strong>בכניסה הראשונה ביום</strong> — לא פעם אחת, אלא כל יום מחדש, עד שנבחר המסלול של אותו יום.</span>
       </div>
     </div>
   </div>
@@ -139,15 +283,23 @@
     <div class="step-header">
       <div class="step-num">2</div>
       <div>
-        <div class="step-title"><span class="he">בחר סוכן ויום</span><span class="ru">Выбор агента и дня</span></div>
-        <div class="step-sub"><span class="he">רשימת הסוכנים תחת המנהל</span><span class="ru">Список агентов под менеджером</span></div>
+        <div class="step-title"><span class="ru">Выбор менеджера</span><span class="he">בחירת מנהל</span></div>
+        <div class="step-sub"><span class="ru">Только для менеджерского входа</span><span class="he">רק לכניסת מנהל</span></div>
       </div>
     </div>
     <div class="step-body">
-      <img class="step-img" src="Screenshot 2026-05-27 122937.jpg" alt="בחר סוכן">
+      <div class="shot-wrap">
+        <img src="screens/02-managers.png" alt="Менеджеры" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <span class="target-ring" style="top:35%;left:26%"></span>
+        <div class="toast-pin" data-dir="up" style="top:84%;left:5%">
+          <span class="ru">Менеджер выбирает, чью команду смотреть — сам агент этот экран никогда не видит</span>
+          <span class="he">המנהל בוחר איזה צוות לצפות — הסוכן עצמו אף פעם לא רואה את המסך הזה</span>
+        </div>
+      </div>
       <div class="step-desc">
-        <span class="he">לחץ על שם הסוכן, ואז בחר את <strong>יום העבודה</strong> (א–ה) מהרשימה שתיפתח.</span>
-        <span class="ru">Нажмите на имя агента, затем выберите <strong>рабочий день</strong> (пн–пт) из открывшегося списка.</span>
+        <span class="ru">Кольцо вокруг аватара и цифры под именем — процент заказов, оформленных сегодня по команде, относительно плана.</span>
+        <span class="he">הטבעת סביב האווטאר והמספרים מתחת לשם — אחוז ההזמנות שהוזנו היום בצוות ביחס לתוכנית.</span>
       </div>
     </div>
   </div>
@@ -157,15 +309,23 @@
     <div class="step-header">
       <div class="step-num">3</div>
       <div>
-        <div class="step-title"><span class="he">הזן עיר מוצא</span><span class="ru">Ввод города старта</span></div>
-        <div class="step-sub"><span class="he">ממה מתחיל המסלול היום?</span><span class="ru">С чего начинается маршрут сегодня?</span></div>
+        <div class="step-title"><span class="ru">Выбор агента</span><span class="he">בחירת סוכן</span></div>
+        <div class="step-sub"><span class="ru">Чей маршрут смотрим</span><span class="he">איזה מסלול צופים</span></div>
       </div>
     </div>
     <div class="step-body">
-      <img class="step-img" src="Screenshot 2026-05-27 123003.jpg" alt="עיר מוצא">
+      <div class="shot-wrap">
+        <img src="screens/03-agents.png" alt="Агенты" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <span class="target-ring" style="top:42%;left:88%"></span>
+        <div class="toast-pin" data-dir="up" style="top:79%;left:5%">
+          <span class="ru">Нажми на строку агента</span>
+          <span class="he">לחץ על שורת הסוכן</span>
+        </div>
+      </div>
       <div class="step-desc">
-        <span class="he">הקלד את שם העיר שממנה מתחיל הסוכן היום, או לחץ על <strong>📍 זהה מיקום אוטומטית</strong> — המערכת תאתר את המיקום דרך GPS.</span>
-        <span class="ru">Введите название города, откуда начинает агент сегодня, или нажмите <strong>📍 Определить местоположение автоматически</strong> — система найдёт местоположение через GPS.</span>
+        <span class="ru">Кнопка <strong>🗺 כל הסוכנים</strong> сверху открывает территорию всех агентов сразу (отдельный экран).</span>
+        <span class="he">הכפתור <strong>🗺 כל הסוכנים</strong> למעלה פותח את הטריטוריה של כל הסוכנים יחד (מסך נפרד).</span>
       </div>
     </div>
   </div>
@@ -175,169 +335,478 @@
     <div class="step-header">
       <div class="step-num">4</div>
       <div>
-        <div class="step-title"><span class="he">אשר עיר מוצא</span><span class="ru">Подтверждение города старта</span></div>
-        <div class="step-sub"><span class="he">לחץ "המשך לבניית מסלול"</span><span class="ru">Нажмите "Продолжить построение маршрута"</span></div>
+        <div class="step-title"><span class="ru">Город старта</span><span class="he">עיר מוצא</span></div>
+        <div class="step-sub"><span class="ru">Откуда сегодня начинается маршрут</span><span class="he">ממה מתחיל המסלול היום</span></div>
       </div>
     </div>
     <div class="step-body">
-      <img class="step-img" src="Screenshot 2026-05-27 123019.jpg" alt="אשר עיר">
+      <div class="shot-wrap">
+        <img src="screens/04-city.png" alt="Город" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <span class="target-ring" style="top:23%;left:50%"></span>
+        <span class="target-ring" style="top:30%;left:50%"></span>
+        <div class="toast-pin" data-dir="up" style="top:44%;left:10%">
+          <span class="ru">Введи город <b>вручную</b> (верхнее поле) <b>или</b> нажми 📍 (кнопка ниже), чтобы определить автоматически по GPS</span>
+          <span class="he">הקלד עיר <b>ידנית</b> (השדה העליון) <b>או</b> לחץ 📍 (הכפתור מתחת) לזיהוי אוטומטי לפי GPS</span>
+        </div>
+      </div>
       <div class="step-desc">
-        <span class="he">לאחר שהעיר זוהתה (תופיע עם ✅), לחץ על <strong>המשך לבניית מסלול ←</strong>.</span>
-        <span class="ru">После того как город определён (появится ✅), нажмите <strong>Продолжить построение маршрута ←</strong>.</span>
+        <span class="ru">После выбора система сама переходит к <strong>сегодняшнему дню недели</strong> — отдельный экран выбора дня в обычном флоу не нужен, день меняется прямо на экране маршрута (см. раздел ниже).</span>
+        <span class="he">לאחר הבחירה המערכת עוברת אוטומטית ל<strong>יום השבוע הנוכחי</strong> — אין צורך במסך נפרד לבחירת יום, היום משתנה ישירות במסך המסלול (ראה בהמשך).</span>
+      </div>
+      <div class="tip">
+        <span class="ru">💡 Город и координаты запоминаются на сессию — при переключении между агентами не нужно вводить заново.</span>
+        <span class="he">💡 העיר והקואורדינטות נשמרות לסשן — במעבר בין סוכנים אין צורך להזין שוב.</span>
       </div>
     </div>
   </div>
 
-  <!-- Step 5 -->
+</div>
+
+<div class="section-title" id="s-route"><span class="ru">Экран маршрута</span><span class="he">מסך המסלול</span></div>
+<div class="steps">
+
   <div class="step">
     <div class="step-header">
       <div class="step-num">5</div>
       <div>
-        <div class="step-title"><span class="he">מסך המסלול — רשימה + מפה</span><span class="ru">Экран маршрута — список + карта</span></div>
-        <div class="step-sub"><span class="he">סקירת לקוחות ביום הנבחר</span><span class="ru">Обзор клиентов на выбранный день</span></div>
+        <div class="step-title"><span class="ru">Список и карта</span><span class="he">רשימה ומפה</span></div>
+        <div class="step-sub"><span class="ru">Карта по умолчанию выключена</span><span class="he">המפה כבויה כברירת מחדל</span></div>
       </div>
     </div>
     <div class="step-body">
-      <img class="step-img" src="Screenshot 2026-05-27 123041.jpg" alt="מסלול ראשי">
+      <div class="shot-wrap">
+        <img src="screens/05-route-list.png" alt="Маршрут — список" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <span class="target-ring" style="top:17.5%;left:67%"></span>
+        <div class="toast-pin" data-dir="up" style="top:32%;left:6%">
+          <span class="ru">🗺 הצג מפה — включает карту (по умолчанию выключена, чтобы список занимал весь экран)</span>
+          <span class="he">🗺 הצג מפה — מדליק את המפה (כבויה כברירת מחדל, כדי שהרשימה תתפוס את כל המסך)</span>
+        </div>
+      </div>
+      <div class="shot-wrap">
+        <img src="screens/07-route-map.png" alt="Маршрут — карта" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+      </div>
       <div class="step-desc">
-        <span class="he">
-          המסך מתחלק לשניים: <strong>מפה</strong> משמאל ו<strong>רשימת לקוחות</strong> מימין.<br><br>
-          • הכפתורים <strong>א / ב / ג / ד / ה</strong> — מעבר בין ימות השבוע<br>
-          • <strong>ביקור / AI</strong> — מיון לפי סדר Priority או סדר אופטימלי<br>
-          • <strong>km ביסכון / km ביקור</strong> — קילומטרז' כולל לפי שני הסדרים<br>
-          • לחיצה על שם לקוח — מרחיבה פרטים, לחיצה כפולה — ממקמת אותו במפה
-        </span>
-        <span class="ru">
-          Экран разделён на две части: <strong>карта</strong> слева и <strong>список клиентов</strong> справа.<br><br>
-          • Кнопки <strong>א / ב / ג / ד / ה</strong> — переключение дней недели<br>
-          • <strong>ביקור / AI</strong> — сортировка по приоритету или оптимальному маршруту<br>
-          • <strong>km ביקור / km AI</strong> — общий километраж для обоих режимов<br>
-          • Нажатие на имя клиента — разворачивает детали, двойное нажатие — фокусирует на карте
-        </span>
+        <span class="ru">На каждой карточке клиента прямо на виду: <strong>🔍</strong> (AI-анализ клиента), <strong>W</strong> (Waze), <strong>🚫</strong> (убрать с маршрута — вместо неё у клиентов с активной акцией показывается <strong>🏷️</strong>), <strong>זיכוי</strong> (зикуй). Остальные действия — под кнопкой <strong>⋮</strong> (см. следующий раздел).</span>
+        <span class="he">בכל כרטיס לקוח גלוי ישירות: <strong>🔍</strong> (ניתוח AI), <strong>W</strong> (Waze), <strong>🚫</strong> (הוצא ממסלול — במקומו אצל לקוח עם מבצע פעיל מוצג <strong>🏷️</strong>), <strong>זיכוי</strong>. שאר הפעולות — מתחת לכפתור <strong>⋮</strong> (ראה בהמשך).</span>
       </div>
     </div>
   </div>
 
-  <!-- Step 6 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">5a</div>
+      <div>
+        <div class="step-title"><span class="ru">Фильтры: сдран и ICE</span><span class="he">פילטרים: סדרן ו-ICE</span></div>
+        <div class="step-sub"><span class="ru">Строка чипов рядом с "просрочено"-бейджем</span><span class="he">שורת הצ'יפים ליד תג "פיגור בהזמנה"</span></div>
+      </div>
+    </div>
+    <div class="step-body">
+      <div class="shot-wrap">
+        <img src="screens/24-filters-sadran-ice.jpg" alt="Фильтры сдран и ICE" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <span class="target-ring" style="top:27.5%;left:10%"></span>
+        <span class="target-ring" style="top:27.5%;left:75%"></span>
+        <div class="toast-pin" data-dir="up" style="top:35%;left:2%">
+          <span class="ru"><b>עם סדרן</b> — показать только клиентов с активным сдраном (полкой)</span>
+          <span class="he"><b>עם סדרן</b> — הצג רק לקוחות עם סדרן פעיל</span>
+        </div>
+        <div class="toast-pin" data-dir="up" style="top:35%;right:2%;left:auto">
+          <span class="ru"><b>לקוחות ICE</b> — фильтр только по клиентам ICE (мороженое)</span>
+          <span class="he"><b>לקוחות ICE</b> — סינון רק ללקוחות ICE</span>
+        </div>
+      </div>
+      <div class="step-desc">
+        <span class="ru">Клиент ICE отмечен зелёной рамкой карточки и зелёным бейджем <strong>ICE</strong> прямо в списке — его заказы считаются отдельно от FORMULA (см. раздел закрытия дня).</span>
+        <span class="he">לקוח ICE מסומן במסגרת ירוקה סביב הכרטיס ובתג ירוק <strong>ICE</strong> ישירות ברשימה — ההזמנות שלו נספרות בנפרד מ-FORMULA (ראה סעיף סגירת יום).</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">5b</div>
+      <div>
+        <div class="step-title"><span class="ru">📊 Анализ дня</span><span class="he">📊 ניתוח יום</span></div>
+        <div class="step-sub"><span class="ru">TOP клиентов по невыполненному плану</span><span class="he">TOP לקוחות לפי תוכנית שלא בוצעה</span></div>
+      </div>
+    </div>
+    <div class="step-body">
+      <div class="shot-wrap">
+        <img src="screens/14-day-analysis.png" alt="Анализ дня" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+      </div>
+      <div class="step-desc">
+        <span class="ru">Кнопка <strong>📊 ניתוח</strong> в верхней панели открывает таблицу: план vs факт по каждому клиенту за выбранный период, с иконкой-индикатором (🚀 хорошо идёт, 😐 середина, ⭕ ничего ещё не куплено). Строка снизу — итог за весь список.</span>
+        <span class="he">הכפתור <strong>📊 ניתוח</strong> בסרגל העליון פותח טבלה: תוכנית מול ביצוע לכל לקוח בתקופה הנבחרת, עם אייקון-מדד (🚀 מתקדם טוב, 😐 באמצע, ⭕ עדיין לא נקנה כלום). השורה התחתונה — סיכום לכל הרשימה.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">5c</div>
+      <div>
+        <div class="step-title"><span class="ru">🔍 AI-анализ — возможности по сети</span><span class="he">🔍 ניתוח AI — הזדמנויות לפי הרשת</span></div>
+        <div class="step-sub"><span class="ru">Что этот филиал не заказывал 90+ дней</span><span class="he">מה הסניף הזה לא הזמין 90+ יום</span></div>
+      </div>
+    </div>
+    <div class="step-body">
+      <div class="shot-wrap">
+        <img src="screens/25-ai-insight-opportunity.jpg" alt="AI-анализ возможностей" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <span class="target-ring" style="top:11%;left:50%"></span>
+        <div class="toast-pin" data-dir="up" style="top:20%;left:4%">
+          <span class="ru">Заголовок = сеть клиента. Товары, которые вся сеть активно продаёт за 120 дней, но <b>этот филиал не заказывал 90+ дней</b></span>
+          <span class="he">הכותרת = הרשת של הלקוח. מוצרים שכל הרשת מוכרת היטב ב-120 יום, אבל <b>הסניף הזה לא הזמין 90+ יום</b></span>
+        </div>
+      </div>
+      <div class="shot-wrap">
+        <img src="screens/25-ai-insight-opportunity.jpg" alt="AI-анализ возможностей" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <span class="target-ring" style="top:28.5%;left:16%"></span>
+        <div class="toast-pin" data-dir="down" style="top:22%;left:52%">
+          <span class="ru">★ слева от товара — насколько хорошо он продаётся в сети (не у этого клиента, а в среднем по сети)</span>
+          <span class="he">★ משמאל למוצר — עד כמה הוא נמכר טוב ברשת (לא אצל הלקוח הזה, אלא בממוצע ברשת)</span>
+        </div>
+      </div>
+      <div class="step-desc">
+        <span class="ru">Кнопка <strong>🔍</strong> на карточке клиента — это не история его собственных покупок, а сравнение с тем, что покупает вся <strong>сеть</strong> (например все филиалы Shufersal Deal). Список разбит на FORMULA и ICE (מיש) отдельно — готовые идеи, что предложить клиенту в первую очередь.</span>
+        <span class="he">הכפתור <strong>🔍</strong> בכרטיס הלקוח — זו לא היסטוריית הקניות שלו, אלא השוואה למה שקונה כל <strong>הרשת</strong> (למשל כל סניפי שופרסל דיל). הרשימה מחולקת ל-FORMULA ו-ICE (מיש) בנפרד — רעיונות מוכנים למה להציע ללקוח קודם.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">5d</div>
+      <div>
+        <div class="step-title"><span class="ru">🏷️ Акции — красная рамка</span><span class="he">🏷️ מבצעים — מסגרת אדומה</span></div>
+        <div class="step-sub"><span class="ru">Заменяет 🚫 у клиентов с активной акцией</span><span class="he">מחליף את 🚫 אצל לקוח עם מבצע פעיל</span></div>
+      </div>
+    </div>
+    <div class="step-body">
+      <div class="shot-wrap">
+        <img src="screens/21-promo-catalog.jpg" alt="Каталог акций" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <div class="toast-pin" data-dir="down" style="top:5%;right:2%;left:auto">
+          <span class="ru"><b>Красная рамка</b> — товар по акции, который этот клиент <b>не покупал 90+ дней</b>. Не ошибка — подсказка, что стоит предложить</span>
+          <span class="he"><b>מסגרת אדומה</b> — מוצר במבצע שהלקוח הזה <b>לא קנה 90+ יום</b>. לא שגיאה — רמז מה כדאי להציע</span>
+        </div>
+      </div>
+      <div class="step-desc">
+        <span class="ru">Внизу — раздел <strong>"אין במלאי כרגע"</strong> (сейчас нет в наличии), товары там показаны для справки, но их заказать нельзя.</span>
+        <span class="he">בתחתית — קטע <strong>"אין במלאי כרגע"</strong>, המוצרים שם מוצגים לידיעה בלבד, אי אפשר להזמין אותם.</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="section-title" id="s-daycheck"><span class="ru">Проверка что всем клиентам назначен день</span><span class="he">בדיקה שלכל הלקוחות שובץ יום</span></div>
+<div class="steps">
+
   <div class="step">
     <div class="step-header">
       <div class="step-num">6</div>
       <div>
-        <div class="step-title"><span class="he">סינון לפי עיר</span><span class="ru">Фильтр по городу</span></div>
-        <div class="step-sub"><span class="he">הצג רק לקוחות באזור מסוים</span><span class="ru">Показать только клиентов в определённом районе</span></div>
+        <div class="step-title"><span class="ru">Переключатель дней + "?"</span><span class="he">מתג הימים + "?"</span></div>
+        <div class="step-sub"><span class="ru">Кнопка "?" появляется только если есть проблема</span><span class="he">הכפתור "?" מופיע רק אם יש בעיה</span></div>
       </div>
     </div>
     <div class="step-body">
-      <img class="step-img" src="Screenshot 2026-05-27 123118.jpg" alt="סינון עיר">
+      <div class="shot-wrap">
+        <img src="screens/06-day-switch.png" alt="Переключатель дней" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <span class="target-ring" style="top:12.5%;left:50%"></span>
+        <div class="toast-pin" data-dir="up" style="top:38%;left:4%">
+          <span class="ru">א-ה — дни недели. <b>"?"</b> появился бы здесь же, справа — клиенты без назначенного дня визита</span>
+          <span class="he">א-ה — ימות השבוע. <b>"?"</b> היה מופיע כאן, מימין — לקוחות ללא יום ביקור משובץ</span>
+        </div>
+      </div>
+      <div class="shot-wrap">
+        <img src="screens/06b-day-unassigned.png" alt="Клиенты без дня" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">появляется только если у агента есть непроверенные клиенты</span><span class="he">מופיע רק אם יש לסוכן לקוחות לא משובצים</span></div>
+      </div>
       <div class="step-desc">
-        <span class="he">לחץ על שם עיר בשורת הסינון כדי להציג רק את הלקוחות באותה עיר.<br>הקילומטרז' יחושב מחדש בהתאם לסינון.</span>
-        <span class="ru">Нажмите на название города в строке фильтра, чтобы показать только клиентов этого города.<br>Километраж пересчитается автоматически.</span>
+        <span class="ru">Если кнопка <strong>"?"</strong> вообще не показалась в переключателе — значит у <strong>всех</strong> клиентов этого агента день уже назначен, проверять нечего. Если показалась — нажми на неё, откроется список тех, кому день ещё не назначили; для каждого используй "Смену дня визита" (следующий раздел).</span>
+        <span class="he">אם הכפתור <strong>"?"</strong> בכלל לא הופיע במתג — סימן שלכל הלקוחות של הסוכן כבר שובץ יום, אין מה לבדוק. אם הופיע — לחץ עליו, תיפתח רשימת מי שעדיין לא שובץ; לכל אחד השתמש ב"שינוי יום ביקור" (הסעיף הבא).</span>
       </div>
     </div>
   </div>
 
-  <!-- Step 7 -->
+</div>
+
+<div class="section-title" id="s-daychange"><span class="ru">Смена дня визита клиента</span><span class="he">שינוי יום ביקור ללקוח</span></div>
+<div class="steps">
+
   <div class="step">
     <div class="step-header">
       <div class="step-num">7</div>
       <div>
-        <div class="step-title"><span class="he">עדכון מיקום GPS של לקוח</span><span class="ru">Обновление GPS-координат клиента</span></div>
-        <div class="step-sub"><span class="he">כאשר הכתובת לא מדויקת</span><span class="ru">Когда адрес неточный</span></div>
+        <div class="step-title"><span class="ru">Меню ⋮ на карточке клиента</span><span class="he">תפריט ⋮ בכרטיס הלקוח</span></div>
+        <div class="step-sub"><span class="ru">Доп. действия, которые нужны реже</span><span class="he">פעולות נוספות שנחוצות פחות</span></div>
       </div>
     </div>
     <div class="step-body">
-      <img class="step-img" src="Screenshot 2026-05-27 123134.jpg" alt="עדכון GPS">
-      <div class="step-desc">
-        <span class="he">
-          לחץ על כפתור <strong>📍</strong> בצד הכרטיס של הלקוח.<br>
-          תיפתח חלונית עם שתי אפשרויות:<br><br>
-          • <strong>📍 קבע מיקום נוכחי</strong> — ישתמש ב-GPS הנוכחי של הטלפון<br>
-          • <strong>🗺 מקום על המפה באצבע</strong> — גרור את הסיכה למיקום המדויק
-        </span>
-        <span class="ru">
-          Нажмите кнопку <strong>📍</strong> на карточке клиента.<br>
-          Откроется панель с двумя вариантами:<br><br>
-          • <strong>📍 Установить текущее местоположение</strong> — использует GPS телефона<br>
-          • <strong>🗺 Указать на карте</strong> — перетащите маркер в нужное место
-        </span>
+      <div class="shot-wrap">
+        <img src="screens/08-row-more-menu.png" alt="Меню действий" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <span class="target-ring" style="top:42%;left:15%"></span>
+        <div class="toast-pin" data-dir="up" style="top:48%;left:2%">
+          <span class="ru">Нажми <b>⋮</b> справа на нужной карточке — откроется всплывающее окно с доп. действиями</span>
+          <span class="he">לחץ <b>⋮</b> מימין לכרטיס הרצוי — ייפתח חלון עם פעולות נוספות</span>
+        </div>
       </div>
-      <div class="tip">
-        <span class="he">💡 המיקום נשמר ויישאר גם בפתיחות הבאות של האפליקציה.</span>
-        <span class="ru">💡 Местоположение сохраняется и будет использоваться при всех последующих открытиях приложения.</span>
+      <div class="shot-wrap">
+        <img src="screens/09-day-change-popup.png" alt="Смена дня" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <span class="target-ring" style="top:48%;left:33%"></span>
+        <div class="toast-pin" data-dir="up" style="top:55%;left:3%">
+          <span class="ru">Нажми <b>📅</b>, затем выбери день недели (א–ה) — клиент сразу переедет на этот день</span>
+          <span class="he">לחץ <b>📅</b>, ואז בחר יום (א–ה) — הלקוח יעבור מיד ליום הזה</span>
+        </div>
+      </div>
+      <div class="step-desc">
+        <span class="ru">В том же меню ⋮ есть ещё кнопка <strong>📍</strong> (или <strong>NO GPS</strong>) — исправление координат клиента.</span>
+        <span class="he">באותו תפריט ⋮ יש גם כפתור <strong>📍</strong> (או <strong>NO GPS</strong>) — תיקון קואורדינטות הלקוח.</span>
+      </div>
+      <div class="tip warn">
+        <span class="ru">⚠️ Смена дня в этом меню сразу сохраняется — если нажал не туда, зайди снова и выбери правильный день.</span>
+        <span class="he">⚠️ שינוי היום בתפריט הזה נשמר מיד — אם לחצת בטעות, היכנס שוב ובחר את היום הנכון.</span>
       </div>
     </div>
   </div>
 
-  <!-- Step 8 -->
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">7b</div>
+      <div>
+        <div class="step-title"><span class="ru">GPS ещё и прямо с карты</span><span class="he">GPS גם ישירות מהמפה</span></div>
+        <div class="step-sub"><span class="ru">Нажми на маркер клиента на карте</span><span class="he">לחץ על סמן הלקוח על המפה</span></div>
+      </div>
+    </div>
+    <div class="step-body">
+      <div class="shot-wrap">
+        <img src="screens/22-map-marker-gps.jpg" alt="GPS с карты" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <span class="target-ring" style="top:36%;left:32%"></span>
+        <div class="toast-pin" data-dir="down" style="top:4%;left:48%">
+          <span class="ru">Нажми <b>תקן מיקום</b> — режим "поставь пин пальцем"</span>
+          <span class="he">לחץ <b>תקן מיקום</b> — מצב "שים סיכה באצבע"</span>
+        </div>
+      </div>
+      <div class="shot-wrap">
+        <img src="screens/22-map-marker-gps.jpg" alt="GPS с карты" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <span class="target-ring" style="top:45%;left:16%"></span>
+        <div class="toast-pin" data-dir="down" style="top:4%;left:44%">
+          <span class="ru"><b>בדוק מיקום גוגל</b> 🤖 — сверить адрес с Google Maps</span>
+          <span class="he"><b>בדוק מיקום גוגל</b> 🤖 — להשוות מול Google Maps</span>
+        </div>
+      </div>
+      <div class="shot-wrap">
+        <img src="screens/26-map-pin-placement.jpg" alt="Установка пина на карте" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <div class="toast-pin" data-dir="down" style="top:2%;left:2%">
+          <span class="ru">Приложение само подсказывает, куда нажать</span>
+          <span class="he">האפליקציה עצמה מנחה לאן ללחוץ</span>
+        </div>
+      </div>
+      <div class="shot-wrap">
+        <img src="screens/27-map-satellite-view.jpg" alt="Спутниковый вид карты" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <span class="target-ring" style="top:7%;left:10%"></span>
+        <div class="toast-pin" data-dir="down" style="top:32%;left:2%">
+          <span class="ru">Кнопка-спутник переключает на реальный снимок — видно здание, не только улицы</span>
+          <span class="he">כפתור הלוויין מחליף לתצלום אמיתי — רואים את הבניין, לא רק רחובות</span>
+        </div>
+      </div>
+      <div class="step-desc">
+        <span class="ru">Это ещё один способ поставить точку клиента на карте вручную — клик по маркеру на карте вместо кнопки 📍 в меню ⋮ на карточке. Кнопка <strong>בדוק מיקום גוגל</strong> рядом даёт быстро свериться с Google Maps, если не уверен, что точка стоит верно.</span>
+        <span class="he">זו עוד דרך לסמן ידנית את מיקום הלקוח על המפה — לחיצה על הסמן במפה במקום הכפתור 📍 בתפריט ⋮ בכרטיס. הכפתור <strong>בדוק מיקום גוגל</strong> לידו נותן להשוות מהר מול גוגל מפות אם לא בטוחים שהסימון נכון.</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="section-title" id="s-exclude"><span class="ru">Убрать клиента с маршрута / восстановить</span><span class="he">הוצאת לקוח מהמסלול / החזרה</span></div>
+<div class="steps">
+
   <div class="step">
     <div class="step-header">
       <div class="step-num">8</div>
       <div>
-        <div class="step-title"><span class="he">פרטי לקוח במפה</span><span class="ru">Детали клиента на карте</span></div>
-        <div class="step-sub"><span class="he">לחץ על מספר הלקוח במפה</span><span class="ru">Нажмите на номер клиента на карте</span></div>
+        <div class="step-title"><span class="ru">🚫 Убрать сегодня, ↩️ вернуть</span><span class="he">🚫 הוצא להיום, ↩️ החזר</span></div>
+        <div class="step-sub"><span class="ru">Не удаляет клиента навсегда — только на текущий просмотр</span><span class="he">לא מוחק לצמיתות — רק לתצוגה הנוכחית</span></div>
       </div>
     </div>
     <div class="step-body">
-      <img class="step-img" src="Screenshot 2026-05-27 123157.jpg" alt="פרטים במפה">
+      <div class="shot-wrap">
+        <img src="screens/11-excluded-section.png" alt="Исключённые клиенты" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <span class="target-ring" style="top:75%;left:12%"></span>
+        <div class="toast-pin" data-dir="down" style="top:58%;left:2%">
+          <span class="ru">Убранные клиенты падают в отдельную группу <b>"מוצאים ממסלול"</b> внизу списка</span>
+          <span class="he">לקוחות שהוצאו יורדים לקבוצה נפרדת <b>"מוצאים ממסלול"</b> בתחתית הרשימה</span>
+        </div>
+        <span class="target-ring" style="top:78.5%;left:93%"></span>
+        <div class="toast-pin" data-dir="up-right" style="top:86%;right:2%;left:auto">
+          <span class="ru"><b>↩️</b> — вернуть клиента обратно в маршрут</span>
+          <span class="he"><b>↩️</b> — החזר את הלקוח למסלול</span>
+        </div>
+      </div>
       <div class="step-desc">
-        <span class="he">לחיצה על <strong>מספר הלקוח במפה</strong> פותחת חלונית עם שם, עיר וכתובת.<br>ניתן לתקן את המיקום ישירות מכאן עם <strong>📍 תקן מיקום</strong>.</span>
-        <span class="ru">Нажатие на <strong>номер клиента на карте</strong> открывает панель с именем, городом и адресом.<br>Можно исправить местоположение прямо здесь с помощью <strong>📍 Исправить местоположение</strong>.</span>
+        <span class="ru">Km и порядок визитов пересчитываются сразу после исключения. Ссылка <strong>↩️ איפוס הכל</strong> рядом с заголовком группы возвращает всех исключённых разом.</span>
+        <span class="he">הק"מ וסדר הביקורים מחושבים מחדש מיד לאחר ההוצאה. הקישור <strong>↩️ איפוס הכל</strong> ליד כותרת הקבוצה מחזיר את כולם בבת אחת.</span>
+      </div>
+      <div class="tip">
+        <span class="ru">💡 Это временное состояние текущей сессии в браузере, не изменение в Priority — обновление страницы вернёт клиента, если не нажать "вернуть".</span>
+        <span class="he">💡 זה מצב זמני של הסשן הנוכחי בדפדפן, לא שינוי ב-Priority — רענון הדף יחזיר את הלקוח אם לא לוחצים "החזר".</span>
       </div>
     </div>
   </div>
 
-  <!-- Step 9 -->
+</div>
+
+<div class="section-title" id="s-zikuy"><span class="ru">Зикуй (заявка на зачёт)</span><span class="he">זיכוי (בקשת זיכוי)</span></div>
+<div class="steps">
+
   <div class="step">
     <div class="step-header">
       <div class="step-num">9</div>
       <div>
-        <div class="step-title"><span class="he">לחיצה כפולה — מעבר ללקוח במפה</span><span class="ru">Двойной клик — переход к клиенту на карте</span></div>
-        <div class="step-sub"><span class="he">איתור מהיר על המפה</span><span class="ru">Быстрый поиск на карте</span></div>
+        <div class="step-title"><span class="ru">Кнопка "זיכוי" → выбор товара</span><span class="he">כפתור "זיכוי" ← בחירת מוצר</span></div>
+        <div class="step-sub"><span class="ru">Только то, что клиент реально покупал за 365 дней</span><span class="he">רק מה שהלקוח באמת קנה ב-365 יום</span></div>
       </div>
     </div>
     <div class="step-body">
-      <img class="step-img" src="Screenshot 2026-05-27 123218.jpg" alt="דאבל קליק">
+      <div class="shot-wrap">
+        <img src="screens/18-zikuy-product-grid.jpg" alt="Выбор товара для зикуй" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <span class="target-ring" style="top:33%;left:84%"></span>
+        <div class="toast-pin" data-dir="up" style="top:39%;left:2%">
+          <span class="ru">Сначала выбери <b>категорию</b> (דגים/דג יבש/גלידה/קפוא/חלבי)</span>
+          <span class="he">קודם בחר <b>קטגוריה</b> (דגים/דג יבש/גלידה/קפוא/חלבי)</span>
+        </div>
+        <span class="target-ring" style="top:58%;left:27%"></span>
+        <div class="toast-pin" data-dir="down" style="top:44%;left:2%">
+          <span class="ru">Нажми на карточку товара — она подсветится <b>зелёным "✓ נוסף"</b> и попадёт в корзину зачёта ниже</span>
+          <span class="he">לחץ על כרטיס המוצר — הוא יודגש <b>ירוק "✓ נוסף"</b> ויעבור לעגלת הזיכוי למטה</span>
+        </div>
+      </div>
       <div class="step-desc">
-        <span class="he">לחיצה כפולה על כרטיס לקוח ברשימה — <strong>מסמנת אותו בכחול במפה</strong> ומתמקדת עליו בזום עדין.<br>לחיצה כפולה שנייה — מבטלת את הסימון.</span>
-        <span class="ru">Двойной клик на карточке клиента в списке — <strong>выделяет его синим на карте</strong> и мягко зумирует на него.<br>Второй двойной клик — снимает выделение.</span>
+        <span class="ru">Кнопка <strong>זיכוי</strong> — на каждой карточке клиента, всегда на виду (не спрятана под ⋮). Открывает форму именно для этого клиента, город/код агента уже подставлены. Товары в каталоге — только те, что этот клиент реально покупал за последние <strong>365 дней</strong>, ничего лишнего выбрать нельзя.</span>
+        <span class="he">הכפתור <strong>זיכוי</strong> נמצא בכל כרטיס לקוח, תמיד גלוי (לא מוסתר תחת ⋮). פותח טופס ללקוח הספציפי הזה, עיר/קוד סוכן כבר ממולאים. המוצרים בקטלוג — רק מה שהלקוח הזה באמת קנה ב-<strong>365 הימים</strong> האחרונים, אי אפשר לבחור משהו אחר.</span>
       </div>
     </div>
   </div>
+
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">10</div>
+      <div>
+        <div class="step-title"><span class="ru">Корзина зачёта — количество, срок, опция</span><span class="he">עגלת זיכוי — כמות, תוקף, אופציה</span></div>
+        <div class="step-sub"><span class="ru">Красный % — предупреждение о завышенных списаниях</span><span class="he">אחוז אדום — אזהרה על זיכויים גבוהים</span></div>
+      </div>
+    </div>
+    <div class="step-body">
+      <div class="shot-wrap">
+        <img src="screens/19-zikuy-cart-form.jpg" alt="Корзина зикуй" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <span class="target-ring" style="top:30%;left:13%"></span>
+        <div class="toast-pin" data-dir="down" style="top:6%;left:4%">
+          <span class="ru">% над корзиной — доля зачётов по товару у клиента за 90 дней. <b>Красный — выше 10%</b>, присмотрись прежде чем добавлять ещё</span>
+          <span class="he">האחוז מעל הפח — חלק הזיכויים על המוצר אצל הלקוח ב-90 יום. <b>אדום — מעל 10%</b>, כדאי להיזהר לפני שמוסיפים עוד</span>
+        </div>
+      </div>
+      <div class="shot-wrap">
+        <img src="screens/19-zikuy-cart-form.jpg" alt="Корзина зикуй" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <span class="target-ring" style="top:43%;left:33%"></span>
+        <span class="target-ring" style="top:43%;left:73%"></span>
+        <div class="toast-pin" data-dir="up" style="top:15%;left:5%">
+          <span class="ru"><b>תוקף</b> — дата годности, <b>כמות</b> — количество к зачёту (+/-)</span>
+          <span class="he"><b>תוקף</b> — תאריך תפוגה, <b>כמות</b> — כמות לזיכוי (+/-)</span>
+        </div>
+        <span class="target-ring" style="top:52%;left:71.5%"></span>
+        <div class="toast-pin" data-dir="up" style="top:65%;left:2%">
+          <span class="ru">Опция: <b>השמדה</b> (уничтожение) или <b>-50%</b> (скидка)</span>
+          <span class="he">אופציה: <b>השמדה</b> או <b>-50%</b> (הנחה)</span>
+        </div>
+      </div>
+      <div class="step-desc">
+        <span class="ru">Если процент подсвечен красным, а не просто число выше 10% — приложение отдельно сравнивает клиента со <strong>средним по компании</strong> по этому же товару: если разница больше 2 п.п., это считается выбросом (outlier) и стоит уточнить у клиента причину, прежде чем оформлять.</span>
+        <span class="he">כשהאחוז מודגש באדום, לא סתם מספר מעל 10% — האפליקציה גם משווה את הלקוח <strong>לממוצע החברה</strong> על אותו מוצר: אם ההפרש מעל 2 נק' אחוז, זה נחשב חריג (outlier) וכדאי לברר עם הלקוח לפני שמגישים.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <div class="step-num">11</div>
+      <div>
+        <div class="step-title"><span class="ru">Готовый бланк — отправка и штрихкод</span><span class="he">הבלנק המוכן — שליחה וברקוד</span></div>
+        <div class="step-sub"><span class="ru">Как и в закрытии дня — сводная картинка</span><span class="he">כמו בסגירת יום — תמונת סיכום</span></div>
+      </div>
+    </div>
+    <div class="step-body">
+      <div class="shot-wrap">
+        <img src="screens/20-zikuy-blank-final.jpg" alt="Готовый бланк зикуй" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <span class="target-ring" style="top:31%;left:42%"></span>
+        <div class="toast-pin" data-dir="up" style="top:60%;left:15%">
+          <span class="ru">📱 שלח ב-WhatsApp — отправить бланк клиенту/в группу</span>
+          <span class="he">📱 שלח ב-WhatsApp — שלח את הבלנק</span>
+        </div>
+      </div>
+      <div class="shot-wrap">
+        <img src="screens/20-zikuy-blank-final.jpg" alt="Готовый бланк зикуй" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <span class="target-ring" style="top:31%;left:76%"></span>
+        <div class="toast-pin" data-dir="up" style="top:60%;right:2%;left:auto">
+          <span class="ru">+ ברקוד — добавить штрихкод к заявке</span>
+          <span class="he">+ ברקוד — הוסף ברקוד לבקשה</span>
+        </div>
+      </div>
+      <div class="step-desc">
+        <span class="ru">После "הפק בלנק" открывается таблица со всеми выбранными товарами: фото, מק"ט, количество, дата последнего движения, сколько дней годности клиент получил, дата тукуф и выбранная опция — всё на одной картинке для отправки.</span>
+        <span class="he">אחרי "הפק בלנק" נפתחת טבלה עם כל המוצרים שנבחרו: תמונה, מק"ט, כמות, תאריך תנועה אחרונה, כמה ימי תוקף הלקוח קיבל, תאריך תוקף והאופציה שנבחרה — הכל בתמונה אחת לשליחה.</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="section-title" id="s-closing"><span class="ru">Закрытие дня и отправка в WhatsApp</span><span class="he">סגירת יום ושליחה ב-WhatsApp</span></div>
+<div class="steps">
 
   <!-- Step 10 -->
   <div class="step">
     <div class="step-header">
       <div class="step-num">10</div>
       <div>
-        <div class="step-title"><span class="he">ייצוא המסלול ל-Excel</span><span class="ru">Экспорт маршрута в Excel</span></div>
-        <div class="step-sub"><span class="he">שמור קובץ CSV עם כל פרטי המסלול</span><span class="ru">Сохраните CSV-файл со всеми данными маршрута</span></div>
+        <div class="step-title"><span class="ru">Кнопки закрытия дня</span><span class="he">כפתורי סגירת יום</span></div>
+        <div class="step-sub"><span class="ru">Внизу списка клиентов</span><span class="he">בתחתית רשימת הלקוחות</span></div>
       </div>
     </div>
     <div class="step-body">
-      <img class="step-img" src="Screenshot 2026-05-27 123041.jpg" alt="ייצוא Excel">
-      <div class="step-desc">
-        <span class="he">
-          לחץ על כפתור <strong>XL שמור</strong> (ירוק) בסרגל הכלים העליון.<br>
-          הקובץ יורד אוטומטית ומכיל:<br><br>
-          • <strong>סדר ביקור</strong> — מספר הביקור ברצף<br>
-          • <strong>מס' לקוח</strong> ושם לקוח<br>
-          • <strong>יום ביקור</strong>, עיר, כתובת<br>
-          • <strong>קואורדינטות GPS</strong> — קו רוחב + קו אורך<br><br>
-          פתח את הקובץ ב-Excel לניתוח, מיון וסינון נוסף.
-        </span>
-        <span class="ru">
-          Нажмите кнопку <strong>XL שמור</strong> (зелёная) в верхней панели инструментов.<br>
-          Файл скачается автоматически и содержит:<br><br>
-          • <strong>Порядок визита</strong> — номер в последовательности<br>
-          • <strong>Номер клиента</strong> и имя клиента<br>
-          • <strong>День визита</strong>, город, адрес<br>
-          • <strong>Координаты GPS</strong> — широта + долгота<br><br>
-          Откройте файл в Excel для анализа, сортировки и фильтрации.
-        </span>
+      <div class="shot-wrap">
+        <img src="screens/11b-day-closing-buttons.png" alt="Кнопки закрытия дня" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <span class="target-ring" style="top:85%;left:50%"></span>
+        <span class="target-ring" style="top:91.5%;left:50%"></span>
+        <div class="toast-pin" data-dir="down" style="top:66%;left:4%">
+          <span class="ru">❄️ ICE и 🌙 FORMULA — отдельные закрытия для каждого бизнеса, в самом низу списка</span>
+          <span class="he">❄️ ICE ו-🌙 FORMULA — סגירה נפרדת לכל עסק, בתחתית הרשימה</span>
+        </div>
       </div>
-      <div class="tip">
-        <span class="he">💡 שם הקובץ: <strong>מסלול_[שם סוכן]_יום[X]_[תאריך].csv</strong></span>
-        <span class="ru">💡 Имя файла: <strong>מסלול_[агент]_יום[X]_[дата].csv</strong></span>
+      <div class="step-desc">
+        <span class="ru">Открывается новая вкладка с готовой сводкой по сегодняшним заказам этого агента.</span>
+        <span class="he">נפתח טאב חדש עם סיכום מוכן של ההזמנות של הסוכן הזה היום.</span>
       </div>
     </div>
   </div>
@@ -347,31 +816,41 @@
     <div class="step-header">
       <div class="step-num">11</div>
       <div>
-        <div class="step-title"><span class="he">שינוי סדר ביקור — גרירה</span><span class="ru">Изменение порядка визитов — перетаскивание</span></div>
-        <div class="step-sub"><span class="he">הזזת לקוח ידנית ברשימה</span><span class="ru">Ручное перемещение клиента в списке</span></div>
+        <div class="step-title"><span class="ru">Просмотр сделанных заказов перед отправкой</span><span class="he">צפייה בהזמנות שבוצעו לפני השליחה</span></div>
+        <div class="step-sub"><span class="ru">Проверь итоги, прежде чем нажать "Отправить"</span><span class="he">בדוק את הסיכום לפני לחיצה על "שלח"</span></div>
       </div>
     </div>
     <div class="step-body">
-      <img class="step-img" src="Screenshot 2026-05-27 123218.jpg" alt="גרירת לקוח">
+      <div class="shot-wrap">
+        <img src="screens/16-day-closing.png" alt="Сводка дня" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <span class="target-ring" style="top:27%;left:50%"></span>
+        <div class="toast-pin" data-dir="down" style="top:6%;left:8%">
+          <span class="ru">Сумма и число клиентов за день — это уходит в WhatsApp одной картинкой</span>
+          <span class="he">הסכום ומספר הלקוחות ליום — זה מה שנשלח ב-WhatsApp כתמונה אחת</span>
+        </div>
+      </div>
+      <div class="shot-wrap">
+        <img src="screens/17-day-closing-by-client.png" alt="Разбивка по клиенту" onerror="this.classList.add('broken')">
+        <div class="shot-fallback">📸 <span class="ru">скриншот появится после запуска capture-скрипта</span><span class="he">הצילום יופיע לאחר הרצת סקריפט הצילום</span></div>
+        <div class="toast-pin" data-dir="up" style="top:6%;left:6%">
+          <span class="ru">Разбивка по каждому клиенту — <b>только на экране</b>, в WhatsApp не уходит</span>
+          <span class="he">פירוט לפי כל לקוח — <b>רק על המסך</b>, לא נשלח ב-WhatsApp</span>
+        </div>
+      </div>
       <div class="step-desc">
-        <span class="he">
-          כל כרטיס לקוח מציג אייקון <strong>≡</strong> (שלוש שורות) בצד הכרטיס:<br><br>
-          1. לחץ ממושך על אייקון <strong>≡</strong><br>
-          2. גרור את הכרטיס למעלה או למטה ברשימה<br>
-          3. שחרר — הלקוח מקבל את המיקום החדש<br><br>
-          הקילומטרז' מחושב מחדש אוטומטית לאחר כל שינוי.
-        </span>
         <span class="ru">
-          На каждой карточке клиента есть значок <strong>≡</strong> (три полосы):<br><br>
-          1. Нажмите и удерживайте значок <strong>≡</strong><br>
-          2. Перетащите карточку вверх или вниз по списку<br>
-          3. Отпустите — клиент встанет на новое место<br><br>
-          Километраж пересчитается автоматически после каждого изменения.
+          Перед отправкой видно всё: общую сумму, число клиентов, разбивку по SKU (для FORMULA), а ниже — <strong>список по каждому клиенту</strong> с суммой заказа. Этот детальный список существует только для проверки самим агентом/менеджером — он не попадает в картинку, которая уходит в WhatsApp.<br><br>
+          Кнопка <strong>📱 שלח ב-WhatsApp</strong> отправляет именно сводную карточку (сумма + число клиентов + таблица товаров), а не подробный список по клиентам.
+        </span>
+        <span class="he">
+          לפני השליחה רואים הכל: סכום כולל, מספר לקוחות, פירוט לפי מק"ט (ל-FORMULA), ומתחת — <strong>רשימה לפי כל לקוח</strong> עם סכום ההזמנה. הרשימה המפורטת הזו קיימת רק לבדיקה עצמית של הסוכן/המנהל — היא לא נכנסת לתמונה שנשלחת ב-WhatsApp.<br><br>
+          הכפתור <strong>📱 שלח ב-WhatsApp</strong> שולח את כרטיס הסיכום בלבד (סכום + מספר לקוחות + טבלת פריטים), לא את הרשימה המפורטת לפי לקוח.
         </span>
       </div>
       <div class="tip">
-        <span class="he">💡 לחץ <strong>מיון ביקור</strong> בכל עת כדי לחזור לסדר המקורי לפי Priority.</span>
-        <span class="ru">💡 Нажмите <strong>מיון ביקור</strong> в любой момент, чтобы вернуться к исходному порядку по приоритету.</span>
+        <span class="ru">💡 Если сумма или список клиентов выглядят не так — не отправляй, сначала разберись (например через bug-agent), закрытие дня легко открыть заново — данные читаются из Priority каждый раз заново.</span>
+        <span class="he">💡 אם הסכום או רשימת הלקוחות נראים לא נכון — אל תשלח, קודם תבדוק, את סגירת היום קל לפתוח מחדש — הנתונים נקראים מ-Priority מחדש בכל פעם.</span>
       </div>
     </div>
   </div>
@@ -382,39 +861,20 @@
 
 <script>
 (function () {
-  var overlay = document.getElementById('lang-overlay');
-
   function applyLang(lang) {
     var h = document.documentElement;
-    if (lang === 'ru') {
-      h.classList.add('ru-mode');
-      h.setAttribute('dir', 'ltr');
-      h.setAttribute('lang', 'ru');
-    } else {
-      h.classList.remove('ru-mode');
-      h.setAttribute('dir', 'rtl');
-      h.setAttribute('lang', 'he');
-    }
+    if (lang === 'he') { h.classList.add('he-mode'); h.setAttribute('lang', 'he'); }
+    else { h.classList.remove('he-mode'); h.setAttribute('lang', 'ru'); }
   }
-
-  window.chooseLang = function (lang) {
-    overlay.classList.add('gone');
-    applyLang(lang);
-    localStorage.setItem('fr_lang', lang);
-  };
-
   window.toggleLang = function () {
-    var cur = document.documentElement.classList.contains('ru-mode') ? 'ru' : 'he';
-    var next = cur === 'ru' ? 'he' : 'ru';
+    var cur = document.documentElement.classList.contains('he-mode') ? 'he' : 'ru';
+    var next = cur === 'he' ? 'ru' : 'he';
     applyLang(next);
-    localStorage.setItem('fr_lang', next);
+    try { localStorage.setItem('fr_lang', next); } catch (_) {}
   };
-
-  var saved = localStorage.getItem('fr_lang');
-  if (saved) {
-    overlay.classList.add('gone');
-    applyLang(saved);
-  }
+  var saved = null;
+  try { saved = localStorage.getItem('fr_lang'); } catch (_) {}
+  if (saved) applyLang(saved);
 })();
 </script>
 </body>
