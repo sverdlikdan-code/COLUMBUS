@@ -2518,6 +2518,25 @@ app.post('/api/event', requireAuth, dataRateLimit, (req, res) => {
   } catch (err) { res.status(500).json({ error: 'server_error' }); }
 });
 
+// POST /api/guide-event — anonymous section-click tracking for docs/TUTORIALS
+// (the guide page itself). No requireAuth: unlike the main app, the guide has
+// no login/session at all (it's a plain public page), so there's no agent
+// identity to attach — this only answers "which sections get clicked, how
+// often", not "by whom". Section id whitelisted against the guide's own 8
+// nav-grid anchors so this endpoint can't be used to write arbitrary
+// event_type strings into events.db. event_type encodes the section
+// (guide_section_<id>) so it rolls up for free in the existing
+// /admin/tracking-dashboard byType breakdown — no new dashboard code needed.
+const GUIDE_SECTIONS = new Set(['s-philosophy', 's-login', 's-route', 's-daycheck', 's-daychange', 's-exclude', 's-zikuy', 's-closing']);
+app.post('/api/guide-event', dataRateLimit, (req, res) => {
+  try {
+    const section = String(req.body?.section || '');
+    if (!GUIDE_SECTIONS.has(section)) return res.status(400).json({ error: 'invalid section' });
+    logEvent({ event: 'guide_section_' + section });
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ error: 'server_error' }); }
+});
+
 // ── Server-side render of the zikuy share blank ─────────────────────────────
 // 2026-08-24 — three separate client-side fixes (html2canvas→snapDOM, paint-
 // wait, concurrent-capture guard) each closed a real, confirmed bug and each

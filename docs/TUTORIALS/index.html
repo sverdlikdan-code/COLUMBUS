@@ -878,6 +878,25 @@
   var saved = null;
   try { saved = localStorage.getItem('fr_lang'); } catch (_) {}
   if (saved) applyLang(saved);
+
+  // Anonymous section-click tracking (which topic tiles get used, how often) —
+  // no login on this page, so no agent identity here, just counts per section.
+  // One delegated listener on the whole nav grid instead of 8 separate
+  // onclicks — reads the section id straight off the clicked link's href.
+  var navgrid = document.querySelector('.navgrid');
+  if (navgrid) {
+    navgrid.addEventListener('click', function (e) {
+      var a = e.target.closest('a[href^="#"]');
+      if (!a) return;
+      var section = a.getAttribute('href').slice(1);
+      try {
+        fetch('https://api.sverdlik-apps.site/api/guide-event', {
+          method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ section: section })
+        }).catch(function () {});
+      } catch (_) {}
+    });
+  }
 })();
 </script>
 </body>
