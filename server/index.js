@@ -4783,11 +4783,28 @@ app.get('/sw.js', (req, res) => {
 // relative to this origin ("./icons/icon-180.png") — without this route they
 // 404 here, so iOS falls back to a generic letter icon on "Add to Home Screen".
 app.use('/icons', express.static(path.join(__dirname, '..', 'docs', 'icons')));
-// formula-road.html's ⋮ menu links to "TUTORIALS/index.html" (relative) — resolves
-// fine on GitHub Pages, but 404ed here on the VPS mirror (api.sverdlik-apps.site)
-// since nothing served this path. Live bug found 2026-09-11 (guide link opened to
-// "Cannot GET /TUTORIALS/index.html" for a manager testing right after ship).
-app.use('/TUTORIALS', express.static(path.join(__dirname, '..', 'docs', 'TUTORIALS')));
+// User guide (was public on GitHub Pages under docs/TUTORIALS — anyone with
+// the link could open and forward it, live request 2026-09-11 "закрывай
+// возможность делиться"). Moved out of docs/ entirely (TUTORIALS-GUIDE/, a
+// repo-root sibling, not published by GitHub Pages) and now served only from
+// here, gated. A plain link-click can't send the X-Session header apiFetch()
+// normally uses, so the entry link instead carries the session token as
+// ?sess= (see openGuide() in formula-road.html) — validated once against the
+// same `sessions` Map requireAuth() uses, then remembered via a short cookie
+// scoped to /TUTORIALS so the page's OWN relative image requests
+// ("screens/x.jpg" — can't carry a query param forward) stay authorized too.
+// Cookie-first check means a session only has to prove itself once per day,
+// not on every asset request.
+function tutorialsGuard(req, res, next) {
+  if (/(?:^|;\s*)tutorials_ok=1/.test(req.headers.cookie || '')) return next();
+  const sess = sessions.get(String(req.query.sess || '').trim());
+  if (sess && Date.now() <= sess.expiresAt) {
+    res.setHeader('Set-Cookie', 'tutorials_ok=1; Path=/TUTORIALS; HttpOnly; SameSite=Lax; Secure; Max-Age=86400');
+    return next();
+  }
+  return res.status(403).send(`<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>גישה מוגבלת</title><style>body{font-family:sans-serif;background:#f0f2f5;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}div{text-align:center;background:#fff;padding:48px 40px;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.08)}h2{margin:0 0 12px;color:#1a1a2e;font-size:1.4rem}p{color:#666;margin:0}</style></head><body><div><div style="font-size:2.5rem;margin-bottom:16px">🔒</div><h2>המדריך זמין רק דרך האפליקציה</h2><p>פתח את FORMULA ROAD והשתמש בכפתור "❓ מדריך שימוש"</p></div></div></body></html>`);
+}
+app.use('/TUTORIALS', tutorialsGuard, express.static(path.join(__dirname, '..', 'TUTORIALS-GUIDE')));
 // docs/manifest.json's start_url ("./formula-road.html") is correct for the
 // GitHub Pages static host it's normally served from, but resolves relative to
 // THIS route's own URL (/manifest.json → /formula-road.html) when fetched here
@@ -4817,6 +4834,13 @@ app.get('/google-gps.json', formulaRoadGuard, (req, res) => {
 
 app.get('/logo-diler-bmd.png', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'logo-diler-bmd.png'));
+});
+// TUTORIALS-GUIDE/index.html's hero references "../logo-diler-bmd-white.png"
+// (relative — matched the old docs/TUTORIALS/ nesting before the guide moved
+// out of docs/ for the sharing-lockdown fix, 2026-09-11) which resolves to
+// this bare root path when served from /TUTORIALS/.
+app.get('/logo-diler-bmd-white.png', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'docs', 'logo-diler-bmd-white.png'));
 });
 
 app.get('/pbi/mmd-orders', mmdGuard, dataRateLimit, async (req, res) => {
