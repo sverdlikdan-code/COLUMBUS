@@ -3930,9 +3930,9 @@ function reviewTabletGpsFromModal(){
   reviewTabletGps(id,name);
 }
 
-function openGuide(){ window.open('TUTORIALS/index.html','_blank'); }
-function closeGuidePrompt(){ document.getElementById('guide-modal').classList.remove('open'); }
-function openGuideFromPrompt(){ closeGuidePrompt(); openGuide(); }
+function openGuide(source){ _trackEvent('guide_opened_'+(source||'menu')); window.open('TUTORIALS/index.html','_blank'); }
+function closeGuidePrompt(){ _trackEvent('guide_prompt_dismissed'); document.getElementById('guide-modal').classList.remove('open'); }
+function openGuideFromPrompt(){ document.getElementById('guide-modal').classList.remove('open'); openGuide('prompt'); }
 // Shown at most 3 times ever (across days/devices sharing this browser), once
 // per page load — after that the ❓ item in the ⋮ menu is the only way in.
 // _guidePromptShown guards against initRoute() re-firing this on every day/
@@ -3947,6 +3947,7 @@ function maybeShowGuidePrompt(){
   if(n>=3) return;
   try{ localStorage.setItem('frGuidePromptCount', String(n+1)); }catch(_){}
   document.getElementById('guide-modal').classList.add('open');
+  _trackEvent('guide_prompt_shown', null, n+1); // n+1 = which of the 3 shows this is
 }
 function closeAddrModal(){
   document.getElementById('addr-modal').classList.remove('open');
@@ -4234,10 +4235,10 @@ function closeAiModal() {
 // is answerable directly instead of only inferable from the day-briefing
 // rate-limit file's side effect. No server change needed, /api/event already
 // accepts any {event, custId}.
-function _trackEvent(event, custId) {
+function _trackEvent(event, custId, itemCount) {
   try {
     apiFetch(`${API}/api/event`, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event, custId: custId || null }) }).catch(() => {});
+      body: JSON.stringify({ event, custId: custId || null, itemCount: Number.isFinite(itemCount) ? itemCount : null }) }).catch(() => {});
   } catch (_) {}
 }
 
