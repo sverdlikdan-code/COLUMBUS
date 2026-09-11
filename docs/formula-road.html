@@ -3930,7 +3930,14 @@ function reviewTabletGpsFromModal(){
   reviewTabletGps(id,name);
 }
 
-function openGuide(source){ _trackEvent('guide_opened_'+(source||'menu')); window.open('TUTORIALS/index.html','_blank'); }
+// Guide now lives only behind the VPS's own gate (tutorialsGuard in
+// server/index.js) — no longer under docs/, so it's gone from GitHub Pages
+// entirely and a plain forwarded link 404s/403s for anyone without a live
+// session. Always the absolute VPS URL regardless of which origin THIS app
+// instance is running from (GH Pages copy included) — the guide doesn't
+// exist anywhere else to link to relatively any more. Token rides as ?sess=
+// since a plain link-click can't carry apiFetch()'s X-Session header.
+function openGuide(source){ _trackEvent('guide_opened_'+(source||'menu')); window.open('https://api.sverdlik-apps.site/TUTORIALS/?sess='+encodeURIComponent(_getToken()),'_blank'); }
 function closeGuidePrompt(){ _trackEvent('guide_prompt_dismissed'); document.getElementById('guide-modal').classList.remove('open'); }
 function openGuideFromPrompt(){ document.getElementById('guide-modal').classList.remove('open'); openGuide('prompt'); }
 // Shown at most 3 times ever (across days/devices sharing this browser), once
