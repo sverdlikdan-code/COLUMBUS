@@ -1987,6 +1987,11 @@ async function initLogin(){
       _setupManagerPicker();
       renderLogin();
       show('s-login');
+      // Managers reach initRoute() much later (after picking agent+day) — the
+      // guide prompt should catch them right on this first screen instead,
+      // live request 2026-09-11. A beat's delay so it doesn't pop before the
+      // picker's own tiles have painted.
+      setTimeout(maybeShowGuidePrompt, 400);
     } else {
       // Quick existence check — skip when coming from invite (token already validated server-side)
       if (!_fromInvite) {

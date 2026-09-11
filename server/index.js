@@ -894,6 +894,42 @@ function findManagerByPbiEmail(email) {
   const e = String(email).toLowerCase();
   return loadManagerRoster().find(m => (m.pbiEmails || []).some(x => x.toLowerCase() === e)) || null;
 }
+
+// Field-agent email roster — same "EMAIL + PASSWORD.xlsx" used for invite
+// sends (server/send-formula-road-invites.js), read here too so requests
+// like /api/mekarer-order can CC the submitting agent's own inbox. Manager
+// rows share a legacy code (1999) in this sheet, so only non-manager rows
+// are indexed; managers already have real emails in managers.json.
+let agentEmailRosterCache = null;
+async function loadAgentEmailRoster() {
+  if (agentEmailRosterCache) return agentEmailRosterCache;
+  const map = {};
+  try {
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.readFile(path.join(__dirname, '..', 'FORMULA ROADS -PASSWORDS', 'EMAIL + PASSWORD.xlsx'));
+    wb.worksheets[0].eachRow((row, i) => {
+      if (i === 1) return;
+      const v = row.values;
+      const code = String(v[1] ?? '').trim();
+      const email = String(v[5] ?? '').trim();
+      const isManager = String(v[6] ?? '').trim().toUpperCase() === 'YES';
+      if (code && email && !isManager) map[code] = email;
+    });
+  } catch (e) { console.error('[agent-email-roster]', e.message); }
+  agentEmailRosterCache = map;
+  return agentEmailRosterCache;
+}
+async function findAgentSubmitterEmail(session) {
+  if (session?.isManager) {
+    const mgr = session.managerId ? loadManagerRoster().find(m => m.id === session.managerId) : null;
+    return mgr?.pbiEmails?.[0] || session.pbiUser || null;
+  }
+  if (session?.agentCode) {
+    const roster = await loadAgentEmailRoster();
+    return roster[String(session.agentCode)] || null;
+  }
+  return null;
+}
 // Legacy/unidentified manager sessions (no roster match — old MANAGER_PASS
 // login, or a PBI click from an email not yet in the roster) keep the
 // pre-existing unrestricted behavior: role undefined reads as "super" by
@@ -3214,6 +3250,7 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
     if (resend && process.env.NOTIFY_EMAIL) {
       (async () => {
         try {
+          const submitterEmail = await findAgentSubmitterEmail(req.session);
           // ── Build Excel ──────────────────────────────────────────────
           const wb = new ExcelJS.Workbook();
           wb.creator = 'COLUMBUS'; wb.created = new Date();
@@ -3313,6 +3350,7 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
           await resend.emails.send({
             from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
             to: process.env.NOTIFY_EMAIL.split(',').map(e => e.trim()),
+            cc: submitterEmail ? [submitterEmail] : undefined,
             subject: `הזמנת מקרר חדשה — ${order.custName} (${order.city})`,
             attachments: [{ filename: `mekarer-${safeDate}-${safeName}.xlsx`, content: xlsB64 }],
             html: `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
@@ -4726,6 +4764,11 @@ app.get('/sw.js', (req, res) => {
 // relative to this origin ("./icons/icon-180.png") — without this route they
 // 404 here, so iOS falls back to a generic letter icon on "Add to Home Screen".
 app.use('/icons', express.static(path.join(__dirname, '..', 'docs', 'icons')));
+// formula-road.html's ⋮ menu links to "TUTORIALS/index.html" (relative) — resolves
+// fine on GitHub Pages, but 404ed here on the VPS mirror (api.sverdlik-apps.site)
+// since nothing served this path. Live bug found 2026-09-11 (guide link opened to
+// "Cannot GET /TUTORIALS/index.html" for a manager testing right after ship).
+app.use('/TUTORIALS', express.static(path.join(__dirname, '..', 'docs', 'TUTORIALS')));
 // docs/manifest.json's start_url ("./formula-road.html") is correct for the
 // GitHub Pages static host it's normally served from, but resolves relative to
 // THIS route's own URL (/manifest.json → /formula-road.html) when fetched here
