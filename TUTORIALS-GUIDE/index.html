@@ -879,10 +879,15 @@
   try { saved = localStorage.getItem('fr_lang'); } catch (_) {}
   if (saved) applyLang(saved);
 
-  // Anonymous section-click tracking (which topic tiles get used, how often) —
-  // no login on this page, so no agent identity here, just counts per section.
-  // One delegated listener on the whole nav grid instead of 8 separate
-  // onclicks — reads the section id straight off the clicked link's href.
+  // Section-click tracking (which topic tiles get used, how often, by whom).
+  // No login UI on this page, but openGuide() in formula-road.html already
+  // put the same ?sess= token here that tutorialsGuard validated to let this
+  // visit in at all — reuse it so the server can resolve identity the same
+  // way /api/event does, instead of these clicks being anonymous. One
+  // delegated listener on the whole nav grid instead of 8 separate onclicks —
+  // reads the section id straight off the clicked link's href.
+  var sessToken = null;
+  try { sessToken = new URLSearchParams(location.search).get('sess'); } catch (_) {}
   var navgrid = document.querySelector('.navgrid');
   if (navgrid) {
     navgrid.addEventListener('click', function (e) {
@@ -892,7 +897,7 @@
       try {
         fetch('https://api.sverdlik-apps.site/api/guide-event', {
           method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ section: section })
+          body: JSON.stringify({ section: section, sess: sessToken })
         }).catch(function () {});
       } catch (_) {}
     });
