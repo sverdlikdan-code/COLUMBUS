@@ -778,6 +778,21 @@ body.map-hidden #tab-map,body.map-hidden #tab-inline-map{display:none!important;
 .modal-btn.cancel{background:var(--sky-light);color:var(--mid);}
 .modal-btn.confirm{background:var(--blue);color:#fff;}
 
+/* THOUGHT OF THE DAY — shown once per calendar day, agents + managers alike */
+.thought-toast{display:none;position:fixed;inset:0;z-index:9500;
+  background:rgba(13,33,55,.6);align-items:center;justify-content:center;padding:20px;}
+.thought-toast.open{display:flex;}
+.thought-card{background:#fff;border-radius:22px;border-top:5px solid #B8860B;
+  box-shadow:0 20px 50px rgba(13,33,55,.35);
+  padding:30px 26px 24px;max-width:420px;width:100%;
+  animation:thoughtPop .3s cubic-bezier(.2,.8,.2,1);}
+@keyframes thoughtPop{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+.thought-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.thought-label{font-size:13px;font-weight:800;letter-spacing:.5px;color:#B8860B;display:flex;align-items:center;gap:6px;}
+.thought-close{width:28px;height:28px;border-radius:50%;background:var(--bg);color:var(--mid);border:none;font-size:15px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.thought-body{direction:ltr;text-align:center;font-size:20px;line-height:1.5;color:var(--text);font-weight:600;font-style:italic;}
+.thought-cite{direction:ltr;text-align:center;font-size:13px;color:var(--mid);margin-top:16px;}
+
 /* EXPORT BTN */
 .export-btn{background:#1D6F42;color:#fff;border:none;border-radius:20px;padding:5px 13px;height:36px;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(29,111,66,.35);display:none;align-items:center;gap:5px;white-space:nowrap;flex-shrink:0;}
 .export-btn.visible{display:flex;}
@@ -1306,6 +1321,18 @@ body.gps-fs #map{height:100%!important;}
       <button class="modal-btn cancel" onclick="closeGuidePrompt()">אחר כך</button>
       <button class="modal-btn confirm" onclick="openGuideFromPrompt()">📖 פתח מדריך</button>
     </div>
+  </div>
+</div>
+
+<!-- ── THOUGHT OF THE DAY ── one shared quote per calendar day, agents + managers -->
+<div class="thought-toast" id="thought-toast">
+  <div class="thought-card">
+    <div class="thought-head">
+      <span class="thought-label">✨ מחשבת היום</span>
+      <button class="thought-close" onclick="closeThought()">✕</button>
+    </div>
+    <div class="thought-body" id="thought-body"></div>
+    <div class="thought-cite" id="thought-cite"></div>
   </div>
 </div>
 
@@ -1992,6 +2019,7 @@ async function initLogin(){
       // live request 2026-09-11. A beat's delay so it doesn't pop before the
       // picker's own tiles have painted.
       setTimeout(maybeShowGuidePrompt, 400);
+      setTimeout(maybeShowThought, 700);
     } else {
       // Quick existence check — skip when coming from invite (token already validated server-side)
       if (!_fromInvite) {
@@ -2744,6 +2772,7 @@ async function initRoute(){
   const myId = ++_initRouteId;
   checkPbiFreshness(); // fire-and-forget, throttled internally
   maybeShowGuidePrompt(); // once per page load, at most 3 times ever — see definition above
+  maybeShowThought(); // once per calendar day, forever — see definition below
   // Restore this agent's last-picked sort mode (AI vs "הגרסה שלי") — read fresh
   // on every call, keyed to whichever agent is currently being viewed (st.agent.code
   // is already set by selectAgent()/selectDay() before initRoute() runs, so this
@@ -3955,6 +3984,58 @@ function maybeShowGuidePrompt(){
   try{ localStorage.setItem('frGuidePromptCount', String(n+1)); }catch(_){}
   document.getElementById('guide-modal').classList.add('open');
   _trackEvent('guide_prompt_shown', null, n+1); // n+1 = which of the 3 shows this is
+}
+
+// ── THOUGHT OF THE DAY ── curated real, sourced business quotes (Dan reviewed
+// and rated each one by hand — no invented/unverifiable ones). One shared
+// quote per calendar day for everyone, agents and managers alike, picked
+// deterministically so the whole team sees the same line on the same day.
+const FR_THOUGHTS=[
+  {id:"q04",text:"Цель бизнеса — создавать клиента.",cite:"Друкер, «Практика менеджмента»"},
+  {id:"q06",text:"Дело не в том, что нам мало отпущено времени, а в том, что мы большую его часть теряем.",cite:"Сенека, «О скоротечности жизни»"},
+  {id:"q07",text:"Время — самый дефицитный ресурс: пока не научишься управлять им, не сможешь управлять ничем другим.",cite:"Друкер, «Эффективный руководитель»"},
+  {id:"q09",text:"Большинство решений обратимы — это двери в обе стороны: если ошибся, дверь можно снова открыть и вернуться.",cite:"Безос, «Письма акционерам Amazon»"},
+  {id:"q10",text:"Нельзя ожидать, что сотрудники превзойдут ожидания клиентов, если сам не превосходишь ожидания сотрудников.",cite:"Шульц, «Влейте в это свое сердце»"},
+  {id:"q12",text:"Эффективность — делать вещи правильно. Результативность — делать правильные вещи.",cite:"Друкер, «Эффективный руководитель»"},
+  {id:"q15",text:"Доверие — это клей жизни. Это самый важный ингредиент эффективного общения. Это основополагающий принцип, на котором держатся все отношения.",cite:"Кови, «Скорость доверия»"},
+  {id:"q16",text:"У меня два типа проблем: срочные и важные. Срочные не важны, а важные никогда не бывают срочными.",cite:"Эйзенхауэр, речь в Эванстоне, 1954"},
+  {id:"q21",text:"Проводи каждый день так, чтобы вечером быть немного мудрее, чем был утром.",cite:"Мангер, «Альманах бедного Чарли»"},
+  {id:"q23",text:"Риск возникает от того, что ты не понимаешь, что делаешь.",cite:"Баффет, из выступления в Columbia Business School, 1993"},
+  {id:"q24",text:"Нет ничего бесполезнее, чем эффективно делать то, что вообще не стоило делать.",cite:"Друкер, Harvard Business Review, 1963"},
+  {id:"q29",text:"Празднуй свои успехи. Находи юмор в своих неудачах — не принимай себя слишком всерьёз.",cite:"Уолтон, «Sam Walton: Made in America»"},
+  {id:"q32",text:"Верь в своё дело больше, чем кто-либо другой.",cite:"Уолтон, «Sam Walton: Made in America»"},
+  {id:"q34",text:"Отсутствие проблем — это и есть самая большая проблема.",cite:"Оно, создатель производственной системы Toyota"},
+  {id:"q35",text:"Прежде чем делать вещи, делай людей.",cite:"Мацусита, основатель Panasonic"},
+  {id:"q38",text:"У улучшения четыре цели: проще, лучше, быстрее, дешевле — именно в этом порядке приоритета.",cite:"Синго, «Non-Stock Production»"},
+  {id:"q39",text:"Недостаточно просто стараться. Нужно знать, что делать — и только потом делать это как можно лучше.",cite:"Деминг, «Выход из кризиса»"},
+  {id:"q46",text:"Рассказывай партнёрам всё, что только можешь. Чем больше они знают — тем больше понимают. Чем больше понимают — тем больше им не всё равно.",cite:"Уолтон, «Sam Walton: Made in America»"},
+  {id:"q47",text:"Плохая система победит хорошего человека всегда.",cite:"Деминг, семинар 1993 года"},
+  {id:"q49",text:"С ростом компании должен расти и масштаб твоих неудавшихся экспериментов. Если размер провалов не растёт — значит, ты не изобретаешь ничего достаточно крупного, чтобы это имело значение.",cite:"Безос, письмо акционерам Amazon, 2018"},
+  {id:"q50",text:"Планы бесполезны, но планирование — это всё.",cite:"Эйзенхауэр, конференция Nat'l Defense Executive Reserve, 1957"}
+];
+function _israelDateStr(){ return new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Jerusalem'}); } // "YYYY-MM-DD"
+function _dayOfYear(dateStr){
+  const [y,m,d]=dateStr.split('-').map(Number);
+  return Math.round((Date.UTC(y,m-1,d)-Date.UTC(y,0,1))/86400000);
+}
+let _thoughtShownThisLoad=false;
+function maybeShowThought(){
+  if(_thoughtShownThisLoad) return;
+  _thoughtShownThisLoad=true;
+  const today=_israelDateStr();
+  let last=null;
+  try{ last=localStorage.getItem('frThoughtDate'); }catch(_){}
+  if(last===today) return;
+  try{ localStorage.setItem('frThoughtDate', today); }catch(_){}
+  const q=FR_THOUGHTS[_dayOfYear(today)%FR_THOUGHTS.length];
+  document.getElementById('thought-body').textContent='«'+q.text+'»';
+  document.getElementById('thought-cite').textContent='— '+q.cite;
+  document.getElementById('thought-toast').classList.add('open');
+  _trackEvent('thought_shown_'+q.id);
+}
+function closeThought(){
+  document.getElementById('thought-toast').classList.remove('open');
+  _trackEvent('thought_dismissed');
 }
 function closeAddrModal(){
   document.getElementById('addr-modal').classList.remove('open');
