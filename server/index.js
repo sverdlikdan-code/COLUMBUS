@@ -624,6 +624,48 @@ app.use((req, res, next) => {
   next();
 });
 
+// ── ISRAEL-ONLY GATE ───────────────────────────────────────────────────────
+// Replaces the old Cloudflare WAF "Block non-Israel" custom rule (set 2026-05-
+// 28), which showed Cloudflare's own scary generic "Sorry, you have been
+// blocked" page — same restriction, kept intentionally (security-agent
+// requirement, confirmed still wanted 2026-09-12), just a normal branded page
+// instead. Reads the CF-IPCountry header Cloudflare adds for free on every
+// proxied request (no API access needed) — only enforced when that header is
+// actually present, so direct/local traffic (dev, health checks) isn't
+// affected if it ever bypasses Cloudflare. /health stays exempt on purpose so
+// uptime monitoring never depends on where the monitor happens to run.
+app.use((req, res, next) => {
+  if (req.path === '/health') return next();
+  const country = req.headers['cf-ipcountry'];
+  if (country && country !== 'IL' && country !== 'XX' && country !== 'T1') return isIsraelOnlyBlock(res);
+  next();
+});
+function isIsraelOnlyBlock(res) {
+  res.status(403).type('html').send(`<!DOCTYPE html>
+<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Formula Road</title>
+<style>
+  *{box-sizing:border-box;} html,body{height:100%;margin:0;background:#F0F5FF;font-family:'Segoe UI',Tahoma,Arial,sans-serif;color:#0D2137;}
+  body{display:flex;flex-direction:column;min-height:100%;}
+  .hdr{background:linear-gradient(135deg,#082D6E 0%,#0D47A1 60%,#1565C0 100%);color:#fff;padding:28px 20px 24px;text-align:center;}
+  .hdr-title{font-size:14px;font-weight:900;letter-spacing:3px;text-transform:uppercase;}
+  main{flex:1;display:flex;align-items:center;justify-content:center;padding:32px 20px;}
+  .card{background:#fff;border-radius:18px;max-width:440px;width:100%;box-shadow:0 10px 30px rgba(13,33,55,.12);padding:32px 26px;text-align:center;}
+  .icon{font-size:40px;margin-bottom:14px;} h1{font-size:19px;font-weight:800;margin:0 0 12px;line-height:1.4;}
+  p{font-size:14.5px;line-height:1.6;color:#546E7A;margin:0 0 8px;}
+  .ru{direction:ltr;text-align:center;border-top:1px dashed #BBDEFB;margin-top:18px;padding-top:16px;font-size:13.5px;}
+  .ru b{color:#0D2137;}
+</style></head><body>
+  <div class="hdr"><div class="hdr-title">FORMULA ROAD</div></div>
+  <main><div class="card">
+    <div class="icon">🇮🇱</div>
+    <h1>מצטערים, האפליקציה זמינה רק מישראל</h1>
+    <p>נראה שאתה מתחבר ממדינה אחרת. אם אתה בנסיעת עבודה בחו"ל — התחבר דרך VPN עם יציאה לישראל, ונסה שוב.</p>
+    <div class="ru"><p><b>Извините, приложение доступно только из Израиля.</b><br>Если вы за границей по работе — подключитесь через VPN с выходом в Израиль и попробуйте снова.</p></div>
+  </div></main>
+</body></html>`);
+}
+
 // ── HEALTH CHECK ───────────────────────────────────────────────────────────
 // Real signal, not just "Express is listening" — the VPS-recovery procedure
 // (CLAUDE.md) used to curl this and treat any response (even a bare 404, since
