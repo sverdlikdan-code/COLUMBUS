@@ -841,19 +841,6 @@ function setupWaButton(rows, now){
 // tried during the hang investigation below and made no difference, and it
 // cost a visible width-flash whenever this ran proactively in the background
 // (see prewarmShareImage) while the overlay was still open.
-// Diagnostic beacon kept (not removed after the snapDOM/timeout fix below) —
-// cheap insurance to confirm on real devices the hang is actually gone
-// rather than just assuming it from the diagnosis. Fires a 'start' beacon
-// immediately and a 'capture_done'/'capture_error'/'capture_timeout' one
-// when it actually finishes — a real hang still shows up as a start with
-// nothing after; failures here are swallowed on purpose, this must never be
-// why an agent's share fails.
-function _logShareTiming(phase, extra){
-  try{
-    apiFetch('/api/share-timing',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({phase, custId, ...extra})}).catch(()=>{});
-  }catch(_){}
-}
 // Switched from html2canvas to snapDOM 2026-08-24 — root cause of the
 // real-device hang (agent 234, both her iPhone AND her Samsung tablet,
 // reproducing with a single product photo) traced to two compounding gaps,
@@ -890,10 +877,8 @@ async function captureShareImage(){
   }
 }
 async function _captureShareImageInner(){
-  const t0=performance.now();
   const el=document.getElementById('print-view');
   const imgCount=el.querySelectorAll('img').length;
-  _logShareTiming('start',{imgCount});
   const prevWidth=el.style.width, prevMaxWidth=el.style.maxWidth;
   el.style.width='1100px'; el.style.maxWidth='1100px';
   // Live complaint 2026-08-24 (agent 234, real device): header rendered fine
@@ -923,10 +908,6 @@ async function _captureShareImageInner(){
       snapdom.toCanvas(el,{backgroundColor:'#ffffff',scale:1,placeholders:true}),
       new Promise((_,rej)=>setTimeout(()=>rej(new Error('snapdom_timeout')),20000)),
     ]);
-    _logShareTiming('capture_done',{ms:performance.now()-t0,imgCount});
-  }catch(e){
-    _logShareTiming(e.message==='snapdom_timeout'?'capture_timeout':'capture_error',{ms:performance.now()-t0,imgCount});
-    throw e;
   }finally{
     el.style.width=prevWidth; el.style.maxWidth=prevMaxWidth;
   }
@@ -947,7 +928,6 @@ async function _captureShareImageInner(){
   // while the native share sheet is open, which is when the freeze/flicker on
   // return has been reported (Android WebView under memory pressure).
   canvas.width=0; canvas.height=0;
-  _logShareTiming('complete',{ms:performance.now()-t0,imgCount});
   return blob;
 }
 // Live complaint 2026-08-24: tapping "WhatsApp" often just opened the app with
@@ -978,19 +958,16 @@ function getShareImage(){
   return _shareBlobPromise;
 }
 async function fetchServerRenderedImage(){
-  const t0=performance.now();
   const items=[...selected.values()].map(r=>({
     sku:r.product.sku, name:r.product.name, imgUrl:r.product.imgUrl||'',
     lastShipDate:r.product.lastShipDate||null, lastShipQty:r.product.lastShipQty||null,
     ean:r.product.ean||'', famCode:r.product.famCode||'',
     qty:r.qty, date:r.date, option:r.option,
   }));
-  _logShareTiming('ssr_start',{imgCount:items.filter(i=>i.imgUrl).length});
   const res=await apiFetch('/api/render-share-image',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({custId,custName,city,agentCode,agentName,barcodeMode,items})});
-  if(!res.ok){ _logShareTiming('ssr_error',{ms:performance.now()-t0}); throw new Error('render_failed_'+res.status); }
+  if(!res.ok){ throw new Error('render_failed_'+res.status); }
   const blob=await res.blob();
-  _logShareTiming('ssr_complete',{ms:performance.now()-t0});
   return blob;
 }
 // Logs a finalized blank for the "היסטוריית בלנקים" screen in formula-road.html
