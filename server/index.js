@@ -4955,7 +4955,11 @@ app.get('/admin/debug-cache', dataRateLimit, async (req, res) => {
     const days = [...new Set(clients.map(c => c.dayNum))].sort();
     agents.push({ code, name: clients[0]?.agentName || '', mgr: clients[0]?.manager || '', count: clients.length, days });
   }
-  res.json({ managers: pbiCache.managers, agents, loadedAt: pbiCache.loadedAt });
+  const noSchedule = [];
+  for (const [code, clients] of (pbiCache.noScheduleByAgent || [])) {
+    noSchedule.push({ code, name: clients[0]?.agentName || '', mgr: clients[0]?.manager || '', count: clients.length });
+  }
+  res.json({ managers: pbiCache.managers, agents, noSchedule, loadedAt: pbiCache.loadedAt });
 });
 
 // POST /admin/reload-cache — перезагрузить PBI кэш без перезапуска
