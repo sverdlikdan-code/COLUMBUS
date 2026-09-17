@@ -287,15 +287,15 @@ function renderBlank(d){
   document.getElementById('dc-cust-count').textContent = d.custCount;
   document.getElementById('dc-sum').textContent = '₪' + Number(d.sum||0).toLocaleString('he-IL',{maximumFractionDigits:0});
   // "מתוכם לקוחות חדשים" — clients caught only via the agentCode fallback (not
-  // yet in the PBI roster, refreshes once a day) — only shown when non-zero,
-  // no reason to clutter the report on an ordinary day. Live request 2026-08-26.
+  // yet in the PBI roster, refreshes once a day). Always shown, even at zero —
+  // live request 2026-09-17 (reversed the 2026-08-26 hide-when-zero decision).
   const newLine = document.getElementById('dc-new-line');
+  newLine.style.display = '';
   if(d.newCustCount > 0){
-    newLine.style.display = '';
     const newSumText = Number(d.newSum||0).toLocaleString('he-IL',{maximumFractionDigits:0});
     newLine.innerHTML = `מתוכם לקוחות חדשים: <b>${d.newCustCount}</b> — ₪<b>${newSumText}</b>`;
   } else {
-    newLine.style.display = 'none';
+    newLine.innerHTML = `לקוחות חדשים: <b>0</b>`;
   }
   // Subtotal by whoever actually entered the order in Priority — often not the
   // roster-owning agent themselves (a manager or another rep placing the order
