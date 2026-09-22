@@ -4544,6 +4544,16 @@ function formulaRoadGuard(req, res, next) {
     // existed) — the population to chase down for re-identification, as
     // opposed to agent invite-link sessions which never set fr_pbi_seen.
     const pbiSeen = /(?:^|;\s*)fr_pbi_seen=1/.test(cookies);
+    // Rolling refresh — without this, fr_ok/fr_pbi_seen/fr_pbiu are set once
+    // (?k= or invite click) and never again, so they hard-expire 30 days
+    // after that single moment even for someone using the app daily. Only
+    // reissue the cookies this browser already has (pbiSeen/pbiUser gate
+    // which ones) — a plain invite-link session must not gain fr_pbi_seen
+    // here, same restriction as its original issuance.
+    const setCookies = ['fr_ok=1; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000'];
+    if (pbiSeen) setCookies.push('fr_pbi_seen=1; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000');
+    if (pbiUser) setCookies.push(`fr_pbiu=${encodeURIComponent(pbiUser)}; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000`);
+    res.setHeader('Set-Cookie', setCookies);
     writeLog({ ts: new Date().toISOString(), event: 'gate-cookie', ip: getRealIp(req), path: req.path, device: deviceType(req.headers['user-agent'] || ''), pbiUser, pbiSeen });
     return next();
   }
