@@ -6112,9 +6112,13 @@ CALCULATETABLE(
   ALL_PARTS[ASHMADOT] = "-מכר-"
 )`;
 
-    const [histRows, zikuyRows, lastShipRows] = await Promise.all([
-      executeDax(histDax), executeDax(zikuyDax), executeDax(lastShipDax),
-    ]);
+    // Sequential + retry, not Promise.all(executeDax×3) — same burst pattern that
+    // tripped Power BI's throttle 2026-09-09 (see executeDaxRetry comment above);
+    // this route predates that fix (created 2026-08-25) and was missed in the
+    // retrofit. Fixed 2026-09-24 after a 429 on this exact endpoint.
+    const histRows = await executeDaxRetry(histDax);
+    const zikuyRows = await executeDaxRetry(zikuyDax);
+    const lastShipRows = await executeDaxRetry(lastShipDax);
 
     const zikuyMap = new Map();
     zikuyRows.forEach(r => {
@@ -6142,7 +6146,7 @@ CALCULATETABLE(
   ALL_PARTS[תאריך] >= DATE(${d90.getFullYear()},${d90.getMonth() + 1},${d90.getDate()}),
   ALL_PARTS[תאריך] <= DATE(${todayD.getFullYear()},${todayD.getMonth() + 1},${todayD.getDate()})
 )`;
-      const companyAvgRows = await executeDax(companyAvgDax);
+      const companyAvgRows = await executeDaxRetry(companyAvgDax);
       companyAvgRows.forEach(r => {
         const sku = String(r["ALL_PARTS[מק'ט]"] || '');
         const zikuy = r['[zikuy]'] || 0, brutto = r['[brutto]'] || 0;
@@ -6196,7 +6200,7 @@ CALCULATETABLE(
     const fetchPhotosRet = async (items, table) => {
       if (!items.length) return;
       const skuIn = items.map(p => `"${p.sku}"`).join(',');
-      const rows = await executeDax(
+      const rows = await executeDaxRetry(
         `EVALUATE SELECTCOLUMNS(FILTER('${table}', '${table}'[מק"ט] IN {${skuIn}}), "sku", '${table}'[מק"ט], "img", '${table}'[URL תמונה], "ean", '${table}'[ברקוד], "famCode", '${table}'[משפחת מוצר])`
       );
       const imgMap = new Map(rows.map(r => [String(r['[sku]']), r['[img]'] || '']));
@@ -6204,10 +6208,8 @@ CALCULATETABLE(
       const famCodeMap = new Map(rows.map(r => [String(r['[sku]']), String(r['[famCode]'] ?? '')]));
       items.forEach(p => { p.imgUrl = imgMap.get(p.sku) || ''; p.ean = eanMap.get(p.sku) || ''; p.famCode = famCodeMap.get(p.sku) || ''; });
     };
-    await Promise.all([
-      fetchPhotosRet(products.filter(p => p.company === 'FORMULA'), 'KARTIS PARIT'),
-      fetchPhotosRet(products.filter(p => p.company === 'ICE_MISH'), 'KARTIS PARIT ICE'),
-    ]);
+    await fetchPhotosRet(products.filter(p => p.company === 'FORMULA'), 'KARTIS PARIT');
+    await fetchPhotosRet(products.filter(p => p.company === 'ICE_MISH'), 'KARTIS PARIT ICE');
 
     const responseData = {
       ok: true,
@@ -6217,6 +6219,9 @@ CALCULATETABLE(
     clientReturnsCache.set(custId, { data: responseData, at: new Date() });
     res.json(responseData);
   } catch (e) {
+    // Was silent — a 429 here left zero trace in error.log (same gap client-analytics
+    // had before 2026-09-09, see its catch above). Fixed 2026-09-24.
+    console.error(`[client-returns] custId=${custId} failed:`, e.message);
     res.status(500).json({ ok: false, error: e.message });
   }
 });
