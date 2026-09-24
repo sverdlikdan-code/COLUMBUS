@@ -5508,14 +5508,22 @@ let todayOrdersCache = { date: null, at: 0, formula: [], iceMish: [] };
 // back into this server or duplicating the Priority queries.
 async function getTodayOrdersSets() {
   const todayIL = todayIsraelDate();
-  const fresh = todayOrdersCache.date === todayIL && (Date.now() - todayOrdersCache.at) < TODAY_ORDERS_CACHE_MS;
+  const sameDay = todayOrdersCache.date === todayIL;
+  const fresh = sameDay && (Date.now() - todayOrdersCache.at) < TODAY_ORDERS_CACHE_MS;
   if (!fresh) {
     const [formulaSet, iceSet] = await Promise.all([
       custIdsWithOpenOrderToday(process.env.DB_NAME || 'form', todayIL),
       iceMishCustIdsWithOpenOrderToday(process.env.DB_ICECREA || 'icecrea', todayIL),
     ]);
-    // null (query failed) -> empty, not stale cross-day data from a previous cache entry.
-    todayOrdersCache = { date: todayIL, at: Date.now(), formula: formulaSet ? [...formulaSet] : [], iceMish: iceSet ? [...iceSet] : [] };
+    // null (query failed) -> keep the same-day cache it already had, not empty —
+    // a transient Priority hiccup (e.g. right after a pm2 restart) shouldn't blank
+    // every ✔️ badge for a full 75s cycle. A real day change still starts empty,
+    // never carrying stale cross-day data. On a full failure, don't stamp `at` —
+    // the next call retries immediately instead of waiting out the TTL empty-handed.
+    const formula = formulaSet ? [...formulaSet] : (sameDay ? todayOrdersCache.formula : []);
+    const iceMish = iceSet ? [...iceSet] : (sameDay ? todayOrdersCache.iceMish : []);
+    const bothFailed = !formulaSet && !iceSet;
+    todayOrdersCache = { date: todayIL, at: (bothFailed && sameDay) ? todayOrdersCache.at : Date.now(), formula, iceMish };
   }
   return todayOrdersCache;
 }
