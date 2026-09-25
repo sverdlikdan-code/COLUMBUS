@@ -4308,6 +4308,7 @@ let _aiState = { custId: null, custName: null, lang: 'he' };
 function openClientAI(evt, custId, custName) {
   evt.stopPropagation();
   _tick();
+  _trackEvent('ai_insight_opened', custId);
   _aiState.custId   = custId;
   _aiState.custName = custName;
   // Opening client AI from inside the day-briefing panel left day-modal's .open
