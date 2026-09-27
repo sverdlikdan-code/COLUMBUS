@@ -1096,7 +1096,7 @@ function saveShortInvites(map) {
   fs.mkdirSync(path.dirname(SHORT_INVITE_FILE), { recursive: true });
   fs.writeFileSync(SHORT_INVITE_FILE, JSON.stringify(map, null, 2), 'utf8');
 }
-function makeShortInvite(code, name, days = 30, isManager = false, target = null) {
+function makeShortInvite(code, name, days = 365, isManager = false, target = null) {
   const map = loadShortInvites();
   const short = crypto.randomBytes(5).toString('base64url'); // ~7 chars, URL-safe
   map[short] = { code, name, exp: Date.now() + days * 24 * 60 * 60 * 1000, isManager, target };

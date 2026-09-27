@@ -71,7 +71,7 @@ function emailHtml({ name, link, isManager }) {
     </a>
   </div>
   <p style="font-size:11px;color:#999;text-align:center;margin:0 0 14px">
-    הקישור בתוקף 30 יום — מומלץ לשמור במועדפים לגישה מהירה
+    הקישור בתוקף שנה — מומלץ לשמור במועדפים לגישה מהירה
   </p>
   <p style="font-size:11px;line-height:1.6;color:#999;text-align:center;background:#F8FBFF;border-radius:8px;padding:10px 12px;margin:0">
     📱 <b>שמירה על מסך הבית:</b> יש לפתוח את הקישור דווקא ב-<b>Chrome</b> (לא בדפדפן Samsung Internet) — אחרת מכשירי Samsung מסוימים עלולים להציג התראת "אפליקציה חשודה נחסמה" של Google Play Protect. זו לא בעיה באפליקציה עצמה, רק דרישה של הדפדפן.
@@ -118,7 +118,7 @@ async function main() {
   console.log(`${SHOULD_SEND ? 'SENDING' : 'DRY RUN'} — ${targets.length} recipient(s) (${deduped.filter(r=>r.isManager).length} managers, ${deduped.filter(r=>!r.isManager).length} agents after dedup)`);
 
   for (const r of targets) {
-    const link = makeShortInvite(r.agentCode, r.agentName, 30, r.isManager);
+    const link = makeShortInvite(r.agentCode, r.agentName, 365, r.isManager);
     console.log(`${r.isManager ? '[MANAGER]' : '[AGENT]  '} ${r.agentName} <${r.email}> -> ${link}`);
     if (SHOULD_SEND) {
       if (!resend) { console.error('  RESEND_API_KEY not configured, skipping send'); continue; }
