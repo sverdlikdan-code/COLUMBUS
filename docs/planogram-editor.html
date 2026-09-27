@@ -1560,6 +1560,27 @@ async function loadMaps() {
 
     // Apply fresh dagim-yavesh-base.json — version check resets stale localStorage picks
     let _anyVersionReset = false;
+    // Reconcile a persisted grid section against its freshly loaded base file: clear bays whose
+    // key no longer exists in the fresh file at all (orphans — the per-key merge loops below only
+    // touch keys present in the fresh picks, so a bay dropped by CI is otherwise never revisited and
+    // keeps whatever stale product localStorage had), and collapse any makat left duplicated across
+    // bays (defensive — a makat must occupy exactly one bay). Root cause of the 2026-09-27 "818 shown
+    // in two bays" report: bay 43 was dropped from kapua-base.json by CI, its stale localStorage entry
+    // was never cleared because the merge loop only iterates Object.entries(kb.picks).
+    function _reconcileSection(sec, freshPicks) {
+      const st = state[sec];
+      for (const pick of Object.keys(st)) {
+        if (!(pick in freshPicks)) st[pick] = null;
+      }
+      const seenMakatim = new Set();
+      for (const pick of Object.keys(st).map(Number).sort((a, b) => a - b)) {
+        const p = st[pick];
+        const mk = p && String(p.makat || p.mk || '');
+        if (!mk) continue;
+        if (seenMakatim.has(mk)) { st[pick] = null; _anyVersionReset = true; }
+        else seenMakatim.add(mk);
+      }
+    }
     if (dy && dy.picks) {
       const savedYaveshV = localStorage.getItem('yavesh_base_v');
       const freshYaveshV = dy.v != null ? String(dy.v) : '';
@@ -1589,6 +1610,7 @@ async function loadMaps() {
                  if (p.name !== undefined) state.yavesh[pick].name = p.name; }
         }
       }
+      _reconcileSection('yavesh', dy.picks);
       console.log(`dagim-yavesh-base.json: ${Object.keys(dy.picks).length} picks, v=${freshYaveshV}`);
     }
 
@@ -1632,6 +1654,7 @@ async function loadMaps() {
         _anyVersionReset = true;
         console.log(`kapua-base.json: version changed ${savedVer} → ${freshVer}, reserve merged`);
       }
+      _reconcileSection('kapua', kb.picks);
       console.log(`kapua-base.json: ${Object.keys(kb.picks).length} picks, maxRows=${kb.maxRows}, v=${freshVer}`);
     }
 
@@ -1676,6 +1699,7 @@ async function loadMaps() {
         _anyVersionReset = true;
         console.log(`halavi-base.json: version changed ${savedHalaviV} → ${freshHalaviV}, picks merged`);
       }
+      _reconcileSection('halavi', hb.picks);
       console.log(`halavi-base.json: ${Object.keys(hb.picks).length} picks, reserveStart=${hb.reserveStart}`);
     }
 
@@ -1735,10 +1759,8 @@ async function loadMaps() {
             }
           }
         }
-        for (const pick of Object.keys(state.dagim)) {
-          if (!(pick in db.picks)) state.dagim[pick] = null;
-        }
       }
+      _reconcileSection('dagim', db.picks);
       console.log(`dagim-base.json: ${Object.keys(db.picks).length} picks, reserveStart=${db.reserveStart}`);
     }
 
