@@ -15,15 +15,14 @@
 //   רשתות     -> 'HOVOT ALL'[תאור סוג לקוח] (название сети)
 //   שוק פרטי  -> 'HOVOT ALL'[שם לקוח] (имя конкретного клиента, после fixBiDi)
 //
-// Повтор — один раз при переходе через порог (edge-trigger), state в obligo-alert-state.json.
+// Повтор — каждую неделю, пока клиент/сеть остаётся выше порога (не только при переходе).
 require('dotenv').config({ path: '../.env' });
 const fs = require('fs');
 const path = require('path');
 const { Resend } = require('resend');
 const { executeDax } = require('./powerbi');
 
-const THRESHOLD = 0.90;
-const STATE_PATH = path.join(__dirname, 'data', 'obligo-alert-state.json');
+const THRESHOLD = 0.85;
 const DRY_RUN = process.argv.includes('--dry-run');
 
 // Внутренние/дочерние компании — не внешний кредитный риск, не алармить.
@@ -43,14 +42,6 @@ function fixBiDi(raw) {
   return s.split(/\s+/).reverse()
     .map(w => /[א-ת]/.test(w) ? w.split('').reverse().join('').replace(/\d+/g, m => m.split('').reverse().join('')) : w)
     .join(' ');
-}
-
-function loadState() {
-  try { return JSON.parse(fs.readFileSync(STATE_PATH, 'utf8')); } catch { return {}; }
-}
-function saveState(state) {
-  fs.mkdirSync(path.dirname(STATE_PATH), { recursive: true });
-  fs.writeFileSync(STATE_PATH, JSON.stringify(state, null, 2));
 }
 
 // Компания -> {market, resp, custno, formAgent, iceAgent, interAgent} по большинству
@@ -332,7 +323,7 @@ function buildEmailHtml(crossed, greetName) {
 
   <tr><td dir="rtl" style="padding:24px 28px 28px;text-align:right;border-top:1px solid ${LINE}">
     <div style="font-family:Arial,sans-serif;font-size:12px;color:${MUTED};line-height:1.7;padding-top:20px">
-      כל לקוח/רשת מדווח פעם אחת בעת החצייה של הסף, לא נשלח שוב כל עוד הוא נשאר מעליו.<br>
+      כל לקוח/רשת שנמצא מעל סף ${Math.round(THRESHOLD * 100)}% מדווח מחדש בכל דוח שבועי, עד שהוא יורד מתחת לסף.<br>
       הערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.
     </div>
   </td></tr>
@@ -375,31 +366,16 @@ async function sendAlert(crossed, recipients) {
 
 async function main() {
   const rows = await fetchRows();
-  const state = loadState();
-  const crossed = [];
+  const crossed = rows.filter(r => r.util >= THRESHOLD).sort((a, b) => b.util - a.util);
 
-  for (const row of rows) {
-    // resp+name, не только name — один и тот же סוג לקוח может стоять под разными
-    // אחראי как отдельные строки (после агрегации по компаниям внутри каждой пары).
-    const key = `${row.resp}||${row.name}`;
-    const wasOver = !!state[key]?.overThreshold;
-    const isOver = row.util >= THRESHOLD;
-    if (isOver && !wasOver) crossed.push(row);
-    state[key] = { overThreshold: isOver };
-  }
-  crossed.sort((a, b) => b.util - a.util);
-
-  console.log(`Проверено ${rows.length} записей, порог ${Math.round(THRESHOLD * 100)}%, новых превышений: ${crossed.length}`);
+  console.log(`Проверено ${rows.length} записей, порог ${Math.round(THRESHOLD * 100)}%, выше порога: ${crossed.length}`);
   for (const c of crossed) console.log(`  ${c.name} (${c.market}, אחראי: ${c.resp}): ${fmtILS(c.usedILS)}/${fmtILS(c.limitILS)} = ${Math.round(c.util * 100)}%`);
 
-  if (crossed.length === 0) {
-    saveState(state);
-    return;
-  }
+  if (crossed.length === 0) return;
 
   if (DRY_RUN) {
     console.log('\n--dry-run — письмо не отправлено.');
-    return; // не сохраняем state в dry-run, чтобы можно было гонять повторно
+    return;
   }
 
   const recipients = (process.env.OBLIGO_ALERT_RECIPIENTS || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -407,7 +383,6 @@ async function main() {
 
   const res = await sendAlert(crossed, recipients);
   console.log('Отправлено:', JSON.stringify(res));
-  saveState(state);
 }
 
 main().catch(e => { console.error('ERR:', e.message); process.exit(1); });

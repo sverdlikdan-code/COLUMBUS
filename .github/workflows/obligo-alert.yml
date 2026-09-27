@@ -1,11 +1,11 @@
 name: Obligo Alert
 
 # Еженедельный (по четвергам) алярм топ-менеджменту о сетях/клиентах, приближающихся
-# к лимиту облиго (>= 90% ניצול OBLIGO). Источник — HOVOT ALL в датасете FORMULA DASHBORD.
+# к лимиту облиго (>= 85% ניצול OBLIGO). Источник — HOVOT ALL в датасете FORMULA DASHBORD.
 # Отдельный GitHub Actions job, не PM2-крон на VPS — рестарты/деплои VPS уже дважды
 # сажали PBI-квоту в 429 (см. VAULT project_pbi_429_incident), этот job живой сервер
-# не трогает вообще. State (кто уже был уведомлён) коммитится в репозиторий — тот же
-# паттерн, что formula-road-build.yml использует для своих ежедневных данных.
+# не трогает вообще. Клиент/сеть репортится в каждом еженедельном отчёте, пока остаётся
+# выше порога (не только при первом переходе) — состояние между запусками не хранится.
 on:
   schedule:
     # Четверг 09:00 Israel (UTC+3) = 06:00 UTC — после ночного refresh датасета (~06:07 UTC замечен 2026-09-10)
@@ -41,13 +41,3 @@ jobs:
           POWERBI_WORKSPACE_ID: ${{ secrets.PBI_WORKSPACE }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           OBLIGO_ALERT_RECIPIENTS: ${{ secrets.OBLIGO_ALERT_RECIPIENTS }}
-
-      - name: Commit updated state
-        run: |
-          git config user.email "columbus-bot@diler.co.il"
-          git config user.name "COLUMBUS Bot"
-          git add server/data/obligo-alert-state.json
-          git diff --cached --quiet && echo "No state change." || \
-            git commit -m "chore: obligo-alert state $(date -u +'%Y-%m-%d %H:%M UTC')"
-          git push origin master || \
-            (git pull --no-rebase -X ours origin master && git push origin master)
