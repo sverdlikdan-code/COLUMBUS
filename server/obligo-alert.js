@@ -304,6 +304,7 @@ const RECIPIENT_NAMES = {
   'yosiel@dilerbmd.com': 'יוסי',
   'dima@dilerbmd.com': 'דימה',
   'maxim@dilerbmd.com': 'מקסים',
+  'd.sverdlik@dilerbmd.com': 'דן',
 };
 
 function buildEmailHtml(crossed, greetName) {
