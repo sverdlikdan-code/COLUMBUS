@@ -1745,23 +1745,29 @@ async function loadMaps() {
     if (ri && ri.label) {
       document.getElementById('refresh-badge').textContent = '🔄 ' + ri.label;
     }
-    // Stale data banner — dateOnly=false: real build timestamp, hour-based (>36h). dateOnly=true: latestSaleDate
-    // has day granularity only (always 00:00) — compare by calendar day, not raw hours, or "yesterday's sales
-    // not synced yet" false-triggers every afternoon.
+    // Stale data banner — threshold counts ISRAELI WORKING DAYS (Sun-Thu), not raw hours or calendar days.
+    // Fri/Sat produce no sales and no SERVER DATE TIME update, so any calendar threshold false-triggered every
+    // Sunday morning: latestSaleDate = Friday (2 calendar days back), ri.iso = Thursday evening (~62h back).
+    // Working days are counted strictly BETWEEN the data date and today, excluding both — so "data from
+    // yesterday" is always fresh (today's sales simply are not synced yet), and a real gap still fires.
+    function _workdaysBetween(fromDate, toDate) {
+      let n = 0;
+      const cur = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate() + 1);
+      while (cur < toDate) {
+        if (cur.getDay() <= 4) n++; // Sun(0)-Thu(4) = working days in Israel
+        cur.setDate(cur.getDate() + 1);
+      }
+      return n;
+    }
     function _checkStaleBanner(isoStr, dateOnly) {
       if (!isoStr) return;
       const banner = document.getElementById('stale-banner');
       if (!banner) return;
       const d = new Date(isoStr);
-      let stale;
-      if (dateOnly) {
-        const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
-        const startOfD = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-        const daysDiff = Math.floor((startOfToday - startOfD) / 86400000);
-        stale = daysDiff >= 2; // 1 day behind = today's sales not synced yet (normal); 2+ = actually stale
-      } else {
-        stale = (Date.now() - d.getTime()) / 3600000 > 36;
-      }
+      const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
+      const startOfD = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      // ponytail: fixed Sun-Thu week, no holiday calendar — upgrade when holiday gaps of 2+ working days start firing falsely
+      const stale = _workdaysBetween(startOfD, startOfToday) >= 1;
       if (stale) {
         const label = d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' })
           + (dateOnly ? '' : ' ' + d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }));
