@@ -1039,26 +1039,11 @@ app.post('/log-access', requireAuth, dataRateLimit, (req, res) => {
   res.json({ ok: true });
 });
 
-// ── Magic-link invite tokens (HMAC-SHA256, no external lib) ─────────────────
-const INVITE_SECRET = process.env.INVITE_SECRET;
-if (!INVITE_SECRET) { console.error('FATAL: INVITE_SECRET not set in .env'); process.exit(1); }
-function signInvite(payload) {
-  const data = Buffer.from(JSON.stringify(payload)).toString('base64url');
-  const sig = require('crypto').createHmac('sha256', INVITE_SECRET).update(data).digest('base64url');
-  return `${data}.${sig}`;
-}
-function verifyInvite(token) {
-  try {
-    const dot = token.lastIndexOf('.');
-    if (dot < 1) return null;
-    const data = token.slice(0, dot), sig = token.slice(dot + 1);
-    const expected = require('crypto').createHmac('sha256', INVITE_SECRET).update(data).digest('base64url');
-    if (sig !== expected) return null;
-    const payload = JSON.parse(Buffer.from(data, 'base64url').toString());
-    if (Date.now() > payload.exp) return null;
-    return payload;
-  } catch(_) { return null; }
-}
+// ── Invite links ─────────────────────────────────────────────────────────────
+// Only short server-stored links (/i/:code) remain. The old HMAC-signed
+// /invite/:token scheme was removed 2026-09-28: INVITE_SECRET leaked into the
+// public repo (git history) and anyone holding it could mint a manager session.
+// Nothing generated those tokens anymore (signInvite had no callers).
 
 function _inviteRedirect(payload, res) {
   // Manager invites (payload.isManager) create a real manager session — full
@@ -1093,17 +1078,11 @@ const _inviteExpiredPage = `<!DOCTYPE html><html><head><meta charset=utf-8><titl
 <h2 style="color:#c62828">הקישור פג תוקף</h2>
 <p style="color:#555">בקש קישור חדש מהמנהל.</p></body></html>`;
 
-// GET /invite/:token — magic link: verify → set cookie → redirect directly to formula-road with params
-// formula-road.html reads _inv/_ac/_an from URL params and sets localStorage itself (avoids Custom Tab context split)
-app.get('/invite/:token', dataRateLimit, (req, res) => {
-  const payload = verifyInvite(req.params.token);
-  if (!payload) return res.status(400).send(_inviteExpiredPage);
-  return _inviteRedirect(payload, res);
-});
+// GET /invite/:token — retired signed-link scheme; old links get the expired page.
+app.get('/invite/:token', dataRateLimit, (req, res) => res.status(400).send(_inviteExpiredPage));
 
-// GET /i/:code — short invite link. Same security properties as /invite/:token
-// (unguessable random code, server-stored, expires), just short enough to look
-// presentable in an email/WhatsApp message instead of a long base64 blob.
+// GET /i/:code — short invite link: unguessable random code, server-stored,
+// expires. formula-road.html reads _inv/_ac/_an from the redirect URL params.
 const SHORT_INVITE_FILE = path.join(__dirname, 'data', 'short-invites.json');
 function loadShortInvites() {
   try { return JSON.parse(fs.readFileSync(SHORT_INVITE_FILE, 'utf8')); } catch { return {}; }
