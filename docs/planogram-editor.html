@@ -4398,12 +4398,12 @@ function _expiryImgErr(img) {
   img.outerHTML = '<div style="width:72px;height:72px;background:#f0f0f0;border-radius:6px;border:1px solid #e0e0e0;display:flex;align-items:center;justify-content:center;font-size:20px;">📷</div>';
 }
 
-// עלות סכנה: cartons in סכנה × units/carton × unit cost (KARTIS PARIT[עלות ש"ח] — product-data costUnit).
-function _sakanaCostHtml(mk, sakCartons) {
+// עלות לזריקה: expected-throw cartons (צפי לזריקה) × units/carton × unit cost (KARTIS PARIT[עלות ש"ח] — product-data costUnit).
+function _throwCostHtml(mk, throwCartons) {
   const d = productData[String(mk)];
-  if (!(sakCartons > 0) || !d?.costUnit || !d?.packFactor) return '';
-  const v = Math.round(sakCartons * d.packFactor * d.costUnit);
-  return `<div style="font-size:8px;color:#b71c1c;text-align:center;margin-top:5px;line-height:1.3;">עלות סכנה<br><b style="font-size:11px;font-weight:900;">₪${v.toLocaleString('en-US')}</b></div>`;
+  if (!(throwCartons > 0) || !d?.costUnit || !d?.packFactor) return '';
+  const v = Math.round(throwCartons * d.packFactor * d.costUnit);
+  return `<div style="font-size:8px;color:#b71c1c;text-align:center;margin-top:5px;line-height:1.3;">עלות לזריקה<br><b style="font-size:11px;font-weight:900;">₪${v.toLocaleString('en-US')}</b></div>`;
 }
 
 function _sparkSvg(weekSales, weekDates) {
@@ -4587,7 +4587,7 @@ function buildExpiryPage() {
           stroke-dasharray="${fill.toFixed(2)} ${circ.toFixed(2)}"
           stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})"/>
         <text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="7" fill="${clr}" font-weight="900" font-family="Arial">${pct}%</text>
-      </svg>${throwTxt}${_sakanaCostHtml(mk, _sakanaCartons)}`;
+      </svg>${throwTxt}${_throwCostHtml(mk, _throwCartons)}`;
     })();
 
     const thMain = sakanaMain
@@ -4650,11 +4650,6 @@ function buildExpiryPage() {
         const canSell = eff > 0 && combinedSales > 0 ? (eff / 1.4) * combinedSales : 0;
         return s + Math.ceil(Math.max(0, b.cartons - canSell));
       }, 0);
-      const _combinedSakana = merged.reduce((s, b) => {
-        if (!(b.cartons > 0) || b.daysLeft == null || !(combinedSales > 0)) return s;
-        const sellDays = Math.ceil((b.cartons / combinedSales) * 1.4);
-        return (b.daysLeft - sellDays) < (shelfLife ?? 0) ? s + b.cartons : s;
-      }, 0);
       const _pctC = totalStock > 0 ? Math.min(100, Math.round(_combinedThrow / totalStock * 100)) : 0;
       const _combinedBadge = (() => {
         if (!window._expiryOnlySakana || _pctC <= 0 || !anySakana) return '';
@@ -4667,7 +4662,7 @@ function buildExpiryPage() {
             stroke-dasharray="${fill.toFixed(2)} ${circ.toFixed(2)}"
             stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})"/>
           <text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="7" fill="${clr}" font-weight="900" font-family="Arial">${_pctC}%</text>
-        </svg>${_combinedThrow > 0 ? `<div style="font-size:8px;font-weight:800;color:#b71c1c;text-align:center;margin-top:1px;line-height:1.2;">🗑 ${Math.round(_combinedThrow)} קרט</div>` : ''}${_sakanaCostHtml(mk, _combinedSakana)}`;
+        </svg>${_combinedThrow > 0 ? `<div style="font-size:8px;font-weight:800;color:#b71c1c;text-align:center;margin-top:1px;line-height:1.2;">🗑 ${Math.round(_combinedThrow)} קרט</div>` : ''}${_throwCostHtml(mk, _combinedThrow)}`;
       })();
       const cBorder = isStop ? '2.5px solid #6a1b9a' : anySakana ? '2px solid #c62828' : '1px solid #dde0e8';
       const cThBg   = isStop ? '#6a1b9a' : anySakana ? '#c62828' : '#f5f5f5';
