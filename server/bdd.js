@@ -118,4 +118,48 @@ function resolveBddGps(c, s) {
     || { lat: null, lng: null, gpsSource: undefined };
 }
 
-module.exports = { BDD_GROUPS, unreversePbi, buildBddCache, summarizeBddDocs, bddCanWrite, resolveBddGps };
+// Datasets: FORMULA = default (clients, families, ALL_PARTS sales); ICE = TEAMS, GPS, schedule.
+async function loadBddCache(executeDax, iceDatasetId, fix) {
+  const T = `'לקוחות FORM+I+INT'`;
+  // Sequential on purpose (isolation rule): FORMULA shares the same PBI query quota,
+  // a burst of parallel queries is what caused the 429s before.
+  const teamRows = await executeDax(`EVALUATE SELECTCOLUMNS('TEAMS', "agentCode", 'TEAMS'[SOHEN NUMBER], "group", 'TEAMS'[מנהל], "agentName", 'TEAMS'[סוכן])`, iceDatasetId);
+  const clientRows = await executeDax(`EVALUATE SELECTCOLUMNS(FILTER(${T}, ${T}[HEVRA] = "ICE" && ${T}[סטטוס] = "פעיל"),
+      "custId", ${T}[מס. לקוח], "custName", ${T}[שם לקוח], "city", ${T}[עיר], "address", ${T}[כתובת],
+      "agentCode", ${T}[סוכן], "agentName", ${T}[שם סוכן], "clientType", ${T}[תאור סוג לקוח])`);
+  const gpsRows = await executeDax(`EVALUATE SELECTCOLUMNS(FILTER('משטח_UNICKS', NOT ISBLANK('משטח_UNICKS'[קו רוחב]) && 'משטח_UNICKS'[קו רוחב] <> 0),
+      "custId", 'משטח_UNICKS'[מס. לקוח], "lat", 'משטח_UNICKS'[קו רוחב], "lng", 'משטח_UNICKS'[קו אורך])`, iceDatasetId);
+  const schedRows = await executeDax(`EVALUATE SELECTCOLUMNS('משטח_ICE', "custId", 'משטח_ICE'[מס.לקוח], "day", 'משטח_ICE'[יום], "status", 'משטח_ICE'[סטטוס])`, iceDatasetId);
+  const familyRows = await executeDax(`EVALUATE SELECTCOLUMNS(FILTER(ADIFUT, SEARCH("bdd", ADIFUT[מחלקה], 1, 0) > 0), "fam", ADIFUT[תאור משפחה])`);
+  const cache = buildBddCache({ teamRows, clientRows, gpsRows, schedRows, familyRows }, fix);
+
+  // Month + 6-month BDD sales per client (ALL_PARTS, BDD families only).
+  if (cache.familiesRaw.length) {
+    const famIn = cache.familiesRaw.map(f => `"${String(f).replace(/"/g, '""')}"`).join(', ');
+    const now = new Date();
+    const s6 = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+    const e6 = new Date(now.getFullYear(), now.getMonth(), 0);
+    const monthRows = await executeDax(`EVALUATE CALCULATETABLE(ADDCOLUMNS(SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]),
+        "s", CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)]), "last", CALCULATE(MAX(ALL_PARTS[תאריך]))),
+        ALL_PARTS[חברה] = "ICE", ALL_PARTS[תאור משפחת מוצר] IN {${famIn}}, MONTH(ALL_PARTS[תאריך]) = MONTH(TODAY()), YEAR(ALL_PARTS[תאריך]) = YEAR(TODAY()))`);
+    const avgRows = await executeDax(`EVALUATE CALCULATETABLE(ADDCOLUMNS(SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]),
+        "s", DIVIDE(CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)]), 6), "o", DIVIDE(CALCULATE(DISTINCTCOUNT(ALL_PARTS[תאריך])), 6)),
+        ALL_PARTS[חברה] = "ICE", ALL_PARTS[תאור משפחת מוצר] IN {${famIn}},
+        ALL_PARTS[תאריך] >= DATE(${s6.getFullYear()},${s6.getMonth() + 1},1), ALL_PARTS[תאריך] <= DATE(${e6.getFullYear()},${e6.getMonth() + 1},${e6.getDate()}))`);
+    const patch = (rows, fn) => {
+      for (const r of rows) {
+        const id = String(r['ALL_PARTS[מספר לקוח]'] || '');
+        if (!cache.clientById.has(id)) continue;
+        for (const c of cache.byAgent.get(cache.clientById.get(id).agentCode) || []) if (c.custId === id) fn(c, r);
+      }
+    };
+    patch(monthRows, (c, r) => {
+      c.monthlySales = Math.round(parseFloat(r['[s]']) || 0);
+      c.lastOrderDate = r['[last]'] ? new Date(r['[last]']).toISOString().slice(0, 10) : null;
+    });
+    patch(avgRows, (c, r) => { c.avg6Sales = Math.round(parseFloat(r['[s]']) || 0); c.avg6Orders = Math.round(parseFloat(r['[o]']) || 0); });
+  }
+  return cache;
+}
+
+module.exports = { BDD_GROUPS, unreversePbi, buildBddCache, summarizeBddDocs, bddCanWrite, resolveBddGps, loadBddCache };
