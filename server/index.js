@@ -125,15 +125,11 @@ async function _loadPBICacheAttempt() {
   console.log('[PBI] Loading cache...');
   {
     // A: All active clients + targets from 'משטח'
-    // EXCLUDED_CHAINS: chains temporarily pulled out of the app entirely (not just
-    // hidden in UI) — filtered here at the DAX source so they never enter clientMap,
-    // which every routing/territory/day-briefing/zikuy feature reads from.
-    // מעיין 0002 (displays as "מעיין 2000" — BiDi digit-reversal, see hebrew-bidi skill)
-    // excluded 2026-09-08 per user request.
+    // מעיין 2000 chain was excluded here 2026-09-08 (65fc27bf), reopened 2026-09-28 per user request.
     const clientRows = await executeDax(`
 EVALUATE
 ADDCOLUMNS(
-  FILTER('משטח', 'משטח'[סטטוס] = "פעיל" && 'משטח'[תאור סוג לקוח] <> "מעיין 0002"),
+  FILTER('משטח', 'משטח'[סטטוס] = "פעיל"),
   "target", CALCULATE([יעד $])
 )
 `);
@@ -1352,7 +1348,7 @@ app.get('/manager/gps-report', requireAuth, async (req, res) => {
       const rows = await executeDax(`
 EVALUATE
 SELECTCOLUMNS(
-  FILTER('משטח', 'משטח'[סטטוס] = "פעיל" && 'משטח'[תאור סוג לקוח] <> "מעיין 0002"),
+  FILTER('משטח', 'משטח'[סטטוס] = "פעיל"),
   "custId",    'משטח'[מס. לקוח],
   "custName",  'משטח'[שם לקוח],
   "city",      'משטח'[עיר],
