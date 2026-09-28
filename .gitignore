@@ -31,6 +31,9 @@ server/order-history-store.json
 docs/gps-corrections.json
 docs/territory-overrides.json
 docs/gps-versions.json
+# מקרר orders — live only on VPS (personal data, public repo)
+docs/mekarer-orders.json
+server/mekarer-daily-state.json
 !planogram/breira-default/FOR-ALL.xlsx
 
 # Migration secrets — NEVER commit
