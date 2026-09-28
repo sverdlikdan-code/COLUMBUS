@@ -525,6 +525,30 @@ async function fetchWeeklySales(makatim) {
   return result;
 }
 
+// ── Unit cost per unit from KARTIS PARIT[עלות ש"ח] — for עלות סכנה on expiry cards.
+// Checked 2026-09-28: equals SUM(עלות)/SUM(כמות) over last-30-day מכר in ALL_PARTS
+// (cakes 1:1, cheeses 47 vs ~45.5) — user chose the simpler card value.
+// Returns { mk: costPerUnit }
+async function fetchUnitCost(makatim) {
+  if (!makatim || !makatim.length) return {};
+  const t = await getToken();
+  const makatList = makatim.map(m => `"${String(m).replace(/"/g, '')}"`).join(',');
+  const rows = await dax(t, `
+    EVALUATE
+    FILTER(
+      SELECTCOLUMNS('KARTIS PARIT', "mk", 'KARTIS PARIT'[מק"ט], "unit", 'KARTIS PARIT'[עלות ש"ח]),
+      [mk] IN {${makatList}}
+    )
+  `).catch(e => { console.warn('fetchUnitCost DAX error:', e.message); return []; });
+  const result = {};
+  for (const r of rows) {
+    const mk = String(r['[mk]'] ?? '');
+    const v = +r['[unit]'];
+    if (mk && v > 0) result[mk] = Math.round(v * 100) / 100;
+  }
+  return result;
+}
+
 // ── Last data update time — from SERVER DATE TIME table (MAX ORDERS.UDATE from SQL Server)
 // This is the actual source-data timestamp that PBI reports show.
 // Fallback: PBI dataset refresh API (= when PBI pulled data, often stale).
@@ -1249,4 +1273,4 @@ async function fetchDagimMonthlyTrend() {
   return byMk;
 }
 
-module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchStopSale, fetchHalaviFromBI, fetchDagimFromBI, fetchDagimMonthlyTrend, fetchPhotoUrls, getToken, triggerAndWaitRefresh, fetchWeeklySales };
+module.exports = { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchStopSale, fetchHalaviFromBI, fetchDagimFromBI, fetchDagimMonthlyTrend, fetchPhotoUrls, getToken, triggerAndWaitRefresh, fetchWeeklySales, fetchUnitCost };

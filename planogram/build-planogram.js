@@ -14,7 +14,7 @@ if (!process.env.PBI_TENANT && process.env.AZURE_TENANT_ID) {
 const fs      = require('fs');
 const path    = require('path');
 const ExcelJS = require('exceljs');
-const { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchHalaviFromBI, fetchDagimFromBI, fetchDagimMonthlyTrend, fetchPhotoUrls, triggerAndWaitRefresh, fetchWeeklySales } = require('./pbi-kapua');
+const { fetchKapuaFromBI, fetchLastRefresh, fetchStockMain, fetchNamesForMakats, fetchPakuotForMakats, fetchPakuotZafnForMakats, fetchPakuotAllForMakats, fetchShelfLifeForMakats, fetchHalaviFromBI, fetchDagimFromBI, fetchDagimMonthlyTrend, fetchPhotoUrls, triggerAndWaitRefresh, fetchWeeklySales, fetchUnitCost } = require('./pbi-kapua');
 const { fetchExtraSheets }   = require('./pbi-extra-sheets');
 const { fetchDagimYaveshFromBI } = require('./pbi-dagim-yavesh');
 
@@ -1516,6 +1516,21 @@ async function main() {
         }
       }
       console.log(`weekSales: ${wkCount} מקטים`);
+    }
+
+    // ── unit cost (KARTIS PARIT[עלות ש"ח]) — for עלות סכנה on expiry cards ──────
+    // PBI failure/rate-limit → keep previous value, so the ₪ figure doesn't blink off.
+    {
+      const costMap = await fetchUnitCost(Object.keys(prodData)).catch(e => {
+        console.warn('⚠ fetchUnitCost (non-fatal):', e.message);
+        return {};
+      });
+      let cCount = 0;
+      for (const mk of Object.keys(prodData)) {
+        const v = costMap[mk] ?? prevProdDataAll[mk]?.costUnit;
+        if (v != null) { prodData[mk].costUnit = v; cCount++; }
+      }
+      console.log(`costUnit: ${Object.keys(costMap).length} fresh, ${cCount} total מקטים`);
     }
 
     fs.writeFileSync(path.join(__dirname,'..','docs','product-data.json'),
