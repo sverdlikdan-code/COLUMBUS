@@ -2043,8 +2043,10 @@ async function init(){
   if(!getToken()){location.href=(location.hostname.includes('sverdlik-apps')?'/formula-road':('formula-road.html'))+'?next=territory.html';return;}
   await Promise.all([loadCities(), loadDropAgents(), loadManagers(), loadCorrections(), loadAiGps(), loadTabletGps()]);
   // Default: AI Google GPS (tablet GPS off)
+  // Default cities restored 2026-09-28 (were removed 06.08, 2b4e8c37) — all cities only if none of these exist
   if(!selectedCities.size && allCities.length){
-    allCities.forEach(c=>selectedCities.add(c));
+    ['ירושלים','מעלה אדומים','מבשרת ציון'].forEach(c=>{ if(allCities.includes(c)) selectedCities.add(c); });
+    if(!selectedCities.size) allCities.forEach(c=>selectedCities.add(c));
     renderCityItems(allCities); updateCityBtn(); onCitiesChanged();
   }
 }

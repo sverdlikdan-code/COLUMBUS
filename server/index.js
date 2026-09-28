@@ -2151,7 +2151,9 @@ app.get('/territory-clients', requireAuth, dataRateLimit, async (req, res) => {
   const corrections = fs.existsSync(corrPath) ? JSON.parse(fs.readFileSync(corrPath, 'utf8')) : {};
 
   const clientsForBatch = [];
-  for (const [agentCode, clients] of pbiCache.byAgent) {
+  // noScheduleByAgent too — clients with no visit day ("לא מוגדר") were silently
+  // missing from territory since it was written (14.07), user asked to show them 2026-09-28.
+  for (const [agentCode, clients] of [...pbiCache.byAgent, ...(pbiCache.noScheduleByAgent || [])]) {
     for (const c of clients) {
       if (!cityAll && (!c.city || !citySet.has(c.city))) continue;
       const corr = corrections[String(c.custId)];
