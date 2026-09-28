@@ -1,0 +1,30 @@
+# gitleaks — скан секретов (pre-commit хук + разовые сканы истории).
+# Стандартные правила gitleaks + свои: пароли в env/connection-string стиле, которые
+# стандартный набор пропускает (пароль БД Priority лежал в VAULT с 2026-06-28, найден 2026-09-28).
+[extend]
+useDefault = true
+
+[[rules]]
+id = "env-password"
+description = "Password assignment (DB_PASSWORD=, PASS=, Password=...)"
+regex = '''(?i)\b(?:[A-Z0-9]+_)*(?:PASSWORD|PASSWD|PWD|PASS)\b[ \t]*[=:][ \t]*['"]?([^\s'"`;,)]{6,})'''
+secretGroup = 1
+keywords = ["password", "passwd", "pwd", "pass"]
+
+[[rules.allowlists]]
+description = "Шаблоны и ссылки на переменные, не реальные пароли"
+regexTarget = "secret"
+regexes = [
+  '''^\$''',
+  '''^process\.env''',
+  '''(?i)^(password|placeholder|changeme|xxx+|\*+|<.*>|\{.*\}|your_?password.*|\(в\s)''',
+]
+
+[allowlist]
+description = "Сторонний код"
+paths = [
+  '''(^|/)node_modules/''',
+  '''\.min\.js$''',
+  '''package-lock\.json$''',
+  '''^\.claude/SKILLS/superpowers/tests/''',
+]

@@ -9,7 +9,7 @@
 - Создан `app/eas.json` с профилями `preview` (APK) и `production` (AAB)
 - Добавлен `android.package: "com.formularoad.app"` в `app.json`
 - Проект привязан к Expo: ID `5a329f0b-5cc6-495f-bacb-1ff4d7ff25aa`, org `dansverdliks-organization`
-- EXPO_TOKEN: `***REMOVED***`
+- EXPO_TOKEN: `(в GitHub Secrets, не коммитить)`
 - Собраны APK:
   - v1: `https://expo.dev/artifacts/eas/9c4gbKqVA9nZSv9JrFFdCs.apk` — базовая
   - v2: `https://expo.dev/artifacts/eas/9cXYiJCK8Q4xoZ1x9tb6A7.apk` — с UI правками (без Cloudflare URL)
