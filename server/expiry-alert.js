@@ -125,20 +125,28 @@ function riskSummary(risks) {
   return { total, top, topSum: acc, noCost: risks.length - withCost.length };
 }
 
+// Outlook (Word-движок) игнорирует CSS direction/unicode-bidi — "₪149,458" внутри ивритской
+// строки разворачивался в "458₪149,". Явные LRE…PDF вокруг суммы держат порядок везде.
+const ltr = s => `&#x202A;${s}&#x202C;`;
+
+// Рамка/фон — на ячейке таблицы, не на div: Outlook рисует фон div только частично
+// (список выпадал из розового блока, 2026-09-28).
 function buildRiskHtml({ total, top, topSum, noCost }) {
   if (!total) return '';
   const items = top.map((r, i) => `<tr>
       <td style="padding:5px 0;font-size:14px;color:${INK};width:24px;vertical-align:top">${i + 1}.</td>
       <td style="padding:5px 0;font-size:14px;color:${INK}">${r.name}</td>
-      <td style="padding:5px 0 5px 4px;font-size:14px;font-weight:bold;color:#b71c1c;text-align:left;white-space:nowrap;direction:ltr">${fmtILS(r.cost)}</td>
+      <td align="left" style="padding:5px 0 5px 4px;font-size:14px;font-weight:bold;color:#b71c1c;text-align:left;white-space:nowrap">${ltr(fmtILS(r.cost))}</td>
     </tr>`).join('');
   return `<tr><td dir="rtl" style="padding:8px 28px 6px;text-align:right">
-    <div style="border:1.5px solid #c62828;border-radius:10px;padding:14px 18px;background:#FFF5F5">
-      <div style="font-size:16px;font-weight:900;color:${INK}">סה"כ סיכון (עלות לזריקה צפויה): <span style="color:#b71c1c;direction:ltr;unicode-bidi:embed">${fmtILS(total)}</span></div>
-      <div style="padding-top:8px;font-size:13px;color:${MUTED}">מתוכם ${Math.round(topSum / total * 100)}% — ${fmtILS(topSum)} — ב-${top.length} ${top.length === 1 ? 'מוצר' : 'מוצרים'}:</div>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="rtl" style="margin-top:4px">${items}</table>
-      ${noCost ? `<div style="padding-top:6px;font-size:11px;color:${MUTED}">${noCost} מוצרים ללא נתוני עלות — לא נכללו בסכום.</div>` : ''}
-    </div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="rtl"><tr>
+      <td bgcolor="#FFF5F5" style="background-color:#FFF5F5;border:2px solid #c62828;border-radius:10px;padding:14px 18px;text-align:right">
+        <div style="font-size:16px;font-weight:900;color:${INK}">סה"כ סיכון (עלות לזריקה צפויה): <span style="color:#b71c1c">${ltr(fmtILS(total))}</span></div>
+        <div style="padding-top:8px;font-size:13px;color:${MUTED}">מתוכם ${ltr(Math.round(topSum / total * 100) + '%')} — ${ltr(fmtILS(topSum))} — ב-${top.length} ${top.length === 1 ? 'מוצר' : 'מוצרים'}:</div>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="rtl" style="margin-top:4px">${items}</table>
+        ${noCost ? `<div style="padding-top:6px;font-size:11px;color:${MUTED}">${noCost} מוצרים ללא נתוני עלות — לא נכללו בסכום.</div>` : ''}
+      </td>
+    </tr></table>
   </td></tr>`;
 }
 
