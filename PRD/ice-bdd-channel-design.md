@@ -11,10 +11,15 @@ stage.
 
 ## Approach
 
-A second *channel* inside Formula Road. A manager row in
-`server/data/managers.json` gets `channel: "ICE_BDD"`; it is copied into the
-session and every data route picks its source by channel. UI is shared,
-BDD-irrelevant actions are hidden. FORMULA sessions are untouched.
+A second *channel* inside Formula Road, **in its own files and URL space**. A manager
+row in `server/data/managers.json` gets `channel: "ICE_BDD"`; it is copied into the
+session. All BDD server routes are a separate Express router at `/api/bdd`
+(`server/bdd-routes.js`, logic in `server/bdd.js`, Priority SQL in
+`server/bdd-priority.js` on its own pool). FORMULA route handlers are not edited; the
+frontend's `apiFetch` sends a fixed list of paths to `/api/bdd/…` for BDD logins only.
+UI is shared, BDD-irrelevant actions are hidden. Chosen over a separate app
+(2026-09-28): no duplicated auth/invites/map/geocoding/UI to maintain; over branches
+inside FORMULA routes: zero diff in FORMULA handlers, rollback = remove one `app.use`.
 
 ## Data — PBI, loaded once a day next to the FORMULA cache
 
@@ -22,7 +27,7 @@ BDD-irrelevant actions are hidden. FORMULA sessions are untouched.
 |---|---|
 | Clients, agent names | FORMULA dataset → `לקוחות FORM+I+INT`, `HEVRA = "ICE"`, `סטטוס = "פעיל"` |
 | Group → agents | ICE dataset → `TEAMS` (`מנהל`, `סוכן`, key `SOHEN NUMBER`) |
-| GPS | ICE dataset → `משטח_UNICKS[קו רוחב/קו אורך]` (FORM+I+INT has 0) |
+| GPS | cascade, first hit wins: ① BDD's own 📍 (`docs/gps-corrections-bdd.json`) → ② what FORMULA / ICE מישפחתי already know for the same custId (FORMULA 📍, tablet GPS, PBI coord, FORMULA resolved cache) — **read-only** → ③ ICE card `משטח_UNICKS[קו רוחב/קו אורך]` → ④ BDD night geocoding (own resolved file, max 200/night, 02:00 Israel). Nothing found → NO GPS |
 | Visit day | ICE dataset → `משטח_ICE[יום]` (one row per client-day, א–ה; ש → "לא מוגדר") |
 | Month / 6-month sales | FORMULA dataset → `ALL_PARTS`, BDD families only |
 | BDD family list | FORMULA dataset → `ADIFUT[מחלקה]` containing `bdd` (same rule as `classifyLastOrderCompany`) |
@@ -47,9 +52,14 @@ client in BDD roster, `FAMILY.FAMILYDES` in BDD family list.
 - `ICE DOCS`: `TRANSORDER.TYPE` D (תעודת משלוח) / N (החזרה, negative) / X,V; `TRANSORDER.IV = 0`
   (not yet invoiced — no double count with INV); `DOCUMENTS.FINAL='Y'`; date `TRANSORDER.CURDATE`.
 
-Used for:
+One cached query result (75 s) feeds all of these:
 - **V badge** — client has any BDD movement today.
-- **סגירת יום** — net per agent for today: sales minus החזרות/זיכויים.
+- **סגירת יום** — net for today **by the executing agent** (`AGENTS.AGENTCODE` on the
+  document line), sales minus החזרות/זיכויים. No roster matching, no "new clients" /
+  "belongs to another agent" sections.
+- **Line coverage % ("X מתוך Y")** — agent banner and team tiles: denominator = agent's
+  clients scheduled today in `משטח_ICE`, numerator = distinct clients that agent executed
+  a BDD document for today.
 - **🏷️ מבצעים** — existing `SOF_PRICEREC` logic, `icecrea` only, parts in BDD families only.
 
 Priority down → V badges stay off, סגירת יום shows an error; nothing else breaks
@@ -71,9 +81,12 @@ Priority down → V badges stay off, סגירת יום shows an error; nothing e
 ## Screen
 
 - **Shown:** teams → agents → route, map, V, client search, Waze/Google, 📍 GPS edit,
-  🧊 fridge order, 🏷️ מבצעים, סגירת יום.
+  🧊 fridge order, 🏷️ מבצעים, סגירת יום, 🚫 exclude from route, 📅 change visit day.
 - **Sort:** "AI Google" by default, "Priority" button hidden (no visit order in source).
-- **Hidden:** זיכוי, 🚫, 📅, ניתוח יום, client AI analysis, יעדים, blank history.
+- **Hidden:** זיכוי, ניתוח יום, client AI analysis, יעדים, blank history.
+- 🚫 is browser-only state (no server write). 📅 writes BDD's own
+  `server/data/route-overrides-bdd.json` — never FORMULA's `route-overrides.json`
+  (BDD and FORMULA agent codes overlap).
 
 ## Fridge order
 
@@ -82,8 +95,12 @@ Same form, same 6 models, same recipient (`NOTIFY_EMAIL`). Email and Excel carry
 
 ## Safety / testing
 
-- All new code paths run only for `channel === "ICE_BDD"` sessions; a BDD load failure
-  logs and leaves FORMULA fully working.
+- Isolation rule (user, strict): nothing BDD does may affect FORMULA. All BDD code is in
+  new files under `/api/bdd`; `/api/bdd` answers 403 to non-BDD sessions; BDD writes
+  only its own files; FORMULA state is read-only for BDD; a BDD failure is caught
+  inside the BDD module and leaves FORMULA fully working.
+- Existing-code edits are limited to a fixed list (plan: "FORMULA touch points");
+  the pre-deploy diff against `checkpoint-before-ice-bdd` must show nothing else.
 - Before deploy: puppeteer screenshots of both a FORMULA and a BDD login (phone + tablet).
 - Negative check: FORMULA manager session still sees FORMULA groups and FORMULA V.
 - סגירת יום sanity: yesterday's BDD net per agent vs `ALL_PARTS` in PBI after refresh.
