@@ -704,6 +704,23 @@ function deviceType(ua) {
   return 'desktop';
 }
 
+// OS + browser family, no version — for device_mismatch. A full-UA compare fired
+// on every Chrome auto-update (152→154) and on Chrome's "desktop site" toggle,
+// which swaps "Android 10; K" for "X11; Linux x86_64" on the same phone — 23 of 25
+// hits 07.09–28.09 were those (other 2: own curl tests), zero real foreign devices.
+// ponytail: X11 Linux folded into android (no agent runs a Linux desktop), upgrade if one ever does
+function uaFamily(ua) {
+  const os = /iPhone|iPad|Macintosh/.test(ua) ? 'apple'
+    : /Android|X11; Linux/.test(ua) ? 'android'
+    : /Windows/.test(ua) ? 'windows' : 'other';
+  const br = /SamsungBrowser/.test(ua) ? 'samsung'
+    : /Edg/.test(ua) ? 'edge'
+    : /Firefox|FxiOS/.test(ua) ? 'firefox'
+    : /Chrome|CriOS/.test(ua) ? 'chrome'
+    : /Safari/.test(ua) ? 'safari' : 'other';
+  return os + '/' + br;
+}
+
 // ── RATE LIMITER ────────────────────────────────────────────────────────────
 const loginAttempts = new Map();
 const generalRequests = new Map();
@@ -862,7 +879,7 @@ function requireAuth(req, res, next) {
     if (!sess.ua) {
       sess.ua = ua;
       sess.ip = ip;
-    } else if (sess.ua !== ua) {
+    } else if (uaFamily(sess.ua) !== uaFamily(ua)) {
       writeLog({
         ts: new Date().toISOString(),
         event: 'device_mismatch',
