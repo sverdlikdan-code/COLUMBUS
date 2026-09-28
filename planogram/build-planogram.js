@@ -1518,7 +1518,7 @@ async function main() {
       console.log(`weekSales: ${wkCount} מקטים`);
     }
 
-    // ── unit cost (KARTIS PARIT[עלות ש"ח]) — for עלות סכנה on expiry cards ──────
+    // ── cost per carton (KARTIS PARIT × גורם אירוז) — for עלות לזריקה on expiry cards
     // PBI failure/rate-limit → keep previous value, so the ₪ figure doesn't blink off.
     {
       const costMap = await fetchUnitCost(Object.keys(prodData)).catch(e => {
@@ -1527,10 +1527,10 @@ async function main() {
       });
       let cCount = 0;
       for (const mk of Object.keys(prodData)) {
-        const v = costMap[mk] ?? prevProdDataAll[mk]?.costUnit;
-        if (v != null) { prodData[mk].costUnit = v; cCount++; }
+        const v = costMap[mk] ?? prevProdDataAll[mk]?.costCarton;
+        if (v != null) { prodData[mk].costCarton = v; cCount++; }
       }
-      console.log(`costUnit: ${Object.keys(costMap).length} fresh, ${cCount} total מקטים`);
+      console.log(`costCarton: ${Object.keys(costMap).length} fresh, ${cCount} total מקטים`);
     }
 
     fs.writeFileSync(path.join(__dirname,'..','docs','product-data.json'),

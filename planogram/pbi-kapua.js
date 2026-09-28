@@ -525,10 +525,12 @@ async function fetchWeeklySales(makatim) {
   return result;
 }
 
-// ── Unit cost per unit from KARTIS PARIT[עלות ש"ח] — for עלות סכנה on expiry cards.
+// ── Cost per carton = KARTIS PARIT[עלות ש"ח] (per unit) × גורם אירוז[תכולת האריזה למוצר]
+// — for עלות לזריקה on expiry cards. Pack factor taken here, not from product-data.packFactor:
+// that one is filled only for קפוא/חלבי (דגים/יבש had none → no ₪ on their cards, 2026-09-28).
 // Checked 2026-09-28: equals SUM(עלות)/SUM(כמות) over last-30-day מכר in ALL_PARTS
 // (cakes 1:1, cheeses 47 vs ~45.5) — user chose the simpler card value.
-// Returns { mk: costPerUnit }
+// Returns { mk: costPerCarton }
 async function fetchUnitCost(makatim) {
   if (!makatim || !makatim.length) return {};
   const t = await getToken();
@@ -536,14 +538,15 @@ async function fetchUnitCost(makatim) {
   const rows = await dax(t, `
     EVALUATE
     FILTER(
-      SELECTCOLUMNS('KARTIS PARIT', "mk", 'KARTIS PARIT'[מק"ט], "unit", 'KARTIS PARIT'[עלות ש"ח]),
+      SELECTCOLUMNS('KARTIS PARIT', "mk", 'KARTIS PARIT'[מק"ט], "unit", 'KARTIS PARIT'[עלות ש"ח],
+        "pf", LOOKUPVALUE('גורם אירוז'[תכולת האריזה למוצר], 'גורם אירוז'[מק"ט], 'KARTIS PARIT'[מק"ט])),
       [mk] IN {${makatList}}
     )
   `).catch(e => { console.warn('fetchUnitCost DAX error:', e.message); return []; });
   const result = {};
   for (const r of rows) {
     const mk = String(r['[mk]'] ?? '');
-    const v = +r['[unit]'];
+    const v = +r['[unit]'] * +r['[pf]'];
     if (mk && v > 0) result[mk] = Math.round(v * 100) / 100;
   }
   return result;

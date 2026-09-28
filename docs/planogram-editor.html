@@ -4398,11 +4398,12 @@ function _expiryImgErr(img) {
   img.outerHTML = '<div style="width:72px;height:72px;background:#f0f0f0;border-radius:6px;border:1px solid #e0e0e0;display:flex;align-items:center;justify-content:center;font-size:20px;">📷</div>';
 }
 
-// עלות לזריקה: expected-throw cartons (צפי לזריקה) × units/carton × unit cost (KARTIS PARIT[עלות ש"ח] — product-data costUnit).
+// עלות לזריקה: expected-throw cartons (צפי לזריקה) × cost per carton (product-data costCarton =
+// KARTIS PARIT[עלות ש"ח] × גורם אירוז, built in pbi-kapua fetchUnitCost).
 function _throwCostHtml(mk, throwCartons) {
   const d = productData[String(mk)];
-  if (!(throwCartons > 0) || !d?.costUnit || !d?.packFactor) return '';
-  const v = Math.round(throwCartons * d.packFactor * d.costUnit);
+  if (!(throwCartons > 0) || !d?.costCarton) return '';
+  const v = Math.round(throwCartons * d.costCarton);
   return `<div style="font-size:8px;color:#b71c1c;text-align:center;margin-top:5px;line-height:1.3;">עלות לזריקה<br><b style="font-size:11px;font-weight:900;">₪${v.toLocaleString('en-US')}</b></div>`;
 }
 

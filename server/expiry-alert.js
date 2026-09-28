@@ -76,10 +76,16 @@ async function shootCards() {
         pair.forEach(c => { c.style.boxSizing = 'border-box'; c.style.minHeight = h + 'px'; });
       }
     }, SEL);
+    // Имя + "עלות לזריקה" каждой карточки — прямо из DOM, те же числа что на картинке.
+    const risks = await page.$$eval(SEL, cs => cs.map(c => {
+      const costDiv = [...c.querySelectorAll('div')].find(d => d.textContent.trim().startsWith('עלות לזריקה'));
+      const nameDiv = c.querySelector('div[style*="font-size:10px;font-weight:bold"]');
+      return { name: nameDiv ? nameDiv.textContent.trim() : '', cost: costDiv ? +costDiv.textContent.replace(/[^\d]/g, '') : 0 };
+    }));
     const cards = await page.$$(SEL);
     const shots = [];
     for (const c of cards) shots.push(Buffer.from(await c.screenshot({ type: 'png' })));
-    if (shots.length === 0) return { shots, pdf: null };
+    if (shots.length === 0) return { shots, pdf: null, risks };
 
     // PDF для печати — из тех же картинок, 4 карточки на A4 (2×2). Своя простая вёрстка,
     // не print-CSS редактора: тот в headless разваливается.
@@ -99,14 +105,44 @@ async function shootCards() {
       img{display:block;width:100%;height:auto}
     </style></head><body>${pages.join('')}</body></html>`, { waitUntil: 'load' });
     const pdf = Buffer.from(await page.pdf({ preferCSSPageSize: true, printBackground: true }));
-    return { shots, pdf };
+    return { shots, pdf, risks };
   } finally {
     await browser.close();
     srv.close();
   }
 }
 
-function buildEmailHtml(n, greetName) {
+const fmtILS = v => '₪' + Math.round(v).toLocaleString('en-US');
+
+// Общая сумма риска + Парето: топ товаров, дающих первые 70% потерь (товар, пересекающий
+// порог, включается). Пользователь 2026-09-28.
+function riskSummary(risks) {
+  const withCost = risks.filter(r => r.cost > 0).sort((a, b) => b.cost - a.cost);
+  const total = withCost.reduce((s, r) => s + r.cost, 0);
+  const top = [];
+  let acc = 0;
+  for (const r of withCost) { if (acc >= total * 0.7) break; top.push(r); acc += r.cost; }
+  return { total, top, topSum: acc, noCost: risks.length - withCost.length };
+}
+
+function buildRiskHtml({ total, top, topSum, noCost }) {
+  if (!total) return '';
+  const items = top.map((r, i) => `<tr>
+      <td style="padding:5px 0;font-size:14px;color:${INK};width:24px;vertical-align:top">${i + 1}.</td>
+      <td style="padding:5px 0;font-size:14px;color:${INK}">${r.name}</td>
+      <td style="padding:5px 0 5px 4px;font-size:14px;font-weight:bold;color:#b71c1c;text-align:left;white-space:nowrap;direction:ltr">${fmtILS(r.cost)}</td>
+    </tr>`).join('');
+  return `<tr><td dir="rtl" style="padding:8px 28px 6px;text-align:right">
+    <div style="border:1.5px solid #c62828;border-radius:10px;padding:14px 18px;background:#FFF5F5">
+      <div style="font-size:16px;font-weight:900;color:${INK}">סה"כ סיכון (עלות לזריקה צפויה): <span style="color:#b71c1c;direction:ltr;unicode-bidi:embed">${fmtILS(total)}</span></div>
+      <div style="padding-top:8px;font-size:13px;color:${MUTED}">מתוכם ${Math.round(topSum / total * 100)}% — ${fmtILS(topSum)} — ב-${top.length} ${top.length === 1 ? 'מוצר' : 'מוצרים'}:</div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="rtl" style="margin-top:4px">${items}</table>
+      ${noCost ? `<div style="padding-top:6px;font-size:11px;color:${MUTED}">${noCost} מוצרים ללא נתוני עלות — לא נכללו בסכום.</div>` : ''}
+    </div>
+  </td></tr>`;
+}
+
+function buildEmailHtml(n, greetName, risk) {
   const greeting = greetName ? `שלום ${greetName},` : 'שלום,';
   const rows = [];
   for (let i = 0; i < n; i += 2) {
@@ -125,6 +161,7 @@ function buildEmailHtml(n, greetName) {
     <div style="padding-top:10px;font-size:11px;color:${GOLD}">${new Date().toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
   </td></tr>
   <tr><td dir="rtl" style="padding:20px 28px 8px;text-align:right;font-size:14px;color:${INK}">${greeting} מצורף דוח תוקף — מוצרים בסכנה ו-STOP SALE, כמו במסך דוח התוקף של המחסן.</td></tr>
+  ${buildRiskHtml(risk)}
   <tr><td dir="rtl" style="padding:4px 28px 10px;text-align:right">
     <div style="display:inline-block;padding:9px 16px;border:1.5px solid ${NAVY};border-radius:8px;background:#EEF3FA;font-size:13px;font-weight:bold;color:${NAVY}">🖨 להדפסה — פתחו את קובץ ה-PDF המצורף (4 מוצרים בעמוד A4)</div>
   </td></tr>
@@ -137,7 +174,10 @@ function buildEmailHtml(n, greetName) {
 }
 
 async function main() {
-  const { shots, pdf } = await shootCards();
+  const { shots, pdf, risks } = await shootCards();
+  const risk = riskSummary(risks);
+  if (risk.noCost) console.log('Без суммы:', risks.filter(r => !(r.cost > 0)).map(r => r.name).join(' ; '));
+  console.log(`Риск: ${fmtILS(risk.total)}, топ-70%: ${risk.top.map(r => r.name + ' ' + fmtILS(r.cost)).join('; ')}`);
   console.log(`Карточек סכנה/STOP SALE: ${shots.length}`);
   if (shots.length === 0) return;
 
@@ -145,7 +185,7 @@ async function main() {
     const out = path.join(__dirname, '..', '.scratch');
     fs.mkdirSync(out, { recursive: true });
     fs.writeFileSync(path.join(out, 'expiry-alert-preview.html'),
-      buildEmailHtml(shots.length, 'דן').replace(/cid:card-(\d+)/g, (_, i) => `data:image/png;base64,${shots[i].toString('base64')}`)
+      buildEmailHtml(shots.length, 'דן', risk).replace(/cid:card-(\d+)/g, (_, i) => `data:image/png;base64,${shots[i].toString('base64')}`)
         .replace('cid:diler-logo-white', 'data:image/png;base64,' + fs.readFileSync(path.join(DOCS, 'logo-diler-bmd-white.png')).toString('base64')));
     fs.writeFileSync(path.join(out, 'expiry-alert-preview.pdf'), pdf);
     console.log('--dry-run — письмо не отправлено, превью в .scratch/expiry-alert-preview.html/.pdf');
@@ -171,8 +211,16 @@ async function main() {
       from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
       to: [recipient],
       subject,
-      html: buildEmailHtml(shots.length, greetName),
-      text: `${greetName ? `שלום ${greetName},` : 'שלום,'} ${shots.length} מוצרים בסכנה / STOP SALE במחסן FORMULA — פרטים בגרסת HTML של המייל. להדפסה — קובץ PDF מצורף.`,
+      html: buildEmailHtml(shots.length, greetName, risk),
+      text: [
+        `${greetName ? `שלום ${greetName},` : 'שלום,'} ${shots.length} מוצרים בסכנה / STOP SALE במחסן FORMULA.`,
+        '',
+        `סה"כ סיכון (עלות לזריקה צפויה): ${fmtILS(risk.total)}`,
+        `מתוכם ${risk.total ? Math.round(risk.topSum / risk.total * 100) : 0}%:`,
+        ...risk.top.map((r, i) => `${i + 1}. ${r.name} — ${fmtILS(r.cost)}`),
+        '',
+        'להדפסה — קובץ PDF מצורף.',
+      ].join('\n'),
       attachments,
     });
     console.log(recipient, JSON.stringify(res));
