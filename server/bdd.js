@@ -71,4 +71,51 @@ function buildBddCache({ teamRows, clientRows, gpsRows, schedRows, familyRows },
   return { agentGroup, agentsByGroup, byAgent, clientById, families, familiesRaw, loadedAt: new Date() };
 }
 
-module.exports = { BDD_GROUPS, unreversePbi, buildBddCache };
+// One Priority result (bddDocLinesToday) feeds V, סגירת יום and line coverage.
+// Families are filtered here, not in SQL, so the SQL stays the ICE M code's own shape.
+// Sign split: src 'N' = החזרה (DOCS), negative INV = זיכוי, everything else = sale.
+function summarizeBddDocs(rows, families) {
+  const custIds = new Set();
+  const byAgent = new Map();
+  for (const r of rows) {
+    if (!families.has(r.familyDes)) continue;
+    custIds.add(r.custId);
+    if (!byAgent.has(r.agentCode)) byAgent.set(r.agentCode, { agentName: r.agentName, custSet: new Set(), sales: 0, returns: 0, credits: 0 });
+    const a = byAgent.get(r.agentCode);
+    a.custSet.add(r.custId);
+    if (r.src === 'N') a.returns += r.amount;
+    else if (r.src === 'INV' && r.amount < 0) a.credits += r.amount;
+    else a.sales += r.amount;
+  }
+  const round = n => Math.round(n * 100) / 100;
+  for (const a of byAgent.values()) {
+    a.custCount = a.custSet.size;
+    a.sales = round(a.sales); a.returns = round(a.returns); a.credits = round(a.credits);
+    a.sum = round(a.sales + a.returns + a.credits);
+  }
+  return { custIds, byAgent };
+}
+
+function bddCanWrite(session, agentCode, cache) {
+  if (!session?.isManager) return false;
+  if (session.managerRole === 'super') return true;
+  if (session.channel !== 'ICE_BDD' || session.managerRole !== 'team' || !cache) return false;
+  const group = cache.agentGroup.get(String(agentCode));
+  return !!group && (session.managerTeams || []).includes(group);
+}
+
+// GPS cascade (user-approved 2026-09-28), first hit wins. Pure: every source is
+// passed in; FORMULA sources are read-only views, nothing here writes anything.
+function resolveBddGps(c, s) {
+  const id = String(c.custId);
+  const pick = (p, gpsSource) => (p && s.isValid(p.lat, p.lng) ? { lat: p.lat, lng: p.lng, gpsSource } : null);
+  return pick(s.bddCorr[id], 'correction')
+    || pick(s.formulaCorr[id], 'formula-correction')
+    || pick(s.tablet.get(id), 'tablet-order')
+    || pick(s.formulaKnown.get(id), 'formula')
+    || pick(c, 'pbi')
+    || pick(s.bddResolved[id], 'geocoded')
+    || { lat: null, lng: null, gpsSource: undefined };
+}
+
+module.exports = { BDD_GROUPS, unreversePbi, buildBddCache, summarizeBddDocs, bddCanWrite, resolveBddGps };
