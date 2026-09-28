@@ -86,7 +86,7 @@ https://api.sverdlik-apps.site/formula-road?k=LN80v9eK7hEng5LagaHs2Feh
 
 ### server/db.js — пул подключений к SQL Server
 - База `form` (не `icecrea`) — подтверждено через TMDL
-- Credentials из `.env`: DB_USER=ReadOnlyUser, DB_PASSWORD=***REMOVED***
+- Credentials из `.env`: DB_USER=ReadOnlyUser, DB_PASSWORD=(в .env, не коммитить)
 
 ### Миграция эндпоинтов
 - `/managers` → SQL: `form.dbo.CUSTOMERS` + `system.dbo.USERSB.SNAME` (вместо TEAMS.xlsx)
