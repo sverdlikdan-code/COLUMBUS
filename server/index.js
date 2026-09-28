@@ -606,7 +606,10 @@ app.use((req, res, next) => { if (req.method === 'POST') console.log(`[POST] ${r
 app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('Referrer-Policy', 'no-referrer');
+  // strict-origin-when-cross-origin, not no-referrer: OSM tile servers now 403 any request
+  // without a Referer (osm.wiki/Blocked, seen 2026-09-28). Cross-origin gets only the bare
+  // origin — no path/query, so invite/token URLs still never leak to third parties.
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=()');
   res.setHeader('Content-Security-Policy',
