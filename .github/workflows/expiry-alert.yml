@@ -1,0 +1,42 @@
+name: Expiry Alert
+
+# Ежедневный алярм "דוח תוקף" (סכנה + STOP SALE) из редактора махсана — карточки снимаются
+# Puppeteer'ом с docs/planogram-editor.html (см. server/expiry-alert.js). Письмо уходит только
+# если есть хотя бы одна карточка. Отдельный job, как obligo-alert — живой сервер/PBI не трогает.
+on:
+  schedule:
+    # Вс–Чт 07:30 Israel (UTC+3) = 04:30 UTC — после ночной пересборки planogram-build (03:21 UTC)
+    - cron: '30 4 * * 0-4'
+  workflow_dispatch:
+    inputs:
+      to:
+        description: 'Тест: слать только на этот адрес (пусто = всем из секрета)'
+        required: false
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Hebrew + emoji fonts for Chrome
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-core fonts-noto-color-emoji
+
+      - name: Install server dependencies
+        run: npm install
+        working-directory: server
+
+      - name: Run expiry-alert
+        run: node expiry-alert.js
+        working-directory: server
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EXPIRY_ALERT_RECIPIENTS: ${{ inputs.to || secrets.EXPIRY_ALERT_RECIPIENTS }}
