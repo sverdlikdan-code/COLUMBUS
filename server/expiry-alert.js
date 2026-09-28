@@ -13,6 +13,8 @@ const puppeteer = require('puppeteer');
 const { Resend } = require('resend');
 
 const DRY_RUN = process.argv.includes('--dry-run');
+// Разовая приписка под приветствием — workflow_dispatch input `note` (напр. при внеплановой рассылке).
+const NOTE = (process.env.EXPIRY_ALERT_NOTE || '').replace(/[<>&]/g, '').trim();
 const DOCS = path.join(__dirname, '..', 'docs');
 
 const NAVY = '#1C3D6B';
@@ -169,6 +171,7 @@ function buildEmailHtml(n, greetName, risk) {
     <div style="padding-top:10px;font-size:11px;color:${GOLD}">${new Date().toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
   </td></tr>
   <tr><td dir="rtl" style="padding:20px 28px 8px;text-align:right;font-size:14px;color:${INK}">${greeting} מצורף דוח תוקף — מוצרים בסכנה ו-STOP SALE, כמו במסך דוח התוקף של המחסן.</td></tr>
+  ${NOTE ? `<tr><td dir="rtl" style="padding:4px 28px 8px;text-align:right;font-size:14px;font-weight:bold;color:${NAVY}">${NOTE}</td></tr>` : ''}
   ${buildRiskHtml(risk)}
   <tr><td dir="rtl" style="padding:4px 28px 10px;text-align:right">
     <div style="display:inline-block;padding:9px 16px;border:1.5px solid ${NAVY};border-radius:8px;background:#EEF3FA;font-size:13px;font-weight:bold;color:${NAVY}">🖨 להדפסה — פתחו את קובץ ה-PDF המצורף (4 מוצרים בעמוד A4)</div>
@@ -222,6 +225,7 @@ async function main() {
       html: buildEmailHtml(shots.length, greetName, risk),
       text: [
         `${greetName ? `שלום ${greetName},` : 'שלום,'} ${shots.length} מוצרים בסכנה / STOP SALE במחסן FORMULA.`,
+        ...(NOTE ? ['', NOTE] : []),
         '',
         `סה"כ סיכון (עלות לזריקה צפויה): ${fmtILS(risk.total)}`,
         `מתוכם ${risk.total ? Math.round(risk.topSum / risk.total * 100) : 0}%:`,

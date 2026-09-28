@@ -5,12 +5,16 @@ name: Expiry Alert
 # если есть хотя бы одна карточка. Отдельный job, как obligo-alert — живой сервер/PBI не трогает.
 on:
   schedule:
-    # Вс–Чт 07:30 Israel (UTC+3) = 04:30 UTC — после ночной пересборки planogram-build (03:21 UTC)
-    - cron: '30 4 * * 0-4'
+    # Вс–Чт 09:00 Israel летом (UTC+3) = 06:00 UTC. Зимой (UTC+2, с конца октября) это 08:00 —
+    # cron в GitHub только UTC. Пользователь 2026-09-28: "каждый день в 9 утра".
+    - cron: '0 6 * * 0-4'
   workflow_dispatch:
     inputs:
       to:
         description: 'Тест: слать только на этот адрес (пусто = всем из секрета)'
+        required: false
+      note:
+        description: 'Разовая приписка в начало письма (иврит), напр. при внеплановой рассылке'
         required: false
 
 jobs:
@@ -40,3 +44,4 @@ jobs:
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           EXPIRY_ALERT_RECIPIENTS: ${{ inputs.to || secrets.EXPIRY_ALERT_RECIPIENTS }}
+          EXPIRY_ALERT_NOTE: ${{ inputs.note }}
