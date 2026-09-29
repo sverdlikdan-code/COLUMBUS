@@ -41,6 +41,26 @@ function createBdd(deps) {
   let cache = null;
   let docsCache = { date: null, at: 0, summary: null };
   let promoIdsCache = { date: null, ids: [], failedAt: 0 };
+  // SKU → photo URL for the promo modal, from KARTIS PARIT ICE (the table FORMULA's
+  // ICE_MISH promos use). ONE DAX per day for the whole ICE catalog instead of one per
+  // modal open (quota); the photos themselves are disk-cached by /api/img-proxy.
+  let imgCache = { date: null, map: new Map(), failedAt: 0 }, imgInFlight = null;
+  async function promoImgMap() {
+    const today = deps.todayIsraelDate();
+    if (imgCache.date === today || Date.now() - imgCache.failedAt < 10 * 60 * 1000) return imgCache.map;
+    if (!imgInFlight) imgInFlight = (async () => {
+      try {
+        const T = `'KARTIS PARIT ICE'`;
+        const rows = await deps.executeDax(`EVALUATE SELECTCOLUMNS(FILTER(${T}, NOT ISBLANK(${T}[URL תמונה])), "sku", ${T}[מק"ט], "img", ${T}[URL תמונה])`);
+        imgCache = { date: today, map: new Map(rows.map(r => [String(r['[sku]']), r['[img]'] || ''])), failedAt: 0 };
+      } catch (e) {
+        console.error('[BDD] promo photos failed:', e.message); // modal falls back to 📦
+        imgCache.failedAt = Date.now();
+      }
+    })().finally(() => { imgInFlight = null; });
+    await imgInFlight;
+    return imgCache.map;
+  }
   let docsInFlight = null;
 
   // A second call while loading gets the same promise (no duplicate DAX burst). On
@@ -397,9 +417,10 @@ function createBdd(deps) {
   }));
 
   // Same item shape as FORMULA's /api/client-promos (sku, name, price, qty, fromDate,
-  // toDate, promoType, company) — imgUrl/ean/notBoughtIn90d are tolerated as undefined
+  // toDate, promoType, company) — ean/notBoughtIn90d are tolerated as undefined
   // by the promo modal (docs/formula-road.html ~4390-4400), so they're left out on
-  // purpose (no extra PBI photo/last-ship calls — quota). `stock` is NOT in that
+  // purpose (no extra PBI last-ship calls — quota). imgUrl comes from the once-a-day
+  // promoImgMap() above (user 2026-09-29: photos like FORMULA). `stock` is NOT in that
   // tolerated list: the modal buckets by `p.stock >= 1` / `p.stock < 1`
   // (~4404-4405), and `undefined` satisfies neither comparison, so the card would
   // silently vanish from both buckets. BDD carries its own stock on the van, so
@@ -408,9 +429,10 @@ function createBdd(deps) {
   router.get('/api/client-promos/:custId', h(async (req, res) => {
     const custId = String(req.params.custId || '').trim();
     if (!validCust(custId)) return res.status(400).json({ ok: false, error: 'invalid custId' });
-    const promos = (await bddClientPromos(DB(), custId))
+    const [rows, imgMap] = await Promise.all([bddClientPromos(DB(), custId), promoImgMap()]);
+    const promos = rows
       .filter(p => cache?.families.has(p.familyDes))
-      .map(({ familyDes, ...p }) => ({ ...p, stock: 1 }));
+      .map(({ familyDes, ...p }) => ({ ...p, stock: 1, imgUrl: imgMap.get(p.sku) || '' }));
     res.json({ ok: true, promos });
   }));
 
