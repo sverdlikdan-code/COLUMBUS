@@ -39,16 +39,25 @@ function createBdd(deps) {
   let promoIdsCache = { date: null, ids: [], failedAt: 0 };
   let docsInFlight = null;
 
-  async function load() {
-    try {
+  // A second call while loading gets the same promise (no duplicate DAX burst). On
+  // failure ONE retry is scheduled 10 min later — never stacked, cleared on success.
+  let loading = null, retryTimer = null;
+  function load() {
+    if (loading) return loading;
+    loading = (async () => {
       const ICE_DS = process.env.POWERBI_ICE_DATASET_ID;
-      if (!ICE_DS) return;
-      cache = await loadBddCache(deps.executeDax, ICE_DS, deps.fix);
-      const n = [...cache.byAgent.values()].reduce((s, a) => s + a.length, 0);
-      console.log(`[BDD] cache loaded: ${cache.agentGroup.size} agents, ${n} client-day rows, ${cache.families.size} families`);
-    } catch (e) {
-      console.error('[BDD] cache load failed:', e.message); // keep previous cache
-    }
+      if (!ICE_DS) { console.error('[BDD] POWERBI_ICE_DATASET_ID missing'); return; }
+      try {
+        cache = await loadBddCache(deps.executeDax, ICE_DS, deps.fix);
+        if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
+        const n = [...cache.byAgent.values()].reduce((s, a) => s + a.length, 0);
+        console.log(`[BDD] cache loaded: ${cache.agentGroup.size} agents, ${n} client-day rows, ${cache.families.size} families`);
+      } catch (e) {
+        console.error('[BDD] cache load failed:', e.message); // keep previous cache
+        if (!retryTimer) retryTimer = setTimeout(() => { retryTimer = null; load(); }, 10 * 60 * 1000);
+      }
+    })().finally(() => { loading = null; });
+    return loading;
   }
 
   // Concurrent callers share one in-flight Priority query. A failure is cached too
