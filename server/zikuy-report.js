@@ -55,14 +55,8 @@ function loadCatalog() {
 }
 function loadAgentNames() {
   const names = {};
-  const team = {};
-  try { const x = readJson(path.join(DOCS, 'formula-road-data.json')); for (const [tm, arr] of Object.entries((x.data || x).agentsByManager || {})) for (const a of arr) { names[a.agentCode] = a.agentName; team[a.agentCode] = tm; } } catch (_) {}
-  try {
-    const mgrs = readJson(path.join(DATA, 'managers.json'));
-    for (const m of mgrs) names['M:' + m.id] = m.nameHe || m.name;
-    // начальник агента = менеджер, чья team совпадает с ключом agentsByManager
-    for (const [code, tm] of Object.entries(team)) { const b = mgrs.find(m => m.team === tm); names['B:' + code] = b ? (b.nameHe || b.name) : tm; }
-  } catch (_) {}
+  try { const x = readJson(path.join(DOCS, 'formula-road-data.json')); for (const arr of Object.values((x.data || x).agentsByManager || {})) for (const a of arr) names[a.agentCode] = a.agentName; } catch (_) {}
+  try { for (const m of readJson(path.join(DATA, 'managers.json'))) names['M:' + m.id] = m.nameHe || m.name; } catch (_) {}
   return names;
 }
 
@@ -94,16 +88,35 @@ function loadTimings(month) {
 // ── фактический % возвратов (Power BI, 90 дней) ────────────────────────────
 // Та же формула, что % זיכויים в форме зикуя (/api/client-returns zikuyDax, index.js):
 // |SUM ₪ השמדות| / SUM ₪ -מכר-, те же исключения SKU и агентов, окно today-90..today.
-// Один запрос: по SKU, только по клиентам с зикуем в этом месяце → в семьи через famOf.
+// База — ВСЕ активные клиенты FORMULA ('משטח' פעיל, как у приложения), не только с зикуем
+// (пользователь 2026-09-29: фактическое среднее списание рынка). По SKU → семьи через famOf,
+// מחלקה из ADIFUT. Два последовательных запроса (клиент×SKU на ~2000 клиентов > лимита строк).
 const RET_EXCLUDED_SKUS = ['0', '915001', '915002', '916000', '916001', '916002', '916003', '916004', '916005', '916006', '916007', '916008', '916009', '916010', '916011'];
-async function fetchReturnRates(custIds) {
+// Копия fixBiDi из server/index.js (PBI отдаёт иврит в визуальном порядке) — там не модуль,
+// ponytail: общего модуля нет, 7-я копия; апгрейд когда вынесут fixBiDi в общий файл.
+const _BIDI_TEST = /[‎‏‪-‮]/, _BIDI_STRIP = /[‎‏‪-‮]/g;
+function fixBiDi(raw) {
+  if (!raw) return '';
+  const hasBidi = _BIDI_TEST.test(raw);
+  const s = raw.replace(_BIDI_STRIP, '').trim();
+  if (!hasBidi || !/[א-ת]/.test(s)) return s;
+  const fixed = s.split(/\s+/).reverse()
+    .map(w => /[א-ת]/.test(w) ? w.split('').reverse().join('').replace(/\d+/g, m => m.split('').reverse().join('')) : w)
+    .join(' ');
+  return fixed.replace(/\(/g, '\x01').replace(/\)/g, '(').replace(/\x01/g, ')');
+}
+async function fetchReturnRates() {
   const { executeDax } = require('./powerbi');
+  const cl = await executeDax(`
+EVALUATE
+SELECTCOLUMNS(FILTER('משטח', 'משטח'[סטטוס] = "פעיל"), "custId", 'משטח'[מס. לקוח])`);
+  const custIds = [...new Set(cl.map(r => String(r['[custId]'] || '')).filter(Boolean))];
   const d90 = new Date(Date.now() - 90 * 86400000), t = new Date();
   const rows = await executeDax(`
 EVALUATE
 CALCULATETABLE(
   ADDCOLUMNS(
-    SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח], ALL_PARTS[מק'ט], ALL_PARTS[תאור משפחת מוצר]),
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[מק'ט], ALL_PARTS[תאור מוצר], ALL_PARTS[תאור משפחת מוצר]),
     "machlaka", LOOKUPVALUE(ADIFUT[מחלקה], ADIFUT[תאור משפחה], ALL_PARTS[תאור משפחת מוצר]),
     "zikuy", CALCULATE(SUM(ALL_PARTS[סכום (ש'ח)]), ALL_PARTS[ASHMADOT] = "השמדות", NOT(ALL_PARTS[שם סוכן] IN {"‭באילא יסוי‬", "‭יללכ‬"}), NOT(ISBLANK(ALL_PARTS[שם סוכן]))),
     "brutto", CALCULATE(SUM(ALL_PARTS[סכום (ש'ח)]), ALL_PARTS[ASHMADOT] = "-מכר-")
@@ -113,16 +126,15 @@ CALCULATETABLE(
   ALL_PARTS[תאריך] >= DATE(${d90.getFullYear()},${d90.getMonth() + 1},${d90.getDate()}),
   ALL_PARTS[תאריך] <= DATE(${t.getFullYear()},${t.getMonth() + 1},${t.getDate()})
 )`);
-  // клиент × SKU → суммируем в обе стороны (по SKU для семей/топа, по клиенту для блока клиентов)
-  const bySku = {}, byCust = {}, skuDept = {};
-  const add = (m, k, z, b) => { const x = m[k] = m[k] || { z: 0, b: 0 }; x.z += z; x.b += b; };
+  // SKU может прийти несколькими строками (сменилось название) — суммируем
+  const bySku = {}, skuDept = {};
   for (const r of rows) {
-    const z = Math.abs(r['[zikuy]'] || 0), b = r['[brutto]'] || 0, s = String(r["ALL_PARTS[מק'ט]"]);
-    add(bySku, s, z, b);
-    add(byCust, String(r['ALL_PARTS[מספר לקוח]']), z, b);
+    const s = String(r["ALL_PARTS[מק'ט]"]);
+    const x = bySku[s] = bySku[s] || { z: 0, b: 0, name: fixBiDi(r['ALL_PARTS[תאור מוצר]'] || ''), fam: fixBiDi(r['ALL_PARTS[תאור משפחת מוצר]'] || '') };
+    x.z += Math.abs(r['[zikuy]'] || 0); x.b += r['[brutto]'] || 0;
     if (r['[machlaka]']) skuDept[s] = String(r['[machlaka]']).trim();
   }
-  return { bySku, byCust, skuDept };
+  return { bySku, skuDept, clients: custIds.length };
 }
 const RET_ALERT = 10; // % возвратов от которого подсвечиваем красным (пользователь 2026-09-29)
 // "12.3%" или "—"; ≥ порога — красным жирным
@@ -230,7 +242,7 @@ function buildHtml(month, cur, prev, tm, names, ret) {
   // что это за статистика — пользователь 2026-09-29: чтобы не путали с общими возвратами
   let html = `<tr><td style="padding:18px 14px 0"><div style="background:#FFF8E6;border:1px solid #F1D48A;border-radius:8px;padding:10px 12px;font-size:12px;color:${INK};line-height:1.6">
     <b>Что в этом отчёте:</b> только статистика <b>заявок на зикуй</b> из Formula Road — частный рынок и небольшой сетевой формат, то есть клиенты, где зикуй <b>не</b> делается документом самого клиента. Крупные сети со своими документами сюда не входят.<br>
-    <b>% возвратов</b> — фактический, из Power BI: השמדות ₪ / продажи брутто ₪ за последние 90 дней, по клиентам этого отчёта (та же формула, что в форме зикуя). От ${RET_ALERT}% — красным.${ret ? '' : ` <b style="color:${RED}">В этот раз Power BI не ответил — % возвратов в отчёте нет.</b>`}
+    <b>% возвратов</b> — фактический, из Power BI: השמדות ₪ / продажи брутто ₪ за последние 90 дней, по всем активным клиентам FORMULA${ret ? ` (${n0(ret.clients)})` : ''} — та же формула, что в форме зикуя. От ${RET_ALERT}% — красным.${ret ? '' : ` <b style="color:${RED}">В этот раз Power BI не ответил — % возвратов в отчёте нет.</b>`}
   </div></td></tr>`;
   html += H('1. Итог месяца') + `<tr><td style="padding:0 14px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:Arial,sans-serif"><tr>
     ${kpi('Бланков зикуя', n0(t.blanks), delta(t.blanks, prev?.t.blanks))}
@@ -282,30 +294,45 @@ function buildHtml(month, cur, prev, tm, names, ret) {
       wskus.map(([k, s]) => [`${k} · ${esc(s.name.slice(0, 32))}`, esc(s.fam), (s.z + s.h).toFixed(1), split(s), s.custs.size]), [2, 3, 4]);
   }
 
-  // 4. закономерности
+  // 4. фактические возвраты по рынку (PBI, 90 дн, все активные клиенты FORMULA) — пользователь 2026-09-29:
+  // топ семей по ₪ возвратов + топ-5 артикулов по % в каждой מחלקה (от RET_MIN_SALES ₪ продаж, иначе
+  // мелкие/снятые артикулы с 100% забивают топ)
+  if (ret) {
+    const RET_MIN_SALES = 5000;
+    // итоги и семьи — по ВСЕМ строкам: возвраты по артикулам без продаж в окне тоже реальные ₪
+    // (с фильтром b>0 средний по рынку занижался вдвое — 2.7% вместо 5.0%, проверено 2026-09-29)
+    const all = Object.entries(ret.bySku);
+    const tz = all.reduce((a, [, x]) => a + x.z, 0), tb = all.reduce((a, [, x]) => a + x.b, 0);
+    html += H('4. Фактические возвраты — последние 3 месяца', `Power BI, 90 дней, все активные клиенты FORMULA (${n0(ret.clients)}), не только с зикуем. В среднем по рынку: <b>${(100 * tz / tb).toFixed(1)}%</b> (${n0(tz)} ₪ возвратов на ${n0(tb)} ₪ продаж).`);
+    const pf = {}; for (const [, x] of all) { const f = pf[x.fam || '—'] = pf[x.fam || '—'] || { z: 0, b: 0 }; f.z += x.z; f.b += x.b; }
+    html += P(`<b>Топ-10 семей по сумме возвратов</b> — доля от всех возвратов и % от продаж самой семьи`);
+    html += table(['Семья', 'Возвраты ₪', 'Доля возвратов', '% от продаж'],
+      Object.entries(pf).sort((a, b) => b[1].z - a[1].z).slice(0, 10).map(([k, f]) => [esc(k), n0(f.z), pct(f.z, tz) + '%', retCell(f)]), [1, 2, 3]);
+    const byDept = {};
+    for (const e of all) if (e[1].b >= RET_MIN_SALES) (byDept[ret.skuDept[e[0]] || 'לא מוגדר'] = byDept[ret.skuDept[e[0]] || 'לא מוגדר'] || []).push(e);
+    html += P(`<b>Топ-5 артикулов по % возвратов в каждой מחלקה</b> — только артикулы с продажами от ${n0(RET_MIN_SALES)} ₪ за 90 дней`);
+    for (const [d, list] of Object.entries(byDept).sort((a, b) => b[1].reduce((s, [, x]) => s + x.z, 0) - a[1].reduce((s, [, x]) => s + x.z, 0))) {
+      html += P(`<b><bdi>${esc(d)}</bdi></b>`);
+      html += table(['Артикул', '% возвр.', 'Возвраты ₪', 'Продажи ₪'],
+        list.sort((a, b) => b[1].z / b[1].b - a[1].z / a[1].b).slice(0, 5).map(([k, x]) => [`${k} · ${esc((sku[k]?.name || x.name).slice(0, 32))}`, retCell(x), n0(x.z), n0(x.b)]), [1, 2, 3]);
+    }
+  }
+
+  // 5. закономерности
   const bucket = {}; for (const [, s] of skus) { const k = s.shelf == null ? 'нет данных' : s.shelf <= 30 ? 'до 30 дн' : s.shelf <= 60 ? '31–60 дн' : 'больше 60 дн'; const b = bucket[k] = bucket[k] || { z: 0, h: 0, n: 0 }; b.z += s.z; b.h += s.h; b.n++; }
   // иврит внутри русской фразы переставляет слова (BiDi) — каждая семья отдельной строкой в <bdi>
   const famLines = list => list.length ? list.map(([k, f]) => `<br>• <bdi>${esc(k)}</bdi> — ${pct(f.h, f.z + f.h)}% штук этой семьи уничтожено (из ${n0(f.z + f.h)} шт.)`).join('') : '<br>• нет';
-  html += H('4. Закономерности');
+  html += H('5. Закономерности');
   html += P(`<b>Уценка не спасает</b> — больше 70% уходит в уничтожение (от 20 шт.):${famLines(fams.filter(([, f]) => f.z + f.h >= 20 && pct(f.h, f.z + f.h) >= 70))}`);
   html += P(`<b>Уценка работает</b> — не больше 30% в уничтожение (от 100 шт.):${famLines(fams.filter(([, f]) => f.z + f.h >= 100 && pct(f.h, f.z + f.h) <= 30))}`);
   html += P('<b>Срок годности:</b> как делятся штуки товаров с разным сроком — уценка против השמדה.');
   html += table(['Срок годности', 'Артикулов', 'Штук', 'Уценка / השמדה'],
     ['до 30 дн', '31–60 дн', 'больше 60 дн', 'нет данных'].filter(k => bucket[k]).map(k => [k, bucket[k].n, n0(bucket[k].z + bucket[k].h), split(bucket[k])]), [1, 2, 3]);
 
-  // 5. клиенты
+  // 6. клиенты
   const cs = Object.values(cust).sort((a, b) => b.qty - a.qty);
   const share = k => pct(cs.slice(0, k).reduce((a, c) => a + c.qty, 0), t.total);
-  html += H('5. Клиенты', `всего ${cs.length} клиентов · топ-10 = ${share(10)}% штук · топ-50 = ${share(50)}%`);
-  // клиенты с фактическим % возвратов от порога — с агентом и начальником (пользователь 2026-09-29)
-  if (ret) {
-    const hot = Object.entries(cust).map(([id, c]) => ({ ...c, r: ret.byCust[id] })).filter(c => c.r && c.r.b > 0 && 100 * c.r.z / c.r.b >= RET_ALERT)
-      .sort((a, b) => b.r.z / b.r.b - a.r.z / a.r.b);
-    html += P(`<b>Клиенты с возвратами от ${RET_ALERT}%</b> — ${hot.length} из ${cs.length}. Возвраты / продажи — ₪ за 90 дней; штук — в заявках на зикуй за месяц.`);
-    if (hot.length) html += table(['Клиент', '% возвр.', 'Возвр. / продажи ₪', 'Штук', 'Агент', 'Начальник'],
-      hot.map(c => [esc(c.name), retCell(c.r), `${n0(c.r.z)} / ${n0(c.r.b)}`, n0(c.qty), `<bdi>${esc(c.agentName || names[c.agentCode] || c.agentCode || '—')}</bdi>`, `<bdi>${esc(names['B:' + c.agentCode] || '—')}</bdi>`]), [1, 2, 3]);
-  }
-  html += P('<b>Топ-10 по штукам в заявках</b>');
+  html += H('6. Клиенты', `всего ${cs.length} клиентов · топ-10 = ${share(10)}% штук · топ-50 = ${share(50)}%`);
   html += table(['Клиент', 'Штук', 'Бланков'], cs.slice(0, 10).map(c => [esc(c.name), n0(c.qty), c.blanks]), [1, 2]);
 
   // 6. агенты + время
@@ -315,7 +342,7 @@ function buildHtml(month, cur, prev, tm, names, ret) {
   // +10% — администрирование ошибок/неточностей с офисом, которых с приложением на порядок меньше (пользователь 2026-09-29)
   const savedS = v => v.length * Math.max(0, BASELINE_S - med(v)) * (1 + ADMIN_BONUS);
   const savedH = savedS(short.map(p => p.s)) / 3600;
-  html += H('6. Агенты и время', `экономия = зикуев × (10 мин на ручной бланк − медиана) + ${ADMIN_BONUS * 100}% на администрирование ошибок и неточностей с офисом (из них ${(savedH - savedH / (1 + ADMIN_BONUS)).toFixed(1)} ч); ${long} зикуев дольше 30 мин (форма висела открытой) не учтены`);
+  html += H('7. Агенты и время', `экономия = зикуев × (10 мин на ручной бланк − медиана) + ${ADMIN_BONUS * 100}% на администрирование ошибок и неточностей с офисом (из них ${(savedH - savedH / (1 + ADMIN_BONUS)).toFixed(1)} ч); ${long} зикуев дольше 30 мин (форма висела открытой) не учтены`);
   html += `<tr><td style="padding:0 14px 10px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:Arial,sans-serif"><tr>
     ${kpi('Сэкономлено', savedH.toFixed(1) + ' ч')}
     ${kpi('Медиана зикуя', mmss(med(short.map(p => p.s))))}
@@ -329,7 +356,7 @@ function buildHtml(month, cur, prev, tm, names, ret) {
   html += table(['Артикулов в бланке', 'Зикуев', 'Медиана времени'], buckets, [1, 2]);
 
   // 7. качество данных
-  html += H('7. Качество данных');
+  html += H('8. Качество данных');
   html += P(`<span style="font-size:12px;color:${MUTED}">Отправлено по журналу событий: ${tm.submitted}; со временем: ${tm.pairs.length}; без записи об открытии формы: ${tm.unpaired}; без привязки к агенту: ${tm.unattributed}. Бланков в истории: ${t.blanks}, из них без времени заполнения: ${Math.max(0, t.blanks - tm.pairs.length)} (время пишется с 07.09.2026). Семья не найдена: ${n0((fam['—']?.z || 0) + (fam['—']?.h || 0))} шт.</span>`);
 
   return { charts, subject: `Списания товаров — частный рынок и небольшие сети · ${title}`, html: `<!doctype html>
@@ -362,7 +389,11 @@ async function main() {
   const tm = loadTimings(month);
   // PBI может ответить 429 — отчёт всё равно уходит, только без % возвратов (пометка в шапке)
   let ret = null;
-  try { ret = await fetchReturnRates([...new Set(curBlanks.map(e => String(e.custId)))]); }
+  try {
+    ret = await fetchReturnRates();
+    // семья из нашего каталога, если есть: fixBiDi переставляет латиницу ("PORT NORD" вместо "NORD PORT")
+    for (const [k, x] of Object.entries(ret.bySku)) { const f = famOf(k); if (f !== '—') x.fam = f; }
+  }
   catch (e) { console.error('[zikuy-report] % возвратов из PBI не получен:', e.message); }
   const { subject, html, charts } = buildHtml(month, cur, prev, tm, names, ret);
   const sharp = require('sharp');
