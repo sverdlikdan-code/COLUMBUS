@@ -1540,3 +1540,4 @@ v12→v13 (коммит `0fea1fa7`) — после первого бампа (v1
 - **Максим Шпилько (босс):** `bddAccess: true` + `email: maxim@dilerbmd.com` в managers.json (`8018ccf6`, `033918fc`; рестарт — кэш ростера). Роль FORMULA `readonly`, без `bddRole` → в BDD только просмотр (`bddCanWrite` требует `bddRole:'team'`). Инвайт создан на VPS + письмо.
 - **`send-formula-road-invites.js --bdd`:** теперь берёт и менеджеров с `bddAccess` (строка «צפייה בלבד, ללא עריכה» вместо «עריכה פתוחה»); слать с `--to=`, иначе уйдёт всем повторно.
 - **Открыто:** FORMULA write-роуты без проверки роли (`/save-gps`, territory, mekarer-order) — readonly-менеджеры, включая Максима, технически могут их вызвать.
+- **Решение Дана (29.09):** FORMULA write-роуты без проверки роли (/save-gps, territory, mekarer-order, gps-sync-clean) — так задумано, не дыра. Пункт «открыто» выше закрыт.
