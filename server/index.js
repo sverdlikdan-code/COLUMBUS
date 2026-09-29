@@ -3616,12 +3616,13 @@ app.get('/api/mekarer-export', requireAuth, async (req, res) => {
 });
 
 // /mekarer-admin.html — таблица всех заказов מקרר (FORMULA + ICE BDD) для администраторов
-// холодильников. Видят оба + super; каждое поле пишет только его владелец (managers.json id).
+// холодильников. Видят (и фильтр/экспорт) все PBI-сессии + оба админа + super; каждое поле пишет
+// только его владелец (managers.json id).
 const MEKARER_ADMIN_FIELDS = { approve: 'yosi', yossiNote: 'yosi', natashaNote: 'natasha' };
 const MEKARER_ADMIN_VIEWERS = new Set(Object.values(MEKARER_ADMIN_FIELDS));
 function mekarerAdminAccess(req, res, next) {
   const s = req.session;
-  if (s?.isManager && (MEKARER_ADMIN_VIEWERS.has(s.managerId) || s.managerRole === 'super')) return next();
+  if (s?.isManager && (s.viaPbi || MEKARER_ADMIN_VIEWERS.has(s.managerId) || s.managerRole === 'super')) return next();
   return res.status(403).json({ error: 'forbidden' });
 }
 function mekarerAdminRows() {
