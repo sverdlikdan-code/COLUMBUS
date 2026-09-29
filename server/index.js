@@ -3177,7 +3177,7 @@ function fixBiDi(raw) {
   return fixed.replace(/\(/g, '\x01').replace(/\)/g, '(').replace(/\x01/g, ')');
 }
 
-// GET /api/mekarer-parts — product names for the 6 refrigerator codes.
+// GET /api/mekarer-parts — product names for the 10 refrigerator codes.
 // Was 4 (901301/302/401/402, all chest-freezer "אמבטיה" models) — missed 901303
 // (also chest) and 901405 (the only upright/"עומד" model) since the feature was
 // first built (ae7dfecd, 2026-06-04), copied straight from the catalog without
@@ -3194,6 +3194,16 @@ function fixBiDi(raw) {
 // catalog is missing. ALL_PARTS uses a different SKU column name/quote style
 // ([מק'ט], not KARTIS PARIT's [מק"ט]) and a different name column ([תאור מוצר],
 // not [תאור]) — confirmed live, not guessed.
+//
+// 901403/901406/901501/901600 exist only in Priority diller (not in any KARTIS PARIT
+// table, not in ALL_PARTS) — pulled once from diller.PART 2026-09-29, Latin/digits
+// un-reversed from Priority's visual order. Static on purpose: new fridge models are rare.
+const EXTRA_MEKARER_PARTS = [
+  { makat: '901403', name: 'מקפיא אמבטיה 1.21 מטר M400SF' },
+  { makat: '901406', name: 'מקפיא עומד - ND70M' },
+  { makat: '901501', name: 'מקפיא אמבטיה 1.41 מטר M500SF' },
+  { makat: '901600', name: 'מקפיא אמבטיה 1.66 מטר M600SF' },
+];
 app.get('/api/mekarer-parts', requireAuth, async (req, res) => {
   try {
     const [catalogRows, allPartsRows] = await Promise.all([
@@ -3219,6 +3229,7 @@ DISTINCT(
       makat: r['[makat]'],
       name: fixBiDi(r['[name]']),
     }));
+    parts.push(...EXTRA_MEKARER_PARTS);
     res.json(parts);
   } catch (err) {
     console.error(err); res.status(500).json({ error: 'server_error' });
