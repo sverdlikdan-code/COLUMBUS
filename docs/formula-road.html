@@ -791,6 +791,8 @@ body.map-hidden #tab-map,body.map-hidden #tab-inline-map{display:none!important;
 .thought-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
 .thought-label{font-size:13px;font-weight:800;letter-spacing:.5px;color:#B8860B;display:flex;align-items:center;gap:6px;}
 .thought-close{width:28px;height:28px;border-radius:50%;background:var(--bg);color:var(--mid);border:none;font-size:15px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.thought-greet{direction:ltr;text-align:center;font-size:20px;font-weight:900;color:var(--text);margin-bottom:14px;}
+.thought-greet:empty{display:none;}
 .thought-body{direction:ltr;text-align:center;font-size:20px;line-height:1.5;color:var(--text);font-weight:600;font-style:italic;}
 .thought-cite{direction:ltr;text-align:center;font-size:13px;color:var(--mid);margin-top:16px;}
 
@@ -1342,6 +1344,7 @@ body.bdd .km-more-item[onclick^="openYedaim"], body.bdd .km-more-item[onclick^="
       <span class="thought-label">✨ מחשבת היום</span>
       <button class="thought-close" onclick="closeThought()">✕</button>
     </div>
+    <div class="thought-greet" id="thought-greet"></div>
     <div class="thought-body" id="thought-body"></div>
     <div class="thought-cite" id="thought-cite"></div>
   </div>
@@ -4175,6 +4178,11 @@ function maybeShowThought(){
   if(last===today) return;
   try{ localStorage.setItem('frThoughtDate', today); }catch(_){}
   const q=FR_THOUGHTS[_dayOfYear(today)%FR_THOUGHTS.length];
+  // Daily greeting on top of the quote — returning agents skip the agent-welcome
+  // screen (saved route restore), so this is their "first open of the day" hello.
+  const me=_loadAuth();
+  document.getElementById('thought-greet').textContent=me?.name
+    ? `${_welcomeGreeting()}, ${me.name}! ${_welcomeGreetEmoji(me.code)}` : '';
   document.getElementById('thought-body').textContent='«'+q.text+'»';
   document.getElementById('thought-cite').textContent='— '+q.cite;
   document.getElementById('thought-toast').classList.add('open');
