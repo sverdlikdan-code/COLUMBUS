@@ -3204,6 +3204,10 @@ const EXTRA_MEKARER_PARTS = [
   { makat: '901501', name: 'מקפיא אמבטיה 1.41 מטר M500SF' },
   { makat: '901600', name: 'מקפיא אמבטיה 1.66 מטר M600SF' },
 ];
+// Active = moved in Priority diller within the last year (checked 2026-09-29);
+// 901301/302/401/402 last moved 2024-01. Form shows active first, in a separate group.
+// ponytail: static, re-check TRANSORDER in diller if a model is added or retired.
+const ACTIVE_MEKARER = new Set(['901303', '901403', '901405', '901406', '901501', '901600']);
 app.get('/api/mekarer-parts', requireAuth, async (req, res) => {
   try {
     const [catalogRows, allPartsRows] = await Promise.all([
@@ -3230,6 +3234,8 @@ DISTINCT(
       name: fixBiDi(r['[name]']),
     }));
     parts.push(...EXTRA_MEKARER_PARTS);
+    parts.forEach(p => { p.active = ACTIVE_MEKARER.has(p.makat); });
+    parts.sort((a, b) => (b.active - a.active) || a.makat.localeCompare(b.makat));
     res.json(parts);
   } catch (err) {
     console.error(err); res.status(500).json({ error: 'server_error' });

@@ -413,8 +413,10 @@ function removeRef(id) {
 }
 
 function buildRefHTML(id, num) {
+  const opt = p => `<option value="${p.makat}">${p.makat} — ${p.name}</option>`;
+  const group = (label, list) => list.length ? `<optgroup label="${label}">${list.map(opt).join('')}</optgroup>` : '';
   const partsOpts = parts.length
-    ? parts.map(p => `<option value="${p.makat}">${p.makat} — ${p.name}</option>`).join('')
+    ? group('פעילים', parts.filter(p => p.active)) + group('לא פעילים', parts.filter(p => !p.active))
     : '<option value="">טוען...</option>';
   return `
 <div class="ref-title">
