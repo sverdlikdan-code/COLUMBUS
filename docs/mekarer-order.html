@@ -206,6 +206,9 @@ const city = params.get('city') || '';
 const agentCode = params.get('agentCode') || '';
 const agentName = params.get('agentName') || '';
 const manager = params.get('manager') || '';
+// ICE BDD (R5): opened from a BDD login with ch=ICE_BDD — order goes to the BDD
+// endpoint/file, sales default to company ICE. Absent = FORMULA, unchanged.
+const isBdd = params.get('ch') === 'ICE_BDD';
 
 let parts = []; // [{makat, name}]
 let salesData = []; // legacy — used for order snapshot
@@ -225,8 +228,18 @@ async function init() {
   document.getElementById('inf-agent').textContent = agentName ? `${agentName} (${agentCode})` : agentCode || '—';
   document.getElementById('inf-manager').textContent = manager || '—';
 
+  if (isBdd) {
+    document.title = 'הזמנת מקרר — ICE BDD';
+    document.querySelector('.top-title').textContent = 'הזמנת מקרר ICE BDD';
+    document.querySelectorAll('#company-chips .chip').forEach(c => {
+      const ice = c.dataset.co === 'ICE';
+      c.classList.toggle('on', ice);
+      if (!ice) c.style.display = 'none';
+    });
+  }
+
   // Load parts + sales in parallel
-  await Promise.allSettled([loadParts(), loadSales('הכל')]);
+  await Promise.allSettled([loadParts(), loadSales(isBdd ? 'ICE' : 'הכל')]);
 
   // Add first ref block
   addRef();
@@ -528,7 +541,7 @@ async function submitOrder() {
   btn.textContent = 'שולח...';
 
   try {
-    const r = await apiFetch('/api/mekarer-order', { method: 'POST',
+    const r = await apiFetch(isBdd ? '/api/bdd/api/mekarer-order' : '/api/mekarer-order', { method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(order) });
     if (r.status === 401) {
