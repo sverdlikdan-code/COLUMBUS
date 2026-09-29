@@ -36,7 +36,8 @@ const BDD_GEOCODE_NIGHT_CAP = 200; // 212 BDD clients had no GPS on 2026-09-28 â
 function createBdd(deps) {
   let cache = null;
   let docsCache = { date: null, at: 0, summary: null };
-  let promoIdsCache = { date: null, ids: [] };
+  let promoIdsCache = { date: null, ids: [], failedAt: 0 };
+  let docsInFlight = null;
 
   async function load() {
     try {
@@ -50,16 +51,24 @@ function createBdd(deps) {
     }
   }
 
+  // Concurrent callers share one in-flight Priority query. A failure is cached too
+  // (at = now), so a Priority outage is retried at most once per BDD_DOCS_CACHE_MS
+  // instead of on every poll from every open tablet.
   async function docsToday() {
     const today = deps.todayIsraelDate();
     const fresh = docsCache.date === today && (Date.now() - docsCache.at) < BDD_DOCS_CACHE_MS;
     if (!fresh && cache) {
-      try {
-        docsCache = { date: today, at: Date.now(), summary: summarizeBddDocs(await bddDocLinesToday(DB(), today), cache.families) };
-      } catch (e) {
-        console.error('[BDD] docs query failed:', e.message); // keep last same-day summary
-        if (docsCache.date !== today) docsCache = { date: today, at: 0, summary: null };
+      if (!docsInFlight) {
+        docsInFlight = (async () => {
+          try {
+            docsCache = { date: today, at: Date.now(), summary: summarizeBddDocs(await bddDocLinesToday(DB(), today), cache.families) };
+          } catch (e) {
+            console.error('[BDD] docs query failed:', e.message); // keep last same-day summary
+            docsCache = { date: today, at: Date.now(), summary: docsCache.date === today ? docsCache.summary : null };
+          }
+        })().finally(() => { docsInFlight = null; });
       }
+      await docsInFlight;
     }
     return docsCache.summary;
   }
@@ -299,9 +308,11 @@ function createBdd(deps) {
 
   router.get('/api/promo-cust-ids', deps.dataRateLimit, h(async (req, res) => {
     const today = deps.todayIsraelDate();
-    if (promoIdsCache.date !== today && cache) {
+    // failedAt: a failed query (null) is retried at most every 10 min, not on every request.
+    if (promoIdsCache.date !== today && cache && Date.now() - promoIdsCache.failedAt > 10 * 60 * 1000) {
       const rows = await bddCustFamiliesWithActivePromo(DB());
-      if (rows) promoIdsCache = { date: today, ids: [...new Set(rows.filter(r => cache.families.has(r.familyDes)).map(r => r.custId))] };
+      if (rows) promoIdsCache = { date: today, ids: [...new Set(rows.filter(r => cache.families.has(r.familyDes)).map(r => r.custId))], failedAt: 0 };
+      else promoIdsCache.failedAt = Date.now();
     }
     // Key names match FORMULA's response; BDD clients are flagged through iceMish.
     // Frontend just unions formula[]+iceMish[] into one Set regardless of hevra

@@ -16,11 +16,17 @@ const cfg = {
   requestTimeout: 15000,
   pool: { min: 0, max: 2 },
 };
+// Caches the connect() promise (resolves to the pool), so concurrent first callers share
+// one connect instead of racing; a failed connect is dropped so the next call retries.
 const pools = {};
-async function getBddPool(dbName) {
-  if (pools[dbName]?.connected) return pools[dbName];
-  if (!pools[dbName]) pools[dbName] = new sql.ConnectionPool({ ...cfg, database: dbName });
-  if (!pools[dbName].connected && !pools[dbName].connecting) await pools[dbName].connect();
+function getBddPool(dbName) {
+  if (!pools[dbName]) {
+    const pool = new sql.ConnectionPool({ ...cfg, database: dbName });
+    // A pool 'error' event with no listener would throw and take the whole process
+    // (FORMULA included) down — log it; the pool replaces broken connections itself.
+    pool.on('error', e => console.error(`[bdd-priority] pool error (${dbName}): ${e.message}`));
+    pools[dbName] = pool.connect().catch(e => { delete pools[dbName]; throw e; });
+  }
   return pools[dbName];
 }
 
