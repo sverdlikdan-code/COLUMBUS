@@ -1045,6 +1045,7 @@ app.post('/log-access', requireAuth, dataRateLimit, (req, res) => {
     agentCode: agentCode ? String(agentCode).substring(0, 20) : null,
     agentName: agentName ? String(agentName).substring(0, 60) : null,
     isManager: !!isManager,
+    managerId: req.session?.managerId || null,
     ip,
     device: deviceType(req.headers['user-agent'] || ''),
     ua: (req.headers['user-agent'] || '').substring(0, 120),
@@ -1160,7 +1161,7 @@ app.get('/auth/pbi', dataRateLimit, pbiIpOrKnownUser, (req, res) => {
   const pbiUser = m ? decodeURIComponent(m[1]) : null;
   const managerMeta = findManagerByPbiEmail(pbiUser);
   const token = createSession(null, true, true, pbiUser, managerMeta);
-  writeLog({ ts: new Date().toISOString(), event: 'login-pbi', pbiUser, managerRole: managerMeta?.role || null, ip: getRealIp(req) });
+  writeLog({ ts: new Date().toISOString(), event: 'login-pbi', pbiUser, managerId: managerMeta?.id || null, managerRole: managerMeta?.role || null, ip: getRealIp(req) });
   return res.json({ ok: true, managerName: managerMeta ? (managerMeta.nameHe || managerMeta.name) : null, token, ...(managerMeta?.channel ? { channel: managerMeta.channel } : {}) });
 });
 
@@ -3344,7 +3345,7 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
       agentCode: req.session?.agentCode || null });
     fs.writeFileSync(filePath, JSON.stringify(list, null, 2), 'utf8');
     writeLog({ ts: new Date().toISOString(), event: 'mekarer-order', id,
-      custId: String(order.custId), agentCode: req.session?.agentCode || null, ip: getRealIp(req) });
+      custId: String(order.custId), agentCode: req.session?.agentCode || null, managerId: req.session?.managerId || null, ip: getRealIp(req) });
     res.json({ ok: true, id });
     // Send email notification with Excel attachment (fire-and-forget)
     if (resend && process.env.NOTIFY_EMAIL) {

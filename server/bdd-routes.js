@@ -395,7 +395,7 @@ function createBdd(deps) {
       list.push({ id, ...order, submittedAt: new Date().toISOString(), managerId: req.session.managerId || null });
       writeJson(FILES.mekarer, list);
     });
-    deps.writeLog({ ts: new Date().toISOString(), event: 'mekarer-order-bdd', id, custId: order.custId, ip: deps.getRealIp(req) });
+    deps.writeLog({ ts: new Date().toISOString(), event: 'mekarer-order-bdd', id, custId: order.custId, managerId: req.session.managerId || null, ip: deps.getRealIp(req) });
     res.json({ ok: true, id });
     // Dark-launch test account: its orders go to Dan only, never to the real recipients.
     const to = req.session.managerId === BDD_TEST_MANAGER_ID ? [BDD_TEST_EMAIL] : (process.env.NOTIFY_EMAIL || '').split(',').map(e => e.trim()).filter(Boolean);
