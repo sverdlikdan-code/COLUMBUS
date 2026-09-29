@@ -3,11 +3,10 @@ name: Expiry Alert
 # Ежедневный алярм "דוח תוקף" (סכנה + STOP SALE) из редактора махсана — карточки снимаются
 # Puppeteer'ом с docs/planogram-editor.html (см. server/expiry-alert.js). Письмо уходит только
 # если есть хотя бы одна карточка. Отдельный job, как obligo-alert — живой сервер/PBI не трогает.
+# Расписания здесь нет: 2026-09-29 GitHub молча не запустил cron '0 6' (0 прогонов, health monitor
+# */15 тоже пропускал). Ежедневный запуск Вс–Чт 09:00 Israel — cron на VPS: /root/run-alert.sh expiry-alert
+# (отдельный клон /root/alerts-run, живой сервер не трогает). Здесь — только ручной/тестовый запуск.
 on:
-  schedule:
-    # Вс–Чт 09:00 Israel летом (UTC+3) = 06:00 UTC. Зимой (UTC+2, с конца октября) это 08:00 —
-    # cron в GitHub только UTC. Пользователь 2026-09-28: "каждый день в 9 утра".
-    - cron: '0 6 * * 0-4'
   workflow_dispatch:
     inputs:
       to:
