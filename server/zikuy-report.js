@@ -55,8 +55,14 @@ function loadCatalog() {
 }
 function loadAgentNames() {
   const names = {};
-  try { const x = readJson(path.join(DOCS, 'formula-road-data.json')); for (const arr of Object.values((x.data || x).agentsByManager || {})) for (const a of arr) names[a.agentCode] = a.agentName; } catch (_) {}
-  try { for (const m of readJson(path.join(DATA, 'managers.json'))) names['M:' + m.id] = m.nameHe || m.name; } catch (_) {}
+  const team = {};
+  try { const x = readJson(path.join(DOCS, 'formula-road-data.json')); for (const [tm, arr] of Object.entries((x.data || x).agentsByManager || {})) for (const a of arr) { names[a.agentCode] = a.agentName; team[a.agentCode] = tm; } } catch (_) {}
+  try {
+    const mgrs = readJson(path.join(DATA, 'managers.json'));
+    for (const m of mgrs) names['M:' + m.id] = m.nameHe || m.name;
+    // начальник агента = менеджер, чья team совпадает с ключом agentsByManager
+    for (const [code, tm] of Object.entries(team)) { const b = mgrs.find(m => m.team === tm); names['B:' + code] = b ? (b.nameHe || b.name) : tm; }
+  } catch (_) {}
   return names;
 }
 
@@ -85,6 +91,47 @@ function loadTimings(month) {
   return { pairs, submitted, unattributed, unpaired };
 }
 
+// ── фактический % возвратов (Power BI, 90 дней) ────────────────────────────
+// Та же формула, что % זיכויים в форме зикуя (/api/client-returns zikuyDax, index.js):
+// |SUM ₪ השמדות| / SUM ₪ -מכר-, те же исключения SKU и агентов, окно today-90..today.
+// Один запрос: по SKU, только по клиентам с зикуем в этом месяце → в семьи через famOf.
+const RET_EXCLUDED_SKUS = ['0', '915001', '915002', '916000', '916001', '916002', '916003', '916004', '916005', '916006', '916007', '916008', '916009', '916010', '916011'];
+async function fetchReturnRates(custIds) {
+  const { executeDax } = require('./powerbi');
+  const d90 = new Date(Date.now() - 90 * 86400000), t = new Date();
+  const rows = await executeDax(`
+EVALUATE
+CALCULATETABLE(
+  ADDCOLUMNS(
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח], ALL_PARTS[מק'ט], ALL_PARTS[תאור משפחת מוצר]),
+    "machlaka", LOOKUPVALUE(ADIFUT[מחלקה], ADIFUT[תאור משפחה], ALL_PARTS[תאור משפחת מוצר]),
+    "zikuy", CALCULATE(SUM(ALL_PARTS[סכום (ש'ח)]), ALL_PARTS[ASHMADOT] = "השמדות", NOT(ALL_PARTS[שם סוכן] IN {"‭באילא יסוי‬", "‭יללכ‬"}), NOT(ISBLANK(ALL_PARTS[שם סוכן]))),
+    "brutto", CALCULATE(SUM(ALL_PARTS[סכום (ש'ח)]), ALL_PARTS[ASHMADOT] = "-מכר-")
+  ),
+  ALL_PARTS[מספר לקוח] IN {${custIds.map(c => `"${c}"`).join(', ')}},
+  NOT(ALL_PARTS[מק'ט] IN {${RET_EXCLUDED_SKUS.map(s => `"${s}"`).join(', ')}}),
+  ALL_PARTS[תאריך] >= DATE(${d90.getFullYear()},${d90.getMonth() + 1},${d90.getDate()}),
+  ALL_PARTS[תאריך] <= DATE(${t.getFullYear()},${t.getMonth() + 1},${t.getDate()})
+)`);
+  // клиент × SKU → суммируем в обе стороны (по SKU для семей/топа, по клиенту для блока клиентов)
+  const bySku = {}, byCust = {}, skuDept = {};
+  const add = (m, k, z, b) => { const x = m[k] = m[k] || { z: 0, b: 0 }; x.z += z; x.b += b; };
+  for (const r of rows) {
+    const z = Math.abs(r['[zikuy]'] || 0), b = r['[brutto]'] || 0, s = String(r["ALL_PARTS[מק'ט]"]);
+    add(bySku, s, z, b);
+    add(byCust, String(r['ALL_PARTS[מספר לקוח]']), z, b);
+    if (r['[machlaka]']) skuDept[s] = String(r['[machlaka]']).trim();
+  }
+  return { bySku, byCust, skuDept };
+}
+const RET_ALERT = 10; // % возвратов от которого подсвечиваем красным (пользователь 2026-09-29)
+// "12.3%" или "—"; ≥ порога — красным жирным
+function retCell(x) {
+  if (!x || !x.b) return '—';
+  const p = 100 * x.z / x.b;
+  return p >= RET_ALERT ? `<b style="color:${RED}">${p.toFixed(1)}%</b>` : `${p.toFixed(1)}%`;
+}
+
 // ── агрегация ───────────────────────────────────────────────────────────────
 function summarize(blanks, famOf, shelf, weighted) {
   const w = { z: 0, h: 0, sku: {} };
@@ -95,7 +142,7 @@ function summarize(blanks, famOf, shelf, weighted) {
     t.skuPerBlank.push(new Set(e.items.map(i => i.sku)).size);
     const a = agent[e.agentCode] = agent[e.agentCode] || { name: e.agentName, blanks: 0, skus: [], qty: 0 };
     a.blanks++; a.skus.push(new Set(e.items.map(i => i.sku)).size);
-    const c = cust[e.custId] = cust[e.custId] || { name: e.custName, city: e.city, qty: 0, blanks: 0 };
+    const c = cust[e.custId] = cust[e.custId] || { name: e.custName, city: e.city, qty: 0, blanks: 0, agentCode: e.agentCode, agentName: e.agentName };
     c.blanks++;
     for (const it of e.items) {
       const q = Number(it.qty) || 0, isZ = it.option === '-50%';
@@ -173,21 +220,26 @@ function donutBlock(charts, id, parts, unit = 'шт.') {
 const split = x => { const tot = x.z + x.h, hp = pct(x.h, tot); return `<span style="white-space:nowrap">${100 - hp}% / <b style="color:${hp >= 70 ? RED : INK}">${hp}%</b></span>`; };
 const delta = (cur, prev) => { if (!prev) return ''; const d = Math.round(100 * (cur - prev) / prev); return `<span style="color:${d > 0 ? RED : GREEN}">${d > 0 ? '+' : ''}${d}% к пр. месяцу</span>`; };
 
-function buildHtml(month, cur, prev, tm, names) {
+function buildHtml(month, cur, prev, tm, names, ret) {
   const { t, fam, sku, cust, agent, w } = cur;
   const [y, m] = month.split('-').map(Number);
   const title = `${MONTHS_RU[m - 1]} ${y}`;
 
   // 1. итог
   const charts = [];
-  let html = H('1. Итог месяца') + `<tr><td style="padding:0 14px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:Arial,sans-serif"><tr>
+  // что это за статистика — пользователь 2026-09-29: чтобы не путали с общими возвратами
+  let html = `<tr><td style="padding:18px 14px 0"><div style="background:#FFF8E6;border:1px solid #F1D48A;border-radius:8px;padding:10px 12px;font-size:12px;color:${INK};line-height:1.6">
+    <b>Что в этом отчёте:</b> только статистика <b>заявок на зикуй</b> из Formula Road — частный рынок и небольшой сетевой формат, то есть клиенты, где зикуй <b>не</b> делается документом самого клиента. Крупные сети со своими документами сюда не входят.<br>
+    <b>% возвратов</b> — фактический, из Power BI: השמדות ₪ / продажи брутто ₪ за последние 90 дней, по клиентам этого отчёта (та же формула, что в форме зикуя). От ${RET_ALERT}% — красным.${ret ? '' : ` <b style="color:${RED}">В этот раз Power BI не ответил — % возвратов в отчёте нет.</b>`}
+  </div></td></tr>`;
+  html += H('1. Итог месяца') + `<tr><td style="padding:0 14px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:Arial,sans-serif"><tr>
     ${kpi('Бланков зикуя', n0(t.blanks), delta(t.blanks, prev?.t.blanks))}
     ${kpi('Штук (без весового)', n0(t.total), delta(t.total, prev?.t.total))}
     ${kpi('Уценка −50%', n0(t.z), `${pct(t.z, t.total)}% всех списаний`)}
     ${kpi('השמדה', n0(t.h), `${pct(t.h, t.total)}% всех списаний`)}
   </tr></table></td></tr>`;
   html += donutBlock(charts, 'pie-split', [{ label: 'Уценка −50%', v: t.z, color: C_Z }, { label: 'השמדה', v: t.h, color: C_H }]);
-  html += P(`<b>Проще говоря:</b> из каждых 10 списанных штук ≈${Math.round(t.z / t.total * 10)} ушли с уценкой 50% и ≈${Math.round(t.h / t.total * 10)} уничтожены. Все штуки и доли в отчёте — только штучный товар; весовой (${(w.z + w.h).toFixed(1)} кг) — отдельным блоком после топ-10.`);
+  html += P(`<b>Проще говоря:</b> из каждых 10 списанных штук ≈${Math.round(t.z / t.total * 10)} ушли с уценкой 50% и ≈${Math.round(t.h / t.total * 10)} уничтожены. Все штуки и доли в отчёте — только штучный товар; весовой (${(w.z + w.h).toFixed(1)} кг) — отдельным блоком после топа артикулов.`);
   html += P(`В среднем <b>${avg(t.skuPerBlank).toFixed(1)}</b> артикула на бланк (медиана ${med(t.skuPerBlank)}), ${avg(blanksQty(cur)).toFixed(0)} шт. на бланк. Состав бланков: только −50% — ${t.onlyZ}, только השמדה — ${t.onlyH}, смешанные — ${t.mixed}.`
     + (prev ? ` Прошлый месяц: ${n0(prev.t.total)} шт., из них в השמדה ${pct(prev.t.h, prev.t.total)}%.` : ''));
 
@@ -196,15 +248,31 @@ function buildHtml(month, cur, prev, tm, names) {
   html += H('2. Семьи товаров', `<b>Доля в списаниях</b> — какая часть всех списанных штук месяца приходится на семью (все семьи вместе = 100%).<br><b>Уценка / השמדה</b> — как делятся штуки самой семьи (в каждой строке вместе = 100%). השמדה от 70% — красным: уценка не спасает.`);
   const top5 = fams.slice(0, 5), restQ = fams.slice(5).reduce((a, [, f]) => a + f.z + f.h, 0);
   html += donutBlock(charts, 'pie-fam', [...top5.map(([k, f], i) => ({ label: k, v: f.z + f.h, color: FAM_COLORS[i] })), ...(restQ ? [{ label: 'Прочие семьи', v: restQ, color: C_OTHER }] : [])]);
-  html += table(['Семья', 'Штук', 'Доля в списаниях', 'Уценка / השמדה', 'Клиентов'],
-    fams.slice(0, 15).map(([k, f]) => [esc(k), n0(f.z + f.h), pct(f.z + f.h, t.total) + '%', split(f), f.custs.size]), [1, 2, 3, 4]);
+  // % возвратов семьи = Σ по её SKU (из того же PBI-запроса)
+  const famRet = {};
+  if (ret) for (const [k, s] of Object.entries(sku)) { const r = ret.bySku[k]; if (!r) continue; const x = famRet[s.fam] = famRet[s.fam] || { z: 0, b: 0 }; x.z += r.z; x.b += r.b; }
+  const retHead = ret ? ['% возвр. 90 дн'] : [];
+  html += table(['Семья', 'Штук', 'Доля в списаниях', 'Уценка / השמדה', ...retHead],
+    fams.slice(0, 15).map(([k, f]) => [esc(k), n0(f.z + f.h), pct(f.z + f.h, t.total) + '%', split(f), ...(ret ? [retCell(famRet[k])] : [])]), [1, 2, 3, 4]);
 
-  // 3. SKU
+  // 3. SKU — топ-5 по каждой מחלקה (пользователь 2026-09-29); без PBI отдела не знаем → общий топ-7
   const skus = Object.entries(sku).sort((a, b) => (b[1].z + b[1].h) - (a[1].z + a[1].h));
-  const top10 = skus.slice(0, 10), top10q = top10.reduce((a, [, s]) => a + s.z + s.h, 0);
-  html += H('3. Топ-10 артикулов', `эти 10 артикулов вместе — ${pct(top10q, t.total)}% всех списанных штук месяца. «Уценка / השמדה» — как делятся штуки самого артикула.`);
-  html += table(['Артикул', 'Семья', 'Штук', 'Уценка / השמדה', 'Срок, дн', 'Клиентов'],
-    top10.map(([k, s]) => [`${k} · ${esc(s.name.slice(0, 32))}`, esc(s.fam), n0(s.z + s.h), split(s), s.shelf ?? '—', s.custs.size]), [2, 3, 4, 5]);
+  const skuRow = ([k, s]) => [`${k} · ${esc(s.name.slice(0, 32))}`, n0(s.z + s.h), split(s), ...(ret ? [retCell(ret.bySku[k])] : []), s.shelf ?? '—'];
+  const skuHead = ['Артикул', 'Штук', 'Уценка / השמדה', ...retHead, 'Срок, дн'];
+  const skuAlign = ret ? [1, 2, 3, 4] : [1, 2, 3];
+  if (ret) {
+    const byDept = {};
+    for (const e of skus) (byDept[ret.skuDept[e[0]] || 'לא מוגדר'] = byDept[ret.skuDept[e[0]] || 'לא מוגדר'] || []).push(e);
+    const depts = Object.entries(byDept).map(([d, list]) => [d, list, list.reduce((a, [, s]) => a + s.z + s.h, 0)]).sort((a, b) => b[2] - a[2]);
+    html += H('3. Топ-5 артикулов по каждой מחלקה', 'отделы по убыванию списанных штук. «Уценка / השמדה» — как делятся штуки самого артикула.');
+    for (const [d, list, q] of depts) {
+      html += P(`<b><bdi>${esc(d)}</bdi></b> — ${n0(q)} шт. (${pct(q, t.total)}% всех списаний)`);
+      html += table(skuHead, list.slice(0, 5).map(skuRow), skuAlign);
+    }
+  } else {
+    html += H('3. Топ-7 артикулов', '«Уценка / השמדה» — как делятся штуки самого артикула.');
+    html += table(skuHead, skus.slice(0, 7).map(skuRow), skuAlign);
+  }
 
   // 3а. весовой товар — отдельно, в кг
   const wskus = Object.entries(w.sku).sort((a, b) => (b[1].z + b[1].h) - (a[1].z + a[1].h));
@@ -229,6 +297,15 @@ function buildHtml(month, cur, prev, tm, names) {
   const cs = Object.values(cust).sort((a, b) => b.qty - a.qty);
   const share = k => pct(cs.slice(0, k).reduce((a, c) => a + c.qty, 0), t.total);
   html += H('5. Клиенты', `всего ${cs.length} клиентов · топ-10 = ${share(10)}% штук · топ-50 = ${share(50)}%`);
+  // клиенты с фактическим % возвратов от порога — с агентом и начальником (пользователь 2026-09-29)
+  if (ret) {
+    const hot = Object.entries(cust).map(([id, c]) => ({ ...c, r: ret.byCust[id] })).filter(c => c.r && c.r.b > 0 && 100 * c.r.z / c.r.b >= RET_ALERT)
+      .sort((a, b) => b.r.z / b.r.b - a.r.z / a.r.b);
+    html += P(`<b>Клиенты с возвратами от ${RET_ALERT}%</b> — ${hot.length} из ${cs.length}. Возвраты / продажи — ₪ за 90 дней; штук — в заявках на зикуй за месяц.`);
+    if (hot.length) html += table(['Клиент', '% возвр.', 'Возвр. / продажи ₪', 'Штук', 'Агент', 'Начальник'],
+      hot.map(c => [esc(c.name), retCell(c.r), `${n0(c.r.z)} / ${n0(c.r.b)}`, n0(c.qty), `<bdi>${esc(c.agentName || names[c.agentCode] || c.agentCode || '—')}</bdi>`, `<bdi>${esc(names['B:' + c.agentCode] || '—')}</bdi>`]), [1, 2, 3]);
+  }
+  html += P('<b>Топ-10 по штукам в заявках</b>');
   html += table(['Клиент', 'Штук', 'Бланков'], cs.slice(0, 10).map(c => [esc(c.name), n0(c.qty), c.blanks]), [1, 2]);
 
   // 6. агенты + время
@@ -283,7 +360,11 @@ async function main() {
   // blank-history хранит 92 дня — прошлый месяц сравниваем, только если он в истории целиком
   const prev = prevBlanks.length && all[0] && ilMonth(all[0].ts) < prevMonth(month) ? summarize(prevBlanks, famOf, shelf, weighted) : null;
   const tm = loadTimings(month);
-  const { subject, html, charts } = buildHtml(month, cur, prev, tm, names);
+  // PBI может ответить 429 — отчёт всё равно уходит, только без % возвратов (пометка в шапке)
+  let ret = null;
+  try { ret = await fetchReturnRates([...new Set(curBlanks.map(e => String(e.custId)))]); }
+  catch (e) { console.error('[zikuy-report] % возвратов из PBI не получен:', e.message); }
+  const { subject, html, charts } = buildHtml(month, cur, prev, tm, names, ret);
   const sharp = require('sharp');
   const pngs = await Promise.all(charts.map(async c => ({ id: c.id, png: await sharp(Buffer.from(c.svg)).png().toBuffer() })));
   console.log(`${subject}: бланков ${cur.t.blanks}, штук ${Math.round(cur.t.total)}, пар со временем ${tm.pairs.length}`);
