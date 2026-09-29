@@ -292,9 +292,8 @@ function renderBlank(d){
   const newLine = document.getElementById('dc-new-line');
   newLine.style.display = '';
   if(type==='bdd'){
-    // BDD: no new-clients section — net returns/credits line instead.
-    const ret = Math.round((d.returns||0) + (d.credits||0));
-    newLine.innerHTML = `החזרות וזיכויים: <b>${ret ? '−₪'+Math.abs(ret).toLocaleString('he-IL') : '0'}</b>`;
+    // BDD: no extra line at all — just clients + net sum (user 2026-09-29).
+    newLine.style.display = 'none';
   } else if(d.newCustCount > 0){
     const newSumText = Number(d.newSum||0).toLocaleString('he-IL',{maximumFractionDigits:0});
     newLine.innerHTML = `מתוכם לקוחות חדשים: <b>${d.newCustCount}</b> — ₪<b>${newSumText}</b>`;
