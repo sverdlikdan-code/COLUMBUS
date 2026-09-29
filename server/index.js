@@ -1120,7 +1120,17 @@ app.get('/i/:code', dataRateLimit, (req, res) => {
 });
 
 // GET /auth/pbi — auto-login as manager if opened via PBI (fr_ok cookie present)
-app.get('/auth/pbi', dataRateLimit, mahsanIpGuard, (req, res) => {
+// Off the office allowlist (e.g. manager's phone on mobile data, 2026-09-29): allowed
+// only when the PBI deep link carried ?u= (fr_pbiu) of a manager in managers.json AND the
+// browser came through the ?k= gate (fr_pbi_seen). Anonymous PBI entry stays office-only.
+function pbiIpOrKnownUser(req, res, next) {
+  const cookies = req.headers.cookie || '';
+  const u = cookies.match(/(?:^|;\s*)fr_pbiu=([^;]+)/);
+  const knownUser = !!(u && findManagerByPbiEmail(decodeURIComponent(u[1])));
+  if (isMahsanIp(req) === false && knownUser && /(?:^|;\s*)fr_pbi_seen=1/.test(cookies)) return next();
+  return mahsanIpGuard(req, res, next);
+}
+app.get('/auth/pbi', dataRateLimit, pbiIpOrKnownUser, (req, res) => {
   const cookies = req.headers.cookie || '';
   if (!/(?:^|;\s*)fr_ok=1/.test(cookies)) {
     writeLog({ ts: new Date().toISOString(), event: 'auth-pbi-rejected', reason: 'no_fr_ok', ip: getRealIp(req), ua: (req.headers['user-agent'] || '').substring(0, 120) });
@@ -4504,12 +4514,17 @@ app.use('/mmd', mmdGuard, express.static(path.join(__dirname, '..', 'MMD ORDERS'
 // ── FORMULA ROAD ─────────────────────────────────────────────────────────────
 // ── MAHSAN IP WHITELIST ─────────────────────────────────────────────────────
 // MAHSAN_ALLOWED_IPS in .env — comma-separated IPv4/IPv6. Empty = allow all.
-function mahsanIpGuard(req, res, next) {
+// null = allowlist not configured (open); true/false = IP is/isn't on it.
+function isMahsanIp(req) {
   const raw = process.env.MAHSAN_ALLOWED_IPS || '';
-  if (!raw.trim()) return next(); // not configured → open
-  const allowed = raw.split(',').map(s => s.trim()).filter(Boolean);
+  if (!raw.trim()) return null;
+  return raw.split(',').map(s => s.trim()).filter(Boolean).includes(getRealIp(req));
+}
+function mahsanIpGuard(req, res, next) {
   const ip = getRealIp(req);
-  if (allowed.includes(ip)) {
+  const onList = isMahsanIp(req);
+  if (onList === null) return next(); // not configured → open
+  if (onList) {
     // Marks the request as already IP-verified against a real, configured
     // allowlist — a stronger trust signal than fr_pbi_seen (which
     // planogram-editor.html has no way to ever obtain, having no ?k= entry
