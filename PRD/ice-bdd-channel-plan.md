@@ -15,7 +15,7 @@
 - **Own files for all BDD state:** `server/data/route-overrides-bdd.json`, `docs/gps-corrections-bdd.json`, `docs/mekarer-orders-bdd.json`, `server/data/bdd-geocode-resolved.json`. BDD never writes a FORMULA file or FORMULA in-memory cache.
 - **FORMULA state is read-only for BDD:** the GPS cascade reads FORMULA's corrections / tablet GPS / PBI coords / resolved cache through a getter; nothing is written back.
 - **Own Priority pool** (`bdd-priority.js`), never the pools in `priority-db.js`; `priority-db.js` is not edited.
-- **No quota pressure:** BDD PBI load is sequential and starts 2 min after FORMULA's load; no live geocoding for BDD (night job only, max 200, 02:00 Israel — and it currently writes FORMULA's shared address cache: see R8, decision pending).
+- **No quota pressure:** BDD PBI load is sequential and starts 2 min after FORMULA's load; no live geocoding for BDD (night job only, max 200, 02:00 Israel, `noCache` — never writes FORMULA's address cache, R8).
 - **Browser too:** in BDD mode the page must not fall back to or overlay FORMULA static data (R1-R5).
 - **BDD failure = BDD down, FORMULA up:** every BDD entry point (loader, night job, each route) catches its own errors; a BDD exception never propagates into `index.js`.
 - Task 13 negative control (FORMULA before/after identical) is a release gate.
@@ -48,6 +48,7 @@
 | end of `_loadPBICacheAttempt` success block | `setTimeout(() => bdd.start(), 2 * 60 * 1000);` | none — timer only |
 | `_inviteRedirect` (~1064) | append `&_ch=…` **only if** the manager has a channel | none — FORMULA URL byte-identical |
 | `/auth/pbi` response (~1140) | add `channel` key only if the manager has one | none — FORMULA JSON identical |
+| `geocodeAddress` (~1726) / `geocodeAddressCascade` (~1743) | optional last argument `opts = {}`; `opts.noCache` skips `geocodeCache.set(...)` and `saveGeocodeCache()`; cascade passes `opts` to each of its `geocodeAddress` calls (R8, Dan chose "own BDD cache" 2026-09-28) | none — FORMULA never passes `opts`, default path byte-for-byte the same behaviour |
 
 ## Pre-implementation review (2026-09-28) — findings verified against the code
 
@@ -72,7 +73,7 @@ Each item names the task that must apply it. Implementers: treat these as part o
 
 ### Open decisions (ask Dan before the task that needs it)
 
-- **R8 night geocoding and FORMULA's address cache** — options: (a) accept: the shared `geocode-cache.json` gains BDD address entries (no FORMULA client's coordinate can change); (b) add an optional `{ noCache: true }` argument to `geocodeAddress`/`geocodeAddressCascade`, default unchanged, so BDD never writes the file (one more FORMULA touch point); (c) no BDD night geocoding at all — clients without any known coordinate show "NO GPS" until a manager sets 📍. Recommendation: (c) first — steps ①–③ should cover almost all BDD clients (Task 3 probe gives the real count); add (b) only if that count is large.
+- ~~R8~~ **DECIDED 2026-09-28: option (b), own BDD cache.** Measured on VPS files: of 2016 BDD clients, 1537 get GPS from tablet orders, 243 from FORMULA's resolved cache, 13 from FORMULA 📍, 11 from ICE card / AI → **212 (10.5%) have none** → night geocoding needed (cap 200 → ~2 nights). Implementation: FORMULA touch point `opts.noCache` (table above) — reads the shared address cache, never writes it (neither the in-memory `geocodeCache` Map nor the file). Task 6 `nightGeocode` calls `deps.geocodeAddressCascade(c.address, c.city, { noCache: true })`; results persist only in `server/data/bdd-geocode-resolved.json`. Task 9 applies the touch point, with a negative check: FORMULA call without `opts` still writes the cache.
 
 `managerCanWrite` is **not** changed: BDD rows have `role: "team"` but no `team`, so its existing team branch (`clients[0].manager === session.managerTeam`) is already `false` for every FORMULA agent → a BDD session cannot write through any FORMULA route. Task 5 verifies this.
 
@@ -789,9 +790,9 @@ function createBdd(deps) {
     };
   }
 
-  // 02:00 Israel, sequential, max BDD_GEOCODE_NIGHT_CAP. geocodeAddressCascade's own
-  // address cache is keyed by the query string, so an entry added here only ever
-  // returns the same answer FORMULA would get for that exact string.
+  // 02:00 Israel, sequential, max BDD_GEOCODE_NIGHT_CAP. noCache: reads FORMULA's
+  // address cache but never writes it (in memory or on disk) — results live only in
+  // FILES.geocoded.
   async function nightGeocode() {
     if (!cache) return;
     const sources = gpsSources();
@@ -800,7 +801,7 @@ function createBdd(deps) {
     let done = 0;
     for (const c of todo.slice(0, BDD_GEOCODE_NIGHT_CAP)) {
       try {
-        const r = await deps.geocodeAddressCascade(c.address, c.city);
+        const r = await deps.geocodeAddressCascade(c.address, c.city, { noCache: true }); // R8: never write FORMULA's cache
         if (r && deps.isValidIL(r.lat, r.lng)) { resolved[c.custId] = { lat: r.lat, lng: r.lng, cityCenter: !!r.cityCenter, at: new Date().toISOString() }; done++; }
       } catch (e) { console.error('[BDD geocode]', c.custId, e.message); }
     }
@@ -1127,6 +1128,8 @@ Confirm the map names `noScheduleByAgent` / `iceByAgent` exist on `pbiCache` (`g
 ```js
   return res.json({ ok: true, managerName: managerMeta ? (managerMeta.nameHe || managerMeta.name) : null, token, ...(managerMeta?.channel ? { channel: managerMeta.channel } : {}) });
 ```
+
+- [ ] **Step 5b: `noCache` for BDD geocoding (R8)** — `geocodeAddress(query, city)` becomes `geocodeAddress(query, city, opts = {})` and its `geocodeCache.set(query, result || null);` becomes `if (!opts.noCache) geocodeCache.set(query, result || null);`. `geocodeAddressCascade(address, city)` becomes `geocodeAddressCascade(address, city, opts = {})`; pass `opts` as the third argument to every `geocodeAddress(...)` call inside it, and change `if (r) { saveGeocodeCache(); return r; }` to `if (r) { if (!opts.noCache) saveGeocodeCache(); return r; }`. Nothing else in these functions changes. Verify with a throwaway script that stubs nothing: `grep -n "geocodeAddress(\|geocodeAddressCascade(" server/index.js` — every pre-existing FORMULA caller still passes ≤2 arguments.
 
 - [ ] **Step 6: Check the diff is only the touch points**
 
