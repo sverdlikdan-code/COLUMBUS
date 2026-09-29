@@ -74,22 +74,28 @@ function buildBddCache({ teamRows, clientRows, gpsRows, schedRows, familyRows },
 // One Priority result (bddDocLinesToday) feeds V, סגירת יום and line coverage.
 // Families are filtered here, not in SQL, so the SQL stays the ICE M code's own shape.
 // Sign split: src 'N' = החזרה (DOCS), negative INV = זיכוי, everything else = sale.
+// A client counts as served (V badge, coverage numerator, סגירת יום client count) only
+// with sales > 0 today — a credit-only or return-only client is not (user 2026-09-29).
 function summarizeBddDocs(rows, families) {
   const custIds = new Set();
   const byAgent = new Map();
   for (const r of rows) {
     if (!families.has(r.familyDes)) continue;
-    custIds.add(r.custId);
-    if (!byAgent.has(r.agentCode)) byAgent.set(r.agentCode, { agentName: r.agentName, custSet: new Set(), sales: 0, returns: 0, credits: 0 });
+    if (!byAgent.has(r.agentCode)) byAgent.set(r.agentCode, { agentName: r.agentName, custSales: new Map(), sales: 0, returns: 0, credits: 0 });
     const a = byAgent.get(r.agentCode);
-    a.custSet.add(r.custId);
     if (r.src === 'N') a.returns += r.amount;
     else if (r.src === 'INV' && r.amount < 0) a.credits += r.amount;
-    else a.sales += r.amount;
+    else {
+      a.sales += r.amount;
+      a.custSales.set(r.custId, (a.custSales.get(r.custId) || 0) + r.amount);
+    }
   }
   const round = n => Math.round(n * 100) / 100;
   for (const a of byAgent.values()) {
-    a.custCount = a.custSet.size;
+    const served = [...a.custSales].filter(([, s]) => s > 0).map(([id]) => id);
+    served.forEach(id => custIds.add(id));
+    a.custCount = served.length;
+    delete a.custSales;
     a.sales = round(a.sales); a.returns = round(a.returns); a.credits = round(a.credits);
     a.sum = round(a.sales + a.returns + a.credits);
   }

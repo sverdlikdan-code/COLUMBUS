@@ -52,9 +52,11 @@ test('summarizeBddDocs keeps BDD families, nets by executing agent', () => {
     { src: 'D',   docNo: 'D7',  custId: 'B', agentCode: '43', agentName: 'קרבצוב', familyDes: 'גלידה בודדים', amount: 300 },
     { src: 'N',   docNo: 'N2',  custId: 'B', agentCode: '43', agentName: 'קרבצוב', familyDes: 'גלידה בודדים', amount: -100 },
     { src: 'INV', docNo: 'CR1', custId: 'C', agentCode: '17', agentName: 'לוחמטוב', familyDes: 'גלידה בודדים', amount: -50 },
+    { src: 'N',   docNo: 'N9',  custId: 'D', agentCode: '17', agentName: 'לוחמטוב', familyDes: 'גלידה בודדים', amount: -80 },
   ];
   const s = summarizeBddDocs(rows, families);
-  assert.deepStrictEqual([...s.custIds].sort(), ['A', 'B', 'C']);
+  // C = credit only, D = return only → no V, not counted (sales > 0 rule)
+  assert.deepStrictEqual([...s.custIds].sort(), ['A', 'B']);
   const a43 = s.byAgent.get('43');
   assert.strictEqual(a43.custCount, 2);
   assert.strictEqual(a43.sales, 1300);
@@ -62,6 +64,8 @@ test('summarizeBddDocs keeps BDD families, nets by executing agent', () => {
   assert.strictEqual(a43.credits, 0);
   assert.strictEqual(a43.sum, 1200);
   assert.strictEqual(s.byAgent.get('17').credits, -50);
+  assert.strictEqual(s.byAgent.get('17').custCount, 0);
+  assert.strictEqual(s.byAgent.get('17').sum, -130);
 });
 
 test('bddCanWrite: own groups only, super always', () => {
