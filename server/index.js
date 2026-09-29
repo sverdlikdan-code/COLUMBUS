@@ -12,6 +12,7 @@ const { executeDax, getDatasetRefreshTime } = require('./powerbi');
 const { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByClient, dayClosingByAgentAll, dayClosingOrdersToday, dayClosingIceOrdersRaw, openOrderIdsToday, liveOrderGpsForNewClient, clientPromosByCustId, custIdsWithActivePromo } = require('./priority-db');
 const dayClosingDedup = require('./day-closing-dedup');
 const { createBdd } = require('./bdd-routes');
+const mekarerDaily = require('./mekarer-daily');
 const { Resend } = require('resend');
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -3614,6 +3615,90 @@ app.get('/api/mekarer-export', requireAuth, async (req, res) => {
   }
 });
 
+// /mekarer-admin.html — таблица всех заказов מקרר (FORMULA + ICE BDD) для администраторов
+// холодильников. Видят оба + super; каждое поле пишет только его владелец (managers.json id).
+const MEKARER_ADMIN_FIELDS = { approve: 'yosi', yossiNote: 'yosi', natashaNote: 'natasha' };
+const MEKARER_ADMIN_VIEWERS = new Set(Object.values(MEKARER_ADMIN_FIELDS));
+function mekarerAdminAccess(req, res, next) {
+  const s = req.session;
+  if (s?.isManager && (MEKARER_ADMIN_VIEWERS.has(s.managerId) || s.managerRole === 'super')) return next();
+  return res.status(403).json({ error: 'forbidden' });
+}
+function mekarerAdminRows() {
+  const readOrders = f => { try { return JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'docs', f), 'utf8')); } catch { return []; } };
+  return [
+    ...mekarerDaily.flatRows(readOrders('mekarer-orders.json'), 'F').map(r => ({ ...r, channel: 'FORMULA' })),
+    ...mekarerDaily.flatRows(readOrders('mekarer-orders-bdd.json'), 'B').map(r => ({ ...r, channel: 'ICE BDD' })),
+  ].sort((a, b) => b.id - a.id);
+}
+app.get('/api/mekarer-admin', requireAuth, mekarerAdminAccess, (req, res) => {
+  if (req.query.probe) return res.json({ ok: true });
+  const rows = mekarerAdminRows();
+  const canEdit = Object.keys(MEKARER_ADMIN_FIELDS).filter(f => MEKARER_ADMIN_FIELDS[f] === req.session.managerId);
+  res.json({ rows, marks: mekarerDaily.readMarks(), canEdit });
+});
+// POST /api/mekarer-admin/export {keys} — xlsx of exactly the rows the page shows (after its filters/sort).
+app.post('/api/mekarer-admin/export', dataRateLimit, requireAuth, mekarerAdminAccess, async (req, res) => {
+  try {
+    const byKey = new Map(mekarerAdminRows().map(r => [r.key, r]));
+    const keys = Array.isArray(req.body?.keys) ? req.body.keys : [...byKey.keys()];
+    const rows = keys.map(k => byKey.get(String(k))).filter(Boolean);
+    const marks = mekarerDaily.readMarks();
+    const m = (r, f) => marks[r.key]?.[f] || '';
+    const ilDT = iso => {
+      const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jerusalem', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(iso)).map(x => [x.type, x.value]));
+      return new Date(Date.UTC(+p.year, p.month - 1, +p.day, +p.hour, +p.minute));
+    };
+    const COLS = [['אישור יוסי', 11], ['הערות יוסי', 30], ['הערות נטליה', 30], ['תאריך ושעת הגשה', 18], ['ערוץ', 10],
+      ["מס' לקוח", 11], ['שם לקוח', 36], ['עיר', 12], ['שם סוכן', 18], ['מנהל', 10], ['איש קשר', 14], ['טלפון', 13],
+      ['מיקום', 9], ['פעולה', 10], ['דגם לספק', 34], ['דגם לאסוף', 34], ['שלות', 7], ['עגלה', 7], ['תאריך אספקה', 13],
+      ['תקלה / הערה', 28], ["מס' הזמנה", 15]];
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('ניהול מקררים', { views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
+    ws.addTable({
+      name: 'MekarerAdmin', ref: 'A1', headerRow: true,
+      style: { theme: 'TableStyleMedium2', showRowStripes: true },
+      columns: COLS.map(([name]) => ({ name, filterButton: true })),
+      rows: rows.length ? rows.map(r => [m(r, 'approve'), m(r, 'yossiNote'), m(r, 'natashaNote'),
+        r.submittedAt ? ilDT(r.submittedAt) : '', r.channel, r.custId, r.custName, r.city, r.agentName, r.manager,
+        r.contactName, r.phone, r.location, r.action, r.newModel, r.returnModel, r.salot, r.agala,
+        r.supplyDate ? new Date(r.supplyDate + 'T00:00:00Z') : '', r.fault, r.id]) : [COLS.map(() => '')],
+    });
+    COLS.forEach(([, w], i) => { ws.getColumn(i + 1).width = w; });
+    ws.getColumn(4).numFmt = 'dd/mm/yyyy hh:mm';
+    ws.getColumn(19).numFmt = 'dd/mm/yyyy';
+    rows.forEach((r, i) => {
+      const c = ws.getCell(i + 2, 1), v = m(r, 'approve');
+      c.alignment = { horizontal: 'center' };
+      if (v) c.font = { bold: true, color: { argb: v === 'כן' ? 'FF2E7D32' : 'FFC62828' } };
+      if (v) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: v === 'כן' ? 'FFE8F5E9' : 'FFFFEBEE' } };
+      [2, 3, 20].forEach(col => { ws.getCell(i + 2, col).alignment = { wrapText: true, vertical: 'top' }; });
+    });
+    const date = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jerusalem' }).format(new Date()).replace(/\//g, '-');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="mekarer-admin-${date}.xlsx"`);
+    await wb.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    console.error('[mekarer-admin-export]', err); res.status(500).json({ error: 'server_error' });
+  }
+});
+app.post('/api/mekarer-admin/mark', dataRateLimit, requireAuth, mekarerAdminAccess, (req, res) => {
+  const { key, field } = req.body || {};
+  let value = String(req.body?.value ?? '').substring(0, 1000);
+  if (!/^[FB]:\d+:\d+$/.test(String(key))) return res.status(400).json({ error: 'bad_key' });
+  if (MEKARER_ADMIN_FIELDS[field] !== req.session.managerId) return res.status(403).json({ error: 'forbidden' });
+  if (field === 'approve' && !['', 'כן', 'לא'].includes(value)) return res.status(400).json({ error: 'bad_value' });
+  const marks = mekarerDaily.readMarks();
+  const at = new Date().toISOString();
+  marks[key] = { ...marks[key], [field]: value, [field + 'At']: at };
+  const tmp = mekarerDaily.MARKS + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(marks, null, 2), 'utf8');
+  fs.renameSync(tmp, mekarerDaily.MARKS);
+  writeLog({ ts: at, event: 'mekarer-admin-mark', key, field, managerId: req.session.managerId, ip: getRealIp(req) });
+  res.json({ ok: true, at });
+});
+
 // GET /api/bbox-audit-xlsx — clients with valid IL GPS from PBI but outside city bbox
 app.get('/api/bbox-audit-xlsx', async (req, res) => {
   const adminOk = req.query.key === process.env.ADMIN_LOG_KEY;
@@ -4641,6 +4726,9 @@ app.get('/formula-road', (req, res, next) => {
 });
 app.get('/mekarer-order.html', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'mekarer-order.html'));
+});
+app.get('/mekarer-admin.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'docs', 'mekarer-admin.html'));
 });
 app.get('/zikuy-order.html', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'zikuy-order.html'));

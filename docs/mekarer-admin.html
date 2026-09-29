@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ניהול מקררים — FORMULA</title>
+<style>
+:root{
+  --blue:#1565C0;--blue-dark:#0D47A1;--sky:#E3F2FD;--sky-mid:#BBDEFB;
+  --green:#2E7D32;--green-bg:#E8F5E9;--red:#C62828;--red-bg:#FFEBEE;--yellow:#FFF8E1;
+  --text:#1A1A2E;--mid:#5C6BC0;--light:#90A4AE;--bg:#F5F7FA;--card:#fff;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(--text);display:flex;flex-direction:column;}
+.top-bar{background:linear-gradient(135deg,var(--blue-dark),var(--blue));color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;box-shadow:0 2px 8px rgba(0,0,0,.2);}
+.back-btn{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;width:34px;height:34px;font-size:18px;cursor:pointer;}
+.top-title{font-size:17px;font-weight:800;}
+.top-count{font-size:12px;opacity:.85;}
+.top-sp{flex:1;}
+.top-btn{background:#fff;color:var(--blue-dark);border:none;border-radius:16px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;}
+.top-btn[hidden]{display:none;}
+.me{font-size:12px;opacity:.9;}
+.wrap{flex:1;overflow:auto;margin:10px;background:var(--card);border-radius:10px;box-shadow:0 1px 4px rgba(21,101,192,.1);}
+table{border-collapse:separate;border-spacing:0;font-size:13px;min-width:100%;}
+th{position:sticky;top:0;z-index:2;background:var(--blue-dark);color:#fff;font-weight:700;padding:0;white-space:nowrap;text-align:right;border-left:1px solid rgba(255,255,255,.15);}
+th .h{display:flex;align-items:center;gap:6px;padding:8px 10px;}
+th.own{background:#8A5A00;}
+th .fbtn{margin-inline-start:auto;background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:4px;width:22px;height:22px;font-size:11px;cursor:pointer;flex:none;}
+th .fbtn.on{background:#FFD54F;color:var(--text);}
+td{padding:6px 10px;border-bottom:1px solid #EEF2F8;border-left:1px solid #F3F5F9;white-space:nowrap;vertical-align:top;}
+tr:nth-child(even) td{background:#FAFBFD;}
+tr:hover td{background:var(--sky);}
+td.wrapc{white-space:normal;min-width:180px;max-width:300px;}
+td.own{background:var(--yellow)!important;}
+td.num{text-align:center;}
+.badge{display:inline-block;min-width:34px;text-align:center;border-radius:10px;padding:2px 8px;font-weight:700;font-size:12px;}
+.badge.yes{background:var(--green-bg);color:var(--green);}
+.badge.no{background:var(--red-bg);color:var(--red);}
+select.appr{font:inherit;font-weight:700;border:1.5px solid var(--sky-mid);border-radius:6px;padding:3px 6px;background:#fff;cursor:pointer;}
+select.appr.yes{background:var(--green-bg);color:var(--green);border-color:#A5D6A7;}
+select.appr.no{background:var(--red-bg);color:var(--red);border-color:#EF9A9A;}
+textarea.note{font:inherit;font-size:12px;width:220px;min-height:30px;height:30px;border:1.5px solid var(--sky-mid);border-radius:6px;padding:4px 6px;resize:vertical;background:#fff;}
+textarea.note:focus,select.appr:focus{outline:none;border-color:var(--blue);}
+.note-ro{white-space:pre-wrap;font-size:12px;min-width:160px;max-width:260px;}
+.saved{outline:2px solid #66BB6A;}
+.err{outline:2px solid var(--red);}
+.empty,.msg{padding:40px;text-align:center;color:var(--light);font-size:14px;}
+/* Excel-like filter popover */
+.pop{position:fixed;z-index:50;background:#fff;border:1px solid #C5CAE9;border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.18);width:260px;font-size:13px;display:flex;flex-direction:column;max-height:70vh;}
+.pop .sort{display:flex;flex-direction:column;border-bottom:1px solid #EEF2F8;padding:4px;}
+.pop .sort button{background:none;border:none;text-align:right;padding:6px 8px;border-radius:4px;font:inherit;cursor:pointer;}
+.pop .sort button:hover{background:var(--sky);}
+.pop input[type=search]{margin:8px;padding:6px 8px;border:1.5px solid var(--sky-mid);border-radius:6px;font:inherit;}
+.pop .list{overflow:auto;padding:0 8px;flex:1;min-height:60px;}
+.pop label{display:flex;align-items:center;gap:6px;padding:3px 2px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pop label.all{font-weight:700;border-bottom:1px solid #EEF2F8;padding-bottom:5px;margin-bottom:3px;}
+.pop .acts{display:flex;gap:6px;padding:8px;border-top:1px solid #EEF2F8;justify-content:flex-start;}
+.pop .acts button{border-radius:6px;padding:5px 14px;font:inherit;font-weight:700;cursor:pointer;border:1.5px solid var(--blue);}
+.pop .ok{background:var(--blue);color:#fff;}
+.pop .cancel{background:#fff;color:var(--blue);}
+.pop .clr{margin-inline-start:auto;border-color:transparent!important;background:none;color:var(--red);}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <button class="back-btn" onclick="history.length>1?history.back():location.href='/formula-road'" title="חזרה">→</button>
+  <div class="top-title">🧊 ניהול מקררים</div>
+  <div class="top-count" id="count"></div>
+  <div class="top-sp"></div>
+  <div class="me" id="me"></div>
+  <button class="top-btn" id="clear-all" hidden onclick="clearAll()">נקה סינונים</button>
+  <button class="top-btn" id="xls-btn" onclick="exportXlsx()">ייצוא לאקסל ⬇</button>
+  <button class="top-btn" onclick="load()">רענן ⟳</button>
+</div>
+<div class="wrap" id="wrap"><div class="msg">טוען...</div></div>
+
+<script>
+const API = location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? '' : 'https://api.sverdlik-apps.site';
+const TOKEN = localStorage.getItem('frToken') || '';
+const EDIT_LABEL = { approve: 'אישור יוסי', yossiNote: 'הערות יוסי', natashaNote: 'הערות נטליה' };
+
+function fmtDT(iso) {
+  if (!iso) return '';
+  return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso)).replace(',', '');
+}
+function fmtD(ymd) { return ymd ? ymd.split('-').reverse().join('/') : ''; }
+
+// get: display value (used for filter + sort). sortKey: optional raw value for proper ordering.
+const COLS = [
+  { k: 'approve', t: 'אישור יוסי', own: true, get: r => mark(r, 'approve') },
+  { k: 'yossiNote', t: 'הערות יוסי', own: true, get: r => mark(r, 'yossiNote') },
+  { k: 'natashaNote', t: 'הערות נטליה', own: true, get: r => mark(r, 'natashaNote') },
+  { k: 'submittedAt', t: 'תאריך ושעת הגשה', get: r => fmtDT(r.submittedAt), sortKey: r => r.submittedAt || '' },
+  { k: 'channel', t: 'ערוץ' },
+  { k: 'custId', t: "מס' לקוח" },
+  { k: 'custName', t: 'שם לקוח' },
+  { k: 'city', t: 'עיר' },
+  { k: 'agentName', t: 'שם סוכן' },
+  { k: 'manager', t: 'מנהל' },
+  { k: 'contactName', t: 'איש קשר' },
+  { k: 'phone', t: 'טלפון' },
+  { k: 'location', t: 'מיקום' },
+  { k: 'action', t: 'פעולה' },
+  { k: 'newModel', t: 'דגם לספק' },
+  { k: 'returnModel', t: 'דגם לאסוף' },
+  { k: 'salot', t: 'שלות', num: true, sortKey: r => r.salot === '' ? -1 : Number(r.salot) },
+  { k: 'agala', t: 'עגלה', num: true },
+  { k: 'supplyDate', t: 'תאריך אספקה', get: r => fmtD(r.supplyDate), sortKey: r => r.supplyDate || '' },
+  { k: 'fault', t: 'תקלה / הערה', wrap: true },
+  { k: 'id', t: "מס' הזמנה", sortKey: r => Number(r.id) },
+];
+COLS.forEach(c => { if (!c.get) c.get = r => (r[c.k] == null ? '' : String(r[c.k])); });
+
+let ROWS = [], MARKS = {}, CAN = [];
+const filters = {};           // colKey -> Set of allowed display values
+let sort = null;              // { k, dir: 1|-1 }
+
+function mark(r, f) { return (MARKS[r.key] && MARKS[r.key][f]) || ''; }
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
+const EMPTY = '(ריק)';
+const disp = v => (v === '' ? EMPTY : v);
+
+async function load() {
+  if (!TOKEN) return showMsg('אין חיבור — להיכנס ל-Formula Road דרך Power BI ולפתוח מכאן');
+  if (document.activeElement && document.activeElement.classList.contains('note')) return; // don't wipe a note being typed
+  try {
+    const r = await fetch(API + '/api/mekarer-admin', { headers: { 'X-Session': TOKEN } });
+    if (r.status === 401) return showMsg('החיבור פג — להיכנס מחדש דרך Power BI');
+    if (r.status === 403) return showMsg('אין הרשאה לעמוד זה');
+    if (!r.ok) throw new Error(r.status);
+    const j = await r.json();
+    ROWS = j.rows; MARKS = j.marks || {}; CAN = j.canEdit || [];
+    document.getElementById('me').textContent = CAN.length ? 'עריכה: ' + CAN.map(f => EDIT_LABEL[f]).join(', ') : 'צפייה בלבד';
+    render();
+  } catch (e) { showMsg('שגיאה בטעינה — לנסות שוב (' + e.message + ')'); }
+}
+function showMsg(t) { document.getElementById('wrap').innerHTML = `<div class="msg">${esc(t)}</div>`; }
+
+function passes(r, skipKey) {
+  for (const c of COLS) {
+    if (c.k === skipKey || !filters[c.k]) continue;
+    if (!filters[c.k].has(disp(c.get(r)))) return false;
+  }
+  return true;
+}
+
+function visibleRows() {
+  const out = ROWS.filter(r => passes(r));
+  if (sort) {
+    const c = COLS.find(x => x.k === sort.k);
+    const key = c.sortKey || c.get;
+    out.sort((a, b) => {
+      const x = key(a), y = key(b);
+      return (typeof x === 'number' && typeof y === 'number' ? x - y : String(x).localeCompare(String(y), 'he', { numeric: true })) * sort.dir;
+    });
+  }
+  return out;
+}
+
+function cell(r, c) {
+  const v = c.get(r);
+  if (c.k === 'approve') {
+    const cls = v === 'כן' ? 'yes' : v === 'לא' ? 'no' : '';
+    if (CAN.includes('approve'))
+      return `<td class="own"><select class="appr ${cls}" data-key="${esc(r.key)}" data-f="approve" onchange="save(this)">
+        <option value=""></option><option${v === 'כן' ? ' selected' : ''}>כן</option><option${v === 'לא' ? ' selected' : ''}>לא</option></select></td>`;
+    return `<td class="own num">${v ? `<span class="badge ${cls}">${esc(v)}</span>` : ''}</td>`;
+  }
+  if (c.own) {
+    const at = MARKS[r.key] && MARKS[r.key][c.k + 'At'];
+    const title = at ? ` title="עודכן ${esc(fmtDT(at))}"` : '';
+    if (CAN.includes(c.k))
+      return `<td class="own"><textarea class="note" data-key="${esc(r.key)}" data-f="${c.k}" onchange="save(this)"${title}>${esc(v)}</textarea></td>`;
+    return `<td class="own"><div class="note-ro"${title}>${esc(v)}</div></td>`;
+  }
+  return `<td class="${c.num ? 'num' : ''}${c.wrap ? ' wrapc' : ''}">${esc(v)}</td>`;
+}
+
+function render() {
+  const rows = visibleRows();
+  const active = Object.keys(filters).length;
+  document.getElementById('count').textContent = active ? `${rows.length} מתוך ${ROWS.length} שורות` : `${ROWS.length} שורות`;
+  document.getElementById('clear-all').hidden = !active;
+  const head = COLS.map(c => `<th class="${c.own ? 'own' : ''}"><div class="h">${esc(c.t)}${sort && sort.k === c.k ? (sort.dir > 0 ? ' ▲' : ' ▼') : ''}
+    <button class="fbtn${filters[c.k] ? ' on' : ''}" onclick="openFilter(event,'${c.k}')" title="סינון">▼</button></div></th>`).join('');
+  const body = rows.length ? rows.map(r => `<tr>${COLS.map(c => cell(r, c)).join('')}</tr>`).join('')
+    : `<tr><td colspan="${COLS.length}" class="empty">אין שורות לתצוגה</td></tr>`;
+  const wrap = document.getElementById('wrap');
+  const sx = wrap.scrollLeft, sy = wrap.scrollTop;
+  wrap.innerHTML = `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+  wrap.scrollLeft = sx; wrap.scrollTop = sy;
+}
+
+async function save(el) {
+  const key = el.dataset.key, field = el.dataset.f, value = el.value;
+  el.classList.remove('saved', 'err');
+  try {
+    const r = await fetch(API + '/api/mekarer-admin/mark', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Session': TOKEN },
+      body: JSON.stringify({ key, field, value }),
+    });
+    if (!r.ok) throw new Error(r.status);
+    const j = await r.json();
+    MARKS[key] = { ...MARKS[key], [field]: value, [field + 'At']: j.at };
+    if (field === 'approve') el.className = 'appr ' + (value === 'כן' ? 'yes' : value === 'לא' ? 'no' : '');
+    el.classList.add('saved');
+    setTimeout(() => el.classList.remove('saved'), 1200);
+  } catch (e) {
+    el.classList.add('err');
+    alert('השמירה נכשלה — לנסות שוב (' + e.message + ')');
+  }
+}
+
+// Export exactly what's on screen (filters + sort) — server builds the xlsx with the marks.
+async function exportXlsx() {
+  const btn = document.getElementById('xls-btn');
+  btn.disabled = true;
+  try {
+    const r = await fetch(API + '/api/mekarer-admin/export', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Session': TOKEN },
+      body: JSON.stringify({ keys: visibleRows().map(x => x.key) }),
+    });
+    if (!r.ok) throw new Error(r.status);
+    const name = (/filename="([^"]+)"/.exec(r.headers.get('Content-Disposition') || '') || [])[1] || 'mekarer-admin.xlsx';
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(await r.blob());
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  } catch (e) { alert('הייצוא נכשל — לנסות שוב (' + e.message + ')'); }
+  btn.disabled = false;
+}
+
+// ── Excel-like column filter ─────────────────────────────────────────
+let pop = null;
+function closePop() { if (pop) { pop.remove(); pop = null; } }
+function openFilter(ev, k) {
+  ev.stopPropagation();
+  closePop();
+  const c = COLS.find(x => x.k === k);
+  // Like Excel: values offered = rows passing every OTHER column's filter.
+  const vals = [...new Set(ROWS.filter(r => passes(r, k)).map(r => disp(c.get(r))))];
+  const sk = c.sortKey;
+  if (sk) {
+    const byDisp = new Map(ROWS.map(r => [disp(c.get(r)), sk(r)]));
+    vals.sort((a, b) => { const x = byDisp.get(a), y = byDisp.get(b); return typeof x === 'number' ? x - y : String(x).localeCompare(String(y)); });
+  } else vals.sort((a, b) => a.localeCompare(b, 'he', { numeric: true }));
+  const cur = filters[k];
+  const checked = new Set(cur ? vals.filter(v => cur.has(v)) : vals);
+
+  pop = document.createElement('div');
+  pop.className = 'pop';
+  pop.innerHTML = `<div class="sort"><button data-d="1">מיון א → ת / קטן → גדול</button><button data-d="-1">מיון ת → א / גדול → קטן</button></div>
+    <input type="search" placeholder="חיפוש...">
+    <div class="list"></div>
+    <div class="acts"><button class="ok">אישור</button><button class="cancel">ביטול</button><button class="clr">נקה סינון</button></div>`;
+  document.body.appendChild(pop);
+  pop.addEventListener('click', e => e.stopPropagation());
+  const list = pop.querySelector('.list'), search = pop.querySelector('input');
+
+  function drawList() {
+    const q = search.value.trim().toLowerCase();
+    const shown = vals.filter(v => v.toLowerCase().includes(q));
+    const allOn = shown.length && shown.every(v => checked.has(v));
+    list.innerHTML = `<label class="all"><input type="checkbox" ${allOn ? 'checked' : ''}> (בחר הכל${q ? ' מתוצאות החיפוש' : ''})</label>`
+      + shown.map((v, i) => `<label title="${esc(v)}"><input type="checkbox" data-i="${i}" ${checked.has(v) ? 'checked' : ''}> ${esc(v)}</label>`).join('');
+    list.querySelector('.all input').onchange = e => { shown.forEach(v => e.target.checked ? checked.add(v) : checked.delete(v)); drawList(); };
+    list.querySelectorAll('input[data-i]').forEach(inp => inp.onchange = () => {
+      const v = shown[+inp.dataset.i];
+      inp.checked ? checked.add(v) : checked.delete(v);
+      list.querySelector('.all input').checked = shown.every(x => checked.has(x));
+    });
+  }
+  search.oninput = drawList;
+  drawList();
+
+  pop.querySelectorAll('.sort button').forEach(b => b.onclick = () => { sort = { k, dir: +b.dataset.d }; closePop(); render(); });
+  pop.querySelector('.cancel').onclick = closePop;
+  pop.querySelector('.clr').onclick = () => { delete filters[k]; closePop(); render(); };
+  pop.querySelector('.ok').onclick = () => {
+    // Excel semantics: typing a search then OK keeps only the checked matches.
+    const q = search.value.trim().toLowerCase();
+    const keep = new Set([...checked].filter(v => !q || v.toLowerCase().includes(q)));
+    if (keep.size === vals.length) delete filters[k]; else filters[k] = keep;
+    closePop(); render();
+  };
+
+  const rect = ev.currentTarget.getBoundingClientRect();
+  const w = pop.offsetWidth;
+  let left = rect.right - w;
+  left = Math.max(8, Math.min(left, window.innerWidth - w - 8));
+  pop.style.left = left + 'px';
+  pop.style.top = Math.min(rect.bottom + 4, window.innerHeight - pop.offsetHeight - 8) + 'px';
+  search.focus();
+}
+document.addEventListener('click', closePop);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePop(); });
+function clearAll() { for (const k in filters) delete filters[k]; render(); }
+
+// Both admins edit at the same time — pick up the other's marks when the tab regains focus.
+document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
+load();
+</script>
+</body>
+</html>

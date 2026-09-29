@@ -2,7 +2,7 @@
 // Запускается cron-ом на VPS (не GitHub Actions: живые заказы только на VPS, docs/mekarer-orders.json
 // в .gitignore). Cron 13:00 и 14:00 UTC, скрипт сам отсекает всё кроме 16:xx Israel — так
 // переход летнее/зимнее время не сдвигает отправку.
-// В файле все заказы, свежие сверху, + колонка "אישור יוסי" (выпадающий כן/לא).
+// В файле все заказы, свежие сверху, + колонка "אישור יוסי" (выпадающий כן/לא, предзаполнен со страницы /mekarer-admin.html).
 // Письмо уходит только если с прошлой отправки появился новый заказ (state: server/mekarer-daily-state.json).
 // Флаги: --dry-run (xlsx на диск, без письма), --force (без проверки времени и новых заказов).
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
@@ -15,6 +15,8 @@ const DRY_RUN = process.argv.includes('--dry-run');
 const FORCE = process.argv.includes('--force');
 const ORDERS = path.join(__dirname, '..', 'docs', 'mekarer-orders.json');
 const STATE = path.join(__dirname, 'mekarer-daily-state.json');
+// Отметки со страницы /mekarer-admin.html (אישור/הערות יוסי, הערות נטשה), пишет server/index.js.
+const MARKS = path.join(__dirname, 'data', 'mekarer-admin.json');
 const TZ = 'Asia/Jerusalem';
 
 // Часть старых заказов сохранена в визуальном порядке внутри LRO..PDF — развернуть обратно.
@@ -49,7 +51,9 @@ function modelLabel(code, names) {
   return code ? (names[code] ? `${code} — ${names[code]}` : code) : '';
 }
 
-async function buildXlsx(orders) {
+// Одна строка на холодильник (заказ × mekarerim), свежие сверху. Общая для Excel и страницы
+// /mekarer-admin.html — key совпадает с ключами отметок в MARKS.
+function flatRows(orders, ch = 'F') {
   const names = {};
   for (const o of orders) for (const m of o.mekarerim || []) for (const k of ['newModelName', 'returnModelName']) {
     const v = m[k] || '';
@@ -57,14 +61,27 @@ async function buildXlsx(orders) {
   }
   const rows = [];
   for (const o of [...orders].sort((a, b) => b.id - a.id)) {
-    for (const m of (o.mekarerim && o.mekarerim.length ? o.mekarerim : [{}])) {
-      rows.push(['', ilDate(o.submittedAt), o.custId, fixBiDi(o.custName), o.city, o.agentName, o.manager,
-        o.contactName, o.phone, o.location, m.action || '', modelLabel(m.newModel, names),
-        modelLabel(m.returnModel, names), m.salot === '' || m.salot == null ? '' : Number(m.salot),
-        String(m.agala) === 'true' ? 'כן' : 'לא', m.supplyDate ? new Date(m.supplyDate + 'T00:00:00Z') : '',
-        m.fault || '', String(o.id)]);
-    }
+    (o.mekarerim && o.mekarerim.length ? o.mekarerim : [{}]).forEach((m, i) => rows.push({
+      key: `${ch}:${o.id}:${i}`, id: String(o.id), submittedAt: o.submittedAt, custId: o.custId,
+      custName: fixBiDi(o.custName), city: o.city, agentName: o.agentName, manager: o.manager,
+      contactName: o.contactName, phone: o.phone, location: o.location, action: m.action || '',
+      newModel: modelLabel(m.newModel, names), returnModel: modelLabel(m.returnModel, names),
+      salot: m.salot === '' || m.salot == null ? '' : Number(m.salot),
+      agala: String(m.agala) === 'true' ? 'כן' : 'לא', supplyDate: m.supplyDate || '', fault: m.fault || '',
+    }));
   }
+  return rows;
+}
+
+function readMarks() {
+  try { return JSON.parse(fs.readFileSync(MARKS, 'utf8')); } catch { return {}; }
+}
+
+async function buildXlsx(orders) {
+  const marks = readMarks();
+  const rows = flatRows(orders).map(r => [marks[r.key]?.approve || '', ilDate(r.submittedAt), r.custId,
+    r.custName, r.city, r.agentName, r.manager, r.contactName, r.phone, r.location, r.action, r.newModel,
+    r.returnModel, r.salot, r.agala, r.supplyDate ? new Date(r.supplyDate + 'T00:00:00Z') : '', r.fault, r.id]);
 
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('הזמנות מקררים', { views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
@@ -129,4 +146,6 @@ async function main() {
   console.log('sent', to.join(','), JSON.stringify(res.data));
 }
 
-main().catch(e => { console.error('ERR:', e.message); process.exit(1); });
+if (require.main === module) main().catch(e => { console.error('ERR:', e.message); process.exit(1); });
+
+module.exports = { flatRows, readMarks, MARKS };

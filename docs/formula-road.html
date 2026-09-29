@@ -2172,6 +2172,24 @@ async function _maybeRenderChannelToggle(){
     +`<button type="button" class="ch-seg${bdd?' active':''}" onclick="_switchChannel('ICE_BDD')">ICE BDD</button>`;
   wrap.insertBefore(t, wrap.firstChild);
 }
+// "ניהול מקררים" (mekarer-admin.html) — same server-gated probe as the channel toggle:
+// only the fridge admins (yosi/natasha in managers.json) + super get a 200.
+let _mekarerAdminProbe=null;
+async function _maybeRenderMekarerAdminBtn(){
+  const token=_getToken();
+  if(!token) return;
+  if(!_mekarerAdminProbe) _mekarerAdminProbe=fetch(API+'/api/mekarer-admin?probe=1',{headers:{'X-Session':token}}).then(r=>r.ok).catch(()=>false);
+  if(!(await _mekarerAdminProbe) || st.step!=='manager') return;
+  const wrap=document.querySelector('#login-body .mgr-wrap');
+  if(!wrap || wrap.querySelector('.mekarer-admin-btn')) return;
+  const b=document.createElement('button');
+  b.type='button';
+  b.className='ch-seg mekarer-admin-btn';
+  b.style.cssText='align-self:center;margin-top:14px;background:#e8f4ff;border:1.5px solid #50A0D0;';
+  b.textContent='🧊 ניהול מקררים';
+  b.onclick=()=>window.open('mekarer-admin.html','_blank');
+  wrap.appendChild(b);
+}
 // Full reload = clean re-init of every channel-dependent piece of state (corrections,
 // namespaced localStorage, body.bdd); the saved manager session lands back on this picker.
 function _switchChannel(ch){
@@ -2344,6 +2362,7 @@ function renderLogin(){
         </div>
       </div>`;
     _maybeRenderChannelToggle();
+    _maybeRenderMekarerAdminBtn();
     startTeamStatsPolling();
   }else if(st.step==='agent-welcome'){
     // First-ever open via an agent's own invite link — same branded s-login
