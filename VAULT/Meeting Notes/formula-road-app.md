@@ -1554,3 +1554,11 @@ v12→v13 (коммит `0fea1fa7`) — после первого бампа (v1
 - **Найдено попутно:** `server/bdd*.js` не было в paths `server-deploy.yml` — правки BDD не уезжали на VPS сами. Добавлено.
 - Коммиты: `0eab76c3`, `2e1ff5be`, `34c8d5a3`, `634537ff`. VPS HEAD=634537ff, pm2 online, img-proxy 501806 → 200.
 - ⚠️ 429 PBI в 12:30–12:31 UTC совпали с двумя деплоями подряд (известная история, [[project_pbi_429_incident]]).
+
+## Сессия 2026-09-29 — страница ניהול מקררים для Йоси и Натальи Аксёновой [shipped]
+- `docs/mekarer-admin.html` + `/api/mekarer-admin` (GET, `?probe=1`), `/mark` (POST), `/export` (POST {keys} → xlsx видимых строк). Заказы FORMULA + ICE BDD, строка = холодильник (ключ `F|B:orderId:idx`), колонка ערוץ.
+- Права: видят `yosi`, `natasha` (новая в managers.json, `natasha@dilerbmd.onmicrosoft.com`, readonly) и super; поле `approve`/`yossiNote` пишет только yosi, `natashaNote` — только natasha (`MEKARER_ADMIN_FIELDS`). Отметки — `server/data/mekarer-admin.json` (gitignore, live на VPS).
+- `mekarer-daily.js`: общая `flatRows()` для Excel и страницы; ежедневный Excel Йоси предзаполняет אישור из отметок.
+- Вход: кнопка «🧊 ניהול מקררים» на экране выбора менеджера (probe-паттерн как у тумблера BDD).
+- Коммит `288d8d6f`, деплой success, прод-проверка: page 200, API без токена 401.
+- Урок: `server/index.js` и `formula-road.html` в CRLF — node-replace по многострочному якорю молча не срабатывает; нормализовать \r\n или проверять grep после вставки.
