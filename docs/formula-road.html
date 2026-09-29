@@ -2283,6 +2283,8 @@ function _continueFromWelcome(){
 }
 
 function logout(){
+  // 2026-09-29: agent 238 hit the small "✕ יציאה" next to "← חזור" by accident and was asked for his code
+  if(!confirm('לצאת מהמערכת?')) return;
   const auth=_loadAuth();
   if(auth) _logAccess('logout', auth.code||null, auth.name||null, !!auth.isManager);
   localStorage.removeItem('frAgent');
