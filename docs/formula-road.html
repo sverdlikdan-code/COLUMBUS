@@ -2038,7 +2038,7 @@ async function initLogin(){
   // session check below runs before any PBI/auth logic and just trusts whatever
   // identity is already in localStorage. Bug found live 2026-08-19.
   if (new URLSearchParams(window.location.search).get('k')) {
-    try { localStorage.removeItem('frAgent'); localStorage.removeItem('frRouteAgent'); } catch(_){}
+    try { localStorage.removeItem('frAgent'); localStorage.removeItem('frRouteAgent'); localStorage.removeItem('bdd_frRouteAgent'); } catch(_){}
     window.history.replaceState({}, '', window.location.pathname);
   }
 
@@ -2079,7 +2079,7 @@ async function initLogin(){
       st.agent={code:saved.code,name:saved.name};
       // Manager F5 restore: use the last selected route agent, not the manager code
       if(saved.isManager){
-        try{const ra=JSON.parse(localStorage.getItem('frRouteAgent')||'null');if(ra?.code)st.agent=ra;}catch(_){}
+        try{const ra=JSON.parse(localStorage.getItem(_lsAg('frRouteAgent'))||'null');if(ra?.code)st.agent=ra;}catch(_){}
       }
       document.getElementById('logout-btn').style.display='';
       // F5 state restore: if last day+city are saved, skip city screen and go straight to route.
@@ -2380,7 +2380,7 @@ async function selectManager(mgr){
 function selectAgent(code,name){
   _tick();
   st.agent={code,name};
-  localStorage.setItem('frRouteAgent', JSON.stringify({code,name}));
+  localStorage.setItem(_lsAg('frRouteAgent'), JSON.stringify({code,name})); // BDD: 'bdd_frRouteAgent', FORMULA key unchanged
   // Manager/multi-line users only (regular agents never reach this function) —
   // the start point is "where the manager is", not something tied to whichever
   // agent's route they're looking at. Once it's set this session, switching

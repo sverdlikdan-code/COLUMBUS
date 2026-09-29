@@ -82,7 +82,15 @@ function createBdd(deps) {
     return docsCache.summary;
   }
 
+  // Memoized 60 s: rebuilding loops every FORMULA client map on the shared event loop,
+  // too much for every /customers call. BDD /save-gps clears it (gpsMemo = null).
+  let gpsMemo = null;
   function gpsSources() {
+    if (gpsMemo && Date.now() - gpsMemo.at < 60 * 1000) return gpsMemo.sources;
+    gpsMemo = { at: Date.now(), sources: buildGpsSources() };
+    return gpsMemo.sources;
+  }
+  function buildGpsSources() {
     const f = deps.formulaGps(); // read-only view of FORMULA state
     const formulaKnown = new Map();
     for (const src of f.clientMaps) {
@@ -248,19 +256,31 @@ function createBdd(deps) {
   }));
 
   // --- write routes (Task 8) ---
+  // Stored day-move client = the fields BDD /customers returns (the frontend sends back
+  // that same object), as capped primitives. Numbers keep null (lat/lng/dayNum can be null).
+  const MOVED_STR = ['custId', 'custName', 'city', 'address', 'fullAddress', 'agentCode', 'agentName', 'manager',
+    'clientType', 'hevra', 'dayLabel', 'gpsSource', 'lastOrderDate'];
+  const MOVED_NUM = ['lat', 'lng', 'dayNum', 'priorityOrder', 'target', 'pct', 'monthlySales', 'avg6Sales', 'avg6Orders', 'avg6IceSales'];
+  const cleanMovedClient = c => {
+    const o = {};
+    for (const k of MOVED_STR) if (c[k] != null) o[k] = String(c[k]).slice(0, 200);
+    for (const k of MOVED_NUM) { const n = c[k] == null || c[k] === '' ? null : Number(c[k]); o[k] = Number.isFinite(n) ? n : null; }
+    o.iceOnly = !!c.iceOnly;
+    return o;
+  };
   router.post('/api/route-day-move', deps.dayMoveRateLimit, h(async (req, res) => {
     const { custId, day, client, agentCode } = req.body || {};
     const a = String(agentCode || '');
     if (!validAgent(a)) return res.status(400).json({ ok: false, error: 'invalid agent code' });
     if (!bddCanWrite(req.session, a, cache)) return res.status(403).json({ ok: false, error: 'forbidden' });
-    if (!custId || typeof custId !== 'string') return res.status(400).json({ ok: false, error: 'invalid custId' });
+    if (typeof custId !== 'string' || !validCust(custId)) return res.status(400).json({ ok: false, error: 'invalid custId' });
     const dayNum = parseInt(day, 10);
     if (!Number.isInteger(dayNum) || dayNum < 1 || dayNum > 5) return res.status(400).json({ ok: false, error: 'invalid day' });
     const id = custId.slice(0, 20);
     await withBddLock(() => {
       const data = readJson(FILES.overrides, {});
       if (!data[a]) data[a] = { order: {}, dayMoves: {} };
-      if (client && typeof client === 'object') data[a].dayMoves[id] = { day: dayNum, client, movedAt: new Date().toISOString() };
+      if (client && typeof client === 'object') data[a].dayMoves[id] = { day: dayNum, client: cleanMovedClient(client), movedAt: new Date().toISOString() };
       else delete data[a].dayMoves[id]; // no client payload = moved back to its original day
       writeJson(FILES.overrides, data);
     });
@@ -269,18 +289,21 @@ function createBdd(deps) {
   }));
 
   router.post('/save-gps', deps.dataRateLimit, h(async (req, res) => {
-    const { custId, lat, lng, name, city, address } = req.body || {};
+    const { custId, name, city, address } = req.body || {};
+    const lat = Number(req.body?.lat), lng = Number(req.body?.lng);
     if (!custId || !lat || !lng) return res.status(400).json({ error: 'missing custId/lat/lng' });
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return res.status(400).json({ error: 'invalid coordinates' });
     if (!validCust(String(custId))) return res.status(400).json({ error: 'invalid custId' });
     if (!deps.isValidIL(lat, lng)) return res.status(400).json({ error: 'coordinates outside Israel' });
     const client = cache?.clientById.get(String(custId));
     if (!client || !bddCanWrite(req.session, client.agentCode, cache)) return res.status(403).json({ error: 'forbidden' });
     const total = await withBddLock(() => {
       const current = readJson(FILES.gps, {});
-      current[String(custId)] = { lat, lng, correctedAt: new Date().toISOString(), name: name || '', city: city || '', address: address || '' };
+      current[String(custId)] = { lat, lng, correctedAt: new Date().toISOString(), name: String(name || '').slice(0, 200), city: String(city || '').slice(0, 200), address: String(address || '').slice(0, 200) };
       writeJson(FILES.gps, current);
       return Object.keys(current).length;
     });
+    gpsMemo = null; // the new 📍 point must show on the very next /customers
     res.json({ ok: true, total });
   }));
 
