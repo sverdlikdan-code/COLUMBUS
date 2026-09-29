@@ -849,6 +849,7 @@ function createSession(agentCode, isManager, viaPbi = false, pbiUser = null, man
     if (managerMeta.channel) {
       sess.channel = managerMeta.channel;
       sess.managerTeams = managerMeta.teams || [];
+      sess.bddRole = managerMeta.bddRole || null;
     }
   }
   sessions.set(token, sess);

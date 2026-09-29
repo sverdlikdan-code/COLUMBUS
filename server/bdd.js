@@ -99,7 +99,9 @@ function summarizeBddDocs(rows, families) {
 function bddCanWrite(session, agentCode, cache) {
   if (!session?.isManager) return false;
   if (session.managerRole === 'super') return true;
-  if (session.channel !== 'ICE_BDD' || session.managerRole !== 'team' || !cache) return false;
+  // BDD write rights come from bddRole only — managerRole stays the person's FORMULA role
+  // (readonly for BDD managers), so FORMULA write/admin routes never see them as 'team'.
+  if (session.channel !== 'ICE_BDD' || session.bddRole !== 'team' || !cache) return false;
   const group = cache.agentGroup.get(String(agentCode));
   return !!group && (session.managerTeams || []).includes(group);
 }

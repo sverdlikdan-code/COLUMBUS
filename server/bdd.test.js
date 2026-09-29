@@ -66,12 +66,13 @@ test('summarizeBddDocs keeps BDD families, nets by executing agent', () => {
 
 test('bddCanWrite: own groups only, super always', () => {
   const cache = { agentGroup: new Map([['98', 'MATVEY'], ['21', 'ALMOG'], ['243', 'TIMUR']]) };
-  const matvey = { isManager: true, channel: 'ICE_BDD', managerRole: 'team', managerTeams: ['MATVEY', 'ALMOG'] };
+  const matvey = { isManager: true, channel: 'ICE_BDD', managerRole: 'readonly', bddRole: 'team', managerTeams: ['MATVEY', 'ALMOG'] };
   assert.strictEqual(bddCanWrite(matvey, '98', cache), true);
   assert.strictEqual(bddCanWrite(matvey, '21', cache), true);
   assert.strictEqual(bddCanWrite(matvey, '243', cache), false);
   assert.strictEqual(bddCanWrite({ isManager: true, managerRole: 'super' }, '243', cache), true);
   assert.strictEqual(bddCanWrite({ isManager: true, channel: 'ICE_BDD', managerRole: 'readonly', managerTeams: ['TIMUR'] }, '243', cache), false);
+  assert.strictEqual(bddCanWrite({ isManager: true, channel: 'ICE_BDD', managerRole: 'team', managerTeams: ['TIMUR'] }, '243', cache), false, 'FORMULA team role alone grants no BDD write');
   assert.strictEqual(bddCanWrite(matvey, '98', null), false);
 });
 
