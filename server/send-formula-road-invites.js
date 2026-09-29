@@ -41,8 +41,10 @@ function makeShortInvite(code, name, days, isManager) {
   return `https://api.sverdlik-apps.site/i/${short}`;
 }
 
-function emailHtml({ name, link, isManager, bdd }) {
-  const scopeLine = bdd
+function emailHtml({ name, link, isManager, bdd, viewOnly }) {
+  const scopeLine = bdd && viewOnly
+    ? 'הקישור למטה בשבילך — נכנס אוטומטית עם הרשאת צפייה ב-FORMULA וב-ICE BDD (מתג במסך המנהלים). צפייה בלבד, ללא עריכה.'
+    : bdd
     ? 'הקישור למטה בשבילך — נכנס אוטומטית עם הרשאת מנהל ICE BDD. עריכה פתוחה עבור הצוות שלך.'
     : isManager
       ? 'הקישור למטה בשבילך — נכנס אוטומטית עם הרשאת מנהל, גישה לכל הסוכנים והמסלולים.'
@@ -99,10 +101,11 @@ async function main() {
     // ICE BDD managers only — roster comes from managers.json, not the xlsx.
     // The xlsx (with its password column) is never opened in this mode.
     const roster = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'managers.json'), 'utf8'));
-    rows.push(...roster.filter(m => m.channel === 'ICE_BDD' && m.email)
+    // bddAccess (no channel) = FORMULA managers with the view-only BDD toggle, e.g. Maxim.
+    rows.push(...roster.filter(m => (m.channel === 'ICE_BDD' || m.bddAccess) && m.email)
       // 'mgr' placeholder: the page accepts an invite only when _ac is non-empty
       // (formula-road.html `if (_inv && _ac)`) — '' silently fell back to the saved login.
-      .map(m => ({ agentCode: 'mgr', agentName: m.name, email: m.email, isManager: true })));
+      .map(m => ({ agentCode: 'mgr', agentName: m.name, email: m.email, isManager: true, viewOnly: !m.channel })));
   } else {
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.readFile(path.resolve(__dirname, '..', 'FORMULA ROADS -PASSWORDS', 'EMAIL + PASSWORD.xlsx'));
@@ -148,7 +151,7 @@ async function main() {
           to: r.email,
           cc: 'd.sverdlik@DilerBMD.com',
           subject: BDD ? 'FORMULA ROAD — ICE BDD · כלי עבודה חדש למנהלים' : 'FORMULA ROAD — כלי עבודה חדש לסוכני השטח',
-          html: emailHtml({ name: r.agentName, link, isManager: r.isManager, bdd: BDD }),
+          html: emailHtml({ name: r.agentName, link, isManager: r.isManager, bdd: BDD, viewOnly: r.viewOnly }),
         });
         console.log('  sent.');
       } catch (e) {
