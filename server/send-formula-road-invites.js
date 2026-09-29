@@ -21,6 +21,7 @@ const { Resend } = require('resend');
 
 const SHOULD_SEND = process.argv.includes('--send');
 const ONLY_TO = (process.argv.find(a => a.startsWith('--to=')) || '').slice(5) || null;
+const BDD = process.argv.includes('--bdd');
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const SHORT_INVITE_FILE = path.join(__dirname, 'data', 'short-invites.json');
@@ -40,10 +41,21 @@ function makeShortInvite(code, name, days, isManager) {
   return `https://api.sverdlik-apps.site/i/${short}`;
 }
 
-function emailHtml({ name, link, isManager }) {
-  const scopeLine = isManager
-    ? 'הקישור למטה בשבילך — נכנס אוטומטית עם הרשאת מנהל, גישה לכל הסוכנים והמסלולים.'
-    : 'הקישור למטה בשבילך — נכנס אוטומטית ומציג רק את הלקוחות שלך.';
+function emailHtml({ name, link, isManager, bdd }) {
+  const scopeLine = bdd
+    ? 'הקישור למטה בשבילך — נכנס אוטומטית עם הרשאת מנהל ICE BDD. עריכה פתוחה עבור הצוות שלך.'
+    : isManager
+      ? 'הקישור למטה בשבילך — נכנס אוטומטית עם הרשאת מנהל, גישה לכל הסוכנים והמסלולים.'
+      : 'הקישור למטה בשבילך — נכנס אוטומטית ומציג רק את הלקוחות שלך.';
+  const items = bdd
+    ? `<li><b>כל צוותי ICE BDD</b> — סוכנים, לקוחות וימי ביקור לפי משטח ICE</li>
+    <li><b>מסלול חכם</b> — סדר ביקורים לפי GPS, מפה, ניווט ב-Waze/Google</li>
+    <li><b>✔️ חי מ-Priority</b> — לקוח שקיבל היום חשבונית או תעודת משלוח מסומן תוך דקה</li>
+    <li><b>סגירת יום ואחוז כיסוי קו</b> — מכירה נטו של הסוכן להיום, אחרי החזרות וזיכויים</li>
+    <li><b>מבצעים והזמנת מקרר</b> — ישירות מכרטיס הלקוח</li>`
+    : `<li><b>מנתב מסלולים חכם</b> — סדר ביקורים אופטימלי, מפה, ניווט ב-Waze/Google</li>
+    <li><b>אנליטיקאי AI</b> — ניתוח לקוחות, מגמות מכירה, TOP לקוחות להיום</li>
+    <li><b>בקשת זיכוי מהירה</b> — בחירת מוצרים בתמונות, ושליחה ישירה לוואטסאפ כבלנק מוכן</li>`;
   return `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;background:#f5f7fa;padding:24px 16px">
 <div style="background:linear-gradient(135deg,#1A3F7C,#2E6FAD);color:#fff;padding:20px 24px;border-radius:12px 12px 0 0;text-align:center">
   <div style="font-size:22px;font-weight:900;letter-spacing:1px">FORMULA ROAD 🗺</div>
@@ -55,9 +67,7 @@ function emailHtml({ name, link, isManager }) {
     נבנה עבורך כלי עבודה חדש שעונד על העבודה היומיומית:
   </p>
   <ul style="font-size:14px;line-height:1.9;color:#333;padding-inline-start:20px;margin:0 0 16px">
-    <li><b>מנתב מסלולים חכם</b> — סדר ביקורים אופטימלי, מפה, ניווט ב-Waze/Google</li>
-    <li><b>אנליטיקאי AI</b> — ניתוח לקוחות, מגמות מכירה, TOP לקוחות להיום</li>
-    <li><b>בקשת זיכוי מהירה</b> — בחירת מוצרים בתמונות, ושליחה ישירה לוואטסאפ כבלנק מוכן</li>
+    ${items}
   </ul>
   <p style="font-size:14px;line-height:1.7;color:#333;margin:0 0 6px">
     ${scopeLine}
@@ -84,22 +94,30 @@ function escEmail(s) {
 }
 
 async function main() {
-  const wb = new ExcelJS.Workbook();
-  await wb.xlsx.readFile(path.resolve(__dirname, '..', 'FORMULA ROADS -PASSWORDS', 'EMAIL + PASSWORD.xlsx'));
-  const ws = wb.worksheets[0];
   const rows = [];
-  ws.eachRow((row, rowNumber) => {
-    if (rowNumber === 1) return;
-    const v = row.values;
-    const email = String(v[5] ?? '').trim();
-    if (!email) return;
-    rows.push({
-      agentCode: String(v[1] ?? '').trim(),
-      agentName: String(v[2] ?? '').trim(),
-      email,
-      isManager: String(v[6] ?? '').trim().toUpperCase() === 'YES',
+  if (BDD) {
+    // ICE BDD managers only — roster comes from managers.json, not the xlsx.
+    // The xlsx (with its password column) is never opened in this mode.
+    const roster = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'managers.json'), 'utf8'));
+    rows.push(...roster.filter(m => m.channel === 'ICE_BDD' && m.email)
+      .map(m => ({ agentCode: '', agentName: m.name, email: m.email, isManager: true })));
+  } else {
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.readFile(path.resolve(__dirname, '..', 'FORMULA ROADS -PASSWORDS', 'EMAIL + PASSWORD.xlsx'));
+    const ws = wb.worksheets[0];
+    ws.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return;
+      const v = row.values;
+      const email = String(v[5] ?? '').trim();
+      if (!email) return;
+      rows.push({
+        agentCode: String(v[1] ?? '').trim(),
+        agentName: String(v[2] ?? '').trim(),
+        email,
+        isManager: String(v[6] ?? '').trim().toUpperCase() === 'YES',
+      });
     });
-  });
+  }
 
   // Skip rows sharing an email with another row — sending both means neither agent
   // reliably gets their own invite, and the roster (EMAIL + PASSWORD.xlsx) currently
@@ -127,8 +145,8 @@ async function main() {
           from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
           to: r.email,
           cc: 'd.sverdlik@DilerBMD.com',
-          subject: 'FORMULA ROAD — כלי עבודה חדש לסוכני השטח',
-          html: emailHtml({ name: r.agentName, link, isManager: r.isManager }),
+          subject: BDD ? 'FORMULA ROAD — ICE BDD · כלי עבודה חדש למנהלים' : 'FORMULA ROAD — כלי עבודה חדש לסוכני השטח',
+          html: emailHtml({ name: r.agentName, link, isManager: r.isManager, bdd: BDD }),
         });
         console.log('  sent.');
       } catch (e) {
