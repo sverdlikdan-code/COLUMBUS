@@ -343,17 +343,19 @@ function buildHtml(month, cur, prev, tm, names, ret) {
   // Экономия только по медиане (решение пользователя 2026-09-29): зикуев × (10 мин − медиана).
   const byWho = {}; for (const p of short) (byWho[p.who] = byWho[p.who] || []).push(p.s);
   // +10% — администрирование ошибок/неточностей с офисом, которых с приложением на порядок меньше (пользователь 2026-09-29)
-  const savedS = v => v.length * Math.max(0, BASELINE_S - med(v)) * (1 + ADMIN_BONUS);
-  const savedH = savedS(short.map(p => p.s)) / 3600;
-  html += H('7. Агенты и время', `экономия = зикуев × (10 мин на ручной бланк − медиана) + ${ADMIN_BONUS * 100}% на администрирование ошибок и неточностей с офисом (из них ${(savedH - savedH / (1 + ADMIN_BONUS)).toFixed(1)} ч); ${long} зикуев дольше 30 мин (форма висела открытой) не учтены`);
+  // Считаем на ВСЕ бланки месяца, не только с замером (пользователь 2026-09-30); медиана — своя у агента, без замеров — общая
+  const medAll = med(short.map(p => p.s));
+  const savedS = (n, v) => n * Math.max(0, BASELINE_S - (v && v.length ? med(v) : medAll)) * (1 + ADMIN_BONUS);
+  const savedH = savedS(t.blanks) / 3600;
+  html += H('7. Агенты и время', `экономия = все зикуи месяца × (10 мин на ручной бланк − медиана) + ${ADMIN_BONUS * 100}% на администрирование ошибок и неточностей с офисом (из них ${(savedH - savedH / (1 + ADMIN_BONUS)).toFixed(1)} ч); медиана — по зикуям с замером времени, у агента без замеров — общая; ${long} зикуев дольше 30 мин (форма висела открытой) в медиану не входят`);
   html += `<tr><td style="padding:0 14px 10px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:Arial,sans-serif"><tr>
     ${kpi('Сэкономлено', savedH.toFixed(1) + ' ч')}
-    ${kpi('Медиана зикуя', mmss(med(short.map(p => p.s))))}
+    ${kpi('Медиана зикуя', mmss(medAll))}
     ${kpi('Зикуев со временем', short.length)}
     ${kpi('Агентов', Object.keys(agent).length)}
   </tr></table></td></tr>`;
   html += table(['Агент', 'Бланков', 'Артикулов ⌀', 'Штук', 'Медиана', 'Сэкономлено'],
-    Object.entries(agent).sort((a, b) => b[1].blanks - a[1].blanks).map(([code, a]) => [esc(a.name || names[code] || code), a.blanks, avg(a.skus).toFixed(1), n0(a.qty), byWho[code] ? mmss(med(byWho[code])) : '—', byWho[code] ? (savedS(byWho[code]) / 3600).toFixed(1) + ' ч' : '—']), [1, 2, 3, 4, 5]);
+    Object.entries(agent).sort((a, b) => b[1].blanks - a[1].blanks).map(([code, a]) => [esc(a.name || names[code] || code), a.blanks, avg(a.skus).toFixed(1), n0(a.qty), byWho[code] ? mmss(med(byWho[code])) : '—', (savedS(a.blanks, byWho[code]) / 3600).toFixed(1) + ' ч']), [1, 2, 3, 4, 5]);
   const buckets = [[1, 1], [2, 3], [4, 6], [7, 10], [11, 999]].map(([a, b]) => { const s = short.filter(p => p.items >= a && p.items <= b).map(p => p.s); return s.length ? [b === 999 ? `${a}+` : a === b ? `${a}` : `${a}–${b}`, s.length, mmss(med(s))] : null; }).filter(Boolean);
   html += P('<span style="font-size:12px;color:' + MUTED + '">Время по размеру бланка:</span>');
   html += table(['Артикулов в бланке', 'Зикуев', 'Медиана времени'], buckets, [1, 2]);
