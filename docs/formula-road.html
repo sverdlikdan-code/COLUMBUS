@@ -3557,13 +3557,14 @@ function _primaryActionsHtml(c,noGps){
   return `<span class="zikuy-btn" data-id="${c.custId}" data-name="${nm}" data-city="${ct}" onclick="openZikuyOrder(event,this.dataset.id,this.dataset.name,this.dataset.city)" title="בקשת זיכוי">זיכוי</span>
     ${hasPromo ? '' : `<span class="excl-btn" data-id="${c.custId}" onclick="toggleExclude('${c.custId}',event)" title="הוצא ממסלול">🚫</span>`}
     ${noGps ? '' : `<span class="waze-btn" onclick="openWaze(event,${c.lat},${c.lng})" title="נווט ב-Waze">W</span>`}
+    ${_isBdd() ? `<span class="mekarer-btn" data-id="${c.custId}" data-name="${nm}" data-city="${ct}" onclick="openMekarerOrder(event,this.dataset.id,this.dataset.name,this.dataset.city)" title="הזמנת מקרר">🧊</span>` : ''}
     <span class="ai-insight-btn" data-id="${c.custId}" data-name="${nm}" onclick="openClientAI(event,this.dataset.id,this.dataset.name)" title="ניתוח מעמק — משפחות, פערים, השוואה לרשת">🔍</span>
     ${hasPromo ? `<span class="promo-btn" data-id="${c.custId}" data-name="${nm}" onclick="openPromoModal(event,this.dataset.id,this.dataset.name)" title="מבצעים פעילים">🏷️</span>` : ''}`;
 }
 function _secondaryActionsHtml(c,noGps){
   const nm=(c.custName||'').replace(/"/g,'&quot;'), ct=(c.city||'').replace(/"/g,'&quot;');
   return `<span class="day-change-btn" data-id="${c.custId}" onclick="openDayPopup(event,this.dataset.id);closeRowActionsPopup()">📅</span>
-    <span class="mekarer-btn" data-id="${c.custId}" data-name="${nm}" data-city="${ct}" onclick="openMekarerOrder(event,this.dataset.id,this.dataset.name,this.dataset.city);closeRowActionsPopup()">🧊</span>
+    ${_isBdd() ? '' : `<span class="mekarer-btn" data-id="${c.custId}" data-name="${nm}" data-city="${ct}" onclick="openMekarerOrder(event,this.dataset.id,this.dataset.name,this.dataset.city);closeRowActionsPopup()">🧊</span>`}
     ${noGps
       ? `<span class="no-gps-badge" data-id="${c.custId}" data-name="${nm}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name);closeRowActionsPopup()">NO GPS</span>`
       : `<span class="gps-edit-btn"  data-id="${c.custId}" data-name="${nm}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name);closeRowActionsPopup()">📍</span>`}`;
@@ -3947,12 +3948,10 @@ function renderMap(){
       : '';
     // BDD: FORMULA's Google point is offered for manual review only (confirm → BDD 📍), never auto-applied (R2)
     const googleGpsData=AI_GPS[String(c.custId)];
-    const googleBtn=(googleGpsData&&googleGpsData.aiLat&&googleGpsData.aiLng
+    // BDD client: always offered — no FORMULA point → reviewGoogleGps asks /api/bdd/google-gps live
+    const googleBtn=(c.hevra==='ICE_BDD'||(googleGpsData&&googleGpsData.aiLat&&googleGpsData.aiLng))
       ? `<button data-id="${c.custId}" data-name="${safeName}" onclick="reviewGoogleGps(this.dataset.id,this.dataset.name)" style="margin-top:6px;margin-inline-start:4px;background:#7B1FA2;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">🤖 בדוק מיקום גוגל</button>`
-      : '')
-      + (c.hevra==='ICE_BDD'
-      ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([c.custName,c.address,c.city].filter(Boolean).join(', '))}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;margin-inline-start:4px;background:#fff;color:#1A3F7C;border:1.5px solid #50A0D0;border-radius:8px;padding:4px 12px;font-size:12px;font-weight:700;text-decoration:none">🗺 Google Maps</a>`
-      : '');
+      : '';
     const iceMark = isIce ? ' <span style="background:#00B894;color:#fff;font-size:9px;font-weight:800;padding:1px 4px;border-radius:3px">ICE</span>' : '';
     m.bindPopup(`<b>${esc(_rawLabel)}${corrMark}</b>${iceMark}<br>${esc(c.city||'')}${c.address?'<br><span style="font-size:11px;color:#555">'+esc(c.address)+'</span>':''}${approxNote}${fixBtn}${tabletBtn}${googleBtn}`,{maxWidth:340,minWidth:260});
     m.bindTooltip(_rawLabel,{permanent:false,direction:'right',opacity:1,className:'fr-tip'});
@@ -5548,7 +5547,18 @@ function _reviewGpsSource(source, custId, custName){
   });
 }
 function reviewTabletGps(custId, custName){ _reviewGpsSource('tablet', custId, custName); }
-function reviewGoogleGps(custId, custName){ _reviewGpsSource('google', custId, custName); }
+async function reviewGoogleGps(custId, custName){
+  const a=AI_GPS[String(custId)];
+  if(_isBdd() && !(a&&a.aiLat&&a.aiLng)){
+    showToast('🤖 בודק מיקום בגוגל...');
+    try{
+      const r=await apiFetch(`${API}/api/bdd/google-gps?custId=${encodeURIComponent(custId)}`);
+      const j=await r.json();
+      if(j.ok) AI_GPS[String(custId)]={aiLat:j.lat,aiLng:j.lng};
+    }catch(_){}
+  }
+  _reviewGpsSource('google', custId, custName);
+}
 
 function confirmGpsReview(ok){
   document.getElementById('tablet-gps-bar').style.display='none';

@@ -20,6 +20,7 @@ const DB = () => process.env.DB_ICECREA || 'icecrea';
 const FILES = {
   overrides: path.join(__dirname, 'data', 'route-overrides-bdd.json'),
   geocoded: path.join(__dirname, 'data', 'bdd-geocode-resolved.json'),
+  google: path.join(__dirname, 'data', 'bdd-google-gps.json'), // "🤖 בדוק מיקום גוגל" answers
   gps: path.join(__dirname, '..', 'docs', 'gps-corrections-bdd.json'),
   mekarer: path.join(__dirname, '..', 'docs', 'mekarer-orders-bdd.json'),
   cache: path.join(__dirname, 'data', 'bdd-cache.json'), // today's PBI result — restart reads it, no DAX
@@ -229,6 +230,26 @@ function createBdd(deps) {
     if (!address) return res.status(400).json({ error: 'address required' });
     const query = [deps.cleanAddressForGeocoding(address), city, 'ישראל'].filter(Boolean).join(', ');
     res.json((await deps.geocodeAddress(query, undefined, { noCache: true })) || {});
+  }));
+  // "🤖 בדוק מיקום גוגל" for any BDD client: FORMULA's AI_GPS (google-gps.json) covers
+  // only FORMULA clients, so BDD asks Google Geocoding live by the client's address.
+  // Point outside the client's city → rejected (same rule as resolveBddGps). Own cache
+  // file; only shown for review in the page, saved only when the manager confirms.
+  router.get('/google-gps', deps.dataRateLimit, h(async (req, res) => {
+    const custId = String(req.query.custId || '');
+    if (!validCust(custId)) return res.status(400).json({ ok: false, error: 'invalid custId' });
+    if (needCache(res)) return;
+    const c = cache.clientById.get(custId);
+    if (!c) return res.status(404).json({ ok: false, error: 'unknown client' });
+    const known = readJson(FILES.google, {})[custId];
+    if (known) return res.json({ ok: true, lat: known.lat, lng: known.lng });
+    if (!process.env.GOOGLE_MAPS_KEY || !c.address) return res.json({ ok: false, error: 'no_address' });
+    const q = [deps.cleanAddressForGeocoding(c.address), c.city, 'ישראל'].filter(Boolean).join(', ');
+    const d = await (await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(q)}&language=he&region=il&key=${process.env.GOOGLE_MAPS_KEY}`, { signal: AbortSignal.timeout(8000) })).json();
+    const loc = d?.results?.[0]?.geometry?.location;
+    if (!loc || !deps.isValidIL(loc.lat, loc.lng) || !deps.inCityBBox(c.city, loc.lat, loc.lng)) return res.json({ ok: false, error: 'not_found' });
+    await withBddLock(() => { const all = readJson(FILES.google, {}); all[custId] = { lat: loc.lat, lng: loc.lng, q, at: new Date().toISOString() }; writeJson(FILES.google, all); });
+    res.json({ ok: true, lat: loc.lat, lng: loc.lng });
   }));
   // --- live routes (Task 7) ---
   // Same response keys as FORMULA's /api/today-orders + `bdd`, so the frontend poll
