@@ -100,7 +100,9 @@ async function main() {
     // The xlsx (with its password column) is never opened in this mode.
     const roster = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'managers.json'), 'utf8'));
     rows.push(...roster.filter(m => m.channel === 'ICE_BDD' && m.email)
-      .map(m => ({ agentCode: '', agentName: m.name, email: m.email, isManager: true })));
+      // 'mgr' placeholder: the page accepts an invite only when _ac is non-empty
+      // (formula-road.html `if (_inv && _ac)`) — '' silently fell back to the saved login.
+      .map(m => ({ agentCode: 'mgr', agentName: m.name, email: m.email, isManager: true })));
   } else {
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.readFile(path.resolve(__dirname, '..', 'FORMULA ROADS -PASSWORDS', 'EMAIL + PASSWORD.xlsx'));
