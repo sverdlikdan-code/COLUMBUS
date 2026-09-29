@@ -11,7 +11,7 @@
 //
 // Методика времени (подтверждена 2026-09-10/29): пара = последний started для той же
 // пары (агент|клиент) → submitted; abandoned сбрасывает. >30 мин — форма висела открытой,
-// в статистику времени не входит. Экономия = зикуев × (10 мин − медиана), только медиана,
+// в статистику времени не входит. Экономия = зикуев × (10 мин − медиана) × 1.10 (+10% админ. ошибок с офисом), только медиана,
 // без среднего (пользователь 2026-09-29) — 10 мин это нижняя оценка ручного бланка до приложения.
 //
 // Usage: node zikuy-report.js [--month=YYYY-MM] [--dry-run] [--to=a@b.com]
@@ -23,7 +23,7 @@ const DRY_RUN = process.argv.includes('--dry-run');
 const arg = k => (process.argv.find(a => a.startsWith(`--${k}=`)) || '').split('=')[1];
 const DATA = process.env.LIVE_DATA_DIR || path.join(__dirname, 'data');
 const DOCS = path.join(__dirname, '..', 'docs');
-const BASELINE_S = 600, LONG_S = 1800;
+const BASELINE_S = 600, LONG_S = 1800, ADMIN_BONUS = 0.10;
 
 const NAVY = '#1C3D6B', GOLD = '#C9A227', INK = '#1F2937', MUTED = '#6B7280', LINE = '#E5E7EB', PAPER = '#F4F6FA', RED = '#B91C1C', GREEN = '#15803D';
 const MONTHS_RU = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
@@ -175,9 +175,10 @@ function buildHtml(month, cur, prev, tm, names) {
   const short = tm.pairs.filter(p => p.s <= LONG_S), long = tm.pairs.length - short.length;
   // Экономия только по медиане (решение пользователя 2026-09-29): зикуев × (10 мин − медиана).
   const byWho = {}; for (const p of short) (byWho[p.who] = byWho[p.who] || []).push(p.s);
-  const savedS = v => v.length * Math.max(0, BASELINE_S - med(v));
+  // +10% — администрирование ошибок/неточностей с офисом, которых с приложением на порядок меньше (пользователь 2026-09-29)
+  const savedS = v => v.length * Math.max(0, BASELINE_S - med(v)) * (1 + ADMIN_BONUS);
   const savedH = savedS(short.map(p => p.s)) / 3600;
-  html += H('6. Агенты и время', `экономия = зикуев × (10 мин на ручной бланк − медиана); ${long} зикуев дольше 30 мин (форма висела открытой) не учтены`);
+  html += H('6. Агенты и время', `экономия = зикуев × (10 мин на ручной бланк − медиана) + ${ADMIN_BONUS * 100}% на администрирование ошибок и неточностей с офисом (из них ${(savedH - savedH / (1 + ADMIN_BONUS)).toFixed(1)} ч); ${long} зикуев дольше 30 мин (форма висела открытой) не учтены`);
   html += `<tr><td style="padding:0 24px 10px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:Arial,sans-serif"><tr>
     ${kpi('Сэкономлено', savedH.toFixed(1) + ' ч')}
     ${kpi('Медиана зикуя', mmss(med(short.map(p => p.s))))}
