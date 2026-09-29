@@ -31,6 +31,8 @@ let writeChain = Promise.resolve();
 const withBddLock = fn => (writeChain = writeChain.then(fn, fn));
 
 const BDD_DOCS_CACHE_MS = 75 * 1000;
+const BDD_TEST_MANAGER_ID = 'bdd-test'; // managers.json row used for the dark launch
+const BDD_TEST_EMAIL = 'd.sverdlik@DilerBMD.com';
 const BDD_GEOCODE_NIGHT_CAP = 200; // 212 BDD clients had no GPS on 2026-09-28 → ~2 nights
 
 function createBdd(deps) {
@@ -335,7 +337,9 @@ function createBdd(deps) {
     });
     deps.writeLog({ ts: new Date().toISOString(), event: 'mekarer-order-bdd', id, custId: order.custId, ip: deps.getRealIp(req) });
     res.json({ ok: true, id });
-    if (deps.resend && process.env.NOTIFY_EMAIL) sendMekarerEmail(order, id).catch(e => console.error('[mekarer-bdd] email', e.message));
+    // Dark-launch test account: its orders go to Dan only, never to the real recipients.
+    const to = req.session.managerId === BDD_TEST_MANAGER_ID ? [BDD_TEST_EMAIL] : (process.env.NOTIFY_EMAIL || '').split(',').map(e => e.trim()).filter(Boolean);
+    if (deps.resend && to.length) sendMekarerEmail(order, id, to).catch(e => console.error('[mekarer-bdd] email', e.message));
   }));
 
   router.get('/api/promo-cust-ids', deps.dataRateLimit, h(async (req, res) => {
@@ -378,7 +382,7 @@ function createBdd(deps) {
   // index.js-only state; dropped here rather than added to deps, since a BDD order
   // always comes from a manager session already named in the email body (order.manager)
   // and losing the CC doesn't lose any information, just an extra recipient.
-  async function sendMekarerEmail(order, id) {
+  async function sendMekarerEmail(order, id, to) {
     const wb = new ExcelJS.Workbook();
     wb.creator = 'COLUMBUS'; wb.created = new Date();
     const ws = wb.addWorksheet('הזמנת מקרר', { views: [{ rightToLeft: true }] });
@@ -477,7 +481,7 @@ function createBdd(deps) {
 
     await deps.resend.emails.send({
       from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
-      to: process.env.NOTIFY_EMAIL.split(',').map(e => e.trim()),
+      to,
       subject: `[ICE BDD] הזמנת מקרר חדשה — ${order.custName} (${order.city})`,
       attachments: [{ filename: `mekarer-bdd-${safeDate}-${safeName}.xlsx`, content: xlsB64 }],
       html: `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">

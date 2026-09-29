@@ -65,11 +65,11 @@
     "role": "readonly",
     "team": null,
     "bddRole": "team",
-    "channel": "ICE_BDD",
     "teams": [
       "TIMUR"
     ],
-    "email": "dilerformula84@gmail.com"
+    "email": "dilerformula84@gmail.com",
+    "pendingChannel": "ICE_BDD"
   },
   {
     "id": "yosi",
@@ -113,12 +113,12 @@
     "role": "readonly",
     "team": null,
     "bddRole": "team",
-    "channel": "ICE_BDD",
     "teams": [
       "MATVEY",
       "ALMOG"
     ],
-    "email": "dilerformula99@gmail.com"
+    "email": "dilerformula99@gmail.com",
+    "pendingChannel": "ICE_BDD"
   },
   {
     "id": "alexander-freidesman",
@@ -280,11 +280,11 @@
     "role": "readonly",
     "team": null,
     "bddRole": "team",
-    "channel": "ICE_BDD",
     "teams": [
       "SIMHA"
     ],
-    "email": "dilerformula231@gmail.com"
+    "email": "dilerformula231@gmail.com",
+    "pendingChannel": "ICE_BDD"
   },
   {
     "id": "yulia-dzyumak",
@@ -315,5 +315,23 @@
     ],
     "role": "readonly",
     "team": null
+  },
+  {
+    "id": "bdd-test",
+    "name": "BDD Test",
+    "nameHe": "בדיקת BDD",
+    "code": null,
+    "pbiEmails": [],
+    "role": "readonly",
+    "team": null,
+    "bddRole": "team",
+    "channel": "ICE_BDD",
+    "teams": [
+      "TIMUR",
+      "ALMOG",
+      "MATVEY",
+      "SIMHA",
+      "YOSI"
+    ]
   }
 ]
