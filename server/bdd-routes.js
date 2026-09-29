@@ -6,8 +6,15 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const ExcelJS = require('exceljs'); // Task 8: fridge order email, same package index.js already depends on
 const { BDD_GROUPS, summarizeBddDocs, bddCanWrite, resolveBddGps, loadBddCache } = require('./bdd');
 const { bddDocLinesToday, bddClientPromos, bddCustFamiliesWithActivePromo } = require('./bdd-priority');
+
+// Email HTML escape — copied from index.js's escEmail (one-liner, not worth a
+// deps wire-up or a shared module just for this).
+function escEmail(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 
 const DB = () => process.env.DB_ICECREA || 'icecrea';
 const FILES = {
@@ -214,6 +221,227 @@ function createBdd(deps) {
   }));
 
   // --- write routes (Task 8) ---
+  router.post('/api/route-day-move', deps.dayMoveRateLimit, h(async (req, res) => {
+    const { custId, day, client, agentCode } = req.body || {};
+    const a = String(agentCode || '');
+    if (!validAgent(a)) return res.status(400).json({ ok: false, error: 'invalid agent code' });
+    if (!bddCanWrite(req.session, a, cache)) return res.status(403).json({ ok: false, error: 'forbidden' });
+    if (!custId || typeof custId !== 'string') return res.status(400).json({ ok: false, error: 'invalid custId' });
+    const dayNum = parseInt(day, 10);
+    if (!Number.isInteger(dayNum) || dayNum < 1 || dayNum > 5) return res.status(400).json({ ok: false, error: 'invalid day' });
+    const id = custId.slice(0, 20);
+    await withBddLock(() => {
+      const data = readJson(FILES.overrides, {});
+      if (!data[a]) data[a] = { order: {}, dayMoves: {} };
+      if (client && typeof client === 'object') data[a].dayMoves[id] = { day: dayNum, client, movedAt: new Date().toISOString() };
+      else delete data[a].dayMoves[id]; // no client payload = moved back to its original day
+      writeJson(FILES.overrides, data);
+    });
+    deps.writeLog({ ts: new Date().toISOString(), event: 'route-day-move-bdd', agentCode: a, custId: id, day: dayNum, ip: deps.getRealIp(req) });
+    res.json({ ok: true });
+  }));
+
+  router.post('/save-gps', deps.dataRateLimit, h(async (req, res) => {
+    const { custId, lat, lng, name, city, address } = req.body || {};
+    if (!custId || !lat || !lng) return res.status(400).json({ error: 'missing custId/lat/lng' });
+    if (!validCust(String(custId))) return res.status(400).json({ error: 'invalid custId' });
+    if (!deps.isValidIL(lat, lng)) return res.status(400).json({ error: 'coordinates outside Israel' });
+    const client = cache?.clientById.get(String(custId));
+    if (!client || !bddCanWrite(req.session, client.agentCode, cache)) return res.status(403).json({ error: 'forbidden' });
+    const total = await withBddLock(() => {
+      const current = readJson(FILES.gps, {});
+      current[String(custId)] = { lat, lng, correctedAt: new Date().toISOString(), name: name || '', city: city || '', address: address || '' };
+      writeJson(FILES.gps, current);
+      return Object.keys(current).length;
+    });
+    res.json({ ok: true, total });
+  }));
+
+  router.post('/api/mekarer-order', h(async (req, res) => {
+    const body = req.body || {};
+    const client = cache?.clientById.get(String(body.custId || ''));
+    if (!client || !bddCanWrite(req.session, client.agentCode, cache)) return res.status(403).json({ error: 'forbidden' });
+    const order = {
+      channel: 'ICE BDD', custId: client.custId, custName: String(body.custName || client.custName).substring(0, 100),
+      city: String(body.city || client.city).substring(0, 60), agentName: client.agentName, manager: client.manager,
+      contactName: String(body.contactName || '').substring(0, 80), phone: String(body.phone || '').substring(0, 20),
+      location: String(body.location || '').substring(0, 200),
+      mekarerim: Array.isArray(body.mekarerim) ? body.mekarerim.slice(0, 50) : [],
+    };
+    const id = Date.now();
+    await withBddLock(() => {
+      const list = readJson(FILES.mekarer, []);
+      list.push({ id, ...order, submittedAt: new Date().toISOString(), managerId: req.session.managerId || null });
+      writeJson(FILES.mekarer, list);
+    });
+    deps.writeLog({ ts: new Date().toISOString(), event: 'mekarer-order-bdd', id, custId: order.custId, ip: deps.getRealIp(req) });
+    res.json({ ok: true, id });
+    if (deps.resend && process.env.NOTIFY_EMAIL) sendMekarerEmail(order, id).catch(e => console.error('[mekarer-bdd] email', e.message));
+  }));
+
+  router.get('/api/promo-cust-ids', deps.dataRateLimit, h(async (req, res) => {
+    const today = deps.todayIsraelDate();
+    if (promoIdsCache.date !== today && cache) {
+      const rows = await bddCustFamiliesWithActivePromo(DB());
+      if (rows) promoIdsCache = { date: today, ids: [...new Set(rows.filter(r => cache.families.has(r.familyDes)).map(r => r.custId))] };
+    }
+    // Key names match FORMULA's response; BDD clients are flagged through iceMish.
+    // Frontend just unions formula[]+iceMish[] into one Set regardless of hevra
+    // (docs/formula-road.html ~1523), so no per-row hevra filter is needed here.
+    res.json({ ok: true, formula: [], iceMish: promoIdsCache.ids });
+  }));
+
+  // Same item shape as FORMULA's /api/client-promos (sku, name, price, qty, fromDate,
+  // toDate, promoType, company) — imgUrl/ean/notBoughtIn90d are tolerated as undefined
+  // by the promo modal (docs/formula-road.html ~4390-4400), so they're left out on
+  // purpose (no extra PBI photo/last-ship calls — quota). `stock` is NOT in that
+  // tolerated list: the modal buckets by `p.stock >= 1` / `p.stock < 1`
+  // (~4404-4405), and `undefined` satisfies neither comparison, so the card would
+  // silently vanish from both buckets. BDD carries its own stock on the van, so
+  // every item is reported as in-stock (stock: 1) instead of spending a PBI MLAY
+  // lookup we were told not to make.
+  router.get('/api/client-promos/:custId', h(async (req, res) => {
+    const custId = String(req.params.custId || '').trim();
+    if (!validCust(custId)) return res.status(400).json({ ok: false, error: 'invalid custId' });
+    const promos = (await bddClientPromos(DB(), custId))
+      .filter(p => cache?.families.has(p.familyDes))
+      .map(({ familyDes, ...p }) => ({ ...p, stock: 1 }));
+    res.json({ ok: true, promos });
+  }));
+
+  // Fridge order email — copied verbatim from FORMULA's /api/mekarer-order handler
+  // (index.js ~3298-3428: Excel build + resend.emails.send), only: title/subject say
+  // "ICE BDD", first Excel info row is ['ערוץ','ICE BDD']. The FORMULA block also CCs
+  // whoever submitted the order (findAgentSubmitterEmail, index.js ~985) — that
+  // helper reads managers.json/loadManagerRoster + an xlsx agent-email roster, both
+  // index.js-only state; dropped here rather than added to deps, since a BDD order
+  // always comes from a manager session already named in the email body (order.manager)
+  // and losing the CC doesn't lose any information, just an extra recipient.
+  async function sendMekarerEmail(order, id) {
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'COLUMBUS'; wb.created = new Date();
+    const ws = wb.addWorksheet('הזמנת מקרר', { views: [{ rightToLeft: true }] });
+
+    const BLUE = '1A3F7C', WHITE = 'FFFFFF', LGRAY = 'F2F4F7', DGRAY = '555555';
+    const hFill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + BLUE } };
+    const gFill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + LGRAY } };
+    const boldW  = { bold: true, color: { argb: 'FF' + WHITE }, size: 12 };
+    const boldB  = { bold: true, size: 11 };
+    const gray   = { color: { argb: 'FF' + DGRAY }, size: 10 };
+
+    // Title row — centerContinuous instead of merge
+    const nowStr = new Date().toLocaleString('he-IL');
+    const title = ws.getCell('A1');
+    title.value = `הזמנת מקרר חדשה — ICE BDD — ${order.custName}`;
+    title.font = { ...boldW, size: 14 }; title.fill = hFill;
+    title.alignment = { horizontal: 'centerContinuous', vertical: 'middle' };
+    ws.getRow(1).height = 32;
+
+    // Info rows — no merge, label col A, value col B
+    const info = [
+      ['ערוץ', 'ICE BDD'],
+      ['לקוח', order.custName], ['מספר לקוח', String(order.custId || '')], ['עיר', order.city],
+      ['סוכן', order.agentName], ['מנהל', order.manager],
+      ['איש קשר', order.contactName], ['טלפון', order.phone],
+      ['מיקום', order.location],
+      ['תאריך הזמנה', nowStr],
+      ['מספר הזמנה', String(id)],
+    ];
+    info.forEach(([label, val], i) => {
+      const r = i + 2;
+      const altFill = i % 2 === 0 ? gFill : { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
+      const lCell = ws.getCell(`A${r}`); lCell.value = label;
+      lCell.font = gray; lCell.alignment = { horizontal: 'right' };
+      lCell.fill = altFill;
+      const vCell = ws.getCell(`B${r}`); vCell.value = val || '';
+      vCell.font = i === 0 ? boldB : { size: 11 };
+      vCell.alignment = { horizontal: 'right' };
+      vCell.fill = altFill;
+    });
+
+    // Gap row
+    const gapR = info.length + 2;
+    ws.getRow(gapR).height = 8;
+
+    // Equipment header
+    const eqHdrR = gapR + 1;
+    const eqCols = ['פעולה', 'דגם', 'סלסלות', 'עגלה', 'תאריך אספקה', 'דגם החזרה', 'תקלה'];
+    eqCols.forEach((h, ci) => {
+      const cell = ws.getCell(eqHdrR, ci + 1);
+      cell.value = h; cell.font = boldW; cell.fill = hFill;
+      cell.alignment = { horizontal: 'right', vertical: 'middle' };
+      cell.border = { bottom: { style: 'thin', color: { argb: 'FFFFFFFF' } } };
+    });
+    ws.getRow(eqHdrR).height = 22;
+
+    // Equipment rows
+    order.mekarerim.forEach((m, i) => {
+      const r = eqHdrR + 1 + i;
+      const modelStr = m.newModelName || m.newModel || '';
+      const returnStr = m.returnModelName || m.returnModel || '';
+      const rowVals = [m.action || '', modelStr, m.salot || 0, m.agala ? '✓' : '', m.supplyDate || '', returnStr, m.fault || ''];
+      const rowFill = i % 2 === 0 ? gFill : { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
+      rowVals.forEach((v, ci) => {
+        const cell = ws.getCell(r, ci + 1); cell.value = v; cell.fill = rowFill;
+        cell.alignment = { horizontal: (ci === 2 || ci === 3) ? 'center' : 'right', vertical: 'middle' };
+        cell.border = { bottom: { style: 'hair', color: { argb: 'FFDDDDDD' } } };
+      });
+      ws.getRow(r).height = 20;
+    });
+
+    // Column widths
+    [28, 38, 8, 8, 16, 32, 24].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+
+    // Freeze header row + autofilter
+    ws.views[0].state = 'frozen'; ws.views[0].ySplit = eqHdrR;
+    ws.autoFilter = { from: { row: eqHdrR, column: 1 }, to: { row: eqHdrR, column: 7 } };
+
+    const xlsBuf = await wb.xlsx.writeBuffer();
+    const xlsB64 = Buffer.from(xlsBuf).toString('base64');
+    const safeDate = new Date().toISOString().slice(0, 10);
+    const safeName = (order.custName || 'order').replace(/[^\w֐-׿ ]/g, '').trim().slice(0, 30);
+
+    // ── HTML rows ────────────────────────────────────────────────
+    const mekarerRows = order.mekarerim.map(m => {
+      const modelStr = m.newModel ? `${escEmail(m.newModel)}${m.newModelName && m.newModelName !== m.newModel ? ' — ' + escEmail(m.newModelName) : ''}` : '';
+      return `<tr>
+        <td style="padding:6px 8px;border-bottom:1px solid #eee">${escEmail(m.action)}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #eee">${modelStr}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:center">${Number(m.salot || 0)}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:center">${m.agala ? '✓' : ''}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #eee">${escEmail(m.supplyDate)}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #eee">${escEmail(m.fault)}</td>
+      </tr>`;
+    }).join('');
+
+    await deps.resend.emails.send({
+      from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
+      to: process.env.NOTIFY_EMAIL.split(',').map(e => e.trim()),
+      subject: `[ICE BDD] הזמנת מקרר חדשה — ${order.custName} (${order.city})`,
+      attachments: [{ filename: `mekarer-bdd-${safeDate}-${safeName}.xlsx`, content: xlsB64 }],
+      html: `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+<h2 style="background:#1A3F7C;color:#fff;padding:16px;border-radius:8px 8px 0 0;margin:0">🧊 הזמנת מקרר חדשה — ICE BDD</h2>
+<div style="border:1px solid #ddd;border-top:none;border-radius:0 0 8px 8px;padding:20px">
+<table style="width:100%;border-collapse:collapse;margin-bottom:16px">
+<tr><td style="color:#666;padding:4px 0;width:120px">ערוץ</td><td style="font-weight:bold">ICE BDD</td></tr>
+<tr><td style="color:#666;padding:4px 0">לקוח</td><td style="font-weight:bold">${order.custName}</td></tr>
+<tr><td style="color:#666;padding:4px 0">מספר לקוח</td><td>${order.custId || ''}</td></tr>
+<tr><td style="color:#666;padding:4px 0">עיר</td><td>${order.city}</td></tr>
+<tr><td style="color:#666;padding:4px 0">סוכן</td><td>${order.agentName}</td></tr>
+<tr><td style="color:#666;padding:4px 0">מנהל</td><td>${order.manager}</td></tr>
+<tr><td style="color:#666;padding:4px 0">איש קשר</td><td>${order.contactName}</td></tr>
+<tr><td style="color:#666;padding:4px 0">טלפון</td><td style="text-align:right">${order.phone}</td></tr>
+<tr><td style="color:#666;padding:4px 0">מיקום</td><td>${order.location}</td></tr>
+</table>
+<h3 style="margin:16px 0 8px">ציוד</h3>
+<table style="width:100%;border-collapse:collapse;font-size:14px">
+<tr style="background:#f5f5f5"><th style="padding:6px 8px;text-align:right">פעולה</th><th style="padding:6px 8px;text-align:right">דגם</th><th style="padding:6px 8px;text-align:center">סלסלות</th><th style="padding:6px 8px;text-align:center">עגלה</th><th style="padding:6px 8px;text-align:right">תאריך אספקה</th><th style="padding:6px 8px;text-align:right">תקלה</th></tr>
+${mekarerRows}
+</table>
+<p style="margin-top:16px;font-size:12px;color:#aaa">📎 מצורף קובץ Excel · מזהה: ${id} · ${new Date().toLocaleString('he-IL')}</p>
+</div></div>`,
+    });
+  }
 
   return { router, start };
 }
