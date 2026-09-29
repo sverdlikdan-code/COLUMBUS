@@ -931,6 +931,11 @@ body.gps-fs #map{height:100%!important;}
 /* MANAGER LIST — brand palette from logo */
 .mgr-wrap{display:flex;flex-direction:column;padding:10px 14px 14px;flex:1;}
 .mgr-label{font-size:11px;font-weight:700;color:#50A0D0;letter-spacing:1.2px;text-transform:uppercase;padding:0 2px 8px;text-align:right;}
+/* FORMULA / ICE BDD channel toggle — only inserted for managers whose session
+   passes /api/bdd/managers (canUseBdd on the server); nobody else gets the node. */
+.ch-toggle{display:flex;align-self:center;gap:3px;padding:3px;margin:0 0 10px;border-radius:22px;background:#e8f4ff;border:1.5px solid #50A0D0;max-width:100%;}
+.ch-seg{border:none;background:none;color:#1A3F7C;font-size:12px;font-weight:800;padding:7px 13px;border-radius:18px;cursor:pointer;white-space:nowrap;min-height:32px;transition:background .15s,color .15s;}
+.ch-seg.active{background:linear-gradient(135deg,#1A3F7C,#2E6FAD);color:#fff;box-shadow:0 2px 8px rgba(26,63,124,.25);cursor:default;}
 .mgr-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .mgr-tile{background:linear-gradient(150deg,#1A3F7C 0%,#2E6FAD 100%);border-radius:17px;padding:15px 10px 12px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:transform .12s,box-shadow .12s;box-shadow:0 3px 14px rgba(26,63,124,.22);position:relative;overflow:hidden;}
 .mgr-tile::before{content:'';position:absolute;top:-20px;right:-20px;width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,.06);}
@@ -2148,6 +2153,35 @@ function _setupManagerPicker(){
   }
 }
 
+// FORMULA / ICE BDD toggle on the manager picker. Visibility = the server's own
+// gate: one raw probe of /api/bdd/managers per page load (canUseBdd — super, BDD
+// managers, bddAccess). Raw fetch on purpose: no _bddUrl rewrite, no 401 re-auth;
+// anything but 200 → no toggle, and the picker DOM stays exactly as before.
+let _bddToggleProbe=null;
+async function _maybeRenderChannelToggle(){
+  const token=_getToken();
+  if(!token) return;
+  if(!_bddToggleProbe) _bddToggleProbe=fetch(API+'/api/bdd/managers',{headers:{'X-Session':token}}).then(r=>r.ok).catch(()=>false);
+  if(!(await _bddToggleProbe) || st.step!=='manager') return;
+  const wrap=document.querySelector('#login-body .mgr-wrap');
+  if(!wrap || wrap.querySelector('.ch-toggle')) return;
+  const bdd=_isBdd();
+  const t=document.createElement('div');
+  t.className='ch-toggle';
+  t.innerHTML=`<button type="button" class="ch-seg${bdd?'':' active'}" onclick="_switchChannel(null)">FORMULA + ICE משפחתי</button>`
+    +`<button type="button" class="ch-seg${bdd?' active':''}" onclick="_switchChannel('ICE_BDD')">ICE BDD</button>`;
+  wrap.insertBefore(t, wrap.firstChild);
+}
+// Full reload = clean re-init of every channel-dependent piece of state (corrections,
+// namespaced localStorage, body.bdd); the saved manager session lands back on this picker.
+function _switchChannel(ch){
+  const a=_loadAuth();
+  if(!a || (a.channel||null)===(ch||null)) return;
+  a.channel=ch;
+  localStorage.setItem('frAgent', JSON.stringify(a));
+  location.reload();
+}
+
 async function doLogin(code){
   _tick();
   code=String(code||'').trim();
@@ -2307,6 +2341,7 @@ function renderLogin(){
           }).join('')}</div>
         </div>
       </div>`;
+    _maybeRenderChannelToggle();
     startTeamStatsPolling();
   }else if(st.step==='agent-welcome'){
     // First-ever open via an agent's own invite link — same branded s-login

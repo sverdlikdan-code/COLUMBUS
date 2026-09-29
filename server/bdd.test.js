@@ -98,3 +98,23 @@ test('resolveBddGps: BDD fix > FORMULA knowledge > ICE card > night geocode', ()
   assert.deepStrictEqual(resolveBddGps({ custId: 'F', lat: null, lng: null }, src), { lat: 32.6, lng: 35.3, gpsSource: 'geocoded' });
   assert.deepStrictEqual(resolveBddGps({ custId: 'G', lat: null, lng: null }, src), { lat: null, lng: null, gpsSource: undefined });
 });
+
+const { canUseBdd } = require('./bdd');
+
+test('canUseBdd: BDD channel, bddAccess, super — nobody else', () => {
+  assert.strictEqual(canUseBdd({ isManager: true, channel: 'ICE_BDD', managerRole: 'readonly' }), true);
+  assert.strictEqual(canUseBdd({ isManager: true, managerRole: 'readonly', bddAccess: true }), true);
+  assert.strictEqual(canUseBdd({ isManager: true, managerRole: 'super' }), true);
+  assert.strictEqual(canUseBdd({ isManager: true, managerRole: 'team', managerTeam: 'X' }), false);
+  assert.strictEqual(canUseBdd({ isManager: false, agentCode: '43', channel: 'ICE_BDD' }), false);
+  assert.strictEqual(canUseBdd(null), false);
+});
+
+test('loadBddCache: gap between DAX queries, none before the first', async () => {
+  const { loadBddCache } = require('./bdd');
+  const t0 = Date.now(), at = [];
+  await loadBddCache(async () => { at.push(Date.now() - t0); return []; }, 'ice', s => s, 30);
+  assert.strictEqual(at.length, 5); // no BDD families → no sales queries
+  assert.ok(at[0] < 25, 'first query not delayed');
+  for (let i = 1; i < at.length; i++) assert.ok(at[i] - at[i - 1] >= 25, 'gap before query ' + i);
+});

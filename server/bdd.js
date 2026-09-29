@@ -112,6 +112,12 @@ function bddCanWrite(session, agentCode, cache) {
   return !!group && (session.managerTeams || []).includes(group);
 }
 
+// Who may use /api/bdd/* (read) and see the FORMULA/BDD toggle: BDD channel managers,
+// managers flagged bddAccess (Yosi, Dima), and super.
+function canUseBdd(session) {
+  return !!(session?.isManager && (session.channel === 'ICE_BDD' || session.bddAccess === true || session.managerRole === 'super'));
+}
+
 // GPS cascade (user-approved 2026-09-28), first hit wins. Pure: every source is
 // passed in; FORMULA sources are read-only views, nothing here writes anything.
 function resolveBddGps(c, s) {
@@ -127,10 +133,20 @@ function resolveBddGps(c, s) {
 }
 
 // Datasets: FORMULA = default (clients, families, ALL_PARTS sales); ICE = TEAMS, GPS, schedule.
-async function loadBddCache(executeDax, iceDatasetId, fix) {
+// Pause between consecutive BDD DAX queries: 7 back-to-back queries after a deploy
+// likely pushed a live FORMULA user into PBI 429 (shared quota).
+const BDD_DAX_GAP_MS = 5000;
+
+async function loadBddCache(rawExecuteDax, iceDatasetId, fix, gapMs = BDD_DAX_GAP_MS) {
   const T = `'לקוחות FORM+I+INT'`;
   // Sequential on purpose (isolation rule): FORMULA shares the same PBI query quota,
-  // a burst of parallel queries is what caused the 429s before.
+  // a burst of parallel queries is what caused the 429s before. Gap before every query but the first.
+  let first = true;
+  const executeDax = async (...a) => {
+    if (!first && gapMs > 0) await new Promise(r => setTimeout(r, gapMs));
+    first = false;
+    return rawExecuteDax(...a);
+  };
   const teamRows = await executeDax(`EVALUATE SELECTCOLUMNS('TEAMS', "agentCode", 'TEAMS'[SOHEN NUMBER], "group", 'TEAMS'[מנהל], "agentName", 'TEAMS'[סוכן])`, iceDatasetId);
   const clientRows = await executeDax(`EVALUATE SELECTCOLUMNS(FILTER(${T}, ${T}[HEVRA] = "ICE" && ${T}[סטטוס] = "פעיל"),
       "custId", ${T}[מס. לקוח], "custName", ${T}[שם לקוח], "city", ${T}[עיר], "address", ${T}[כתובת],
@@ -170,4 +186,4 @@ async function loadBddCache(executeDax, iceDatasetId, fix) {
   return cache;
 }
 
-module.exports = { BDD_GROUPS, unreversePbi, buildBddCache, summarizeBddDocs, bddCanWrite, resolveBddGps, loadBddCache };
+module.exports = { BDD_GROUPS, unreversePbi, buildBddCache, summarizeBddDocs, bddCanWrite, canUseBdd, resolveBddGps, loadBddCache, BDD_DAX_GAP_MS };

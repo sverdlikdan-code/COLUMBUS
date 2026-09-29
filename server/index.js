@@ -851,6 +851,8 @@ function createSession(agentCode, isManager, viaPbi = false, pbiUser = null, man
       sess.managerTeams = managerMeta.teams || [];
       sess.bddRole = managerMeta.bddRole || null;
     }
+    // FORMULA managers allowed to toggle into BDD (read-only there: no bddRole/channel).
+    if (managerMeta.bddAccess) sess.bddAccess = true;
   }
   sessions.set(token, sess);
   // Prune expired sessions when map grows large

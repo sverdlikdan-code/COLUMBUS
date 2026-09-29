@@ -7,7 +7,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const ExcelJS = require('exceljs'); // Task 8: fridge order email, same package index.js already depends on
-const { BDD_GROUPS, summarizeBddDocs, bddCanWrite, resolveBddGps, loadBddCache } = require('./bdd');
+const { BDD_GROUPS, summarizeBddDocs, bddCanWrite, canUseBdd, resolveBddGps, loadBddCache } = require('./bdd');
 const { bddDocLinesToday, bddClientPromos, bddCustFamiliesWithActivePromo } = require('./bdd-priority');
 
 // Email HTML escape — copied from index.js's escEmail (one-liner, not worth a
@@ -138,10 +138,9 @@ function createBdd(deps) {
   }
 
   const router = express.Router();
-  // Every /api/bdd route: logged-in BDD manager (or super, for Dan's checks).
+  // Every /api/bdd route: BDD manager, bddAccess manager, or super (see canUseBdd).
   router.use(deps.requireAuth, (req, res, next) => {
-    const s = req.session;
-    if (s?.channel === 'ICE_BDD' || s?.managerRole === 'super') return next();
+    if (canUseBdd(req.session)) return next();
     return res.status(403).json({ ok: false, error: 'forbidden' });
   });
   // Async handler wrapper: a thrown error answers 500 here and never escapes the router.
