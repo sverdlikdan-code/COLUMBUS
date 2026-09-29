@@ -5,6 +5,8 @@
 // поэтому выглядит как в аппе в любом почтовике и нормально печатается.
 // Пробовали page.pdf() с print-раскладкой 2×2 — в headless она разваливается (2026-09-28).
 // Письмо уходит только если есть хотя бы одна карточка סכנה/STOP SALE.
+// Кому-то (EXPIRY_ALERT_SPLIT_TO, по умолчанию Максим) дополнительно уходит второе письмо —
+// тот же отчёт без режима מאוחד (אשדוד / צפון отдельно), как в аппе до нажатия «מחסן מאוחד» (2026-09-29).
 require('dotenv').config({ path: '../.env' });
 const fs = require('fs');
 const path = require('path');
@@ -16,6 +18,7 @@ const DRY_RUN = process.argv.includes('--dry-run');
 // Разовая приписка под приветствием — workflow_dispatch input `note` (напр. при внеплановой рассылке).
 const NOTE = (process.env.EXPIRY_ALERT_NOTE || '').replace(/[<>&]/g, '').trim();
 const DOCS = path.join(__dirname, '..', 'docs');
+const SPLIT_TO = (process.env.EXPIRY_ALERT_SPLIT_TO || 'maxim@dilerbmd.com').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
 
 const NAVY = '#1C3D6B';
 const GOLD = '#B8863B';
@@ -35,7 +38,7 @@ const RECIPIENT_NAMES = {
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg' };
 
-async function shootCards() {
+async function shootCards(split) {
   const srv = http.createServer((req, res) => {
     const p = path.join(DOCS, decodeURIComponent(req.url.split('?')[0]));
     if (!p.startsWith(DOCS) || !fs.existsSync(p) || fs.statSync(p).isDirectory()) { res.writeHead(404); return res.end(); }
@@ -50,13 +53,14 @@ async function shootCards() {
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36');
     await page.setViewport({ width: 1100, height: 900, deviceScaleFactor: 2 });
     await page.goto(`http://localhost:${srv.address().port}/planogram-editor.html`, { waitUntil: 'networkidle0', timeout: 90000 });
-    await page.evaluate(() => {
+    await page.evaluate(split => {
       document.getElementById('app-splash')?.remove();
       document.getElementById('mahsan-login-modal')?.remove();
       toggleExpiryPage();
+      if (split && window._expiryMauchad) toggleCombinedWh();
       if (!window._expiryOnlySakana) toggleSakanaFilter();
       document.querySelectorAll('#expiry-grid button').forEach(b => b.remove()); // "×" скрыть карточку
-    });
+    }, split);
     await page.evaluate(() => new Promise(r => {
       const imgs = [...document.images].filter(i => !i.complete);
       if (!imgs.length) return r();
@@ -95,7 +99,7 @@ async function shootCards() {
     const pages = [];
     for (let i = 0; i < shots.length; i += 4) {
       const cells = shots.slice(i, i + 4).map(b => `<div><img src="data:image/png;base64,${b.toString('base64')}"></div>`).join('');
-      pages.push(`<section><header>דוח תוקף — FORMULA &middot; ${date}</header><main>${cells}</main></section>`);
+      pages.push(`<section><header>דוח תוקף${split ? ' לפי מחסן' : ''} — FORMULA &middot; ${date}</header><main>${cells}</main></section>`);
     }
     await page.emulateMediaType('print');
     await page.setContent(`<!doctype html><html dir="rtl"><head><meta charset="utf-8"><style>
@@ -152,7 +156,7 @@ function buildRiskHtml({ total, top, topSum, noCost }) {
   </td></tr>`;
 }
 
-function buildEmailHtml(n, greetName, risk) {
+function buildEmailHtml(n, greetName, risk, split) {
   const greeting = greetName ? `שלום ${greetName},` : 'שלום,';
   const rows = [];
   for (let i = 0; i < n; i += 2) {
@@ -167,10 +171,11 @@ function buildEmailHtml(n, greetName, risk) {
   <tr><td dir="rtl" style="background-color:${NAVY};padding:30px 28px 26px;text-align:center">
     <img src="cid:diler-logo-white" width="84" height="84" alt="DILER B.M.D" style="display:block;margin:0 auto 14px" />
     <div style="font-size:24px;font-weight:900;color:#ffffff">התראת תוקף — מחסן FORMULA</div>
+    ${split ? '<div style="padding-top:6px;font-size:15px;font-weight:bold;color:#ffffff">לפי מחסן — אשדוד / צפון</div>' : ''}
     <div style="padding-top:8px;font-size:13px;color:#AFC1DC">${n} ${n === 1 ? 'מוצר בסכנה' : 'מוצרים בסכנה'} / STOP SALE</div>
     <div style="padding-top:10px;font-size:11px;color:${GOLD}">${new Date().toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
   </td></tr>
-  <tr><td dir="rtl" style="padding:20px 28px 8px;text-align:right;font-size:14px;color:${INK}">${greeting} מצורף דוח תוקף — מוצרים בסכנה ו-STOP SALE, כמו במסך דוח התוקף של המחסן.</td></tr>
+  <tr><td dir="rtl" style="padding:20px 28px 8px;text-align:right;font-size:14px;color:${INK}">${greeting} ${split ? 'מצורף דוח תוקף לפי מחסן (אשדוד / צפון בנפרד, ללא איחוד מחסנים) — מוצרים בסכנה ו-STOP SALE.' : 'מצורף דוח תוקף — מוצרים בסכנה ו-STOP SALE, כמו במסך דוח התוקף של המחסן.'}</td></tr>
   ${NOTE ? `<tr><td dir="rtl" style="padding:4px 28px 8px;text-align:right;font-size:14px;font-weight:bold;color:${NAVY}">${NOTE}</td></tr>` : ''}
   ${buildRiskHtml(risk)}
   <tr><td dir="rtl" style="padding:4px 28px 10px;text-align:right">
@@ -185,46 +190,55 @@ function buildEmailHtml(n, greetName, risk) {
 }
 
 async function main() {
-  const { shots, pdf, risks } = await shootCards();
+  const recipients = (process.env.EXPIRY_ALERT_RECIPIENTS || '').split(',').map(s => s.trim()).filter(Boolean);
+  const splitRecipients = recipients.filter(r => SPLIT_TO.includes(r.toLowerCase()));
+  const variants = [{ split: false, to: recipients }];
+  if (DRY_RUN || splitRecipients.length) variants.push({ split: true, to: splitRecipients });
+  for (const v of variants) await runVariant(v);
+}
+
+async function runVariant({ split, to }) {
+  const tag = split ? '[по складам]' : '[מאוחד]';
+  const { shots, pdf, risks } = await shootCards(split);
   const risk = riskSummary(risks);
-  if (risk.noCost) console.log('Без суммы:', risks.filter(r => !(r.cost > 0)).map(r => r.name).join(' ; '));
-  console.log(`Риск: ${fmtILS(risk.total)}, топ-70%: ${risk.top.map(r => r.name + ' ' + fmtILS(r.cost)).join('; ')}`);
-  console.log(`Карточек סכנה/STOP SALE: ${shots.length}`);
+  if (risk.noCost) console.log(tag, 'Без суммы:', risks.filter(r => !(r.cost > 0)).map(r => r.name).join(' ; '));
+  console.log(tag, `Риск: ${fmtILS(risk.total)}, топ-70%: ${risk.top.map(r => r.name + ' ' + fmtILS(r.cost)).join('; ')}`);
+  console.log(tag, `Карточек סכנה/STOP SALE: ${shots.length}`);
   if (shots.length === 0) return;
 
   if (DRY_RUN) {
     const out = path.join(__dirname, '..', '.scratch');
+    const base = 'expiry-alert-preview' + (split ? '-split' : '');
     fs.mkdirSync(out, { recursive: true });
-    fs.writeFileSync(path.join(out, 'expiry-alert-preview.html'),
-      buildEmailHtml(shots.length, 'דן', risk).replace(/cid:card-(\d+)/g, (_, i) => `data:image/png;base64,${shots[i].toString('base64')}`)
+    fs.writeFileSync(path.join(out, base + '.html'),
+      buildEmailHtml(shots.length, 'דן', risk, split).replace(/cid:card-(\d+)/g, (_, i) => `data:image/png;base64,${shots[i].toString('base64')}`)
         .replace('cid:diler-logo-white', 'data:image/png;base64,' + fs.readFileSync(path.join(DOCS, 'logo-diler-bmd-white.png')).toString('base64')));
-    fs.writeFileSync(path.join(out, 'expiry-alert-preview.pdf'), pdf);
-    console.log('--dry-run — письмо не отправлено, превью в .scratch/expiry-alert-preview.html/.pdf');
+    fs.writeFileSync(path.join(out, base + '.pdf'), pdf);
+    console.log(tag, `--dry-run — письмо не отправлено, превью в .scratch/${base}.html/.pdf`);
     return;
   }
 
-  const recipients = (process.env.EXPIRY_ALERT_RECIPIENTS || '').split(',').map(s => s.trim()).filter(Boolean);
-  if (recipients.length === 0) throw new Error('EXPIRY_ALERT_RECIPIENTS не задан');
+  if (to.length === 0) throw new Error('EXPIRY_ALERT_RECIPIENTS не задан');
   if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY не найден');
   const resend = new Resend(process.env.RESEND_API_KEY);
 
   const logoPath = path.join(DOCS, 'logo-diler-bmd-white.png');
   const attachments = shots.map((b, i) => ({ filename: `card-${i}.png`, content: b.toString('base64'), contentId: `card-${i}` }));
   const isoDate = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Jerusalem' });
-  attachments.push({ filename: `expiry-report-${isoDate}.pdf`, content: pdf.toString('base64') });
+  attachments.push({ filename: `expiry-report${split ? '-by-warehouse' : ''}-${isoDate}.pdf`, content: pdf.toString('base64') });
   if (fs.existsSync(logoPath)) attachments.push({ filename: 'logo-white.png', content: fs.readFileSync(logoPath).toString('base64'), contentId: 'diler-logo-white' });
-  const subject = `התראת תוקף — ${shots.length} ${shots.length === 1 ? 'מוצר בסכנה' : 'מוצרים בסכנה'}`;
+  const subject = `התראת תוקף${split ? ' לפי מחסן' : ''} — ${shots.length} ${shots.length === 1 ? 'מוצר בסכנה' : 'מוצרים בסכנה'}`;
 
   // Личное письмо на каждого получателя — как obligo-alert.
-  for (const recipient of recipients) {
+  for (const recipient of to) {
     const greetName = RECIPIENT_NAMES[recipient.toLowerCase()];
     const res = await resend.emails.send({
       from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
       to: [recipient],
       subject,
-      html: buildEmailHtml(shots.length, greetName, risk),
+      html: buildEmailHtml(shots.length, greetName, risk, split),
       text: [
-        `${greetName ? `שלום ${greetName},` : 'שלום,'} ${shots.length} מוצרים בסכנה / STOP SALE במחסן FORMULA.`,
+        `${greetName ? `שלום ${greetName},` : 'שלום,'} ${shots.length} מוצרים בסכנה / STOP SALE במחסן FORMULA${split ? ' — לפי מחסן (אשדוד / צפון)' : ''}.`,
         ...(NOTE ? ['', NOTE] : []),
         '',
         `סה"כ סיכון (עלות לזריקה צפויה): ${fmtILS(risk.total)}`,
@@ -235,7 +249,7 @@ async function main() {
       ].join('\n'),
       attachments,
     });
-    console.log(recipient, JSON.stringify(res));
+    console.log(tag, recipient, JSON.stringify(res));
   }
 }
 
