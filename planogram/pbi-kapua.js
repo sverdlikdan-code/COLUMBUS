@@ -46,7 +46,17 @@ async function getToken() {
   return j.access_token;
 }
 
+// PBI executeQueries sometimes answers 200 with 0 rows and no error — the same query a second
+// later returns full data (CI run 36561539356, 2026-09-29: פק"ע Zafn 0 → 47 in one run).
+// So an empty answer is retried once before being trusted.
 async function dax(token, query) {
+  const rows = await daxOnce(token, query);
+  if (rows.length) return rows;
+  await new Promise(r => setTimeout(r, 5000));
+  return daxOnce(token, query);
+}
+
+async function daxOnce(token, query) {
   const res = await fetch(
     `https://api.powerbi.com/v1.0/myorg/groups/${WORKSPACE}/datasets/${DATASET}/executeQueries`,
     { method: 'POST',

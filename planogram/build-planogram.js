@@ -1533,9 +1533,32 @@ async function main() {
       console.log(`costCarton: ${Object.keys(costMap).length} fresh, ${cCount} total מקטים`);
     }
 
-    fs.writeFileSync(path.join(__dirname,'..','docs','product-data.json'),
-      JSON.stringify(prodData, null, 2), 'utf8');
-    console.log(`product-data.json: ${Object.keys(prodData).length} מקטים`);
+    // Guard: PBI sometimes returns 0 rows without an error, and the build used to commit that
+    // as "nothing at צפון" (2026-09-29: 40+41 products with צפון data → 0; since early Sept
+    // pakuotZafn dropped 153→106 almost daily and came back next build). If a key count
+    // collapsed vs the previous file, keep the previous file. ALLOW_DATA_DROP=1 — real drop.
+    // ponytail: thresholds are fixed; tune if a legit clearance ever trips them.
+    const counts = d => {
+      const v = Object.values(d);
+      return {
+        products:   v.length,
+        stockMain:  v.filter(x => x?.stock > 0).length,
+        stockZafn:  v.filter(x => x?.stockZafn > 0).length,
+        pakuotZafn: v.filter(x => x?.pakuotZafn?.length).length,
+      };
+    };
+    const now = counts(prodData), before = counts(prevProdDataAll);
+    const collapsed = Object.keys(now).filter(k =>
+      before[k] >= 20 && now[k] < before[k] * (k === 'products' ? 0.9 : 0.8));
+    if (collapsed.length && !process.env.ALLOW_DATA_DROP) {
+      console.error(`⛔ product-data.json NOT written — PBI returned incomplete data: ` +
+        collapsed.map(k => `${k} ${before[k]}→${now[k]}`).join(', ') + ' (previous file kept)');
+      process.exitCode = 1;
+    } else {
+      fs.writeFileSync(path.join(__dirname,'..','docs','product-data.json'),
+        JSON.stringify(prodData, null, 2), 'utf8');
+      console.log(`product-data.json: ${Object.keys(prodData).length} מקטים`, JSON.stringify(now));
+    }
 
     // ── product-photos.json — makat → Priority photo URL ────────────────
     const photoUrls = await fetchPhotoUrls();
