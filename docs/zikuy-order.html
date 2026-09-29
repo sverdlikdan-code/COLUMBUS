@@ -979,6 +979,8 @@ function logBlankHistory(){
   if(!selected.size) return;
   const items=[...selected.values()].map(r=>({
     sku:r.product.sku, name:r.product.name, qty:r.qty, date:r.date, option:r.option,
+    // для «ימי תוקף שלקוח קיבל» в истории — будущий отчёт списаний (2026-09-30)
+    lastShipDate:r.product.lastShipDate||null, lastShipQty:r.product.lastShipQty??null,
   }));
   apiFetch('/api/zikuy-history',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({custId,custName,city,items,agentCode})}).catch(e=>console.warn('blank history log failed',e));

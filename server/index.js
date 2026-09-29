@@ -6077,6 +6077,14 @@ app.post('/api/zikuy-history', requireAuth, dataRateLimit, (req, res) => {
       qty: Number.isFinite(it.qty) ? it.qty : 0,
       date: String(it.date || '').slice(0, 20),
       option: String(it.option || '').slice(0, 40),
+      // «ימי תוקף שלקוח קיבל» — как колонка в бланке (docs/zikuy-order.html gapDays): срок − последняя
+      // отгрузка клиенту. Копим с 2026-09-30 для отчёта списаний; <0 = бланк сам помечает как подозрительное.
+      ...(() => {
+        const ls = /^\d{4}-\d{2}-\d{2}$/.test(String(it.lastShipDate || '')) ? String(it.lastShipDate) : null;
+        const ok = ls && /^\d{4}-\d{2}-\d{2}$/.test(String(it.date || ''));
+        return { lastShipDate: ls, lastShipQty: Number.isFinite(it.lastShipQty) ? it.lastShipQty : null,
+          daysReceived: ok ? Math.round((new Date(it.date) - new Date(ls)) / 86400000) : null };
+      })(),
     })),
   };
   const log = readBlankHistory();
