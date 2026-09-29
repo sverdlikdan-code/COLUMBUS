@@ -5,7 +5,7 @@
 // поэтому выглядит как в аппе в любом почтовике и нормально печатается.
 // Пробовали page.pdf() с print-раскладкой 2×2 — в headless она разваливается (2026-09-28).
 // Письмо уходит только если есть хотя бы одна карточка סכנה/STOP SALE.
-// Кому-то (EXPIRY_ALERT_SPLIT_TO, по умолчанию Максим) дополнительно уходит второе письмо —
+// Кому-то (EXPIRY_ALERT_SPLIT_TO, пока пусто — в доработке) дополнительно уходит второе письмо —
 // тот же отчёт без режима מאוחד (אשדוד / צפון отдельно), как в аппе до нажатия «מחסן מאוחד» (2026-09-29).
 require('dotenv').config({ path: '../.env' });
 const fs = require('fs');
@@ -18,7 +18,8 @@ const DRY_RUN = process.argv.includes('--dry-run');
 // Разовая приписка под приветствием — workflow_dispatch input `note` (напр. при внеплановой рассылке).
 const NOTE = (process.env.EXPIRY_ALERT_NOTE || '').replace(/[<>&]/g, '').trim();
 const DOCS = path.join(__dirname, '..', 'docs');
-const SPLIT_TO = (process.env.EXPIRY_ALERT_SPLIT_TO || 'maxim@dilerbmd.com').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+// Пока выключено (пользователь 2026-09-29: «не отправлять Максиму, нужно доработать») — вернуть 'maxim@dilerbmd.com' по умолчанию.
+const SPLIT_TO = (process.env.EXPIRY_ALERT_SPLIT_TO || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
 
 const NAVY = '#1C3D6B';
 const GOLD = '#B8863B';
