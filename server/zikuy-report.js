@@ -306,11 +306,11 @@ function buildHtml(month, cur, prev, tm, names, ret) {
     // (с фильтром b>0 средний по рынку занижался вдвое — 2.7% вместо 5.0%, проверено 2026-09-29)
     const all = Object.entries(ret.bySku);
     const tz = all.reduce((a, [, x]) => a + x.z, 0), tb = all.reduce((a, [, x]) => a + x.b, 0);
-    html += H('4. Фактические возвраты — последние 3 месяца', `Power BI, 90 дней, все активные клиенты FORMULA (${n0(ret.clients)}), не только с зикуем. В среднем по рынку: <b>-${(100 * tz / tb).toFixed(1)}%</b> (${n0(tz)} ₪ возвратов на ${n0(tb)} ₪ продаж).`);
+    html += H('4. Фактические возвраты — последние 3 месяца', `Power BI, 90 дней, все активные клиенты FORMULA (${n0(ret.clients)}), не только с зикуем. В среднем по рынку: <b>-${(100 * tz / tb).toFixed(1)}%</b> (-${n0(tz)} ₪ возвратов на ${n0(tb)} ₪ продаж).`);
     const pf = {}; for (const [, x] of all) { const f = pf[x.fam || '—'] = pf[x.fam || '—'] || { z: 0, b: 0 }; f.z += x.z; f.b += x.b; }
     html += P(`<b>Топ-10 семей по сумме возвратов</b> — доля от всех возвратов и % от продаж самой семьи`);
     html += table(['Семья', 'Возвраты ₪', 'Доля возвратов', '% от продаж'],
-      Object.entries(pf).sort((a, b) => b[1].z - a[1].z).slice(0, 10).map(([k, f]) => [esc(k), n0(f.z), pct(f.z, tz) + '%', retCell(f)]), [1, 2, 3]);
+      Object.entries(pf).sort((a, b) => b[1].z - a[1].z).slice(0, 10).map(([k, f]) => [esc(k), '-' + n0(f.z), pct(f.z, tz) + '%', retCell(f)]), [1, 2, 3]);
     const byDept = {};
     for (const e of all) if (e[1].b > 0) (byDept[ret.skuDept[e[0]] || 'לא מוגדר'] = byDept[ret.skuDept[e[0]] || 'לא מוגדר'] || []).push(e);
     html += P(`<b>Топ-5 артикулов в каждой מחלקה</b> — по «лишним» возвратам: сколько ₪ вернули сверх среднего % своего отдела. Так наверх выходит то, где и процент высокий, и сумма заметная, а не допроданный товар с хвостом возвратов на пару сотен ₪.`);
@@ -320,7 +320,7 @@ function buildHtml(month, cur, prev, tm, names, ret) {
       if (!top.length) continue;
       html += P(`<b><bdi>${esc(d)}</bdi></b> — средний по отделу -${(100 * avgD).toFixed(1)}%`);
       html += table(['Артикул', '% возвр.', 'Лишние ₪', 'Возвраты ₪', 'Продажи ₪'],
-        top.map(([k, x, ex]) => [`${k} · ${esc((sku[k]?.name || x.name).slice(0, 32))}`, retCell(x), n0(ex), n0(x.z), n0(x.b)]), [1, 2, 3, 4]);
+        top.map(([k, x, ex]) => [`${k} · ${esc((sku[k]?.name || x.name).slice(0, 32))}`, retCell(x), '-' + n0(ex), '-' + n0(x.z), n0(x.b)]), [1, 2, 3, 4]);
     }
   }
 
