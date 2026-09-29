@@ -4,7 +4,9 @@
     "name": "Alexey Berilov",
     "nameHe": "אלכסי ברילוב",
     "code": "1902",
-    "pbiEmails": ["olexiy.b@dilerbmd.onmicrosoft.com"],
+    "pbiEmails": [
+      "olexiy.b@dilerbmd.onmicrosoft.com"
+    ],
     "role": "team",
     "team": "ALEXEY"
   },
@@ -13,7 +15,9 @@
     "name": "Anatoli Rusanovski",
     "nameHe": "אנטולי רוסנובסקי",
     "code": "1903",
-    "pbiEmails": ["a.rusanovski@dilerbmd.onmicrosoft.com"],
+    "pbiEmails": [
+      "a.rusanovski@dilerbmd.onmicrosoft.com"
+    ],
     "role": "team",
     "team": "ANATOL"
   },
@@ -22,7 +26,9 @@
     "name": "Natalia Rubin",
     "nameHe": "נטליה רובין",
     "code": "1904",
-    "pbiEmails": ["natalia.r@dilerbmd.onmicrosoft.com"],
+    "pbiEmails": [
+      "natalia.r@dilerbmd.onmicrosoft.com"
+    ],
     "role": "team",
     "team": "NATALYA"
   },
@@ -31,7 +37,9 @@
     "name": "Svetlana Perelman",
     "nameHe": "סבטלנה פרלמן",
     "code": "1905",
-    "pbiEmails": ["svetlana.p@dilerbmd.onmicrosoft.com"],
+    "pbiEmails": [
+      "svetlana.p@dilerbmd.onmicrosoft.com"
+    ],
     "role": "team",
     "team": "SVETA"
   },
@@ -40,7 +48,9 @@
     "name": "Vladyslav Hlushchenko",
     "nameHe": "ולדיסלב גלושצ'נקו",
     "code": "1906",
-    "pbiEmails": ["vladyslav.h@dilerbmd.onmicrosoft.com"],
+    "pbiEmails": [
+      "vladyslav.h@dilerbmd.onmicrosoft.com"
+    ],
     "role": "team",
     "team": "VLAD"
   },
@@ -49,16 +59,25 @@
     "name": "Timur Averbuh",
     "nameHe": "טימור אברבוך",
     "code": null,
-    "pbiEmails": ["timur@dilerbmd.onmicrosoft.com"],
-    "role": "readonly",
-    "team": null
+    "pbiEmails": [
+      "timur@dilerbmd.onmicrosoft.com"
+    ],
+    "role": "team",
+    "channel": "ICE_BDD",
+    "teams": [
+      "TIMUR"
+    ],
+    "email": "dilerformula84@gmail.com"
   },
   {
     "id": "yosi",
     "name": "Yosi Alive",
     "nameHe": "יוסי אליאב",
     "code": null,
-    "pbiEmails": ["yosiel@dilerbmd.onmicrosoft.com", "yosiel_dilerbmd.com#EXT#@dilerbmd.onmicrosoft.com"],
+    "pbiEmails": [
+      "yosiel@dilerbmd.onmicrosoft.com",
+      "yosiel_dilerbmd.com#EXT#@dilerbmd.onmicrosoft.com"
+    ],
     "role": "readonly",
     "team": null
   },
@@ -76,7 +95,9 @@
     "name": "Dan Sverdlik",
     "nameHe": "דן סברדליק",
     "code": "7629",
-    "pbiEmails": ["d.sverdlik@dilerbmd.onmicrosoft.com"],
+    "pbiEmails": [
+      "d.sverdlik@dilerbmd.onmicrosoft.com"
+    ],
     "role": "super",
     "team": null
   },
@@ -84,15 +105,24 @@
     "id": "matvey-perlman",
     "name": "Matvey Perlman",
     "code": null,
-    "pbiEmails": ["matvey@dilerbmd.onmicrosoft.com"],
-    "role": "readonly",
-    "team": null
+    "pbiEmails": [
+      "matvey@dilerbmd.onmicrosoft.com"
+    ],
+    "role": "team",
+    "channel": "ICE_BDD",
+    "teams": [
+      "MATVEY",
+      "ALMOG"
+    ],
+    "email": "dilerformula99@gmail.com"
   },
   {
     "id": "alexander-freidesman",
     "name": "Alexander Freidesman",
     "code": null,
-    "pbiEmails": ["alexander.f@dilerbmd.onmicrosoft.com"],
+    "pbiEmails": [
+      "alexander.f@dilerbmd.onmicrosoft.com"
+    ],
     "role": "readonly",
     "team": null
   },
@@ -100,7 +130,9 @@
     "id": "asaf-dahan",
     "name": "Asaf Dahan",
     "code": null,
-    "pbiEmails": ["asaf.d@dilerbmd.onmicrosoft.com"],
+    "pbiEmails": [
+      "asaf.d@dilerbmd.onmicrosoft.com"
+    ],
     "role": "readonly",
     "team": null
   },
@@ -108,7 +140,9 @@
     "id": "dany-boltak",
     "name": "Dany Boltak",
     "code": null,
-    "pbiEmails": ["danyb@dilerbmd.onmicrosoft.com"],
+    "pbiEmails": [
+      "danyb@dilerbmd.onmicrosoft.com"
+    ],
     "role": "readonly",
     "team": null
   },
@@ -116,7 +150,9 @@
     "id": "dima-vainberg",
     "name": "Dima Vainberg",
     "code": null,
-    "pbiEmails": ["dima_dilerbmd.com#EXT#@dilerbmd.onmicrosoft.com"],
+    "pbiEmails": [
+      "dima_dilerbmd.com#EXT#@dilerbmd.onmicrosoft.com"
+    ],
     "role": "readonly",
     "team": null
   },
@@ -124,7 +160,9 @@
     "id": "dmitri-vainberg",
     "name": "Dmitri Vainberg",
     "code": null,
-    "pbiEmails": ["Dima@dilerbmd.onmicrosoft.com"],
+    "pbiEmails": [
+      "Dima@dilerbmd.onmicrosoft.com"
+    ],
     "role": "readonly",
     "team": null
   },
@@ -132,7 +170,9 @@
     "id": "hanan-haim",
     "name": "Hanan Haim",
     "code": null,
-    "pbiEmails": ["hanan.h@dilerbmd.onmicrosoft.com"],
+    "pbiEmails": [
+      "hanan.h@dilerbmd.onmicrosoft.com"
+    ],
     "role": "readonly",
     "team": null
   },
@@ -140,7 +180,9 @@
     "id": "ivan-izlov",
     "name": "Ivan Izlov",
     "code": null,
-    "pbiEmails": ["sysadmin@dilerbmd.onmicrosoft.com"],
+    "pbiEmails": [
+      "sysadmin@dilerbmd.onmicrosoft.com"
+    ],
     "role": "readonly",
     "team": null
   },
@@ -148,7 +190,9 @@
     "id": "lena-shwarzburg",
     "name": "Lena Shwarzburg",
     "code": null,
-    "pbiEmails": ["lena@dilerbmd.onmicrosoft.com"],
+    "pbiEmails": [
+      "lena@dilerbmd.onmicrosoft.com"
+    ],
     "role": "readonly",
     "team": null
   },
@@ -156,7 +200,9 @@
     "id": "maxim-shpilko",
     "name": "Maxim Shpilko",
     "code": null,
-    "pbiEmails": ["maxim@dilerbmd.onmicrosoft.com"],
+    "pbiEmails": [
+      "maxim@dilerbmd.onmicrosoft.com"
+    ],
     "role": "readonly",
     "team": null
   },
@@ -164,7 +210,9 @@
     "id": "mazal-godinger",
     "name": "Mazal Godinger",
     "code": null,
-    "pbiEmails": ["mazal.g@dilerbmd.onmicrosoft.com"],
+    "pbiEmails": [
+      "mazal.g@dilerbmd.onmicrosoft.com"
+    ],
     "role": "readonly",
     "team": null
   },
@@ -172,7 +220,9 @@
     "id": "michael-magen",
     "name": "Michael Magen",
     "code": null,
-    "pbiEmails": ["michael.m@dilerbmd.onmicrosoft.com"],
+    "pbiEmails": [
+      "michael.m@dilerbmd.onmicrosoft.com"
+    ],
     "role": "readonly",
     "team": null
   },
@@ -180,7 +230,9 @@
     "id": "michal-bratslavsky",
     "name": "Michal Bratslavsky",
     "code": null,
-    "pbiEmails": ["michal.b@dilerbmd.onmicrosoft.com"],
+    "pbiEmails": [
+      "michal.b@dilerbmd.onmicrosoft.com"
+    ],
     "role": "readonly",
     "team": null
   },
@@ -188,7 +240,9 @@
     "id": "natasha-aksonov",
     "name": "Natasha Aksonov",
     "code": null,
-    "pbiEmails": ["natasha@dilerbmd.onmicrosoft.com"],
+    "pbiEmails": [
+      "natasha@dilerbmd.onmicrosoft.com"
+    ],
     "role": "readonly",
     "team": null
   },
@@ -196,7 +250,9 @@
     "id": "polina-kotler",
     "name": "Polina Kotler",
     "code": null,
-    "pbiEmails": ["polina.k@dilerbmd.onmicrosoft.com"],
+    "pbiEmails": [
+      "polina.k@dilerbmd.onmicrosoft.com"
+    ],
     "role": "readonly",
     "team": null
   },
@@ -204,7 +260,9 @@
     "id": "sherry-kurochkin",
     "name": "Sherry Kurochkin",
     "code": null,
-    "pbiEmails": ["sherry.k@dilerbmd.onmicrosoft.com"],
+    "pbiEmails": [
+      "sherry.k@dilerbmd.onmicrosoft.com"
+    ],
     "role": "readonly",
     "team": null
   },
@@ -212,15 +270,23 @@
     "id": "simha-arbel",
     "name": "Simha Arbel",
     "code": null,
-    "pbiEmails": ["simha.a@dilerbmd.onmicrosoft.com"],
-    "role": "readonly",
-    "team": null
+    "pbiEmails": [
+      "simha.a@dilerbmd.onmicrosoft.com"
+    ],
+    "role": "team",
+    "channel": "ICE_BDD",
+    "teams": [
+      "SIMHA"
+    ],
+    "email": "dilerformula231@gmail.com"
   },
   {
     "id": "yulia-dzyumak",
     "name": "Yulia Dzyumak",
     "code": null,
-    "pbiEmails": ["yulia.d@dilerbmd.onmicrosoft.com"],
+    "pbiEmails": [
+      "yulia.d@dilerbmd.onmicrosoft.com"
+    ],
     "role": "readonly",
     "team": null
   },
@@ -228,7 +294,9 @@
     "id": "yulia-kandiba",
     "name": "Yulia Kandiba",
     "code": null,
-    "pbiEmails": ["yulia.k@dilerbmd.onmicrosoft.com"],
+    "pbiEmails": [
+      "yulia.k@dilerbmd.onmicrosoft.com"
+    ],
     "role": "readonly",
     "team": null
   },
@@ -236,7 +304,9 @@
     "id": "yuval-elkabets",
     "name": "Yuval Elkabets",
     "code": null,
-    "pbiEmails": ["yuval.e@dilerbmd.onmicrosoft.com"],
+    "pbiEmails": [
+      "yuval.e@dilerbmd.onmicrosoft.com"
+    ],
     "role": "readonly",
     "team": null
   }

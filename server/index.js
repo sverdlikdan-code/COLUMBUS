@@ -841,6 +841,11 @@ function createSession(agentCode, isManager, viaPbi = false, pbiUser = null, man
     sess.managerName = managerMeta.name;
     sess.managerRole = managerMeta.role;
     sess.managerTeam = managerMeta.team;
+    // ICE BDD managers only — FORMULA sessions keep exactly the fields they had.
+    if (managerMeta.channel) {
+      sess.channel = managerMeta.channel;
+      sess.managerTeams = managerMeta.teams || [];
+    }
   }
   sessions.set(token, sess);
   // Prune expired sessions when map grows large
