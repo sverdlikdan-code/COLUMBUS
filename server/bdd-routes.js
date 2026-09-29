@@ -31,7 +31,7 @@ let writeChain = Promise.resolve();
 const withBddLock = fn => (writeChain = writeChain.then(fn, fn));
 
 const BDD_DOCS_CACHE_MS = 75 * 1000;
-const BDD_GEOCODE_NIGHT_CAP = 200; // user 2026-09-28: few BDD clients will need it
+const BDD_GEOCODE_NIGHT_CAP = 200; // 212 BDD clients had no GPS on 2026-09-28 → ~2 nights
 
 function createBdd(deps) {
   let cache = null;
@@ -175,6 +175,15 @@ function createBdd(deps) {
     const entry = readJson(FILES.overrides, {})[agent] || { order: {}, dayMoves: {} };
     res.json({ ok: true, order: entry.order || {}, dayMoves: entry.dayMoves || {} });
   });
+
+  // Same as FORMULA's /geocode (start city, 📍 address search) but noCache (R8):
+  // reads FORMULA's address cache, never writes it.
+  router.get('/geocode', deps.dataRateLimit, h(async (req, res) => {
+    const { address, city } = req.query;
+    if (!address) return res.status(400).json({ error: 'address required' });
+    const query = [deps.cleanAddressForGeocoding(address), city, 'ישראל'].filter(Boolean).join(', ');
+    res.json((await deps.geocodeAddress(query, undefined, { noCache: true })) || {});
+  }));
   // --- live routes (Task 7) ---
   // Same response keys as FORMULA's /api/today-orders + `bdd`, so the frontend poll
   // code runs unchanged and only reads the extra key.

@@ -6039,6 +6039,7 @@ const bdd = createBdd({
   requireAuth, dataRateLimit, dayMoveRateLimit, executeDax,
   fix: { fixBiDi, fixBiDiAddress, expandCityAbbrev },
   todayIsraelDate, todayRouteDay, msUntilNextIsraelTime, isValidIL, geocodeAddressCascade,
+  geocodeAddress, cleanAddressForGeocoding,
   writeLog, getRealIp, resend,
   formulaGps: () => ({ // read-only view for the BDD GPS cascade
     clientMaps: [pbiCache?.byAgent, pbiCache?.noScheduleByAgent, pbiCache?.iceByAgent],

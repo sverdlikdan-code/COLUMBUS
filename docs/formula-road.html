@@ -996,7 +996,7 @@ body.gps-fs #map{height:100%!important;}
 /* ICE BDD login (body.bdd, toggled from _applyChannelClass()): hide what BDD doesn't use.
    FORMULA never has body.bdd, so this block is inert there. */
 body.bdd .zikuy-btn, body.bdd .ai-insight-btn, body.bdd #day-briefing-btn, body.bdd #yedaim-btn,
-body.bdd #blank-history-btn, body.bdd #sort-btn-priority, body.bdd #km-extra-filters,
+body.bdd #blank-history-btn, body.bdd #sort-btn-priority, body.bdd #km-extra-filters, body.bdd #export-all-btn, body.bdd .territory-btn,
 body.bdd .km-more-item[onclick^="openYedaim"], body.bdd .km-more-item[onclick^="openBlankHistory"]{display:none!important}
 </style>
 </head>
@@ -1418,7 +1418,7 @@ let _sessionExpiredShown = false;
 function _isBdd(){ return _loadAuth()?.channel==='ICE_BDD'; }
 function _applyChannelClass(){ document.body.classList.toggle('bdd', _isBdd()); }
 // BDD sessions: these endpoints are served by the /api/bdd router. FORMULA: URL unchanged.
-const BDD_PATHS=['/customers','/manager-agents','/agent-exists','/save-gps','/api/today-orders','/api/team-order-stats','/api/day-closing','/api/promo-cust-ids','/api/client-promos/','/api/route-overrides','/api/route-day-move','/api/mekarer-order'];
+const BDD_PATHS=['/customers','/manager-agents','/agent-exists','/save-gps','/api/today-orders','/api/team-order-stats','/api/day-closing','/api/promo-cust-ids','/api/client-promos/','/api/route-overrides','/api/route-day-move','/api/mekarer-order','/geocode'];
 function _bddUrl(url){
   if(!_isBdd()) return url;
   const p=String(url).startsWith(API)?String(url).slice(API.length):String(url);
@@ -2337,7 +2337,7 @@ function renderLogin(){
           <div style="display:flex;align-items:center;gap:10px;padding:0 2px 10px;">
             <button onclick="goBack('s-city')" style="background:#e8f4ff;border:1.5px solid #50A0D0;color:#1A3F7C;font-size:13px;font-weight:800;cursor:pointer;padding:7px 14px;border-radius:20px;display:flex;align-items:center;gap:4px;min-height:36px;">← חזור</button>
             <span style="font-size:11px;font-weight:700;color:#50A0D0;letter-spacing:1.2px;text-transform:uppercase;flex:1;">בחר סוכן</span>
-            <button onclick="window.open('territory.html','_blank')" style="background:linear-gradient(135deg,#1A3F7C,#2E6FAD);border:none;color:#fff;font-size:12px;font-weight:800;cursor:pointer;padding:7px 14px;border-radius:20px;display:flex;align-items:center;gap:5px;min-height:36px;white-space:nowrap;flex-shrink:0;">🗺 כל הסוכנים</button>
+            <button class="territory-btn" onclick="window.open('territory.html','_blank')" style="background:linear-gradient(135deg,#1A3F7C,#2E6FAD);border:none;color:#fff;font-size:12px;font-weight:800;cursor:pointer;padding:7px 14px;border-radius:20px;display:flex;align-items:center;gap:5px;min-height:36px;white-space:nowrap;flex-shrink:0;">🗺 כל הסוכנים</button>
           </div>
           <div id="agent-list-team-banner" class="fpb fpb-static" style="display:none"></div>
           <div class="agent-list">${agents.map(a=>{
@@ -2848,7 +2848,7 @@ async function initRoute(){
   document.getElementById('sort-btn-priority').className='sort-btn'+(st.sortMode==='priority'?' active-priority':'');
   document.getElementById('sort-btn-ai-google').className='sort-btn'+(st.sortMode==='ai'?' active-ai-google':'');
   st.excluded=new Set();
-  document.getElementById('route-title').textContent='DILER FORMULA';
+  document.getElementById('route-title').textContent=_isBdd()?'ICE BDD':'DILER FORMULA';
   document.getElementById('route-sub').textContent=_routeSubBase();
   document.getElementById('export-btn').classList.remove('visible');
   document.getElementById('export-all-btn').classList.remove('visible');
