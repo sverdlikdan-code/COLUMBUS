@@ -6043,6 +6043,7 @@ const bdd = createBdd({
   fix: { fixBiDi, fixBiDiAddress, expandCityAbbrev },
   todayIsraelDate, todayRouteDay, msUntilNextIsraelTime, isValidIL, geocodeAddressCascade,
   geocodeAddress, cleanAddressForGeocoding,
+  inCityBBox: (city, lat, lng) => isWithinCityBBox(lat, lng, cityBBoxCache.get(city)), // read-only; unknown city → true
   writeLog, getRealIp, resend,
   formulaGps: () => ({ // read-only view for the BDD GPS cascade
     clientMaps: [pbiCache?.byAgent, pbiCache?.noScheduleByAgent, pbiCache?.iceByAgent],

@@ -7,8 +7,8 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const ExcelJS = require('exceljs'); // Task 8: fridge order email, same package index.js already depends on
-const { BDD_GROUPS, summarizeBddDocs, bddCanWrite, canUseBdd, resolveBddGps, loadBddCache, serializeBddCache, deserializeBddCache } = require('./bdd');
-const { bddDocLinesToday, bddClientPromos, bddCustFamiliesWithActivePromo } = require('./bdd-priority');
+const { BDD_GROUPS, summarizeBddDocs, bddCanWrite, canUseBdd, resolveBddGps, loadBddCache, serializeBddCache, deserializeBddCache, applyVisitOrder } = require('./bdd');
+const { bddDocLinesToday, bddClientPromos, bddCustFamiliesWithActivePromo, bddVisitOrder } = require('./bdd-priority');
 
 // Email HTML escape — copied from index.js's escEmail (one-liner, not worth a
 // deps wire-up or a shared module just for this).
@@ -51,7 +51,11 @@ function createBdd(deps) {
       const ICE_DS = process.env.POWERBI_ICE_DATASET_ID;
       if (!ICE_DS) { console.error('[BDD] POWERBI_ICE_DATASET_ID missing'); return; }
       try {
-        cache = await loadBddCache(deps.executeDax, ICE_DS, deps.fix);
+        const fresh = await loadBddCache(deps.executeDax, ICE_DS, deps.fix);
+        // Visit order from Priority (not PBI); a failure just leaves the AI/no-order default.
+        try { console.log(`[BDD] visit order: ${applyVisitOrder(fresh, await bddVisitOrder(DB()))} client-days`); }
+        catch (e) { console.error('[BDD] visit order failed:', e.message); }
+        cache = fresh;
         if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
         const snap = serializeBddCache(cache, deps.todayIsraelDate());
         await withBddLock(() => writeJson(FILES.cache, snap)).catch(e => console.error('[BDD] cache file write failed:', e.message));
@@ -109,6 +113,7 @@ function createBdd(deps) {
       tablet: f.tablet, formulaKnown,
       bddResolved: readJson(FILES.geocoded, {}),
       isValid: deps.isValidIL,
+      inCity: deps.inCityBBox,
     };
   }
 
@@ -143,6 +148,9 @@ function createBdd(deps) {
       if (!cache || cache.loadedAt < disk.loadedAt) {
         cache = disk;
         console.log(`[BDD] cache from disk (${disk.loadedAt.toISOString()}), no DAX`);
+        // Visit order is Priority SQL (cheap, not PBI) — refresh it on every start.
+        bddVisitOrder(DB()).then(rows => console.log(`[BDD] visit order: ${applyVisitOrder(disk, rows)} client-days`))
+          .catch(e => console.error('[BDD] visit order failed:', e.message));
       }
     } else load();
     if (!started) { started = true; scheduleNight(); }

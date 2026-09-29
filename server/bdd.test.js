@@ -140,3 +140,36 @@ test('serializeBddCache / deserializeBddCache round-trip (disk cache, no DAX on 
   assert.strictEqual(deserializeBddCache(serializeBddCache(cache, '2026-09-28'), '2026-09-29'), null, 'another day → null (reload from PBI)');
   assert.strictEqual(deserializeBddCache(null, '2026-09-29'), null);
 });
+
+test('resolveBddGps: automatic sources outside the client city are skipped, manual fixes kept', () => {
+  const { resolveBddGps } = require('./bdd');
+  const ok = (la, lo) => ({ lat: la, lng: lo });
+  const netanya = (city, la) => city !== 'נתניה' || (la > 32.25 && la < 32.36);
+  const src = {
+    bddCorr: {}, formulaCorr: { M: ok(32.44, 34.93) },
+    tablet: new Map([['T', ok(32.44, 34.93)], ['U', ok(32.30, 34.86)]]),
+    formulaKnown: new Map(), bddResolved: { T: ok(32.31, 34.85) },
+    isValid: () => true, inCity: netanya,
+  };
+  // tablet in Hadera for a Netanya client → skipped, night geocode (inside) wins
+  assert.deepStrictEqual(resolveBddGps({ custId: 'T', city: 'נתניה', lat: null, lng: null }, src), { lat: 32.31, lng: 34.85, gpsSource: 'geocoded' });
+  assert.strictEqual(resolveBddGps({ custId: 'U', city: 'נתניה', lat: null, lng: null }, src).gpsSource, 'tablet-order');
+  // manual FORMULA 📍 outside the bbox is still trusted
+  assert.strictEqual(resolveBddGps({ custId: 'M', city: 'נתניה', lat: null, lng: null }, src).gpsSource, 'formula-correction');
+  // card coordinate outside city → nothing
+  assert.strictEqual(resolveBddGps({ custId: 'X', city: 'נתניה', lat: 32.44, lng: 34.93 }, src).lat, null);
+});
+
+test('applyVisitOrder: Priority TOPP_NUM1 per client-day becomes priorityOrder, others untouched', () => {
+  const { applyVisitOrder } = require('./bdd');
+  const cache = { byAgent: new Map([['243', [
+    { custId: 'A', dayNum: 2, priorityOrder: 9000 },
+    { custId: 'A', dayNum: 4, priorityOrder: 9000 },
+    { custId: 'B', dayNum: 2, priorityOrder: 9000 },
+    { custId: 'C', dayNum: null, priorityOrder: 9500 },
+  ]]]) };
+  const n = applyVisitOrder(cache, [{ custId: 'A', dayNum: 2, visitOrder: 3 }, { custId: 'B', dayNum: 2, visitOrder: 1 }, { custId: 'Z', dayNum: 2, visitOrder: 5 }]);
+  const l = cache.byAgent.get('243');
+  assert.deepStrictEqual(l.map(c => c.priorityOrder), [3, 9000, 1, 9500]);
+  assert.strictEqual(n, 2);
+});

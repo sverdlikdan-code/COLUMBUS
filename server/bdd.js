@@ -123,12 +123,17 @@ function canUseBdd(session) {
 function resolveBddGps(c, s) {
   const id = String(c.custId);
   const pick = (p, gpsSource) => (p && s.isValid(p.lat, p.lng) ? { lat: p.lat, lng: p.lng, gpsSource } : null);
+  // Automatic sources must fall inside the client's city (+~2 km): a BDD van-seller prints
+  // documents on the road, so tablet GPS can be another city (1153040 Netanya → Hadera,
+  // 2026-09-29). Manual 📍 corrections are trusted as-is.
+  const inCity = s.inCity || (() => true);
+  const pickIn = (p, gpsSource) => (p && inCity(c.city, p.lat, p.lng) ? pick(p, gpsSource) : null);
   return pick(s.bddCorr[id], 'correction')
     || pick(s.formulaCorr[id], 'formula-correction')
-    || pick(s.tablet.get(id), 'tablet-order')
-    || pick(s.formulaKnown.get(id), 'formula')
-    || pick(c, 'pbi')
-    || pick(s.bddResolved[id], 'geocoded')
+    || pickIn(s.tablet.get(id), 'tablet-order')
+    || pickIn(s.formulaKnown.get(id), 'formula')
+    || pickIn(c, 'pbi')
+    || pickIn(s.bddResolved[id], 'geocoded')
     || { lat: null, lng: null, gpsSource: undefined };
 }
 
@@ -186,6 +191,20 @@ async function loadBddCache(rawExecuteDax, iceDatasetId, fix, gapMs = BDD_DAX_GA
   return cache;
 }
 
+// Priority visit order (bdd-priority.js bddVisitOrder) → priorityOrder of the matching
+// client-day row, so "הגרסה שלי" sorts like the tablet. Rows without an order keep 9000/9500.
+function applyVisitOrder(cache, rows) {
+  const ord = new Map(rows.map(r => [`${r.custId}|${r.dayNum}`, r.visitOrder]));
+  let n = 0;
+  for (const list of cache.byAgent.values()) {
+    for (const c of list) {
+      const o = ord.get(`${c.custId}|${c.dayNum}`);
+      if (o > 0) { c.priorityOrder = o; n++; }
+    }
+  }
+  return n;
+}
+
 // Disk copy of the day's cache: a restart/deploy on the same Israel day reads it
 // instead of re-running the DAX queries (user 2026-09-29: PBI once a day, morning).
 function serializeBddCache(cache, date) {
@@ -205,4 +224,4 @@ function deserializeBddCache(obj, today) {
   };
 }
 
-module.exports = { BDD_GROUPS, unreversePbi, buildBddCache, summarizeBddDocs, bddCanWrite, canUseBdd, resolveBddGps, loadBddCache, BDD_DAX_GAP_MS, serializeBddCache, deserializeBddCache };
+module.exports = { BDD_GROUPS, unreversePbi, buildBddCache, summarizeBddDocs, bddCanWrite, canUseBdd, resolveBddGps, loadBddCache, BDD_DAX_GAP_MS, serializeBddCache, deserializeBddCache, applyVisitOrder };

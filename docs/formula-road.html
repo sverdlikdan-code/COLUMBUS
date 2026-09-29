@@ -1001,7 +1001,7 @@ body.gps-fs #map{height:100%!important;}
 /* ICE BDD login (body.bdd, toggled from _applyChannelClass()): hide what BDD doesn't use.
    FORMULA never has body.bdd, so this block is inert there. */
 body.bdd .zikuy-btn, body.bdd .ai-insight-btn, body.bdd #day-briefing-btn, body.bdd #yedaim-btn,
-body.bdd #blank-history-btn, body.bdd #sort-btn-priority, body.bdd #km-extra-filters, body.bdd #export-all-btn, body.bdd .territory-btn,
+body.bdd #blank-history-btn, body.bdd #km-extra-filters, body.bdd #export-all-btn, body.bdd .territory-btn,
 body.bdd .km-more-item[onclick^="openYedaim"], body.bdd .km-more-item[onclick^="openBlankHistory"]{display:none!important}
 </style>
 </head>
@@ -2877,8 +2877,9 @@ async function initRoute(){
   // the button's active class below used to read st.aiGpsMode instead of
   // st.sortMode for the same reason and stayed lit even in priority mode.
   _applyChannelClass(); // body.bdd must match whoever is logged in now (hide list)
-  // BDD: always AI order ("הגרסה שלי" is hidden there) — saved pref ignored.
-  const _savedSortMode=_isBdd()?null:loadSortModePref(st.agent.code);
+  // BDD: AI by default; "הגרסה שלי" (Priority TOPP_NUM1 order) remembered per agent under
+  // BDD-namespaced keys (_lsAg), same as FORMULA.
+  const _savedSortMode=loadSortModePref(st.agent.code);
   st.sortMode=(_savedSortMode==='priority' && !st.tabletGpsMode)?'priority':'ai'; st.selectedCities=[]; st.selectedId=null;
   document.getElementById('sort-btn-priority').className='sort-btn'+(st.sortMode==='priority'?' active-priority':'');
   document.getElementById('sort-btn-ai-google').className='sort-btn'+(st.sortMode==='ai'?' active-ai-google':'');
@@ -3944,10 +3945,14 @@ function renderMap(){
     const tabletBtn=TABLET_GPS[String(c.custId)]
       ? `<button data-id="${c.custId}" data-name="${safeName}" onclick="reviewTabletGps(this.dataset.id,this.dataset.name)" style="margin-top:6px;margin-inline-start:4px;background:#00B894;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">📱 בדוק מיקום טאבלט</button>`
       : '';
-    const googleGpsData=c.hevra==='ICE_BDD'?null:AI_GPS[String(c.custId)]; // R2: FORMULA's google-gps.json isn't offered for BDD clients
-    const googleBtn=googleGpsData&&googleGpsData.aiLat&&googleGpsData.aiLng
+    // BDD: FORMULA's Google point is offered for manual review only (confirm → BDD 📍), never auto-applied (R2)
+    const googleGpsData=AI_GPS[String(c.custId)];
+    const googleBtn=(googleGpsData&&googleGpsData.aiLat&&googleGpsData.aiLng
       ? `<button data-id="${c.custId}" data-name="${safeName}" onclick="reviewGoogleGps(this.dataset.id,this.dataset.name)" style="margin-top:6px;margin-inline-start:4px;background:#7B1FA2;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">🤖 בדוק מיקום גוגל</button>`
-      : '';
+      : '')
+      + (c.hevra==='ICE_BDD'
+      ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([c.custName,c.address,c.city].filter(Boolean).join(', '))}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;margin-inline-start:4px;background:#fff;color:#1A3F7C;border:1.5px solid #50A0D0;border-radius:8px;padding:4px 12px;font-size:12px;font-weight:700;text-decoration:none">🗺 Google Maps</a>`
+      : '');
     const iceMark = isIce ? ' <span style="background:#00B894;color:#fff;font-size:9px;font-weight:800;padding:1px 4px;border-radius:3px">ICE</span>' : '';
     m.bindPopup(`<b>${esc(_rawLabel)}${corrMark}</b>${iceMark}<br>${esc(c.city||'')}${c.address?'<br><span style="font-size:11px;color:#555">'+esc(c.address)+'</span>':''}${approxNote}${fixBtn}${tabletBtn}${googleBtn}`,{maxWidth:340,minWidth:260});
     m.bindTooltip(_rawLabel,{permanent:false,direction:'right',opacity:1,className:'fr-tip'});

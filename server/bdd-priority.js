@@ -159,4 +159,17 @@ async function bddCustFamiliesWithActivePromo(dbName) {
   }
 }
 
-module.exports = { getBddPool, bddDocLinesToday, bddClientPromos, bddCustFamiliesWithActivePromo };
+// Visit order per client-day — same table/field FORMULA's PBI "סדר ביקור" uses
+// (form.CUSTCALLFREQUENCY.TOPP_NUM1); the ICE dataset's משטח_ICE is this query without it.
+// Filled unevenly per agent (checked 2026-09-29: 243/43/17 ~all, 21/41/85/98 ~none) — 0 = no order.
+async function bddVisitOrder(dbName) {
+  const pool = await getBddPool(dbName);
+  const r = await pool.request().query(`
+    SELECT C.CUSTNAME AS custId, CCF.DAYNUM AS dayNum, CCF.TOPP_NUM1 AS visitOrder
+    FROM CUSTCALLFREQUENCY CCF JOIN CUSTOMERS C ON C.CUST = CCF.CUST
+    WHERE CCF.TOPP_NUM1 > 0
+  `);
+  return r.recordset.map(x => ({ custId: String(x.custId), dayNum: Number(x.dayNum), visitOrder: Number(x.visitOrder) }));
+}
+
+module.exports = { getBddPool, bddDocLinesToday, bddClientPromos, bddCustFamiliesWithActivePromo, bddVisitOrder };
