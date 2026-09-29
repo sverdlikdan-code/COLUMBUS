@@ -169,6 +169,50 @@ function createBdd(deps) {
     res.json({ ok: true, order: entry.order || {}, dayMoves: entry.dayMoves || {} });
   });
   // --- live routes (Task 7) ---
+  // Same response keys as FORMULA's /api/today-orders + `bdd`, so the frontend poll
+  // code runs unchanged and only reads the extra key.
+  router.get('/api/today-orders', deps.dataRateLimit, h(async (req, res) => {
+    const s = await docsToday();
+    res.json({ ok: true, formula: [], iceMish: [], bdd: s ? [...s.custIds] : [] });
+  }));
+
+  // Line coverage: denominator = agent's clients scheduled today (משטח_ICE),
+  // numerator/sum = what that agent executed today (BDD families). Same shape as FORMULA.
+  router.get('/api/team-order-stats', deps.dataRateLimit, h(async (req, res) => {
+    if (needCache(res)) return;
+    const s = await docsToday();
+    const todayDay = deps.todayRouteDay();
+    const byAgent = {}, byManager = {};
+    for (const [group, agents] of cache.agentsByGroup) {
+      const acc = { denom: 0, numer: 0, sum: 0 };
+      for (const a of agents) {
+        const denom = (cache.byAgent.get(a.agentCode) || []).filter(c => c.dayNum === todayDay).length;
+        const d = s?.byAgent.get(a.agentCode);
+        byAgent[a.agentCode] = { denom, numer: d?.custCount || 0, sum: d?.sum || 0 };
+        acc.denom += denom; acc.numer += byAgent[a.agentCode].numer; acc.sum += byAgent[a.agentCode].sum;
+      }
+      byManager[group] = acc;
+    }
+    res.json({ ok: true, byAgent, byManager });
+  }));
+
+  // סגירת יום: by executing agent, net of החזרות/זיכויים, no new-clients section.
+  // Response carries every key docs/day-closing.html reads unconditionally from a
+  // FORMULA/ICE closing (custCount, sum, newCustCount, newSum, byAgent, byClient,
+  // items) with empty/zero values — sales/returns/credits kept for Task 10's bdd
+  // returns line.
+  router.get('/api/day-closing', deps.dataRateLimit, h(async (req, res) => {
+    const agentCode = String(req.query.agentCode || '');
+    if (!validAgent(agentCode)) return res.status(400).json({ ok: false, error: 'agentCode required' });
+    const s = await docsToday();
+    if (!s) return res.status(503).json({ ok: false, error: 'priority_unavailable' });
+    const a = s.byAgent.get(agentCode);
+    res.json({ ok: true, type: 'bdd', custCount: a?.custCount || 0, sum: a?.sum || 0,
+      newCustCount: 0, newSum: 0,
+      sales: a?.sales || 0, returns: a?.returns || 0, credits: a?.credits || 0,
+      items: [], byClient: [], byAgent: [] });
+  }));
+
   // --- write routes (Task 8) ---
 
   return { router, start };
