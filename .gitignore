@@ -66,3 +66,6 @@ docs/gps-corrections-bdd.json
 docs/mekarer-orders-bdd.json
 server/data/route-overrides-bdd.json
 server/data/bdd-geocode-resolved.json
+
+# ICE BDD daily PBI snapshot — live only on VPS
+server/data/bdd-cache.json

@@ -186,4 +186,23 @@ async function loadBddCache(rawExecuteDax, iceDatasetId, fix, gapMs = BDD_DAX_GA
   return cache;
 }
 
-module.exports = { BDD_GROUPS, unreversePbi, buildBddCache, summarizeBddDocs, bddCanWrite, canUseBdd, resolveBddGps, loadBddCache, BDD_DAX_GAP_MS };
+// Disk copy of the day's cache: a restart/deploy on the same Israel day reads it
+// instead of re-running the DAX queries (user 2026-09-29: PBI once a day, morning).
+function serializeBddCache(cache, date) {
+  return {
+    date,
+    agentGroup: [...cache.agentGroup], agentsByGroup: [...cache.agentsByGroup],
+    byAgent: [...cache.byAgent], clientById: [...cache.clientById],
+    families: [...cache.families], familiesRaw: cache.familiesRaw, loadedAt: cache.loadedAt,
+  };
+}
+function deserializeBddCache(obj, today) {
+  if (!obj || obj.date !== today) return null;
+  return {
+    agentGroup: new Map(obj.agentGroup), agentsByGroup: new Map(obj.agentsByGroup),
+    byAgent: new Map(obj.byAgent), clientById: new Map(obj.clientById),
+    families: new Set(obj.families), familiesRaw: obj.familiesRaw, loadedAt: new Date(obj.loadedAt),
+  };
+}
+
+module.exports = { BDD_GROUPS, unreversePbi, buildBddCache, summarizeBddDocs, bddCanWrite, canUseBdd, resolveBddGps, loadBddCache, BDD_DAX_GAP_MS, serializeBddCache, deserializeBddCache };

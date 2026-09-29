@@ -7,7 +7,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const ExcelJS = require('exceljs'); // Task 8: fridge order email, same package index.js already depends on
-const { BDD_GROUPS, summarizeBddDocs, bddCanWrite, canUseBdd, resolveBddGps, loadBddCache } = require('./bdd');
+const { BDD_GROUPS, summarizeBddDocs, bddCanWrite, canUseBdd, resolveBddGps, loadBddCache, serializeBddCache, deserializeBddCache } = require('./bdd');
 const { bddDocLinesToday, bddClientPromos, bddCustFamiliesWithActivePromo } = require('./bdd-priority');
 
 // Email HTML escape — copied from index.js's escEmail (one-liner, not worth a
@@ -22,6 +22,7 @@ const FILES = {
   geocoded: path.join(__dirname, 'data', 'bdd-geocode-resolved.json'),
   gps: path.join(__dirname, '..', 'docs', 'gps-corrections-bdd.json'),
   mekarer: path.join(__dirname, '..', 'docs', 'mekarer-orders-bdd.json'),
+  cache: path.join(__dirname, 'data', 'bdd-cache.json'), // today's PBI result — restart reads it, no DAX
 };
 const readJson = (f, dflt) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch (_) { return dflt; } };
 const writeJson = (f, v) => fs.writeFileSync(f, JSON.stringify(v, null, 2), 'utf8');
@@ -52,6 +53,8 @@ function createBdd(deps) {
       try {
         cache = await loadBddCache(deps.executeDax, ICE_DS, deps.fix);
         if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
+        const snap = serializeBddCache(cache, deps.todayIsraelDate());
+        await withBddLock(() => writeJson(FILES.cache, snap)).catch(e => console.error('[BDD] cache file write failed:', e.message));
         const n = [...cache.byAgent.values()].reduce((s, a) => s + a.length, 0);
         console.log(`[BDD] cache loaded: ${cache.agentGroup.size} agents, ${n} client-day rows, ${cache.families.size} families`);
       } catch (e) {
@@ -132,8 +135,16 @@ function createBdd(deps) {
   }
 
   let started = false;
+  // Called after every FORMULA PBI load (06:00 daily + every restart/deploy). PBI is hit
+  // only when there is no disk copy from today (Israel date) — i.e. once a day.
   function start() {
-    load();
+    const disk = deserializeBddCache(readJson(FILES.cache, null), deps.todayIsraelDate());
+    if (disk) {
+      if (!cache || cache.loadedAt < disk.loadedAt) {
+        cache = disk;
+        console.log(`[BDD] cache from disk (${disk.loadedAt.toISOString()}), no DAX`);
+      }
+    } else load();
     if (!started) { started = true; scheduleNight(); }
   }
 

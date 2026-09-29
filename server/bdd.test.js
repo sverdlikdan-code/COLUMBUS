@@ -118,3 +118,25 @@ test('loadBddCache: gap between DAX queries, none before the first', async () =>
   assert.ok(at[0] < 25, 'first query not delayed');
   for (let i = 1; i < at.length; i++) assert.ok(at[i] - at[i - 1] >= 25, 'gap before query ' + i);
 });
+
+test('serializeBddCache / deserializeBddCache round-trip (disk cache, no DAX on restart)', () => {
+  const { buildBddCache, serializeBddCache, deserializeBddCache } = require('./bdd');
+  const fix = { fixBiDi: s => s, fixBiDiAddress: s => s, expandCityAbbrev: s => s };
+  const cache = buildBddCache({
+    teamRows: [{ '[agentCode]': '98', '[group]': 'MATVEY', '[agentName]': 'א' }],
+    clientRows: [{ '[custId]': '1', '[custName]': 'x', '[city]': 'c', '[address]': 'a', '[agentCode]': '98', '[agentName]': 'א', '[clientType]': '' }],
+    gpsRows: [], schedRows: [{ '[custId]': '1', '[day]': 'ב', '[status]': '‭ליעפ‬' }],
+    familyRows: [{ '[fam]': '‭םידדוב‬' }],
+  }, fix);
+  cache.byAgent.get('98')[0].monthlySales = 123;
+  const back = deserializeBddCache(JSON.parse(JSON.stringify(serializeBddCache(cache, '2026-09-29'))), '2026-09-29');
+  assert.deepStrictEqual([...back.agentGroup], [...cache.agentGroup]);
+  assert.deepStrictEqual([...back.agentsByGroup], [...cache.agentsByGroup]);
+  assert.deepStrictEqual([...back.byAgent], [...cache.byAgent]);
+  assert.deepStrictEqual([...back.clientById], [...cache.clientById]);
+  assert.deepStrictEqual([...back.families], [...cache.families]);
+  assert.deepStrictEqual(back.familiesRaw, cache.familiesRaw);
+  assert.strictEqual(back.byAgent.get('98')[0].monthlySales, 123);
+  assert.strictEqual(deserializeBddCache(serializeBddCache(cache, '2026-09-28'), '2026-09-29'), null, 'another day → null (reload from PBI)');
+  assert.strictEqual(deserializeBddCache(null, '2026-09-29'), null);
+});
