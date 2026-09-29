@@ -87,14 +87,21 @@ function summarizeBddDocs(rows, families) {
     else if (r.src === 'INV' && r.amount < 0) a.credits += r.amount;
     else {
       a.sales += r.amount;
-      a.custSales.set(r.custId, (a.custSales.get(r.custId) || 0) + r.amount);
+      const cs = a.custSales.get(r.custId) || { sum: 0, firstDoc: r.docNo };
+      cs.sum += r.amount;
+      if (String(r.docNo) < String(cs.firstDoc)) cs.firstDoc = r.docNo;
+      a.custSales.set(r.custId, cs);
     }
   }
   const round = n => Math.round(n * 100) / 100;
   for (const a of byAgent.values()) {
-    const served = [...a.custSales].filter(([, s]) => s > 0).map(([id]) => id);
-    served.forEach(id => custIds.add(id));
+    const served = [...a.custSales].filter(([, s]) => s.sum > 0);
+    served.forEach(([id]) => custIds.add(id));
     a.custCount = served.length;
+    // סגירת יום list in entry order: first doc number of the day. ponytail: IN… invoices
+    // and SH… delivery notes are separate Priority series, so SH clients sort after all IN ones.
+    a.byClient = served.sort(([, x], [, y]) => String(x.firstDoc).localeCompare(String(y.firstDoc)))
+      .map(([custId, s]) => ({ custId, sum: round(s.sum) }));
     delete a.custSales;
     a.sales = round(a.sales); a.returns = round(a.returns); a.credits = round(a.credits);
     a.sum = round(a.sales + a.returns + a.credits);

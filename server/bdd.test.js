@@ -68,6 +68,18 @@ test('summarizeBddDocs keeps BDD families, nets by executing agent', () => {
   assert.strictEqual(s.byAgent.get('17').sum, -130);
 });
 
+test('summarizeBddDocs byClient: entry order by first doc of the day, sales only', () => {
+  const families = new Set(['גלידה בודדים']);
+  const row = (docNo, custId, amount, src = 'INV') => ({ src, docNo, custId, agentCode: '43', agentName: 'x', familyDes: 'גלידה בודדים', amount });
+  const s = summarizeBddDocs([
+    row('IN0300', 'Z', 100), row('IN0100', 'Y', 50), row('IN0200', 'X', 70),
+    row('IN0400', 'Y', 25), row('N1', 'X', -20, 'N'), row('IN0500', 'W', -30),
+  ], families);
+  assert.deepStrictEqual(s.byAgent.get('43').byClient, [
+    { custId: 'Y', sum: 75 }, { custId: 'X', sum: 70 }, { custId: 'Z', sum: 100 },
+  ]);
+});
+
 test('bddCanWrite: own groups only, super always', () => {
   const cache = { agentGroup: new Map([['98', 'MATVEY'], ['21', 'ALMOG'], ['243', 'TIMUR']]) };
   const matvey = { isManager: true, channel: 'ICE_BDD', managerRole: 'readonly', bddRole: 'team', managerTeams: ['MATVEY', 'ALMOG'] };

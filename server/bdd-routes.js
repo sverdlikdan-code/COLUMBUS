@@ -293,7 +293,8 @@ function createBdd(deps) {
     res.json({ ok: true, type: 'bdd', custCount: a?.custCount || 0, sum: a?.sum || 0,
       newCustCount: 0, newSum: 0,
       sales: a?.sales || 0, returns: a?.returns || 0, credits: a?.credits || 0,
-      items: [], byClient: [], byAgent: [] });
+      items: [], byAgent: [],
+      byClient: (a?.byClient || []).map(c => ({ ...c, custName: cache?.clientById.get(c.custId)?.custName || '' })) });
   }));
 
   // --- write routes (Task 8) ---
