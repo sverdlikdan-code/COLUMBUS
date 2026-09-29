@@ -273,7 +273,7 @@ function buildHtml(month, cur, prev, tm, names, ret) {
   // 3. SKU — топ-5 по каждой מחלקה (пользователь 2026-09-29); без PBI отдела не знаем → общий топ-7
   const skus = Object.entries(sku).sort((a, b) => (b[1].z + b[1].h) - (a[1].z + a[1].h));
   const skuRow = ([k, s]) => [`${k} · ${esc(s.name.slice(0, 32))}`, n0(s.z + s.h), split(s), ...(ret ? [retCell(ret.bySku[k])] : []), s.shelf ?? '—'];
-  const skuHead = ['Артикул', 'Штук', 'Уценка / השמדה', ...retHead, 'Срок, дн'];
+  const skuHead = ['Артикул', 'Штук', 'Уценка / השמדה', ...retHead, 'חיי מדף'];
   const skuAlign = ret ? [1, 2, 3, 4] : [1, 2, 3];
   if (ret) {
     const byDept = {};
@@ -325,15 +325,12 @@ function buildHtml(month, cur, prev, tm, names, ret) {
   }
 
   // 5. закономерности
-  const bucket = {}; for (const [, s] of skus) { const k = s.shelf == null ? 'нет данных' : s.shelf <= 30 ? 'до 30 дн' : s.shelf <= 60 ? '31–60 дн' : 'больше 60 дн'; const b = bucket[k] = bucket[k] || { z: 0, h: 0, n: 0 }; b.z += s.z; b.h += s.h; b.n++; }
+  // срез по сроку годности убран 2026-09-30: KARTIS PARIT[חיי מדף] — не полный срок, а минимальный остаток для продажи; заменит анализ «сколько дней получил клиент»
   // иврит внутри русской фразы переставляет слова (BiDi) — каждая семья отдельной строкой в <bdi>
   const famLines = list => list.length ? list.map(([k, f]) => `<br>• <bdi>${esc(k)}</bdi> — ${pct(f.h, f.z + f.h)}% штук этой семьи уничтожено (из ${n0(f.z + f.h)} шт.)`).join('') : '<br>• нет';
   html += H('5. Закономерности');
   html += P(`<b>Уценка не спасает</b> — больше 70% уходит в уничтожение (от 20 шт.):${famLines(fams.filter(([, f]) => f.z + f.h >= 20 && pct(f.h, f.z + f.h) >= 70))}`);
   html += P(`<b>Уценка работает</b> — не больше 30% в уничтожение (от 100 шт.):${famLines(fams.filter(([, f]) => f.z + f.h >= 100 && pct(f.h, f.z + f.h) <= 30))}`);
-  html += P('<b>Срок годности:</b> как делятся штуки товаров с разным сроком — уценка против השמדה.');
-  html += table(['Срок годности', 'Артикулов', 'Штук', 'Уценка / השמדה'],
-    ['до 30 дн', '31–60 дн', 'больше 60 дн', 'нет данных'].filter(k => bucket[k]).map(k => [k, bucket[k].n, n0(bucket[k].z + bucket[k].h), split(bucket[k])]), [1, 2, 3]);
 
   // 6. клиенты
   const cs = Object.values(cust).sort((a, b) => b.qty - a.qty);
