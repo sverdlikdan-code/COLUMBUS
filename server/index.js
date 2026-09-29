@@ -2591,9 +2591,20 @@ app.post('/api/guide-event', dataRateLimit, (req, res) => {
 // captures) to avoid paying the ~1s browser-launch cost on every share.
 let _renderBrowser = null;
 async function getRenderBrowser() {
+  // The cached Chrome can die (seen 2026-09-11 and 2026-09-29): every share then failed
+  // with "Connection closed." until a PM2 restart. Relaunch when it's no longer connected.
+  if (_renderBrowser) {
+    const b = await _renderBrowser.catch(() => null);
+    if (!b || !b.connected) _renderBrowser = null;
+  }
   if (!_renderBrowser) {
-    _renderBrowser = puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-    _renderBrowser.catch(() => { _renderBrowser = null; }); // launch itself failed — allow retry next call
+    // handle*: false — Puppeteer must not close Chrome on a stray signal (it did on SIGHUP);
+    // PM2 restart still kills the whole process tree.
+    const p = puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      handleSIGHUP: false, handleSIGINT: false, handleSIGTERM: false });
+    _renderBrowser = p;
+    p.then(b => b.on('disconnected', () => { if (_renderBrowser === p) _renderBrowser = null; }))
+      .catch(() => { if (_renderBrowser === p) _renderBrowser = null; }); // launch failed — allow retry next call
   }
   try {
     return await _renderBrowser;
