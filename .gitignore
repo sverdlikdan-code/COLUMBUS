@@ -60,3 +60,9 @@ scripts/*_dump.json
 scripts/*_cache.json
 scripts/__pycache__/
 .superpowers/
+
+# ICE BDD state — live only on VPS (personal data, public repo)
+docs/gps-corrections-bdd.json
+docs/mekarer-orders-bdd.json
+server/data/route-overrides-bdd.json
+server/data/bdd-geocode-resolved.json

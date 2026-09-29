@@ -216,7 +216,7 @@ window.addEventListener('unhandledrejection', e => _reportClientError('unhandled
 const agentCode = params.get('agentCode') || '';
 const agentName = params.get('agentName') || '';
 const isManager = params.get('isManager') === '1';
-const type = params.get('type') === 'ice' ? 'ice' : 'formula';
+const type = ['ice','bdd'].includes(params.get('type')) ? params.get('type') : 'formula';
 
 const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 function showToast(msg,ms=2200){
@@ -241,7 +241,7 @@ function logEvent(event, extra){
   }catch(_){}
 }
 
-document.getElementById('page-title').textContent = type==='ice' ? 'סגירת יום ICE' : 'סגירת יום פורמולה';
+document.getElementById('page-title').textContent = type==='bdd' ? 'סגירת יום ICE BDD' : type==='ice' ? 'סגירת יום ICE' : 'סגירת יום פורמולה';
 
 async function init(){
   if(!agentCode){
@@ -249,7 +249,7 @@ async function init(){
     return;
   }
   try{
-    const res = await apiFetch(`/api/day-closing?agentCode=${encodeURIComponent(agentCode)}&type=${type}`);
+    const res = await apiFetch(`${type==='bdd'?'/api/bdd':''}/api/day-closing?agentCode=${encodeURIComponent(agentCode)}&type=${type}`);
     if(!res.ok) throw new Error('http_'+res.status);
     const d = await res.json();
     if(!d.ok) throw new Error(d.error||'unknown');
@@ -276,7 +276,7 @@ function renderBlank(d){
   // .formula on #print-view (not just the header) — header, stat tiles and
   // the table are all scoped under it, see the CSS block above.
   document.getElementById('print-view').classList.toggle('formula', type==='formula');
-  document.getElementById('dc-type').textContent = type==='ice' ? 'ICE' : 'FORMULA';
+  document.getElementById('dc-type').textContent = type==='bdd' ? 'ICE BDD' : type==='ice' ? 'ICE' : 'FORMULA';
   document.getElementById('dc-agent').textContent = first;
   // Bare number, matching the sum tile — live feedback 2026-08-26: neither
   // "לקוחות" nor "הזמנות" as a label rendered well (stacked = asymmetric with
@@ -291,7 +291,10 @@ function renderBlank(d){
   // live request 2026-09-17 (reversed the 2026-08-26 hide-when-zero decision).
   const newLine = document.getElementById('dc-new-line');
   newLine.style.display = '';
-  if(d.newCustCount > 0){
+  if(type==='bdd'){
+    // BDD: no extra line at all — just clients + net sum (user 2026-09-29).
+    newLine.style.display = 'none';
+  } else if(d.newCustCount > 0){
     const newSumText = Number(d.newSum||0).toLocaleString('he-IL',{maximumFractionDigits:0});
     newLine.innerHTML = `מתוכם לקוחות חדשים: <b>${d.newCustCount}</b> — ₪<b>${newSumText}</b>`;
   } else {

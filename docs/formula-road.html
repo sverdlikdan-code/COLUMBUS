@@ -993,6 +993,11 @@ body.gps-fs #map{height:100%!important;}
 #pwa-banner .pwa-btns{display:flex;gap:10px;}
 #pwa-banner .pwa-install{flex:1;padding:11px;background:#C9A84C;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:900;cursor:pointer;}
 #pwa-banner .pwa-later{padding:11px 16px;background:rgba(255,255,255,.15);color:#fff;border:1.5px solid rgba(255,255,255,.3);border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;}
+/* ICE BDD login (body.bdd, toggled from _applyChannelClass()): hide what BDD doesn't use.
+   FORMULA never has body.bdd, so this block is inert there. */
+body.bdd .zikuy-btn, body.bdd .ai-insight-btn, body.bdd #day-briefing-btn, body.bdd #yedaim-btn,
+body.bdd #blank-history-btn, body.bdd #sort-btn-priority, body.bdd #km-extra-filters, body.bdd #export-all-btn, body.bdd .territory-btn,
+body.bdd .km-more-item[onclick^="openYedaim"], body.bdd .km-more-item[onclick^="openBlankHistory"]{display:none!important}
 </style>
 </head>
 <body>
@@ -1406,6 +1411,24 @@ function _saveToken(t){ if(t) localStorage.setItem('frToken', t); }
 
 let _sessionExpiredShown = false;
 
+// ── ICE BDD channel ──────────────────────────────────────────────────────────
+// A BDD manager login carries channel:'ICE_BDD' in frAgent (invite _ch param or
+// /auth/pbi JSON). FORMULA logins never have it, so every BDD branch below is a
+// no-op for them.
+function _isBdd(){ return _loadAuth()?.channel==='ICE_BDD'; }
+function _applyChannelClass(){ document.body.classList.toggle('bdd', _isBdd()); }
+// BDD sessions: these endpoints are served by the /api/bdd router. FORMULA: URL unchanged.
+const BDD_PATHS=['/customers','/manager-agents','/agent-exists','/save-gps','/api/today-orders','/api/team-order-stats','/api/day-closing','/api/promo-cust-ids','/api/client-promos/','/api/route-overrides','/api/route-day-move','/api/mekarer-order','/geocode'];
+function _bddUrl(url){
+  if(!_isBdd()) return url;
+  const p=String(url).startsWith(API)?String(url).slice(API.length):String(url);
+  return BDD_PATHS.some(b=>p===b||p.startsWith(b+'?')||(b.endsWith('/')&&p.startsWith(b))) ? API+'/api/bdd'+p : url;
+}
+// Per-agent localStorage keys (route order, day moves, sort pref): BDD agent codes
+// overlap FORMULA codes, so BDD gets its own namespace on a shared device.
+function _lsAg(code){ return _isBdd() ? 'bdd_'+code : code; }
+function _gpsLocalKey(){ return _isBdd() ? 'fr_gps_local_bdd' : 'fr_gps_local'; }
+
 async function apiFetch(url, opts={}, timeoutMs=12000){
   const token = _getToken();
   const headers = { ...(opts.headers || {}) };
@@ -1414,7 +1437,7 @@ async function apiFetch(url, opts={}, timeoutMs=12000){
   const tid = setTimeout(() => controller.abort(), timeoutMs);
   let r;
   try {
-    r = await fetch(url, { ...opts, headers, signal: controller.signal });
+    r = await fetch(_bddUrl(url), { ...opts, headers, signal: controller.signal });
   } finally {
     clearTimeout(tid);
   }
@@ -1441,15 +1464,25 @@ async function apiFetch(url, opts={}, timeoutMs=12000){
         });
         if(re.ok) j = await re.json();
       }
+      let viaPbi = false;
       if(!j || !j.ok){
         const pbi = await fetch(API+'/auth/pbi', { credentials: 'include' });
-        if(pbi.ok) j = await pbi.json();
+        if(pbi.ok){ j = await pbi.json(); viaPbi = true; }
       }
       if(j && j.ok && j.token){
         localStorage.setItem('frToken', j.token);
+        // R6(a): a manager moved to/from ICE BDD gets the right channel on silent
+        // re-auth. /auth/pbi sends `channel` only for BDD managers; written only
+        // when it differs, so a FORMULA frAgent (no channel) is never touched.
+        const a = viaPbi ? _loadAuth() : null;
+        if(a && (a.channel||null) !== (j.channel||null)){
+          a.channel = j.channel || null;
+          localStorage.setItem('frAgent', JSON.stringify(a));
+          _applyChannelClass();
+        }
         // Retry original request with new token
         const newHeaders = { ...headers, 'x-session': j.token };
-        const retry = await fetch(url, { ...opts, headers: newHeaders });
+        const retry = await fetch(_bddUrl(url), { ...opts, headers: newHeaders });
         if(retry.status !== 401) return retry;
       }
     } catch(_){}
@@ -1479,12 +1512,18 @@ function _withInv(url){
   return frToken ? url+'&_inv='+encodeURIComponent(frToken) : url;
 }
 async function loadCorrections(){
+  // BDD (R2): FORMULA's gps-corrections.json is not ours — only this device's own
+  // BDD 📍 fixes; the server cascade already carries the saved BDD corrections.
+  if(_isBdd()){
+    try{ gpsCorrections=JSON.parse(localStorage.getItem(_gpsLocalKey())||'{}'); }catch(_){ gpsCorrections={}; }
+    return;
+  }
   try{
     const r=await fetch(_withInv('./gps-corrections.json?_='+Date.now()));
     if(r.ok){
       gpsCorrections=await r.json();
       // merge local corrections on top
-      const localCorr=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
+      const localCorr=JSON.parse(localStorage.getItem(_gpsLocalKey())||'{}');
       Object.assign(gpsCorrections, localCorr);
     }
   }catch(_){}
@@ -1563,6 +1602,8 @@ const CITIES = [
 ].sort();
 const MGR_COLORS = {VLAD:'#8B3A4A',ALEXEY:'#2E6BAA',NATALYA:'#5E3A8A',SVETA:'#924A30',ANATOL:'#9E6428','SADRAN+':'#2A6E72'};
 const DEMO_MANAGERS = ['VLAD','ALEXEY','NATALYA','SVETA','ANATOL','SADRAN+'];
+const BDD_GROUPS = ['TIMUR','ALMOG','MATVEY','SIMHA','YOSI'];
+function _mgrList(){ return _isBdd() ? BDD_GROUPS : DEMO_MANAGERS; }
 const DEMO_AGENTS = {}; // agent data is loaded via API only (security)
 
 const st = {
@@ -1582,6 +1623,7 @@ const st = {
   mapHidden: false,
   todayOrdersFormula: new Set(),
   todayOrdersIce: new Set(),
+  todayOrdersBdd: new Set(),
 };
 
 try{ st.mapHidden = localStorage.getItem('fr_map_hidden')!=='0'; }catch(_){ st.mapHidden=true; } // default: hidden
@@ -1773,6 +1815,9 @@ function interleaveIceByProximity(clients){
 // day): their tablet-order GPS is less reliable, so AI Google must still get
 // first crack at them, same as before that fix.
 function _isTrustedGps(c){
+  // R2: BDD coordinates come from the server cascade only — FORMULA's AI_GPS/
+  // TABLET_GPS overlays (all three callers) must never replace them.
+  if(c.hevra==='ICE_BDD') return true;
   if(c.gpsSource==='correction') return true;
   if(c.iceOnly) return false;
   return c.gpsSource==='tablet-order'||c.gpsSource==='tablet-order-live';
@@ -1976,7 +2021,7 @@ async function initLogin(){
         // the /auth/pbi manager flow exactly, so the same downstream branch (picker,
         // last-route-agent restore) applies regardless of which door they came in.
         localStorage.setItem('frAgent', JSON.stringify(_im
-          ? {isManager:true, code:'mgr', name:_an||'מנהל'}
+          ? {isManager:true, code:'mgr', name:_an||'מנהל', channel:_up.get('_ch')||null}
           : {isManager:false, code:_ac, name:_an||''}));
         localStorage.setItem('frToken', _inv);
         _fromInvite = true;
@@ -1993,11 +2038,12 @@ async function initLogin(){
   // session check below runs before any PBI/auth logic and just trusts whatever
   // identity is already in localStorage. Bug found live 2026-08-19.
   if (new URLSearchParams(window.location.search).get('k')) {
-    try { localStorage.removeItem('frAgent'); localStorage.removeItem('frRouteAgent'); } catch(_){}
+    try { localStorage.removeItem('frAgent'); localStorage.removeItem('frRouteAgent'); localStorage.removeItem('bdd_frRouteAgent'); } catch(_){}
     window.history.replaceState({}, '', window.location.pathname);
   }
 
   await loadStaticData();
+  _applyChannelClass();
   await loadCorrections();
   await loadAiGps();
   await loadTabletGps();
@@ -2033,7 +2079,7 @@ async function initLogin(){
       st.agent={code:saved.code,name:saved.name};
       // Manager F5 restore: use the last selected route agent, not the manager code
       if(saved.isManager){
-        try{const ra=JSON.parse(localStorage.getItem('frRouteAgent')||'null');if(ra?.code)st.agent=ra;}catch(_){}
+        try{const ra=JSON.parse(localStorage.getItem(_lsAg('frRouteAgent'))||'null');if(ra?.code)st.agent=ra;}catch(_){}
       }
       document.getElementById('logout-btn').style.display='';
       // F5 state restore: if last day+city are saved, skip city screen and go straight to route.
@@ -2072,7 +2118,9 @@ async function initLogin(){
       if(j.ok && j.token){
         _saveToken(j.token);
         const _mgrName = j.managerName || 'מנהל';
-        localStorage.setItem('frAgent', JSON.stringify({code:'mgr',name:_mgrName,isManager:true}));
+        localStorage.setItem('frAgent', JSON.stringify({code:'mgr',name:_mgrName,isManager:true,channel:j.channel||null}));
+        _applyChannelClass();
+        if(_isBdd()) await loadCorrections(); // FORMULA corrections were loaded above before the channel was known
         _logAccess('login',null,_mgrName,true);
         _setupManagerPicker();
         st.step='manager';
@@ -2243,7 +2291,7 @@ function renderLogin(){
       <div style="flex:1;display:flex;flex-direction:column;overflow-y:auto;">
         <div class="mgr-wrap">
           <div class="mgr-label">בחר מנהל</div>
-          <div class="mgr-grid">${DEMO_MANAGERS.map(m=>{
+          <div class="mgr-grid">${_mgrList().map(m=>{
             const initials=m.replace(/[^A-Za-zא-ת]/g,'').slice(0,2).toUpperCase()||m.slice(0,2).toUpperCase();
             return `<div class="mgr-tile" onclick="selectManager('${m}')" role="button" aria-label="${m}">
               <div class="mgr-tile-ring-wrap">
@@ -2289,7 +2337,7 @@ function renderLogin(){
           <div style="display:flex;align-items:center;gap:10px;padding:0 2px 10px;">
             <button onclick="goBack('s-city')" style="background:#e8f4ff;border:1.5px solid #50A0D0;color:#1A3F7C;font-size:13px;font-weight:800;cursor:pointer;padding:7px 14px;border-radius:20px;display:flex;align-items:center;gap:4px;min-height:36px;">← חזור</button>
             <span style="font-size:11px;font-weight:700;color:#50A0D0;letter-spacing:1.2px;text-transform:uppercase;flex:1;">בחר סוכן</span>
-            <button onclick="window.open('territory.html','_blank')" style="background:linear-gradient(135deg,#1A3F7C,#2E6FAD);border:none;color:#fff;font-size:12px;font-weight:800;cursor:pointer;padding:7px 14px;border-radius:20px;display:flex;align-items:center;gap:5px;min-height:36px;white-space:nowrap;flex-shrink:0;">🗺 כל הסוכנים</button>
+            <button class="territory-btn" onclick="window.open('territory.html','_blank')" style="background:linear-gradient(135deg,#1A3F7C,#2E6FAD);border:none;color:#fff;font-size:12px;font-weight:800;cursor:pointer;padding:7px 14px;border-radius:20px;display:flex;align-items:center;gap:5px;min-height:36px;white-space:nowrap;flex-shrink:0;">🗺 כל הסוכנים</button>
           </div>
           <div id="agent-list-team-banner" class="fpb fpb-static" style="display:none"></div>
           <div class="agent-list">${agents.map(a=>{
@@ -2314,7 +2362,7 @@ async function selectManager(mgr){
   const body=document.getElementById('login-body');
   body.innerHTML='<div class="spinner"><div class="spin"></div><span>טוען...</span></div>';
   renderLogin();
-  if(STATIC_DATA?.agentsByManager?.[mgr]){
+  if(!_isBdd() && STATIC_DATA?.agentsByManager?.[mgr]){
     st._agents=STATIC_DATA.agentsByManager[mgr];
   }else{
     try{
@@ -2332,7 +2380,7 @@ async function selectManager(mgr){
 function selectAgent(code,name){
   _tick();
   st.agent={code,name};
-  localStorage.setItem('frRouteAgent', JSON.stringify({code,name}));
+  localStorage.setItem(_lsAg('frRouteAgent'), JSON.stringify({code,name})); // BDD: 'bdd_frRouteAgent', FORMULA key unchanged
   // Manager/multi-line users only (regular agents never reach this function) —
   // the start point is "where the manager is", not something tied to whichever
   // agent's route they're looking at. Once it's set this session, switching
@@ -2454,6 +2502,7 @@ let _initRouteId = 0;
 // Top 3-5 clients by last-3-closed-months sales within the selected day, marked
 // with a 👑 crown badge — signals to the agent where deeper AI analysis pays off most.
 function fetchDayTopSales(myId){
+  if(_isBdd()) return; // R3: FORMULA DAX endpoint — would spend FORMULA quota and crown a FORMULA agent's clients
   const agentCode=st.agent?.code, day=st.day;
   apiFetch(`${API}/api/day-top-sales?agent=${encodeURIComponent(agentCode)}&day=${day}`)
     .then(r=>r.ok?r.json():null)
@@ -2551,7 +2600,7 @@ async function _updateFormulaBanner(){
   const agentCode = st.agent?.code;
   if(!agentCode) return;
   try{
-    const r = await apiFetch(`${API}/api/day-closing?agentCode=${encodeURIComponent(agentCode)}&type=formula`);
+    const r = await apiFetch(`${API}/api/day-closing?agentCode=${encodeURIComponent(agentCode)}&type=${_isBdd()?'bdd':'formula'}`);
     const d = await r.json();
     if(d?.ok){ _fpbSum = d.sum || 0; _fpbNumer = d.custCount || 0; }
   }catch(e){ /* keep last known numbers on a hiccup — not worth blanking the banner */ }
@@ -2643,7 +2692,7 @@ let _teamStatsDay=null;
 function _todayIsraelDate(){ return new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Jerusalem'}); }
 function _clearTeamStatsTiles(){
   if(st.step==='manager'){
-    DEMO_MANAGERS.forEach(m=>{
+    _mgrList().forEach(m=>{
       const el=document.getElementById('mc-stats-'+m);
       if(el) el.innerHTML='';
       const ring=document.getElementById('mc-ring-'+m);
@@ -2669,7 +2718,7 @@ async function _refreshTeamStats(){
   if(!d?.ok) return;
   _teamStatsDay=nowDay;
   if(st.step==='manager'){
-    DEMO_MANAGERS.forEach(m=>{
+    _mgrList().forEach(m=>{
       const el=document.getElementById('mc-stats-'+m);
       if(!el) return;
       const ring=document.getElementById('mc-ring-'+m);
@@ -2725,10 +2774,11 @@ function startTodayOrdersPolling(myId){
       if(!d?.ok||myId!==_initRouteId) return;
       st.todayOrdersFormula=new Set((d.formula||[]).map(String));
       st.todayOrdersIce=new Set((d.iceMish||[]).map(String));
+      st.todayOrdersBdd=new Set((d.bdd||[]).map(String));
       const shown=new Set(displayClients().map(c=>String(c.custId)));
       let hasNew=false;
       const markSeen=(ids,tag)=>{ for(const id of ids){ if(!shown.has(id))continue; const key=tag+id; if(!_todayOrdersSeen.has(key)){ _todayOrdersSeen.add(key); if(!firstPoll) hasNew=true; } } };
-      markSeen(st.todayOrdersFormula,'F_'); markSeen(st.todayOrdersIce,'I_');
+      markSeen(st.todayOrdersFormula,'F_'); markSeen(st.todayOrdersIce,'I_'); markSeen(st.todayOrdersBdd,'B_');
       firstPoll=false;
       renderClientList();
       _updateFormulaBanner();
@@ -2751,6 +2801,7 @@ function startTodayOrdersPolling(myId){
 // fetch when zikuy is actually opened for them, same as before this existed.
 const _zikuyPrewarmDone=new Set();
 async function prewarmZikuyOffline(){
+  if(_isBdd()) return; // זיכוי is hidden in BDD; /api/client-returns is FORMULA's
   const agentCode=st.agent?.code, day=st.day;
   if(!agentCode) return;
   const key=`${agentCode}_${day}`;
@@ -2790,12 +2841,14 @@ async function initRoute(){
   // city-center coords for every agent using "הגרסה שלי" (bug found 2026-09-03);
   // the button's active class below used to read st.aiGpsMode instead of
   // st.sortMode for the same reason and stayed lit even in priority mode.
-  const _savedSortMode=loadSortModePref(st.agent.code);
+  _applyChannelClass(); // body.bdd must match whoever is logged in now (hide list)
+  // BDD: always AI order ("הגרסה שלי" is hidden there) — saved pref ignored.
+  const _savedSortMode=_isBdd()?null:loadSortModePref(st.agent.code);
   st.sortMode=(_savedSortMode==='priority' && !st.tabletGpsMode)?'priority':'ai'; st.selectedCities=[]; st.selectedId=null;
   document.getElementById('sort-btn-priority').className='sort-btn'+(st.sortMode==='priority'?' active-priority':'');
   document.getElementById('sort-btn-ai-google').className='sort-btn'+(st.sortMode==='ai'?' active-ai-google':'');
   st.excluded=new Set();
-  document.getElementById('route-title').textContent='DILER FORMULA';
+  document.getElementById('route-title').textContent=_isBdd()?'ICE BDD':'DILER FORMULA';
   document.getElementById('route-sub').textContent=_routeSubBase();
   document.getElementById('export-btn').classList.remove('visible');
   document.getElementById('export-all-btn').classList.remove('visible');
@@ -2812,6 +2865,14 @@ async function initRoute(){
     if(!r.ok)throw new Error();
     st.clients=await r.json();
   }catch(e){
+    // R1: BDD has no static/demo data of its own (STATIC_DATA is FORMULA's, and
+    // agent codes overlap) — BDD answers 503 for a few minutes after a restart.
+    if(_isBdd()){
+      if(myId!==_initRouteId) return;
+      st.clients=[]; st.aiClients=[];
+      renderClientList('<div style="padding:40px 20px;text-align:center;color:var(--mid)"><div style="font-size:36px;margin-bottom:12px">⏳</div><div style="font-size:15px;font-weight:800;color:var(--text)">טוען נתונים, נסה שוב בעוד דקה</div></div>');
+      return;
+    }
     // API down — fallback to static (PBI cache) or demo
     const staticKey=`${st.agent.code}_${st.day}`;
     if(STATIC_DATA?.routes?.[staticKey]?.length){
@@ -2830,7 +2891,7 @@ async function initRoute(){
   renderFrSadranBtn();
   renderFrDormantBtn();
   // Enrich GPS from STATIC_DATA by custId — PBI GPS is more reliable than server geocoding
-  if(STATIC_DATA?.routes && st.clients?.length){
+  if(!_isBdd() && STATIC_DATA?.routes && st.clients?.length){ // R2: FORMULA static GPS never enriches BDD
     const gpsMap={};
     Object.values(STATIC_DATA.routes).forEach(day=>(day||[]).forEach(c=>{
       if(c.custId&&c.lat&&c.lng) gpsMap[c.custId]={lat:c.lat,lng:c.lng};
@@ -2864,7 +2925,7 @@ async function initRoute(){
   Object.entries(dayOv).filter(([,d])=>d===st.day).forEach(([id])=>{
     if(st.clients.find(c=>String(c.custId)===String(id)))return;
     let client=null;
-    for(let d=1;d<=5;d++){
+    for(let d=1;d<=5&&!_isBdd();d++){ // BDD: never look up a moved client in FORMULA's static routes
       if(d===st.day)continue;
       client=(STATIC_DATA?.routes?.[`${st.agent.code}_${d}`]||[]).find(c=>String(c.custId)===String(id));
       if(client)break;
@@ -2873,8 +2934,9 @@ async function initRoute(){
     if(client) st.clients.push({...client,dayNum:st.day,dayLabel:DAY_LABELS[st.day]});
   });
 
-  // Apply GPS corrections (localStorage + gps-corrections.json) to client objects
-  st.clients=st.clients.map(c=>{
+  // Apply GPS corrections (localStorage + gps-corrections.json) to client objects.
+  // BDD (R2): skipped — the server cascade already applies BDD's own 📍 fixes.
+  if(!_isBdd()) st.clients=st.clients.map(c=>{
     const corr=gpsCorrections[String(c.custId)];
     return corr?{...c,pbiLat:c.lat,pbiLng:c.lng,lat:corr.lat,lng:corr.lng,gpsSource:'correction'}:c;
   });
@@ -3179,9 +3241,9 @@ function resetRoute(){
   pushRouteOrder(st.day,[]);
   const ov=getDayOverrides(st.agent.code);
   Object.entries(ov).forEach(([custId,day])=>pushDayMove(custId,day,null));
-  try{ localStorage.removeItem(`fr_${st.agent.code}_${st.day}`); }catch{}
-  try{ localStorage.removeItem(`fr_dayov_${st.agent.code}`); }catch{}
-  try{ localStorage.removeItem(`fr_dayov_clients_${st.agent.code}`); }catch{}
+  try{ localStorage.removeItem(`fr_${_lsAg(st.agent.code)}_${st.day}`); }catch{}
+  try{ localStorage.removeItem(`fr_dayov_${_lsAg(st.agent.code)}`); }catch{}
+  try{ localStorage.removeItem(`fr_dayov_clients_${_lsAg(st.agent.code)}`); }catch{}
   initRoute();
 }
 
@@ -3498,7 +3560,7 @@ function renderClientList(html){
     const noGps=!c.lat||!c.lng;
     const isSel=st.selectedId===c.custId;
     const isAiDiff=st.sortMode==='priority'&&st.aiClients[i]&&st.aiClients[i].custId!==c.custId;
-    const hasOrderToday=(c.iceOnly?st.todayOrdersIce:st.todayOrdersFormula).has(String(c.custId));
+    const hasOrderToday=(c.hevra==='ICE_BDD'?st.todayOrdersBdd:c.iceOnly?st.todayOrdersIce:st.todayOrdersFormula).has(String(c.custId));
     const cls=['client-card',
       noGps?'no-gps':'',isSel?'selected':'',isAiDiff?'ai-diff':'',
       c.iceOnly?'ice-only':'',
@@ -3562,7 +3624,11 @@ function renderClientList(html){
         </div>
       </div>`).join('');
   }
-  el.innerHTML+=`<div class="day-closing-bar">
+  el.innerHTML+=_isBdd()
+    ? `<div class="day-closing-bar">
+    <button type="button" class="day-closing-btn formula" onclick="openDayClosing('bdd')">🌙 סגירת יום ICE BDD</button>
+  </div>`
+    : `<div class="day-closing-bar">
     <button type="button" class="day-closing-btn ice" onclick="openDayClosing('ice')">❄️ סגירת יום ICE</button>
     <button type="button" class="day-closing-btn formula" onclick="openDayClosing('formula')">🌙 סגירת יום פורמולה</button>
   </div>`;
@@ -3605,6 +3671,7 @@ function openMekarerOrder(e,custId,custName,city){
     agentCode:agent.code||'',agentName:agent.name||'',
     manager:st.manager||'',
   });
+  if(_isBdd()) p.set('ch','ICE_BDD'); // R5: page posts to the BDD endpoint, ICE-only sales
   window.open('mekarer-order.html?'+p.toString(),'_blank');
 }
 function openZikuyOrder(e,custId,custName,city){
@@ -3842,7 +3909,7 @@ function renderMap(){
     const tabletBtn=TABLET_GPS[String(c.custId)]
       ? `<button data-id="${c.custId}" data-name="${safeName}" onclick="reviewTabletGps(this.dataset.id,this.dataset.name)" style="margin-top:6px;margin-inline-start:4px;background:#00B894;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">📱 בדוק מיקום טאבלט</button>`
       : '';
-    const googleGpsData=AI_GPS[String(c.custId)];
+    const googleGpsData=c.hevra==='ICE_BDD'?null:AI_GPS[String(c.custId)]; // R2: FORMULA's google-gps.json isn't offered for BDD clients
     const googleBtn=googleGpsData&&googleGpsData.aiLat&&googleGpsData.aiLng
       ? `<button data-id="${c.custId}" data-name="${safeName}" onclick="reviewGoogleGps(this.dataset.id,this.dataset.name)" style="margin-top:6px;margin-inline-start:4px;background:#7B1FA2;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer">🤖 בדוק מיקום גוגל</button>`
       : '';
@@ -4112,7 +4179,7 @@ function saveCurrentRoute(){
 
 // ── LOCALSTORAGE ───────────────────────────────────────────────────────────
 function saveRoute(code,day,clients){
-  try{localStorage.setItem(`fr_${code}_${day}`,JSON.stringify(clients.map(c=>({custId:c.custId,lat:c.lat,lng:c.lng}))));}catch{}
+  try{localStorage.setItem(`fr_${_lsAg(code)}_${day}`,JSON.stringify(clients.map(c=>({custId:c.custId,lat:c.lat,lng:c.lng}))));}catch{}
   // Every real mutation goes through this single function (7 call sites) — baking
   // the server push in here once, instead of at each call site, is what keeps
   // the audit trail complete without having to remember to add it every time a
@@ -4122,17 +4189,17 @@ function saveRoute(code,day,clients){
   pushRouteOrder(day,clients.map(c=>c.custId));
 }
 function loadSavedRoute(code,day){
-  try{const s=localStorage.getItem(`fr_${code}_${day}`);return s?JSON.parse(s):null;}catch{return null;}
+  try{const s=localStorage.getItem(`fr_${_lsAg(code)}_${day}`);return s?JSON.parse(s):null;}catch{return null;}
 }
 // Which sort mode (AI vs "הגרסה שלי") this agent last picked — per agent, so a
 // manager flipping between agents' lines sees each agent's own last choice, not
 // whatever the previous agent had. Same fr_${code}_... key pattern as the route/
 // day-move readers above. 2026-09-02.
 function loadSortModePref(code){
-  try{return localStorage.getItem(`fr_${code}_sortMode`);}catch{return null;}
+  try{return localStorage.getItem(`fr_${_lsAg(code)}_sortMode`);}catch{return null;}
 }
 function saveSortModePref(code,mode){
-  try{localStorage.setItem(`fr_${code}_sortMode`,mode);}catch{}
+  try{localStorage.setItem(`fr_${_lsAg(code)}_sortMode`,mode);}catch{}
 }
 // Encouraging nudge the first time an agent switches to "הגרסה שלי" per day —
 // same cooldown-by-timestamp pattern as the PWA install banner (_pwaShouldAsk()
@@ -4226,6 +4293,7 @@ function pushRouteOrder(day,order){
   // No agentCode fallback here on purpose (unlike pushDayMove) — a manager's
   // within-day reorder while viewing someone's line is their own working
   // view, not meant to overwrite the agent's real route. Live decision 2026-08-27.
+  if(_isBdd()) return; // FORMULA-only endpoint (BDD router has no route-order); BDD sessions have no agentCode anyway
   apiFetch(`${API}/api/route-order`,{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({day,order})}).catch(()=>{});
 }
@@ -4259,7 +4327,7 @@ async function syncRouteOverridesFromServer(){
   const hasServerData=Object.keys(d.order||{}).length||Object.keys(d.dayMoves||{}).length;
   if(hasServerData){
     Object.entries(d.order||{}).forEach(([day,ids])=>{
-      try{localStorage.setItem(`fr_${st.agent.code}_${day}`,JSON.stringify(ids.map(custId=>({custId}))));}catch(e){}
+      try{localStorage.setItem(`fr_${_lsAg(st.agent.code)}_${day}`,JSON.stringify(ids.map(custId=>({custId}))));}catch(e){}
     });
     setDayOverrides(st.agent.code,Object.fromEntries(Object.entries(d.dayMoves||{}).map(([id,v])=>[id,v.day])));
     setDayOverrideClients(st.agent.code,Object.fromEntries(Object.entries(d.dayMoves||{}).map(([id,v])=>[id,v.client])));
@@ -4276,16 +4344,16 @@ async function syncRouteOverridesFromServer(){
 
 // ── DAY OVERRIDES ──────────────────────────────────────────────────────────
 function getDayOverrides(code){
-  try{return JSON.parse(localStorage.getItem(`fr_dayov_${code}`)||'{}');}catch{return{};}
+  try{return JSON.parse(localStorage.getItem(`fr_dayov_${_lsAg(code)}`)||'{}');}catch{return{};}
 }
 function setDayOverrides(code,ov){
-  try{localStorage.setItem(`fr_dayov_${code}`,JSON.stringify(ov));}catch{}
+  try{localStorage.setItem(`fr_dayov_${_lsAg(code)}`,JSON.stringify(ov));}catch{}
 }
 function getDayOverrideClients(code){
-  try{return JSON.parse(localStorage.getItem(`fr_dayov_clients_${code}`)||'{}');}catch{return{};}
+  try{return JSON.parse(localStorage.getItem(`fr_dayov_clients_${_lsAg(code)}`)||'{}');}catch{return{};}
 }
 function setDayOverrideClients(code,data){
-  try{localStorage.setItem(`fr_dayov_clients_${code}`,JSON.stringify(data));}catch{}
+  try{localStorage.setItem(`fr_dayov_clients_${_lsAg(code)}`,JSON.stringify(data));}catch{}
 }
 function openDayPopup(event,custId){
   event.stopPropagation();
@@ -5238,7 +5306,7 @@ async function exportAllDaysXLSX(){
   finally{btn.innerHTML=orig;btn.disabled=false;}
 }
 function updateGpsHistBtn(){
-  const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
+  const local=JSON.parse(localStorage.getItem(_gpsLocalKey())||'{}');
   const btn=document.getElementById('gps-hist-btn');
   if(!btn)return;
   const agentIds=new Set((st.clients||[]).map(c=>String(c.custId)));
@@ -5263,11 +5331,11 @@ function closeGpsHistOutside(e){
   if(!dd.contains(e.target)&&e.target!==btn&&!btn.contains(e.target))dd.classList.remove('open');
 }
 function renderGpsHistory(){
-  const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
+  const local=JSON.parse(localStorage.getItem(_gpsLocalKey())||'{}');
   const dd=document.getElementById('gps-hist-dd');
   const agentIds=new Set((st.clients||[]).map(c=>String(c.custId)));
   const entries=agentIds.size?Object.entries(local).filter(([id])=>agentIds.has(id)):Object.entries(local);
-  const syncBtn=`<div style="padding:4px 10px;border-bottom:1px solid #eee;display:flex;justify-content:flex-end">
+  const syncBtn=_isBdd()?'':`<div style="padding:4px 10px;border-bottom:1px solid #eee;display:flex;justify-content:flex-end">
     <button onclick="downloadGpsPendingXlsx()" style="padding:4px 8px;background:#1D6F42;color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600" title="הורד Excel של כל הממתינים לסנכרון">📥 XLS</button>
   </div>`;
   if(!entries.length){dd.innerHTML=syncBtn+`<div class="gps-hist-empty">אין תיקוני מיקום</div>`;return;}
@@ -5324,17 +5392,18 @@ async function confirmGpsSyncClean(custIds){
   try{
     const r=await apiFetch(`${API}/api/gps-sync-clean`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({custIds})});
     const d=await r.json();
-    const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
+    const local=JSON.parse(localStorage.getItem(_gpsLocalKey())||'{}');
     custIds.forEach(id=>{delete local[id]; delete gpsCorrections[id];});
-    localStorage.setItem('fr_gps_local',JSON.stringify(local));
+    localStorage.setItem(_gpsLocalKey(),JSON.stringify(local));
     showToast(`🗑 ${d.removed} исправлений удалено`);
     renderGpsHistory(); updateGpsHistBtn(); renderMap(); renderClientList();
   }catch(e){el.textContent='❌ שגיאה: '+e.message;}
 }
 
 async function autoSyncGpsClean(){
+  if(_isBdd()) return; // gps-sync-check/-clean work on FORMULA's gps-corrections.json
   try{
-    const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
+    const local=JSON.parse(localStorage.getItem(_gpsLocalKey())||'{}');
     if(!Object.keys(local).length) return; // nothing to clean
     const r=await apiFetch(`${API}/api/gps-sync-check`);
     if(!r.ok) return;
@@ -5344,15 +5413,15 @@ async function autoSyncGpsClean(){
     const custIds=d.synced.map(s=>String(s.custId));
     await apiFetch(`${API}/api/gps-sync-clean`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({custIds})});
     custIds.forEach(id=>{delete local[id]; delete gpsCorrections[id];});
-    localStorage.setItem('fr_gps_local',JSON.stringify(local));
+    localStorage.setItem(_gpsLocalKey(),JSON.stringify(local));
     renderGpsHistory(); updateGpsHistBtn();
   }catch(_){}
 }
 function deleteGpsCorrection(custId){
-  const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
+  const local=JSON.parse(localStorage.getItem(_gpsLocalKey())||'{}');
   delete local[String(custId)];
   delete gpsCorrections[String(custId)];
-  localStorage.setItem('fr_gps_local',JSON.stringify(local));
+  localStorage.setItem(_gpsLocalKey(),JSON.stringify(local));
   st.clients=st.clients.map(x=>{
     if(String(x.custId)!==String(custId)||x.gpsSource!=='correction') return x;
     const {pbiLat,pbiLng,gpsSource,...rest}=x;
@@ -5383,9 +5452,9 @@ function saveGpsCorrection(custId, custName, lat, lng){
   const cl=st.clients.find(x=>String(x.custId)===String(custId))||{};
   const entry={lat:la,lng:lo,correctedAt:new Date().toISOString(),name:custName,city:cl.city||'',address:cl.address||''};
   gpsCorrections[String(custId)]=entry;
-  const local=JSON.parse(localStorage.getItem('fr_gps_local')||'{}');
+  const local=JSON.parse(localStorage.getItem(_gpsLocalKey())||'{}');
   local[String(custId)]=entry;
-  localStorage.setItem('fr_gps_local',JSON.stringify(local));
+  localStorage.setItem(_gpsLocalKey(),JSON.stringify(local));
   updateGpsHistBtn();
   apiFetch(`${API}/save-gps`,{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({custId,lat:la,lng:lo,name:custName,city:cl.city||'',address:cl.address||''})
