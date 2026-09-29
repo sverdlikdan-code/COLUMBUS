@@ -66,6 +66,10 @@ async function bddDocLinesToday(dbName, dateStr) {
     LEFT JOIN CUSTOMERS CD ON CD.CUST = D2.CUST
     WHERE I.FINAL = N'Y' AND I.TYPE <> N'R' AND T.OTYPE = N'C'
       AND COALESCE(NULLIF(D2.CURDATE, 0), I.IVDATE) = @today
+      -- Prefilter: an invoice is never dated before its delivery note, so IVDATE >= the
+      -- business day; 30 days (43200 Priority minutes) of slack keeps it safe while letting
+      -- SQL Server seek on IVDATE instead of scanning every invoice line (COALESCE isn't sargable).
+      AND I.IVDATE >= @today - 43200
     GROUP BY I.IVNUM, COALESCE(NULLIF(CD.CUSTNAME, ''), C.CUSTNAME), A.AGENTCODE, A.AGENTNAME, F.FAMILYDES
   `);
   const docs = await pool.request().input('today', sql.BigInt, today).query(`
