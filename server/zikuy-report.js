@@ -24,7 +24,8 @@ const arg = k => (process.argv.find(a => a.startsWith(`--${k}=`)) || '').split('
 const DATA = process.env.LIVE_DATA_DIR || path.join(__dirname, 'data');
 const DOCS = path.join(__dirname, '..', 'docs');
 const BASELINE_S = 600, LONG_S = 1800, ADMIN_BONUS = 0.10;
-const ICE_FAM = 'ICE מוצרים משפחתיים'; // мишпахти без семьи в каталоге (SKU 502xxx/503xxx)
+const AGENT_COST = [20000, 22000], AGENT_HOURS = 180, TARGET_AGENTS = 22, ACTIVE_MIN = 10; // ₪/мес за ставку; прогноз (пользователь 2026-09-30)
+const ICE_FAM ='ICE מוצרים משפחתיים'; // мишпахти без семьи в каталоге (SKU 502xxx/503xxx)
 
 const NAVY = '#1C3D6B', GOLD = '#C9A227', INK = '#1F2937', MUTED = '#6B7280', LINE = '#E5E7EB', PAPER = '#F4F6FA', RED = '#B91C1C', GREEN = '#15803D';
 const MONTHS_RU = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
@@ -358,6 +359,13 @@ function buildHtml(month, cur, prev, tm, names, ret) {
     ${kpi('Зикуев со временем', short.length)}
     ${kpi('Агентов', Object.keys(agent).length)}
   </tr></table></td></tr>`;
+  // Деньги (пользователь 2026-09-30): все часы по ставке агента — офисная часть это те же звонки агентам.
+  // Прогноз на TARGET_AGENTS — среднее по активным (≥ ACTIVE_MIN бланков), новички занижали бы.
+  const shek = h => `${n0(h * AGENT_COST[0] / AGENT_HOURS)}–${n0(h * AGENT_COST[1] / AGENT_HOURS)} ₪`;
+  const active = Object.values(agent).filter(a => a.blanks >= ACTIVE_MIN);
+  const projH = active.length ? TARGET_AGENTS * avg(active.map(a => a.blanks)) * savedH / t.blanks : 0;
+  html += P(`<b>В деньгах:</b> ${savedH.toFixed(1)} ч ≈ <b>${shek(savedH)}</b> за месяц (агент обходится в ${n0(AGENT_COST[0])}–${n0(AGENT_COST[1])} ₪ за ${AGENT_HOURS} ч ставки).`
+    + (active.length ? `<br><b>Прогноз на ${TARGET_AGENTS} агента:</b> ≈ ${projH.toFixed(0)} ч ≈ <b>${shek(projH)}</b> в месяц — если каждый работает как средний активный агент (${active.length} агентов от ${ACTIVE_MIN} бланков, в среднем ${avg(active.map(a => a.blanks)).toFixed(0)} бланков в месяц).` : ''));
   html += table(['Агент', 'Бланков', 'Артикулов ⌀', 'Штук', 'Медиана', 'Сэкономлено'],
     Object.entries(agent).sort((a, b) => b[1].blanks - a[1].blanks).map(([code, a]) => [esc(a.name || names[code] || code), a.blanks, avg(a.skus).toFixed(1), n0(a.qty), byWho[code] ? mmss(med(byWho[code])) : '—', (savedS(a.blanks, byWho[code]) / 3600).toFixed(1) + ' ч']), [1, 2, 3, 4, 5]);
   const buckets = [[1, 1], [2, 3], [4, 6], [7, 10], [11, 999]].map(([a, b]) => { const s = short.filter(p => p.items >= a && p.items <= b).map(p => p.s); return s.length ? [b === 999 ? `${a}+` : a === b ? `${a}` : `${a}–${b}`, s.length, mmss(med(s))] : null; }).filter(Boolean);
