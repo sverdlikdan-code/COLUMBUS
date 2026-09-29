@@ -266,16 +266,25 @@ function createBdd(deps) {
     res.json({ ok: true, total });
   }));
 
-  router.post('/api/mekarer-order', h(async (req, res) => {
+  // Only the fields docs/mekarer-order.html collectRef() sends, as plain primitives —
+  // nothing object-shaped (e.g. {formula:...}) can reach ExcelJS or the email.
+  const str = (x, n = 100) => String(x || '').slice(0, n);
+  const cleanMekarer = m => ({
+    action: str(m?.action), newModel: str(m?.newModel), newModelName: str(m?.newModelName),
+    returnModel: str(m?.returnModel), returnModelName: str(m?.returnModelName),
+    salot: Number(m?.salot) || 0, agala: !!m?.agala, supplyDate: str(m?.supplyDate),
+    fault: str(m?.fault, 500), // free-text textarea — longer cap than the other fields
+  });
+
+  router.post('/api/mekarer-order', deps.dataRateLimit, h(async (req, res) => {
     const body = req.body || {};
     const client = cache?.clientById.get(String(body.custId || ''));
     if (!client || !bddCanWrite(req.session, client.agentCode, cache)) return res.status(403).json({ error: 'forbidden' });
     const order = {
-      channel: 'ICE BDD', custId: client.custId, custName: String(body.custName || client.custName).substring(0, 100),
-      city: String(body.city || client.city).substring(0, 60), agentName: client.agentName, manager: client.manager,
+      channel: 'ICE BDD', custId: client.custId, custName: client.custName, city: client.city, agentName: client.agentName, manager: client.manager,
       contactName: String(body.contactName || '').substring(0, 80), phone: String(body.phone || '').substring(0, 20),
       location: String(body.location || '').substring(0, 200),
-      mekarerim: Array.isArray(body.mekarerim) ? body.mekarerim.slice(0, 50) : [],
+      mekarerim: Array.isArray(body.mekarerim) ? body.mekarerim.slice(0, 50).map(cleanMekarer) : [],
     };
     const id = Date.now();
     await withBddLock(() => {
@@ -433,14 +442,14 @@ function createBdd(deps) {
 <div style="border:1px solid #ddd;border-top:none;border-radius:0 0 8px 8px;padding:20px">
 <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
 <tr><td style="color:#666;padding:4px 0;width:120px">ערוץ</td><td style="font-weight:bold">ICE BDD</td></tr>
-<tr><td style="color:#666;padding:4px 0">לקוח</td><td style="font-weight:bold">${order.custName}</td></tr>
-<tr><td style="color:#666;padding:4px 0">מספר לקוח</td><td>${order.custId || ''}</td></tr>
-<tr><td style="color:#666;padding:4px 0">עיר</td><td>${order.city}</td></tr>
-<tr><td style="color:#666;padding:4px 0">סוכן</td><td>${order.agentName}</td></tr>
-<tr><td style="color:#666;padding:4px 0">מנהל</td><td>${order.manager}</td></tr>
-<tr><td style="color:#666;padding:4px 0">איש קשר</td><td>${order.contactName}</td></tr>
-<tr><td style="color:#666;padding:4px 0">טלפון</td><td style="text-align:right">${order.phone}</td></tr>
-<tr><td style="color:#666;padding:4px 0">מיקום</td><td>${order.location}</td></tr>
+<tr><td style="color:#666;padding:4px 0">לקוח</td><td style="font-weight:bold">${escEmail(order.custName)}</td></tr>
+<tr><td style="color:#666;padding:4px 0">מספר לקוח</td><td>${escEmail(order.custId || '')}</td></tr>
+<tr><td style="color:#666;padding:4px 0">עיר</td><td>${escEmail(order.city)}</td></tr>
+<tr><td style="color:#666;padding:4px 0">סוכן</td><td>${escEmail(order.agentName)}</td></tr>
+<tr><td style="color:#666;padding:4px 0">מנהל</td><td>${escEmail(order.manager)}</td></tr>
+<tr><td style="color:#666;padding:4px 0">איש קשר</td><td>${escEmail(order.contactName)}</td></tr>
+<tr><td style="color:#666;padding:4px 0">טלפון</td><td style="text-align:right">${escEmail(order.phone)}</td></tr>
+<tr><td style="color:#666;padding:4px 0">מיקום</td><td>${escEmail(order.location)}</td></tr>
 </table>
 <h3 style="margin:16px 0 8px">ציוד</h3>
 <table style="width:100%;border-collapse:collapse;font-size:14px">
