@@ -38,6 +38,15 @@
 - **Первая боевая рассылка** 28.09 ~13:55 Israel всем 6 (Lena, polina.k, yosiel, Dima, Maxim, d.sverdlik), 10 карточек, риск ₪149,458, note: «החל מהיום ההתראה תישלח בכל יום (א'–ה') בשעה 9:00 בבוקר — רק בימים שיש מוצרים בסכנה.» Коммит 3394b5b6
 - 663 NEZHNIY LITA: גורם אירוז=3, название «(4)» — склад/закупка должны сказать; сейчас 0 остатка, на алярм не влияет. Если 4 — править גורם אירוז в Priority
 
+### 2026-09-29 #shipped
+- **Инцидент**: 09:00 письмо не пришло — GitHub не запустил cron '0 6' вообще (0 прогонов; health monitor */15 за 11ч прошёл 3 раза). Код ни при чём. Разослано вручную workflow_dispatch в 09:50 (11 карточек, ₪153,540, все 6 — Resend без ошибок)
+- **Расписание перенесено на VPS**: crontab `0 6,7 * * 0-4 /root/expiry-alert.sh`, guard час==09 по Asia/Jerusalem (зима/лето сами — зимнего сдвига больше нет). Отдельный shallow-клон /root/expiry-run (перед запуском reset на origin/master → свежие docs/ от planogram-build), sparse без закоммиченного server/node_modules → symlink на модули живого сервера, .env symlink. Шрифты fonts-noto-core/color-emoji поставлены на VPS. Dry-run на VPS = те же цифры, что CI
+- Из yml убран schedule (коммит 80c0750 через API в master), ручной запуск из Actions остался
+- Грабли по пути: PowerShell-пайп в ssh дал BOM + CRLF в конце wrapper (`node expiry-alert.js\r` not found) — чистить `sed`; тест wrapper в 09:xx реально шлёт — тестировать только с вырезанным guard + `--dry-run`
+- **Облиго переведён туда же**: один общий wrapper `/root/run-alert.sh <expiry-alert|obligo-alert>` (получатели по case), клон переименован в `/root/alerts-run`, лог `/root/alerts.log`, crontab: `0 6,7 * * 0-4 ... expiry-alert` + `0 6,7 * * 4 ... obligo-alert`; git-обновление клона под flock (в четверг оба в одну минуту). Dry-run обоих на VPS ок (облиго: 855 записей, 181 выше 85% — PBI-ключи на VPS те же). Schedule убран и из obligo-alert.yml (коммиты bfed08ea/5331d5ce + 2369e864 — вернул LF, первый PUT ушёл с CRLF)
+- Тестовые письма с VPS только на d.sverdlik@DilerBMD.com: תוקף ×1, облиго ×2 (второй — из-за неверного grep «отправ» при проверке первого)
+- Следующее: пользователь хочет «отдел алертов» — субагент-владелец всех алертов + deep research, как это устроено в торговле
+
 ## Ресурсы
 - Скрипт: `server/expiry-alert.js` (`--dry-run` → превью html+pdf в .scratch/)
 - Workflow: `.github/workflows/expiry-alert.yml`
