@@ -24,6 +24,7 @@ const arg = k => (process.argv.find(a => a.startsWith(`--${k}=`)) || '').split('
 const DATA = process.env.LIVE_DATA_DIR || path.join(__dirname, 'data');
 const DOCS = path.join(__dirname, '..', 'docs');
 const BASELINE_S = 600, LONG_S = 1800, ADMIN_BONUS = 0.10;
+const ICE_FAM = 'ICE מוצרים משפחתיים'; // мишпахти без семьи в каталоге (SKU 502xxx/503xxx)
 
 const NAVY = '#1C3D6B', GOLD = '#C9A227', INK = '#1F2937', MUTED = '#6B7280', LINE = '#E5E7EB', PAPER = '#F4F6FA', RED = '#B91C1C', GREEN = '#15803D';
 const MONTHS_RU = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
@@ -50,7 +51,7 @@ function loadCatalog() {
     } catch (_) { /* файла нет — просто меньше покрытие */ }
   }
   // ICE (502xxx/503xxx) нет в каталоге планограммы FORMULA — это мишпахти (пользователь 2026-09-29)
-  const famOf = sku => fam[sku] || (/^50[23]\d{3}$/.test(sku) ? 'ICE מוצרים משפחתיים' : '—');
+  const famOf = sku => fam[sku] || (/^50[23]\d{3}$/.test(sku) ? ICE_FAM : '—');
   return { famOf, shelf };
 }
 function loadAgentNames() {
@@ -327,10 +328,13 @@ function buildHtml(month, cur, prev, tm, names, ret) {
   // 5. закономерности
   // срез по сроку годности убран 2026-09-30: KARTIS PARIT[חיי מדף] — не полный срок, а минимальный остаток для продажи; заменит анализ «сколько дней получил клиент»
   // иврит внутри русской фразы переставляет слова (BiDi) — каждая семья отдельной строкой в <bdi>
-  const famLines = list => list.length ? list.map(([k, f]) => `<br>• <bdi>${esc(k)}</bdi> — ${pct(f.h, f.z + f.h)}% штук этой семьи уничтожено (из ${n0(f.z + f.h)} шт.)`).join('') : '<br>• нет';
+  // приписка — доля отражает, что агенты выбирают в заявке (пользователь 2026-09-30)
+  const famLines = (list, note) => list.length ? list.map(([k, f]) => `<br>• <bdi>${esc(k)}</bdi> — ${pct(f.h, f.z + f.h)}% штук этой семьи уничтожено (из ${n0(f.z + f.h)} шт.) — ${note}`).join('') : '<br>• нет';
   html += H('5. Закономерности');
-  html += P(`<b>Уценка не спасает</b> — больше 70% уходит в уничтожение (от 20 шт.):${famLines(fams.filter(([, f]) => f.z + f.h >= 20 && pct(f.h, f.z + f.h) >= 70))}`);
-  html += P(`<b>Уценка работает</b> — не больше 30% в уничтожение (от 100 шт.):${famLines(fams.filter(([, f]) => f.z + f.h >= 100 && pct(f.h, f.z + f.h) <= 30))}`);
+  // мороженое ICE мишпахти всегда в השמדה — закономерности нет, не показываем (пользователь 2026-09-30)
+  const patFams = fams.filter(([k]) => k !== ICE_FAM);
+  html += P(`<b>Уценка не спасает</b> — больше 70% уходит в уничтожение (от 20 шт.):${famLines(patFams.filter(([, f]) => f.z + f.h >= 20 && pct(f.h, f.z + f.h) >= 70), 'в основном шлют заявку на השמדה')}`);
+  html += P(`<b>Уценка работает</b> — не больше 30% в уничтожение (от 100 шт.):${famLines(patFams.filter(([, f]) => f.z + f.h >= 100 && pct(f.h, f.z + f.h) <= 30), 'в основном шлют заявку на уценку')}`);
 
   // 6. клиенты
   const cs = Object.values(cust).sort((a, b) => b.qty - a.qty);
