@@ -416,7 +416,7 @@ function buildRefHTML(id, num) {
   const opt = p => `<option value="${p.makat}">${p.makat} — ${p.name}</option>`;
   const group = (label, list) => list.length ? `<optgroup label="${label}">${list.map(opt).join('')}</optgroup>` : '';
   const partsOpts = parts.length
-    ? group('פעילים', parts.filter(p => p.active)) + group('לא פעילים', parts.filter(p => !p.active))
+    ? group('פעילים', parts.filter(p => p.active)) + group('ישנים',parts.filter(p => !p.active))
     : '<option value="">טוען...</option>';
   return `
 <div class="ref-title">
