@@ -11,6 +11,7 @@ const sharp = require('sharp');
 const { executeDax, getDatasetRefreshTime } = require('./powerbi');
 const { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByClient, dayClosingByAgentAll, dayClosingOrdersToday, dayClosingIceOrdersRaw, openOrderIdsToday, liveOrderGpsForNewClient, clientPromosByCustId, custIdsWithActivePromo } = require('./priority-db');
 const dayClosingDedup = require('./day-closing-dedup');
+const { createBdd } = require('./bdd-routes');
 const { Resend } = require('resend');
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -521,6 +522,9 @@ ROW("maxDate", CALCULATE(MAX(ALL_PARTS[תאריך]), ALL_PARTS[ASHMADOT] = "-מ�
     _yedaimLiveCache.clear();
     prefetchYedaimLive().catch(err => console.error('[yedaim-prefetch]', err.message));
     console.log(`[PBI] Cache loaded: ${clientMap.size} clients, ${byAgent.size} agents, ${managers.size} managers, ${managerAgents.size} manager-agents`);
+
+    // BDD 2 min after FORMULA: its DAX never competes with FORMULA's load or first requests.
+    setTimeout(() => bdd.start(), 2 * 60 * 1000);
 
     // Geocode ICE clients in background — updates pbiCache.iceByAgent objects in-place
     // so subsequent /customers requests serve pre-geocoded lat/lng without API calls
@@ -1066,7 +1070,8 @@ function _inviteRedirect(payload, res) {
   const code = encodeURIComponent(payload.code || '');
   const inv  = encodeURIComponent(sessionToken);
   res.setHeader('Set-Cookie', 'fr_ok=1; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000');
-  return res.redirect(302, `https://api.sverdlik-apps.site/formula-road?_inv=${inv}&_ac=${code}&_an=${name}&_im=${isManager ? '1' : '0'}`);
+  const ch = managerMeta?.channel ? `&_ch=${encodeURIComponent(managerMeta.channel)}` : '';
+  return res.redirect(302, `https://api.sverdlik-apps.site/formula-road?_inv=${inv}&_ac=${code}&_an=${name}&_im=${isManager ? '1' : '0'}${ch}`);
 }
 // Mahsan invite: same session-in-URL pattern as _inviteRedirect above, but for
 // planogram-editor.html (GitHub Pages, different origin than the API) — no
@@ -1142,7 +1147,7 @@ app.get('/auth/pbi', dataRateLimit, mahsanIpGuard, (req, res) => {
   const managerMeta = findManagerByPbiEmail(pbiUser);
   const token = createSession(null, true, true, pbiUser, managerMeta);
   writeLog({ ts: new Date().toISOString(), event: 'login-pbi', pbiUser, managerRole: managerMeta?.role || null, ip: getRealIp(req) });
-  return res.json({ ok: true, managerName: managerMeta ? (managerMeta.nameHe || managerMeta.name) : null, token });
+  return res.json({ ok: true, managerName: managerMeta ? (managerMeta.nameHe || managerMeta.name) : null, token, ...(managerMeta?.channel ? { channel: managerMeta.channel } : {}) });
 });
 
 // POST /auth — unified login: manager password OR agent code → returns session token
@@ -1728,12 +1733,12 @@ async function normalizeAddressWithAI(address, city) {
   } catch (_) { return null; }
 }
 
-async function geocodeAddress(query, city) {
+async function geocodeAddress(query, city, opts = {}) {
   if (geocodeCache.has(query)) return geocodeCache.get(query);
   let result = await geocodeLocationIQ(query);
   if (!result) result = await geocodeNominatim(query, city);
   if (!result) result = await geocodeAzure(query);
-  geocodeCache.set(query, result || null);
+  if (!opts.noCache) geocodeCache.set(query, result || null);
   return result || null;
 }
 
@@ -1745,7 +1750,7 @@ function extractStreetNum(address) {
 
 const SETTLEMENT_RE = /(מושב|קיבוץ|כפר|ישוב|מוצא|נחלה)/;
 
-async function geocodeAddressCascade(address, city) {
+async function geocodeAddressCascade(address, city, opts = {}) {
   if (isPoBox(address || '')) return null;
 
   const cleaned = cleanAddressForGeocoding(address);
@@ -1753,7 +1758,7 @@ async function geocodeAddressCascade(address, city) {
   // settlement-type address with no street number → skip geocoding, use city center
   if (SETTLEMENT_RE.test(cleaned || address || '') && !extractStreetNum(cleaned || address || '')) {
     if (city) {
-      const r = await geocodeAddress(city + ', ישראל');
+      const r = await geocodeAddress(city + ', ישראל', undefined, opts);
       if (r) return { ...r, cityCenter: true };
     }
     return null;
@@ -1762,27 +1767,27 @@ async function geocodeAddressCascade(address, city) {
 
   // attempt 1: full cleaned address + city
   if (cleaned) {
-    const r = await geocodeAddress(cleaned + cityStr + ', ישראל', city);
+    const r = await geocodeAddress(cleaned + cityStr + ', ישראל', city, opts);
     if (r) return r;
   }
 
   // attempt 2: AI normalization — knows Hebrew better than regex
   const aiAddr = await normalizeAddressWithAI(address, city);
   if (aiAddr) {
-    const r = await geocodeAddress(aiAddr + cityStr + ', ישראל', city);
-    if (r) { saveGeocodeCache(); return r; }
+    const r = await geocodeAddress(aiAddr + cityStr + ', ישראל', city, opts);
+    if (r) { if (!opts.noCache) saveGeocodeCache(); return r; }
   }
 
   // attempt 3: street+number only + city
   const street = extractStreetNum(cleaned || address || '');
   if (street && street !== cleaned) {
-    const r = await geocodeAddress(street + cityStr + ', ישראל', city);
+    const r = await geocodeAddress(street + cityStr + ', ישראל', city, opts);
     if (r) return r;
   }
 
   // attempt 4: city-only fallback — mark as approximate
   if (city) {
-    const r = await geocodeAddress(city + ', ישראל', city);
+    const r = await geocodeAddress(city + ', ישראל', city, opts);
     if (r) return { ...r, cityCenter: true };
   }
 
@@ -6028,6 +6033,20 @@ app.get('/api/route-overrides', requireAuth, dataRateLimit, (req, res) => {
   const entry = data[agentCode] || { order: {}, dayMoves: {} };
   res.json({ ok: true, order: entry.order || {}, dayMoves: entry.dayMoves || {} });
 });
+
+// ICE BDD channel — own router, own files; see server/bdd-routes.js (isolation rule).
+const bdd = createBdd({
+  requireAuth, dataRateLimit, dayMoveRateLimit, executeDax,
+  fix: { fixBiDi, fixBiDiAddress, expandCityAbbrev },
+  todayIsraelDate, todayRouteDay, msUntilNextIsraelTime, isValidIL, geocodeAddressCascade,
+  writeLog, getRealIp, resend,
+  formulaGps: () => ({ // read-only view for the BDD GPS cascade
+    clientMaps: [pbiCache?.byAgent, pbiCache?.noScheduleByAgent, pbiCache?.iceByAgent],
+    resolved: geocodeResolvedCache, tablet: tabletGpsCache,
+    correctionsFile: path.join(__dirname, '..', 'docs', 'gps-corrections.json'),
+  }),
+});
+app.use('/api/bdd', bdd.router);
 
 // ── Client Return Form (זיכוי) — products this client bought in the last 365 days,
 // each with a 3-closed-month return-rate (% זיכויים) and photo, for building a
