@@ -27,7 +27,8 @@
     "stopSale": false,
     "spo": null,
     "openOrders": null,
-    "yavesh": true
+    "yavesh": true,
+    "costCarton": 546
   },
   "238": {
     "stock": 0,
@@ -57,7 +58,8 @@
     "stopSale": false,
     "spo": null,
     "openOrders": null,
-    "yavesh": true
+    "yavesh": true,
+    "costCarton": 770
   },
   "239": {
     "stock": 0,
@@ -87,7 +89,8 @@
     "stopSale": false,
     "spo": null,
     "openOrders": null,
-    "yavesh": true
+    "yavesh": true,
+    "costCarton": 1034
   },
   "240": {
     "stock": 0,
@@ -117,7 +120,8 @@
     "stopSale": false,
     "spo": null,
     "openOrders": null,
-    "yavesh": true
+    "yavesh": true,
+    "costCarton": 16
   },
   "241": {
     "stock": 0,
@@ -147,7 +151,8 @@
     "stopSale": false,
     "spo": null,
     "openOrders": null,
-    "yavesh": true
+    "yavesh": true,
+    "costCarton": 19.9
   },
   "242": {
     "stock": 0,
@@ -177,7 +182,8 @@
     "stopSale": false,
     "spo": null,
     "openOrders": null,
-    "yavesh": true
+    "yavesh": true,
+    "costCarton": 36
   },
   "243": {
     "stock": 0,
@@ -207,7 +213,8 @@
     "stopSale": false,
     "spo": null,
     "openOrders": null,
-    "yavesh": true
+    "yavesh": true,
+    "costCarton": 33
   },
   "244": {
     "stock": 0,
@@ -237,7 +244,8 @@
     "stopSale": false,
     "spo": null,
     "openOrders": null,
-    "yavesh": true
+    "yavesh": true,
+    "costCarton": 27
   },
   "245": {
     "stock": 0,
@@ -2469,19 +2477,19 @@
     "pakuot": [
       {
         "date": "2027-08-19T00:00:00.000Z",
-        "daysLeft": 325,
+        "daysLeft": 324,
         "cartons": 54
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-08-19T00:00:00.000Z",
-        "daysLeft": 325,
+        "daysLeft": 324,
         "cartons": 72
       },
       {
         "date": "2028-01-02T00:00:00.000Z",
-        "daysLeft": 461,
+        "daysLeft": 460,
         "cartons": 210
       }
     ],
@@ -2492,7 +2500,7 @@
     "pakuotZafn": [
       {
         "date": "2027-08-19T00:00:00.000Z",
-        "daysLeft": 325,
+        "daysLeft": 324,
         "cartons": 18
       }
     ],
@@ -2552,23 +2560,23 @@
   "711": {
     "stock": 19,
     "daySales": 1.0178571428571428,
-    "daySales365": 2.305540613232921,
+    "daySales365": 2.2535211267605635,
     "pakuot": [
       {
         "date": "2027-08-23T00:00:00.000Z",
-        "daysLeft": 329,
+        "daysLeft": 328,
         "cartons": 19
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-08-23T00:00:00.000Z",
-        "daysLeft": 329,
+        "daysLeft": 328,
         "cartons": 29
       },
       {
         "date": "2028-01-06T00:00:00.000Z",
-        "daysLeft": 465,
+        "daysLeft": 464,
         "cartons": 170
       }
     ],
@@ -2579,7 +2587,7 @@
     "pakuotZafn": [
       {
         "date": "2027-08-23T00:00:00.000Z",
-        "daysLeft": 329,
+        "daysLeft": 328,
         "cartons": 10
       }
     ],
@@ -2608,23 +2616,23 @@
   "712": {
     "stock": 87,
     "daySales": 1.292022792022792,
-    "daySales365": 2.407310081223125,
+    "daySales365": 2.393269230769231,
     "pakuot": [
       {
         "date": "2027-08-24T00:00:00.000Z",
-        "daysLeft": 330,
+        "daysLeft": 329,
         "cartons": 87
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-08-24T00:00:00.000Z",
-        "daysLeft": 330,
+        "daysLeft": 329,
         "cartons": 119
       },
       {
         "date": "2028-01-06T00:00:00.000Z",
-        "daysLeft": 465,
+        "daysLeft": 464,
         "cartons": 170
       }
     ],
@@ -2635,7 +2643,7 @@
     "pakuotZafn": [
       {
         "date": "2027-08-24T00:00:00.000Z",
-        "daysLeft": 330,
+        "daysLeft": 329,
         "cartons": 32
       }
     ],
@@ -2668,19 +2676,19 @@
     "pakuot": [
       {
         "date": "2027-08-18T00:00:00.000Z",
-        "daysLeft": 324,
+        "daysLeft": 323,
         "cartons": 3
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-08-18T00:00:00.000Z",
-        "daysLeft": 324,
+        "daysLeft": 323,
         "cartons": 8
       },
       {
         "date": "2028-01-01T00:00:00.000Z",
-        "daysLeft": 460,
+        "daysLeft": 459,
         "cartons": 300
       }
     ],
@@ -2691,7 +2699,7 @@
     "pakuotZafn": [
       {
         "date": "2027-08-18T00:00:00.000Z",
-        "daysLeft": 324,
+        "daysLeft": 323,
         "cartons": 5
       }
     ],
@@ -2725,7 +2733,7 @@
     "pakuotAll": [
       {
         "date": "2028-01-01T00:00:00.000Z",
-        "daysLeft": 460,
+        "daysLeft": 459,
         "cartons": 160
       }
     ],
@@ -2768,7 +2776,8 @@
     "stopSale": false,
     "spo": null,
     "openOrders": null,
-    "yavesh": true
+    "yavesh": true,
+    "costCarton": 153.92
   },
   "716": {
     "stock": 0,
@@ -2798,12 +2807,13 @@
     "stopSale": false,
     "spo": null,
     "openOrders": null,
-    "yavesh": true
+    "yavesh": true,
+    "costCarton": 268.53
   },
   "717": {
     "stock": 0,
     "daySales": -0.2,
-    "daySales365": 30.71232876712329,
+    "daySales365": 30.25,
     "pakuot": [],
     "pakuotAll": [],
     "daySalesAll": 2.3333333333333335,
@@ -2894,12 +2904,13 @@
     "stopSale": false,
     "spo": null,
     "openOrders": null,
-    "yavesh": true
+    "yavesh": true,
+    "costCarton": 33.9
   },
   "721": {
     "stock": 0,
     "daySales": 41.23076923076923,
-    "daySales365": 64.20481927710843,
+    "daySales365": 62.52439024390244,
     "pakuot": [],
     "pakuotAll": [],
     "daySalesAll": 72.3076923076923,
@@ -2957,12 +2968,13 @@
     "stopSale": false,
     "spo": null,
     "openOrders": null,
-    "yavesh": true
+    "yavesh": true,
+    "costCarton": 52.9
   },
   "724": {
     "stock": 0,
     "daySales": 16.571428571428573,
-    "daySales365": 19.623376623376622,
+    "daySales365": 19.539473684210527,
     "pakuot": [],
     "pakuotAll": [],
     "daySalesAll": 27.466666666666665,
@@ -4079,28 +4091,7 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": 192,
-    "pakuot": [
-      {
-        "date": "2026-12-18",
-        "daysLeft": 81,
-        "cartons": 114
-      },
-      {
-        "date": "2027-01-01",
-        "daysLeft": 95,
-        "cartons": 381
-      },
-      {
-        "date": "2027-01-15",
-        "daysLeft": 109,
-        "cartons": 381
-      },
-      {
-        "date": "2027-01-23",
-        "daysLeft": 117,
-        "cartons": 381
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2026-12-18",
@@ -4187,18 +4178,7 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": 192,
-    "pakuot": [
-      {
-        "date": "2027-01-15",
-        "daysLeft": 109,
-        "cartons": 266
-      },
-      {
-        "date": "2027-01-23",
-        "daysLeft": 117,
-        "cartons": 381
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2027-01-15",
@@ -4280,23 +4260,7 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": 192,
-    "pakuot": [
-      {
-        "date": "2027-01-01",
-        "daysLeft": 95,
-        "cartons": 120
-      },
-      {
-        "date": "2027-01-15",
-        "daysLeft": 109,
-        "cartons": 384
-      },
-      {
-        "date": "2027-01-23",
-        "daysLeft": 117,
-        "cartons": 381
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2027-01-01",
@@ -4353,23 +4317,7 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": 200,
-    "pakuot": [
-      {
-        "date": "2026-12-18",
-        "daysLeft": 81,
-        "cartons": 108
-      },
-      {
-        "date": "2027-01-01",
-        "daysLeft": 95,
-        "cartons": 279
-      },
-      {
-        "date": "2027-01-15",
-        "daysLeft": 109,
-        "cartons": 599
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2026-12-18",
@@ -4426,28 +4374,7 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": 192,
-    "pakuot": [
-      {
-        "date": "2026-12-04",
-        "daysLeft": 67,
-        "cartons": 116
-      },
-      {
-        "date": "2026-12-18",
-        "daysLeft": 81,
-        "cartons": 317
-      },
-      {
-        "date": "2027-01-15",
-        "daysLeft": 109,
-        "cartons": 669
-      },
-      {
-        "date": "2027-01-23",
-        "daysLeft": 117,
-        "cartons": 445
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2026-12-04",
@@ -4624,23 +4551,7 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": 224,
-    "pakuot": [
-      {
-        "date": "2027-01-01",
-        "daysLeft": 95,
-        "cartons": 114
-      },
-      {
-        "date": "2027-01-15",
-        "daysLeft": 109,
-        "cartons": 447
-      },
-      {
-        "date": "2027-01-23",
-        "daysLeft": 117,
-        "cartons": 447
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2027-01-01",
@@ -4697,23 +4608,7 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": 240,
-    "pakuot": [
-      {
-        "date": "2027-01-01",
-        "daysLeft": 95,
-        "cartons": 646
-      },
-      {
-        "date": "2027-01-15",
-        "daysLeft": 109,
-        "cartons": 479
-      },
-      {
-        "date": "2027-01-23",
-        "daysLeft": 117,
-        "cartons": 479
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2027-01-01",
@@ -4765,23 +4660,7 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": 240,
-    "pakuot": [
-      {
-        "date": "2026-12-18",
-        "daysLeft": 81,
-        "cartons": 227
-      },
-      {
-        "date": "2027-01-01",
-        "daysLeft": 95,
-        "cartons": 479
-      },
-      {
-        "date": "2027-01-15",
-        "daysLeft": 109,
-        "cartons": 479
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2026-12-18",
@@ -4833,13 +4712,7 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": 240,
-    "pakuot": [
-      {
-        "date": "2027-01-23",
-        "daysLeft": 117,
-        "cartons": 611
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2027-01-23",
@@ -4891,13 +4764,7 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "IKRA",
     "ashdodPalletCartons": 357,
-    "pakuot": [
-      {
-        "date": "2027-01-30",
-        "daysLeft": 124,
-        "cartons": 444
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2027-01-30",
@@ -5031,13 +4898,7 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "IKRA",
     "ashdodPalletCartons": 357,
-    "pakuot": [
-      {
-        "date": "2027-01-30",
-        "daysLeft": 124,
-        "cartons": 268
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2027-01-30",
@@ -5089,13 +4950,7 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "IKRA",
     "ashdodPalletCartons": 336,
-    "pakuot": [
-      {
-        "date": "2026-12-05",
-        "daysLeft": 68,
-        "cartons": 115
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2026-12-05",
@@ -5147,13 +5002,7 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "IKRA",
     "ashdodPalletCartons": 336,
-    "pakuot": [
-      {
-        "date": "2026-12-05",
-        "daysLeft": 68,
-        "cartons": 28
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2026-12-05",
@@ -6094,18 +5943,7 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": 200,
-    "pakuot": [
-      {
-        "date": "2027-01-01",
-        "daysLeft": 95,
-        "cartons": 64
-      },
-      {
-        "date": "2027-01-15",
-        "daysLeft": 109,
-        "cartons": 259
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2027-01-01",
@@ -6162,18 +6000,7 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": 200,
-    "pakuot": [
-      {
-        "date": "2027-01-01",
-        "daysLeft": 95,
-        "cartons": 254
-      },
-      {
-        "date": "2027-01-15",
-        "daysLeft": 109,
-        "cartons": 399
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2027-01-01",
@@ -6225,13 +6052,7 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": 240,
-    "pakuot": [
-      {
-        "date": "2027-01-23",
-        "daysLeft": 117,
-        "cartons": 560
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2027-01-23",
@@ -6513,18 +6334,7 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "KAPUSTA",
     "ashdodPalletCartons": 168,
-    "pakuot": [
-      {
-        "date": "2026-11-01",
-        "daysLeft": 34,
-        "cartons": 7
-      },
-      {
-        "date": "2027-01-09",
-        "daysLeft": 103,
-        "cartons": 235
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2027-01-09",
@@ -6576,18 +6386,7 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "KAPUSTA",
     "ashdodPalletCartons": 168,
-    "pakuot": [
-      {
-        "date": "2026-11-03",
-        "daysLeft": 36,
-        "cartons": 50
-      },
-      {
-        "date": "2027-01-08",
-        "daysLeft": 102,
-        "cartons": 240
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2026-11-03",
@@ -7242,7 +7041,8 @@
     "stopSale": false,
     "spo": null,
     "openOrders": null,
-    "yavesh": true
+    "yavesh": true,
+    "costCarton": 262.24
   },
   "1099": {
     "stock": 0,
@@ -7272,28 +7072,29 @@
     "stopSale": false,
     "spo": null,
     "openOrders": null,
-    "yavesh": true
+    "yavesh": true,
+    "costCarton": 262.24
   },
   "1100": {
     "stock": 55,
     "daySales": 0.7443910256410257,
-    "daySales365": 2.3795787545787546,
+    "daySales365": 2.326001842468908,
     "pakuot": [
       {
         "date": "2027-08-21T00:00:00.000Z",
-        "daysLeft": 327,
+        "daysLeft": 326,
         "cartons": 55
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-08-21T00:00:00.000Z",
-        "daysLeft": 327,
+        "daysLeft": 326,
         "cartons": 77
       },
       {
         "date": "2028-01-06T00:00:00.000Z",
-        "daysLeft": 465,
+        "daysLeft": 464,
         "cartons": 140
       }
     ],
@@ -7304,7 +7105,7 @@
     "pakuotZafn": [
       {
         "date": "2027-08-21T00:00:00.000Z",
-        "daysLeft": 327,
+        "daysLeft": 326,
         "cartons": 22
       }
     ],
@@ -7333,23 +7134,23 @@
   "1101": {
     "stock": 44,
     "daySales": 0.7836538461538461,
-    "daySales365": 2.549194991055456,
+    "daySales365": 2.5053981106612686,
     "pakuot": [
       {
         "date": "2027-08-22T00:00:00.000Z",
-        "daysLeft": 328,
+        "daysLeft": 327,
         "cartons": 44
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-08-22T00:00:00.000Z",
-        "daysLeft": 328,
+        "daysLeft": 327,
         "cartons": 69
       },
       {
         "date": "2028-01-06T00:00:00.000Z",
-        "daysLeft": 465,
+        "daysLeft": 464,
         "cartons": 160
       }
     ],
@@ -7360,7 +7161,7 @@
     "pakuotZafn": [
       {
         "date": "2027-08-22T00:00:00.000Z",
-        "daysLeft": 328,
+        "daysLeft": 327,
         "cartons": 25
       }
     ],
@@ -7393,19 +7194,19 @@
     "pakuot": [
       {
         "date": "2027-08-20T00:00:00.000Z",
-        "daysLeft": 326,
+        "daysLeft": 325,
         "cartons": 75
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-08-20T00:00:00.000Z",
-        "daysLeft": 326,
+        "daysLeft": 325,
         "cartons": 97
       },
       {
         "date": "2028-01-10T00:00:00.000Z",
-        "daysLeft": 469,
+        "daysLeft": 468,
         "cartons": 170
       }
     ],
@@ -7416,7 +7217,7 @@
     "pakuotZafn": [
       {
         "date": "2027-08-20T00:00:00.000Z",
-        "daysLeft": 326,
+        "daysLeft": 325,
         "cartons": 22
       }
     ],
@@ -7470,7 +7271,8 @@
     "stopSale": false,
     "spo": null,
     "openOrders": null,
-    "yavesh": true
+    "yavesh": true,
+    "costCarton": 135.9
   },
   "1104": {
     "stock": 78,
@@ -7479,19 +7281,19 @@
     "pakuot": [
       {
         "date": "2027-08-17T00:00:00.000Z",
-        "daysLeft": 323,
+        "daysLeft": 322,
         "cartons": 78
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-08-17T00:00:00.000Z",
-        "daysLeft": 323,
+        "daysLeft": 322,
         "cartons": 108
       },
       {
         "date": "2028-01-02T00:00:00.000Z",
-        "daysLeft": 461,
+        "daysLeft": 460,
         "cartons": 300
       }
     ],
@@ -7502,7 +7304,7 @@
     "pakuotZafn": [
       {
         "date": "2027-08-17T00:00:00.000Z",
-        "daysLeft": 323,
+        "daysLeft": 322,
         "cartons": 30
       }
     ],
@@ -7535,19 +7337,19 @@
     "pakuot": [
       {
         "date": "2027-08-16T00:00:00.000Z",
-        "daysLeft": 322,
+        "daysLeft": 321,
         "cartons": 41
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-08-16T00:00:00.000Z",
-        "daysLeft": 322,
+        "daysLeft": 321,
         "cartons": 53
       },
       {
         "date": "2028-01-01T00:00:00.000Z",
-        "daysLeft": 460,
+        "daysLeft": 459,
         "cartons": 310
       }
     ],
@@ -7558,7 +7360,7 @@
     "pakuotZafn": [
       {
         "date": "2027-08-16T00:00:00.000Z",
-        "daysLeft": 322,
+        "daysLeft": 321,
         "cartons": 12
       }
     ],
@@ -7606,18 +7408,7 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "IKRA",
     "ashdodPalletCartons": 276,
-    "pakuot": [
-      {
-        "date": "2027-05-12",
-        "daysLeft": 226,
-        "cartons": 1836
-      },
-      {
-        "date": "2027-05-26",
-        "daysLeft": 240,
-        "cartons": 1678
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2027-05-12",
@@ -7669,13 +7460,7 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "IKRA",
     "ashdodPalletCartons": 276,
-    "pakuot": [
-      {
-        "date": "2027-05-12",
-        "daysLeft": 226,
-        "cartons": 936
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2027-05-12",
@@ -7727,13 +7512,7 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "KAPUSTA",
     "ashdodPalletCartons": 408,
-    "pakuot": [
-      {
-        "date": "2027-01-11",
-        "daysLeft": 105,
-        "cartons": 180
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2027-01-11",
@@ -7860,14 +7639,14 @@
     "pakuot": [
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 197,
+        "daysLeft": 196,
         "cartons": 8
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 197,
+        "daysLeft": 196,
         "cartons": 10
       }
     ],
@@ -7878,7 +7657,7 @@
     "pakuotZafn": [
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 197,
+        "daysLeft": 196,
         "cartons": 2
       }
     ],
@@ -7911,14 +7690,14 @@
     "pakuot": [
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 197,
+        "daysLeft": 196,
         "cartons": 169
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 197,
+        "daysLeft": 196,
         "cartons": 210
       }
     ],
@@ -7929,7 +7708,7 @@
     "pakuotZafn": [
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 197,
+        "daysLeft": 196,
         "cartons": 41
       }
     ],
@@ -7962,24 +7741,24 @@
     "pakuot": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 131,
+        "daysLeft": 130,
         "cartons": 20
       },
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 197,
+        "daysLeft": 196,
         "cartons": 160
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 131,
+        "daysLeft": 130,
         "cartons": 28
       },
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 197,
+        "daysLeft": 196,
         "cartons": 200
       }
     ],
@@ -7990,12 +7769,12 @@
     "pakuotZafn": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 131,
+        "daysLeft": 130,
         "cartons": 8
       },
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 197,
+        "daysLeft": 196,
         "cartons": 40
       }
     ],
@@ -8028,14 +7807,14 @@
     "pakuot": [
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 197,
+        "daysLeft": 196,
         "cartons": 141
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 197,
+        "daysLeft": 196,
         "cartons": 186
       }
     ],
@@ -8046,7 +7825,7 @@
     "pakuotZafn": [
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 197,
+        "daysLeft": 196,
         "cartons": 45
       }
     ],
@@ -8079,14 +7858,14 @@
     "pakuot": [
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 197,
+        "daysLeft": 196,
         "cartons": 30
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 197,
+        "daysLeft": 196,
         "cartons": 46
       }
     ],
@@ -8097,7 +7876,7 @@
     "pakuotZafn": [
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 197,
+        "daysLeft": 196,
         "cartons": 16
       }
     ],
@@ -8130,24 +7909,24 @@
     "pakuot": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 131,
+        "daysLeft": 130,
         "cartons": 89
       },
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 197,
+        "daysLeft": 196,
         "cartons": 180
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 131,
+        "daysLeft": 130,
         "cartons": 117
       },
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 197,
+        "daysLeft": 196,
         "cartons": 180
       }
     ],
@@ -8158,7 +7937,7 @@
     "pakuotZafn": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 131,
+        "daysLeft": 130,
         "cartons": 28
       }
     ],
@@ -8191,24 +7970,24 @@
     "pakuot": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 131,
+        "daysLeft": 130,
         "cartons": 19
       },
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 197,
+        "daysLeft": 196,
         "cartons": 80
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 131,
+        "daysLeft": 130,
         "cartons": 25
       },
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 197,
+        "daysLeft": 196,
         "cartons": 110
       }
     ],
@@ -8219,12 +7998,12 @@
     "pakuotZafn": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 131,
+        "daysLeft": 130,
         "cartons": 6
       },
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 197,
+        "daysLeft": 196,
         "cartons": 30
       }
     ],
@@ -8257,24 +8036,24 @@
     "pakuot": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 131,
+        "daysLeft": 130,
         "cartons": 20
       },
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 197,
+        "daysLeft": 196,
         "cartons": 110
       }
     ],
     "pakuotAll": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 131,
+        "daysLeft": 130,
         "cartons": 31
       },
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 197,
+        "daysLeft": 196,
         "cartons": 150
       }
     ],
@@ -8285,12 +8064,12 @@
     "pakuotZafn": [
       {
         "date": "2027-02-06T00:00:00.000Z",
-        "daysLeft": 131,
+        "daysLeft": 130,
         "cartons": 11
       },
       {
         "date": "2027-04-13T00:00:00.000Z",
-        "daysLeft": 197,
+        "daysLeft": 196,
         "cartons": 40
       }
     ],
@@ -8338,18 +8117,7 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": 224,
-    "pakuot": [
-      {
-        "date": "2027-01-15",
-        "daysLeft": 109,
-        "cartons": 345
-      },
-      {
-        "date": "2027-01-23",
-        "daysLeft": 117,
-        "cartons": 447
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2027-01-15",
@@ -8401,18 +8169,7 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "IKRA",
     "ashdodPalletCartons": 357,
-    "pakuot": [
-      {
-        "date": "2027-01-30",
-        "daysLeft": 124,
-        "cartons": 77
-      },
-      {
-        "date": "2027-03-27",
-        "daysLeft": 180,
-        "cartons": 761
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2027-01-30",
@@ -8469,13 +8226,7 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "IKRA",
     "ashdodPalletCartons": 357,
-    "pakuot": [
-      {
-        "date": "2027-03-27",
-        "daysLeft": 180,
-        "cartons": 2094
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2027-03-27",
@@ -8527,13 +8278,7 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "IKRA",
     "ashdodPalletCartons": 357,
-    "pakuot": [
-      {
-        "date": "2027-03-27",
-        "daysLeft": 180,
-        "cartons": 1315
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2027-03-27",
@@ -8661,13 +8406,7 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "IKRA",
     "ashdodPalletCartons": 48,
-    "pakuot": [
-      {
-        "date": "2027-03-27",
-        "daysLeft": 180,
-        "cartons": 2
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
@@ -8743,23 +8482,7 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": 273,
-    "pakuot": [
-      {
-        "date": "2026-11-13",
-        "daysLeft": 46,
-        "cartons": 206
-      },
-      {
-        "date": "2027-01-15",
-        "daysLeft": 109,
-        "cartons": 489
-      },
-      {
-        "date": "2027-01-23",
-        "daysLeft": 117,
-        "cartons": 734
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2026-11-13",
@@ -8811,18 +8534,7 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": 350,
-    "pakuot": [
-      {
-        "date": "2027-01-15",
-        "daysLeft": 109,
-        "cartons": 56
-      },
-      {
-        "date": "2027-01-23",
-        "daysLeft": 117,
-        "cartons": 699
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2027-01-15",
@@ -8874,18 +8586,7 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": 350,
-    "pakuot": [
-      {
-        "date": "2027-01-01",
-        "daysLeft": 95,
-        "cartons": 290
-      },
-      {
-        "date": "2027-01-23",
-        "daysLeft": 117,
-        "cartons": 699
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2027-01-01",
@@ -8937,18 +8638,7 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": 273,
-    "pakuot": [
-      {
-        "date": "2027-01-01",
-        "daysLeft": 95,
-        "cartons": 332
-      },
-      {
-        "date": "2027-01-15",
-        "daysLeft": 109,
-        "cartons": 489
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2027-01-01",
@@ -9000,28 +8690,7 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": 200,
-    "pakuot": [
-      {
-        "date": "2026-10-25",
-        "daysLeft": 27,
-        "cartons": 105
-      },
-      {
-        "date": "2026-11-06",
-        "daysLeft": 39,
-        "cartons": 389
-      },
-      {
-        "date": "2026-11-13",
-        "daysLeft": 46,
-        "cartons": 584
-      },
-      {
-        "date": "2027-01-01",
-        "daysLeft": 95,
-        "cartons": 399
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2026-10-25",
@@ -9078,23 +8747,7 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": 200,
-    "pakuot": [
-      {
-        "date": "2026-11-06",
-        "daysLeft": 39,
-        "cartons": 321
-      },
-      {
-        "date": "2026-11-13",
-        "daysLeft": 46,
-        "cartons": 384
-      },
-      {
-        "date": "2027-01-01",
-        "daysLeft": 95,
-        "cartons": 384
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2026-11-06",
@@ -9151,23 +8804,7 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": 200,
-    "pakuot": [
-      {
-        "date": "2026-11-06",
-        "daysLeft": 39,
-        "cartons": 3
-      },
-      {
-        "date": "2026-11-13",
-        "daysLeft": 46,
-        "cartons": 398
-      },
-      {
-        "date": "2027-01-01",
-        "daysLeft": 95,
-        "cartons": 384
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2026-11-13",
@@ -9385,18 +9022,7 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": 300,
-    "pakuot": [
-      {
-        "date": "2027-01-15",
-        "daysLeft": 109,
-        "cartons": 588
-      },
-      {
-        "date": "2027-01-23",
-        "daysLeft": 117,
-        "cartons": 1199
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2026-12-18",
@@ -9453,18 +9079,7 @@
     "fam": "SANTA BREMOR דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": 192,
-    "pakuot": [
-      {
-        "date": "2027-01-15",
-        "daysLeft": 109,
-        "cartons": 401
-      },
-      {
-        "date": "2027-01-23",
-        "daysLeft": 117,
-        "cartons": 445
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2027-01-15",
@@ -11134,13 +10749,7 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": 200,
-    "pakuot": [
-      {
-        "date": "2027-01-23",
-        "daysLeft": 117,
-        "cartons": 1
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
@@ -11186,13 +10795,7 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": 200,
-    "pakuot": [
-      {
-        "date": "2027-01-01",
-        "daysLeft": 95,
-        "cartons": 219
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2027-01-01",
@@ -11244,18 +10847,7 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "HERRING",
     "ashdodPalletCartons": 200,
-    "pakuot": [
-      {
-        "date": "2027-01-01",
-        "daysLeft": 95,
-        "cartons": 30
-      },
-      {
-        "date": "2027-01-23",
-        "daysLeft": 117,
-        "cartons": 259
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2027-01-23",
@@ -11307,13 +10899,7 @@
     "fam": "NORD PORT דגים",
     "iksGroup": "OTHER",
     "ashdodPalletCartons": 238,
-    "pakuot": [
-      {
-        "date": "2027-01-24",
-        "daysLeft": 118,
-        "cartons": 664
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2027-01-24",
@@ -11353,8 +10939,8 @@
     "daySalesZafn": 123.3,
     "daysStock": 1,
     "daysStockZafn": 1,
-    "stockTrnz": 0,
-    "palStockTrnz": null,
+    "stockTrnz": 2884,
+    "palStockTrnz": 8,
     "daySalesTrnz": null,
     "weight": 0.1,
     "packFactor": null,
@@ -11365,13 +10951,7 @@
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
     "ashdodPalletCartons": 360,
-    "pakuot": [
-      {
-        "date": "2026-10-21",
-        "daysLeft": 23,
-        "cartons": 181
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2026-10-21",
@@ -11411,8 +10991,8 @@
     "daySalesZafn": 64.1,
     "daysStock": 0,
     "daysStockZafn": 0,
-    "stockTrnz": 0,
-    "palStockTrnz": null,
+    "stockTrnz": 1262,
+    "palStockTrnz": 3.5,
     "daySalesTrnz": null,
     "weight": 0.1,
     "packFactor": null,
@@ -11423,13 +11003,7 @@
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
     "ashdodPalletCartons": 360,
-    "pakuot": [
-      {
-        "date": "2026-10-23",
-        "daysLeft": 25,
-        "cartons": 25
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [],
     "shelfLife": 7,
     "stopSale": false,
@@ -11463,8 +11037,8 @@
     "daySalesZafn": 24.2,
     "daysStock": 16,
     "daysStockZafn": 12,
-    "stockTrnz": 0,
-    "palStockTrnz": null,
+    "stockTrnz": 632,
+    "palStockTrnz": 3.5,
     "daySalesTrnz": null,
     "weight": 0.25,
     "packFactor": null,
@@ -11475,18 +11049,7 @@
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
     "ashdodPalletCartons": 180,
-    "pakuot": [
-      {
-        "date": "2026-10-06",
-        "daysLeft": 8,
-        "cartons": 69
-      },
-      {
-        "date": "2026-10-20",
-        "daysLeft": 22,
-        "cartons": 440
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2026-10-06",
@@ -11531,8 +11094,8 @@
     "daySalesZafn": 14.9,
     "daysStock": 11,
     "daysStockZafn": 11,
-    "stockTrnz": 0,
-    "palStockTrnz": null,
+    "stockTrnz": 362,
+    "palStockTrnz": 2,
     "daySalesTrnz": null,
     "weight": 0.25,
     "packFactor": null,
@@ -11543,18 +11106,7 @@
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
     "ashdodPalletCartons": 180,
-    "pakuot": [
-      {
-        "date": "2026-10-09",
-        "daysLeft": 11,
-        "cartons": 50
-      },
-      {
-        "date": "2026-10-23",
-        "daysLeft": 25,
-        "cartons": 176
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2026-10-09",
@@ -11599,8 +11151,8 @@
     "daySalesZafn": 16.4,
     "daysStock": 16,
     "daysStockZafn": 14,
-    "stockTrnz": 0,
-    "palStockTrnz": null,
+    "stockTrnz": 477,
+    "palStockTrnz": 1.5,
     "daySalesTrnz": null,
     "weight": 0.2,
     "packFactor": null,
@@ -11611,18 +11163,7 @@
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
     "ashdodPalletCartons": 320,
-    "pakuot": [
-      {
-        "date": "2026-10-11",
-        "daysLeft": 13,
-        "cartons": 39
-      },
-      {
-        "date": "2026-10-24",
-        "daysLeft": 26,
-        "cartons": 314
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2026-10-11",
@@ -11667,8 +11208,8 @@
     "daySalesZafn": 14.8,
     "daysStock": 26,
     "daysStockZafn": 6,
-    "stockTrnz": 0,
-    "palStockTrnz": null,
+    "stockTrnz": 327,
+    "palStockTrnz": 1,
     "daySalesTrnz": null,
     "weight": 0.2,
     "packFactor": null,
@@ -11679,18 +11220,7 @@
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
     "ashdodPalletCartons": 320,
-    "pakuot": [
-      {
-        "date": "2026-10-10",
-        "daysLeft": 12,
-        "cartons": 90
-      },
-      {
-        "date": "2026-10-24",
-        "daysLeft": 26,
-        "cartons": 320
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2026-10-10",
@@ -11730,8 +11260,8 @@
     "daySalesZafn": 22.1,
     "daysStock": 0,
     "daysStockZafn": 0,
-    "stockTrnz": 0,
-    "palStockTrnz": null,
+    "stockTrnz": 387,
+    "palStockTrnz": 1.6,
     "daySalesTrnz": 11,
     "weight": 0.15,
     "packFactor": 8,
@@ -11742,13 +11272,7 @@
     "fam": "NORD PORT מצונן פורל/סלמון",
     "iksGroup": "OTHER",
     "ashdodPalletCartons": 245,
-    "pakuot": [
-      {
-        "date": "2026-10-27",
-        "daysLeft": 29,
-        "cartons": 2
-      }
-    ],
+    "pakuot": [],
     "pakuotZafn": [
       {
         "date": "2026-10-27",
@@ -11788,8 +11312,8 @@
     "daySalesZafn": 12.1,
     "daysStock": 0,
     "daysStockZafn": 0,
-    "stockTrnz": 0,
-    "palStockTrnz": null,
+    "stockTrnz": 247,
+    "palStockTrnz": 1,
     "daySalesTrnz": 8.5,
     "weight": 0.15,
     "packFactor": 8,
