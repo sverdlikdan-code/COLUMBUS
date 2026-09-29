@@ -319,8 +319,8 @@ function buildHtml(month, cur, prev, tm, names, ret) {
       const top = list.map(([k, x]) => [k, x, x.z - x.b * avgD]).filter(r => r[2] > 0).sort((a, b) => b[2] - a[2]).slice(0, 5);
       if (!top.length) continue;
       html += P(`<b><bdi>${esc(d)}</bdi></b> — средний по отделу -${(100 * avgD).toFixed(1)}%`);
-      html += table(['Артикул', '% возвр.', 'Лишние ₪', 'Возвраты ₪', 'Продажи ₪'],
-        top.map(([k, x, ex]) => [`${k} · ${esc((sku[k]?.name || x.name).slice(0, 32))}`, retCell(x), '-' + n0(ex), '-' + n0(x.z), n0(x.b)]), [1, 2, 3, 4]);
+      html += table(['Артикул', '% возвр.', 'Возвраты ₪', 'Продажи ₪'],
+        top.map(([k, x]) => [`${k} · ${esc((sku[k]?.name || x.name).slice(0, 32))}`, retCell(x), '-' + n0(x.z), n0(x.b)]), [1, 2, 3]);
     }
   }
 
