@@ -241,14 +241,41 @@ function buildHtml(month, cur, prev, tm, names, ret) {
   const [y, m] = month.split('-').map(Number);
   const title = `${MONTHS_RU[m - 1]} ${y}`;
 
-  // 1. итог
+  // 1. экономия — открывает отчёт, с позитива о внедрении; итог округлён и крупно (пользователь 2026-09-30).
+  // Все зикуи месяца × 8.5 мин, без разбивки по агентам.
+  const short = tm.pairs.filter(p => p.s <= LONG_S);
+  const medAll = med(short.map(p => p.s));
+  const savedH = t.blanks * SAVED_PER_ZIKUY_MIN / 60;
+  // Деньги: часы по ставке агента. Прогноз на TARGET_AGENTS — среднее по активным (≥ ACTIVE_MIN бланков), новички занижали бы.
+  const active = Object.values(agent).filter(a => a.blanks >= ACTIVE_MIN);
+  const projH = active.length ? TARGET_AGENTS * avg(active.map(a => a.blanks)) * SAVED_PER_ZIKUY_MIN / 60 : 0;
+  const hRound = h => Math.round(h / 5) * 5;
+  const kShek = h => `<span style="white-space:nowrap">${Math.round(h * AGENT_COST[0] / AGENT_HOURS / 1000)}–${Math.round(h * AGENT_COST[1] / AGENT_HOURS / 1000)} тыс. ₪</span>`;
+  const hero = (label, big, sub, bg, fg) => `<td style="padding:18px 10px;text-align:center;background:${bg};width:50%;vertical-align:top">
+    <div style="font-size:12px;color:${fg};opacity:.85">${label}</div>
+    <div style="font-size:34px;font-weight:900;color:${fg};padding-top:6px;white-space:nowrap">${big}</div>
+    <div style="font-size:13px;color:${fg};padding-top:4px">${sub}</div></td>`;
+  let html = H('1. Приложение работает — первые результаты');
+  html += P(`Зикуй в Formula Road внедрён: <b>${Object.keys(agent).length} агентов</b> уже оформляют заявки через приложение — за ${MONTHS_RU[m - 1]} <b>${n0(t.blanks)} зикуев</b>. Каждый экономит агенту около ${SAVED_PER_ZIKUY_MIN} минут.`);
+  html += `<tr><td style="padding:8px 14px 6px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:Arial,sans-serif;border-radius:10px;overflow:hidden"><tr>
+    ${hero('Сэкономлено за месяц', `≈ ${hRound(savedH)} ч`, 'рабочего времени агентов', NAVY, '#fff')}
+    ${hero('В деньгах', `≈ ${kShek(savedH)}`, 'в месяц', GREEN, '#fff')}
+  </tr></table></td></tr>`;
+  if (active.length) html += `<tr><td style="padding:6px 14px"><div style="background:#EEF6F0;border-left:4px solid ${GREEN};padding:12px 14px;font-size:15px;color:${INK};line-height:1.5">
+    <b>Когда подключатся все ${TARGET_AGENTS} агента:</b> ≈ <b>${hRound(projH)} ч</b> и <b>≈ ${kShek(projH)}</b> экономии в месяц.</div></td></tr>`;
+  html += P(`<span style="font-size:12px;color:${MUTED}"><b>Как считали.</b> До приложения зикуй заполнялся вручную — бумажный бланк, фото, пересылка в офис, уточнения по телефону — не меньше 10 минут на бланк. В приложении медиана заполнения — ${mmss(medAll)} (по ${n0(short.length)} зикуям с замером времени), разница ≈ ${((600 - medAll) / 60).toFixed(1)} мин, берём с запасом вниз — ${SAVED_PER_ZIKUY_MIN} мин. ${n0(t.blanks)} зикуев × ${SAVED_PER_ZIKUY_MIN} мин = ${savedH.toFixed(1)} ч. Деньги — по стоимости агента ${n0(AGENT_COST[0])}–${n0(AGENT_COST[1])} ₪ за ${AGENT_HOURS} ч ставки.${active.length ? ` Прогноз — если каждый из ${TARGET_AGENTS} работает как средний активный агент сейчас (${active.length} агентов от ${ACTIVE_MIN} бланков, в среднем ${avg(active.map(a => a.blanks)).toFixed(0)} бланков в месяц).` : ''}</span>`);
+  const buckets = [[1, 1], [2, 3], [4, 6], [7, 10], [11, 999]].map(([a, b]) => { const x = short.filter(p => p.items >= a && p.items <= b).map(p => p.s); return x.length ? [b === 999 ? `${a}+` : a === b ? `${a}` : `${a}–${b}`, x.length, mmss(med(x))] : null; }).filter(Boolean);
+  html += P('<span style="font-size:12px;color:' + MUTED + '">Время заполнения по размеру бланка:</span>');
+  html += table(['Артикулов в бланке', 'Зикуев', 'Медиана времени'], buckets, [1, 2]);
+
+  // 2. итог
   const charts = [];
   // что это за статистика — пользователь 2026-09-29: чтобы не путали с общими возвратами
-  let html = `<tr><td style="padding:18px 14px 0"><div style="background:#FFF8E6;border:1px solid #F1D48A;border-radius:8px;padding:10px 12px;font-size:12px;color:${INK};line-height:1.6">
+  html += `<tr><td style="padding:18px 14px 0"><div style="background:#FFF8E6;border:1px solid #F1D48A;border-radius:8px;padding:10px 12px;font-size:12px;color:${INK};line-height:1.6">
     <b>Что в этом отчёте:</b> только статистика <b>заявок на зикуй</b> из Formula Road — частный рынок и небольшой сетевой формат, то есть клиенты, где зикуй <b>не</b> делается документом самого клиента. Крупные сети со своими документами сюда не входят.<br>
     <b>% возвратов</b> — фактический, из Power BI: השמדות ₪ / продажи брутто ₪ за последние 90 дней, по всем активным клиентам FORMULA${ret ? ` (${n0(ret.clients)})` : ''} — та же формула, что в форме зикуя. От ${RET_ALERT}% — красным.${ret ? '' : ` <b style="color:${RED}">В этот раз Power BI не ответил — % возвратов в отчёте нет.</b>`}
   </div></td></tr>`;
-  html += H('1. Итог месяца') + `<tr><td style="padding:0 14px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:Arial,sans-serif"><tr>
+  html += H('2. Итог месяца') + `<tr><td style="padding:0 14px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:Arial,sans-serif"><tr>
     ${kpi('Бланков зикуя', n0(t.blanks), delta(t.blanks, prev?.t.blanks))}
     ${kpi('Штук (без весового)', n0(t.total), delta(t.total, prev?.t.total))}
     ${kpi('Уценка −50%', n0(t.z), `${pct(t.z, t.total)}% всех списаний`)}
@@ -259,9 +286,9 @@ function buildHtml(month, cur, prev, tm, names, ret) {
   html += P(`В среднем <b>${avg(t.skuPerBlank).toFixed(1)}</b> артикула на бланк (медиана ${med(t.skuPerBlank)}), ${avg(blanksQty(cur)).toFixed(0)} шт. на бланк. Состав бланков: только −50% — ${t.onlyZ}, только השמדה — ${t.onlyH}, смешанные — ${t.mixed}.`
     + (prev ? ` Прошлый месяц: ${n0(prev.t.total)} шт., из них в השמדה ${pct(prev.t.h, prev.t.total)}%.` : ''));
 
-  // 2. семьи
+  // 3. семьи
   const fams = Object.entries(fam).sort((a, b) => (b[1].z + b[1].h) - (a[1].z + a[1].h));
-  html += H('2. Семьи товаров', `<b>Доля в списаниях</b> — какая часть всех списанных штук месяца приходится на семью (все семьи вместе = 100%).<br><b>Уценка / השמדה</b> — как делятся штуки самой семьи (в каждой строке вместе = 100%). השמדה от 70% — красным: уценка не спасает.`);
+  html += H('3. Семьи товаров', `<b>Доля в списаниях</b> — какая часть всех списанных штук месяца приходится на семью (все семьи вместе = 100%).<br><b>Уценка / השמדה</b> — как делятся штуки самой семьи (в каждой строке вместе = 100%). השמדה от 70% — красным: уценка не спасает.`);
   const top5 = fams.slice(0, 5), restQ = fams.slice(5).reduce((a, [, f]) => a + f.z + f.h, 0);
   html += donutBlock(charts, 'pie-fam', [...top5.map(([k, f], i) => ({ label: k, v: f.z + f.h, color: FAM_COLORS[i] })), ...(restQ ? [{ label: 'Прочие семьи', v: restQ, color: C_OTHER }] : [])]);
   // % возвратов семьи = Σ по её SKU (из того же PBI-запроса)
@@ -271,7 +298,7 @@ function buildHtml(month, cur, prev, tm, names, ret) {
   html += table(['Семья', 'Штук', 'Доля в списаниях', 'Уценка / השמדה', ...retHead],
     fams.slice(0, 15).map(([k, f]) => [esc(k), n0(f.z + f.h), pct(f.z + f.h, t.total) + '%', split(f), ...(ret ? [retCell(famRet[k])] : [])]), [1, 2, 3, 4]);
 
-  // 3. SKU — топ-5 по каждой מחלקה (пользователь 2026-09-29); без PBI отдела не знаем → общий топ-7
+  // 4. SKU — топ-5 по каждой מחלקה (пользователь 2026-09-29); без PBI отдела не знаем → общий топ-7
   const skus = Object.entries(sku).sort((a, b) => (b[1].z + b[1].h) - (a[1].z + a[1].h));
   const skuRow = ([k, s]) => [`${k} · ${esc(s.name.slice(0, 32))}`, n0(s.z + s.h), split(s), ...(ret ? [retCell(ret.bySku[k])] : []), s.shelf ?? '—'];
   const skuHead = ['Артикул', 'Штук', 'Уценка / השמדה', ...retHead, 'חיי מדף'];
@@ -280,13 +307,13 @@ function buildHtml(month, cur, prev, tm, names, ret) {
     const byDept = {};
     for (const e of skus) (byDept[ret.skuDept[e[0]] || 'לא מוגדר'] = byDept[ret.skuDept[e[0]] || 'לא מוגדר'] || []).push(e);
     const depts = Object.entries(byDept).map(([d, list]) => [d, list, list.reduce((a, [, s]) => a + s.z + s.h, 0)]).sort((a, b) => b[2] - a[2]);
-    html += H('3. Топ-5 артикулов по каждой מחלקה', 'отделы по убыванию списанных штук. «Уценка / השמדה» — как делятся штуки самого артикула.');
+    html += H('4. Топ-5 артикулов по каждой מחלקה', 'отделы по убыванию списанных штук. «Уценка / השמדה» — как делятся штуки самого артикула.');
     for (const [d, list, q] of depts) {
       html += P(`<b><bdi>${esc(d)}</bdi></b> — ${n0(q)} шт. (${pct(q, t.total)}% всех списаний)`);
       html += table(skuHead, list.slice(0, 5).map(skuRow), skuAlign);
     }
   } else {
-    html += H('3. Топ-7 артикулов', '«Уценка / השמדה» — как делятся штуки самого артикула.');
+    html += H('4. Топ-7 артикулов', '«Уценка / השמדה» — как делятся штуки самого артикула.');
     html += table(skuHead, skus.slice(0, 7).map(skuRow), skuAlign);
   }
 
@@ -298,7 +325,7 @@ function buildHtml(month, cur, prev, tm, names, ret) {
       wskus.map(([k, s]) => [`${k} · ${esc(s.name.slice(0, 32))}`, esc(s.fam), (s.z + s.h).toFixed(1), split(s), s.custs.size]), [2, 3, 4]);
   }
 
-  // 4. фактические возвраты по рынку (PBI, 90 дн, все активные клиенты FORMULA) — пользователь 2026-09-29:
+  // 5. фактические возвраты по рынку (PBI, 90 дн, все активные клиенты FORMULA) — пользователь 2026-09-29:
   // топ семей по ₪ возвратов + топ-5 артикулов в каждой מחלקה по «лишним» возвратам ₪ =
   // возвраты − продажи × средний % отдела. Голый % тащил наверх допроданный товар (продаж почти нет,
   // хвост возвратов на 100 ₪ даёт 100%+) — пользователь 2026-09-30: уравновесить суммой.
@@ -309,7 +336,7 @@ function buildHtml(month, cur, prev, tm, names, ret) {
     const tz = all.reduce((a, [, x]) => a + x.z, 0), tb = all.reduce((a, [, x]) => a + x.b, 0);
     // крупные сети (שופרסל, מחסני השוק, טיב טעם…) возвращают на центральные счета без продаж и агента — в PBI «רק שיווק» они есть,
   // поэтому там % выше (сверено 2026-09-30 за 07–09: PBI -3.45 млн = отчёт -1.84 + центр. счета сетей -1.60)
-  html += H('4. Фактические возвраты — последние 3 месяца', `<b>-${(100 * tz / tb).toFixed(1)}%</b> — из каждых 100 ₪ проданного товара FORMULA ${(100 * tz / tb).toFixed(1)} ₪ вернулись на השמדה (-${n0(tz)} ₪ на ${n0(tb)} ₪ продаж за 90 дней).<br>Считаются все ${n0(ret.clients)} активных клиентов частного рынка и небольших сетей, не только те, кто присылал зикуй. Товары ICE и INTER не входят — у них возвраты незначительны.<br>Крупные сети (שופרסל, מחסני השוק, טיב טעם…) не входят: их возвраты идут на центральные счета сети, поэтому в Power BI («רק שיווק») процент выше.`);
+  html += H('5. Фактические возвраты — последние 3 месяца', `<b>-${(100 * tz / tb).toFixed(1)}%</b> — из каждых 100 ₪ проданного товара FORMULA ${(100 * tz / tb).toFixed(1)} ₪ вернулись на השמדה (-${n0(tz)} ₪ на ${n0(tb)} ₪ продаж за 90 дней).<br>Считаются все ${n0(ret.clients)} активных клиентов частного рынка и небольших сетей, не только те, кто присылал зикуй. Товары ICE и INTER не входят — у них возвраты незначительны.<br>Крупные сети (שופרסל, מחסני השוק, טיב טעם…) не входят: их возвраты идут на центральные счета сети, поэтому в Power BI («רק שיווק») процент выше.`);
     const pf = {}; for (const [, x] of all) { const f = pf[x.fam || '—'] = pf[x.fam || '—'] || { z: 0, b: 0 }; f.z += x.z; f.b += x.b; }
     html += P(`<b>Топ-10 семей по сумме возвратов</b> — доля от всех возвратов и % от продаж самой семьи`);
     html += table(['Семья', 'Возвраты ₪', 'Доля возвратов', '% от продаж'],
@@ -327,39 +354,18 @@ function buildHtml(month, cur, prev, tm, names, ret) {
     }
   }
 
-  // 5. закономерности
+  // 6. закономерности
   // срез по сроку годности убран 2026-09-30: KARTIS PARIT[חיי מדף] — не полный срок, а минимальный остаток для продажи; заменит анализ «сколько дней получил клиент»
   // иврит внутри русской фразы переставляет слова (BiDi) — каждая семья отдельной строкой в <bdi>
   // приписка — доля отражает, что агенты выбирают в заявке (пользователь 2026-09-30)
   const famLines = (list, note) => list.length ? list.map(([k, f]) => `<br>• <bdi>${esc(k)}</bdi> — ${pct(f.h, f.z + f.h)}% штук этой семьи уничтожено (из ${n0(f.z + f.h)} шт.) — ${note}`).join('') : '<br>• нет';
-  html += H('5. Закономерности');
+  html += H('6. Закономерности');
   // мороженое ICE мишпахти всегда в השמדה — закономерности нет, не показываем (пользователь 2026-09-30)
   const patFams = fams.filter(([k]) => k !== ICE_FAM);
   html += P(`<b>Уценка не спасает</b> — больше 70% уходит в уничтожение (от 20 шт.):${famLines(patFams.filter(([, f]) => f.z + f.h >= 20 && pct(f.h, f.z + f.h) >= 70), 'в основном шлют заявку на השמדה')}`);
   html += P(`<b>Уценка работает</b> — не больше 30% в уничтожение (от 100 шт.):${famLines(patFams.filter(([, f]) => f.z + f.h >= 100 && pct(f.h, f.z + f.h) <= 30), 'в основном шлют заявку на уценку')}`);
 
   // раздел «Клиенты» убран: приложением пользуются не все агенты, топ клиентов искажён (пользователь 2026-09-30)
-  // 6. экономия времени: все зикуи месяца × 8.5 мин, без разбивки по агентам (пользователь 2026-09-30)
-  const short = tm.pairs.filter(p => p.s <= LONG_S);
-  const medAll = med(short.map(p => p.s));
-  const savedH = t.blanks * SAVED_PER_ZIKUY_MIN / 60;
-  html += H('6. Экономия времени', `все зикуи месяца × ${SAVED_PER_ZIKUY_MIN} мин`);
-  html += `<tr><td style="padding:0 14px 10px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:Arial,sans-serif"><tr>
-    ${kpi('Зикуев за месяц', n0(t.blanks))}
-    ${kpi('Экономия на зикуй', SAVED_PER_ZIKUY_MIN + ' мин')}
-    ${kpi('Сэкономлено', savedH.toFixed(1) + ' ч')}
-    ${kpi('Агентов', Object.keys(agent).length)}
-  </tr></table></td></tr>`;
-  html += P(`<b>Откуда ${SAVED_PER_ZIKUY_MIN} мин:</b> до приложения зикуй заполнялся вручную — бумажный бланк, фото, пересылка в офис, уточнения по телефону — не меньше 10 минут на бланк. В приложении медиана заполнения — <b>${mmss(medAll)}</b> (по ${n0(short.length)} зикуям с замером времени). Разница ≈ ${((600 - medAll) / 60).toFixed(1)} мин, берём с запасом вниз — <b>${SAVED_PER_ZIKUY_MIN} мин</b> на каждый зикуй.<br><b>Итого:</b> ${n0(t.blanks)} зикуев × ${SAVED_PER_ZIKUY_MIN} мин = <b>${savedH.toFixed(1)} ч</b> рабочего времени агентов за месяц.`);
-  // Деньги (пользователь 2026-09-30): часы по ставке агента. Прогноз на TARGET_AGENTS — среднее по активным (≥ ACTIVE_MIN бланков), новички занижали бы.
-  const shek = h => `${n0(h * AGENT_COST[0] / AGENT_HOURS)}–${n0(h * AGENT_COST[1] / AGENT_HOURS)} ₪`;
-  const active = Object.values(agent).filter(a => a.blanks >= ACTIVE_MIN);
-  const projH = active.length ? TARGET_AGENTS * avg(active.map(a => a.blanks)) * SAVED_PER_ZIKUY_MIN / 60 : 0;
-  html += P(`<b>В деньгах:</b> ${savedH.toFixed(1)} ч ≈ <b>${shek(savedH)}</b> за месяц (агент обходится в ${n0(AGENT_COST[0])}–${n0(AGENT_COST[1])} ₪ за ${AGENT_HOURS} ч ставки).`
-    + (active.length ? `<br><b>Прогноз на ${TARGET_AGENTS} агента:</b> ≈ ${projH.toFixed(0)} ч ≈ <b>${shek(projH)}</b> в месяц — если каждый работает как средний активный агент (${active.length} агентов от ${ACTIVE_MIN} бланков, в среднем ${avg(active.map(a => a.blanks)).toFixed(0)} бланков в месяц).` : ''));
-  const buckets = [[1, 1], [2, 3], [4, 6], [7, 10], [11, 999]].map(([a, b]) => { const s = short.filter(p => p.items >= a && p.items <= b).map(p => p.s); return s.length ? [b === 999 ? `${a}+` : a === b ? `${a}` : `${a}–${b}`, s.length, mmss(med(s))] : null; }).filter(Boolean);
-  html += P('<span style="font-size:12px;color:' + MUTED + '">Время по размеру бланка:</span>');
-  html += table(['Артикулов в бланке', 'Зикуев', 'Медиана времени'], buckets, [1, 2]);
 
   // 7. качество данных
   html += H('7. Качество данных');
