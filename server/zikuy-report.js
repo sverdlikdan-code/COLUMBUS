@@ -24,14 +24,13 @@ const arg = k => (process.argv.find(a => a.startsWith(`--${k}=`)) || '').split('
 const DATA = process.env.LIVE_DATA_DIR || path.join(__dirname, 'data');
 const DOCS = path.join(__dirname, '..', 'docs');
 const SAVED_PER_ZIKUY_MIN = 8.5, LONG_S = 1800;
-const AGENT_COST = [20000, 22000], AGENT_HOURS = 180, TARGET_AGENTS = 22, FULL_MONTH_DAY = 7; // ₪/мес за ставку; прогноз — только агенты с первым зикуем не позже 7-го (пользователь 2026-09-30)
+const AGENT_COST = [20000, 22000], AGENT_HOURS = 180, TARGET_AGENTS = 22, ACTIVE_MIN = 20; // ₪/мес за ставку; прогноз — агенты от 20 бланков в месяц (пользователь 2026-09-30)
 const ICE_FAM ='ICE מוצרים משפחתיים'; // мишпахти без семьи в каталоге (SKU 502xxx/503xxx)
 
 const NAVY = '#1C3D6B', GOLD = '#C9A227', INK = '#1F2937', MUTED = '#6B7280', LINE = '#E5E7EB', PAPER = '#F4F6FA', RED = '#B91C1C', GREEN = '#15803D';
 const MONTHS_RU = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
 
-const ilDay = iso => new Date(Date.parse(iso)).toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' });
-const ilMonth = iso => ilDay(iso).slice(0, 7);
+const ilMonth = iso => new Date(Date.parse(iso)).toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' }).slice(0, 7);
 function prevMonth(ym) { const [y, m] = ym.split('-').map(Number); return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`; }
 const readJson = p => JSON.parse(fs.readFileSync(p, 'utf8'));
 const med = v => { if (!v.length) return 0; const s = [...v].sort((a, b) => a - b), n = s.length; return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2; };
@@ -247,10 +246,8 @@ function buildHtml(month, cur, prev, tm, names, ret) {
   const short = tm.pairs.filter(p => p.s <= LONG_S);
   const medAll = med(short.map(p => p.s));
   const savedH = t.blanks * SAVED_PER_ZIKUY_MIN / 60;
-  // Деньги: часы по ставке агента. Прогноз на TARGET_AGENTS — среднее только по тем, кто работал в приложении весь месяц
-  // (первый зикуй за всю историю — не позже FULL_MONTH_DAY числа); подключившиеся позже занижали бы (пользователь 2026-09-30)
-  const fullFrom = `${month}-${String(FULL_MONTH_DAY).padStart(2, '0')}`;
-  const active = Object.entries(agent).filter(([code]) => cur._first[code] && ilDay(cur._first[code]) <= fullFrom).map(([, a]) => a);
+  // Деньги: часы по ставке агента. Прогноз на TARGET_AGENTS — среднее по активным (≥ ACTIVE_MIN бланков), новички занижали бы.
+  const active = Object.values(agent).filter(a => a.blanks >= ACTIVE_MIN);
   const projH = active.length ? TARGET_AGENTS * avg(active.map(a => a.blanks)) * SAVED_PER_ZIKUY_MIN / 60 : 0;
   const hRound = h => Math.round(h / 5) * 5;
   const kShek = h => `<span style="white-space:nowrap">${Math.round(h * AGENT_COST[0] / AGENT_HOURS / 1000)}–${Math.round(h * AGENT_COST[1] / AGENT_HOURS / 1000)}</span> <span style="white-space:nowrap">тыс. ₪</span>`;
@@ -266,7 +263,7 @@ function buildHtml(month, cur, prev, tm, names, ret) {
   </tr></table></td></tr>`;
   if (active.length) html += `<tr><td style="padding:6px 14px"><div style="background:#EEF6F0;border-left:4px solid ${GREEN};padding:12px 14px;font-size:15px;color:${INK};line-height:1.5">
     <b>Когда подключатся все ${TARGET_AGENTS} агента:</b> ≈ <b>${hRound(projH)} ч</b> и <b>≈ ${kShek(projH)}</b> экономии в месяц.</div></td></tr>`;
-  html += P(`<span style="font-size:12px;color:${MUTED}"><b>Как считали.</b> До приложения зикуй заполнялся вручную — бумажный бланк, фото, пересылка в офис, уточнения по телефону — не меньше 10 минут на бланк. В приложении медиана заполнения — ${mmss(medAll)} (по ${n0(short.length)} зикуям с замером времени), разница ≈ ${((600 - medAll) / 60).toFixed(1)} мин, берём с запасом вниз — ${SAVED_PER_ZIKUY_MIN} мин. ${n0(t.blanks)} зикуев × ${SAVED_PER_ZIKUY_MIN} мин = ${savedH.toFixed(1)} ч. Деньги — по стоимости агента ${n0(AGENT_COST[0])}–${n0(AGENT_COST[1])} ₪ за ${AGENT_HOURS} ч ставки.${active.length ? ` Прогноз — если каждый из ${TARGET_AGENTS} работает как средний агент (${active.length} агентов, которые работали в приложении весь месяц — первый зикуй не позже ${FULL_MONTH_DAY}-го числа; в среднем ${avg(active.map(a => a.blanks)).toFixed(0)} бланков в месяц).` : ''}</span>`);
+  html += P(`<span style="font-size:12px;color:${MUTED}"><b>Как считали.</b> До приложения зикуй заполнялся вручную — бумажный бланк, фото, пересылка в офис, уточнения по телефону — не меньше 10 минут на бланк. В приложении медиана заполнения — ${mmss(medAll)} (по ${n0(short.length)} зикуям с замером времени), разница ≈ ${((600 - medAll) / 60).toFixed(1)} мин, берём с запасом вниз — ${SAVED_PER_ZIKUY_MIN} мин. ${n0(t.blanks)} зикуев × ${SAVED_PER_ZIKUY_MIN} мин = ${savedH.toFixed(1)} ч. Деньги — по стоимости агента ${n0(AGENT_COST[0])}–${n0(AGENT_COST[1])} ₪ за ${AGENT_HOURS} ч ставки.${active.length ? ` Прогноз — если каждый из ${TARGET_AGENTS} работает как средний активный агент сейчас (${active.length} агентов от ${ACTIVE_MIN} бланков, в среднем ${avg(active.map(a => a.blanks)).toFixed(0)} бланков в месяц).` : ''}</span>`);
   const buckets = [[1, 1], [2, 3], [4, 6], [7, 10], [11, 999]].map(([a, b]) => { const x = short.filter(p => p.items >= a && p.items <= b).map(p => p.s); return x.length ? [b === 999 ? `${a}+` : a === b ? `${a}` : `${a}–${b}`, x.length, mmss(med(x))] : null; }).filter(Boolean);
   html += P('<span style="font-size:12px;color:' + MUTED + '">Время заполнения по размеру бланка:</span>');
   html += table(['Артикулов в бланке', 'Зикуев', 'Медиана времени'], buckets, [1, 2]);
@@ -398,9 +395,7 @@ async function main() {
   const curBlanks = pick(month), prevBlanks = pick(prevMonth(month));
   if (!curBlanks.length) { console.log(`Нет бланков за ${month} — письмо не отправлено.`); return; }
   const weighted = weightedSkus(all);
-  // первый зикуй агента за всю историю (92 дня) — для прогноза «кто работал весь месяц»
-  const first = {}; for (const e of all) if (!first[e.agentCode] || Date.parse(e.ts) < Date.parse(first[e.agentCode])) first[e.agentCode] = e.ts;
-  const cur = Object.assign(summarize(curBlanks, famOf, shelf, weighted), { _blanks: curBlanks, _weighted: weighted, _first: first });
+  const cur = Object.assign(summarize(curBlanks, famOf, shelf, weighted), { _blanks: curBlanks, _weighted: weighted });
   // blank-history хранит 92 дня — прошлый месяц сравниваем, только если он в истории целиком
   const prev = prevBlanks.length && all[0] && ilMonth(all[0].ts) < prevMonth(month) ? summarize(prevBlanks, famOf, shelf, weighted) : null;
   const tm = loadTimings(month);
