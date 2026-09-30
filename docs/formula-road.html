@@ -358,6 +358,8 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
    ₪ itself was getting chopped) in case a genuinely extreme real value ever
    needs it despite the .sort-toggle min-width fix above. */
 .fpb-sub{font-size:14px;font-weight:800;color:#2E7D32;white-space:nowrap;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;}
+.fpb-info:has(.fpb-off){flex-wrap:wrap;row-gap:0;}
+.fpb-off{flex-basis:100%;font-size:12px;font-weight:700;color:#C62828;white-space:nowrap;}
 .city-chip{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #90CAF9;background:#F8FBFF;color:#1565C0;white-space:nowrap;flex:0 0 auto;display:flex;align-items:center;gap:5px;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,.08);}
 .city-chip:hover{background:#E3F2FD;border-color:#42A5F5;}
 .city-chip.on{background:#1565C0;color:#fff;border-color:#1565C0;box-shadow:0 2px 6px rgba(21,101,192,.3);}
@@ -2663,14 +2665,14 @@ function _announceTodayOrder(){
 // — an agent visiting a client a day early/late showed 0 done despite a real
 // order, because that client isn't in today's roster. numer is a count of
 // orders actually made today, unfiltered by schedule day, same as sum.
-let _fpbSum = 0, _fpbNumer = 0;
+let _fpbSum = 0, _fpbNumer = 0, _fpbServedIds = null; // served ids: BDD only, for the "מחוץ לקו" note
 async function _updateFormulaBanner(){
   const agentCode = st.agent?.code;
   if(!agentCode) return;
   try{
     const r = await apiFetch(`${API}/api/day-closing?agentCode=${encodeURIComponent(agentCode)}&type=${_isBdd()?'bdd':'formula'}`);
     const d = await r.json();
-    if(d?.ok){ _fpbSum = d.sum || 0; _fpbNumer = d.custCount || 0; }
+    if(d?.ok){ _fpbSum = d.sum || 0; _fpbNumer = d.custCount || 0; _fpbServedIds = d.type==='bdd' ? (d.byClient||[]).map(c=>String(c.custId)) : null; }
   }catch(e){ /* keep last known numbers on a hiccup — not worth blanking the banner */ }
   _renderFormulaBanner();
 }
@@ -2686,7 +2688,9 @@ function _fpbRingSvg(pct, color){
       <text class="fpb-ring-text" x="22" y="22" dy=".35em" text-anchor="middle" fill="${color}">${pct}%</text>
     </svg>`;
 }
-function _fpbPieceHtml(numer, denom, sum){
+// offLine (BDD only, user 2026-09-30): clients served today outside today's line — a note, the % is unchanged.
+function _fpbOffLineHtml(offLine){ return offLine>0 ? `<div class="fpb-off">מתוכם ${offLine} מחוץ לקו</div>` : ''; }
+function _fpbPieceHtml(numer, denom, sum, offLine){
   const pct = denom ? Math.round(numer/denom*100) : 0;
   const color = pct>=70 ? '#2E7D32' : pct>=40 ? '#F9A825' : '#C62828';
   return `
@@ -2694,6 +2698,7 @@ function _fpbPieceHtml(numer, denom, sum){
     <div class="fpb-info">
       <div class="fpb-main">${numer} <span class="fpb-of">מתוך ${denom} הזמינו היום</span></div>
       <div class="fpb-sub">₪${Math.round(sum).toLocaleString('he-IL')}</div>
+      ${_fpbOffLineHtml(offLine)}
     </div>`;
 }
 // The card is always shown (never display:none) once this has run at least
@@ -2715,7 +2720,9 @@ function _renderFormulaBanner(){
   if(isToday && denom){
     el.classList.remove('fpb-toggle-only');
     content.style.display='';
-    content.innerHTML=_fpbPieceHtml(_fpbNumer, denom, _fpbSum);
+    const lineIds = new Set(todayFormula.map(c => String(c.custId)));
+    const offLine = _fpbServedIds ? _fpbServedIds.filter(id => !lineIds.has(id)).length : 0;
+    content.innerHTML=_fpbPieceHtml(_fpbNumer, denom, _fpbSum, offLine);
   }else{
     el.classList.add('fpb-toggle-only');
     content.style.display='none';
@@ -2726,10 +2733,10 @@ function _renderFormulaBanner(){
 // Compact FORMULA order-dynamics block for a dark manager tile (mgr-grid) —
 // separate markup from _fpbPieceHtml because that one assumes a light
 // background; this reuses the tile's existing gold/white palette instead.
-function _mgrTileStatsHtml(numer, denom, sum){
+function _mgrTileStatsHtml(numer, denom, sum, offLine){
   const pct = denom ? Math.round(numer/denom*100) : 0;
   return `<div class="mgr-tile-s1">${numer} מתוך ${denom} · ${pct}%</div>
-    <div class="mgr-tile-s2">₪${Math.round(sum).toLocaleString('he-IL')}</div>`;
+    <div class="mgr-tile-s2">₪${Math.round(sum).toLocaleString('he-IL')}</div>${offLine>0?`<div class="mgr-tile-s2">מתוכם ${offLine} מחוץ לקו</div>`:''}`;
 }
 
 // Live FORMULA order dynamics for the manager-facing screens — mgr-grid tiles
@@ -2792,7 +2799,7 @@ async function _refreshTeamStats(){
       const ring=document.getElementById('mc-ring-'+m);
       const s=d.byManager?.[m];
       if(s&&s.denom){
-        el.innerHTML=_mgrTileStatsHtml(s.numer,s.denom,s.sum);
+        el.innerHTML=_mgrTileStatsHtml(s.numer,s.denom,s.sum,s.offLine);
         if(ring){
           const pct=Math.round(s.numer/s.denom*100);
           const c=175.93; // 2*PI*28, matches the r=28 circle in the tile markup
@@ -2806,16 +2813,16 @@ async function _refreshTeamStats(){
     });
   }else if(st.step==='agent'){
     const agents=st._agents||[];
-    let teamNumer=0, teamDenom=0, teamSum=0;
+    let teamNumer=0, teamDenom=0, teamSum=0, teamOff=0;
     agents.forEach(a=>{
       const el=document.getElementById('cnt-'+a.agentCode);
       const s=d.byAgent?.[a.agentCode];
-      if(el) el.innerHTML=(s&&s.denom)?_fpbPieceHtml(s.numer,s.denom,s.sum):'';
-      if(s){ teamNumer+=s.numer; teamDenom+=s.denom; teamSum+=s.sum; }
+      if(el) el.innerHTML=(s&&s.denom)?_fpbPieceHtml(s.numer,s.denom,s.sum,s.offLine):'';
+      if(s){ teamNumer+=s.numer; teamDenom+=s.denom; teamSum+=s.sum; teamOff+=s.offLine||0; }
     });
     const teamEl=document.getElementById('agent-list-team-banner');
     if(teamEl){
-      if(teamDenom){ teamEl.style.display='flex'; teamEl.innerHTML=_fpbPieceHtml(teamNumer,teamDenom,teamSum); }
+      if(teamDenom){ teamEl.style.display='flex'; teamEl.innerHTML=_fpbPieceHtml(teamNumer,teamDenom,teamSum,teamOff); }
       else teamEl.style.display='none';
     }
   }

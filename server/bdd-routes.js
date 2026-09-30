@@ -287,12 +287,16 @@ function createBdd(deps) {
     const todayDay = deps.todayRouteDay();
     const byAgent = {}, byManager = {};
     for (const [group, agents] of cache.agentsByGroup) {
-      const acc = { denom: 0, numer: 0, sum: 0 };
+      const acc = { denom: 0, numer: 0, sum: 0, offLine: 0 };
       for (const a of agents) {
-        const denom = (cache.byAgent.get(a.agentCode) || []).filter(c => c.dayNum === todayDay).length;
+        const lineClients = (cache.byAgent.get(a.agentCode) || []).filter(c => c.dayNum === todayDay);
+        const line = new Set(lineClients.map(c => String(c.custId)));
+        const denom = lineClients.length;
         const d = s?.byAgent.get(a.agentCode);
-        byAgent[a.agentCode] = { denom, numer: d?.custCount || 0, sum: d?.sum || 0 };
-        acc.denom += denom; acc.numer += byAgent[a.agentCode].numer; acc.sum += byAgent[a.agentCode].sum;
+        // offLine: served today but not in today's line — shown next to the % (user 2026-09-30), % itself unchanged.
+        const offLine = (d?.byClient || []).filter(c => !line.has(String(c.custId))).length;
+        byAgent[a.agentCode] = { denom, numer: d?.custCount || 0, sum: d?.sum || 0, offLine };
+        acc.denom += denom; acc.numer += byAgent[a.agentCode].numer; acc.sum += byAgent[a.agentCode].sum; acc.offLine += offLine;
       }
       byManager[group] = acc;
     }
