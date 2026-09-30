@@ -2182,10 +2182,44 @@ async function _maybeRenderChannelToggle(){
     +`<button type="button" class="ch-seg${bdd?' active':''}" onclick="_switchChannel('ICE_BDD')">ICE BDD</button>`;
   wrap.insertBefore(t, wrap.firstChild);
 }
+// Extra tiles (🧊, 📉) after the manager tiles: fixed order 🧊 then 📉; only the last
+// tile left without a pair spans the full row — symmetric for any team count/role.
+function _fixMgrGridSpan(grid){
+  const cov=grid.querySelector('.coverage-tile'), mek=grid.querySelector('.mekarer-admin-tile');
+  if(cov&&mek&&(mek.compareDocumentPosition(cov)&Node.DOCUMENT_POSITION_PRECEDING)) grid.appendChild(cov);
+  [...grid.children].forEach(el=>{ if(el.classList.contains('mekarer-admin-tile')||el.classList.contains('coverage-tile')) el.style.gridColumn=''; });
+  const last=grid.lastElementChild;
+  if(grid.children.length%2===1&&last&&(last.classList.contains('mekarer-admin-tile')||last.classList.contains('coverage-tile'))) last.style.gridColumn='1/-1';
+}
+// "📉 כיסוי לפי ימים" — server decides who sees it (/api/coverage-history?probe=1):
+// FORMULA team managers (own team), BDD team managers (own groups), super. Readonly: no tile.
+let _coverageProbe=null;
+async function _maybeRenderCoverageBtn(){
+  const token=_getToken();
+  if(!token) return;
+  if(!_coverageProbe) _coverageProbe=fetch(API+'/api/coverage-history?probe=1',{headers:{'X-Session':token}}).then(r=>r.ok?r.json():null).catch(()=>null);
+  const p=await _coverageProbe;
+  const ch=_isBdd()?'bdd':'formula';
+  if(!p?.channels?.includes(ch) || st.step!=='manager') return;
+  const grid=document.querySelector('#login-body .mgr-grid');
+  if(!grid || grid.querySelector('.coverage-tile')) return;
+  const t=document.createElement('div');
+  t.className='mgr-tile coverage-tile';
+  t.setAttribute('role','button');
+  t.setAttribute('aria-label','כיסוי לפי ימים');
+  t.innerHTML=`<div class="mgr-tile-ring-wrap">
+      <svg class="mgr-tile-ring" viewBox="0 0 64 64"><circle class="mgr-tile-ring-track" cx="32" cy="32" r="28"/></svg>
+      <div class="mgr-tile-av" style="font-size:22px">📉</div>
+    </div>
+    <div class="mgr-tile-name">כיסוי לפי ימים</div>
+    <div class="mgr-tile-stats"></div>`;
+  t.onclick=()=>window.open('coverage-history.html?ch='+ch,'_blank');
+  grid.appendChild(t);
+  _fixMgrGridSpan(grid);
+}
 // "ניהול מקררים" (mekarer-admin.html) — same server-gated probe as the channel toggle:
 // every PBI session + the fridge admins (yosi/natasha) + super get a 200.
-// Rendered as the last tile of the manager grid; spans the full row when the
-// manager count is even, so the grid stays symmetric in both channels.
+// Rendered after the manager tiles; row spans handled by _fixMgrGridSpan.
 let _mekarerAdminProbe=null;
 async function _maybeRenderMekarerAdminBtn(){
   const token=_getToken();
@@ -2194,12 +2228,10 @@ async function _maybeRenderMekarerAdminBtn(){
   if(!(await _mekarerAdminProbe) || st.step!=='manager') return;
   const grid=document.querySelector('#login-body .mgr-grid');
   if(!grid || grid.querySelector('.mekarer-admin-tile')) return;
-  const n=grid.children.length;
   const t=document.createElement('div');
   t.className='mgr-tile mekarer-admin-tile';
   t.setAttribute('role','button');
   t.setAttribute('aria-label','ניהול מקררים');
-  if(n%2===0) t.style.gridColumn='1/-1';
   t.innerHTML=`<div class="mgr-tile-ring-wrap">
       <svg class="mgr-tile-ring" viewBox="0 0 64 64"><circle class="mgr-tile-ring-track" cx="32" cy="32" r="28"/></svg>
       <div class="mgr-tile-av" style="font-size:22px">🧊</div>
@@ -2208,6 +2240,7 @@ async function _maybeRenderMekarerAdminBtn(){
     <div class="mgr-tile-stats"></div>`;
   t.onclick=()=>window.open('mekarer-admin.html','_blank');
   grid.appendChild(t);
+  _fixMgrGridSpan(grid);
 }
 // Full reload = clean re-init of every channel-dependent piece of state (corrections,
 // namespaced localStorage, body.bdd); the saved manager session lands back on this picker.
@@ -2382,6 +2415,7 @@ function renderLogin(){
       </div>`;
     _maybeRenderChannelToggle();
     _maybeRenderMekarerAdminBtn();
+    _maybeRenderCoverageBtn();
     startTeamStatsPolling();
   }else if(st.step==='agent-welcome'){
     // First-ever open via an agent's own invite link — same branded s-login
