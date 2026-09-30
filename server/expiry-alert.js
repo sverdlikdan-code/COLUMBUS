@@ -20,6 +20,9 @@ const NOTE = (process.env.EXPIRY_ALERT_NOTE || '').replace(/[<>&]/g, '').trim();
 const DOCS = path.join(__dirname, '..', 'docs');
 // Пока выключено (пользователь 2026-09-29: «не отправлять Максиму, нужно доработать») — вернуть 'maxim@dilerbmd.com' по умолчанию.
 const SPLIT_TO = (process.env.EXPIRY_ALERT_SPLIT_TO || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+// Копия задана → одно письмо: RECIPIENTS в «Кому», CC в копии, приветствие всем адресатам (пользователь 2026-09-30).
+// Без CC — как раньше, личное письмо каждому.
+const CC = (process.env.EXPIRY_ALERT_CC || '').split(',').map(s => s.trim()).filter(Boolean);
 
 const NAVY = '#1C3D6B';
 const GOLD = '#B8863B';
@@ -230,12 +233,15 @@ async function runVariant({ split, to }) {
   if (fs.existsSync(logoPath)) attachments.push({ filename: 'logo-white.png', content: fs.readFileSync(logoPath).toString('base64'), contentId: 'diler-logo-white' });
   const subject = `התראת תוקף${split ? ' לפי מחסן' : ''} — ${shots.length} ${shots.length === 1 ? 'מוצר בסכנה' : 'מוצרים בסכנה'}`;
 
-  // Личное письмо на каждого получателя — как obligo-alert.
-  for (const recipient of to) {
-    const greetName = RECIPIENT_NAMES[recipient.toLowerCase()];
+  // С копией — одно письмо; без неё — личное письмо на каждого получателя, как obligo-alert.
+  const heJoin = a => a.length > 1 ? `${a.slice(0, -1).join(', ')} ו${a[a.length - 1]}` : a[0];
+  const sends = CC.length ? [{ to, cc: CC }] : to.map(r => ({ to: [r] }));
+  for (const snd of sends) {
+    const names = snd.to.map(r => RECIPIENT_NAMES[r.toLowerCase()]).filter(Boolean);
+    const greetName = names.length === snd.to.length ? heJoin(names) : undefined;
     const res = await resend.emails.send({
       from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
-      to: [recipient],
+      ...snd,
       subject,
       html: buildEmailHtml(shots.length, greetName, risk, split),
       text: [
@@ -250,7 +256,7 @@ async function runVariant({ split, to }) {
       ].join('\n'),
       attachments,
     });
-    console.log(tag, recipient, JSON.stringify(res));
+    console.log(tag, snd.to.join(','), snd.cc ? 'cc ' + snd.cc.join(',') : '', JSON.stringify(res));
   }
 }
 
