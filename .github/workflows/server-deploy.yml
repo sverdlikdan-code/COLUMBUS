@@ -11,6 +11,7 @@ on:
       - 'server/events-db.js'
       - 'server/bdd*.js'
       - 'server/mekarer-daily.js'
+      - 'server/coverage*.js'
       - 'server/package.json'
       - 'server/package-lock.json'
       - 'docs/formula-road.html'
@@ -20,6 +21,8 @@ on:
       - 'docs/mekarer-order.html'
       - 'docs/mekarer-admin.html'
       - 'docs/day-closing.html'
+      - 'docs/coverage-history.html'
+      - '.github/workflows/server-deploy.yml'
       - 'MMD ORDERS/tukuf.html'
       - 'MMD ORDERS/index.html'
 
