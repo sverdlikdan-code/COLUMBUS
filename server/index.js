@@ -5767,6 +5767,82 @@ function formulaLineFor(agentCode, dayNum, overrides) {
     movedInOk: id => formulaIds.has(id) || (!iceIds.has(id) && !dayMoves[id]?.client?.iceOnly) });
 }
 
+// ── Line-coverage history (PRD/coverage-history-design.md) ──
+// One evening snapshot per working day (20:07, retry 20:47) + a one-time backfill
+// of the screen period; /api/coverage-history only reads this file.
+const { openCoverageDb } = require('./coverage-db');
+const coverageDb = openCoverageDb(path.join(__dirname, 'data', 'coverage.db'));
+
+// FORMULA rows for one date: FORMULA clients (formulaLineFor) vs FORMULA orders
+// (form DB, roster-OR-entering credit) — never ICE (user 2026-09-30).
+async function formulaCoverageRows(dateStr, dayNum) {
+  if (!pbiCache) throw new Error('pbi cache not loaded');
+  const orders = await dayClosingOrdersToday(process.env.DB_NAME || 'form', dateStr);
+  if (!orders) throw new Error('priority orders query failed'); // returns null on error
+  const { custs } = creditedCustsByAgent(orders, custIdToRosterAgent());
+  const overrides = readRouteOverrides();
+  const rows = [], seen = new Set();
+  for (const [manager, agents] of pbiCache.agentsByManager) {
+    for (const a of agents) {
+      // ponytail: an agent under 2 managers keeps only the first (none on 2026-09-30), upgrade PK to include team if that changes
+      if (seen.has(String(a.agentCode))) continue;
+      seen.add(String(a.agentCode));
+      const c = coverageCounts(formulaLineFor(a.agentCode, dayNum, overrides), custs.get(a.agentCode) || new Set());
+      rows.push({ date: dateStr, channel: 'formula', agentCode: String(a.agentCode), agentName: a.agentName || '', team: manager, dayNum, ...c });
+    }
+  }
+  return rows;
+}
+
+// One write per channel per day (user 2026-09-30): skipped if today's snapshot already exists.
+async function writeCoverageDay(dateStr, source) {
+  const dayNum = routeDayOf(dateStr);
+  if (!dayNum) return; // Fri/Sat — no route
+  const builders = { formula: formulaCoverageRows, bdd: (d, n) => bdd.coverageRows(d, n) };
+  for (const [channel, build] of Object.entries(builders)) {
+    if (source === 'snapshot' && coverageDb.hasSnapshot(dateStr, channel)) continue;
+    try {
+      const rows = await build(dateStr, dayNum);
+      coverageDb.upsert(rows.map(r => ({ ...r, source })));
+      console.log(`[coverage-${source}] ${channel} ${dateStr}: ${rows.length} agents`);
+    } catch (e) {
+      console.error(`[coverage-${source}] ${channel} ${dateStr} failed:`, e.message);
+    }
+  }
+}
+function scheduleCoverageSnapshot(hour, minute) {
+  setTimeout(() => {
+    writeCoverageDay(todayIsraelDate(), 'snapshot');
+    scheduleCoverageSnapshot(hour, minute);
+  }, msUntilNextIsraelTime(hour, minute));
+}
+function israelHHMM() {
+  return new Date().toLocaleTimeString('en-GB', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+}
+
+// First start with no backfill rows: fill the screen period (3 months + current, up to
+// yesterday) from Priority, one date at a time (no parallel queries), skipping dates
+// that already have rows. Runs in-process — no localhost-only route (cloudflared).
+async function backfillCoverageOnce() {
+  if (coverageDb.hasAnyBackfill()) return;
+  const { from, to } = coveragePeriod(todayIsraelDate());
+  const done = { formula: coverageDb.datesWithRows('formula'), bdd: coverageDb.datesWithRows('bdd') };
+  const t0 = Date.now();
+  for (let d = new Date(from + 'T12:00:00Z'); d.toISOString().slice(0, 10) <= to; d.setUTCDate(d.getUTCDate() + 1)) {
+    const dateStr = d.toISOString().slice(0, 10);
+    const dayNum = routeDayOf(dateStr);
+    if (!dayNum) continue;
+    for (const channel of ['formula', 'bdd']) {
+      if (done[channel].has(dateStr)) continue;
+      try {
+        const rows = channel === 'formula' ? await formulaCoverageRows(dateStr, dayNum) : await bdd.coverageRows(dateStr, dayNum);
+        coverageDb.upsert(rows.map(r => ({ ...r, source: 'backfill' })));
+      } catch (e) { console.error(`[coverage-backfill] ${channel} ${dateStr} failed:`, e.message); }
+    }
+  }
+  console.log(`[coverage-backfill] ${from}..${to} done in ${Math.round((Date.now() - t0) / 1000)}s`);
+}
+
 // GET /api/team-order-stats — FORMULA "today" order dynamics (denom/numer/sum)
 // for every agent AND aggregated per manager, built entirely from data already
 // in memory: pbiCache's schedule (no extra Priority query) plus the cache
@@ -6216,6 +6292,22 @@ const bdd = createBdd({
   }),
 });
 app.use('/api/bdd', bdd.router);
+
+// Coverage history schedule — must stay below `const bdd` (TDZ at startup otherwise).
+scheduleCoverageSnapshot(20, 7);
+scheduleCoverageSnapshot(20, 47); // retry — no-op when 20:07 already wrote the day
+// Caches ready (FORMULA PBI + BDD) → catch up tonight's missed snapshot, then backfill once.
+(function coverageStartup(tries = 0) {
+  if (!pbiCache || !bdd.ready()) {
+    if (tries < 30) setTimeout(() => coverageStartup(tries + 1), 60 * 1000);
+    return;
+  }
+  const hhmm = israelHHMM();
+  const late = hhmm >= '20:07' && hhmm <= '23:59';
+  (late ? writeCoverageDay(todayIsraelDate(), 'snapshot') : Promise.resolve())
+    .then(() => backfillCoverageOnce())
+    .catch(e => console.error('[coverage-startup] failed:', e.message));
+})();
 
 // ── Client Return Form (זיכוי) — products this client bought in the last 365 days,
 // each with a 3-closed-month return-rate (% זיכויים) and photo, for building a

@@ -583,7 +583,26 @@ ${mekarerRows}
     });
   }
 
-  return { router, start };
+  // Coverage snapshot/backfill rows for one date (PRD/coverage-history-design.md).
+  // Queries Priority directly for that date — independent of the 75 s docsToday cache.
+  // BDD families only (summarizeBddDocs) — channels never mix (user 2026-09-30).
+  async function coverageRows(dateStr, dayNum) {
+    if (!cache) throw new Error('bdd cache not loaded');
+    const summary = summarizeBddDocs(await bddDocLinesToday(DB(), dateStr), cache.families);
+    const overrides = readJson(FILES.overrides, {});
+    const rows = [];
+    for (const [group, agents] of cache.agentsByGroup) {
+      for (const a of agents) {
+        const d = summary.byAgent.get(a.agentCode);
+        const served = new Set((d?.byClient || []).map(c => String(c.custId)));
+        const c = coverageCounts(bddLineFor(a.agentCode, dayNum, overrides), served);
+        rows.push({ date: dateStr, channel: 'bdd', agentCode: String(a.agentCode), agentName: a.agentName || '', team: group, dayNum, ...c });
+      }
+    }
+    return rows;
+  }
+
+  return { router, start, coverageRows, ready: () => !!cache };
 }
 
 module.exports = { createBdd };
