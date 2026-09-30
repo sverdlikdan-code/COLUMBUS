@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>כיסוי לפי ימים — FORMULA</title>
+<style>
+:root{--blue:#1565C0;--blue-dark:#0D47A1;--green:#2E7D32;--green-bg:#E8F5E9;--yellow-bg:#FFF4D6;--yellow:#8A6100;
+  --red:#C62828;--red-bg:#FFEBEE;--grey-bg:#F0F2F5;--text:#1A1A2E;--light:#78909C;--bg:#F5F7FA;--card:#fff;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(--text);min-height:100vh;}
+.top-bar{background:linear-gradient(135deg,var(--blue-dark),var(--blue));color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,.2);}
+.back-btn{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;width:34px;height:34px;font-size:18px;cursor:pointer;}
+.top-title{font-size:17px;font-weight:800;}
+.wrap{max-width:760px;margin:0 auto;padding:14px 16px 40px;}
+.bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.seg{display:flex;background:#fff;border:1px solid #CFD8DC;border-radius:10px;overflow:hidden;}
+.seg button{border:none;background:none;padding:7px 14px;font-weight:700;font-size:13px;color:var(--blue);cursor:pointer;}
+.seg button.on{background:var(--blue);color:#fff;}
+.period{font-size:12px;color:var(--light);margin-inline-start:auto;direction:ltr;unicode-bidi:isolate;}
+.legend{font-size:11px;color:var(--light);margin-top:6px;}
+h2{font-size:14px;font-weight:800;margin:14px 0 8px;}
+.top3{display:flex;flex-direction:column;gap:6px;}
+.worst{background:var(--card);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 1px 3px rgba(0,0,0,.08);border-inline-start:4px solid var(--red);}
+.worst .n{font-weight:900;color:var(--red);font-size:15px;min-width:44px;text-align:center;}
+.worst .t{font-size:14px;font-weight:700;}
+.worst .s{font-size:12px;color:var(--light);}
+.tbl-wrap{overflow-x:auto;background:var(--card);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+table{border-collapse:collapse;width:100%;min-width:340px;}
+th,td{padding:6px 4px;text-align:center;font-size:12px;border-bottom:1px solid #ECEFF1;}
+th{background:#FAFBFC;font-weight:800;color:var(--light);}
+td.ag{text-align:right;font-weight:700;white-space:nowrap;padding-inline-start:10px;max-width:120px;overflow:hidden;text-overflow:ellipsis;}
+td.c{cursor:pointer;}
+td.c .p{font-size:14px;font-weight:900;}
+td.c .o{font-size:10px;color:var(--light);}
+.r{background:var(--red-bg);} .r .p{color:var(--red);}
+.y{background:var(--yellow-bg);} .y .p{color:var(--yellow);}
+.g{background:var(--green-bg);} .g .p{color:var(--green);}
+.x{background:var(--grey-bg);color:var(--light);}
+tr.team td{font-weight:800;border-top:2px solid #CFD8DC;}
+td.c.sel{outline:2px solid var(--blue);outline-offset:-2px;}
+.detail{margin-top:10px;background:var(--card);border-radius:10px;padding:10px 12px;box-shadow:0 1px 3px rgba(0,0,0,.08);font-size:13px;}
+.detail .row{display:flex;gap:8px;padding:3px 0;border-bottom:1px dashed #ECEFF1;}
+.detail .row:last-child{border:none;}
+.msg{padding:40px 10px;text-align:center;color:var(--light);}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <button class="back-btn" onclick="history.length>1?history.back():location.href='/formula-road'" title="חזרה">→</button>
+  <div class="top-title">📉 כיסוי לפי ימים</div>
+</div>
+<div class="wrap" id="wrap"><div class="msg">טוען...</div></div>
+<script>
+const API = location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? '' : 'https://api.sverdlik-apps.site';
+const TOKEN = localStorage.getItem('frToken') || '';
+const DAYS = ['א', 'ב', 'ג', 'ד', 'ה'];
+let DATA = null, SEL = null;
+
+const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const pct = (i, p) => p ? Math.round(i / p * 100) : null;
+const cls = v => v === null ? 'x' : v < 50 ? 'r' : v < 75 ? 'y' : 'g';
+const fmtD = ymd => ymd.slice(8, 10) + '.' + ymd.slice(5, 7);
+const plus = n => `<bdi dir="ltr">+${n}</bdi>`; // RTL would render "+17" as "17+"
+
+async function load(channel) {
+  document.getElementById('wrap').innerHTML = '<div class="msg">טוען...</div>';
+  try {
+    const r = await fetch(API + '/api/coverage-history' + (channel ? '?channel=' + channel : ''), { headers: { 'X-Session': TOKEN } });
+    if (r.status === 403 || r.status === 401) { document.getElementById('wrap').innerHTML = '<div class="msg">אין הרשאה לדף זה</div>'; return; }
+    DATA = await r.json(); SEL = null; render();
+  } catch (e) { document.getElementById('wrap').innerHTML = '<div class="msg">שגיאת טעינה — נסה שוב</div>'; }
+}
+
+// agent → day(1..5) → {p, i, o, dates:[row]}; plus team totals per day. Σ-based %, not mean of %.
+function aggregate(rows) {
+  const agents = new Map(), team = {};
+  for (const r of rows) {
+    if (!agents.has(r.agent_code)) agents.set(r.agent_code, { code: r.agent_code, name: r.agent_name, days: {}, p: 0, i: 0 });
+    const a = agents.get(r.agent_code);
+    const d = a.days[r.day_num] ||= { p: 0, i: 0, o: 0, dates: [] };
+    d.p += r.planned; d.i += r.in_line; d.o += r.off_line; d.dates.push(r);
+    a.p += r.planned; a.i += r.in_line;
+    const t = team[r.day_num] ||= { p: 0, i: 0, o: 0 };
+    t.p += r.planned; t.i += r.in_line; t.o += r.off_line;
+  }
+  const list = [...agents.values()].sort((x, y) => (pct(x.i, x.p) ?? 101) - (pct(y.i, y.p) ?? 101));
+  return { list, team };
+}
+
+function cell(d, key) {
+  if (!d || !d.p) return `<td class="x">—</td>`;
+  const v = pct(d.i, d.p);
+  const sel = SEL === key ? ' sel' : '';
+  return `<td class="c ${cls(v)}${sel}" onclick="pick('${key}')"><div class="p">${v}%</div>${d.o ? `<div class="o">${plus(d.o)}</div>` : ''}</td>`;
+}
+
+function render() {
+  const { list, team } = aggregate(DATA.rows);
+  const chBtns = DATA.channels.length > 1 ? `<div class="seg">${DATA.channels.map(ch =>
+    `<button class="${ch === DATA.channel ? 'on' : ''}" onclick="load('${ch}')">${ch === 'bdd' ? 'ICE BDD' : 'FORMULA'}</button>`).join('')}</div>` : '';
+  const worst = [];
+  for (const a of list) for (const dn of [1, 2, 3, 4, 5]) { const d = a.days[dn]; if (d?.p) worst.push({ a, dn, d, v: pct(d.i, d.p) }); }
+  worst.sort((x, y) => x.v - y.v);
+  const top3 = worst.slice(0, 3).map(w => `<div class="worst"><div class="n">${w.v}%</div><div>
+      <div class="t">${esc(w.a.name)} — יום ${DAYS[w.dn - 1]}׳</div>
+      <div class="s">${w.d.i} מתוך ${w.d.p} בקו · ${w.d.dates.length} ימים${w.d.o ? ` · ${plus(w.d.o)} מחוץ לקו` : ''}</div></div></div>`).join('');
+  const rowsHtml = list.map(a => `<tr><td class="ag" title="${esc(a.name)}">${esc(a.name)}</td>${[1, 2, 3, 4, 5].map(dn => cell(a.days[dn], a.code + ':' + dn)).join('')}</tr>`).join('');
+  const teamRow = `<tr class="team"><td class="ag">צוות</td>${[1, 2, 3, 4, 5].map(dn => {
+    const t = team[dn]; if (!t || !t.p) return '<td class="x">—</td>';
+    const v = pct(t.i, t.p); return `<td class="${cls(v)}"><div class="p">${v}%</div>${t.o ? `<div class="o">${plus(t.o)}</div>` : ''}</td>`; }).join('')}</tr>`;
+  document.getElementById('wrap').innerHTML = `
+    <div class="bar">${chBtns}<div class="period">${fmtD(DATA.from)}.${DATA.from.slice(0, 4)} – ${fmtD(DATA.to)}.${DATA.to.slice(0, 4)}</div></div>
+    ${list.length ? `<h2>הכי חלשים</h2><div class="top3">${top3 || '<div class="msg">אין נתונים</div>'}</div>
+    <h2>כיסוי קו לפי יום בשבוע</h2>
+    <div class="tbl-wrap"><table><thead><tr><th></th>${DAYS.map(d => `<th>${d}׳</th>`).join('')}</tr></thead>
+      <tbody>${rowsHtml}${teamRow}</tbody></table></div>
+    <div class="legend">% = לקוחות בקו שקנו מתוך המתוכננים · ${plus('N')} = לקוחות שקנו מחוץ לקו</div>
+    <div id="detail"></div>` : '<div class="msg">אין עדיין נתונים לתקופה</div>'}`;
+  if (SEL) showDetail(list);
+}
+
+function pick(key) { SEL = SEL === key ? null : key; render(); }
+
+function showDetail(list) {
+  const [code, dn] = SEL.split(':');
+  const a = list.find(x => x.code === code); const d = a?.days[dn];
+  if (!d) return;
+  const lines = d.dates.slice().sort((x, y) => y.date.localeCompare(x.date)).map(r =>
+    `<div class="row"><b>${fmtD(r.date)}</b><bdi dir="ltr">${r.in_line}/${r.planned}</bdi>${r.off_line ? `<span>· ${plus(r.off_line)} מחוץ לקו</span>` : ''}${r.source === 'backfill' ? '<span title="משוחזר לפי הקווים של היום">↺</span>' : ''}</div>`).join('');
+  document.getElementById('detail').innerHTML = `<div class="detail"><b>${esc(a.name)} — יום ${DAYS[dn - 1]}׳</b>${lines}</div>`;
+}
+
+const qCh = new URLSearchParams(location.search).get('ch');
+load(qCh === 'bdd' || qCh === 'formula' ? qCh : '');
+</script>
+</body>
+</html>
