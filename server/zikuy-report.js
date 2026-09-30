@@ -126,6 +126,7 @@ CALCULATETABLE(
     "brutto", CALCULATE(SUM(ALL_PARTS[סכום (ש'ח)]), ALL_PARTS[ASHMADOT] = "-מכר-")
   ),
   ALL_PARTS[מספר לקוח] IN {${custIds.map(c => `"${c}"`).join(', ')}},
+  ALL_PARTS[חברה] = "FORMULA",
   NOT(ALL_PARTS[מק'ט] IN {${RET_EXCLUDED_SKUS.map(s => `"${s}"`).join(', ')}}),
   ALL_PARTS[תאריך] >= DATE(${d90.getFullYear()},${d90.getMonth() + 1},${d90.getDate()}),
   ALL_PARTS[תאריך] <= DATE(${t.getFullYear()},${t.getMonth() + 1},${t.getDate()})
@@ -308,7 +309,7 @@ function buildHtml(month, cur, prev, tm, names, ret) {
     // (с фильтром b>0 средний по рынку занижался вдвое — 2.7% вместо 5.0%, проверено 2026-09-29)
     const all = Object.entries(ret.bySku);
     const tz = all.reduce((a, [, x]) => a + x.z, 0), tb = all.reduce((a, [, x]) => a + x.b, 0);
-    html += H('4. Фактические возвраты — последние 3 месяца', `Power BI, 90 дней, все активные клиенты FORMULA (${n0(ret.clients)}), не только с зикуем. В среднем по рынку: <b>-${(100 * tz / tb).toFixed(1)}%</b> (-${n0(tz)} ₪ возвратов на ${n0(tb)} ₪ продаж).`);
+    html += H('4. Фактические возвраты — последние 3 месяца', `Power BI, 90 дней, все активные клиенты FORMULA (${n0(ret.clients)}), не только с зикуем. Продажи и возвраты — только товары компании FORMULA: у ICE и INTER возвраты незначительны. В среднем по рынку: <b>-${(100 * tz / tb).toFixed(1)}%</b> (-${n0(tz)} ₪ возвратов на ${n0(tb)} ₪ продаж).`);
     const pf = {}; for (const [, x] of all) { const f = pf[x.fam || '—'] = pf[x.fam || '—'] || { z: 0, b: 0 }; f.z += x.z; f.b += x.b; }
     html += P(`<b>Топ-10 семей по сумме возвратов</b> — доля от всех возвратов и % от продаж самой семьи`);
     html += table(['Семья', 'Возвраты ₪', 'Доля возвратов', '% от продаж'],
