@@ -2249,6 +2249,8 @@ function _switchChannel(ch){
   if(!a || (a.channel||null)===(ch||null)) return;
   a.channel=ch;
   localStorage.setItem('frAgent', JSON.stringify(a));
+  // The reload is a channel switch, not a new visit — no guide prompt after it (Dan 2026-09-30).
+  try{ sessionStorage.setItem('frSkipGuidePrompt','1'); }catch(_){}
   location.reload();
 }
 
@@ -4193,6 +4195,7 @@ let _guidePromptShown=false;
 function maybeShowGuidePrompt(){
   if(_guidePromptShown) return;
   _guidePromptShown=true;
+  try{ if(sessionStorage.getItem('frSkipGuidePrompt')){ sessionStorage.removeItem('frSkipGuidePrompt'); return; } }catch(_){}
   let n=0;
   try{ n=parseInt(localStorage.getItem('frGuidePromptCount')||'0',10)||0; }catch(_){}
   if(n>=3) return;
