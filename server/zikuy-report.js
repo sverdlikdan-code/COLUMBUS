@@ -256,7 +256,7 @@ function buildHtml(month, cur, prev, tm, names, ret) {
     <div style="font-size:30px;font-weight:900;color:${fg};padding-top:6px;line-height:1.15">${big}</div>
     <div style="font-size:13px;color:${fg};padding-top:4px">${sub}</div></td>`;
   let html = H('1. Приложение работает — первые результаты');
-  html += P(`Зикуй в Formula Road внедрён: <b>${Object.keys(agent).length} агентов</b> уже оформляют заявки через приложение — за ${MONTHS_RU[m - 1]} <b>${n0(t.blanks)} зикуев</b>. Активно (от ${ACTIVE_MIN} зикуев в месяц) — пока <b>${active.length}</b> из них, остальные только начинают. Каждый зикуй экономит агенту около ${SAVED_PER_ZIKUY_MIN} минут.`);
+  html += P(`Зикуй в Formula Road внедрён: <b>${Object.keys(agent).length} агентов</b> уже оформляют заявки через приложение — за ${MONTHS_RU[m - 1]} <b>${n0(t.blanks)} зикуев</b>. ${cur.lateAgents ? `У части агентов (${cur.lateAgents}) данные не за полный месяц — подключились к приложению позже. ` : ''}Каждый зикуй экономит агенту около ${SAVED_PER_ZIKUY_MIN} минут.`);
   html += `<tr><td style="padding:8px 14px 6px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:Arial,sans-serif;border-radius:10px;overflow:hidden"><tr>
     ${hero('Сэкономлено за месяц', `≈ ${hRound(savedH)} ч`, 'рабочего времени агентов', NAVY, '#fff')}
     ${hero('В деньгах', `≈ ${kShek(savedH)}`, 'в месяц', GREEN, '#fff')}
@@ -395,7 +395,11 @@ async function main() {
   const curBlanks = pick(month), prevBlanks = pick(prevMonth(month));
   if (!curBlanks.length) { console.log(`Нет бланков за ${month} — письмо не отправлено.`); return; }
   const weighted = weightedSkus(all);
-  const cur = Object.assign(summarize(curBlanks, famOf, shelf, weighted), { _blanks: curBlanks, _weighted: weighted });
+  // агент с неполным месяцем = первый бланк за всю историю (92 дня) в этом месяце позже 7-го числа
+  const ilDate = iso => new Date(Date.parse(iso)).toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' });
+  const firstTs = {}; for (const e of all) if (!firstTs[e.agentCode] || e.ts < firstTs[e.agentCode]) firstTs[e.agentCode] = e.ts;
+  const lateAgents = [...new Set(curBlanks.map(e => e.agentCode))].filter(c => { const d = ilDate(firstTs[c]); return d.slice(0, 7) === month && +d.slice(8) > 7; }).length;
+  const cur = Object.assign(summarize(curBlanks, famOf, shelf, weighted), { _blanks: curBlanks, _weighted: weighted, lateAgents });
   // blank-history хранит 92 дня — прошлый месяц сравниваем, только если он в истории целиком
   const prev = prevBlanks.length && all[0] && ilMonth(all[0].ts) < prevMonth(month) ? summarize(prevBlanks, famOf, shelf, weighted) : null;
   const tm = loadTimings(month);
