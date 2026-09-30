@@ -11,8 +11,8 @@
 //
 // Методика времени (подтверждена 2026-09-10/29): пара = последний started для той же
 // пары (агент|клиент) → submitted; abandoned сбрасывает. >30 мин — форма висела открытой,
-// в статистику времени не входит. Экономия = зикуев × (10 мин − медиана) × 1.10 (+10% админ. ошибок с офисом), только медиана,
-// без среднего (пользователь 2026-09-29) — 10 мин это нижняя оценка ручного бланка до приложения.
+// в статистику времени не входит. Экономия = все зикуи месяца × 8.5 мин (пользователь 2026-09-30):
+// ручной бланк ≥10 мин − медиана в приложении ~1:17, округлено вниз; без разбивки по агентам.
 //
 // Usage: node zikuy-report.js [--month=YYYY-MM] [--dry-run] [--to=a@b.com]
 require('dotenv').config({ path: '../.env' });
@@ -23,7 +23,7 @@ const DRY_RUN = process.argv.includes('--dry-run');
 const arg = k => (process.argv.find(a => a.startsWith(`--${k}=`)) || '').split('=')[1];
 const DATA = process.env.LIVE_DATA_DIR || path.join(__dirname, 'data');
 const DOCS = path.join(__dirname, '..', 'docs');
-const BASELINE_S = 600, LONG_S = 1800, ADMIN_BONUS = 0.10;
+const SAVED_PER_ZIKUY_MIN = 8.5, LONG_S = 1800;
 const AGENT_COST = [20000, 22000], AGENT_HOURS = 180, TARGET_AGENTS = 22, ACTIVE_MIN = 10; // ₪/мес за ставку; прогноз (пользователь 2026-09-30)
 const ICE_FAM ='ICE מוצרים משפחתיים'; // мишпахти без семьи в каталоге (SKU 502xxx/503xxx)
 
@@ -344,31 +344,24 @@ function buildHtml(month, cur, prev, tm, names, ret) {
   html += H('6. Клиенты', `всего ${cs.length} клиентов · топ-10 = ${share(10)}% штук · топ-50 = ${share(50)}%`);
   html += table(['Клиент', 'Штук', 'Бланков'], cs.slice(0, 10).map(c => [esc(c.name), n0(c.qty), c.blanks]), [1, 2]);
 
-  // 6. агенты + время
+  // 7. экономия времени: все зикуи месяца × 8.5 мин, без разбивки по агентам (пользователь 2026-09-30)
   const short = tm.pairs.filter(p => p.s <= LONG_S), long = tm.pairs.length - short.length;
-  // Экономия только по медиане (решение пользователя 2026-09-29): зикуев × (10 мин − медиана).
-  const byWho = {}; for (const p of short) (byWho[p.who] = byWho[p.who] || []).push(p.s);
-  // +10% — администрирование ошибок/неточностей с офисом, которых с приложением на порядок меньше (пользователь 2026-09-29)
-  // Считаем на ВСЕ бланки месяца, не только с замером (пользователь 2026-09-30); медиана — своя у агента, без замеров — общая
   const medAll = med(short.map(p => p.s));
-  const savedS = (n, v) => n * Math.max(0, BASELINE_S - (v && v.length ? med(v) : medAll)) * (1 + ADMIN_BONUS);
-  const savedH = savedS(t.blanks) / 3600;
-  html += H('7. Агенты и время', `экономия = все зикуи месяца × (10 мин на ручной бланк − медиана) + ${ADMIN_BONUS * 100}% на администрирование ошибок и неточностей с офисом (из них ${(savedH - savedH / (1 + ADMIN_BONUS)).toFixed(1)} ч); медиана — по зикуям с замером времени, у агента без замеров — общая; ${long} зикуев дольше 30 мин (форма висела открытой) в медиану не входят`);
+  const savedH = t.blanks * SAVED_PER_ZIKUY_MIN / 60;
+  html += H('7. Экономия времени', `все зикуи месяца × ${SAVED_PER_ZIKUY_MIN} мин`);
   html += `<tr><td style="padding:0 14px 10px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:Arial,sans-serif"><tr>
+    ${kpi('Зикуев за месяц', n0(t.blanks))}
+    ${kpi('Экономия на зикуй', SAVED_PER_ZIKUY_MIN + ' мин')}
     ${kpi('Сэкономлено', savedH.toFixed(1) + ' ч')}
-    ${kpi('Медиана зикуя', mmss(medAll))}
-    ${kpi('Зикуев со временем', short.length)}
     ${kpi('Агентов', Object.keys(agent).length)}
   </tr></table></td></tr>`;
-  // Деньги (пользователь 2026-09-30): все часы по ставке агента — офисная часть это те же звонки агентам.
-  // Прогноз на TARGET_AGENTS — среднее по активным (≥ ACTIVE_MIN бланков), новички занижали бы.
+  html += P(`<b>Откуда ${SAVED_PER_ZIKUY_MIN} мин:</b> до приложения зикуй заполнялся вручную — бумажный бланк, фото, пересылка в офис, уточнения по телефону — не меньше 10 минут на бланк. В приложении медиана заполнения — <b>${mmss(medAll)}</b> (по ${n0(short.length)} зикуям с замером времени; ${long} зикуев дольше 30 мин — форма висела открытой — не учтены). Разница ≈ ${((600 - medAll) / 60).toFixed(1)} мин, берём с запасом вниз — <b>${SAVED_PER_ZIKUY_MIN} мин</b> на каждый зикуй.<br><b>Итого:</b> ${n0(t.blanks)} зикуев × ${SAVED_PER_ZIKUY_MIN} мин = <b>${savedH.toFixed(1)} ч</b> рабочего времени агентов за месяц.`);
+  // Деньги (пользователь 2026-09-30): часы по ставке агента. Прогноз на TARGET_AGENTS — среднее по активным (≥ ACTIVE_MIN бланков), новички занижали бы.
   const shek = h => `${n0(h * AGENT_COST[0] / AGENT_HOURS)}–${n0(h * AGENT_COST[1] / AGENT_HOURS)} ₪`;
   const active = Object.values(agent).filter(a => a.blanks >= ACTIVE_MIN);
-  const projH = active.length ? TARGET_AGENTS * avg(active.map(a => a.blanks)) * savedH / t.blanks : 0;
+  const projH = active.length ? TARGET_AGENTS * avg(active.map(a => a.blanks)) * SAVED_PER_ZIKUY_MIN / 60 : 0;
   html += P(`<b>В деньгах:</b> ${savedH.toFixed(1)} ч ≈ <b>${shek(savedH)}</b> за месяц (агент обходится в ${n0(AGENT_COST[0])}–${n0(AGENT_COST[1])} ₪ за ${AGENT_HOURS} ч ставки).`
     + (active.length ? `<br><b>Прогноз на ${TARGET_AGENTS} агента:</b> ≈ ${projH.toFixed(0)} ч ≈ <b>${shek(projH)}</b> в месяц — если каждый работает как средний активный агент (${active.length} агентов от ${ACTIVE_MIN} бланков, в среднем ${avg(active.map(a => a.blanks)).toFixed(0)} бланков в месяц).` : ''));
-  html += table(['Агент', 'Бланков', 'Артикулов ⌀', 'Штук', 'Медиана', 'Сэкономлено'],
-    Object.entries(agent).sort((a, b) => b[1].blanks - a[1].blanks).map(([code, a]) => [esc(a.name || names[code] || code), a.blanks, avg(a.skus).toFixed(1), n0(a.qty), byWho[code] ? mmss(med(byWho[code])) : '—', (savedS(a.blanks, byWho[code]) / 3600).toFixed(1) + ' ч']), [1, 2, 3, 4, 5]);
   const buckets = [[1, 1], [2, 3], [4, 6], [7, 10], [11, 999]].map(([a, b]) => { const s = short.filter(p => p.items >= a && p.items <= b).map(p => p.s); return s.length ? [b === 999 ? `${a}+` : a === b ? `${a}` : `${a}–${b}`, s.length, mmss(med(s))] : null; }).filter(Boolean);
   html += P('<span style="font-size:12px;color:' + MUTED + '">Время по размеру бланка:</span>');
   html += table(['Артикулов в бланке', 'Зикуев', 'Медиана времени'], buckets, [1, 2]);
