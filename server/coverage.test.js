@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { routeDayOf, coveragePeriod, lineFor, coverageCounts, creditedCustsByAgent, coverageScope } = require('./coverage');
+const { routeDayOf, coveragePeriod, lineFor, coverageCounts, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS } = require('./coverage');
 
 test('routeDayOf: Sun..Thu → 1..5, Fri/Sat → null', () => {
   assert.strictEqual(routeDayOf('2026-09-27'), 1); // Sunday
@@ -59,4 +59,12 @@ test('coverageScope: super all, team own, bdd team own groups, readonly none', (
   assert.deepStrictEqual(coverageScope({ isManager: true, managerRole: 'readonly', bddAccess: true }), { formula: null, bdd: null });
   assert.deepStrictEqual(coverageScope({ isManager: false, agentCode: '53' }), { formula: null, bdd: null });
   assert.deepStrictEqual(coverageScope(null), { formula: null, bdd: null });
+});
+
+test('coverage teams: only teams with a manager — no SADRAN+ (FORMULA), no YOSI (BDD)', () => {
+  assert.ok(COVERAGE_EXCLUDED_TEAMS.has('SADRAN+') && COVERAGE_EXCLUDED_TEAMS.has('YOSI'));
+  assert.deepStrictEqual(coverageScope({ isManager: true, managerRole: 'team', managerTeam: 'SADRAN+' }), { formula: null, bdd: null });
+  assert.deepStrictEqual(
+    coverageScope({ isManager: true, managerRole: 'readonly', channel: 'ICE_BDD', bddRole: 'team', managerTeams: ['TIMUR', 'YOSI'] }),
+    { formula: null, bdd: ['TIMUR'] });
 });

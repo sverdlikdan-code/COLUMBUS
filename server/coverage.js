@@ -56,15 +56,21 @@ function creditedCustsByAgent(rows, rosterAgentByCust) {
   return { custs, sums };
 }
 
+// Only agents under a team manager are tracked (user 2026-09-30): SADRAN+ (סדרנים,
+// shelf-only, near-empty line) and BDD YOSI (managers/office, no team manager) are
+// never written and never granted.
+const COVERAGE_EXCLUDED_TEAMS = new Set(['SADRAN+', 'YOSI']);
+
 // Who sees which teams on the coverage screen. '*' = all, array = those teams, null = none.
 function coverageScope(s) {
   const none = { formula: null, bdd: null };
   if (!s?.isManager) return none;
   if (s.managerRole === 'super') return { formula: '*', bdd: '*' };
+  const own = teams => { const t = (teams || []).filter(x => x && !COVERAGE_EXCLUDED_TEAMS.has(x)); return t.length ? t : null; };
   return {
-    formula: s.managerRole === 'team' && s.managerTeam ? [s.managerTeam] : null,
-    bdd: s.channel === 'ICE_BDD' && s.bddRole === 'team' && s.managerTeams?.length ? [...s.managerTeams] : null,
+    formula: s.managerRole === 'team' ? own([s.managerTeam]) : null,
+    bdd: s.channel === 'ICE_BDD' && s.bddRole === 'team' ? own(s.managerTeams) : null,
   };
 }
 
-module.exports = { routeDayOf, coveragePeriod, lineFor, coverageCounts, creditedCustsByAgent, coverageScope };
+module.exports = { routeDayOf, coveragePeriod, lineFor, coverageCounts, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS };

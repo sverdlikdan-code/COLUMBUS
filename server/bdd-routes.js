@@ -9,7 +9,7 @@ const path = require('path');
 const ExcelJS = require('exceljs'); // Task 8: fridge order email, same package index.js already depends on
 const { BDD_GROUPS, summarizeBddDocs, bddCanWrite, canUseBdd, resolveBddGps, loadBddCache, serializeBddCache, deserializeBddCache, applyVisitOrder } = require('./bdd');
 const { bddDocLinesToday, bddClientPromos, bddCustFamiliesWithActivePromo, bddVisitOrder } = require('./bdd-priority');
-const { lineFor, coverageCounts } = require('./coverage');
+const { lineFor, coverageCounts, COVERAGE_EXCLUDED_TEAMS } = require('./coverage');
 
 // Email HTML escape — copied from index.js's escEmail (one-liner, not worth a
 // deps wire-up or a shared module just for this).
@@ -592,6 +592,7 @@ ${mekarerRows}
     const overrides = readJson(FILES.overrides, {});
     const rows = [];
     for (const [group, agents] of cache.agentsByGroup) {
+      if (COVERAGE_EXCLUDED_TEAMS.has(group)) continue;
       for (const a of agents) {
         const d = summary.byAgent.get(a.agentCode);
         const served = new Set((d?.byClient || []).map(c => String(c.custId)));

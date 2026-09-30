@@ -694,7 +694,7 @@ app.get('/health', (req, res) => {
 // every single event. Same writeLog(entry)/readLog() contract as before, so
 // none of the ~30 call sites elsewhere in this file needed to change.
 const { logEvent, readLog, getDashboardStats } = require('./events-db');
-const { routeDayOf, coveragePeriod, lineFor, coverageCounts, creditedCustsByAgent, coverageScope } = require('./coverage');
+const { routeDayOf, coveragePeriod, lineFor, coverageCounts, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS } = require('./coverage');
 function writeLog(entry) { logEvent(entry); }
 
 function getRealIp(req) {
@@ -5786,6 +5786,7 @@ async function formulaCoverageRows(dateStr, dayNum) {
   const overrides = readRouteOverrides();
   const rows = [], seen = new Set();
   for (const [manager, agents] of pbiCache.agentsByManager) {
+    if (COVERAGE_EXCLUDED_TEAMS.has(manager)) continue;
     for (const a of agents) {
       // ponytail: an agent under 2 managers keeps only the first (none on 2026-09-30), upgrade PK to include team if that changes
       if (seen.has(String(a.agentCode))) continue;
@@ -5858,7 +5859,8 @@ app.get('/api/coverage-history', requireAuth, dataRateLimit, (req, res) => {
   if (!channels.includes(channel)) return res.status(403).json({ ok: false, error: 'forbidden' });
   const { from, to } = coveragePeriod(todayIsraelDate());
   const teams = scope[channel];
-  const rows = coverageDb.readRange(channel, from, to).filter(r => teams === '*' || teams.includes(r.team));
+  const rows = coverageDb.readRange(channel, from, to)
+    .filter(r => !COVERAGE_EXCLUDED_TEAMS.has(r.team) && (teams === '*' || teams.includes(r.team)));
   res.json({ ok: true, channel, channels, from, to, rows });
 });
 
