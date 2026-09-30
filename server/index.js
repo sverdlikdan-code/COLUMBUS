@@ -4733,6 +4733,9 @@ app.get('/mekarer-order.html', (req, res) => {
 app.get('/mekarer-admin.html', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'mekarer-admin.html'));
 });
+app.get('/coverage-history.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'docs', 'coverage-history.html'));
+});
 app.get('/zikuy-order.html', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'zikuy-order.html'));
 });
@@ -5842,6 +5845,22 @@ async function backfillCoverageOnce() {
   }
   console.log(`[coverage-backfill] ${from}..${to} done in ${Math.round((Date.now() - t0) / 1000)}s`);
 }
+
+// GET /api/coverage-history?channel=formula|bdd — read-only (coverage.db), never Priority/PBI.
+// Rows from the 1st of the month 3 months back up to yesterday, only the teams the
+// session may see (coverageScope). ?probe=1 → which channels (manager-grid tile uses it).
+app.get('/api/coverage-history', requireAuth, dataRateLimit, (req, res) => {
+  const scope = coverageScope(req.session);
+  const channels = ['formula', 'bdd'].filter(ch => scope[ch]);
+  if (!channels.length) return res.status(403).json({ ok: false, error: 'forbidden' });
+  if (req.query.probe) return res.json({ ok: true, channels });
+  const channel = String(req.query.channel || channels[0]);
+  if (!channels.includes(channel)) return res.status(403).json({ ok: false, error: 'forbidden' });
+  const { from, to } = coveragePeriod(todayIsraelDate());
+  const teams = scope[channel];
+  const rows = coverageDb.readRange(channel, from, to).filter(r => teams === '*' || teams.includes(r.team));
+  res.json({ ok: true, channel, channels, from, to, rows });
+});
 
 // GET /api/team-order-stats — FORMULA "today" order dynamics (denom/numer/sum)
 // for every agent AND aggregated per manager, built entirely from data already
