@@ -4990,6 +4990,19 @@ function tutorialsGuard(req, res, next) {
   return res.status(403).send(`<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>גישה מוגבלת</title><style>body{font-family:sans-serif;background:#f0f2f5;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}div{text-align:center;background:#fff;padding:48px 40px;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.08)}h2{margin:0 0 12px;color:#1a1a2e;font-size:1.4rem}p{color:#666;margin:0}</style></head><body><div><div style="font-size:2.5rem;margin-bottom:16px">🔒</div><h2>המדריך זמין רק דרך האפליקציה</h2><p>פתח את FORMULA ROAD והשתמש בכפתור "❓ מדריך שימוש"</p></div></div></body></html>`);
 }
 app.use('/TUTORIALS', tutorialsGuard, express.static(path.join(__dirname, '..', 'TUTORIALS-GUIDE')));
+// Private share-by-link pages (Diler Intelligence pitch, 2026-09-30). Files live
+// only on the VPS in /root/private-share, never in the repo (repo is public).
+// The unguessable 48-hex filename IS the secret — no .env token; revoke by
+// deleting the file. Strict regex = no path traversal, nothing else reachable.
+const PRIVATE_SHARE_DIR = '/root/private-share';
+app.get('/p/:name', dataRateLimit, (req, res) => {
+  if (!/^[0-9a-f]{48}$/.test(req.params.name)) return res.status(404).end();
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  res.setHeader('Cache-Control', 'no-store');
+  res.sendFile(path.join(PRIVATE_SHARE_DIR, req.params.name + '.html'), err => {
+    if (err && !res.headersSent) res.status(404).end();
+  });
+});
 // docs/manifest.json's start_url ("./formula-road.html") is correct for the
 // GitHub Pages static host it's normally served from, but resolves relative to
 // THIS route's own URL (/manifest.json → /formula-road.html) when fetched here
