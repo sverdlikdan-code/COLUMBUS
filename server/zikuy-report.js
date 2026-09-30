@@ -154,14 +154,12 @@ function retCell(x) {
 function summarize(blanks, famOf, shelf, weighted) {
   const w = { z: 0, h: 0, sku: {} };
   const t = { blanks: blanks.length, z: 0, h: 0, lines: 0, skuPerBlank: [], onlyZ: 0, onlyH: 0, mixed: 0 };
-  const fam = {}, sku = {}, cust = {}, agent = {};
+  const fam = {}, sku = {}, agent = {};
   for (const e of blanks) {
     let hz = false, hh = false;
     t.skuPerBlank.push(new Set(e.items.map(i => i.sku)).size);
     const a = agent[e.agentCode] = agent[e.agentCode] || { name: e.agentName, blanks: 0, skus: [], qty: 0 };
     a.blanks++; a.skus.push(new Set(e.items.map(i => i.sku)).size);
-    const c = cust[e.custId] = cust[e.custId] || { name: e.custName, city: e.city, qty: 0, blanks: 0, agentCode: e.agentCode, agentName: e.agentName };
-    c.blanks++;
     for (const it of e.items) {
       const q = Number(it.qty) || 0, isZ = it.option === '-50%';
       if (isZ) hz = true; else hh = true;
@@ -173,7 +171,7 @@ function summarize(blanks, famOf, shelf, weighted) {
         continue;
       }
       t[isZ ? 'z' : 'h'] += q;
-      t.lines++; a.qty += q; c.qty += q;
+      t.lines++; a.qty += q;
       const f = fam[famOf(it.sku)] = fam[famOf(it.sku)] || { z: 0, h: 0, custs: new Set() };
       f[isZ ? 'z' : 'h'] += q; f.custs.add(e.custId);
       const s = sku[it.sku] = sku[it.sku] || { name: it.name, fam: famOf(it.sku), shelf: shelf[it.sku], z: 0, h: 0, custs: new Set() };
@@ -182,7 +180,7 @@ function summarize(blanks, famOf, shelf, weighted) {
     if (hz && hh) t.mixed++; else if (hz) t.onlyZ++; else t.onlyH++;
   }
   t.total = t.z + t.h;
-  return { t, fam, sku, cust, agent, w };
+  return { t, fam, sku, agent, w };
 }
 // Весовой = SKU, у которого во всей истории зикуя хоть раз было дробное кол-во (кг).
 // ponytail: эвристика по данным, апгрейд когда появится признак "весовой" в каталоге.
@@ -239,7 +237,7 @@ const split = x => { const tot = x.z + x.h, hp = pct(x.h, tot); return `<span st
 const delta = (cur, prev) => { if (!prev) return ''; const d = Math.round(100 * (cur - prev) / prev); return `<span style="color:${d > 0 ? RED : GREEN}">${d > 0 ? '+' : ''}${d}% к пр. месяцу</span>`; };
 
 function buildHtml(month, cur, prev, tm, names, ret) {
-  const { t, fam, sku, cust, agent, w } = cur;
+  const { t, fam, sku, agent, w } = cur;
   const [y, m] = month.split('-').map(Number);
   const title = `${MONTHS_RU[m - 1]} ${y}`;
 
@@ -338,17 +336,12 @@ function buildHtml(month, cur, prev, tm, names, ret) {
   html += P(`<b>Уценка не спасает</b> — больше 70% уходит в уничтожение (от 20 шт.):${famLines(patFams.filter(([, f]) => f.z + f.h >= 20 && pct(f.h, f.z + f.h) >= 70), 'в основном шлют заявку на השמדה')}`);
   html += P(`<b>Уценка работает</b> — не больше 30% в уничтожение (от 100 шт.):${famLines(patFams.filter(([, f]) => f.z + f.h >= 100 && pct(f.h, f.z + f.h) <= 30), 'в основном шлют заявку на уценку')}`);
 
-  // 6. клиенты
-  const cs = Object.values(cust).sort((a, b) => b.qty - a.qty);
-  const share = k => pct(cs.slice(0, k).reduce((a, c) => a + c.qty, 0), t.total);
-  html += H('6. Клиенты', `всего ${cs.length} клиентов · топ-10 = ${share(10)}% штук · топ-50 = ${share(50)}%`);
-  html += table(['Клиент', 'Штук', 'Бланков'], cs.slice(0, 10).map(c => [esc(c.name), n0(c.qty), c.blanks]), [1, 2]);
-
-  // 7. экономия времени: все зикуи месяца × 8.5 мин, без разбивки по агентам (пользователь 2026-09-30)
+  // раздел «Клиенты» убран: приложением пользуются не все агенты, топ клиентов искажён (пользователь 2026-09-30)
+  // 6. экономия времени: все зикуи месяца × 8.5 мин, без разбивки по агентам (пользователь 2026-09-30)
   const short = tm.pairs.filter(p => p.s <= LONG_S), long = tm.pairs.length - short.length;
   const medAll = med(short.map(p => p.s));
   const savedH = t.blanks * SAVED_PER_ZIKUY_MIN / 60;
-  html += H('7. Экономия времени', `все зикуи месяца × ${SAVED_PER_ZIKUY_MIN} мин`);
+  html += H('6. Экономия времени', `все зикуи месяца × ${SAVED_PER_ZIKUY_MIN} мин`);
   html += `<tr><td style="padding:0 14px 10px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:Arial,sans-serif"><tr>
     ${kpi('Зикуев за месяц', n0(t.blanks))}
     ${kpi('Экономия на зикуй', SAVED_PER_ZIKUY_MIN + ' мин')}
@@ -367,7 +360,7 @@ function buildHtml(month, cur, prev, tm, names, ret) {
   html += table(['Артикулов в бланке', 'Зикуев', 'Медиана времени'], buckets, [1, 2]);
 
   // 7. качество данных
-  html += H('8. Качество данных');
+  html += H('7. Качество данных');
   html += P(`<span style="font-size:12px;color:${MUTED}">Отправлено по журналу событий: ${tm.submitted}; со временем: ${tm.pairs.length}; без записи об открытии формы: ${tm.unpaired}; без привязки к агенту: ${tm.unattributed}. Бланков в истории: ${t.blanks}, из них без времени заполнения: ${Math.max(0, t.blanks - tm.pairs.length)} (время пишется с 07.09.2026). Семья не найдена: ${n0((fam['—']?.z || 0) + (fam['—']?.h || 0))} шт.</span>`);
 
   return { charts, subject: `Списания товаров — частный рынок и небольшие сети · ${title}`, html: `<!doctype html>
