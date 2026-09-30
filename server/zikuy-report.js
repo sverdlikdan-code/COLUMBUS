@@ -250,10 +250,10 @@ function buildHtml(month, cur, prev, tm, names, ret) {
   const active = Object.values(agent).filter(a => a.blanks >= ACTIVE_MIN);
   const projH = active.length ? TARGET_AGENTS * avg(active.map(a => a.blanks)) * SAVED_PER_ZIKUY_MIN / 60 : 0;
   const hRound = h => Math.round(h / 5) * 5;
-  const kShek = h => `<span style="white-space:nowrap">${Math.round(h * AGENT_COST[0] / AGENT_HOURS / 1000)}–${Math.round(h * AGENT_COST[1] / AGENT_HOURS / 1000)} тыс. ₪</span>`;
+  const kShek = h => `<span style="white-space:nowrap">${Math.round(h * AGENT_COST[0] / AGENT_HOURS / 1000)}–${Math.round(h * AGENT_COST[1] / AGENT_HOURS / 1000)}</span> <span style="white-space:nowrap">тыс. ₪</span>`;
   const hero = (label, big, sub, bg, fg) => `<td style="padding:18px 10px;text-align:center;background:${bg};width:50%;vertical-align:top">
     <div style="font-size:12px;color:${fg};opacity:.85">${label}</div>
-    <div style="font-size:34px;font-weight:900;color:${fg};padding-top:6px;white-space:nowrap">${big}</div>
+    <div style="font-size:30px;font-weight:900;color:${fg};padding-top:6px;line-height:1.15">${big}</div>
     <div style="font-size:13px;color:${fg};padding-top:4px">${sub}</div></td>`;
   let html = H('1. Приложение работает — первые результаты');
   html += P(`Зикуй в Formula Road внедрён: <b>${Object.keys(agent).length} агентов</b> уже оформляют заявки через приложение — за ${MONTHS_RU[m - 1]} <b>${n0(t.blanks)} зикуев</b>. Каждый экономит агенту около ${SAVED_PER_ZIKUY_MIN} минут.`);
