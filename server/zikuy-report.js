@@ -421,14 +421,17 @@ async function main() {
     console.log('--dry-run — письмо не отправлено, превью:', out);
     return;
   }
-  const to = (arg('to') || process.env.ZIKUY_REPORT_RECIPIENTS || '').split(',').map(s => s.trim()).filter(Boolean);
+  const list = v => (v || '').split(',').map(s => s.trim()).filter(Boolean);
+  const to = list(arg('to') || process.env.ZIKUY_REPORT_RECIPIENTS);
+  // одно письмо: адресаты в «Кому», остальные в копии (пользователь 2026-09-30); --to= для теста — без копии
+  const cc = arg('to') ? [] : list(process.env.ZIKUY_REPORT_CC);
   if (!to.length) throw new Error('ZIKUY_REPORT_RECIPIENTS не задан');
   if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY не найден в .env');
   const { Resend } = require('resend');
   const logo = path.join(DOCS, 'logo-diler-bmd-white.png');
   const res = await new Resend(process.env.RESEND_API_KEY).emails.send({
     from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
-    to, subject, html,
+    to, ...(cc.length ? { cc } : {}), subject, html,
     attachments: [
       ...(fs.existsSync(logo) ? [{ filename: 'logo-white.png', content: fs.readFileSync(logo).toString('base64'), contentId: 'diler-logo-white' }] : []),
       ...pngs.map(p => ({ filename: `${p.id}.png`, content: p.png.toString('base64'), contentId: p.id })),
