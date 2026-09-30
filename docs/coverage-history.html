@@ -13,11 +13,16 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 .back-btn{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;width:34px;height:34px;font-size:18px;cursor:pointer;}
 .top-title{font-size:17px;font-weight:800;}
 .wrap{max-width:760px;margin:0 auto;padding:14px 16px 40px;}
-.bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+.lbl{font-size:12px;font-weight:700;color:var(--light);min-width:44px;}
 .seg{display:flex;background:#fff;border:1px solid #CFD8DC;border-radius:10px;overflow:hidden;}
-.seg button{border:none;background:none;padding:7px 14px;font-weight:700;font-size:13px;color:var(--blue);cursor:pointer;}
+.seg button{border:none;background:none;padding:7px 12px;font-weight:700;font-size:13px;color:var(--blue);cursor:pointer;white-space:nowrap;}
+.seg button+button{border-inline-start:1px solid #ECEFF1;}
 .seg button.on{background:var(--blue);color:#fff;}
-.period{font-size:12px;color:var(--light);margin-inline-start:auto;direction:ltr;unicode-bidi:isolate;}
+.chips{display:flex;gap:6px;flex-wrap:wrap;}
+.chips button{border:1px solid #CFD8DC;background:#fff;border-radius:16px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--blue);cursor:pointer;}
+.chips button.on{background:var(--blue);border-color:var(--blue);color:#fff;}
+.period{font-size:12px;color:var(--light);direction:ltr;unicode-bidi:isolate;}
 .legend{font-size:11px;color:var(--light);margin-top:6px;}
 h2{font-size:14px;font-weight:800;margin:14px 0 8px;}
 .top3{display:flex;flex-direction:column;gap:6px;}
@@ -27,9 +32,12 @@ h2{font-size:14px;font-weight:800;margin:14px 0 8px;}
 .worst .s{font-size:12px;color:var(--light);}
 .tbl-wrap{overflow-x:auto;background:var(--card);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.08);}
 table{border-collapse:collapse;width:100%;min-width:340px;}
-th,td{padding:6px 4px;text-align:center;font-size:12px;border-bottom:1px solid #ECEFF1;}
-th{background:#FAFBFC;font-weight:800;color:var(--light);}
-td.ag{text-align:right;font-weight:700;white-space:nowrap;padding-inline-start:10px;max-width:120px;overflow:hidden;text-overflow:ellipsis;}
+th,td{padding:6px 4px;text-align:center;font-size:12px;border-bottom:1px solid #ECEFF1;min-width:52px;}
+th{background:#FAFBFC;font-weight:800;color:var(--light);white-space:nowrap;}
+th small{display:block;font-weight:600;font-size:10px;}
+td.ag,th.ag{position:sticky;right:0;z-index:1;background:#fff;text-align:right;white-space:nowrap;padding-inline-start:10px;max-width:120px;overflow:hidden;text-overflow:ellipsis;}
+th.ag{background:#FAFBFC;}
+td.ag{font-weight:700;}
 td.c{cursor:pointer;}
 td.c .p{font-size:14px;font-weight:900;}
 td.c .o,tr.team .o{font-size:10px;color:var(--light);white-space:nowrap;}
@@ -40,9 +48,20 @@ td.c .o,tr.team .o{font-size:10px;color:var(--light);white-space:nowrap;}
 tr.team td{font-weight:800;border-top:2px solid #CFD8DC;}
 td.c.sel{outline:2px solid var(--blue);outline-offset:-2px;}
 .detail{margin-top:10px;background:var(--card);border-radius:10px;padding:10px 12px;box-shadow:0 1px 3px rgba(0,0,0,.08);font-size:13px;}
-.detail .row{display:flex;gap:8px;padding:3px 0;border-bottom:1px dashed #ECEFF1;}
+.detail .row{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;padding:6px 0;border-bottom:1px dashed #ECEFF1;cursor:pointer;}
+.detail .row.on{color:var(--blue);font-weight:700;}
 .detail .row:last-child{border:none;}
+.detail .row span,.detail .row b{white-space:nowrap;}
+.detail .hint{font-size:11px;color:var(--light);margin-inline-start:auto;}
+.clients{margin:4px 0 8px;padding:8px 10px;background:#FAFBFC;border-radius:8px;}
+.grp{margin-bottom:8px;}
+.grp:last-child{margin-bottom:0;}
+.grp b{display:block;font-size:12px;margin-bottom:3px;}
+.grp.miss b{color:var(--red);} .grp.in b{color:var(--green);} .grp.off b{color:var(--yellow);}
+.grp div{font-size:12px;padding:2px 0;}
+.grp .id{color:var(--light);font-size:11px;direction:ltr;unicode-bidi:isolate;}
 .msg{padding:40px 10px;text-align:center;color:var(--light);}
+.msg.sm{padding:6px 0;text-align:right;}
 </style>
 </head>
 <body>
@@ -55,82 +74,162 @@ td.c.sel{outline:2px solid var(--blue);outline-offset:-2px;}
 const API = location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? '' : 'https://api.sverdlik-apps.site';
 const TOKEN = localStorage.getItem('frToken') || '';
 const DAYS = ['א', 'ב', 'ג', 'ד', 'ה'];
-let DATA = null, SEL = null;
+// Date hierarchy (like a Power BI visual's drill level): which bucket a snapshot row falls into.
+const LEVELS = [['date', 'תאריך'], ['dow', 'יום בשבוע'], ['week', 'שבוע'], ['month', 'חודש']];
+const PERIODS = [['week', 'השבוע'], ['month', 'החודש'], ['prev', 'חודש קודם'], ['all', 'הכל']];
+let DATA = null, LEVEL = 'date', PERIOD = 'all', TEAM = '*', SEL = null, DAY = null;
+const CLIENTS = {}; // "agent|date" → {in, off, miss} | null (no breakdown stored) — fetched on tap
 
 const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const pct = (i, p) => p ? Math.round(i / p * 100) : null;
 const cls = v => v === null ? 'x' : v < 50 ? 'r' : v < 75 ? 'y' : 'g';
 const fmtD = ymd => ymd.slice(8, 10) + '.' + ymd.slice(5, 7);
+const ymd = d => d.toISOString().slice(0, 10);
+const noon = s => new Date(s + 'T12:00:00Z');
+const weekStart = s => { const d = noon(s); d.setUTCDate(d.getUTCDate() - d.getUTCDay()); return ymd(d); }; // Sunday
+
+function bucketOf(r) {
+  if (LEVEL === 'dow') return String(r.day_num);
+  if (LEVEL === 'week') return weekStart(r.date);
+  if (LEVEL === 'month') return r.date.slice(0, 7);
+  return r.date;
+}
+function bucketHead(k, row) {
+  if (LEVEL === 'dow') return `${DAYS[k - 1]}׳`;
+  if (LEVEL === 'week') return `${fmtD(k)}<small>שבוע</small>`;
+  if (LEVEL === 'month') return `${k.slice(5, 7)}.${k.slice(0, 4)}`;
+  return `${fmtD(k)}<small>${k === DATA.to ? 'היום' : 'יום ' + DAYS[row.day_num - 1] + '׳'}</small>`;
+}
+function bucketName(k, row) { return bucketHead(k, row).replace(/<small>(.*)<\/small>/, ' · $1'); }
+
+function periodFrom() {
+  const t = DATA.to;
+  if (PERIOD === 'week') return [weekStart(t), t];
+  if (PERIOD === 'month') return [t.slice(0, 8) + '01', t];
+  if (PERIOD === 'prev') { const d = noon(t.slice(0, 8) + '01'); d.setUTCDate(0); return [ymd(d).slice(0, 8) + '01', ymd(d)]; }
+  return [DATA.from, t];
+}
 
 async function load(channel) {
   document.getElementById('wrap').innerHTML = '<div class="msg">טוען...</div>';
   try {
     const r = await fetch(API + '/api/coverage-history' + (channel ? '?channel=' + channel : ''), { headers: { 'X-Session': TOKEN } });
     if (r.status === 403 || r.status === 401) { document.getElementById('wrap').innerHTML = '<div class="msg">אין הרשאה לדף זה</div>'; return; }
-    DATA = await r.json(); SEL = null; render();
+    DATA = await r.json(); SEL = null; DAY = null; TEAM = '*'; render();
   } catch (e) { document.getElementById('wrap').innerHTML = '<div class="msg">שגיאת טעינה — נסה שוב</div>'; }
 }
 
-// agent → day(1..5) → {p, i, o, dates:[row]}; plus team totals per day. Σ-based %, not mean of %.
+// agent → bucket → {p, i, o, dates:[row]}; plus team totals per bucket. Σ-based %, not mean of %.
 function aggregate(rows) {
-  const agents = new Map(), team = {};
+  const agents = new Map(), team = {}, heads = new Map();
   for (const r of rows) {
-    if (!agents.has(r.agent_code)) agents.set(r.agent_code, { code: r.agent_code, name: r.agent_name, days: {}, p: 0, i: 0 });
+    const k = bucketOf(r);
+    if (!heads.has(k)) heads.set(k, r);
+    if (!agents.has(r.agent_code)) agents.set(r.agent_code, { code: r.agent_code, name: r.agent_name, b: {}, p: 0, i: 0 });
     const a = agents.get(r.agent_code);
-    const d = a.days[r.day_num] ||= { p: 0, i: 0, o: 0, dates: [] };
+    const d = a.b[k] ||= { p: 0, i: 0, o: 0, dates: [] };
     // Same as the manager tiles (user 2026-09-30): % = all served (in line + off line) / planned;
     // off line is "מתוכם N" — already inside the served count.
     const served = r.in_line + r.off_line;
     d.p += r.planned; d.i += served; d.o += r.off_line; d.dates.push(r);
     a.p += r.planned; a.i += served;
-    const t = team[r.day_num] ||= { p: 0, i: 0, o: 0 };
+    const t = team[k] ||= { p: 0, i: 0, o: 0 };
     t.p += r.planned; t.i += served; t.o += r.off_line;
   }
+  // Newest first (rightmost in RTL, visible without scrolling); weekdays stay א..ה.
+  const keys = [...heads.keys()].sort((x, y) => LEVEL === 'dow' ? x - y : y.localeCompare(x));
   const list = [...agents.values()].sort((x, y) => (pct(x.i, x.p) ?? 101) - (pct(y.i, y.p) ?? 101));
-  return { list, team };
+  return { list, team, keys, heads };
 }
 
 function cell(d, key) {
   if (!d || !d.p) return `<td class="x">—</td>`;
   const v = pct(d.i, d.p);
-  const sel = SEL === key ? ' sel' : '';
-  return `<td class="c ${cls(v)}${sel}" onclick="pick('${key}')"><div class="p">${v}%</div>${d.o ? `<div class="o">מתוכם ${d.o}</div>` : ''}</td>`;
+  return `<td class="c ${cls(v)}${SEL === key ? ' sel' : ''}" onclick="pick('${key}')"><div class="p">${v}%</div>${d.o ? `<div class="o">מתוכם ${d.o}</div>` : ''}</td>`;
 }
+
+const seg = (items, cur, fn) => `<div class="seg">${items.map(([k, t]) => `<button class="${k === cur ? 'on' : ''}" onclick="${fn}('${k}')">${t}</button>`).join('')}</div>`;
 
 function render() {
-  const { list, team } = aggregate(DATA.rows);
-  const chBtns = DATA.channels.length > 1 ? `<div class="seg">${DATA.channels.map(ch =>
-    `<button class="${ch === DATA.channel ? 'on' : ''}" onclick="load('${ch}')">${ch === 'bdd' ? 'ICE BDD' : 'FORMULA'}</button>`).join('')}</div>` : '';
+  const [from, to] = periodFrom();
+  const inPeriod = DATA.rows.filter(r => r.date >= from && r.date <= to);
+  const teams = [...new Set(DATA.rows.map(r => r.team))].sort();
+  if (TEAM !== '*' && !teams.includes(TEAM)) TEAM = '*';
+  const rows = inPeriod.filter(r => TEAM === '*' || r.team === TEAM);
+  const { list, team, keys, heads } = aggregate(rows);
+
+  const chBtns = DATA.channels.length > 1 ? seg(DATA.channels.map(ch => [ch, ch === 'bdd' ? 'ICE BDD' : 'FORMULA']), DATA.channel, 'load') : '';
+  const teamChips = teams.length > 1 ? `<div class="bar"><span class="lbl">צוות</span><div class="chips">${
+    [['*', 'כולם'], ...teams.map(t => [t, t])].map(([k, t]) => `<button class="${k === TEAM ? 'on' : ''}" onclick="setTeam('${esc(k)}')">${esc(t)}</button>`).join('')}</div></div>` : '';
+
   const worst = [];
-  for (const a of list) for (const dn of [1, 2, 3, 4, 5]) { const d = a.days[dn]; if (d?.p) worst.push({ a, dn, d, v: pct(d.i, d.p) }); }
+  for (const a of list) for (const k of keys) { const d = a.b[k]; if (d?.p) worst.push({ a, k, d, v: pct(d.i, d.p) }); }
   worst.sort((x, y) => x.v - y.v);
   const top3 = worst.slice(0, 3).map(w => `<div class="worst"><div class="n">${w.v}%</div><div>
-      <div class="t">${esc(w.a.name)} — יום ${DAYS[w.dn - 1]}׳</div>
-      <div class="s">${w.d.i} מתוך ${w.d.p} · ${w.d.dates.length} ימים${w.d.o ? ` · מתוכם ${w.d.o} מחוץ לקו` : ''}</div></div></div>`).join('');
-  const rowsHtml = list.map(a => `<tr><td class="ag" title="${esc(a.name)}">${esc(a.name)}</td>${[1, 2, 3, 4, 5].map(dn => cell(a.days[dn], a.code + ':' + dn)).join('')}</tr>`).join('');
-  const teamRow = `<tr class="team"><td class="ag">צוות</td>${[1, 2, 3, 4, 5].map(dn => {
-    const t = team[dn]; if (!t || !t.p) return '<td class="x">—</td>';
+      <div class="t">${esc(w.a.name)} — ${bucketName(w.k, heads.get(w.k))}</div>
+      <div class="s">תכנון ${w.d.p} · קנו ${w.d.i - w.d.o} · מחוץ לקו ${w.d.o} · לא קנו ${w.d.p - (w.d.i - w.d.o)}${LEVEL === 'date' ? '' : ` · ${w.d.dates.length} ימים`}</div></div></div>`).join('');
+
+  const head = `<tr><th class="ag"></th>${keys.map(k => `<th>${bucketHead(k, heads.get(k))}</th>`).join('')}</tr>`;
+  const rowsHtml = list.map(a => `<tr><td class="ag" title="${esc(a.name)}">${esc(a.name)}</td>${keys.map(k => cell(a.b[k], a.code + '|' + k)).join('')}</tr>`).join('');
+  const teamRow = `<tr class="team"><td class="ag">${TEAM === '*' ? 'כולם' : esc(TEAM)}</td>${keys.map(k => {
+    const t = team[k]; if (!t || !t.p) return '<td class="x">—</td>';
     const v = pct(t.i, t.p); return `<td class="${cls(v)}"><div class="p">${v}%</div>${t.o ? `<div class="o">מתוכם ${t.o}</div>` : ''}</td>`; }).join('')}</tr>`;
+
   document.getElementById('wrap').innerHTML = `
-    <div class="bar">${chBtns}<div class="period">${fmtD(DATA.from)}.${DATA.from.slice(0, 4)} – ${fmtD(DATA.to)}.${DATA.to.slice(0, 4)}</div></div>
+    <div class="bar">${chBtns}<div class="period">${fmtD(from)}.${from.slice(0, 4)} – ${fmtD(to)}.${to.slice(0, 4)}</div></div>
+    ${teamChips}
+    <div class="bar"><span class="lbl">תקופה</span>${seg(PERIODS, PERIOD, 'setPeriod')}</div>
+    <div class="bar"><span class="lbl">תצוגה</span>${seg(LEVELS, LEVEL, 'setLevel')}</div>
     ${list.length ? `<h2>הכי חלשים</h2><div class="top3">${top3 || '<div class="msg">אין נתונים</div>'}</div>
-    <h2>כיסוי קו לפי יום בשבוע</h2>
-    <div class="tbl-wrap"><table><thead><tr><th></th>${DAYS.map(d => `<th>${d}׳</th>`).join('')}</tr></thead>
-      <tbody>${rowsHtml}${teamRow}</tbody></table></div>
-    <div class="legend">% = לקוחות שקנו מתוך המתוכננים לקו · מתוכם N = קנו מחוץ לקו</div>
-    <div id="detail"></div>` : '<div class="msg">אין עדיין נתונים לתקופה</div>'}`;
-  if (SEL) showDetail(list);
+    <h2>כיסוי קו — ${LEVELS.find(l => l[0] === LEVEL)[1]}</h2>
+    <div class="tbl-wrap"><table><thead>${head}</thead><tbody>${rowsHtml}${teamRow}</tbody></table></div>
+    <div class="legend">% = לקוחות שקנו מתוך המתוכננים לקו · מתוכם N = קנו מחוץ לקו · נתונים אמיתיים בלבד — צילום ערב (20:07) מ־30.09.2026</div>
+    <div id="detail"></div>` : '<div class="msg">אין נתונים לתקופה הזאת — הצילום הראשון נרשם ב־30.09.2026 ב־20:07</div>'}`;
+  if (SEL) showDetail(list, heads);
 }
 
-function pick(key) { SEL = SEL === key ? null : key; render(); }
+function setLevel(l) { LEVEL = l; SEL = null; DAY = null; render(); }
+function setPeriod(p) { PERIOD = p; SEL = null; DAY = null; render(); }
+function setTeam(t) { TEAM = t; SEL = null; DAY = null; render(); }
+function pick(key) {
+  SEL = SEL === key ? null : key; DAY = null;
+  if (SEL && LEVEL === 'date') DAY = SEL.split('|')[1]; // a date cell is one day — open its clients directly
+  render();
+}
+function pickDay(date) { DAY = DAY === date ? null : date; render(); }
 
-function showDetail(list) {
-  const [code, dn] = SEL.split(':');
-  const a = list.find(x => x.code === code); const d = a?.days[dn];
+async function fetchClients(agent, date) {
+  const k = agent + '|' + date;
+  if (k in CLIENTS) return;
+  CLIENTS[k] = 'loading';
+  try {
+    const r = await fetch(`${API}/api/coverage-history/day?channel=${DATA.channel}&agent=${encodeURIComponent(agent)}&date=${date}`, { headers: { 'X-Session': TOKEN } });
+    CLIENTS[k] = r.ok ? (await r.json()).clients : 'error';
+  } catch (e) { CLIENTS[k] = 'error'; }
+  render();
+}
+
+function clientsHtml(agent, date) {
+  const c = CLIENTS[agent + '|' + date];
+  if (c === undefined) { fetchClients(agent, date); return '<div class="clients"><div class="msg sm">טוען לקוחות...</div></div>'; }
+  if (c === 'loading') return '<div class="clients"><div class="msg sm">טוען לקוחות...</div></div>';
+  if (c === 'error') return '<div class="clients"><div class="msg sm">שגיאת טעינה</div></div>';
+  if (!c) return '<div class="clients"><div class="msg sm">אין פירוט לקוחות ליום הזה — נשמר רק בצילומים החדשים</div></div>';
+  const grp = (k, title, arr) => arr.length ? `<div class="grp ${k}"><b>${title} (${arr.length})</b>${arr.map(([id, name]) =>
+    `<div>${esc(name || '—')} <span class="id">${esc(id)}</span></div>`).join('')}</div>` : '';
+  // Order (Dan 2026-09-30): plan first, then bought in line, bought off line, didn't buy.
+  return `<div class="clients"><div class="grp"><b>📋 בתכנון: ${c.in.length + c.miss.length}</b></div>${grp('in', '✅ קנו מהקו', c.in)}${grp('off', '➕ קנו מחוץ לקו', c.off)}${grp('miss', '❌ לא קנו מהקו', c.miss)}</div>`;
+}
+
+function showDetail(list, heads) {
+  const [code, k] = SEL.split('|');
+  const a = list.find(x => x.code === code); const d = a?.b[k];
   if (!d) return;
   const lines = d.dates.slice().sort((x, y) => y.date.localeCompare(x.date)).map(r =>
-    `<div class="row"><b>${fmtD(r.date)}</b><span>${r.in_line + r.off_line} מתוך ${r.planned}</span>${r.off_line ? `<span>· מתוכם ${r.off_line} מחוץ לקו</span>` : ''}${r.source === 'backfill' ? '<span title="משוחזר לפי הקווים של היום">↺</span>' : ''}</div>`).join('');
-  document.getElementById('detail').innerHTML = `<div class="detail"><b>${esc(a.name)} — יום ${DAYS[dn - 1]}׳</b>${lines}</div>`;
+    `<div class="row${DAY === r.date ? ' on' : ''}" onclick="pickDay('${r.date}')"><b>${fmtD(r.date)}</b><span>יום ${DAYS[r.day_num - 1]}׳</span>
+      <span>תכנון ${r.planned}</span><span>· קנו ${r.in_line}</span><span>· מחוץ לקו ${r.off_line}</span><span>· לא קנו ${r.planned - r.in_line}</span>
+      <span class="hint">${DAY === r.date ? '▲' : 'לקוחות ▼'}</span></div>${DAY === r.date ? clientsHtml(code, r.date) : ''}`).join('');
+  document.getElementById('detail').innerHTML = `<div class="detail"><b>${esc(a.name)} — ${bucketName(k, heads.get(k))}</b>${lines}</div>`;
 }
 
 const qCh = new URLSearchParams(location.search).get('ch');

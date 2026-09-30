@@ -1,5 +1,5 @@
 // Line-coverage history (PRD/coverage-history-design.md): pure helpers shared by the
-// manager tiles (/api/team-order-stats), the nightly snapshot and the one-time backfill.
+// manager tiles (/api/team-order-stats) and the nightly snapshot.
 
 // Israel route day for a YYYY-MM-DD date: Sun..Thu → 1..5, Fri/Sat → null (no route).
 function routeDayOf(dateStr) {
@@ -7,12 +7,12 @@ function routeDayOf(dateStr) {
   return wd >= 0 && wd <= 4 ? wd + 1 : null;
 }
 
-// Screen period: 1st of the month three months before the current one → yesterday.
+// Screen period: 1st of the month three months before the current one → today
+// (today's row exists only once the 20:07 snapshot has run).
 function coveragePeriod(todayStr) {
   const [y, m] = todayStr.split('-').map(Number);
   const from = new Date(Date.UTC(y, m - 1 - 3, 1)).toISOString().slice(0, 10);
-  const t = new Date(todayStr + 'T12:00:00Z'); t.setUTCDate(t.getUTCDate() - 1);
-  return { from, to: t.toISOString().slice(0, 10) };
+  return { from, to: todayStr };
 }
 
 // Agent's line for a route day = PBI schedule for that day, minus clients the agent
@@ -36,6 +36,17 @@ function coverageCounts(line, served) {
   let inLine = 0;
   for (const id of served) if (line.has(id)) inLine++;
   return { planned: line.size, inLine, offLine: served.size - inLine };
+}
+
+// Snapshot's per-client breakdown (drill-down on the coverage screen): bought in the
+// line / bought off the line / in the line but didn't buy — as [custId, custName] pairs.
+function coverageClients(line, served, nameOf) {
+  const pair = id => [id, nameOf(id) || ''];
+  return JSON.stringify({
+    in: [...served].filter(id => line.has(id)).map(pair),
+    off: [...served].filter(id => !line.has(id)).map(pair),
+    miss: [...line].filter(id => !served.has(id)).map(pair),
+  });
 }
 
 // FORMULA "served" credit: an order counts for the client's roster owner AND for
@@ -73,4 +84,4 @@ function coverageScope(s) {
   };
 }
 
-module.exports = { routeDayOf, coveragePeriod, lineFor, coverageCounts, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS };
+module.exports = { routeDayOf, coveragePeriod, lineFor, coverageCounts, coverageClients, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS };

@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { routeDayOf, coveragePeriod, lineFor, coverageCounts, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS } = require('./coverage');
+const { routeDayOf, coveragePeriod, lineFor, coverageCounts, coverageClients, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS } = require('./coverage');
 
 test('routeDayOf: Sun..Thu → 1..5, Fri/Sat → null', () => {
   assert.strictEqual(routeDayOf('2026-09-27'), 1); // Sunday
@@ -9,10 +9,10 @@ test('routeDayOf: Sun..Thu → 1..5, Fri/Sat → null', () => {
   assert.strictEqual(routeDayOf('2026-10-03'), null); // Saturday
 });
 
-test('coveragePeriod: 3 full months back + current month to yesterday', () => {
-  assert.deepStrictEqual(coveragePeriod('2026-09-30'), { from: '2026-06-01', to: '2026-09-29' });
-  assert.deepStrictEqual(coveragePeriod('2026-01-01'), { from: '2025-10-01', to: '2025-12-31' });
-  assert.deepStrictEqual(coveragePeriod('2026-03-15'), { from: '2025-12-01', to: '2026-03-14' });
+test('coveragePeriod: 3 full months back + current month up to today', () => {
+  assert.deepStrictEqual(coveragePeriod('2026-09-30'), { from: '2026-06-01', to: '2026-09-30' });
+  assert.deepStrictEqual(coveragePeriod('2026-01-01'), { from: '2025-10-01', to: '2026-01-01' });
+  assert.deepStrictEqual(coveragePeriod('2026-03-15'), { from: '2025-12-01', to: '2026-03-15' });
 });
 
 test('lineFor: scheduled day minus moved-away plus moved-in', () => {
@@ -34,6 +34,12 @@ test('coverageCounts: planned / inLine / offLine', () => {
   const r = coverageCounts(new Set(['1', '2', '3']), new Set(['2', '7', '8']));
   assert.deepStrictEqual(r, { planned: 3, inLine: 1, offLine: 2 });
   assert.deepStrictEqual(coverageCounts(new Set(), new Set()), { planned: 0, inLine: 0, offLine: 0 });
+});
+
+test('coverageClients: in line / off line / missed, with names (unknown → empty name)', () => {
+  const names = new Map([['1', 'אלף'], ['2', 'בית'], ['7', 'זין']]);
+  const r = JSON.parse(coverageClients(new Set(['1', '2', '3']), new Set(['2', '7']), id => names.get(id)));
+  assert.deepStrictEqual(r, { in: [['2', 'בית']], off: [['7', 'זין']], miss: [['1', 'אלף'], ['3', '']] });
 });
 
 test('creditedCustsByAgent: roster owner AND entering agent both credited', () => {

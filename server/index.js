@@ -694,7 +694,7 @@ app.get('/health', (req, res) => {
 // every single event. Same writeLog(entry)/readLog() contract as before, so
 // none of the ~30 call sites elsewhere in this file needed to change.
 const { logEvent, readLog, getDashboardStats } = require('./events-db');
-const { routeDayOf, coveragePeriod, lineFor, coverageCounts, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS } = require('./coverage');
+const { routeDayOf, coveragePeriod, lineFor, coverageCounts, coverageClients, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS } = require('./coverage');
 function writeLog(entry) { logEvent(entry); }
 
 function getRealIp(req) {
@@ -5758,7 +5758,7 @@ function custIdToRosterAgent() {
 // FORMULA line of an agent for a route day — PBI schedule + the agent's in-app day
 // moves, FORMULA clients only (ICE-only clients never count, same as the agent's
 // own ring in formula-road.html _renderFormulaBanner; user 2026-09-30: channels
-// never mix). Shared with the coverage snapshot/backfill so tiles and history
+// never mix). Shared with the coverage snapshot so tiles and history
 // can't drift apart. A moved-in id found in no pool is judged by the client
 // snapshot pushDayMove stored with the move (iceOnly flag).
 function formulaLineFor(agentCode, dayNum, overrides) {
@@ -5771,8 +5771,9 @@ function formulaLineFor(agentCode, dayNum, overrides) {
 }
 
 // ── Line-coverage history (PRD/coverage-history-design.md) ──
-// One evening snapshot per working day (20:07, retry 20:47) + a one-time backfill
-// of the screen period; /api/coverage-history only reads this file.
+// One evening snapshot per working day (20:07, retry 20:47); /api/coverage-history
+// only reads this file. Decision 2026-09-30 (Dan): real data only — the one-time
+// backfill (past dates rebuilt with TODAY's lines) was removed, history starts 30.09.
 const { openCoverageDb } = require('./coverage-db');
 const coverageDb = openCoverageDb(path.join(__dirname, 'data', 'coverage.db'));
 
@@ -5784,6 +5785,10 @@ async function formulaCoverageRows(dateStr, dayNum) {
   if (!orders) throw new Error('priority orders query failed'); // returns null on error
   const { custs } = creditedCustsByAgent(orders, custIdToRosterAgent());
   const overrides = readRouteOverrides();
+  const names = new Map(); // custId → name across all PBI pools (off-line clients may be another agent's)
+  for (const src of [pbiCache.byAgent, pbiCache.noScheduleByAgent, pbiCache.iceByAgent]) {
+    for (const [, clients] of src || []) for (const c of clients) if (!names.has(String(c.custId))) names.set(String(c.custId), c.custName);
+  }
   const rows = [], seen = new Set();
   for (const [manager, agents] of pbiCache.agentsByManager) {
     if (COVERAGE_EXCLUDED_TEAMS.has(manager)) continue;
@@ -5791,32 +5796,33 @@ async function formulaCoverageRows(dateStr, dayNum) {
       // ponytail: an agent under 2 managers keeps only the first (none on 2026-09-30), upgrade PK to include team if that changes
       if (seen.has(String(a.agentCode))) continue;
       seen.add(String(a.agentCode));
-      const c = coverageCounts(formulaLineFor(a.agentCode, dayNum, overrides), custs.get(a.agentCode) || new Set());
-      rows.push({ date: dateStr, channel: 'formula', agentCode: String(a.agentCode), agentName: a.agentName || '', team: manager, dayNum, ...c });
+      const line = formulaLineFor(a.agentCode, dayNum, overrides), served = custs.get(a.agentCode) || new Set();
+      rows.push({ date: dateStr, channel: 'formula', agentCode: String(a.agentCode), agentName: a.agentName || '', team: manager, dayNum,
+        ...coverageCounts(line, served), clients: coverageClients(line, served, id => names.get(id)) });
     }
   }
   return rows;
 }
 
 // One write per channel per day (user 2026-09-30): skipped if today's snapshot already exists.
-async function writeCoverageDay(dateStr, source) {
+async function writeCoverageDay(dateStr) {
   const dayNum = routeDayOf(dateStr);
   if (!dayNum) return; // Fri/Sat — no route
   const builders = { formula: formulaCoverageRows, bdd: (d, n) => bdd.coverageRows(d, n) };
   for (const [channel, build] of Object.entries(builders)) {
-    if (source === 'snapshot' && coverageDb.hasSnapshot(dateStr, channel)) continue;
+    if (coverageDb.hasSnapshot(dateStr, channel)) continue;
     try {
       const rows = await build(dateStr, dayNum);
-      coverageDb.upsert(rows.map(r => ({ ...r, source })));
-      console.log(`[coverage-${source}] ${channel} ${dateStr}: ${rows.length} agents`);
+      coverageDb.upsert(rows);
+      console.log(`[coverage-snapshot] ${channel} ${dateStr}: ${rows.length} agents`);
     } catch (e) {
-      console.error(`[coverage-${source}] ${channel} ${dateStr} failed:`, e.message);
+      console.error(`[coverage-snapshot] ${channel} ${dateStr} failed:`, e.message);
     }
   }
 }
 function scheduleCoverageSnapshot(hour, minute) {
   setTimeout(() => {
-    writeCoverageDay(todayIsraelDate(), 'snapshot');
+    writeCoverageDay(todayIsraelDate());
     scheduleCoverageSnapshot(hour, minute);
   }, msUntilNextIsraelTime(hour, minute));
 }
@@ -5824,31 +5830,8 @@ function israelHHMM() {
   return new Date().toLocaleTimeString('en-GB', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 }
 
-// First start with no backfill rows: fill the screen period (3 months + current, up to
-// yesterday) from Priority, one date at a time (no parallel queries), skipping dates
-// that already have rows. Runs in-process — no localhost-only route (cloudflared).
-async function backfillCoverageOnce() {
-  if (coverageDb.hasAnyBackfill()) return;
-  const { from, to } = coveragePeriod(todayIsraelDate());
-  const done = { formula: coverageDb.datesWithRows('formula'), bdd: coverageDb.datesWithRows('bdd') };
-  const t0 = Date.now();
-  for (let d = new Date(from + 'T12:00:00Z'); d.toISOString().slice(0, 10) <= to; d.setUTCDate(d.getUTCDate() + 1)) {
-    const dateStr = d.toISOString().slice(0, 10);
-    const dayNum = routeDayOf(dateStr);
-    if (!dayNum) continue;
-    for (const channel of ['formula', 'bdd']) {
-      if (done[channel].has(dateStr)) continue;
-      try {
-        const rows = channel === 'formula' ? await formulaCoverageRows(dateStr, dayNum) : await bdd.coverageRows(dateStr, dayNum);
-        coverageDb.upsert(rows.map(r => ({ ...r, source: 'backfill' })));
-      } catch (e) { console.error(`[coverage-backfill] ${channel} ${dateStr} failed:`, e.message); }
-    }
-  }
-  console.log(`[coverage-backfill] ${from}..${to} done in ${Math.round((Date.now() - t0) / 1000)}s`);
-}
-
 // GET /api/coverage-history?channel=formula|bdd — read-only (coverage.db), never Priority/PBI.
-// Rows from the 1st of the month 3 months back up to yesterday, only the teams the
+// Snapshot rows from the 1st of the month 3 months back up to today, only the teams the
 // session may see (coverageScope). ?probe=1 → which channels (manager-grid tile uses it).
 app.get('/api/coverage-history', requireAuth, dataRateLimit, (req, res) => {
   const scope = coverageScope(req.session);
@@ -5862,6 +5845,19 @@ app.get('/api/coverage-history', requireAuth, dataRateLimit, (req, res) => {
   const rows = coverageDb.readRange(channel, from, to)
     .filter(r => !COVERAGE_EXCLUDED_TEAMS.has(r.team) && (teams === '*' || teams.includes(r.team)));
   res.json({ ok: true, channel, channels, from, to, rows });
+});
+
+// GET /api/coverage-history/day?channel=&agent=&date= — one snapshot's client breakdown
+// ({in, off, miss} of [custId, name]); same team scope as the list. clients:null = no
+// breakdown stored for that row (snapshots before the 2026-09-30 deploy).
+app.get('/api/coverage-history/day', requireAuth, dataRateLimit, (req, res) => {
+  const channel = String(req.query.channel || ''), agent = String(req.query.agent || ''), date = String(req.query.date || '');
+  const teams = coverageScope(req.session)[channel];
+  if (!teams) return res.status(403).json({ ok: false, error: 'forbidden' });
+  if (!/^d{4}-d{2}-d{2}$/.test(date) || !/^w{1,12}$/.test(agent)) return res.status(400).json({ ok: false, error: 'bad_request' });
+  const r = coverageDb.readDay(channel, agent, date);
+  if (!r || COVERAGE_EXCLUDED_TEAMS.has(r.team) || (teams !== '*' && !teams.includes(r.team))) return res.status(404).json({ ok: false, error: 'not_found' });
+  res.json({ ok: true, clients: r.clients ? JSON.parse(r.clients) : null });
 });
 
 // GET /api/team-order-stats — FORMULA "today" order dynamics (denom/numer/sum)
@@ -6317,7 +6313,7 @@ app.use('/api/bdd', bdd.router);
 // Coverage history schedule — must stay below `const bdd` (TDZ at startup otherwise).
 scheduleCoverageSnapshot(20, 7);
 scheduleCoverageSnapshot(20, 47); // retry — no-op when 20:07 already wrote the day
-// Caches ready (FORMULA PBI + BDD) → catch up tonight's missed snapshot, then backfill once.
+// Caches ready (FORMULA PBI + BDD) → catch up tonight's missed snapshot.
 (function coverageStartup(tries = 0) {
   if (!pbiCache || !bdd.ready()) {
     if (tries < 30) setTimeout(() => coverageStartup(tries + 1), 60 * 1000);
@@ -6325,9 +6321,7 @@ scheduleCoverageSnapshot(20, 47); // retry — no-op when 20:07 already wrote th
   }
   const hhmm = israelHHMM();
   const late = hhmm >= '20:07' && hhmm <= '23:59';
-  (late ? writeCoverageDay(todayIsraelDate(), 'snapshot') : Promise.resolve())
-    .then(() => backfillCoverageOnce())
-    .catch(e => console.error('[coverage-startup] failed:', e.message));
+  if (late) writeCoverageDay(todayIsraelDate()).catch(e => console.error('[coverage-startup] failed:', e.message));
 })();
 
 // ── Client Return Form (זיכוי) — products this client bought in the last 365 days,

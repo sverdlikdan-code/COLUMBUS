@@ -9,7 +9,7 @@ const path = require('path');
 const ExcelJS = require('exceljs'); // Task 8: fridge order email, same package index.js already depends on
 const { BDD_GROUPS, summarizeBddDocs, bddCanWrite, canUseBdd, resolveBddGps, loadBddCache, serializeBddCache, deserializeBddCache, applyVisitOrder } = require('./bdd');
 const { bddDocLinesToday, bddClientPromos, bddCustFamiliesWithActivePromo, bddVisitOrder } = require('./bdd-priority');
-const { lineFor, coverageCounts, COVERAGE_EXCLUDED_TEAMS } = require('./coverage');
+const { lineFor, coverageCounts, coverageClients, COVERAGE_EXCLUDED_TEAMS } = require('./coverage');
 
 // Email HTML escape — copied from index.js's escEmail (one-liner, not worth a
 // deps wire-up or a shared module just for this).
@@ -583,7 +583,7 @@ ${mekarerRows}
     });
   }
 
-  // Coverage snapshot/backfill rows for one date (PRD/coverage-history-design.md).
+  // Coverage snapshot rows for one date (PRD/coverage-history-design.md).
   // Queries Priority directly for that date — independent of the 75 s docsToday cache.
   // BDD families only (summarizeBddDocs) — channels never mix (user 2026-09-30).
   async function coverageRows(dateStr, dayNum) {
@@ -596,8 +596,9 @@ ${mekarerRows}
       for (const a of agents) {
         const d = summary.byAgent.get(a.agentCode);
         const served = new Set((d?.byClient || []).map(c => String(c.custId)));
-        const c = coverageCounts(bddLineFor(a.agentCode, dayNum, overrides), served);
-        rows.push({ date: dateStr, channel: 'bdd', agentCode: String(a.agentCode), agentName: a.agentName || '', team: group, dayNum, ...c });
+        const line = bddLineFor(a.agentCode, dayNum, overrides);
+        rows.push({ date: dateStr, channel: 'bdd', agentCode: String(a.agentCode), agentName: a.agentName || '', team: group, dayNum,
+          ...coverageCounts(line, served), clients: coverageClients(line, served, id => cache.clientById.get(id)?.custName) });
       }
     }
     return rows;
