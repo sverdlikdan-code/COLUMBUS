@@ -387,6 +387,11 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .ice-badge{display:inline-block;background:#00B894;color:#fff;font-size:9.5px;font-weight:800;letter-spacing:.06em;padding:1px 5px;border-radius:3px;margin-left:5px;vertical-align:middle;}
 .crown-badge{display:inline-block;font-size:13px;margin-left:3px;vertical-align:middle;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25));}
 .today-order-badge{display:inline-block;font-size:17px;margin-left:4px;vertical-align:middle;filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));}
+/* map: today's order — dimmed marker + ✓ corner badge; cluster gets ✓done/total pill */
+.fr-mk-done{position:relative;display:inline-block;}
+.fr-mk-done>:first-child{opacity:.45;}
+.fr-mk-check{position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:#2E7D32;color:#fff;font-size:11px;font-weight:900;line-height:16px;text-align:center;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);}
+.fr-cl-done{direction:ltr;unicode-bidi:isolate;position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);background:#2E7D32;color:#fff;font-size:10px;font-weight:800;line-height:14px;padding:0 5px;border-radius:8px;border:1.5px solid #fff;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.35);}
 .km-filters-row{display:flex;align-items:center;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;scrollbar-width:none;}
 .km-filters-row::-webkit-scrollbar{display:none;}
 .km-extra-filters{display:flex;align-items:center;gap:6px;padding:2px 8px 4px 0;flex-wrap:nowrap;flex-shrink:0;}
@@ -2856,6 +2861,7 @@ function startTodayOrdersPolling(myId){
       markSeen(st.todayOrdersFormula,'F_'); markSeen(st.todayOrdersIce,'I_'); markSeen(st.todayOrdersBdd,'B_');
       firstPoll=false;
       renderClientList();
+      _refreshMapDone();
       _updateFormulaBanner();
       if(hasNew){ _playTodayOrderSound(); _announceTodayOrder(); }
     }catch(e){ /* Priority/network hiccup — badges just stay as they were this cycle */ }
@@ -3637,7 +3643,7 @@ function renderClientList(html){
     const noGps=!c.lat||!c.lng;
     const isSel=st.selectedId===c.custId;
     const isAiDiff=st.sortMode==='priority'&&st.aiClients[i]&&st.aiClients[i].custId!==c.custId;
-    const hasOrderToday=(c.hevra==='ICE_BDD'?st.todayOrdersBdd:c.iceOnly?st.todayOrdersIce:st.todayOrdersFormula).has(String(c.custId));
+    const hasOrderToday=_hasOrderToday(c);
     const cls=['client-card',
       noGps?'no-gps':'',isSel?'selected':'',isAiDiff?'ai-diff':'',
       c.iceOnly?'ice-only':'',
@@ -3851,6 +3857,27 @@ function setupSortable(){
 }
 
 // ── MAP ────────────────────────────────────────────────────────────────────
+function _hasOrderToday(c){
+  return (c.hevra==='ICE_BDD'?st.todayOrdersBdd:c.iceOnly?st.todayOrdersIce:st.todayOrdersFormula).has(String(c.custId));
+}
+const _mapDone=c=>!gpsCorrectMode&&st.day===_todayRouteDay()&&_hasOrderToday(c);
+function _doneIcon(base,done){
+  if(!done) return base;
+  const o=base.options;
+  return L.divIcon({className:'',iconSize:o.iconSize,iconAnchor:o.iconAnchor,
+    html:`<div class="fr-mk-done">${o.html}<span class="fr-mk-check">✓</span></div>`});
+}
+// today-orders poll hook: swap only the icons that changed — a full renderMap()
+// every 75s would re-fitBounds and close the open popup.
+function _refreshMapDone(){
+  if(!map||!markerCluster) return;
+  let changed=false;
+  mapMarkers.forEach(m=>{
+    const d=_mapDone(m._c);
+    if(d!==m._done){ m._done=d; m.setIcon(_doneIcon(m._baseIcon,d)); changed=true; }
+  });
+  if(changed) markerCluster.refreshClusters();
+}
 function renderMap(){
   // #map-pane is display:none while the map is hidden — initializing/resizing Leaflet
   // against a zero-size hidden container corrupts its internal tile-size cache (gray,
@@ -3879,13 +3906,16 @@ function renderMap(){
   markerCluster=L.markerClusterGroup({
     maxClusterRadius:50,disableClusteringAtZoom:16,
     iconCreateFunction(cluster){
-      const rns=cluster.getAllChildMarkers().map(m=>m._rn).sort((a,b)=>a-b);
+      const kids=cluster.getAllChildMarkers();
+      const rns=kids.map(m=>m._rn).sort((a,b)=>a-b);
       const n=rns.length;
+      const done=kids.filter(m=>m._done).length;
       const label=n===1?`${rns[0]}`:`${rns[0]}–${rns[n-1]}`;
       const sz=44;
       return L.divIcon({className:'',
-        html:`<div style="background:#C9A84C;color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2.5px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.35)">
+        html:`<div style="position:relative;background:#C9A84C;color:#fff;width:${sz}px;height:${sz}px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2.5px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.35)">
           <span style="font-size:12px;font-weight:900;letter-spacing:-0.5px">${label}</span>
+          ${done?`<span class="fr-cl-done">✓${done}/${n}</span>`:''}
         </div>`,
         iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]});
     }
@@ -3971,8 +4001,9 @@ function renderMap(){
     const id = parseInt(c.custId) || 0;
     const mLat = isCityCenter ? c.lat+((id*7+3)%17-8)*0.00015 : _hasDupe ? c.lat+((_di*7+3)%17-8)*0.00015 : c.lat;
     const mLng = isCityCenter ? c.lng+((id*13+5)%19-9)*0.00015 : _hasDupe ? c.lng+((_di*13+5)%19-9)*0.00015 : c.lng;
-    const m=L.marker([mLat,mLng],{icon,zIndexOffset:isSel?1000:0});
-    m._rn=i+1;
+    const done=_mapDone(c);
+    const m=L.marker([mLat,mLng],{icon:_doneIcon(icon,done),zIndexOffset:isSel?1000:0});
+    m._rn=i+1; m._c=c; m._baseIcon=icon; m._done=done;
     const corrMark = gpsCorrections[String(c.custId)] ? ' ✏️' : '';
     const aiNote = c._usingAi ? '<br><span style="font-size:11px;color:#7B1FA2">🤖 GPS: AI Google</span>' : '';
     const approxNote = c._usingAi ? aiNote
