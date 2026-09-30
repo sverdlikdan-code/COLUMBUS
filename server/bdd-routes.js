@@ -9,6 +9,7 @@ const path = require('path');
 const ExcelJS = require('exceljs'); // Task 8: fridge order email, same package index.js already depends on
 const { BDD_GROUPS, summarizeBddDocs, bddCanWrite, canUseBdd, resolveBddGps, loadBddCache, serializeBddCache, deserializeBddCache, applyVisitOrder } = require('./bdd');
 const { bddDocLinesToday, bddClientPromos, bddCustFamiliesWithActivePromo, bddVisitOrder } = require('./bdd-priority');
+const { lineFor, coverageCounts } = require('./coverage');
 
 // Email HTML escape — copied from index.js's escEmail (one-liner, not worth a
 // deps wire-up or a shared module just for this).
@@ -192,6 +193,15 @@ function createBdd(deps) {
   const validAgent = a => /^\d{1,10}$/.test(String(a || '')); // R7: same regex as FORMULA's validateAgentCode
   const validCust = c => /^\d{1,15}$/.test(c);
 
+  // BDD line for a route day — PBI schedule + agent's in-app day moves (same rule as
+  // /customers below). Shared by team-order-stats and the coverage snapshot.
+  function bddLineFor(agentCode, dayNum, overrides) {
+    const all = cache.byAgent.get(String(agentCode)) || [];
+    const ids = new Set(all.map(c => String(c.custId)));
+    const dayMoves = (overrides || readJson(FILES.overrides, {}))[agentCode]?.dayMoves || {};
+    return lineFor({ scheduled: all, dayMoves, dayNum, movedInOk: id => ids.has(id) });
+  }
+
   // --- read routes (Task 6) ---
   router.get('/managers', deps.dataRateLimit, (req, res) => res.json(BDD_GROUPS.map(m => ({ managerCode: m }))));
 
@@ -279,22 +289,21 @@ function createBdd(deps) {
     res.json({ ok: true, formula: [], iceMish: [], bdd: s ? [...s.custIds] : [] });
   }));
 
-  // Line coverage: denominator = agent's clients scheduled today (משטח_ICE),
+  // Line coverage: denominator = agent's line today (משטח_ICE + in-app day moves, bddLineFor),
   // numerator/sum = what that agent executed today (BDD families). Same shape as FORMULA.
   router.get('/api/team-order-stats', deps.dataRateLimit, h(async (req, res) => {
     if (needCache(res)) return;
     const s = await docsToday();
     const todayDay = deps.todayRouteDay();
     const byAgent = {}, byManager = {};
+    const overrides = readJson(FILES.overrides, {});
     for (const [group, agents] of cache.agentsByGroup) {
       const acc = { denom: 0, numer: 0, sum: 0, offLine: 0 };
       for (const a of agents) {
-        const lineClients = (cache.byAgent.get(a.agentCode) || []).filter(c => c.dayNum === todayDay);
-        const line = new Set(lineClients.map(c => String(c.custId)));
-        const denom = lineClients.length;
         const d = s?.byAgent.get(a.agentCode);
+        const served = new Set((d?.byClient || []).map(c => String(c.custId)));
         // offLine: served today but not in today's line — shown next to the % (user 2026-09-30), % itself unchanged.
-        const offLine = (d?.byClient || []).filter(c => !line.has(String(c.custId))).length;
+        const { planned: denom, offLine } = coverageCounts(bddLineFor(a.agentCode, todayDay, overrides), served);
         byAgent[a.agentCode] = { denom, numer: d?.custCount || 0, sum: d?.sum || 0, offLine };
         acc.denom += denom; acc.numer += byAgent[a.agentCode].numer; acc.sum += byAgent[a.agentCode].sum; acc.offLine += offLine;
       }

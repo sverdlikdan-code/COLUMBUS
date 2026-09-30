@@ -694,6 +694,7 @@ app.get('/health', (req, res) => {
 // every single event. Same writeLog(entry)/readLog() contract as before, so
 // none of the ~30 call sites elsewhere in this file needed to change.
 const { logEvent, readLog, getDashboardStats } = require('./events-db');
+const { routeDayOf, coveragePeriod, lineFor, coverageCounts, creditedCustsByAgent, coverageScope } = require('./coverage');
 function writeLog(entry) { logEvent(entry); }
 
 function getRealIp(req) {
@@ -5751,6 +5752,21 @@ function custIdToRosterAgent() {
   return map;
 }
 
+// FORMULA line of an agent for a route day — PBI schedule + the agent's in-app day
+// moves, FORMULA clients only (ICE-only clients never count, same as the agent's
+// own ring in formula-road.html _renderFormulaBanner; user 2026-09-30: channels
+// never mix). Shared with the coverage snapshot/backfill so tiles and history
+// can't drift apart. A moved-in id found in no pool is judged by the client
+// snapshot pushDayMove stored with the move (iceOnly flag).
+function formulaLineFor(agentCode, dayNum, overrides) {
+  const scheduled = pbiCache.byAgent.get(agentCode) || [];
+  const formulaIds = new Set([...scheduled, ...(pbiCache.noScheduleByAgent?.get(agentCode) || [])].map(c => String(c.custId)));
+  const iceIds = new Set((pbiCache.iceByAgent?.get(agentCode) || []).map(c => String(c.custId)));
+  const dayMoves = (overrides || readRouteOverrides())[agentCode]?.dayMoves || {};
+  return lineFor({ scheduled, dayMoves, dayNum,
+    movedInOk: id => formulaIds.has(id) || (!iceIds.has(id) && !dayMoves[id]?.client?.iceOnly) });
+}
+
 // GET /api/team-order-stats — FORMULA "today" order dynamics (denom/numer/sum)
 // for every agent AND aggregated per manager, built entirely from data already
 // in memory: pbiCache's schedule (no extra Priority query) plus the cache
@@ -5775,26 +5791,16 @@ app.get('/api/team-order-stats', requireAuth, dataRateLimit, async (req, res) =>
   const rosterAgentByCust = custIdToRosterAgent();
   const todayDay = todayRouteDay();
 
-  const custSetByAgent = new Map(); // agentCode -> Set(custId)
-  const sumByAgent = new Map(); // agentCode -> number
-  for (const row of ordersCache.rows) {
-    const credited = new Set();
-    const rosterAgent = rosterAgentByCust.get(row.custId);
-    if (rosterAgent) credited.add(rosterAgent);
-    if (row.enteringAgentCode) credited.add(row.enteringAgentCode);
-    for (const ag of credited) {
-      if (!custSetByAgent.has(ag)) custSetByAgent.set(ag, new Set());
-      custSetByAgent.get(ag).add(row.custId);
-      sumByAgent.set(ag, (sumByAgent.get(ag) || 0) + row.dispPrice);
-    }
-  }
+  const { custs: custSetByAgent, sums: sumByAgent } = creditedCustsByAgent(ordersCache.rows, rosterAgentByCust);
+  const overrides = readRouteOverrides(); // read once per request, not per agent
 
+  // denom = the agent's line for today WITH in-app day moves (formulaLineFor), same
+  // as the agent's own ring — before 2026-09-30 it was the raw PBI day count.
   const byAgent = {};
-  for (const [agentCode, clients] of pbiCache.byAgent) {
-    const today = clients.filter(c => c.dayNum === todayDay);
+  for (const [agentCode] of pbiCache.byAgent) {
     const numer = custSetByAgent.get(agentCode)?.size || 0;
     const sum = Math.round((sumByAgent.get(agentCode) || 0) * 100) / 100;
-    byAgent[agentCode] = { denom: today.length, numer, sum };
+    byAgent[agentCode] = { denom: formulaLineFor(agentCode, todayDay, overrides).size, numer, sum };
   }
 
   const byManager = {};

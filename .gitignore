@@ -56,6 +56,9 @@ server/data/events.db
 server/data/events.db-journal
 server/data/events.db-wal
 server/data/events.db-shm
+server/data/coverage.db
+server/data/coverage.db-wal
+server/data/coverage.db-shm
 
 # PBI data dumps used by ad-hoc report scripts — реальные данные клиентов, не для публичного репо
 scripts/*_dump.json
