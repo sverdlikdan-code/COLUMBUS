@@ -2502,6 +2502,15 @@ function selectAgent(code,name){
   // agents reuses it instead of re-asking; same day they were already viewing,
   // or today's if this is the first agent picked. Only an explicit city change
   // (← חזור from the route screen) or 🔄 חישוב מסלול מחדש should touch it. 2026-08-23.
+  // st is memory-only — after any reload (iOS drops the page when the manager
+  // switches to WhatsApp/Waze) it was empty and the city got asked again.
+  // Restore the start point saved by selectDay(), but only if set today —
+  // yesterday's city would silently route from the wrong place. 2026-10-01.
+  if(!(st.startCity && st.startLat && st.startLng) && localStorage.getItem('frLastCityDate')===new Date().toLocaleDateString('en-CA')){
+    const _lat=parseFloat(localStorage.getItem('frLastLat')), _lng=parseFloat(localStorage.getItem('frLastLng'));
+    const _city=localStorage.getItem('frLastCity')||'';
+    if(_city && !isNaN(_lat) && !isNaN(_lng)){ st.startCity=_city; st.startLat=_lat; st.startLng=_lng; }
+  }
   if(st.startCity && st.startLat && st.startLng){
     selectDay(st.day || _todayRouteDay());
     return;
@@ -2598,7 +2607,7 @@ function _todayRouteDay(){
 async function selectDay(day){
   st.day=day;
   localStorage.setItem('frLastDay', String(day));
-  if(st.startCity) localStorage.setItem('frLastCity', st.startCity);
+  if(st.startCity){ localStorage.setItem('frLastCity', st.startCity); localStorage.setItem('frLastCityDate', new Date().toLocaleDateString('en-CA')); }
   // Always keep lat/lng in sync with the city being saved above — stale coordinates
   // from a previous city (e.g. this city's geocode failed) would otherwise survive
   // and get paired with the new city name on the next F5 restore.
