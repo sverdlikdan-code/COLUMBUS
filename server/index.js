@@ -4712,9 +4712,24 @@ function formulaRoadGuard(req, res, next) {
   if (invToken) {
     const sess = sessions.get(invToken);
     if (sess && Date.now() <= sess.expiresAt) {
+      // Re-issue fr_ok — a valid session token is the same proof an invite
+      // click gives, and without the cookie every later data fetch on this
+      // browser would hit the gate again.
+      res.setHeader('Set-Cookie', 'fr_ok=1; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000');
       writeLog({ ts: new Date().toISOString(), event: 'gate-inv', ip: getRealIp(req), path: req.path, device: deviceType(req.headers['user-agent'] || '') });
       return next();
     }
+  }
+  // Home-screen shortcut opens bare /formula-road (manifest start_url) — if its
+  // cookie jar lost fr_ok (iOS standalone app keeps its own jar), the agent's
+  // still-valid frToken sits in localStorage but this gate blocks before the
+  // page can read it. Bounce once through the gate-inv path above with that
+  // token; no token / dead token comes back with _inv set → lock page, no loop.
+  // Live case 2026-10-01: agents locked out on iPhone from the shortcut.
+  if (req.path === '/formula-road' && !invToken) {
+    writeLog({ ts: new Date().toISOString(), event: 'gate-bounce', ip: getRealIp(req), path: req.path, device: deviceType(req.headers['user-agent'] || '') });
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).send(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><script>var t='';try{t=localStorage.getItem('frToken')||''}catch(e){}var u=new URL(location.href);u.searchParams.set('_inv',t||'none');location.replace(u.toString());</script></body></html>`);
   }
   writeLog({ ts: new Date().toISOString(), event: 'gate-blocked', ip: getRealIp(req), path: req.path, device: deviceType(req.headers['user-agent'] || ''), ua: (req.headers['user-agent'] || '').substring(0, 120) });
   return res.status(403).send(`<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>גישה מוגבלת</title><style>body{font-family:sans-serif;background:#f0f2f5;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}div{text-align:center;background:#fff;padding:48px 40px;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.08)}h2{margin:0 0 12px;color:#1a1a2e;font-size:1.4rem}p{color:#666;margin:0}</style></head><body><div><div style="font-size:2.5rem;margin-bottom:16px">🔒</div><h2>גישה דרך Power BI בלבד</h2><p>יש לפתוח את האפליקציה מתוך לוח הבקרה ב-Power BI</p></div></body></html>`);
