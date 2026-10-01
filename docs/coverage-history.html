@@ -41,10 +41,9 @@ td.ag{font-weight:700;}
 td.c{cursor:pointer;}
 td.c .p{font-size:14px;font-weight:900;}
 td.c .o,tr.team .o{font-size:10px;color:var(--light);white-space:nowrap;}
-.r{background:var(--red-bg);} .r .p{color:var(--red);}
-.y{background:var(--yellow-bg);} .y .p{color:var(--yellow);}
-.g{background:var(--green-bg);} .g .p{color:var(--green);}
-.x{background:var(--grey-bg);color:var(--light);}
+.r .p{color:var(--red);} .y .p{color:var(--yellow);} .g .p{color:var(--green);}
+.x{color:var(--light);}
+td.c .n,tr.team .n{font-size:11px;color:var(--text);white-space:nowrap;}
 tr.team td{font-weight:800;border-top:2px solid #CFD8DC;}
 td.c.sel{outline:2px solid var(--blue);outline-offset:-2px;}
 .detail{margin-top:10px;background:var(--card);border-radius:10px;padding:10px 12px;box-shadow:0 1px 3px rgba(0,0,0,.08);font-size:13px;}
@@ -138,15 +137,18 @@ function aggregate(rows) {
   }
   // Newest first (rightmost in RTL, visible without scrolling); weekdays stay א..ה.
   const keys = [...heads.keys()].sort((x, y) => LEVEL === 'dow' ? x - y : y.localeCompare(x));
-  const list = [...agents.values()].sort((x, y) => (pct(x.i, x.p) ?? 101) - (pct(y.i, y.p) ?? 101));
+  const list = [...agents.values()].sort((x, y) => (pct(y.i, y.p) ?? -1) - (pct(x.i, x.p) ?? -1)); // highest coverage first (Dan 2026-10-01)
   return { list, team, keys, heads };
 }
 
 function cell(d, key) {
   if (!d || !d.p) return `<td class="x">—</td>`;
   const v = pct(d.i, d.p);
-  return `<td class="c ${cls(v)}${SEL === key ? ' sel' : ''}" onclick="pick('${key}')"><div class="p">${v}%</div>${d.o ? `<div class="o">מתוכם ${d.o}</div>` : ''}</td>`;
+  return `<td class="c ${cls(v)}${SEL === key ? ' sel' : ''}" onclick="pick('${key}')">${cellBody(d, v)}</td>`;
 }
+
+// Cell (Dan 2026-10-01): % כיסוי, הזמינו מתוך מתוכנן, מתוכם מחוץ לקו.
+const cellBody = (d, v) => `<div class="p">${v}%</div><div class="n">${d.i} מתוך ${d.p}</div>${d.o ? `<div class="o">מחוץ לקו ${d.o}</div>` : ''}`;
 
 const seg = (items, cur, fn) => `<div class="seg">${items.map(([k, t]) => `<button class="${k === cur ? 'on' : ''}" onclick="${fn}('${k}')">${t}</button>`).join('')}</div>`;
 
@@ -173,7 +175,7 @@ function render() {
   const rowsHtml = list.map(a => `<tr><td class="ag" title="${esc(a.name)}">${esc(a.name)}</td>${keys.map(k => cell(a.b[k], a.code + '|' + k)).join('')}</tr>`).join('');
   const teamRow = `<tr class="team"><td class="ag">${TEAM === '*' ? 'כולם' : esc(TEAM)}</td>${keys.map(k => {
     const t = team[k]; if (!t || !t.p) return '<td class="x">—</td>';
-    const v = pct(t.i, t.p); return `<td class="${cls(v)}"><div class="p">${v}%</div>${t.o ? `<div class="o">מתוכם ${t.o}</div>` : ''}</td>`; }).join('')}</tr>`;
+    const v = pct(t.i, t.p); return `<td class="${cls(v)}">${cellBody(t, v)}</td>`; }).join('')}</tr>`;
 
   document.getElementById('wrap').innerHTML = `
     <div class="bar">${chBtns}<div class="period">${fmtD(from)}.${from.slice(0, 4)} – ${fmtD(to)}.${to.slice(0, 4)}</div></div>
@@ -183,7 +185,7 @@ function render() {
     ${list.length ? `<h2>הכי חלשים</h2><div class="top3">${top3 || '<div class="msg">אין נתונים</div>'}</div>
     <h2>כיסוי קו — ${LEVELS.find(l => l[0] === LEVEL)[1]}</h2>
     <div class="tbl-wrap"><table><thead>${head}</thead><tbody>${rowsHtml}${teamRow}</tbody></table></div>
-    <div class="legend">% = לקוחות שקנו מתוך המתוכננים לקו · מתוכם N = קנו מחוץ לקו · נתונים אמיתיים בלבד — צילום ערב (20:07) מ־30.09.2026</div>
+    <div class="legend">% כיסוי = הזמינו מתוך המתוכננים לקו (כולל מחוץ לקו) · "מחוץ לקו N" = מתוכם הזמינו מחוץ לקו · נתונים אמיתיים בלבד — צילום ערב (20:07) מ־30.09.2026</div>
     <div id="detail"></div>` : '<div class="msg">אין נתונים לתקופה הזאת — הצילום הראשון נרשם ב־30.09.2026 ב־20:07</div>'}`;
   if (SEL) showDetail(list, heads);
 }

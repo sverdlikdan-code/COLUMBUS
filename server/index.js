@@ -5848,8 +5848,14 @@ function israelHHMM() {
 // GET /api/coverage-history?channel=formula|bdd — read-only (coverage.db), never Priority/PBI.
 // Snapshot rows from the 1st of the month 3 months back up to today, only the teams the
 // session may see (coverageScope). ?probe=1 → which channels (manager-grid tile uses it).
+// coverageAll (managers.json) — a readonly viewer who still sees every team's
+// coverage (Dima Vainberg, 2026-10-01); everyone else keeps coverageScope().
+function coverageScopeOf(s) {
+  const m = s?.isManager && s.managerId ? loadManagerRoster().find(x => x.id === s.managerId) : null;
+  return m?.coverageAll ? { formula: '*', bdd: '*' } : coverageScope(s);
+}
 app.get('/api/coverage-history', requireAuth, dataRateLimit, (req, res) => {
-  const scope = coverageScope(req.session);
+  const scope = coverageScopeOf(req.session);
   const channels = ['formula', 'bdd'].filter(ch => scope[ch]);
   if (!channels.length) return res.status(403).json({ ok: false, error: 'forbidden' });
   if (req.query.probe) return res.json({ ok: true, channels });
@@ -5867,9 +5873,9 @@ app.get('/api/coverage-history', requireAuth, dataRateLimit, (req, res) => {
 // breakdown stored for that row (snapshots before the 2026-09-30 deploy).
 app.get('/api/coverage-history/day', requireAuth, dataRateLimit, (req, res) => {
   const channel = String(req.query.channel || ''), agent = String(req.query.agent || ''), date = String(req.query.date || '');
-  const teams = coverageScope(req.session)[channel];
+  const teams = coverageScopeOf(req.session)[channel];
   if (!teams) return res.status(403).json({ ok: false, error: 'forbidden' });
-  if (!/^d{4}-d{2}-d{2}$/.test(date) || !/^w{1,12}$/.test(agent)) return res.status(400).json({ ok: false, error: 'bad_request' });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\w{1,12}$/.test(agent)) return res.status(400).json({ ok: false, error: 'bad_request' });
   const r = coverageDb.readDay(channel, agent, date);
   if (!r || COVERAGE_EXCLUDED_TEAMS.has(r.team) || (teams !== '*' && !teams.includes(r.team))) return res.status(404).json({ ok: false, error: 'not_found' });
   res.json({ ok: true, clients: r.clients ? JSON.parse(r.clients) : null });
