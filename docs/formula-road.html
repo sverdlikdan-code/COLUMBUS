@@ -2042,6 +2042,10 @@ async function initLogin(){
         _fromInvite = true;
       } catch(_){}
       window.history.replaceState({}, '', window.location.pathname);
+    } else if (_inv) {
+      // Shortcut bounce (formulaRoadGuard, server/index.js) carries only _inv —
+      // token is already in localStorage, just keep it out of a copyable URL.
+      window.history.replaceState({}, '', window.location.pathname);
     }
   }
 
@@ -5760,7 +5764,9 @@ function getDemoClients(){
 // day straight — never happens on a phone that gets closed/reopened, so in practice
 // "later" behaved as "never again" too. Fixed by storing a timestamp and comparing
 // on each load instead. 2026-08-17.
-const PWA_ASK_COOLDOWN_MS = 24*60*60*1000;
+// 2026-10-01: cooldown 0 — ask on every open until installed (user's call:
+// home-screen app keeps iOS storage safe from ITP wipes → fewer lost logins).
+const PWA_ASK_COOLDOWN_MS = 0;
 function _pwaShouldAsk(){
   if(window.matchMedia('(display-mode: standalone)').matches) return false;
   const last=parseInt(localStorage.getItem('fr_pwa_last')||'0',10);
