@@ -5801,21 +5801,32 @@ function _openInChrome(){
   const url=full.replace(/^https?:\/\//,'');
   location.href=`intent://${url}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(full)};end`;
 }
+// Banner waits its turn behind מחשבת היום / guide prompt (both open at load
+// for new agents — three overlays at once, 2026-10-01): shown only while both
+// are closed, hidden again if one opens later, stops for good after a tap.
+let _pwaDone=false, _pwaLoop=null;
+function _pwaShowWhenClear(){
+  if(_pwaLoop) return;
+  _pwaLoop=setInterval(()=>{
+    if(_pwaDone){ clearInterval(_pwaLoop); return; }
+    const busy=['thought-toast','guide-modal'].some(id=>document.getElementById(id)?.classList.contains('open'));
+    document.getElementById('pwa-banner').classList.toggle('show', !busy);
+  }, 1000);
+}
 window.addEventListener('beforeinstallprompt',e=>{
   e.preventDefault();
   _pwaPrompt=e;
   if(_pwaShouldAsk()){
-    setTimeout(()=>{
-      if(_isSamsungInternet){
-        const b=document.getElementById('pwa-banner');
-        b.querySelector('.pwa-sub').textContent='להתקנה תקינה יש לפתוח ב-Chrome';
-        b.querySelector('.pwa-install').textContent='🌐 פתח ב-Chrome';
-      }
-      document.getElementById('pwa-banner').classList.add('show');
-    }, 2000);
+    if(_isSamsungInternet){
+      const b=document.getElementById('pwa-banner');
+      b.querySelector('.pwa-sub').textContent='להתקנה תקינה יש לפתוח ב-Chrome';
+      b.querySelector('.pwa-install').textContent='🌐 פתח ב-Chrome';
+    }
+    setTimeout(_pwaShowWhenClear, 2000);
   }
 });
 async function doPwaInstall(){
+  _pwaDone=true;
   document.getElementById('pwa-banner').classList.remove('show');
   if(_isSamsungInternet){
     _openInChrome();
@@ -5828,18 +5839,17 @@ async function doPwaInstall(){
   }
 }
 function dismissPwaBanner(){
+  _pwaDone=true;
   document.getElementById('pwa-banner').classList.remove('show');
   localStorage.setItem('fr_pwa_last', String(Date.now()));
 }
-// iOS fallback — no beforeinstallprompt, show manual tip (same daily cooldown)
+// iOS fallback — no beforeinstallprompt, show manual tip (asked every open until installed)
 if(/iphone|ipad|ipod/i.test(navigator.userAgent) && !window.navigator.standalone){
   if(_pwaShouldAsk()){
-    setTimeout(()=>{
-      const b=document.getElementById('pwa-banner');
-      b.querySelector('.pwa-sub').textContent='לחץ על 📤 ואז "הוסף למסך הבית"';
-      b.querySelector('.pwa-install').style.display='none';
-      b.classList.add('show');
-    },2000);
+    const b=document.getElementById('pwa-banner');
+    b.querySelector('.pwa-sub').textContent='לחץ על 📤 ואז "הוסף למסך הבית"';
+    b.querySelector('.pwa-install').style.display='none';
+    setTimeout(_pwaShowWhenClear, 2000);
   }
 }
 
