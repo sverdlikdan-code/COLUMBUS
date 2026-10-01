@@ -5022,6 +5022,26 @@ app.get('/p/:name', dataRateLimit, (req, res) => {
     if (err && !res.headersSent) res.status(404).end();
   });
 });
+// Reading stats for a shared page: the page's own script beacons seconds-per-section
+// (only while the tab is visible). Appended to a jsonl next to the files — outside the
+// public repo. Only for names that exist, keys/values bounded so it can't be used as storage.
+app.post('/p/:name/ev', dataRateLimit, (req, res) => {
+  const name = req.params.name;
+  if (!/^[0-9a-f]{48}$/.test(name) || !fs.existsSync(path.join(PRIVATE_SHARE_DIR, name + '.html'))) return res.status(404).end();
+  const b = req.body || {};
+  const d = {};
+  for (const [k, v] of Object.entries(b.d || {}).slice(0, 40)) {
+    if (/^[a-z0-9-]{1,24}$/.test(k) && Number.isInteger(v) && v > 0 && v <= 600) d[k] = v;
+  }
+  const line = {
+    ts: new Date().toISOString(), name: name.slice(0, 8),
+    sid: /^[a-z0-9]{1,16}$/.test(b.sid) ? b.sid : null,
+    open: b.open === true || undefined, w: Number.isInteger(b.w) ? b.w : null, d,
+    ip: req.headers['cf-connecting-ip'] || req.ip, ua: String(req.headers['user-agent'] || '').slice(0, 200),
+  };
+  fs.appendFile(path.join(PRIVATE_SHARE_DIR, 'views.jsonl'), JSON.stringify(line) + '\n', () => {});
+  res.status(204).end();
+});
 // docs/manifest.json's start_url ("./formula-road.html") is correct for the
 // GitHub Pages static host it's normally served from, but resolves relative to
 // THIS route's own URL (/manifest.json → /formula-road.html) when fetched here
