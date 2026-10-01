@@ -5852,15 +5852,7 @@ function dismissPwaBanner(){
   document.getElementById('pwa-banner').classList.remove('show');
   localStorage.setItem('fr_pwa_last', String(Date.now()));
 }
-// iOS fallback — no beforeinstallprompt, show manual tip (asked every open until installed)
-if(/iphone|ipad|ipod/i.test(navigator.userAgent) && !window.navigator.standalone){
-  if(_pwaShouldAsk()){
-    const b=document.getElementById('pwa-banner');
-    b.querySelector('.pwa-sub').textContent='לחץ על 📤 ואז "הוסף למסך הבית"';
-    b.querySelector('.pwa-install').style.display='none';
-    setTimeout(_pwaShowWhenClear, 2000);
-  }
-}
+// iOS: no banner at all — Safari has no install API, a question without a "yes" button only confuses (2026-10-01)
 
 // ── INIT ───────────────────────────────────────────────────────────────────
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&gpsCorrectMode) cancelGpsCorrection();});
