@@ -1658,3 +1658,9 @@ v12→v13 (коммит `0fea1fa7`) — после первого бампа (v1
 - `9d5ee135` coverage-history: Дима Вайнберг (dima-vainberg + dmitri-vainberg, readonly) — флаг `coverageAll` в managers.json → видит все команды FORMULA+BDD (`coverageScopeOf` в index.js, остальные readonly без доступа). Ячейки: % / «הזמינו מתוך מתוכנן» / «מחוץ לקו N», без заливки; сортировка от большего покрытия. 
 - 🐛 Найден и починен баг из e1c90a77 (30.09): `/api/coverage-history/day` — regex без `\` (`^d{4}`), всегда 400 → «клиенты за день» не открывались ни для одного дня. Теперь 200 (30.09 → clients:null, разбивка пишется со снимка 01.10 20:07).
 - 📧 01.10 16:01 (Израиль) Диме Вайнбергу отправлено письмо с личным менеджерским инвайтом `/i/Jmp3lkk` (name "Dmitri Vainberg" → managerId dmitri-vainberg, coverageAll; TTL год), to Dima@DilerBMD.com, cc d.sverdlik@DilerBMD.com, Resend id 01a0f78e-afa4-74dc-9815-900c95c3f99a. Проверено до отправки: 302 с _im=1, probe покрытия → formula+bdd. Бэкап short-invites: /root/short-invites-backup-before-dima.json.
+
+## Баннер «לפתוח כאפליקציה?» на iPhone убран — 2026-10-01 [shipped]
+- Жалоба Дана (скрин iPhone): баннер спрашивает «לפתוח כאפליקציה?», а кнопки «да» нет — только «אחר כך». Причина: на iOS нет API установки PWA, кнопка `התקן` скрывалась намеренно, оставалась текстовая подсказка «לחץ על 📤» (в новом Safari 📤 спрятан под «⋯»).
+- Показан макет баннера-инструкции (3 шага ⋯ → שתף → הוסף למסך הבית) — Дан отказался: «не надо вообще для айфона».
+- `148c5d90`: удалён iOS-блок в docs/formula-road.html (~5855). Android/Samsung-путь (beforeinstallprompt, «פתח ב-Chrome») не тронут. Puppeteer iPhone UA: старая версия — баннер показан, новая — нет; JS без ошибок. На VPS подтверждено (git log + grep).
+- ⚠️ Учесть: запись выше (тот же день) — установка на iOS защищает localStorage от очистки ITP. Теперь iPhone-агенты без подсказки сами ставить не будут; если снова пойдут вылеты из сессии на iPhone — вспомнить про это.
