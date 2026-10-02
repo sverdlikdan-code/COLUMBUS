@@ -1117,6 +1117,12 @@ function makeShortInvite(code, name, days = 365, isManager = false, target = nul
 app.get('/i/:code', dataRateLimit, (req, res) => {
   const map = loadShortInvites();
   const payload = map[req.params.code];
+  // Who opened which invite — before 2026-10-02 nothing was logged here, so a cookie
+  // appearing (gate-cookie) could only be traced back to an invite by elimination.
+  writeLog({ ts: new Date().toISOString(), event: 'invite-open', agentCode: payload && !payload.isManager ? String(payload.code) : null,
+    inviteName: payload?.name || null, inviteType: payload ? (payload.target || (payload.isManager ? 'manager' : 'agent')) : null,
+    status: !payload ? 'not_found' : Date.now() > payload.exp ? 'expired' : 'ok',
+    ip: getRealIp(req), device: deviceType(req.headers['user-agent'] || ''), ua: (req.headers['user-agent'] || '').substring(0, 120) });
   if (!payload || Date.now() > payload.exp) return res.status(400).send(_inviteExpiredPage);
   if (payload.target === 'mahsan') return _mahsanInviteRedirect(res);
   return _inviteRedirect(payload, res);
@@ -1161,6 +1167,15 @@ app.get('/auth/pbi', dataRateLimit, pbiIpOrKnownUser, (req, res) => {
   const m = cookies.match(/(?:^|;\s*)fr_pbiu=([^;]+)/);
   const pbiUser = m ? decodeURIComponent(m[1]) : null;
   const managerMeta = findManagerByPbiEmail(pbiUser);
+  // Unidentified manager sessions only for Mahsan (planogram-editor on GitHub Pages,
+  // from an allowlisted IP). Live case 2026-10-01: an agent's phone (fr_ok from her own
+  // invite) on an allowlisted IP auto-called this from Formula Road's 401 re-auth and got
+  // an anonymous isManager session. ponytail: Origin is browser-set, a deliberate agent
+  // could still open the Pages copy on-site; upgrade to a Mahsan-scoped session if needed.
+  if (!managerMeta && !(req._mahsanIpVerified && req.headers.origin === 'https://sverdlikdan-code.github.io')) {
+    writeLog({ ts: new Date().toISOString(), event: 'auth-pbi-rejected', reason: 'unknown_manager', origin: req.headers.origin || null, ip: getRealIp(req), ua: (req.headers['user-agent'] || '').substring(0, 120) });
+    return res.status(401).json({ ok: false });
+  }
   const token = createSession(null, true, true, pbiUser, managerMeta);
   writeLog({ ts: new Date().toISOString(), event: 'login-pbi', pbiUser, managerId: managerMeta?.id || null, managerRole: managerMeta?.role || null, ip: getRealIp(req) });
   return res.json({ ok: true, managerName: managerMeta ? (managerMeta.nameHe || managerMeta.name) : null, token, ...(managerMeta?.channel ? { channel: managerMeta.channel } : {}) });
