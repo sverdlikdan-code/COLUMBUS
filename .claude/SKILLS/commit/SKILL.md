@@ -86,7 +86,7 @@ git diff HEAD
 | `fin-agent` | токены, бюджеты, расход API, cost monitoring |
 | `skill-creator` | `SKILLS/`, `SKILL.md`, скиллы |
 | `ceo` | `AGENTS/ceo-agent/`, роутинг агентов |
-| `vault` | `VAULT/`, заметки сессий, Obsidian |
+| `vault` | `VAULT/`, заметки сессий, Obsidian — отдельный приватный репо: коммитить через `git -C VAULT`, не в COLUMBUS |
 | `planogram` | `planogram/`, build скрипты планограммы, `pbi-kapua` |
 | `docs` | `docs/` статические файлы, `health-report.json` |
 | `workflow` | `.github/`, `*.yml`, CI/CD, build scripts |
