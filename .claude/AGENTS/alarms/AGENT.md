@@ -62,4 +62,4 @@ ssh root@31.154.67.58 "crontab -l; tail -40 /root/alerts.log; tail -10 /root/mek
 ## Известные открытые вопросы
 
 - health-monitor: GitHub душит scheduler — проверка раз в 4–6 ч вместо 15 мин. Решения нет, поднимать только если Дан спросит.
-- Значение секрета `NOTIFY_EMAIL` в GitHub не проверено (в VPS .env — yosiel + d.sverdlik).
+- Значение секрета `NOTIFY_EMAIL` в GitHub не проверено (что лежит в VPS .env — см. реестр в VAULT).
