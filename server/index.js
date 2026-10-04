@@ -35,6 +35,9 @@ let pbiCache = null; // set by loadPBICache()
 // Cleared only on a SUCCESSFUL daily pbiCache reload (see _loadPBICacheAttempt)
 // so a failed/retrying reload doesn't wipe still-valid cached returns data.
 const clientReturnsCache = new Map(); // custId -> { data, at: Date }
+// יעדים closed for everyone (user 2026-10-04): /api/yedaim-live answers 404 and the daily
+// prefetch (6 DAX) is skipped; buttons hidden in formula-road.html. false = back on.
+const YEDAIM_DISABLED = true;
 
 // Per-client מבצע (SOF_PRICEREC live from Priority, not PBI) — cached per day same
 // as clientReturnsCache: window is [начало месяца; today+1mo], doesn't shift within
@@ -521,7 +524,7 @@ ROW("maxDate", CALCULATE(MAX(ALL_PARTS[תאריך]), ALL_PARTS[ASHMADOT] = "-מ�
     promoCustIdsCache = { date: null, formula: [], iceMish: [] };
     gpsReportCache = { date: null, rows: null };
     _yedaimLiveCache.clear();
-    prefetchYedaimLive().catch(err => console.error('[yedaim-prefetch]', err.message));
+    if (!YEDAIM_DISABLED) prefetchYedaimLive().catch(err => console.error('[yedaim-prefetch]', err.message));
     console.log(`[PBI] Cache loaded: ${clientMap.size} clients, ${byAgent.size} agents, ${managers.size} managers, ${managerAgents.size} manager-agents`);
 
     // BDD 2 min after FORMULA: its DAX never competes with FORMULA's load or first requests.
@@ -4873,6 +4876,7 @@ async function prefetchYedaimLive() {
   console.log(`[yedaim-prefetch] done, ${_yedaimLiveCache.size}/${YEDAIM_TEAM_NAMES.size} teams cached`);
 }
 app.get('/api/yedaim-live', requireAuth, dataRateLimit, async (req, res) => {
+  if (YEDAIM_DISABLED) return res.status(404).json({ error: 'disabled' });
   try {
     let team = req.query.team ? String(req.query.team) : null;
     if (team && !YEDAIM_TEAM_NAMES.has(team)) return res.status(400).json({ error: 'invalid team' });

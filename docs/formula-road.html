@@ -1012,6 +1012,8 @@ body.gps-fs #map{height:100%!important;}
 body.bdd .zikuy-btn, body.bdd .ai-insight-btn, body.bdd #day-briefing-btn, body.bdd #yedaim-btn,
 body.bdd #blank-history-btn, body.bdd #km-extra-filters, body.bdd #export-all-btn, body.bdd .territory-btn,
 body.bdd .km-more-item[onclick^="openYedaim"], body.bdd .km-more-item[onclick^="openBlankHistory"]{display:none!important}
+/* יעדים closed for everyone, FORMULA too (user 2026-10-04); server side: YEDAIM_DISABLED in index.js. */
+#yedaim-btn, .km-more-item[onclick^="openYedaim"]{display:none!important}
 </style>
 </head>
 <body>
