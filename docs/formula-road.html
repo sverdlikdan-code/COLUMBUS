@@ -2570,7 +2570,9 @@ async function buildCityChips(){
   try{
     const r=await apiFetch(`${API}/customers?agent=${encodeURIComponent(code)}&day=${_todayRouteDay()}`);
     if(!r.ok) return;
-    const list=(await r.json()).slice().sort((a,b)=>String(a.custName||'').localeCompare(String(b.custName||''),'he'));
+    // Priority סדר ביקור order; no order (server: 0/empty→999, ICE 9000, moved-in 9500) goes last, by name.
+    const _ord=c=>(c.priorityOrder>0&&c.priorityOrder<999)?c.priorityOrder:Infinity;
+    const list=(await r.json()).slice().sort((a,b)=>(_ord(a)-_ord(b))||String(a.custName||'').localeCompare(String(b.custName||''),'he'));
     const pick=_loadFirstClientPick();
     const esc=s=>String(s??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
     sel.innerHTML+=list.map(c=>`<option value="${esc(c.custId)}">${esc(c.custName)}${c.city?' · '+esc(c.city):''}</option>`).join('');
