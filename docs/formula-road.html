@@ -2029,7 +2029,7 @@ function goBack(from){
     // as before — they never had a separate "team" screen to go back to.
     const auth=_loadAuth();
     if(auth&&auth.isManager){ st.step='agent'; renderLogin(); show('s-login'); }
-    else{ show('s-city'); }
+    else{ buildCityChips(); show('s-city'); } // refill "לקוח ראשון" — empty after an F5 straight into the route
   }
 }
 
@@ -2128,7 +2128,11 @@ async function initLogin(){
       const _lastCity = localStorage.getItem('frLastCity') || '';
       const _lastLat  = parseFloat(localStorage.getItem('frLastLat'));
       const _lastLng  = parseFloat(localStorage.getItem('frLastLng'));
-      if(_lastDay && _lastCity){
+      // Only a city picked TODAY skips the עיר מוצא screen (same rule as the manager
+      // restore in selectAgent, 2026-10-01). Without the date check an agent was
+      // dropped every morning into yesterday's city and yesterday's route day, and
+      // never saw the start screen (or its "לקוח ראשון" pick) again. 2026-10-04.
+      if(_lastDay && _lastCity && localStorage.getItem('frLastCityDate')===new Date().toLocaleDateString('en-CA')){
         st.startCity = _lastCity;
         if(!isNaN(_lastLat) && !isNaN(_lastLng)){ st.startLat = _lastLat; st.startLng = _lastLng; }
         await selectDay(_lastDay);
