@@ -1956,6 +1956,14 @@ async function osrmTripOrder(clients, startLat, startLng) {
   } catch(_) { return null; }
 }
 
+// osrmTripOrder() that honours the "לקוח ראשון" pin, same as nearestNeighbor().
+function _tripOrderPinned(clients) {
+  const pin = _firstClientPin(clients);
+  return pin
+    ? osrmTripOrder(clients.filter(c => c !== pin), pin.lat || st.startLat, pin.lng || st.startLng).then(o => o && [pin, ...o])
+    : osrmTripOrder([...clients], st.startLat, st.startLng);
+}
+
 function triggerOsrm() {
   const snap = { clients:activeClients(), agentCode:st.agent?.code, day:st.day };
   const clientsForSort = snap.clients.map(c => {
@@ -1978,11 +1986,7 @@ function triggerOsrm() {
   // each re-rendering, looked like the map/toggle had a third, in-between
   // state (found 2026-09-03). Removed the duplicate; this is now the single
   // place that refines + re-renders the map for AI mode.
-  const pin = _firstClientPin(clientsForSort);
-  const tripP = pin
-    ? osrmTripOrder(clientsForSort.filter(c => c !== pin), pin.lat || st.startLat, pin.lng || st.startLng).then(o => o && [pin, ...o])
-    : osrmTripOrder([...clientsForSort], st.startLat, st.startLng);
-  tripP.then(tripOrdered => {
+  _tripOrderPinned(clientsForSort).then(tripOrdered => {
     if (st.agent?.code !== snap.agentCode || st.day !== snap.day) return;
     if (tripOrdered) {
       st.aiClients = tripOrdered;
@@ -2003,6 +2007,7 @@ function show(id){
 
 function goBack(from){
   _tick();
+  if(from==='s-city'&&st._recalcPending){ st._recalcPending=false; show('s-route'); return; }
   if(from==='s-city'){
     const auth=_loadAuth();
     if(auth&&!auth.isManager){
@@ -2558,6 +2563,7 @@ function _loadFirstClientPick(){
 async function buildCityChips(){
   const sel=document.getElementById('first-client-select');
   if(!sel) return;
+  sel.style.display='';
   const code=st.agent?.code||_loadAuth()?.code;
   sel.innerHTML='<option value="">🤖 לקוח ראשון: אוטומטי (לפי עיר מוצא)</option>';
   if(!code||code==='mgr') return;
@@ -2659,6 +2665,7 @@ async function confirmCity(){
       if(d&&d.lat){ st.startLat=d.lat; st.startLng=d.lng; }
     }catch(e){}
   }
+  if(st._recalcPending){ st._recalcPending=false; _saveStartPoint(); show('s-route'); _recalcAi(); return; }
   selectDay(_todayRouteDay());
 }
 
@@ -2671,7 +2678,13 @@ function _todayRouteDay(){
 // ── DAY ────────────────────────────────────────────────────────────────────
 async function selectDay(day){
   st.day=day;
-  localStorage.setItem('frLastDay', String(day));
+  _saveStartPoint();
+  show('s-route');
+  initRoute();
+}
+// Persist day + start point for the F5 restore (see the saved-session branch on load).
+function _saveStartPoint(){
+  localStorage.setItem('frLastDay', String(st.day));
   if(st.startCity){ localStorage.setItem('frLastCity', st.startCity); localStorage.setItem('frLastCityDate', new Date().toLocaleDateString('en-CA')); }
   // Always keep lat/lng in sync with the city being saved above — stale coordinates
   // from a previous city (e.g. this city's geocode failed) would otherwise survive
@@ -2682,8 +2695,6 @@ async function selectDay(day){
   } else {
     localStorage.removeItem('frLastLat'); localStorage.removeItem('frLastLng');
   }
-  show('s-route');
-  initRoute();
 }
 
 // ── ROUTE ──────────────────────────────────────────────────────────────────
@@ -3447,7 +3458,18 @@ function resetRoute(){
   initRoute();
 }
 
+// 🔄 opens the עיר מוצא screen first (city prefilled, "לקוח ראשון" for today's
+// day only); confirmCity() then comes back to the SAME day via _recalcAi().
 function recalcRoute(){
+  st._recalcPending=true;
+  buildCityChips();
+  if(st.day!==_todayRouteDay()) document.getElementById('first-client-select').style.display='none';
+  document.getElementById('city-input').value=st.startCity||'';
+  st.startCityName=st.startCity; // unchanged city keeps its coords (GPS address labels don't geocode)
+  document.getElementById('city-confirm').disabled=!st.startCity;
+  show('s-city');
+}
+function _recalcAi(){
   st.sortMode='ai';
   if(!st.tabletGpsMode){ st.aiGpsMode=true; }
   document.getElementById('sort-btn-priority').className='sort-btn';
@@ -3460,7 +3482,7 @@ function recalcRoute(){
   const btn=document.getElementById('recalc-btn');
   btn.textContent='⏳ כביש...'; btn.disabled=true;
   const snap={agentCode:st.agent?.code, day:st.day};
-  osrmTripOrder([..._rcClients], st.startLat, st.startLng).then(ordered=>{
+  _tripOrderPinned(_rcClients).then(ordered=>{
     btn.disabled=false; btn.textContent='🔄 חשב מחדש';
     if(st.agent?.code!==snap.agentCode||st.day!==snap.day||st.sortMode!=='ai') return;
     if(ordered){ st.aiClients=ordered; renderClientList(); }
