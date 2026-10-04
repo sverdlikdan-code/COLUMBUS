@@ -28,8 +28,12 @@ self.addEventListener('fetch', e => {
   // fallback when offline. Prewarmed proactively for the whole day's route
   // by formula-road.html's prewarmZikuyOffline() while the agent still has
   // signal, not just opportunistically when zikuy happens to be opened.
+  // Only a 2xx overwrites the stored copy, and a non-2xx falls back to it — before
+  // 2026-10-04 a 500 (PBI 429, restart) replaced the morning's good list, so offline
+  // zikuy showed the error.
   if (url.includes('/api/client-returns/')) {
     e.respondWith(fetch(e.request).then(res => {
+      if (!res.ok) return caches.match(e.request).then(cached => cached || res);
       const resClone = res.clone();
       caches.open(CACHE).then(c => c.put(e.request, resClone));
       return res;
@@ -45,8 +49,8 @@ self.addEventListener('fetch', e => {
     e.respondWith(
       caches.match(e.request).then(cached => {
         const network = fetch(e.request).then(res => {
-          const resClone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, resClone));
+          // opaque = cross-origin <img> (status unreadable) — still worth keeping, as before
+          if (res.ok || res.type === 'opaque') { const resClone = res.clone(); caches.open(CACHE).then(c => c.put(e.request, resClone)); }
           return res;
         }).catch(() => cached);
         return cached || network;
