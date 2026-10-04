@@ -18,6 +18,7 @@ COLUMBUS — система агентов для маршрутизации, а
 - **fin-agent** — контроль расхода токенов и бюджетов
 - **mahsan** — планограмма склада FORMULA (холодное хранилище, bay allocation, визуальные схемы)
 - **skill-creator** — создание, редактирование и оптимизация скиллов COLUMBUS
+- **alarms** — администратор алярмов и рассылок: реестр (что/кому/когда), смена адресатов и расписания, контроль факта отправки. Реестр: `VAULT/Meeting Notes/alarms-registry.md`. PRD: `PRD/alarms-agent-prd.md`
 - **closer** — CRM-агент BIZNES-AI: квалификация лидов, расчёт стоимости, генерация предложений. PRD: `BIZNES-AI/PRD/closer-agent-prd.md`
 - **power-bi** — аудит PBIX, DAX-оптимизация, темы, симметрия layout. Главный файл: `BIZNES-AI/INTERNATIONAL CONTROL DESK.pbix`. PRD: `PRD/power-bi-agent-prd.md`
 - **priority-app** — замена Soft Solutions: сборка модуля заказов через Priority Mobile App Generator (מחолл יישумонים) либо Formula Road + OData API. Владеет всей историей расследования и бизнес-логикой Formula Road для портирования. PRD: `PRD/priority-app-agent-prd.md`

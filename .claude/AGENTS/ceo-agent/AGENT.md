@@ -43,6 +43,7 @@ role: orchestrator
 | **analytics** | Отчёты Power BI / Fabric, DAX, визуализации | *(PRD pending)* |
 | **fin-agent** | Контроль токенов, бюджеты, расход Claude API | *(PRD pending)* |
 | **skill-creator** | Создание/редактирование SKILL.md, мониторинг рынка скиллов | `.claude/AGENTS/skill-creator/AGENT.md` |
+| **alarms** | Алярмы/рассылки: кому и когда уходит, сменить адресата/расписание, дошло ли письмо, таблица алярмов | `.claude/AGENTS/alarms/AGENT.md` |
 
 ### Резерв — не активировать без явной команды пользователя
 
@@ -73,6 +74,9 @@ CEO анализирует intent
       │
       ├── планограмма / bay / склад / kratnost / SKU / комнаты
       │         └──→ mahsan
+      │
+      ├── алярм / рассылка / кому уходит / адресат / дошло ли письмо
+      │         └──→ alarms (поломка алярма → bug-agent)
       │
       ├── UI/UX / кнопки / экраны / React Native / конкуренты-приложения
       │         └──→ designer
