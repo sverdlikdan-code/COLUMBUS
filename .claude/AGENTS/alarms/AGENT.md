@@ -25,12 +25,31 @@ role: specialist
 | obligo-alert | `server/obligo-alert.js` | VPS crontab → `run-alert.sh obligo-alert` | `/root/run-alert.sh` |
 | zikuy-report (черновик) | `server/zikuy-report.js` | VPS crontab, 1-го числа | `/root/run-alert.sh` |
 | zikuy-report-send (команде) | то же | **только вручную** по команде Дана | `/root/run-alert.sh` |
-| mekarer-daily | `server/mekarer-daily.js` | VPS crontab, Вс–Чт | `/root/COLUMBUS/.env` → `MEKARER_DAILY_RECIPIENTS` |
+| mekarer-daily | `server/mekarer-daily.js` | VPS crontab → `/root/run-mekarer.sh`, Вс–Чт | `/root/COLUMBUS/.env` → `MEKARER_DAILY_RECIPIENTS` |
 | health-monitor | `.github/workflows/health-monitor.yml` | GitHub cron `*/15` (реально 4–5 раз/сутки) | GitHub secret `NOTIFY_EMAIL` |
 
 Cron на VPS ставится на два UTC-часа, `run-alert.sh` сам пропускает всё кроме нужного часа по Израилю — летнее/зимнее время не ломает расписание. **Не «чинить» второй запуск — он нужен.**
 
+## Мониторинг (с 2026-10-04)
+
+Оба сервиса — на VPS, **только 127.0.0.1**, наружу не открыты. pm2: `uptime-kuma`, `hc-web`, `hc-alerts`.
+
+| Что | Инструмент | Как |
+|---|---|---|
+| Алярмы по расписанию (תוקף, облиго, списания, מקרר) | **Healthchecks** `127.0.0.1:8000` | cron-расписание по Израилю + 60 мин допуска. Скрипт в конце пингует `/ping/<uuid>/<exit code>`; нет пинга вовремя или код ≠ 0 → письмо Дану |
+| Сервер Formula Road через тоннель | **Uptime Kuma** `127.0.0.1:3001` | HTTP `/health` раз в минуту, тревога после 3 неудач |
+| Смерть всего VPS | GitHub `health-monitor.yml` | остаётся внешней страховкой (Kuma/HC умрут вместе с VPS) |
+
+- Пинги: `PING=<uuid>` в каждой ветке `/root/run-alert.sh`; מקרר — обёртка `/root/run-mekarer.sh` (пингует **только** из настоящего запуска 16:xx, холостой 17:xx маскировал бы сбой).
+- Статус всех проверок: `cd /root/healthchecks && set -a && . /root/healthchecks.env && set +a && venv/bin/python manage.py shell < /root/kuma-tools/hc-status.py`
+- Kuma: `cd /root/kuma-tools && node kuma.js status`
+- Пароли админок: `/root/uptime-kuma-admin.txt`, `/root/healthchecks-secrets/admin.txt` (не печатать). Веб-интерфейс — через SSH-тоннель `ssh -L 8000:127.0.0.1:8000 -L 3001:127.0.0.1:3001 root@31.154.67.58`.
+- **Новый алярм = новая проверка в Healthchecks** (`/root/kuma-tools/hc-checks.py`, по имени идемпотентно) + `PING=` в скрипте + первый пинг для «вооружения» (без него проверка в статусе new и молчит).
+- Бэкапы до внедрения: `/root/run-alert.sh.bak-2026-10-04`, `/root/crontab.bak-2026-10-04`.
+
 ## Протокол: проверка «ушло ли письмо»
+
+Сначала статус Healthchecks (выше) — он отвечает на вопрос сразу. Логи — для деталей:
 
 SSH только через PowerShell (см. memory reference_vps_ssh_access).
 
@@ -61,5 +80,5 @@ ssh root@31.154.67.58 "crontab -l; tail -40 /root/alerts.log; tail -10 /root/mek
 
 ## Известные открытые вопросы
 
-- health-monitor: GitHub душит scheduler — проверка раз в 4–6 ч вместо 15 мин. Решения нет, поднимать только если Дан спросит.
+- health-monitor: GitHub душит scheduler — проверка раз в 4–6 ч вместо 15 мин. Частую проверку взяла Kuma; GitHub остаётся только на случай смерти всего VPS.
 - Значение секрета `NOTIFY_EMAIL` в GitHub не проверено (что лежит в VPS .env — см. реестр в VAULT).
