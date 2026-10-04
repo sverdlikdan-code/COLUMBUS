@@ -3315,7 +3315,11 @@ function setTab(t, skipMap=false){
 }
 
 function setSort(mode){
-  if(st.sortMode===mode)return;
+  // Tap on the already-active side flips, like a real switch. On any non-today day
+  // (.fpb-toggle-only, both side-labels shown) the fixed 23px priority hit zone no
+  // longer lines up with the painted track/labels — tapping "הגרסה שלי" hit the AI
+  // zone and vice versa (Timur, BDD day ה', 2026-10-04). Flip = any tap toggles.
+  if(st.sortMode===mode) mode=mode==='priority'?'ai':'priority';
   _playRockerClick();
   st.sortMode=mode;
   // Handles both rocker halves ('priority' = "הגרסה שלי", 'ai' = AI Google).
