@@ -5704,7 +5704,9 @@ async function prewarmDayBriefings() {
 // (see project_pbi_429_incident in memory: deploy series is a known trigger).
 function scheduleDailyDayBriefingPrewarm() {
   setTimeout(() => {
-    prewarmDayBriefings();
+    // Chained, not parallel — both draw on the same PBI quota (prewarmClientReturns below).
+    prewarmDayBriefings().then(prewarmClientReturns)
+      .catch(e => console.error('[prewarm-chain] failed:', e.message));
     scheduleDailyDayBriefingPrewarm();
   }, msUntilNextIsraelTime(6, 15));
 }
@@ -6392,6 +6394,30 @@ app.get('/api/client-returns/:custId', requireAuth, async (req, res) => {
   const cached = clientReturnsCache.get(custId);
   if (cached) return res.json(cached.data);
 
+  try {
+    const responseData = (await computeClientReturns([custId])).get(custId);
+    clientReturnsCache.set(custId, { data: responseData, at: new Date() });
+    res.json(responseData);
+  } catch (e) {
+    // Was silent — a 429 here left zero trace in error.log (same gap client-analytics
+    // had before 2026-09-09, see its catch above). Fixed 2026-09-24.
+    console.error(`[client-returns] custId=${custId} failed:`, e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// Core of /api/client-returns, batched: ALL_PARTS[מספר לקוח] is added to every SUMMARIZE
+// and the client filter is IN {...}, so N clients cost the same ~6 DAX calls as one.
+// Before 2026-10-04 this ran per client — formula-road.html's zikuy offline prewarm
+// fires it for every client on the route right after an agent opens a day (~30 clients
+// × 5-6 DAX), which is what hit the shared PBI 429 throttle every morning. Now the
+// nightly prewarmClientReturns fills the cache in batches and the agent's prewarm only
+// reads cache. Returns Map custId -> responseData (every requested custId present,
+// products:[] when the client has no history — same as the old single-client reply).
+// custIds must already be validated digit strings (they're inlined into DAX).
+async function computeClientReturns(custIds) {
+  const custIn = custIds.map(c => `"${c}"`).join(', ');
+  const custOf = r => String(r['ALL_PARTS[מספר לקוח]'] ?? '');
   const now = new Date();
   const cm = now.getMonth() + 1, cy = now.getFullYear();
   const periodMonths = (fromBack, toBack) => {
@@ -6415,18 +6441,18 @@ app.get('/api/client-returns/:custId', requireAuth, async (req, res) => {
     return 'FORMULA';
   };
 
-  try {
+  {
     // 365-day purchase history — candidates for return (never show products the client
     // never actually bought).
     const histDax = `
 EVALUATE
 CALCULATETABLE(
   ADDCOLUMNS(
-    SUMMARIZE(ALL_PARTS, ALL_PARTS[מק'ט], ALL_PARTS[תאור מוצר], ALL_PARTS[תאור משפחת מוצר]),
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח], ALL_PARTS[מק'ט], ALL_PARTS[תאור מוצר], ALL_PARTS[תאור משפחת מוצר]),
     "מחלקה", LOOKUPVALUE(ADIFUT[מחלקה], ADIFUT[תאור משפחה], ALL_PARTS[תאור משפחת מוצר]),
     "total365", CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)])
   ),
-  ALL_PARTS[מספר לקוח] = "${custId}",
+  ALL_PARTS[מספר לקוח] IN {${custIn}},
   ALL_PARTS[ASHMADOT] = "-מכר-",
   ALL_PARTS[תאריך] >= DATE(${d365.getFullYear()},${d365.getMonth() + 1},${d365.getDate()})
 )`;
@@ -6449,11 +6475,11 @@ CALCULATETABLE(
 EVALUATE
 CALCULATETABLE(
   ADDCOLUMNS(
-    SUMMARIZE(ALL_PARTS, ALL_PARTS[מק'ט]),
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח], ALL_PARTS[מק'ט]),
     "zikuy", CALCULATE(SUM(ALL_PARTS[סכום (ש'ח)]), ALL_PARTS[ASHMADOT] = "השמדות", NOT(ALL_PARTS[שם סוכן] IN {"‭באילא יסוי‬", "‭יללכ‬"}), NOT(ISBLANK(ALL_PARTS[שם סוכן]))),
     "brutto", CALCULATE(SUM(ALL_PARTS[סכום (ש'ח)]), ALL_PARTS[ASHMADOT] = "-מכר-")
   ),
-  ALL_PARTS[מספר לקוח] = "${custId}",
+  ALL_PARTS[מספר לקוח] IN {${custIn}},
   NOT(ALL_PARTS[מק'ט] IN {${ZIKUY_EXCLUDED_SKUS.map(s => `"${s}"`).join(', ')}}),
   ALL_PARTS[תאריך] >= DATE(${d90.getFullYear()},${d90.getMonth() + 1},${d90.getDate()}),
   ALL_PARTS[תאריך] <= DATE(${todayD.getFullYear()},${todayD.getMonth() + 1},${todayD.getDate()})
@@ -6465,11 +6491,11 @@ CALCULATETABLE(
 EVALUATE
 CALCULATETABLE(
   ADDCOLUMNS(
-    SUMMARIZE(ALL_PARTS, ALL_PARTS[מק'ט]),
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח], ALL_PARTS[מק'ט]),
     "lastDate", CALCULATE(MAX(ALL_PARTS[תאריך])),
     "lastQty", VAR _ld = CALCULATE(MAX(ALL_PARTS[תאריך])) RETURN CALCULATE(SUM(ALL_PARTS[כמות ביח' מפעל]), ALL_PARTS[תאריך] = _ld)
   ),
-  ALL_PARTS[מספר לקוח] = "${custId}",
+  ALL_PARTS[מספר לקוח] IN {${custIn}},
   ALL_PARTS[ASHMADOT] = "-מכר-"
 )`;
 
@@ -6481,17 +6507,19 @@ CALCULATETABLE(
     const zikuyRows = await executeDaxRetry(zikuyDax);
     const lastShipRows = await executeDaxRetry(lastShipDax);
 
+    // Keyed `${custId}|${sku}` — every per-SKU figure below is per client.
+    const key = r => `${custOf(r)}|${String(r["ALL_PARTS[מק'ט]"] || '')}`;
     const zikuyMap = new Map();
     zikuyRows.forEach(r => {
-      const sku = String(r["ALL_PARTS[מק'ט]"] || '');
       const zikuy = r['[zikuy]'] || 0, brutto = r['[brutto]'] || 0;
-      zikuyMap.set(sku, brutto > 0 ? Math.round((zikuy / brutto) * 1000) / 10 : 0);
+      zikuyMap.set(key(r), brutto > 0 ? Math.round((zikuy / brutto) * 1000) / 10 : 0);
     });
 
     // Company-wide average % זיכויים per SKU (same formula/window as zikuyDax, no
     // client filter — "agents with a manager" = the same real-agent population
     // already used everywhere else in this model, per user decision 2026-08-25.
-    // Scoped to only the SKUs this client actually has, to keep the query small.
+    // Scoped to only the SKUs these clients actually have, to keep the query small —
+    // the value per SKU doesn't depend on which clients are in the batch.
     const returnSkus = [...new Set(histRows.map(r => String(r["ALL_PARTS[מק'ט]"] || '')).filter(Boolean))];
     let companyAvgMap = new Map();
     if (returnSkus.length) {
@@ -6517,39 +6545,41 @@ CALCULATETABLE(
 
     const lastShipMap = new Map();
     lastShipRows.forEach(r => {
-      const sku = String(r["ALL_PARTS[מק'ט]"] || '');
       const d = r['[lastDate]'];
-      lastShipMap.set(sku, { date: d ? String(d).slice(0, 10) : '', qty: Math.round(r['[lastQty]'] || 0) });
+      lastShipMap.set(key(r), { date: d ? String(d).slice(0, 10) : '', qty: Math.round(r['[lastQty]'] || 0) });
     });
 
     // Scope: this return form only covers FORMULA and ICE MISH — INTER and ICE BDD
     // don't go back to this warehouse, so they're dropped entirely, not just hidden.
-    let products = histRows
+    const productsByCust = new Map(custIds.map(c => [String(c), []]));
+    histRows
       .filter(r => Math.round(r['[total365]'] || 0) > 0)
-      .map(r => {
+      .forEach(r => {
         const sku = String(r["ALL_PARTS[מק'ט]"] || '');
+        const k = key(r);
         const machlaka = r['[מחלקה]'] || '';
-        return {
+        const p = {
           sku,
           name: fixBiDi(r['ALL_PARTS[תאור מוצר]'] || ''),
           family: fixBiDi(r['ALL_PARTS[תאור משפחת מוצר]'] || ''),
           machlaka: fixBiDi(machlaka),
           company: classifyCompanyRet(machlaka),
           total365: Math.round(r['[total365]'] || 0),
-          zikuyPct90d: zikuyMap.get(sku) || 0,
+          zikuyPct90d: zikuyMap.get(k) || 0,
           companyAvgPct90d: companyAvgMap.get(sku) || 0,
           // Magnitude compare, not raw compare — both values are negative (raw
           // ERP sign for השמדות amounts), so "worse than average" means further
           // from zero, not numerically smaller. Threshold: >2pp, per user 2026-08-25.
-          pctOutlier: Math.abs(zikuyMap.get(sku) || 0) - Math.abs(companyAvgMap.get(sku) || 0) > 2,
-          lastShipDate: lastShipMap.get(sku)?.date || '',
-          lastShipQty: lastShipMap.get(sku)?.qty || 0,
+          pctOutlier: Math.abs(zikuyMap.get(k) || 0) - Math.abs(companyAvgMap.get(sku) || 0) > 2,
+          lastShipDate: lastShipMap.get(k)?.date || '',
+          lastShipQty: lastShipMap.get(k)?.qty || 0,
           imgUrl: '',
           ean: '',
           famCode: '',
         };
-      })
-      .filter(p => p.company === 'FORMULA' || p.company === 'ICE_MISH');
+        if ((p.company === 'FORMULA' || p.company === 'ICE_MISH') && productsByCust.has(custOf(r))) productsByCust.get(custOf(r)).push(p);
+      });
+    const products = [...productsByCust.values()].flat();
 
     // FORMULA and ICE each have their OWN KARTIS PARIT product-master table (ICE SKUs
     // aren't in the main KARTIS PARIT at all — verified live earlier this session).
@@ -6560,7 +6590,7 @@ CALCULATETABLE(
     // filter, no extra round-trip.
     const fetchPhotosRet = async (items, table) => {
       if (!items.length) return;
-      const skuIn = items.map(p => `"${p.sku}"`).join(',');
+      const skuIn = [...new Set(items.map(p => p.sku))].map(s => `"${s}"`).join(',');
       const rows = await executeDaxRetry(
         `EVALUATE SELECTCOLUMNS(FILTER('${table}', '${table}'[מק"ט] IN {${skuIn}}), "sku", '${table}'[מק"ט], "img", '${table}'[URL תמונה], "ean", '${table}'[ברקוד], "famCode", '${table}'[משפחת מוצר])`
       );
@@ -6572,20 +6602,44 @@ CALCULATETABLE(
     await fetchPhotosRet(products.filter(p => p.company === 'FORMULA'), 'KARTIS PARIT');
     await fetchPhotosRet(products.filter(p => p.company === 'ICE_MISH'), 'KARTIS PARIT ICE');
 
-    const responseData = {
-      ok: true,
-      products,
-      curLabel: `${d90.toLocaleDateString('he-IL')}-${todayD.toLocaleDateString('he-IL')}`,
-    };
-    clientReturnsCache.set(custId, { data: responseData, at: new Date() });
-    res.json(responseData);
-  } catch (e) {
-    // Was silent — a 429 here left zero trace in error.log (same gap client-analytics
-    // had before 2026-09-09, see its catch above). Fixed 2026-09-24.
-    console.error(`[client-returns] custId=${custId} failed:`, e.message);
-    res.status(500).json({ ok: false, error: e.message });
+    const curLabel = `${d90.toLocaleDateString('he-IL')}-${todayD.toLocaleDateString('he-IL')}`;
+    return new Map([...productsByCust].map(([c, prods]) => [c, { ok: true, products: prods, curLabel }]));
   }
-});
+}
+
+// Nightly fill of clientReturnsCache for every client on every route (FORMULA byAgent +
+// ICE-only), so the agent-side zikuy offline prewarm (formula-road.html
+// prewarmZikuyOffline) is served from cache instead of firing ~5 DAX per client at
+// 07:00 when everyone opens their day — that burst was the morning 429 source
+// (2026-10-04: 429s 2 min after Konstantin/Zoya opened a day; 01.10 some requests
+// failed outright). Same pacing/no-startup rules as prewarmDayBriefings: a redeploy
+// must not burn quota, so after a mid-day restart the cache refills on demand (old
+// per-request behaviour) until the next morning.
+// ponytail: chunk of 100 clients ≈ 6 DAX and a few thousand rows, well under PBI's
+// executeQueries row cap; revisit if a batch ever starts failing on size.
+const CLIENT_RETURNS_PREWARM_CHUNK = 100;
+async function prewarmClientReturns() {
+  if (!pbiCache) { console.log('[client-returns-prewarm] skipped — pbiCache not loaded'); return; }
+  const ids = new Set();
+  for (const map of [pbiCache.byAgent, pbiCache.iceByAgent || new Map()])
+    for (const clients of map.values()) for (const c of clients) if (/^\d{1,15}$/.test(String(c.custId))) ids.add(String(c.custId));
+  const todo = [...ids].filter(id => !clientReturnsCache.has(id));
+  console.log(`[client-returns-prewarm] starting — ${todo.length} clients (${ids.size - todo.length} already cached)`);
+  let filled = 0, failed = 0;
+  for (let i = 0; i < todo.length; i += CLIENT_RETURNS_PREWARM_CHUNK) {
+    const chunk = todo.slice(i, i + CLIENT_RETURNS_PREWARM_CHUNK);
+    try {
+      const at = new Date();
+      for (const [custId, data] of await computeClientReturns(chunk)) clientReturnsCache.set(custId, { data, at });
+      filled += chunk.length;
+    } catch (e) {
+      failed += chunk.length;
+      console.error(`[client-returns-prewarm] chunk ${i / CLIENT_RETURNS_PREWARM_CHUNK + 1} failed:`, e.message);
+    }
+    await new Promise(r => setTimeout(r, DAY_BRIEFING_PREWARM_GAP_MS));
+  }
+  console.log(`[client-returns-prewarm] done — ${filled} filled, ${failed} failed`);
+}
 
 // ── Client Promos (מבצע button) — live from Priority SOF_PRICEREC, not PBI ────
 // FORMULA + ICE MISH only (SOF_PRICEREC exists in diller/mmdint too, but this
