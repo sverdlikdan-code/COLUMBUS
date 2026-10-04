@@ -44,6 +44,9 @@ Cron на VPS ставится на два UTC-часа, `run-alert.sh` сам �
 - Статус всех проверок: `cd /root/healthchecks && set -a && . /root/healthchecks.env && set +a && venv/bin/python manage.py shell < /root/kuma-tools/hc-status.py`
 - Kuma: `cd /root/kuma-tools && node kuma.js status`
 - Пароли админок: `/root/uptime-kuma-admin.txt`, `/root/healthchecks-secrets/admin.txt` (не печатать). Веб-интерфейс — через SSH-тоннель `ssh -L 8000:127.0.0.1:8000 -L 3001:127.0.0.1:3001 root@31.154.67.58`.
+- **Недельная сводка** Дану: понедельник 09–11 Israel (pm2 `hc-reports`, день зашит в Healthchecks). Это «признак жизни» самого мониторинга: не пришла — проверить hc-*/Resend. Отдельный агент-отчётчик не нужен (решение Дана 2026-10-04).
+- Дан смотрит панели ярлыком `Desktop/COLUMBUS Monitoring.bat` (SSH-тоннель 3001+8000, пароль HC сразу в буфер). Логин HC — email **в нижнем регистре** (форма HC делает lowercase).
+- `.github/workflows/expiry-alert.yml`, `obligo-alert.yml` — только ручной/тестовый запуск, расписания нет (с 2026-09-29). Не путать с боевым cron на VPS.
 - **Новый алярм = новая проверка в Healthchecks** (`/root/kuma-tools/hc-checks.py`, по имени идемпотентно) + `PING=` в скрипте + первый пинг для «вооружения» (без него проверка в статусе new и молчит).
 - Бэкапы до внедрения: `/root/run-alert.sh.bak-2026-10-04`, `/root/crontab.bak-2026-10-04`.
 
