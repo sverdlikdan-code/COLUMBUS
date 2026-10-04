@@ -114,7 +114,6 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .fc-row.on .fc-num{background:var(--blue);border-color:var(--blue);color:#fff;}
 .fc-name{flex:1;min-width:0;font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .fc-city{flex-shrink:0;max-width:34%;font-size:11.5px;color:var(--mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.fc-auto .fc-name{color:var(--blue);}
 .fc-sep{font-size:11px;font-weight:800;color:var(--light);padding:10px 8px 4px;}
 .fc-empty{text-align:center;color:var(--mid);padding:24px 0;font-size:13px;}
 .gps-btn{margin-top:12px;background:#fff;border:2px solid var(--blue);border-radius:12px;padding:12px 0;width:100%;max-width:420px;color:var(--blue);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .15s;}
@@ -2726,8 +2725,7 @@ function renderFirstClientPicker(){
       <span class="fc-num${c.ord===Infinity?' none':''}">${c.ord===Infinity?'–':c.ord}</span>
       <span class="fc-name">${c.ice?'❄️ ':''}${esc(c.name)}</span><span class="fc-city">${esc(c.city)}</span></div>`;
   const withOrd=list.filter(c=>c.ord!==Infinity), noOrd=list.filter(c=>c.ord===Infinity);
-  box.innerHTML=(q?'':`<div class="fc-row fc-auto${!cur?' on':''}" onclick="pickFirstClient('')"><span class="fc-num">📍</span><span class="fc-name">Без клиента — из города</span></div>`)
-    +withOrd.map(row).join('')
+  box.innerHTML=withOrd.map(row).join('')
     +(noOrd.length?`<div class="fc-sep">Без порядка визита</div>`+noOrd.map(row).join(''):'')
     +(list.length?'':'<div class="fc-empty">Клиент не найден</div>');
 }
@@ -3217,6 +3215,11 @@ async function initRoute(){
   // BDD-namespaced keys (_lsAg), same as FORMULA.
   const _savedSortMode=loadSortModePref(st.agent.code);
   st.sortMode=(_savedSortMode==='priority' && !st.tabletGpsMode)?'priority':'ai'; st.selectedCities=[]; st.selectedId=null;
+  // "С клиента" picked for today → open in AI even if the agent's saved mode is
+  // "הגרסה שלי": the first-client pin only exists in AI, otherwise the pick looks
+  // ignored. The saved preference itself is untouched. 2026-10-04.
+  const _pick=_loadFirstClientPick();
+  if(st.sortMode==='priority' && _pick && String(_pick.agent)===String(st.agent.code) && st.day===_todayRouteDay()) st.sortMode='ai';
   document.getElementById('sort-btn-priority').className='sort-btn'+(st.sortMode==='priority'?' active-priority':'');
   document.getElementById('sort-btn-ai-google').className='sort-btn'+(st.sortMode==='ai'?' active-ai-google':'');
   st.excluded=new Set();
