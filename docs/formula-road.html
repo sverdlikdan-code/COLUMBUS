@@ -81,7 +81,31 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .sug-item{padding:11px 16px;border-bottom:1px solid var(--sky-light);cursor:pointer;font-size:15px;color:var(--text);text-align:right;}
 .sug-item:hover,.sug-item:active{background:var(--sky-light);}
 .city-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:18px;max-width:420px;}
-.first-client-select{margin-top:12px;font-weight:700;cursor:pointer;}
+.first-client-select{margin-top:12px;display:flex;align-items:center;gap:8px;cursor:pointer;font-family:inherit;padding:9px 14px;min-height:50px;}
+.fc-field-label{flex-shrink:0;font-size:11px;font-weight:800;color:var(--blue);background:var(--sky-light);border-radius:8px;padding:3px 7px;}
+.fc-field-value{flex:1;min-width:0;text-align:right;font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fc-field-chev{flex-shrink:0;color:var(--mid);font-size:13px;}
+.first-client-select.picked{border-color:var(--blue);background:#F5F9FF;}
+#fc-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:flex-end;justify-content:center;background:rgba(8,45,110,.45);}
+#fc-modal.open{display:flex;}
+#fc-box{background:#fff;width:100%;max-width:520px;height:88vh;border-radius:18px 18px 0 0;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -6px 28px rgba(0,0,0,.28);}
+#fc-head{display:flex;align-items:center;padding:12px 16px 10px;background:linear-gradient(135deg,var(--blue-deeper),var(--blue));color:#fff;}
+#fc-head .fc-title{flex:1;font-size:15px;font-weight:800;}
+#fc-head .fc-close{font-size:20px;cursor:pointer;opacity:.85;padding:0 4px;}
+#fc-search{margin:10px 12px 6px;padding:9px 12px;border:1.5px solid var(--sky-mid);border-radius:10px;font-size:15px;direction:rtl;outline:none;}
+#fc-search:focus{border-color:var(--blue);}
+#fc-list{flex:1;overflow-y:auto;padding:0 8px 12px;-webkit-overflow-scrolling:touch;}
+.fc-row{display:flex;align-items:center;gap:9px;padding:6px 8px;min-height:38px;border-bottom:1px solid #EEF3FA;cursor:pointer;}
+.fc-row:active,.fc-row:hover{background:var(--sky-light);}
+.fc-row.on{background:#E8F0FE;box-shadow:inset -3px 0 0 var(--blue);}
+.fc-num{width:24px;height:24px;flex-shrink:0;border-radius:50%;background:var(--sky-light);border:1.5px solid var(--sky-mid);color:var(--blue);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+.fc-num.none{background:#F3F5F8;border-color:#DDE3EA;color:var(--light);}
+.fc-row.on .fc-num{background:var(--blue);border-color:var(--blue);color:#fff;}
+.fc-name{flex:1;min-width:0;font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fc-city{flex-shrink:0;max-width:34%;font-size:11.5px;color:var(--mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fc-auto .fc-name{color:var(--blue);}
+.fc-sep{font-size:11px;font-weight:800;color:var(--light);padding:10px 8px 4px;}
+.fc-empty{text-align:center;color:var(--mid);padding:24px 0;font-size:13px;}
 .gps-btn{margin-top:12px;background:#fff;border:2px solid var(--blue);border-radius:12px;padding:12px 0;width:100%;max-width:420px;color:var(--blue);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .15s;}
 .gps-btn:hover{background:var(--sky-light);}
 .gps-btn:disabled{border-color:var(--light);color:var(--light);cursor:default;}
@@ -1051,11 +1075,26 @@ body.bdd .km-more-item[onclick^="openYedaim"], body.bdd .km-more-item[onclick^="
       <input class="city-input" id="city-input" placeholder="הקלד עיר..." type="text" oninput="onCityInput()" onfocus="onCityInput()" autocomplete="off"/>
       <div class="suggestions" id="city-suggestions" style="display:none;position:absolute;top:100%;right:0;left:0;z-index:100;max-height:220px;overflow-y:auto;"></div>
     </div>
-    <select class="city-input first-client-select" id="first-client-select" aria-label="לקוח ראשון במסלול AI">
-      <option value="">🤖 לקוח ראשון: אוטומטי (לפי עיר מוצא)</option>
-    </select>
+    <button type="button" class="city-input first-client-select" id="first-client-select" value="" onclick="openFirstClientPicker()" aria-label="לקוח ראשון במסלול AI">
+      <span class="fc-field-label">לקוח ראשון</span>
+      <span class="fc-field-value" id="fc-field-value">🤖 אוטומטי — לפי עיר מוצא</span>
+      <span class="fc-field-chev" aria-hidden="true">▾</span>
+    </button>
     <button class="gps-btn" id="gps-btn" onclick="detectCity()">📍 זהה מיקום אוטומטית</button>
     <button class="confirm-btn" id="city-confirm" onclick="confirmCity()" disabled>המשך לבניית מסלול ←</button>
+  </div>
+</div>
+
+<!-- "לקוח ראשון" picker — compact full-height sheet (a native <select> can't be
+     styled or made denser on phones). Rows built by renderFirstClientPicker(). -->
+<div id="fc-modal" onclick="if(event.target===this)closeFirstClientPicker()">
+  <div id="fc-box" role="dialog" aria-label="לקוח ראשון">
+    <div id="fc-head">
+      <div class="fc-title">לקוח ראשון במסלול</div>
+      <span class="fc-close" onclick="closeFirstClientPicker()">✕</span>
+    </div>
+    <input type="search" id="fc-search" placeholder="🔍 חיפוש לקוח" oninput="renderFirstClientPicker()" autocomplete="off">
+    <div id="fc-list"></div>
   </div>
 </div>
 
@@ -2565,7 +2604,7 @@ async function buildCityChips(){
   if(!sel) return;
   sel.style.display='';
   const code=st.agent?.code||_loadAuth()?.code;
-  sel.innerHTML='<option value="">🤖 לקוח ראשון: אוטומטי (לפי עיר מוצא)</option>';
+  st._fcList=[]; _setFirstClientValue('');
   if(!code||code==='mgr') return;
   try{
     const r=await apiFetch(`${API}/customers?agent=${encodeURIComponent(code)}&day=${_todayRouteDay()}`);
@@ -2573,11 +2612,46 @@ async function buildCityChips(){
     // Priority סדר ביקור order; no order (server: 0/empty→999, ICE 9000, moved-in 9500) goes last, by name.
     const _ord=c=>(c.priorityOrder>0&&c.priorityOrder<999)?c.priorityOrder:Infinity;
     const list=(await r.json()).slice().sort((a,b)=>(_ord(a)-_ord(b))||String(a.custName||'').localeCompare(String(b.custName||''),'he'));
+    // shortName() drops the city from the name when it repeats it (same as the route cards)
+    st._fcList=list.map(c=>({custId:String(c.custId),name:shortName(c.custName||'',c.city||'')||c.custName||'',city:c.city||'',ord:_ord(c),ice:!!c.iceOnly}));
     const pick=_loadFirstClientPick();
-    const esc=s=>String(s??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
-    sel.innerHTML+=list.map(c=>`<option value="${esc(c.custId)}">${esc(c.custName)}${c.city?' · '+esc(c.city):''}</option>`).join('');
-    if(pick&&String(pick.agent)===String(code)&&list.some(c=>String(c.custId)===String(pick.custId))) sel.value=String(pick.custId);
-  }catch(e){ /* dropdown stays on "אוטומטי" — route still builds from the city */ }
+    if(pick&&String(pick.agent)===String(code)) _setFirstClientValue(String(pick.custId));
+  }catch(e){ /* picker stays on "אוטומטי" — route still builds from the city */ }
+}
+// Field shows the pick; value '' = automatic (from the start city).
+function _setFirstClientValue(id){
+  const sel=document.getElementById('first-client-select');
+  const c=id&&(st._fcList||[]).find(x=>x.custId===String(id));
+  sel.value=c?c.custId:'';
+  sel.classList.toggle('picked',!!c);
+  document.getElementById('fc-field-value').textContent=c?(c.name+(c.city?' · '+c.city:'')):'🤖 אוטומטי — לפי עיר מוצא';
+}
+function openFirstClientPicker(){
+  const m=document.getElementById('fc-modal');
+  document.getElementById('fc-search').value='';
+  renderFirstClientPicker();
+  m.classList.add('open');
+  const on=m.querySelector('.fc-row.on'); if(on) on.scrollIntoView({block:'center'});
+}
+function closeFirstClientPicker(){ document.getElementById('fc-modal').classList.remove('open'); }
+function pickFirstClient(id){ _setFirstClientValue(id); closeFirstClientPicker(); }
+function renderFirstClientPicker(){
+  const box=document.getElementById('fc-list');
+  const q=document.getElementById('fc-search').value.trim();
+  const cur=document.getElementById('first-client-select').value;
+  const all=st._fcList||[];
+  if(!all.length){ box.innerHTML='<div class="fc-empty">⏳ טוען לקוחות היום...</div>'; return; }
+  // Priority names are often visual-order (reversed) \u2014 match the typed text both ways.
+  const _m=c=>{const n=c.name.replace(/[\u200e\u200f\u202a-\u202e]/g,'');return n.includes(q)||[...n].reverse().join('').includes(q)||c.city.includes(q);};
+  const list=q?all.filter(_m):all;
+  const row=c=>`<div class="fc-row${c.custId===cur?' on':''}" onclick="pickFirstClient('${esc(c.custId)}')">
+      <span class="fc-num${c.ord===Infinity?' none':''}">${c.ord===Infinity?'–':c.ord}</span>
+      <span class="fc-name">${c.ice?'❄️ ':''}${esc(c.name)}</span><span class="fc-city">${esc(c.city)}</span></div>`;
+  const withOrd=list.filter(c=>c.ord!==Infinity), noOrd=list.filter(c=>c.ord===Infinity);
+  box.innerHTML=(q?'':`<div class="fc-row fc-auto${!cur?' on':''}" onclick="pickFirstClient('')"><span class="fc-num">🤖</span><span class="fc-name">אוטומטי — לפי עיר מוצא</span></div>`)
+    +withOrd.map(row).join('')
+    +(noOrd.length?`<div class="fc-sep">ללא סדר ביקור</div>`+noOrd.map(row).join(''):'')
+    +(list.length?'':'<div class="fc-empty">לא נמצא לקוח</div>');
 }
 function _saveFirstClientPick(){
   const sel=document.getElementById('first-client-select');
