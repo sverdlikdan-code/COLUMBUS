@@ -73,7 +73,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 /* START CITY */
 .city-body{flex:1;display:flex;flex-direction:column;align-items:center;padding:32px 20px 20px;gap:0;}
 .city-label{font-size:12px;color:var(--sky);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
-.city-title{font-size:26px;font-weight:900;color:var(--blue-dark);margin-bottom:4px;}
+.city-title{font-size:24px;font-weight:900;color:var(--blue-dark);margin-bottom:12px;text-align:center;}
 .city-sub{font-size:14px;color:var(--mid);margin-bottom:22px;}
 .city-input{width:100%;max-width:420px;background:#fff;border-radius:12px;padding:13px 16px;font-size:16px;color:var(--text);border:2px solid var(--sky-mid);outline:none;text-align:right;direction:rtl;transition:border-color .2s;}
 .city-input:focus{border-color:var(--blue);}
@@ -81,9 +81,20 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .sug-item{padding:11px 16px;border-bottom:1px solid var(--sky-light);cursor:pointer;font-size:15px;color:var(--text);text-align:right;}
 .sug-item:hover,.sug-item:active{background:var(--sky-light);}
 .city-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:18px;max-width:420px;}
-.first-client-select{margin-top:12px;display:flex;align-items:center;gap:8px;cursor:pointer;font-family:inherit;padding:9px 14px;min-height:50px;}
+.start-mode{width:100%;max-width:420px;margin-top:10px;display:flex;align-items:center;gap:10px;padding:13px 14px;background:#fff;border:2px solid var(--sky-mid);border-radius:14px;cursor:pointer;font-family:inherit;text-align:start;transition:border-color .15s,background .15s,box-shadow .15s;}
+.start-mode .sm-ico{font-size:20px;flex-shrink:0;}
+.start-mode .sm-txt{flex:1;font-size:15.5px;font-weight:800;color:var(--text);}
+.start-mode .sm-radio{width:20px;height:20px;flex-shrink:0;border-radius:50%;border:2px solid var(--sky-mid);background:#fff;}
+.start-mode.on{border-color:var(--blue);background:#F5F9FF;box-shadow:0 3px 12px rgba(21,101,192,.14);}
+.start-mode.on .sm-txt{color:var(--blue-dark);}
+.start-mode.on .sm-radio{border-color:var(--blue);background:radial-gradient(circle,var(--blue) 0 45%,#fff 50%);}
+.sm-panel{width:100%;max-width:420px;padding:0 6px;}
+.sm-panel .city-input,.sm-panel .gps-btn{max-width:none;}
+.sm-panel>div:first-child>.city-input{margin-top:10px;}
+#s-city .city-input{direction:revert;text-align:start;} /* LTR Russian screen; dir=auto lets a Hebrew city type RTL */
+.first-client-select{margin-top:10px;display:flex;align-items:center;gap:8px;cursor:pointer;font-family:inherit;padding:9px 14px;min-height:50px;}
 .fc-field-label{flex-shrink:0;font-size:11px;font-weight:800;color:var(--blue);background:var(--sky-light);border-radius:8px;padding:3px 7px;}
-.fc-field-value{flex:1;min-width:0;text-align:right;font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fc-field-value{flex:1;min-width:0;text-align:start;font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .fc-field-chev{flex-shrink:0;color:var(--mid);font-size:13px;}
 .first-client-select.picked{border-color:var(--blue);background:#F5F9FF;}
 #fc-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:flex-end;justify-content:center;background:rgba(8,45,110,.45);}
@@ -92,12 +103,12 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 #fc-head{display:flex;align-items:center;padding:12px 16px 10px;background:linear-gradient(135deg,var(--blue-deeper),var(--blue));color:#fff;}
 #fc-head .fc-title{flex:1;font-size:15px;font-weight:800;}
 #fc-head .fc-close{font-size:20px;cursor:pointer;opacity:.85;padding:0 4px;}
-#fc-search{margin:10px 12px 6px;padding:9px 12px;border:1.5px solid var(--sky-mid);border-radius:10px;font-size:15px;direction:rtl;outline:none;}
+#fc-search{margin:10px 12px 6px;padding:9px 12px;border:1.5px solid var(--sky-mid);border-radius:10px;font-size:15px;outline:none;}
 #fc-search:focus{border-color:var(--blue);}
 #fc-list{flex:1;overflow-y:auto;padding:0 8px 12px;-webkit-overflow-scrolling:touch;}
 .fc-row{display:flex;align-items:center;gap:9px;padding:6px 8px;min-height:38px;border-bottom:1px solid #EEF3FA;cursor:pointer;}
 .fc-row:active,.fc-row:hover{background:var(--sky-light);}
-.fc-row.on{background:#E8F0FE;box-shadow:inset -3px 0 0 var(--blue);}
+.fc-row.on{background:#E8F0FE;box-shadow:inset 3px 0 0 var(--blue);}
 .fc-num{width:24px;height:24px;flex-shrink:0;border-radius:50%;background:var(--sky-light);border:1.5px solid var(--sky-mid);color:var(--blue);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;}
 .fc-num.none{background:#F3F5F8;border-color:#DDE3EA;color:var(--light);}
 .fc-row.on .fc-num{background:var(--blue);border-color:var(--blue);color:#fff;}
@@ -1060,40 +1071,52 @@ body.bdd .km-more-item[onclick^="openYedaim"], body.bdd .km-more-item[onclick^="
 <!-- ── START CITY ── -->
 <div class="screen" id="s-city">
   <div class="hdr">
-    <button class="hdr-back" onclick="goBack('s-city')">← חזור</button>
+    <button class="hdr-back" dir="ltr" onclick="goBack('s-city')">← Назад</button>
     <img src="logo-diler-bmd.png" class="hdr-logo" alt="DILER"/>
     <div class="hdr-center">
       <div class="hdr-title">FORMULA ROAD</div>
     </div>
   </div>
   <div class="sky-line"></div>
-  <div class="city-body">
+  <!-- This screen is Russian (user request 2026-10-04) — LTR, unlike the rest of the app. -->
+  <div class="city-body" dir="ltr" lang="ru">
     <div class="city-label" id="city-agent-label"></div>
-    <div class="city-title">עיר מוצא</div>
-    <div class="city-sub">ממה מתחיל המסלול היום?</div>
-    <div style="width:100%;max-width:420px;position:relative;">
-      <input class="city-input" id="city-input" placeholder="הקלד עיר..." type="text" oninput="onCityInput()" onfocus="onCityInput()" autocomplete="off"/>
-      <div class="suggestions" id="city-suggestions" style="display:none;position:absolute;top:100%;right:0;left:0;z-index:100;max-height:220px;overflow-y:auto;"></div>
-    </div>
-    <button type="button" class="city-input first-client-select" id="first-client-select" value="" onclick="openFirstClientPicker()" aria-label="לקוח ראשון במסלול AI">
-      <span class="fc-field-label">לקוח ראשון</span>
-      <span class="fc-field-value" id="fc-field-value">🤖 אוטומטי — לפי עיר מוצא</span>
-      <span class="fc-field-chev" aria-hidden="true">▾</span>
+    <div class="city-title" id="city-title">Откуда начинаем?</div>
+    <!-- Two ways to start (2026-10-04): from a city/GPS, or "doesn't matter —
+         I'll start at a client" (today's route day only). setStartMode(). -->
+    <button type="button" class="start-mode on" id="sm-city" onclick="setStartMode('city',true)">
+      <span class="sm-ico">📍</span><span class="sm-txt">Из города</span><span class="sm-radio"></span>
     </button>
-    <button class="gps-btn" id="gps-btn" onclick="detectCity()">📍 זהה מיקום אוטומטית</button>
-    <button class="confirm-btn" id="city-confirm" onclick="confirmCity()" disabled>המשך לבניית מסלול ←</button>
+    <div class="sm-panel" id="sm-city-panel">
+      <div style="width:100%;position:relative;">
+        <input class="city-input" id="city-input" placeholder="Город..." dir="auto" type="text" oninput="onCityInput()" onfocus="onCityInput()" autocomplete="off"/>
+        <div class="suggestions" id="city-suggestions" style="display:none;position:absolute;top:100%;right:0;left:0;z-index:100;max-height:220px;overflow-y:auto;"></div>
+      </div>
+      <button class="gps-btn" id="gps-btn" onclick="detectCity()">📍 Где я сейчас</button>
+    </div>
+    <button type="button" class="start-mode" id="sm-client" onclick="setStartMode('client',true)">
+      <span class="sm-ico">🚩</span><span class="sm-txt">С клиента</span><span class="sm-radio"></span>
+    </button>
+    <div class="sm-panel" id="sm-client-panel" style="display:none">
+      <button type="button" class="city-input first-client-select" id="first-client-select" value="" onclick="openFirstClientPicker()" aria-label="Первый клиент в маршруте">
+        <span class="fc-field-label">Первый клиент</span>
+        <span class="fc-field-value" id="fc-field-value">Выбери клиента…</span>
+        <span class="fc-field-chev" aria-hidden="true">▾</span>
+      </button>
+    </div>
+    <button class="confirm-btn" id="city-confirm" onclick="confirmCity()" disabled>Поехали →</button>
   </div>
 </div>
 
 <!-- "לקוח ראשון" picker — compact full-height sheet (a native <select> can't be
      styled or made denser on phones). Rows built by renderFirstClientPicker(). -->
 <div id="fc-modal" onclick="if(event.target===this)closeFirstClientPicker()">
-  <div id="fc-box" role="dialog" aria-label="לקוח ראשון">
+  <div id="fc-box" role="dialog" aria-label="Первый клиент" dir="ltr" lang="ru">
     <div id="fc-head">
-      <div class="fc-title">לקוח ראשון במסלול</div>
+      <div class="fc-title">С какого клиента начнём?</div>
       <span class="fc-close" onclick="closeFirstClientPicker()">✕</span>
     </div>
-    <input type="search" id="fc-search" placeholder="🔍 חיפוש לקוח" oninput="renderFirstClientPicker()" autocomplete="off">
+    <input type="search" id="fc-search" dir="auto" placeholder="🔍 Поиск клиента" oninput="renderFirstClientPicker()" autocomplete="off">
     <div id="fc-list"></div>
   </div>
 </div>
@@ -2602,10 +2625,14 @@ function _loadFirstClientPick(){
 async function buildCityChips(){
   const sel=document.getElementById('first-client-select');
   if(!sel) return;
-  sel.style.display='';
   const code=st.agent?.code||_loadAuth()?.code;
   st._fcList=[]; _setFirstClientValue('');
-  if(!code||code==='mgr') return;
+  _renderStartTitle();
+  const savedPick=_loadFirstClientPick();
+  const clientOk=!!code&&code!=='mgr';
+  document.getElementById('sm-client').style.display=clientOk?'':'none';
+  setStartMode(clientOk&&savedPick&&String(savedPick.agent)===String(code)?'client':'city');
+  if(!clientOk) return;
   try{
     const r=await apiFetch(`${API}/customers?agent=${encodeURIComponent(code)}&day=${_todayRouteDay()}`);
     if(!r.ok) return;
@@ -2613,10 +2640,58 @@ async function buildCityChips(){
     const _ord=c=>(c.priorityOrder>0&&c.priorityOrder<999)?c.priorityOrder:Infinity;
     const list=(await r.json()).slice().sort((a,b)=>(_ord(a)-_ord(b))||String(a.custName||'').localeCompare(String(b.custName||''),'he'));
     // shortName() drops the city from the name when it repeats it (same as the route cards)
-    st._fcList=list.map(c=>({custId:String(c.custId),name:shortName(c.custName||'',c.city||'')||c.custName||'',city:c.city||'',ord:_ord(c),ice:!!c.iceOnly}));
+    st._fcList=list.map(c=>({custId:String(c.custId),name:shortName(c.custName||'',c.city||'')||c.custName||'',city:c.city||'',ord:_ord(c),ice:!!c.iceOnly,lat:c.lat||null,lng:c.lng||null}));
     const pick=_loadFirstClientPick();
     if(pick&&String(pick.agent)===String(code)) _setFirstClientValue(String(pick.custId));
-  }catch(e){ /* picker stays on "אוטומטי" — route still builds from the city */ }
+  }catch(e){ /* no list — fall back to the city option below */ }
+  if(!st._fcList.length){ document.getElementById('sm-client').style.display='none'; setStartMode('city'); }
+  else _updateCityConfirm();
+}
+// "<Имя>, откуда сегодня стартуем?" for the logged-in agent. Names are Hebrew in
+// Priority/PBI, so the first word goes through HE_RU_FIRST_NAMES; an unknown name
+// just drops the greeting rather than guessing a transliteration. Managers get no
+// name here — the agent-name label above (whose route it is) stays for them only.
+// Seeded 2026-10-04 from every agent name seen in server/data (52 agents) plus
+// common extras; add a line when a new agent's name is missing.
+const HE_RU_FIRST_NAMES={
+  'רוסלן':'Руслан','אלכסנדר':'Александр','בוריס':'Борис','יצחק':'Ицхак','אנטון':'Антон',
+  'אלכסיי':'Алексей','אלכסי':'Алексей','ולרי':'Валерий','מיכאל':'Михаил','מיכאיל':'Михаил',
+  'אנטולי':'Анатолий','ודים':'Вадим','אנדריי':'Андрей','מקסים':'Максим','יוליה':'Юлия',
+  'אולג':'Олег','ולדימיר':'Владимир','סרגיי':'Сергей','ולדיסלב':'Владислав','אדוארד':'Эдуард',
+  'טימור':'Тимур','קונסטנטין':'Константин','דמיטרי':'Дмитрий','יבגני':'Евгений','אלמוג':'Альмог',
+  "ג'וזף":'Джозеф','מרגריטה':'Маргарита',"וצ'סלב":'Вячеслав','יגאל':'Игаль','זויה':'Зоя',
+  'דוד':'Давид','דניאיל':'Даниил','עירית':'Ирит','גליה':'Галя','רומן':'Роман','מריה':'Мария',
+  'דניס':'Денис','ויקטור':'Виктор','איגור':'Игорь','יורי':'Юрий','פאבל':'Павел','ארטיום':'Артём',
+  'ארטם':'Артём','איליה':'Илья','ניקולאי':'Николай','גנאדי':'Геннадий','ויטלי':'Виталий',
+  'סטניסלב':'Станислав','ליאוניד':'Леонид','ולנטין':'Валентин','בוגדן':'Богдан','ולד':'Влад',
+  'אלכס':'Алекс','ארקדי':'Аркадий','אלנה':'Елена','נטליה':'Наталья','נטאליה':'Наталья',
+  'סבטלנה':'Светлана','אנה':'Анна','אולגה':'Ольга','טטיאנה':'Татьяна','אירינה':'Ирина',
+  'מרינה':'Марина','יבגניה':'Евгения','לנה':'Лена','ויקה':'Вика','ויקטוריה':'Виктория',
+  'דן':'Дан','יוסי':'Йоси','אילן':'Илан','משה':'Моше','אבי':'Ави','יוסף':'Иосиф',
+};
+function _ruFirstName(heName){
+  const first=String(heName||'').trim().split(/\s+/)[0].replace(/[’‘`´]/g,"'");
+  return HE_RU_FIRST_NAMES[first]||'';
+}
+function _renderStartTitle(){
+  const auth=_loadAuth();
+  const ru=auth?.isManager?'':_ruFirstName(auth?.name);
+  document.getElementById('city-title').textContent=ru?ru+', откуда начинаем?':'Откуда начинаем?';
+  document.getElementById('city-agent-label').style.display=auth?.isManager?'':'none';
+}
+function setStartMode(mode,byUser){
+  st._startMode=mode;
+  document.getElementById('sm-city').classList.toggle('on',mode==='city');
+  document.getElementById('sm-client').classList.toggle('on',mode==='client');
+  document.getElementById('sm-city-panel').style.display=mode==='city'?'':'none';
+  document.getElementById('sm-client-panel').style.display=mode==='client'?'':'none';
+  if(byUser&&mode==='client'&&!document.getElementById('first-client-select').value) openFirstClientPicker();
+  _updateCityConfirm();
+}
+function _updateCityConfirm(){
+  document.getElementById('city-confirm').disabled = st._startMode==='client'
+    ? !document.getElementById('first-client-select').value
+    : !document.getElementById('city-input').value.trim();
 }
 // Field shows the pick; value '' = automatic (from the start city).
 function _setFirstClientValue(id){
@@ -2624,7 +2699,7 @@ function _setFirstClientValue(id){
   const c=id&&(st._fcList||[]).find(x=>x.custId===String(id));
   sel.value=c?c.custId:'';
   sel.classList.toggle('picked',!!c);
-  document.getElementById('fc-field-value').textContent=c?(c.name+(c.city?' · '+c.city:'')):'🤖 אוטומטי — לפי עיר מוצא';
+  document.getElementById('fc-field-value').textContent=c?(c.name+(c.city?' · '+c.city:'')):'Выбери клиента…';
 }
 function openFirstClientPicker(){
   const m=document.getElementById('fc-modal');
@@ -2634,13 +2709,16 @@ function openFirstClientPicker(){
   const on=m.querySelector('.fc-row.on'); if(on) on.scrollIntoView({block:'center'});
 }
 function closeFirstClientPicker(){ document.getElementById('fc-modal').classList.remove('open'); }
-function pickFirstClient(id){ _setFirstClientValue(id); closeFirstClientPicker(); }
+function pickFirstClient(id){
+  _setFirstClientValue(id); closeFirstClientPicker();
+  if(!id) setStartMode('city'); else _updateCityConfirm();
+}
 function renderFirstClientPicker(){
   const box=document.getElementById('fc-list');
   const q=document.getElementById('fc-search').value.trim();
   const cur=document.getElementById('first-client-select').value;
   const all=st._fcList||[];
-  if(!all.length){ box.innerHTML='<div class="fc-empty">⏳ טוען לקוחות היום...</div>'; return; }
+  if(!all.length){ box.innerHTML='<div class="fc-empty">⏳ Загружаю...</div>'; return; }
   // Priority names are often visual-order (reversed) \u2014 match the typed text both ways.
   const _m=c=>{const n=c.name.replace(/[\u200e\u200f\u202a-\u202e]/g,'');return n.includes(q)||[...n].reverse().join('').includes(q)||c.city.includes(q);};
   const list=q?all.filter(_m):all;
@@ -2648,10 +2726,10 @@ function renderFirstClientPicker(){
       <span class="fc-num${c.ord===Infinity?' none':''}">${c.ord===Infinity?'–':c.ord}</span>
       <span class="fc-name">${c.ice?'❄️ ':''}${esc(c.name)}</span><span class="fc-city">${esc(c.city)}</span></div>`;
   const withOrd=list.filter(c=>c.ord!==Infinity), noOrd=list.filter(c=>c.ord===Infinity);
-  box.innerHTML=(q?'':`<div class="fc-row fc-auto${!cur?' on':''}" onclick="pickFirstClient('')"><span class="fc-num">🤖</span><span class="fc-name">אוטומטי — לפי עיר מוצא</span></div>`)
+  box.innerHTML=(q?'':`<div class="fc-row fc-auto${!cur?' on':''}" onclick="pickFirstClient('')"><span class="fc-num">📍</span><span class="fc-name">Без клиента — из города</span></div>`)
     +withOrd.map(row).join('')
-    +(noOrd.length?`<div class="fc-sep">ללא סדר ביקור</div>`+noOrd.map(row).join(''):'')
-    +(list.length?'':'<div class="fc-empty">לא נמצא לקוח</div>');
+    +(noOrd.length?`<div class="fc-sep">Без порядка визита</div>`+noOrd.map(row).join(''):'')
+    +(list.length?'':'<div class="fc-empty">Клиент не найден</div>');
 }
 function _saveFirstClientPick(){
   const sel=document.getElementById('first-client-select');
@@ -2693,8 +2771,8 @@ function pickCity(c){
 
 function detectCity(){
   const btn=document.getElementById('gps-btn');
-  btn.disabled=true; btn.textContent='⏳ מאתר מיקום...';
-  if(!navigator.geolocation){btn.textContent='📍 GPS לא זמין';btn.disabled=false;return;}
+  btn.disabled=true; btn.textContent='⏳ Ищу...';
+  if(!navigator.geolocation){btn.textContent='📍 GPS недоступен';btn.disabled=false;return;}
   navigator.geolocation.getCurrentPosition(
     pos=>{
       st.startLat=pos.coords.latitude; st.startLng=pos.coords.longitude;
@@ -2718,22 +2796,33 @@ function detectCity(){
         }).catch(()=>{
           document.getElementById('city-input').value='מיקום GPS';
           document.getElementById('city-confirm').disabled=false;
-          btn.textContent='✅ מיקום נקלט';
+          btn.textContent='✅ Нашёл';
         });
       btn.disabled=false;
     },
-    ()=>{btn.textContent='❌ נדחה — הקלד ידנית';btn.disabled=false;},
+    ()=>{btn.textContent='❌ Нет доступа — впиши город';btn.disabled=false;},
     {timeout:10000, maximumAge:60000, enableHighAccuracy:false}
   );
 }
 
 async function confirmCity(){
-  const city=document.getElementById('city-input').value.trim();
-  if(!city)return;
-  _saveFirstClientPick();
-  // If city changed from GPS-detected city — reset coords so we geocode the new one
-  if(city !== st.startCityName){ st.startLat=null; st.startLng=null; }
-  st.startCity=city;
+  let city;
+  if(st._startMode==='client'){
+    // "אתחיל מלקוח": the client's own GPS is the start point; its city (or name)
+    // stands in as startCity so the same-day F5 restore still finds one.
+    const c=(st._fcList||[]).find(x=>x.custId===document.getElementById('first-client-select').value);
+    if(!c) return;
+    _saveFirstClientPick();
+    city=c.city||c.name; st.startCity=city; st.startCityName=city;
+    st.startLat=c.lat; st.startLng=c.lng;
+  } else {
+    city=document.getElementById('city-input').value.trim();
+    if(!city)return;
+    _setFirstClientValue(''); _saveFirstClientPick(); // city mode = no first-client pin
+    // If city changed from GPS-detected city — reset coords so we geocode the new one
+    if(city !== st.startCityName){ st.startLat=null; st.startLng=null; }
+    st.startCity=city;
+  }
   if(!st.startLat || !st.startLng){
     try{
       const r=await apiFetch(`${API}/geocode?address=${encodeURIComponent(city)}&city=${encodeURIComponent(city)}`);
@@ -3538,11 +3627,10 @@ function resetRoute(){
 // day only); confirmCity() then comes back to the SAME day via _recalcAi().
 function recalcRoute(){
   st._recalcPending=true;
-  buildCityChips();
-  if(st.day!==_todayRouteDay()) document.getElementById('first-client-select').style.display='none';
   document.getElementById('city-input').value=st.startCity||'';
   st.startCityName=st.startCity; // unchanged city keeps its coords (GPS address labels don't geocode)
-  document.getElementById('city-confirm').disabled=!st.startCity;
+  buildCityChips().then(()=>{ if(st.day!==_todayRouteDay()){ document.getElementById('sm-client').style.display='none'; setStartMode('city'); } });
+  if(st.day!==_todayRouteDay()){ document.getElementById('sm-client').style.display='none'; setStartMode('city'); }
   show('s-city');
 }
 function _recalcAi(){
