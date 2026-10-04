@@ -81,6 +81,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .sug-item{padding:11px 16px;border-bottom:1px solid var(--sky-light);cursor:pointer;font-size:15px;color:var(--text);text-align:right;}
 .sug-item:hover,.sug-item:active{background:var(--sky-light);}
 .city-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:18px;max-width:420px;}
+.first-client-select{margin-top:12px;font-weight:700;cursor:pointer;}
 .gps-btn{margin-top:12px;background:#fff;border:2px solid var(--blue);border-radius:12px;padding:12px 0;width:100%;max-width:420px;color:var(--blue);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .15s;}
 .gps-btn:hover{background:var(--sky-light);}
 .gps-btn:disabled{border-color:var(--light);color:var(--light);cursor:default;}
@@ -1050,6 +1051,9 @@ body.bdd .km-more-item[onclick^="openYedaim"], body.bdd .km-more-item[onclick^="
       <input class="city-input" id="city-input" placeholder="הקלד עיר..." type="text" oninput="onCityInput()" onfocus="onCityInput()" autocomplete="off"/>
       <div class="suggestions" id="city-suggestions" style="display:none;position:absolute;top:100%;right:0;left:0;z-index:100;max-height:220px;overflow-y:auto;"></div>
     </div>
+    <select class="city-input first-client-select" id="first-client-select" aria-label="לקוח ראשון במסלול AI">
+      <option value="">🤖 לקוח ראשון: אוטומטי (לפי עיר מוצא)</option>
+    </select>
     <button class="gps-btn" id="gps-btn" onclick="detectCity()">📍 זהה מיקום אוטומטית</button>
     <button class="confirm-btn" id="city-confirm" onclick="confirmCity()" disabled>המשך לבניית מסלול ←</button>
   </div>
@@ -1852,12 +1856,20 @@ function _aiGpsClients(clients){
 }
 
 // ── Nearest Neighbor sort ──────────────────────────────────────────────────
+// A "לקוח ראשון" picked on the עיר מוצא screen (_firstClientPin) goes first and
+// becomes the start point for everyone else; without GPS it still goes first and
+// the rest falls back to the start city.
 function nearestNeighbor(clients){
+  const pin=_firstClientPin(clients);
+  if(!pin) return _nnFrom(clients, st.startLat, st.startLng);
+  return [pin, ..._nnFrom(clients.filter(c=>c!==pin), pin.lat||st.startLat, pin.lng||st.startLng)];
+}
+function _nnFrom(clients, fromLat, fromLng){
   const withGps = clients.filter(c=>c.lat&&c.lng);
   const noGps   = clients.filter(c=>!c.lat||!c.lng);
   if(!withGps.length) return clients;
-  const startLat = st.startLat || withGps[0].lat;
-  const startLng = st.startLng || withGps[0].lng;
+  const startLat = fromLat || withGps[0].lat;
+  const startLng = fromLng || withGps[0].lng;
   const remaining=[...withGps], result=[];
   let curLat=startLat, curLng=startLng;
   while(remaining.length){
@@ -1966,7 +1978,11 @@ function triggerOsrm() {
   // each re-rendering, looked like the map/toggle had a third, in-between
   // state (found 2026-09-03). Removed the duplicate; this is now the single
   // place that refines + re-renders the map for AI mode.
-  osrmTripOrder([...clientsForSort], st.startLat, st.startLng).then(tripOrdered => {
+  const pin = _firstClientPin(clientsForSort);
+  const tripP = pin
+    ? osrmTripOrder(clientsForSort.filter(c => c !== pin), pin.lat || st.startLat, pin.lng || st.startLng).then(o => o && [pin, ...o])
+    : osrmTripOrder([...clientsForSort], st.startLat, st.startLng);
+  tripP.then(tripOrdered => {
     if (st.agent?.code !== snap.agentCode || st.day !== snap.day) return;
     if (tripOrdered) {
       st.aiClients = tripOrdered;
@@ -2523,7 +2539,49 @@ function selectAgent(code,name){
 }
 
 // ── START CITY ─────────────────────────────────────────────────────────────
-function buildCityChips(){}
+// "לקוח ראשון" dropdown on this screen (2026-10-04): today's route-day clients
+// only. A pick pins that client to #1 in AI mode and the rest of the AI order is
+// built from its coords instead of the start city — see _firstClientPin(). Kept
+// per agent + calendar date, so tomorrow (or another agent's route) is untouched.
+// Called right before every show('s-city') that comes with a fresh agent.
+const _FIRST_CLIENT_KEY=()=>_lsAg('frFirstClient');
+function _loadFirstClientPick(){
+  try{
+    const p=JSON.parse(localStorage.getItem(_FIRST_CLIENT_KEY())||'null');
+    return p&&p.date===new Date().toLocaleDateString('en-CA')?p:null;
+  }catch{ return null; }
+}
+async function buildCityChips(){
+  const sel=document.getElementById('first-client-select');
+  if(!sel) return;
+  const code=st.agent?.code||_loadAuth()?.code;
+  sel.innerHTML='<option value="">🤖 לקוח ראשון: אוטומטי (לפי עיר מוצא)</option>';
+  if(!code||code==='mgr') return;
+  try{
+    const r=await apiFetch(`${API}/customers?agent=${encodeURIComponent(code)}&day=${_todayRouteDay()}`);
+    if(!r.ok) return;
+    const list=(await r.json()).slice().sort((a,b)=>String(a.custName||'').localeCompare(String(b.custName||''),'he'));
+    const pick=_loadFirstClientPick();
+    const esc=s=>String(s??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+    sel.innerHTML+=list.map(c=>`<option value="${esc(c.custId)}">${esc(c.custName)}${c.city?' · '+esc(c.city):''}</option>`).join('');
+    if(pick&&String(pick.agent)===String(code)&&list.some(c=>String(c.custId)===String(pick.custId))) sel.value=String(pick.custId);
+  }catch(e){ /* dropdown stays on "אוטומטי" — route still builds from the city */ }
+}
+function _saveFirstClientPick(){
+  const sel=document.getElementById('first-client-select');
+  const code=st.agent?.code;
+  if(!sel||!code) return;
+  if(!sel.value){ try{localStorage.removeItem(_FIRST_CLIENT_KEY());}catch{} return; }
+  try{ localStorage.setItem(_FIRST_CLIENT_KEY(), JSON.stringify({agent:String(code),custId:sel.value,date:new Date().toLocaleDateString('en-CA')})); }catch{}
+  _trackEvent('first_client_picked', sel.value);
+}
+// The client AI mode must start from, or null. Only on today's route day.
+function _firstClientPin(clients){
+  if(st.day!==_todayRouteDay()) return null;
+  const p=_loadFirstClientPick();
+  if(!p||String(p.agent)!==String(st.agent?.code)) return null;
+  return clients.find(c=>String(c.custId)===String(p.custId))||null;
+}
 
 function onCityInput(){
   const v=document.getElementById('city-input').value.trim();
@@ -2586,6 +2644,7 @@ function detectCity(){
 async function confirmCity(){
   const city=document.getElementById('city-input').value.trim();
   if(!city)return;
+  _saveFirstClientPick();
   // If city changed from GPS-detected city — reset coords so we geocode the new one
   if(city !== st.startCityName){ st.startLat=null; st.startLng=null; }
   st.startCity=city;
