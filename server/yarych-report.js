@@ -186,8 +186,8 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:6px 16px 20
 <section id="trend"><h2>מכירות לפי חודש <span class="un"></span></h2><div id="chart"></div><div class="leg" id="leg"></div></section>
 <section id="sku"><h2>מכירות לפי מוצר <span class="un"></span></h2><div class="ym"><div class="ms" id="ys"></div><div class="ms mg" id="ms"></div></div><div class="scroll" id="skuWrap" dir="ltr"><table id="tSku" dir="ltr"></table></div><div id="skuX"></div></section>
 <section id="chains"><div class="kt" id="kt"><span class="sh">כשרות לקוח:</span><div class="tg sm"><button class="kb on" data-kos="all">הכל</button><button class="kb" data-kos="כן">כשר</button><button class="kb" data-kos="לא">לא כשר</button></div></div><h2>רשתות — כמה לקחה כל רשת ומשקלה מהסה"כ <span class="un"></span></h2><div class="scroll" dir="ltr"><table id="tCh" dir="ltr" class="lt"></table></div><div id="tChX"></div><div id="tChR"></div></section>
-<section id="stock"><h2>מלאי והזמנה מומלצת — ${label(d.stockFrom)}–${label(d.month)}</h2><p class="sh" style="margin:-4px 0 10px;font-size:12px">מכר — 3 החודשים האחרונים · מלאי נכון ל-${d.asOf} · כמו בדף YARICH מלאי ב-Power BI · לא תלוי במתג היחידות</p><div class="kpis" id="sKpi"></div><div class="scroll" style="margin-top:10px" dir="ltr"><table id="tSt" dir="ltr"></table></div><div id="tStX"></div></section>
 <section id="private"><h2>שוק פרטי — ${TOP_PRIVATE} הלקוחות הגדולים בתקופה הנבחרת <span class="un"></span></h2><div class="scroll" dir="ltr"><table id="tPr" dir="ltr" class="lt"></table></div><div id="tPrX"></div></section>
+<section id="stock"><h2>מלאי והזמנה מומלצת — ${label(d.stockFrom)}–${label(d.month)}</h2><p class="sh" style="margin:-4px 0 10px;font-size:12px">מכר — 3 החודשים האחרונים · מלאי נכון ל-${d.asOf} · כמו בדף YARICH מלאי ב-Power BI · לא תלוי במתג היחידות</p><div class="kpis" id="sKpi"></div><div class="scroll" style="margin-top:10px" dir="ltr"><table id="tSt" dir="ltr"></table></div><div id="tStX"></div></section>
 </main>
 <footer>INTER בלבד · ספק YARYCH LLC (2110171) · חודשים שלמים</footer>
 <script>
@@ -406,8 +406,8 @@ function buildEmail(d, t, link) {
   ${top.map(x => `<tr>${td(esc(x.name), 'left', ' dir="rtl"')}${ly ? td(n0(x.ly)) : ''}${td('<b>' + n0(x.u) + '</b>')}${ly ? td(ch(yoy(x.u, x.ly))) : ''}${td((t.u ? Math.round(1000 * x.u / t.u) / 10 : 0) + '%')}</tr>`).join('')}
 </table></td></tr>
 ${link ? `<tr><td align="center" style="padding:22px 28px 8px">
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="${NAVY}" style="border-radius:6px">
-  <a href="${link}" style="${F}display:inline-block;padding:14px 34px;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none">Открыть полный отчёт</a>
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" bgcolor="${NAVY}" style="padding:15px 40px;border-radius:8px;border:1px solid ${NAVY};mso-padding-alt:15px 40px">
+  <a href="${link}" target="_blank" style="${F}display:block;font-size:17px;font-weight:bold;color:#ffffff;text-decoration:none;line-height:20px">Открыть полный отчёт&nbsp;&nbsp;→</a>
   </td></tr></table>
   <div style="${F}font-size:13px;color:${MUTED};padding-top:10px">Штуки / картоны / кг, все сети, топ частного рынка, остатки и рекомендация к заказу</div>
 </td></tr>` : ''}
