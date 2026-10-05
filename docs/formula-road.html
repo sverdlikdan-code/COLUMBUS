@@ -998,8 +998,8 @@ body.gps-fs #map{height:100%!important;}
 #s-login.mgr-compact .login-hero{padding:10px 16px 8px;gap:2px;}
 #s-login.mgr-compact .login-logo{height:40px;}
 #s-login.mgr-compact .login-app-name{font-size:17px;letter-spacing:3px;}
-#s-login.mgr-compact .login-tagline{display:none;}
-#s-login.mgr-compact #data-time{margin-top:0!important;}
+#s-login.mgr-compact .login-tagline:empty{display:none;}
+#s-login.mgr-compact #data-time{display:none;} /* 2026-10-05: BI timestamp line dropped on picker screens */
 .login-app-name{font-size:22px;font-weight:900;letter-spacing:4px;color:#fff;text-transform:uppercase;}
 .login-tagline{font-size:12px;color:rgba(255,255,255,.6);letter-spacing:1px;}
 .login-sky-bar{height:4px;background:linear-gradient(90deg,var(--sky),var(--blue));flex-shrink:0;}
@@ -2547,7 +2547,7 @@ function _logAccess(event, agentCode, agentName, isManager){
 function renderLogin(){
   const body=document.getElementById('login-body');
   const sub=document.getElementById('login-sub');
-  document.getElementById('s-login').classList.toggle('mgr-compact', st.step==='manager' && !!_loadAuth());
+  document.getElementById('s-login').classList.toggle('mgr-compact', (st.step==='manager'||st.step==='agent') && !!_loadAuth());
   document.getElementById('s-login').classList.remove('welcome-mode'); // reset — only the agent-welcome branch below re-adds it
   stopTeamStatsPolling(); // only the 'manager'/'agent' branches below restart it — every other step must not keep polling in the background
   // If no auth at all — show code entry screen
@@ -2565,7 +2565,7 @@ function renderLogin(){
     return;
   }
   if(st.step==='manager'){
-    sub.textContent='מערכת ניהול מסלולים';
+    sub.textContent=''; // compact hero — generic tagline hidden via :empty
     body.innerHTML=`
       <div style="flex:1;display:flex;flex-direction:column;overflow-y:auto;">
         <div class="mgr-wrap">
