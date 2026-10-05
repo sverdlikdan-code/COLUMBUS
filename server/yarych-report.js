@@ -8,7 +8,7 @@
 // только на странице: почтовики режут JS). Страница пишется в /root/private-share/<YARYCH_SHARE>.html,
 // трекинг чтения — тот же POST /p/<hex>/ev, что у Diler Intelligence.
 //
-// Usage: node yarych-report.js [--month=YYYY-MM] [--dry-run] [--to=a@b.com]
+// Usage: node yarych-report.js [--month=YYYY-MM] [--dry-run] [--page-only] [--to=a@b.com]
 require('dotenv').config({ path: '../.env' });
 const fs = require('fs');
 const path = require('path');
@@ -174,7 +174,7 @@ td.en{text-align:left}#tSku th,#tSku td{text-align:right}#tSku .st{position:stic
 @media(max-width:600px){#tSku .s1{display:none}#tSku .s2{left:0;white-space:normal;min-width:130px;max-width:140px;font-size:11.5px;line-height:1.25}}
 button.x{border:0;background:none;color:#B0B7C3;cursor:pointer;font-size:11px;padding:0 4px;margin:0 2px}button.x:hover{color:var(--red)}
 button.rs{margin-top:8px;border:1px solid var(--navy);background:#fff;color:var(--navy);border-radius:6px;padding:5px 10px;font:600 13.5px Arial;cursor:pointer}
-#tSt th,#tSt td,table.lt th,table.lt td{text-align:right}table.lt td:first-child,table.lt th:first-child{text-align:left}#tSt td:nth-child(-n+3),#tSt th:nth-child(-n+3){text-align:left}
+#tSt th,#tSt td,table.lt th,table.lt td{text-align:right}table.lt td:first-child,table.lt th:first-child{text-align:left}#tSt td:nth-child(-n+2),#tSt th:nth-child(-n+2){text-align:left}#tSt th,#tSt td{padding:5px 6px}
 details summary{cursor:pointer;color:var(--navy);font-size:13px;margin:10px 0 6px}.sh{color:var(--muted)}
 .chart{width:100%;height:auto;display:block}
 .leg{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:6px}.leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-left:4px;vertical-align:-1px}
@@ -275,9 +275,10 @@ function renderStock(){var S=D.stock,all=S.filter(function(x){return !x.total}),
     if(c==='nis')return '<td class="n">₪ '+f(v)+'</td>';
     if(c==='days'){var low=x.safe!=null&&v>0&&v<x.safe,hi=x.safe!=null&&v>x.safe*2;return '<td class="n" style="'+(low?'background:#FDE2E2;color:#B91C1C;font-weight:700':hi?'background:#FCE9DD':'')+'">'+f(v)+'</td>'}
     return '<td class="n">'+f(v)+'</td>'}
-  var h='<tr><th>תאור פרמטר 2</th><th>מק"ט</th><th>ENG</th>'+C.map(function(c){return '<th class="n" style="white-space:normal;min-width:70px">'+c[1]+'</th>'}).join('')+'</tr>',b='',fam=null;
-  rows.forEach(function(x){b+='<tr'+(x.fam!==fam?' style="border-top:2px solid #CBD5E1"':'')+'><td>'+(x.fam!==fam?'<b>'+esc(x.fam)+'</b>':'')+'</td><td class="n">'+xb('st',x.sku)+x.sku+'</td><td dir="ltr" style="text-align:left">'+esc(x.name)+'</td>'+C.map(function(c){return cell(x,c[0])}).join('')+'</tr>';fam=x.fam});
-  b+='<tr class="tot"><td colspan="3">סה"כ</td>'+C.map(function(c){return cell(T,c[0])}).join('')+'</tr>';
+  var h='<tr><th>מק"ט</th><th>ENG</th>'+C.map(function(c){return '<th class="n" style="white-space:normal;min-width:56px">'+c[1]+'</th>'}).join('')+'</tr>',b='',fam=null,nc=C.length+2;
+  rows.forEach(function(x){if(x.fam!==fam)b+='<tr class="fam"><td colspan="'+nc+'" dir="rtl" style="text-align:left">'+esc(x.fam)+'</td></tr>';fam=x.fam;
+    b+='<tr><td class="n" style="white-space:nowrap">'+xb('st',x.sku)+x.sku+'</td><td class="en" style="white-space:normal;min-width:170px;max-width:240px">'+esc(x.name)+'</td>'+C.map(function(c){return cell(x,c[0])}).join('')+'</tr>'});
+  b+='<tr class="tot"><td colspan="2">סה"כ</td>'+C.map(function(c){return cell(T,c[0])}).join('')+'</tr>';
   document.getElementById('tSt').innerHTML=h+b;document.getElementById('tStX').innerHTML=rb('st')+(T.partial?'<span class="sh" style="font-size:12px;margin-right:8px">PALLET, ימי מלאי ו-% זיכויים בסה"כ — רק בלי שורות מוסתרות (נוסחת Power BI)</span>':'')}
 document.addEventListener('click',function(e){var kb=e.target.closest('button.kb');if(kb){KOS=kb.dataset.kos;document.querySelectorAll('button.kb').forEach(function(x){x.classList.toggle('on',x===kb)});HID.ch={};render();track('kos-'+(KOS==='all'?'all':KOS==='כן'?'yes':'no'));return}
   var yb=e.target.closest('[data-y],[data-mo]');if(yb&&!yb.disabled){var isY=yb.hasAttribute('data-y'),A=isY?YS:MS,v=+(isY?yb.dataset.y:yb.dataset.mo),k=A.indexOf(v);
@@ -441,6 +442,7 @@ async function main() {
   const share = process.env.YARYCH_SHARE;
   if (!/^[0-9a-f]{48}$/.test(share || '')) throw new Error('YARYCH_SHARE не задан (48 hex)');
   fs.writeFileSync(path.join(SHARE_DIR, share + '.html'), page);
+  if (process.argv.includes('--page-only')) { console.log('--page-only — страница обновлена, письмо не отправлялось'); return; }
   const { subject, html } = buildEmail(d, t, `${PUBLIC}/p/${share}`);
   const xl = await buildExcel(d); console.log('Excel: фото', xl.photos, 'из', Object.keys(d.photoUrl).length);
   const list = v => (v || '').split(',').map(s => s.trim()).filter(Boolean);
