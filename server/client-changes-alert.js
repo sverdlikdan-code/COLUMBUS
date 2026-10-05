@@ -1,4 +1,4 @@
-// client-changes-alert.js — ежедневный алярм менеджерам (18:00 Израиль, после прогрева кэша
+// client-changes-alert.js — ежедневный алярм менеджерам (10:00 Израиль, после прогрева кэша
 // в 06:00): что поменялось в клиентской базе с прошлого снимка.
 //   новый клиент / стал неактивным / вернулся в актив / смена агента / смена дня визита
 // Источники — те же, что у кэша Formula Road (index.js _loadPBICacheAttempt):
@@ -319,6 +319,9 @@ async function main() {
   for (const f of snapFiles.filter(f => f !== `${today}.json`).slice(0, -KEEP_SNAPSHOTS)) fs.unlinkSync(path.join(SNAP_DIR, f));
 
   if (!prev) { console.log('Первый запуск — сохранён базовый снимок, письма нет.'); return; }
+  // Всплывающее окно менеджерам в Formula Road (GET /api/manager/client-changes фильтрует по группе).
+  // Пишется и при 0 изменений — чтобы вчерашний список не висел.
+  fs.writeFileSync(path.join(LIVE_DATA, 'client-changes-latest.json'), JSON.stringify({ date: today, changes }));
   for (const t of TYPES) console.log(`  ${t.key}: ${changes.filter(c => c.type === t.key).length}`);
   if (!changes.length) { console.log('Изменений нет — письма не отправляются.'); return; }
 

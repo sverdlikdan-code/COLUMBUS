@@ -26,7 +26,7 @@ role: specialist
 | zikuy-report (черновик) | `server/zikuy-report.js` | VPS crontab, 1-го числа | `/root/run-alert.sh` |
 | zikuy-report-send (команде) | то же | **только вручную** по команде Дана | `/root/run-alert.sh` |
 | mekarer-daily | `server/mekarer-daily.js` | VPS crontab → `/root/run-mekarer.sh`, Вс–Чт | `/root/COLUMBUS/.env` → `MEKARER_DAILY_RECIPIENTS` |
-| client-changes (изменения клиентов, с 2026-10-05) | `server/client-changes-alert.js` | VPS crontab → `run-alert.sh client-changes`, ежедневно 18:00 | `/root/run-alert.sh`: `CLIENT_CHANGES_RECIPIENTS` (менеджеры), `CLIENT_CHANGES_AGENT_OVERRIDE` (агенты → Дан до одобрения); email агентов — `/root/COLUMBUS/FORMULA ROADS -PASSWORDS/EMAIL + PASSWORD.xlsx` |
+| client-changes (изменения клиентов, с 2026-10-05) | `server/client-changes-alert.js` | VPS crontab `0 7,8 * * *` → `run-alert.sh client-changes`, ежедневно 10:00 (HC `client-changes` + Kuma push #2, окно 25 ч); пишет `server/data/client-changes-latest.json` → всплывающее окно менеджерам в Formula Road (`GET /api/manager/client-changes`, раз в день) | `/root/run-alert.sh`: `CLIENT_CHANGES_RECIPIENTS` (менеджеры), `CLIENT_CHANGES_AGENT_OVERRIDE` (агенты → Дан до одобрения); email агентов — `/root/COLUMBUS/FORMULA ROADS -PASSWORDS/EMAIL + PASSWORD.xlsx` |
 | health-monitor | `.github/workflows/health-monitor.yml` | GitHub cron `*/15` (реально 4–5 раз/сутки) | GitHub secret `NOTIFY_EMAIL` |
 
 Cron на VPS ставится на два UTC-часа, `run-alert.sh` сам пропускает всё кроме нужного часа по Израилю — летнее/зимнее время не ломает расписание. **Не «чинить» второй запуск — он нужен.**

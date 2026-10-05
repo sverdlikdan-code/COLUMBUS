@@ -837,6 +837,20 @@ body.map-hidden #tab-map,body.map-hidden #tab-inline-map{display:none!important;
 .thought-greet:empty{display:none;}
 .thought-body{direction:ltr;text-align:center;font-size:20px;line-height:1.5;color:var(--text);font-weight:600;font-style:italic;}
 .thought-cite{direction:ltr;text-align:center;font-size:13px;color:var(--mid);margin-top:16px;}
+/* CLIENT CHANGES — managers only, same overlay/card as the thought; colors = the alarm email's */
+.cc-card{border-top-color:#1A73E8;max-width:480px;padding:22px 18px 18px;direction:rtl;text-align:right;}
+.thought-label.cc-label{color:#1A73E8;}
+.cc-greet{font-size:14px;line-height:1.55;color:var(--text);margin-bottom:12px;}
+.cc-greet b{font-size:16px;}
+.cc-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;}
+.cc-chip{color:#fff;font-size:12px;font-weight:700;padding:3px 10px;border-radius:12px;white-space:nowrap;}
+.cc-sec{font-size:14px;font-weight:800;margin:14px 0 6px;}
+.cc-row{padding:7px 0;border-bottom:1px solid #eef0f3;font-size:13px;line-height:1.45;}
+.cc-name{font-weight:700;color:var(--text);}
+.cc-meta{color:var(--mid);font-size:12px;}
+.cc-prev{color:#8a8f98;}
+.cc-cur{font-weight:800;padding:0 4px;border-radius:4px;}
+.cc-ok{width:100%;margin-top:16px;}
 
 /* EXPORT BTN */
 .export-btn{background:#1D6F42;color:#fff;border:none;border-radius:20px;padding:5px 13px;height:36px;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(29,111,66,.35);display:none;align-items:center;gap:5px;white-space:nowrap;flex-shrink:0;}
@@ -1421,6 +1435,20 @@ body.bdd .km-more-item[onclick^="openYedaim"], body.bdd .km-more-item[onclick^="
     <div class="thought-greet" id="thought-greet"></div>
     <div class="thought-body" id="thought-body"></div>
     <div class="thought-cite" id="thought-cite"></div>
+  </div>
+</div>
+
+<!-- ── CLIENT CHANGES ── managers only, changes for their own agents (alarm writes them at 10:00) -->
+<div class="thought-toast" id="cc-toast">
+  <div class="thought-card cc-card">
+    <div class="thought-head">
+      <span class="thought-label cc-label" id="cc-title"></span>
+      <button class="thought-close" onclick="closeClientChanges()">✕</button>
+    </div>
+    <div class="cc-greet" id="cc-greet"></div>
+    <div class="cc-chips" id="cc-chips"></div>
+    <div id="cc-body"></div>
+    <button class="modal-btn confirm cc-ok" onclick="closeClientChanges()">הבנתי</button>
   </div>
 </div>
 
@@ -2171,6 +2199,7 @@ async function initLogin(){
       // picker's own tiles have painted.
       setTimeout(maybeShowGuidePrompt, 400);
       setTimeout(maybeShowThought, 700);
+      setTimeout(maybeShowClientChanges, 900);
     } else {
       // Quick existence check — skip when coming from invite (token already validated server-side)
       if (!_fromInvite) {
@@ -3195,6 +3224,7 @@ async function initRoute(){
   checkPbiFreshness(); // fire-and-forget, throttled internally
   maybeShowGuidePrompt(); // once per page load, at most 3 times ever — see definition above
   maybeShowThought(); // once per calendar day, forever — see definition below
+  maybeShowClientChanges(); // managers only, once per calendar day
   // Restore this agent's last-picked sort mode (AI vs "הגרסה שלי") — read fresh
   // on every call, keyed to whichever agent is currently being viewed (st.agent.code
   // is already set by selectAgent()/selectDay() before initRoute() runs, so this
@@ -4455,8 +4485,8 @@ function reviewTabletGpsFromModal(){
 // exist anywhere else to link to relatively any more. Token rides as ?sess=
 // since a plain link-click can't carry apiFetch()'s X-Session header.
 function openGuide(source){ _trackEvent('guide_opened_'+(source||'menu')); window.open('https://api.sverdlik-apps.site/TUTORIALS/?sess='+encodeURIComponent(_getToken()),'_blank'); }
-function closeGuidePrompt(){ _trackEvent('guide_prompt_dismissed'); document.getElementById('guide-modal').classList.remove('open'); }
-function openGuideFromPrompt(){ document.getElementById('guide-modal').classList.remove('open'); openGuide('prompt'); }
+function closeGuidePrompt(){ _trackEvent('guide_prompt_dismissed'); document.getElementById('guide-modal').classList.remove('open'); _tryShowClientChanges(); }
+function openGuideFromPrompt(){ document.getElementById('guide-modal').classList.remove('open'); openGuide('prompt'); _tryShowClientChanges(); }
 // Shown at most 3 times ever (across days/devices sharing this browser), once
 // per page load — after that the ❓ item in the ⋮ menu is the only way in.
 // _guidePromptShown guards against initRoute() re-firing this on every day/
@@ -4565,6 +4595,64 @@ function maybeShowThought(){
 function closeThought(){
   document.getElementById('thought-toast').classList.remove('open');
   _trackEvent('thought_dismissed');
+  _tryShowClientChanges();
+}
+
+// ── CLIENT CHANGES ── managers only: changes in the client base for THEIR agents
+// (server filters by קבוצה / BDD teams), written by the 10:00 alarm
+// (server/client-changes-alert.js). Once per calendar day (Dan 05.10), queued behind
+// the guide prompt / thought so two overlays never stack.
+const CC_TYPES=[
+  {key:'new',he:'לקוחות חדשים',color:'#1E8E3E'},
+  {key:'inactive',he:'הפכו ללא פעילים',color:'#C5221F'},
+  {key:'reactivated',he:'חזרו לפעילות',color:'#1A73E8'},
+  {key:'agent',he:'העברה לסוכן אחר',color:'#E37400',tint:'#FFF3E0'},
+  {key:'day',he:'שינוי יום ביקור',color:'#8430CE',tint:'#F3E8FD'},
+];
+let _ccRequested=false, _ccPending=null, _ccShownAt=0;
+async function maybeShowClientChanges(){
+  if(_ccRequested || !_loadAuth()?.isManager) return;
+  _ccRequested=true;
+  try{ if(localStorage.getItem('frCcDate')===_israelDateStr()) return; }catch(_){}
+  try{
+    const r=await apiFetch(`${API}/api/manager/client-changes`);
+    if(!r.ok) return;
+    const d=await r.json();
+    if(!d.changes?.length) return;
+    _ccPending=d;
+    _tryShowClientChanges();
+  }catch(_){}
+}
+function _tryShowClientChanges(){
+  if(!_ccPending) return;
+  if(document.getElementById('thought-toast').classList.contains('open')
+    || document.getElementById('guide-modal').classList.contains('open')) return; // shown on their close
+  const d=_ccPending; _ccPending=null;
+  try{ localStorage.setItem('frCcDate', _israelDateStr()); }catch(_){}
+  const dd=d.date.split('-').reverse().slice(0,2).join('.');
+  document.getElementById('cc-title').textContent=`🔔 שינויים בלקוחות · ${dd}`;
+  const h=+new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem',hour:'numeric',hour12:false});
+  const hello=h<12?'בוקר טוב':h<17?'צהריים טובים':'ערב טוב';
+  const first=(_loadAuth()?.name||'').split(' ')[0];
+  document.getElementById('cc-greet').innerHTML=`<b>${hello}${first&&first!=='מנהל'?', '+esc(first):''}!</b><br>עוזר ה-AI שולח לך את השינויים בלקוחות של הסוכנים שלך מאז הדוח הקודם: לקוחות חדשים, לקוחות שהפכו ללא פעילים או חזרו לפעילות, העברות בין סוכנים ושינויי יום ביקור.`;
+  const groups=CC_TYPES.map(t=>({...t,rows:d.changes.filter(c=>c.type===t.key)})).filter(t=>t.rows.length);
+  document.getElementById('cc-chips').innerHTML=groups.map(t=>`<span class="cc-chip" style="background:${t.color}">${t.he}: ${t.rows.length}</span>`).join('');
+  const cur=(t,v)=>`<span class="cc-cur" style="color:${t.color};background:${t.tint}">${esc(v)}</span>`;
+  document.getElementById('cc-body').innerHTML=groups.map(t=>`<div class="cc-sec" style="color:${t.color}">${t.he} (${t.rows.length})</div>`
+    + t.rows.map(c=>{
+      const meta=`${esc(c.id)}${c.city?' · '+esc(c.city):''} · <bdi>${esc(c.hevra)}</bdi>`;
+      let line=`סוכן: ${esc(c.agentName)}`;
+      if(c.type==='agent') line=`סוכן קודם: <span class="cc-prev">${esc(c.from)}</span> · נוכחי: ${cur(t,c.to)}`;
+      if(c.type==='day') line=`${esc(c.agentName)} · יום קודם: <span class="cc-prev">${esc(c.from)}</span> · נוכחי: ${cur(t,c.to)}`;
+      return `<div class="cc-row"><div class="cc-name">${esc(c.name)}</div><div class="cc-meta">${meta}</div><div>${line}</div></div>`;
+    }).join('')).join('');
+  document.getElementById('cc-toast').classList.add('open');
+  _ccShownAt=Date.now();
+  _trackEvent('client_changes_shown', null, d.changes.length);
+}
+function closeClientChanges(){
+  document.getElementById('cc-toast').classList.remove('open');
+  _trackEvent('client_changes_closed', null, Math.round((Date.now()-_ccShownAt)/1000)); // seconds on screen
 }
 function closeAddrModal(){
   document.getElementById('addr-modal').classList.remove('open');

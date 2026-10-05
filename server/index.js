@@ -2577,6 +2577,35 @@ app.post('/api/event', requireAuth, dataRateLimit, (req, res) => {
   } catch (err) { res.status(500).json({ error: 'server_error' }); }
 });
 
+// GET /api/manager/client-changes — всплывающее окно «שינויים בלקוחות» для менеджеров.
+// Файл пишет алярм client-changes-alert.js в 10:00; показываем до следующего отчёта (сегодня/вчера).
+// Каждому — только его агенты: FORMULA/ICE משפחתי по managerTeam (קבוצה), BDD по managerTeams;
+// смена агента видна и группе «היה» (fromManager). super — всё. Остальные (readonly без группы) — пусто.
+app.get('/api/manager/client-changes', requireAuth, dataRateLimit, (req, res) => {
+  const s = req.session;
+  if (!s.isManager) return res.json({ date: null, changes: [] });
+  let data;
+  try { data = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'client-changes-latest.json'), 'utf8')); }
+  catch { return res.json({ date: null, changes: [] }); }
+  const yesterday = new Date(Date.now() - 864e5).toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' });
+  if (!data?.date || data.date < yesterday) return res.json({ date: null, changes: [] });
+  const mine = (c, groups) => groups.has(c.manager) || (c.type === 'agent' && groups.has(c.fromManager));
+  let rows = [];
+  if (s.managerRole === 'super') rows = data.changes;
+  else if (s.channel === 'ICE_BDD') {
+    const gs = new Set(s.managerTeams || []);
+    rows = data.changes.filter(c => c.hevra === 'ICE BDD' && mine(c, gs));
+  } else if (s.managerTeam) {
+    const gs = new Set([s.managerTeam]);
+    rows = data.changes.filter(c => c.hevra !== 'ICE BDD' && mine(c, gs));
+  }
+  res.json({
+    date: data.date,
+    changes: rows.map(c => ({ type: c.type, hevra: c.hevra, id: c.id, name: c.name, city: c.city,
+      agentName: c.agentName || c.agent, manager: c.manager, from: c.from, to: c.to })),
+  });
+});
+
 // POST /api/guide-event — section-click tracking for TUTORIALS-GUIDE (the
 // guide page itself). No requireAuth middleware — the guide has no real login
 // UI of its own, X-Session isn't available there — but the page DOES carry
