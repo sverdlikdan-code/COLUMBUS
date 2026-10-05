@@ -4633,7 +4633,7 @@ function _tryShowClientChanges(){
   document.getElementById('cc-title').textContent=`🔔 שינויים בלקוחות · ${dd}`;
   const h=+new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem',hour:'numeric',hour12:false});
   const hello=h<12?'בוקר טוב':h<17?'צהריים טובים':'ערב טוב';
-  const first=(_loadAuth()?.name||'').split(' ')[0];
+  const first=(d.name||_loadAuth()?.name||'').split(' ')[0];
   document.getElementById('cc-greet').innerHTML=`<b>${hello}${first&&first!=='מנהל'?', '+esc(first):''}!</b><br>עוזר ה-AI שולח לך את השינויים בלקוחות של הסוכנים שלך מאז הדוח הקודם: לקוחות חדשים, לקוחות שהפכו ללא פעילים או חזרו לפעילות, העברות בין סוכנים ושינויי יום ביקור.`;
   const groups=CC_TYPES.map(t=>({...t,rows:d.changes.filter(c=>c.type===t.key)})).filter(t=>t.rows.length);
   document.getElementById('cc-chips').innerHTML=groups.map(t=>`<span class="cc-chip" style="background:${t.color}">${t.he}: ${t.rows.length}</span>`).join('');

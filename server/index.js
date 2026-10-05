@@ -2599,8 +2599,11 @@ app.get('/api/manager/client-changes', requireAuth, dataRateLimit, (req, res) =>
     const gs = new Set([s.managerTeam]);
     rows = data.changes.filter(c => c.hevra !== 'ICE BDD' && mine(c, gs));
   }
+  // имя для приветствия — из ростера, а не из localStorage (там имя с момента входа)
+  const mgr = s.managerId ? loadManagerRoster().find(m => m.id === s.managerId) : null;
   res.json({
     date: data.date,
+    name: mgr ? (mgr.nameHe || mgr.name) : null,
     changes: rows.map(c => ({ type: c.type, hevra: c.hevra, id: c.id, name: c.name, city: c.city,
       agentName: c.agentName || c.agent, manager: c.manager, from: c.from, to: c.to })),
   });
