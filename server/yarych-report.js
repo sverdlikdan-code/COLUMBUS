@@ -116,10 +116,10 @@ function shape(raw, month) {
   const privTotal = Object.values(chan).filter(x => x.ch === 'שוק פרטי');
   const topPriv = Object.values(priv).sort((a, b) => sumM(b.m, last12, 0) - sumM(a.m, last12, 0)).slice(0, TOP_PRIVATE);
   // плоский вид для страницы: m → массив по months (+ прошлый год отчётного месяца)
-  const flat = x => ({ ...x, m: undefined, v: months.map(p => x.m[p] || [0, 0, 0]), ly: x.m[ly] || null });
+  const flat = x => ({ ...x, m: undefined, v: months.map(p => x.m[p] || [0, 0, 0]), l: months.map(p => x.m[addMonths(p, -12)] || null) });
   const famOrder = {}; for (const x of Object.values(sku)) famOrder[x.fam] = (famOrder[x.fam] || 0) + sumM(x.m, last12, 0);
   return {
-    month, ly: all.has(ly) ? ly : null, months, n12: last12.length,
+    month, ly: all.has(ly) ? ly : null, months, n12: last12.length, lyOk: months.map(p => all.has(addMonths(p, -12))),
     skus: Object.values(sku).filter(x => months.some(p => x.m[p])).map(flat)
       .sort((a, b) => famOrder[b.fam] - famOrder[a.fam] || a.fam.localeCompare(b.fam) || b.v.at(-1)[0] - a.v.at(-1)[0]),
     chains: chains.map(flat), priv: topPriv.map(flat), privAll: privTotal.map(flat),
@@ -145,7 +145,7 @@ function blockRows(rows, keys, famOrder, sortBy) {
 // ── итоги для письма (в штуках) ─────────────────────────────────────────────
 function totals(d) {
   const tot = i => d.skus.reduce((a, x) => a + x.v.at(-1)[i], 0);
-  const lyU = d.ly ? d.skus.reduce((a, x) => a + (x.ly?.[0] || 0), 0) : null;
+  const lyU = d.ly ? d.skus.reduce((a, x) => a + (x.l.at(-1)?.[0] || 0), 0) : null;
   const m12 = d.skus.reduce((a, x) => a + x.v.slice(-12).reduce((s, v) => s + v[0], 0), 0);
   const chainsU = d.chains.reduce((a, x) => a + x.v.at(-1)[0], 0);
   return { u: tot(0), krt: tot(1), kg: tot(2), lyU, m12, chainsU };
@@ -166,6 +166,10 @@ header{background:var(--navy);color:#fff;padding:18px 16px 14px}header h1{margin
 .bar{position:sticky;top:0;z-index:5;background:#fff;border-bottom:1px solid var(--line);padding:10px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .tg{display:inline-flex;border:1px solid var(--navy);border-radius:8px;overflow:hidden}.tg button{border:0;background:#fff;color:var(--navy);padding:7px 14px;font:600 13px Arial;cursor:pointer}
 .tg button.on{background:var(--navy);color:#fff}
+.ym{display:flex;gap:10px;align-items:flex-start;margin:0 0 10px;direction:ltr;flex-wrap:wrap}.ms{display:flex;gap:4px;flex-wrap:wrap;direction:ltr}.mg{display:grid;grid-template-columns:repeat(6,minmax(64px,1fr));flex:1;max-width:620px}
+.ms button[disabled]{opacity:.35;cursor:default}.kpi b.up{color:var(--green)}.kpi b.dn{color:var(--red)}
+@media(max-width:600px){.mg{grid-template-columns:repeat(4,minmax(0,1fr))}.ms button{padding:6px 4px}}.ms button{flex:0 0 auto;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:6px;padding:5px 8px;font:600 12px Arial;cursor:pointer}
+.ms button.on{background:var(--navy);border-color:var(--navy);color:#fff}td.sel,th.sel{background:#FFF6DC}
 main{max-width:1180px;margin:0 auto;padding:14px 16px 40px}
 section{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;margin:0 0 14px}
 h2{margin:0 0 10px;font-size:16px;color:var(--navy)}
@@ -191,7 +195,7 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:6px 16px 20
 <main>
 <section id="kpi"><h2>${label(d.month)} — סיכום</h2><div class="kpis" id="kpis"></div></section>
 <section id="trend"><h2>מכירות לפי חודש</h2><div id="chart"></div><div class="leg" id="leg"></div></section>
-<section id="sku"><h2>מכירות לפי מוצר</h2><div class="scroll" id="skuWrap" dir="ltr"><table id="tSku" dir="ltr"></table></div><div id="skuX"></div></section>
+<section id="sku"><h2>מכירות לפי מוצר</h2><div class="ym"><div class="ms" id="ys"></div><div class="ms mg" id="ms"></div></div><div class="scroll" id="skuWrap" dir="ltr"><table id="tSku" dir="ltr"></table></div><div id="skuX"></div></section>
 <section id="chains"><h2>רשתות — כמה לקחה כל רשת ומשקלה מהסה"כ</h2><div class="scroll"><table id="tCh"></table></div><div id="tChX"></div><div id="tChR"></div></section>
 <section id="inter"><h2>מכירות ורווחיות — ${label(d.stockFrom)}–${label(d.month)} מול שנה שעברה</h2><p class="sh" style="margin:-4px 0 10px;font-size:12px">3 החודשים האחרונים · כמו בדף INTER + ב-Power BI · לא תלוי במתג היחידות</p><div class="kpis" id="iKpi"></div><div class="scroll" style="margin-top:10px"><table id="tIn"></table></div><div id="tInX"></div></section>
 <section id="stock"><h2>מלאי והזמנה מומלצת — ${label(d.stockFrom)}–${label(d.month)}</h2><p class="sh" style="margin:-4px 0 10px;font-size:12px">מכר — 3 החודשים האחרונים · מלאי נכון ל-${d.asOf} · כמו בדף YARICH מלאי ב-Power BI · לא תלוי במתג היחידות</p><div class="kpis" id="sKpi"></div><div class="scroll" style="margin-top:10px"><table id="tSt"></table></div><div id="tStX"></div></section>
@@ -208,9 +212,16 @@ function pc(a,b){return b>0?Math.round(100*(a-b)/b):null}
 function ch(v){return v==null?'<td class="n sh">—</td>':'<td class="n '+(v>=0?'up':'dn')+'">'+(v>0?'+':'')+v+'%</td>'}
 function sh(a,b){return '<td class="n sh">'+(b?Math.round(1000*a/b)/10:0)+'%</td>'}
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;')}
-var L=D.months.length,last=L-1,lyL=D.ly?lb(D.ly):null;
-function cur(x){return x.v[last][U]}function s12(x){var s=0;for(var i=Math.max(0,L-12);i<L;i++)s+=x.v[i][U];return s}
-function lyv(x){return x.ly?x.ly[U]:0}
+var L=D.months.length,last=L-1,SEL=[last],HL,SL,lyL,MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+var YS=[+D.months[last].slice(0,4)],MS=[+D.months[last].slice(5)],YEARS=[];D.months.forEach(function(p){var y=+p.slice(0,4);if(YEARS.indexOf(y)<0)YEARS.push(y)});
+function pickSel(){var a=[];D.months.forEach(function(p,i){if(YS.indexOf(+p.slice(0,4))>=0&&MS.indexOf(+p.slice(5))>=0)a.push(i)});return a}
+function span(ps){return ps.length===1?lb(ps[0]):(ps.length===SEL.length&&SEL[SEL.length-1]-SEL[0]===SEL.length-1?lb(ps[0])+'–'+lb(ps[ps.length-1]):ps.map(lb).join(', '))}
+function ly12(p){var y=+p.slice(0,4),m=+p.slice(5);return (y-1)+'-'+(m<10?'0':'')+m}
+function selState(){SEL.sort(function(a,b){return a-b});HL=SEL.every(function(i){return D.lyOk[i]});
+  var ps=SEL.map(function(i){return D.months[i]});SL=span(ps);lyL=HL?span(ps.map(ly12)):null}
+function cur(x){var s=0;SEL.forEach(function(i){s+=x.v[i][U]});return s}function s12(x){var s=0;for(var i=Math.max(0,L-12);i<L;i++)s+=x.v[i][U];return s}
+function lyv(x){var s=0;SEL.forEach(function(i){s+=x.l[i]?x.l[i][U]:0});return s}
+function selV(v){var s=0;SEL.forEach(function(i){s+=v[i]});return s}
 function sum(a,fn){var s=0;a.forEach(function(x){s+=fn(x)});return s}
 // скрытые строки по таблицам: ✕ прячет строку, итоги пересчитываются; ↺ возвращает
 var HID={sku:{},st:{},ch:{},pr:{},in:{}};
@@ -218,35 +229,38 @@ function vis(t,a,key){return a.filter(function(x){return !HID[t][key(x)]})}
 function xb(t,k){return '<button class="x" data-t="'+t+'" data-k="'+esc(k)+'" title="הסתר שורה">✕</button>'}
 function rb(t){var n=Object.keys(HID[t]).length;return n?'<button class="rs" data-t="'+t+'">↺ החזר '+n+' שורות מוסתרות</button>':''}
 function skuK(x){return x.sku}function nmK(x){return x.name}
-function render(){
-  var SK=vis('sku',D.skus,skuK),T=sum(SK,cur),T12=sum(SK,s12),TL=D.ly?sum(SK,lyv):null,CH=sum(D.chains,cur),PR=sum(D.privAll,cur),TF=sum(D.skus,cur),TF12=sum(D.skus,s12);
-  var k=[['סה"כ '+lb(D.months[last]),f(T)],[D.ly?'מול '+lyL:'מול שנה שעברה',D.ly?((pc(T,TL)>0?'+':'')+pc(T,TL)+'%'):'אין נתונים'],['רשתות',f(CH)+' · '+(TF?Math.round(100*CH/TF):0)+'%'],['שוק פרטי',f(PR)+' · '+(TF?Math.round(100*PR/TF):0)+'%'],[D.n12+' חודשים',f(T12)]];
-  document.getElementById('kpis').innerHTML=k.map(function(x){return '<div class="kpi"><span>'+x[0]+'</span><b dir="ltr">'+x[1]+'</b></div>'}).join('');
+function render(){selState();
+  document.getElementById('ys').innerHTML=YEARS.map(function(y){return '<button data-y="'+y+'"'+(YS.indexOf(y)>=0?' class="on"':'')+'>'+y+'</button>'}).join('');
+  document.getElementById('ms').innerHTML=MN.map(function(n,j){var m=j+1,has=D.months.some(function(p){return +p.slice(5)===m&&YS.indexOf(+p.slice(0,4))>=0});
+    return '<button data-mo="'+m+'"'+(MS.indexOf(m)>=0?' class="on"':'')+(has?'':' disabled')+'>'+(window.innerWidth<600?n.slice(0,3):n)+'</button>'}).join('');
+  var SK=vis('sku',D.skus,skuK),T=sum(SK,cur),T12=sum(SK,s12),TL=HL?sum(SK,lyv):null,CH=sum(D.chains,cur),PR=sum(D.privAll,cur),TF=sum(D.skus,cur),TF12=sum(D.skus,s12);
+  var k=[['סה"כ '+SL,f(T)],[HL?'מול '+lyL:'מול שנה שעברה',HL?((pc(T,TL)>0?'+':'')+pc(T,TL)+'%'):'אין נתונים',HL&&pc(T,TL)!=null?(pc(T,TL)>=0?'up':'dn'):''],['רשתות',f(CH)+' · '+(TF?Math.round(100*CH/TF):0)+'%'],['שוק פרטי',f(PR)+' · '+(TF?Math.round(100*PR/TF):0)+'%'],[D.n12+' חודשים',f(T12)]];
+  document.getElementById('kpis').innerHTML=k.map(function(x){return '<div class="kpi"><span>'+x[0]+'</span><b dir="ltr" class="'+(x[2]||'')+'">'+x[1]+'</b></div>'}).join('');
   // график: столбики по месяцам, стек по семьям
   var fams=[];SK.forEach(function(x){if(fams.indexOf(x.fam)<0)fams.push(x.fam)});
   var W=Math.max(640,L*46),H=260,pad=28,bw=(W-pad*2)/L,mx=0,tot=D.months.map(function(_,i){var s=sum(SK,function(x){return Math.max(0,x.v[i][U])});mx=Math.max(mx,s);return s});
   var svg='<svg class="chart" viewBox="0 0 '+W+' '+(H+40)+'" direction="ltr">';
-  D.months.forEach(function(p,i){var y=H,x=pad+i*bw+4;fams.forEach(function(fm,j){var v=sum(SK.filter(function(s){return s.fam===fm}),function(s){return Math.max(0,s.v[i][U])}),h=mx?v/mx*(H-30):0;y-=h;svg+='<rect x="'+x+'" y="'+y+'" width="'+(bw-8)+'" height="'+h+'" fill="'+COL[j%COL.length]+'"/>'});
-    svg+='<text x="'+(x+(bw-8)/2)+'" y="'+(y-5)+'" font-size="11" text-anchor="middle" fill="#1F2937" font-weight="700">'+(tot[i]>=10000?Math.round(tot[i]/1000)+'K':f(tot[i]))+'</text><text x="'+(x+(bw-8)/2)+'" y="'+(H+16)+'" font-size="11" text-anchor="middle" fill="#6B7280">'+lb(p)+'</text>'});
+  D.months.forEach(function(p,i){var y=H,x=pad+i*bw+4,op=SEL.indexOf(i)>=0?1:.35;svg+='<g opacity="'+op+'"><rect x="'+(x-2)+'" y="0" width="'+(bw-4)+'" height="'+(H+20)+'" fill="transparent"/>';fams.forEach(function(fm,j){var v=sum(SK.filter(function(s){return s.fam===fm}),function(s){return Math.max(0,s.v[i][U])}),h=mx?v/mx*(H-30):0;y-=h;svg+='<rect x="'+x+'" y="'+y+'" width="'+(bw-8)+'" height="'+h+'" fill="'+COL[j%COL.length]+'"/>'});
+    svg+='<text x="'+(x+(bw-8)/2)+'" y="'+(y-5)+'" font-size="11" text-anchor="middle" fill="#1F2937" font-weight="700">'+(tot[i]>=10000?Math.round(tot[i]/1000)+'K':f(tot[i]))+'</text><text x="'+(x+(bw-8)/2)+'" y="'+(H+16)+'" font-size="11" text-anchor="middle" fill="#6B7280">'+lb(p)+'</text></g>'});
   document.getElementById('chart').innerHTML='<div class="scroll">'+svg+'</svg></div>';
   document.getElementById('leg').innerHTML=fams.map(function(fm,j){return '<span><i style="background:'+COL[j%COL.length]+'"></i>'+esc(fm)+'</span>'}).join('');
   // таблица SKU: семья → SKU × месяцы, итог, % к прошлому году
-  var hd='<tr><th class="st s1">מק"ט</th><th class="st s2">ENG</th>'+D.months.map(function(p){return '<th class="n">'+lb(p)+'</th>'}).join('')+'<th class="n">'+D.n12+' ח\\'</th><th class="n">'+(lyL?'מול '+lyL:'שינוי')+'</th></tr>';
+  var hd='<tr><th class="st s1">מק"ט</th><th class="st s2">ENG</th>'+D.months.map(function(p,i){return '<th class="n'+(SEL.indexOf(i)>=0?' sel':'')+'">'+lb(p)+'</th>'}).join('')+'<th class="n">'+D.n12+' ח\\'</th><th class="n">'+(lyL?'מול '+lyL:'שינוי')+'</th></tr>';
   var grand=D.months.map(function(_,i){return sum(SK,function(x){return x.v[i][U]})}),g={},ord=[],body='';
   SK.forEach(function(x){if(!g[x.fam]){g[x.fam]=[];ord.push(x.fam)}g[x.fam].push(x)});
   ord.forEach(function(fm){var a=g[fm],v=D.months.map(function(_,i){return sum(a,function(x){return x.v[i][U]})}),l=sum(a,lyv);
-    body+='<tr class="fam"><td class="st s1"></td><td class="st s2" dir="rtl">'+esc(fm)+'</td>'+v.map(function(z){return '<td class="n">'+f(z)+'</td>'}).join('')+'<td class="n">'+f(sum(a,s12))+'</td>'+ch(D.ly?pc(v[last],l):null)+'</tr>';
-    a.forEach(function(x){body+='<tr><td class="st s1">'+xb('sku',x.sku)+x.sku+'</td><td class="st s2 en">'+esc(x.name)+'</td>'+x.v.map(function(z){return '<td class="n">'+(z[U]?f(z[U]):'')+'</td>'}).join('')+'<td class="n">'+f(s12(x))+'</td>'+ch(D.ly?pc(cur(x),lyv(x)):null)+'</tr>'})});
-  body+='<tr class="tot"><td class="st s1"></td><td class="st s2">TOTAL</td>'+grand.map(function(z){return '<td class="n">'+f(z)+'</td>'}).join('')+'<td class="n">'+f(T12)+'</td>'+ch(D.ly?pc(T,TL):null)+'</tr>';
+    body+='<tr class="fam"><td class="st s1"></td><td class="st s2" dir="rtl">'+esc(fm)+'</td>'+v.map(function(z,i){return '<td class="n'+(SEL.indexOf(i)>=0?' sel':'')+'">'+f(z)+'</td>'}).join('')+'<td class="n">'+f(sum(a,s12))+'</td>'+ch(HL?pc(selV(v),l):null)+'</tr>';
+    a.forEach(function(x){body+='<tr><td class="st s1">'+xb('sku',x.sku)+x.sku+'</td><td class="st s2 en">'+esc(x.name)+'</td>'+x.v.map(function(z,i){return '<td class="n'+(SEL.indexOf(i)>=0?' sel':'')+'">'+(z[U]?f(z[U]):'')+'</td>'}).join('')+'<td class="n">'+f(s12(x))+'</td>'+ch(HL?pc(cur(x),lyv(x)):null)+'</tr>'})});
+  body+='<tr class="tot"><td class="st s1"></td><td class="st s2">TOTAL</td>'+grand.map(function(z,i){return '<td class="n'+(SEL.indexOf(i)>=0?' sel':'')+'">'+f(z)+'</td>'}).join('')+'<td class="n">'+f(T12)+'</td>'+ch(HL?pc(T,TL):null)+'</tr>';
   document.getElementById('tSku').innerHTML=hd+body;document.getElementById('skuX').innerHTML=rb('sku');var w=document.getElementById('skuWrap');w.scrollLeft=w.scrollWidth;
   // сети и частники: отчётный месяц, доля от общего итога, к прошлому году, 12 месяцев и доля
   function tbl(id,t,list,nameHd,total,by12){var a=vis(t,list,nmK).slice().sort(by12?function(p,q){return s12(q)-s12(p)}:function(p,q){return cur(q)-cur(p)||s12(q)-s12(p)});
-    var h='<tr><th>'+nameHd+'</th><th class="n">'+lb(D.months[last])+'</th><th class="n">% מסה"כ</th><th class="n">'+(lyL?'מול '+lyL:'שינוי')+'</th><th class="n">'+D.n12+' ח\\'</th><th class="n">% מסה"כ</th></tr>';
-    function row(x){return '<tr><td>'+xb(t,x.name)+esc(x.name)+'</td><td class="n">'+f(cur(x))+'</td>'+sh(cur(x),TF)+ch(D.ly?pc(cur(x),lyv(x)):null)+'<td class="n">'+f(s12(x))+'</td>'+sh(s12(x),TF12)+'</tr>'}
+    var h='<tr><th>'+nameHd+'</th><th class="n">'+SL+'</th><th class="n">% מסה"כ</th><th class="n">'+(lyL?'מול '+lyL:'שינוי')+'</th><th class="n">'+D.n12+' ח\\'</th><th class="n">% מסה"כ</th></tr>';
+    function row(x){return '<tr><td>'+xb(t,x.name)+esc(x.name)+'</td><td class="n">'+f(cur(x))+'</td>'+sh(cur(x),TF)+ch(HL?pc(cur(x),lyv(x)):null)+'<td class="n">'+f(s12(x))+'</td>'+sh(s12(x),TF12)+'</tr>'}
     var act=by12?a:a.filter(function(x){return cur(x)}),rest=by12?[]:a.filter(function(x){return !cur(x)}),b=act.map(row).join('');
-    if(total){var c=sum(a,cur),c12=sum(a,s12);b+='<tr class="tot"><td>'+total+'</td><td class="n">'+f(c)+'</td>'+sh(c,TF)+ch(D.ly?pc(c,sum(a,lyv)):null)+'<td class="n">'+f(c12)+'</td>'+sh(c12,TF12)+'</tr>'}
+    if(total){var c=sum(a,cur),c12=sum(a,s12);b+='<tr class="tot"><td>'+total+'</td><td class="n">'+f(c)+'</td>'+sh(c,TF)+ch(HL?pc(c,sum(a,lyv)):null)+'<td class="n">'+f(c12)+'</td>'+sh(c12,TF12)+'</tr>'}
     document.getElementById(id).innerHTML=h+b;document.getElementById(id+'X').innerHTML=rb(t);
-    var r=document.getElementById(id+'R');if(r)r.innerHTML=rest.length?'<details><summary>עוד '+rest.length+' רשתות בלי מכירות ב-'+lb(D.months[last])+' ('+f(sum(rest,s12))+' ב-'+D.n12+' ח\\')</summary><div class="scroll"><table>'+h+rest.map(row).join('')+'</table></div></details>':''}
+    var r=document.getElementById(id+'R');if(r)r.innerHTML=rest.length?'<details><summary>עוד '+rest.length+' רשתות בלי מכירות ב-'+SL+' ('+f(sum(rest,s12))+' ב-'+D.n12+' ח\\')</summary><div class="scroll"><table>'+h+rest.map(row).join('')+'</table></div></details>':''}
   tbl('tCh','ch',D.chains.filter(function(x){return cur(x)||s12(x)}),'רשת','סה"כ רשתות');
   tbl('tPr','pr',D.priv,'לקוח',null,true);
   renderStock();renderInter();
@@ -287,7 +301,10 @@ function renderStock(){var S=D.stock,all=S.filter(function(x){return !x.total}),
   rows.forEach(function(x){b+='<tr'+(x.fam!==fam?' style="border-top:2px solid #CBD5E1"':'')+'><td>'+(x.fam!==fam?'<b>'+esc(x.fam)+'</b>':'')+'</td><td class="n">'+xb('st',x.sku)+x.sku+'</td><td dir="ltr" style="text-align:left">'+esc(x.name)+'</td>'+C.map(function(c){return cell(x,c[0])}).join('')+'</tr>';fam=x.fam});
   b+='<tr class="tot"><td colspan="3">סה"כ</td>'+C.map(function(c){return cell(T,c[0])}).join('')+'</tr>';
   document.getElementById('tSt').innerHTML=h+b;document.getElementById('tStX').innerHTML=rb('st')+(T.partial?'<span class="sh" style="font-size:12px;margin-right:8px">PALLET, ימי מלאי ו-% זיכויים בסה"כ — רק בלי שורות מוסתרות (נוסחת Power BI)</span>':'')}
-document.addEventListener('click',function(e){var b=e.target.closest('button.x,button.rs');if(!b)return;var t=b.dataset.t,hide=b.classList.contains('x');
+document.addEventListener('click',function(e){var yb=e.target.closest('[data-y],[data-mo]');if(yb&&!yb.disabled){var isY=yb.hasAttribute('data-y'),A=isY?YS:MS,v=+(isY?yb.dataset.y:yb.dataset.mo),k=A.indexOf(v);
+    if(k<0)A.push(v);else A.splice(k,1);var ns=pickSel();if(!ns.length){if(k<0)A.splice(A.indexOf(v),1);else A.push(v);return}
+    SEL=ns;render();track(isY?'y-sel':'m-sel');return}
+  var b=e.target.closest('button.x,button.rs');if(!b)return;var t=b.dataset.t,hide=b.classList.contains('x');
   if(hide)HID[t][b.dataset.k]=1;else HID[t]={};render();track(hide?'row-hide':'row-restore')});
 var btn=document.querySelectorAll('#tg button');
 btn.forEach(function(b){b.onclick=function(){U=+b.dataset.i;btn.forEach(function(x){x.classList.toggle('on',x===b)});render();track(['tg-u','tg-krt','tg-kg'][U])}});
