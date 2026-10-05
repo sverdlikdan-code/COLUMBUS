@@ -69,8 +69,14 @@ async function fetchData(from, to) {
   const stock = await executeDax(stockQ(`${K}[מק"ט], ${K}[תאור לועזי], ${K}[תאור פרמטר 2 למוצר],`), DS, WS);
   const stockTot = await executeDax(stockQ(''), DS, WS);
   const withTot = (rows, tot) => rows.concat(tot.map(r => ({ ...r, '[isTotal]': true })));
+  // блок מלאי по выбранным месяцам (пользователь 2026-10-05). Формулы PBI восстановлены из помесячных данных и сверены:
+  // avgK = ΣsK / Σдней (дни = sK/avgK по месяцу, аддитивны), zik = Σזיכויים / Σbrutto, days = mOK / avgK × 7/5,
+  // rec = avgK × safe × 5/7 − max(mOK, 0) (если > 0; отрицательный остаток PBI не добавляет), palDay = avgK / KIP, safeP = palDay × safe
+  const stockM = await executeDax(`EVALUATE SUMMARIZECOLUMNS(DIMCALENDAR[Year], DIMCALENDAR[Month], ${K}[מק"ט], ${filters},
+  "sK", [מכר בקרטונים], "avgK", [מכר בקרטונים ממוצע ביום 🛒], "zk", [זיכויים], "br", [TOTAL  brutto])`, DS, WS);
+  const kip = await executeDax(`EVALUATE SUMMARIZECOLUMNS(${K}[מק"ט], FILTER(ALL(${K}[ספק]), ${K}[ספק] = "${SUPPLIER}"), "kip", [KARTON IN PALLET average per מק"ט])`, DS, WS);
   const photos = await executeDax(`EVALUATE SELECTCOLUMNS(FILTER(${K}, ${K}[ספק] = "${SUPPLIER}"), "sku", ${K}[מק"ט], "url", ${K}[URL תמונה])`, DS, WS);
-  return { sku, chan, priv, stock: withTot(stock, stockTot), photos };
+  return { sku, chan, priv, stock: withTot(stock, stockTot), photos, stockM, kip };
 }
 
 // строки DAX → { key: { meta, m: { 'YYYY-MM': [u, krt, kg] } } }
@@ -126,6 +132,12 @@ function shape(raw, month) {
       ...Object.fromEntries(['mU', 'mK', 'mP', 'mOK', 'avgK', 'sK', 'days', 'safe', 'rec', 'zik', 'nis', 'safeP', 'palDay', 'wK', 'cnt'].map(k => [k, r[`[${k}]`] ?? null])),
     })).sort((a, b) => a.total - b.total || (famOrder[b.fam] || 0) - (famOrder[a.fam] || 0) || a.sku.localeCompare(b.sku)),
   };
+  const kipOf = Object.fromEntries((raw.kip || []).map(r => [String(r['KARTIS PARIT[מק"ט]']), r['[kip]'] || null]));
+  const sm = {}; for (const r of raw.stockM || []) {
+    const k = String(r['KARTIS PARIT[מק"ט]']), p = ym(r['DIMCALENDAR[Year]'], r['DIMCALENDAR[Month]']), sK = r['[sK]'] || 0, a = r['[avgK]'];
+    (sm[k] = sm[k] || {})[p] = [sK, a ? sK / a : 0, r['[zk]'] || 0, r['[br]'] || 0];
+  }
+  for (const x of out.stock) if (!x.total) { x.kip = kipOf[x.sku] || null; x.sm = months.map(p => (sm[x.sku] || {})[p] || [0, 0, 0, 0]); }
   const stTot = out.stock.find(x => x.total);
   if (stTot) stTot.mP = out.stock.filter(x => !x.total).reduce((a, x) => a + (x.mP || 0), 0);
   return out;
@@ -163,6 +175,7 @@ main{max-width:1180px;margin:0 auto;padding:14px 16px 40px}
 section{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;margin:0 0 14px}
 h2{margin:0 0 10px;font-size:19px;color:var(--navy)}
 .kt{display:flex;gap:10px;align-items:center;justify-content:center;margin:0 0 12px}.tg.sm{border-width:2px}.tg.sm button{padding:7px 18px;font-size:14px}
+.pd{display:inline-block;vertical-align:middle;margin-right:8px;background:var(--navy);color:#fff;font-size:13px;font-weight:700;padding:3px 10px;border-radius:999px}.ymbox{margin:0 0 10px}
 .un{display:inline-block;vertical-align:middle;margin-right:8px;background:var(--gold);color:#fff;font-size:13px;font-weight:700;padding:3px 10px;border-radius:999px}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}#sKpi{grid-template-columns:repeat(7,minmax(0,1fr))}
 @media(max-width:900px){#sKpi{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}}
@@ -189,10 +202,10 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:6px 16px 20
 <main>
 <section id="kpi"><h2>${label(d.month)} — סיכום <span class="un"></span></h2><div class="kpis" id="kpis" dir="ltr"></div></section>
 <section id="trend"><h2>מכירות לפי חודש <span class="un"></span></h2><div id="chart"></div><div class="leg" id="leg"></div></section>
-<section id="sku"><h2>מכירות לפי מוצר <span class="un"></span></h2><div class="ym"><div class="ms" id="ys"></div><div class="ms mg" id="ms"></div></div><div class="scroll" id="skuWrap" dir="ltr"><table id="tSku" dir="ltr"></table></div><div id="skuX"></div></section>
-<section id="chains"><div class="kt" id="kt"><span class="sh">כשרות לקוח:</span><div class="tg sm"><button class="kb on" data-kos="all">הכל</button><button class="kb" data-kos="כן">כשר</button><button class="kb" data-kos="לא">לא כשר</button></div></div><h2>רשתות — כמה לקחה כל רשת ומשקלה מהסה"כ <span class="un"></span></h2><div class="scroll" dir="ltr"><table id="tCh" dir="ltr" class="lt"></table></div><div id="tChX"></div><div id="tChR"></div></section>
-<section id="private"><h2>שוק פרטי — ${TOP_PRIVATE} הלקוחות הגדולים בתקופה הנבחרת <span class="un"></span></h2><div class="scroll" dir="ltr"><table id="tPr" dir="ltr" class="lt"></table></div><div id="tPrX"></div></section>
-<section id="stock"><h2>מלאי והזמנה מומלצת — ${label(d.stockFrom)}–${label(d.month)}</h2><p class="sh" style="margin:-4px 0 10px;font-size:12px">מכר — 3 החודשים האחרונים · מלאי נכון ל-${d.asOf} · כמו בדף YARICH מלאי ב-Power BI · לא תלוי במתג היחידות</p><div class="kpis" id="sKpi"></div><div class="scroll" style="margin-top:10px" dir="ltr"><table id="tSt" dir="ltr"></table></div><div id="tStX"></div></section>
+<section id="sku"><div class="ymbox"></div><h2>מכירות לפי מוצר <span class="pd"></span> <span class="un"></span></h2><div class="scroll" id="skuWrap" dir="ltr"><table id="tSku" dir="ltr"></table></div><div id="skuX"></div></section>
+<section id="chains"><div class="ymbox"></div><div class="kt" id="kt"><span class="sh">כשרות לקוח:</span><div class="tg sm"><button class="kb on" data-kos="all">הכל</button><button class="kb" data-kos="כן">כשר</button><button class="kb" data-kos="לא">לא כשר</button></div></div><h2>רשתות — כמה לקחה כל רשת ומשקלה מהסה"כ <span class="pd"></span> <span class="un"></span></h2><div class="scroll" dir="ltr"><table id="tCh" dir="ltr" class="lt"></table></div><div id="tChX"></div><div id="tChR"></div></section>
+<section id="private"><div class="ymbox"></div><h2>שוק פרטי — ${TOP_PRIVATE} הלקוחות הגדולים בתקופה הנבחרת <span class="pd"></span> <span class="un"></span></h2><div class="scroll" dir="ltr"><table id="tPr" dir="ltr" class="lt"></table></div><div id="tPrX"></div></section>
+<section id="stock"><div class="ymbox"></div><h2>מלאי והזמנה מומלצת <span class="pd"></span></h2><p class="sh" style="margin:-4px 0 10px;font-size:12px">מכר, ימי מלאי והזמנה מומלצת — לפי החודשים הנבחרים · מלאי נכון ל-${d.asOf} · כמו בדף YARICH מלאי ב-Power BI · לא תלוי במתג היחידות · כמו בדף YARICH מלאי</p><div class="kpis" id="sKpi"></div><div class="scroll" style="margin-top:10px" dir="ltr"><table id="tSt" dir="ltr"></table></div><div id="tStX"></div></section>
 </main>
 <footer>INTER בלבד · ספק YARYCH LLC (2110171) · חודשים שלמים</footer>
 <script>
@@ -228,9 +241,11 @@ function rb(t){var n=Object.keys(HID[t]).length;return n?'<button class="rs" dat
 function skuK(x){return x.sku}function nmK(x){return x.name}
 function render(){selState();
   document.querySelectorAll('.un').forEach(function(e){e.textContent=['יחידות','קרטונים','ק"ג'][U]});
-  document.getElementById('ys').innerHTML=YEARS.map(function(y){return '<button data-y="'+y+'"'+(YS.indexOf(y)>=0?' class="on"':'')+'>'+y+'</button>'}).join('');
-  document.getElementById('ms').innerHTML=MN.map(function(n,j){var m=j+1,has=D.months.some(function(p){return +p.slice(5)===m&&YS.indexOf(+p.slice(0,4))>=0});
+  var ysH=YEARS.map(function(y){return '<button data-y="'+y+'"'+(YS.indexOf(y)>=0?' class="on"':'')+'>'+y+'</button>'}).join('');
+  var msH=MN.map(function(n,j){var m=j+1,has=D.months.some(function(p){return +p.slice(5)===m&&YS.indexOf(+p.slice(0,4))>=0});
     return '<button data-mo="'+m+'"'+(MS.indexOf(m)>=0?' class="on"':'')+(has?'':' disabled')+'>'+(window.innerWidth<600?n.slice(0,3):n)+'</button>'}).join('');
+  document.querySelectorAll('.ymbox').forEach(function(e){e.innerHTML='<div class="ym"><div class="ms">'+ysH+'</div><div class="ms mg">'+msH+'</div></div>'});
+  document.querySelectorAll('.pd').forEach(function(e){e.textContent=SL});
   var SK=vis('sku',D.skus,skuK),T=sum(SK,cur),TL=HL?sum(SK,lyv):null,CH=sum(D.chains,cur),PR=sum(D.privAll,cur),TF=sum(D.skus,cur);
   var k=[['סה"כ '+(HL?lyL:'שנה שעברה'),HL?f(TL):'אין נתונים'],['סה"כ '+SL,f(T)],[HL?'מול '+lyL:'מול שנה שעברה',HL?((pc(T,TL)>0?'+':'')+pc(T,TL)+'%'):'אין נתונים',HL&&pc(T,TL)!=null?(pc(T,TL)>=0?'up':'dn'):''],['רשתות',f(CH)+' · '+(TF?Math.round(100*CH/TF):0)+'%'],['שוק פרטי',f(PR)+' · '+(TF?Math.round(100*PR/TF):0)+'%']];
   document.getElementById('kpis').innerHTML=k.map(function(x){return '<div class="kpi"><span>'+x[0]+'</span><b dir="ltr" class="'+(x[2]||'')+'">'+x[1]+'</b></div>'}).join('');
@@ -265,16 +280,21 @@ function render(){selState();
   tbl('tPr','pr',D.priv,'לקוח',null,true,D.topN);
   renderStock();
 }
-function renderStock(){var S=D.stock,all=S.filter(function(x){return !x.total}),rows=vis('st',all,skuK),T=S.filter(function(x){return x.total})[0]||{};
-  // пока ничего не скрыто — итог из PBI; иначе суммы видимых, дни запаса и % זיכויים — «—» (формулы PBI не суммируются)
-  if(rows.length<all.length){var A=['mU','mK','mP','mOK','avgK','sK','rec','nis','safeP','palDay'];T={safe:T.safe,days:null,zik:null,partial:true,
-    wK:rows.length?sum(rows,function(x){return x.wK||0})/rows.length:null,cnt:rows.filter(function(x){return x.mU>0}).length};
-    A.forEach(function(k){T[k]=sum(rows,function(x){return x[k]||0})})}
+function stockCalc(x){var sK=0,dd=0,zk=0,br=0;SEL.forEach(function(i){var m=x.sm[i];sK+=m[0];dd+=m[1];zk+=m[2];br+=m[3]});
+  var avgK=dd?sK/dd:null,safe=x.safe==null?60:x.safe,r={sK:sK||null,avgK:avgK,zk:zk,br:br,zik:br?zk/br:null,
+    days:avgK?x.mOK/avgK*7/5:0,rec:avgK&&avgK*safe*5/7-Math.max(x.mOK,0)>0?avgK*safe*5/7-Math.max(x.mOK,0):null,palDay:avgK&&x.kip?avgK/x.kip:null};
+  r.safeP=r.palDay!=null?r.palDay*safe:null;return r}
+function renderStock(){var S=D.stock,all=S.filter(function(x){return !x.total}),T0=S.filter(function(x){return x.total})[0]||{};
+  all.forEach(function(x){var c=stockCalc(x);for(var k in c)x[k]=c[k]});var rows=vis('st',all,skuK);
+  // итог: остатки и продажи — суммы видимых строк; дни запаса и % זיכויים — та же формула PBI от сумм
+  var T={safe:T0.safe,partial:rows.length<all.length,wK:rows.length?sum(rows,function(x){return x.wK||0})/rows.length:null,cnt:rows.filter(function(x){return x.mU>0}).length};
+  ['mU','mK','mP','mOK','avgK','sK','rec','nis','safeP','palDay','zk','br'].forEach(function(k){T[k]=sum(rows,function(x){return x[k]||0})});
+  T.days=T.avgK?T.mOK/T.avgK*7/5:0;T.zik=T.br?T.zk/T.br:null;if(!T.partial)T.wK=T0.wK;
   function n(v,d){return v==null?'—':(d?(Math.round(v*10)/10).toLocaleString('en-US'):f(v))}
   var k=[['מלאי KARTON',n(T.mK)],['מלאי PALLET',n(T.mP)],['מלאי בטחון PALLETS',n(T.safeP)],['PALLETS מכר ממוצע ביום',n(T.palDay,1)],['מכר בקרטונים ממוצע ביום',n(T.avgK)],['WEIGHT KARTON ממוצע',n(T.wK,1)],['מוצרים במלאי',n(T.cnt)]];
   document.getElementById('sKpi').innerHTML=k.map(function(x){return '<div class="kpi"><span>'+x[0]+'</span><b dir="ltr">'+x[1]+'</b></div>'}).join('');
   var C=[['mU','מלאי UNITS'],['mK','מלאי KARTON'],['mP','מלאי PALLET'],['mOK','מלאי + הזמנות פתוחות קרטונים'],['avgK','מכר בקרטונים ממוצע ביום'],['sK','מכר בקרטונים בתקופה'],['days','לכמה ימים יספיק המלאי'],['safe','מלאי ביטחון (בימי מכר)'],['rec','הזמנה מומלצת KARTON'],['zik','% זיכויים'],['nis','שווי מלאי NIS']];
-  function cell(x,c){var v=x[c];if(v==null)return '<td class="n'+(x.partial?' sh':'')+'">'+(x.partial?'—':'')+'</td>';
+  function cell(x,c){var v=x[c];if(v==null)return '<td class="n"></td>';
     if(c==='zik')return '<td class="n">'+Math.round(v*100)+'%</td>';
     if(c==='nis')return '<td class="n">₪ '+f(v)+'</td>';
     if(c==='days'){var low=x.safe!=null&&v>0&&v<x.safe,hi=x.safe!=null&&v>x.safe*2;return '<td class="n" style="'+(low?'background:#FDE2E2;color:#B91C1C;font-weight:700':hi?'background:#FCE9DD':'')+'">'+f(v)+'</td>'}
@@ -283,7 +303,7 @@ function renderStock(){var S=D.stock,all=S.filter(function(x){return !x.total}),
   rows.forEach(function(x){if(x.fam!==fam)b+='<tr class="fam"><td colspan="'+nc+'" dir="rtl" style="text-align:left">'+esc(x.fam)+'</td></tr>';fam=x.fam;
     b+='<tr><td class="n" style="white-space:nowrap">'+xb('st',x.sku)+x.sku+'</td><td class="en" style="white-space:normal;min-width:170px;max-width:240px">'+esc(x.name)+'</td>'+C.map(function(c){return cell(x,c[0])}).join('')+'</tr>'});
   b+='<tr class="tot"><td colspan="2">סה"כ</td>'+C.map(function(c){return cell(T,c[0])}).join('')+'</tr>';
-  document.getElementById('tSt').innerHTML=h+b;document.getElementById('tStX').innerHTML=rb('st')+(T.partial?'<span class="sh" style="font-size:12px;margin-right:8px">ימי מלאי ו-% זיכויים בסה"כ — רק בלי שורות מוסתרות (נוסחת Power BI)</span>':'')}
+  document.getElementById('tSt').innerHTML=h+b;document.getElementById('tStX').innerHTML=rb('st')}
 document.addEventListener('click',function(e){var kb=e.target.closest('button.kb');if(kb){KOS=kb.dataset.kos;document.querySelectorAll('button.kb').forEach(function(x){x.classList.toggle('on',x===kb)});HID.ch={};render();track('kos-'+(KOS==='all'?'all':KOS==='כן'?'yes':'no'));return}
   var yb=e.target.closest('[data-y],[data-mo]');if(yb&&!yb.disabled){var isY=yb.hasAttribute('data-y'),A=isY?YS:MS,v=+(isY?yb.dataset.y:yb.dataset.mo),k=A.indexOf(v);
     if(k<0)A.push(v);else A.splice(k,1);var ns=pickSel();if(!ns.length){if(k<0)A.splice(A.indexOf(v),1);else A.push(v);return}
