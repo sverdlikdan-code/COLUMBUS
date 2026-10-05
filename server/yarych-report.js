@@ -9,7 +9,7 @@
 // только на странице: почтовики режут JS). Страница пишется в /root/private-share/<YARYCH_SHARE>.html,
 // трекинг чтения — тот же POST /p/<hex>/ev, что у Diler Intelligence.
 //
-// Usage: node yarych-report.js [--month=YYYY-MM] [--dry-run] [--page-only] [--to=a@b.com]
+// Usage: node yarych-report.js [--month=YYYY-MM] [--dry-run] [--page-only] [--test-notice] [--to=a@b.com]
 require('dotenv').config({ path: '../.env' });
 const fs = require('fs');
 const path = require('path');
@@ -370,6 +370,9 @@ const RU_M = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'ию�
 const RU_MONTH = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
 const ruShort = p => `${RU_M[+p.slice(5) - 1]} ${p.slice(0, 4)}`;
 const RU_INS = ['январём', 'февралём', 'мартом', 'апрелем', 'маем', 'июнем', 'июлем', 'августом', 'сентябрём', 'октябрём', 'ноябрём', 'декабрём'];
+const TEST_NOTICE = process.argv.includes('--test-notice');
+const RU_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+function nextFirst() { const n = addMonths(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' }).slice(0, 7), 1); return `1 ${RU_GEN[+n.slice(5) - 1]} ${n.slice(0, 4)} года`; }
 const ruIns = p => `${RU_INS[+p.slice(5) - 1]} ${p.slice(0, 4)}`;
 const ruLong = p => `${RU_MONTH[+p.slice(5) - 1]} ${p.slice(0, 4)}`;
 const PHOTO_DIR = process.env.YARYCH_PHOTO_DIR || path.join(require('os').homedir(), '.yarych-photos');
@@ -447,6 +450,7 @@ function buildEmail(d, t, link) {
   <div style="${F}font-size:22px;font-weight:bold;color:#ffffff;padding-top:12px">YARYCH · продажи INTER</div>
   <div style="${F}font-size:14px;color:#C9D5E8;padding-top:4px">Ежемесячный отчёт · ${M}</div>
 </td></tr>
+${TEST_NOTICE ? `<tr><td style="padding:20px 28px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#FFF4D6" style="${F}padding:12px 16px;border:1px solid #E8C766;font-size:14px;line-height:1.5;color:#5C4400"><b>Это тестовое письмо.</b> Начиная с ${nextFirst()} этот отчёт будет приходить вам автоматически каждое 1-е число месяца — с итогами за прошедший месяц.</td></tr></table></td></tr>` : ''}
 <tr><td style="${F}padding:26px 28px 6px;font-size:16px;color:${INK};line-height:1.5">
   <p style="margin:0 0 12px;font-size:17px;font-weight:bold">Дмитрий, добрый день!</p>
   <p style="margin:0">Направляю итоги продаж YARYCH по каналу INTER за ${M}${ly ? ` в сравнении с ${ruIns(ly)}` : ''}.</p>
