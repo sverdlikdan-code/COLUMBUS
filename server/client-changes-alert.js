@@ -208,6 +208,8 @@ function columnsFor(type, dateStr) {
   return [...BASE_COLS, AGENT_COL, GROUP_COL];
 }
 const cellValue = (r, key) => key === 'agentName' ? (r.agentName || r.agent) : r[key];
+// Строки — по группам (קבוצה), внутри по имени: общий отчёт без фильтра читается по группам (пользователь 05.10).
+const byGroup = rows => [...rows].sort((a, b) => String(a.manager || '').localeCompare(String(b.manager || '')) || String(a.name || '').localeCompare(String(b.name || ''), 'he'));
 const esc = s => String(s ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 
 function buildHtml(changes, dateStr, greeting = '', title = 'שינויים בלקוחות', sources = 'FORMULA · ICE משפחתי') {
@@ -216,7 +218,12 @@ function buildHtml(changes, dateStr, greeting = '', title = 'שינויים בל
   const td = 'style="padding:5px 8px;border-bottom:1px solid #e5e7eb;text-align:right"';
   const sections = counts.map(t => {
     const cols = columnsFor(t.key, dateStr);
-    const rows = changes.filter(c => c.type === t.key);
+    const rows = byGroup(changes.filter(c => c.type === t.key));
+    // подзаголовок группы — только если в разделе больше одной группы (общий отчёт)
+    const multi = new Set(rows.map(r => r.manager || '')).size > 1;
+    const groupHead = (r, i) => multi && (i === 0 || rows[i - 1].manager !== r.manager)
+      ? `<tr><td colspan="${cols.length}" style="padding:8px 8px 4px;background:#f3f4f6;font-weight:700;text-align:right">קבוצה: <bdi>${esc(r.manager || '—')}</bdi> (${rows.filter(x => x.manager === r.manager).length})</td></tr>\n`
+      : '';
     const cell = (c, r) => {
       const v = esc(cellValue(r, c.key));
       if (c.prev) return `<td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;text-align:right;color:#8a8f98">${v}</td>`;
@@ -226,7 +233,7 @@ function buildHtml(changes, dateStr, greeting = '', title = 'שינויים בל
     return `<h3 style="color:#${t.color};margin:22px 0 6px">${t.he} (${t.n})</h3>
 <table style="border-collapse:collapse;width:100%;font-size:13px">
 <tr>${cols.map(c => `<th ${th}>${c.header}</th>`).join('')}</tr>
-${rows.map(r => `<tr>${cols.map(c => cell(c, r)).join('')}</tr>`).join('\n')}
+${rows.map((r, i) => groupHead(r, i) + `<tr>${cols.map(c => cell(c, r)).join('')}</tr>`).join('\n')}
 </table>`;
   }).join('\n');
   return `<!doctype html><html dir="rtl" lang="he"><body style="margin:0"><div dir="rtl" style="font-family:Arial,sans-serif;color:#111;max-width:900px;margin:0 auto;padding:16px;box-sizing:border-box">
@@ -242,7 +249,7 @@ ${sections}
 async function buildXlsx(changes, dateStr) {
   const wb = new ExcelJS.Workbook();
   for (const t of TYPES) {
-    const rows = changes.filter(c => c.type === t.key);
+    const rows = byGroup(changes.filter(c => c.type === t.key));
     if (!rows.length) continue;
     const ws = wb.addWorksheet(t.he.slice(0, 31), { views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
     const cols = columnsFor(t.key, dateStr);
