@@ -214,8 +214,13 @@ function applyVisitOrder(cache, rows) {
 
 // Disk copy of the day's cache: a restart/deploy on the same Israel day reads it
 // instead of re-running the DAX queries (user 2026-09-29: PBI once a day, morning).
+// Bump when the cached client shape changes (new field, new calculation): a snapshot
+// written by the previous code is then ignored and BDD reloads from PBI once, instead
+// of serving the old shape until tomorrow's load after a mid-day deploy.
+const BDD_CACHE_VERSION = 1;
 function serializeBddCache(cache, date) {
   return {
+    v: BDD_CACHE_VERSION,
     date,
     agentGroup: [...cache.agentGroup], agentsByGroup: [...cache.agentsByGroup],
     byAgent: [...cache.byAgent], clientById: [...cache.clientById],
@@ -223,7 +228,7 @@ function serializeBddCache(cache, date) {
   };
 }
 function deserializeBddCache(obj, today) {
-  if (!obj || obj.date !== today) return null;
+  if (!obj || obj.date !== today || obj.v !== BDD_CACHE_VERSION) return null;
   return {
     agentGroup: new Map(obj.agentGroup), agentsByGroup: new Map(obj.agentsByGroup),
     byAgent: new Map(obj.byAgent), clientById: new Map(obj.clientById),
