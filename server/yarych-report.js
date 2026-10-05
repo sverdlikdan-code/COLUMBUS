@@ -1,7 +1,8 @@
 // yarych-report.js — ежемесячный отчёт продаж поставщика YARYCH (KARTIS PARIT[ספק] = 2110171),
 // только חברה = INTER (пользователь 2026-10-05; адресаты — в run-alert.sh на VPS, репо публичный).
 // Источник — датасет INTERNATIONAL CONTROL DESK (workspace CONTROL), те же меры, что на страницах
-// YARICH / INTER +: штуки = [TOTAL UNITS _מכר_], кг = [WEIGHT KG.], картоны = SUM(KARTON).
+// YARICH / INTER +: штуки = [TOTAL UNITS _מכר_], кг = [WEIGHT KG.], картоны = [מכר בקרטונים] — все три только -מכר-
+// (SUM(KARTON) включал השמדות: Sep-26 1,021 вместо 1,225 — исправлено 2026-10-05).
 // Сверено 2026-10-05: помесячные штуки совпали с визуалом SALES UNITS до единицы (Apr-25 75,003 … Sep-26 16,410).
 //
 // Письмо = короткая сводка + кнопка на личную страницу /p/<hex> (тумблер штуки/картоны/кг работает
@@ -49,7 +50,7 @@ async function fetchData(from, to) {
   const [fy, fm] = from.split('-').map(Number), [ty, tm] = to.split('-').map(Number);
   const filters = `FILTER(ALL(${K}[ספק]), ${K}[ספק] = "${SUPPLIER}"), TREATAS({"INTER"}, ${F}[חברה]),
   FILTER(ALL(DIMCALENDAR[Date]), DIMCALENDAR[Date] >= DATE(${fy},${fm},1) && DIMCALENDAR[Date] <= EOMONTH(DATE(${ty},${tm},1),0))`;
-  const vals = `"u", [TOTAL UNITS _מכר_], "krt", SUM(${F}[KARTON]), "kg", [WEIGHT KG.]`;
+  const vals = `"u", [TOTAL UNITS _מכר_], "krt", [מכר בקרטונים], "kg", [WEIGHT KG.]`;
   const q = cols => executeDax(`EVALUATE SUMMARIZECOLUMNS(DIMCALENDAR[Year], DIMCALENDAR[Month], ${cols}, ${filters}, ${vals})`, DS, WS);
   // последовательно — не бить квоту параллельными DAX
   const sku = await q(`${K}[מק"ט], ${K}[תאור לועזי], ${K}[תאור פרמטר 2 למוצר]`);
@@ -190,6 +191,7 @@ section{background:#fff;border:1px solid var(--line);border-radius:10px;padding:
 h2{margin:0 0 10px;font-size:19px;color:var(--navy)}
 .kt{display:flex;gap:10px;align-items:center;justify-content:center;margin:0 0 12px}.tg.sm{border-width:2px}.tg.sm button{padding:7px 18px;font-size:14px}
 .pd{display:inline-block;vertical-align:middle;margin-right:8px;background:var(--navy);color:#fff;font-size:13px;font-weight:700;padding:3px 10px;border-radius:999px}.ymbox{margin:0 0 10px}
+.lh{margin:22px 0 10px;font-size:17px;color:var(--red)}
 .un{display:inline-block;vertical-align:middle;margin-right:8px;background:var(--gold);color:#fff;font-size:13px;font-weight:700;padding:3px 10px;border-radius:999px}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}#sKpi{grid-template-columns:repeat(7,minmax(0,1fr))}
 @media(max-width:900px){#sKpi{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}}
@@ -217,7 +219,7 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:6px 16px 20
 <section id="kpi"><h2>${label(d.month)} — סיכום <span class="un"></span></h2><div class="kpis" id="kpis" dir="ltr"></div></section>
 <section id="trend"><h2>מכירות לפי חודש <span class="un"></span></h2><div id="chart"></div><div class="leg" id="leg"></div></section>
 <section id="sku"><div class="ymbox"></div><h2>מכירות לפי מוצר <span class="pd"></span> <span class="un"></span></h2><div class="scroll" id="skuWrap" dir="ltr"><table id="tSku" dir="ltr"></table></div><div id="skuX"></div></section>
-<section id="chains"><div class="ymbox"></div><div class="kt" id="kt"><span class="sh">כשרות לקוח:</span><div class="tg sm"><button class="kb on" data-kos="all">הכל</button><button class="kb" data-kos="כן">כשר</button><button class="kb" data-kos="לא">לא כשר</button></div></div><h2>רשתות — כמה לקחה כל רשת ומשקלה מהסה"כ <span class="pd"></span> <span class="un"></span></h2><div class="scroll" dir="ltr"><table id="tCh" dir="ltr" class="lt"></table></div><div id="tChX"></div><div id="tChR"></div></section>
+<section id="chains"><div class="ymbox"></div><div class="kt" id="kt"><span class="sh">כשרות לקוח:</span><div class="tg sm"><button class="kb on" data-kos="all">הכל</button><button class="kb" data-kos="כן">כשר</button><button class="kb" data-kos="לא">לא כשר</button></div></div><h2>רשתות — כמה לקחה כל רשת ומשקלה מהסה"כ <span class="pd"></span> <span class="un"></span></h2><div class="scroll" dir="ltr"><table id="tCh" dir="ltr" class="lt"></table></div><div id="tChX"></div><div id="tChR"></div><div id="lost"></div></section>
 <section id="private"><div class="ymbox"></div><h2>שוק פרטי — ${TOP_PRIVATE} הלקוחות הגדולים בתקופה הנבחרת <span class="pd"></span> <span class="un"></span></h2><div class="scroll" dir="ltr"><table id="tPr" dir="ltr" class="lt"></table></div><div id="tPrX"></div></section>
 <section id="dist"><div class="ymbox"></div><h2>פיזור — כמה לקוחות הזמינו כל מוצר <span class="pd"></span></h2><p class="sh" style="margin:-4px 0 10px;font-size:12px">לקוחות INTER פעילים · לקוח נספר פעם אחת בתקופה · מכר בלבד (בלי החזרות/השמדות) · כמו ב-Power BI</p><div class="kpis" id="dKpi" dir="ltr"></div><div class="scroll" style="margin-top:10px" dir="ltr"><table id="tDi" dir="ltr" class="lt"></table></div><div id="tDiX"></div></section>
 <section id="stock"><div class="ymbox"></div><h2>מלאי והזמנה מומלצת <span class="pd"></span></h2><p class="sh" style="margin:-4px 0 10px;font-size:12px">מכר, ימי מלאי והזמנה מומלצת — לפי החודשים הנבחרים · מלאי נכון ל-${d.asOf} · כמו בדף YARICH מלאי ב-Power BI · לא תלוי במתג היחידות · כמו בדף YARICH מלאי</p><div class="kpis" id="sKpi"></div><div class="scroll" style="margin-top:10px" dir="ltr"><table id="tSt" dir="ltr"></table></div><div id="tStX"></div></section>
@@ -293,6 +295,12 @@ function render(){selState();
     document.getElementById(id).innerHTML=h+b;document.getElementById(id+'X').innerHTML=rb(t);
     var r=document.getElementById(id+'R');if(r)r.innerHTML=rest.length?'<details><summary>עוד '+rest.length+' רשתות בלי מכירות ב-'+SL+(HL?' ('+f(sum(rest,lyv))+' ב-'+lyL+')':'')+'</summary><div class="scroll" dir="ltr"><table dir="ltr" class="lt">'+h+rest.map(row).join('')+'</table></div></details>':''}
   tbl('tCh','ch',chainsFor().filter(function(x){return cur(x)||lyv(x)}),'רשת','סה"כ רשתות');
+  var lost=HL?chainsFor().filter(function(x){return lyv(x)>0&&cur(x)<=0}).sort(function(p,q){return lyv(q)-lyv(p)}):[];
+  function lastBuy(x){for(var i=SEL[SEL.length-1];i>=0;i--)if(x.v[i][0]>0)return lb(D.months[i]);return 'לפני '+lb(D.months[0])}
+  document.getElementById('lost').innerHTML=!HL?'':'<h3 class="lh">רשתות שהפסיקו לקנות YARYCH <span class="pd">'+SL+' מול '+lyL+'</span> <span class="un">'+['יחידות','קרטונים','ק"ג'][U]+'</span></h3>'+
+    (lost.length?'<div class="scroll" dir="ltr"><table dir="ltr" class="lt"><tr><th>רשת</th><th class="n">'+lyL+'</th><th class="n">'+SL+'</th><th class="n">קנייה אחרונה</th></tr>'+
+    lost.map(function(x){return '<tr><td>'+esc(x.name)+'</td><td class="n">'+f(lyv(x))+'</td><td class="n dn">0</td><td class="n">'+lastBuy(x)+'</td></tr>'}).join('')+
+    '<tr class="tot"><td>סה"כ '+lost.length+' רשתות</td><td class="n">'+f(sum(lost,lyv))+'</td><td class="n">0</td><td></td></tr></table></div>':'<p class="sh" style="margin:6px 0 0">אין — כל הרשתות שקנו בשנה שעברה קנו גם בתקופה הנבחרת</p>');
   tbl('tPr','pr',D.priv,'לקוח',null,true,D.topN);
   renderStock();renderDist();
 }
