@@ -9,7 +9,7 @@
 // только на странице: почтовики режут JS). Страница пишется в /root/private-share/<YARYCH_SHARE>.html,
 // трекинг чтения — тот же POST /p/<hex>/ev, что у Diler Intelligence.
 //
-// Usage: node yarych-report.js [--month=YYYY-MM] [--dry-run] [--page-only] [--test-notice] [--to=a@b.com]
+// Usage: node yarych-report.js [--month=YYYY-MM] [--dry-run] [--page-only] [--test-notice] [--snapshot] [--to=a@b.com]
 require('dotenv').config({ path: '../.env' });
 const fs = require('fs');
 const path = require('path');
@@ -365,6 +365,56 @@ var track=function(){};
 </script></body></html>`;
 }
 
+// ── остатки на 1-е число месяца (лист «Остатки» в Excel, пользователь 2026-10-05) ──
+// Источник: Priority diller, склад Main = PBI מלאי INTER[מלאי זמין] (306202: 58,629 — совпало до штуки).
+// Остаток на дату = текущий WARHSBAL − движения TRANSORDER с этой даты (каждая строка переносит QUANT
+// со склада WARHS на TOWARHS). Снимки хранятся в файле: записанная дата больше не пересчитывается;
+// cron 1-го в 00:05 дописывает фактический снимок (--snapshot).
+const STOCK_HIST_FROM = '2026-01';
+const SNAP_FILE = process.env.YARYCH_SNAP_FILE || path.join(require('os').homedir(), '.yarych-stock-snapshots.json');
+const pcd = s2 => { const [y, m, dd] = s2.split('-').map(Number); return (Date.UTC(y, m - 1, dd) - Date.UTC(1988, 0, 1)) / 86400000 * 1440; };
+async function priorityPool() {
+  const sql = require('mssql');
+  return new sql.ConnectionPool({ server: process.env.DB_SERVER, port: +process.env.DB_PORT || 1433, user: process.env.DB_USER, password: process.env.DB_PASSWORD,
+    database: 'diller', options: { encrypt: false, trustServerCertificate: true }, requestTimeout: 120000 }).connect();
+}
+async function stockAt(dates, skus) {
+  const pool = await priorityPool();
+  try {
+    const inList = skus.map(p => `'${String(p).replace(/\D/g, '')}'`).join(',');
+    const main = (await pool.request().query("SELECT WARHS FROM WAREHOUSES WHERE WARHSNAME = 'Main'")).recordset.map(r => r.WARHS);
+    if (!main.length) throw new Error('склад Main не найден');
+    const cur = (await pool.request().query(`SELECT P.PARTNAME, SUM(B.BALANCE) / 1000.0 AS bal FROM WARHSBAL B JOIN PART P ON P.PART = B.PART
+      WHERE P.PARTNAME IN (${inList}) AND B.WARHS IN (${main}) GROUP BY P.PARTNAME`)).recordset;
+    const from = dates.length ? Math.min(...dates.map(pcd)) : pcd(new Date().toISOString().slice(0, 10));
+    const mv = (await pool.request().query(`SELECT P.PARTNAME, T.CURDATE,
+      SUM(CASE WHEN T.TOWARHS IN (${main}) AND T.WARHS NOT IN (${main}) THEN T.QUANT WHEN T.WARHS IN (${main}) AND T.TOWARHS NOT IN (${main}) THEN -T.QUANT ELSE 0 END) / 1000.0 AS eff
+      FROM TRANSORDER T JOIN PART P ON P.PART = T.PART WHERE P.PARTNAME IN (${inList}) AND T.CURDATE >= ${from} GROUP BY P.PARTNAME, T.CURDATE`)).recordset;
+    const out = {};
+    for (const dt of dates) {
+      out[dt] = {};
+      for (const p of skus) {
+        const now = +(cur.find(r => String(r.PARTNAME).trim() === p)?.bal || 0);
+        out[dt][p] = Math.round(now - mv.filter(r => String(r.PARTNAME).trim() === p && +r.CURDATE >= pcd(dt)).reduce((a, r) => a + r.eff, 0));
+      }
+    }
+    return out;
+  } finally { await pool.close(); }
+}
+async function stockHistory(skus, month) {
+  const dates = []; for (let p = STOCK_HIST_FROM; p <= addMonths(month, 1); p = addMonths(p, 1)) dates.push(p + '-01');
+  let snap = {}; try { snap = JSON.parse(fs.readFileSync(SNAP_FILE, 'utf8')); } catch (_) { /* первый запуск */ }
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' });
+  const missing = dates.filter(dt => !snap[dt] && dt <= today);
+  if (missing.length) {
+    const calc = await stockAt(missing, skus);
+    for (const dt of missing) snap[dt] = calc[dt];
+    if (!DRY_RUN) fs.writeFileSync(SNAP_FILE, JSON.stringify(snap, null, 1));
+  }
+  const ds = dates.filter(dt => snap[dt]);
+  return { dates: ds, v: Object.fromEntries(skus.map(p => [p, ds.map(dt => snap[dt][p] ?? null)])) };
+}
+
 // ── Excel: листы Штуки / Картоны / Кг, фото товара, месяцы с первого месяца продаж ──
 const RU_M = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 const RU_MONTH = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
@@ -431,6 +481,34 @@ async function buildExcel(d) {
     tr.eachCell({ includeEmpty: true }, c => { c.font = { bold: true, color: { argb: NAVY_X } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EEF7' } }; c.border = { top: { style: 'medium', color: { argb: NAVY_X } } }; });
     ws.autoFilter = { from: { row: HDR, column: 2 }, to: { row: HDR + rows.length, column: N + FIRST } };
   });
+  // остатки на 1-е число месяца, штуки, склад Main
+  if (d.stockHist && d.stockHist.dates.length) {
+    const H = d.stockHist, M2 = H.dates.length, ruDate = dt => `1 ${RU_GEN[+dt.slice(5, 7) - 1]} ${dt.slice(0, 4)}`;
+    const ws = wb.addWorksheet('Остатки, шт', { views: [{ state: 'frozen', xSplit: 4, ySplit: HDR }] });
+    ws.columns = [{ width: 11 }, { width: 10 }, { width: 46 }, { width: 24 }, ...H.dates.map(() => ({ width: 12 }))];
+    ws.getCell('A1').value = 'YARYCH · остатки на складе INTER на 1-е число месяца · штуки'; ws.getCell('A1').font = { bold: true, size: 14, color: { argb: NAVY_X } };
+    ws.getCell('A2').value = `${ruDate(H.dates[0])} – ${ruDate(H.dates[M2 - 1])} · склад Main (как מלאי זמין в Power BI) · источник: Priority`; ws.getCell('A2').font = { size: 10, color: { argb: 'FF6B7280' } };
+    const hdr = ws.getRow(HDR); hdr.values = ['Фото', 'Код', 'Товар', 'Семья', ...H.dates.map(ruDate)]; hdr.height = 22;
+    hdr.eachCell(c => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY_X } }; c.alignment = { vertical: 'middle', horizontal: 'center' }; });
+    rows.forEach((x, i) => {
+      const r = ws.getRow(HDR + 1 + i), vs = H.v[x.sku] || [];
+      r.values = ['', +x.sku || x.sku, x.name, x.fam, ...H.dates.map((_, j) => vs[j] ?? null)];
+      r.height = 48;
+      r.eachCell({ includeEmpty: true }, (c, n) => {
+        c.alignment = { vertical: 'middle', horizontal: n <= 4 ? 'left' : 'right', wrapText: n === 3 };
+        if (n > 4) { c.numFmt = '#,##0'; if (typeof c.value === 'number' && c.value < 0) c.font = { color: { argb: 'FFB91C1C' } }; }
+        if (i % 2) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ZEBRA } };
+        c.border = { bottom: THIN };
+      });
+      if (imgId[x.sku] != null) ws.addImage(imgId[x.sku], { tl: { col: 0.12, row: HDR + i + 0.06 }, ext: { width: 60, height: 60 }, editAs: 'oneCell' });
+    });
+    const tr = ws.getRow(HDR + rows.length + 1), a = HDR + 1, b = HDR + rows.length;
+    tr.getCell(3).value = 'ИТОГО';
+    H.dates.forEach((_, j) => { const L = colL(FIRST - 1 + j); tr.getCell(FIRST + j).value = { formula: `SUBTOTAL(109,${L}${a}:${L}${b})`, result: rows.reduce((q, x) => q + ((H.v[x.sku] || [])[j] || 0), 0) }; tr.getCell(FIRST + j).numFmt = '#,##0'; });
+    tr.height = 24;
+    tr.eachCell({ includeEmpty: true }, c => { c.font = { bold: true, color: { argb: NAVY_X } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8EEF7' } }; c.border = { top: { style: 'medium', color: { argb: NAVY_X } } }; });
+    ws.autoFilter = { from: { row: HDR, column: 2 }, to: { row: HDR + rows.length, column: M2 + 4 } };
+  }
   return { buffer: await wb.xlsx.writeBuffer(), photos: Object.keys(photos).length };
 }
 
@@ -472,6 +550,16 @@ ${link ? `<tr><td align="center" style="padding:22px 28px 8px">
 }
 
 async function main() {
+  if (process.argv.includes('--snapshot')) { // cron 1-го в 00:05: фактический снимок остатков на сегодня
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' });
+    const { executeDax } = require('./powerbi');
+    const skus = (await executeDax(`EVALUATE SELECTCOLUMNS(FILTER('KARTIS PARIT', 'KARTIS PARIT'[ספק] = "${SUPPLIER}"), "sku", 'KARTIS PARIT'[מק"ט])`, DS, WS)).map(r => String(r['[sku]']));
+    let snap = {}; try { snap = JSON.parse(fs.readFileSync(SNAP_FILE, 'utf8')); } catch (_) {}
+    snap[today] = (await stockAt([today], skus))[today];
+    fs.writeFileSync(SNAP_FILE, JSON.stringify(snap, null, 1));
+    console.log('снимок остатков', today, Object.values(snap[today]).reduce((a, b) => a + b, 0), 'шт ->', SNAP_FILE);
+    return;
+  }
   const now = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' }).slice(0, 7);
   const month = arg('month') || addMonths(now, -1);
   const raw = await fetchData(addMonths(month, -(SHOW_MONTHS + 11)), month);
@@ -482,6 +570,8 @@ async function main() {
   try { const sharp = require('sharp'), ph = await loadPhotos(d.photoUrl || {}); d.thumbs = {};
     for (const [k, b] of Object.entries(ph)) d.thumbs[k] = 'data:image/jpeg;base64,' + (await sharp(b).resize(64, 64).jpeg({ quality: 78 }).toBuffer()).toString('base64');
   } catch (e) { console.error('[yarych] миниатюры', e.message); }
+  try { d.stockHist = await stockHistory(Object.keys(d.photoUrl || {}), month); console.log('остатки на 1-е:', d.stockHist.dates.join(', ')); }
+  catch (e) { console.error('[yarych] остатки на 1-е число не получены:', e.message); } // письмо уходит и без листа
   const page = buildPage(d);
 
   if (DRY_RUN) {
