@@ -240,18 +240,20 @@ function render(){selState();
   var fams=[];SK.forEach(function(x){if(fams.indexOf(x.fam)<0)fams.push(x.fam)});
   var W=Math.max(640,L*46),H=260,pad=28,bw=(W-pad*2)/L,mx=0,tot=D.months.map(function(_,i){var s=sum(SK,function(x){return Math.max(0,x.v[i][U])});mx=Math.max(mx,s);return s});
   var svg='<svg class="chart" viewBox="0 0 '+W+' '+(H+40)+'" direction="ltr">';
-  D.months.forEach(function(p,i){var y=H,x=pad+i*bw+4,op=SEL.indexOf(i)>=0?1:.35;svg+='<g opacity="'+op+'"><rect x="'+(x-2)+'" y="0" width="'+(bw-4)+'" height="'+(H+20)+'" fill="transparent"/>';fams.forEach(function(fm,j){var v=sum(SK.filter(function(s){return s.fam===fm}),function(s){return Math.max(0,s.v[i][U])}),h=mx?v/mx*(H-30):0;y-=h;svg+='<rect x="'+x+'" y="'+y+'" width="'+(bw-8)+'" height="'+h+'" fill="'+COL[j%COL.length]+'"/>'});
+  D.months.forEach(function(p,i){var y=H,x=pad+i*bw+4;svg+='<g>';fams.forEach(function(fm,j){var v=sum(SK.filter(function(s){return s.fam===fm}),function(s){return Math.max(0,s.v[i][U])}),h=mx?v/mx*(H-30):0;y-=h;svg+='<rect x="'+x+'" y="'+y+'" width="'+(bw-8)+'" height="'+h+'" fill="'+COL[j%COL.length]+'"/>'});
     svg+='<text x="'+(x+(bw-8)/2)+'" y="'+(y-5)+'" font-size="11" text-anchor="middle" fill="#1F2937" font-weight="700">'+(tot[i]>=10000?Math.round(tot[i]/1000)+'K':f(tot[i]))+'</text><text x="'+(x+(bw-8)/2)+'" y="'+(H+16)+'" font-size="11" text-anchor="middle" fill="#6B7280">'+lb(p)+'</text></g>'});
   document.getElementById('chart').innerHTML='<div class="scroll">'+svg+'</svg></div>';
   document.getElementById('leg').innerHTML=fams.map(function(fm,j){return '<span><i style="background:'+COL[j%COL.length]+'"></i>'+esc(fm)+'</span>'}).join('');
   // таблица SKU: семья → SKU × месяцы, итог, % к прошлому году
-  var hd='<tr><th class="st s1">מק"ט</th><th class="st s2">ENG</th>'+D.months.map(function(p,i){return '<th class="n'+(SEL.indexOf(i)>=0?' sel':'')+'">'+lb(p)+'</th>'}).join('')+'<th class="n">'+D.n12+' ח\\'</th><th class="n">'+(lyL?'מול '+lyL:'שינוי')+'</th></tr>';
+  // таблица SKU: только выбранные кнопками месяцы (+ סה"כ выбора, если их несколько), 12 мес, % к прошлому году; график от выбора не зависит
+  var multi=SEL.length>1;function mc(v,blank){var c=SEL.map(function(i){return '<td class="n">'+(blank&&!v[i]?'':f(v[i]))+'</td>'}).join('');return c+(multi?'<td class="n sel">'+f(selV(v))+'</td>':'')}
+  var hd='<tr><th class="st s1">מק"ט</th><th class="st s2">ENG</th>'+SEL.map(function(i){return '<th class="n">'+lb(D.months[i])+'</th>'}).join('')+(multi?'<th class="n sel">סה"כ</th>':'')+'<th class="n">'+D.n12+' ח\\'</th><th class="n">'+(lyL?'מול '+lyL:'שינוי')+'</th></tr>';
   var grand=D.months.map(function(_,i){return sum(SK,function(x){return x.v[i][U]})}),g={},ord=[],body='';
   SK.forEach(function(x){if(!g[x.fam]){g[x.fam]=[];ord.push(x.fam)}g[x.fam].push(x)});
   ord.forEach(function(fm){var a=g[fm],v=D.months.map(function(_,i){return sum(a,function(x){return x.v[i][U]})}),l=sum(a,lyv);
-    body+='<tr class="fam"><td class="st s1"></td><td class="st s2" dir="rtl">'+esc(fm)+'</td>'+v.map(function(z,i){return '<td class="n'+(SEL.indexOf(i)>=0?' sel':'')+'">'+f(z)+'</td>'}).join('')+'<td class="n">'+f(sum(a,s12))+'</td>'+ch(HL?pc(selV(v),l):null)+'</tr>';
-    a.forEach(function(x){body+='<tr><td class="st s1">'+xb('sku',x.sku)+x.sku+'</td><td class="st s2 en">'+esc(x.name)+'</td>'+x.v.map(function(z,i){return '<td class="n'+(SEL.indexOf(i)>=0?' sel':'')+'">'+(z[U]?f(z[U]):'')+'</td>'}).join('')+'<td class="n">'+f(s12(x))+'</td>'+ch(HL?pc(cur(x),lyv(x)):null)+'</tr>'})});
-  body+='<tr class="tot"><td class="st s1"></td><td class="st s2">TOTAL</td>'+grand.map(function(z,i){return '<td class="n'+(SEL.indexOf(i)>=0?' sel':'')+'">'+f(z)+'</td>'}).join('')+'<td class="n">'+f(T12)+'</td>'+ch(HL?pc(T,TL):null)+'</tr>';
+    body+='<tr class="fam"><td class="st s1"></td><td class="st s2" dir="rtl">'+esc(fm)+'</td>'+mc(v)+'<td class="n">'+f(sum(a,s12))+'</td>'+ch(HL?pc(selV(v),l):null)+'</tr>';
+    a.forEach(function(x){body+='<tr><td class="st s1">'+xb('sku',x.sku)+x.sku+'</td><td class="st s2 en">'+esc(x.name)+'</td>'+mc(x.v.map(function(z){return z[U]}),true)+'<td class="n">'+f(s12(x))+'</td>'+ch(HL?pc(cur(x),lyv(x)):null)+'</tr>'})});
+  body+='<tr class="tot"><td class="st s1"></td><td class="st s2">TOTAL</td>'+mc(grand)+'<td class="n">'+f(T12)+'</td>'+ch(HL?pc(T,TL):null)+'</tr>';
   document.getElementById('tSku').innerHTML=hd+body;document.getElementById('skuX').innerHTML=rb('sku');var w=document.getElementById('skuWrap');w.scrollLeft=w.scrollWidth;
   // сети и частники: отчётный месяц, доля от общего итога, к прошлому году, 12 месяцев и доля
   function tbl(id,t,list,nameHd,total,by12){var a=vis(t,list,nmK).slice().sort(by12?function(p,q){return s12(q)-s12(p)}:function(p,q){return cur(q)-cur(p)||s12(q)-s12(p)});
