@@ -176,12 +176,17 @@ async function loadBddCache(rawExecuteDax, iceDatasetId, fix, gapMs = BDD_DAX_GA
     const s6 = new Date(now.getFullYear(), now.getMonth() - 6, 1);
     const e6 = new Date(now.getFullYear(), now.getMonth(), 0);
     const monthRows = await executeDax(`EVALUATE CALCULATETABLE(ADDCOLUMNS(SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]),
-        "s", CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)]), "last", CALCULATE(MAX(ALL_PARTS[תאריך]))),
+        "s", CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)])),
         ALL_PARTS[חברה] = "ICE", ALL_PARTS[תאור משפחת מוצר] IN {${famIn}}, MONTH(ALL_PARTS[תאריך]) = MONTH(TODAY()), YEAR(ALL_PARTS[תאריך]) = YEAR(TODAY()))`);
     const avgRows = await executeDax(`EVALUATE CALCULATETABLE(ADDCOLUMNS(SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]),
         "s", DIVIDE(CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)]), 6), "o", DIVIDE(CALCULATE(DISTINCTCOUNT(ALL_PARTS[תאריך])), 6)),
         ALL_PARTS[חברה] = "ICE", ALL_PARTS[תאור משפחת מוצר] IN {${famIn}},
         ALL_PARTS[תאריך] >= DATE(${s6.getFullYear()},${s6.getMonth() + 1},1), ALL_PARTS[תאריך] <= DATE(${e6.getFullYear()},${e6.getMonth() + 1},${e6.getDate()}))`);
+    // Last order over all history, sales docs only — same as FORMULA (index.js lastOrderFamFilter).
+    // Was month-filtered: early in the month nearly every row showed "לא הזמין" (Дан, 2026-10-05).
+    const lastRows = await executeDax(`EVALUATE CALCULATETABLE(ADDCOLUMNS(SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]),
+        "last", CALCULATE(MAX(ALL_PARTS[תאריך]))),
+        ALL_PARTS[חברה] = "ICE", ALL_PARTS[תאור משפחת מוצר] IN {${famIn}}, ALL_PARTS[ASHMADOT] = "-מכר-")`);
     const patch = (rows, fn) => {
       for (const r of rows) {
         const id = String(r['ALL_PARTS[מספר לקוח]'] || '');
@@ -189,10 +194,8 @@ async function loadBddCache(rawExecuteDax, iceDatasetId, fix, gapMs = BDD_DAX_GA
         for (const c of cache.byAgent.get(cache.clientById.get(id).agentCode) || []) if (c.custId === id) fn(c, r);
       }
     };
-    patch(monthRows, (c, r) => {
-      c.monthlySales = Math.round(parseFloat(r['[s]']) || 0);
-      c.lastOrderDate = r['[last]'] ? new Date(r['[last]']).toISOString().slice(0, 10) : null;
-    });
+    patch(monthRows, (c, r) => { c.monthlySales = Math.round(parseFloat(r['[s]']) || 0); });
+    patch(lastRows, (c, r) => { c.lastOrderDate = r['[last]'] ? new Date(r['[last]']).toISOString().slice(0, 10) : null; });
     patch(avgRows, (c, r) => { c.avg6Sales = Math.round(parseFloat(r['[s]']) || 0); c.avg6Orders = Math.round(parseFloat(r['[o]']) || 0); });
   }
   return cache;
@@ -217,7 +220,7 @@ function applyVisitOrder(cache, rows) {
 // Bump when the cached client shape changes (new field, new calculation): a snapshot
 // written by the previous code is then ignored and BDD reloads from PBI once, instead
 // of serving the old shape until tomorrow's load after a mid-day deploy.
-const BDD_CACHE_VERSION = 1;
+const BDD_CACHE_VERSION = 2; // 2: lastOrderDate over all history (was current month)
 function serializeBddCache(cache, date) {
   return {
     v: BDD_CACHE_VERSION,
