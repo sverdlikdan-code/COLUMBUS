@@ -75,8 +75,12 @@ async function fetchData(from, to) {
   const stockM = await executeDax(`EVALUATE SUMMARIZECOLUMNS(DIMCALENDAR[Year], DIMCALENDAR[Month], ${K}[מק"ט], ${filters},
   "sK", [מכר בקרטונים], "avgK", [מכר בקרטונים ממוצע ביום 🛒], "zk", [זיכויים], "br", [TOTAL  brutto])`, DS, WS);
   const kip = await executeDax(`EVALUATE SUMMARIZECOLUMNS(${K}[מק"ט], FILTER(ALL(${K}[ספק]), ${K}[ספק] = "${SUPPLIER}"), "kip", [KARTON IN PALLET average per מק"ט])`, DS, WS);
+  // פיזור: активные клиенты INTER (не зависят от дат) + кто из клиентов INTER какой SKU в каком месяце заказал (только -מכר-)
+  const act = await executeDax(`EVALUATE ROW("act", CALCULATE([DIST לקוחות פעילים], TREATAS({"INTER"}, ${C}[HEVRA])))`, DS, WS);
+  const dist = await executeDax(`EVALUATE SUMMARIZECOLUMNS(DIMCALENDAR[Year], DIMCALENDAR[Month], ${K}[מק"ט], ${C}[מס. לקוח], ${filters},
+  TREATAS({"INTER"}, ${C}[HEVRA]), "o", [כמות לקוחות שהזמנינו for -מכר-])`, DS, WS);
   const photos = await executeDax(`EVALUATE SELECTCOLUMNS(FILTER(${K}, ${K}[ספק] = "${SUPPLIER}"), "sku", ${K}[מק"ט], "url", ${K}[URL תמונה])`, DS, WS);
-  return { sku, chan, priv, stock: withTot(stock, stockTot), photos, stockM, kip };
+  return { sku, chan, priv, stock: withTot(stock, stockTot), photos, stockM, kip, act: act[0]?.['[act]'] || 0, dist };
 }
 
 // строки DAX → { key: { meta, m: { 'YYYY-MM': [u, krt, kg] } } }
@@ -138,6 +142,15 @@ function shape(raw, month) {
     (sm[k] = sm[k] || {})[p] = [sK, a ? sK / a : 0, r['[zk]'] || 0, r['[br]'] || 0];
   }
   for (const x of out.stock) if (!x.total) { x.kip = kipOf[x.sku] || null; x.sm = months.map(p => (sm[x.sku] || {})[p] || [0, 0, 0, 0]); }
+  // клиенты → индексы; по SKU: { 'YYYY-MM': [индексы клиентов] }
+  const cIdx = {}, dm = {}; let nc = 0;
+  for (const r of raw.dist || []) {
+    if (!(r['[o]'] > 0)) continue;
+    const c = String(r['לקוחות רב חברתי[מס. לקוח]']), k = String(r['KARTIS PARIT[מק"ט]']), p = ym(r['DIMCALENDAR[Year]'], r['DIMCALENDAR[Month]']);
+    const i = cIdx[c] ?? (cIdx[c] = nc++);
+    ((dm[k] = dm[k] || {})[p] = dm[k][p] || []).push(i);
+  }
+  out.dist = { act: raw.act, rows: out.stock.filter(x => !x.total).map(x => ({ sku: x.sku, name: x.name, fam: x.fam, m: dm[x.sku] || {} })) };
   const stTot = out.stock.find(x => x.total);
   if (stTot) stTot.mP = out.stock.filter(x => !x.total).reduce((a, x) => a + (x.mP || 0), 0);
   return out;
@@ -192,7 +205,7 @@ td.en{text-align:left}#tSku th,#tSku td{text-align:right}#tSku .st{position:stic
 @media(max-width:600px){#tSku .s1{display:none}#tSku .s2{left:0;white-space:normal;min-width:130px;max-width:140px;font-size:11.5px;line-height:1.25}}
 button.x{border:0;background:none;color:#B0B7C3;cursor:pointer;font-size:11px;padding:0 4px;margin:0 2px}button.x:hover{color:var(--red)}
 button.rs{margin-top:8px;border:1px solid var(--navy);background:#fff;color:var(--navy);border-radius:6px;padding:5px 10px;font:600 13.5px Arial;cursor:pointer}
-#tSt th,#tSt td,table.lt th,table.lt td{text-align:right}table.lt td:first-child,table.lt th:first-child{text-align:left}#tSt td:nth-child(-n+2),#tSt th:nth-child(-n+2){text-align:left}#tSt th,#tSt td{padding:5px 6px}
+#tDi td:nth-child(-n+3),#tDi th:nth-child(-n+3){text-align:left!important}#tDi td.en{width:45%}#tSt th,#tSt td,table.lt th,table.lt td{text-align:right}table.lt td:first-child,table.lt th:first-child{text-align:left}#tSt td:nth-child(-n+2),#tSt th:nth-child(-n+2){text-align:left}#tSt th,#tSt td{padding:5px 6px}
 details summary{cursor:pointer;color:var(--navy);font-size:13px;margin:10px 0 6px}.sh{color:var(--muted)}
 .chart{width:100%;height:auto;display:block}
 .leg{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:6px}.leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-left:4px;vertical-align:-1px}
@@ -206,6 +219,7 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:6px 16px 20
 <section id="sku"><div class="ymbox"></div><h2>מכירות לפי מוצר <span class="pd"></span> <span class="un"></span></h2><div class="scroll" id="skuWrap" dir="ltr"><table id="tSku" dir="ltr"></table></div><div id="skuX"></div></section>
 <section id="chains"><div class="ymbox"></div><div class="kt" id="kt"><span class="sh">כשרות לקוח:</span><div class="tg sm"><button class="kb on" data-kos="all">הכל</button><button class="kb" data-kos="כן">כשר</button><button class="kb" data-kos="לא">לא כשר</button></div></div><h2>רשתות — כמה לקחה כל רשת ומשקלה מהסה"כ <span class="pd"></span> <span class="un"></span></h2><div class="scroll" dir="ltr"><table id="tCh" dir="ltr" class="lt"></table></div><div id="tChX"></div><div id="tChR"></div></section>
 <section id="private"><div class="ymbox"></div><h2>שוק פרטי — ${TOP_PRIVATE} הלקוחות הגדולים בתקופה הנבחרת <span class="pd"></span> <span class="un"></span></h2><div class="scroll" dir="ltr"><table id="tPr" dir="ltr" class="lt"></table></div><div id="tPrX"></div></section>
+<section id="dist"><div class="ymbox"></div><h2>פיזור — כמה לקוחות הזמינו כל מוצר <span class="pd"></span></h2><p class="sh" style="margin:-4px 0 10px;font-size:12px">לקוחות INTER פעילים · לקוח נספר פעם אחת בתקופה · מכר בלבד (בלי החזרות/השמדות) · כמו ב-Power BI</p><div class="kpis" id="dKpi" dir="ltr"></div><div class="scroll" style="margin-top:10px" dir="ltr"><table id="tDi" dir="ltr" class="lt"></table></div><div id="tDiX"></div></section>
 <section id="stock"><div class="ymbox"></div><h2>מלאי והזמנה מומלצת <span class="pd"></span></h2><p class="sh" style="margin:-4px 0 10px;font-size:12px">מכר, ימי מלאי והזמנה מומלצת — לפי החודשים הנבחרים · מלאי נכון ל-${d.asOf} · כמו בדף YARICH מלאי ב-Power BI · לא תלוי במתג היחידות · כמו בדף YARICH מלאי</p><div class="kpis" id="sKpi"></div><div class="scroll" style="margin-top:10px" dir="ltr"><table id="tSt" dir="ltr"></table></div><div id="tStX"></div></section>
 </main>
 <footer>INTER בלבד · ספק YARYCH LLC (2110171) · חודשים שלמים</footer>
@@ -235,7 +249,8 @@ var KOS='all';
 function chainsFor(){var by={},o=[];D.chains.forEach(function(c){if(KOS!=='all'&&c.kos!==KOS)return;var x=by[c.name];
   if(!x){x=by[c.name]={name:c.name,v:D.months.map(function(){return [0,0,0]}),l:D.months.map(function(){return null})};o.push(x)}
   c.v.forEach(function(v,i){for(var j=0;j<3;j++)x.v[i][j]+=v[j]});c.l.forEach(function(v,i){if(v){x.l[i]=x.l[i]||[0,0,0];for(var j=0;j<3;j++)x.l[i][j]+=v[j]}})});return o}
-var HID={sku:{},st:{},ch:{},pr:{}};
+function ldist(x,ly){var set={},n=0;SEL.forEach(function(i){var p=D.months[i];if(ly)p=ly12(p);(x.m[p]||[]).forEach(function(c){if(!set[c]){set[c]=1;n++}})});return {n:n,set:set}}
+var HID={sku:{},st:{},ch:{},pr:{},di:{}};
 function vis(t,a,key){return a.filter(function(x){return !HID[t][key(x)]})}
 function xb(t,k){return '<button class="x" data-t="'+t+'" data-k="'+esc(k)+'" title="הסתר שורה">✕</button>'}
 function rb(t){var n=Object.keys(HID[t]).length;return n?'<button class="rs" data-t="'+t+'">↺ החזר '+n+' שורות מוסתרות</button>':''}
@@ -279,12 +294,22 @@ function render(){selState();
     var r=document.getElementById(id+'R');if(r)r.innerHTML=rest.length?'<details><summary>עוד '+rest.length+' רשתות בלי מכירות ב-'+SL+(HL?' ('+f(sum(rest,lyv))+' ב-'+lyL+')':'')+'</summary><div class="scroll" dir="ltr"><table dir="ltr" class="lt">'+h+rest.map(row).join('')+'</table></div></details>':''}
   tbl('tCh','ch',chainsFor().filter(function(x){return cur(x)||lyv(x)}),'רשת','סה"כ רשתות');
   tbl('tPr','pr',D.priv,'לקוח',null,true,D.topN);
-  renderStock();
+  renderStock();renderDist();
 }
 function stockCalc(x){var sK=0,dd=0,zk=0,br=0;SEL.forEach(function(i){var m=x.sm[i];sK+=m[0];dd+=m[1];zk+=m[2];br+=m[3]});
   var avgK=dd?sK/dd:null,safe=x.safe==null?60:x.safe,r={sK:sK||null,avgK:avgK,zk:zk,br:br,zik:br?zk/br:null,
     days:avgK?x.mOK/avgK*7/5:0,rec:avgK&&avgK*safe*5/7-Math.max(x.mOK,0)>0?avgK*safe*5/7-Math.max(x.mOK,0):null,palDay:avgK&&x.kip?avgK/x.kip:null};
   r.safeP=r.palDay!=null?r.palDay*safe:null;return r}
+function renderDist(){var X=D.dist,A=X.act,all=X.rows,rows=vis('di',all,skuK),U0={},UL={},nu=0,nl=0;
+  rows.forEach(function(x){var c=ldist(x),l=ldist(x,true);x.o=c.n;x.ol=l.n;for(var k in c.set)if(!U0[k]){U0[k]=1;nu++}for(var k2 in l.set)if(!UL[k2]){UL[k2]=1;nl++}});
+  function pz(v){return A?Math.round(1000*v/A)/10+'%':'—'}
+  var k=[['לקוחות INTER פעילים',f(A)],[HL?'הזמינו '+lyL:'הזמינו שנה שעברה',HL?f(nl):'אין נתונים'],['הזמינו '+SL,f(nu)],[HL?'מול '+lyL:'שינוי',HL&&pc(nu,nl)!=null?(pc(nu,nl)>0?'+':'')+pc(nu,nl)+'%':'—',HL&&pc(nu,nl)!=null?(pc(nu,nl)>=0?'up':'dn'):''],['פיזור '+SL,pz(nu)]];
+  document.getElementById('dKpi').innerHTML=k.map(function(x){return '<div class="kpi"><span>'+x[0]+'</span><b dir="ltr" class="'+(x[2]||'')+'">'+x[1]+'</b></div>'}).join('');
+  var h='<tr><th style="width:64px"></th><th>מק"ט</th><th>ENG</th><th class="n">'+(lyL||'שנה שעברה')+'<br>הזמינו</th><th class="n">'+SL+'<br>הזמינו</th><th class="n">'+(lyL?'מול '+lyL:'שינוי')+'</th><th class="n">פיזור %</th></tr>',b='',fam=null;
+  rows.slice().sort(function(p,q){return p.fam===q.fam?q.o-p.o:0}).forEach(function(x){if(x.fam!==fam)b+='<tr class="fam"><td colspan="7" dir="rtl" style="text-align:left">'+esc(x.fam)+'</td></tr>';fam=x.fam;
+    var im=(D.thumbs||{})[x.sku];b+='<tr><td>'+(im?'<img src="'+im+'" alt="" width="48" height="48" style="display:block;border-radius:4px">':'')+'</td><td class="n" style="white-space:nowrap">'+xb('di',x.sku)+x.sku+'</td><td class="en">'+esc(x.name)+'</td>'+lyc(x.ol)+'<td class="n">'+(x.o?f(x.o):'')+'</td>'+ch(HL&&x.ol?pc(x.o,x.ol):null)+'<td class="n">'+(x.o?pz(x.o):'')+'</td></tr>'});
+  b+='<tr class="tot"><td></td><td colspan="2">סה"כ (לקוחות שונים)</td>'+lyc(nl)+'<td class="n">'+f(nu)+'</td>'+ch(HL?pc(nu,nl):null)+'<td class="n">'+pz(nu)+'</td></tr>';
+  document.getElementById('tDi').innerHTML=h+b;document.getElementById('tDiX').innerHTML=rb('di')}
 function renderStock(){var S=D.stock,all=S.filter(function(x){return !x.total}),T0=S.filter(function(x){return x.total})[0]||{};
   all.forEach(function(x){var c=stockCalc(x);for(var k in c)x[k]=c[k]});var rows=vis('st',all,skuK);
   // итог: остатки и продажи — суммы видимых строк; дни запаса и % זיכויים — та же формула PBI от сумм
@@ -442,6 +467,9 @@ async function main() {
   if (!d.skus.length) throw new Error(`нет продаж YARYCH/INTER за окно до ${month} — проверить датасет`);
   const t = totals(d);
   console.log(`YARYCH ${month}: ${n0(t.u)} шт / ${n0(t.krt)} крт / ${n0(t.kg)} кг, SKU ${d.skus.length}, сетей ${d.chains.length}`);
+  try { const sharp = require('sharp'), ph = await loadPhotos(d.photoUrl || {}); d.thumbs = {};
+    for (const [k, b] of Object.entries(ph)) d.thumbs[k] = 'data:image/jpeg;base64,' + (await sharp(b).resize(64, 64).jpeg({ quality: 78 }).toBuffer()).toString('base64');
+  } catch (e) { console.error('[yarych] миниатюры', e.message); }
   const page = buildPage(d);
 
   if (DRY_RUN) {
