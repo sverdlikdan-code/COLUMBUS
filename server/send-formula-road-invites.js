@@ -141,7 +141,9 @@ async function main() {
   console.log(`${SHOULD_SEND ? 'SENDING' : 'DRY RUN'} — ${targets.length} recipient(s) (${deduped.filter(r=>r.isManager).length} managers, ${deduped.filter(r=>!r.isManager).length} agents after dedup)`);
 
   for (const r of targets) {
-    const link = makeShortInvite(r.agentCode, r.agentName, 365, r.isManager);
+    // Dry run must not write a link: every dry run used to add one more live invite per
+    // agent to short-invites.json (4–5 per agent by 05.10, none of them ever sent).
+    const link = SHOULD_SEND ? makeShortInvite(r.agentCode, r.agentName, 365, r.isManager) : 'https://api.sverdlik-apps.site/i/<dry-run>';
     console.log(`${r.isManager ? '[MANAGER]' : '[AGENT]  '} ${r.agentName} <${r.email}> -> ${link}`);
     if (SHOULD_SEND) {
       if (!resend) { console.error('  RESEND_API_KEY not configured, skipping send'); continue; }
