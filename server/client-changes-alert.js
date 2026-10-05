@@ -16,10 +16,11 @@
 // запуск в тот же день даёт тот же результат.
 //
 // Адресаты (env из run-alert.sh):
-//   FORMULA + ICE משפחתי: CLIENT_CHANGES_RECIPIENTS — менеджерам всё; каждому агенту — только строки,
+//   FORMULA + ICE משפחתי: CLIENT_CHANGES_MANAGERS ("ALEXEY=a@x;SADRAN+=b@x") — менеджеру команды его группа
+//     (ICE — по группе доп. агента в FORMULA); CLIENT_CHANGES_ALL — всё; каждому агенту — только строки,
 //     где он в «סוכן» или в «היה/עכשיו» (email из "EMAIL + PASSWORD.xlsx" по коду агента).
 //   ICE BDD — отдельными письмами: CLIENT_CHANGES_BDD_MANAGERS ("TIMUR=a@x;MATVEY,ALMOG=b@x" — каждому
-//     его группы), CLIENT_CHANGES_BDD_ALL — весь BDD (Йоси + Дан).
+//     его группы), CLIENT_CHANGES_BDD_ALL — весь BDD. Агентам BDD не шлём (нет email).
 //   CLIENT_CHANGES_OVERRIDE=<email> — режим проверки: все письма уходят на этот адрес, в теме — кому шли бы.
 // --dry-run: письма не шлются, превью html пишутся рядом со снимком.
 require('dotenv').config({ path: '../.env' });
@@ -337,10 +338,22 @@ async function main() {
       : { tag, to, cc, subject, rows, ...opts });
   };
 
-  // FORMULA + ICE משפחתי: менеджерам — всё, агенту — строки, где он в «סוכן» или в «היה/עכשיו»
+  // Менеджеру группы — только его группа (при смене агента — и группа «היה»).
+  // Формат spec: "ALEXEY=a@x;MATVEY,ALMOG=b@x" (CLIENT_CHANGES_MANAGERS / CLIENT_CHANGES_BDD_MANAGERS).
+  const perGroup = (spec, rows, tag, subject, opts) => {
+    for (const part of (spec || '').split(';').filter(Boolean)) {
+      const [groups, email] = part.split('=').map(s => s.trim());
+      const gs = new Set(groups.split(',').map(s => s.trim()));
+      const mine = rows.filter(c => gs.has(c.manager) || (c.type === 'agent' && gs.has(c.fromManager)));
+      addMail(`${tag} ${groups}`, [email], [], `${subject}: ${mine.length}`, mine, opts);
+    }
+  };
+
+  // FORMULA + ICE משפחתי: менеджеру команды — его группа, общий список (CLIENT_CHANGES_ALL) — всё,
+  // агенту — строки, где он в «סוכן» или в «היה/עכשיו»
   const main = changes.filter(c => c.hevra !== 'ICE BDD');
-  // ponytail: один список на всех менеджеров FORMULA; фильтры по группе — когда пользователь назовёт адресатов
-  addMail('managers', list(process.env.CLIENT_CHANGES_RECIPIENTS), [], `שינויים בלקוחות ${dateStr}: ${main.length}`, main);
+  perGroup(process.env.CLIENT_CHANGES_MANAGERS, main, 'manager', `שינויים בלקוחות ${dateStr}`);
+  addMail('all', list(process.env.CLIENT_CHANGES_ALL), [], `שינויים בלקוחות ${dateStr}: ${main.length}`, main);
 
   const emails = await loadAgentEmails();
   const noEmail = [];
@@ -352,16 +365,11 @@ async function main() {
   }
   if (noEmail.length) console.log(`Агенты без email в ростере (письмо не ушло): ${noEmail.join(', ')}`);
 
-  // ICE BDD — отдельно: каждому менеджеру ICE его группы (при смене агента — и группа «היה»),
-  // Йоси + Дану — весь BDD. Формат CLIENT_CHANGES_BDD_MANAGERS: "TIMUR=a@x;MATVEY,ALMOG=b@x".
+  // ICE BDD — отдельно: менеджеру ICE его группы, общий список (CLIENT_CHANGES_BDD_ALL) — весь BDD.
+  // Агентам BDD не шлём — у них нет email.
   const bdd = changes.filter(c => c.hevra === 'ICE BDD');
   const bddOpts = { title: 'ICE BDD — שינויים בלקוחות', sources: 'ICE BDD' };
-  for (const part of (process.env.CLIENT_CHANGES_BDD_MANAGERS || '').split(';').filter(Boolean)) {
-    const [groups, email] = part.split('=').map(s => s.trim());
-    const gs = new Set(groups.split(',').map(s => s.trim()));
-    const rows = bdd.filter(c => gs.has(c.manager) || (c.type === 'agent' && gs.has(c.fromManager)));
-    addMail(`bdd ${groups}`, [email], [], `ICE BDD — שינויים בלקוחות ${dateStr}: ${rows.length}`, rows, bddOpts);
-  }
+  perGroup(process.env.CLIENT_CHANGES_BDD_MANAGERS, bdd, 'bdd', `ICE BDD — שינויים בלקוחות ${dateStr}`, bddOpts);
   addMail('bdd all', list(process.env.CLIENT_CHANGES_BDD_ALL), [], `ICE BDD — שינויים בלקוחות ${dateStr}: ${bdd.length}`, bdd, bddOpts);
 
   if (DRY_RUN) {
