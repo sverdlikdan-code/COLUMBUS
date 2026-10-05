@@ -68,17 +68,8 @@ async function fetchData(from, to) {
   "safeP", [מלאי בטחון PALLETS], "palDay", [PALLETS מכר ממוצע ביום], "wK", [WEIGHT KARTON average per מק"ט], "cnt", [כמות מוצרים במלאי])`;
   const stock = await executeDax(stockQ(`${K}[מק"ט], ${K}[תאור לועזי], ${K}[תאור פרמטר 2 למוצר],`), DS, WS);
   const stockTot = await executeDax(stockQ(''), DS, WS);
-  const interQ = by => `EVALUATE SUMMARIZECOLUMNS(${by}
-  FILTER(ALL(${K}[ספק]), ${K}[ספק] = "${SUPPLIER}"), TREATAS({"INTER"}, ${F}[חברה]),
-  FILTER(ALL(DIMCALENDAR[Date]), DIMCALENDAR[Date] >= DATE(${sy},${sm},1) && DIMCALENDAR[Date] <= EOMONTH(DATE(${ty},${tm},1),0)),
-  "uLY", [TOTAL UNITS  _מכר_ LAST YEAR], "u", [TOTAL UNITS _מכר_], "nis", [TOTAL SALES (nis) netto], "chU", [% change units],
-  "dIn", [ימים שהיה בהם מלאי], "dOut", [ימי מכר אבודים 😕], "cost", [עלות ליחידה], "price", [מחיר מוצר בפועל],
-  "pr", [רווח שח.], "pct", [% רווח FINAL], "chS", [% change SALES], "chW", [% change weight], "chP", [% change רווח],
-  "zLY", [% זיכויים LAST YEAR], "z", [% זיכויים])`;
-  const inter = await executeDax(interQ(`${K}[מק"ט], ${K}[תאור לועזי], ${K}[תאור פרמטר 2 למוצר],`), DS, WS);
-  const interTot = await executeDax(interQ(''), DS, WS); // итог как в PBI (дни/% זיכויים не суммируются)
   const withTot = (rows, tot) => rows.concat(tot.map(r => ({ ...r, '[isTotal]': true })));
-  return { sku, chan, priv, stock: withTot(stock, stockTot), inter: withTot(inter, interTot) };
+  return { sku, chan, priv, stock: withTot(stock, stockTot) };
 }
 
 // строки DAX → { key: { meta, m: { 'YYYY-MM': [u, krt, kg] } } }
@@ -124,22 +115,12 @@ function shape(raw, month) {
       .sort((a, b) => famOrder[b.fam] - famOrder[a.fam] || a.fam.localeCompare(b.fam) || b.v.at(-1)[0] - a.v.at(-1)[0]),
     chains: chains.map(flat), priv: topPriv.map(flat), privAll: privTotal.map(flat),
     stockFrom: addMonths(month, -(STOCK_MONTHS - 1)), asOf: new Date().toLocaleDateString('en-GB', { timeZone: 'Asia/Jerusalem' }),
-    inter: blockRows(raw.inter, ['uLY', 'u', 'nis', 'chU', 'dIn', 'dOut', 'cost', 'price', 'pr', 'pct', 'chS', 'chW', 'chP', 'zLY', 'z'], famOrder, 'u'),
     stock: raw.stock.map(r => ({
       total: r['[isTotal]'] === true, sku: String(r['KARTIS PARIT[מק"ט]'] ?? ''), name: String(r['KARTIS PARIT[תאור לועזי]'] || '').trim(),
       fam: fixBiDi(String(r['KARTIS PARIT[תאור פרמטר 2 למוצר]'] || '')),
       ...Object.fromEntries(['mU', 'mK', 'mP', 'mOK', 'avgK', 'sK', 'days', 'safe', 'rec', 'zik', 'nis', 'safeP', 'palDay', 'wK', 'cnt'].map(k => [k, r[`[${k}]`] ?? null])),
     })).sort((a, b) => a.total - b.total || (famOrder[b.fam] || 0) - (famOrder[a.fam] || 0) || a.sku.localeCompare(b.sku)),
   };
-}
-
-// строки блока PBI-страницы: SKU + итог (isTotal), семьи по объёму 12 мес, внутри — по колонке sortBy
-function blockRows(rows, keys, famOrder, sortBy) {
-  return rows.map(r => ({
-    total: r['[isTotal]'] === true, sku: String(r['KARTIS PARIT[מק"ט]'] ?? ''), name: String(r['KARTIS PARIT[תאור לועזי]'] || '').trim(),
-    fam: fixBiDi(String(r['KARTIS PARIT[תאור פרמטר 2 למוצר]'] || '')),
-    ...Object.fromEntries(keys.map(k => [k, r[`[${k}]`] ?? null])),
-  })).sort((a, b) => a.total - b.total || (famOrder[b.fam] || 0) - (famOrder[a.fam] || 0) || (b[sortBy] || 0) - (a[sortBy] || 0));
 }
 
 // ── итоги для письма (в штуках) ─────────────────────────────────────────────
@@ -185,6 +166,7 @@ td.en{text-align:left}#tSku th,#tSku td{text-align:right}#tSku .st{position:stic
 @media(max-width:600px){#tSku .s1{display:none}#tSku .s2{left:0;white-space:normal;min-width:130px;max-width:140px;font-size:11.5px;line-height:1.25}}
 button.x{border:0;background:none;color:#B0B7C3;cursor:pointer;font-size:11px;padding:0 4px;margin:0 2px}button.x:hover{color:var(--red)}
 button.rs{margin-top:8px;border:1px solid var(--navy);background:#fff;color:var(--navy);border-radius:6px;padding:5px 10px;font:600 12px Arial;cursor:pointer}
+#tSt th,#tSt td{text-align:right}#tSt td:nth-child(-n+3),#tSt th:nth-child(-n+3){text-align:left}
 details summary{cursor:pointer;color:var(--navy);font-size:13px;margin:10px 0 6px}.sh{color:var(--muted)}
 .chart{width:100%;height:auto;display:block}
 .leg{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:6px}.leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-left:4px;vertical-align:-1px}
@@ -197,8 +179,7 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:6px 16px 20
 <section id="trend"><h2>מכירות לפי חודש</h2><div id="chart"></div><div class="leg" id="leg"></div></section>
 <section id="sku"><h2>מכירות לפי מוצר</h2><div class="ym"><div class="ms" id="ys"></div><div class="ms mg" id="ms"></div></div><div class="scroll" id="skuWrap" dir="ltr"><table id="tSku" dir="ltr"></table></div><div id="skuX"></div></section>
 <section id="chains"><h2>רשתות — כמה לקחה כל רשת ומשקלה מהסה"כ</h2><div class="scroll"><table id="tCh"></table></div><div id="tChX"></div><div id="tChR"></div></section>
-<section id="inter"><h2>מכירות ורווחיות — ${label(d.stockFrom)}–${label(d.month)} מול שנה שעברה</h2><p class="sh" style="margin:-4px 0 10px;font-size:12px">3 החודשים האחרונים · כמו בדף INTER + ב-Power BI · לא תלוי במתג היחידות</p><div class="kpis" id="iKpi"></div><div class="scroll" style="margin-top:10px"><table id="tIn"></table></div><div id="tInX"></div></section>
-<section id="stock"><h2>מלאי והזמנה מומלצת — ${label(d.stockFrom)}–${label(d.month)}</h2><p class="sh" style="margin:-4px 0 10px;font-size:12px">מכר — 3 החודשים האחרונים · מלאי נכון ל-${d.asOf} · כמו בדף YARICH מלאי ב-Power BI · לא תלוי במתג היחידות</p><div class="kpis" id="sKpi"></div><div class="scroll" style="margin-top:10px"><table id="tSt"></table></div><div id="tStX"></div></section>
+<section id="stock"><h2>מלאי והזמנה מומלצת — ${label(d.stockFrom)}–${label(d.month)}</h2><p class="sh" style="margin:-4px 0 10px;font-size:12px">מכר — 3 החודשים האחרונים · מלאי נכון ל-${d.asOf} · כמו בדף YARICH מלאי ב-Power BI · לא תלוי במתג היחידות</p><div class="kpis" id="sKpi"></div><div class="scroll" style="margin-top:10px" dir="ltr"><table id="tSt" dir="ltr"></table></div><div id="tStX"></div></section>
 <section id="private"><h2>שוק פרטי — ${TOP_PRIVATE} הלקוחות הגדולים (12 חודשים)</h2><div class="scroll"><table id="tPr"></table></div><div id="tPrX"></div></section>
 </main>
 <footer>INTER בלבד · ספק YARYCH LLC (2110171) · חודשים שלמים</footer>
@@ -224,7 +205,7 @@ function lyv(x){var s=0;SEL.forEach(function(i){s+=x.l[i]?x.l[i][U]:0});return s
 function selV(v){var s=0;SEL.forEach(function(i){s+=v[i]});return s}
 function sum(a,fn){var s=0;a.forEach(function(x){s+=fn(x)});return s}
 // скрытые строки по таблицам: ✕ прячет строку, итоги пересчитываются; ↺ возвращает
-var HID={sku:{},st:{},ch:{},pr:{},in:{}};
+var HID={sku:{},st:{},ch:{},pr:{}};
 function vis(t,a,key){return a.filter(function(x){return !HID[t][key(x)]})}
 function xb(t,k){return '<button class="x" data-t="'+t+'" data-k="'+esc(k)+'" title="הסתר שורה">✕</button>'}
 function rb(t){var n=Object.keys(HID[t]).length;return n?'<button class="rs" data-t="'+t+'">↺ החזר '+n+' שורות מוסתרות</button>':''}
@@ -265,26 +246,8 @@ function render(){selState();
     var r=document.getElementById(id+'R');if(r)r.innerHTML=rest.length?'<details><summary>עוד '+rest.length+' רשתות בלי מכירות ב-'+SL+' ('+f(sum(rest,s12))+' ב-'+D.n12+' ח\\')</summary><div class="scroll"><table>'+h+rest.map(row).join('')+'</table></div></details>':''}
   tbl('tCh','ch',D.chains.filter(function(x){return cur(x)||s12(x)}),'רשת','סה"כ רשתות');
   tbl('tPr','pr',D.priv,'לקוח',null,true);
-  renderStock();renderInter();
+  renderStock();
 }
-function pcs(v){return v==null?'<td class="n"></td>':'<td class="n '+(v>=0?'up':'dn')+'">'+Math.round(v*100)+'%</td>'}
-function renderInter(){var S=D.inter,all=S.filter(function(x){return !x.total}),rows=vis('in',all,skuK),T=Object.assign({},S.filter(function(x){return x.total})[0],{cost:null,price:null}); // в итоге PBI цены пустые
-  // KPI — всегда по всему поставщику, как в PBI
-  var k=[['% change SALES',T.chS],['% change units',T.chU],['% change weight',T.chW],['% change רווח',T.chP],['% זיכויים LAST YEAR',T.zLY],['% זיכויים NOW',T.z]];
-  document.getElementById('iKpi').innerHTML=k.map(function(x){var v=x[1];return '<div class="kpi"><span>'+x[0]+'</span><b dir="ltr" class="'+(x[0].indexOf('זיכויים')<0&&v!=null?(v>=0?'up':'dn'):'')+'">'+(v==null?'—':(Math.round(v*1000)/10)+'%')+'</b></div>'}).join('');
-  // итог: из PBI, пока ничего не скрыто; иначе суммы видимых, % — отношения сумм (как в PBI), дни — «—»
-  if(rows.length<all.length){var t={partial:true,dIn:null,dOut:null};['uLY','u','nis','pr'].forEach(function(c){t[c]=sum(rows,function(x){return x[c]||0})});
-    t.chU=t.uLY?t.u/t.uLY-1:null;t.pct=t.nis?t.pr/t.nis:null;T=t}
-  var C=[['uLY','UNITS LAST YEAR'],['u','UNITS now'],['nis','SALES NIS'],['chU','% change units'],['dIn','DAYS IN STOCK'],['dOut','DAYS OUT OF STOCK'],['cost','עלות ליחידה משוקלל'],['price','מחיר מכירה משוקלל'],['pr','רווח שח'],['pct','% רווח FINAL']];
-  function cell(x,c){var v=x[c];if(v==null)return '<td class="n'+(x.partial?' sh':'')+'">'+(x.partial&&(c==='dIn'||c==='dOut')?'—':'')+'</td>';
-    if(c==='chU'||c==='pct')return pcs(v);
-    if(c==='cost'||c==='price')return '<td class="n">₪ '+(Math.round(v*100)/100).toFixed(2)+'</td>';
-    if(c==='dOut')return '<td class="n" style="'+(v<-20?'color:#B91C1C;font-weight:700':'')+'">'+f(v)+'</td>';
-    return '<td class="n">'+f(v)+'</td>'}
-  var h='<tr><th>תאור פרמטר 2</th><th>מק"ט</th><th>ENG</th>'+C.map(function(c){return '<th class="n" style="white-space:normal;min-width:64px">'+c[1]+'</th>'}).join('')+'</tr>',b='',fam=null;
-  rows.forEach(function(x){b+='<tr'+(x.fam!==fam?' style="border-top:2px solid #CBD5E1"':'')+'><td>'+(x.fam!==fam?'<b>'+esc(x.fam)+'</b>':'')+'</td><td class="n">'+xb('in',x.sku)+x.sku+'</td><td dir="ltr" style="text-align:left">'+esc(x.name)+'</td>'+C.map(function(c){return cell(x,c[0])}).join('')+'</tr>';fam=x.fam});
-  b+='<tr class="tot"><td colspan="3">סה"כ</td>'+C.map(function(c){return cell(T,c[0])}).join('')+'</tr>';
-  document.getElementById('tIn').innerHTML=h+b;document.getElementById('tInX').innerHTML=rb('in')+(T.partial?'<span class="sh" style="font-size:12px;margin-right:8px">DAYS IN/OUT OF STOCK בסה"כ — רק בלי שורות מוסתרות (נוסחת Power BI)</span>':'')}
 function renderStock(){var S=D.stock,all=S.filter(function(x){return !x.total}),rows=vis('st',all,skuK),T=S.filter(function(x){return x.total})[0]||{};
   // пока ничего не скрыто — итог из PBI; иначе суммы видимых, дни запаса и % זיכויים — «—» (формулы PBI не суммируются)
   if(rows.length<all.length){var A=['mU','mK','mOK','avgK','sK','rec','nis'];T={safe:T.safe,days:null,zik:null,mP:null,safeP:null,palDay:null,partial:true,
