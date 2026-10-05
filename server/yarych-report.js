@@ -400,12 +400,8 @@ async function buildExcel(d) {
 // ── письмо ──────────────────────────────────────────────────────────────────
 function buildEmail(d, t, link) {
   const ch = v => v == null ? '—' : `<span style="color:${v >= 0 ? GREEN : RED};font-weight:bold">${v > 0 ? '+' : ''}${v}%</span>`;
-  const byName = {}; for (const x of d.chains) { const y = byName[x.name] = byName[x.name] || { name: x.name, u: 0, ly: 0 }; y.u += x.v.at(-1)[0]; y.ly += x.l.at(-1)?.[0] || 0; }
-  const top = Object.values(byName).filter(x => x.u).sort((a, b) => b.u - a.u).slice(0, 5);
   const F = 'font-family:Arial,Helvetica,sans-serif;', ly = d.ly, M = ruLong(d.month), MS = ruShort(d.month), LS = ly ? ruShort(ly) : null;
   const kpi = (lab, val, extra = '') => `<td width="33%" align="center" valign="top" bgcolor="${PAPER}" style="${F}padding:14px 6px;border:1px solid ${LINE}"><div style="${F}font-size:13px;color:${MUTED}">${lab}</div><div style="${F}font-size:24px;font-weight:bold;color:${NAVY};padding-top:4px">${val}</div>${extra}</td>`;
-  const th = (txt, al = 'right') => `<th align="${al}" style="${F}font-size:13px;color:${MUTED};font-weight:bold;padding:8px 10px;border-bottom:2px solid ${NAVY}">${txt}</th>`;
-  const td = (txt, al = 'right', ex = '') => `<td align="${al}" style="${F}font-size:14px;color:${INK};padding:8px 10px;border-bottom:1px solid ${LINE}"${ex}>${txt}</td>`;
   const share = t.u ? Math.round(100 * t.chainsU / t.u) : 0;
   const subject = `YARYCH · продажи INTER · ${M}`;
   const html = `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
@@ -425,14 +421,9 @@ function buildEmail(d, t, link) {
   ${ly ? kpi(`${LS}, шт`, n0(t.lyU)) : ''}${kpi(`${MS}, шт`, n0(t.u))}${ly ? kpi('Изменение', ch(yoy(t.u, t.lyU))) : ''}
 </tr></table></td></tr>
 <tr><td style="${F}padding:6px 28px 18px;font-size:14px;color:${MUTED}">${MS}: картоны <b style="color:${INK}">${n0(t.krt)}</b> · кг <b style="color:${INK}">${n0(t.kg)}</b> · сети <b style="color:${INK}">${share}%</b> объёма, частный рынок <b style="color:${INK}">${100 - share}%</b></td></tr>
-<tr><td style="${F}padding:0 28px 6px;font-size:15px;font-weight:bold;color:${NAVY}">Топ-5 сетей, штуки</td></tr>
-<tr><td style="padding:0 28px 8px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-  <tr>${th('Сеть', 'left')}${ly ? th(LS) : ''}${th(MS)}${ly ? th('Изм.') : ''}${th('Доля')}</tr>
-  ${top.map(x => `<tr>${td(esc(x.name), 'left', ' dir="rtl"')}${ly ? td(n0(x.ly)) : ''}${td('<b>' + n0(x.u) + '</b>')}${ly ? td(ch(yoy(x.u, x.ly))) : ''}${td((t.u ? Math.round(1000 * x.u / t.u) / 10 : 0) + '%')}</tr>`).join('')}
-</table></td></tr>
 ${link ? `<tr><td align="center" style="padding:22px 28px 8px">
   <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" bgcolor="${NAVY}" style="padding:15px 40px;border-radius:8px;border:1px solid ${NAVY};mso-padding-alt:15px 40px">
-  <a href="${link}" target="_blank" style="${F}display:block;font-size:17px;font-weight:bold;color:#ffffff;text-decoration:none;line-height:20px">Открыть полный отчёт&nbsp;&nbsp;→</a>
+  <a href="${link}" target="_blank" style="${F}display:block;font-size:17px;font-weight:bold;color:#ffffff !important;text-decoration:none;line-height:20px"><font color="#ffffff"><span style="color:#ffffff">Открыть полный отчёт&nbsp;&nbsp;→</span></font></a>
   </td></tr></table>
   <div style="${F}font-size:13px;color:${MUTED};padding-top:10px">Штуки / картоны / кг, все сети, топ частного рынка, остатки и рекомендация к заказу</div>
 </td></tr>` : ''}
