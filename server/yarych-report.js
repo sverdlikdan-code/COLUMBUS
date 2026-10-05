@@ -109,7 +109,6 @@ function shape(raw, month) {
   const ly = addMonths(month, -12);
   const chains = Object.values(chan).filter(x => x.ch === 'רשתות');
   const privTotal = Object.values(chan).filter(x => x.ch === 'שוק פרטי');
-  const topPriv = Object.values(priv).sort((a, b) => sumM(b.m, last12, 0) - sumM(a.m, last12, 0)).slice(0, TOP_PRIVATE);
   // плоский вид для страницы: m → массив по months (+ прошлый год отчётного месяца)
   const flat = x => ({ ...x, m: undefined, v: months.map(p => x.m[p] || [0, 0, 0]), l: months.map(p => x.m[addMonths(p, -12)] || null) });
   const famOrder = {}; for (const x of Object.values(sku)) famOrder[x.fam] = (famOrder[x.fam] || 0) + sumM(x.m, last12, 0);
@@ -117,7 +116,7 @@ function shape(raw, month) {
     month, ly: all.has(ly) ? ly : null, months, n12: last12.length, lyOk: months.map(p => all.has(addMonths(p, -12))),
     skus: Object.values(sku).filter(x => months.some(p => x.m[p])).map(flat)
       .sort((a, b) => famOrder[b.fam] - famOrder[a.fam] || a.fam.localeCompare(b.fam) || b.v.at(-1)[0] - a.v.at(-1)[0]),
-    chains: chains.map(flat), priv: topPriv.map(flat), privAll: privTotal.map(flat),
+    chains: chains.map(flat), priv: Object.values(priv).filter(x => months.some(p => x.m[p]) || months.some(p => x.m[addMonths(p, -12)])).map(flat), topN: TOP_PRIVATE, privAll: privTotal.map(flat),
     photoUrl, xl: { months: xlMonths, rows: Object.values(sku).filter(x => xlMonths.some(p => x.m[p])).map(x => ({ sku: x.sku, name: x.name, fam: x.fam, v: xlMonths.map(p => x.m[p] || [0, 0, 0]) }))
       .sort((a, b) => (famOrder[b.fam] || 0) - (famOrder[a.fam] || 0) || a.sku.localeCompare(b.sku)) },
     stockFrom: addMonths(month, -(STOCK_MONTHS - 1)), asOf: new Date().toLocaleDateString('en-GB', { timeZone: 'Asia/Jerusalem' }),
@@ -188,7 +187,7 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:6px 16px 20
 <section id="sku"><h2>מכירות לפי מוצר <span class="un"></span></h2><div class="ym"><div class="ms" id="ys"></div><div class="ms mg" id="ms"></div></div><div class="scroll" id="skuWrap" dir="ltr"><table id="tSku" dir="ltr"></table></div><div id="skuX"></div></section>
 <section id="chains"><div class="kt" id="kt"><span class="sh">כשרות לקוח:</span><div class="tg sm"><button class="kb on" data-kos="all">הכל</button><button class="kb" data-kos="כן">כשר</button><button class="kb" data-kos="לא">לא כשר</button></div></div><h2>רשתות — כמה לקחה כל רשת ומשקלה מהסה"כ <span class="un"></span></h2><div class="scroll" dir="ltr"><table id="tCh" dir="ltr" class="lt"></table></div><div id="tChX"></div><div id="tChR"></div></section>
 <section id="stock"><h2>מלאי והזמנה מומלצת — ${label(d.stockFrom)}–${label(d.month)}</h2><p class="sh" style="margin:-4px 0 10px;font-size:12px">מכר — 3 החודשים האחרונים · מלאי נכון ל-${d.asOf} · כמו בדף YARICH מלאי ב-Power BI · לא תלוי במתג היחידות</p><div class="kpis" id="sKpi"></div><div class="scroll" style="margin-top:10px" dir="ltr"><table id="tSt" dir="ltr"></table></div><div id="tStX"></div></section>
-<section id="private"><h2>שוק פרטי — ${TOP_PRIVATE} הלקוחות הגדולים (12 חודשים) <span class="un"></span></h2><div class="scroll" dir="ltr"><table id="tPr" dir="ltr" class="lt"></table></div><div id="tPrX"></div></section>
+<section id="private"><h2>שוק פרטי — ${TOP_PRIVATE} הלקוחות הגדולים בתקופה הנבחרת <span class="un"></span></h2><div class="scroll" dir="ltr"><table id="tPr" dir="ltr" class="lt"></table></div><div id="tPrX"></div></section>
 </main>
 <footer>INTER בלבד · ספק YARYCH LLC (2110171) · חודשים שלמים</footer>
 <script>
@@ -250,15 +249,15 @@ function render(){selState();
   body+='<tr class="tot"><td class="st s1"></td><td class="st s2">TOTAL</td>'+lyc(TL)+mc(grand)+ch(HL?pc(T,TL):null)+'</tr>';
   document.getElementById('tSku').innerHTML=hd+body;document.getElementById('skuX').innerHTML=rb('sku');var w=document.getElementById('skuWrap');w.scrollLeft=w.scrollWidth;
   // сети и частники: отчётный месяц, доля от общего итога, к прошлому году, 12 месяцев и доля
-  function tbl(id,t,list,nameHd,total,keepAll){var a=vis(t,list,nmK).slice().sort(function(p,q){return cur(q)-cur(p)||lyv(q)-lyv(p)});
+  function tbl(id,t,list,nameHd,total,keepAll,limit){var a=vis(t,list,nmK).slice().sort(function(p,q){return cur(q)-cur(p)||lyv(q)-lyv(p)});if(limit)a=a.filter(function(x){return cur(x)>0}).slice(0,limit);
     var h='<tr><th>'+nameHd+'</th><th class="n">'+(lyL||'שנה שעברה')+'</th><th class="n">'+SL+'</th><th class="n">'+(lyL?'מול '+lyL:'שינוי')+'</th><th class="n">% מסה"כ</th></tr>';
     function row(x){return '<tr><td>'+xb(t,x.name)+esc(x.name)+'</td>'+lyc(lyv(x))+'<td class="n">'+f(cur(x))+'</td>'+ch(HL?pc(cur(x),lyv(x)):null)+sh(cur(x),TF)+'</tr>'}
-    var act=keepAll?a:a.filter(function(x){return cur(x)}),rest=keepAll?[]:a.filter(function(x){return !cur(x)}),b=act.map(row).join('');
+    var act=keepAll?a:a.filter(function(x){return cur(x)}),rest=[] /* сети без продаж в периоде не показываем (пользователь 2026-10-05) */,b=act.map(row).join('');
     if(total){var c=sum(a,cur),cl=sum(a,lyv);b+='<tr class="tot"><td>'+total+'</td>'+lyc(cl)+'<td class="n">'+f(c)+'</td>'+ch(HL?pc(c,cl):null)+sh(c,TF)+'</tr>'}
     document.getElementById(id).innerHTML=h+b;document.getElementById(id+'X').innerHTML=rb(t);
     var r=document.getElementById(id+'R');if(r)r.innerHTML=rest.length?'<details><summary>עוד '+rest.length+' רשתות בלי מכירות ב-'+SL+(HL?' ('+f(sum(rest,lyv))+' ב-'+lyL+')':'')+'</summary><div class="scroll" dir="ltr"><table dir="ltr" class="lt">'+h+rest.map(row).join('')+'</table></div></details>':''}
   tbl('tCh','ch',chainsFor().filter(function(x){return cur(x)||lyv(x)}),'רשת','סה"כ רשתות');
-  tbl('tPr','pr',D.priv,'לקוח',null,true);
+  tbl('tPr','pr',D.priv,'לקוח',null,true,D.topN);
   renderStock();
 }
 function renderStock(){var S=D.stock,all=S.filter(function(x){return !x.total}),rows=vis('st',all,skuK),T=S.filter(function(x){return x.total})[0]||{};
