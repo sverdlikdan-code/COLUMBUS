@@ -112,7 +112,7 @@ function shape(raw, month) {
   // плоский вид для страницы: m → массив по months (+ прошлый год отчётного месяца)
   const flat = x => ({ ...x, m: undefined, v: months.map(p => x.m[p] || [0, 0, 0]), l: months.map(p => x.m[addMonths(p, -12)] || null) });
   const famOrder = {}; for (const x of Object.values(sku)) famOrder[x.fam] = (famOrder[x.fam] || 0) + sumM(x.m, last12, 0);
-  return {
+  const out = {
     month, ly: all.has(ly) ? ly : null, months, n12: last12.length, lyOk: months.map(p => all.has(addMonths(p, -12))),
     skus: Object.values(sku).filter(x => months.some(p => x.m[p])).map(flat)
       .sort((a, b) => famOrder[b.fam] - famOrder[a.fam] || a.fam.localeCompare(b.fam) || b.v.at(-1)[0] - a.v.at(-1)[0]),
@@ -126,6 +126,9 @@ function shape(raw, month) {
       ...Object.fromEntries(['mU', 'mK', 'mP', 'mOK', 'avgK', 'sK', 'days', 'safe', 'rec', 'zik', 'nis', 'safeP', 'palDay', 'wK', 'cnt'].map(k => [k, r[`[${k}]`] ?? null])),
     })).sort((a, b) => a.total - b.total || (famOrder[b.fam] || 0) - (famOrder[a.fam] || 0) || a.sku.localeCompare(b.sku)),
   };
+  const stTot = out.stock.find(x => x.total);
+  if (stTot) stTot.mP = out.stock.filter(x => !x.total).reduce((a, x) => a + (x.mP || 0), 0);
+  return out;
 }
 
 // ── итоги для письма (в штуках) ─────────────────────────────────────────────
@@ -264,7 +267,7 @@ function render(){selState();
 }
 function renderStock(){var S=D.stock,all=S.filter(function(x){return !x.total}),rows=vis('st',all,skuK),T=S.filter(function(x){return x.total})[0]||{};
   // пока ничего не скрыто — итог из PBI; иначе суммы видимых, дни запаса и % זיכויים — «—» (формулы PBI не суммируются)
-  if(rows.length<all.length){var A=['mU','mK','mOK','avgK','sK','rec','nis'];T={safe:T.safe,days:null,zik:null,mP:null,safeP:null,palDay:null,partial:true,
+  if(rows.length<all.length){var A=['mU','mK','mP','mOK','avgK','sK','rec','nis','safeP','palDay'];T={safe:T.safe,days:null,zik:null,partial:true,
     wK:rows.length?sum(rows,function(x){return x.wK||0})/rows.length:null,cnt:rows.filter(function(x){return x.mU>0}).length};
     A.forEach(function(k){T[k]=sum(rows,function(x){return x[k]||0})})}
   function n(v,d){return v==null?'—':(d?(Math.round(v*10)/10).toLocaleString('en-US'):f(v))}
@@ -280,7 +283,7 @@ function renderStock(){var S=D.stock,all=S.filter(function(x){return !x.total}),
   rows.forEach(function(x){if(x.fam!==fam)b+='<tr class="fam"><td colspan="'+nc+'" dir="rtl" style="text-align:left">'+esc(x.fam)+'</td></tr>';fam=x.fam;
     b+='<tr><td class="n" style="white-space:nowrap">'+xb('st',x.sku)+x.sku+'</td><td class="en" style="white-space:normal;min-width:170px;max-width:240px">'+esc(x.name)+'</td>'+C.map(function(c){return cell(x,c[0])}).join('')+'</tr>'});
   b+='<tr class="tot"><td colspan="2">סה"כ</td>'+C.map(function(c){return cell(T,c[0])}).join('')+'</tr>';
-  document.getElementById('tSt').innerHTML=h+b;document.getElementById('tStX').innerHTML=rb('st')+(T.partial?'<span class="sh" style="font-size:12px;margin-right:8px">PALLET, ימי מלאי ו-% זיכויים בסה"כ — רק בלי שורות מוסתרות (נוסחת Power BI)</span>':'')}
+  document.getElementById('tSt').innerHTML=h+b;document.getElementById('tStX').innerHTML=rb('st')+(T.partial?'<span class="sh" style="font-size:12px;margin-right:8px">ימי מלאי ו-% זיכויים בסה"כ — רק בלי שורות מוסתרות (נוסחת Power BI)</span>':'')}
 document.addEventListener('click',function(e){var kb=e.target.closest('button.kb');if(kb){KOS=kb.dataset.kos;document.querySelectorAll('button.kb').forEach(function(x){x.classList.toggle('on',x===kb)});HID.ch={};render();track('kos-'+(KOS==='all'?'all':KOS==='כן'?'yes':'no'));return}
   var yb=e.target.closest('[data-y],[data-mo]');if(yb&&!yb.disabled){var isY=yb.hasAttribute('data-y'),A=isY?YS:MS,v=+(isY?yb.dataset.y:yb.dataset.mo),k=A.indexOf(v);
     if(k<0)A.push(v);else A.splice(k,1);var ns=pickSel();if(!ns.length){if(k<0)A.splice(A.indexOf(v),1);else A.push(v);return}
