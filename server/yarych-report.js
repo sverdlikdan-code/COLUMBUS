@@ -559,7 +559,7 @@ ${link ? `<tr><td align="center" style="padding:22px 28px 8px">
   </td></tr></table><!--<![endif]-->
   <div style="${F}font-size:13px;color:${MUTED};padding-top:10px">Штуки / картоны / кг, все сети, топ частного рынка, остатки и рекомендация к заказу</div>
 </td></tr>` : ''}
-<tr><td style="${F}padding:14px 28px 24px;font-size:14px;color:${INK};line-height:1.5">📎 Во вложении — Excel с продажами по месяцам (${ruShort(d.xl.months[0])} – ${MS}) и фото товаров.</td></tr>
+<tr><td style="${F}padding:14px 28px 24px;font-size:14px;color:${INK};line-height:1.5">📎 Во вложении — Excel с продажами по месяцам (${ruShort(d.xl.months[0])} – ${MS}) и фото товаров.${d.stockHist && d.stockHist.dates.length ? `<br><b>Новое:</b> отдельным листом «Остатки, шт» — остатки на складе на 1-е число каждого месяца (${'1 ' + RU_GEN[+d.stockHist.dates[0].slice(5, 7) - 1] + ' ' + d.stockHist.dates[0].slice(0, 4)} – ${'1 ' + RU_GEN[+d.stockHist.dates.at(-1).slice(5, 7) - 1] + ' ' + d.stockHist.dates.at(-1).slice(0, 4)}).` : ''}</td></tr>
 <tr><td bgcolor="${PAPER}" style="${F}padding:14px 28px;font-size:12px;color:${MUTED};border-top:1px solid ${LINE}">Отчёт сформирован автоматически из Power BI (INTERNATIONAL CONTROL DESK) · только INTER · поставщик YARYCH LLC</td></tr>
 </table></td></tr></table></body></html>`;
   return { subject, html };
