@@ -223,7 +223,7 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:6px 16px 20
 <section id="private"><div class="ymbox"></div><h2>שוק פרטי — ${TOP_PRIVATE} הלקוחות הגדולים בתקופה הנבחרת <span class="pd"></span> <span class="un"></span></h2><div class="scroll" dir="ltr"><table id="tPr" dir="ltr" class="lt"></table></div><div id="tPrX"></div></section>
 <section id="dist"><div class="ymbox"></div><h2>פיזור — כמה לקוחות הזמינו כל מוצר <span class="pd"></span></h2><p class="sh" style="margin:-4px 0 10px;font-size:12px">לקוחות INTER פעילים · לקוח נספר פעם אחת בתקופה · מכר בלבד (בלי החזרות/השמדות) · כמו ב-Power BI</p><div class="kpis" id="dKpi" dir="ltr"></div><div class="scroll" style="margin-top:10px" dir="ltr"><table id="tDi" dir="ltr" class="lt"></table></div><div id="tDiX"></div></section>
 <section id="stock"><div class="ymbox"></div><h2>מלאי והזמנה מומלצת <span class="pd"></span></h2><p class="sh" style="margin:-4px 0 10px;font-size:12px">מכר, ימי מלאי והזמנה מומלצת — לפי החודשים הנבחרים · מלאי נכון ל-${d.asOf} · כמו בדף YARICH מלאי ב-Power BI · לא תלוי במתג היחידות · כמו בדף YARICH מלאי</p><div class="kpis" id="sKpi"></div><div class="scroll" style="margin-top:10px" dir="ltr"><table id="tSt" dir="ltr"></table></div><div id="tStX"></div></section>
-<section id="hist"><h2>מלאי ב-1 לכל חודש — יחידות</h2><p class="sh" style="margin:-4px 0 10px;font-size:12px">מחסן ראשי (כמו מלאי זמין ב-Power BI) · מקור: Priority · לא תלוי בבחירת החודשים</p><div class="scroll" dir="ltr"><table id="tHi" dir="ltr" class="lt"></table></div></section>
+<section id="hist"><h2>מלאי ב-1 לכל חודש — יחידות</h2><p class="sh" style="margin:-4px 0 10px;font-size:12px">מחסן ראשי (כמו מלאי זמין ב-Power BI) · מקור: Priority · לא תלוי בבחירת החודשים</p><div id="hChart"></div><div class="leg" id="hLeg" style="margin-bottom:12px"></div><div class="scroll" dir="ltr"><table id="tHi" dir="ltr" class="lt"></table></div></section>
 </main>
 <footer>INTER בלבד · ספק YARYCH LLC (2110171) · חודשים שלמים</footer>
 <script>
@@ -325,6 +325,13 @@ function renderHist(){var H=D.stockHist,el=document.getElementById('tHi');if(!H|
   var h='<tr><th style="width:56px"></th><th>מק"ט</th><th>ENG</th>'+H.dates.map(function(dt){return '<th class="n">'+dl(dt)+'</th>'}).join('')+'</tr>',b='';
   rows.forEach(function(x){if(x.fam!==fam)b+='<tr class="fam"><td colspan="'+(H.dates.length+3)+'" dir="rtl" style="text-align:left">'+esc(x.fam)+'</td></tr>';fam=x.fam;var im=(D.thumbs||{})[x.sku];
     b+='<tr><td>'+(im?'<img src="'+im+'" alt="" width="44" height="44" style="display:block;border-radius:4px">':'')+'</td><td class="n" style="text-align:left">'+x.sku+'</td><td class="en" style="text-align:left">'+esc(x.name)+'</td>'+(H.v[x.sku]||[]).map(function(v){return '<td class="n'+(v<0?' dn':'')+'">'+(v==null?'':f(v))+'</td>'}).join('')+'</tr>'});
+  var fams=[];rows.forEach(function(x){if(fams.indexOf(x.fam)<0)fams.push(x.fam)});var COLH=['#1C3D6B','#E8743B','#3B82F6','#C9A227','#15803D','#8B5CF6'];
+  var n=H.dates.length,W=Math.max(1100,n*90),HH=240,pad=28,bw=(W-pad*2)/n,mx=0;H.dates.forEach(function(_,j){mx=Math.max(mx,sum(rows,function(x){return Math.max(0,(H.v[x.sku]||[])[j]||0)}))});
+  var svg='<svg class="chart" viewBox="0 0 '+W+' '+(HH+40)+'" direction="ltr">';
+  H.dates.forEach(function(dt,j){var y=HH,x=pad+j*bw+6;fams.forEach(function(fm,k){var v=sum(rows.filter(function(r){return r.fam===fm}),function(r){return Math.max(0,(H.v[r.sku]||[])[j]||0)}),hh=mx?v/mx*(HH-30):0;y-=hh;svg+='<rect x="'+x+'" y="'+y+'" width="'+(bw-12)+'" height="'+hh+'" fill="'+COLH[k%COLH.length]+'"/>'});
+    svg+='<text x="'+(x+(bw-12)/2)+'" y="'+(y-5)+'" font-size="11" text-anchor="middle" fill="#1F2937" font-weight="700">'+(tot[j]>=10000?Math.round(tot[j]/1000)+'K':f(tot[j]))+'</text><text x="'+(x+(bw-12)/2)+'" y="'+(HH+16)+'" font-size="11" text-anchor="middle" fill="#6B7280">'+dl(dt)+'</text>'});
+  document.getElementById('hChart').innerHTML='<div class="scroll">'+svg+'</svg></div>';
+  document.getElementById('hLeg').innerHTML=fams.map(function(fm,k){return '<span><i style="background:'+COLH[k%COLH.length]+'"></i>'+esc(fm)+'</span>'}).join('');
   b+='<tr class="tot"><td></td><td colspan="2" style="text-align:left">סה"כ</td>'+tot.map(function(v){return '<td class="n">'+f(v)+'</td>'}).join('')+'</tr>';el.innerHTML=h+b}
 function renderStock(){var S=D.stock,all=S.filter(function(x){return !x.total}),T0=S.filter(function(x){return x.total})[0]||{};
   all.forEach(function(x){var c=stockCalc(x);for(var k in c)x[k]=c[k]});var rows=vis('st',all,skuK);
