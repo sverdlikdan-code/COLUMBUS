@@ -814,6 +814,16 @@ body.map-hidden #tab-map,body.map-hidden #tab-inline-map{display:none!important;
 .modal-bg.open{display:flex;}
 .modal{background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-width:500px;box-shadow:0 -4px 24px rgba(0,0,0,.18);}
 .modal-title{font-size:16px;font-weight:800;color:var(--text);margin-bottom:16px;}
+/* iPhone "add to home screen" carousel — the guide's 4-step collage cut into
+   quadrants via background-position (one image, no extra files). Box 540×955
+   of the 1080×2443 original; y% = top/(2443-955): row1 top 285, row2 top 1265. */
+.a2hs-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin:0 -20px;}
+.a2hs-track::-webkit-scrollbar{display:none;}
+.a2hs-slide{flex:0 0 100%;scroll-snap-align:center;display:flex;justify-content:center;}
+.a2hs-shot{height:min(58vh,560px);aspect-ratio:540/955;background-size:200% auto;background-repeat:no-repeat;border-radius:14px;background-color:#EEF2FA;}
+.a2hs-dots{display:flex;justify-content:center;gap:7px;margin:12px 0 14px;}
+.a2hs-dots span{width:8px;height:8px;border-radius:50%;background:#C9D3E6;transition:background .2s,width .2s;}
+.a2hs-dots span.on{background:#1A3F7C;width:20px;border-radius:4px;}
 .modal-input{width:100%;border:2px solid var(--blue);border-radius:10px;padding:12px;font-size:16px;direction:rtl;text-align:right;outline:none;}
 .modal-btns{display:flex;gap:10px;margin-top:14px;}
 .modal-btn{flex:1;padding:12px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;border:none;}
@@ -1421,6 +1431,24 @@ body.bdd .km-more-item[onclick^="openYedaim"], body.bdd .km-more-item[onclick^="
     <div class="modal-btns">
       <button class="modal-btn cancel" onclick="closeGuidePrompt()">אחר כך</button>
       <button class="modal-btn confirm" onclick="openGuideFromPrompt()">📖 פתח מדריך</button>
+    </div>
+  </div>
+</div>
+
+<!-- iPhone only: how to add the app to the home screen, swipeable 4 steps —
+     up to 3 page loads, stops once opened from the icon (Dan 05.10). -->
+<div class="modal-bg" id="a2hs-modal">
+  <div class="modal">
+    <div class="modal-title" style="text-align:center;margin-bottom:10px">📱 הוסף את האפליקציה למסך הבית</div>
+    <div class="a2hs-track" id="a2hs-track">
+      <div class="a2hs-slide"><div class="a2hs-shot" style="background-position:0% 19.15%"></div></div>
+      <div class="a2hs-slide"><div class="a2hs-shot" style="background-position:100% 19.15%"></div></div>
+      <div class="a2hs-slide"><div class="a2hs-shot" style="background-position:0% 85%"></div></div>
+      <div class="a2hs-slide"><div class="a2hs-shot" style="background-position:100% 85%"></div></div>
+    </div>
+    <div class="a2hs-dots" id="a2hs-dots"><span class="on"></span><span></span><span></span><span></span></div>
+    <div class="modal-btns">
+      <button class="modal-btn confirm" id="a2hs-next" onclick="a2hsNext()">הבא ←</button>
     </div>
   </div>
 </div>
@@ -3238,6 +3266,7 @@ async function initRoute(){
   maybeShowGuidePrompt(); // once per page load, at most 3 times ever — see definition above
   maybeShowThought(); // once per calendar day, forever — see definition below
   maybeShowClientChanges(); // managers only, once per calendar day
+  maybeShowA2hs(); // iPhone only, up to 3 page loads, queued behind the above
   // Restore this agent's last-picked sort mode (AI vs "הגרסה שלי") — read fresh
   // on every call, keyed to whichever agent is currently being viewed (st.agent.code
   // is already set by selectAgent()/selectDay() before initRoute() runs, so this
@@ -6273,6 +6302,51 @@ function dismissPwaBanner(){
   localStorage.setItem('fr_pwa_last', String(Date.now()));
 }
 // iOS: no banner at all — Safari has no install API, a question without a "yes" button only confuses (2026-10-01)
+// Instead (Dan 05.10): iPhone gets the guide's 4-step "На экран «Домой»" collage
+// as a swipe carousel — up to 3 page loads, never when already opened from the
+// icon. Image comes from the gated guide via ?sess= (tutorialsGuard), absolute
+// URL so the GH Pages copy works too. Waits behind the other open-time overlays.
+const _isIphone=/iPhone|iPod/.test(navigator.userAgent);
+let _a2hsShown=false;
+function maybeShowA2hs(){
+  if(_a2hsShown||!_isIphone) return;
+  if(window.matchMedia('(display-mode: standalone)').matches||navigator.standalone) return;
+  _a2hsShown=true;
+  let n=0;
+  try{ n=parseInt(localStorage.getItem('frA2hsCount')||'0',10)||0; }catch(_){}
+  if(n>=3) return;
+  const url='https://api.sverdlik-apps.site/TUTORIALS/screens/30-iphone-home-screen.jpg?sess='+encodeURIComponent(_getToken());
+  document.querySelectorAll('.a2hs-shot').forEach(el=>el.style.backgroundImage=`url("${url}")`);
+  const t=setInterval(()=>{
+    const busy=['thought-toast','guide-modal','cc-toast'].some(id=>document.getElementById(id)?.classList.contains('open'));
+    if(busy) return;
+    clearInterval(t);
+    try{ localStorage.setItem('frA2hsCount', String(n+1)); }catch(_){}
+    document.getElementById('a2hs-modal').classList.add('open');
+    _trackEvent('a2hs_shown', null, n+1);
+  }, 1000);
+}
+function _a2hsIdx(){
+  const tr=document.getElementById('a2hs-track');
+  return Math.round(Math.abs(tr.scrollLeft)/tr.clientWidth);
+}
+function _a2hsSync(){
+  const i=_a2hsIdx();
+  document.querySelectorAll('#a2hs-dots span').forEach((s,k)=>s.classList.toggle('on',k===i));
+  document.getElementById('a2hs-next').textContent=i>=3?'✔ הבנתי':'הבא ←';
+}
+document.getElementById('a2hs-track').addEventListener('scroll',_a2hsSync,{passive:true});
+function a2hsNext(){
+  const tr=document.getElementById('a2hs-track'), i=_a2hsIdx();
+  if(i>=3){
+    document.getElementById('a2hs-modal').classList.remove('open');
+    _trackEvent('a2hs_done');
+    return;
+  }
+  // RTL page: scrollLeft runs negative going forward
+  const dir=getComputedStyle(tr).direction==='rtl'?-1:1;
+  tr.scrollTo({left:dir*(i+1)*tr.clientWidth,behavior:'smooth'});
+}
 
 // ── INIT ───────────────────────────────────────────────────────────────────
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&gpsCorrectMode) cancelGpsCorrection();});
