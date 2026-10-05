@@ -26,7 +26,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 .legend{font-size:11px;color:var(--light);margin-top:6px;}
 h2{font-size:14px;font-weight:800;margin:14px 0 8px;}
 .top3{display:flex;flex-direction:column;gap:6px;}
-.worst{background:var(--card);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 1px 3px rgba(0,0,0,.08);border-inline-start:4px solid var(--red);}
+.worst{cursor:pointer;background:var(--card);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 1px 3px rgba(0,0,0,.08);border-inline-start:4px solid var(--red);}
 .worst .n{font-weight:900;color:var(--red);font-size:15px;min-width:44px;text-align:center;}
 .worst .t{font-size:14px;font-weight:700;}
 .worst .s{font-size:12px;color:var(--light);}
@@ -168,7 +168,7 @@ function render() {
   const worst = [];
   for (const a of list) for (const k of keys) { const d = a.b[k]; if (d?.p) worst.push({ a, k, d, v: pct(d.i, d.p) }); }
   worst.sort((x, y) => x.v - y.v);
-  const top3 = worst.slice(0, 3).map(w => `<div class="worst"><div class="n">${w.v}%</div><div>
+  const top3 = worst.slice(0, 3).map(w => `<div class="worst" onclick="pickWorst('${w.a.code}|${w.k}')"><div class="n">${w.v}%</div><div>
       <div class="t">${esc(w.a.name)} — ${bucketName(w.k, heads.get(w.k))}</div>
       <div class="s">תכנון ${w.d.p} · קנו ${w.d.i - w.d.o} · מחוץ לקו ${w.d.o} · לא קנו ${w.d.p - (w.d.i - w.d.o)}${LEVEL === 'date' ? '' : ` · ${w.d.dates.length} ימים`}</div></div></div>`).join('');
 
@@ -183,7 +183,7 @@ function render() {
     ${teamChips}
     <div class="bar"><span class="lbl">תקופה</span>${seg(PERIODS, PERIOD, 'setPeriod')}</div>
     <div class="bar"><span class="lbl">תצוגה</span>${seg(LEVELS, LEVEL, 'setLevel')}</div>
-    ${list.length ? `<h2>הכי חלשים</h2><div class="top3">${top3 || '<div class="msg">אין נתונים</div>'}</div>
+    ${list.length ? `<h2>פחות ממקובל</h2><div class="top3">${top3 || '<div class="msg">אין נתונים</div>'}</div>
     <h2>כיסוי קו — ${LEVELS.find(l => l[0] === LEVEL)[1]}</h2>
     <div class="tbl-wrap"><table><thead>${head}</thead><tbody>${rowsHtml}${teamRow}</tbody></table></div>
     <div class="legend">% כיסוי = הזמינו מתוך המתוכננים לקו (כולל מחוץ לקו) · "מחוץ לקו N" = מתוכם הזמינו מחוץ לקו · נתונים אמיתיים בלבד — צילום ערב (20:07) מ־30.09.2026</div>
@@ -199,6 +199,8 @@ function pick(key) {
   if (SEL && LEVEL === 'date') DAY = SEL.split('|')[1]; // a date cell is one day — open its clients directly
   render();
 }
+// Top cards → same as tapping that table cell, then scroll: details render below the table, off-screen on a phone.
+function pickWorst(key) { if (SEL !== key) pick(key); document.getElementById('detail')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 function pickDay(date) { DAY = DAY === date ? null : date; render(); }
 
 async function fetchClients(agent, date) {
