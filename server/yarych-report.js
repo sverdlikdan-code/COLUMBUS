@@ -250,8 +250,8 @@ function render(){selState();
   document.getElementById('tSku').innerHTML=hd+body;document.getElementById('skuX').innerHTML=rb('sku');var w=document.getElementById('skuWrap');w.scrollLeft=w.scrollWidth;
   // сети и частники: отчётный месяц, доля от общего итога, к прошлому году, 12 месяцев и доля
   function tbl(id,t,list,nameHd,total,keepAll,limit){var a=vis(t,list,nmK).slice().sort(function(p,q){return cur(q)-cur(p)||lyv(q)-lyv(p)});if(limit)a=a.filter(function(x){return cur(x)>0}).slice(0,limit);
-    var h='<tr><th>'+nameHd+'</th><th class="n">'+(lyL||'שנה שעברה')+'</th><th class="n">'+SL+'</th><th class="n">'+(lyL?'מול '+lyL:'שינוי')+'</th><th class="n">% מסה"כ</th></tr>';
-    function row(x){return '<tr><td>'+xb(t,x.name)+esc(x.name)+'</td>'+lyc(lyv(x))+'<td class="n">'+f(cur(x))+'</td>'+ch(HL?pc(cur(x),lyv(x)):null)+sh(cur(x),TF)+'</tr>'}
+    var h='<tr><th>'+nameHd+'</th><th class="n">'+(lyL||'שנה שעברה')+'</th><th class="n">'+SL+'</th><th class="n">'+(lyL?'מול '+lyL:'שינוי')+'</th>'+(limit?'':'<th class="n">% מסה"כ</th>')+'</tr>';
+    function row(x){return '<tr><td>'+xb(t,x.name)+esc(x.name)+'</td>'+lyc(lyv(x))+'<td class="n">'+f(cur(x))+'</td>'+ch(HL?pc(cur(x),lyv(x)):null)+(limit?'':sh(cur(x),TF))+'</tr>'}
     var act=keepAll?a:a.filter(function(x){return cur(x)}),rest=[] /* сети без продаж в периоде не показываем (пользователь 2026-10-05) */,b=act.map(row).join('');
     if(total){var c=sum(a,cur),cl=sum(a,lyv);b+='<tr class="tot"><td>'+total+'</td>'+lyc(cl)+'<td class="n">'+f(c)+'</td>'+ch(HL?pc(c,cl):null)+sh(c,TF)+'</tr>'}
     document.getElementById(id).innerHTML=h+b;document.getElementById(id+'X').innerHTML=rb(t);
