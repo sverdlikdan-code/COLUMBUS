@@ -142,30 +142,30 @@ function buildPage(d) {
 <title>YARYCH · INTER · ${label(d.month)}</title>
 <style>
 :root{--navy:${NAVY};--gold:${GOLD};--ink:${INK};--muted:${MUTED};--line:${LINE};--paper:${PAPER};--red:${RED};--green:${GREEN}}
-*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.45 Arial,'Segoe UI',sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.45 Arial,'Segoe UI',sans-serif}
 header{background:var(--navy);color:#fff;padding:18px 16px 14px}header h1{margin:0;font-size:20px}header p{margin:4px 0 0;color:#cfd8e6;font-size:13px}
 .bar{position:sticky;top:0;z-index:5;background:#fff;border-bottom:1px solid var(--line);padding:10px 16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .tg{display:inline-flex;border:1px solid var(--navy);border-radius:8px;overflow:hidden}.tg button{border:0;background:#fff;color:var(--navy);padding:7px 14px;font:600 13px Arial;cursor:pointer}
 .tg button.on{background:var(--navy);color:#fff}
 .ym{display:flex;gap:10px;align-items:flex-start;margin:0 0 10px;direction:ltr;flex-wrap:wrap}.ms{display:flex;gap:4px;flex-wrap:wrap;direction:ltr}.mg{display:grid;grid-template-columns:repeat(6,minmax(64px,1fr));flex:1;max-width:620px}
 .ms button[disabled]{opacity:.35;cursor:default}.kpi b.up{color:var(--green)}.kpi b.dn{color:var(--red)}
-@media(max-width:600px){.mg{grid-template-columns:repeat(4,minmax(0,1fr))}.ms button{padding:6px 4px}}.ms button{flex:0 0 auto;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:6px;padding:5px 8px;font:600 12px Arial;cursor:pointer}
+@media(max-width:600px){.mg{grid-template-columns:repeat(4,minmax(0,1fr))}.ms button{padding:6px 4px}}.ms button{flex:0 0 auto;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:6px;padding:5px 8px;font:600 13.5px Arial;cursor:pointer}
 .ms button.on{background:var(--navy);border-color:var(--navy);color:#fff}td.sel,th.sel{background:#FFF6DC}
 main{max-width:1180px;margin:0 auto;padding:14px 16px 40px}
 section{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;margin:0 0 14px}
-h2{margin:0 0 10px;font-size:16px;color:var(--navy)}
+h2{margin:0 0 10px;font-size:19px;color:var(--navy)}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
-.kpi{border:1px solid var(--line);border-radius:8px;padding:10px}.kpi b{display:block;font-size:22px;color:var(--navy)}.kpi span{color:var(--muted);font-size:12px}
+.kpi{border:1px solid var(--line);border-radius:8px;padding:10px}.kpi b{display:block;font-size:26px;color:var(--navy)}.kpi span{color:var(--muted);font-size:14px}
 .up{color:var(--green)}.dn{color:var(--red)}
 .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-table{border-collapse:collapse;width:100%;font-size:12.5px}th,td{padding:5px 7px;border-bottom:1px solid var(--line);white-space:nowrap}
+table{border-collapse:collapse;width:100%;font-size:14.5px}th,td{padding:5px 7px;border-bottom:1px solid var(--line);white-space:nowrap}
 th{background:var(--paper);color:var(--muted);font-weight:600;position:sticky;top:0}
 td.n,th.n{text-align:left;direction:ltr;font-variant-numeric:tabular-nums}
 tr.fam td{background:#EEF2F8;font-weight:700;color:var(--navy)}tr.tot td{font-weight:700;border-top:2px solid var(--navy)}
 td.en{text-align:left}#tSku th,#tSku td{text-align:right}#tSku .st{position:sticky;background:#fff;z-index:1}#tSku .s1{left:0;min-width:58px;text-align:left}#tSku .s2{left:58px;border-right:1px solid var(--line);text-align:left}#tSku tr.fam .st{background:#EEF2F8}#tSku th.st{background:var(--paper);z-index:2}
 @media(max-width:600px){#tSku .s1{display:none}#tSku .s2{left:0;white-space:normal;min-width:130px;max-width:140px;font-size:11.5px;line-height:1.25}}
 button.x{border:0;background:none;color:#B0B7C3;cursor:pointer;font-size:11px;padding:0 4px;margin:0 2px}button.x:hover{color:var(--red)}
-button.rs{margin-top:8px;border:1px solid var(--navy);background:#fff;color:var(--navy);border-radius:6px;padding:5px 10px;font:600 12px Arial;cursor:pointer}
+button.rs{margin-top:8px;border:1px solid var(--navy);background:#fff;color:var(--navy);border-radius:6px;padding:5px 10px;font:600 13.5px Arial;cursor:pointer}
 #tSt th,#tSt td{text-align:right}#tSt td:nth-child(-n+3),#tSt th:nth-child(-n+3){text-align:left}
 details summary{cursor:pointer;color:var(--navy);font-size:13px;margin:10px 0 6px}.sh{color:var(--muted)}
 .chart{width:100%;height:auto;display:block}
