@@ -343,6 +343,7 @@ CALCULATETABLE(
           ...c,
           dayNum:        s.dayNum,
           dayLabel:      s.dayLabel,
+          allDays:       scheds.map(x => x.dayNum),
           priorityOrder: s.visitOrder,
           fullAddress:   [c.address, c.city, 'ישראל'].filter(Boolean).join(', '),
           pct: c.target > 0 ? Math.round((c.monthlySales / c.target) * 100) : 0,
@@ -697,7 +698,7 @@ app.get('/health', (req, res) => {
 // every single event. Same writeLog(entry)/readLog() contract as before, so
 // none of the ~30 call sites elsewhere in this file needed to change.
 const { logEvent, readLog, getDashboardStats } = require('./events-db');
-const { routeDayOf, coveragePeriod, lineFor, coverageCounts, coverageClients, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS } = require('./coverage');
+const { routeDayOf, coveragePeriod, lineFor, movedAwayFrom, coverageCounts, coverageClients, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS } = require('./coverage');
 function writeLog(entry) { logEvent(entry); }
 
 function getRealIp(req) {
@@ -2281,7 +2282,7 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
     // route-overrides.json reflects a manual drag-to-a-day in the app (Priority's
     // own schedule never changes from that). Every dayNum branch below now checks
     // it both ways — anyone with a dayMoves entry leaves their PBI-schedule bucket
-    // (movedAwayIds), and anyone moved INTO the requested day gets added even
+    // (isMovedAway), and anyone moved INTO the requested day gets added even
     // though PBI never put them there (movedInIds). Previously only the day=0
     // ("?") branch subtracted moves, and only for FORMULA's noSchedFormula — a
     // client moved OFF a specific weekday (not off "?") or any ICE client moved
@@ -2290,15 +2291,16 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
     // "found" again if the agent happened to revisit "?". Live complaint
     // 2026-08-30/31 (ICE clients kept reappearing under "?" after being moved).
     const dayMoves = readRouteOverrides()[agent]?.dayMoves || {};
-    const movedAwayIds = new Set(Object.keys(dayMoves));
+    // A move with `from` takes the client off that one day only (2+ day client, "keep").
+    const isMovedAway = (c, d) => movedAwayFrom(dayMoves[String(c.custId)], d);
     const movedInIds = dayNum ? Object.keys(dayMoves).filter(id => dayMoves[id]?.day === dayNum) : [];
 
     let clients;
     if (dayNum === 0) {
       // "לא מוגדר": Formula unscheduled + ICE with no day, minus anything the agent already moved to a day
-      clients = noSchedFormula.filter(c => !movedAwayIds.has(String(c.custId)));
+      clients = noSchedFormula.filter(c => !isMovedAway(c, 0));
     } else if (dayNum) {
-      clients = allForAgent.filter(c => c.dayNum === dayNum && !movedAwayIds.has(String(c.custId)));
+      clients = allForAgent.filter(c => c.dayNum === dayNum && !isMovedAway(c, dayNum));
     } else {
       clients = allForAgent.slice();
     }
@@ -2307,9 +2309,9 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
     const iceAll = pbiCache.iceByAgent?.get(agent) || [];
     let iceForDay;
     if (dayNum === 0) {
-      iceForDay = iceAll.filter(c => c.dayNum === null && !allFormulaIds.has(c.custId) && !movedAwayIds.has(String(c.custId)));
+      iceForDay = iceAll.filter(c => c.dayNum === null && !allFormulaIds.has(c.custId) && !isMovedAway(c, 0));
     } else if (dayNum) {
-      iceForDay = iceAll.filter(c => c.dayNum === dayNum && !allFormulaIds.has(c.custId) && !movedAwayIds.has(String(c.custId)));
+      iceForDay = iceAll.filter(c => c.dayNum === dayNum && !allFormulaIds.has(c.custId) && !isMovedAway(c, dayNum));
     } else {
       iceForDay = iceAll.filter(c => !allFormulaIds.has(c.custId));
     }
@@ -2927,7 +2929,7 @@ app.get('/api/gps-pending-xlsx', requireAuth, async (req, res) => {
 // POST /api/export-all-days-xlsx — multi-sheet Excel, one sheet per day
 app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, res) => {
   try {
-  const { agentCode, agentName, dayOverrides = {}, savedOrders = {} } = req.body;
+  const { agentCode, agentName, dayOverrides = {}, dayFrom = {}, savedOrders = {} } = req.body;
   if (!agentCode) return res.status(400).json({ error: 'agentCode required' });
   if (!pbiCache) return res.status(503).json({ error: 'cache_loading' });
   const formulaClients = pbiCache.byAgent.get(agentCode) || [];
@@ -2946,7 +2948,8 @@ app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, re
   const byDay = {};
   for (const c of allClients) {
     // Apply dayOverrides: use overridden day if set, else original
-    const overriddenDay = dayOverrides[String(c.custId)];
+    const ovDay = dayOverrides[String(c.custId)];
+    const overriddenDay = ovDay && movedAwayFrom({ from: dayFrom[String(c.custId)] }, c.dayNum) ? ovDay : null;
     const d = overriddenDay ? (DAY_LABEL[overriddenDay] || String(overriddenDay)) : (c.dayLabel || String(c.dayNum||''));
     if (!byDay[d]) byDay[d] = [];
     byDay[d].push(c);
@@ -6353,7 +6356,7 @@ app.post('/api/route-order', requireAuth, dataRateLimit, (req, res) => {
 });
 app.post('/api/route-day-move', requireAuth, dayMoveRateLimit, (req, res) => {
   // See /api/route-order above for why the body-agentCode fallback exists.
-  const { custId, day, client, agentCode: bodyAgentCode } = req.body || {};
+  const { custId, day, client, from, agentCode: bodyAgentCode } = req.body || {};
   let agentCode = req.session.agentCode;
   if (!agentCode && req.session.isManager && bodyAgentCode) {
     const a = String(bodyAgentCode);
@@ -6369,13 +6372,16 @@ app.post('/api/route-day-move', requireAuth, dayMoveRateLimit, (req, res) => {
   if (!data[agentCode]) data[agentCode] = { order: {}, dayMoves: {} };
   const id = String(custId).slice(0, 20);
   if (client && typeof client === 'object') {
-    data[agentCode].dayMoves[id] = { day: dayNum, client, movedAt: new Date().toISOString() };
+    // from = day the visit was taken off when the agent kept the client's other day(s);
+    // absent = old behaviour, the client leaves every scheduled day (coverage.js movedAwayFrom).
+    const fromNum = parseInt(from, 10);
+    data[agentCode].dayMoves[id] = { day: dayNum, ...(fromNum >= 1 && fromNum <= 5 && fromNum !== dayNum ? { from: fromNum } : {}), client, movedAt: new Date().toISOString() };
   } else {
     // No client payload = override cleared (client moved back to its original day).
     delete data[agentCode].dayMoves[id];
   }
   writeRouteOverrides(data);
-  writeLog({ ts: new Date().toISOString(), event: 'route-day-move', agentCode, custId: id, day: dayNum, ip: getRealIp(req) });
+  writeLog({ ts: new Date().toISOString(), event: 'route-day-move', agentCode, custId: id, day: dayNum, from: data[agentCode].dayMoves[id]?.from || null, ip: getRealIp(req) });
   res.json({ ok: true });
 });
 app.get('/api/route-overrides', requireAuth, dataRateLimit, (req, res) => {

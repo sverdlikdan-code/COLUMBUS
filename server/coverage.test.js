@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { routeDayOf, coveragePeriod, lineFor, coverageCounts, coverageClients, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS } = require('./coverage');
+const { routeDayOf, coveragePeriod, lineFor, movedAwayFrom, coverageCounts, coverageClients, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS } = require('./coverage');
 
 test('routeDayOf: Sun..Thu → 1..5, Fri/Sat → null', () => {
   assert.strictEqual(routeDayOf('2026-09-27'), 1); // Sunday
@@ -22,6 +22,27 @@ test('lineFor: scheduled day minus moved-away plus moved-in', () => {
   const dayMoves = { '2': { day: 4 }, '3': { day: 2 }, '9': { day: 2 } };
   const line = lineFor({ scheduled, dayMoves, dayNum: 2, movedInOk: id => id !== '9' });
   assert.deepStrictEqual([...line].sort(), ['1', '3', '4']);
+});
+
+test('lineFor: 2-day client, move with from keeps the other day (agent pressed "keep")', () => {
+  const scheduled = [{ custId: '7', dayNum: 2 }, { custId: '7', dayNum: 4 }];
+  const dayMoves = { '7': { day: 5, from: 4 } };
+  const on = d => [...lineFor({ scheduled, dayMoves, dayNum: d, movedInOk: () => true })];
+  assert.deepStrictEqual([on(2), on(4), on(5)], [['7'], [], ['7']]);
+});
+
+test('lineFor: 2-day client, move without from = only the new day (old records, "only one day")', () => {
+  const scheduled = [{ custId: '7', dayNum: 2 }, { custId: '7', dayNum: 4 }];
+  const dayMoves = { '7': { day: 5 } };
+  const on = d => [...lineFor({ scheduled, dayMoves, dayNum: d, movedInOk: () => true })];
+  assert.deepStrictEqual([on(2), on(4), on(5)], [[], [], ['7']]);
+});
+
+test('movedAwayFrom: no move / move without from / move with from', () => {
+  assert.strictEqual(movedAwayFrom(undefined, 2), false);
+  assert.strictEqual(movedAwayFrom({ day: 5 }, 2), true);
+  assert.strictEqual(movedAwayFrom({ day: 5, from: 4 }, 2), false);
+  assert.strictEqual(movedAwayFrom({ day: 5, from: 4 }, 4), true);
 });
 
 test('lineFor: no moves = plain scheduled day (negative control vs old denom)', () => {

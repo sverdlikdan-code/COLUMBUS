@@ -19,12 +19,22 @@ function coveragePeriod(todayStr) {
 // moved to another day in the app, plus clients moved INTO this day. Same rule as
 // /customers (index.js, bdd-routes.js) — movedInOk says which moved ids belong to
 // this channel's pool (FORMULA drops ICE-only clients, like the agent's own ring).
+// Does an in-app day move take the client off its scheduled day `dayNum`? A move with
+// `from` (agent chose "keep the other visit day" for a 2+ day client) moves only the visit
+// on that day; a move without it (every move before 2026-10-05, and "only one day") takes
+// the client off all its days. The one rule for /customers, lineFor and export-all-days.
+// ponytail: one moved visit per client (dayMoves is keyed by custId) — moving the second
+// visit of the same client replaces the first move; key by custId+from if that ever matters.
+function movedAwayFrom(mv, dayNum) {
+  return !!mv && (mv.from == null || mv.from === dayNum);
+}
+
 function lineFor({ scheduled, dayMoves, dayNum, movedInOk }) {
   const moves = dayMoves || {};
   const line = new Set();
   for (const c of scheduled) {
     const id = String(c.custId);
-    if (c.dayNum === dayNum && !(id in moves)) line.add(id);
+    if (c.dayNum === dayNum && !movedAwayFrom(moves[id], dayNum)) line.add(id);
   }
   for (const [id, mv] of Object.entries(moves)) {
     if (mv && mv.day === dayNum && movedInOk(String(id))) line.add(String(id));
@@ -84,4 +94,4 @@ function coverageScope(s) {
   };
 }
 
-module.exports = { routeDayOf, coveragePeriod, lineFor, coverageCounts, coverageClients, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS };
+module.exports = { routeDayOf, coveragePeriod, lineFor, movedAwayFrom, coverageCounts, coverageClients, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS };

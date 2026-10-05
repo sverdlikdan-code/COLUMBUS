@@ -1425,6 +1425,19 @@ body.bdd .km-more-item[onclick^="openYedaim"], body.bdd .km-more-item[onclick^="
   </div>
 </div>
 
+<!-- ── DAY MOVE: client with another visit day moved to a new day — keep the other day? (Dan 05.10) -->
+<div class="modal-bg" id="daymove-modal" onclick="if(event.target===this)closeDayMoveAsk()">
+  <div class="modal">
+    <div class="modal-title" id="dm-title"></div>
+    <div style="font-size:14px;color:var(--mid);margin:-6px 0 4px">מה עושים?</div>
+    <div class="modal-btns" style="flex-direction:column">
+      <button class="modal-btn confirm" id="dm-keep" onclick="dayMoveChoose(true)"></button>
+      <button class="modal-btn cancel" id="dm-single" onclick="dayMoveChoose(false)"></button>
+    </div>
+    <button onclick="closeDayMoveAsk()" style="display:block;margin:12px auto 0;background:none;border:none;color:var(--mid);font-size:13px;cursor:pointer">ביטול</button>
+  </div>
+</div>
+
 <!-- ── THOUGHT OF THE DAY ── one shared quote per calendar day, agents + managers -->
 <div class="thought-toast" id="thought-toast">
   <div class="thought-card">
@@ -3326,7 +3339,11 @@ async function initRoute(){
   // Apply day overrides — remove moved-away, add moved-here
   const dayOv=getDayOverrides(st.agent.code);
   const dayOvClients=getDayOverrideClients(st.agent.code);
-  st.clients=st.clients.filter(c=>dayOv[String(c.custId)]===undefined||dayOv[String(c.custId)]===st.day);
+  const dayFrom=getDayFrom(st.agent.code);
+  st.clients=st.clients.filter(c=>{
+    const id=String(c.custId), d=dayOv[id];
+    return d===undefined||d===st.day||(dayFrom[id]!=null&&dayFrom[id]!==st.day);
+  });
   Object.entries(dayOv).filter(([,d])=>d===st.day).forEach(([id])=>{
     if(st.clients.find(c=>String(c.custId)===String(id)))return;
     let client=null;
@@ -3653,6 +3670,7 @@ function resetRoute(){
   try{ localStorage.removeItem(`fr_${_lsAg(st.agent.code)}_${st.day}`); }catch{}
   try{ localStorage.removeItem(`fr_dayov_${_lsAg(st.agent.code)}`); }catch{}
   try{ localStorage.removeItem(`fr_dayov_clients_${_lsAg(st.agent.code)}`); }catch{}
+  try{ localStorage.removeItem(`fr_dayov_from_${_lsAg(st.agent.code)}`); }catch{}
   initRoute();
 }
 
@@ -4842,16 +4860,16 @@ function pushRouteOrder(day,order){
 // the server's version on next load, so an unsent move quietly reverts. One retry
 // + a visible toast on final failure so the agent knows to try again. Live bug
 // 2026-08-30/31 (ICE clients agents moved off "?" kept reappearing there).
-async function pushDayMove(custId,day,client,_isRetry){
+async function pushDayMove(custId,day,client,from,_isRetry){
   let r;
   try{
     r=await apiFetch(`${API}/api/route-day-move`,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({custId,day,client,agentCode:st.agent?.code})});
+      body:JSON.stringify({custId,day,client,from:from||undefined,agentCode:st.agent?.code})});
   }catch(e){ r=null; }
   if(r&&r.ok) return;
   if(!_isRetry){
     await new Promise(res=>setTimeout(res,800));
-    return pushDayMove(custId,day,client,true);
+    return pushDayMove(custId,day,client,from,true);
   }
   showToast(`⚠ Изменение на сегодня для ${esc(client?.custName||custId)} не сохранено на сервере — попробуй снова`,5000);
 }
@@ -4870,6 +4888,7 @@ async function syncRouteOverridesFromServer(){
     });
     setDayOverrides(st.agent.code,Object.fromEntries(Object.entries(d.dayMoves||{}).map(([id,v])=>[id,v.day])));
     setDayOverrideClients(st.agent.code,Object.fromEntries(Object.entries(d.dayMoves||{}).map(([id,v])=>[id,v.client])));
+    setDayFrom(st.agent.code,Object.fromEntries(Object.entries(d.dayMoves||{}).filter(([,v])=>v.from).map(([id,v])=>[id,v.from])));
   }else{
     for(let day=1;day<=5;day++){
       const saved=loadSavedRoute(st.agent.code,day);
@@ -4877,7 +4896,8 @@ async function syncRouteOverridesFromServer(){
     }
     const ov=getDayOverrides(st.agent.code);
     const ovClients=getDayOverrideClients(st.agent.code);
-    Object.entries(ov).forEach(([custId,day])=>pushDayMove(custId,day,ovClients[custId]));
+    const ovFrom=getDayFrom(st.agent.code);
+    Object.entries(ov).forEach(([custId,day])=>pushDayMove(custId,day,ovClients[custId],ovFrom[custId]));
   }
 }
 
@@ -4893,6 +4913,14 @@ function getDayOverrideClients(code){
 }
 function setDayOverrideClients(code,data){
   try{localStorage.setItem(`fr_dayov_clients_${_lsAg(code)}`,JSON.stringify(data));}catch{}
+}
+// custId → the visit day a move took the client off, only when the agent kept the
+// client's other visit day(s). No entry = the move takes the client off every day.
+function getDayFrom(code){
+  try{return JSON.parse(localStorage.getItem(`fr_dayov_from_${_lsAg(code)}`)||'{}');}catch{return{};}
+}
+function setDayFrom(code,data){
+  try{localStorage.setItem(`fr_dayov_from_${_lsAg(code)}`,JSON.stringify(data));}catch{}
 }
 function openDayPopup(event,custId){
   event.stopPropagation();
@@ -5737,18 +5765,63 @@ async function _fetchDayBriefing() {
   }
 }
 
+// Client's visit days as the app shows them now: PBI days (allDays from /customers,
+// FORMULA only) with the agent's move applied.
+function _clientVisitDays(c){
+  if(!c) return [];
+  const id=String(c.custId), mv=getDayOverrides(st.agent.code)[id], from=getDayFrom(st.agent.code)[id];
+  let days=(c.allDays&&c.allDays.length?c.allDays:[c.dayNum]).filter(d=>d>=1&&d<=5);
+  if(mv!==undefined) days=from!=null?[...days.filter(d=>d!==from),mv]:[mv];
+  return [...new Set(days)].sort();
+}
+let _dayMoveAsk=null;
+const _dl=d=>`יום ${DAY_LABELS[d]}'`;
 function changeClientDay(custId,newDay){
   closeDayPopup();
   if(newDay===st.day)return;
+  const id=String(custId);
+  const c=st.clients.find(x=>String(x.custId)===id);
+  const days=_clientVisitDays(c), others=days.filter(d=>d!==st.day);
+  const ov=getDayOverrides(st.agent.code), prevFrom=getDayFrom(st.agent.code)[id];
+  // One move per client (coverage.js movedAwayFrom): only ask when the visit being moved
+  // is the client's PBI visit with no move yet, or the already-moved one.
+  const canKeep=ov[id]===undefined||ov[id]===st.day;
+  if(c&&others.length&&!days.includes(newDay)&&canKeep){
+    _dayMoveAsk={id,newDay,from:ov[id]===st.day&&prevFrom!=null?prevFrom:st.day};
+    document.getElementById('dm-title').textContent=`ללקוח יש עוד ${others.length>1?'ימי ביקור':'יום ביקור'}: ${others.map(d=>DAY_LABELS[d]+"'").join(', ')}`;
+    document.getElementById('dm-keep').textContent=`להשאיר גם את ${others.map(_dl).join(' ו')} — ביקורים: ${[...others,newDay].sort().map(d=>DAY_LABELS[d]+"'").join(' + ')}`;
+    document.getElementById('dm-single').textContent=`רק ${_dl(newDay)}`;
+    document.getElementById('daymove-modal').classList.add('open');
+    _trackEvent('day_move_ask',id);
+    return;
+  }
+  _applyDayMove(id,newDay,null);
+}
+function closeDayMoveAsk(){
+  if(_dayMoveAsk) _trackEvent('day_move_cancel',_dayMoveAsk.id);
+  _dayMoveAsk=null;
+  document.getElementById('daymove-modal').classList.remove('open');
+}
+function dayMoveChoose(keep){
+  const a=_dayMoveAsk; _dayMoveAsk=null;
+  document.getElementById('daymove-modal').classList.remove('open');
+  if(!a) return;
+  _trackEvent(keep?'day_move_keep':'day_move_single',a.id);
+  _applyDayMove(a.id,a.newDay,keep?a.from:null);
+}
+function _applyDayMove(custId,newDay,from){
   const ov=getDayOverrides(st.agent.code);
   ov[String(custId)]=newDay;
   setDayOverrides(st.agent.code,ov);
+  const fm=getDayFrom(st.agent.code);
+  if(from) fm[String(custId)]=from; else delete fm[String(custId)];
+  setDayFrom(st.agent.code,fm);
   const clientData=st.clients.find(c=>String(c.custId)===String(custId));
   if(clientData){
     const store=getDayOverrideClients(st.agent.code);
     store[String(custId)]={...clientData};
     setDayOverrideClients(st.agent.code,store);
-    pushDayMove(String(custId),newDay,clientData);
+    pushDayMove(String(custId),newDay,clientData,from);
   }
   st.clients=st.clients.filter(c=>String(c.custId)!==String(custId));
   st.aiClients=nearestNeighbor([...st.clients]);
@@ -5829,6 +5902,7 @@ async function exportAllDaysXLSX(){
         agentCode:st.agent?.code||'',
         agentName:st.agent?.name||st.agent?.code||'',
         dayOverrides:getDayOverrides(st.agent?.code||''),
+        dayFrom:getDayFrom(st.agent?.code||''),
         savedOrders:Object.fromEntries([1,2,3,4,5].map(d=>{
           const s=loadSavedRoute(st.agent?.code||'',d);
           return [d, s?s.map(x=>String(x.custId)):null];
