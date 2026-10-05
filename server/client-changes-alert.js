@@ -186,11 +186,12 @@ const TYPES = [
   { key: 'new',         he: 'לקוחות חדשים',           color: '1E8E3E' },
   { key: 'inactive',    he: 'הפכו ללא פעילים',        color: 'C5221F' },
   { key: 'reactivated', he: 'חזרו לפעילות',           color: '1A73E8' },
-  { key: 'agent',       he: 'העברה לסוכן אחר',        color: 'E37400' },
-  { key: 'day',         he: 'שינוי יום ביקור',         color: '8430CE' },
+  { key: 'agent',       he: 'העברה לסוכן אחר',        color: 'E37400', tint: 'FFF3E0' },
+  { key: 'day',         he: 'שינוי יום ביקור',         color: '8430CE', tint: 'F3E8FD' },
 ];
-// Колонки по типу — одни и те же для письма и Excel. Смена агента: היה/עכשיו вместо колонки
-// סוכן; смена дня — дни как в Priority (FORMULA: משטח עם כפולות, ICE: פרמטר 18).
+// Колонки по типу — одни и те же для письма и Excel. Смена агента: קודם (до даты отчёта) / נוכחי
+// вместо колонки סוכן; смена дня — дни как в Priority (FORMULA: משטח עם כפולות, ICE: פרמטר 18).
+// prev — приглушённо серым, cur — жирным в цвете раздела на бледной подложке (пользователь 05.10).
 const BASE_COLS = [
   { header: "מס' לקוח", key: 'id', width: 12 },
   { header: 'שם לקוח', key: 'name', width: 34 },
@@ -199,9 +200,10 @@ const BASE_COLS = [
 ];
 const AGENT_COL = { header: 'סוכן', key: 'agentName', width: 20 };
 const GROUP_COL = { header: 'קבוצה', key: 'manager', width: 12 };
-function columnsFor(type) {
-  if (type === 'agent') return [...BASE_COLS, { header: 'סוכן — היה', key: 'from', width: 20 }, { header: 'סוכן — עכשיו', key: 'to', width: 20, bold: true }, GROUP_COL];
-  if (type === 'day') return [...BASE_COLS, AGENT_COL, { header: 'יום בפריוריטי — היה', key: 'from', width: 18 }, { header: 'יום בפריוריטי — עכשיו', key: 'to', width: 18, bold: true }, GROUP_COL];
+function columnsFor(type, dateStr) {
+  const until = dateStr.slice(0, 5); // день запуска (плавает), "05.10" — без скобок: в RTL они переворачиваются
+  if (type === 'agent') return [...BASE_COLS, { header: `סוכן קודם · עד ${until}`, key: 'from', width: 22, prev: true }, { header: 'סוכן נוכחי', key: 'to', width: 20, cur: true }, GROUP_COL];
+  if (type === 'day') return [...BASE_COLS, AGENT_COL, { header: `יום קודם בפריוריטי · עד ${until}`, key: 'from', width: 24, prev: true }, { header: 'יום נוכחי בפריוריטי', key: 'to', width: 20, cur: true }, GROUP_COL];
   return [...BASE_COLS, AGENT_COL, GROUP_COL];
 }
 const cellValue = (r, key) => key === 'agentName' ? (r.agentName || r.agent) : r[key];
@@ -212,33 +214,48 @@ function buildHtml(changes, dateStr, greeting = '', title = 'שינויים בל
   const th = 'style="background:#1f2a44;color:#fff;padding:6px 8px;text-align:right;font-weight:600"';
   const td = 'style="padding:5px 8px;border-bottom:1px solid #e5e7eb;text-align:right"';
   const sections = counts.map(t => {
-    const cols = columnsFor(t.key);
+    const cols = columnsFor(t.key, dateStr);
     const rows = changes.filter(c => c.type === t.key);
+    const cell = (c, r) => {
+      const v = esc(cellValue(r, c.key));
+      if (c.prev) return `<td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;text-align:right;color:#8a8f98">${v}</td>`;
+      if (c.cur) return `<td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;text-align:right;background:#${t.tint};color:#${t.color};font-weight:700">${v}</td>`;
+      return `<td ${td}>${v}</td>`;
+    };
     return `<h3 style="color:#${t.color};margin:22px 0 6px">${t.he} (${t.n})</h3>
 <table style="border-collapse:collapse;width:100%;font-size:13px">
 <tr>${cols.map(c => `<th ${th}>${c.header}</th>`).join('')}</tr>
-${rows.map(r => `<tr>${cols.map(c => `<td ${td}>${c.bold ? `<b>${esc(cellValue(r, c.key))}</b>` : esc(cellValue(r, c.key))}</td>`).join('')}</tr>`).join('\n')}
+${rows.map(r => `<tr>${cols.map(c => cell(c, r)).join('')}</tr>`).join('\n')}
 </table>`;
   }).join('\n');
   return `<!doctype html><html dir="rtl" lang="he"><body style="margin:0"><div dir="rtl" style="font-family:Arial,sans-serif;color:#111;max-width:900px;margin:0 auto;padding:16px;box-sizing:border-box">
 <h2 style="margin:0 0 4px">${esc(title)} — ${dateStr}</h2>
 ${greeting ? `<p style="margin:0 0 6px">${esc(greeting)}</p>` : ''}
 <div style="color:#555;font-size:13px;margin-bottom:10px">לעומת הדוח הקודם · ${sources.split(' · ').map(s => `<bdi>${esc(s)}</bdi>`).join(' · ')} · רשימה מלאה בקובץ המצורף</div>
-<div>${counts.map(t => `<span style="display:inline-block;margin:0 0 6px 8px;padding:4px 10px;border-radius:12px;background:#${t.color};color:#fff;font-size:13px">${t.he}: ${t.n}</span>`).join('')}</div>
+<table cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:0 0"><tr>${counts.map(t => `<td style="background:#${t.color};color:#fff;font-size:13px;padding:4px 10px;border-radius:12px;white-space:nowrap">${t.he}: ${t.n}</td><td style="width:8px">&nbsp;</td>`).join('')}</tr></table>
 ${sections}
 <p style="color:#777;font-size:12px;margin-top:24px">הערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.</p>
 </div></body></html>`;
 }
 
-async function buildXlsx(changes) {
+async function buildXlsx(changes, dateStr) {
   const wb = new ExcelJS.Workbook();
   for (const t of TYPES) {
     const rows = changes.filter(c => c.type === t.key);
     if (!rows.length) continue;
     const ws = wb.addWorksheet(t.he.slice(0, 31), { views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
-    const cols = columnsFor(t.key);
+    const cols = columnsFor(t.key, dateStr);
     ws.columns = cols.map(({ header, key, width }) => ({ header, key, width }));
-    rows.forEach(r => ws.addRow(Object.fromEntries(cols.map(c => [c.key, cellValue(r, c.key)]))));
+    rows.forEach(r => {
+      const row = ws.addRow(Object.fromEntries(cols.map(c => [c.key, cellValue(r, c.key)])));
+      cols.forEach((c, i) => {
+        if (c.prev) row.getCell(i + 1).font = { color: { argb: 'FF8A8F98' } };
+        if (c.cur) {
+          row.getCell(i + 1).font = { bold: true, color: { argb: 'FF' + t.color } };
+          row.getCell(i + 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + t.tint } };
+        }
+      });
+    });
     // красим только ячейки шапки: fill на всю строку тянется до последней колонки листа
     ws.getRow(1).eachCell(cell => {
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
@@ -357,7 +374,7 @@ async function main() {
   const resend = new Resend(process.env.RESEND_API_KEY);
   let failed = 0;
   for (const m of mails) {
-    const xlsx = Buffer.from(await buildXlsx(m.rows));
+    const xlsx = Buffer.from(await buildXlsx(m.rows, dateStr));
     const res = await resend.emails.send({
       from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
       to: m.to,
