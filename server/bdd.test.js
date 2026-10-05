@@ -151,6 +151,10 @@ test('serializeBddCache / deserializeBddCache round-trip (disk cache, no DAX on 
   assert.strictEqual(back.byAgent.get('98')[0].monthlySales, 123);
   assert.strictEqual(deserializeBddCache(serializeBddCache(cache, '2026-09-28'), '2026-09-29'), null, 'another day → null (reload from PBI)');
   assert.strictEqual(deserializeBddCache(null, '2026-09-29'), null);
+  // snapshot written by older code (no / other version) → null, BDD reloads from PBI once
+  const today = serializeBddCache(cache, '2026-09-29');
+  assert.strictEqual(deserializeBddCache({ ...today, v: undefined }, '2026-09-29'), null, 'pre-version file → reload');
+  assert.strictEqual(deserializeBddCache({ ...today, v: today.v - 1 }, '2026-09-29'), null, 'old version → reload');
 });
 
 test('resolveBddGps: automatic sources outside the client city are skipped, manual fixes kept', () => {
