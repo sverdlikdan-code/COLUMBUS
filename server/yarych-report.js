@@ -155,7 +155,7 @@ main{max-width:1180px;margin:0 auto;padding:14px 16px 40px}
 section{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;margin:0 0 14px}
 h2{margin:0 0 10px;font-size:19px;color:var(--navy)}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
-.kpi{border:1px solid var(--line);border-radius:8px;padding:10px}.kpi b{display:block;font-size:26px;color:var(--navy)}.kpi span{color:var(--muted);font-size:14px}
+#kpis .kpi{text-align:right}.kpi{border:1px solid var(--line);border-radius:8px;padding:10px}.kpi b{display:block;font-size:26px;color:var(--navy)}.kpi span{color:var(--muted);font-size:14px}
 .up{color:var(--green)}.dn{color:var(--red)}
 .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table{border-collapse:collapse;width:100%;font-size:14.5px}th,td{padding:5px 7px;border-bottom:1px solid var(--line);white-space:nowrap}
@@ -166,7 +166,7 @@ td.en{text-align:left}#tSku th,#tSku td{text-align:right}#tSku .st{position:stic
 @media(max-width:600px){#tSku .s1{display:none}#tSku .s2{left:0;white-space:normal;min-width:130px;max-width:140px;font-size:11.5px;line-height:1.25}}
 button.x{border:0;background:none;color:#B0B7C3;cursor:pointer;font-size:11px;padding:0 4px;margin:0 2px}button.x:hover{color:var(--red)}
 button.rs{margin-top:8px;border:1px solid var(--navy);background:#fff;color:var(--navy);border-radius:6px;padding:5px 10px;font:600 13.5px Arial;cursor:pointer}
-#tSt th,#tSt td{text-align:right}#tSt td:nth-child(-n+3),#tSt th:nth-child(-n+3){text-align:left}
+#tSt th,#tSt td,table.lt th,table.lt td{text-align:right}table.lt td:first-child,table.lt th:first-child{text-align:left}#tSt td:nth-child(-n+3),#tSt th:nth-child(-n+3){text-align:left}
 details summary{cursor:pointer;color:var(--navy);font-size:13px;margin:10px 0 6px}.sh{color:var(--muted)}
 .chart{width:100%;height:auto;display:block}
 .leg{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:6px}.leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-left:4px;vertical-align:-1px}
@@ -175,12 +175,12 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:6px 16px 20
 <header><h1>YARYCH — מכירות INTER</h1><p>דוח חודשי · ${label(d.month)} · מקור: Power BI INTERNATIONAL CONTROL DESK</p></header>
 <div class="bar"><span class="sh">יחידות מידה:</span><div class="tg" id="tg"><button data-i="0" class="on">יחידות</button><button data-i="1">קרטונים</button><button data-i="2">ק"ג</button></div></div>
 <main>
-<section id="kpi"><h2>${label(d.month)} — סיכום</h2><div class="kpis" id="kpis"></div></section>
+<section id="kpi"><h2>${label(d.month)} — סיכום</h2><div class="kpis" id="kpis" dir="ltr"></div></section>
 <section id="trend"><h2>מכירות לפי חודש</h2><div id="chart"></div><div class="leg" id="leg"></div></section>
 <section id="sku"><h2>מכירות לפי מוצר</h2><div class="ym"><div class="ms" id="ys"></div><div class="ms mg" id="ms"></div></div><div class="scroll" id="skuWrap" dir="ltr"><table id="tSku" dir="ltr"></table></div><div id="skuX"></div></section>
-<section id="chains"><h2>רשתות — כמה לקחה כל רשת ומשקלה מהסה"כ</h2><div class="scroll"><table id="tCh"></table></div><div id="tChX"></div><div id="tChR"></div></section>
+<section id="chains"><h2>רשתות — כמה לקחה כל רשת ומשקלה מהסה"כ</h2><div class="scroll" dir="ltr"><table id="tCh" dir="ltr" class="lt"></table></div><div id="tChX"></div><div id="tChR"></div></section>
 <section id="stock"><h2>מלאי והזמנה מומלצת — ${label(d.stockFrom)}–${label(d.month)}</h2><p class="sh" style="margin:-4px 0 10px;font-size:12px">מכר — 3 החודשים האחרונים · מלאי נכון ל-${d.asOf} · כמו בדף YARICH מלאי ב-Power BI · לא תלוי במתג היחידות</p><div class="kpis" id="sKpi"></div><div class="scroll" style="margin-top:10px" dir="ltr"><table id="tSt" dir="ltr"></table></div><div id="tStX"></div></section>
-<section id="private"><h2>שוק פרטי — ${TOP_PRIVATE} הלקוחות הגדולים (12 חודשים)</h2><div class="scroll"><table id="tPr"></table></div><div id="tPrX"></div></section>
+<section id="private"><h2>שוק פרטי — ${TOP_PRIVATE} הלקוחות הגדולים (12 חודשים)</h2><div class="scroll" dir="ltr"><table id="tPr" dir="ltr" class="lt"></table></div><div id="tPrX"></div></section>
 </main>
 <footer>INTER בלבד · ספק YARYCH LLC (2110171) · חודשים שלמים</footer>
 <script>
@@ -200,7 +200,7 @@ function span(ps){return ps.length===1?lb(ps[0]):(ps.length===SEL.length&&SEL[SE
 function ly12(p){var y=+p.slice(0,4),m=+p.slice(5);return (y-1)+'-'+(m<10?'0':'')+m}
 function selState(){SEL.sort(function(a,b){return a-b});HL=SEL.every(function(i){return D.lyOk[i]});
   var ps=SEL.map(function(i){return D.months[i]});SL=span(ps);lyL=HL?span(ps.map(ly12)):null}
-function cur(x){var s=0;SEL.forEach(function(i){s+=x.v[i][U]});return s}function s12(x){var s=0;for(var i=Math.max(0,L-12);i<L;i++)s+=x.v[i][U];return s}
+function cur(x){var s=0;SEL.forEach(function(i){s+=x.v[i][U]});return s}function lyc(v){return '<td class="n">'+(HL?f(v):'—')+'</td>'}
 function lyv(x){var s=0;SEL.forEach(function(i){s+=x.l[i]?x.l[i][U]:0});return s}
 function selV(v){var s=0;SEL.forEach(function(i){s+=v[i]});return s}
 function sum(a,fn){var s=0;a.forEach(function(x){s+=fn(x)});return s}
@@ -214,8 +214,8 @@ function render(){selState();
   document.getElementById('ys').innerHTML=YEARS.map(function(y){return '<button data-y="'+y+'"'+(YS.indexOf(y)>=0?' class="on"':'')+'>'+y+'</button>'}).join('');
   document.getElementById('ms').innerHTML=MN.map(function(n,j){var m=j+1,has=D.months.some(function(p){return +p.slice(5)===m&&YS.indexOf(+p.slice(0,4))>=0});
     return '<button data-mo="'+m+'"'+(MS.indexOf(m)>=0?' class="on"':'')+(has?'':' disabled')+'>'+(window.innerWidth<600?n.slice(0,3):n)+'</button>'}).join('');
-  var SK=vis('sku',D.skus,skuK),T=sum(SK,cur),T12=sum(SK,s12),TL=HL?sum(SK,lyv):null,CH=sum(D.chains,cur),PR=sum(D.privAll,cur),TF=sum(D.skus,cur),TF12=sum(D.skus,s12);
-  var k=[['סה"כ '+SL,f(T)],[HL?'מול '+lyL:'מול שנה שעברה',HL?((pc(T,TL)>0?'+':'')+pc(T,TL)+'%'):'אין נתונים',HL&&pc(T,TL)!=null?(pc(T,TL)>=0?'up':'dn'):''],['רשתות',f(CH)+' · '+(TF?Math.round(100*CH/TF):0)+'%'],['שוק פרטי',f(PR)+' · '+(TF?Math.round(100*PR/TF):0)+'%'],[D.n12+' חודשים',f(T12)]];
+  var SK=vis('sku',D.skus,skuK),T=sum(SK,cur),TL=HL?sum(SK,lyv):null,CH=sum(D.chains,cur),PR=sum(D.privAll,cur),TF=sum(D.skus,cur);
+  var k=[['סה"כ '+(HL?lyL:'שנה שעברה'),HL?f(TL):'אין נתונים'],['סה"כ '+SL,f(T)],[HL?'מול '+lyL:'מול שנה שעברה',HL?((pc(T,TL)>0?'+':'')+pc(T,TL)+'%'):'אין נתונים',HL&&pc(T,TL)!=null?(pc(T,TL)>=0?'up':'dn'):''],['רשתות',f(CH)+' · '+(TF?Math.round(100*CH/TF):0)+'%'],['שוק פרטי',f(PR)+' · '+(TF?Math.round(100*PR/TF):0)+'%']];
   document.getElementById('kpis').innerHTML=k.map(function(x){return '<div class="kpi"><span>'+x[0]+'</span><b dir="ltr" class="'+(x[2]||'')+'">'+x[1]+'</b></div>'}).join('');
   // график: столбики по месяцам, стек по семьям
   var fams=[];SK.forEach(function(x){if(fams.indexOf(x.fam)<0)fams.push(x.fam)});
@@ -228,23 +228,23 @@ function render(){selState();
   // таблица SKU: семья → SKU × месяцы, итог, % к прошлому году
   // таблица SKU: только выбранные кнопками месяцы (+ סה"כ выбора, если их несколько), 12 мес, % к прошлому году; график от выбора не зависит
   var multi=SEL.length>1;function mc(v,blank){var c=SEL.map(function(i){return '<td class="n">'+(blank&&!v[i]?'':f(v[i]))+'</td>'}).join('');return c+(multi?'<td class="n sel">'+f(selV(v))+'</td>':'')}
-  var hd='<tr><th class="st s1">מק"ט</th><th class="st s2">ENG</th>'+SEL.map(function(i){return '<th class="n">'+lb(D.months[i])+'</th>'}).join('')+(multi?'<th class="n sel">סה"כ</th>':'')+'<th class="n">'+D.n12+' ח\\'</th><th class="n">'+(lyL?'מול '+lyL:'שינוי')+'</th></tr>';
+  var hd='<tr><th class="st s1">מק"ט</th><th class="st s2">ENG</th><th class="n">'+(lyL||'שנה שעברה')+'</th>'+SEL.map(function(i){return '<th class="n">'+lb(D.months[i])+'</th>'}).join('')+(multi?'<th class="n sel">סה"כ</th>':'')+'<th class="n">'+(lyL?'מול '+lyL:'שינוי')+'</th></tr>';
   var grand=D.months.map(function(_,i){return sum(SK,function(x){return x.v[i][U]})}),g={},ord=[],body='';
   SK.forEach(function(x){if(!g[x.fam]){g[x.fam]=[];ord.push(x.fam)}g[x.fam].push(x)});
   ord.forEach(function(fm){var a=g[fm],v=D.months.map(function(_,i){return sum(a,function(x){return x.v[i][U]})}),l=sum(a,lyv);
-    body+='<tr class="fam"><td class="st s1"></td><td class="st s2" dir="rtl">'+esc(fm)+'</td>'+mc(v)+'<td class="n">'+f(sum(a,s12))+'</td>'+ch(HL?pc(selV(v),l):null)+'</tr>';
-    a.forEach(function(x){body+='<tr><td class="st s1">'+xb('sku',x.sku)+x.sku+'</td><td class="st s2 en">'+esc(x.name)+'</td>'+mc(x.v.map(function(z){return z[U]}),true)+'<td class="n">'+f(s12(x))+'</td>'+ch(HL?pc(cur(x),lyv(x)):null)+'</tr>'})});
-  body+='<tr class="tot"><td class="st s1"></td><td class="st s2">TOTAL</td>'+mc(grand)+'<td class="n">'+f(T12)+'</td>'+ch(HL?pc(T,TL):null)+'</tr>';
+    body+='<tr class="fam"><td class="st s1"></td><td class="st s2" dir="rtl">'+esc(fm)+'</td>'+lyc(l)+mc(v)+ch(HL?pc(selV(v),l):null)+'</tr>';
+    a.forEach(function(x){body+='<tr><td class="st s1">'+xb('sku',x.sku)+x.sku+'</td><td class="st s2 en">'+esc(x.name)+'</td>'+lyc(lyv(x))+mc(x.v.map(function(z){return z[U]}),true)+ch(HL?pc(cur(x),lyv(x)):null)+'</tr>'})});
+  body+='<tr class="tot"><td class="st s1"></td><td class="st s2">TOTAL</td>'+lyc(TL)+mc(grand)+ch(HL?pc(T,TL):null)+'</tr>';
   document.getElementById('tSku').innerHTML=hd+body;document.getElementById('skuX').innerHTML=rb('sku');var w=document.getElementById('skuWrap');w.scrollLeft=w.scrollWidth;
   // сети и частники: отчётный месяц, доля от общего итога, к прошлому году, 12 месяцев и доля
-  function tbl(id,t,list,nameHd,total,by12){var a=vis(t,list,nmK).slice().sort(by12?function(p,q){return s12(q)-s12(p)}:function(p,q){return cur(q)-cur(p)||s12(q)-s12(p)});
-    var h='<tr><th>'+nameHd+'</th><th class="n">'+SL+'</th><th class="n">% מסה"כ</th><th class="n">'+(lyL?'מול '+lyL:'שינוי')+'</th><th class="n">'+D.n12+' ח\\'</th><th class="n">% מסה"כ</th></tr>';
-    function row(x){return '<tr><td>'+xb(t,x.name)+esc(x.name)+'</td><td class="n">'+f(cur(x))+'</td>'+sh(cur(x),TF)+ch(HL?pc(cur(x),lyv(x)):null)+'<td class="n">'+f(s12(x))+'</td>'+sh(s12(x),TF12)+'</tr>'}
-    var act=by12?a:a.filter(function(x){return cur(x)}),rest=by12?[]:a.filter(function(x){return !cur(x)}),b=act.map(row).join('');
-    if(total){var c=sum(a,cur),c12=sum(a,s12);b+='<tr class="tot"><td>'+total+'</td><td class="n">'+f(c)+'</td>'+sh(c,TF)+ch(HL?pc(c,sum(a,lyv)):null)+'<td class="n">'+f(c12)+'</td>'+sh(c12,TF12)+'</tr>'}
+  function tbl(id,t,list,nameHd,total,keepAll){var a=vis(t,list,nmK).slice().sort(function(p,q){return cur(q)-cur(p)||lyv(q)-lyv(p)});
+    var h='<tr><th>'+nameHd+'</th><th class="n">'+(lyL||'שנה שעברה')+'</th><th class="n">'+SL+'</th><th class="n">'+(lyL?'מול '+lyL:'שינוי')+'</th><th class="n">% מסה"כ</th></tr>';
+    function row(x){return '<tr><td>'+xb(t,x.name)+esc(x.name)+'</td>'+lyc(lyv(x))+'<td class="n">'+f(cur(x))+'</td>'+ch(HL?pc(cur(x),lyv(x)):null)+sh(cur(x),TF)+'</tr>'}
+    var act=keepAll?a:a.filter(function(x){return cur(x)}),rest=keepAll?[]:a.filter(function(x){return !cur(x)}),b=act.map(row).join('');
+    if(total){var c=sum(a,cur),cl=sum(a,lyv);b+='<tr class="tot"><td>'+total+'</td>'+lyc(cl)+'<td class="n">'+f(c)+'</td>'+ch(HL?pc(c,cl):null)+sh(c,TF)+'</tr>'}
     document.getElementById(id).innerHTML=h+b;document.getElementById(id+'X').innerHTML=rb(t);
-    var r=document.getElementById(id+'R');if(r)r.innerHTML=rest.length?'<details><summary>עוד '+rest.length+' רשתות בלי מכירות ב-'+SL+' ('+f(sum(rest,s12))+' ב-'+D.n12+' ח\\')</summary><div class="scroll"><table>'+h+rest.map(row).join('')+'</table></div></details>':''}
-  tbl('tCh','ch',D.chains.filter(function(x){return cur(x)||s12(x)}),'רשת','סה"כ רשתות');
+    var r=document.getElementById(id+'R');if(r)r.innerHTML=rest.length?'<details><summary>עוד '+rest.length+' רשתות בלי מכירות ב-'+SL+(HL?' ('+f(sum(rest,lyv))+' ב-'+lyL+')':'')+'</summary><div class="scroll" dir="ltr"><table dir="ltr" class="lt">'+h+rest.map(row).join('')+'</table></div></details>':''}
+  tbl('tCh','ch',D.chains.filter(function(x){return cur(x)||lyv(x)}),'רשת','סה"כ רשתות');
   tbl('tPr','pr',D.priv,'לקוח',null,true);
   renderStock();
 }
@@ -295,7 +295,7 @@ var track=function(){};
 // ── письмо ──────────────────────────────────────────────────────────────────
 function buildEmail(d, t, link) {
   const ch = v => v == null ? '—' : `<span style="color:${v >= 0 ? GREEN : RED}">${v > 0 ? '+' : ''}${v}%</span>`;
-  const top = d.chains.map(x => ({ name: x.name, u: x.v.at(-1)[0] })).filter(x => x.u).sort((a, b) => b.u - a.u).slice(0, 5);
+  const top = d.chains.map(x => ({ name: x.name, u: x.v.at(-1)[0], ly: x.l.at(-1)?.[0] || 0 })).filter(x => x.u).sort((a, b) => b.u - a.u).slice(0, 5);
   const kpi = (l, v) => `<td style="padding:10px;border:1px solid ${LINE};border-radius:8px;text-align:center"><div style="color:${MUTED};font-size:12px">${l}</div><div style="font-size:20px;font-weight:700;color:${NAVY};direction:ltr">${v}</div></td>`;
   const subject = `YARYCH · מכירות INTER · ${label(d.month)}`;
   const html = `<div dir="rtl" style="direction:rtl;font-family:Arial,sans-serif;color:${INK};max-width:640px;margin:0 auto">
@@ -304,8 +304,8 @@ function buildEmail(d, t, link) {
 <div style="background:#fff;border:1px solid ${LINE};border-top:0;padding:16px 18px;border-radius:0 0 10px 10px">
 <table cellspacing="6" style="width:100%"><tr>${kpi('יחידות', n0(t.u))}${kpi('קרטונים', n0(t.krt))}${kpi('ק"ג', n0(t.kg))}</tr></table>
 <p style="margin:12px 0 4px">${d.ly ? `מול ${label(d.ly)}: ${ch(yoy(t.u, t.lyU))} ביחידות · ` : ''}רשתות: <b>${t.u ? Math.round(100 * t.chainsU / t.u) : 0}%</b> מהסה"כ</p>
-<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px"><tr style="background:${PAPER};color:${MUTED}"><th style="text-align:right;padding:6px">רשת</th><th style="text-align:left;padding:6px">יחידות</th><th style="text-align:left;padding:6px">% מסה"כ</th></tr>
-${top.map(x => `<tr><td style="padding:6px;border-bottom:1px solid ${LINE}">${esc(x.name)}</td><td style="padding:6px;border-bottom:1px solid ${LINE};text-align:left;direction:ltr">${n0(x.u)}</td><td style="padding:6px;border-bottom:1px solid ${LINE};text-align:left;direction:ltr">${t.u ? Math.round(1000 * x.u / t.u) / 10 : 0}%</td></tr>`).join('')}</table>
+<table dir="ltr" style="width:100%;border-collapse:collapse;font-size:14px;margin-top:8px;direction:ltr"><tr style="background:${PAPER};color:${MUTED}"><th style="text-align:left;padding:6px">רשת</th>${d.ly ? `<th style="text-align:right;padding:6px">${label(d.ly)}</th>` : ''}<th style="text-align:right;padding:6px">${label(d.month)}</th>${d.ly ? `<th style="text-align:right;padding:6px">מול ${label(d.ly)}</th>` : ''}<th style="text-align:right;padding:6px">% מסה"כ</th></tr>
+${top.map(x => { const td = 'padding:6px;border-bottom:1px solid ' + LINE + ';text-align:right'; return `<tr><td style="padding:6px;border-bottom:1px solid ${LINE};text-align:left" dir="rtl">${esc(x.name)}</td>${d.ly ? `<td style="${td}">${n0(x.ly)}</td>` : ''}<td style="${td}">${n0(x.u)}</td>${d.ly ? `<td style="${td}">${ch(yoy(x.u, x.ly))}</td>` : ''}<td style="${td}">${t.u ? Math.round(1000 * x.u / t.u) / 10 : 0}%</td></tr>`; }).join('')}</table>
 ${link ? `<div style="text-align:center;margin:20px 0 6px"><a href="${link}" style="background:${NAVY};color:#fff;text-decoration:none;padding:12px 26px;border-radius:8px;font-weight:700;display:inline-block">לדוח המלא — יחידות / קרטונים / ק"ג</a></div>
 <p style="color:${MUTED};font-size:12px;text-align:center;margin:4px 0 0">פירוט לפי מוצר וחודש, כל הרשתות, ${TOP_PRIVATE} הלקוחות הגדולים בשוק הפרטי</p>` : ''}
 </div></div>`;
