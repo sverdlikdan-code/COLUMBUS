@@ -22,6 +22,9 @@ const { Resend } = require('resend');
 const SHOULD_SEND = process.argv.includes('--send');
 const ONLY_TO = (process.argv.find(a => a.startsWith('--to=')) || '').slice(5) || null;
 const BDD = process.argv.includes('--bdd');
+// --reuse: resend the agent's newest live link instead of minting another one (renewed to a
+// year if it has less than ~10 months left). Falls back to a new link when the agent has none.
+const REUSE = process.argv.includes('--reuse');
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const SHORT_INVITE_FILE = path.join(__dirname, 'data', 'short-invites.json');
@@ -38,6 +41,16 @@ function makeShortInvite(code, name, days, isManager) {
   const short = crypto.randomBytes(5).toString('base64url');
   map[short] = { code, name, exp: Date.now() + days * 24 * 60 * 60 * 1000, isManager };
   saveShortInvites(map);
+  return `https://api.sverdlik-apps.site/i/${short}`;
+}
+
+function reuseShortInvite(code, isManager, days) {
+  const map = loadShortInvites();
+  const now = Date.now();
+  const mine = Object.entries(map).filter(([, v]) => String(v.code) === String(code) && !!v.isManager === !!isManager && !v.target && v.exp > now);
+  if (!mine.length) return null;
+  const [short, v] = mine.sort((a, b) => b[1].exp - a[1].exp)[0];
+  if (SHOULD_SEND && v.exp < now + 300 * 24 * 60 * 60 * 1000) { v.exp = now + days * 24 * 60 * 60 * 1000; saveShortInvites(map); }
   return `https://api.sverdlik-apps.site/i/${short}`;
 }
 
@@ -143,7 +156,8 @@ async function main() {
   for (const r of targets) {
     // Dry run must not write a link: every dry run used to add one more live invite per
     // agent to short-invites.json (4–5 per agent by 05.10, none of them ever sent).
-    const link = SHOULD_SEND ? makeShortInvite(r.agentCode, r.agentName, 365, r.isManager) : 'https://api.sverdlik-apps.site/i/<dry-run>';
+    const link = (REUSE && reuseShortInvite(r.agentCode, r.isManager, 365))
+      || (SHOULD_SEND ? makeShortInvite(r.agentCode, r.agentName, 365, r.isManager) : 'https://api.sverdlik-apps.site/i/<dry-run>');
     console.log(`${r.isManager ? '[MANAGER]' : '[AGENT]  '} ${r.agentName} <${r.email}> -> ${link}`);
     if (SHOULD_SEND) {
       if (!resend) { console.error('  RESEND_API_KEY not configured, skipping send'); continue; }
