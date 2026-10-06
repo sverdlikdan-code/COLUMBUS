@@ -8,7 +8,7 @@
 // Порядок дня повторяет клиент (formula-road.html initRoute): сохранённый order[day] (mergeWithSaved),
 // остальные — в порядке сервера (סדר ביקור, потом перенесённые в день). Нумерация — только среди FORMULA.
 // День, который агент не трогал (нет order[day] и переносов), — номера Priority как есть, без подсветки.
-// Адресаты (env из run-alert.sh): ROUTE_CHANGES_TO, ROUTE_CHANGES_CC;
+// Адресаты (env из run-alert.sh): ROUTE_CHANGES_TO, ROUTE_CHANGES_CC — всё; ROUTE_CHANGES_MANAGERS — менеджеру его группа;
 //   ROUTE_CHANGES_OVERRIDE=<email> — режим проверки: всё на этот адрес, в теме — кому шло бы.
 // --dry-run: письмо не шлётся, xlsx + html пишутся в LIVE_DATA_DIR/route-changes-preview.
 require('dotenv').config({ path: '../.env' });
@@ -270,7 +270,9 @@ async function buildXlsx(fRows, iRows, dateStr) {
   return wb.xlsx.writeBuffer();
 }
 
-function buildHtml(fRows, iRows, dateStr, agentNames) {
+const INTRO_YULIA = ['שלום יוליה,', 'מצורפים ימי וסדר הביקורים ב-<bdi>FORMULA</bdi> וב-<bdi>ICE</bdi> משפחתי כפי שהם באפליקציה, להזנה בפריוריטי. דוח שבועי אוטומטי.'];
+const INTRO_MANAGER = ['שלום,', 'מצורפים ימי וסדר הביקורים של הסוכנים בקבוצה שלך כפי שהם באפליקציה — זה מה שמועבר לעדכון בפריוריטי. דוח שבועי אוטומטי.'];
+function buildHtml(fRows, iRows, dateStr, agentNames, [greeting, intro] = INTRO_YULIA) {
   const stat = new Map(); // агент -> {days, orders, ice}
   const s = a => { if (!stat.has(a)) stat.set(a, { days: new Set(), orders: new Set(), ice: new Set() }); return stat.get(a); };
   for (const r of fRows) { if (r.dayChanged) s(r.c.agent).days.add(r.c.id); if (r.orderChanged) s(r.c.agent).orders.add(r.c.id); }
@@ -281,8 +283,8 @@ function buildHtml(fRows, iRows, dateStr, agentNames) {
   const td = 'style="padding:5px 10px;border-bottom:1px solid #e5e7eb;text-align:center"';
   return `<!doctype html><html dir="rtl" lang="he"><body style="margin:0"><div dir="rtl" style="font-family:Arial,sans-serif;color:#111;max-width:700px;margin:0 auto;padding:16px;box-sizing:border-box">
 <h2 style="margin:0 0 8px">שינויים שבוצעו ע"י סוכנים באפליקציה — ${dateStr}</h2>
-<p style="margin:0 0 6px">שלום יוליה,</p>
-<p style="margin:0 0 12px">מצורפים ימי וסדר הביקורים ב-<bdi>FORMULA</bdi> וב-<bdi>ICE</bdi> משפחתי כפי שהם באפליקציה, להזנה בפריוריטי. דוח שבועי אוטומטי.</p>
+<p style="margin:0 0 6px">${greeting}</p>
+<p style="margin:0 0 12px">${intro}</p>
 <p style="margin:0 0 12px;font-size:13px;color:#555">לשונית <bdi>FORMULA</bdi> — כל הלקוחות (${new Set(fRows.map(r => r.c.id)).size}), השינויים בכתום · לשונית <bdi>ICE</bdi> משפחתי — רק שינויי יום (${new Set(iRows.map(r => r.c.id)).size} לקוחות)</p>
 ${agents.length ? `<table style="border-collapse:collapse;font-size:13px">
 <tr><th ${th} rowspan="2">סוכן</th><th ${th} rowspan="2">מס'</th><th ${th} colspan="2"><bdi>FORMULA</bdi></th><th ${th}><bdi>ICE</bdi> משפחתי</th></tr>
@@ -303,34 +305,56 @@ async function main() {
 
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' });
   const dateStr = today.split('-').reverse().join('.');
-  const xlsx = Buffer.from(await buildXlsx(fRows, iRows, dateStr));
-  const html = buildHtml(fRows, iRows, dateStr, new Map([...formula.values()].map(c => [c.agent, c.agentName])));
+  const agentNames = new Map([...formula.values()].map(c => [c.agent, c.agentName]));
   const filename = `route-changes-${today}.xlsx`;
-  if (DRY_RUN) {
-    const dir = path.join(LIVE_DATA, 'route-changes-preview');
-    fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(path.join(dir, filename), xlsx);
-    fs.writeFileSync(path.join(dir, `route-changes-${today}.html`), html);
-    console.log(`--dry-run — письмо не отправлено, превью в ${dir}`);
-    return;
+  const list = v => (v || '').split(',').map(s => s.trim()).filter(Boolean);
+  // иврит + русский (пользователь 06.10): что внести в Priority
+  const subject = `לעדכון בפריוריטי: ימים וסדר ביקור | В Priority: дни и порядок визитов ${dateStr}`;
+
+  // Юлии — всё; менеджеру команды — его группа (ROUTE_CHANGES_MANAGERS, формат как CLIENT_CHANGES_MANAGERS:
+  // "ALEXEY=a@x;SADRAN+=b@x"). У ICE своей קבוצה нет — группа агента FORMULA (как в client-changes-alert).
+  const mails = [{ tag: 'all', to: list(process.env.ROUTE_CHANGES_TO), cc: list(process.env.ROUTE_CHANGES_CC), fRows, iRows, intro: INTRO_YULIA }];
+  const agentGroup = new Map();
+  for (const c of formula.values()) if (c.manager && !agentGroup.has(c.agent)) agentGroup.set(c.agent, c.manager);
+  for (const part of (process.env.ROUTE_CHANGES_MANAGERS || '').split(';').filter(Boolean)) {
+    const [groups, email] = part.split('=').map(s => s.trim());
+    const gs = new Set(groups.split(',').map(s => s.trim()));
+    const mf = fRows.filter(r => gs.has(r.c.manager)), mi = iRows.filter(r => gs.has(agentGroup.get(r.c.agent)));
+    if (mf.length || mi.length) mails.push({ tag: `manager ${groups}`, to: [email], cc: [], fRows: mf, iRows: mi, intro: INTRO_MANAGER });
+    else console.log(`  manager ${groups}: нет клиентов — письмо не отправляется`);
   }
 
-  const list = v => (v || '').split(',').map(s => s.trim()).filter(Boolean);
-  let to = list(process.env.ROUTE_CHANGES_TO), cc = list(process.env.ROUTE_CHANGES_CC);
-  // иврит + русский (пользователь 06.10): что внести в Priority, кем исправлено
-  let subject = `לעדכון בפריוריטי: ימים וסדר ביקור | В Priority: дни и порядок визитов ${dateStr}`;
   const override = (process.env.ROUTE_CHANGES_OVERRIDE || '').trim();
-  // гипотеза: адреса в теме -> спам (06.10 письма с VPS не дошли, причина не проверена) — кому шло бы, только в лог
-  if (override) { console.log(`OVERRIDE: шло бы -> ${[...to, ...cc].join(', ')}`); subject = `[בדיקה] ${subject}`; to = [override]; cc = []; }
-  if (!to.length) throw new Error('ROUTE_CHANGES_TO пуст');
-  if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY не найден в .env');
-  const res = await new Resend(process.env.RESEND_API_KEY).emails.send({
-    from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
-    to, ...(cc.length ? { cc } : {}), subject, html,
-    attachments: [{ filename, content: xlsx.toString('base64') }],
-  });
-  if (res.error) throw new Error(JSON.stringify(res.error));
-  console.log(`OK id=${res.data?.id} -> ${to.join(',')}${cc.length ? ' cc ' + cc.join(',') : ''}`);
+  const resend = DRY_RUN ? null : new Resend(process.env.RESEND_API_KEY);
+  if (!DRY_RUN && !process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY не найден в .env');
+  let failed = 0;
+  for (const [i, m] of mails.entries()) {
+    let { to, cc } = m, subj = subject;
+    if (!to.length) { console.log(`  ${m.tag}: нет адресата — пропуск`); continue; }
+    const xlsx = Buffer.from(await buildXlsx(m.fRows, m.iRows, dateStr));
+    const html = buildHtml(m.fRows, m.iRows, dateStr, agentNames, m.intro);
+    const info = `${m.tag}: FORMULA ${m.fRows.length} строк, ICE ${m.iRows.length}`;
+    if (DRY_RUN) {
+      const dir = path.join(LIVE_DATA, 'route-changes-preview');
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(dir, `route-changes-${today}-${i}.xlsx`), xlsx);
+      fs.writeFileSync(path.join(dir, `route-changes-${today}-${i}.html`), html);
+      console.log(`  [dry ${i}] ${info} -> ${[...to, ...cc].join(',')}`);
+      continue;
+    }
+    // гипотеза: адреса в теме -> спам (06.10 письма с VPS не дошли, причина не проверена) — кому шло бы, только в лог
+    if (override) { console.log(`  OVERRIDE ${m.tag}: шло бы -> ${[...to, ...cc].join(', ')}`); subj = `[בדיקה] ${subj}`; to = [override]; cc = []; }
+    const res = await resend.emails.send({
+      from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
+      to, ...(cc.length ? { cc } : {}), subject: subj, html,
+      attachments: [{ filename, content: xlsx.toString('base64') }],
+    });
+    if (res.error) { failed++; console.error(`  FAIL ${m.tag}:`, JSON.stringify(res.error)); }
+    else console.log(`  OK id=${res.data?.id} ${info} -> ${to.join(',')}${cc.length ? ' cc ' + cc.join(',') : ''}`);
+    await new Promise(r => setTimeout(r, 600)); // Resend: 2 req/s
+  }
+  if (DRY_RUN) console.log('--dry-run — письма не отправлены');
+  if (failed) throw new Error(`${failed} из ${mails.length} писем не ушли`);
 }
 
 main().catch(e => { console.error('ERR:', e.message); process.exit(1); });
