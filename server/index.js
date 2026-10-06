@@ -1182,7 +1182,7 @@ app.get('/auth/pbi', dataRateLimit, pbiIpOrKnownUser, (req, res) => {
   }
   const token = createSession(null, true, true, pbiUser, managerMeta);
   writeLog({ ts: new Date().toISOString(), event: 'login-pbi', pbiUser, managerId: managerMeta?.id || null, managerRole: managerMeta?.role || null, ip: getRealIp(req) });
-  return res.json({ ok: true, managerName: managerMeta ? (managerMeta.nameHe || managerMeta.name) : null, token, ...(managerMeta?.channel ? { channel: managerMeta.channel } : {}) });
+  return res.json({ ok: true, managerName: managerMeta ? (managerMeta.nameHe || managerMeta.name) : null, token, ...(managerMeta?.channel ? { channel: managerMeta.channel } : {}), ...(managerMeta?.bddAccess ? { bddAccess: true } : {}) });
 });
 
 // POST /auth — unified login: manager password OR agent code → returns session token

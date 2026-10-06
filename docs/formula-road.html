@@ -1639,7 +1639,8 @@ async function apiFetch(url, opts={}, timeoutMs=12000){
         // R6(a): a manager moved to/from ICE BDD gets the right channel on silent
         // re-auth. /auth/pbi sends `channel` only for BDD managers; written only
         // when it differs, so a FORMULA frAgent (no channel) is never touched.
-        const a = viaPbi ? _loadAuth() : null;
+        // bddAccess managers pick the channel with the toggle — keep their choice.
+        const a = viaPbi && !j.bddAccess ? _loadAuth() : null;
         if(a && (a.channel||null) !== (j.channel||null)){
           a.channel = j.channel || null;
           localStorage.setItem('frAgent', JSON.stringify(a));
@@ -2309,7 +2310,7 @@ async function initLogin(){
       if(j.ok && j.token){
         _saveToken(j.token);
         const _mgrName = j.managerName || 'מנהל';
-        localStorage.setItem('frAgent', JSON.stringify({code:'mgr',name:_mgrName,isManager:true,channel:j.channel||null}));
+        localStorage.setItem('frAgent', JSON.stringify({code:'mgr',name:_mgrName,isManager:true,channel:j.channel||(j.bddAccess?'ICE_BDD':null)})); // ICE managers (bddAccess) start on ICE BDD (Dan 2026-10-06)
         _applyChannelClass();
         if(_isBdd()) await loadCorrections(); // FORMULA corrections were loaded above before the channel was known
         _logAccess('login',null,_mgrName,true);
