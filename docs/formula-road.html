@@ -2358,14 +2358,32 @@ async function _maybeRenderChannelToggle(){
     +`<button type="button" class="ch-seg${bdd?' active':''}" onclick="_switchChannel('ICE_BDD')">ICE BDD</button>`;
   wrap.insertBefore(t, wrap.firstChild);
 }
-// Extra tiles (🧊, 📉) after the manager tiles: fixed order 🧊 then 📉; only the last
+// Extra tiles (🧊, 📉, ❓) after the manager tiles: fixed order 🧊 → 📉 → ❓; only the last
 // tile left without a pair spans the full row — symmetric for any team count/role.
+const _MGR_EXTRA=['mekarer-admin-tile','coverage-tile','guide-tile'];
 function _fixMgrGridSpan(grid){
-  const cov=grid.querySelector('.coverage-tile'), mek=grid.querySelector('.mekarer-admin-tile');
-  if(cov&&mek&&(mek.compareDocumentPosition(cov)&Node.DOCUMENT_POSITION_PRECEDING)) grid.appendChild(cov);
-  [...grid.children].forEach(el=>{ if(el.classList.contains('mekarer-admin-tile')||el.classList.contains('coverage-tile')) el.style.gridColumn=''; });
+  _MGR_EXTRA.forEach(c=>{ const el=grid.querySelector('.'+c); if(el){ el.style.gridColumn=''; grid.appendChild(el); } });
   const last=grid.lastElementChild;
-  if(grid.children.length%2===1&&last&&(last.classList.contains('mekarer-admin-tile')||last.classList.contains('coverage-tile'))) last.style.gridColumn='1/-1';
+  if(grid.children.length%2===1&&last&&_MGR_EXTRA.some(c=>last.classList.contains(c))) last.style.gridColumn='1/-1';
+}
+// "❓ מדריך שימוש" tile — ICE BDD picker only (user 2026-10-06: evens out the grid there).
+function _maybeRenderGuideTile(){
+  if(!_isBdd()) return;
+  const grid=document.querySelector('#login-body .mgr-grid');
+  if(!grid || grid.querySelector('.guide-tile')) return;
+  const t=document.createElement('div');
+  t.className='mgr-tile guide-tile';
+  t.setAttribute('role','button');
+  t.setAttribute('aria-label','מדריך שימוש');
+  t.innerHTML=`<div class="mgr-tile-ring-wrap">
+      <svg class="mgr-tile-ring" viewBox="0 0 64 64"><circle class="mgr-tile-ring-track" cx="32" cy="32" r="28"/></svg>
+      <div class="mgr-tile-av" style="font-size:22px">❓</div>
+    </div>
+    <div class="mgr-tile-name">מדריך שימוש</div>
+    <div class="mgr-tile-stats"></div>`;
+  t.onclick=()=>openGuide('picker');
+  grid.appendChild(t);
+  _fixMgrGridSpan(grid);
 }
 // "📉 כיסוי לפי ימים" — server decides who sees it (/api/coverage-history?probe=1):
 // FORMULA team managers (own team), BDD team managers (own groups), super. Readonly: no tile.
@@ -2595,6 +2613,7 @@ function renderLogin(){
     _maybeRenderChannelToggle();
     _maybeRenderMekarerAdminBtn();
     _maybeRenderCoverageBtn();
+    _maybeRenderGuideTile();
     startTeamStatsPolling();
   }else if(st.step==='agent-welcome'){
     // First-ever open via an agent's own invite link — same branded s-login
