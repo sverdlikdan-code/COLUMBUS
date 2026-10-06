@@ -4690,7 +4690,7 @@ function _tryShowClientChanges(){
   const h=+new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem',hour:'numeric',hour12:false});
   const hello=h<12?'בוקר טוב':h<17?'צהריים טובים':'ערב טוב';
   const first=(d.name||_loadAuth()?.name||'').split(' ')[0];
-  document.getElementById('cc-greet').innerHTML=`<b>${hello}${first&&first!=='מנהל'?', '+esc(first):''}!</b><br>עוזר ה-AI שולח לך את השינויים בלקוחות של הסוכנים שלך מאז הדוח הקודם: לקוחות חדשים, לקוחות שהפכו ללא פעילים או חזרו לפעילות, העברות בין סוכנים ושינויי יום ביקור.`;
+  document.getElementById('cc-greet').innerHTML=`<b>${hello}${first&&first!=='מנהל'?', '+esc(first):''}!</b><br>עוזר ה-AI שולח לך את השינויים בלקוחות של הסוכנים שלך מאז הדוח הקודם: לקוחות חדשים, לקוחות שהפכו ללא פעילים או חזרו לפעילות והעברות בין סוכנים.`;
   const groups=CC_TYPES.map(t=>({...t,rows:d.changes.filter(c=>c.type===t.key)})).filter(t=>t.rows.length);
   document.getElementById('cc-chips').innerHTML=groups.map(t=>`<span class="cc-chip" style="background:${t.color}">${t.he}: ${t.rows.length}</span>`).join('');
   const cur=(t,v)=>`<span class="cc-cur" style="color:${t.color};background:${t.tint}">${esc(v)}</span>`;
