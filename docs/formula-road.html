@@ -1016,6 +1016,10 @@ body.gps-fs #map{height:100%!important;}
 #s-login.mgr-compact .login-app-name{font-size:17px;letter-spacing:3px;}
 #s-login.mgr-compact .login-tagline:empty{display:none;}
 #s-login.mgr-compact #data-time{display:none;} /* 2026-10-05: BI timestamp line dropped on picker screens */
+/* ↻ on the manager/agent picker too — a manager's app opens here, not on a .hdr screen (Dan 2026-10-06) */
+#s-login .login-hero{position:relative;}
+#s-login .login-refresh{display:none;position:absolute;left:14px;top:50%;transform:translateY(-50%);}
+#s-login.mgr-compact .login-refresh{display:flex;}
 .login-app-name{font-size:22px;font-weight:900;letter-spacing:4px;color:#fff;text-transform:uppercase;}
 .login-tagline{font-size:12px;color:rgba(255,255,255,.6);letter-spacing:1px;}
 .login-sky-bar{height:4px;background:linear-gradient(90deg,var(--sky),var(--blue));flex-shrink:0;}
@@ -1110,6 +1114,7 @@ body.bdd .km-more-item[onclick^="openYedaim"], body.bdd .km-more-item[onclick^="
     <div class="login-tagline" id="login-sub">מערכת ניהול מסלולים</div>
     <div id="data-time" style="font-size:11px;color:rgba(255,200,80,.75);margin-top:4px;letter-spacing:0.5px;"></div>
     <span class="demo-tag" id="demo-tag" style="display:none">DEMO</span>
+    <button class="hdr-refresh login-refresh" onclick="hdrRefresh()" title="רענון" aria-label="רענון"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5"/></svg></button>
   </div>
   <div class="login-sky-bar"></div>
   <div id="login-body" style="flex:1;display:flex;flex-direction:column;overflow:hidden;"></div>
