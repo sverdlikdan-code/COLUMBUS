@@ -323,11 +323,22 @@ function createBdd(deps) {
     const s = await docsToday();
     if (!s) return res.status(503).json({ ok: false, error: 'priority_unavailable' });
     const a = s.byAgent.get(agentCode);
+    // List split for the on-screen table (Dan 2026-10-06): clients on another agent's
+    // roster → rosterAgentName (same key FORMULA uses); own clients outside today's line
+    // (incl. in-app day moves) → offDay. Clients missing from the roster stay in the main list.
+    const line = cache ? bddLineFor(agentCode, deps.todayRouteDay()) : new Set();
+    const tagClient = c => {
+      const cl = cache?.clientById.get(String(c.custId));
+      const own = cl?.agentCode === agentCode;
+      return { ...c, custName: cl?.custName || '',
+        ...(cl && !own ? { rosterAgentName: cl.agentName || cl.agentCode } : {}),
+        ...(own && !line.has(String(c.custId)) ? { offDay: true } : {}) };
+    };
     res.json({ ok: true, type: 'bdd', custCount: a?.custCount || 0, sum: a?.sum || 0,
       newCustCount: 0, newSum: 0,
       sales: a?.sales || 0, returns: a?.returns || 0, credits: a?.credits || 0,
       items: [], byAgent: [],
-      byClient: (a?.byClient || []).map(c => ({ ...c, custName: cache?.clientById.get(c.custId)?.custName || '' })) });
+      byClient: (a?.byClient || []).map(tagClient) });
   }));
 
   // --- write routes (Task 8) ---
