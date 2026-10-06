@@ -318,9 +318,10 @@ async function main() {
   const list = v => (v || '').split(',').map(s => s.trim()).filter(Boolean);
   let to = list(process.env.ROUTE_CHANGES_TO), cc = list(process.env.ROUTE_CHANGES_CC);
   // иврит + русский (пользователь 06.10): что внести в Priority, кем исправлено
-  let subject = `לעדכון בפריוריטי: ימי ביקור וסדר הגעה שתוקנו ע"י סוכנים ומנהלים | Внести в Priority: дни и порядок визитов, исправленные агентами и менеджерами — ${dateStr}`;
+  let subject = `לעדכון בפריוריטי: ימים וסדר ביקור | В Priority: дни и порядок визитов ${dateStr}`;
   const override = (process.env.ROUTE_CHANGES_OVERRIDE || '').trim();
-  if (override) { subject = `[לבדיקה → ${[...to, ...cc].join(', ')}] ${subject}`; to = [override]; cc = []; }
+  // гипотеза: адреса в теме -> спам (06.10 письма с VPS не дошли, причина не проверена) — кому шло бы, только в лог
+  if (override) { console.log(`OVERRIDE: шло бы -> ${[...to, ...cc].join(', ')}`); subject = `[בדיקה] ${subject}`; to = [override]; cc = []; }
   if (!to.length) throw new Error('ROUTE_CHANGES_TO пуст');
   if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY не найден в .env');
   const res = await new Resend(process.env.RESEND_API_KEY).emails.send({
@@ -329,7 +330,7 @@ async function main() {
     attachments: [{ filename, content: xlsx.toString('base64') }],
   });
   if (res.error) throw new Error(JSON.stringify(res.error));
-  console.log(`OK -> ${to.join(',')}${cc.length ? ' cc ' + cc.join(',') : ''}`);
+  console.log(`OK id=${res.data?.id} -> ${to.join(',')}${cc.length ? ' cc ' + cc.join(',') : ''}`);
 }
 
 main().catch(e => { console.error('ERR:', e.message); process.exit(1); });
