@@ -853,7 +853,13 @@ body.map-hidden #tab-map,body.map-hidden #tab-inline-map{display:none!important;
 .cc-greet{font-size:14px;line-height:1.55;color:var(--text);margin-bottom:12px;}
 .cc-greet b{font-size:16px;}
 .cc-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;}
-.cc-chip{color:#fff;font-size:12px;font-weight:700;padding:3px 10px;border-radius:12px;white-space:nowrap;}
+.cc-chip{color:#fff;font-size:12px;font-weight:700;padding:3px 10px;border-radius:12px;white-space:nowrap;border:0;font-family:inherit;cursor:pointer;transition:opacity .15s;}
+.cc-chip.off{opacity:.35;}
+.cc-tbl{width:100%;border-collapse:collapse;font-size:13px;line-height:1.4;}
+.cc-tbl th{text-align:right;font-size:11px;color:var(--mid);font-weight:700;padding:4px 4px 4px 0;border-bottom:1px solid #dfe3e8;}
+.cc-tbl td{text-align:right;vertical-align:top;padding:7px 4px 7px 0;border-bottom:1px solid #eef0f3;}
+.cc-tbl td:first-child{width:50%;}
+.cc-empty{color:var(--mid);font-size:13px;padding:4px 0;}
 .cc-sec{font-size:14px;font-weight:800;margin:14px 0 6px;}
 .cc-row{padding:7px 0;border-bottom:1px solid #eef0f3;font-size:13px;line-height:1.45;}
 .cc-name{font-weight:700;color:var(--text);}
@@ -4665,7 +4671,7 @@ const CC_TYPES=[
   {key:'agent',he:'העברה לסוכן אחר',color:'#E37400',tint:'#FFF3E0'},
   {key:'day',he:'שינוי יום ביקור',color:'#8430CE',tint:'#F3E8FD'},
 ];
-let _ccRequested=false, _ccPending=null, _ccShownAt=0;
+let _ccRequested=false, _ccPending=null, _ccShownAt=0, _ccFilter=null;
 async function maybeShowClientChanges(){
   if(_ccRequested || !_loadAuth()?.isManager) return;
   _ccRequested=true;
@@ -4691,20 +4697,35 @@ function _tryShowClientChanges(){
   const hello=h<12?'בוקר טוב':h<17?'צהריים טובים':'ערב טוב';
   const first=(d.name||_loadAuth()?.name||'').split(' ')[0];
   document.getElementById('cc-greet').innerHTML=`<b>${hello}${first&&first!=='מנהל'?', '+esc(first):''}!</b><br>עוזר ה-AI שולח לך את השינויים בלקוחות של הסוכנים שלך מאז הדוח הקודם: לקוחות חדשים, לקוחות שהפכו ללא פעילים או חזרו לפעילות, העברות בין סוכנים ושינויי יום ביקור.`;
-  const groups=CC_TYPES.map(t=>({...t,rows:d.changes.filter(c=>c.type===t.key)})).filter(t=>t.rows.length);
-  document.getElementById('cc-chips').innerHTML=groups.map(t=>`<span class="cc-chip" style="background:${t.color}">${t.he}: ${t.rows.length}</span>`).join('');
+  // agent section always shown (even 0) — managers asked to see transfers explicitly
+  const groups=CC_TYPES.map(t=>({...t,rows:d.changes.filter(c=>c.type===t.key)})).filter(t=>t.rows.length||t.key==='agent');
+  _ccFilter=null;
+  document.getElementById('cc-chips').innerHTML=groups.map(t=>`<button type="button" class="cc-chip" data-k="${t.key}" style="background:${t.color}" onclick="ccFilter('${t.key}')">${t.he}: ${t.rows.length}</button>`).join('');
   const cur=(t,v)=>`<span class="cc-cur" style="color:${t.color};background:${t.tint}">${esc(v)}</span>`;
-  document.getElementById('cc-body').innerHTML=groups.map(t=>`<div class="cc-sec" style="color:${t.color}">${t.he} (${t.rows.length})</div>`
-    + t.rows.map(c=>{
-      const meta=`${esc(c.id)}${c.city?' · '+esc(c.city):''} · <bdi>${esc(c.hevra)}</bdi>`;
-      let line=`סוכן: ${esc(c.agentName)}`;
-      if(c.type==='agent') line=`סוכן קודם: <span class="cc-prev">${esc(c.from)}</span> · נוכחי: ${cur(t,c.to)}`;
-      if(c.type==='day') line=`${esc(c.agentName)} · יום קודם: <span class="cc-prev">${esc(c.from)}</span> · נוכחי: ${cur(t,c.to)}`;
-      return `<div class="cc-row"><div class="cc-name">${esc(c.name)}</div><div class="cc-meta">${meta}</div><div>${line}</div></div>`;
-    }).join('')).join('');
+  const meta=c=>`${esc(c.id)}${c.city?' · '+esc(c.city):''} · <bdi>${esc(c.hevra)}</bdi>`;
+  document.getElementById('cc-body').innerHTML=groups.map(t=>`<div class="cc-grp" data-k="${t.key}"><div class="cc-sec" style="color:${t.color}">${t.he} (${t.rows.length})</div>`
+    + (t.key==='agent'
+      ? (t.rows.length
+        ? `<table class="cc-tbl"><thead><tr><th>לקוח</th><th>היה</th><th>עכשיו</th></tr></thead><tbody>`
+          + t.rows.map(c=>`<tr><td><div class="cc-name">${esc(c.name)}</div><div class="cc-meta">${meta(c)}</div></td><td class="cc-prev">${esc(c.from)}</td><td>${cur(t,c.to)}</td></tr>`).join('')
+          + `</tbody></table>`
+        : `<div class="cc-empty">אין העברות בין סוכנים</div>`)
+      : t.rows.map(c=>{
+        let line=`סוכן: ${esc(c.agentName)}`;
+        if(c.type==='day') line=`${esc(c.agentName)} · יום קודם: <span class="cc-prev">${esc(c.from)}</span> · נוכחי: ${cur(t,c.to)}`;
+        return `<div class="cc-row"><div class="cc-name">${esc(c.name)}</div><div class="cc-meta">${meta(c)}</div><div>${line}</div></div>`;
+      }).join(''))
+    + `</div>`).join('');
   document.getElementById('cc-toast').classList.add('open');
   _ccShownAt=Date.now();
   _trackEvent('client_changes_shown', null, d.changes.length);
+}
+// chips filter the list below; tap the active chip again → all
+function ccFilter(k){
+  _ccFilter=_ccFilter===k?null:k;
+  document.querySelectorAll('#cc-body .cc-grp').forEach(g=>{ g.hidden=!!_ccFilter&&g.dataset.k!==_ccFilter; });
+  document.querySelectorAll('#cc-chips .cc-chip').forEach(b=>b.classList.toggle('off',!!_ccFilter&&b.dataset.k!==_ccFilter));
+  if(_ccFilter) _trackEvent('client_changes_filter_'+_ccFilter, null, null);
 }
 function closeClientChanges(){
   document.getElementById('cc-toast').classList.remove('open');
