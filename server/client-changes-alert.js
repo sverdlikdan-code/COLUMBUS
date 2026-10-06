@@ -253,6 +253,8 @@ function buildHtml(changes, dateStr, greeting = '', title = 'שינויים בל
       const v = esc(cellValue(r, c.key));
       if (c.prev) return `<td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;text-align:right;color:#8a8f98">${v}</td>`;
       if (c.cur) return `<td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;text-align:right;background:#${t.tint};color:#${t.color};font-weight:700">${v}</td>`;
+      // имя клиента — крупнее (пользователь 06.10); min-width не ставить — на телефоне 390px таблица вылезает
+      if (c.key === 'name') return `<td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:15px;font-weight:600">${v}</td>`;
       return `<td ${td}>${v}</td>`;
     };
     return `<h3 style="color:#${t.color};margin:22px 0 6px">${t.he} (${t.n})</h3>
