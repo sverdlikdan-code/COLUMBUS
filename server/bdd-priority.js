@@ -172,4 +172,20 @@ async function bddVisitOrder(dbName) {
   return r.recordset.map(x => ({ custId: String(x.custId), dayNum: Number(x.dayNum), visitOrder: Number(x.visitOrder) }));
 }
 
-module.exports = { getBddPool, bddDocLinesToday, bddClientPromos, bddCustFamiliesWithActivePromo, bddVisitOrder };
+// Name + main agent (CUSTOMERS.AGENT, not AGENT2) for clients a BDD agent sold to that
+// aren't on the ICE BDD roster — the roster is the only other name source. Dan 2026-10-06.
+async function bddCustMainAgents(dbName, custIds) {
+  if (!custIds.length) return new Map();
+  const pool = await getBddPool(dbName);
+  const req = pool.request();
+  custIds.forEach((id, i) => req.input(`c${i}`, sql.NVarChar, String(id)));
+  const r = await req.query(`
+    SELECT C.CUSTNAME AS custId, C.CUSTDES AS custName, A.AGENTCODE AS agentCode, A.AGENTNAME AS agentName
+    FROM CUSTOMERS C LEFT JOIN AGENTS A ON A.AGENT = C.AGENT
+    WHERE C.CUSTNAME IN (${custIds.map((_, i) => `@c${i}`).join(',')})
+  `);
+  return new Map(r.recordset.map(x => [String(x.custId), {
+    custName: String(x.custName || '').trim(), agentCode: String(x.agentCode || '').trim(), agentName: String(x.agentName || '').trim() }]));
+}
+
+module.exports = { getBddPool, bddDocLinesToday, bddClientPromos, bddCustFamiliesWithActivePromo, bddVisitOrder, bddCustMainAgents };

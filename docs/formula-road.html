@@ -50,6 +50,15 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .hdr-center{position:absolute;left:0;right:0;text-align:center;pointer-events:none;}
 .hdr-title{font-size:13px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:#fff;}
 .hdr-sub{font-size:11px;color:rgba(255,255,255,.7);margin-top:1px;}
+/* ↻ in the header (Dan 2026-10-06): the home-screen app has no browser reload and
+   pull-to-refresh is off on purpose, so close+reopen was the only way to refresh. */
+.hdr-end{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.hdr-refresh{width:32px;height:32px;padding:0;border-radius:50%;background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.35);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;}
+.hdr-refresh svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;transition:transform .5s;}
+.hdr-refresh:active{background:rgba(255,255,255,.3);}
+.hdr-refresh.spin svg{transform:rotate(360deg);}
+/* agent's route header: ✕ יציאה takes the logo's place — logo + ↻ + logout don't fit beside the title on a phone */
+#route-hdr .hdr-end:has(#logout-btn:not([style*="display:none"]):not([style*="display: none"])) .hdr-logo{display:none;}
 .sky-line{height:3px;background:linear-gradient(90deg,var(--sky),var(--blue));flex-shrink:0;}
 .demo-banner{background:#c0392b;color:#fff;text-align:center;padding:8px 14px;font-size:13px;font-weight:800;direction:rtl;flex-shrink:0;}
 .demo-tag{font-size:9px;background:rgba(41,182,246,.25);color:var(--sky);padding:2px 8px;border-radius:10px;letter-spacing:1px;border:1px solid rgba(41,182,246,.4);}
@@ -1110,7 +1119,7 @@ body.bdd .km-more-item[onclick^="openYedaim"], body.bdd .km-more-item[onclick^="
 <div class="screen" id="s-city">
   <div class="hdr">
     <button class="hdr-back" dir="ltr" onclick="goBack('s-city')">← Назад</button>
-    <img src="logo-diler-bmd.png" class="hdr-logo" alt="DILER"/>
+    <div class="hdr-end"><button class="hdr-refresh" onclick="hdrRefresh()" title="Обновить" aria-label="Обновить"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5"/></svg></button><img src="logo-diler-bmd.png" class="hdr-logo" alt="DILER"/></div>
     <div class="hdr-center">
       <div class="hdr-title">FORMULA ROAD</div>
     </div>
@@ -1163,7 +1172,7 @@ body.bdd .km-more-item[onclick^="openYedaim"], body.bdd .km-more-item[onclick^="
 <div class="screen" id="s-day">
   <div class="hdr">
     <button class="hdr-back" onclick="goBack('s-day')">← חזור</button>
-    <img src="logo-diler-bmd.png" class="hdr-logo" alt="DILER"/>
+    <div class="hdr-end"><button class="hdr-refresh" onclick="hdrRefresh()" title="רענון" aria-label="רענון"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5"/></svg></button><img src="logo-diler-bmd.png" class="hdr-logo" alt="DILER"/></div>
     <div class="hdr-center">
       <div class="hdr-title">FORMULA ROAD</div>
       <div class="hdr-sub" id="day-sub"></div>
@@ -1187,12 +1196,11 @@ body.bdd .km-more-item[onclick^="openYedaim"], body.bdd .km-more-item[onclick^="
 <div class="screen" id="s-route">
   <div class="hdr" id="route-hdr">
     <button class="hdr-back" onclick="goBack('s-route')">← חזור</button>
-    <img src="logo-diler-bmd.png" class="hdr-logo" alt="DILER"/>
     <div class="hdr-center">
       <div class="hdr-title" id="route-title">FORMULA ROAD</div>
       <div class="hdr-sub" id="route-sub"></div>
     </div>
-    <button id="logout-btn" onclick="logout()" style="display:none;background:none;border:none;color:rgba(255,255,255,.7);font-size:11px;font-weight:700;cursor:pointer;padding:4px 8px;letter-spacing:.5px;" title="יציאה">✕ יציאה</button>
+    <div class="hdr-end"><button class="hdr-refresh" onclick="hdrRefresh()" title="רענון" aria-label="רענון"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5"/></svg></button><img src="logo-diler-bmd.png" class="hdr-logo" alt="DILER"/><button id="logout-btn" onclick="logout()" style="display:none;background:none;border:none;color:rgba(255,255,255,.7);font-size:11px;font-weight:700;cursor:pointer;padding:4px 2px;letter-spacing:.5px;" title="יציאה">✕ יציאה</button></div>
   </div>
   <button id="landscape-toolbar-toggle" onclick="toggleLandscapeToolbar()" title="הצג/הסתר סרגל כלים" aria-label="הצג/הסתר סרגל כלים">☰</button>
   <div class="sky-line"></div>
@@ -5050,6 +5058,12 @@ function closeAiModal() {
 // is answerable directly instead of only inferable from the day-briefing
 // rate-limit file's side effect. No server change needed, /api/event already
 // accepts any {event, custId}.
+function hdrRefresh() {
+  _trackEvent('header_refresh');
+  document.querySelectorAll('.hdr-refresh').forEach(b => b.classList.add('spin'));
+  setTimeout(() => location.reload(), 250); // let the spin show and the keepalive event leave
+}
+
 function _trackEvent(event, custId, itemCount) {
   try {
     apiFetch(`${API}/api/event`, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' },
