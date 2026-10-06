@@ -172,6 +172,15 @@ async function bddVisitOrder(dbName) {
   return r.recordset.map(x => ({ custId: String(x.custId), dayNum: Number(x.dayNum), visitOrder: Number(x.visitOrder) }));
 }
 
+// Hebrew text straight from Priority SQL: letters already in logical order, but digit
+// runs come reversed and parentheses mirrored (checked 2026-10-06 against the PBI name:
+// "-סניף-16" vs "-סניף-61", ")א.א.ל(" vs "(א.א.ל)"). Hebrew-free strings left as is.
+function fixSqlHeb(v) {
+  const s = String(v || '').trim();
+  if (!/[א-ת]/.test(s)) return s;
+  return s.replace(/\d+/g, m => [...m].reverse().join('')).replace(/[()]/g, c => c === '(' ? ')' : '(');
+}
+
 // Name + main agent (CUSTOMERS.AGENT, not AGENT2) for clients a BDD agent sold to that
 // aren't on the ICE BDD roster — the roster is the only other name source. Dan 2026-10-06.
 async function bddCustMainAgents(dbName, custIds) {
@@ -185,7 +194,7 @@ async function bddCustMainAgents(dbName, custIds) {
     WHERE C.CUSTNAME IN (${custIds.map((_, i) => `@c${i}`).join(',')})
   `);
   return new Map(r.recordset.map(x => [String(x.custId), {
-    custName: String(x.custName || '').trim(), agentCode: String(x.agentCode || '').trim(), agentName: String(x.agentName || '').trim() }]));
+    custName: fixSqlHeb(x.custName), agentCode: String(x.agentCode || '').trim(), agentName: fixSqlHeb(x.agentName) }]));
 }
 
 module.exports = { getBddPool, bddDocLinesToday, bddClientPromos, bddCustFamiliesWithActivePromo, bddVisitOrder, bddCustMainAgents };
