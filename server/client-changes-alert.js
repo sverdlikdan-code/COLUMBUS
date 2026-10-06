@@ -183,6 +183,31 @@ function diff(prev, cur, everSeen) {
   return out;
 }
 
+// «Новый» vs «вернулся в актив» — по дате заведения в Priority (CUSTOMERS.CREATEDDATE), а не по everSeen:
+// история снимков короткая (с 05.10), и давний клиент, которого вернули в פעיל, выглядел «новым»
+// (06.10: 1168510/1168516 заведены в 2024, 75–97 счетов). Заведён в день прошлого снимка или позже — новый.
+// Если Priority недоступен — остаётся классификация по everSeen.
+const PRIORITY_DB = { formula: 'form', ice: 'icecrea', bdd: 'icecrea' };
+const SRC_BY_HEVRA = Object.fromEntries(SOURCES.map(([s, he]) => [he, s]));
+async function classifyByCreatedDate(changes, prevDate) {
+  const rows = changes.filter(c => c.type === 'new' || c.type === 'reactivated');
+  if (!rows.length) return;
+  const prevMin = (Date.UTC(...prevDate.split('-').map((v, i) => +v - (i === 1 ? 1 : 0))) - Date.UTC(1988, 0, 1)) / 60000;
+  try {
+    const { query } = require('./db');
+    for (const db of new Set(rows.map(c => PRIORITY_DB[SRC_BY_HEVRA[c.hevra]]))) {
+      const mine = rows.filter(c => PRIORITY_DB[SRC_BY_HEVRA[c.hevra]] === db);
+      const ids = [...new Set(mine.map(c => c.id))].filter(id => /^\d+$/.test(id)); // в IN — только цифры
+      if (!ids.length) continue;
+      const { recordset } = await query(`SELECT CUSTNAME, CREATEDDATE FROM ${db}.dbo.CUSTOMERS WHERE CUSTNAME IN (${ids.map(i => `'${i}'`).join(',')})`);
+      const created = new Map(recordset.map(r => [String(r.CUSTNAME), r.CREATEDDATE]));
+      for (const c of mine) if (created.get(c.id)) c.type = created.get(c.id) >= prevMin ? 'new' : 'reactivated';
+    }
+  } catch (e) {
+    console.error(`[Priority] CREATEDDATE недоступен — новый/вернулся по истории снимков: ${e.message}`);
+  }
+}
+
 const TYPES = [
   { key: 'new',         he: 'לקוחות חדשים',           color: '1E8E3E' },
   { key: 'inactive',    he: 'הפכו ללא פעילים',        color: 'C5221F' },
@@ -321,6 +346,7 @@ async function main() {
 
   const everSeen = new Set(prev?.everSeen || []);
   const changes = prev ? diff(prev, cur, everSeen) : [];
+  if (prev) await classifyByCreatedDate(changes, prevFile.slice(0, 10));
   for (const [src] of SOURCES) for (const id of Object.keys(cur[src] || {})) everSeen.add(`${src}:${id}`);
 
   fs.writeFileSync(path.join(SNAP_DIR, `${today}.json`), JSON.stringify({ ...cur, everSeen: [...everSeen] }));
@@ -408,4 +434,5 @@ async function main() {
   if (failed) throw new Error(`${failed} из ${mails.length} писем не ушли`);
 }
 
-main().catch(e => { console.error('ERR:', e.message); process.exit(1); });
+// exit явно: пул mssql (db.js) держит event loop
+main().then(() => process.exit(0), e => { console.error('ERR:', e.message); process.exit(1); });
