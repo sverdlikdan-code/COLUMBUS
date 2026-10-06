@@ -110,6 +110,17 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
    asymmetry issue as the stat tiles' number-over-label stack. */
 .dc-tbl td.dc-qty small{font-size:13px;font-weight:700;color:#01579B;}
 #print-view.formula .dc-tbl td.dc-qty small{color:#1B5E20;}
+/* ICE BDD — cold turquoise + a faint snowflake in the free left corner of the header
+   (the name is centered with a 90px reserve, so the left ~45px+pad never holds text).
+   Dan 2026-10-06. */
+#dc-snow{display:none;position:absolute;left:18px;top:50%;transform:translateY(-50%);width:44px;height:44px;opacity:.28;pointer-events:none;}
+#print-view.bdd #dc-snow{display:block;}
+#print-view.bdd #dc-header{background:linear-gradient(135deg,#0097A7,#006064);}
+#print-view.bdd .dc-stat,#print-view.bdd #dc-new-line,#print-view.bdd #dc-by-agent{box-shadow:0 5px 16px rgba(0,96,100,.28),0 1px 3px rgba(0,96,100,.12);}
+#print-view.bdd .dc-tbl th,#print-view.bdd .dc-tbl td{border-color:#B2EBF2;}
+#print-view.bdd .dc-tbl th{background:#006064;}
+#print-view.bdd .dc-tbl tbody tr:nth-child(even){background:#E0F7FA;}
+#print-view.bdd .dc-tbl td.dc-qty small{color:#006064;}
 
 /* Per-client breakdown — on-screen only (see the HTML comment above the
    markup for why it's excluded from the WhatsApp capture). Deliberately
@@ -160,6 +171,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
     </div>
     <div id="print-view">
       <div id="dc-header">
+        <svg id="dc-snow" viewBox="-12 -12 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M0 0V-10M0 -6.5L-2.6 -9M0 -6.5L2.6 -9M0 -3.2L-2 -5M0 -3.2L2 -5"/><path d="M0 0V-10M0 -6.5L-2.6 -9M0 -6.5L2.6 -9M0 -3.2L-2 -5M0 -3.2L2 -5" transform="rotate(60)"/><path d="M0 0V-10M0 -6.5L-2.6 -9M0 -6.5L2.6 -9M0 -3.2L-2 -5M0 -3.2L2 -5" transform="rotate(120)"/><path d="M0 0V-10M0 -6.5L-2.6 -9M0 -6.5L2.6 -9M0 -3.2L-2 -5M0 -3.2L2 -5" transform="rotate(180)"/><path d="M0 0V-10M0 -6.5L-2.6 -9M0 -6.5L2.6 -9M0 -3.2L-2 -5M0 -3.2L2 -5" transform="rotate(240)"/><path d="M0 0V-10M0 -6.5L-2.6 -9M0 -6.5L2.6 -9M0 -3.2L-2 -5M0 -3.2L2 -5" transform="rotate(300)"/></svg>
         <div id="dc-brand">
           <div id="dc-type"></div>
           <img src="logo-diler-bmd.png" id="dc-logo" alt="DILER">
@@ -276,6 +288,7 @@ function renderBlank(d){
   // .formula on #print-view (not just the header) — header, stat tiles and
   // the table are all scoped under it, see the CSS block above.
   document.getElementById('print-view').classList.toggle('formula', type==='formula');
+  document.getElementById('print-view').classList.toggle('bdd', type==='bdd');
   document.getElementById('dc-type').textContent = type==='bdd' ? 'ICE BDD' : type==='ice' ? 'ICE' : 'FORMULA';
   document.getElementById('dc-agent').textContent = first;
   // Bare number, matching the sum tile — live feedback 2026-08-26: neither
