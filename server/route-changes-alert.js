@@ -285,9 +285,10 @@ function buildHtml(fRows, iRows, dateStr, agentNames) {
 <p style="margin:0 0 12px">מצורפים ימי וסדר הביקורים ב-<bdi>FORMULA</bdi> וב-<bdi>ICE</bdi> משפחתי כפי שהם באפליקציה, להזנה בפריוריטי. דוח שבועי אוטומטי.</p>
 <p style="margin:0 0 12px;font-size:13px;color:#555">לשונית <bdi>FORMULA</bdi> — כל הלקוחות (${new Set(fRows.map(r => r.c.id)).size}), השינויים בכתום · לשונית <bdi>ICE</bdi> משפחתי — רק שינויי יום (${new Set(iRows.map(r => r.c.id)).size} לקוחות)</p>
 ${agents.length ? `<table style="border-collapse:collapse;font-size:13px">
-<tr><th ${th}>סוכן</th><th ${th}>FORMULA: שינוי יום</th><th ${th}>FORMULA: שינוי סדר</th><th ${th}>ICE: שינוי יום</th></tr>
-${agents.map(([a, v]) => `<tr><td style="padding:5px 10px;border-bottom:1px solid #e5e7eb;text-align:right">${esc(agentNames.get(a) || '')} <span style="color:#888">${a}</span></td><td ${td}>${v.days.size || ''}</td><td ${td}>${v.orders.size || ''}</td><td ${td}>${v.ice.size || ''}</td></tr>`).join('\n')}
-<tr><td ${td}><b>סה"כ</b></td><td ${td}><b>${sum('days')}</b></td><td ${td}><b>${sum('orders')}</b></td><td ${td}><b>${sum('ice')}</b></td></tr>
+<tr><th ${th} rowspan="2">סוכן</th><th ${th} rowspan="2">מס'</th><th ${th} colspan="2"><bdi>FORMULA</bdi></th><th ${th}><bdi>ICE</bdi> משפחתי</th></tr>
+<tr><th ${th}>שינוי יום</th><th ${th}>שינוי סדר</th><th ${th}>שינוי יום</th></tr>
+${agents.map(([a, v]) => `<tr><td style="padding:5px 10px;border-bottom:1px solid #e5e7eb;text-align:right">${esc(agentNames.get(a) || '')}</td><td ${td}><bdi>${a}</bdi></td><td ${td}>${v.days.size || ''}</td><td ${td}>${v.orders.size || ''}</td><td ${td}>${v.ice.size || ''}</td></tr>`).join('\n')}
+<tr><td ${td} colspan="2"><b>סה"כ</b></td><td ${td}><b>${sum('days')}</b></td><td ${td}><b>${sum('orders')}</b></td><td ${td}><b>${sum('ice')}</b></td></tr>
 </table>` : '<p>אין שינויים לעומת פריוריטי.</p>'}
 <p style="color:#777;font-size:12px;margin-top:24px">מספרי לקוחות — מספר הלקוחות שהשתנו. הערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.</p>
 </div></body></html>`;
