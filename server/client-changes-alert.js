@@ -237,7 +237,7 @@ const cellValue = (r, key) => key === 'agentName' ? (r.agentName || r.agent) : r
 const byGroup = rows => [...rows].sort((a, b) => String(a.manager || '').localeCompare(String(b.manager || '')) || String(a.name || '').localeCompare(String(b.name || ''), 'he'));
 const esc = s => String(s ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 
-function buildHtml(changes, dateStr, greeting = '', title = 'שינויים בלקוחות', sources = 'FORMULA · ICE משפחתי') {
+function buildHtml(changes, dateStr, greeting = '', title = 'שינויים בלקוחות', sources = 'FORMULA · ICE משפחתי', intro = null) {
   const counts = TYPES.map(t => ({ ...t, n: changes.filter(c => c.type === t.key).length })).filter(t => t.n);
   const th = 'style="background:#1f2a44;color:#fff;padding:6px 8px;text-align:right;font-weight:600"';
   const td = 'style="padding:5px 8px;border-bottom:1px solid #e5e7eb;text-align:right"';
@@ -264,7 +264,10 @@ ${rows.map((r, i) => groupHead(r, i) + `<tr>${cols.map(c => cell(c, r)).join('')
   return `<!doctype html><html dir="rtl" lang="he"><body style="margin:0"><div dir="rtl" style="font-family:Arial,sans-serif;color:#111;max-width:900px;margin:0 auto;padding:16px;box-sizing:border-box">
 <h2 style="margin:0 0 4px">${esc(title)} — ${dateStr}</h2>
 ${greeting ? `<p style="margin:0 0 6px">${esc(greeting)}</p>` : ''}
-<div style="color:#555;font-size:13px;margin-bottom:10px">לעומת הדוח הקודם · ${sources.split(' · ').map(s => `<bdi>${esc(s)}</bdi>`).join(' · ')} · רשימה מלאה בקובץ המצורף</div>
+${intro ? `<div style="background:#f5f7fb;border-right:4px solid #1f2a44;padding:8px 12px;margin:6px 0 10px;font-size:13px;line-height:1.5">
+<p dir="rtl" style="margin:0 0 6px;text-align:right">${esc(intro.he)}</p>
+<p dir="ltr" style="margin:0;text-align:left;color:#444">${esc(intro.ru)}</p></div>` : ''}
+<div style="color:#555;font-size:13px;margin-bottom:10px">${sources.split(' · ').map(s => `<bdi>${esc(s)}</bdi>`).join(' · ')}</div>
 <table cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:0 0"><tr>${counts.map(t => `<td style="background:#${t.color};color:#fff;font-size:13px;padding:4px 10px;border-radius:12px;white-space:nowrap">${t.he}: ${t.n}</td><td style="width:8px">&nbsp;</td>`).join('')}</tr></table>
 ${sections}
 <p style="color:#777;font-size:12px;margin-top:24px">הערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.</p>
@@ -360,6 +363,13 @@ async function main() {
   if (!changes.length) { console.log('Изменений нет — письма не отправляются.'); return; }
 
   const dateStr = today.split('-').reverse().join('.');
+  // пояснение в начале каждого письма, иврит + русский (пользователь 06.10): что это и с чем сравниваем
+  const prevDate = prevFile.slice(0, 10), prevStr = prevDate.split('-').reverse().join('.');
+  const wasYesterday = prevDate === new Date(Date.now() - 864e5).toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' });
+  const intro = {
+    he: `בדוח: שינויים בכרטיסי הלקוחות בפריוריטי ${wasYesterday ? `בהשוואה לאתמול (${prevStr})` : `בהשוואה לדוח הקודם (${prevStr})`} — לקוחות חדשים, לקוחות שהפכו ללא פעילים, לקוחות שחזרו לפעילות, העברות בין סוכנים ושינויי יום ביקור. הרשימה המלאה בקובץ Excel המצורף.`,
+    ru: `В письме: изменения в карточках клиентов в Priority ${wasYesterday ? `по сравнению со вчерашним днём (${prevStr})` : `по сравнению с прошлым отчётом (${prevStr})`} — новые клиенты, ставшие неактивными, вернувшиеся в актив, переводы между агентами и смена дня визита. Полный список — в приложенном Excel.`,
+  };
   const override = (process.env.CLIENT_CHANGES_OVERRIDE || '').trim();
   const list = v => (v || '').split(',').map(s => s.trim()).filter(Boolean);
   const mails = [];
@@ -367,8 +377,8 @@ async function main() {
   const addMail = (tag, to, cc, subject, rows, opts = {}) => {
     if (!rows.length || !to.length) return;
     mails.push(override
-      ? { tag, to: [override], cc: [], subject: `[לבדיקה → ${[...to, ...cc].join(', ')}] ${subject}`, rows, ...opts }
-      : { tag, to, cc, subject, rows, ...opts });
+      ? { tag, to: [override], cc: [], subject: `[לבדיקה → ${[...to, ...cc].join(', ')}] ${subject}`, rows, intro, ...opts }
+      : { tag, to, cc, subject, rows, intro, ...opts });
   };
 
   // Менеджеру группы — только его группа (при смене агента — и группа «היה»).
@@ -385,15 +395,15 @@ async function main() {
   // FORMULA + ICE משפחתי: менеджеру команды — его группа, общий список (CLIENT_CHANGES_ALL) — всё,
   // агенту — строки, где он в «סוכן» или в «היה/עכשיו»
   const main = changes.filter(c => c.hevra !== 'ICE BDD');
-  perGroup(process.env.CLIENT_CHANGES_MANAGERS, main, 'manager', `שינויים בלקוחות ${dateStr}`);
-  addMail('all', list(process.env.CLIENT_CHANGES_ALL), [], `שינויים בלקוחות ${dateStr}: ${main.length}`, main);
+  perGroup(process.env.CLIENT_CHANGES_MANAGERS, main, 'manager', `שינויים בלקוחות בפריוריטי ${dateStr}`);
+  addMail('all', list(process.env.CLIENT_CHANGES_ALL), [], `שינויים בלקוחות בפריוריטי ${dateStr}: ${main.length}`, main);
 
   const emails = await loadAgentEmails();
   const noEmail = [];
   for (const [code, rows] of changesByAgent(main)) {
     const name = rows.find(r => r.agent === code)?.agentName || rows.find(r => r.fromAgent === code)?.from || code;
     if (!emails[code]) { noEmail.push(`${name} (${code})`); continue; }
-    addMail(`agent ${code} ${name}`, [emails[code]], [], `שינויים בלקוחות שלך ${dateStr}: ${rows.length}`, rows,
+    addMail(`agent ${code} ${name}`, [emails[code]], [], `שינויים בלקוחות שלך בפריוריטי ${dateStr}: ${rows.length}`, rows,
       { greeting: `שלום ${name}, אלה השינויים בלקוחות שלך מאז הדוח הקודם.` });
   }
   if (noEmail.length) console.log(`Агенты без email в ростере (письмо не ушло): ${noEmail.join(', ')}`);
@@ -402,12 +412,12 @@ async function main() {
   // Агентам BDD не шлём — у них нет email.
   const bdd = changes.filter(c => c.hevra === 'ICE BDD');
   const bddOpts = { title: 'ICE BDD — שינויים בלקוחות', sources: 'ICE BDD' };
-  perGroup(process.env.CLIENT_CHANGES_BDD_MANAGERS, bdd, 'bdd', `ICE BDD — שינויים בלקוחות ${dateStr}`, bddOpts);
-  addMail('bdd all', list(process.env.CLIENT_CHANGES_BDD_ALL), [], `ICE BDD — שינויים בלקוחות ${dateStr}: ${bdd.length}`, bdd, bddOpts);
+  perGroup(process.env.CLIENT_CHANGES_BDD_MANAGERS, bdd, 'bdd', `ICE BDD — שינויים בלקוחות בפריוריטי ${dateStr}`, bddOpts);
+  addMail('bdd all', list(process.env.CLIENT_CHANGES_BDD_ALL), [], `ICE BDD — שינויים בלקוחות בפריוריטי ${dateStr}: ${bdd.length}`, bdd, bddOpts);
 
   if (DRY_RUN) {
     for (const [i, m] of mails.entries()) {
-      fs.writeFileSync(path.join(SNAP_DIR, `preview-${today}-${i}.html`), buildHtml(m.rows, dateStr, m.greeting, m.title, m.sources));
+      fs.writeFileSync(path.join(SNAP_DIR, `preview-${today}-${i}.html`), buildHtml(m.rows, dateStr, m.greeting, m.title, m.sources, m.intro));
       console.log(`  [dry ${i}] ${m.tag}: ${m.rows.length} строк -> ${m.to.join(',')} | ${m.subject}`);
     }
     console.log(`--dry-run — письма не отправлены, превью в ${SNAP_DIR}`);
@@ -424,7 +434,7 @@ async function main() {
       to: m.to,
       ...(m.cc.length ? { cc: m.cc } : {}),
       subject: m.subject,
-      html: buildHtml(m.rows, dateStr, m.greeting, m.title, m.sources),
+      html: buildHtml(m.rows, dateStr, m.greeting, m.title, m.sources, m.intro),
       attachments: [{ filename: `client-changes-${today}.xlsx`, content: xlsx.toString('base64') }],
     });
     if (res.error) { failed++; console.error(`  FAIL ${m.tag}:`, JSON.stringify(res.error)); }

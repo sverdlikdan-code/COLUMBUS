@@ -317,7 +317,8 @@ async function main() {
 
   const list = v => (v || '').split(',').map(s => s.trim()).filter(Boolean);
   let to = list(process.env.ROUTE_CHANGES_TO), cc = list(process.env.ROUTE_CHANGES_CC);
-  let subject = `שינויים שבוצעו ע"י סוכנים באפליקציה — ${dateStr}`;
+  // иврит + русский (пользователь 06.10): что внести в Priority, кем исправлено
+  let subject = `לעדכון בפריוריטי: ימי ביקור וסדר הגעה שתוקנו ע"י סוכנים ומנהלים | Внести в Priority: дни и порядок визитов, исправленные агентами и менеджерами — ${dateStr}`;
   const override = (process.env.ROUTE_CHANGES_OVERRIDE || '').trim();
   if (override) { subject = `[לבדיקה → ${[...to, ...cc].join(', ')}] ${subject}`; to = [override]; cc = []; }
   if (!to.length) throw new Error('ROUTE_CHANGES_TO пуст');
