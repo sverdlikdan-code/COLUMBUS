@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const ExcelJS = require('exceljs'); // Task 8: fridge order email, same package index.js already depends on
 const { BDD_GROUPS, summarizeBddDocs, bddCanWrite, canUseBdd, resolveBddGps, loadBddCache, serializeBddCache, deserializeBddCache, applyVisitOrder } = require('./bdd');
-const { bddDocLinesToday, bddClientPromos, bddCustFamiliesWithActivePromo, bddVisitOrder } = require('./bdd-priority');
+const { bddDocLinesToday, bddClientPromos, bddCustFamiliesWithActivePromo, bddVisitOrder, bddCustMainAgents } = require('./bdd-priority');
 const { lineFor, coverageCounts, coverageClients, COVERAGE_EXCLUDED_TEAMS } = require('./coverage');
 
 // Email HTML escape — copied from index.js's escEmail (one-liner, not worth a
@@ -325,11 +325,21 @@ function createBdd(deps) {
     const a = s.byAgent.get(agentCode);
     // List split for the on-screen table (Dan 2026-10-06): clients on another agent's
     // roster → rosterAgentName (same key FORMULA uses); own clients outside today's line
-    // (incl. in-app day moves) → offDay. Clients missing from the roster stay in the main list.
+    // (incl. in-app day moves) → offDay. Clients missing from the roster → notBdd, with
+    // name + main ICE agent (CUSTOMERS.AGENT) straight from Priority (Dan 2026-10-06:
+    // 1112014 showed as a bare number). Lookup failure → those rows stay in the main list.
     const line = cache ? bddLineFor(agentCode, deps.todayRouteDay()) : new Set();
+    const missing = (a?.byClient || []).map(c => String(c.custId)).filter(id => !cache?.clientById.has(id));
+    let mainAgent = new Map();
+    if (missing.length) {
+      try { mainAgent = await bddCustMainAgents(DB(), missing); }
+      catch (e) { console.error('[BDD] main-agent lookup failed:', e.message); }
+    }
     const tagClient = c => {
       const cl = cache?.clientById.get(String(c.custId));
       const own = cl?.agentCode === agentCode;
+      const pr = !cl && mainAgent.get(String(c.custId));
+      if (pr) return { ...c, custName: pr.custName, notBdd: true, rosterAgentName: pr.agentName || pr.agentCode || '—' };
       return { ...c, custName: cl?.custName || '',
         ...(cl && !own ? { rosterAgentName: cl.agentName || cl.agentCode } : {}),
         ...(own && !line.has(String(c.custId)) ? { offDay: true } : {}) };

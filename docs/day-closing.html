@@ -374,8 +374,11 @@ function renderBlank(d){
       }
       let html = head + (ownRows.length ? bcTbl(ownRows) : '');
       if (offDayRows.length) html += `<div class="dc-bc-group-head">לקוחות של הסוכן שלא מהקו של היום</div>${bcTbl(offDayRows)}`;
+      // notBdd (BDD only, server-side): client off the ICE BDD roster — owner is its
+      // main ICE agent from Priority. Dan 2026-10-06.
       for (const [ownerName, rows] of foreign) {
-        html += `<div class="dc-bc-group-head">לקוחות ששייכים ל-${esc(ownerName)}</div>${bcTbl(rows)}`;
+        const title = rows[0].notBdd ? `לקוחות שלא ב-ICE BDD · סוכן ראשי: ${esc(ownerName)}` : `לקוחות ששייכים ל-${esc(ownerName)}`;
+        html += `<div class="dc-bc-group-head">${title}</div>${bcTbl(rows)}`;
       }
       return html;
     }).join('');
