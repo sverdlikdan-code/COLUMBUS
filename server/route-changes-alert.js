@@ -331,6 +331,8 @@ async function main() {
   for (const [i, m] of mails.entries()) {
     let { to, cc } = m, subj = subject;
     if (!to.length) { console.log(`  ${m.tag}: нет адресата — пропуск`); continue; }
+    // нет изменений — не шлём (пользователь 06.10: «если нет изменений, то и слать не надо»)
+    if (!m.iRows.length && !m.fRows.some(r => r.dayChanged || r.orderChanged)) { console.log(`  ${m.tag}: изменений нет — письмо не отправляется`); continue; }
     const xlsx = Buffer.from(await buildXlsx(m.fRows, m.iRows, dateStr));
     const html = buildHtml(m.fRows, m.iRows, dateStr, agentNames, m.intro);
     const info = `${m.tag}: FORMULA ${m.fRows.length} строк, ICE ${m.iRows.length}`;
