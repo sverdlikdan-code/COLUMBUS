@@ -8,7 +8,7 @@
 // Порядок дня повторяет клиент (formula-road.html initRoute): сохранённый order[day] (mergeWithSaved),
 // остальные — в порядке сервера (סדר ביקור, потом перенесённые в день). Нумерация — только среди FORMULA.
 // День, который агент не трогал (нет order[day] и переносов), — номера Priority как есть, без подсветки.
-// Адресаты (env из run-alert.sh): ROUTE_CHANGES_TO, ROUTE_CHANGES_CC — всё; ROUTE_CHANGES_MANAGERS — менеджеру его группа;
+// Адресаты (env из run-alert.sh): ROUTE_CHANGES_TO, ROUTE_CHANGES_CC — всё; ROUTE_CHANGES_MANAGERS — менеджеру его группа (копия ROUTE_CHANGES_MANAGERS_CC);
 //   ROUTE_CHANGES_OVERRIDE=<email> — режим проверки: всё на этот адрес, в теме — кому шло бы.
 // --dry-run: письмо не шлётся, xlsx + html пишутся в LIVE_DATA_DIR/route-changes-preview.
 require('dotenv').config({ path: '../.env' });
@@ -320,7 +320,7 @@ async function main() {
     const [groups, email] = part.split('=').map(s => s.trim());
     const gs = new Set(groups.split(',').map(s => s.trim()));
     const mf = fRows.filter(r => gs.has(r.c.manager)), mi = iRows.filter(r => gs.has(agentGroup.get(r.c.agent)));
-    if (mf.length || mi.length) mails.push({ tag: `manager ${groups}`, to: [email], cc: [], fRows: mf, iRows: mi, intro: INTRO_MANAGER });
+    if (mf.length || mi.length) mails.push({ tag: `manager ${groups}`, to: [email], cc: list(process.env.ROUTE_CHANGES_MANAGERS_CC), fRows: mf, iRows: mi, intro: INTRO_MANAGER });
     else console.log(`  manager ${groups}: нет клиентов — письмо не отправляется`);
   }
 
