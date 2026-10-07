@@ -3409,6 +3409,8 @@ async function initRoute(){
   // existing readers below run — see syncRouteOverridesFromServer() for why
   // this doesn't touch loadSavedRoute()/getDayOverrides() themselves.
   await syncRouteOverridesFromServer();
+  st.excludedAt=Object.fromEntries(Object.entries(st.routeExcl?.[st.day]||{}).map(([id,v])=>[id,v.at]));
+  st.excluded=new Set(Object.keys(st.excludedAt));
 
   // Merge with localStorage
   const saved=loadSavedRoute(st.agent.code,st.day);
@@ -3450,7 +3452,7 @@ async function initRoute(){
   // now that the two modes are cleanly split: manual edits belong to "הגרסה שלי"
   // only, AI is a pure recompute with no persisted state of its own.
   try {
-    st.aiClients=nearestNeighbor([..._aiGpsClients(st.clients)]);
+    st.aiClients=nearestNeighbor([..._aiGpsClients(activeClients())]);
     triggerOsrm();
     updateKmBar();
     renderCityFilters();
@@ -3768,7 +3770,7 @@ function _recalcAi(){
   document.getElementById('sort-btn-priority').className='sort-btn';
   document.getElementById('sort-btn-ai-google').className='sort-btn'+(st.aiGpsMode?' active-ai-google':'');
   OSRM_CACHE.clear(); OSRM_TRIP_CACHE.clear();
-  const _rcClients=_aiGpsClients(st.clients);
+  const _rcClients=_aiGpsClients(activeClients());
   st.aiClients=nearestNeighbor([..._rcClients]);
   updateKmBar(); renderCityFilters(); renderClientList();
   if(st.tab==='map'||window.innerWidth>=700) renderMap();
@@ -4133,7 +4135,7 @@ function renderClientList(html){
         <div class="c-num-wrap"><span style="font-size:13px;line-height:1;opacity:.5">🚫</span></div>
         <div class="c-body">
           <div class="c-name">${shortName(c.custName,c.city)||c.custName||''}</div>
-          <div class="c-sub">${c.city||''}</div>
+          <div class="c-sub">${c.city||''}${st.excludedAt?.[c.custId]?` · הוצא ${new Date(st.excludedAt[c.custId]).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',timeZone:'Asia/Jerusalem'})}`:''}</div>
         </div>
         <div style="display:flex;align-items:center;flex-shrink:0;">
           <span class="excl-btn" data-id="${c.custId}" onclick="toggleExclude('${c.custId}',event)" title="החזר למסלול" style="opacity:.7;font-size:16px;">↩️</span>
@@ -4169,7 +4171,8 @@ function openDayClosing(type){
 }
 
 function resetExcluded(){
-  st.excluded=new Set();
+  st.excluded.forEach(id=>pushExclude(id,false));
+  st.excluded=new Set(); st.excludedAt={};
   st.aiClients=nearestNeighbor([...activeClients()]);
   renderClientList(); renderMap();
   showToast('↩️ Все клиенты возвращены на маршрут');
@@ -4202,9 +4205,24 @@ function openZikuyOrder(e,custId,custName,city){
   });
   window.open('zikuy-order.html?'+p.toString(),'_blank');
 }
+// Server copy of 🚫 — see /api/route-exclude. BDD has its own router without it,
+// so there exclusions stay session-only as before.
+async function pushExclude(custId,excluded,_isRetry){
+  if(_isBdd()) return;
+  let r;
+  try{
+    r=await apiFetch(`${API}/api/route-exclude`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({custId:String(custId),day:st.day,excluded,agentCode:st.agent?.code})});
+  }catch(e){ r=null; }
+  if(r&&r.ok) return;
+  if(!_isRetry){ await new Promise(res=>setTimeout(res,800)); return pushExclude(custId,excluded,true); }
+  showToast('⚠ השינוי לא נשמר בשרת — נסה שוב',5000);
+}
 function toggleExclude(custId,e){
   if(e){e.stopPropagation();e.preventDefault();}
-  if(st.excluded.has(custId)) st.excluded.delete(custId); else st.excluded.add(custId);
+  st.excludedAt ||= {};
+  if(st.excluded.has(custId)){ st.excluded.delete(custId); delete st.excludedAt[custId]; pushExclude(custId,false); }
+  else { st.excluded.add(custId); st.excludedAt[custId]=new Date().toISOString(); pushExclude(custId,true); }
   st.aiClients=nearestNeighbor([...activeClients()]);
   renderClientList(); renderMap();
 }
@@ -4982,6 +5000,7 @@ async function pushDayMove(custId,day,client,from,_isRetry){
   showToast(`⚠ Изменение на сегодня для ${esc(client?.custName||custId)} не сохранено на сервере — попробуй снова`,5000);
 }
 async function syncRouteOverridesFromServer(){
+  st.routeExcl={}; // never carry the previous agent's 🚫 list over on a failed fetch
   if(!st.agent?.code) return;
   let d;
   try{
@@ -4989,6 +5008,7 @@ async function syncRouteOverridesFromServer(){
     d=await r.json();
   }catch(e){ return; } // offline/error — localStorage stays the only source, as before
   if(!d?.ok) return;
+  st.routeExcl=d.excluded||{}; // {day:{custId:{at,by}}} — server-only, no localStorage copy
   const hasServerData=Object.keys(d.order||{}).length||Object.keys(d.dayMoves||{}).length;
   if(hasServerData){
     Object.entries(d.order||{}).forEach(([day,ids])=>{

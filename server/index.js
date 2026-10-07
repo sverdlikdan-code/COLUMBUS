@@ -6391,7 +6391,34 @@ app.get('/api/route-overrides', requireAuth, dataRateLimit, (req, res) => {
   if (!agentCode) return res.status(403).json({ ok: false, error: 'manager session -- no agent' });
   const data = readRouteOverrides();
   const entry = data[agentCode] || { order: {}, dayMoves: {} };
-  res.json({ ok: true, order: entry.order || {}, dayMoves: entry.dayMoves || {} });
+  res.json({ ok: true, order: entry.order || {}, dayMoves: entry.dayMoves || {}, excluded: entry.excluded || {} });
+});
+// 🚫 "מוצאים ממסלול" — persisted per agent+day until returned with ↩️ (live request
+// 2026-10-07: agents lost exclusions on logout/login). Was deliberately unpersisted
+// since 2026-08-13 (accidental taps silently hid clients for days) — the visible
+// "הוצא dd.mm" date in the app is what makes persisting safe now.
+app.post('/api/route-exclude', requireAuth, dayMoveRateLimit, (req, res) => {
+  const { custId, day, excluded, agentCode: bodyAgentCode } = req.body || {};
+  let agentCode = req.session.agentCode;
+  if (!agentCode && req.session.isManager && bodyAgentCode) {
+    const a = String(bodyAgentCode);
+    if (!validateAgentCode(a)) return res.status(400).json({ ok: false, error: 'invalid agent code' });
+    if (!managerCanWrite(req.session, a)) return res.status(403).json({ ok: false, error: 'forbidden' });
+    agentCode = a;
+  }
+  if (!agentCode) return res.status(403).json({ ok: false, error: 'manager session -- no agent' });
+  if (!custId || typeof custId !== 'string') return res.status(400).json({ ok: false, error: 'invalid custId' });
+  const dayNum = parseInt(day, 10);
+  if (!Number.isInteger(dayNum) || dayNum < 0 || dayNum > 5) return res.status(400).json({ ok: false, error: 'invalid day' });
+  const data = readRouteOverrides();
+  if (!data[agentCode]) data[agentCode] = { order: {}, dayMoves: {} };
+  const ex = (data[agentCode].excluded ||= {});
+  const id = String(custId).slice(0, 20);
+  if (excluded) (ex[dayNum] ||= {})[id] = { at: new Date().toISOString(), by: req.session.managerId || agentCode };
+  else if (ex[dayNum]) { delete ex[dayNum][id]; if (!Object.keys(ex[dayNum]).length) delete ex[dayNum]; }
+  writeRouteOverrides(data);
+  writeLog({ ts: new Date().toISOString(), event: excluded ? 'route-exclude' : 'route-include', agentCode, managerId: req.session.managerId || null, custId: id, day: dayNum, ip: getRealIp(req) });
+  res.json({ ok: true });
 });
 
 // ICE BDD channel — own router, own files; see server/bdd-routes.js (isolation rule).
