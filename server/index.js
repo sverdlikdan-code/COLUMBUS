@@ -303,6 +303,7 @@ CALCULATETABLE(
     // only (channels never mix), same "-מכר-" scope as lastOrderDate. even = share of
     // those weeks that were שבוע זוגי → suggested parity for the every-other-week button.
     // Fail-soft: any error leaves c.pp unset (no badge), the cache load goes on.
+    let icePpFor = null; // ICE מישפחתי frequency for the ♠½ sheet — attached after iceByAgent is built (E2)
     try {
       const PP_WEEKS = 25, PP_MAX = 8;
       const todayStr = todayIsraelDate();
@@ -326,15 +327,24 @@ CALCULATETABLE(
         custCreatedDates(process.env.DB_NAME || 'form'),
       ]);
       if (!created) throw new Error('CREATEDDATE unavailable');
-      const weeksByCust = new Map(), evenByCust = new Map(); // evenByCust: weeks whose Israeli number is even (שבוע זוגי)
-      for (const r of weekRows) {
-        const id = String(r['ALL_PARTS[מספר לקוח]'] || ''), d = r['ALL_PARTS[תאריך]'];
-        if (!id || !d) continue;
-        const ds = typeof d === 'string' ? d.slice(0, 10) : new Date(d).toISOString().slice(0, 10);
-        if (!weeksByCust.has(id)) { weeksByCust.set(id, new Set()); evenByCust.set(id, new Set()); }
-        weeksByCust.get(id).add(weekIndex(ds));
-        if (weekParity(ds) === 0) evenByCust.get(id).add(weekIndex(ds));
-      }
+      // custId → weeks with a sale / those of them that are שבוע זוגי (Israeli week number even)
+      const collectWeeks = rows => {
+        const weeks = new Map(), even = new Map();
+        for (const r of rows) {
+          const id = String(r['ALL_PARTS[מספר לקוח]'] || ''), d = r['ALL_PARTS[תאריך]'];
+          if (!id || !d) continue;
+          const ds = typeof d === 'string' ? d.slice(0, 10) : new Date(d).toISOString().slice(0, 10);
+          if (!weeks.has(id)) { weeks.set(id, new Set()); even.set(id, new Set()); }
+          weeks.get(id).add(weekIndex(ds));
+          if (weekParity(ds) === 0) even.get(id).add(weekIndex(ds));
+        }
+        return { weeks, even };
+      };
+      const ppOf = (weeks, evenSet, of) => {
+        const even = weeks.size ? (evenSet?.size || 0) / weeks.size : null;
+        return { wk: Math.min(weeks.size, of), of, even, suggest: weeks.size >= 4 && even >= 0.7 ? 0 : weeks.size >= 4 && even <= 0.3 ? 1 : null };
+      };
+      const { weeks: weeksByCust, even: evenByCust } = collectWeeks(weekRows);
       // Dan 2026-10-08: tenure 6 months (= the 25-week window). Share wk/of stays (Dan approved): a newer
       // client would be judged only over the weeks he existed — kicks in if tenure < window ever again.
       const PP_MIN_WEEKS = 25;
@@ -349,12 +359,36 @@ CALCULATETABLE(
         const weeks = weeksByCust.get(id) || new Set();
         // Dan 2026-10-08: a day of N > 15 gets exactly N − 15 ♠½ offers, weakest first — so every
         // tenured client carries his frequency; the app ranks the day (formula-road.html _ppCandidates).
-        const even = weeks.size ? (evenByCust.get(id)?.size || 0) / weeks.size : null;
-        c.pp = { wk: Math.min(weeks.size, of), of, even, suggest: weeks.size >= 4 && even >= 0.7 ? 0 : weeks.size >= 4 && even <= 0.3 ? 1 : null };
+        c.pp = ppOf(weeks, evenByCust.get(id), of);
         ppTenured++;
         if (c.pp.wk / of <= PP_MAX / PP_WEEKS) ppCount++;
       }
       console.log(`[PBI] polupoker: ${ppCount} clients ≤${PP_MAX}/${PP_WEEKS} share, ${ppTenured} ranked (team agents, tenure ≥ ${PP_MIN_WEEKS} weeks)`);
+
+      // ICE מישפחתי (Dan 2026-10-08): every ICE client gets ♠½; his frequency line in the sheet
+      // counts ICE_MISH families only (channels never mix). Display only — never ranked/quota'd.
+      try {
+        const iceFams = famRows.filter(r => classifyLastOrderCompany(r['[מחלקה]'] || '') === 'ICE_MISH')
+          .map(r => r['ALL_PARTS[תאור משפחת מוצר]']).filter(Boolean);
+        const iceWeekRows = await executeDax(`
+EVALUATE
+CALCULATETABLE(
+  SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח], ALL_PARTS[תאריך]),
+  ALL_PARTS[תאור משפחת מוצר] IN {${(iceFams.length ? iceFams : ['__none__']).map(escFam).join(', ')}},
+  ALL_PARTS[ASHMADOT] = "-מכר-",
+  ALL_PARTS[תאריך] >= ${daxDate(startSun)},
+  ALL_PARTS[תאריך] < ${daxDate(endSun)}
+)
+`);
+        const ice = collectWeeks(iceWeekRows);
+        icePpFor = id => {
+          const cd = created.get(id);
+          const of = cd ? Math.min(PP_WEEKS, Math.floor((endMin - cd) / (7 * 1440))) : PP_WEEKS; // not in form → full window
+          return of >= 1 ? ppOf(ice.weeks.get(id) || new Set(), ice.even.get(id), of) : undefined;
+        };
+      } catch (e) {
+        console.error('[PBI] polupoker ICE failed:', e.message);
+      }
     } catch (e) {
       console.error('[PBI] polupoker failed:', e.message);
     }
@@ -565,6 +599,12 @@ SELECTCOLUMNS(
     const iceClientFlat = new Map();
     for (const arr of iceByAgent.values()) {
       for (const c of arr) iceClientFlat.set(c.custId, c);
+    }
+    // E2: ♠½ frequency (ICE_MISH families) for ICE מישפחתי clients — computed in D2
+    if (icePpFor) {
+      let n = 0;
+      for (const arr of iceByAgent.values()) for (const c of arr) { c.pp = icePpFor(c.custId); if (c.pp) n++; }
+      console.log(`[PBI] polupoker ICE: frequency for ${n} ICE מישפחתי clients`);
     }
     for (const r of avg6Rows) {
       const custId = String(r['ALL_PARTS[מספר לקוח]'] || '');
