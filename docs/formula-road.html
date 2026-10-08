@@ -1004,12 +1004,11 @@ body.gps-fs #map{height:100%!important;}
 /* Welcome card (Dan 2026-10-08): planning quote + steaming coffee instead of the feature blurb */
 .welcome-quote{font-size:16px;line-height:1.55;font-style:italic;font-weight:600;color:#1A3F7C;}
 .welcome-quote-cite{display:block;margin-top:6px;font-size:12px;font-style:normal;font-weight:600;color:#8A8F98;}
-.welcome-coffee{width:72px;height:72px;margin:-4px 0 -8px;}
+.welcome-coffee{width:72px;height:72px;margin:-4px 0 0;}
 .welcome-coffee .steam{fill:none;stroke:#C9A36A;stroke-width:3;stroke-linecap:round;opacity:0;animation:steamUp 3s ease-in-out infinite;}
 .welcome-coffee .steam.s2{animation-delay:1s;} .welcome-coffee .steam.s3{animation-delay:2s;}
 @keyframes steamUp{0%{opacity:0;transform:translateY(8px)}30%{opacity:.85}100%{opacity:0;transform:translateY(-12px)}}
 @media (prefers-reduced-motion:reduce){.welcome-coffee .steam{animation:none;opacity:.6;}}
-.welcome-coffee-line{font-size:15px;font-weight:700;color:#555;}
 .welcome-egg{position:absolute;font-size:42px;z-index:2;pointer-events:none;}
 .welcome-egg.egg-rappel{top:-60px;left:18%;animation:egg-rappel 2.4s ease-in forwards;}
 .welcome-egg.egg-cyclist{top:38%;right:-60px;animation:egg-cyclist 2.8s linear forwards;}
@@ -2686,7 +2685,6 @@ function renderLogin(){
             <path d="M18 38h46v10c0 13-10 24-23 24S18 61 18 48z" fill="#D89830"/>
             <ellipse cx="41" cy="38" rx="23" ry="5" fill="#6B3E1E"/>
           </svg>
-          <div class="welcome-coffee-line">С кофе любой маршрут короче</div>
           <button onclick="_continueFromWelcome()" style="background:linear-gradient(135deg,#F5C670,#D89830);color:#1A3F7C;border:none;border-radius:30px;padding:14px 28px;font-size:24px;white-space:nowrap;font-weight:900;cursor:pointer;margin-top:6px;box-shadow:0 8px 0 #A9740F,0 12px 20px rgba(0,0,0,.35),inset 0 2px 3px rgba(255,255,255,.5);">Начать день →</button>
         </div>
       </div>`;
