@@ -162,8 +162,8 @@ function cell(d, key) {
   return `<td class="c ${cls(v)}${SEL === key ? ' sel' : ''}" onclick="pick('${key}')">${cellBody(d, v)}</td>`;
 }
 
-// Cell (Dan 2026-10-01): % כיסוי, הזמינו מתוך מתוכנן, מתוכם מחוץ לקו.
-const cellBody = (d, v) => `<div class="p">${v}%</div><div class="n">${d.i} מ־${d.p}</div>${d.o ? `<div class="o">מחוץ לקו ${d.o}</div>` : ''}`;
+// Cell (Dan 2026-10-01): % כיסוי, הזמינו מתוך מתוכנן, מתוכם מחוץ לקו. Empty .o line kept so all cells align (Dan 2026-10-08).
+const cellBody = (d, v) => `<div class="p">${v}%</div><div class="n">${d.i} מ־${d.p}</div><div class="o">${d.o ? 'מחוץ לקו ' + d.o : '&nbsp;'}</div>`;
 
 const seg = (items, cur, fn) => `<div class="seg">${items.map(([k, t]) => `<button class="${k === cur ? 'on' : ''}" onclick="${fn}('${k}')">${t}</button>`).join('')}</div>`;
 
