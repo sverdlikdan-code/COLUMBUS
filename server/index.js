@@ -6153,9 +6153,7 @@ app.get('/api/team-order-stats', requireAuth, dataRateLimit, async (req, res) =>
     const served = custSetByAgent.get(agentCode);
     const numer = served?.size || 0;
     const sum = Math.round((sumByAgent.get(agentCode) || 0) * 100) / 100;
-    // + off-line buyers (Dan 2026-10-08): 100% = line ∪ served, see coverage.js coverageCounts
-    const { planned, offLine } = coverageCounts(formulaLineFor(agentCode, todayDay, overrides, parity, served), served || new Set());
-    byAgent[agentCode] = { denom: planned + offLine, numer, sum };
+    byAgent[agentCode] = { denom: formulaLineFor(agentCode, todayDay, overrides, parity, served).size, numer, sum };
   }
 
   const byManager = {};

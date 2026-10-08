@@ -73,9 +73,6 @@ function lineFor({ scheduled, dayMoves, dayNum, movedInOk }) {
   return line;
 }
 
-// Coverage 100% = the line + everyone who bought off it (Dan 2026-10-08) — % never exceeds 100.
-// coverage.db keeps planned = line size; readers add off_line, so old snapshots follow the same rule.
-
 function coverageCounts(line, served) {
   let inLine = 0;
   for (const id of served) if (line.has(id)) inLine++;

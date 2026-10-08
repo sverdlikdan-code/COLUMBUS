@@ -3176,14 +3176,13 @@ function _renderFormulaBanner(){
   const servedSet = new Set(_fpbServedIds || []);
   // 🚫 stays in the plan (Dan 2026-10-08: excluding must not raise the %) — same as server formulaLineFor/bddLineFor
   const todayFormula = isToday ? (st.clients||[]).filter(c => !c.iceOnly && (!_isOffWeek(c) || servedSet.has(String(c.custId)))) : [];
-  const lineIds = new Set(todayFormula.map(c => String(c.custId)));
-  // Off-line buyers join the plan too (Dan 2026-10-08: 27 of 30 + 3 off → 27/33, never >100%) — same as /api/team-order-stats
-  const offAll = _fpbServedIds ? _fpbServedIds.filter(id => !lineIds.has(id)).length : 0;
-  const denom = todayFormula.length + offAll;
-  if(isToday && todayFormula.length){
+  const denom = todayFormula.length;
+  if(isToday && denom){
     el.classList.remove('fpb-toggle-only');
     content.style.display='';
-    content.innerHTML=_fpbPieceHtml(_fpbNumer, denom, _fpbSum, _isBdd() ? offAll : 0);
+    const lineIds = new Set(todayFormula.map(c => String(c.custId)));
+    const offLine = _isBdd() && _fpbServedIds ? _fpbServedIds.filter(id => !lineIds.has(id)).length : 0;
+    content.innerHTML=_fpbPieceHtml(_fpbNumer, denom, _fpbSum, offLine);
   }else{
     el.classList.add('fpb-toggle-only');
     content.style.display='none';

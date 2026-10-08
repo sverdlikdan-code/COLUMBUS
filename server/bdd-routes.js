@@ -302,9 +302,8 @@ function createBdd(deps) {
       for (const a of agents) {
         const d = s?.byAgent.get(a.agentCode);
         const served = new Set((d?.byClient || []).map(c => String(c.custId)));
-        // offLine: served today but not in today's line — shown next to the % (user 2026-09-30) and part of the 100% (Dan 2026-10-08).
-        const { planned, offLine } = coverageCounts(bddLineFor(a.agentCode, todayDay, overrides), served);
-        const denom = planned + offLine;
+        // offLine: served today but not in today's line — shown next to the % (user 2026-09-30), % itself unchanged.
+        const { planned: denom, offLine } = coverageCounts(bddLineFor(a.agentCode, todayDay, overrides), served);
         byAgent[a.agentCode] = { denom, numer: d?.custCount || 0, sum: d?.sum || 0, offLine };
         acc.denom += denom; acc.numer += byAgent[a.agentCode].numer; acc.sum += byAgent[a.agentCode].sum; acc.offLine += offLine;
       }
