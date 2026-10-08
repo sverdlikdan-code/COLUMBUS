@@ -4796,8 +4796,8 @@ function reviewTabletGpsFromModal(){
 // exist anywhere else to link to relatively any more. Token rides as ?sess=
 // since a plain link-click can't carry apiFetch()'s X-Session header.
 function openGuide(source){ _trackEvent('guide_opened_'+(source||'menu')); window.open('https://api.sverdlik-apps.site/TUTORIALS/?sess='+encodeURIComponent(_getToken()),'_blank'); }
-function closeGuidePrompt(){ _trackEvent('guide_prompt_dismissed'); document.getElementById('guide-modal').classList.remove('open'); _tryShowClientChanges(); }
-function openGuideFromPrompt(){ document.getElementById('guide-modal').classList.remove('open'); openGuide('prompt'); _tryShowClientChanges(); }
+function closeGuidePrompt(){ _trackEvent('guide_prompt_dismissed'); document.getElementById('guide-modal').classList.remove('open'); _tryShowThought(); _tryShowClientChanges(); }
+function openGuideFromPrompt(){ document.getElementById('guide-modal').classList.remove('open'); openGuide('prompt'); _tryShowThought(); _tryShowClientChanges(); }
 // Shown at most 3 times ever (across days/devices sharing this browser), once
 // per page load — after that the ❓ item in the ⋮ menu is the only way in.
 // _guidePromptShown guards against initRoute() re-firing this on every day/
@@ -4908,6 +4908,14 @@ function maybeShowThought(){
   if(last===today) return;
   try{ localStorage.setItem('frThoughtDate', today); }catch(_){}
   const q=FR_THOUGHTS[_dayOfYear(today)%FR_THOUGHTS.length];
+  // New agents (first 3 loads) also get the guide prompt — queue behind it instead of
+  // stacking two overlays (Dan 2026-10-08, seen on Galya's first day). Shown on its close.
+  if(document.getElementById('guide-modal').classList.contains('open')){ _thoughtPending=q; return; }
+  _showThought(q);
+}
+let _thoughtPending=null;
+function _tryShowThought(){ if(_thoughtPending){ const q=_thoughtPending; _thoughtPending=null; _showThought(q); } }
+function _showThought(q){
   // Daily greeting on top of the quote — returning agents skip the agent-welcome
   // screen (saved route restore), so this is their "first open of the day" hello.
   const me=_loadAuth();
