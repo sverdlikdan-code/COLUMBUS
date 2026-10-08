@@ -39,6 +39,9 @@ th small{display:block;font-weight:600;font-size:10px;}
 td.ag,th.ag{position:sticky;left:0;z-index:1;background:#fff;text-align:left;white-space:nowrap;padding-left:10px;max-width:120px;overflow:hidden;text-overflow:ellipsis;}
 th.ag{background:#FAFBFC;}
 td.ag{font-weight:700;}
+/* Period total under the name (Dan 2026-10-08): pinned, so it stays visible while the dates scroll. */
+td.ag .tot{font-size:11px;font-weight:900;margin-top:2px;}
+.tot.r{color:var(--red);} .tot.y{color:var(--yellow);} .tot.g{color:var(--green);}
 td.c{cursor:pointer;}
 td.c .p{font-size:14px;font-weight:900;}
 td.c .o,tr.team .o{font-size:10px;color:var(--light);white-space:nowrap;}
@@ -64,7 +67,9 @@ td.c.sel{outline:2px solid var(--blue);outline-offset:-2px;}
 @media (max-width:480px){
   .wrap{padding:12px 8px 40px;}
   th,td{padding:5px 1px;min-width:0;}
-  td.ag,th.ag{max-width:78px;padding-left:6px;font-size:11px;}
+  /* Names wrap to 2 lines instead of "…"; edge line so the column scrolling under it reads as cut, not overlap. */
+  td.ag,th.ag{width:78px;min-width:78px;max-width:78px;padding-left:6px;font-size:11px;line-height:1.25;white-space:normal;text-overflow:clip;padding-right:4px;}
+  td.ag::after,th.ag::after{content:"";position:absolute;top:0;bottom:0;right:0;width:2px;background:#CFD8DC;}
   td.c .p,tr.team .p{font-size:13px;}
   td.c .n,tr.team .n{font-size:10px;letter-spacing:-.2px;}
   td.c .o,tr.team .o{font-size:9px;}
@@ -183,8 +188,9 @@ function render() {
       <div class="s">תכנון ${w.d.p} · קנו ${w.d.i - w.d.o} · מחוץ לקו ${w.d.o} · לא קנו ${w.d.p - (w.d.i - w.d.o)}${LEVEL === 'date' ? '' : ` · ${w.d.dates.length} ימים`}</div></div></div>`).join('');
 
   const head = `<tr><th class="ag"></th>${keys.map(k => `<th>${bucketHead(k, heads.get(k))}</th>`).join('')}</tr>`;
-  const rowsHtml = list.map(a => `<tr><td class="ag" title="${esc(a.name)}">${esc(a.name)}</td>${keys.map(k => cell(a.b[k], a.code + '|' + k)).join('')}</tr>`).join('');
-  const teamRow = `<tr class="team"><td class="ag">${TEAM === '*' ? 'כולם' : esc(TEAM)}</td>${keys.map(k => {
+  const tot = (i, p) => { const v = pct(i, p); return v === null ? '' : `<div class="tot ${cls(v)}">${v}%</div>`; };
+  const rowsHtml = list.map(a => `<tr><td class="ag" title="${esc(a.name)}">${esc(a.name)}${tot(a.i, a.p)}</td>${keys.map(k => cell(a.b[k], a.code + '|' + k)).join('')}</tr>`).join('');
+  const teamRow = `<tr class="team"><td class="ag">${TEAM === '*' ? 'כולם' : esc(TEAM)}${tot(list.reduce((s, a) => s + a.i, 0), list.reduce((s, a) => s + a.p, 0))}</td>${keys.map(k => {
     const t = team[k]; if (!t || !t.p) return '<td class="x">—</td>';
     const v = pct(t.i, t.p); return `<td class="${cls(v)}">${cellBody(t, v)}</td>`; }).join('')}</tr>`;
 
