@@ -1001,6 +1001,15 @@ body.gps-fs #map{height:100%!important;}
    named agents by their own request. Keyed by agentCode (stable), not name
    (agentName has spelling variants). Purely decorative, never blocks the
    real "כניסה למערכת" button underneath — pointer-events:none. */
+/* Welcome card (Dan 2026-10-08): planning quote + steaming coffee instead of the feature blurb */
+.welcome-quote{font-size:16px;line-height:1.55;font-style:italic;font-weight:600;color:#1A3F7C;}
+.welcome-quote-cite{display:block;margin-top:6px;font-size:12px;font-style:normal;font-weight:600;color:#8A8F98;}
+.welcome-coffee{width:72px;height:72px;margin:-4px 0 -8px;}
+.welcome-coffee .steam{fill:none;stroke:#C9A36A;stroke-width:3;stroke-linecap:round;opacity:0;animation:steamUp 3s ease-in-out infinite;}
+.welcome-coffee .steam.s2{animation-delay:1s;} .welcome-coffee .steam.s3{animation-delay:2s;}
+@keyframes steamUp{0%{opacity:0;transform:translateY(8px)}30%{opacity:.85}100%{opacity:0;transform:translateY(-12px)}}
+@media (prefers-reduced-motion:reduce){.welcome-coffee .steam{animation:none;opacity:.6;}}
+.welcome-coffee-line{font-size:15px;font-weight:700;color:#555;}
 .welcome-egg{position:absolute;font-size:42px;z-index:2;pointer-events:none;}
 .welcome-egg.egg-rappel{top:-60px;left:18%;animation:egg-rappel 2.4s ease-in forwards;}
 .welcome-egg.egg-cyclist{top:38%;right:-60px;animation:egg-cyclist 2.8s linear forwards;}
@@ -2666,13 +2675,19 @@ function renderLogin(){
     document.getElementById('s-login').classList.add('welcome-mode');
     body.innerHTML=`
       <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;">
-        <div class="welcome-card" style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:16px;max-width:340px;">
-          <div style="font-size:26px;font-weight:900;">${_welcomeGreeting()}, ${esc(st._welcomeName||'')}! ${_welcomeGreetEmoji(st.agent?.code)}</div>
+        <div class="welcome-card" dir="ltr" style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;max-width:340px;">
+          <div style="font-size:26px;font-weight:900;">${_welcomeGreeting()}${_ruFirstName(st._welcomeName)?', '+esc(_ruFirstName(st._welcomeName)):''}!&nbsp;${_welcomeGreetEmoji(st.agent?.code)}</div>
           <div style="width:56px;height:2px;background:linear-gradient(90deg,transparent,#D89830,transparent);"></div>
-          <div style="font-size:15px;color:#555;line-height:1.7;">
-            Здесь найдёшь свой ежедневный маршрут визитов, AI-анализ клиентов и быстрые заявки на зачёт — всё в одном месте.
-          </div>
-          <button onclick="_continueFromWelcome()" style="background:linear-gradient(135deg,#F5C670,#D89830);color:#1A3F7C;border:none;border-radius:30px;padding:16px 30px;font-size:30px;font-weight:900;cursor:pointer;box-shadow:0 8px 0 #A9740F,0 12px 20px rgba(0,0,0,.35),inset 0 2px 3px rgba(255,255,255,.5);">Войти в систему ←</button>
+          <div class="welcome-quote">«Каждая минута, потраченная на планирование, экономит до десяти минут в работе»<span class="welcome-quote-cite">— Брайан Трейси, «Съешьте лягушку!»</span></div>
+          <svg class="welcome-coffee" viewBox="0 0 84 84" aria-hidden="true">
+            <path class="steam s1" d="M32 30c-4-5 4-9 0-14"/><path class="steam s2" d="M42 28c-4-5 4-9 0-14"/><path class="steam s3" d="M52 30c-4-5 4-9 0-14"/>
+            <ellipse cx="42" cy="74" rx="30" ry="5" fill="#E8D8BE"/>
+            <path d="M62 46h4a8 8 0 0 1 0 16h-5" fill="none" stroke="#D89830" stroke-width="4"/>
+            <path d="M18 38h46v10c0 13-10 24-23 24S18 61 18 48z" fill="#D89830"/>
+            <ellipse cx="41" cy="38" rx="23" ry="5" fill="#6B3E1E"/>
+          </svg>
+          <div class="welcome-coffee-line">С кофе любой маршрут короче</div>
+          <button onclick="_continueFromWelcome()" style="background:linear-gradient(135deg,#F5C670,#D89830);color:#1A3F7C;border:none;border-radius:30px;padding:14px 28px;font-size:24px;white-space:nowrap;font-weight:900;cursor:pointer;margin-top:6px;box-shadow:0 8px 0 #A9740F,0 12px 20px rgba(0,0,0,.35),inset 0 2px 3px rgba(255,255,255,.5);">Начать день →</button>
         </div>
       </div>`;
     _renderWelcomeEasterEgg(st.agent?.code);
@@ -2803,7 +2818,7 @@ const HE_RU_FIRST_NAMES={
   'אנטולי':'Анатолий','ודים':'Вадим','אנדריי':'Андрей','מקסים':'Максим','יוליה':'Юлия',
   'אולג':'Олег','ולדימיר':'Владимир','סרגיי':'Сергей','ולדיסלב':'Владислав','אדוארד':'Эдуард',
   'טימור':'Тимур','קונסטנטין':'Константин','דמיטרי':'Дмитрий','יבגני':'Евгений','אלמוג':'Альмог',
-  "ג'וזף":'Джозеф','מרגריטה':'Маргарита',"וצ'סלב":'Вячеслав','יגאל':'Игаль','זויה':'Зоя',
+  "ג'וזף":'Джозеф','מרגריטה':'Рита',"וצ'סלב":'Вячеслав','יגאל':'Игаль','זויה':'Зоя',
   'דוד':'Давид','דניאיל':'Даниил','עירית':'Ирит','גליה':'Галя','רומן':'Роман','מריה':'Мария',
   'דניס':'Денис','ויקטור':'Виктор','איגור':'Игорь','יורי':'Юрий','פאבל':'Павел','ארטיום':'Артём',
   'ארטם':'Артём','איליה':'Илья','ניקולאי':'Николай','גנאדי':'Геннадий','ויטלי':'Виталий',
@@ -4862,8 +4877,10 @@ function maybeShowThought(){
   // Daily greeting on top of the quote — returning agents skip the agent-welcome
   // screen (saved route restore), so this is their "first open of the day" hello.
   const me=_loadAuth();
-  document.getElementById('thought-greet').textContent=me?.name
-    ? `${_welcomeGreeting()}, ${me.name}! ${_welcomeGreetEmoji(me.code)}` : '';
+  // Agents: Russian first name like the start screen (Dan 2026-10-08: "Рита", not the Hebrew full name); managers keep theirs.
+  const greetName=me?.isManager?me.name:_ruFirstName(me?.name);
+  document.getElementById('thought-greet').textContent=me
+    ? `${_welcomeGreeting()}${greetName?', '+greetName:''}! ${_welcomeGreetEmoji(me.code)}` : '';
   document.getElementById('thought-body').textContent='«'+q.text+'»';
   document.getElementById('thought-cite').textContent='— '+q.cite;
   document.getElementById('thought-toast').classList.add('open');
