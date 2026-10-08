@@ -43,11 +43,11 @@ td.ag{font-weight:700;}
 td.ag .tot{font-size:11px;font-weight:900;margin-top:2px;}
 .tot.r{color:var(--red);} .tot.y{color:var(--yellow);} .tot.g{color:var(--green);}
 td.c{cursor:pointer;}
-td.c .p{font-size:14px;font-weight:900;}
-td.c .o,tr.team .o{font-size:10px;color:var(--light);white-space:nowrap;}
+td.c .p,tr.team .p{font-size:14px;font-weight:900;}
+td.c .o{font-size:10px;color:var(--light);white-space:nowrap;}
 .r .p{color:var(--red);} .y .p{color:var(--yellow);} .g .p{color:var(--green);}
 .x{color:var(--light);}
-td.c .n,tr.team .n{font-size:11px;color:var(--text);white-space:nowrap;}
+td.c .n{font-size:11px;color:var(--text);white-space:nowrap;}
 tr.team td{font-weight:800;border-top:2px solid #CFD8DC;}
 td.c.sel{outline:2px solid var(--blue);outline-offset:-2px;}
 .detail{margin-top:10px;background:var(--card);border-radius:10px;padding:10px 12px;box-shadow:0 1px 3px rgba(0,0,0,.08);font-size:13px;}
@@ -71,9 +71,8 @@ td.c.sel{outline:2px solid var(--blue);outline-offset:-2px;}
   td.ag,th.ag{width:78px;min-width:78px;max-width:78px;padding-left:6px;font-size:11px;line-height:1.25;white-space:normal;text-overflow:clip;padding-right:4px;}
   td.ag::after,th.ag::after{content:"";position:absolute;top:0;bottom:0;right:0;width:2px;background:#CFD8DC;}
   td.c .p,tr.team .p{font-size:13px;}
-  td.c .n,tr.team .n{font-size:10px;letter-spacing:-.2px;}
-  td.c .o,tr.team .o{font-size:9px;}
-  tr.team .n,tr.team .o{font-weight:600;}
+  td.c .n{font-size:10px;letter-spacing:-.2px;}
+  td.c .o{font-size:9px;}
 }
 .msg{padding:40px 10px;text-align:center;color:var(--light);}
 .msg.sm{padding:6px 0;text-align:right;}
@@ -190,9 +189,10 @@ function render() {
   const head = `<tr><th class="ag"></th>${keys.map(k => `<th>${bucketHead(k, heads.get(k))}</th>`).join('')}</tr>`;
   const tot = (i, p) => { const v = pct(i, p); return v === null ? '' : `<div class="tot ${cls(v)}">${v}%</div>`; };
   const rowsHtml = list.map(a => `<tr><td class="ag" title="${esc(a.name)}">${esc(a.name)}${tot(a.i, a.p)}</td>${keys.map(k => cell(a.b[k], a.code + '|' + k)).join('')}</tr>`).join('');
+  // Team row: % only (Dan 2026-10-08)
   const teamRow = `<tr class="team"><td class="ag">${TEAM === '*' ? 'כולם' : esc(TEAM)}${tot(list.reduce((s, a) => s + a.i, 0), list.reduce((s, a) => s + a.p, 0))}</td>${keys.map(k => {
     const t = team[k]; if (!t || !t.p) return '<td class="x">—</td>';
-    const v = pct(t.i, t.p); return `<td class="${cls(v)}">${cellBody(t, v)}</td>`; }).join('')}</tr>`;
+    const v = pct(t.i, t.p); return `<td class="${cls(v)}"><div class="p">${v}%</div></td>`; }).join('')}</tr>`;
 
   document.getElementById('wrap').innerHTML = `
     <div class="bar">${chBtns}<div class="period">${fmtD(from)}.${from.slice(0, 4)} – ${fmtD(to)}.${to.slice(0, 4)}</div></div>
