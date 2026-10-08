@@ -35,7 +35,6 @@ let pbiCache = null; // set by loadPBICache()
 // Cleared only on a SUCCESSFUL daily pbiCache reload (see _loadPBICacheAttempt)
 // so a failed/retrying reload doesn't wipe still-valid cached returns data.
 const clientReturnsCache = new Map(); // custId -> { data, at: Date }
-const dayTopSalesCache = new Map(); // agent|day|month -> top-5 (👑). Last 3 CLOSED months = changes monthly; cleared with the PBI cache
 // יעדים closed for everyone (user 2026-10-04): /api/yedaim-live answers 404 and the daily
 // prefetch (6 DAX) is skipped; buttons hidden in formula-road.html. false = back on.
 const YEDAIM_DISABLED = true;
@@ -299,8 +298,8 @@ CALCULATETABLE(
       c.avg6Orders = Math.round(parseFloat(r['[avg6Orders]']) || 0);
     }
 
-    // D2: ♠½ polupoker (Dan 2026-10-08) — FORMULA client with 6+ months tenure (Priority
-    // CREATEDDATE) who bought in ≤ 8 of the last 25 full Sun–Sat weeks. FORMULA families
+    // D2: ♠½ polupoker (Dan 2026-10-08) — FORMULA client of a team agent, 6+ months tenure (Priority
+    // CREATEDDATE): c.pp = weeks with a sale out of the last 25 full Sun–Sat weeks (or fewer if newer). FORMULA families
     // only (channels never mix), same "-מכר-" scope as lastOrderDate. even = share of
     // those weeks that were שבוע זוגי → suggested parity for the every-other-week button.
     // Fail-soft: any error leaves c.pp unset (no badge), the cache load goes on.
@@ -334,20 +333,55 @@ CALCULATETABLE(
         if (!weeksByCust.has(id)) weeksByCust.set(id, new Set());
         weeksByCust.get(id).add(weekIndex(typeof d === 'string' ? d.slice(0, 10) : new Date(d).toISOString().slice(0, 10)));
       }
-      const tenureLimit = (startSun.getTime() - Date.UTC(1988, 0, 1)) / 60000 - 720; // Priority minutes (startSun is noon UTC)
-      let ppCount = 0;
+      // Dan 2026-10-08: tenure 6 months (= the 25-week window). Share wk/of stays (Dan approved): a newer
+      // client would be judged only over the weeks he existed — kicks in if tenure < window ever again.
+      const PP_MIN_WEEKS = 25;
+      const endMin = (endSun.getTime() - Date.UTC(1988, 0, 1)) / 60000 - 720; // Priority minutes, this Sunday 00:00
+      let ppCount = 0, ppTenured = 0;
       for (const [id, c] of clientMap) {
+        // Dan 2026-10-08: only agents under a team manager — same scope as coverage (no SADRAN+, no team-less)
+        if (!c.manager || COVERAGE_EXCLUDED_TEAMS.has(c.manager)) continue;
         const cd = created.get(id);
-        if (!cd || cd > tenureLimit) continue; // unknown or newer than the window → not judged
+        const of = cd ? Math.min(PP_WEEKS, Math.floor((endMin - cd) / (7 * 1440))) : 0;
+        if (of < PP_MIN_WEEKS) continue; // unknown or newer than 6 months → not judged
         const weeks = weeksByCust.get(id) || new Set();
-        if (weeks.size > PP_MAX) continue;
+        // Dan 2026-10-08: a day of N > 15 gets exactly N − 15 ♠½ offers, weakest first — so every
+        // tenured client carries his frequency; the app ranks the day (formula-road.html _ppCandidates).
         const even = weeks.size ? [...weeks].filter(w => w % 2 === 0).length / weeks.size : null;
-        c.pp = { wk: weeks.size, of: PP_WEEKS, even, suggest: weeks.size >= 4 && even >= 0.7 ? 0 : weeks.size >= 4 && even <= 0.3 ? 1 : null };
-        ppCount++;
+        c.pp = { wk: Math.min(weeks.size, of), of, even, suggest: weeks.size >= 4 && even >= 0.7 ? 0 : weeks.size >= 4 && even <= 0.3 ? 1 : null };
+        ppTenured++;
+        if (c.pp.wk / of <= PP_MAX / PP_WEEKS) ppCount++;
       }
-      console.log(`[PBI] polupoker: ${ppCount} clients (≤${PP_MAX}/${PP_WEEKS} weeks, tenure ≥ ${startSun.toISOString().slice(0, 10)})`);
+      console.log(`[PBI] polupoker: ${ppCount} clients ≤${PP_MAX}/${PP_WEEKS} share, ${ppTenured} ranked (team agents, tenure ≥ ${PP_MIN_WEEKS} weeks)`);
     } catch (e) {
       console.error('[PBI] polupoker failed:', e.message);
+    }
+
+    // D3: 👑 last 3 CLOSED months sales per client — ONE DAX per cache load (Dan 2026-10-08: everything
+    // from the warm cache). /api/day-top-sales ranks the day in memory. Same measure + filters as the
+    // old per-request DAX (it ran on every route load). Fail-soft: empty map → no crowns.
+    const sales3m = new Map();
+    try {
+      const _s3 = new Date(_now.getFullYear(), _now.getMonth() - 3, 1);
+      const _e3 = new Date(_now.getFullYear(), _now.getMonth(), 0);
+      const s3Rows = await executeDax(`
+EVALUATE
+CALCULATETABLE(
+  ADDCOLUMNS(
+    SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]),
+    "total", CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)])
+  ),
+  ALL_PARTS[ASHMADOT] = "-מכר-",
+  ALL_PARTS[תאריך] >= DATE(${_s3.getFullYear()},${_s3.getMonth() + 1},1),
+  ALL_PARTS[תאריך] <= DATE(${_e3.getFullYear()},${_e3.getMonth() + 1},${_e3.getDate()})
+)
+`);
+      for (const r of s3Rows) {
+        const id = String(r['ALL_PARTS[מספר לקוח]'] || ''), t = Math.round(r['[total]'] || 0);
+        if (id && t > 0) sales3m.set(id, t);
+      }
+    } catch (e) {
+      console.error('[PBI] sales3m (crown) failed:', e.message);
     }
 
     // E: ICE MISH avg6 — משפחתי גלידה families only (BiDi stored as יתחפשמ)
@@ -570,9 +604,9 @@ ROW("maxDate", CALCULATE(MAX(ALL_PARTS[תאריך]), ALL_PARTS[ASHMADOT] = "-מ�
       managerAgents,
       loadedAt: new Date(),
       latestSaleDate,
+      sales3m, // 👑 custId → last 3 closed months sales (D3)
     };
     clientReturnsCache.clear();
-    dayTopSalesCache.clear();
     clientAnalyticsCache.clear();
     pruneStaleClientPromos(); // persisted cache — drop only if the calendar day actually changed
     promoCustIdsCache = { date: null, formula: [], iceMish: [] };
@@ -5324,48 +5358,14 @@ app.get('/api/day-top-sales', requireAuth, async (req, res) => {
   const dayClients = dayNum ? allClients.filter(c => c.dayNum === dayNum) : allClients;
   if (!dayClients.length) return res.json({ ok: true, top: [] });
 
-  const now = new Date();
-  const cm = now.getMonth() + 1, cy = now.getFullYear();
-  const months = [];
-  for (let i = 3; i >= 1; i--) {
-    let m = cm - i, y = cy;
-    if (m <= 0) { m += 12; y--; }
-    months.push({ year: y, month: m });
-  }
-  const curStart = months[0], curEnd = months[2];
-  const curLastDay = new Date(curEnd.year, curEnd.month, 0).getDate();
-  // Was a live DAX on every route load (Dan 2026-10-08: "why not from the warm cache?").
-  // Same agent+day+closed-months window = same answer → one DAX per agent/day per cache load.
-  const cacheKey = `${agentCode}|${dayNum}|${curStart.year}-${curStart.month}`;
-  if (dayTopSalesCache.has(cacheKey)) return res.json({ ok: true, top: dayTopSalesCache.get(cacheKey) });
-  const custIds = [...new Set(dayClients.map(c => String(c.custId)))];
-  const inList = custIds.map(id => `"${id}"`).join(', ');
-
-  const dax = `
-EVALUATE
-CALCULATETABLE(
-  ADDCOLUMNS(
-    SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]),
-    "total", CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)])
-  ),
-  ALL_PARTS[מספר לקוח] IN {${inList}},
-  ALL_PARTS[ASHMADOT] = "-מכר-",
-  ALL_PARTS[תאריך] >= DATE(${curStart.year},${curStart.month},1),
-  ALL_PARTS[תאריך] <= DATE(${curEnd.year},${curEnd.month},${curLastDay})
-)`;
-
-  try {
-    const rows = await executeDax(dax);
-    const ranked = rows
-      .map(r => ({ custId: String(r['ALL_PARTS[מספר לקוח]'] || r['[מספר לקוח]'] || ''), total: Math.round(r['[total]'] || 0) }))
-      .filter(r => r.custId && r.total > 0)
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 5);
-    dayTopSalesCache.set(cacheKey, ranked);
-    res.json({ ok: true, top: ranked });
-  } catch (e) {
-    res.status(500).json({ ok: false, error: e.message });
-  }
+  // Was a live DAX on every route load; now ranked in memory from pbiCache.sales3m (one DAX per
+  // cache load, loadPBICache D3 — Dan 2026-10-08: no per-request PBI calls).
+  const ranked = [...new Set(dayClients.map(c => String(c.custId)))]
+    .map(custId => ({ custId, total: pbiCache.sales3m?.get(custId) || 0 }))
+    .filter(r => r.total > 0)
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 5);
+  res.json({ ok: true, top: ranked });
 });
 
 // ── AI Day Briefing — TOP 10 clients of agent's day, split by company (FORMULA vs
@@ -6473,7 +6473,9 @@ app.get('/api/route-overrides', requireAuth, dataRateLimit, (req, res) => {
   const data = readRouteOverrides();
   const entry = data[agentCode] || { order: {}, dayMoves: {} };
   res.json({ ok: true, order: entry.order || {}, dayMoves: entry.dayMoves || {}, excluded: entry.excluded || {},
-    biweekly: entry.biweekly || {}, biweeklyPilot: biweeklyPilot(req.session, agentCode) });
+    biweekly: entry.biweekly || {}, biweeklyPilot: biweeklyPilot(req.session, agentCode),
+    // same rule as POST /api/route-biweekly: the agent himself, or a manager allowed to write for him (readonly → false)
+    canEdit: String(req.session.agentCode || '') === agentCode || managerCanWrite(req.session, agentCode) });
 });
 // ♠½ every-other-week visit (Dan 2026-10-08): the agent decides — {custId, parity: 0 זוגי | 1 אי-זוגי | null = every week}.
 // One parity per client across all his visit days (ponytail: per-day parity if ever needed).

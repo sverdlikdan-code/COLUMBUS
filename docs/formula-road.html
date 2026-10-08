@@ -434,6 +434,9 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .pp-badge{display:inline-block;direction:ltr;unicode-bidi:isolate;font-size:12px;font-weight:800;line-height:1;margin-left:4px;padding:2px 4px;border-radius:5px;border:1px solid #9aa5b4;color:#4a5568;background:#fff;vertical-align:middle;cursor:pointer;white-space:nowrap;}
 .pp-badge.pp-set{background:#4a5568;border-color:#4a5568;color:#fff;}
 .client-card.offweek{background:#fafbfc;}
+/* ♠½ sheet centered (Dan 2026-10-08: bottom was cut off on his device) — only this modal, shared .modal untouched */
+#biweekly-modal{align-items:center;padding:16px;}
+#biweekly-modal .modal{border-radius:20px;padding-bottom:20px;max-height:100%;overflow-y:auto;}
 .today-order-badge{display:inline-block;font-size:17px;margin-left:4px;vertical-align:middle;filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));}
 /* map: today's order — dimmed marker + ✓ corner badge; cluster gets ✓done/total pill */
 .fr-mk-done{position:relative;display:inline-block;}
@@ -1815,6 +1818,7 @@ const st = {
   topSalesIds: new Set(),
   biweekly: {},          // ♠½ custId → {parity 0|1} (server route-overrides.json, no localStorage copy)
   biweeklyPilot: false,  // server says if ♠½ badge/button are on for this agent (hidden pilot)
+  biweeklyCanEdit: false, // agent himself or a manager with write access (readonly managers: badge is info only)
   aiGpsMode: true,
   tabletGpsMode: false,
   iceFilter: false,
@@ -4111,6 +4115,7 @@ function renderClientList(html){
   const list=displayClients();
   if(!list.length){el.innerHTML=`<div style="padding:40px 20px;text-align:center;color:var(--mid)"><div style="font-size:36px;margin-bottom:12px">📭</div><div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px">אין לקוחות ביום זה</div><div style="font-size:12px">נסה לשנות את הסינון או בחר יום אחר</div></div>`;return;}
   _rowActionsStore={};
+  st._ppCand=_ppCandidates();
   el.innerHTML=list.map((c,i)=>{
     const noGps=!c.lat||!c.lng;
     const isSel=st.selectedId===c.custId;
@@ -4171,7 +4176,7 @@ function renderClientList(html){
         const noGps=!c.lat||!c.lng, done=_hasOrderToday(c)&&st.day===_todayRouteDay();
         _rowActionsStore[c.custId]=_secondaryActionsHtml(c,noGps);
         return `<div class="client-card offweek${done?' order-done':''}" data-id="${c.custId}" onclick="selectClient('${c.custId}')">
-        <div class="c-num-wrap"><span class="pp-badge pp-set" onclick="event.stopPropagation();openBiweekly('${c.custId}')">♠½</span></div>
+        <div class="c-num-wrap"><span class="pp-badge pp-set" ${st.biweeklyCanEdit?`onclick="event.stopPropagation();openBiweekly('${c.custId}')"`:'style="cursor:default"'}>♠½</span></div>
         <div class="c-body">
           <div class="c-name"><span class="c-name-text">${done?'<span class="today-order-badge" title="הזמנה פתוחה נפתחה היום">✔️</span>':''}${shortName(c.custName,c.city)||esc(c.custName)||''}</span></div>
           <div class="c-sub">${esc(c.city||'')}${c.lastOrderDate?` · הזמנה: ${c.lastOrderDate.slice(8,10)}.${c.lastOrderDate.slice(5,7)}`:''}</div>
@@ -4266,14 +4271,25 @@ function openZikuyOrder(e,custId,custName,city){
 }
 // Server copy of 🚫 — see /api/route-exclude. BDD has its own router without it,
 // so there exclusions stay session-only as before.
-// ♠½ polupoker (2026-10-08): FORMULA client, 6+ months, bought in ≤8 of 25 weeks (server c.pp).
-// Badge + button only for the pilot, in days with more than 15 clients, never on a 👑 client;
-// a client already on every-other-week always shows it (so the agent can undo).
+// ♠½ polupoker (2026-10-08). Dan: a day of N > 15 clients gets exactly N − 15 offers — the weakest by share
+// of weeks with an order (server c.pp wk/of, team agents, 6+ months), older last order first,
+// never 👑; clients already on every-other-week count toward the N − 15. Pilot only.
+function _ppCandidates(){
+  if(!st.biweeklyPilot) return new Set();
+  const quota=st.clients.length-15-st.clients.filter(c=>st.biweekly?.[String(c.custId)]).length;
+  if(quota<=0) return new Set();
+  return new Set(st.clients
+    .filter(c=>c.pp&&!st.biweekly?.[String(c.custId)]&&!st.topSalesIds.has(String(c.custId)))
+    .sort((a,b)=>a.pp.wk/a.pp.of-b.pp.wk/b.pp.of||String(a.lastOrderDate||'').localeCompare(String(b.lastOrderDate||'')))
+    .slice(0,quota).map(c=>String(c.custId)));
+}
+// A client already on every-other-week always shows it (so the agent can undo).
 function _ppBadge(c){
   const id=String(c.custId), set=st.biweekly?.[id];
-  if(!set&&!(st.biweeklyPilot&&c.pp&&st.clients.length>15&&!st.topSalesIds.has(id))) return '';
+  if(!set&&!st._ppCand?.has(id)) return '';
   const tip=set?`ביקור כל שבועיים — ${_PARITY_HE[set.parity]}`:`מזמין ב-${c.pp.wk} מתוך ${c.pp.of} שבועות — אפשר לעבור לביקור כל שבועיים`;
-  return `<span class="pp-badge${set?' pp-set':''}" title="${tip}" onclick="event.stopPropagation();openBiweekly('${id}')">♠½</span>`;
+  const tap=st.biweeklyCanEdit?`onclick="event.stopPropagation();openBiweekly('${id}')"`:'style="cursor:default"';
+  return `<span class="pp-badge${set?' pp-set':''}" title="${tip}" ${tap}>♠½</span>`;
 }
 let _bwAsk=null;
 function openBiweekly(custId){
@@ -5115,7 +5131,7 @@ async function pushDayMove(custId,day,client,from,_isRetry){
 }
 async function syncRouteOverridesFromServer(){
   st.routeExcl={}; // never carry the previous agent's 🚫 list over on a failed fetch
-  st.biweekly={}; st.biweeklyPilot=false;
+  st.biweekly={}; st.biweeklyPilot=false; st.biweeklyCanEdit=false;
   if(!st.agent?.code) return;
   let d;
   try{
@@ -5124,7 +5140,7 @@ async function syncRouteOverridesFromServer(){
   }catch(e){ return; } // offline/error — localStorage stays the only source, as before
   if(!d?.ok) return;
   st.routeExcl=d.excluded||{}; // {day:{custId:{at,by}}} — server-only, no localStorage copy
-  st.biweekly=d.biweekly||{}; st.biweeklyPilot=!!d.biweeklyPilot;
+  st.biweekly=d.biweekly||{}; st.biweeklyPilot=!!d.biweeklyPilot; st.biweeklyCanEdit=!!d.canEdit;
   const hasServerData=Object.keys(d.order||{}).length||Object.keys(d.dayMoves||{}).length;
   if(hasServerData){
     Object.entries(d.order||{}).forEach(([day,ids])=>{
