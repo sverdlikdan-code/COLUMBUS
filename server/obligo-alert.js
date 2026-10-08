@@ -296,12 +296,51 @@ const RECIPIENT_NAMES = {
   'dima@dilerbmd.com': 'דימה',
   'maxim@dilerbmd.com': 'מקסים',
   'd.sverdlik@dilerbmd.com': 'דן',
+  'danyb@dilerbmd.com': 'דני',
+  'hanan.h@dilerbmd.com': 'חנן',
+  'alexander.f@dilerbmd.com': 'אלכסנדר',
+  // менеджеры команд FORMULA (адреса как в CLIENT_CHANGES_MANAGERS)
+  'dilerformula69@gmail.com': 'אלכסי',
+  'dilerformula83@gmail.com': 'אנטולי',
+  'dilerformula127@gmail.com': 'נטליה',
+  'dilerformula115@gmail.com': 'סבטלנה',
+  'dilerformula159@gmail.com': 'ולדיסלב',
+  'dilerformula79@gmail.com': 'רומן',
+  // менеджеры ICE BDD (как CLIENT_CHANGES_BDD_MANAGERS)
+  'dilerformula84@gmail.com': 'טימור',
+  'dilerformula99@gmail.com': 'מטביי',
+  'dilerformula231@gmail.com': 'שמחה',
 };
 
-function buildEmailHtml(crossed, greetName) {
-  const chains = crossed.filter(c => c.market === 'רשתות');
+// Менеджеру команды — только שוק פרטי агентов его קבוצה (пользователь 2026-10-08).
+// Агент שוק פרטי здесь = имя FORMULA-агента ('לקוחות FORM+I+INT'[שם סוכן]); его קבוצה — из
+// 'משטח' (тот же источник, что client-changes-alert). У агента несколько групп — берём частую.
+async function fetchAgentGroups() {
+  const rows = await executeDax(`
+    EVALUATE
+    SUMMARIZECOLUMNS('משטח'[שם סוכן], 'משטח'[קבוצה], "n", COUNTROWS('משטח'))`);
+  const best = new Map(); // agent -> {group, n}
+  for (const r of rows) {
+    const agent = fixBiDi(r['משטח[שם סוכן]']);
+    const group = String(r['משטח[קבוצה]'] || '').trim();
+    if (!agent || !group) continue;
+    if (!best.has(agent) || r['[n]'] > best.get(agent).n) best.set(agent, { group, n: r['[n]'] });
+  }
+  const groupOf = new Map([...best].map(([a, v]) => [a, v.group]));
+  // ICE BDD (пользователь 2026-10-08): ICE-агент -> группа BDD (TIMUR/MATVEY/ALMOG/SIMHA) из
+  // bdd-cache.json живого сервера (как client-changes-alert). FORMULA-группа имеет приоритет.
+  try {
+    const cache = JSON.parse(fs.readFileSync(path.join(process.env.LIVE_DATA_DIR || path.join(__dirname, 'data'), 'bdd-cache.json'), 'utf8'));
+    for (const [, c] of cache.clientById) if (c.agentName && c.manager && !groupOf.has(c.agentName)) groupOf.set(c.agentName, c.manager);
+  } catch (e) { console.error('[managers] bdd-cache не прочитан, BDD-менеджерам пусто:', e.message); }
+  return groupOf;
+}
+
+function buildEmailHtml(crossed, greetName, privateOnly = false) {
+  const chains = privateOnly ? [] : crossed.filter(c => c.market === 'רשתות');
   const privateMarket = crossed.filter(c => c.market !== 'רשתות');
   const greeting = greetName ? `שלום ${greetName},` : 'שלום,';
+  const intro = privateOnly ? 'מצורף עדכון האובליגו השבועי — שוק פרטי, הסוכנים של הקבוצה שלך. תקבלו אותו כל יום חמישי.' : 'מצורף עדכון האובליגו השבועי — תקבלו אותו כל יום חמישי.';
 
   return `<!doctype html>
 <html lang="he"><body style="margin:0;padding:28px 16px;background:${PAPER};font-family:Arial,sans-serif">
@@ -315,7 +354,7 @@ function buildEmailHtml(crossed, greetName) {
   </td></tr>
 
   <tr><td dir="rtl" style="padding:20px 28px 0;text-align:right">
-    <div style="font-family:Arial,sans-serif;font-size:14px;color:${INK}">${greeting} מצורף עדכון האובליגו השבועי — תקבלו אותו כל יום חמישי.</div>
+    <div style="font-family:Arial,sans-serif;font-size:14px;color:${INK}">${greeting} ${intro}</div>
   </td></tr>
 
   ${buildGroupedBlocks('רשתות', chains, 'resp', TABLE_HEAD_CHAINS, rowChain)}
@@ -331,7 +370,7 @@ function buildEmailHtml(crossed, greetName) {
 </body></html>`;
 }
 
-async function sendAlert(crossed, recipients) {
+async function sendAlert(crossed, recipients, privateOnly = false) {
   if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY не найден в .env');
   const resend = new Resend(process.env.RESEND_API_KEY);
   const subject = `דוח שבועי — אובליגו: ${crossed.length} ${crossed.length === 1 ? 'חצה' : 'חצו'} סף ${Math.round(THRESHOLD * 100)}%`;
@@ -348,14 +387,14 @@ async function sendAlert(crossed, recipients) {
     const greetName = RECIPIENT_NAMES[recipient.toLowerCase()];
     const greeting = greetName ? `שלום ${greetName},` : 'שלום,';
     const outro = '\n\nהערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.';
-    const text = `${greeting} מצורף עדכון האובליגו השבועי — תקבלו אותו כל יום חמישי.\n\n`
+    const text = `${greeting} ${privateOnly ? 'מצורף עדכון האובליגו השבועי — שוק פרטי, הסוכנים של הקבוצה שלך.' : 'מצורף עדכון האובליגו השבועי — תקבלו אותו כל יום חמישי.'}\n\n`
       + crossed.map(c => `${c.name} (${c.market}, אחראי: ${c.resp}): ${fmtILS(c.usedILS)}/${fmtILS(c.limitILS)} = ${Math.round(c.util * 100)}%`).join('\n')
       + outro;
     const res = await resend.emails.send({
       from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
       to: [recipient],
       subject,
-      html: buildEmailHtml(crossed, greetName),
+      html: buildEmailHtml(crossed, greetName, privateOnly),
       text,
       attachments,
     });
@@ -373,6 +412,27 @@ async function main() {
 
   if (crossed.length === 0) return;
 
+  // Менеджеры команд: "ALEXEY=a@x;SADRAN+=b@x" — каждому שוק פרטי агентов его קבוצה.
+  // Сбой карты групп не должен сорвать полный отчёт — менеджерские письма тогда пропускаются.
+  const managers = (process.env.OBLIGO_ALERT_MANAGERS || '').split(';').map(s => s.split('=').map(x => x.trim())).filter(([g, e]) => g && e);
+  const perManager = [];
+  if (managers.length) {
+    try {
+      const groupOf = await fetchAgentGroups();
+      const priv = crossed.filter(c => c.market !== 'רשתות');
+      const noGroup = [...new Set(priv.filter(c => !groupOf.has(c.agent)).map(c => c.agent))];
+      if (noGroup.length) console.log('  агенты שוק פרטי без קבוצה (только в полном отчёте):', noGroup.join(', '));
+      for (const [groups, email] of managers) {
+        const gs = new Set(groups.split(',').map(s => s.trim())); // "MATVEY,ALMOG=..." — несколько групп
+        const mine = priv.filter(c => gs.has(groupOf.get(c.agent)));
+        console.log(`  [${groups}] ${email}: ${mine.length}`);
+        if (mine.length) perManager.push({ email, mine });
+      }
+    } catch (e) {
+      console.error('[managers] карта קבוצה не получена, менеджерам не отправлено:', e.message);
+    }
+  }
+
   if (DRY_RUN) {
     console.log('\n--dry-run — письмо не отправлено.');
     return;
@@ -383,6 +443,10 @@ async function main() {
 
   const res = await sendAlert(crossed, recipients);
   console.log('Отправлено:', JSON.stringify(res));
+  for (const { email, mine } of perManager) {
+    const r = await sendAlert(mine, [email], true);
+    console.log(`Менеджеру ${email}:`, JSON.stringify(r[0]?.error ?? r[0]?.data));
+  }
 }
 
 main().catch(e => { console.error('ERR:', e.message); process.exit(1); });
