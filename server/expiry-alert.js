@@ -22,7 +22,12 @@ const DOCS = path.join(__dirname, '..', 'docs');
 const SPLIT_TO = (process.env.EXPIRY_ALERT_SPLIT_TO || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
 // Копия задана → одно письмо: RECIPIENTS в «Кому», CC в копии, приветствие «שלום רב» (пользователь 2026-09-30).
 // Без CC — как раньше, личное письмо каждому.
-const CC = (process.env.EXPIRY_ALERT_CC || '').split(',').map(s => s.trim()).filter(Boolean);
+// --zafn-low: второй алярм Максиму (пользователь 2026-10-08) — кнопка редактора «צפון <3 ימים»
+// (מלאי צפון ÷ מכירה צפון × 1.4 < 3), карточки по складам. Мера продаж — как в аппе, т.е. делится на дни
+// с продажей: товар с одной крупной продажей за 45 дней (1211: 30 קרט 28.09) попадает ложно — решение пользователя.
+const ZAFN_LOW = process.argv.includes('--zafn-low');
+const ENV = ZAFN_LOW ? 'ZAFN_LOW_ALERT' : 'EXPIRY_ALERT';
+const CC = (process.env[ENV + '_CC'] || '').split(',').map(s => s.trim()).filter(Boolean);
 // Список прошлой рассылки (מק"ט + имя) — для блока «נוספו / יצאו מהדוח» (пользователь 2026-10-08).
 // Пишется только после реальной отправки (или с --save-state). Не задан — блока нет.
 const STATE = process.env.EXPIRY_ALERT_STATE || '';
@@ -45,7 +50,7 @@ const RECIPIENT_NAMES = {
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg' };
 
-async function shootCards(split) {
+async function shootCards(split, zafnLow) {
   const srv = http.createServer((req, res) => {
     const p = path.join(DOCS, decodeURIComponent(req.url.split('?')[0]));
     if (!p.startsWith(DOCS) || !fs.existsSync(p) || fs.statSync(p).isDirectory()) { res.writeHead(404); return res.end(); }
@@ -60,14 +65,15 @@ async function shootCards(split) {
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36');
     await page.setViewport({ width: 1100, height: 900, deviceScaleFactor: 2 });
     await page.goto(`http://localhost:${srv.address().port}/planogram-editor.html`, { waitUntil: 'networkidle0', timeout: 90000 });
-    await page.evaluate(split => {
+    await page.evaluate((split, zafnLow) => {
       document.getElementById('app-splash')?.remove();
       document.getElementById('mahsan-login-modal')?.remove();
       toggleExpiryPage();
       if (split && window._expiryMauchad) toggleCombinedWh();
-      if (!window._expiryOnlySakana) toggleSakanaFilter();
+      if (zafnLow) { if (!window._expiryZafnLow) toggleZafnLowFilter(); }
+      else if (!window._expiryOnlySakana) toggleSakanaFilter();
       document.querySelectorAll('#expiry-grid button').forEach(b => b.remove()); // "×" скрыть карточку
-    }, split);
+    }, split, zafnLow);
     await page.evaluate(() => new Promise(r => {
       const imgs = [...document.images].filter(i => !i.complete);
       if (!imgs.length) return r();
@@ -108,7 +114,7 @@ async function shootCards(split) {
     const pages = [];
     for (let i = 0; i < shots.length; i += 4) {
       const cells = shots.slice(i, i + 4).map(b => `<div><img src="data:image/png;base64,${b.toString('base64')}"></div>`).join('');
-      pages.push(`<section><header>דוח תוקף${split ? ' לפי מחסן' : ''} — FORMULA &middot; ${date}</header><main>${cells}</main></section>`);
+      pages.push(`<section><header>${zafnLow ? 'מלאי צפון פחות מ-3 ימים' : 'דוח תוקף' + (split ? ' לפי מחסן' : '')} — FORMULA &middot; ${date}</header><main>${cells}</main></section>`);
     }
     await page.emulateMediaType('print');
     await page.setContent(`<!doctype html><html dir="rtl"><head><meta charset="utf-8"><style>
@@ -217,12 +223,12 @@ function buildEmailHtml(n, greetName, risk, split, diff) {
 <table role="presentation" align="center" width="700" cellpadding="0" cellspacing="0" style="width:700px;max-width:700px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid ${LINE}">
   <tr><td dir="rtl" style="background-color:${NAVY};padding:30px 28px 26px;text-align:center">
     <img src="cid:diler-logo-white" width="84" height="84" alt="DILER B.M.D" style="display:block;margin:0 auto 14px" />
-    <div style="font-size:24px;font-weight:900;color:#ffffff">התראת תוקף — מחסן FORMULA</div>
-    ${split ? '<div style="padding-top:6px;font-size:15px;font-weight:bold;color:#ffffff">לפי מחסן — אשדוד / צפון</div>' : ''}
-    <div style="padding-top:8px;font-size:13px;color:#AFC1DC">${n} ${n === 1 ? 'מוצר בסכנה' : 'מוצרים בסכנה'} / STOP SALE</div>
+    <div style="font-size:24px;font-weight:900;color:#ffffff">${ZAFN_LOW ? 'מלאי נמוך — מחסן צפון' : 'התראת תוקף — מחסן FORMULA'}</div>
+    ${split && !ZAFN_LOW ? '<div style="padding-top:6px;font-size:15px;font-weight:bold;color:#ffffff">לפי מחסן — אשדוד / צפון</div>' : ''}
+    <div style="padding-top:8px;font-size:13px;color:#AFC1DC">${ZAFN_LOW ? `${n} ${n === 1 ? 'מוצר' : 'מוצרים'} — מלאי פחות מ-3 ימי מכירה` : `${n} ${n === 1 ? 'מוצר בסכנה' : 'מוצרים בסכנה'} / STOP SALE`}</div>
     <div style="padding-top:10px;font-size:11px;color:${GOLD}">${new Date().toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
   </td></tr>
-  <tr><td dir="rtl" style="padding:20px 28px 8px;text-align:right;font-size:14px;color:${INK}">${greeting} ${split ? 'מצורף דוח תוקף לפי מחסן (אשדוד / צפון בנפרד, ללא איחוד מחסנים) — מוצרים בסכנה ו-STOP SALE.' : 'מצורף דוח תוקף — מוצרים בסכנה ו-STOP SALE, כמו במסך דוח התוקף של המחסן.'}</td></tr>
+  <tr><td dir="rtl" style="padding:20px 28px 8px;text-align:right;font-size:14px;color:${INK}">${greeting} ${ZAFN_LOW ? 'מצורפים מוצרים שהמלאי שלהם במחסן צפון מספיק פחות מ-3 ימי מכירה — כמו במסך דוח התוקף, כפתור «צפון &lt;3 ימים».' : split ? 'מצורף דוח תוקף לפי מחסן (אשדוד / צפון בנפרד, ללא איחוד מחסנים) — מוצרים בסכנה ו-STOP SALE.' : 'מצורף דוח תוקף — מוצרים בסכנה ו-STOP SALE, כמו במסך דוח התוקף של המחסן.'}</td></tr>
   ${NOTE ? `<tr><td dir="rtl" style="padding:4px 28px 8px;text-align:right;font-size:14px;font-weight:bold;color:${NAVY}">${NOTE}</td></tr>` : ''}
   ${buildRiskHtml(risk)}
   ${buildDiffHtml(diff)}
@@ -231,68 +237,78 @@ function buildEmailHtml(n, greetName, risk, split, diff) {
   </td></tr>
   <tr><td style="padding:4px 12px 12px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="rtl">${rows.join('')}</table></td></tr>
   <tr><td dir="rtl" style="padding:16px 28px 24px;text-align:right;border-top:1px solid ${LINE};font-size:12px;color:${MUTED};line-height:1.7">
-    הדוח נשלח רק בימים שיש מוצרים בסכנה.<br>הערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.
+    הדוח נשלח רק בימים שיש ${ZAFN_LOW ? 'מוצרים עם מלאי נמוך בצפון' : 'מוצרים בסכנה'}.<br>הערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.
   </td></tr>
 </table>
 </body></html>`;
 }
 
 async function main() {
-  const recipients = (process.env.EXPIRY_ALERT_RECIPIENTS || '').split(',').map(s => s.trim()).filter(Boolean);
+  const recipients = (process.env[ENV + '_RECIPIENTS'] || '').split(',').map(s => s.trim()).filter(Boolean);
   const splitRecipients = recipients.filter(r => SPLIT_TO.includes(r.toLowerCase()));
+  if (ZAFN_LOW) return runVariant({ split: true, to: recipients });
   const variants = [{ split: false, to: recipients }];
   if (DRY_RUN || splitRecipients.length) variants.push({ split: true, to: splitRecipients });
   for (const v of variants) await runVariant(v);
 }
 
 async function runVariant({ split, to }) {
-  const tag = split ? '[по складам]' : '[מאוחד]';
-  const { shots, pdf, risks } = await shootCards(split);
-  const risk = riskSummary(risks);
+  const tag = ZAFN_LOW ? '[צפון <3]' : split ? '[по складам]' : '[מאוחד]';
+  const { shots, pdf, risks } = await shootCards(split, ZAFN_LOW);
+  // сумма риска / сравнение / состояние — только у основного письма תוקף
+  const main = !split && !ZAFN_LOW;
+  const risk = ZAFN_LOW ? { total: 0, top: [], topSum: 0, noCost: 0 } : riskSummary(risks);
   if (risk.noCost) console.log(tag, 'Без суммы:', risks.filter(r => !(r.cost > 0)).map(r => r.name).join(' ; '));
   console.log(tag, `Риск: ${fmtILS(risk.total)}, топ-70%: ${risk.top.map(r => r.name + ' ' + fmtILS(r.cost)).join('; ')}`);
-  console.log(tag, `Карточек סכנה/STOP SALE: ${shots.length}`);
+  console.log(tag, `Карточек: ${shots.length}`, risks.map(r => r.mk).join(','));
   // сравнение — только для основного письма (מאוחד); у варианта по складам другой набор карточек
-  const diff = split ? null : diffWithPrev(loadPrev(), risks);
+  const diff = main ? diffWithPrev(loadPrev(), risks) : null;
   if (diff) console.log(tag, `vs ${diff.date}: +${diff.added.map(r => r.mk).join(',') || '-'} / -${diff.removed.map(r => r.mk).join(',') || '-'}`);
   // пустой отчёт = все вышли; запомнить, чтобы следующее письмо сравнивалось с ним
-  if (shots.length === 0) { if (!DRY_RUN && !split) saveState(risks); return; }
+  if (shots.length === 0) { if (!DRY_RUN && main) saveState(risks); return; }
 
   if (DRY_RUN) {
     const out = path.join(__dirname, '..', '.scratch');
-    const base = 'expiry-alert-preview' + (split ? '-split' : '');
+    const base = 'expiry-alert-preview' + (ZAFN_LOW ? '-zafn-low' : split ? '-split' : '');
     fs.mkdirSync(out, { recursive: true });
     fs.writeFileSync(path.join(out, base + '.html'),
       buildEmailHtml(shots.length, 'דן', risk, split, diff).replace(/cid:card-(\d+)/g, (_, i) => `data:image/png;base64,${shots[i].toString('base64')}`)
         .replace('cid:diler-logo-white', 'data:image/png;base64,' + fs.readFileSync(path.join(DOCS, 'logo-diler-bmd-white.png')).toString('base64')));
     fs.writeFileSync(path.join(out, base + '.pdf'), pdf);
     console.log(tag, `--dry-run — письмо не отправлено, превью в .scratch/${base}.html/.pdf`);
-    if (!split && process.argv.includes('--save-state')) saveState(risks);
+    if (main && process.argv.includes('--save-state')) saveState(risks);
     return;
   }
 
-  if (to.length === 0) throw new Error('EXPIRY_ALERT_RECIPIENTS не задан');
+  if (to.length === 0) throw new Error(ENV + '_RECIPIENTS не задан');
   if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY не найден');
   const resend = new Resend(process.env.RESEND_API_KEY);
 
   const logoPath = path.join(DOCS, 'logo-diler-bmd-white.png');
   const attachments = shots.map((b, i) => ({ filename: `card-${i}.png`, content: b.toString('base64'), contentId: `card-${i}` }));
   const isoDate = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Jerusalem' });
-  attachments.push({ filename: `expiry-report${split ? '-by-warehouse' : ''}-${isoDate}.pdf`, content: pdf.toString('base64') });
+  attachments.push({ filename: `${ZAFN_LOW ? 'zafn-low-stock' : 'expiry-report' + (split ? '-by-warehouse' : '')}-${isoDate}.pdf`, content: pdf.toString('base64') });
   if (fs.existsSync(logoPath)) attachments.push({ filename: 'logo-white.png', content: fs.readFileSync(logoPath).toString('base64'), contentId: 'diler-logo-white' });
-  const subject = `התראת תוקף${split ? ' לפי מחסן' : ''} — ${shots.length} ${shots.length === 1 ? 'מוצר בסכנה' : 'מוצרים בסכנה'}`;
+  const subject = ZAFN_LOW
+    ? `מלאי נמוך בצפון — ${shots.length} ${shots.length === 1 ? 'מוצר' : 'מוצרים'} פחות מ-3 ימים`
+    : `התראת תוקף${split ? ' לפי מחסן' : ''} — ${shots.length} ${shots.length === 1 ? 'מוצר בסכנה' : 'מוצרים בסכנה'}`;
 
   // С копией — одно письмо; без неё — личное письмо на каждого получателя, как obligo-alert.
   const sends = CC.length ? [{ to, cc: CC }] : to.map(r => ({ to: [r] }));
   for (const snd of sends) {
     // общее письмо — «שלום רב,» вместо перечня имён (пользователь 2026-09-30)
-    const greetName = snd.cc ? 'רב' : RECIPIENT_NAMES[snd.to[0].toLowerCase()];
+    const greetName = snd.to.length > 1 ? 'רב' : RECIPIENT_NAMES[snd.to[0].toLowerCase()] || (snd.cc ? 'רב' : '');
     const res = await resend.emails.send({
       from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
       ...snd,
       subject,
       html: buildEmailHtml(shots.length, greetName, risk, split, diff),
-      text: [
+      text: ZAFN_LOW ? [
+        `${greetName ? `שלום ${greetName},` : 'שלום,'} ${shots.length} מוצרים — מלאי במחסן צפון פחות מ-3 ימי מכירה:`,
+        ...risks.map(r => `• ${r.name} (${r.mk})`),
+        '',
+        'להדפסה — קובץ PDF מצורף.',
+      ].join('\n') : [
         `${greetName ? `שלום ${greetName},` : 'שלום,'} ${shots.length} מוצרים בסכנה / STOP SALE במחסן FORMULA${split ? ' — לפי מחסן (אשדוד / צפון)' : ''}.`,
         ...(NOTE ? ['', NOTE] : []),
         '',
@@ -309,7 +325,7 @@ async function runVariant({ split, to }) {
     });
     console.log(tag, snd.to.join(','), snd.cc ? 'cc ' + snd.cc.join(',') : '', JSON.stringify(res));
   }
-  if (!split) saveState(risks);
+  if (main) saveState(risks);
 }
 
 main().catch(e => { console.error('ERR:', e.message); process.exit(1); });

@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { routeDayOf, coveragePeriod, lineFor, movedAwayFrom, coverageCounts, coverageClients, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS } = require('./coverage');
+const { routeDayOf, weekIndex, weekParity, biweeklyLine, coveragePeriod, lineFor, movedAwayFrom, coverageCounts, coverageClients, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS } = require('./coverage');
 
 test('routeDayOf: Sun..Thu → 1..5, Fri/Sat → null', () => {
   assert.strictEqual(routeDayOf('2026-09-27'), 1); // Sunday
@@ -94,4 +94,30 @@ test('coverage teams: only teams with a manager — no SADRAN+ (FORMULA), no YOS
   assert.deepStrictEqual(
     coverageScope({ isManager: true, managerRole: 'readonly', channel: 'ICE_BDD', bddRole: 'team', managerTeams: ['TIMUR', 'YOSI'] }),
     { formula: null, bdd: ['TIMUR'] });
+});
+
+test('weekParity: Sunday-based weeks, Sun..Sat share a parity, next week flips', () => {
+  assert.strictEqual(weekParity('2026-10-04'), 0); // Sun — שבוע זוגי (Dan's pilot week)
+  assert.strictEqual(weekParity('2026-10-10'), 0); // Sat, same week
+  assert.strictEqual(weekParity('2026-10-11'), 1); // next Sun
+  assert.strictEqual(weekIndex('1988-01-03'), 0);  // epoch Sunday
+  assert.strictEqual(weekIndex('1988-01-09'), 0);
+  assert.strictEqual(weekIndex('1988-01-10'), 1);
+});
+
+test('biweeklyLine: off-week client leaves the plan unless he ordered (Dan: 16/17 = 94%)', () => {
+  const line = new Set([...Array(16)].map((_, i) => String(i + 1)).concat('odd'));
+  const biweekly = { odd: { parity: 1 }, '1': { parity: 0 } };
+  // even week, the odd-week client did not order → plan 16
+  assert.strictEqual(biweeklyLine(line, biweekly, 0, new Set()).size, 16);
+  // even week, 15 of the 16 + the odd-week client ordered → plan 17, served 16 → 94%
+  const served = new Set([...Array(15)].map((_, i) => String(i + 1)).concat('odd'));
+  const r = coverageCounts(biweeklyLine(line, biweekly, 0, served), served);
+  assert.deepStrictEqual(r, { planned: 17, inLine: 16, offLine: 0 });
+  assert.strictEqual(Math.round(r.inLine / r.planned * 100), 94);
+  // odd week: client '1' (even) leaves, 'odd' stays
+  assert.ok(!biweeklyLine(line, biweekly, 1, new Set()).has('1'));
+  assert.ok(biweeklyLine(line, biweekly, 1, new Set()).has('odd'));
+  // no biweekly entries = line unchanged
+  assert.strictEqual(biweeklyLine(line, undefined, 0, served), line);
 });

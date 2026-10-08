@@ -648,4 +648,17 @@ async function openOrderIdsToday(dbName, dateStr) {
   return result.recordset.map(r => String(r.ORD));
 }
 
-module.exports = { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByClient, dayClosingByAgentAll, dayClosingOrdersToday, dayClosingIceOrdersRaw, openOrderIdsToday, curdateFor, liveOrderGpsForNewClient, clientPromosByCustId, custIdsWithActivePromo };
+// CUSTNAME → CREATEDDATE (Priority minutes since 1988) — client tenure for the ♠½ polupoker
+// rule (6+ months). Same column client-changes-alert.js reads. null on failure, never throws.
+async function custCreatedDates(dbName) {
+  try {
+    const pool = await getPool(dbName);
+    const result = await pool.request().query(`SELECT CUSTNAME, CREATEDDATE FROM CUSTOMERS`);
+    return new Map(result.recordset.map(r => [String(r.CUSTNAME).trim(), r.CREATEDDATE]));
+  } catch (e) {
+    console.error(`[priority-db] ${dbName} CREATEDDATE query failed: ${e.message}`);
+    return null;
+  }
+}
+
+module.exports = { custCreatedDates, custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByClient, dayClosingByAgentAll, dayClosingOrdersToday, dayClosingIceOrdersRaw, openOrderIdsToday, curdateFor, liveOrderGpsForNewClient, clientPromosByCustId, custIdsWithActivePromo };

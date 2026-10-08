@@ -9,7 +9,7 @@ const ExcelJS = require('exceljs');
 const puppeteer = require('puppeteer');
 const sharp = require('sharp');
 const { executeDax, getDatasetRefreshTime } = require('./powerbi');
-const { custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByClient, dayClosingByAgentAll, dayClosingOrdersToday, dayClosingIceOrdersRaw, openOrderIdsToday, liveOrderGpsForNewClient, clientPromosByCustId, custIdsWithActivePromo } = require('./priority-db');
+const { custCreatedDates, custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByClient, dayClosingByAgentAll, dayClosingOrdersToday, dayClosingIceOrdersRaw, openOrderIdsToday, liveOrderGpsForNewClient, clientPromosByCustId, custIdsWithActivePromo } = require('./priority-db');
 const dayClosingDedup = require('./day-closing-dedup');
 const { createBdd } = require('./bdd-routes');
 const mekarerDaily = require('./mekarer-daily');
@@ -35,6 +35,7 @@ let pbiCache = null; // set by loadPBICache()
 // Cleared only on a SUCCESSFUL daily pbiCache reload (see _loadPBICacheAttempt)
 // so a failed/retrying reload doesn't wipe still-valid cached returns data.
 const clientReturnsCache = new Map(); // custId -> { data, at: Date }
+const dayTopSalesCache = new Map(); // agent|day|month -> top-5 (👑). Last 3 CLOSED months = changes monthly; cleared with the PBI cache
 // יעדים closed for everyone (user 2026-10-04): /api/yedaim-live answers 404 and the daily
 // prefetch (6 DAX) is skipped; buttons hidden in formula-road.html. false = back on.
 const YEDAIM_DISABLED = true;
@@ -298,6 +299,57 @@ CALCULATETABLE(
       c.avg6Orders = Math.round(parseFloat(r['[avg6Orders]']) || 0);
     }
 
+    // D2: ♠½ polupoker (Dan 2026-10-08) — FORMULA client with 6+ months tenure (Priority
+    // CREATEDDATE) who bought in ≤ 8 of the last 25 full Sun–Sat weeks. FORMULA families
+    // only (channels never mix), same "-מכר-" scope as lastOrderDate. even = share of
+    // those weeks that were שבוע זוגי → suggested parity for the every-other-week button.
+    // Fail-soft: any error leaves c.pp unset (no badge), the cache load goes on.
+    try {
+      const PP_WEEKS = 25, PP_MAX = 8;
+      const todayStr = todayIsraelDate();
+      const wd = new Date(todayStr + 'T12:00:00Z').getUTCDay();
+      const endSun = new Date(Date.parse(todayStr + 'T12:00:00Z') - wd * 86400000);         // this week's Sunday (excluded)
+      const startSun = new Date(endSun.getTime() - PP_WEEKS * 7 * 86400000);
+      const daxDate = d => `DATE(${d.getUTCFullYear()},${d.getUTCMonth() + 1},${d.getUTCDate()})`;
+      const formulaFams = famRows.filter(r => classifyLastOrderCompany(r['[מחלקה]'] || '') === 'FORMULA')
+        .map(r => r['ALL_PARTS[תאור משפחת מוצר]']).filter(Boolean);
+      const [weekRows, created] = await Promise.all([
+        executeDax(`
+EVALUATE
+CALCULATETABLE(
+  SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח], ALL_PARTS[תאריך]),
+  ALL_PARTS[תאור משפחת מוצר] IN {${(formulaFams.length ? formulaFams : ['__none__']).map(escFam).join(', ')}},
+  ALL_PARTS[ASHMADOT] = "-מכר-",
+  ALL_PARTS[תאריך] >= ${daxDate(startSun)},
+  ALL_PARTS[תאריך] < ${daxDate(endSun)}
+)
+`),
+        custCreatedDates(process.env.DB_NAME || 'form'),
+      ]);
+      if (!created) throw new Error('CREATEDDATE unavailable');
+      const weeksByCust = new Map();
+      for (const r of weekRows) {
+        const id = String(r['ALL_PARTS[מספר לקוח]'] || ''), d = r['ALL_PARTS[תאריך]'];
+        if (!id || !d) continue;
+        if (!weeksByCust.has(id)) weeksByCust.set(id, new Set());
+        weeksByCust.get(id).add(weekIndex(typeof d === 'string' ? d.slice(0, 10) : new Date(d).toISOString().slice(0, 10)));
+      }
+      const tenureLimit = (startSun.getTime() - Date.UTC(1988, 0, 1)) / 60000 - 720; // Priority minutes (startSun is noon UTC)
+      let ppCount = 0;
+      for (const [id, c] of clientMap) {
+        const cd = created.get(id);
+        if (!cd || cd > tenureLimit) continue; // unknown or newer than the window → not judged
+        const weeks = weeksByCust.get(id) || new Set();
+        if (weeks.size > PP_MAX) continue;
+        const even = weeks.size ? [...weeks].filter(w => w % 2 === 0).length / weeks.size : null;
+        c.pp = { wk: weeks.size, of: PP_WEEKS, even, suggest: weeks.size >= 4 && even >= 0.7 ? 0 : weeks.size >= 4 && even <= 0.3 ? 1 : null };
+        ppCount++;
+      }
+      console.log(`[PBI] polupoker: ${ppCount} clients (≤${PP_MAX}/${PP_WEEKS} weeks, tenure ≥ ${startSun.toISOString().slice(0, 10)})`);
+    } catch (e) {
+      console.error('[PBI] polupoker failed:', e.message);
+    }
+
     // E: ICE MISH avg6 — משפחתי גלידה families only (BiDi stored as יתחפשמ)
     const avg6IceRows = await executeDax(`
 EVALUATE
@@ -520,6 +572,7 @@ ROW("maxDate", CALCULATE(MAX(ALL_PARTS[תאריך]), ALL_PARTS[ASHMADOT] = "-מ�
       latestSaleDate,
     };
     clientReturnsCache.clear();
+    dayTopSalesCache.clear();
     clientAnalyticsCache.clear();
     pruneStaleClientPromos(); // persisted cache — drop only if the calendar day actually changed
     promoCustIdsCache = { date: null, formula: [], iceMish: [] };
@@ -698,7 +751,7 @@ app.get('/health', (req, res) => {
 // every single event. Same writeLog(entry)/readLog() contract as before, so
 // none of the ~30 call sites elsewhere in this file needed to change.
 const { logEvent, readLog, getDashboardStats } = require('./events-db');
-const { routeDayOf, coveragePeriod, lineFor, movedAwayFrom, coverageCounts, coverageClients, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS } = require('./coverage');
+const { routeDayOf, weekIndex, weekParity, biweeklyLine, coveragePeriod, lineFor, movedAwayFrom, coverageCounts, coverageClients, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS } = require('./coverage');
 function writeLog(entry) { logEvent(entry); }
 
 function getRealIp(req) {
@@ -2259,6 +2312,20 @@ app.get('/agent-manager', requireAuth, async (req, res) => {
   res.json({ manager });
 });
 
+// ♠½ every-other-week pilot (Dan 2026-10-08): hidden — test account 99999 + super only,
+// then one team. VPS-only file server/data/biweekly-pilot.json {"agents":[],"teams":[]}
+// widens it; read per request, so switching a team on needs no restart (PBI 429).
+const BIWEEKLY_PILOT_FILE = path.join(__dirname, 'data', 'biweekly-pilot.json');
+function biweeklyPilot(session, agentCode) {
+  if (session?.managerRole === 'super') return true;
+  let cfg = { agents: [], teams: [] };
+  try { cfg = JSON.parse(fs.readFileSync(BIWEEKLY_PILOT_FILE, 'utf8')); } catch (_) {}
+  const agents = new Set(['99999', ...(cfg.agents || []).map(String)]);
+  if (agents.has(String(agentCode))) return true;
+  const team = pbiCache?.byAgent.get(String(agentCode))?.[0]?.manager;
+  return !!team && (cfg.teams || []).includes(team);
+}
+
 // GET /customers?agent=CODE&day=1 — from PBI cache
 app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
   const { agent, day } = req.query;
@@ -2337,10 +2404,12 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
     let corrections = {};
     try { corrections = JSON.parse(fs.readFileSync(correctionsPath, 'utf8')); } catch (_) {}
 
+    const pilot = biweeklyPilot(req.session, agent); // ♠½ data only for the pilot (undefined → dropped from JSON)
     clients = clients.map(c => {
       const corr = corrections[c.custId];
       return {
         ...c,
+        pp:        pilot ? c.pp : undefined,
         lat:       corr ? corr.lat : c.lat,
         lng:       corr ? corr.lng : c.lng,
         gpsSource: corr ? 'correction' : (c.lat && c.lng ? 'pbi' : undefined),
@@ -5265,6 +5334,10 @@ app.get('/api/day-top-sales', requireAuth, async (req, res) => {
   }
   const curStart = months[0], curEnd = months[2];
   const curLastDay = new Date(curEnd.year, curEnd.month, 0).getDate();
+  // Was a live DAX on every route load (Dan 2026-10-08: "why not from the warm cache?").
+  // Same agent+day+closed-months window = same answer → one DAX per agent/day per cache load.
+  const cacheKey = `${agentCode}|${dayNum}|${curStart.year}-${curStart.month}`;
+  if (dayTopSalesCache.has(cacheKey)) return res.json({ ok: true, top: dayTopSalesCache.get(cacheKey) });
   const custIds = [...new Set(dayClients.map(c => String(c.custId)))];
   const inList = custIds.map(id => `"${id}"`).join(', ');
 
@@ -5288,6 +5361,7 @@ CALCULATETABLE(
       .filter(r => r.custId && r.total > 0)
       .sort((a, b) => b.total - a.total)
       .slice(0, 5);
+    dayTopSalesCache.set(cacheKey, ranked);
     res.json({ ok: true, top: ranked });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
@@ -5852,13 +5926,17 @@ function custIdToRosterAgent() {
 // never mix). Shared with the coverage snapshot so tiles and history
 // can't drift apart. A moved-in id found in no pool is judged by the client
 // snapshot pushDayMove stored with the move (iceOnly flag).
-function formulaLineFor(agentCode, dayNum, overrides) {
+// parity/served (♠½, 2026-10-08): a client the agent put on the other week is out of the
+// plan unless he is in `served` (ordered anyway) — coverage.js biweeklyLine.
+function formulaLineFor(agentCode, dayNum, overrides, parity, served) {
   const scheduled = pbiCache.byAgent.get(agentCode) || [];
   const formulaIds = new Set([...scheduled, ...(pbiCache.noScheduleByAgent?.get(agentCode) || [])].map(c => String(c.custId)));
   const iceIds = new Set((pbiCache.iceByAgent?.get(agentCode) || []).map(c => String(c.custId)));
-  const dayMoves = (overrides || readRouteOverrides())[agentCode]?.dayMoves || {};
-  return lineFor({ scheduled, dayMoves, dayNum,
+  const entry = (overrides || readRouteOverrides())[agentCode] || {};
+  const dayMoves = entry.dayMoves || {};
+  const line = lineFor({ scheduled, dayMoves, dayNum,
     movedInOk: id => formulaIds.has(id) || (!iceIds.has(id) && !dayMoves[id]?.client?.iceOnly) });
+  return biweeklyLine(line, entry.biweekly, parity, served);
 }
 
 // ── Line-coverage history (PRD/coverage-history-design.md) ──
@@ -5887,7 +5965,8 @@ async function formulaCoverageRows(dateStr, dayNum) {
       // ponytail: an agent under 2 managers keeps only the first (none on 2026-09-30), upgrade PK to include team if that changes
       if (seen.has(String(a.agentCode))) continue;
       seen.add(String(a.agentCode));
-      const line = formulaLineFor(a.agentCode, dayNum, overrides), served = custs.get(a.agentCode) || new Set();
+      const served = custs.get(a.agentCode) || new Set();
+      const line = formulaLineFor(a.agentCode, dayNum, overrides, weekParity(dateStr), served);
       rows.push({ date: dateStr, channel: 'formula', agentCode: String(a.agentCode), agentName: a.agentName || '', team: manager, dayNum,
         ...coverageCounts(line, served), clients: coverageClients(line, served, id => names.get(id)) });
     }
@@ -5987,10 +6066,12 @@ app.get('/api/team-order-stats', requireAuth, dataRateLimit, async (req, res) =>
   // denom = the agent's line for today WITH in-app day moves (formulaLineFor), same
   // as the agent's own ring — before 2026-09-30 it was the raw PBI day count.
   const byAgent = {};
+  const parity = weekParity(todayIsraelDate());
   for (const [agentCode] of pbiCache.byAgent) {
-    const numer = custSetByAgent.get(agentCode)?.size || 0;
+    const served = custSetByAgent.get(agentCode);
+    const numer = served?.size || 0;
     const sum = Math.round((sumByAgent.get(agentCode) || 0) * 100) / 100;
-    byAgent[agentCode] = { denom: formulaLineFor(agentCode, todayDay, overrides).size, numer, sum };
+    byAgent[agentCode] = { denom: formulaLineFor(agentCode, todayDay, overrides, parity, served).size, numer, sum };
   }
 
   const byManager = {};
@@ -6391,7 +6472,34 @@ app.get('/api/route-overrides', requireAuth, dataRateLimit, (req, res) => {
   if (!agentCode) return res.status(403).json({ ok: false, error: 'manager session -- no agent' });
   const data = readRouteOverrides();
   const entry = data[agentCode] || { order: {}, dayMoves: {} };
-  res.json({ ok: true, order: entry.order || {}, dayMoves: entry.dayMoves || {}, excluded: entry.excluded || {} });
+  res.json({ ok: true, order: entry.order || {}, dayMoves: entry.dayMoves || {}, excluded: entry.excluded || {},
+    biweekly: entry.biweekly || {}, biweeklyPilot: biweeklyPilot(req.session, agentCode) });
+});
+// ♠½ every-other-week visit (Dan 2026-10-08): the agent decides — {custId, parity: 0 זוגי | 1 אי-זוגי | null = every week}.
+// One parity per client across all his visit days (ponytail: per-day parity if ever needed).
+// Coverage: coverage.js biweeklyLine. Same guards as /api/route-exclude + pilot gate.
+app.post('/api/route-biweekly', requireAuth, dayMoveRateLimit, (req, res) => {
+  const { custId, parity, agentCode: bodyAgentCode } = req.body || {};
+  let agentCode = req.session.agentCode;
+  if (!agentCode && req.session.isManager && bodyAgentCode) {
+    const a = String(bodyAgentCode);
+    if (!validateAgentCode(a)) return res.status(400).json({ ok: false, error: 'invalid agent code' });
+    if (!managerCanWrite(req.session, a)) return res.status(403).json({ ok: false, error: 'forbidden' });
+    agentCode = a;
+  }
+  if (!agentCode) return res.status(403).json({ ok: false, error: 'manager session -- no agent' });
+  if (!biweeklyPilot(req.session, agentCode)) return res.status(403).json({ ok: false, error: 'not in pilot' });
+  if (!custId || typeof custId !== 'string') return res.status(400).json({ ok: false, error: 'invalid custId' });
+  if (parity !== null && parity !== 0 && parity !== 1) return res.status(400).json({ ok: false, error: 'invalid parity' });
+  const data = readRouteOverrides();
+  if (!data[agentCode]) data[agentCode] = { order: {}, dayMoves: {} };
+  const bw = (data[agentCode].biweekly ||= {});
+  const id = String(custId).slice(0, 20);
+  if (parity === null) delete bw[id];
+  else bw[id] = { parity, at: new Date().toISOString(), by: req.session.managerId || agentCode };
+  writeRouteOverrides(data);
+  writeLog({ ts: new Date().toISOString(), event: parity === null ? 'route-biweekly-unset' : 'route-biweekly-set', agentCode, managerId: req.session.managerId || null, custId: id, parity, ip: getRealIp(req) });
+  res.json({ ok: true });
 });
 // 🚫 "מוצאים ממסלול" — persisted per agent+day until returned with ↩️ (live request
 // 2026-10-07: agents lost exclusions on logout/login). Was deliberately unpersisted

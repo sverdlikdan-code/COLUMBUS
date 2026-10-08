@@ -430,6 +430,10 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .client-card.order-done .today-order-badge{opacity:.7;}
 .ice-badge{display:inline-block;background:#00B894;color:#fff;font-size:9.5px;font-weight:800;letter-spacing:.06em;padding:1px 5px;border-radius:3px;margin-left:5px;vertical-align:middle;}
 .crown-badge{display:inline-block;font-size:13px;margin-left:3px;vertical-align:middle;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25));}
+/* ♠½ polupoker — tappable; .pp-set = already on every-other-week */
+.pp-badge{display:inline-block;direction:ltr;unicode-bidi:isolate;font-size:12px;font-weight:800;line-height:1;margin-left:4px;padding:2px 4px;border-radius:5px;border:1px solid #9aa5b4;color:#4a5568;background:#fff;vertical-align:middle;cursor:pointer;white-space:nowrap;}
+.pp-badge.pp-set{background:#4a5568;border-color:#4a5568;color:#fff;}
+.client-card.offweek{background:#fafbfc;}
 .today-order-badge{display:inline-block;font-size:17px;margin-left:4px;vertical-align:middle;filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));}
 /* map: today's order — dimmed marker + ✓ corner badge; cluster gets ✓done/total pill */
 .fr-mk-done{position:relative;display:inline-block;}
@@ -1494,6 +1498,20 @@ body.bdd .km-more-item[onclick^="openYedaim"], body.bdd .km-more-item[onclick^="
   </div>
 </div>
 
+<!-- ♠½ every-other-week visit (2026-10-08) — the agent decides, the app only suggests -->
+<div class="modal-bg" id="biweekly-modal" onclick="if(event.target===this)closeBiweekly()">
+  <div class="modal">
+    <div class="modal-title" id="bw-title"></div>
+    <div style="font-size:13px;color:var(--mid);margin:-6px 0 8px;line-height:1.5" id="bw-why"></div>
+    <div class="modal-btns" style="flex-direction:column">
+      <button class="modal-btn cancel" id="bw-0" onclick="biweeklyChoose(0)"></button>
+      <button class="modal-btn cancel" id="bw-1" onclick="biweeklyChoose(1)"></button>
+      <button class="modal-btn cancel" id="bw-null" onclick="biweeklyChoose(null)">↩️ כל שבוע</button>
+    </div>
+    <button onclick="closeBiweekly()" style="display:block;margin:12px auto 0;background:none;border:none;color:var(--mid);font-size:13px;cursor:pointer">ביטול</button>
+  </div>
+</div>
+
 <!-- ── THOUGHT OF THE DAY ── one shared quote per calendar day, agents + managers -->
 <div class="thought-toast" id="thought-toast">
   <div class="thought-card">
@@ -1795,6 +1813,8 @@ const st = {
   addrClientId:null, isDemo:false,
   excluded: new Set(),
   topSalesIds: new Set(),
+  biweekly: {},          // ♠½ custId → {parity 0|1} (server route-overrides.json, no localStorage copy)
+  biweeklyPilot: false,  // server says if ♠½ badge/button are on for this agent (hidden pilot)
   aiGpsMode: true,
   tabletGpsMode: false,
   iceFilter: false,
@@ -2957,6 +2977,20 @@ function _todayRouteDay(){
   return wd === 0 ? 1 : wd <= 4 ? wd + 1 : 1;
 }
 
+// ♠½ every-other-week (2026-10-08). Week parity — SAME formula as server/coverage.js
+// weekParity (Sunday-based weeks from Sun 03.01.1988): 0 = שבוע זוגי, 1 = אי-זוגי.
+function _weekParity(dateStr){
+  const [y,m,d]=dateStr.split('-').map(Number);
+  return Math.floor(((Date.UTC(y,m-1,d)-Date.UTC(1988,0,1))/86400000-2)/7)%2;
+}
+// The route week: Fri/Sat already plan next Sunday (_todayRouteDay) → next week's parity.
+function _routeWeekParity(){
+  const t=_todayIsraelDate(), wd=new Date(t+'T12:00:00Z').getUTCDay();
+  return _weekParity(new Date(Date.parse(t+'T12:00:00Z')+(wd>=5?7-wd:0)*86400000).toISOString().slice(0,10));
+}
+const _PARITY_HE=['שבוע זוגי','שבוע אי-זוגי'];
+function _isOffWeek(c){ const b=st.biweekly?.[String(c.custId)]; return !!b && b.parity!==_routeWeekParity(); }
+
 // ── DAY ────────────────────────────────────────────────────────────────────
 async function selectDay(day){
   st.day=day;
@@ -3127,7 +3161,9 @@ function _renderFormulaBanner(){
   if(!el || !content) return;
   el.style.display='flex';
   const isToday = st.day === _todayRouteDay();
-  const todayFormula = isToday ? (st.clients||[]).filter(c => !st.excluded.has(c.custId) && !c.iceOnly) : [];
+  // ♠½ off-week client counts only if he ordered anyway (Dan: 16 + 1 off-week order → 16/17), = coverage.js biweeklyLine
+  const servedSet = new Set(_fpbServedIds || []);
+  const todayFormula = isToday ? (st.clients||[]).filter(c => !st.excluded.has(c.custId) && !c.iceOnly && (!_isOffWeek(c) || servedSet.has(String(c.custId)))) : [];
   const denom = todayFormula.length;
   if(isToday && denom){
     el.classList.remove('fpb-toggle-only');
@@ -3520,10 +3556,11 @@ function _renderPbiDateInHeader(){
   }
 }
 
-function activeClients(){ return st.clients.filter(c=>!st.excluded.has(c.custId)); }
+// Off-week ♠½ clients live in their own section at the bottom (renderClientList), never in the route/map.
+function activeClients(){ return st.clients.filter(c=>!st.excluded.has(c.custId)&&!_isOffWeek(c)); }
 function displayClients(){
   const base=st.sortMode==='ai'?st.aiClients:st.clients;
-  let list=base.filter(c=>!st.excluded.has(c.custId));
+  let list=base.filter(c=>!st.excluded.has(c.custId)&&!_isOffWeek(c));
   if(st.selectedCities.length) list=list.filter(c=>st.selectedCities.includes(c.city));
   if(st.iceFilter) list=list.filter(c=>c.iceOnly);
   if(st.hasSadranFilter) list=list.filter(c=>c.sadran);
@@ -4100,6 +4137,7 @@ function renderClientList(html){
     const indicPart='';
     const SEP='<span style="color:var(--light)"> · </span>';
     const nameLine=(st.topSalesIds.has(String(c.custId))?'<span class="crown-badge" title="TOP מכירות ב-3 חודשים — כדאי ניתוח AI מעמיק">👑</span>':'')
+      +_ppBadge(c)
       +(hasOrderToday?'<span class="today-order-badge" title="הזמנה פתוחה נפתחה היום">✔️</span>':'')
       +(c.iceOnly?'<span class="ice-badge">ICE</span>':'')
       +(shortName(c.custName,c.city)||esc(c.custName)||'');
@@ -4122,6 +4160,27 @@ function renderClientList(html){
       </div>
     </div>`;
   }).join('');
+  // ♠½ clients the agent put on the other week — visible (phone call, Solomon promo), out of
+  // the route/map; an order today counts them into the plan (coverage.js biweeklyLine).
+  const offList=st.clients
+    .filter(c=>_isOffWeek(c)&&!st.excluded.has(c.custId))
+    .filter(c=>!st.selectedCities.length||st.selectedCities.includes(c.city));
+  if(offList.length){
+    el.innerHTML+=`<div class="excl-section-lbl"><span>לא בשבוע הזה (${offList.length}) · השבוע: ${["זוגי","אי-זוגי"][_routeWeekParity()]}</span></div>`+
+      offList.map(c=>{
+        const noGps=!c.lat||!c.lng, done=_hasOrderToday(c)&&st.day===_todayRouteDay();
+        _rowActionsStore[c.custId]=_secondaryActionsHtml(c,noGps);
+        return `<div class="client-card offweek${done?' order-done':''}" data-id="${c.custId}" onclick="selectClient('${c.custId}')">
+        <div class="c-num-wrap"><span class="pp-badge pp-set" onclick="event.stopPropagation();openBiweekly('${c.custId}')">♠½</span></div>
+        <div class="c-body">
+          <div class="c-name"><span class="c-name-text">${done?'<span class="today-order-badge" title="הזמנה פתוחה נפתחה היום">✔️</span>':''}${shortName(c.custName,c.city)||esc(c.custName)||''}</span></div>
+          <div class="c-sub">${esc(c.city||'')}${c.lastOrderDate?` · הזמנה: ${c.lastOrderDate.slice(8,10)}.${c.lastOrderDate.slice(5,7)}`:''}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:stretch;gap:2px;flex-shrink:0;">
+          <div class="c-actions">${_primaryActionsHtml(c,noGps)}<span class="row-more-btn" onclick="openRowActions(event,'${c.custId}')" title="פעולות נוספות">⋮</span></div>
+        </div>
+      </div>`;}).join('');
+  }
   // Excluded clients section at bottom — always from st.clients (full list), never aiClients
   const exclList=st.clients
     .filter(c=>st.excluded.has(c.custId))
@@ -4207,6 +4266,61 @@ function openZikuyOrder(e,custId,custName,city){
 }
 // Server copy of 🚫 — see /api/route-exclude. BDD has its own router without it,
 // so there exclusions stay session-only as before.
+// ♠½ polupoker (2026-10-08): FORMULA client, 6+ months, bought in ≤8 of 25 weeks (server c.pp).
+// Badge + button only for the pilot, in days with more than 15 clients, never on a 👑 client;
+// a client already on every-other-week always shows it (so the agent can undo).
+function _ppBadge(c){
+  const id=String(c.custId), set=st.biweekly?.[id];
+  if(!set&&!(st.biweeklyPilot&&c.pp&&st.clients.length>15&&!st.topSalesIds.has(id))) return '';
+  const tip=set?`ביקור כל שבועיים — ${_PARITY_HE[set.parity]}`:`מזמין ב-${c.pp.wk} מתוך ${c.pp.of} שבועות — אפשר לעבור לביקור כל שבועיים`;
+  return `<span class="pp-badge${set?' pp-set':''}" title="${tip}" onclick="event.stopPropagation();openBiweekly('${id}')">♠½</span>`;
+}
+let _bwAsk=null;
+function openBiweekly(custId){
+  const id=String(custId), c=st.clients.find(x=>String(x.custId)===id);
+  if(!c) return;
+  const set=st.biweekly?.[id], pp=c.pp;
+  _bwAsk=id;
+  document.getElementById('bw-title').textContent=`${shortName(c.custName,c.city)||c.custName||id} — ביקור כל שבועיים`;
+  const why=[];
+  if(pp) why.push(`הזמין ב-${pp.wk} מתוך ${pp.of} שבועות`);
+  if(c.lastOrderDate) why.push(`הזמנה אחרונה ${c.lastOrderDate.slice(8,10)}.${c.lastOrderDate.slice(5,7)}`);
+  if(pp&&pp.suggest!=null) why.push(`רוב ההזמנות ב${_PARITY_HE[pp.suggest]}`);
+  why.push(`השבוע: ${_PARITY_HE[_routeWeekParity()]}`);
+  document.getElementById('bw-why').textContent=why.join(' · ');
+  [0,1].forEach(p=>{
+    const b=document.getElementById('bw-'+p);
+    b.textContent=(set?.parity===p?'✓ ':'')+_PARITY_HE[p]+(pp&&pp.suggest===p?' (מומלץ)':'');
+    b.className='modal-btn '+((set?set.parity===p:pp&&pp.suggest===p)?'confirm':'cancel');
+  });
+  document.getElementById('bw-null').style.display=set?'':'none';
+  document.getElementById('biweekly-modal').classList.add('open');
+  _trackEvent('biweekly_sheet_open',id);
+}
+function closeBiweekly(){
+  _bwAsk=null;
+  document.getElementById('biweekly-modal').classList.remove('open');
+}
+async function biweeklyChoose(parity){
+  const id=_bwAsk; closeBiweekly();
+  if(!id) return;
+  const prev=st.biweekly[id];
+  if(parity===null) delete st.biweekly[id]; else st.biweekly[id]={parity};
+  _trackEvent(parity===null?'biweekly_unset':parity===0?'biweekly_set_even':'biweekly_set_odd',id);
+  st.aiClients=nearestNeighbor(_aiGpsClients(activeClients()));
+  renderClientList(); renderMap(); _renderFormulaBanner();
+  let r=null;
+  for(let i=0;i<2&&!(r&&r.ok);i++){
+    if(i) await new Promise(res=>setTimeout(res,800));
+    try{ r=await apiFetch(`${API}/api/route-biweekly`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({custId:id,parity,agentCode:st.agent?.code})}); }catch(e){ r=null; }
+  }
+  if(r&&r.ok) return;
+  if(prev) st.biweekly[id]=prev; else delete st.biweekly[id]; // server refused → undo locally
+  st.aiClients=nearestNeighbor(_aiGpsClients(activeClients()));
+  renderClientList(); renderMap(); _renderFormulaBanner();
+  showToast('⚠ השינוי לא נשמר בשרת — נסה שוב',5000);
+}
 async function pushExclude(custId,excluded,_isRetry){
   if(_isBdd()) return;
   let r;
@@ -5001,6 +5115,7 @@ async function pushDayMove(custId,day,client,from,_isRetry){
 }
 async function syncRouteOverridesFromServer(){
   st.routeExcl={}; // never carry the previous agent's 🚫 list over on a failed fetch
+  st.biweekly={}; st.biweeklyPilot=false;
   if(!st.agent?.code) return;
   let d;
   try{
@@ -5009,6 +5124,7 @@ async function syncRouteOverridesFromServer(){
   }catch(e){ return; } // offline/error — localStorage stays the only source, as before
   if(!d?.ok) return;
   st.routeExcl=d.excluded||{}; // {day:{custId:{at,by}}} — server-only, no localStorage copy
+  st.biweekly=d.biweekly||{}; st.biweeklyPilot=!!d.biweeklyPilot;
   const hasServerData=Object.keys(d.order||{}).length||Object.keys(d.dayMoves||{}).length;
   if(hasServerData){
     Object.entries(d.order||{}).forEach(([day,ids])=>{

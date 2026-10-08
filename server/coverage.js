@@ -7,6 +7,28 @@ function routeDayOf(dateStr) {
   return wd >= 0 && wd <= 4 ? wd + 1 : null;
 }
 
+// Every-other-week visits (♠½ polupoker, 2026-10-08): week index counted Sunday..Saturday
+// from Sun 03.01.1988 (day 2 of the Priority epoch). Parity 0 = שבוע זוגי, 1 = אי-זוגי.
+// Same formula in docs/formula-road.html _weekParity — keep both in sync (coverage.test.js).
+function weekIndex(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return Math.floor(((Date.UTC(y, m - 1, d) - Date.UTC(1988, 0, 1)) / 86400000 - 2) / 7);
+}
+function weekParity(dateStr) { return weekIndex(dateStr) % 2; }
+
+// Dan 2026-10-08: a client the agent put on the other week leaves this week's plan —
+// unless he ordered anyway (phone call, Solomon promo), then he counts in the plan too:
+// 16 planned + 1 off-week order, 16 served → 16/17, not 16/16.
+function biweeklyLine(line, biweekly, parity, served) {
+  if (!biweekly || parity == null) return line;
+  const out = new Set();
+  for (const id of line) {
+    const b = biweekly[id];
+    if (!b || b.parity === parity || served?.has(id)) out.add(id);
+  }
+  return out;
+}
+
 // Screen period: 1st of the month three months before the current one → today
 // (today's row exists only once the 20:07 snapshot has run).
 function coveragePeriod(todayStr) {
@@ -94,4 +116,4 @@ function coverageScope(s) {
   };
 }
 
-module.exports = { routeDayOf, coveragePeriod, lineFor, movedAwayFrom, coverageCounts, coverageClients, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS };
+module.exports = { routeDayOf, weekIndex, weekParity, biweeklyLine, coveragePeriod, lineFor, movedAwayFrom, coverageCounts, coverageClients, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS };
