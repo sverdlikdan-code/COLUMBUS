@@ -66,7 +66,7 @@ td.c.sel{outline:2px solid var(--blue);outline-offset:-2px;}
 /* Phone: 5 date columns visible at 360px (Dan 2026-10-08) — narrower names, tighter cells. */
 @media (max-width:480px){
   .wrap{padding:12px 8px 40px;}
-  th,td{padding:5px 1px;min-width:0;}
+  th,td{padding:5px 4px;min-width:0;}
   /* Names wrap to 2 lines instead of "…"; edge line so the column scrolling under it reads as cut, not overlap. */
   td.ag,th.ag{width:78px;min-width:78px;max-width:78px;padding-left:6px;font-size:11px;line-height:1.25;white-space:normal;text-overflow:clip;padding-right:4px;}
   td.ag::after,th.ag::after{content:"";position:absolute;top:0;bottom:0;right:0;width:2px;background:#CFD8DC;}
@@ -163,7 +163,7 @@ function cell(d, key) {
 }
 
 // Cell (Dan 2026-10-01): % כיסוי, הזמינו מתוך מתוכנן, מתוכם מחוץ לקו.
-const cellBody = (d, v) => `<div class="p">${v}%</div><div class="n">${d.i} מתוך ${d.p}</div>${d.o ? `<div class="o">מחוץ לקו ${d.o}</div>` : ''}`;
+const cellBody = (d, v) => `<div class="p">${v}%</div><div class="n">${d.i} מ־${d.p}</div>${d.o ? `<div class="o">מחוץ לקו ${d.o}</div>` : ''}`;
 
 const seg = (items, cur, fn) => `<div class="seg">${items.map(([k, t]) => `<button class="${k === cur ? 'on' : ''}" onclick="${fn}('${k}')">${t}</button>`).join('')}</div>`;
 
