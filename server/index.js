@@ -326,12 +326,14 @@ CALCULATETABLE(
         custCreatedDates(process.env.DB_NAME || 'form'),
       ]);
       if (!created) throw new Error('CREATEDDATE unavailable');
-      const weeksByCust = new Map();
+      const weeksByCust = new Map(), evenByCust = new Map(); // evenByCust: weeks whose Israeli number is even (שבוע זוגי)
       for (const r of weekRows) {
         const id = String(r['ALL_PARTS[מספר לקוח]'] || ''), d = r['ALL_PARTS[תאריך]'];
         if (!id || !d) continue;
-        if (!weeksByCust.has(id)) weeksByCust.set(id, new Set());
-        weeksByCust.get(id).add(weekIndex(typeof d === 'string' ? d.slice(0, 10) : new Date(d).toISOString().slice(0, 10)));
+        const ds = typeof d === 'string' ? d.slice(0, 10) : new Date(d).toISOString().slice(0, 10);
+        if (!weeksByCust.has(id)) { weeksByCust.set(id, new Set()); evenByCust.set(id, new Set()); }
+        weeksByCust.get(id).add(weekIndex(ds));
+        if (weekParity(ds) === 0) evenByCust.get(id).add(weekIndex(ds));
       }
       // Dan 2026-10-08: tenure 6 months (= the 25-week window). Share wk/of stays (Dan approved): a newer
       // client would be judged only over the weeks he existed — kicks in if tenure < window ever again.
@@ -347,7 +349,7 @@ CALCULATETABLE(
         const weeks = weeksByCust.get(id) || new Set();
         // Dan 2026-10-08: a day of N > 15 gets exactly N − 15 ♠½ offers, weakest first — so every
         // tenured client carries his frequency; the app ranks the day (formula-road.html _ppCandidates).
-        const even = weeks.size ? [...weeks].filter(w => w % 2 === 0).length / weeks.size : null;
+        const even = weeks.size ? (evenByCust.get(id)?.size || 0) / weeks.size : null;
         c.pp = { wk: Math.min(weeks.size, of), of, even, suggest: weeks.size >= 4 && even >= 0.7 ? 0 : weeks.size >= 4 && even <= 0.3 ? 1 : null };
         ppTenured++;
         if (c.pp.wk / of <= PP_MAX / PP_WEEKS) ppCount++;

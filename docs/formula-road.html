@@ -2983,20 +2983,22 @@ function _todayRouteDay(){
   return wd === 0 ? 1 : wd <= 4 ? wd + 1 : 1;
 }
 
-// ♠½ every-other-week (2026-10-08). Week parity — SAME formula as server/coverage.js
-// weekParity (Sunday-based weeks from Sun 03.01.1988): 0 = שבוע זוגי, 1 = אי-זוגי.
-function _weekParity(dateStr){
-  const [y,m,d]=dateStr.split('-').map(Number);
-  return Math.floor(((Date.UTC(y,m-1,d)-Date.UTC(1988,0,1))/86400000-2)/7)%2;
+// ♠½ every-other-week (2026-10-08). Dan: the Israeli week NUMBER, Sunday-based (= PBI ALL_PARTS[שבוע],
+// week 1 holds 1 Jan) — SAME formula as server/coverage.js weekNumIL. Parity 0 = שבוע זוגי, 1 = אי-זוגי.
+function _weekNumIL(dateStr){
+  const [y,m,d]=dateStr.split('-').map(Number), jan1=Date.UTC(y,0,1);
+  return Math.floor(((Date.UTC(y,m-1,d)-jan1)/86400000+new Date(jan1).getUTCDay())/7)+1;
 }
 // Week of the NEXT visit on the viewed day (Dan 2026-10-08: on Thursday tab א is next Sunday,
-// not the Sunday already gone — the parity must be that next Sunday's). Today → this week;
-// a day already passed this week (or any day on Fri/Sat) → next week. No day (?) → this week.
-function _routeWeekParity(){
+// not the Sunday already gone). Today → this week; a day already passed this week (or any day
+// on Fri/Sat) → next week. No day (?) → this week.
+function _routeWeekDate(){
   const t=_todayIsraelDate(), wd=new Date(t+'T12:00:00Z').getUTCDay();
   const ahead=st.day>=1&&st.day<=5?(st.day-1-wd+7)%7:0;
-  return _weekParity(new Date(Date.parse(t+'T12:00:00Z')+ahead*86400000).toISOString().slice(0,10));
+  return new Date(Date.parse(t+'T12:00:00Z')+ahead*86400000).toISOString().slice(0,10);
 }
+function _routeWeekParity(){ return _weekNumIL(_routeWeekDate())%2; }
+function _routeWeekLabel(){ return 'שבוע '+_weekNumIL(_routeWeekDate())+' · '+(_routeWeekParity()?'אי-זוגי':'זוגי'); }
 const _PARITY_HE=['שבוע זוגי','שבוע אי-זוגי'];
 function _isOffWeek(c){ const b=st.biweekly?.[String(c.custId)]; return !!b && b.parity!==_routeWeekParity(); }
 
@@ -4123,7 +4125,7 @@ function renderClientList(html){
   st._ppCand=_ppCandidates();
   // Dan 2026-10-08: the week of this day's next visit, bold red on top — agents must see which week it is
   const weekLbl=(st.biweeklyPilot||Object.keys(st.biweekly||{}).length)&&!_isBdd()
-    ?`<div class="week-lbl">${_PARITY_HE[_routeWeekParity()]}</div>`:'';
+    ?`<div class="week-lbl">${_routeWeekLabel()}</div>`:'';
   el.innerHTML=weekLbl+list.map((c,i)=>{
     const noGps=!c.lat||!c.lng;
     const isSel=st.selectedId===c.custId;
@@ -4179,7 +4181,7 @@ function renderClientList(html){
     .filter(c=>_isOffWeek(c)&&!st.excluded.has(c.custId))
     .filter(c=>!st.selectedCities.length||st.selectedCities.includes(c.city));
   if(offList.length){
-    el.innerHTML+=`<div class="excl-section-lbl"><span>לא בשבוע הזה (${offList.length}) · <span class="week-lbl-inline">${_PARITY_HE[_routeWeekParity()]}</span></span></div>`+
+    el.innerHTML+=`<div class="excl-section-lbl"><span>לא בשבוע הזה (${offList.length}) · <span class="week-lbl-inline">${_routeWeekLabel()}</span></span></div>`+
       offList.map(c=>{
         const noGps=!c.lat||!c.lng, done=_hasOrderToday(c)&&st.day===_todayRouteDay();
         _rowActionsStore[c.custId]=_secondaryActionsHtml(c,noGps);

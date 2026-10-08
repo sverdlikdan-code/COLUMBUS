@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { routeDayOf, weekIndex, weekParity, biweeklyLine, coveragePeriod, lineFor, movedAwayFrom, coverageCounts, coverageClients, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS } = require('./coverage');
+const { routeDayOf, weekIndex, weekNumIL, weekParity, biweeklyLine, coveragePeriod, lineFor, movedAwayFrom, coverageCounts, coverageClients, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS } = require('./coverage');
 
 test('routeDayOf: Sun..Thu → 1..5, Fri/Sat → null', () => {
   assert.strictEqual(routeDayOf('2026-09-27'), 1); // Sunday
@@ -96,10 +96,13 @@ test('coverage teams: only teams with a manager — no SADRAN+ (FORMULA), no YOS
     { formula: null, bdd: ['TIMUR'] });
 });
 
-test('weekParity: Sunday-based weeks, Sun..Sat share a parity, next week flips', () => {
-  assert.strictEqual(weekParity('2026-10-04'), 0); // Sun — שבוע זוגי (Dan's pilot week)
-  assert.strictEqual(weekParity('2026-10-10'), 0); // Sat, same week
-  assert.strictEqual(weekParity('2026-10-11'), 1); // next Sun
+test('weekParity: Israeli week number (Sunday-based, = PBI ALL_PARTS[שבוע]), Sun..Sat share it', () => {
+  assert.strictEqual(weekNumIL('2026-10-04'), 41); // PBI week 41
+  assert.strictEqual(weekParity('2026-10-04'), 1); // Sun — אי-זוגי
+  assert.strictEqual(weekParity('2026-10-10'), 1); // Sat, same week
+  assert.strictEqual(weekParity('2026-10-11'), 0); // next Sun, week 42 — זוגי
+  assert.strictEqual(weekNumIL('2027-01-01'), 1);  // Fri 1 Jan = week 1 (partial)
+  assert.strictEqual(weekNumIL('2027-01-03'), 2);  // first Sunday of 2027 = week 2
   assert.strictEqual(weekIndex('1988-01-03'), 0);  // epoch Sunday
   assert.strictEqual(weekIndex('1988-01-09'), 0);
   assert.strictEqual(weekIndex('1988-01-10'), 1);

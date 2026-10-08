@@ -7,14 +7,23 @@ function routeDayOf(dateStr) {
   return wd >= 0 && wd <= 4 ? wd + 1 : null;
 }
 
-// Every-other-week visits (♠½ polupoker, 2026-10-08): week index counted Sunday..Saturday
-// from Sun 03.01.1988 (day 2 of the Priority epoch). Parity 0 = שבוע זוגי, 1 = אי-זוגי.
-// Same formula in docs/formula-road.html _weekParity — keep both in sync (coverage.test.js).
+// Every-other-week visits (♠½ polupoker, 2026-10-08). weekIndex = continuous Sun..Sat week
+// counter (from Sun 03.01.1988) — only for counting distinct weeks with an order.
 function weekIndex(dateStr) {
   const [y, m, d] = dateStr.split('-').map(Number);
   return Math.floor(((Date.UTC(y, m - 1, d) - Date.UTC(1988, 0, 1)) / 86400000 - 2) / 7);
 }
-function weekParity(dateStr) { return weekIndex(dateStr) % 2; }
+// Dan 2026-10-08: parity = the Israeli week NUMBER (Sunday-based, week 1 holds 1 Jan — same as
+// PBI ALL_PARTS[שבוע] / WEEKNUM type 1). 0 = שבוע זוגי (even number), 1 = אי-זוגי.
+// ponytail: at some year ends the number goes 53 → 1 (two odd weeks running, first 2029-01-07)
+// — a biweekly client then gets two visits in a row; accepted, same as people read it in PBI.
+// Same formula in docs/formula-road.html _weekNumIL — keep both in sync (coverage.test.js).
+function weekNumIL(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const jan1 = Date.UTC(y, 0, 1);
+  return Math.floor(((Date.UTC(y, m - 1, d) - jan1) / 86400000 + new Date(jan1).getUTCDay()) / 7) + 1;
+}
+function weekParity(dateStr) { return weekNumIL(dateStr) % 2; }
 
 // Dan 2026-10-08: a client the agent put on the other week leaves this week's plan —
 // unless he ordered anyway (phone call, Solomon promo), then he counts in the plan too:
@@ -116,4 +125,4 @@ function coverageScope(s) {
   };
 }
 
-module.exports = { routeDayOf, weekIndex, weekParity, biweeklyLine, coveragePeriod, lineFor, movedAwayFrom, coverageCounts, coverageClients, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS };
+module.exports = { routeDayOf, weekIndex, weekNumIL, weekParity, biweeklyLine, coveragePeriod, lineFor, movedAwayFrom, coverageCounts, coverageClients, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS };
