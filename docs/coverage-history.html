@@ -145,10 +145,12 @@ function aggregate(rows) {
     // Same as the manager tiles (user 2026-09-30): % = all served (in line + off line) / planned;
     // off line is "מתוכם N" — already inside the served count.
     const served = r.in_line + r.off_line;
-    d.p += r.planned; d.i += served; d.o += r.off_line; d.dates.push(r);
-    a.p += r.planned; a.i += served;
+    // 100% = line + off-line buyers (Dan 2026-10-08) — applied here, so pre-10-08 snapshots follow it too.
+    const plan = r.planned + r.off_line;
+    d.p += plan; d.i += served; d.o += r.off_line; d.dates.push(r);
+    a.p += plan; a.i += served;
     const t = team[k] ||= { p: 0, i: 0, o: 0 };
-    t.p += r.planned; t.i += served; t.o += r.off_line;
+    t.p += plan; t.i += served; t.o += r.off_line;
   }
   // Oldest → newest, left to right (table is LTR); the RTL scroll container opens at the right edge, so today shows without scrolling. Weekdays א..ה.
   const keys = [...heads.keys()].sort((x, y) => LEVEL === 'dow' ? x - y : x.localeCompare(y));
@@ -184,7 +186,7 @@ function render() {
   worst.sort((x, y) => x.v - y.v);
   const top3 = worst.slice(0, 3).map(w => `<div class="worst" onclick="pickWorst('${w.a.code}|${w.k}')"><div class="n">${w.v}%</div><div>
       <div class="t">${esc(w.a.name)} — ${bucketName(w.k, heads.get(w.k))}</div>
-      <div class="s">תכנון ${w.d.p} · קנו ${w.d.i - w.d.o} · מחוץ לקו ${w.d.o} · לא קנו ${w.d.p - (w.d.i - w.d.o)}${LEVEL === 'date' ? '' : ` · ${w.d.dates.length} ימים`}</div></div></div>`).join('');
+      <div class="s">תכנון ${w.d.p} · קנו ${w.d.i - w.d.o} · מחוץ לקו ${w.d.o} · לא קנו ${w.d.p - w.d.i}${LEVEL === 'date' ? '' : ` · ${w.d.dates.length} ימים`}</div></div></div>`).join('');
 
   const head = `<tr><th class="ag"></th>${keys.map(k => `<th>${bucketHead(k, heads.get(k))}</th>`).join('')}</tr>`;
   const tot = (i, p) => { const v = pct(i, p); return v === null ? '' : `<div class="tot ${cls(v)}">${v}%</div>`; };
@@ -202,7 +204,7 @@ function render() {
     ${list.length ? `<h2>פחות ממקובל</h2><div class="top3">${top3 || '<div class="msg">אין נתונים</div>'}</div>
     <h2>כיסוי קו — ${LEVELS.find(l => l[0] === LEVEL)[1]}</h2>
     <div class="tbl-wrap"><table><thead>${head}</thead><tbody>${rowsHtml}${teamRow}</tbody></table></div>
-    <div class="legend">% כיסוי = הזמינו מתוך המתוכננים לקו (כולל מחוץ לקו) · "מחוץ לקו N" = מתוכם הזמינו מחוץ לקו · נתונים אמיתיים בלבד — צילום ערב (20:07) מ־30.09.2026</div>
+    <div class="legend">% כיסוי = הזמינו מתוך המתוכננים לקו + מי שהזמין מחוץ לקו · "מחוץ לקו N" = מתוכם הזמינו מחוץ לקו · נתונים אמיתיים בלבד — צילום ערב (20:07) מ־30.09.2026</div>
     <div id="detail"></div>` : '<div class="msg">אין נתונים לתקופה הזאת — הצילום הראשון נרשם ב־30.09.2026 ב־20:07</div>'}`;
   if (SEL) showDetail(list, heads);
 }
