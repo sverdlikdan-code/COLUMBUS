@@ -24,8 +24,38 @@ const SPLIT_TO = (process.env.EXPIRY_ALERT_SPLIT_TO || '').split(',').map(s => s
 // Без CC — как раньше, личное письмо каждому.
 // --zafn-low: второй алярм Максиму (пользователь 2026-10-08) — кнопка редактора «צפון <3 ימים»
 // (מלאי צפון ÷ מכירה צפון × 1.4 < 3), карточки по складам. Мера продаж — как в аппе, т.е. делится на дни
-// с продажей: товар с одной крупной продажей за 45 дней (1211: 30 קרט 28.09) попадает ложно — решение пользователя.
+// с продажей: товар с одной крупной продажей за 45 дней (1211: 30 קרט 28.09) выглядит как 30 קרט/יום.
+// Предохранитель (пользователь 2026-10-08): продажи на צפון были меньше чем в 20% рабочих дней (Вс–Чт)
+// за те же 45 дней — карточку в письмо не брать. Кнопка в аппе остаётся без него.
 const ZAFN_LOW = process.argv.includes('--zafn-low');
+const ZAFN_MIN_SALE_DAYS_SHARE = 0.2;
+
+// מק"ט, проданные на צפון реже чем в 20% рабочих дней за 45 дней. Сбой PBI — не валит алярм:
+// письмо уходит без фильтра, причина в логе.
+async function zafnRareMakats() {
+  try {
+    const { executeDax } = require('./powerbi');
+    const rows = await executeDax(`
+EVALUATE
+CALCULATETABLE(
+  ADDCOLUMNS(SUMMARIZE('ALL_PARTS', 'ALL_PARTS'[מק'ט]),
+    "days", COUNTROWS(FILTER(VALUES('ALL_PARTS'[תאריך]), [TOTAL מכר בקרטונים ממוצע ביום] > 0))),
+  'ALL_PARTS'[חברה] = "FORMULA",
+  'ALL_PARTS'[מחסן] = "Zafn",
+  FILTER(ALL('ALL_PARTS'[תאריך]), 'ALL_PARTS'[תאריך] >= TODAY() - 45)
+)`);
+    // те же 45 дней, что TODAY()-45 в DAX, рабочие = Вс–Чт по Израилю
+    const today = new Date(new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Jerusalem' }) + 'T12:00:00Z');
+    let workDays = 0;
+    for (let i = 0; i <= 45; i++) if (new Date(today - i * 86400000).getUTCDay() <= 4) workDays++;
+    const rare = rows.filter(r => (r['[days]'] || 0) < workDays * ZAFN_MIN_SALE_DAYS_SHARE)
+      .map(r => ({ mk: String(r["ALL_PARTS[מק'ט]"]), days: r['[days]'] || 0 }));
+    return { rare, workDays };
+  } catch (e) {
+    console.error('[צפון <3] фильтр редких продаж не применён:', e.message);
+    return { rare: [], workDays: 0 };
+  }
+}
 const ENV = ZAFN_LOW ? 'ZAFN_LOW_ALERT' : 'EXPIRY_ALERT';
 const CC = (process.env[ENV + '_CC'] || '').split(',').map(s => s.trim()).filter(Boolean);
 // Список прошлой рассылки (מק"ט + имя) — для блока «נוספו / יצאו מהדוח» (пользователь 2026-10-08).
@@ -50,7 +80,7 @@ const RECIPIENT_NAMES = {
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg' };
 
-async function shootCards(split, zafnLow) {
+async function shootCards(split, zafnLow, hide = []) {
   const srv = http.createServer((req, res) => {
     const p = path.join(DOCS, decodeURIComponent(req.url.split('?')[0]));
     if (!p.startsWith(DOCS) || !fs.existsSync(p) || fs.statSync(p).isDirectory()) { res.writeHead(404); return res.end(); }
@@ -65,15 +95,16 @@ async function shootCards(split, zafnLow) {
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36');
     await page.setViewport({ width: 1100, height: 900, deviceScaleFactor: 2 });
     await page.goto(`http://localhost:${srv.address().port}/planogram-editor.html`, { waitUntil: 'networkidle0', timeout: 90000 });
-    await page.evaluate((split, zafnLow) => {
+    await page.evaluate((split, zafnLow, hide) => {
       document.getElementById('app-splash')?.remove();
       document.getElementById('mahsan-login-modal')?.remove();
+      hide.forEach(mk => window._hiddenExpiryMakats.add(mk)); // как «×» на карточке в аппе
       toggleExpiryPage();
       if (split && window._expiryMauchad) toggleCombinedWh();
       if (zafnLow) { if (!window._expiryZafnLow) toggleZafnLowFilter(); }
       else if (!window._expiryOnlySakana) toggleSakanaFilter();
       document.querySelectorAll('#expiry-grid button').forEach(b => b.remove()); // "×" скрыть карточку
-    }, split, zafnLow);
+    }, split, zafnLow, hide);
     await page.evaluate(() => new Promise(r => {
       const imgs = [...document.images].filter(i => !i.complete);
       if (!imgs.length) return r();
@@ -254,8 +285,13 @@ async function main() {
 
 async function runVariant({ split, to }) {
   const tag = ZAFN_LOW ? '[צפון <3]' : split ? '[по складам]' : '[מאוחד]';
-  const { shots, pdf, risks } = await shootCards(split, ZAFN_LOW);
-  // сумма риска / сравнение / состояние — только у основного письма תוקף
+  let hide = [];
+  if (ZAFN_LOW) {
+    const { rare, workDays } = await zafnRareMakats();
+    hide = rare.map(r => r.mk);
+    console.log(tag, `редкие продажи на צפון (<${ZAFN_MIN_SALE_DAYS_SHARE * 100}% из ${workDays} раб. дней) — не в письме: ${rare.length}`);
+  }
+  const { shots, pdf, risks } = await shootCards(split, ZAFN_LOW, hide);  // сумма риска / сравнение / состояние — только у основного письма תוקף
   const main = !split && !ZAFN_LOW;
   const risk = ZAFN_LOW ? { total: 0, top: [], topSum: 0, noCost: 0 } : riskSummary(risks);
   if (risk.noCost) console.log(tag, 'Без суммы:', risks.filter(r => !(r.cost > 0)).map(r => r.name).join(' ; '));
