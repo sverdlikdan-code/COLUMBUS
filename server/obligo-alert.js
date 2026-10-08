@@ -390,9 +390,12 @@ async function sendAlert(crossed, recipients, privateOnly = false) {
     const text = `${greeting} ${privateOnly ? 'מצורף עדכון האובליגו השבועי — שוק פרטי, הסוכנים של הקבוצה שלך.' : 'מצורף עדכון האובליגו השבועי — תקבלו אותו כל יום חמישי.'}\n\n`
       + crossed.map(c => `${c.name} (${c.market}, אחראי: ${c.resp}): ${fmtILS(c.usedILS)}/${fmtILS(c.limitILS)} = ${Math.round(c.util * 100)}%`).join('\n')
       + outro;
+    // OBLIGO_ALERT_CC — копия на каждое личное письмо (Дан на разовой рассылке 2026-10-08)
+    const cc = (process.env.OBLIGO_ALERT_CC || '').split(',').map(s => s.trim()).filter(Boolean);
     const res = await resend.emails.send({
       from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
       to: [recipient],
+      ...(cc.length ? { cc } : {}),
       subject,
       html: buildEmailHtml(crossed, greetName, privateOnly),
       text,
