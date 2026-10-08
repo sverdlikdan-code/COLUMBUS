@@ -60,6 +60,16 @@ td.c.sel{outline:2px solid var(--blue);outline-offset:-2px;}
 .grp.miss b{color:var(--red);} .grp.in b{color:var(--green);} .grp.off b{color:var(--yellow);}
 .grp div{font-size:12px;padding:2px 0;}
 .grp .id{color:var(--light);font-size:11px;direction:ltr;unicode-bidi:isolate;}
+/* Phone: 5 date columns visible at 360px (Dan 2026-10-08) — narrower names, tighter cells. */
+@media (max-width:480px){
+  .wrap{padding:12px 8px 40px;}
+  th,td{padding:5px 1px;min-width:0;}
+  td.ag,th.ag{max-width:78px;padding-left:6px;font-size:11px;}
+  td.c .p,tr.team .p{font-size:13px;}
+  td.c .n,tr.team .n{font-size:10px;letter-spacing:-.2px;}
+  td.c .o,tr.team .o{font-size:9px;}
+  tr.team .n,tr.team .o{font-weight:600;}
+}
 .msg{padding:40px 10px;text-align:center;color:var(--light);}
 .msg.sm{padding:6px 0;text-align:right;}
 </style>
