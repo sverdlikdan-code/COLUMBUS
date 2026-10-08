@@ -1004,11 +1004,14 @@ body.gps-fs #map{height:100%!important;}
 /* Welcome card (Dan 2026-10-08): planning quote + steaming coffee instead of the feature blurb */
 .welcome-quote{font-size:16px;line-height:1.55;font-style:italic;font-weight:600;color:#1A3F7C;}
 .welcome-quote-cite{display:block;margin-top:6px;font-size:12px;font-style:normal;font-weight:600;color:#8A8F98;}
-.welcome-coffee{width:72px;height:72px;margin:-4px 0 0;}
-.welcome-coffee .steam{fill:none;stroke:#C9A36A;stroke-width:3;stroke-linecap:round;opacity:0;animation:steamUp 3s ease-in-out infinite;}
-.welcome-coffee .steam.s2{animation-delay:1s;} .welcome-coffee .steam.s3{animation-delay:2s;}
-@keyframes steamUp{0%{opacity:0;transform:translateY(8px)}30%{opacity:.85}100%{opacity:0;transform:translateY(-12px)}}
-@media (prefers-reduced-motion:reduce){.welcome-coffee .steam{animation:none;opacity:.6;}}
+.welcome-coffee{width:126px;height:116px;margin:-2px 0 2px;overflow:visible;}
+/* Steam = blurred soft wisps that rise, sway and fade (not lines) */
+.welcome-coffee .steam{fill:none;stroke:#9AA6B8;stroke-width:5;stroke-linecap:round;opacity:0;transform-box:fill-box;transform-origin:50% 100%;animation:steamUp 3.2s ease-in-out infinite;}
+.welcome-coffee .steam.s2{animation-delay:1.05s;} .welcome-coffee .steam.s3{animation-delay:2.1s;}
+@keyframes steamUp{0%{opacity:0;transform:translate(0,12px) scale(.7,.6)}25%{opacity:.75}55%{transform:translate(3px,-6px) scale(1,1)}100%{opacity:0;transform:translate(-3px,-22px) scale(1.25,1.2)}}
+.welcome-coffee .crema{animation:crema 4s ease-in-out infinite;transform-box:fill-box;transform-origin:center;}
+@keyframes crema{50%{transform:scale(1.06,1.1);opacity:.85}}
+@media (prefers-reduced-motion:reduce){.welcome-coffee .steam{animation:none;opacity:.5;} .welcome-coffee .crema{animation:none;}}
 .welcome-egg{position:absolute;font-size:42px;z-index:2;pointer-events:none;}
 .welcome-egg.egg-rappel{top:-60px;left:18%;animation:egg-rappel 2.4s ease-in forwards;}
 .welcome-egg.egg-cyclist{top:38%;right:-60px;animation:egg-cyclist 2.8s linear forwards;}
@@ -2568,7 +2571,8 @@ const WELCOME_EGGS = {
 };
 // Per-agent override for the "שלום, {name}! 👋" emoji — live request
 // 2026-08-28 (bouquet instead of the wave, for Rita).
-const WELCOME_GREET_EMOJI = { '234': '💐' };
+// 2026-10-08: Rita's 💐 removed (Dan) — everyone gets the wave.
+const WELCOME_GREET_EMOJI = {};
 // Live request 2026-08-28: "בוקר טוב" before noon, "שלום" after — device's
 // own clock (the agent's actual local time), not server time.
 function _welcomeGreeting(){
@@ -2677,13 +2681,41 @@ function renderLogin(){
         <div class="welcome-card" dir="ltr" style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;max-width:340px;">
           <div style="font-size:26px;font-weight:900;">${_welcomeGreeting()}${_ruFirstName(st._welcomeName)?', '+esc(_ruFirstName(st._welcomeName)):''}!&nbsp;${_welcomeGreetEmoji(st.agent?.code)}</div>
           <div style="width:56px;height:2px;background:linear-gradient(90deg,transparent,#D89830,transparent);"></div>
-          <div class="welcome-quote">«Каждая минута, потраченная на планирование, экономит до десяти минут в работе»<span class="welcome-quote-cite">— Брайан Трейси, «Съешьте лягушку!»</span></div>
-          <svg class="welcome-coffee" viewBox="0 0 84 84" aria-hidden="true">
-            <path class="steam s1" d="M32 30c-4-5 4-9 0-14"/><path class="steam s2" d="M42 28c-4-5 4-9 0-14"/><path class="steam s3" d="M52 30c-4-5 4-9 0-14"/>
-            <ellipse cx="42" cy="74" rx="30" ry="5" fill="#E8D8BE"/>
-            <path d="M62 46h4a8 8 0 0 1 0 16h-5" fill="none" stroke="#D89830" stroke-width="4"/>
-            <path d="M18 38h46v10c0 13-10 24-23 24S18 61 18 48z" fill="#D89830"/>
-            <ellipse cx="41" cy="38" rx="23" ry="5" fill="#6B3E1E"/>
+          <div class="welcome-quote">«Каждая минута, потраченная на планирование, экономит до десяти минут в работе»<span class="welcome-quote-cite">— Брайан Трейси</span></div>
+          <svg class="welcome-coffee" viewBox="-2 0 120 110" aria-hidden="true">
+            <defs>
+              <linearGradient id="wcCup" x1="0" x2="1"><stop offset="0" stop-color="#2B5FA8"/><stop offset=".45" stop-color="#1A3F7C"/><stop offset="1" stop-color="#0E2852"/></linearGradient>
+              <radialGradient id="wcCoffee" cx=".5" cy=".45" r=".6"><stop offset="0" stop-color="#D9A066"/><stop offset=".45" stop-color="#9A5B2C"/><stop offset="1" stop-color="#4A2812"/></radialGradient>
+              <linearGradient id="wcSaucer" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F4F6FA"/><stop offset="1" stop-color="#C9D2E0"/></linearGradient>
+              <linearGradient id="wcGold" x1="0" x2="1"><stop offset="0" stop-color="#F5C670"/><stop offset="1" stop-color="#C98A22"/></linearGradient>
+              <linearGradient id="wcShade" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity=".10"/><stop offset=".4" stop-color="#fff" stop-opacity="0"/><stop offset=".62" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".45"/></linearGradient>
+              <filter id="wcBlur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6"/></filter>
+              <filter id="wcShadow" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="2.5"/></filter>
+            </defs>
+            <g filter="url(#wcBlur)">
+              <path class="steam s1" d="M43.7 36c-6-7 6-12 0-19s6-11 0-17"/>
+              <path class="steam s2" d="M56.7 34c-6-7 6-12 0-19s6-11 0-17"/>
+              <path class="steam s3" d="M69.7 36c-6-7 6-12 0-19s6-11 0-17"/>
+            </g>
+            <ellipse cx="58" cy="94" rx="32" ry="4.5" fill="#0E2852" opacity=".22" filter="url(#wcShadow)"/>
+            <path d="M85 56h2c7.5 0 10.5 5 10.5 10.5S94.5 77 87 77h-2" fill="none" stroke="#1A3F7C" stroke-width="6.5" stroke-linecap="round"/>
+            <path d="M85 56h2c7.5 0 10.5 5 10.5 10.5S94.5 77 87 77h-2" fill="none" stroke="#2B5FA8" stroke-width="2" stroke-linecap="round" opacity=".55"/>
+            <path d="M30 44h56v33C86 85 84.5 88.4 81.5 89.6A26 5.6 0 0 1 34.5 89.6C31.5 88.4 30 85 30 77z" fill="url(#wcCup)"/>
+            <g transform="translate(58 69) scale(.8) translate(-60 -70)">
+              <g fill="url(#wcGold)">
+                <path d="M51 59Q60 61.2 69 59v4c0 7-4.5 10.5-9 10.5S51 70 51 63z"/>
+                <rect x="58.4" y="73" width="3.2" height="4.5"/>
+                <path d="M54 77.3Q60 78.6 66 77.3v3.2Q60 81.8 54 80.5z"/>
+              </g>
+              <path d="M51 61.5c-6 0-6 8.5 1 9M69 61.5c6 0 6 8.5-1 9" fill="none" stroke="#E0A440" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M55 61v3.5c0 3 1.5 5 3 6" fill="none" stroke="#FFF3D6" stroke-width="1.2" stroke-linecap="round" opacity=".7"/>
+            </g>
+            <path d="M30 44h56v33C86 85 84.5 88.4 81.5 89.6A26 5.6 0 0 1 34.5 89.6C31.5 88.4 30 85 30 77z" fill="url(#wcShade)"/>
+            <path d="M37 52v26c0 5 2 8 5 10" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".22"/>
+            <ellipse cx="58" cy="44" rx="28" ry="6" fill="#0E2852"/>
+            <ellipse cx="58" cy="44" rx="28" ry="6" fill="none" stroke="#D89830" stroke-width="2"/>
+            <ellipse cx="58" cy="45" rx="24" ry="4.4" fill="url(#wcCoffee)"/>
+            <ellipse class="crema" cx="58" cy="44.8" rx="11" ry="2" fill="#E3B27C" opacity=".35"/>
           </svg>
           <button onclick="_continueFromWelcome()" style="background:linear-gradient(135deg,#F5C670,#D89830);color:#1A3F7C;border:none;border-radius:30px;padding:14px 28px;font-size:24px;white-space:nowrap;font-weight:900;cursor:pointer;margin-top:6px;box-shadow:0 8px 0 #A9740F,0 12px 20px rgba(0,0,0,.35),inset 0 2px 3px rgba(255,255,255,.5);">Начать день →</button>
         </div>
