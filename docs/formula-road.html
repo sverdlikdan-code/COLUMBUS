@@ -434,8 +434,7 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .pp-badge{display:inline-block;direction:ltr;unicode-bidi:isolate;font-size:12px;font-weight:800;line-height:1;margin-left:4px;padding:2px 4px;border-radius:5px;border:1px solid #9aa5b4;color:#4a5568;background:#fff;vertical-align:middle;cursor:pointer;white-space:nowrap;}
 .pp-badge.pp-set{background:#4a5568;border-color:#4a5568;color:#fff;}
 .client-card.offweek{background:#fafbfc;}
-.week-lbl{margin:2px 0 6px;padding:5px 12px;border-radius:8px;background:#FDECEA;color:#C5221F;font-weight:900;font-size:15px;text-align:center;}
-.week-lbl-inline{color:#C5221F;font-weight:900;}
+.week-lbl{margin:0 0 10px;padding:6px 12px;border-radius:8px;background:#FDECEA;color:#C5221F;font-weight:900;font-size:16px;text-align:center;}
 /* ♠½ sheet centered (Dan 2026-10-08: bottom was cut off on his device) — only this modal, shared .modal untouched */
 #biweekly-modal{align-items:center;padding:16px;}
 #biweekly-modal .modal{border-radius:20px;padding-bottom:20px;max-height:100%;overflow-y:auto;}
@@ -1508,6 +1507,7 @@ body.bdd .km-more-item[onclick^="openYedaim"], body.bdd .km-more-item[onclick^="
   <div class="modal">
     <div class="modal-title" id="bw-title"></div>
     <div style="font-size:13px;color:var(--mid);margin:-6px 0 8px;line-height:1.5" id="bw-why"></div>
+    <div class="week-lbl" id="bw-week"></div>
     <div class="modal-btns" style="flex-direction:column">
       <button class="modal-btn cancel" id="bw-0" onclick="biweeklyChoose(0)"></button>
       <button class="modal-btn cancel" id="bw-1" onclick="biweeklyChoose(1)"></button>
@@ -4123,10 +4123,7 @@ function renderClientList(html){
   if(!list.length){el.innerHTML=`<div style="padding:40px 20px;text-align:center;color:var(--mid)"><div style="font-size:36px;margin-bottom:12px">📭</div><div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px">אין לקוחות ביום זה</div><div style="font-size:12px">נסה לשנות את הסינון או בחר יום אחר</div></div>`;return;}
   _rowActionsStore={};
   st._ppCand=_ppCandidates();
-  // Dan 2026-10-08: the week of this day's next visit, bold red on top — agents must see which week it is
-  const weekLbl=(st.biweeklyPilot||Object.keys(st.biweekly||{}).length)&&!_isBdd()
-    ?`<div class="week-lbl">${_routeWeekLabel()}</div>`:'';
-  el.innerHTML=weekLbl+list.map((c,i)=>{
+  el.innerHTML=list.map((c,i)=>{
     const noGps=!c.lat||!c.lng;
     const isSel=st.selectedId===c.custId;
     const isAiDiff=st.sortMode==='priority'&&st.aiClients[i]&&st.aiClients[i].custId!==c.custId;
@@ -4181,7 +4178,7 @@ function renderClientList(html){
     .filter(c=>_isOffWeek(c)&&!st.excluded.has(c.custId))
     .filter(c=>!st.selectedCities.length||st.selectedCities.includes(c.city));
   if(offList.length){
-    el.innerHTML+=`<div class="excl-section-lbl"><span>לא בשבוע הזה (${offList.length}) · <span class="week-lbl-inline">${_routeWeekLabel()}</span></span></div>`+
+    el.innerHTML+=`<div class="excl-section-lbl"><span>לא בשבוע הזה (${offList.length}) · ${_routeWeekLabel()}</span></div>`+
       offList.map(c=>{
         const noGps=!c.lat||!c.lng, done=_hasOrderToday(c)&&st.day===_todayRouteDay();
         _rowActionsStore[c.custId]=_secondaryActionsHtml(c,noGps);
@@ -4312,11 +4309,14 @@ function openBiweekly(custId){
   if(pp) why.push(`הזמין ב-${pp.wk} מתוך ${pp.of} שבועות`);
   if(c.lastOrderDate) why.push(`הזמנה אחרונה ${c.lastOrderDate.slice(8,10)}.${c.lastOrderDate.slice(5,7)}`);
   if(pp&&pp.suggest!=null) why.push(`רוב ההזמנות ב${_PARITY_HE[pp.suggest]}`);
-  why.push(`השבוע: ${_PARITY_HE[_routeWeekParity()]}`);
   document.getElementById('bw-why').textContent=why.join(' · ');
+  // Dan 2026-10-08: the week, bold red, right where the agent decides + the next visit date per choice
+  const nd=_routeWeekDate(), np=_routeWeekParity();
+  document.getElementById('bw-week').textContent='הביקור הקרוב: '+_routeWeekLabel();
+  const ddmm=(s,add)=>{const d=new Date(Date.parse(s+'T12:00:00Z')+add*86400000);return String(d.getUTCDate()).padStart(2,'0')+'.'+String(d.getUTCMonth()+1).padStart(2,'0');};
   [0,1].forEach(p=>{
     const b=document.getElementById('bw-'+p);
-    b.textContent=(set?.parity===p?'✓ ':'')+_PARITY_HE[p]+(pp&&pp.suggest===p?' (מומלץ)':'');
+    b.textContent=(set?.parity===p?'✓ ':'')+_PARITY_HE[p]+' — '+ddmm(nd,p===np?0:7)+(pp&&pp.suggest===p?' (מומלץ)':'');
     b.className='modal-btn '+((set?set.parity===p:pp&&pp.suggest===p)?'confirm':'cancel');
   });
   document.getElementById('bw-null').style.display=set?'':'none';
