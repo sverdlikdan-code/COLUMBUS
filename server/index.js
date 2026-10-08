@@ -311,6 +311,9 @@ CALCULATETABLE(
       const endSun = new Date(Date.parse(todayStr + 'T12:00:00Z') - wd * 86400000);         // this week's Sunday (excluded)
       const startSun = new Date(endSun.getTime() - PP_WEEKS * 7 * 86400000);
       const daxDate = d => `DATE(${d.getUTCFullYear()},${d.getUTCMonth() + 1},${d.getUTCDate()})`;
+      // Dan 2026-10-08: the current (partial) week counts too if he already bought in it — else
+      // '0 of 25 · last order 04.10' contradicts itself. wk stays capped at of (≤ 25).
+      const tomorrow = new Date(Date.parse(todayStr + 'T12:00:00Z') + 86400000);
       const formulaFams = famRows.filter(r => classifyLastOrderCompany(r['[מחלקה]'] || '') === 'FORMULA')
         .map(r => r['ALL_PARTS[תאור משפחת מוצר]']).filter(Boolean);
       const [weekRows, created] = await Promise.all([
@@ -321,7 +324,7 @@ CALCULATETABLE(
   ALL_PARTS[תאור משפחת מוצר] IN {${(formulaFams.length ? formulaFams : ['__none__']).map(escFam).join(', ')}},
   ALL_PARTS[ASHMADOT] = "-מכר-",
   ALL_PARTS[תאריך] >= ${daxDate(startSun)},
-  ALL_PARTS[תאריך] < ${daxDate(endSun)}
+  ALL_PARTS[תאריך] < ${daxDate(tomorrow)}
 )
 `),
         custCreatedDates(process.env.DB_NAME || 'form'),
@@ -365,8 +368,8 @@ CALCULATETABLE(
       }
       console.log(`[PBI] polupoker: ${ppCount} clients ≤${PP_MAX}/${PP_WEEKS} share, ${ppTenured} ranked (team agents, tenure ≥ ${PP_MIN_WEEKS} weeks)`);
 
-      // ICE מישפחתי (Dan 2026-10-08): every ICE client gets ♠½; his frequency line in the sheet
-      // counts ICE_MISH families only (channels never mix). Display only — never ranked/quota'd.
+      // ICE מישפחתי (Dan 2026-10-08): ICE gets ♠½ only if ≤ half the weeks and 3+ months of history; frequency
+      // counts ICE_MISH families only (channels never mix). Never ranked into the FORMULA quota.
       try {
         const iceFams = famRows.filter(r => classifyLastOrderCompany(r['[מחלקה]'] || '') === 'ICE_MISH')
           .map(r => r['ALL_PARTS[תאור משפחת מוצר]']).filter(Boolean);
@@ -377,14 +380,29 @@ CALCULATETABLE(
   ALL_PARTS[תאור משפחת מוצר] IN {${(iceFams.length ? iceFams : ['__none__']).map(escFam).join(', ')}},
   ALL_PARTS[ASHMADOT] = "-מכר-",
   ALL_PARTS[תאריך] >= ${daxDate(startSun)},
-  ALL_PARTS[תאריך] < ${daxDate(endSun)}
+  ALL_PARTS[תאריך] < ${daxDate(tomorrow)}
 )
 `);
+        // Dan 2026-10-08: ICE is measured from his FIRST ICE מישפחתי purchase ever (a BDD client who just
+        // took one mish box must not look like '0 of 25'); under 13 weeks (3 months) of history → young, no ♠½.
+        const iceFirstRows = await executeDax(`
+EVALUATE
+CALCULATETABLE(
+  ADDCOLUMNS(SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]), "first", CALCULATE(MIN(ALL_PARTS[תאריך]))),
+  ALL_PARTS[תאור משפחת מוצר] IN {${(iceFams.length ? iceFams : ['__none__']).map(escFam).join(', ')}},
+  ALL_PARTS[ASHMADOT] = "-מכר-"
+)
+`);
+        const iceFirst = new Map(iceFirstRows.map(r => [String(r['ALL_PARTS[מספר לקוח]'] || ''), String(r['[first]'] || '').slice(0, 10)]));
         const ice = collectWeeks(iceWeekRows);
+        const nowWeek = weekIndex(todayStr);
         icePpFor = id => {
-          const cd = created.get(id);
-          const of = cd ? Math.min(PP_WEEKS, Math.floor((endMin - cd) / (7 * 1440))) : PP_WEEKS; // not in form → full window
-          return of >= 1 ? ppOf(ice.weeks.get(id) || new Set(), ice.even.get(id), of) : undefined;
+          const first = iceFirst.get(id);
+          if (!first) return undefined; // never bought ICE מישפחתי → no frequency, no ♠½
+          const since = nowWeek - weekIndex(first) + 1; // weeks of history incl. the current one
+          const p = ppOf(ice.weeks.get(id) || new Set(), ice.even.get(id), Math.min(PP_WEEKS, since));
+          if (since < 13) p.young = true;
+          return p;
         };
       } catch (e) {
         console.error('[PBI] polupoker ICE failed:', e.message);

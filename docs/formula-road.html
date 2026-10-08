@@ -4296,7 +4296,7 @@ function _ppCandidates(){
 // A client already on every-other-week always shows it (so the agent can undo). Dan 2026-10-08:
 // ICE מישפחתי gets ♠½ (no norm/quota) only if he bought ICE in ≤ half of the weeks (Dan: a 23/25 client must never be offered).
 function _ppBadge(c){
-  const id=String(c.custId), set=st.biweekly?.[id], ice=st.biweeklyPilot&&c.iceOnly&&c.pp&&c.pp.wk/c.pp.of<=ICE_MAX_SHARE;
+  const id=String(c.custId), set=st.biweekly?.[id], ice=st.biweeklyPilot&&c.iceOnly&&c.pp&&!c.pp.young&&c.pp.wk/c.pp.of<=ICE_MAX_SHARE; // young = < 3 months of ICE מישפחתי (server)
   if(!set&&!ice&&!st._ppCand?.has(id)) return '';
   const tip=set?`ביקור כל שבועיים — ${_PARITY_HE[set.parity]}`:c.pp?`מזמין ב-${c.pp.wk} מתוך ${c.pp.of} שבועות — אפשר לעבור לביקור כל שבועיים`:'ICE מישפחתי — אפשר לעבור לביקור כל שבועיים';
   const tap=st.biweeklyCanEdit?`onclick="event.stopPropagation();openBiweekly('${id}')"`:'style="cursor:default"';
