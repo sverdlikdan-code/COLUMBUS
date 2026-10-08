@@ -4278,23 +4278,27 @@ function openZikuyOrder(e,custId,custName,city){
 }
 // Server copy of 🚫 — see /api/route-exclude. BDD has its own router without it,
 // so there exclusions stay session-only as before.
-// ♠½ polupoker (2026-10-08). Dan: a day of N > 15 clients gets exactly N − 15 offers — the weakest by share
-// of weeks with an order (server c.pp wk/of, team agents, 6+ months), older last order first,
-// never 👑; clients already on every-other-week count toward the N − 15. Pilot only.
+// ♠½ polupoker (2026-10-08). Dan: N = FORMULA clients of the day (ICE מישפחתי not counted, same as
+// coverage); a day of N > 14 gets exactly N − 14 offers — the weakest by share of weeks with an order
+// (server c.pp wk/of, team agents, 6+ months), older last order first, never 👑; FORMULA clients already
+// on every-other-week count toward the N − 14. Pilot only.
+const PP_DAY_NORM=14;
 function _ppCandidates(){
   if(!st.biweeklyPilot) return new Set();
-  const quota=st.clients.length-15-st.clients.filter(c=>st.biweekly?.[String(c.custId)]).length;
+  const formula=st.clients.filter(c=>!c.iceOnly);
+  const quota=formula.length-PP_DAY_NORM-formula.filter(c=>st.biweekly?.[String(c.custId)]).length;
   if(quota<=0) return new Set();
-  return new Set(st.clients
+  return new Set(formula
     .filter(c=>c.pp&&!st.biweekly?.[String(c.custId)]&&!st.topSalesIds.has(String(c.custId)))
     .sort((a,b)=>a.pp.wk/a.pp.of-b.pp.wk/b.pp.of||String(a.lastOrderDate||'').localeCompare(String(b.lastOrderDate||'')))
     .slice(0,quota).map(c=>String(c.custId)));
 }
-// A client already on every-other-week always shows it (so the agent can undo).
+// A client already on every-other-week always shows it (so the agent can undo). Dan 2026-10-08:
+// every ICE מישפחתי client gets ♠½ always (no norm/quota), the agent decides.
 function _ppBadge(c){
-  const id=String(c.custId), set=st.biweekly?.[id];
-  if(!set&&!st._ppCand?.has(id)) return '';
-  const tip=set?`ביקור כל שבועיים — ${_PARITY_HE[set.parity]}`:`מזמין ב-${c.pp.wk} מתוך ${c.pp.of} שבועות — אפשר לעבור לביקור כל שבועיים`;
+  const id=String(c.custId), set=st.biweekly?.[id], ice=st.biweeklyPilot&&c.iceOnly;
+  if(!set&&!ice&&!st._ppCand?.has(id)) return '';
+  const tip=set?`ביקור כל שבועיים — ${_PARITY_HE[set.parity]}`:c.pp?`מזמין ב-${c.pp.wk} מתוך ${c.pp.of} שבועות — אפשר לעבור לביקור כל שבועיים`:'ICE מישפחתי — אפשר לעבור לביקור כל שבועיים';
   const tap=st.biweeklyCanEdit?`onclick="event.stopPropagation();openBiweekly('${id}')"`:'style="cursor:default"';
   return `<span class="pp-badge${set?' pp-set':''}" title="${tip}" ${tap}>♠½</span>`;
 }
