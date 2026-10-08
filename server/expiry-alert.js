@@ -23,6 +23,9 @@ const SPLIT_TO = (process.env.EXPIRY_ALERT_SPLIT_TO || '').split(',').map(s => s
 // Копия задана → одно письмо: RECIPIENTS в «Кому», CC в копии, приветствие «שלום רב» (пользователь 2026-09-30).
 // Без CC — как раньше, личное письмо каждому.
 const CC = (process.env.EXPIRY_ALERT_CC || '').split(',').map(s => s.trim()).filter(Boolean);
+// Список прошлой рассылки (מק"ט + имя) — для блока «נוספו / יצאו מהדוח» (пользователь 2026-10-08).
+// Пишется только после реальной отправки (или с --save-state). Не задан — блока нет.
+const STATE = process.env.EXPIRY_ALERT_STATE || '';
 
 const NAVY = '#1C3D6B';
 const GOLD = '#B8863B';
@@ -90,7 +93,9 @@ async function shootCards(split) {
     const risks = await page.$$eval(SEL, cs => cs.map(c => {
       const costDiv = [...c.querySelectorAll('div')].find(d => d.textContent.trim().startsWith('עלות לזריקה'));
       const nameDiv = c.querySelector('div[style*="font-size:10px;font-weight:bold"]');
-      return { name: nameDiv ? nameDiv.textContent.trim() : '', cost: costDiv ? +costDiv.textContent.replace(/[^\d]/g, '') : 0 };
+      const mkDiv = c.querySelector('div[style*="color:#1565C0;font-weight:bold"]');
+      const name = nameDiv ? nameDiv.textContent.trim() : '';
+      return { mk: (mkDiv ? mkDiv.textContent.trim() : '') || name, name, cost: costDiv ? +costDiv.textContent.replace(/[^\d]/g, '') : 0 };
     }));
     const cards = await page.$$(SEL);
     const shots = [];
@@ -120,6 +125,26 @@ async function shootCards(split) {
     await browser.close();
     srv.close();
   }
+}
+
+function loadPrev() {
+  try { return STATE ? JSON.parse(fs.readFileSync(STATE, 'utf8')) : null; } catch { return null; }
+}
+
+// Сравнение с прошлой рассылкой по מק"ט. null — сравнивать не с чем (первый запуск).
+function diffWithPrev(prev, risks) {
+  if (!prev || !Array.isArray(prev.items)) return null;
+  const was = new Set(prev.items.map(r => r.mk));
+  const now = new Set(risks.map(r => r.mk));
+  return { date: prev.date, added: risks.filter(r => !was.has(r.mk)), removed: prev.items.filter(r => !now.has(r.mk)) };
+}
+
+function saveState(risks) {
+  if (!STATE) return;
+  const date = new Date().toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' });
+  // сбой записи не должен ронять уже отправленный алярм
+  try { fs.writeFileSync(STATE, JSON.stringify({ date, items: risks.map(({ mk, name, cost }) => ({ mk, name, cost })) }, null, 1)); }
+  catch (e) { console.error('state not saved:', e.message); }
 }
 
 const fmtILS = v => '₪' + Math.round(v).toLocaleString('en-US');
@@ -160,7 +185,25 @@ function buildRiskHtml({ total, top, topSum, noCost }) {
   </td></tr>`;
 }
 
-function buildEmailHtml(n, greetName, risk, split) {
+function buildDiffHtml(diff) {
+  if (!diff) return '';
+  const list = (rows, sign, color) => rows.length
+    ? rows.map(r => `<div style="padding:3px 0;font-size:13px;color:${INK}"><b style="color:${color}">${sign}</b> ${r.name}${r.cost > 0 ? ` — ${ltr(fmtILS(r.cost))}` : ''}</div>`).join('')
+    : `<div style="padding:3px 0;font-size:13px;color:${MUTED}">אין</div>`;
+  return `<tr><td dir="rtl" style="padding:8px 28px 6px;text-align:right">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="rtl"><tr>
+      <td bgcolor="#F7F9FC" style="background-color:#F7F9FC;border:1px solid ${LINE};border-radius:10px;padding:12px 18px;text-align:right">
+        <div style="font-size:14px;font-weight:900;color:${NAVY}">שינויים מהדוח הקודם (${diff.date})</div>
+        <div style="padding-top:8px;font-size:13px;font-weight:bold;color:#b71c1c">נוספו לדוח (${diff.added.length}):</div>
+        ${list(diff.added, '+', '#b71c1c')}
+        <div style="padding-top:8px;font-size:13px;font-weight:bold;color:#2e7d32">יצאו מהדוח (${diff.removed.length}):</div>
+        ${list(diff.removed, '−', '#2e7d32')}
+      </td>
+    </tr></table>
+  </td></tr>`;
+}
+
+function buildEmailHtml(n, greetName, risk, split, diff) {
   const greeting = greetName ? `שלום ${greetName},` : 'שלום,';
   const rows = [];
   for (let i = 0; i < n; i += 2) {
@@ -182,6 +225,7 @@ function buildEmailHtml(n, greetName, risk, split) {
   <tr><td dir="rtl" style="padding:20px 28px 8px;text-align:right;font-size:14px;color:${INK}">${greeting} ${split ? 'מצורף דוח תוקף לפי מחסן (אשדוד / צפון בנפרד, ללא איחוד מחסנים) — מוצרים בסכנה ו-STOP SALE.' : 'מצורף דוח תוקף — מוצרים בסכנה ו-STOP SALE, כמו במסך דוח התוקף של המחסן.'}</td></tr>
   ${NOTE ? `<tr><td dir="rtl" style="padding:4px 28px 8px;text-align:right;font-size:14px;font-weight:bold;color:${NAVY}">${NOTE}</td></tr>` : ''}
   ${buildRiskHtml(risk)}
+  ${buildDiffHtml(diff)}
   <tr><td dir="rtl" style="padding:4px 28px 10px;text-align:right">
     <div style="display:inline-block;padding:9px 16px;border:1.5px solid ${NAVY};border-radius:8px;background:#EEF3FA;font-size:13px;font-weight:bold;color:${NAVY}">🖨 להדפסה — פתחו את קובץ ה-PDF המצורף (4 מוצרים בעמוד A4)</div>
   </td></tr>
@@ -208,17 +252,22 @@ async function runVariant({ split, to }) {
   if (risk.noCost) console.log(tag, 'Без суммы:', risks.filter(r => !(r.cost > 0)).map(r => r.name).join(' ; '));
   console.log(tag, `Риск: ${fmtILS(risk.total)}, топ-70%: ${risk.top.map(r => r.name + ' ' + fmtILS(r.cost)).join('; ')}`);
   console.log(tag, `Карточек סכנה/STOP SALE: ${shots.length}`);
-  if (shots.length === 0) return;
+  // сравнение — только для основного письма (מאוחד); у варианта по складам другой набор карточек
+  const diff = split ? null : diffWithPrev(loadPrev(), risks);
+  if (diff) console.log(tag, `vs ${diff.date}: +${diff.added.map(r => r.mk).join(',') || '-'} / -${diff.removed.map(r => r.mk).join(',') || '-'}`);
+  // пустой отчёт = все вышли; запомнить, чтобы следующее письмо сравнивалось с ним
+  if (shots.length === 0) { if (!DRY_RUN && !split) saveState(risks); return; }
 
   if (DRY_RUN) {
     const out = path.join(__dirname, '..', '.scratch');
     const base = 'expiry-alert-preview' + (split ? '-split' : '');
     fs.mkdirSync(out, { recursive: true });
     fs.writeFileSync(path.join(out, base + '.html'),
-      buildEmailHtml(shots.length, 'דן', risk, split).replace(/cid:card-(\d+)/g, (_, i) => `data:image/png;base64,${shots[i].toString('base64')}`)
+      buildEmailHtml(shots.length, 'דן', risk, split, diff).replace(/cid:card-(\d+)/g, (_, i) => `data:image/png;base64,${shots[i].toString('base64')}`)
         .replace('cid:diler-logo-white', 'data:image/png;base64,' + fs.readFileSync(path.join(DOCS, 'logo-diler-bmd-white.png')).toString('base64')));
     fs.writeFileSync(path.join(out, base + '.pdf'), pdf);
     console.log(tag, `--dry-run — письмо не отправлено, превью в .scratch/${base}.html/.pdf`);
+    if (!split && process.argv.includes('--save-state')) saveState(risks);
     return;
   }
 
@@ -242,7 +291,7 @@ async function runVariant({ split, to }) {
       from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
       ...snd,
       subject,
-      html: buildEmailHtml(shots.length, greetName, risk, split),
+      html: buildEmailHtml(shots.length, greetName, risk, split, diff),
       text: [
         `${greetName ? `שלום ${greetName},` : 'שלום,'} ${shots.length} מוצרים בסכנה / STOP SALE במחסן FORMULA${split ? ' — לפי מחסן (אשדוד / צפון)' : ''}.`,
         ...(NOTE ? ['', NOTE] : []),
@@ -250,6 +299,9 @@ async function runVariant({ split, to }) {
         `סה"כ סיכון (עלות לזריקה צפויה): ${fmtILS(risk.total)}`,
         `מתוכם ${risk.total ? Math.round(risk.topSum / risk.total * 100) : 0}%:`,
         ...risk.top.map((r, i) => `${i + 1}. ${r.name} — ${fmtILS(r.cost)}`),
+        ...(diff ? ['', `שינויים מהדוח הקודם (${diff.date}):`,
+          `נוספו (${diff.added.length}): ${diff.added.map(r => r.name).join('; ') || 'אין'}`,
+          `יצאו (${diff.removed.length}): ${diff.removed.map(r => r.name).join('; ') || 'אין'}`] : []),
         '',
         'להדפסה — קובץ PDF מצורף.',
       ].join('\n'),
@@ -257,6 +309,7 @@ async function runVariant({ split, to }) {
     });
     console.log(tag, snd.to.join(','), snd.cc ? 'cc ' + snd.cc.join(',') : '', JSON.stringify(res));
   }
+  if (!split) saveState(risks);
 }
 
 main().catch(e => { console.error('ERR:', e.message); process.exit(1); });
