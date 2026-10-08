@@ -434,6 +434,8 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .pp-badge{display:inline-block;direction:ltr;unicode-bidi:isolate;font-size:12px;font-weight:800;line-height:1;margin-left:4px;padding:2px 4px;border-radius:5px;border:1px solid #9aa5b4;color:#4a5568;background:#fff;vertical-align:middle;cursor:pointer;white-space:nowrap;}
 .pp-badge.pp-set{background:#4a5568;border-color:#4a5568;color:#fff;}
 .client-card.offweek{background:#fafbfc;}
+.week-lbl{margin:2px 0 6px;padding:5px 12px;border-radius:8px;background:#FDECEA;color:#C5221F;font-weight:900;font-size:15px;text-align:center;}
+.week-lbl-inline{color:#C5221F;font-weight:900;}
 /* ♠½ sheet centered (Dan 2026-10-08: bottom was cut off on his device) — only this modal, shared .modal untouched */
 #biweekly-modal{align-items:center;padding:16px;}
 #biweekly-modal .modal{border-radius:20px;padding-bottom:20px;max-height:100%;overflow-y:auto;}
@@ -2987,10 +2989,13 @@ function _weekParity(dateStr){
   const [y,m,d]=dateStr.split('-').map(Number);
   return Math.floor(((Date.UTC(y,m-1,d)-Date.UTC(1988,0,1))/86400000-2)/7)%2;
 }
-// The route week: Fri/Sat already plan next Sunday (_todayRouteDay) → next week's parity.
+// Week of the NEXT visit on the viewed day (Dan 2026-10-08: on Thursday tab א is next Sunday,
+// not the Sunday already gone — the parity must be that next Sunday's). Today → this week;
+// a day already passed this week (or any day on Fri/Sat) → next week. No day (?) → this week.
 function _routeWeekParity(){
   const t=_todayIsraelDate(), wd=new Date(t+'T12:00:00Z').getUTCDay();
-  return _weekParity(new Date(Date.parse(t+'T12:00:00Z')+(wd>=5?7-wd:0)*86400000).toISOString().slice(0,10));
+  const ahead=st.day>=1&&st.day<=5?(st.day-1-wd+7)%7:0;
+  return _weekParity(new Date(Date.parse(t+'T12:00:00Z')+ahead*86400000).toISOString().slice(0,10));
 }
 const _PARITY_HE=['שבוע זוגי','שבוע אי-זוגי'];
 function _isOffWeek(c){ const b=st.biweekly?.[String(c.custId)]; return !!b && b.parity!==_routeWeekParity(); }
@@ -4116,7 +4121,10 @@ function renderClientList(html){
   if(!list.length){el.innerHTML=`<div style="padding:40px 20px;text-align:center;color:var(--mid)"><div style="font-size:36px;margin-bottom:12px">📭</div><div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px">אין לקוחות ביום זה</div><div style="font-size:12px">נסה לשנות את הסינון או בחר יום אחר</div></div>`;return;}
   _rowActionsStore={};
   st._ppCand=_ppCandidates();
-  el.innerHTML=list.map((c,i)=>{
+  // Dan 2026-10-08: the week of this day's next visit, bold red on top — agents must see which week it is
+  const weekLbl=(st.biweeklyPilot||Object.keys(st.biweekly||{}).length)&&!_isBdd()
+    ?`<div class="week-lbl">${_PARITY_HE[_routeWeekParity()]}</div>`:'';
+  el.innerHTML=weekLbl+list.map((c,i)=>{
     const noGps=!c.lat||!c.lng;
     const isSel=st.selectedId===c.custId;
     const isAiDiff=st.sortMode==='priority'&&st.aiClients[i]&&st.aiClients[i].custId!==c.custId;
@@ -4171,7 +4179,7 @@ function renderClientList(html){
     .filter(c=>_isOffWeek(c)&&!st.excluded.has(c.custId))
     .filter(c=>!st.selectedCities.length||st.selectedCities.includes(c.city));
   if(offList.length){
-    el.innerHTML+=`<div class="excl-section-lbl"><span>לא בשבוע הזה (${offList.length}) · השבוע: ${["זוגי","אי-זוגי"][_routeWeekParity()]}</span></div>`+
+    el.innerHTML+=`<div class="excl-section-lbl"><span>לא בשבוע הזה (${offList.length}) · <span class="week-lbl-inline">${_PARITY_HE[_routeWeekParity()]}</span></span></div>`+
       offList.map(c=>{
         const noGps=!c.lat||!c.lng, done=_hasOrderToday(c)&&st.day===_todayRouteDay();
         _rowActionsStore[c.custId]=_secondaryActionsHtml(c,noGps);
