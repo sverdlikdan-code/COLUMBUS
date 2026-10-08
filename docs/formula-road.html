@@ -4282,7 +4282,7 @@ function openZikuyOrder(e,custId,custName,city){
 // coverage); a day of N > 14 gets exactly N − 14 offers — the weakest by share of weeks with an order
 // (server c.pp wk/of, team agents, 6+ months), older last order first, never 👑; FORMULA clients already
 // on every-other-week count toward the N − 14. Pilot only.
-const PP_DAY_NORM=14;
+const PP_DAY_NORM=14, ICE_MAX_SHARE=12/25;
 function _ppCandidates(){
   if(!st.biweeklyPilot) return new Set();
   const formula=st.clients.filter(c=>!c.iceOnly);
@@ -4294,9 +4294,9 @@ function _ppCandidates(){
     .slice(0,quota).map(c=>String(c.custId)));
 }
 // A client already on every-other-week always shows it (so the agent can undo). Dan 2026-10-08:
-// every ICE מישפחתי client gets ♠½ always (no norm/quota), the agent decides.
+// ICE מישפחתי gets ♠½ (no norm/quota) only if he bought ICE in ≤ half of the weeks (Dan: a 23/25 client must never be offered).
 function _ppBadge(c){
-  const id=String(c.custId), set=st.biweekly?.[id], ice=st.biweeklyPilot&&c.iceOnly;
+  const id=String(c.custId), set=st.biweekly?.[id], ice=st.biweeklyPilot&&c.iceOnly&&c.pp&&c.pp.wk/c.pp.of<=ICE_MAX_SHARE;
   if(!set&&!ice&&!st._ppCand?.has(id)) return '';
   const tip=set?`ביקור כל שבועיים — ${_PARITY_HE[set.parity]}`:c.pp?`מזמין ב-${c.pp.wk} מתוך ${c.pp.of} שבועות — אפשר לעבור לביקור כל שבועיים`:'ICE מישפחתי — אפשר לעבור לביקור כל שבועיים';
   const tap=st.biweeklyCanEdit?`onclick="event.stopPropagation();openBiweekly('${id}')"`:'style="cursor:default"';
