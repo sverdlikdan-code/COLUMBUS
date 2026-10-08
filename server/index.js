@@ -305,7 +305,17 @@ CALCULATETABLE(
     // Fail-soft: any error leaves c.pp unset (no badge), the cache load goes on.
     let icePpFor = null; // ICE מישפחתי frequency for the ♠½ sheet — attached after iceByAgent is built (E2)
     let ppWeeksF = null, ppWeeksI = null; // custId → Set(weekIndex) with a sale — for the ♠½ auto-return
-    try {
+    // Dan 2026-10-08: polupokers are recalculated ONCE a month (first cache load of the month) and frozen
+    // for that month in data/polupoker-month.json — the same run does the auto-return + one email to Dan.
+    const PP_MONTH_FILE = path.join(__dirname, 'data', 'polupoker-month.json');
+    const ppMonth = todayIsraelDate().slice(0, 7);
+    let ppStored = null;
+    try { ppStored = JSON.parse(fs.readFileSync(PP_MONTH_FILE, 'utf8')); } catch (_) {}
+    if (ppStored?.month !== ppMonth) ppStored = null;
+    if (ppStored) {
+      for (const [id, pp] of Object.entries(ppStored.formula || {})) { const c = clientMap.get(id); if (c) c.pp = pp; }
+      console.log(`[PBI] polupoker: frozen for ${ppMonth} (calculated ${ppStored.at})`);
+    } else try {
       const PP_WEEKS = 25, PP_MAX = 8;
       const todayStr = todayIsraelDate();
       const wd = new Date(todayStr + 'T12:00:00Z').getUTCDay();
@@ -621,11 +631,18 @@ SELECTCOLUMNS(
     for (const arr of iceByAgent.values()) {
       for (const c of arr) iceClientFlat.set(c.custId, c);
     }
-    // E2: ♠½ frequency (ICE_MISH families) for ICE מישפחתי clients — computed in D2
-    if (icePpFor) {
+    // E2: ♠½ frequency (ICE_MISH families) for ICE מישפחתי clients — monthly snapshot or computed in D2
+    let ppRecalculated = false;
+    if (ppStored) {
+      for (const arr of iceByAgent.values()) for (const c of arr) c.pp = ppStored.ice?.[String(c.custId)];
+    } else if (icePpFor && ppWeeksF) {
       let n = 0;
       for (const arr of iceByAgent.values()) for (const c of arr) { c.pp = icePpFor(c.custId); if (c.pp) n++; }
       console.log(`[PBI] polupoker ICE: frequency for ${n} ICE מישפחתי clients`);
+      const snap = { month: ppMonth, at: new Date().toISOString(), formula: {}, ice: {} };
+      for (const [id, c] of clientMap) if (c.pp) snap.formula[id] = c.pp;
+      for (const arr of iceByAgent.values()) for (const c of arr) if (c.pp) snap.ice[String(c.custId)] = c.pp;
+      try { fs.writeFileSync(PP_MONTH_FILE, JSON.stringify(snap), 'utf8'); ppRecalculated = true; } catch (e) { console.error('[PBI] polupoker save failed:', e.message); }
     }
     for (const r of avg6Rows) {
       const custId = String(r['ALL_PARTS[מספר לקוח]'] || '');
@@ -678,7 +695,7 @@ ROW("maxDate", CALCULATE(MAX(ALL_PARTS[תאריך]), ALL_PARTS[ASHMADOT] = "-מ�
     if (!YEDAIM_DISABLED) prefetchYedaimLive().catch(err => console.error('[yedaim-prefetch]', err.message));
     console.log(`[PBI] Cache loaded: ${clientMap.size} clients, ${byAgent.size} agents, ${managers.size} managers, ${managerAgents.size} manager-agents`);
     const iceIdsAll = new Set([...iceByAgent.values()].flat().map(c => String(c.custId)));
-    runBiweeklyAutoReturn(ppWeeksF, ppWeeksI, iceIdsAll).catch(e => console.error('[biweekly-auto]', e.message));
+    if (ppRecalculated) runBiweeklyAutoReturn(ppWeeksF, ppWeeksI, iceIdsAll, ppMonth).catch(e => console.error('[biweekly-auto]', e.message));
 
     // BDD 2 min after FORMULA: its DAX never competes with FORMULA's load or first requests.
     setTimeout(() => bdd.start(), 2 * 60 * 1000);
@@ -2504,13 +2521,11 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
     try { corrections = JSON.parse(fs.readFileSync(correctionsPath, 'utf8')); } catch (_) {}
 
     const pilot = biweeklyPilot(req.session, agent); // ♠½ data only for the pilot (undefined → dropped from JSON)
-    // auto-returned clients: no ♠½ until the 6-week pause ends (runBiweeklyAutoReturn)
-    const bwBlocked = readRouteOverrides()[agent]?.biweeklyBlocked || {}, todayBw = todayIsraelDate();
     clients = clients.map(c => {
       const corr = corrections[c.custId];
       return {
         ...c,
-        pp:        pilot && !(bwBlocked[String(c.custId)]?.until > todayBw) ? c.pp : undefined,
+        pp:        pilot ? c.pp : undefined,
         lat:       corr ? corr.lat : c.lat,
         lng:       corr ? corr.lng : c.lng,
         gpsSource: corr ? 'correction' : (c.lat && c.lng ? 'pbi' : undefined),
@@ -6544,63 +6559,56 @@ app.get('/api/route-overrides', requireAuth, dataRateLimit, (req, res) => {
     // same rule as POST /api/route-biweekly: the agent himself, or a manager allowed to write for him (readonly → false)
     canEdit: String(req.session.agentCode || '') === agentCode || managerCanWrite(req.session, agentCode) });
 });
-// ♠½ auto-return (Dan 2026-10-08): a biweekly client who ordered in ≥ 6 of the last 8 FULL weeks is
-// back to every week; ♠½ is then withheld 6 weeks (biweeklyBlocked → /customers drops his pp).
-// Runs after every PBI cache load (06:00 daily + restarts) on the already-loaded week sets — no DAX.
-// FORMULA by FORMULA families, ICE מישפחתי by ICE_MISH. History 2024-10..2026-10: FORMULA 0.24
-// returns/client, 5 of 891 returned twice; ICE seasonal (summer wave). One email per team, Dan in CC:
-// .env BIWEEKLY_RETURN_MANAGERS="TEAM=mail;..." + BIWEEKLY_RETURN_CC.
-const BW_RETURN_MIN = 6, BW_RETURN_WEEKS = 8, BW_BLOCK_DAYS = 42;
-async function runBiweeklyAutoReturn(weeksF, weeksI, iceIds) {
+// ♠½ auto-return (Dan 2026-10-08): ONCE a month, in the polupoker recalculation run (first PBI cache
+// load of the month), a biweekly client who ordered in ≥ 6 of the last 8 FULL weeks goes back to every
+// week — no pause, next month's recalculation may offer him again. FORMULA by FORMULA families, ICE
+// מישפחתי by ICE_MISH (week sets already loaded, no extra DAX). One email to Dan (.env BIWEEKLY_RETURN_TO),
+// sent even when nobody returned, so the monthly run is visible. History 2024-10..2026-10: ~0.24/client.
+const BW_RETURN_MIN = 6, BW_RETURN_WEEKS = 8;
+async function runBiweeklyAutoReturn(weeksF, weeksI, iceIds, month) {
   if (!weeksF || !pbiCache) return;
-  const today = todayIsraelDate(), cur = weekIndex(today);
-  const until = new Date(Date.parse(today + 'T12:00:00Z') + BW_BLOCK_DAYS * 86400000).toISOString().slice(0, 10);
+  const cur = weekIndex(todayIsraelDate());
   const data = readRouteOverrides();
-  let changed = false;
-  const byTeam = {};
+  const rows = [];
+  let kept = 0;
   const nameOf = id => pbiCache.clientMap.get(id)?.custName
     || [...(pbiCache.iceByAgent?.values() || [])].flat().find(c => String(c.custId) === id)?.custName || '';
   for (const [agent, e] of Object.entries(data)) {
-    for (const [id, b] of Object.entries(e.biweeklyBlocked || {})) if (b.until <= today) { delete e.biweeklyBlocked[id]; changed = true; }
     for (const [id, b] of Object.entries(e.biweekly || {})) {
       const isIce = iceIds.has(id);
-      const weeks = (isIce ? weeksI : weeksF)?.get(id);
-      if (!weeks) continue;
+      const weeks = (isIce ? weeksI : weeksF)?.get(id) || new Set();
       let n = 0;
       for (let w = cur - BW_RETURN_WEEKS; w < cur; w++) if (weeks.has(w)) n++;
-      if (n < BW_RETURN_MIN) continue;
+      if (n < BW_RETURN_MIN) { kept++; continue; }
       delete e.biweekly[id];
-      (e.biweeklyBlocked ||= {})[id] = { until, at: new Date().toISOString(), weeks: n, of: BW_RETURN_WEEKS, parity: b.parity, setAt: b.at, setBy: b.by };
-      changed = true;
-      writeLog({ ts: new Date().toISOString(), event: 'route-biweekly-auto-unset', agentCode: agent, custId: id, weeks: n, of: BW_RETURN_WEEKS, parity: b.parity, setAt: b.at, until, channel: isIce ? 'ICE' : 'FORMULA' });
+      writeLog({ ts: new Date().toISOString(), event: 'route-biweekly-auto-unset', agentCode: agent, custId: id, weeks: n, of: BW_RETURN_WEEKS, parity: b.parity, setAt: b.at, channel: isIce ? 'ICE' : 'FORMULA' });
       const a0 = pbiCache.byAgent.get(agent)?.[0];
-      (byTeam[a0?.manager || '?'] ||= []).push({ agentName: a0?.agentName || agent, id, name: nameOf(id), n, isIce, parity: b.parity, setAt: (b.at || '').slice(0, 10), setBy: b.by || '' });
+      rows.push({ team: a0?.manager || '', agentName: a0?.agentName || agent, agent, id, name: nameOf(id), n, isIce, parity: b.parity, setAt: (b.at || '').slice(0, 10) });
     }
   }
-  if (changed) writeRouteOverrides(data);
-  const total = Object.values(byTeam).reduce((s, a) => s + a.length, 0);
-  if (!total) return;
-  console.log(`[biweekly-auto] returned ${total} client(s) to every week`);
-  if (!resend) return;
-  const mails = Object.fromEntries((process.env.BIWEEKLY_RETURN_MANAGERS || '').split(';').map(x => x.split('=')).filter(x => x[0] && x[1]).map(([t, m]) => [t.trim(), m.trim()]));
-  const cc = (process.env.BIWEEKLY_RETURN_CC || '').split(',').map(s => s.trim()).filter(Boolean);
+  if (rows.length) writeRouteOverrides(data);
+  console.log(`[biweekly-auto] ${month}: returned ${rows.length}, still biweekly ${kept}`);
+  const to = (process.env.BIWEEKLY_RETURN_TO || '').split(',').map(s => s.trim()).filter(Boolean);
+  if (!resend || !to.length) return;
+  rows.sort((x, y) => x.team.localeCompare(y.team) || x.agentName.localeCompare(y.agentName));
   const dd = s => s ? `${s.slice(8, 10)}.${s.slice(5, 7)}` : '';
-  for (const [team, rows] of Object.entries(byTeam)) {
-    const to = mails[team] ? [mails[team]] : cc;
-    if (!to.length) continue;
-    const html = `<div dir="ltr" style="font-family:Arial,sans-serif;font-size:14px;color:#1a2433">
-<p>Клиенты снова заказывают почти каждую неделю — система вернула их с «раз в 2 недели» на <b>каждую неделю</b>. ♠½ для них не будет до ${dd(until)}.</p>
-<table style="border-collapse:collapse;font-size:13px">
-<tr style="background:#EEF4FB"><th style="padding:6px 10px;text-align:left">Агент</th><th style="padding:6px 10px;text-align:right">Клиент</th><th style="padding:6px 10px">Заказывал</th><th style="padding:6px 10px">Был на</th><th style="padding:6px 10px">С</th></tr>
-${rows.map(r => `<tr style="border-top:1px solid #e3e8ef"><td style="padding:6px 10px">${esc(r.agentName)}</td><td style="padding:6px 10px;text-align:right" dir="rtl">${esc(r.name)} <span style="color:#6b7686">(${esc(r.id)}${r.isIce ? ' · ICE' : ''})</span></td><td style="padding:6px 10px;text-align:center"><b>${r.n} из ${BW_RETURN_WEEKS}</b> последних недель</td><td style="padding:6px 10px;text-align:center" dir="rtl">${r.parity ? 'שבוע אי-זוגי' : 'שבוע זוגי'}</td><td style="padding:6px 10px;text-align:center">${dd(r.setAt)}</td></tr>`).join('')}
-</table>
-<p style="color:#6b7686;font-size:12px">Правило: заказ в ${BW_RETURN_MIN}+ из ${BW_RETURN_WEEKS} последних полных недель → возврат на каждую неделю, пауза ♠½ ${BW_BLOCK_DAYS / 7} недель. Formula Road</p></div>`;
-    try {
-      const r = await resend.emails.send({ from: `Formula Road <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`, to, cc: mails[team] ? cc : undefined,
-        subject: `Formula Road: ${rows.length} клиент(ов) возвращены на каждую неделю — ${team}`, html });
-      console.log(`[biweekly-auto] mail ${team} → ${to.join(',')}`, r.data?.id || JSON.stringify(r.error));
-    } catch (e) { console.error(`[biweekly-auto] mail ${team} failed:`, e.message); }
-  }
+  const td = 'padding:6px 10px;border-top:1px solid #e3e8ef';
+  const table = rows.length ? `<table style="border-collapse:collapse;font-size:13px">
+<tr style="background:#EEF4FB"><th style="padding:6px 10px">Менеджер</th><th style="padding:6px 10px">Агент</th><th style="padding:6px 10px;text-align:right">Магазин</th><th style="padding:6px 10px">Номер</th><th style="padding:6px 10px">Заказывал</th><th style="padding:6px 10px">Стоял на</th><th style="padding:6px 10px">С</th></tr>
+${rows.map(r => `<tr><td style="${td}">${esc(r.team)}</td><td style="${td}" dir="rtl">${esc(r.agentName)} (${esc(r.agent)})</td><td style="${td};text-align:right" dir="rtl">${esc(r.name)}${r.isIce ? ' · ICE' : ''}</td><td style="${td}">${esc(r.id)}</td><td style="${td};text-align:center"><b>${r.n} из ${BW_RETURN_WEEKS}</b> последних недель</td><td style="${td};text-align:center" dir="rtl">${r.parity ? 'שבוע אי-זוגי' : 'שבוע זוגי'}</td><td style="${td};text-align:center">${dd(r.setAt)}</td></tr>`).join('')}
+</table>` : '';
+  const head = rows.length
+    ? `<b>${rows.length}</b> клиент(ов) снова заказывают почти каждую неделю — вернул их с «раз в 2 недели» на <b>каждую неделю</b>.`
+    : 'никто не вернулся на каждую неделю.';
+  const html = `<div dir="ltr" style="font-family:Arial,sans-serif;font-size:14px;color:#1a2433">
+<p>Месячный пересчёт ♠½ (${month}): ${head} На «раз в 2 недели» остаются: ${kept}.</p>
+${table}
+<p style="color:#6b7686;font-size:12px">Правило: заказ в ${BW_RETURN_MIN}+ из ${BW_RETURN_WEEKS} последних полных недель → каждая неделя. Пересчёт раз в месяц, в начале месяца; там же заново определяются полупокеры на месяц. Formula Road</p></div>`;
+  try {
+    const r = await resend.emails.send({ from: `Formula Road <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`, to,
+      subject: `Formula Road ♠½ ${month}: вернулись на каждую неделю — ${rows.length}`, html });
+    console.log('[biweekly-auto] mail →', to.join(','), r.data?.id || JSON.stringify(r.error));
+  } catch (e) { console.error('[biweekly-auto] mail failed:', e.message); }
 }
 
 // ♠½ every-other-week visit (Dan 2026-10-08): the agent decides — {custId, parity: 0 זוגי | 1 אי-זוגי | null = every week}.
