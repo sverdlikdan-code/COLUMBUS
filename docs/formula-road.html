@@ -3122,14 +3122,14 @@ function _announceTodayOrder(){
 // — an agent visiting a client a day early/late showed 0 done despite a real
 // order, because that client isn't in today's roster. numer is a count of
 // orders actually made today, unfiltered by schedule day, same as sum.
-let _fpbSum = 0, _fpbNumer = 0, _fpbServedIds = null; // served ids: BDD only, for the "מחוץ לקו" note
+let _fpbSum = 0, _fpbNumer = 0, _fpbServedIds = null; // served ids: ♠½ off-week clients who ordered count in the plan; BDD also for the "מחוץ לקו" note
 async function _updateFormulaBanner(){
   const agentCode = st.agent?.code;
   if(!agentCode) return;
   try{
     const r = await apiFetch(`${API}/api/day-closing?agentCode=${encodeURIComponent(agentCode)}&type=${_isBdd()?'bdd':'formula'}`);
     const d = await r.json();
-    if(d?.ok){ _fpbSum = d.sum || 0; _fpbNumer = d.custCount || 0; _fpbServedIds = d.type==='bdd' ? (d.byClient||[]).map(c=>String(c.custId)) : null; }
+    if(d?.ok){ _fpbSum = d.sum || 0; _fpbNumer = d.custCount || 0; _fpbServedIds = (d.byClient||[]).map(c=>String(c.custId)); }
   }catch(e){ /* keep last known numbers on a hiccup — not worth blanking the banner */ }
   _renderFormulaBanner();
 }
@@ -3180,7 +3180,7 @@ function _renderFormulaBanner(){
     el.classList.remove('fpb-toggle-only');
     content.style.display='';
     const lineIds = new Set(todayFormula.map(c => String(c.custId)));
-    const offLine = _fpbServedIds ? _fpbServedIds.filter(id => !lineIds.has(id)).length : 0;
+    const offLine = _isBdd() && _fpbServedIds ? _fpbServedIds.filter(id => !lineIds.has(id)).length : 0;
     content.innerHTML=_fpbPieceHtml(_fpbNumer, denom, _fpbSum, offLine);
   }else{
     el.classList.add('fpb-toggle-only');
@@ -3502,7 +3502,7 @@ async function initRoute(){
     st.aiClients=nearestNeighbor([..._aiGpsClients(activeClients())]);
     triggerOsrm();
     updateKmBar();
-    renderCityFilters();
+    _renderCountChips(); // after syncRouteOverridesFromServer — 🚫/♠½ known now
   } catch(renderErr) {
     console.error('[initRoute] pre-render error (day='+st.day+'):', renderErr);
   }
@@ -3919,10 +3919,13 @@ function openGoogleMaps(){
 
 function updateKmBar(){}
 
+// Chip counts = clients on the route (activeClients: no 🚫, no ♠½ off-week) — same set the list shows.
+function _renderCountChips(){ renderCityFilters(); renderFrIceBtn(); renderFrSadranBtn(); renderFrDormantBtn(); }
 function renderCityFilters(){
-  const cities=[...new Set(st.clients.map(c=>c.city).filter(Boolean))].sort();
+  const act=activeClients();
+  const cities=[...new Set(act.map(c=>c.city).filter(Boolean))].sort();
   const countMap={};
-  for(const c of st.clients) if(c.city) countMap[c.city]=(countMap[c.city]||0)+1;
+  for(const c of act) if(c.city) countMap[c.city]=(countMap[c.city]||0)+1;
   const el=document.getElementById('city-filters');
   el.innerHTML=cities.map(c=>`<span class="city-chip${st.selectedCities.includes(c)?' on':''}" onclick="toggleCity('${c}')">${c}<span class="chip-count">${countMap[c]||0}</span></span>`).join('');
 }
@@ -4006,7 +4009,7 @@ function shortName(name, city) {
 }
 
 function renderFrIceBtn(){
-  const iceCount=st.clients.filter(c=>c.iceOnly).length;
+  const iceCount=activeClients().filter(c=>c.iceOnly).length;
   const el=document.getElementById('fr-stat-ice');
   const extraRow=document.getElementById('km-extra-filters');
   if(!el||!extraRow) return;
@@ -4018,13 +4021,13 @@ function renderFrIceBtn(){
     el.style.display='none';
     st.iceFilter=false;
   }
-  const sadranCount=(st.clients||[]).filter(c=>c.sadran).length;
-  const dormantCount=(st.clients||[]).filter(isDormantClient).length;
+  const sadranCount=activeClients().filter(c=>c.sadran).length;
+  const dormantCount=activeClients().filter(isDormantClient).length;
   if(iceCount>0||sadranCount>0||dormantCount>0) extraRow.style.display='';
   else extraRow.style.display='none';
 }
 function renderFrDormantBtn(){
-  const dormantCount=(st.clients||[]).filter(isDormantClient).length;
+  const dormantCount=activeClients().filter(isDormantClient).length;
   const el=document.getElementById('fr-stat-dormant');
   const extraRow=document.getElementById('km-extra-filters');
   if(!el||!extraRow) return;
@@ -4049,7 +4052,7 @@ function renderFrSadranBtn(){
   const el=document.getElementById('fr-sadran-legend');
   const extraRow=document.getElementById('km-extra-filters');
   if(!row||!el) return;
-  const total=(st.clients||[]).filter(c=>c.sadran).length;
+  const total=activeClients().filter(c=>c.sadran).length;
   if(total===0){ row.style.display='none'; return; }
   row.style.display='';
   if(extraRow) extraRow.style.display='';
@@ -4338,7 +4341,7 @@ async function biweeklyChoose(parity){
   if(parity===null) delete st.biweekly[id]; else st.biweekly[id]={parity};
   _trackEvent(parity===null?'biweekly_unset':parity===0?'biweekly_set_even':'biweekly_set_odd',id);
   st.aiClients=nearestNeighbor(_aiGpsClients(activeClients()));
-  renderClientList(); renderMap(); _renderFormulaBanner();
+  renderClientList(); renderMap(); _renderFormulaBanner(); _renderCountChips();
   let r=null;
   for(let i=0;i<2&&!(r&&r.ok);i++){
     if(i) await new Promise(res=>setTimeout(res,800));
@@ -4348,7 +4351,7 @@ async function biweeklyChoose(parity){
   if(r&&r.ok) return;
   if(prev) st.biweekly[id]=prev; else delete st.biweekly[id]; // server refused → undo locally
   st.aiClients=nearestNeighbor(_aiGpsClients(activeClients()));
-  renderClientList(); renderMap(); _renderFormulaBanner();
+  renderClientList(); renderMap(); _renderFormulaBanner(); _renderCountChips();
   showToast('⚠ השינוי לא נשמר בשרת — נסה שוב',5000);
 }
 async function pushExclude(custId,excluded,_isRetry){
@@ -4368,7 +4371,7 @@ function toggleExclude(custId,e){
   if(st.excluded.has(custId)){ st.excluded.delete(custId); delete st.excludedAt[custId]; pushExclude(custId,false); }
   else { st.excluded.add(custId); st.excludedAt[custId]=new Date().toISOString(); pushExclude(custId,true); }
   st.aiClients=nearestNeighbor([...activeClients()]);
-  renderClientList(); renderMap();
+  renderClientList(); renderMap(); _renderCountChips();
 }
 
 function selectClient(id){
