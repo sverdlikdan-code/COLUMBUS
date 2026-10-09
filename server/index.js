@@ -2075,6 +2075,22 @@ async function findFormIIntGPS(custId) {
   return { lat: hit.lat, lng: hit.lng, source: 'form-i-int' };
 }
 
+// City-center is a placeholder, not a location (Dan 2026-10-09: new client 1154269 sat on
+// Ashkelon's center while its order GPS was 2.6 km away). Before settling on it — and once a
+// day for clients already cached as city-center — try the client's own order GPS (30 days).
+// One SQL per client per day at most (~10 ms); applies to FORMULA and ICE (Dan: "тоже").
+const liveGpsTriedOn = new Map(); // custId → YYYY-MM-DD of the last live lookup
+async function tryLiveOrderGps(c) {
+  const id = String(c.custId), today = todayIsraelDate();
+  if (liveGpsTriedOn.get(id) === today) return false;
+  liveGpsTriedOn.set(id, today);
+  const live = await liveOrderGpsForNewClient(c.custId, 30).catch(() => null);
+  if (!live || !isWithinCityBBox(live.lat, live.lng, cityBBoxCache.get(c.city) ?? null)) return false;
+  c.lat = live.lat; c.lng = live.lng; c.gpsSource = 'tablet-order-live';
+  geocodeResolvedCache.set(id, { lat: c.lat, lng: c.lng, gpsSource: c.gpsSource });
+  return true;
+}
+
 async function geocodeBatch(clients) {
   // fetch city bboxes (Azure Maps, no delays)
   const allCities = [...new Set(clients.map(c => c.city).filter(Boolean))];
@@ -2162,6 +2178,7 @@ async function geocodeBatch(clients) {
     // rebuild.) Live request 2026-09-03.
     const cachedResolve = geocodeResolvedCache.get(String(c.custId));
     if (cachedResolve) {
+      if (cachedResolve.gpsSource === 'city-center' && await tryLiveOrderGps(c)) { resolved++; newlyCached++; continue; }
       c.lat = cachedResolve.lat; c.lng = cachedResolve.lng; c.gpsSource = cachedResolve.gpsSource;
       resolved++;
       continue;
@@ -2215,6 +2232,7 @@ async function geocodeBatch(clients) {
     }
 
     const result = await geocodeAddressCascade(c.address, c.city);
+    if (result?.cityCenter && await tryLiveOrderGps(c)) { resolved++; newlyCached++; continue; }
     if (result) {
       const bbox = cityBBoxCache.get(c.city) ?? null;
       if (isWithinCityBBox(result.lat, result.lng, bbox)) {
