@@ -1,12 +1,12 @@
-// noday-alert.js — еженедельный алярм менеджерам (вс 09:00 Израиль): клиенты без дня визита в Formula Road,
+// noday-alert.js — еженедельный алярм (вс 09:00 Израиль): клиенты без дня визита в Formula Road,
 // т.е. корзина «?» приложения — FORMULA + ICE משפחתי, минус клиенты, которых агент перенёс на день в аппе.
 // Клиенты и расписание — fetchPbi из route-changes-alert.js, переносы — LIVE_DATA_DIR/route-overrides.json,
 // правило дня — lineFor (то же, что /customers). ICE — группа агента FORMULA. Заглушки 920/000 без группы — не шлются.
-// Шапка таблиц — фиолетовая, не синяя как у остальных алярмов: чтобы письмо узнавалось с первого взгляда (пользователь 11.10).
-// Адресаты (env из run-alert.sh): NODAY_MANAGERS="ALEXEY=a@x;VLAD=b@x" — менеджеру его группа, письмо только
-//   если есть клиенты; NODAY_CC — копия писем менеджерам; NODAY_SUMMARY_TO/_CC — одна сводка по всем менеджерам
-//   (всегда, похвала тем, у кого 0); NODAY_OVERRIDE=<email> — всё на этот адрес (проверка).
-// --dry-run: письма не шлются, xlsx + html в LIVE_DATA_DIR/noday-preview.
+// Одно письмо всем (пользователь 11.10): сводка по менеджерам, у кого 0 — 🏆 «כל הכבוד» по имени (письмо видят и боссы);
+// Excel — все клиенты без дня. Шапка таблиц фиолетовая — не синяя как у остальных алярмов.
+// Адресаты (env из run-alert.sh): NODAY_MANAGERS="ALEXEY=a@x;VLAD=b@x" — группы сводки и их менеджеры (To, всегда);
+//   NODAY_SUMMARY_TO — ещё To; NODAY_SUMMARY_CC — копия; NODAY_OVERRIDE=<email> — всё на этот адрес (проверка).
+// --dry-run: письмо не шлётся, xlsx + html в LIVE_DATA_DIR/noday-preview.
 require('dotenv').config({ path: '../.env' });
 const fs = require('fs');
 const path = require('path');
@@ -53,37 +53,19 @@ async function buildXlsx(rows) {
     { header: "מס' לקוח", key: 'id', width: 11 },
     { header: 'שם לקוח', key: 'name', width: 40 },
     { header: 'סוכן', key: 'agent', width: 24 },
-    { header: 'מנהל', key: 'manager', width: 12 },
+    { header: 'מנהל', key: 'manager', width: 22 },
     { header: 'יום', key: 'day', width: 11 },
   ];
   ws.getRow(1).eachCell(c => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = fill(PURPLE); c.border = border; c.alignment = { horizontal: 'center' }; });
   for (const r of rows) {
-    const row = ws.addRow({ id: Number(r.id) || r.id, name: r.name, agent: r.agentName, manager: r.manager, day: NO_DAY });
+    const row = ws.addRow({ id: Number(r.id) || r.id, name: r.name, agent: r.agentName, manager: MANAGER_HE[r.manager] || r.manager, day: NO_DAY });
     row.eachCell(c => { c.border = border; c.alignment = { horizontal: c.col === 2 || c.col === 3 ? 'right' : 'center' }; });
   }
   ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: 5 } };
   return wb.xlsx.writeBuffer();
 }
 
-function buildHtml(rows, dateStr) {
-  const by = new Map();
-  for (const r of rows) by.set(r.agentName, (by.get(r.agentName) || 0) + 1);
-  const th = `style="background:#${PURPLE};color:#fff;padding:6px 10px;text-align:center"`;
-  const td = 'style="padding:5px 10px;border-bottom:1px solid #e5e7eb;text-align:center"';
-  return `<!doctype html><html dir="rtl" lang="he"><body style="margin:0"><div dir="rtl" style="font-family:Arial,sans-serif;color:#111;max-width:700px;margin:0 auto;padding:16px;box-sizing:border-box">
-<h2 style="margin:0 0 8px">📅 לקוחות ללא יום ביקור — ${dateStr}</h2>
-<p style="margin:0 0 6px">שלום,</p>
-<p style="margin:0 0 12px">בקבוצה שלך יש לקוחות שאין להם יום ביקור באפליקציה <bdi>Formula Road</bdi> (<bdi>FORMULA</bdi> ו-<bdi>ICE</bdi> משפחתי). נא לקבוע להם יום. הרשימה המלאה מצורפת בקובץ אקסל. דוח שבועי אוטומטי.</p>
-<table style="border-collapse:collapse;font-size:13px">
-<tr><th ${th}>סוכן</th><th ${th}>לקוחות ללא יום</th></tr>
-${[...by].sort((a, b) => b[1] - a[1]).map(([n, k]) => `<tr><td style="padding:5px 10px;border-bottom:1px solid #e5e7eb;text-align:right">${esc(n)}</td><td ${td}>${k}</td></tr>`).join('\n')}
-<tr><td ${td}><b>סה"כ</b></td><td ${td}><b>${rows.length}</b></td></tr>
-</table>
-<p style="color:#777;font-size:12px;margin-top:24px">הערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.</p>
-</div></body></html>`;
-}
-
-// Сводка Йоси и Максиму: строка на менеджера. Ноль — похвала: менеджер планирует линии агентов
+// Сводка: строка на менеджера. Ноль — похвала: менеджер планирует линии агентов
 // и следит за покрытием (пользователь 11.10). Имя менеджера — nameHe из managers.json по team.
 const MANAGER_HE = Object.fromEntries(require('./data/managers.json').filter(m => m.team).map(m => [m.team, m.nameHe || m.name]));
 // «לאלכסי ברילוב», «לX ולY», «לX, לY ולZ»
@@ -110,7 +92,7 @@ ${stars.length ? `<div style="background:#e8f5e9;border:2px solid #2e7d32;border
 <div style="font-size:20px;font-weight:bold;color:#1b5e20;margin:4px 0 6px">כל הכבוד ${praiseNames(stars)}!</div>
 <div style="font-size:14px;color:#2e7d32">כל הלקוחות ${stars.length > 1 ? 'בקבוצות' : 'בקבוצה'} משובצים ליום ביקור — תכנון קווי הסוכנים ומעקב צמוד אחרי הכיסוי.</div>
 </div>` : ''}
-<p style="margin:0 0 12px">סיכום לפי מנהלים: לקוחות שאין להם יום ביקור באפליקציה <bdi>Formula Road</bdi> (<bdi>FORMULA</bdi> ו-<bdi>ICE</bdi> משפחתי). כל מנהל שיש לו לקוחות כאלה קיבל את הרשימה שלו. הרשימה המלאה מצורפת בקובץ אקסל.</p>
+<p style="margin:0 0 12px">סיכום לפי מנהלים: לקוחות שאין להם יום ביקור באפליקציה <bdi>Formula Road</bdi> (<bdi>FORMULA</bdi> ו-<bdi>ICE</bdi> משפחתי). הרשימה המלאה (מס' לקוח, שם, סוכן, מנהל) — בקובץ האקסל המצורף.</p>
 <table style="border-collapse:collapse;font-size:13px;width:100%">
 <tr><th ${th}>מנהל</th><th ${th}>ללא יום</th><th ${th}>פירוט לפי סוכן</th></tr>
 ${sorted.map(t => `<tr${t.rows.length ? '' : ' style="background:#f1f8e9"'}><td style="${cell};text-align:right;white-space:nowrap"><b>${esc(MANAGER_HE[t.groups] || t.groups)}</b></td><td style="${cell};text-align:center;font-size:15px"><b>${t.rows.length}</b></td><td style="${cell};text-align:right">${detail(t)}</td></tr>`).join('\n')}
@@ -140,20 +122,16 @@ async function main() {
   const list = v => (v || '').split(',').map(s => s.trim()).filter(Boolean);
   const subject = `📅 לקוחות ללא יום ביקור — ${dateStr}`;
 
-  // менеджеру — его группа (только если есть клиенты); сводка — все группы из NODAY_MANAGERS, всегда
-  const mails = [], teams = [];
+  // одно письмо всем (пользователь 11.10): все менеджеры групп (даже с нулём) + NODAY_SUMMARY_TO, копия NODAY_SUMMARY_CC
+  const teams = [], managerEmails = [];
   for (const part of (process.env.NODAY_MANAGERS || '').split(';').filter(Boolean)) {
     const [groups, email] = part.split('=').map(s => s.trim());
     const gs = new Set(groups.split(',').map(s => s.trim()));
-    const mine = rows.filter(r => gs.has(r.manager));
-    teams.push({ groups, rows: mine });
-    if (!mine.length) { console.log(`  ${groups}: клиентов без дня нет — письмо менеджеру не отправляется`); continue; }
-    mails.push({ tag: groups, to: [email], cc: list(process.env.NODAY_CC), rows: mine, html: buildHtml(mine, dateStr) });
+    teams.push({ groups, rows: rows.filter(r => gs.has(r.manager)) });
+    if (email) managerEmails.push(email);
   }
-  const sumTo = list(process.env.NODAY_SUMMARY_TO);
-  if (sumTo.length) {
-    mails.push({ tag: 'summary', to: sumTo, cc: list(process.env.NODAY_SUMMARY_CC), rows: teams.flatMap(t => t.rows), html: buildSummaryHtml(teams, dateStr) });
-  }
+  const mails = [{ tag: 'summary', to: [...managerEmails, ...list(process.env.NODAY_SUMMARY_TO)], cc: list(process.env.NODAY_SUMMARY_CC),
+    rows: teams.flatMap(t => t.rows), html: buildSummaryHtml(teams, dateStr) }];
 
   const override = (process.env.NODAY_OVERRIDE || '').trim();
   if (!DRY_RUN && !process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY не найден в .env');
@@ -169,7 +147,7 @@ async function main() {
       console.log(`  [dry] ${m.tag}: ${m.rows.length} -> ${m.to.join(',')} cc ${m.cc.join(',')}`);
       continue;
     }
-    let { to, cc } = m, subj = m.tag === 'summary' ? `${subject} — סיכום מנהלים` : subject;
+    let { to, cc } = m, subj = subject;
     if (override) { console.log(`  OVERRIDE ${m.tag}: шло бы -> ${[...to, ...cc].join(', ')}`); subj = `[בדיקה ${m.tag}] ${subj}`; to = [override]; cc = []; }
     const res = await resend.emails.send({
       from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
