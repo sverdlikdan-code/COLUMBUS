@@ -3413,6 +3413,7 @@ async function initRoute(){
   maybeShowThought(); // once per calendar day, forever — see definition below
   maybeShowClientChanges(); // managers only, once per calendar day
   maybeShowA2hs(); // iPhone only, up to 3 page loads, queued behind the above
+  _trackLaunchMode();
   // Restore this agent's last-picked sort mode (AI vs "הגרסה שלי") — read fresh
   // on every call, keyed to whichever agent is currently being viewed (st.agent.code
   // is already set by selectAgent()/selectDay() before initRoute() runs, so this
@@ -6576,15 +6577,27 @@ function _openInChrome(){
 // Banner waits its turn behind מחשבת היום / guide prompt (both open at load
 // for new agents — three overlays at once, 2026-10-01): shown only while both
 // are closed, hidden again if one opens later, stops for good after a tap.
-let _pwaDone=false, _pwaLoop=null;
+let _pwaDone=false, _pwaLoop=null, _pwaShownTracked=false;
 function _pwaShowWhenClear(){
   if(_pwaLoop) return;
   _pwaLoop=setInterval(()=>{
     if(_pwaDone){ clearInterval(_pwaLoop); return; }
     const busy=['thought-toast','guide-modal'].some(id=>document.getElementById(id)?.classList.contains('open'));
     document.getElementById('pwa-banner').classList.toggle('show', !busy);
+    if(!busy && !_pwaShownTracked){ _pwaShownTracked=true; _trackEvent('pwa_banner_shown'); }
   }, 1000);
 }
+// Install funnel tracking (Dan 11.10 — "did Maria make a shortcut?" had no answer):
+// launch mode once per page load, banner → click → Chrome dialog outcome → appinstalled.
+// ponytail: events before login are dropped by requireAuth, upgrade if pre-login installs matter
+var _launchTracked=false; // var, not let: initRoute() may run before this line is reached
+function _trackLaunchMode(){
+  if(_launchTracked) return;
+  _launchTracked=true;
+  const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+  _trackEvent(standalone?'launch_standalone':'launch_browser');
+}
+window.addEventListener('appinstalled',()=>_trackEvent('pwa_installed'));
 window.addEventListener('beforeinstallprompt',e=>{
   e.preventDefault();
   _pwaPrompt=e;
@@ -6600,6 +6613,7 @@ window.addEventListener('beforeinstallprompt',e=>{
 async function doPwaInstall(){
   _pwaDone=true;
   document.getElementById('pwa-banner').classList.remove('show');
+  _trackEvent('pwa_install_click');
   if(_isSamsungInternet){
     _openInChrome();
     return;
@@ -6607,10 +6621,12 @@ async function doPwaInstall(){
   if(_pwaPrompt){
     await _pwaPrompt.prompt();
     const r=await _pwaPrompt.userChoice;
+    _trackEvent('pwa_dialog_'+r.outcome);
     if(r.outcome!=='accepted') localStorage.setItem('fr_pwa_last', String(Date.now()));
   }
 }
 function dismissPwaBanner(){
+  _trackEvent('pwa_later');
   _pwaDone=true;
   document.getElementById('pwa-banner').classList.remove('show');
   localStorage.setItem('fr_pwa_last', String(Date.now()));
