@@ -23,7 +23,7 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 // (not re-read here to avoid an exceljs dependency for a 5-row lookup).
 const EMAILS = {
   'Alexey Berilov': 'alexey.b@dilerbmd.com',
-  'Anatoli Rusanovski': 'dilerformula83@gmail.com',
+  'Anatoli Rusanovski': 'a.rusanovski@dilerbmd.com',
   'Natalia Rubin': 'natalia.r@dilerbmd.com',
   'Svetlana Perelman': 'svetlana.p@dilerbmd.com',
   'Vladyslav Hlushchenko': 'vladyslav.h@dilerbmd.com',

@@ -301,7 +301,7 @@ const RECIPIENT_NAMES = {
   'alexander.f@dilerbmd.com': 'אלכסנדר',
   // менеджеры команд FORMULA (адреса как в CLIENT_CHANGES_MANAGERS)
   'alexey.b@dilerbmd.com': 'אלכסי', // было dilerformula69@gmail.com (Дан 11.10: правильный адрес)
-  'dilerformula83@gmail.com': 'אנטולי',
+  'a.rusanovski@dilerbmd.com': 'אנטולי', // было dilerformula83@gmail.com (Дан 11.10)
   'natalia.r@dilerbmd.com': 'נטליה', // было dilerformula127@gmail.com (Дан 11.10)
   'svetlana.p@dilerbmd.com': 'סבטלנה', // было dilerformula115@gmail.com (Дан 11.10)
   'vladyslav.h@dilerbmd.com': 'ולדיסלב', // было dilerformula159@gmail.com (Дан 11.10)
