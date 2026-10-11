@@ -1,0 +1,140 @@
+// noday-alert.js — еженедельный алярм менеджерам (вс 09:00 Израиль): клиенты без дня визита в Formula Road,
+// т.е. корзина «?» приложения — FORMULA + ICE משפחתי, минус клиенты, которых агент перенёс на день в аппе.
+// Клиенты и расписание — fetchPbi из route-changes-alert.js, переносы — LIVE_DATA_DIR/route-overrides.json,
+// правило дня — lineFor (то же, что /customers). ICE — группа агента FORMULA. Заглушки 920/000 без группы — не шлются.
+// Цвет — фиолетовый, не синий как у остальных алярмов: чтобы письмо узнавалось с первого взгляда (пользователь 11.10).
+// Адресаты (env из run-alert.sh): NODAY_MANAGERS="ALEXEY=a@x;VLAD=b@x" — менеджеру его группа, письмо только
+//   если есть клиенты; NODAY_CC — копия каждого письма; NODAY_OVERRIDE=<email> — всё на этот адрес (проверка).
+// --dry-run: письма не шлются, xlsx + html в LIVE_DATA_DIR/noday-preview.
+require('dotenv').config({ path: '../.env' });
+const fs = require('fs');
+const path = require('path');
+const { Resend } = require('resend');
+const ExcelJS = require('exceljs');
+const { fetchPbi } = require('./route-changes-alert');
+const { lineFor } = require('./coverage');
+
+const DRY_RUN = process.argv.includes('--dry-run');
+const LIVE_DATA = process.env.LIVE_DATA_DIR || path.join(__dirname, 'data');
+const NO_DAY = 'לא מוגדר';
+const PURPLE = '6A1B9A', LILAC = 'F3E5F5';
+
+// клиенты, которых нет ни в одном дне 1–5 приложения
+function noDayClients(map, overrides) {
+  const byAgent = new Map();
+  for (const c of map.values()) {
+    if (!c.agent) continue;
+    if (!byAgent.has(c.agent)) byAgent.set(c.agent, []);
+    byAgent.get(c.agent).push(c);
+  }
+  const out = [];
+  for (const [agent, clients] of byAgent) {
+    const moves = overrides[agent]?.dayMoves || {};
+    const scheduled = clients.flatMap(c => c.sched.map(s => ({ custId: c.id, dayNum: s.dayNum })));
+    const inDay = new Set();
+    for (let d = 1; d <= 5; d++) {
+      for (const id of lineFor({ scheduled, dayMoves: moves, dayNum: d, movedInOk: id => map.get(id)?.agent === agent })) inDay.add(id);
+    }
+    out.push(...clients.filter(c => !inDay.has(c.id)));
+  }
+  return out;
+}
+
+const esc = s => String(s ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+const fill = argb => ({ type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + argb } });
+const thin = { style: 'thin', color: { argb: 'FFBFBFBF' } };
+const border = { top: thin, bottom: thin, left: thin, right: thin };
+
+async function buildXlsx(rows) {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('ללא יום ביקור', { views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
+  ws.columns = [
+    { header: "מס' לקוח", key: 'id', width: 11 },
+    { header: 'שם לקוח', key: 'name', width: 40 },
+    { header: 'סוכן', key: 'agent', width: 24 },
+    { header: 'מנהל', key: 'manager', width: 12 },
+    { header: 'יום', key: 'day', width: 11 },
+  ];
+  ws.getRow(1).eachCell(c => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = fill(PURPLE); c.border = border; c.alignment = { horizontal: 'center' }; });
+  for (const r of rows) {
+    const row = ws.addRow({ id: Number(r.id) || r.id, name: r.name, agent: r.agentName, manager: r.manager, day: NO_DAY });
+    row.eachCell(c => { c.border = border; c.alignment = { horizontal: c.col === 2 || c.col === 3 ? 'right' : 'center' }; });
+    row.getCell(5).fill = fill(LILAC);
+  }
+  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: 5 } };
+  return wb.xlsx.writeBuffer();
+}
+
+function buildHtml(rows, dateStr) {
+  const by = new Map();
+  for (const r of rows) by.set(r.agentName, (by.get(r.agentName) || 0) + 1);
+  const th = `style="background:#${PURPLE};color:#fff;padding:6px 10px;text-align:center"`;
+  const td = 'style="padding:5px 10px;border-bottom:1px solid #e1bee7;text-align:center"';
+  return `<!doctype html><html dir="rtl" lang="he"><body style="margin:0;background:#${LILAC}"><div dir="rtl" style="font-family:Arial,sans-serif;color:#111;max-width:700px;margin:0 auto;padding:0 0 16px;box-sizing:border-box;background:#fff;border-top:8px solid #${PURPLE}">
+<div style="background:#${PURPLE};color:#fff;padding:14px 16px"><div style="font-size:22px;font-weight:bold">📅 לקוחות ללא יום ביקור</div><div style="font-size:13px;opacity:.85">${dateStr} · <bdi>Formula Road</bdi></div></div>
+<div style="padding:16px">
+<p style="margin:0 0 6px">שלום,</p>
+<p style="margin:0 0 12px">בקבוצה שלך יש לקוחות שאין להם יום ביקור באפליקציה <bdi>Formula Road</bdi> (<bdi>FORMULA</bdi> ו-<bdi>ICE</bdi> משפחתי). נא לקבוע להם יום. הרשימה המלאה מצורפת בקובץ אקסל. דוח שבועי אוטומטי.</p>
+<table style="border-collapse:collapse;font-size:13px">
+<tr><th ${th}>סוכן</th><th ${th}>לקוחות ללא יום</th></tr>
+${[...by].sort((a, b) => b[1] - a[1]).map(([n, k]) => `<tr><td style="padding:5px 10px;border-bottom:1px solid #e1bee7;text-align:right">${esc(n)}</td><td ${td}>${k}</td></tr>`).join('\n')}
+<tr style="background:#${LILAC}"><td ${td}><b>סה"כ</b></td><td ${td}><b>${rows.length}</b></td></tr>
+</table>
+<p style="color:#777;font-size:12px;margin-top:24px">הערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.</p>
+</div></div></body></html>`;
+}
+
+async function main() {
+  const overrides = JSON.parse(fs.readFileSync(path.join(LIVE_DATA, 'route-overrides.json'), 'utf8'));
+  const { formula, ice } = await fetchPbi();
+  const group = new Map(), names = new Map();
+  for (const c of formula.values()) {
+    if (c.manager && !group.has(c.agent)) group.set(c.agent, c.manager);
+    if (!names.has(c.agent)) names.set(c.agent, c.agentName);
+  }
+  const rows = [...noDayClients(formula, overrides), ...noDayClients(ice, overrides)]
+    .map(c => ({ id: c.id, name: c.name, agent: c.agent, agentName: names.get(c.agent) || c.agent, manager: c.manager || group.get(c.agent) || '' }))
+    .sort((a, b) => a.manager.localeCompare(b.manager) || a.agentName.localeCompare(b.agentName, 'he') || a.id.localeCompare(b.id));
+  const stat = {};
+  for (const r of rows) stat[r.manager || '(без группы)'] = (stat[r.manager || '(без группы)'] || 0) + 1;
+  console.log('без дня по группам:', JSON.stringify(stat));
+
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' });
+  const dateStr = today.split('-').reverse().join('.');
+  const list = v => (v || '').split(',').map(s => s.trim()).filter(Boolean);
+  const cc = list(process.env.NODAY_CC);
+  const override = (process.env.NODAY_OVERRIDE || '').trim();
+  if (!DRY_RUN && !process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY не найден в .env');
+  const resend = DRY_RUN ? null : new Resend(process.env.RESEND_API_KEY);
+  let failed = 0, sent = 0;
+  for (const part of (process.env.NODAY_MANAGERS || '').split(';').filter(Boolean)) {
+    const [groups, email] = part.split('=').map(s => s.trim());
+    const gs = new Set(groups.split(',').map(s => s.trim()));
+    const mine = rows.filter(r => gs.has(r.manager));
+    if (!mine.length) { console.log(`  ${groups}: клиентов без дня нет — письмо не отправляется`); continue; }
+    const xlsx = Buffer.from(await buildXlsx(mine));
+    const html = buildHtml(mine, dateStr);
+    if (DRY_RUN) {
+      const dir = path.join(LIVE_DATA, 'noday-preview');
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(dir, `noday-${groups}.xlsx`), xlsx);
+      fs.writeFileSync(path.join(dir, `noday-${groups}.html`), html);
+      console.log(`  [dry] ${groups}: ${mine.length} -> ${email} cc ${cc.join(',')}`);
+      continue;
+    }
+    let to = [email], c2 = cc, subject = `📅 לקוחות ללא יום ביקור — ${dateStr}`;
+    if (override) { console.log(`  OVERRIDE ${groups}: шло бы -> ${[email, ...cc].join(', ')}`); subject = `[בדיקה ${groups}] ${subject}`; to = [override]; c2 = []; }
+    const res = await resend.emails.send({
+      from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
+      to, ...(c2.length ? { cc: c2 } : {}), subject, html,
+      attachments: [{ filename: `lakochot-lelo-yom-${today}.xlsx`, content: xlsx.toString('base64') }],
+    });
+    if (res.error) { failed++; console.error(`  FAIL ${groups}:`, JSON.stringify(res.error)); }
+    else { sent++; console.log(`  OK id=${res.data?.id} ${groups}: ${mine.length} -> ${to.join(',')}${c2.length ? ' cc ' + c2.join(',') : ''}`); }
+    await new Promise(r => setTimeout(r, 600)); // Resend: 2 req/s
+  }
+  if (DRY_RUN) console.log('--dry-run — письма не отправлены');
+  if (failed) throw new Error(`${failed} писем не ушли (ушло ${sent})`);
+}
+
+main().catch(e => { console.error('ERR:', e.message); process.exit(1); });

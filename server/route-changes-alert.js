@@ -368,4 +368,5 @@ async function main() {
   if (failed) throw new Error(`${failed} из ${mails.length} писем не ушли`);
 }
 
-main().catch(e => { console.error('ERR:', e.message); process.exit(1); });
+module.exports = { fetchPbi }; // noday-alert.js — тот же источник клиентов
+if (require.main === module) main().catch(e => { console.error('ERR:', e.message); process.exit(1); });
