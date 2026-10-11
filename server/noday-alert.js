@@ -86,19 +86,30 @@ ${[...by].sort((a, b) => b[1] - a[1]).map(([n, k]) => `<tr><td style="padding:5p
 // Сводка Йоси и Максиму: строка на менеджера. Ноль — похвала: менеджер планирует линии агентов
 // и следит за покрытием (пользователь 11.10). Имя менеджера — nameHe из managers.json по team.
 const MANAGER_HE = Object.fromEntries(require('./data/managers.json').filter(m => m.team).map(m => [m.team, m.nameHe || m.name]));
+// «לאלכסי ברילוב», «לX ולY», «לX, לY ולZ»
+const praiseNames = names => {
+  const n = names.map(x => `<span style="white-space:nowrap">ל${esc(x)}</span>`);
+  return n.length > 1 ? `${n.slice(0, -1).join(', ')} ו${n[n.length - 1]}` : n[0];
+};
 function buildSummaryHtml(teams, dateStr) {
   const th = `style="background:#${PURPLE};color:#fff;padding:6px 10px;text-align:center"`;
   const cell = 'padding:7px 10px;border-bottom:1px solid #e5e7eb;vertical-align:top';
   const total = teams.reduce((n, t) => n + t.rows.length, 0);
   const sorted = [...teams].sort((a, b) => b.rows.length - a.rows.length);
+  const stars = teams.filter(t => !t.rows.length).map(t => MANAGER_HE[t.groups] || t.groups);
   const detail = t => {
-    if (!t.rows.length) return '<span style="font-size:18px">🏆</span> <span style="color:#2e7d32;font-weight:bold">כל הלקוחות משובצים ליום ביקור</span><br><span style="color:#2e7d32;font-size:12px">כל הכבוד על תכנון קווי הסוכנים והמעקב אחרי הכיסוי</span>';
+    if (!t.rows.length) return '<span style="font-size:22px">🏆</span> <span style="color:#2e7d32;font-weight:bold;font-size:15px">כל הלקוחות משובצים ליום ביקור</span><br><span style="color:#2e7d32;font-size:13px">כל הכבוד על תכנון קווי הסוכנים והמעקב אחרי הכיסוי</span>';
     const by = new Map();
     for (const r of t.rows) by.set(r.agentName, (by.get(r.agentName) || 0) + 1);
     return [...by].sort((a, b) => b[1] - a[1]).map(([n, k]) => `${esc(n)} — ${k}`).join('<br>');
   };
   return `<!doctype html><html dir="rtl" lang="he"><body style="margin:0"><div dir="rtl" style="font-family:Arial,sans-serif;color:#111;max-width:700px;margin:0 auto;padding:16px;box-sizing:border-box">
 <h2 style="margin:0 0 8px">📅 לקוחות ללא יום ביקור — ${dateStr}</h2>
+${stars.length ? `<div style="background:#e8f5e9;border:2px solid #2e7d32;border-radius:10px;padding:14px 16px;margin:0 0 16px;text-align:center">
+<div style="font-size:34px;line-height:1.2">🏆</div>
+<div style="font-size:20px;font-weight:bold;color:#1b5e20;margin:4px 0 6px">כל הכבוד ${praiseNames(stars)}!</div>
+<div style="font-size:14px;color:#2e7d32">כל הלקוחות ${stars.length > 1 ? 'בקבוצות' : 'בקבוצה'} משובצים ליום ביקור — תכנון קווי הסוכנים ומעקב צמוד אחרי הכיסוי.</div>
+</div>` : ''}
 <p style="margin:0 0 12px">סיכום לפי מנהלים: לקוחות שאין להם יום ביקור באפליקציה <bdi>Formula Road</bdi> (<bdi>FORMULA</bdi> ו-<bdi>ICE</bdi> משפחתי). כל מנהל שיש לו לקוחות כאלה קיבל את הרשימה שלו. הרשימה המלאה מצורפת בקובץ אקסל.</p>
 <table style="border-collapse:collapse;font-size:13px;width:100%">
 <tr><th ${th}>מנהל</th><th ${th}>ללא יום</th><th ${th}>פירוט לפי סוכן</th></tr>
