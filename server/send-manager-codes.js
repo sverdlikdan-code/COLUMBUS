@@ -26,7 +26,7 @@ const EMAILS = {
   'Anatoli Rusanovski': 'dilerformula83@gmail.com',
   'Natalia Rubin': 'natalia.r@dilerbmd.com',
   'Svetlana Perelman': 'svetlana.p@dilerbmd.com',
-  'Vladyslav Hlushchenko': 'dilerformula159@gmail.com',
+  'Vladyslav Hlushchenko': 'vladyslav.h@dilerbmd.com',
 };
 
 function escEmail(s) {

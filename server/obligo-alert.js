@@ -304,7 +304,7 @@ const RECIPIENT_NAMES = {
   'dilerformula83@gmail.com': 'אנטולי',
   'natalia.r@dilerbmd.com': 'נטליה', // было dilerformula127@gmail.com (Дан 11.10)
   'svetlana.p@dilerbmd.com': 'סבטלנה', // было dilerformula115@gmail.com (Дан 11.10)
-  'dilerformula159@gmail.com': 'ולדיסלב',
+  'vladyslav.h@dilerbmd.com': 'ולדיסלב', // было dilerformula159@gmail.com (Дан 11.10)
   'dilerformula79@gmail.com': 'רומן',
   // менеджеры ICE BDD (как CLIENT_CHANGES_BDD_MANAGERS)
   'timur@dilerbmd.com': 'טימור', // было dilerformula84@gmail.com (Дан 11.10)
