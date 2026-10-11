@@ -4,7 +4,8 @@
 // правило дня — lineFor (то же, что /customers). ICE — группа агента FORMULA. Заглушки 920/000 без группы — не шлются.
 // Шапка таблиц — фиолетовая, не синяя как у остальных алярмов: чтобы письмо узнавалось с первого взгляда (пользователь 11.10).
 // Адресаты (env из run-alert.sh): NODAY_MANAGERS="ALEXEY=a@x;VLAD=b@x" — менеджеру его группа, письмо только
-//   если есть клиенты; NODAY_CC — копия каждого письма; NODAY_OVERRIDE=<email> — всё на этот адрес (проверка).
+//   если есть клиенты; NODAY_CC — копия писем менеджерам; NODAY_SUMMARY_TO/_CC — одна сводка по всем менеджерам
+//   (всегда, похвала тем, у кого 0); NODAY_OVERRIDE=<email> — всё на этот адрес (проверка).
 // --dry-run: письма не шлются, xlsx + html в LIVE_DATA_DIR/noday-preview.
 require('dotenv').config({ path: '../.env' });
 const fs = require('fs');
@@ -82,6 +83,32 @@ ${[...by].sort((a, b) => b[1] - a[1]).map(([n, k]) => `<tr><td style="padding:5p
 </div></body></html>`;
 }
 
+// Сводка Йоси и Максиму: строка на менеджера. Ноль — похвала: менеджер планирует линии агентов
+// и следит за покрытием (пользователь 11.10). Имя менеджера — nameHe из managers.json по pbiGroup.
+const MANAGER_HE = Object.fromEntries(require('./data/managers.json').filter(m => m.pbiGroup).map(m => [m.pbiGroup, m.nameHe || m.name]));
+function buildSummaryHtml(teams, dateStr) {
+  const th = `style="background:#${PURPLE};color:#fff;padding:6px 10px;text-align:center"`;
+  const cell = 'padding:7px 10px;border-bottom:1px solid #e5e7eb;vertical-align:top';
+  const total = teams.reduce((n, t) => n + t.rows.length, 0);
+  const sorted = [...teams].sort((a, b) => b.rows.length - a.rows.length);
+  const detail = t => {
+    if (!t.rows.length) return '<span style="color:#2e7d32;font-weight:bold">✓ כל הלקוחות משובצים ליום ביקור</span><br><span style="color:#2e7d32;font-size:12px">תכנון קווי הסוכנים ומעקב הכיסוי — לשבח 👏</span>';
+    const by = new Map();
+    for (const r of t.rows) by.set(r.agentName, (by.get(r.agentName) || 0) + 1);
+    return [...by].sort((a, b) => b[1] - a[1]).map(([n, k]) => `${esc(n)} — ${k}`).join('<br>');
+  };
+  return `<!doctype html><html dir="rtl" lang="he"><body style="margin:0"><div dir="rtl" style="font-family:Arial,sans-serif;color:#111;max-width:700px;margin:0 auto;padding:16px;box-sizing:border-box">
+<h2 style="margin:0 0 8px">📅 לקוחות ללא יום ביקור — ${dateStr}</h2>
+<p style="margin:0 0 12px">סיכום לפי מנהלים: לקוחות שאין להם יום ביקור באפליקציה <bdi>Formula Road</bdi> (<bdi>FORMULA</bdi> ו-<bdi>ICE</bdi> משפחתי). כל מנהל שיש לו לקוחות כאלה קיבל את הרשימה שלו. הרשימה המלאה מצורפת בקובץ אקסל.</p>
+<table style="border-collapse:collapse;font-size:13px;width:100%">
+<tr><th ${th}>מנהל</th><th ${th}>ללא יום</th><th ${th}>פירוט לפי סוכן</th></tr>
+${sorted.map(t => `<tr${t.rows.length ? '' : ' style="background:#f1f8e9"'}><td style="${cell};text-align:right;white-space:nowrap"><b>${esc(MANAGER_HE[t.groups] || t.groups)}</b></td><td style="${cell};text-align:center;font-size:15px"><b>${t.rows.length}</b></td><td style="${cell};text-align:right">${detail(t)}</td></tr>`).join('\n')}
+<tr><td style="${cell};text-align:right"><b>סה"כ</b></td><td style="${cell};text-align:center"><b>${total}</b></td><td style="${cell}"></td></tr>
+</table>
+<p style="color:#777;font-size:12px;margin-top:24px">דוח שבועי אוטומטי. הערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.</p>
+</div></body></html>`;
+}
+
 async function main() {
   const overrides = JSON.parse(fs.readFileSync(path.join(LIVE_DATA, 'route-overrides.json'), 'utf8'));
   const { formula, ice } = await fetchPbi();
@@ -100,35 +127,46 @@ async function main() {
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' });
   const dateStr = today.split('-').reverse().join('.');
   const list = v => (v || '').split(',').map(s => s.trim()).filter(Boolean);
-  const cc = list(process.env.NODAY_CC);
-  const override = (process.env.NODAY_OVERRIDE || '').trim();
-  if (!DRY_RUN && !process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY не найден в .env');
-  const resend = DRY_RUN ? null : new Resend(process.env.RESEND_API_KEY);
-  let failed = 0, sent = 0;
+  const subject = `📅 לקוחות ללא יום ביקור — ${dateStr}`;
+
+  // менеджеру — его группа (только если есть клиенты); сводка — все группы из NODAY_MANAGERS, всегда
+  const mails = [], teams = [];
   for (const part of (process.env.NODAY_MANAGERS || '').split(';').filter(Boolean)) {
     const [groups, email] = part.split('=').map(s => s.trim());
     const gs = new Set(groups.split(',').map(s => s.trim()));
     const mine = rows.filter(r => gs.has(r.manager));
-    if (!mine.length) { console.log(`  ${groups}: клиентов без дня нет — письмо не отправляется`); continue; }
-    const xlsx = Buffer.from(await buildXlsx(mine));
-    const html = buildHtml(mine, dateStr);
+    teams.push({ groups, rows: mine });
+    if (!mine.length) { console.log(`  ${groups}: клиентов без дня нет — письмо менеджеру не отправляется`); continue; }
+    mails.push({ tag: groups, to: [email], cc: list(process.env.NODAY_CC), rows: mine, html: buildHtml(mine, dateStr) });
+  }
+  const sumTo = list(process.env.NODAY_SUMMARY_TO);
+  if (sumTo.length) {
+    mails.push({ tag: 'summary', to: sumTo, cc: list(process.env.NODAY_SUMMARY_CC), rows: teams.flatMap(t => t.rows), html: buildSummaryHtml(teams, dateStr) });
+  }
+
+  const override = (process.env.NODAY_OVERRIDE || '').trim();
+  if (!DRY_RUN && !process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY не найден в .env');
+  const resend = DRY_RUN ? null : new Resend(process.env.RESEND_API_KEY);
+  let failed = 0, sent = 0;
+  for (const m of mails) {
+    const xlsx = Buffer.from(await buildXlsx(m.rows));
     if (DRY_RUN) {
       const dir = path.join(LIVE_DATA, 'noday-preview');
       fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(path.join(dir, `noday-${groups}.xlsx`), xlsx);
-      fs.writeFileSync(path.join(dir, `noday-${groups}.html`), html);
-      console.log(`  [dry] ${groups}: ${mine.length} -> ${email} cc ${cc.join(',')}`);
+      fs.writeFileSync(path.join(dir, `noday-${m.tag}.xlsx`), xlsx);
+      fs.writeFileSync(path.join(dir, `noday-${m.tag}.html`), m.html);
+      console.log(`  [dry] ${m.tag}: ${m.rows.length} -> ${m.to.join(',')} cc ${m.cc.join(',')}`);
       continue;
     }
-    let to = [email], c2 = cc, subject = `📅 לקוחות ללא יום ביקור — ${dateStr}`;
-    if (override) { console.log(`  OVERRIDE ${groups}: шло бы -> ${[email, ...cc].join(', ')}`); subject = `[בדיקה ${groups}] ${subject}`; to = [override]; c2 = []; }
+    let { to, cc } = m, subj = m.tag === 'summary' ? `${subject} — סיכום מנהלים` : subject;
+    if (override) { console.log(`  OVERRIDE ${m.tag}: шло бы -> ${[...to, ...cc].join(', ')}`); subj = `[בדיקה ${m.tag}] ${subj}`; to = [override]; cc = []; }
     const res = await resend.emails.send({
       from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
-      to, ...(c2.length ? { cc: c2 } : {}), subject, html,
+      to, ...(cc.length ? { cc } : {}), subject: subj, html: m.html,
       attachments: [{ filename: `lakochot-lelo-yom-${today}.xlsx`, content: xlsx.toString('base64') }],
     });
-    if (res.error) { failed++; console.error(`  FAIL ${groups}:`, JSON.stringify(res.error)); }
-    else { sent++; console.log(`  OK id=${res.data?.id} ${groups}: ${mine.length} -> ${to.join(',')}${c2.length ? ' cc ' + c2.join(',') : ''}`); }
+    if (res.error) { failed++; console.error(`  FAIL ${m.tag}:`, JSON.stringify(res.error)); }
+    else { sent++; console.log(`  OK id=${res.data?.id} ${m.tag}: ${m.rows.length} -> ${to.join(',')}${cc.length ? ' cc ' + cc.join(',') : ''}`); }
     await new Promise(r => setTimeout(r, 600)); // Resend: 2 req/s
   }
   if (DRY_RUN) console.log('--dry-run — письма не отправлены');
