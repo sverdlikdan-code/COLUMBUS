@@ -465,9 +465,38 @@ async function liveOrderGpsForNewClient(custId, daysBack = 30) {
     b.latSum += p.lat * p.cnt; b.lngSum += p.lng * p.cnt; b.cnt += p.cnt;
     buckets.set(key, b);
   }
-  let best = null;
-  for (const b of buckets.values()) if (!best || b.cnt > best.cnt) best = b;
-  return best ? { lat: best.latSum / best.cnt, lng: best.lngSum / best.cnt, orders: best.cnt } : null;
+  // Biggest bucket that isn't a hub: orders keyed in at a warehouse/office show up for clients of
+  // many towns (32.818,35.061 for רכסים, ראשון לציון, ראש פינה, אבן יהודה — Dan 2026-10-11).
+  const ranked = [...buckets.values()].sort((a, b) => b.cnt - a.cnt);
+  for (const b of ranked) {
+    const lat = b.latSum / b.cnt, lng = b.lngSum / b.cnt;
+    if (await isHubPoint(lat, lng)) continue;
+    return { lat, lng, orders: b.cnt };
+  }
+  return null;
+}
+
+// A GPS point (~100 m) that orders of clients from 3+ different cities were entered at in the last
+// 90 days — a depot, not a shop. A mall is fine: its shops share one city.
+async function isHubPoint(lat, lng) {
+  const since = curdateFor(new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10));
+  const cities = new Set();
+  for (const dbName of ['form', 'icecrea', 'diller']) {
+    try {
+      const r = await (await getPool(dbName)).request()
+        .input('since', sql.BigInt, since)
+        .input('lat0', sql.Float, lat - 0.0007).input('lat1', sql.Float, lat + 0.0007)
+        .input('lng0', sql.Float, lng - 0.0008).input('lng1', sql.Float, lng + 0.0008)
+        .query(`
+          SELECT DISTINCT C.STATE AS city
+          FROM ORDERS O JOIN CUSTOMERS C ON C.CUST = O.CUST JOIN ORDERSB OB ON OB.ORD = O.ORD
+          WHERE O.CURDATE >= @since
+            AND TRY_CAST(OB.GPSY AS float) BETWEEN @lat0 AND @lat1
+            AND TRY_CAST(OB.GPSX AS float) BETWEEN @lng0 AND @lng1`);
+      for (const x of r.recordset) if (x.city) cities.add(String(x.city).trim());
+    } catch (e) { console.error(`[priority-db] hub check failed (${dbName}): ${e.message}`); }
+  }
+  return cities.size >= 3;
 }
 
 // Акции (SOF_PRICEREC) для кнопки מבצע на карточке клиента — FORMULA + ICE MISH.

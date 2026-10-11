@@ -725,6 +725,8 @@ ROW("maxDate", CALCULATE(MAX(ALL_PARTS[תאריך]), ALL_PARTS[ASHMADOT] = "-מ�
         console.log(`[PBI] ICE geocode: ${done}/${_allIce.length} with GPS`);
       }).catch(() => {});
     }
+    // after ICE geocode + BDD start, so external geocoders and SQL aren't hit all at once
+    setTimeout(() => prewarmNewClientGps().catch(e => console.error('[gps-prewarm]', e.message)), 3 * 60 * 1000);
   }
 }
 
@@ -1970,6 +1972,14 @@ function extractStreetNum(address) {
 
 const SETTLEMENT_RE = /(מושב|קיבוץ|כפר|ישוב|מוצא|נחלה)/;
 
+// Spelling variants of a street for a second geocoding try: leading ה added/dropped, קק"ל spelled out.
+function streetVariants(s) {
+  if (!s) return [];
+  const kkl = s.replace(/קק["״']?ל/g, 'הקרן הקיימת לישראל').replace(/(^|s)קרן קיימת לישראל/g, '$1הקרן הקיימת לישראל');
+  const he = s.startsWith('ה') ? s.slice(1) : 'ה' + s;
+  return [...new Set([kkl, he])].filter(v => v && v !== s);
+}
+
 async function geocodeAddressCascade(address, city, opts = {}) {
   if (isPoBox(address || '')) return null;
 
@@ -1984,25 +1994,34 @@ async function geocodeAddressCascade(address, city, opts = {}) {
     return null;
   }
   const cityStr = city ? `, ${city}` : '';
+  // A hit in another city (Azure: «קרן קיימת לישראל, לוד» → Tel Aviv) used to end the cascade and get
+  // rejected by the caller's bbox check — now it just moves on to the next attempt (Dan 2026-10-11).
+  const inCity = r => r && isWithinCityBBox(r.lat, r.lng, cityBBoxCache.get(city) ?? null);
 
   // attempt 1: full cleaned address + city
   if (cleaned) {
     const r = await geocodeAddress(cleaned + cityStr + ', ישראל', city, opts);
-    if (r) return r;
+    if (inCity(r)) return r;
   }
 
   // attempt 2: AI normalization — knows Hebrew better than regex
   const aiAddr = await normalizeAddressWithAI(address, city);
   if (aiAddr) {
     const r = await geocodeAddress(aiAddr + cityStr + ', ישראל', city, opts);
-    if (r) { if (!opts.noCache) saveGeocodeCache(); return r; }
+    if (inCity(r)) { if (!opts.noCache) saveGeocodeCache(); return r; }
   }
 
   // attempt 3: street+number only + city
   const street = extractStreetNum(cleaned || address || '');
   if (street && street !== cleaned) {
     const r = await geocodeAddress(street + cityStr + ', ישראל', city, opts);
-    if (r) return r;
+    if (inCity(r)) return r;
+  }
+
+  // attempt 3b: street-name spelling variants — OSM has «הקרן הקיימת לישראל», Priority «קרן קיימת לישראל»
+  for (const v of streetVariants(street || cleaned)) {
+    const r = await geocodeAddress(v + cityStr + ', ישראל', city, opts);
+    if (inCity(r)) return r;
   }
 
   // attempt 4: city-only fallback — mark as approximate
@@ -2105,6 +2124,48 @@ async function tryLiveOrderGps(c) {
   c.lat = live.lat; c.lng = live.lng; c.gpsSource = 'tablet-order-live';
   geocodeResolvedCache.set(id, { lat: c.lat, lng: c.lng, gpsSource: c.gpsSource });
   return true;
+}
+
+// New clients get their GPS once, right after the PBI load (06:00 / restart) — not when an agent
+// first opens the route (Dan 2026-10-11). geocodeBatch on copies: pbiCache stays raw, results go to
+// geocodeResolvedCache, so /customers serves them without new requests. Manual corrections always win
+// and are skipped. Clients still on a city center / without GPS → one mail per client, ever.
+const GPS_UNRESOLVED_REPORTED = path.join(__dirname, 'data', 'gps-unresolved-reported.json');
+async function prewarmNewClientGps() {
+  if (!pbiCache) return;
+  let corrections = {};
+  try { corrections = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'docs', 'gps-corrections.json'), 'utf8')); } catch (_) {}
+  const teamOf = new Map();
+  for (const [mgr, agents] of pbiCache.agentsByManager || []) for (const a of agents) teamOf.set(String(a.agentCode), { mgr, name: a.agentName });
+  const pick = (map, channel) => [...(map || [])].flatMap(([ag, list]) => PLACEHOLDER_AGENTS.has(String(ag)) ? []
+    : list.filter(c => !corrections[String(c.custId)]).map(c => ({ c, ag: String(ag), channel })));
+  const formula = [...pick(pbiCache.byAgent, 'FORMULA'), ...pick(pbiCache.noScheduleByAgent, 'FORMULA')];
+  const copies = formula.map(x => ({ ...x, c: { ...x.c } }));
+  await geocodeBatch(copies.map(x => x.c));
+  // ICE objects were geocoded in place at load; just read their outcome
+  const ice = pick(pbiCache.iceByAgent, 'ICE');
+  const bad = [...copies, ...ice].filter(x => x.c.gpsSource === 'city-center' || x.c.gpsSource === 'no-gps' || !isValidIL(x.c.lat, x.c.lng));
+  console.log(`[gps-prewarm] FORMULA ${copies.length} checked, unresolved: ${bad.length} (FORMULA+ICE)`);
+
+  let reported = {};
+  try { reported = JSON.parse(fs.readFileSync(GPS_UNRESOLVED_REPORTED, 'utf8')); } catch (_) {}
+  const fresh = [], ids = new Set();
+  for (const x of bad) { const id = String(x.c.custId); if (reported[id] || ids.has(id)) continue; ids.add(id); fresh.push(x); }
+  const to = (process.env.GPS_UNRESOLVED_TO || process.env.BIWEEKLY_RETURN_TO || '').split(',').map(v => v.trim()).filter(Boolean);
+  if (!fresh.length || !resend || !to.length) return;
+  const esc = v => String(v ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+  const rows = fresh.map(x => { const t = teamOf.get(x.ag); return `<tr><td>${esc(x.c.custId)}</td><td>${esc(x.c.custName)}</td><td>${esc(x.c.city)}</td><td>${esc(x.c.address)}</td><td>${esc(t ? t.name : x.ag)}</td><td>${esc(t ? t.mgr : '—')}</td><td>${x.channel}</td><td>${x.c.gpsSource === 'city-center' ? 'מרכז העיר' : 'אין GPS'}</td></tr>`; }).join('');
+  const html = `<div dir="rtl" style="font-family:Arial,sans-serif"><p>לקוחות שלא נמצא להם מיקום (לא כתובת, לא הזמנות עם GPS) — מוצגים במרכז העיר או בלי מיקום. אפשר לסמן ב-📍 באפליקציה.</p>
+<table border="1" cellpadding="4" style="border-collapse:collapse;font-size:13px"><tr style="background:#eee"><th>לקוח</th><th>שם</th><th>עיר</th><th>כתובת</th><th>סוכן</th><th>צוות</th><th>ערוץ</th><th>מצב</th></tr>${rows}</table></div>`;
+  try {
+    const r = await resend.emails.send({ from: `Formula Road <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`, to,
+      subject: `Formula Road GPS: ${fresh.length} לקוחות בלי מיקום`, html });
+    if (r.error) throw new Error(JSON.stringify(r.error));
+    const day = todayIsraelDate();
+    for (const x of fresh) reported[String(x.c.custId)] = day;
+    fs.writeFileSync(GPS_UNRESOLVED_REPORTED, JSON.stringify(reported), 'utf8');
+    console.log('[gps-prewarm] mail →', to.join(','), fresh.length, r.data?.id || '');
+  } catch (e) { console.error('[gps-prewarm] mail failed:', e.message); }
 }
 
 async function geocodeBatch(clients) {
