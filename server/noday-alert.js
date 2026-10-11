@@ -92,7 +92,7 @@ function buildSummaryHtml(teams, dateStr) {
   const total = teams.reduce((n, t) => n + t.rows.length, 0);
   const sorted = [...teams].sort((a, b) => b.rows.length - a.rows.length);
   const detail = t => {
-    if (!t.rows.length) return '<span style="font-size:18px">🏆</span> <span style="color:#2e7d32;font-weight:bold">כל הלקוחות משובצים ליום ביקור</span><br><span style="color:#2e7d32;font-size:12px">תכנון קווי הסוכנים ומעקב הכיסוי — לשבח</span>';
+    if (!t.rows.length) return '<span style="font-size:18px">🏆</span> <span style="color:#2e7d32;font-weight:bold">כל הלקוחות משובצים ליום ביקור</span><br><span style="color:#2e7d32;font-size:12px">כל הכבוד על תכנון קווי הסוכנים והמעקב אחרי הכיסוי</span>';
     const by = new Map();
     for (const r of t.rows) by.set(r.agentName, (by.get(r.agentName) || 0) + 1);
     return [...by].sort((a, b) => b[1] - a[1]).map(([n, k]) => `${esc(n)} — ${k}`).join('<br>');
