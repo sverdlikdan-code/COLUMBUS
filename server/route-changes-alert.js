@@ -22,6 +22,7 @@ const { lineFor } = require('./coverage');
 const DRY_RUN = process.argv.includes('--dry-run');
 const LIVE_DATA = process.env.LIVE_DATA_DIR || path.join(__dirname, 'data');
 const LETTERS = ['', 'א', 'ב', 'ג', 'ד', 'ה'];
+const PLACEHOLDER_AGENTS = new Set(['920', '931', '000']); // «כללי…» — заглушки, не агенты (как в index.js)
 const DAY_NUM = { 'א': 1, 'ב': 2, 'ג': 3, 'ד': 4, 'ה': 5, 'ראשון': 1, 'שני': 2, 'שלישי': 3, 'רביעי': 4, 'חמישי': 5 };
 
 // Та же функция, что в client-changes-alert.js / obligo-alert.js.
@@ -82,13 +83,18 @@ SELECTCOLUMNS(
   "agentCode", 'MISHPAHTI ICE MISHTAH'[מס.סוכן נוסף],
   "dayLetter", 'MISHPAHTI ICE MISHTAH'[פרמטר 18]
 )`, process.env.POWERBI_ICE_DATASET_ID);
+    const hiddenBoth = new Set(); // строки ICE повторяются по дням — помним скрытых
     for (const r of iceRows) {
       const id = String(r['[custId]'] || '');
       const agent = String(r['[agentCode]'] || '');
-      if (!id || !agent || agent === 'null') continue;
-      // как в кэше: FORMULA-клиент никогда не ICE-only — кроме агента 920 «כללי - פורמולה» (заглушка):
-      // такой клиент считается чистым ICE своего доп. агента (правило 11.10.2026)
-      if (formula.has(id)) { if (formula.get(id).agent !== '920') continue; formula.delete(id); }
+      if (!id || !agent || agent === 'null' || hiddenBoth.has(id)) continue;
+      // как в кэше: FORMULA-клиент никогда не ICE-only — кроме FORMULA-заглушки 920/000: тогда он чистый ICE
+      // доп. агента; заглушка и там, и там (ICE 931/000) — клиента нет нигде (правило 11.10.2026)
+      if (formula.has(id)) {
+        if (!PLACEHOLDER_AGENTS.has(formula.get(id).agent)) continue;
+        formula.delete(id);
+        if (PLACEHOLDER_AGENTS.has(agent)) { hiddenBoth.add(id); continue; }
+      }
       if (!ice.has(id)) ice.set(id, { id, name: fixBiDi(r['[custName]'] || ''), agent, sched: [] });
       const dayNum = DAY_NUM[String(r['[dayLetter]'] || '').trim()];
       if (dayNum && !ice.get(id).sched.some(s => s.dayNum === dayNum)) ice.get(id).sched.push({ dayNum });

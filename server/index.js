@@ -25,8 +25,9 @@ const VPS_URL  = 'https://api.sverdlik-apps.site';
 // Single source of truth: all client/agent/manager data loaded from Power BI
 // at startup and refreshed daily. Endpoints serve from memory → <5ms latency.
 
-// 'משטח'[סוכן] 920 "כללי - פורמולה" — placeholder, not a real agent (see ICE block in loadPbiCache)
-const FORMULA_PLACEHOLDER_AGENT = '920';
+// Placeholder agent codes, not real agents (see ICE block in loadPbiCache):
+// 920 "כללי - פורמולה" ('משטח'), 931 "כללי - אייס - משפחתי" and 000 "כללי" (ICE מס.סוכן נוסף / both)
+const PLACEHOLDER_AGENTS = new Set(['920', '931', '000']);
 const DAY_HE_TO_NUM = { 'א': 1, 'ב': 2, 'ג': 3, 'ד': 4, 'ה': 5, 'ראשון': 1, 'שני': 2, 'שלישי': 3, 'רביעי': 4, 'חמישי': 5 };
 
 let pbiCache = null; // set by loadPBICache()
@@ -568,23 +569,26 @@ SELECTCOLUMNS(
 `, ICE_DS);
 
         const ICE_DAY_MAP = { 'א': 1, 'ב': 2, 'ג': 3, 'ד': 4, 'ה': 5 };
+        const _placeholderBoth = new Set(); // FORMULA + ICE both placeholder — hidden (rows repeat per day)
         for (const r of iceRows) {
           const custId    = String(r['[custId]'] || '');
           const agentCode = String(r['[agentCode]'] || '');
-          if (!custId || !agentCode || agentCode === 'null') continue;
+          if (!custId || !agentCode || agentCode === 'null' || _placeholderBoth.has(custId)) continue;
           const dayLetter = (r['[dayLetter]'] || '').trim();
           const dayNum    = ICE_DAY_MAP[dayLetter] || null; // null = no day assigned
-          // Skip if already in Formula meshtat — except agent 920 "כללי - פורמולה": a placeholder,
-          // not a real agent. Rule (user, 2026-10-11): such a client counts as NOT in FORMULA and is a
-          // pure ICE client of its מס.סוכן נוסף (1135315 was invisible to agent 110 because of this).
+          // Skip if already in Formula meshtat — except a placeholder FORMULA agent (920/000). Rule (user,
+          // 2026-10-11): such a client counts as NOT in FORMULA and is a pure ICE client of its
+          // מס.סוכן נוסף (1135315 was invisible to agent 110 because of this). Placeholder on both sides
+          // (ICE 931/000 too) → the client isn't shown in the app at all.
           const _fc = clientMap.get(custId);
-          if (_fc && _fc.agentCode !== FORMULA_PLACEHOLDER_AGENT) continue;
+          if (_fc && !PLACEHOLDER_AGENTS.has(_fc.agentCode)) continue;
           if (_fc) {
             clientMap.delete(custId);
             for (const m of [byAgent, noScheduleByAgent]) {
-              const arr = m.get(FORMULA_PLACEHOLDER_AGENT);
-              if (arr) m.set(FORMULA_PLACEHOLDER_AGENT, arr.filter(c => c.custId !== custId));
+              const arr = m.get(_fc.agentCode);
+              if (arr) m.set(_fc.agentCode, arr.filter(c => c.custId !== custId));
             }
+            if (PLACEHOLDER_AGENTS.has(agentCode)) { _placeholderBoth.add(custId); continue; }
           }
 
           const rawCity = r['[city]'] || '';
