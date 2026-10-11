@@ -82,7 +82,7 @@ function buildSummaryHtml(teams, dateStr) {
   // плашка 🏆 — только если хоть у одной команды не ноль: при нуле у всех похвала всем обесценивается (пользователь 11.10)
   const showStars = stars.length > 0 && stars.length < teams.length;
   const detail = t => {
-    if (!t.rows.length) return '<span style="font-size:22px">🏆</span> <span style="color:#2e7d32;font-weight:bold;font-size:15px">כל הלקוחות משובצים ליום ביקור</span><br><span style="color:#2e7d32;font-size:13px">כל הכבוד על תכנון קווי הסוכנים והמעקב אחרי הכיסוי</span>';
+    if (!t.rows.length) return '<span style="font-size:22px">🏆</span> <span style="color:#2e7d32;font-weight:bold;font-size:15px">כל הלקוחות משובצים ליום ביקור</span><br><span style="color:#2e7d32;font-size:13px">כל הכבוד על תכנון הקווים וביצוע הפיזור</span>';
     const by = new Map();
     for (const r of t.rows) by.set(r.agentName, (by.get(r.agentName) || 0) + 1);
     return [...by].sort((a, b) => b[1] - a[1]).map(([n, k]) => `${esc(n)} — ${k}`).join('<br>');
@@ -92,7 +92,7 @@ function buildSummaryHtml(teams, dateStr) {
 ${showStars ? `<div style="background:#e8f5e9;border:2px solid #2e7d32;border-radius:10px;padding:14px 16px;margin:0 0 16px;text-align:center">
 <div style="font-size:34px;line-height:1.2">🏆</div>
 <div style="font-size:20px;font-weight:bold;color:#1b5e20;margin:4px 0 6px">כל הכבוד ${praiseNames(stars)}!</div>
-<div style="font-size:14px;color:#2e7d32">כל הלקוחות ${stars.length > 1 ? 'בקבוצות' : 'בקבוצה'} משובצים ליום ביקור — תכנון קווי הסוכנים ומעקב צמוד אחרי הכיסוי.</div>
+<div style="font-size:14px;color:#2e7d32">כל הלקוחות ${stars.length > 1 ? 'בקבוצות' : 'בקבוצה'} משובצים ליום ביקור — תכנון קווי הסוכנים וביצוע פיזור מלא.</div>
 </div>` : ''}
 <p style="margin:0 0 12px">סיכום לפי מנהלים: לקוחות שאין להם יום ביקור באפליקציה <bdi>Formula Road</bdi> (<bdi>FORMULA</bdi> ו-<bdi>ICE</bdi> משפחתי). הרשימה המלאה (מס' לקוח, שם, סוכן, מנהל) — בקובץ האקסל המצורף.</p>
 <table style="border-collapse:collapse;font-size:13px;width:100%">
