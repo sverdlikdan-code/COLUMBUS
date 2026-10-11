@@ -1866,7 +1866,7 @@ function cleanAddressForGeocoding(address) {
 
 // ── Geocoding services ────────────────────────────────────────────────────────
 const AZURE_MAPS_KEY    = process.env.AZURE_MAPS_KEY    || '';
-const GOOGLE_MAPS_KEY   = process.env.GOOGLE_MAPS_KEY   || '';  // REQUEST_DENIED — billing not enabled
+const GOOGLE_MAPS_KEY   = process.env.GOOGLE_MAPS_KEY   || '';  // billing on since 2026-10-11 (was REQUEST_DENIED)
 const LOCATIONIQ_KEY    = process.env.LOCATIONIQ_KEY    || '';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 
@@ -1895,8 +1895,22 @@ async function geocodeAzure(query) {
   return null;
 }
 
-// Google geocoding disabled — REQUEST_DENIED (billing not enabled on GCP project)
-async function geocodeGoogle(query) { return null; }
+// Google Geocoding — first provider in geocodeAddress (Dan 2026-10-11, billing on). geocodeAddress only runs
+// for queries not yet in geocodeCache, so in practice: new clients. A town-level answer (Google's fallback
+// for an unknown street, e.g. «שש הימים 4, נס ציונה» → «נס ציונה») is NOT an address — rejected so the
+// cascade still ends in an honest city-center.
+const GOOGLE_ADDRESS_TYPES = new Set(['street_address', 'premise', 'subpremise', 'route', 'intersection', 'establishment', 'point_of_interest']);
+async function geocodeGoogle(query) {
+  if (!GOOGLE_MAPS_KEY) return null;
+  try {
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&language=he&region=il&key=${GOOGLE_MAPS_KEY}`;
+    const d = await (await fetch(url, { signal: AbortSignal.timeout(5000) })).json();
+    if (d?.status !== 'OK') { if (d?.status !== 'ZERO_RESULTS') console.error('[google-geocode]', d?.status, (d?.error_message || '').slice(0, 80)); return null; }
+    const r = d.results[0];
+    if (!r?.types?.some(t => GOOGLE_ADDRESS_TYPES.has(t))) return null;
+    return { lat: r.geometry.location.lat, lng: r.geometry.location.lng };
+  } catch (_) { return null; }
+}
 
 let _lastNominatimMs = 0;
 async function geocodeNominatim(query, city) {
@@ -1957,7 +1971,8 @@ async function normalizeAddressWithAI(address, city) {
 
 async function geocodeAddress(query, city, opts = {}) {
   if (geocodeCache.has(query)) return geocodeCache.get(query);
-  let result = await geocodeLocationIQ(query);
+  let result = await geocodeGoogle(query);
+  if (!result) result = await geocodeLocationIQ(query);
   if (!result) result = await geocodeNominatim(query, city);
   if (!result) result = await geocodeAzure(query);
   if (!opts.noCache) geocodeCache.set(query, result || null);

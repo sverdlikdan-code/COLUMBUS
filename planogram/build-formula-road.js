@@ -192,8 +192,10 @@ async function googleMapsQuery(q, city) {
       googleCache[q] = { lat, lng }; googleCacheDirty = true;
       return { lat, lng };
     }
+    // only a real "no such address" is remembered — REQUEST_DENIED/quota/timeouts are retried next build
+    // (they were cached as null and, with the cache file never committed, re-asked every night — 2026-10-11)
+    if (data?.status === 'ZERO_RESULTS') { googleCache[q] = null; googleCacheDirty = true; }
   } catch (_) {}
-  googleCache[q] = null; googleCacheDirty = true;
   return null;
 }
 
