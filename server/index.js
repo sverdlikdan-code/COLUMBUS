@@ -25,6 +25,8 @@ const VPS_URL  = 'https://api.sverdlik-apps.site';
 // Single source of truth: all client/agent/manager data loaded from Power BI
 // at startup and refreshed daily. Endpoints serve from memory → <5ms latency.
 
+// 'משטח'[סוכן] 920 "כללי - פורמולה" — placeholder, not a real agent (see ICE block in loadPbiCache)
+const FORMULA_PLACEHOLDER_AGENT = '920';
 const DAY_HE_TO_NUM = { 'א': 1, 'ב': 2, 'ג': 3, 'ד': 4, 'ה': 5, 'ראשון': 1, 'שני': 2, 'שלישי': 3, 'רביעי': 4, 'חמישי': 5 };
 
 let pbiCache = null; // set by loadPBICache()
@@ -572,8 +574,18 @@ SELECTCOLUMNS(
           if (!custId || !agentCode || agentCode === 'null') continue;
           const dayLetter = (r['[dayLetter]'] || '').trim();
           const dayNum    = ICE_DAY_MAP[dayLetter] || null; // null = no day assigned
-          // Skip if already in Formula meshtat
-          if (clientMap.has(custId)) continue;
+          // Skip if already in Formula meshtat — except agent 920 "כללי - פורמולה": a placeholder,
+          // not a real agent. Rule (user, 2026-10-11): such a client counts as NOT in FORMULA and is a
+          // pure ICE client of its מס.סוכן נוסף (1135315 was invisible to agent 110 because of this).
+          const _fc = clientMap.get(custId);
+          if (_fc && _fc.agentCode !== FORMULA_PLACEHOLDER_AGENT) continue;
+          if (_fc) {
+            clientMap.delete(custId);
+            for (const m of [byAgent, noScheduleByAgent]) {
+              const arr = m.get(FORMULA_PLACEHOLDER_AGENT);
+              if (arr) m.set(FORMULA_PLACEHOLDER_AGENT, arr.filter(c => c.custId !== custId));
+            }
+          }
 
           const rawCity = r['[city]'] || '';
           const rawAddr = r['[address]'] || '';

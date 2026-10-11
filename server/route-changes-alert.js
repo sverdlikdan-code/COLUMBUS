@@ -85,7 +85,10 @@ SELECTCOLUMNS(
     for (const r of iceRows) {
       const id = String(r['[custId]'] || '');
       const agent = String(r['[agentCode]'] || '');
-      if (!id || !agent || agent === 'null' || formula.has(id)) continue; // как в кэше: FORMULA-клиент никогда не ICE-only
+      if (!id || !agent || agent === 'null') continue;
+      // как в кэше: FORMULA-клиент никогда не ICE-only — кроме агента 920 «כללי - פורמולה» (заглушка):
+      // такой клиент считается чистым ICE своего доп. агента (правило 11.10.2026)
+      if (formula.has(id)) { if (formula.get(id).agent !== '920') continue; formula.delete(id); }
       if (!ice.has(id)) ice.set(id, { id, name: fixBiDi(r['[custName]'] || ''), agent, sched: [] });
       const dayNum = DAY_NUM[String(r['[dayLetter]'] || '').trim()];
       if (dayNum && !ice.get(id).sched.some(s => s.dayNum === dayNum)) ice.get(id).sched.push({ dayNum });
