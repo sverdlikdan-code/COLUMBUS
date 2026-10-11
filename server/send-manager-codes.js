@@ -24,7 +24,7 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 const EMAILS = {
   'Alexey Berilov': 'alexey.b@dilerbmd.com',
   'Anatoli Rusanovski': 'dilerformula83@gmail.com',
-  'Natalia Rubin': 'dilerformula127@gmail.com',
+  'Natalia Rubin': 'natalia.r@dilerbmd.com',
   'Svetlana Perelman': 'svetlana.p@dilerbmd.com',
   'Vladyslav Hlushchenko': 'dilerformula159@gmail.com',
 };
