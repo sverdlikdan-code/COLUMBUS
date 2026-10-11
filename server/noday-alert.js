@@ -79,6 +79,8 @@ function buildSummaryHtml(teams, dateStr) {
   const total = teams.reduce((n, t) => n + t.rows.length, 0);
   const sorted = [...teams].sort((a, b) => b.rows.length - a.rows.length);
   const stars = teams.filter(t => !t.rows.length).map(t => MANAGER_HE[t.groups] || t.groups);
+  // плашка 🏆 — только если хоть у одной команды не ноль: при нуле у всех похвала всем обесценивается (пользователь 11.10)
+  const showStars = stars.length > 0 && stars.length < teams.length;
   const detail = t => {
     if (!t.rows.length) return '<span style="font-size:22px">🏆</span> <span style="color:#2e7d32;font-weight:bold;font-size:15px">כל הלקוחות משובצים ליום ביקור</span><br><span style="color:#2e7d32;font-size:13px">כל הכבוד על תכנון קווי הסוכנים והמעקב אחרי הכיסוי</span>';
     const by = new Map();
@@ -87,7 +89,7 @@ function buildSummaryHtml(teams, dateStr) {
   };
   return `<!doctype html><html dir="rtl" lang="he"><body style="margin:0"><div dir="rtl" style="font-family:Arial,sans-serif;color:#111;max-width:700px;margin:0 auto;padding:16px;box-sizing:border-box">
 <h2 style="margin:0 0 8px">📅 לקוחות ללא יום ביקור — ${dateStr}</h2>
-${stars.length ? `<div style="background:#e8f5e9;border:2px solid #2e7d32;border-radius:10px;padding:14px 16px;margin:0 0 16px;text-align:center">
+${showStars ? `<div style="background:#e8f5e9;border:2px solid #2e7d32;border-radius:10px;padding:14px 16px;margin:0 0 16px;text-align:center">
 <div style="font-size:34px;line-height:1.2">🏆</div>
 <div style="font-size:20px;font-weight:bold;color:#1b5e20;margin:4px 0 6px">כל הכבוד ${praiseNames(stars)}!</div>
 <div style="font-size:14px;color:#2e7d32">כל הלקוחות ${stars.length > 1 ? 'בקבוצות' : 'בקבוצה'} משובצים ליום ביקור — תכנון קווי הסוכנים ומעקב צמוד אחרי הכיסוי.</div>
