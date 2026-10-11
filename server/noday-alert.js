@@ -84,8 +84,8 @@ ${[...by].sort((a, b) => b[1] - a[1]).map(([n, k]) => `<tr><td style="padding:5p
 }
 
 // Сводка Йоси и Максиму: строка на менеджера. Ноль — похвала: менеджер планирует линии агентов
-// и следит за покрытием (пользователь 11.10). Имя менеджера — nameHe из managers.json по pbiGroup.
-const MANAGER_HE = Object.fromEntries(require('./data/managers.json').filter(m => m.pbiGroup).map(m => [m.pbiGroup, m.nameHe || m.name]));
+// и следит за покрытием (пользователь 11.10). Имя менеджера — nameHe из managers.json по team.
+const MANAGER_HE = Object.fromEntries(require('./data/managers.json').filter(m => m.team).map(m => [m.team, m.nameHe || m.name]));
 function buildSummaryHtml(teams, dateStr) {
   const th = `style="background:#${PURPLE};color:#fff;padding:6px 10px;text-align:center"`;
   const cell = 'padding:7px 10px;border-bottom:1px solid #e5e7eb;vertical-align:top';
