@@ -2,7 +2,7 @@
 // т.е. корзина «?» приложения — FORMULA + ICE משפחתי, минус клиенты, которых агент перенёс на день в аппе.
 // Клиенты и расписание — fetchPbi из route-changes-alert.js, переносы — LIVE_DATA_DIR/route-overrides.json,
 // правило дня — lineFor (то же, что /customers). ICE — группа агента FORMULA. Заглушки 920/000 без группы — не шлются.
-// Цвет — фиолетовый, не синий как у остальных алярмов: чтобы письмо узнавалось с первого взгляда (пользователь 11.10).
+// Шапка таблиц — фиолетовая, не синяя как у остальных алярмов: чтобы письмо узнавалось с первого взгляда (пользователь 11.10).
 // Адресаты (env из run-alert.sh): NODAY_MANAGERS="ALEXEY=a@x;VLAD=b@x" — менеджеру его группа, письмо только
 //   если есть клиенты; NODAY_CC — копия каждого письма; NODAY_OVERRIDE=<email> — всё на этот адрес (проверка).
 // --dry-run: письма не шлются, xlsx + html в LIVE_DATA_DIR/noday-preview.
@@ -17,7 +17,7 @@ const { lineFor } = require('./coverage');
 const DRY_RUN = process.argv.includes('--dry-run');
 const LIVE_DATA = process.env.LIVE_DATA_DIR || path.join(__dirname, 'data');
 const NO_DAY = 'לא מוגדר';
-const PURPLE = '6A1B9A', LILAC = 'F3E5F5';
+const PURPLE = '6A1B9A'; // только шапки таблиц (пользователь 11.10: не заливать всё письмо)
 
 // клиенты, которых нет ни в одном дне 1–5 приложения
 function noDayClients(map, overrides) {
@@ -59,7 +59,6 @@ async function buildXlsx(rows) {
   for (const r of rows) {
     const row = ws.addRow({ id: Number(r.id) || r.id, name: r.name, agent: r.agentName, manager: r.manager, day: NO_DAY });
     row.eachCell(c => { c.border = border; c.alignment = { horizontal: c.col === 2 || c.col === 3 ? 'right' : 'center' }; });
-    row.getCell(5).fill = fill(LILAC);
   }
   ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: 5 } };
   return wb.xlsx.writeBuffer();
@@ -69,19 +68,18 @@ function buildHtml(rows, dateStr) {
   const by = new Map();
   for (const r of rows) by.set(r.agentName, (by.get(r.agentName) || 0) + 1);
   const th = `style="background:#${PURPLE};color:#fff;padding:6px 10px;text-align:center"`;
-  const td = 'style="padding:5px 10px;border-bottom:1px solid #e1bee7;text-align:center"';
-  return `<!doctype html><html dir="rtl" lang="he"><body style="margin:0;background:#${LILAC}"><div dir="rtl" style="font-family:Arial,sans-serif;color:#111;max-width:700px;margin:0 auto;padding:0 0 16px;box-sizing:border-box;background:#fff;border-top:8px solid #${PURPLE}">
-<div style="background:#${PURPLE};color:#fff;padding:14px 16px"><div style="font-size:22px;font-weight:bold">📅 לקוחות ללא יום ביקור</div><div style="font-size:13px;opacity:.85">${dateStr} · <bdi>Formula Road</bdi></div></div>
-<div style="padding:16px">
+  const td = 'style="padding:5px 10px;border-bottom:1px solid #e5e7eb;text-align:center"';
+  return `<!doctype html><html dir="rtl" lang="he"><body style="margin:0"><div dir="rtl" style="font-family:Arial,sans-serif;color:#111;max-width:700px;margin:0 auto;padding:16px;box-sizing:border-box">
+<h2 style="margin:0 0 8px">📅 לקוחות ללא יום ביקור — ${dateStr}</h2>
 <p style="margin:0 0 6px">שלום,</p>
 <p style="margin:0 0 12px">בקבוצה שלך יש לקוחות שאין להם יום ביקור באפליקציה <bdi>Formula Road</bdi> (<bdi>FORMULA</bdi> ו-<bdi>ICE</bdi> משפחתי). נא לקבוע להם יום. הרשימה המלאה מצורפת בקובץ אקסל. דוח שבועי אוטומטי.</p>
 <table style="border-collapse:collapse;font-size:13px">
 <tr><th ${th}>סוכן</th><th ${th}>לקוחות ללא יום</th></tr>
-${[...by].sort((a, b) => b[1] - a[1]).map(([n, k]) => `<tr><td style="padding:5px 10px;border-bottom:1px solid #e1bee7;text-align:right">${esc(n)}</td><td ${td}>${k}</td></tr>`).join('\n')}
-<tr style="background:#${LILAC}"><td ${td}><b>סה"כ</b></td><td ${td}><b>${rows.length}</b></td></tr>
+${[...by].sort((a, b) => b[1] - a[1]).map(([n, k]) => `<tr><td style="padding:5px 10px;border-bottom:1px solid #e5e7eb;text-align:right">${esc(n)}</td><td ${td}>${k}</td></tr>`).join('\n')}
+<tr><td ${td}><b>סה"כ</b></td><td ${td}><b>${rows.length}</b></td></tr>
 </table>
 <p style="color:#777;font-size:12px;margin-top:24px">הערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.</p>
-</div></div></body></html>`;
+</div></body></html>`;
 }
 
 async function main() {
