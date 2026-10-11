@@ -134,7 +134,7 @@ async function getCityBBox(city) {
   }
   try {
     const data = await nominatim(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1&countrycodes=il,ps`
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1&countrycodes=il,ps&featureType=settlement` // settlement only: without it a same-named street won (אבן יהודה/מתן → Jerusalem streets, fixed 2026-10-11)
     );
     if (data.length && data[0].boundingbox) {
       const bb = data[0].boundingbox;
