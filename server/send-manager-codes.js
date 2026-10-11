@@ -22,7 +22,7 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 // name -> email, pulled from FORMULA ROADS -PASSWORDS/EMAIL + PASSWORD.xlsx
 // (not re-read here to avoid an exceljs dependency for a 5-row lookup).
 const EMAILS = {
-  'Alexey Berilov': 'dilerformula69@gmail.com',
+  'Alexey Berilov': 'alexey.b@dilerbmd.com',
   'Anatoli Rusanovski': 'dilerformula83@gmail.com',
   'Natalia Rubin': 'dilerformula127@gmail.com',
   'Svetlana Perelman': 'dilerformula115@gmail.com',
