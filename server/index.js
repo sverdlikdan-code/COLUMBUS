@@ -9,7 +9,7 @@ const ExcelJS = require('exceljs');
 const puppeteer = require('puppeteer');
 const sharp = require('sharp');
 const { executeDax, getDatasetRefreshTime } = require('./powerbi');
-const { custCreatedDates, custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByClient, dayClosingByAgentAll, dayClosingOrdersToday, dayClosingIceOrdersRaw, openOrderIdsToday, liveOrderGpsForNewClient, clientPromosByCustId, custIdsWithActivePromo } = require('./priority-db');
+const { clientOverdueByPayer, custCreatedDates, custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByClient, dayClosingByAgentAll, dayClosingOrdersToday, dayClosingIceOrdersRaw, openOrderIdsToday, liveOrderGpsForNewClient, clientPromosByCustId, custIdsWithActivePromo } = require('./priority-db');
 const dayClosingDedup = require('./day-closing-dedup');
 const { createBdd } = require('./bdd-routes');
 const mekarerDaily = require('./mekarer-daily');
@@ -454,6 +454,25 @@ CALCULATETABLE(
       console.error('[PBI] sales3m (crown) failed:', e.message);
     }
 
+    // חוב! badge (Dan 2026-10-12, test): private-market clients whose PAYER has overdue debt
+    // (HOVOT ALL [סהכ סכום בפיגור] > 0), payer → its clients via the directory's KEY משלם.
+    // Fail-soft like 👑: empty map → no badges.
+    const debtPayer = new Map(); // custId → payer number
+    try {
+      const D = "'לקוחות FORM+I+INT'", H = "'HOVOT ALL'";
+      const debtRows = await executeDax(`
+EVALUATE
+VAR late = CALCULATETABLE(VALUES(${H}[מס לקוח משלם]), ${H}[סהכ סכום בפיגור] > 0, ${H}[רשתות / שוק פרטי] = "שוק פרטי")
+RETURN CALCULATETABLE(SUMMARIZE(${D}, ${D}[מס. לקוח], ${D}[KEY משלם]), TREATAS(late, ${D}[KEY משלם]))
+`);
+      for (const r of debtRows) {
+        const id = String(r['לקוחות FORM+I+INT[מס. לקוח]'] || ''), payer = String(r['לקוחות FORM+I+INT[KEY משלם]'] || '');
+        if (id && payer) debtPayer.set(id, payer);
+      }
+    } catch (e) {
+      console.error('[PBI] debtPayer (חוב!) failed:', e.message);
+    }
+
     // E: ICE MISH avg6 — משפחתי גלידה families only (BiDi stored as יתחפשמ)
     const avg6IceRows = await executeDax(`
 EVALUATE
@@ -701,6 +720,7 @@ ROW("maxDate", CALCULATE(MAX(ALL_PARTS[תאריך]), ALL_PARTS[ASHMADOT] = "-מ�
       loadedAt: new Date(),
       latestSaleDate,
       sales3m, // 👑 custId → last 3 closed months sales (D3)
+      debtPayer, // חוב! custId → payer with overdue debt (private market only)
     };
     clientReturnsCache.clear();
     clientAnalyticsCache.clear();
@@ -2636,6 +2656,7 @@ app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
       return {
         ...c,
         pp:        pilot ? c.pp : undefined,
+        debt:      pbiCache.debtPayer?.has(String(c.custId)) ? 1 : undefined,
         lat:       corr ? corr.lat : c.lat,
         lng:       corr ? corr.lng : c.lng,
         gpsSource: corr ? 'correction' : (c.lat && c.lng ? 'pbi' : undefined),
@@ -5503,6 +5524,22 @@ app.post('/admin/reload-targets', requireAuth, async (req, res) => {
   if (!req.session.isManager || req.session.managerRole === 'readonly') return res.status(403).json({ error: 'forbidden' });
   await loadPBICache();
   res.json({ ok: true, clients: pbiCache?.clientMap?.size || 0, loadedAt: pbiCache?.loadedAt });
+});
+
+// ── חוב! popup — overdue per company + payment terms, live from Priority (Dan 2026-10-12, test).
+// Only clients the cache flagged (private market, payer overdue > 0) — chains/anything else → empty.
+app.get('/api/client-debt', requireAuth, dataRateLimit, async (req, res) => {
+  const custId = String(req.query.custId || '');
+  if (!/^\d{1,12}$/.test(custId)) return res.status(400).json({ ok: false, error: 'invalid custId' });
+  const payer = pbiCache?.debtPayer?.get(custId);
+  if (!payer) return res.json({ ok: true, payer: null, rows: [], total: 0 });
+  try {
+    const rows = (await clientOverdueByPayer(payer)).filter(r => r.late !== 0);
+    res.json({ ok: true, payer, rows, total: rows.reduce((s, r) => s + r.late, 0) });
+  } catch (e) {
+    console.error('/api/client-debt error:', e.message);
+    res.status(502).json({ ok: false, error: 'priority_unavailable' });
+  }
 });
 
 // ── Day Top Sales — lightweight ranking (no AI call) for the 👑 crown badge on

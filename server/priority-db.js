@@ -690,4 +690,25 @@ async function custCreatedDates(dbName) {
   }
 }
 
-module.exports = { custCreatedDates, custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByClient, dayClosingByAgentAll, dayClosingOrdersToday, dayClosingIceOrdersRaw, openOrderIdsToday, curdateFor, liveOrderGpsForNewClient, clientPromosByCustId, custIdsWithActivePromo };
+// חוב! popup (Dan 2026-10-12, test): overdue per company for one payer — same source and formula
+// as PBI 'HOVOT ALL' (CUSTAGEDEBT OLD+UPTO90+UPTO60+UPTO30; FUTURE = not due yet, excluded).
+// The payer number is the same in every base. MMD left out: its numbers collide with other clients.
+// PAYDES is stored with digit runs reversed ("03 יום מחשבונית" = 30 days) — flipped back here.
+async function clientOverdueByPayer(payer) {
+  const pool = await getPool('form');
+  const part = (db, company) => `SELECT '${company}' AS company, ad.OLD + ad.UPTO90 + ad.UPTO60 + ad.UPTO30 AS late, pay.PAYDES AS terms
+    FROM ${db}.dbo.CUSTOMERS c
+    LEFT JOIN ${db}.dbo.CUSTAGEDEBT ad ON ad.CUST = c.CUST
+    LEFT JOIN ${db}.dbo.PAY pay ON pay.PAY = c.PAY
+    WHERE c.CUSTNAME = @payer`;
+  const result = await pool.request()
+    .input('payer', sql.NVarChar, String(payer))
+    .query([part('form', 'FORMULA'), part('icecrea', 'ICE'), part('diller', 'INTER')].join('\nUNION ALL\n'));
+  return result.recordset.map(r => ({
+    company: r.company,
+    late: Math.round(Number(r.late) || 0),
+    terms: String(r.terms || '').trim().replace(/\d+/g, d => [...d].reverse().join('')),
+  }));
+}
+
+module.exports = { clientOverdueByPayer, custCreatedDates, custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByClient, dayClosingByAgentAll, dayClosingOrdersToday, dayClosingIceOrdersRaw, openOrderIdsToday, curdateFor, liveOrderGpsForNewClient, clientPromosByCustId, custIdsWithActivePromo };
