@@ -3222,7 +3222,7 @@ function _fpbPieceHtml(numer, denom, sum, offLine, ice){
   const color = pct>=70 ? '#2E7D32' : pct>=40 ? '#F9A825' : '#C62828';
   const shekel = s => '₪' + Math.round(s).toLocaleString('he-IL');
   // ICE = full-width second line like .fpb-off — two lines stay lower than the 44px ring, the card doesn't grow
-  const row = `<div class="fpb-main">${numer} <span class="fpb-of">מ-${denom} הזמינו היום</span></div>
+  const row = `<div class="fpb-main">${numer} <span class="fpb-of">מ-${denom} הזמינו</span></div>
       <div class="fpb-sub">${shekel(sum)}</div>`;
   if(ice?.n) return `
     <div class="fpb-bar-wrap">${_fpbRingSvg(pct, color)}</div>
