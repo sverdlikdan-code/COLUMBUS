@@ -2474,15 +2474,17 @@ async function _maybeRenderChannelToggle(){
 }
 // Extra tiles (🧊, 📉, ❓) after the manager tiles: fixed order 🧊 → 📉 → ❓; only the last
 // tile left without a pair spans the full row — symmetric for any team count/role.
+// Picker-only: tile hidden for everyone, the team stays in the data (יעדים, alarms) — Dan 2026-10-12 "пока".
+const _MGR_HIDDEN=new Set(['SADRAN+']);
 const _MGR_EXTRA=['mekarer-admin-tile','coverage-tile','guide-tile'];
 function _fixMgrGridSpan(grid){
   _MGR_EXTRA.forEach(c=>{ const el=grid.querySelector('.'+c); if(el){ el.style.gridColumn=''; grid.appendChild(el); } });
   const last=grid.lastElementChild;
   if(grid.children.length%2===1&&last&&_MGR_EXTRA.some(c=>last.classList.contains(c))) last.style.gridColumn='1/-1';
 }
-// "❓ מדריך שימוש" tile — ICE BDD picker only (user 2026-10-06: evens out the grid there).
+// "❓ מדריך שימוש" tile — ICE BDD picker (user 2026-10-06: evens out the grid there); FORMULA too
+// since 2026-10-12, in place of the hidden SADRAN+ tile.
 function _maybeRenderGuideTile(){
-  if(!_isBdd()) return;
   const grid=document.querySelector('#login-body .mgr-grid');
   if(!grid || grid.querySelector('.guide-tile')) return;
   const t=document.createElement('div');
@@ -2709,7 +2711,7 @@ function renderLogin(){
       <div style="flex:1;display:flex;flex-direction:column;overflow-y:auto;">
         <div class="mgr-wrap">
           <div class="mgr-label">בחר מנהל</div>
-          <div class="mgr-grid">${_mgrList().map(m=>{
+          <div class="mgr-grid">${_mgrList().filter(m=>!_MGR_HIDDEN.has(m)).map(m=>{
             const initials=m.replace(/[^A-Za-zא-ת]/g,'').slice(0,2).toUpperCase()||m.slice(0,2).toUpperCase();
             return `<div class="mgr-tile" onclick="selectManager('${m}')" role="button" aria-label="${m}">
               <div class="mgr-tile-ring-wrap">
