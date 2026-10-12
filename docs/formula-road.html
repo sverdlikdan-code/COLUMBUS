@@ -3231,7 +3231,7 @@ function _fpbPieceHtml(numer, denom, sum, offLine, ice){
     <div class="fpb-bar-wrap">${_fpbRingSvg(pct, color)}</div>
     <div class="fpb-info fpb-info-ice">
       ${row}
-      <div class="fpb-ice"><b>${ice.n}</b><bdi>❄️ ICE</bdi></div>
+      <div class="fpb-ice"><span>❄️</span><span>ICE</span><b>${ice.n}</b></div>
       <div class="fpb-ice">${shekel(ice.sum)}</div>
     </div>`;
   return `
