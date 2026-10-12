@@ -237,7 +237,7 @@ const cellValue = (r, key) => key === 'agentName' ? (r.agentName || r.agent) : r
 const byGroup = rows => [...rows].sort((a, b) => String(a.manager || '').localeCompare(String(b.manager || '')) || String(a.name || '').localeCompare(String(b.name || ''), 'he'));
 const esc = s => String(s ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 
-function buildHtml(changes, dateStr, greeting = '', title = 'שינויים בלקוחות', sources = 'FORMULA · ICE משפחתי', intro = null) {
+function buildHtml(changes, dateStr, greeting = '', title = 'FORMULA + ICE MISH — שינויים בלקוחות', sources = 'FORMULA · ICE משפחתי', intro = null) {
   const counts = TYPES.map(t => ({ ...t, n: changes.filter(c => c.type === t.key).length })).filter(t => t.n);
   const th = 'style="background:#1f2a44;color:#fff;padding:6px 8px;text-align:right;font-weight:600"';
   const td = 'style="padding:5px 8px;border-bottom:1px solid #e5e7eb;text-align:right"';
@@ -397,15 +397,15 @@ async function main() {
   // FORMULA + ICE משפחתי: менеджеру команды — его группа, общий список (CLIENT_CHANGES_ALL) — всё,
   // агенту — строки, где он в «סוכן» или в «היה/עכשיו»
   const main = changes.filter(c => c.hevra !== 'ICE BDD');
-  perGroup(process.env.CLIENT_CHANGES_MANAGERS, main, 'manager', `שינויים בלקוחות בפריוריטי ${dateStr}`);
-  addMail('all', list(process.env.CLIENT_CHANGES_ALL), [], `שינויים בלקוחות בפריוריטי ${dateStr}: ${main.length}`, main);
+  perGroup(process.env.CLIENT_CHANGES_MANAGERS, main, 'manager', `FORMULA + ICE MISH — שינויים בלקוחות בפריוריטי ${dateStr}`);
+  addMail('all', list(process.env.CLIENT_CHANGES_ALL), [], `FORMULA + ICE MISH — שינויים בלקוחות בפריוריטי ${dateStr}: ${main.length}`, main);
 
   const emails = await loadAgentEmails();
   const noEmail = [];
   for (const [code, rows] of changesByAgent(main)) {
     const name = rows.find(r => r.agent === code)?.agentName || rows.find(r => r.fromAgent === code)?.from || code;
     if (!emails[code]) { noEmail.push(`${name} (${code})`); continue; }
-    addMail(`agent ${code} ${name}`, [emails[code]], [], `שינויים בלקוחות שלך בפריוריטי ${dateStr}: ${rows.length}`, rows,
+    addMail(`agent ${code} ${name}`, [emails[code]], [], `FORMULA + ICE MISH — שינויים בלקוחות שלך בפריוריטי ${dateStr}: ${rows.length}`, rows,
       { greeting: `שלום ${name}, אלה השינויים בלקוחות שלך מאז הדוח הקודם.` });
   }
   if (noEmail.length) console.log(`Агенты без email в ростере (письмо не ушло): ${noEmail.join(', ')}`);
