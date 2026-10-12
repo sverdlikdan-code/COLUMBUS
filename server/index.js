@@ -3537,68 +3537,30 @@ function fixBiDi(raw) {
   return fixed.replace(/\(/g, '\x01').replace(/\)/g, '(').replace(/\x01/g, ')');
 }
 
-// GET /api/mekarer-parts — product names for the 14 refrigerator codes.
-// Was 4 (901301/302/401/402, all chest-freezer "אמבטיה" models) — missed 901303
-// (also chest) and 901405 (the only upright/"עומד" model) since the feature was
-// first built (ae7dfecd, 2026-06-04), copied straight from the catalog without
-// checking completeness. Found live 2026-09-01: the original 4 codes have ZERO
-// sales in ALL_PARTS ever, while both missing ones have real recent sales
-// (901405 last 2025-05-27, 901303 last 2025-09-28) — the form was offering
-// unordered models and hiding the ones agents actually sell.
-//
-// 901303/901405 are NOT in 'KARTIS PARIT' (verified live, two independent ways —
-// exact IN-filter and a full-table CONTAINSSTRING scan both come back empty) even
-// though they're real, sold SKUs — they only exist in ALL_PARTS (the sales/fact
-// table). So this is two queries, not one: the master-catalog table for the
-// original 4, plus a direct makat lookup against ALL_PARTS for the 2 that the
-// catalog is missing. ALL_PARTS uses a different SKU column name/quote style
-// ([מק'ט], not KARTIS PARIT's [מק"ט]) and a different name column ([תאור מוצר],
-// not [תאור]) — confirmed live, not guessed.
-//
-// 901403/901406/901501/901600 (+ 901300/400/500/404, user pick 2026-09-29) exist only in Priority diller (not in any KARTIS PARIT
-// table, not in ALL_PARTS) — pulled once from diller.PART 2026-09-29, Latin/digits
-// un-reversed from Priority's visual order. Static on purpose: new fridge models are rare.
-const EXTRA_MEKARER_PARTS = [
-  { makat: '901403', name: 'מקפיא אמבטיה 1.21 מטר M400SF' },
-  { makat: '901406', name: 'מקפיא עומד - ND70M' },
-  { makat: '901501', name: 'מקפיא אמבטיה 1.41 מטר M500SF' },
-  { makat: '901600', name: 'מקפיא אמבטיה 1.66 מטר M600SF' },
-  { makat: '901300', name: 'מקפיא אמבטיה 1.0 מטר 300' },
-  { makat: '901400', name: 'מקפיא אמבטיה 1.3 מטר 400' },
-  { makat: '901500', name: 'מקפיא אמבטיה 1.6 מטר 500' },
-  { makat: '901404', name: 'מקפיא עומד - UDD440' },
-];
-// Active = moved in Priority diller within the last year (checked 2026-09-29);
-// 901301/302/401/402 last moved 2024-01. Form shows active first, in a separate group.
-// ponytail: static, re-check TRANSORDER in diller if a model is added or retired.
-const ACTIVE_MEKARER = new Set(['901303', '901403', '901405', '901406', '901501', '901600']);
+// GET /api/mekarer-parts — refrigerator models for the מקרר form, names live from
+// International DILLER 'KARTIS PARIT' (CONTROL workspace), where every model below exists
+// (checked 2026-10-12; the main dataset's KARTIS PARIT misses most of them).
+// Active = the models agents may SUPPLY — Biana's list 2026-10-12 incl. new 901601.
+// Status there is פעיל for old models too, so "active" can't come from the catalog.
+// Old = still at clients, offered only for return/replace (form: OLD group in return select).
+// ponytail: static lists, edit when purchasing adds or retires a model.
+const ACTIVE_MEKARER = ['901303', '901403', '901405', '901406', '901501', '901600', '901601'];
+const OLD_MEKARER = ['901300', '901301', '901302', '901400', '901401', '901402', '901404', '901500'];
 app.get('/api/mekarer-parts', requireAuth, async (req, res) => {
   try {
-    const [catalogRows, allPartsRows] = await Promise.all([
-      executeDax(`
+    const all = [...ACTIVE_MEKARER, ...OLD_MEKARER];
+    const rows = await executeDax(`
 EVALUATE
 FILTER(
   SELECTCOLUMNS('KARTIS PARIT', "makat", 'KARTIS PARIT'[מק"ט], "name", 'KARTIS PARIT'[תאור]),
-  [makat] IN {"901301", "901302", "901401", "901402"}
+  [makat] IN {${all.map(m => '"' + m + '"').join(', ')}}
 )
-`),
-      executeDax(`
-EVALUATE
-DISTINCT(
-  SELECTCOLUMNS(
-    FILTER(ALL_PARTS, ALL_PARTS[מק'ט] = "901303" || ALL_PARTS[מק'ט] = "901405"),
-    "makat", ALL_PARTS[מק'ט],
-    "name", ALL_PARTS[תאור מוצר]
-  )
-)
-`),
-    ]);
-    const parts = [...catalogRows, ...allPartsRows].map(r => ({
+`, INTER_DS, INTER_WS);
+    const parts = rows.map(r => ({
       makat: r['[makat]'],
       name: fixBiDi(r['[name]']),
+      active: ACTIVE_MEKARER.includes(r['[makat]']),
     }));
-    parts.push(...EXTRA_MEKARER_PARTS);
-    parts.forEach(p => { p.active = ACTIVE_MEKARER.has(p.makat); });
     parts.sort((a, b) => (b.active - a.active) || a.makat.localeCompare(b.makat));
     res.json(parts);
   } catch (err) {

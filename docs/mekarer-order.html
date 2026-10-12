@@ -415,7 +415,9 @@ function removeRef(id) {
 function buildRefHTML(id, num) {
   const opt = p => `<option value="${p.makat}">${p.makat} — ${p.name}</option>`;
   const group = (label, list) => list.length ? `<optgroup label="${label}">${list.map(opt).join('')}</optgroup>` : '';
-  const partsOpts = parts.length
+  // supply = active models only; return (also shown on replace) = active + old ones still at clients (Dan 2026-10-12)
+  const activeOpts = parts.length ? parts.filter(p => p.active).map(opt).join('') : '<option value="">טוען...</option>';
+  const returnOpts = parts.length
     ? group('פעילים', parts.filter(p => p.active)) + group('OLD-ישנים', parts.filter(p => !p.active))
     : '<option value="">טוען...</option>';
   return `
@@ -436,7 +438,7 @@ function buildRefHTML(id, num) {
   <div id="${id}-new-wrap" style="display:none">
     <div class="field">
       <label id="${id}-new-lbl">איזה מקרר לספק</label>
-      <select id="${id}-new-model"><option value="">— בחר דגם —</option>${partsOpts}</select>
+      <select id="${id}-new-model"><option value="">— בחר דגם —</option>${activeOpts}</select>
     </div>
     <div class="field">
       <label>כמות סלסלאות</label>
@@ -454,7 +456,7 @@ function buildRefHTML(id, num) {
   <div id="${id}-return-wrap" style="display:none">
     <div class="field">
       <label>איזה מקרר מחזירים</label>
-      <select id="${id}-return-model"><option value="">— בחר דגם —</option>${partsOpts}</select>
+      <select id="${id}-return-model"><option value="">— בחר דגם —</option>${returnOpts}</select>
     </div>
   </div>
   <div id="${id}-fault-wrap" style="display:none">
