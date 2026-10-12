@@ -752,6 +752,38 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
   body.km-collapsed .km-bar{display:none!important;}
 }
 
+/* כלים panel variant A (Dan picked 2026-10-12, mockups .scratch/toolbar-variants):
+   one shape language — radius 12, height 40, 1.5px border; days = one segmented
+   control edge-to-edge; actions = equal grid with ONE filled primary (ניתוח).
+   body.tb-v2 is set in _applyChannelClass — Dan's login only until approved for all. */
+.tb-ic{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+@media(max-width:699px){
+  body.tb-v2 #portrait-toolbar-toggle{height:30px;padding:0;gap:6px;background:#fff;color:var(--blue-dark);font-size:13px;}
+  body.tb-v2 #portrait-toolbar-toggle .tb-ic{width:16px;height:16px;}
+  body.tb-v2 #portrait-toolbar-toggle .tb-chev{transition:transform .2s;}
+  body.tb-v2 #portrait-toolbar-toggle.open .tb-chev{transform:rotate(180deg);}
+  body.tb-v2 .km-bar{gap:6px;}
+  body.tb-v2 .km-row-top{flex-direction:column;align-items:stretch;gap:6px;}
+  body.tb-v2 .day-switch{display:flex;gap:0;height:40px;border-radius:12px;overflow:hidden;background:var(--sky-light);outline:1.5px solid var(--sky-mid);outline-offset:-1.5px;}
+  body.tb-v2 .day-sw-btn{flex:1;width:auto;height:40px;border-radius:0;border:none;border-inline-start:1.5px solid var(--sky-mid);background:transparent;box-shadow:none;font-size:17px;font-weight:800;transform:none;}
+  body.tb-v2 .day-sw-btn:first-child{border-inline-start:none;}
+  body.tb-v2 .day-sw-btn.active{background:var(--blue);color:#fff;}
+  /* the blink ring would be clipped by the segment's overflow — a steady teal underline marks "?" instead */
+  body.tb-v2 .day-sw-undef{color:var(--ice-dark,#00876C);font-size:17px;animation:none;box-shadow:inset 0 -3px 0 #00B894;}
+  body.tb-v2 .day-sw-undef.active{background:#00B894;color:#fff;box-shadow:none;}
+  body.tb-v2 .sort-btns{display:grid;grid-template-columns:1fr 1fr 40px;gap:8px;}
+  body.tb-v2 .sort-btn{height:40px;border-radius:12px;border:1.5px solid var(--sky-mid);background:#fff;color:var(--blue-dark);font-size:13px;font-weight:800;justify-content:center;gap:6px;padding:0 8px;box-shadow:none;}
+  body.tb-v2 .sort-btn.primary-action{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 2px 6px rgba(21,101,192,.28);}
+  body.tb-v2 .sort-btn.map-toggle-cta{background:#fff;border-color:var(--sky-mid);color:var(--blue-dark);}
+  body.tb-v2 .km-more-btn{width:40px;min-width:40px;padding:0;font-size:19px;}
+  /* ⋮ now sits at the row's LEFT edge — open the menu rightwards so it stays on screen */
+  body.tb-v2 .km-more-dd{right:auto;left:0;}
+  body.tb-v2 .km-filters-row{-webkit-mask-image:linear-gradient(to left,#000 85%,transparent);mask-image:linear-gradient(to left,#000 85%,transparent);}
+  body.tb-v2 .city-chip{height:28px;padding:0 10px;border-radius:14px;border-color:var(--sky-mid);background:#fff;color:var(--blue-dark);font-weight:700;box-shadow:none;}
+  body.tb-v2 .city-chip.on{background:var(--blue);border-color:var(--blue);color:#fff;}
+  body.tb-v2 .fr-ice-btn,body.tb-v2 .fr-dormant-btn{height:28px;border-radius:14px;border-style:solid;}
+}
+
 /* Wide: split view. Two ways in: a real tablet/desktop (comfortably over
    700px on both axes, any orientation), OR a phone physically rotated to
    landscape (width crosses 700px, height stays ~390-430px) — by explicit
@@ -1639,7 +1671,24 @@ let _sessionExpiredShown = false;
 // /auth/pbi JSON). FORMULA logins never have it, so every BDD branch below is a
 // no-op for them.
 function _isBdd(){ return _loadAuth()?.channel==='ICE_BDD'; }
-function _applyChannelClass(){ document.body.classList.toggle('bdd', _isBdd()); }
+function _applyChannelClass(){
+  document.body.classList.toggle('bdd', _isBdd());
+  // כלים panel variant A (segmented days + equal grid) — Dan's login only for now (2026-10-12)
+  const v2=_loadAuth()?.name==='דן סברדליק';
+  if(v2!==document.body.classList.contains('tb-v2')){
+    document.body.classList.toggle('tb-v2', v2);
+    const nb=document.getElementById('day-briefing-btn');
+    if(nb) nb.innerHTML = v2 ? _tbIc('chart')+'ניתוח' : '📊 ניתוח';
+    applyMapHidden(); updatePortraitToolbarToggleLabel();
+  }
+}
+const _TB_IC={
+  chart:'<path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
+  map:'<path d="M3 6.5 9 4l6 2.5L21 4v13.5L15 20l-6-2.5L3 20z"/><path d="M9 4v13.5"/><path d="M15 6.5V20"/>',
+  tools:'<path d="M4 6h9"/><path d="M17 6h3"/><path d="M4 12h3"/><path d="M11 12h9"/><path d="M4 18h11"/><path d="M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
+  chev:'<path d="m6 9 6 6 6-6"/>',
+};
+function _tbIc(k,cls){ return `<svg class="tb-ic${cls?' '+cls:''}" viewBox="0 0 24 24" aria-hidden="true">${_TB_IC[k]}</svg>`; }
 // BDD sessions: these endpoints are served by the /api/bdd router. FORMULA: URL unchanged.
 const BDD_PATHS=['/customers','/manager-agents','/agent-exists','/save-gps','/api/today-orders','/api/team-order-stats','/api/day-closing','/api/promo-cust-ids','/api/client-promos/','/api/route-overrides','/api/route-day-move','/api/mekarer-order','/geocode'];
 function _bddUrl(url){
@@ -1861,7 +1910,9 @@ function applyMapHidden(){
   // Icon-only ("🗺❌" alone) relied on the title tooltip for meaning — invisible on
   // touch, nobody could tell what it did (live agent feedback). Short label text
   // instead, same as every other toolbar button.
-  if(btn){ btn.textContent = st.mapHidden ? '🗺 הצג מפה' : '🗺❌ הסתר מפה'; btn.title = st.mapHidden ? 'הצג מפה' : 'הסתר מפה'; }
+  if(btn && document.body.classList.contains('tb-v2')) btn.innerHTML = _tbIc('map')+(st.mapHidden ? 'הצג מפה' : 'הסתר מפה');
+  else if(btn) btn.textContent = st.mapHidden ? '🗺 הצג מפה' : '🗺❌ הסתר מפה';
+  if(btn){ btn.title = st.mapHidden ? 'הצג מפה' : 'הסתר מפה'; }
   if(st.mapHidden && st.tab==='map') setTab('list');
 }
 function toggleMapHidden(){
@@ -1935,6 +1986,7 @@ function togglePortraitToolbar(){
 function updatePortraitToolbarToggleLabel(){
   const btn=document.getElementById('portrait-toolbar-toggle');
   if(!btn) return;
+  if(document.body.classList.contains('tb-v2')){ btn.innerHTML=_tbIc('tools')+'<span>כלים</span>'+_tbIc('chev','tb-chev'); btn.classList.toggle('open', !document.body.classList.contains('km-collapsed')); return; }
   btn.textContent=document.body.classList.contains('km-collapsed')?'🛠 כלים ▾':'🛠 כלים ▴';
 }
 try{
