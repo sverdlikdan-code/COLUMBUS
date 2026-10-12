@@ -1213,6 +1213,31 @@ async function findAgentSubmitterEmail(session) {
   }
   return null;
 }
+// Read scope (Dan 2026-10-12): an AGENT session reads only its own agent code — before this any
+// logged-in agent could pass another agent's ?agent= and get that route (+ 👑, חוב!). Managers unchanged.
+// Use after requireAuth on routes that take the agent from ?agent= / ?agentCode= / body.agentCode.
+// ponytail: log-only first day (nothing legit should hit it) — flip to true after checking events.db for agent_scope_*.
+const AGENT_SCOPE_ENFORCE = false;
+function agentOwnOnly(req, res, next) {
+  const s = req.session;
+  if (s?.isManager) return next();
+  const asked = req.query.agent ?? req.query.agentCode ?? req.body?.agentCode;
+  if (asked != null && asked !== '' && String(asked) !== String(s?.agentCode || '')) {
+    writeLog({ ts: new Date().toISOString(), event: AGENT_SCOPE_ENFORCE ? 'agent_scope_denied' : 'agent_scope_would_deny',
+      agentCode: s?.agentCode || null, asked: String(asked).slice(0, 12), path: req.path, ip: getRealIp(req) });
+    if (AGENT_SCOPE_ENFORCE) return res.status(403).json({ ok: false, error: 'forbidden' });
+  }
+  next();
+}
+// Does this agent see the client in the app? Same pools /customers builds from (FORMULA scheduled +
+// unscheduled + ICE, plus clients moved into his days).
+function agentHasClient(agentCode, custId) {
+  if (!pbiCache || !agentCode) return false;
+  const id = String(custId);
+  const pools = [pbiCache.byAgent.get(agentCode), pbiCache.noScheduleByAgent?.get(agentCode), pbiCache.iceByAgent?.get(agentCode)];
+  if (pools.some(l => (l || []).some(c => String(c.custId) === id))) return true;
+  return !!readRouteOverrides()[agentCode]?.dayMoves?.[id];
+}
 // Legacy/unidentified manager sessions (no roster match — old MANAGER_PASS
 // login, or a PBI click from an email not yet in the roster) keep the
 // pre-existing unrestricted behavior: role undefined reads as "super" by
@@ -2573,7 +2598,7 @@ function biweeklyPilot(session, agentCode) {
 }
 
 // GET /customers?agent=CODE&day=1 — from PBI cache
-app.get('/customers', requireAuth, dataRateLimit, async (req, res) => {
+app.get('/customers', requireAuth, agentOwnOnly, dataRateLimit, async (req, res) => {
   const { agent, day } = req.query;
   if (!agent) return res.status(400).json({ error: 'agent required' });
   if (!validateAgentCode(agent)) return res.status(400).json({ error: 'invalid agent code' });
@@ -3252,7 +3277,7 @@ app.get('/api/gps-pending-xlsx', requireAuth, async (req, res) => {
 });
 
 // POST /api/export-all-days-xlsx — multi-sheet Excel, one sheet per day
-app.post('/api/export-all-days-xlsx', requireAuth, dataRateLimit, async (req, res) => {
+app.post('/api/export-all-days-xlsx', requireAuth, agentOwnOnly, dataRateLimit, async (req, res) => {
   try {
   const { agentCode, agentName, dayOverrides = {}, dayFrom = {}, savedOrders = {} } = req.body;
   if (!agentCode) return res.status(400).json({ error: 'agentCode required' });
@@ -5531,6 +5556,7 @@ app.post('/admin/reload-targets', requireAuth, async (req, res) => {
 app.get('/api/client-debt', requireAuth, dataRateLimit, async (req, res) => {
   const custId = String(req.query.custId || '');
   if (!/^\d{1,12}$/.test(custId)) return res.status(400).json({ ok: false, error: 'invalid custId' });
+  if (!req.session.isManager && !agentHasClient(req.session.agentCode, custId)) return res.status(403).json({ ok: false, error: 'forbidden' });
   const payer = pbiCache?.debtPayer?.get(custId);
   if (!payer) return res.json({ ok: true, payer: null, rows: [], total: 0 });
   try {
@@ -5546,7 +5572,7 @@ app.get('/api/client-debt', requireAuth, dataRateLimit, async (req, res) => {
 // the top 3-5 clients by last-3-closed-months sales within the selected day.
 // Deliberately skips Gemini — this runs automatically on every route load, unlike
 // /api/day-briefing which is only called on-demand from the "📊 ניתוח" button.
-app.get('/api/day-top-sales', requireAuth, async (req, res) => {
+app.get('/api/day-top-sales', requireAuth, agentOwnOnly, async (req, res) => {
   const queryAgent = req.query.agent ? String(req.query.agent) : null;
   if (queryAgent && !validateAgentCode(queryAgent)) return res.status(400).json({ ok: false, error: 'invalid agent code' });
   const agentCode = queryAgent || req.session.agentCode;
@@ -5913,7 +5939,7 @@ CALCULATETABLE(
   };
 }
 
-app.get('/api/day-briefing', requireAuth, async (req, res) => {
+app.get('/api/day-briefing', requireAuth, agentOwnOnly, async (req, res) => {
   // Managers browsing an agent's route (ROADS) pass ?agent= explicitly, same as /customers;
   // an agent's own session falls back to their session agentCode.
   const queryAgent = req.query.agent ? String(req.query.agent) : null;
@@ -6453,7 +6479,7 @@ function finalizeByClient(byClient, nameMap, agentCode, summary) {
   return byClient;
 }
 
-app.get('/api/day-closing', requireAuth, dataRateLimit, async (req, res) => {
+app.get('/api/day-closing', requireAuth, agentOwnOnly, dataRateLimit, async (req, res) => {
   const agentCode = String(req.query.agentCode || '').trim();
   const type = req.query.type === 'ice' ? 'ice' : 'formula';
   if (!agentCode) return res.status(400).json({ ok: false, error: 'agentCode required' });
@@ -6582,7 +6608,7 @@ app.post('/api/zikuy-history', requireAuth, dataRateLimit, (req, res) => {
   writeBlankHistory(log);
   res.json({ ok: true });
 });
-app.get('/api/zikuy-history', requireAuth, dataRateLimit, (req, res) => {
+app.get('/api/zikuy-history', requireAuth, agentOwnOnly, dataRateLimit, (req, res) => {
   // Same convention as /customers and /api/day-briefing: a manager viewing a
   // specific agent's line passes ?agent= explicitly (their own session has no
   // agentCode — createSession(null, true), see _inviteRedirect), an agent's
@@ -6665,7 +6691,7 @@ app.post('/api/route-day-move', requireAuth, dayMoveRateLimit, (req, res) => {
   writeLog({ ts: new Date().toISOString(), event: 'route-day-move', agentCode, custId: id, day: dayNum, from: data[agentCode].dayMoves[id]?.from || null, ip: getRealIp(req) });
   res.json({ ok: true });
 });
-app.get('/api/route-overrides', requireAuth, dataRateLimit, (req, res) => {
+app.get('/api/route-overrides', requireAuth, agentOwnOnly, dataRateLimit, (req, res) => {
   const queryAgent = req.query.agent ? String(req.query.agent) : null;
   if (queryAgent && !validateAgentCode(queryAgent)) return res.status(400).json({ ok: false, error: 'invalid agent code' });
   const agentCode = queryAgent || req.session.agentCode;
