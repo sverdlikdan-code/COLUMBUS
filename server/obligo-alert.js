@@ -135,14 +135,17 @@ async function fetchEntities() {
     if (!grouped.has(key)) {
       grouped.set(key, {
         key, name, market: isChain ? 'רשתות' : 'שוק פרטי', resp: cls.resp || '—', agent: cls.agent || 'לא מוגדר',
-        custno: isChain ? '' : p.payer, limitILS: 0, usedILS: 0, b30: 0, b60: 0, b90: 0, bOld: 0,
+        payers: new Set(), limitILS: 0, usedILS: 0, b30: 0, b60: 0, b90: 0, bOld: 0,
       });
     }
     const g = grouped.get(key);
+    g.payers.add(p.payer);
     for (const f of ['limitILS', 'usedILS', 'b30', 'b60', 'b90', 'bOld']) g[f] += p[f];
   }
-  return [...grouped.values()].map(g => ({
+  // מס' לקוח = מספר לקוח משלם; у сети с несколькими плательщиками — "N משלמים" (Дан 2026-10-12)
+  return [...grouped.values()].map(({ payers, ...g }) => ({
     ...g,
+    custno: payers.size === 1 ? [...payers][0] : `${payers.size} משלמים`,
     util: g.limitILS > 0 ? g.usedILS / g.limitILS : null,
     overdue: g.b30 + g.b60 + g.b90 + g.bOld,
   }));
@@ -214,12 +217,12 @@ function tableHead(part, isChain) {
   const cols = amountColumns(part).map(([h, , w]) => `<th style="${TH};text-align:right;width:${w}px">${h}</th>`).join('');
   const pct = part.id === 'late' ? '' : `<th style="${TH};text-align:right;width:56px">%</th>`;
   return `<tr dir="rtl">
-        ${isChain ? '' : `<th style="${TH};text-align:right;width:62px">מס' לקוח</th>`}
+        <th style="${TH};text-align:right;width:62px">מס' לקוח</th>
         <th style="${TH};text-align:right">${isChain ? 'רשת' : 'שם'}</th>${cols}${pct}
       </tr>`;
 }
 
-function rowHtml(part, isChain) {
+function rowHtml(part) {
   return (e, i) => {
     const bg = i % 2 ? ZEBRA : '#ffffff';
     const cells = amountColumns(part).map(([, f, w, strong]) => {
@@ -230,7 +233,7 @@ function rowHtml(part, isChain) {
     const pct = part.id === 'late' ? '' : `<td style="${TD(bg, 'text-align:right;width:56px')}">
         <span style="display:inline-block;min-width:40px;padding:3px 7px;border-radius:20px;background:${pctBg(e.util)};font-family:Arial,sans-serif;font-size:12px;font-weight:bold;color:${pctColor(e.util)};text-align:center">${Math.round(e.util * 100)}%</span></td>`;
     return `<tr>
-      ${isChain ? '' : `<td dir="ltr" style="${TD(bg, `font-size:12px;color:${MUTED};text-align:right;width:62px`)}">${e.custno}</td>`}
+      <td dir="${/^\d+$/.test(e.custno) ? 'ltr' : 'rtl'}" style="${TD(bg, `font-size:12px;color:${MUTED};text-align:right;width:62px`)}">${e.custno}</td>
       <td dir="rtl" style="${TD(bg, `font-size:13px;color:${INK};font-weight:bold`)}">${e.name}</td>${cells}${pct}
     </tr>`;
   };
@@ -257,7 +260,7 @@ function groupedBlocks(subtitle, rows, groupField, part, isChain) {
   <tr><td style="padding:0 24px 4px">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-radius:8px;overflow:hidden;border:1px solid ${LINE}">
       ${tableHead(part, isChain)}
-      ${byGroup.get(k).map(rowHtml(part, isChain)).join('')}
+      ${byGroup.get(k).map(rowHtml(part)).join('')}
     </table>
   </td></tr>`).join('')}`;
 }
