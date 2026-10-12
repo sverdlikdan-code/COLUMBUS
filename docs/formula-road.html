@@ -3650,14 +3650,18 @@ function _renderPbiDateInHeader(){
 
 // Off-week ♠½ clients live in their own section at the bottom (renderClientList), never in the route/map.
 function activeClients(){ return st.clients.filter(c=>!st.excluded.has(c.custId)&&!_isOffWeek(c)); }
-function displayClients(){
-  const base=st.sortMode==='ai'?st.aiClients:st.clients;
-  let list=base.filter(c=>!st.excluded.has(c.custId)&&!_isOffWeek(c));
+// City / ICE / סדרן / dormant chips — one place for the route list AND the ♠½-off-week / 🚫 sections
+// below it (Dan 12.10: ICE chip on, yet the off-week FORMULA clients still showed).
+function _chipFilter(list){
   if(st.selectedCities.length) list=list.filter(c=>st.selectedCities.includes(c.city));
   if(st.iceFilter) list=list.filter(c=>c.iceOnly);
   if(st.hasSadranFilter) list=list.filter(c=>c.sadran);
   if(st.dormantFilter) list=list.filter(isDormantClient);
   return list;
+}
+function displayClients(){
+  const base=st.sortMode==='ai'?st.aiClients:st.clients;
+  return _chipFilter(base.filter(c=>!st.excluded.has(c.custId)&&!_isOffWeek(c)));
 }
 
 function buildDaySwitcher(){
@@ -4258,9 +4262,7 @@ function renderClientList(html){
   }).join('');
   // ♠½ clients the agent put on the other week — visible (phone call, Solomon promo), out of
   // the route/map; an order today counts them into the plan (coverage.js biweeklyLine).
-  const offList=st.clients
-    .filter(c=>_isOffWeek(c)&&!st.excluded.has(c.custId))
-    .filter(c=>!st.selectedCities.length||st.selectedCities.includes(c.city));
+  const offList=_chipFilter(st.clients.filter(c=>_isOffWeek(c)&&!st.excluded.has(c.custId)));
   if(offList.length){
     el.innerHTML+=`<div class="excl-section-lbl"><span>לא בשבוע הזה (${offList.length}) · ${_routeWeekLabel()}</span></div>`+
       offList.map(c=>{
@@ -4278,9 +4280,7 @@ function renderClientList(html){
       </div>`;}).join('');
   }
   // Excluded clients section at bottom — always from st.clients (full list), never aiClients
-  const exclList=st.clients
-    .filter(c=>st.excluded.has(c.custId))
-    .filter(c=>!st.selectedCities.length||st.selectedCities.includes(c.city));
+  const exclList=_chipFilter(st.clients.filter(c=>st.excluded.has(c.custId)));
   if(exclList.length){
     el.innerHTML+=`<div class="excl-section-lbl" style="display:flex;align-items:center;justify-content:space-between;">
       <span>מוצאים ממסלול (${exclList.length})</span>
