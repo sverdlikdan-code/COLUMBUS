@@ -272,7 +272,7 @@ function diffHtml(diff) {
   return `<tr><td dir="rtl" style="padding:12px 24px 0;text-align:right">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="rtl"><tr>
       <td bgcolor="#F7F9FC" style="background-color:#F7F9FC;border:1px solid ${LINE};border-radius:10px;padding:10px 16px;text-align:right;font-family:Arial,sans-serif">
-        <div style="font-size:13px;font-weight:900;color:${NAVY}">שינויים מהדוח הקודם (${diff.date})</div>
+        <div style="font-size:13px;font-weight:900;color:${NAVY}">שינויים ברשתות מהדוח הקודם (${diff.date})</div>
         <div style="padding-top:6px;font-size:12px;font-weight:bold;color:#b71c1c">נוספו (${diff.added.length}):</div>
         ${list(diff.added, '+', '#b71c1c')}
         <div style="padding-top:6px;font-size:12px;font-weight:bold;color:#2e7d32">יצאו (${diff.removed.length}):</div>
@@ -418,12 +418,14 @@ function loadState() {
   try { return JSON.parse(fs.readFileSync(STATE, 'utf8')); } catch (e) { console.error('state not read:', e.message); return null; }
 }
 
-function diffFor(prev, partId, rows, keep = () => true) {
+// Только сети (Дан 2026-10-12): частники в блок נוספו / יצאו не попадают. State хранит всех.
+function diffFor(prev, partId, rows) {
   const was = prev?.parts?.[partId];
   if (!Array.isArray(was)) return null;
+  const chain = r => r.market === 'רשתות';
   const wasKeys = new Set(was.map(r => r.key));
   const nowKeys = new Set(rows.map(r => r.key));
-  return { date: prev.date, added: rows.filter(r => !wasKeys.has(r.key)), removed: was.filter(r => !nowKeys.has(r.key) && keep(r)) };
+  return { date: prev.date, added: rows.filter(r => chain(r) && !wasKeys.has(r.key)), removed: was.filter(r => chain(r) && !nowKeys.has(r.key)) };
 }
 
 function saveState(parts) {
@@ -538,7 +540,7 @@ async function main() {
         const mineFn = r => r.market !== 'רשתות' && gs.has(groupOf.get(r.agent));
         const mine = parts.map(({ part, rows }) => {
           const own = rows.filter(mineFn);
-          return { part, rows: own, diff: diffFor(prev, part.id, own, mineFn) };
+          return { part, rows: own, diff: null }; // у менеджера только частники — сравнения нет (оно только по сетям)
         });
         const n = mine.reduce((s, p) => s + p.rows.length, 0);
         console.log(`  [${groups}] ${email}: ${mine.map(p => p.rows.length).join('/')}`);
