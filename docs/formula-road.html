@@ -885,6 +885,9 @@ body.map-hidden #tab-map,body.map-hidden #tab-inline-map{display:none!important;
 .cc-prev{color:#8a8f98;}
 .cc-cur{font-weight:800;padding:0 4px;border-radius:4px;}
 .cc-ok{width:100%;margin-top:16px;}
+.cc-card.cc-ru{direction:ltr;text-align:left;}
+.cc-ru .cc-tbl th,.cc-ru .cc-tbl td{text-align:left;padding:4px 4px 4px 0;}
+.cc-ru .cc-tbl td{padding:7px 4px 7px 0;}
 
 /* EXPORT BTN */
 .export-btn{background:#1D6F42;color:#fff;border:none;border-radius:20px;padding:5px 13px;height:36px;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(29,111,66,.35);display:none;align-items:center;gap:5px;white-space:nowrap;flex-shrink:0;}
@@ -1541,7 +1544,7 @@ body.bdd .km-more-item[onclick^="openYedaim"], body.bdd .km-more-item[onclick^="
   </div>
 </div>
 
-<!-- ── CLIENT CHANGES ── managers only, changes for their own agents (alarm writes them at 10:00) -->
+<!-- ── CLIENT CHANGES ── managers: their agents' changes; agents: their own, in Russian (alarm writes them at 10:00) -->
 <div class="thought-toast" id="cc-toast">
   <div class="thought-card cc-card">
     <div class="thought-head">
@@ -3411,7 +3414,7 @@ async function initRoute(){
   checkPbiFreshness(); // fire-and-forget, throttled internally
   maybeShowGuidePrompt(); // once per page load, at most 3 times ever — see definition above
   maybeShowThought(); // once per calendar day, forever — see definition below
-  maybeShowClientChanges(); // managers only, once per calendar day
+  maybeShowClientChanges(); // managers + agents (own clients, Russian), once per calendar day
   maybeShowA2hs(); // iPhone only, up to 3 page loads, queued behind the above
   _trackLaunchMode();
   // Restore this agent's last-picked sort mode (AI vs "הגרסה שלי") — read fresh
@@ -4936,20 +4939,21 @@ function closeThought(){
   _tryShowClientChanges();
 }
 
-// ── CLIENT CHANGES ── managers only: changes in the client base for THEIR agents
-// (server filters by קבוצה / BDD teams), written by the 10:00 alarm
+// ── CLIENT CHANGES ── managers: changes in the client base for THEIR agents
+// (server filters by קבוצה / BDD teams); agents (12.10, Dan): their own clients, window in Russian.
+// Written by the 10:00 alarm
 // (server/client-changes-alert.js). Once per calendar day (Dan 05.10), queued behind
 // the guide prompt / thought so two overlays never stack.
 const CC_TYPES=[
-  {key:'new',he:'לקוחות חדשים',color:'#1E8E3E'},
-  {key:'inactive',he:'הפכו ללא פעילים',color:'#C5221F'},
-  {key:'reactivated',he:'חזרו לפעילות',color:'#1A73E8'},
-  {key:'agent',he:'העברה לסוכן אחר',color:'#E37400',tint:'#FFF3E0'},
-  {key:'day',he:'שינוי יום ביקור',color:'#8430CE',tint:'#F3E8FD'},
+  {key:'new',he:'לקוחות חדשים',ru:'Новые клиенты',color:'#1E8E3E'},
+  {key:'inactive',he:'הפכו ללא פעילים',ru:'Стали неактивными',color:'#C5221F'},
+  {key:'reactivated',he:'חזרו לפעילות',ru:'Вернулись в работу',color:'#1A73E8'},
+  {key:'agent',he:'העברה לסוכן אחר',ru:'Передача другому агенту',color:'#E37400',tint:'#FFF3E0'},
+  {key:'day',he:'שינוי יום ביקור',ru:'Смена дня визита',color:'#8430CE',tint:'#F3E8FD'},
 ];
 let _ccRequested=false, _ccPending=null, _ccShownAt=0, _ccFilter=null;
 async function maybeShowClientChanges(){
-  if(_ccRequested || !_loadAuth()?.isManager) return;
+  if(_ccRequested || !_loadAuth()) return;
   _ccRequested=true;
   try{ if(localStorage.getItem('frCcDate')===_israelDateStr()) return; }catch(_){}
   try{
@@ -4967,31 +4971,39 @@ function _tryShowClientChanges(){
     || document.getElementById('guide-modal').classList.contains('open')) return; // shown on their close
   const d=_ccPending; _ccPending=null;
   try{ localStorage.setItem('frCcDate', _israelDateStr()); }catch(_){}
+  const ru=!_loadAuth()?.isManager; // agents get the window in Russian
+  document.querySelector('#cc-toast .cc-card').classList.toggle('cc-ru',ru);
   const dd=d.date.split('-').reverse().slice(0,2).join('.');
-  document.getElementById('cc-title').textContent=`🔔 שינויים בלקוחות · ${dd}`;
+  document.getElementById('cc-title').textContent=`🔔 ${ru?'Изменения по клиентам':'שינויים בלקוחות'} · ${dd}`;
   const h=+new Date().toLocaleString('en-US',{timeZone:'Asia/Jerusalem',hour:'numeric',hour12:false});
-  const hello=h<12?'בוקר טוב':h<17?'צהריים טובים':'ערב טוב';
+  const hello=ru?(h<12?'Доброе утро':h<17?'Добрый день':'Добрый вечер'):(h<12?'בוקר טוב':h<17?'צהריים טובים':'ערב טוב');
   const first=(d.name||_loadAuth()?.name||'').split(' ')[0];
-  document.getElementById('cc-greet').innerHTML=`<b>${hello}${first&&first!=='מנהל'?', '+esc(first):''}!</b><br>עוזר ה-AI שולח לך את השינויים בלקוחות של הסוכנים שלך מאז הדוח הקודם: לקוחות חדשים, לקוחות שהפכו ללא פעילים או חזרו לפעילות, העברות בין סוכנים ושינויי יום ביקור.`;
-  // agent section always shown (even 0) — managers asked to see transfers explicitly
-  const groups=CC_TYPES.map(t=>({...t,rows:d.changes.filter(c=>c.type===t.key)})).filter(t=>t.rows.length||t.key==='agent');
+  document.getElementById('cc-greet').innerHTML=`<b>${hello}${first&&first!=='מנהל'?', <bdi>'+esc(first)+'</bdi>':''}!</b><br>`
+    +(ru?'AI-ассистент присылает изменения по твоим клиентам в Priority со вчерашнего отчёта: новые клиенты, клиенты, ставшие неактивными или вернувшиеся в работу, передачи между агентами и смена дня визита.'
+        :'עוזר ה-AI שולח לך את השינויים בלקוחות של הסוכנים שלך מאז הדוח הקודם: לקוחות חדשים, לקוחות שהפכו ללא פעילים או חזרו לפעילות, העברות בין סוכנים ושינויי יום ביקור.');
+  const L=t=>ru?t.ru:t.he;
+  // agent section always shown (even 0) for managers — they asked to see transfers explicitly
+  const groups=CC_TYPES.map(t=>({...t,rows:d.changes.filter(c=>c.type===t.key)})).filter(t=>t.rows.length||(t.key==='agent'&&!ru));
   _ccFilter=null;
-  document.getElementById('cc-chips').innerHTML=groups.map(t=>`<button type="button" class="cc-chip" data-k="${t.key}" style="background:${t.color}" onclick="ccFilter('${t.key}')">${t.he}: ${t.rows.length}</button>`).join('');
-  const cur=(t,v)=>`<span class="cc-cur" style="color:${t.color};background:${t.tint}">${esc(v)}</span>`;
-  const meta=c=>`${esc(c.id)}${c.city?' · '+esc(c.city):''} · <bdi>${esc(c.hevra)}</bdi>`;
-  document.getElementById('cc-body').innerHTML=groups.map(t=>`<div class="cc-grp" data-k="${t.key}"><div class="cc-sec" style="color:${t.color}">${t.he} (${t.rows.length})</div>`
+  document.getElementById('cc-chips').innerHTML=groups.map(t=>`<button type="button" class="cc-chip" data-k="${t.key}" style="background:${t.color}" onclick="ccFilter('${t.key}')">${L(t)}: ${t.rows.length}</button>`).join('');
+  const cur=(t,v)=>`<span class="cc-cur" style="color:${t.color};background:${t.tint}"><bdi>${esc(v)}</bdi></span>`;
+  const meta=c=>`${esc(c.id)}${c.city?' · <bdi>'+esc(c.city)+'</bdi>':''} · <bdi>${esc(c.hevra)}</bdi>`;
+  document.getElementById('cc-body').innerHTML=groups.map(t=>`<div class="cc-grp" data-k="${t.key}"><div class="cc-sec" style="color:${t.color}">${L(t)} (${t.rows.length})</div>`
     + (t.key==='agent'
       ? (t.rows.length
-        ? `<table class="cc-tbl"><thead><tr><th>לקוח</th><th>היה</th><th>עכשיו</th></tr></thead><tbody>`
-          + t.rows.map(c=>`<tr><td><div class="cc-name">${esc(c.name)}</div><div class="cc-meta">${meta(c)}</div></td><td class="cc-prev">${esc(c.from)}</td><td>${cur(t,c.to)}</td></tr>`).join('')
+        ? (ru?`<table class="cc-tbl"><thead><tr><th>Клиент</th><th>Был</th><th>Сейчас</th></tr></thead><tbody>`:`<table class="cc-tbl"><thead><tr><th>לקוח</th><th>היה</th><th>עכשיו</th></tr></thead><tbody>`)
+          + t.rows.map(c=>`<tr><td><div class="cc-name"><bdi>${esc(c.name)}</bdi></div><div class="cc-meta">${meta(c)}</div></td><td class="cc-prev"><bdi>${esc(c.from)}</bdi></td><td>${cur(t,c.to)}</td></tr>`).join('')
           + `</tbody></table>`
         : `<div class="cc-empty">אין העברות בין סוכנים</div>`)
       : t.rows.map(c=>{
-        let line=`סוכן: ${esc(c.agentName)}`;
-        if(c.type==='day') line=`${esc(c.agentName)} · יום קודם: <span class="cc-prev">${esc(c.from)}</span> · נוכחי: ${cur(t,c.to)}`;
-        return `<div class="cc-row"><div class="cc-name">${esc(c.name)}</div><div class="cc-meta">${meta(c)}</div><div>${line}</div></div>`;
+        // agent's own window: the agent is always himself — only the day change needs a line
+        let line=ru?'':`סוכן: ${esc(c.agentName)}`;
+        if(c.type==='day') line=ru?`Был день: <span class="cc-prev"><bdi>${esc(c.from)}</bdi></span> · Сейчас: ${cur(t,c.to)}`
+          :`${esc(c.agentName)} · יום קודם: <span class="cc-prev">${esc(c.from)}</span> · נוכחי: ${cur(t,c.to)}`;
+        return `<div class="cc-row"><div class="cc-name"><bdi>${esc(c.name)}</bdi></div><div class="cc-meta">${meta(c)}</div>${line?`<div>${line}</div>`:''}</div>`;
       }).join(''))
     + `</div>`).join('');
+  document.querySelector('#cc-toast .cc-ok').textContent=ru?'Понятно':'הבנתי';
   document.getElementById('cc-toast').classList.add('open');
   _ccShownAt=Date.now();
   _trackEvent('client_changes_shown', null, d.changes.length);
