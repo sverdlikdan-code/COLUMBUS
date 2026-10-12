@@ -951,10 +951,20 @@ let _shareBlobPromise=null;
 // off the phone entirely removes that whole category of device-specific
 // timing bug rather than chasing a fourth variant of it.
 function prewarmShareImage(){
-  _shareBlobPromise=(_shareDataParam?captureShareImage():fetchServerRenderedImage()).catch(e=>{ console.warn('prewarm capture failed',e); return null; });
+  _shareBlobPromise=(_shareDataParam?captureShareImage():fetchServerRenderedImage()).catch(e=>{
+    console.warn('prewarm capture failed',e);
+    // reason to the server log — before 12.10 it was swallowed, Zoya's "not sending" left no trace
+    if(!_shareDataParam) _reportClientError(`share_image_failed: ${e&&e.name} ${e&&e.message} online=${navigator.onLine}`, null);
+    return null;
+  });
 }
-function getShareImage(){
+// A failed prewarm used to be cached as null forever → every tap showed "not available"
+// until the agent left the blank (Zoya 12.10, phone briefly offline). Retry once on tap.
+async function getShareImage(){
   if(!_shareBlobPromise) prewarmShareImage();
+  const blob=await _shareBlobPromise;
+  if(blob) return blob;
+  prewarmShareImage();
   return _shareBlobPromise;
 }
 async function fetchServerRenderedImage(){
@@ -1056,7 +1066,7 @@ async function sendAsImage(){
       }
     }
     if(blob){ downloadAndOpenWaWeb(blob); return; }
-    showToast('שיתוף אוטומטי לא זמין — צלם את המסך עם המצלמה');
+    showToast('לא הצלחנו להכין את התמונה — נסה שוב, או צלם את המסך עם המצלמה');
   }catch(e){
     console.warn('image share unavailable', e);
     showToast('שיתוף אוטומטי לא זמין — צלם את המסך עם המצלמה');
@@ -1073,7 +1083,7 @@ async function sendViaWhatsAppWeb(){
   try{
     const blob=await getShareImage();
     if(blob){ downloadAndOpenWaWeb(blob); return; }
-    showToast('שיתוף אוטומטי לא זמין — צלם את המסך עם המצלמה');
+    showToast('לא הצלחנו להכין את התמונה — נסה שוב, או צלם את המסך עם המצלמה');
   }catch(e){
     console.warn('whatsapp web share unavailable', e);
     showToast('שיתוף אוטומטי לא זמין — צלם את המסך עם המצלמה');
