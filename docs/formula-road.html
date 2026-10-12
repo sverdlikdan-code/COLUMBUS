@@ -404,9 +404,12 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
 .fpb-sub{font-size:14px;font-weight:800;color:#2E7D32;white-space:nowrap;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;}
 .fpb-info:has(.fpb-off){flex-wrap:wrap;row-gap:0;}
 /* ICE line (Dan 12.10): the main+₪ row stays one nowrap line exactly as without ICE; ICE goes under it */
-.fpb-info-ice{flex-direction:column;align-items:stretch;gap:0;}
-.fpb-row{display:flex;align-items:baseline;gap:8px;min-width:0;overflow:hidden;}
-.fpb-ice{font-size:12px;font-weight:800;color:#00A383;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;}
+/* 2-column grid: count under count, ₪ under ₪ (Dan 12.10 — symmetric) */
+.fpb-info-ice{display:grid;grid-template-columns:minmax(0,max-content) max-content;column-gap:8px;row-gap:0;align-items:baseline;}
+.fpb-ice{display:flex;gap:5px;align-items:baseline;font-size:12px;font-weight:800;color:#00A383;white-space:nowrap;overflow:hidden;line-height:1.2;}
+.fpb-ice b{font-size:14px;font-weight:900;}
+.fpb-den{display:inline-block;} /* "מ-17" is never cut mid-number */
+@media (max-width:340px){.fpb-word{display:none;}} /* 320px phones: "6 מ-17" whole instead of "6 …" */
 .fpb-off{flex-basis:100%;font-size:12px;font-weight:700;color:#C62828;white-space:nowrap;}
 .city-chip{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #90CAF9;background:#F8FBFF;color:#1565C0;white-space:nowrap;flex:0 0 auto;display:flex;align-items:center;gap:5px;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,.08);}
 .city-chip:hover{background:#E3F2FD;border-color:#42A5F5;}
@@ -3222,13 +3225,14 @@ function _fpbPieceHtml(numer, denom, sum, offLine, ice){
   const color = pct>=70 ? '#2E7D32' : pct>=40 ? '#F9A825' : '#C62828';
   const shekel = s => '₪' + Math.round(s).toLocaleString('he-IL');
   // ICE = full-width second line like .fpb-off — two lines stay lower than the 44px ring, the card doesn't grow
-  const row = `<div class="fpb-main">${numer} <span class="fpb-of">מ-${denom} הזמינו</span></div>
+  const row = `<div class="fpb-main">${numer} <span class="fpb-of"><span class="fpb-den">מ-${denom}</span><span class="fpb-word"> הזמינו</span></span></div>
       <div class="fpb-sub">${shekel(sum)}</div>`;
   if(ice?.n) return `
     <div class="fpb-bar-wrap">${_fpbRingSvg(pct, color)}</div>
     <div class="fpb-info fpb-info-ice">
-      <div class="fpb-row">${row}</div>
-      <div class="fpb-ice">ICE: ${ice.n} · ${shekel(ice.sum)}</div>
+      ${row}
+      <div class="fpb-ice"><b>${ice.n}</b><bdi>❄️ ICE</bdi></div>
+      <div class="fpb-ice">${shekel(ice.sum)}</div>
     </div>`;
   return `
     <div class="fpb-bar-wrap">${_fpbRingSvg(pct, color)}</div>
