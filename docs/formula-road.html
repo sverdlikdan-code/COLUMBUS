@@ -4339,11 +4339,13 @@ function openZikuyOrder(e,custId,custName,city){
 // coverage); a day of N > 14 gets exactly N − 14 offers — the weakest by share of weeks with an order
 // (server c.pp wk/of, team agents, 6+ months), older last order first, never 👑; FORMULA clients already
 // on every-other-week count toward the N − 14. Pilot only.
-const PP_DAY_NORM=14, ICE_MAX_SHARE=12/25;
+const PP_DAY_NORM=14, PP_DAY_NORM_ICE=12, PP_ICE_HEAVY=4, ICE_MAX_SHARE=12/25;
 function _ppCandidates(){
   if(!st.biweeklyPilot) return new Set();
   const formula=st.clients.filter(c=>!c.iceOnly);
-  const quota=formula.length-PP_DAY_NORM-formula.filter(c=>st.biweekly?.[String(c.custId)]).length;
+  // Dan 12.10: a day with more than 4 ICE clients is heavier → FORMULA norm 12 instead of 14
+  const norm=st.clients.length-formula.length>PP_ICE_HEAVY?PP_DAY_NORM_ICE:PP_DAY_NORM;
+  const quota=formula.length-norm-formula.filter(c=>st.biweekly?.[String(c.custId)]).length;
   if(quota<=0) return new Set();
   return new Set(formula
     .filter(c=>c.pp&&!st.biweekly?.[String(c.custId)]&&!st.topSalesIds.has(String(c.custId)))
