@@ -403,6 +403,10 @@ html,body{height:100%;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,s
    needs it despite the .sort-toggle min-width fix above. */
 .fpb-sub{font-size:14px;font-weight:800;color:#2E7D32;white-space:nowrap;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;}
 .fpb-info:has(.fpb-off){flex-wrap:wrap;row-gap:0;}
+/* ICE line (Dan 12.10): the main+₪ row stays one nowrap line exactly as without ICE; ICE goes under it */
+.fpb-info-ice{flex-direction:column;align-items:stretch;gap:0;}
+.fpb-row{display:flex;align-items:baseline;gap:8px;min-width:0;overflow:hidden;}
+.fpb-ice{font-size:12px;font-weight:800;color:#00A383;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;}
 .fpb-off{flex-basis:100%;font-size:12px;font-weight:700;color:#C62828;white-space:nowrap;}
 .city-chip{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #90CAF9;background:#F8FBFF;color:#1565C0;white-space:nowrap;flex:0 0 auto;display:flex;align-items:center;gap:5px;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,.08);}
 .city-chip:hover{background:#E3F2FD;border-color:#42A5F5;}
@@ -3174,7 +3178,7 @@ function _announceTodayOrder(){
 // — an agent visiting a client a day early/late showed 0 done despite a real
 // order, because that client isn't in today's roster. numer is a count of
 // orders actually made today, unfiltered by schedule day, same as sum.
-let _fpbSum = 0, _fpbNumer = 0, _fpbServedIds = null; // served ids: ♠½ off-week clients who ordered count in the plan; BDD also for the "מחוץ לקו" note
+let _fpbSum = 0, _fpbNumer = 0, _fpbServedIds = null, _fpbIce = null, _fpbIceKey = ''; // served ids: ♠½ off-week clients who ordered count in the plan; BDD also for the "מחוץ לקו" note
 async function _updateFormulaBanner(){
   const agentCode = st.agent?.code;
   if(!agentCode) return;
@@ -3183,6 +3187,20 @@ async function _updateFormulaBanner(){
     const d = await r.json();
     if(d?.ok){ _fpbSum = d.sum || 0; _fpbNumer = d.custCount || 0; _fpbServedIds = (d.byClient||[]).map(c=>String(c.custId)); }
   }catch(e){ /* keep last known numbers on a hiccup — not worth blanking the banner */ }
+  // ICE מישפחתי line under the ₪ (Dan 12.10) — not in the FORMULA %. Refetched only when today's ICE
+  // order set from the 75s poll changes, so Priority doesn't get a second query every poll.
+  // ponytail: an ICE order from a client outside st.todayOrdersIce waits for the next change, upgrade if it matters
+  if(_isBdd()) _fpbIce = null;
+  else{
+    const key = agentCode + '|' + [...(st.todayOrdersIce||[])].sort().join(',');
+    if(key !== _fpbIceKey){
+      try{
+        const r = await apiFetch(`${API}/api/day-closing?agentCode=${encodeURIComponent(agentCode)}&type=ice`);
+        const d = await r.json();
+        if(d?.ok){ _fpbIce = { n: d.custCount || 0, sum: d.sum || 0 }; _fpbIceKey = key; }
+      }catch(e){ /* keep last known */ }
+    }
+  }
   _renderFormulaBanner();
 }
 // Shared by the single-agent banner (#formula-progress-banner) and the
@@ -3199,14 +3217,23 @@ function _fpbRingSvg(pct, color){
 }
 // offLine (BDD only, user 2026-09-30): clients served today outside today's line — a note, the % is unchanged.
 function _fpbOffLineHtml(offLine){ return offLine>0 ? `<div class="fpb-off">מתוכם ${offLine} מחוץ לקו</div>` : ''; }
-function _fpbPieceHtml(numer, denom, sum, offLine){
+function _fpbPieceHtml(numer, denom, sum, offLine, ice){
   const pct = denom ? Math.round(numer/denom*100) : 0;
   const color = pct>=70 ? '#2E7D32' : pct>=40 ? '#F9A825' : '#C62828';
+  const shekel = s => '₪' + Math.round(s).toLocaleString('he-IL');
+  // ICE = full-width second line like .fpb-off — two lines stay lower than the 44px ring, the card doesn't grow
+  const row = `<div class="fpb-main">${numer} <span class="fpb-of">מתוך ${denom} הזמינו היום</span></div>
+      <div class="fpb-sub">${shekel(sum)}</div>`;
+  if(ice?.n) return `
+    <div class="fpb-bar-wrap">${_fpbRingSvg(pct, color)}</div>
+    <div class="fpb-info fpb-info-ice">
+      <div class="fpb-row">${row}</div>
+      <div class="fpb-ice">ICE: ${ice.n} · ${shekel(ice.sum)}</div>
+    </div>`;
   return `
     <div class="fpb-bar-wrap">${_fpbRingSvg(pct, color)}</div>
     <div class="fpb-info">
-      <div class="fpb-main">${numer} <span class="fpb-of">מתוך ${denom} הזמינו היום</span></div>
-      <div class="fpb-sub">₪${Math.round(sum).toLocaleString('he-IL')}</div>
+      ${row}
       ${_fpbOffLineHtml(offLine)}
     </div>`;
 }
@@ -3234,7 +3261,7 @@ function _renderFormulaBanner(){
     content.style.display='';
     const lineIds = new Set(todayFormula.map(c => String(c.custId)));
     const offLine = _isBdd() && _fpbServedIds ? _fpbServedIds.filter(id => !lineIds.has(id)).length : 0;
-    content.innerHTML=_fpbPieceHtml(_fpbNumer, denom, _fpbSum, offLine);
+    content.innerHTML=_fpbPieceHtml(_fpbNumer, denom, _fpbSum, offLine, _fpbIce);
   }else{
     el.classList.add('fpb-toggle-only');
     content.style.display='none';
