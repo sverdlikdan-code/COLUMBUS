@@ -468,7 +468,9 @@ async function runVariant({ split, to }) {
     try {
       const data = await fetchIceData();
       const r = await shootCards(false, false, [], data);
-      ice = { ...r, n: r.shots.length, nNew: r.risks.filter(x => x.mk in data.newSince).length, risk: riskSummary(r.risks) };
+      // סה"כ סיכון — без новинок (Дан 2026-10-13): прогноз по ним грубый, их ₪ — только на карточках
+      ice = { ...r, n: r.shots.length, nNew: r.risks.filter(x => x.mk in data.newSince).length,
+        risk: riskSummary(r.risks.filter(x => !(x.mk in data.newSince))) };
       console.log('[ICE]', `Карточек: ${ice.n}`, r.risks.map(x => x.mk).join(','), `Риск: ${fmtILS(ice.risk.total)}`);
     } catch (e) { console.error('[ICE] раздел пропущен:', e.message); }
   }
