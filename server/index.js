@@ -1150,7 +1150,7 @@ function loadAgentList() {
 }
 
 // Manager roster — replaces the single shared MANAGER_PASS with per-manager
-// identity: personal login code (typed or magic-link name match) and/or PBI
+// identity: magic-link name match and/or PBI
 // USERPRINCIPALNAME(), each carrying a role that controls write access.
 // role: 'super' (read+write everywhere, e.g. the owner) | 'team' (read
 // everywhere, write only within their own PBI group/קבוצה) | 'readonly'
@@ -1163,11 +1163,6 @@ function loadManagerRoster() {
     managerRosterCache = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'managers.json'), 'utf8'));
   } catch { managerRosterCache = []; }
   return managerRosterCache;
-}
-function findManagerByCode(code) {
-  if (!code) return null;
-  const c = String(code).toUpperCase();
-  return loadManagerRoster().find(m => m.code && m.code.toUpperCase() === c) || null;
 }
 function findManagerByName(name) {
   if (!name) return null;
@@ -1418,31 +1413,22 @@ app.get('/auth/pbi', dataRateLimit, pbiIpOrKnownUser, (req, res) => {
   return res.json({ ok: true, managerName: managerMeta ? (managerMeta.nameHe || managerMeta.name) : null, token, ...(managerMeta?.channel ? { channel: managerMeta.channel } : {}), ...(managerMeta?.bddAccess ? { bddAccess: true } : {}) });
 });
 
-// POST /auth — unified login: manager password OR agent code → returns session token
+// POST /auth — agent code → agent session (also Formula Road's silent re-auth of an
+// expired agent token). Manager sessions come only from /auth/pbi and invite links:
+// personal manager codes sat in public managers.json, and an agent number whose clients
+// have no קבוצה (53/74/90/920/000) used to mint a full manager session — both closed
+// 2026-10-13 (user). Those people log in via PBI with their own managers.json role.
 app.post('/auth', (req, res) => {
   const ip = getRealIp(req);
   if (checkRateLimit(ip)) return res.status(429).json({ ok: false, error: 'too_many_attempts' });
   const { code } = req.body || {};
   const codeStr = String(code || '').trim();
 
-  // Personal manager code (server/data/managers.json) — the shared MANAGER_PASS
-  // ("1999" for everyone) is retired as of 2026-09-07; every manager who needs
-  // to type a code manually now has their own, tied to a role/team.
-  const rosterManager = findManagerByCode(codeStr);
-  if (rosterManager) {
-    loginAttempts.delete(ip);
-    return res.json({ ok: true, type: 'manager', managerName: rosterManager.nameHe || rosterManager.name, token: createSession(null, true, false, null, rosterManager) });
-  }
-
   // Agent code check — validate against formula-road-data.json
   const agents = loadAgentList();
   const agent = agents[codeStr];
   if (agent) {
     loginAttempts.delete(ip);
-    // If this agent's clients have no manager (empty קבוצה) → they ARE a manager → see everything
-    if (pbiCache?.managerAgents?.has(codeStr)) {
-      return res.json({ ok: true, type: 'manager', managerName: agent.name, token: createSession(null, true) });
-    }
     return res.json({ ok: true, type: 'agent', agentCode: codeStr, agentName: agent.name, token: createSession(codeStr, false) });
   }
 
