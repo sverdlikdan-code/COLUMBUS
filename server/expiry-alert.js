@@ -67,7 +67,7 @@ CALCULATETABLE(
 // сезонность ×2.5–3, партии живут 1.5–2 года, 45 дней осенью «выбрасывают» то, что продастся летом
 // (сверка с дашбордом на 365 днях: 11/11 партий).
 const ICE = process.argv.includes('--ice') || process.env.EXPIRY_ALERT_ICE === '1';
-const ICE_SHELF_LIFE = 120; // порог флага סכנה и меры v2 на дашборде АЙС
+const ICE_SHELF_LIFE = 90; // порог флага סכנה и меры v2 на дашборде АЙС (было 120, Дан 2026-10-13 → 90)
 const ICE_SALES_DAYS = 365;
 
 const _BIDI_STRIP = /[‎‏‪-‮⁦-⁩]/g;
@@ -103,7 +103,8 @@ async function fetchIceData() {
       "name", CALCULATE(MAX('MLAY MISHPAHTI'[תאור מוצר])),
       "fam", CALCULATE(MAX('MLAY MISHPAHTI'[תאור משפחה])),
       "costCtn", CALCULATE(MAX('KARTIS PARIT'[עלות ש"ח]) * MAX('KARTIS PARIT'[תכולת האריזה למוצר])),
-      "rate", CALCULATE([ממוצע ביום עבודה (על בסיס WEEKLY SALES) NOW], ${SALES})), ${PAGE})`, DS),
+      "rate", CALCULATE([ממוצע ביום עבודה (על בסיס WEEKLY SALES) NOW], ${SALES}),
+      "dyn", CALCULATE([סכנה דינמי לפי מכר NOW], ${SALES})), ${PAGE})`, DS),
     // 6 полных недель Вс–Сб, как fetchWeeklySales у FORMULA (planogram/pbi-kapua.js)
     executeDax(`EVALUATE CALCULATETABLE(ADDCOLUMNS(SUMMARIZE(DATA, DATA[מק'ט], DATA[שבוע]),
       "wk", [ממוצע ביום עבודה (על בסיס WEEKLY SALES) NOW]),
@@ -117,6 +118,10 @@ async function fetchIceData() {
     products[mk] = { stock: 0, stockZafn: 0, daySales: +r['[rate]'] || 0, daySalesZafn: 0, daySalesAll: +r['[rate]'] || 0,
       shelfLife: ICE_SHELF_LIFE, pakuot: [], pakuotZafn: [], costCarton: Math.round((+r['[costCtn]'] || 0) * 100) / 100 || null,
       nameEn: fixBiDi(r['[name]']), fam: fixBiDi(r['[fam]']) };
+    // «19/11/25 מוצר חדש» — та же метка, что в колонке דשבורד: истории продаж меньше года,
+    // темп — с запуска, прогноз грубее (Дан 2026-10-13: в конец и пометить)
+    const dyn = String(r['[dyn]'] || '').replace(_BIDI_STRIP, '');
+    if (dyn.includes('מוצר חדש')) products[mk].newSince = (dyn.match(/\d{2}\/\d{2}\/\d{2}/) || [''])[0];
   }
   // Партия = מנה/פק'ע по всем складам (Trn/Trnz тоже — как итог дашборда). Все партии в одной
   // очереди с общим темпом — как мера v2; צפון только в «סה"כ מלאי».
@@ -153,11 +158,13 @@ async function fetchIceData() {
       && 'KARTIS PARIT ICE'[URL תמונה] <> ""), "mk", 'KARTIS PARIT ICE'[מק"ט], "url", 'KARTIS PARIT ICE'[URL תמונה])`);
     for (const r of rows) photos[String(r['[mk]'])] = r['[url]'];
   } catch (e) { console.error('[ICE] URL фото не загружены:', e.message); }
-  // порядок карточек — по семейству, внутри по מק"ט
+  // порядок карточек — новые товары в конце, дальше по семейству и מק"ט
+  const isNew = mk => products[mk].newSince != null;
   const state = {};
-  mks.sort((a, b) => (products[a].fam || '').localeCompare(products[b].fam || '') || a.localeCompare(b))
+  mks.sort((a, b) => isNew(a) - isNew(b) || (products[a].fam || '').localeCompare(products[b].fam || '') || a.localeCompare(b))
     .forEach((mk, i) => { state[i + 1] = { makat: mk, name: products[mk].nameEn, fam: products[mk].fam, haluka: 0, printOrder: i + 1 }; });
-  return { products, state, photos, salesDays: ICE_SALES_DAYS };
+  const newSince = Object.fromEntries(mks.filter(isNew).map(mk => [mk, products[mk].newSince]));
+  return { products, state, photos, newSince, salesDays: ICE_SALES_DAYS };
 }
 
 const ENV = ZAFN_LOW ? 'ZAFN_LOW_ALERT' : 'EXPIRY_ALERT';
@@ -218,6 +225,11 @@ async function shootCards(split, zafnLow, hide = [], ice = null) {
       // подпись темпа в редакторе вшита под FORMULA (45 дней)
       if (ice) document.querySelectorAll('#expiry-grid span').forEach(sp => {
         if (sp.textContent === '(45 יום אחורה)') sp.textContent = `(${ice.salesDays} יום אחורה)`;
+      });
+      // бирка новинки под מק"ט — отдельным div, сам div מק"ט не трогаем (по нему ищется מק"ט ниже)
+      if (ice) document.querySelectorAll('#expiry-grid div[style*="color:#1565C0;font-weight:bold"]').forEach(el => {
+        const since = ice.newSince[el.textContent.trim()];
+        if (since !== undefined) el.insertAdjacentHTML('afterend', `<div style="display:inline-block;font-size:8px;font-weight:bold;color:#fff;background:#00897b;border-radius:3px;padding:1px 4px;margin-top:2px;line-height:1.3;text-align:center;">🆕 מוצר חדש${since ? `<br>מ-${since}` : ''}</div>`);
       });
     }, split, zafnLow, hide, ice);
     await page.evaluate(() => new Promise(r => {
@@ -357,27 +369,35 @@ function buildDiffHtml(diff) {
   </td></tr>`;
 }
 
-// Карточки парами — строка из 2 картинок cid:<prefix>-<i>.
-function cardRows(n, prefix) {
+// Карточки [from, to) парами — строка из 2 картинок cid:<prefix>-<i>.
+function cardRows(prefix, from, to) {
+  if (to <= from) return '';
   const rows = [];
-  for (let i = 0; i < n; i += 2) {
-    const cell = j => j < n
+  for (let i = from; i < to; i += 2) {
+    const cell = j => j < to
       ? `<td width="50%" valign="top" style="padding:6px"><img src="cid:${prefix}-${j}" width="322" alt="" style="display:block;width:100%;max-width:322px;height:auto;border:0"></td>`
       : '<td width="50%"></td>';
     rows.push(`<tr style="page-break-inside:avoid">${cell(i)}${cell(i + 1)}</tr>`);
   }
-  return rows.join('');
+  return `<tr><td style="padding:4px 12px 12px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="rtl">${rows.join('')}</table></td></tr>`;
 }
 
-// Раздел АЙС — после карточек FORMULA, своя сумма риска (ice = { n, risk } или null).
+// Раздел АЙС — после карточек FORMULA, своя сумма риска (ice = { n, nNew, risk } или null).
+// Новинки (nNew) идут последними карточками — отдельной подсекцией.
 function buildIceHtml(ice) {
   if (!ice?.n) return '';
+  const firstNew = ice.n - (ice.nNew || 0);
   return `<tr><td dir="rtl" style="padding:22px 28px 4px;text-align:right;border-top:3px solid ${NAVY}">
     <div style="font-size:20px;font-weight:900;color:${NAVY}">גלידה משפחתי — ICE</div>
     <div style="padding-top:4px;font-size:13px;color:${MUTED}">${ice.n} ${ice.n === 1 ? 'מוצר בסכנה' : 'מוצרים בסכנה'} / STOP SALE · מכר ממוצע ${ICE_SALES_DAYS} יום אחורה · חיי מדף מינ' ${ICE_SHELF_LIFE} יום</div>
   </td></tr>
   ${buildRiskHtml(ice.risk)}
-  <tr><td style="padding:4px 12px 12px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="rtl">${cardRows(ice.n, 'ice-card')}</table></td></tr>`;
+  ${cardRows('ice-card', 0, firstNew)}
+  ${ice.nNew ? `<tr><td dir="rtl" style="padding:10px 28px 2px;text-align:right">
+    <div style="font-size:15px;font-weight:900;color:#00897b">🆕 מוצרים חדשים (${ice.nNew})</div>
+    <div style="padding-top:3px;font-size:12px;color:${MUTED}">פחות משנה של מכירות — הקצב מחושב מיום ההשקה, והתחזית פחות מדויקת.</div>
+  </td></tr>` : ''}
+  ${cardRows('ice-card', firstNew, ice.n)}`;
 }
 
 function buildEmailHtml(n, greetName, risk, split, diff, ice = null) {
@@ -401,7 +421,7 @@ function buildEmailHtml(n, greetName, risk, split, diff, ice = null) {
     <a href="${APP_URL}" style="display:inline-block;margin:0 0 8px 8px;padding:9px 16px;border-radius:8px;background-color:${NAVY};font-size:13px;font-weight:bold;color:#ffffff;text-decoration:none">📱 לפתוח באפליקציה — ${ZAFN_LOW ? 'צפון &lt;3 ימים' : 'מוצרים בסכנה'}</a>
     <div style="display:inline-block;padding:9px 16px;border:1.5px solid ${NAVY};border-radius:8px;background:#EEF3FA;font-size:13px;font-weight:bold;color:${NAVY}">🖨 להדפסה — פתחו את ${ice?.n ? 'קבצי ה-PDF המצורפים' : 'קובץ ה-PDF המצורף'} (4 מוצרים בעמוד A4)</div>
   </td></tr>
-  <tr><td style="padding:4px 12px 12px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="rtl">${cardRows(n, 'card')}</table></td></tr>
+  ${cardRows('card', 0, n)}
   ${buildIceHtml(ice)}
   <tr><td dir="rtl" style="padding:16px 28px 24px;text-align:right;border-top:1px solid ${LINE};font-size:12px;color:${MUTED};line-height:1.7">
     ${FOOTNOTE ? `${FOOTNOTE}<br>` : ''}הדוח נשלח רק בימים שיש ${ZAFN_LOW ? 'מוצרים עם מלאי נמוך בצפון' : 'מוצרים בסכנה'}.<br>הערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.
@@ -433,8 +453,9 @@ async function runVariant({ split, to }) {
   let ice = null;
   if (ICE && main) {
     try {
-      const r = await shootCards(false, false, [], await fetchIceData());
-      ice = { ...r, n: r.shots.length, risk: riskSummary(r.risks) };
+      const data = await fetchIceData();
+      const r = await shootCards(false, false, [], data);
+      ice = { ...r, n: r.shots.length, nNew: r.risks.filter(x => x.mk in data.newSince).length, risk: riskSummary(r.risks) };
       console.log('[ICE]', `Карточек: ${ice.n}`, r.risks.map(x => x.mk).join(','), `Риск: ${fmtILS(ice.risk.total)}`);
     } catch (e) { console.error('[ICE] раздел пропущен:', e.message); }
   }
@@ -507,7 +528,7 @@ async function runVariant({ split, to }) {
         ...(diff ? ['', `שינויים מהדוח הקודם (${diff.date}):`,
           `נוספו (${diff.added.length}): ${diff.added.map(r => r.name).join('; ') || 'אין'}`,
           `יצאו (${diff.removed.length}): ${diff.removed.map(r => r.name).join('; ') || 'אין'}`] : []),
-        ...(iceN ? ['', `גלידה משפחתי — ICE: ${iceN} מוצרים בסכנה / STOP SALE`,
+        ...(iceN ? ['', `גלידה משפחתי — ICE: ${iceN} מוצרים בסכנה / STOP SALE${ice.nNew ? ` (מתוכם ${ice.nNew} מוצרים חדשים — פחות משנה של מכירות)` : ''}`,
           `סה"כ סיכון: ${fmtILS(ice.risk.total)}`,
           ...ice.risk.top.map((r, i) => `${i + 1}. ${r.name} — ${fmtILS(r.cost)}`)] : []),
         '',
