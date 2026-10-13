@@ -119,6 +119,21 @@ function bddCanWrite(session, agentCode, cache) {
   return !!group && (session.managerTeams || []).includes(group);
 }
 
+// Fridge orders (Dan 2026-10-13): team managers, Yosi and super only — never agents or the other readonly
+// managers. FORMULA: managerRole team; ICE BDD: bddCanWrite (bddRole team, own group). Yosi — both channels.
+const MEKARER_ORDER_EXTRA = new Set(['yosi']);
+const mekarerExtra = s => !!s?.isManager && MEKARER_ORDER_EXTRA.has(s.managerId);
+function canOrderMekarer(session) {
+  return mekarerExtra(session) || (!!session?.isManager && (session.managerRole === 'team' || session.managerRole === 'super'));
+}
+function canOrderMekarerBdd(session, agentCode, cache) {
+  return mekarerExtra(session) || bddCanWrite(session, agentCode, cache);
+}
+// UI only (show 🧊 in BDD): may order for at least some BDD group — same roles as bddCanWrite, without the group.
+function mekarerBddVisible(s) {
+  return mekarerExtra(s) || (!!s?.isManager && (s.managerRole === 'super' || (s.channel === 'ICE_BDD' && s.bddRole === 'team')));
+}
+
 // Who may use /api/bdd/* (read) and see the FORMULA/BDD toggle: BDD channel managers,
 // managers flagged bddAccess (Yosi, Dima), and super.
 function canUseBdd(session) {
@@ -239,4 +254,4 @@ function deserializeBddCache(obj, today) {
   };
 }
 
-module.exports = { BDD_GROUPS, unreversePbi, buildBddCache, summarizeBddDocs, bddCanWrite, canUseBdd, resolveBddGps, loadBddCache, BDD_DAX_GAP_MS, serializeBddCache, deserializeBddCache, applyVisitOrder };
+module.exports = { BDD_GROUPS, unreversePbi, buildBddCache, summarizeBddDocs, bddCanWrite, canOrderMekarer, canOrderMekarerBdd, mekarerBddVisible, canUseBdd, resolveBddGps, loadBddCache, BDD_DAX_GAP_MS, serializeBddCache, deserializeBddCache, applyVisitOrder };

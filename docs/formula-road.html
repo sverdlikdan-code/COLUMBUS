@@ -4249,14 +4249,14 @@ function _primaryActionsHtml(c,noGps){
   return `<span class="zikuy-btn" data-id="${c.custId}" data-name="${nm}" data-city="${ct}" onclick="openZikuyOrder(event,this.dataset.id,this.dataset.name,this.dataset.city)" title="בקשת זיכוי">זיכוי</span>
     ${hasPromo ? '' : `<span class="excl-btn" data-id="${c.custId}" onclick="toggleExclude('${c.custId}',event)" title="הוצא ממסלול">🚫</span>`}
     ${noGps ? '' : `<span class="waze-btn" onclick="openWaze(event,${c.lat},${c.lng})" title="נווט ב-Waze">W</span>`}
-    ${_isBdd() ? `<span class="mekarer-btn" data-id="${c.custId}" data-name="${nm}" data-city="${ct}" onclick="openMekarerOrder(event,this.dataset.id,this.dataset.name,this.dataset.city)" title="הזמנת מקרר">🧊</span>` : ''}
+    ${_isBdd() && _mekarerAccess.bdd ? `<span class="mekarer-btn" data-id="${c.custId}" data-name="${nm}" data-city="${ct}" onclick="openMekarerOrder(event,this.dataset.id,this.dataset.name,this.dataset.city)" title="הזמנת מקרר">🧊</span>` : ''}
     <span class="ai-insight-btn" data-id="${c.custId}" data-name="${nm}" onclick="openClientAI(event,this.dataset.id,this.dataset.name)" title="ניתוח מעמק — משפחות, פערים, השוואה לרשת">🔍</span>
     ${hasPromo ? `<span class="promo-btn" data-id="${c.custId}" data-name="${nm}" onclick="openPromoModal(event,this.dataset.id,this.dataset.name)" title="מבצעים פעילים">🏷️</span>` : ''}`;
 }
 function _secondaryActionsHtml(c,noGps){
   const nm=(c.custName||'').replace(/"/g,'&quot;'), ct=(c.city||'').replace(/"/g,'&quot;');
   return `<span class="day-change-btn" data-id="${c.custId}" onclick="openDayPopup(event,this.dataset.id);closeRowActionsPopup()">📅</span>
-    ${_isBdd() ? '' : `<span class="mekarer-btn" data-id="${c.custId}" data-name="${nm}" data-city="${ct}" onclick="openMekarerOrder(event,this.dataset.id,this.dataset.name,this.dataset.city);closeRowActionsPopup()">🧊</span>`}
+    ${_isBdd() || !_mekarerAccess.formula ? '' : `<span class="mekarer-btn" data-id="${c.custId}" data-name="${nm}" data-city="${ct}" onclick="openMekarerOrder(event,this.dataset.id,this.dataset.name,this.dataset.city);closeRowActionsPopup()">🧊</span>`}
     ${noGps
       ? `<span class="no-gps-badge" data-id="${c.custId}" data-name="${nm}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name);closeRowActionsPopup()">NO GPS</span>`
       : `<span class="gps-edit-btn"  data-id="${c.custId}" data-name="${nm}" onclick="openAddrModal(event,this.dataset.id,this.dataset.name);closeRowActionsPopup()">📍</span>`}`;
@@ -4279,7 +4279,21 @@ document.addEventListener('click',e=>{
 });
 
 let _debtShownKey=null;
+// 🧊 only for those the server lets order (Dan 2026-10-13: team managers, BDD teams, Yosi, super — not agents).
+// Per-token probe; rows render without 🧊 until it answers, then the list re-renders once.
+let _mekarerAccess={formula:false,bdd:false},_mekarerAccessTok=null;
+function _loadMekarerAccess(){
+  const token=_getToken();
+  if(!token||token===_mekarerAccessTok) return;
+  _mekarerAccessTok=token; _mekarerAccess={formula:false,bdd:false};
+  fetch(API+'/api/mekarer-access',{headers:{'X-Session':token}}).then(r=>r.ok?r.json():null).then(j=>{
+    if(!j||token!==_mekarerAccessTok||!(j.formula||j.bdd)) return;
+    _mekarerAccess={formula:!!j.formula,bdd:!!j.bdd};
+    if(document.querySelector('#client-list .zikuy-btn')) renderClientList();
+  }).catch(()=>{});
+}
 function renderClientList(html){
+  _loadMekarerAccess();
   const el=document.getElementById('client-list');
   el.classList.toggle('mode-manual',st.sortMode==='priority');
   if(html){el.innerHTML=html;return;}

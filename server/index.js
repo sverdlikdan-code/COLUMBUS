@@ -12,6 +12,7 @@ const { executeDax, getDatasetRefreshTime } = require('./powerbi');
 const { clientOverdueByPayer, custCreatedDates, custIdsWithOpenOrderToday, iceMishCustIdsWithOpenOrderToday, dayClosingSummary, dayClosingSellout, dayClosingByClient, dayClosingByAgentAll, dayClosingOrdersToday, dayClosingIceOrdersRaw, openOrderIdsToday, liveOrderGpsForNewClient, clientPromosByCustId, custIdsWithActivePromo } = require('./priority-db');
 const dayClosingDedup = require('./day-closing-dedup');
 const { createBdd } = require('./bdd-routes');
+const { canOrderMekarer, mekarerBddVisible } = require('./bdd');
 const mekarerDaily = require('./mekarer-daily');
 const { Resend } = require('resend');
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
@@ -3688,7 +3689,15 @@ ORDER BY ALL_PARTS[תאריך] DESC
 });
 
 // POST /api/mekarer-order — save equipment order
+// Who sees 🧊 in Formula Road (UI probe; each endpoint re-checks): FORMULA and ICE BDD separately —
+// BDD is per client group, so `bdd` here only says "may order some BDD clients".
+app.get('/api/mekarer-access', requireAuth, (req, res) => {
+  const s = req.session;
+  res.json({ formula: canOrderMekarer(s), bdd: mekarerBddVisible(s) });
+});
 app.post('/api/mekarer-order', requireAuth, async (req, res) => {
+  // agents ordered via the ⋮ menu (238, 2026-10-13) — fridges are ordered by managers only
+  if (!canOrderMekarer(req.session)) return res.status(403).json({ error: 'forbidden' });
   try {
     const body = req.body;
     if (!body || !body.custId) return res.status(400).json({ error: 'invalid order' });

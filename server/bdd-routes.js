@@ -7,7 +7,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const ExcelJS = require('exceljs'); // Task 8: fridge order email, same package index.js already depends on
-const { BDD_GROUPS, summarizeBddDocs, bddCanWrite, canUseBdd, resolveBddGps, loadBddCache, serializeBddCache, deserializeBddCache, applyVisitOrder } = require('./bdd');
+const { BDD_GROUPS, summarizeBddDocs, bddCanWrite, canOrderMekarerBdd, canUseBdd, resolveBddGps, loadBddCache, serializeBddCache, deserializeBddCache, applyVisitOrder } = require('./bdd');
 const { bddDocLinesToday, bddClientPromos, bddCustFamiliesWithActivePromo, bddVisitOrder, bddCustMainAgents } = require('./bdd-priority');
 const { lineFor, coverageCounts, coverageClients, COVERAGE_EXCLUDED_TEAMS } = require('./coverage');
 
@@ -416,7 +416,7 @@ function createBdd(deps) {
   router.post('/api/mekarer-order', deps.dataRateLimit, h(async (req, res) => {
     const body = req.body || {};
     const client = cache?.clientById.get(String(body.custId || ''));
-    if (!client || !bddCanWrite(req.session, client.agentCode, cache)) return res.status(403).json({ error: 'forbidden' });
+    if (!client || !canOrderMekarerBdd(req.session, client.agentCode, cache)) return res.status(403).json({ error: 'forbidden' });
     const order = {
       channel: 'ICE BDD', custId: client.custId, custName: client.custName, city: client.city, agentName: client.agentName, manager: client.manager,
       contactName: String(body.contactName || '').substring(0, 80), phone: String(body.phone || '').substring(0, 20),
