@@ -68,6 +68,13 @@ async function daxOnce(token, query) {
   return j.results?.[0]?.tables?.[0]?.rows || [];
 }
 
+// «אסור למכירה» — товар заблокирован к продаже, но может лежать на складе (Дан 2026-10-13:
+// 400001-400003 выпали из планограммы и דוח תוקף с остатком). Берём его вместе с «פעיל»,
+// в данных — blocked:true: в аппе пометка ⛔, на странице заказа без автозаказа.
+function isBlockedStatus(s) {
+  return String(s || '').replace(/[‎‏‪-‮⁦-⁩]/g, '').includes('אסור למכירה');
+}
+
 async function fetchKapuaFromBI(makatim) {
   const t = await getToken();
 
@@ -78,7 +85,7 @@ async function fetchKapuaFromBI(makatim) {
     UNION(
       SELECTCOLUMNS(
         FILTER('KARTIS PARIT',
-          'KARTIS PARIT'[סטטוס] = "פעיל" &&
+          'KARTIS PARIT'[סטטוס] IN {"פעיל", "אסור למכירה"} &&
           'KARTIS PARIT'[שם מחסן אשדוד] = "קפוא ❄"
         ),
         "mk", 'KARTIS PARIT'[מק"ט]
@@ -192,7 +199,8 @@ async function fetchKapuaFromBI(makatim) {
           'KARTIS PARIT'[מק"ט],
           'KARTIS PARIT'[תאור],
           'KARTIS PARIT'[משקל ליחידה],
-          FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] = "פעיל"),
+          'KARTIS PARIT'[סטטוס],
+          FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] IN {"פעיל", "אסור למכירה"}),
           "shelfLife", MAX('KARTIS PARIT'[חיי מדף])
         ),
         "stopSale", [STOP SALE ⛔]
@@ -392,6 +400,7 @@ async function fetchKapuaFromBI(makatim) {
     result[mk].shelfLife = r['[shelfLife]'] ?? null;
     result[mk].stopSale  = r['[stopSale]'] === 'STOP ⛔';
     result[mk].weight    = r['KARTIS PARIT[משקל ליחידה]'] ?? null;
+    result[mk].blocked   = isBlockedStatus(r['KARTIS PARIT[סטטוס]']);
     const kpName = r['KARTIS PARIT[תאור]'];
     if (kpName) result[mk].nameEn = kpName.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim() || null;
   }
@@ -926,14 +935,15 @@ async function fetchHalaviFromBI() {
     EVALUATE
     SELECTCOLUMNS(
       FILTER('KARTIS PARIT',
-        'KARTIS PARIT'[סטטוס] = "פעיל" &&
+        'KARTIS PARIT'[סטטוס] IN {"פעיל", "אסור למכירה"} &&
         'KARTIS PARIT'[שם מחסן אשדוד] = "חלבי 🥛"
       ),
       "makat",     'KARTIS PARIT'[מק"ט],
       "name",      'KARTIS PARIT'[תאור],
       "fam",       'KARTIS PARIT'[תאור משפחה],
       "weight",    'KARTIS PARIT'[משקל ליחידה],
-      "shelfLife", 'KARTIS PARIT'[חיי מדף]
+      "shelfLife", 'KARTIS PARIT'[חיי מדף],
+      "status",    'KARTIS PARIT'[סטטוס]
     )
   `);
 
@@ -948,6 +958,7 @@ async function fetchHalaviFromBI() {
     const famName = fixedFam ? (HALAVI_FAM_NAMES[fixedFam] ?? (() => { console.log('halavi fam unknown: ' + JSON.stringify(fixedFam)); return fixedFam; })()) : null;
     result[mk] = {
       makat:     mk,
+      blocked:   isBlockedStatus(r['[status]']),
       desc:      raw.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim() || null,
       fam:       famName,
       weight:    r['[weight]'] ?? null,
@@ -1008,7 +1019,7 @@ async function fetchDagimFromBI() {
     EVALUATE
     SELECTCOLUMNS(
       FILTER('KARTIS PARIT',
-        'KARTIS PARIT'[סטטוס] = "פעיל" &&
+        'KARTIS PARIT'[סטטוס] IN {"פעיל", "אסור למכירה"} &&
         'KARTIS PARIT'[שם מחסן אשדוד] = "דגים 🐟"
       ),
       "makat",    'KARTIS PARIT'[מק"ט],
@@ -1016,7 +1027,8 @@ async function fetchDagimFromBI() {
       "fam",      'KARTIS PARIT'[תאור משפחה],
       "iksGroup", 'KARTIS PARIT'[IKRA SAL KAPUS],
       "weight",   'KARTIS PARIT'[משקל ליחידה],
-      "shelfLife",'KARTIS PARIT'[חיי מדף]
+      "shelfLife",'KARTIS PARIT'[חיי מדף],
+      "status",   'KARTIS PARIT'[סטטוס]
     )
   `);
 
@@ -1030,6 +1042,7 @@ async function fetchDagimFromBI() {
     const rawIks = r['[iksGroup]'] ? String(r['[iksGroup]']).trim() : null;
     result[mk] = {
       makat:     mk,
+      blocked:   isBlockedStatus(r['[status]']),
       desc:      raw.replace(/[‎‏‪-‮⁦-⁩]/g, '').trim() || null,
       fam:       rawFam ? fixHebRTL(rawFam) || null : null,
       iksGroup:  rawIks || null,
@@ -1141,7 +1154,7 @@ async function fetchShelfLifeForMakats(makatim) {
       'KARTIS PARIT'[מק"ט],
       FILTER('KARTIS PARIT',
         CONTAINSROW(${mkSet}, 'KARTIS PARIT'[מק"ט]) &&
-        'KARTIS PARIT'[סטטוס] = "פעיל"
+        'KARTIS PARIT'[סטטוס] IN {"פעיל", "אסור למכירה"}
       ),
       "shelfLife", MAX('KARTIS PARIT'[חיי מדף])
     )
@@ -1185,7 +1198,7 @@ async function fetchPhotoUrls() {
       SUMMARIZECOLUMNS(
         'KARTIS PARIT'[מק"ט],
         'KARTIS PARIT'[URL תמונה],
-        FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] = "פעיל")
+        FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] IN {"פעיל", "אסור למכירה"})
       ),
       NOT ISBLANK('KARTIS PARIT'[URL תמונה]) && 'KARTIS PARIT'[URL תמונה] <> ""
     )

@@ -1497,6 +1497,9 @@ function stockHTML(makat) {
   const kratLine = d.kratnost > 0 ? `<span class="s-krat"> [${d.kratnost}]</span>` : '';
   const noDataLine = wh === 'Main' && !(d.kratnost > 0) && !d.yavesh
     ? `<div style="font-weight:bold;color:#e53935;font-size:10px;line-height:1.2;">NO DATA</div>` : '';
+  // «אסור למכירה» в KARTIS PARIT, остаток на складе (Дан 2026-10-13)
+  const blockedLine = d.blocked
+    ? `<div style="font-weight:bold;color:#6a1b9a;font-size:8px;line-height:1.2;">⛔ אסור למכירה</div>` : '';
   const wCarton  = d.weightCarton != null && d.weightCarton > 0 ? d.weightCarton
                  : (d.weight != null && d.weight > 0 && d.packFactor > 0 ? +(d.weight * d.packFactor).toFixed(1) : null);
   const wtLine   = wCarton != null ? `<span class="s-weight">${wCarton} kg/קרט</span>` : '';
@@ -1506,7 +1509,7 @@ function stockHTML(makat) {
   const daysLine = daysLeft != null ? `<span class="s-meta" title="days for saleout">${daysLeft}<span style="font-size:9px;opacity:0.7"> days</span></span>` : '';
   const metaLine = daysLine ? `<div class="slot-meta">${daysLine}</div>` : '';
   const stockLine = (kartLine || kratLine) ? `<div class="slot-kart-line">${kartLine}${kratLine}</div>` : '';
-  return `<div class="slot-stock">${palLine}${stockLine}${noDataLine}${wtLine}</div>${metaLine}`;
+  return `<div class="slot-stock">${palLine}${stockLine}${noDataLine}${blockedLine}${wtLine}</div>${metaLine}`;
 }
 
 function isZeroStock(makat) {
@@ -3451,7 +3454,8 @@ function buildOrderPage() {
     const safetyDays = _getSafetyDays(fam);
     const safetyK    = Math.ceil(safetyDays / 1.4 * daySales);
     const deferredDemand  = daysStk !== null && daysStk < safetyDays / 2;
-    const autoOrderK = spo < safetyK && daySales > 0 ? safetyK : 0;
+    // «אסור למכירה» — не предлагать к заказу (Дан 2026-10-13); ручной ввод остаётся возможным
+    const autoOrderK = !d.blocked && spo < safetyK && daySales > 0 ? safetyK : 0;
     const autoOrderP = krat > 0 && autoOrderK > 0 ? Math.round(autoOrderK / krat * 10) / 10 : 0;
     // Manual row edits must survive a rebuild (period/filter/mode switch) — see _recalcRowPal/_recalcRowK
     const manualEdit = (window._orderManualEdits || {})[mk];
@@ -4476,7 +4480,11 @@ function buildExpiryPage() {
   const prevLine = r => r?.prev >= 1
     ? `<div style="font-size:8px;color:#888;">כולל ${r.prev} ימי מכר של פק"ע קודמות</div>` : '';
   // חיי מדף в шапке таблицы партий — мелко и бледно, в одну строку с заголовком (высота шапки не меняется).
-  const slTag = sl => sl ? `<span style="font-size:7.5px;font-weight:normal;opacity:0.7;margin-right:6px;white-space:nowrap;">חיי מדף מינ' ${sl}</span>` : '';
+  // «אסור למכירה» в KARTIS PARIT, но остаток есть (Дан 2026-10-13) — пометка под מק"ט.
+  // Отдельный div: алярм ищет מק"ט по стилю соседнего div, его не трогаем.
+  const blockedTag = d => d.blocked
+    ? `<div style="display:inline-block;font-size:8px;font-weight:bold;color:#fff;background:#6a1b9a;border-radius:3px;padding:1px 4px;margin-top:2px;">⛔ אסור למכירה</div>` : '';
+  const slTag = sl => sl ?`<span style="font-size:7.5px;font-weight:normal;opacity:0.7;margin-right:6px;white-space:nowrap;">חיי מדף מינ' ${sl}</span>` : '';
 
   const batchCell = (pak, sk) => {
     if (!pak) return '<span style="color:#ccc;">—</span>';
@@ -4668,7 +4676,7 @@ function buildExpiryPage() {
         <button onclick="hideExpiryCard('${mk}')" style="position:absolute;top:4px;left:4px;background:rgba(0,0,0,0.28);border:none;color:#fff;font-size:10px;cursor:pointer;border-radius:3px;padding:2px 7px;z-index:10;" class="no-print">✕</button>
         <div style="flex-shrink:0;text-align:center;">${imgHtml}
           <div style="font-size:9px;color:#888;margin-top:2px;">#${pick}</div>
-          <div style="font-size:9px;color:#1565C0;font-weight:bold;">${mk}</div>
+          <div style="font-size:9px;color:#1565C0;font-weight:bold;">${mk}</div>${blockedTag(d)}
           ${_combinedBadge}
         </div>
         <div style="flex:1;min-width:0;">
@@ -4697,7 +4705,7 @@ function buildExpiryPage() {
       <div style="flex-shrink:0; text-align:center;">
         ${imgHtml}
         <div style="font-size:9px;color:#888;margin-top:2px;">#${pick}</div>
-        <div style="font-size:9px;color:#1565C0;font-weight:bold;">${mk}</div>
+        <div style="font-size:9px;color:#1565C0;font-weight:bold;">${mk}</div>${blockedTag(d)}
         ${_pctBadge}
       </div>
       <div style="flex:1; min-width:0;">
