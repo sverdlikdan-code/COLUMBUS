@@ -13,17 +13,23 @@
 // Рабочие дни — меры модели [ימי עבודה 1] / [ימי עבודה שעברו] (вс–чт минус праздники, тот же календарь,
 // что в Formula Road).
 //
+// Письмо — сводка 3 частей + кнопка на ЛИЧНУЮ страницу /p/<hex> с полным списком (раскрывающиеся разделы, поиск;
+// Парето снято, Дан 2026-10-13) + Excel-вложение. Безопасность ссылок (security-agent 2026-10-13): новый hex на каждое
+// письмо, страницы старше LINK_DAYS удаляются (в начале запуска и cron --purge-links), CC — отдельное письмо со своей ссылкой.
+//
 // Сравнение с прошлой рассылкой (как в expiry-alert): OBLIGO_ALERT_STATE — список после боевой отправки,
 // в письме блок נוספו / יצאו по каждой части. --to / --dry-run state не трогают.
 //
 // Запуск: node obligo-alert.js                 — боевая рассылка (OBLIGO_ALERT_RECIPIENTS + менеджеры)
 //         node obligo-alert.js --dry-run       — без отправки, превью HTML+XLSX в ./out
-//         node obligo-alert.js --to a@b.com    — тест: полный отчёт только на этот адрес
+//         node obligo-alert.js --to a@b.com    — тест: полный отчёт только на этот адрес (ссылка тоже настоящая — только на VPS)
+//         node obligo-alert.js --purge-links   — только удалить просроченные страницы (ежедневный cron на VPS)
 require('dotenv').config({ path: '../.env' });
 const fs = require('fs');
 const path = require('path');
 const ExcelJS = require('exceljs');
 const { Resend } = require('resend');
+const crypto = require('crypto');
 const { executeDax } = require('./powerbi');
 
 const NEAR = 0.85;
@@ -181,22 +187,15 @@ const PARTS = [
     pick: e => e.util !== null && e.util >= 1,
     sort: (a, b) => b.util - a.util,
     extra: { head: 'יתרה מעבר למסגרת', val: e => e.usedILS - e.limitILS },
-    pareto: { by: e => e.usedILS - e.limitILS, what: 'מהחריגה', totalLabel: 'סה"כ חריגה מעבר למסגרת' },
   },
   {
     id: 'late', color: NAVY, chip: '#8FB3E0', tint: '#E8EEF6', sheet: 'חוב בפיגור', label: 'חוב בפיגור',
     title: 'לקוחות שחורגים מהסכם תנאי התשלום',
     rule: 'יתרת חוב בפיגור לפי ימי פיגור בפריוריטי, ללא קשר למסגרת אובליגו',
     pick: e => e.overdue >= 1,
-    pareto: { by: e => e.overdue, what: 'מהחוב', totalLabel: 'סה"כ חוב בפיגור' },
     sort: (a, b) => b.overdue - a.overdue,
   },
 ];
-
-const TH = `padding:0 8px 10px;font-family:Arial,sans-serif;font-size:10px;letter-spacing:.3px;color:${MUTED};border-bottom:2px solid ${NAVY}`;
-const TD = (bg, extra = '') => `padding:9px 8px;border-bottom:1px solid ${LINE};background:${bg};font-family:Arial,sans-serif;${extra}`;
-const pctColor = u => u >= 1 ? RED : GOLD;
-const pctBg = u => u >= 1 ? '#FBEAEC' : '#F7EFDF';
 
 // Колонки сумм — фиксированной ширины (иначе в каждом блоке своя auto-ширина и цифры "гуляют",
 // пользователь 2026-09-10).
@@ -213,63 +212,11 @@ function amountColumns(part) {
   ];
 }
 
-function tableHead(part, isChain) {
-  const cols = amountColumns(part).map(([h, , w]) => `<th style="${TH};text-align:right;width:${w}px">${h}</th>`).join('');
-  const pct = part.id === 'late' ? '' : `<th style="${TH};text-align:right;width:56px">%</th>`;
-  return `<tr dir="rtl">
-        <th style="${TH};text-align:right;width:62px">מס' לקוח</th>
-        <th style="${TH};text-align:right">${isChain ? 'רשת' : 'שם'}</th>${cols}${pct}
-      </tr>`;
-}
-
-function rowHtml(part) {
-  return (e, i) => {
-    const bg = i % 2 ? ZEBRA : '#ffffff';
-    const cells = amountColumns(part).map(([, f, w, strong]) => {
-      const v = f(e);
-      const style = strong ? `font-weight:bold;color:${part.color}` : `color:${MUTED}`;
-      return `<td dir="ltr" style="${TD(bg, `font-size:12px;text-align:right;width:${w}px;${style}`)}">${v ? fmtILS(v) : '—'}</td>`;
-    }).join('');
-    const pct = part.id === 'late' ? '' : `<td style="${TD(bg, 'text-align:right;width:56px')}">
-        <span style="display:inline-block;min-width:40px;padding:3px 7px;border-radius:20px;background:${pctBg(e.util)};font-family:Arial,sans-serif;font-size:12px;font-weight:bold;color:${pctColor(e.util)};text-align:center">${Math.round(e.util * 100)}%</span></td>`;
-    return `<tr>
-      <td dir="${/^\d+$/.test(e.custno) ? 'ltr' : 'rtl'}" style="${TD(bg, `font-size:12px;color:${MUTED};text-align:right;width:62px`)}">${e.custno}</td>
-      <td dir="rtl" style="${TD(bg, `font-size:13px;color:${INK};font-weight:bold`)}">${e.name}</td>${cells}${pct}
-    </tr>`;
-  };
-}
-
-// Блоки: רשתות по אחראי, שוק פרטי по агенту ("לא מוגדר"/"—" в конец, остальные по алфавиту).
-function groupedBlocks(subtitle, rows, groupField, part, isChain) {
-  if (!rows.length) return '';
-  const byGroup = new Map();
-  for (const r of rows) {
-    if (!byGroup.has(r[groupField])) byGroup.set(r[groupField], []);
-    byGroup.get(r[groupField]).push(r);
-  }
-  const undefinedLast = k => k === 'לא מוגדר' || k === '—';
-  const keys = [...byGroup.keys()].sort((a, b) => (undefinedLast(a) - undefinedLast(b)) || a.localeCompare(b, 'he'));
-  return `
-  <tr><td dir="rtl" style="padding:18px 24px 0;text-align:right">
-    <div style="font-family:Arial,sans-serif;font-size:14px;color:${INK};font-weight:bold">${subtitle} (${rows.length})</div>
-  </td></tr>
-  ${keys.map(k => `
-  <tr><td dir="rtl" style="padding:12px 24px 6px;text-align:right">
-    <div style="font-family:Arial,sans-serif;font-size:13px;color:${NAVY};font-weight:bold">${k}</div>
-  </td></tr>
-  <tr><td style="padding:0 24px 4px">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-radius:8px;overflow:hidden;border:1px solid ${LINE}">
-      ${tableHead(part, isChain)}
-      ${byGroup.get(k).map(rowHtml(part)).join('')}
-    </table>
-  </td></tr>`).join('')}`;
-}
-
 function diffHtml(diff) {
   if (!diff) return '';
   const CAP = 15;
   const list = (rows, sign, color) => rows.length
-    ? rows.slice(0, CAP).map(r => `<div style="padding:2px 0;font-size:12px;color:${INK}"><b style="color:${color}">${sign}</b> ${r.name}${r.custno ? ` (${r.custno})` : ''}</div>`).join('')
+    ? rows.slice(0, CAP).map(r => `<div style="padding:2px 0;font-size:12px;color:${INK}"><b style="color:${color}">${sign}</b> ${esc(r.name)}${r.custno ? ` (${esc(r.custno)})` : ''}</div>`).join('')
       + (rows.length > CAP ? `<div style="padding:2px 0;font-size:12px;color:${MUTED}">ועוד ${rows.length - CAP}</div>` : '')
     : `<div style="padding:2px 0;font-size:12px;color:${MUTED}">אין</div>`;
   return `<tr><td dir="rtl" style="padding:12px 24px 0;text-align:right">
@@ -285,47 +232,168 @@ function diffHtml(diff) {
   </td></tr>`;
 }
 
-// Части 2 и 3 в письме — только Парето: крупнейшие, дающие первые 50% суммы (часть 2 — по сумме
-// сверх лимита, часть 3 — по просрочке; пересекающий порог включается). Полный список — в Excel (Дан 2026-10-12).
-const PARETO_SHARE = 0.5;
-function pareto(rows, by) {
-  const total = rows.reduce((s, r) => s + by(r), 0);
-  const top = [];
-  let acc = 0;
-  for (const r of [...rows].sort((a, b) => by(b) - by(a))) { if (acc >= total * PARETO_SHARE) break; top.push(r); acc += by(r); }
-  return { top, total, topSum: acc };
+const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const groupKeyOrder = k => k === 'לא מוגדר' || k === '—';
+// Итог части — по жирной колонке (יתרה לניצול / מעבר למסגרת / סה"כ בפיגור)
+const partTotal = (part, rows) => { const f = amountColumns(part).find(a => a[3])[1]; return rows.reduce((s, r) => s + f(r), 0); };
+
+// ── Личная страница /p/<hex>: полный отчёт без Парето, раскрывающиеся разделы, поиск (Дан 2026-10-13).
+// Почтовики режут JS и <details> (Outlook/Gmail) — поэтому интерактив только здесь, письмо — сводка + кнопка.
+function pageGroups(part, rows, field, isChain) {
+  const by = new Map();
+  for (const r of rows) { if (!by.has(r[field])) by.set(r[field], []); by.get(r[field]).push(r); }
+  const keys = [...by.keys()].sort((a, b) => (groupKeyOrder(a) - groupKeyOrder(b)) || a.localeCompare(b, 'he'));
+  const cols = amountColumns(part);
+  const head = `<tr><th>מס' לקוח</th><th>${isChain ? 'רשת' : 'שם'}</th>${cols.map(([h]) => `<th>${esc(h)}</th>`).join('')}${part.id === 'late' ? '' : '<th>%</th>'}</tr>`;
+  const row = e => `<tr data-q="${esc(`${e.name} ${e.custno} ${e[field]}`.toLowerCase())}"><td class="c">${esc(e.custno)}</td><td class="n">${esc(e.name)}</td>`
+    + cols.map(([, f, , strong]) => { const v = f(e); return `<td class="m${strong ? ' s' : ''}">${v ? fmtILS(v) : '—'}</td>`; }).join('')
+    + (part.id === 'late' ? '' : `<td><span class="pc ${e.util >= 1 ? 'r' : 'g'}">${Math.round(e.util * 100)}%</span></td>`) + '</tr>';
+  return keys.map(k => {
+    const list = by.get(k);
+    return `<details class="grp"><summary><b>${esc(k)}</b><span class="cnt">${list.length} ${list.length === 1 ? 'לקוח' : 'לקוחות'} &middot; <bdi>${fmtILS(partTotal(part, list))}</bdi></span></summary>
+      <div class="tw"><table>${head}${list.map(row).join('')}</table></div></details>`;
+  }).join('');
 }
 
-function partHtml(part, rows, diff, num) {
-  const p = part.pareto ? pareto(rows, part.pareto.by) : null;
-  const shown = p ? p.top : rows;
-  const chains = shown.filter(r => r.market === 'רשתות');
-  const priv = shown.filter(r => r.market !== 'רשתות');
-  const paretoNote = p && rows.length ? `<tr><td dir="rtl" style="padding:10px 24px 0;text-align:right;font-family:Arial,sans-serif;font-size:13px;color:${INK}">
-    ${part.pareto?.totalLabel}: <b style="color:${part.color}">${ltr(fmtILS(p.total))}</b>. מוצגים <b>${p.top.length}</b> הלקוחות שמרכזים ${ltr(Math.round(p.topSum / p.total * 100) + '%')} ${part.pareto?.what} (${ltr(fmtILS(p.topSum))}) — הרשימה המלאה של כל ${rows.length} הלקוחות בגיליון "${part.sheet}" בקובץ האקסל.
-  </td></tr>` : '';
+function pageDiff(diff) {
+  if (!diff || !(diff.added.length + diff.removed.length)) return '';
+  const li = (rows, sign) => rows.map(r => `<li>${sign} ${esc(r.name)}${r.custno ? ` (${esc(r.custno)})` : ''}</li>`).join('') || '<li class="mu">אין</li>';
+  return `<div class="diff"><b>שינויים ברשתות מהדוח הקודם (${esc(diff.date)})</b>
+    <div class="add">נוספו (${diff.added.length}):</div><ul>${li(diff.added, '+')}</ul>
+    <div class="rem">יצאו (${diff.removed.length}):</div><ul>${li(diff.removed, '−')}</ul></div>`;
+}
+
+// Без внешних ресурсов; CSP meta сужает глобальную CSP сервера для этой страницы (общий роут /p не трогаем).
+// <title> нейтральный — виден в истории браузера.
+function buildPageHtml(parts, workDays, privateOnly, expires) {
+  const date = new Date().toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' });
+  const sections = parts.map(({ part, rows, diff }, i) => {
+    const chains = rows.filter(r => r.market === 'רשתות'), priv = rows.filter(r => r.market !== 'רשתות');
+    const sub = (t, list, field, isChain) => list.length ? `<h3>${t} (${list.length})</h3>${pageGroups(part, list, field, isChain)}` : '';
+    return `<details class="part" id="${part.id}" style="--c:${part.color}"><summary>
+      <span class="t">${i + 1}. ${esc(part.title)}</span>
+      <span class="meta">${esc(part.rule)} &middot; ${rows.length} לקוחות &middot; סה"כ ${fmtILS(partTotal(part, rows))}</span></summary>
+      <div class="body">${pageDiff(diff)}${rows.length ? sub('רשתות', chains, 'resp', true) + sub('שוק פרטי', priv, 'agent', false) : '<p class="mu">אין לקוחות בקטגוריה זו.</p>'}</div></details>`;
+  }).join('');
+  const chips = parts.map(({ part, rows }) => `<a class="chip" href="#${part.id}" style="--c:${part.chip}"><b style="color:${part.color}">${rows.length}</b><span>${part.label}</span></a>`).join('');
+  return `<!doctype html>
+<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<title>דוח שבועי</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:${PAPER};font-family:Arial,sans-serif;color:${INK}}
+header{background:${NAVY};color:#fff;text-align:center;padding:22px 16px 18px}
+header h1{margin:0;font-size:22px}header .d{color:${GOLD};font-size:12px;margin-top:6px}
+.chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:16px 0 12px}
+.chip{background:#fff;border-top:5px solid var(--c);flex:1 1 0;max-width:160px;min-width:0;padding:8px 6px;text-decoration:none;display:flex;flex-direction:column;align-items:center}
+.chip b{font-size:22px}.chip span{font-size:11px;color:${MUTED}}
+header .wd{font-size:13px}
+main{max-width:960px;margin:0 auto;padding:12px 16px 48px}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 4px}
+.tools input{flex:1 1 100%;padding:10px 12px;font-size:15px;border:1px solid ${LINE};border-radius:8px}
+.tools button{flex:1;padding:10px 14px;font-size:14px;border:1px solid ${LINE};border-radius:8px;background:#fff;cursor:pointer}
+.intro{font-size:14px;line-height:1.6;margin:8px 0}
+details.part{background:#fff;border:1px solid ${LINE};border-right:5px solid var(--c);border-radius:8px;margin:14px 0}
+details.part>summary{padding:14px 16px;cursor:pointer;list-style-position:inside}
+details.part>summary .t{font-size:17px;font-weight:bold;color:var(--c)}
+details.part>summary .meta{display:block;font-size:12px;color:${MUTED};margin-top:4px}
+.body{padding:0 12px 12px}
+h3{font-size:14px;margin:16px 4px 6px}
+details.grp{border:1px solid ${LINE};border-radius:6px;margin:6px 0}
+details.grp>summary{padding:9px 12px;cursor:pointer;color:${NAVY};font-size:13px}
+details.grp>summary .cnt{color:${MUTED};font-weight:normal;margin-right:10px}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font-size:11px;color:${MUTED};font-weight:normal;border-bottom:2px solid ${NAVY};padding:6px 8px;text-align:right;white-space:nowrap}
+td{padding:7px 8px;border-bottom:1px solid ${LINE};text-align:right;white-space:nowrap}
+tr:nth-child(odd) td{background:${ZEBRA}}
+td.n{font-weight:bold;white-space:normal;min-width:150px}td.c{color:${MUTED};font-size:12px}
+td.m{direction:ltr;unicode-bidi:isolate;color:${MUTED};font-size:12px}td.s{font-weight:bold;color:var(--c)}
+.pc{display:inline-block;min-width:44px;text-align:center;padding:3px 7px;border-radius:20px;font-weight:bold;font-size:12px;direction:ltr}
+.pc.r{background:#FBEAEC;color:${RED}}.pc.g{background:#F7EFDF;color:${GOLD}}
+.diff{background:#F7F9FC;border:1px solid ${LINE};border-radius:8px;padding:10px 14px;margin:4px 0 8px;font-size:13px}
+.diff ul{margin:2px 0;padding-right:18px}.add{color:#b71c1c;margin-top:6px;font-weight:bold}.rem{color:#2e7d32;margin-top:6px;font-weight:bold}
+.mu{color:${MUTED}}[hidden]{display:none!important}
+@media(max-width:600px){main{padding:8px 10px 40px}.body{padding:0 6px 10px}th,td{padding:6px 5px}table{font-size:12px}td.n{min-width:110px}}
+footer{font-size:12px;color:${MUTED};line-height:1.7;margin-top:24px}
+</style></head><body>
+<header><h1>דוח אובליגו ותנאי תשלום</h1><div class="d">דוח שבועי &middot; ${date}${privateOnly ? ' &middot; שוק פרטי, הסוכנים של הקבוצה שלך' : ''}</div>
+<div class="chips">${chips}</div>
+<div class="wd">נותרו <b>${workDays.left}</b> ימי עבודה עד סוף החודש מתוך ${workDays.total} &middot; <b>${Math.round(workDays.pct * 100)}%</b> מימי העבודה בחודש</div></header>
+<main>
+<p class="intro">לחצו על חלק כדי לפתוח אותו, ובתוכו על אחראי / סוכן. החיפוש מוצא לקוח לפי שם, מספר או סוכן בכל החלקים.</p>
+<div class="tools"><input id="q" type="search" placeholder="חיפוש לקוח / מספר / סוכן" autocomplete="off"><button id="all">פתח הכל</button><button id="none">סגור הכל</button></div>
+${sections}
+<footer><b>סודי — קישור אישי, נא לא להעביר. בתוקף עד ${expires}.</b><br>כל לקוח מדווח מחדש בכל דוח שבועי, כל עוד הוא עומד בתנאי החלק. סכומי הפיגור — רק יתרות חיוביות לפי ימי פיגור בפריוריטי.<br>הערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.</footer>
+</main>
+<script>
+(function(){
+var parts=[].slice.call(document.querySelectorAll('details.part')),grps=[].slice.call(document.querySelectorAll('details.grp'));
+var track=function(){};
+function setAll(o){parts.concat(grps).forEach(function(d){d.open=o})}
+document.getElementById('all').onclick=function(){setAll(true);track('open-all')};
+document.getElementById('none').onclick=function(){setAll(false)};
+parts.forEach(function(p){p.addEventListener('toggle',function(){if(p.open)track('o-'+p.id)})});
+grps.forEach(function(g){g.addEventListener('toggle',function(){if(g.open)track('grp')})});
+var searched=false;
+document.getElementById('q').addEventListener('input',function(){
+  var q=this.value.trim().toLowerCase();
+  if(q&&!searched){searched=true;track('search')}
+  grps.forEach(function(g){var hit=0;[].forEach.call(g.querySelectorAll('tr[data-q]'),function(tr){var m=!q||tr.dataset.q.indexOf(q)>-1;tr.hidden=!m;hit+=m});g.hidden=!hit;g.open=!!q&&hit>0});
+  parts.forEach(function(p){var any=!q||p.querySelector('details.grp:not([hidden])');p.hidden=!any;p.open=!!q&&!!any;
+    [].forEach.call(p.querySelectorAll('h3'),function(h){var n=h.nextElementSibling,vis=false;while(n&&n.tagName!=='H3'){if(!n.hidden)vis=true;n=n.nextElementSibling}h.hidden=!vis})});
+});
+[].forEach.call(document.querySelectorAll('a.chip'),function(a){a.onclick=function(){var p=document.querySelector(a.getAttribute('href'));if(p)p.open=true}});
+// трекинг (как в yarych-report): секунды по частям + раскрытия — только по личной ссылке /p/<hex>
+(function(){
+  if(!/^\\/p\\/[0-9a-f]{48}$/.test(location.pathname)||!navigator.sendBeacon)return;
+  var url=location.pathname+'/ev',sid=Math.random().toString(36).slice(2,12),acc={},n=0;
+  function send(extra){var b={sid:sid,w:window.innerWidth,d:acc};for(var k in extra)b[k]=extra[k];navigator.sendBeacon(url,new Blob([JSON.stringify(b)],{type:'application/json'}));acc={};n=0}
+  track=function(k){acc[k]=(acc[k]||0)+1;send({})};
+  send({open:true});
+  setInterval(function(){if(document.visibilityState!=='visible')return;var y=window.innerHeight*.45;
+    for(var i=0;i<parts.length;i++){var r=parts[i].getBoundingClientRect();if(parts[i].open&&r.top<=y&&r.bottom>y){var k=parts[i].id;acc[k]=(acc[k]||0)+1;n++;break}}
+    if(n>=15)send({})},1000);
+  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden'&&n)send({})});
+  window.addEventListener('pagehide',function(){if(n)send({})});
+})();
+})();
+</script></body></html>`;
+}
+
+// ── Письмо: сводка по частям (кол-во, итог, נוספו/יצאו по сетям) + кнопка на личную страницу.
+// Полные списки в теле не помещаются: Gmail обрезает HTML > ~102KB (было 149KB уже с Парето).
+function emailPartHtml(part, rows, diff, num) {
   return `
-  <tr><td dir="rtl" style="padding:32px 24px 0;text-align:right">
+  <tr><td dir="rtl" style="padding:24px 24px 0;text-align:right">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="rtl"><tr>
       <td width="5" bgcolor="${part.color}" style="width:5px;background-color:${part.color};font-size:0;line-height:0">&nbsp;</td>
       <td dir="rtl" style="padding:2px 12px 2px 0;text-align:right">
-        <div style="font-family:Arial,sans-serif;font-size:18px;color:${part.color};font-weight:bold;line-height:24px">${num}. ${part.title}</div>
-        <div style="font-family:Arial,sans-serif;font-size:12px;color:${MUTED};line-height:18px">${part.rule} &middot; ${rows.length} ${rows.length === 1 ? 'לקוח' : 'לקוחות'}</div>
+        <div style="font-family:Arial,sans-serif;font-size:17px;color:${part.color};font-weight:bold;line-height:24px">${num}. ${part.title}</div>
+        <div style="font-family:Arial,sans-serif;font-size:12px;color:${MUTED};line-height:18px">${part.rule} &middot; ${rows.length} ${rows.length === 1 ? 'לקוח' : 'לקוחות'} &middot; סה"כ ${ltr(fmtILS(partTotal(part, rows)))}</div>
       </td>
     </tr></table>
   </td></tr>
-  ${diffHtml(diff)}
-  ${paretoNote}
-  ${rows.length ? '' : `<tr><td dir="rtl" style="padding:12px 24px 0;text-align:right;font-family:Arial,sans-serif;font-size:13px;color:${MUTED}">אין לקוחות בקטגוריה זו.</td></tr>`}
-  ${groupedBlocks('רשתות', chains, 'resp', part, true)}
-  ${groupedBlocks('שוק פרטי', priv, 'agent', part, false)}`;
+  ${diffHtml(diff)}`;
 }
 
-function buildEmailHtml(parts, workDays, greetName, privateOnly) {
+function buttonHtml(link) {
+  const label = 'לדוח המלא — כל הלקוחות';
+  return `<tr><td align="center" style="padding:28px 24px 0">
+    <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${link}" style="height:50px;v-text-anchor:middle;width:320px" arcsize="16%" stroke="f" fillcolor="${NAVY}"><w:anchorlock/><center style="color:#ffffff;font-family:Arial,sans-serif;font-size:17px;font-weight:bold">${label}</center></v:roundrect><![endif]-->
+    <!--[if !mso]><!--><table role="presentation" cellpadding="0" cellspacing="0"><tr><td bgcolor="${NAVY}" style="background-color:${NAVY};border-radius:8px;padding:15px 30px">
+      <a href="${link}" target="_blank" style="font-family:Arial,sans-serif;display:block;font-size:17px;font-weight:bold;color:#ffffff !important;text-decoration:none"><span style="color:#ffffff">${label}&nbsp;&nbsp;&larr;</span></a>
+    </td></tr></table><!--<![endif]-->
+    <div style="padding-top:8px;font-family:Arial,sans-serif;font-size:11px;color:${MUTED}" dir="rtl">קישור אישי — נא לא להעביר. כל הלקוחות גם בקובץ האקסל המצורף.</div>
+  </td></tr>`;
+}
+
+function buildEmailHtml(parts, workDays, greetName, privateOnly, link) {
   const greeting = greetName ? `שלום ${greetName},` : 'שלום,';
   const intro = privateOnly
-    ? 'מצורף דוח האובליגו השבועי — שוק פרטי, הסוכנים של הקבוצה שלך. הדוח מחולק ל-3 חלקים, ובקובץ האקסל המצורף — אותם 3 חלקים בגיליונות נפרדים.'
-    : 'מצורף דוח האובליגו השבועי. הדוח מחולק ל-3 חלקים, ובקובץ האקסל המצורף — אותם 3 חלקים בגיליונות נפרדים.';
+    ? 'דוח האובליגו השבועי — שוק פרטי, הסוכנים של הקבוצה שלך. למטה סיכום 3 החלקים; הרשימה המלאה של כל הלקוחות — בקישור האישי ובקובץ האקסל המצורף (3 גיליונות).'
+    : 'דוח האובליגו השבועי. למטה סיכום 3 החלקים; הרשימה המלאה של כל הלקוחות — בקישור האישי ובקובץ האקסל המצורף (3 גיליונות).';
   // Outlook (Word-движок) не рисует border/radius/margin у div — плашки только таблицами:
   // цветная полоска отдельной строкой с bgcolor, отступы — padding ячеек (тест 12.10 в Outlook развалился).
   const chips = parts.map(({ part, rows }, i) => `${i ? '<td width="12" style="width:12px;font-size:0;line-height:0">&nbsp;</td>' : ''}
@@ -357,7 +425,8 @@ function buildEmailHtml(parts, workDays, greetName, privateOnly) {
     <div style="font-family:Arial,sans-serif;font-size:14px;color:${INK}">${greeting} ${intro}</div>
   </td></tr>
 
-  ${parts.map(({ part, rows, diff }, i) => partHtml(part, rows, diff, i + 1)).join('')}
+  ${parts.map(({ part, rows, diff }, i) => emailPartHtml(part, rows, diff, i + 1)).join('')}
+  ${buttonHtml(link)}
 
   <tr><td style="padding:28px 28px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td height="1" bgcolor="${LINE}" style="height:1px;background-color:${LINE};font-size:0;line-height:0">&nbsp;</td></tr></table></td></tr>
   <tr><td dir="rtl" style="padding:16px 28px 28px;text-align:right">
@@ -414,6 +483,29 @@ async function buildXlsx(parts) {
   }
   return Buffer.from(await wb.xlsx.writeBuffer());
 }
+
+// Личные ссылки: файлы в /root/private-share (вне публичного репо), отдаёт роут /p/:name в index.js.
+// Маппинг кто-какой-hex — obligo-links.json: не <hex>.html, поэтому роут его не отдаёт; по нему отчёт реакции из views.jsonl.
+const SHARE_DIR = '/root/private-share', PUBLIC = 'https://api.sverdlik-apps.site', LINK_DAYS = 14;
+const LINKS = path.join(SHARE_DIR, 'obligo-links.json');
+// битый файл — падаем, а не начинаем с [] (иначе старые страницы осиротеют и не удалятся)
+const loadLinks = () => { try { return JSON.parse(fs.readFileSync(LINKS, 'utf8')); } catch (e) { if (e.code === 'ENOENT') return []; throw e; } };
+const saveLinks = links => fs.writeFileSync(LINKS, JSON.stringify(links, null, 1), { mode: 0o600 });
+function purgeLinks() {
+  const cut = Date.now() - LINK_DAYS * 864e5;
+  const links = loadLinks();
+  const old = links.filter(l => Date.parse(l.ts) < cut);
+  for (const l of old) { try { fs.unlinkSync(path.join(SHARE_DIR, l.hex + '.html')); } catch (e) { if (e.code !== 'ENOENT') throw e; } }
+  if (old.length) saveLinks(links.filter(l => !old.includes(l)));
+  console.log(`ссылки облиго: удалено ${old.length}, активных ${links.length - old.length}`);
+}
+function publishPage(email, html) {
+  const hex = crypto.randomBytes(24).toString('hex');
+  fs.writeFileSync(path.join(SHARE_DIR, hex + '.html'), html, { mode: 0o600 });
+  saveLinks([...loadLinks(), { ts: new Date().toISOString(), email, hex }]);
+  return `${PUBLIC}/p/${hex}`;
+}
+const expiryDate = () => new Date(Date.now() + LINK_DAYS * 864e5).toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' });
 
 // Сравнение с прошлой боевой рассылкой — по ключу (сеть: אחראי+название, частник: номер плательщика).
 function loadState() {
@@ -495,18 +587,18 @@ async function sendReport(resend, recipient, parts, workDays, privateOnly) {
     { filename: `obligo-${today}.xlsx`, content: (await buildXlsx(parts)).toString('base64') },
   ];
   const counts = parts.map(p => p.rows.length);
-  const text = `${greetName ? `שלום ${greetName},` : 'שלום,'} מצורף דוח האובליגו השבועי.\n\n`
+  // страница на каждое письмо своя (новый hex) — до отправки; не записалась — письмо не уходит
+  const link = publishPage(recipient, buildPageHtml(parts, workDays, privateOnly, expiryDate()));
+  const text = `${greetName ? `שלום ${greetName},` : 'שלום,'} דוח האובליגו השבועי.\n\n`
     + parts.map(({ part, rows }, i) => `${i + 1}. ${part.title}: ${rows.length}`).join('\n')
     + `\n\nנותרו ${workDays.left} ימי עבודה עד סוף החודש מתוך ${workDays.total} (${Math.round(workDays.pct * 100)}%).`
+    + `\n\nהדוח המלא (קישור אישי, בתוקף ${LINK_DAYS} ימים, נא לא להעביר): ${link}\nכל הלקוחות גם בקובץ האקסל המצורף.`
     + '\n\nהערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.';
-  // OBLIGO_ALERT_CC — копия на каждое личное письмо (Дан на разовой рассылке 2026-10-08)
-  const cc = TEST_TO ? [] : (process.env.OBLIGO_ALERT_CC || '').split(',').map(s => s.trim()).filter(Boolean);
   const res = await resend.emails.send({
     from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
     to: [recipient],
-    ...(cc.length ? { cc } : {}),
     subject: `דוח אובליגו שבועי — מתקרבים: ${counts[0]} · חורגים: ${counts[1]} · בפיגור: ${counts[2]}`,
-    html: buildEmailHtml(parts, workDays, greetName, privateOnly),
+    html: buildEmailHtml(parts, workDays, greetName, privateOnly, link),
     text,
     attachments,
   });
@@ -514,7 +606,22 @@ async function sendReport(resend, recipient, parts, workDays, privateOnly) {
   return res;
 }
 
+// OBLIGO_ALERT_CC — копия каждого письма (Дан 2026-10-08). Не cc-полем, а отдельным письмом со своей ссылкой:
+// общая ссылка смешала бы трекинг и отдала бы CC чужую страницу (security-agent 2026-10-13).
+async function sendWithCopies(resend, to, parts, workDays, privateOnly, label) {
+  const cc = (process.env.OBLIGO_ALERT_CC || '').split(',').map(s => s.trim()).filter(Boolean);
+  for (const addr of [to, ...cc]) {
+    const r = await sendReport(resend, addr, parts, workDays, privateOnly);
+    console.log(`${label} ${addr}${addr === to ? '' : ` (копия ${to})`}:`, JSON.stringify(r?.error ?? r?.data));
+  }
+}
+
 async function main() {
+  if (process.argv.includes('--purge-links')) return purgeLinks();
+  if (!DRY_RUN) {
+    if (!fs.existsSync(SHARE_DIR)) throw new Error(`${SHARE_DIR} нет — боевая рассылка/тест только на VPS (ссылки на страницы)`);
+    purgeLinks();
+  }
   const entities = await fetchEntities();
   const workDays = await fetchWorkDays();
   const prev = loadState();
@@ -557,7 +664,9 @@ async function main() {
   if (DRY_RUN) {
     const out = path.join(__dirname, 'out');
     fs.mkdirSync(out, { recursive: true });
-    fs.writeFileSync(path.join(out, 'obligo-alert-preview.html'), buildEmailHtml(parts, workDays, 'דן', false));
+    fs.writeFileSync(path.join(out, 'obligo-alert-preview.html'), buildEmailHtml(parts, workDays, 'דן', false, 'obligo-alert-page.html'));
+    fs.writeFileSync(path.join(out, 'obligo-alert-page.html'), buildPageHtml(parts, workDays, false, expiryDate()));
+    if (perManager[0]) fs.writeFileSync(path.join(out, 'obligo-alert-page-manager.html'), buildPageHtml(perManager[0].mine, workDays, true, expiryDate()));
     fs.writeFileSync(path.join(out, 'obligo-alert-preview.xlsx'), await buildXlsx(parts));
     console.log(`\n--dry-run — письмо не отправлено, превью: ${out}`);
     return;
@@ -574,14 +683,8 @@ async function main() {
 
   const recipients = (process.env.OBLIGO_ALERT_RECIPIENTS || '').split(',').map(s => s.trim()).filter(Boolean);
   if (recipients.length === 0) throw new Error('OBLIGO_ALERT_RECIPIENTS не задан в .env');
-  for (const to of recipients) {
-    const r = await sendReport(resend, to, parts, workDays, false);
-    console.log(`Отправлено ${to}:`, JSON.stringify(r?.error ?? r?.data));
-  }
-  for (const { email, mine } of perManager) {
-    const r = await sendReport(resend, email, mine, workDays, true);
-    console.log(`Менеджеру ${email}:`, JSON.stringify(r?.error ?? r?.data));
-  }
+  for (const to of recipients) await sendWithCopies(resend, to, parts, workDays, false, 'Отправлено');
+  for (const { email, mine } of perManager) await sendWithCopies(resend, email, mine, workDays, true, 'Менеджеру');
   saveState(parts);
 }
 
