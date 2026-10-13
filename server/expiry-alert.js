@@ -17,6 +17,8 @@ const { Resend } = require('resend');
 const DRY_RUN = process.argv.includes('--dry-run');
 // Разовая приписка под приветствием — workflow_dispatch input `note` (напр. при внеплановой рассылке).
 const NOTE = (process.env.EXPIRY_ALERT_NOTE || '').replace(/[<>&]/g, '').trim();
+// Тихая приписка — мелко в подвале, не под приветствием (пользователь 2026-10-13: «чтоб и не видел никто»).
+const FOOTNOTE = (process.env.EXPIRY_ALERT_FOOTNOTE || '').replace(/[<>&]/g, '').trim();
 const DOCS = path.join(__dirname, '..', 'docs');
 // Пока выключено (пользователь 2026-09-29: «не отправлять Максиму, нужно доработать») — вернуть 'maxim@dilerbmd.com' по умолчанию.
 const SPLIT_TO = (process.env.EXPIRY_ALERT_SPLIT_TO || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
@@ -268,7 +270,7 @@ function buildEmailHtml(n, greetName, risk, split, diff) {
   </td></tr>
   <tr><td style="padding:4px 12px 12px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="rtl">${rows.join('')}</table></td></tr>
   <tr><td dir="rtl" style="padding:16px 28px 24px;text-align:right;border-top:1px solid ${LINE};font-size:12px;color:${MUTED};line-height:1.7">
-    הדוח נשלח רק בימים שיש ${ZAFN_LOW ? 'מוצרים עם מלאי נמוך בצפון' : 'מוצרים בסכנה'}.<br>הערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.
+    ${FOOTNOTE ? `${FOOTNOTE}<br>` : ''}הדוח נשלח רק בימים שיש ${ZAFN_LOW ? 'מוצרים עם מלאי נמוך בצפון' : 'מוצרים בסכנה'}.<br>הערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.
   </td></tr>
 </table>
 </body></html>`;
@@ -356,6 +358,7 @@ async function runVariant({ split, to }) {
           `יצאו (${diff.removed.length}): ${diff.removed.map(r => r.name).join('; ') || 'אין'}`] : []),
         '',
         'להדפסה — קובץ PDF מצורף.',
+        ...(FOOTNOTE ? ['', FOOTNOTE] : []),
       ].join('\n'),
       attachments,
     });
