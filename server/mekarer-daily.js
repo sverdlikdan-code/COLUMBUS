@@ -15,7 +15,7 @@ const DRY_RUN = process.argv.includes('--dry-run');
 const FORCE = process.argv.includes('--force');
 const ORDERS = path.join(__dirname, '..', 'docs', 'mekarer-orders.json');
 const STATE = path.join(__dirname, 'mekarer-daily-state.json');
-// Отметки со страницы /mekarer-admin.html (אישור/הערות יוסי, הערות נטשה), пишет server/index.js.
+// Отметки со страницы /mekarer-admin.html (אישור/הערות יוסי, סטטוס אספקה, הערות אשדוד), пишет server/index.js.
 const MARKS = path.join(__dirname, 'data', 'mekarer-admin.json');
 const TZ = 'Asia/Jerusalem';
 
@@ -43,7 +43,7 @@ function ilNow() {
 const COLS = [
   ['אישור יוסי', 12], ['תאריך ושעת הגשה', 18], ["מס' לקוח", 11], ['שם לקוח', 42], ['עיר', 12],
   ['שם סוכן', 18], ['מנהל', 10], ['איש קשר', 14], ['טלפון', 13], ['מיקום', 9], ['פעולה', 10],
-  ['דגם לספק', 38], ['דגם לאסוף', 38], ['שלות', 7], ['עגלה', 7], ['תאריך אספקה', 13],
+  ['דגם לספק', 38], ['דגם לאסוף', 38], ['סלסלאות', 9], ['עגלה', 7], ['תאריך אספקה', 13],
   ['תקלה / הערה', 22], ["מס' הזמנה", 15],
 ];
 

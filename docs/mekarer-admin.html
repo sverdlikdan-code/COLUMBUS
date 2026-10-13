@@ -19,7 +19,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 .top-count{font-size:12px;opacity:.85;}
 .top-sp{flex:1;}
 .top-btn{background:#fff;color:var(--blue-dark);border:none;border-radius:16px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;}
-.top-btn[hidden]{display:none;}
+.top-btn[hidden],.back-btn[hidden]{display:none;}
 .me{font-size:12px;opacity:.9;}
 .wrap{flex:1;overflow:auto;margin:10px;background:var(--card);border-radius:10px;box-shadow:0 1px 4px rgba(21,101,192,.1);}
 table{border-collapse:separate;border-spacing:0;font-size:13px;min-width:100%;}
@@ -64,7 +64,7 @@ textarea.note:focus,select.appr:focus{outline:none;border-color:var(--blue);}
 </head>
 <body>
 <div class="top-bar">
-  <button class="back-btn" onclick="history.length>1?history.back():location.href='/formula-road'" title="חזרה">→</button>
+  <button class="back-btn" id="back-btn" onclick="history.length>1?history.back():location.href='/formula-road'" title="חזרה">→</button>
   <div class="top-title">🧊 ניהול מקררים</div>
   <div class="top-count" id="count"></div>
   <div class="top-sp"></div>
@@ -77,8 +77,13 @@ textarea.note:focus,select.appr:focus{outline:none;border-color:var(--blue);}
 
 <script>
 const API = location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? '' : 'https://api.sverdlik-apps.site';
-const TOKEN = localStorage.getItem('frToken') || '';
-const EDIT_LABEL = { approve: 'אישור יוסי', yossiNote: 'הערות יוסי', natashaNote: 'הערות נטליה' };
+// Mekarer email link (/i/:code → ?_inv=) — store the session and drop it from the address bar.
+const INV = new URLSearchParams(location.search).get('_inv');
+if (INV) { try { localStorage.setItem('frToken', INV); } catch (_) {} history.replaceState(null, '', location.pathname); }
+const TOKEN = INV || localStorage.getItem('frToken') || '';
+const EDIT_LABEL = { approve: 'אישור יוסי', yossiNote: 'הערות יוסי', supply: 'סטטוס אספקה', natashaNote: 'הערות אשדוד' };
+// Dropdown fields: value -> css class (green/red). Same lists the server validates.
+const SELECTS = { approve: { 'כן': 'yes', 'לא': 'no' }, supply: { 'סופק': 'yes', 'לא סופק': 'no' } };
 
 function fmtDT(iso) {
   if (!iso) return '';
@@ -90,7 +95,8 @@ function fmtD(ymd) { return ymd ? ymd.split('-').reverse().join('/') : ''; }
 const COLS = [
   { k: 'approve', t: 'אישור יוסי', own: true, get: r => mark(r, 'approve') },
   { k: 'yossiNote', t: 'הערות יוסי', own: true, get: r => mark(r, 'yossiNote') },
-  { k: 'natashaNote', t: 'הערות נטליה', own: true, get: r => mark(r, 'natashaNote') },
+  { k: 'supply', t: 'סטטוס אספקה', own: true, get: r => mark(r, 'supply') },
+  { k: 'natashaNote', t: 'הערות אשדוד', own: true, get: r => mark(r, 'natashaNote') },
   { k: 'submittedAt', t: 'תאריך ושעת הגשה', get: r => fmtDT(r.submittedAt), sortKey: r => r.submittedAt || '' },
   { k: 'channel', t: 'ערוץ' },
   { k: 'custId', t: "מס' לקוח" },
@@ -104,7 +110,7 @@ const COLS = [
   { k: 'action', t: 'פעולה' },
   { k: 'newModel', t: 'דגם לספק' },
   { k: 'returnModel', t: 'דגם לאסוף' },
-  { k: 'salot', t: 'שלות', num: true, sortKey: r => r.salot === '' ? -1 : Number(r.salot) },
+  { k: 'salot', t: 'סלסלאות', num: true, sortKey: r => r.salot === '' ? -1 : Number(r.salot) },
   { k: 'agala', t: 'עגלה', num: true },
   { k: 'supplyDate', t: 'תאריך אספקה', get: r => fmtD(r.supplyDate), sortKey: r => r.supplyDate || '' },
   { k: 'fault', t: 'תקלה / הערה', wrap: true },
@@ -131,6 +137,7 @@ async function load() {
     if (!r.ok) throw new Error(r.status);
     const j = await r.json();
     ROWS = j.rows; MARKS = j.marks || {}; CAN = j.canEdit || [];
+    document.getElementById('back-btn').hidden = !!j.mekarerOnly;
     document.getElementById('me').textContent = CAN.length ? 'עריכה: ' + CAN.map(f => EDIT_LABEL[f]).join(', ') : 'צפייה בלבד';
     render();
   } catch (e) { showMsg('שגיאה בטעינה — לנסות שוב (' + e.message + ')'); }
@@ -160,11 +167,11 @@ function visibleRows() {
 
 function cell(r, c) {
   const v = c.get(r);
-  if (c.k === 'approve') {
-    const cls = v === 'כן' ? 'yes' : v === 'לא' ? 'no' : '';
-    if (CAN.includes('approve'))
-      return `<td class="own"><select class="appr ${cls}" data-key="${esc(r.key)}" data-f="approve" onchange="save(this)">
-        <option value=""></option><option${v === 'כן' ? ' selected' : ''}>כן</option><option${v === 'לא' ? ' selected' : ''}>לא</option></select></td>`;
+  if (SELECTS[c.k]) {
+    const cls = SELECTS[c.k][v] || '';
+    if (CAN.includes(c.k))
+      return `<td class="own"><select class="appr ${cls}" data-key="${esc(r.key)}" data-f="${c.k}" onchange="save(this)">
+        <option value=""></option>${Object.keys(SELECTS[c.k]).map(o => `<option${v === o ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select></td>`;
     return `<td class="own num">${v ? `<span class="badge ${cls}">${esc(v)}</span>` : ''}</td>`;
   }
   if (c.own) {
@@ -203,7 +210,7 @@ async function save(el) {
     if (!r.ok) throw new Error(r.status);
     const j = await r.json();
     MARKS[key] = { ...MARKS[key], [field]: value, [field + 'At']: j.at };
-    if (field === 'approve') el.className = 'appr ' + (value === 'כן' ? 'yes' : value === 'לא' ? 'no' : '');
+    if (SELECTS[field]) el.className = 'appr ' + (SELECTS[field][value] || '');
     el.classList.add('saved');
     setTimeout(() => el.classList.remove('saved'), 1200);
   } catch (e) {
