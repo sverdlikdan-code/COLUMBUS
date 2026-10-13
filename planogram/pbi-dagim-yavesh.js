@@ -55,7 +55,7 @@ async function fetchDagimYaveshFromBI(knownMakatim = []) {
     ? `{${knownMakatim.map(mk => `"${mk}"`).join(',')}}`
     : `SELECTCOLUMNS(
         FILTER('KARTIS PARIT',
-          'KARTIS PARIT'[סטטוס] = "פעיל" &&
+          'KARTIS PARIT'[סטטוס] IN {"פעיל", "אסור למכירה"} &&
           'KARTIS PARIT'[שם מחסן אשדוד] = "דג יבש 🐠"
         ),
         "mk", 'KARTIS PARIT'[מק"ט]
@@ -169,7 +169,7 @@ async function fetchDagimYaveshFromBI(knownMakatim = []) {
         'KARTIS PARIT'[תאור לועזי],
         'KARTIS PARIT'[תאור],
         'KARTIS PARIT'[חיי מדף],
-        FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] = "פעיל")
+        FILTER('KARTIS PARIT', 'KARTIS PARIT'[סטטוס] IN {"פעיל", "אסור למכירה"})
       )
     `),
 
