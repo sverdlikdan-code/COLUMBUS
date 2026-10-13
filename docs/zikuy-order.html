@@ -1039,6 +1039,8 @@ function _setShareButtonsBusy(busy){
 async function sendAsImage(){
   if(_shareInFlight) return;
   _setShareButtonsBusy(true);
+  // tapped/opened without a later submitted = share sheet never answered (David 258, 13.10)
+  logEvent('zikuy_send_tapped', {itemCount: selected.size});
   try{
     const blob=await getShareImage();
     // navigator.share({files}) is real usage on the agent's phone/tablet (WhatsApp
@@ -1059,6 +1061,7 @@ async function sendAsImage(){
       if(navigator.canShare && navigator.canShare({files:[file]})){
         // No title/text — WhatsApp attaches it as a visible caption under the
         // image, redundant with the blank's own header. Live complaint 2026-08-24.
+        logEvent('zikuy_share_opened', {itemCount: selected.size});
         await navigator.share({files:[file]});
         showToast('נשלח לשיתוף');
         logBlankHistory(); clearDraft();
@@ -1069,6 +1072,7 @@ async function sendAsImage(){
     showToast('לא הצלחנו להכין את התמונה — נסה שוב, או צלם את המסך עם המצלמה');
   }catch(e){
     console.warn('image share unavailable', e);
+    _reportClientError(`share_failed: ${e&&e.name} ${e&&e.message}`, null);
     showToast('שיתוף אוטומטי לא זמין — צלם את המסך עם המצלמה');
   }finally{ _setShareButtonsBusy(false); }
 }
