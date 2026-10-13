@@ -231,6 +231,19 @@ async function shootCards(split, zafnLow, hide = [], ice = null) {
         const since = ice.newSince[el.textContent.trim()];
         if (since !== undefined) el.insertAdjacentHTML('afterend', `<div style="display:inline-block;font-size:8px;font-weight:bold;color:#fff;background:#00897b;border-radius:3px;padding:1px 4px;margin-top:2px;line-height:1.3;text-align:center;">🆕 מוצר חדש${since ? `<br>מ-${since}` : ''}</div>`);
       });
+      // порядок АЙС — по עלות לזריקה (сумма считается редактором при отрисовке), новинки в конце
+      // (Дан 2026-10-13). В מאוחד в сетке только карточки, без заголовков секций.
+      if (ice) {
+        const grid = document.getElementById('expiry-grid');
+        const key = c => {
+          const mk = c.querySelector('div[style*="color:#1565C0;font-weight:bold"]')?.textContent.trim();
+          const costDiv = [...c.querySelectorAll('div')].find(d => d.textContent.trim().startsWith('עלות לזריקה'));
+          return { isNew: mk in ice.newSince, cost: costDiv ? +costDiv.textContent.replace(/[^\d]/g, '') : 0 };
+        };
+        [...grid.children].map(c => [c, key(c)])
+          .sort((a, b) => a[1].isNew - b[1].isNew || b[1].cost - a[1].cost)
+          .forEach(([c]) => grid.appendChild(c));
+      }
     }, split, zafnLow, hide, ice);
     await page.evaluate(() => new Promise(r => {
       const imgs = [...document.images].filter(i => !i.complete);
