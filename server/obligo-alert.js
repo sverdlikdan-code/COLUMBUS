@@ -243,11 +243,14 @@ function pageGroups(part, rows, field, isChain) {
   const by = new Map();
   for (const r of rows) { if (!by.has(r[field])) by.set(r[field], []); by.get(r[field]).push(r); }
   const keys = [...by.keys()].sort((a, b) => (groupKeyOrder(a) - groupKeyOrder(b)) || a.localeCompare(b, 'he'));
-  const cols = amountColumns(part);
-  const head = `<tr><th>מס' לקוח</th><th>${isChain ? 'רשת' : 'שם'}</th>${cols.map(([h]) => `<th>${esc(h)}</th>`).join('')}${part.id === 'late' ? '' : '<th>%</th>'}</tr>`;
+  // главная сумма и % — сразу после имени: на телефоне остальные колонки уходят под горизонтальный скролл
+  const money = ([h, f, , strong]) => [h, e => { const v = f(e); return `<td class="m${strong ? ' s' : ''}">${v ? fmtILS(v) : '—'}</td>`; }];
+  const all = amountColumns(part);
+  const pct = part.id === 'late' ? [] : [['%', e => `<td><span class="pc ${e.util >= 1 ? 'r' : 'g'}">${Math.round(e.util * 100)}%</span></td>`]];
+  const cols = [...all.filter(c => c[3]).map(money), ...pct, ...all.filter(c => !c[3]).map(money)];
+  const head = `<tr><th>מס' לקוח</th><th>${isChain ? 'רשת' : 'שם'}</th>${cols.map(([h]) => `<th>${esc(h)}</th>`).join('')}</tr>`;
   const row = e => `<tr data-q="${esc(`${e.name} ${e.custno} ${e[field]}`.toLowerCase())}"><td class="c">${esc(e.custno)}</td><td class="n">${esc(e.name)}</td>`
-    + cols.map(([, f, , strong]) => { const v = f(e); return `<td class="m${strong ? ' s' : ''}">${v ? fmtILS(v) : '—'}</td>`; }).join('')
-    + (part.id === 'late' ? '' : `<td><span class="pc ${e.util >= 1 ? 'r' : 'g'}">${Math.round(e.util * 100)}%</span></td>`) + '</tr>';
+    + cols.map(([, td]) => td(e)).join('') + '</tr>';
   return keys.map(k => {
     const list = by.get(k);
     return `<details class="grp"><summary><b>${esc(k)}</b><span class="cnt">${list.length} ${list.length === 1 ? 'לקוח' : 'לקוחות'} &middot; <bdi>${fmtILS(partTotal(part, list))}</bdi></span></summary>
@@ -325,7 +328,7 @@ footer{font-size:12px;color:${MUTED};line-height:1.7;margin-top:24px}
 <p class="intro">לחצו על חלק כדי לפתוח אותו, ובתוכו על אחראי / סוכן. החיפוש מוצא לקוח לפי שם, מספר או סוכן בכל החלקים.</p>
 <div class="tools"><input id="q" type="search" placeholder="חיפוש לקוח / מספר / סוכן" autocomplete="off"><button id="all">פתח הכל</button><button id="none">סגור הכל</button></div>
 ${sections}
-<footer><b>סודי — קישור אישי, נא לא להעביר. בתוקף עד ${expires}.</b><br>כל לקוח מדווח מחדש בכל דוח שבועי, כל עוד הוא עומד בתנאי החלק. סכומי הפיגור — רק יתרות חיוביות לפי ימי פיגור בפריוריטי.<br>הערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.</footer>
+<footer><b>סודי — קישור אישי, נא לא להעביר. בתוקף עד ${expires}.</b><br>כל לקוח מדווח מחדש בכל דוח שבועי, כל עוד הוא עומד בתנאי החלק. סכומי הפיגור — רק יתרות חיוביות לפי ימי פיגור בפריוריטי.<br>הערות והצעות — לדן סברדליק, <!--email_off-->d.sverdlik@DilerBMD.com<!--/email_off-->.</footer>
 </main>
 <script>
 (function(){
@@ -334,8 +337,9 @@ var track=function(){};
 function setAll(o){parts.concat(grps).forEach(function(d){d.open=o})}
 document.getElementById('all').onclick=function(){setAll(true);track('open-all')};
 document.getElementById('none').onclick=function(){setAll(false)};
-parts.forEach(function(p){p.addEventListener('toggle',function(){if(p.open)track('o-'+p.id)})});
-grps.forEach(function(g){g.addEventListener('toggle',function(){if(g.open)track('grp')})});
+// раскрытия считаем по клику человека — toggle стреляет и от поиска / "פתח הכל"
+parts.forEach(function(p){p.querySelector('summary').addEventListener('click',function(){if(!p.open)track('o-'+p.id)})});
+grps.forEach(function(g){g.querySelector('summary').addEventListener('click',function(){if(!g.open)track('grp')})});
 var searched=false;
 document.getElementById('q').addEventListener('input',function(){
   var q=this.value.trim().toLowerCase();
