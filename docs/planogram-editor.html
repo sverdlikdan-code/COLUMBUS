@@ -4839,6 +4839,17 @@ function splashEnter(sec) {
     window._deepLinkOpen = null; // consume once — don't re-trigger on later splashEnter calls (e.g. after login)
     toggleOrderPage();
   }
+  // ?open=sakana / ?open=zafn-low — кнопка из писем алярмов: דוח תוקף сразу с тем же фильтром,
+  // что на карточках письма (zafn-low — по складам, как в expiry-alert.js).
+  if (window._deepLinkOpen === 'sakana' || window._deepLinkOpen === 'zafn-low') {
+    const zl = window._deepLinkOpen === 'zafn-low';
+    window._deepLinkOpen = null;
+    if (document.getElementById('expiry-page').style.display === 'none') toggleExpiryPage();
+    if (zl) {
+      if (window._expiryMauchad) toggleCombinedWh();
+      if (!window._expiryZafnLow) toggleZafnLowFilter();
+    } else if (!window._expiryOnlySakana) toggleSakanaFilter();
+  }
 }
 
 // Print / Save PDF: set class on body so @media print knows what to show

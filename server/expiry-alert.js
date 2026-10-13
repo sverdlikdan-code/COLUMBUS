@@ -20,6 +20,8 @@ const NOTE = (process.env.EXPIRY_ALERT_NOTE || '').replace(/[<>&]/g, '').trim();
 // Тихая приписка — мелко в подвале, не под приветствием (пользователь 2026-10-13: «чтоб и не видел никто»).
 const FOOTNOTE = (process.env.EXPIRY_ALERT_FOOTNOTE || '').replace(/[<>&]/g, '').trim();
 const DOCS = path.join(__dirname, '..', 'docs');
+// Кнопка в письме — тот же экран в аппе (пользователь 2026-10-13); ?open= разбирает splashEnter в редакторе.
+const APP_URL = 'https://sverdlikdan-code.github.io/COLUMBUS/planogram-editor.html?open=' + (process.argv.includes('--zafn-low') ? 'zafn-low' : 'sakana');
 // Пока выключено (пользователь 2026-09-29: «не отправлять Максиму, нужно доработать») — вернуть 'maxim@dilerbmd.com' по умолчанию.
 const SPLIT_TO = (process.env.EXPIRY_ALERT_SPLIT_TO || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
 // Копия задана → одно письмо: RECIPIENTS в «Кому», CC в копии, приветствие «שלום רב» (пользователь 2026-09-30).
@@ -266,6 +268,7 @@ function buildEmailHtml(n, greetName, risk, split, diff) {
   ${buildRiskHtml(risk)}
   ${buildDiffHtml(diff)}
   <tr><td dir="rtl" style="padding:4px 28px 10px;text-align:right">
+    <a href="${APP_URL}" style="display:inline-block;margin:0 0 8px 8px;padding:9px 16px;border-radius:8px;background-color:${NAVY};font-size:13px;font-weight:bold;color:#ffffff;text-decoration:none">📱 לפתוח באפליקציה — ${ZAFN_LOW ? 'צפון &lt;3 ימים' : 'מוצרים בסכנה'}</a>
     <div style="display:inline-block;padding:9px 16px;border:1.5px solid ${NAVY};border-radius:8px;background:#EEF3FA;font-size:13px;font-weight:bold;color:${NAVY}">🖨 להדפסה — פתחו את קובץ ה-PDF המצורף (4 מוצרים בעמוד A4)</div>
   </td></tr>
   <tr><td style="padding:4px 12px 12px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="rtl">${rows.join('')}</table></td></tr>
@@ -346,6 +349,7 @@ async function runVariant({ split, to }) {
         ...risks.map(r => `• ${r.name} (${r.mk})`),
         '',
         'להדפסה — קובץ PDF מצורף.',
+        `לפתוח באפליקציה: ${APP_URL}`,
       ].join('\n') : [
         `${greetName ? `שלום ${greetName},` : 'שלום,'} ${shots.length} מוצרים בסכנה / STOP SALE במחסן FORMULA${split ? ' — לפי מחסן (אשדוד / צפון)' : ''}.`,
         ...(NOTE ? ['', NOTE] : []),
@@ -358,6 +362,7 @@ async function runVariant({ split, to }) {
           `יצאו (${diff.removed.length}): ${diff.removed.map(r => r.name).join('; ') || 'אין'}`] : []),
         '',
         'להדפסה — קובץ PDF מצורף.',
+        `לפתוח באפליקציה: ${APP_URL}`,
         ...(FOOTNOTE ? ['', FOOTNOTE] : []),
       ].join('\n'),
       attachments,
