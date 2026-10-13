@@ -60,6 +60,106 @@ CALCULATETABLE(
     return { rare: [], workDays: 0 };
   }
 }
+// --ice / EXPIRY_ALERT_ICE=1: раздел «גלידה משפחתי — ICE» в том же письме (пользователь 2026-10-13).
+// В редакторе махсана АЙС нет — данные из датасета АЙС подставляются редактору в браузере алярма
+// как ещё одна секция, поэтому карточки, очередь партий и выброс — тот же код, что у FORMULA.
+// Фильтры — как на странице סכנה дашборда АЙС. Темп — 365 дней без сегодня: у мороженого
+// сезонность ×2.5–3, партии живут 1.5–2 года, 45 дней осенью «выбрасывают» то, что продастся летом
+// (сверка с дашбордом на 365 днях: 11/11 партий).
+const ICE = process.argv.includes('--ice') || process.env.EXPIRY_ALERT_ICE === '1';
+const ICE_SHELF_LIFE = 120; // порог флага סכנה и меры v2 на дашборде АЙС
+const ICE_SALES_DAYS = 365;
+
+const _BIDI_STRIP = /[‎‏‪-‮⁦-⁩]/g;
+// PBI АЙС отдаёт иврит в визуальном порядке. Как fixBiDi в build-mmd-orders.js, но скобки
+// зеркалятся только в словах с ивритом, а латиница/цифры внутри них остаются как есть
+// (там «(7)» → «)7(», «DADU(6)…» → «UDAD»).
+function fixBiDi(raw) {
+  if (!raw) return '';
+  const hasBidi = /[‪-‮]/.test(raw);
+  const s = raw.replace(_BIDI_STRIP, '').trim();
+  if (!hasBidi || !/[א-ת]/.test(s)) return s;
+  const mirror = { '(': ')', ')': '(' };
+  return s.split(/\s+/).reverse()
+    .map(w => /[א-ת]/.test(w)
+      ? w.split('').reverse().map(c => mirror[c] || c).join('').replace(/[A-Za-z0-9.,%+]+/g, m => m.split('').reverse().join(''))
+      : w)
+    .join(' ');
+}
+
+// Данные АЙС в формате product-data.json редактора: { products, state, photos }.
+async function fetchIceData() {
+  const { executeDax } = require('./powerbi');
+  const DS = process.env.POWERBI_ICE_DATASET_ID;
+  if (!DS) throw new Error('POWERBI_ICE_DATASET_ID не задан');
+  const PAGE = `'KARTIS PARIT'[משפחתי / בודדים] = "משפחתי", MLAY[מלאי זמין] > 0`;
+  const SALES = `DATA[Custom] = "-מכר-", DIMCALENDAR[Date] >= TODAY() - ${ICE_SALES_DAYS}, DIMCALENDAR[Date] < TODAY()`;
+  const [batchRows, prodRows, weekRows] = await Promise.all([
+    executeDax(`EVALUATE CALCULATETABLE(ADDCOLUMNS(
+      SUMMARIZE('MLAY MISHPAHTI', 'MLAY MISHPAHTI'[מק'ט], 'MLAY MISHPAHTI'[מנה/פק'ע], 'MLAY MISHPAHTI'[מחסן], 'MLAY MISHPAHTI'[ת. תפוגת תוקף]),
+      "ctn", CALCULATE(SUM('MLAY MISHPAHTI'[מלאי  ללא מחסן 100 KARTON])),
+      "left", CALCULATE(MIN('MLAY MISHPAHTI'[כמה ימים נשארו]))), ${PAGE})`, DS),
+    executeDax(`EVALUATE CALCULATETABLE(ADDCOLUMNS(VALUES('KARTIS PARIT'[מק"ט]),
+      "name", CALCULATE(MAX('MLAY MISHPAHTI'[תאור מוצר])),
+      "fam", CALCULATE(MAX('MLAY MISHPAHTI'[תאור משפחה])),
+      "costCtn", CALCULATE(MAX('KARTIS PARIT'[עלות ש"ח]) * MAX('KARTIS PARIT'[תכולת האריזה למוצר])),
+      "rate", CALCULATE([ממוצע ביום עבודה (על בסיס WEEKLY SALES) NOW], ${SALES})), ${PAGE})`, DS),
+    // 6 полных недель Вс–Сб, как fetchWeeklySales у FORMULA (planogram/pbi-kapua.js)
+    executeDax(`EVALUATE CALCULATETABLE(ADDCOLUMNS(SUMMARIZE(DATA, DATA[מק'ט], DATA[שבוע]),
+      "wk", [ממוצע ביום עבודה (על בסיס WEEKLY SALES) NOW]),
+      ${PAGE}, DATA[Custom] = "-מכר-",
+      DIMCALENDAR[Date] >= TODAY() - WEEKDAY(TODAY(), 1) - 41, DIMCALENDAR[Date] < TODAY() - WEEKDAY(TODAY(), 1) + 1)`, DS),
+  ]);
+  const products = {};
+  for (const r of prodRows) {
+    const mk = String(r['KARTIS PARIT[מק"ט]'] || '');
+    if (!mk) continue;
+    products[mk] = { stock: 0, stockZafn: 0, daySales: +r['[rate]'] || 0, daySalesZafn: 0, daySalesAll: +r['[rate]'] || 0,
+      shelfLife: ICE_SHELF_LIFE, pakuot: [], pakuotZafn: [], costCarton: Math.round((+r['[costCtn]'] || 0) * 100) / 100 || null,
+      nameEn: fixBiDi(r['[name]']), fam: fixBiDi(r['[fam]']) };
+  }
+  // Партия = מנה/פק'ע по всем складам (Trn/Trnz тоже — как итог дашборда). Все партии в одной
+  // очереди с общим темпом — как мера v2; צפון только в «סה"כ מלאי».
+  const byBatch = {};
+  for (const r of batchRows) {
+    const mk = String(r["MLAY MISHPAHTI[מק'ט]"] || ''), d = products[mk], ctn = +r['[ctn]'] || 0;
+    if (!d || !(ctn > 0)) continue;
+    if (r['MLAY MISHPAHTI[מחסן]'] === 'Zafn') d.stockZafn += ctn; else d.stock += ctn;
+    const key = mk + '|' + r["MLAY MISHPAHTI[מנה/פק'ע]"];
+    const b = byBatch[key] ||= { mk, date: String(r['MLAY MISHPAHTI[ת. תפוגת תוקף]'] || '').slice(0, 10), daysLeft: r['[left]'], cartons: 0 };
+    b.cartons += ctn;
+    if (r['[left]'] != null && (b.daysLeft == null || r['[left]'] < b.daysLeft)) b.daysLeft = r['[left]'];
+  }
+  for (const { mk, ...b } of Object.values(byBatch)) products[mk].pakuot.push({ ...b, cartons: Math.round(b.cartons) });
+  const weeks = {};
+  for (const r of weekRows) (weeks[String(r["DATA[מק'ט]"])] ||= []).push({ wk: r['DATA[שבוע]'], val: Math.round((+r['[wk]'] || 0) * 10) / 10 });
+  for (const [mk, ws] of Object.entries(weeks)) {
+    if (!products[mk]) continue;
+    const last6 = ws.sort((a, b) => a.wk - b.wk).slice(-6);
+    while (last6.length < 6) last6.unshift({ wk: 0, val: 0 });
+    products[mk].weekSales = last6.map(w => w.val);
+    products[mk].weekDates = last6.map(w => w.wk ? `שב${w.wk}` : '');
+  }
+  const mks = Object.keys(products).filter(mk => products[mk].pakuot.length);
+  for (const mk of Object.keys(products)) {
+    products[mk].stock = Math.round(products[mk].stock);
+    products[mk].stockZafn = Math.round(products[mk].stockZafn);
+  }
+  // Фото — 'KARTIS PARIT ICE'[URL תמונה] в датасете FORMULA (у части товаров primail/…, не priimages).
+  // Нет URL или сбой — priimages/<מק"ט>.jpg; нет и там — заглушка редактора (_expiryImgErr).
+  const photos = Object.fromEntries(mks.map(mk => [mk, `https://priority.dilerbmd.com/priimages/${mk}.jpg`]));
+  try {
+    const rows = await executeDax(`EVALUATE SELECTCOLUMNS(FILTER('KARTIS PARIT ICE', 'KARTIS PARIT ICE'[מק"ט] IN {${mks.map(m => `"${m}"`).join(',')}}
+      && 'KARTIS PARIT ICE'[URL תמונה] <> ""), "mk", 'KARTIS PARIT ICE'[מק"ט], "url", 'KARTIS PARIT ICE'[URL תמונה])`);
+    for (const r of rows) photos[String(r['[mk]'])] = r['[url]'];
+  } catch (e) { console.error('[ICE] URL фото не загружены:', e.message); }
+  // порядок карточек — по семейству, внутри по מק"ט
+  const state = {};
+  mks.sort((a, b) => (products[a].fam || '').localeCompare(products[b].fam || '') || a.localeCompare(b))
+    .forEach((mk, i) => { state[i + 1] = { makat: mk, name: products[mk].nameEn, fam: products[mk].fam, haluka: 0, printOrder: i + 1 }; });
+  return { products, state, photos, salesDays: ICE_SALES_DAYS };
+}
+
 const ENV = ZAFN_LOW ? 'ZAFN_LOW_ALERT' : 'EXPIRY_ALERT';
 const CC = (process.env[ENV + '_CC'] || '').split(',').map(s => s.trim()).filter(Boolean);
 // Список прошлой рассылки (מק"ט + имя) — для блока «נוספו / יצאו מהדוח» (пользователь 2026-10-08).
@@ -84,7 +184,7 @@ const RECIPIENT_NAMES = {
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg' };
 
-async function shootCards(split, zafnLow, hide = []) {
+async function shootCards(split, zafnLow, hide = [], ice = null) {
   const srv = http.createServer((req, res) => {
     const p = path.join(DOCS, decodeURIComponent(req.url.split('?')[0]));
     if (!p.startsWith(DOCS) || !fs.existsSync(p) || fs.statSync(p).isDirectory()) { res.writeHead(404); return res.end(); }
@@ -99,21 +199,34 @@ async function shootCards(split, zafnLow, hide = []) {
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36');
     await page.setViewport({ width: 1100, height: 900, deviceScaleFactor: 2 });
     await page.goto(`http://localhost:${srv.address().port}/planogram-editor.html`, { waitUntil: 'networkidle0', timeout: 90000 });
-    await page.evaluate((split, zafnLow, hide) => {
+    await page.evaluate((split, zafnLow, hide, ice) => {
       document.getElementById('app-splash')?.remove();
       document.getElementById('mahsan-login-modal')?.remove();
       hide.forEach(mk => window._hiddenExpiryMakats.add(mk)); // как «×» на карточке в аппе
+      if (ice) { // АЙС — отдельная секция только в этом браузере; файлы редактора не трогаем
+        _SECTIONS.push('ice');
+        state.ice = ice.state;
+        Object.assign(productData, ice.products);
+        Object.assign(productPhotos, ice.photos);
+        window._expirySecFilter = 'ice';
+      }
       toggleExpiryPage();
       if (split && window._expiryMauchad) toggleCombinedWh();
       if (zafnLow) { if (!window._expiryZafnLow) toggleZafnLowFilter(); }
       else if (!window._expiryOnlySakana) toggleSakanaFilter();
       document.querySelectorAll('#expiry-grid button').forEach(b => b.remove()); // "×" скрыть карточку
-    }, split, zafnLow, hide);
+      // подпись темпа в редакторе вшита под FORMULA (45 дней)
+      if (ice) document.querySelectorAll('#expiry-grid span').forEach(sp => {
+        if (sp.textContent === '(45 יום אחורה)') sp.textContent = `(${ice.salesDays} יום אחורה)`;
+      });
+    }, split, zafnLow, hide, ice);
     await page.evaluate(() => new Promise(r => {
       const imgs = [...document.images].filter(i => !i.complete);
       if (!imgs.length) return r();
       let n = imgs.length;
-      imgs.forEach(i => { i.onload = i.onerror = () => { if (--n === 0) r(); }; });
+      // addEventListener, не onerror=: тот перезаписывал _expiryImgErr редактора — вместо заглушки 📷 была битая картинка
+      const done = () => { if (--n === 0) r(); };
+      imgs.forEach(i => { i.addEventListener('load', done); i.addEventListener('error', done); });
       setTimeout(r, 20000);
     }));
     // Спарклайн продаж по неделям в аппе виден только при печати (.spark-only-print) — включить
@@ -149,7 +262,7 @@ async function shootCards(split, zafnLow, hide = []) {
     const pages = [];
     for (let i = 0; i < shots.length; i += 4) {
       const cells = shots.slice(i, i + 4).map(b => `<div><img src="data:image/png;base64,${b.toString('base64')}"></div>`).join('');
-      pages.push(`<section><header>${zafnLow ? 'מלאי צפון פחות מ-3 ימים' : 'דוח תוקף' + (split ? ' לפי מחסן' : '')} — FORMULA &middot; ${date}</header><main>${cells}</main></section>`);
+      pages.push(`<section><header>${zafnLow ? 'מלאי צפון פחות מ-3 ימים' : 'דוח תוקף' + (split ? ' לפי מחסן' : '')} — ${ice ? 'גלידה משפחתי ICE' : 'FORMULA'} &middot; ${date}</header><main>${cells}</main></section>`);
     }
     await page.emulateMediaType('print');
     await page.setContent(`<!doctype html><html dir="rtl"><head><meta charset="utf-8"><style>
@@ -244,15 +357,31 @@ function buildDiffHtml(diff) {
   </td></tr>`;
 }
 
-function buildEmailHtml(n, greetName, risk, split, diff) {
-  const greeting = greetName ? `שלום ${greetName},` : 'שלום,';
+// Карточки парами — строка из 2 картинок cid:<prefix>-<i>.
+function cardRows(n, prefix) {
   const rows = [];
   for (let i = 0; i < n; i += 2) {
     const cell = j => j < n
-      ? `<td width="50%" valign="top" style="padding:6px"><img src="cid:card-${j}" width="322" alt="" style="display:block;width:100%;max-width:322px;height:auto;border:0"></td>`
+      ? `<td width="50%" valign="top" style="padding:6px"><img src="cid:${prefix}-${j}" width="322" alt="" style="display:block;width:100%;max-width:322px;height:auto;border:0"></td>`
       : '<td width="50%"></td>';
     rows.push(`<tr style="page-break-inside:avoid">${cell(i)}${cell(i + 1)}</tr>`);
   }
+  return rows.join('');
+}
+
+// Раздел АЙС — после карточек FORMULA, своя сумма риска (ice = { n, risk } или null).
+function buildIceHtml(ice) {
+  if (!ice?.n) return '';
+  return `<tr><td dir="rtl" style="padding:22px 28px 4px;text-align:right;border-top:3px solid ${NAVY}">
+    <div style="font-size:20px;font-weight:900;color:${NAVY}">גלידה משפחתי — ICE</div>
+    <div style="padding-top:4px;font-size:13px;color:${MUTED}">${ice.n} ${ice.n === 1 ? 'מוצר בסכנה' : 'מוצרים בסכנה'} / STOP SALE · מכר ממוצע ${ICE_SALES_DAYS} יום אחורה · חיי מדף מינ' ${ICE_SHELF_LIFE} יום</div>
+  </td></tr>
+  ${buildRiskHtml(ice.risk)}
+  <tr><td style="padding:4px 12px 12px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="rtl">${cardRows(ice.n, 'ice-card')}</table></td></tr>`;
+}
+
+function buildEmailHtml(n, greetName, risk, split, diff, ice = null) {
+  const greeting = greetName ? `שלום ${greetName},` : 'שלום,';
   return `<!doctype html>
 <html lang="he"><body style="margin:0;padding:28px 16px;background:${PAPER};font-family:Arial,sans-serif">
 <table role="presentation" align="center" width="700" cellpadding="0" cellspacing="0" style="width:700px;max-width:700px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid ${LINE}">
@@ -261,6 +390,7 @@ function buildEmailHtml(n, greetName, risk, split, diff) {
     <div style="font-size:24px;font-weight:900;color:#ffffff">${ZAFN_LOW ? 'מלאי נמוך — מחסן צפון' : 'התראת תוקף — מחסן FORMULA'}</div>
     ${split && !ZAFN_LOW ? '<div style="padding-top:6px;font-size:15px;font-weight:bold;color:#ffffff">לפי מחסן — אשדוד / צפון</div>' : ''}
     <div style="padding-top:8px;font-size:13px;color:#AFC1DC">${ZAFN_LOW ? `${n} ${n === 1 ? 'מוצר' : 'מוצרים'} — מלאי פחות מ-3 ימי מכירה` : `${n} ${n === 1 ? 'מוצר בסכנה' : 'מוצרים בסכנה'} / STOP SALE`}</div>
+    ${ice?.n ? `<div style="padding-top:4px;font-size:13px;color:#AFC1DC">+ גלידה משפחתי ICE — ${ice.n} ${ice.n === 1 ? 'מוצר' : 'מוצרים'}</div>` : ''}
     <div style="padding-top:10px;font-size:11px;color:${GOLD}">${new Date().toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
   </td></tr>
   <tr><td dir="rtl" style="padding:20px 28px 8px;text-align:right;font-size:14px;color:${INK}">${greeting} ${ZAFN_LOW ? 'מצורפים מוצרים שהמלאי שלהם במחסן צפון מספיק פחות מ-3 ימי מכירה — כמו במסך דוח התוקף, כפתור «צפון &lt;3 ימים».' : split ? 'מצורף דוח תוקף לפי מחסן (אשדוד / צפון בנפרד, ללא איחוד מחסנים) — מוצרים בסכנה ו-STOP SALE.' : 'מצורף דוח תוקף — מוצרים בסכנה ו-STOP SALE, כמו במסך דוח התוקף של המחסן.'}</td></tr>
@@ -269,9 +399,10 @@ function buildEmailHtml(n, greetName, risk, split, diff) {
   ${buildDiffHtml(diff)}
   <tr><td dir="rtl" style="padding:4px 28px 10px;text-align:right">
     <a href="${APP_URL}" style="display:inline-block;margin:0 0 8px 8px;padding:9px 16px;border-radius:8px;background-color:${NAVY};font-size:13px;font-weight:bold;color:#ffffff;text-decoration:none">📱 לפתוח באפליקציה — ${ZAFN_LOW ? 'צפון &lt;3 ימים' : 'מוצרים בסכנה'}</a>
-    <div style="display:inline-block;padding:9px 16px;border:1.5px solid ${NAVY};border-radius:8px;background:#EEF3FA;font-size:13px;font-weight:bold;color:${NAVY}">🖨 להדפסה — פתחו את קובץ ה-PDF המצורף (4 מוצרים בעמוד A4)</div>
+    <div style="display:inline-block;padding:9px 16px;border:1.5px solid ${NAVY};border-radius:8px;background:#EEF3FA;font-size:13px;font-weight:bold;color:${NAVY}">🖨 להדפסה — פתחו את ${ice?.n ? 'קבצי ה-PDF המצורפים' : 'קובץ ה-PDF המצורף'} (4 מוצרים בעמוד A4)</div>
   </td></tr>
-  <tr><td style="padding:4px 12px 12px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="rtl">${rows.join('')}</table></td></tr>
+  <tr><td style="padding:4px 12px 12px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="rtl">${cardRows(n, 'card')}</table></td></tr>
+  ${buildIceHtml(ice)}
   <tr><td dir="rtl" style="padding:16px 28px 24px;text-align:right;border-top:1px solid ${LINE};font-size:12px;color:${MUTED};line-height:1.7">
     ${FOOTNOTE ? `${FOOTNOTE}<br>` : ''}הדוח נשלח רק בימים שיש ${ZAFN_LOW ? 'מוצרים עם מלאי נמוך בצפון' : 'מוצרים בסכנה'}.<br>הערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.
   </td></tr>
@@ -298,6 +429,16 @@ async function runVariant({ split, to }) {
   }
   const { shots, pdf, risks } = await shootCards(split, ZAFN_LOW, hide);  // сумма риска / сравнение / состояние — только у основного письма תוקף
   const main = !split && !ZAFN_LOW;
+  // раздел АЙС — только в основном письме; сбой АЙС не валит письмо FORMULA
+  let ice = null;
+  if (ICE && main) {
+    try {
+      const r = await shootCards(false, false, [], await fetchIceData());
+      ice = { ...r, n: r.shots.length, risk: riskSummary(r.risks) };
+      console.log('[ICE]', `Карточек: ${ice.n}`, r.risks.map(x => x.mk).join(','), `Риск: ${fmtILS(ice.risk.total)}`);
+    } catch (e) { console.error('[ICE] раздел пропущен:', e.message); }
+  }
+  const iceN = ice?.n || 0;
   const risk = ZAFN_LOW ? { total: 0, top: [], topSum: 0, noCost: 0 } : riskSummary(risks);
   if (risk.noCost) console.log(tag, 'Без суммы:', risks.filter(r => !(r.cost > 0)).map(r => r.name).join(' ; '));
   console.log(tag, `Риск: ${fmtILS(risk.total)}, топ-70%: ${risk.top.map(r => r.name + ' ' + fmtILS(r.cost)).join('; ')}`);
@@ -306,16 +447,18 @@ async function runVariant({ split, to }) {
   const diff = main ? diffWithPrev(loadPrev(), risks) : null;
   if (diff) console.log(tag, `vs ${diff.date}: +${diff.added.map(r => r.mk).join(',') || '-'} / -${diff.removed.map(r => r.mk).join(',') || '-'}`);
   // пустой отчёт = все вышли; запомнить, чтобы следующее письмо сравнивалось с ним
-  if (shots.length === 0) { if (!DRY_RUN && main) saveState(risks); return; }
+  if (shots.length === 0 && !iceN) { if (!DRY_RUN && main) saveState(risks); return; }
 
   if (DRY_RUN) {
     const out = path.join(__dirname, '..', '.scratch');
     const base = 'expiry-alert-preview' + (ZAFN_LOW ? '-zafn-low' : split ? '-split' : '');
     fs.mkdirSync(out, { recursive: true });
     fs.writeFileSync(path.join(out, base + '.html'),
-      buildEmailHtml(shots.length, 'דן', risk, split, diff).replace(/cid:card-(\d+)/g, (_, i) => `data:image/png;base64,${shots[i].toString('base64')}`)
+      buildEmailHtml(shots.length, 'דן', risk, split, diff, ice).replace(/cid:card-(\d+)/g, (_, i) => `data:image/png;base64,${shots[i].toString('base64')}`)
+        .replace(/cid:ice-card-(\d+)/g, (_, i) => `data:image/png;base64,${ice.shots[i].toString('base64')}`)
         .replace('cid:diler-logo-white', 'data:image/png;base64,' + fs.readFileSync(path.join(DOCS, 'logo-diler-bmd-white.png')).toString('base64')));
-    fs.writeFileSync(path.join(out, base + '.pdf'), pdf);
+    if (pdf) fs.writeFileSync(path.join(out, base + '.pdf'), pdf);
+    if (iceN) fs.writeFileSync(path.join(out, base + '-ice.pdf'), ice.pdf);
     console.log(tag, `--dry-run — письмо не отправлено, превью в .scratch/${base}.html/.pdf`);
     if (main && process.argv.includes('--save-state')) saveState(risks);
     return;
@@ -328,11 +471,15 @@ async function runVariant({ split, to }) {
   const logoPath = path.join(DOCS, 'logo-diler-bmd-white.png');
   const attachments = shots.map((b, i) => ({ filename: `card-${i}.png`, content: b.toString('base64'), contentId: `card-${i}` }));
   const isoDate = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Jerusalem' });
-  attachments.push({ filename: `${ZAFN_LOW ? 'zafn-low-stock' : 'expiry-report' + (split ? '-by-warehouse' : '')}-${isoDate}.pdf`, content: pdf.toString('base64') });
+  if (pdf) attachments.push({ filename: `${ZAFN_LOW ? 'zafn-low-stock' : 'expiry-report' + (split ? '-by-warehouse' : '')}-${isoDate}.pdf`, content: pdf.toString('base64') });
+  if (iceN) {
+    ice.shots.forEach((b, i) => attachments.push({ filename: `ice-card-${i}.png`, content: b.toString('base64'), contentId: `ice-card-${i}` }));
+    attachments.push({ filename: `expiry-report-ice-${isoDate}.pdf`, content: ice.pdf.toString('base64') });
+  }
   if (fs.existsSync(logoPath)) attachments.push({ filename: 'logo-white.png', content: fs.readFileSync(logoPath).toString('base64'), contentId: 'diler-logo-white' });
   const subject = ZAFN_LOW
     ? `מלאי נמוך בצפון — ${shots.length} ${shots.length === 1 ? 'מוצר' : 'מוצרים'} פחות מ-3 ימים`
-    : `התראת תוקף${split ? ' לפי מחסן' : ''} — ${shots.length} ${shots.length === 1 ? 'מוצר בסכנה' : 'מוצרים בסכנה'}`;
+    : `התראת תוקף${split ? ' לפי מחסן' : ''} — ${shots.length} ${shots.length === 1 ? 'מוצר בסכנה' : 'מוצרים בסכנה'}${iceN ? ` + ICE ${iceN}` : ''}`;
 
   // С копией — одно письмо; без неё — личное письмо на каждого получателя, как obligo-alert.
   const sends = CC.length ? [{ to, cc: CC }] : to.map(r => ({ to: [r] }));
@@ -343,7 +490,7 @@ async function runVariant({ split, to }) {
       from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
       ...snd,
       subject,
-      html: buildEmailHtml(shots.length, greetName, risk, split, diff),
+      html: buildEmailHtml(shots.length, greetName, risk, split, diff, ice),
       text: ZAFN_LOW ? [
         `${greetName ? `שלום ${greetName},` : 'שלום,'} ${shots.length} מוצרים — מלאי במחסן צפון פחות מ-3 ימי מכירה:`,
         ...risks.map(r => `• ${r.name} (${r.mk})`),
@@ -360,6 +507,9 @@ async function runVariant({ split, to }) {
         ...(diff ? ['', `שינויים מהדוח הקודם (${diff.date}):`,
           `נוספו (${diff.added.length}): ${diff.added.map(r => r.name).join('; ') || 'אין'}`,
           `יצאו (${diff.removed.length}): ${diff.removed.map(r => r.name).join('; ') || 'אין'}`] : []),
+        ...(iceN ? ['', `גלידה משפחתי — ICE: ${iceN} מוצרים בסכנה / STOP SALE`,
+          `סה"כ סיכון: ${fmtILS(ice.risk.total)}`,
+          ...ice.risk.top.map((r, i) => `${i + 1}. ${r.name} — ${fmtILS(r.cost)}`)] : []),
         '',
         'להדפסה — קובץ PDF מצורף.',
         `לפתוח באפליקציה: ${APP_URL}`,
