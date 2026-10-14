@@ -4015,6 +4015,16 @@ app.get('/api/mekarer-admin', requireAuth, mekarerAdminAccess, (req, res) => {
   const canEdit = Object.keys(MEKARER_ADMIN_FIELDS).filter(f => MEKARER_ADMIN_FIELDS[f].includes(req.session.managerId));
   res.json({ rows, marks: mekarerDaily.readMarks(), canEdit, mekarerOnly: !!req.session.mekarerOnly });
 });
+
+// 🔔 /alarms.html — пульт алярмов (Dan 2026-10-14): только super, только чтение. Адреса вживую из
+// /root/run-alert.sh + .env, статус из Healthchecks — см. alarms-dashboard.js.
+const alarmsDashboard = require('./alarms-dashboard');
+app.get('/api/alarms', requireAuth, dataRateLimit, async (req, res) => {
+  if (req.session?.managerRole !== 'super') return res.status(403).json({ error: 'forbidden' });
+  if (req.query.probe) return res.json({ ok: true });
+  try { res.json(await alarmsDashboard.build(loadManagerRoster())); }
+  catch (e) { console.error('[alarms]', e.message); res.status(500).json({ error: 'server_error' }); }
+});
 // POST /api/mekarer-admin/export {keys} — xlsx of exactly the rows the page shows (after its filters/sort).
 app.post('/api/mekarer-admin/export', dataRateLimit, requireAuth, mekarerAdminAccess, async (req, res) => {
   try {
@@ -5131,6 +5141,9 @@ app.get('/mekarer-admin.html', (req, res) => {
 });
 app.get('/coverage-history.html', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'coverage-history.html'));
+});
+app.get('/alarms.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'docs', 'alarms.html'));
 });
 app.get('/zikuy-order.html', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'docs', 'zikuy-order.html'));

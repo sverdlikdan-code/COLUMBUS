@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>אלרמים — COLUMBUS</title>
+<style>
+:root{--blue:#1565C0;--blue-dark:#0D47A1;--green:#2E7D32;--green-bg:#E8F5E9;--yellow-bg:#FFF4D6;--yellow:#8A6100;
+  --red:#C62828;--red-bg:#FFEBEE;--grey-bg:#F0F2F5;--text:#1A1A2E;--light:#78909C;--bg:#F5F7FA;--card:#fff;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(--text);min-height:100vh;}
+.top-bar{background:linear-gradient(135deg,var(--blue-dark),var(--blue));color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,.2);}
+.back-btn{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;width:34px;height:34px;font-size:18px;cursor:pointer;}
+.top-title{font-size:17px;font-weight:800;}
+.wrap{max-width:900px;margin:0 auto;padding:14px 16px 40px;}
+.seg{display:flex;background:#fff;border:1px solid #CFD8DC;border-radius:10px;overflow:hidden;margin-bottom:12px;}
+.seg button{flex:1;border:none;background:none;padding:9px 8px;font-weight:700;font-size:13px;color:var(--blue);cursor:pointer;white-space:nowrap;}
+.seg button+button{border-inline-start:1px solid #ECEFF1;}
+.seg button.on{background:var(--blue);color:#fff;}
+.summary{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;font-size:13px;font-weight:700;}
+.summary span{background:var(--card);border-radius:16px;padding:5px 12px;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.banner{background:var(--yellow-bg);color:var(--yellow);border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;margin-bottom:12px;}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;}
+.card{background:var(--card);border-radius:12px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,.08);border-inline-start:5px solid #CFD8DC;}
+.card.up{border-inline-start-color:var(--green);} .card.down{border-inline-start-color:var(--red);background:var(--red-bg);}
+.card.grace{border-inline-start-color:#F9A825;}
+.card h3{font-size:15px;font-weight:800;display:flex;align-items:center;gap:6px;}
+.card .st{margin-inline-start:auto;font-size:11px;font-weight:800;padding:2px 8px;border-radius:10px;background:var(--grey-bg);color:var(--light);white-space:nowrap;}
+.card.up .st{background:var(--green-bg);color:var(--green);} .card.down .st{background:var(--red);color:#fff;}
+.card.grace .st{background:var(--yellow-bg);color:var(--yellow);}
+.card .why{font-size:12px;color:var(--light);margin:4px 0 8px;line-height:1.4;}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12px;}
+.kv b{color:var(--light);font-weight:700;white-space:nowrap;}
+.kv span{direction:rtl;}
+details{margin-top:8px;font-size:12px;}
+summary{cursor:pointer;font-weight:800;color:var(--blue);}
+.rcp{margin-top:6px;display:flex;flex-direction:column;gap:4px;}
+.rcp .grp b{display:block;font-size:11px;color:var(--light);}
+.chip{display:inline-block;background:var(--grey-bg);border-radius:12px;padding:2px 9px;margin:2px 0 0 4px;font-size:12px;}
+.chip i{font-style:normal;color:var(--light);font-size:11px;}
+.warn{color:var(--red);font-weight:700;font-size:12px;margin-top:6px;}
+/* people × alarms */
+.tbl-wrap{overflow-x:auto;background:var(--card);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+table{border-collapse:collapse;width:100%;}
+th,td{padding:6px 5px;text-align:center;font-size:12px;border-bottom:1px solid #ECEFF1;}
+th{background:#FAFBFC;font-size:16px;font-weight:400;cursor:help;}
+th.nm,td.nm{position:sticky;right:0;background:#fff;text-align:right;white-space:nowrap;font-weight:700;z-index:1;font-size:12px;}
+th.nm{background:#FAFBFC;}
+td.n{font-weight:900;color:var(--blue);}
+.m-to{color:var(--blue);font-size:15px;} .m-team{color:#6A1B9A;font-size:15px;} .m-cc{color:var(--light);font-size:15px;}
+.legend{font-size:11px;color:var(--light);margin-top:8px;line-height:1.6;}
+/* week */
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.day{background:var(--card);border-radius:10px;padding:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);min-height:80px;}
+.day.today{outline:2px solid var(--blue);}
+.day h4{font-size:13px;font-weight:800;margin-bottom:6px;text-align:center;}
+.ev{font-size:11px;padding:4px 5px;border-radius:6px;background:var(--grey-bg);margin-bottom:4px;line-height:1.3;}
+.ev b{display:block;font-size:12px;}
+.ev.up{background:var(--green-bg);} .ev.down{background:var(--red-bg);}
+h2{font-size:14px;font-weight:800;margin:16px 0 8px;}
+.list .ev{display:flex;gap:8px;align-items:baseline;}
+@media (max-width:700px){
+  .week{grid-template-columns:1fr;}
+  .day{min-height:0;}
+  .day h4{text-align:right;}
+}
+@media (max-width:480px){ .wrap{padding:12px 10px 40px;} .cards{grid-template-columns:1fr;} }
+.msg{padding:40px 10px;text-align:center;color:var(--light);}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <button class="back-btn" onclick="history.length>1?history.back():location.href='/formula-road'" title="חזרה">→</button>
+  <div class="top-title">🔔 אלרמים</div>
+</div>
+<div class="wrap" id="wrap"><div class="msg">טוען...</div></div>
+<script>
+const API = location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? '' : 'https://api.sverdlik-apps.site';
+const TOKEN = localStorage.getItem('frToken') || '';
+const DAYS = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
+const TABS = [['alarms', 'אלרמים'], ['people', 'מי מקבל מה'], ['week', 'שבוע']];
+const ST = { up: 'נשלח ✓', down: 'נכשל ✗', grace: 'מאחר', new: 'עוד לא רץ', paused: 'מושהה', started: 'רץ עכשיו' };
+const ROLE = { to: 'אל', cc: 'העתק', team: 'רק הקבוצה שלו' };
+let DATA = null, TAB = 'alarms';
+try { TAB = localStorage.getItem('alarmsTab') || 'alarms'; } catch (e) {}
+
+const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const track = ev => fetch(API + '/api/event', { method: 'POST', headers: { 'X-Session': TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify({ event: ev }) }).catch(() => {});
+const fmtT = iso => iso ? new Date(iso).toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem', weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+
+// cron field → list of ints ("0-4", "0,40", "*")
+function cronList(f, lo, hi) {
+  if (f === '*') return Array.from({ length: hi - lo + 1 }, (_, i) => lo + i);
+  return f.split(',').flatMap(p => { const [a, b] = p.split('-').map(Number); return b === undefined ? [a] : Array.from({ length: b - a + 1 }, (_, i) => a + i); });
+}
+// "m h dom mon dow" (Israel time, as in Healthchecks) → { times:["09:00"], days:[0..6] | null, monthDay }
+function parseCron(s) {
+  const [m, h, dom, , dow] = (s || '').split(/\s+/);
+  if (!h) return null;
+  const times = cronList(h, 0, 23).flatMap(H => cronList(m, 0, 59).map(M => `${String(H).padStart(2, '0')}:${String(M).padStart(2, '0')}`));
+  return { times, days: dom === '*' ? cronList(dow, 0, 6) : null, monthDay: dom === '*' ? null : dom };
+}
+function whenText(a) {
+  if (a.when) return a.when;
+  const c = parseCron(a.schedule);
+  if (!c) return '—';
+  const t = c.times.join(', ');
+  if (c.monthDay) return `ב־${c.monthDay} בכל חודש · ${t}`;
+  const d = c.days;
+  const days = d.length === 7 ? 'כל יום' : d.length > 2 && d.every((x, i) => !i || x === d[i - 1] + 1) ? `${DAYS[d[0]]}–${DAYS[d[d.length - 1]]}` : d.map(x => DAYS[x]).join(', ');
+  return `${days} · ${t}`;
+}
+const stOf = a => a.hc?.status || '';
+
+async function load() {
+  try {
+    const r = await fetch(API + '/api/alarms', { headers: { 'X-Session': TOKEN } });
+    if (r.status === 403 || r.status === 401) { document.getElementById('wrap').innerHTML = '<div class="msg">אין הרשאה לדף זה</div>'; return; }
+    DATA = await r.json(); render(); track('alarms_opened');
+  } catch (e) { document.getElementById('wrap').innerHTML = '<div class="msg">שגיאת טעינה — נסה שוב</div>'; }
+}
+
+function setTab(t) { TAB = t; try { localStorage.setItem('alarmsTab', t); } catch (e) {} track('alarms_tab_' + t); render(); }
+
+function recipientsHtml(a) {
+  if (a.unread) return '<div class="warn">⚠️ לא הצלחתי לקרוא את הנמענים מהמקור</div>';
+  if (!a.recipients) return a.note ? `<div class="legend">${esc(a.note)}</div>` : '';
+  const by = r => a.recipients.filter(x => x.role === r);
+  const chip = r => `<span class="chip" title="${esc(r.email)}">${esc(r.name)}${r.team ? ` <i>${esc(r.team)}</i>` : ''}</span>`;
+  const grp = (r, title) => by(r).length ? `<div class="grp"><b>${title} (${by(r).length})</b>${by(r).map(chip).join('')}</div>` : '';
+  const parts = [['to', 'אל'], ['team', 'מנהלים — כל אחד רק הקבוצה שלו'], ['cc', 'העתק']];
+  const sum = parts.filter(([r]) => by(r).length).map(([r, t]) => `${r === 'team' ? 'מנהלים' : t} ${by(r).length}`).join(' · ');
+  return `<details><summary>${a.recipients.length} נמענים — ${sum}</summary><div class="rcp">${parts.map(([r, t]) => grp(r, t)).join('')}</div></details>`;
+}
+
+function renderAlarms() {
+  const order = { down: 0, grace: 1 };
+  const list = DATA.alarms.slice().sort((x, y) => (order[stOf(x)] ?? 2) - (order[stOf(y)] ?? 2));
+  const cnt = s => DATA.alarms.filter(a => stOf(a) === s).length;
+  return `<div class="summary"><span>${DATA.alarms.length} אלרמים</span><span>✅ ${cnt('up')}</span>${cnt('down') ? `<span style="color:var(--red)">❌ ${cnt('down')}</span>` : ''}${cnt('grace') ? `<span>⏳ ${cnt('grace')}</span>` : ''}<span>👥 ${DATA.people.length} נמענים</span></div>
+  <div class="cards">${list.map(a => `<div class="card ${stOf(a)}">
+    <h3>${esc(a.icon)} ${esc(a.title)}<span class="st">${a.hc ? ST[a.hc.status] || esc(a.hc.status) : 'ללא מעקב'}</span></h3>
+    <div class="why">${esc(a.why)}</div>
+    <div class="kv"><b>מתי</b><span>${esc(whenText(a))}</span>
+      ${a.hc ? `<b>אחרון</b><span>${fmtT(a.hc.last)}</span><b>הבא</b><span>${fmtT(a.hc.next)}</span>` : ''}
+      ${a.askedBy ? `<b>ביקש</b><span>${esc(a.askedBy)}</span>` : ''}</div>
+    ${recipientsHtml(a)}</div>`).join('')}</div>`;
+}
+
+function renderPeople() {
+  const al = DATA.alarms.filter(a => a.recipients?.length);
+  const mark = { to: '<span class="m-to">●</span>', team: '<span class="m-team">◐</span>', cc: '<span class="m-cc">○</span>' };
+  return `<div class="tbl-wrap"><table><thead><tr><th class="nm">נמען</th><th style="font-size:12px;font-weight:800">#</th>${al.map(a => `<th title="${esc(a.title)}">${esc(a.icon)}</th>`).join('')}</tr></thead>
+    <tbody>${DATA.people.map(p => `<tr><td class="nm" title="${esc(p.email)}">${esc(p.name)}</td><td class="n">${Object.keys(p.alarms).length}</td>${al.map(a => `<td title="${esc(a.title)} — ${ROLE[p.alarms[a.key]] || ''}">${mark[p.alarms[a.key]] || ''}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+    <div class="legend">● אל · ◐ מנהל — רק הקבוצה שלו · ○ העתק · # = בכמה אלרמים<br>${al.map(a => `${esc(a.icon)} ${esc(a.title)}`).join(' · ')}</div>`;
+}
+
+function renderWeek() {
+  const days = DAYS.map(() => []), monthly = [], other = [];
+  for (const a of DATA.alarms) {
+    const c = parseCron(a.schedule);
+    if (!c || a.when) { other.push(a); continue; }
+    if (c.monthDay) { monthly.push({ a, c }); continue; }
+    for (const d of c.days) for (const t of c.times) days[d].push({ a, t });
+  }
+  const todayIdx = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jerusalem' })).getDay();
+  const ev = (a, t) => `<div class="ev ${stOf(a)}"><b>${t}</b>${esc(a.icon)} ${esc(a.title)}</div>`;
+  return `<div class="week">${days.map((l, i) => `<div class="day${i === todayIdx ? ' today' : ''}"><h4>${DAYS[i]}${i === todayIdx ? ' · היום' : ''}</h4>${
+      l.sort((x, y) => x.t.localeCompare(y.t)).map(x => ev(x.a, x.t)).join('') || '<div class="legend">—</div>'}</div>`).join('')}</div>
+    ${monthly.length ? `<h2>חודשי</h2><div class="list">${monthly.map(({ a }) => `<div class="ev ${stOf(a)}"><b>${esc(whenText(a))}</b>${esc(a.icon)} ${esc(a.title)}</div>`).join('')}</div>` : ''}
+    ${other.length ? `<h2>בלי לוח זמנים קבוע</h2><div class="list">${other.map(a => `<div class="ev"><b>${esc(a.when || '—')}</b>${esc(a.icon)} ${esc(a.title)}</div>`).join('')}</div>` : ''}`;
+}
+
+function render() {
+  const body = TAB === 'people' ? renderPeople() : TAB === 'week' ? renderWeek() : renderAlarms();
+  document.getElementById('wrap').innerHTML = `<div class="seg">${TABS.map(([k, t]) => `<button class="${k === TAB ? 'on' : ''}" onclick="setTab('${k}')">${t}</button>`).join('')}</div>
+    ${DATA.hcAvailable ? '' : '<div class="banner">סטטוס שליחה (Healthchecks) לא זמין כרגע — מוצגים רק נמענים ולוח זמנים</div>'}${body}`;
+}
+
+load();
+</script>
+</body>
+</html>

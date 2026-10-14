@@ -2489,11 +2489,11 @@ async function _maybeRenderChannelToggle(){
     +`<button type="button" class="ch-seg${bdd?' active':''}" onclick="_switchChannel('ICE_BDD')">ICE BDD</button>`;
   wrap.insertBefore(t, wrap.firstChild);
 }
-// Extra tiles (🧊, 📉, ❓) after the manager tiles: fixed order 🧊 → 📉 → ❓; only the last
+// Extra tiles (🧊, 📉, 🔔, ❓) after the manager tiles: fixed order 🧊 → 📉 → 🔔 → ❓; only the last
 // tile left without a pair spans the full row — symmetric for any team count/role.
 // Picker-only: tile hidden for everyone, the team stays in the data (יעדים, alarms) — Dan 2026-10-12 "пока".
 const _MGR_HIDDEN=new Set(['SADRAN+']);
-const _MGR_EXTRA=['mekarer-admin-tile','coverage-tile','guide-tile'];
+const _MGR_EXTRA=['mekarer-admin-tile','coverage-tile','alarms-tile','guide-tile'];
 function _fixMgrGridSpan(grid){
   _MGR_EXTRA.forEach(c=>{ const el=grid.querySelector('.'+c); if(el){ el.style.gridColumn=''; grid.appendChild(el); } });
   const last=grid.lastElementChild;
@@ -2566,6 +2566,29 @@ async function _maybeRenderMekarerAdminBtn(){
     <div class="mgr-tile-name">ניהול מקררים</div>
     <div class="mgr-tile-stats"></div>`;
   t.onclick=()=>window.open('mekarer-admin.html','_blank');
+  grid.appendChild(t);
+  _fixMgrGridSpan(grid);
+}
+// "🔔 אלרמים" (alarms.html, Dan 2026-10-14) — super only; the server probe decides (403 for everyone else).
+let _alarmsProbe=null;
+async function _maybeRenderAlarmsBtn(){
+  const token=_getToken();
+  if(!token) return;
+  if(!_alarmsProbe) _alarmsProbe=fetch(API+'/api/alarms?probe=1',{headers:{'X-Session':token}}).then(r=>r.ok).catch(()=>false);
+  if(!(await _alarmsProbe) || st.step!=='manager') return;
+  const grid=document.querySelector('#login-body .mgr-grid');
+  if(!grid || grid.querySelector('.alarms-tile')) return;
+  const t=document.createElement('div');
+  t.className='mgr-tile alarms-tile';
+  t.setAttribute('role','button');
+  t.setAttribute('aria-label','אלרמים');
+  t.innerHTML=`<div class="mgr-tile-ring-wrap">
+      <svg class="mgr-tile-ring" viewBox="0 0 64 64"><circle class="mgr-tile-ring-track" cx="32" cy="32" r="28"/></svg>
+      <div class="mgr-tile-av" style="font-size:22px">🔔</div>
+    </div>
+    <div class="mgr-tile-name">אלרמים</div>
+    <div class="mgr-tile-stats"></div>`;
+  t.onclick=()=>window.open('alarms.html','_blank');
   grid.appendChild(t);
   _fixMgrGridSpan(grid);
 }
@@ -2747,6 +2770,7 @@ function renderLogin(){
     _maybeRenderChannelToggle();
     _maybeRenderMekarerAdminBtn();
     _maybeRenderCoverageBtn();
+    _maybeRenderAlarmsBtn();
     _maybeRenderGuideTile();
     startTeamStatsPolling();
   }else if(st.step==='agent-welcome'){
