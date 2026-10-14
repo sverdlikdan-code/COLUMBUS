@@ -110,7 +110,7 @@ async function main() {
   const resend = new Resend(process.env.RESEND_API_KEY);
   for (const [i, { email, link }] of recips.entries()) {
     const res = await resend.emails.send({
-      from: `Formula Road <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
+      from: `Diler Intelligence <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
       to: [email],
       ...(i === 0 && cc.length ? { cc } : {}),
       subject: `מקררים מאושרים לאספקה — ${date} (${fresh} חדשים)`,

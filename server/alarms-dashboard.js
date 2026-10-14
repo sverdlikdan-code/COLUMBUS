@@ -115,7 +115,7 @@ function build(managerRoster, hc, agents) {
     const c = a.hc ? hcByName.get(a.hc) : null;
     return {
       key: a.key, title: a.title, icon: a.icon, why: a.why, askedBy: a.askedBy || null,
-      when: a.when || null, note: a.note || null, caps, toNote: a.toNote || null, agents: !!a.agents,
+      when: a.when || null, note: a.note || null, caps, toNote: a.toNote || null, agents: !!a.agents, tech: !!a.tech,
       schedule: a.schedule || null, hour,
       recipients: recipients && recipients.map(r => ({ ...r, name: nameOf(r.email) })),
       unread: !!(a.block || a.env) && !recipients?.length,   // ⚠️ on the page: source not readable

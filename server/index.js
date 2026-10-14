@@ -2217,7 +2217,7 @@ async function prewarmNewClientGps() {
   const html = `<div dir="rtl" style="font-family:Arial,sans-serif"><p>לקוחות שלא נמצא להם מיקום (לא כתובת, לא הזמנות עם GPS) — מוצגים במרכז העיר או בלי מיקום. אפשר לסמן ב-📍 באפליקציה.</p>
 <table border="1" cellpadding="4" style="border-collapse:collapse;font-size:13px"><tr style="background:#eee"><th>לקוח</th><th>שם</th><th>עיר</th><th>כתובת</th><th>סוכן</th><th>צוות</th><th>ערוץ</th><th>מצב</th></tr>${rows}</table></div>`;
   try {
-    const r = await resend.emails.send({ from: `Formula Road <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`, to,
+    const r = await resend.emails.send({ from: `Diler Intelligence <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`, to,
       subject: `Formula Road GPS: ${fresh.length} לקוחות בלי מיקום`, html });
     if (r.error) throw new Error(JSON.stringify(r.error));
     const day = todayIsraelDate();
@@ -6774,7 +6774,7 @@ ${rows.map(r => `<tr><td style="${td}">${esc(r.team)}</td><td style="${td}" dir=
 ${table}
 <p style="color:#6b7686;font-size:12px">Правило: заказ в ${BW_RETURN_MIN}+ из ${BW_RETURN_WEEKS} последних полных недель → каждая неделя. Пересчёт раз в месяц, в начале месяца; там же заново определяются полупокеры на месяц. Formula Road</p></div>`;
   try {
-    const r = await resend.emails.send({ from: `Formula Road <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`, to,
+    const r = await resend.emails.send({ from: `Diler Intelligence <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`, to,
       subject: `Formula Road ♠½ ${month}: вернулись на каждую неделю — ${rows.length}`, html });
     console.log('[biweekly-auto] mail →', to.join(','), r.data?.id || JSON.stringify(r.error));
   } catch (e) { console.error('[biweekly-auto] mail failed:', e.message); }

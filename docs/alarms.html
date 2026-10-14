@@ -177,16 +177,19 @@ function recipientsHtml(a) {
 
 function renderAlarms() {
   const order = { down: 0, grace: 1 };
-  const list = DATA.alarms.slice().sort((x, y) => (order[stOf(x)] ?? 2) - (order[stOf(y)] ?? 2));
-  const cnt = s => DATA.alarms.filter(a => stOf(a) === s).length;
-  return `<div class="summary"><span>${DATA.alarms.length} אלרמים</span><span>✅ ${cnt('up')}</span>${cnt('down') ? `<span style="color:var(--red)">❌ ${cnt('down')}</span>` : ''}${cnt('grace') ? `<span>⏳ ${cnt('grace')}</span>` : ''}<span>👥 ${DATA.people.length} נמענים</span></div>
-  <div class="cards">${list.map(a => `<div class="card ${stOf(a)}">
+  const main = DATA.alarms.filter(a => !a.tech), tech = DATA.alarms.filter(a => a.tech);
+  const list = main.slice().sort((x, y) => (order[stOf(x)] ?? 2) - (order[stOf(y)] ?? 2));
+  const cnt = s => main.filter(a => stOf(a) === s).length;
+  const card = a => `<div class="card ${stOf(a)}">
     <h3>${esc(a.icon)} ${esc(a.title)}<span class="st">${a.hc ? ST[a.hc.status] || esc(a.hc.status) : 'ללא מעקב'}</span></h3>
     <div class="why">${esc(a.why)}</div>
     <div class="kv"><b>מתי</b><span>${esc(whenText(a))}</span>
       ${a.hc ? `<b>אחרון</b><span>${fmtT(a.hc.last)}</span><b>הבא</b><span>${fmtT(a.hc.next)}</span>` : ''}
       ${a.askedBy ? `<b>ביקש</b><span>${esc(a.askedBy)}</span>` : ''}</div>
-    ${recipientsHtml(a)}</div>`).join('')}</div>`;
+    ${a.tech ? '' : recipientsHtml(a)}</div>`;
+  return `<div class="summary"><span>${main.length} אלרמים</span><span>✅ ${cnt('up')}</span>${cnt('down') ? `<span style="color:var(--red)">❌ ${cnt('down')}</span>` : ''}${cnt('grace') ? `<span>⏳ ${cnt('grace')}</span>` : ''}<span>👥 ${DATA.people.length} נמענים</span></div>
+  <div class="cards">${list.map(card).join('')}</div>
+  ${tech.length ? `<h2>מיילים טכניים — רק לדן</h2><div class="cards">${tech.map(card).join('')}</div>` : ''}`;
 }
 
 function saveDraft() { try { localStorage.setItem('alarmsDraft', JSON.stringify(DRAFT)); } catch (e) {} }
@@ -203,7 +206,7 @@ function setCell(p, a, role) {
   const k = ckey(p.email, a.key);
   if (role === orig(p, a)) delete DRAFT.cells[k]; else DRAFT.cells[k] = role;
 }
-const editAlarms = () => DATA.alarms.filter(a => a.recipients?.length);
+const editAlarms = () => DATA.alarms.filter(a => !a.tech && a.recipients?.length);
 
 function renderPeople() {
   const al = editAlarms();
@@ -327,7 +330,7 @@ async function saveRequest() {
 
 function renderWeek() {
   const days = DAYS.map(() => []), monthly = [], other = [];
-  for (const a of DATA.alarms) {
+  for (const a of DATA.alarms.filter(x => !x.tech)) {
     const c = parseCron(a.schedule);
     if (!c || a.when) { other.push(a); continue; }
     if (c.monthDay) { monthly.push({ a, c }); continue; }

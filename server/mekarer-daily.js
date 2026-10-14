@@ -133,7 +133,7 @@ async function main() {
   if (!to.length) throw new Error('MEKARER_DAILY_RECIPIENTS не задан');
   if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY не найден в .env');
   const res = await new Resend(process.env.RESEND_API_KEY).emails.send({
-    from: `Formula Road <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
+    from: `Diler Intelligence <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
     to,
     subject: `הזמנות מקררים — ${date} (${fresh} חדשות)`,
     html: `<div dir="rtl" style="font-family:Arial,sans-serif;font-size:15px">שלום יוסי,<br><br>
