@@ -3615,7 +3615,10 @@ FILTER(
       makat: r['[makat]'],
       name: fixBiDi(r['[name]']),
     }));
-    parts.sort((a, b) => a.makat.localeCompare(b.makat));
+    // By name, not by makat (Dan 2026-10-14): puts the chest freezers together in size order,
+    // then the upright ones, then the fridge — the number order scattered them. fixBiDi strips
+    // the BiDi control marks, so the names sort as plain Hebrew.
+    parts.sort((a, b) => a.name.localeCompare(b.name, 'he'));
     res.json(parts);
   } catch (err) {
     console.error(err); res.status(500).json({ error: 'server_error' });
