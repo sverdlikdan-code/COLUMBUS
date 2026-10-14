@@ -244,6 +244,24 @@ async function shootCards(split, zafnLow, hide = [], ice = null) {
           .forEach(([c]) => grid.appendChild(c));
       }
     }, split, zafnLow, hide, ice);
+    // צפון <3 — два блока (Дан 2026-10-14): «מספיק באשדוד» (остаток Ашдода ÷ его продажи в день × 1.4 ≥ 3,
+    // тот же ×1.4 что у צפון; продаж нет, а остаток есть — тоже מספיק), затем «לא מספיק באשדוד».
+    const ashdod = !zafnLow ? null : await page.evaluate(() => {
+      const grid = document.getElementById('expiry-grid');
+      const days = {};
+      const enough = c => {
+        const mk = c.querySelector('div[style*="color:#1565C0;font-weight:bold"]')?.textContent.trim();
+        const d = productData[mk] || {};
+        const sales = d.daySales ?? d.daySalesAll ?? 0;
+        const dd = !(d.stock > 0) ? 0 : sales > 0 ? d.stock / sales * 1.4 : Infinity;
+        days[mk] = dd === Infinity ? null : Math.round(dd * 10) / 10;
+        return dd >= 3;
+      };
+      const cs = [...grid.children].filter(c => c.querySelector('div[style*="color:#1565C0;font-weight:bold"]'));
+      const ok = cs.filter(enough), low = cs.filter(c => !ok.includes(c));
+      [...ok, ...low].forEach(c => grid.appendChild(c));
+      return { nEnough: ok.length, days };
+    });
     await page.evaluate(() => new Promise(r => {
       const imgs = [...document.images].filter(i => !i.complete);
       if (!imgs.length) return r();
@@ -278,15 +296,19 @@ async function shootCards(split, zafnLow, hide = [], ice = null) {
     const cards = await page.$$(SEL);
     const shots = [];
     for (const c of cards) shots.push(Buffer.from(await c.screenshot({ type: 'png' })));
-    if (shots.length === 0) return { shots, pdf: null, risks };
+    const nEnough = ashdod ? ashdod.nEnough : shots.length;
+    if (ashdod) risks.forEach(r => { r.ashdodDays = ashdod.days[r.mk]; });
+    if (shots.length === 0) return { shots, pdf: null, risks, nEnough };
 
     // PDF для печати — из тех же картинок, 4 карточки на A4 (2×2). Своя простая вёрстка,
     // не print-CSS редактора: тот в headless разваливается.
     const date = new Date().toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' });
     const pages = [];
-    for (let i = 0; i < shots.length; i += 4) {
-      const cells = shots.slice(i, i + 4).map(b => `<div><img src="data:image/png;base64,${b.toString('base64')}"></div>`).join('');
-      pages.push(`<section><header>${zafnLow ? 'מלאי צפון פחות מ-3 ימים' : 'דוח תוקף' + (split ? ' לפי מחסן' : '')} — ${ice ? 'גלידה משפחתי ICE' : 'FORMULA'} &middot; ${date}</header><main>${cells}</main></section>`);
+    // צפון <3 — каждый блок со своей страницы и своим заголовком
+    const blocks = zafnLow ? [[0, nEnough, ' · מספיק באשדוד'], [nEnough, shots.length, ' · לא מספיק באשדוד']] : [[0, shots.length, '']];
+    for (const [from, to, sub] of blocks) for (let i = from; i < to; i += 4) {
+      const cells = shots.slice(i, Math.min(i + 4, to)).map(b => `<div><img src="data:image/png;base64,${b.toString('base64')}"></div>`).join('');
+      pages.push(`<section><header>${zafnLow ? 'מלאי צפון פחות מ-3 ימים' : 'דוח תוקף' + (split ? ' לפי מחסן' : '')} — ${ice ? 'גלידה משפחתי ICE' : 'FORMULA'}${sub} &middot; ${date}</header><main>${cells}</main></section>`);
     }
     await page.emulateMediaType('print');
     await page.setContent(`<!doctype html><html dir="rtl"><head><meta charset="utf-8"><style>
@@ -298,7 +320,7 @@ async function shootCards(split, zafnLow, hide = [], ice = null) {
       img{display:block;width:100%;height:auto}
     </style></head><body>${pages.join('')}</body></html>`, { waitUntil: 'load' });
     const pdf = Buffer.from(await page.pdf({ preferCSSPageSize: true, printBackground: true }));
-    return { shots, pdf, risks };
+    return { shots, pdf, risks, nEnough };
   } finally {
     await browser.close();
     srv.close();
@@ -412,7 +434,19 @@ function buildIceHtml(ice) {
   ${cardRows('ice-card', firstNew, ice.n)}`;
 }
 
-function buildEmailHtml(n, greetName, risk, split, diff, ice = null) {
+// צפון <3 — два блока карточек с подзаголовками (nEnough первых — מספיק באשדוד)
+function zafnBlocksHtml(n, nEnough) {
+  const head = (title, cnt, color, note) => cnt ? `<tr><td dir="rtl" style="padding:14px 28px 2px;text-align:right">
+    <div style="font-size:17px;font-weight:900;color:${color}">${title} (${cnt})</div>
+    <div style="padding-top:3px;font-size:12px;color:${MUTED}">${note}</div>
+  </td></tr>` : '';
+  return head('✅ יש מספיק מלאי באשדוד', nEnough, '#2e7d32', 'מלאי אשדוד מספיק ל-3 ימי מכירה ומעלה — אפשר להעביר לצפון')
+    + cardRows('card', 0, nEnough)
+    + head('⚠️ אין מספיק מלאי באשדוד', n - nEnough, '#c62828', 'מלאי אשדוד מספיק לפחות מ-3 ימי מכירה')
+    + cardRows('card', nEnough, n);
+}
+
+function buildEmailHtml(n, greetName, risk, split, diff, ice = null, nEnough = n) {
   const greeting = greetName ? `שלום ${greetName},` : 'שלום,';
   return `<!doctype html>
 <html lang="he"><body style="margin:0;padding:28px 16px;background:${PAPER};font-family:Arial,sans-serif">
@@ -432,7 +466,7 @@ function buildEmailHtml(n, greetName, risk, split, diff, ice = null) {
   <tr><td dir="rtl" style="padding:4px 28px 10px;text-align:right">
     <div style="display:inline-block;padding:9px 16px;border:1.5px solid ${NAVY};border-radius:8px;background:#EEF3FA;font-size:13px;font-weight:bold;color:${NAVY}">🖨 להדפסה — פתחו את ${ice?.n ? 'קבצי ה-PDF המצורפים' : 'קובץ ה-PDF המצורף'} (4 מוצרים בעמוד A4)</div>
   </td></tr>
-  ${cardRows('card', 0, n)}
+  ${ZAFN_LOW ? zafnBlocksHtml(n, nEnough) : cardRows('card', 0, n)}
   ${buildIceHtml(ice)}
   <tr><td dir="rtl" style="padding:16px 28px 24px;text-align:right;border-top:1px solid ${LINE};font-size:12px;color:${MUTED};line-height:1.7">
     ${FOOTNOTE ? `${FOOTNOTE}<br>` : ''}הדוח נשלח רק בימים שיש ${ZAFN_LOW ? 'מוצרים עם מלאי נמוך בצפון' : 'מוצרים בסכנה'}.<br>הערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.
@@ -458,7 +492,7 @@ async function runVariant({ split, to }) {
     hide = rare.map(r => r.mk);
     console.log(tag, `редкие продажи на צפון (<${ZAFN_MIN_SALE_DAYS_SHARE * 100}% из ${workDays} раб. дней) — не в письме: ${rare.length}`);
   }
-  const { shots, pdf, risks } = await shootCards(split, ZAFN_LOW, hide);  // сумма риска / сравнение / состояние — только у основного письма תוקף
+  const { shots, pdf, risks, nEnough } = await shootCards(split, ZAFN_LOW, hide);  // сумма риска / сравнение / состояние — только у основного письма תוקף
   const main = !split && !ZAFN_LOW;
   // раздел АЙС — только в основном письме; сбой АЙС не валит письмо FORMULA
   let ice = null;
@@ -477,6 +511,7 @@ async function runVariant({ split, to }) {
   if (risk.noCost) console.log(tag, 'Без суммы:', risks.filter(r => !(r.cost > 0)).map(r => r.name).join(' ; '));
   console.log(tag, `Риск: ${fmtILS(risk.total)}, топ-70%: ${risk.top.map(r => r.name + ' ' + fmtILS(r.cost)).join('; ')}`);
   console.log(tag, `Карточек: ${shots.length}`, risks.map(r => r.mk).join(','));
+  if (ZAFN_LOW) console.log(tag, `מספיק באשדוד: ${nEnough}, לא מספיק: ${shots.length - nEnough}`);
   // сравнение — только для основного письма (מאוחד); у варианта по складам другой набор карточек
   const diff = main ? diffWithPrev(loadPrev(), risks) : null;
   if (diff) console.log(tag, `vs ${diff.date}: +${diff.added.map(r => r.mk).join(',') || '-'} / -${diff.removed.map(r => r.mk).join(',') || '-'}`);
@@ -488,7 +523,7 @@ async function runVariant({ split, to }) {
     const base = 'expiry-alert-preview' + (ZAFN_LOW ? '-zafn-low' : split ? '-split' : '');
     fs.mkdirSync(out, { recursive: true });
     fs.writeFileSync(path.join(out, base + '.html'),
-      buildEmailHtml(shots.length, 'דן', risk, split, diff, ice).replace(/cid:card-(\d+)/g, (_, i) => `data:image/png;base64,${shots[i].toString('base64')}`)
+      buildEmailHtml(shots.length, 'דן', risk, split, diff, ice, nEnough).replace(/cid:card-(\d+)/g, (_, i) => `data:image/png;base64,${shots[i].toString('base64')}`)
         .replace(/cid:ice-card-(\d+)/g, (_, i) => `data:image/png;base64,${ice.shots[i].toString('base64')}`)
         .replace('cid:diler-logo-white', 'data:image/png;base64,' + fs.readFileSync(path.join(DOCS, 'logo-diler-bmd-white.png')).toString('base64')));
     if (pdf) fs.writeFileSync(path.join(out, base + '.pdf'), pdf);
@@ -524,10 +559,13 @@ async function runVariant({ split, to }) {
       from: `Diler Intelligence <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
       ...snd,
       subject,
-      html: buildEmailHtml(shots.length, greetName, risk, split, diff, ice),
+      html: buildEmailHtml(shots.length, greetName, risk, split, diff, ice, nEnough),
       text: ZAFN_LOW ? [
         `${greetName ? `שלום ${greetName},` : 'שלום,'} ${shots.length} מוצרים — מלאי במחסן צפון פחות מ-3 ימי מכירה:`,
-        ...risks.map(r => `• ${r.name} (${r.mk})`),
+        '', `יש מספיק מלאי באשדוד (${nEnough}):`,
+        ...risks.slice(0, nEnough).map(r => `• ${r.name} (${r.mk})`),
+        '', `אין מספיק מלאי באשדוד (${shots.length - nEnough}):`,
+        ...risks.slice(nEnough).map(r => `• ${r.name} (${r.mk})`),
         '',
         'להדפסה — קובץ PDF מצורף.',
       ].join('\n') : [
