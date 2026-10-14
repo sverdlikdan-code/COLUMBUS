@@ -209,11 +209,11 @@ async function classifyByCreatedDate(changes, prevDate) {
 }
 
 const TYPES = [
-  { key: 'new',         he: 'לקוחות חדשים',           color: '1E8E3E' },
-  { key: 'inactive',    he: 'הפכו ללא פעילים',        color: 'C5221F' },
-  { key: 'reactivated', he: 'חזרו לפעילות',           color: '1A73E8' },
-  { key: 'agent',       he: 'העברה לסוכן אחר',        color: 'E37400', tint: 'FFF3E0' },
-  { key: 'day',         he: 'שינוי יום ביקור',         color: '8430CE', tint: 'F3E8FD' },
+  { key: 'new',         he: 'לקוחות חדשים',           color: '1E8E3E', icon: '🆕' },
+  { key: 'inactive',    he: 'הפכו ללא פעילים',        color: 'C5221F', icon: '⛔' },
+  { key: 'reactivated', he: 'חזרו לפעילות',           color: '1A73E8', icon: '✅' },
+  { key: 'agent',       he: 'העברה לסוכן אחר',        color: 'E37400', tint: 'FFF3E0', icon: '🔁' },
+  { key: 'day',         he: 'שינוי יום ביקור',         color: '8430CE', tint: 'F3E8FD', icon: '📅' },
 ];
 // Колонки по типу — одни и те же для письма и Excel. Смена агента: קודם (до даты отчёта) / נוכחי
 // вместо колонки סוכן; смена дня — дни как в Priority (FORMULA: משטח עם כפולות, ICE: פרמטר 18).
@@ -239,41 +239,47 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': 
 
 function buildHtml(changes, dateStr, greeting = '', title = 'FORMULA + ICE MISH — שינויים בלקוחות', sources = 'FORMULA · ICE משפחתי', intro = null) {
   const counts = TYPES.map(t => ({ ...t, n: changes.filter(c => c.type === t.key).length })).filter(t => t.n);
-  const th = 'style="background:#1f2a44;color:#fff;padding:6px 8px;text-align:right;font-weight:600"';
-  const td = 'style="padding:5px 8px;border-bottom:1px solid #e5e7eb;text-align:right"';
+  // Outlook desktop (движок Word) не наследует шрифт от div в таблицы и игнорирует max-width —
+  // шрифт задаём на таблице, ширину держит mso-обёртка ниже. Segoe UI — системный UI-шрифт Windows
+  // с ивритом; на телефонах его нет -> Tahoma/Arial.
+  const font = "font-family:'Segoe UI',Tahoma,Arial,sans-serif";
+  // шапка светлая, не тёмно-синяя — «давила на глаза» (пользователь 14.10); линия снизу — цвет раздела
+  const th = t => `style="background:#eef1f5;color:#3c4350;padding:8px 10px;text-align:right;font-weight:600;font-size:14px;border-bottom:2px solid #${t.color}"`;
+  const tdBase = 'padding:7px 10px;border-bottom:1px solid #d9dce1;text-align:right';
+  const td = `style="${tdBase}"`;
   const sections = counts.map(t => {
     const cols = columnsFor(t.key, dateStr);
     const rows = byGroup(changes.filter(c => c.type === t.key));
     // подзаголовок группы — только если в разделе больше одной группы (общий отчёт)
     const multi = new Set(rows.map(r => r.manager || '')).size > 1;
     const groupHead = (r, i) => multi && (i === 0 || rows[i - 1].manager !== r.manager)
-      ? `<tr><td colspan="${cols.length}" style="padding:8px 8px 4px;background:#f3f4f6;font-weight:700;text-align:right">קבוצה: <bdi>${esc(r.manager || '—')}</bdi> (${rows.filter(x => x.manager === r.manager).length})</td></tr>\n`
+      ? `<tr><td colspan="${cols.length}" style="padding:12px 10px 5px;background:#ffffff;color:#1f2a44;font-weight:700;text-align:right;border-bottom:1px solid #d9dce1">קבוצה: <bdi>${esc(r.manager || '—')}</bdi> (${rows.filter(x => x.manager === r.manager).length})</td></tr>\n`
       : '';
     const cell = (c, r) => {
       const v = esc(cellValue(r, c.key));
-      if (c.prev) return `<td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;text-align:right;color:#8a8f98">${v}</td>`;
-      if (c.cur) return `<td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;text-align:right;background:#${t.tint};color:#${t.color};font-weight:700">${v}</td>`;
+      if (c.prev) return `<td style="${tdBase};color:#7a808a">${v}</td>`;
+      if (c.cur) return `<td style="${tdBase};background:#${t.tint};color:#${t.color};font-weight:700">${v}</td>`;
       // имя клиента — крупнее (пользователь 06.10); min-width не ставить — на телефоне 390px таблица вылезает
-      if (c.key === 'name') return `<td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:15px;font-weight:600">${v}</td>`;
+      if (c.key === 'name') return `<td style="${tdBase};font-size:16px;font-weight:600">${v}</td>`;
       return `<td ${td}>${v}</td>`;
     };
-    return `<h3 style="color:#${t.color};margin:22px 0 6px">${t.he} (${t.n})</h3>
-<table style="border-collapse:collapse;width:100%;font-size:13px">
-<tr>${cols.map(c => `<th ${th}>${c.header}</th>`).join('')}</tr>
+    return `<h3 style="color:#${t.color};margin:22px 0 6px">${t.icon} ${t.he} (${t.n})</h3>
+<table style="border-collapse:collapse;width:100%;font-size:15px;line-height:1.35;${font}">
+<tr>${cols.map(c => `<th ${th(t)}>${c.header}</th>`).join('')}</tr>
 ${rows.map((r, i) => groupHead(r, i) + `<tr>${cols.map(c => cell(c, r)).join('')}</tr>`).join('\n')}
 </table>`;
   }).join('\n');
-  return `<!doctype html><html dir="rtl" lang="he"><body style="margin:0"><div dir="rtl" style="font-family:Arial,sans-serif;color:#111;max-width:900px;margin:0 auto;padding:16px;box-sizing:border-box">
+  return `<!doctype html><html dir="rtl" lang="he"><body style="margin:0"><!--[if mso]><table width="1000" align="center" cellpadding="0" cellspacing="0"><tr><td><![endif]--><div dir="rtl" style="${font};color:#111;max-width:1000px;margin:0 auto;padding:16px;box-sizing:border-box">
 <h2 style="margin:0 0 4px">${esc(title)} — ${dateStr}</h2>
 ${greeting ? `<p style="margin:0 0 6px">${esc(greeting)}</p>` : ''}
 ${intro ? `<div style="background:#f5f7fb;border-right:4px solid #1f2a44;padding:8px 12px;margin:6px 0 10px;font-size:13px;line-height:1.5">
 <p dir="rtl" style="margin:0 0 6px;text-align:right">${esc(intro.he)}</p>
 <p dir="ltr" style="margin:0;text-align:left;color:#444">${esc(intro.ru)}</p></div>` : ''}
 <div style="color:#555;font-size:13px;margin-bottom:10px">${sources.split(' · ').map(s => `<bdi>${esc(s)}</bdi>`).join(' · ')}</div>
-<table cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:0 0"><tr>${counts.map(t => `<td style="background:#${t.color};color:#fff;font-size:13px;padding:4px 10px;border-radius:12px;white-space:nowrap">${t.he}: ${t.n}</td><td style="width:8px">&nbsp;</td>`).join('')}</tr></table>
+<table cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:0 0;${font}"><tr>${counts.map(t => `<td style="background:#${t.color};color:#fff;font-size:13px;padding:4px 10px;border-radius:12px;white-space:nowrap">${t.icon} ${t.he}: ${t.n}</td><td style="width:8px">&nbsp;</td>`).join('')}</tr></table>
 ${sections}
 <p style="color:#777;font-size:12px;margin-top:24px">הערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.</p>
-</div></body></html>`;
+</div><!--[if mso]></td></tr></table><![endif]--></body></html>`;
 }
 
 async function buildXlsx(changes, dateStr) {
