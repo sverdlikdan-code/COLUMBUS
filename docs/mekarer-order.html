@@ -416,9 +416,15 @@ function buildRefHTML(id, num) {
   const opt = p => `<option value="${p.makat}">${p.makat} — ${p.name}</option>`;
   const group = (label, list) => list.length ? `<optgroup label="${label}">${list.map(opt).join('')}</optgroup>` : '';
   // supply = active models only; return (also shown on replace) = active + old ones still at clients (Dan 2026-10-12)
+  // 901400 sits first in the return list, in a section of its own (Dan 2026-10-14). A native
+  // <select> can't take a border on one <option> — the OS draws the list — so its own optgroup
+  // is the "frame". It's an OLD model, so it's skipped in the ישנים group below, not duplicated.
+  const PINNED_RETURN = '901400';
   const activeOpts = parts.length ? parts.filter(p => p.active).map(opt).join('') : '<option value="">טוען...</option>';
   const returnOpts = parts.length
-    ? group('פעילים', parts.filter(p => p.active)) + group('OLD-ישנים', parts.filter(p => !p.active))
+    ? group('★', parts.filter(p => p.makat === PINNED_RETURN))
+      + group('פעילים', parts.filter(p => p.active))
+      + group('ישנים', parts.filter(p => !p.active && p.makat !== PINNED_RETURN))
     : '<option value="">טוען...</option>';
   return `
 <div class="ref-title">
