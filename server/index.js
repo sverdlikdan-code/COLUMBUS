@@ -3594,15 +3594,16 @@ function fixBiDi(raw) {
 // GET /api/mekarer-parts — refrigerator models for the מקרר form, names live from
 // International DILLER 'KARTIS PARIT' (CONTROL workspace), where every model below exists
 // (checked 2026-10-12; the main dataset's KARTIS PARIT misses most of them).
-// Active = the models agents may SUPPLY — Biana's list 2026-10-12 incl. new 901601.
-// Status there is פעיל for old models too, so "active" can't come from the catalog.
-// Old = still at clients, offered only for return/replace (form: OLD group in return select).
-// ponytail: static lists, edit when purchasing adds or retires a model.
-const ACTIVE_MEKARER = ['901303', '901403', '901405', '901406', '901501', '901600', '901601'];
-const OLD_MEKARER = ['901300', '901301', '901302', '901400', '901401', '901402', '901404', '901500'];
+// Biana's list 2026-10-12 incl. new 901601. The separate OLD group (discontinued models still
+// standing at clients, shown for return/replace only) is gone since 2026-10-14 (Dan): those
+// models were dropped from the form entirely and 901400 joined this list, so supply and return
+// now offer exactly the same models. Status in the catalog is פעיל for old models too, so the
+// form's list can never come from the catalog — it stays explicit here.
+// ponytail: static list, edit when purchasing adds or retires a model.
+const ACTIVE_MEKARER = ['901303', '901400', '901403', '901405', '901406', '901501', '901600', '901601'];
 app.get('/api/mekarer-parts', requireAuth, async (req, res) => {
   try {
-    const all = [...ACTIVE_MEKARER, ...OLD_MEKARER];
+    const all = ACTIVE_MEKARER;
     const rows = await executeDax(`
 EVALUATE
 FILTER(
@@ -3613,9 +3614,8 @@ FILTER(
     const parts = rows.map(r => ({
       makat: r['[makat]'],
       name: fixBiDi(r['[name]']),
-      active: ACTIVE_MEKARER.includes(r['[makat]']),
     }));
-    parts.sort((a, b) => (b.active - a.active) || a.makat.localeCompare(b.makat));
+    parts.sort((a, b) => a.makat.localeCompare(b.makat));
     res.json(parts);
   } catch (err) {
     console.error(err); res.status(500).json({ error: 'server_error' });
