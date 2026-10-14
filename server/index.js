@@ -3822,7 +3822,7 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
           }).join('');
 
           await resend.emails.send({
-            from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
+            from: `Diler Intelligence <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
             to: process.env.NOTIFY_EMAIL.split(',').map(e => e.trim()),
             cc: submitterEmail ? [submitterEmail] : undefined,
             subject: `הזמנת מקרר חדשה — ${order.custName} (${order.city})`,

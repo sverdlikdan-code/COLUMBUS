@@ -356,7 +356,7 @@ async function main() {
     // гипотеза: адреса в теме -> спам (06.10 письма с VPS не дошли, причина не проверена) — кому шло бы, только в лог
     if (override) { console.log(`  OVERRIDE ${m.tag}: шло бы -> ${[...to, ...cc].join(', ')}`); subj = `[בדיקה] ${subj}`; to = [override]; cc = []; }
     const res = await resend.emails.send({
-      from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
+      from: `Diler Intelligence <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
       to, ...(cc.length ? { cc } : {}), subject: subj, html,
       attachments: [{ filename, content: xlsx.toString('base64') }],
     });

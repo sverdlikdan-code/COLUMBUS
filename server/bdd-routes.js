@@ -576,7 +576,7 @@ function createBdd(deps) {
     }).join('');
 
     await deps.resend.emails.send({
-      from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
+      from: `Diler Intelligence <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
       to,
       subject: `[ICE BDD] הזמנת מקרר חדשה — ${order.custName} (${order.city})`,
       attachments: [{ filename: `mekarer-bdd-${safeDate}-${safeName}.xlsx`, content: xlsB64 }],

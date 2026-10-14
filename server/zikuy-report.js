@@ -434,7 +434,7 @@ async function main() {
   const { Resend } = require('resend');
   const logo = path.join(DOCS, 'logo-diler-bmd-white.png');
   const res = await new Resend(process.env.RESEND_API_KEY).emails.send({
-    from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
+    from: `Diler Intelligence <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
     to, ...(cc.length ? { cc } : {}), subject, html,
     attachments: [
       ...(fs.existsSync(logo) ? [{ filename: 'logo-white.png', content: fs.readFileSync(logo).toString('base64'), contentId: 'diler-logo-white' }] : []),

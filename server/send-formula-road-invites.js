@@ -163,7 +163,7 @@ async function main() {
       if (!resend) { console.error('  RESEND_API_KEY not configured, skipping send'); continue; }
       try {
         await resend.emails.send({
-          from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
+          from: `Diler Intelligence <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
           to: r.email,
           cc: 'd.sverdlik@DilerBMD.com',
           subject: BDD ? 'FORMULA ROAD — ICE BDD · כלי עבודה חדש למנהלים' : 'FORMULA ROAD — כלי עבודה חדש לסוכני השטח',

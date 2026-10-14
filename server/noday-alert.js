@@ -152,7 +152,7 @@ async function main() {
     let { to, cc } = m, subj = subject;
     if (override) { console.log(`  OVERRIDE ${m.tag}: шло бы -> ${[...to, ...cc].join(', ')}`); subj = `[בדיקה ${m.tag}] ${subj}`; to = [override]; cc = []; }
     const res = await resend.emails.send({
-      from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
+      from: `Diler Intelligence <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
       to, ...(cc.length ? { cc } : {}), subject: subj, html: m.html,
       attachments: [{ filename: `lakochot-lelo-yom-${today}.xlsx`, content: xlsx.toString('base64') }],
     });

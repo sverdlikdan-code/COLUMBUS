@@ -438,7 +438,7 @@ async function main() {
   for (const m of mails) {
     const xlsx = Buffer.from(await buildXlsx(m.rows, dateStr));
     const res = await resend.emails.send({
-      from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
+      from: `Diler Intelligence <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
       to: m.to,
       ...(m.cc.length ? { cc: m.cc } : {}),
       subject: m.subject,

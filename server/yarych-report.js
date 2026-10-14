@@ -459,7 +459,7 @@ async function loadPhotos(urls) {
 }
 async function buildExcel(d) {
   const ExcelJS = require('exceljs');
-  const wb = new ExcelJS.Workbook(); wb.creator = 'AI Analytics Assistant';
+  const wb = new ExcelJS.Workbook(); wb.creator = 'Diler Intelligence';
   const photos = await loadPhotos(d.photoUrl || {});
   const imgId = {}; for (const [k, b] of Object.entries(photos)) imgId[k] = wb.addImage({ buffer: b, extension: 'png' });
   const { months, rows } = d.xl, N = months.length, FIRST = 5, HDR = 4;
@@ -615,7 +615,7 @@ async function main() {
   const { Resend } = require('resend');
   const logo = path.join(DOCS, 'logo-diler-bmd-white.png');
   const res = await new Resend(process.env.RESEND_API_KEY).emails.send({
-    from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
+    from: `Diler Intelligence <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
     to, ...(cc.length ? { cc } : {}), subject, html,
     attachments: [
       ...(fs.existsSync(logo) ? [{ filename: 'logo-white.png', content: fs.readFileSync(logo).toString('base64'), contentId: 'diler-logo-white' }] : []),

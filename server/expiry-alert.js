@@ -521,7 +521,7 @@ async function runVariant({ split, to }) {
     // общее письмо — «שלום רב,» вместо перечня имён (пользователь 2026-09-30)
     const greetName = snd.to.length > 1 ? 'רב' : RECIPIENT_NAMES[snd.to[0].toLowerCase()] || (snd.cc ? 'רב' : '');
     const res = await resend.emails.send({
-      from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
+      from: `Diler Intelligence <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
       ...snd,
       subject,
       html: buildEmailHtml(shots.length, greetName, risk, split, diff, ice),

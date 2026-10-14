@@ -599,7 +599,7 @@ async function sendReport(resend, recipient, parts, workDays, privateOnly) {
     + `\n\nהדוח המלא (קישור אישי, בתוקף ${LINK_DAYS} ימים, נא לא להעביר): ${link}\nכל הלקוחות גם בקובץ האקסל המצורף.`
     + '\n\nהערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.';
   const res = await resend.emails.send({
-    from: `AI Analytics Assistant <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
+    from: `Diler Intelligence <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
     to: [recipient],
     subject: `דוח אובליגו שבועי — מתקרבים: ${counts[0]} · חורגים: ${counts[1]} · בפיגור: ${counts[2]}`,
     html: buildEmailHtml(parts, workDays, greetName, privateOnly, link),
