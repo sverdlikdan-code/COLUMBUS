@@ -99,7 +99,7 @@ git diff HEAD
 ```
 type(scope): описание на русском
 
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Co-Authored-By: Claude <модель текущей сессии> <noreply@anthropic.com>
 ```
 
 Правила описания:
@@ -119,7 +119,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 
 feat(mahsan): добавить фильтр по температурной зоне в планограмме
 
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Co-Authored-By: Claude <модель текущей сессии> <noreply@anthropic.com>
 
 Подтверждаешь? (да / изменить / отмена)
 ```
@@ -134,7 +134,7 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 git commit -m "$(cat <<'EOF'
 type(scope): описание
 
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Co-Authored-By: Claude <модель текущей сессии> <noreply@anthropic.com>
 EOF
 )"
 ```
