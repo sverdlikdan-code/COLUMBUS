@@ -894,6 +894,14 @@ body.map-hidden #tab-map,body.map-hidden #tab-inline-map{display:none!important;
 .modal-btn.cancel{background:var(--sky-light);color:var(--mid);}
 .modal-btn.confirm{background:var(--blue);color:#fff;}
 
+/* הזמנת מקרר client search rows (BDD picker tile) */
+.mko-row{padding:10px 12px;border-bottom:1px solid var(--sky-mid);border-radius:8px;cursor:pointer;direction:rtl;text-align:right;}
+.mko-row:active{background:var(--sky-light);}
+.mko-row:last-child{border-bottom:none;}
+.mko-row-name{font-size:15px;font-weight:700;color:var(--text);}
+.mko-row-sub{font-size:12px;color:var(--mid);margin-top:2px;}
+.mko-new{display:inline-block;background:var(--green);color:#fff;font-size:10px;font-weight:800;border-radius:6px;padding:1px 6px;vertical-align:middle;}
+
 /* THOUGHT OF THE DAY — shown once per calendar day, agents + managers alike */
 .thought-toast{display:none;position:fixed;inset:0;z-index:9500;
   background:rgba(13,33,55,.6);align-items:center;justify-content:center;padding:20px;}
@@ -1518,6 +1526,20 @@ body.bdd .km-more-item[onclick^="openYedaim"], body.bdd .km-more-item[onclick^="
   </div>
 </div>
 
+<!-- ── הזמנת מקרר: client search (ICE BDD picker tile) ── -->
+<div class="modal-bg" id="mko-modal" onclick="if(event.target===this)closeMekarerSearch()">
+  <div class="modal">
+    <div class="modal-title">❄️ הזמנת מקרר</div>
+    <input class="modal-input" id="mko-q" type="text" inputmode="search" autocomplete="off"
+           placeholder="מספר לקוח או שם..." oninput="mkoSearch()"/>
+    <div id="mko-hint" style="font-size:12px;color:var(--mid);text-align:center;min-height:16px;margin-bottom:6px"></div>
+    <div id="mko-results" style="max-height:46vh;overflow:auto;-webkit-overflow-scrolling:touch"></div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeMekarerSearch()">סגור</button>
+    </div>
+  </div>
+</div>
+
 <!-- חוב! popup — overdue per company live from Priority (Dan 2026-10-12, test) -->
 <div class="modal-bg" id="debt-modal" onclick="if(event.target===this)closeDebt()">
   <div class="modal">
@@ -1707,7 +1729,7 @@ const _TB_IC={
 };
 function _tbIc(k,cls){ return `<svg class="tb-ic${cls?' '+cls:''}" viewBox="0 0 24 24" aria-hidden="true">${_TB_IC[k]}</svg>`; }
 // BDD sessions: these endpoints are served by the /api/bdd router. FORMULA: URL unchanged.
-const BDD_PATHS=['/customers','/manager-agents','/agent-exists','/save-gps','/api/today-orders','/api/team-order-stats','/api/day-closing','/api/promo-cust-ids','/api/client-promos/','/api/route-overrides','/api/route-day-move','/api/mekarer-order','/geocode'];
+const BDD_PATHS=['/customers','/manager-agents','/agent-exists','/save-gps','/api/today-orders','/api/team-order-stats','/api/day-closing','/api/promo-cust-ids','/api/client-promos/','/api/route-overrides','/api/route-day-move','/api/mekarer-order','/client-search','/geocode'];
 function _bddUrl(url){
   if(!_isBdd()) return url;
   const p=String(url).startsWith(API)?String(url).slice(API.length):String(url);
@@ -2493,15 +2515,17 @@ async function _maybeRenderChannelToggle(){
 // tile left without a pair spans the full row — symmetric for any team count/role.
 // Picker-only: tile hidden for everyone, the team stays in the data (יעדים, alarms) — Dan 2026-10-12 "пока".
 const _MGR_HIDDEN=new Set(['SADRAN+']);
-const _MGR_EXTRA=['mekarer-admin-tile','coverage-tile','guide-tile'];
+const _MGR_EXTRA=['mekarer-admin-tile','mekarer-order-tile','coverage-tile','guide-tile'];
 function _fixMgrGridSpan(grid){
   _MGR_EXTRA.forEach(c=>{ const el=grid.querySelector('.'+c); if(el){ el.style.gridColumn=''; grid.appendChild(el); } });
   const last=grid.lastElementChild;
   if(grid.children.length%2===1&&last&&_MGR_EXTRA.some(c=>last.classList.contains(c))) last.style.gridColumn='1/-1';
 }
 // "❓ מדריך שימוש" tile — ICE BDD picker (user 2026-10-06: evens out the grid there); FORMULA too
-// since 2026-10-12, in place of the hidden SADRAN+ tile.
+// since 2026-10-12, in place of the hidden SADRAN+ tile. In BDD the fridge-order tile took this
+// slot (Dan 2026-10-14) — the guide itself stays in the ⋮ menu, so nothing is lost.
 function _maybeRenderGuideTile(){
+  if(_isBdd()) return;
   const grid=document.querySelector('#login-body .mgr-grid');
   if(!grid || grid.querySelector('.guide-tile')) return;
   const t=document.createElement('div');
@@ -2566,6 +2590,30 @@ async function _maybeRenderMekarerAdminBtn(){
     <div class="mgr-tile-name">ניהול מקררים</div>
     <div class="mgr-tile-stats"></div>`;
   t.onclick=()=>window.open('mekarer-admin.html','_blank');
+  grid.appendChild(t);
+  _fixMgrGridSpan(grid);
+}
+// "❄️ הזמנת מקרר" — ICE BDD only, in the slot the ❓ tile used to take (Dan 2026-10-14).
+// Why it exists: the only way to a fridge order was the client card, reached by team → agent →
+// day → card. A client opened TODAY has no visit day yet (and isn't in the 06:00 roster at all),
+// so his card was unreachable and the order impossible — live case 1154665, created that morning.
+// Same server gate as 🧊 inside the card (/api/mekarer-access .bdd); each endpoint re-checks.
+async function _maybeRenderMekarerOrderTile(){
+  if(!_getToken() || !_isBdd()) return;
+  if(!(await _loadMekarerAccess()).bdd || st.step!=='manager') return;
+  const grid=document.querySelector('#login-body .mgr-grid');
+  if(!grid || grid.querySelector('.mekarer-order-tile')) return;
+  const t=document.createElement('div');
+  t.className='mgr-tile mekarer-order-tile';
+  t.setAttribute('role','button');
+  t.setAttribute('aria-label','הזמנת מקרר');
+  t.innerHTML=`<div class="mgr-tile-ring-wrap">
+      <svg class="mgr-tile-ring" viewBox="0 0 64 64"><circle class="mgr-tile-ring-track" cx="32" cy="32" r="28"/></svg>
+      <div class="mgr-tile-av" style="font-size:22px">❄️</div>
+    </div>
+    <div class="mgr-tile-name">הזמנת מקרר</div>
+    <div class="mgr-tile-stats"></div>`;
+  t.onclick=()=>openMekarerSearch();
   grid.appendChild(t);
   _fixMgrGridSpan(grid);
 }
@@ -2746,6 +2794,7 @@ function renderLogin(){
       </div>`;
     _maybeRenderChannelToggle();
     _maybeRenderMekarerAdminBtn();
+    _maybeRenderMekarerOrderTile();
     _maybeRenderCoverageBtn();
     _maybeRenderGuideTile();
     startTeamStatsPolling();
@@ -4281,16 +4330,21 @@ document.addEventListener('click',e=>{
 let _debtShownKey=null;
 // 🧊 only for those the server lets order (Dan 2026-10-13: team managers, BDD teams, Yosi, super — not agents).
 // Per-token probe; rows render without 🧊 until it answers, then the list re-renders once.
-let _mekarerAccess={formula:false,bdd:false},_mekarerAccessTok=null;
+// Returns a promise too (callers that only need the side effect can ignore it): the manager
+// picker's ❄️ tile has to await the answer, and one shared probe per token serves both.
+let _mekarerAccess={formula:false,bdd:false},_mekarerAccessTok=null,_mekarerAccessP=null;
 function _loadMekarerAccess(){
   const token=_getToken();
-  if(!token||token===_mekarerAccessTok) return;
+  if(!token) return Promise.resolve(_mekarerAccess);
+  if(token===_mekarerAccessTok) return _mekarerAccessP||Promise.resolve(_mekarerAccess);
   _mekarerAccessTok=token; _mekarerAccess={formula:false,bdd:false};
-  fetch(API+'/api/mekarer-access',{headers:{'X-Session':token}}).then(r=>r.ok?r.json():null).then(j=>{
-    if(!j||token!==_mekarerAccessTok||!(j.formula||j.bdd)) return;
+  _mekarerAccessP=fetch(API+'/api/mekarer-access',{headers:{'X-Session':token}}).then(r=>r.ok?r.json():null).then(j=>{
+    if(!j||token!==_mekarerAccessTok||!(j.formula||j.bdd)) return _mekarerAccess;
     _mekarerAccess={formula:!!j.formula,bdd:!!j.bdd};
     if(document.querySelector('#client-list .zikuy-btn')) renderClientList();
-  }).catch(()=>{});
+    return _mekarerAccess;
+  }).catch(()=>_mekarerAccess);
+  return _mekarerAccessP;
 }
 function renderClientList(html){
   _loadMekarerAccess();
@@ -4440,6 +4494,60 @@ function openMekarerOrder(e,custId,custName,city){
     manager:st.manager||'',
   });
   if(_isBdd()) p.set('ch','ICE_BDD'); // R5: page posts to the BDD endpoint, ICE-only sales
+  window.open('mekarer-order.html?'+p.toString(),'_blank');
+}
+
+// ── הזמנת מקרר from the picker tile: find the client, then hand the order page exactly the
+// params the client card hands it (the page itself is untouched). Agent/manager come from the
+// search row, not from st.*, because here no agent or day has been picked at all.
+let _mkoRows=[],_mkoTimer=null,_mkoSeq=0;
+const MKO_HINT='הקלד מספר לקוח או שם (2 תווים לפחות)';
+function openMekarerSearch(){
+  _trackEvent('mekarer_search_opened');
+  _mkoRows=[]; _mkoSeq++;
+  const q=document.getElementById('mko-q');
+  q.value='';
+  document.getElementById('mko-results').innerHTML='';
+  document.getElementById('mko-hint').textContent=MKO_HINT;
+  document.getElementById('mko-modal').classList.add('open');
+  setTimeout(()=>q.focus(),60);
+}
+function closeMekarerSearch(){
+  clearTimeout(_mkoTimer);
+  _mkoSeq++; // an answer still in flight must not render into a closed modal
+  document.getElementById('mko-modal').classList.remove('open');
+}
+function mkoSearch(){ clearTimeout(_mkoTimer); _mkoTimer=setTimeout(_mkoRun,250); }
+async function _mkoRun(){
+  const q=(document.getElementById('mko-q').value||'').trim();
+  const hint=document.getElementById('mko-hint'),box=document.getElementById('mko-results');
+  if(q.length<2){ _mkoRows=[]; box.innerHTML=''; hint.textContent=MKO_HINT; return; }
+  const seq=++_mkoSeq;
+  hint.textContent='מחפש...';
+  let j=null;
+  try{
+    const r=await apiFetch(API+'/client-search?q='+encodeURIComponent(q));
+    if(r.ok) j=await r.json();
+  }catch(_){}
+  if(seq!==_mkoSeq) return; // a newer keystroke (or a close) already took over
+  if(!j||!j.ok){ _mkoRows=[]; box.innerHTML=''; hint.textContent='שגיאה בחיפוש — נסה שוב'; return; }
+  _mkoRows=j.clients||[];
+  if(!_mkoRows.length){ box.innerHTML=''; hint.textContent='לא נמצא לקוח'; return; }
+  hint.textContent=j.truncated?'מוצגים '+_mkoRows.length+' הראשונים — דייק את החיפוש':_mkoRows.length+' לקוחות';
+  box.innerHTML=_mkoRows.map((c,i)=>`<div class="mko-row" role="button" onclick="mkoPick(${i})">
+      <div class="mko-row-name">${esc(c.custName)}${c.isFresh?' <span class="mko-new">חדש</span>':''}</div>
+      <div class="mko-row-sub">${esc(c.custId)}${c.city?' · '+esc(c.city):''}${c.agentName?' · '+esc(c.agentName):''}</div>
+    </div>`).join('');
+}
+function mkoPick(i){
+  const c=_mkoRows[i]; if(!c) return;
+  _trackEvent('mekarer_search_picked',c.custId);
+  const p=new URLSearchParams({
+    custId:c.custId,custName:c.custName||'',city:c.city||'',
+    agentCode:c.agentCode||'',agentName:c.agentName||'',manager:c.manager||'',
+  });
+  if(_isBdd()) p.set('ch','ICE_BDD');
+  closeMekarerSearch();
   window.open('mekarer-order.html?'+p.toString(),'_blank');
 }
 function openZikuyOrder(e,custId,custName,city){

@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const ExcelJS = require('exceljs'); // Task 8: fridge order email, same package index.js already depends on
 const { BDD_GROUPS, summarizeBddDocs, bddCanWrite, canOrderMekarerBdd, canUseBdd, resolveBddGps, loadBddCache, serializeBddCache, deserializeBddCache, applyVisitOrder } = require('./bdd');
-const { bddDocLinesToday, bddClientPromos, bddCustFamiliesWithActivePromo, bddVisitOrder, bddCustMainAgents } = require('./bdd-priority');
+const { bddDocLinesToday, bddClientPromos, bddCustFamiliesWithActivePromo, bddVisitOrder, bddCustMainAgents, bddClientsCreatedSince } = require('./bdd-priority');
 const { lineFor, coverageCounts, coverageClients, COVERAGE_EXCLUDED_TEAMS } = require('./coverage');
 
 // Email HTML escape — copied from index.js's escEmail (one-liner, not worth a
@@ -63,6 +63,43 @@ function createBdd(deps) {
     return imgCache.map;
   }
   let docsInFlight = null;
+
+  // Clients opened in Priority after the 06:00 warm-up, for the fridge-order search only.
+  // Kept OUT of `cache` on purpose: /customers, coverage denominators, סגירת יום and the
+  // client-changes alarm's snapshot all read `cache`, and injecting mid-day rows there would
+  // move those numbers. One query per TTL at most (modal open), never per keystroke; a failed
+  // query is cached too, so a Priority outage is retried once per TTL instead of every search.
+  const FRESH_TTL_MS = 10 * 60 * 1000;
+  const FRESH_WINDOW_DAYS = 3; // covers a weekend and a missed warm-up, still a handful of rows
+  let freshCache = { at: 0, failedAt: 0, byId: new Map() };
+  let freshInFlight = null;
+  async function freshClients() {
+    if (!cache) return new Map();
+    const fresh = Date.now() - freshCache.at < FRESH_TTL_MS;
+    if (fresh || Date.now() - freshCache.failedAt < FRESH_TTL_MS) return freshCache.byId;
+    if (!freshInFlight) freshInFlight = (async () => {
+      try {
+        const byId = new Map();
+        for (const r of await bddClientsCreatedSince(DB(), FRESH_WINDOW_DAYS)) {
+          if (!r.custId || cache.clientById.has(r.custId)) continue; // already on the roster
+          if (r.status !== 'פעיל') continue;                          // same filter as the roster's DAX
+          const group = cache.agentGroup.get(r.agentCode);
+          if (!group) continue;                                       // agent outside the BDD teams
+          byId.set(r.custId, {
+            custId: r.custId, custName: r.custName, city: r.city, address: '',
+            agentCode: r.agentCode, agentName: r.agentName, manager: group,
+            hevra: 'ICE_BDD', isFresh: true,
+          });
+        }
+        freshCache = { at: Date.now(), failedAt: 0, byId };
+      } catch (e) {
+        console.error('[BDD] fresh clients query failed:', e.message); // search still serves the roster
+        freshCache.failedAt = Date.now();
+      }
+    })().finally(() => { freshInFlight = null; });
+    await freshInFlight;
+    return freshCache.byId;
+  }
 
   // A second call while loading gets the same promise (no duplicate DAX burst). On
   // failure ONE retry is scheduled 10 min later — never stacked, cleared on success.
@@ -192,6 +229,7 @@ function createBdd(deps) {
   const needCache = res => (cache ? false : (res.status(503).json({ ok: false, error: 'cache_loading' }), true));
   const validAgent = a => /^\d{1,10}$/.test(String(a || '')); // R7: same regex as FORMULA's validateAgentCode
   const validCust = c => /^\d{1,15}$/.test(c);
+  const SEARCH_CAP = 30; // enough to pick from; more means "refine the query", not a longer list
 
   // BDD line for a route day — PBI schedule + agent's in-app day moves (same rule as
   // /customers below). Shared by team-order-stats and the coverage snapshot.
@@ -403,6 +441,29 @@ function createBdd(deps) {
     res.json({ ok: true, total });
   }));
 
+  // Fridge-order client search — one field, number or name (Dan 2026-10-14). Roster +
+  // freshClients(), scoped to what this session may actually order for: a team manager can't
+  // pull another group's client, and the list never offers one the POST below would 403 on.
+  // Freshly-opened clients come first — that's the whole reason the search exists.
+  router.get('/client-search', deps.dataRateLimit, h(async (req, res) => {
+    const q = String(req.query.q || '').trim().toLowerCase();
+    if (needCache(res)) return;
+    if (q.length < 2) return res.json({ ok: true, clients: [], truncated: false });
+    const out = [], seen = new Set();
+    const match = c => String(c.custId).includes(q) || String(c.custName || '').toLowerCase().includes(q);
+    for (const src of [await freshClients(), cache.clientById]) {
+      for (const c of src.values()) {
+        if (seen.has(c.custId) || !match(c) || !canOrderMekarerBdd(req.session, c.agentCode, cache)) continue;
+        seen.add(c.custId);
+        out.push({ custId: c.custId, custName: c.custName, city: c.city, agentCode: c.agentCode,
+          agentName: c.agentName, manager: c.manager, isFresh: !!c.isFresh });
+        if (out.length > SEARCH_CAP) break;
+      }
+      if (out.length > SEARCH_CAP) break;
+    }
+    res.json({ ok: true, clients: out.slice(0, SEARCH_CAP), truncated: out.length > SEARCH_CAP });
+  }));
+
   // Only the fields docs/mekarer-order.html collectRef() sends, as plain primitives —
   // nothing object-shaped (e.g. {formula:...}) can reach ExcelJS or the email.
   const str = (x, n = 100) => String(x || '').slice(0, n);
@@ -415,7 +476,10 @@ function createBdd(deps) {
 
   router.post('/api/mekarer-order', deps.dataRateLimit, h(async (req, res) => {
     const body = req.body || {};
-    const client = cache?.clientById.get(String(body.custId || ''));
+    // A client opened today isn't on the 06:00 roster yet; /client-search can offer him, so the
+    // order has to accept him — still resolved from a server-side vetted map, never the body.
+    const custId = String(body.custId || '');
+    const client = cache?.clientById.get(custId) || (cache ? (await freshClients()).get(custId) : null);
     if (!client || !canOrderMekarerBdd(req.session, client.agentCode, cache)) return res.status(403).json({ error: 'forbidden' });
     const order = {
       channel: 'ICE BDD', custId: client.custId, custName: client.custName, city: client.city, agentName: client.agentName, manager: client.manager,

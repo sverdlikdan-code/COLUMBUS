@@ -197,4 +197,31 @@ async function bddCustMainAgents(dbName, custIds) {
     custName: fixSqlHeb(x.custName), agentCode: String(x.agentCode || '').trim(), agentName: fixSqlHeb(x.agentName) }]));
 }
 
-module.exports = { getBddPool, bddDocLinesToday, bddClientPromos, bddCustFamiliesWithActivePromo, bddVisitOrder, bddCustMainAgents };
+// Clients opened in Priority since `days` ago — the fridge-order search unions these over
+// the 06:00 roster so a client opened TODAY is orderable today (Dan 2026-10-14: Matvey could
+// not order for 1154665, created that same morning; status פעיל, agent 11 in MATVEY, simply
+// not in the warm-up yet). Deliberately a Priority SELECT and not a PBI DAX call: DAX quota
+// is what the 429 incident was about, and the client-changes alarm reads PBI + bdd-cache.json,
+// so its snapshot path is untouched. Status is filtered by the caller (same as the roster's
+// own families filter) to keep the SQL the shape of the ICE M code.
+async function bddClientsCreatedSince(dbName, days = 3) {
+  const pool = await getBddPool(dbName);
+  const r = await pool.request().input('d', sql.Int, days).query(`
+    SELECT C.CUSTNAME AS custId, C.CUSTDES AS custName, C.STATE AS city, CS.STATDES AS status,
+           A.AGENTCODE AS agentCode, A.AGENTNAME AS agentName
+    FROM CUSTOMERS C
+    LEFT JOIN CUSTSTATS CS ON CS.CUSTSTAT = C.CUSTSTAT
+    LEFT JOIN AGENTS    A  ON A.AGENT     = C.AGENT
+    WHERE C.CREATEDDATE >= DATEDIFF(MINUTE, '19880101', DATEADD(DAY, -@d, CAST(GETDATE() AS DATE)))
+  `);
+  return r.recordset.map(x => ({
+    custId:    String(x.custId || '').trim(),
+    custName:  fixSqlHeb(x.custName),
+    city:      fixSqlHeb(x.city),
+    status:    String(x.status || '').trim(),
+    agentCode: String(x.agentCode || '').trim(),
+    agentName: fixSqlHeb(x.agentName),
+  }));
+}
+
+module.exports = { getBddPool, bddDocLinesToday, bddClientPromos, bddCustFamiliesWithActivePromo, bddVisitOrder, bddCustMainAgents, bddClientsCreatedSince };
