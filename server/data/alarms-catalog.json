@@ -6,7 +6,7 @@
     { "key": "obligo-alert", "title": "אובליגו", "icon": "💳", "why": "85–100% מהמסגרת · מעל 100% · חוב בפיגור; למנהלים — שוק פרטי של הסוכנים שלהם", "askedBy": "יובל (כספים)", "block": "obligo-alert", "hc": "obligo-alert", "schedule": "0 9 * * 4" },
     { "key": "zikuy-report", "title": "זיכויים — טיוטה", "icon": "🧾", "why": "דוח זיכויים חודשי — טיוטה לאישור דן", "block": "zikuy-report", "hc": "zikuy-report", "schedule": "8 8 1 * *" },
     { "key": "zikuy-report-send", "title": "זיכויים — לצוות", "icon": "🧾", "why": "אותו דוח לצוות — רק אחרי אישור דן", "block": "zikuy-report-send", "when": "ידני — רק בפקודה של דן" },
-    { "key": "client-changes", "title": "שינויים בלקוחות", "icon": "🔄", "why": "חדשים / לא פעילים / חזרו / החלפת סוכן / החלפת יום — רק כשיש שינויים", "block": "client-changes", "hc": "client-changes", "schedule": "0 10 * * *" },
+    { "key": "client-changes", "title": "שינויים בלקוחות", "icon": "🔄", "why": "חדשים / לא פעילים / חזרו / החלפת סוכן / החלפת יום — רק כשיש שינויים", "block": "client-changes", "hc": "client-changes", "schedule": "0 10 * * 0-4" },
     { "key": "route-changes", "title": "שינויי מסלול באפליקציה", "icon": "🗺", "why": "ימים וסדר ביקור מהאפליקציה מול Priority — לעדכון בפריוריטי", "askedBy": "יוליה ד.", "block": "route-changes", "hc": "route-changes", "schedule": "0 16 * * 4" },
     { "key": "noday", "title": "לקוחות בלי יום ביקור", "icon": "📅", "why": "סיכום לפי מנהלים, 🏆 למי שיש 0 — מייל אחד משותף לכולם", "block": "noday", "teamAsTo": true, "hc": "noday", "schedule": "30 7 * * 0" },
     { "key": "mekarer-daily", "title": "מקרר — אקסל הזמנות", "icon": "🧊", "why": "הזמנות מקרר חדשות, רק כשיש", "env": { "MEKARER_DAILY_RECIPIENTS": "to" }, "hc": "mekarer-daily", "schedule": "0 16 * * 0-4" },
