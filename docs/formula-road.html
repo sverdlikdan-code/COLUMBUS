@@ -3540,7 +3540,7 @@ async function initRoute(){
   checkPbiFreshness(); // fire-and-forget, throttled internally
   maybeShowGuidePrompt(); // once per page load, at most 3 times ever — see definition above
   maybeShowThought(); // once per calendar day, forever — see definition below
-  maybeShowClientChanges(); // managers + agents (own clients, Russian), once per calendar day
+  maybeShowClientChanges(); // managers + agents (own clients, Russian), each report once
   maybeShowA2hs(); // iPhone only, up to 3 page loads, queued behind the above
   _trackLaunchMode();
   // Restore this agent's last-picked sort mode (AI vs "הגרסה שלי") — read fresh
@@ -5112,7 +5112,8 @@ function closeThought(){
 // ── CLIENT CHANGES ── managers: changes in the client base for THEIR agents
 // (server filters by קבוצה / BDD teams); agents (12.10, Dan): their own clients, window in Russian.
 // Written by the 10:00 alarm
-// (server/client-changes-alert.js). Once per calendar day (Dan 05.10), queued behind
+// (server/client-changes-alert.js). Each report once per person — server checks client_changes_shown
+// in events.db (Dan 14.10; was once per day via localStorage → repeats across devices). Queued behind
 // the guide prompt / thought so two overlays never stack.
 const CC_TYPES=[
   {key:'new',he:'לקוחות חדשים',ru:'Новые клиенты',color:'#1E8E3E'},
@@ -5125,7 +5126,6 @@ let _ccRequested=false, _ccPending=null, _ccShownAt=0, _ccFilter=null;
 async function maybeShowClientChanges(){
   if(_ccRequested || !_loadAuth()) return;
   _ccRequested=true;
-  try{ if(localStorage.getItem('frCcDate')===_israelDateStr()) return; }catch(_){}
   try{
     const r=await apiFetch(`${API}/api/manager/client-changes`);
     if(!r.ok) return;
@@ -5140,7 +5140,6 @@ function _tryShowClientChanges(){
   if(document.getElementById('thought-toast').classList.contains('open')
     || document.getElementById('guide-modal').classList.contains('open')) return; // shown on their close
   const d=_ccPending; _ccPending=null;
-  try{ localStorage.setItem('frCcDate', _israelDateStr()); }catch(_){}
   const ru=!_loadAuth()?.isManager; // agents get the window in Russian
   document.querySelector('#cc-toast .cc-card').classList.toggle('cc-ru',ru);
   const dd=d.date.split('-').reverse().slice(0,2).join('.');

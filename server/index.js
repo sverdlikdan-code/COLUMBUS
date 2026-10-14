@@ -905,7 +905,7 @@ app.get('/health', (req, res) => {
 // capped at 2000 entries (~6 days of real traffic), rewritten whole-file on
 // every single event. Same writeLog(entry)/readLog() contract as before, so
 // none of the ~30 call sites elsewhere in this file needed to change.
-const { logEvent, readLog, getDashboardStats } = require('./events-db');
+const { logEvent, readLog, getDashboardStats, db: eventsDb } = require('./events-db');
 const { routeDayOf, weekIndex, weekParity, biweeklyLine, coveragePeriod, lineFor, movedAwayFrom, coverageCounts, coverageClients, creditedCustsByAgent, coverageScope, COVERAGE_EXCLUDED_TEAMS } = require('./coverage');
 function writeLog(entry) { logEvent(entry); }
 
@@ -2920,7 +2920,7 @@ app.post('/api/event', requireAuth, dataRateLimit, (req, res) => {
 });
 
 // GET /api/manager/client-changes — всплывающее окно «שינויים בלקוחות» для менеджеров.
-// Файл пишет алярм client-changes-alert.js в 10:00; показываем до следующего отчёта (сегодня/вчера).
+// Файл пишет алярм client-changes-alert.js в 10:00; показываем до следующего отчёта (сегодня/вчера), один раз на человека.
 // Каждому — только его агенты: FORMULA/ICE משפחתי по managerTeam (קבוצה), BDD по managerTeams;
 // смена агента видна и группе «היה» (fromManager). super — всё. Остальные (readonly без группы) — пусто.
 // Агент (12.10, окно на русском) — как в его письме: он в «סוכן» или в «היה» при смене агента.
@@ -2928,11 +2928,20 @@ app.post('/api/event', requireAuth, dataRateLimit, (req, res) => {
 app.get('/api/manager/client-changes', requireAuth, dataRateLimit, (req, res) => {
   const s = req.session;
   if (!s.isManager && !s.agentCode) return res.json({ date: null, changes: [] });
-  let data;
-  try { data = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'client-changes-latest.json'), 'utf8')); }
+  const file = path.join(__dirname, 'data', 'client-changes-latest.json');
+  let data, writtenAt;
+  try { data = JSON.parse(fs.readFileSync(file, 'utf8')); writtenAt = fs.statSync(file).mtime.toISOString(); }
   catch { return res.json({ date: null, changes: [] }); }
   const yesterday = new Date(Date.now() - 864e5).toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' });
   if (!data?.date || data.date < yesterday) return res.json({ date: null, changes: [] });
+  // Каждый отчёт — один раз на человека (Дан 14.10, «подзаёбывает»): был client_changes_shown после записи
+  // файла → не отдаём. Сервер, а не localStorage — иначе повтор на втором устройстве/после очистки.
+  try {
+    const seen = s.managerId
+      ? eventsDb.prepare(`SELECT 1 FROM events WHERE event_type='client_changes_shown' AND manager_id=? AND ts>=? LIMIT 1`).get(s.managerId, writtenAt)
+      : eventsDb.prepare(`SELECT 1 FROM events WHERE event_type='client_changes_shown' AND agent_code=? AND manager_id IS NULL AND ts>=? LIMIT 1`).get(String(s.agentCode), writtenAt);
+    if (seen) return res.json({ date: null, changes: [] });
+  } catch (_) { /* events.db недоступна — показываем как раньше */ }
   const mine = (c, groups) => groups.has(c.manager) || (c.type === 'agent' && groups.has(c.fromManager));
   let rows = [];
   if (!s.isManager) {
