@@ -51,6 +51,34 @@ th.nm{background:#FAFBFC;}
 td.n{font-weight:900;color:var(--blue);}
 .m-to{color:var(--blue);font-size:15px;} .m-team{color:#6A1B9A;font-size:15px;} .m-cc{color:var(--light);font-size:15px;}
 .legend{font-size:11px;color:var(--light);margin-top:8px;line-height:1.6;}
+/* draft edits (request → chat → alarms agent) */
+td.cell{cursor:pointer;} td.cell:hover{background:#E3F2FD;}
+td.chg,td.nm.chg,td.cell.chg:hover{background:#FFF59D;}
+.m-x{color:var(--red);font-size:13px;font-weight:800;}
+tr.gh td{background:#ECEFF1;font-weight:800;font-size:12px;color:var(--blue-dark);text-align:right;padding:5px 8px;}
+tr.gh td.nm{background:#ECEFF1;}
+tr.gone td.nm{text-decoration:line-through;color:var(--light);}
+td.nm .who{cursor:pointer;}
+td.nm.sub{font-weight:400;padding-inline-start:18px;}
+td.nm i{font-style:normal;color:var(--light);font-size:11px;}
+.xbtn{border:none;background:none;color:var(--light);cursor:pointer;font-size:12px;margin-inline-start:6px;padding:0 3px;}
+.xbtn:hover{color:var(--red);}
+.newtag{font-size:10px;background:var(--yellow-bg);color:var(--yellow);border-radius:8px;padding:0 6px;margin-inline-start:4px;}
+.pop{position:absolute;z-index:20;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);padding:6px;display:flex;flex-direction:column;gap:3px;min-width:170px;}
+.pop .ttl{font-size:11px;color:var(--light);padding:2px 6px 4px;font-weight:700;}
+.pop button{border:none;background:var(--grey-bg);border-radius:7px;padding:6px 10px;font-size:13px;font-weight:700;text-align:right;cursor:pointer;color:var(--text);}
+.pop button:hover{background:#E3F2FD;} .pop button.cur{outline:2px solid var(--blue);}
+.pop button small{font-weight:400;color:var(--yellow);margin-inline-start:4px;}
+.addrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;align-items:center;}
+.addrow input{border:1px solid #CFD8DC;border-radius:8px;padding:7px 10px;font-size:13px;min-width:0;}
+.btn{border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:800;cursor:pointer;background:var(--grey-bg);color:var(--blue);}
+.btn.pri{background:var(--blue);color:#fff;} .btn:disabled{opacity:.45;cursor:default;}
+.savebar{position:sticky;bottom:0;z-index:5;margin-top:12px;background:#fff;border-radius:10px;box-shadow:0 -2px 10px rgba(0,0,0,.12);padding:10px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;font-weight:700;}
+.savebar .cnt{margin-inline-end:auto;}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:30;display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal{background:#fff;border-radius:12px;padding:14px;width:min(720px,100%);max-height:90vh;display:flex;flex-direction:column;gap:10px;}
+.modal textarea{width:100%;min-height:300px;flex:1;font-family:Consolas,monospace;font-size:12px;direction:ltr;text-align:left;border:1px solid #CFD8DC;border-radius:8px;padding:8px;}
+.modal .ok{color:var(--green);font-weight:800;font-size:14px;}
 /* week */
 .week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
 .day{background:var(--card);border-radius:10px;padding:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);min-height:80px;}
@@ -81,7 +109,12 @@ const DAYS = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
 const TABS = [['alarms', 'אלרמים'], ['people', 'מי מקבל מה'], ['week', 'שבוע']];
 const ST = { up: 'נשלח ✓', down: 'נכשל ✗', grace: 'מאחר', new: 'עוד לא רץ', paused: 'מושהה', started: 'רץ עכשיו' };
 const ROLE = { to: 'אל', cc: 'העתק', team: 'רק הקבוצה שלו' };
+const GROUPS = [['mgmt', 'הנהלה'], ['owners', 'אחראים'], ['formula', 'מנהלים FORMULA + משפחתי'], ['bdd', 'מנהלים BDD'], ['other', 'אחרים']];
+const RU_ROLE = { to: 'אל (To)', cc: 'העתק (CC)', team: 'מנהל — только своя группа', '': '—' };
 let DATA = null, TAB = 'alarms';
+// Draft of a change request. Nothing is written anywhere: "שמור" copies the request text for the chat.
+let DRAFT = { cells: {}, added: [], agentsOff: [] }, AGENTS_OPEN = false, PPL = [];
+try { const d = JSON.parse(localStorage.getItem('alarmsDraft') || 'null'); if (d) DRAFT = { cells: d.cells || {}, added: d.added || [], agentsOff: d.agentsOff || [] }; } catch (e) {}
 try { TAB = localStorage.getItem('alarmsTab') || 'alarms'; } catch (e) {}
 
 const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -116,6 +149,13 @@ function load() {
   DATA = window.ALARMS_DATA || null;
   if (!DATA) { document.getElementById('wrap').innerHTML = '<div class="msg">אין נתונים — לפתוח דרך הקיצור COLUMBUS Alarms בשולחן העבודה</div>'; return; }
   if (DATA.generatedAt) document.getElementById('gen').textContent = 'נכון ל־' + fmtT(DATA.generatedAt);
+  // fresh data after the agent applied a request → draft lines that now match the source drop out
+  const ppl = allPeople();
+  for (const k of Object.keys(DRAFT.cells)) {
+    const [e, ak] = k.split('|'), p = ppl.find(x => x.email.toLowerCase() === e), a = DATA.alarms.find(x => x.key === ak);
+    if (!p || !a || orig(p, a) === DRAFT.cells[k]) delete DRAFT.cells[k];
+  }
+  saveDraft();
   render();
 }
 
@@ -146,12 +186,140 @@ function renderAlarms() {
     ${recipientsHtml(a)}</div>`).join('')}</div>`;
 }
 
+function saveDraft() { try { localStorage.setItem('alarmsDraft', JSON.stringify(DRAFT)); } catch (e) {} }
+const ckey = (email, ak) => email.toLowerCase() + '|' + ak;
+const orig = (p, a) => p.alarms[a.key] || '';
+const eff = (p, a) => { const k = ckey(p.email, a.key); return k in DRAFT.cells ? DRAFT.cells[k] : orig(p, a); };
+const changes = () => Object.keys(DRAFT.cells).length + DRAFT.agentsOff.length;
+function allPeople() {
+  const known = new Set(DATA.people.map(p => p.email.toLowerCase()));
+  return DATA.people.concat(DRAFT.added.filter(n => !known.has(n.email.toLowerCase()))
+    .map(n => ({ name: n.name || n.email.split('@')[0], email: n.email, alarms: {}, group: 'other', isNew: true })));
+}
+function setCell(p, a, role) {
+  const k = ckey(p.email, a.key);
+  if (role === orig(p, a)) delete DRAFT.cells[k]; else DRAFT.cells[k] = role;
+}
+const editAlarms = () => DATA.alarms.filter(a => a.recipients?.length);
+
 function renderPeople() {
-  const al = DATA.alarms.filter(a => a.recipients?.length);
+  const al = editAlarms();
+  PPL = allPeople();
   const mark = { to: '<span class="m-to">●</span>', team: '<span class="m-team">◐</span>', cc: '<span class="m-cc">○</span>' };
+  const cell = (p, i, a) => {
+    const o = orig(p, a), n = eff(p, a), chg = o !== n;
+    return `<td class="cell${chg ? ' chg' : ''}" title="${esc(a.title)} — ${chg ? `${ROLE[o] || '—'} → ${ROLE[n] || 'הוסר'}` : ROLE[n] || ''}" onclick="openPop(event,${i},'${a.key}')">${chg && !n ? '<span class="m-x">✕</span>' : mark[n] || ''}</td>`;
+  };
+  const row = (p, i) => {
+    const cnt = al.filter(a => eff(p, a)).length, had = al.some(a => orig(p, a));
+    const gone = had && !cnt, nmChg = al.some(a => orig(p, a) !== eff(p, a));
+    return `<tr class="${gone ? 'gone' : ''}"><td class="nm${nmChg ? ' chg' : ''}" title="${esc(p.email)}">${esc(p.name)}${p.isNew ? '<span class="newtag">חדש</span>' : ''}<button class="xbtn" title="${gone ? 'להחזיר' : 'להסיר מכל האלרמים'}" onclick="togglePerson(${i})">${gone ? '↺' : '✕'}</button></td><td class="n">${cnt}</td>${al.map(a => cell(p, i, a)).join('')}</tr>`;
+  };
+  const groupRows = GROUPS.map(([g, title]) => {
+    const rows = PPL.map((p, i) => [p, i]).filter(([p]) => (p.group || 'other') === g);
+    return rows.length ? `<tr class="gh"><td class="nm">${title} (${rows.length})</td><td colspan="${al.length + 1}"></td></tr>${rows.map(([p, i]) => row(p, i)).join('')}` : '';
+  }).join('');
+  let agentRows = '';
+  if (al.some(a => a.agents)) {
+    const ag = DATA.agents || [];
+    agentRows = `<tr class="gh"><td class="nm">סוכנים</td><td colspan="${al.length + 1}"></td></tr>
+      <tr><td class="nm${DRAFT.agentsOff.length ? ' chg' : ''}"><span class="who" onclick="AGENTS_OPEN=!AGENTS_OPEN;render()">${AGENTS_OPEN ? '▾' : '▸'} כל הסוכנים — רק הלקוחות שלהם</span></td><td class="n">${DATA.agents ? ag.length - DRAFT.agentsOff.length : '?'}</td>${al.map(a => `<td title="${esc(a.title)}">${a.agents ? mark.to : ''}</td>`).join('')}</tr>
+      ${AGENTS_OPEN ? (DATA.agents ? ag.map(x => {
+        const off = DRAFT.agentsOff.includes(x.code);
+        return `<tr class="${off ? 'gone' : ''}"><td class="nm sub${off ? ' chg' : ''}" title="${esc(x.email)}">${esc(x.name)} <i>${esc(x.code)}</i><button class="xbtn" title="${off ? 'להחזיר' : 'להוציא מהמיילים לסוכנים'}" onclick="toggleAgent('${esc(x.code)}')">${off ? '↺' : '✕'}</button></td><td></td>${al.map(a => a.agents ? `<td class="${off ? 'chg' : ''}">${off ? '<span class="m-x">✕</span>' : mark.to}</td>` : '<td></td>').join('')}</tr>`;
+      }).join('') : `<tr><td class="nm sub" colspan="${al.length + 2}">רשימת הסוכנים (EMAIL + PASSWORD.xlsx) לא נקראה</td></tr>`) : ''}`;
+  }
+  const n = changes();
   return `<div class="tbl-wrap"><table><thead><tr><th class="nm">נמען</th><th style="font-size:12px;font-weight:800">#</th>${al.map(a => `<th class="al">${esc(a.icon)}<small>${esc(a.title)}</small></th>`).join('')}</tr></thead>
-    <tbody>${DATA.people.map(p => `<tr><td class="nm" title="${esc(p.email)}">${esc(p.name)}</td><td class="n">${Object.keys(p.alarms).length}</td>${al.map(a => `<td title="${esc(a.title)} — ${ROLE[p.alarms[a.key]] || ''}">${mark[p.alarms[a.key]] || ''}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
-    <div class="legend">● אל · ◐ מנהל — רק הקבוצה שלו · ○ העתק · # = בכמה אלרמים</div>`;
+    <tbody>${groupRows}${agentRows}</tbody></table></div>
+    <div class="legend">● אל · ◐ מנהל — רק הקבוצה שלו · ○ העתק · # = בכמה אלרמים · לחיצה על תא — לשנות · ✕ ליד שם — להסיר מכל האלרמים · צהוב = שינוי בטיוטה</div>
+    <div class="addrow"><input id="nEmail" type="email" dir="ltr" placeholder="email" style="flex:2 1 200px"><input id="nName" placeholder="שם" style="flex:1 1 140px"><button class="btn" onclick="addPerson()">+ נמען חדש</button><span id="addMsg" class="legend" style="margin:0"></span></div>
+    <div class="savebar"><span class="cnt">${n ? `${n} שינויים בטיוטה` : 'אין שינויים'}</span><button class="btn" ${n || DRAFT.added.length ? '' : 'disabled'} onclick="clearDraft()">נקה</button><button class="btn pri" ${n ? '' : 'disabled'} onclick="saveRequest()">שמור — להעתיק בקשה</button></div>`;
+}
+
+function closePop() { document.getElementById('pop')?.remove(); }
+function openPop(ev, i, ak) {
+  ev.stopPropagation(); closePop();
+  const p = PPL[i], a = DATA.alarms.find(x => x.key === ak), o = orig(p, a), n = eff(p, a);
+  const opts = [['to', '● אל'], ['cc', '○ העתק', !a.caps.cc && 'צריך קוד']];
+  if (a.caps.team || o === 'team') opts.push(['team', '◐ מנהל — רק הקבוצה', o !== 'team' && 'צריך קבוצה']);
+  opts.push(['', '✕ להסיר']);
+  const el = document.createElement('div');
+  el.className = 'pop'; el.id = 'pop';
+  el.innerHTML = `<div class="ttl">${esc(p.name)} · ${esc(a.title)}</div>${opts.map(([r, t, warn]) => `<button class="${r === n ? 'cur' : ''}" data-r="${r}">${t}${warn ? `<small>⚠ ${warn}</small>` : ''}</button>`).join('')}${o !== n ? `<button data-r="${o}">↺ כמו שהיה</button>` : ''}`;
+  el.onclick = e => { const b = e.target.closest('button'); if (!b) return; setCell(p, a, b.dataset.r); saveDraft(); closePop(); render(); };
+  document.body.appendChild(el);
+  const r = ev.currentTarget.getBoundingClientRect();
+  el.style.top = (window.scrollY + r.bottom + 4) + 'px';
+  el.style.left = Math.max(8, Math.min(window.scrollX + r.left + r.width / 2 - el.offsetWidth / 2, window.scrollX + document.documentElement.clientWidth - el.offsetWidth - 8)) + 'px';
+}
+document.addEventListener('click', e => { if (!e.target.closest('#pop')) closePop(); });
+
+function togglePerson(i) {
+  const p = PPL[i], al = editAlarms();
+  if (p.isNew) {   // a new address leaves the draft completely
+    DRAFT.added = DRAFT.added.filter(n => n.email.toLowerCase() !== p.email.toLowerCase());
+    for (const a of al) delete DRAFT.cells[ckey(p.email, a.key)];
+  } else if (al.some(a => orig(p, a)) && !al.some(a => eff(p, a))) for (const a of al) setCell(p, a, orig(p, a));
+  else for (const a of al) setCell(p, a, '');
+  saveDraft(); render();
+}
+function toggleAgent(code) {
+  DRAFT.agentsOff = DRAFT.agentsOff.includes(code) ? DRAFT.agentsOff.filter(c => c !== code) : DRAFT.agentsOff.concat(code);
+  saveDraft(); render();
+}
+function addPerson() {
+  const email = document.getElementById('nEmail').value.trim(), name = document.getElementById('nName').value.trim();
+  const msg = t => { document.getElementById('addMsg').textContent = t; };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return msg('כתובת לא תקינה');
+  if (allPeople().some(p => p.email.toLowerCase() === email.toLowerCase())) return msg('כבר ברשימה');
+  DRAFT.added.push({ email, name });
+  saveDraft(); render();
+}
+function clearDraft() {
+  if (!confirm('לנקות את כל השינויים בטיוטה?')) return;
+  DRAFT = { cells: {}, added: [], agentsOff: [] }; saveDraft(); render();
+}
+
+// Request text for the chat: "было → станет" per alarm + what needs code, not just addresses.
+function requestText() {
+  const lines = ['ЗАЯВКА с пульта алярмов — правка адресатов', `Данные пульта: ${fmtT(DATA.generatedAt)} · заявка: ${fmtT(new Date().toISOString())}`];
+  const flags = [], ppl = allPeople();
+  for (const a of editAlarms()) {
+    const ch = [];
+    for (const p of ppl) {
+      const o = orig(p, a), n = eff(p, a);
+      if (o === n) continue;
+      const who = `${p.name} <${p.email}>${p.isNew ? ' (новый адрес)' : ''}`;
+      ch.push(!o ? `  + ${who} — ${RU_ROLE[n]}` : !n ? `  − ${who} (было: ${RU_ROLE[o]})` : `  ~ ${who}: ${RU_ROLE[o]} → ${RU_ROLE[n]}`);
+      if (n === 'cc' && !a.caps.cc) flags.push(`${a.title}: у алярма нет копии (CC) — нужна переменная CC в коде (${p.name})`);
+      if (n === 'team' && o !== 'team') flags.push(`${a.title}: ${p.name} в «מנהלים» — нужна команда (какая группа): каждый менеджер получает только свою`);
+      if (n === 'to' && a.toNote) flags.push(`${a.title}: ${a.toNote} (${p.name})`);
+    }
+    if (a.agents && DRAFT.agentsOff.length) {
+      for (const c of DRAFT.agentsOff) { const g = (DATA.agents || []).find(x => x.code === c); ch.push(`  − агент ${c}${g ? ` ${g.name} <${g.email}>` : ''} — убрать из писем агентам`); }
+      flags.push(`${a.title}: исключение агентов — в client-changes-alert.js списка исключений нет, нужен CLIENT_CHANGES_AGENT_EXCLUDE (коды ${DRAFT.agentsOff.join(', ')})`);
+    }
+    if (ch.length) lines.push('', `${a.icon} ${a.title} [${a.key}]`, ...ch);
+  }
+  if (flags.length) lines.push('', '⚠️ Нужна правка кода, не только адресов:', ...flags.map(f => '  • ' + f));
+  lines.push('', '+ добавить · − убрать · ~ сменить роль');
+  return lines.join('\n');
+}
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); return true; } catch (e) {
+    const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select();
+    let ok = false; try { ok = document.execCommand('copy'); } catch (_) {} ta.remove(); return ok;
+  }
+}
+async function saveRequest() {
+  const t = requestText(), ok = await copyText(t);
+  const bg = document.createElement('div');
+  bg.className = 'modal-bg'; bg.id = 'modal';
+  bg.innerHTML = `<div class="modal"><div class="${ok ? 'ok' : 'warn'}">${ok ? '✓ הבקשה הועתקה — להדביק בצ׳אט לסוכן alarms' : 'לא הצלחתי להעתיק — לסמן את הטקסט ולהעתיק ידנית'}</div><textarea readonly></textarea><div><button class="btn pri" onclick="document.getElementById('modal').remove()">סגור</button></div></div>`;
+  bg.querySelector('textarea').value = t;
+  bg.onclick = e => { if (e.target === bg) bg.remove(); };
+  document.body.appendChild(bg);
 }
 
 function renderWeek() {

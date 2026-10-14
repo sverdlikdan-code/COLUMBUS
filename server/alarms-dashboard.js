@@ -4,12 +4,16 @@
 // descriptions without addresses — data/alarms-catalog.json (public repo); status — Healthchecks
 // via manage.py (kuma-tools/hc-json.py, no API key). Names: VPS-only /root/alarms-people.json + managers.json.
 // CLI: node alarms-dashboard.js <hc.json>  → HTML (docs/alarms.html with the data inlined) on stdout.
+// Edits (2026-10-15): the page only drafts a change request (copied to clipboard → chat → alarms agent);
+// nothing is written from here. Groups for the matrix: "_groups" in alarms-people.json (management /
+// owners), managers by their team key, everyone else "other"; agents from EMAIL + PASSWORD.xlsx.
 const fs = require('fs');
 const path = require('path');
 
 const RUN_ALERT = process.env.RUN_ALERT_SH || '/root/run-alert.sh';
 const PEOPLE_FILE = process.env.ALARMS_PEOPLE || '/root/alarms-people.json';
 const CATALOG_FILE = path.join(__dirname, 'data', 'alarms-catalog.json');
+const AGENT_ROSTER = process.env.ALARMS_AGENT_ROSTER || '/root/COLUMBUS/FORMULA ROADS -PASSWORDS/EMAIL + PASSWORD.xlsx';
 const RANK = { to: 3, team: 2, cc: 1 };
 
 const readJson = (f, def) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return def; } };
@@ -57,7 +61,24 @@ function recipientsFromEnv(spec) {
   return out.length ? out : recipientsFromVars(fallback);
 }
 
-function build(managerRoster, hc) {
+// Same rule as loadAgentEmails() in client-changes-alert.js: code + email, manager rows (code 1999) skipped.
+async function loadAgents() {
+  const out = [];
+  try {
+    const ExcelJS = require('exceljs');
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.readFile(AGENT_ROSTER);
+    wb.worksheets[0].eachRow((row, i) => {
+      if (i === 1) return;
+      const v = row.values;
+      const code = String(v[1] ?? '').trim(), email = String(v[5] ?? '').trim();
+      if (code && email && String(v[6] ?? '').trim().toUpperCase() !== 'YES') out.push({ code, name: String(v[2] ?? '').trim(), email });
+    });
+  } catch { return null; }   // not readable → page shows the agents row without the list
+  return out.sort((x, y) => Number(x.code) - Number(y.code));
+}
+
+function build(managerRoster, hc, agents) {
   const catalog = readJson(CATALOG_FILE, { alarms: [] }).alarms;
   let blocks = null;
   try { blocks = parseRunAlert(fs.readFileSync(RUN_ALERT, 'utf8')); } catch { /* not on VPS → blocks null */ }
@@ -65,7 +86,11 @@ function build(managerRoster, hc) {
 
   const names = new Map();
   for (const m of managerRoster || []) if (m.email) names.set(m.email.toLowerCase(), m.nameHe || m.name);
-  for (const [e, n] of Object.entries(readJson(PEOPLE_FILE, {}))) names.set(e.toLowerCase(), n);
+  const peopleFile = readJson(PEOPLE_FILE, {});
+  for (const [e, n] of Object.entries(peopleFile)) if (!e.startsWith('_')) names.set(e.toLowerCase(), n);
+  const fixedGroup = new Map();
+  for (const [g, list] of Object.entries(peopleFile._groups || {})) for (const e of list) fixedGroup.set(e.toLowerCase(), g);
+  const formulaTeams = new Set((managerRoster || []).map(m => m.team).filter(Boolean));
   const nameOf = e => names.get(e.toLowerCase()) || e.split('@')[0];
 
   const alarms = catalog.map(a => {
@@ -84,10 +109,13 @@ function build(managerRoster, hc) {
       }
       recipients = [...best.values()];
     }
+    // what the source can take without a code change: a CC variable, a per-team managers variable
+    const varNames = a.block ? Object.keys(blocks?.[a.block]?.vars || {}) : Object.entries(a.env || {}).map(([n, r]) => r === 'cc' ? n + '_CC' : n);
+    const caps = { cc: varNames.some(n => /_CC$/.test(n)), team: varNames.some(n => /_MANAGERS$/.test(n)) };
     const c = a.hc ? hcByName.get(a.hc) : null;
     return {
       key: a.key, title: a.title, icon: a.icon, why: a.why, askedBy: a.askedBy || null,
-      when: a.when || null, note: a.note || null,
+      when: a.when || null, note: a.note || null, caps, toNote: a.toNote || null, agents: !!a.agents,
       schedule: a.schedule || null, hour,
       recipients: recipients && recipients.map(r => ({ ...r, name: nameOf(r.email) })),
       unread: !!(a.block || a.env) && !recipients?.length,   // ⚠️ on the page: source not readable
@@ -98,24 +126,30 @@ function build(managerRoster, hc) {
   const people = new Map();
   for (const a of alarms) for (const r of a.recipients || []) {
     const k = r.email.toLowerCase();
-    if (!people.has(k)) people.set(k, { name: r.name, email: r.email, alarms: {} });
+    if (!people.has(k)) people.set(k, { name: r.name, email: r.email, alarms: {}, teams: [] });
     people.get(k).alarms[a.key] = r.role;
+    if (r.team) people.get(k).teams.push(r.team.split(',')[0]);
   }
-  return { alarms, people: [...people.values()].sort((x, y) => Object.keys(y.alarms).length - Object.keys(x.alarms).length), hcAvailable: !!hc };
+  for (const [k, p] of people) {
+    // management / owners — fixed lists; managers — FORMULA team key (managers.json) or else BDD
+    p.group = fixedGroup.get(k) || (p.teams.length ? (p.teams.some(t => formulaTeams.has(t)) ? 'formula' : 'bdd') : 'other');
+    delete p.teams;
+  }
+  return { alarms, people: [...people.values()].sort((x, y) => Object.keys(y.alarms).length - Object.keys(x.alarms).length), agents, hcAvailable: !!hc };
 }
 
 module.exports = { build, parseRunAlert, recipientsFromVars };
 
-if (require.main === module) {
+if (require.main === module) (async () => {
   require('dotenv').config({ path: process.env.ALARMS_ENV || '/root/COLUMBUS/.env' });
   // manage.py shell prints a banner line first — the JSON is the last line
   const hcLines = (process.argv[2] && fs.existsSync(process.argv[2]) ? fs.readFileSync(process.argv[2], 'utf8') : '').trim().split('\n');
   let hc = null;
   try { hc = JSON.parse(hcLines[hcLines.length - 1]); } catch { /* HC down → page shows the banner */ }
-  const data = build(readJson(path.join(__dirname, 'data', 'managers.json'), []), hc);
+  const data = build(readJson(path.join(__dirname, 'data', 'managers.json'), []), hc, await loadAgents());
   data.generatedAt = new Date().toISOString();
   const page = fs.readFileSync(path.join(__dirname, '..', 'docs', 'alarms.html'), 'utf8');
   // escaped "<" keeps "</script>" inside a value from closing the tag; replacer fn keeps "$&" in data literal
   const inline = '<script>window.ALARMS_DATA=' + JSON.stringify(data).replace(/</g, '\\u003c') + ';</script>\n<script>';
   process.stdout.write(page.replace('<script>', () => inline));
-}
+})();
