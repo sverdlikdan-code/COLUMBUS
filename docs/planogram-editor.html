@@ -3,6 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <script>
+  // Ссылка ?open=sakana из письма תוקף 14.10 (ушла 14 адресатам и пересылается) деактивирована
+  // по просьбе Дана 2026-10-14: страница не грузится вообще, даже с живой сессией.
+  if (new URLSearchParams(location.search).get('open') === 'sakana') {
+    window.stop();
+    document.documentElement.innerHTML = '<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>הקישור אינו פעיל</title></head>'
+      + '<body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0b1220;color:#e5e7eb;font-family:Arial,sans-serif;font-size:20px">הקישור אינו פעיל</body>';
+  }
+  </script>
   <title>MAHSAN EDITOR — FORMULA</title>
   <meta property="og:title" content="🐟 הזמנת דגים — FORMULA Warehouse">
   <meta property="og:description" content="מערכת ניהול מחסן · פלנוגרמה · הזמנות · מלאי">

@@ -244,6 +244,19 @@ async function shootCards(split, zafnLow, hide = [], ice = null) {
           .forEach(([c]) => grid.appendChild(c));
       }
     }, split, zafnLow, hide, ice);
+    // צפון <3 — сортировка по шансу, что Ашдод поделится (Дан 2026-10-14; блоки «מספיק/לא מספיק» отменены):
+    // дни запаса Ашдода = остаток ÷ его продажи в день × 1.4 (тот же ×1.4 что у צפון), по убыванию;
+    // остаток без продаж — первым.
+    if (zafnLow) await page.evaluate(() => {
+      const grid = document.getElementById('expiry-grid');
+      const days = c => {
+        const d = productData[c.querySelector('div[style*="color:#1565C0;font-weight:bold"]')?.textContent.trim()] || {};
+        const sales = d.daySales ?? d.daySalesAll ?? 0;
+        return !(d.stock > 0) ? 0 : sales > 0 ? d.stock / sales * 1.4 : Infinity;
+      };
+      [...grid.children].filter(c => c.querySelector('div[style*="color:#1565C0;font-weight:bold"]'))
+        .map(c => [c, days(c)]).sort((a, b) => b[1] - a[1]).forEach(([c]) => grid.appendChild(c));
+    });
     await page.evaluate(() => new Promise(r => {
       const imgs = [...document.images].filter(i => !i.complete);
       if (!imgs.length) return r();
@@ -425,7 +438,7 @@ function buildEmailHtml(n, greetName, risk, split, diff, ice = null) {
     ${ice?.n ? `<div style="padding-top:4px;font-size:13px;color:#AFC1DC">+ גלידה משפחתי ICE — ${ice.n} ${ice.n === 1 ? 'מוצר' : 'מוצרים'}</div>` : ''}
     <div style="padding-top:10px;font-size:11px;color:${GOLD}">${new Date().toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' })}</div>
   </td></tr>
-  <tr><td dir="rtl" style="padding:20px 28px 8px;text-align:right;font-size:14px;color:${INK}">${greeting} ${ZAFN_LOW ? 'מצורפים מוצרים שהמלאי שלהם במחסן צפון מספיק פחות מ-3 ימי מכירה — כמו במסך דוח התוקף, כפתור «צפון &lt;3 ימים».' : split ? 'מצורף דוח תוקף לפי מחסן (אשדוד / צפון בנפרד, ללא איחוד מחסנים) — מוצרים בסכנה ו-STOP SALE.' : 'מצורף דוח תוקף — מוצרים בסכנה ו-STOP SALE, כמו במסך דוח התוקף של המחסן.'}</td></tr>
+  <tr><td dir="rtl" style="padding:20px 28px 8px;text-align:right;font-size:14px;color:${INK}">${greeting} ${ZAFN_LOW ? 'מצורפים מוצרים שהמלאי שלהם במחסן צפון מספיק פחות מ-3 ימי מכירה — כמו במסך דוח התוקף, כפתור «צפון &lt;3 ימים».<br><b>ממוין לפי מלאי אשדוד:</b> קודם המוצרים שאשדוד יכול להעביר מהם לצפון (הכי הרבה ימי מכירה במלאי).' : split ? 'מצורף דוח תוקף לפי מחסן (אשדוד / צפון בנפרד, ללא איחוד מחסנים) — מוצרים בסכנה ו-STOP SALE.' : 'מצורף דוח תוקף — מוצרים בסכנה ו-STOP SALE, כמו במסך דוח התוקף של המחסן.'}</td></tr>
   ${NOTE ? `<tr><td dir="rtl" style="padding:4px 28px 8px;text-align:right;font-size:14px;font-weight:bold;color:${NAVY}">${NOTE}</td></tr>` : ''}
   ${buildRiskHtml(risk)}
   ${buildDiffHtml(diff)}
@@ -527,6 +540,7 @@ async function runVariant({ split, to }) {
       html: buildEmailHtml(shots.length, greetName, risk, split, diff, ice),
       text: ZAFN_LOW ? [
         `${greetName ? `שלום ${greetName},` : 'שלום,'} ${shots.length} מוצרים — מלאי במחסן צפון פחות מ-3 ימי מכירה:`,
+        'ממוין לפי מלאי אשדוד — קודם מה שאשדוד יכול להעביר:',
         ...risks.map(r => `• ${r.name} (${r.mk})`),
         '',
         'להדפסה — קובץ PDF מצורף.',
