@@ -102,6 +102,8 @@ h2{font-size:14px;font-weight:800;margin:16px 0 8px;}
 <div class="top-bar">
   <div class="top-title">🔔 אלרמים</div>
   <div id="gen" style="margin-inline-start:auto;font-size:12px;opacity:.85"></div>
+  <!-- local server of the desktop shortcut: every load = fresh data from the VPS -->
+  <button class="back-btn" id="refresh" title="לרענן נתונים" hidden onclick="this.textContent='⏳';this.disabled=true;location.reload()">↻</button>
 </div>
 <div class="wrap" id="wrap"><div class="msg">טוען...</div></div>
 <script>
@@ -146,6 +148,7 @@ const stOf = a => a.hc?.status || '';
 
 // Data is inlined by server/alarms-dashboard.js when the desktop shortcut builds the page (no server endpoint).
 function load() {
+  if (location.protocol === 'http:') document.getElementById('refresh').hidden = false;
   DATA = window.ALARMS_DATA || null;
   if (!DATA) { document.getElementById('wrap').innerHTML = '<div class="msg">אין נתונים — לפתוח דרך הקיצור COLUMBUS Alarms בשולחן העבודה</div>'; return; }
   if (DATA.generatedAt) document.getElementById('gen').textContent = 'נכון ל־' + fmtT(DATA.generatedAt);
