@@ -319,10 +319,16 @@ async function copyText(t) {
   }
 }
 async function saveRequest() {
-  const t = requestText(), ok = await copyText(t);
+  const t = requestText();
+  // desktop shortcut's local server keeps the request in a file Claude reads; clipboard as a fallback
+  let saved = false;
+  if (location.protocol === 'http:') { try { saved = (await fetch('/request', { method: 'POST', body: t })).ok; } catch (e) {} }
+  const ok = await copyText(t);
+  const msg = saved ? '✓ הבקשה נשמרה — לכתוב ל־Claude בצ׳אט: «вот я сделал»'
+    : ok ? '✓ הבקשה הועתקה — להדביק בצ׳אט לסוכן alarms' : 'לא הצלחתי להעתיק — לסמן את הטקסט ולהעתיק ידנית';
   const bg = document.createElement('div');
   bg.className = 'modal-bg'; bg.id = 'modal';
-  bg.innerHTML = `<div class="modal"><div class="${ok ? 'ok' : 'warn'}">${ok ? '✓ הבקשה הועתקה — להדביק בצ׳אט לסוכן alarms' : 'לא הצלחתי להעתיק — לסמן את הטקסט ולהעתיק ידנית'}</div><textarea readonly></textarea><div><button class="btn pri" onclick="document.getElementById('modal').remove()">סגור</button></div></div>`;
+  bg.innerHTML = `<div class="modal"><div class="${saved || ok ? 'ok' : 'warn'}">${msg}</div><textarea readonly></textarea><div><button class="btn pri" onclick="document.getElementById('modal').remove()">סגור</button></div></div>`;
   bg.querySelector('textarea').value = t;
   bg.onclick = e => { if (e.target === bg) bg.remove(); };
   document.body.appendChild(bg);
