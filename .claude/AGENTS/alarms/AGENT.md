@@ -17,7 +17,7 @@ role: specialist
 `VAULT/Meeting Notes/alarms-registry.md` (адреса команды — только в приватном VAULT, основной репо публичный).
 Экспорт для пользователя: `Desktop/AI AGENS ALARMS.xlsx` (3 колонки: Аларм / Кому / Как часто). После любой правки — обновить оба.
 
-**Пульт алярмов** (с 2026-10-14): **только на компе Дана**, НЕ в Formula Road (Дан: «это только мне»). Ярлык `Desktop/COLUMBUS Alarms.bat` → ssh `/root/alarms-page.sh` → `server/alarms-dashboard.js` (из `/root/alerts-run`) печатает `docs/alarms.html` со встроенными данными → открывается в браузере. Только чтение. Адреса — **вживую** из `/root/run-alert.sh` (блоки case) и `.env`, статус — Healthchecks через manage.py (`/root/kuma-tools/hc-json.py`, ключ не нужен). Править вручную надо только:
+**Пульт алярмов** (с 2026-10-14): **только на компе Дана**, НЕ в Formula Road (Дан: «это только мне»). Ярлык `Desktop/COLUMBUS Alarms.lnk` (значок 🔔) → `~/.claude/tools/columbus-alarms/columbus-alarms.bat` → ssh `/root/alarms-page.sh` → `server/alarms-dashboard.js` (из `/root/alerts-run`) печатает `docs/alarms.html` со встроенными данными → открывается в браузере. Только чтение. Адреса — **вживую** из `/root/run-alert.sh` (блоки case) и `.env`, статус — Healthchecks через manage.py (`/root/kuma-tools/hc-json.py`, ключ не нужен). Править вручную надо только:
 - `server/data/alarms-catalog.json` (репо, без адресов) — при новом алярме / смене смысла, заказчика, расписания (поле `schedule` = cron по Израилю как в HC);
 - `/root/alarms-people.json` (VPS, копия `VAULT/infra/vps/`) — имя для нового адреса (без него показывается часть до @).
 Правки этих файлов сервер не перезапускают (не в paths server-deploy) — ярлык сам подтягивает код.
