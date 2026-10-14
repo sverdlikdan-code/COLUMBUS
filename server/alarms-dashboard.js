@@ -35,11 +35,12 @@ function recipientsFromVars(vars) {
     if (/_MANAGERS$/.test(name)) {
       for (const pair of val.split(';')) {
         const [team, email] = pair.split('=');
-        if (email) out.push({ email: email.trim(), role: 'team', team: team.trim() });
+        if (email) out.push({ email: email.split('|')[0].trim(), role: 'team', team: team.trim() });
       }
     } else {
       const role = /_CC$/.test(name) ? 'cc' : 'to';
-      for (const email of val.split(',')) if (email.trim()) out.push({ email: email.trim(), role });
+      // MEKARER_ASHDOD_RECIPIENTS = "email|personal login link" — only the address, never the link
+      for (const item of val.split(',')) { const email = item.split('|')[0].trim(); if (email) out.push({ email, role }); }
     }
   }
   return out;
