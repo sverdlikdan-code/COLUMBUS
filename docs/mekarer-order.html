@@ -413,7 +413,11 @@ function removeRef(id) {
 }
 
 function buildRefHTML(id, num) {
-  const opt = p => `<option value="${p.makat}">${p.makat} — ${p.name}</option>`;
+  // Orientation at a glance (Dan 2026-10-14): ↔️ lying (אמבטיה), ↕️ standing (עומד). A native
+  // <select> takes no markup, so the icon lives in the option text — collectRef() reads the name
+  // from the catalog instead, so this never leaks into the order. Unknown wording → no icon.
+  const icon = n => /אמבטיה/.test(n) ? '↔️ ' : /עומד/.test(n) ? '↕️ ' : '';
+  const opt = p => `<option value="${p.makat}">${icon(p.name)}${p.makat} — ${p.name}</option>`;
   // One flat list for both selects since 2026-10-14 (Dan): the OLD/פעילים split is gone, the
   // discontinued models were dropped from the form and 901400 moved into the main list, so
   // "what to supply" and "what is returned" offer the same models. The server decides which.
@@ -497,14 +501,22 @@ function updateRefCond(id) {
 }
 
 // ── COLLECT FORM ──────────────────────────────────────────────────────────────
+// Name from the catalog by makat, NOT from the option's visible text: the options carry a
+// ↔️/↕️ orientation icon since 2026-10-14, and that icon must never reach the saved order,
+// Yosi's email or the daily Excel. Same string the option text used to produce ("makat — name"),
+// so nothing downstream changes; an empty pick now yields '' instead of the "— בחר דגם —" line.
+function modelLabel(makat) {
+  const p = parts.find(x => x.makat === makat);
+  return p ? `${p.makat} — ${p.name}` : '';
+}
 function collectRef(id) {
   const action = document.querySelector(`input[name="${id}-act"]:checked`)?.value || '';
   return {
     action,
     newModel: document.getElementById(`${id}-new-model`)?.value || '',
-    newModelName: (() => { const s = document.getElementById(`${id}-new-model`); return s?.options[s.selectedIndex]?.text || ''; })(),
+    newModelName: modelLabel(document.getElementById(`${id}-new-model`)?.value || ''),
     returnModel: document.getElementById(`${id}-return-model`)?.value || '',
-    returnModelName: (() => { const s = document.getElementById(`${id}-return-model`); return s?.options[s.selectedIndex]?.text || ''; })(),
+    returnModelName: modelLabel(document.getElementById(`${id}-return-model`)?.value || ''),
     salot: parseInt(document.getElementById(`${id}-salot`)?.value) || 0,
     agala: document.getElementById(`${id}-agala`)?.checked || false,
     supplyDate: document.getElementById(`${id}-supply-date`)?.value || '',
