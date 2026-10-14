@@ -5498,6 +5498,9 @@ function hdrRefresh() {
 }
 
 function _trackEvent(event, custId, itemCount) {
+  // No token → server 401s anyway, and that 401 triggers the silent re-login →
+  // "session expired" reload; with the pre-login install banner this looped (14.10)
+  if (!_getToken()) return;
   try {
     apiFetch(`${API}/api/event`, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ event, custId: custId || null, itemCount: Number.isFinite(itemCount) ? itemCount : null }) }).catch(() => {});
@@ -6753,6 +6756,15 @@ function _openInChrome(){
   const frToken=localStorage.getItem('frToken')||'';
   if(frToken){
     full+=(full.includes('?')?'&':'?')+'_inv='+encodeURIComponent(frToken);
+    // Carry identity too: Chrome's localStorage is empty, and only the _inv+_ac
+    // invite branch writes frAgent — bare _inv left Chrome on the code screen (14.10)
+    try{
+      const a=JSON.parse(localStorage.getItem('frAgent')||'null');
+      if(a&&a.code){
+        full+='&_ac='+encodeURIComponent(a.code)+'&_an='+encodeURIComponent(a.name||'');
+        if(a.isManager) full+='&_im=1'+(a.channel?'&_ch='+encodeURIComponent(a.channel):'');
+      }
+    }catch(_){}
   }
   const url=full.replace(/^https?:\/\//,'');
   location.href=`intent://${url}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(full)};end`;
