@@ -21,6 +21,7 @@
 // в письме блок נוספו / יצאו по каждой части. --to / --dry-run state не трогают.
 //
 // Запуск: node obligo-alert.js                 — боевая рассылка (OBLIGO_ALERT_RECIPIENTS + менеджеры)
+//         OBLIGO_ALERT_OWNERS="דני=a@x;…" — אחראים сетей, каждому только его сети (Дан 2026-10-14)
 //         node obligo-alert.js --dry-run       — без отправки, превью HTML+XLSX в ./out
 //         node obligo-alert.js --to a@b.com    — тест: полный отчёт только на этот адрес (ссылка тоже настоящая — только на VPS)
 //         node obligo-alert.js --purge-links   — только удалить просроченные страницы (ежедневный cron на VPS)
@@ -33,6 +34,9 @@ const crypto = require('crypto');
 const { executeDax } = require('./powerbi');
 
 const NEAR = 0.85;
+// Шапка частичного отчёта: менеджеру — частники его группы, אחראי — его сети.
+const SCOPE_TEAM = 'שוק פרטי, הסוכנים של הקבוצה שלך';
+const SCOPE_OWNER = 'רשתות באחריותך';
 const DRY_RUN = process.argv.includes('--dry-run');
 const TO_IDX = process.argv.indexOf('--to');
 const TEST_TO = TO_IDX > -1 ? process.argv[TO_IDX + 1] : null;
@@ -268,7 +272,7 @@ function pageDiff(diff) {
 
 // Без внешних ресурсов; CSP meta сужает глобальную CSP сервера для этой страницы (общий роут /p не трогаем).
 // <title> нейтральный — виден в истории браузера.
-function buildPageHtml(parts, workDays, privateOnly, expires) {
+function buildPageHtml(parts, workDays, scope, expires) {
   const date = new Date().toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' });
   const sections = parts.map(({ part, rows, diff }, i) => {
     const chains = rows.filter(r => r.market === 'רשתות'), priv = rows.filter(r => r.market !== 'רשתות');
@@ -321,7 +325,7 @@ td.m{direction:ltr;unicode-bidi:isolate;color:${MUTED};font-size:12px}td.s{font-
 @media(max-width:600px){main{padding:8px 10px 40px}.body{padding:0 6px 10px}th,td{padding:6px 5px}table{font-size:12px}td.n{min-width:110px}}
 footer{font-size:12px;color:${MUTED};line-height:1.7;margin-top:24px}
 </style></head><body>
-<header><h1>דוח אובליגו ותנאי תשלום</h1><div class="d">דוח שבועי &middot; ${date}${privateOnly ? ' &middot; שוק פרטי, הסוכנים של הקבוצה שלך' : ''}</div>
+<header><h1>דוח אובליגו ותנאי תשלום</h1><div class="d">דוח שבועי &middot; ${date}${scope ? ` &middot; ${scope}` : ''}</div>
 <div class="chips">${chips}</div>
 <div class="wd">נותרו <b>${workDays.left}</b> ימי עבודה עד סוף החודש מתוך ${workDays.total} &middot; <b>${Math.round(workDays.pct * 100)}%</b> מימי העבודה בחודש</div></header>
 <main>
@@ -393,10 +397,10 @@ function buttonHtml(link) {
   </td></tr>`;
 }
 
-function buildEmailHtml(parts, workDays, greetName, privateOnly, link) {
+function buildEmailHtml(parts, workDays, greetName, scope, link) {
   const greeting = greetName ? `שלום ${greetName},` : 'שלום,';
-  const intro = privateOnly
-    ? 'דוח האובליגו השבועי — שוק פרטי, הסוכנים של הקבוצה שלך. למטה סיכום 3 החלקים; הרשימה המלאה של כל הלקוחות — בקישור האישי ובקובץ האקסל המצורף (3 גיליונות).'
+  const intro = scope
+    ? `דוח האובליגו השבועי — ${scope}. למטה סיכום 3 החלקים; הרשימה המלאה של כל הלקוחות — בקישור האישי ובקובץ האקסל המצורף (3 גיליונות).`
     : 'דוח האובליגו השבועי. למטה סיכום 3 החלקים; הרשימה המלאה של כל הלקוחות — בקישור האישי ובקובץ האקסל המצורף (3 גיליונות).';
   // Outlook (Word-движок) не рисует border/radius/margin у div — плашки только таблицами:
   // цветная полоска отдельной строкой с bgcolor, отступы — padding ячеек (тест 12.10 в Outlook развалился).
@@ -582,7 +586,7 @@ async function fetchAgentGroups() {
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-async function sendReport(resend, recipient, parts, workDays, privateOnly) {
+async function sendReport(resend, recipient, parts, workDays, scope) {
   const greetName = RECIPIENT_NAMES[recipient.toLowerCase()];
   const logoPath = path.join(__dirname, '..', 'docs', 'logo-diler-bmd-white.png');
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' });
@@ -592,7 +596,7 @@ async function sendReport(resend, recipient, parts, workDays, privateOnly) {
   ];
   const counts = parts.map(p => p.rows.length);
   // страница на каждое письмо своя (новый hex) — до отправки; не записалась — письмо не уходит
-  const link = publishPage(recipient, buildPageHtml(parts, workDays, privateOnly, expiryDate()));
+  const link = publishPage(recipient, buildPageHtml(parts, workDays, scope, expiryDate()));
   const text = `${greetName ? `שלום ${greetName},` : 'שלום,'} דוח האובליגו השבועי.\n\n`
     + parts.map(({ part, rows }, i) => `${i + 1}. ${part.title}: ${rows.length}`).join('\n')
     + `\n\nנותרו ${workDays.left} ימי עבודה עד סוף החודש מתוך ${workDays.total} (${Math.round(workDays.pct * 100)}%).`
@@ -602,7 +606,7 @@ async function sendReport(resend, recipient, parts, workDays, privateOnly) {
     from: `Diler Intelligence <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
     to: [recipient],
     subject: `דוח אובליגו שבועי — מתקרבים: ${counts[0]} · חורגים: ${counts[1]} · בפיגור: ${counts[2]}`,
-    html: buildEmailHtml(parts, workDays, greetName, privateOnly, link),
+    html: buildEmailHtml(parts, workDays, greetName, scope, link),
     text,
     attachments,
   });
@@ -612,10 +616,10 @@ async function sendReport(resend, recipient, parts, workDays, privateOnly) {
 
 // OBLIGO_ALERT_CC — копия каждого письма (Дан 2026-10-08). Не cc-полем, а отдельным письмом со своей ссылкой:
 // общая ссылка смешала бы трекинг и отдала бы CC чужую страницу (security-agent 2026-10-13).
-async function sendWithCopies(resend, to, parts, workDays, privateOnly, label) {
+async function sendWithCopies(resend, to, parts, workDays, scope, label) {
   const cc = (process.env.OBLIGO_ALERT_CC || '').split(',').map(s => s.trim()).filter(Boolean);
   for (const addr of [to, ...cc]) {
-    const r = await sendReport(resend, addr, parts, workDays, privateOnly);
+    const r = await sendReport(resend, addr, parts, workDays, scope);
     console.log(`${label} ${addr}${addr === to ? '' : ` (копия ${to})`}:`, JSON.stringify(r?.error ?? r?.data));
   }
 }
@@ -665,12 +669,27 @@ async function main() {
     }
   }
 
+  // אחראים сетей: "דני=a@x;חנן=b@x" — имя как в PBI [אחראי]; каждому только сети, где он אחראי, все 3 части
+  // + נוספו / יצאו только по его сетям (Дан 2026-10-14). Пусто во всех частях — письма нет.
+  const owners = TEST_TO ? [] : (process.env.OBLIGO_ALERT_OWNERS || '').split(';').map(s => s.split('=').map(x => x.trim())).filter(([n, e]) => n && e);
+  const perOwner = [];
+  for (const [name, email] of owners) {
+    const own = r => r.market === 'רשתות' && r.resp === name;
+    const mine = parts.map(({ part, rows, diff }) => ({
+      part, rows: rows.filter(own),
+      diff: diff && { ...diff, added: diff.added.filter(own), removed: diff.removed.filter(r => r.key.startsWith(`C|${name}|`)) },
+    }));
+    console.log(`  [אחראי ${name}] ${email}: ${mine.map(p => p.rows.length).join('/')}`);
+    if (mine.some(p => p.rows.length)) perOwner.push({ email, mine });
+  }
+
   if (DRY_RUN) {
     const out = path.join(__dirname, 'out');
     fs.mkdirSync(out, { recursive: true });
-    fs.writeFileSync(path.join(out, 'obligo-alert-preview.html'), buildEmailHtml(parts, workDays, 'דן', false, 'obligo-alert-page.html'));
-    fs.writeFileSync(path.join(out, 'obligo-alert-page.html'), buildPageHtml(parts, workDays, false, expiryDate()));
-    if (perManager[0]) fs.writeFileSync(path.join(out, 'obligo-alert-page-manager.html'), buildPageHtml(perManager[0].mine, workDays, true, expiryDate()));
+    fs.writeFileSync(path.join(out, 'obligo-alert-preview.html'), buildEmailHtml(parts, workDays, 'דן', null, 'obligo-alert-page.html'));
+    fs.writeFileSync(path.join(out, 'obligo-alert-page.html'), buildPageHtml(parts, workDays, null, expiryDate()));
+    if (perOwner[0]) fs.writeFileSync(path.join(out, 'obligo-alert-page-owner.html'), buildPageHtml(perOwner[0].mine, workDays, SCOPE_OWNER, expiryDate()));
+    if (perManager[0]) fs.writeFileSync(path.join(out, 'obligo-alert-page-manager.html'), buildPageHtml(perManager[0].mine, workDays, SCOPE_TEAM, expiryDate()));
     fs.writeFileSync(path.join(out, 'obligo-alert-preview.xlsx'), await buildXlsx(parts));
     console.log(`\n--dry-run — письмо не отправлено, превью: ${out}`);
     return;
@@ -680,7 +699,7 @@ async function main() {
   const resend = new Resend(process.env.RESEND_API_KEY);
 
   if (TEST_TO) {
-    const r = await sendReport(resend, TEST_TO, parts, workDays, false);
+    const r = await sendReport(resend, TEST_TO, parts, workDays, null);
     console.log(`Тест на ${TEST_TO}:`, JSON.stringify(r?.error ?? r?.data));
     return; // тест не пишет state — иначе сравнение в боевой рассылке собьётся
   }
@@ -688,7 +707,8 @@ async function main() {
   const recipients = (process.env.OBLIGO_ALERT_RECIPIENTS || '').split(',').map(s => s.trim()).filter(Boolean);
   if (recipients.length === 0) throw new Error('OBLIGO_ALERT_RECIPIENTS не задан в .env');
   for (const to of recipients) await sendWithCopies(resend, to, parts, workDays, false, 'Отправлено');
-  for (const { email, mine } of perManager) await sendWithCopies(resend, email, mine, workDays, true, 'Менеджеру');
+  for (const { email, mine } of perManager) await sendWithCopies(resend, email, mine, workDays, SCOPE_TEAM, 'Менеджеру');
+  for (const { email, mine } of perOwner) await sendWithCopies(resend, email, mine, workDays, SCOPE_OWNER, 'אחראי');
   saveState(parts);
 }
 

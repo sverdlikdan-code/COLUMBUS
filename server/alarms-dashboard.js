@@ -30,13 +30,13 @@ function parseRunAlert(text) {
   return blocks;
 }
 
-// VAR name → how the script uses it: *_MANAGERS = "TEAM=email;…" (each team its own mail),
+// VAR name → how the script uses it: *_MANAGERS / *_OWNERS = "TEAM=email;…" (each its own part only),
 // *_CC = copy, anything else with an address = To.
 function recipientsFromVars(vars) {
   const out = [];
   for (const [name, val] of Object.entries(vars)) {
     if (!val.includes('@')) continue;
-    if (/_MANAGERS$/.test(name)) {
+    if (/_(MANAGERS|OWNERS)$/.test(name)) {
       for (const pair of val.split(';')) {
         const [team, email] = pair.split('=');
         if (email) out.push({ email: email.split('|')[0].trim(), role: 'team', team: team.trim() });
@@ -111,7 +111,7 @@ function build(managerRoster, hc, agents) {
     }
     // what the source can take without a code change: a CC variable, a per-team managers variable
     const varNames = a.block ? Object.keys(blocks?.[a.block]?.vars || {}) : Object.entries(a.env || {}).map(([n, r]) => r === 'cc' ? n + '_CC' : n);
-    const caps = { cc: varNames.some(n => /_CC$/.test(n)), team: varNames.some(n => /_MANAGERS$/.test(n)) };
+    const caps = { cc: varNames.some(n => /_CC$/.test(n)), team: varNames.some(n => /_(MANAGERS|OWNERS)$/.test(n)) };
     const c = a.hc ? hcByName.get(a.hc) : null;
     return {
       key: a.key, title: a.title, icon: a.icon, why: a.why, askedBy: a.askedBy || null,
@@ -129,6 +129,11 @@ function build(managerRoster, hc, agents) {
     if (!people.has(k)) people.set(k, { name: r.name, email: r.email, alarms: {}, teams: [] });
     people.get(k).alarms[a.key] = r.role;
     if (r.team) people.get(k).teams.push(r.team.split(',')[0]);
+  }
+  // known people without any alarm stay in the matrix — otherwise someone removed can't be added back
+  for (const [e, n] of Object.entries(peopleFile)) {
+    const k = e.toLowerCase();
+    if (!e.startsWith('_') && !people.has(k)) people.set(k, { name: n, email: e, alarms: {}, teams: [] });
   }
   for (const [k, p] of people) {
     // management / owners — fixed lists; managers — FORMULA team key (managers.json) or else BDD

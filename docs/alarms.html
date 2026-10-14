@@ -110,9 +110,9 @@ h2{font-size:14px;font-weight:800;margin:16px 0 8px;}
 const DAYS = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
 const TABS = [['alarms', 'אלרמים'], ['people', 'מי מקבל מה'], ['week', 'שבוע']];
 const ST = { up: 'נשלח ✓', down: 'נכשל ✗', grace: 'מאחר', new: 'עוד לא רץ', paused: 'מושהה', started: 'רץ עכשיו' };
-const ROLE = { to: 'אל', cc: 'העתק', team: 'רק הקבוצה שלו' };
+const ROLE = { to: 'אל', cc: 'העתק', team: 'רק החלק שלו (קבוצה / רשתות)' };
 const GROUPS = [['mgmt', 'הנהלה'], ['owners', 'אחראים'], ['formula', 'מנהלים FORMULA + משפחתי'], ['bdd', 'מנהלים BDD'], ['other', 'אחרים']];
-const RU_ROLE = { to: 'אל (To)', cc: 'העתק (CC)', team: 'מנהל — только своя группа', '': '—' };
+const RU_ROLE = { to: 'אל (To)', cc: 'העתק (CC)', team: 'только своё (группа менеджера / сети אחראי)', '': '—' };
 let DATA = null, TAB = 'alarms';
 // Draft of a change request. Nothing is written anywhere: "שמור" copies the request text for the chat.
 let DRAFT = { cells: {}, added: [], agentsOff: [] }, AGENTS_OPEN = false, PPL = [];
@@ -238,7 +238,7 @@ function renderPeople() {
   const n = changes();
   return `<div class="tbl-wrap"><table><thead><tr><th class="nm">נמען</th><th style="font-size:12px;font-weight:800">#</th>${al.map(a => `<th class="al">${esc(a.icon)}<small>${esc(a.title)}</small></th>`).join('')}</tr></thead>
     <tbody>${groupRows}${agentRows}</tbody></table></div>
-    <div class="legend">● אל · ◐ מנהל — רק הקבוצה שלו · ○ העתק · # = בכמה אלרמים · לחיצה על תא — לשנות · ✕ ליד שם — להסיר מכל האלרמים · צהוב = שינוי בטיוטה</div>
+    <div class="legend">● אל · ◐ רק החלק שלו (קבוצה / רשתות) · ○ העתק · # = בכמה אלרמים · לחיצה על תא — לשנות · ✕ ליד שם — להסיר מכל האלרמים · צהוב = שינוי בטיוטה</div>
     <div class="addrow"><input id="nEmail" type="email" dir="ltr" placeholder="email" style="flex:2 1 200px"><input id="nName" placeholder="שם" style="flex:1 1 140px"><button class="btn" onclick="addPerson()">+ נמען חדש</button><span id="addMsg" class="legend" style="margin:0"></span></div>
     <div class="savebar"><span class="cnt">${n ? `${n} שינויים בטיוטה` : 'אין שינויים'}</span><button class="btn" ${n || DRAFT.added.length ? '' : 'disabled'} onclick="clearDraft()">נקה</button><button class="btn pri" ${n ? '' : 'disabled'} onclick="saveRequest()">שמור — להעתיק בקשה</button></div>`;
 }
@@ -248,7 +248,7 @@ function openPop(ev, i, ak) {
   ev.stopPropagation(); closePop();
   const p = PPL[i], a = DATA.alarms.find(x => x.key === ak), o = orig(p, a), n = eff(p, a);
   const opts = [['to', '● אל'], ['cc', '○ העתק', !a.caps.cc && 'צריך קוד']];
-  if (a.caps.team || o === 'team') opts.push(['team', '◐ מנהל — רק הקבוצה', o !== 'team' && 'צריך קבוצה']);
+  if (a.caps.team || o === 'team') opts.push(['team', '◐ רק החלק שלו', o !== 'team' && 'צריך קבוצה']);
   opts.push(['', '✕ להסיר']);
   const el = document.createElement('div');
   el.className = 'pop'; el.id = 'pop';
