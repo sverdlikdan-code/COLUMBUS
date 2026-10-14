@@ -1,15 +1,15 @@
-// Пульт алярмов (Dan 2026-10-14) — read-only overview for super: what goes out, to whom, when,
-// did the last run go through. No second source of truth: addresses are read live from
-// /root/run-alert.sh (case blocks) and the server's .env; descriptions without addresses live in
-// data/alarms-catalog.json (public repo); status/schedule come from Healthchecks (127.0.0.1:8000).
-// Names for addresses: VPS-only /root/alarms-people.json {"email":"name"} (private) + managers.json.
+// Пульт алярмов (Dan 2026-10-14) — read-only overview only on Dan's PC (desktop shortcut
+// "COLUMBUS Alarms.bat" → ssh → this script prints a ready page; NOT inside Formula Road).
+// No second source of truth: addresses are read live from /root/run-alert.sh (case blocks) and .env;
+// descriptions without addresses — data/alarms-catalog.json (public repo); status — Healthchecks
+// via manage.py (kuma-tools/hc-json.py, no API key). Names: VPS-only /root/alarms-people.json + managers.json.
+// CLI: node alarms-dashboard.js <hc.json>  → HTML (docs/alarms.html with the data inlined) on stdout.
 const fs = require('fs');
 const path = require('path');
 
 const RUN_ALERT = process.env.RUN_ALERT_SH || '/root/run-alert.sh';
 const PEOPLE_FILE = process.env.ALARMS_PEOPLE || '/root/alarms-people.json';
 const CATALOG_FILE = path.join(__dirname, 'data', 'alarms-catalog.json');
-const HC_URL = 'http://127.0.0.1:8000/api/v3/checks/';
 const RANK = { to: 3, team: 2, cc: 1 };
 
 const readJson = (f, def) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return def; } };
@@ -57,23 +57,10 @@ function recipientsFromEnv(spec) {
   return out.length ? out : recipientsFromVars(fallback);
 }
 
-let hcCache = { at: 0, checks: null };
-async function hcChecks() {
-  const key = process.env.HC_API_KEY_RO;
-  if (!key) return null;
-  if (Date.now() - hcCache.at < 60e3) return hcCache.checks;
-  try {
-    const r = await fetch(HC_URL, { headers: { 'X-Api-Key': key }, signal: AbortSignal.timeout(5000) });
-    hcCache = { at: Date.now(), checks: r.ok ? (await r.json()).checks : null };
-  } catch { hcCache = { at: Date.now(), checks: null }; }
-  return hcCache.checks;
-}
-
-async function build(managerRoster) {
+function build(managerRoster, hc) {
   const catalog = readJson(CATALOG_FILE, { alarms: [] }).alarms;
   let blocks = null;
   try { blocks = parseRunAlert(fs.readFileSync(RUN_ALERT, 'utf8')); } catch { /* not on VPS → blocks null */ }
-  const hc = await hcChecks();
   const hcByName = new Map((hc || []).map(c => [c.name, c]));
 
   const names = new Map();
@@ -101,10 +88,10 @@ async function build(managerRoster) {
     return {
       key: a.key, title: a.title, icon: a.icon, why: a.why, askedBy: a.askedBy || null,
       when: a.when || null, note: a.note || null,
-      schedule: c?.schedule || a.schedule || null, hour,
+      schedule: a.schedule || null, hour,
       recipients: recipients && recipients.map(r => ({ ...r, name: nameOf(r.email) })),
       unread: !!(a.block || a.env) && !recipients?.length,   // ⚠️ on the page: source not readable
-      hc: c ? { status: c.status, last: c.last_ping, next: c.next_ping } : null,
+      hc: c ? { status: c.status, last: c.last, next: c.next } : null,
     };
   });
 
@@ -118,3 +105,17 @@ async function build(managerRoster) {
 }
 
 module.exports = { build, parseRunAlert, recipientsFromVars };
+
+if (require.main === module) {
+  require('dotenv').config({ path: process.env.ALARMS_ENV || '/root/COLUMBUS/.env' });
+  // manage.py shell prints a banner line first — the JSON is the last line
+  const hcLines = (process.argv[2] && fs.existsSync(process.argv[2]) ? fs.readFileSync(process.argv[2], 'utf8') : '').trim().split('\n');
+  let hc = null;
+  try { hc = JSON.parse(hcLines[hcLines.length - 1]); } catch { /* HC down → page shows the banner */ }
+  const data = build(readJson(path.join(__dirname, 'data', 'managers.json'), []), hc);
+  data.generatedAt = new Date().toISOString();
+  const page = fs.readFileSync(path.join(__dirname, '..', 'docs', 'alarms.html'), 'utf8');
+  // escaped "<" keeps "</script>" inside a value from closing the tag; replacer fn keeps "$&" in data literal
+  const inline = '<script>window.ALARMS_DATA=' + JSON.stringify(data).replace(/</g, '\\u003c') + ';</script>\n<script>';
+  process.stdout.write(page.replace('<script>', () => inline));
+}

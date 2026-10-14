@@ -70,13 +70,11 @@ h2{font-size:14px;font-weight:800;margin:16px 0 8px;}
 </head>
 <body>
 <div class="top-bar">
-  <button class="back-btn" onclick="history.length>1?history.back():location.href='/formula-road'" title="חזרה">→</button>
   <div class="top-title">🔔 אלרמים</div>
+  <div id="gen" style="margin-inline-start:auto;font-size:12px;opacity:.85"></div>
 </div>
 <div class="wrap" id="wrap"><div class="msg">טוען...</div></div>
 <script>
-const API = location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? '' : 'https://api.sverdlik-apps.site';
-const TOKEN = localStorage.getItem('frToken') || '';
 const DAYS = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
 const TABS = [['alarms', 'אלרמים'], ['people', 'מי מקבל מה'], ['week', 'שבוע']];
 const ST = { up: 'נשלח ✓', down: 'נכשל ✗', grace: 'מאחר', new: 'עוד לא רץ', paused: 'מושהה', started: 'רץ עכשיו' };
@@ -85,7 +83,6 @@ let DATA = null, TAB = 'alarms';
 try { TAB = localStorage.getItem('alarmsTab') || 'alarms'; } catch (e) {}
 
 const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const track = ev => fetch(API + '/api/event', { method: 'POST', headers: { 'X-Session': TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify({ event: ev }) }).catch(() => {});
 const fmtT = iso => iso ? new Date(iso).toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem', weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
 
 // cron field → list of ints ("0-4", "0,40", "*")
@@ -112,15 +109,15 @@ function whenText(a) {
 }
 const stOf = a => a.hc?.status || '';
 
-async function load() {
-  try {
-    const r = await fetch(API + '/api/alarms', { headers: { 'X-Session': TOKEN } });
-    if (r.status === 403 || r.status === 401) { document.getElementById('wrap').innerHTML = '<div class="msg">אין הרשאה לדף זה</div>'; return; }
-    DATA = await r.json(); render(); track('alarms_opened');
-  } catch (e) { document.getElementById('wrap').innerHTML = '<div class="msg">שגיאת טעינה — נסה שוב</div>'; }
+// Data is inlined by server/alarms-dashboard.js when the desktop shortcut builds the page (no server endpoint).
+function load() {
+  DATA = window.ALARMS_DATA || null;
+  if (!DATA) { document.getElementById('wrap').innerHTML = '<div class="msg">אין נתונים — לפתוח דרך הקיצור COLUMBUS Alarms בשולחן העבודה</div>'; return; }
+  if (DATA.generatedAt) document.getElementById('gen').textContent = 'נכון ל־' + fmtT(DATA.generatedAt);
+  render();
 }
 
-function setTab(t) { TAB = t; try { localStorage.setItem('alarmsTab', t); } catch (e) {} track('alarms_tab_' + t); render(); }
+function setTab(t) { TAB = t; try { localStorage.setItem('alarmsTab', t); } catch (e) {} render(); }
 
 function recipientsHtml(a) {
   if (a.unread) return '<div class="warn">⚠️ לא הצלחתי לקרוא את הנמענים מהמקור</div>';
