@@ -244,7 +244,7 @@ async function shootCards(split, zafnLow, hide = [], ice = null) {
           .forEach(([c]) => grid.appendChild(c));
       }
     }, split, zafnLow, hide, ice);
-    // צפון <3 — два блока (Дан 2026-10-14): «מספיק באשדוד» (остаток Ашдода ÷ его продажи в день × 1.4 ≥ 3,
+    // צפון <3 — два блока (Дан 2026-10-14): «מספיק באשדוד» (остаток Ашдода ÷ его продажи в день × 1.4 ≥ 2 — было 3, Дан 14.10,
     // тот же ×1.4 что у צפון; продаж нет, а остаток есть — тоже מספיק), затем «לא מספיק באשדוד».
     const ashdod = !zafnLow ? null : await page.evaluate(() => {
       const grid = document.getElementById('expiry-grid');
@@ -255,7 +255,7 @@ async function shootCards(split, zafnLow, hide = [], ice = null) {
         const sales = d.daySales ?? d.daySalesAll ?? 0;
         const dd = !(d.stock > 0) ? 0 : sales > 0 ? d.stock / sales * 1.4 : Infinity;
         days[mk] = dd === Infinity ? null : Math.round(dd * 10) / 10;
-        return dd >= 3;
+        return dd >= 2;
       };
       const cs = [...grid.children].filter(c => c.querySelector('div[style*="color:#1565C0;font-weight:bold"]'));
       const ok = cs.filter(enough), low = cs.filter(c => !ok.includes(c));
@@ -440,9 +440,9 @@ function zafnBlocksHtml(n, nEnough) {
     <div style="font-size:17px;font-weight:900;color:${color}">${title} (${cnt})</div>
     <div style="padding-top:3px;font-size:12px;color:${MUTED}">${note}</div>
   </td></tr>` : '';
-  return head('✅ יש מספיק מלאי באשדוד', nEnough, '#2e7d32', 'מלאי אשדוד מספיק ל-3 ימי מכירה ומעלה — אפשר להעביר לצפון')
+  return head('✅ יש מספיק מלאי באשדוד', nEnough, '#2e7d32', 'מלאי אשדוד מספיק ל-2 ימי מכירה ומעלה — אפשר להעביר לצפון')
     + cardRows('card', 0, nEnough)
-    + head('⚠️ אין מספיק מלאי באשדוד', n - nEnough, '#c62828', 'מלאי אשדוד מספיק לפחות מ-3 ימי מכירה')
+    + head('⚠️ אין מספיק מלאי באשדוד', n - nEnough, '#c62828', 'מלאי אשדוד מספיק לפחות מ-2 ימי מכירה')
     + cardRows('card', nEnough, n);
 }
 
