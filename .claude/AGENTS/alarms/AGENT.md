@@ -17,10 +17,10 @@ role: specialist
 `VAULT/Meeting Notes/alarms-registry.md` (адреса команды — только в приватном VAULT, основной репо публичный).
 Экспорт для пользователя: `Desktop/AI AGENS ALARMS.xlsx` (3 колонки: Аларм / Кому / Как часто). После любой правки — обновить оба.
 
-**Пульт алярмов** (с 2026-10-14): Formula Road → плитка «🔔 אלרמים» → `docs/alarms.html`, только super, только чтение. Адреса читает **вживую** из `/root/run-alert.sh` (блоки case) и `.env` — после смены адресата страница обновится сама. Править вручную надо только:
+**Пульт алярмов** (с 2026-10-14): **только на компе Дана**, НЕ в Formula Road (Дан: «это только мне»). Ярлык `Desktop/COLUMBUS Alarms.bat` → ssh `/root/alarms-page.sh` → `server/alarms-dashboard.js` (из `/root/alerts-run`) печатает `docs/alarms.html` со встроенными данными → открывается в браузере. Только чтение. Адреса — **вживую** из `/root/run-alert.sh` (блоки case) и `.env`, статус — Healthchecks через manage.py (`/root/kuma-tools/hc-json.py`, ключ не нужен). Править вручную надо только:
 - `server/data/alarms-catalog.json` (репо, без адресов) — при новом алярме / смене смысла, заказчика, расписания (поле `schedule` = cron по Израилю как в HC);
 - `/root/alarms-people.json` (VPS, копия `VAULT/infra/vps/`) — имя для нового адреса (без него показывается часть до @).
-Статус ✅/❌ — из Healthchecks API, нужен `HC_API_KEY_RO` в `.env` (на 14.10 не задан — ждёт решения Дана).
+Правки этих файлов сервер не перезапускают (не в paths server-deploy) — ярлык сам подтягивает код.
 
 ## Где живёт каждый алярм (проверено 2026-10-04)
 
