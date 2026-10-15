@@ -5310,16 +5310,20 @@ function detectAddrGps(){
 async function submitAddress(){
   const addr=document.getElementById('addr-input').value.trim();
   if(!addr){closeAddrModal();return;}
-  const c=st.clients.find(x=>x.custId===st.addrClientId);
+  const id=st.addrClientId;
+  const c=st.clients.find(x=>String(x.custId)===String(id));
+  const custName=document.getElementById('addr-modal-title').textContent;
   closeAddrModal();
   try{
     const r=await apiFetch(`${API}/geocode?address=${encodeURIComponent(addr)}&city=${encodeURIComponent(c?.city||'')}`);
     const d=await r.json();
     if(d&&d.lat){
-      st.clients=st.clients.map(x=>x.custId===st.addrClientId?{...x,address:addr,lat:d.lat,lng:d.lng}:x);
-      st.aiClients=nearestNeighbor([...st.clients]);
-      triggerOsrm();
-      updateKmBar(); renderClientList();
+      // Same shared save path as detectAddrGps/map-click/tablet (saveGpsCorrection).
+      // Used to only mutate st.clients: no gpsSource:'correction', so triggerOsrm()
+      // put the old AI Google point back (Waze/🗺 Google led there), and nothing was
+      // saved, so a reload restored the old point too. Live 2026-10-15.
+      st.clients=st.clients.map(x=>String(x.custId)===String(id)?{...x,address:addr}:x); // saveGpsCorrection stores cl.address
+      saveGpsCorrection(id,custName,d.lat,d.lng);
     }
   }catch{}
 }
