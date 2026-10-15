@@ -4116,7 +4116,7 @@ document.addEventListener('DOMContentLoaded',function(){
 }
 
 function openGoogleMaps(){
-  const clients = displayClients().filter(c => c.lat && c.lng);
+  const clients = _aiGpsClients(displayClients()).filter(c => c.lat && c.lng); // same points as the map markers
   if(!clients.length){ alert('אין לקוחות עם GPS במסלול זה'); return; }
   const MAX_WAYPOINTS = 23;
   const pts = clients.slice(0, MAX_WAYPOINTS);
@@ -4295,9 +4295,12 @@ function _primaryActionsHtml(c,noGps){
   // "exclude from route" button in that same slot — visual symmetry (מבצע takes
   // the spot instead), and it discourages skipping a client worth visiting.
   const hasPromo=PROMO_CUST_IDS.has(String(c.custId));
+  // Waze goes to the same point the map marker shows (renderMap _getCoord) — in "הגרסה שלי"
+  // st.clients carries raw PBI coords while the map overlays AI Google / tablet (live 2026-10-15).
+  const nav=_aiGpsClients([c])[0];
   return `<span class="zikuy-btn" data-id="${c.custId}" data-name="${nm}" data-city="${ct}" onclick="openZikuyOrder(event,this.dataset.id,this.dataset.name,this.dataset.city)" title="בקשת זיכוי">זיכוי</span>
     ${hasPromo ? '' : `<span class="excl-btn" data-id="${c.custId}" onclick="toggleExclude('${c.custId}',event)" title="הוצא ממסלול">🚫</span>`}
-    ${noGps ? '' : `<span class="waze-btn" onclick="openWaze(event,${c.lat},${c.lng})" title="נווט ב-Waze">W</span>`}
+    ${noGps ? '' : `<span class="waze-btn" onclick="openWaze(event,${nav.lat},${nav.lng})" title="נווט ב-Waze">W</span>`}
     ${_isBdd() && _mekarerAccess.bdd ? `<span class="mekarer-btn" data-id="${c.custId}" data-name="${nm}" data-city="${ct}" onclick="openMekarerOrder(event,this.dataset.id,this.dataset.name,this.dataset.city)" title="הזמנת מקרר">🧊</span>` : ''}
     <span class="ai-insight-btn" data-id="${c.custId}" data-name="${nm}" onclick="openClientAI(event,this.dataset.id,this.dataset.name)" title="ניתוח מעמק — משפחות, פערים, השוואה לרשת">🔍</span>
     ${hasPromo ? `<span class="promo-btn" data-id="${c.custId}" data-name="${nm}" onclick="openPromoModal(event,this.dataset.id,this.dataset.name)" title="מבצעים פעילים">🏷️</span>` : ''}`;
