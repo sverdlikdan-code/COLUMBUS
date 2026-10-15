@@ -2656,15 +2656,15 @@ app.get('/customers', requireAuth, agentOwnOnly, dataRateLimit, async (req, res)
     clients = [...clients, ...iceForDay];
 
     // Add clients moved INTO this specific day from somewhere else (any other day,
-    // "?", or a different PBI bucket entirely) — search every pool we have, then
-    // fall back to the snapshot pushDayMove sent at move time so a client is never
-    // silently dropped just because the PBI cache doesn't carry them under this id.
+    // "?", or a different PBI bucket) — only from the agent's live pools. The move's
+    // stored snapshot is NOT a fallback: a client reassigned or made לא פעיל after
+    // the move stayed in the old agent's route forever with frozen data (1154313
+    // at Zoya/257, moved 01.09, reassigned to 47/931 in PBI — live 2026-10-15).
     for (const id of movedInIds) {
       if (clients.some(c => String(c.custId) === id)) continue;
       const found = allForAgent.find(c => String(c.custId) === id)
         || noSchedFormula.find(c => String(c.custId) === id)
-        || iceAll.find(c => String(c.custId) === id)
-        || (dayMoves[id]?.client ? { ...dayMoves[id].client, custId: id } : null);
+        || iceAll.find(c => String(c.custId) === id);
       if (found) clients.push({ ...found, dayNum, priorityOrder: 9500 });
     }
     console.log(`[/customers] after day filter + ICE + moves: ${clients.length}`);
@@ -6178,18 +6178,16 @@ function custIdToRosterAgent() {
 // moves, FORMULA clients only (ICE-only clients never count, same as the agent's
 // own ring in formula-road.html _renderFormulaBanner; user 2026-09-30: channels
 // never mix). Shared with the coverage snapshot so tiles and history
-// can't drift apart. A moved-in id found in no pool is judged by the client
-// snapshot pushDayMove stored with the move (iceOnly flag).
+// can't drift apart. A moved-in id counts only while it is still in the agent's FORMULA
+// pool (same rule as /customers — no frozen move snapshots, live 2026-10-15).
 // parity/served (♠½, 2026-10-08): a client the agent put on the other week is out of the
 // plan unless he is in `served` (ordered anyway) — coverage.js biweeklyLine.
 function formulaLineFor(agentCode, dayNum, overrides, parity, served) {
   const scheduled = pbiCache.byAgent.get(agentCode) || [];
   const formulaIds = new Set([...scheduled, ...(pbiCache.noScheduleByAgent?.get(agentCode) || [])].map(c => String(c.custId)));
-  const iceIds = new Set((pbiCache.iceByAgent?.get(agentCode) || []).map(c => String(c.custId)));
   const entry = (overrides || readRouteOverrides())[agentCode] || {};
   const dayMoves = entry.dayMoves || {};
-  const line = lineFor({ scheduled, dayMoves, dayNum,
-    movedInOk: id => formulaIds.has(id) || (!iceIds.has(id) && !dayMoves[id]?.client?.iceOnly) });
+  const line = lineFor({ scheduled, dayMoves, dayNum, movedInOk: id => formulaIds.has(id) });
   return biweeklyLine(line, entry.biweekly, parity, served);
 }
 
