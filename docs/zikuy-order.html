@@ -23,7 +23,9 @@
 body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(--text);min-height:100vh;padding-bottom:96px;font-size:15px;overscroll-behavior-y:contain;}
 .top-bar{background:linear-gradient(135deg,var(--blue-dark),var(--blue));color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2);}
 .back-btn{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;width:40px;height:40px;font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.top-title{font-size:17px;font-weight:800;flex:1;}
+.top-title{font-size:17px;font-weight:800;flex:1;min-width:0;}
+.tt-main{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tt-sub{font-size:12px;font-weight:700;opacity:.85;}
 .section{background:var(--card);border-radius:var(--radius);margin:12px;box-shadow:0 1px 4px rgba(21,101,192,.08);overflow:hidden;}
 .sec-head{background:var(--sky);padding:11px 14px;border-bottom:1px solid var(--sky-mid);display:flex;align-items:center;gap:8px;}
 .sec-title{font-size:14px;font-weight:800;color:var(--blue-dark);}
@@ -33,8 +35,18 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 .loading{text-align:center;padding:24px;color:var(--light);font-size:13px;}
 
 /* ── product picker ─────────────────────────────────────────────── */
-.chips{display:flex;flex-wrap:wrap;gap:7px;}
-.chip{padding:10px 15px;border-radius:20px;border:1.5px solid var(--sky-mid);background:#fff;font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer;color:var(--blue-dark);transition:all .15s;-webkit-appearance:none;appearance:none;min-height:40px;}
+/* All departments visible at once, one row, no scrolling (user 2026-10-16: two rows of big pills
+   ate the screen) — equal columns, tight gaps; a long name wraps to 2 lines inside its button. */
+.chips{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:12px;margin-bottom:12px;} /* same 12px as the product grid gap below */
+/* Name centred in the space above, icon pinned to the bottom so every department's icon sits on
+   one line even when a name wraps to 2 lines (גלידה mish, user 2026-10-16). */
+.chip{display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:2px;}
+.chip-nm{flex:1;display:flex;align-items:center;justify-content:center;}
+.chip-ic{display:block;font-size:16px;line-height:1;}
+/* Same raised look as the Formula Road row buttons: shared shadow, sinks 1px on tap. */
+.chip,.photo-card{box-shadow:0 2px 0 rgba(38,50,56,.16),0 3px 6px rgba(38,50,56,.12);}
+.chip:active,.photo-card:active{transform:translateY(1px);box-shadow:0 1px 0 rgba(38,50,56,.16),0 1px 2px rgba(38,50,56,.12);}
+.chip{min-width:0;min-height:46px;padding:5px 3px;border-radius:12px !important;font-size:12.5px !important;line-height:1.15;text-align:center;white-space:normal;overflow-wrap:anywhere;border-radius:20px;border:1.5px solid var(--sky-mid);background:#fff;font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer;color:var(--blue-dark);transition:all .15s;-webkit-appearance:none;appearance:none;min-height:40px;}
 .chip.on{background:var(--blue);color:#fff;border-color:var(--blue);}
 .fam-head{font-size:12.5px;font-weight:800;color:var(--mid);text-transform:uppercase;letter-spacing:.3px;margin:14px 0 6px;padding-bottom:4px;border-bottom:1.5px solid var(--sky-mid);}
 .fam-head:first-of-type{margin-top:10px;}
@@ -42,7 +54,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 .photo-card{width:100%;border:1.5px solid var(--sky-mid);border-radius:10px;padding:6px;text-align:center;cursor:pointer;background:#fff;font-family:inherit;transition:all .15s;-webkit-appearance:none;appearance:none;}
 .photo-card:hover{border-color:var(--blue);box-shadow:0 2px 8px rgba(21,101,192,.15);}
 .photo-card.added{border-color:var(--green);background:#F1F8F1;}
-.photo-card img{width:100%;height:64px;object-fit:contain;border-radius:6px;background:#f5f5f5;margin-bottom:4px;}
+.photo-card img{width:100%;height:96px;object-fit:contain;border-radius:6px;background:#f5f5f5;margin-bottom:4px;}
 .photo-card .pname{font-size:11.5px;font-weight:700;color:var(--text);line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .photo-card .padd{font-size:10px;font-weight:800;color:var(--green);margin-top:2px;}
 
@@ -86,7 +98,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 #qty-modal-box .qm-btns button{flex:1;height:46px;border:none;border-radius:10px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;}
 #qty-modal-box .qm-cancel{background:var(--sky);color:var(--blue-dark);}
 #qty-modal-box .qm-ok{background:var(--blue);color:#fff;}
-.ret-field input[type=date],.ret-field select{padding:9px 10px;min-height:44px;min-width:132px;border:1.5px solid var(--sky-mid);border-radius:10px;font-size:14.5px;font-family:inherit;color:var(--text);background:#fff;}
+.ret-field input[type=date],.ret-field select{padding:9px 10px;min-height:50px;min-width:150px;border:1.5px solid var(--sky-mid);border-radius:10px;font-size:17px;font-weight:700;font-family:inherit;color:var(--text);background:#fff;}
 .opt-toggle{display:flex;min-height:44px;min-width:150px;border:1.5px solid var(--sky-mid);border-radius:10px;overflow:hidden;} /* toggle not <select> — easy to fat-finger -50%/השמדה */
 .opt-btn{flex:1;border:none;background:#fff;font-family:inherit;font-size:13px;font-weight:800;color:var(--mid);cursor:pointer;-webkit-appearance:none;appearance:none;padding:0 6px;white-space:nowrap;}
 .opt-btn:not(:last-child){border-inline-end:1.5px solid var(--sky-mid);}
@@ -118,9 +130,10 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
    screenshot showed only 2 photo rows visible before the family header eats
    ~265px of pure chrome. Measured via .scratch/test-zikuy-space.js. ── */
 @media (max-width:759px){
-  .top-bar{padding:6px 14px;}
-  .back-btn{width:36px;height:36px;font-size:17px;}
-  .top-title{font-size:15px;}
+  .top-bar{padding:3px 10px;}
+  .back-btn{width:30px;height:30px;font-size:15px;}
+  .top-title{font-size:14px;line-height:1.2;}
+  .tt-sub{font-size:11px;}
   .client-strip{margin:4px 12px 3px;padding:4px 10px;font-size:11px;}
   .section{margin:6px 10px;}
   .sec-head{padding:6px 14px;}
@@ -133,9 +146,9 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
   .sec-body{padding:8px 10px 6px;}
   .fam-head{margin:6px 0 4px;font-size:11.5px;}
   .fam-head:first-of-type{margin-top:2px;}
-  .photo-grid{gap:8px;}
+  .photo-grid{gap:12px;}
   .photo-card{padding:5px;}
-  .photo-card img{height:52px;margin-bottom:3px;}
+  .photo-card img{height:100px;margin-bottom:3px;}
 }
 
 /* ── tablet sizing: portrait-only — stays single-column (stacked) at any width,
@@ -235,26 +248,21 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 #pv-overlay.barcode-mode #pv-title{font-size:23px;}
 #pv-overlay.barcode-mode #pv-custid span{font-size:26px;}
 #pv-overlay.barcode-mode #pv-meta{font-size:15.5px;}
+/* Expiry date: bigger tap target + bigger calendar icon (user 2026-10-16). The calendar itself is
+   the phone's native picker (iOS / Android) — the field just opens it. */
+.ret-field input[type=date]::-webkit-calendar-picker-indicator{width:22px;height:22px;opacity:.75;cursor:pointer;}
 </style>
 </head>
 <body>
 
 <div class="top-bar no-print">
   <button class="back-btn" aria-label="חזרה" onclick="window.close()">→</button>
-  <div class="top-title">🔄 בקשת זיכוי</div>
+  <div class="top-title"><div class="tt-main" id="inf-name">—</div><div class="tt-sub">🔄 בקשת זיכוי · <span id="inf-id">—</span></div></div>
 </div>
 
-<div class="client-strip no-print">
-  <span>👤</span>
-  <span id="inf-name">—</span><span class="cs-sep">·</span>
-  <span id="inf-id">—</span><span class="cs-sep">·</span>
-  <span id="inf-city">—</span><span class="cs-sep">·</span>
-  <span id="inf-agent">—</span>
-</div>
 
 <div class="layout no-print">
   <div class="section" id="browse-section">
-    <div class="sec-head"><span class="sec-title">📦 בחר מוצרים (FORMULA + ICE מיש בלבד, רק מוצרים שהלקוח קנה ב-365 יום)</span></div>
     <div class="sec-body">
       <div id="browse-loading" class="loading">⏳ טוען מוצרים...</div>
       <div id="browse-body" style="display:none">
@@ -472,8 +480,6 @@ async function init(){
   if(_shareDataParam){ return initRenderMode(); }
   document.getElementById('inf-name').textContent = custName || '—';
   document.getElementById('inf-id').textContent = custId || '—';
-  document.getElementById('inf-city').textContent = city || '—';
-  document.getElementById('inf-agent').textContent = agentName ? `${agentName} (${agentCode})` : (agentCode || '—');
 
   if(!custId){ document.getElementById('browse-loading').textContent='❌ חסר מספר לקוח'; return; }
   try{
@@ -527,23 +533,29 @@ function renderBrowse(){
   const chipsEl=document.getElementById('chips');
   const groupsEl=document.getElementById('fam-groups');
 
-  const machlakot=[...new Set(products.map(p=>p.machlaka).filter(Boolean))].sort();
-  chipsEl.innerHTML=machlakot.map(m=>`<button type="button" class="chip ${m===navMachlaka?'on':''}" data-m="${esc(m)}">${esc(m)}</button>`).join('');
+  // ICE משפחתי (גלידה mish) always last, the rest alphabetical (user 2026-10-16).
+  const _iceLast=m=>/גלידה/.test(m)?1:0;
+  const machlakot=[...new Set(products.map(p=>p.machlaka).filter(Boolean))].sort((x,y)=>_iceLast(x)-_iceLast(y)||x.localeCompare(y,'he'));
+  // Department names carry their emoji from PBI ("דגים 🐟") — split it out so the name gets the
+  // full button width and the icon sits on its own line below (user 2026-10-16).
+  const EMO=/[\p{Extended_Pictographic}][\uFE0F\u200D\p{Extended_Pictographic}]*/gu;
+  chipsEl.innerHTML=machlakot.map(m=>{
+    const ic=(m.match(EMO)||[]).join(''), nm=m.replace(EMO,'').replace(/\s+/g,' ').trim()||m;
+    return `<button type="button" class="chip ${m===navMachlaka?'on':''}" data-m="${esc(m)}"><span class="chip-nm">${esc(nm)}</span>${ic?`<span class="chip-ic">${esc(ic)}</span>`:''}</button>`;
+  }).join('');
   chipsEl.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{navMachlaka=(navMachlaka===c.dataset.m?null:c.dataset.m);renderBrowse();});
 
   if(!navMachlaka){ groupsEl.innerHTML=''; return; }
 
   const items=products.filter(p=>p.machlaka===navMachlaka);
   const families=[...new Set(items.map(p=>p.family).filter(Boolean))].sort();
-  groupsEl.innerHTML = families.map(fam=>{
-    const famItems = items.filter(p=>p.family===fam);
-    const cards = famItems.map(p=>{
+  // One continuous grid ordered by family — no family headings/lines (user 2026-10-16: room for photos).
+  const ordered = [...families.flatMap(f=>items.filter(p=>p.family===f)), ...items.filter(p=>!p.family)];
+  groupsEl.innerHTML = '<div class="photo-grid">' + ordered.map(p=>{
       const isAdded=selected.has(p.sku);
       const img=p.imgUrl?`<img src="${esc(proxyImg(p.imgUrl))}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none'">`:'<div style="width:100%;height:64px;background:#f5f5f5;border-radius:6px;margin-bottom:4px"></div>';
       return `<button type="button" class="photo-card ${isAdded?'added':''}" data-sku="${esc(p.sku)}">${img}<div class="pname">${esc(shortName(p.name))}</div>${isAdded?'<div class="padd">✓ נוסף</div>':''}</button>`;
-    }).join('');
-    return `<div class="fam-head">${esc(fam)}</div><div class="photo-grid">${cards}</div>`;
-  }).join('');
+  }).join('') + '</div>';
   groupsEl.querySelectorAll('.photo-card').forEach(c=>c.onclick=()=>toggleProduct(c.dataset.sku));
 }
 
