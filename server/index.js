@@ -2861,7 +2861,7 @@ app.post('/save-gps', requireAuth, dataRateLimit, async (req, res) => {
     });
     // Audit log
     writeLog({ ts: new Date().toISOString(), event: 'gps-correction', custId: String(custId),
-      agentCode: req.session?.agentCode || null, ip: getRealIp(req) });
+      agentCode: req.session?.agentCode || null, managerId: req.session?.managerId || null, ip: getRealIp(req) });
     res.json({ ok: true, total });
   } catch (err) {
     console.error(err); res.status(500).json({ error: 'server_error' });
@@ -6684,7 +6684,7 @@ app.post('/api/route-order', requireAuth, dataRateLimit, (req, res) => {
   if (!data[agentCode]) data[agentCode] = { order: {}, dayMoves: {} };
   data[agentCode].order[dayNum] = order.map(id => String(id).slice(0, 20));
   writeRouteOverrides(data);
-  writeLog({ ts: new Date().toISOString(), event: 'route-order-change', agentCode, day: dayNum, count: order.length, ip: getRealIp(req) });
+  writeLog({ ts: new Date().toISOString(), event: 'route-order-change', agentCode, day: dayNum, count: order.length, managerId: req.session?.managerId || null, ip: getRealIp(req) });
   res.json({ ok: true });
 });
 app.post('/api/route-day-move', requireAuth, dayMoveRateLimit, (req, res) => {
@@ -6714,7 +6714,7 @@ app.post('/api/route-day-move', requireAuth, dayMoveRateLimit, (req, res) => {
     delete data[agentCode].dayMoves[id];
   }
   writeRouteOverrides(data);
-  writeLog({ ts: new Date().toISOString(), event: 'route-day-move', agentCode, custId: id, day: dayNum, from: data[agentCode].dayMoves[id]?.from || null, ip: getRealIp(req) });
+  writeLog({ ts: new Date().toISOString(), event: 'route-day-move', agentCode, custId: id, day: dayNum, from: data[agentCode].dayMoves[id]?.from || null, managerId: req.session?.managerId || null, ip: getRealIp(req) });
   res.json({ ok: true });
 });
 app.get('/api/route-overrides', requireAuth, agentOwnOnly, dataRateLimit, (req, res) => {
