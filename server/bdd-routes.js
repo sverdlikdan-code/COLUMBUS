@@ -7,7 +7,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const ExcelJS = require('exceljs'); // Task 8: fridge order email, same package index.js already depends on
-const { BDD_GROUPS, summarizeBddDocs, bddCanWrite, canOrderMekarerBdd, canUseBdd, resolveBddGps, loadBddCache, serializeBddCache, deserializeBddCache, applyVisitOrder } = require('./bdd');
+const { BDD_GROUPS, summarizeBddDocs, bddCanWrite, mekarerBddVisible, canUseBdd, resolveBddGps, loadBddCache, serializeBddCache, deserializeBddCache, applyVisitOrder } = require('./bdd');
 const { bddDocLinesToday, bddClientPromos, bddCustFamiliesWithActivePromo, bddVisitOrder, bddCustMainAgents, bddClientsCreatedSince } = require('./bdd-priority');
 const { lineFor, coverageCounts, coverageClients, COVERAGE_EXCLUDED_TEAMS } = require('./coverage');
 
@@ -81,13 +81,12 @@ function createBdd(deps) {
       try {
         const byId = new Map();
         for (const r of await bddClientsCreatedSince(DB(), FRESH_WINDOW_DAYS)) {
-          if (!r.custId || cache.clientById.has(r.custId)) continue; // already on the roster
+          if (!r.custId || (cache.orderable || cache.clientById).has(r.custId)) continue; // already loaded
           if (r.status !== 'פעיל') continue;                          // same filter as the roster's DAX
-          const group = cache.agentGroup.get(r.agentCode);
-          if (!group) continue;                                       // agent outside the BDD teams
+          // Any agent, BDD team or not — the tile orders for every ICE client (Dan 2026-10-18).
           byId.set(r.custId, {
             custId: r.custId, custName: r.custName, city: r.city, address: '',
-            agentCode: r.agentCode, agentName: r.agentName, manager: group,
+            agentCode: r.agentCode, agentName: r.agentName, manager: cache.agentGroup.get(r.agentCode) || '',
             hevra: 'ICE_BDD', isFresh: true,
           });
         }
@@ -441,19 +440,20 @@ function createBdd(deps) {
     res.json({ ok: true, total });
   }));
 
-  // Fridge-order client search — one field, number or name (Dan 2026-10-14). Roster +
-  // freshClients(), scoped to what this session may actually order for: a team manager can't
-  // pull another group's client, and the list never offers one the POST below would 403 on.
-  // Freshly-opened clients come first — that's the whole reason the search exists.
+  // Fridge-order client search — one field, number or name (Dan 2026-10-14). Every ICE פעיל
+  // client + freshClients(), whatever the agent's group: any BDD team manager, Yosi and super
+  // may order for any ICE client (Dan 2026-10-18) — same rule as the POST below, so the list
+  // never offers one it would 403 on. Freshly-opened clients come first.
   router.get('/client-search', deps.dataRateLimit, h(async (req, res) => {
     const q = String(req.query.q || '').trim().toLowerCase();
     if (needCache(res)) return;
+    if (!mekarerBddVisible(req.session)) return res.status(403).json({ ok: false, error: 'forbidden' });
     if (q.length < 2) return res.json({ ok: true, clients: [], truncated: false });
     const out = [], seen = new Set();
     const match = c => String(c.custId).includes(q) || String(c.custName || '').toLowerCase().includes(q);
-    for (const src of [await freshClients(), cache.clientById]) {
+    for (const src of [await freshClients(), cache.orderable || cache.clientById]) {
       for (const c of src.values()) {
-        if (seen.has(c.custId) || !match(c) || !canOrderMekarerBdd(req.session, c.agentCode, cache)) continue;
+        if (seen.has(c.custId) || !match(c)) continue;
         seen.add(c.custId);
         out.push({ custId: c.custId, custName: c.custName, city: c.city, agentCode: c.agentCode,
           agentName: c.agentName, manager: c.manager, isFresh: !!c.isFresh });
@@ -479,8 +479,8 @@ function createBdd(deps) {
     // A client opened today isn't on the 06:00 roster yet; /client-search can offer him, so the
     // order has to accept him — still resolved from a server-side vetted map, never the body.
     const custId = String(body.custId || '');
-    const client = cache?.clientById.get(custId) || (cache ? (await freshClients()).get(custId) : null);
-    if (!client || !canOrderMekarerBdd(req.session, client.agentCode, cache)) return res.status(403).json({ error: 'forbidden' });
+    const client = cache?.clientById.get(custId) || cache?.orderable?.get(custId) || (cache ? (await freshClients()).get(custId) : null);
+    if (!client || !mekarerBddVisible(req.session)) return res.status(403).json({ error: 'forbidden' });
     const order = {
       channel: 'ICE BDD', custId: client.custId, custName: client.custName, city: client.city, agentName: client.agentName, manager: client.manager,
       contactName: String(body.contactName || '').substring(0, 80), phone: String(body.phone || '').substring(0, 20),

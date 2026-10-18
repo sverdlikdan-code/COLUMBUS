@@ -40,6 +40,11 @@ test('buildBddCache groups agents, schedules days, drops unknown agents', () => 
   assert.ok(!cache.byAgent.has('932'), 'agent outside TEAMS is dropped');
   assert.ok(cache.families.has('גלידה בודדים'));
   assert.strictEqual(cache.clientById.get('1151126').agentCode, '98');
+  // ❄️ tile: an ICE client on a non-team agent (כללי 932) is orderable but stays off the roster
+  assert.ok(cache.orderable.has('9999999') && !cache.clientById.has('9999999'));
+  assert.strictEqual(cache.orderable.get('1151126').manager, cache.clientById.get('1151126').manager);
+  const { serializeBddCache, deserializeBddCache } = require('./bdd');
+  assert.ok(deserializeBddCache(JSON.parse(JSON.stringify(serializeBddCache(cache, 'D'))), 'D').orderable.has('9999999'));
 });
 
 const { summarizeBddDocs, bddCanWrite, resolveBddGps } = require('./bdd');

@@ -39,10 +39,16 @@ function buildBddCache({ teamRows, clientRows, gpsRows, schedRows, familyRows },
 
   const clientById = new Map();
   const byAgent = new Map();
+  // Every ICE פעיל client, any agent/group (כללי included) — only for the ❄️ הזמנת מקרר tile
+  // (Dan 2026-10-18). Kept apart from clientById so coverage/סגירת יום/alarm snapshot don't move.
+  const orderable = new Map();
   for (const r of clientRows) {
     const custId = String(r['[custId]'] || '');
     const agentCode = String(r['[agentCode]'] || '').trim();
     const group = agentGroup.get(agentCode);
+    if (custId) orderable.set(custId, { custId, custName: fix.fixBiDi(r['[custName]'] || ''),
+      city: fix.expandCityAbbrev(String(r['[city]'] || '')), agentCode,
+      agentName: String(r['[agentName]'] || '').trim(), manager: group || '' });
     if (!custId || !group) continue;
     const address = fix.expandCityAbbrev(fix.fixBiDiAddress(r['[address]'] || ''));
     const city = fix.expandCityAbbrev(String(r['[city]'] || ''));
@@ -68,7 +74,7 @@ function buildBddCache({ teamRows, clientRows, gpsRows, schedRows, familyRows },
 
   const familiesRaw = familyRows.map(r => r['[fam]']).filter(Boolean);
   const families = new Set(familiesRaw.map(unreversePbi));
-  return { agentGroup, agentsByGroup, byAgent, clientById, families, familiesRaw, loadedAt: new Date() };
+  return { agentGroup, agentsByGroup, byAgent, clientById, orderable, families, familiesRaw, loadedAt: new Date() };
 }
 
 // One Priority result (bddDocLinesToday) feeds V, סגירת יום and line coverage.
@@ -120,14 +126,12 @@ function bddCanWrite(session, agentCode, cache) {
 }
 
 // Fridge orders (Dan 2026-10-13): team managers, Yosi and super only — never agents or the other readonly
-// managers. FORMULA: managerRole team; ICE BDD: bddCanWrite (bddRole team, own group). Yosi — both channels.
+// managers. FORMULA: managerRole team; ICE BDD: mekarerBddVisible (bddRole team, any ICE client since
+// 2026-10-18 — the ❄️ tile orders for the whole ICE company, not only the own group). Yosi — both channels.
 const MEKARER_ORDER_EXTRA = new Set(['yosi']);
 const mekarerExtra = s => !!s?.isManager && MEKARER_ORDER_EXTRA.has(s.managerId);
 function canOrderMekarer(session) {
   return mekarerExtra(session) || (!!session?.isManager && (session.managerRole === 'team' || session.managerRole === 'super'));
-}
-function canOrderMekarerBdd(session, agentCode, cache) {
-  return mekarerExtra(session) || bddCanWrite(session, agentCode, cache);
 }
 // UI only (show 🧊 in BDD): may order for at least some BDD group — same roles as bddCanWrite, without the group.
 function mekarerBddVisible(s) {
@@ -241,7 +245,7 @@ function serializeBddCache(cache, date) {
     v: BDD_CACHE_VERSION,
     date,
     agentGroup: [...cache.agentGroup], agentsByGroup: [...cache.agentsByGroup],
-    byAgent: [...cache.byAgent], clientById: [...cache.clientById],
+    byAgent: [...cache.byAgent], clientById: [...cache.clientById], orderable: [...(cache.orderable || [])],
     families: [...cache.families], familiesRaw: cache.familiesRaw, loadedAt: cache.loadedAt,
   };
 }
@@ -250,8 +254,11 @@ function deserializeBddCache(obj, today) {
   return {
     agentGroup: new Map(obj.agentGroup), agentsByGroup: new Map(obj.agentsByGroup),
     byAgent: new Map(obj.byAgent), clientById: new Map(obj.clientById),
+    // A cache file written before orderable existed: the tile falls back to the roster until the
+    // next warm-up — no version bump, so a restart doesn't force a DAX reload (429 incident).
+    orderable: new Map(obj.orderable || obj.clientById),
     families: new Set(obj.families), familiesRaw: obj.familiesRaw, loadedAt: new Date(obj.loadedAt),
   };
 }
 
-module.exports = { BDD_GROUPS, unreversePbi, buildBddCache, summarizeBddDocs, bddCanWrite, canOrderMekarer, canOrderMekarerBdd, mekarerBddVisible, canUseBdd, resolveBddGps, loadBddCache, BDD_DAX_GAP_MS, serializeBddCache, deserializeBddCache, applyVisitOrder };
+module.exports = { BDD_GROUPS, unreversePbi, buildBddCache, summarizeBddDocs, bddCanWrite, canOrderMekarer, mekarerBddVisible, canUseBdd, resolveBddGps, loadBddCache, BDD_DAX_GAP_MS, serializeBddCache, deserializeBddCache, applyVisitOrder };
