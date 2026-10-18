@@ -141,8 +141,8 @@ SELECTCOLUMNS(
 // FORMULA и ICE, פעיל, пустой [פרמטר 7], агент не пустой (служебные GenRep/Leads/www… без агента
 // отсекаются) — из 'לקוחות FORM+I+INT' (Дан 18.10). Ключ `${hevra}:${id}`: один клиент бывает и в
 // FORMULA, и в ICE. Из Priority (form / icecrea): были ли продажи (финальный счёт DEBIT='D' или
-// финальная תעודת משלוח) — только такие идут Юле; у ICE ещё доп. агент משפחתי = CUSTOMERS.AGENT2.
-// Priority недоступен → hasSales=true (лучше лишняя строка Юле, чем потерянный клиент), без доп. агента.
+// финальная תעודת משלוח) — только такие идут Юле.
+// Priority недоступен → hasSales=true (лучше лишняя строка Юле, чем потерянный клиент).
 const PENDING_DB = { FORMULA: 'form', ICE: 'icecrea' };
 async function fetchPending() {
   const T = "'לקוחות FORM+I+INT'";
@@ -167,31 +167,25 @@ SELECTCOLUMNS(FILTER(${T}, (${T}[HEVRA] = "FORMULA" || ${T}[HEVRA] = "ICE") && $
     const d = r['[opened]'] ? String(r['[opened]']).slice(0, 10).split('-').reverse().join('.') : '';
     out[`${hevra}:${id}`] = { hevra, id, name: fixBiDi(r['[custName]'] || ''), address: fixBiDi(r['[address]'] || ''),
       city: fixBiDi(r['[city]'] || ''), opened: d, agent, agentName: fixBiDi(r['[agentName]'] || ''),
-      addAgentCode: '', addAgentName: '', manager: r['[manager]'] || '', days: [], hasSales: true };
+      manager: r['[manager]'] || '', days: [], hasSales: true };
   }
   try {
     const { query } = require('./db');
     for (const [hevra, db] of Object.entries(PENDING_DB)) {
       const mine = Object.values(out).filter(c => c.hevra === hevra);
       if (!mine.length) continue;
-      const { recordset } = await query(`SELECT C.CUSTNAME, A2.AGENTCODE AS addCode, A2.AGENTNAME AS addName,
+      const { recordset } = await query(`SELECT C.CUSTNAME,
         CASE WHEN EXISTS (SELECT 1 FROM ${db}.dbo.INVOICES I WHERE I.CUST = C.CUST AND I.FINAL = 'Y' AND I.TYPE <> 'R' AND I.DEBIT = 'D')
                OR EXISTS (SELECT 1 FROM ${db}.dbo.DOCUMENTS D WHERE D.CUST = C.CUST AND D.TYPE = 'D' AND D.FINAL = 'Y') THEN 1 ELSE 0 END AS sold
-        FROM ${db}.dbo.CUSTOMERS C LEFT JOIN ${db}.dbo.AGENTS A2 ON A2.AGENT = C.AGENT2
+        FROM ${db}.dbo.CUSTOMERS C
         WHERE C.CUSTNAME IN (${mine.map(c => `'${c.id}'`).join(',')})`);
       for (const x of recordset) {
         const c = out[`${hevra}:${String(x.CUSTNAME)}`];
-        if (!c) continue;
-        c.hasSales = !!x.sold;
-        // из SQL скобки приходят зеркально: «לונסקי )פ(» → «לונסקי (פ)»
-        if (hevra === 'ICE' && x.addCode) {
-          c.addAgentCode = String(x.addCode);
-          c.addAgentName = String(x.addName || '').replace(/[()]/g, ch => ch === '(' ? ')' : '(').trim();
-        }
+        if (c) c.hasSales = !!x.sold;
       }
     }
   } catch (e) {
-    console.error(`[Priority] продажи/доп. агент недоступны — «ללא פרמטר 7» без фильтра продаж: ${e.message}`);
+    console.error(`[Priority] продажи недоступны — «ללא פרמטר 7» без фильтра продаж: ${e.message}`);
   }
   return out;
 }
@@ -297,7 +291,7 @@ function columnsFor(type, dateStr) {
   if (type === 'pending') return [BASE_COLS[0], BASE_COLS[1], { header: 'כתובת', key: 'address', width: 26 }, BASE_COLS[2],
     { header: 'תאריך פתיחה', key: 'opened', width: 14, center: true }, BASE_COLS[3],
     { header: "מס' סוכן", key: 'agent', width: 9, center: true }, { header: 'שם סוכן', key: 'agentName', width: 18 },
-    { header: "מס' סוכן נוסף", key: 'addAgentCode', width: 9, center: true }, { header: 'שם סוכן נוסף', key: 'addAgentName', width: 18 }, GROUP_COL];
+    GROUP_COL];
   if (type === 'day') return [...BASE_COLS, AGENT_COL, { header: `יום קודם בפריוריטי · עד ${until}`, key: 'from', width: 24, prev: true }, { header: 'יום נוכחי בפריוריטי', key: 'to', width: 20, cur: true }, GROUP_COL];
   return [...BASE_COLS, AGENT_COL, GROUP_COL];
 }
