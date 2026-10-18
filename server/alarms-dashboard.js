@@ -93,11 +93,16 @@ function build(managerRoster, hc, agents) {
   const formulaTeams = new Set((managerRoster || []).map(m => m.team).filter(Boolean));
   const nameOf = e => names.get(e.toLowerCase()) || e.split('@')[0];
 
+  // One run-alert block can feed two cards (client-changes + its HOMELESS mail to Yulia, 2026-10-18):
+  // "vars" = only these variables of the block, "varsExcept" = all but these.
+  const blockVars = a => Object.fromEntries(Object.entries(blocks?.[a.block]?.vars || {})
+    .filter(([n]) => (!a.vars || a.vars.includes(n)) && !(a.varsExcept || []).includes(n)));
+
   const alarms = catalog.map(a => {
     let recipients = null, hour = null;
     if (a.block) {
       const b = blocks?.[a.block];
-      if (b) { recipients = recipientsFromVars(b.vars); hour = b.hour; }
+      if (b) { recipients = recipientsFromVars(blockVars(a)); hour = b.hour; }
     } else if (a.env) recipients = recipientsFromEnv(a.env);
     // one address once per alarm: To beats team beats CC (client-changes lists Yosi in two groups)
     if (recipients) {
@@ -110,7 +115,7 @@ function build(managerRoster, hc, agents) {
       recipients = [...best.values()];
     }
     // what the source can take without a code change: a CC variable, a per-team managers variable
-    const varNames = a.block ? Object.keys(blocks?.[a.block]?.vars || {}) : Object.entries(a.env || {}).map(([n, r]) => r === 'cc' ? n + '_CC' : n);
+    const varNames = a.block ? Object.keys(blockVars(a)) : Object.entries(a.env || {}).map(([n, r]) => r === 'cc' ? n + '_CC' : n);
     const caps = { cc: varNames.some(n => /_CC$/.test(n)), team: varNames.some(n => /_(MANAGERS|OWNERS)$/.test(n)) };
     const c = a.hc ? hcByName.get(a.hc) : null;
     return {
