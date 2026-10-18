@@ -297,7 +297,11 @@ function columnsFor(type, dateStr) {
 }
 const cellValue = (r, key) => key === 'agentName' && r.type !== 'pending' ? (r.agentName || r.agent) : r[key];
 // Строки — по группам (קבוצה), внутри по имени: общий отчёт без фильтра читается по группам (пользователь 05.10).
-const byGroup = rows => [...rows].sort((a, b) => String(a.manager || '').localeCompare(String(b.manager || '')) || String(a.name || '').localeCompare(String(b.name || ''), 'he'));
+// «ללא פרמטר 7» — сперва по фирме (FORMULA, потом ICE), потом по группе (Дан 18.10: «сортировка по фирме везде»).
+const FIRM_ORDER = { FORMULA: 0, ICE: 1 };
+const firmOf = r => r.type === 'pending' ? (FIRM_ORDER[r.hevra] ?? 9) : 0;
+const groupKey = r => (r.type === 'pending' ? `${r.hevra}|` : '') + (r.manager || '');
+const byGroup = rows => [...rows].sort((a, b) => firmOf(a) - firmOf(b) || String(a.manager || '').localeCompare(String(b.manager || '')) || String(a.name || '').localeCompare(String(b.name || ''), 'he'));
 const esc = s => String(s ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 
 function buildHtml(changes, dateStr, greeting = '', title = 'FORMULA + ICE MISH — שינויים בלקוחות', sources = 'FORMULA · ICE משפחתי', intro = null) {
@@ -314,10 +318,10 @@ function buildHtml(changes, dateStr, greeting = '', title = 'FORMULA + ICE MISH 
     const cols = columnsFor(t.key, dateStr);
     const rows = byGroup(changes.filter(c => c.type === t.key));
     // подзаголовок группы — только если в разделе больше одной группы (общий отчёт)
-    const multi = new Set(rows.map(r => r.manager || '')).size > 1;
-    const groupHead = (r, i) => multi && (i === 0 || rows[i - 1].manager !== r.manager)
+    const multi = new Set(rows.map(groupKey)).size > 1;
+    const groupHead = (r, i) => multi && (i === 0 || groupKey(rows[i - 1]) !== groupKey(r))
       // без <bdi>/скобок: Outlook их не понимает и «קבוצה(1) ALEXEY :» разъезжается; RLM держит порядок
-      ? `<tr><td colspan="${cols.length}" style="padding:14px 8px 6px;background:#ffffff;color:#1f2a44;font-weight:700;text-align:right;border-bottom:1px solid #d9dce1">קבוצה&nbsp;<span style="background:#1f2a44;color:#fff;border-radius:10px;padding:1px 9px;font-size:13px">${esc(r.manager || '—')}</span>&#x200F; <span style="color:#7a808a;font-weight:600">· ${rows.filter(x => x.manager === r.manager).length}</span></td></tr>\n`
+      ? `<tr><td colspan="${cols.length}" style="padding:14px 8px 6px;background:#ffffff;color:#1f2a44;font-weight:700;text-align:right;border-bottom:1px solid #d9dce1">${r.type === 'pending' ? `${esc(r.hevra)}&#x200F; · ` : ''}קבוצה&nbsp;<span style="background:#1f2a44;color:#fff;border-radius:10px;padding:1px 9px;font-size:13px">${esc(r.manager || '—')}</span>&#x200F; <span style="color:#7a808a;font-weight:600">· ${rows.filter(x => groupKey(x) === groupKey(r)).length}</span></td></tr>\n`
       : '';
     const cell = (c, r) => {
       const v = esc(cellValue(r, c.key));
