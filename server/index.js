@@ -1020,6 +1020,44 @@ function validateManagerName(name) {
 
 // ── SESSION MANAGEMENT ─────────────────────────────────────────────────────
 const crypto = require('crypto');
+
+// Signed PBI cookie (fr_pbi) — the manager auto-login proof for /auth/pbi.
+// Set only when the browser actually passes the ?k= gate, carrying the pbiUser
+// + expiry sealed with an HMAC the client can't reproduce, so the identity in it
+// cannot be rewritten client-side (unlike the plain cookies it replaces, which
+// are no longer trusted). Office entry still falls back to the IP allowlist, so a
+// manager's phone on mobile data keeps working via the ?k= link. Limit: pbiUser
+// comes from the ?u= param, so a holder of the ?k= key could still name a
+// different email — that key is visible only to PBI-report viewers, and
+// self-asserted identity closes fully in the new repo (user, 2026-10-18).
+const FR_PBI_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+function signPbiCookie(pbiUser, exp) {
+  const secret = process.env.FR_COOKIE_SECRET;
+  if (!secret) return null;
+  const data = `${pbiUser}|${exp}`;
+  const b64 = Buffer.from(data).toString('base64url');
+  const sig = crypto.createHmac('sha256', secret).update(data).digest('base64url');
+  return `${b64}.${sig}`;
+}
+// Returns { pbiUser, exp } for a valid, unexpired, correctly-signed cookie, else null.
+function verifyPbiCookie(raw) {
+  const secret = process.env.FR_COOKIE_SECRET;
+  if (!secret || !raw) return null;
+  const dot = raw.lastIndexOf('.');
+  if (dot < 0) return null;
+  const b64 = raw.slice(0, dot), sig = raw.slice(dot + 1);
+  let data;
+  try { data = Buffer.from(b64, 'base64url').toString('utf8'); } catch (_) { return null; }
+  const expected = crypto.createHmac('sha256', secret).update(data).digest('base64url');
+  const a = Buffer.from(sig), b = Buffer.from(expected);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  const sep = data.lastIndexOf('|');
+  if (sep < 0) return null;
+  const exp = parseInt(data.slice(sep + 1), 10);
+  if (!Number.isFinite(exp) || Date.now() > exp) return null;
+  return { pbiUser: data.slice(0, sep), exp };
+}
+
 const sessions = new Map(); // token → { agentCode, isManager, expiresAt }
 
 // Sessions persist to disk so a server restart (crash/redeploy/manual
@@ -1378,38 +1416,50 @@ app.get('/i/:code', dataRateLimit, (req, res) => {
 // browser came through the ?k= gate (fr_pbi_seen). Anonymous PBI entry stays office-only.
 function pbiIpOrKnownUser(req, res, next) {
   const cookies = req.headers.cookie || '';
-  const u = cookies.match(/(?:^|;\s*)fr_pbiu=([^;]+)/);
-  const knownUser = !!(u && findManagerByPbiEmail(decodeURIComponent(u[1])));
-  if (isMahsanIp(req) === false && knownUser && /(?:^|;\s*)fr_pbi_seen=1/.test(cookies)) return next();
+  const m = cookies.match(/(?:^|;\s*)fr_pbi=([^;]+)/);
+  // Verified signed cookie is itself proof the browser passed the ?k= gate —
+  // no separate fr_pbi_seen needed, and it can't be forged. Stash it so the
+  // handler reuses the same verified identity (no re-parse, no re-trust).
+  // No decodeURIComponent: fr_pbi is base64url + '.' (URL-safe, set without
+  // encoding), and a stray %-sequence in a junk cookie would throw URIError →
+  // 500. Pass raw; a malformed value just fails verification → null.
+  const v = m ? verifyPbiCookie(m[1]) : null;
+  req._pbiVerified = v;
+  const knownUser = !!(v && v.pbiUser && findManagerByPbiEmail(v.pbiUser));
+  if (isMahsanIp(req) === false && knownUser) return next();
   return mahsanIpGuard(req, res, next);
 }
 app.get('/auth/pbi', dataRateLimit, pbiIpOrKnownUser, (req, res) => {
   const cookies = req.headers.cookie || '';
+  // Fail closed: without the signing secret the cookie can't be verified, so
+  // this door must not open at all rather than fall back to trusting plain text.
+  if (!process.env.FR_COOKIE_SECRET) {
+    writeLog({ ts: new Date().toISOString(), event: 'auth-pbi-rejected', reason: 'no_secret', ip: getRealIp(req), ua: (req.headers['user-agent'] || '').substring(0, 120) });
+    return res.status(503).json({ ok: false });
+  }
   if (!/(?:^|;\s*)fr_ok=1/.test(cookies)) {
     writeLog({ ts: new Date().toISOString(), event: 'auth-pbi-rejected', reason: 'no_fr_ok', ip: getRealIp(req), ua: (req.headers['user-agent'] || '').substring(0, 120) });
     return res.status(401).json({ ok: false });
   }
-  // fr_ok alone is NOT proof of a PBI visit — it's the same cookie set by
-  // agent invite links (_inviteRedirect), so any field agent hitting this URL
-  // directly used to walk away with an unrestricted isManager:true session
-  // (security-audit finding, 2026-09-07). fr_pbi_seen is set ONLY in
-  // formulaRoadGuard's ?k= branch, never for agent invites — require it here
-  // so this door only opens for browsers that actually came through PBI.
-  // Mahsan (planogram-editor.html) has no ?k= entry point of its own to ever
-  // set fr_pbi_seen — it never touches formulaRoadGuard. Its real security
-  // boundary is the IP allowlist above (mahsanIpGuard, MAHSAN_ALLOWED_IPS on
-  // the VPS) — a request that already cleared that is trusted without the
-  // cookie. Without this, every server restart permanently broke Mahsan's
-  // silent auto-login (bug found 2026-09-07, same day as the fr_pbi_seen fix).
-  if (!req._mahsanIpVerified && !/(?:^|;\s*)fr_pbi_seen=1/.test(cookies)) {
-    writeLog({ ts: new Date().toISOString(), event: 'auth-pbi-rejected', reason: 'no_fr_pbi_seen_no_ip', ip: getRealIp(req), ua: (req.headers['user-agent'] || '').substring(0, 120) });
+  // Proof of a real PBI visit = a valid signed fr_pbi cookie (set ONLY in
+  // formulaRoadGuard's ?k= branch, never for agent invites), OR a request that
+  // already cleared the IP allowlist. fr_ok alone is NOT proof — it's the same
+  // cookie set by agent invite links (_inviteRedirect), so any field agent
+  // hitting this URL directly used to walk away with an unrestricted
+  // isManager session (security-audit findings 2026-09-07 and 2026-10-18).
+  // Mahsan (planogram-editor.html) has no ?k= entry point of its own and so
+  // never gets fr_pbi — its boundary is the IP allowlist (mahsanIpGuard,
+  // MAHSAN_ALLOWED_IPS on the VPS), hence the _mahsanIpVerified escape hatch.
+  const v = req._pbiVerified || null;
+  if (!req._mahsanIpVerified && !v) {
+    writeLog({ ts: new Date().toISOString(), event: 'auth-pbi-rejected', reason: 'no_fr_pbi_no_ip', ip: getRealIp(req), ua: (req.headers['user-agent'] || '').substring(0, 120) });
     return res.status(401).json({ ok: false });
   }
-  // fr_pbiu is set by formulaRoadGuard from the report button's own ?u= param
-  // (meant to carry USERPRINCIPALNAME() from a DAX-built deep link) — lets us
-  // attribute an anonymous PBI-manager session to a real viewer, not just an IP.
-  const m = cookies.match(/(?:^|;\s*)fr_pbiu=([^;]+)/);
-  const pbiUser = m ? decodeURIComponent(m[1]) : null;
+  // pbiUser comes ONLY from the verified cookie now — the ?u= value the report
+  // button carried (USERPRINCIPALNAME()), sealed at gate time. Lets us attribute
+  // the manager session to a real viewer, not just an IP, without trusting
+  // anything the client can rewrite.
+  const pbiUser = v ? (v.pbiUser || null) : null;
   const managerMeta = findManagerByPbiEmail(pbiUser);
   // Unidentified manager sessions only for Mahsan (planogram-editor on GitHub Pages,
   // from an allowlisted IP). Live case 2026-10-01: an agent's phone (fr_ok from her own
@@ -5054,45 +5104,38 @@ function formulaRoadGuard(req, res, next) {
     // not just that someone did. Carried via its own cookie to /auth/pbi,
     // which is called separately (no query params) by the client JS.
     const pbiUser = req.query.u ? String(req.query.u).slice(0, 100) : '';
-    // fr_pbi_seen marks "this browser really came in through the PBI ?k=
-    // gate" — separate from fr_ok (shared with agent invite links) so a
-    // repeat visit can be recognized as "known PBI device" even on the runs
-    // where the button didn't carry ?u= (e.g. a report button not yet wired
-    // to USERPRINCIPALNAME()). Never set for agent invite-link sessions,
-    // which never pass through this branch — so it can't affect their access.
-    const setCookies = [
-      'fr_ok=1; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000',
-      'fr_pbi_seen=1; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000',
-    ];
-    if (pbiUser) setCookies.push(`fr_pbiu=${encodeURIComponent(pbiUser)}; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000`);
+    // fr_pbi is the signed "this browser really came in through the PBI ?k=
+    // gate" proof — separate from fr_ok (shared with agent invite links) and,
+    // unlike the old fr_pbi_seen/fr_pbiu pair, impossible to forge without the
+    // server secret. Sealed with the pbiUser (may be empty when the button
+    // didn't carry ?u=) and a 30-day expiry. Never set for agent invite-link
+    // sessions, which never pass through this branch.
+    const setCookies = ['fr_ok=1; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000'];
+    const signed = signPbiCookie(pbiUser, Date.now() + FR_PBI_TTL_MS);
+    if (signed) setCookies.push(`fr_pbi=${signed}; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000`);
     res.setHeader('Set-Cookie', setCookies);
     writeLog({ ts: new Date().toISOString(), event: 'gate-pbi', ip: getRealIp(req), path: req.path, device: deviceType(req.headers['user-agent'] || ''), pbiUser: pbiUser || null });
     return next();
   }
   if (hasCookie) {
-    // fr_pbiu (if present) rides along on every repeat visit too (30-day
-    // cookie, same as fr_ok) — read it here so gate-cookie entries carry the
-    // same pbiUser attribution as the initial gate-pbi hit instead of going
-    // back to being anonymous the moment the query param is gone.
-    const m = cookies.match(/(?:^|;\s*)fr_pbiu=([^;]+)/);
-    const pbiUser = m ? decodeURIComponent(m[1]) : null;
-    // pbiSeen without pbiUser = a browser that genuinely came in through the
-    // PBI ?k= gate at some point but never captured an identity (report
-    // button not wired to USERPRINCIPALNAME(), or visited before that button
-    // existed) — the population to chase down for re-identification, as
-    // opposed to agent invite-link sessions which never set fr_pbi_seen.
-    const pbiSeen = /(?:^|;\s*)fr_pbi_seen=1/.test(cookies);
-    // Rolling refresh — without this, fr_ok/fr_pbi_seen/fr_pbiu are set once
-    // (?k= or invite click) and never again, so they hard-expire 30 days
-    // after that single moment even for someone using the app daily. Only
-    // reissue the cookies this browser already has (pbiSeen/pbiUser gate
-    // which ones) — a plain invite-link session must not gain fr_pbi_seen
-    // here, same restriction as its original issuance.
+    // Verified fr_pbi (if present) rides along on every repeat visit — re-sign
+    // it with a fresh expiry so a daily user's gate proof never hard-expires,
+    // the same rolling refresh the old fr_pbi_seen/fr_pbiu reissue did. A forged
+    // or expired fr_pbi fails verification → not re-signed → treated as a plain
+    // invite-link session, exactly as a plain session must be.
+    const m = cookies.match(/(?:^|;\s*)fr_pbi=([^;]+)/);
+    // No decodeURIComponent: fr_pbi is base64url + '.' (URL-safe, set without
+  // encoding), and a stray %-sequence in a junk cookie would throw URIError →
+  // 500. Pass raw; a malformed value just fails verification → null.
+  const v = m ? verifyPbiCookie(m[1]) : null;
+    const pbiUser = v ? (v.pbiUser || null) : null;
     const setCookies = ['fr_ok=1; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000'];
-    if (pbiSeen) setCookies.push('fr_pbi_seen=1; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000');
-    if (pbiUser) setCookies.push(`fr_pbiu=${encodeURIComponent(pbiUser)}; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000`);
+    if (v) {
+      const signed = signPbiCookie(v.pbiUser, Date.now() + FR_PBI_TTL_MS);
+      if (signed) setCookies.push(`fr_pbi=${signed}; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=2592000`);
+    }
     res.setHeader('Set-Cookie', setCookies);
-    writeLog({ ts: new Date().toISOString(), event: 'gate-cookie', ip: getRealIp(req), path: req.path, device: deviceType(req.headers['user-agent'] || ''), pbiUser, pbiSeen });
+    writeLog({ ts: new Date().toISOString(), event: 'gate-cookie', ip: getRealIp(req), path: req.path, device: deviceType(req.headers['user-agent'] || ''), pbiUser, pbiSeen: !!v });
     return next();
   }
   // Fallback for cross-browser hand-offs where the fr_ok cookie can't follow
