@@ -10,6 +10,10 @@
 // клиентов в Priority нет (пользователь 05.10) — поэтому "пропал из таблицы" = "стал неактивным".
 // "Вернулся в актив" отличаем от "новый" по everSeen — все id, когда-либо попадавшие в снимок.
 // Гео-изменения сюда сознательно не входят (решение пользователя 05.10).
+// Клиенты без параметра 7 (Дан 18.10): в 'משטח' клиент попадает только с параметром 7, а в
+// 'לקוחות FORM+I+INT' есть сразу (см. fetchPending). Менеджерам/общему письму — каждый один раз
+// (pendingEver в снимке), агентам — нет; Юлии Дзюмак (CLIENT_CHANGES_PENDING_TO, копия PENDING_CC —
+// Дан) — отдельное письмо КАЖДЫЙ день с полным текущим списком тех, у кого уже есть продажи.
 //
 // Снимки — в LIVE_DATA_DIR/client-snapshots (клон /root/alerts-run сбрасывается каждый запуск).
 // Сравнение — с последним снимком ДО сегодняшнего: пропуск дней не теряет изменений, повторный
@@ -131,7 +135,65 @@ SELECTCOLUMNS(
       };
     }
   }
-  return { formula, ice, bdd: readBddCache() };
+  return { formula, ice, bdd: readBddCache(), pending: await fetchPending() };
+}
+
+// FORMULA и ICE, פעיל, пустой [פרמטר 7], агент не пустой (служебные GenRep/Leads/www… без агента
+// отсекаются) — из 'לקוחות FORM+I+INT' (Дан 18.10). Ключ `${hevra}:${id}`: один клиент бывает и в
+// FORMULA, и в ICE. Из Priority (form / icecrea): были ли продажи (финальный счёт DEBIT='D' или
+// финальная תעודת משלוח) — только такие идут Юле; у ICE ещё доп. агент משפחתי = CUSTOMERS.AGENT2.
+// Priority недоступен → hasSales=true (лучше лишняя строка Юле, чем потерянный клиент), без доп. агента.
+const PENDING_DB = { FORMULA: 'form', ICE: 'icecrea' };
+async function fetchPending() {
+  const T = "'לקוחות FORM+I+INT'";
+  const rows = await executeDax(`
+EVALUATE
+SELECTCOLUMNS(FILTER(${T}, (${T}[HEVRA] = "FORMULA" || ${T}[HEVRA] = "ICE") && ${T}[סטטוס] = "פעיל"
+    && ISBLANK(${T}[פרמטר 7]) && NOT ISBLANK(${T}[סוכן])),
+  "hevra",     ${T}[HEVRA],
+  "custId",    ${T}[מס. לקוח],
+  "custName",  ${T}[שם לקוח],
+  "address",   ${T}[כתובת],
+  "city",      ${T}[עיר],
+  "opened",    ${T}[תאריך פתיחה],
+  "agentCode", ${T}[סוכן],
+  "agentName", ${T}[שם סוכן],
+  "manager",   ${T}[מנהל FORMULA]
+)`);
+  const out = {};
+  for (const r of rows) {
+    const hevra = String(r['[hevra]'] || ''), id = String(r['[custId]'] || ''), agent = String(r['[agentCode]'] || '').trim();
+    if (!PENDING_DB[hevra] || !/^\d+$/.test(id) || !agent || agent === 'null') continue; // в IN ниже — только цифры
+    const d = r['[opened]'] ? String(r['[opened]']).slice(0, 10).split('-').reverse().join('.') : '';
+    out[`${hevra}:${id}`] = { hevra, id, name: fixBiDi(r['[custName]'] || ''), address: fixBiDi(r['[address]'] || ''),
+      city: fixBiDi(r['[city]'] || ''), opened: d, agent, agentName: fixBiDi(r['[agentName]'] || ''),
+      addAgentCode: '', addAgentName: '', manager: r['[manager]'] || '', days: [], hasSales: true };
+  }
+  try {
+    const { query } = require('./db');
+    for (const [hevra, db] of Object.entries(PENDING_DB)) {
+      const mine = Object.values(out).filter(c => c.hevra === hevra);
+      if (!mine.length) continue;
+      const { recordset } = await query(`SELECT C.CUSTNAME, A2.AGENTCODE AS addCode, A2.AGENTNAME AS addName,
+        CASE WHEN EXISTS (SELECT 1 FROM ${db}.dbo.INVOICES I WHERE I.CUST = C.CUST AND I.FINAL = 'Y' AND I.TYPE <> 'R' AND I.DEBIT = 'D')
+               OR EXISTS (SELECT 1 FROM ${db}.dbo.DOCUMENTS D WHERE D.CUST = C.CUST AND D.TYPE = 'D' AND D.FINAL = 'Y') THEN 1 ELSE 0 END AS sold
+        FROM ${db}.dbo.CUSTOMERS C LEFT JOIN ${db}.dbo.AGENTS A2 ON A2.AGENT = C.AGENT2
+        WHERE C.CUSTNAME IN (${mine.map(c => `'${c.id}'`).join(',')})`);
+      for (const x of recordset) {
+        const c = out[`${hevra}:${String(x.CUSTNAME)}`];
+        if (!c) continue;
+        c.hasSales = !!x.sold;
+        // из SQL скобки приходят зеркально: «לונסקי )פ(» → «לונסקי (פ)»
+        if (hevra === 'ICE' && x.addCode) {
+          c.addAgentCode = String(x.addCode);
+          c.addAgentName = String(x.addName || '').replace(/[()]/g, ch => ch === '(' ? ')' : '(').trim();
+        }
+      }
+    }
+  } catch (e) {
+    console.error(`[Priority] продажи/доп. агент недоступны — «ללא פרמטר 7» без фильтра продаж: ${e.message}`);
+  }
+  return out;
 }
 
 // null — кэша за сегодня нет (сервер не прогрелся) — тогда BDD-часть снимка переносится с прошлого раза.
@@ -189,7 +251,7 @@ function diff(prev, cur, everSeen) {
 // Если Priority недоступен — остаётся классификация по everSeen.
 const PRIORITY_DB = { formula: 'form', ice: 'icecrea', bdd: 'icecrea' };
 const SRC_BY_HEVRA = Object.fromEntries(SOURCES.map(([s, he]) => [he, s]));
-async function classifyByCreatedDate(changes, prevDate) {
+async function classifyByCreatedDate(changes, prevDate, pendingEver = new Set()) {
   const rows = changes.filter(c => c.type === 'new' || c.type === 'reactivated');
   if (!rows.length) return;
   const prevMin = (Date.UTC(...prevDate.split('-').map((v, i) => +v - (i === 1 ? 1 : 0))) - Date.UTC(1988, 0, 1)) / 60000;
@@ -201,7 +263,8 @@ async function classifyByCreatedDate(changes, prevDate) {
       if (!ids.length) continue;
       const { recordset } = await query(`SELECT CUSTNAME, CREATEDDATE FROM ${db}.dbo.CUSTOMERS WHERE CUSTNAME IN (${ids.map(i => `'${i}'`).join(',')})`);
       const created = new Map(recordset.map(r => [String(r.CUSTNAME), r.CREATEDDATE]));
-      for (const c of mine) if (created.get(c.id)) c.type = created.get(c.id) >= prevMin ? 'new' : 'reactivated';
+      // ждал параметра 7 (был в «ללא פרמטר 7») — тоже новый: в активе он ещё не бывал (Дан 18.10)
+      for (const c of mine) if (created.get(c.id)) c.type = created.get(c.id) >= prevMin || pendingEver.has(`${c.hevra === 'FORMULA' ? 'FORMULA' : 'ICE'}:${c.id}`) ? 'new' : 'reactivated';
     }
   } catch (e) {
     console.error(`[Priority] CREATEDDATE недоступен — новый/вернулся по истории снимков: ${e.message}`);
@@ -214,25 +277,31 @@ const TYPES = [
   { key: 'reactivated', he: 'חזרו לפעילות',           color: '1A73E8', icon: '✅' },
   { key: 'agent',       he: 'העברה לסוכן אחר',        color: 'E37400', tint: 'FFF3E0', icon: '🔁' },
   { key: 'day',         he: 'שינוי יום ביקור',         color: '8430CE', tint: 'F3E8FD', icon: '📅' },
+  { key: 'pending',     he: 'לקוחות חדשים ללא פרמטר 7', color: '5F6368', icon: '⏳' },
 ];
 // Колонки по типу — одни и те же для письма и Excel. Смена агента: קודם (до даты отчёта) / נוכחי
 // вместо колонки סוכן; смена дня — дни как в Priority (FORMULA: משטח עם כפולות, ICE: פרמטר 18).
 // prev — приглушённо серым, cur — жирным в цвете раздела на бледной подложке (пользователь 05.10).
 const BASE_COLS = [
-  { header: "מס' לקוח", key: 'id', width: 12 },
+  { header: "מס' לקוח", key: 'id', width: 12, center: true },
   { header: 'שם לקוח', key: 'name', width: 34 },
   { header: 'עיר', key: 'city', width: 16 },
-  { header: 'חברה', key: 'hevra', width: 12 },
+  { header: 'חברה', key: 'hevra', width: 14, center: true },
 ];
+// center — номера/даты/коды/фирма: по центру (симметрия, Дан 18.10)
 const AGENT_COL = { header: 'סוכן', key: 'agentName', width: 20 };
-const GROUP_COL = { header: 'קבוצה', key: 'manager', width: 12 };
+const GROUP_COL = { header: 'קבוצה', key: 'manager', width: 12, center: true };
 function columnsFor(type, dateStr) {
   const until = dateStr.slice(0, 5); // день запуска (плавает), "05.10" — без скобок: в RTL они переворачиваются
   if (type === 'agent') return [...BASE_COLS, { header: `סוכן קודם · עד ${until}`, key: 'from', width: 22, prev: true }, { header: 'סוכן נוכחי', key: 'to', width: 20, cur: true }, GROUP_COL];
+  if (type === 'pending') return [BASE_COLS[0], BASE_COLS[1], { header: 'כתובת', key: 'address', width: 26 }, BASE_COLS[2],
+    { header: 'תאריך פתיחה', key: 'opened', width: 14, center: true }, BASE_COLS[3],
+    { header: "מס' סוכן", key: 'agent', width: 9, center: true }, { header: 'שם סוכן', key: 'agentName', width: 18 },
+    { header: "מס' סוכן נוסף", key: 'addAgentCode', width: 9, center: true }, { header: 'שם סוכן נוסף', key: 'addAgentName', width: 18 }, GROUP_COL];
   if (type === 'day') return [...BASE_COLS, AGENT_COL, { header: `יום קודם בפריוריטי · עד ${until}`, key: 'from', width: 24, prev: true }, { header: 'יום נוכחי בפריוריטי', key: 'to', width: 20, cur: true }, GROUP_COL];
   return [...BASE_COLS, AGENT_COL, GROUP_COL];
 }
-const cellValue = (r, key) => key === 'agentName' ? (r.agentName || r.agent) : r[key];
+const cellValue = (r, key) => key === 'agentName' && r.type !== 'pending' ? (r.agentName || r.agent) : r[key];
 // Строки — по группам (קבוצה), внутри по имени: общий отчёт без фильтра читается по группам (пользователь 05.10).
 const byGroup = rows => [...rows].sort((a, b) => String(a.manager || '').localeCompare(String(b.manager || '')) || String(a.name || '').localeCompare(String(b.name || ''), 'he'));
 const esc = s => String(s ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
@@ -244,39 +313,43 @@ function buildHtml(changes, dateStr, greeting = '', title = 'FORMULA + ICE MISH 
   // с ивритом; на телефонах его нет -> Tahoma/Arial.
   const font = "font-family:'Segoe UI',Tahoma,Arial,sans-serif";
   // шапка светлая, не тёмно-синяя — «давила на глаза» (пользователь 14.10); линия снизу — цвет раздела
-  const th = t => `style="background:#eef1f5;color:#3c4350;padding:8px 10px;text-align:right;font-weight:600;font-size:14px;border-bottom:2px solid #${t.color}"`;
-  const tdBase = 'padding:7px 10px;border-bottom:1px solid #d9dce1;text-align:right';
-  const td = `style="${tdBase}"`;
+  const th = (t, c) => `style="background:#eef1f5;color:#3c4350;padding:8px 8px;text-align:${c.center ? 'center' : 'right'};font-weight:600;font-size:13px;line-height:1.25;vertical-align:bottom;border-bottom:2px solid #${t.color}"`;
+  const tdBase = 'padding:7px 8px;border-bottom:1px solid #d9dce1;text-align:right;vertical-align:middle';
+  const tdOf = c => c.center ? `${tdBase};text-align:center` : tdBase; // без nowrap: на телефоне 390px колонки налезают
   const sections = counts.map(t => {
     const cols = columnsFor(t.key, dateStr);
     const rows = byGroup(changes.filter(c => c.type === t.key));
     // подзаголовок группы — только если в разделе больше одной группы (общий отчёт)
     const multi = new Set(rows.map(r => r.manager || '')).size > 1;
     const groupHead = (r, i) => multi && (i === 0 || rows[i - 1].manager !== r.manager)
-      ? `<tr><td colspan="${cols.length}" style="padding:12px 10px 5px;background:#ffffff;color:#1f2a44;font-weight:700;text-align:right;border-bottom:1px solid #d9dce1">קבוצה: <bdi>${esc(r.manager || '—')}</bdi> (${rows.filter(x => x.manager === r.manager).length})</td></tr>\n`
+      // без <bdi>/скобок: Outlook их не понимает и «קבוצה(1) ALEXEY :» разъезжается; RLM держит порядок
+      ? `<tr><td colspan="${cols.length}" style="padding:14px 8px 6px;background:#ffffff;color:#1f2a44;font-weight:700;text-align:right;border-bottom:1px solid #d9dce1">קבוצה&nbsp;<span style="background:#1f2a44;color:#fff;border-radius:10px;padding:1px 9px;font-size:13px">${esc(r.manager || '—')}</span>&#x200F; <span style="color:#7a808a;font-weight:600">· ${rows.filter(x => x.manager === r.manager).length}</span></td></tr>\n`
       : '';
     const cell = (c, r) => {
       const v = esc(cellValue(r, c.key));
-      if (c.prev) return `<td style="${tdBase};color:#7a808a">${v}</td>`;
-      if (c.cur) return `<td style="${tdBase};background:#${t.tint};color:#${t.color};font-weight:700">${v}</td>`;
+      if (c.prev) return `<td style="${tdOf(c)};color:#7a808a">${v}</td>`;
+      if (c.cur) return `<td style="${tdOf(c)};background:#${t.tint};color:#${t.color};font-weight:700">${v}</td>`;
       // имя клиента — крупнее (пользователь 06.10); min-width не ставить — на телефоне 390px таблица вылезает
-      if (c.key === 'name') return `<td style="${tdBase};font-size:16px;font-weight:600">${v}</td>`;
-      return `<td ${td}>${v}</td>`;
+      if (c.key === 'name') return `<td style="${tdBase};font-size:15px;font-weight:600">${v}</td>`;
+      return `<td style="${tdOf(c)}">${v}</td>`;
     };
     return `<h3 style="color:#${t.color};margin:22px 0 6px">${t.icon} ${t.he} (${t.n})</h3>
-<table style="border-collapse:collapse;width:100%;font-size:15px;line-height:1.35;${font}">
-<tr>${cols.map(c => `<th ${th(t)}>${c.header}</th>`).join('')}</tr>
+<table width="100%" style="border-collapse:collapse;width:100%;font-size:14px;line-height:1.35;${font}">
+<colgroup>${cols.map(c => `<col width="${Math.round(c.width / cols.reduce((a, x) => a + x.width, 0) * 100)}%">`).join('')}</colgroup>
+<tr>${cols.map(c => `<th ${th(t, c)}>${c.header}</th>`).join('')}</tr>
 ${rows.map((r, i) => groupHead(r, i) + `<tr>${cols.map(c => cell(c, r)).join('')}</tr>`).join('\n')}
 </table>`;
   }).join('\n');
   return `<!doctype html><html dir="rtl" lang="he"><body style="margin:0"><!--[if mso]><table width="1000" align="center" cellpadding="0" cellspacing="0"><tr><td><![endif]--><div dir="rtl" style="${font};color:#111;max-width:1000px;margin:0 auto;padding:16px;box-sizing:border-box">
 <h2 style="margin:0 0 4px">${esc(title)} — ${dateStr}</h2>
-${greeting ? `<p style="margin:0 0 6px">${esc(greeting)}</p>` : ''}
+${greeting ? greeting.split('\n').map(g => /[א-ת]/.test(g)
+  ? `<p dir="rtl" style="margin:0 0 6px;text-align:right">${esc(g)}</p>`
+  : `<p dir="ltr" style="margin:0 0 6px;text-align:left;color:#444">${esc(g)}</p>`).join('') : ''}
 ${intro ? `<div style="background:#f5f7fb;border-right:4px solid #1f2a44;padding:8px 12px;margin:6px 0 10px;font-size:13px;line-height:1.5">
 <p dir="rtl" style="margin:0 0 6px;text-align:right">${esc(intro.he)}</p>
 <p dir="ltr" style="margin:0;text-align:left;color:#444">${esc(intro.ru)}</p></div>` : ''}
 <div style="color:#555;font-size:13px;margin-bottom:10px">${sources.split(' · ').map(s => `<bdi>${esc(s)}</bdi>`).join(' · ')}</div>
-<table cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:0 0;${font}"><tr>${counts.map(t => `<td style="background:#${t.color};color:#fff;font-size:13px;padding:4px 10px;border-radius:12px;white-space:nowrap">${t.icon} ${t.he}: ${t.n}</td><td style="width:8px">&nbsp;</td>`).join('')}</tr></table>
+${counts.length > 1 ? `<table cellpadding="0" cellspacing="0" style="border-collapse:separate;border-spacing:0 0;${font}"><tr>${counts.map(t => `<td style="background:#${t.color};color:#fff;font-size:13px;padding:4px 10px;border-radius:12px;white-space:nowrap">${t.icon} ${t.he}: ${t.n}</td><td style="width:8px">&nbsp;</td>`).join('')}</tr></table>` : ''}
 ${sections}
 <p style="color:#777;font-size:12px;margin-top:24px">הערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.</p>
 </div><!--[if mso]></td></tr></table><![endif]--></body></html>`;
@@ -356,19 +429,30 @@ async function main() {
   console.log(`Сейчас: ${SOURCES.map(([s, he]) => `${he} ${Object.keys(cur[s] || {}).length}`).join(', ')}; прошлый снимок: ${prevFile || 'нет'}`);
 
   const everSeen = new Set(prev?.everSeen || []);
+  const pendingEver = new Set(prev?.pendingEver || []);
   const changes = prev ? diff(prev, cur, everSeen) : [];
-  if (prev) await classifyByCreatedDate(changes, prevFile.slice(0, 10));
-  for (const [src] of SOURCES) for (const id of Object.keys(cur[src] || {})) everSeen.add(`${src}:${id}`);
+  if (prev) await classifyByCreatedDate(changes, prevFile.slice(0, 10), pendingEver);
+  // «ללא פרמטר 7» — один раз на клиента: показанные копятся в pendingEver
+  for (const [key, c] of Object.entries(cur.pending || {})) {
+    if (prev && !pendingEver.has(key)) changes.push({ type: 'pending', ...c });
+    pendingEver.add(key);
+  }
+  const { pending: _p, ...snap } = cur;
+  for (const [src] of SOURCES) for (const id of Object.keys(snap[src] || {})) everSeen.add(`${src}:${id}`);
 
-  fs.writeFileSync(path.join(SNAP_DIR, `${today}.json`), JSON.stringify({ ...cur, everSeen: [...everSeen] }));
+  fs.writeFileSync(path.join(SNAP_DIR, `${today}.json`), JSON.stringify({ ...snap, everSeen: [...everSeen], pendingEver: [...pendingEver] }));
   for (const f of snapFiles.filter(f => f !== `${today}.json`).slice(0, -KEEP_SNAPSHOTS)) fs.unlinkSync(path.join(SNAP_DIR, f));
 
   if (!prev) { console.log('Первый запуск — сохранён базовый снимок, письма нет.'); return; }
   // Всплывающее окно менеджерам в Formula Road (GET /api/manager/client-changes фильтрует по группе).
   // Пишется и при 0 изменений — чтобы вчерашний список не висел.
-  fs.writeFileSync(path.join(LIVE_DATA, 'client-changes-latest.json'), JSON.stringify({ date: today, changes }));
+  // «ללא פרמטר 7» в окно не идёт: окно (docs/formula-road.html CC_TYPES) знает только 5 типов.
+  fs.writeFileSync(path.join(LIVE_DATA, 'client-changes-latest.json'), JSON.stringify({ date: today, changes: changes.filter(c => c.type !== 'pending') }));
   for (const t of TYPES) console.log(`  ${t.key}: ${changes.filter(c => c.type === t.key).length}`);
-  if (!changes.length) { console.log('Изменений нет — письма не отправляются.'); return; }
+  // полный текущий список «ללא פרמטר 7» — для ежедневного письма Юлии, независимо от «один раз»
+  const pendingAll = Object.values(cur.pending || {}).filter(c => c.hasSales).map(c => ({ type: 'pending', ...c }));
+  console.log(`  pending (весь список для Юлии): ${pendingAll.length}`);
+  if (!changes.length && !pendingAll.length) { console.log('Изменений нет — письма не отправляются.'); return; }
 
   const dateStr = today.split('-').reverse().join('.');
   // пояснение в начале каждого письма, иврит + русский (пользователь 06.10): что это и с чем сравниваем
@@ -406,9 +490,17 @@ async function main() {
   perGroup(process.env.CLIENT_CHANGES_MANAGERS, main, 'manager', `FORMULA + ICE MISH — שינויים בלקוחות בפריוריטי ${dateStr}`);
   addMail('all', list(process.env.CLIENT_CHANGES_ALL), [], `FORMULA + ICE MISH — שינויים בלקוחות בפריוריטי ${dateStr}: ${main.length}`, main);
 
+  // Юлия — каждый день весь текущий список «ללא פרמטר 7», отдельным письмом, Дан в копии (пусто — письма нет)
+  addMail('pending', list(process.env.CLIENT_CHANGES_PENDING_TO), list(process.env.CLIENT_CHANGES_PENDING_CC),
+    `HOMELESS WITHOUT PARAM7 — ${dateStr}: ${pendingAll.length}`, pendingAll, {
+      title: 'HOMELESS WITHOUT PARAM7', sources: 'FORMULA · ICE', intro: null,
+      greeting: `יוליה, אלה לקוחות פעילים שכבר יש להם מכירות ועדיין חסר להם פרמטר 7 — לכן הם לא מופיעים באפליקציה. אחרי שיוגדר פרמטר 7 הלקוח ייעלם מהרשימה.\nЮлия, это активные клиенты, у которых уже есть продажи, но ещё нет параметра 7, — поэтому их нет в приложении. Как только параметр 7 поставят, клиент пропадёт из списка.`,
+    });
+
   const emails = await loadAgentEmails();
   const noEmail = [];
-  for (const [code, rows] of changesByAgent(main)) {
+  // «ללא פרמטר 7» агентам не шлём — вопрос технический, для Юлии, не для агента (Дан 18.10)
+  for (const [code, rows] of changesByAgent(main.filter(c => c.type !== 'pending'))) {
     const name = rows.find(r => r.agent === code)?.agentName || rows.find(r => r.fromAgent === code)?.from || code;
     if (!emails[code]) { noEmail.push(`${name} (${code})`); continue; }
     addMail(`agent ${code} ${name}`, [emails[code]], [], `FORMULA + ICE MISH — שינויים בלקוחות שלך בפריוריטי ${dateStr}: ${rows.length}`, rows,
