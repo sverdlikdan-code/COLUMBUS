@@ -67,7 +67,9 @@ CALCULATETABLE(
 // (сверка с дашбордом на 365 днях: 11/11 партий).
 const ICE = process.argv.includes('--ice') || process.env.EXPIRY_ALERT_ICE === '1';
 const ICE_SHELF_LIFE = 90; // порог флага סכנה и меры v2 на дашборде АЙС (было 120, Дан 2026-10-13 → 90)
-const ICE_SALES_DAYS = 365;
+// 52 закрытых недели Вс–Сб без текущей (Дан 2026-10-19): незакрытая неделя занижала AVERAGEX по неделям.
+// Не длиннее года: мера группирует по DIMCALENDAR[Week Number] без года — окно >52 нед склеивает годы.
+const ICE_SALES_WEEKS = 52;
 
 const _BIDI_STRIP = /[‎‏‪-‮⁦-⁩]/g;
 // PBI АЙС отдаёт иврит в визуальном порядке. Как fixBiDi в build-mmd-orders.js, но скобки
@@ -92,7 +94,7 @@ async function fetchIceData() {
   const DS = process.env.POWERBI_ICE_DATASET_ID;
   if (!DS) throw new Error('POWERBI_ICE_DATASET_ID не задан');
   const PAGE = `'KARTIS PARIT'[משפחתי / בודדים] = "משפחתי", MLAY[מלאי זמין] > 0`;
-  const SALES = `DATA[Custom] = "-מכר-", DIMCALENDAR[Date] >= TODAY() - ${ICE_SALES_DAYS}, DIMCALENDAR[Date] < TODAY()`;
+  const SALES = `DATA[Custom] = "-מכר-", DIMCALENDAR[Date] >= TODAY() - WEEKDAY(TODAY(), 1) + 1 - ${ICE_SALES_WEEKS * 7}, DIMCALENDAR[Date] < TODAY() - WEEKDAY(TODAY(), 1) + 1`;
   const [batchRows, prodRows, weekRows] = await Promise.all([
     executeDax(`EVALUATE CALCULATETABLE(ADDCOLUMNS(
       SUMMARIZE('MLAY MISHPAHTI', 'MLAY MISHPAHTI'[מק'ט], 'MLAY MISHPAHTI'[מנה/פק'ע], 'MLAY MISHPAHTI'[מחסן], 'MLAY MISHPAHTI'[ת. תפוגת תוקף]),
@@ -163,7 +165,7 @@ async function fetchIceData() {
   mks.sort((a, b) => isNew(a) - isNew(b) || (products[a].fam || '').localeCompare(products[b].fam || '') || a.localeCompare(b))
     .forEach((mk, i) => { state[i + 1] = { makat: mk, name: products[mk].nameEn, fam: products[mk].fam, haluka: 0, printOrder: i + 1 }; });
   const newSince = Object.fromEntries(mks.filter(isNew).map(mk => [mk, products[mk].newSince]));
-  return { products, state, photos, newSince, salesDays: ICE_SALES_DAYS };
+  return { products, state, photos, newSince, salesWeeks: ICE_SALES_WEEKS };
 }
 
 const ENV = ZAFN_LOW ? 'ZAFN_LOW_ALERT' : 'EXPIRY_ALERT';
@@ -223,7 +225,7 @@ async function shootCards(split, zafnLow, hide = [], ice = null) {
       document.querySelectorAll('#expiry-grid button').forEach(b => b.remove()); // "×" скрыть карточку
       // подпись темпа в редакторе вшита под FORMULA (45 дней)
       if (ice) document.querySelectorAll('#expiry-grid span').forEach(sp => {
-        if (sp.textContent === '(45 יום אחורה)') sp.textContent = `(${ice.salesDays} יום אחורה)`;
+        if (sp.textContent === '(45 יום אחורה)') sp.textContent = `(${ice.salesWeeks} שבועות סגורים)`;
       });
       // бирка новинки под מק"ט — отдельным div, сам div מק"ט не трогаем (по нему ищется מק"ט ниже)
       if (ice) document.querySelectorAll('#expiry-grid div[style*="color:#1565C0;font-weight:bold"]').forEach(el => {
@@ -414,7 +416,7 @@ function buildIceHtml(ice) {
   const firstNew = ice.n - (ice.nNew || 0);
   return `<tr><td dir="rtl" style="padding:22px 28px 4px;text-align:right;border-top:3px solid ${NAVY}">
     <div style="font-size:20px;font-weight:900;color:${NAVY}">גלידה משפחתי — ICE</div>
-    <div style="padding-top:4px;font-size:13px;color:${MUTED}">${ice.n} ${ice.n === 1 ? 'מוצר בסכנה' : 'מוצרים בסכנה'} / STOP SALE · מכר ממוצע ${ICE_SALES_DAYS} יום אחורה · חיי מדף מינ' ${ICE_SHELF_LIFE} יום</div>
+    <div style="padding-top:4px;font-size:13px;color:${MUTED}">${ice.n} ${ice.n === 1 ? 'מוצר בסכנה' : 'מוצרים בסכנה'} / STOP SALE · מכר ממוצע ${ICE_SALES_WEEKS} שבועות סגורים · חיי מדף מינ' ${ICE_SHELF_LIFE} יום</div>
   </td></tr>
   ${buildRiskHtml(ice.risk)}
   ${cardRows('ice-card', 0, firstNew)}
