@@ -1244,10 +1244,12 @@ async function loadAgentEmailRoster() {
   agentEmailRosterCache = map;
   return agentEmailRosterCache;
 }
+// Manager CC = work @DilerBMD.com address (Dan 2026-10-19: the onmicrosoft PBI logins don't reach them).
+// VPS-only file, gitignored (public repo) — same addresses as /root/run-alert.sh. No entry → no CC.
+const MANAGER_EMAILS_FILE = path.join(__dirname, 'data', 'manager-emails.json');
 async function findAgentSubmitterEmail(session) {
   if (session?.isManager) {
-    const mgr = session.managerId ? loadManagerRoster().find(m => m.id === session.managerId) : null;
-    return mgr?.pbiEmails?.[0] || session.pbiUser || null;
+    try { return JSON.parse(fs.readFileSync(MANAGER_EMAILS_FILE, 'utf8'))[session.managerId] || null; } catch { return null; }
   }
   if (session?.agentCode) {
     const roster = await loadAgentEmailRoster();
@@ -6938,7 +6940,7 @@ const bdd = createBdd({
   todayIsraelDate, todayRouteDay, msUntilNextIsraelTime, isValidIL, geocodeAddressCascade,
   geocodeAddress, cleanAddressForGeocoding,
   inCityBBox: (city, lat, lng) => isWithinCityBBox(lat, lng, cityBBoxCache.get(city)), // read-only; unknown city → true
-  writeLog, getRealIp, resend, sessionAuthorName,
+  writeLog, getRealIp, resend, sessionAuthorName, findAgentSubmitterEmail,
   formulaGps: () => ({ // read-only view for the BDD GPS cascade
     clientMaps: [pbiCache?.byAgent, pbiCache?.noScheduleByAgent, pbiCache?.iceByAgent],
     resolved: geocodeResolvedCache, tablet: tabletGpsCache,

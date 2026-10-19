@@ -498,7 +498,11 @@ function createBdd(deps) {
     res.json({ ok: true, id });
     // Dark-launch test account: its orders go to Dan only, never to the real recipients.
     const to = req.session.managerId === BDD_TEST_MANAGER_ID ? [BDD_TEST_EMAIL] : (process.env.NOTIFY_EMAIL || '').split(',').map(e => e.trim()).filter(Boolean);
-    if (deps.resend && to.length) sendMekarerEmail(order, id, to).catch(e => console.error('[mekarer-bdd] email', e.message));
+    if (deps.resend && to.length) (async () => {
+      // CC the manager who placed it, like FORMULA (2026-10-19); test account stays Dan-only.
+      const cc = req.session.managerId === BDD_TEST_MANAGER_ID ? null : await deps.findAgentSubmitterEmail(req.session);
+      await sendMekarerEmail(order, id, to, cc);
+    })().catch(e => console.error('[mekarer-bdd] email', e.message));
   }));
 
   router.get('/api/promo-cust-ids', deps.dataRateLimit, h(async (req, res) => {
@@ -538,12 +542,8 @@ function createBdd(deps) {
   // Fridge order email — copied verbatim from FORMULA's /api/mekarer-order handler
   // (index.js ~3298-3428: Excel build + resend.emails.send), only: title/subject say
   // "ICE BDD", first Excel info row is ['ערוץ','ICE BDD']. The FORMULA block also CCs
-  // whoever submitted the order (findAgentSubmitterEmail, index.js ~985) — that
-  // helper reads managers.json/loadManagerRoster + an xlsx agent-email roster, both
-  // index.js-only state; dropped here rather than added to deps, since a BDD order
-  // always comes from a manager session already named in the email body (order.manager)
-  // and losing the CC doesn't lose any information, just an extra recipient.
-  async function sendMekarerEmail(order, id, to) {
+  // whoever submitted the order (findAgentSubmitterEmail, passed in deps since 2026-10-19).
+  async function sendMekarerEmail(order, id, to, cc) {
     const wb = new ExcelJS.Workbook();
     wb.creator = 'COLUMBUS'; wb.created = new Date();
     const ws = wb.addWorksheet('הזמנת מקרר', { views: [{ rightToLeft: true }] });
@@ -643,6 +643,7 @@ function createBdd(deps) {
     await deps.resend.emails.send({
       from: `Diler Intelligence <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
       to,
+      cc: cc ? [cc] : undefined,
       subject: `[ICE BDD] הזמנת מקרר חדשה — ${order.custName} (${order.city})`,
       attachments: [{ filename: `mekarer-bdd-${safeDate}-${safeName}.xlsx`, content: xlsB64 }],
       html: `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
