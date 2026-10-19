@@ -49,7 +49,22 @@ function httpsPost(url, headers, body) {
   });
 }
 
+// Сетевой сбой до ответа PBI (DNS/обрыв) — повторить; HTTP-ошибки (429!) и 60с-таймаут не повторяем,
+// чтобы не жечь DAX-квоту. 19.10 разовый ENOTFOUND api.powerbi.com молча выбросил ICE из алярма תוקף.
+const NET_ERR = /ENOTFOUND|EAI_AGAIN|ECONNRESET|ECONNREFUSED|ETIMEDOUT|EPIPE|network_error/i;
 async function executeDax(daxQuery, datasetId, workspaceIdOverride) {
+  for (const wait of [2000, 5000, 15000]) {
+    try { return await executeDaxOnce(daxQuery, datasetId, workspaceIdOverride); }
+    catch (e) {
+      if (!NET_ERR.test(`${e.code || ''} ${e.errorCode || ''} ${e.message}`)) throw e;
+      console.error(`PBI network error (${e.code || e.errorCode || e.message}), retry in ${wait / 1000}s`);
+      await new Promise(r => setTimeout(r, wait));
+    }
+  }
+  return executeDaxOnce(daxQuery, datasetId, workspaceIdOverride);
+}
+
+async function executeDaxOnce(daxQuery, datasetId, workspaceIdOverride) {
   const token = await getPowerBIToken();
   const workspaceId = workspaceIdOverride || process.env.POWERBI_WORKSPACE_ID;
   const dsId = datasetId || process.env.POWERBI_DATASET_ID;
