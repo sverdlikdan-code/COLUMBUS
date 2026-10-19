@@ -19,7 +19,7 @@ const arg = k => (process.argv.find(a => a.startsWith(`--${k}=`)) || '').split('
 const DOCS = path.join(__dirname, '..', 'docs');
 const WS = 'ee9e5fc6-bc10-4e7d-a8f3-b23c08d150ed', DS = 'fb6691a0-9b2f-413b-b438-78d2982c4e70'; // CONTROL / INTERNATIONAL CONTROL DESK
 const SUPPLIER = '2110171', SHOW_MONTHS = 18, TOP_PRIVATE = 10, STOCK_MONTHS = 3;
-const SHARE_DIR = '/root/private-share', PUBLIC = 'https://api.sverdlik-apps.site';
+const SHARE_DIR = '/root/private-share', PUBLIC = 'https://columbus-api.sverdlik-apps.site';
 
 const NAVY = '#1C3D6B', GOLD = '#C9A227', INK = '#1F2937', MUTED = '#6B7280', LINE = '#E5E7EB', PAPER = '#F4F6FA', RED = '#B91C1C', GREEN = '#15803D';
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

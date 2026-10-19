@@ -494,7 +494,7 @@ async function buildXlsx(parts) {
 
 // Личные ссылки: файлы в /root/private-share (вне публичного репо), отдаёт роут /p/:name в index.js.
 // Маппинг кто-какой-hex — obligo-links.json: не <hex>.html, поэтому роут его не отдаёт; по нему отчёт реакции из views.jsonl.
-const SHARE_DIR = '/root/private-share', PUBLIC = 'https://api.sverdlik-apps.site', LINK_DAYS = 14;
+const SHARE_DIR = '/root/private-share', PUBLIC = 'https://columbus-api.sverdlik-apps.site', LINK_DAYS = 14;
 const LINKS = path.join(SHARE_DIR, 'obligo-links.json');
 // битый файл — падаем, а не начинаем с [] (иначе старые страницы осиротеют и не удалятся)
 const loadLinks = () => { try { return JSON.parse(fs.readFileSync(LINKS, 'utf8')); } catch (e) { if (e.code === 'ENOENT') return []; throw e; } };

@@ -1367,6 +1367,8 @@ function _inviteRedirect(payload, res) {
 // same permission profile Mahsan already had. 2026-09-08.
 function _mahsanInviteRedirect(res) {
   const token = createSession(null, true, true, null, null);
+  sessions.get(token).app = 'mahsan'; // see /mahsan
+  saveSessions();
   return res.redirect(302, `https://sverdlikdan-code.github.io/COLUMBUS/planogram-editor.html?_inv=${encodeURIComponent(token)}`);
 }
 // Mekarer invite (office staff without Power BI, link in mekarer-ashdod.js mail): a non-manager
@@ -1401,8 +1403,30 @@ function makeShortInvite(code, name, days = 365, isManager = false, target = nul
   const short = crypto.randomBytes(5).toString('base64url'); // ~7 chars, URL-safe
   map[short] = { code, name, exp: Date.now() + days * 24 * 60 * 60 * 1000, isManager, target };
   saveShortInvites(map);
-  return `https://api.sverdlik-apps.site/i/${short}`;
+  // MAHSAN lives on its own host from 2026-10-19 (api.* moves to D.S LABS on 22.10); /i/ is host-agnostic.
+  return `https://${target === 'mahsan' ? 'columbus-api' : 'api'}.sverdlik-apps.site/i/${short}`;
 }
+// GET /mahsan?k=&u= — MAHSAN's Power BI button, on columbus-api (2026-10-19). Until now MAHSAN rode on the
+// fr_ok/fr_pbi cookies FR's ?k= gate set on api.sverdlik-apps.site; that host goes to D.S LABS on 22.10, so
+// the button opens this instead. Same key and ?u= as FR's button, same trust rule as /auth/pbi (a known PBI
+// manager, or anonymous only from MAHSAN_ALLOWED_IPS); the session travels in the URL like the mahsan invite
+// — no cookies, so this never opens the Formula Road gate on this host.
+app.get('/mahsan', dataRateLimit, (req, res) => {
+  const key = process.env.FORMULA_PBI_KEY;
+  if (!key || req.query.k !== key) return res.status(403).send(_inviteExpiredPage);
+  const pbiUser = req.query.u ? String(req.query.u).slice(0, 100) : null;
+  const managerMeta = findManagerByPbiEmail(pbiUser);
+  if (!managerMeta && isMahsanIp(req) !== true) { // fail-closed: no allowlist configured → no anonymous entry
+    writeLog({ ts: new Date().toISOString(), event: 'mahsan-pbi-rejected', pbiUser, ip: getRealIp(req), ua: (req.headers['user-agent'] || '').substring(0, 120) });
+    return res.status(403).send(_inviteExpiredPage);
+  }
+  const token = createSession(null, true, true, pbiUser, managerMeta);
+  sessions.get(token).app = 'mahsan'; // lets the 22.10 FR state copy leave MAHSAN sessions behind (DLS)
+  saveSessions();
+  writeLog({ ts: new Date().toISOString(), event: 'mahsan-pbi-open', pbiUser, managerId: managerMeta?.id || null, ip: getRealIp(req), device: deviceType(req.headers['user-agent'] || '') });
+  const open = /^[a-z-]{1,30}$/.test(String(req.query.open || '')) ? `&open=${req.query.open}` : '';
+  return res.redirect(302, `https://sverdlikdan-code.github.io/COLUMBUS/planogram-editor.html?_inv=${encodeURIComponent(token)}${open}`);
+});
 app.get('/i/:code', dataRateLimit, (req, res) => {
   const map = loadShortInvites();
   const payload = map[req.params.code];
