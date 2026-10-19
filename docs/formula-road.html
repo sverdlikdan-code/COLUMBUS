@@ -2561,7 +2561,7 @@ function _fixMgrGridSpan(grid){
 // since 2026-10-12, in place of the hidden SADRAN+ tile. In BDD the fridge-order tile took this
 // slot (Dan 2026-10-14) — the guide itself stays in the ⋮ menu, so nothing is lost.
 function _maybeRenderGuideTile(){
-  if(_isBdd()) return;
+  if(_isBdd() || _mekarerAccess.formula) return; // FORMULA fridge orderers: ❄️ takes this slot (Dan 2026-10-19)
   const grid=document.querySelector('#login-body .mgr-grid');
   if(!grid || grid.querySelector('.guide-tile')) return;
   const t=document.createElement('div');
@@ -2634,11 +2634,15 @@ async function _maybeRenderMekarerAdminBtn(){
 // day → card. A client opened TODAY has no visit day yet (and isn't in the 06:00 roster at all),
 // so his card was unreachable and the order impossible — live case 1154665, created that morning.
 // Same server gate as 🧊 inside the card (/api/mekarer-access .bdd); each endpoint re-checks.
+// FORMULA too since 2026-10-19 (Dan): replaces the ❓ tile, searches every FORMULA / ICE (משפחתי + BDD) client
+// via /client-search in index.js (gate .formula = canOrderMekarer, any team).
 async function _maybeRenderMekarerOrderTile(){
-  if(!_getToken() || !_isBdd()) return;
-  if(!(await _loadMekarerAccess()).bdd || st.step!=='manager') return;
+  if(!_getToken()) return;
+  const acc=await _loadMekarerAccess();
+  if(!(_isBdd()?acc.bdd:acc.formula) || st.step!=='manager') return;
   const grid=document.querySelector('#login-body .mgr-grid');
   if(!grid || grid.querySelector('.mekarer-order-tile')) return;
+  grid.querySelector('.guide-tile')?.remove(); // drawn before the access probe answered
   const t=document.createElement('div');
   t.className='mgr-tile mekarer-order-tile';
   t.setAttribute('role','button');

@@ -689,7 +689,9 @@ ${mekarerRows}
     return rows;
   }
 
-  return { router, start, coverageRows, ready: () => !!cache };
+  // FORMULA ❄️ tile searches every ICE client, BDD too (Dan 2026-10-19) — same list as BDD /client-search
+  const orderableClients = () => cache ? (cache.orderable || cache.clientById).values() : [];
+  return { router, start, coverageRows, orderableClients, ready: () => !!cache };
 }
 
 module.exports = { createBdd };
