@@ -4603,7 +4603,11 @@ function openZikuyOrder(e,custId,custName,city){
     agentCode:agent.code||'',agentName:agent.name||'',
     isManager: auth&&auth.isManager ? '1' : '',
   });
-  window.open('zikuy-order.html?'+p.toString(),'_blank');
+  // tap → window → page (zikuy_page_opened) logged step by step: 19.10 agent 234 (iPhone PWA) — the
+  // button "does nothing" and none of the three left a trace, so the break point was unknowable
+  _trackEvent('zikuy_btn_tapped',custId);
+  const w=window.open('zikuy-order.html?'+p.toString(),'_blank');
+  if(!w) _trackEvent('zikuy_open_null',custId);
 }
 // Server copy of 🚫 — see /api/route-exclude. BDD has its own router without it,
 // so there exclusions stay session-only as before.

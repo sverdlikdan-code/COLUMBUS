@@ -411,6 +411,7 @@ function _markFormStarted(){
   _formStarted = true;
   logEvent('zikuy_form_started', {itemCount: selected.size});
 }
+logEvent('zikuy_page_opened'); // the page loaded at all — pairs with zikuy_btn_tapped in formula-road.html
 window.addEventListener('pagehide', () => {
   if(_formStarted && !_formSubmitted && selected.size){
     logEvent('zikuy_form_abandoned', {itemCount: selected.size});
