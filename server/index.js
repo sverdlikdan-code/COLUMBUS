@@ -1209,6 +1209,11 @@ function findManagerByName(name) {
   if (!name) return null;
   return loadManagerRoster().find(m => m.name === name || m.nameHe === name) || null;
 }
+// Fridge order "נוצר ע״י" — Hebrew roster name of the manager who placed it (2026-10-19).
+function sessionAuthorName(sess) {
+  const m = sess?.managerId ? loadManagerRoster().find(x => x.id === sess.managerId) : null;
+  return m?.nameHe || m?.name || sess?.managerName || '';
+}
 function findManagerByPbiEmail(email) {
   if (!email) return null;
   const e = String(email).toLowerCase();
@@ -3816,6 +3821,7 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
       location:    String(body.location    || '').substring(0, 200),
       mekarerim:   Array.isArray(body.mekarerim) ? body.mekarerim.slice(0, 50) : [],
       manager:     String(body.manager     || '').substring(0, 60),
+      createdBy:   sessionAuthorName(req.session),
     };
     const filePath = path.join(__dirname, '..', 'docs', 'mekarer-orders.json');
     console.log(`[mekarer-order] saving to: ${filePath}`);
@@ -3855,7 +3861,7 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
           // Info rows — no merge, label col A, value col B
           const info = [
             ['לקוח', order.custName], ['מספר לקוח', String(order.custId || '')], ['עיר', order.city],
-            ['סוכן', order.agentName], ['מנהל', order.manager],
+            ['סוכן', order.agentName], ['מנהל', order.manager], ['נוצר ע״י', order.createdBy],
             ['איש קשר', order.contactName], ['טלפון', order.phone],
             ['מיקום', order.location],
             ['תאריך הזמנה', nowStr],
@@ -3943,6 +3949,7 @@ app.post('/api/mekarer-order', requireAuth, async (req, res) => {
 <tr><td style="color:#666;padding:4px 0">עיר</td><td>${order.city}</td></tr>
 <tr><td style="color:#666;padding:4px 0">סוכן</td><td>${order.agentName}</td></tr>
 <tr><td style="color:#666;padding:4px 0">מנהל</td><td>${order.manager}</td></tr>
+<tr><td style="color:#666;padding:4px 0">נוצר ע״י</td><td>${escEmail(order.createdBy)}</td></tr>
 <tr><td style="color:#666;padding:4px 0">איש קשר</td><td>${order.contactName}</td></tr>
 <tr><td style="color:#666;padding:4px 0">טלפון</td><td style="text-align:right">${order.phone}</td></tr>
 <tr><td style="color:#666;padding:4px 0">מיקום</td><td>${order.location}</td></tr>
@@ -4102,11 +4109,10 @@ app.get('/api/mekarer-export', requireAuth, async (req, res) => {
 // из письма, сессия mekarerOnly). natashaNote = колонка «הערות אשדוד» (Наталья уволилась 13.10,
 // ключ оставлен, чтобы её старые заметки остались в той же колонке).
 const MEKARER_ADMIN_FIELDS = { approve: ['yosi'], yossiNote: ['yosi'], supply: ['tanya', 'mariana'], natashaNote: ['tanya', 'mariana'] };
-const MEKARER_ADMIN_VIEWERS = new Set(Object.values(MEKARER_ADMIN_FIELDS).flat());
 const MEKARER_SELECT_VALUES = { approve: ['', 'כן', 'לא'], supply: ['', 'סופק', 'לא סופק'] };
 function mekarerAdminAccess(req, res, next) {
   const s = req.session;
-  if (s?.mekarerOnly || (s?.isManager && (s.viaPbi || MEKARER_ADMIN_VIEWERS.has(s.managerId) || s.managerRole === 'super'))) return next();
+  if (s?.mekarerOnly || (s?.isManager && (s.viaPbi || s.managerId))) return next();
   return res.status(403).json({ error: 'forbidden' });
 }
 function mekarerAdminRows() {
@@ -4118,6 +4124,8 @@ function mekarerAdminRows() {
 }
 app.get('/api/mekarer-admin', requireAuth, mekarerAdminAccess, (req, res) => {
   if (req.query.probe) return res.json({ ok: true });
+  // Who opened the page — viewers widened to all managers on 2026-10-19 (tracking standard).
+  writeLog({ ts: new Date().toISOString(), event: 'mekarer-admin-open', managerId: req.session.managerId || null, pbiUser: req.session.pbiUser || null, mekarerOnly: !!req.session.mekarerOnly, ip: getRealIp(req), device: deviceType(req.headers['user-agent'] || '') });
   const rows = mekarerAdminRows();
   const canEdit = Object.keys(MEKARER_ADMIN_FIELDS).filter(f => MEKARER_ADMIN_FIELDS[f].includes(req.session.managerId));
   res.json({ rows, marks: mekarerDaily.readMarks(), canEdit, mekarerOnly: !!req.session.mekarerOnly });
@@ -6930,7 +6938,7 @@ const bdd = createBdd({
   todayIsraelDate, todayRouteDay, msUntilNextIsraelTime, isValidIL, geocodeAddressCascade,
   geocodeAddress, cleanAddressForGeocoding,
   inCityBBox: (city, lat, lng) => isWithinCityBBox(lat, lng, cityBBoxCache.get(city)), // read-only; unknown city → true
-  writeLog, getRealIp, resend,
+  writeLog, getRealIp, resend, sessionAuthorName,
   formulaGps: () => ({ // read-only view for the BDD GPS cascade
     clientMaps: [pbiCache?.byAgent, pbiCache?.noScheduleByAgent, pbiCache?.iceByAgent],
     resolved: geocodeResolvedCache, tablet: tabletGpsCache,
@@ -7335,12 +7343,16 @@ CALCULATETABLE(
 let promoCustIdsCache = { date: null, formula: [], iceMish: [] };
 async function getPromoCustIdsSets() {
   const todayIL = todayIsraelDate();
-  if (promoCustIdsCache.date === todayIL) return promoCustIdsCache;
+  // failedAt: same as BDD's /api/promo-cust-ids — a failed query is retried at most every 10 min.
+  if (promoCustIdsCache.date === todayIL || Date.now() - (promoCustIdsCache.failedAt || 0) < 10 * 60 * 1000) return promoCustIdsCache;
   const [formulaSet, iceSet] = await Promise.all([
     custIdsWithActivePromo(process.env.DB_NAME || 'form'),
     custIdsWithActivePromo(process.env.DB_ICECREA || 'icecrea'),
   ]);
-  promoCustIdsCache = { date: todayIL, formula: formulaSet ? [...formulaSet] : [], iceMish: iceSet ? [...iceSet] : [] };
+  // A failed query (null) used to be cached as [] for the whole day → 🚫 on every row for everyone
+  // (07.09, 08.09, 08.10). Now the last good list is kept and the query is retried.
+  if (formulaSet && iceSet) promoCustIdsCache = { date: todayIL, formula: [...formulaSet], iceMish: [...iceSet], failedAt: 0 };
+  else promoCustIdsCache.failedAt = Date.now();
   return promoCustIdsCache;
 }
 app.get('/api/promo-cust-ids', requireAuth, dataRateLimit, async (req, res) => {

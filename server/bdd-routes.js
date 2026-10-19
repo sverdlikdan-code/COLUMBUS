@@ -483,6 +483,7 @@ function createBdd(deps) {
     if (!client || !mekarerBddVisible(req.session)) return res.status(403).json({ error: 'forbidden' });
     const order = {
       channel: 'ICE BDD', custId: client.custId, custName: client.custName, city: client.city, agentName: client.agentName, manager: client.manager,
+      createdBy: deps.sessionAuthorName(req.session),
       contactName: String(body.contactName || '').substring(0, 80), phone: String(body.phone || '').substring(0, 20),
       location: String(body.location || '').substring(0, 200),
       mekarerim: Array.isArray(body.mekarerim) ? body.mekarerim.slice(0, 50).map(cleanMekarer) : [],
@@ -566,7 +567,7 @@ function createBdd(deps) {
     const info = [
       ['ערוץ', 'ICE BDD'],
       ['לקוח', order.custName], ['מספר לקוח', String(order.custId || '')], ['עיר', order.city],
-      ['סוכן', order.agentName], ['מנהל', order.manager],
+      ['סוכן', order.agentName], ['מנהל', order.manager], ['נוצר ע״י', order.createdBy],
       ['איש קשר', order.contactName], ['טלפון', order.phone],
       ['מיקום', order.location],
       ['תאריך הזמנה', nowStr],
@@ -654,6 +655,7 @@ function createBdd(deps) {
 <tr><td style="color:#666;padding:4px 0">עיר</td><td>${escEmail(order.city)}</td></tr>
 <tr><td style="color:#666;padding:4px 0">סוכן</td><td>${escEmail(order.agentName)}</td></tr>
 <tr><td style="color:#666;padding:4px 0">מנהל</td><td>${escEmail(order.manager)}</td></tr>
+<tr><td style="color:#666;padding:4px 0">נוצר ע״י</td><td>${escEmail(order.createdBy)}</td></tr>
 <tr><td style="color:#666;padding:4px 0">איש קשר</td><td>${escEmail(order.contactName)}</td></tr>
 <tr><td style="color:#666;padding:4px 0">טלפון</td><td style="text-align:right">${escEmail(order.phone)}</td></tr>
 <tr><td style="color:#666;padding:4px 0">מיקום</td><td>${escEmail(order.location)}</td></tr>
