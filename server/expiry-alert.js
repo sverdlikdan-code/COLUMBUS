@@ -483,7 +483,10 @@ async function runVariant({ split, to }) {
       ice = { ...r, n: r.shots.length, nNew: r.risks.filter(x => x.mk in data.newSince).length,
         risk: riskSummary(r.risks.filter(x => !(x.mk in data.newSince))) };
       console.log('[ICE]', `Карточек: ${ice.n}`, r.risks.map(x => x.mk).join(','), `Риск: ${fmtILS(ice.risk.total)}`);
-    } catch (e) { console.error('[ICE] раздел пропущен:', e.message); }
+    } catch (e) {
+      console.error('[ICE] раздел пропущен:', e.message);
+      process.exitCode = 2;  // FORMULA всё равно уходит, но Healthchecks получает ≠0 → письмо Дану (19.10 выпал молча)
+    }
   }
   const iceN = ice?.n || 0;
   const risk = ZAFN_LOW ? { total: 0, top: [], topSum: 0, noCost: 0 } : riskSummary(risks);
