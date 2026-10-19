@@ -893,7 +893,9 @@
         integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk" crossorigin="anonymous"></script>
 <script>
 
-const API = 'https://api.sverdlik-apps.site';
+// Own host since 2026-10-19: api.sverdlik-apps.site moves to Formula Road at D.S LABS on 22.10;
+// columbus-api is the same COLUMBUS server (same tunnel). Every call below goes through API.
+const API = 'https://columbus-api.sverdlik-apps.site';
 const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
 // Mahsan invite magic-link (?_inv=): same pattern as formula-road.html's agent
@@ -941,7 +943,7 @@ const esc = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replac
   }
   window.fetch = async function(input, init) {
     const url = typeof input === 'string' ? input : (input && input.url) || '';
-    const isApi = url.includes('api.sverdlik-apps.site') && !url.includes('/auth/pbi');
+    const isApi = url.startsWith(API) && !url.includes('/auth/pbi');
     const isGet = !init || !init.method || init.method.toUpperCase() === 'GET';
 
     let res;
@@ -1334,7 +1336,7 @@ async function _doMahsanLogin() {
   const err  = document.getElementById('mahsan-login-err');
   if (!code) return;
   try {
-    const r = await fetch('https://api.sverdlik-apps.site/auth', {
+    const r = await fetch(API + '/auth', {
       method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ code })
     });
     const j = await r.json();
@@ -1815,7 +1817,7 @@ async function loadMaps() {
 
     // Fetch real PBI refresh time (overrides static refresh-info.json date)
     const _frTok = localStorage.getItem('frToken') || '';
-    fetch('https://api.sverdlik-apps.site/pbi/formula-refresh', { headers: { 'X-Session': _frTok } })
+    fetch(API + '/pbi/formula-refresh', { headers: { 'X-Session': _frTok } })
       .then(r => r.ok ? r.json() : null).catch(() => null)
       .then(j => {
         if (!j?.refreshedAt) return;
@@ -2851,7 +2853,7 @@ async function exportPositionXlsx() {
     ws.views[0] = { rightToLeft:true, state:'frozen', ySplit:HEADER_ROW };
 
     // Fetch photos via proxy (CORS bridge), batches of 8
-    const PROXY = 'https://api.sverdlik-apps.site/api/photo-proxy?url=';
+    const PROXY = API + '/api/photo-proxy?url=';
     const fetchAndEmbed = async (r, i) => {
       if (!r.photoUrl) return;
       try {
@@ -3212,7 +3214,7 @@ function toggleOrderOnly() {
 // ── Order page: save/restore manual order quantities (KARTON/PALLET) ───────
 // Shared across devices via server (/api/order-history); localStorage is offline fallback only.
 const ORD_VERSIONS_KEY = 'mahsan_order_versions';
-const ORDER_HISTORY_API = 'https://api.sverdlik-apps.site/api/order-history';
+const ORDER_HISTORY_API = API + '/api/order-history';
 
 function _orderFmtTs(iso) {
   const d = new Date(iso);
@@ -3318,7 +3320,7 @@ function _orderRestoreVersion(index) {
   buildOrderPage();
 }
 
-const ORDER_EXPORT_API = 'https://api.sverdlik-apps.site/api/export-order-xlsx';
+const ORDER_EXPORT_API = API + '/api/export-order-xlsx';
 
 async function exportOrderCsv() {
   // Export all visible rows; if ORDER ONLY mode is active — already filtered to orders only
@@ -3406,7 +3408,7 @@ async function _applyOrderPeriods() {
       window._orderPeriodFetchFailed = false;
     } else {
       const periodsParam = periods.join(',');
-      const resp = await fetch(`https://api.sverdlik-apps.site/pbi/dagim-sales?periods=${encodeURIComponent(periodsParam)}`, { headers: { 'X-Session': localStorage.getItem('frToken') || '' } })
+      const resp = await fetch(`${API}/pbi/dagim-sales?periods=${encodeURIComponent(periodsParam)}`, { headers: { 'X-Session': localStorage.getItem('frToken') || '' } })
         .catch(e => { console.error('[ord-periods] network error:', e); return null; });
       if (!resp) {
         data = null; window._orderPeriodFetchFailed = true;
@@ -3819,7 +3821,7 @@ async function _fetchVisibleBranchy(mkList) {
   const reqId = ++window._visibleBranchyReqId;
   cell.textContent = '…';
   try {
-    const url = `https://api.sverdlik-apps.site/pbi/dagim-sales?periods=${encodeURIComponent(periods)}&makat=${encodeURIComponent(mkList.join(','))}`;
+    const url = `${API}/pbi/dagim-sales?periods=${encodeURIComponent(periods)}&makat=${encodeURIComponent(mkList.join(','))}`;
     const resp = await fetch(url, { headers: { 'X-Session': localStorage.getItem('frToken') || '' } });
     const j = await resp.json().catch(() => null);
     if (reqId !== window._visibleBranchyReqId) return; // stale response — a newer filter click superseded this
@@ -3950,7 +3952,7 @@ async function _applyInterPeriods() {
       window._interPeriodSales = c.sales;
       if (c.shiukValues) window._interShiukValues = c.shiukValues;
     } else {
-      let url = `https://api.sverdlik-apps.site/pbi/inter-sales?periods=${encodeURIComponent(periodsKey)}`;
+      let url = `${API}/pbi/inter-sales?periods=${encodeURIComponent(periodsKey)}`;
       if (shiuk) url += `&shiuk=${encodeURIComponent(shiuk)}`;
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 45000);
@@ -3986,7 +3988,7 @@ function toggleInterZero() {
 }
 
 const INTER_VERSIONS_KEY = 'mahsan_inter_order_versions';
-const INTER_HISTORY_API  = 'https://api.sverdlik-apps.site/api/inter-order-history';
+const INTER_HISTORY_API  = API + '/api/inter-order-history';
 
 async function _interSaveSnapshot() {
   const rows  = window._interCurrentRows || [];
@@ -4820,7 +4822,7 @@ function splashEnter(sec) {
   if (!localStorage.getItem('frToken')) {
     window._pendingSplashSec = sec || null;
     // Try PBI auto-login (fr_ok cookie → manager session), then fall back to manual login
-    fetch('https://api.sverdlik-apps.site/auth/pbi', { credentials: 'include' })
+    fetch(API + '/auth/pbi', { credentials: 'include' })
       .then(r => r.ok ? r.json() : null)
       .then(j => {
         if (j && j.ok && j.token) {
