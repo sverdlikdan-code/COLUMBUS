@@ -11,8 +11,8 @@
 // "Вернулся в актив" отличаем от "новый" по everSeen — все id, когда-либо попадавшие в снимок.
 // Гео-изменения сюда сознательно не входят (решение пользователя 05.10).
 // Клиенты без параметра 7 (Дан 18.10): в 'משטח' клиент попадает только с параметром 7, а в
-// 'לקוחות FORM+I+INT' есть сразу (см. fetchPending). Менеджерам/общему письму — каждый один раз
-// (pendingEver в снимке), агентам — нет; Юлии Дзюмак (CLIENT_CHANGES_PENDING_TO, копия PENDING_CC —
+// 'לקוחות FORM+I+INT' есть сразу (см. fetchPending). В общем письме, менеджерам и агентам раздела
+// нет (Дан 19.10: есть отдельное письмо Юле); pendingEver в снимке копится для 'new'. Юлии Дзюмак (CLIENT_CHANGES_PENDING_TO, копия PENDING_CC —
 // Дан) — отдельное письмо КАЖДЫЙ день с полным текущим списком тех, у кого уже есть продажи.
 //
 // Снимки — в LIVE_DATA_DIR/client-snapshots (клон /root/alerts-run сбрасывается каждый запуск).
@@ -430,11 +430,9 @@ async function main() {
   const pendingEver = new Set(prev?.pendingEver || []);
   const changes = prev ? diff(prev, cur, everSeen) : [];
   if (prev) await classifyByCreatedDate(changes, prevFile.slice(0, 10), pendingEver);
-  // «ללא פרמטר 7» — один раз на клиента: показанные копятся в pendingEver
-  for (const [key, c] of Object.entries(cur.pending || {})) {
-    if (prev && !pendingEver.has(key)) changes.push({ type: 'pending', ...c });
-    pendingEver.add(key);
-  }
+  // «ללא פרמטר 7» в общее письмо/менеджерам не идёт (Дан 19.10: есть отдельное письмо Юле), но копится
+  // в pendingEver — получив параметр 7, клиент считается новым (classifyByCreatedDate)
+  for (const key of Object.keys(cur.pending || {})) pendingEver.add(key);
   const { pending: _p, ...snap } = cur;
   for (const [src] of SOURCES) for (const id of Object.keys(snap[src] || {})) everSeen.add(`${src}:${id}`);
 
