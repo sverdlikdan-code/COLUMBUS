@@ -125,13 +125,16 @@ function bddCanWrite(session, agentCode, cache) {
   return !!group && (session.managerTeams || []).includes(group);
 }
 
-// Fridge orders (Dan 2026-10-13): team managers, Yosi and super only — never agents or the other readonly
-// managers. FORMULA: managerRole team; ICE BDD: mekarerBddVisible (bddRole team, any ICE client since
-// 2026-10-18 — the ❄️ tile orders for the whole ICE company, not only the own group). Yosi — both channels.
+// Fridge orders — never agents (Dan 2026-10-13). FORMULA: any manager (canOrderMekarer below, since 19.10);
+// ICE BDD: mekarerBddVisible (bddRole team, any ICE client since 2026-10-18 — the ❄️ tile orders for the
+// whole ICE company, not only the own group) + Yosi + super.
 const MEKARER_ORDER_EXTRA = new Set(['yosi']);
 const mekarerExtra = s => !!s?.isManager && MEKARER_ORDER_EXTRA.has(s.managerId);
+// FORMULA: every manager, readonly too, for any client (Dan 2026-10-19 — was team/super/yosi since 13.10).
+// managerId = a person from managers.json: isManager alone is also the MAHSAN warehouse / anonymous office-PBI
+// session (createSession(null, true, true, ...) with no managerMeta) — an order on nobody's name.
 function canOrderMekarer(session) {
-  return mekarerExtra(session) || (!!session?.isManager && (session.managerRole === 'team' || session.managerRole === 'super'));
+  return !!session?.isManager && !!session.managerId;
 }
 // UI only (show 🧊 in BDD): may order for at least some BDD group — same roles as bddCanWrite, without the group.
 function mekarerBddVisible(s) {

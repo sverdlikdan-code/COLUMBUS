@@ -224,4 +224,27 @@ async function bddClientsCreatedSince(dbName, days = 3) {
   }));
 }
 
-module.exports = { getBddPool, bddDocLinesToday, bddClientPromos, bddCustFamiliesWithActivePromo, bddVisitOrder, bddCustMainAgents, bddClientsCreatedSince };
+// Every active client with a city, any agent (Dan 2026-10-19) — the FORMULA ❄️ fridge-order search
+// (index.js /client-search). ~2–3k rows per company, ~0.1 s. created = CREATEDDATE (minutes since 1988).
+async function activeClientsWithCity(dbName) {
+  const pool = await getBddPool(dbName);
+  const r = await pool.request().query(`
+    SELECT C.CUSTNAME AS custId, C.CUSTDES AS custName, C.STATE AS city, CS.STATDES AS status,
+           A.AGENTCODE AS agentCode, A.AGENTNAME AS agentName, C.CREATEDDATE AS created
+    FROM CUSTOMERS C
+    LEFT JOIN CUSTSTATS CS ON CS.CUSTSTAT = C.CUSTSTAT
+    LEFT JOIN AGENTS    A  ON A.AGENT     = C.AGENT
+  `);
+  return r.recordset
+    .filter(x => String(x.status || '').trim() === 'פעיל' && String(x.city || '').trim() && String(x.custId || '').trim())
+    .map(x => ({
+      custId:    String(x.custId).trim(),
+      custName:  fixSqlHeb(x.custName),
+      city:      fixSqlHeb(x.city),
+      agentCode: String(x.agentCode || '').trim(),
+      agentName: fixSqlHeb(x.agentName),
+      created:   Number(x.created) || 0,
+    }));
+}
+
+module.exports = { getBddPool, bddDocLinesToday, bddClientPromos, bddCustFamiliesWithActivePromo, bddVisitOrder, bddCustMainAgents, bddClientsCreatedSince, activeClientsWithCity };

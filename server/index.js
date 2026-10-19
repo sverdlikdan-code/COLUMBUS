@@ -13,7 +13,7 @@ const { clientOverdueByPayer, custCreatedDates, custIdsWithOpenOrderToday, iceMi
 const dayClosingDedup = require('./day-closing-dedup');
 const { createBdd } = require('./bdd-routes');
 const { canOrderMekarer, mekarerBddVisible } = require('./bdd');
-const { bddClientsCreatedSince } = require('./bdd-priority');
+const { activeClientsWithCity } = require('./bdd-priority');
 const mekarerDaily = require('./mekarer-daily');
 const { Resend } = require('resend');
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
@@ -3756,21 +3756,21 @@ app.get('/api/mekarer-access', requireAuth, (req, res) => {
   const s = req.session;
   res.json({ formula: canOrderMekarer(s), bdd: mekarerBddVisible(s) });
 });
-// Fridge-order search for the FORMULA ❄️ tile (Dan 2026-10-19): any FORMULA / ICE client — משפחתי and
-// BDD alike (Dan: all ICE) — whatever the team; same gate as the POST below, so the list never offers
-// a client it would 403 on. A BDD client ordered here lands in the FORMULA list, not the BDD one.
-// A client opened in the last days isn't in משטח yet (no param 7 / before the 06:00 load) — from Priority.
-// Deliberately WITHOUT the param-7 rule that keeps a client out of FR: a fridge for a kiosk opened this
-// morning is exactly the case (1154665, 14.10) — the order must not wait for param 7.
-const MKO_SEARCH_CAP = 30, MKO_FRESH_DAYS = 3, MKO_FRESH_TTL = 10 * 60 * 1000;
-let mkoFresh = { at: 0, p: null };
-function mkoFreshClients() {
-  if (mkoFresh.p && Date.now() - mkoFresh.at < MKO_FRESH_TTL) return mkoFresh.p; // in-flight too: one SQL per 10 min
-  mkoFresh.at = Date.now(); // a failed query isn't retried for 10 min either — search still serves the cache
-  mkoFresh.p = Promise.all(['form', 'icecrea'].map(db => bddClientsCreatedSince(db, MKO_FRESH_DAYS)))
-    .then(all => all.flat().filter(r => r.custId && r.status === 'פעיל'))
-    .catch(e => { console.error('[client-search] fresh clients query failed:', e.message); return []; });
-  return mkoFresh.p;
+// Fridge-order search for the FORMULA ❄️ tile (Dan 2026-10-19): every active FORMULA / ICE client with a city,
+// any agent, any team, ICE משפחתי and BDD alike — same gate as the POST below, so the list never offers a
+// client it would 403 on. A BDD client ordered here lands in the FORMULA list, not the BDD one.
+// Straight from Priority (activeClientsWithCity), so a client missing from the app's data — no param 7 yet,
+// opened this morning (1154665, 14.10) — is found too; the app's cache adds manager/team for the rest.
+const MKO_SEARCH_CAP = 30, MKO_FRESH_SLOTS = 10, MKO_TTL = 10 * 60 * 1000;
+const MKO_NEW_MIN = 3 * 24 * 60; // «חדש» = created in the last 3 days (CREATEDDATE is minutes since 1988)
+let mkoPri = { at: 0, p: null };
+function mkoPriorityClients() {
+  if (mkoPri.p && Date.now() - mkoPri.at < MKO_TTL) return mkoPri.p; // in-flight too: one SQL per 10 min
+  mkoPri.at = Date.now(); // a failed query isn't retried for 10 min either — search still serves the cache
+  mkoPri.p = Promise.all(['form', 'icecrea'].map(db => activeClientsWithCity(db)))
+    .then(all => all.flat())
+    .catch(e => { console.error('[client-search] Priority clients query failed:', e.message); return []; });
+  return mkoPri.p;
 }
 app.get('/client-search', requireAuth, dataRateLimit, async (req, res) => {
   if (!canOrderMekarer(req.session)) return res.status(403).json({ ok: false, error: 'forbidden' });
@@ -3778,15 +3778,19 @@ app.get('/client-search', requireAuth, dataRateLimit, async (req, res) => {
   const q = String(req.query.q || '').trim().toLowerCase();
   if (q.length < 2) return res.json({ ok: true, clients: [], truncated: false });
   const ice = [...[...pbiCache.iceByAgent.values()].flat(), ...bdd.orderableClients()];
-  const loaded = new Set([...pbiCache.clientMap.keys(), ...ice.map(c => String(c.custId))]);
-  const fresh = (await mkoFreshClients()).filter(r => !loaded.has(r.custId)).map(r => ({ ...r, isFresh: true,
+  const nowMin = Math.floor((Date.now() - Date.UTC(1988, 0, 1)) / 60000);
+  const pri = (await mkoPriorityClients()).map(r => ({ ...r, isFresh: r.created > 0 && nowMin - r.created <= MKO_NEW_MIN,
     manager: pbiCache.byAgent.get(r.agentCode)?.[0]?.manager || '' }));
+  const fresh = pri.filter(r => r.isFresh), rest = pri.filter(r => !r.isFresh);
   const out = [], seen = new Set();
-  // fresh first — exactly the clients no other path in the app reaches
-  for (const src of [fresh, pbiCache.clientMap.values(), ice]) {
+  // new first, but at most MKO_FRESH_SLOTS of the 30; then the app's own data (has the team); then the rest
+  // of Priority — a name search («סופר») must not drown the familiar clients (DLS 19.10)
+  let freshMore = false; // more new matches than slots — tell the UI to refine, like the cap
+  for (const src of [fresh, pbiCache.clientMap.values(), ice, rest]) {
     for (const c of src) {
       const id = String(c.custId);
       if (seen.has(id) || !(id.includes(q) || String(c.custName || '').toLowerCase().includes(q))) continue;
+      if (src === fresh && out.length >= MKO_FRESH_SLOTS) { freshMore = true; break; }
       seen.add(id);
       out.push({ custId: id, custName: c.custName, city: c.city, agentCode: c.agentCode,
         agentName: c.agentName, manager: c.manager, isFresh: !!c.isFresh });
@@ -3794,7 +3798,7 @@ app.get('/client-search', requireAuth, dataRateLimit, async (req, res) => {
     }
     if (out.length > MKO_SEARCH_CAP) break;
   }
-  res.json({ ok: true, clients: out.slice(0, MKO_SEARCH_CAP), truncated: out.length > MKO_SEARCH_CAP });
+  res.json({ ok: true, clients: out.slice(0, MKO_SEARCH_CAP), truncated: freshMore || out.length > MKO_SEARCH_CAP });
 });
 app.post('/api/mekarer-order', requireAuth, async (req, res) => {
   // agents ordered via the ⋮ menu (238, 2026-10-13) — fridges are ordered by managers only
