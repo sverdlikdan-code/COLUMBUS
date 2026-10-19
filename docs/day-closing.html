@@ -155,7 +155,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 </head>
 <body>
   <div class="top-bar no-print">
-    <button class="back-btn" onclick="window.close()" aria-label="סגור">→</button>
+    <button class="back-btn" onclick="closePage()" aria-label="סגור">→</button>
     <div class="top-title" id="page-title">סגירת יום</div>
   </div>
   <div id="root-body">
@@ -467,6 +467,12 @@ function showPrintFullscreen(){
   // always collapse to the minimum size. Live bug found 2026-08-27.
   fitAgentNameOneLine();
   history.pushState({pv:1},'');
+}
+// window.close() is a silent no-op when no script opened this page (reload, iOS home-screen app) —
+// then go back in history, or to the app (Dan 19.10). Same in zikuy-order.html.
+function closePage(){
+  window.close();
+  setTimeout(()=>{ if(history.length>1) history.back(); else location.href='/formula-road'; },300);
 }
 function hidePrintFullscreen(){
   document.getElementById('pv-overlay').classList.remove('show');

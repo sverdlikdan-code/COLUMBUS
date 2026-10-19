@@ -256,7 +256,7 @@ body{background:var(--bg);font-family:'Segoe UI',system-ui,sans-serif;color:var(
 <body>
 
 <div class="top-bar no-print">
-  <button class="back-btn" aria-label="חזרה" onclick="window.close()">→</button>
+  <button class="back-btn" aria-label="חזרה" onclick="closePage()">→</button>
   <div class="top-title"><div class="tt-main" id="inf-name">—</div><div class="tt-sub">🔄 בקשת זיכוי · <span id="inf-id">—</span></div></div>
 </div>
 
@@ -412,6 +412,12 @@ function _markFormStarted(){
   logEvent('zikuy_form_started', {itemCount: selected.size});
 }
 logEvent('zikuy_page_opened'); // the page loaded at all — pairs with zikuy_btn_tapped in formula-road.html
+// window.close() is a silent no-op when no script opened this page (same-window open for 234, reload,
+// iOS home-screen app) — then go back in history, or to the app (Dan 19.10). Same in day-closing.html.
+function closePage(){
+  window.close();
+  setTimeout(()=>{ if(history.length>1) history.back(); else location.href='/formula-road'; },300);
+}
 window.addEventListener('pagehide', () => {
   if(_formStarted && !_formSubmitted && selected.size){
     logEvent('zikuy_form_abandoned', {itemCount: selected.size});

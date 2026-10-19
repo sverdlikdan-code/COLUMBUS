@@ -4606,9 +4606,14 @@ function openZikuyOrder(e,custId,custName,city){
   // tap → window → page (zikuy_page_opened) logged step by step: 19.10 agent 234 (iPhone PWA) — the
   // button "does nothing" and none of the three left a trace, so the break point was unknowable
   _trackEvent('zikuy_btn_tapped',custId);
+  // 234's iPhone: window.open returns a window but zikuy-order never loads (19.10, telemetry) — same window
+  // for her only (Dan); its back button returns via history. ponytail: per agent, not per device — the
+  // home-screen app has its own storage, a device flag set from Safari wouldn't reach it. Extend if it helps.
+  if(ZIKUY_SAME_WINDOW.has(String(agent.code||''))){ location.href='zikuy-order.html?'+p.toString(); return; }
   const w=window.open('zikuy-order.html?'+p.toString(),'_blank');
   if(!w) _trackEvent('zikuy_open_null',custId);
 }
+const ZIKUY_SAME_WINDOW=new Set(['234']);
 // Server copy of 🚫 — see /api/route-exclude. BDD has its own router without it,
 // so there exclusions stay session-only as before.
 // ♠½ polupoker (2026-10-08). Dan: N = FORMULA clients of the day (ICE מישפחתי not counted, same as
