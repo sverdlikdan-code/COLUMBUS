@@ -208,12 +208,19 @@ html,body{height:100%;background:var(--bg);font-family:system-ui,-apple-system,B
    (still the same two real buttons + painted switch), only its DOM parent
    changed — see the .fpb-content / .fpb-toggle-only rules near the banner
    styles below, and _renderFormulaBanner() in the JS. */
+/* VERTICAL since 2026-10-20 (Dan): the same switch turned 90° — track stands up, thumb slides via
+   translateY, hit zones are the top (AI) / bottom (הגרסה שלי) halves, and BOTH labels are always
+   shown stacked next to it (same weight, active one colored) — no per-state width change, and the
+   banner gets its width back for 🔄. The horizontal-geometry notes below are history. */
 .sort-toggle{
   position:relative;display:flex;align-items:center;gap:6px;flex-shrink:0;
-  padding:4px 6px;border-radius:12px;min-width:91px;
+  padding:3px 7px 3px 5px;border-radius:12px;
   background:var(--sky-light);border:1.5px solid var(--sky-mid);
 }
-/* min-width:91px — fixes a real layout bug found live with REAL progress
+/* min-width:91px was REMOVED 2026-10-20 — both labels (סדר AI / סדר שלי) are now always shown,
+   stacked, at the same weight, so the toggle's width no longer depends on the state. Don't bring
+   min-width back. History of why it existed:
+   min-width:91px — fixes a real layout bug found live with REAL progress
    numbers (2026-09-02, third live report): in the tight "today" context the
    single .sort-toggle-label swaps between "AI" (~2 chars) and "הגרסה שלי"
    (~9 chars), so .sort-toggle's own natural width used to jump ~50px→~91px
@@ -235,7 +242,7 @@ html,body{height:100%;background:var(--bg);font-family:system-ui,-apple-system,B
    NOTE: no justify-content here (deliberately removed 2026-09-02, 4th live
    report same day) — see the .sort-btn comment right below for why. */
 .sort-toggle .sort-btn{
-  position:absolute;top:0;bottom:0;height:100%;
+  position:absolute;left:0;right:0;height:50%;
   border:none!important;background:transparent!important;box-shadow:none!important;
   padding:0;margin:0;border-radius:0!important;cursor:pointer;z-index:2;
 }
@@ -265,28 +272,23 @@ html,body{height:100%;background:var(--bg);font-family:system-ui,-apple-system,B
    extra remaining space — including the wider toggle-only banner context,
    where nothing here changes since that context's own hit zones were never
    the ones reported broken. */
-.sort-toggle #sort-btn-priority{right:0;width:23px;}
-.sort-toggle #sort-btn-ai-google{left:0;right:23px;}
+.sort-toggle #sort-btn-priority{bottom:0;}
+.sort-toggle #sort-btn-ai-google{top:0;}
 .toggle-visual{position:relative;display:flex;align-items:center;gap:6px;pointer-events:none;z-index:1;}
 .toggle-track{
   --thumb-x:0px;
-  position:relative;width:34px;height:16px;border-radius:8px;
+  position:relative;width:16px;height:34px;border-radius:8px;
   background:#7B1FA2;transition:background .18s;
 }
 .toggle-thumb{
   position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;
   background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);
-  transform:translateX(var(--thumb-x));transition:transform .18s cubic-bezier(.34,1.56,.64,1);
+  transform:translateY(var(--thumb-x));transition:transform .18s cubic-bezier(.34,1.56,.64,1);
 }
 .sort-toggle .sort-btn.active-priority~.toggle-visual .toggle-track{--thumb-x:18px;background:var(--blue);}
 .sort-toggle .sort-btn.active-ai-google~.toggle-visual .toggle-track{background:#7B1FA2;}
-@keyframes thumb-press{0%{transform:translateX(var(--thumb-x)) scale(1);}40%{transform:translateX(var(--thumb-x)) scale(.78);}100%{transform:translateX(var(--thumb-x)) scale(1);}}
+@keyframes thumb-press{0%{transform:translateY(var(--thumb-x)) scale(1);}40%{transform:translateY(var(--thumb-x)) scale(.78);}100%{transform:translateY(var(--thumb-x)) scale(1);}}
 .sort-toggle:active .toggle-thumb{animation:thumb-press .22s ease-out;}
-.sort-toggle-label{
-  color:var(--mid);font-size:11px;font-weight:800;white-space:nowrap;pointer-events:none;
-}
-.sort-toggle-label::before{content:'AI';}
-.sort-toggle .sort-btn.active-priority~.sort-toggle-label::before{content:'הגרסה שלי';}
 /* Text label kept ON at every width, including phone — the whole point of
    this pass (live request 2026-09-02) was a readable state name, not just
    color/tilt. "AI Google" shortened to plain "AI" here (still the same
@@ -303,9 +305,8 @@ html,body{height:100%;background:var(--bg);font-family:system-ui,-apple-system,B
    color/tilt, since a first-time glance has no active-state memory to lean
    on. Switched by the .fpb-toggle-only ancestor class that
    _renderFormulaBanner() already sets/clears — no separate component. */
-.toggle-side-label{display:none;font-size:10px;font-weight:800;color:var(--mid);white-space:nowrap;pointer-events:none;}
-.fpb-toggle-only .sort-toggle-label{display:none;}
-.fpb-toggle-only .toggle-side-label{display:inline-block;}
+.toggle-labels{display:flex;flex-direction:column;gap:4px;}
+.toggle-side-label{font-size:10px;font-weight:800;line-height:1.15;color:var(--light);white-space:nowrap;pointer-events:none;}
 .sort-toggle .sort-btn.active-priority~.toggle-visual .side-label-priority{color:var(--blue);}
 .sort-toggle .sort-btn.active-ai-google~.toggle-visual .side-label-ai{color:#7B1FA2;}
 /* TEMP: remove after 2026-09-09 — one-week onboarding callout introducing the
@@ -378,6 +379,8 @@ html,body{height:100%;background:var(--bg);font-family:system-ui,-apple-system,B
 .fpb{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;background:#fff;border-radius:14px;padding:10px 16px;margin:2px 2px 10px;box-shadow:0 4px 14px rgba(0,0,0,.1);}
 .fpb-content{display:flex;align-items:center;gap:12px;flex:1;min-width:0;}
 .fpb.fpb-toggle-only{justify-content:center;}
+.fpb-recalc{flex:0 0 auto;width:28px;height:28px;margin-inline-start:-4px;border-radius:50%;border:1.5px solid #E3E8EF;background:#fff;font-size:14px;line-height:1;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.fpb-recalc:disabled{opacity:.4;cursor:default;}
 /* Team-total variant of the same banner, on the manager's "בחר סוכן" screen
    (not inside #list-pane, so no sticky-scroll behavior needed there). */
 .fpb-static{position:static;}
@@ -409,7 +412,6 @@ html,body{height:100%;background:var(--bg);font-family:system-ui,-apple-system,B
 .fpb-ice{display:flex;gap:5px;align-items:baseline;font-size:12px;font-weight:800;color:#00A383;white-space:nowrap;overflow:hidden;line-height:1.2;}
 .fpb-ice b{font-size:14px;font-weight:900;}
 .fpb-den{display:inline-block;} /* "מ-17" is never cut mid-number */
-@media (max-width:340px){.fpb-word{display:none;}} /* 320px phones: "6 מ-17" whole instead of "6 …" */
 .fpb-off{flex-basis:100%;font-size:12px;font-weight:700;color:#C62828;white-space:nowrap;}
 .city-chip{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #90CAF9;background:#F8FBFF;color:#1565C0;white-space:nowrap;flex:0 0 auto;display:flex;align-items:center;gap:5px;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,.08);}
 .city-chip:hover{background:#E3F2FD;border-color:#42A5F5;}
@@ -992,15 +994,9 @@ body.map-hidden #tab-map,body.map-hidden #tab-inline-map{display:none!important;
 .km-more-dd .mob-only{display:none!important;}
 @media(max-width:699px){
   .sort-toggle{padding:3px 5px;gap:0;}
-  .toggle-track{width:28px;height:14px;}
+  .toggle-track{width:14px;height:28px;}
   .toggle-thumb{width:10px;height:10px;}
   .sort-toggle .sort-btn.active-priority~.toggle-visual .toggle-track{--thumb-x:14px;} /* 28-10-2*2px padding */
-  /* hit-zone boundary at this breakpoint: right-padding(5px) + half the 28px
-     track(14px) = 19px — must stay in sync with .toggle-track's width above,
-     see the #sort-btn-priority/-ai-google comment near .sort-toggle. */
-  .sort-toggle #sort-btn-priority{width:19px;}
-  .sort-toggle #sort-btn-ai-google{right:19px;}
-  .sort-toggle-label{font-size:9px;} /* stays readable, just smaller — no longer hidden (2026-09-02) */
   .km-more-dd .mob-only{display:flex!important;}
   /* יעדים / Google Maps — lower-frequency toolbar actions, collapsed into
      the ⋮ menu on phone (duplicated there via .mob-only above) so row 1
@@ -1404,27 +1400,21 @@ body.bdd .km-more-item[onclick^="openYedaim"], body.bdd .km-more-item[onclick^="
       <div id="formula-progress-banner" class="fpb" style="display:none">
         <div id="fpb-content" class="fpb-content"></div>
         <div class="sort-toggle">
-          <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')" aria-label="הגרסה שלי" title="הגרסה שלי"></button>
-          <button class="sort-btn active-ai-google" id="sort-btn-ai-google" onclick="setSort('ai')" aria-label="AI Google" title="AI Google"></button>
-          <!-- RTL flex: first DOM child renders on the visual RIGHT (matching
-               #sort-btn-priority{right:0} above), so the priority side-label
-               comes first here to sit over its own click zone; the AI label
-               comes last, on the left. The two .toggle-side-label spans only
-               ever show in the roomy toggle-only banner context (see
-               .fpb-toggle-only CSS) — the tight today-with-numbers context
-               uses .sort-toggle-label instead (active side only, further
-               below). .toggle-track/.toggle-thumb are the plain iOS-style
-               switch itself — no rotate, thumb just translateX()s between
-               the two sides (see the .toggle-track CSS comment above). -->
+          <button class="sort-btn" id="sort-btn-priority" onclick="setSort('priority')" aria-label="סדר שלי" title="סדר שלי"></button>
+          <button class="sort-btn active-ai-google" id="sort-btn-ai-google" onclick="setSort('ai')" aria-label="סדר AI" title="סדר AI"></button>
+          <!-- Vertical switch (2026-10-20): the upright track sits on the visual right (first child
+               in RTL flex), the two labels stacked to its left — סדר AI on top over the top hit zone
+               (#sort-btn-ai-google), סדר שלי below over the bottom one (#sort-btn-priority). Both
+               labels always visible; the thumb slides via translateY (see .toggle-track CSS above). -->
           <span class="toggle-visual" aria-hidden="true">
-            <span class="toggle-side-label side-label-priority">הגרסה שלי</span>
             <span class="toggle-track">
               <span class="toggle-thumb"></span>
             </span>
-            <span class="toggle-side-label side-label-ai">AI</span>
+            <span class="toggle-labels"><span class="toggle-side-label side-label-ai">סדר AI</span><span class="toggle-side-label side-label-priority">סדר שלי</span></span>
           </span>
-          <span class="sort-toggle-label" aria-hidden="true"></span>
         </div>
+        <!-- 🔄 out of the ⋮ menu, next to the sort mode it switches to AI (Dan field test 20.10) -->
+        <button class="fpb-recalc" id="fpb-recalc-btn" onclick="recalcRoute()" title="חישוב מסלול מחדש" aria-label="חישוב מסלול מחדש">🔄</button>
       </div>
       <div id="client-list"></div>
     </div>
@@ -3387,7 +3377,7 @@ function _fpbPieceHtml(numer, denom, sum, offLine, ice){
   const color = pct>=70 ? '#2E7D32' : pct>=40 ? '#F9A825' : '#C62828';
   const shekel = s => '₪' + Math.round(s).toLocaleString('he-IL');
   // ICE = full-width second line like .fpb-off — two lines stay lower than the 44px ring, the card doesn't grow
-  const row = `<div class="fpb-main">${numer} <span class="fpb-of"><span class="fpb-den">מ-${denom}</span><span class="fpb-word"> הזמינו</span></span></div>
+  const row = `<div class="fpb-main">${numer} <span class="fpb-of"><span class="fpb-den">מ-${denom}</span></span></div>
       <div class="fpb-sub">${shekel(sum)}</div>`;
   if(ice?.n) return `
     <div class="fpb-bar-wrap">${_fpbRingSvg(pct, color)}</div>
@@ -4064,22 +4054,28 @@ function recalcRoute(){
   show('s-city');
 }
 function _recalcAi(){
+  // ✔️ ordered today (phone order out of visit order, Dan field test 20.10): no need to drive there —
+  // they go to the top in their previous order, only the rest is optimized (Route4Me-style, variant B).
+  const prevIdx=new Map((st.sortMode==='ai'?st.aiClients:st.clients).map((c,i)=>[String(c.custId),i]));
   st.sortMode='ai';
   if(!st.tabletGpsMode){ st.aiGpsMode=true; }
   document.getElementById('sort-btn-priority').className='sort-btn';
   document.getElementById('sort-btn-ai-google').className='sort-btn'+(st.aiGpsMode?' active-ai-google':'');
   OSRM_CACHE.clear(); OSRM_TRIP_CACHE.clear();
-  const _rcClients=_aiGpsClients(activeClients());
-  st.aiClients=nearestNeighbor([..._rcClients]);
+  const _all=_aiGpsClients(activeClients()), isToday=st.day===_todayRouteDay();
+  const _done=_all.filter(c=>isToday&&_hasOrderToday(c)).sort((a,b)=>(prevIdx.get(String(a.custId))??1e9)-(prevIdx.get(String(b.custId))??1e9));
+  const _rcClients=_all.filter(c=>!_done.includes(c));
+  st.aiClients=[..._done,...nearestNeighbor([..._rcClients])];
   updateKmBar(); renderCityFilters(); renderClientList();
   if(st.tab==='map'||window.innerWidth>=700) renderMap();
-  const btn=document.getElementById('recalc-btn');
-  btn.textContent='⏳ כביש...'; btn.disabled=true;
+  const btn=document.getElementById('recalc-btn'), fb=document.getElementById('fpb-recalc-btn');
+  btn.textContent='⏳ כביש...'; btn.disabled=true; if(fb) fb.disabled=true;
   const snap={agentCode:st.agent?.code, day:st.day};
   _tripOrderPinned(_rcClients).then(ordered=>{
-    btn.disabled=false; btn.textContent='🔄 חשב מחדש';
+    btn.disabled=false; btn.textContent='🔄 חשב מחדש'; if(fb) fb.disabled=false;
     if(st.agent?.code!==snap.agentCode||st.day!==snap.day||st.sortMode!=='ai') return;
-    if(ordered){ st.aiClients=ordered; renderClientList(); }
+    // map too — else its markers keep the straight-line numbers while the list shows road order (✓ looks misplaced, field test 20.10)
+    if(ordered){ st.aiClients=[..._done,...ordered]; renderClientList(); if(window.innerWidth>=700||st.tab==='map') renderMap(); }
   });
 }
 
@@ -4868,6 +4864,8 @@ function renderMap(){
   const list=displayClients().filter(c=>{const p=_getCoord(c);return p.lat&&p.lng;})
     .map(c=>{const p=_getCoord(c);return p.lat!==c.lat||p.lng!==c.lng?{...c,lat:p.lat,lng:p.lng,_usingAi:true}:c;});
   if(!list.length)return;
+  // ✔️ ordered today are behind the agent — START flag and route lines go to the first/next one still to visit
+  const _live=list.filter(c=>!_mapDone(c)), _firstLive=_live[0];
   const bounds=[];
   // build duplicate-coord map for jitter
   const _coordCount={};
@@ -4875,7 +4873,7 @@ function renderMap(){
   const _coordIdx={};
   list.forEach((c,i)=>{
     const isSel=st.selectedId===c.custId;
-    const isFirst=i===0;
+    const isFirst=c===_firstLive;
     const flagColor=isSel?'#1565C0':isFirst?'#2E7D32':'#C9A84C';
     const flagW=isSel||isFirst?34:28;
     const flagLabel=isSel||isFirst
@@ -4983,13 +4981,13 @@ function renderMap(){
     // reads visually as "this is manual order", not as a routing bug. 2026-09-03.
     const lineOp=st.sortMode==='priority'?.35:.88;
     const arrowOp=st.sortMode==='priority'?.3:.85;
-    if(st.startLat&&st.startLng&&list.length&&list[0].lat&&list[0].lng){
-      const sp=L.polyline([[st.startLat,st.startLng],[list[0].lat,list[0].lng]],{color:'#2E7D32',weight:2,opacity:.5,dashArray:'6,5'}).addTo(map);
+    if(st.startLat&&st.startLng&&_firstLive&&_firstLive.lat&&_firstLive.lng){
+      const sp=L.polyline([[st.startLat,st.startLng],[_firstLive.lat,_firstLive.lng]],{color:'#2E7D32',weight:2,opacity:.5,dashArray:'6,5'}).addTo(map);
       mapPolylines.push(sp);
     }
-    list.forEach((c,i)=>{
+    _live.forEach((c,i)=>{
       if(!i||!c.lat||!c.lng)return;
-      const prev=list[i-1];
+      const prev=_live[i-1];
       if(!prev.lat||!prev.lng)return;
       const distM=haversineM(prev.lat,prev.lng,c.lat,c.lng);
       const lc=distM<=400?'#FF6F00':'#1A3F7C';
@@ -5461,8 +5459,8 @@ function _showToggleOnboardTip(){
   document.querySelectorAll('.toggle-onboard-tip').forEach(n=>n.remove()); // never stack two
   const firstName=(st.agent?.name||'').trim().split(/\s+/)[0];
   const msg=firstName
-    ? `${firstName}, לעריכה ידנית של סדר הביקורים — עבור למצב "הגרסה שלי" 👇`
-    : `לעריכה ידנית של סדר הביקורים — עבור למצב "הגרסה שלי" 👇`;
+    ? `${firstName}, לעריכה ידנית של סדר הביקורים — עבור למצב "סדר שלי" 👇`
+    : `לעריכה ידנית של סדר הביקורים — עבור למצב "סדר שלי" 👇`;
   const r=toggleEl.getBoundingClientRect();
   const gap=9, flipBelow=r.top<70; // not enough room above the toggle — show below instead
   const tip=document.createElement('div');

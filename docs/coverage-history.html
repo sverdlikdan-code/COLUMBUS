@@ -43,6 +43,12 @@ td.ag{font-weight:700;}
 td.ag .tot{font-size:11px;font-weight:900;margin-top:2px;}
 .tot.r{color:var(--red);} .tot.y{color:var(--yellow);} .tot.g{color:var(--green);}
 td.c{cursor:pointer;}
+.srt{cursor:pointer;-webkit-user-select:none;user-select:none;}
+th.ag .srt{display:inline-block;margin-inline-end:8px;}
+.arr{font-size:10px;opacity:.35;margin-inline-start:2px;}
+.arr.on{opacity:1;color:var(--blue);}
+th:not(.ag) .arr{display:block;margin:0;}
+td.ag.drill{cursor:pointer;color:var(--blue);}
 td.c .p,tr.team .p{font-size:14px;font-weight:900;}
 td.c .o{font-size:10px;color:var(--light);white-space:nowrap;}
 .r .p{color:var(--red);} .y .p{color:var(--yellow);} .g .p{color:var(--green);}
@@ -92,6 +98,8 @@ const DAYS = ['א', 'ב', 'ג', 'ד', 'ה'];
 const LEVELS = [['date', 'תאריך'], ['dow', 'יום בשבוע'], ['week', 'שבוע'], ['month', 'חודש']];
 const PERIODS = [['week', 'השבוע'], ['month', 'החודש'], ['prev', 'חודש קודם'], ['all', 'הכל']];
 let DATA = null, LEVEL = 'date', PERIOD = 'all', TEAM = '*', SEL = null, DAY = null;
+// Rows per agent or per team; column sort like הזמנת דגים: tap ↓, again ↑, third tap back to default (Dan 2026-10-20)
+let ROWS = 'agent', SORT = '', DIR = 'desc';
 const CLIENTS = {}; // "agent|date" → {in, off, miss} | null (no breakdown stored) — fetched on tap
 
 const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -139,8 +147,9 @@ function aggregate(rows) {
   for (const r of rows) {
     const k = bucketOf(r);
     if (!heads.has(k)) heads.set(k, r);
-    if (!agents.has(r.agent_code)) agents.set(r.agent_code, { code: r.agent_code, name: r.agent_name, b: {}, p: 0, i: 0 });
-    const a = agents.get(r.agent_code);
+    const id = ROWS === 'team' ? (r.team || '—') : r.agent_code; // server always writes the manager key; '—' only guards an empty one
+    if (!agents.has(id)) agents.set(id, { code: id, name: ROWS === 'team' ? id : r.agent_name, b: {}, p: 0, i: 0 });
+    const a = agents.get(id);
     const d = a.b[k] ||= { p: 0, i: 0, o: 0, dates: [] };
     // Same as the manager tiles (user 2026-09-30): % = all served (in line + off line) / planned;
     // off line is "מתוכם N" — already inside the served count.
@@ -153,13 +162,28 @@ function aggregate(rows) {
   // Oldest → newest, left to right (table is LTR); the RTL scroll container opens at the right edge, so today shows without scrolling. Weekdays א..ה.
   const keys = [...heads.keys()].sort((x, y) => LEVEL === 'dow' ? x - y : x.localeCompare(y));
   const list = [...agents.values()].sort((x, y) => (pct(y.i, y.p) ?? -1) - (pct(x.i, x.p) ?? -1)); // highest coverage first (Dan 2026-10-01)
+  if (SORT === 'name') list.sort((x, y) => (DIR === 'asc' ? 1 : -1) * String(x.name).localeCompare(String(y.name), 'he'));
+  else if (SORT) {
+    // '*' = period total, else a bucket column; empty cells always last
+    const v = a => SORT === '*' ? pct(a.i, a.p) : (a.b[SORT]?.p ? pct(a.b[SORT].i, a.b[SORT].p) : null);
+    list.sort((x, y) => { const a = v(x), b = v(y); return a === null ? (b === null ? 0 : 1) : b === null ? -1 : DIR === 'asc' ? a - b : b - a; });
+  }
   return { list, team, keys, heads };
 }
+function sortBy(col) {
+  if (SORT !== col) { SORT = col; DIR = col === 'name' ? 'asc' : 'desc'; }
+  else if (DIR === (col === 'name' ? 'asc' : 'desc')) DIR = DIR === 'asc' ? 'desc' : 'asc';
+  else { SORT = ''; DIR = 'desc'; }
+  render();
+}
+const arrow = col => `<span class="arr${SORT === col ? ' on' : ''}">${SORT === col ? (DIR === 'desc' ? '↓' : '↑') : '⇅'}</span>`;
 
 function cell(d, key) {
   if (!d || !d.p) return `<td class="x">—</td>`;
   const v = pct(d.i, d.p);
-  return `<td class="c ${cls(v)}${SEL === key ? ' sel' : ''}" onclick="pick('${key}')">${cellBody(d, v)}</td>`;
+  // team rows have no per-client detail — a tap opens that team's agents instead
+  const tap = ROWS === 'team' ? `data-t="${esc(key.slice(0, key.lastIndexOf('|')))}" onclick="drillTeam(this.dataset.t)"` : `onclick="pick('${key}')"`;
+  return `<td class="c ${cls(v)}${SEL === key ? ' sel' : ''}" ${tap}>${cellBody(d, v)}</td>`;
 }
 
 // Cell (Dan 2026-10-01): % כיסוי, הזמינו מתוך מתוכנן, מתוכם מחוץ לקו. Empty .o line kept so all cells align (Dan 2026-10-08).
@@ -182,13 +206,18 @@ function render() {
   const worst = [];
   for (const a of list) for (const k of keys) { const d = a.b[k]; if (d?.p) worst.push({ a, k, d, v: pct(d.i, d.p) }); }
   worst.sort((x, y) => x.v - y.v);
-  const top3 = worst.slice(0, 3).map(w => `<div class="worst" onclick="pickWorst('${w.a.code}|${w.k}')"><div class="n">${w.v}%</div><div>
+  const top3 = worst.slice(0, 3).map(w => `<div class="worst" ${ROWS === 'team' ? `data-t="${esc(w.a.code)}" onclick="drillTeam(this.dataset.t)"` : `onclick="pickWorst('${w.a.code}|${w.k}')"`}><div class="n">${w.v}%</div><div>
       <div class="t">${esc(w.a.name)} — ${bucketName(w.k, heads.get(w.k))}</div>
       <div class="s">תכנון ${w.d.p} · קנו ${w.d.i - w.d.o} · מחוץ לקו ${w.d.o} · לא קנו ${w.d.p - (w.d.i - w.d.o)}${LEVEL === 'date' ? '' : ` · ${w.d.dates.length} ימים`}</div></div></div>`).join('');
 
-  const head = `<tr><th class="ag"></th>${keys.map(k => `<th>${bucketHead(k, heads.get(k))}</th>`).join('')}</tr>`;
+  // Name column: two sort targets — the name itself and the period total % shown under it
+  const head = `<tr><th class="ag"><span class="srt" onclick="sortBy('name')">${ROWS === 'team' ? 'צוות' : 'סוכן'} ${arrow('name')}</span><span class="srt" onclick="sortBy('*')">% ${arrow('*')}</span></th>${
+    keys.map(k => `<th class="srt" onclick="sortBy('${k}')">${bucketHead(k, heads.get(k))}${arrow(k)}</th>`).join('')}</tr>`;
   const tot = (i, p) => { const v = pct(i, p); return v === null ? '' : `<div class="tot ${cls(v)}">${v}%</div>`; };
-  const rowsHtml = list.map(a => `<tr><td class="ag" title="${esc(a.name)}">${esc(a.name)}${tot(a.i, a.p)}</td>${keys.map(k => cell(a.b[k], a.code + '|' + k)).join('')}</tr>`).join('');
+  const nameCell = a => ROWS === 'team'
+    ? `<td class="ag drill" title="${esc(a.name)}" data-t="${esc(a.code)}" onclick="drillTeam(this.dataset.t)">${esc(a.name)} ›${tot(a.i, a.p)}</td>`
+    : `<td class="ag" title="${esc(a.name)}">${esc(a.name)}${tot(a.i, a.p)}</td>`;
+  const rowsHtml = list.map(a => `<tr>${nameCell(a)}${keys.map(k => cell(a.b[k], a.code + '|' + k)).join('')}</tr>`).join('');
   // Team row: % only (Dan 2026-10-08)
   const teamRow = `<tr class="team"><td class="ag">${TEAM === '*' ? 'כולם' : esc(TEAM)}${tot(list.reduce((s, a) => s + a.i, 0), list.reduce((s, a) => s + a.p, 0))}</td>${keys.map(k => {
     const t = team[k]; if (!t || !t.p) return '<td class="x">—</td>';
@@ -196,6 +225,7 @@ function render() {
 
   document.getElementById('wrap').innerHTML = `
     <div class="bar">${chBtns}<div class="period">${fmtD(from)}.${from.slice(0, 4)} – ${fmtD(to)}.${to.slice(0, 4)}</div></div>
+    ${teams.length > 1 ? `<div class="bar"><span class="lbl">שורות</span>${seg([['agent', 'סוכנים'], ['team', 'צוותים']], ROWS, 'setRows')}</div>` : ''}
     ${teamChips}
     <div class="bar"><span class="lbl">תקופה</span>${seg(PERIODS, PERIOD, 'setPeriod')}</div>
     <div class="bar"><span class="lbl">תצוגה</span>${seg(LEVELS, LEVEL, 'setLevel')}</div>
@@ -210,6 +240,8 @@ function render() {
 function setLevel(l) { LEVEL = l; SEL = null; DAY = null; render(); }
 function setPeriod(p) { PERIOD = p; SEL = null; DAY = null; render(); }
 function setTeam(t) { TEAM = t; SEL = null; DAY = null; render(); }
+function setRows(r) { ROWS = r; SORT = ''; DIR = 'desc'; SEL = null; DAY = null; render(); }
+function drillTeam(t) { ROWS = 'agent'; TEAM = t; SORT = ''; DIR = 'desc'; SEL = null; DAY = null; render(); }
 function pick(key) {
   SEL = SEL === key ? null : key; DAY = null;
   if (SEL && LEVEL === 'date') DAY = SEL.split('|')[1]; // a date cell is one day — open its clients directly
