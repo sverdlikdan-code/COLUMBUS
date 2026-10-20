@@ -43,6 +43,7 @@ select.appr.no{background:var(--red-bg);color:var(--red);border-color:#EF9A9A;}
 textarea.note{font:inherit;font-size:12px;width:220px;min-height:30px;height:30px;border:1.5px solid var(--sky-mid);border-radius:6px;padding:4px 6px;resize:vertical;background:#fff;}
 textarea.note:focus,select.appr:focus{outline:none;border-color:var(--blue);}
 .note-ro{white-space:pre-wrap;font-size:12px;min-width:160px;max-width:260px;}
+.was{font-size:11px;color:var(--light);margin-top:2px;}
 .saved{outline:2px solid #66BB6A;}
 .err{outline:2px solid var(--red);}
 .empty,.msg{padding:40px;text-align:center;color:var(--light);font-size:14px;}
@@ -81,7 +82,8 @@ const API = location.hostname === 'localhost' || location.hostname === '127.0.0.
 const INV = new URLSearchParams(location.search).get('_inv');
 if (INV) { try { localStorage.setItem('frToken', INV); } catch (_) {} history.replaceState(null, '', location.pathname); }
 const TOKEN = INV || localStorage.getItem('frToken') || '';
-const EDIT_LABEL = { approve: 'אישור יוסי', yossiNote: 'הערות יוסי', supply: 'סטטוס אספקה', natashaNote: 'הערות אשדוד' };
+const EDIT_LABEL = { approve: 'אישור יוסי', yossiNote: 'הערות יוסי', newModel: 'דגם לספק', supply: 'סטטוס אספקה', natashaNote: 'הערות אשדוד' };
+let PARTS = null; // [{makat,name}] — fetched once, only for whoever can change the model (live DAX on the server)
 // Dropdown fields: value -> css class (green/red). Same lists the server validates.
 const SELECTS = { approve: { 'כן': 'yes', 'לא': 'no' }, supply: { 'סופק': 'yes', 'לא סופק': 'no' } };
 
@@ -137,6 +139,9 @@ async function load() {
     if (!r.ok) throw new Error(r.status);
     const j = await r.json();
     ROWS = j.rows; MARKS = j.marks || {}; CAN = j.canEdit || [];
+    if (CAN.includes('newModel') && !PARTS) {
+      try { const p = await fetch(API + '/api/mekarer-parts', { headers: { 'X-Session': TOKEN } }); if (p.ok) PARTS = await p.json(); } catch (_) {}
+    }
     document.getElementById('back-btn').hidden = !!j.mekarerOnly;
     document.getElementById('me').textContent = CAN.length ? 'עריכה: ' + CAN.map(f => EDIT_LABEL[f]).join(', ') : 'צפייה בלבד';
     render();
@@ -174,6 +179,19 @@ function cell(r, c) {
         <option value=""></option>${Object.keys(SELECTS[c.k]).map(o => `<option${v === o ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select></td>`;
     return `<td class="own num">${v ? `<span class="badge ${cls}">${esc(v)}</span>` : ''}</td>`;
   }
+  if (c.k === 'newModel') {
+    // Yosi's pick wins (server applies it in flatRows); the agent's choice stays visible, struck through.
+    const changed = r.newModel !== r.agentNewModel;
+    const was = changed ? `<div class="was">סוכן: <s>${esc(r.agentNewModel || '—')}</s></div>` : '';
+    if (CAN.includes('newModel') && PARTS) {
+      const cur = mark(r, 'newModel');
+      const opts = PARTS.map(p => `${p.makat} — ${p.name}`);
+      if (cur && !opts.includes(cur)) opts.unshift(cur);
+      return `<td class="own"><select class="appr" data-key="${esc(r.key)}" data-f="newModel" onchange="save(this)">
+        <option value="">${esc(r.agentNewModel ? r.agentNewModel + ' (סוכן)' : '—')}</option>${opts.map(o => `<option${cur === o ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select>${was}</td>`;
+    }
+    return `<td>${changed ? `<b>${esc(v)}</b>` : esc(v)}${was}</td>`;
+  }
   if (c.own) {
     const at = MARKS[r.key] && MARKS[r.key][c.k + 'At'];
     const title = at ? ` title="עודכן ${esc(fmtDT(at))}"` : '';
@@ -210,6 +228,7 @@ async function save(el) {
     if (!r.ok) throw new Error(r.status);
     const j = await r.json();
     MARKS[key] = { ...MARKS[key], [field]: value, [field + 'At']: j.at };
+    if (field === 'newModel') return load(); // the row's effective model is built on the server
     if (SELECTS[field]) el.className = 'appr ' + (SELECTS[field][value] || '');
     el.classList.add('saved');
     setTimeout(() => el.classList.remove('saved'), 1200);

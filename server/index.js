@@ -172,8 +172,11 @@ ADDCOLUMNS(
 )
 `);
     const LASTORDER_INTER_CATS = new Set(['מדף', 'מתוקים  🍬']);
+    // Not an order (Dan 2026-10-20): 1111109 showed "18.10" from a סטנד (ציוד) delivery while its last
+    // real FORMULA order was 13.10. Same skip set as client-sales / AI analytics; also keeps ♠½ weeks honest.
+    const LASTORDER_SKIP_CATS = new Set(['ציוד', 'שאריות', 'תגמולים']);
     const classifyLastOrderCompany = (machlaka) => {
-      if (!machlaka) return null;
+      if (!machlaka || LASTORDER_SKIP_CATS.has(machlaka)) return null;
       if (machlaka.includes('mish')) return 'ICE_MISH';
       if (machlaka.includes('bdd')) return 'ICE_BDD';
       if (LASTORDER_INTER_CATS.has(machlaka)) return 'INTER';
@@ -4134,7 +4137,8 @@ app.get('/api/mekarer-export', requireAuth, async (req, res) => {
 // только его владельцы (managers.json id; tanya/mariana — офис Ашдод без PBI, входят по ссылке
 // из письма, сессия mekarerOnly). natashaNote = колонка «הערות אשדוד» (Наталья уволилась 13.10,
 // ключ оставлен, чтобы её старые заметки остались в той же колонке).
-const MEKARER_ADMIN_FIELDS = { approve: ['yosi'], yossiNote: ['yosi'], supply: ['tanya', 'mariana'], natashaNote: ['tanya', 'mariana'] };
+// newModel — Йоси меняет «דגם לספק» (Дан 2026-10-20); выбор агента остаётся в заказе, flatRows показывает модель Йоси поверх.
+const MEKARER_ADMIN_FIELDS = { approve: ['yosi'], yossiNote: ['yosi'], newModel: ['yosi'], supply: ['tanya', 'mariana'], natashaNote: ['tanya', 'mariana'] };
 const MEKARER_SELECT_VALUES = { approve: ['', 'כן', 'לא'], supply: ['', 'סופק', 'לא סופק'] };
 function mekarerAdminAccess(req, res, next) {
   const s = req.session;
@@ -4212,6 +4216,11 @@ app.post('/api/mekarer-admin/mark', dataRateLimit, requireAuth, mekarerAdminAcce
   if (!/^[FB]:\d+:\d+$/.test(String(key))) return res.status(400).json({ error: 'bad_key' });
   if (!MEKARER_ADMIN_FIELDS[field]?.includes(req.session.managerId)) return res.status(403).json({ error: 'forbidden' });
   if (MEKARER_SELECT_VALUES[field] && !MEKARER_SELECT_VALUES[field].includes(value)) return res.status(400).json({ error: 'bad_value' });
+  // '' = back to the agent's model; otherwise the "makat — name" label from /api/mekarer-parts.
+  if (field === 'newModel' && value) {
+    const [mk, ...rest] = value.split(' — ');
+    if (!ACTIVE_MEKARER.includes(mk) || !rest.length || value.length > 120 || /[<>]/.test(value)) return res.status(400).json({ error: 'bad_value' });
+  }
   const marks = mekarerDaily.readMarks();
   const at = new Date().toISOString();
   const prev = marks[key]?.[field] ?? '';

@@ -53,7 +53,9 @@ function modelLabel(code, names) {
 
 // Одна строка на холодильник (заказ × mekarerim), свежие сверху. Общая для Excel и страницы
 // /mekarer-admin.html — key совпадает с ключами отметок в MARKS.
-function flatRows(orders, ch = 'F') {
+// newModel = модель Йоси, если он её сменил на странице (Дан 2026-10-20), иначе выбор агента;
+// agentNewModel — всегда выбор агента. Так модель Йоси сама доходит до Ашдода и обоих Excel.
+function flatRows(orders, ch = 'F', marks = readMarks()) {
   const names = {};
   for (const o of orders) for (const m of o.mekarerim || []) for (const k of ['newModelName', 'returnModelName']) {
     const v = m[k] || '';
@@ -61,14 +63,14 @@ function flatRows(orders, ch = 'F') {
   }
   const rows = [];
   for (const o of [...orders].sort((a, b) => b.id - a.id)) {
-    (o.mekarerim && o.mekarerim.length ? o.mekarerim : [{}]).forEach((m, i) => rows.push({
-      key: `${ch}:${o.id}:${i}`, id: String(o.id), submittedAt: o.submittedAt, custId: o.custId,
+    (o.mekarerim && o.mekarerim.length ? o.mekarerim : [{}]).forEach((m, i) => { const key = `${ch}:${o.id}:${i}`, agentNewModel = modelLabel(m.newModel, names); rows.push({
+      key, id: String(o.id), submittedAt: o.submittedAt, custId: o.custId,
       custName: fixBiDi(o.custName), city: o.city, agentName: o.agentName, manager: o.manager,
       contactName: o.contactName, phone: o.phone, location: o.location, action: m.action || '',
-      newModel: modelLabel(m.newModel, names), returnModel: modelLabel(m.returnModel, names),
+      newModel: marks[key]?.newModel || agentNewModel, agentNewModel, returnModel: modelLabel(m.returnModel, names),
       salot: m.salot === '' || m.salot == null ? '' : Number(m.salot),
       agala: String(m.agala) === 'true' ? 'כן' : 'לא', supplyDate: m.supplyDate || '', fault: m.fault || '',
-    }));
+    }); });
   }
   return rows;
 }
