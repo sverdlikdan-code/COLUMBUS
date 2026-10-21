@@ -1632,8 +1632,9 @@ body.bdd .km-more-item[onclick^="openYedaim"], body.bdd .km-more-item[onclick^="
       <button class="modal-btn cancel" id="bw-0" onclick="biweeklyChoose(0)"></button>
       <button class="modal-btn cancel" id="bw-1" onclick="biweeklyChoose(1)"></button>
       <button class="modal-btn cancel" id="bw-null" onclick="biweeklyChoose(null)">↩️ כל שבוע</button>
+      <!-- full-size button: the bare 13px text link was a 27×15px tap target and missed on tablets (Dan 21.10) -->
+      <button class="modal-btn" onclick="closeBiweekly()" style="background:none;border:1px solid var(--border,#ddd);color:var(--mid)">ביטול</button>
     </div>
-    <button onclick="closeBiweekly()" style="display:block;margin:12px auto 0;background:none;border:none;color:var(--mid);font-size:13px;cursor:pointer">ביטול</button>
   </div>
 </div>
 
