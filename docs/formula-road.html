@@ -5205,6 +5205,11 @@ const FR_THOUGHTS=[
   {id:"q46",text:"Рассказывай партнёрам всё, что только можешь. Чем больше они знают — тем больше понимают. Чем больше понимают — тем больше им не всё равно.",cite:"Уолтон, «Sam Walton: Made in America»"},
   {id:"r03",text:"Задай вопрос «почему?» пять раз и ответь на каждый — так находится настоящая причина проблемы.",cite:"Оно, «Производственная система Toyota»"}
 ];
+// One-day override by date — doesn't touch the rotation (FR_THOUGHTS length/order stay the same).
+// 2026-10-22: Maxim Shpilko's birthday, his own words instead of the day's quote (Dan).
+const FR_THOUGHT_BY_DATE={
+  '2026-10-22':{id:"bday-shpilko",text:"Вы работаете не на меня — ВЫ работаете СО МНОЙ",cite:"Максим Шпилько"}
+};
 function _israelDateStr(){ return new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Jerusalem'}); } // "YYYY-MM-DD"
 function _dayOfYear(dateStr){
   const [y,m,d]=dateStr.split('-').map(Number);
@@ -5217,9 +5222,11 @@ function maybeShowThought(){
   const today=_israelDateStr();
   let last=null;
   try{ last=localStorage.getItem('frThoughtDate'); }catch(_){}
-  if(last===today) return;
-  try{ localStorage.setItem('frThoughtDate', today); }catch(_){}
-  const q=FR_THOUGHTS[_dayOfYear(today)%FR_THOUGHTS.length];
+  const q=FR_THOUGHT_BY_DATE[today]||FR_THOUGHTS[_dayOfYear(today)%FR_THOUGHTS.length];
+  // Override day: stored key is date+id, so whoever already saw the regular quote today gets the override once more.
+  const key=FR_THOUGHT_BY_DATE[today]?today+':'+q.id:today;
+  if(last===key) return;
+  try{ localStorage.setItem('frThoughtDate', key); }catch(_){}
   // New agents (first 3 loads) also get the guide prompt — queue behind it instead of
   // stacking two overlays (Dan 2026-10-08, seen on Galya's first day). Shown on its close.
   if(document.getElementById('guide-modal').classList.contains('open')){ _thoughtPending=q; return; }
