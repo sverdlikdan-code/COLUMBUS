@@ -432,6 +432,7 @@ CALCULATETABLE(
       console.error('[PBI] polupoker failed:', e.message);
     }
 
+    // 👑 counts FORMULA + ICE מישפחתי only (Dan 2026-10-22): ICE BDD/INTER crowned מקסי שופ over מגה 1430.
     // D3: 👑 last 3 CLOSED months sales per client — ONE DAX per cache load (Dan 2026-10-08: everything
     // from the warm cache). /api/day-top-sales ranks the day in memory. Same measure + filters as the
     // old per-request DAX (it ran on every route load). Fail-soft: empty map → no crowns.
@@ -446,6 +447,7 @@ CALCULATETABLE(
     SUMMARIZE(ALL_PARTS, ALL_PARTS[מספר לקוח]),
     "total", CALCULATE([TOTAL SALES (ללא זיכויים מרכזים)])
   ),
+  ${lastOrderFamFilter},
   ALL_PARTS[ASHMADOT] = "-מכר-",
   ALL_PARTS[תאריך] >= DATE(${_s3.getFullYear()},${_s3.getMonth() + 1},1),
   ALL_PARTS[תאריך] <= DATE(${_e3.getFullYear()},${_e3.getMonth() + 1},${_e3.getDate()})
