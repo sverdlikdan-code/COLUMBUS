@@ -5207,8 +5207,9 @@ const FR_THOUGHTS=[
 ];
 // One-day override by date — doesn't touch the rotation (FR_THOUGHTS length/order stay the same).
 // 2026-10-22: Maxim Shpilko's birthday, his own words instead of the day's quote (Dan).
+// id -2: re-show once to everyone (Dan 22.10, 3 agents with launches after deploy never got it).
 const FR_THOUGHT_BY_DATE={
-  '2026-10-22':{id:"bday-shpilko",text:"Вы работаете не на меня — ВЫ работаете СО МНОЙ",cite:"Максим Шпилько"}
+  '2026-10-22':{id:"bday-shpilko-2",text:"Вы работаете не на меня — ВЫ работаете СО МНОЙ",cite:"Максим Шпилько"}
 };
 function _israelDateStr(){ return new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Jerusalem'}); } // "YYYY-MM-DD"
 function _dayOfYear(dateStr){
