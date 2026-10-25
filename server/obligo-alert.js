@@ -34,6 +34,8 @@ const crypto = require('crypto');
 const { executeDax } = require('./powerbi');
 
 const NEAR = 0.85;
+// Дни кредита — готовая мера модели, без своих расчётов (Дан 25.10)
+const DSO_MEASURE = '[מספר ימי האשראי הממוצע]';
 // Шапка частичного отчёта: менеджеру — частники его группы, אחראי — его сети.
 const SCOPE_TEAM = 'שוק פרטי, הסוכנים של הקבוצה שלך';
 const SCOPE_OWNER = 'רשתות באחריותך';
@@ -103,6 +105,8 @@ async function fetchPayers() {
       "util", [% ניצול OBLIGO],
       "usedILS", [OBLIGO מנוצל],
       "limitILS", [OBLIGO רב חברתי],
+      "dso", ${DSO_MEASURE},
+      "sales3m", CALCULATE([TOTAL SALES brutto], ALL_PARTS[תאריך] >= EDATE(TODAY(), -3)),
       "b30", SUM(${H}[1-30]), "b60", SUM(${H}[31-60]), "b90", SUM(${H}[61-90]), "bOld", SUM(${H}[מעל 90])
     )
   `);
@@ -112,6 +116,8 @@ async function fetchPayers() {
     custName: fixBiDi(r['HOVOT ALL[שם לקוח]']),
     limitILS: r['[limitILS]'] || 0,
     usedILS: r['[usedILS]'] || 0,
+    creditDays: r['[dso]'] ?? null,
+    sales3m: r['[sales3m]'] || 0,
     // только положительные корзины (Дан 2026-10-12): кредит в одной корзине не гасит долг в другой
     b30: Math.max(0, r['[b30]'] || 0),
     b60: Math.max(0, r['[b60]'] || 0),
@@ -133,9 +139,16 @@ async function fetchWorkDays() {
 // Сети — одна строка на (אחראי, название сети): несколько плательщиков одной сети суммируются
 // (лимиты и использование), % пересчитан из сумм — как в отчёте PBI по תאור סוג לקוח.
 // שוק פרטי — строка на плательщика (номер плательщика = מס' לקוח).
+// Мера дней кредита на уровне сети (תאור סוג לקוח) — из сумм плательщиков в JS не пересчитываем
+async function fetchChainDso() {
+  const rows = await executeDax(`EVALUATE SUMMARIZECOLUMNS('HOVOT ALL'[תאור סוג לקוח], "dso", ${DSO_MEASURE})`);
+  return new Map(rows.map(r => [r['HOVOT ALL[תאור סוג לקוח]'], r['[dso]'] ?? null]));
+}
+
 async function fetchEntities() {
-  const [classification, payers] = [await fetchPayerClassification(), await fetchPayers()];
+  const [classification, payers, chainDso] = [await fetchPayerClassification(), await fetchPayers(), await fetchChainDso()];
   const grouped = new Map();
+  const byPayer = []; // для раздела DSO — строка на плательщика (Дан 25.10), без группировки сетей
   for (const p of payers) {
     const cls = classification.get(p.payer) || {};
     const isChain = cls.market === 'רשתות';
@@ -145,20 +158,26 @@ async function fetchEntities() {
     if (!grouped.has(key)) {
       grouped.set(key, {
         key, name, market: isChain ? 'רשתות' : 'שוק פרטי', resp: cls.resp || '—', agent: cls.agent || 'לא מוגדר',
-        payers: new Set(), limitILS: 0, usedILS: 0, b30: 0, b60: 0, b90: 0, bOld: 0,
+        payers: new Set(), limitILS: 0, usedILS: 0, sales3m: 0, b30: 0, b60: 0, b90: 0, bOld: 0,
       });
     }
     const g = grouped.get(key);
+    byPayer.push({ custno: p.payer, name: p.custName || name, market: g.market, resp: g.resp, agent: g.agent, usedILS: p.usedILS,
+      creditDays: p.creditDays, sales3m: p.sales3m });
     g.payers.add(p.payer);
-    for (const f of ['limitILS', 'usedILS', 'b30', 'b60', 'b90', 'bOld']) g[f] += p[f];
+    if (!isChain) g.creditDays = p.creditDays;
+    for (const f of ['limitILS', 'usedILS', 'sales3m', 'b30', 'b60', 'b90', 'bOld']) g[f] += p[f];
   }
   // מס' לקוח = מספר לקוח משלם; у сети с несколькими плательщиками — "N משלמים" (Дан 2026-10-12)
-  return [...grouped.values()].map(({ payers, ...g }) => ({
+  const entities = [...grouped.values()].map(({ payers, ...g }) => ({
     ...g,
     custno: payers.size === 1 ? [...payers][0] : `${payers.size} משלמים`,
     util: g.limitILS > 0 ? g.usedILS / g.limitILS : null,
+    creditDays: g.market === 'רשתות' ? chainDso.get(g.name) ?? null : g.creditDays ?? null,
     overdue: g.b30 + g.b60 + g.b90 + g.bOld,
   }));
+  entities.byPayer = byPayer;
+  return entities;
 }
 
 // Брендинг — та же executive-палитра, что была (навигация, золото, пергамент) + лого DILER B.M.D.
@@ -251,8 +270,9 @@ function pageGroups(part, rows, field, isChain) {
   const money = ([h, f, , strong]) => [h, e => { const v = f(e); return `<td class="m${strong ? ' s' : ''}">${v ? fmtILS(v) : '—'}</td>`; }];
   const all = amountColumns(part);
   const pct = part.id === 'late' ? [] : [['%', e => `<td><span class="pc ${e.util >= 1 ? 'r' : 'g'}">${Math.round(e.util * 100)}%</span></td>`]];
-  const cols = [...all.filter(c => c[3]).map(money), ...pct, ...all.filter(c => !c[3]).map(money)];
-  const head = `<tr><th>מס' לקוח</th><th>${isChain ? 'רשת' : 'שם'}</th>${cols.map(([h]) => `<th>${esc(h)}</th>`).join('')}</tr>`;
+  const days = ['מספר ימי האשראי הממוצע', e => `<td>${e.creditDays === null ? '—' : Math.round(e.creditDays)}</td>`];
+  const cols = [...all.filter(c => c[3]).map(money), ...pct, days, ...all.filter(c => !c[3]).map(money)];
+  const head = `<tr><th>מס' לקוח</th><th>${isChain ? 'רשת' : 'שם'}</th>${cols.map(([h]) => `<th${h === days[0] ? ' class="w"' : ''}>${esc(h)}</th>`).join('')}</tr>`;
   const row = e => `<tr data-q="${esc(`${e.name} ${e.custno} ${e[field]}`.toLowerCase())}"><td class="c">${esc(e.custno)}</td><td class="n">${esc(e.name)}</td>`
     + cols.map(([, td]) => td(e)).join('') + '</tr>';
   return keys.map(k => {
@@ -268,6 +288,26 @@ function pageDiff(diff) {
   return `<div class="diff"><b>שינויים ברשתות מהדוח הקודם (${esc(diff.date)})</b>
     <div class="add">נוספו (${diff.added.length}):</div><ul>${li(diff.added, '+')}</ul>
     <div class="rem">יצאו (${diff.removed.length}):</div><ul>${li(diff.removed, '−')}</ul></div>`;
+}
+
+// Раздел DSO (Дан 25.10): топ по [מספר ימי האשראי הממוצע] общим списком, без разбивки по фирмам.
+// Список — parts.dso (у менеджера/אחראי — топ из его клиентов). Один details.grp — чтобы работал поиск страницы.
+const DSO_TOP = 50; // Дан 25.10
+// Пометка «חדש» у раздела DSO — до 12.11 включительно (рассылки 29.10, 05.11, 12.11), потом исчезает сама
+const DSO_NEW_UNTIL = '2026-11-12';
+const dsoIsNew = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' }) <= DSO_NEW_UNTIL;
+const DSO_FROZEN_TITLE = 'ללא מכירות ב-3 החודשים האחרונים (לפי גובה החוב)';
+const DSO_LINE = 'DSO (Days Sales Outstanding) — כמה ימים בממוצע הלקוח לא משלם';
+function pageDso(list, frozen, n) {
+  if (!(list && list.length) && !(frozen && frozen.length)) return '';
+  const tr = (e, days) => `<tr data-q="${esc(`${e.name} ${e.custno} ${e.agent} ${e.resp}`.toLowerCase())}"><td class="c">${esc(e.custno)}</td><td class="n">${esc(e.name)}</td>`
+    + (days ? `<td><b>${Math.round(e.creditDays)}</b></td>` : '') + `<td class="m">${fmtILS(e.usedILS)}</td><td>${esc(e.market)}</td><td>${esc(e.market === 'רשתות' ? e.resp : e.agent)}</td></tr>`;
+  const grp = (title, rows, days, open) => rows && rows.length ? `<details class="grp"${open ? ' open' : ''}><summary><b>${title}</b><span class="cnt">${rows.length} לקוחות</span></summary><div class="tw"><table>
+      <tr><th>מס' לקוח משלם</th><th>שם</th>${days ? '<th class="w">מספר ימי האשראי הממוצע</th>' : ''}<th>ניצול אובליגו</th><th>שוק</th><th>אחראי / סוכן</th></tr>${rows.map(e => tr(e, days)).join('')}</table></div></details>` : '';
+  return `<details class="part${dsoIsNew() ? ' new' : ''}" id="dso" style="--c:${NAVY}"><summary>
+      <span class="t">${n}. לקוחות עם DSO הגבוה ביותר</span>${dsoIsNew() ? '<span class="nb">🆕 חדש</span>' : ''}
+      <span class="meta">${esc(DSO_LINE)}</span></summary>
+      <div class="body">${grp(`TOP ${DSO_TOP} — עם מכירות ב-3 החודשים האחרונים`, list, true, true)}${grp(DSO_FROZEN_TITLE, frozen, false, false)}</div></details>`;
 }
 
 // Без внешних ресурсов; CSP meta сужает глобальную CSP сервера для этой страницы (общий роут /p не трогаем).
@@ -306,6 +346,7 @@ details.part>summary{padding:14px 16px;cursor:pointer;list-style-position:inside
 details.part>summary .t{font-size:17px;font-weight:bold;color:var(--c)}
 details.part>summary .meta{display:block;font-size:12px;color:${MUTED};margin-top:4px}
 .body{padding:0 12px 12px}
+details.part.new{box-shadow:0 0 0 2px ${GOLD}}.nb{display:inline-block;margin-right:8px;padding:2px 9px;border-radius:12px;background:${GOLD};color:#fff;font-size:12px;font-weight:bold;vertical-align:middle}
 h3{font-size:14px;margin:16px 4px 6px}
 details.grp{border:1px solid ${LINE};border-radius:6px;margin:6px 0}
 details.grp>summary{padding:9px 12px;cursor:pointer;color:${NAVY};font-size:13px}
@@ -313,6 +354,7 @@ details.grp>summary .cnt{color:${MUTED};font-weight:normal;margin-right:10px}
 .tw{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:13px}
 th{font-size:11px;color:${MUTED};font-weight:normal;border-bottom:2px solid ${NAVY};padding:6px 8px;text-align:right;white-space:nowrap}
+th.w{white-space:normal;width:52px;min-width:52px;line-height:1.25}
 td{padding:7px 8px;border-bottom:1px solid ${LINE};text-align:right;white-space:nowrap}
 tr:nth-child(odd) td{background:${ZEBRA}}
 td.n{font-weight:bold;white-space:normal;min-width:150px}td.c{color:${MUTED};font-size:12px}
@@ -332,6 +374,7 @@ footer{font-size:12px;color:${MUTED};line-height:1.7;margin-top:24px}
 <p class="intro">לחצו על חלק כדי לפתוח אותו, ובתוכו על אחראי / סוכן. החיפוש מוצא לקוח לפי שם, מספר או סוכן בכל החלקים.</p>
 <div class="tools"><input id="q" type="search" placeholder="חיפוש לקוח / מספר / סוכן" autocomplete="off"><button id="all">פתח הכל</button><button id="none">סגור הכל</button></div>
 ${sections}
+${pageDso(parts.dso, parts.dsoFrozen, parts.length + 1)}
 <footer><b>סודי — קישור אישי, נא לא להעביר. בתוקף עד ${expires}.</b><br>כל לקוח מדווח מחדש בכל דוח שבועי, כל עוד הוא עומד בתנאי החלק. סכומי הפיגור — רק יתרות חיוביות לפי ימי פיגור בפריוריטי.<br>הערות והצעות — לדן סברדליק, <!--email_off-->d.sverdlik@DilerBMD.com<!--/email_off-->.</footer>
 </main>
 <script>
@@ -386,6 +429,21 @@ function emailPartHtml(part, rows, diff, num) {
   ${diffHtml(diff)}`;
 }
 
+// Строка-сводка раздела DSO в письме (сам список — на странице и в листе DSO)
+function emailDsoHtml(list, frozenN, num) {
+  if (!list || !list.length) return '';
+  return `
+  <tr><td dir="rtl" style="padding:24px 24px 0;text-align:right">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="rtl"${dsoIsNew() ? ' bgcolor="#F7EFDF" style="background-color:#F7EFDF"' : ''}><tr>
+      <td width="5" bgcolor="${NAVY}" style="width:5px;background-color:${NAVY};font-size:0;line-height:0">&nbsp;</td>
+      <td dir="rtl" style="padding:${dsoIsNew() ? '10px 12px 10px 0' : '2px 12px 2px 0'};text-align:right">
+        <div style="font-family:Arial,sans-serif;font-size:17px;color:${NAVY};font-weight:bold;line-height:24px">${num}. לקוחות עם DSO הגבוה ביותר${dsoIsNew() ? `&nbsp;<span style="background-color:${GOLD};color:#ffffff;font-size:12px;padding:2px 8px">🆕 חדש</span>` : ''}</div>
+        <div style="font-family:Arial,sans-serif;font-size:12px;color:${MUTED};line-height:18px">${esc(DSO_LINE)} &middot; TOP ${list.length} &middot; ${frozenN} ללא מכירות ב-3 חודשים</div>
+      </td>
+    </tr></table>
+  </td></tr>`;
+}
+
 function buttonHtml(link) {
   const label = 'לדוח המלא — כל הלקוחות';
   return `<tr><td align="center" style="padding:28px 24px 0">
@@ -399,9 +457,8 @@ function buttonHtml(link) {
 
 function buildEmailHtml(parts, workDays, greetName, scope, link) {
   const greeting = greetName ? `שלום ${greetName},` : 'שלום,';
-  const intro = scope
-    ? `דוח האובליגו השבועי — ${scope}. למטה סיכום 3 החלקים; הרשימה המלאה של כל הלקוחות — בקישור האישי ובקובץ האקסל המצורף (3 גיליונות).`
-    : 'דוח האובליגו השבועי. למטה סיכום 3 החלקים; הרשימה המלאה של כל הלקוחות — בקישור האישי ובקובץ האקסל המצורף (3 גיליונות).';
+  const n = parts.length + (parts.dso && parts.dso.length ? 1 : 0);
+  const intro = `דוח האובליגו השבועי${scope ? ` — ${scope}` : ''}. למטה סיכום ${n} החלקים; הרשימה המלאה של כל הלקוחות — בקישור האישי ובקובץ האקסל המצורף (${n} גיליונות).`;
   // Outlook (Word-движок) не рисует border/radius/margin у div — плашки только таблицами:
   // цветная полоска отдельной строкой с bgcolor, отступы — padding ячеек (тест 12.10 в Outlook развалился).
   const chips = parts.map(({ part, rows }, i) => `${i ? '<td width="12" style="width:12px;font-size:0;line-height:0">&nbsp;</td>' : ''}
@@ -434,6 +491,7 @@ function buildEmailHtml(parts, workDays, greetName, scope, link) {
   </td></tr>
 
   ${parts.map(({ part, rows, diff }, i) => emailPartHtml(part, rows, diff, i + 1)).join('')}
+  ${emailDsoHtml(parts.dso, (parts.dsoFrozen || []).length, parts.length + 1)}
   ${buttonHtml(link)}
 
   <tr><td style="padding:28px 28px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td height="1" bgcolor="${LINE}" style="height:1px;background-color:${LINE};font-size:0;line-height:0">&nbsp;</td></tr></table></td></tr>
@@ -447,47 +505,76 @@ function buildEmailHtml(parts, workDays, greetName, scope, link) {
 </body></html>`;
 }
 
-// Excel: 3 листа, вкладка и шапка в цвет части; заморозка шапки, автофильтр, % с заливкой по зоне.
-async function buildXlsx(parts) {
+// Excel (Дан 25.10): каждый лист — «умная» таблица Excel со строкой итогов; ярлык листа в цвет стиля таблицы
+// (accent темы Office, которую пишет exceljs). Лист DSO — две таблицы рядом.
+const XLSX_STYLE = {
+  near: ['TableStyleMedium14', 'F79646'], over: ['TableStyleMedium10', 'C0504D'],
+  late: ['TableStyleMedium9', '4F81BD'], dso: ['TableStyleMedium12', '8064A2'],
+};
+const TOTAL_LABEL = 'סה"כ';
+async function buildXlsx(parts, workDays) {
   const wb = new ExcelJS.Workbook();
   for (const { part, rows } of parts) {
-    const color = part.color.slice(1);
+    const [style, color] = XLSX_STYLE[part.id];
     const ws = wb.addWorksheet(part.sheet, { properties: { tabColor: { argb: 'FF' + color } }, views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
     const amounts = amountColumns(part);
+    const late = part.id === 'late';
     const cols = [
-      { header: 'שוק', key: 'market', width: 11 },
-      { header: 'אחראי / סוכן', key: 'owner', width: 20 },
-      { header: "מס' לקוח", key: 'custno', width: 11 },
-      { header: 'שם', key: 'name', width: 36 },
-      ...amounts.map(([header], i) => ({ header, key: 'a' + i, width: 15 })),
-      ...(part.id === 'late' ? [] : [{ header: '%', key: 'pct', width: 9 }]),
+      ['שוק', 11, { totalsRowLabel: TOTAL_LABEL }], ['אחראי / סוכן', 20], ["מס' לקוח", 11], ['שם', 36],
+      ...amounts.map(([h, f]) => [h, 15, { totalsRowFunction: 'sum', totalsRowResult: rows.reduce((t, e) => t + Math.round(f(e)), 0) }]),
+      ['מספר ימי האשראי הממוצע', 14],
+      ...(late ? [] : [['%', 9], ['% ימי עבודה שנותרו', 12]]),
     ];
-    ws.columns = cols;
+    cols.forEach(([, w], i) => { ws.getColumn(i + 1).width = w; });
     const ordered = [...rows.filter(r => r.market === 'רשתות'), ...rows.filter(r => r.market !== 'רשתות')];
-    for (const e of ordered) {
-      const row = ws.addRow({
-        market: e.market, owner: e.market === 'רשתות' ? e.resp : e.agent, custno: e.custno || '', name: e.name,
-        ...Object.fromEntries(amounts.map(([, f], i) => [`a${i}`, Math.round(f(e))])),
-        ...(part.id === 'late' ? {} : { pct: e.util }),
-      });
+    if (!ordered.length) { ws.getCell('A1').value = 'אין לקוחות בקטגוריה זו.'; continue; }
+    ws.addTable({
+      name: 'T_' + part.id, ref: 'A1', headerRow: true, totalsRow: true, style: { theme: style, showRowStripes: true },
+      columns: cols.map(([name, , extra]) => ({ name, filterButton: true, ...extra })),
+      rows: ordered.map(e => [
+        e.market, e.market === 'רשתות' ? e.resp : e.agent, e.custno || '', e.name,
+        ...amounts.map(([, f]) => Math.round(f(e))),
+        e.creditDays === null ? null : Math.round(e.creditDays),
+        ...(late ? [] : [e.util, workDays.pct]),
+      ]),
+    });
+    // формат ячеек (включая строку итогов) — после addTable
+    for (let r = 2; r <= ordered.length + 2; r++) {
       amounts.forEach((a, i) => {
-        const cell = row.getCell(5 + i);
+        const cell = ws.getCell(r, 5 + i);
         cell.numFmt = '#,##0';
         if (a[3]) cell.font = { bold: true, color: { argb: 'FF' + color } };
       });
-      if (part.id !== 'late') {
-        const cell = row.getCell(cols.length);
+      if (!late && r <= ordered.length + 1) {
+        ws.getCell(r, cols.length).numFmt = '0%';
+        const cell = ws.getCell(r, cols.length - 1);
         cell.numFmt = '0%';
         cell.font = { bold: true, color: { argb: 'FF' + color } };
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + part.tint.slice(1) } };
       }
     }
-    // красим только ячейки шапки: fill на всю строку тянется до последней колонки листа
-    ws.getRow(1).eachCell(cell => {
-      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + color } };
-    });
-    ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: cols.length } };
+  }
+
+  // Лист DSO: две «умные» таблицы рядом — TOP с продажами за 3 месяца (A) и без продаж (H)
+  if ((parts.dso && parts.dso.length) || (parts.dsoFrozen && parts.dsoFrozen.length)) {
+    const [style, color] = XLSX_STYLE.dso;
+    const ws = wb.addWorksheet('DSO', { properties: { tabColor: { argb: 'FF' + color } }, views: [{ rightToLeft: true, state: 'frozen', ySplit: 3 }] });
+    [14, 36, 14, 15, 11, 20, 4, 14, 36, 15, 11, 20].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+    ws.getCell('A1').value = DSO_LINE; ws.getCell('A1').font = { italic: true };
+    const owner = e => e.market === 'רשתות' ? e.resp : e.agent;
+    const table = (name, col, title, list, days) => {
+      if (!list || !list.length) return;
+      const at = n => ws.getCell(n, col);
+      at(2).value = title; at(2).font = { bold: true, size: 12, color: { argb: 'FF' + color } };
+      const cols = [["מס' לקוח משלם", { totalsRowLabel: TOTAL_LABEL }], ['שם'], ...(days ? [['מספר ימי האשראי הממוצע']] : []),
+        ['ניצול אובליגו', { totalsRowFunction: 'sum', totalsRowResult: list.reduce((t, e) => t + Math.round(e.usedILS), 0) }], ['שוק'], ['אחראי / סוכן']];
+      ws.addTable({ name, ref: ws.getCell(3, col).address, headerRow: true, totalsRow: true, style: { theme: style, showRowStripes: true },
+        columns: cols.map(([n, extra]) => ({ name: n, filterButton: true, ...extra })),
+        rows: list.map(e => [e.custno, e.name, ...(days ? [Math.round(e.creditDays)] : []), Math.round(e.usedILS), e.market, owner(e)]) });
+      const usedCol = col + (days ? 3 : 2);
+      for (let r = 4; r <= list.length + 4; r++) ws.getCell(r, usedCol).numFmt = '#,##0';
+    };
+    table('DSO_TOP', 1, `TOP ${DSO_TOP} — עם מכירות ב-3 החודשים האחרונים`, parts.dso, true);
+    table('DSO_NO_SALES', 8, DSO_FROZEN_TITLE, parts.dsoFrozen, false);
   }
   return Buffer.from(await wb.xlsx.writeBuffer());
 }
@@ -592,7 +679,7 @@ async function sendReport(resend, recipient, parts, workDays, scope) {
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' });
   const attachments = [
     ...(fs.existsSync(logoPath) ? [{ filename: 'logo-white.png', content: fs.readFileSync(logoPath).toString('base64'), contentId: 'diler-logo-white' }] : []),
-    { filename: `obligo-${today}.xlsx`, content: (await buildXlsx(parts)).toString('base64') },
+    { filename: `obligo-${today}.xlsx`, content: (await buildXlsx(parts, workDays)).toString('base64') },
   ];
   const counts = parts.map(p => p.rows.length);
   // страница на каждое письмо своя (новый hex) — до отправки; не записалась — письмо не уходит
@@ -637,6 +724,11 @@ async function main() {
     const rows = entities.filter(part.pick).sort(part.sort);
     return { part, rows, diff: diffFor(prev, part.id, rows) };
   });
+  // DSO: основная таблица — только с продажами за 3 месяца; без продаж — отдельно, по долгу (Дан 25.10)
+  const dsoRank = entities.byPayer.filter(e => e.creditDays !== null && e.usedILS > 0 && e.sales3m > 0).sort((a, b) => b.creditDays - a.creditDays);
+  const frozen = entities.byPayer.filter(e => e.usedILS > 0 && !(e.sales3m > 0)).sort((a, b) => b.usedILS - a.usedILS);
+  const setDso = (target, pred) => { target.dso = dsoRank.filter(pred).slice(0, DSO_TOP); target.dsoFrozen = frozen.filter(pred); };
+  setDso(parts, () => true);
 
   console.log(`Плательщиков/сетей: ${entities.length}; рабочих дней осталось ${workDays.left}/${workDays.total}`);
   for (const { part, rows, diff } of parts) {
@@ -660,6 +752,7 @@ async function main() {
           const own = rows.filter(mineFn);
           return { part, rows: own, diff: null }; // у менеджера только частники — сравнения нет (оно только по сетям)
         });
+        setDso(mine, mineFn);
         const n = mine.reduce((s, p) => s + p.rows.length, 0);
         console.log(`  [${groups}] ${email}: ${mine.map(p => p.rows.length).join('/')}`);
         if (n) perManager.push({ email, mine });
@@ -679,6 +772,7 @@ async function main() {
       part, rows: rows.filter(own),
       diff: diff && { ...diff, added: diff.added.filter(own), removed: diff.removed.filter(r => r.key.startsWith(`C|${name}|`)) },
     }));
+    setDso(mine, own);
     console.log(`  [אחראי ${name}] ${email}: ${mine.map(p => p.rows.length).join('/')}`);
     if (mine.some(p => p.rows.length)) perOwner.push({ email, mine });
   }
@@ -690,7 +784,7 @@ async function main() {
     fs.writeFileSync(path.join(out, 'obligo-alert-page.html'), buildPageHtml(parts, workDays, null, expiryDate()));
     if (perOwner[0]) fs.writeFileSync(path.join(out, 'obligo-alert-page-owner.html'), buildPageHtml(perOwner[0].mine, workDays, SCOPE_OWNER, expiryDate()));
     if (perManager[0]) fs.writeFileSync(path.join(out, 'obligo-alert-page-manager.html'), buildPageHtml(perManager[0].mine, workDays, SCOPE_TEAM, expiryDate()));
-    fs.writeFileSync(path.join(out, 'obligo-alert-preview.xlsx'), await buildXlsx(parts));
+    fs.writeFileSync(path.join(out, 'obligo-alert-preview.xlsx'), await buildXlsx(parts, workDays));
     console.log(`\n--dry-run — письмо не отправлено, превью: ${out}`);
     return;
   }
