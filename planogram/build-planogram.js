@@ -1519,6 +1519,26 @@ async function main() {
       console.log(`weekSales: ${wkCount} מקטים`);
     }
 
+    // PBI sometimes returns a whole section's sales empty while stock is fine (דגים 25.10: 50 מקטים
+    // daySales=null → herring dropped out of סכנה in the app). A product that still sells by weekSales
+    // but came back without daySales keeps the previous sales; salesStale = Israel date they stopped
+    // loading (editor shows a note, expiry-alert mails Dan "DANGER DATA⛔"). Fresh sales drop the mark.
+    {
+      const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Jerusalem' });
+      let carried = 0;
+      for (const [mk, v] of Object.entries(prodData)) {
+        const prev = prevProdDataAll[mk];
+        if (v.daySales != null || v.daySalesAll != null || !(prev?.daySalesAll > 0)) continue;
+        if (!v.weekSales?.some(w => w > 0)) continue; // really stopped selling, not a load failure
+        for (const k of ['daySales', 'daySalesAll', 'daySalesZafn', 'daySalesTrnz', 'daysStock', 'daysStockZafn'])
+          if (v[k] == null && prev[k] != null) v[k] = prev[k];
+        v.daysStockAll = v.stock > 0 ? Math.round(v.stock / v.daySalesAll) : null;
+        v.salesStale = prev.salesStale || today;
+        carried++;
+      }
+      if (carried) console.warn(`⚠ sales not loaded for ${carried} מקטים — previous kept (salesStale)`);
+    }
+
     // ── cost per carton (KARTIS PARIT × גורם אירוז) — for עלות לזריקה on expiry cards
     // PBI failure/rate-limit → keep previous value, so the ₪ figure doesn't blink off.
     {

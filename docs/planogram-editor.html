@@ -4495,6 +4495,10 @@ function buildExpiryPage() {
   // Отдельный div: алярм ищет מק"ט по стилю соседнего div, его не трогаем.
   const blockedTag = d => d.blocked
     ? `<div style="display:inline-block;font-size:8px;font-weight:bold;color:#fff;background:#6a1b9a;border-radius:3px;padding:1px 4px;margin-top:2px;">⛔ אסור למכירה</div>` : '';
+  // Продажи не подтянулись из PBI — сборка подставила прошлые (salesStale = с какого дня, Дан 2026-10-25).
+  // .sales-stale скрыт в письме תוקף (expiry-alert.js), виден только в аппе.
+  const staleTag = d => d.salesStale
+    ? `<div class="sales-stale" style="font-size:8px;color:#e65100;font-weight:bold;">⚠ מכירות לא נטענו מאז ${d.salesStale.slice(8, 10)}.${d.salesStale.slice(5, 7)} — מהטעינה הקודמת</div>` : '';
   const slTag = sl => sl ?`<span style="font-size:7.5px;font-weight:normal;opacity:0.7;margin-right:6px;white-space:nowrap;">חיי מדף מינ' ${sl}</span>` : '';
 
   const batchCell = (pak, sk) => {
@@ -4698,6 +4702,7 @@ function buildExpiryPage() {
             <tbody>${batchRowsCombined}</tbody>
             <tfoot><tr><td style="padding:4px 8px;border-top:2px solid #e0e0e0;background:#f5f7fa;">
               ${combinedSales > 0 ? `<div style="font-size:9px;color:#666;">מכר ממוצע <b style="color:#222;">${combinedSales.toFixed(1)} קרט/יום</b> <span style="color:#aaa;font-size:8px;">(45 יום אחורה)</span></div>` : '<div style="font-size:9px;color:#bbb;">אין נתוני מכירה</div>'}
+              ${staleTag(d)}
               ${anySakana ? `<div class="spark-only-print">${_sparkSvg(productData[String(mk)]?.weekSales, productData[String(mk)]?.weekDates)}</div>` : ''}
             </td></tr></tfoot>
           </table>
@@ -4747,6 +4752,7 @@ function buildExpiryPage() {
               }</td>
             </tr>
             <tr><td colspan="2" style="padding:3px 6px;background:#f5f7fa;border-top:1px solid #eee;">
+              ${staleTag(d)}
               ${(sakanaMain || sakanaZafn) ? `<div class="spark-only-print">${_sparkSvg(productData[String(mk)]?.weekSales, productData[String(mk)]?.weekDates)}</div>` : ''}
             </td></tr>
           </tfoot>

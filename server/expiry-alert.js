@@ -270,7 +270,8 @@ async function shootCards(split, zafnLow, hide = [], ice = null) {
     }));
     // Спарклайн продаж по неделям в аппе виден только при печати (.spark-only-print) — включить
     // его и в экранном режиме. Print-медиа целиком не эмулируем: она растягивает карточку на всю ширину.
-    await page.addStyleTag({ content: '.spark-only-print{display:block!important}' });
+    // .sales-stale («מכירות לא נטענו») — только в аппе, не в письме (Дан 2026-10-25); Дану — отдельное DANGER DATA.
+    await page.addStyleTag({ content: '.spark-only-print{display:block!important}.sales-stale{display:none!important}' });
     const SEL = '#expiry-grid > div:not(.expiry-sec-hdr):not(.grid-page-break):not(.expiry-haluka-sep)';
     // В письме карточки идут парами (строка из 2) — выровнять высоту пары, иначе низ строки
     // рваный (пользователь 2026-09-28).
@@ -456,10 +457,37 @@ function buildEmailHtml(n, greetName, risk, split, diff, ice = null) {
 </body></html>`;
 }
 
+// Сборка планограммы подставила прошлые продажи (PBI вернул пустые) — карточки посчитаны по ним.
+// Письмо только Дану, с алярмом תוקף (Дан 2026-10-25: не каждый час). Сбой не валит алярм.
+async function dangerDataMail() {
+  try {
+    const pd = JSON.parse(fs.readFileSync(path.join(DOCS, 'product-data.json'), 'utf8'));
+    const stale = Object.entries(pd).filter(([, v]) => v?.salesStale)
+      .sort((a, b) => a[1].salesStale.localeCompare(b[1].salesStale) || a[0].localeCompare(b[0]));
+    if (!stale.length) return;
+    const fmtD = s => `${s.slice(8, 10)}.${s.slice(5, 7)}`;
+    const lines = stale.map(([mk, v]) => `${mk} — ${v.nameEn || v.desc || v.fam || ''} — מאז ${fmtD(v.salesStale)}`);
+    console.log('[DANGER DATA]', stale.length, stale.map(([mk]) => mk).join(','));
+    if (DRY_RUN) return;
+    const to = (process.env.EXPIRY_ALERT_DANGER_TO || 'd.sverdlik@DilerBMD.com').split(',').map(s => s.trim()).filter(Boolean);
+    const res = await new Resend(process.env.RESEND_API_KEY).emails.send({
+      from: `Diler Intelligence <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
+      to,
+      subject: `DANGER DATA⛔ — ${stale.length} מק"טים בלי מכירות עדכניות`,
+      html: `<div dir="rtl" style="font-family:Arial,sans-serif;font-size:14px">
+<p>מכירות לא נטענו מ-PBI — בדוח התוקף ובאפליקציה מוצגות מכירות מהטעינה הקודמת:</p>
+<ul>${lines.map(l => `<li>${l.replace(/[<>&]/g, '')}</li>`).join('')}</ul></div>`,
+      text: ['מכירות לא נטענו מ-PBI — בדוח התוקף ובאפליקציה מוצגות מכירות מהטעינה הקודמת:', ...lines].join('\n'),
+    });
+    console.log('[DANGER DATA]', to.join(','), JSON.stringify(res));
+  } catch (e) { console.error('[DANGER DATA] не отправлено:', e.message); }
+}
+
 async function main() {
   const recipients = (process.env[ENV + '_RECIPIENTS'] || '').split(',').map(s => s.trim()).filter(Boolean);
   const splitRecipients = recipients.filter(r => SPLIT_TO.includes(r.toLowerCase()));
   if (ZAFN_LOW) return runVariant({ split: true, to: recipients });
+  await dangerDataMail();
   const variants = [{ split: false, to: recipients }];
   if (DRY_RUN || splitRecipients.length) variants.push({ split: true, to: splitRecipients });
   for (const v of variants) await runVariant(v);
