@@ -1854,6 +1854,22 @@ try {
     console.log(`[bbox] Loaded ${cityBBoxCache.size} cities from city-bbox-cache.json`);
   }
 } catch (_) {}
+// Cities the server looked up itself (incl. null = not found) — kept on disk too (25.10): the build's file
+// misses ~80 client cities, and they were re-asked after every restart, in parallel, so LocationIQ's
+// rate limit pushed each one to paid Azure (~300 calls/day, 1150 on a 26-restart day).
+const BBOX_LEARNED_FILE = path.join(__dirname, 'data', 'city-bbox-learned.json');
+const bboxLearned = (() => { try { return JSON.parse(fs.readFileSync(BBOX_LEARNED_FILE, 'utf8')); } catch (_) { return {}; } })();
+for (const [city, bbox] of Object.entries(bboxLearned)) if (!cityBBoxCache.has(city)) cityBBoxCache.set(city, bbox);
+let _bboxSaveTimer = null;
+function rememberBBox(city, bbox) {
+  cityBBoxCache.set(city, bbox);
+  bboxLearned[city] = bbox; // ponytail: a null from a transient failure sticks too; delete the file to re-ask
+  if (!_bboxSaveTimer) _bboxSaveTimer = setTimeout(() => {
+    _bboxSaveTimer = null;
+    try { fs.writeFileSync(BBOX_LEARNED_FILE, JSON.stringify(bboxLearned)); } catch (e) { console.error('[bbox] save failed:', e.message); }
+  }, 5000);
+  return bbox;
+}
 
 async function getCityBBox(city) {
   if (!city) return null;
@@ -1869,8 +1885,7 @@ async function getCityBBox(city) {
       if (r?.boundingbox) {
         const [minLat, maxLat, minLng, maxLng] = r.boundingbox.map(Number);
         const bbox = { minLat, maxLat, minLng, maxLng };
-        cityBBoxCache.set(city, bbox);
-        return bbox;
+        return rememberBBox(city, bbox);
       }
     } catch (_) {}
   }
@@ -1887,8 +1902,7 @@ async function getCityBBox(city) {
           minLat: r.viewport.btmRightPoint.lat, maxLat: r.viewport.topLeftPoint.lat,
           minLng: r.viewport.topLeftPoint.lon,  maxLng: r.viewport.btmRightPoint.lon,
         };
-        cityBBoxCache.set(city, bbox);
-        return bbox;
+        return rememberBBox(city, bbox);
       }
     } catch (_) {}
   }
@@ -1901,12 +1915,10 @@ async function getCityBBox(city) {
     if (data.length > 0 && data[0].boundingbox) {
       const bb = data[0].boundingbox;
       const bbox = { minLat: parseFloat(bb[0]), maxLat: parseFloat(bb[1]), minLng: parseFloat(bb[2]), maxLng: parseFloat(bb[3]) };
-      cityBBoxCache.set(city, bbox);
-      return bbox;
+      return rememberBBox(city, bbox);
     }
   } catch (_) {}
-  cityBBoxCache.set(city, null);
-  return null;
+  return rememberBBox(city, null);
 }
 
 function isWithinCityBBox(lat, lng, bbox) {
