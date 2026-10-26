@@ -523,39 +523,43 @@ const TOTAL_LABEL = 'סה"כ';
 async function buildXlsx(parts, workDays) {
   const wb = new ExcelJS.Workbook();
   for (const { part, rows } of parts) {
-    const ws = wb.addWorksheet(part.sheet, { properties: { tabColor: { argb: 'FF' + XLSX_TAB[part.id] } }, views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
-    const amounts = amountColumns(part);
+    // Дан 26.10: DSO-колонка только на листе DSO; «% ימי עבודה שנותרו» — не колонкой с одним и тем же
+    // числом в каждой строке, а одной строкой над таблицей (та же фраза, что в шапке страницы/письма).
     const late = part.id === 'late';
+    const head = late ? 1 : 2; // строка шапки таблицы
+    const ws = wb.addWorksheet(part.sheet, { properties: { tabColor: { argb: 'FF' + XLSX_TAB[part.id] } }, views: [{ rightToLeft: true, state: 'frozen', ySplit: head }] });
+    const amounts = amountColumns(part);
     const cols = [
       ['שוק', 11, { totalsRowLabel: TOTAL_LABEL }], ['אחראי / סוכן', 20], ["מס' לקוח", 11], ['שם', 36],
       ...amounts.map(([h, f]) => [h, 15, { totalsRowFunction: 'sum', totalsRowResult: rows.reduce((t, e) => t + Math.round(f(e)), 0) }]),
-      ['מספר ימי האשראי הממוצע', 14],
-      ...(late ? [] : [['%', 9], ['% ימי עבודה שנותרו', 12]]),
+      ...(late ? [] : [['%', 9]]),
     ];
     cols.forEach(([, w], i) => { ws.getColumn(i + 1).width = w; });
     const ordered = [...rows.filter(r => r.market === 'רשתות'), ...rows.filter(r => r.market !== 'רשתות')];
     if (!ordered.length) { ws.getCell('A1').value = 'אין לקוחות בקטגוריה זו.'; continue; }
+    if (!late) {
+      ws.getCell('A1').value = `נותרו ${workDays.left} ימי עבודה עד סוף החודש מתוך ${workDays.total} · ${Math.round(workDays.pct * 100)}% מימי העבודה בחודש`;
+      ws.getCell('A1').font = { bold: true };
+    }
     ws.addTable({
-      name: 'T_' + part.id, ref: 'A1', headerRow: true, totalsRow: true, style: XLSX_TABLE_STYLE,
+      name: 'T_' + part.id, ref: 'A' + head, headerRow: true, totalsRow: true, style: XLSX_TABLE_STYLE,
       columns: cols.map(([name, , extra]) => ({ name, filterButton: true, ...extra })),
       rows: ordered.map(e => [
         e.market, e.market === 'רשתות' ? e.resp : e.agent, e.custno || '', e.name,
         ...amounts.map(([, f]) => Math.round(f(e))),
-        e.creditDays === null ? null : Math.round(e.creditDays),
-        ...(late ? [] : [e.util, workDays.pct]),
+        ...(late ? [] : [e.util]),
       ]),
     });
     // формат ячеек (включая строку итогов) — после addTable
-    paintHeader(ws, 1, 1, cols.length);
-    for (let r = 2; r <= ordered.length + 2; r++) {
+    paintHeader(ws, head, 1, cols.length);
+    for (let r = head + 1; r <= head + ordered.length + 1; r++) {
       amounts.forEach((a, i) => {
         const cell = ws.getCell(r, 5 + i);
         cell.numFmt = '#,##0';
         if (a[3]) cell.font = { bold: true };
       });
-      if (!late && r <= ordered.length + 1) {
-        ws.getCell(r, cols.length).numFmt = '0%';
-        const cell = ws.getCell(r, cols.length - 1);
+      if (!late && r <= head + ordered.length) {
+        const cell = ws.getCell(r, cols.length);
         cell.numFmt = '0%';
         cell.font = { bold: true };
       }
