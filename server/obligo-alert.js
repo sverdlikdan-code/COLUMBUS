@@ -107,7 +107,8 @@ async function fetchPayers() {
       "limitILS", [OBLIGO רב חברתי],
       "dso", ${DSO_MEASURE},
       "sales3m", CALCULATE([TOTAL SALES brutto], ALL_PARTS[תאריך] >= EDATE(TODAY(), -3)),
-      "b30", SUM(${H}[1-30]), "b60", SUM(${H}[31-60]), "b90", SUM(${H}[61-90]), "bOld", SUM(${H}[מעל 90])
+      "b30", SUM(${H}[1-30]), "b60", SUM(${H}[31-60]), "b90", SUM(${H}[61-90]), "bOld", SUM(${H}[מעל 90]),
+      "mmd", SUM(${H}[אובליגו MMD])
     )
   `);
   return rows.map(r => ({
@@ -118,6 +119,7 @@ async function fetchPayers() {
     usedILS: r['[usedILS]'] || 0,
     creditDays: r['[dso]'] ?? null,
     sales3m: r['[sales3m]'] || 0,
+    hasMmd: !!r['[mmd]'],
     // только положительные корзины (Дан 2026-10-12): кредит в одной корзине не гасит долг в другой
     b30: Math.max(0, r['[b30]'] || 0),
     b60: Math.max(0, r['[b60]'] || 0),
@@ -163,7 +165,7 @@ async function fetchEntities() {
     }
     const g = grouped.get(key);
     byPayer.push({ custno: p.payer, name: p.custName || name, market: g.market, resp: g.resp, agent: g.agent, usedILS: p.usedILS,
-      creditDays: p.creditDays, sales3m: p.sales3m });
+      creditDays: p.creditDays, sales3m: p.sales3m, hasMmd: p.hasMmd });
     g.payers.add(p.payer);
     if (!isChain) g.creditDays = p.creditDays;
     for (const f of ['limitILS', 'usedILS', 'sales3m', 'b30', 'b60', 'b90', 'bOld']) g[f] += p[f];
@@ -743,8 +745,11 @@ async function main() {
     return { part, rows, diff: diffFor(prev, part.id, rows) };
   });
   // DSO: основная таблица — только с продажами за 3 месяца; без продаж — отдельно, по долгу (Дан 25.10)
-  const dsoRank = entities.byPayer.filter(e => e.creditDays !== null && e.usedILS > 0 && e.sales3m > 0).sort((a, b) => b.creditDays - a.creditDays);
-  const frozen = entities.byPayer.filter(e => e.usedILS > 0 && !(e.sales3m > 0)).sort((a, b) => b.usedILS - a.usedILS);
+  // Плательщики с облиго в MMD — вне раздела DSO (Дан 26.10): продаж MMD нет в ALL_PARTS, поэтому DSO пустой/кривой,
+  // а активный покупатель Эйлата (1113001 שופרסל שלי אילת) падал в «ללא מכירות». Вернуть, когда MMD будет в модели.
+  const dsoBase = entities.byPayer.filter(e => e.usedILS > 0 && !e.hasMmd);
+  const dsoRank = dsoBase.filter(e => e.creditDays !== null && e.sales3m > 0).sort((a, b) => b.creditDays - a.creditDays);
+  const frozen = dsoBase.filter(e => !(e.sales3m > 0)).sort((a, b) => b.usedILS - a.usedILS);
   const setDso = (target, pred) => { target.dso = dsoRank.filter(pred).slice(0, DSO_TOP); target.dsoFrozen = frozen.filter(pred); };
   setDso(parts, () => true);
 
