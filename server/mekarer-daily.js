@@ -2,7 +2,8 @@
 // Запускается cron-ом на VPS (не GitHub Actions: живые заказы только на VPS, docs/mekarer-orders.json
 // в .gitignore). Cron 13:00 и 14:00 UTC, скрипт сам отсекает всё кроме 16:xx Israel — так
 // переход летнее/зимнее время не сдвигает отправку.
-// В файле все заказы, свежие сверху, + колонка "אישור יוסי" (выпадающий כן/לא, предзаполнен со страницы /mekarer-admin.html).
+// В файле все заказы FORMULA + ICE BDD (колонка ערוץ, как у Ашдода; BDD добавлен 26.10 — до этого Йоси
+// не получал Excel, если новые были только в BDD), свежие сверху, + колонка "אישור יוסי" (выпадающий כן/לא, предзаполнен со страницы /mekarer-admin.html).
 // Письмо уходит только если с прошлой отправки появился новый заказ (state: server/mekarer-daily-state.json).
 // Флаги: --dry-run (xlsx на диск, без письма), --force (без проверки времени и новых заказов).
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
@@ -13,7 +14,8 @@ const { Resend } = require('resend');
 
 const DRY_RUN = process.argv.includes('--dry-run');
 const FORCE = process.argv.includes('--force');
-const ORDERS = path.join(__dirname, '..', 'docs', 'mekarer-orders.json');
+const ORDERS = [['mekarer-orders.json', 'F', 'FORMULA'], ['mekarer-orders-bdd.json', 'B', 'ICE BDD']]
+  .map(([f, ch, channel]) => ({ file: path.join(__dirname, '..', 'docs', f), ch, channel }));
 const STATE = path.join(__dirname, 'mekarer-daily-state.json');
 // Отметки со страницы /mekarer-admin.html (אישור/הערות יוסי, סטטוס אספקה, הערות אשדוד), пишет server/index.js.
 const MARKS = path.join(__dirname, 'data', 'mekarer-admin.json');
@@ -41,7 +43,7 @@ function ilNow() {
 }
 
 const COLS = [
-  ['אישור יוסי', 12], ['תאריך ושעת הגשה', 18], ["מס' לקוח", 11], ['שם לקוח', 42], ['עיר', 12],
+  ['אישור יוסי', 12], ['תאריך ושעת הגשה', 18], ['ערוץ', 10], ["מס' לקוח", 11], ['שם לקוח', 42], ['עיר', 12],
   ['שם סוכן', 18], ['מנהל', 10], ['איש קשר', 14], ['טלפון', 13], ['מיקום', 9], ['פעולה', 10],
   ['דגם לספק', 38], ['דגם לאסוף', 38], ['סלסלאות', 9], ['עגלה', 7], ['תאריך אספקה', 13],
   ['תקלה / הערה', 22], ["מס' הזמנה", 15],
@@ -81,7 +83,9 @@ function readMarks() {
 
 async function buildXlsx(orders) {
   const marks = readMarks();
-  const rows = flatRows(orders).map(r => [marks[r.key]?.approve || '', ilDate(r.submittedAt), r.custId,
+  const rows = orders.flatMap(({ list, ch, channel }) => flatRows(list, ch, marks).map(r => ({ ...r, channel })))
+    .sort((a, b) => b.id - a.id)
+    .map(r => [marks[r.key]?.approve || '', ilDate(r.submittedAt), r.channel, r.custId,
     r.custName, r.city, r.agentName, r.manager, r.contactName, r.phone, r.location, r.action, r.newModel,
     r.returnModel, r.salot, r.agala, r.supplyDate ? new Date(r.supplyDate + 'T00:00:00Z') : '', r.fault, r.id]);
 
@@ -95,7 +99,7 @@ async function buildXlsx(orders) {
   });
   COLS.forEach(([, w], i) => { ws.getColumn(i + 1).width = w; });
   ws.getColumn(2).numFmt = 'dd/mm/yyyy hh:mm';
-  ws.getColumn(16).numFmt = 'dd/mm/yyyy';
+  ws.getColumn(17).numFmt = 'dd/mm/yyyy';
   const yellow = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF2CC' } };
   for (let r = 2; r <= rows.length + 1; r++) {
     const c = ws.getCell(r, 1);
@@ -113,10 +117,12 @@ async function main() {
     console.log(`skip: Israel ${now.day} ${now.hour}:xx`);
     return;
   }
-  const orders = JSON.parse(fs.readFileSync(ORDERS, 'utf8'));
+  // BDD-файл может ещё не существовать — тогда просто пустой канал.
+  const orders = ORDERS.map(o => ({ ...o, list: fs.existsSync(o.file) ? JSON.parse(fs.readFileSync(o.file, 'utf8')) : [] }));
+  const all = orders.flatMap(o => o.list);
   const state = fs.existsSync(STATE) ? JSON.parse(fs.readFileSync(STATE, 'utf8')) : { lastMaxId: 0 };
-  const maxId = Math.max(0, ...orders.map(o => o.id));
-  const fresh = orders.filter(o => o.id > state.lastMaxId).length;
+  const maxId = Math.max(0, ...all.map(o => o.id)); // id = Date.now() в обоих каналах — один порог на оба
+  const fresh = all.filter(o => o.id > state.lastMaxId).length;
   if (!FORCE && fresh === 0) {
     console.log(`skip: no new orders since ${state.lastMaxId}`);
     return;
@@ -127,7 +133,7 @@ async function main() {
   const filename = `mekarer-orders-${date}.xlsx`;
   if (DRY_RUN) {
     fs.writeFileSync(path.join(__dirname, filename), Buffer.from(buf));
-    console.log(`dry-run: ${filename}, ${orders.length} orders / ${rows} rows, new: ${fresh}`);
+    console.log(`dry-run: ${filename}, ${all.length} orders / ${rows} rows, new: ${fresh}`);
     return;
   }
 
@@ -139,7 +145,7 @@ async function main() {
     to,
     subject: `הזמנות מקררים — ${date} (${fresh} חדשות)`,
     html: `<div dir="rtl" style="font-family:Arial,sans-serif;font-size:15px">שלום יוסי,<br><br>
-      מצורף קובץ הזמנות המקררים מ-Formula Road — ${orders.length} הזמנות, החדשות למעלה (${fresh} חדשות מאז הדיווח הקודם).<br>
+      מצורף קובץ הזמנות המקררים מ-Formula Road (FORMULA + ICE BDD) — ${all.length} הזמנות, החדשות למעלה (${fresh} חדשות מאז הדיווח הקודם).<br>
       בעמודה <b>אישור יוסי</b> אפשר לבחור כן / לא.</div>`,
     attachments: [{ filename, content: Buffer.from(buf).toString('base64') }],
   });
