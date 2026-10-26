@@ -297,7 +297,7 @@ const DSO_TOP = 50; // Дан 25.10
 const DSO_NEW_UNTIL = '2026-11-12';
 const dsoIsNew = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' }) <= DSO_NEW_UNTIL;
 const DSO_FROZEN_TITLE = 'ללא מכירות ב-3 החודשים האחרונים (לפי גובה החוב)';
-const DSO_LINE = 'DSO (Days Sales Outstanding) — כמה ימים בממוצע הלקוח לא משלם';
+const DSO_LINE = 'DSO — מספר ימי האשראי הממוצע: כמה ימים בממוצע עובר עד שהלקוח משלם';
 function pageDso(list, frozen, n) {
   if (!(list && list.length) && !(frozen && frozen.length)) return '';
   const tr = (e, days) => `<tr data-q="${esc(`${e.name} ${e.custno} ${e.agent} ${e.resp}`.toLowerCase())}"><td class="c">${esc(e.custno)}</td><td class="n">${esc(e.name)}</td>`
@@ -438,7 +438,7 @@ function emailDsoHtml(list, frozenN, num) {
       <td width="5" bgcolor="${NAVY}" style="width:5px;background-color:${NAVY};font-size:0;line-height:0">&nbsp;</td>
       <td dir="rtl" style="padding:${dsoIsNew() ? '10px 12px 10px 0' : '2px 12px 2px 0'};text-align:right">
         <div style="font-family:Arial,sans-serif;font-size:17px;color:${NAVY};font-weight:bold;line-height:24px">${num}. לקוחות עם DSO הגבוה ביותר${dsoIsNew() ? `&nbsp;<span style="background-color:${GOLD};color:#ffffff;font-size:12px;padding:2px 8px">🆕 חדש</span>` : ''}</div>
-        <div style="font-family:Arial,sans-serif;font-size:12px;color:${MUTED};line-height:18px">${esc(DSO_LINE)} &middot; TOP ${list.length} &middot; ${frozenN} ללא מכירות ב-3 חודשים</div>
+        <div style="font-family:Arial,sans-serif;font-size:12px;color:${MUTED};line-height:18px">${esc(DSO_LINE)}<br>${list.length} הלקוחות עם ה-DSO הגבוה ביותר (קנו ב-3 החודשים האחרונים)${frozenN ? ` &middot; ועוד ${frozenN} עם חוב ללא קניות — ברשימה נפרדת` : ''}</div>
       </td>
     </tr></table>
   </td></tr>`;
