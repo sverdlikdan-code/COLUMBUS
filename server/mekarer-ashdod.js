@@ -1,7 +1,7 @@
 // mekarer-ashdod.js — заказы מקרר с אישור יוסי = כן для офиса Ашдод (Татьяна Бегун, Марьяна Йофик), Вс–Чт.
-// Cron на VPS: 0,40 13,14 UTC; скрипт сам пропускает всё кроме 16:00 и 16:40 Israel (летнее/зимнее время).
+// Cron на VPS: 0,40 13,14 + 30 14,15 UTC; скрипт сам пропускает всё кроме 16:00, 16:40 и 17:30 Israel (летнее/зимнее время).
 // Письмо уходит, только если с прошлой отправки Йоси поставил новый אישור (approveAt > lastSentAt) —
-// 16:40 = повторная, если после 16:00 появились новые אישורים. Каналы FORMULA + ICE BDD.
+// 16:40 и 17:30 = контрольные, если после прошлой отправки появились новые אישורים. Каналы FORMULA + ICE BDD.
 // Каждой — своё письмо со своей ссылкой /i/<code> (target 'mekarer', вход только в ניהול מקררים);
 // Дан в копии только в первом письме, чтобы не получать дубль.
 // .env: MEKARER_ASHDOD_RECIPIENTS="email|link,email|link", MEKARER_ASHDOD_CC.
@@ -79,7 +79,8 @@ async function buildXlsx(rows, marks) {
 
 async function main() {
   const now = ilNow();
-  const slot = now.hour === 16 && (now.min < 10 || (now.min >= 40 && now.min < 50));
+  const slot = (now.hour === 16 && (now.min < 10 || (now.min >= 40 && now.min < 50)))
+    || (now.hour === 17 && now.min >= 30 && now.min < 40);  // 17:30 контрольный (Дан 26.10)
   if (!FORCE && !(['Sun', 'Mon', 'Tue', 'Wed', 'Thu'].includes(now.day) && slot)) {
     console.log(`skip: Israel ${now.day} ${now.hour}:${String(now.min).padStart(2, '0')}`);
     return;
