@@ -31,7 +31,7 @@ function buildGpsQuery() {
       SELECT ORD, COUNT(DISTINCT KLINE) AS line_cnt FROM ORDERITEMS GROUP BY ORD
     ),
     filtered AS (
-      SELECT O.CUST, OB.GPSX, OB.GPSY
+      SELECT O.CUST, OB.GPSX, OB.GPSY, OL.line_cnt
       FROM ORDERS O
       JOIN ORDERSB     OB ON OB.ORD = O.ORD
       JOIN order_lines OL ON OL.ORD = O.ORD
@@ -47,7 +47,8 @@ function buildGpsQuery() {
       CAST(ROUND(CAST(F.GPSX AS float), ${BUCKET}) AS float) AS lng_bucket,
       AVG(CAST(F.GPSY AS float)) AS lat_avg,
       AVG(CAST(F.GPSX AS float)) AS lng_avg,
-      COUNT(*) AS cnt
+      COUNT(*) AS cnt,
+      SUM(F.line_cnt) AS lines
     FROM filtered F
     JOIN CUSTOMERS C ON C.CUST = F.CUST
     GROUP BY
@@ -90,6 +91,7 @@ async function main() {
         lat_wsum:   row.lat_avg * row.cnt,
         lng_wsum:   row.lng_avg * row.cnt,
         total_cnt:  row.cnt,
+        lines:      row.lines,
         sources:    new Set([row.src]),
       });
     } else {
@@ -97,6 +99,7 @@ async function main() {
       c.lat_wsum  += row.lat_avg * row.cnt;
       c.lng_wsum  += row.lng_avg * row.cnt;
       c.total_cnt += row.cnt;
+      c.lines     += row.lines;
       c.sources.add(row.src);
     }
   }
@@ -108,14 +111,54 @@ async function main() {
     byCustomer.get(c.custname).push(c);
   }
 
+  // Ratchet (Дан 26.10): the current file is the baseline. A client's point moves only when the
+  // new cluster clearly outweighs the one at the current point (≥2× AND ≥3 more orders); otherwise
+  // the current point stays and the candidate goes to the held list for Дан. A rebuild can then only
+  // add data, never quietly swap a store for an agent's desk (1153775/1154416: Natalya's spot won
+  // 3:2, 2:1). No Google arbiter on purpose: Google is often plain wrong (field test 19–20.10,
+  // tablet beat it 4×; dry run 26.10 let Caesarea→Haifa through on "36.9 km beats 47.6 km").
+  const outPath = process.env.GPS_OUT || path.join(__dirname, '../docs/priority-gps-cross.json');
+  const readJson = p => { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch (_) { return null; } };
+  const baseline = new Map((readJson(process.env.GPS_BASE || outPath) || []).map(r => [String(r.cust), r]));
+  const km = (a, b) => {
+    const t = Math.PI / 180, dl = (b.lat - a.lat) * t, dn = (b.lng - a.lng) * t;
+    return 12742 * Math.asin(Math.sqrt(Math.sin(dl / 2) ** 2 + Math.cos(a.lat * t) * Math.cos(b.lat * t) * Math.sin(dn / 2) ** 2));
+  };
+  const held = [];
+  let moved = 0;
+
   const output = [];
   for (const [custname, clusters] of byCustomer) {
     const totalOrders = clusters.reduce((s, c) => s + c.total_cnt, 0);
-    clusters.sort((a, b) => b.total_cnt - a.total_cnt);
+    // Tie on order count → more מק"טים wins (a real store visit carries the bigger order;
+    // 1154525 on 30.08: 10 lines off-site vs 14 at the store). Last key is the bucket itself,
+    // so the pick never depends on SQL row order (it used to flip ties randomly between rebuilds).
+    // "Lines" = SUM of per-order line counts, not COUNT DISTINCT KLINE across the cluster.
+    // ponytail: on a full tie the southern/western bucket wins arbitrarily, upgrade when the
+    // server cascade gets a tie flag → Google-in-city-bbox (FR, after the 29.10 switch).
+    clusters.sort((a, b) => b.total_cnt - a.total_cnt || b.lines - a.lines
+      || a.lat_bucket - b.lat_bucket || a.lng_bucket - b.lng_bucket);
     const best = clusters[0];
 
     const lat = best.lat_wsum / best.total_cnt;
     const lng = best.lng_wsum / best.total_cnt;
+
+    const prev = baseline.get(String(custname));
+    if (prev) {
+      const d = km(prev, { lat, lng });
+      if (d >= 0.3) {
+        const prevCnt = clusters.filter(c => km(prev, { lat: c.lat_wsum / c.total_cnt, lng: c.lng_wsum / c.total_cnt }) < 0.3)
+          .reduce((s, c) => s + c.total_cnt, 0);
+        const clear = best.total_cnt >= 2 * prevCnt && best.total_cnt - prevCnt >= 3;
+        if (!clear) {
+          output.push(prev);
+          held.push({ cust: custname, km: Math.round(d * 10) / 10, prev_cnt: prevCnt, new_cnt: best.total_cnt,
+            prev: [prev.lat, prev.lng], cand: [Math.round(lat * 1e6) / 1e6, Math.round(lng * 1e6) / 1e6] });
+          continue;
+        }
+        moved++;
+      }
+    }
 
     output.push({
       cust:         custname,
@@ -128,6 +171,11 @@ async function main() {
       source_count: best.sources.size,
     });
   }
+
+  // A client with no qualifying orders in this run keeps its baseline point — dropping it would
+  // push the cascade down to PBI/geocode, exactly the regression the ratchet is there to stop.
+  let carried = 0;
+  for (const [cust, prev] of baseline) if (!byCustomer.has(cust)) { output.push(prev); carried++; }
 
   output.sort((a, b) => a.cust.localeCompare(b.cust));
 
@@ -144,9 +192,14 @@ async function main() {
   const highConf = output.filter(r => r.source_count >= 2).length;
   console.log(`\nHigh confidence (2+ companies agree): ${highConf} / ${output.length} clients`);
 
-  const outPath = path.join(__dirname, '../docs/priority-gps-cross.json');
+  console.log(`Ratchet: moved ${moved}, held ${held.length} (kept current point), carried ${carried} (no orders this run), baseline ${baseline.size}`);
+  // Held candidates ≥1 km go to Дан for a manual call (quarterly review), never auto-applied.
+  // Not under docs/ — that folder is published to GitHub Pages.
+  const heldPath = process.env.GPS_HELD || path.join(__dirname, 'data', 'gps-cross-held.json');
+  fs.mkdirSync(path.dirname(heldPath), { recursive: true });
+  fs.writeFileSync(heldPath, JSON.stringify(held.filter(h => h.km >= 1).sort((a, b) => b.km - a.km), null, 2), 'utf8');
   fs.writeFileSync(outPath, JSON.stringify(output, null, 2), 'utf8');
-  console.log(`Wrote ${output.length} entries -> docs/priority-gps-cross.json`);
+  console.log(`Wrote ${output.length} entries -> ${outPath} (held ≥1 km -> ${heldPath})`);
 }
 
 main().catch(e => { console.error('FATAL:', e.message); process.exit(1); });
