@@ -505,18 +505,23 @@ function buildEmailHtml(parts, workDays, greetName, scope, link) {
 </body></html>`;
 }
 
-// Excel (Дан 25.10): каждый лист — «умная» таблица Excel со строкой итогов; ярлык листа в цвет стиля таблицы
-// (accent темы Office, которую пишет exceljs). Лист DSO — две таблицы рядом.
-const XLSX_STYLE = {
-  near: ['TableStyleMedium14', 'F79646'], over: ['TableStyleMedium10', 'C0504D'],
-  late: ['TableStyleMedium9', '4F81BD'], dso: ['TableStyleMedium12', '8064A2'],
-};
+// Excel (Дан 25.10): каждый лист — «умная» таблица Excel со строкой итогов. Лист DSO — две таблицы рядом.
+// Дан 26.10: без «салата» — тело таблицы белое без полос, заливка только в шапке (одна, NAVY как в письме).
+const XLSX_TAB = { near: 'F79646', over: 'C0504D', late: '4F81BD', dso: '8064A2' }; // только ярлыки листов
+const XLSX_TABLE_STYLE = { theme: 'TableStyleLight1', showRowStripes: false };
+const XLSX_NAVY = 'FF' + NAVY.slice(1);
+function paintHeader(ws, row, fromCol, n) {
+  for (let c = fromCol; c < fromCol + n; c++) {
+    const cell = ws.getCell(row, c);
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_NAVY } };
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  }
+}
 const TOTAL_LABEL = 'סה"כ';
 async function buildXlsx(parts, workDays) {
   const wb = new ExcelJS.Workbook();
   for (const { part, rows } of parts) {
-    const [style, color] = XLSX_STYLE[part.id];
-    const ws = wb.addWorksheet(part.sheet, { properties: { tabColor: { argb: 'FF' + color } }, views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
+    const ws = wb.addWorksheet(part.sheet, { properties: { tabColor: { argb: 'FF' + XLSX_TAB[part.id] } }, views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
     const amounts = amountColumns(part);
     const late = part.id === 'late';
     const cols = [
@@ -529,7 +534,7 @@ async function buildXlsx(parts, workDays) {
     const ordered = [...rows.filter(r => r.market === 'רשתות'), ...rows.filter(r => r.market !== 'רשתות')];
     if (!ordered.length) { ws.getCell('A1').value = 'אין לקוחות בקטגוריה זו.'; continue; }
     ws.addTable({
-      name: 'T_' + part.id, ref: 'A1', headerRow: true, totalsRow: true, style: { theme: style, showRowStripes: true },
+      name: 'T_' + part.id, ref: 'A1', headerRow: true, totalsRow: true, style: XLSX_TABLE_STYLE,
       columns: cols.map(([name, , extra]) => ({ name, filterButton: true, ...extra })),
       rows: ordered.map(e => [
         e.market, e.market === 'רשתות' ? e.resp : e.agent, e.custno || '', e.name,
@@ -539,37 +544,38 @@ async function buildXlsx(parts, workDays) {
       ]),
     });
     // формат ячеек (включая строку итогов) — после addTable
+    paintHeader(ws, 1, 1, cols.length);
     for (let r = 2; r <= ordered.length + 2; r++) {
       amounts.forEach((a, i) => {
         const cell = ws.getCell(r, 5 + i);
         cell.numFmt = '#,##0';
-        if (a[3]) cell.font = { bold: true, color: { argb: 'FF' + color } };
+        if (a[3]) cell.font = { bold: true };
       });
       if (!late && r <= ordered.length + 1) {
         ws.getCell(r, cols.length).numFmt = '0%';
         const cell = ws.getCell(r, cols.length - 1);
         cell.numFmt = '0%';
-        cell.font = { bold: true, color: { argb: 'FF' + color } };
+        cell.font = { bold: true };
       }
     }
   }
 
   // Лист DSO: две «умные» таблицы рядом — TOP с продажами за 3 месяца (A) и без продаж (H)
   if ((parts.dso && parts.dso.length) || (parts.dsoFrozen && parts.dsoFrozen.length)) {
-    const [style, color] = XLSX_STYLE.dso;
-    const ws = wb.addWorksheet('DSO', { properties: { tabColor: { argb: 'FF' + color } }, views: [{ rightToLeft: true, state: 'frozen', ySplit: 3 }] });
+    const ws = wb.addWorksheet('DSO', { properties: { tabColor: { argb: 'FF' + XLSX_TAB.dso } }, views: [{ rightToLeft: true, state: 'frozen', ySplit: 3 }] });
     [14, 36, 14, 15, 11, 20, 4, 14, 36, 15, 11, 20].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
     ws.getCell('A1').value = DSO_LINE; ws.getCell('A1').font = { italic: true };
     const owner = e => e.market === 'רשתות' ? e.resp : e.agent;
     const table = (name, col, title, list, days) => {
       if (!list || !list.length) return;
       const at = n => ws.getCell(n, col);
-      at(2).value = title; at(2).font = { bold: true, size: 12, color: { argb: 'FF' + color } };
+      at(2).value = title; at(2).font = { bold: true, size: 12, color: { argb: XLSX_NAVY } };
       const cols = [["מס' לקוח משלם", { totalsRowLabel: TOTAL_LABEL }], ['שם'], ...(days ? [['מספר ימי האשראי הממוצע']] : []),
         ['ניצול אובליגו', { totalsRowFunction: 'sum', totalsRowResult: list.reduce((t, e) => t + Math.round(e.usedILS), 0) }], ['שוק'], ['אחראי / סוכן']];
-      ws.addTable({ name, ref: ws.getCell(3, col).address, headerRow: true, totalsRow: true, style: { theme: style, showRowStripes: true },
+      ws.addTable({ name, ref: ws.getCell(3, col).address, headerRow: true, totalsRow: true, style: XLSX_TABLE_STYLE,
         columns: cols.map(([n, extra]) => ({ name: n, filterButton: true, ...extra })),
         rows: list.map(e => [e.custno, e.name, ...(days ? [Math.round(e.creditDays)] : []), Math.round(e.usedILS), e.market, owner(e)]) });
+      paintHeader(ws, 3, col, cols.length);
       const usedCol = col + (days ? 3 : 2);
       for (let r = 4; r <= list.length + 4; r++) ws.getCell(r, usedCol).numFmt = '#,##0';
     };
