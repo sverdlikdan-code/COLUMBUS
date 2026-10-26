@@ -566,7 +566,7 @@ async function runVariant({ split, to }) {
   for (const snd of sends) {
     // общее письмо — «שלום רב,» вместо перечня имён (пользователь 2026-09-30)
     const greetName = snd.to.length > 1 ? 'רב' : RECIPIENT_NAMES[snd.to[0].toLowerCase()] || (snd.cc ? 'רב' : '');
-    const res = await resend.emails.send({
+    const res = await sendWithRetry(resend, tag, {
       from: `Diler Intelligence <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
       ...snd,
       subject,
@@ -599,6 +599,19 @@ async function runVariant({ split, to }) {
     console.log(tag, snd.to.join(','), snd.cc ? 'cc ' + snd.cc.join(',') : '', JSON.stringify(res));
   }
   if (main) saveState(risks);
+}
+
+// Resend отдаёт сетевой сбой в res.error, а не исключением: 26.10 в 09:00 DNS → письмо не ушло, exit 0,
+// Healthchecks зелёный, state записан как отправленный. Сетевой сбой (нет statusCode — запрос не дошёл,
+// дубля не будет) повторяем 3× через 30 с; не ушло — бросаем: exit 1 → HC пишет Дану, state не трогаем.
+async function sendWithRetry(resend, tag, payload) {
+  for (let i = 1; ; i++) {
+    const res = await resend.emails.send(payload);
+    if (!res.error) return res;
+    console.error(tag, `попытка ${i}/3:`, JSON.stringify(res.error));
+    if (res.error.statusCode || i === 3) throw new Error(`письмо не ушло: ${res.error.message}`);
+    await new Promise(r => setTimeout(r, 30000));
+  }
 }
 
 main().catch(e => { console.error('ERR:', e.message); process.exit(1); });

@@ -689,17 +689,28 @@ async function sendReport(resend, recipient, parts, workDays, scope) {
     + `\n\nנותרו ${workDays.left} ימי עבודה עד סוף החודש מתוך ${workDays.total} (${Math.round(workDays.pct * 100)}%).`
     + `\n\nהדוח המלא (קישור אישי, בתוקף ${LINK_DAYS} ימים, נא לא להעביר): ${link}\nכל הלקוחות גם בקובץ האקסל המצורף.`
     + '\n\nהערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.';
-  const res = await resend.emails.send({
+  const payload = {
     from: `Diler Intelligence <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
     to: [recipient],
     subject: `דוח אובליגו שבועי — מתקרבים: ${counts[0]} · חורגים: ${counts[1]} · בפיגור: ${counts[2]}`,
     html: buildEmailHtml(parts, workDays, greetName, scope, link),
     text,
     attachments,
-  });
+  };
+  // Resend отдаёт сетевой сбой в res.error, не исключением (26.10 09:00 DNS — expiry-alert не ушёл молча).
+  // Нет statusCode = запрос не дошёл, дубля не будет → повтор 3× через 30 с.
+  let res;
+  for (let i = 1; i <= 3; i++) {
+    res = await resend.emails.send(payload);
+    if (!res.error || res.error.statusCode) break;
+    console.error(`  ${recipient} попытка ${i}/3:`, JSON.stringify(res.error));
+    if (i < 3) await sleep(30000);
+  }
   await sleep(600); // Resend: не больше ~2 писем в секунду
   return res;
 }
+
+let failed = 0; // не ушедшие письма → exit 1 в конце, Healthchecks пишет Дану
 
 // OBLIGO_ALERT_CC — копия каждого письма (Дан 2026-10-08). Не cc-полем, а отдельным письмом со своей ссылкой:
 // общая ссылка смешала бы трекинг и отдала бы CC чужую страницу (security-agent 2026-10-13).
@@ -707,6 +718,7 @@ async function sendWithCopies(resend, to, parts, workDays, scope, label) {
   const cc = (process.env.OBLIGO_ALERT_CC || '').split(',').map(s => s.trim()).filter(Boolean);
   for (const addr of [to, ...cc]) {
     const r = await sendReport(resend, addr, parts, workDays, scope);
+    if (r?.error) failed++;
     console.log(`${label} ${addr}${addr === to ? '' : ` (копия ${to})`}:`, JSON.stringify(r?.error ?? r?.data));
   }
 }
@@ -803,7 +815,8 @@ async function main() {
   for (const to of recipients) await sendWithCopies(resend, to, parts, workDays, false, 'Отправлено');
   for (const { email, mine } of perManager) await sendWithCopies(resend, email, mine, workDays, SCOPE_TEAM, 'Менеджеру');
   for (const { email, mine } of perOwner) await sendWithCopies(resend, email, mine, workDays, SCOPE_OWNER, 'אחראי');
-  saveState(parts);
+  saveState(parts); // state пишем и при частичном сбое: остальные адресаты своё получили
+  if (failed) throw new Error(`${failed} писем не ушли`);
 }
 
 main().catch(e => { console.error('ERR:', e.message); process.exit(1); });
