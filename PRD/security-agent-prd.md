@@ -135,6 +135,11 @@ Security Agent
 - Admin log accessible via GET /admin/logs?key=KEY (key in .env)
 - access-log.json in .gitignore
 
+### Periodic checks (since 2026-10-26)
+- Daily egress watch on the VPS (no LLM): every new outbound destination / DNS name is compared with an allowlist; a new one → email to Dan; liveness via Healthchecks. Paths and allowlist live only on the VPS and in the private VAULT (this repo is public).
+- Monthly: the VPS emails Dan a reminder with a summary (new destinations, SSH attempts) → full audit by the security agent.
+- Network incidents: capture packets with `tcpdump` on the VPS before drawing conclusions.
+
 ---
 
 ## Residual Risks
