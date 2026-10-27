@@ -7003,18 +7003,21 @@ const bdd = createBdd({
 app.use('/api/bdd', bdd.router);
 
 // Coverage history schedule — must stay below `const bdd` (TDZ at startup otherwise).
-scheduleCoverageSnapshot(20, 7);
-scheduleCoverageSnapshot(20, 47); // retry — no-op when 20:07 already wrote the day
-// Caches ready (FORMULA PBI + BDD) → catch up tonight's missed snapshot.
-(function coverageStartup(tries = 0) {
-  if (!pbiCache || !bdd.ready()) {
-    if (tries < 30) setTimeout(() => coverageStartup(tries + 1), 60 * 1000);
-    return;
-  }
-  const hhmm = israelHHMM();
-  const late = hhmm >= '20:07' && hhmm <= '23:59';
-  if (late) writeCoverageDay(todayIsraelDate()).catch(e => console.error('[coverage-startup] failed:', e.message));
-})();
+// FR_JOBS_OFF: coverage snapshots are Formula Road's (/srv/fr) — here BDD never starts.
+if (!FR_JOBS_OFF) {
+  scheduleCoverageSnapshot(20, 7);
+  scheduleCoverageSnapshot(20, 47); // retry — no-op when 20:07 already wrote the day
+  // Caches ready (FORMULA PBI + BDD) → catch up tonight's missed snapshot.
+  (function coverageStartup(tries = 0) {
+    if (!pbiCache || !bdd.ready()) {
+      if (tries < 30) setTimeout(() => coverageStartup(tries + 1), 60 * 1000);
+      return;
+    }
+    const hhmm = israelHHMM();
+    const late = hhmm >= '20:07' && hhmm <= '23:59';
+    if (late) writeCoverageDay(todayIsraelDate()).catch(e => console.error('[coverage-startup] failed:', e.message));
+  })();
+}
 
 // ── Client Return Form (זיכוי) — products this client bought in the last 365 days,
 // each with a 3-closed-month return-rate (% זיכויים) and photo, for building a
@@ -8247,7 +8250,7 @@ app.listen(PORT, async () => {
   console.log(`Columbus server running on port ${PORT}`);
   await loadPBICache();
   scheduleDailyPBIReload();
-  if (FR_JOBS_OFF) return console.log('[fr-jobs] FR_JOBS_OFF=1 — biweekly, BDD, ICE snapshot, day-briefing prewarm, GPS prewarm off');
+  if (FR_JOBS_OFF) return console.log('[fr-jobs] FR_JOBS_OFF=1 — biweekly, BDD, ICE snapshot, day-briefing prewarm, GPS prewarm, coverage snapshot off');
   scheduleDailyIceOrderSnapshot();
   scheduleDailyDayBriefingPrewarm();
 });
