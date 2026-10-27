@@ -163,10 +163,13 @@ async function fetchTermsStatus() {
   }
   return out;
 }
-// Одна строка (Дан 27.10): везде одинаково — просто значение, иначе "FORMULA x · ICE y"
+// Одна строка (Дан 27.10): везде одинаково — просто значение, иначе "FORMULA x · ICE y";
+// больше 3 разных (сети с десятками плательщиков) — "יותר מ-3 … שונים" вместо простыни
+const ONELINE_MANY = { terms: 'יותר מ-3 תנאי תשלום שונים', status: 'יותר מ-3 סטטוסים שונים' };
 function oneLine(recs, field) {
   const all = [...new Set(recs.map(r => r[field]).filter(Boolean))];
   if (all.length <= 1) return all[0] || '';
+  if (all.length > 3) return ONELINE_MANY[field];
   return PRIO_DBS.map(([, co]) => {
     const vs = [...new Set(recs.filter(r => r.co === co).map(r => r[field]).filter(Boolean))];
     return vs.length ? `${co} ${vs.join(' / ')}` : null;
@@ -219,6 +222,89 @@ const LINE = '#E5E0D8';
 const ZEBRA = '#FAFAF8';
 
 const fmtILS = n => '₪' + Math.round(n).toLocaleString('en-US');
+// Крупные суммы в карточках шапки: ₪6.98M / ₪540K
+const fmtShort = n => n >= 1e6 ? `₪${(n / 1e6).toFixed(2)}M` : n >= 1e3 ? `₪${Math.round(n / 1e3)}K` : fmtILS(n);
+
+// Карточки шапки (Дан 27.10): суммы для топ-менеджмента вместо количества клиентов.
+// Считаются по ВСЕМ клиентам охвата письма (полный / менеджер / אחראי), не только по попавшим в части.
+// frozenList — плательщики с облиго без продаж 3+ мес. (второй список DSO): «старые долги».
+function kpiValues(list, frozenList) {
+  const sum = (l, f, pred = () => true) => l.filter(pred).reduce((s, e) => s + Math.max(0, f(e)), 0);
+  const chain = e => e.market === 'רשתות', priv = e => e.market !== 'רשתות';
+  const over = e => (e.util !== null && e.util >= 1 ? e.usedILS - e.limitILS : 0);
+  return {
+    used: sum(list, e => e.usedILS), usedPriv: sum(list, e => e.usedILS, priv), usedChain: sum(list, e => e.usedILS, chain),
+    late: sum(list, e => e.overdue), old: sum(list, e => e.bOld),
+    over: sum(list, over), overPriv: sum(list, over, priv), overChain: sum(list, over, chain),
+    frozen: sum(frozenList, e => e.usedILS),
+  };
+}
+
+// История сумм по охвату (полный / m:<группы> / o:<אחראי>) — для динамики к прошлому отчёту и мини-графика.
+// Пишется при боевой рассылке и --save-kpi (точка отсчёта); тест/--dry-run не пишут.
+const KPI_HISTORY = process.env.OBLIGO_KPI_HISTORY || (STATE ? path.join(path.dirname(STATE), 'obligo-kpi-history.json') : '');
+const KPI_KEEP = 12;
+const isoToday = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' });
+function loadKpiHistory() {
+  if (!KPI_HISTORY || !fs.existsSync(KPI_HISTORY)) return {};
+  try { return JSON.parse(fs.readFileSync(KPI_HISTORY, 'utf8')); } catch (e) { console.error('kpi history not read:', e.message); return {}; }
+}
+function saveKpiHistory(hist, scopes) {
+  if (!KPI_HISTORY) return;
+  const date = isoToday();
+  for (const { key, vals } of scopes) {
+    const list = (hist[key] || []).filter(p => p.date !== date); // повторный запуск в тот же день — заменяет точку
+    hist[key] = [...list, { date, vals }].slice(-KPI_KEEP);
+  }
+  try { fs.writeFileSync(KPI_HISTORY, JSON.stringify(hist)); } catch (e) { console.error('kpi history not saved:', e.message); }
+}
+
+// v — текущие суммы, past — прошлые точки охвата (без сегодняшней), последняя = «прошлый отчёт»
+function kpiCards(v, past) {
+  const prev = past.length ? past[past.length - 1] : null;
+  const pct = (a, b) => (b > 0 ? `${Math.round((a / b) * 100)}%` : '—');
+  // строки подписи: [текст, сумма|null] — сумму рендерер изолирует от RTL (ltr() в письме, <bdi> на странице)
+  const split = (p, c) => [['שוק פרטי', p], ['רשתות', c]];
+  const card = (key, label, sub, bar, color) => ({
+    key, label, value: v[key], sub, bar, color,
+    prev: prev && prev.vals[key] !== undefined ? { date: prev.date, value: prev.vals[key] } : null,
+    series: [...past.map(p => p.vals[key]).filter(x => x !== undefined), v[key]].slice(-8),
+  });
+  return {
+    hero: card('used', 'ניצול אובליגו כולל', split(v.usedPriv, v.usedChain), GOLD, NAVY),
+    risks: [
+      card('late', 'חוב בפיגור', [[`${pct(v.late, v.used)} מניצול האובליגו`, null]], GOLD, NAVY),
+      card('old', 'פיגור מעל 90 יום', [[`${pct(v.old, v.late)} מהחוב בפיגור`, null]], RED, RED),
+      card('over', 'חריגה ממסגרת', split(v.overPriv, v.overChain), RED, RED),
+      card('frozen', 'חוב ללא מכירות 3+ חודשים', [[`${pct(v.frozen, v.used)} מניצול האובליגו`, null]], RED, RED),
+    ],
+  };
+}
+const kpiSub = (k, iso) => k.sub.map(([t, v]) => (v === null ? t : `${t} ${iso(fmtShort(v))}`)).join('<br>');
+// Динамика к прошлому отчёту: рост долга — красный ▲, снижение — зелёный ▼
+const UP = '#C62828', DOWN = '#2E7D32';
+function kpiDelta(k, iso) {
+  if (!k.prev) return { text: 'השוואה לשבוע שעבר — מהדוח הבא', color: MUTED };
+  const d = k.value - k.prev.value;
+  if (Math.abs(d) < 1) return { text: 'ללא שינוי', color: MUTED };
+  const rel = k.prev.value > 0 ? ` (${d > 0 ? '+' : '−'}${Math.abs(Math.round((d / k.prev.value) * 100))}%)` : '';
+  return { text: `${d > 0 ? '▲' : '▼'} ${iso(fmtShort(Math.abs(d)) + rel)}`, color: d > 0 ? UP : DOWN };
+}
+// Дата сравнения — один раз в подзаголовке шапки, не в каждой карточке (иначе строка переносится)
+const kpiCompareNote = (kp, iso) => { const p = kp && kp.hero.prev; return p ? ` &middot; שינוי לעומת ${iso(p.date.split('-').reverse().slice(0, 2).join('.'))}` : ''; };
+// Мини-график недель (с 3 точек): столбики-ячейки таблицы — рисуются и в Outlook. Время слева направо, последняя — цветом карточки.
+const SPARK_MIN = 3, SPARK_H = 22;
+const sparkBars = series => { const max = Math.max(...series) || 1; return series.map(x => Math.max(2, Math.round((x / max) * SPARK_H))); };
+function sparkEmail(series, color) {
+  if (series.length < SPARK_MIN) return '';
+  const hs = sparkBars(series);
+  return `<table role="presentation" cellpadding="0" cellspacing="0" dir="ltr" align="center" style="margin:6px auto 0"><tr>${hs.map((h, i) => `<td valign="bottom" style="padding:0 1px;vertical-align:bottom"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td width="7" height="${h}" bgcolor="${i === hs.length - 1 ? color : '#D5DBE4'}" style="width:7px;height:${h}px;background-color:${i === hs.length - 1 ? color : '#D5DBE4'};font-size:0;line-height:0">&nbsp;</td></tr></table></td>`).join('')}</tr></table>`;
+}
+function sparkPage(series, color) {
+  if (series.length < SPARK_MIN) return '';
+  const hs = sparkBars(series);
+  return `<span class="sp">${hs.map((h, i) => `<i style="height:${h}px${i === hs.length - 1 ? `;background:${color}` : ''}"></i>`).join('')}</span>`;
+}
 // Outlook игнорирует CSS direction — явные LRE…PDF держат порядок "₪1,234" в ивритском тексте
 const ltr = s => `&#x202A;${s}&#x202C;`;
 
@@ -351,7 +437,9 @@ function buildPageHtml(parts, workDays, scope, expires) {
       <span class="meta">${esc(part.rule)} &middot; ${rows.length} לקוחות &middot; סה"כ ${fmtILS(partTotal(part, rows))}</span></summary>
       <div class="body">${pageDiff(diff)}${rows.length ? sub('רשתות', chains, 'resp', true) + sub('שוק פרטי', priv, 'agent', false) : '<p class="mu">אין לקוחות בקטגוריה זו.</p>'}</div></details>`;
   }).join('');
-  const chips = parts.map(({ part, rows }) => `<a class="chip" href="#${part.id}" style="--c:${part.chip}"><b style="color:${part.color}">${rows.length}</b><span>${part.label}</span></a>`).join('');
+  const bdi = s => `<bdi>${s}</bdi>`;
+  const chip = (k, cls) => { const dl = kpiDelta(k, bdi); return `<div class="chip${cls}" style="--c:${k.bar}"><span class="l">${k.label}</span><b style="color:${k.color}">${bdi(fmtShort(k.value))}</b><span class="dl" style="color:${dl.color}">${dl.text}</span>${sparkPage(k.series, k.color)}<span class="s">${kpiSub(k, bdi)}</span></div>`; };
+  const chips = parts.kpi ? chip(parts.kpi.hero, ' hero') + parts.kpi.risks.map(k => chip(k, '')).join('') : '';
   return `<!doctype html>
 <html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
@@ -361,10 +449,13 @@ function buildPageHtml(parts, workDays, scope, expires) {
 *{box-sizing:border-box}body{margin:0;background:${PAPER};font-family:Arial,sans-serif;color:${INK}}
 header{background:${NAVY};color:#fff;text-align:center;padding:22px 16px 18px}
 header h1{margin:0;font-size:22px}header .d{color:${GOLD};font-size:12px;margin-top:6px}
-.chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:16px 0 12px}
-.chip{background:#fff;border-top:5px solid var(--c);flex:1 1 0;max-width:160px;min-width:0;padding:8px 6px;text-decoration:none;display:flex;flex-direction:column;align-items:center}
-.chip b{font-size:22px}.chip span{font-size:11px;color:${MUTED}}
-header .wd{font-size:13px}
+.chips{display:grid;grid-template-columns:repeat(4,minmax(0,190px));gap:14px;justify-content:center;margin:20px auto 22px;max-width:820px}
+.chip{background:linear-gradient(180deg,#fff 0%,#F6F3EE 100%);border-top:6px solid var(--c);border-radius:12px;padding:12px 8px 12px;display:flex;flex-direction:column;align-items:center;gap:3px;box-shadow:0 10px 24px rgba(0,0,0,.30),0 2px 0 #142C4F}
+.chip.hero{grid-column:1/-1}.chip.hero b{font-size:36px}
+.chip .l{font-size:12px;font-weight:bold;color:${INK}}.chip b{font-size:26px;line-height:1.15}.chip .s{font-size:11px;color:${MUTED};line-height:1.35}
+.chip .dl{font-size:11px;font-weight:bold}
+.sp{display:flex;align-items:flex-end;gap:2px;height:${SPARK_H}px;margin:4px 0 2px;direction:ltr}.sp i{display:block;width:7px;background:#D5DBE4;border-radius:1px}
+@media(max-width:600px){.chips{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.chip b{font-size:22px}.chip.hero b{font-size:30px}}
 main{max-width:960px;margin:0 auto;padding:12px 16px 48px}
 .tools{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 4px}
 .tools input{flex:1 1 100%;padding:10px 12px;font-size:15px;border:1px solid ${LINE};border-radius:8px}
@@ -396,9 +487,8 @@ td.m{direction:ltr;unicode-bidi:isolate;color:${MUTED};font-size:12px}td.s{font-
 @media(max-width:600px){main{padding:8px 10px 40px}.body{padding:0 6px 10px}th,td{padding:6px 5px}table{font-size:12px}td.n{min-width:110px}}
 footer{font-size:12px;color:${MUTED};line-height:1.7;margin-top:24px}
 </style></head><body>
-<header><h1>דוח אובליגו ותנאי תשלום</h1><div class="d">דוח שבועי &middot; ${date}${scope ? ` &middot; ${scope}` : ''}</div>
-<div class="chips">${chips}</div>
-<div class="wd">נותרו <b>${workDays.left}</b> ימי עבודה עד סוף החודש מתוך ${workDays.total} &middot; <b>${Math.round(workDays.pct * 100)}%</b> מימי העבודה בחודש</div></header>
+<header><h1>דוח אובליגו ותנאי תשלום</h1><div class="d">דוח שבועי &middot; ${date}${scope ? ` &middot; ${scope}` : ''}${kpiCompareNote(parts.kpi, s => `<bdi>${s}</bdi>`)}</div>
+<div class="chips">${chips}</div></header>
 <main>
 <p class="intro">לחצו על חלק כדי לפתוח אותו, ובתוכו על אחראי / סוכן. החיפוש מוצא לקוח לפי שם, מספר או סוכן בכל החלקים.</p>
 <div class="tools"><input id="q" type="search" placeholder="חיפוש לקוח / מספר / סוכן" autocomplete="off"><button id="all">פתח הכל</button><button id="none">סגור הכל</button></div>
@@ -424,7 +514,6 @@ document.getElementById('q').addEventListener('input',function(){
   parts.forEach(function(p){var any=!q||p.querySelector('details.grp:not([hidden])');p.hidden=!any;p.open=!!q&&!!any;
     [].forEach.call(p.querySelectorAll('h3'),function(h){var n=h.nextElementSibling,vis=false;while(n&&n.tagName!=='H3'){if(!n.hidden)vis=true;n=n.nextElementSibling}h.hidden=!vis})});
 });
-[].forEach.call(document.querySelectorAll('a.chip'),function(a){a.onclick=function(){var p=document.querySelector(a.getAttribute('href'));if(p)p.open=true}});
 // трекинг (как в yarych-report): секунды по частям + раскрытия — только по личной ссылке /p/<hex>
 (function(){
   if(!/^\\/p\\/[0-9a-f]{48}$/.test(location.pathname)||!navigator.sendBeacon)return;
@@ -490,16 +579,25 @@ function buildEmailHtml(parts, workDays, greetName, scope, link) {
   const intro = `דוח האובליגו השבועי${scope ? ` — ${scope}` : ''}. למטה סיכום ${n} החלקים; הרשימה המלאה של כל הלקוחות — בקישור האישי ובקובץ האקסל המצורף (${n} גיליונות).`;
   // Outlook (Word-движок) не рисует border/radius/margin у div — плашки только таблицами:
   // цветная полоска отдельной строкой с bgcolor, отступы — padding ячеек (тест 12.10 в Outlook развалился).
-  const chips = parts.map(({ part, rows }, i) => `${i ? '<td width="12" style="width:12px;font-size:0;line-height:0">&nbsp;</td>' : ''}
-      <td width="210" valign="top" style="width:210px">
-        <table role="presentation" width="210" cellpadding="0" cellspacing="0" style="width:210px">
-          <tr><td height="5" bgcolor="${part.chip}" style="height:5px;background-color:${part.chip};font-size:0;line-height:0">&nbsp;</td></tr>
-          <tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:10px 6px 9px;text-align:center">
-            <div style="font-family:Arial,sans-serif;font-size:24px;font-weight:900;color:${part.color};line-height:28px">${rows.length}</div>
-            <div style="font-family:Arial,sans-serif;font-size:11px;color:${MUTED};line-height:16px">${part.label}</div>
-          </td></tr>
-        </table>
-      </td>`).join('');
+  // Карточки сумм (Дан 27.10). «Объём» без CSS-теней для Outlook: тёмная полоса 3px под карточкой
+  // читается как тень на NAVY; radius/box-shadow — бонус для почтовиков, которые их понимают.
+  const F = 'font-family:Arial,sans-serif;';
+  const cell = (k, w, big) => {
+    const dl = kpiDelta(k, ltr);
+    return `<table role="presentation" width="${w}" cellpadding="0" cellspacing="0" style="width:${w}px;border-radius:10px;box-shadow:0 6px 16px rgba(0,0,0,.28)">
+          <tr><td height="6" bgcolor="${k.bar}" style="height:6px;background-color:${k.bar};border-radius:10px 10px 0 0;font-size:0;line-height:0">&nbsp;</td></tr>
+          <tr><td bgcolor="#ffffff" align="center" dir="rtl" style="background-color:#ffffff;padding:12px 6px 2px;text-align:center;${F}font-size:12px;font-weight:bold;color:${INK};line-height:16px">${k.label}</td></tr>
+          <tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:2px 6px 0;text-align:center;${F}font-size:${big ? 34 : 24}px;font-weight:900;color:${k.color};line-height:${big ? 40 : 30}px">${ltr(fmtShort(k.value))}</td></tr>
+          <tr><td bgcolor="#ffffff" align="center" dir="rtl" style="background-color:#ffffff;padding:3px 6px 0;text-align:center;${F}font-size:11px;font-weight:bold;color:${dl.color};line-height:15px">${dl.text}</td></tr>
+          <tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:0 6px">${sparkEmail(k.series, k.color)}</td></tr>
+          <tr><td bgcolor="#ffffff" align="center" dir="rtl" style="background-color:#ffffff;padding:4px 8px 12px;text-align:center;${F}font-size:10px;color:${MUTED};line-height:15px;border-radius:0 0 10px 10px">${big ? kpiSub(k, ltr).replace('<br>', ' &nbsp;·&nbsp; ') : kpiSub(k, ltr) + (k.sub.length < 2 ? '<br>&nbsp;' : '')}</td></tr>
+          <tr><td height="3" bgcolor="#142C4F" style="height:3px;background-color:#142C4F;font-size:0;line-height:0">&nbsp;</td></tr>
+        </table>`;
+  };
+  const kp = parts.kpi;
+  const chips = kp ? `<tr><td>${cell(kp.hero, 654, true)}</td></tr>
+      <tr><td height="14" style="height:14px;font-size:0;line-height:0">&nbsp;</td></tr>
+      <tr><td><table role="presentation" width="654" cellpadding="0" cellspacing="0" border="0" dir="rtl" style="width:654px;border-collapse:collapse"><tr>${kp.risks.map((k, i) => `${i ? '<td width="14" style="width:14px;font-size:0;line-height:0">&nbsp;</td>' : ''}<td width="153" valign="top" style="width:153px">${cell(k, 153, false)}</td>`).join('')}</tr></table></td></tr>` : '';
   const date = new Date().toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' });
   return `<!doctype html>
 <html lang="he"><body style="margin:0;padding:28px 16px;background:${PAPER};font-family:Arial,sans-serif">
@@ -509,11 +607,11 @@ function buildEmailHtml(parts, workDays, greetName, scope, link) {
     <img src="cid:diler-logo-white" width="100" height="100" alt="DILER B.M.D" style="display:block;margin:0 auto" />
   </td></tr>
   <tr><td bgcolor="${NAVY}" align="center" dir="rtl" style="background-color:${NAVY};padding:14px 28px 0;text-align:center;font-family:Arial,sans-serif;font-size:24px;font-weight:900;color:#ffffff">דוח אובליגו ותנאי תשלום</td></tr>
-  <tr><td bgcolor="${NAVY}" align="center" dir="rtl" style="background-color:${NAVY};padding:8px 28px 0;text-align:center;font-family:Arial,sans-serif;font-size:12px;color:${GOLD}">דוח שבועי &middot; ${date}</td></tr>
+  <tr><td bgcolor="${NAVY}" align="center" dir="rtl" style="background-color:${NAVY};padding:8px 28px 0;text-align:center;font-family:Arial,sans-serif;font-size:12px;color:${GOLD}">דוח שבועי &middot; ${date}${kpiCompareNote(parts.kpi, ltr)}</td></tr>
   <tr><td bgcolor="${NAVY}" style="background-color:${NAVY};padding:20px 23px 0">
-    <table role="presentation" width="654" cellpadding="0" cellspacing="0" border="0" dir="rtl" style="width:654px;border-collapse:collapse"><tr>${chips}</tr></table>
+    <table role="presentation" width="654" cellpadding="0" cellspacing="0" border="0" dir="rtl" style="width:654px;border-collapse:collapse">${chips}</table>
   </td></tr>
-  <tr><td bgcolor="${NAVY}" align="center" dir="rtl" style="background-color:${NAVY};padding:16px 28px 26px;text-align:center;font-family:Arial,sans-serif;font-size:13px;color:#ffffff">נותרו <b>${workDays.left}</b> ימי עבודה עד סוף החודש מתוך ${workDays.total} &middot; <b>${Math.round(workDays.pct * 100)}%</b> מימי העבודה בחודש</td></tr>
+  <tr><td bgcolor="${NAVY}" height="26" style="background-color:${NAVY};height:26px;font-size:0;line-height:0">&nbsp;</td></tr>
 
   <tr><td dir="rtl" style="padding:20px 28px 0;text-align:right">
     <div style="font-family:Arial,sans-serif;font-size:14px;color:${INK}">${greeting} ${intro}</div>
@@ -539,10 +637,12 @@ function buildEmailHtml(parts, workDays, greetName, scope, link) {
 const XLSX_TAB = { near: 'F79646', over: 'C0504D', late: '4F81BD', dso: '8064A2' }; // только ярлыки листов
 const XLSX_TABLE_STYLE = { theme: 'TableStyleLight1', showRowStripes: false };
 const XLSX_NAVY = 'FF' + NAVY.slice(1);
-function paintHeader(ws, row, fromCol, n) {
+// Вторая таблица листа DSO — на тон светлее, чтобы две таблицы рядом не сливались (Дан 27.10)
+const XLSX_NAVY_LIGHT = 'FF4A6C9B';
+function paintHeader(ws, row, fromCol, n, argb = XLSX_NAVY) {
   for (let c = fromCol; c < fromCol + n; c++) {
     const cell = ws.getCell(row, c);
-    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XLSX_NAVY } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb } };
     cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
   }
 }
@@ -599,21 +699,21 @@ async function buildXlsx(parts, workDays) {
     [14, 36, 14, 15, 11, 20, 4, 14, 36, 15, 11, 20].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
     ws.getCell('A1').value = DSO_LINE; ws.getCell('A1').font = { italic: true };
     const owner = e => e.market === 'רשתות' ? e.resp : e.agent;
-    const table = (name, col, title, list, days) => {
+    const table = (name, col, title, list, days, argb = XLSX_NAVY) => {
       if (!list || !list.length) return;
       const at = n => ws.getCell(n, col);
-      at(2).value = title; at(2).font = { bold: true, size: 12, color: { argb: XLSX_NAVY } };
+      at(2).value = title; at(2).font = { bold: true, size: 12, color: { argb } };
       const cols = [["מס' לקוח משלם", { totalsRowLabel: TOTAL_LABEL }], ['שם'], ...(days ? [['מספר ימי האשראי הממוצע']] : []),
         ['ניצול אובליגו', { totalsRowFunction: 'sum', totalsRowResult: list.reduce((t, e) => t + Math.round(e.usedILS), 0) }], ['שוק'], ['אחראי / סוכן']];
       ws.addTable({ name, ref: ws.getCell(3, col).address, headerRow: true, totalsRow: true, style: XLSX_TABLE_STYLE,
         columns: cols.map(([n, extra]) => ({ name: n, filterButton: true, ...extra })),
         rows: list.map(e => [e.custno, e.name, ...(days ? [Math.round(e.creditDays)] : []), Math.round(e.usedILS), e.market, owner(e)]) });
-      paintHeader(ws, 3, col, cols.length);
+      paintHeader(ws, 3, col, cols.length, argb);
       const usedCol = col + (days ? 3 : 2);
       for (let r = 4; r <= list.length + 4; r++) ws.getCell(r, usedCol).numFmt = '#,##0';
     };
     table('DSO_TOP', 1, `TOP ${DSO_TOP} — עם מכירות ב-3 החודשים האחרונים`, parts.dso, true);
-    table('DSO_NO_SALES', 8, DSO_FROZEN_TITLE, parts.dsoFrozen, false);
+    table('DSO_NO_SALES', 8, DSO_FROZEN_TITLE, parts.dsoFrozen, false, XLSX_NAVY_LIGHT);
   }
   return Buffer.from(await wb.xlsx.writeBuffer());
 }
@@ -725,7 +825,6 @@ async function sendReport(resend, recipient, parts, workDays, scope) {
   const link = publishPage(recipient, buildPageHtml(parts, workDays, scope, expiryDate()));
   const text = `${greetName ? `שלום ${greetName},` : 'שלום,'} דוח האובליגו השבועי.\n\n`
     + parts.map(({ part, rows }, i) => `${i + 1}. ${part.title}: ${rows.length}`).join('\n')
-    + `\n\nנותרו ${workDays.left} ימי עבודה עד סוף החודש מתוך ${workDays.total} (${Math.round(workDays.pct * 100)}%).`
     + `\n\nהדוח המלא (קישור אישי, בתוקף ${LINK_DAYS} ימים, נא לא להעביר): ${link}\nכל הלקוחות גם בקובץ האקסל המצורף.`
     + '\n\nהערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.';
   const payload = {
@@ -789,8 +888,15 @@ async function main() {
   const dsoBase = entities.byPayer.filter(e => e.usedILS > 0 && !e.hasMmd);
   const dsoRank = dsoBase.filter(e => e.creditDays !== null && e.sales3m > 0).sort((a, b) => b.creditDays - a.creditDays);
   const frozen = dsoBase.filter(e => !(e.sales3m > 0)).sort((a, b) => b.usedILS - a.usedILS);
-  const setDso = (target, pred) => { target.dso = dsoRank.filter(pred).slice(0, DSO_TOP); target.dsoFrozen = frozen.filter(pred); };
-  setDso(parts, () => true);
+  // + карточки сумм шапки по всем клиентам того же охвата и их динамика к прошлому отчёту (Дан 27.10)
+  const kpiHist = loadKpiHistory(), kpiScopes = [];
+  const setDso = (target, pred, key) => {
+    target.dso = dsoRank.filter(pred).slice(0, DSO_TOP); target.dsoFrozen = frozen.filter(pred);
+    const vals = kpiValues(entities.filter(pred), frozen.filter(pred));
+    target.kpi = kpiCards(vals, (kpiHist[key] || []).filter(p => p.date < isoToday()));
+    kpiScopes.push({ key, vals });
+  };
+  setDso(parts, () => true, 'all');
 
   console.log(`Плательщиков/сетей: ${entities.length}; рабочих дней осталось ${workDays.left}/${workDays.total}`);
   for (const { part, rows, diff } of parts) {
@@ -814,7 +920,7 @@ async function main() {
           const own = rows.filter(mineFn);
           return { part, rows: own, diff: null }; // у менеджера только частники — сравнения нет (оно только по сетям)
         });
-        setDso(mine, mineFn);
+        setDso(mine, mineFn, `m:${groups}`);
         const n = mine.reduce((s, p) => s + p.rows.length, 0);
         console.log(`  [${groups}] ${email}: ${mine.map(p => p.rows.length).join('/')}`);
         if (n) perManager.push({ email, mine });
@@ -834,9 +940,16 @@ async function main() {
       part, rows: rows.filter(own),
       diff: diff && { ...diff, added: diff.added.filter(own), removed: diff.removed.filter(r => r.key.startsWith(`C|${name}|`)) },
     }));
-    setDso(mine, own);
+    setDso(mine, own, `o:${name}`);
     console.log(`  [אחראי ${name}] ${email}: ${mine.map(p => p.rows.length).join('/')}`);
     if (mine.some(p => p.rows.length)) perOwner.push({ email, mine });
+  }
+
+  // --save-kpi: только записать сегодняшние суммы всех охватов как точку отсчёта динамики, без писем (Дан 27.10)
+  if (process.argv.includes('--save-kpi')) {
+    saveKpiHistory(kpiHist, kpiScopes);
+    console.log(`kpi history: ${kpiScopes.length} охватов -> ${KPI_HISTORY || '(OBLIGO_ALERT_STATE не задан — не сохранено)'}`);
+    return;
   }
 
   if (DRY_RUN) {
@@ -866,6 +979,7 @@ async function main() {
   for (const { email, mine } of perManager) await sendWithCopies(resend, email, mine, workDays, SCOPE_TEAM, 'Менеджеру');
   for (const { email, mine } of perOwner) await sendWithCopies(resend, email, mine, workDays, SCOPE_OWNER, 'אחראי');
   saveState(parts); // state пишем и при частичном сбое: остальные адресаты своё получили
+  saveKpiHistory(kpiHist, kpiScopes);
   if (failed) throw new Error(`${failed} писем не ушли`);
 }
 
