@@ -738,10 +738,10 @@ ROW("maxDate", CALCULATE(MAX(ALL_PARTS[תאריך]), ALL_PARTS[ASHMADOT] = "-מ�
     if (!YEDAIM_DISABLED) prefetchYedaimLive().catch(err => console.error('[yedaim-prefetch]', err.message));
     console.log(`[PBI] Cache loaded: ${clientMap.size} clients, ${byAgent.size} agents, ${managers.size} managers, ${managerAgents.size} manager-agents`);
     const iceIdsAll = new Set([...iceByAgent.values()].flat().map(c => String(c.custId)));
-    if (ppRecalculated) runBiweeklyAutoReturn(ppWeeksF, ppWeeksI, iceIdsAll, ppMonth).catch(e => console.error('[biweekly-auto]', e.message));
+    if (ppRecalculated && !FR_JOBS_OFF) runBiweeklyAutoReturn(ppWeeksF, ppWeeksI, iceIdsAll, ppMonth).catch(e => console.error('[biweekly-auto]', e.message));
 
     // BDD 2 min after FORMULA: its DAX never competes with FORMULA's load or first requests.
-    setTimeout(() => bdd.start(), 2 * 60 * 1000);
+    if (!FR_JOBS_OFF) setTimeout(() => bdd.start(), 2 * 60 * 1000);
 
     // Geocode ICE clients in background — updates pbiCache.iceByAgent objects in-place
     // so subsequent /customers requests serve pre-geocoded lat/lng without API calls
@@ -753,9 +753,15 @@ ROW("maxDate", CALCULATE(MAX(ALL_PARTS[תאריך]), ALL_PARTS[ASHMADOT] = "-מ�
       }).catch(() => {});
     }
     // after ICE geocode + BDD start, so external geocoders and SQL aren't hit all at once
-    setTimeout(() => prewarmNewClientGps().catch(e => console.error('[gps-prewarm]', e.message)), 3 * 60 * 1000);
+    if (!FR_JOBS_OFF) setTimeout(() => prewarmNewClientGps().catch(e => console.error('[gps-prewarm]', e.message)), 3 * 60 * 1000);
   }
 }
+
+// FR_JOBS_OFF=1: Formula Road runs at D.S LABS (/srv/fr) — this process keeps loadPBICache
+// (MAHSAN /pbi/formula-refresh reads it) but skips the FR-only jobs so they don't run twice:
+// biweekly auto-return + its mail, BDD cache load, GPS prewarm + its mail, ICE snapshot 22:30, day-briefing prewarm 06:15.
+// Alarms reading data/bdd-cache.json must point at FR's copy first. Unset → unchanged.
+const FR_JOBS_OFF = process.env.FR_JOBS_OFF === '1';
 
 // Schedule daily reload at 06:00 Israel wall-clock time. The VPS OS clock runs in
 // UTC, so a naive setHours(6,0,0,0) on a plain Date fired at 06:00 UTC = 09:00
@@ -8241,6 +8247,7 @@ app.listen(PORT, async () => {
   console.log(`Columbus server running on port ${PORT}`);
   await loadPBICache();
   scheduleDailyPBIReload();
+  if (FR_JOBS_OFF) return console.log('[fr-jobs] FR_JOBS_OFF=1 — biweekly, BDD, ICE snapshot, day-briefing prewarm, GPS prewarm off');
   scheduleDailyIceOrderSnapshot();
   scheduleDailyDayBriefingPrewarm();
 });
