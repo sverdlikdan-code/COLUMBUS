@@ -311,15 +311,21 @@ async function buildXlsx(fRows, iRows, bRows, dateStr) {
     { header: "מס' סוכן", key: 'agent', width: 9 },
     { header: 'שם סוכן', key: 'agentName', width: 16 },
     { header: 'יום', key: 'day', width: 6 },
+    // жёлтые колонки — как в FORMULA, для ввода в Priority (Дан 27.10)
+    { header: 'תדירות', key: 'freq', width: 8, yellow: true },
+    { header: 'שבוע 1', key: 'w1', width: 8, yellow: true },
+    { header: 'שבוע 2', key: 'w2', width: 8, yellow: true },
+    { header: 'שבוע 3', key: 'w3', width: 8, yellow: true },
+    { header: 'שבוע 4', key: 'w4', width: 8, yellow: true },
     { header: 'סדר הגעה', key: 'order', width: 10 },
     { header: 'שם לקוח', key: 'name', width: 40 },
   ], [
-    [`ICE BDD — ימים וסדר ביקור כפי שהם באפליקציה · ${dateStr}`],
+    [`ICE BDD —ימים וסדר ביקור כפי שהם באפליקציה · ${dateStr}`],
     ['רק מה שהשתנה לעומת פריוריטי (שינויים של מנהלי הקבוצות). מס\' סוכן — סוכן ICE (BDD).'],
     ['ירוק בהיר — יותר מביקור אחד בשבוע (שורה לכל יום)', C.green],
     ['כתום — שונה מפריוריטי: יום חדש / סדר הגעה חדש; מה שרשום בפריוריטי — בהערה של התא', C.orange],
     ['יום ששונה בו סדר ממוספר מחדש 1, 2, 3… — לכן מופיעים גם לקוחות שרק המספר שלהם זז'],
-  ], bRows, r => ({ id: r.c.id, agent: r.c.agent, agentName: r.c.agentName, day: r.day, order: r.order ?? '', name: r.c.name }));
+  ], bRows, r => ({ id: r.c.id, agent: r.c.agent, agentName: r.c.agentName, day: r.day, freq: 4, w1: 'Y', w2: 'Y', w3: 'Y', w4: 'Y', order: r.order ?? '', name: r.c.name }));
   return wb.xlsx.writeBuffer();
 }
 
