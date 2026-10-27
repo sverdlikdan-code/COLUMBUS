@@ -149,6 +149,13 @@ async function fetchChainDso() {
   return new Map(rows.map(r => [r['HOVOT ALL[תאור סוג לקוח]'], r['[dso]'] ?? null]));
 }
 
+// Итог дней кредита по всей фирме — та же мера в итоговой строке PBI (Дан 27.10: в главную карточку).
+// Фильтр отчёта PBI (все страницы): ALL_PARTS[מספר לקוח] без 1195002/1195003 — без него BRUTTO-365 больше и дней 46 вместо 69
+async function fetchDsoTotal() {
+  const rows = await executeDax(`EVALUATE ROW("dso", CALCULATE(${DSO_MEASURE}, KEEPFILTERS(NOT ALL_PARTS[מספר לקוח] IN {"1195002", "1195003"})))`);
+  return rows[0] ? rows[0]['[dso]'] ?? null : null;
+}
+
 // תנאי תשלום + סטטוס из Priority по 3 базам (Дан 27.10; в PBI-модели их нет) — CUSTNAME -> [{co, terms, status}].
 // PAYDES хранится с перевёрнутыми цифрами ("03 יום" = 30) — как в priority-db.js clientOverdueByPayer.
 const PRIO_DBS = [['form', 'FORMULA'], ['icecrea', 'ICE'], ['diller', 'INTER']];
@@ -224,7 +231,7 @@ const ZEBRA = '#FAFAF8';
 
 const fmtILS = n => '₪' + Math.round(n).toLocaleString('en-US');
 // Крупные суммы в карточках шапки: ₪6.98M / ₪540K
-const fmtShort = n => n >= 1e6 ? `₪${(n / 1e6).toFixed(2)}M` : n >= 1e3 ? `₪${Math.round(n / 1e3)}K` : fmtILS(n);
+const fmtShort = n => n < 0 ? '−' + fmtShort(-n) : n >= 1e6 ? `₪${(n / 1e6).toFixed(2)}M` : n >= 1e3 ? `₪${Math.round(n / 1e3)}K` : fmtILS(n);
 
 // Карточки шапки (Дан 27.10): суммы для топ-менеджмента вместо количества клиентов.
 // Считаются по ВСЕМ клиентам охвата письма (полный / менеджер / אחראי), не только по попавшим в части.
@@ -236,9 +243,11 @@ function kpiValues(list, frozenList) {
   const over = e => (e.util !== null && e.util >= 1 ? e.usedILS - e.limitILS : 0);
   return {
     used: sum(list, e => e.usedILS), usedPriv: sum(list, e => e.usedILS, priv), usedChain: sum(list, e => e.usedILS, chain),
-    late: sum(list, e => e.overdue), old: sum(list, e => e.bOld),
+    limit: sum(list, e => e.limitILS),
+    late: sum(list, e => e.overdue), latePriv: sum(list, e => e.overdue, priv), lateChain: sum(list, e => e.overdue, chain),
+    old: sum(list, e => e.bOld),
     over: sum(list, over), overPriv: sum(list, over, priv), overChain: sum(list, over, chain),
-    frozen: sum(frozenList, e => e.usedILS),
+    frozen: sum(frozenList, e => e.usedILS), frozenPriv: sum(frozenList, e => e.usedILS, priv), frozenChain: sum(frozenList, e => e.usedILS, chain),
   };
 }
 
@@ -264,7 +273,6 @@ function saveKpiHistory(hist, scopes) {
 // v — текущие суммы, past — прошлые точки охвата (без сегодняшней), последняя = «прошлый отчёт»
 function kpiCards(v, past) {
   const prev = past.length ? past[past.length - 1] : null;
-  const pct = (a, b) => (b > 0 ? `${Math.round((a / b) * 100)}%` : '—');
   // строки подписи: [текст, сумма|null] — сумму рендерер изолирует от RTL (ltr() в письме, <bdi> на странице)
   const split = (p, c) => [['שוק פרטי', p], ['רשתות', c]];
   const card = (key, label, sub, bar, color) => ({
@@ -272,16 +280,23 @@ function kpiCards(v, past) {
     prev: prev && prev.vals[key] !== undefined ? { date: prev.date, value: prev.vals[key] } : null,
     series: [...past.map(p => p.vals[key]).filter(x => x !== undefined), v[key]].slice(-8),
   });
+  // Главная — как итоговая строка PBI: מסגרת (אובליגו רב חברתי) и % ניצול (Дан 27.10).
+  // Карточка «מעל 90 יום» и подписи «% מניצול» убраны (Дан 27.10) — под карточками разбивка שוק פרטי / רשתות.
+  const util = v.limit > 0 ? `${Math.round((v.used / v.limit) * 100)}%` : null;
+  // stats — отдельными ячейками (не строкой через ' · ': почтовик переставлял суммы); дни — только полный охват
+  const hero = card('used', 'ניצול אובליגו כולל', split(v.usedPriv, v.usedChain), GOLD, NAVY);
+  hero.stats = [['מסגרת אובליגו', fmtShort(v.limit)], ...(util ? [['% ניצול', util]] : []),
+    ...(v.dso != null ? [['ימי אשראי ממוצע', String(Math.round(v.dso))]] : [])];
   return {
-    hero: card('used', 'ניצול אובליגו כולל', split(v.usedPriv, v.usedChain), GOLD, NAVY),
+    hero,
     risks: [
-      card('late', 'חוב בפיגור', [[`${pct(v.late, v.used)} מניצול האובליגו`, null]], GOLD, NAVY),
-      card('old', 'פיגור מעל 90 יום', [[`${pct(v.old, v.used)} מניצול האובליגו`, null]], RED, RED),
+      card('late', 'חוב בפיגור', split(v.latePriv, v.lateChain), GOLD, NAVY),
       card('over', 'חריגה ממסגרת', split(v.overPriv, v.overChain), RED, RED),
-      card('frozen', 'חוב ללא מכירות 3+ חודשים', [[`${pct(v.frozen, v.used)} מניצול האובליגו`, null]], RED, RED),
+      card('frozen', 'חוב ללא מכירות 3+ חודשים', split(v.frozenPriv, v.frozenChain), RED, RED),
     ],
   };
 }
+// Пары «подпись сумма» — каждая своей строкой: через ' · ' в одной строке почтовик Дана переставлял суммы местами (27.10)
 const kpiSub = (k, iso) => k.sub.map(([t, v]) => (v === null ? t : `${t} ${iso(fmtShort(v))}`)).join('<br>');
 // Динамика к прошлому отчёту: рост долга — красный ▲, снижение — зелёный ▼
 const UP = '#C62828', DOWN = '#2E7D32';
@@ -440,7 +455,7 @@ function buildPageHtml(parts, workDays, scope, expires) {
       <div class="body">${pageDiff(diff)}${rows.length ? sub('רשתות', chains, 'resp', true) + sub('שוק פרטי', priv, 'agent', false) : '<p class="mu">אין לקוחות בקטגוריה זו.</p>'}</div></details>`;
   }).join('');
   const bdi = s => `<bdi>${s}</bdi>`;
-  const chip = (k, cls) => { const dl = kpiDelta(k, bdi); return `<div class="chip${cls}" style="--c:${k.bar}"><span class="l">${k.label}</span><b style="color:${k.color}">${bdi(fmtShort(k.value))}</b><span class="dl" style="color:${dl.color}">${dl.text}</span>${sparkPage(k.series, k.color)}<span class="s">${kpiSub(k, bdi)}</span></div>`; };
+  const chip = (k, cls) => { const dl = kpiDelta(k, bdi); return `<div class="chip${cls}" style="--c:${k.bar}"><span class="l">${k.label}</span><b style="color:${k.color}">${bdi(fmtShort(k.value))}</b><span class="dl" style="color:${dl.color}">${dl.text}</span>${sparkPage(k.series, k.color)}${k.stats ? `<span class="st">${k.stats.map(([l, x]) => `<span><i>${l}</i><b>${bdi(x)}</b></span>`).join('')}</span>` : ''}<span class="s">${kpiSub(k, bdi)}</span></div>`; };
   const chips = parts.kpi ? chip(parts.kpi.hero, ' hero') + parts.kpi.risks.map(k => chip(k, '')).join('') : '';
   return `<!doctype html>
 <html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -451,13 +466,14 @@ function buildPageHtml(parts, workDays, scope, expires) {
 *{box-sizing:border-box}body{margin:0;background:${PAPER};font-family:Arial,sans-serif;color:${INK}}
 header{background:${NAVY};color:#fff;text-align:center;padding:22px 16px 18px}
 header h1{margin:0;font-size:22px}header .d{color:${GOLD};font-size:12px;margin-top:6px}
-.chips{display:grid;grid-template-columns:repeat(4,minmax(0,190px));gap:14px;justify-content:center;margin:20px auto 22px;max-width:820px}
+.chips{display:grid;grid-template-columns:repeat(3,minmax(0,250px));gap:14px;justify-content:center;margin:20px auto 22px;max-width:820px}
 .chip{background:linear-gradient(180deg,#fff 0%,#F6F3EE 100%);border-top:6px solid var(--c);border-radius:12px;padding:12px 8px 12px;display:flex;flex-direction:column;align-items:center;gap:3px;box-shadow:0 10px 24px rgba(0,0,0,.30),0 2px 0 #142C4F}
-.chip.hero{grid-column:1/-1}.chip.hero b{font-size:36px}
+.chip.hero{grid-column:1/-1}.chip.hero>b{font-size:36px}
+.chip .st{display:flex;gap:10px;justify-content:center;margin:6px 0 2px;flex-wrap:wrap}.chip .st>span{display:flex;flex-direction:column;align-items:center;min-width:92px;padding:6px 10px;border-radius:8px;background:#F1EEE8}.chip .st i{font-style:normal;font-size:11px;color:${MUTED}}.chip .st b{font-size:18px;color:${NAVY}}
 .chip .l{font-size:12px;font-weight:bold;color:${INK}}.chip b{font-size:26px;line-height:1.15}.chip .s{font-size:11px;color:${MUTED};line-height:1.35}
 .chip .dl{font-size:11px;font-weight:bold}
 .sp{display:flex;align-items:flex-end;gap:2px;height:${SPARK_H}px;margin:4px 0 2px;direction:ltr}.sp i{display:block;width:7px;background:#D5DBE4;border-radius:1px}
-@media(max-width:600px){.chips{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.chip b{font-size:22px}.chip.hero b{font-size:30px}}
+@media(max-width:600px){.chips{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.chip b{font-size:22px}.chip.hero>b{font-size:30px}.chips .chip:last-child:nth-child(even){grid-column:1/-1}}
 main{max-width:960px;margin:0 auto;padding:12px 16px 48px}
 .tools{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 4px}
 .tools input{flex:1 1 100%;padding:10px 12px;font-size:15px;border:1px solid ${LINE};border-radius:8px}
@@ -592,14 +608,15 @@ function buildEmailHtml(parts, workDays, greetName, scope, link) {
           <tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:2px 6px 0;text-align:center;${F}font-size:${big ? 34 : 24}px;font-weight:900;color:${k.color};line-height:${big ? 40 : 30}px">${ltr(fmtShort(k.value))}</td></tr>
           <tr><td bgcolor="#ffffff" align="center" dir="rtl" style="background-color:#ffffff;padding:3px 6px 0;text-align:center;${F}font-size:11px;font-weight:bold;color:${dl.color};line-height:15px">${dl.text}</td></tr>
           <tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:0 6px">${sparkEmail(k.series, k.color)}</td></tr>
-          <tr><td bgcolor="#ffffff" align="center" dir="rtl" style="background-color:#ffffff;padding:4px 8px 12px;text-align:center;${F}font-size:10px;color:${MUTED};line-height:15px;border-radius:0 0 10px 10px">${big ? kpiSub(k, ltr).replace('<br>', ' &nbsp;·&nbsp; ') : kpiSub(k, ltr) + (k.sub.length < 2 ? '<br>&nbsp;' : '')}</td></tr>
+          ${k.stats ? `<tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:8px 6px 2px"><table role="presentation" cellpadding="0" cellspacing="0" dir="rtl" align="center"><tr>${k.stats.map(([l, x], i) => `${i ? '<td width="10" style="width:10px;font-size:0">&nbsp;</td>' : ''}<td align="center" bgcolor="#F1EEE8" style="background-color:#F1EEE8;padding:6px 14px;border-radius:8px;text-align:center;${F}"><div style="font-size:11px;color:${MUTED};line-height:15px">${l}</div><div style="font-size:18px;font-weight:bold;color:${NAVY};line-height:22px">${ltr(x)}</div></td>`).join('')}</tr></table></td></tr>` : ''}
+          <tr><td bgcolor="#ffffff" align="center" dir="rtl" style="background-color:#ffffff;padding:4px 8px 12px;text-align:center;${F}font-size:10px;color:${MUTED};line-height:15px;border-radius:0 0 10px 10px">${kpiSub(k, ltr) + (!big && k.sub.length < 2 ? '<br>&nbsp;' : '')}</td></tr>
           <tr><td height="3" bgcolor="#142C4F" style="height:3px;background-color:#142C4F;font-size:0;line-height:0">&nbsp;</td></tr>
         </table>`;
   };
   const kp = parts.kpi;
   const chips = kp ? `<tr><td>${cell(kp.hero, 654, true)}</td></tr>
       <tr><td height="14" style="height:14px;font-size:0;line-height:0">&nbsp;</td></tr>
-      <tr><td><table role="presentation" width="654" cellpadding="0" cellspacing="0" border="0" dir="rtl" style="width:654px;border-collapse:collapse"><tr>${kp.risks.map((k, i) => `${i ? '<td width="14" style="width:14px;font-size:0;line-height:0">&nbsp;</td>' : ''}<td width="153" valign="top" style="width:153px">${cell(k, 153, false)}</td>`).join('')}</tr></table></td></tr>` : '';
+      <tr><td><table role="presentation" width="654" cellpadding="0" cellspacing="0" border="0" dir="rtl" style="width:654px;border-collapse:collapse"><tr>${kp.risks.map((k, i, a) => { const w = Math.floor((654 - 14 * (a.length - 1)) / a.length); return `${i ? '<td width="14" style="width:14px;font-size:0;line-height:0">&nbsp;</td>' : ''}<td width="${w}" valign="top" style="width:${w}px">${cell(k, w, false)}</td>`; }).join('')}</tr></table></td></tr>` : '';
   const date = new Date().toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' });
   return `<!doctype html>
 <html lang="he"><body style="margin:0;padding:28px 16px;background:${PAPER};font-family:Arial,sans-serif">
@@ -892,13 +909,15 @@ async function main() {
   const frozen = dsoBase.filter(e => !(e.sales3m > 0)).sort((a, b) => b.usedILS - a.usedILS);
   // + карточки сумм шапки по всем клиентам того же охвата и их динамика к прошлому отчёту (Дан 27.10)
   const kpiHist = loadKpiHistory(), kpiScopes = [];
-  const setDso = (target, pred, key) => {
+  const setDso = (target, pred, key, extra = {}) => {
     target.dso = dsoRank.filter(pred).slice(0, DSO_TOP); target.dsoFrozen = frozen.filter(pred);
-    const vals = kpiValues(entities.filter(pred), frozen.filter(pred));
+    const vals = { ...kpiValues(entities.filter(pred), frozen.filter(pred)), ...extra };
     target.kpi = kpiCards(vals, (kpiHist[key] || []).filter(p => p.date < isoToday()));
     kpiScopes.push({ key, vals });
   };
-  setDso(parts, () => true, 'all');
+  let dsoTotal = null;
+  try { dsoTotal = await fetchDsoTotal(); } catch (err) { console.error('[PBI] итог дней кредита не получен:', err.message); }
+  setDso(parts, () => true, 'all', { dso: dsoTotal });
 
   console.log(`Плательщиков/сетей: ${entities.length}; рабочих дней осталось ${workDays.left}/${workDays.total}`);
   for (const { part, rows, diff } of parts) {
