@@ -341,8 +341,8 @@
     "costCarton": 31
   },
   "604": {
-    "stock": 481,
-    "daySales": 22,
+    "stock": 482,
+    "daySales": 21.2,
     "kratnost": 180,
     "palStock": 2.7,
     "stockZafn": 142,
@@ -356,7 +356,7 @@
     "weight": 0.2,
     "packFactor": 24,
     "weightCarton": 4.8,
-    "daySalesAll": 38.1,
+    "daySalesAll": 36.8,
     "daysStockAll": 13,
     "nameEn": "חמאה200 ROSHEN 82.5% ג'",
     "fam": "חמאה רושן",
@@ -366,7 +366,7 @@
       {
         "date": "2027-06-01",
         "daysLeft": 217,
-        "cartons": 481
+        "cartons": 482
       }
     ],
     "pakuotZafn": [
@@ -378,7 +378,7 @@
     ],
     "shelfLife": 45,
     "stopSale": false,
-    "spo": 623,
+    "spo": 624,
     "openOrders": null,
     "weekSales": [
       44.8,
@@ -386,7 +386,7 @@
       39.7,
       38.6,
       35.2,
-      33
+      27.3
     ],
     "weekDates": [
       "שב38",
@@ -3488,10 +3488,10 @@
     "costCarton": 90
   },
   "755": {
-    "stock": 1205,
+    "stock": 1206,
     "daySales": 20.2,
     "kratnost": 72,
-    "palStock": 16.7,
+    "palStock": 16.8,
     "stockZafn": 267,
     "palStockZafn": 3.7,
     "daySalesZafn": 11.3,
@@ -3712,12 +3712,12 @@
     "costCarton": 58
   },
   "815": {
-    "stock": 4729,
+    "stock": 4657,
     "daySales": 64.9,
     "kratnost": 729,
-    "palStock": 6.5,
-    "stockZafn": 292,
-    "palStockZafn": 0.4,
+    "palStock": 6.4,
+    "stockZafn": 364,
+    "palStockZafn": 0.5,
     "daySalesZafn": 48.2,
     "daysStock": null,
     "daysStockZafn": null,
@@ -3728,7 +3728,7 @@
     "packFactor": 18,
     "weightCarton": 0.81,
     "daySalesAll": 113,
-    "daysStockAll": 42,
+    "daysStockAll": 41,
     "nameEn": "חטיף גבינה עם ריבת חלב45 ג'",
     "fam": "חטיף גבינה",
     "iksGroup": null,
@@ -3742,7 +3742,7 @@
       {
         "date": "2027-09-14",
         "daysLeft": 322,
-        "cartons": 3645
+        "cartons": 3573
       }
     ],
     "pakuotZafn": [
@@ -3750,6 +3750,11 @@
         "date": "2027-08-02",
         "daysLeft": 279,
         "cartons": 292
+      },
+      {
+        "date": "2027-09-14",
+        "daysLeft": 322,
+        "cartons": 72
       }
     ],
     "shelfLife": 45,
@@ -7337,8 +7342,8 @@
   },
   "1101": {
     "stock": 144,
-    "daySales": 0.8012820512820512,
-    "daySales365": 2.0488417832167833,
+    "daySales": 0.7692307692307693,
+    "daySales365": 2.036723163841808,
     "pakuot": [
       {
         "date": "2027-08-22T00:00:00.000Z",
@@ -7363,8 +7368,8 @@
         "cartons": 160
       }
     ],
-    "daySalesAll": 1.2082228116710876,
-    "daysStockAll": 170,
+    "daySalesAll": 1.1647435897435898,
+    "daysStockAll": 176,
     "stockZafn": 61,
     "daySalesZafn": 0.5155325443786982,
     "pakuotZafn": [
@@ -8791,7 +8796,7 @@
     "daySales": 47.7,
     "kratnost": 350,
     "palStock": 0,
-    "stockZafn": -1,
+    "stockZafn": 0,
     "palStockZafn": null,
     "daySalesZafn": 33.3,
     "daysStock": 0,
@@ -8843,7 +8848,7 @@
     "daySales": 24.6,
     "kratnost": 350,
     "palStock": 2.2,
-    "stockZafn": 302,
+    "stockZafn": 301,
     "palStockZafn": 0.9,
     "daySalesZafn": 17.5,
     "daysStock": 44,
@@ -8876,7 +8881,7 @@
       {
         "date": "2027-01-23",
         "daysLeft": 88,
-        "cartons": 92
+        "cartons": 91
       },
       {
         "date": "2027-02-12",
@@ -8911,7 +8916,7 @@
     "daySales": 59.8,
     "kratnost": 273,
     "palStock": 0.1,
-    "stockZafn": -1,
+    "stockZafn": -2,
     "palStockZafn": null,
     "daySalesZafn": 38.8,
     "daysStock": 0,
@@ -11225,8 +11230,8 @@
     "daySales": 16.1,
     "kratnost": 200,
     "palStock": 0,
-    "stockZafn": 3,
-    "palStockZafn": 0,
+    "stockZafn": 0,
+    "palStockZafn": null,
     "daySalesZafn": 12.5,
     "daysStock": 1,
     "daysStockZafn": 0,
@@ -11249,13 +11254,7 @@
         "cartons": 9
       }
     ],
-    "pakuotZafn": [
-      {
-        "date": "2027-01-23",
-        "daysLeft": 88,
-        "cartons": 3
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 21,
     "stopSale": false,
     "spo": null,
@@ -11405,15 +11404,15 @@
     "costCarton": 98
   },
   "403002": {
-    "stock": 232,
+    "stock": 192,
     "daySales": 119.1,
     "kratnost": 360,
-    "palStock": 0.6,
-    "stockZafn": 56,
-    "palStockZafn": 0.2,
+    "palStock": 0.5,
+    "stockZafn": 96,
+    "palStockZafn": 0.3,
     "daySalesZafn": 73,
-    "daysStock": 3,
-    "daysStockZafn": 1,
+    "daysStock": 2,
+    "daysStockZafn": 2,
     "stockTrnz": 0,
     "palStockTrnz": null,
     "daySalesTrnz": null,
@@ -11430,14 +11429,14 @@
       {
         "date": "2026-11-27",
         "daysLeft": 31,
-        "cartons": 232
+        "cartons": 192
       }
     ],
     "pakuotZafn": [
       {
         "date": "2026-11-27",
         "daysLeft": 31,
-        "cartons": 56
+        "cartons": 96
       }
     ],
     "shelfLife": 7,
@@ -11833,8 +11832,8 @@
     "daySales": 45.9,
     "kratnost": 264,
     "palStock": null,
-    "stockZafn": 3,
-    "palStockZafn": 0,
+    "stockZafn": 0,
+    "palStockZafn": null,
     "daySalesZafn": 34.5,
     "daysStock": 0,
     "daysStockZafn": 0,
@@ -11851,13 +11850,7 @@
     "iksGroup": null,
     "ashdodPalletCartons": 264,
     "pakuot": [],
-    "pakuotZafn": [
-      {
-        "date": "2026-11-12",
-        "daysLeft": 16,
-        "cartons": 3
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 7,
     "stopSale": false,
     "spo": null,
@@ -11885,8 +11878,8 @@
     "daySales": 45.7,
     "kratnost": 264,
     "palStock": null,
-    "stockZafn": 0,
-    "palStockZafn": null,
+    "stockZafn": 3,
+    "palStockZafn": 0,
     "daySalesZafn": 29.1,
     "daysStock": 0,
     "daysStockZafn": 0,
@@ -11903,7 +11896,13 @@
     "iksGroup": null,
     "ashdodPalletCartons": 264,
     "pakuot": [],
-    "pakuotZafn": [],
+    "pakuotZafn": [
+      {
+        "date": "2026-11-13",
+        "daysLeft": 17,
+        "cartons": 3
+      }
+    ],
     "shelfLife": 7,
     "stopSale": false,
     "spo": null,
@@ -11931,8 +11930,8 @@
     "daySales": 42.9,
     "kratnost": 168,
     "palStock": null,
-    "stockZafn": 2,
-    "palStockZafn": 0,
+    "stockZafn": 0,
+    "palStockZafn": null,
     "daySalesZafn": 28.7,
     "daysStock": 0,
     "daysStockZafn": 0,
@@ -11949,13 +11948,7 @@
     "iksGroup": null,
     "ashdodPalletCartons": 168,
     "pakuot": [],
-    "pakuotZafn": [
-      {
-        "date": "2026-11-12",
-        "daysLeft": 16,
-        "cartons": 2
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 7,
     "stopSale": false,
     "spo": null,
@@ -12026,7 +12019,7 @@
   },
   "410004": {
     "stock": 0,
-    "daySales": 44.5,
+    "daySales": 44.4,
     "kratnost": 168,
     "palStock": null,
     "stockZafn": 0,
@@ -12040,7 +12033,7 @@
     "weight": 0.3,
     "packFactor": 8,
     "weightCarton": 2.4,
-    "daySalesAll": 71.2,
+    "daySalesAll": 71.1,
     "daysStockAll": null,
     "nameEn": "שמנת חמוצה טבעית 30% שומן300 גרם8) PRESIDENT)",
     "fam": "PRESIDENT גבינות",
@@ -12058,7 +12051,7 @@
       90.6,
       73.7,
       23.6,
-      106.3
+      105.6
     ],
     "weekDates": [
       "שב38",
