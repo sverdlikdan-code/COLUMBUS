@@ -273,16 +273,25 @@ function saveKpiHistory(hist, scopes) {
   try { fs.writeFileSync(KPI_HISTORY, JSON.stringify(hist)); } catch (e) { console.error('kpi history not saved:', e.message); }
 }
 
+// Доля שוק פרטי в % для двухцветной полосы; при минусе (нетто просрочки) полосы нет — отрицательную долю не нарисовать
+function shareOf(sub) {
+  const [p, c] = sub.filter(r => r[2]).map(r => r[1]);
+  if (p === undefined || p < 0 || c < 0 || p + c <= 0) return null;
+  const pct = Math.round((p / (p + c)) * 100);
+  return p && c ? Math.min(98, Math.max(2, pct)) : pct; // тонкая доля всё равно видна
+}
 // v — текущие суммы, past — прошлые точки охвата (без сегодняшней), последняя = «прошлый отчёт»
 function kpiCards(v, past) {
   const prev = past.length ? past[past.length - 1] : null;
   // строки подписи: [текст, сумма|null] — сумму рендерер изолирует от RTL (ltr() в письме, <bdi> на странице)
-  const split = (p, c) => [['שוק פרטי', p], ['רשתות', c]];
+  // третий элемент — цвет квадратика-легенды под двухцветной полосой (Дан 27.10)
+  const split = (p, c) => [['שוק פרטי', p, GOLD], ['רשתות', c, NAVY]];
   // один цвет на все карточки — без «салата» (Дан 27.10): золотая полоса, синяя сумма
   const card = (key, label, sub) => ({
     key, label, value: v[key], sub, bar: GOLD, color: NAVY,
     prev: prev && prev.vals[key] !== undefined ? { date: prev.date, value: prev.vals[key] } : null,
     series: [...past.map(p => p.vals[key]).filter(x => x !== undefined), v[key]].slice(-8),
+    share: shareOf(sub),
   });
   // Главная — как итоговая строка PBI: מסגרת (אובליגו רב חברתי) и % ניצול (Дан 27.10).
   // Карточка «מעל 90 יום» и подписи «% מניצול» убраны (Дан 27.10) — под карточками разбивка שוק פרטי / רשתות.
@@ -304,7 +313,13 @@ function kpiCards(v, past) {
   };
 }
 // Пары «подпись сумма» — каждая своей строкой: через ' · ' в одной строке почтовик Дана переставлял суммы местами (27.10)
-const kpiSub = (k, iso) => k.sub.map(([t, v]) => (v === null ? t : `${t} ${iso(fmtShort(v))}`)).join('<br>');
+const kpiSub = (k, iso) => k.sub.map(([t, v, c]) => `${c ? `<span style="color:${c}">&#9632;</span> ` : ''}${v === null ? t : `${t} ${iso(fmtShort(v))}`}`).join('<br>');
+// Двухцветная полоса שוק פרטי (справа, GOLD) / רשתות (NAVY): в письме — ячейки таблицы (Outlook/Gmail без SVG)
+const SHARE_H = 8;
+const shareSeg = (pct, c) => (pct > 0 ? `<td width="${pct}%" height="${SHARE_H}" bgcolor="${c}" style="width:${pct}%;height:${SHARE_H}px;background-color:${c};font-size:0;line-height:0">&nbsp;</td>` : '');
+const shareEmail = s => (s === null ? `<div style="height:${SHARE_H}px;line-height:${SHARE_H}px;font-size:0">&nbsp;</div>`
+  : `<table role="presentation" width="80%" cellpadding="0" cellspacing="0" dir="rtl" align="center" style="width:80%"><tr>${shareSeg(s, GOLD)}${shareSeg(100 - s, NAVY)}</tr></table>`);
+const sharePage = s => (s === null ? '' : `<span class="sh"><i style="width:${s}%;background:${GOLD}"></i><i style="flex:1;background:${NAVY}"></i></span>`);
 // Динамика к прошлому отчёту: ▲ рост / ▼ снижение, серым — без красного/зелёного (Дан 27.10 «салат»)
 function kpiDelta(k, iso) {
   if (!k.prev) return { text: 'השוואה לשבוע שעבר — מהדוח הבא', color: MUTED };
@@ -461,7 +476,7 @@ function buildPageHtml(parts, workDays, scope, expires) {
       <div class="body">${pageDiff(diff)}${rows.length ? sub('רשתות', chains, 'resp', true) + sub('שוק פרטי', priv, 'agent', false) : '<p class="mu">אין לקוחות בקטגוריה זו.</p>'}</div></details>`;
   }).join('');
   const bdi = s => `<bdi>${s}</bdi>`;
-  const chip = (k, cls) => { const dl = kpiDelta(k, bdi); return `<div class="chip${cls}" style="--c:${k.bar}"><span class="l">${k.label}</span><b style="color:${k.color}">${bdi(fmtShort(k.value))}</b><span class="dl" style="color:${dl.color}">${dl.text}</span>${sparkPage(k.series, k.color)}${k.stats ? `<span class="st">${k.stats.map(([l, x]) => `<span><i>${l}</i><b>${bdi(x)}</b></span>`).join('')}</span>` : ''}<span class="s">${kpiSub(k, bdi)}</span></div>`; };
+  const chip = (k, cls) => { const dl = kpiDelta(k, bdi); return `<div class="chip${cls}" style="--c:${k.bar}"><span class="l">${k.label}</span><b style="color:${k.color}">${bdi(fmtShort(k.value))}</b><span class="dl" style="color:${dl.color}">${dl.text}</span>${sparkPage(k.series, k.color)}${k.stats ? `<span class="st">${k.stats.map(([l, x]) => `<span><i>${l}</i><b>${bdi(x)}</b></span>`).join('')}</span>` : ''}${sharePage(k.share)}<span class="s">${kpiSub(k, bdi)}</span></div>`; };
   const chips = parts.kpi ? chip(parts.kpi.hero, ' hero') + parts.kpi.risks.map(k => chip(k, '')).join('') : '';
   return `<!doctype html>
 <html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -478,6 +493,7 @@ header h1{margin:0;font-size:22px}header .d{color:${GOLD};font-size:12px;margin-
 .chip .st{display:flex;gap:10px;justify-content:center;margin:6px 0 2px;flex-wrap:wrap}.chip .st>span{display:flex;flex-direction:column;align-items:center;min-width:92px;padding:4px 10px}.chip .st i{font-style:normal;font-size:11px;color:${MUTED}}.chip .st b{font-size:18px;color:${NAVY}}
 .chip .l{font-size:12px;font-weight:bold;color:${INK}}.chip b{font-size:26px;line-height:1.15}.chip .s{font-size:11px;color:${MUTED};line-height:1.35}
 .chip .dl{font-size:11px;font-weight:bold}
+.sh{display:flex;width:80%;height:${SHARE_H}px;margin:6px 0 2px}.sh i{display:block}
 .sp{display:flex;align-items:flex-end;gap:2px;height:${SPARK_H}px;margin:4px 0 2px;direction:ltr}.sp i{display:block;width:7px;background:#D5DBE4;border-radius:1px}
 @media(max-width:600px){.chips{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.chip b{font-size:22px}.chip.hero>b{font-size:30px}}
 main{max-width:960px;margin:0 auto;padding:12px 16px 48px}
@@ -615,6 +631,7 @@ function buildEmailHtml(parts, workDays, greetName, scope, link) {
           <tr><td bgcolor="#ffffff" align="center" dir="rtl" style="background-color:#ffffff;padding:3px 6px 0;text-align:center;${F}font-size:11px;font-weight:bold;color:${dl.color};line-height:15px">${dl.text}</td></tr>
           <tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:0 6px">${sparkEmail(k.series, k.color)}</td></tr>
           ${k.stats ? `<tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:8px 6px 2px"><table role="presentation" cellpadding="0" cellspacing="0" dir="rtl" align="center"><tr>${k.stats.map(([l, x], i) => `${i ? '<td width="10" style="width:10px;font-size:0">&nbsp;</td>' : ''}<td align="center" style="padding:4px 14px;text-align:center;${F}"><div style="font-size:11px;color:${MUTED};line-height:15px">${l}</div><div style="font-size:18px;font-weight:bold;color:${NAVY};line-height:22px">${ltr(x)}</div></td>`).join('')}</tr></table></td></tr>` : ''}
+          <tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:8px 6px 2px">${shareEmail(k.share)}</td></tr>
           <tr><td bgcolor="#ffffff" align="center" dir="rtl" style="background-color:#ffffff;padding:4px 8px 12px;text-align:center;${F}font-size:10px;color:${MUTED};line-height:15px">${kpiSub(k, ltr) + '<br>&nbsp;'.repeat(Math.max(0, lines - k.sub.length))}</td></tr>
         </table>`;
   };
@@ -642,6 +659,7 @@ function buildEmailHtml(parts, workDays, greetName, scope, link) {
     <table role="presentation" width="654" cellpadding="0" cellspacing="0" border="0" dir="rtl" style="width:654px;border-collapse:collapse">${chips}</table>
   </td></tr>
   <tr><td bgcolor="${NAVY}" height="26" style="background-color:${NAVY};height:26px;font-size:0;line-height:0">&nbsp;</td></tr>
+  ${buttonHtml(link) /* кнопка полного отчёта — сразу под карточками, над приветствием (Дан 27.10) */}
 
   <tr><td dir="rtl" style="padding:20px 28px 0;text-align:right">
     <div style="font-family:Arial,sans-serif;font-size:14px;color:${INK}">${greeting} ${intro}</div>
@@ -649,7 +667,6 @@ function buildEmailHtml(parts, workDays, greetName, scope, link) {
 
   ${parts.map(({ part, rows, diff }, i) => emailPartHtml(part, rows, diff, i + 1)).join('')}
   ${emailDsoHtml(parts.dso, (parts.dsoFrozen || []).length, parts.length + 1)}
-  ${buttonHtml(link)}
 
   <tr><td style="padding:28px 28px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td height="1" bgcolor="${LINE}" style="height:1px;background-color:${LINE};font-size:0;line-height:0">&nbsp;</td></tr></table></td></tr>
   <tr><td dir="rtl" style="padding:16px 28px 28px;text-align:right">
