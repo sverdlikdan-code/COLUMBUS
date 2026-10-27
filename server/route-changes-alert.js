@@ -227,7 +227,7 @@ function buildIceRows(ice, overrides) {
 }
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
-const C = { header: '1F4E79', yellow: 'FFFF00', yellowHead: 'FFFF00', red: 'C00000', green: 'E2EFDA', orange: 'F4B183' };
+const C = { header: '1F4E79', green: 'E2EFDA', orange: 'F4B183' };
 const fill = argb => ({ type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + argb } });
 const thin = { style: 'thin', color: { argb: 'FFBFBFBF' } };
 const border = { top: thin, bottom: thin, left: thin, right: thin };
@@ -248,8 +248,8 @@ function addSheet(wb, name, cols, legend, rows, cellsOf) {
   cols.forEach((c, i) => {
     const cell = head.getCell(i + 1);
     cell.value = c.header;
-    cell.font = { bold: true, color: { argb: c.yellow ? 'FF' + C.red : 'FFFFFFFF' } };
-    cell.fill = fill(c.yellow ? C.yellowHead : C.header);
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill = fill(C.header);
     cell.border = border;
     cell.alignment = { horizontal: 'center' };
   });
@@ -259,8 +259,7 @@ function addSheet(wb, name, cols, legend, rows, cellsOf) {
       const cell = row.getCell(i + 1);
       cell.border = border;
       cell.alignment = { horizontal: c.key === 'name' ? 'right' : 'center' };
-      if (c.yellow) cell.fill = fill(C.yellow);
-      else if (r.multi) cell.fill = fill(C.green);
+      if (r.multi) cell.fill = fill(C.green);
       const changed = (c.key === 'day' && r.dayChanged) || (c.key === 'order' && (r.orderChanged || r.numChanged));
       if (changed) {
         cell.fill = fill(C.orange);
@@ -279,11 +278,11 @@ async function buildXlsx(fRows, iRows, bRows, dateStr) {
     { header: 'מס.לקוח', key: 'id', width: 11 },
     { header: "מס' סוכן", key: 'agent', width: 9 },
     { header: 'יום', key: 'day', width: 6 },
-    { header: 'תדירות', key: 'freq', width: 8, yellow: true },
-    { header: 'שבוע 1', key: 'w1', width: 8, yellow: true },
-    { header: 'שבוע 2', key: 'w2', width: 8, yellow: true },
-    { header: 'שבוע 3', key: 'w3', width: 8, yellow: true },
-    { header: 'שבוע 4', key: 'w4', width: 8, yellow: true },
+    { header: 'תדירות', key: 'freq', width: 8 },
+    { header: 'שבוע 1', key: 'w1', width: 8 },
+    { header: 'שבוע 2', key: 'w2', width: 8 },
+    { header: 'שבוע 3', key: 'w3', width: 8 },
+    { header: 'שבוע 4', key: 'w4', width: 8 },
     { header: 'סדר הגעה', key: 'order', width: 10 },
     { header: 'שם לקוח', key: 'name', width: 40 },
   ], [
@@ -311,12 +310,12 @@ async function buildXlsx(fRows, iRows, bRows, dateStr) {
     { header: "מס' סוכן", key: 'agent', width: 9 },
     { header: 'שם סוכן', key: 'agentName', width: 16 },
     { header: 'יום', key: 'day', width: 6 },
-    // жёлтые колонки — как в FORMULA, для ввода в Priority (Дан 27.10)
-    { header: 'תדירות', key: 'freq', width: 8, yellow: true },
-    { header: 'שבוע 1', key: 'w1', width: 8, yellow: true },
-    { header: 'שבוע 2', key: 'w2', width: 8, yellow: true },
-    { header: 'שבוע 3', key: 'w3', width: 8, yellow: true },
-    { header: 'שבוע 4', key: 'w4', width: 8, yellow: true },
+    // колонки как в FORMULA, для ввода в Priority; обычные, не жёлтые — на обоих листах (Дан 27.10)
+    { header: 'תדירות', key: 'freq', width: 8 },
+    { header: 'שבוע 1', key: 'w1', width: 8 },
+    { header: 'שבוע 2', key: 'w2', width: 8 },
+    { header: 'שבוע 3', key: 'w3', width: 8 },
+    { header: 'שבוע 4', key: 'w4', width: 8 },
     { header: 'סדר הגעה', key: 'order', width: 10 },
     { header: 'שם לקוח', key: 'name', width: 40 },
   ], [
