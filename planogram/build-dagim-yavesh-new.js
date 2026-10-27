@@ -163,6 +163,8 @@ function cleanFam(raw) {
   let kCleaned = 0;
   for (const pk of Object.keys(picks)) {
     if (Number(pk) < RESERVE_START || !picks[pk]) continue;
+    // RUSSIA и др. из בררת מחדל в резерве держим и без מלאי — иначе 45↔30 через сборку (27.10)
+    if (bdMakatSet.has(String(picks[pk].makat))) continue;
     if (!activeSet.has(String(picks[pk].makat))) { picks[pk] = null; kCleaned++; }
   }
   if (kCleaned > 0) console.log(`Cleaned ${kCleaned} reserve slots (inactive)`);

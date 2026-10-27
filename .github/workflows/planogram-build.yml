@@ -19,6 +19,11 @@ on:
     - cron: '21 13,14,15,16,17,18,19,20 * * *'
   workflow_dispatch:
 
+# push, cron и dispatch со сторожа VPS (/root/planogram-watch.sh) — по одному, без отмены (27.10)
+concurrency:
+  group: planogram-build
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
