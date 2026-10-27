@@ -472,7 +472,7 @@ function buildPageHtml(parts, workDays, scope, expires) {
 header{background:${NAVY};color:#fff;text-align:center;padding:22px 16px 18px}
 header h1{margin:0;font-size:22px}header .d{color:${GOLD};font-size:12px;margin-top:6px}
 .chips{display:grid;grid-template-columns:repeat(3,minmax(0,250px));gap:14px;justify-content:center;margin:20px auto 22px;max-width:820px}
-.chip{background:linear-gradient(180deg,#fff 0%,#F6F3EE 100%);border-top:6px solid var(--c);border-radius:12px;padding:12px 8px 12px;display:flex;flex-direction:column;align-items:center;gap:3px;box-shadow:0 10px 24px rgba(0,0,0,.30),0 2px 0 #142C4F}
+.chip{background:linear-gradient(180deg,#fff 0%,#F6F3EE 100%);border-top:6px solid var(--c);border-radius:12px;padding:12px 8px 12px;display:flex;flex-direction:column;align-items:center;gap:3px;box-shadow:0 10px 24px rgba(0,0,0,.30)}
 .chip.hero{grid-column:1/-1}.chip.hero>b{font-size:36px}
 .chip .st{display:flex;gap:10px;justify-content:center;margin:6px 0 2px;flex-wrap:wrap}.chip .st>span{display:flex;flex-direction:column;align-items:center;min-width:92px;padding:6px 10px;border-radius:8px;background:#F1EEE8}.chip .st i{font-style:normal;font-size:11px;color:${MUTED}}.chip .st b{font-size:18px;color:${NAVY}}
 .chip .l{font-size:12px;font-weight:bold;color:${INK}}.chip b{font-size:26px;line-height:1.15}.chip .s{font-size:11px;color:${MUTED};line-height:1.35}
@@ -603,8 +603,8 @@ function buildEmailHtml(parts, workDays, greetName, scope, link) {
   // Outlook (Word-движок) не рисует border/radius/margin у div — плашки только таблицами:
   // цветная полоска отдельной строкой с bgcolor, отступы — padding ячеек (тест 12.10 в Outlook развалился).
   // Карточки риска — пустыми строками до одной высоты: в письме это отдельные таблицы, сами не выравниваются (27.10).
-  // Карточки сумм (Дан 27.10). «Объём» без CSS-теней для Outlook: тёмная полоса 3px под карточкой
-  // читается как тень на NAVY; radius/box-shadow — бонус для почтовиков, которые их понимают.
+  // Карточки сумм (Дан 27.10). Тёмная полоса 3px под карточкой («тень» для Outlook) убрана — рябила полосами (Дан 27.10);
+  // radius/box-shadow — бонус для почтовиков, которые их понимают.
   const F = 'font-family:Arial,sans-serif;';
   const cell = (k, w, big, lines = 0) => {
     const dl = kpiDelta(k, ltr);
@@ -616,7 +616,6 @@ function buildEmailHtml(parts, workDays, greetName, scope, link) {
           <tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:0 6px">${sparkEmail(k.series, k.color)}</td></tr>
           ${k.stats ? `<tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:8px 6px 2px"><table role="presentation" cellpadding="0" cellspacing="0" dir="rtl" align="center"><tr>${k.stats.map(([l, x], i) => `${i ? '<td width="10" style="width:10px;font-size:0">&nbsp;</td>' : ''}<td align="center" bgcolor="#F1EEE8" style="background-color:#F1EEE8;padding:6px 14px;border-radius:8px;text-align:center;${F}"><div style="font-size:11px;color:${MUTED};line-height:15px">${l}</div><div style="font-size:18px;font-weight:bold;color:${NAVY};line-height:22px">${ltr(x)}</div></td>`).join('')}</tr></table></td></tr>` : ''}
           <tr><td bgcolor="#ffffff" align="center" dir="rtl" style="background-color:#ffffff;padding:4px 8px 12px;text-align:center;${F}font-size:10px;color:${MUTED};line-height:15px;border-radius:0 0 10px 10px">${kpiSub(k, ltr) + '<br>&nbsp;'.repeat(Math.max(0, lines - k.sub.length))}</td></tr>
-          <tr><td height="3" bgcolor="#142C4F" style="height:3px;background-color:#142C4F;font-size:0;line-height:0">&nbsp;</td></tr>
         </table>`;
   };
   const kp = parts.kpi;
