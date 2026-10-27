@@ -33,6 +33,7 @@ const { Resend } = require('resend');
 const crypto = require('crypto');
 const { executeDax } = require('./powerbi');
 const { query } = require('./db');
+const sharp = require('sharp');
 
 const NEAR = 0.85;
 // Дни кредита — готовая мера модели, без своих расчётов (Дан 25.10)
@@ -222,6 +223,7 @@ async function fetchEntities() {
 // Брендинг — та же executive-палитра, что была (навигация, золото, пергамент) + лого DILER B.M.D.
 const NAVY = '#1C3D6B';
 const GOLD = '#B8863B';
+const PRIV_C = '#8FB3E0'; // светло-синий — שוק פרטי в круговой (רשתות — NAVY): одна гамма, без жёлтого (Дан 27.10)
 const RED = '#B00020';
 const INK = '#2A2620';
 const MUTED = '#6B7280';
@@ -273,7 +275,7 @@ function saveKpiHistory(hist, scopes) {
   try { fs.writeFileSync(KPI_HISTORY, JSON.stringify(hist)); } catch (e) { console.error('kpi history not saved:', e.message); }
 }
 
-// Доля שוק פרטי в % для двухцветной полосы; при минусе (нетто просрочки) полосы нет — отрицательную долю не нарисовать
+// Доля שוק פרטי в % для круговой; при минусе (нетто просрочки) круга нет — отрицательную долю не нарисовать
 function shareOf(sub) {
   const [p, c] = sub.filter(r => r[2]).map(r => r[1]);
   if (p === undefined || p < 0 || c < 0 || p + c <= 0) return null;
@@ -284,8 +286,8 @@ function shareOf(sub) {
 function kpiCards(v, past) {
   const prev = past.length ? past[past.length - 1] : null;
   // строки подписи: [текст, сумма|null] — сумму рендерер изолирует от RTL (ltr() в письме, <bdi> на странице)
-  // третий элемент — цвет квадратика-легенды под двухцветной полосой (Дан 27.10)
-  const split = (p, c) => [['שוק פרטי', p, GOLD], ['רשתות', c, NAVY]];
+  // третий элемент — цвет квадратика-легенды под круговой (Дан 27.10)
+  const split = (p, c) => [['שוק פרטי', p, PRIV_C], ['רשתות', c, NAVY]];
   // один цвет на все карточки — без «салата» и без цветных полос сверху (Дан 27.10): синяя сумма
   const card = (key, label, sub) => ({
     key, label, value: v[key], sub, color: NAVY,
@@ -314,12 +316,24 @@ function kpiCards(v, past) {
 }
 // Пары «подпись сумма» — каждая своей строкой: через ' · ' в одной строке почтовик Дана переставлял суммы местами (27.10)
 const kpiSub = (k, iso) => k.sub.map(([t, v, c]) => `${c ? `<span style="color:${c}">&#9632;</span> ` : ''}${v === null ? t : `${t} ${iso(fmtShort(v))}`}`).join('<br>');
-// Двухцветная полоса שוק פרטי (справа, GOLD) / רשתות (NAVY): в письме — ячейки таблицы (Outlook/Gmail без SVG)
-const SHARE_H = 8;
-const shareSeg = (pct, c) => (pct > 0 ? `<td width="${pct}%" height="${SHARE_H}" bgcolor="${c}" style="width:${pct}%;height:${SHARE_H}px;background-color:${c};font-size:0;line-height:0">&nbsp;</td>` : '');
-const shareEmail = s => (s === null ? `<div style="height:${SHARE_H}px;line-height:${SHARE_H}px;font-size:0">&nbsp;</div>`
-  : `<table role="presentation" width="80%" cellpadding="0" cellspacing="0" dir="rtl" align="center" style="width:80%"><tr>${shareSeg(s, GOLD)}${shareSeg(100 - s, NAVY)}</tr></table>`);
-const sharePage = s => (s === null ? '' : `<span class="sh"><i style="width:${s}%;background:${GOLD}"></i><i style="flex:1;background:${NAVY}"></i></span>`);
+// Круговая שוק פרטי / רשתות (Дан 27.10: «полоски не красиво — лучше pie»). Письмо: PNG через sharp, вложение cid
+// (Gmail/Outlook SVG не рисуют); страница — CSS conic-gradient. Без доли — пустое место той же высоты (карточки ровные).
+const PIE = 64;
+function pieSvg(pct, size) {
+  const r = size / 2, a = (pct / 100) * 2 * Math.PI;
+  const full = c => `<circle cx="${r}" cy="${r}" r="${r}" fill="${c}"/>`;
+  const arc = pct <= 0 ? '' : pct >= 100 ? full(PRIV_C)
+    : `<path d="M${r},${r} L${r},0 A${r},${r} 0 ${pct > 50 ? 1 : 0},1 ${r + r * Math.sin(a)},${r - r * Math.cos(a)} Z" fill="${PRIV_C}"/>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">${full(NAVY)}${arc}</svg>`;
+}
+const pieCards = kp => (kp ? [kp.hero, ...kp.risks].filter(k => k.share !== null) : []);
+const pieAttachments = async kp => Promise.all(pieCards(kp).map(async k => ({
+  filename: `pie-${k.key}.png`, contentId: `pie-${k.key}`,
+  content: (await sharp(Buffer.from(pieSvg(k.share, PIE * 2))).png().toBuffer()).toString('base64'),
+})));
+const pieEmail = k => (k.share === null ? `<div style="height:${PIE}px;line-height:${PIE}px;font-size:0">&nbsp;</div>`
+  : `<img src="cid:pie-${k.key}" width="${PIE}" height="${PIE}" alt="" style="display:block;margin:0 auto;width:${PIE}px;height:${PIE}px" />`);
+const piePage = s => (s === null ? '' : `<span class="pie" style="background:conic-gradient(${PRIV_C} 0 ${s}%,${NAVY} 0)"></span>`);
 // Динамика к прошлому отчёту: ▲ рост / ▼ снижение, серым — без красного/зелёного (Дан 27.10 «салат»)
 function kpiDelta(k, iso) {
   if (!k.prev) return { text: 'השוואה לשבוע שעבר — מהדוח הבא', color: MUTED };
@@ -357,7 +371,8 @@ const PARTS = [
     extra: { head: 'יתרה מעבר למסגרת', val: e => e.usedILS - e.limitILS },
   },
   {
-    id: 'near', color: GOLD, chip: GOLD, tint: '#F7EFDF', sheet: 'מתקרבים 85%-100%', label: `מתקרבים ${ltr('85%–100%')}`,
+    id: 'near', color: NAVY, chip: NAVY, tint: '#E8EEF6', // без жёлтого (Дан 27.10)
+    sheet: 'מתקרבים 85%-100%', label: `מתקרבים ${ltr('85%–100%')}`,
     title: 'לקוחות שמתקרבים לניצול מלא של המסגרת המאושרת',
     rule: 'ניצול 85% ומעלה ועד 100% ממסגרת האובליגו',
     pick: e => e.util !== null && e.util >= NEAR && e.util < 1,
@@ -476,7 +491,7 @@ function buildPageHtml(parts, workDays, scope, expires) {
       <div class="body">${pageDiff(diff)}${rows.length ? sub('רשתות', chains, 'resp', true) + sub('שוק פרטי', priv, 'agent', false) : '<p class="mu">אין לקוחות בקטגוריה זו.</p>'}</div></details>`;
   }).join('');
   const bdi = s => `<bdi>${s}</bdi>`;
-  const chip = (k, cls) => { const dl = kpiDelta(k, bdi); return `<div class="chip${cls}"><span class="l">${k.label}</span><b style="color:${k.color}">${bdi(fmtShort(k.value))}</b><span class="dl" style="color:${dl.color}">${dl.text}</span>${sparkPage(k.series, k.color)}${k.stats ? `<span class="st">${k.stats.map(([l, x]) => `<span><i>${l}</i><b>${bdi(x)}</b></span>`).join('')}</span>` : ''}${sharePage(k.share)}<span class="s">${kpiSub(k, bdi)}</span></div>`; };
+  const chip = (k, cls) => { const dl = kpiDelta(k, bdi); return `<div class="chip${cls}"><span class="l">${k.label}</span><b style="color:${k.color}">${bdi(fmtShort(k.value))}</b><span class="dl" style="color:${dl.color}">${dl.text}</span>${sparkPage(k.series, k.color)}${k.stats ? `<span class="st">${k.stats.map(([l, x]) => `<span><i>${l}</i><b>${bdi(x)}</b></span>`).join('')}</span>` : ''}${piePage(k.share)}<span class="s">${kpiSub(k, bdi)}</span></div>`; };
   const chips = parts.kpi ? chip(parts.kpi.hero, ' hero') + parts.kpi.risks.map(k => chip(k, '')).join('') : '';
   return `<!doctype html>
 <html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -493,7 +508,7 @@ header h1{margin:0;font-size:22px}header .d{color:${GOLD};font-size:12px;margin-
 .chip .st{display:flex;gap:10px;justify-content:center;margin:6px 0 2px;flex-wrap:wrap}.chip .st>span{display:flex;flex-direction:column;align-items:center;min-width:92px;padding:6px 10px;border-radius:8px;background:#F1EEE8}.chip .st i{font-style:normal;font-size:11px;color:${MUTED}}.chip .st b{font-size:18px;color:${NAVY}}
 .chip .l{font-size:12px;font-weight:bold;color:${INK}}.chip b{font-size:26px;line-height:1.15}.chip .s{font-size:11px;color:${MUTED};line-height:1.35}
 .chip .dl{font-size:11px;font-weight:bold}
-.sh{display:flex;width:80%;height:${SHARE_H}px;margin:6px 0 2px}.sh i{display:block}
+.pie{display:block;width:${PIE}px;height:${PIE}px;border-radius:50%;margin:8px 0 2px}
 .sp{display:flex;align-items:flex-end;gap:2px;height:${SPARK_H}px;margin:4px 0 2px;direction:ltr}.sp i{display:block;width:7px;background:#D5DBE4;border-radius:1px}
 @media(max-width:600px){.chips{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.chip b{font-size:22px}.chip.hero>b{font-size:30px}}
 main{max-width:960px;margin:0 auto;padding:12px 16px 48px}
@@ -506,7 +521,7 @@ details.part>summary{padding:14px 16px;cursor:pointer;list-style-position:inside
 details.part>summary .t{font-size:17px;font-weight:bold;color:var(--c)}
 details.part>summary .meta{display:block;font-size:12px;color:${MUTED};margin-top:4px}
 .body{padding:0 12px 12px}
-details.part.new{box-shadow:0 0 0 2px ${GOLD}}.nb{display:inline-block;margin-right:8px;padding:2px 9px;border-radius:12px;background:${GOLD};color:#fff;font-size:12px;font-weight:bold;vertical-align:middle}
+details.part.new{box-shadow:0 0 0 2px ${NAVY}}.nb{display:inline-block;margin-right:8px;padding:2px 9px;border-radius:12px;background:${NAVY};color:#fff;font-size:12px;font-weight:bold;vertical-align:middle}
 h3{font-size:14px;margin:16px 4px 6px}
 details.grp{border:1px solid ${LINE};border-radius:6px;margin:6px 0}
 details.grp>summary{padding:9px 12px;cursor:pointer;color:${NAVY};font-size:13px}
@@ -520,7 +535,7 @@ tr:nth-child(odd) td{background:${ZEBRA}}
 td.n{font-weight:bold;white-space:normal;min-width:150px}td.c{color:${MUTED};font-size:12px}
 td.m{direction:ltr;unicode-bidi:isolate;color:${MUTED};font-size:12px}td.s{font-weight:bold;color:var(--c)}
 .pc{display:inline-block;min-width:44px;text-align:center;padding:3px 7px;border-radius:20px;font-weight:bold;font-size:12px;direction:ltr}
-.pc.r{background:#FBEAEC;color:${RED}}.pc.g{background:#F7EFDF;color:${GOLD}}
+.pc.r{background:#FBEAEC;color:${RED}}.pc.g{background:#E8EEF6;color:${NAVY}}
 .diff{background:#F7F9FC;border:1px solid ${LINE};border-radius:8px;padding:10px 14px;margin:4px 0 8px;font-size:13px}
 .diff ul{margin:2px 0;padding-right:18px}.add{color:#b71c1c;margin-top:6px;font-weight:bold}.rem{color:#2e7d32;margin-top:6px;font-weight:bold}
 .mu{color:${MUTED}}[hidden]{display:none!important}
@@ -592,10 +607,10 @@ function emailDsoHtml(list, frozenN, num) {
   if (!list || !list.length) return '';
   return `
   <tr><td dir="rtl" style="padding:24px 24px 0;text-align:right">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="rtl"${dsoIsNew() ? ' bgcolor="#F7EFDF" style="background-color:#F7EFDF"' : ''}><tr>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="rtl"${dsoIsNew() ? ' bgcolor="#E8EEF6" style="background-color:#E8EEF6"' : ''}><tr>
       <td width="5" bgcolor="${NAVY}" style="width:5px;background-color:${NAVY};font-size:0;line-height:0">&nbsp;</td>
       <td dir="rtl" style="padding:${dsoIsNew() ? '10px 12px 10px 0' : '2px 12px 2px 0'};text-align:right">
-        <div style="font-family:Arial,sans-serif;font-size:17px;color:${NAVY};font-weight:bold;line-height:24px">${num}. לקוחות עם DSO הגבוה ביותר${dsoIsNew() ? `&nbsp;<span style="background-color:${GOLD};color:#ffffff;font-size:12px;padding:2px 8px">🆕 חדש</span>` : ''}</div>
+        <div style="font-family:Arial,sans-serif;font-size:17px;color:${NAVY};font-weight:bold;line-height:24px">${num}. לקוחות עם DSO הגבוה ביותר${dsoIsNew() ? `&nbsp;<span style="background-color:${NAVY};color:#ffffff;font-size:12px;padding:2px 8px">🆕 חדש</span>` : ''}</div>
         <div style="font-family:Arial,sans-serif;font-size:12px;color:${MUTED};line-height:18px">${esc(DSO_LINE)}<br>${list.length} הלקוחות עם ה-DSO הגבוה ביותר (קנו ב-3 החודשים האחרונים)${frozenN ? ` &middot; ועוד ${frozenN} חובות ישנים (לא קנו מעל 3 חודשים) — ברשימה נפרדת` : ''}</div>
       </td>
     </tr></table>
@@ -631,7 +646,7 @@ function buildEmailHtml(parts, workDays, greetName, scope, link) {
           <tr><td bgcolor="#ffffff" align="center" dir="rtl" style="background-color:#ffffff;padding:3px 6px 0;text-align:center;${F}font-size:11px;font-weight:bold;color:${dl.color};line-height:15px">${dl.text}</td></tr>
           <tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:0 6px">${sparkEmail(k.series, k.color)}</td></tr>
           ${k.stats ? `<tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:8px 6px 2px"><table role="presentation" cellpadding="0" cellspacing="0" dir="rtl" align="center"><tr>${k.stats.map(([l, x], i) => `${i ? '<td width="10" style="width:10px;font-size:0">&nbsp;</td>' : ''}<td align="center" bgcolor="#F1EEE8" style="background-color:#F1EEE8;padding:6px 14px;border-radius:8px;text-align:center;${F}"><div style="font-size:11px;color:${MUTED};line-height:15px">${l}</div><div style="font-size:18px;font-weight:bold;color:${NAVY};line-height:22px">${ltr(x)}</div></td>`).join('')}</tr></table></td></tr>` : ''}
-          <tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:8px 6px 2px">${shareEmail(k.share)}</td></tr>
+          <tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:8px 6px 2px">${pieEmail(k)}</td></tr>
           <tr><td bgcolor="#ffffff" align="center" dir="rtl" style="background-color:#ffffff;padding:4px 8px 12px;text-align:center;${F}font-size:10px;color:${MUTED};line-height:15px;border-radius:0 0 10px 10px">${kpiSub(k, ltr) + '<br>&nbsp;'.repeat(Math.max(0, lines - k.sub.length))}</td></tr>
         </table>`;
   };
@@ -866,6 +881,7 @@ async function sendReport(resend, recipient, parts, workDays, scope) {
   const attachments = [
     ...(fs.existsSync(logoPath) ? [{ filename: 'logo-white.png', content: fs.readFileSync(logoPath).toString('base64'), contentId: 'diler-logo-white' }] : []),
     { filename: `obligo-${today}.xlsx`, content: (await buildXlsx(parts, workDays)).toString('base64') },
+    ...(await pieAttachments(parts.kpi)),
   ];
   const counts = parts.map(p => p.rows.length);
   // страница на каждое письмо своя (новый hex) — до отправки; не записалась — письмо не уходит
@@ -1004,7 +1020,9 @@ async function main() {
   if (DRY_RUN) {
     const out = path.join(__dirname, 'out');
     fs.mkdirSync(out, { recursive: true });
-    fs.writeFileSync(path.join(out, 'obligo-alert-preview.html'), buildEmailHtml(parts, workDays, 'דן', null, 'obligo-alert-page.html'));
+    // круговые — файлами рядом, cid: → имя файла, чтобы превью показывало картинки
+    for (const a of await pieAttachments(parts.kpi)) fs.writeFileSync(path.join(out, a.filename), Buffer.from(a.content, 'base64'));
+    fs.writeFileSync(path.join(out, 'obligo-alert-preview.html'), buildEmailHtml(parts, workDays, 'דן', null, 'obligo-alert-page.html').replace(/cid:(pie-\w+)/g, '$1.png'));
     fs.writeFileSync(path.join(out, 'obligo-alert-page.html'), buildPageHtml(parts, workDays, null, expiryDate()));
     if (perOwner[0]) fs.writeFileSync(path.join(out, 'obligo-alert-page-owner.html'), buildPageHtml(perOwner[0].mine, workDays, SCOPE_OWNER, expiryDate()));
     if (perManager[0]) fs.writeFileSync(path.join(out, 'obligo-alert-page-manager.html'), buildPageHtml(perManager[0].mine, workDays, SCOPE_TEAM, expiryDate()));
