@@ -287,7 +287,8 @@ function kpiCards(v, past) {
   const prev = past.length ? past[past.length - 1] : null;
   // строки подписи: [текст, сумма|null] — сумму рендерер изолирует от RTL (ltr() в письме, <bdi> на странице)
   // третий элемент — цвет квадратика-легенды под круговой (Дан 27.10)
-  const split = (p, c) => [['שוק פרטי', p, PRIV_C], ['רשתות', c, NAVY]];
+  // 4-й элемент — поле суммы: по нему срезы страницы пересчитывают строку (Дан 27.10)
+  const split = b => [['שוק פרטי', v[`${b}Priv`], PRIV_C, `${b}Priv`], ['רשתות', v[`${b}Chain`], NAVY, `${b}Chain`]];
   // один цвет на все карточки — без «салата» и без цветных полос сверху (Дан 27.10): синяя сумма
   const card = (key, label, sub) => ({
     key, label, value: v[key], sub, color: NAVY,
@@ -299,23 +300,23 @@ function kpiCards(v, past) {
   // Карточка «מעל 90 יום» и подписи «% מניצול» убраны (Дан 27.10) — под карточками разбивка שוק פרטי / רשתות.
   const util = v.limit > 0 ? `${Math.round((v.used / v.limit) * 100)}%` : null;
   // stats — отдельными ячейками (не строкой через ' · ': почтовик переставлял суммы); дни — только полный охват
-  const hero = card('used', 'ניצול אובליגו כולל', split(v.usedPriv, v.usedChain));
-  hero.stats = [['מסגרת אובליגו', fmtShort(v.limit)], ...(util ? [['% ניצול', util]] : []),
-    ...(v.dso != null ? [['ימי אשראי ממוצע', String(Math.round(v.dso))]] : [])];
+  const hero = card('used', 'ניצול אובליגו כולל', split('used'));
+  hero.stats = [['מסגרת אובליגו', fmtShort(v.limit), 'limit'], ...(util ? [['% ניצול', util, 'util']] : []),
+    ...(v.dso != null ? [['ימי אשראי ממוצע', String(Math.round(v.dso)), 'dso']] : [])];
   return {
     hero,
     risks: [
       // нетто как в PBI + отдельная карточка без переплат (Дан 27.10: у сетей нетто −1.4M скрывает реальный долг)
-      card('late', 'חוב בפיגור', split(v.latePriv, v.lateChain)),
-      card('lateDebt', 'חוב בפיגור ללא יתרות זכות', split(v.lateDebtPriv, v.lateDebtChain)),
-      card('over', 'חריגה ממסגרת', split(v.overPriv, v.overChain)),
+      card('late', 'חוב בפיגור', split('late')),
+      card('lateDebt', 'חוב בפיגור ללא יתרות זכות', split('lateDebt')),
+      card('over', 'חריגה ממסגרת', split('over')),
       // «старые долги» (Дан 27.10): короткий заголовок, пояснение — первой строкой подписи
-      card('frozen', 'חובות ישנים', [['לקוח לא קנה מעל 3 חודשים', null], ...split(v.frozenPriv, v.frozenChain)]),
+      card('frozen', 'חובות ישנים', [['לקוח לא קנה מעל 3 חודשים', null], ...split('frozen')]),
     ],
   };
 }
 // Пары «подпись сумма» — каждая своей строкой: через ' · ' в одной строке почтовик Дана переставлял суммы местами (27.10)
-const kpiSub = (k, iso) => k.sub.map(([t, v, c]) => `${c ? `<span style="color:${c}">&#9632;</span> ` : ''}${v === null ? t : `${t} ${iso(fmtShort(v))}`}`).join('<br>');
+const kpiSub = (k, iso) => k.sub.map(([t, v, c, f]) => `${c ? `<span style="color:${c}">&#9632;</span> ` : ''}${v === null ? t : `${t} ${iso(fmtShort(v), f)}`}`).join('<br>');
 // Круговая שוק פרטי / רשתות (Дан 27.10: «полоски не красиво — лучше pie»). Письмо: PNG через sharp, вложение cid
 // (Gmail/Outlook SVG не рисуют); страница — CSS conic-gradient. Без доли — пустое место той же высоты (карточки ровные).
 const PIE = 64;
@@ -333,7 +334,7 @@ const pieAttachments = async kp => Promise.all(pieCards(kp).map(async k => ({
 })));
 const pieEmail = k => (k.share === null ? `<div style="height:${PIE}px;line-height:${PIE}px;font-size:0">&nbsp;</div>`
   : `<img src="cid:pie-${k.key}" width="${PIE}" height="${PIE}" alt="" style="display:block;margin:0 auto;width:${PIE}px;height:${PIE}px" />`);
-const piePage = s => (s === null ? '' : `<span class="pie" style="background:conic-gradient(${PRIV_C} 0 ${s}%,${NAVY} 0)"></span>`);
+const piePage = k => (k.share === null ? '' : `<span class="pie" data-p="${k.key}" style="background:conic-gradient(${PRIV_C} 0 ${k.share}%,${NAVY} 0)"></span>`);
 // Динамика к прошлому отчёту: ▲ рост / ▼ снижение, серым — без красного/зелёного (Дан 27.10 «салат»)
 function kpiDelta(k, iso) {
   if (!k.prev) return { text: 'השוואה לשבוע שעבר — מהדוח הבא', color: MUTED };
@@ -441,11 +442,12 @@ function pageGroups(part, rows, field, isChain) {
   const days = ['מספר ימי האשראי הממוצע', e => `<td>${e.creditDays === null ? '—' : Math.round(e.creditDays)}</td>`];
   const cols = [...all.filter(c => c[3]).map(money), ...pct, days, ...all.filter(c => !c[3]).map(money)];
   const head = `<tr><th>מס' לקוח</th><th>${isChain ? 'רשת' : 'שם'}</th>${cols.map(([h]) => `<th${h === days[0] ? ' class="w"' : ''}>${esc(h)}</th>`).join('')}</tr>`;
-  const row = e => `<tr data-q="${esc(`${e.name} ${e.custno} ${e[field]}`.toLowerCase())}"><td class="c">${esc(e.custno)}</td><td class="n">${esc(e.name)}</td>`
+  const main = all.find(c => c[3])[1];
+  const row = e => `<tr data-q="${esc(`${e.name} ${e.custno} ${e[field]}`.toLowerCase())}" data-m="${esc(e.market)}" data-r="${esc(e.resp)}" data-v="${main(e).toFixed(2)}"><td class="c">${esc(e.custno)}</td><td class="n">${esc(e.name)}</td>`
     + cols.map(([, td]) => td(e)).join('') + '</tr>';
   return keys.map(k => {
     const list = by.get(k);
-    return `<details class="grp"><summary><b>${esc(k)}</b><span class="cnt">${list.length} ${list.length === 1 ? 'לקוח' : 'לקוחות'} &middot; <bdi>${fmtILS(partTotal(part, list))}</bdi></span></summary>
+    return `<details class="grp"><summary><b>${esc(k)}</b><span class="cnt" data-sum>${list.length} ${list.length === 1 ? 'לקוח' : 'לקוחות'} &middot; <bdi>${fmtILS(partTotal(part, list))}</bdi></span></summary>
       <div class="tw"><table>${head}${list.map(row).join('')}</table></div></details>`;
   }).join('');
 }
@@ -468,7 +470,7 @@ const DSO_FROZEN_TITLE = 'חובות ישנים — לקוחות שלא קנו �
 const DSO_LINE = 'DSO — מספר ימי האשראי הממוצע: כמה ימים בממוצע עובר עד שהלקוח משלם';
 function pageDso(list, frozen, n) {
   if (!(list && list.length) && !(frozen && frozen.length)) return '';
-  const tr = (e, days) => `<tr data-q="${esc(`${e.name} ${e.custno} ${e.agent} ${e.resp}`.toLowerCase())}"><td class="c">${esc(e.custno)}</td><td class="n">${esc(e.name)}</td>`
+  const tr = (e, days) => `<tr data-q="${esc(`${e.name} ${e.custno} ${e.agent} ${e.resp}`.toLowerCase())}" data-m="${esc(e.market)}" data-r="${esc(e.resp)}"><td class="c">${esc(e.custno)}</td><td class="n">${esc(e.name)}</td>`
     + (days ? `<td><b>${Math.round(e.creditDays)}</b></td>` : '') + `<td class="m">${fmtILS(e.usedILS)}</td><td>${esc(e.market)}</td><td>${esc(e.market === 'רשתות' ? e.resp : e.agent)}</td></tr>`;
   const grp = (title, rows, days, open) => rows && rows.length ? `<details class="grp"${open ? ' open' : ''}><summary><b>${title}</b><span class="cnt">${rows.length} לקוחות</span></summary><div class="tw"><table>
       <tr><th>מס' לקוח משלם</th><th>שם</th>${days ? '<th class="w">מספר ימי האשראי הממוצע</th>' : ''}<th>ניצול אובליגו</th><th>שוק</th><th>אחראי / סוכן</th></tr>${rows.map(e => tr(e, days)).join('')}</table></div></details>` : '';
@@ -480,18 +482,29 @@ function pageDso(list, frozen, n) {
 
 // Без внешних ресурсов; CSP meta сужает глобальную CSP сервера для этой страницы (общий роут /p не трогаем).
 // <title> нейтральный — виден в истории браузера.
+// Срезы как в PBI (Дан 27.10): שוק / אחראי, по одной кнопке в ряду, повторный клик — сброс. Только полный отчёт:
+// у менеджера/אחראי страница и так своя. אחראי в PBI есть только у сетей — частный рынок весь «לא מוגדר».
+// Данные для пересчёта карточек — JSON в странице (e: [сеть, אחראי, ניצול, מסגרת, %, פיגור], f: [сеть, אחראי, ניצול]).
+function slicersHtml(kd) {
+  if (!kd) return '';
+  const resps = [...new Set(kd.e.map(e => e[1]))].sort((a, b) => (groupKeyOrder(a) - groupKeyOrder(b)) || a.localeCompare(b, 'he'));
+  return `<div class="sl">${['רשתות', 'שוק פרטי'].map(m => `<button data-m="${m}">${m}</button>`).join('')}</div>`
+    + `<div class="sl">${resps.map(r => `<button data-r="${esc(r)}">${esc(r)}</button>`).join('')}</div>`
+    + `<script type="application/json" id="kd">${JSON.stringify(kd).replace(/</g, '\\u003c')}</script>`;
+}
+
 function buildPageHtml(parts, workDays, scope, expires) {
   const date = new Date().toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' });
   const sections = parts.map(({ part, rows, diff }, i) => {
     const chains = rows.filter(r => r.market === 'רשתות'), priv = rows.filter(r => r.market !== 'רשתות');
-    const sub = (t, list, field, isChain) => list.length ? `<h3>${t} (${list.length})</h3>${pageGroups(part, list, field, isChain)}` : '';
+    const sub = (t, list, field, isChain) => list.length ? `<h3 data-t="${t}">${t} (${list.length})</h3>${pageGroups(part, list, field, isChain)}` : '';
     return `<details class="part" id="${part.id}" style="--c:${part.color}"><summary>
       <span class="t">${i + 1}. ${esc(part.title)}</span>
-      <span class="meta">${esc(part.rule)} &middot; ${rows.length} לקוחות &middot; סה"כ ${fmtILS(partTotal(part, rows))}</span></summary>
+      <span class="meta">${esc(part.rule)} &middot; <span data-c>${rows.length}</span> לקוחות &middot; סה"כ <span data-s>${fmtILS(partTotal(part, rows))}</span></span></summary>
       <div class="body">${pageDiff(diff)}${rows.length ? sub('רשתות', chains, 'resp', true) + sub('שוק פרטי', priv, 'agent', false) : '<p class="mu">אין לקוחות בקטגוריה זו.</p>'}</div></details>`;
   }).join('');
-  const bdi = s => `<bdi>${s}</bdi>`;
-  const chip = (k, cls) => { const dl = kpiDelta(k, bdi); return `<div class="chip${cls}"><span class="l">${k.label}</span><b style="color:${k.color}">${bdi(fmtShort(k.value))}</b><span class="dl" style="color:${dl.color}">${dl.text}</span>${sparkPage(k.series, k.color)}${k.stats ? `<span class="st">${k.stats.map(([l, x]) => `<span><i>${l}</i><b>${bdi(x)}</b></span>`).join('')}</span>` : ''}${piePage(k.share)}<span class="s">${kpiSub(k, bdi)}</span></div>`; };
+  const bdi = (s, f) => `<bdi${f ? ` data-f="${f}"` : ''}>${s}</bdi>`; // data-f — поле для пересчёта срезами
+  const chip = (k, cls) => { const dl = kpiDelta(k, bdi); return `<div class="chip${cls}"><span class="l">${k.label}</span><b style="color:${k.color}">${bdi(fmtShort(k.value), k.key)}</b><span class="dl" style="color:${dl.color}">${dl.text}</span>${sparkPage(k.series, k.color)}${k.stats ? `<span class="st">${k.stats.map(([l, x, f]) => f === 'dso' ? `<span class="dso"><i>${l}</i><b>${bdi(x)}</b></span>` : `<span><i>${l}</i><b>${bdi(x, f)}</b></span>`).join('')}</span>` : ''}${piePage(k)}<span class="s">${kpiSub(k, bdi)}</span></div>`; };
   const chips = parts.kpi ? chip(parts.kpi.hero, ' hero') + parts.kpi.risks.map(k => chip(k, '')).join('') : '';
   return `<!doctype html>
 <html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -500,8 +513,10 @@ function buildPageHtml(parts, workDays, scope, expires) {
 <title>דוח שבועי</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:${PAPER};font-family:Arial,sans-serif;color:${INK}}
-header{background:${NAVY};color:#fff;text-align:center;padding:22px 16px 18px}
-header h1{margin:0;font-size:22px}header .d{color:${GOLD};font-size:12px;margin-top:6px}
+header{background:${NAVY};color:#fff;text-align:center;padding:12px 16px}
+header h1{margin:0;font-size:18px}
+.sl{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px}.sl button{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.45);border-radius:16px;padding:5px 12px;font-size:13px;font-family:inherit;cursor:pointer}.sl button.on{background:#fff;color:${NAVY};border-color:#fff;font-weight:bold}
+.flt .chip .dl,.flt .chip .sp,.flt .chip .dso{display:none}header .d{color:${GOLD};font-size:12px;margin-top:6px}
 .chips{display:grid;grid-template-columns:repeat(2,minmax(0,320px));gap:14px;justify-content:center;margin:20px auto 22px;max-width:820px}
 .chip{background:linear-gradient(180deg,#fff 0%,#F6F3EE 100%);border-radius:12px;padding:14px 8px 12px;display:flex;flex-direction:column;align-items:center;gap:3px;box-shadow:0 10px 24px rgba(0,0,0,.30)}
 .chip.hero{grid-column:1/-1}.chip.hero>b{font-size:36px}
@@ -542,7 +557,7 @@ td.m{direction:ltr;unicode-bidi:isolate;color:${MUTED};font-size:12px}td.s{font-
 @media(max-width:600px){main{padding:8px 10px 40px}.body{padding:0 6px 10px}th,td{padding:6px 5px}table{font-size:12px}td.n{min-width:110px}}
 footer{font-size:12px;color:${MUTED};line-height:1.7;margin-top:24px}
 </style></head><body>
-<header><h1>דוח אובליגו ותנאי תשלום</h1><div class="d">דוח שבועי &middot; ${date}${scope ? ` &middot; ${scope}` : ''}${kpiCompareNote(parts.kpi, s => `<bdi>${s}</bdi>`)}</div>
+<header><h1>דוח אובליגו ותנאי תשלום</h1><div class="d">דוח שבועי &middot; ${date}${scope ? ` &middot; ${scope}` : ''}${kpiCompareNote(parts.kpi, s => `<bdi>${s}</bdi>`)}</div>${scope ? '' : slicersHtml(parts.kpiData)}
 <div class="chips">${chips}</div></header>
 <main>
 <p class="intro">לחצו על חלק כדי לפתוח אותו, ובתוכו על אחראי / סוכן. החיפוש מוצא לקוח לפי שם, מספר או סוכן בכל החלקים.</p>
@@ -561,14 +576,36 @@ document.getElementById('none').onclick=function(){setAll(false)};
 // раскрытия считаем по клику человека — toggle стреляет и от поиска / "פתח הכל"
 parts.forEach(function(p){p.querySelector('summary').addEventListener('click',function(){if(!p.open)track('o-'+p.id)})});
 grps.forEach(function(g){g.querySelector('summary').addEventListener('click',function(){if(!g.open)track('grp')})});
-var searched=false;
-document.getElementById('q').addEventListener('input',function(){
-  var q=this.value.trim().toLowerCase();
-  if(q&&!searched){searched=true;track('search')}
-  grps.forEach(function(g){var hit=0;[].forEach.call(g.querySelectorAll('tr[data-q]'),function(tr){var m=!q||tr.dataset.q.indexOf(q)>-1;tr.hidden=!m;hit+=m});g.hidden=!hit;g.open=!!q&&hit>0});
+var searched=false,selM='',selR='',K=document.getElementById('kd'),D=K?JSON.parse(K.textContent):null;
+function fI(n){return '₪'+Math.round(n).toLocaleString('en-US')}
+function fS(n){return n<0?'−'+fS(-n):n>=1e6?'₪'+(n/1e6).toFixed(2)+'M':n>=1e3?'₪'+Math.round(n/1e3)+'K':fI(n)}
+function okR(tr){return (!selM||tr.dataset.m===selM)&&(!selR||tr.dataset.r===selR)}
+function each(root,sel,f){[].forEach.call(root.querySelectorAll(sel),f)}
+// срезы меняют и итоги (счётчики/суммы), поиск — только видимость
+function apply(){
+  var q=document.getElementById('q').value.trim().toLowerCase();
+  grps.forEach(function(g){var hit=0,n=0,s=0;each(g,'tr[data-q]',function(tr){var ok=okR(tr),m=ok&&(!q||tr.dataset.q.indexOf(q)>-1);tr.hidden=!m;hit+=m;if(ok){n++;s+=+(tr.dataset.v||0)}});
+    g.hidden=!hit;g.open=!!q&&hit>0;var c=g.querySelector('.cnt');if(c)c.innerHTML=n+' '+(n===1?'לקוח':'לקוחות')+(c.hasAttribute('data-sum')?' &middot; <bdi>'+fI(s)+'</bdi>':'')});
   parts.forEach(function(p){var any=!q||p.querySelector('details.grp:not([hidden])');p.hidden=!any;p.open=!!q&&!!any;
-    [].forEach.call(p.querySelectorAll('h3'),function(h){var n=h.nextElementSibling,vis=false;while(n&&n.tagName!=='H3'){if(!n.hidden)vis=true;n=n.nextElementSibling}h.hidden=!vis})});
-});
+    var n=0,s=0;each(p,'tr[data-q]',function(tr){if(okR(tr)){n++;s+=+(tr.dataset.v||0)}});
+    var c=p.querySelector('[data-c]'),sm=p.querySelector('[data-s]');if(c)c.textContent=n;if(sm)sm.textContent=fI(s);
+    each(p,'h3',function(h){var e=h.nextElementSibling,vis=false,k=0;while(e&&e.tagName!=='H3'){if(!e.hidden)vis=true;each(e,'tr[data-q]',function(tr){if(okR(tr))k++});e=e.nextElementSibling}h.hidden=!vis;if(h.dataset.t)h.textContent=h.dataset.t+' ('+k+')'})});
+  if(D)kpi();
+}
+// пересчёт карточек — та же логика, что kpiValues на сервере
+function kpi(){var v={limit:0};['used','late','lateDebt','over','frozen'].forEach(function(b){v[b]=v[b+'Priv']=v[b+'Chain']=0});
+  function ok(ch,r){return (!selM||(selM==='רשתות')===(ch===1))&&(!selR||r===selR)}
+  function add(b,x,ch){v[b]+=x;v[b+(ch===1?'Chain':'Priv')]+=x}
+  D.e.forEach(function(e){if(!ok(e[0],e[1]))return;add('used',e[2],e[0]);v.limit+=e[3];add('late',e[5],e[0]);add('lateDebt',Math.max(0,e[5]),e[0]);add('over',e[4]!==null&&e[4]>=1?e[2]-e[3]:0,e[0])});
+  D.f.forEach(function(e){if(ok(e[0],e[1]))add('frozen',e[2],e[0])});
+  each(document,'.chips [data-f]',function(el){var f=el.dataset.f;el.textContent=f==='util'?(v.limit>0?Math.round(v.used/v.limit*100)+'%':'—'):fS(v[f])});
+  each(document,'.pie[data-p]',function(el){var b=el.dataset.p,p=v[b+'Priv'],c=v[b+'Chain'],s=null;if(p>=0&&c>=0&&p+c>0){s=Math.round(p/(p+c)*100);if(p&&c)s=Math.min(98,Math.max(2,s))}
+    el.style.display=s===null||s===0||s===100?'none':'';if(s!==null)el.style.background='conic-gradient(${PRIV_C} 0 '+s+'%,${NAVY} 0)'});
+  document.body.classList.toggle('flt',!!(selM||selR));
+}
+each(document,'.sl button',function(b){b.onclick=function(){var m=b.hasAttribute('data-m'),val=m?b.dataset.m:b.dataset.r;if(m)selM=selM===val?'':val;else selR=selR===val?'':val;
+  each(document,'.sl button',function(x){x.classList.toggle('on',x.hasAttribute('data-m')?x.dataset.m===selM:x.dataset.r===selR)});track(m?'f-m':'f-r');apply()}});
+document.getElementById('q').addEventListener('input',function(){if(this.value.trim()&&!searched){searched=true;track('search')}apply()});
 // трекинг (как в yarych-report): секунды по частям + раскрытия — только по личной ссылке /p/<hex>
 (function(){
   if(!/^\\/p\\/[0-9a-f]{48}$/.test(location.pathname)||!navigator.sendBeacon)return;
@@ -957,6 +994,8 @@ async function main() {
     target.dso = dsoRank.filter(pred).slice(0, DSO_TOP); target.dsoFrozen = frozen.filter(pred);
     const vals = { ...kpiValues(entities.filter(pred), frozen.filter(pred)), ...extra };
     target.kpi = kpiCards(vals, (kpiHist[key] || []).filter(p => p.date < isoToday()));
+    target.kpiData = { e: entities.filter(pred).map(e => [e.market === 'רשתות' ? 1 : 0, e.resp, Math.round(e.usedILS), Math.round(e.limitILS), e.util, Math.round(e.overdue)]),
+      f: frozen.filter(pred).map(e => [e.market === 'רשתות' ? 1 : 0, e.resp, Math.round(e.usedILS)]) };
     kpiScopes.push({ key, vals });
   };
   let dsoTotal = null;
