@@ -297,7 +297,8 @@ function kpiCards(v, past) {
       card('late', 'חוב בפיגור', [...split(v.latePriv, v.lateChain),
         ['רק חייבים: שוק פרטי', v.lateDebtPriv], ['רק חייבים: רשתות', v.lateDebtChain]], GOLD, NAVY),
       card('over', 'חריגה ממסגרת', split(v.overPriv, v.overChain), RED, RED),
-      card('frozen', 'חוב ללא מכירות 3+ חודשים', split(v.frozenPriv, v.frozenChain), RED, RED),
+      // «старые долги» (Дан 27.10): короткий заголовок, пояснение — первой строкой подписи
+      card('frozen', 'חובות ישנים', [['לקוח לא קנה מעל 3 חודשים', null], ...split(v.frozenPriv, v.frozenChain)], RED, RED),
     ],
   };
 }
@@ -433,7 +434,7 @@ const DSO_TOP = 50; // Дан 25.10
 // Пометка «חדש» у раздела DSO — до 12.11 включительно (рассылки 29.10, 05.11, 12.11), потом исчезает сама
 const DSO_NEW_UNTIL = '2026-11-12';
 const dsoIsNew = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' }) <= DSO_NEW_UNTIL;
-const DSO_FROZEN_TITLE = 'ללא מכירות ב-3 החודשים האחרונים (לפי גובה החוב)';
+const DSO_FROZEN_TITLE = 'חובות ישנים — לקוחות שלא קנו מעל 3 חודשים (לפי גובה החוב)';
 const DSO_LINE = 'DSO — מספר ימי האשראי הממוצע: כמה ימים בממוצע עובר עד שהלקוח משלם';
 function pageDso(list, frozen, n) {
   if (!(list && list.length) && !(frozen && frozen.length)) return '';
