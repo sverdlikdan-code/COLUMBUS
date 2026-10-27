@@ -580,7 +580,7 @@ function emailDsoHtml(list, frozenN, num) {
       <td width="5" bgcolor="${NAVY}" style="width:5px;background-color:${NAVY};font-size:0;line-height:0">&nbsp;</td>
       <td dir="rtl" style="padding:${dsoIsNew() ? '10px 12px 10px 0' : '2px 12px 2px 0'};text-align:right">
         <div style="font-family:Arial,sans-serif;font-size:17px;color:${NAVY};font-weight:bold;line-height:24px">${num}. לקוחות עם DSO הגבוה ביותר${dsoIsNew() ? `&nbsp;<span style="background-color:${GOLD};color:#ffffff;font-size:12px;padding:2px 8px">🆕 חדש</span>` : ''}</div>
-        <div style="font-family:Arial,sans-serif;font-size:12px;color:${MUTED};line-height:18px">${esc(DSO_LINE)}<br>${list.length} הלקוחות עם ה-DSO הגבוה ביותר (קנו ב-3 החודשים האחרונים)${frozenN ? ` &middot; ועוד ${frozenN} עם חוב ללא קניות — ברשימה נפרדת` : ''}</div>
+        <div style="font-family:Arial,sans-serif;font-size:12px;color:${MUTED};line-height:18px">${esc(DSO_LINE)}<br>${list.length} הלקוחות עם ה-DSO הגבוה ביותר (קנו ב-3 החודשים האחרונים)${frozenN ? ` &middot; ועוד ${frozenN} חובות ישנים (לא קנו מעל 3 חודשים) — ברשימה נפרדת` : ''}</div>
       </td>
     </tr></table>
   </td></tr>`;
