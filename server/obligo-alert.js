@@ -222,15 +222,8 @@ const fmtILS = n => '₪' + Math.round(n).toLocaleString('en-US');
 // Outlook игнорирует CSS direction — явные LRE…PDF держат порядок "₪1,234" в ивритском тексте
 const ltr = s => `&#x202A;${s}&#x202C;`;
 
+// Порядок = нумерация частей в письме/странице/Excel (Дан 27.10: חורגים первыми, потом מתקרבים)
 const PARTS = [
-  {
-    id: 'near', color: GOLD, chip: GOLD, tint: '#F7EFDF', sheet: 'מתקרבים 85%-100%', label: `מתקרבים ${ltr('85%–100%')}`,
-    title: 'לקוחות שמתקרבים לניצול מלא של המסגרת המאושרת',
-    rule: 'ניצול 85% ומעלה ועד 100% ממסגרת האובליגו',
-    pick: e => e.util !== null && e.util >= NEAR && e.util < 1,
-    sort: (a, b) => b.util - a.util,
-    extra: { head: 'יתרה לניצול', val: e => e.limitILS - e.usedILS },
-  },
   {
     id: 'over', color: RED, chip: '#E0475B', tint: '#FBEAEC', sheet: 'חורגים מעל 100%', label: `חורגים מעל ${ltr('100%')}`,
     title: 'לקוחות שחורגים ממסגרת האשראי המאושרת',
@@ -238,6 +231,14 @@ const PARTS = [
     pick: e => e.util !== null && e.util >= 1,
     sort: (a, b) => b.util - a.util,
     extra: { head: 'יתרה מעבר למסגרת', val: e => e.usedILS - e.limitILS },
+  },
+  {
+    id: 'near', color: GOLD, chip: GOLD, tint: '#F7EFDF', sheet: 'מתקרבים 85%-100%', label: `מתקרבים ${ltr('85%–100%')}`,
+    title: 'לקוחות שמתקרבים לניצול מלא של המסגרת המאושרת',
+    rule: 'ניצול 85% ומעלה ועד 100% ממסגרת האובליגו',
+    pick: e => e.util !== null && e.util >= NEAR && e.util < 1,
+    sort: (a, b) => b.util - a.util,
+    extra: { head: 'יתרה לניצול', val: e => e.limitILS - e.usedILS },
   },
   {
     id: 'late', color: NAVY, chip: '#8FB3E0', tint: '#E8EEF6', sheet: 'חוב בפיגור', label: 'חוב בפיגור',
