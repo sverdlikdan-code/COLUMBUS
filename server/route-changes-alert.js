@@ -176,9 +176,10 @@ function buildFormulaRows(formula, overrides) {
       // нет — номера Priority как есть (уход клиента из дня Priority не мешает: пропуски там норма).
       const inPrioDay = id => formula.get(id).sched.some(s => s.dayNum === d);
       const moved = movedIds(ordered, prioOf, inPrioDay);
-      // В дне нет ни одного номера Priority и порядок не сохраняли — перенос дня не повод нумеровать
-      // весь день (Дан 27.10: у многих агентов BDD TOPP_NUM1 пуст, 1 перенос давал 26 строк)
-      const renumber = moved.size > 0 && (saved.length > 0 || ordered.some(id => prioOf(id) != null));
+      // День нумеруется 1..N, только если порядок в нём реально меняли (сохранён order[day]); перенос
+      // клиента в день сам по себе — одна строка со сменой дня, без номера (Дан 27.10: у агентов BDD
+      // TOPP_NUM1 часто пуст или 1 из 24 — 1 перенос давал 20–26 строк). Так же и для FORMULA.
+      const renumber = moved.size > 0 && saved.length > 0;
       ordered.forEach((id, i) => {
         const prio = prioOf(id);
         appDays.get(id).push({ dayNum: d, order: renumber ? i + 1 : prio, prio, moved: renumber && moved.has(id), inPrio: formula.get(id).sched.some(s => s.dayNum === d) });
