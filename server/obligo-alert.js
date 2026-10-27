@@ -197,7 +197,7 @@ async function fetchEntities() {
     if (!grouped.has(key)) {
       grouped.set(key, {
         key, name, market: isChain ? 'רשתות' : 'שוק פרטי', resp: cls.resp || '—', agent: cls.agent || 'לא מוגדר',
-        payers: new Set(), limitILS: 0, usedILS: 0, sales3m: 0, b30: 0, b60: 0, b90: 0, bOld: 0,
+        payers: new Set(), limitILS: 0, usedILS: 0, sales3m: 0, b30: 0, b60: 0, b90: 0, bOld: 0, debtOverdue: 0,
       });
     }
     const g = grouped.get(key);
@@ -206,6 +206,8 @@ async function fetchEntities() {
     g.payers.add(p.payer);
     if (!isChain) g.creditDays = p.creditDays;
     for (const f of ['limitILS', 'usedILS', 'sales3m', 'b30', 'b60', 'b90', 'bOld']) g[f] += p[f];
+    // «רק חייבים» в карточке просрочки (Дан 27.10): плюс по каждому плательщику — переплата одного не гасит долг другого
+    g.debtOverdue += Math.max(0, p.b30 + p.b60 + p.b90 + p.bOld);
   }
   // מס' לקוח = מספר לקוח משלם; у сети с несколькими плательщиками — "N משלמים" (Дан 2026-10-12)
   const entities = [...grouped.values()].map(({ payers, ...g }) => ({
@@ -245,6 +247,7 @@ function kpiValues(list, frozenList) {
     used: sum(list, e => e.usedILS), usedPriv: sum(list, e => e.usedILS, priv), usedChain: sum(list, e => e.usedILS, chain),
     limit: sum(list, e => e.limitILS),
     late: sum(list, e => e.overdue), latePriv: sum(list, e => e.overdue, priv), lateChain: sum(list, e => e.overdue, chain),
+    lateDebtPriv: sum(list, e => e.debtOverdue, priv), lateDebtChain: sum(list, e => e.debtOverdue, chain),
     old: sum(list, e => e.bOld),
     over: sum(list, over), overPriv: sum(list, over, priv), overChain: sum(list, over, chain),
     frozen: sum(frozenList, e => e.usedILS), frozenPriv: sum(frozenList, e => e.usedILS, priv), frozenChain: sum(frozenList, e => e.usedILS, chain),
@@ -290,7 +293,9 @@ function kpiCards(v, past) {
   return {
     hero,
     risks: [
-      card('late', 'חוב בפיגור', split(v.latePriv, v.lateChain), GOLD, NAVY),
+      // итог — нетто как в PBI; ниже — только должники, без переплат (Дан 27.10: у сетей нетто −1.41M скрывает реальный долг)
+      card('late', 'חוב בפיגור', [...split(v.latePriv, v.lateChain),
+        ['רק חייבים: שוק פרטי', v.lateDebtPriv], ['רק חייבים: רשתות', v.lateDebtChain]], GOLD, NAVY),
       card('over', 'חריגה ממסגרת', split(v.overPriv, v.overChain), RED, RED),
       card('frozen', 'חוב ללא מכירות 3+ חודשים', split(v.frozenPriv, v.frozenChain), RED, RED),
     ],
