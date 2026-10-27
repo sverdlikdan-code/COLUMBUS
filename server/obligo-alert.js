@@ -286,9 +286,9 @@ function kpiCards(v, past) {
   // строки подписи: [текст, сумма|null] — сумму рендерер изолирует от RTL (ltr() в письме, <bdi> на странице)
   // третий элемент — цвет квадратика-легенды под двухцветной полосой (Дан 27.10)
   const split = (p, c) => [['שוק פרטי', p, GOLD], ['רשתות', c, NAVY]];
-  // один цвет на все карточки — без «салата» (Дан 27.10): золотая полоса, синяя сумма
+  // один цвет на все карточки — без «салата» и без цветных полос сверху (Дан 27.10): синяя сумма
   const card = (key, label, sub) => ({
-    key, label, value: v[key], sub, bar: GOLD, color: NAVY,
+    key, label, value: v[key], sub, color: NAVY,
     prev: prev && prev.vals[key] !== undefined ? { date: prev.date, value: prev.vals[key] } : null,
     series: [...past.map(p => p.vals[key]).filter(x => x !== undefined), v[key]].slice(-8),
     share: shareOf(sub),
@@ -476,7 +476,7 @@ function buildPageHtml(parts, workDays, scope, expires) {
       <div class="body">${pageDiff(diff)}${rows.length ? sub('רשתות', chains, 'resp', true) + sub('שוק פרטי', priv, 'agent', false) : '<p class="mu">אין לקוחות בקטגוריה זו.</p>'}</div></details>`;
   }).join('');
   const bdi = s => `<bdi>${s}</bdi>`;
-  const chip = (k, cls) => { const dl = kpiDelta(k, bdi); return `<div class="chip${cls}" style="--c:${k.bar}"><span class="l">${k.label}</span><b style="color:${k.color}">${bdi(fmtShort(k.value))}</b><span class="dl" style="color:${dl.color}">${dl.text}</span>${sparkPage(k.series, k.color)}${k.stats ? `<span class="st">${k.stats.map(([l, x]) => `<span><i>${l}</i><b>${bdi(x)}</b></span>`).join('')}</span>` : ''}${sharePage(k.share)}<span class="s">${kpiSub(k, bdi)}</span></div>`; };
+  const chip = (k, cls) => { const dl = kpiDelta(k, bdi); return `<div class="chip${cls}"><span class="l">${k.label}</span><b style="color:${k.color}">${bdi(fmtShort(k.value))}</b><span class="dl" style="color:${dl.color}">${dl.text}</span>${sparkPage(k.series, k.color)}${k.stats ? `<span class="st">${k.stats.map(([l, x]) => `<span><i>${l}</i><b>${bdi(x)}</b></span>`).join('')}</span>` : ''}${sharePage(k.share)}<span class="s">${kpiSub(k, bdi)}</span></div>`; };
   const chips = parts.kpi ? chip(parts.kpi.hero, ' hero') + parts.kpi.risks.map(k => chip(k, '')).join('') : '';
   return `<!doctype html>
 <html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -488,9 +488,9 @@ function buildPageHtml(parts, workDays, scope, expires) {
 header{background:${NAVY};color:#fff;text-align:center;padding:22px 16px 18px}
 header h1{margin:0;font-size:22px}header .d{color:${GOLD};font-size:12px;margin-top:6px}
 .chips{display:grid;grid-template-columns:repeat(2,minmax(0,320px));gap:14px;justify-content:center;margin:20px auto 22px;max-width:820px}
-.chip{background:#fff;border-top:5px solid var(--c);padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.chip{background:linear-gradient(180deg,#fff 0%,#F6F3EE 100%);border-radius:12px;padding:14px 8px 12px;display:flex;flex-direction:column;align-items:center;gap:3px;box-shadow:0 10px 24px rgba(0,0,0,.30)}
 .chip.hero{grid-column:1/-1}.chip.hero>b{font-size:36px}
-.chip .st{display:flex;gap:10px;justify-content:center;margin:6px 0 2px;flex-wrap:wrap}.chip .st>span{display:flex;flex-direction:column;align-items:center;min-width:92px;padding:4px 10px}.chip .st i{font-style:normal;font-size:11px;color:${MUTED}}.chip .st b{font-size:18px;color:${NAVY}}
+.chip .st{display:flex;gap:10px;justify-content:center;margin:6px 0 2px;flex-wrap:wrap}.chip .st>span{display:flex;flex-direction:column;align-items:center;min-width:92px;padding:6px 10px;border-radius:8px;background:#F1EEE8}.chip .st i{font-style:normal;font-size:11px;color:${MUTED}}.chip .st b{font-size:18px;color:${NAVY}}
 .chip .l{font-size:12px;font-weight:bold;color:${INK}}.chip b{font-size:26px;line-height:1.15}.chip .s{font-size:11px;color:${MUTED};line-height:1.35}
 .chip .dl{font-size:11px;font-weight:bold}
 .sh{display:flex;width:80%;height:${SHARE_H}px;margin:6px 0 2px}.sh i{display:block}
@@ -620,19 +620,19 @@ function buildEmailHtml(parts, workDays, greetName, scope, link) {
   // Outlook (Word-движок) не рисует border/radius/margin у div — плашки только таблицами:
   // цветная полоска отдельной строкой с bgcolor, отступы — padding ячеек (тест 12.10 в Outlook развалился).
   // Карточки риска — пустыми строками до одной высоты: в письме это отдельные таблицы, сами не выравниваются (27.10).
-  // Карточки сумм (Дан 27.10) — плоские, как до «выпуклых»: без теней/скруглений/полос-теней (рябило), сеткой 2×2.
+  // Карточки сумм (Дан 27.10): скругление + тень (box-shadow — для почтовиков, что понимают), без цветной полосы сверху
+  // и без тёмной полосы-тени снизу (рябило), сеткой 2×2.
   const F = 'font-family:Arial,sans-serif;';
   const cell = (k, w, big, lines = 0) => {
     const dl = kpiDelta(k, ltr);
-    return `<table role="presentation" width="${w}" cellpadding="0" cellspacing="0" style="width:${w}px">
-          <tr><td height="5" bgcolor="${k.bar}" style="height:5px;background-color:${k.bar};font-size:0;line-height:0">&nbsp;</td></tr>
-          <tr><td bgcolor="#ffffff" align="center" dir="rtl" style="background-color:#ffffff;padding:12px 6px 2px;text-align:center;${F}font-size:12px;font-weight:bold;color:${INK};line-height:16px">${k.label}</td></tr>
+    return `<table role="presentation" width="${w}" cellpadding="0" cellspacing="0" style="width:${w}px;border-radius:10px;box-shadow:0 6px 16px rgba(0,0,0,.28)">
+          <tr><td bgcolor="#ffffff" align="center" dir="rtl" style="background-color:#ffffff;border-radius:10px 10px 0 0;padding:16px 6px 2px;text-align:center;${F}font-size:12px;font-weight:bold;color:${INK};line-height:16px">${k.label}</td></tr>
           <tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:2px 6px 0;text-align:center;${F}font-size:${big ? 34 : 24}px;font-weight:900;color:${k.color};line-height:${big ? 40 : 30}px">${ltr(fmtShort(k.value))}</td></tr>
           <tr><td bgcolor="#ffffff" align="center" dir="rtl" style="background-color:#ffffff;padding:3px 6px 0;text-align:center;${F}font-size:11px;font-weight:bold;color:${dl.color};line-height:15px">${dl.text}</td></tr>
           <tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:0 6px">${sparkEmail(k.series, k.color)}</td></tr>
-          ${k.stats ? `<tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:8px 6px 2px"><table role="presentation" cellpadding="0" cellspacing="0" dir="rtl" align="center"><tr>${k.stats.map(([l, x], i) => `${i ? '<td width="10" style="width:10px;font-size:0">&nbsp;</td>' : ''}<td align="center" style="padding:4px 14px;text-align:center;${F}"><div style="font-size:11px;color:${MUTED};line-height:15px">${l}</div><div style="font-size:18px;font-weight:bold;color:${NAVY};line-height:22px">${ltr(x)}</div></td>`).join('')}</tr></table></td></tr>` : ''}
+          ${k.stats ? `<tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:8px 6px 2px"><table role="presentation" cellpadding="0" cellspacing="0" dir="rtl" align="center"><tr>${k.stats.map(([l, x], i) => `${i ? '<td width="10" style="width:10px;font-size:0">&nbsp;</td>' : ''}<td align="center" bgcolor="#F1EEE8" style="background-color:#F1EEE8;padding:6px 14px;border-radius:8px;text-align:center;${F}"><div style="font-size:11px;color:${MUTED};line-height:15px">${l}</div><div style="font-size:18px;font-weight:bold;color:${NAVY};line-height:22px">${ltr(x)}</div></td>`).join('')}</tr></table></td></tr>` : ''}
           <tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:8px 6px 2px">${shareEmail(k.share)}</td></tr>
-          <tr><td bgcolor="#ffffff" align="center" dir="rtl" style="background-color:#ffffff;padding:4px 8px 12px;text-align:center;${F}font-size:10px;color:${MUTED};line-height:15px">${kpiSub(k, ltr) + '<br>&nbsp;'.repeat(Math.max(0, lines - k.sub.length))}</td></tr>
+          <tr><td bgcolor="#ffffff" align="center" dir="rtl" style="background-color:#ffffff;padding:4px 8px 12px;text-align:center;${F}font-size:10px;color:${MUTED};line-height:15px;border-radius:0 0 10px 10px">${kpiSub(k, ltr) + '<br>&nbsp;'.repeat(Math.max(0, lines - k.sub.length))}</td></tr>
         </table>`;
   };
   const kp = parts.kpi;
