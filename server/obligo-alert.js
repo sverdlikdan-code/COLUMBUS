@@ -602,10 +602,11 @@ function buildEmailHtml(parts, workDays, greetName, scope, link) {
   const intro = `דוח האובליגו השבועי${scope ? ` — ${scope}` : ''}. למטה סיכום ${n} החלקים; הרשימה המלאה של כל הלקוחות — בקישור האישי ובקובץ האקסל המצורף (${n} גיליונות).`;
   // Outlook (Word-движок) не рисует border/radius/margin у div — плашки только таблицами:
   // цветная полоска отдельной строкой с bgcolor, отступы — padding ячеек (тест 12.10 в Outlook развалился).
+  // Карточки риска — пустыми строками до одной высоты: в письме это отдельные таблицы, сами не выравниваются (27.10).
   // Карточки сумм (Дан 27.10). «Объём» без CSS-теней для Outlook: тёмная полоса 3px под карточкой
   // читается как тень на NAVY; radius/box-shadow — бонус для почтовиков, которые их понимают.
   const F = 'font-family:Arial,sans-serif;';
-  const cell = (k, w, big) => {
+  const cell = (k, w, big, lines = 0) => {
     const dl = kpiDelta(k, ltr);
     return `<table role="presentation" width="${w}" cellpadding="0" cellspacing="0" style="width:${w}px;border-radius:10px;box-shadow:0 6px 16px rgba(0,0,0,.28)">
           <tr><td height="6" bgcolor="${k.bar}" style="height:6px;background-color:${k.bar};border-radius:10px 10px 0 0;font-size:0;line-height:0">&nbsp;</td></tr>
@@ -614,14 +615,14 @@ function buildEmailHtml(parts, workDays, greetName, scope, link) {
           <tr><td bgcolor="#ffffff" align="center" dir="rtl" style="background-color:#ffffff;padding:3px 6px 0;text-align:center;${F}font-size:11px;font-weight:bold;color:${dl.color};line-height:15px">${dl.text}</td></tr>
           <tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:0 6px">${sparkEmail(k.series, k.color)}</td></tr>
           ${k.stats ? `<tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:8px 6px 2px"><table role="presentation" cellpadding="0" cellspacing="0" dir="rtl" align="center"><tr>${k.stats.map(([l, x], i) => `${i ? '<td width="10" style="width:10px;font-size:0">&nbsp;</td>' : ''}<td align="center" bgcolor="#F1EEE8" style="background-color:#F1EEE8;padding:6px 14px;border-radius:8px;text-align:center;${F}"><div style="font-size:11px;color:${MUTED};line-height:15px">${l}</div><div style="font-size:18px;font-weight:bold;color:${NAVY};line-height:22px">${ltr(x)}</div></td>`).join('')}</tr></table></td></tr>` : ''}
-          <tr><td bgcolor="#ffffff" align="center" dir="rtl" style="background-color:#ffffff;padding:4px 8px 12px;text-align:center;${F}font-size:10px;color:${MUTED};line-height:15px;border-radius:0 0 10px 10px">${kpiSub(k, ltr) + (!big && k.sub.length < 2 ? '<br>&nbsp;' : '')}</td></tr>
+          <tr><td bgcolor="#ffffff" align="center" dir="rtl" style="background-color:#ffffff;padding:4px 8px 12px;text-align:center;${F}font-size:10px;color:${MUTED};line-height:15px;border-radius:0 0 10px 10px">${kpiSub(k, ltr) + '<br>&nbsp;'.repeat(Math.max(0, lines - k.sub.length))}</td></tr>
           <tr><td height="3" bgcolor="#142C4F" style="height:3px;background-color:#142C4F;font-size:0;line-height:0">&nbsp;</td></tr>
         </table>`;
   };
   const kp = parts.kpi;
   const chips = kp ? `<tr><td>${cell(kp.hero, 654, true)}</td></tr>
       <tr><td height="14" style="height:14px;font-size:0;line-height:0">&nbsp;</td></tr>
-      <tr><td><table role="presentation" width="654" cellpadding="0" cellspacing="0" border="0" dir="rtl" style="width:654px;border-collapse:collapse"><tr>${kp.risks.map((k, i, a) => { const w = Math.floor((654 - 14 * (a.length - 1)) / a.length); return `${i ? '<td width="14" style="width:14px;font-size:0;line-height:0">&nbsp;</td>' : ''}<td width="${w}" valign="top" style="width:${w}px">${cell(k, w, false)}</td>`; }).join('')}</tr></table></td></tr>` : '';
+      <tr><td><table role="presentation" width="654" cellpadding="0" cellspacing="0" border="0" dir="rtl" style="width:654px;border-collapse:collapse"><tr>${kp.risks.map((k, i, a) => { const lines = Math.max(2, ...a.map(x => x.sub.length)); const w = Math.floor((654 - 14 * (a.length - 1)) / a.length); return `${i ? '<td width="14" style="width:14px;font-size:0;line-height:0">&nbsp;</td>' : ''}<td width="${w}" valign="top" style="width:${w}px">${cell(k, w, false, lines)}</td>`; }).join('')}</tr></table></td></tr>` : '';
   const date = new Date().toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' });
   return `<!doctype html>
 <html lang="he"><body style="margin:0;padding:28px 16px;background:${PAPER};font-family:Arial,sans-serif">
