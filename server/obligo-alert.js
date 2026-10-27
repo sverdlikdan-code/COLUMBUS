@@ -2,7 +2,7 @@
 // Один отчёт из 3 частей (запрос מנהל כספים יובל, решения Дана 2026-10-12):
 //   1. 85% <= ניצול < 100%  — מתקרבים לניצול מלא  (+ יתרה לניצול)
 //   2. ניצול >= 100%        — חורגים מהמסגרת        (+ יתרה מעבר למסגרת)
-//   3. חוב בפיגור > 0       — חורגים מתנאי התשלום  (корзины 1-30/31-60/61-90/90+, только положительные,
+//   3. חוב בפיגור > 0       — חורגים מתנאי התשלום  (корзины 1-30/31-60/61-90/90+ как в PBI, сальдо > 0 (с 27.10),
 //                             независимо от того, есть ли у клиента лимит)
 // Каждая часть — רשתות (блоки по אחראי) и שוק פרטי (блоки по агенту). Лимит 10,000 (дефолт Priority)
 // считается обычным лимитом (Дан 2026-10-12). Excel-вложение — те же 3 части на 3 листах.
@@ -121,11 +121,12 @@ async function fetchPayers() {
     creditDays: r['[dso]'] ?? null,
     sales3m: r['[sales3m]'] || 0,
     hasMmd: !!r['[mmd]'],
-    // только положительные корзины (Дан 2026-10-12): кредит в одной корзине не гасит долг в другой
-    b30: Math.max(0, r['[b30]'] || 0),
-    b60: Math.max(0, r['[b60]'] || 0),
-    b90: Math.max(0, r['[b90]'] || 0),
-    bOld: Math.max(0, r['[bOld]'] || 0),
+    // корзины как в PBI, с минусами (Дан 27.10 отменил «только положительные» от 12.10: Шуферсаль
+    // 955K у нас против 291K в PBI) — просрочка плательщика = сальдо корзин
+    b30: r['[b30]'] || 0,
+    b60: r['[b60]'] || 0,
+    b90: r['[b90]'] || 0,
+    bOld: r['[bOld]'] || 0,
   }));
 }
 
@@ -228,8 +229,9 @@ const fmtShort = n => n >= 1e6 ? `₪${(n / 1e6).toFixed(2)}M` : n >= 1e3 ? `₪
 // Карточки шапки (Дан 27.10): суммы для топ-менеджмента вместо количества клиентов.
 // Считаются по ВСЕМ клиентам охвата письма (полный / менеджер / אחראי), не только по попавшим в части.
 // frozenList — плательщики с облиго без продаж 3+ мес. (второй список DSO): «старые долги».
+// Суммы 1 в 1 как итоги PBI (Дан 27.10): без обнуления минусов — переплата одного клиента уменьшает итог, как в системе.
 function kpiValues(list, frozenList) {
-  const sum = (l, f, pred = () => true) => l.filter(pred).reduce((s, e) => s + Math.max(0, f(e)), 0);
+  const sum = (l, f, pred = () => true) => l.filter(pred).reduce((s, e) => s + f(e), 0);
   const chain = e => e.market === 'רשתות', priv = e => e.market !== 'רשתות';
   const over = e => (e.util !== null && e.util >= 1 ? e.usedILS - e.limitILS : 0);
   return {
@@ -274,7 +276,7 @@ function kpiCards(v, past) {
     hero: card('used', 'ניצול אובליגו כולל', split(v.usedPriv, v.usedChain), GOLD, NAVY),
     risks: [
       card('late', 'חוב בפיגור', [[`${pct(v.late, v.used)} מניצול האובליגו`, null]], GOLD, NAVY),
-      card('old', 'פיגור מעל 90 יום', [[`${pct(v.old, v.late)} מהחוב בפיגור`, null]], RED, RED),
+      card('old', 'פיגור מעל 90 יום', [[`${pct(v.old, v.used)} מניצול האובליגו`, null]], RED, RED),
       card('over', 'חריגה ממסגרת', split(v.overPriv, v.overChain), RED, RED),
       card('frozen', 'חוב ללא מכירות 3+ חודשים', [[`${pct(v.frozen, v.used)} מניצול האובליגו`, null]], RED, RED),
     ],
@@ -494,7 +496,7 @@ footer{font-size:12px;color:${MUTED};line-height:1.7;margin-top:24px}
 <div class="tools"><input id="q" type="search" placeholder="חיפוש לקוח / מספר / סוכן" autocomplete="off"><button id="all">פתח הכל</button><button id="none">סגור הכל</button></div>
 ${sections}
 ${pageDso(parts.dso, parts.dsoFrozen, parts.length + 1)}
-<footer><b>סודי — קישור אישי, נא לא להעביר. בתוקף עד ${expires}.</b><br>כל לקוח מדווח מחדש בכל דוח שבועי, כל עוד הוא עומד בתנאי החלק. סכומי הפיגור — רק יתרות חיוביות לפי ימי פיגור בפריוריטי.<br>הערות והצעות — לדן סברדליק, <!--email_off-->d.sverdlik@DilerBMD.com<!--/email_off-->.</footer>
+<footer><b>סודי — קישור אישי, נא לא להעביר. בתוקף עד ${expires}.</b><br>כל לקוח מדווח מחדש בכל דוח שבועי, כל עוד הוא עומד בתנאי החלק. סכומי הפיגור — לפי ימי פיגור בפריוריטי, כמו ב-Power BI: יתרה שלילית בעמודה היא תשלום או זיכוי שעוד לא שויכו לחשבונית; סה"כ בפיגור — היתרה נטו.<br>הערות והצעות — לדן סברדליק, <!--email_off-->d.sverdlik@DilerBMD.com<!--/email_off-->.</footer>
 </main>
 <script>
 (function(){
@@ -624,7 +626,7 @@ function buildEmailHtml(parts, workDays, greetName, scope, link) {
   <tr><td style="padding:28px 28px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td height="1" bgcolor="${LINE}" style="height:1px;background-color:${LINE};font-size:0;line-height:0">&nbsp;</td></tr></table></td></tr>
   <tr><td dir="rtl" style="padding:16px 28px 28px;text-align:right">
     <div style="font-family:Arial,sans-serif;font-size:12px;color:${MUTED};line-height:1.7">
-      כל לקוח מדווח מחדש בכל דוח שבועי, כל עוד הוא עומד בתנאי החלק. סכומי הפיגור — רק יתרות חיוביות לפי ימי פיגור בפריוריטי.<br>
+      כל לקוח מדווח מחדש בכל דוח שבועי, כל עוד הוא עומד בתנאי החלק. סכומי הפיגור — לפי ימי פיגור בפריוריטי, כמו ב-Power BI: יתרה שלילית בעמודה היא תשלום או זיכוי שעוד לא שויכו לחשבונית; סה"כ בפיגור — היתרה נטו.<br>
       הערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.
     </div>
   </td></tr>
