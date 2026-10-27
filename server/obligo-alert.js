@@ -32,6 +32,7 @@ const ExcelJS = require('exceljs');
 const { Resend } = require('resend');
 const crypto = require('crypto');
 const { executeDax } = require('./powerbi');
+const { query } = require('./db');
 
 const NEAR = 0.85;
 // Дни кредита — готовая мера модели, без своих расчётов (Дан 25.10)
@@ -147,6 +148,31 @@ async function fetchChainDso() {
   return new Map(rows.map(r => [r['HOVOT ALL[תאור סוג לקוח]'], r['[dso]'] ?? null]));
 }
 
+// תנאי תשלום + סטטוס из Priority по 3 базам (Дан 27.10; в PBI-модели их нет) — CUSTNAME -> [{co, terms, status}].
+// PAYDES хранится с перевёрнутыми цифрами ("03 יום" = 30) — как в priority-db.js clientOverdueByPayer.
+const PRIO_DBS = [['form', 'FORMULA'], ['icecrea', 'ICE'], ['diller', 'INTER']];
+async function fetchTermsStatus() {
+  const sqlText = PRIO_DBS.map(([db, co]) => `SELECT '${co}' AS co, c.CUSTNAME AS cust, pay.PAYDES AS terms, cs.STATDES AS status
+    FROM ${db}.dbo.CUSTOMERS c LEFT JOIN ${db}.dbo.PAY pay ON pay.PAY = c.PAY LEFT JOIN ${db}.dbo.CUSTSTATS cs ON cs.CUSTSTAT = c.CUSTSTAT`).join('\nUNION ALL\n');
+  const out = new Map();
+  for (const r of (await query(sqlText)).recordset) {
+    const id = String(r.cust || '').trim();
+    if (!id) continue;
+    if (!out.has(id)) out.set(id, []);
+    out.get(id).push({ co: r.co, terms: String(r.terms || '').trim().replace(/\d+/g, d => [...d].reverse().join('')), status: String(r.status || '').trim() });
+  }
+  return out;
+}
+// Одна строка (Дан 27.10): везде одинаково — просто значение, иначе "FORMULA x · ICE y"
+function oneLine(recs, field) {
+  const all = [...new Set(recs.map(r => r[field]).filter(Boolean))];
+  if (all.length <= 1) return all[0] || '';
+  return PRIO_DBS.map(([, co]) => {
+    const vs = [...new Set(recs.filter(r => r.co === co).map(r => r[field]).filter(Boolean))];
+    return vs.length ? `${co} ${vs.join(' / ')}` : null;
+  }).filter(Boolean).join(' · ');
+}
+
 async function fetchEntities() {
   const [classification, payers, chainDso] = [await fetchPayerClassification(), await fetchPayers(), await fetchChainDso()];
   const grouped = new Map();
@@ -172,7 +198,7 @@ async function fetchEntities() {
   }
   // מס' לקוח = מספר לקוח משלם; у сети с несколькими плательщиками — "N משלמים" (Дан 2026-10-12)
   const entities = [...grouped.values()].map(({ payers, ...g }) => ({
-    ...g,
+    ...g, payerList: [...payers],
     custno: payers.size === 1 ? [...payers][0] : `${payers.size} משלמים`,
     util: g.limitILS > 0 ? g.usedILS / g.limitILS : null,
     creditDays: g.market === 'רשתות' ? chainDso.get(g.name) ?? null : g.creditDays ?? null,
@@ -532,7 +558,7 @@ async function buildXlsx(parts, workDays) {
     const cols = [
       ['שוק', 11, { totalsRowLabel: TOTAL_LABEL }], ['אחראי / סוכן', 20], ["מס' לקוח", 11], ['שם', 36],
       ...amounts.map(([h, f]) => [h, 15, { totalsRowFunction: 'sum', totalsRowResult: rows.reduce((t, e) => t + Math.round(f(e)), 0) }]),
-      ...(late ? [] : [['%', 9]]),
+      ...(late ? [['תנאי תשלום', 26], ['סטטוס', 14]] : [['%', 9]]),
     ];
     cols.forEach(([, w], i) => { ws.getColumn(i + 1).width = w; });
     const ordered = [...rows.filter(r => r.market === 'רשתות'), ...rows.filter(r => r.market !== 'רשתות')];
@@ -547,7 +573,7 @@ async function buildXlsx(parts, workDays) {
       rows: ordered.map(e => [
         e.market, e.market === 'רשתות' ? e.resp : e.agent, e.custno || '', e.name,
         ...amounts.map(([, f]) => Math.round(f(e))),
-        ...(late ? [] : [e.util]),
+        ...(late ? [e.terms || '', e.status || ''] : [e.util]),
       ]),
     });
     // формат ячеек (включая строку итогов) — после addTable
@@ -742,6 +768,14 @@ async function main() {
     purgeLinks();
   }
   const entities = await fetchEntities();
+  // Priority недоступен — отчёт уходит без двух колонок, а не падает
+  try {
+    const ts = await fetchTermsStatus();
+    for (const e of entities) {
+      const recs = e.payerList.flatMap(p => ts.get(String(p)) || []);
+      e.terms = oneLine(recs, 'terms'); e.status = oneLine(recs, 'status');
+    }
+  } catch (err) { console.error('[Priority] תנאי תשלום/סטטוס не получены:', err.message); }
   const workDays = await fetchWorkDays();
   const prev = loadState();
   const parts = PARTS.map(part => {
@@ -834,4 +868,5 @@ async function main() {
   if (failed) throw new Error(`${failed} писем не ушли`);
 }
 
-main().catch(e => { console.error('ERR:', e.message); process.exit(1); });
+// exit(0): пул mssql (db.js, min 1) держит процесс — без выхода run-alert.sh ждал бы timeout 600
+main().then(() => process.exit(0), e => { console.error('ERR:', e.message); process.exit(1); });
