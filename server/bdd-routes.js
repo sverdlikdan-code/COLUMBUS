@@ -421,6 +421,27 @@ function createBdd(deps) {
     res.json({ ok: true });
   }));
 
+  // Within-day order (Dan 2026-10-27): in BDD only managers have sessions, so a manager's
+  // reorder IS the agent's route (opposite of FORMULA's session-only /api/route-order) —
+  // goes to Yulia's route-changes report. Same write check as route-day-move.
+  router.post('/api/route-order', deps.dataRateLimit, h(async (req, res) => {
+    const { day, order, agentCode } = req.body || {};
+    const a = String(agentCode || '');
+    if (!validAgent(a)) return res.status(400).json({ ok: false, error: 'invalid agent code' });
+    if (!bddCanWrite(req.session, a, cache)) return res.status(403).json({ ok: false, error: 'forbidden' });
+    const dayNum = parseInt(day, 10);
+    if (!Number.isInteger(dayNum) || dayNum < 1 || dayNum > 5) return res.status(400).json({ ok: false, error: 'invalid day' });
+    if (!Array.isArray(order) || order.length > 500 || !order.every(id => validCust(String(id)))) return res.status(400).json({ ok: false, error: 'invalid order' });
+    await withBddLock(() => {
+      const data = readJson(FILES.overrides, {});
+      if (!data[a]) data[a] = { order: {}, dayMoves: {} };
+      data[a].order[dayNum] = order.map(String); // [] = reset to Priority order, as in FORMULA
+      writeJson(FILES.overrides, data);
+    });
+    deps.writeLog({ ts: new Date().toISOString(), event: 'route-order-change-bdd', agentCode: a, day: dayNum, count: order.length, managerId: req.session?.managerId || null, ip: deps.getRealIp(req) });
+    res.json({ ok: true });
+  }));
+
   router.post('/save-gps', deps.dataRateLimit, h(async (req, res) => {
     const { custId, name, city, address } = req.body || {};
     const lat = Number(req.body?.lat), lng = Number(req.body?.lng);

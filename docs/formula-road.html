@@ -1758,7 +1758,7 @@ const _TB_IC={
 };
 function _tbIc(k,cls){ return `<svg class="tb-ic${cls?' '+cls:''}" viewBox="0 0 24 24" aria-hidden="true">${_TB_IC[k]}</svg>`; }
 // BDD sessions: these endpoints are served by the /api/bdd router. FORMULA: URL unchanged.
-const BDD_PATHS=['/customers','/manager-agents','/agent-exists','/save-gps','/api/today-orders','/api/team-order-stats','/api/day-closing','/api/promo-cust-ids','/api/client-promos/','/api/route-overrides','/api/route-day-move','/api/mekarer-order','/client-search','/geocode'];
+const BDD_PATHS=['/customers','/manager-agents','/agent-exists','/save-gps','/api/today-orders','/api/team-order-stats','/api/day-closing','/api/promo-cust-ids','/api/client-promos/','/api/route-overrides','/api/route-day-move','/api/route-order','/api/mekarer-order','/client-search','/geocode'];
 function _bddUrl(url){
   if(!_isBdd()) return url;
   const p=String(url).startsWith(API)?String(url).slice(API.length):String(url);
@@ -5515,9 +5515,10 @@ function pushRouteOrder(day,order){
   // No agentCode fallback here on purpose (unlike pushDayMove) — a manager's
   // within-day reorder while viewing someone's line is their own working
   // view, not meant to overwrite the agent's real route. Live decision 2026-08-27.
-  if(_isBdd()) return; // FORMULA-only endpoint (BDD router has no route-order); BDD sessions have no agentCode anyway
+  // BDD (Dan 2026-10-27): only managers have BDD sessions, so their reorder IS the agent's
+  // route — sent with the viewed agent's code, the BDD router checks bddCanWrite.
   apiFetch(`${API}/api/route-order`,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({day,order})}).catch(()=>{});
+    body:JSON.stringify(_isBdd()?{day,order,agentCode:st.agent?.code}:{day,order})}).catch(()=>{});
 }
 // Silently swallowed failures here (rate-limit, dropped connection) used to leave
 // a client stuck on the server's old day forever — the move looked saved (optimistic

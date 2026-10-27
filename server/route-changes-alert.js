@@ -1,9 +1,11 @@
 // route-changes-alert.js — еженедельный алярм Юлии Дзюмак (чт 16:00 Израиль): дни и порядок визитов
 // так, как они сейчас стоят в Formula Road («הגרסה שלי» + переносы дней), для внесения в Priority.
-//   Лист FORMULA — ВСЕ клиенты 'משטח' по всем агентам, строка на каждый день визита (2+ визита —
-//     светло-зелёная строка), клиенты без дня — строка с пустым днём. Ячейка יום/סדר הגעה, которая
-//     отличается от Priority, — оранжевая, в примечании ячейки — что стоит в Priority.
+//   Лист FORMULA — только строки, отличные от Priority (Юлия 27.10, было — все клиенты): новый день,
+//     перестановка или новый номер в перенумерованном дне; строка на каждый день визита (2+ визита —
+//     светло-зелёная), снятый с дня — строка с пустым днём. Отличающаяся ячейка יום/סדר הגעה — оранжевая,
+//     в примечании ячейки — что стоит в Priority.
 //   Лист ICE משפחתי — только клиенты, у которых в приложении поменялся день (порядка в Priority у ICE нет).
+//   Лист ICE BDD — как FORMULA (день + סדר הגעה), правят менеджеры групп; появляется, когда есть правки (readBdd ниже).
 // Источник правок — LIVE_DATA_DIR/route-overrides.json (index.js /api/route-order, /api/route-day-move).
 // Порядок дня повторяет клиент (formula-road.html initRoute): сохранённый order[day] (mergeWithSaved),
 // остальные — в порядке сервера (סדר ביקור, потом перенесённые в день). Нумерация — только среди FORMULA.
@@ -103,6 +105,26 @@ SELECTCOLUMNS(
   return { formula, ice };
 }
 
+// ICE BDD (Дан 27.10): дни и סדר ביקור Priority (TOPP_NUM1 → priorityOrder; 9000/9500 = без номера) —
+// из дискового кэша BDD живого сервера (bdd.js serializeBddCache), правки (переносы дня + порядок менеджера,
+// bdd-routes.js /api/route-order) — route-overrides-bdd.json. Строки — той же buildFormulaRows, что FORMULA.
+// Коды агентов BDD пересекаются с FORMULA — отдельная карта и отдельный лист.
+function readBdd() {
+  let obj;
+  try { obj = JSON.parse(fs.readFileSync(path.join(LIVE_DATA, 'bdd-cache.json'), 'utf8')); }
+  catch (e) { console.error(`[BDD] кэш не прочитан — лист BDD пропущен: ${e.message}`); return null; }
+  const bdd = new Map();
+  for (const [, rows] of obj.byAgent) {
+    for (const r of rows) {
+      const id = String(r.custId);
+      if (!bdd.has(id)) bdd.set(id, { id, name: r.custName || '', agent: String(r.agentCode), agentName: r.agentName || '', manager: r.manager || '', sched: [] });
+      if (r.dayNum && !bdd.get(id).sched.some(s => s.dayNum === r.dayNum)) bdd.get(id).sched.push({ dayNum: r.dayNum, order: r.priorityOrder > 0 && r.priorityOrder < 9000 ? r.priorityOrder : null });
+    }
+  }
+  console.log(`[BDD] кэш за ${obj.date}: ${bdd.size} клиентов`);
+  return bdd;
+}
+
 const byAgentOf = map => {
   const by = new Map();
   for (const c of map.values()) {
@@ -154,9 +176,12 @@ function buildFormulaRows(formula, overrides) {
       // нет — номера Priority как есть (уход клиента из дня Priority не мешает: пропуски там норма).
       const inPrioDay = id => formula.get(id).sched.some(s => s.dayNum === d);
       const moved = movedIds(ordered, prioOf, inPrioDay);
+      // В дне нет ни одного номера Priority и порядок не сохраняли — перенос дня не повод нумеровать
+      // весь день (Дан 27.10: у многих агентов BDD TOPP_NUM1 пуст, 1 перенос давал 26 строк)
+      const renumber = moved.size > 0 && (saved.length > 0 || ordered.some(id => prioOf(id) != null));
       ordered.forEach((id, i) => {
         const prio = prioOf(id);
-        appDays.get(id).push({ dayNum: d, order: moved.size ? i + 1 : prio, prio, moved: moved.has(id), inPrio: formula.get(id).sched.some(s => s.dayNum === d) });
+        appDays.get(id).push({ dayNum: d, order: renumber ? i + 1 : prio, prio, moved: renumber && moved.has(id), inPrio: formula.get(id).sched.some(s => s.dayNum === d) });
       });
     }
     for (const c of clients) {
@@ -170,11 +195,14 @@ function buildFormulaRows(formula, overrides) {
       for (const v of visits) {
         rows.push({ c, day: LETTERS[v.dayNum], dayNum: v.dayNum, order: v.order, multi, prioDays, prio: v.prio,
           dayChanged: !v.inPrio || visits.length !== c.sched.length,
-          orderChanged: v.moved });
+          orderChanged: v.moved,
+          // день перенумерован 1..N — у соседей переставленного номер тоже другой, без них в Priority дубли
+          numChanged: v.order !== v.prio });
       }
     }
   }
-  return rows.sort((a, b) => (Number(a.c.agent) - Number(b.c.agent)) || ((a.dayNum || 9) - (b.dayNum || 9)) || ((a.order ?? 9999) - (b.order ?? 9999)) || a.c.id.localeCompare(b.c.id));
+  // только изменения (Юлия 27.10; было — все клиенты): день, перестановка или новый номер
+  return rows.filter(r => r.dayChanged || r.orderChanged || r.numChanged).sort((a, b) => (Number(a.c.agent) - Number(b.c.agent)) || ((a.dayNum || 9) - (b.dayNum || 9)) || ((a.order ?? 9999) - (b.order ?? 9999)) || a.c.id.localeCompare(b.c.id));
 }
 
 function buildIceRows(ice, overrides) {
@@ -232,7 +260,7 @@ function addSheet(wb, name, cols, legend, rows, cellsOf) {
       cell.alignment = { horizontal: c.key === 'name' ? 'right' : 'center' };
       if (c.yellow) cell.fill = fill(C.yellow);
       else if (r.multi) cell.fill = fill(C.green);
-      const changed = (c.key === 'day' && r.dayChanged) || (c.key === 'order' && r.orderChanged);
+      const changed = (c.key === 'day' && r.dayChanged) || (c.key === 'order' && (r.orderChanged || r.numChanged));
       if (changed) {
         cell.fill = fill(C.orange);
         cell.font = { bold: true };
@@ -244,7 +272,7 @@ function addSheet(wb, name, cols, legend, rows, cellsOf) {
   return ws;
 }
 
-async function buildXlsx(fRows, iRows, dateStr) {
+async function buildXlsx(fRows, iRows, bRows, dateStr) {
   const wb = new ExcelJS.Workbook();
   addSheet(wb, 'FORMULA', [
     { header: 'מס.לקוח', key: 'id', width: 11 },
@@ -259,10 +287,10 @@ async function buildXlsx(fRows, iRows, dateStr) {
     { header: 'שם לקוח', key: 'name', width: 40 },
   ], [
     [`FORMULA — ימים וסדר ביקור כפי שהם באפליקציה Formula Road · ${dateStr}`],
-    ['כל הלקוחות של כל הסוכנים. יום וסדר הגעה — מהאפליקציה ("הגרסה שלי"), כולל העברות ימים.'],
+    ['רק מה שהשתנה לעומת פריוריטי. יום וסדר הגעה — מהאפליקציה ("הגרסה שלי"), כולל העברות ימים.'],
     ['ירוק בהיר — ללקוח יותר מביקור אחד בשבוע (שורה לכל יום ביקור)', C.green],
-    ['כתום — שונה מפריוריטי: יום חדש / לקוח שהסוכן הזיז בסדר; מה שרשום בפריוריטי — בהערה של התא', C.orange],
-    ['ביום שיש בו כתום בסדר הגעה — כל היום ממוספר מחדש 1, 2, 3… לפי האפליקציה; ימים בלי שינוי — המספרים מפריוריטי'],
+    ['כתום — שונה מפריוריטי: יום חדש / סדר הגעה חדש; מה שרשום בפריוריטי — בהערה של התא', C.orange],
+    ['יום שהסוכן שינה בו סדר ממוספר מחדש 1, 2, 3… — לכן מופיעים גם לקוחות שרק המספר שלהם זז'],
     ['יום ריק — ללקוח אין יום ביקור'],
   ], fRows, r => ({ id: r.c.id, agent: r.c.agent, day: r.day, freq: 4, w1: 'Y', w2: 'Y', w3: 'Y', w4: 'Y', order: r.order ?? '', name: r.c.name }));
   addSheet(wb, 'ICE משפחתי', [
@@ -276,12 +304,27 @@ async function buildXlsx(fRows, iRows, dateStr) {
     ['ירוק בהיר — יותר מביקור אחד בשבוע (שורה לכל יום)', C.green],
     ['כתום — היום החדש; מה שרשום בפריוריטי — בהערה של התא', C.orange],
   ], iRows, r => ({ id: r.c.id, agent: r.c.agent, day: r.day, name: r.c.name }));
+  // лист только когда есть правки (Дан 27.10)
+  if (bRows.length) addSheet(wb, 'ICE BDD', [
+    { header: 'מס.לקוח', key: 'id', width: 11 },
+    { header: "מס' סוכן", key: 'agent', width: 9 },
+    { header: 'שם סוכן', key: 'agentName', width: 16 },
+    { header: 'יום', key: 'day', width: 6 },
+    { header: 'סדר הגעה', key: 'order', width: 10 },
+    { header: 'שם לקוח', key: 'name', width: 40 },
+  ], [
+    [`ICE BDD — ימים וסדר ביקור כפי שהם באפליקציה · ${dateStr}`],
+    ['רק מה שהשתנה לעומת פריוריטי (שינויים של מנהלי הקבוצות). מס\' סוכן — סוכן ICE (BDD).'],
+    ['ירוק בהיר — יותר מביקור אחד בשבוע (שורה לכל יום)', C.green],
+    ['כתום — שונה מפריוריטי: יום חדש / סדר הגעה חדש; מה שרשום בפריוריטי — בהערה של התא', C.orange],
+    ['יום ששונה בו סדר ממוספר מחדש 1, 2, 3… — לכן מופיעים גם לקוחות שרק המספר שלהם זז'],
+  ], bRows, r => ({ id: r.c.id, agent: r.c.agent, agentName: r.c.agentName, day: r.day, order: r.order ?? '', name: r.c.name }));
   return wb.xlsx.writeBuffer();
 }
 
 const INTRO_YULIA = ['שלום יוליה,', 'מצורפים ימי וסדר הביקורים ב-<bdi>FORMULA</bdi> וב-<bdi>ICE</bdi> משפחתי כפי שהם באפליקציה, להזנה בפריוריטי. דוח שבועי אוטומטי.'];
 const INTRO_MANAGER = ['שלום,', 'מצורפים ימי וסדר הביקורים של הסוכנים בקבוצה שלך כפי שהם באפליקציה — זה מה שמועבר לעדכון בפריוריטי. דוח שבועי אוטומטי.'];
-function buildHtml(fRows, iRows, dateStr, agentNames, [greeting, intro] = INTRO_YULIA) {
+function buildHtml(fRows, iRows, bRows, dateStr, agentNames, [greeting, intro] = INTRO_YULIA) {
   const stat = new Map(); // агент -> {days, orders, ice}
   const s = a => { if (!stat.has(a)) stat.set(a, { days: new Set(), orders: new Set(), ice: new Set() }); return stat.get(a); };
   for (const r of fRows) { if (r.dayChanged) s(r.c.agent).days.add(r.c.id); if (r.orderChanged) s(r.c.agent).orders.add(r.c.id); }
@@ -294,13 +337,14 @@ function buildHtml(fRows, iRows, dateStr, agentNames, [greeting, intro] = INTRO_
 <h2 style="margin:0 0 8px">שינויים שבוצעו ע"י סוכנים באפליקציה — ${dateStr}</h2>
 <p style="margin:0 0 6px">${greeting}</p>
 <p style="margin:0 0 12px">${intro}</p>
-<p style="margin:0 0 12px;font-size:13px;color:#555">לשונית <bdi>FORMULA</bdi> — כל הלקוחות (${new Set(fRows.map(r => r.c.id)).size}), השינויים בכתום · לשונית <bdi>ICE</bdi> משפחתי — רק שינויי יום (${new Set(iRows.map(r => r.c.id)).size} לקוחות)</p>
+<p style="margin:0 0 12px;font-size:13px;color:#555">לשונית <bdi>FORMULA</bdi> — רק לקוחות שהשתנו (${new Set(fRows.map(r => r.c.id)).size}), השינוי בכתום · לשונית <bdi>ICE</bdi> משפחתי — רק שינויי יום (${new Set(iRows.map(r => r.c.id)).size} לקוחות)</p>
 ${agents.length ? `<table style="border-collapse:collapse;font-size:13px">
 <tr><th ${th} rowspan="2">סוכן</th><th ${th} rowspan="2">מס'</th><th ${th} colspan="2"><bdi>FORMULA</bdi></th><th ${th}><bdi>ICE</bdi> משפחתי</th></tr>
 <tr><th ${th}>שינוי יום</th><th ${th}>שינוי סדר</th><th ${th}>שינוי יום</th></tr>
 ${agents.map(([a, v]) => `<tr><td style="padding:5px 10px;border-bottom:1px solid #e5e7eb;text-align:right">${esc(agentNames.get(a) || '')}</td><td ${td}><bdi>${a}</bdi></td><td ${td}>${v.days.size || ''}</td><td ${td}>${v.orders.size || ''}</td><td ${td}>${v.ice.size || ''}</td></tr>`).join('\n')}
 <tr><td ${td} colspan="2"><b>סה"כ</b></td><td ${td}><b>${sum('days')}</b></td><td ${td}><b>${sum('orders')}</b></td><td ${td}><b>${sum('ice')}</b></td></tr>
-</table>` : '<p>אין שינויים לעומת פריוריטי.</p>'}
+</table>` : (bRows.length ? '' : '<p>אין שינויים לעומת פריוריטי.</p>')}
+${bRows.length ? `<p style="margin:12px 0 0">לשונית <bdi>ICE BDD</bdi> — שינויי יום וסדר: <b>${new Set(bRows.map(r => r.c.id)).size}</b> לקוחות (${[...new Set(bRows.map(r => esc(r.c.agentName || r.c.agent)))].join(', ')})</p>` : ''}
 <p style="color:#777;font-size:12px;margin-top:24px">מספרי לקוחות — מספר הלקוחות שהשתנו. הערות והצעות — לדן סברדליק, d.sverdlik@DilerBMD.com.</p>
 </div></body></html>`;
 }
@@ -310,7 +354,12 @@ async function main() {
   const { formula, ice } = await fetchPbi();
   const fRows = buildFormulaRows(formula, overrides);
   const iRows = buildIceRows(ice, overrides);
-  console.log(`FORMULA: ${formula.size} клиентов, ${fRows.length} строк, день≠Priority ${fRows.filter(r => r.dayChanged).length}, порядок≠Priority ${fRows.filter(r => r.orderChanged).length}; ICE: ${iRows.length} строк`);
+  const bdd = readBdd();
+  let bddOverrides = {};
+  try { bddOverrides = JSON.parse(fs.readFileSync(path.join(LIVE_DATA, 'route-overrides-bdd.json'), 'utf8')); }
+  catch (e) { if (e.code !== 'ENOENT') throw e; } // нет файла = в BDD ещё никто не переносил
+  const bRows = bdd ? buildFormulaRows(bdd, bddOverrides) : [];
+  console.log(`FORMULA: ${formula.size} клиентов, ${fRows.length} строк, день≠Priority ${fRows.filter(r => r.dayChanged).length}, порядок≠Priority ${fRows.filter(r => r.orderChanged).length}; ICE: ${iRows.length} строк; BDD: ${bRows.length} строк`);
 
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' });
   const dateStr = today.split('-').reverse().join('.');
@@ -322,14 +371,15 @@ async function main() {
 
   // Юлии — всё; менеджеру команды — его группа (ROUTE_CHANGES_MANAGERS, формат как CLIENT_CHANGES_MANAGERS:
   // "ALEXEY=a@x;SADRAN+=b@x"). У ICE своей קבוצה нет — группа агента FORMULA (как в client-changes-alert).
-  const mails = [{ tag: 'all', to: list(process.env.ROUTE_CHANGES_TO), cc: list(process.env.ROUTE_CHANGES_CC), fRows, iRows, intro: INTRO_YULIA }];
+  // BDD — только Юлии: группы BDD (TIMUR, MATVEY…) не в ROUTE_CHANGES_MANAGERS
+  const mails = [{ tag: 'all', to: list(process.env.ROUTE_CHANGES_TO), cc: list(process.env.ROUTE_CHANGES_CC), fRows, iRows, bRows, intro: INTRO_YULIA }];
   const agentGroup = new Map();
   for (const c of formula.values()) if (c.manager && !agentGroup.has(c.agent)) agentGroup.set(c.agent, c.manager);
   for (const part of (process.env.ROUTE_CHANGES_MANAGERS || '').split(';').filter(Boolean)) {
     const [groups, email] = part.split('=').map(s => s.trim());
     const gs = new Set(groups.split(',').map(s => s.trim()));
     const mf = fRows.filter(r => gs.has(r.c.manager)), mi = iRows.filter(r => gs.has(agentGroup.get(r.c.agent)));
-    if (mf.length || mi.length) mails.push({ tag: `manager ${groups}`, to: [email], cc: list(process.env.ROUTE_CHANGES_MANAGERS_CC), fRows: mf, iRows: mi, intro: INTRO_MANAGER });
+    if (mf.length || mi.length) mails.push({ tag: `manager ${groups}`, to: [email], cc: list(process.env.ROUTE_CHANGES_MANAGERS_CC), fRows: mf, iRows: mi, bRows: [], intro: INTRO_MANAGER });
     else console.log(`  manager ${groups}: нет клиентов — письмо не отправляется`);
   }
 
@@ -341,10 +391,10 @@ async function main() {
     let { to, cc } = m, subj = subject;
     if (!to.length) { console.log(`  ${m.tag}: нет адресата — пропуск`); continue; }
     // нет изменений — не шлём (пользователь 06.10: «если нет изменений, то и слать не надо»)
-    if (!m.iRows.length && !m.fRows.some(r => r.dayChanged || r.orderChanged)) { console.log(`  ${m.tag}: изменений нет — письмо не отправляется`); continue; }
-    const xlsx = Buffer.from(await buildXlsx(m.fRows, m.iRows, dateStr));
-    const html = buildHtml(m.fRows, m.iRows, dateStr, agentNames, m.intro);
-    const info = `${m.tag}: FORMULA ${m.fRows.length} строк, ICE ${m.iRows.length}`;
+    if (!m.iRows.length && !m.bRows.length && !m.fRows.length) { console.log(`  ${m.tag}: изменений нет — письмо не отправляется`); continue; }
+    const xlsx = Buffer.from(await buildXlsx(m.fRows, m.iRows, m.bRows, dateStr));
+    const html = buildHtml(m.fRows, m.iRows, m.bRows, dateStr, agentNames, m.intro);
+    const info = `${m.tag}: FORMULA ${m.fRows.length} строк, ICE ${m.iRows.length}, BDD ${m.bRows.length}`;
     if (DRY_RUN) {
       const dir = path.join(LIVE_DATA, 'route-changes-preview');
       fs.mkdirSync(dir, { recursive: true });
