@@ -4419,7 +4419,9 @@ function _throwCostHtml(mk, throwCartons) {
   const d = productData[String(mk)];
   if (!(throwCartons > 0) || !d?.costCarton) return '';
   const v = Math.round(throwCartons * d.costCarton);
-  return `<div style="font-size:8px;color:#b71c1c;text-align:center;margin-top:5px;line-height:1.3;">עלות לזריקה<br><b style="font-size:11px;font-weight:900;">₪${v.toLocaleString('en-US')}</b></div>`;
+  // < ₪2,000 — серым, не красным: красное = приоритет (решение Дана 2026-10-29)
+  const clr = v >= 2000 ? '#b71c1c' : '#757575';
+  return `<div style="font-size:8px;color:${clr};text-align:center;margin-top:5px;line-height:1.3;">עלות לזריקה<br><b style="font-size:11px;font-weight:900;">₪${v.toLocaleString('en-US')}</b></div>`;
 }
 
 function _sparkSvg(weekSales, weekDates) {
@@ -4602,18 +4604,18 @@ function buildExpiryPage() {
     const _totalStockCard = (d.stock || 0) + (d.stockZafn || 0) + (d.stockTrnz || 0);
     const _pctSakana = _totalStockCard > 0 ? Math.min(100, Math.round(_throwCartons / _totalStockCard * 100)) : 0;
     const _pctBadge = (() => {
-      if (!window._expiryOnlySakana || _pctSakana <= 0) return '';
+      if (!window._expiryOnlySakana || !(_throwCartons > 0)) return ''; // не по % — 0.4% округлялось в 0 и прятало עלות
       const pct = _pctSakana;
       const r = 14, cx = 16, cy = 16, circ = 2 * Math.PI * r;
       const fill = Math.min(pct / 100, 1) * circ;
-      const clr = pct >= 70 ? '#b71c1c' : pct >= 40 ? '#c62828' : '#e53935';
+      const clr = pct >= 70 ? '#b71c1c' : pct >= 40 ? '#c62828' : pct >= 1 ? '#e53935' : '#9e9e9e'; // <1% — серым
       const throwTxt = _throwCartons > 0 ? `<div style="font-size:8px;font-weight:800;color:#b71c1c;text-align:center;margin-top:1px;line-height:1.2;">🗑 ${Math.round(_throwCartons)} קרט</div>` : '';
       return `<svg width="32" height="32" style="display:block;margin:5px auto 0;overflow:visible;">
         <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#fce4e4" stroke-width="4"/>
         <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${clr}" stroke-width="4"
           stroke-dasharray="${fill.toFixed(2)} ${circ.toFixed(2)}"
           stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})"/>
-        <text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="7" fill="${clr}" font-weight="900" font-family="Arial">${pct}%</text>
+        <text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="7" fill="${clr}" font-weight="900" font-family="Arial">${pct > 0 ? pct + '%' : '&lt;1%'}</text>
       </svg>${throwTxt}${_throwCostHtml(mk, _throwCartons)}`;
     })();
 
@@ -4671,16 +4673,16 @@ function buildExpiryPage() {
       const _combinedThrow = [...qComb.values()].reduce((s, r) => s + r.throwAway, 0);
       const _pctC = totalStock > 0 ? Math.min(100, Math.round(_combinedThrow / totalStock * 100)) : 0;
       const _combinedBadge = (() => {
-        if (!window._expiryOnlySakana || _pctC <= 0 || !anySakana) return '';
+        if (!window._expiryOnlySakana || !(_combinedThrow > 0) || !anySakana) return '';
         const r = 14, cx = 16, cy = 16, circ = 2 * Math.PI * r;
         const fill = Math.min(_pctC / 100, 1) * circ;
-        const clr = _pctC >= 70 ? '#b71c1c' : _pctC >= 40 ? '#c62828' : '#e53935';
+        const clr = _pctC >= 70 ? '#b71c1c' : _pctC >= 40 ? '#c62828' : _pctC >= 1 ? '#e53935' : '#9e9e9e';
         return `<svg width="32" height="32" style="display:block;margin:5px auto 0;overflow:visible;">
           <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#fce4e4" stroke-width="4"/>
           <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${clr}" stroke-width="4"
             stroke-dasharray="${fill.toFixed(2)} ${circ.toFixed(2)}"
             stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})"/>
-          <text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="7" fill="${clr}" font-weight="900" font-family="Arial">${_pctC}%</text>
+          <text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="7" fill="${clr}" font-weight="900" font-family="Arial">${_pctC > 0 ? _pctC + '%' : '&lt;1%'}</text>
         </svg>${_combinedThrow > 0 ? `<div style="font-size:8px;font-weight:800;color:#b71c1c;text-align:center;margin-top:1px;line-height:1.2;">🗑 ${Math.round(_combinedThrow)} קרט</div>` : ''}${_throwCostHtml(mk, _combinedThrow)}`;
       })();
       const cBorder = isStop ? '2.5px solid #6a1b9a' : anySakana ? '2px solid #c62828' : '1px solid #dde0e8';
