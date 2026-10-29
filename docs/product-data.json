@@ -12031,8 +12031,8 @@
     "daySales": 58.6,
     "kratnost": 209,
     "palStock": null,
-    "stockZafn": 1,
-    "palStockZafn": 0,
+    "stockZafn": 0,
+    "palStockZafn": null,
     "daySalesZafn": 34.3,
     "daysStock": 0,
     "daysStockZafn": 0,
@@ -12049,13 +12049,7 @@
     "iksGroup": null,
     "ashdodPalletCartons": 209,
     "pakuot": [],
-    "pakuotZafn": [
-      {
-        "date": "2026-11-15",
-        "daysLeft": 17,
-        "cartons": 1
-      }
-    ],
+    "pakuotZafn": [],
     "shelfLife": 7,
     "stopSale": false,
     "spo": null,
