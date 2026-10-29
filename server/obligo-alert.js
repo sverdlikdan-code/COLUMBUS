@@ -676,13 +676,15 @@ function emailDsoHtml(list, frozenN, num) {
 }
 
 function buttonHtml(link) {
-  const label = 'לדוח המלא — כל הלקוחות';
-  return `<tr><td align="center" style="padding:28px 24px 0">
-    <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${link}" style="height:50px;v-text-anchor:middle;width:320px" arcsize="16%" stroke="f" fillcolor="${NAVY}"><w:anchorlock/><center style="color:#ffffff;font-family:Arial,sans-serif;font-size:17px;font-weight:bold">${label}</center></v:roundrect><![endif]-->
-    <!--[if !mso]><!--><table role="presentation" cellpadding="0" cellspacing="0"><tr><td bgcolor="${NAVY}" style="background-color:${NAVY};border-radius:8px;padding:15px 30px">
-      <a href="${link}" target="_blank" style="font-family:Arial,sans-serif;display:block;font-size:17px;font-weight:bold;color:#ffffff !important;text-decoration:none"><span style="color:#ffffff">${label}&nbsp;&nbsp;&larr;</span></a>
+  // Дан 29.10: «не всем понятно, что можно нажать» — глагол в тексте, золотая заливка, тень
+  const label = 'לחצו כאן לדוח המלא — כל הלקוחות';
+  // кнопка в синей шапке (Дан 29.10: сразу после шапки, над карточками)
+  return `<tr><td bgcolor="${NAVY}" align="center" style="background-color:${NAVY};padding:14px 24px 0">
+    <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${link}" style="height:46px;v-text-anchor:middle;width:360px" arcsize="20%" stroke="f" fillcolor="${GOLD}"><w:anchorlock/><center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold">${label}</center></v:roundrect><![endif]-->
+    <!--[if !mso]><!--><table role="presentation" cellpadding="0" cellspacing="0"><tr><td bgcolor="${GOLD}" style="background-color:${GOLD};border-radius:10px;padding:13px 30px;box-shadow:0 4px 12px rgba(0,0,0,.35)">
+      <a href="${link}" target="_blank" style="font-family:Arial,sans-serif;display:block;font-size:16px;font-weight:bold;color:#ffffff !important;text-decoration:none"><span style="color:#ffffff">${label}&nbsp;&nbsp;&larr;</span></a>
     </td></tr></table><!--<![endif]-->
-    <div style="padding-top:8px;font-family:Arial,sans-serif;font-size:11px;color:${MUTED}" dir="rtl">קישור אישי — נא לא להעביר. כל הלקוחות גם בקובץ האקסל המצורף.</div>
+    <div style="padding-top:6px;font-family:Arial,sans-serif;font-size:11px;color:#B8C4D6" dir="rtl">קישור אישי — נא לא להעביר. כל הלקוחות גם בקובץ האקסל המצורף.</div>
   </td></tr>`;
 }
 
@@ -725,16 +727,16 @@ function buildEmailHtml(parts, workDays, greetName, scope, link) {
 <html lang="he"><body style="margin:0;padding:28px 16px;background:${PAPER};font-family:Arial,sans-serif">
 <table role="presentation" align="center" width="700" cellpadding="0" cellspacing="0" style="width:700px;max-width:700px;margin:0 auto;background:#ffffff;border:1px solid ${LINE}">
 
-  <tr><td bgcolor="${NAVY}" align="center" style="background-color:${NAVY};padding:32px 28px 0;text-align:center">
-    <img src="cid:diler-logo-white" width="100" height="100" alt="DILER B.M.D" style="display:block;margin:0 auto" />
+  <tr><td bgcolor="${NAVY}" align="center" style="background-color:${NAVY};padding:16px 28px 0;text-align:center">
+    <img src="cid:diler-logo-white" width="56" height="56" alt="DILER B.M.D" style="display:block;margin:0 auto" />
   </td></tr>
-  <tr><td bgcolor="${NAVY}" align="center" dir="rtl" style="background-color:${NAVY};padding:14px 28px 0;text-align:center;font-family:Arial,sans-serif;font-size:24px;font-weight:900;color:#ffffff">דוח אובליגו ותנאי תשלום</td></tr>
-  <tr><td bgcolor="${NAVY}" align="center" dir="rtl" style="background-color:${NAVY};padding:8px 28px 0;text-align:center;font-family:Arial,sans-serif;font-size:12px;color:${GOLD}">דוח שבועי &middot; ${date}${kpiCompareNote(parts.kpi, ltr)}</td></tr>
+  <tr><td bgcolor="${NAVY}" align="center" dir="rtl" style="background-color:${NAVY};padding:6px 28px 0;text-align:center;font-family:Arial,sans-serif;font-size:20px;font-weight:900;color:#ffffff">דוח אובליגו ותנאי תשלום</td></tr>
+  <tr><td bgcolor="${NAVY}" align="center" dir="rtl" style="background-color:${NAVY};padding:4px 28px 0;text-align:center;font-family:Arial,sans-serif;font-size:12px;color:${GOLD}">דוח שבועי &middot; ${date}${kpiCompareNote(parts.kpi, ltr)}</td></tr>
+  ${buttonHtml(link) /* кнопка полного отчёта — сразу после шапки, над карточками (Дан 29.10) */}
   <tr><td bgcolor="${NAVY}" style="background-color:${NAVY};padding:20px 23px 0">
     <table role="presentation" width="654" cellpadding="0" cellspacing="0" border="0" dir="rtl" style="width:654px;border-collapse:collapse">${chips}</table>
   </td></tr>
   <tr><td bgcolor="${NAVY}" height="26" style="background-color:${NAVY};height:26px;font-size:0;line-height:0">&nbsp;</td></tr>
-  ${buttonHtml(link) /* кнопка полного отчёта — сразу под карточками, над приветствием (Дан 27.10) */}
 
   <tr><td dir="rtl" style="padding:20px 28px 0;text-align:right">
     <div style="font-family:Arial,sans-serif;font-size:14px;color:${INK}">${greeting} ${intro}</div>
