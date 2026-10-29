@@ -7,7 +7,7 @@
 // Каждая часть — רשתות (блоки по אחראי) и שוק פרטי (блоки по агенту). Лимит 10,000 (дефолт Priority)
 // считается обычным лимитом (Дан 2026-10-12).
 // С 29.10 (финдир יובל): порядок מתקרבים → חורגים → פיגור פעילים → פיגור לא פעילים (просрочка делится по продажам
-// 3 мес., как DSO); Excel «מעקב אובליגו ותנאי אשראי לקוחות» — 4 листа частей + DSO (TOP 100, «שוטף +») + חובות ישנים.
+// 3 мес., как DSO); Excel «מעקב אובליגו ותנאי אשראי לקוחות» — 4 листа частей + DSO (TOP 100, «שוטף +», «תנאי תשלום ללקוח»).
 //
 // Источник — датасет FORMULA DASHBORD. С 2026-10-12 'HOVOT ALL' — одна строка на ПЛАТЕЛЬЩИКА
 // ([מס לקוח משלם]); справочник 'לקוחות FORM+I+INT' связан с ней по [KEY משלם]. Меры
@@ -691,8 +691,7 @@ function buttonHtml(link) {
 function buildEmailHtml(parts, workDays, greetName, scope, link) {
   const greeting = greetName ? `שלום ${greetName},` : 'שלום,';
   const n = parts.length + (parts.dso && parts.dso.length ? 1 : 0);
-  // листов в Excel больше, чем частей: DSO и חובות ישנים — отдельными листами (29.10)
-  const sheets = parts.length + (parts.dsoXlsx && parts.dsoXlsx.length ? 1 : 0) + (parts.dsoFrozen && parts.dsoFrozen.length ? 1 : 0);
+  const sheets = parts.length + (parts.dsoXlsx && parts.dsoXlsx.length ? 1 : 0);
   const intro = `דוח האובליגו השבועי${scope ? ` — ${scope}` : ''}. למטה סיכום ${n} החלקים; הרשימה המלאה של כל הלקוחות — בקישור האישי ובקובץ האקסל המצורף (${sheets} גיליונות).`;
   // Outlook (Word-движок) не рисует border/radius/margin у div — плашки только таблицами:
   // цветная полоска отдельной строкой с bgcolor, отступы — padding ячеек (тест 12.10 в Outlook развалился).
@@ -758,7 +757,7 @@ function buildEmailHtml(parts, workDays, greetName, scope, link) {
 
 // Excel (Дан 25.10): каждый лист — «умная» таблица Excel со строкой итогов. Лист DSO — две таблицы рядом.
 // Дан 26.10: без «салата» — тело таблицы белое без полос, заливка только в шапке (одна, NAVY как в письме).
-const XLSX_TAB = { near: 'F79646', over: 'C0504D', late: '4F81BD', lateOld: '95B3D7', dso: '8064A2', dsoOld: 'B1A0C7' }; // только ярлыки листов
+const XLSX_TAB = { near: 'F79646', over: 'C0504D', late: '4F81BD', lateOld: '95B3D7', dso: '8064A2' }; // только ярлыки листов
 const XLSX_TABLE_STYLE = { theme: 'TableStyleLight1', showRowStripes: false };
 const XLSX_NAVY = 'FF' + NAVY.slice(1);
 // Дни кредита в терминах «שוטף +» (финдир 29.10): дни минус средний שוטף 15. Меньше 15 — «שוטף −N», без обнуления
@@ -818,26 +817,23 @@ async function buildXlsx(parts, workDays) {
     }
   }
 
-  // DSO — два листа (Дан 29.10, было две таблицы рядом на одном): TOP 100 с продажами за 3 месяца + «שוטף +»,
-  // и חובות ישנים — без продаж
-  const owner = e => e.market === 'רשתות' ? e.resp : e.agent;
-  const dsoSheet = (sheet, tab, name, title, list, days) => {
-    if (!list || !list.length) return;
-    const ws = wb.addWorksheet(sheet, { properties: { tabColor: { argb: 'FF' + tab } }, views: [{ rightToLeft: true, state: 'frozen', ySplit: 3 }] });
-    (days ? [14, 36, 14, 14, 15, 11, 20] : [14, 36, 15, 11, 20]).forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  // Лист DSO (финдир 29.10): TOP 100 с продажами за 3 месяца; рядом с днями — «שוטף +» (факт) и «תנאי תשלום ללקוח»
+  // (условия из карточки Priority, по плательщику). Лист חובות ישנים убран финдиром — список остался на странице.
+  const list = parts.dsoXlsx;
+  if (list && list.length) {
+    const owner = e => e.market === 'רשתות' ? e.resp : e.agent;
+    const ws = wb.addWorksheet('DSO', { properties: { tabColor: { argb: 'FF' + XLSX_TAB.dso } }, views: [{ rightToLeft: true, state: 'frozen', ySplit: 3 }] });
+    [14, 36, 14, 14, 24, 15, 11, 20].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
     ws.getCell('A1').value = DSO_LINE; ws.getCell('A1').font = { italic: true };
-    ws.getCell('A2').value = title; ws.getCell('A2').font = { bold: true, size: 12, color: { argb: XLSX_NAVY } };
-    const cols = [["מס' לקוח משלם", { totalsRowLabel: TOTAL_LABEL }], ['שם'], ...(days ? [['מספר ימי האשראי הממוצע'], ['שוטף +']] : []),
+    ws.getCell('A2').value = `TOP ${DSO_TOP_XLSX} — עם מכירות ב-3 החודשים האחרונים`; ws.getCell('A2').font = { bold: true, size: 12, color: { argb: XLSX_NAVY } };
+    const cols = [["מס' לקוח משלם", { totalsRowLabel: TOTAL_LABEL }], ['שם'], ['מספר ימי האשראי הממוצע'], ['שוטף +'], ['תנאי תשלום ללקוח'],
       ['ניצול אובליגו', { totalsRowFunction: 'sum', totalsRowResult: list.reduce((t, e) => t + Math.round(e.usedILS), 0) }], ['שוק'], ['אחראי / סוכן']];
-    ws.addTable({ name, ref: 'A3', headerRow: true, totalsRow: true, style: XLSX_TABLE_STYLE,
+    ws.addTable({ name: 'DSO_TOP', ref: 'A3', headerRow: true, totalsRow: true, style: XLSX_TABLE_STYLE,
       columns: cols.map(([n, extra]) => ({ name: n, filterButton: true, ...extra })),
-      rows: list.map(e => [e.custno, e.name, ...(days ? [Math.round(e.creditDays), shotefPlus(e.creditDays)] : []), Math.round(e.usedILS), e.market, owner(e)]) });
+      rows: list.map(e => [e.custno, e.name, Math.round(e.creditDays), shotefPlus(e.creditDays), e.terms || '', Math.round(e.usedILS), e.market, owner(e)]) });
     paintHeader(ws, 3, 1, cols.length);
-    const usedCol = days ? 5 : 3;
-    for (let r = 4; r <= list.length + 4; r++) ws.getCell(r, usedCol).numFmt = '#,##0';
-  };
-  dsoSheet('DSO', XLSX_TAB.dso, 'DSO_TOP', `TOP ${DSO_TOP_XLSX} — עם מכירות ב-3 החודשים האחרונים`, parts.dsoXlsx, true);
-  dsoSheet('חובות ישנים', XLSX_TAB.dsoOld, 'DSO_NO_SALES', DSO_FROZEN_TITLE, parts.dsoFrozen, false);
+    for (let r = 4; r <= list.length + 4; r++) ws.getCell(r, 6).numFmt = '#,##0';
+  }
   return Buffer.from(await wb.xlsx.writeBuffer());
 }
 
@@ -998,6 +994,8 @@ async function main() {
       const recs = e.payerList.flatMap(p => ts.get(String(p)) || []);
       e.terms = oneLine(recs, 'terms'); e.status = oneLine(recs, 'status');
     }
+    // лист DSO — строка на плательщика (финдир 29.10: «תנאי תשלום ללקוח»)
+    for (const e of entities.byPayer) e.terms = oneLine(ts.get(String(e.custno)) || [], 'terms');
   } catch (err) { console.error('[Priority] תנאי תשלום/סטטוס не получены:', err.message); }
   const workDays = await fetchWorkDays();
   const prev = loadState();
