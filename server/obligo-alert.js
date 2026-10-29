@@ -5,7 +5,9 @@
 //   3. חוב בפיגור > 0       — חורגים מתנאי התשלום  (корзины 1-30/31-60/61-90/90+ как в PBI, сальдо > 0 (с 27.10),
 //                             независимо от того, есть ли у клиента лимит)
 // Каждая часть — רשתות (блоки по אחראי) и שוק פרטי (блоки по агенту). Лимит 10,000 (дефолт Priority)
-// считается обычным лимитом (Дан 2026-10-12). Excel-вложение — те же 3 части на 3 листах.
+// считается обычным лимитом (Дан 2026-10-12).
+// С 29.10 (финдир יובל): порядок מתקרבים → חורגים → פיגור פעילים → פיגור לא פעילים (просрочка делится по продажам
+// 3 мес., как DSO); Excel «מעקב אובליגו ותנאי אשראי לקוחות» — 4 листа частей + DSO (TOP 100, «שוטף +») + חובות ישנים.
 //
 // Источник — датасет FORMULA DASHBORD. С 2026-10-12 'HOVOT ALL' — одна строка на ПЛАТЕЛЬЩИКА
 // ([מס לקוח משלם]); справочник 'לקוחות FORM+I+INT' связан с ней по [KEY משלם]. Меры
@@ -188,35 +190,42 @@ function oneLine(recs, field) {
 async function fetchEntities() {
   const [classification, payers, chainDso] = [await fetchPayerClassification(), await fetchPayers(), await fetchChainDso()];
   const grouped = new Map();
+  // просрочка — отдельная группировка (Дан 29.10, по принципу DSO): плательщики сети без продаж 3 мес. — своей строкой
+  // в части «לא פעילים», чтобы покупающий филиал не прятал их. Части по лимиту — по grouped, сеть целиком.
+  const groupedLate = new Map();
   const byPayer = []; // для раздела DSO — строка на плательщика (Дан 25.10), без группировки сетей
+  const add = (map, key, base, p) => {
+    if (!map.has(key)) map.set(key, { ...base, key, payers: new Set(), limitILS: 0, usedILS: 0, sales3m: 0, b30: 0, b60: 0, b90: 0, bOld: 0 });
+    const g = map.get(key);
+    g.payers.add(p.payer);
+    if (base.market !== 'רשתות') g.creditDays = p.creditDays;
+    for (const f of ['limitILS', 'usedILS', 'sales3m', 'b30', 'b60', 'b90', 'bOld']) g[f] += p[f];
+  };
   for (const p of payers) {
     const cls = classification.get(p.payer) || {};
     const isChain = cls.market === 'רשתות';
     const name = isChain ? p.type : p.custName;
     if (!name || EXCLUDED_NAMES.has(name)) continue;
     const key = isChain ? `C|${cls.resp || '—'}|${name}` : `P|${p.payer}`;
-    if (!grouped.has(key)) {
-      grouped.set(key, {
-        key, name, market: isChain ? 'רשתות' : 'שוק פרטי', resp: cls.resp || '—', agent: cls.agent || 'לא מוגדר',
-        payers: new Set(), limitILS: 0, usedILS: 0, sales3m: 0, b30: 0, b60: 0, b90: 0, bOld: 0,
-      });
-    }
-    const g = grouped.get(key);
-    byPayer.push({ custno: p.payer, name: p.custName || name, market: g.market, resp: g.resp, agent: g.agent, usedILS: p.usedILS,
+    const base = { name, market: isChain ? 'רשתות' : 'שוק פרטי', resp: cls.resp || '—', agent: cls.agent || 'לא מוגדר' };
+    byPayer.push({ custno: p.payer, name: p.custName || name, market: base.market, resp: base.resp, agent: base.agent, usedILS: p.usedILS,
       creditDays: p.creditDays, sales3m: p.sales3m, hasMmd: p.hasMmd });
-    g.payers.add(p.payer);
-    if (!isChain) g.creditDays = p.creditDays;
-    for (const f of ['limitILS', 'usedILS', 'sales3m', 'b30', 'b60', 'b90', 'bOld']) g[f] += p[f];
+    add(grouped, key, base, p);
+    // «לא פעיל» = как второй список DSO; MMD — активный: его продаж нет в ALL_PARTS (см. dsoBase в main)
+    const inactive = !p.hasMmd && !(p.sales3m > 0);
+    add(groupedLate, inactive ? `${key}|old` : key, { ...base, inactive }, p);
   }
   // מס' לקוח = מספר לקוח משלם; у сети с несколькими плательщиками — "N משלמים" (Дан 2026-10-12)
-  const entities = [...grouped.values()].map(({ payers, ...g }) => ({
+  const build = map => [...map.values()].map(({ payers, ...g }) => ({
     ...g, payerList: [...payers],
     custno: payers.size === 1 ? [...payers][0] : `${payers.size} משלמים`,
     util: g.limitILS > 0 ? g.usedILS / g.limitILS : null,
     creditDays: g.market === 'רשתות' ? chainDso.get(g.name) ?? null : g.creditDays ?? null,
     overdue: g.b30 + g.b60 + g.b90 + g.bOld,
   }));
+  const entities = build(grouped);
   entities.byPayer = byPayer;
+  entities.late = build(groupedLate);
   return entities;
 }
 
@@ -361,19 +370,13 @@ function sparkPage(series, color) {
 // Outlook игнорирует CSS direction — явные LRE…PDF держат порядок "₪1,234" в ивритском тексте
 const ltr = s => `&#x202A;${s}&#x202C;`;
 
-// Порядок = нумерация частей в письме/странице/Excel (Дан 27.10: חורגים первыми, потом מתקרבים)
+// Порядок = нумерация частей в письме/странице/Excel (финдир יובל 29.10: מתקרבים, חורגים, פיגור פעילים, פיגור לא פעילים).
+// late: true — части просрочки, строки из entities.late (плательщики сети делятся по продажам 3 мес.)
+const LATE_RULE = 'יתרת חוב בפיגור לפי ימי פיגור בפריוריטי, ללא קשר למסגרת אובליגו';
 const PARTS = [
   {
-    id: 'over', color: RED, chip: '#E0475B', tint: '#FBEAEC', sheet: 'חורגים מעל 100%', label: `חורגים מעל ${ltr('100%')}`,
-    title: 'לקוחות שחורגים ממסגרת האשראי המאושרת',
-    rule: 'ניצול 100% ומעלה ממסגרת האובליגו',
-    pick: e => e.util !== null && e.util >= 1,
-    sort: (a, b) => b.util - a.util,
-    extra: { head: 'יתרה מעבר למסגרת', val: e => e.usedILS - e.limitILS },
-  },
-  {
     id: 'near', color: NAVY, chip: NAVY, tint: '#E8EEF6', // без жёлтого (Дан 27.10)
-    sheet: 'מתקרבים 85%-100%', label: `מתקרבים ${ltr('85%–100%')}`,
+    sheet: 'מתקרבים לניצול מלא', label: `מתקרבים ${ltr('85%–100%')}`,
     title: 'לקוחות שמתקרבים לניצול מלא של המסגרת המאושרת',
     rule: 'ניצול 85% ומעלה ועד 100% ממסגרת האובליגו',
     pick: e => e.util !== null && e.util >= NEAR && e.util < 1,
@@ -381,10 +384,25 @@ const PARTS = [
     extra: { head: 'יתרה לניצול', val: e => e.limitILS - e.usedILS },
   },
   {
-    id: 'late', color: NAVY, chip: '#8FB3E0', tint: '#E8EEF6', sheet: 'חוב בפיגור', label: 'חוב בפיגור',
-    title: 'לקוחות שחורגים מהסכם תנאי התשלום',
-    rule: 'יתרת חוב בפיגור לפי ימי פיגור בפריוריטי, ללא קשר למסגרת אובליגו',
-    pick: e => e.overdue >= 1,
+    id: 'over', color: RED, chip: '#E0475B', tint: '#FBEAEC', sheet: 'לקוחות חורגים', label: `חורגים מעל ${ltr('100%')}`,
+    title: 'לקוחות שחורגים ממסגרת האשראי המאושרת',
+    rule: 'ניצול 100% ומעלה ממסגרת האובליגו',
+    pick: e => e.util !== null && e.util >= 1,
+    sort: (a, b) => b.util - a.util,
+    extra: { head: 'יתרה מעבר למסגרת', val: e => e.usedILS - e.limitILS },
+  },
+  {
+    id: 'late', late: true, color: NAVY, chip: '#8FB3E0', tint: '#E8EEF6', sheet: 'חוב בפיגור לקוחות פעילים', label: 'חוב בפיגור',
+    title: 'חוב בפיגור — לקוחות פעילים',
+    rule: `קנו לפחות פעם אחת ב-3 החודשים האחרונים · ${LATE_RULE}`,
+    pick: e => !e.inactive && e.overdue >= 1,
+    sort: (a, b) => b.overdue - a.overdue,
+  },
+  {
+    id: 'lateOld', late: true, color: NAVY, chip: '#8FB3E0', tint: '#E8EEF6', sheet: 'חוב בפיגור לקוחות לא פעילים', label: 'חוב בפיגור',
+    title: 'חוב בפיגור — לקוחות לא פעילים',
+    rule: `לא קנו ב-3 החודשים האחרונים · ${LATE_RULE}`,
+    pick: e => e.inactive && e.overdue >= 1,
     sort: (a, b) => b.overdue - a.overdue,
   },
 ];
@@ -392,7 +410,7 @@ const PARTS = [
 // Колонки сумм — фиксированной ширины (иначе в каждом блоке своя auto-ширина и цифры "гуляют",
 // пользователь 2026-09-10).
 function amountColumns(part) {
-  if (part.id === 'late') {
+  if (part.late) {
     return [
       ['1-30', e => e.b30, 70], ['31-60', e => e.b60, 70], ['61-90', e => e.b90, 70], ['מעל 90', e => e.bOld, 70],
       ['סה"כ בפיגור', e => e.overdue, 84, true],
@@ -438,7 +456,7 @@ function pageGroups(part, rows, field, isChain) {
   // главная сумма и % — сразу после имени: на телефоне остальные колонки уходят под горизонтальный скролл
   const money = ([h, f, , strong]) => [h, e => { const v = f(e); return `<td class="m${strong ? ' s' : ''}">${v ? fmtILS(v) : '—'}</td>`; }];
   const all = amountColumns(part);
-  const pct = part.id === 'late' ? [] : [['%', e => `<td><span class="pc ${e.util >= 1 ? 'r' : 'g'}">${Math.round(e.util * 100)}%</span></td>`]];
+  const pct = part.late ? [] : [['%', e => `<td><span class="pc ${e.util >= 1 ? 'r' : 'g'}">${Math.round(e.util * 100)}%</span></td>`]];
   const days = ['מספר ימי האשראי הממוצע', e => `<td>${e.creditDays === null ? '—' : Math.round(e.creditDays)}</td>`];
   const cols = [...all.filter(c => c[3]).map(money), ...pct, days, ...all.filter(c => !c[3]).map(money)];
   const head = `<tr><th>מס' לקוח</th><th>${isChain ? 'רשת' : 'שם'}</th>${cols.map(([h]) => `<th${h === days[0] ? ' class="w"' : ''}>${esc(h)}</th>`).join('')}</tr>`;
@@ -462,7 +480,10 @@ function pageDiff(diff) {
 
 // Раздел DSO (Дан 25.10): топ по [מספר ימי האשראי הממוצע] общим списком, без разбивки по фирмам.
 // Список — parts.dso (у менеджера/אחראי — топ из его клиентов). Один details.grp — чтобы работал поиск страницы.
-const DSO_TOP = 50; // Дан 25.10
+// Имя Excel-вложения и тема письма (финдир 29.10), + дата
+const REPORT_NAME = 'מעקב אובליגו ותנאי אשראי לקוחות';
+const DSO_TOP = 50; // Дан 25.10 — письмо и страница
+const DSO_TOP_XLSX = 100; // финдир 29.10 — только лист DSO в Excel
 // Пометка «חדש» у раздела DSO — до 12.11 включительно (рассылки 29.10, 05.11, 12.11), потом исчезает сама
 const DSO_NEW_UNTIL = '2026-11-12';
 const dsoIsNew = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' }) <= DSO_NEW_UNTIL;
@@ -668,7 +689,9 @@ function buttonHtml(link) {
 function buildEmailHtml(parts, workDays, greetName, scope, link) {
   const greeting = greetName ? `שלום ${greetName},` : 'שלום,';
   const n = parts.length + (parts.dso && parts.dso.length ? 1 : 0);
-  const intro = `דוח האובליגו השבועי${scope ? ` — ${scope}` : ''}. למטה סיכום ${n} החלקים; הרשימה המלאה של כל הלקוחות — בקישור האישי ובקובץ האקסל המצורף (${n} גיליונות).`;
+  // листов в Excel больше, чем частей: DSO и חובות ישנים — отдельными листами (29.10)
+  const sheets = parts.length + (parts.dsoXlsx && parts.dsoXlsx.length ? 1 : 0) + (parts.dsoFrozen && parts.dsoFrozen.length ? 1 : 0);
+  const intro = `דוח האובליגו השבועי${scope ? ` — ${scope}` : ''}. למטה סיכום ${n} החלקים; הרשימה המלאה של כל הלקוחות — בקישור האישי ובקובץ האקסל המצורף (${sheets} גיליונות).`;
   // Outlook (Word-движок) не рисует border/radius/margin у div — плашки только таблицами:
   // цветная полоска отдельной строкой с bgcolor, отступы — padding ячеек (тест 12.10 в Outlook развалился).
   // Карточки риска — пустыми строками до одной высоты: в письме это отдельные таблицы, сами не выравниваются (27.10).
@@ -733,11 +756,12 @@ function buildEmailHtml(parts, workDays, greetName, scope, link) {
 
 // Excel (Дан 25.10): каждый лист — «умная» таблица Excel со строкой итогов. Лист DSO — две таблицы рядом.
 // Дан 26.10: без «салата» — тело таблицы белое без полос, заливка только в шапке (одна, NAVY как в письме).
-const XLSX_TAB = { near: 'F79646', over: 'C0504D', late: '4F81BD', dso: '8064A2' }; // только ярлыки листов
+const XLSX_TAB = { near: 'F79646', over: 'C0504D', late: '4F81BD', lateOld: '95B3D7', dso: '8064A2', dsoOld: 'B1A0C7' }; // только ярлыки листов
 const XLSX_TABLE_STYLE = { theme: 'TableStyleLight1', showRowStripes: false };
 const XLSX_NAVY = 'FF' + NAVY.slice(1);
-// Вторая таблица листа DSO — на тон светлее, чтобы две таблицы рядом не сливались (Дан 27.10)
-const XLSX_NAVY_LIGHT = 'FF4A6C9B';
+// Дни кредита в терминах «שוטף +» (финдир 29.10): дни минус средний שוטף 15. Меньше 15 — «שוטף −N», без обнуления
+const SHOTEF_AVG = 15;
+const shotefPlus = days => { const n = Math.round(days) - SHOTEF_AVG; return n < 0 ? `שוטף − ${-n}` : `שוטף + ${n}`; };
 function paintHeader(ws, row, fromCol, n, argb = XLSX_NAVY) {
   for (let c = fromCol; c < fromCol + n; c++) {
     const cell = ws.getCell(row, c);
@@ -751,7 +775,7 @@ async function buildXlsx(parts, workDays) {
   for (const { part, rows } of parts) {
     // Дан 26.10: DSO-колонка только на листе DSO; «% ימי עבודה שנותרו» — не колонкой с одним и тем же
     // числом в каждой строке, а одной строкой над таблицей (та же фраза, что в шапке страницы/письма).
-    const late = part.id === 'late';
+    const late = !!part.late;
     const head = late ? 1 : 2; // строка шапки таблицы
     const ws = wb.addWorksheet(part.sheet, { properties: { tabColor: { argb: 'FF' + XLSX_TAB[part.id] } }, views: [{ rightToLeft: true, state: 'frozen', ySplit: head }] });
     const amounts = amountColumns(part);
@@ -792,28 +816,26 @@ async function buildXlsx(parts, workDays) {
     }
   }
 
-  // Лист DSO: две «умные» таблицы рядом — TOP с продажами за 3 месяца (A) и без продаж (H)
-  if ((parts.dso && parts.dso.length) || (parts.dsoFrozen && parts.dsoFrozen.length)) {
-    const ws = wb.addWorksheet('DSO', { properties: { tabColor: { argb: 'FF' + XLSX_TAB.dso } }, views: [{ rightToLeft: true, state: 'frozen', ySplit: 3 }] });
-    [14, 36, 14, 15, 11, 20, 4, 14, 36, 15, 11, 20].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  // DSO — два листа (Дан 29.10, было две таблицы рядом на одном): TOP 100 с продажами за 3 месяца + «שוטף +»,
+  // и חובות ישנים — без продаж
+  const owner = e => e.market === 'רשתות' ? e.resp : e.agent;
+  const dsoSheet = (sheet, tab, name, title, list, days) => {
+    if (!list || !list.length) return;
+    const ws = wb.addWorksheet(sheet, { properties: { tabColor: { argb: 'FF' + tab } }, views: [{ rightToLeft: true, state: 'frozen', ySplit: 3 }] });
+    (days ? [14, 36, 14, 14, 15, 11, 20] : [14, 36, 15, 11, 20]).forEach((w, i) => { ws.getColumn(i + 1).width = w; });
     ws.getCell('A1').value = DSO_LINE; ws.getCell('A1').font = { italic: true };
-    const owner = e => e.market === 'רשתות' ? e.resp : e.agent;
-    const table = (name, col, title, list, days, argb = XLSX_NAVY) => {
-      if (!list || !list.length) return;
-      const at = n => ws.getCell(n, col);
-      at(2).value = title; at(2).font = { bold: true, size: 12, color: { argb } };
-      const cols = [["מס' לקוח משלם", { totalsRowLabel: TOTAL_LABEL }], ['שם'], ...(days ? [['מספר ימי האשראי הממוצע']] : []),
-        ['ניצול אובליגו', { totalsRowFunction: 'sum', totalsRowResult: list.reduce((t, e) => t + Math.round(e.usedILS), 0) }], ['שוק'], ['אחראי / סוכן']];
-      ws.addTable({ name, ref: ws.getCell(3, col).address, headerRow: true, totalsRow: true, style: XLSX_TABLE_STYLE,
-        columns: cols.map(([n, extra]) => ({ name: n, filterButton: true, ...extra })),
-        rows: list.map(e => [e.custno, e.name, ...(days ? [Math.round(e.creditDays)] : []), Math.round(e.usedILS), e.market, owner(e)]) });
-      paintHeader(ws, 3, col, cols.length, argb);
-      const usedCol = col + (days ? 3 : 2);
-      for (let r = 4; r <= list.length + 4; r++) ws.getCell(r, usedCol).numFmt = '#,##0';
-    };
-    table('DSO_TOP', 1, `TOP ${DSO_TOP} — עם מכירות ב-3 החודשים האחרונים`, parts.dso, true);
-    table('DSO_NO_SALES', 8, DSO_FROZEN_TITLE, parts.dsoFrozen, false, XLSX_NAVY_LIGHT);
-  }
+    ws.getCell('A2').value = title; ws.getCell('A2').font = { bold: true, size: 12, color: { argb: XLSX_NAVY } };
+    const cols = [["מס' לקוח משלם", { totalsRowLabel: TOTAL_LABEL }], ['שם'], ...(days ? [['מספר ימי האשראי הממוצע'], ['שוטף +']] : []),
+      ['ניצול אובליגו', { totalsRowFunction: 'sum', totalsRowResult: list.reduce((t, e) => t + Math.round(e.usedILS), 0) }], ['שוק'], ['אחראי / סוכן']];
+    ws.addTable({ name, ref: 'A3', headerRow: true, totalsRow: true, style: XLSX_TABLE_STYLE,
+      columns: cols.map(([n, extra]) => ({ name: n, filterButton: true, ...extra })),
+      rows: list.map(e => [e.custno, e.name, ...(days ? [Math.round(e.creditDays), shotefPlus(e.creditDays)] : []), Math.round(e.usedILS), e.market, owner(e)]) });
+    paintHeader(ws, 3, 1, cols.length);
+    const usedCol = days ? 5 : 3;
+    for (let r = 4; r <= list.length + 4; r++) ws.getCell(r, usedCol).numFmt = '#,##0';
+  };
+  dsoSheet('DSO', XLSX_TAB.dso, 'DSO_TOP', `TOP ${DSO_TOP_XLSX} — עם מכירות ב-3 החודשים האחרונים`, parts.dsoXlsx, true);
+  dsoSheet('חובות ישנים', XLSX_TAB.dsoOld, 'DSO_NO_SALES', DSO_FROZEN_TITLE, parts.dsoFrozen, false);
   return Buffer.from(await wb.xlsx.writeBuffer());
 }
 
@@ -914,13 +936,12 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function sendReport(resend, recipient, parts, workDays, scope) {
   const greetName = RECIPIENT_NAMES[recipient.toLowerCase()];
   const logoPath = path.join(__dirname, '..', 'docs', 'logo-diler-bmd-white.png');
-  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' });
+  const today = new Date().toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' });
   const attachments = [
     ...(fs.existsSync(logoPath) ? [{ filename: 'logo-white.png', content: fs.readFileSync(logoPath).toString('base64'), contentId: 'diler-logo-white' }] : []),
-    { filename: `obligo-${today}.xlsx`, content: (await buildXlsx(parts, workDays)).toString('base64') },
+    { filename: `${REPORT_NAME} ${today}.xlsx`, content: (await buildXlsx(parts, workDays)).toString('base64') },
     ...(await pieAttachments(parts.kpi)),
   ];
-  const counts = parts.map(p => p.rows.length);
   // страница на каждое письмо своя (новый hex) — до отправки; не записалась — письмо не уходит
   const link = publishPage(recipient, buildPageHtml(parts, workDays, scope, expiryDate()));
   const text = `${greetName ? `שלום ${greetName},` : 'שלום,'} דוח האובליגו השבועי.\n\n`
@@ -930,7 +951,7 @@ async function sendReport(resend, recipient, parts, workDays, scope) {
   const payload = {
     from: `Diler Intelligence <${process.env.RESEND_FROM || 'orders@sverdlik-apps.site'}>`,
     to: [recipient],
-    subject: `דוח אובליגו שבועי — מתקרבים: ${counts[0]} · חורגים: ${counts[1]} · בפיגור: ${counts[2]}`,
+    subject: `${REPORT_NAME} — ${today}`,
     html: buildEmailHtml(parts, workDays, greetName, scope, link),
     text,
     attachments,
@@ -971,7 +992,7 @@ async function main() {
   // Priority недоступен — отчёт уходит без двух колонок, а не падает
   try {
     const ts = await fetchTermsStatus();
-    for (const e of entities) {
+    for (const e of [...entities, ...entities.late]) {
       const recs = e.payerList.flatMap(p => ts.get(String(p)) || []);
       e.terms = oneLine(recs, 'terms'); e.status = oneLine(recs, 'status');
     }
@@ -979,7 +1000,7 @@ async function main() {
   const workDays = await fetchWorkDays();
   const prev = loadState();
   const parts = PARTS.map(part => {
-    const rows = entities.filter(part.pick).sort(part.sort);
+    const rows = (part.late ? entities.late : entities).filter(part.pick).sort(part.sort);
     return { part, rows, diff: diffFor(prev, part.id, rows) };
   });
   // DSO: основная таблица — только с продажами за 3 месяца; без продаж — отдельно, по долгу (Дан 25.10)
@@ -992,8 +1013,11 @@ async function main() {
   const kpiHist = loadKpiHistory(), kpiScopes = [];
   const setDso = (target, pred, key, extra = {}) => {
     target.dso = dsoRank.filter(pred).slice(0, DSO_TOP); target.dsoFrozen = frozen.filter(pred);
+    target.dsoXlsx = dsoRank.filter(pred).slice(0, DSO_TOP_XLSX);
     const vals = { ...kpiValues(entities.filter(pred), frozen.filter(pred)), ...extra };
     target.kpi = kpiCards(vals, (kpiHist[key] || []).filter(p => p.date < isoToday()));
+    // рабочие дни — ячейкой главной карточки (финдир 29.10; строкой шапки было до bfac227e). Без поля — срезы не пересчитывают
+    target.kpi.hero.stats.push(['ימי עבודה שנותרו', `${workDays.left} (${Math.round(workDays.pct * 100)}%)`]);
     target.kpiData = { e: entities.filter(pred).map(e => [e.market === 'רשתות' ? 1 : 0, e.resp, Math.round(e.usedILS), Math.round(e.limitILS), e.util, Math.round(e.overdue)]),
       f: frozen.filter(pred).map(e => [e.market === 'רשתות' ? 1 : 0, e.resp, Math.round(e.usedILS)]) };
     kpiScopes.push({ key, vals });
