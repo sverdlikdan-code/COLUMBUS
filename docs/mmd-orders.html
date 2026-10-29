@@ -415,6 +415,7 @@
     tbody td.col-g { background: #e8f0f8 !important; }
     td.tk-lo select { border-color: #d32f2f !important; color: #d32f2f !important; background: #fff5f5; }
     .c-mmd { font-weight: 900; font-size: 1.1rem; color: var(--blue-dark); }
+    .u-sub { font-size: .62rem; font-weight: 400; color: #78909c; white-space: nowrap; }
     /* family multi-select dropdown */
     .fam-drop { position: relative; }
     .fam-drop-btn {
@@ -1005,6 +1006,16 @@
       '</select>';
   }
 
+  // פודסטוק: קרטון + יחידות מתחת (krat = תכולת האריזה) — בקשת המחסנאי 29.10
+  function unitsSub(v, r) {
+    if (!v || !r.krat || !/פודסטוק/.test(r.mishpacha || '')) return '';
+    return '<br><span class="u-sub">' + Math.round(v * r.krat).toLocaleString('en-US') + " יח'</span>";
+  }
+  // ICE: מלאי MMD + מחסן 100 (משאית אילת) מתחת — בקשת המחסנאי 29.10
+  function m100Sub(r) {
+    if (r.m100_k == null || !/^ICE/.test(r.hevra || '')) return '';
+    return '<br><span class="u-sub" dir="ltr">100: ' + Math.round(r.m100_k) + '</span>';
+  }
   function klass(v) {
     if (v == null || v === '') return '';
     if (v <= 0)  return 'lo';
@@ -1337,10 +1348,10 @@
             (r.img ? '<img src="' + esc(r.img) + '" alt="" loading="lazy" onerror="this.outerHTML=\'<span class=ni></span>\'">' : '<span class="ni"></span>') +
           '</td>' +
           '<td class="c-co">' + esc(r.hevra || '') + '</td>' +
-          '<td class="c-num c-mmd col-g ' + klass(mmd) + '">' + mmd + '</td>' +
-          '<td class="c-num col-g">' + (mkr != null ? mkr.toFixed(1) : '—') + '</td>' +
-          '<td class="c-num ' + klass(ash) + '">' + ash + '</td>' +
-          '<td class="c-num">' + mav + '</td>' +
+          '<td class="c-num c-mmd col-g ' + klass(mmd) + '">' + mmd + unitsSub(mmd, r) + m100Sub(r) + '</td>' +
+          '<td class="c-num col-g">' + (mkr != null ? mkr.toFixed(1) + unitsSub(mkr, r) : '—') + '</td>' +
+          '<td class="c-num ' + klass(ash) + '">' + ash + unitsSub(ash, r) + '</td>' +
+          '<td class="c-num">' + mav + unitsSub(mav, r) + '</td>' +
           '<td class="c-tukuf">' + formatTukuf(r.tukuf) + '</td>' +
           '<td class="c-num ' + yamimCls + '">' + yamimDisp + '</td>' +
           '<td class="c-num">' + (mkrTk != null ? mkrTk : '—') + '</td>' +

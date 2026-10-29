@@ -126,6 +126,19 @@ async function build() {
     console.warn('⚠ Weekly breakdown failed (non-fatal):', e.message.slice(0, 120));
   }
 
+  // מחסן 100 MMD (משאית אילת) — טבלה נפרדת 'MAHSAN 100' בלי קשרים (Дан 29.10); בפועל רק ICE
+  let m100Map = {};
+  try {
+    const m100Rows = await executeDax(`
+      EVALUATE
+      SUMMARIZECOLUMNS('MAHSAN 100'[מק'ט], "k", SUM('MAHSAN 100'[קרטון מלאי תוקף]))
+    `, MMD_DS);
+    m100Rows.forEach(r => { m100Map[String(r["MAHSAN 100[מק'ט]"]).trim()] = r['[k]']; });
+    console.log(`✓ MAHSAN 100: ${Object.keys(m100Map).length} SKUs`);
+  } catch (e) {
+    console.warn('⚠ MAHSAN 100 failed (non-fatal):', e.message.slice(0, 120));
+  }
+
   const data = rows.map(r => ({
     mkt:        r['KARTIS PARIT[מק"ט]'],
     taur:       fixGimel(fixBiDi(r['KARTIS PARIT[תאור]'] || '')),
@@ -136,6 +149,7 @@ async function build() {
     img:        r['KARTIS PARIT[URL תמונה]'] || null,
     ashdod_k:   r['KARTIS PARIT[ASHDOD KAARTON]'] ?? null,
     mmd_k:      r['KARTIS PARIT[MMD KARTON]'] ?? null,
+    m100_k:     m100Map[String(r['KARTIS PARIT[מק"ט]'])] ?? null,
     eilat_k:    r['[eilat_k]'] ?? null,
     maavar:     r['[maavar]'] ?? null,
     mkr_shvua:  r['[mkr_shvua]']  != null ? Math.round(r['[mkr_shvua]']  * 10) / 10 : null,
