@@ -24,7 +24,7 @@ const arg = k => (process.argv.find(a => a.startsWith(`--${k}=`)) || '').split('
 const DATA = process.env.LIVE_DATA_DIR || path.join(__dirname, 'data');
 const DOCS = path.join(__dirname, '..', 'docs');
 const SAVED_PER_ZIKUY_MIN = 8.5, LONG_S = 1800;
-const AGENT_COST = [20000, 22000], AGENT_HOURS = 180, TARGET_AGENTS = 22, ACTIVE_MIN = 20; // ₪/мес за ставку; прогноз — агенты от 20 бланков в месяц (пользователь 2026-09-30)
+const AGENT_COST = [20000, 22000], AGENT_HOURS = 180; // ₪/мес за ставку
 const ICE_FAM ='ICE מוצרים משפחתיים'; // мишпахти без семьи в каталоге (SKU 502xxx/503xxx)
 
 const NAVY = '#1C3D6B', GOLD = '#C9A227', INK = '#1F2937', MUTED = '#6B7280', LINE = '#E5E7EB', PAPER = '#F4F6FA', RED = '#B91C1C', GREEN = '#15803D';
@@ -246,24 +246,20 @@ function buildHtml(month, cur, prev, tm, names, ret) {
   const short = tm.pairs.filter(p => p.s <= LONG_S);
   const medAll = med(short.map(p => p.s));
   const savedH = t.blanks * SAVED_PER_ZIKUY_MIN / 60;
-  // Деньги: часы по ставке агента. Прогноз на TARGET_AGENTS — среднее по активным (≥ ACTIVE_MIN бланков), новички занижали бы.
-  const active = Object.values(agent).filter(a => a.blanks >= ACTIVE_MIN);
-  const projH = active.length ? TARGET_AGENTS * avg(active.map(a => a.blanks)) * SAVED_PER_ZIKUY_MIN / 60 : 0;
+  // Деньги: часы по ставке агента. Прогноза «если все станут активными» нет — все агенты уже в приложении (пользователь 2026-11-01).
   const hRound = h => Math.round(h / 5) * 5;
   const kShek = h => `<span style="white-space:nowrap">${Math.round(h * AGENT_COST[0] / AGENT_HOURS / 1000)}–${Math.round(h * AGENT_COST[1] / AGENT_HOURS / 1000)}</span> <span style="white-space:nowrap">тыс. ₪</span>`;
   const hero = (label, big, sub, bg, fg) => `<td style="padding:18px 10px;text-align:center;background:${bg};width:50%;vertical-align:top">
     <div style="font-size:12px;color:${fg};opacity:.85">${label}</div>
     <div style="font-size:30px;font-weight:900;color:${fg};padding-top:6px;line-height:1.15">${big}</div>
     <div style="font-size:13px;color:${fg};padding-top:4px">${sub}</div></td>`;
-  let html = H('1. Приложение работает — первые результаты');
-  html += P(`Зикуй в Formula Road внедрён: <b>${Object.keys(agent).length} агентов</b> уже оформляют заявки через приложение — за ${MONTHS_RU[m - 1]} <b>${n0(t.blanks)} зикуев</b>. ${cur.lateAgents ? `У части агентов (${cur.lateAgents}) данные не за полный месяц — подключились к приложению позже. ` : ''}Каждый зикуй экономит агенту около ${SAVED_PER_ZIKUY_MIN} минут.`);
+  let html = H('1. Экономия от приложения');
+  html += P(`За ${MONTHS_RU[m - 1]} <b>${Object.keys(agent).length} агентов</b> оформили через Formula Road <b>${n0(t.blanks)} зикуев</b>. ${cur.lateAgents ? `У части агентов (${cur.lateAgents}) данные не за полный месяц — подключились к приложению позже. ` : ''}Каждый зикуй экономит агенту около ${SAVED_PER_ZIKUY_MIN} минут.`);
   html += `<tr><td style="padding:8px 14px 6px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:Arial,sans-serif;border-radius:10px;overflow:hidden"><tr>
     ${hero('Сэкономлено за месяц', `≈ ${hRound(savedH)} ч`, 'рабочего времени агентов', NAVY, '#fff')}
     ${hero('В деньгах', `≈ ${kShek(savedH)}`, 'в месяц', GREEN, '#fff')}
   </tr></table></td></tr>`;
-  if (active.length) html += `<tr><td style="padding:6px 14px"><div style="background:#EEF6F0;border-left:4px solid ${GREEN};padding:12px 14px;font-size:15px;color:${INK};line-height:1.5">
-    <b>Если все ${TARGET_AGENTS} агента будут оформлять в среднем ≈ ${avg(active.map(a => a.blanks)).toFixed(0)} зикуев в месяц</b> — как активные агенты за ${MONTHS_RU[m - 1]} — экономия ≈ <b>${hRound(projH)} ч</b> в месяц, это <b>≈ ${kShek(projH)}</b></div></td></tr>`;
-  html += P(`<span style="font-size:12px;color:${MUTED}"><b>Как считали.</b> До приложения зикуй делался вручную — переборка товара руками и вся информация набиралась в сообщении, с ошибками и опечатками, которые офис потом уточнял по телефону — не меньше 10 минут на бланк. В приложении медиана заполнения — ${mmss(medAll)} (по ${n0(short.length)} зикуям с замером времени), разница ≈ ${((600 - medAll) / 60).toFixed(1)} мин, берём с запасом вниз — ${SAVED_PER_ZIKUY_MIN} мин. ${n0(t.blanks)} зикуев × ${SAVED_PER_ZIKUY_MIN} мин = ${savedH.toFixed(1)} ч. Деньги — по стоимости агента ${n0(AGENT_COST[0])}–${n0(AGENT_COST[1])} ₪ за ${AGENT_HOURS} ч ставки.${active.length ? ` Прогноз — среднее за месяц по агентам от ${ACTIVE_MIN} бланков (${active.length} агентов, в среднем ${avg(active.map(a => a.blanks)).toFixed(0)} бланков) × ${TARGET_AGENTS} агента.` : ''}</span>`);
+  html += P(`<span style="font-size:12px;color:${MUTED}"><b>Как считали.</b> До приложения зикуй делался вручную — переборка товара руками и вся информация набиралась в сообщении, с ошибками и опечатками, которые офис потом уточнял по телефону — не меньше 10 минут на бланк. В приложении медиана заполнения — ${mmss(medAll)} (по ${n0(short.length)} зикуям с замером времени), разница ≈ ${((600 - medAll) / 60).toFixed(1)} мин, берём с запасом вниз — ${SAVED_PER_ZIKUY_MIN} мин. ${n0(t.blanks)} зикуев × ${SAVED_PER_ZIKUY_MIN} мин = ${savedH.toFixed(1)} ч. Деньги — по стоимости агента ${n0(AGENT_COST[0])}–${n0(AGENT_COST[1])} ₪ за ${AGENT_HOURS} ч ставки.</span>`);
   const buckets = [[1, 1], [2, 3], [4, 6], [7, 10], [11, 999]].map(([a, b]) => { const x = short.filter(p => p.items >= a && p.items <= b).map(p => p.s); return x.length ? [b === 999 ? `${a}+` : a === b ? `${a}` : `${a}–${b}`, x.length, mmss(med(x))] : null; }).filter(Boolean);
   html += P('<span style="font-size:12px;color:' + MUTED + '">Время заполнения по размеру бланка:</span>');
   html += table(['Артикулов в бланке', 'Зикуев', 'Медиана времени'], buckets, [1, 2]);
