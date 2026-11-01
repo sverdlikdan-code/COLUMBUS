@@ -462,7 +462,10 @@ function buildEmailHtml(n, greetName, risk, split, diff, ice = null) {
 async function dangerDataMail() {
   try {
     const pd = JSON.parse(fs.readFileSync(path.join(DOCS, 'product-data.json'), 'utf8'));
-    const stale = Object.entries(pd).filter(([, v]) => v?.salesStale)
+    // Только пометки со вчера и раньше: однократный сбой PBI проходит со следующей сборкой (Дан 2026-11-01).
+    // ponytail: порог «не сегодня» по дате, апгрейд на часы — если понадобится реагировать в тот же день.
+    const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Jerusalem' });
+    const stale = Object.entries(pd).filter(([, v]) => v?.salesStale && v.salesStale < today)
       .sort((a, b) => a[1].salesStale.localeCompare(b[1].salesStale) || a[0].localeCompare(b[0]));
     if (!stale.length) return;
     const fmtD = s => `${s.slice(8, 10)}.${s.slice(5, 7)}`;

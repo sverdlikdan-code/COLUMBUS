@@ -1533,7 +1533,9 @@ async function main() {
         for (const k of ['daySales', 'daySalesAll', 'daySalesZafn', 'daySalesTrnz', 'daysStock', 'daysStockZafn'])
           if (v[k] == null && prev[k] != null) v[k] = prev[k];
         v.daysStockAll = v.stock > 0 ? Math.round(v.stock / v.daySalesAll) : null;
-        v.salesStale = prev.salesStale || today;
+        // Run 2 (SKIP_YAVESH_FETCH=1): prev = Run 1 of this same build, minutes old — not stale.
+        // Dagim sales come back empty in Run 2 almost every build → the mark flapped 1↔50 (01.11).
+        if (prev.salesStale || process.env.SKIP_YAVESH_FETCH !== '1') v.salesStale = prev.salesStale || today;
         carried++;
       }
       if (carried) console.warn(`⚠ sales not loaded for ${carried} מקטים — previous kept (salesStale)`);
