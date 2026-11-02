@@ -302,7 +302,6 @@ function kpiCards(v, past) {
   const card = (key, label, sub) => ({
     key, label, value: v[key], sub, color: NAVY,
     prev: prev && prev.vals[key] !== undefined ? { date: prev.date, value: prev.vals[key] } : null,
-    series: [...past.map(p => p.vals[key]).filter(x => x !== undefined), v[key]].slice(-8),
     share: shareOf(sub),
   });
   // Главная — как итоговая строка PBI: מסגרת (אובליגו רב חברתי) и % ניצול (Дан 27.10).
@@ -354,19 +353,7 @@ function kpiDelta(k, iso) {
 }
 // Дата сравнения — один раз в подзаголовке шапки, не в каждой карточке (иначе строка переносится)
 const kpiCompareNote = (kp, iso) => { const p = kp && kp.hero.prev; return p ? ` &middot; שינוי לעומת ${iso(p.date.split('-').reverse().slice(0, 2).join('.'))}` : ''; };
-// Мини-график недель (с 3 точек): столбики-ячейки таблицы — рисуются и в Outlook. Время слева направо, последняя — цветом карточки.
-const SPARK_MIN = 3, SPARK_H = 22;
-const sparkBars = series => { const max = Math.max(...series) || 1; return series.map(x => Math.max(2, Math.round((x / max) * SPARK_H))); };
-function sparkEmail(series, color) {
-  if (series.length < SPARK_MIN) return '';
-  const hs = sparkBars(series);
-  return `<table role="presentation" cellpadding="0" cellspacing="0" dir="ltr" align="center" style="margin:6px auto 0"><tr>${hs.map((h, i) => `<td valign="bottom" style="padding:0 1px;vertical-align:bottom"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td width="7" height="${h}" bgcolor="${i === hs.length - 1 ? color : '#D5DBE4'}" style="width:7px;height:${h}px;background-color:${i === hs.length - 1 ? color : '#D5DBE4'};font-size:0;line-height:0">&nbsp;</td></tr></table></td>`).join('')}</tr></table>`;
-}
-function sparkPage(series, color) {
-  if (series.length < SPARK_MIN) return '';
-  const hs = sparkBars(series);
-  return `<span class="sp">${hs.map((h, i) => `<i style="height:${h}px${i === hs.length - 1 ? `;background:${color}` : ''}"></i>`).join('')}</span>`;
-}
+// Мини-графики недель убраны (Дан 02.11: без дат не читались, 3 точки за 6 дней, нетто <0 рисовалось чёрточкой)
 // Outlook игнорирует CSS direction — явные LRE…PDF держат порядок "₪1,234" в ивритском тексте
 const ltr = s => `&#x202A;${s}&#x202C;`;
 
@@ -525,7 +512,7 @@ function buildPageHtml(parts, workDays, scope, expires) {
       <div class="body">${pageDiff(diff)}${rows.length ? sub('רשתות', chains, 'resp', true) + sub('שוק פרטי', priv, 'agent', false) : '<p class="mu">אין לקוחות בקטגוריה זו.</p>'}</div></details>`;
   }).join('');
   const bdi = (s, f) => `<bdi${f ? ` data-f="${f}"` : ''}>${s}</bdi>`; // data-f — поле для пересчёта срезами
-  const chip = (k, cls) => { const dl = kpiDelta(k, bdi); return `<div class="chip${cls}"><span class="l">${k.label}</span><b style="color:${k.color}">${bdi(fmtShort(k.value), k.key)}</b><span class="dl" style="color:${dl.color}">${dl.text}</span>${sparkPage(k.series, k.color)}${k.stats ? `<span class="st">${k.stats.map(([l, x, f]) => f === 'dso' ? `<span class="dso"><i>${l}</i><b>${bdi(x)}</b></span>` : `<span><i>${l}</i><b>${bdi(x, f)}</b></span>`).join('')}</span>` : ''}${piePage(k)}<span class="s">${kpiSub(k, bdi)}</span></div>`; };
+  const chip = (k, cls) => { const dl = kpiDelta(k, bdi); return `<div class="chip${cls}"><span class="l">${k.label}</span><b style="color:${k.color}">${bdi(fmtShort(k.value), k.key)}</b><span class="dl" style="color:${dl.color}">${dl.text}</span>${k.stats ? `<span class="st">${k.stats.map(([l, x, f]) => f === 'dso' ? `<span class="dso"><i>${l}</i><b>${bdi(x)}</b></span>` : `<span><i>${l}</i><b>${bdi(x, f)}</b></span>`).join('')}</span>` : ''}${piePage(k)}<span class="s">${kpiSub(k, bdi)}</span></div>`; };
   const chips = parts.kpi ? chip(parts.kpi.hero, ' hero') + parts.kpi.risks.map(k => chip(k, '')).join('') : '';
   return `<!doctype html>
 <html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -537,7 +524,7 @@ function buildPageHtml(parts, workDays, scope, expires) {
 header{background:${NAVY};color:#fff;text-align:center;padding:12px 16px}
 header h1{margin:0;font-size:18px}
 .sl{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px}.sl button{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.45);border-radius:16px;padding:5px 12px;font-size:13px;font-family:inherit;cursor:pointer}.sl button.on{background:#fff;color:${NAVY};border-color:#fff;font-weight:bold}
-.flt .chip .dl,.flt .chip .sp,.flt .chip .dso{display:none}header .d{color:${GOLD};font-size:12px;margin-top:6px}
+.flt .chip .dl,.flt .chip .dso{display:none}header .d{color:${GOLD};font-size:12px;margin-top:6px}
 .chips{display:grid;grid-template-columns:repeat(2,minmax(0,320px));gap:14px;justify-content:center;margin:20px auto 22px;max-width:820px}
 .chip{background:linear-gradient(180deg,#fff 0%,#F6F3EE 100%);border-radius:12px;padding:14px 8px 12px;display:flex;flex-direction:column;align-items:center;gap:3px;box-shadow:0 10px 24px rgba(0,0,0,.30)}
 .chip.hero{grid-column:1/-1}.chip.hero>b{font-size:36px}
@@ -545,7 +532,7 @@ header h1{margin:0;font-size:18px}
 .chip .l{font-size:12px;font-weight:bold;color:${INK}}.chip b{font-size:26px;line-height:1.15}.chip .s{font-size:11px;color:${MUTED};line-height:1.35}
 .chip .dl{font-size:11px;font-weight:bold}
 .pie{display:block;width:${PIE}px;height:${PIE}px;border-radius:50%;margin:8px 0 2px}
-.sp{display:flex;align-items:flex-end;gap:2px;height:${SPARK_H}px;margin:4px 0 2px;direction:ltr}.sp i{display:block;width:7px;background:#D5DBE4;border-radius:1px}
+
 @media(max-width:600px){.chips{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.chip b{font-size:22px}.chip.hero>b{font-size:30px}}
 main{max-width:960px;margin:0 auto;padding:12px 16px 48px}
 .tools{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 4px}
@@ -705,7 +692,6 @@ function buildEmailHtml(parts, workDays, greetName, scope, link) {
           <tr><td bgcolor="#ffffff" align="center" dir="rtl" style="background-color:#ffffff;border-radius:10px 10px 0 0;padding:16px 6px 2px;text-align:center;${F}font-size:12px;font-weight:bold;color:${INK};line-height:16px">${k.label}</td></tr>
           <tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:2px 6px 0;text-align:center;${F}font-size:${big ? 34 : 24}px;font-weight:900;color:${k.color};line-height:${big ? 40 : 30}px">${ltr(fmtShort(k.value))}</td></tr>
           <tr><td bgcolor="#ffffff" align="center" dir="rtl" style="background-color:#ffffff;padding:3px 6px 0;text-align:center;${F}font-size:11px;font-weight:bold;color:${dl.color};line-height:15px">${dl.text}</td></tr>
-          <tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:0 6px">${sparkEmail(k.series, k.color)}</td></tr>
           ${k.stats ? `<tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:8px 6px 2px"><table role="presentation" cellpadding="0" cellspacing="0" dir="rtl" align="center"><tr>${k.stats.map(([l, x], i) => `${i ? '<td width="10" style="width:10px;font-size:0">&nbsp;</td>' : ''}<td align="center" bgcolor="#F1EEE8" style="background-color:#F1EEE8;padding:6px 14px;border-radius:8px;text-align:center;${F}"><div style="font-size:11px;color:${MUTED};line-height:15px">${l}</div><div style="font-size:18px;font-weight:bold;color:${NAVY};line-height:22px">${ltr(x)}</div></td>`).join('')}</tr></table></td></tr>` : ''}
           <tr><td bgcolor="#ffffff" align="center" style="background-color:#ffffff;padding:8px 6px 2px">${pieEmail(k)}</td></tr>
           <tr><td bgcolor="#ffffff" align="center" dir="rtl" style="background-color:#ffffff;padding:4px 8px 12px;text-align:center;${F}font-size:10px;color:${MUTED};line-height:15px;border-radius:0 0 10px 10px">${kpiSub(k, ltr) + '<br>&nbsp;'.repeat(Math.max(0, lines - k.sub.length))}</td></tr>
