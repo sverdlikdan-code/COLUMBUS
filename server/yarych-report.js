@@ -9,7 +9,7 @@
 // только на странице: почтовики режут JS). Страница пишется в /root/private-share/<YARYCH_SHARE>.html,
 // трекинг чтения — тот же POST /p/<hex>/ev, что у Diler Intelligence.
 //
-// Usage: node yarych-report.js [--month=YYYY-MM] [--dry-run] [--page-only] [--test-notice] [--snapshot] [--to=a@b.com]
+// Usage: node yarych-report.js [--supplier=yarych|roshen] [--month=YYYY-MM] [--dry-run] [--page-only] [--test-notice] [--snapshot] [--to=a@b.com]
 require('dotenv').config({ path: '../.env' });
 const fs = require('fs');
 const path = require('path');
@@ -18,7 +18,16 @@ const DRY_RUN = process.argv.includes('--dry-run');
 const arg = k => (process.argv.find(a => a.startsWith(`--${k}=`)) || '').split('=')[1];
 const DOCS = path.join(__dirname, '..', 'docs');
 const WS = 'ee9e5fc6-bc10-4e7d-a8f3-b23c08d150ed', DS = 'fb6691a0-9b2f-413b-b438-78d2982c4e70'; // CONTROL / INTERNATIONAL CONTROL DESK
-const SUPPLIER = '2110171', SHOW_MONTHS = 18, TOP_PRIVATE = 10, STOCK_MONTHS = 3;
+// шаблон «отчёт по поставщику» (пользователь 2026-10-05): --supplier=<key>, по умолчанию yarych — поведение YARYCH не меняется.
+// ENV и файлы на VPS — с префиксом ключа: <KEY>_SHARE, <KEY>_REPORT_RECIPIENTS/_CC, ~/.<key>-photos, ~/.<key>-stock-snapshots.json
+const PROFILES = {
+  yarych: { code: '2110171', name: 'YARYCH', legal: 'YARYCH LLC', greet: 'Дмитрий, добрый день!', pbiPage: 'YARICH מלאי' },
+  roshen: { code: '2110001', name: 'ROSHEN', legal: 'ROSHEN (רושן אוקראינה)', greet: 'Добрый день!' }, // ROSHEN 2026-11-04: только поставщик 2110001, INTER
+};
+const KEY = arg('supplier') || 'yarych', P = PROFILES[KEY];
+if (!P) throw new Error(`--supplier=${KEY}: нет профиля (${Object.keys(PROFILES).join(', ')})`);
+const ENV = s => process.env[`${KEY.toUpperCase()}_${s}`];
+const SUPPLIER = P.code, SHOW_MONTHS = 18, TOP_PRIVATE = 10, STOCK_MONTHS = 3;
 const SHARE_DIR = '/root/private-share', PUBLIC = 'https://columbus-api.sverdlik-apps.site';
 
 const NAVY = '#1C3D6B', GOLD = '#C9A227', INK = '#1F2937', MUTED = '#6B7280', LINE = '#E5E7EB', PAPER = '#F4F6FA', RED = '#B91C1C', GREEN = '#15803D';
@@ -173,7 +182,7 @@ function buildPage(d) {
 <html dir="rtl" lang="he"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>YARYCH · INTER · ${label(d.month)}</title>
+<title>${P.name} · INTER · ${label(d.month)}</title>
 <style>
 :root{--navy:${NAVY};--gold:${GOLD};--ink:${INK};--muted:${MUTED};--line:${LINE};--paper:${PAPER};--red:${RED};--green:${GREEN}}
 *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.45 Arial,'Segoe UI',sans-serif}
@@ -213,7 +222,7 @@ details summary{cursor:pointer;color:var(--navy);font-size:13px;margin:10px 0 6p
 .leg{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:6px}.leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-left:4px;vertical-align:-1px}
 footer{color:var(--muted);font-size:11.5px;text-align:center;padding:6px 16px 20px}
 </style></head><body>
-<header><h1>YARYCH — מכירות INTER</h1><p>דוח חודשי · ${label(d.month)} · מקור: Power BI INTERNATIONAL CONTROL DESK</p></header>
+<header><h1>${P.name} — מכירות INTER</h1><p>דוח חודשי · ${label(d.month)} · מקור: Power BI INTERNATIONAL CONTROL DESK</p></header>
 <div class="bar"><span class="sh">יחידות מידה:</span><div class="tg" id="tg"><button data-i="0" class="on">יחידות</button><button data-i="1">קרטונים</button><button data-i="2">ק"ג</button></div></div>
 <main>
 <section id="kpi"><h2>${label(d.month)} — סיכום <span class="un"></span></h2><div class="kpis" id="kpis" dir="ltr"></div></section>
@@ -222,10 +231,10 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:6px 16px 20
 <section id="chains"><div class="ymbox"></div><div class="kt" id="kt"><span class="sh">כשרות לקוח:</span><div class="tg sm"><button class="kb on" data-kos="all">הכל</button><button class="kb" data-kos="כן">כשר</button><button class="kb" data-kos="לא">לא כשר</button></div></div><h2>רשתות — כמה לקחה כל רשת ומשקלה מהסה"כ <span class="pd"></span> <span class="un"></span></h2><div class="scroll" dir="ltr"><table id="tCh" dir="ltr" class="lt"></table></div><div id="tChX"></div><div id="tChR"></div><div id="lost"></div></section>
 <section id="private"><div class="ymbox"></div><h2>שוק פרטי — ${TOP_PRIVATE} הלקוחות הגדולים בתקופה הנבחרת <span class="pd"></span> <span class="un"></span></h2><div class="scroll" dir="ltr"><table id="tPr" dir="ltr" class="lt"></table></div><div id="tPrX"></div></section>
 <section id="dist"><div class="ymbox"></div><h2>פיזור — כמה לקוחות הזמינו כל מוצר <span class="pd"></span></h2><p class="sh" style="margin:-4px 0 10px;font-size:12px">לקוחות INTER פעילים · לקוח נספר פעם אחת בתקופה · מכר בלבד (בלי החזרות/השמדות) · כמו ב-Power BI</p><div class="kpis" id="dKpi" dir="ltr"></div><div class="scroll" style="margin-top:10px" dir="ltr"><table id="tDi" dir="ltr" class="lt"></table></div><div id="tDiX"></div></section>
-<section id="stock"><div class="ymbox"></div><h2>מלאי והזמנה מומלצת <span class="pd"></span></h2><p class="sh" style="margin:-4px 0 10px;font-size:12px">מכר, ימי מלאי והזמנה מומלצת — לפי החודשים הנבחרים · מלאי נכון ל-${d.asOf} · כמו בדף YARICH מלאי ב-Power BI · לא תלוי במתג היחידות · כמו בדף YARICH מלאי</p><div class="kpis" id="sKpi"></div><div class="scroll" style="margin-top:10px" dir="ltr"><table id="tSt" dir="ltr"></table></div><div id="tStX"></div></section>
+<section id="stock"><div class="ymbox"></div><h2>מלאי והזמנה מומלצת <span class="pd"></span></h2><p class="sh" style="margin:-4px 0 10px;font-size:12px">מכר, ימי מלאי והזמנה מומלצת — לפי החודשים הנבחרים · מלאי נכון ל-${d.asOf} · ${P.pbiPage ? `כמו בדף ${P.pbiPage} ב-Power BI` : 'כמו ב-Power BI'} · לא תלוי במתג היחידות</p><div class="kpis" id="sKpi"></div><div class="scroll" style="margin-top:10px" dir="ltr"><table id="tSt" dir="ltr"></table></div><div id="tStX"></div></section>
 <section id="hist"><h2>מלאי ב-1 לכל חודש — יחידות</h2><p class="sh" style="margin:-4px 0 10px;font-size:12px">מחסן ראשי (כמו מלאי זמין ב-Power BI) · מקור: Priority · לא תלוי בבחירת החודשים</p><div id="hChart"></div><div class="leg" id="hLeg" style="margin-bottom:12px"></div><div class="scroll" dir="ltr"><table id="tHi" dir="ltr" class="lt"></table></div></section>
 </main>
-<footer>INTER בלבד · ספק YARYCH LLC (2110171) · חודשים שלמים</footer>
+<footer>INTER בלבד · ספק ${esc(P.legal)} (${SUPPLIER}) · חודשים שלמים</footer>
 <script>
 var D=${data};
 (function(){
@@ -298,7 +307,7 @@ function render(){selState();
   tbl('tCh','ch',chainsFor().filter(function(x){return cur(x)||lyv(x)}),'רשת','סה"כ רשתות');
   var lost=HL?chainsFor().filter(function(x){return lyv(x)>0&&cur(x)<=0}).sort(function(p,q){return lyv(q)-lyv(p)}):[];
   function lastBuy(x){for(var i=SEL[SEL.length-1];i>=0;i--)if(x.v[i][0]>0)return lb(D.months[i]);return 'לפני '+lb(D.months[0])}
-  document.getElementById('lost').innerHTML=!HL?'':'<h3 class="lh">רשתות שהפסיקו לקנות YARYCH <span class="pd">'+SL+' מול '+lyL+'</span> <span class="un">'+['יחידות','קרטונים','ק"ג'][U]+'</span></h3>'+
+  document.getElementById('lost').innerHTML=!HL?'':'<h3 class="lh">רשתות שהפסיקו לקנות ${P.name} <span class="pd">'+SL+' מול '+lyL+'</span> <span class="un">'+['יחידות','קרטונים','ק"ג'][U]+'</span></h3>'+
     (lost.length?'<div class="scroll" dir="ltr"><table dir="ltr" class="lt"><tr><th>רשת</th><th class="n">'+lyL+'</th><th class="n">'+SL+'</th><th class="n">קנייה אחרונה</th></tr>'+
     lost.map(function(x){return '<tr><td>'+esc(x.name)+'</td><td class="n">'+f(lyv(x))+'</td><td class="n dn">0</td><td class="n">'+lastBuy(x)+'</td></tr>'}).join('')+
     '<tr class="tot"><td>סה"כ '+lost.length+' רשתות</td><td class="n">'+f(sum(lost,lyv))+'</td><td class="n">0</td><td></td></tr></table></div>':'<p class="sh" style="margin:6px 0 0">אין — כל הרשתות שקנו בשנה שעברה קנו גם בתקופה הנבחרת</p>');
@@ -386,7 +395,7 @@ var track=function(){};
 // со склада WARHS на TOWARHS). Снимки хранятся в файле: записанная дата больше не пересчитывается;
 // cron 1-го в 00:05 дописывает фактический снимок (--snapshot).
 const STOCK_HIST_FROM = '2026-01';
-const SNAP_FILE = process.env.YARYCH_SNAP_FILE || path.join(require('os').homedir(), '.yarych-stock-snapshots.json');
+const SNAP_FILE = ENV('SNAP_FILE') || path.join(require('os').homedir(), `.${KEY}-stock-snapshots.json`);
 const pcd = s2 => { const [y, m, dd] = s2.split('-').map(Number); return (Date.UTC(y, m - 1, dd) - Date.UTC(1988, 0, 1)) / 86400000 * 1440; };
 async function priorityPool() {
   const sql = require('mssql');
@@ -440,7 +449,7 @@ const RU_GEN = ['января', 'февраля', 'марта', 'апреля', 
 function nextFirst() { const n = addMonths(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' }).slice(0, 7), 1); return `1 ${RU_GEN[+n.slice(5) - 1]} ${n.slice(0, 4)} года`; }
 const ruIns = p => `${RU_INS[+p.slice(5) - 1]} ${p.slice(0, 4)}`;
 const ruLong = p => `${RU_MONTH[+p.slice(5) - 1]} ${p.slice(0, 4)}`;
-const PHOTO_DIR = process.env.YARYCH_PHOTO_DIR || path.join(require('os').homedir(), '.yarych-photos');
+const PHOTO_DIR = ENV('PHOTO_DIR') || path.join(require('os').homedir(), `.${KEY}-photos`);
 async function loadPhotos(urls) {
   const sharp = require('sharp'), out = {};
   fs.mkdirSync(PHOTO_DIR, { recursive: true });
@@ -468,7 +477,7 @@ async function buildExcel(d) {
   [['Штуки', 0], ['Картоны', 1], ['Кг', 2]].forEach(([title, ui]) => {
     const ws = wb.addWorksheet(title, { views: [{ state: 'frozen', xSplit: 4, ySplit: HDR }] });
     ws.columns = [{ width: 11 }, { width: 10 }, { width: 46 }, { width: 24 }, ...months.map(() => ({ width: 10 })), { width: 12 }];
-    ws.getCell('A1').value = `YARYCH · продажи INTER по месяцам · ${title.toLowerCase()}`; ws.getCell('A1').font = { bold: true, size: 14, color: { argb: NAVY_X } };
+    ws.getCell('A1').value = `${P.name} · продажи INTER по месяцам · ${title.toLowerCase()}`; ws.getCell('A1').font = { bold: true, size: 14, color: { argb: NAVY_X } };
     ws.getCell('A2').value = `${ruShort(months[0])} – ${ruShort(months[N - 1])}, закрытые месяцы · источник: Power BI INTERNATIONAL CONTROL DESK`; ws.getCell('A2').font = { size: 10, color: { argb: 'FF6B7280' } };
     const hdr = ws.getRow(HDR); hdr.values = ['Фото', 'Код', 'Товар', 'Семья', ...months.map(ruShort), 'Итого']; hdr.height = 22;
     hdr.eachCell(c => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY_X } }; c.alignment = { vertical: 'middle', horizontal: 'center' }; });
@@ -501,7 +510,7 @@ async function buildExcel(d) {
     const H = d.stockHist, M2 = H.dates.length, ruDate = dt => `1 ${RU_GEN[+dt.slice(5, 7) - 1]} ${dt.slice(0, 4)}`;
     const ws = wb.addWorksheet('Остатки, шт', { views: [{ state: 'frozen', xSplit: 4, ySplit: HDR }] });
     ws.columns = [{ width: 11 }, { width: 10 }, { width: 46 }, { width: 24 }, ...H.dates.map(() => ({ width: 12 }))];
-    ws.getCell('A1').value = 'YARYCH · остатки на складе INTER на 1-е число месяца · штуки'; ws.getCell('A1').font = { bold: true, size: 14, color: { argb: NAVY_X } };
+    ws.getCell('A1').value = `${P.name} · остатки на складе INTER на 1-е число месяца · штуки`; ws.getCell('A1').font = { bold: true, size: 14, color: { argb: NAVY_X } };
     ws.getCell('A2').value = `${ruDate(H.dates[0])} – ${ruDate(H.dates[M2 - 1])} · склад Main (как מלאי זמין в Power BI) · источник: Priority`; ws.getCell('A2').font = { size: 10, color: { argb: 'FF6B7280' } };
     const hdr = ws.getRow(HDR); hdr.values = ['Фото', 'Код', 'Товар', 'Семья', ...H.dates.map(ruDate)]; hdr.height = 22;
     hdr.eachCell(c => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY_X } }; c.alignment = { vertical: 'middle', horizontal: 'center' }; });
@@ -533,20 +542,20 @@ function buildEmail(d, t, link) {
   const F = 'font-family:Arial,Helvetica,sans-serif;', ly = d.ly, M = ruLong(d.month), MS = ruShort(d.month), LS = ly ? ruShort(ly) : null;
   const kpi = (lab, val, extra = '') => `<td width="33%" align="center" valign="top" bgcolor="${PAPER}" style="${F}padding:14px 6px;border:1px solid ${LINE}"><div style="${F}font-size:13px;color:${MUTED}">${lab}</div><div style="${F}font-size:24px;font-weight:bold;color:${NAVY};padding-top:4px">${val}</div>${extra}</td>`;
   const share = t.u ? Math.round(100 * t.chainsU / t.u) : 0;
-  const subject = `YARYCH · продажи INTER · ${M}`;
+  const subject = `${P.name} · продажи INTER · ${M}`;
   const html = `<!doctype html><html lang="ru" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
 <body style="margin:0;padding:0;background:${PAPER}">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${PAPER}"><tr><td align="center" style="padding:24px 10px">
 <table role="presentation" width="640" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="width:640px;max-width:640px;border:1px solid ${LINE}">
 <tr><td bgcolor="${NAVY}" style="${F}padding:20px 28px">
   <img src="cid:diler-logo-white" alt="Diler BMD" height="34" style="display:block;height:34px;border:0">
-  <div style="${F}font-size:22px;font-weight:bold;color:#ffffff;padding-top:12px">YARYCH · продажи INTER</div>
+  <div style="${F}font-size:22px;font-weight:bold;color:#ffffff;padding-top:12px">${P.name} · продажи INTER</div>
   <div style="${F}font-size:14px;color:#C9D5E8;padding-top:4px">Ежемесячный отчёт · ${M}</div>
 </td></tr>
 ${TEST_NOTICE ? `<tr><td style="padding:20px 28px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#FFF4D6" style="${F}padding:12px 16px;border:1px solid #E8C766;font-size:14px;line-height:1.5;color:#5C4400"><b>Это тестовое письмо.</b> Начиная с ${nextFirst()} этот отчёт будет приходить вам автоматически каждое 1-е число месяца — с итогами за прошедший месяц.</td></tr></table></td></tr>` : ''}
 <tr><td style="${F}padding:26px 28px 6px;font-size:16px;color:${INK};line-height:1.5">
-  <p style="margin:0 0 12px;font-size:17px;font-weight:bold">Дмитрий, добрый день!</p>
-  <p style="margin:0">Направляю итоги продаж YARYCH по каналу INTER за ${M}${ly ? ` в сравнении с ${ruIns(ly)}` : ''}.</p>
+  <p style="margin:0 0 12px;font-size:17px;font-weight:bold">${P.greet}</p>
+  <p style="margin:0">Направляю итоги продаж ${P.name} по каналу INTER за ${M}${ly ? ` в сравнении с ${ruIns(ly)}` : ''}.</p>
 </td></tr>
 <tr><td style="padding:16px 22px 4px"><table role="presentation" width="100%" cellpadding="0" cellspacing="6" border="0"><tr>
   ${ly ? kpi(`${LS}, шт`, n0(t.lyU)) : ''}${kpi(`${MS}, шт`, n0(t.u))}${ly ? kpi('Изменение', ch(yoy(t.u, t.lyU))) : ''}
@@ -560,7 +569,7 @@ ${link ? `<tr><td align="center" style="padding:22px 28px 8px">
   <div style="${F}font-size:13px;color:${MUTED};padding-top:10px">Штуки / картоны / кг, все сети, топ частного рынка, остатки и рекомендация к заказу</div>
 </td></tr>` : ''}
 <tr><td style="${F}padding:14px 28px 24px;font-size:14px;color:${INK};line-height:1.5">📎 Во вложении — Excel с продажами по месяцам (${ruShort(d.xl.months[0])} – ${MS}) и фото товаров.${d.stockHist && d.stockHist.dates.length ? `<br><b>Новое:</b> отдельным листом «Остатки, шт» — остатки на складе на 1-е число каждого месяца (${'1 ' + RU_GEN[+d.stockHist.dates[0].slice(5, 7) - 1] + ' ' + d.stockHist.dates[0].slice(0, 4)} – ${'1 ' + RU_GEN[+d.stockHist.dates.at(-1).slice(5, 7) - 1] + ' ' + d.stockHist.dates.at(-1).slice(0, 4)}).` : ''}</td></tr>
-<tr><td bgcolor="${PAPER}" style="${F}padding:14px 28px;font-size:12px;color:${MUTED};border-top:1px solid ${LINE}">Отчёт сформирован автоматически из Power BI (INTERNATIONAL CONTROL DESK) · только INTER · поставщик YARYCH LLC</td></tr>
+<tr><td bgcolor="${PAPER}" style="${F}padding:14px 28px;font-size:12px;color:${MUTED};border-top:1px solid ${LINE}">Отчёт сформирован автоматически из Power BI (INTERNATIONAL CONTROL DESK) · только INTER · поставщик ${esc(P.legal)}</td></tr>
 </table></td></tr></table></body></html>`;
   return { subject, html };
 }
@@ -580,9 +589,9 @@ async function main() {
   const month = arg('month') || addMonths(now, -1);
   const raw = await fetchData(addMonths(month, -(SHOW_MONTHS + 11)), month);
   const d = shape(raw, month);
-  if (!d.skus.length) throw new Error(`нет продаж YARYCH/INTER за окно до ${month} — проверить датасет`);
+  if (!d.skus.length) throw new Error(`нет продаж ${P.name}/INTER за окно до ${month} — проверить датасет`);
   const t = totals(d);
-  console.log(`YARYCH ${month}: ${n0(t.u)} шт / ${n0(t.krt)} крт / ${n0(t.kg)} кг, SKU ${d.skus.length}, сетей ${d.chains.length}`);
+  console.log(`${P.name} ${month}: ${n0(t.u)} шт / ${n0(t.krt)} крт / ${n0(t.kg)} кг, SKU ${d.skus.length}, сетей ${d.chains.length}`);
   try { const sharp = require('sharp'), ph = await loadPhotos(d.photoUrl || {}); d.thumbs = {};
     for (const [k, b] of Object.entries(ph)) d.thumbs[k] = 'data:image/jpeg;base64,' + (await sharp(b).resize(64, 64).jpeg({ quality: 78 }).toBuffer()).toString('base64');
   } catch (e) { console.error('[yarych] миниатюры', e.message); }
@@ -591,7 +600,7 @@ async function main() {
   const page = buildPage(d);
 
   if (DRY_RUN) {
-    const out = path.join(__dirname, '..', '.scratch', `yarych-${month}`);
+    const out = path.join(__dirname, '..', '.scratch', `${KEY}-${month}`);
     fs.mkdirSync(path.dirname(out), { recursive: true });
     fs.writeFileSync(out + '-page.html', page);
     const xl = await buildExcel(d); fs.writeFileSync(out + '.xlsx', Buffer.from(xl.buffer)); console.log('Excel:', out + '.xlsx', 'фото', xl.photos);
@@ -601,16 +610,16 @@ async function main() {
     return;
   }
   // страница → /root/private-share/<hex>.html; hex генерируется на VPS и лежит вне репо (run-alert.sh читает файл)
-  const share = process.env.YARYCH_SHARE;
-  if (!/^[0-9a-f]{48}$/.test(share || '')) throw new Error('YARYCH_SHARE не задан (48 hex)');
+  const share = ENV('SHARE');
+  if (!/^[0-9a-f]{48}$/.test(share || '')) throw new Error(`${KEY.toUpperCase()}_SHARE не задан (48 hex)`);
   fs.writeFileSync(path.join(SHARE_DIR, share + '.html'), page);
   if (process.argv.includes('--page-only')) { console.log('--page-only — страница обновлена, письмо не отправлялось'); return; }
   const { subject, html } = buildEmail(d, t, `${PUBLIC}/p/${share}`);
   const xl = await buildExcel(d); console.log('Excel: фото', xl.photos, 'из', Object.keys(d.photoUrl).length);
   const list = v => (v || '').split(',').map(s => s.trim()).filter(Boolean);
-  const to = list(arg('to') || process.env.YARYCH_REPORT_RECIPIENTS);
-  const cc = arg('to') ? [] : list(process.env.YARYCH_REPORT_CC);
-  if (!to.length) throw new Error('YARYCH_REPORT_RECIPIENTS не задан');
+  const to = list(arg('to') || ENV('REPORT_RECIPIENTS'));
+  const cc = arg('to') ? [] : list(ENV('REPORT_CC'));
+  if (!to.length) throw new Error(`${KEY.toUpperCase()}_REPORT_RECIPIENTS не задан`);
   if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY не найден в .env');
   const { Resend } = require('resend');
   const logo = path.join(DOCS, 'logo-diler-bmd-white.png');
@@ -619,7 +628,7 @@ async function main() {
     to, ...(cc.length ? { cc } : {}), subject, html,
     attachments: [
       ...(fs.existsSync(logo) ? [{ filename: 'logo-white.png', content: fs.readFileSync(logo).toString('base64'), contentId: 'diler-logo-white' }] : []),
-      { filename: `YARYCH_INTER_${month}.xlsx`, content: Buffer.from(xl.buffer).toString('base64') },
+      { filename: `${P.name}_INTER_${month}.xlsx`, content: Buffer.from(xl.buffer).toString('base64') },
     ],
   });
   console.log('Отправлено:', JSON.stringify(res));
