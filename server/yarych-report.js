@@ -22,7 +22,7 @@ const WS = 'ee9e5fc6-bc10-4e7d-a8f3-b23c08d150ed', DS = 'fb6691a0-9b2f-413b-b438
 // ENV и файлы на VPS — с префиксом ключа: <KEY>_SHARE, <KEY>_REPORT_RECIPIENTS/_CC, ~/.<key>-photos, ~/.<key>-stock-snapshots.json
 const PROFILES = {
   yarych: { code: '2110171', name: 'YARYCH', legal: 'YARYCH LLC', greet: 'Дмитрий, добрый день!', pbiPage: 'YARICH מלאי' },
-  roshen: { code: '2110001', name: 'ROSHEN', legal: 'ROSHEN (רושן אוקראינה)', greet: 'Добрый день!' }, // ROSHEN 2026-11-04: только поставщик 2110001, INTER
+  roshen: { code: '2110001', name: 'ROSHEN', legal: 'ROSHEN (רושן אוקראינה)', greet: 'Дмитрий, добрый день!' }, // ROSHEN 2026-11-04: только поставщик 2110001, INTER; Диме вместе с YARYCH
 };
 const KEY = arg('supplier') || 'yarych', P = PROFILES[KEY];
 if (!P) throw new Error(`--supplier=${KEY}: нет профиля (${Object.keys(PROFILES).join(', ')})`);
