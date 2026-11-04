@@ -54,11 +54,15 @@ function fixBiDi(raw) {
 
 // ── данные ──────────────────────────────────────────────────────────────────
 async function fetchData(from, to) {
-  const { executeDax } = require('./powerbi');
+  // executeQueries молча режет ответ на 100,000 строк (ROSHEN 2026-11-04: פיזור 302001 Oct-26 = 62 вместо 341) — упираемся = падаем, не шлём обрезанное
+  const pbi = require('./powerbi'), ROW_CAP = 100000;
+  const executeDax = async (...a) => { const r = await pbi.executeDax(...a); if (r.length >= ROW_CAP) throw new Error(`DAX вернул ${r.length} строк = лимит PBI, данные обрезаны`); return r; };
   const F = "'DataIINא+F+I+MMD 25-23-24-22'", K = "'KARTIS PARIT'", C = "'לקוחות רב חברתי'";
-  const [fy, fm] = from.split('-').map(Number), [ty, tm] = to.split('-').map(Number);
-  const filters = `FILTER(ALL(${K}[ספק]), ${K}[ספק] = "${SUPPLIER}"), TREATAS({"INTER"}, ${F}[חברה]),
-  FILTER(ALL(DIMCALENDAR[Date]), DIMCALENDAR[Date] >= DATE(${fy},${fm},1) && DIMCALENDAR[Date] <= EOMONTH(DATE(${ty},${tm},1),0))`;
+  const [ty, tm] = to.split('-').map(Number);
+  const filtersFor = (a, b) => { const [ay, am] = a.split('-').map(Number), [by, bm] = b.split('-').map(Number);
+    return `FILTER(ALL(${K}[ספק]), ${K}[ספק] = "${SUPPLIER}"), TREATAS({"INTER"}, ${F}[חברה]),
+  FILTER(ALL(DIMCALENDAR[Date]), DIMCALENDAR[Date] >= DATE(${ay},${am},1) && DIMCALENDAR[Date] <= EOMONTH(DATE(${by},${bm},1),0))`; };
+  const filters = filtersFor(from, to);
   const vals = `"u", [TOTAL UNITS _מכר_], "krt", [מכר בקרטונים], "kg", [WEIGHT KG.]`;
   const q = cols => executeDax(`EVALUATE SUMMARIZECOLUMNS(DIMCALENDAR[Year], DIMCALENDAR[Month], ${cols}, ${filters}, ${vals})`, DS, WS);
   // последовательно — не бить квоту параллельными DAX
@@ -87,8 +91,13 @@ async function fetchData(from, to) {
   const kip = await executeDax(`EVALUATE SUMMARIZECOLUMNS(${K}[מק"ט], FILTER(ALL(${K}[ספק]), ${K}[ספק] = "${SUPPLIER}"), "kip", [KARTON IN PALLET average per מק"ט])`, DS, WS);
   // פיזור: активные клиенты INTER (не зависят от дат) + кто из клиентов INTER какой SKU в каком месяце заказал (только -מכר-)
   const act = await executeDax(`EVALUATE ROW("act", CALCULATE([DIST לקוחות פעילים], TREATAS({"INTER"}, ${C}[HEVRA])))`, DS, WS);
-  const dist = await executeDax(`EVALUATE SUMMARIZECOLUMNS(DIMCALENDAR[Year], DIMCALENDAR[Month], ${K}[מק"ט], ${C}[מס. לקוח], ${filters},
-  TREATAS({"INTER"}, ${C}[HEVRA]), "o", [כמות לקוחות שהזמנינו for -מכר-])`, DS, WS);
+  // кусками по 3 месяца: ROSHEN ≈ 25k строк в месяц, за всё окно — далеко за лимитом 100k
+  const dist = [];
+  for (let p = from; p <= to; p = addMonths(p, 3)) {
+    const e = addMonths(p, 2) < to ? addMonths(p, 2) : to;
+    dist.push(...await executeDax(`EVALUATE SUMMARIZECOLUMNS(DIMCALENDAR[Year], DIMCALENDAR[Month], ${K}[מק"ט], ${C}[מס. לקוח], ${filtersFor(p, e)},
+  TREATAS({"INTER"}, ${C}[HEVRA]), "o", [כמות לקוחות שהזמנינו for -מכר-])`, DS, WS));
+  }
   const photos = await executeDax(`EVALUATE SELECTCOLUMNS(FILTER(${K}, ${K}[ספק] = "${SUPPLIER}"), "sku", ${K}[מק"ט], "url", ${K}[URL תמונה])`, DS, WS);
   return { sku, chan, priv, stock: withTot(stock, stockTot), photos, stockM, kip, act: act[0]?.['[act]'] || 0, dist };
 }
@@ -142,7 +151,7 @@ function shape(raw, month) {
     stockFrom: addMonths(month, -(STOCK_MONTHS - 1)), asOf: new Date().toLocaleDateString('en-GB', { timeZone: 'Asia/Jerusalem' }),
     stock: raw.stock.map(r => ({
       total: r['[isTotal]'] === true, sku: String(r['KARTIS PARIT[מק"ט]'] ?? ''), name: String(r['KARTIS PARIT[תאור לועזי]'] || '').trim(),
-      fam: fixBiDi(String(r['KARTIS PARIT[תאור פרמטר 2 למוצר]'] || '')),
+      fam: fixBiDi(String(r['KARTIS PARIT[תאור פרמטר 2 למוצר]'] || '')) || '—',
       ...Object.fromEntries(['mU', 'mK', 'mP', 'mOK', 'avgK', 'sK', 'days', 'safe', 'rec', 'zik', 'nis', 'safeP', 'palDay', 'wK', 'cnt'].map(k => [k, r[`[${k}]`] ?? null])),
     })).sort((a, b) => a.total - b.total || (famOrder[b.fam] || 0) - (famOrder[a.fam] || 0) || a.sku.localeCompare(b.sku)),
   };
@@ -267,6 +276,10 @@ function chainsFor(){var by={},o=[];D.chains.forEach(function(c){if(KOS!=='all'&
   c.v.forEach(function(v,i){for(var j=0;j<3;j++)x.v[i][j]+=v[j]});c.l.forEach(function(v,i){if(v){x.l[i]=x.l[i]||[0,0,0];for(var j=0;j<3;j++)x.l[i][j]+=v[j]}})});return o}
 function ldist(x,ly){var set={},n=0;SEL.forEach(function(i){var p=D.months[i];if(ly)p=ly12(p);(x.m[p]||[]).forEach(function(c){if(!set[c]){set[c]=1;n++}})});return {n:n,set:set}}
 var HID={sku:{},st:{},ch:{},pr:{},di:{}};
+// группы параметра 2: по умолчанию свёрнуты, в строке группы — её итог; клик по строке раскрывает товары (пользователь 2026-11-04)
+var OPEN={};function isO(t,fm){return !!OPEN[t+'|'+fm]}function fh(t,fm){return ' data-g="'+encodeURIComponent(t+'|'+fm)+'" style="cursor:pointer"'}
+function ar(t,fm){return '<span style="display:inline-block;width:1.2em">'+(isO(t,fm)?'▾':'▸')+'</span>'}
+function grp(a){var g={},o=[];a.forEach(function(x){if(!g[x.fam]){g[x.fam]=[];o.push(x.fam)}g[x.fam].push(x)});return o.map(function(fm){return [fm,g[fm]]})}
 function vis(t,a,key){return a.filter(function(x){return !HID[t][key(x)]})}
 function xb(t,k){return '<button class="x" data-t="'+t+'" data-k="'+esc(k)+'" title="הסתר שורה">✕</button>'}
 function rb(t){var n=Object.keys(HID[t]).length;return n?'<button class="rs" data-t="'+t+'">↺ החזר '+n+' שורות מוסתרות</button>':''}
@@ -296,8 +309,8 @@ function render(){selState();
   var grand=D.months.map(function(_,i){return sum(SK,function(x){return x.v[i][U]})}),g={},ord=[],body='';
   SK.forEach(function(x){if(!g[x.fam]){g[x.fam]=[];ord.push(x.fam)}g[x.fam].push(x)});
   ord.forEach(function(fm){var a=g[fm],v=D.months.map(function(_,i){return sum(a,function(x){return x.v[i][U]})}),l=sum(a,lyv);
-    body+='<tr class="fam"><td class="st s1"></td><td class="st s2" dir="rtl">'+esc(fm)+'</td>'+lyc(l)+mc(v)+ch(HL?pc(selV(v),l):null)+'</tr>';
-    a.forEach(function(x){body+='<tr><td class="st s1">'+xb('sku',x.sku)+x.sku+'</td><td class="st s2 en">'+esc(x.name)+'</td>'+lyc(lyv(x))+mc(x.v.map(function(z){return z[U]}),true)+ch(HL?pc(cur(x),lyv(x)):null)+'</tr>'})});
+    body+='<tr class="fam"'+fh('sku',fm)+'><td class="st s1"></td><td class="st s2" dir="rtl">'+ar('sku',fm)+esc(fm)+'</td>'+lyc(l)+mc(v)+ch(HL?pc(selV(v),l):null)+'</tr>';
+    if(isO('sku',fm))a.forEach(function(x){body+='<tr><td class="st s1">'+xb('sku',x.sku)+x.sku+'</td><td class="st s2 en">'+esc(x.name)+'</td>'+lyc(lyv(x))+mc(x.v.map(function(z){return z[U]}),true)+ch(HL?pc(cur(x),lyv(x)):null)+'</tr>'})});
   body+='<tr class="tot"><td class="st s1"></td><td class="st s2">TOTAL</td>'+lyc(TL)+mc(grand)+ch(HL?pc(T,TL):null)+'</tr>';
   document.getElementById('tSku').innerHTML=hd+body;document.getElementById('skuX').innerHTML=rb('sku');var w=document.getElementById('skuWrap');w.scrollLeft=w.scrollWidth;
   // сети и частники: отчётный месяц, доля от общего итога, к прошлому году, 12 месяцев и доля
@@ -323,21 +336,24 @@ function stockCalc(x){var sK=0,dd=0,zk=0,br=0;SEL.forEach(function(i){var m=x.sm
     days:avgK?x.mOK/avgK*7/5:0,rec:avgK&&avgK*safe*5/7-Math.max(x.mOK,0)>0?avgK*safe*5/7-Math.max(x.mOK,0):null,palDay:avgK&&x.kip?avgK/x.kip:null};
   r.safeP=r.palDay!=null?r.palDay*safe:null;return r}
 function renderDist(){var X=D.dist,A=X.act,all=X.rows,rows=vis('di',all,skuK),U0={},UL={},nu=0,nl=0;
-  rows.forEach(function(x){var c=ldist(x),l=ldist(x,true);x.o=c.n;x.ol=l.n;for(var k in c.set)if(!U0[k]){U0[k]=1;nu++}for(var k2 in l.set)if(!UL[k2]){UL[k2]=1;nl++}});
+  rows.forEach(function(x){var c=ldist(x),l=ldist(x,true);x.o=c.n;x.ol=l.n;x.cs=c.set;x.ls=l.set;for(var k in c.set)if(!U0[k]){U0[k]=1;nu++}for(var k2 in l.set)if(!UL[k2]){UL[k2]=1;nl++}});
   function pz(v){return A?Math.round(1000*v/A)/10+'%':'—'}
   var k=[['לקוחות INTER פעילים',f(A)],[HL?'הזמינו '+lyL:'הזמינו שנה שעברה',HL?f(nl):'אין נתונים'],['הזמינו '+SL,f(nu)],[HL?'מול '+lyL:'שינוי',HL&&pc(nu,nl)!=null?(pc(nu,nl)>0?'+':'')+pc(nu,nl)+'%':'—',HL&&pc(nu,nl)!=null?(pc(nu,nl)>=0?'up':'dn'):''],['פיזור '+SL,pz(nu)]];
   document.getElementById('dKpi').innerHTML=k.map(function(x){return '<div class="kpi"><span>'+x[0]+'</span><b dir="ltr" class="'+(x[2]||'')+'">'+x[1]+'</b></div>'}).join('');
   var h='<tr><th style="width:64px"></th><th>מק"ט</th><th>ENG</th><th class="n">'+(lyL||'שנה שעברה')+'<br>הזמינו</th><th class="n">'+SL+'<br>הזמינו</th><th class="n">'+(lyL?'מול '+lyL:'שינוי')+'</th><th class="n">פיזור %</th></tr>',b='',fam=null;
-  rows.slice().sort(function(p,q){return p.fam===q.fam?q.o-p.o:0}).forEach(function(x){if(x.fam!==fam)b+='<tr class="fam"><td colspan="7" dir="rtl" style="text-align:left">'+esc(x.fam)+'</td></tr>';fam=x.fam;
-    var im=(D.thumbs||{})[x.sku];b+='<tr><td>'+(im?'<img src="'+im+'" alt="" width="48" height="48" style="display:block;border-radius:4px">':'')+'</td><td class="n" style="white-space:nowrap">'+xb('di',x.sku)+x.sku+'</td><td class="en">'+esc(x.name)+'</td>'+lyc(x.ol)+'<td class="n">'+(x.o?f(x.o):'')+'</td>'+ch(HL&&x.ol?pc(x.o,x.ol):null)+'<td class="n">'+(x.o?pz(x.o):'')+'</td></tr>'});
+  grp(rows).forEach(function(G){var fm=G[0],a=G[1].slice().sort(function(p,q){return q.o-p.o}),c={},l={},gc=0,gl=0;a.forEach(function(x){for(var k in x.cs)if(!c[k]){c[k]=1;gc++}for(var k2 in x.ls)if(!l[k2]){l[k2]=1;gl++}});
+    b+='<tr class="fam"'+fh('di',fm)+'><td></td><td colspan="2" dir="rtl" style="text-align:left">'+ar('di',fm)+esc(fm)+'</td>'+lyc(gl)+'<td class="n">'+f(gc)+'</td>'+ch(HL&&gl?pc(gc,gl):null)+'<td class="n">'+pz(gc)+'</td></tr>';
+    if(isO('di',fm))a.forEach(function(x){
+    var im=(D.thumbs||{})[x.sku];b+='<tr><td>'+(im?'<img src="'+im+'" alt="" width="48" height="48" style="display:block;border-radius:4px">':'')+'</td><td class="n" style="white-space:nowrap">'+xb('di',x.sku)+x.sku+'</td><td class="en">'+esc(x.name)+'</td>'+lyc(x.ol)+'<td class="n">'+(x.o?f(x.o):'')+'</td>'+ch(HL&&x.ol?pc(x.o,x.ol):null)+'<td class="n">'+(x.o?pz(x.o):'')+'</td></tr>'})});
   b+='<tr class="tot"><td></td><td colspan="2">סה"כ (לקוחות שונים)</td>'+lyc(nl)+'<td class="n">'+f(nu)+'</td>'+ch(HL?pc(nu,nl):null)+'<td class="n">'+pz(nu)+'</td></tr>';
   document.getElementById('tDi').innerHTML=h+b;document.getElementById('tDiX').innerHTML=rb('di')}
 function renderHist(){var H=D.stockHist,el=document.getElementById('tHi');if(!H||!H.dates.length){document.getElementById('hist').style.display='none';return}
   var MN3=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];function dl(dt){return '1 '+MN3[+dt.slice(5,7)-1]+' '+dt.slice(2,4)}
   var rows=D.dist.rows,tot=H.dates.map(function(_,j){return sum(rows,function(x){return (H.v[x.sku]||[])[j]||0})}),fam=null;
   var h='<tr><th style="width:56px"></th><th>מק"ט</th><th>ENG</th>'+H.dates.map(function(dt){return '<th class="n">'+dl(dt)+'</th>'}).join('')+'</tr>',b='';
-  rows.forEach(function(x){if(x.fam!==fam)b+='<tr class="fam"><td colspan="'+(H.dates.length+3)+'" dir="rtl" style="text-align:left">'+esc(x.fam)+'</td></tr>';fam=x.fam;var im=(D.thumbs||{})[x.sku];
-    b+='<tr><td>'+(im?'<img src="'+im+'" alt="" width="44" height="44" style="display:block;border-radius:4px">':'')+'</td><td class="n" style="text-align:left">'+x.sku+'</td><td class="en" style="text-align:left">'+esc(x.name)+'</td>'+(H.v[x.sku]||[]).map(function(v){return '<td class="n'+(v<0?' dn':'')+'">'+(v==null?'':f(v))+'</td>'}).join('')+'</tr>'});
+  grp(rows).forEach(function(G){var fm=G[0],a=G[1];b+='<tr class="fam"'+fh('hi',fm)+'><td></td><td colspan="2" dir="rtl" style="text-align:left">'+ar('hi',fm)+esc(fm)+'</td>'+H.dates.map(function(_,j){return '<td class="n">'+f(sum(a,function(x){return (H.v[x.sku]||[])[j]||0}))+'</td>'}).join('')+'</tr>';
+    if(isO('hi',fm))a.forEach(function(x){var im=(D.thumbs||{})[x.sku];
+    b+='<tr><td>'+(im?'<img src="'+im+'" alt="" width="44" height="44" style="display:block;border-radius:4px">':'')+'</td><td class="n" style="text-align:left">'+x.sku+'</td><td class="en" style="text-align:left">'+esc(x.name)+'</td>'+(H.v[x.sku]||[]).map(function(v){return '<td class="n'+(v<0?' dn':'')+'">'+(v==null?'':f(v))+'</td>'}).join('')+'</tr>'})});
   var TH=topF(rows,function(x){var s=0;(H.v[x.sku]||[]).forEach(function(v){s+=Math.max(0,v||0)});return s},6),fams=TH.list;var COLH=['#1C3D6B','#E8743B','#3B82F6','#C9A227','#15803D','#8B5CF6'];
   var n=H.dates.length,W=Math.max(1100,n*90),HH=240,pad=28,bw=(W-pad*2)/n,mx=0;H.dates.forEach(function(_,j){mx=Math.max(mx,sum(rows,function(x){return Math.max(0,(H.v[x.sku]||[])[j]||0)}))});
   var svg='<svg class="chart" viewBox="0 0 '+W+' '+(HH+40)+'" direction="ltr">';
@@ -362,11 +378,14 @@ function renderStock(){var S=D.stock,all=S.filter(function(x){return !x.total}),
     if(c==='days'){var low=x.safe!=null&&v>0&&v<x.safe,hi=x.safe!=null&&v>x.safe*2;return '<td class="n" style="'+(low?'background:#FDE2E2;color:#B91C1C;font-weight:700':hi?'background:#FCE9DD':'')+'">'+f(v)+'</td>'}
     return '<td class="n">'+f(v)+'</td>'}
   var h='<tr><th>מק"ט</th><th>ENG</th>'+C.map(function(c){return '<th class="n" style="white-space:normal">'+c[1]+'</th>'}).join('')+'</tr>',b='',fam=null,nc=C.length+2;
-  rows.forEach(function(x){if(x.fam!==fam)b+='<tr class="fam"><td colspan="'+nc+'" dir="rtl" style="text-align:left">'+esc(x.fam)+'</td></tr>';fam=x.fam;
-    b+='<tr><td class="n" style="white-space:nowrap">'+xb('st',x.sku)+x.sku+'</td><td class="en" style="white-space:normal;min-width:170px;max-width:240px">'+esc(x.name)+'</td>'+C.map(function(c){return cell(x,c[0])}).join('')+'</tr>'});
+  grp(rows).forEach(function(G){var fm=G[0],a=G[1],S={};['mU','mK','mP','mOK','avgK','sK','rec','nis','zk','br'].forEach(function(k){S[k]=sum(a,function(x){return x[k]||0})});S.days=S.avgK?S.mOK/S.avgK*7/5:0;S.zik=S.br?S.zk/S.br:null;if(!S.rec)S.rec=null;
+    b+='<tr class="fam"'+fh('st',fm)+'><td colspan="2" dir="rtl" style="text-align:left">'+ar('st',fm)+esc(fm)+'</td>'+C.map(function(c){return cell(S,c[0])}).join('')+'</tr>';
+    if(isO('st',fm))a.forEach(function(x){
+    b+='<tr><td class="n" style="white-space:nowrap">'+xb('st',x.sku)+x.sku+'</td><td class="en" style="white-space:normal;min-width:170px;max-width:240px">'+esc(x.name)+'</td>'+C.map(function(c){return cell(x,c[0])}).join('')+'</tr>'})});
   b+='<tr class="tot"><td colspan="2">סה"כ</td>'+C.map(function(c){return cell(T,c[0])}).join('')+'</tr>';
   document.getElementById('tSt').innerHTML=h+b;document.getElementById('tStX').innerHTML=rb('st')}
-document.addEventListener('click',function(e){var kb=e.target.closest('button.kb');if(kb){KOS=kb.dataset.kos;document.querySelectorAll('button.kb').forEach(function(x){x.classList.toggle('on',x===kb)});HID.ch={};render();track('kos-'+(KOS==='all'?'all':KOS==='כן'?'yes':'no'));return}
+document.addEventListener('click',function(e){var gr=e.target.closest('tr[data-g]');if(gr){var gk=decodeURIComponent(gr.dataset.g);if(OPEN[gk])delete OPEN[gk];else OPEN[gk]=1;render();track('grp');return}
+  var kb=e.target.closest('button.kb');if(kb){KOS=kb.dataset.kos;document.querySelectorAll('button.kb').forEach(function(x){x.classList.toggle('on',x===kb)});HID.ch={};render();track('kos-'+(KOS==='all'?'all':KOS==='כן'?'yes':'no'));return}
   var yb=e.target.closest('[data-y],[data-mo]');if(yb&&!yb.disabled){var isY=yb.hasAttribute('data-y'),A=isY?YS:MS,v=+(isY?yb.dataset.y:yb.dataset.mo),k=A.indexOf(v);
     if(k<0)A.push(v);else A.splice(k,1);var ns=pickSel();if(!ns.length){if(k<0)A.splice(A.indexOf(v),1);else A.push(v);return}
     SEL=ns;render();track(isY?'y-sel':'m-sel');return}
@@ -449,6 +468,7 @@ const RU_MONTH = ['январь', 'февраль', 'март', 'апрель', 
 const ruShort = p => `${RU_M[+p.slice(5) - 1]} ${p.slice(0, 4)}`;
 const RU_INS = ['январём', 'февралём', 'мартом', 'апрелем', 'маем', 'июнем', 'июлем', 'августом', 'сентябрём', 'октябрём', 'ноябрём', 'декабрём'];
 const TEST_NOTICE = process.argv.includes('--test-notice');
+const PILOT_NOTICE = process.argv.includes('--pilot-notice'); // первое письмо нового поставщика: тест, ждём отзыв (ROSHEN 2026-11-04)
 const RU_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 function nextFirst() { const n = addMonths(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jerusalem' }).slice(0, 7), 1); return `1 ${RU_GEN[+n.slice(5) - 1]} ${n.slice(0, 4)} года`; }
 const ruIns = p => `${RU_INS[+p.slice(5) - 1]} ${p.slice(0, 4)}`;
@@ -557,6 +577,7 @@ function buildEmail(d, t, link) {
   <div style="${F}font-size:14px;color:#C9D5E8;padding-top:4px">Ежемесячный отчёт · ${M}</div>
 </td></tr>
 ${TEST_NOTICE ? `<tr><td style="padding:20px 28px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#FFF4D6" style="${F}padding:12px 16px;border:1px solid #E8C766;font-size:14px;line-height:1.5;color:#5C4400"><b>Это тестовое письмо.</b> Начиная с ${nextFirst()} этот отчёт будет приходить вам автоматически каждое 1-е число месяца — с итогами за прошедший месяц.</td></tr></table></td></tr>` : ''}
+${PILOT_NOTICE ? `<tr><td style="padding:20px 28px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#FFF4D6" style="${F}padding:12px 16px;border:1px solid #E8C766;font-size:14px;line-height:1.5;color:#5C4400"><b>Это тестовая версия отчёта ${P.name}.</b> Посмотрите, пожалуйста, и напишите, что поправить, добавить или убрать — доработаем под вас до запуска регулярной рассылки.</td></tr></table></td></tr>` : ''}
 <tr><td style="${F}padding:26px 28px 6px;font-size:16px;color:${INK};line-height:1.5">
   <p style="margin:0 0 12px;font-size:17px;font-weight:bold">${P.greet}</p>
   <p style="margin:0">Направляю итоги продаж ${P.name} по каналу INTER за ${M}${ly ? ` в сравнении с ${ruIns(ly)}` : ''}.</p>
