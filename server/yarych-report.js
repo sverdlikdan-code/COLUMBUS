@@ -256,6 +256,10 @@ function cur(x){var s=0;SEL.forEach(function(i){s+=x.v[i][U]});return s}function
 function lyv(x){var s=0;SEL.forEach(function(i){s+=x.l[i]?x.l[i][U]:0});return s}
 function selV(v){var s=0;SEL.forEach(function(i){s+=v[i]});return s}
 function sum(a,fn){var s=0;a.forEach(function(x){s+=fn(x)});return s}
+// групп больше, чем цветов (ROSHEN: 20) — крупнейшие n−1 по объёму + «שאר»; иначе порядок как был (пользователь 2026-11-04)
+function topF(rows,tot,n){var t={},o=[];rows.forEach(function(x){if(!(x.fam in t)){t[x.fam]=0;o.push(x.fam)}t[x.fam]+=tot(x)});
+  if(o.length<=n)return {list:o,of:function(f){return f}};o.sort(function(a,b){return t[b]-t[a]});var k=o.slice(0,n-1);
+  return {list:k.concat(['שאר']),of:function(f){return k.indexOf(f)>=0?f:'שאר'}}}
 // скрытые строки по таблицам: ✕ прячет строку, итоги пересчитываются; ↺ возвращает
 var KOS='all';
 function chainsFor(){var by={},o=[];D.chains.forEach(function(c){if(KOS!=='all'&&c.kos!==KOS)return;var x=by[c.name];
@@ -278,10 +282,10 @@ function render(){selState();
   var k=[['סה"כ '+(HL?lyL:'שנה שעברה'),HL?f(TL):'אין נתונים'],['סה"כ '+SL,f(T)],[HL?'מול '+lyL:'מול שנה שעברה',HL?((pc(T,TL)>0?'+':'')+pc(T,TL)+'%'):'אין נתונים',HL&&pc(T,TL)!=null?(pc(T,TL)>=0?'up':'dn'):''],['רשתות',f(CH)+' · '+(TF?Math.round(100*CH/TF):0)+'%'],['שוק פרטי',f(PR)+' · '+(TF?Math.round(100*PR/TF):0)+'%']];
   document.getElementById('kpis').innerHTML=k.map(function(x){return '<div class="kpi"><span>'+x[0]+'</span><b dir="ltr" class="'+(x[2]||'')+'">'+x[1]+'</b></div>'}).join('');
   // график: столбики по месяцам, стек по семьям
-  var fams=[];SK.forEach(function(x){if(fams.indexOf(x.fam)<0)fams.push(x.fam)});
+  var TF8=topF(SK,function(x){var s=0;x.v.forEach(function(v){s+=Math.max(0,v[U])});return s},8),fams=TF8.list;
   var W=Math.max(640,L*46),H=260,pad=28,bw=(W-pad*2)/L,mx=0,tot=D.months.map(function(_,i){mx=Math.max(mx,sum(SK,function(x){return Math.max(0,x.v[i][U])}));return sum(SK,function(x){return x.v[i][U]})});
   var svg='<svg class="chart" viewBox="0 0 '+W+' '+(H+40)+'" direction="ltr">';
-  D.months.forEach(function(p,i){var y=H,x=pad+i*bw+4;svg+='<g>';fams.forEach(function(fm,j){var v=sum(SK.filter(function(s){return s.fam===fm}),function(s){return Math.max(0,s.v[i][U])}),h=mx?v/mx*(H-30):0;y-=h;svg+='<rect x="'+x+'" y="'+y+'" width="'+(bw-8)+'" height="'+h+'" fill="'+COL[j%COL.length]+'"/>'});
+  D.months.forEach(function(p,i){var y=H,x=pad+i*bw+4;svg+='<g>';fams.forEach(function(fm,j){var v=sum(SK.filter(function(s){return TF8.of(s.fam)===fm}),function(s){return Math.max(0,s.v[i][U])}),h=mx?v/mx*(H-30):0;y-=h;svg+='<rect x="'+x+'" y="'+y+'" width="'+(bw-8)+'" height="'+h+'" fill="'+COL[j%COL.length]+'"/>'});
     svg+='<text x="'+(x+(bw-8)/2)+'" y="'+(y-5)+'" font-size="11" text-anchor="middle" fill="#1F2937" font-weight="700">'+(tot[i]>=10000?Math.round(tot[i]/1000)+'K':f(tot[i]))+'</text><text x="'+(x+(bw-8)/2)+'" y="'+(H+16)+'" font-size="11" text-anchor="middle" fill="#6B7280">'+lb(p)+'</text></g>'});
   document.getElementById('chart').innerHTML='<div class="scroll">'+svg+'</svg></div>';
   document.getElementById('leg').innerHTML=fams.map(function(fm,j){return '<span><i style="background:'+COL[j%COL.length]+'"></i>'+esc(fm)+'</span>'}).join('');
@@ -334,10 +338,10 @@ function renderHist(){var H=D.stockHist,el=document.getElementById('tHi');if(!H|
   var h='<tr><th style="width:56px"></th><th>מק"ט</th><th>ENG</th>'+H.dates.map(function(dt){return '<th class="n">'+dl(dt)+'</th>'}).join('')+'</tr>',b='';
   rows.forEach(function(x){if(x.fam!==fam)b+='<tr class="fam"><td colspan="'+(H.dates.length+3)+'" dir="rtl" style="text-align:left">'+esc(x.fam)+'</td></tr>';fam=x.fam;var im=(D.thumbs||{})[x.sku];
     b+='<tr><td>'+(im?'<img src="'+im+'" alt="" width="44" height="44" style="display:block;border-radius:4px">':'')+'</td><td class="n" style="text-align:left">'+x.sku+'</td><td class="en" style="text-align:left">'+esc(x.name)+'</td>'+(H.v[x.sku]||[]).map(function(v){return '<td class="n'+(v<0?' dn':'')+'">'+(v==null?'':f(v))+'</td>'}).join('')+'</tr>'});
-  var fams=[];rows.forEach(function(x){if(fams.indexOf(x.fam)<0)fams.push(x.fam)});var COLH=['#1C3D6B','#E8743B','#3B82F6','#C9A227','#15803D','#8B5CF6'];
+  var TH=topF(rows,function(x){var s=0;(H.v[x.sku]||[]).forEach(function(v){s+=Math.max(0,v||0)});return s},6),fams=TH.list;var COLH=['#1C3D6B','#E8743B','#3B82F6','#C9A227','#15803D','#8B5CF6'];
   var n=H.dates.length,W=Math.max(1100,n*90),HH=240,pad=28,bw=(W-pad*2)/n,mx=0;H.dates.forEach(function(_,j){mx=Math.max(mx,sum(rows,function(x){return Math.max(0,(H.v[x.sku]||[])[j]||0)}))});
   var svg='<svg class="chart" viewBox="0 0 '+W+' '+(HH+40)+'" direction="ltr">';
-  H.dates.forEach(function(dt,j){var y=HH,x=pad+j*bw+6;fams.forEach(function(fm,k){var v=sum(rows.filter(function(r){return r.fam===fm}),function(r){return Math.max(0,(H.v[r.sku]||[])[j]||0)}),hh=mx?v/mx*(HH-30):0;y-=hh;svg+='<rect x="'+x+'" y="'+y+'" width="'+(bw-12)+'" height="'+hh+'" fill="'+COLH[k%COLH.length]+'"/>'});
+  H.dates.forEach(function(dt,j){var y=HH,x=pad+j*bw+6;fams.forEach(function(fm,k){var v=sum(rows.filter(function(r){return TH.of(r.fam)===fm}),function(r){return Math.max(0,(H.v[r.sku]||[])[j]||0)}),hh=mx?v/mx*(HH-30):0;y-=hh;svg+='<rect x="'+x+'" y="'+y+'" width="'+(bw-12)+'" height="'+hh+'" fill="'+COLH[k%COLH.length]+'"/>'});
     svg+='<text x="'+(x+(bw-12)/2)+'" y="'+(y-5)+'" font-size="11" text-anchor="middle" fill="#1F2937" font-weight="700">'+(tot[j]>=10000?Math.round(tot[j]/1000)+'K':f(tot[j]))+'</text><text x="'+(x+(bw-12)/2)+'" y="'+(HH+16)+'" font-size="11" text-anchor="middle" fill="#6B7280">'+dl(dt)+'</text>'});
   document.getElementById('hChart').innerHTML='<div class="scroll">'+svg+'</svg></div>';
   document.getElementById('hLeg').innerHTML=fams.map(function(fm,k){return '<span><i style="background:'+COLH[k%COLH.length]+'"></i>'+esc(fm)+'</span>'}).join('');
