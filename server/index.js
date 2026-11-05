@@ -1410,11 +1410,8 @@ function makeShortInvite(code, name, days = 365, isManager = false, target = nul
 // the button opens this instead. Same key and ?u= as FR's button, same trust rule as /auth/pbi (a known PBI
 // manager, or anonymous only from MAHSAN_ALLOWED_IPS); the session travels in the URL like the mahsan invite
 // — no cookies, so this never opens the Formula Road gate on this host.
-// 2026-11-05: the editor moved to FR (D.S LABS) — forward the PBI button's query (k, u, open) untouched.
-app.get('/mahsan', dataRateLimit, (req, res) => {
-  const qs = req.originalUrl.indexOf('?');
-  return res.redirect(302, 'https://api.sverdlik-apps.site/mahsan' + (qs >= 0 ? req.originalUrl.slice(qs) : ''));
-});
+// 2026-11-05: the editor moved to FR (D.S LABS); the PBI button links there directly — no forwarding here.
+app.get('/mahsan', dataRateLimit, (req, res) => res.status(410).send(_inviteExpiredPage));
 app.get('/i/:code', dataRateLimit, (req, res) => {
   const map = loadShortInvites();
   const payload = map[req.params.code];
